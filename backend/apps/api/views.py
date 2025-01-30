@@ -1,3 +1,10 @@
-from django.shortcuts import render
+from rest_framework import viewsets
+
+from .models import Trench
+from .serializers import TrenchSerializer
+
 
 # Create your views here.
+class TrenchViewSet(viewsets.ModelViewSet):
+    queryset = Trench.objects.all()
+    serializer_class = TrenchSerializer
