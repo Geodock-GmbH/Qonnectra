@@ -1,0 +1,11 @@
+[
+    {
+        "model": "api.attributescompany",
+        "pk": 1,
+        "fields": {
+            "company": "Geodock",
+            "city": "Flensburg",
+            "postal_code": "24943"
+        }
+    }
+]

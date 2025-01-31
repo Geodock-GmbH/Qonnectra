@@ -16,6 +16,9 @@ class AttributesSurface(models.Model):
             models.Index(fields=["surface"], name="idx_surface_surface"),
         ]
 
+    def __str__(self):
+        return self.surface
+
 
 class AttributesConstructionType(models.Model):
     id = models.IntegerField(primary_key=True)
@@ -30,10 +33,13 @@ class AttributesConstructionType(models.Model):
             ),
         ]
 
+    def __str__(self):
+        return self.construction_type
+
 
 class AttributesStatus(models.Model):
     id = models.IntegerField(primary_key=True)
-    status = models.TextField(null=False, db_index=False)
+    status = models.TextField(null=False, db_index=False, unique=True)
 
     class Meta:
         db_table = "attributes_status"
@@ -43,6 +49,9 @@ class AttributesStatus(models.Model):
                 name="idx_status_status",
             ),
         ]
+
+    def __str__(self):
+        return self.status
 
 
 class AttributesPhase(models.Model):
@@ -57,6 +66,9 @@ class AttributesPhase(models.Model):
                 name="idx_phase_phase",
             ),
         ]
+
+    def __str__(self):
+        return self.phase
 
 
 class AttributesCompany(models.Model):
@@ -77,6 +89,9 @@ class AttributesCompany(models.Model):
                 name="idx_company_company",
             ),
         ]
+
+    def __str__(self):
+        return self.company
 
 
 class AttributesNodeType(models.Model):
@@ -150,7 +165,7 @@ class Trench(models.Model):
     date = models.DateField(null=True)
     comment = models.TextField(null=True)
     house_connection = models.BooleanField(null=True, default=False)
-    length = models.DecimalField(null=False, max_digits=8, decimal_places=4)
+    length = models.DecimalField(null=False, max_digits=12, decimal_places=4)
     geom = gis_models.LineStringField(
         null=False, srid=settings.DEFAULT_SRID, spatial_index=False
     )
