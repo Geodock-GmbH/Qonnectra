@@ -6,5 +6,5 @@ from .serializers import TrenchSerializer
 
 # Create your views here.
 class TrenchViewSet(viewsets.ModelViewSet):
-    queryset = Trench.objects.all()
+    queryset = Trench.objects.all().order_by("id_trench")
     serializer_class = TrenchSerializer

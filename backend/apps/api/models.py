@@ -172,6 +172,7 @@ class Trench(models.Model):
 
     class Meta:
         db_table = "trench"
+        ordering = ["id_trench"]
         indexes = [
             models.Index(fields=["id_trench"], name="idx_trench_id_trench"),
             models.Index(fields=["surface"], name="idx_trench_surface"),
