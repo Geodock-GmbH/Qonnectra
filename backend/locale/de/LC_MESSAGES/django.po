@@ -1,0 +1,98 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-02-04 16:54+0100\n"
+"PO-Revision-Date: 2025-02-04 16:55+0100\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+#: apps/api/models.py:117
+msgid "Trench ID"
+msgstr "Graben-ID"
+
+#: apps/api/models.py:124
+msgid "Surface"
+msgstr "Oberfläche"
+
+#: apps/api/models.py:132
+msgid "Construction Type"
+msgstr "Bauart"
+
+#: apps/api/models.py:135
+msgid "Construction Depth"
+msgstr "Bautiefe"
+
+#: apps/api/models.py:139
+msgid "Construction Details"
+msgstr "Baudetails"
+
+#: apps/api/models.py:148
+msgid "Status"
+msgstr "Status"
+
+#: apps/api/models.py:156
+msgid "Phase"
+msgstr "Phase"
+
+#: apps/api/models.py:159
+msgid "Internal Execution"
+msgstr "Eigenleistung"
+
+#: apps/api/models.py:163
+msgid "Funding Status"
+msgstr "Förderstatus"
+
+#: apps/api/models.py:173
+msgid "Owner"
+msgstr "Eigentümer"
+
+#: apps/api/models.py:182
+msgid "Company"
+msgstr "Firma"
+
+#: apps/api/models.py:184
+msgid "Date"
+msgstr "Datum"
+
+#: apps/api/models.py:185
+msgid "Comment"
+msgstr "Kommentar"
+
+#: apps/api/models.py:187
+msgid "House Connection"
+msgstr "Hausanschluss"
+
+#: apps/api/models.py:192
+msgid "Length"
+msgstr "Länge"
+
+#: apps/api/models.py:198
+msgid "Geometry"
+msgstr "Geometrie"
+
+#: apps/api/models.py:206
+msgid "Trench"
+msgstr "Graben"
+
+#: apps/api/models.py:207
+msgid "Trenches"
+msgstr "Gräben"
+
+#: apps/api/models.py:10
+msgid "Sealing"
+msgstr "Versiegelung"
+
+#: apps/api/models.py:11
+msgid "unbefestigt"
+msgstr "unbefestigt"

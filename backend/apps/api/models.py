@@ -3,12 +3,13 @@ import uuid
 from django.conf import settings
 from django.contrib.gis.db import models as gis_models
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class AttributesSurface(models.Model):
     id = models.IntegerField(primary_key=True)
-    surface = models.TextField(null=False, db_index=False)
-    sealing = models.BooleanField(null=False)
+    surface = models.TextField(_("Surface"), null=False, db_index=False)
+    sealing = models.BooleanField(_("Sealing"), null=False)
 
     class Meta:
         db_table = "attributes_surface"
@@ -113,13 +114,14 @@ class AttributesNodeType(models.Model):
 
 class Trench(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4(), primary_key=True)
-    id_trench = models.IntegerField(null=False)
+    id_trench = models.IntegerField(_("Trench ID"), null=False)
     surface = models.ForeignKey(
         AttributesSurface,
         null=False,
         on_delete=models.CASCADE,
         db_column="surface",
         db_index=False,
+        verbose_name=_("Surface"),
     )
     construction_type = models.ForeignKey(
         AttributesConstructionType,
@@ -127,15 +129,23 @@ class Trench(models.Model):
         on_delete=models.CASCADE,
         db_column="construction_type",
         db_index=False,
+        verbose_name=_("Construction Type"),
     )
-    construction_depth = models.IntegerField(null=True)
-    construction_details = models.TextField(null=True)
+    construction_depth = models.IntegerField(
+        _("Construction Depth"),
+        null=True,
+    )
+    construction_details = models.TextField(
+        _("Construction Details"),
+        null=True,
+    )
     status = models.ForeignKey(
         AttributesStatus,
         null=True,
         on_delete=models.CASCADE,
         db_column="status",
         db_index=False,
+        verbose_name=_("Status"),
     )
     phase = models.ForeignKey(
         AttributesPhase,
@@ -143,9 +153,16 @@ class Trench(models.Model):
         on_delete=models.CASCADE,
         db_column="phase",
         db_index=False,
+        verbose_name=_("Phase"),
     )
-    internal_execution = models.BooleanField(null=True)
-    funding_status = models.BooleanField(null=True)
+    internal_execution = models.BooleanField(
+        _("Internal Execution"),
+        null=True,
+    )
+    funding_status = models.BooleanField(
+        _("Funding Status"),
+        null=True,
+    )
     owner = models.ForeignKey(
         AttributesCompany,
         null=True,
@@ -153,6 +170,7 @@ class Trench(models.Model):
         related_name="owned_trenches",
         db_column="owner",
         db_index=False,
+        verbose_name=_("Owner"),
     )
     company = models.ForeignKey(
         AttributesCompany,
@@ -161,17 +179,32 @@ class Trench(models.Model):
         related_name="executed_trenches",
         db_column="company",
         db_index=False,
+        verbose_name=_("Company"),
     )
-    date = models.DateField(null=True)
-    comment = models.TextField(null=True)
-    house_connection = models.BooleanField(null=True, default=False)
-    length = models.DecimalField(null=False, max_digits=12, decimal_places=4)
+    date = models.DateField(_("Date"), null=True)
+    comment = models.TextField(_("Comment"), null=True)
+    house_connection = models.BooleanField(
+        _("House Connection"),
+        null=True,
+        default=False,
+    )
+    length = models.DecimalField(
+        _("Length"),
+        null=False,
+        max_digits=12,
+        decimal_places=4,
+    )
     geom = gis_models.LineStringField(
-        null=False, srid=settings.DEFAULT_SRID, spatial_index=False
+        _("Geometry"),
+        null=False,
+        srid=settings.DEFAULT_SRID,
+        spatial_index=False,
     )
 
     class Meta:
         db_table = "trench"
+        verbose_name = _("Trench")
+        verbose_name_plural = _("Trenches")
         ordering = ["id_trench"]
         indexes = [
             models.Index(fields=["id_trench"], name="idx_trench_id_trench"),

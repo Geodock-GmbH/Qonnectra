@@ -8,3 +8,5 @@ from .serializers import TrenchSerializer
 class TrenchViewSet(viewsets.ModelViewSet):
     queryset = Trench.objects.all().order_by("id_trench")
     serializer_class = TrenchSerializer
+    lookup_field = "id_trench"
+    lookup_url_kwarg = "pk"

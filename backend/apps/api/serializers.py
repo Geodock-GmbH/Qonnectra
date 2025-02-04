@@ -1,7 +1,7 @@
 from django.conf import settings
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer, GeometryField
-
+from django.utils.translation import gettext_lazy as _
 from .models import (
     AttributesCompany,
     AttributesConstructionType,
@@ -68,7 +68,9 @@ class TrenchSerializer(GeoFeatureModelSerializer):
 
     # Add write fields for foreign keys
     surface_value = serializers.PrimaryKeyRelatedField(
-        write_only=True, queryset=AttributesSurface.objects.all(), source="surface"
+        write_only=True,
+        queryset=AttributesSurface.objects.all(),
+        source="surface",
     )
     construction_type_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
@@ -132,3 +134,24 @@ class TrenchSerializer(GeoFeatureModelSerializer):
                 )
 
         return value
+
+    def get_fields(self):
+        """Dynamically translate choices in the browsable API form."""
+        fields = super().get_fields()
+
+        # Translate labels for write-only fields
+        fields["surface_value"].label = _("Surface")
+        fields["construction_type_id"].label = _("Construction Type")
+        fields["status_id"].label = _("Status")
+        fields["phase_id"].label = _("Phase")
+        fields["trench_owner"].label = _("Owner")
+        fields["trench_company"].label = _("Company")
+        fields["construction_depth"].label = _("Construction Depth")
+        fields["construction_details"].label = _("Construction Details")
+        fields["internal_execution"].label = _("Internal Execution")
+        fields["funding_status"].label = _("Funding Status")
+        fields["date"].label = _("Date")
+        fields["comment"].label = _("Comment")
+        fields["geom"].label = _("Geometry")
+
+        return fields
