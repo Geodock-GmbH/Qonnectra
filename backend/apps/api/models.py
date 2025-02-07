@@ -218,3 +218,67 @@ class Trench(models.Model):
             models.Index(fields=["company"], name="idx_trench_company"),
             gis_models.Index(fields=["geom"], name="idx_trench_geom"),
         ]
+
+
+# OL VIEW
+class OlTrench(models.Model):
+    uuid = models.UUIDField(primary_key=True)
+    id_trench = models.IntegerField(_("Trench ID"))
+    surface = models.ForeignKey(
+        AttributesSurface,
+        on_delete=models.DO_NOTHING,
+        db_column="surface",
+        verbose_name=_("Surface"),
+    )
+    construction_type = models.ForeignKey(
+        AttributesConstructionType,
+        on_delete=models.DO_NOTHING,
+        db_column="construction_type",
+        verbose_name=_("Construction Type"),
+    )
+    construction_depth = models.IntegerField(_("Construction Depth"), null=True)
+    construction_details = models.TextField(_("Construction Details"), null=True)
+    status = models.ForeignKey(
+        AttributesStatus,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="status",
+        verbose_name=_("Status"),
+    )
+    phase = models.ForeignKey(
+        AttributesPhase,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="phase",
+        verbose_name=_("Phase"),
+    )
+    internal_execution = models.BooleanField(_("Internal Execution"), null=True)
+    funding_status = models.BooleanField(_("Funding Status"), null=True)
+    owner = models.ForeignKey(
+        AttributesCompany,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        related_name="owned_ol_trenches",
+        db_column="owner",
+        verbose_name=_("Owner"),
+    )
+    company = models.ForeignKey(
+        AttributesCompany,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        related_name="executed_ol_trenches",
+        db_column="company",
+        verbose_name=_("Company"),
+    )
+    date = models.DateField(_("Date"), null=True)
+    comment = models.TextField(_("Comment"), null=True)
+    house_connection = models.BooleanField(_("House Connection"), null=True)
+    length = models.DecimalField(_("Length"), max_digits=12, decimal_places=4)
+    geom = gis_models.LineStringField(_("Geometry"), srid=settings.DEFAULT_SRID)
+
+    class Meta:
+        managed = False
+        db_table = "ol_trench"
+        verbose_name = _("OL Trench")
+        verbose_name_plural = _("OL Trenches")
+        ordering = ["id_trench"]

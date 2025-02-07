@@ -9,6 +9,7 @@ from .models import (
     AttributesStatus,
     AttributesSurface,
     Trench,
+    OlTrench,
 )
 
 
@@ -146,6 +147,58 @@ class TrenchSerializer(GeoFeatureModelSerializer):
         fields["phase_id"].label = _("Phase")
         fields["trench_owner"].label = _("Owner")
         fields["trench_company"].label = _("Company")
+        fields["construction_depth"].label = _("Construction Depth")
+        fields["construction_details"].label = _("Construction Details")
+        fields["internal_execution"].label = _("Internal Execution")
+        fields["funding_status"].label = _("Funding Status")
+        fields["date"].label = _("Date")
+        fields["comment"].label = _("Comment")
+        fields["geom"].label = _("Geometry")
+
+        return fields
+
+
+class OlTrenchSerializer(GeoFeatureModelSerializer):
+    # Read only fields for all fields since this is a view
+    uuid = serializers.UUIDField(read_only=True)
+    id_trench = serializers.IntegerField(read_only=True)
+    house_connection = serializers.BooleanField(read_only=True)
+    length = serializers.DecimalField(read_only=True, max_digits=12, decimal_places=4)
+
+    # Get nested serializers for foreign keys
+    surface = AttributesSurfaceSerializer(read_only=True)
+    construction_type = AttributesConstructionTypeSerializer(read_only=True)
+    status = AttributesStatusSerializer(read_only=True)
+    phase = AttributesPhaseSerializer(read_only=True)
+    owner = AttributesCompanySerializer(read_only=True)
+    company = AttributesCompanySerializer(read_only=True)
+
+    # Format date to YYYY/MM/DD
+    date = serializers.DateField(format="%Y/%m/%d", read_only=True)
+    construction_depth = serializers.IntegerField(read_only=True)
+    construction_details = serializers.CharField(read_only=True)
+    internal_execution = serializers.BooleanField(read_only=True)
+    funding_status = serializers.BooleanField(read_only=True)
+    comment = serializers.CharField(read_only=True)
+    geom = GeometryField(read_only=True)
+
+    class Meta:
+        model = OlTrench
+        geo_field = "geom"
+        fields = "__all__"
+        ordering = ["id_trench"]
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+
+        # Translate labels
+        fields["surface"].label = _("Surface")
+        fields["construction_type"].label = _("Construction Type")
+        fields["status"].label = _("Status")
+        fields["phase"].label = _("Phase")
+        fields["owner"].label = _("Owner")
+        fields["company"].label = _("Company")
         fields["construction_depth"].label = _("Construction Depth")
         fields["construction_details"].label = _("Construction Details")
         fields["internal_execution"].label = _("Internal Execution")
