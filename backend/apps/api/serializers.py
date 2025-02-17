@@ -14,30 +14,40 @@ from .models import (
 
 
 class AttributesSurfaceSerializer(serializers.ModelSerializer):
+    """Serializer for the AttributesSurface model."""
+
     class Meta:
         model = AttributesSurface
         fields = ["id", "surface", "sealing"]
 
 
 class AttributesConstructionTypeSerializer(serializers.ModelSerializer):
+    """Serializer for the AttributesConstructionType model."""
+
     class Meta:
         model = AttributesConstructionType
         fields = ["id", "construction_type"]
 
 
 class AttributesStatusSerializer(serializers.ModelSerializer):
+    """Serializer for the AttributesStatus model."""
+
     class Meta:
         model = AttributesStatus
         fields = ["id", "status"]
 
 
 class AttributesPhaseSerializer(serializers.ModelSerializer):
+    """Serializer for the AttributesPhase model."""
+
     class Meta:
         model = AttributesPhase
         fields = ["id", "phase"]
 
 
 class AttributesCompanySerializer(serializers.ModelSerializer):
+    """Serializer for the AttributesCompany model."""
+
     class Meta:
         model = AttributesCompany
         fields = [
@@ -53,6 +63,19 @@ class AttributesCompanySerializer(serializers.ModelSerializer):
 
 
 class TrenchSerializer(GeoFeatureModelSerializer):
+    """Serializer for the Trench model.
+
+    Args:
+        GeoFeatureModelSerializer (GeoFeatureModelSerializer): The base serializer class.
+
+    Raises:
+        serializers.ValidationError: If the geometry is not a LineString.
+        serializers.ValidationError: If the geometry cannot be transformed to the default SRID.
+
+    Returns:
+        dict: The serialized trench.
+    """
+
     # Read only fields
     uuid = serializers.UUIDField(read_only=True)
     id_trench = serializers.IntegerField(read_only=True)
@@ -159,6 +182,12 @@ class TrenchSerializer(GeoFeatureModelSerializer):
 
 
 class OlTrenchSerializer(GeoFeatureModelSerializer):
+    """Serializer for the OlTrench model.
+
+    Args:
+        GeoFeatureModelSerializer (GeoFeatureModelSerializer): The base serializer class.
+    """
+
     # Read only fields for all fields since this is a view
     uuid = serializers.UUIDField(read_only=True)
     id_trench = serializers.IntegerField(read_only=True)

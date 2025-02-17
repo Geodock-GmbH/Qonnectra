@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.10"
 
 [manifest]
@@ -28,6 +29,7 @@ dependencies = [
     { name = "django-cors-headers" },
     { name = "djangorestframework" },
     { name = "djangorestframework-gis" },
+    { name = "docutils" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pytest" },
     { name = "python-dotenv" },
@@ -39,6 +41,7 @@ requires-dist = [
     { name = "django-cors-headers", specifier = ">=4.6.0" },
     { name = "djangorestframework", specifier = ">=3.15.2" },
     { name = "djangorestframework-gis", specifier = ">=1.1" },
+    { name = "docutils", specifier = ">=0.21.2" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.4" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
@@ -115,6 +118,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/96/56/87d5921170e05af629d04f733c6991fdfb9f8fde210beef9d63f3ae087c4/djangorestframework_gis-1.1.tar.gz", hash = "sha256:84b915503a59263ed9473ecde34b19260c3e9c5c8ebb3aea8d91a67fd39f7215", size = 49563 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f4/c4/09f9d899e827fd7fbed450962c9b6c67d501c06f7e29e0abee30c13e53d0/djangorestframework_gis-1.1-py2.py3-none-any.whl", hash = "sha256:fd8631c2c10208df5f05ee297ce333aaa9a794acd654420207f72e8f9acd59ea", size = 21836 },
+]
+
+[[package]]
+name = "docutils"
+version = "0.21.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ae/ed/aefcc8cd0ba62a0560c3c18c33925362d46c6075480bfa4df87b28e169a9/docutils-0.21.2.tar.gz", hash = "sha256:3a6b18732edf182daa3cd12775bbb338cf5691468f91eeeb109deff6ebfa986f", size = 2204444 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8f/d7/9322c609343d929e75e7e5e6255e614fcc67572cfd083959cdef3b7aad79/docutils-0.21.2-py3-none-any.whl", hash = "sha256:dafca5b9e384f0e419294eb4d2ff9fa826435bf15f15b7bd45723e8ad76811b2", size = 587408 },
 ]
 
 [[package]]

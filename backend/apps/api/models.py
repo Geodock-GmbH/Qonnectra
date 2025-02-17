@@ -7,6 +7,10 @@ from django.utils.translation import gettext_lazy as _
 
 
 class AttributesSurface(models.Model):
+    """Stores all surfaces types for trench features,
+    related to :model:`api.Trench`.
+    """
+
     id = models.IntegerField(primary_key=True)
     surface = models.TextField(_("Surface"), null=False, db_index=False)
     sealing = models.BooleanField(_("Sealing"), null=False)
@@ -22,6 +26,10 @@ class AttributesSurface(models.Model):
 
 
 class AttributesConstructionType(models.Model):
+    """Stores all construction types for trench features,
+    related to :model:`api.Trench`.
+    """
+
     id = models.IntegerField(primary_key=True)
     construction_type = models.TextField(null=False, db_index=False)
 
@@ -39,6 +47,10 @@ class AttributesConstructionType(models.Model):
 
 
 class AttributesStatus(models.Model):
+    """Stores all statuses for different models,
+    related to :model:`api.Trench`.
+    """
+
     id = models.IntegerField(primary_key=True)
     status = models.TextField(null=False, db_index=False, unique=True)
 
@@ -56,6 +68,10 @@ class AttributesStatus(models.Model):
 
 
 class AttributesPhase(models.Model):
+    """Stores all phases for different models,
+    related to :model:`api.Trench`.
+    """
+
     id = models.IntegerField(primary_key=True)
     phase = models.TextField(null=False, db_index=False)
 
@@ -73,6 +89,10 @@ class AttributesPhase(models.Model):
 
 
 class AttributesCompany(models.Model):
+    """Stores all companies for different models,
+    related to :model:`api.Trench`.
+    """
+
     id = models.IntegerField(primary_key=True)
     company = models.TextField(null=False, db_index=False)
     city = models.TextField(null=True)
@@ -96,6 +116,10 @@ class AttributesCompany(models.Model):
 
 
 class AttributesNodeType(models.Model):
+    """Stores all node types for node features,
+    related to :model:`api.Node`.
+    """
+
     id = models.IntegerField(primary_key=True)
     node_type = models.TextField(null=False, db_index=False)
     dimension = models.TextField(null=True)
@@ -113,6 +137,14 @@ class AttributesNodeType(models.Model):
 
 
 class Trench(models.Model):
+    """Stores all trench features,
+    related to :model:`api.AttributesSurface`,
+    :model:`api.AttributesConstructionType`,
+    :model:`api.AttributesStatus`,
+    :model:`api.AttributesPhase`,
+    :model:`api.AttributesCompany`.
+    """
+
     uuid = models.UUIDField(default=uuid.uuid4(), primary_key=True)
     id_trench = models.IntegerField(_("Trench ID"), null=False)
     surface = models.ForeignKey(
@@ -202,6 +234,8 @@ class Trench(models.Model):
     )
 
     class Meta:
+        """Meta class for the trench model."""
+
         db_table = "trench"
         verbose_name = _("Trench")
         verbose_name_plural = _("Trenches")
@@ -222,6 +256,14 @@ class Trench(models.Model):
 
 # OL VIEW
 class OlTrench(models.Model):
+    """Stores all trench features rendered on Openlayers,
+    related to :model:`api.AttributesSurface`,
+    :model:`api.AttributesConstructionType`,
+    :model:`api.AttributesStatus`,
+    :model:`api.AttributesPhase`,
+    :model:`api.AttributesCompany`.
+    """
+
     uuid = models.UUIDField(primary_key=True)
     id_trench = models.IntegerField(_("Trench ID"))
     surface = models.ForeignKey(
