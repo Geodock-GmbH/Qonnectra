@@ -145,7 +145,7 @@ class Trench(models.Model):
     :model:`api.AttributesCompany`.
     """
 
-    uuid = models.UUIDField(default=uuid.uuid4(), primary_key=True)
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
     id_trench = models.IntegerField(_("Trench ID"), null=False)
     surface = models.ForeignKey(
         AttributesSurface,
@@ -229,7 +229,7 @@ class Trench(models.Model):
     geom = gis_models.LineStringField(
         _("Geometry"),
         null=False,
-        srid=settings.DEFAULT_SRID,
+        srid=int(settings.DEFAULT_SRID),
         spatial_index=False,
     )
 
@@ -316,7 +316,7 @@ class OlTrench(models.Model):
     comment = models.TextField(_("Comment"), null=True)
     house_connection = models.BooleanField(_("House Connection"), null=True)
     length = models.DecimalField(_("Length"), max_digits=12, decimal_places=4)
-    geom = gis_models.LineStringField(_("Geometry"), srid=settings.DEFAULT_SRID)
+    geom = gis_models.LineStringField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
 
     class Meta:
         managed = False
