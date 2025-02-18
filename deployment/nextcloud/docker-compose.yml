@@ -1,0 +1,27 @@
+services:
+  nextcloud:
+    image: nextcloud:latest
+    container_name: krit_nextcloud
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./data/nextcloud:/var/www/html
+      - ./data/apps:/var/www/html/custom_apps
+      - ./data/config:/var/www/html/config
+      - ./data/files:/var/www/html/data
+    environment:
+      - POSTGRES_HOST=krit_gis_db
+      - POSTGRES_DB=nextcloud_db
+      - POSTGRES_USER=geodock_admin
+      - POSTGRES_PASSWORD=geodock_admin
+      - NEXTCLOUD_ADMIN_USER=admin
+      - NEXTCLOUD_ADMIN_PASSWORD=admin
+      - NEXTCLOUD_TRUSTED_DOMAINS=localhost 127.0.0.1
+    networks:
+      - krit_gis_network
+
+networks:
+  krit_gis_network:
+    external: true
+    name: krit_gis_network
