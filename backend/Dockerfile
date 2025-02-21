@@ -25,12 +25,5 @@ COPY . .
 # Collect static files
 RUN python manage.py collectstatic --noinput
 
-# Run migrations and load fixtures
-RUN python manage.py migrate
-RUN python manage.py loaddata attributes_company attributes_construction_type attributes_phase attributes_status attributes_surface
-
 # Expose port
 EXPOSE 8000
-
-# Start server
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "core.wsgi:application"] 
