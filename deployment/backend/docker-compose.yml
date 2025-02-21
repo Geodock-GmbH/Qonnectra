@@ -1,0 +1,26 @@
+services:
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    container_name: krit_gis_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=False
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+      - DB_NAME=krit_gis
+      - DB_USER=geodock_admin
+      - DB_PASSWORD=geodock_admin
+      - DB_HOST=krit_gis_db
+      - DB_PORT=5432
+      - DEFAULT_SRID=25832
+    networks:
+      - krit_gis_network
+
+networks:
+  krit_gis_network:
+    external: true
+    name: krit_gis_network

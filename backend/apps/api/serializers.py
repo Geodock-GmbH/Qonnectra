@@ -1,15 +1,17 @@
 from django.conf import settings
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer, GeometryField
-from django.utils.translation import gettext_lazy as _
+
 from .models import (
     AttributesCompany,
     AttributesConstructionType,
     AttributesPhase,
     AttributesStatus,
     AttributesSurface,
-    Trench,
     OlTrench,
+    Trench,
+    TrenchFiles,
 )
 
 
@@ -145,7 +147,7 @@ class TrenchSerializer(GeoFeatureModelSerializer):
         # Check geometry type
         if value.geom_type != "LineString":
             raise serializers.ValidationError(
-                f"Geometry type must be LineString, not {value.geom_type}"
+                f"{_('Geometry type must be LineString, not')} {value.geom_type}"
             )
 
         # Transform to default SRID
@@ -154,7 +156,7 @@ class TrenchSerializer(GeoFeatureModelSerializer):
                 value.transform(settings.DEFAULT_SRID)
             except Exception as e:
                 raise serializers.ValidationError(
-                    f"Could not transform coordinates to EPSG:{settings.DEFAULT_SRID}: {str(e)}"
+                    f"{_('Could not transform coordinates to EPSG:')} {settings.DEFAULT_SRID}: {str(e)}"
                 )
 
         return value
@@ -179,6 +181,17 @@ class TrenchSerializer(GeoFeatureModelSerializer):
         fields["geom"].label = _("Geometry")
 
         return fields
+
+
+class TrenchFilesSerializer(serializers.ModelSerializer):
+    """Serializer for the TrenchFiles model."""
+
+    uuid = serializers.UUIDField(read_only=True)
+    uploaded_at = serializers.DateTimeField(read_only=True)
+
+    class Meta:
+        model = TrenchFiles
+        fields = ["uuid", "id_trench", "trench", "file", "uploaded_at"]
 
 
 class OlTrenchSerializer(GeoFeatureModelSerializer):

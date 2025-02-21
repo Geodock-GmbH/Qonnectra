@@ -67,4 +67,19 @@ class Migration(migrations.Migration):
             $$;
             """
         ),
+        migrations.RunSQL(
+            """
+            create or replace function fn_id_generator(object_id integer) returns integer
+                language plpgsql
+            as
+            $$
+                declare
+                    new_object_id int;
+            begin
+                new_object_id := coalesce(max(object_id), 0) + 1;
+                return new_object_id;
+            end;
+            $$;
+            """
+        ),
     ]

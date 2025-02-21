@@ -254,6 +254,34 @@ class Trench(models.Model):
         ]
 
 
+class TrenchFiles(models.Model):
+    """Stores all files for trench features,
+    related to :model:`api.Trench`.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    id_trench = models.IntegerField(_("Trench ID"), null=False)
+    trench = models.ForeignKey(
+        Trench,
+        null=False,
+        on_delete=models.CASCADE,
+        verbose_name=_("Trench"),
+        db_column="trench_uuid",
+        db_index=False,
+    )
+    file = models.FileField(upload_to=None, null=False)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "trench_files"
+        verbose_name = _("Trench File")
+        verbose_name_plural = _("Trench Files")
+        ordering = ["id_trench"]
+        indexes = [
+            models.Index(fields=["id_trench"], name="idx_trench_files_id_trench"),
+        ]
+
+
 # OL VIEW
 class OlTrench(models.Model):
     """Stores all trench features rendered on Openlayers,

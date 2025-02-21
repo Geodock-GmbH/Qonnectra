@@ -16,6 +16,11 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             """
+            alter table trench_files alter column uuid set default gen_random_uuid();
+            """
+        ),
+        migrations.RunSQL(
+            """
             create trigger tg_01_validate_linestring_geom
                 before insert or update of geom
                 on trench
