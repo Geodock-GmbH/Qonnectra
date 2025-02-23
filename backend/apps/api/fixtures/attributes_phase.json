@@ -1,0 +1,30 @@
+[
+    {
+        "model": "api.attributesphase",
+        "pk": 1,
+        "fields": {
+            "phase": "Entwurfsplanung"
+        }
+    },
+    {
+        "model": "api.attributesphase",
+        "pk": 2,
+        "fields": {
+            "phase": "Genehmigungsplanung"
+        }
+    },
+    {
+        "model": "api.attributesphase",
+        "pk": 3,
+        "fields": {
+            "phase": "Ausführungsplanung"
+        }
+    },
+    {
+        "model": "api.attributesphase",
+        "pk": 4,
+        "fields": {
+            "phase": "Dokumentation"
+        }
+    }
+]

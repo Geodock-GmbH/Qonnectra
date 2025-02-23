@@ -1,0 +1,50 @@
+[
+    {
+        "model": "api.attributessurface",
+        "pk": 1,
+        "fields": {
+            "surface": "unbefestigt",
+            "sealing": false
+        }
+    },
+    {
+        "model": "api.attributessurface",
+        "pk": 2,
+        "fields": {
+            "surface": "Asphalt",
+            "sealing": true
+        }
+    },
+    {
+        "model": "api.attributessurface",
+        "pk": 3,
+        "fields": {
+            "surface": "Beton",
+            "sealing": true
+        }
+    },
+    {
+        "model": "api.attributessurface",
+        "pk": 4,
+        "fields": {
+            "surface": "Pflaster",
+            "sealing": true
+        }
+    },
+    {
+        "model": "api.attributessurface",
+        "pk": 5,
+        "fields": {
+            "surface": "Schotter",
+            "sealing": false
+        }
+    },
+    {
+        "model": "api.attributessurface",
+        "pk": 6,
+        "fields": {
+            "surface": "Rohrverlegt",
+            "sealing": true
+        }
+    }
+]

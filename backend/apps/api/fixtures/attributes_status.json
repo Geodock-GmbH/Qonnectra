@@ -1,0 +1,23 @@
+[
+    {
+        "model": "api.attributesstatus",
+        "pk": 1,
+        "fields": {
+            "status": "geplant"
+        }
+    },
+    {
+        "model": "api.attributesstatus",
+        "pk": 2,
+        "fields": {
+            "status": "im Bau"
+        }
+    },
+    {
+        "model": "api.attributesstatus",
+        "pk": 3,
+        "fields": {
+            "status": "dokumentiert"
+        }
+    }
+]

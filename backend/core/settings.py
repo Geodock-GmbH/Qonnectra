@@ -27,7 +27,7 @@ load_dotenv(env_path)
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-=v6c@q-^96!d&8!*+(8z#qz57=iezpumvd*iy=u3tw8u_cot#k"
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -39,23 +39,28 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     "django.contrib.admin",
+    "django.contrib.admindocs",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.gis",
     "apps.api",
     "rest_framework",
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -116,21 +121,46 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "de"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Berlin"
 
 USE_I18N = True
 
+USE_L10N = True
+
 USE_TZ = True
+
+LANGUAGES = [
+    ("de", "German"),
+    ("en", "English"),
+]
+
+LOCALE_PATHS = [
+    BASE_DIR / "locale",
+]
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Default SRID for geometry fields
+DEFAULT_SRID = os.getenv("DEFAULT_SRID")
+
+REST_FRAMEWORK = {
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 10,
+}
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",  # Default SvelteKit dev server
+    "http://127.0.0.1:5173",
+]

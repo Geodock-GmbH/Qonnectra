@@ -1,0 +1,37 @@
+[
+    {
+        "model": "api.attributesconstructiontype",
+        "pk": 1,
+        "fields": {
+            "construction_type": "klassischer Tiefbau"
+        }
+    },
+    {
+        "model": "api.attributesconstructiontype",
+        "pk": 2,
+        "fields": {
+            "construction_type": "Spülbohrverfahren"
+        }
+    },
+    {
+        "model": "api.attributesconstructiontype",
+        "pk": 3,
+        "fields": {
+            "construction_type": "Bodenverdrängung"
+        }
+    },
+    {
+        "model": "api.attributesconstructiontype",
+        "pk": 4,
+        "fields": {
+            "construction_type": "Mitverlegung"
+        }
+    },
+    {
+        "model": "api.attributesconstructiontype",
+        "pk": 5,
+        "fields": {
+            "construction_type": "Verlegung in vorh. Schutzrohr"
+        }
+    }
+]

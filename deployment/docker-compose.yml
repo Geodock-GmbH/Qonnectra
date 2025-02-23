@@ -1,0 +1,78 @@
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    container_name: krit_gis_db
+    environment:
+      POSTGRES_DB: krit_gis
+      POSTGRES_USER: geodock_admin
+      POSTGRES_PASSWORD: geodock_admin
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5440:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U geodock_admin -d krit_gis" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - krit_gis_network
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: krit_gis_backend
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py migrate &&
+            python manage.py loaddata attributes_company attributes_construction_type attributes_phase attributes_status attributes_surface &&
+            gunicorn --bind 0.0.0.0:8000 core.wsgi:application"
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=False
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+      - DB_NAME=krit_gis
+      - DB_USER=geodock_admin
+      - DB_PASSWORD=geodock_admin
+      - DB_HOST=krit_gis_db
+      - DB_PORT=5432
+      - DEFAULT_SRID=25832
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - krit_gis_network
+
+  nextcloud:
+    image: nextcloud:latest
+    container_name: krit_nextcloud
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nextcloud/data/nextcloud:/var/www/html
+      - ./nextcloud/data/apps:/var/www/html/custom_apps
+      - ./nextcloud/data/config:/var/www/html/config
+      - ./nextcloud/data/files:/var/www/html/data
+    environment:
+      - POSTGRES_HOST=krit_gis_db
+      - POSTGRES_DB=nextcloud_db
+      - POSTGRES_USER=geodock_admin
+      - POSTGRES_PASSWORD=geodock_admin
+      - NEXTCLOUD_ADMIN_USER=admin
+      - NEXTCLOUD_ADMIN_PASSWORD=admin
+      - NEXTCLOUD_TRUSTED_DOMAINS=localhost 127.0.0.1
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - krit_gis_network
+
+networks:
+  krit_gis_network:
+    name: krit_gis_network
+    driver: bridge
