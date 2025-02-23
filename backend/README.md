@@ -51,82 +51,75 @@ A Django-based GIS backend service for the Krit GIS project, providing spatial d
 
 ## 🐳 Deployment
 
-### Database Setup
+The project uses Docker Compose for deployment, which sets up three main services:
+- PostgreSQL with PostGIS for spatial data
+- Django backend service
+- Nextcloud for file management
+
+### Prerequisites
+- Docker and Docker Compose
+- Environment variables file (.env) containing:
+  ```
+  DJANGO_SECRET_KEY=your-secret-key
+  ```
+
+### Starting the Services
 
 1. Navigate to the deployment directory:
    ```bash
-   cd ../deployment/postgres
+   cd ../deployment
    ```
 
-2. Start the PostgreSQL container:
+2. Start all services:
    ```bash
    docker-compose up -d
    ```
 
-   This will start a PostgreSQL 16 instance with PostGIS extension on port 5440.
+   This will start:
+   - PostgreSQL 17 with PostGIS on port 5440
+   - Django backend on port 8000
+   - Nextcloud on port 8080
 
-### Environment Configuration
+### Service Configuration
 
-The application uses the following environment variables:
-- `DEBUG`: Set to False in production
-- `SECRET_KEY`: Django secret key
-- `ALLOWED_HOSTS`: Comma-separated list of allowed hosts
-- `DATABASE_URL`: PostgreSQL connection URL
+#### Database
+- Database name: krit_gis
+- Port: 5440 (external), 5432 (internal)
+- Default credentials (for development only):
+  - Username: geodock_admin
+  - Password: geodock_admin
 
-### Production Deployment
+#### Backend Service
+Environment variables are pre-configured in docker-compose.yml:
+- `DEBUG`: Set to False by default
+- `ALLOWED_HOSTS`: localhost,127.0.0.1
+- `DEFAULT_SRID`: 25832
+- Database connection details
 
-1. Build the Docker image:
-   ```bash
-   docker build -t krit-gis-backend .
-   ```
+#### Nextcloud
+- Access URL: http://localhost:8080
+- Default admin credentials (for development only):
+  - Username: admin
+  - Password: admin
 
-2. Run the container:
-   ```bash
-   docker run -d \
-     --name krit-gis-backend \
-     --network krit_gis_network \
-     -p 8000:8000 \
-     -e DEBUG=False \
-     -e SECRET_KEY=your-production-secret-key \
-     -e ALLOWED_HOSTS=your-domain.com \
-     -e DATABASE_URL=postgres://geodock_admin:geodock_admin@db:5432/krit_gis \
-     krit-gis-backend
-   ```
+### Monitoring Services
+
+View running containers:
+```bash
+docker-compose ps
+```
+
+View service logs:
+```bash
+docker-compose logs [service_name]
+```
+
+### Stopping Services
+```bash
+docker-compose down
+```
 
 ## 🛠️ Development
 
 ### Running Tests
-```bash
-pytest
 ```
-
-### Code Style
-The project uses Ruff for code formatting and linting:
-```bash
-ruff check .
-ruff format .
-```
-
-## 📚 API Documentation
-
-API documentation is available at:
-- Development: http://localhost:8000/api/docs/
-- Production: https://your-domain.com/api/docs/
-
-## 🌐 Available Endpoints
-
-- `/api/v1/`: API root
-- `/api/v1/admin/`: Django admin interface
-- `/api/v1/docs/`: API documentation
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
