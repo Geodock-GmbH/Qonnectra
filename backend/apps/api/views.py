@@ -22,9 +22,9 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
     An instance of :model:`api.FeatureFiles`.
     """
 
-    queryset = FeatureFiles.objects.all().order_by("feature_id")
+    queryset = FeatureFiles.objects.all().order_by("object_id")
     serializer_class = FeatureFilesSerializer
-    lookup_field = "feature_id"
+    lookup_field = "uuid"
     lookup_url_kwarg = "pk"
 
 

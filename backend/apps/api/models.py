@@ -1,6 +1,8 @@
 import uuid
 
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models as gis_models
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -146,6 +148,49 @@ class AttributesNodeType(models.Model):
         ]
 
 
+# TODO: Implement custom storage class for feature files (nextcloud): https://docs.djangoproject.com/en/4.2/howto/custom-file-storage/
+class FeatureFiles(models.Model):
+    """Stores all files for different models,
+    related to :model:`api.Trench`.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+
+    # Generic Foreign Key fields
+    content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.CASCADE,
+        verbose_name=_("Feature Type"),
+        limit_choices_to={
+            "app_label": "api",
+            "model__in": ["trench", "node", "address", "residentialunit"],
+        },
+    )
+    object_id = models.UUIDField(verbose_name=_("Feature ID"))
+    feature = GenericForeignKey("content_type", "object_id")
+
+    file_path = models.FileField(
+        upload_to=None,
+        null=False,
+        verbose_name=_("File Path"),
+    )
+    file_name = models.TextField(null=False, verbose_name=_("File Name"))
+    file_type = models.TextField(null=False, verbose_name=_("File Type"))
+    description = models.TextField(null=True, verbose_name=_("Description"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        db_table = "feature_files"
+        verbose_name = _("Feature File")
+        verbose_name_plural = _("Feature Files")
+        indexes = [
+            models.Index(
+                fields=["content_type", "object_id"],
+                name="idx_feature_files_type_id",
+            ),
+        ]
+
+
 class Trench(models.Model):
     """Stores all trench features,
     related to :model:`api.AttributesSurface`,
@@ -243,6 +288,13 @@ class Trench(models.Model):
         spatial_index=False,
     )
 
+    files = GenericRelation(
+        FeatureFiles,
+        content_type_field="content_type",
+        object_id_field="object_id",
+        related_query_name="trench",
+    )
+
     class Meta:
         """Meta class for the trench model."""
 
@@ -261,34 +313,6 @@ class Trench(models.Model):
             models.Index(fields=["owner"], name="idx_trench_owner"),
             models.Index(fields=["company"], name="idx_trench_company"),
             gis_models.Index(fields=["geom"], name="idx_trench_geom"),
-        ]
-
-
-# TODO: Implement custom storage class for feature files (nextcloud): https://docs.djangoproject.com/en/4.2/howto/custom-file-storage/
-class FeatureFiles(models.Model):
-    """Stores all files for different models,
-    related to :model:`api.Trench`.
-    """
-
-    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
-    feature_id = models.UUIDField(null=False, verbose_name=_("Feature ID"))
-    # TODO: Add feature type
-    file_path = models.FileField(
-        upload_to=None,
-        null=False,
-        verbose_name=_("File Path"),
-    )
-    file_name = models.TextField(null=False, verbose_name=_("File Name"))
-    file_type = models.TextField(null=False, verbose_name=_("File Type"))
-    description = models.TextField(null=True, verbose_name=_("Description"))
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
-
-    class Meta:
-        db_table = "feature_files"
-        verbose_name = _("Feature File")
-        verbose_name_plural = _("Feature Files")
-        indexes = [
-            models.Index(fields=["feature_id"], name="idx_feature_files_feature_id"),
         ]
 
 

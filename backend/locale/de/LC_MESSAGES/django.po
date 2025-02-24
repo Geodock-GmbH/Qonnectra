@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-02-24 11:24+0100\n"
+"POT-Creation-Date: 2025-02-24 22:19+0100\n"
 "PO-Revision-Date: 2025-02-04 16:55+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,175 +18,181 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: apps/api/models.py:15 apps/api/models.py:23 apps/api/models.py:166
-#: apps/api/models.py:320 apps/api/serializers.py:169
-#: apps/api/serializers.py:238
+#: apps/api/models.py:17 apps/api/models.py:25 apps/api/models.py:211
+#: apps/api/models.py:348 apps/api/serializers.py:169
+#: apps/api/serializers.py:262
 msgid "Surface"
 msgstr "Oberfläche"
 
-#: apps/api/models.py:16
+#: apps/api/models.py:18
 msgid "Sealing"
 msgstr "Versiegelung"
 
-#: apps/api/models.py:24
+#: apps/api/models.py:26
 #, fuzzy
 #| msgid "Surface"
 msgid "Surfaces"
 msgstr "Oberflächen"
 
-#: apps/api/models.py:46 apps/api/models.py:174 apps/api/models.py:326
-#: apps/api/serializers.py:170 apps/api/serializers.py:239
+#: apps/api/models.py:48 apps/api/models.py:219 apps/api/models.py:354
+#: apps/api/serializers.py:170 apps/api/serializers.py:263
 msgid "Construction Type"
 msgstr "Bau-/Verlegeart"
 
-#: apps/api/models.py:47
+#: apps/api/models.py:49
 #, fuzzy
 #| msgid "Construction Type"
 msgid "Construction Types"
 msgstr "Bau-/Verlegearten"
 
-#: apps/api/models.py:69 apps/api/models.py:190 apps/api/models.py:335
-#: apps/api/serializers.py:171 apps/api/serializers.py:240
+#: apps/api/models.py:71 apps/api/models.py:235 apps/api/models.py:363
+#: apps/api/serializers.py:171 apps/api/serializers.py:264
 msgid "Status"
 msgstr "Status"
 
-#: apps/api/models.py:70
+#: apps/api/models.py:72
 #, fuzzy
 #| msgid "Status"
 msgid "Statuses"
 msgstr "Status"
 
-#: apps/api/models.py:92 apps/api/models.py:198 apps/api/models.py:342
-#: apps/api/serializers.py:172 apps/api/serializers.py:241
+#: apps/api/models.py:94 apps/api/models.py:243 apps/api/models.py:370
+#: apps/api/serializers.py:172 apps/api/serializers.py:265
 msgid "Phase"
 msgstr "Phase"
 
-#: apps/api/models.py:93
+#: apps/api/models.py:95
 #, fuzzy
 #| msgid "Phase"
 msgid "Phases"
 msgstr "Phasen"
 
-#: apps/api/models.py:121 apps/api/models.py:224 apps/api/models.py:360
-#: apps/api/serializers.py:174 apps/api/serializers.py:243
+#: apps/api/models.py:123 apps/api/models.py:269 apps/api/models.py:388
+#: apps/api/serializers.py:174 apps/api/serializers.py:267
 msgid "Company"
 msgstr "Firma"
 
-#: apps/api/models.py:122
+#: apps/api/models.py:124
 #, fuzzy
 #| msgid "Company"
 msgid "Companies"
 msgstr "Firmen"
 
-#: apps/api/models.py:159 apps/api/models.py:315
-msgid "Trench ID"
-msgstr "Graben-ID"
-
-#: apps/api/models.py:177 apps/api/models.py:328 apps/api/serializers.py:175
-#: apps/api/serializers.py:244
-msgid "Construction Depth"
-msgstr "Bautiefe"
-
-#: apps/api/models.py:181 apps/api/models.py:329 apps/api/serializers.py:176
-#: apps/api/serializers.py:245
-msgid "Construction Details"
-msgstr "Baudetails"
-
-#: apps/api/models.py:201 apps/api/models.py:344 apps/api/serializers.py:177
-#: apps/api/serializers.py:246
-msgid "Internal Execution"
-msgstr "Eigenleistung"
-
-#: apps/api/models.py:205 apps/api/models.py:345 apps/api/serializers.py:178
-#: apps/api/serializers.py:247
-msgid "Funding Status"
-msgstr "Förderstatus"
-
-#: apps/api/models.py:215 apps/api/models.py:352 apps/api/serializers.py:173
-#: apps/api/serializers.py:242
-msgid "Owner"
-msgstr "Eigentümer"
-
-#: apps/api/models.py:226 apps/api/models.py:362 apps/api/serializers.py:179
-#: apps/api/serializers.py:248
-msgid "Date"
-msgstr "Datum"
-
-#: apps/api/models.py:227 apps/api/models.py:363 apps/api/serializers.py:180
-#: apps/api/serializers.py:249
-msgid "Comment"
-msgstr "Kommentar"
-
-#: apps/api/models.py:229 apps/api/models.py:364
-msgid "House Connection"
-msgstr "Hausanschluss"
-
-#: apps/api/models.py:234 apps/api/models.py:365
-msgid "Length"
-msgstr "Länge"
-
-#: apps/api/models.py:240 apps/api/models.py:366 apps/api/serializers.py:181
-#: apps/api/serializers.py:250
-msgid "Geometry"
-msgstr "Geometrie"
-
-#: apps/api/models.py:250
-msgid "Trench"
-msgstr "Graben"
-
-#: apps/api/models.py:251
-msgid "Trenches"
+#: apps/api/models.py:163 apps/api/serializers.py:210
+#, fuzzy
+#| msgid "Trenches"
+msgid "Feature Type"
 msgstr "Gräben"
 
-#: apps/api/models.py:273
+#: apps/api/models.py:169 apps/api/serializers.py:211
 msgid "Feature ID"
-msgstr ""
+msgstr "Feature-ID"
 
-#: apps/api/models.py:275
+#: apps/api/models.py:175 apps/api/serializers.py:212
 #, fuzzy
 #| msgid "File"
 msgid "File Path"
 msgstr "Datei"
 
-#: apps/api/models.py:277
+#: apps/api/models.py:177 apps/api/serializers.py:213
 #, fuzzy
 #| msgid "File"
 msgid "File Name"
 msgstr "Datei"
 
-#: apps/api/models.py:278
+#: apps/api/models.py:178 apps/api/serializers.py:214
 #, fuzzy
 #| msgid "File"
 msgid "File Type"
 msgstr "Datei"
 
-#: apps/api/models.py:279
+#: apps/api/models.py:179 apps/api/serializers.py:215
 msgid "Description"
-msgstr ""
+msgstr "Beschreibung"
 
-#: apps/api/models.py:280
+#: apps/api/models.py:180 apps/api/serializers.py:216
 msgid "Created At"
 msgstr "Erstellt am"
 
-#: apps/api/models.py:284
+#: apps/api/models.py:184
 #, fuzzy
 #| msgid "Trenches"
 msgid "Feature File"
 msgstr "Gräben"
 
-#: apps/api/models.py:285
+#: apps/api/models.py:185
 #, fuzzy
 #| msgid "Trenches"
 msgid "Feature Files"
 msgstr "Gräben"
 
-#: apps/api/models.py:371
+#: apps/api/models.py:204 apps/api/models.py:343
+msgid "Trench ID"
+msgstr "Graben-ID"
+
+#: apps/api/models.py:222 apps/api/models.py:356 apps/api/serializers.py:175
+#: apps/api/serializers.py:268
+msgid "Construction Depth"
+msgstr "Bautiefe"
+
+#: apps/api/models.py:226 apps/api/models.py:357 apps/api/serializers.py:176
+#: apps/api/serializers.py:269
+msgid "Construction Details"
+msgstr "Baudetails"
+
+#: apps/api/models.py:246 apps/api/models.py:372 apps/api/serializers.py:177
+#: apps/api/serializers.py:270
+msgid "Internal Execution"
+msgstr "Eigenleistung"
+
+#: apps/api/models.py:250 apps/api/models.py:373 apps/api/serializers.py:178
+#: apps/api/serializers.py:271
+msgid "Funding Status"
+msgstr "Förderstatus"
+
+#: apps/api/models.py:260 apps/api/models.py:380 apps/api/serializers.py:173
+#: apps/api/serializers.py:266
+msgid "Owner"
+msgstr "Eigentümer"
+
+#: apps/api/models.py:271 apps/api/models.py:390 apps/api/serializers.py:179
+#: apps/api/serializers.py:272
+msgid "Date"
+msgstr "Datum"
+
+#: apps/api/models.py:272 apps/api/models.py:391 apps/api/serializers.py:180
+#: apps/api/serializers.py:273
+msgid "Comment"
+msgstr "Kommentar"
+
+#: apps/api/models.py:274 apps/api/models.py:392
+msgid "House Connection"
+msgstr "Hausanschluss"
+
+#: apps/api/models.py:279 apps/api/models.py:393
+msgid "Length"
+msgstr "Länge"
+
+#: apps/api/models.py:285 apps/api/models.py:394 apps/api/serializers.py:181
+#: apps/api/serializers.py:274
+msgid "Geometry"
+msgstr "Geometrie"
+
+#: apps/api/models.py:302
+msgid "Trench"
+msgstr "Graben"
+
+#: apps/api/models.py:303
+msgid "Trenches"
+msgstr "Gräben"
+
+#: apps/api/models.py:399
 #, fuzzy
 #| msgid "Trench"
 msgid "OL Trench"
 msgstr "Graben"
 
-#: apps/api/models.py:372
+#: apps/api/models.py:400
 #, fuzzy
 #| msgid "Trenches"
 msgid "OL Trenches"

@@ -193,13 +193,29 @@ class FeatureFilesSerializer(serializers.ModelSerializer):
         model = FeatureFiles
         fields = [
             "uuid",
-            "feature_id",
+            "object_id",
+            "content_type",
             "file_path",
             "file_name",
             "file_type",
             "description",
             "created_at",
         ]
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+
+        # Translate labels
+        fields["content_type"].label = _("Feature Type")
+        fields["object_id"].label = _("Feature ID")
+        fields["file_path"].label = _("File Path")
+        fields["file_name"].label = _("File Name")
+        fields["file_type"].label = _("File Type")
+        fields["description"].label = _("Description")
+        fields["created_at"].label = _("Created At")
+
+        return fields
 
 
 class OlTrenchSerializer(GeoFeatureModelSerializer):
