@@ -20,6 +20,8 @@ class AttributesSurface(models.Model):
         indexes = [
             models.Index(fields=["surface"], name="idx_surface_surface"),
         ]
+        verbose_name = _("Surface")
+        verbose_name_plural = _("Surfaces")
 
     def __str__(self):
         return self.surface
@@ -41,6 +43,8 @@ class AttributesConstructionType(models.Model):
                 name="idx_construction_type",
             ),
         ]
+        verbose_name = _("Construction Type")
+        verbose_name_plural = _("Construction Types")
 
     def __str__(self):
         return self.construction_type
@@ -62,6 +66,8 @@ class AttributesStatus(models.Model):
                 name="idx_status_status",
             ),
         ]
+        verbose_name = _("Status")
+        verbose_name_plural = _("Statuses")
 
     def __str__(self):
         return self.status
@@ -83,6 +89,8 @@ class AttributesPhase(models.Model):
                 name="idx_phase_phase",
             ),
         ]
+        verbose_name = _("Phase")
+        verbose_name_plural = _("Phases")
 
     def __str__(self):
         return self.phase
@@ -110,6 +118,8 @@ class AttributesCompany(models.Model):
                 name="idx_company_company",
             ),
         ]
+        verbose_name = _("Company")
+        verbose_name_plural = _("Companies")
 
     def __str__(self):
         return self.company
@@ -254,32 +264,45 @@ class Trench(models.Model):
         ]
 
 
-class TrenchFiles(models.Model):
-    """Stores all files for trench features,
+# TODO: Implement custom storage class for feature files (nextcloud): https://docs.djangoproject.com/en/4.2/howto/custom-file-storage/
+class FeatureFiles(models.Model):
+    """Stores all files for different models,
     related to :model:`api.Trench`.
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
-    id_trench = models.IntegerField(_("Trench ID"), null=False)
-    trench = models.ForeignKey(
-        Trench,
+    feature_id = models.UUIDField(null=False, verbose_name=_("Feature ID"))
+    # TODO: Add feature type
+    file_path = models.FileField(
+        upload_to=None,
         null=False,
-        on_delete=models.CASCADE,
-        verbose_name=_("Trench"),
-        db_column="trench_uuid",
-        db_index=False,
+        verbose_name=_("File Path"),
     )
-    file = models.FileField(upload_to=None, null=False)
-    uploaded_at = models.DateTimeField(auto_now_add=True)
+    file_name = models.TextField(null=False, verbose_name=_("File Name"))
+    file_type = models.TextField(null=False, verbose_name=_("File Type"))
+    description = models.TextField(null=True, verbose_name=_("Description"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     class Meta:
-        db_table = "trench_files"
-        verbose_name = _("Trench File")
-        verbose_name_plural = _("Trench Files")
-        ordering = ["id_trench"]
+        db_table = "feature_files"
+        verbose_name = _("Feature File")
+        verbose_name_plural = _("Feature Files")
         indexes = [
-            models.Index(fields=["id_trench"], name="idx_trench_files_id_trench"),
+            models.Index(fields=["feature_id"], name="idx_feature_files_feature_id"),
         ]
+
+
+# TODO: Implement area model
+# TODO: Refactor area count trigger, fn_update_area_counts and fn_area_counts_area_update to be dynamic
+
+# TODO: Implement node model
+# TODO: Implement node files model
+
+# TODO: Implement address model
+# TODO: Implement address files model
+
+# TODO: Implement residential unit model
+# TODO: Implement residential unit files model
 
 
 # OL VIEW

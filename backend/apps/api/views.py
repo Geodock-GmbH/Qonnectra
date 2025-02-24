@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 
-from .models import OlTrench, Trench, TrenchFiles
-from .serializers import OlTrenchSerializer, TrenchFilesSerializer, TrenchSerializer
+from .models import OlTrench, Trench, FeatureFiles
+from .serializers import OlTrenchSerializer, FeatureFilesSerializer, TrenchSerializer
 
 
 class TrenchViewSet(viewsets.ModelViewSet):
@@ -16,15 +16,15 @@ class TrenchViewSet(viewsets.ModelViewSet):
     lookup_url_kwarg = "pk"
 
 
-class TrenchFilesViewSet(viewsets.ModelViewSet):
-    """ViewSet for the TrenchFiles model :model:`api.TrenchFiles`.
+class FeatureFilesViewSet(viewsets.ModelViewSet):
+    """ViewSet for the FeatureFiles model :model:`api.FeatureFiles`.
 
-    An instance of :model:`api.TrenchFiles`.
+    An instance of :model:`api.FeatureFiles`.
     """
 
-    queryset = TrenchFiles.objects.all().order_by("id_trench")
-    serializer_class = TrenchFilesSerializer
-    lookup_field = "id_trench"
+    queryset = FeatureFiles.objects.all().order_by("feature_id")
+    serializer_class = FeatureFilesSerializer
+    lookup_field = "feature_id"
     lookup_url_kwarg = "pk"
 
 

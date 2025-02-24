@@ -11,7 +11,7 @@ from .models import (
     AttributesSurface,
     OlTrench,
     Trench,
-    TrenchFiles,
+    FeatureFiles,
 )
 
 
@@ -183,15 +183,23 @@ class TrenchSerializer(GeoFeatureModelSerializer):
         return fields
 
 
-class TrenchFilesSerializer(serializers.ModelSerializer):
-    """Serializer for the TrenchFiles model."""
+class FeatureFilesSerializer(serializers.ModelSerializer):
+    """Serializer for the FeatureFiles model."""
 
     uuid = serializers.UUIDField(read_only=True)
-    uploaded_at = serializers.DateTimeField(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
 
     class Meta:
-        model = TrenchFiles
-        fields = ["uuid", "id_trench", "trench", "file", "uploaded_at"]
+        model = FeatureFiles
+        fields = [
+            "uuid",
+            "feature_id",
+            "file_path",
+            "file_name",
+            "file_type",
+            "description",
+            "created_at",
+        ]
 
 
 class OlTrenchSerializer(GeoFeatureModelSerializer):
