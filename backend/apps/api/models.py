@@ -6,6 +6,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models as gis_models
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from .storage import NextcloudStorage
 
 
 class AttributesSurface(models.Model):
@@ -170,7 +171,8 @@ class FeatureFiles(models.Model):
     feature = GenericForeignKey("content_type", "object_id")
 
     file_path = models.FileField(
-        upload_to=None,
+        upload_to="%Y/%m/%d",  # Organizes files by date
+        storage=NextcloudStorage(),
         null=False,
         verbose_name=_("File Path"),
     )
@@ -320,13 +322,10 @@ class Trench(models.Model):
 # TODO: Refactor area count trigger, fn_update_area_counts and fn_area_counts_area_update to be dynamic
 
 # TODO: Implement node model
-# TODO: Implement node files model
 
 # TODO: Implement address model
-# TODO: Implement address files model
 
 # TODO: Implement residential unit model
-# TODO: Implement residential unit files model
 
 
 # OL VIEW

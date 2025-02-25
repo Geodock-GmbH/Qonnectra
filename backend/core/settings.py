@@ -164,3 +164,31 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Default SvelteKit dev server
     "http://127.0.0.1:5173",
 ]
+
+# Nextcloud Storage Settings
+NEXTCLOUD_URL = "http://krit_nextcloud"
+NEXTCLOUD_USERNAME = "admin"
+NEXTCLOUD_PASSWORD = "admin"
+NEXTCLOUD_BASE_PATH = "/krit_gis_files"
+
+# Add logging configuration
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "apps.api": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": True,
+        },
+    },
+}
