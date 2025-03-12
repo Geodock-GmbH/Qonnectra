@@ -6,6 +6,7 @@ from .models import (
     AttributesPhase,
     AttributesStatus,
     AttributesSurface,
+    StoragePreferences,
 )
 
 # TODO: Model names should be translated in the admin interface
@@ -14,3 +15,4 @@ admin.site.register(AttributesConstructionType)
 admin.site.register(AttributesStatus)
 admin.site.register(AttributesPhase)
 admin.site.register(AttributesCompany)
+admin.site.register(StoragePreferences)

@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
@@ -6,6 +7,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models as gis_models
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
 from .storage import NextcloudStorage
 
 
@@ -170,16 +172,51 @@ class FeatureFiles(models.Model):
     object_id = models.UUIDField(verbose_name=_("Feature ID"))
     feature = GenericForeignKey("content_type", "object_id")
 
+    def get_upload_path(instance, filename):
+        prefs = StoragePreferences.objects.first()
+        if prefs and prefs.mode == "MANUAL":
+            return "%Y/%m/%d/{filename}"
+
+        if prefs and prefs.mode == "AUTO":
+            model_name = instance.content_type.model
+            folder_name = prefs.folder_structure.get(model_name, model_name + "s")
+            date = datetime.now().strftime("%Y/%m/%d")
+            if model_name == "trench":
+                trench = instance.feature
+                return f"{folder_name}/{trench.id_trench}/{date}/{filename}"
+
     file_path = models.FileField(
-        upload_to="%Y/%m/%d",  # Organizes files by date
+        upload_to=get_upload_path,
         storage=NextcloudStorage(),
         null=False,
         verbose_name=_("File Path"),
     )
+
     file_name = models.TextField(null=False, verbose_name=_("File Name"))
-    file_type = models.TextField(null=False, verbose_name=_("File Type"))
+    file_type = models.TextField(null=True, verbose_name=_("File Type"))
     description = models.TextField(null=True, verbose_name=_("Description"))
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    def get_file_name(instance):
+        file_name = instance.file_path.name
+        try:
+            parts = file_name.split(".")
+            return parts[0] if len(parts) > 1 else file_name
+        except Exception:
+            return file_name
+
+    def get_file_type(instance):
+        file_name = instance.file_path.name
+        try:
+            parts = file_name.split(".")
+            return parts[-1] if len(parts) > 1 else None
+        except Exception:
+            return None
+
+    def save(self, *args, **kwargs):
+        self.file_name = self.get_file_name()
+        self.file_type = self.get_file_type()
+        super().save(*args, **kwargs)
 
     class Meta:
         db_table = "feature_files"
@@ -191,6 +228,32 @@ class FeatureFiles(models.Model):
                 name="idx_feature_files_type_id",
             ),
         ]
+
+
+class StoragePreferences(models.Model):
+    """Stores all storage preferences for different models,
+    related to :model:`api.FeatureFiles`.
+    """
+
+    STORAGE_MODE_CHOICES = [
+        ("AUTO", "Automatic Organization"),
+        ("MANUAL", "User Defined"),
+    ]
+
+    mode = models.CharField(max_length=10, choices=STORAGE_MODE_CHOICES, default="AUTO")
+
+    folder_structure = models.JSONField(
+        default=dict,
+        help_text=_(
+            "Custom folder structure for different feature types. "
+            "Example: {'trench': 'trenches', 'node': 'nodes'}"
+        ),
+    )
+
+    class Meta:
+        db_table = "storage_preferences"
+        verbose_name = _("Storage Preference")
+        verbose_name_plural = _("Storage Preferences")
 
 
 class Trench(models.Model):

@@ -1,0 +1,24 @@
+[
+    {
+        "model": "api.storagepreferences",
+        "pk": 1,
+        "fields": {
+            "mode": "AUTO",
+            "folder_structure": {
+                "trench": "trenches",
+                "node": "nodes",
+                "address": "addresses",
+                "residentialunit": "residential_units",
+                "featurefiles": "attachments"
+            }
+        }
+    },
+    {
+        "model": "api.storagepreferences",
+        "pk": 2,
+        "fields": {
+            "mode": "MANUAL",
+            "folder_structure": {}
+        }
+    }
+]

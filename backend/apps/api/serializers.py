@@ -188,6 +188,8 @@ class FeatureFilesSerializer(serializers.ModelSerializer):
 
     uuid = serializers.UUIDField(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
+    file_name = serializers.CharField(read_only=True)
+    file_type = serializers.CharField(read_only=True)
 
     class Meta:
         model = FeatureFiles
