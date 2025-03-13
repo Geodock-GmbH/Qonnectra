@@ -18,6 +18,7 @@ class NextcloudStorage(Storage):
     Custom storage class for storing files in Nextcloud
     """
 
+    # ASK: Should the files not be in the public folder and not in a user specific folder?
     def __init__(self):
         # Get settings from Django settings or environment variables
         self.nextcloud_url = getattr(settings, "NEXTCLOUD_URL", "http://krit_nextcloud")
@@ -35,65 +36,114 @@ class NextcloudStorage(Storage):
             "Content-Type": "application/octet-stream",
         }
 
-    def _ensure_directory_exists(self, path):
-        """Ensure the directory exists in Nextcloud by creating each level of the path"""
-        if not path.startswith("/"):
-            path = "/" + path
+    def create_base_directory(self):
+        """Create the base directory if it doesn't exist"""
+        try:
+            # Check if base directory exists
+            response = requests.head(
+                urljoin(
+                    self.nextcloud_url,
+                    f"remote.php/dav/files/{self.nextcloud_username}{self.base_path}",
+                ),
+                headers=self._get_headers(),
+                verify=False,
+            )
 
-        # Split the path into components and create each level
-        parts = path.split("/")
-        current_path = ""
+            # If directory doesn't exist (404), create it
+            if response.status_code == 404:
+                create_response = requests.request(
+                    "MKCOL",
+                    urljoin(
+                        self.nextcloud_url,
+                        f"remote.php/dav/files/{self.nextcloud_username}{self.base_path}",
+                    ),
+                    headers=self._get_headers(),
+                    verify=False,
+                )
+
+                if create_response.status_code == 201:
+                    logger.info(f"Created base directory: {self.base_path}")
+                elif create_response.status_code != 405:  # 405 means already exists
+                    logger.error(
+                        f"Failed to create base directory: {self.base_path}, status: {create_response.status_code}"
+                    )
+
+        except Exception as e:
+            logger.error(f"Error creating base directory: {str(e)}")
+
+    def _ensure_directories_exist(self, path):
+        """
+        Recursively create directories in the path if they don't exist.
+        """
+        # Split the path into directory components
+        directory = os.path.dirname(path)
+        if not directory:
+            return
+
+        # Build the directory structure one level at a time
+        parts = directory.split("/")
+        current_path = self.base_path  # Start with the base path
 
         for part in parts:
             if not part:  # Skip empty parts
                 continue
 
-            current_path += f"/{part}"
-            dir_url = urljoin(
-                self.nextcloud_url,
-                f"remote.php/dav/files/{self.nextcloud_username}{current_path}",
-            )
+            current_path = f"{current_path}/{part}"
 
             # Check if directory exists
-            response = requests.head(
-                dir_url,
-                headers=self._get_headers(),
-                verify=False,
-            )
-
-            if response.status_code == 404:
-                # Create directory
-                response = requests.request(
-                    "MKCOL",
-                    dir_url,
+            try:
+                response = requests.head(
+                    urljoin(
+                        self.nextcloud_url,
+                        f"remote.php/dav/files/{self.nextcloud_username}{current_path}",
+                    ),
                     headers=self._get_headers(),
                     verify=False,
                 )
 
-                # 201: Created successfully
-                # 405: Directory already exists
-                # 409: Parent directory doesn't exist (should be handled by our recursive approach)
-                if response.status_code not in [201, 405, 409]:
-                    logger.error(
-                        f"Failed to create directory {current_path}: {response.text}"
+                # If directory doesn't exist (404), create it
+                if response.status_code == 404:
+                    create_response = requests.request(
+                        "MKCOL",
+                        urljoin(
+                            self.nextcloud_url,
+                            f"remote.php/dav/files/{self.nextcloud_username}{current_path}",
+                        ),
+                        headers=self._get_headers(),
+                        verify=False,
                     )
-                    raise IOError(
-                        f"Failed to create directory in Nextcloud: {response.text}"
-                    )
+
+                    # Check if directory was created successfully
+                    if create_response.status_code not in (
+                        201,
+                        405,
+                    ):  # 201 Created, 405 Method Not Allowed (already exists)
+                        logger.error(
+                            f"Failed to create directory {current_path}: {create_response.status_code} {create_response.text}"
+                        )
+                        raise IOError(
+                            f"Failed to create directory in Nextcloud: {create_response.text}"
+                        )
+
+            except Exception as e:
+                # Log the error but continue trying to create the directory
+                logger.error(
+                    f"Error checking/creating directory {current_path}: {str(e)}"
+                )
 
     def _save(self, name, content):
         """
         Save a new file using the Nextcloud WebDAV API
         """
+
         # Normalize the name to use forward slashes and remove any leading slash
         name = name.replace("\\", "/")
         name = name.lstrip("/")
 
+        self.create_base_directory()
+
         # Ensure the directory structure exists
-        directory = os.path.dirname(name)
-        if directory:
-            full_directory = os.path.join(self.base_path, directory)
-            self._ensure_directory_exists(full_directory)
+        self._ensure_directories_exist(name)
 
         # Prepare the full path for the file
         full_path = os.path.join(self.base_path, name)
@@ -127,10 +177,17 @@ class NextcloudStorage(Storage):
         """
         Retrieve a file from Nextcloud
         """
+        # Normalize the name to use forward slashes and remove any leading slash
+        name = name.replace("\\", "/")
+        name = name.lstrip("/")
+
         full_path = os.path.join(self.base_path, name)
+        if not full_path.startswith("/"):
+            full_path = "/" + full_path
+
         download_url = urljoin(
             self.nextcloud_url,
-            f"remote.php/dav/files/{self.nextcloud_username}/{full_path}",
+            f"remote.php/dav/files/{self.nextcloud_username}{full_path}",
         )
 
         response = requests.get(
@@ -148,16 +205,23 @@ class NextcloudStorage(Storage):
         """
         Delete a file from Nextcloud
         """
+        # Normalize the name to use forward slashes and remove any leading slash
+        name = name.replace("\\", "/")
+        name = name.lstrip("/")
+
         full_path = os.path.join(self.base_path, name)
+        if not full_path.startswith("/"):
+            full_path = "/" + full_path
+
         delete_url = urljoin(
             self.nextcloud_url,
-            f"remote.php/dav/files/{self.nextcloud_username}/{full_path}",
+            f"remote.php/dav/files/{self.nextcloud_username}{full_path}",
         )
 
         response = requests.delete(
             delete_url,
             headers=self._get_headers(),
-            verify=False,  # For development only, remove in production
+            verify=False,  # TODO: For development only, remove in production
         )
 
         if response.status_code not in [200, 204]:
@@ -167,16 +231,23 @@ class NextcloudStorage(Storage):
         """
         Check if a file exists in Nextcloud
         """
+        # Normalize the name to use forward slashes and remove any leading slash
+        name = name.replace("\\", "/")
+        name = name.lstrip("/")
+
         full_path = os.path.join(self.base_path, name)
+        if not full_path.startswith("/"):
+            full_path = "/" + full_path
+
         check_url = urljoin(
             self.nextcloud_url,
-            f"remote.php/dav/files/{self.nextcloud_username}/{full_path}",
+            f"remote.php/dav/files/{self.nextcloud_username}{full_path}",
         )
 
         response = requests.head(
             check_url,
             headers=self._get_headers(),
-            verify=False,  # For development only, remove in production
+            verify=False,  # TODO: For development only, remove in production
         )
 
         return response.status_code == 200
@@ -185,7 +256,15 @@ class NextcloudStorage(Storage):
         """
         Return URL for accessing the file through Nextcloud's public URL
         """
+        # Normalize the name to use forward slashes and remove any leading slash
+        name = name.replace("\\", "/")
+        name = name.lstrip("/")
+
+        full_path = os.path.join(self.base_path, name)
+        if not full_path.startswith("/"):
+            full_path = "/" + full_path
+
         return urljoin(
             self.nextcloud_url,
-            f"remote.php/dav/files/{self.nextcloud_username}/{self.base_path}/{name}",
+            f"remote.php/dav/files/{self.nextcloud_username}{full_path}",
         )

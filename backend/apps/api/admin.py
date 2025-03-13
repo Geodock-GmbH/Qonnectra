@@ -6,6 +6,7 @@ from .models import (
     AttributesPhase,
     AttributesStatus,
     AttributesSurface,
+    FileTypeCategory,
     StoragePreferences,
 )
 
@@ -16,3 +17,4 @@ admin.site.register(AttributesStatus)
 admin.site.register(AttributesPhase)
 admin.site.register(AttributesCompany)
 admin.site.register(StoragePreferences)
+admin.site.register(FileTypeCategory)

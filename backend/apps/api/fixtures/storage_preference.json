@@ -5,11 +5,25 @@
         "fields": {
             "mode": "AUTO",
             "folder_structure": {
-                "trench": "trenches",
-                "node": "nodes",
-                "address": "addresses",
-                "residentialunit": "residential_units",
-                "featurefiles": "attachments"
+                "trench": {
+                    "default": "trenches",
+                    "documents": "trenches/documents",
+                    "photos": "trenches/photos"
+                },
+                "node": {
+                    "default": "nodes",
+                    "photos": "nodes/photos",
+                    "documents": "nodes/documents"
+                },
+                "address": {
+                    "default": "addresses"
+                },
+                "residentialunit": {
+                    "default": "residential_units"
+                },
+                "featurefiles": {
+                    "default": "attachments"
+                }
             }
         }
     },

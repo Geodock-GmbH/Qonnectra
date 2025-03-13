@@ -27,7 +27,7 @@ services:
     restart: unless-stopped
     command: >
       sh -c "python manage.py migrate &&
-            python manage.py loaddata attributes_company attributes_construction_type attributes_phase attributes_status attributes_surface storage_preference &&
+            python manage.py loaddata attributes_company attributes_construction_type attributes_phase attributes_status attributes_surface storage_preference file_type_categories &&
             gunicorn --bind 0.0.0.0:8000 core.wsgi:application"
     ports:
       - "8000:8000"

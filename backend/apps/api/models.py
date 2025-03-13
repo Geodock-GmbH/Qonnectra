@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
@@ -159,7 +158,6 @@ class FeatureFiles(models.Model):
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
 
-    # Generic Foreign Key fields
     content_type = models.ForeignKey(
         ContentType,
         on_delete=models.CASCADE,
@@ -173,17 +171,37 @@ class FeatureFiles(models.Model):
     feature = GenericForeignKey("content_type", "object_id")
 
     def get_upload_path(instance, filename):
+        # TODO: Implement a better manual mode
+        # For now, we just use the default folder structure
         prefs = StoragePreferences.objects.first()
         if prefs and prefs.mode == "MANUAL":
             return "%Y/%m/%d/{filename}"
 
         if prefs and prefs.mode == "AUTO":
             model_name = instance.content_type.model
-            folder_name = prefs.folder_structure.get(model_name, model_name + "s")
-            date = datetime.now().strftime("%Y/%m/%d")
+            file_extension = instance.get_file_type() or ""
+            file_extension = file_extension.lower()
+
+            try:
+                category_obj = FileTypeCategory.objects.get(extension=file_extension)
+                file_category = category_obj.category
+            except FileTypeCategory.DoesNotExist:
+                file_category = "documents"
+
+            folder_paths = prefs.folder_structure.get(model_name, {})
+
+            folder_name = folder_paths.get(
+                file_category, folder_paths.get("default", model_name + "s")
+            )
             if model_name == "trench":
                 trench = instance.feature
-                return f"{folder_name}/{trench.id_trench}/{date}/{filename}"
+                if "/" in folder_name:
+                    base_folder, sub_folder = folder_name.split("/", 1)
+                    return f"{base_folder}/{trench.id_trench}/{sub_folder}/{filename}"
+                else:
+                    return f"{folder_name}/{trench.id_trench}/{filename}"
+
+            return f"{folder_name}/{filename}"
 
     file_path = models.FileField(
         upload_to=get_upload_path,
@@ -254,6 +272,43 @@ class StoragePreferences(models.Model):
         db_table = "storage_preferences"
         verbose_name = _("Storage Preference")
         verbose_name_plural = _("Storage Preferences")
+
+
+class FileTypeCategory(models.Model):
+    """Maps file extensions to categories for organizing uploads.
+    Used by :model:`api.FeatureFiles` to determine storage paths.
+    """
+
+    extension = models.CharField(
+        max_length=10,
+        primary_key=True,
+        verbose_name=_("File Extension"),
+        help_text=_("File extension without the dot (e.g., 'pdf', 'jpg')"),
+    )
+
+    category = models.CharField(
+        max_length=50,
+        verbose_name=_("Category"),
+        help_text=_(
+            "Category used for folder organization (e.g., 'photos', 'documents')"
+        ),
+    )
+
+    description = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name=_("Description"),
+        help_text=_("Optional description of this file type"),
+    )
+
+    class Meta:
+        db_table = "file_type_category"
+        verbose_name = _("File Type Category")
+        verbose_name_plural = _("File Type Categories")
+        ordering = ["extension"]
+
+    def __str__(self):
+        return f"{self.extension} → {self.category}"
 
 
 class Trench(models.Model):
