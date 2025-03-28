@@ -3,16 +3,16 @@ services:
     image: postgis/postgis:17-3.5
     container_name: krit_gis_db
     environment:
-      POSTGRES_DB: krit_gis
-      POSTGRES_USER: geodock_admin
-      POSTGRES_PASSWORD: geodock_admin
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - ./postgres/data:/var/lib/postgresql/data
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5440:5432"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U geodock_admin -d krit_gis" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,15 +32,15 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DEBUG=False
+      - DEBUG=${DEBUG}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-      - ALLOWED_HOSTS=localhost,127.0.0.1
-      - DB_NAME=krit_gis
-      - DB_USER=geodock_admin
-      - DB_PASSWORD=geodock_admin
-      - DB_HOST=krit_gis_db
-      - DB_PORT=5432
-      - DEFAULT_SRID=25832
+      - ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DEFAULT_SRID=${DEFAULT_SRID}
     depends_on:
       db:
         condition: service_healthy
@@ -59,13 +59,13 @@ services:
       - ./nextcloud/data/config:/var/www/html/config
       - ./nextcloud/data/files:/var/www/html/data:rw
     environment:
-      - POSTGRES_HOST=krit_gis_db
+      - POSTGRES_HOST=${DB_HOST}
       - POSTGRES_DB=nextcloud_db
-      - POSTGRES_USER=geodock_admin
-      - POSTGRES_PASSWORD=geodock_admin
-      - NEXTCLOUD_ADMIN_USER=admin
-      - NEXTCLOUD_ADMIN_PASSWORD=admin
-      - NEXTCLOUD_TRUSTED_DOMAINS=localhost krit_nextcloud 127.0.0.1
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
+      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS}
     depends_on:
       db:
         condition: service_healthy

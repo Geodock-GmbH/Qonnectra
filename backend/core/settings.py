@@ -16,10 +16,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent  # Backend directory
 
-# Load environment variables
-env_path = BASE_DIR / ".env"
+# Load environment variables from deployment .env
+env_path = BASE_DIR.parent / "deployment" / ".env"
 load_dotenv(env_path)
 
 
@@ -30,9 +30,8 @@ load_dotenv(env_path)
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+DEBUG = bool(os.getenv("DEBUG", 0))
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
 
 
 # Application definition
@@ -145,7 +144,7 @@ LOCALE_PATHS = [
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = "static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "static")
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -153,7 +152,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, "static")
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Default SRID for geometry fields
-DEFAULT_SRID = os.getenv("DEFAULT_SRID")
+DEFAULT_SRID = int(os.getenv("DEFAULT_SRID", "25832"))
 
 REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
@@ -167,8 +166,8 @@ CORS_ALLOWED_ORIGINS = [
 
 # Nextcloud Storage Settings
 NEXTCLOUD_URL = "http://krit_nextcloud"
-NEXTCLOUD_USERNAME = "admin"
-NEXTCLOUD_PASSWORD = "admin"
+NEXTCLOUD_USERNAME = os.getenv("NEXTCLOUD_ADMIN_USER")
+NEXTCLOUD_PASSWORD = os.getenv("NEXTCLOUD_ADMIN_PASSWORD")
 NEXTCLOUD_BASE_PATH = "/krit_gis_files"
 
 # Add logging configuration
