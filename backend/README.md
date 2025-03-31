@@ -4,50 +4,7 @@ A Django-based GIS backend service for the Krit GIS project, providing spatial d
 
 ## 🔧 Prerequisites
 
-- Python >= 3.10
 - Docker and Docker Compose
-- PostgreSQL 17 with PostGIS extension
-- Git
-
-## 🚀 Quick Start
-
-### Backend Setup
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/Krit-GIS.git
-   cd Krit-GIS/backend
-   ```
-
-2. Create and activate a virtual environment:
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
-
-3. Install dependencies:
-   ```bash
-   pip install -e .
-   ```
-
-4. Create a `.env` file in the backend directory or
-   write it directly in the `core/settings.py` file with the following content:
-   ```
-   DEBUG=True
-   SECRET_KEY=your-secret-key
-   ALLOWED_HOSTS=localhost,127.0.0.1
-   DATABASE_URL=postgres://geodock_admin:geodock_admin@localhost:5440/krit_gis
-   ```
-
-5. Run migrations:
-   ```bash
-   python manage.py migrate
-   ```
-
-6. Start the development server:
-   ```bash
-   python manage.py runserver
-   ```
 
 ## 🐳 Deployment
 
@@ -61,7 +18,20 @@ The project uses Docker Compose for deployment, which sets up three main service
 - Environment variables file (.env) containing:
   ```
   DJANGO_SECRET_KEY=your-secret-key
+  DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+  DEBUG=True or False
+  DB_NAME=your-database-name
+  DB_USER=your-database-user
+  DB_PASSWORD=your-database-password
+  DB_HOST=your-database-host
+  DB_PORT=your-database-port
+  DEFAULT_SRID=your-default-srid
+  NEXTCLOUD_ADMIN_USER=your-nextcloud-admin-user
+  NEXTCLOUD_ADMIN_PASSWORD=your-nextcloud-admin-password
+  NEXTCLOUD_TRUSTED_DOMAINS=your-nextcloud-trusted-domains
   ```
+
+- Edit the `docker-compose.yml` file to set the environment variables.
 
 ### Starting the Services
 
@@ -72,7 +42,7 @@ The project uses Docker Compose for deployment, which sets up three main service
 
 2. Start all services:
    ```bash
-   docker-compose up -d
+   docker-compose up -d --build
    ```
 
    This will start:
@@ -83,24 +53,27 @@ The project uses Docker Compose for deployment, which sets up three main service
 ### Service Configuration
 
 #### Database
-- Database name: krit_gis
-- Port: 5440 (external), 5432 (internal)
-- Default credentials (for development only):
-  - Username: geodock_admin
-  - Password: geodock_admin
+- Database name: your-database-name
+- Port mapping: 5440 (external) -> 5432 (internal)
+- Default credentials:
+  - Username: your-database-user
+  - Password: your-database-password
+- Uses PostGIS 3.5 with PostgreSQL 17
 
 #### Backend Service
 Environment variables are pre-configured in docker-compose.yml:
-- `DEBUG`: Set to False by default
 - `ALLOWED_HOSTS`: localhost,127.0.0.1
-- `DEFAULT_SRID`: 25832
+- `DEFAULT_SRID`: 25832 (default for ETRS89 / UTM zone 32N)
 - Database connection details
+- CORS settings for development (localhost:5173)
+- Logging configuration for development
 
 #### Nextcloud
 - Access URL: http://localhost:8080
-- Default admin credentials (for development only):
-  - Username: admin
-  - Password: admin
+- Default admin credentials:
+  - Username:your-nextcloud-admin-user
+  - Password:your-nextcloud-admin-password
+- Uses PostgreSQL as the database backend
 
 ### Monitoring Services
 
