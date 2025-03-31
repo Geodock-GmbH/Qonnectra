@@ -25,6 +25,7 @@ class NextcloudStorage(Storage):
         self.nextcloud_username = getattr(settings, "NEXTCLOUD_USERNAME", "admin")
         self.nextcloud_password = getattr(settings, "NEXTCLOUD_PASSWORD", "admin")
         self.base_path = getattr(settings, "NEXTCLOUD_BASE_PATH", "/krit_gis_files")
+        self.verify_setting = getattr(settings, "NEXTCLOUD_VERIFY_SSL", True)
 
     def _get_headers(self):
         """Return headers with basic auth for Nextcloud API requests"""
@@ -46,7 +47,7 @@ class NextcloudStorage(Storage):
                     f"remote.php/dav/files/{self.nextcloud_username}{self.base_path}",
                 ),
                 headers=self._get_headers(),
-                verify=False,
+                verify=self.verify_setting,
             )
 
             # If directory doesn't exist (404), create it
@@ -58,7 +59,7 @@ class NextcloudStorage(Storage):
                         f"remote.php/dav/files/{self.nextcloud_username}{self.base_path}",
                     ),
                     headers=self._get_headers(),
-                    verify=False,
+                    verify=self.verify_setting,
                 )
 
                 if create_response.status_code == 201:
@@ -98,7 +99,7 @@ class NextcloudStorage(Storage):
                         f"remote.php/dav/files/{self.nextcloud_username}{current_path}",
                     ),
                     headers=self._get_headers(),
-                    verify=False,
+                    verify=self.verify_setting,
                 )
 
                 # If directory doesn't exist (404), create it
@@ -110,7 +111,7 @@ class NextcloudStorage(Storage):
                             f"remote.php/dav/files/{self.nextcloud_username}{current_path}",
                         ),
                         headers=self._get_headers(),
-                        verify=False,
+                        verify=self.verify_setting,
                     )
 
                     # Check if directory was created successfully
@@ -160,7 +161,7 @@ class NextcloudStorage(Storage):
                 upload_url,
                 data=content.read(),
                 headers=self._get_headers(),
-                verify=False,
+                verify=self.verify_setting,
             )
 
             if response.status_code not in [200, 201, 204]:
@@ -193,7 +194,7 @@ class NextcloudStorage(Storage):
         response = requests.get(
             download_url,
             headers=self._get_headers(),
-            verify=False,  # For development only, remove in production
+            verify=self.verify_setting,
         )
 
         if response.status_code != 200:
@@ -221,7 +222,7 @@ class NextcloudStorage(Storage):
         response = requests.delete(
             delete_url,
             headers=self._get_headers(),
-            verify=False,  # TODO: For development only, remove in production
+            verify=self.verify_setting,
         )
 
         if response.status_code not in [200, 204]:
@@ -247,7 +248,7 @@ class NextcloudStorage(Storage):
         response = requests.head(
             check_url,
             headers=self._get_headers(),
-            verify=False,  # TODO: For development only, remove in production
+            verify=self.verify_setting,
         )
 
         return response.status_code == 200

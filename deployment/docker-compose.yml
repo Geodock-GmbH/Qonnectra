@@ -60,7 +60,7 @@ services:
       - ./nextcloud/data/files:/var/www/html/data:rw
     environment:
       - POSTGRES_HOST=${DB_HOST}
-      - POSTGRES_DB=nextcloud_db
+      - POSTGRES_DB=${NEXTCLOUD_DATABASE_NAME}
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}

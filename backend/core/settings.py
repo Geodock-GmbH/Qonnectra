@@ -165,10 +165,11 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # Nextcloud Storage Settings
-NEXTCLOUD_URL = "http://krit_nextcloud"
+NEXTCLOUD_URL = os.getenv("NEXTCLOUD_URL")
 NEXTCLOUD_USERNAME = os.getenv("NEXTCLOUD_ADMIN_USER")
 NEXTCLOUD_PASSWORD = os.getenv("NEXTCLOUD_ADMIN_PASSWORD")
-NEXTCLOUD_BASE_PATH = "/krit_gis_files"
+NEXTCLOUD_BASE_PATH = os.getenv("NEXTCLOUD_BASE_PATH")
+NEXTCLOUD_VERIFY_SSL = bool(os.getenv("NEXTCLOUD_VERIFY_SSL", 1))
 
 # Add logging configuration
 LOGGING = {
