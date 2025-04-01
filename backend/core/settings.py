@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent  # Backend directory
 
 # Load environment variables from deployment .env
 env_path = BASE_DIR.parent / "deployment" / ".env"
-load_dotenv(dotenv_path=env_path, override=True)
+load_dotenv(dotenv_path=env_path)
 
 
 # Quick-start development settings - unsuitable for production

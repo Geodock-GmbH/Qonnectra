@@ -5,10 +5,10 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import ContentFile
 from django.core.files.storage import Storage
 from django.utils.deconstruct import deconstructible
-from django.core.exceptions import ImproperlyConfigured
 
 logger = logging.getLogger(__name__)
 
@@ -22,14 +22,12 @@ class NextcloudStorage(Storage):
     # ASK: Should the files not be in the public folder and not in a user specific folder?
     def __init__(self):
         # Get settings from Django settings or environment variables
-        self.nextcloud_url = getattr(settings, "NEXTCLOUD_URL", "http://krit_nextcloud")
-        self.nextcloud_public_url = getattr(
-            settings, "NEXTCLOUD_PUBLIC_URL", "http://localhost:8080"
-        )
-        self.nextcloud_username = getattr(settings, "NEXTCLOUD_USERNAME", "admin")
-        self.nextcloud_password = getattr(settings, "NEXTCLOUD_PASSWORD", "admin")
-        self.base_path = getattr(settings, "NEXTCLOUD_BASE_PATH", "/krit_gis_files")
-        self.verify_setting = getattr(settings, "NEXTCLOUD_VERIFY_SSL", True)
+        self.nextcloud_url = settings.NEXTCLOUD_URL
+        self.nextcloud_public_url = settings.NEXTCLOUD_PUBLIC_URL
+        self.nextcloud_username = settings.NEXTCLOUD_USERNAME
+        self.nextcloud_password = settings.NEXTCLOUD_PASSWORD
+        self.base_path = settings.NEXTCLOUD_BASE_PATH
+        self.verify_setting = settings.NEXTCLOUD_VERIFY_SSL
 
         # Validate internal URL
         if not self.nextcloud_url:
