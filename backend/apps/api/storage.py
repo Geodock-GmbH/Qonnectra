@@ -1,13 +1,14 @@
 import base64
 import logging
 import os
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 import requests
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import Storage
 from django.utils.deconstruct import deconstructible
+from django.core.exceptions import ImproperlyConfigured
 
 logger = logging.getLogger(__name__)
 
@@ -22,10 +23,36 @@ class NextcloudStorage(Storage):
     def __init__(self):
         # Get settings from Django settings or environment variables
         self.nextcloud_url = getattr(settings, "NEXTCLOUD_URL", "http://krit_nextcloud")
+        self.nextcloud_public_url = getattr(
+            settings, "NEXTCLOUD_PUBLIC_URL", "http://localhost:8080"
+        )
         self.nextcloud_username = getattr(settings, "NEXTCLOUD_USERNAME", "admin")
         self.nextcloud_password = getattr(settings, "NEXTCLOUD_PASSWORD", "admin")
         self.base_path = getattr(settings, "NEXTCLOUD_BASE_PATH", "/krit_gis_files")
         self.verify_setting = getattr(settings, "NEXTCLOUD_VERIFY_SSL", True)
+
+        # Validate internal URL
+        if not self.nextcloud_url:
+            raise ImproperlyConfigured("NEXTCLOUD_URL setting is missing or empty.")
+        parsed_internal_url = urlparse(self.nextcloud_url)
+        if not parsed_internal_url.scheme:
+            raise ImproperlyConfigured(
+                f"NEXTCLOUD_URL setting ('{self.nextcloud_url}') is missing a scheme."
+            )
+
+        # Validate public URL
+        if not self.nextcloud_public_url:
+            raise ImproperlyConfigured(
+                "NEXTCLOUD_PUBLIC_URL setting is missing or empty."
+            )
+        parsed_public_url = urlparse(self.nextcloud_public_url)
+        if not parsed_public_url.scheme:
+            raise ImproperlyConfigured(
+                f"NEXTCLOUD_PUBLIC_URL setting ('{self.nextcloud_public_url}') is missing a scheme."
+            )
+
+        if self.nextcloud_username is None:
+            raise ImproperlyConfigured("NEXTCLOUD_USERNAME setting is not configured.")
 
     def _get_headers(self):
         """Return headers with basic auth for Nextcloud API requests"""
@@ -265,7 +292,8 @@ class NextcloudStorage(Storage):
         if not full_path.startswith("/"):
             full_path = "/" + full_path
 
+        # Use the PUBLIC url for generating links
         return urljoin(
-            self.nextcloud_url,
+            self.nextcloud_public_url,  # Use the public URL setting here
             f"remote.php/dav/files/{self.nextcloud_username}{full_path}",
         )

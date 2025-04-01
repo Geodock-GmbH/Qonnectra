@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent  # Backend directory
 
 # Load environment variables from deployment .env
 env_path = BASE_DIR.parent / "deployment" / ".env"
-load_dotenv(env_path)
+load_dotenv(dotenv_path=env_path, override=True)
 
 
 # Quick-start development settings - unsuitable for production
@@ -32,6 +32,9 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(os.getenv("DEBUG", 0))
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 
 
 # Application definition
@@ -144,7 +147,7 @@ LOCALE_PATHS = [
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = "static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -165,11 +168,13 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # Nextcloud Storage Settings
-NEXTCLOUD_URL = os.getenv("NEXTCLOUD_URL")
-NEXTCLOUD_USERNAME = os.getenv("NEXTCLOUD_ADMIN_USER")
-NEXTCLOUD_PASSWORD = os.getenv("NEXTCLOUD_ADMIN_PASSWORD")
-NEXTCLOUD_BASE_PATH = os.getenv("NEXTCLOUD_BASE_PATH")
-NEXTCLOUD_VERIFY_SSL = bool(os.getenv("NEXTCLOUD_VERIFY_SSL", 1))
+# NEXTCLOUD_URL = "https://cloud.localhost"
+NEXTCLOUD_URL = "http://krit_nextcloud"
+NEXTCLOUD_PUBLIC_URL = "http://localhost:8080"
+NEXTCLOUD_USERNAME = "admin"
+NEXTCLOUD_PASSWORD = "admin"
+NEXTCLOUD_BASE_PATH = "/krit_gis_files"
+NEXTCLOUD_VERIFY_SSL = False
 
 # Add logging configuration
 LOGGING = {
