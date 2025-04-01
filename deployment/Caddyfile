@@ -1,0 +1,24 @@
+{
+    # Disable admin interface
+    admin off
+    # Enable debug logging
+    debug
+}
+
+# Backend API
+api.localhost {
+    tls internal # Use Caddy's internal CA for local certs
+    reverse_proxy backend:8000
+}
+
+# Nextcloud
+cloud.localhost {
+    tls internal # Use Caddy's internal CA for local certs
+    reverse_proxy nextcloud:80
+}
+
+# Frontend (when implemented)
+localhost {
+    tls internal # Use Caddy's internal CA for local certs
+    reverse_proxy frontend:5173
+}
