@@ -39,6 +39,10 @@ NEXTCLOUD_ADMIN_USER=your-nextcloud-admin
 NEXTCLOUD_ADMIN_PASSWORD=your-secure-password
 NEXTCLOUD_TRUSTED_DOMAINS=cloud.localhost localhost 127.0.0.1
 NEXTCLOUD_DATABASE_NAME=nextcloud_db
+
+# Caddy Settings
+CADDY_PORT=80
+CADDY_HTTPS_PORT=443
 ```
 
 ### Django Settings (settings.py)
@@ -71,6 +75,12 @@ Key settings in `deployment/docker-compose.yml`:
   - Port: ${NEXTCLOUD_PORT:-8080}
   - Volume mounts for data, apps, and configuration
   - Database integration settings
+
+- Caddy service:
+  - Port: ${CADDY_PORT:-80}
+  - Port: ${CADDY_HTTPS_PORT:-443}
+  - Volume mounts for data, configuration, and certificates
+  - SSL certificate generation
 
 ## 🐳 Deployment
 

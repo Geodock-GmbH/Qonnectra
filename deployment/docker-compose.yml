@@ -43,12 +43,6 @@ services:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - DEFAULT_SRID=${DEFAULT_SRID}
-      - NEXTCLOUD_URL=${NEXTCLOUD_URL}
-      - NEXTCLOUD_PUBLIC_URL=${NEXTCLOUD_PUBLIC_URL}
-      - NEXTCLOUD_USERNAME=${NEXTCLOUD_USERNAME}
-      - NEXTCLOUD_PASSWORD=${NEXTCLOUD_PASSWORD}
-      - NEXTCLOUD_BASE_PATH=${NEXTCLOUD_BASE_PATH}
-      - NEXTCLOUD_VERIFY_SSL=${NEXTCLOUD_VERIFY_SSL}
     depends_on:
       db:
         condition: service_healthy
@@ -87,8 +81,8 @@ services:
     container_name: krit_gis_caddy
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "${CADDY_PORT}:80"
+      - "${CADDY_HTTPS_PORT}:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

@@ -30,7 +30,7 @@ load_dotenv(dotenv_path=env_path)
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(os.getenv("DEBUG", 0))
+DEBUG = os.getenv("DEBUG", "0") == "1"
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -177,23 +177,24 @@ NEXTCLOUD_BASE_PATH = "/krit_gis_files"
 NEXTCLOUD_VERIFY_SSL = False
 
 # Add logging configuration
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
+if DEBUG:
+    LOGGING = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+            },
         },
-    },
-    "root": {
-        "handlers": ["console"],
-        "level": "INFO",
-    },
-    "loggers": {
-        "apps.api": {
+        "root": {
             "handlers": ["console"],
-            "level": "DEBUG",
-            "propagate": True,
+            "level": "INFO",
         },
-    },
-}
+        "loggers": {
+            "apps.api": {
+                "handlers": ["console"],
+                "level": "DEBUG",
+                "propagate": True,
+            },
+        },
+    }
