@@ -43,6 +43,10 @@ NEXTCLOUD_DATABASE_NAME=nextcloud_db
 # Caddy Settings
 CADDY_PORT=80
 CADDY_HTTPS_PORT=443
+
+# Nginx Settings
+NGINX_PORT=80
+
 ```
 
 ### Django Settings (settings.py)
@@ -89,7 +93,7 @@ The project uses Docker Compose for deployment, which sets up four main services
 - Django backend service
 - Nextcloud for file management
 - Caddy for reverse proxy
-
+- Nginx for reverse proxy and static file serving
 ### Starting the Services
 
 1. Navigate to the deployment directory:
@@ -136,7 +140,10 @@ The project uses Docker Compose for deployment, which sets up four main services
 #### Caddy
 - **Reverse proxy** for backend and Nextcloud
 - **SSL certificate generation**
-- **Access URL**: http://localhost (for HTTP) and https://localhost (for HTTPS)
+
+#### Nginx
+- **Reverse proxy** for backend and Nextcloud
+- **Static file serving**
 
 ### Monitoring Services
 
