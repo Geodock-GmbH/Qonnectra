@@ -27,6 +27,7 @@ geoserver.localhost {
     reverse_proxy geoserver:8080 { # Point to the geoserver container's exposed port
         header_up Host {host}
         header_up X-Forwarded-Proto https # Explicitly set the protocol
+        header_up X-Forwarded-Host {host}  # Add Forwarded Host header
     }
 }
 
