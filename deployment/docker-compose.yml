@@ -75,7 +75,7 @@ services:
       - PROXY_BASE_URL=https://geoserver.localhost/geoserver
       - SKIP_DEMO_DATA=true
       - INSTALL_EXTENSIONS=true
-      - STABLE_EXTENSIONS="ogcapi-features,ysld"
+      - STABLE_EXTENSIONS="ogcapi-features"
       - GEOSERVER_CSRF_DISABLED=true
     depends_on:
       db:
