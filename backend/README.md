@@ -49,6 +49,11 @@ NGINX_PORT=80
 
 ```
 
+### PostgreSQL Settings (deployment/postgres/init.sql)
+
+The `deployment/postgres/init.sql` file contains the initialization script for the PostgreSQL database. It sets up the database and the PostGIS extension for Django.
+
+
 ### Django Settings (settings.py)
 
 The following settings in `backend/core/settings.py` may need adjustment:
