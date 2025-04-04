@@ -19,7 +19,7 @@ class NextcloudStorage(Storage):
     Custom storage class for storing files in Nextcloud
     """
 
-    # ASK: Should the files not be in the public folder and not in a user specific folder?
+    # TODO: This is a basic wip. Revisit in the future.
     def __init__(self):
         # Get settings from Django settings or environment variables
         self.nextcloud_url = settings.NEXTCLOUD_URL
