@@ -69,7 +69,7 @@ class NextcloudStorage(Storage):
             response = requests.head(
                 urljoin(
                     self.nextcloud_url,
-                    f"remote.php/dav/files/{self.nextcloud_username}{self.base_path}",
+                    f"remote.php/dav/files/{self.nextcloud_username}{self.base_path}",  # TODO: How will this work when auth is implemented?
                 ),
                 headers=self._get_headers(),
                 verify=self.verify_setting,

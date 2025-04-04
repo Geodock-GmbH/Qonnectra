@@ -170,6 +170,7 @@ class FeatureFiles(models.Model):
     object_id = models.UUIDField(verbose_name=_("Feature ID"))
     feature = GenericForeignKey("content_type", "object_id")
 
+    # TODO: Add test for get_upload_path
     def get_upload_path(instance, filename):
         # TODO: Implement a better manual mode
         # For now, we just use the default folder structure
