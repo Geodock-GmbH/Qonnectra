@@ -21,6 +21,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent  # Backend directory
 # Load environment variables from deployment .env
 env_path = BASE_DIR.parent / "deployment" / ".env"
 load_dotenv(dotenv_path=env_path)
+print(os.getenv("NEXTCLOUD_URL"))
+print(os.getenv("NEXTCLOUD_PUBLIC_URL"))
+print(os.getenv("NEXTCLOUD_FILEUPLOADER_USERNAME"))
+print(os.getenv("NEXTCLOUD_FILEUPLOADER_PASSWORD"))
+print(os.getenv("NEXTCLOUD_BASE_PATH"))
+print(os.getenv("NEXTCLOUD_VERIFY_SSL"))
 
 
 # Quick-start development settings - unsuitable for production
@@ -33,6 +39,7 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 DEBUG = os.getenv("DEBUG", "0").lower() in ("1", "true", "yes")
 print(f"DEBUG: {DEBUG}")
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
+print(f"ALLOWED_HOSTS: {ALLOWED_HOSTS}")
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
@@ -169,13 +176,12 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # Nextcloud Storage Settings
-# NEXTCLOUD_URL = "https://cloud.localhost"
-NEXTCLOUD_URL = "http://krit_nextcloud"
-NEXTCLOUD_PUBLIC_URL = "http://localhost:8080"
-NEXTCLOUD_USERNAME = "admin"
-NEXTCLOUD_PASSWORD = "admin"
-NEXTCLOUD_BASE_PATH = "/krit_gis_files"
-NEXTCLOUD_VERIFY_SSL = False
+NEXTCLOUD_URL = os.getenv("NEXTCLOUD_URL")
+NEXTCLOUD_PUBLIC_URL = os.getenv("NEXTCLOUD_PUBLIC_URL")
+NEXTCLOUD_FILEUPLOADER_USERNAME = os.getenv("NEXTCLOUD_FILEUPLOADER_USERNAME")
+NEXTCLOUD_FILEUPLOADER_PASSWORD = os.getenv("NEXTCLOUD_FILEUPLOADER_PASSWORD")
+NEXTCLOUD_BASE_PATH = os.getenv("NEXTCLOUD_BASE_PATH")
+NEXTCLOUD_VERIFY_SSL = os.getenv("NEXTCLOUD_VERIFY_SSL")
 
 # Add logging configuration
 if DEBUG:
