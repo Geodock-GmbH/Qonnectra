@@ -17,6 +17,7 @@
 - [ ] Better nextcloud storage integration
     - [ ] Nextcloud File Uploader User. occ not possible in docker compose up?
     - [ ] Run the occ command to create the user manually?
+    - [ ] docker-compose exec -u www-data nextcloud_app php /var/www/html/occ user:add newuser
 - [ ] Documentation through django admin docs
 - [ ] i18n and localization
 - [ ] DRF JWT Authentication
