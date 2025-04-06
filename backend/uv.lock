@@ -26,9 +26,13 @@ dependencies = [
     { name = "docutils" },
     { name = "gunicorn" },
     { name = "psycopg", extra = ["binary"] },
-    { name = "pytest" },
     { name = "python-dotenv" },
     { name = "requests" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
     { name = "ruff" },
 ]
 
@@ -41,10 +45,14 @@ requires-dist = [
     { name = "docutils", specifier = ">=0.21.2" },
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.4" },
-    { name = "pytest", specifier = ">=8.3.4" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "requests", specifier = ">=2.32.3" },
-    { name = "ruff", specifier = ">=0.9.7" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.3.5" },
+    { name = "ruff", specifier = ">=0.11.4" },
 ]
 
 [[package]]
