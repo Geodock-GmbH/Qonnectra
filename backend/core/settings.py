@@ -31,7 +31,6 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "0").lower() in ("1", "true", "yes")
-print(f"DEBUG: {DEBUG}")
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -169,13 +168,12 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # Nextcloud Storage Settings
-# NEXTCLOUD_URL = "https://cloud.localhost"
-NEXTCLOUD_URL = "http://krit_nextcloud"
-NEXTCLOUD_PUBLIC_URL = "http://localhost:8080"
-NEXTCLOUD_USERNAME = "admin"
-NEXTCLOUD_PASSWORD = "admin"
-NEXTCLOUD_BASE_PATH = "/krit_gis_files"
-NEXTCLOUD_VERIFY_SSL = False
+NEXTCLOUD_URL = os.getenv("NEXTCLOUD_URL")
+NEXTCLOUD_PUBLIC_URL = os.getenv("NEXTCLOUD_PUBLIC_URL")
+NEXTCLOUD_FILEUPLOADER_USERNAME = os.getenv("NEXTCLOUD_FILEUPLOADER_USERNAME")
+NEXTCLOUD_FILEUPLOADER_PASSWORD = os.getenv("NEXTCLOUD_FILEUPLOADER_PASSWORD")
+NEXTCLOUD_BASE_PATH = os.getenv("NEXTCLOUD_BASE_PATH")
+NEXTCLOUD_VERIFY_SSL = os.getenv("NEXTCLOUD_VERIFY_SSL")
 
 # Add logging configuration
 if DEBUG:

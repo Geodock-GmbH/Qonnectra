@@ -21,6 +21,16 @@ cloud.localhost {
     }
 }
 
+# Geoserver
+geoserver.localhost {
+    tls internal
+    reverse_proxy geoserver:8080 { # Point to the geoserver container's exposed port
+        header_up Host {host}
+        # header_up X-Forwarded-Proto https # Restore header
+        # header_up X-Forwarded-Host {host}  # Restore header
+    }
+}
+
 # Frontend (when implemented)
 localhost {
     tls internal # Use Caddy's internal CA for local certs

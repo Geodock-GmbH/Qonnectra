@@ -22,8 +22,5 @@ RUN pip install --no-cache-dir .
 # Copy project
 COPY . .
 
-# Collect static files
-RUN python manage.py collectstatic
-
 # Expose port
 EXPOSE 8000

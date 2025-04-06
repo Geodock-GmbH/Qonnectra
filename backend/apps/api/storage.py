@@ -19,13 +19,13 @@ class NextcloudStorage(Storage):
     Custom storage class for storing files in Nextcloud
     """
 
-    # ASK: Should the files not be in the public folder and not in a user specific folder?
+    # TODO: This is a basic wip. Revisit in the future.
     def __init__(self):
         # Get settings from Django settings or environment variables
         self.nextcloud_url = settings.NEXTCLOUD_URL
         self.nextcloud_public_url = settings.NEXTCLOUD_PUBLIC_URL
-        self.nextcloud_username = settings.NEXTCLOUD_USERNAME
-        self.nextcloud_password = settings.NEXTCLOUD_PASSWORD
+        self.nextcloud_username = settings.NEXTCLOUD_FILEUPLOADER_USERNAME
+        self.nextcloud_password = settings.NEXTCLOUD_FILEUPLOADER_PASSWORD
         self.base_path = settings.NEXTCLOUD_BASE_PATH
         self.verify_setting = settings.NEXTCLOUD_VERIFY_SSL
 
@@ -69,7 +69,7 @@ class NextcloudStorage(Storage):
             response = requests.head(
                 urljoin(
                     self.nextcloud_url,
-                    f"remote.php/dav/files/{self.nextcloud_username}{self.base_path}",
+                    f"remote.php/dav/files/{self.nextcloud_username}{self.base_path}",  # TODO: How will this work when auth is implemented?
                 ),
                 headers=self._get_headers(),
                 verify=self.verify_setting,

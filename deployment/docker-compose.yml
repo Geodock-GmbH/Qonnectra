@@ -46,9 +46,51 @@ services:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - DEFAULT_SRID=${DEFAULT_SRID}
+      - NEXTCLOUD_URL=${NEXTCLOUD_URL}
+      - NEXTCLOUD_PUBLIC_URL=${NEXTCLOUD_PUBLIC_URL}
+      - NEXTCLOUD_FILEUPLOADER_USERNAME=${NEXTCLOUD_FILEUPLOADER_USERNAME}
+      - NEXTCLOUD_FILEUPLOADER_PASSWORD=${NEXTCLOUD_FILEUPLOADER_PASSWORD}
+      - NEXTCLOUD_BASE_PATH=${NEXTCLOUD_BASE_PATH}
+      - NEXTCLOUD_VERIFY_SSL=${NEXTCLOUD_VERIFY_SSL}
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - krit_gis_network
+
+  geoserver:
+    image: kartoza/geoserver:latest
+    container_name: krit_gis_geoserver
+    restart: unless-stopped
+    ports:
+      - "${GEOSERVER_PORT:-8081}:8080"
+    expose:
+      - "8080"
+    volumes:
+      - geoserver_data:/opt/geoserver/data_dir
+    environment:
+      - GEOSERVER_ADMIN_USER=${GEOSERVER_ADMIN_USER}
+      - GEOSERVER_ADMIN_PASSWORD=${GEOSERVER_ADMIN_PASSWORD}
+      - POSTGRES_HOST=${DB_HOST}
+      - POSTGRES_PORT=${DB_PORT}
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USERNAME=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - CORS_ENABLED=true
+      - CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+      - PROXY_BASE_URL=https://geoserver.localhost/geoserver
+      - SKIP_DEMO_DATA=true
+      - INSTALL_EXTENSIONS=true
+      - STABLE_EXTENSIONS="ogcapi-features"
+      - GEOSERVER_CSRF_DISABLED=true
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: curl --fail "http://localhost:8080/geoserver/web/" || exit 1
+      interval: 1m
+      timeout: 20s
+      retries: 3
     networks:
       - krit_gis_network
 
@@ -122,6 +164,7 @@ volumes:
   caddy_data:
   caddy_config:
   static_volume: {}
+  geoserver_data: {}
 
 networks:
   krit_gis_network:

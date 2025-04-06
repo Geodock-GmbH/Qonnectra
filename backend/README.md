@@ -4,7 +4,32 @@ A Django-based GIS backend service for the Krit GIS project, providing spatial d
 
 ## 🔧 Prerequisites
 
+- uv package manager (optional, recommended)
 - Docker and Docker Compose
+
+## 🔧 Setup
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-repo/krit-gis-backend.git
+   cd krit-gis-backend
+   ```
+
+2. Install dependencies:
+   ```bash
+   uv venv
+   ```
+   - On MacOS/Linux:
+     ```bash
+     source .venv/bin/activate
+     uv pip install -r uv --dev
+     ```
+   - On Windows:
+     ```bash
+     .venv\Scripts\activate
+     uv pip install -r uv --dev
+     ```
+   
 
 ## ⚙️ Configuration
 
@@ -40,6 +65,12 @@ NEXTCLOUD_ADMIN_PASSWORD=your-secure-password
 NEXTCLOUD_TRUSTED_DOMAINS=cloud.localhost localhost 127.0.0.1
 NEXTCLOUD_DATABASE_NAME=nextcloud_db
 
+# Nextcloud File Uploader Settings
+NEXTCLOUD_URL=https://cloud.localhost
+NEXTCLOUD_PUBLIC_URL=https://cloud.localhost
+NEXTCLOUD_FILEUPLOADER_USERNAME=your-nextcloud-fileuploader
+NEXTCLOUD_FILEUPLOADER_PASSWORD=your-secure-password
+
 # Caddy Settings
 CADDY_PORT=80
 CADDY_HTTPS_PORT=443
@@ -47,19 +78,24 @@ CADDY_HTTPS_PORT=443
 # Nginx Settings
 NGINX_PORT=80
 
+# Geoserver Settings
+GEOSERVER_PORT=8081
+GEOSERVER_ADMIN_USER=your-geoserver-admin
+GEOSERVER_ADMIN_PASSWORD=your-secure-password
+
 ```
+
+### PostgreSQL Settings (deployment/postgres/init.sql)
+
+The `deployment/postgres/init.sql` file contains the initialization script for the PostgreSQL database. It sets up the database and the PostGIS extension for Django.
+
 
 ### Django Settings (settings.py)
 
 The following settings in `backend/core/settings.py` may need adjustment:
 
-- `CORS_ALLOWED_ORIGINS`: Add your frontend URLs
-- `NEXTCLOUD_URL`: Your Nextcloud service URL
-- `NEXTCLOUD_PUBLIC_URL`: Public-facing Nextcloud URL
-- `NEXTCLOUD_USERNAME`: Admin username for Nextcloud
-- `NEXTCLOUD_PASSWORD`: Admin password for Nextcloud
-- `NEXTCLOUD_BASE_PATH`: Base path for file storage
-- `NEXTCLOUD_VERIFY_SSL`: SSL verification setting
+- `CORS_ALLOWED_ORIGINS`
+
 
 ### Docker Compose Configuration
 
@@ -72,19 +108,32 @@ Key settings in `deployment/docker-compose.yml`:
 
 - Backend service:
   - Port: ${BACKEND_PORT:-8000}
+  - Expose: 8000
   - Dependencies on database
   - Environment variables from .env
 
 - Nextcloud service:
   - Port: ${NEXTCLOUD_PORT:-8080}
+  - Expose: 8080
   - Volume mounts for data, apps, and configuration
   - Database integration settings
+  - Environment variables from .env
 
 - Caddy service:
   - Port: ${CADDY_PORT:-80}
   - Port: ${CADDY_HTTPS_PORT:-443}
   - Volume mounts for data, configuration, and certificates
   - SSL certificate generation
+
+- Nginx service:
+  - Port: ${NGINX_PORT:-80}
+  - Volume mounts for configuration
+  - Static file serving
+
+- Geoserver service:
+  - Port: ${GEOSERVER_PORT:-8081}
+  - Volume mounts for data
+  - Environment variables from .env
 
 ## 🐳 Deployment
 
@@ -94,6 +143,8 @@ The project uses Docker Compose for deployment, which sets up four main services
 - Nextcloud for file management
 - Caddy for reverse proxy
 - Nginx for reverse proxy and static file serving
+- Geoserver for spatial data management
+
 ### Starting the Services
 
 1. Navigate to the deployment directory:
@@ -107,10 +158,12 @@ The project uses Docker Compose for deployment, which sets up four main services
    ```
 
    This will start:
-   - PostgreSQL 17 with PostGIS on port 5440
-   - Django backend on port 8000
-   - Nextcloud on port 8080
-   - Caddy for reverse proxy on port 80
+   - PostgreSQL 17 with PostGIS
+   - Django backend
+   - Nextcloud
+   - Caddy for reverse proxy
+   - Nginx for reverse proxy and static file serving
+   - Geoserver for spatial data management
    
 ### Service Configuration
 

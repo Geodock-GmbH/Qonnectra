@@ -12,8 +12,12 @@ dependencies = [
     "docutils>=0.21.2",
     "gunicorn>=23.0.0",
     "psycopg[binary]>=3.2.4",
-    "pytest>=8.3.4",
     "python-dotenv>=1.0.1",
     "requests>=2.32.3",
-    "ruff>=0.9.7",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "ruff>=0.11.4",
 ]
