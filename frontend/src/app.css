@@ -2,6 +2,6 @@
 
 @import '@skeletonlabs/skeleton';
 @import '@skeletonlabs/skeleton/optional/presets';
-@import '@skeletonlabs/skeleton/themes/wintry';
+@import '@skeletonlabs/skeleton/themes/mona';
 
 @source '../node_modules/@skeletonlabs/skeleton-svelte/dist';
