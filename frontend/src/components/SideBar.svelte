@@ -3,7 +3,13 @@
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 
 	// Icons
-	import Icon from '@iconify/svelte';
+	import {
+		IconLayoutSidebarLeftCollapse,
+		IconLayoutSidebarLeftExpand,
+		IconMap2,
+		IconVectorSpline,
+		IconSettings
+	} from '@tabler/icons-svelte';
 
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
@@ -13,7 +19,6 @@
 	function toggleExpanded() {
 		isSidebarExpanded = !isSidebarExpanded;
 	}
-
 </script>
 
 <div>
@@ -21,20 +26,24 @@
 	<Navigation.Rail expanded={isSidebarExpanded}>
 		{#snippet header()}
 			<Navigation.Tile labelExpanded={m.menu()} onclick={toggleExpanded} title="Toggle Menu Width">
-				<Icon icon="hugeicons:menu-01" width="1.5em" height="1.5em" />
+				{#if isSidebarExpanded}
+					<IconLayoutSidebarLeftCollapse size={36} />
+				{:else}
+					<IconLayoutSidebarLeftExpand size={36} />
+				{/if}
 			</Navigation.Tile>
 		{/snippet}
 		{#snippet tiles()}
 			<Navigation.Tile href="/" labelExpanded={m.map()} title="Karte">
-				<Icon icon="hugeicons:maps-location-01" width="1.5em" height="1.5em" />
+				<IconMap2 size={36} />
 			</Navigation.Tile>
 			<Navigation.Tile href="/trench" labelExpanded={m.trench()} title="Trench">
-				<Icon icon="hugeicons:arrange" width="1.5em" height="1.5em" />
+				<IconVectorSpline size={36} />
 			</Navigation.Tile>
 		{/snippet}
 		{#snippet footer()}
-			<Navigation.Tile labelExpanded={m.settings()} href="/" title="Settings">
-				<Icon icon="hugeicons:settings-01" width="1.5em" height="1.5em" />
+			<Navigation.Tile href="/settings" labelExpanded={m.settings()} title="Settings">
+				<IconSettings size={36} />
 			</Navigation.Tile>
 		{/snippet}
 	</Navigation.Rail>
