@@ -14,6 +14,8 @@
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
+	import { page } from '$app/state';
+
 	let isSidebarExpanded = $state(true);
 
 	function toggleExpanded() {
@@ -34,15 +36,30 @@
 			</Navigation.Tile>
 		{/snippet}
 		{#snippet tiles()}
-			<Navigation.Tile href="/" labelExpanded={m.map()} title="Karte">
+			<Navigation.Tile
+				href="/"
+				labelExpanded={m.map()}
+				title="Karte"
+				selected={page.url.pathname === '/'}
+			>
 				<IconMap2 size={36} />
 			</Navigation.Tile>
-			<Navigation.Tile href="/trench" labelExpanded={m.trench()} title="Trench">
+			<Navigation.Tile
+				href="/trench"
+				labelExpanded={m.trench()}
+				title="Trench"
+				selected={page.url.pathname === '/trench'}
+			>
 				<IconVectorSpline size={36} />
 			</Navigation.Tile>
 		{/snippet}
 		{#snippet footer()}
-			<Navigation.Tile href="/settings" labelExpanded={m.settings()} title="Settings">
+			<Navigation.Tile
+				href="/settings"
+				labelExpanded={m.settings()}
+				title="Settings"
+				selected={page.url.pathname === '/settings'}
+			>
 				<IconSettings size={36} />
 			</Navigation.Tile>
 		{/snippet}
