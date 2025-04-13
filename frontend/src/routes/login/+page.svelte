@@ -1,5 +1,5 @@
 <script>
-    // Paraglide
+	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 </script>
 

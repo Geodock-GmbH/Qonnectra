@@ -7,5 +7,6 @@
 	"login": "Login",
 	"signin": "Anmelden",
 	"email": "E-Mail",
-	"password": "Passwort"
+	"password": "Passwort",
+	"go_back_home": "Zurück zur Startseite"
 }
