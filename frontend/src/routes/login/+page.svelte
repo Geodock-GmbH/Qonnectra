@@ -19,7 +19,13 @@
 		</div>
 		<!-- Password -->
 		<div class="flex flex-col gap-2">
-			<p class="text-sm">{m.password()}</p>
+			<div class="flex flex-row justify-between">
+				<p class="text-sm">{m.password()}</p>
+				<a href="/forgot-password" class="text-sm font-semibold text-primary-500 hover:text-primary-600"
+					>{m.forgot_password()}</a
+				>
+			</div>
+
 			<label for="password">
 				<input type="password" class="input" />
 			</label>

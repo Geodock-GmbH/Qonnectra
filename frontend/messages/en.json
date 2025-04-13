@@ -8,5 +8,6 @@
 	"signin": "Sign in to your account",
 	"email": "Email address",
 	"password": "Password",
-	"go_back_home": "Go back home"
+	"go_back_home": "Go back home",
+	"forgot_password": "Forgot password?"
 }

@@ -8,5 +8,6 @@
 	"signin": "Anmelden",
 	"email": "E-Mail",
 	"password": "Passwort",
-	"go_back_home": "Zurück zur Startseite"
+	"go_back_home": "Zurück zur Startseite",
+	"forgot_password": "Passwort vergessen?"
 }

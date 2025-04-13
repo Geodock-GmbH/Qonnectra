@@ -8,11 +8,11 @@
 	<AppBar>
 		{#snippet trail()}
 			<a href="/login">
-				<button>
+				<button class="btn bg-transparent">
 					<Avatar name="Rainer Zufall" size="size-8" font="font-bold"/>
 				</button>
 			</a>
 		{/snippet}
-		<span>Krit-GIS</span>
+		<span class="font-bold">Krit-GIS</span>
 	</AppBar>
 </div>
