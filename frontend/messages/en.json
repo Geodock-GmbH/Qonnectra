@@ -3,5 +3,9 @@
 	"map": "Map",
 	"trench": "Trench",
 	"settings": "Settings",
-	"menu": "Menu"
+	"menu": "Menu",
+	"login": "Login",
+	"signin": "Sign in to your account",
+	"email": "Email address",
+	"password": "Password"
 }

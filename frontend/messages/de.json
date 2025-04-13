@@ -3,5 +3,9 @@
 	"map": "Karte",
 	"trench": "Graben",
 	"settings": "Einstellungen",
-	"menu": "Menü"
+	"menu": "Menü",
+	"login": "Login",
+	"signin": "Anmelden",
+	"email": "E-Mail",
+	"password": "Passwort"
 }

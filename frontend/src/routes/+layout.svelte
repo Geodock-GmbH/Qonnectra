@@ -9,7 +9,7 @@
 	<AppBar />
 	<div class="h-screen flex flex-1 absolute top-0">
 		<Sidebar />
-		<main class="flex-1 p-4 mt-16">
+		<main class="flex-1 p-4 mt-16 scroll-auto">
 			{@render children()}
 		</main>
 	</div>

@@ -7,9 +7,11 @@
 <div>
 	<AppBar>
 		{#snippet trail()}
-			<button>
-				<Avatar name="Rainer Zufall" size="size-8" font="font-bold" />
-			</button>
+			<a href="/login">
+				<button>
+					<Avatar name="Rainer Zufall" size="size-8" font="font-bold"/>
+				</button>
+			</a>
 		{/snippet}
 		<span>Krit-GIS</span>
 	</AppBar>
