@@ -24,4 +24,5 @@ urlpatterns = [
     path("admin/doc/", include("django.contrib.admindocs.urls")),
     path("admin/", admin.site.urls),
     path("api/", include("apps.api.urls")),
+    path("dj-rest-auth/", include("dj_rest_auth.urls")),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
