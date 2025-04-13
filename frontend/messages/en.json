@@ -1,0 +1,13 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"map": "Map",
+	"trench": "Trench",
+	"settings": "Settings",
+	"menu": "Menu",
+	"login": "Login",
+	"signin": "Sign in to your account",
+	"email": "Email address",
+	"password": "Password",
+	"go_back_home": "Go back home",
+	"forgot_password": "Forgot password?"
+}
