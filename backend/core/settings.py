@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -52,6 +53,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "dj_rest_auth",
+    "rest_framework_simplejwt",
     "corsheaders",
 ]
 
@@ -163,20 +165,67 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
     "DEFAULT_AUTHENTICATION_CLASSES": (
+        # Use JWTCookieAuthentication for cookie-based JWT auth
         "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
     ),
+    # Add permission settings if needed globally, otherwise handle per-view
+    # 'DEFAULT_PERMISSION_CLASSES': [
+    #     'rest_framework.permissions.IsAuthenticatedOrReadOnly'
+    # ]
 }
 
 REST_AUTH = {
     "USE_JWT": True,
-    "JWT_AUTH_COOKIE": "api-auth",
-    "JWT_AUTH_REFRESH_COOKIE": "api-auth-refresh-token",
+    "SESSION_LOGIN": False,
+    "JWT_AUTH_COOKIE": "api-access-token",
+    "JWT_AUTH_REFRESH_COOKIE": "api-refresh-token",
+    "JWT_AUTH_REFRESH_COOKIE_PATH": "/api/v1/auth/",
+    "JWT_AUTH_SECURE": not DEBUG,
+    "JWT_AUTH_HTTPONLY": True,
+    "JWT_AUTH_SAMESITE": "Lax",
+}
+
+# djangorestframework-simplejwt settings
+# https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),  # Adjust as needed
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Adjust as needed
+    "ROTATE_REFRESH_TOKENS": True,  # Obtain a new refresh token when refreshing
+    "BLACKLIST_AFTER_ROTATION": False,  # Blacklist old refresh token
+    "UPDATE_LAST_LOGIN": True,
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,  # Uses Django SECRET_KEY by default
+    "VERIFYING_KEY": "",
+    "AUDIENCE": None,
+    "ISSUER": None,
+    "JSON_ENCODER": None,
+    "JWK_URL": None,
+    "LEEWAY": 0,
+    "AUTH_HEADER_TYPES": ("Bearer",),  # Only relevant if NOT using cookies
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+    "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "TOKEN_TYPE_CLAIM": "token_type",
+    "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
+    "JTI_CLAIM": "jti",
+    # Cookie specific settings (though dj-rest-auth overrides these with REST_AUTH settings)
+    # These are here for reference but dj-rest-auth's JWT_AUTH_* settings take precedence
+    # "AUTH_COOKIE": "access_token",
+    # "AUTH_COOKIE_REFRESH": "refresh_token",
+    # "AUTH_COOKIE_DOMAIN": None,
+    # "AUTH_COOKIE_SECURE": False,
+    # "AUTH_COOKIE_HTTP_ONLY": True,
+    # "AUTH_COOKIE_PATH": "/",
+    # "AUTH_COOKIE_SAMESITE": "Lax",
 }
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Default SvelteKit dev server
     "http://127.0.0.1:5173",
 ]
+CORS_ALLOW_CREDENTIALS = True
 
 # Nextcloud Storage Settings
 NEXTCLOUD_URL = os.getenv("NEXTCLOUD_URL")
