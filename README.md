@@ -34,3 +34,14 @@
     - [ ] Forgot Password
     - [ ] Reset Password
 
+
+## Copy the caddy root ca certificate from docker
+1. Linux:
+```bash
+docker volume ls | grep caddy_data 
+docker volume inspect <full_volume_name> (example output: /var/lib/docker/volumes/deployment_caddy_data/_data)
+sudo cp <volume_mount_point>/caddy/pki/authorities/local/root.crt ~/caddy_root.crt
+sudo chown $USER:$USER ~/caddy_root.crt
+sudo mv ~/caddy_root.crt /usr/local/share/ca-certificates/caddy_root.crt
+sudo update-ca-certificates
+```

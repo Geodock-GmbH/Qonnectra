@@ -4,8 +4,8 @@
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import { goto } from '$app/navigation';
 
-	let username = '';
-	let password = '';
+	let username;
+	let password;
 	let error = '';
 	let loading = false;
 
@@ -57,7 +57,7 @@
 		<div class="flex flex-col gap-2">
 			<p class="text-sm">{m.username()}</p>
 			<label for="username">
-				<input type="text" class="input" />
+				<input type="text" class="input" required bind:value={username} />
 			</label>
 		</div>
 		<!-- Password -->
@@ -67,7 +67,7 @@
 			</div>
 
 			<label for="password">
-				<input type="password" class="input" />
+				<input type="password" class="input" required bind:value={password} />
 			</label>
 		</div>
 		<!-- Login Button -->
