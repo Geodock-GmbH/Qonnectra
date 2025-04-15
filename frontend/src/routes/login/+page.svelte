@@ -5,7 +5,10 @@
 	import { goto } from '$app/navigation';
 	import { Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
 
-	const toaster = createToaster();
+	// TODO: Toaster should be placed bottom center.
+	const toaster = createToaster({
+		placement: 'bottom-end'
+	});
 
 	let username;
 	let password;
@@ -81,8 +84,8 @@
 				onclick={async () => {
 					if (!username || !password) {
 						toaster.create({
-							title: 'Missing Information',
-							description: 'Please enter both username and password.',
+							title: m.title_missing_information(),
+							description: m.missing_information(),
 							type: 'error'
 						});
 						return; // Prevent login attempt
@@ -90,15 +93,15 @@
 
 					toaster.promise(login(), {
 						loading: {
-							title: 'Logging in...',
-							description: 'Please wait.'
+							title: m.title_logging_in(),
+							description: m.please_wait()
 						},
 						success: () => ({
-							title: 'Success!',
-							description: 'You have been logged in successfully.'
+							title: m.title_login_success(),
+							description: m.login_success()
 						}),
 						error: (err) => ({
-							title: 'Login Error',
+							title: m.title_login_error(),
 							description: err.message
 						})
 					});
