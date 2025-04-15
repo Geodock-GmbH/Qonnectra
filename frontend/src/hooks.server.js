@@ -3,6 +3,9 @@ import { redirect } from '@sveltejs/kit';
 import { PUBLIC_API_URL } from '$env/static/public';
 import { sequence } from '@sveltejs/kit/hooks';
 
+// Define routes that should be accessible even without authentication
+const PUBLIC_ROUTES = ['/login']; // Add any other public routes here
+
 const handleParaglide = ({ event, resolve }) =>
 	paraglideMiddleware(event.request, ({ request, locale }) => {
 		event.request = request;
@@ -17,7 +20,9 @@ export async function handleAuth({ event, resolve }) {
 	// Attempt to get user data on every server-side navigation or page load.
 	// We use event.fetch which automatically forwards cookies from the browser to the API.
 	try {
+		console.log('Hook received cookies:', event.request.headers.get('cookie'));
 		const response = await event.fetch(`${PUBLIC_API_URL}/api/v1/auth/user/`);
+		console.log('Fetching user from:', `${PUBLIC_API_URL}/api/v1/auth/user/`);
 
 		if (response.ok) {
 			const userDetails = await response.json();
@@ -39,13 +44,20 @@ export async function handleAuth({ event, resolve }) {
 		event.locals.user = { isAuthenticated: false };
 	}
 
-	// Protect specific routes (example)
-	if (event.url.pathname.startsWith('/settings') && !event.locals.user.isAuthenticated) {
-		// Redirect to login if trying to access '/dashboard' while not authenticated
-		throw redirect(303, '/login');
+	console.log('Setting locals.user:', event.locals.user);
+
+	// Route Protection Logic
+	const isUserAuthenticated = event.locals.user?.isAuthenticated ?? false;
+	const requestedPath = event.url.pathname;
+	const isPublicRoute = PUBLIC_ROUTES.some((route) => requestedPath.startsWith(route));
+
+	if (!isUserAuthenticated && !isPublicRoute) {
+		// User is not logged in and trying to access a protected route
+		const redirectToUrl = `/login?redirectTo=${encodeURIComponent(requestedPath + event.url.search)}`;
+		throw redirect(303, redirectToUrl);
 	}
 
-	// Load page as normal
+	// If user is authenticated OR the route is public, continue resolving the request
 	return resolve(event);
 }
 
