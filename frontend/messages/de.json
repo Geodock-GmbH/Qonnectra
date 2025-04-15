@@ -15,7 +15,8 @@
 	"title_missing_information": "Fehlende Informationen",
 	"missing_information": "Bitte geben Sie beide Benutzername und Passwort ein.",
 	"title_logging_in": "Einloggen...",
-	"title_login_error": "Fehler beim Anmelden",
 	"title_login_success": "Erfolg",
-	"login_success": "Du hast dich erfolgreich angemeldet."
+	"login_success": "Du hast dich erfolgreich angemeldet.",
+	"title_login_error": "Fehler beim Anmelden",
+	"login_error": "Fehler beim Anmelden. Bitte versuche es erneut."
 }

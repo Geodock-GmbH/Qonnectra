@@ -15,7 +15,8 @@
 	"title_missing_information": "Missing information",
 	"missing_information": "Please enter both username and password.",
 	"title_logging_in": "Logging in...",
-	"title_login_error": "Login error",
 	"title_login_success": "Success",
-	"login_success": "You have been logged in successfully."
+	"login_success": "You have been logged in successfully.",
+	"title_login_error": "Login error",
+	"login_error": "Login error. Please try again."
 }

@@ -102,7 +102,7 @@
 						}),
 						error: (err) => ({
 							title: m.title_login_error(),
-							description: err.message
+							description: m.login_error()
 						})
 					});
 				}}>{m.login()}</button
