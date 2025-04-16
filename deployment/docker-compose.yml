@@ -137,6 +137,8 @@ services:
     restart: unless-stopped
     expose:
       - "3000"
+    environment:
+      - ORIGIN=https://app.localhost
     networks:
       - krit_gis_network
     depends_on:
