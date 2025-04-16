@@ -4,7 +4,7 @@ import { PUBLIC_API_URL } from '$env/static/public';
 import { sequence } from '@sveltejs/kit/hooks';
 
 // Define routes that should be accessible even without authentication
-const PUBLIC_ROUTES = ['/login']; // Add any other public routes here
+export const PUBLIC_ROUTES = ['/login']; // Add more routes here
 
 const handleParaglide = ({ event, resolve }) =>
 	paraglideMiddleware(event.request, ({ request, locale }) => {
@@ -20,15 +20,13 @@ export async function handleAuth({ event, resolve }) {
 	// Attempt to get user data on every server-side navigation or page load.
 	// We use event.fetch which automatically forwards cookies from the browser to the API.
 	try {
-		console.log('Hook received cookies:', event.request.headers.get('cookie'));
-		const response = await event.fetch(`${PUBLIC_API_URL}/api/v1/auth/user/`);
-		console.log('Fetching user from:', `${PUBLIC_API_URL}/api/v1/auth/user/`);
+		const response = await event.fetch(`${PUBLIC_API_URL}auth/user/`);
 
 		if (response.ok) {
 			const userDetails = await response.json();
 			event.locals.user = {
 				isAuthenticated: true,
-				...userDetails // e.g., username, email, pk
+				...userDetails // username, email, pk
 			};
 		} else if (response.status === 401 || response.status === 403) {
 			// Not authenticated or token invalid/expired
@@ -44,12 +42,15 @@ export async function handleAuth({ event, resolve }) {
 		event.locals.user = { isAuthenticated: false };
 	}
 
-	console.log('Setting locals.user:', event.locals.user);
-
 	// Route Protection Logic
 	const isUserAuthenticated = event.locals.user?.isAuthenticated ?? false;
 	const requestedPath = event.url.pathname;
 	const isPublicRoute = PUBLIC_ROUTES.some((route) => requestedPath.startsWith(route));
+
+	// If user is already authenticated and tries to access /login, redirect them away
+	if (isUserAuthenticated && requestedPath.startsWith('/login')) {
+		throw redirect(303, '/'); // Redirect to home page or dashboard
+	}
 
 	if (!isUserAuthenticated && !isPublicRoute) {
 		// User is not logged in and trying to access a protected route
@@ -57,7 +58,7 @@ export async function handleAuth({ event, resolve }) {
 		throw redirect(303, redirectToUrl);
 	}
 
-	// If user is authenticated OR the route is public, continue resolving the request
+	// If user is authenticated (and not on /login) OR the route is public, continue resolving the request
 	return resolve(event);
 }
 

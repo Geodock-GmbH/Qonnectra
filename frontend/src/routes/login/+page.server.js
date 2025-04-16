@@ -11,7 +11,7 @@ export const actions = {
 		const redirectTo = formData.get('redirectTo') || '/';
 
 		try {
-			const response = await fetch(`${PUBLIC_API_URL}/api/v1/auth/login/`, {
+			const response = await fetch(`${PUBLIC_API_URL}auth/login/`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -39,7 +39,6 @@ export const actions = {
 					// Parse expires date carefully
 					let expiresDate = undefined;
 					if (cookieData.expires) {
-						console.log(`Attempting to parse expires date string: ${cookieData.expires}`); // Log the original string
 						const parsedDate = new Date(cookieData.expires);
 						if (!isNaN(parsedDate.getTime())) {
 							// Check if the date is valid
@@ -61,7 +60,6 @@ export const actions = {
 
 					if (cookieName && cookieValue) {
 						event.cookies.set(cookieName, cookieValue, options);
-						console.log(`Forwarding cookie: ${cookieName} with options:`, options);
 					}
 				});
 			} else {

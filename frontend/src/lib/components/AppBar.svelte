@@ -8,9 +8,8 @@
 	import { userStore, updateUserStore } from '$lib/stores/auth';
 
 	async function handleLogout() {
-		console.log('[+AppBar.svelte] $userStore:', $userStore);
 		try {
-			const response = await fetch(`${PUBLIC_API_URL}/api/v1/auth/logout/`, {
+			const response = await fetch(`${PUBLIC_API_URL}auth/logout/`, {
 				method: 'POST',
 				credentials: 'include'
 			});
@@ -32,7 +31,7 @@
 		{#snippet trail()}
 			{#if $userStore.isAuthenticated}
 				<div class="flex items-center gap-2">
-					<button class="btn bg-transparent" on:click={handleLogout}>
+					<button class="btn bg-transparent" onclick={handleLogout}>
 						<IconLogout class="h-6 w-6" />
 					</button>
 					<Avatar name={$userStore.username || 'User'} size="size-8" font="font-bold" />
@@ -43,7 +42,6 @@
 						<IconUserCircle />
 					</button>
 				</a>
-				<button on:click={handleLogout}>Logout</button>
 			{/if}
 		{/snippet}
 		<span class="font-bold">{$userStore.username}</span>

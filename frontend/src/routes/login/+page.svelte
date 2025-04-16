@@ -1,12 +1,18 @@
 <script>
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
-	import { PUBLIC_API_URL } from '$env/static/public';
-	import { enhance } from '$app/forms'; // Import enhance
+
+	// Skeleton
 	import { Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
-	import { page } from '$app/stores'; // Import page store to read URL parameters
+
+	// SvelteKit
+	import { PUBLIC_API_URL } from '$env/static/public';
+	import { enhance } from '$app/forms';
+	import { page } from '$app/stores'; 
 
 	// TODO: Toaster should be placed bottom center.
+	// Since the UI is not clear right now, the centered button would not be centered.
+	// so we're placing it at the bottom right for now.
 	const toaster = createToaster({
 		placement: 'bottom-end'
 	});
@@ -19,9 +25,23 @@
 
 	/** @type {import('./$types').ActionData} */
 	export let form; // Receive action data from the server
+
+	// Reactive statement to show toast on error
+	$: if (form?.error) {
+		toaster.create({
+			title: m.title_login_error(),
+			description: form.error,
+			type: 'error'
+		});
+		// Enable button when form is submitted
+		const button = document.querySelector('button[type="submit"]');
+		if (button) {
+			button.disabled = false;
+		}
+	}
 </script>
 
-<Toaster {toaster}></Toaster>
+<Toaster toaster={toaster}></Toaster>
 
 <div class="flex flex-col gap-4 items-center justify-center">
 	<!-- Logo -->
@@ -35,7 +55,11 @@
 		action= "?/login"
 		class="mx-auto w-full max-w-md space-y-4"
 		use:enhance={() => {
-			// Optional: Add logic before form submission (e.g., disable button)
+			// Disable button when form is submitting
+			const button = document.querySelector('button[type="submit"]');
+			if (button) {
+				button.disabled = true;
+			}
 			// Return a callback for after submission
 			return async ({ update }) => {
 				// update() runs after the action completes
@@ -47,13 +71,6 @@
 	>
 		<!-- Hidden input for redirectTo -->
 		<input type="hidden" name="redirectTo" value={redirectTo} />
-
-		<!-- Display server-side error if it exists -->
-		{#if form?.error}
-			<div class="alert variant-filled-error" role="alert">
-				<p>{form.error}</p>
-			</div>
-		{/if}
 
 		<!-- Username -->
 		<div class="flex flex-col gap-2">
@@ -74,7 +91,6 @@
 		</div>
 		<!-- Login Button -->
 		<div class="flex flex-col gap-2">
-			<!-- Changed to type="submit", removed disabled attribute -->
 			<button type="submit" class="btn preset-filled-primary-500">
 				{m.login()}
 			</button>
