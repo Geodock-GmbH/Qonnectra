@@ -2,12 +2,13 @@
 	// Skeleton
 	import { AppBar } from '@skeletonlabs/skeleton-svelte';
 	import { Avatar } from '@skeletonlabs/skeleton-svelte';
-	import { getAuthContext } from '$lib/auth.Context';
 	import { goto } from '$app/navigation';
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import { IconLogout, IconUserCircle } from '@tabler/icons-svelte';
+	import { userStore, updateUserStore } from '$lib/stores/auth';
 
 	async function handleLogout() {
+		console.log('[+AppBar.svelte] $userStore:', $userStore);
 		try {
 			const response = await fetch(`${PUBLIC_API_URL}/api/v1/auth/logout/`, {
 				method: 'POST',
@@ -15,6 +16,7 @@
 			});
 
 			if (response.ok) {
+				updateUserStore(null);
 				await goto('/login');
 			} else {
 				console.error('Logout failed:', response.status);
@@ -26,25 +28,24 @@
 </script>
 
 <div>
-	{#key getAuthContext().isAuthenticated}
-		<AppBar>
-			{#snippet trail()}
-				{#if getAuthContext().isAuthenticated}
-					<div class="flex items-center gap-2">
-						<button class="btn bg-transparent" on:click={handleLogout}>
-							<IconLogout class="h-6 w-6" />
-						</button>
-						<Avatar name={getAuthContext().username || 'User'} size="size-8" font="font-bold" />
-					</div>
-				{:else}
-					<a href="/login">
-						<button class="btn bg-transparent">
-							<IconUserCircle />
-						</button>
-					</a>
-				{/if}
-			{/snippet}
-			<span class="font-bold">Krit-GIS</span>
-		</AppBar>
-	{/key}
+	<AppBar>
+		{#snippet trail()}
+			{#if $userStore.isAuthenticated}
+				<div class="flex items-center gap-2">
+					<button class="btn bg-transparent" on:click={handleLogout}>
+						<IconLogout class="h-6 w-6" />
+					</button>
+					<Avatar name={$userStore.username || 'User'} size="size-8" font="font-bold" />
+				</div>
+			{:else}
+				<a href="/login">
+					<button class="btn bg-transparent">
+						<IconUserCircle />
+					</button>
+				</a>
+				<button on:click={handleLogout}>Logout</button>
+			{/if}
+		{/snippet}
+		<span class="font-bold">{$userStore.username}</span>
+	</AppBar>
 </div>
