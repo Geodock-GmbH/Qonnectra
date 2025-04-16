@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 import os
+import platform
 from datetime import timedelta
 from pathlib import Path
 
@@ -103,6 +104,15 @@ DATABASES = {
         "PORT": os.getenv("DB_PORT"),
     }
 }
+
+# GDAL Configuration
+if platform.system() == 'Windows':
+    GDAL_LIBRARY_PATH = r'C:\OSGeo4W\bin\gdal304.dll'
+    GEOS_LIBRARY_PATH = r'C:\OSGeo4W\bin\geos_c.dll'
+elif platform.system() == 'Darwin':  # macOS
+    GDAL_LIBRARY_PATH = '/opt/homebrew/opt/gdal/lib/libgdal.dylib'
+    GEOS_LIBRARY_PATH = '/opt/homebrew/opt/geos/lib/libgeos_c.dylib'
+# Linux comes with GDAL and GEOS installed by default and should be found automatically
 
 
 # Password validation
