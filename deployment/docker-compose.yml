@@ -127,6 +127,21 @@ services:
     networks:
       - krit_gis_network
 
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://backend:8000/api
+    container_name: krit_gis_frontend
+    restart: unless-stopped
+    expose:
+      - "3000"
+    networks:
+      - krit_gis_network
+    depends_on:
+      - backend
+
   nginx:
     image: nginx:stable-alpine
     container_name: krit_gis_nginx
@@ -138,6 +153,8 @@ services:
       - "${NGINX_PORT:-80}:80"
     depends_on:
       - backend
+      - nextcloud
+      - frontend
     networks:
       - krit_gis_network
 
@@ -161,6 +178,7 @@ services:
     depends_on:
       - nginx
       - nextcloud
+      - frontend
     networks:
       - krit_gis_network
 

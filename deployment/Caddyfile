@@ -32,10 +32,11 @@ geoserver.localhost {
     }
 }
 
-# Frontend (when implemented)
-localhost {
+# Frontend
+app.localhost {
     tls internal # Use Caddy's internal CA for local certs
-    reverse_proxy frontend:5173 {
+    reverse_proxy frontend:3000 {
         header_up Host {host} # Preserve original Host header
+        header_up X-Forwarded-Proto {scheme}
     }
 }
