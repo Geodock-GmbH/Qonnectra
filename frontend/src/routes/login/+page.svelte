@@ -8,7 +8,7 @@
 	// SvelteKit
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import { enhance } from '$app/forms';
-	import { page } from '$app/stores'; 
+	import { page } from '$app/stores';
 
 	// TODO: Toaster should be placed bottom center.
 	// Since the UI is not clear right now, the centered button would not be centered.
@@ -33,15 +33,10 @@
 			description: form.error,
 			type: 'error'
 		});
-		// Enable button when form is submitted
-		const button = document.querySelector('button[type="submit"]');
-		if (button) {
-			button.disabled = false;
-		}
 	}
 </script>
 
-<Toaster toaster={toaster}></Toaster>
+<Toaster {toaster}></Toaster>
 
 <div class="flex flex-col gap-4 items-center justify-center">
 	<!-- Logo -->
@@ -52,14 +47,9 @@
 	<!-- Use enhance for progressive enhancement -->
 	<form
 		method="POST"
-		action= "?/login"
+		action="?/login"
 		class="mx-auto w-full max-w-md space-y-4"
 		use:enhance={() => {
-			// Disable button when form is submitting
-			const button = document.querySelector('button[type="submit"]');
-			if (button) {
-				button.disabled = true;
-			}
 			// Return a callback for after submission
 			return async ({ update }) => {
 				// update() runs after the action completes

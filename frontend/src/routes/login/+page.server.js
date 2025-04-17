@@ -1,6 +1,7 @@
 import { redirect, fail } from '@sveltejs/kit';
 import { PUBLIC_API_URL } from '$env/static/public';
 import { parse } from 'cookie';
+import setCookieParser from 'set-cookie-parser';
 
 /** @satisfies {import('./$types').Actions} */
 export const actions = {
@@ -31,36 +32,25 @@ export const actions = {
 
 			const setCookieHeader = response.headers.get('set-cookie');
 			if (setCookieHeader) {
-				const cookies = setCookieHeader.split(',').map((cookieStr) => parse(cookieStr.trim()));
+				// Use set-cookie-parser to properly parse the cookies
+				const cookies = setCookieParser.parse(response);
 
-				cookies.forEach((cookieData) => {
-					const [cookieName, cookieValue] = Object.entries(cookieData)[0];
-
-					// Parse expires date carefully
-					let expiresDate = undefined;
-					if (cookieData.expires) {
-						const parsedDate = new Date(cookieData.expires);
-						if (!isNaN(parsedDate.getTime())) {
-							// Check if the date is valid
-							expiresDate = parsedDate;
-						} else {
-							console.warn(`Failed to parse expires date string: ${cookieData.expires}`);
-						}
-					}
-
+				cookies.forEach((cookie) => {
+					// Extract cookie options
 					const options = {
-						path: cookieData.path || '/',
-						httpOnly: cookieData.hasOwnProperty('httponly'),
-						secure: cookieData.hasOwnProperty('secure') || event.url.protocol === 'https:',
-						sameSite: cookieData.samesite || 'Lax', // Default to Lax
-						maxAge: cookieData['max-age'] ? parseInt(cookieData['max-age']) : undefined,
-						expires: expiresDate // Use the validated date or undefined
+						path: cookie.path || '/',
+						httpOnly: cookie.httpOnly,
+						secure: cookie.secure || event.url.protocol === 'https:',
+						sameSite: cookie.sameSite || 'Lax',
+						maxAge: cookie.maxAge,
+						expires: cookie.expires
 					};
+
+					// Remove undefined options
 					Object.keys(options).forEach((key) => options[key] === undefined && delete options[key]);
 
-					if (cookieName && cookieValue) {
-						event.cookies.set(cookieName, cookieValue, options);
-					}
+					// Set the cookie
+					event.cookies.set(cookie.name, cookie.value, options);
 				});
 			} else {
 				console.warn('Login API response did not contain a Set-Cookie header.');

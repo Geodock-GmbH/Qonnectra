@@ -11,8 +11,8 @@ RUN npm ci
 COPY . .
 
 # Set the API URL build argument
-ARG VITE_API_URL=/api
-ENV VITE_API_URL=${VITE_API_URL}
+#ARG VITE_API_URL=/api
+#ENV VITE_API_URL=${VITE_API_URL}
 
 # Build the application
 RUN npm run build
@@ -24,7 +24,7 @@ WORKDIR /app
 
 # Install production dependencies (if any specific runtime deps are needed)
 # If the adapter-node output includes node_modules, this might not be needed
-# COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 
 # Copy the built application output

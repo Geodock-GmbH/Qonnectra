@@ -34,6 +34,7 @@
 	},
 	"dependencies": {
 		"@inlang/paraglide-js": "^2.0.0",
-		"@tabler/icons-svelte": "^3.31.0"
+		"@tabler/icons-svelte": "^3.31.0",
+		"set-cookie-parser": "^2.7.1"
 	}
 }

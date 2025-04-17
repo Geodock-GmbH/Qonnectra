@@ -106,12 +106,12 @@ DATABASES = {
 }
 
 # GDAL Configuration
-if platform.system() == 'Windows':
-    GDAL_LIBRARY_PATH = r'C:\OSGeo4W\bin\gdal304.dll'
-    GEOS_LIBRARY_PATH = r'C:\OSGeo4W\bin\geos_c.dll'
-elif platform.system() == 'Darwin':  # macOS
-    GDAL_LIBRARY_PATH = '/opt/homebrew/opt/gdal/lib/libgdal.dylib'
-    GEOS_LIBRARY_PATH = '/opt/homebrew/opt/geos/lib/libgeos_c.dylib'
+if platform.system() == "Windows":
+    GDAL_LIBRARY_PATH = r"C:\OSGeo4W\bin\gdal304.dll"
+    GEOS_LIBRARY_PATH = r"C:\OSGeo4W\bin\geos_c.dll"
+elif platform.system() == "Darwin":  # macOS
+    GDAL_LIBRARY_PATH = "/opt/homebrew/opt/gdal/lib/libgdal.dylib"
+    GEOS_LIBRARY_PATH = "/opt/homebrew/opt/geos/lib/libgeos_c.dylib"
 # Linux comes with GDAL and GEOS installed by default and should be found automatically
 
 
@@ -234,6 +234,8 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Default SvelteKit dev server
     "http://127.0.0.1:5173",
+    "https://app.localhost",
+    "http://localhost:3000",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
