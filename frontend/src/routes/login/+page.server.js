@@ -34,7 +34,6 @@ export const actions = {
 			if (setCookieHeader) {
 				// Use set-cookie-parser to properly parse the cookies
 				const cookies = setCookieParser.parse(response);
-
 				cookies.forEach((cookie) => {
 					// Extract cookie options
 					const options = {

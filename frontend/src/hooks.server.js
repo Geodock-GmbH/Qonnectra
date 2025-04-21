@@ -18,9 +18,25 @@ const handleParaglide = ({ event, resolve }) =>
 /** @type {import('@sveltejs/kit').Handle} */
 export async function handleAuth({ event, resolve }) {
 	// Attempt to get user data on every server-side navigation or page load.
-	// We use event.fetch which automatically forwards cookies from the browser to the API.
+	const accessToken = event.cookies.get('api-access-token');
+	const headers = new Headers();
+
+	// Manually add the Cookie header if the token exists
+	if (accessToken) {
+		// Format according to HTTP Cookie header standard
+		headers.append('Cookie', `api-access-token=${accessToken}`);
+		// If you rely on other cookies being forwarded (like a refresh token), add them here too:
+		// const refreshToken = event.cookies.get('api-refresh-token');
+		// if (refreshToken) {
+		//   headers.append('Cookie', `api-refresh-token=${refreshToken}`); // Note: Appending multiple Cookie headers might depend on server/fetch handling. Standard is one header with key=value pairs separated by '; '.
+		// }
+	}
+
 	try {
-		const response = await event.fetch(`${PUBLIC_API_URL}auth/user/`);
+		// Use event.fetch WITH the manually constructed headers
+		const response = await event.fetch(`${PUBLIC_API_URL}auth/user/`, {
+			headers: headers // Pass the headers object here
+		});
 
 		if (response.ok) {
 			const userDetails = await response.json();
@@ -30,6 +46,12 @@ export async function handleAuth({ event, resolve }) {
 			};
 		} else if (response.status === 401 || response.status === 403) {
 			// Not authenticated or token invalid/expired
+			// Clear the potentially invalid cookie to prevent loops if auth fails
+			if (accessToken) {
+				event.cookies.delete('api-access-token', { path: '/' });
+				// Consider deleting refresh token too if applicable
+				// event.cookies.delete('api-refresh-token', { path: '/api/v1/auth/' }); // Use correct path
+			}
 			event.locals.user = { isAuthenticated: false };
 		} else {
 			// Handle other potential API errors (e.g., 500)
@@ -39,6 +61,12 @@ export async function handleAuth({ event, resolve }) {
 	} catch (error) {
 		// Handle network errors or API down
 		console.error('Network error fetching user:', error);
+		// Attempt to clear cookie if network error occurs during auth check, as state is unknown
+		if (accessToken) {
+			event.cookies.delete('api-access-token', { path: '/' });
+			// Consider deleting refresh token too if applicable
+			// event.cookies.delete('api-refresh-token', { path: '/api/v1/auth/' }); // Use correct path
+		}
 		event.locals.user = { isAuthenticated: false };
 	}
 
