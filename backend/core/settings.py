@@ -189,7 +189,7 @@ REST_AUTH = {
     "SESSION_LOGIN": False,
     "JWT_AUTH_COOKIE": "api-access-token",
     "JWT_AUTH_REFRESH_COOKIE": "api-refresh-token",
-    "JWT_AUTH_REFRESH_COOKIE_PATH": "/api/v1/auth/",
+    "JWT_AUTH_REFRESH_COOKIE_PATH": "/",
     "JWT_AUTH_SECURE": not DEBUG,
     "JWT_AUTH_HTTPONLY": True,
     "JWT_AUTH_SAMESITE": "Lax",
