@@ -1,8 +1,11 @@
 <script>
 	import '../app.css';
-	import AppBar from '../components/AppBar.svelte';
-	import Sidebar from '../components/SideBar.svelte';
-	let { children } = $props();
+	import AppBar from '$lib/components/AppBar.svelte';
+	import Sidebar from '$lib/components/SideBar.svelte';
+	import { updateUserStore } from '$lib/stores/auth';
+	let { children, data } = $props();
+
+	$effect(() => updateUserStore(data.user));
 </script>
 
 <!-- Root flex container -->

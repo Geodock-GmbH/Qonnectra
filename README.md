@@ -20,8 +20,10 @@
     - [ ] docker-compose exec -u www-data nextcloud_app php /var/www/html/occ user:add newuser
 - [ ] Documentation through django admin docs
 - [ ] i18n and localization
-- [ ] DRF JWT Authentication
+- [x] DRF JWT Authentication
 - [ ] Tests
+- [ ] django tenants
+- [ ] django websockets
 
 ## Frontend
 
@@ -33,4 +35,31 @@
     - [ ] Register
     - [ ] Forgot Password
     - [ ] Reset Password
+
+
+## Copy the caddy root ca certificate from docker
+1. Linux:
+```bash
+docker volume ls | grep caddy_data 
+docker volume inspect <full_volume_name> (example output: /var/lib/docker/volumes/deployment_caddy_data/_data)
+sudo cp <volume_mount_point>/caddy/pki/authorities/local/root.crt ~/caddy_root.crt
+sudo chown $USER:$USER ~/caddy_root.crt
+sudo mv ~/caddy_root.crt /usr/local/share/ca-certificates/caddy_root.crt
+sudo update-ca-certificates
+```
+
+## Edit hostfile
+
+1. Linux/macOS:
+/etc/hosts
+```bash
+sudo nano /etc/hosts
+```
+
+2. Windows
+C:\Windows\System32\drivers\etc\hosts
+
+
+Add something like:     127.0.0.1 geoserver.localhost app.localhost api.localhost cloud.localhost
+
 

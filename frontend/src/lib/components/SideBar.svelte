@@ -23,7 +23,7 @@
 	}
 </script>
 
-<div>
+<div class="hidden md:block">
 	<!-- Component -->
 	<Navigation.Rail expanded={isSidebarExpanded}>
 		{#snippet header()}

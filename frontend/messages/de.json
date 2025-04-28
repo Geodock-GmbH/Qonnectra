@@ -6,8 +6,17 @@
 	"menu": "Menü",
 	"login": "Login",
 	"signin": "Anmelden",
+	"username": "Benutzername",
 	"email": "E-Mail",
 	"password": "Passwort",
 	"go_back_home": "Zurück zur Startseite",
-	"forgot_password": "Passwort vergessen?"
+	"forgot_password": "Passwort vergessen?",
+	"please_wait": "Bitte warten...",
+	"title_missing_information": "Fehlende Informationen",
+	"missing_information": "Bitte geben Sie beide Benutzername und Passwort ein.",
+	"title_logging_in": "Einloggen...",
+	"title_login_success": "Erfolg",
+	"login_success": "Du hast dich erfolgreich angemeldet.",
+	"title_login_error": "Fehler beim Anmelden",
+	"login_error": "Fehler beim Anmelden. Bitte versuche es erneut."
 }

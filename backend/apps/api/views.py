@@ -1,7 +1,8 @@
 from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
 
-from .models import OlTrench, Trench, FeatureFiles
-from .serializers import OlTrenchSerializer, FeatureFilesSerializer, TrenchSerializer
+from .models import FeatureFiles, OlTrench, Trench
+from .serializers import FeatureFilesSerializer, OlTrenchSerializer, TrenchSerializer
 
 
 class TrenchViewSet(viewsets.ModelViewSet):
@@ -10,6 +11,7 @@ class TrenchViewSet(viewsets.ModelViewSet):
     An instance of :model:`api.Trench`.
     """
 
+    permission_classes = [IsAuthenticated]
     queryset = Trench.objects.all().order_by("id_trench")
     serializer_class = TrenchSerializer
     lookup_field = "id_trench"
@@ -22,6 +24,7 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
     An instance of :model:`api.FeatureFiles`.
     """
 
+    permission_classes = [IsAuthenticated]
     queryset = FeatureFiles.objects.all().order_by("object_id")
     serializer_class = FeatureFilesSerializer
     lookup_field = "uuid"
@@ -34,6 +37,7 @@ class OlTrenchViewSet(viewsets.ReadOnlyModelViewSet):
     An instance of :model:`api.OlTrench`.
     """
 
+    permission_classes = [IsAuthenticated]
     queryset = OlTrench.objects.all().order_by("id_trench")
     serializer_class = OlTrenchSerializer
     lookup_field = "id_trench"
