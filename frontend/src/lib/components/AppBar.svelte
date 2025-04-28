@@ -1,7 +1,6 @@
 <script>
 	// Skeleton
 	import { AppBar } from '@skeletonlabs/skeleton-svelte';
-	import { Avatar } from '@skeletonlabs/skeleton-svelte';
 	import { IconLogout, IconUserCircle } from '@tabler/icons-svelte';
 	import { userStore } from '$lib/stores/auth';
 </script>
@@ -16,7 +15,6 @@
 							<IconLogout class="h-6 w-6" />
 						</button>
 					</form>
-					<Avatar name={$userStore.username || 'User'} size="size-8" font="font-bold" />
 				</div>
 			{:else}
 				<a href="/login">
@@ -26,6 +24,7 @@
 				</a>
 			{/if}
 		{/snippet}
+		<!-- TODO: Remove this later -->
 		<span class="font-bold">{$userStore.username}</span>
 	</AppBar>
 </div>

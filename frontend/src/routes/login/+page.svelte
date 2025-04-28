@@ -27,6 +27,7 @@
 	export let form; // Receive action data from the server
 
 	// Reactive statement to show toast on error
+	// TODO: Login successful toast, should be on the redirectTo page.
 	$: if (form?.error) {
 		toaster.create({
 			title: m.title_login_error(),

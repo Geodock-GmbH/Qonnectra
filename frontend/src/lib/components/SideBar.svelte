@@ -37,10 +37,10 @@
 		{/snippet}
 		{#snippet tiles()}
 			<Navigation.Tile
-				href="/"
+				href="/map"
 				labelExpanded={m.map()}
 				title="Karte"
-				selected={page.url.pathname === '/'}
+				selected={page.url.pathname === '/map'}
 			>
 				<IconMap2 size={36} />
 			</Navigation.Tile>
