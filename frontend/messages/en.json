@@ -18,5 +18,7 @@
 	"title_login_success": "Success",
 	"login_success": "You have been logged in successfully.",
 	"title_login_error": "Login error",
-	"login_error": "Login error. Please try again."
+	"login_error": "Login error. Please try again.",
+	"error_loading_map_data": "Error loading map data",
+	"error_loading_map_data_description": "The map could not be loaded. Please try again."
 }
