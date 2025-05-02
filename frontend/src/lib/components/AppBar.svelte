@@ -1,8 +1,13 @@
 <script>
 	// Skeleton
 	import { AppBar } from '@skeletonlabs/skeleton-svelte';
+
+	// Icons
 	import { IconLogout, IconUserCircle } from '@tabler/icons-svelte';
+
+	// Svelte
 	import { userStore } from '$lib/stores/auth';
+	import { enhance } from '$app/forms';
 </script>
 
 <div>

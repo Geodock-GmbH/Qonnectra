@@ -26,27 +26,24 @@
 			{ default: OlMap },
 			{ default: OlView },
 			{ defaults: defaultControls } // defaults is a named export
-		] = await Promise.all([
-			import('ol/Map'),
-			import('ol/View'),
-			import('ol/control')
+		] = await Promise.all([import('ol/Map'), import('ol/View'), import('ol/control')]);
+
+		// Import Tile and OSM here as they are also default exports
+		const [{ default: TileLayer }, { default: OSMSource }] = await Promise.all([
+			import('ol/layer/Tile'),
+			import('ol/source/OSM')
 		]);
 
-		let initialLayers = layers;
-		// if no layers passed in, give a default OSM base-layer
-		if (!initialLayers.length) {
-			// Import Tile and OSM here as they are also default exports
-			const [{ default: TileLayer }, { default: OSMSource }] = await Promise.all([
-				import('ol/layer/Tile'),
-				import('ol/source/OSM')
-			]);
-			// Use a local variable, don't mutate the prop
-			initialLayers = [new TileLayer({ source: new OSMSource() })];
-		}
+		// Create the default OSM base layer
+		const osmLayer = new TileLayer({ source: new OSMSource() });
+
+		// Combine the default OSM layer with any layers passed in via props
+		// Prepend the OSM layer so it's the base layer
+		const mapLayers = [osmLayer, ...layers];
 
 		map = new OlMap({
 			target: container,
-			layers: initialLayers,
+			layers: mapLayers, // Use the combined layers array
 			view: new OlView({ center: initialCenter, zoom: initialZoom, ...viewOptions }),
 			controls: defaultControls().extend(mapOptions.controls || []),
 			...mapOptions
@@ -87,11 +84,9 @@
 			map = undefined; // Ensure map instance is cleared
 		}
 	});
-
 </script>
 
-<div class="map {className} " bind:this={container}>
-</div>
+<div class="map {className} " bind:this={container}></div>
 
 <style>
 	.map {

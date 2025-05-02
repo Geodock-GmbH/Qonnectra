@@ -8,7 +8,7 @@ export async function load({ locals, fetch }) {
 	}
 
 	try {
-		const response = await fetch(`${PUBLIC_API_URL}trench/`);
+		const response = await fetch(`${PUBLIC_API_URL}ol_trench/`);
 
 		if (!response.ok) {
 			console.error(`Failed to fetch map data: ${response.status} ${response.statusText}`);

@@ -19,6 +19,7 @@
 	"login_success": "You have been logged in successfully.",
 	"title_login_error": "Login error",
 	"login_error": "Login error. Please try again.",
-	"error_loading_map_data": "Error loading map data",
-	"error_loading_map_data_description": "The map could not be loaded. Please try again."
+	"error_loading_map_features": "Error loading map features",
+	"error_loading_map_features_description": "The map could not be loaded. Please try again.",
+	"error_loading_map_features_no_features": "No features available"
 }
