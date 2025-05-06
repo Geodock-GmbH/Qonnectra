@@ -52,7 +52,6 @@
 		// let parent know map is ready
 		dispatch('ready', { map });
 
-		// forward any OL events you care about
 		map.on('moveend', () => {
 			const v = map.getView();
 			const newCenter = v.getCenter();
