@@ -2,6 +2,7 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
 from .models import FeatureFiles, OlTrench, Trench
+from .pageination import CustomPagination
 from .serializers import FeatureFilesSerializer, OlTrenchSerializer, TrenchSerializer
 
 
@@ -16,6 +17,7 @@ class TrenchViewSet(viewsets.ModelViewSet):
     serializer_class = TrenchSerializer
     lookup_field = "id_trench"
     lookup_url_kwarg = "pk"
+    pagination_class = CustomPagination
 
 
 class FeatureFilesViewSet(viewsets.ModelViewSet):
@@ -29,6 +31,7 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
     serializer_class = FeatureFilesSerializer
     lookup_field = "uuid"
     lookup_url_kwarg = "pk"
+    pagination_class = CustomPagination
 
 
 class OlTrenchViewSet(viewsets.ReadOnlyModelViewSet):
@@ -42,3 +45,10 @@ class OlTrenchViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = OlTrenchSerializer
     lookup_field = "id_trench"
     lookup_url_kwarg = "pk"
+
+    def get_queryset(self):
+        queryset = OlTrench.objects.all()
+        id_trench = self.request.query_params.get("id_trench")
+        if id_trench:
+            queryset = queryset.filter(id_trench=id_trench)
+        return queryset

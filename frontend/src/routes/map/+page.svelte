@@ -28,10 +28,8 @@
 	let { data } = $props();
 
 	// Extract features
-	const features = data.trenches?.results?.features;
-
-	console.log(features);
-
+	// const features = data.trenches?.results?.features; // With pagination
+	const features = data.trenches?.features; // Without pagination
 	const format = new GeoJSON();
 
 	let vectorLayer = $state();

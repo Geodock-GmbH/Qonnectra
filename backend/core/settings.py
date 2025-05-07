@@ -173,8 +173,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 DEFAULT_SRID = int(os.getenv("DEFAULT_SRID", "25832"))
 
 REST_FRAMEWORK = {
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 10,
     "DEFAULT_AUTHENTICATION_CLASSES": (
         # Use JWTCookieAuthentication for cookie-based JWT auth
         "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
