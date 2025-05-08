@@ -25,6 +25,11 @@
 		placement: 'bottom-end'
 	});
 
+	// Colors
+	const primaryColor = getComputedStyle(document.documentElement).getPropertyValue(
+		'--color-primary-500'
+	);
+
 	/** @type {import('./$types').PageData} */
 	let { data } = $props();
 
@@ -54,16 +59,16 @@
 	// Style for selected features
 	const selectedStyle = new Style({
 		fill: new Fill({
-			color: 'rgba(0, 0, 255, 0.7)' // Blue fill when selected
+			color: primaryColor
 		}),
 		stroke: new Stroke({
-			color: 'rgba(0, 0, 255, 1)',
+			color: primaryColor,
 			width: 3
 		}),
 		image: new CircleStyle({
 			radius: 7,
-			fill: new Fill({ color: 'rgba(0, 0, 255, 0.7)' }),
-			stroke: new Stroke({ color: 'rgba(0, 0, 255, 1)', width: 2 })
+			fill: new Fill({ color: 'bg-primary-500' }),
+			stroke: new Stroke({ color: 'bg-primary-500', width: 2 })
 		})
 	});
 
@@ -93,6 +98,7 @@
 								extent: extent,
 								featureProjection: projection
 							});
+							console.log('features', features);
 							tile.setFeatures(features);
 						})
 						.catch((error) => {
@@ -174,53 +180,56 @@
 
 		// Listen for map clicks to select features
 		olMapInstance.on('click', (event) => {
-			if (!vectorTileLayer) return;
+			if (!vectorTileLayer || !olMapInstance) return;
 
-			vectorTileLayer
-				.getFeatures(event.pixel)
-				.then((features) => {
-					if (features.length > 0) {
-						const feature = features[0]; // Select the first feature found
-						const featureId = feature.getId();
+			let clickedFeatures = [];
+			olMapInstance.forEachFeatureAtPixel(
+				event.pixel,
+				(feature, layer) => {
+					// The callback is called for each feature found at the pixel (within hitTolerance)
+					clickedFeatures.push(feature);
+				},
+				{
+					hitTolerance: 10,
+					layerFilter: (layer) => layer === vectorTileLayer // Only check our main data layer
+				}
+			);
 
-						if (featureId) {
-							// Single selection: clear previous, select new
-							selectionStore = {};
-							selectionStore[featureId] = feature;
+			if (clickedFeatures.length > 0) {
+				const feature = clickedFeatures[0]; // Select the first feature found
+				const featureId = feature.getId();
 
-							const properties = feature.getProperties();
-							let html = '<ul>';
-							for (const [key, value] of Object.entries(properties)) {
-								if (typeof value !== 'object' && key !== 'layer' && key !== 'source') {
-									html += `<li><strong>${key}:</strong> ${value}</li>`;
-								}
-							}
-							html += '</ul>';
-							if (content) content.innerHTML = html;
-							popupOverlay.setPosition(event.coordinate);
-						} else {
-							// No feature with ID found, clear selection
-							selectionStore = {};
-							popupOverlay.setPosition(undefined);
-						}
-					} else {
-						// No features found at click, clear selection
-						selectionStore = {};
-						popupOverlay.setPosition(undefined);
-					}
-					if (selectionLayer) selectionLayer.changed(); // Refresh selection layer
-				})
-				.catch((err) => {
-					console.error('Error getting features on click:', err);
-					toaster.create({
-						type: 'error',
-						message: 'Error selecting feature',
-						description: 'Could not retrieve feature data.'
-					});
+				if (featureId) {
+					// Single selection: clear previous, select new
 					selectionStore = {};
-					if (selectionLayer) selectionLayer.changed();
+					selectionStore[featureId] = feature;
+
+					const properties = feature.getProperties();
+					let html = '<ul>';
+					for (const [key, value] of Object.entries(properties)) {
+						if (typeof value !== 'object' && key !== 'layer' && key !== 'source') {
+							html += `<li><strong>${key}:</strong> ${value}</li>`;
+						}
+					}
+					html += '</ul>';
+					if (content) content.innerHTML = html;
+					popupOverlay.setPosition(event.coordinate);
+				} else {
+					// No feature with ID found, clear selection
+					selectionStore = {};
 					popupOverlay.setPosition(undefined);
-				});
+				}
+			} else {
+				// No features found at click, clear selection
+				selectionStore = {};
+				popupOverlay.setPosition(undefined);
+			}
+			if (selectionLayer) selectionLayer.changed(); // Refresh selection layer
+
+			// The .then() and .catch() structure is not directly applicable here as forEachFeatureAtPixel is synchronous
+			// and doesn't return a Promise. Error handling for it would be less direct.
+			// If getFeaturesAtPixel itself could throw an error, a try-catch around it would be needed,
+			// but typically it doesn't for simple pixel queries.
 		});
 	}
 
@@ -261,7 +270,7 @@
 			<p>Error loading initial map data: {data.error}</p>
 		</div>
 	{:else if vectorTileLayer}
-		<div class="map-wrapper border-2 rounded-lg border-surface-200 h-full w-full">
+		<div class="map-wrapper border-2 rounded-lg border-surface-200-800 h-full w-full">
 			<Map
 				className="rounded-lg overflow-hidden"
 				layers={selectionLayer ? [vectorTileLayer, selectionLayer] : [vectorTileLayer]}

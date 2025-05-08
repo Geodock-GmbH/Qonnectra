@@ -17,19 +17,18 @@
 				<div class="flex items-center gap-2">
 					<form method="POST" action="/logout">
 						<button type="submit" class="btn bg-transparent p-0">
-							<IconLogout class="h-6 w-6" />
+							<IconLogout class="h-6 w-6 text-surface-700-300" />
 						</button>
 					</form>
 				</div>
 			{:else}
 				<a href="/login">
 					<button class="btn bg-transparent">
-						<IconUserCircle />
+						<IconUserCircle class="text-surface-700-300" />
 					</button>
 				</a>
 			{/if}
 		{/snippet}
-		<!-- TODO: Remove this later -->
 		<span></span>
 	</AppBar>
 </div>

@@ -23,12 +23,12 @@
 	}
 </script>
 
-<div class="hidden md:block border-r-2 border-surface-200">
+<div class="hidden md:block border-r-2 border-surface-200-800">
 	<!-- Component -->
 	<Navigation.Rail expanded={isSidebarExpanded}>
 		{#snippet header()}
 			<Navigation.Tile labelExpanded={m.menu()} onclick={toggleExpanded} title="Toggle Menu Width">
-				<IconLayoutSidebarLeftCollapse size={28} class="text-surface-700" />
+				<IconLayoutSidebarLeftCollapse size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
 		{/snippet}
 		{#snippet tiles()}
@@ -38,7 +38,7 @@
 				title="Karte"
 				selected={page.url.pathname === '/map'}
 			>
-				<IconMap2 size={28} class="text-surface-700" />
+				<IconMap2 size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
 			<Navigation.Tile
 				href="/trench"
@@ -46,7 +46,7 @@
 				title="Trench"
 				selected={page.url.pathname === '/trench'}
 			>
-				<IconVectorSpline size={28} class="text-surface-700" />
+				<IconVectorSpline size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
 		{/snippet}
 		{#snippet footer()}
@@ -56,7 +56,7 @@
 				title="Settings"
 				selected={page.url.pathname === '/settings'}
 			>
-				<IconSettings size={28} class="text-surface-700" />
+				<IconSettings size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
 		{/snippet}
 	</Navigation.Rail>
