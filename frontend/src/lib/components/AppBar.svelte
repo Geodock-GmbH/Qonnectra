@@ -15,7 +15,7 @@
 		{#snippet trail()}
 			{#if $userStore.isAuthenticated}
 				<div class="flex items-center gap-2">
-					<form method="POST" action="/logout" use:enhance>
+					<form method="POST" action="/logout">
 						<button type="submit" class="btn bg-transparent p-0">
 							<IconLogout class="h-6 w-6" />
 						</button>
