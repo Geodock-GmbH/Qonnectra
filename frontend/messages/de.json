@@ -21,5 +21,6 @@
 	"login_error": "Fehler beim Anmelden. Bitte versuche es erneut.",
 	"error_loading_map_features": "Fehler beim Laden der Karte",
 	"error_loading_map_features_description": "Die Karte konnte nicht geladen werden. Bitte versuche es erneut.",
-	"error_loading_map_features_no_features": "Keine Features verfügbar"
+	"error_loading_map_features_no_features": "Keine Features verfügbar",
+	"opacity": "Transparenz"
 }

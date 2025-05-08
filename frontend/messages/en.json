@@ -21,5 +21,6 @@
 	"login_error": "Login error. Please try again.",
 	"error_loading_map_features": "Error loading map features",
 	"error_loading_map_features_description": "The map could not be loaded. Please try again.",
-	"error_loading_map_features_no_features": "No features available"
+	"error_loading_map_features_no_features": "No features available",
+	"opacity": "Opacity"
 }

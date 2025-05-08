@@ -2,23 +2,36 @@
 	import { onMount, createEventDispatcher, onDestroy } from 'svelte';
 	import { browser } from '$app/environment'; // Import browser check
 	import { mapCenter, mapZoom } from '$lib/stores/mapStore';
+	import OpacitySlider from './OpacitySlider.svelte'; // Import the new OpacitySlider
 
 	// Props
 	let {
 		layers = [],
 		viewOptions = {},
 		mapOptions = {},
-		className = '' // add your own CSS class(es)
+		className = '',
+		showOpacitySlider = true
 	} = $props();
 
 	let container; // div that will host the map
 	let map = $state(); // ol/Map instance
+	let osmLayer = $state(); // Reference to the OSM layer for opacity control
 	const dispatch = createEventDispatcher();
 
 	// Get initial values from the store for SSR safety
 	// We use $state for map so direct $store usage might cause issues
 	let initialCenter = $state(browser ? $mapCenter : [0, 0]);
 	let initialZoom = $state(browser ? $mapZoom : 2);
+
+	// Reactive state for the slider's current opacity value
+	let currentLayerOpacity = $state(1); // Default to fully opaque
+
+	// Opacity Slider configuration
+	const opacitySliderConfig = {
+		minOpacity: 0,
+		maxOpacity: 1,
+		stepOpacity: 0.01
+	};
 
 	onMount(async () => {
 		// dynamically import OL modules to avoid SSR breakage
@@ -35,7 +48,7 @@
 		]);
 
 		// Create the default OSM base layer
-		const osmLayer = new TileLayer({ source: new OSMSource() });
+		osmLayer = new TileLayer({ source: new OSMSource(), opacity: currentLayerOpacity });
 
 		// Combine the default OSM layer with any layers passed in via props
 		// Prepend the OSM layer so it's the base layer
@@ -44,10 +57,18 @@
 		map = new OlMap({
 			target: container,
 			layers: mapLayers, // Use the combined layers array
-			view: new OlView({ center: initialCenter, zoom: initialZoom, ...viewOptions }),
+			view: new OlView({
+				center: initialCenter,
+				zoom: initialZoom, // Use initialZoom for map setup
+				...viewOptions
+			}),
 			controls: defaultControls().extend(mapOptions.controls || []),
 			...mapOptions
 		});
+
+		// Initialize currentLayerOpacity from the layer itself, though set above.
+		// This is more for consistency if layer had a different initial opacity.
+		currentLayerOpacity = osmLayer.getOpacity();
 
 		// let parent know map is ready
 		dispatch('ready', { map });
@@ -55,7 +76,7 @@
 		map.on('moveend', () => {
 			const v = map.getView();
 			const newCenter = v.getCenter();
-			const newZoom = v.getZoom() ?? 2; // Ensure zoom is never null/undefined
+			const newZoom = v.getZoom() ?? 2;
 
 			if (browser) {
 				// Update the store
@@ -83,13 +104,48 @@
 			map = undefined; // Ensure map instance is cleared
 		}
 	});
+
+	function handleOpacitySliderChange(event) {
+		const newOpacity = event.detail;
+		currentLayerOpacity = newOpacity;
+		if (osmLayer) {
+			// Check if osmLayer is initialized
+			osmLayer.setOpacity(newOpacity);
+		}
+	}
 </script>
 
-<div class="map {className} " bind:this={container}></div>
+<div class="map-container {className}">
+	<div class="map" bind:this={container}></div>
+	{#if showOpacitySlider && map}
+		<div class="custom-opacity-slider-wrapper">
+			<OpacitySlider
+				minOpacity={opacitySliderConfig.minOpacity}
+				maxOpacity={opacitySliderConfig.maxOpacity}
+				stepOpacity={opacitySliderConfig.stepOpacity}
+				opacity={currentLayerOpacity}
+				on:change={handleOpacitySliderChange}
+			/>
+		</div>
+	{/if}
+</div>
 
 <style>
+	.map-container {
+		position: relative; /* Needed for absolute positioning of the slider */
+		width: 100%;
+		height: 100%;
+	}
+
 	.map {
 		width: 100%;
 		height: 100%;
+	}
+
+	.custom-opacity-slider-wrapper {
+		position: absolute;
+		top: 20px;
+		right: 20px;
+		z-index: 1000; /* Ensure it's above the map */
 	}
 </style>
