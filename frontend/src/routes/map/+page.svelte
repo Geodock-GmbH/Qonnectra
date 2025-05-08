@@ -26,9 +26,12 @@
 	});
 
 	// Colors
-	const primaryColor = getComputedStyle(document.documentElement).getPropertyValue(
-		'--color-primary-500'
-	);
+	// TODO: Creates an error when reloading the page. Move to settings.
+	// const primaryColor = getComputedStyle(document.documentElement).getPropertyValue(
+	// 	'--color-primary-500'
+	// );
+
+	// console.log('primaryColor', primaryColor);
 
 	/** @type {import('./$types').PageData} */
 	let { data } = $props();
@@ -51,24 +54,24 @@
 		}),
 		image: new CircleStyle({
 			radius: 7,
-			fill: new Fill({ color: 'rgba(255, 0, 0, 0.5)' }),
-			stroke: new Stroke({ color: 'rgba(255, 0, 0, 0.5)', width: 2 })
+			fill: new Fill({ color: 'rgba(255, 0, 0, 1)' }),
+			stroke: new Stroke({ color: 'rgba(255, 0, 0, 1)', width: 2 })
 		})
 	});
 
 	// Style for selected features
 	const selectedStyle = new Style({
 		fill: new Fill({
-			color: primaryColor
+			color: 'rgba(251, 180, 131, 1)'
 		}),
 		stroke: new Stroke({
-			color: primaryColor,
+			color: 'rgba(251, 180, 131, 1)',
 			width: 3
 		}),
 		image: new CircleStyle({
 			radius: 7,
-			fill: new Fill({ color: 'bg-primary-500' }),
-			stroke: new Stroke({ color: 'bg-primary-500', width: 2 })
+			fill: new Fill({ color: 'rgba(251, 180, 131, 1)' }),
+			stroke: new Stroke({ color: 'rgba(251, 180, 131, 1)', width: 2 })
 		})
 	});
 
@@ -98,7 +101,6 @@
 								extent: extent,
 								featureProjection: projection
 							});
-							console.log('features', features);
 							tile.setFeatures(features);
 						})
 						.catch((error) => {
