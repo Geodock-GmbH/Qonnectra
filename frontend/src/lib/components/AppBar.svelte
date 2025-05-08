@@ -11,7 +11,7 @@
 </script>
 
 <div>
-	<AppBar>
+	<AppBar background="bg-transparent">
 		{#snippet trail()}
 			{#if $userStore.isAuthenticated}
 				<div class="flex items-center gap-2">
@@ -30,6 +30,6 @@
 			{/if}
 		{/snippet}
 		<!-- TODO: Remove this later -->
-		<span class="font-bold">{$userStore.username}</span>
+		<span></span>
 	</AppBar>
 </div>

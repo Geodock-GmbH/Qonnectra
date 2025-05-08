@@ -1,3 +1,5 @@
 import { deLocalizeUrl } from '$lib/paraglide/runtime';
 
-export const reroute = (request) => deLocalizeUrl(request.url).pathname;
+export const reroute = (request) => {
+	return deLocalizeUrl(request.url).pathname;
+};

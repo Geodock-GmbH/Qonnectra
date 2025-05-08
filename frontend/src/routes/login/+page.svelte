@@ -6,7 +6,6 @@
 	import { Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
 
 	// SvelteKit
-	import { PUBLIC_API_URL } from '$env/static/public';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/stores';
 

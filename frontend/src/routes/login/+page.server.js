@@ -1,5 +1,5 @@
 import { redirect, fail } from '@sveltejs/kit';
-import { PUBLIC_API_URL } from '$env/static/public';
+import { API_URL } from '$env/static/private';
 import { parse } from 'cookie';
 import setCookieParser from 'set-cookie-parser';
 
@@ -12,7 +12,7 @@ export const actions = {
 		const redirectTo = formData.get('redirectTo') || '/';
 
 		try {
-			const response = await fetch(`${PUBLIC_API_URL}auth/login/`, {
+			const response = await fetch(`${API_URL}auth/login/`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',

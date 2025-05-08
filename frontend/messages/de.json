@@ -1,7 +1,7 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"map": "Karte",
-	"trench": "Graben",
+	"trench": "Trasse",
 	"settings": "Einstellungen",
 	"menu": "Menü",
 	"login": "Login",

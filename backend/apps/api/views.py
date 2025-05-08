@@ -1,5 +1,8 @@
+from django.db import connection
+from django.http import HttpResponse
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.views import APIView
 
 from .models import FeatureFiles, OlTrench, Trench
 from .pageination import CustomPagination
@@ -18,6 +21,13 @@ class TrenchViewSet(viewsets.ModelViewSet):
     lookup_field = "id_trench"
     lookup_url_kwarg = "pk"
     pagination_class = CustomPagination
+
+    def get_queryset(self):
+        queryset = OlTrench.objects.all()
+        id_trench = self.request.query_params.get("id_trench")
+        if id_trench:
+            queryset = queryset.filter(id_trench=id_trench)
+        return queryset
 
 
 class FeatureFilesViewSet(viewsets.ModelViewSet):
@@ -52,3 +62,64 @@ class OlTrenchViewSet(viewsets.ReadOnlyModelViewSet):
         if id_trench:
             queryset = queryset.filter(id_trench=id_trench)
         return queryset
+
+
+class OlTrenchTileViewSet(APIView):
+    """ViewSet for the OlTrench model :model:`api.OlTrench`.
+
+    An instance of :model:`api.OlTrench`.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, z, x, y, format=None):
+        """
+        Serves MVT tiles for OlTrench.
+        URL: /api/ol_trench_tiles/{z}/{x}/{y}.mvt
+        """
+        sql = """
+            WITH mvtgeom AS (
+                SELECT
+                    ST_AsMVTGeom(
+                        t.geom, 
+                        ST_TileEnvelope(%(z)s, %(x)s, %(y)s),
+                        extent => 4096,
+                        buffer => 64
+                    ) AS geom,
+                    t.uuid,
+                    t.id_trench,
+                    t.construction_depth,
+                    t.construction_details,
+                    t.internal_execution,
+                    t.funding_status,
+                    t.date,
+                    t.comment,
+                    t.house_connection,
+                    t.length,
+                    t.company,
+                    t.construction_type,
+                    t.owner,
+                    t.phase,
+                    t.status,
+                    t.surface
+                FROM
+                    public.ol_trench t
+                WHERE
+                    t.geom && ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096))
+            )
+            SELECT ST_AsMVT(mvtgeom, 'ol_trench', 4096, 'geom') AS mvt
+            FROM mvtgeom;
+        """
+        params = {"z": int(z), "x": int(x), "y": int(y)}
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            row = cursor.fetchone()
+
+        if row and row[0]:
+            return HttpResponse(
+                row[0], content_type="application/vnd.mapbox-vector-tile"
+            )
+        else:
+            # Return an empty response or 204 No Content if no features in tile
+            return HttpResponse(status=204)
