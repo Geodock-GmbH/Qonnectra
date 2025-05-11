@@ -2,9 +2,11 @@
 	// Skeleton
 	import { Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
 
+	// Paraglide
+	import { m } from '$lib/paraglide/messages';
+
 	// Svelte
 	import Map from '$lib/components/Map.svelte';
-	import { m } from '$lib/paraglide/messages';
 	import { PUBLIC_MAP_TILES_URL } from '$env/static/public';
 	import { trenchColor, trenchColorSelected } from '$lib/stores/store';
 	import { onDestroy, onMount } from 'svelte';
