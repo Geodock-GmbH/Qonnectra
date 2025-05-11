@@ -26,6 +26,8 @@
 		placement: 'bottom-end'
 	});
 
+	// TODO: Create AbortController for the fetch request
+
 	/** @type {import('./$types').PageData} */
 	let { data } = $props();
 
