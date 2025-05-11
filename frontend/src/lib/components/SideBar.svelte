@@ -14,22 +14,22 @@
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
+	// Svelte
 	import { page } from '$app/state';
-
-	let isSidebarExpanded = $state(true);
-
-	function toggleExpanded() {
-		isSidebarExpanded = !isSidebarExpanded;
-	}
+	import { sidebarExpanded } from '$lib/stores/store';
 </script>
 
 <div class="hidden md:block border-r-2 border-surface-200-800">
 	<!-- Component -->
-	<Navigation.Rail expanded={isSidebarExpanded}>
+	<Navigation.Rail expanded={$sidebarExpanded}>
 		{#snippet header()}
-			<Navigation.Tile labelExpanded={m.menu()} onclick={toggleExpanded} title="Toggle Menu Width">
-				<IconLayoutSidebarLeftCollapse size={28} class="text-surface-700-300" />
-			</Navigation.Tile>
+			<!-- TODO: Add Logo and Title -->
+			<div class="flex items-center gap-2">
+				<img src="/favicon.png" alt="Logo" class="w-12 h12" />
+				{#if $sidebarExpanded}
+					<h1 class="text-2xl font-bold">Title</h1>
+				{/if}
+			</div>
 		{/snippet}
 		{#snippet tiles()}
 			<Navigation.Tile

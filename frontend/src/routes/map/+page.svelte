@@ -5,17 +5,16 @@
 	// Svelte
 	import Map from '$lib/components/Map.svelte';
 	import { m } from '$lib/paraglide/messages';
-	import { PUBLIC_MAP_TILES_URL } from '$env/static/public'; // Import for constructing tile URL
+	import { PUBLIC_MAP_TILES_URL } from '$env/static/public';
+	import { trenchColor, trenchColorSelected } from '$lib/stores/store';
+	import { onDestroy, onMount } from 'svelte';
 
 	// OpenLayers
 	import 'ol/ol.css';
 	import Fill from 'ol/style/Fill.js';
 	import Stroke from 'ol/style/Stroke.js';
 	import { Style, Circle as CircleStyle } from 'ol/style';
-	import { onDestroy, onMount } from 'svelte'; // Import onMount if needed
 	import Overlay from 'ol/Overlay';
-
-	// NEW IMPORTS for Vector Tiles
 	import MVT from 'ol/format/MVT.js';
 	import VectorTileLayer from 'ol/layer/VectorTile.js';
 	import VectorTileSource from 'ol/source/VectorTile.js';
@@ -24,14 +23,6 @@
 	const toaster = createToaster({
 		placement: 'bottom-end'
 	});
-
-	// Colors
-	// TODO: Creates an error when reloading the page. Move to settings.
-	// const primaryColor = getComputedStyle(document.documentElement).getPropertyValue(
-	// 	'--color-primary-500'
-	// );
-
-	// console.log('primaryColor', primaryColor);
 
 	/** @type {import('./$types').PageData} */
 	let { data } = $props();
@@ -46,32 +37,32 @@
 	// Style for all features (will be applied to the VectorTileLayer)
 	const trenchStyle = new Style({
 		fill: new Fill({
-			color: 'rgba(255, 0, 0, 1)'
+			color: $trenchColor
 		}),
 		stroke: new Stroke({
-			color: 'rgba(255, 0, 0, 1)',
+			color: $trenchColor,
 			width: 2
 		}),
 		image: new CircleStyle({
 			radius: 7,
-			fill: new Fill({ color: 'rgba(255, 0, 0, 1)' }),
-			stroke: new Stroke({ color: 'rgba(255, 0, 0, 1)', width: 2 })
+			fill: new Fill({ color: $trenchColor }),
+			stroke: new Stroke({ color: $trenchColor, width: 2 })
 		})
 	});
 
 	// Style for selected features
 	const selectedStyle = new Style({
 		fill: new Fill({
-			color: 'rgba(251, 180, 131, 1)'
+			color: $trenchColorSelected
 		}),
 		stroke: new Stroke({
-			color: 'rgba(251, 180, 131, 1)',
+			color: $trenchColorSelected,
 			width: 3
 		}),
 		image: new CircleStyle({
 			radius: 7,
-			fill: new Fill({ color: 'rgba(251, 180, 131, 1)' }),
-			stroke: new Stroke({ color: 'rgba(251, 180, 131, 1)', width: 2 })
+			fill: new Fill({ color: $trenchColorSelected }),
+			stroke: new Stroke({ color: $trenchColorSelected, width: 2 })
 		})
 	});
 

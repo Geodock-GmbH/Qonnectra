@@ -1,7 +1,7 @@
 <script>
 	import { onMount, createEventDispatcher, onDestroy } from 'svelte';
 	import { browser } from '$app/environment'; // Import browser check
-	import { mapCenter, mapZoom } from '$lib/stores/mapStore';
+	import { mapCenter, mapZoom } from '$lib/stores/store';
 	import OpacitySlider from './OpacitySlider.svelte'; // Import the new OpacitySlider
 
 	// Props
