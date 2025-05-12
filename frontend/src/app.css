@@ -5,5 +5,6 @@
 @import '@skeletonlabs/skeleton/optional/presets';
 @import '@skeletonlabs/skeleton/themes/vox';
 
+@custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
 
 @source '../node_modules/@skeletonlabs/skeleton-svelte/dist';

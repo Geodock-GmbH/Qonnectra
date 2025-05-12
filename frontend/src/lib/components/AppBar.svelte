@@ -11,6 +11,7 @@
 	// Svelte
 	import { userStore } from '$lib/stores/auth';
 	import { enhance } from '$app/forms';
+	import LightSwitch from './LightSwitch.svelte';
 
 	const comboboxData = [
 		{ label: 'Placeholder 1', value: 'US' },
@@ -32,11 +33,13 @@
 			></Combobox>
 		{/snippet}
 		{#snippet trail()}
+			<!-- Light Switch cant be in the settings page because settings are behind a login -->
+			<LightSwitch />
 			{#if $userStore.isAuthenticated}
-				<div class="flex items-center gap-2">
+				<div class="flex items-center">
 					<form method="POST" action="/logout">
-						<button type="submit" class="btn bg-transparent p-0">
-							<IconLogout class="h-6 w-6 text-surface-700-300" />
+						<button type="submit" class="btn bg-transparent">
+							<IconLogout class="text-surface-700-300" />
 						</button>
 					</form>
 				</div>

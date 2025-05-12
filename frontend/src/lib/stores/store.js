@@ -10,3 +10,4 @@ export const mapCenter = persisted('mapCenter', defaultCenter);
 export const mapZoom = persisted('mapZoom', defaultZoom);
 export const trenchColor = persisted('trenchColor', '#fbb483');
 export const trenchColorSelected = persisted('trenchColorSelected', '#fbb483');
+export const lightSwitchMode = persisted('lightSwitchMode', 'light');
