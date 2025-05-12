@@ -24,7 +24,7 @@
 	}
 </script>
 
-<div class="w-sm p-1 bg-surface-100-900 rounded-md shadow">
+<div class="w-sm p-2 bg-surface-50-950 rounded-md shadow">
 	<p class="text-sm text-surface-contrast-100-900">{m.opacity()}</p>
 	<Slider
 		name="opacity"
