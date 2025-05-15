@@ -23,3 +23,4 @@ ALTER ROLE geodock_admin SET timezone TO 'Europe/Berlin';
 -- Create the postgis extension
 \c krit_gis
 CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS pgrouting;

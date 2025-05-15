@@ -9,9 +9,9 @@ from .models import (
     AttributesPhase,
     AttributesStatus,
     AttributesSurface,
+    FeatureFiles,
     OlTrench,
     Trench,
-    TrenchFiles,
 )
 
 
@@ -183,15 +183,41 @@ class TrenchSerializer(GeoFeatureModelSerializer):
         return fields
 
 
-class TrenchFilesSerializer(serializers.ModelSerializer):
-    """Serializer for the TrenchFiles model."""
+class FeatureFilesSerializer(serializers.ModelSerializer):
+    """Serializer for the FeatureFiles model."""
 
     uuid = serializers.UUIDField(read_only=True)
-    uploaded_at = serializers.DateTimeField(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
+    file_name = serializers.CharField(read_only=True)
+    file_type = serializers.CharField(read_only=True)
 
     class Meta:
-        model = TrenchFiles
-        fields = ["uuid", "id_trench", "trench", "file", "uploaded_at"]
+        model = FeatureFiles
+        fields = [
+            "uuid",
+            "object_id",
+            "content_type",
+            "file_path",
+            "file_name",
+            "file_type",
+            "description",
+            "created_at",
+        ]
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+
+        # Translate labels
+        fields["content_type"].label = _("Feature Type")
+        fields["object_id"].label = _("Feature ID")
+        fields["file_path"].label = _("File Path")
+        fields["file_name"].label = _("File Name")
+        fields["file_type"].label = _("File Type")
+        fields["description"].label = _("Description")
+        fields["created_at"].label = _("Created At")
+
+        return fields
 
 
 class OlTrenchSerializer(GeoFeatureModelSerializer):

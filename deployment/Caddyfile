@@ -1,0 +1,42 @@
+{
+    # Disable admin interface
+    admin off
+    # Enable debug logging
+    debug
+}
+
+# Backend API
+api.localhost {
+    tls internal # Use Caddy's internal CA for local certs
+    reverse_proxy nginx:80 {
+        header_up Host {host} # Preserve original Host header
+        header_up X-Forwarded-Proto https
+    }
+}
+
+# Nextcloud
+cloud.localhost {
+    tls internal # Use Caddy's internal CA for local certs
+    reverse_proxy nextcloud:80 {
+        header_up Host {host} # Preserve original Host header
+    }
+}
+
+# Geoserver
+geoserver.localhost {
+    tls internal
+    reverse_proxy geoserver:8080 { # Point to the geoserver container's exposed port
+        header_up Host {host}
+        # header_up X-Forwarded-Proto https # Restore header
+        # header_up X-Forwarded-Host {host}  # Restore header
+    }
+}
+
+# Frontend
+app.localhost {
+    tls internal # Use Caddy's internal CA for local certs
+    reverse_proxy frontend:3000 {
+        header_up Host {host} # Preserve original Host header
+        header_up X-Forwarded-Proto {scheme}
+    }
+}

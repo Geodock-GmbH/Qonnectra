@@ -1,0 +1,90 @@
+[
+    {
+        "model": "api.filetypecategory",
+        "pk": "jpg",
+        "fields": {
+            "category": "photos",
+            "description": "JPEG image format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "jpeg",
+        "fields": {
+            "category": "photos",
+            "description": "JPEG image format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "png",
+        "fields": {
+            "category": "photos",
+            "description": "PNG image format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "gif",
+        "fields": {
+            "category": "photos",
+            "description": "GIF image format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "pdf",
+        "fields": {
+            "category": "documents",
+            "description": "PDF document format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "doc",
+        "fields": {
+            "category": "documents",
+            "description": "Microsoft Word document"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "docx",
+        "fields": {
+            "category": "documents",
+            "description": "Microsoft Word document (OOXML)"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "xls",
+        "fields": {
+            "category": "documents",
+            "description": "Microsoft Excel spreadsheet"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "xlsx",
+        "fields": {
+            "category": "documents",
+            "description": "Microsoft Excel spreadsheet (OOXML)"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "dwg",
+        "fields": {
+            "category": "cad",
+            "description": "AutoCAD drawing file"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "dxf",
+        "fields": {
+            "category": "cad",
+            "description": "Drawing Exchange Format"
+        }
+    }
+]

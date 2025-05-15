@@ -11,16 +11,18 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 import os
+import platform
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent  # Backend directory
 
-# Load environment variables
-env_path = BASE_DIR / ".env"
-load_dotenv(env_path)
+# Load environment variables from deployment .env
+env_path = BASE_DIR.parent / "deployment" / ".env"
+load_dotenv(dotenv_path=env_path)
 
 
 # Quick-start development settings - unsuitable for production
@@ -28,11 +30,14 @@ load_dotenv(env_path)
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+DEBUG = os.getenv("DEBUG", "0").lower() in ("1", "true", "yes")
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
+CSRF_TRUSTED_ORIGINS = ["https://api.localhost"]
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 
 
 # Application definition
@@ -40,14 +45,19 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.admindocs",
+    "django.contrib.admindocs",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.gis",
+    "django.contrib.gis",
     "apps.api",
     "rest_framework",
+    "rest_framework.authtoken",
+    "dj_rest_auth",
+    "rest_framework_simplejwt",
     "corsheaders",
 ]
 
@@ -55,11 +65,13 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
 ]
 
@@ -98,6 +110,16 @@ DATABASES = {
     }
 }
 
+# GDAL Configuration
+# Its need when running the django devserver
+if platform.system() == "Windows":
+    GDAL_LIBRARY_PATH = r"C:\OSGeo4W\bin\gdal304.dll"
+    GEOS_LIBRARY_PATH = r"C:\OSGeo4W\bin\geos_c.dll"
+elif platform.system() == "Darwin":  # macOS
+    GDAL_LIBRARY_PATH = "/opt/homebrew/opt/gdal/lib/libgdal.dylib"
+    GEOS_LIBRARY_PATH = "/opt/homebrew/opt/geos/lib/libgeos_c.dylib"
+# Linux comes with GDAL and GEOS installed by default and should be found automatically
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -122,14 +144,27 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
 LANGUAGE_CODE = "de"
+LANGUAGE_CODE = "de"
 
+TIME_ZONE = "Europe/Berlin"
 TIME_ZONE = "Europe/Berlin"
 
 USE_I18N = True
 
 USE_L10N = True
 
+USE_L10N = True
+
 USE_TZ = True
+
+LANGUAGES = [
+    ("de", "German"),
+    ("en", "English"),
+]
+
+LOCALE_PATHS = [
+    BASE_DIR / "locale",
+]
 
 LANGUAGES = [
     ("de", "German"),
@@ -146,6 +181,7 @@ LOCALE_PATHS = [
 
 STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -153,14 +189,102 @@ STATIC_ROOT = os.path.join(BASE_DIR, "static")
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Default SRID for geometry fields
-DEFAULT_SRID = os.getenv("DEFAULT_SRID")
+DEFAULT_SRID = int(os.getenv("DEFAULT_SRID", "25832"))
 
 REST_FRAMEWORK = {
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 10,
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        # Use JWTCookieAuthentication for cookie-based JWT auth
+        "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
+    ),
+    # Add permission settings if needed globally, otherwise handle per-view
+    # 'DEFAULT_PERMISSION_CLASSES': [
+    #     'rest_framework.permissions.IsAuthenticatedOrReadOnly'
+    # ]
+}
+
+REST_AUTH = {
+    "USE_JWT": True,
+    "SESSION_LOGIN": False,
+    "JWT_AUTH_COOKIE": "api-access-token",
+    "JWT_AUTH_REFRESH_COOKIE": "api-refresh-token",
+    "JWT_AUTH_REFRESH_COOKIE_PATH": "/",
+    "JWT_AUTH_SECURE": True,
+    "JWT_AUTH_HTTPONLY": True,
+    "JWT_AUTH_SAMESITE": "None",
+}
+
+# djangorestframework-simplejwt settings
+# https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),  # Adjust as needed
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Adjust as needed
+    "ROTATE_REFRESH_TOKENS": True,  # Obtain a new refresh token when refreshing
+    "BLACKLIST_AFTER_ROTATION": False,  # Blacklist old refresh token
+    "UPDATE_LAST_LOGIN": True,
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,  # Uses Django SECRET_KEY by default
+    "VERIFYING_KEY": "",
+    "AUDIENCE": None,
+    "ISSUER": None,
+    "JSON_ENCODER": None,
+    "JWK_URL": None,
+    "LEEWAY": 0,
+    "AUTH_HEADER_TYPES": ("Bearer",),  # Only relevant if NOT using cookies
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+    "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "TOKEN_TYPE_CLAIM": "token_type",
+    "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
+    "JTI_CLAIM": "jti",
+    # Cookie specific settings (though dj-rest-auth overrides these with REST_AUTH settings)
+    # These are here for reference but dj-rest-auth's JWT_AUTH_* settings take precedence
+    # "AUTH_COOKIE": "access_token",
+    # "AUTH_COOKIE_REFRESH": "refresh_token",
+    # "AUTH_COOKIE_DOMAIN": None,
+    # "AUTH_COOKIE_SECURE": False,
+    # "AUTH_COOKIE_HTTP_ONLY": True,
+    # "AUTH_COOKIE_PATH": "/",
+    # "AUTH_COOKIE_SAMESITE": "Lax",
 }
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Default SvelteKit dev server
     "http://127.0.0.1:5173",
+    "https://app.localhost",
+    "http://localhost:3000",
+    "https://api.localhost",
 ]
+CORS_ALLOW_CREDENTIALS = True
+
+# Nextcloud Storage Settings
+NEXTCLOUD_URL = os.getenv("NEXTCLOUD_URL")
+NEXTCLOUD_PUBLIC_URL = os.getenv("NEXTCLOUD_PUBLIC_URL")
+NEXTCLOUD_FILEUPLOADER_USERNAME = os.getenv("NEXTCLOUD_FILEUPLOADER_USERNAME")
+NEXTCLOUD_FILEUPLOADER_PASSWORD = os.getenv("NEXTCLOUD_FILEUPLOADER_PASSWORD")
+NEXTCLOUD_BASE_PATH = os.getenv("NEXTCLOUD_BASE_PATH")
+NEXTCLOUD_VERIFY_SSL = os.getenv("NEXTCLOUD_VERIFY_SSL")
+
+# Add logging configuration
+if DEBUG:
+    LOGGING = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+            },
+        },
+        "root": {
+            "handlers": ["console"],
+            "level": "INFO",
+        },
+        "loggers": {
+            "apps.api": {
+                "handlers": ["console"],
+                "level": "DEBUG",
+                "propagate": True,
+            },
+        },
+    }
