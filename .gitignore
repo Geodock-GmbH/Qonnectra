@@ -4,6 +4,7 @@ backend/__pycache__/
 backend/*.py[cod]
 backend/*$py.class
 *.pyc
+*.DS_Store
 
 # C extensions
 backend/*.so

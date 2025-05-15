@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { PUBLIC_API_URL } from '$env/static/public';
+import { API_URL } from '$env/static/private';
 
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ cookies, fetch }) {
@@ -21,7 +21,7 @@ export async function POST({ cookies, fetch }) {
 	}
 
 	try {
-		const response = await fetch(`${PUBLIC_API_URL}auth/logout/`, {
+		const response = await fetch(`${API_URL}auth/logout/`, {
 			method: 'POST',
 			headers: headers
 		});

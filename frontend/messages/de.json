@@ -1,7 +1,7 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"map": "Karte",
-	"trench": "Graben",
+	"trench": "Trasse",
 	"settings": "Einstellungen",
 	"menu": "Menü",
 	"login": "Login",
@@ -18,5 +18,10 @@
 	"title_login_success": "Erfolg",
 	"login_success": "Du hast dich erfolgreich angemeldet.",
 	"title_login_error": "Fehler beim Anmelden",
-	"login_error": "Fehler beim Anmelden. Bitte versuche es erneut."
+	"login_error": "Fehler beim Anmelden. Bitte versuche es erneut.",
+	"error_loading_map_features": "Fehler beim Laden der Karte",
+	"error_loading_map_features_description": "Die Karte konnte nicht geladen werden. Bitte versuche es erneut.",
+	"error_loading_map_features_no_features": "Keine Features verfügbar",
+	"opacity": "Transparenz",
+	"project": "Projekt"
 }

@@ -1,17 +1,19 @@
 import { paraglideMiddleware } from '$lib/paraglide/server';
 import { redirect } from '@sveltejs/kit';
-import { PUBLIC_API_URL } from '$env/static/public';
+import { API_URL } from '$env/static/private';
 import { sequence } from '@sveltejs/kit/hooks';
 
 // Define routes that should be accessible even without authentication
 export const PUBLIC_ROUTES = ['/login']; // Add more routes here
 
-const handleParaglide = ({ event, resolve }) =>
-	paraglideMiddleware(event.request, ({ request, locale }) => {
-		event.request = request;
-
+/** @type {import('@sveltejs/kit').Handle} */
+const paraglideHandle = ({ event, resolve }) =>
+	paraglideMiddleware(event.request, ({ request: localizedRequest, locale }) => {
+		event.request = localizedRequest;
 		return resolve(event, {
-			transformPageChunk: ({ html }) => html.replace('%paraglide.lang%', locale)
+			transformPageChunk: ({ html }) => {
+				return html.replace('%lang%', locale);
+			}
 		});
 	});
 
@@ -30,7 +32,7 @@ export async function handleAuth({ event, resolve }) {
 
 	try {
 		// Use event.fetch WITH the manually constructed headers for the initial user fetch
-		const initialResponse = await event.fetch(`${PUBLIC_API_URL}auth/user/`, {
+		const initialResponse = await event.fetch(`${API_URL}auth/user/`, {
 			headers: headers // Pass the headers object here
 		});
 
@@ -44,7 +46,7 @@ export async function handleAuth({ event, resolve }) {
 			// Access token failed, but we have a refresh token, let's try refreshing
 			console.log('Access token invalid/expired, attempting refresh...');
 			try {
-				const refreshResponse = await event.fetch(`${PUBLIC_API_URL}auth/token/refresh/`, {
+				const refreshResponse = await event.fetch(`${API_URL}auth/token/refresh/`, {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'
@@ -69,7 +71,7 @@ export async function handleAuth({ event, resolve }) {
 					// Retry fetching user details with the new access token
 					const headersWithNewToken = new Headers();
 					headersWithNewToken.append('Cookie', `api-access-token=${newAccessToken}`);
-					const retryResponse = await event.fetch(`${PUBLIC_API_URL}auth/user/`, {
+					const retryResponse = await event.fetch(`${API_URL}auth/user/`, {
 						headers: headersWithNewToken
 					});
 
@@ -158,4 +160,4 @@ export async function handleAuth({ event, resolve }) {
 	return resolve(event);
 }
 
-export const handle = sequence(handleParaglide, handleAuth);
+export const handle = sequence(paraglideHandle, handleAuth);

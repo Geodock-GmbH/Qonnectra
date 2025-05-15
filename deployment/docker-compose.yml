@@ -1,6 +1,8 @@
 services:
   db:
-    image: postgis/postgis:17-3.5
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
     container_name: krit_gis_db
     environment:
       POSTGRES_DB: ${DB_NAME}

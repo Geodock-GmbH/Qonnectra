@@ -173,8 +173,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 DEFAULT_SRID = int(os.getenv("DEFAULT_SRID", "25832"))
 
 REST_FRAMEWORK = {
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 10,
     "DEFAULT_AUTHENTICATION_CLASSES": (
         # Use JWTCookieAuthentication for cookie-based JWT auth
         "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
@@ -191,9 +189,9 @@ REST_AUTH = {
     "JWT_AUTH_COOKIE": "api-access-token",
     "JWT_AUTH_REFRESH_COOKIE": "api-refresh-token",
     "JWT_AUTH_REFRESH_COOKIE_PATH": "/",
-    "JWT_AUTH_SECURE": not DEBUG,
+    "JWT_AUTH_SECURE": True,
     "JWT_AUTH_HTTPONLY": True,
-    "JWT_AUTH_SAMESITE": "Lax",
+    "JWT_AUTH_SAMESITE": "None",
 }
 
 # djangorestframework-simplejwt settings
@@ -237,6 +235,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "https://app.localhost",
     "http://localhost:3000",
+    "https://api.localhost",
 ]
 CORS_ALLOW_CREDENTIALS = True
 

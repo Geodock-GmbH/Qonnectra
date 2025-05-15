@@ -6,5 +6,5 @@
 <div class="flex flex-col gap-4 items-center justify-center">
 	<h1 class="text-2xl font-bold">{page.status}</h1>
 	<p class="text-5xl font-bold">{page.error.message}</p>
-	<a href="/" class="btn preset-filled-primary-500">{m.go_back_home()}</a>
+	<a href="/login" class="btn preset-filled-primary-500">{m.go_back_home()}</a>
 </div>
