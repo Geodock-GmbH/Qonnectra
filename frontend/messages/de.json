@@ -23,5 +23,6 @@
 	"error_loading_map_features_description": "Die Karte konnte nicht geladen werden. Bitte versuche es erneut.",
 	"error_loading_map_features_no_features": "Keine Features verfügbar",
 	"opacity": "Transparenz",
-	"project": "Projekt"
+	"project": "Projekt",
+	"create_new_project": "Neues Projekt erstellen"
 }

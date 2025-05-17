@@ -12,6 +12,7 @@
 	import { userStore } from '$lib/stores/auth';
 	import { enhance } from '$app/forms';
 	import LightSwitch from './LightSwitch.svelte';
+	import AddProjectDrawer from './AddProjectDrawer.svelte';
 
 	const comboboxData = [
 		{ label: 'Placeholder 1', value: 'US' },
@@ -19,18 +20,26 @@
 		{ label: 'Placeholder 3', value: 'AU' }
 	];
 	let selectedProject = 'Placeholder 1';
+
+	let isAddProjectDrawerOpen = false;
 </script>
 
 <div>
 	<AppBar background="bg-transparent">
 		{#snippet lead()}
 			<!-- TODO: Replace with Combobox component to change projects -->
-			<Combobox
-				data={comboboxData}
-				onValueChange={(e) => (selectedProject = e.value)}
-				placeholder={m.project()}
-				classes="z-10"
-			></Combobox>
+			{#if $userStore.isAuthenticated}
+				<Combobox
+					data={comboboxData}
+					onValueChange={(e) => (selectedProject = e.value)}
+					placeholder={m.project()}
+					classes="z-10"
+				></Combobox>
+				<AddProjectDrawer
+					open={isAddProjectDrawerOpen}
+					onOpenChange={(e) => (isAddProjectDrawerOpen = e.open)}
+				/>
+			{/if}
 		{/snippet}
 		{#snippet trail()}
 			<!-- Light Switch cant be in the settings page because settings are behind a login -->

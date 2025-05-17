@@ -132,7 +132,7 @@
 
 <style>
 	.map-container {
-		position: relative; /* Needed for absolute positioning of the slider */
+		position: relative;
 		width: 100%;
 		height: 100%;
 	}
@@ -146,6 +146,6 @@
 		position: absolute;
 		top: 20px;
 		right: 20px;
-		z-index: 1000; /* Ensure it's above the map */
+		z-index: 5;
 	}
 </style>

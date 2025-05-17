@@ -23,5 +23,6 @@
 	"error_loading_map_features_description": "The map could not be loaded. Please try again.",
 	"error_loading_map_features_no_features": "No features available",
 	"opacity": "Opacity",
-	"project": "Project"
+	"project": "Project",
+	"create_new_project": "Create new Project"
 }
