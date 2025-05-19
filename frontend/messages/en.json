@@ -24,5 +24,18 @@
 	"error_loading_map_features_no_features": "No features available",
 	"opacity": "Opacity",
 	"project": "Project",
-	"create_new_project": "Create new Project"
+	"create_new_project": "Create new Project",
+	"settings_user": "User",
+	"settings_user_description": "Here you can see your user settings.",
+	"settings_user_username": "Username",
+	"settings_user_email": "Email address",
+	"settings_ui": "UI",
+	"settings_ui_description": "Here you can see and change your UI settings.",
+	"settings_ui_default_project": "Default project",
+	"settings_ui_sidebar_expanded": "Expanded",
+	"settings_ui_sidebar_collapsed": "Collapsed",
+	"settings_map": "Map",
+	"settings_map_description": "Here you can see and change your map settings.",
+	"settings_map_trench_color": "Trench color",
+	"settings_map_selected_trench_color": "Selected trench color"
 }

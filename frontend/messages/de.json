@@ -24,5 +24,18 @@
 	"error_loading_map_features_no_features": "Keine Features verfügbar",
 	"opacity": "Transparenz",
 	"project": "Projekt",
-	"create_new_project": "Neues Projekt erstellen"
+	"create_new_project": "Neues Projekt erstellen",
+	"settings_user": "Benutzer",
+	"settings_user_description": "Hier kannst du deine Benutzerinformationen einsehen.",
+	"settings_user_username": "Benutzername",
+	"settings_user_email": "E-Mail",
+	"settings_ui": "UI",
+	"settings_ui_description": "Hier kannst du deine UI-Einstellungen einsehen und anpassen.",
+	"settings_ui_default_project": "Standardprojekt",
+	"settings_ui_sidebar_expanded": "Erweitert",
+	"settings_ui_sidebar_collapsed": "Eingeklappt",
+	"settings_map": "Karte",
+	"settings_map_description": "Hier kannst du deine Karten-Einstellungen einsehen und anpassen.",
+	"settings_map_trench_color": "Trassenfarbe",
+	"settings_map_selected_trench_color": "Markierte Trassenfarbe"
 }
