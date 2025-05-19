@@ -21,7 +21,7 @@ const paraglideHandle = ({ event, resolve }) =>
 export async function handleAuth({ event, resolve }) {
 	// Attempt to get user data on every server-side navigation or page load.
 	const accessToken = event.cookies.get('api-access-token');
-	const refreshToken = event.cookies.get('api-refresh-token'); // Get refresh token
+	// const refreshToken = event.cookies.get('api-refresh-token'); // Get refresh token
 	const headers = new Headers();
 
 	// Manually add the Cookie header if the token exists
@@ -42,69 +42,73 @@ export async function handleAuth({ event, resolve }) {
 				isAuthenticated: true,
 				...userDetails // username, email, pk
 			};
-		} else if ((initialResponse.status === 401 || initialResponse.status === 403) && refreshToken) {
+		} else if (initialResponse.status === 401 || initialResponse.status === 403) {
 			// Access token failed, but we have a refresh token, let's try refreshing
 			console.log('Access token invalid/expired, attempting refresh...');
-			try {
-				const refreshResponse = await event.fetch(`${API_URL}auth/token/refresh/`, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					// If the backend expects the token in the body instead:
-					body: JSON.stringify({ refresh: refreshToken })
-				});
+			// try {
+			// 	// const refreshResponse = await event.fetch(`${API_URL}auth/token/refresh/`, {
+			// 	// 	method: 'POST',
+			// 	// 	headers: {
+			// 	// 		'Content-Type': 'application/json'
+			// 	// 	},
+			// 	// 	// If the backend expects the token in the body instead:
+			// 	// 	body: JSON.stringify({ refresh: refreshToken })
+			// 	// });
 
-				if (refreshResponse.ok) {
-					const { access: newAccessToken } = await refreshResponse.json(); // Assuming response format { "access": "..." }
-					console.log('Token refreshed successfully.');
+			// 	if (refreshResponse.ok) {
+			// 		const { access: newAccessToken } = await refreshResponse.json(); // Assuming response format { "access": "..." }
+			// 		console.log('Token refreshed successfully.');
 
-					// Update the access token cookie
-					event.cookies.set('api-access-token', newAccessToken, {
-						path: '/',
-						httpOnly: true,
-						secure: process.env.NODE_ENV === 'production',
-						sameSite: 'lax',
-						maxAge: 60 * 60 * 24 // Example: 1 day expiry, adjust as needed
-					});
+			// 		// Update the access token cookie
+			// 		event.cookies.set('api-access-token', newAccessToken, {
+			// 			path: '/',
+			// 			httpOnly: true,
+			// 			secure: process.env.NODE_ENV === 'production',
+			// 			sameSite: 'lax',
+			// 			maxAge: 60 * 60 * 24 // Example: 1 day expiry, adjust as needed
+			// 		});
 
-					// Retry fetching user details with the new access token
-					const headersWithNewToken = new Headers();
-					headersWithNewToken.append('Cookie', `api-access-token=${newAccessToken}`);
-					const retryResponse = await event.fetch(`${API_URL}auth/user/`, {
-						headers: headersWithNewToken
-					});
+			// 		// Retry fetching user details with the new access token
+			// 		const headersWithNewToken = new Headers();
+			// 		headersWithNewToken.append('Cookie', `api-access-token=${newAccessToken}`);
+			// 		const retryResponse = await event.fetch(`${API_URL}auth/user/`, {
+			// 			headers: headersWithNewToken
+			// 		});
 
-					if (retryResponse.ok) {
-						const userDetails = await retryResponse.json();
-						event.locals.user = { isAuthenticated: true, ...userDetails };
-						console.log('User details fetched successfully after token refresh.');
-					} else {
-						// Retry failed even after successful refresh
-						console.error(
-							'Failed to fetch user details after token refresh:',
-							retryResponse.status
-						);
-						// Clear cookies as something is wrong
-						event.cookies.delete('api-access-token', { path: '/' });
-						event.cookies.delete('api-refresh-token', { path: '/' }); // Clear refresh token too
-						event.locals.user = { isAuthenticated: false };
-					}
-				} else {
-					// Refresh request failed (e.g., refresh token expired or invalid)
-					console.error('Token refresh failed:', refreshResponse.status);
-					// Clear cookies as the refresh token is likely invalid
-					event.cookies.delete('api-access-token', { path: '/' });
-					event.cookies.delete('api-refresh-token', { path: '/' });
-					event.locals.user = { isAuthenticated: false };
-				}
-			} catch (refreshError) {
-				// Network or other error during the refresh request itself
-				console.error('Error during token refresh request:', refreshError);
-				event.cookies.delete('api-access-token', { path: '/' });
-				event.cookies.delete('api-refresh-token', { path: '/' });
-				event.locals.user = { isAuthenticated: false };
-			}
+			// 		if (retryResponse.ok) {
+			// 			const userDetails = await retryResponse.json();
+			// 			event.locals.user = { isAuthenticated: true, ...userDetails };
+			// 			console.log('User details fetched successfully after token refresh.');
+			// 		} else {
+			// 			// Retry failed even after successful refresh
+			// 			console.error(
+			// 				'Failed to fetch user details after token refresh:',
+			// 				retryResponse.status
+			// 			);
+			// 			// Clear cookies as something is wrong
+			// 			event.cookies.delete('api-access-token', { path: '/' });
+			// 			// event.cookies.delete('api-refresh-token', { path: '/' }); // Clear refresh token too
+			// 			event.locals.user = { isAuthenticated: false };
+			// 		}
+			// 	} else {
+			// 		// Refresh request failed (e.g., refresh token expired or invalid)
+			// 		console.error('Token refresh failed:', refreshResponse.status);
+			// 		// Clear cookies as the refresh token is likely invalid
+			// 		event.cookies.delete('api-access-token', { path: '/' });
+			// 		// event.cookies.delete('api-refresh-token', { path: '/' });
+			// 		event.locals.user = { isAuthenticated: false };
+			// 	}
+			// } catch (refreshError) {
+			// 	// Network or other error during the refresh request itself
+			// 	console.error('Error during token refresh request:', refreshError);
+			// 	event.cookies.delete('api-access-token', { path: '/' });
+			// 	// event.cookies.delete('api-refresh-token', { path: '/' });
+			// 	event.locals.user = { isAuthenticated: false };
+			// }
+			// Since refresh logic is commented out, treat as normal auth failure.
+			console.log('Authentication failed (401/403). Refresh logic is disabled.');
+			event.cookies.delete('api-access-token', { path: '/' });
+			event.locals.user = { isAuthenticated: false };
 		} else {
 			// Handle other initial fetch errors (non-401/403) OR 401/403 without a refresh token
 			if (initialResponse.status === 401 || initialResponse.status === 403) {
@@ -121,10 +125,10 @@ export async function handleAuth({ event, resolve }) {
 			if (accessToken) {
 				event.cookies.delete('api-access-token', { path: '/' });
 			}
-			if (refreshToken && (initialResponse.status === 401 || initialResponse.status === 403)) {
-				// Also clear refresh token if the initial failure was auth-related
-				event.cookies.delete('api-refresh-token', { path: '/' });
-			}
+			// if (refreshToken && (initialResponse.status === 401 || initialResponse.status === 403)) {
+			// Also clear refresh token if the initial failure was auth-related
+			// event.cookies.delete('api-refresh-token', { path: '/' });
+			// }
 			event.locals.user = { isAuthenticated: false };
 		}
 	} catch (error) {
@@ -134,9 +138,9 @@ export async function handleAuth({ event, resolve }) {
 		if (accessToken) {
 			event.cookies.delete('api-access-token', { path: '/' });
 		}
-		if (refreshToken) {
-			event.cookies.delete('api-refresh-token', { path: '/' });
-		}
+		// if (refreshToken) {
+		// event.cookies.delete('api-refresh-token', { path: '/' });
+		// }
 		event.locals.user = { isAuthenticated: false };
 	}
 

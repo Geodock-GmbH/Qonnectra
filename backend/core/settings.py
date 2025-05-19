@@ -62,13 +62,11 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
-    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
 ]
 
@@ -208,7 +206,7 @@ REST_AUTH = {
 # djangorestframework-simplejwt settings
 # https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),  # Adjust as needed
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=7),  # Adjust as needed
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Adjust as needed
     "ROTATE_REFRESH_TOKENS": True,  # Obtain a new refresh token when refreshing
     "BLACKLIST_AFTER_ROTATION": False,  # Blacklist old refresh token
