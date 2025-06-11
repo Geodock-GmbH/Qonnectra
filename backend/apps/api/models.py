@@ -10,6 +10,24 @@ from django.utils.translation import gettext_lazy as _
 from .storage import NextcloudStorage
 
 
+class Projects(models.Model):
+    """Stores all projects,
+    related to :model:`api.Trench`.
+    """
+
+    id = models.IntegerField(primary_key=True)
+    project = models.TextField(_("Project"), null=False, db_index=False)
+    description = models.TextField(_("Description"), null=True)
+
+    class Meta:
+        db_table = "projects"
+        verbose_name = _("Project")
+        verbose_name_plural = _("Projects")
+
+    def __str__(self):
+        return self.project
+
+
 class AttributesSurface(models.Model):
     """Stores all surfaces types for trench features,
     related to :model:`api.Trench`.
@@ -416,6 +434,16 @@ class Trench(models.Model):
         related_query_name="trench",
     )
 
+    project = models.ForeignKey(
+        Projects,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="project",
+        db_index=False,
+        default=1,
+        verbose_name=_("Project"),
+    )
+
     class Meta:
         """Meta class for the trench model."""
 
@@ -510,6 +538,13 @@ class OlTrench(models.Model):
     house_connection = models.BooleanField(_("House Connection"), null=True)
     length = models.DecimalField(_("Length"), max_digits=12, decimal_places=4)
     geom = gis_models.LineStringField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
+    project = models.ForeignKey(
+        Projects,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="project",
+        verbose_name=_("Project"),
+    )
 
     class Meta:
         managed = False

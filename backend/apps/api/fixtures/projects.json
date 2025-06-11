@@ -1,0 +1,9 @@
+[
+    {
+        "model": "api.projects",
+        "pk": 1,
+        "fields": {
+            "project": "Default"
+        }
+    }
+]

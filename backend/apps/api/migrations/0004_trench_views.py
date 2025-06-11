@@ -28,7 +28,8 @@ class Migration(migrations.Migration):
             t.owner,
             t.phase,
             t.status,
-            t.surface
+            t.surface,
+            t.project
         from trench t
         order by t.id_trench;
     """),

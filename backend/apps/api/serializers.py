@@ -11,8 +11,17 @@ from .models import (
     AttributesSurface,
     FeatureFiles,
     OlTrench,
+    Projects,
     Trench,
 )
+
+
+class ProjectsSerializer(serializers.ModelSerializer):
+    """Serializer for the Projects model."""
+
+    class Meta:
+        model = Projects
+        fields = ["id", "project", "description"]
 
 
 class AttributesSurfaceSerializer(serializers.ModelSerializer):
@@ -83,6 +92,7 @@ class TrenchSerializer(GeoFeatureModelSerializer):
     id_trench = serializers.IntegerField(read_only=True)
     house_connection = serializers.BooleanField(read_only=True)
     length = serializers.DecimalField(read_only=True, max_digits=12, decimal_places=4)
+    project = ProjectsSerializer(read_only=True)
 
     # Get nested serializers for foreign keys
     surface = AttributesSurfaceSerializer(read_only=True)
@@ -249,6 +259,7 @@ class OlTrenchSerializer(GeoFeatureModelSerializer):
     funding_status = serializers.BooleanField(read_only=True)
     comment = serializers.CharField(read_only=True)
     geom = GeometryField(read_only=True)
+    project = ProjectsSerializer(read_only=True)
 
     class Meta:
         model = OlTrench
@@ -274,5 +285,5 @@ class OlTrenchSerializer(GeoFeatureModelSerializer):
         fields["date"].label = _("Date")
         fields["comment"].label = _("Comment")
         fields["geom"].label = _("Geometry")
-
+        fields["project"].label = _("Project")
         return fields

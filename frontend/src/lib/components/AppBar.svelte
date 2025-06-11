@@ -10,18 +10,8 @@
 
 	// Svelte
 	import { userStore } from '$lib/stores/auth';
-	import { enhance } from '$app/forms';
 	import LightSwitch from './LightSwitch.svelte';
-	import AddProjectDrawer from './AddProjectDrawer.svelte';
-
-	const comboboxData = [
-		{ label: 'Placeholder 1', value: 'US' },
-		{ label: 'Placeholder 2', value: 'CA' },
-		{ label: 'Placeholder 3', value: 'AU' }
-	];
-	let selectedProject = 'Placeholder 1';
-
-	let isAddProjectDrawerOpen = false;
+	import ProjectCombobox from './ProjectCombobox.svelte';
 </script>
 
 <div>
@@ -29,16 +19,7 @@
 		{#snippet lead()}
 			<!-- TODO: Replace with Combobox component to change projects -->
 			{#if $userStore.isAuthenticated}
-				<Combobox
-					data={comboboxData}
-					onValueChange={(e) => (selectedProject = e.value)}
-					placeholder={m.project()}
-					classes="z-10"
-				></Combobox>
-				<AddProjectDrawer
-					open={isAddProjectDrawerOpen}
-					onOpenChange={(e) => (isAddProjectDrawerOpen = e.open)}
-				/>
+				<ProjectCombobox />
 			{/if}
 		{/snippet}
 		{#snippet trail()}

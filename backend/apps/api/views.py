@@ -4,9 +4,14 @@ from rest_framework import viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 
-from .models import FeatureFiles, OlTrench, Trench
+from .models import FeatureFiles, OlTrench, Projects, Trench
 from .pageination import CustomPagination
-from .serializers import FeatureFilesSerializer, OlTrenchSerializer, TrenchSerializer
+from .serializers import (
+    FeatureFilesSerializer,
+    OlTrenchSerializer,
+    ProjectsSerializer,
+    TrenchSerializer,
+)
 
 
 class TrenchViewSet(viewsets.ModelViewSet):
@@ -23,7 +28,7 @@ class TrenchViewSet(viewsets.ModelViewSet):
     pagination_class = CustomPagination
 
     def get_queryset(self):
-        queryset = OlTrench.objects.all()
+        queryset = Trench.objects.all()
         id_trench = self.request.query_params.get("id_trench")
         if id_trench:
             queryset = queryset.filter(id_trench=id_trench)
@@ -75,7 +80,7 @@ class OlTrenchTileViewSet(APIView):
     def get(self, request, z, x, y, format=None):
         """
         Serves MVT tiles for OlTrench.
-        URL: /api/ol_trench_tiles/{z}/{x}/{y}.mvt
+        URL: /api/ol_trench_tiles/{z}/{x}/{y}.mvt?project={project}
         """
         sql = """
             WITH mvtgeom AS (
@@ -106,11 +111,22 @@ class OlTrenchTileViewSet(APIView):
                     public.ol_trench t
                 WHERE
                     t.geom && ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096))
+                    AND t.project = %(project)s
             )
             SELECT ST_AsMVT(mvtgeom, 'ol_trench', 4096, 'geom') AS mvt
             FROM mvtgeom;
         """
-        params = {"z": int(z), "x": int(x), "y": int(y)}
+        project_id = request.query_params.get("project")
+        if project_id is None:
+            return HttpResponse(status=204)
+        try:
+            project_id = int(project_id)
+        except ValueError:
+            return HttpResponse(
+                "Invalid project ID", status=400, content_type="text/plain"
+            )
+
+        params = {"z": int(z), "x": int(x), "y": int(y), "project": project_id}
 
         with connection.cursor() as cursor:
             cursor.execute(sql, params)
@@ -123,3 +139,16 @@ class OlTrenchTileViewSet(APIView):
         else:
             # Return an empty response or 204 No Content if no features in tile
             return HttpResponse(status=204)
+
+
+class ProjectsViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the Projects model :model:`api.Projects`.
+
+    An instance of :model:`api.Projects`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = Projects.objects.all().order_by("project")
+    serializer_class = ProjectsSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"

@@ -10,6 +10,7 @@
 	import { PUBLIC_MAP_TILES_URL } from '$env/static/public';
 	import { trenchColor, trenchColorSelected } from '$lib/stores/store';
 	import { onDestroy, onMount } from 'svelte';
+	import { selectedProject } from '$lib/stores/store';
 
 	// OpenLayers
 	import 'ol/ol.css';
@@ -37,6 +38,12 @@
 	let olMapInstance = $state();
 	let popupOverlay = $state();
 	let selectionStore = $state({}); // Stores the ID of the selected feature { [featureId]: feature }
+
+	$effect(() => {
+		if (tileSource) {
+			tileSource.refresh();
+		}
+	});
 
 	// Style for all features (will be applied to the VectorTileLayer)
 	const trenchStyle = new Style({
@@ -78,8 +85,19 @@
 			format: new MVT({
 				idProperty: 'uuid' // Crucial: Tell OpenLayers to use 'uuid' as the feature ID
 			}),
-			url: `${PUBLIC_MAP_TILES_URL}ol_trench_tiles/{z}/{x}/{y}.mvt`,
+			tileUrlFunction: (tileCoord) => {
+				const [z, x, y] = tileCoord;
+				const projectId = parseInt($selectedProject, 10);
+				if (isNaN(projectId)) {
+					return undefined; // Don't load tiles if no project is selected.
+				}
+				return `${PUBLIC_MAP_TILES_URL}ol_trench_tiles/${z}/${x}/${y}.mvt?project=${projectId}`;
+			},
 			tileLoadFunction: (tile, url) => {
+				if (!url) {
+					tile.setState(4); // EMPTY
+					return;
+				}
 				tile.setLoader((extent, resolution, projection) => {
 					fetch(url, {
 						credentials: 'include'
