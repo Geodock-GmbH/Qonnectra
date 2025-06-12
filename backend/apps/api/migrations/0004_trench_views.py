@@ -29,7 +29,8 @@ class Migration(migrations.Migration):
             t.phase,
             t.status,
             t.surface,
-            t.project
+            t.project,
+            t.flag
         from trench t
         order by t.id_trench;
     """),

@@ -106,7 +106,8 @@ class OlTrenchTileViewSet(APIView):
                     t.owner,
                     t.phase,
                     t.status,
-                    t.surface
+                    t.surface,
+                    t.flag
                 FROM
                     public.ol_trench t
                 WHERE

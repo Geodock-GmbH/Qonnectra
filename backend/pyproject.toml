@@ -13,10 +13,13 @@ dependencies = [
     "djangorestframework-gis>=1.1",
     "djangorestframework-simplejwt>=5.5.0",
     "docutils>=0.21.2",
+    "geopandas>=1.1.0",
     "gunicorn>=23.0.0",
+    "networkx>=3.4.2",
     "psycopg[binary]>=3.2.4",
     "python-dotenv>=1.0.1",
     "requests>=2.32.3",
+    "sqlalchemy>=2.0.41",
 ]
 
 [dependency-groups]

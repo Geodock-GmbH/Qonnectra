@@ -31,17 +31,17 @@
 			} else {
 				toaster.create({
 					type: 'error',
-					message: 'Error fetching projects',
-					description: `Failed to fetch projects: ${response.statusText}`
+					message: m.error_fetching_projects(),
+					description: m.error_fetching_projects_description()
 				});
-				error = `Failed to fetch projects: ${response.statusText}`;
+				error = m.error_fetching_projects_description();
 			}
 		} catch (e) {
-			error = `Error fetching projects: ${e.message}`;
+			error = m.error_fetching_projects_description();
 			toaster.create({
 				type: 'error',
-				message: 'Error fetching projects',
-				description: error.message || 'Could not fetch projects.'
+				message: m.error_fetching_projects(),
+				description: error || m.error_fetching_projects_description()
 			});
 		} finally {
 			loading = false;

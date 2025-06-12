@@ -7,6 +7,7 @@ from .models import (
     AttributesStatus,
     AttributesSurface,
     FileTypeCategory,
+    Flags,
     Projects,
     StoragePreferences,
 )
@@ -20,3 +21,4 @@ admin.site.register(AttributesCompany)
 admin.site.register(Projects)
 admin.site.register(StoragePreferences)
 admin.site.register(FileTypeCategory)
+admin.site.register(Flags)

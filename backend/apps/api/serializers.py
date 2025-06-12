@@ -10,6 +10,7 @@ from .models import (
     AttributesStatus,
     AttributesSurface,
     FeatureFiles,
+    Flags,
     OlTrench,
     Projects,
     Trench,
@@ -22,6 +23,14 @@ class ProjectsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Projects
         fields = ["id", "project", "description"]
+
+
+class FlagsSerializer(serializers.ModelSerializer):
+    """Serializer for the Flags model."""
+
+    class Meta:
+        model = Flags
+        fields = ["id", "flag"]
 
 
 class AttributesSurfaceSerializer(serializers.ModelSerializer):
@@ -93,6 +102,7 @@ class TrenchSerializer(GeoFeatureModelSerializer):
     house_connection = serializers.BooleanField(read_only=True)
     length = serializers.DecimalField(read_only=True, max_digits=12, decimal_places=4)
     project = ProjectsSerializer(read_only=True)
+    flag = FlagsSerializer(read_only=True)
 
     # Get nested serializers for foreign keys
     surface = AttributesSurfaceSerializer(read_only=True)
@@ -260,6 +270,7 @@ class OlTrenchSerializer(GeoFeatureModelSerializer):
     comment = serializers.CharField(read_only=True)
     geom = GeometryField(read_only=True)
     project = ProjectsSerializer(read_only=True)
+    flag = FlagsSerializer(read_only=True)
 
     class Meta:
         model = OlTrench
@@ -286,4 +297,5 @@ class OlTrenchSerializer(GeoFeatureModelSerializer):
         fields["comment"].label = _("Comment")
         fields["geom"].label = _("Geometry")
         fields["project"].label = _("Project")
+        fields["flag"].label = _("Flag")
         return fields

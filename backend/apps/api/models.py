@@ -16,7 +16,7 @@ class Projects(models.Model):
     """
 
     id = models.IntegerField(primary_key=True)
-    project = models.TextField(_("Project"), null=False, db_index=False)
+    project = models.TextField(_("Project"), null=False, db_index=False, unique=True)
     description = models.TextField(_("Description"), null=True)
 
     class Meta:
@@ -26,6 +26,23 @@ class Projects(models.Model):
 
     def __str__(self):
         return self.project
+
+
+class Flags(models.Model):
+    """Stores all flags,
+    related to :model:`api.Trench`.
+    """
+
+    id = models.IntegerField(primary_key=True)
+    flag = models.TextField(_("Flag"), null=False, db_index=False, unique=True)
+
+    class Meta:
+        db_table = "flags"
+        verbose_name = _("Flag")
+        verbose_name_plural = _("Flags")
+
+    def __str__(self):
+        return self.flag
 
 
 class AttributesSurface(models.Model):
@@ -336,7 +353,9 @@ class Trench(models.Model):
     :model:`api.AttributesConstructionType`,
     :model:`api.AttributesStatus`,
     :model:`api.AttributesPhase`,
-    :model:`api.AttributesCompany`.
+    :model:`api.AttributesCompany`,
+    :model:`api.Projects`,
+    :model:`api.Flags`.
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
@@ -444,6 +463,16 @@ class Trench(models.Model):
         verbose_name=_("Project"),
     )
 
+    flag = models.ForeignKey(
+        Flags,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="flag",
+        db_index=False,
+        default=1,
+        verbose_name=_("Flag"),
+    )
+
     class Meta:
         """Meta class for the trench model."""
 
@@ -482,7 +511,9 @@ class OlTrench(models.Model):
     :model:`api.AttributesConstructionType`,
     :model:`api.AttributesStatus`,
     :model:`api.AttributesPhase`,
-    :model:`api.AttributesCompany`.
+    :model:`api.AttributesCompany`,
+    :model:`api.Projects`,
+    :model:`api.Flags`.
     """
 
     uuid = models.UUIDField(primary_key=True)
@@ -544,6 +575,13 @@ class OlTrench(models.Model):
         on_delete=models.DO_NOTHING,
         db_column="project",
         verbose_name=_("Project"),
+    )
+    flag = models.ForeignKey(
+        Flags,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="flag",
+        verbose_name=_("Flag"),
     )
 
     class Meta:

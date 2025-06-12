@@ -1,0 +1,9 @@
+[
+    {
+        "model": "api.flags",
+        "pk": 1,
+        "fields": {
+            "flag": "Default"
+        }
+    }
+]
