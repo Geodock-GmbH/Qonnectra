@@ -16,7 +16,12 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             """
-            alter table trench_files alter column uuid set default gen_random_uuid();
+            alter table feature_files alter column uuid set default gen_random_uuid();
+            """
+        ),
+        migrations.RunSQL(
+            """
+            alter table trench_conduit_connection alter column uuid set default gen_random_uuid();
             """
         ),
         migrations.RunSQL(
