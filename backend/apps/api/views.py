@@ -1,7 +1,8 @@
 from django.db import connection
 from django.http import HttpResponse
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import (
@@ -14,6 +15,7 @@ from .models import (
     TrenchConduitConnection,
 )
 from .pageination import CustomPagination
+from .routing import find_shortest_path
 from .serializers import (
     ConduitSerializer,
     FeatureFilesSerializer,
@@ -218,3 +220,36 @@ class TrenchConduitConnectionViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(uuid_conduit__name__icontains=name)
 
         return queryset
+
+
+class RoutingView(APIView):
+    """
+    API view to find the shortest path between two trenches.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, start_trench_id, end_trench_id, tolerance=1, format=None):
+        """
+        Calculates and returns the shortest path between two trenches.
+
+        URL: /api/routing/<start_trench_id>/<end_trench_id>/
+        """
+        try:
+            start_id = int(start_trench_id)
+            end_id = int(end_trench_id)
+        except ValueError:
+            return Response(
+                {"error": "Trench IDs must be integers."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        result = find_shortest_path(start_id, end_id, tolerance)
+
+        if "error" in result:
+            # Check for not found vs. other errors
+            if "not found" in result["error"]:
+                return Response(result, status=status.HTTP_404_NOT_FOUND)
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(result, status=status.HTTP_200_OK)

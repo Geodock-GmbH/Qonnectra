@@ -7,6 +7,7 @@ from .views import (
     FlagsViewSet,
     OlTrenchTileViewSet,
     ProjectsViewSet,
+    RoutingView,
     TrenchConduitConnectionViewSet,
     TrenchViewSet,
 )
@@ -28,5 +29,10 @@ urlpatterns = [
         "ol_trench_tiles/<int:z>/<int:x>/<int:y>.mvt",
         OlTrenchTileViewSet.as_view(),
         name="ol_trench_tiles",
+    ),
+    path(
+        "routing/<int:start_trench_id>/<int:end_trench_id>/<int:tolerance>/",
+        RoutingView.as_view(),
+        name="routing",
     ),
 ]
