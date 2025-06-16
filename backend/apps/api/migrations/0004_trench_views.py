@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
             t.house_connection,
             t.length,
             st_transform(t.geom, 3857) as geom,
-            t.company,
+            t.constructor,
             t.construction_type,
             t.owner,
             t.phase,

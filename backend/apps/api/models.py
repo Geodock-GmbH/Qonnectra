@@ -207,7 +207,7 @@ class AttributesConduitType(models.Model):
         db_column="manufacturer",
         verbose_name=_("Manufacturer"),
     )
-    color_code = models.TextField(_("Color Code"), null=False)
+    color_code = models.JSONField(_("Color Code"), null=False)
     conduit_type_alias = models.TextField(_("Conduit Type Alias"), null=True)
     conduit_type_microduct = models.IntegerField(_("Conduit Type Microduct"), null=True)
 
@@ -531,6 +531,10 @@ class Trench(models.Model):
         verbose_name=_("Flag"),
     )
 
+    def __str__(self):
+        """String representation of the trench model."""
+        return str(self.id_trench)
+
     class Meta:
         """Meta class for the trench model."""
 
@@ -660,20 +664,30 @@ class Conduit(models.Model):
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
-    name = models.TextField(null=False)
+    name = models.TextField(
+        null=False,
+        unique=True,
+        db_index=False,
+        verbose_name=_("Conduit Name"),
+    )
     conduit_type = models.ForeignKey(
         AttributesConduitType,
         null=False,
         on_delete=models.CASCADE,
         db_column="conduit_type",
+        db_index=False,
         verbose_name=_("Conduit Type"),
     )
-    outer_conduit = models.TextField(null=True)
+    outer_conduit = models.TextField(
+        null=True,
+        db_index=False,
+    )
     status = models.ForeignKey(
         AttributesStatus,
         null=True,
         on_delete=models.DO_NOTHING,
         db_column="status",
+        db_index=False,
         verbose_name=_("Status"),
     )
     network_level = models.ForeignKey(
@@ -681,6 +695,7 @@ class Conduit(models.Model):
         null=True,
         on_delete=models.DO_NOTHING,
         db_column="network_level",
+        db_index=False,
         verbose_name=_("Network Level"),
     )
     owner = models.ForeignKey(
@@ -688,6 +703,7 @@ class Conduit(models.Model):
         null=True,
         on_delete=models.DO_NOTHING,
         db_column="owner",
+        db_index=False,
         verbose_name=_("Owner"),
         related_name="owned_conduits",
     )
@@ -696,6 +712,7 @@ class Conduit(models.Model):
         null=True,
         on_delete=models.DO_NOTHING,
         db_column="constructor",
+        db_index=False,
         verbose_name=_("Constructor"),
         related_name="constructed_conduits",
     )
@@ -704,6 +721,7 @@ class Conduit(models.Model):
         null=True,
         on_delete=models.DO_NOTHING,
         db_column="manufacturer",
+        db_index=False,
         verbose_name=_("Manufacturer"),
         related_name="manufactured_conduits",
     )
@@ -714,6 +732,7 @@ class Conduit(models.Model):
         null=False,
         on_delete=models.DO_NOTHING,
         db_column="project",
+        db_index=False,
         verbose_name=_("Project"),
     )
 
@@ -722,8 +741,12 @@ class Conduit(models.Model):
         null=False,
         on_delete=models.DO_NOTHING,
         db_column="flag",
+        db_index=False,
         verbose_name=_("Flag"),
     )
+
+    def __str__(self):
+        return self.name
 
     class Meta:
         db_table = "conduit"
@@ -755,6 +778,7 @@ class TrenchConduitConnection(models.Model):
         null=False,
         on_delete=models.CASCADE,
         db_column="uuid_trench",
+        db_index=False,
         verbose_name=_("Trench"),
     )
     uuid_conduit = models.ForeignKey(
@@ -762,6 +786,7 @@ class TrenchConduitConnection(models.Model):
         null=False,
         on_delete=models.CASCADE,
         db_column="uuid_conduit",
+        db_index=False,
         verbose_name=_("Conduit"),
     )
 

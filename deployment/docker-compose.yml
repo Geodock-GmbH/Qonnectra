@@ -31,7 +31,9 @@ services:
       sh -c "python manage.py collectstatic --noinput &&
             python manage.py migrate &&
             python manage.py createsuperuser --noinput --username ${DJANGO_SUPERUSER_USERNAME} --email ${DJANGO_SUPERUSER_EMAIL} &&
-            python manage.py loaddata attributes_company attributes_construction_type attributes_phase attributes_status attributes_surface storage_preference file_type_categories projects flags &&
+            python manage.py loaddata attributes_company attributes_construction_type attributes_conduit_type attributes_phase  &&
+            python manage.py loaddata attributes_status attributes_surface storage_preference file_type_categories projects flags &&
+            python manage.py loaddata attributes_network_level &&
             gunicorn --bind 0.0.0.0:8000 core.wsgi:application"
     ports:
       - "${BACKEND_PORT:-8000}:8000"

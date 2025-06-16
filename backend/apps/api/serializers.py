@@ -187,6 +187,12 @@ class TrenchSerializer(GeoFeatureModelSerializer):
         source="company",
         required=False,
     )
+    trench_constructor = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesCompany.objects.all(),
+        source="constructor",
+        required=False,
+    )
     # Format date to YYYY/MM/DD
     date = serializers.DateField(format="%Y/%m/%d")
     comment = serializers.CharField(required=False)
@@ -237,6 +243,7 @@ class TrenchSerializer(GeoFeatureModelSerializer):
         fields["status_id"].label = _("Status")
         fields["phase_id"].label = _("Phase")
         fields["trench_owner"].label = _("Owner")
+        fields["trench_company"].label = _("Company")
         fields["trench_constructor"].label = _("Constructor")
         fields["construction_depth"].label = _("Construction Depth")
         fields["construction_details"].label = _("Construction Details")
@@ -245,6 +252,8 @@ class TrenchSerializer(GeoFeatureModelSerializer):
         fields["date"].label = _("Date")
         fields["comment"].label = _("Comment")
         fields["geom"].label = _("Geometry")
+        fields["project_id"].label = _("Project")
+        fields["flag_id"].label = _("Flag")
 
         return fields
 
@@ -364,6 +373,7 @@ class ConduitSerializer(serializers.ModelSerializer):
     flag = FlagsSerializer(read_only=True)
 
     # Add write fields for foreign keys
+    name = serializers.CharField(required=True, label=_("Conduit Name"))
     conduit_type_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=AttributesConduitType.objects.all(),
@@ -404,6 +414,7 @@ class ConduitSerializer(serializers.ModelSerializer):
         queryset=Flags.objects.all(),
         source="flag",
     )
+    outer_conduit = serializers.CharField(required=False)
 
     class Meta:
         model = Conduit
@@ -413,16 +424,16 @@ class ConduitSerializer(serializers.ModelSerializer):
     def get_fields(self):
         """Dynamically translate field labels."""
         fields = super().get_fields()
-
         # Translate labels
-        fields["conduit_type"].label = _("Conduit Type")
-        fields["status"].label = _("Status")
-        fields["network_level"].label = _("Network Level")
-        fields["owner"].label = _("Owner")
-        fields["constructor"].label = _("Constructor")
-        fields["manufacturer"].label = _("Manufacturer")
-        fields["project"].label = _("Project")
-        fields["flag"].label = _("Flag")
+        fields["conduit_type_id"].label = _("Conduit Type")
+        fields["status_id"].label = _("Status")
+        fields["network_level_id"].label = _("Network Level")
+        fields["owner_id"].label = _("Owner")
+        fields["constructor_id"].label = _("Constructor")
+        fields["manufacturer_id"].label = _("Manufacturer")
+        fields["project_id"].label = _("Project")
+        fields["flag_id"].label = _("Flag")
+        fields["outer_conduit"].label = _("Outer Conduit")
 
         return fields
 
@@ -433,9 +444,9 @@ class TrenchConduitSerializer(serializers.ModelSerializer):
     # Read only fields
     uuid = serializers.UUIDField(read_only=True)
 
-    # Get nested serializers for foreign keys
-    trench = TrenchSerializer(read_only=True)
-    conduit = ConduitSerializer(read_only=True)
+    # Get nested serializers for foreign keys for read operations
+    trench = TrenchSerializer(read_only=True, source="uuid_trench")
+    conduit = ConduitSerializer(read_only=True, source="uuid_conduit")
 
     class Meta:
         model = TrenchConduitConnection
@@ -448,3 +459,5 @@ class TrenchConduitSerializer(serializers.ModelSerializer):
         # Translate labels
         fields["trench"].label = _("Trench")
         fields["conduit"].label = _("Conduit")
+
+        return fields

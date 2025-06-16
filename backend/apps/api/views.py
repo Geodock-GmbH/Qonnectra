@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from .models import (
     Conduit,
     FeatureFiles,
+    Flags,
     OlTrench,
     Projects,
     Trench,
@@ -16,6 +17,7 @@ from .pageination import CustomPagination
 from .serializers import (
     ConduitSerializer,
     FeatureFilesSerializer,
+    FlagsSerializer,
     OlTrenchSerializer,
     ProjectsSerializer,
     TrenchConduitSerializer,
@@ -116,7 +118,8 @@ class OlTrenchTileViewSet(APIView):
                     t.phase,
                     t.status,
                     t.surface,
-                    t.flag
+                    t.flag,
+                    t.project
                 FROM
                     public.ol_trench t
                 WHERE
@@ -164,6 +167,19 @@ class ProjectsViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_url_kwarg = "pk"
 
 
+class FlagsViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the Flags model :model:`api.Flags`.
+
+    An instance of :model:`api.Flags`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = Flags.objects.all().order_by("flag")
+    serializer_class = FlagsSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
 class ConduitViewSet(viewsets.ModelViewSet):
     """ViewSet for the Conduit model :model:`api.Conduit`.
 
@@ -184,3 +200,21 @@ class TrenchConduitConnectionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = TrenchConduitConnection.objects.all()
     serializer_class = TrenchConduitSerializer
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned connections to a given trench or conduit,
+        by filtering against a `id_trench` or `name` query parameter in the URL.
+        """
+        queryset = TrenchConduitConnection.objects.all()
+        trench_id = self.request.query_params.get("id_trench")
+        name = self.request.query_params.get("name")
+
+        if trench_id:
+            queryset = queryset.filter(uuid_trench__id_trench=trench_id)
+
+        if name:
+            queryset = queryset.filter(uuid_conduit__name__icontains=name)
+
+        return queryset
