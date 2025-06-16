@@ -4,12 +4,21 @@ from rest_framework import viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 
-from .models import FeatureFiles, OlTrench, Projects, Trench
+from .models import (
+    Conduit,
+    FeatureFiles,
+    OlTrench,
+    Projects,
+    Trench,
+    TrenchConduitConnection,
+)
 from .pageination import CustomPagination
 from .serializers import (
+    ConduitSerializer,
     FeatureFilesSerializer,
     OlTrenchSerializer,
     ProjectsSerializer,
+    TrenchConduitSerializer,
     TrenchSerializer,
 )
 
@@ -153,3 +162,25 @@ class ProjectsViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ProjectsSerializer
     lookup_field = "id"
     lookup_url_kwarg = "pk"
+
+
+class ConduitViewSet(viewsets.ModelViewSet):
+    """ViewSet for the Conduit model :model:`api.Conduit`.
+
+    An instance of :model:`api.Conduit`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = Conduit.objects.all()
+    serializer_class = ConduitSerializer
+
+
+class TrenchConduitConnectionViewSet(viewsets.ModelViewSet):
+    """ViewSet for the TrenchConduitConnection model :model:`api.TrenchConduitConnection`.
+
+    An instance of :model:`api.TrenchConduitConnection`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = TrenchConduitConnection.objects.all()
+    serializer_class = TrenchConduitSerializer

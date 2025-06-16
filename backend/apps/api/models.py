@@ -72,7 +72,9 @@ class AttributesConstructionType(models.Model):
     """
 
     id = models.IntegerField(primary_key=True)
-    construction_type = models.TextField(null=False, db_index=False)
+    construction_type = models.TextField(
+        _("Construction Type"), null=False, db_index=False
+    )
 
     class Meta:
         db_table = "attributes_construction_type"
@@ -95,7 +97,7 @@ class AttributesStatus(models.Model):
     """
 
     id = models.IntegerField(primary_key=True)
-    status = models.TextField(null=False, db_index=False, unique=True)
+    status = models.TextField(_("Status"), null=False, db_index=False, unique=True)
 
     class Meta:
         db_table = "attributes_status"
@@ -118,7 +120,7 @@ class AttributesPhase(models.Model):
     """
 
     id = models.IntegerField(primary_key=True)
-    phase = models.TextField(null=False, db_index=False)
+    phase = models.TextField(_("Phase"), null=False, db_index=False)
 
     class Meta:
         db_table = "attributes_phase"
@@ -141,13 +143,13 @@ class AttributesCompany(models.Model):
     """
 
     id = models.IntegerField(primary_key=True)
-    company = models.TextField(null=False, db_index=False)
-    city = models.TextField(null=True)
-    postal_code = models.TextField(null=True)
-    street = models.TextField(null=True)
-    housenumber = models.TextField(null=True)
-    phone = models.TextField(null=True)
-    email = models.TextField(null=True)
+    company = models.TextField(_("Company"), null=False, db_index=False)
+    city = models.TextField(_("City"), null=True)
+    postal_code = models.TextField(_("Postal Code"), null=True)
+    street = models.TextField(_("Street"), null=True)
+    housenumber = models.TextField(_("Housenumber"), null=True)
+    phone = models.TextField(_("Phone"), null=True)
+    email = models.TextField(_("Email"), null=True)
 
     class Meta:
         db_table = "attributes_company"
@@ -170,10 +172,10 @@ class AttributesNodeType(models.Model):
     """
 
     id = models.IntegerField(primary_key=True)
-    node_type = models.TextField(null=False, db_index=False)
-    dimension = models.TextField(null=True)
-    group = models.TextField(null=True)
-    company = models.TextField(null=True)
+    node_type = models.TextField(_("Node Type"), null=False, db_index=False)
+    dimension = models.TextField(_("Dimension"), null=True)
+    group = models.TextField(_("Group"), null=True)
+    company = models.TextField(_("Company"), null=True)
 
     class Meta:
         db_table = "attributes_node_type"
@@ -183,6 +185,62 @@ class AttributesNodeType(models.Model):
                 name="idx_node_type_node_type",
             ),
         ]
+        verbose_name = _("Node Type")
+        verbose_name_plural = _("Node Types")
+
+    def __str__(self):
+        return self.node_type
+
+
+class AttributesConduitType(models.Model):
+    """Stores all conduit types for conduit features,
+    related to :model:`api.Conduit`.
+    """
+
+    id = models.IntegerField(primary_key=True)
+    conduit_type = models.TextField(_("Conduit Type"), null=False, db_index=False)
+    conduit_count = models.IntegerField(_("Conduit Count"), null=False)
+    manufacturer = models.ForeignKey(
+        AttributesCompany,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="manufacturer",
+        verbose_name=_("Manufacturer"),
+    )
+    color_code = models.TextField(_("Color Code"), null=False)
+    conduit_type_alias = models.TextField(_("Conduit Type Alias"), null=True)
+    conduit_type_microduct = models.IntegerField(_("Conduit Type Microduct"), null=True)
+
+    class Meta:
+        db_table = "attributes_conduit_type"
+        indexes = [
+            models.Index(fields=["conduit_type"], name="idx_conduit_type_conduit_type"),
+        ]
+        verbose_name = _("Conduit Type")
+        verbose_name_plural = _("Conduit Types")
+
+    def __str__(self):
+        return self.conduit_type
+
+
+class AttributesNetworkLevel(models.Model):
+    """Stores all network levels for conduit features,
+    related to :model:`api.Conduit`.
+    """
+
+    id = models.IntegerField(primary_key=True)
+    network_level = models.TextField(_("Network Level"), null=False, db_index=False)
+
+    class Meta:
+        db_table = "attributes_network_level"
+        indexes = [
+            models.Index(fields=["network_level"], name="idx_network_level_net_level"),
+        ]
+        verbose_name = _("Network Level")
+        verbose_name_plural = _("Network Levels")
+
+    def __str__(self):
+        return self.network_level
 
 
 # TODO: Implement custom storage class for feature files (nextcloud): https://docs.djangoproject.com/en/4.2/howto/custom-file-storage/
@@ -417,14 +475,14 @@ class Trench(models.Model):
         db_index=False,
         verbose_name=_("Owner"),
     )
-    company = models.ForeignKey(
+    constructor = models.ForeignKey(
         AttributesCompany,
         null=True,
         on_delete=models.CASCADE,
         related_name="executed_trenches",
-        db_column="company",
+        db_column="constructor",
         db_index=False,
-        verbose_name=_("Company"),
+        verbose_name=_("Constructor"),
     )
     date = models.DateField(_("Date"), null=True)
     comment = models.TextField(_("Comment"), null=True)
@@ -489,7 +547,7 @@ class Trench(models.Model):
             models.Index(fields=["status"], name="idx_trench_status"),
             models.Index(fields=["phase"], name="idx_trench_phase"),
             models.Index(fields=["owner"], name="idx_trench_owner"),
-            models.Index(fields=["company"], name="idx_trench_company"),
+            models.Index(fields=["constructor"], name="idx_trench_constructor"),
             gis_models.Index(fields=["geom"], name="idx_trench_geom"),
         ]
 
@@ -556,13 +614,13 @@ class OlTrench(models.Model):
         db_column="owner",
         verbose_name=_("Owner"),
     )
-    company = models.ForeignKey(
+    constructor = models.ForeignKey(
         AttributesCompany,
         null=True,
         on_delete=models.DO_NOTHING,
         related_name="executed_ol_trenches",
-        db_column="company",
-        verbose_name=_("Company"),
+        db_column="constructor",
+        verbose_name=_("Constructor"),
     )
     date = models.DateField(_("Date"), null=True)
     comment = models.TextField(_("Comment"), null=True)
@@ -590,3 +648,131 @@ class OlTrench(models.Model):
         verbose_name = _("OL Trench")
         verbose_name_plural = _("OL Trenches")
         ordering = ["id_trench"]
+
+
+class Conduit(models.Model):
+    """Stores all conduits,
+    related to :model:`api.TrenchConduitConnection`,
+    :model:`api.AttributesConduitType`,
+    :model:`api.AttributesStatus`,
+    :model:`api.AttributesNetworkLevel`,
+    :model:`api.AttributesCompany`.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    name = models.TextField(null=False)
+    conduit_type = models.ForeignKey(
+        AttributesConduitType,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="conduit_type",
+        verbose_name=_("Conduit Type"),
+    )
+    outer_conduit = models.TextField(null=True)
+    status = models.ForeignKey(
+        AttributesStatus,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="status",
+        verbose_name=_("Status"),
+    )
+    network_level = models.ForeignKey(
+        AttributesNetworkLevel,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="network_level",
+        verbose_name=_("Network Level"),
+    )
+    owner = models.ForeignKey(
+        AttributesCompany,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="owner",
+        verbose_name=_("Owner"),
+        related_name="owned_conduits",
+    )
+    constructor = models.ForeignKey(
+        AttributesCompany,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="constructor",
+        verbose_name=_("Constructor"),
+        related_name="constructed_conduits",
+    )
+    manufacturer = models.ForeignKey(
+        AttributesCompany,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="manufacturer",
+        verbose_name=_("Manufacturer"),
+        related_name="manufactured_conduits",
+    )
+    date = models.DateField(_("Date"), null=True)
+
+    project = models.ForeignKey(
+        Projects,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="project",
+        verbose_name=_("Project"),
+    )
+
+    flag = models.ForeignKey(
+        Flags,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="flag",
+        verbose_name=_("Flag"),
+    )
+
+    class Meta:
+        db_table = "conduit"
+        verbose_name = _("Conduit")
+        verbose_name_plural = _("Conduits")
+        ordering = ["name"]
+        indexes = [
+            models.Index(fields=["name"], name="idx_conduit_name"),
+            models.Index(fields=["conduit_type"], name="idx_conduit_conduit_type"),
+            models.Index(fields=["status"], name="idx_conduit_status"),
+            models.Index(fields=["network_level"], name="idx_conduit_network_level"),
+            models.Index(fields=["owner"], name="idx_conduit_owner"),
+            models.Index(fields=["constructor"], name="idx_conduit_constructor"),
+            models.Index(fields=["manufacturer"], name="idx_conduit_manufacturer"),
+            models.Index(fields=["project"], name="idx_conduit_project"),
+            models.Index(fields=["flag"], name="idx_conduit_flag"),
+        ]
+
+
+class TrenchConduitConnection(models.Model):
+    """Stores all trench conduit connections,
+    related to :model:`api.Trench`,
+    :model:`api.Conduit`.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    uuid_trench = models.ForeignKey(
+        Trench,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="uuid_trench",
+        verbose_name=_("Trench"),
+    )
+    uuid_conduit = models.ForeignKey(
+        Conduit,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="uuid_conduit",
+        verbose_name=_("Conduit"),
+    )
+
+    class Meta:
+        db_table = "trench_conduit_connect"
+        verbose_name = _("Trench Conduit Connection")
+        verbose_name_plural = _("Trench Conduit Connections")
+        indexes = [
+            models.Index(fields=["uuid_trench"], name="idx_trench_conduit_con_trench"),
+            models.Index(
+                fields=["uuid_conduit"],
+                name="idx_trench_conduit_con_cond",
+            ),
+        ]
