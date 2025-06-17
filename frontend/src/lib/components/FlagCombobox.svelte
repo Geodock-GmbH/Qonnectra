@@ -5,7 +5,7 @@
 	// Svelte
 	import { onMount } from 'svelte';
 	import { PUBLIC_API_URL } from '$env/static/public';
-	import { selectedProject } from '$lib/stores/store';
+	import { selectedFlag } from '$lib/stores/store';
 
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
@@ -15,34 +15,33 @@
 		placement: 'bottom-end'
 	});
 
-	let projects = $state([]);
+	let flags = $state([]);
 	let loading = $state(true);
 	let error = $state(null);
-	let { placeholderSize = 'size-10' } = $props();
 
 	onMount(async () => {
 		try {
-			const response = await fetch(`${PUBLIC_API_URL}projects/`, {
+			const response = await fetch(`${PUBLIC_API_URL}flags/`, {
 				credentials: 'include'
 			});
 			if (response.ok) {
 				const data = await response.json();
-				const projectData = data.results || data;
-				projects = projectData.map((p) => ({ label: p.project, value: p.id.toString() }));
+				const flagData = data.results || data;
+				flags = flagData.map((f) => ({ label: f.flag, value: f.id.toString() }));
 			} else {
 				toaster.create({
 					type: 'error',
-					message: m.error_fetching_projects(),
-					description: m.error_fetching_projects_description()
+					message: m.error_fetching_flags(),
+					description: m.error_fetching_flags_description()
 				});
-				error = m.error_fetching_projects_description();
+				error = m.error_fetching_flags_description();
 			}
 		} catch (e) {
-			error = m.error_fetching_projects_description();
+			error = m.error_fetching_flags_description();
 			toaster.create({
 				type: 'error',
-				message: m.error_fetching_projects(),
-				description: error || m.error_fetching_projects_description()
+				message: m.error_fetching_flags(),
+				description: error || m.error_fetching_flags_description()
 			});
 		} finally {
 			loading = false;
@@ -53,18 +52,17 @@
 <Toaster {toaster}></Toaster>
 
 {#if loading}
-	<div class="placeholder animate-pulse {placeholderSize}"></div>
+	<div class="placeholder animate-pulse"></div>
 {:else if error}
 	<div class="alert variant-filled-error">{error}</div>
 {:else}
 	<Combobox
-		data={projects}
-		bind:value={$selectedProject}
-		defaultValue={$selectedProject}
+		data={flags}
+		bind:value={$selectedFlag}
+		defaultValue={$selectedFlag}
 		onValueChange={(e) => {
-			$selectedProject = e.value;
+			$selectedFlag = e.value;
 		}}
-		placeholder={m.project()}
-		classes="z-10"
-	/>
+		placeholder={m.select_flag()}
+	></Combobox>
 {/if}

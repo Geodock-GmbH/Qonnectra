@@ -17,7 +17,6 @@
 <div>
 	<AppBar background="bg-transparent">
 		{#snippet lead()}
-			<!-- TODO: Replace with Combobox component to change projects -->
 			{#if $userStore.isAuthenticated}
 				<ProjectCombobox />
 			{/if}

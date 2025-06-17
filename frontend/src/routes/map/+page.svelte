@@ -7,7 +7,7 @@
 
 	// Svelte
 	import Map from '$lib/components/Map.svelte';
-	import { PUBLIC_MAP_TILES_URL } from '$env/static/public';
+	import { PUBLIC_API_URL } from '$env/static/public';
 	import { trenchColor, trenchColorSelected } from '$lib/stores/store';
 	import { onDestroy, onMount } from 'svelte';
 	import { selectedProject } from '$lib/stores/store';
@@ -91,7 +91,7 @@
 				if (isNaN(projectId)) {
 					return undefined; // Don't load tiles if no project is selected.
 				}
-				return `${PUBLIC_MAP_TILES_URL}ol_trench_tiles/${z}/${x}/${y}.mvt?project=${projectId}`;
+				return `${PUBLIC_API_URL}ol_trench_tiles/${z}/${x}/${y}.mvt?project=${projectId}`;
 			},
 			tileLoadFunction: (tile, url) => {
 				if (!url) {

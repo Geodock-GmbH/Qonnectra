@@ -114,7 +114,7 @@ class OlTrenchTileViewSet(APIView):
                     t.comment,
                     t.house_connection,
                     t.length,
-                    t.company,
+                    t.constructor,
                     t.construction_type,
                     t.owner,
                     t.phase,
