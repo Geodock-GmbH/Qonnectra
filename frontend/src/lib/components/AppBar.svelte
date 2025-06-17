@@ -12,13 +12,15 @@
 	import { userStore } from '$lib/stores/auth';
 	import LightSwitch from './LightSwitch.svelte';
 	import ProjectCombobox from './ProjectCombobox.svelte';
+
+	let { data } = $props();
 </script>
 
 <div>
 	<AppBar background="bg-transparent">
 		{#snippet lead()}
 			{#if $userStore.isAuthenticated}
-				<ProjectCombobox />
+				<ProjectCombobox projects={data.projects} projectsError={data.projectsError} />
 			{/if}
 		{/snippet}
 		{#snippet trail()}

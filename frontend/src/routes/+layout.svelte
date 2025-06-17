@@ -16,7 +16,7 @@
 	<!-- Content Area: Takes remaining space, allows internal scrolling -->
 	<div class="flex flex-1 flex-col overflow-hidden">
 		<!-- AppBar: Sticky within this container -->
-		<AppBar class="sticky top-0 z-10 flex-shrink-0" />
+		<AppBar class="sticky top-0 z-10 flex-shrink-0" {data} />
 		<!-- Main Content: Scrolls vertically, takes remaining height -->
 		<main class="flex-1 overflow-y-auto p-4">
 			{@render children()}

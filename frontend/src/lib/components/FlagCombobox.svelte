@@ -3,58 +3,50 @@
 	import { Combobox, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
 
 	// Svelte
-	import { onMount } from 'svelte';
-	import { PUBLIC_API_URL } from '$env/static/public';
 	import { selectedFlag } from '$lib/stores/store';
+	import { browser } from '$app/environment';
 
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
+
+	// Props - receive flags and error from parent/layout
+	let { flags = [], flagsError = null, loading = false } = $props();
+
+	// Client-side hydration loading state
+	let isHydrating = $state(!browser);
 
 	// Toaster
 	const toaster = createToaster({
 		placement: 'bottom-end'
 	});
 
-	let flags = $state([]);
-	let loading = $state(true);
-	let error = $state(null);
-
-	onMount(async () => {
-		try {
-			const response = await fetch(`${PUBLIC_API_URL}flags/`, {
-				credentials: 'include'
-			});
-			if (response.ok) {
-				const data = await response.json();
-				const flagData = data.results || data;
-				flags = flagData.map((f) => ({ label: f.flag, value: f.id.toString() }));
-			} else {
-				toaster.create({
-					type: 'error',
-					message: m.error_fetching_flags(),
-					description: m.error_fetching_flags_description()
-				});
-				error = m.error_fetching_flags_description();
-			}
-		} catch (e) {
-			error = m.error_fetching_flags_description();
+	// Show error toast when there's an error
+	$effect(() => {
+		if (flagsError && browser) {
 			toaster.create({
 				type: 'error',
 				message: m.error_fetching_flags(),
-				description: error || m.error_fetching_flags_description()
+				description: flagsError
 			});
-		} finally {
-			loading = false;
+		}
+	});
+
+	// Update hydration state
+	$effect(() => {
+		if (browser) {
+			isHydrating = false;
 		}
 	});
 </script>
 
 <Toaster {toaster}></Toaster>
 
-{#if loading}
+{#if loading || isHydrating}
 	<div class="placeholder animate-pulse"></div>
-{:else if error}
-	<div class="alert variant-filled-error">{error}</div>
+{:else if flagsError}
+	<div class="alert variant-filled-error">{flagsError}</div>
+{:else if flags.length === 0}
+	<div class="alert variant-filled-warning">{m.no_flags_available || 'No flags available'}</div>
 {:else}
 	<Combobox
 		data={flags}

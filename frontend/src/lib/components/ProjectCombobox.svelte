@@ -3,59 +3,57 @@
 	import { Combobox, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
 
 	// Svelte
-	import { onMount } from 'svelte';
-	import { PUBLIC_API_URL } from '$env/static/public';
 	import { selectedProject } from '$lib/stores/store';
+	import { browser } from '$app/environment';
 
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
+
+	// Props - receive projects and error from parent/layout
+	let {
+		projects = [],
+		projectsError = null,
+		loading = false,
+		placeholderSize = 'size-10'
+	} = $props();
+
+	// Client-side hydration loading state
+	let isHydrating = $state(!browser);
 
 	// Toaster
 	const toaster = createToaster({
 		placement: 'bottom-end'
 	});
 
-	let projects = $state([]);
-	let loading = $state(true);
-	let error = $state(null);
-	let { placeholderSize = 'size-10' } = $props();
-
-	onMount(async () => {
-		try {
-			const response = await fetch(`${PUBLIC_API_URL}projects/`, {
-				credentials: 'include'
-			});
-			if (response.ok) {
-				const data = await response.json();
-				const projectData = data.results || data;
-				projects = projectData.map((p) => ({ label: p.project, value: p.id.toString() }));
-			} else {
-				toaster.create({
-					type: 'error',
-					message: m.error_fetching_projects(),
-					description: m.error_fetching_projects_description()
-				});
-				error = m.error_fetching_projects_description();
-			}
-		} catch (e) {
-			error = m.error_fetching_projects_description();
+	// Show error toast when there's an error
+	$effect(() => {
+		if (projectsError && browser) {
 			toaster.create({
 				type: 'error',
 				message: m.error_fetching_projects(),
-				description: error || m.error_fetching_projects_description()
+				description: projectsError
 			});
-		} finally {
-			loading = false;
+		}
+	});
+
+	// Update hydration state
+	$effect(() => {
+		if (browser) {
+			isHydrating = false;
 		}
 	});
 </script>
 
 <Toaster {toaster}></Toaster>
 
-{#if loading}
+{#if loading || isHydrating}
 	<div class="placeholder animate-pulse {placeholderSize}"></div>
-{:else if error}
-	<div class="alert variant-filled-error">{error}</div>
+{:else if projectsError}
+	<div class="alert variant-filled-error">{projectsError}</div>
+{:else if projects.length === 0}
+	<div class="alert variant-filled-warning">
+		{m.no_projects_available || 'No projects available'}
+	</div>
 {:else}
 	<Combobox
 		data={projects}
