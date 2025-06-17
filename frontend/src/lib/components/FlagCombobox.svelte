@@ -20,7 +20,6 @@
 		placement: 'bottom-end'
 	});
 
-	// Show error toast when there's an error
 	$effect(() => {
 		if (flagsError && browser) {
 			toaster.create({
@@ -46,7 +45,7 @@
 {:else if flagsError}
 	<div class="alert variant-filled-error">{flagsError}</div>
 {:else if flags.length === 0}
-	<div class="alert variant-filled-warning">{m.no_flags_available || 'No flags available'}</div>
+	<div class="alert variant-filled-warning">{m.error_fetching_flags_no_flags()}</div>
 {:else}
 	<Combobox
 		data={flags}

@@ -189,8 +189,41 @@ class ConduitViewSet(viewsets.ModelViewSet):
     """
 
     permission_classes = [IsAuthenticated]
-    queryset = Conduit.objects.all()
     serializer_class = ConduitSerializer
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned conduits by filtering against query parameters:
+        - `project`: Filter by project ID
+        - `flag`: Filter by flag ID
+        - `name`: Filter by name (case-insensitive partial match)
+
+        Multiple parameters can be combined (e.g., ?project=1&flag=2&name=fiber)
+        """
+        queryset = Conduit.objects.all().order_by("name")
+        project_id = self.request.query_params.get("project")
+        flag_id = self.request.query_params.get("flag")
+        name = self.request.query_params.get("name")
+
+        if project_id:
+            try:
+                project_id = int(project_id)
+                queryset = queryset.filter(project=project_id)
+            except ValueError:
+                queryset = queryset.none()
+
+        if flag_id:
+            try:
+                flag_id = int(flag_id)
+                queryset = queryset.filter(flag=flag_id)
+            except ValueError:
+                queryset = queryset.none()
+
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+
+        return queryset
 
 
 class TrenchConduitConnectionViewSet(viewsets.ModelViewSet):

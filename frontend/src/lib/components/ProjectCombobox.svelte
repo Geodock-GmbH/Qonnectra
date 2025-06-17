@@ -25,7 +25,6 @@
 		placement: 'bottom-end'
 	});
 
-	// Show error toast when there's an error
 	$effect(() => {
 		if (projectsError && browser) {
 			toaster.create({
@@ -52,7 +51,7 @@
 	<div class="alert variant-filled-error">{projectsError}</div>
 {:else if projects.length === 0}
 	<div class="alert variant-filled-warning">
-		{m.no_projects_available || 'No projects available'}
+		{m.error_fetching_projects_no_projects()}
 	</div>
 {:else}
 	<Combobox
