@@ -9,9 +9,6 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/stores';
 
-	// TODO: Toaster should be placed bottom center.
-	// Since the UI is not clear right now, the centered button would not be centered.
-	// so we're placing it at the bottom right for now.
 	const toaster = createToaster({
 		placement: 'bottom-end'
 	});
