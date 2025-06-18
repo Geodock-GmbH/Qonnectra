@@ -19,6 +19,11 @@
 	const toaster = createToaster({
 		placement: 'bottom-end'
 	});
+
+	// Stop page from scrolling
+	$effect(() => {
+		document.body.style.overflow = 'hidden';
+	});
 </script>
 
 <Toaster {toaster}></Toaster>
@@ -26,8 +31,8 @@
 <div class="mx-auto max-w-7xl pt-16 lg:flex lg:gap-x-16 lg:px-8 overflow-y-auto">
 	<h1 class="sr-only">User Settings</h1>
 
-	<main class="px-4 py-16 sm:px-6 lg:flex-auto lg:px-0 lg:py-20 overflow-y-auto">
-		<div class="mx-auto max-w-2xl lg:mx-0 lg:max-w-none">
+	<main class="px-4 py-16 sm:px-6 lg:flex-auto lg:px-0 lg:py-20">
+		<div class="mx-auto max-w-2xl lg:mx-0 lg:max-w-none space-y-16 sm:space-y-20">
 			<!-- User Settings -->
 			<div>
 				<h2 class="text-base/7 font-semibold">
