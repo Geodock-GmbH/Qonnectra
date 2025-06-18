@@ -56,5 +56,10 @@
 	"settings_map": "Karte",
 	"settings_map_description": "Hier kannst du deine Karten-Einstellungen einsehen und anpassen.",
 	"settings_map_trench_color": "Trassenfarbe",
-	"settings_map_selected_trench_color": "Markierte Trassenfarbe"
+	"settings_map_selected_trench_color": "Markierte Trassenfarbe",
+	"settings_trench": "Trasse",
+	"settings_trench_description": "Hier kannst du deine Einstellungen für das Trassen-Feature einsehen und anpassen.",
+	"settings_map_routing_mode": "Routing-Modus",
+	"settings_map_routing_mode_enabled": "Routing-Modus aktiviert",
+	"settings_map_routing_mode_disabled": "Routing-Modus deaktiviert"
 }

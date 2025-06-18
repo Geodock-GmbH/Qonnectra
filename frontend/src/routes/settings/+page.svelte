@@ -12,7 +12,8 @@
 		sidebarExpanded,
 		defaultProject,
 		trenchColor,
-		trenchColorSelected
+		trenchColorSelected,
+		routingMode
 	} from '$lib/stores/store';
 
 	const toaster = createToaster({
@@ -22,11 +23,11 @@
 
 <Toaster {toaster}></Toaster>
 
-<div class="mx-auto max-w-7xl pt-16 lg:flex lg:gap-x-16 lg:px-8">
+<div class="mx-auto max-w-7xl pt-16 lg:flex lg:gap-x-16 lg:px-8 overflow-y-auto">
 	<h1 class="sr-only">User Settings</h1>
 
-	<main class="px-4 py-16 sm:px-6 lg:flex-auto lg:px-0 lg:py-20">
-		<div class="mx-auto max-w-2xl space-y-16 sm:space-y-20 lg:mx-0 lg:max-w-none">
+	<main class="px-4 py-16 sm:px-6 lg:flex-auto lg:px-0 lg:py-20 overflow-y-auto">
+		<div class="mx-auto max-w-2xl lg:mx-0 lg:max-w-none">
 			<!-- User Settings -->
 			<div>
 				<h2 class="text-base/7 font-semibold">
@@ -142,6 +143,36 @@
 							>
 								Reset
 							</button>
+						</dd>
+					</div>
+				</dl>
+			</div>
+			<div>
+				<h2 class="text-base/7 font-semibold">
+					{m.settings_trench()}
+				</h2>
+				<p class="mt-1 text-sm/6">
+					{m.settings_trench_description()}
+				</p>
+
+				<dl class="mt-6 divide-y border-t text-sm/6">
+					<div class="py-6 sm:flex">
+						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
+							{m.settings_map_routing_mode()}
+						</dt>
+						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
+							{#if $routingMode}
+								<p>{m.settings_map_routing_mode_enabled()}</p>
+							{:else}
+								<p>{m.settings_map_routing_mode_disabled()}</p>
+							{/if}
+							<Switch
+								name="routing-mode"
+								checked={$routingMode}
+								onCheckedChange={() => {
+									$routingMode = !$routingMode;
+								}}
+							/>
 						</dd>
 					</div>
 				</dl>

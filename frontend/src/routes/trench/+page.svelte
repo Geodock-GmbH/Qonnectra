@@ -9,7 +9,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	// Svelte
-	import { selectedProject, selectedFlag, selectedConduit } from '$lib/stores/store';
+	import { selectedProject, selectedFlag, selectedConduit, routingMode } from '$lib/stores/store';
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
 	import ConduitCombobox from '$lib/components/ConduitCombobox.svelte';
@@ -32,7 +32,7 @@
 			<div class="flex items-center justify-between">
 				<h3>{m.flag()}</h3>
 				<!-- TODO: Create new component for the switch -->
-				<Switch name="routing-mode">
+				<Switch name="routing-mode" checked={$routingMode}>
 					{#snippet inactiveChild()}
 						<IconX size="18" />
 					{/snippet}

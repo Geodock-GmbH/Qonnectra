@@ -89,7 +89,6 @@
 		<thead>
 			<tr>
 				<th>Trassen-ID</th>
-				<th class="!text-right">Symbol</th>
 			</tr>
 		</thead>
 		<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">
