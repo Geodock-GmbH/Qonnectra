@@ -55,5 +55,6 @@
 			$selectedFlag = e.value;
 		}}
 		placeholder={m.select_flag()}
+		zIndex="10"
 	></Combobox>
 {/if}

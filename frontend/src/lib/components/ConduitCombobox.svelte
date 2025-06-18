@@ -5,42 +5,30 @@
 	// Svelte
 	import { browser } from '$app/environment';
 	import { PUBLIC_API_URL } from '$env/static/public';
+	import { selectedConduit } from '$lib/stores/store';
 
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
 	// Props
-	let { onSelect, placeholder = m.select_conduit(), projectId = null, flagId = null } = $props();
-
-	// State
-	let selectedConduit = $state();
-	let selectedConduitId = $state('');
-	let conduits = $state([]);
-	let conduitsError = $state(null);
-	let loading = $state(false);
+	let { projectId = null, flagId = null } = $props();
 
 	// Client-side hydration loading state
 	let isHydrating = $state(!browser);
+
+	// State
+	let conduits = $state([]);
+	let conduitsError = $state(null);
+	let loading = $state(false);
 
 	// Toaster
 	const toaster = createToaster({
 		placement: 'bottom-end'
 	});
 
-	// Handle selection
-	function handleSelection(event) {
-		const selected = conduits.find((c) => c.value === event.value);
-		if (selected) {
-			selectedConduit = selected.meta;
-			selectedConduitId = selected.value;
-			onSelect?.(selected.meta);
-		}
-	}
-
-	// Fetch conduits from API
 	async function fetchConduits() {
 		if (!projectId || !flagId) {
-			conduitsError = m.select_project_and_flag_first || 'Please select project and flag first';
+			conduitsError = m.select_project_and_flag_first();
 			return;
 		}
 
@@ -59,14 +47,12 @@
 
 			const data = await response.json();
 
-			conduits = data.results.map((conduit) => ({
-				value: conduit.uuid,
-				label: conduit.name,
-				meta: conduit
+			conduits = data.results.map((item) => ({
+				value: item.uuid,
+				label: item.name
 			}));
 		} catch (error) {
-			console.error('Error fetching conduits:', error);
-			conduitsError = error.message || 'Unknown error occurred';
+			conduitsError = m.error_fetching_conduits();
 		} finally {
 			loading = false;
 		}
@@ -96,15 +82,20 @@
 			isHydrating = false;
 		}
 	});
+
+	// Reset selectedConduit when projectId or flagId changes
+	$effect(() => {
+		if (browser && projectId && flagId) {
+			$selectedConduit = ['1'];
+		}
+	});
 </script>
 
 <Toaster {toaster}></Toaster>
 
 <div>
-	{#if loading || isHydrating}
-		<div class="placeholder animate-pulse w-full"></div>
-	{:else if conduitsError}
-		<div class="select">{m.error_fetching_conduits()}</div>
+	{#if loading}
+		<div class="placeholder animate-pulse"></div>
 	{:else if conduits.length === 0}
 		<select class="select">
 			<option value="">{m.no_conduits_found()}</option>
@@ -112,10 +103,11 @@
 	{:else}
 		<Combobox
 			data={conduits}
-			bind:value={selectedConduitId}
-			onValueChange={handleSelection}
-			{placeholder}
-			classes="w-full"
+			bind:value={$selectedConduit}
+			defaultValue={$selectedConduit}
+			onValueChange={(e) => ($selectedConduit = e.value)}
+			placeholder={m.select_conduit()}
+			zIndex="10"
 		/>
 	{/if}
 </div>
