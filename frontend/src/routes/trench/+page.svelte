@@ -31,6 +31,7 @@
 		<div class="card p-4 flex flex-col gap-3">
 			<div class="flex items-center justify-between">
 				<h3>{m.flag()}</h3>
+				<!-- TODO: Create new component for the switch -->
 				<Switch name="routing-mode">
 					{#snippet inactiveChild()}
 						<IconX size="18" />

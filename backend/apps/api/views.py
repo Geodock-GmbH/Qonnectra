@@ -244,10 +244,14 @@ class TrenchConduitConnectionViewSet(viewsets.ModelViewSet):
         """
         queryset = TrenchConduitConnection.objects.all()
         trench_id = self.request.query_params.get("id_trench")
+        conduit_id = self.request.query_params.get("uuid_conduit")
         name = self.request.query_params.get("name")
 
         if trench_id:
             queryset = queryset.filter(uuid_trench__id_trench=trench_id)
+
+        if conduit_id:
+            queryset = queryset.filter(uuid_conduit__uuid=conduit_id)
 
         if name:
             queryset = queryset.filter(uuid_conduit__name__icontains=name)

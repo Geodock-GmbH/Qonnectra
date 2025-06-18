@@ -5,13 +5,56 @@
 	// Tabler
 	import { IconTrash } from '@tabler/icons-svelte';
 
+	// Paraglide
+	import { m } from '$lib/paraglide/messages';
+
+	// Svelte
+	import { PUBLIC_API_URL } from '$env/static/public';
+
 	let { conduitId } = $props();
+
+	let trenches = $state([]);
+	let trenchesError = $state(null);
+	let loading = $state(false);
+
+	async function fetchTrenches() {
+		if (!conduitId) {
+			// conduitsError = m.select_conduit_first();
+			return;
+		}
+
+		loading = true;
+		trenchesError = null;
+
+		try {
+			const response = await fetch(
+				`${PUBLIC_API_URL}trench_conduit_connection/?uuid_conduit=${conduitId}`,
+				{ credentials: 'include' }
+			);
+
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+
+			const data = await response.json();
+
+			trenches = data.results.map((item) => ({
+				value: item.uuid,
+				label: item.trench.properties.id_trench
+			}));
+		} catch (error) {
+			trenchesError = m.error_fetching_trenches();
+		} finally {
+			loading = false;
+			console.log('trenches', trenches);
+		}
+	}
 
 	// TODO: Fetch data from API based on conduitId
 	$effect(() => {
 		if (conduitId) {
 			console.log('Fetching trenches for conduit:', conduitId);
-			// fetch(`/api/trenches?conduit=${conduitId}`).then(...)
+			fetchTrenches();
 		}
 	});
 
@@ -44,7 +87,7 @@
 	];
 	let page = $state(1);
 	let size = $state(10);
-	const slicedSource = $derived(testData.slice((page - 1) * size, page * size));
+	const slicedSource = $derived(trenches.slice((page - 1) * size, page * size));
 
 	function handleRowClick(event) {
 		console.log('Row clicked:', event.target);
@@ -71,7 +114,7 @@
 						if (e.key === 'Enter' || e.key === ' ') handleRowClick(row);
 					}}
 				>
-					<td>{row.id}</td>
+					<td>{row.label}</td>
 					<td class="text-right">
 						<button
 							class="btn"
@@ -90,7 +133,7 @@
 	</table>
 </div>
 <Pagination
-	data={testData}
+	data={trenches}
 	bind:page
 	onPageChange={(e) => (page = e.page)}
 	bind:pageSize={size}
