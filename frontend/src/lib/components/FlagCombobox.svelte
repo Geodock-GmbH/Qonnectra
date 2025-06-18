@@ -9,8 +9,7 @@
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
-	// Props - receive flags and error from parent/layout
-	let { flags = [], flagsError = null, loading = false } = $props();
+	let { flags = [], flagsError = null, loading = false, onchange = (_) => {} } = $props();
 
 	// Client-side hydration loading state
 	let isHydrating = $state(!browser);
@@ -53,6 +52,7 @@
 		defaultValue={$selectedFlag}
 		onValueChange={(e) => {
 			$selectedFlag = e.value;
+			onchange(e);
 		}}
 		placeholder={m.select_flag()}
 		zIndex="10"

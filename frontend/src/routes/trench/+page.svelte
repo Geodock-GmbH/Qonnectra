@@ -9,7 +9,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	// Svelte
-	import { selectedProject, selectedFlag } from '$lib/stores/store';
+	import { selectedProject, selectedFlag, selectedConduit } from '$lib/stores/store';
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
 	import ConduitCombobox from '$lib/components/ConduitCombobox.svelte';
@@ -47,6 +47,10 @@
 	let page = $state(1);
 	let size = $state(10);
 	const slicedSource = $derived(testData.slice((page - 1) * size, page * size));
+
+	function handleFlagChange() {
+		$selectedConduit = undefined;
+	}
 </script>
 
 <div class="grid grid-cols-1 md:grid-cols-12 gap-4 h-full">
@@ -56,7 +60,7 @@
 	<div class="md:col-span-4 border-2 rounded-lg border-surface-200-800 overflow-auto">
 		<div class="card p-4 flex flex-col gap-3">
 			<h3>{m.flag()}</h3>
-			<FlagCombobox flags={data.flags} flagsError={data.flagsError} />
+			<FlagCombobox flags={data.flags} flagsError={data.flagsError} onchange={handleFlagChange} />
 			<h3>{m.conduit()}</h3>
 			<ConduitCombobox projectId={$selectedProject} flagId={$selectedFlag} />
 			<!-- Table -->

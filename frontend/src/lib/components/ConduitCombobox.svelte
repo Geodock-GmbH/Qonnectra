@@ -5,7 +5,7 @@
 	// Svelte
 	import { browser } from '$app/environment';
 	import { PUBLIC_API_URL } from '$env/static/public';
-	import { selectedConduit } from '$lib/stores/store';
+	import { selectedConduit, selectedFlag } from '$lib/stores/store';
 
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
@@ -80,13 +80,6 @@
 	$effect(() => {
 		if (browser) {
 			isHydrating = false;
-		}
-	});
-
-	// Reset selectedConduit when projectId or flagId changes
-	$effect(() => {
-		if (browser && projectId && flagId) {
-			$selectedConduit = ['1'];
 		}
 	});
 </script>
