@@ -114,16 +114,22 @@ class OlTrenchTileViewSet(APIView):
                     t.comment,
                     t.house_connection,
                     t.length,
-                    t.constructor,
-                    t.construction_type,
-                    t.owner,
-                    t.phase,
-                    t.status,
-                    t.surface,
-                    t.flag,
-                    t.project
+                    c1.company,
+                    ct.construction_type,
+                    c2.company,
+                    ph.phase,
+                    st.status,
+                    s.surface,
+                    f.flag
                 FROM
                     public.ol_trench t
+                LEFT JOIN public.flags f ON t.flag = f.id
+                LEFT JOIN public.attributes_surface s ON t.surface = s.id
+                LEFT JOIN public.attributes_construction_type ct ON t.construction_type = ct.id
+                LEFT JOIN public.attributes_phase ph ON t.phase = ph.id
+                LEFT JOIN public.attributes_status st ON t.status = st.id
+                LEFT JOIN public.attributes_company c1 ON t.constructor = c1.id
+                LEFT JOIN public.attributes_company c2 ON t.owner = c2.id
                 WHERE
                     t.geom && ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096))
                     AND t.project = %(project)s
