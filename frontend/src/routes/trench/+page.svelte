@@ -242,20 +242,27 @@
 					}
 					const routeData = await response.json();
 
-					if (routeData.path_geometry_wkt) {
+					if (routeData.path_geometry_wkt && routeData.traversed_trench_uuids) {
 						const wktFormat = new WKT();
 						const routeFeature = wktFormat.readFeature(routeData.path_geometry_wkt, {
 							dataProjection: 'EPSG:25832', // Assuming this is your data's CRS
 							featureProjection: olMapInstance.getView().getProjection()
 						});
 						if (routeLayer) routeLayer.getSource().addFeature(routeFeature);
+
+						const newSelection = {};
+						for (const uuid of routeData.traversed_trench_uuids) {
+							newSelection[uuid] = true;
+						}
+						selectionStore = newSelection;
+
 						toaster.create({
 							type: 'success',
 							message: 'Route found!',
 							description: `Length: ${routeData.path_length.toFixed(2)}m`
 						});
 					} else {
-						throw new Error('No route geometry found in response.');
+						throw new Error('No route geometry or traversed trench UUIDs found in response.');
 					}
 				} catch (error) {
 					console.error('Routing error:', error);
