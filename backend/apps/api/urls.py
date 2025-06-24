@@ -31,7 +31,7 @@ urlpatterns = [
         name="ol_trench_tiles",
     ),
     path(
-        "routing/<int:start_trench_id>/<int:end_trench_id>/<int:tolerance>/",
+        "routing/<int:start_trench_id>/<int:end_trench_id>/<int:project_id>/<int:tolerance>/",
         RoutingView.as_view(),
         name="routing",
     ),

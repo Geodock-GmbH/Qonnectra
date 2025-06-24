@@ -31,7 +31,7 @@ def snap_point(point, tolerance):
     )
 
 
-def find_shortest_path(start_trench_id, end_trench_id, tolerance=1):
+def find_shortest_path(start_trench_id, end_trench_id, project_id, tolerance=1):
     """
     Finds the shortest path between two trenches using a network graph.
 
@@ -42,13 +42,16 @@ def find_shortest_path(start_trench_id, end_trench_id, tolerance=1):
     Args:
         start_trench_id (int): The id_trench of the starting trench.
         end_trench_id (int): The id_trench of the ending trench.
+        project_id (int): The id_trench of the project.
         tolerance (int): The grid cell size for snapping. If 0, no snapping is performed.
     Returns:
         dict: A dictionary containing the path details (trench IDs, length, WKT geometry)
-              or an error message if a path cannot be found.
+            or an error message if a path cannot be found.
     """
 
-    trenches = Trench.objects.only("uuid", "id_trench", "geom", "length").all()
+    trenches = Trench.objects.filter(project=project_id).only(
+        "uuid", "id_trench", "geom", "length"
+    )
     if not trenches.exists():
         return {"error": "No trenches found in the database."}
 

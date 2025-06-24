@@ -272,11 +272,19 @@ class RoutingView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, start_trench_id, end_trench_id, tolerance=1, format=None):
+    def get(
+        self,
+        request,
+        start_trench_id,
+        end_trench_id,
+        project_id,
+        tolerance=1,
+        format=None,
+    ):
         """
         Calculates and returns the shortest path between two trenches.
 
-        URL: /api/routing/<start_trench_id>/<end_trench_id>/
+        URL: /api/routing/<start_trench_id>/<end_trench_id>/<project_id>/
         """
         try:
             start_id = int(start_trench_id)
@@ -287,7 +295,7 @@ class RoutingView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        result = find_shortest_path(start_id, end_id, tolerance)
+        result = find_shortest_path(start_id, end_id, project_id, tolerance)
 
         if "error" in result:
             # Check for not found vs. other errors

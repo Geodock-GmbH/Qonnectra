@@ -234,18 +234,22 @@
 
 				// Both start and end are selected, fetch route
 				try {
-					const url = `${PUBLIC_API_URL}routing/${startTrenchId}/${endTrenchId}/1/`;
+					const url = `${PUBLIC_API_URL}routing/${startTrenchId}/${endTrenchId}/${$selectedProject}/1/`;
 					const response = await fetch(url, { credentials: 'include' });
 					if (!response.ok) {
 						const errorData = await response.json();
-						throw new Error(errorData.detail || `Routing failed with status: ${response.status}`);
+						throw new Error(
+							errorData.error ||
+								errorData.detail ||
+								`Routing failed with status: ${response.status}`
+						);
 					}
 					const routeData = await response.json();
 
 					if (routeData.path_geometry_wkt && routeData.traversed_trench_uuids) {
 						const wktFormat = new WKT();
 						const routeFeature = wktFormat.readFeature(routeData.path_geometry_wkt, {
-							dataProjection: 'EPSG:25832', // Assuming this is your data's CRS
+							dataProjection: 'EPSG:25832', // TODO: Get from trench data
 							featureProjection: olMapInstance.getView().getProjection()
 						});
 						if (routeLayer) routeLayer.getSource().addFeature(routeFeature);
