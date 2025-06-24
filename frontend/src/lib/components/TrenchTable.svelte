@@ -10,13 +10,14 @@
 
 	// Svelte
 	import { PUBLIC_API_URL } from '$env/static/public';
+	import { selectedFlag } from '$lib/stores/store';
 
 	// Toaster
 	const toaster = createToaster({
 		placement: 'bottom-end'
 	});
 
-	let { conduitId } = $props();
+	let { conduitId, routedTrenches } = $props();
 
 	let trenches = $state([]);
 	let trenchesError = $state(null);
@@ -70,9 +71,39 @@
 		}
 	}
 
+	function emptyTable() {
+		trenches = [];
+		trenchesError = null;
+		loading = false;
+	}
+
+	function addRoutedTrenches() {
+		if (!routedTrenches?.length) return;
+
+		// Create a Set of existing trench values for O(1) lookup
+		const existingTrenchValues = new Set(trenches.map((t) => t.value));
+
+		// Filter and add only new trenches that don't already exist
+		const newTrenches = routedTrenches.filter((t) => !existingTrenchValues.has(t.value));
+
+		if (newTrenches.length > 0) {
+			trenches = [...trenches, ...newTrenches];
+		}
+	}
+
+	$effect(() => {
+		if (routedTrenches?.length) {
+			addRoutedTrenches();
+		}
+	});
+
 	$effect(() => {
 		if (conduitId) {
 			fetchTrenches();
+			// TODO: This must also work on project change
+		}
+		if (selectedFlag) {
+			emptyTable();
 		}
 	});
 
