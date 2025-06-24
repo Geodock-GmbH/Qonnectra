@@ -1,7 +1,6 @@
 <script>
 	// Skeleton
-	import { Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
-	import { Switch } from '@skeletonlabs/skeleton-svelte';
+	import { Toaster, createToaster, Switch, Slider } from '@skeletonlabs/skeleton-svelte';
 
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
@@ -13,7 +12,8 @@
 		defaultProject,
 		trenchColor,
 		trenchColorSelected,
-		routingMode
+		routingMode,
+		routingTolerance
 	} from '$lib/stores/store';
 
 	const toaster = createToaster({
@@ -24,6 +24,8 @@
 	$effect(() => {
 		document.body.style.overflow = 'hidden';
 	});
+
+	let routingToleranceMarkers = $derived(Array.from({ length: 10 }, (_, i) => i + 1));
 </script>
 
 <Toaster {toaster}></Toaster>
@@ -177,6 +179,25 @@
 								onCheckedChange={() => {
 									$routingMode = !$routingMode;
 								}}
+							/>
+						</dd>
+					</div>
+				</dl>
+				<dl class="mt-6 divide-y border-t text-sm/6">
+					<div class="py-6 sm:flex">
+						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
+							{m.routing_tolerance()}
+						</dt>
+						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
+							<p>{m.routing_tolerance_description()}</p>
+							<Slider
+								bind:value={$routingTolerance}
+								onValueChange={(e) => ($routingTolerance = e.value)}
+								markers={routingToleranceMarkers}
+								max={10}
+								min={1}
+								meterBg="bg-primary-500"
+								thumbRingColor="ring-primary-500"
 							/>
 						</dd>
 					</div>

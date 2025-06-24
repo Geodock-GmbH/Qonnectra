@@ -44,6 +44,8 @@
 	"error_fetching_trenches": "Fehler beim Laden der Trassen",
 	"error_deleting_trench_connection": "Fehler beim Löschen der Trassenverbindung",
 	"trench_connection_deleted": "Trassenverbindung erfolgreich gelöscht",
+	"routing_tolerance": "Routing-Toleranz",
+	"routing_tolerance_description": "Die Toleranz für die Routing-Funktion. Je höher die Toleranz, desto mehr Abweichungen sind erlaubt.",
 	"settings_user": "Benutzer",
 	"settings_user_description": "Hier kannst du deine Benutzerinformationen einsehen.",
 	"settings_user_username": "Benutzername",

@@ -14,6 +14,7 @@
 		selectedFlag,
 		selectedConduit,
 		routingMode,
+		routingTolerance,
 		trenchColor,
 		trenchColorSelected
 	} from '$lib/stores/store';
@@ -234,7 +235,7 @@
 
 				// Both start and end are selected, fetch route
 				try {
-					const url = `${PUBLIC_API_URL}routing/${startTrenchId}/${endTrenchId}/${$selectedProject}/1/`;
+					const url = `${PUBLIC_API_URL}routing/${startTrenchId}/${endTrenchId}/${$selectedProject}/${$routingTolerance}/`;
 					const response = await fetch(url, { credentials: 'include' });
 					if (!response.ok) {
 						const errorData = await response.json();

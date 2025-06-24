@@ -18,4 +18,5 @@ export const trenchColorSelected = persisted('trenchColorSelected', defaultTrenc
 export const lightSwitchMode = persisted('lightSwitchMode', 'light');
 export const selectedFlag = persisted('selectedFlag', defaultFlagValue);
 export const routingMode = persisted('routingMode', false);
+export const routingTolerance = persisted('routingTolerance', [1]);
 export const selectedConduit = session('selectedConduit', ['1']);
