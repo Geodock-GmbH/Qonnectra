@@ -63,5 +63,7 @@
 	"settings_trench_description": "Hier kannst du deine Einstellungen für das Trassen-Feature einsehen und anpassen.",
 	"settings_map_routing_mode": "Routing-Modus",
 	"settings_map_routing_mode_enabled": "Routing-Modus aktiviert",
-	"settings_map_routing_mode_disabled": "Routing-Modus deaktiviert"
+	"settings_map_routing_mode_disabled": "Routing-Modus deaktiviert",
+	"trench_connection_saved": "Trassenverbindung gespeichert",
+	"error_saving_trench_connection": "Fehler beim Speichern der Trassenverbindung"
 }

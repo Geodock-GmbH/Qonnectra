@@ -43,7 +43,7 @@
 	"no_projects_available": "No projects available",
 	"error_fetching_trenches": "Error fetching trenches",
 	"error_deleting_trench_connection": "Error deleting trench connection",
-	"trench_connection_deleted": "Trench connection deleted successfully",
+	"trench_connection_deleted": "Trench connection deleted",
 	"routing_tolerance": "Routing tolerance",
 	"routing_tolerance_description": "The tolerance for the routing function. The higher the tolerance, the more deviations are allowed.",
 	"settings_user": "User",
@@ -63,5 +63,7 @@
 	"settings_trench_description": "Here you can see and change your trench settings.",
 	"settings_map_routing_mode": "Routing mode",
 	"settings_map_routing_mode_enabled": "Routing mode enabled",
-	"settings_map_routing_mode_disabled": "Routing mode disabled"
+	"settings_map_routing_mode_disabled": "Routing mode disabled",
+	"trench_connection_saved": "Trench connection saved",
+	"error_saving_trench_connection": "Error saving trench connection"
 }

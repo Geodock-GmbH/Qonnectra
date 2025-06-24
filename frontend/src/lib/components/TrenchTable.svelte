@@ -17,7 +17,7 @@
 		placement: 'bottom-end'
 	});
 
-	let { conduitId, routedTrenches } = $props();
+	let { conduitId } = $props();
 
 	let trenches = $state([]);
 	let trenchesError = $state(null);
@@ -71,31 +71,54 @@
 		}
 	}
 
+	async function saveTrenchConnection(trenchId) {
+		const response = await fetch(`${PUBLIC_API_URL}trench_conduit_connection/`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				uuid_conduit: conduitId[0],
+				uuid_trench: trenchId
+			}),
+			credentials: 'include'
+		});
+
+		if (!response.ok) {
+			const errorText = await response.text();
+			console.error('Failed to save trench connection:', response.status, errorText);
+			throw new Error(errorText);
+		}
+	}
+
 	function emptyTable() {
 		trenches = [];
 		trenchesError = null;
 		loading = false;
 	}
 
-	function addRoutedTrenches() {
+	export async function addRoutedTrenches(routedTrenches) {
 		if (!routedTrenches?.length) return;
 
-		// Create a Set of existing trench values for O(1) lookup
 		const existingTrenchValues = new Set(trenches.map((t) => t.value));
-
-		// Filter and add only new trenches that don't already exist
 		const newTrenches = routedTrenches.filter((t) => !existingTrenchValues.has(t.value));
 
 		if (newTrenches.length > 0) {
-			trenches = [...trenches, ...newTrenches];
+			const savePromises = newTrenches.map((trench) => saveTrenchConnection(trench.value));
+
+			await toaster.promise(Promise.all(savePromises), {
+				loading: {
+					description: m.please_wait()
+				},
+				success: (data) => {
+					fetchTrenches(); // Refresh list after successful save
+				},
+				error: {
+					description: m.error_saving_trench_connection()
+				}
+			});
 		}
 	}
-
-	$effect(() => {
-		if (routedTrenches?.length) {
-			addRoutedTrenches();
-		}
-	});
 
 	$effect(() => {
 		if (conduitId) {

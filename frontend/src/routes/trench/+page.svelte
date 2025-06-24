@@ -49,9 +49,9 @@
 	let selectionLayer = $state();
 	let routeLayer = $state();
 	let selectionStore = $state({}); // Stores the ID of the selected feature { [featureId]: feature }
-	let selectionForTrenchTable = $state([]);
 	let startTrenchId = $state(null);
 	let endTrenchId = $state(null);
+	let trenchTableInstance;
 
 	function handleFlagChange() {
 		$selectedConduit = undefined;
@@ -266,7 +266,9 @@
 							value: routeData.traversed_trench_uuids[index],
 							label: id
 						}));
-						selectionForTrenchTable = newSelectionForTrenchTable;
+						if (trenchTableInstance) {
+							await trenchTableInstance.addRoutedTrenches(newSelectionForTrenchTable);
+						}
 
 						toaster.create({
 							type: 'success',
@@ -347,7 +349,7 @@
 			<FlagCombobox flags={data.flags} flagsError={data.flagsError} onchange={handleFlagChange} />
 			<h3>{m.conduit()}</h3>
 			<ConduitCombobox projectId={$selectedProject} flagId={$selectedFlag} />
-			<TrenchTable conduitId={$selectedConduit} routedTrenches={selectionForTrenchTable} />
+			<TrenchTable conduitId={$selectedConduit} bind:this={trenchTableInstance} />
 			<!-- TODO: Call API with button to update db data -->
 			<button type="button" class="btn preset-filled-primary-500">Button</button>
 		</div>
