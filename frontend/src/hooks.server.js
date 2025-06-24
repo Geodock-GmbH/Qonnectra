@@ -151,7 +151,7 @@ export async function handleAuth({ event, resolve }) {
 
 	// If user is already authenticated and tries to access /login, redirect them away
 	if (isUserAuthenticated && requestedPath.startsWith('/login')) {
-		throw redirect(303, '/'); // Redirect to home page or dashboard
+		throw redirect(303, '/map');
 	}
 
 	if (!isUserAuthenticated && !isPublicRoute) {

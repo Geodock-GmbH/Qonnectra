@@ -17,7 +17,7 @@
 	let password;
 
 	// Read redirectTo query parameter
-	let redirectTo = $page.url.searchParams.get('redirectTo') || '/';
+	let redirectTo = $page.url.searchParams.get('redirectTo') || '/map';
 
 	/** @type {import('./$types').ActionData} */
 	export let form; // Receive action data from the server
