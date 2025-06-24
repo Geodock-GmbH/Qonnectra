@@ -65,5 +65,6 @@
 	"settings_map_routing_mode_enabled": "Routing mode enabled",
 	"settings_map_routing_mode_disabled": "Routing mode disabled",
 	"trench_connection_saved": "Trench connection saved",
-	"error_saving_trench_connection": "Error saving trench connection"
+	"error_saving_trench_connection": "Error saving trench connection",
+	"no_new_trench_connections": "No new trench connections"
 }

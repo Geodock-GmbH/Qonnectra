@@ -65,5 +65,6 @@
 	"settings_map_routing_mode_enabled": "Routing-Modus aktiviert",
 	"settings_map_routing_mode_disabled": "Routing-Modus deaktiviert",
 	"trench_connection_saved": "Trassenverbindung gespeichert",
-	"error_saving_trench_connection": "Fehler beim Speichern der Trassenverbindung"
+	"error_saving_trench_connection": "Fehler beim Speichern der Trassenverbindung",
+	"no_new_trench_connections": "Keine neuen Trassenverbindungen"
 }

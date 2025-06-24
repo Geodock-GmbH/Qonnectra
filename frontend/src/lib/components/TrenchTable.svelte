@@ -22,6 +22,9 @@
 	let trenches = $state([]);
 	let trenchesError = $state(null);
 	let loading = $state(false);
+	let page = $state(1);
+	let size = $state(10);
+	const slicedSource = $derived(trenches.slice((page - 1) * size, page * size));
 
 	async function fetchTrenches() {
 		if (!conduitId) {
@@ -33,20 +36,24 @@
 		trenchesError = null;
 
 		try {
-			const response = await fetch(
-				`${PUBLIC_API_URL}trench_conduit_connection/?uuid_conduit=${conduitId}`,
-				{ credentials: 'include' }
-			);
+			let allResults = [];
+			let url = `${PUBLIC_API_URL}trench_conduit_connection/?uuid_conduit=${conduitId}`;
+			while (url) {
+				const response = await fetch(url, { credentials: 'include' });
 
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
+
+				const data = await response.json();
+				allResults.push(...data.results);
+				url = data.next;
 			}
 
-			const data = await response.json();
-
-			trenches = data.results.map((item) => ({
+			trenches = allResults.map((item) => ({
 				value: item.uuid,
-				label: item.trench.properties.id_trench
+				label: item.trench.properties.id_trench,
+				trench: item.trench.id
 			}));
 		} catch (error) {
 			trenchesError = m.error_fetching_trenches();
@@ -100,7 +107,7 @@
 	export async function addRoutedTrenches(routedTrenches) {
 		if (!routedTrenches?.length) return;
 
-		const existingTrenchValues = new Set(trenches.map((t) => t.value));
+		const existingTrenchValues = new Set(trenches.map((t) => t.trench));
 		const newTrenches = routedTrenches.filter((t) => !existingTrenchValues.has(t.value));
 
 		if (newTrenches.length > 0) {
@@ -117,6 +124,11 @@
 					description: m.error_saving_trench_connection()
 				}
 			});
+		} else {
+			toaster.create({
+				type: 'info',
+				message: m.no_new_trench_connections()
+			});
 		}
 	}
 
@@ -129,10 +141,6 @@
 			emptyTable();
 		}
 	});
-
-	let page = $state(1);
-	let size = $state(10);
-	const slicedSource = $derived(trenches.slice((page - 1) * size, page * size));
 </script>
 
 <Toaster {toaster}></Toaster>
@@ -177,9 +185,9 @@
 </div>
 <Pagination
 	data={trenches}
-	bind:page
+	{page}
 	onPageChange={(e) => (page = e.page)}
-	bind:pageSize={size}
+	pageSize={size}
 	onPageSizeChange={(e) => (size = e.pageSize)}
 	siblingCount={4}
 	alternative
