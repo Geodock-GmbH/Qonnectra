@@ -29,7 +29,6 @@
 
 	async function fetchTrenches() {
 		if (!conduitId) {
-			// conduitsError = m.select_conduit_first();
 			return;
 		}
 
@@ -120,9 +119,9 @@
 			const savePromises = newTrenches.map((trench) => saveTrenchConnection(trench.value));
 
 			await toaster.promise(Promise.all(savePromises), {
-				loading: {
-					description: m.please_wait()
-				},
+				// loading: {
+				// 	description: m.please_wait()
+				// },
 				success: (data) => {
 					fetchTrenches(); // Refresh list after successful save
 				},
@@ -133,7 +132,7 @@
 		} else {
 			toaster.create({
 				type: 'info',
-				message: m.no_new_trench_connections()
+				description: m.no_new_trench_connections()
 			});
 		}
 	}

@@ -29,6 +29,7 @@
 	import 'ol/ol.css';
 	import Fill from 'ol/style/Fill.js';
 	import Stroke from 'ol/style/Stroke.js';
+	import Text from 'ol/style/Text.js';
 	import { Style, Circle as CircleStyle } from 'ol/style';
 	import MVT from 'ol/format/MVT.js';
 	import VectorTileLayer from 'ol/layer/VectorTile.js';
@@ -48,7 +49,7 @@
 	let vectorTileLayer = $state();
 	let selectionLayer = $state();
 	let routeLayer = $state();
-	let selectionStore = $state({}); // Stores the ID of the selected feature { [featureId]: feature }
+	let selectionStore = $state({});
 	let startTrenchId = $state(null);
 	let endTrenchId = $state(null);
 	let trenchTableInstance;
@@ -58,7 +59,6 @@
 	}
 
 	$effect(() => {
-		// Reset routing when mode is toggled off
 		if (!$routingMode || $routingMode) {
 			startTrenchId = null;
 			endTrenchId = null;
@@ -74,21 +74,38 @@
 		}
 	});
 
-	// Style for all features (will be applied to the VectorTileLayer)
-	const trenchStyle = new Style({
-		fill: new Fill({
-			color: $trenchColor
-		}),
-		stroke: new Stroke({
-			color: $trenchColor,
-			width: 2
-		}),
-		image: new CircleStyle({
-			radius: 7,
-			fill: new Fill({ color: $trenchColor }),
-			stroke: new Stroke({ color: $trenchColor, width: 2 })
-		})
-	});
+	const trenchStyle = (feature, resolution) =>
+		new Style({
+			fill: new Fill({
+				color: $trenchColor
+			}),
+			stroke: new Stroke({
+				color: $trenchColor,
+				width: 2
+			}),
+			image: new CircleStyle({
+				radius: 7,
+				fill: new Fill({ color: $trenchColor }),
+				stroke: new Stroke({ color: $trenchColor, width: 2 })
+			}),
+			text:
+				resolution < 1.5
+					? new Text({
+							text: feature.get('id_trench').toString(),
+							font: '12px Calibri,sans-serif',
+							fill: new Fill({
+								color: '#000'
+							}),
+							stroke: new Stroke({
+								color: '#fff',
+								width: 3
+							}),
+							offsetX: 15,
+							offsetY: 15,
+							textAlign: 'center'
+						})
+					: undefined
+		});
 
 	// Style for selected features
 	const selectedStyle = new Style({
@@ -152,8 +169,8 @@
 							tile.setState(3); // ERROR
 							toaster.create({
 								type: 'error',
-								message: 'Error loading a map tile',
-								description: error.message || 'Could not fetch tile data.'
+								title: m.error_loading_map_features(),
+								description: m.error_loading_map_features_description()
 							});
 						});
 				});
@@ -163,13 +180,14 @@
 		vectorTileLayer = new VectorTileLayer({
 			source: tileSource,
 			style: trenchStyle,
-			renderMode: 'vector'
+			renderMode: 'vector',
+			declutter: true
 		});
 	} catch (error) {
 		toaster.create({
 			type: 'error',
-			message: 'Error initializing map tiles',
-			description: error.message || 'Could not set up the tile layer.'
+			title: m.error_creating_vector_tile_layer(),
+			description: m.error_creating_vector_tile_layer_description()
 		});
 		vectorTileLayer = undefined;
 		tileSource = undefined;
@@ -282,10 +300,15 @@
 
 						toaster.create({
 							type: 'success',
-							message: 'Route found!',
-							description: `Length: ${routeData.path_length.toFixed(2)}m`
+							title: m.route_found(),
+							description: m.route_found_description()
 						});
 					} else {
+						toaster.create({
+							type: 'error',
+							title: m.error_calculating_route(),
+							description: m.error_calculating_route_description()
+						});
 						throw new Error('No route geometry or traversed trench UUIDs found in response.');
 					}
 				} catch (error) {
@@ -351,6 +374,7 @@
 	<div class="md:col-span-4 border-2 rounded-lg border-surface-200-800 overflow-auto">
 		<div class="card p-4 flex flex-col gap-3">
 			<div class="flex items-center justify-between">
+				<h3>{m.settings_map_routing_mode()}</h3>
 				<Switch
 					name="routing-mode"
 					checked={$routingMode}
