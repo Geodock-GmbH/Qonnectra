@@ -263,8 +263,14 @@ class TrenchConduitConnectionViewSet(viewsets.ModelViewSet):
         if trench_id:
             queryset = queryset.filter(uuid_trench__id_trench=trench_id)
 
-        if conduit_id:
-            queryset = queryset.filter(uuid_conduit__uuid=conduit_id)
+        if conduit_id and trench_id:
+            queryset = queryset.filter(
+                uuid_conduit__uuid=conduit_id, uuid_trench__id_trench=trench_id
+            ).order_by("uuid_trench__id_trench")
+        elif conduit_id:
+            queryset = queryset.filter(uuid_conduit__uuid=conduit_id).order_by(
+                "uuid_trench__id_trench"
+            )
 
         if name:
             queryset = queryset.filter(uuid_conduit__name__icontains=name)

@@ -24,6 +24,7 @@
 	"error_loading_map_features": "Error loading map features",
 	"error_loading_map_features_description": "The map could not be loaded. Please try again.",
 	"error_loading_map_features_no_features": "No features available",
+	"search": "Search",
 	"opacity": "Opacity",
 	"project": "Project",
 	"error_fetching_projects": "Error fetching projects",
