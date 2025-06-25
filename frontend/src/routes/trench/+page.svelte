@@ -38,6 +38,7 @@
 	import VectorSource from 'ol/source/Vector.js';
 	import WKT from 'ol/format/WKT.js';
 	import { getCenter } from 'ol/extent';
+	import Feature from 'ol/Feature.js';
 
 	let { data } = $props();
 
@@ -50,6 +51,7 @@
 	let vectorTileLayer = $state();
 	let selectionLayer = $state();
 	let routeLayer = $state();
+	let highlightLayer = $state();
 	let selectionStore = $state({});
 	let startTrenchId = $state(null);
 	let endTrenchId = $state(null);
@@ -70,20 +72,16 @@
 		}
 
 		try {
-			// Since VectorTileSource doesn't provide direct feature access,
-			// we'll fetch the trench geometry from the API and zoom to it
 			const response = await fetch(`${PUBLIC_API_URL}ol_trench/?id_trench=${trenchLabel}`, {
 				credentials: 'include'
 			});
 
 			if (response.ok) {
 				const trenchData = await response.json();
-				console.log(trenchData.results.features[0].geometry.coordinates);
 				if (
 					trenchData.results.features[0].geometry &&
 					trenchData.results.features[0].geometry.coordinates
 				) {
-					// Parse the geometry and zoom to it
 					const wktFormat = new WKT();
 					let geometryWkt = '';
 
@@ -110,13 +108,32 @@
 						view.fit(featureExtent, {
 							duration: 1000,
 							padding: [50, 50, 50, 50],
-							maxZoom: 20
+							maxZoom: 20,
+							callback: () => {
+								if (highlightLayer) {
+									const highlightFeature = new Feature(geometry);
+									const source = highlightLayer.getSource();
+									let blinkCount = 0;
+									const blinkInterval = setInterval(() => {
+										if (blinkCount % 2 === 0) {
+											source.addFeature(highlightFeature);
+										} else {
+											source.removeFeature(highlightFeature);
+										}
+										blinkCount++;
+										if (blinkCount >= 6) {
+											clearInterval(blinkInterval);
+											source.removeFeature(highlightFeature);
+										}
+									}, 300);
+								}
+							}
 						});
 
 						toaster.create({
 							type: 'success',
-							title: 'Trench Located',
-							description: `Moved to trench ${trenchLabel}`
+							title: m.trench_located(),
+							description: m.trench_located_description({ trenchLabel })
 						});
 					}
 				}
@@ -127,8 +144,8 @@
 			console.error('Error zooming to trench:', error);
 			toaster.create({
 				type: 'error',
-				title: 'Error',
-				description: `Could not locate trench ${trenchLabel}`
+				title: m.trench_not_visible(),
+				description: m.trench_not_visible_description({ trenchLabel })
 			});
 		}
 	}
@@ -293,6 +310,24 @@
 		});
 		olMapInstance.addLayer(routeLayer);
 
+		highlightLayer = new VectorLayer({
+			source: new VectorSource(),
+			style: new Style({
+				stroke: new Stroke({
+					color: 'rgba(255, 0, 255, 0.7)',
+					width: 8
+				}),
+				image: new CircleStyle({
+					radius: 9,
+					stroke: new Stroke({
+						color: 'rgba(255, 0, 255, 0.7)',
+						width: 4
+					})
+				})
+			})
+		});
+		olMapInstance.addLayer(highlightLayer);
+
 		olMapInstance.on('click', handleMapClick);
 	}
 
@@ -416,6 +451,7 @@
 			olMapInstance.un('click', handleMapClick);
 			if (selectionLayer) olMapInstance.removeLayer(selectionLayer);
 			if (routeLayer) olMapInstance.removeLayer(routeLayer);
+			if (highlightLayer) olMapInstance.removeLayer(highlightLayer);
 		}
 		olMapInstance = undefined;
 		selectionStore = {};
@@ -425,6 +461,7 @@
 		vectorTileLayer = undefined;
 		selectionLayer = undefined;
 		routeLayer = undefined;
+		highlightLayer = undefined;
 	});
 </script>
 
@@ -435,8 +472,8 @@
 		{#if vectorTileLayer}
 			<Map
 				className="rounded-lg overflow-hidden h-full w-full"
-				layers={selectionLayer && routeLayer
-					? [vectorTileLayer, selectionLayer, routeLayer]
+				layers={selectionLayer && routeLayer && highlightLayer
+					? [vectorTileLayer, selectionLayer, routeLayer, highlightLayer]
 					: [vectorTileLayer]}
 				on:ready={handleMapReady}
 			/>
