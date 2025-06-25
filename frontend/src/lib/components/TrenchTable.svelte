@@ -17,7 +17,7 @@
 		placement: 'bottom-end'
 	});
 
-	let { conduitId } = $props();
+	let { conduitId, onTrenchClick } = $props();
 
 	let trenches = $state([]);
 	let trenchesError = $state(null);
@@ -166,7 +166,7 @@
 		</thead>
 		<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">
 			{#each slicedSource as row}
-				<tr>
+				<tr onclick={() => onTrenchClick?.(row.value, row.label)}>
 					<td>{row.label}</td>
 					<td class="text-right">
 						<button

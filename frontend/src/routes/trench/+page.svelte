@@ -37,6 +37,7 @@
 	import VectorLayer from 'ol/layer/Vector.js';
 	import VectorSource from 'ol/source/Vector.js';
 	import WKT from 'ol/format/WKT.js';
+	import { getCenter } from 'ol/extent';
 
 	let { data } = $props();
 
@@ -56,6 +57,80 @@
 
 	function handleFlagChange() {
 		$selectedConduit = undefined;
+	}
+
+	async function handleTrenchClick(trenchUuid, trenchLabel) {
+		if (!olMapInstance || !vectorTileLayer) {
+			toaster.create({
+				type: 'error',
+				title: m.error_loading_map_features(),
+				description: 'Map not ready'
+			});
+			return;
+		}
+
+		try {
+			// Since VectorTileSource doesn't provide direct feature access,
+			// we'll fetch the trench geometry from the API and zoom to it
+			const response = await fetch(`${PUBLIC_API_URL}ol_trench/?id_trench=${trenchLabel}`, {
+				credentials: 'include'
+			});
+
+			if (response.ok) {
+				const trenchData = await response.json();
+				console.log(trenchData.results.features[0].geometry.coordinates);
+				if (
+					trenchData.results.features[0].geometry &&
+					trenchData.results.features[0].geometry.coordinates
+				) {
+					// Parse the geometry and zoom to it
+					const wktFormat = new WKT();
+					let geometryWkt = '';
+
+					// Handle different geometry types
+					if (trenchData.results.features[0].geometry.type === 'LineString') {
+						geometryWkt = `LINESTRING(${trenchData.results.features[0].geometry.coordinates.map((coord) => `${coord[0]} ${coord[1]}`).join(', ')})`;
+					} else if (trenchData.results.features[0].geometry.type === 'Point') {
+						geometryWkt = `POINT(${trenchData.results.features[0].geometry.coordinates[0]} ${trenchData.results.features[0].geometry.coordinates[1]})`;
+					} else if (trenchData.results.features[0].geometry.type === 'Polygon') {
+						const rings = trenchData.results.features[0].geometry.coordinates
+							.map((ring) => `(${ring.map((coord) => `${coord[0]} ${coord[1]}`).join(', ')})`)
+							.join(', ');
+						geometryWkt = `POLYGON(${rings})`;
+					}
+
+					if (geometryWkt) {
+						const view = olMapInstance.getView();
+						const geometry = wktFormat.readGeometry(geometryWkt, {
+							dataProjection: 'EPSG:25832',
+							featureProjection: view.getProjection()
+						});
+
+						const featureExtent = geometry.getExtent();
+						view.fit(featureExtent, {
+							duration: 1000,
+							padding: [50, 50, 50, 50],
+							maxZoom: 20
+						});
+
+						toaster.create({
+							type: 'success',
+							title: 'Trench Located',
+							description: `Moved to trench ${trenchLabel}`
+						});
+					}
+				}
+			} else {
+				throw new Error('Failed to fetch trench data');
+			}
+		} catch (error) {
+			console.error('Error zooming to trench:', error);
+			toaster.create({
+				type: 'error',
+				title: 'Error',
+				description: `Could not locate trench ${trenchLabel}`
+			});
+		}
 	}
 
 	$effect(() => {
@@ -396,7 +471,11 @@
 			<FlagCombobox flags={data.flags} flagsError={data.flagsError} onchange={handleFlagChange} />
 			<h3>{m.conduit()}</h3>
 			<ConduitCombobox projectId={$selectedProject} flagId={$selectedFlag} />
-			<TrenchTable conduitId={$selectedConduit} bind:this={trenchTableInstance} />
+			<TrenchTable
+				conduitId={$selectedConduit}
+				onTrenchClick={handleTrenchClick}
+				bind:this={trenchTableInstance}
+			/>
 		</div>
 	</div>
 </div>

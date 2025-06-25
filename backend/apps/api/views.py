@@ -43,8 +43,11 @@ class TrenchViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Trench.objects.all()
         id_trench = self.request.query_params.get("id_trench")
+        uuid = self.request.query_params.get("uuid")
         if id_trench:
             queryset = queryset.filter(id_trench=id_trench)
+        if uuid:
+            queryset = queryset.filter(uuid=uuid)
         return queryset
 
 
@@ -73,12 +76,16 @@ class OlTrenchViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = OlTrenchSerializer
     lookup_field = "id_trench"
     lookup_url_kwarg = "pk"
+    pagination_class = CustomPagination
 
     def get_queryset(self):
         queryset = OlTrench.objects.all()
         id_trench = self.request.query_params.get("id_trench")
         if id_trench:
             queryset = queryset.filter(id_trench=id_trench)
+        uuid = self.request.query_params.get("uuid")
+        if uuid:
+            queryset = queryset.filter(uuid=uuid)
         return queryset
 
 

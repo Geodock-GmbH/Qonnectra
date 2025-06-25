@@ -417,7 +417,7 @@ class Trench(models.Model):
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
-    id_trench = models.IntegerField(_("Trench ID"), null=False)
+    id_trench = models.IntegerField(_("Trench ID"), null=False, unique=True)
     surface = models.ForeignKey(
         AttributesSurface,
         null=False,

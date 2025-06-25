@@ -6,6 +6,7 @@ from .views import (
     FeatureFilesViewSet,
     FlagsViewSet,
     OlTrenchTileViewSet,
+    OlTrenchViewSet,
     ProjectsViewSet,
     RoutingView,
     TrenchConduitConnectionViewSet,
@@ -16,6 +17,7 @@ router = DefaultRouter()
 router.register(r"conduit", ConduitViewSet, basename="conduit")
 router.register(r"flags", FlagsViewSet, basename="flags")
 router.register(r"feature_files", FeatureFilesViewSet, basename="feature_files")
+router.register(r"ol_trench", OlTrenchViewSet, basename="ol_trench")
 router.register(r"projects", ProjectsViewSet, basename="projects")
 router.register(r"trench", TrenchViewSet, basename="trench")
 router.register(
