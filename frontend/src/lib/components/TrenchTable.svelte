@@ -24,6 +24,7 @@
 	let loading = $state(false);
 	let page = $state(1);
 	let size = $state(10);
+	let count = $derived(size);
 	const slicedSource = $derived(trenches.slice((page - 1) * size, page * size));
 
 	async function fetchTrenches() {
@@ -59,6 +60,7 @@
 			trenchesError = m.error_fetching_trenches();
 		} finally {
 			loading = false;
+			updateCount();
 		}
 	}
 
@@ -104,6 +106,10 @@
 		loading = false;
 	}
 
+	function updateCount() {
+		count = trenches.length;
+	}
+
 	export async function addRoutedTrenches(routedTrenches) {
 		if (!routedTrenches?.length) return;
 
@@ -139,6 +145,12 @@
 		}
 		if (selectedFlag) {
 			emptyTable();
+		}
+	});
+
+	$effect(() => {
+		if (count <= size) {
+			page = 1;
 		}
 	});
 </script>
@@ -191,4 +203,5 @@
 	onPageSizeChange={(e) => (size = e.pageSize)}
 	siblingCount={4}
 	alternative
+	{count}
 />

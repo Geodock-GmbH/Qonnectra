@@ -59,7 +59,7 @@
 
 	$effect(() => {
 		// Reset routing when mode is toggled off
-		if (!$routingMode) {
+		if (!$routingMode || $routingMode) {
 			startTrenchId = null;
 			endTrenchId = null;
 			selectionStore = {};
@@ -204,21 +204,32 @@
 	}
 
 	async function handleMapClick(event) {
-		if (!$routingMode || !olMapInstance) return;
+		if (!olMapInstance) return;
+
+		if ($selectedConduit === undefined) {
+			toaster.create({
+				type: 'error',
+				title: m.no_conduit_selected(),
+				description: m.no_conduit_selected_description()
+			});
+			return;
+		}
 
 		const features = olMapInstance.getFeaturesAtPixel(event.pixel, {
 			hitTolerance: 10,
 			layerFilter: (layer) => layer === vectorTileLayer
 		});
 
-		if (features.length > 0) {
-			const feature = features[0];
-			const trenchId = feature.get('id_trench');
-			const featureId = feature.getId();
+		if (features.length === 0) return;
 
-			if (!trenchId || !featureId) return;
+		const feature = features[0];
+		const trenchId = feature.get('id_trench');
+		const featureId = feature.getId(); // This is the UUID of the trench feature
 
-			// Reset if we already have a full route
+		if (!trenchId || !featureId) return;
+
+		if ($routingMode) {
+			// Handle routing logic
 			if (startTrenchId && endTrenchId) {
 				startTrenchId = null;
 				endTrenchId = null;
@@ -234,7 +245,6 @@
 				endTrenchId = trenchId;
 				selectionStore[featureId] = feature;
 
-				// Both start and end are selected, fetch route
 				try {
 					const url = `${PUBLIC_API_URL}routing/${startTrenchId}/${endTrenchId}/${$selectedProject}/${$routingTolerance}/`;
 					const response = await fetch(url, { credentials: 'include' });
@@ -266,7 +276,7 @@
 							value: routeData.traversed_trench_uuids[index],
 							label: id
 						}));
-						if (trenchTableInstance) {
+						if (trenchTableInstance && $selectedConduit !== undefined) {
 							await trenchTableInstance.addRoutedTrenches(newSelectionForTrenchTable);
 						}
 
@@ -285,13 +295,21 @@
 						message: 'Could not calculate route',
 						description: error.message
 					});
-					// Reset on error
 					startTrenchId = null;
 					endTrenchId = null;
 					selectionStore = {};
 				}
 			}
 			if (selectionLayer) selectionLayer.changed();
+		} else {
+			// Handle single-click update logic
+			selectionStore = { [featureId]: feature };
+			if (selectionLayer) selectionLayer.changed();
+
+			const trenchToAdd = [{ value: featureId, label: trenchId }];
+			if (trenchTableInstance) {
+				await trenchTableInstance.addRoutedTrenches(trenchToAdd);
+			}
 		}
 	}
 
@@ -333,8 +351,13 @@
 	<div class="md:col-span-4 border-2 rounded-lg border-surface-200-800 overflow-auto">
 		<div class="card p-4 flex flex-col gap-3">
 			<div class="flex items-center justify-between">
-				<!-- <h3>{m.routing()}</h3> -->
-				<Switch name="routing-mode" bind:checked={$routingMode}>
+				<Switch
+					name="routing-mode"
+					checked={$routingMode}
+					onCheckedChange={() => {
+						$routingMode = !$routingMode;
+					}}
+				>
 					{#snippet inactiveChild()}
 						<IconX size="18" />
 					{/snippet}
@@ -350,8 +373,6 @@
 			<h3>{m.conduit()}</h3>
 			<ConduitCombobox projectId={$selectedProject} flagId={$selectedFlag} />
 			<TrenchTable conduitId={$selectedConduit} bind:this={trenchTableInstance} />
-			<!-- TODO: Call API with button to update db data -->
-			<button type="button" class="btn preset-filled-primary-500">Button</button>
 		</div>
 	</div>
 </div>
