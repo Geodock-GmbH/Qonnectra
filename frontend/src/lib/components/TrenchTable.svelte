@@ -75,7 +75,10 @@
 		} else {
 			const errorText = await response.text();
 			console.error('Failed to delete trench connection:', response.status, errorText);
-			trenchesError = m.error_deleting_trench_connection();
+			toaster.create({
+				type: 'error',
+				description: m.error_deleting_trench_connection()
+			});
 			throw new Error(errorText);
 		}
 	}

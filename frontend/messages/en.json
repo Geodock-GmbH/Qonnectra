@@ -18,6 +18,7 @@
 	"title_login_success": "Success",
 	"login_success": "You have been logged in successfully.",
 	"title_login_error": "Login error",
+	"login_critical_error": "An error occurred, please contact the administrator.",	
 	"login_error": "Login error. Please try again.",
 	"error_creating_vector_tile_layer": "Error creating vector tile layer",
 	"error_creating_vector_tile_layer_description": "The vector tile layer could not be created. Please try again.",

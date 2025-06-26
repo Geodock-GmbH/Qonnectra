@@ -27,7 +27,7 @@
 	$: if (form?.error) {
 		toaster.create({
 			title: m.title_login_error(),
-			description: form.error,
+			description: m.login_critical_error(),
 			type: 'error'
 		});
 	}

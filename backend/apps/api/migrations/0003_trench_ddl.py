@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             """
-            alter table trench_conduit_connection alter column uuid set default gen_random_uuid();
+            alter table trench_conduit_connect alter column uuid set default gen_random_uuid();
             """
         ),
         migrations.RunSQL(
