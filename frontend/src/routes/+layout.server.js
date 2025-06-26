@@ -1,9 +1,9 @@
 import { redirect } from '@sveltejs/kit';
 import { PUBLIC_ROUTES } from '../hooks.server.js';
-import { PUBLIC_API_URL } from '$env/static/public';
+import { API_URL } from '$env/static/private';
 
 /** @type {import('./$types').LayoutServerLoad} */
-export async function load({ locals, url, fetch }) {
+export async function load({ locals, url, fetch, cookies }) {
 	const isUserAuthenticated = locals.user?.isAuthenticated ?? false;
 	const requestedPath = url.pathname;
 	const isPublicRoute = PUBLIC_ROUTES.some((route) => requestedPath.startsWith(route));
@@ -22,10 +22,16 @@ export async function load({ locals, url, fetch }) {
 	let projectsError = null;
 
 	if (isUserAuthenticated) {
+		const accessToken = cookies.get('api-access-token');
+		const headers = new Headers();
+		if (accessToken) {
+			headers.append('Cookie', `api-access-token=${accessToken}`);
+		}
+
 		// Load flags and projects in parallel
 		const [flagsResponse, projectsResponse] = await Promise.allSettled([
-			fetch(`${PUBLIC_API_URL}flags/`, { credentials: 'include' }),
-			fetch(`${PUBLIC_API_URL}projects/`, { credentials: 'include' })
+			fetch(`${API_URL}flags/`, { headers }),
+			fetch(`${API_URL}projects/`, { headers })
 		]);
 
 		// Handle flags response

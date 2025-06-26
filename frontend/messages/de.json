@@ -19,6 +19,7 @@
 	"title_login_success": "Erfolg",
 	"login_success": "Du hast dich erfolgreich angemeldet.",
 	"title_login_error": "Fehler beim Anmelden",
+	"login_critical_error": "Ein Fehler ist aufgetreten, bitte kontaktieren Sie den Administrator.",
 	"login_error": "Fehler beim Anmelden. Bitte versuche es erneut.",
 	"error_creating_vector_tile_layer": "Fehler beim Erstellen der Vektor-Tile-Layer",
 	"error_creating_vector_tile_layer_description": "Die Vektor-Tile-Layer konnte nicht erstellt werden. Bitte versuche es erneut.",
