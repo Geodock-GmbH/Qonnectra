@@ -11,6 +11,7 @@ from .models import (
     AttributesSurface,
     FileTypeCategory,
     Flags,
+    GtPkMetadata,
     Projects,
     StoragePreferences,
 )
@@ -27,3 +28,4 @@ admin.site.register(Flags)
 admin.site.register(AttributesConduitType)
 admin.site.register(AttributesNetworkLevel)
 admin.site.register(AttributesNodeType)
+admin.site.register(GtPkMetadata)

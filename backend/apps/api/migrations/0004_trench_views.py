@@ -34,4 +34,15 @@ class Migration(migrations.Migration):
         from trench t
         order by t.id_trench;
     """),
+        migrations.RunSQL("""
+    create view public.qgis_trench as 
+        select 
+                id_trench, 
+                construction_type, 
+                surface, 
+                flag, 
+                project, 
+                geom
+        from public.trench;
+    """),
     ]

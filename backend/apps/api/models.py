@@ -801,3 +801,37 @@ class TrenchConduitConnection(models.Model):
                 name="idx_trench_conduit_con_cond",
             ),
         ]
+
+
+class GtPkMetadata(models.Model):
+    """Stores all primary key metadata for different models,
+    used for geoserver,
+    related to :model:`api.Trench`.
+    """
+
+    table_schema = models.CharField(max_length=32)
+    table_name = models.CharField(max_length=32)
+    pk_column = models.CharField(max_length=32)
+    pk_column_idx = models.IntegerField()
+    pk_policy = models.CharField(max_length=32)
+    pk_sequence = models.CharField(max_length=64)
+
+    class Meta:
+        db_table = "gt_pk_metadata"
+        verbose_name = _("GT PK Metadata")
+        verbose_name_plural = _("GT PK Metadata")
+        indexes = [
+            models.Index(
+                fields=["table_schema", "table_name", "pk_column"],
+                name="idx_gpm_schema_name_pk_column",
+            ),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["table_schema", "table_name", "pk_column"],
+                name="unique_gt_pk_metadata",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.table_schema}.{self.table_name}.{self.pk_column}"

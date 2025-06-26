@@ -1,0 +1,14 @@
+[
+    {
+        "model": "api.gt_pk_metadata",
+        "pk": 1,
+        "fields": {
+            "table_schema": "public",
+            "table_name": "qgis_trench",
+            "pk_column": "id_trench",
+            "pk_column_idx": null,
+            "pk_policy": "sequence",
+            "pk_sequence": "trench_id_trench_seq"
+        }
+    }
+]
