@@ -80,5 +80,6 @@
 	"error_saving_trench_connection": "Fehler beim Speichern der Trassenverbindung",
 	"no_new_trench_connections": "Keine neuen Trassenverbindungen",
 	"no_conduit_selected": "Kein Rohr ausgewählt",
-	"no_conduit_selected_description": "Bitte wählen Sie ein Rohr aus, um eine Route zu berechnen"
+	"no_conduit_selected_description": "Bitte wählen Sie ein Rohr aus, um eine Route zu berechnen",
+	"download_template": "Template herunterladen"
 }

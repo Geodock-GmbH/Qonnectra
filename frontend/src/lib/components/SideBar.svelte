@@ -8,6 +8,7 @@
 		IconLayoutSidebarLeftExpand,
 		IconMap2,
 		IconVectorSpline,
+		IconPizza,
 		IconSettings
 	} from '@tabler/icons-svelte';
 
@@ -47,6 +48,14 @@
 				selected={page.url.pathname === '/trench'}
 			>
 				<IconVectorSpline size={28} class="text-surface-700-300" />
+			</Navigation.Tile>
+			<Navigation.Tile
+				href="/conduit"
+				labelExpanded={m.conduit()}
+				title="Conduit"
+				selected={page.url.pathname === '/conduit'}
+			>
+				<IconPizza size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
 		{/snippet}
 		{#snippet footer()}

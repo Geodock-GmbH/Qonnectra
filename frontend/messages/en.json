@@ -80,5 +80,6 @@
 	"error_saving_trench_connection": "Error saving trench connection",
 	"no_new_trench_connections": "No new trench connections",
 	"no_conduit_selected": "No conduit selected",
-	"no_conduit_selected_description": "Please select a conduit to calculate a route"
+	"no_conduit_selected_description": "Please select a conduit to calculate a route",
+	"download_template": "Download template"
 }

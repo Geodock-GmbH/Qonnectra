@@ -25,6 +25,21 @@ from .serializers import (
     TrenchConduitSerializer,
     TrenchSerializer,
 )
+from .services import generate_conduit_import_template
+
+
+class ConduitImportTemplateView(APIView):
+    """ViewSet for the Conduit model :model:`api.Conduit`.
+
+    An instance of :model:`api.Conduit`.
+
+    Returns a template for importing conduits.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return generate_conduit_import_template()
 
 
 class TrenchViewSet(viewsets.ModelViewSet):

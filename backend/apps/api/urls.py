@@ -2,6 +2,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    ConduitImportTemplateView,
     ConduitViewSet,
     FeatureFilesViewSet,
     FlagsViewSet,
@@ -27,6 +28,11 @@ router.register(
 )
 urlpatterns = [
     path("", include(router.urls)),
+    path(
+        "template/conduit/",
+        ConduitImportTemplateView.as_view(),
+        name="conduit-import-template",
+    ),
     path(
         "ol_trench_tiles/<int:z>/<int:x>/<int:y>.mvt",
         OlTrenchTileViewSet.as_view(),
