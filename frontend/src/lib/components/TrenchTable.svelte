@@ -182,12 +182,11 @@
 
 <Toaster {toaster}></Toaster>
 
-<!-- Table -->
 <div class="table-wrap">
 	<table class="table table-fixed caption-bottom">
 		<thead>
 			<tr>
-				<th>Trassen-ID</th>
+				<th>{m.trench_id()}</th>
 			</tr>
 		</thead>
 		<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">

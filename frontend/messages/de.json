@@ -2,6 +2,7 @@
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"map": "Karte",
 	"trench": "Trasse",
+	"trench_id": "Trassen-ID",
 	"settings": "Einstellungen",
 	"menu": "Menü",
 	"login": "Login",
@@ -13,6 +14,15 @@
 	"forgot_password": "Passwort vergessen?",
 	"please_wait": "Bitte warten...",
 	"search": "Suchen",
+	"name": "Name",
+	"conduit_type": "Rohrtyp",
+	"outer_conduit": "Schutzrohr",
+	"status": "Status",
+	"network_level": "Netzebene",
+	"owner": "Eigentümer",
+	"constructor": "Baufirma",
+	"manufacturer": "Hersteller",
+	"date": "Datum",
 	"title_missing_information": "Fehlende Informationen",
 	"missing_information": "Bitte geben Sie beide Benutzername und Passwort ein.",
 	"title_logging_in": "Einloggen...",
@@ -81,5 +91,8 @@
 	"no_new_trench_connections": "Keine neuen Trassenverbindungen",
 	"no_conduit_selected": "Kein Rohr ausgewählt",
 	"no_conduit_selected_description": "Bitte wählen Sie ein Rohr aus, um eine Route zu berechnen",
-	"download_template": "Template herunterladen"
+	"download_template": "Template herunterladen",
+	"error_fetching_pipes": "Fehler beim Laden der Rohre",
+	"error_fetching_pipes_description": "Die Rohre konnten nicht geladen werden. Bitte versuche es erneut.",
+	"error_fetching_pipes_no_pipes": "Keine Rohre gefunden"
 }
