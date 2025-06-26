@@ -94,5 +94,6 @@
 	"download_template": "Template herunterladen",
 	"error_fetching_pipes": "Fehler beim Laden der Rohre",
 	"error_fetching_pipes_description": "Die Rohre konnten nicht geladen werden. Bitte versuche es erneut.",
-	"error_fetching_pipes_no_pipes": "Keine Rohre gefunden"
+	"error_fetching_pipes_no_pipes": "Keine Rohre gefunden",
+	"import_conduit_xlsx": "Excel Import"
 }

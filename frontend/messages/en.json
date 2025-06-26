@@ -94,5 +94,6 @@
 	"download_template": "Download template",
 	"error_fetching_pipes": "Error fetching pipes",
 	"error_fetching_pipes_description": "The pipes could not be loaded. Please try again.",
-	"error_fetching_pipes_no_pipes": "No pipes found"
+	"error_fetching_pipes_no_pipes": "No pipes found",
+	"import_conduit_xlsx": "Excel Import"
 }

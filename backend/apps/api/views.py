@@ -223,6 +223,7 @@ class ConduitViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Optionally restricts the returned conduits by filtering against query parameters:
+        - `uuid`: Filter by UUID
         - `project`: Filter by project ID
         - `flag`: Filter by flag ID
         - `name`: Filter by name (case-insensitive partial match)
@@ -230,9 +231,13 @@ class ConduitViewSet(viewsets.ModelViewSet):
         Multiple parameters can be combined (e.g., ?project=1&flag=2&name=fiber)
         """
         queryset = Conduit.objects.all().order_by("name")
+        uuid = self.request.query_params.get("uuid")
         project_id = self.request.query_params.get("project")
         flag_id = self.request.query_params.get("flag")
         name = self.request.query_params.get("name")
+
+        if uuid:
+            queryset = queryset.filter(uuid=uuid)
 
         if project_id:
             try:

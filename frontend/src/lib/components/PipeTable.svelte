@@ -59,7 +59,6 @@
 				manufacturer: item.manufacturer.company,
 				date: item.date
 			}));
-			console.log(pipes);
 		} catch (error) {
 			toaster.create({
 				type: 'error',
@@ -95,17 +94,27 @@
 		</thead>
 		<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">
 			{#each slicedSource as row}
-				<tr>
-					<td data-label={m.name()}>{row.name}</td>
-					<td data-label={m.conduit_type()}>{row.conduit_type}</td>
-					<td data-label={m.outer_conduit()}>{row.outer_conduit}</td>
-					<td data-label={m.status()}>{row.status}</td>
-					<td data-label={m.network_level()}>{row.network_level}</td>
-					<td data-label={m.owner()}>{row.owner}</td>
-					<td data-label={m.constructor()}>{row.constructor}</td>
-					<td data-label={m.manufacturer()}>{row.manufacturer}</td>
-					<td data-label={m.date()}>{row.date}</td>
-				</tr>
+				{#if loading}
+					<tr>
+						{#each { length: 9 } as _}
+							<td>
+								<div class="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+							</td>
+						{/each}
+					</tr>
+				{:else}
+					<tr>
+						<td data-label={m.name()}>{row.name}</td>
+						<td data-label={m.conduit_type()}>{row.conduit_type}</td>
+						<td data-label={m.outer_conduit()}>{row.outer_conduit}</td>
+						<td data-label={m.status()}>{row.status}</td>
+						<td data-label={m.network_level()}>{row.network_level}</td>
+						<td data-label={m.owner()}>{row.owner}</td>
+						<td data-label={m.constructor()}>{row.constructor}</td>
+						<td data-label={m.manufacturer()}>{row.manufacturer}</td>
+						<td data-label={m.date()}>{row.date}</td>
+					</tr>
+				{/if}
 			{/each}
 		</tbody>
 	</table>
