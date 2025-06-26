@@ -25,6 +25,7 @@
 	let page = $state(1);
 	let size = $state(10);
 	let count = $derived(size);
+	let deletingIds = $state(new Set());
 	const slicedSource = $derived(trenches.slice((page - 1) * size, page * size));
 
 	async function fetchTrenches() {
@@ -77,6 +78,28 @@
 			trenchesError = m.error_deleting_trench_connection();
 			throw new Error(errorText);
 		}
+	}
+
+	function handleDelete(trenchId) {
+		if (deletingIds.has(trenchId)) return;
+
+		deletingIds.add(trenchId);
+
+		const promise = deleteTrench(trenchId).finally(() => {
+			deletingIds.delete(trenchId);
+		});
+
+		toaster.promise(promise, {
+			loading: {
+				description: m.please_wait()
+			},
+			success: {
+				description: m.trench_connection_deleted()
+			},
+			error: {
+				description: m.error_deleting_trench_connection()
+			}
+		});
 	}
 
 	async function saveTrenchConnection(trenchId) {
@@ -171,19 +194,10 @@
 					<td class="text-right">
 						<button
 							class="btn"
+							disabled={deletingIds.has(row.value)}
 							onclick={(e) => {
 								e.stopPropagation();
-								toaster.promise(deleteTrench(row.value), {
-									loading: {
-										description: m.please_wait()
-									},
-									success: {
-										description: m.trench_connection_deleted()
-									},
-									error: {
-										description: m.error_deleting_trench_connection()
-									}
-								});
+								handleDelete(row.value);
 							}}
 						>
 							<IconTrash />
