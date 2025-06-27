@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 from rest_framework_gis.serializers import GeoFeatureModelSerializer, GeometryField
 
 from .models import (
@@ -373,7 +374,16 @@ class ConduitSerializer(serializers.ModelSerializer):
     flag = FlagsSerializer(read_only=True)
 
     # Add write fields for foreign keys
-    name = serializers.CharField(required=True, label=_("Conduit Name"))
+    name = serializers.CharField(
+        validators=[
+            UniqueValidator(
+                queryset=Conduit.objects.all(),
+                message=_("A conduit with that name already exists."),
+            )
+        ],
+        required=True,
+        label=_("Conduit Name"),
+    )
     conduit_type_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=AttributesConduitType.objects.all(),

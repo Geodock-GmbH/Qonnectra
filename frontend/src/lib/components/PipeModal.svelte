@@ -147,7 +147,7 @@
 				toaster.create({
 					type: 'error',
 					title: m.error(),
-					description: m.error_creating_conduit()
+					description: m.error_duplicate_conduit()
 				});
 			}
 		} catch (error) {

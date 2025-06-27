@@ -99,5 +99,6 @@
 	"add_conduit": "Add conduit",
 	"error_fetching_select_options": "Error fetching select options",
 	"error_creating_conduit": "Error creating conduit",
-	"success_creating_conduit": "Conduit created successfully"
+	"success_creating_conduit": "Conduit created successfully",
+	"error_duplicate_conduit": "A conduit with that name already exists"
 }
