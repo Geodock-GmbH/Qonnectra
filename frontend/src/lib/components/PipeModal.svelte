@@ -2,20 +2,29 @@
 	// Skeleton
 	import { Modal } from '@skeletonlabs/skeleton-svelte';
 
+	// Tabler
+	import { IconPlus } from '@tabler/icons-svelte';
+
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
-	let { projectId, openPipeModal } = $props();
+	let { projectId, openPipeModal, small = false } = $props();
 </script>
 
 <Modal
 	open={openPipeModal}
 	onOpenChange={(e) => (openPipeModal = e.open)}
-	triggerBase="btn preset-filled-primary-500"
+	triggerBase={small ? 'btn-icon preset-filled-primary-500' : 'btn preset-filled-primary-500'}
 	contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm"
 	backdropClasses="backdrop-blur-sm"
 >
-	{#snippet trigger()}{m.add_conduit()}{/snippet}
+	{#snippet trigger()}
+		{#if small}
+			<IconPlus size={18} />
+		{:else}
+			{m.add_conduit()}
+		{/if}
+	{/snippet}
 	{#snippet content()}
 		<header class="flex justify-between">
 			<h2 class="h3">{m.add_conduit()}</h2>
