@@ -98,5 +98,6 @@
 	"import_conduit_xlsx": "Excel Import",
 	"add_conduit": "Add conduit",
 	"error_fetching_select_options": "Error fetching select options",
-	"error_creating_conduit": "Error creating conduit"
+	"error_creating_conduit": "Error creating conduit",
+	"success_creating_conduit": "Conduit created successfully"
 }

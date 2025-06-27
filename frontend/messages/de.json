@@ -99,5 +99,6 @@
 	"import_conduit_xlsx": "Excel Import",
 	"add_conduit": "Rohr hinzufügen",
 	"error_fetching_select_options": "Fehler beim Laden der Auswahlfelder",
-	"error_creating_conduit": "Fehler beim Erstellen des Rohres"
+	"error_creating_conduit": "Fehler beim Erstellen des Rohres",
+	"success_creating_conduit": "Rohr erfolgreich erstellt"
 }

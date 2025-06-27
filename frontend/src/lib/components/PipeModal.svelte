@@ -110,9 +110,16 @@
 			constructor_id: selectedConstructor?.[0] ?? null,
 			manufacturer_id: selectedManufacturer?.[0] ?? null,
 			flag_id: selectedFlag?.[0] ?? null,
-			date: formProps.date ?? null,
+			date: formProps.date ? formProps.date.replace(/-/g, '/') : null,
 			outer_conduit: formProps.outer_conduit ?? null
 		};
+
+		// Remove null values to avoid sending empty fields
+		Object.keys(body).forEach((key) => {
+			if (body[key] === null || body[key] === undefined || body[key] === '') {
+				delete body[key];
+			}
+		});
 
 		try {
 			const response = await fetch(`${PUBLIC_API_URL}conduit/`, {
@@ -130,7 +137,7 @@
 			if (response.ok) {
 				toaster.create({
 					type: 'success',
-					title: m.success(),
+					title: m.title_login_success(),
 					description: m.success_creating_conduit()
 				});
 				openPipeModal = false;
@@ -277,6 +284,7 @@
 					zIndex="10"
 					bind:value={selectedFlag}
 					required
+					onValueChange={(e) => (selectedFlag = e.value)}
 				/>
 			</label>
 		</form>

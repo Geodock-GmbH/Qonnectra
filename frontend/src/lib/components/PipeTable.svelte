@@ -52,11 +52,11 @@
 				name: item.name,
 				conduit_type: item.conduit_type.conduit_type,
 				outer_conduit: item.outer_conduit,
-				status: item.status.status,
-				network_level: item.network_level.network_level,
-				owner: item.owner.company,
-				constructor: item.constructor.company,
-				manufacturer: item.manufacturer.company,
+				status: item.status ? item.status.status : '',
+				network_level: item.network_level ? item.network_level.network_level : '',
+				owner: item.owner ? item.owner.company : '',
+				constructor: item.constructor ? item.constructor.company : '',
+				manufacturer: item.manufacturer ? item.manufacturer.company : '',
 				date: item.date,
 				flag: item.flag.flag
 			}));
