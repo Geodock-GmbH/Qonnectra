@@ -20,10 +20,18 @@
 	let { projectId, openPipeModal, small = false } = $props();
 
 	let conduitTypes = $state([]);
+	let selectedConduitType = $state();
 	let statuses = $state([]);
+	let selectedStatus = $state();
 	let networkLevels = $state([]);
+	let selectedNetworkLevel = $state();
 	let companies = $state([]);
+	let selectedOwner = $state();
+	let selectedConstructor = $state();
+	let selectedManufacturer = $state();
 	let flags = $state([]);
+	let selectedFlag = $state();
+
 	const resources = [
 		'attributes_conduit_type',
 		'attributes_status',
@@ -123,6 +131,8 @@
 					data={conduitTypes}
 					zIndex="10"
 					required
+					bind:value={selectedConduitType}
+					onValueChange={(e) => (selectedConduitType = e.value)}
 				/>
 			</label>
 			<label class="label">
@@ -132,7 +142,15 @@
 			</label>
 			<label for="status" class="label">
 				<span class="label-text">{m.status()}</span>
-				<Combobox name="status" class="select" id="status" data={statuses} zIndex="10" />
+				<Combobox
+					name="status"
+					class="select"
+					id="status"
+					data={statuses}
+					zIndex="10"
+					bind:value={selectedStatus}
+					onValueChange={(e) => (selectedStatus = e.value)}
+				/>
 			</label>
 			<label for="network_level" class="label">
 				<span class="label-text">{m.network_level()}</span>
@@ -142,15 +160,33 @@
 					id="network_level"
 					data={networkLevels}
 					zIndex="10"
+					bind:value={selectedNetworkLevel}
+					onValueChange={(e) => (selectedNetworkLevel = e.value)}
 				/>
 			</label>
 			<label for="owner" class="label">
 				<span class="label-text">{m.owner()}</span>
-				<Combobox name="owner" class="select" id="owner" data={companies} zIndex="10" />
+				<Combobox
+					name="owner"
+					class="select"
+					id="owner"
+					data={companies}
+					zIndex="10"
+					bind:value={selectedOwner}
+					onValueChange={(e) => (selectedOwner = e.value)}
+				/>
 			</label>
 			<label for="constructor" class="label">
 				<span class="label-text">{m.constructor()}</span>
-				<Combobox name="constructor" class="select" id="constructor" data={companies} zIndex="10" />
+				<Combobox
+					name="constructor"
+					class="select"
+					id="constructor"
+					data={companies}
+					zIndex="10"
+					bind:value={selectedConstructor}
+					onValueChange={(e) => (selectedConstructor = e.value)}
+				/>
 			</label>
 			<label for="manufacturer" class="label">
 				<span class="label-text">{m.manufacturer()}</span>
@@ -161,6 +197,8 @@
 					id="manufacturer"
 					data={companies}
 					zIndex="10"
+					bind:value={selectedManufacturer}
+					onValueChange={(e) => (selectedManufacturer = e.value)}
 				/>
 			</label>
 			<label for="date" class="label">
@@ -169,7 +207,14 @@
 			</label>
 			<label for="flag" class="label">
 				<span class="label-text">{m.flag()}</span>
-				<Combobox name="flag" class="select" id="flag" data={flags} zIndex="10" required />
+				<Combobox
+					name="flag"
+					class="select"
+					id="flag"
+					data={flags}
+					zIndex="10"
+					bind:value={selectedFlag}
+				/>
 			</label>
 		</form>
 
