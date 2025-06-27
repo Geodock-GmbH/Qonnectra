@@ -6,6 +6,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import (
+    AttributesCompany,
+    AttributesConduitType,
+    AttributesNetworkLevel,
+    AttributesStatus,
     Conduit,
     FeatureFiles,
     Flags,
@@ -17,6 +21,10 @@ from .models import (
 from .pageination import CustomPagination
 from .routing import find_shortest_path
 from .serializers import (
+    AttributesCompanySerializer,
+    AttributesConduitTypeSerializer,
+    AttributesNetworkLevelSerializer,
+    AttributesStatusSerializer,
     ConduitSerializer,
     FeatureFilesSerializer,
     FlagsSerializer,
@@ -28,18 +36,60 @@ from .serializers import (
 from .services import generate_conduit_import_template
 
 
-class ConduitImportTemplateView(APIView):
-    """ViewSet for the Conduit model :model:`api.Conduit`.
+class AttributesConduitTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesConduitType model :model:`api.AttributesConduitType`.
 
-    An instance of :model:`api.Conduit`.
-
-    Returns a template for importing conduits.
+    An instance of :model:`api.AttributesConduitType`.
     """
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        return generate_conduit_import_template()
+    queryset = AttributesConduitType.objects.all().order_by("conduit_type")
+    serializer_class = AttributesConduitTypeSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class AttributesStatusViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesStatus model :model:`api.AttributesStatus`.
+
+    An instance of :model:`api.AttributesStatus`.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    queryset = AttributesStatus.objects.all().order_by("status")
+    serializer_class = AttributesStatusSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class AttributesNetworkLevelViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesNetworkLevel model :model:`api.AttributesNetworkLevel`.
+
+    An instance of :model:`api.AttributesNetworkLevel`.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    queryset = AttributesNetworkLevel.objects.all().order_by("network_level")
+    serializer_class = AttributesNetworkLevelSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class AttributesCompanyViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesCompany model :model:`api.AttributesCompany`.
+
+    An instance of :model:`api.AttributesCompany`.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    queryset = AttributesCompany.objects.all().order_by("company")
+    serializer_class = AttributesCompanySerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
 
 
 class TrenchViewSet(viewsets.ModelViewSet):
@@ -337,3 +387,17 @@ class RoutingView(APIView):
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(result, status=status.HTTP_200_OK)
+
+
+class ConduitImportTemplateView(APIView):
+    """ViewSet for the Conduit model :model:`api.Conduit`.
+
+    An instance of :model:`api.Conduit`.
+
+    Returns a template for importing conduits.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return generate_conduit_import_template()

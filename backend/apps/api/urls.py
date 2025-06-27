@@ -2,6 +2,10 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    AttributesCompanyViewSet,
+    AttributesConduitTypeViewSet,
+    AttributesNetworkLevelViewSet,
+    AttributesStatusViewSet,
     ConduitImportTemplateView,
     ConduitViewSet,
     FeatureFilesViewSet,
@@ -15,6 +19,26 @@ from .views import (
 )
 
 router = DefaultRouter()
+router.register(
+    r"attributes_conduit_type",
+    AttributesConduitTypeViewSet,
+    basename="attributes_conduit_type",
+)
+router.register(
+    r"attributes_status",
+    AttributesStatusViewSet,
+    basename="attributes_status",
+)
+router.register(
+    r"attributes_network_level",
+    AttributesNetworkLevelViewSet,
+    basename="attributes_network_level",
+)
+router.register(
+    r"attributes_company",
+    AttributesCompanyViewSet,
+    basename="attributes_company",
+)
 router.register(r"conduit", ConduitViewSet, basename="conduit")
 router.register(r"flags", FlagsViewSet, basename="flags")
 router.register(r"feature_files", FeatureFilesViewSet, basename="feature_files")
