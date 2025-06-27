@@ -23,6 +23,7 @@
 	"constructor": "Baufirma",
 	"manufacturer": "Hersteller",
 	"date": "Datum",
+	"error": "Fehler",
 	"title_missing_information": "Fehlende Informationen",
 	"missing_information": "Bitte geben Sie beide Benutzername und Passwort ein.",
 	"title_logging_in": "Einloggen...",
@@ -96,5 +97,6 @@
 	"error_fetching_pipes_description": "Die Rohre konnten nicht geladen werden. Bitte versuche es erneut.",
 	"error_fetching_pipes_no_pipes": "Keine Rohre gefunden",
 	"import_conduit_xlsx": "Excel Import",
-	"add_conduit": "Rohr hinzufügen"
+	"add_conduit": "Rohr hinzufügen",
+	"error_fetching_select_options": "Fehler beim Laden der Auswahlfelder"
 }

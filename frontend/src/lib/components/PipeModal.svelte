@@ -1,18 +1,98 @@
 <script>
 	// Skeleton
-	import { Modal } from '@skeletonlabs/skeleton-svelte';
+	import { Modal, Combobox, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
 
 	// Tabler
 	import { IconPlus } from '@tabler/icons-svelte';
 
 	// Paraglide
-	import { m } from '$lib/paraglide/messages';
+	import { m, name } from '$lib/paraglide/messages';
+
+	// Svelte
+	import { PUBLIC_API_URL } from '$env/static/public';
+	import { selectedProject } from '$lib/stores/store';
+
+	// Toast
+	const toaster = createToaster({
+		placement: 'bottom-end'
+	});
 
 	let { projectId, openPipeModal, small = false } = $props();
+
+	let conduitTypes = $state([]);
+	let statuses = $state([]);
+	let networkLevels = $state([]);
+	let companies = $state([]);
+	let flags = $state([]);
+	const resources = [
+		'attributes_conduit_type',
+		'attributes_status',
+		'attributes_network_level',
+		'attributes_company',
+		'flags'
+	];
+
+	async function loadSelectOptions() {
+		try {
+			// build full URLs
+			const urls = resources.map((name) => `${PUBLIC_API_URL}${name}/`);
+
+			// fetch all endpoints in parallel
+			const responses = await Promise.all(
+				urls.map((url) => fetch(url, { credentials: 'include' }))
+			);
+
+			// parse all JSON bodies in parallel
+			const [
+				parsedConduitTypes,
+				parsedStatuses,
+				parsedNetworkLevels,
+				parsedCompanies,
+				parsedFlags
+			] = await Promise.all(
+				responses.map((res, index) => {
+					if (!res.ok) throw new Error(`Failed to fetch ${res.url} (status ${res.status})`);
+					return res.json().then((data) =>
+						data.map((item) => ({
+							value: item.id,
+							label:
+								resources[index] === 'flags'
+									? item.flag
+									: resources[index] === 'attributes_conduit_type'
+										? item.conduit_type
+										: resources[index] === 'attributes_company'
+											? item.company
+											: resources[index] === 'attributes_status'
+												? item.status
+												: resources[index] === 'attributes_network_level'
+													? item.network_level
+													: item.id
+						}))
+					);
+				})
+			);
+
+			conduitTypes = parsedConduitTypes;
+			statuses = parsedStatuses;
+			networkLevels = parsedNetworkLevels;
+			companies = parsedCompanies;
+			flags = parsedFlags;
+		} catch (err) {
+			toaster.create({
+				type: 'error',
+				title: m.error(),
+				description: m.error_fetching_select_options()
+			});
+			console.error(err);
+		}
+	}
 </script>
+
+<Toaster {toaster}></Toaster>
 
 <Modal
 	open={openPipeModal}
+	onclick={loadSelectOptions}
 	onOpenChange={(e) => (openPipeModal = e.open)}
 	triggerBase={small ? 'btn-icon preset-filled-primary-500' : 'btn preset-filled-primary-500'}
 	contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm"
@@ -36,11 +116,14 @@
 			</label>
 			<label for="pipe_type" class="label">
 				<span class="label-text">{m.conduit_type()}</span>
-				<select name="pipe_type" class="select" id="pipe_type" required>
-					<option value="1">1</option>
-					<option value="2">2</option>
-					<option value="3">3</option>
-				</select>
+				<Combobox
+					name="pipe_type"
+					class="select"
+					id="pipe_type"
+					data={conduitTypes}
+					zIndex="10"
+					required
+				/>
 			</label>
 			<label class="label">
 				<span class="label-text">{m.outer_conduit()}</span>
@@ -49,42 +132,36 @@
 			</label>
 			<label for="status" class="label">
 				<span class="label-text">{m.status()}</span>
-				<select name="status" class="select" id="status">
-					<option value="1">1</option>
-					<option value="2">2</option>
-					<option value="3">3</option>
-				</select>
+				<Combobox name="status" class="select" id="status" data={statuses} zIndex="10" />
 			</label>
 			<label for="network_level" class="label">
 				<span class="label-text">{m.network_level()}</span>
-				<select name="network_level" class="select" id="network_level">
-					<option value="1">1</option>
-					<option value="2">2</option>
-					<option value="3">3</option>
-				</select>
+				<Combobox
+					name="network_level"
+					class="select"
+					id="network_level"
+					data={networkLevels}
+					zIndex="10"
+				/>
 			</label>
 			<label for="owner" class="label">
 				<span class="label-text">{m.owner()}</span>
-				<select name="owner" class="select" id="owner">
-					<option value="1">1</option>
-					<option value="2">2</option>
-					<option value="3">3</option>
-				</select>
+				<Combobox name="owner" class="select" id="owner" data={companies} zIndex="10" />
 			</label>
 			<label for="constructor" class="label">
 				<span class="label-text">{m.constructor()}</span>
-				<select name="constructor" class="select" id="constructor">
-					<option value="1">1</option>
-					<option value="2">2</option>
-					<option value="3">3</option>
-				</select>
+				<Combobox name="constructor" class="select" id="constructor" data={companies} zIndex="10" />
 			</label>
 			<label for="manufacturer" class="label">
 				<span class="label-text">{m.manufacturer()}</span>
-				<select name="manufacturer" class="select" id="manufacturer">
-					<option value="1">1</option>
-					<option value="2">2</option>
-				</select>
+
+				<Combobox
+					name="manufacturer"
+					class="select"
+					id="manufacturer"
+					data={companies}
+					zIndex="10"
+				/>
 			</label>
 			<label for="date" class="label">
 				<span class="label-text">{m.date()}</span>
@@ -92,10 +169,7 @@
 			</label>
 			<label for="flag" class="label">
 				<span class="label-text">{m.flag()}</span>
-				<select name="flag" class="select" id="flag" required>
-					<option value="1">1</option>
-					<option value="2">2</option>
-				</select>
+				<Combobox name="flag" class="select" id="flag" data={flags} zIndex="10" required />
 			</label>
 		</form>
 
