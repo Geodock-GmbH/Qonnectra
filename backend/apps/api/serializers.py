@@ -194,7 +194,7 @@ class TrenchSerializer(GeoFeatureModelSerializer):
         required=False,
     )
     # Format date to YYYY/MM/DD
-    date = serializers.DateField(format="%Y/%m/%d")
+    date = serializers.DateField(input_formats=["%Y/%m/%d"], format="%d/%m/%Y")
     comment = serializers.CharField(required=False)
     geom = GeometryField()
     project_id = serializers.PrimaryKeyRelatedField(
@@ -383,26 +383,31 @@ class ConduitSerializer(serializers.ModelSerializer):
         write_only=True,
         queryset=AttributesStatus.objects.all(),
         source="status",
+        required=False,
     )
     network_level_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=AttributesNetworkLevel.objects.all(),
         source="network_level",
+        required=False,
     )
     owner_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=AttributesCompany.objects.all(),
         source="owner",
+        required=False,
     )
     constructor_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=AttributesCompany.objects.all(),
         source="constructor",
+        required=False,
     )
     manufacturer_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=AttributesCompany.objects.all(),
         source="manufacturer",
+        required=False,
     )
     project_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
@@ -414,7 +419,11 @@ class ConduitSerializer(serializers.ModelSerializer):
         queryset=Flags.objects.all(),
         source="flag",
     )
-    outer_conduit = serializers.CharField(required=False)
+    outer_conduit = serializers.CharField(required=False, allow_blank=True)
+
+    date = serializers.DateField(
+        input_formats=["%Y/%m/%d"], format="%d/%m/%Y", required=False
+    )
 
     class Meta:
         model = Conduit

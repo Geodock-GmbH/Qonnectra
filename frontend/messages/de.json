@@ -98,5 +98,6 @@
 	"error_fetching_pipes_no_pipes": "Keine Rohre gefunden",
 	"import_conduit_xlsx": "Excel Import",
 	"add_conduit": "Rohr hinzufügen",
-	"error_fetching_select_options": "Fehler beim Laden der Auswahlfelder"
+	"error_fetching_select_options": "Fehler beim Laden der Auswahlfelder",
+	"error_creating_conduit": "Fehler beim Erstellen des Rohres"
 }

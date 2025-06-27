@@ -269,6 +269,8 @@ class ConduitViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = ConduitSerializer
     pagination_class = CustomPagination
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
 
     def get_queryset(self):
         """

@@ -94,6 +94,64 @@
 			console.error(err);
 		}
 	}
+
+	async function handleSubmit(event) {
+		event.preventDefault();
+		const formData = new FormData(event.target);
+		const formProps = Object.fromEntries(formData.entries());
+
+		const body = {
+			name: formProps.pipe_name,
+			project_id: projectId?.[0] ?? null,
+			conduit_type_id: selectedConduitType?.[0] ?? null,
+			status_id: selectedStatus?.[0] ?? null,
+			network_level_id: selectedNetworkLevel?.[0] ?? null,
+			owner_id: selectedOwner?.[0] ?? null,
+			constructor_id: selectedConstructor?.[0] ?? null,
+			manufacturer_id: selectedManufacturer?.[0] ?? null,
+			flag_id: selectedFlag?.[0] ?? null,
+			date: formProps.date ?? null,
+			outer_conduit: formProps.outer_conduit ?? null
+		};
+
+		try {
+			const response = await fetch(`${PUBLIC_API_URL}conduit/`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'X-CSRFToken': document.cookie
+						.split('; ')
+						.find((row) => row.startsWith('csrftoken='))
+						?.split('=')[1]
+				},
+				body: JSON.stringify(body),
+				credentials: 'include'
+			});
+			if (response.ok) {
+				toaster.create({
+					type: 'success',
+					title: m.success(),
+					description: m.success_creating_conduit()
+				});
+				openPipeModal = false;
+			} else {
+				const errorData = await response.json();
+				console.error('Error creating conduit:', errorData);
+				toaster.create({
+					type: 'error',
+					title: m.error(),
+					description: m.error_creating_conduit()
+				});
+			}
+		} catch (error) {
+			console.error('Error submitting form:', error);
+			toaster.create({
+				type: 'error',
+				title: m.error(),
+				description: m.error_creating_conduit()
+			});
+		}
+	}
 </script>
 
 <Toaster {toaster}></Toaster>
@@ -117,7 +175,11 @@
 		<header class="flex justify-between">
 			<h2 class="h3">{m.add_conduit()}</h2>
 		</header>
-		<form id="pipe-form" class="mx-auto w-full max-w-md space-y-4 grid grid-cols-2 gap-4">
+		<form
+			id="pipe-form"
+			class="mx-auto w-full max-w-md space-y-4 grid grid-cols-2 gap-4"
+			onsubmit={handleSubmit}
+		>
 			<label class="label">
 				<span class="label-text">{m.name()}</span>
 				<input type="text" class="input" placeholder="" name="pipe_name" required />
@@ -203,7 +265,7 @@
 			</label>
 			<label for="date" class="label">
 				<span class="label-text">{m.date()}</span>
-				<input type="date" name="date" id="date" class="input" />
+				<input type="date" name="date" id="date" class="input" format="yyyy-MM-dd" />
 			</label>
 			<label for="flag" class="label">
 				<span class="label-text">{m.flag()}</span>
@@ -214,6 +276,7 @@
 					data={flags}
 					zIndex="10"
 					bind:value={selectedFlag}
+					required
 				/>
 			</label>
 		</form>
