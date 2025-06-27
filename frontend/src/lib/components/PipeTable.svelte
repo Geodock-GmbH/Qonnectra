@@ -57,7 +57,8 @@
 				owner: item.owner.company,
 				constructor: item.constructor.company,
 				manufacturer: item.manufacturer.company,
-				date: item.date
+				date: item.date,
+				flag: item.flag.flag
 			}));
 		} catch (error) {
 			toaster.create({
@@ -90,13 +91,14 @@
 				<th>{m.constructor()}</th>
 				<th>{m.manufacturer()}</th>
 				<th>{m.date()}</th>
+				<th>{m.flag()}</th>
 			</tr>
 		</thead>
 		<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">
 			{#each slicedSource as row}
 				{#if loading}
 					<tr>
-						{#each { length: 9 } as _}
+						{#each { length: 10 } as _}
 							<td>
 								<div class="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
 							</td>
@@ -113,6 +115,7 @@
 						<td data-label={m.constructor()}>{row.constructor}</td>
 						<td data-label={m.manufacturer()}>{row.manufacturer}</td>
 						<td data-label={m.date()}>{row.date}</td>
+						<td data-label={m.flag()}>{row.flag}</td>
 					</tr>
 				{/if}
 			{/each}
