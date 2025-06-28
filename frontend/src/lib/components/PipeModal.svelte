@@ -17,7 +17,15 @@
 		placement: 'bottom-end'
 	});
 
-	let { projectId, openPipeModal, small = false } = $props();
+	let {
+		projectId,
+		openPipeModal,
+		small = false,
+		isHidden = false,
+		editMode = false,
+		pipeData = null,
+		rowClickedSignal = $bindable(false)
+	} = $props();
 
 	let conduitTypes = $state([]);
 	let selectedConduitType = $state();
@@ -40,8 +48,17 @@
 		'flags'
 	];
 
-	async function loadSelectOptions() {
+	async function loadSelectOptions(editMode = false) {
 		try {
+			let editData;
+			if (editMode) {
+				const editUrl = `${PUBLIC_API_URL}conduit/${pipeData.value}/`;
+				const editRes = await fetch(editUrl, { credentials: 'include' });
+				if (!editRes.ok)
+					throw new Error(`Failed to fetch ${editRes.url} (status ${editRes.status})`);
+				editData = await editRes.json();
+				console.log('editData', editData);
+			}
 			// build full URLs
 			const urls = resources.map((name) => `${PUBLIC_API_URL}${name}/`);
 
@@ -85,6 +102,9 @@
 			networkLevels = parsedNetworkLevels;
 			companies = parsedCompanies;
 			flags = parsedFlags;
+			if (editMode) {
+				selectedConduitType = [editData.conduit_type.conduit_type];
+			}
 		} catch (err) {
 			toaster.create({
 				type: 'error',
@@ -159,17 +179,28 @@
 			});
 		}
 	}
+
+	$effect(() => {
+		if (rowClickedSignal) {
+			openPipeModal = true;
+			editMode = true;
+			loadSelectOptions(editMode);
+			rowClickedSignal = false;
+			editMode = false;
+		}
+	});
 </script>
 
 <Toaster {toaster}></Toaster>
 
 <Modal
 	open={openPipeModal}
-	onclick={loadSelectOptions}
+	onclick={() => loadSelectOptions(editMode)}
 	onOpenChange={(e) => (openPipeModal = e.open)}
 	triggerBase={small ? 'btn-icon preset-filled-primary-500' : 'btn preset-filled-primary-500'}
 	contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm"
 	backdropClasses="backdrop-blur-sm"
+	classes={isHidden ? 'hidden' : ''}
 >
 	{#snippet trigger()}
 		{#if small}

@@ -14,12 +14,19 @@
 	import { selectedProject } from '$lib/stores/store';
 
 	let openPipeModal = $state(false);
+	let rowData = $state(null);
+	let rowClickedSignal = $state(false);
 </script>
 
 <div class="flex justify-between items-center">
 	<div class="flex justify-start">
 		<nav class="btn-group preset-outlined-surface-200-800 flex-col p-2 md:flex-row">
-			<PipeModal projectId={$selectedProject} {openPipeModal} />
+			<PipeModal
+				projectId={$selectedProject}
+				{openPipeModal}
+				pipeData={rowData}
+				bind:rowClickedSignal
+			/>
 		</nav>
 	</div>
 
@@ -43,4 +50,4 @@
 	</div>
 </div>
 
-<PipeTable projectId={$selectedProject} />
+<PipeTable projectId={$selectedProject} bind:rowData bind:rowClickedSignal />

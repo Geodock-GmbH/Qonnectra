@@ -13,7 +13,7 @@
 		placement: 'bottom-end'
 	});
 
-	let { projectId } = $props();
+	let { projectId, rowData = $bindable(), rowClickedSignal = $bindable(false) } = $props();
 
 	let pipes = $state([]);
 	let pipesError = $state(null);
@@ -71,6 +71,11 @@
 		}
 	}
 
+	function handleRowClick(pipe) {
+		rowData = pipe;
+		rowClickedSignal = true;
+	}
+
 	$effect(() => {
 		if (projectId) {
 			fetchPipes();
@@ -105,7 +110,7 @@
 						{/each}
 					</tr>
 				{:else}
-					<tr>
+					<tr onclick={() => handleRowClick(row)}>
 						<td data-label={m.name()}>{row.name}</td>
 						<td data-label={m.conduit_type()}>{row.conduit_type}</td>
 						<td data-label={m.outer_conduit()}>{row.outer_conduit}</td>
