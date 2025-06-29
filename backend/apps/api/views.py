@@ -1,6 +1,7 @@
 from django.db import connection
 from django.http import HttpResponse
 from rest_framework import status, viewsets
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -33,7 +34,7 @@ from .serializers import (
     TrenchConduitSerializer,
     TrenchSerializer,
 )
-from .services import generate_conduit_import_template
+from .services import generate_conduit_import_template, import_conduits_from_excel
 
 
 class AttributesConduitTypeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -403,3 +404,39 @@ class ConduitImportTemplateView(APIView):
 
     def get(self, request):
         return generate_conduit_import_template()
+
+
+class ConduitImportView(APIView):
+    """
+    API view to handle the import of conduits from an Excel file.
+    """
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser)
+
+    def post(self, request, *args, **kwargs):
+        file_obj = request.FILES.get("file")
+        if not file_obj:
+            return Response(
+                {"error": "No file uploaded."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not file_obj.name.endswith((".xlsx")):
+            return Response(
+                {"error": "Invalid file format. Please upload an .xlsx file."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        result = import_conduits_from_excel(file_obj)
+
+        if result["success"]:
+            return Response(
+                {
+                    "message": f"Successfully imported {result['created_count']} conduits."
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        else:
+            return Response(
+                {"errors": result["errors"]}, status=status.HTTP_400_BAD_REQUEST
+            )

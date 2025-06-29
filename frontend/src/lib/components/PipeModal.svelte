@@ -28,17 +28,17 @@
 	} = $props();
 
 	let conduitTypes = $state([]);
-	let selectedConduitType = $state();
+	let selectedConduitType = $state([]);
 	let statuses = $state([]);
-	let selectedStatus = $state();
+	let selectedStatus = $state([]);
 	let networkLevels = $state([]);
-	let selectedNetworkLevel = $state();
+	let selectedNetworkLevel = $state([]);
 	let companies = $state([]);
-	let selectedOwner = $state();
-	let selectedConstructor = $state();
-	let selectedManufacturer = $state();
+	let selectedOwner = $state([]);
+	let selectedConstructor = $state([]);
+	let selectedManufacturer = $state([]);
 	let flags = $state([]);
-	let selectedFlag = $state();
+	let selectedFlag = $state([]);
 
 	const resources = [
 		'attributes_conduit_type',
@@ -231,7 +231,7 @@
 					data={conduitTypes}
 					zIndex="10"
 					required
-					bind:value={selectedConduitType}
+					value={selectedConduitType}
 					onValueChange={(e) => (selectedConduitType = e.value)}
 				/>
 			</label>
@@ -248,7 +248,7 @@
 					id="status"
 					data={statuses}
 					zIndex="10"
-					bind:value={selectedStatus}
+					value={selectedStatus}
 					onValueChange={(e) => (selectedStatus = e.value)}
 				/>
 			</label>
@@ -260,7 +260,7 @@
 					id="network_level"
 					data={networkLevels}
 					zIndex="10"
-					bind:value={selectedNetworkLevel}
+					value={selectedNetworkLevel}
 					onValueChange={(e) => (selectedNetworkLevel = e.value)}
 				/>
 			</label>
@@ -272,7 +272,7 @@
 					id="owner"
 					data={companies}
 					zIndex="10"
-					bind:value={selectedOwner}
+					value={selectedOwner}
 					onValueChange={(e) => (selectedOwner = e.value)}
 				/>
 			</label>
@@ -284,7 +284,7 @@
 					id="constructor"
 					data={companies}
 					zIndex="10"
-					bind:value={selectedConstructor}
+					value={selectedConstructor}
 					onValueChange={(e) => (selectedConstructor = e.value)}
 				/>
 			</label>
@@ -297,7 +297,7 @@
 					id="manufacturer"
 					data={companies}
 					zIndex="10"
-					bind:value={selectedManufacturer}
+					value={selectedManufacturer}
 					onValueChange={(e) => (selectedManufacturer = e.value)}
 				/>
 			</label>
@@ -313,7 +313,7 @@
 					id="flag"
 					data={flags}
 					zIndex="10"
-					bind:value={selectedFlag}
+					value={selectedFlag}
 					required
 					onValueChange={(e) => (selectedFlag = e.value)}
 				/>

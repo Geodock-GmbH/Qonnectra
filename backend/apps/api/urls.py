@@ -7,6 +7,7 @@ from .views import (
     AttributesNetworkLevelViewSet,
     AttributesStatusViewSet,
     ConduitImportTemplateView,
+    ConduitImportView,
     ConduitViewSet,
     FeatureFilesViewSet,
     FlagsViewSet,
@@ -57,6 +58,7 @@ urlpatterns = [
         ConduitImportTemplateView.as_view(),
         name="conduit-import-template",
     ),
+    path("import/conduit/", ConduitImportView.as_view(), name="conduit-import"),
     path(
         "ol_trench_tiles/<int:z>/<int:x>/<int:y>.mvt",
         OlTrenchTileViewSet.as_view(),
