@@ -36,18 +36,21 @@
 		conduitsError = null;
 
 		try {
-			const response = await fetch(
-				`${PUBLIC_API_URL}conduit/?project=${projectId}&flag=${flagId}`,
-				{ credentials: 'include' }
-			);
+			let allResults = [];
+			let url = `${PUBLIC_API_URL}conduit/?project=${projectId}&flag=${flagId}`;
+			while (url) {
+				const response = await fetch(url, { credentials: 'include' });
 
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
+
+				const data = await response.json();
+				allResults.push(...data.results);
+				url = data.next;
 			}
 
-			const data = await response.json();
-
-			conduits = data.results.map((item) => ({
+			conduits = allResults.map((item) => ({
 				value: item.uuid,
 				label: item.name
 			}));

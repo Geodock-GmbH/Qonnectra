@@ -19,10 +19,22 @@
 	let pipesError = $state(null);
 	let loading = $state(false);
 	let page = $state(1);
-	let size = $state(10);
+	let size = $state(100);
 	let count = $derived(size);
 	let deletingIds = $state(new Set());
 	const slicedSource = $derived(pipes.slice((page - 1) * size, page * size));
+	let headers = [
+		m.name(),
+		m.conduit_type(),
+		m.outer_conduit(),
+		m.status(),
+		m.network_level(),
+		m.owner(),
+		m.constructor(),
+		m.manufacturer(),
+		m.date(),
+		m.flag()
+	];
 
 	async function fetchPipes() {
 		if (!projectId) {
@@ -87,29 +99,45 @@
 	<table class="table table-card caption-bottom w-full">
 		<thead>
 			<tr>
-				<th>{m.name()}</th>
-				<th>{m.conduit_type()}</th>
-				<th>{m.outer_conduit()}</th>
-				<th>{m.status()}</th>
-				<th>{m.network_level()}</th>
-				<th>{m.owner()}</th>
-				<th>{m.constructor()}</th>
-				<th>{m.manufacturer()}</th>
-				<th>{m.date()}</th>
-				<th>{m.flag()}</th>
+				{#each headers as header}
+					<th
+						><a href={`#${header}`} class="group inline-flex">
+							{header}
+							<span
+								class="invisible ml-2 flex-none rounded-sm text-gray-400 group-hover:visible group-focus:visible"
+							>
+								<svg
+									class="size-5"
+									viewBox="0 0 20 20"
+									fill="currentColor"
+									aria-hidden="true"
+									data-slot="icon"
+								>
+									<path
+										fill-rule="evenodd"
+										d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z"
+										clip-rule="evenodd"
+									/>
+								</svg>
+							</span>
+						</a></th
+					>
+				{/each}
 			</tr>
 		</thead>
 		<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">
-			{#each slicedSource as row}
-				{#if loading}
+			{#if loading}
+				{#each { length: size } as _}
 					<tr>
 						{#each { length: 10 } as _}
 							<td>
-								<div class="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+								<div class="h-4 bg-surface-500 rounded animate-pulse w-3/4"></div>
 							</td>
 						{/each}
 					</tr>
-				{:else}
+				{/each}
+			{:else}
+				{#each slicedSource as row}
 					<tr onclick={() => handleRowClick(row)}>
 						<td data-label={m.name()}>{row.name}</td>
 						<td data-label={m.conduit_type()}>{row.conduit_type}</td>
@@ -122,8 +150,8 @@
 						<td data-label={m.date()}>{row.date}</td>
 						<td data-label={m.flag()}>{row.flag}</td>
 					</tr>
-				{/if}
-			{/each}
+				{/each}
+			{/if}
 		</tbody>
 	</table>
 </div>
@@ -135,5 +163,4 @@
 	onPageSizeChange={(e) => (size = e.pageSize)}
 	siblingCount={4}
 	alternative
-	{count}
 />

@@ -51,6 +51,16 @@
 	async function loadSelectOptions(editMode = false) {
 		try {
 			let editData;
+			// TODO: Make edit mode work
+			if (editMode) {
+				toaster.create({
+					type: 'warning',
+					title: 'Coming Soon',
+					description: 'Edit mode is not yet implemented'
+				});
+				openPipeModal = false;
+				return;
+			}
 			if (editMode) {
 				const editUrl = `${PUBLIC_API_URL}conduit/${pipeData.value}/`;
 				const editRes = await fetch(editUrl, { credentials: 'include' });
