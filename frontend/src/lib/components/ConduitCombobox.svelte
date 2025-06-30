@@ -104,6 +104,7 @@
 			onValueChange={(e) => ($selectedConduit = e.value)}
 			placeholder={m.select_conduit()}
 			zIndex="10"
+			contentBase="max-h-60 overflow-auto"
 		/>
 	{/if}
 </div>

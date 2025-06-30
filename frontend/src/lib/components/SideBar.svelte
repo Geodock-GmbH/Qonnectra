@@ -7,7 +7,7 @@
 		IconLayoutSidebarLeftCollapse,
 		IconLayoutSidebarLeftExpand,
 		IconMap2,
-		IconVectorSpline,
+		IconLane,
 		IconPizza,
 		IconSettings
 	} from '@tabler/icons-svelte';
@@ -47,7 +47,7 @@
 				title="Trench"
 				selected={page.url.pathname === '/trench'}
 			>
-				<IconVectorSpline size={28} class="text-surface-700-300" />
+				<IconLane size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
 			<Navigation.Tile
 				href="/conduit"

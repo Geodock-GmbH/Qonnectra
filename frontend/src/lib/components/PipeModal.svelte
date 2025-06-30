@@ -243,6 +243,7 @@
 					required
 					value={selectedConduitType}
 					onValueChange={(e) => (selectedConduitType = e.value)}
+					contentBase="max-h-60 overflow-auto"
 				/>
 			</label>
 			<label class="label">
@@ -260,6 +261,7 @@
 					zIndex="10"
 					value={selectedStatus}
 					onValueChange={(e) => (selectedStatus = e.value)}
+					contentBase="max-h-60 overflow-auto"
 				/>
 			</label>
 			<label for="network_level" class="label">
@@ -296,6 +298,7 @@
 					zIndex="10"
 					value={selectedConstructor}
 					onValueChange={(e) => (selectedConstructor = e.value)}
+					contentBase="max-h-60 overflow-auto"
 				/>
 			</label>
 			<label for="manufacturer" class="label">
@@ -309,6 +312,7 @@
 					zIndex="10"
 					value={selectedManufacturer}
 					onValueChange={(e) => (selectedManufacturer = e.value)}
+					contentBase="max-h-60 overflow-auto"
 				/>
 			</label>
 			<label for="date" class="label">
@@ -326,6 +330,7 @@
 					value={selectedFlag}
 					required
 					onValueChange={(e) => (selectedFlag = e.value)}
+					contentBase="max-h-60 overflow-auto"
 				/>
 			</label>
 		</form>

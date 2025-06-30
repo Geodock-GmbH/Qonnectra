@@ -63,5 +63,6 @@
 		}}
 		placeholder={m.project()}
 		classes="z-10"
+		contentBase="max-h-60 overflow-auto"
 	/>
 {/if}
