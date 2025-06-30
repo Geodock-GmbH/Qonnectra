@@ -92,7 +92,7 @@
 	"no_new_trench_connections": "Keine neuen Trassenverbindungen",
 	"no_conduit_selected": "Kein Rohr ausgewählt",
 	"no_conduit_selected_description": "Bitte wählen Sie ein Rohr aus, um eine Route zu berechnen",
-	"download_template": "Template herunterladen",
+	"download_template": "Vorlage herunterladen",
 	"error_fetching_pipes": "Fehler beim Laden der Rohre",
 	"error_fetching_pipes_description": "Die Rohre konnten nicht geladen werden. Bitte versuche es erneut.",
 	"error_fetching_pipes_no_pipes": "Keine Rohre gefunden",

@@ -1,6 +1,7 @@
 from django.db import connection
 from django.http import HttpResponse
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -272,6 +273,21 @@ class ConduitViewSet(viewsets.ModelViewSet):
     pagination_class = CustomPagination
     lookup_field = "uuid"
     lookup_url_kwarg = "pk"
+
+    @action(detail=False, methods=["get"], url_path="all")
+    def all_conduits(self, request):
+        """
+        Returns all conduits with project and flag filters.
+        """
+        queryset = Conduit.objects.all().order_by("name")
+        project_id = request.query_params.get("project")
+        flag_id = request.query_params.get("flag")
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag_id:
+            queryset = queryset.filter(flag=flag_id)
+        serializer = ConduitSerializer(queryset, many=True)
+        return Response(serializer.data)
 
     def get_queryset(self):
         """

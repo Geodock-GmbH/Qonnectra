@@ -45,21 +45,16 @@
 		pipesError = null;
 
 		try {
-			let allResults = [];
-			let url = `${PUBLIC_API_URL}conduit/?project=${projectId}`;
-			while (url) {
-				const response = await fetch(url, { credentials: 'include' });
+			let url = `${PUBLIC_API_URL}conduit/all/?project=${projectId}`;
+			let response = await fetch(url, { credentials: 'include' });
 
-				if (!response.ok) {
-					throw new Error(`HTTP error! status: ${response.status}`);
-				}
-
-				const data = await response.json();
-				allResults.push(...data.results);
-				url = data.next;
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 
-			pipes = allResults.map((item) => ({
+			const data = await response.json();
+
+			pipes = data.map((item) => ({
 				value: item.uuid,
 				name: item.name,
 				conduit_type: item.conduit_type.conduit_type,

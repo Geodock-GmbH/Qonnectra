@@ -8,7 +8,7 @@
 		IconLayoutSidebarLeftExpand,
 		IconMap2,
 		IconLane,
-		IconPizza,
+		IconTableMinus,
 		IconSettings
 	} from '@tabler/icons-svelte';
 
@@ -55,7 +55,7 @@
 				title="Conduit"
 				selected={page.url.pathname === '/conduit'}
 			>
-				<IconPizza size={28} class="text-surface-700-300" />
+				<IconTableMinus size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
 		{/snippet}
 		{#snippet footer()}

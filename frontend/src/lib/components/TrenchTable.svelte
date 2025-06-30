@@ -14,7 +14,8 @@
 
 	// Toaster
 	const toaster = createToaster({
-		placement: 'bottom-end'
+		placement: 'bottom-end',
+		id: 'trench-table-toaster'
 	});
 
 	let { conduitId, onTrenchClick } = $props();
@@ -144,20 +145,15 @@
 		if (newTrenches.length > 0) {
 			const savePromises = newTrenches.map((trench) => saveTrenchConnection(trench.value));
 
-			await toaster.promise(Promise.all(savePromises), {
-				// loading: {
-				// 	description: m.please_wait()
-				// },
-				success: (data) => {
-					fetchTrenches(); // Refresh list after successful save
-				},
-				error: {
-					description: m.error_saving_trench_connection()
-				}
+			await Promise.all(savePromises);
+			fetchTrenches();
+			toaster.create({
+				type: 'success',
+				description: m.trench_connection_saved()
 			});
 		} else {
 			toaster.create({
-				type: 'info',
+				type: 'warning',
 				description: m.no_new_trench_connections()
 			});
 		}

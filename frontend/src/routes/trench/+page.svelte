@@ -407,12 +407,6 @@
 						if (trenchTableInstance && $selectedConduit !== undefined) {
 							await trenchTableInstance.addRoutedTrenches(newSelectionForTrenchTable);
 						}
-
-						toaster.create({
-							type: 'success',
-							title: m.route_found(),
-							description: m.route_found_description()
-						});
 					} else {
 						toaster.create({
 							type: 'error',
@@ -425,8 +419,8 @@
 					console.error('Routing error:', error);
 					toaster.create({
 						type: 'error',
-						message: 'Could not calculate route',
-						description: error.message
+						title: m.error_calculating_route(),
+						description: error.message // TODO: Translate. This comes from the backend. How?
 					});
 					startTrenchId = null;
 					endTrenchId = null;
