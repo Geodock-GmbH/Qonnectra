@@ -34,12 +34,12 @@
 
 	// State for OpenLayers objects
 	let vectorTileLayer = $state();
-	let addressLayer = $state(); // New address layer
-	let nodeLayer = $state(); // New node layer
-	let selectionLayer = $state(); // Layer for displaying selected features
+	let addressLayer = $state();
+	let nodeLayer = $state();
+	let selectionLayer = $state();
 	let olMapInstance = $state();
 	let popupOverlay = $state();
-	let selectionStore = $state({}); // Stores the ID of the selected feature { [featureId]: feature }
+	let selectionStore = $state({});
 
 	$effect(() => {
 		if (tileSource) {
@@ -161,7 +161,11 @@
 		vectorTileLayer = new VectorTileLayer({
 			source: tileSource,
 			style: trenchStyle,
-			renderMode: 'vector' // Important for getFeatures to work reliably
+			renderMode: 'vector',
+			properties: {
+				layerId: 'trench-layer',
+				layerName: m.trench()
+			}
 		});
 
 		// Create the Address Tile Source
@@ -217,7 +221,11 @@
 		addressLayer = new VectorTileLayer({
 			source: addressTileSource,
 			style: addressStyle,
-			renderMode: 'vector'
+			renderMode: 'vector',
+			properties: {
+				layerId: 'address-layer',
+				layerName: m.address()
+			}
 		});
 
 		// Create the Node Tile Source
@@ -273,7 +281,11 @@
 		nodeLayer = new VectorTileLayer({
 			source: nodeTileSource,
 			style: nodeStyle,
-			renderMode: 'vector'
+			renderMode: 'vector',
+			properties: {
+				layerId: 'node-layer',
+				layerName: m.node()
+			}
 		});
 	} catch (error) {
 		toaster.create({

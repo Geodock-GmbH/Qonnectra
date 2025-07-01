@@ -469,6 +469,7 @@
 				layers={selectionLayer && routeLayer && highlightLayer
 					? [vectorTileLayer, selectionLayer, routeLayer, highlightLayer]
 					: [vectorTileLayer]}
+				showLayerVisibilityTree={false}
 				on:ready={handleMapReady}
 			/>
 		{:else}

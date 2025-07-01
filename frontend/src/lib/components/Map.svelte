@@ -3,6 +3,7 @@
 	import { browser } from '$app/environment'; // Import browser check
 	import { mapCenter, mapZoom } from '$lib/stores/store';
 	import OpacitySlider from './OpacitySlider.svelte'; // Import the new OpacitySlider
+	import LayerVisibilityTree from './LayerVisibilityTree.svelte'; // Import the new LayerVisibilityTree
 
 	// Props
 	let {
@@ -10,7 +11,8 @@
 		viewOptions = {},
 		mapOptions = {},
 		className = '',
-		showOpacitySlider = true
+		showOpacitySlider = true,
+		showLayerVisibilityTree = true
 	} = $props();
 
 	let container; // div that will host the map
@@ -113,6 +115,12 @@
 			osmLayer.setOpacity(newOpacity);
 		}
 	}
+
+	function handleLayerVisibilityChange(event) {
+		// Layer visibility is handled directly by the LayerVisibilityTree component
+		// This event handler can be used for additional logic if needed
+		dispatch('layerVisibilityChanged', event.detail);
+	}
 </script>
 
 <div class="map-container {className}">
@@ -125,6 +133,15 @@
 				stepOpacity={opacitySliderConfig.stepOpacity}
 				opacity={currentLayerOpacity}
 				on:change={handleOpacitySliderChange}
+			/>
+		</div>
+	{/if}
+	{#if showLayerVisibilityTree && map}
+		<div class="custom-layer-visibility-wrapper">
+			<LayerVisibilityTree
+				{layers}
+				{osmLayer}
+				on:layerVisibilityChanged={handleLayerVisibilityChange}
 			/>
 		</div>
 	{/if}
@@ -143,6 +160,13 @@
 	}
 
 	.custom-opacity-slider-wrapper {
+		position: absolute;
+		bottom: 20px;
+		left: 20px;
+		z-index: 5;
+	}
+
+	.custom-layer-visibility-wrapper {
 		position: absolute;
 		top: 20px;
 		right: 20px;
