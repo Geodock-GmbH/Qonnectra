@@ -25,6 +25,7 @@
 	"address": "Address",
 	"node": "Node",
 	"osm": "OpenStreetMap",
+	"layer_visibility": "Layer visibility",
 	"title_missing_information": "Missing information",
 	"missing_information": "Please enter both username and password.",
 	"title_logging_in": "Logging in...",

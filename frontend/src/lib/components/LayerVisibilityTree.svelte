@@ -77,7 +77,7 @@
 </script>
 
 <div class="w-64 p-2 bg-surface-50-950 rounded-md shadow">
-	<p class="text-sm text-surface-contrast-100-900 mb-2">Layer Visibility</p>
+	<p class="text-sm text-surface-contrast-100-900 mb-2">{m.layer_visibility()}</p>
 
 	<div class="space-y-2">
 		{#each Array.from(layerVisibility.entries()) as [layerId, layerInfo]}
