@@ -34,6 +34,8 @@
 
 	// State for OpenLayers objects
 	let vectorTileLayer = $state();
+	let addressLayer = $state(); // New address layer
+	let nodeLayer = $state(); // New node layer
 	let selectionLayer = $state(); // Layer for displaying selected features
 	let olMapInstance = $state();
 	let popupOverlay = $state();
@@ -42,6 +44,12 @@
 	$effect(() => {
 		if (tileSource) {
 			tileSource.refresh();
+		}
+		if (addressTileSource) {
+			addressTileSource.refresh();
+		}
+		if (nodeTileSource) {
+			nodeTileSource.refresh();
 		}
 	});
 
@@ -77,13 +85,33 @@
 		})
 	});
 
+	// Style for address points
+	const addressStyle = new Style({
+		image: new CircleStyle({
+			radius: 6,
+			fill: new Fill({ color: '#ff6b35' }), // Orange color for addresses
+			stroke: new Stroke({ color: '#ffffff', width: 1 })
+		})
+	});
+
+	// Style for node points
+	const nodeStyle = new Style({
+		image: new CircleStyle({
+			radius: 4,
+			fill: new Fill({ color: '#2563eb' }), // Blue color for nodes
+			stroke: new Stroke({ color: '#ffffff', width: 1 })
+		})
+	});
+
 	// Create the Vector Tile Layer and Source
 	// This runs once when the component script is executed
 	let tileSource; // Define tileSource here to be accessible by selectionLayer
+	let addressTileSource; // Define addressTileSource for the address layer
+	let nodeTileSource; // Define nodeTileSource for the node layer
 	try {
 		tileSource = new VectorTileSource({
 			format: new MVT({
-				idProperty: 'uuid' // Crucial: Tell OpenLayers to use 'uuid' as the feature ID
+				idProperty: 'uuid'
 			}),
 			tileUrlFunction: (tileCoord) => {
 				const [z, x, y] = tileCoord;
@@ -91,6 +119,7 @@
 				if (isNaN(projectId)) {
 					return undefined; // Don't load tiles if no project is selected.
 				}
+
 				return `${PUBLIC_API_URL}ol_trench_tiles/${z}/${x}/${y}.mvt?project=${projectId}`;
 			},
 			tileLoadFunction: (tile, url) => {
@@ -134,6 +163,118 @@
 			style: trenchStyle,
 			renderMode: 'vector' // Important for getFeatures to work reliably
 		});
+
+		// Create the Address Tile Source
+		addressTileSource = new VectorTileSource({
+			format: new MVT({
+				idProperty: 'uuid' // Use 'uuid' as the feature ID
+			}),
+			tileUrlFunction: (tileCoord) => {
+				const [z, x, y] = tileCoord;
+				const projectId = parseInt($selectedProject, 10);
+				if (isNaN(projectId)) {
+					return undefined; // Don't load tiles if no project is selected.
+				}
+
+				return `${PUBLIC_API_URL}ol_address_tiles/${z}/${x}/${y}.mvt?project=${projectId}`;
+			},
+			tileLoadFunction: (tile, url) => {
+				if (!url) {
+					tile.setState(4); // EMPTY
+					return;
+				}
+				tile.setLoader((extent, resolution, projection) => {
+					fetch(url, {
+						credentials: 'include'
+					})
+						.then((response) => {
+							if (!response.ok) {
+								throw new Error(`Failed to load address tile: ${response.statusText}`);
+							}
+							return response.arrayBuffer();
+						})
+						.then((data) => {
+							const format = tile.getFormat();
+							const features = format.readFeatures(data, {
+								extent: extent,
+								featureProjection: projection
+							});
+							tile.setFeatures(features);
+						})
+						.catch((error) => {
+							console.error('Error loading address vector tile:', error);
+							tile.setState(3); // 3 corresponds to ol.TileState.ERROR
+							toaster.create({
+								type: 'error',
+								message: 'Error loading address tile',
+								description: error.message || 'Could not fetch address tile data.'
+							});
+						});
+				});
+			}
+		});
+
+		addressLayer = new VectorTileLayer({
+			source: addressTileSource,
+			style: addressStyle,
+			renderMode: 'vector'
+		});
+
+		// Create the Node Tile Source
+		nodeTileSource = new VectorTileSource({
+			format: new MVT({
+				idProperty: 'uuid'
+			}),
+			tileUrlFunction: (tileCoord) => {
+				const [z, x, y] = tileCoord;
+				const projectId = parseInt($selectedProject, 10);
+				if (isNaN(projectId)) {
+					return undefined; // Don't load tiles if no project is selected.
+				}
+
+				return `${PUBLIC_API_URL}ol_node_tiles/${z}/${x}/${y}.mvt?project=${projectId}`;
+			},
+			tileLoadFunction: (tile, url) => {
+				if (!url) {
+					tile.setState(4); // EMPTY
+					return;
+				}
+				tile.setLoader((extent, resolution, projection) => {
+					fetch(url, {
+						credentials: 'include'
+					})
+						.then((response) => {
+							if (!response.ok) {
+								throw new Error(`Failed to load node tile: ${response.statusText}`);
+							}
+							return response.arrayBuffer();
+						})
+						.then((data) => {
+							const format = tile.getFormat();
+							const features = format.readFeatures(data, {
+								extent: extent,
+								featureProjection: projection
+							});
+							tile.setFeatures(features);
+						})
+						.catch((error) => {
+							console.error('Error loading node vector tile:', error);
+							tile.setState(3); // 3 corresponds to ol.TileState.ERROR
+							toaster.create({
+								type: 'error',
+								message: 'Error loading node tile',
+								description: error.message || 'Could not fetch node tile data.'
+							});
+						});
+				});
+			}
+		});
+
+		nodeLayer = new VectorTileLayer({
+			source: nodeTileSource,
+			style: nodeStyle,
+			renderMode: 'vector'
+		});
 	} catch (error) {
 		toaster.create({
 			type: 'error',
@@ -142,6 +283,10 @@
 		});
 		vectorTileLayer = undefined;
 		tileSource = undefined;
+		addressLayer = undefined;
+		addressTileSource = undefined;
+		nodeLayer = undefined;
+		nodeTileSource = undefined;
 	}
 
 	// Handler for the map ready event
@@ -206,7 +351,8 @@
 				},
 				{
 					hitTolerance: 10,
-					layerFilter: (layer) => layer === vectorTileLayer // Only check our main data layer
+					layerFilter: (layer) =>
+						layer === vectorTileLayer || layer === addressLayer || layer === nodeLayer // Check trench, address, and node layers
 				}
 			);
 
@@ -252,6 +398,8 @@
 		if (olMapInstance) {
 			if (popupOverlay) olMapInstance.removeOverlay(popupOverlay);
 			if (selectionLayer) olMapInstance.removeLayer(selectionLayer); // Remove selection layer
+			if (addressLayer) olMapInstance.removeLayer(addressLayer); // Remove address layer
+			if (nodeLayer) olMapInstance.removeLayer(nodeLayer); // Remove node layer
 		}
 		olMapInstance = undefined;
 		popupOverlay = undefined;
@@ -266,6 +414,18 @@
 			vectorTileLayer.getSource().dispose(); // Dispose the source
 		}
 		vectorTileLayer = undefined;
+
+		if (addressLayer && addressLayer.getSource()) {
+			addressLayer.getSource().dispose(); // Dispose the address source
+		}
+		addressLayer = undefined;
+		addressTileSource = undefined;
+
+		if (nodeLayer && nodeLayer.getSource()) {
+			nodeLayer.getSource().dispose(); // Dispose the node source
+		}
+		nodeLayer = undefined;
+		nodeTileSource = undefined;
 	});
 
 	if (data.error) {
@@ -288,7 +448,12 @@
 		<div class="map-wrapper border-2 rounded-lg border-surface-200-800 h-full w-full">
 			<Map
 				className="rounded-lg overflow-hidden"
-				layers={selectionLayer ? [vectorTileLayer, selectionLayer] : [vectorTileLayer]}
+				layers={[
+					vectorTileLayer,
+					...(addressLayer ? [addressLayer] : []),
+					...(nodeLayer ? [nodeLayer] : []),
+					...(selectionLayer ? [selectionLayer] : [])
+				]}
 				on:ready={handleMapReady}
 			/>
 			<div id="popup" class="ol-popup bg-primary-500 rounded-lg border-2 border-primary-600">

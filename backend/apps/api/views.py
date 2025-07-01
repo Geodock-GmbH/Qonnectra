@@ -491,6 +491,12 @@ class OlAddressTileViewSet(APIView):
         sql = """
             WITH mvtgeom AS (
                 SELECT 
+                ST_AsMVTGeom(
+                        a.geom, 
+                        ST_TileEnvelope(%(z)s, %(x)s, %(y)s),
+                        extent => 4096,
+                        buffer => 64
+                    ) AS geom,
                     a.uuid,
                     a.id_address,
                     a.zip_code,
@@ -499,10 +505,9 @@ class OlAddressTileViewSet(APIView):
                     a.street,
                     a.housenumber,
                     a.house_number_suffix,
-                    a.geom,
                     f.flag,
-                    sd.status_development
-            FROM address a
+                    sd.status
+            FROM ol_address  a
             LEFT JOIN attributes_status_development sd ON a.status_development = sd.id
             LEFT JOIN flags f ON a.flag = f.id
                 WHERE
@@ -514,7 +519,9 @@ class OlAddressTileViewSet(APIView):
         """
         project_id = request.query_params.get("project")
         if project_id is None:
-            return HttpResponse(status=204)
+            return HttpResponse(
+                "No project ID provided", status=400, content_type="text/plain"
+            )
         try:
             project_id = int(project_id)
         except ValueError:
@@ -632,11 +639,16 @@ class OlNodeTileViewSet(APIView):
         sql = """
             WITH mvtgeom AS (
                 SELECT 
+                ST_AsMVTGeom(
+                        n.geom, 
+                        ST_TileEnvelope(%(z)s, %(x)s, %(y)s),
+                        extent => 4096,
+                        buffer => 64
+                    ) AS geom,
                     n.uuid,
                     n.name,
                     n.warranty,
                     n.date,
-                    n.geom,
                     c2.company,
                     f.flag,
                     c3.company,
@@ -646,7 +658,7 @@ class OlNodeTileViewSet(APIView):
                     s.status,
                     coalesce(a.street || ' ' || a.housenumber, a.house_number_suffix,
                     a.street || '' || a.housenumber) as address
-                FROM node n
+                FROM ol_node n
                 LEFT JOIN address a on n.uuid_address = a.uuid
                 LEFT JOIN attributes_company c1 on n.owner = c1.id
                 LEFT JOIN attributes_company c2 on n.constructor = c2.id
