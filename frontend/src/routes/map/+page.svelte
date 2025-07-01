@@ -88,8 +88,8 @@
 	// Style for address points
 	const addressStyle = new Style({
 		image: new CircleStyle({
-			radius: 6,
-			fill: new Fill({ color: '#ff6b35' }), // Orange color for addresses
+			radius: 4,
+			fill: new Fill({ color: '#2563eb' }),
 			stroke: new Stroke({ color: '#ffffff', width: 1 })
 		})
 	});
@@ -97,8 +97,8 @@
 	// Style for node points
 	const nodeStyle = new Style({
 		image: new CircleStyle({
-			radius: 4,
-			fill: new Fill({ color: '#2563eb' }), // Blue color for nodes
+			radius: 6,
+			fill: new Fill({ color: '#ff6b35' }),
 			stroke: new Stroke({ color: '#ffffff', width: 1 })
 		})
 	});
