@@ -37,6 +37,8 @@
 	let addressLayer = $state();
 	let nodeLayer = $state();
 	let selectionLayer = $state();
+	let addressSelectionLayer = $state();
+	let nodeSelectionLayer = $state();
 	let olMapInstance = $state();
 	let popupOverlay = $state();
 	let selectionStore = $state({});
@@ -311,10 +313,10 @@
 	function initializeMapInteractions() {
 		if (!olMapInstance || !vectorTileLayer || !tileSource) return;
 
-		// Create the selection layer
+		// Create the selection layers for each layer type
 		selectionLayer = new VectorTileLayer({
 			renderMode: 'vector',
-			source: tileSource, // Use the same source as the main layer
+			source: tileSource, // Use the same source as the main trench layer
 			style: function (feature) {
 				if (feature.getId() && selectionStore[feature.getId()]) {
 					return selectedStyle;
@@ -322,7 +324,33 @@
 				return undefined; // Don't render if not selected
 			}
 		});
-		olMapInstance.addLayer(selectionLayer); // Add selection layer to the map
+		olMapInstance.addLayer(selectionLayer);
+
+		// Create selection layer for addresses
+		addressSelectionLayer = new VectorTileLayer({
+			renderMode: 'vector',
+			source: addressTileSource,
+			style: function (feature) {
+				if (feature.getId() && selectionStore[feature.getId()]) {
+					return selectedStyle;
+				}
+				return undefined;
+			}
+		});
+		olMapInstance.addLayer(addressSelectionLayer);
+
+		// Create selection layer for nodes
+		nodeSelectionLayer = new VectorTileLayer({
+			renderMode: 'vector',
+			source: nodeTileSource,
+			style: function (feature) {
+				if (feature.getId() && selectionStore[feature.getId()]) {
+					return selectedStyle;
+				}
+				return undefined;
+			}
+		});
+		olMapInstance.addLayer(nodeSelectionLayer);
 
 		// Create and add a popup overlay
 		const popupContainer = document.getElementById('popup');
@@ -344,7 +372,10 @@
 			closer.onclick = () => {
 				popupOverlay.setPosition(undefined);
 				selectionStore = {}; // Clear selection on popup close
-				if (selectionLayer) selectionLayer.changed(); // Refresh selection layer
+				// Refresh all selection layers
+				if (selectionLayer) selectionLayer.changed();
+				if (addressSelectionLayer) addressSelectionLayer.changed();
+				if (nodeSelectionLayer) nodeSelectionLayer.changed();
 				closer.blur();
 				return false;
 			};
@@ -397,7 +428,10 @@
 				selectionStore = {};
 				popupOverlay.setPosition(undefined);
 			}
-			if (selectionLayer) selectionLayer.changed(); // Refresh selection layer
+			// Refresh all selection layers
+			if (selectionLayer) selectionLayer.changed();
+			if (addressSelectionLayer) addressSelectionLayer.changed();
+			if (nodeSelectionLayer) nodeSelectionLayer.changed();
 
 			// The .then() and .catch() structure is not directly applicable here as forEachFeatureAtPixel is synchronous
 			// and doesn't return a Promise. Error handling for it would be less direct.
@@ -409,18 +443,19 @@
 	onDestroy(() => {
 		if (olMapInstance) {
 			if (popupOverlay) olMapInstance.removeOverlay(popupOverlay);
-			if (selectionLayer) olMapInstance.removeLayer(selectionLayer); // Remove selection layer
-			if (addressLayer) olMapInstance.removeLayer(addressLayer); // Remove address layer
-			if (nodeLayer) olMapInstance.removeLayer(nodeLayer); // Remove node layer
+			if (selectionLayer) olMapInstance.removeLayer(selectionLayer);
+			if (addressSelectionLayer) olMapInstance.removeLayer(addressSelectionLayer);
+			if (nodeSelectionLayer) olMapInstance.removeLayer(nodeSelectionLayer);
+			if (addressLayer) olMapInstance.removeLayer(addressLayer);
+			if (nodeLayer) olMapInstance.removeLayer(nodeLayer);
 		}
 		olMapInstance = undefined;
 		popupOverlay = undefined;
 		selectionStore = {};
-		if (selectionLayer && selectionLayer.getSource()) {
-			// Source is shared, dispose only with the main layer
-			// selectionLayer.getSource().dispose(); // NO - source is shared
-		}
+		// Selection layers share sources with main layers, so don't dispose sources here
 		selectionLayer = undefined;
+		addressSelectionLayer = undefined;
+		nodeSelectionLayer = undefined;
 
 		if (vectorTileLayer && vectorTileLayer.getSource()) {
 			vectorTileLayer.getSource().dispose(); // Dispose the source
@@ -464,7 +499,9 @@
 					vectorTileLayer,
 					...(addressLayer ? [addressLayer] : []),
 					...(nodeLayer ? [nodeLayer] : []),
-					...(selectionLayer ? [selectionLayer] : [])
+					...(selectionLayer ? [selectionLayer] : []),
+					...(addressSelectionLayer ? [addressSelectionLayer] : []),
+					...(nodeSelectionLayer ? [nodeSelectionLayer] : [])
 				]}
 				on:ready={handleMapReady}
 			/>
