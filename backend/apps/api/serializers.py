@@ -5,6 +5,7 @@ from rest_framework.validators import UniqueValidator
 from rest_framework_gis.serializers import GeoFeatureModelSerializer, GeometryField
 
 from .models import (
+    Address,
     AttributesCompany,
     AttributesConduitType,
     AttributesConstructionType,
@@ -12,10 +13,14 @@ from .models import (
     AttributesNodeType,
     AttributesPhase,
     AttributesStatus,
+    AttributesStatusDevelopment,
     AttributesSurface,
     Conduit,
     FeatureFiles,
     Flags,
+    Node,
+    OlAddress,
+    OlNode,
     OlTrench,
     Projects,
     Trench,
@@ -117,6 +122,14 @@ class AttributesNetworkLevelSerializer(serializers.ModelSerializer):
     class Meta:
         model = AttributesNetworkLevel
         fields = ["id", "network_level"]
+
+
+class AttributesStatusDevelopmentSerializer(serializers.ModelSerializer):
+    """Serializer for the AttributesStatusDevelopment model."""
+
+    class Meta:
+        model = AttributesStatusDevelopment
+        fields = ["id", "status"]
 
 
 class TrenchSerializer(GeoFeatureModelSerializer):
@@ -478,5 +491,286 @@ class TrenchConduitSerializer(serializers.ModelSerializer):
         # Translate labels
         fields["trench"].label = _("Trench")
         fields["conduit"].label = _("Conduit")
+
+        return fields
+
+
+class AddressSerializer(GeoFeatureModelSerializer):
+    """Serializer for the Address model."""
+
+    # Read only fields
+    uuid = serializers.UUIDField(read_only=True)
+
+    # Get nested serializers for foreign keys
+    status_development = AttributesStatusDevelopmentSerializer(read_only=True)
+    flag = FlagsSerializer(read_only=True)
+    project = ProjectsSerializer(read_only=True)
+
+    # Add write fields for foreign keys
+    id_address = serializers.IntegerField(required=False)
+    zip_code = serializers.CharField(required=True)
+    city = serializers.CharField(required=True)
+    district = serializers.CharField(required=False)
+    street = serializers.CharField(required=True)
+    housenumber = serializers.IntegerField(required=True)
+    house_number_suffix = serializers.CharField(required=False)
+    status_development_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesStatusDevelopment.objects.all(),
+        source="status_development",
+    )
+    flag_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Flags.objects.all(),
+        source="flag",
+    )
+    project_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Projects.objects.all(),
+        source="project",
+    )
+    geom = GeometryField()
+
+    class Meta:
+        model = Address
+        geo_field = "geom"
+        fields = "__all__"
+        ordering = ["street", "housenumber", "house_number_suffix"]
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+
+        # Translate labels
+        fields["id_address"].label = _("Address ID")
+        fields["zip_code"].label = _("Zip Code")
+        fields["city"].label = _("City")
+        fields["district"].label = _("District")
+        fields["street"].label = _("Street")
+        fields["housenumber"].label = _("Housenumber")
+        fields["house_number_suffix"].label = _("House Number Suffix")
+        fields["status_development_id"].label = _("Status Development")
+        fields["flag_id"].label = _("Flag")
+        fields["project_id"].label = _("Project")
+        fields["geom"].label = _("Geometry")
+
+        return fields
+
+    def validate_geom(self, value):
+        """Validate geometry before saving"""
+        # Check geometry type
+        if value.geom_type != "Point":
+            raise serializers.ValidationError(
+                f"{_('Geometry type must be Point, not')} {value.geom_type}"
+            )
+
+        # Transform to default SRID
+        if value.srid != settings.DEFAULT_SRID:
+            try:
+                value.transform(settings.DEFAULT_SRID)
+            except Exception as e:
+                raise serializers.ValidationError(
+                    f"{_('Could not transform coordinates to EPSG:')} {settings.DEFAULT_SRID}: {str(e)}"
+                )
+
+        return value
+
+
+class OlAddressSerializer(GeoFeatureModelSerializer):
+    """Serializer for the OlAddress model.
+
+    Args:
+        GeoFeatureModelSerializer (GeoFeatureModelSerializer): The base serializer class.
+    """
+
+    # Read only fields
+    uuid = serializers.UUIDField(read_only=True)
+
+    # Get nested serializers for foreign keys
+    flag = FlagsSerializer(read_only=True)
+    project = ProjectsSerializer(read_only=True)
+    status_development = AttributesStatusDevelopmentSerializer(read_only=True)
+    id_address = serializers.IntegerField(read_only=True)
+    zip_code = serializers.CharField(read_only=True)
+    city = serializers.CharField(read_only=True)
+    district = serializers.CharField(read_only=True)
+    street = serializers.CharField(read_only=True)
+    housenumber = serializers.IntegerField(read_only=True)
+    house_number_suffix = serializers.CharField(read_only=True)
+    geom = GeometryField(read_only=True)
+
+    class Meta:
+        model = OlAddress
+        geo_field = "geom"
+        fields = "__all__"
+        ordering = ["street", "housenumber", "house_number_suffix"]
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+
+        # Translate labels
+        fields["flag"].label = _("Flag")
+        fields["project"].label = _("Project")
+        fields["status_development"].label = _("Status Development")
+        fields["id_address"].label = _("Address ID")
+        fields["zip_code"].label = _("Zip Code")
+        fields["city"].label = _("City")
+        fields["district"].label = _("District")
+        fields["street"].label = _("Street")
+        fields["housenumber"].label = _("Housenumber")
+        fields["house_number_suffix"].label = _("House Number Suffix")
+        fields["geom"].label = _("Geometry")
+
+        return fields
+
+
+class NodeSerializer(GeoFeatureModelSerializer):
+    """Serializer for the Node model."""
+
+    # Read only fields
+    uuid = serializers.UUIDField(read_only=True)
+
+    # Get nested serializers for foreign keys
+    uuid_address = AddressSerializer(read_only=True)
+    node_type = AttributesNodeTypeSerializer(read_only=True)
+    status = AttributesStatusSerializer(read_only=True)
+    network_level = AttributesNetworkLevelSerializer(read_only=True)
+    owner = AttributesCompanySerializer(read_only=True)
+    constructor = AttributesCompanySerializer(read_only=True)
+    manufacturer = AttributesCompanySerializer(read_only=True)
+    project = ProjectsSerializer(read_only=True)
+    flag = FlagsSerializer(read_only=True)
+
+    # Add write fields for foreign keys
+    name = serializers.CharField(required=True)
+    node_type_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesNodeType.objects.all(),
+        source="node_type",
+    )
+    uuid_address_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Address.objects.all(),
+        source="uuid_address",
+    )
+    status_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesStatus.objects.all(),
+        source="status",
+    )
+    network_level_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesNetworkLevel.objects.all(),
+        source="network_level",
+    )
+    owner_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesCompany.objects.all(),
+        source="owner",
+    )
+    constructor_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesCompany.objects.all(),
+        source="constructor",
+    )
+    manufacturer_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesCompany.objects.all(),
+        source="manufacturer",
+    )
+    warranty = serializers.DateField(
+        required=False, input_formats=["%Y/%m/%d"], format="%d/%m/%Y"
+    )
+    date = serializers.DateField(
+        required=False, input_formats=["%Y/%m/%d"], format="%d/%m/%Y"
+    )
+    geom = GeometryField()
+    project_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Projects.objects.all(),
+        source="project",
+    )
+    flag_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Flags.objects.all(),
+        source="flag",
+    )
+
+    class Meta:
+        model = Node
+        geo_field = "geom"
+        fields = "__all__"
+        ordering = ["name"]
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+
+        # Translate labels
+        fields["name"].label = _("Node Name")
+        fields["node_type_id"].label = _("Node Type")
+        fields["uuid_address_id"].label = _("Address")
+        fields["status_id"].label = _("Status")
+        fields["network_level_id"].label = _("Network Level")
+        fields["owner_id"].label = _("Owner")
+        fields["constructor_id"].label = _("Constructor")
+        fields["manufacturer_id"].label = _("Manufacturer")
+        fields["warranty"].label = _("Warranty")
+        fields["date"].label = _("Date")
+        fields["geom"].label = _("Geometry")
+        fields["project_id"].label = _("Project")
+        fields["flag_id"].label = _("Flag")
+
+        return fields
+
+
+class OlNodeSerializer(GeoFeatureModelSerializer):
+    """Serializer for the OlNode model."""
+
+    # Read only fields
+    uuid = serializers.UUIDField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    node_type = AttributesNodeTypeSerializer(read_only=True)
+    uuid_address = OlAddressSerializer(read_only=True)
+    status = AttributesStatusSerializer(read_only=True)
+    network_level = AttributesNetworkLevelSerializer(read_only=True)
+    owner = AttributesCompanySerializer(read_only=True)
+    constructor = AttributesCompanySerializer(read_only=True)
+    manufacturer = AttributesCompanySerializer(read_only=True)
+    warranty = serializers.DateField(
+        read_only=True, input_formats=["%Y/%m/%d"], format="%d/%m/%Y"
+    )
+    date = serializers.DateField(
+        read_only=True, input_formats=["%Y/%m/%d"], format="%d/%m/%Y"
+    )
+    project = ProjectsSerializer(read_only=True)
+    flag = FlagsSerializer(read_only=True)
+    geom = GeometryField(read_only=True)
+
+    class Meta:
+        model = OlNode
+        geo_field = "geom"
+        fields = "__all__"
+        ordering = ["name"]
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+
+        # Translate labels
+        fields["name"].label = _("Node Name")
+        fields["node_type"].label = _("Node Type")
+        fields["uuid_address"].label = _("Address")
+        fields["status"].label = _("Status")
+        fields["network_level"].label = _("Network Level")
+        fields["owner"].label = _("Owner")
+        fields["constructor"].label = _("Constructor")
+        fields["manufacturer"].label = _("Manufacturer")
+        fields["warranty"].label = _("Warranty")
+        fields["date"].label = _("Date")
+        fields["project"].label = _("Project")
+        fields["flag"].label = _("Flag")
+        fields["geom"].label = _("Geometry")
 
         return fields

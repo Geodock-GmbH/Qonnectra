@@ -8,6 +8,7 @@ from .models import (
     AttributesNodeType,
     AttributesPhase,
     AttributesStatus,
+    AttributesStatusDevelopment,
     AttributesSurface,
     FileTypeCategory,
     Flags,
@@ -17,6 +18,7 @@ from .models import (
 )
 
 admin.site.register(AttributesSurface)
+admin.site.register(AttributesStatusDevelopment)
 admin.site.register(AttributesConstructionType)
 admin.site.register(AttributesStatus)
 admin.site.register(AttributesPhase)

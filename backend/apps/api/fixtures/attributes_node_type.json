@@ -1,0 +1,82 @@
+[
+    {
+        "model": "api.attributesnodetype",
+        "pk": 1,
+        "fields": {
+            "node_type": "Hausanschluss",
+            "dimension": null,
+            "group": "HA",
+            "company": null
+        }
+    },
+    {
+        "model": "api.attributesnodetype",
+        "pk": 2,
+        "fields": {
+            "node_type": "NVt 48",
+            "dimension": null,
+            "group": "NVT",
+            "company": null
+        }
+    },
+    {
+        "model": "api.attributesnodetype",
+        "pk": 3,
+        "fields": {
+            "node_type": "Schacht",
+            "dimension": "800x1400",
+            "group": "SCH",
+            "company": null
+        }
+    },
+    {
+        "model": "api.attributesnodetype",
+        "pk": 4,
+        "fields": {
+            "node_type": "Rohrabzweig",
+            "dimension": null,
+            "group": "RAB",
+            "company": null
+        }
+    },
+    {
+        "model": "api.attributesnodetype",
+        "pk": 5,
+        "fields": {
+            "node_type": "Muffe",
+            "dimension": null,
+            "group": "MUF",
+            "company": null
+        }
+    },
+    {
+        "model": "api.attributesnodetype",
+        "pk": 6,
+        "fields": {
+            "node_type": "Kabelring",
+            "dimension": null,
+            "group": "KAB",
+            "company": null
+        }
+    },
+    {
+        "model": "api.attributesnodetype",
+        "pk": 7,
+        "fields": {
+            "node_type": "MFG",
+            "dimension": null,
+            "group": "MFG",
+            "company": null
+        }
+    },
+    {
+        "model": "api.attributesnodetype",
+        "pk": 8,
+        "fields": {
+            "node_type": "POP",
+            "dimension": null,
+            "group": "POP",
+            "company": null
+        }
+    }
+]

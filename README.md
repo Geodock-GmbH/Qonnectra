@@ -10,6 +10,7 @@
         - [ ] Area model and serializer
     - [ ] Admin
 - [ ] Geoserver init through API and shell script
+- [ ] QGIS-Server through admin django panel. Sharing project folder via docker volumes, DJ Model + admin
 - [ ] Storage SameSite problem
     - [ ] After auth has been implemented, this could be a problem,
           Since the first part in the file path is always the same user.

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-06-26 13:02+0200\n"
+"POT-Creation-Date: 2025-07-01 06:08+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,15 +18,18 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: apps/api/models.py:19 apps/api/models.py:24 apps/api/models.py:521
-#: apps/api/models.py:639 apps/api/models.py:736 apps/api/serializers.py:255
-#: apps/api/serializers.py:354 apps/api/serializers.py:434
-#: apps/api/services.py:25
+#: apps/api/models.py:19 apps/api/models.py:24 apps/api/models.py:538
+#: apps/api/models.py:651 apps/api/models.py:750 apps/api/models.py:901
+#: apps/api/models.py:963 apps/api/models.py:1071 apps/api/models.py:1193
+#: apps/api/serializers.py:269 apps/api/serializers.py:368
+#: apps/api/serializers.py:466 apps/api/serializers.py:554
+#: apps/api/serializers.py:614 apps/api/serializers.py:722
+#: apps/api/serializers.py:772 apps/api/services.py:41 apps/api/services.py:206
 msgid "Project"
 msgstr "Projekt"
 
-#: apps/api/models.py:20 apps/api/models.py:309 apps/api/models.py:394
-#: apps/api/serializers.py:292
+#: apps/api/models.py:20 apps/api/models.py:326 apps/api/models.py:411
+#: apps/api/serializers.py:306
 msgid "Description"
 msgstr "Beschreibung"
 
@@ -34,10 +37,13 @@ msgstr "Beschreibung"
 msgid "Projects"
 msgstr "Projekte"
 
-#: apps/api/models.py:37 apps/api/models.py:41 apps/api/models.py:531
-#: apps/api/models.py:646 apps/api/models.py:745 apps/api/serializers.py:256
-#: apps/api/serializers.py:355 apps/api/serializers.py:435
-#: apps/api/services.py:26
+#: apps/api/models.py:37 apps/api/models.py:41 apps/api/models.py:548
+#: apps/api/models.py:658 apps/api/models.py:759 apps/api/models.py:893
+#: apps/api/models.py:955 apps/api/models.py:1063 apps/api/models.py:1185
+#: apps/api/serializers.py:270 apps/api/serializers.py:369
+#: apps/api/serializers.py:467 apps/api/serializers.py:553
+#: apps/api/serializers.py:613 apps/api/serializers.py:723
+#: apps/api/serializers.py:773 apps/api/services.py:42 apps/api/services.py:207
 msgid "Flag"
 msgstr "Kennzeichen"
 
@@ -45,9 +51,9 @@ msgstr "Kennzeichen"
 msgid "Flags"
 msgstr "Kennzeichen"
 
-#: apps/api/models.py:54 apps/api/models.py:62 apps/api/models.py:427
-#: apps/api/models.py:587 apps/api/serializers.py:241
-#: apps/api/serializers.py:341
+#: apps/api/models.py:54 apps/api/models.py:62 apps/api/models.py:444
+#: apps/api/models.py:599 apps/api/serializers.py:255
+#: apps/api/serializers.py:355
 msgid "Surface"
 msgstr "Oberfläche"
 
@@ -59,9 +65,9 @@ msgstr "Versiegelung"
 msgid "Surfaces"
 msgstr "Oberflächen"
 
-#: apps/api/models.py:76 apps/api/models.py:87 apps/api/models.py:435
-#: apps/api/models.py:593 apps/api/serializers.py:242
-#: apps/api/serializers.py:342
+#: apps/api/models.py:76 apps/api/models.py:87 apps/api/models.py:452
+#: apps/api/models.py:605 apps/api/serializers.py:256
+#: apps/api/serializers.py:356
 msgid "Construction Type"
 msgstr "Bau-/Verlegeart"
 
@@ -69,10 +75,12 @@ msgstr "Bau-/Verlegeart"
 msgid "Construction Types"
 msgstr "Bau-/Verlegearten"
 
-#: apps/api/models.py:100 apps/api/models.py:110 apps/api/models.py:451
-#: apps/api/models.py:602 apps/api/models.py:691 apps/api/serializers.py:243
-#: apps/api/serializers.py:343 apps/api/serializers.py:429
-#: apps/api/services.py:19
+#: apps/api/models.py:100 apps/api/models.py:110 apps/api/models.py:252
+#: apps/api/models.py:468 apps/api/models.py:614 apps/api/models.py:705
+#: apps/api/models.py:1017 apps/api/models.py:1139 apps/api/serializers.py:257
+#: apps/api/serializers.py:357 apps/api/serializers.py:461
+#: apps/api/serializers.py:714 apps/api/serializers.py:765
+#: apps/api/services.py:35 apps/api/services.py:200
 msgid "Status"
 msgstr "Status"
 
@@ -80,9 +88,9 @@ msgstr "Status"
 msgid "Statuses"
 msgstr "Status"
 
-#: apps/api/models.py:123 apps/api/models.py:133 apps/api/models.py:459
-#: apps/api/models.py:609 apps/api/serializers.py:244
-#: apps/api/serializers.py:344
+#: apps/api/models.py:123 apps/api/models.py:133 apps/api/models.py:476
+#: apps/api/models.py:621 apps/api/serializers.py:258
+#: apps/api/serializers.py:358
 msgid "Phase"
 msgstr "Phase"
 
@@ -91,11 +99,12 @@ msgid "Phases"
 msgstr "Phasen"
 
 #: apps/api/models.py:146 apps/api/models.py:162 apps/api/models.py:178
-#: apps/api/serializers.py:246
+#: apps/api/serializers.py:260
 msgid "Company"
 msgstr "Firma"
 
-#: apps/api/models.py:147
+#: apps/api/models.py:147 apps/api/models.py:871 apps/api/models.py:943
+#: apps/api/serializers.py:547 apps/api/serializers.py:618
 msgid "City"
 msgstr "Stadt"
 
@@ -103,11 +112,13 @@ msgstr "Stadt"
 msgid "Postal Code"
 msgstr "Postleitzahl"
 
-#: apps/api/models.py:149
+#: apps/api/models.py:149 apps/api/models.py:873 apps/api/models.py:945
+#: apps/api/serializers.py:549 apps/api/serializers.py:620
 msgid "Street"
 msgstr "Straße"
 
-#: apps/api/models.py:150
+#: apps/api/models.py:150 apps/api/models.py:874 apps/api/models.py:946
+#: apps/api/serializers.py:550 apps/api/serializers.py:621
 msgid "Housenumber"
 msgstr "Hausnummer"
 
@@ -123,7 +134,9 @@ msgstr "E-Mail"
 msgid "Companies"
 msgstr "Firmen"
 
-#: apps/api/models.py:175 apps/api/models.py:188
+#: apps/api/models.py:175 apps/api/models.py:188 apps/api/models.py:1001
+#: apps/api/models.py:1123 apps/api/serializers.py:712
+#: apps/api/serializers.py:763
 msgid "Node Type"
 msgstr "Netzknotentyp"
 
@@ -139,8 +152,8 @@ msgstr "Gruppe"
 msgid "Node Types"
 msgstr "Netzknotentypen"
 
-#: apps/api/models.py:201 apps/api/models.py:219 apps/api/models.py:679
-#: apps/api/serializers.py:428
+#: apps/api/models.py:201 apps/api/models.py:219 apps/api/models.py:693
+#: apps/api/serializers.py:460
 msgid "Conduit Type"
 msgstr "Rohrtyp"
 
@@ -148,8 +161,10 @@ msgstr "Rohrtyp"
 msgid "Conduit Count"
 msgstr "Rohrzahl"
 
-#: apps/api/models.py:208 apps/api/models.py:725 apps/api/serializers.py:433
-#: apps/api/services.py:23
+#: apps/api/models.py:208 apps/api/models.py:739 apps/api/models.py:1051
+#: apps/api/models.py:1173 apps/api/serializers.py:465
+#: apps/api/serializers.py:718 apps/api/serializers.py:769
+#: apps/api/services.py:39 apps/api/services.py:204
 msgid "Manufacturer"
 msgstr "Hersteller"
 
@@ -169,8 +184,10 @@ msgstr "Rohrtyp-Microduct"
 msgid "Conduit Types"
 msgstr "Rohrtypen"
 
-#: apps/api/models.py:232 apps/api/models.py:239 apps/api/models.py:699
-#: apps/api/serializers.py:430 apps/api/services.py:20
+#: apps/api/models.py:232 apps/api/models.py:239 apps/api/models.py:713
+#: apps/api/models.py:1025 apps/api/models.py:1147 apps/api/serializers.py:462
+#: apps/api/serializers.py:715 apps/api/serializers.py:766
+#: apps/api/services.py:36 apps/api/services.py:201
 msgid "Network Level"
 msgstr "Netzebene"
 
@@ -178,199 +195,303 @@ msgstr "Netzebene"
 msgid "Network Levels"
 msgstr "Netzebene"
 
-#: apps/api/models.py:257 apps/api/serializers.py:287
+#: apps/api/models.py:259 apps/api/models.py:882 apps/api/models.py:971
+#: apps/api/serializers.py:552 apps/api/serializers.py:615
+msgid "Status Development"
+msgstr "Ausbaustatus"
+
+#: apps/api/models.py:260
+msgid "Status Developments"
+msgstr "Ausbaustatus"
+
+#: apps/api/models.py:274 apps/api/serializers.py:301
 msgid "Feature Type"
 msgstr "Feature-Typ"
 
-#: apps/api/models.py:263 apps/api/serializers.py:288
+#: apps/api/models.py:280 apps/api/serializers.py:302
 msgid "Feature ID"
 msgstr "Feature-ID"
 
-#: apps/api/models.py:304 apps/api/serializers.py:289
+#: apps/api/models.py:321 apps/api/serializers.py:303
 msgid "File Path"
 msgstr "Dateipfad"
 
-#: apps/api/models.py:307 apps/api/serializers.py:290
+#: apps/api/models.py:324 apps/api/serializers.py:304
 msgid "File Name"
 msgstr "Dateiname"
 
-#: apps/api/models.py:308 apps/api/serializers.py:291
+#: apps/api/models.py:325 apps/api/serializers.py:305
 msgid "File Type"
 msgstr "Dateityp"
 
-#: apps/api/models.py:310 apps/api/serializers.py:293
+#: apps/api/models.py:327 apps/api/serializers.py:307
 msgid "Created At"
 msgstr "Erstellt am"
 
-#: apps/api/models.py:335
+#: apps/api/models.py:352
 msgid "Feature File"
 msgstr "Feature-Datei"
 
-#: apps/api/models.py:336
+#: apps/api/models.py:353
 msgid "Feature Files"
 msgstr "Feature-Dateien"
 
-#: apps/api/models.py:360
+#: apps/api/models.py:377
 msgid ""
 "Custom folder structure for different feature types. Example: {'trench': "
 "'trenches', 'node': 'nodes'}"
 msgstr ""
 
-#: apps/api/models.py:367
+#: apps/api/models.py:384
 msgid "Storage Preference"
 msgstr "Speicherpräferenz"
 
-#: apps/api/models.py:368
+#: apps/api/models.py:385
 msgid "Storage Preferences"
 msgstr "Speicherpräferenzen"
 
-#: apps/api/models.py:379
+#: apps/api/models.py:396
 msgid "File Extension"
 msgstr "Dateiendung"
 
-#: apps/api/models.py:380
+#: apps/api/models.py:397
 msgid "File extension without the dot (e.g., 'pdf', 'jpg')"
 msgstr "Dateiendung ohne Punkt (z.B., 'pdf', 'jpg')"
 
-#: apps/api/models.py:385
+#: apps/api/models.py:402
 msgid "Category"
 msgstr "Kategorie"
 
-#: apps/api/models.py:387
+#: apps/api/models.py:404
 msgid "Category used for folder organization (e.g., 'photos', 'documents')"
 msgstr "Kategorie für Ordnerorganisation (z.B., 'Fotos', 'Dokumente')"
 
-#: apps/api/models.py:395
+#: apps/api/models.py:412
 msgid "Optional description of this file type"
 msgstr "Optionale Beschreibung dieses Dateityps"
 
-#: apps/api/models.py:400
+#: apps/api/models.py:417
 msgid "File Type Category"
 msgstr "Dateitypkategorie"
 
-#: apps/api/models.py:401
+#: apps/api/models.py:418
 msgid "File Type Categories"
 msgstr "Dateitypkategorien"
 
-#: apps/api/models.py:420 apps/api/models.py:582
+#: apps/api/models.py:437 apps/api/models.py:594
 msgid "Trench ID"
 msgstr "Graben-ID"
 
-#: apps/api/models.py:438 apps/api/models.py:595 apps/api/serializers.py:248
-#: apps/api/serializers.py:347
+#: apps/api/models.py:455 apps/api/models.py:607 apps/api/serializers.py:262
+#: apps/api/serializers.py:361
 msgid "Construction Depth"
 msgstr "Bautiefe"
 
-#: apps/api/models.py:442 apps/api/models.py:596 apps/api/serializers.py:249
-#: apps/api/serializers.py:348
+#: apps/api/models.py:459 apps/api/models.py:608 apps/api/serializers.py:263
+#: apps/api/serializers.py:362
 msgid "Construction Details"
 msgstr "Baudetails"
 
-#: apps/api/models.py:462 apps/api/models.py:611 apps/api/serializers.py:250
-#: apps/api/serializers.py:349
+#: apps/api/models.py:479 apps/api/models.py:623 apps/api/serializers.py:264
+#: apps/api/serializers.py:363
 msgid "Internal Execution"
 msgstr "Eigenleistung"
 
-#: apps/api/models.py:466 apps/api/models.py:612 apps/api/serializers.py:251
-#: apps/api/serializers.py:350
+#: apps/api/models.py:483 apps/api/models.py:624 apps/api/serializers.py:265
+#: apps/api/serializers.py:364
 msgid "Funding Status"
 msgstr "Förderstatus"
 
-#: apps/api/models.py:476 apps/api/models.py:619 apps/api/models.py:707
-#: apps/api/serializers.py:245 apps/api/serializers.py:345
-#: apps/api/serializers.py:431 apps/api/services.py:21
+#: apps/api/models.py:493 apps/api/models.py:631 apps/api/models.py:721
+#: apps/api/models.py:1033 apps/api/models.py:1155 apps/api/serializers.py:259
+#: apps/api/serializers.py:359 apps/api/serializers.py:463
+#: apps/api/serializers.py:716 apps/api/serializers.py:767
+#: apps/api/services.py:37 apps/api/services.py:202
 msgid "Owner"
 msgstr "Eigentümer"
 
-#: apps/api/models.py:485 apps/api/models.py:627 apps/api/models.py:716
-#: apps/api/serializers.py:247 apps/api/serializers.py:346
-#: apps/api/serializers.py:432 apps/api/services.py:22
+#: apps/api/models.py:502 apps/api/models.py:639 apps/api/models.py:730
+#: apps/api/models.py:1042 apps/api/models.py:1164 apps/api/serializers.py:261
+#: apps/api/serializers.py:360 apps/api/serializers.py:464
+#: apps/api/serializers.py:717 apps/api/serializers.py:768
+#: apps/api/services.py:38 apps/api/services.py:203
 msgid "Constructor"
 msgstr "Baufirma"
 
-#: apps/api/models.py:487 apps/api/models.py:629 apps/api/models.py:728
-#: apps/api/serializers.py:252 apps/api/serializers.py:351
-#: apps/api/services.py:24
+#: apps/api/models.py:504 apps/api/models.py:641 apps/api/models.py:742
+#: apps/api/models.py:1055 apps/api/models.py:1177 apps/api/serializers.py:266
+#: apps/api/serializers.py:365 apps/api/serializers.py:720
+#: apps/api/serializers.py:771 apps/api/services.py:40 apps/api/services.py:205
 msgid "Date"
 msgstr "Datum"
 
-#: apps/api/models.py:488 apps/api/models.py:630 apps/api/serializers.py:253
-#: apps/api/serializers.py:352
+#: apps/api/models.py:505 apps/api/models.py:642 apps/api/serializers.py:267
+#: apps/api/serializers.py:366
 msgid "Comment"
 msgstr "Kommentar"
 
-#: apps/api/models.py:490 apps/api/models.py:631
+#: apps/api/models.py:507 apps/api/models.py:643
 msgid "House Connection"
 msgstr "Hausanschluss"
 
-#: apps/api/models.py:495 apps/api/models.py:632
+#: apps/api/models.py:512 apps/api/models.py:644
 msgid "Length"
 msgstr "Länge"
 
-#: apps/api/models.py:501 apps/api/models.py:633 apps/api/serializers.py:254
-#: apps/api/serializers.py:353
+#: apps/api/models.py:518 apps/api/models.py:645 apps/api/models.py:885
+#: apps/api/models.py:948 apps/api/models.py:1056 apps/api/models.py:1178
+#: apps/api/serializers.py:268 apps/api/serializers.py:367
+#: apps/api/serializers.py:555 apps/api/serializers.py:623
+#: apps/api/serializers.py:721 apps/api/serializers.py:774
 msgid "Geometry"
 msgstr "Geometrie"
 
-#: apps/api/models.py:542 apps/api/models.py:782 apps/api/serializers.py:460
+#: apps/api/models.py:559 apps/api/models.py:802 apps/api/serializers.py:492
 msgid "Trench"
 msgstr "Graben"
 
-#: apps/api/models.py:543
+#: apps/api/models.py:560
 msgid "Trenches"
 msgstr "Gräben"
 
-#: apps/api/models.py:652
+#: apps/api/models.py:664
 msgid "OL Trench"
 msgstr "OL Graben"
 
-#: apps/api/models.py:653
+#: apps/api/models.py:665
 msgid "OL Trenches"
 msgstr "OL Gräben"
 
-#: apps/api/models.py:671 apps/api/serializers.py:376
+#: apps/api/models.py:685 apps/api/serializers.py:398
 msgid "Conduit Name"
 msgstr "Rohrbezeichnung"
 
-#: apps/api/models.py:753 apps/api/models.py:790 apps/api/serializers.py:461
+#: apps/api/models.py:767 apps/api/models.py:810 apps/api/serializers.py:493
 msgid "Conduit"
 msgstr "Rohr"
 
-#: apps/api/models.py:754
+#: apps/api/models.py:768
 msgid "Conduits"
 msgstr "Rohre"
 
-#: apps/api/models.py:795
+#: apps/api/models.py:815
 msgid "Trench Conduit Connection"
 msgstr "Graben-Rohr-Verbindung"
 
-#: apps/api/models.py:796
+#: apps/api/models.py:816
 msgid "Trench Conduit Connections"
 msgstr "Graben-Rohr-Verbindungen"
 
-#: apps/api/models.py:821 apps/api/models.py:822
+#: apps/api/models.py:841 apps/api/models.py:842
 msgid "GT PK Metadata"
 msgstr "GT PK Metadaten"
 
-#: apps/api/serializers.py:222
+#: apps/api/models.py:869 apps/api/models.py:941 apps/api/serializers.py:545
+#: apps/api/serializers.py:616
+msgid "Address ID"
+msgstr "Adress-ID"
+
+#: apps/api/models.py:870 apps/api/models.py:942 apps/api/serializers.py:546
+#: apps/api/serializers.py:617
+msgid "Zip Code"
+msgstr "PLZ"
+
+#: apps/api/models.py:872 apps/api/models.py:944 apps/api/serializers.py:548
+#: apps/api/serializers.py:619
+msgid "District"
+msgstr "Ortsteil"
+
+#: apps/api/models.py:875 apps/api/models.py:947 apps/api/serializers.py:551
+#: apps/api/serializers.py:622
+#, fuzzy
+#| msgid "Housenumber"
+msgid "House Number Suffix"
+msgstr "Hausnummer"
+
+#: apps/api/models.py:906 apps/api/models.py:1009 apps/api/models.py:1131
+#: apps/api/serializers.py:713 apps/api/serializers.py:764
+msgid "Address"
+msgstr "Adresse"
+
+#: apps/api/models.py:907
+msgid "Addresses"
+msgstr "Adressen"
+
+#: apps/api/models.py:977
+#, fuzzy
+#| msgid "Address"
+msgid "OL Address"
+msgstr "Adresse"
+
+#: apps/api/models.py:978
+#, fuzzy
+#| msgid "Addresses"
+msgid "Openlayers Addresses"
+msgstr "Adressen"
+
+#: apps/api/models.py:994 apps/api/models.py:1116 apps/api/serializers.py:711
+#: apps/api/serializers.py:762
+#, fuzzy
+#| msgid "File Name"
+msgid "Node Name"
+msgstr "Dateiname"
+
+#: apps/api/models.py:1054 apps/api/models.py:1176 apps/api/serializers.py:719
+#: apps/api/serializers.py:770
+msgid "Warranty"
+msgstr "Gewährleistung"
+
+#: apps/api/models.py:1076
+#, fuzzy
+#| msgid "Node Type"
+msgid "Node"
+msgstr "Netzknotentyp"
+
+#: apps/api/models.py:1077
+#, fuzzy
+#| msgid "Node Types"
+msgid "Nodes"
+msgstr "Netzknotentypen"
+
+#: apps/api/models.py:1199
+#, fuzzy
+#| msgid "Node Type"
+msgid "OL Node"
+msgstr "Netzknotentyp"
+
+#: apps/api/models.py:1200
+msgid "Openlayers Nodes"
+msgstr ""
+
+#: apps/api/serializers.py:236
 msgid "Geometry type must be LineString, not"
 msgstr "Geometrietyp muss LineString sein"
 
-#: apps/api/serializers.py:231
+#: apps/api/serializers.py:245 apps/api/serializers.py:573
 msgid "Could not transform coordinates to EPSG:"
 msgstr "Die Koordinaten konnten nicht in EPSG transformiert werden:"
 
-#: apps/api/serializers.py:436 apps/api/services.py:18
+#: apps/api/serializers.py:394
+msgid "A conduit with that name already exists."
+msgstr "Ein Rohr mit diesem Namen existiert bereits."
+
+#: apps/api/serializers.py:468 apps/api/services.py:34 apps/api/services.py:199
 msgid "Outer Conduit"
 msgstr "Schutzrohr"
 
-#: apps/api/services.py:16
+#: apps/api/serializers.py:564
+#, fuzzy
+#| msgid "Geometry type must be LineString, not"
+msgid "Geometry type must be Point, not"
+msgstr "Geometrietyp muss LineString sein"
+
+#: apps/api/services.py:32 apps/api/services.py:197
 #, fuzzy
 #| msgid "File Name"
 msgid "Name"
 msgstr "Dateiname"
 
-#: apps/api/services.py:17
+#: apps/api/services.py:33 apps/api/services.py:198
 #, fuzzy
 #| msgid "Node Type"
 msgid "Type"

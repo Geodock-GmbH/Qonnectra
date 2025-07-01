@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import (
+    Address,
     AttributesCompany,
     AttributesConduitType,
     AttributesNetworkLevel,
@@ -15,6 +16,9 @@ from .models import (
     Conduit,
     FeatureFiles,
     Flags,
+    Node,
+    OlAddress,
+    OlNode,
     OlTrench,
     Projects,
     Trench,
@@ -23,6 +27,7 @@ from .models import (
 from .pageination import CustomPagination
 from .routing import find_shortest_path
 from .serializers import (
+    AddressSerializer,
     AttributesCompanySerializer,
     AttributesConduitTypeSerializer,
     AttributesNetworkLevelSerializer,
@@ -30,6 +35,9 @@ from .serializers import (
     ConduitSerializer,
     FeatureFilesSerializer,
     FlagsSerializer,
+    NodeSerializer,
+    OlAddressSerializer,
+    OlNodeSerializer,
     OlTrenchSerializer,
     ProjectsSerializer,
     TrenchConduitSerializer,
@@ -232,7 +240,6 @@ class OlTrenchTileViewSet(APIView):
                 row[0], content_type="application/vnd.mapbox-vector-tile"
             )
         else:
-            # Return an empty response or 204 No Content if no features in tile
             return HttpResponse(status=204)
 
 
@@ -339,6 +346,21 @@ class TrenchConduitConnectionViewSet(viewsets.ModelViewSet):
     serializer_class = TrenchConduitSerializer
     pagination_class = CustomPagination
 
+    @action(detail=False, methods=["get"], url_path="all")
+    def all_connections(self, request):
+        """
+        Returns all trench-conduit connections with project and flag filters.
+        """
+        queryset = TrenchConduitConnection.objects.all()
+        project_id = request.query_params.get("project")
+        flag_id = request.query_params.get("flag")
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag_id:
+            queryset = queryset.filter(flag=flag_id)
+        serializer = TrenchConduitSerializer(queryset, many=True)
+        return Response(serializer.data)
+
     def get_queryset(self):
         """
         Optionally restricts the returned connections to a given trench or conduit,
@@ -365,6 +387,303 @@ class TrenchConduitConnectionViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(uuid_conduit__name__icontains=name)
 
         return queryset
+
+
+class AddressViewSet(viewsets.ModelViewSet):
+    """ViewSet for the Address model :model:`api.Address`.
+
+    An instance of :model:`api.Address`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = Address.objects.all().order_by(
+        "street", "housenumber", "house_number_suffix"
+    )
+    serializer_class = AddressSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned addresses by filtering against query parameters:
+        - `uuid`: Filter by UUID
+        - `project`: Filter by project ID
+        - `flag`: Filter by flag ID
+        - `name`: Filter by name (case-insensitive partial match)
+        """
+        queryset = Address.objects.all().order_by(
+            "street", "housenumber", "house_number_suffix"
+        )
+        uuid = self.request.query_params.get("uuid")
+        project_id = self.request.query_params.get("project")
+        flag_id = self.request.query_params.get("flag")
+        name = self.request.query_params.get("name")
+
+        if uuid:
+            queryset = queryset.filter(uuid=uuid)
+
+        if project_id:
+            try:
+                project_id = int(project_id)
+                queryset = queryset.filter(project=project_id)
+            except ValueError:
+                queryset = queryset.none()
+
+        if flag_id:
+            try:
+                flag_id = int(flag_id)
+                queryset = queryset.filter(flag=flag_id)
+            except ValueError:
+                queryset = queryset.none()
+
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+
+        return queryset
+
+
+class OlAddressViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the OlAddress model :model:`api.OlAddress`.
+
+    An instance of :model:`api.OlAddress`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = OlAddress.objects.all().order_by(
+        "street", "housenumber", "house_number_suffix"
+    )
+    serializer_class = OlAddressSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned addresses by filtering against query parameters:
+        - `uuid`: Filter by UUID
+        - `project`: Filter by project ID
+        - `flag`: Filter by flag ID
+        """
+        queryset = OlAddress.objects.all()
+        project_id = self.request.query_params.get("project")
+        flag_id = self.request.query_params.get("flag")
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag_id:
+            queryset = queryset.filter(flag=flag_id)
+        return queryset
+
+
+class OlAddressTileViewSet(APIView):
+    """ViewSet for the OlAddress model :model:`api.OlAddress`.
+
+    An instance of :model:`api.OlAddress`.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, z, x, y, format=None):
+        """
+        Serves MVT tiles for OlAddress.
+        URL: /api/ol_address_tiles/{z}/{x}/{y}.mvt?project={project}
+        """
+        sql = """
+            WITH mvtgeom AS (
+                SELECT 
+                    a.uuid,
+                    a.id_address,
+                    a.zip_code,
+                    a.city,
+                    a.district,
+                    a.street,
+                    a.housenumber,
+                    a.house_number_suffix,
+                    a.geom,
+                    f.flag,
+                    sd.status_development
+            FROM address a
+            LEFT JOIN attributes_status_development sd ON a.status_development = sd.id
+            LEFT JOIN flags f ON a.flag = f.id
+                WHERE
+                    a.geom && ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096))
+                    AND a.project = %(project)s
+            )
+            SELECT ST_AsMVT(mvtgeom, 'ol_address', 4096, 'geom') AS mvt
+            FROM mvtgeom;
+        """
+        project_id = request.query_params.get("project")
+        if project_id is None:
+            return HttpResponse(status=204)
+        try:
+            project_id = int(project_id)
+        except ValueError:
+            return HttpResponse(
+                "Invalid project ID", status=400, content_type="text/plain"
+            )
+
+        params = {"z": int(z), "x": int(x), "y": int(y), "project": project_id}
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            row = cursor.fetchone()
+
+        if row and row[0]:
+            return HttpResponse(
+                row[0], content_type="application/vnd.mapbox-vector-tile"
+            )
+        else:
+            return HttpResponse(status=204)
+
+
+class NodeViewSet(viewsets.ModelViewSet):
+    """ViewSet for the Node model :model:`api.Node`.
+
+    An instance of :model:`api.Node`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = Node.objects.all().order_by("name")
+    serializer_class = NodeSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned nodes by filtering against query parameters:
+        - `uuid`: Filter by UUID
+        - `project`: Filter by project ID
+        - `flag`: Filter by flag ID
+        - `name`: Filter by name (case-insensitive partial match)
+        """
+        queryset = Node.objects.all().order_by("name")
+        uuid = self.request.query_params.get("uuid")
+        project_id = self.request.query_params.get("project")
+        flag_id = self.request.query_params.get("flag")
+        name = self.request.query_params.get("name")
+
+        if uuid:
+            queryset = queryset.filter(uuid=uuid)
+
+        if project_id:
+            try:
+                project_id = int(project_id)
+                queryset = queryset.filter(project=project_id)
+            except ValueError:
+                queryset = queryset.none()
+
+        if flag_id:
+            try:
+                flag_id = int(flag_id)
+                queryset = queryset.filter(flag=flag_id)
+            except ValueError:
+                queryset = queryset.none()
+
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+
+        return queryset
+
+
+class OlNodeViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the OlNode model :model:`api.OlNode`.
+
+    An instance of :model:`api.OlNode`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = OlNode.objects.all().order_by("name")
+    serializer_class = OlNodeSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned addresses by filtering against query parameters:
+        - `uuid`: Filter by UUID
+        - `project`: Filter by project ID
+        - `flag`: Filter by flag ID
+        """
+        queryset = OlNode.objects.all()
+        project_id = self.request.query_params.get("project")
+        flag_id = self.request.query_params.get("flag")
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag_id:
+            queryset = queryset.filter(flag=flag_id)
+        return queryset
+
+
+class OlNodeTileViewSet(APIView):
+    """ViewSet for the OlNode model :model:`api.OlNode`.
+
+    An instance of :model:`api.OlNode`.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, z, x, y, format=None):
+        """
+        Serves MVT tiles for OlNode.
+        URL: /api/ol_node_tiles/{z}/{x}/{y}.mvt?project={project}
+        """
+        sql = """
+            WITH mvtgeom AS (
+                SELECT 
+                    n.uuid,
+                    n.name,
+                    n.warranty,
+                    n.date,
+                    n.geom,
+                    c2.company,
+                    f.flag,
+                    c3.company,
+                    nl.network_level,
+                    nt.node_type,
+                    c1.company,
+                    s.status,
+                    coalesce(a.street || ' ' || a.housenumber, a.house_number_suffix,
+                    a.street || '' || a.housenumber) as address
+                FROM node n
+                LEFT JOIN address a on n.uuid_address = a.uuid
+                LEFT JOIN attributes_company c1 on n.owner = c1.id
+                LEFT JOIN attributes_company c2 on n.constructor = c2.id
+                LEFT JOIN attributes_company c3 on n.manufacturer = c3.id
+                LEFT JOIN attributes_network_level nl on n.network_level = nl.id
+                LEFT JOIN attributes_node_type nt on n.node_type = nt.id
+                LEFT JOIN attributes_status s on n.status = s.id
+                LEFT JOIN flags f on n.flag = f.id
+                WHERE
+                    n.geom && ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096))
+                    AND n.project = %(project)s
+            )
+            SELECT ST_AsMVT(mvtgeom, 'ol_node', 4096, 'geom') AS mvt
+            FROM mvtgeom;
+        """
+        project_id = request.query_params.get("project")
+        if project_id is None:
+            return HttpResponse(status=204)
+        try:
+            project_id = int(project_id)
+        except ValueError:
+            return HttpResponse(
+                "Invalid project ID", status=400, content_type="text/plain"
+            )
+
+        params = {"z": int(z), "x": int(x), "y": int(y), "project": project_id}
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            row = cursor.fetchone()
+
+        if row and row[0]:
+            return HttpResponse(
+                row[0], content_type="application/vnd.mapbox-vector-tile"
+            )
+        else:
+            return HttpResponse(status=204)
 
 
 class RoutingView(APIView):

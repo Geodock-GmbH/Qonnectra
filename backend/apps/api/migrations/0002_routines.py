@@ -54,32 +54,4 @@ class Migration(migrations.Migration):
                 $$;
             """
         ),
-        migrations.RunSQL(
-            """
-            create or replace function fn_set_id_trench() returns trigger
-                language plpgsql
-            as
-            $$
-            begin
-                new.id_trench := fn_id_generator(new.id_trench);
-                return new;
-            end;
-            $$;
-            """
-        ),
-        migrations.RunSQL(
-            """
-            create or replace function fn_id_generator(object_id integer) returns integer
-                language plpgsql
-            as
-            $$
-                declare
-                    new_object_id int;
-            begin
-                new_object_id := coalesce(max(object_id), 0) + 1;
-                return new_object_id;
-            end;
-            $$;
-            """
-        ),
     ]

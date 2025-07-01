@@ -1,0 +1,65 @@
+[
+    {
+        "model": "api.attributesstatusdevelopment",
+        "pk": 1,
+        "fields": {
+            "status": "notPlanned"
+        }
+    },
+    {
+        "model": "api.attributesstatusdevelopment",
+        "pk": 2,
+        "fields": {
+            "status": "areaPlanned"
+        }
+    },
+    {
+        "model": "api.attributesstatusdevelopment",
+        "pk": 3,
+        "fields": {
+            "status": "preMarketing"
+        }
+    },
+    {
+        "model": "api.attributesstatusdevelopment",
+        "pk": 4,
+        "fields": {
+            "status": "underConstruction"
+        }
+    },
+    {
+        "model": "api.attributesstatusdevelopment",
+        "pk": 5,
+        "fields": {
+            "status": "homesPassed"
+        }
+    },
+    {
+        "model": "api.attributesstatusdevelopment",
+        "pk": 6,
+        "fields": {
+            "status": "homesPassedPlus"
+        }
+    },
+    {
+        "model": "api.attributesstatusdevelopment",
+        "pk": 7,
+        "fields": {
+            "status": "homesPrepared"
+        }
+    },
+    {
+        "model": "api.attributesstatusdevelopment",
+        "pk": 8,
+        "fields": {
+            "status": "homesReady"
+        }
+    },
+    {
+        "model": "api.attributesstatusdevelopment",
+        "pk": 9,
+        "fields": {
+            "status": "homesConnected"
+        }
+    }
+]

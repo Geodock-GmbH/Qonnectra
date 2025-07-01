@@ -38,21 +38,15 @@
 		trenchesError = null;
 
 		try {
-			let allResults = [];
-			let url = `${PUBLIC_API_URL}trench_conduit_connection/?uuid_conduit=${conduitId}`;
-			while (url) {
-				const response = await fetch(url, { credentials: 'include' });
+			let url = `${PUBLIC_API_URL}trench_conduit_connection/all/?uuid_conduit=${conduitId}`;
+			let response = await fetch(url, { credentials: 'include' });
 
-				if (!response.ok) {
-					throw new Error(`HTTP error! status: ${response.status}`);
-				}
-
-				const data = await response.json();
-				allResults.push(...data.results);
-				url = data.next;
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 
-			trenches = allResults.map((item) => ({
+			const data = await response.json();
+			trenches = data.map((item) => ({
 				value: item.uuid,
 				label: item.trench.properties.id_trench,
 				trench: item.trench.id

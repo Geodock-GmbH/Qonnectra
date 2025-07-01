@@ -5,7 +5,7 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("api", "0003_trench_ddl"),
+        ("api", "0003_ddl"),
     ]
 
     operations = [
@@ -33,6 +33,42 @@ class Migration(migrations.Migration):
             t.flag
         from trench t
         order by t.id_trench;
+    """),
+        migrations.RunSQL("""
+    create view ol_node as
+    select 
+        n.uuid,
+        n.name,
+        n.warranty,
+        n.date,
+        st_transform(n.geom, 3857) AS geom,
+        n.constructor,
+        n.flag,
+        n.manufacturer,
+        n.network_level,
+        n.node_type,
+        n.owner,
+        n.project,
+        n.status,
+        n.uuid_address
+    from node n;
+    """),
+        migrations.RunSQL("""
+    create view ol_address as
+    select 
+        a.uuid,
+        a.id_address,
+        a.zip_code,
+        a.city,
+        a.district,
+        a.street,
+        a.housenumber,
+        a.house_number_suffix,
+        st_transform(a.geom, 3857) AS geom,
+        a.flag,
+        a.project,
+        a.status_development
+    from address a;
     """),
         migrations.RunSQL("""
     create view public.qgis_trench as 

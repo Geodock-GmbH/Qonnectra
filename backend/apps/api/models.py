@@ -243,6 +243,23 @@ class AttributesNetworkLevel(models.Model):
         return self.network_level
 
 
+class AttributesStatusDevelopment(models.Model):
+    """Stores all statuses for development,
+    related to :model:`api.Address`.
+    """
+
+    id = models.IntegerField(primary_key=True)
+    status = models.TextField(_("Status"), null=False, db_index=False, unique=True)
+
+    class Meta:
+        db_table = "attributes_status_development"
+        indexes = [
+            models.Index(fields=["status"], name="idx_status_development_status"),
+        ]
+        verbose_name = _("Status Development")
+        verbose_name_plural = _("Status Developments")
+
+
 # TODO: Implement custom storage class for feature files (nextcloud): https://docs.djangoproject.com/en/4.2/howto/custom-file-storage/
 class FeatureFiles(models.Model):
     """Stores all files for different models,
@@ -558,11 +575,6 @@ class Trench(models.Model):
 
 # TODO: Implement area model
 # TODO: Refactor area count trigger, fn_update_area_counts and fn_area_counts_area_update to be dynamic
-
-# TODO: Implement node model
-
-# TODO: Implement address model
-
 # TODO: Implement residential unit model
 
 
@@ -660,7 +672,9 @@ class Conduit(models.Model):
     :model:`api.AttributesConduitType`,
     :model:`api.AttributesStatus`,
     :model:`api.AttributesNetworkLevel`,
-    :model:`api.AttributesCompany`.
+    :model:`api.AttributesCompany`,
+    :model:`api.Flags`,
+    :model:`api.Projects`.
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
@@ -764,6 +778,12 @@ class Conduit(models.Model):
             models.Index(fields=["project"], name="idx_conduit_project"),
             models.Index(fields=["flag"], name="idx_conduit_flag"),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "name"],
+                name="unique_conduit",
+            ),
+        ]
 
 
 class TrenchConduitConnection(models.Model):
@@ -835,3 +855,347 @@ class GtPkMetadata(models.Model):
 
     def __str__(self):
         return f"{self.table_schema}.{self.table_name}.{self.pk_column}"
+
+
+class Address(models.Model):
+    """Stores all addresses,
+    related to :model:`api.Nodes`,
+    :model:`api.AttributesStatusDevelopment`,
+    :model:`api.Flags`,
+    :model:`api.Projects`.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    id_address = models.IntegerField(_("Address ID"), null=True, unique=True)
+    zip_code = models.TextField(_("Zip Code"), null=False)
+    city = models.TextField(_("City"), null=False)
+    district = models.TextField(_("District"), null=True)
+    street = models.TextField(_("Street"), null=False)
+    housenumber = models.IntegerField(_("Housenumber"), null=False)
+    house_number_suffix = models.TextField(_("House Number Suffix"), null=True)
+    status_development = models.ForeignKey(
+        AttributesStatusDevelopment,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="status_development",
+        db_index=False,
+        verbose_name=_("Status Development"),
+    )
+    geom = gis_models.PointField(
+        _("Geometry"), srid=int(settings.DEFAULT_SRID), null=False
+    )
+    flag = models.ForeignKey(
+        Flags,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="flag",
+        db_index=False,
+        verbose_name=_("Flag"),
+    )
+    project = models.ForeignKey(
+        Projects,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="project",
+        db_index=False,
+        verbose_name=_("Project"),
+    )
+
+    class Meta:
+        db_table = "address"
+        verbose_name = _("Address")
+        verbose_name_plural = _("Addresses")
+        ordering = ["street", "housenumber", "house_number_suffix"]
+        indexes = [
+            models.Index(fields=["id_address"], name="idx_address_id_address"),
+            models.Index(fields=["zip_code"], name="idx_address_zip_code"),
+            models.Index(fields=["city"], name="idx_address_city"),
+            models.Index(fields=["district"], name="idx_address_district"),
+            models.Index(fields=["street"], name="idx_address_street"),
+            models.Index(fields=["housenumber"], name="idx_address_housenumber"),
+            models.Index(
+                fields=["house_number_suffix"], name="idx_address_h_number_suffix"
+            ),
+            models.Index(
+                fields=["status_development"], name="idx_address_status_development"
+            ),
+            models.Index(fields=["project"], name="idx_address_project"),
+            models.Index(fields=["flag"], name="idx_address_flag"),
+            gis_models.Index(fields=["geom"], name="idx_address_geom"),
+        ]
+
+    def __str__(self):
+        """Return the address."""
+        return f"{self.street} {self.housenumber} {self.house_number_suffix}"
+
+
+class OlAddress(models.Model):
+    """Stores all addresses rendered on Openlayers,
+    related to :model:`api.Address`,
+    :model:`api.AttributesStatusDevelopment`,
+    :model:`api.Flags`,
+    :model:`api.Projects`.
+    """
+
+    uuid = models.UUIDField(primary_key=True)
+    id_address = models.IntegerField(_("Address ID"))
+    zip_code = models.TextField(_("Zip Code"))
+    city = models.TextField(_("City"))
+    district = models.TextField(_("District"))
+    street = models.TextField(_("Street"))
+    housenumber = models.IntegerField(_("Housenumber"))
+    house_number_suffix = models.TextField(_("House Number Suffix"))
+    geom = gis_models.PointField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
+    flag = models.ForeignKey(
+        Flags,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="flag",
+        db_index=False,
+        verbose_name=_("Flag"),
+    )
+    project = models.ForeignKey(
+        Projects,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="project",
+        db_index=False,
+        verbose_name=_("Project"),
+    )
+    status_development = models.ForeignKey(
+        AttributesStatusDevelopment,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="status_development",
+        db_index=False,
+        verbose_name=_("Status Development"),
+    )
+
+    class Meta:
+        managed = False
+        db_table = "ol_address"
+        verbose_name = _("OL Address")
+        verbose_name_plural = _("Openlayers Addresses")
+        ordering = ["street", "housenumber", "house_number_suffix"]
+
+
+class Node(models.Model):
+    """Stores all nodes,
+    related to :model:`api.Address`,
+    :model:`api.AttributesNodeType`,
+    :model:`api.AttributesStatus`,
+    :model:`api.AttributesNetworkLevel`,
+    :model:`api.AttributesCompany`,
+    :model:`api.Flags`,
+    :model:`api.Projects`.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    name = models.TextField(_("Node Name"), null=False)
+    node_type = models.ForeignKey(
+        AttributesNodeType,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="node_type",
+        db_index=False,
+        verbose_name=_("Node Type"),
+    )
+    uuid_address = models.ForeignKey(
+        Address,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="uuid_address",
+        db_index=False,
+        verbose_name=_("Address"),
+    )
+    status = models.ForeignKey(
+        AttributesStatus,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="status",
+        db_index=False,
+        verbose_name=_("Status"),
+    )
+    network_level = models.ForeignKey(
+        AttributesNetworkLevel,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="network_level",
+        db_index=False,
+        verbose_name=_("Network Level"),
+    )
+    owner = models.ForeignKey(
+        AttributesCompany,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="owner",
+        db_index=False,
+        verbose_name=_("Owner"),
+        related_name="owned_nodes",
+    )
+    constructor = models.ForeignKey(
+        AttributesCompany,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="constructor",
+        db_index=False,
+        verbose_name=_("Constructor"),
+        related_name="constructed_nodes",
+    )
+    manufacturer = models.ForeignKey(
+        AttributesCompany,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="manufacturer",
+        db_index=False,
+        verbose_name=_("Manufacturer"),
+        related_name="manufactured_nodes",
+    )
+    warranty = models.DateField(_("Warranty"), null=True)
+    date = models.DateField(_("Date"), null=True)
+    geom = gis_models.PointField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
+    flag = models.ForeignKey(
+        Flags,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="flag",
+        db_index=False,
+        verbose_name=_("Flag"),
+    )
+    project = models.ForeignKey(
+        Projects,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="project",
+        db_index=False,
+        verbose_name=_("Project"),
+    )
+
+    class Meta:
+        db_table = "node"
+        verbose_name = _("Node")
+        verbose_name_plural = _("Nodes")
+        ordering = ["name"]
+        indexes = [
+            models.Index(fields=["name"], name="idx_node_name"),
+            models.Index(fields=["node_type"], name="idx_node_node_type"),
+            models.Index(fields=["uuid_address"], name="idx_node_uuid_address"),
+            models.Index(fields=["status"], name="idx_node_status"),
+            models.Index(fields=["network_level"], name="idx_node_network_level"),
+            models.Index(fields=["owner"], name="idx_node_owner"),
+            models.Index(fields=["constructor"], name="idx_node_constructor"),
+            models.Index(fields=["manufacturer"], name="idx_node_manufacturer"),
+            models.Index(fields=["warranty"], name="idx_node_warranty"),
+            models.Index(fields=["date"], name="idx_node_date"),
+            gis_models.Index(fields=["geom"], name="idx_node_geom"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "name"],
+                name="unique_node",
+            ),
+        ]
+
+    def __str__(self):
+        """Return the node name."""
+        return self.name
+
+
+class OlNode(models.Model):
+    """Stores all nodes rendered on Openlayers,
+    related to :model:`api.Node`,
+    :model:`api.AttributesNodeType`,
+    :model:`api.AttributesStatus`,
+    :model:`api.AttributesNetworkLevel`,
+    :model:`api.AttributesCompany`,
+    :model:`api.Flags`,
+    :model:`api.Projects`.
+    """
+
+    uuid = models.UUIDField(primary_key=True)
+    name = models.TextField(_("Node Name"))
+    node_type = models.ForeignKey(
+        AttributesNodeType,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="node_type",
+        db_index=False,
+        verbose_name=_("Node Type"),
+    )
+    uuid_address = models.ForeignKey(
+        Address,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="uuid_address",
+        db_index=False,
+        verbose_name=_("Address"),
+    )
+    status = models.ForeignKey(
+        AttributesStatus,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="status",
+        db_index=False,
+        verbose_name=_("Status"),
+    )
+    network_level = models.ForeignKey(
+        AttributesNetworkLevel,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="network_level",
+        db_index=False,
+        verbose_name=_("Network Level"),
+    )
+    owner = models.ForeignKey(
+        AttributesCompany,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="owner",
+        db_index=False,
+        verbose_name=_("Owner"),
+        related_name="owned_ol_nodes",
+    )
+    constructor = models.ForeignKey(
+        AttributesCompany,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="constructor",
+        db_index=False,
+        verbose_name=_("Constructor"),
+        related_name="constructed_ol_nodes",
+    )
+    manufacturer = models.ForeignKey(
+        AttributesCompany,
+        null=True,
+        on_delete=models.DO_NOTHING,
+        db_column="manufacturer",
+        db_index=False,
+        verbose_name=_("Manufacturer"),
+        related_name="manufactured_ol_nodes",
+    )
+    warranty = models.DateField(_("Warranty"), null=True)
+    date = models.DateField(_("Date"), null=True)
+    geom = gis_models.PointField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
+    flag = models.ForeignKey(
+        Flags,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="flag",
+        db_index=False,
+        verbose_name=_("Flag"),
+    )
+    project = models.ForeignKey(
+        Projects,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="project",
+        db_index=False,
+        verbose_name=_("Project"),
+    )
+
+    class Meta:
+        managed = False
+        db_table = "ol_node"
+        verbose_name = _("OL Node")
+        verbose_name_plural = _("Openlayers Nodes")
+        ordering = ["name"]
