@@ -829,12 +829,12 @@ class GtPkMetadata(models.Model):
     related to :model:`api.Trench`.
     """
 
-    table_schema = models.CharField(max_length=32)
-    table_name = models.CharField(max_length=32)
-    pk_column = models.CharField(max_length=32)
-    pk_column_idx = models.IntegerField()
-    pk_policy = models.CharField(max_length=32)
-    pk_sequence = models.CharField(max_length=64)
+    table_schema = models.CharField(max_length=32, null=False)
+    table_name = models.CharField(max_length=32, null=False)
+    pk_column = models.CharField(max_length=32, null=False)
+    pk_column_idx = models.IntegerField(null=True)
+    pk_policy = models.CharField(max_length=32, null=True)
+    pk_sequence = models.CharField(max_length=64, null=True)
 
     class Meta:
         db_table = "gt_pk_metadata"
