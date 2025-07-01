@@ -126,7 +126,7 @@
 <div class="map-container {className}">
 	<div class="map" bind:this={container}></div>
 	{#if showOpacitySlider && map}
-		<div class="custom-opacity-slider-wrapper">
+		<div class="absolute bottom-5 left-5 z-10">
 			<OpacitySlider
 				minOpacity={opacitySliderConfig.minOpacity}
 				maxOpacity={opacitySliderConfig.maxOpacity}
@@ -137,7 +137,7 @@
 		</div>
 	{/if}
 	{#if showLayerVisibilityTree && map}
-		<div class="custom-layer-visibility-wrapper">
+		<div class="absolute top-5 right-5 z-10">
 			<LayerVisibilityTree
 				{layers}
 				{osmLayer}
@@ -157,19 +157,5 @@
 	.map {
 		width: 100%;
 		height: 100%;
-	}
-
-	.custom-opacity-slider-wrapper {
-		position: absolute;
-		bottom: 20px;
-		left: 20px;
-		z-index: 5;
-	}
-
-	.custom-layer-visibility-wrapper {
-		position: absolute;
-		top: 20px;
-		right: 20px;
-		z-index: 5;
 	}
 </style>
