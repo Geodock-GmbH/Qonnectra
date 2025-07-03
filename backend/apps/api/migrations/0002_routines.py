@@ -54,4 +54,31 @@ class Migration(migrations.Migration):
                 $$;
             """
         ),
+        migrations.RunSQL(
+            """
+            create or replace function fn_generate_id_trench()
+                returns trigger
+                language plpgsql
+                as
+            $$
+            declare
+                next_id  bigint;
+                lock_key bigint := 123456789;
+            begin
+                if tg_op = 'update' and new.id_trench is not null then
+                    return old;
+                end if;
+
+                PERFORM pg_advisory_xact_lock(lock_key);
+
+                select coalesce(max(id_trench), 0) + 1
+                into next_id
+                from trench;
+
+                new.id_trench := next_id;
+                return new;
+            end;
+            $$;
+            """
+        ),
     ]

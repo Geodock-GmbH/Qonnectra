@@ -183,7 +183,7 @@
 			text:
 				resolution < 1.5
 					? new Text({
-							text: feature.get('id_trench').toString(),
+							text: (feature.get('id_trench') || '').toString(),
 							font: '12px Calibri,sans-serif',
 							fill: new Fill({
 								color: '#000'

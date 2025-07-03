@@ -1,4 +1,4 @@
-import { PUBLIC_API_URL } from '$env/static/public';
+import { API_URL } from '$env/static/private';
 import { error } from '@sveltejs/kit';
 
 /** @type {import('./$types').RequestHandler} */
@@ -7,8 +7,6 @@ export async function POST({ request, cookies }) {
 		// Get the uploaded file from the request
 		const formData = await request.formData();
 		const file = formData.get('file');
-
-		console.log(file);
 
 		if (!file || !(file instanceof File)) {
 			throw error(400, 'No file uploaded or invalid file');
@@ -38,7 +36,7 @@ export async function POST({ request, cookies }) {
 		}
 
 		// Forward the request to Django backend
-		const response = await fetch(`${PUBLIC_API_URL}import/conduit/`, {
+		const response = await fetch(`${API_URL}import/conduit/`, {
 			method: 'POST',
 			body: backendFormData,
 			headers: headers

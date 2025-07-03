@@ -36,6 +36,11 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             """
+            alter table address alter column uuid set default gen_random_uuid();
+            """
+        ),
+        migrations.RunSQL(
+            """
             create unique index unique_address on address (zip_code,street,housenumber,coalesce(house_number_suffix,''));
             """
         ),
@@ -64,6 +69,16 @@ class Migration(migrations.Migration):
                 on trench
                 for each statement
             execute procedure fn_notify_qgis();
+            """
+        ),
+        migrations.RunSQL(
+            """
+            create trigger tg_04_generate_id_trench
+                before insert or update of id_trench
+                on trench
+                for each row
+                when (new.id_trench is distinct from old.id_trench)
+            execute procedure fn_generate_id_trench();
             """
         ),
     ]
