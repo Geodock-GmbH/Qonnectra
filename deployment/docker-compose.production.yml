@@ -1,0 +1,336 @@
+services:
+  db:
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
+    container_name: krit_gis_db_prod
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    # Remove external port exposure for security in production
+    # Only accessible from other containers
+    expose:
+      - "5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - krit_gis_network
+    # Production optimizations
+    shm_size: 256m
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: krit_gis_backend_prod
+    restart: always
+    command: >
+      sh -c "python manage.py collectstatic --noinput &&
+            python manage.py migrate &&
+            python manage.py shell -c \"from django.contrib.auth import get_user_model; import os; User = get_user_model(); username = os.environ.get('DJANGO_SUPERUSER_USERNAME'); User.objects.filter(username=username).exists() or User.objects.create_superuser(username, os.environ.get('DJANGO_SUPERUSER_EMAIL'), os.environ.get('DJANGO_SUPERUSER_PASSWORD'))\" &&
+            python manage.py loaddata attributes_company attributes_construction_type attributes_conduit_type attributes_phase  &&
+            python manage.py loaddata attributes_status attributes_surface storage_preference file_type_categories projects flags &&
+            python manage.py loaddata attributes_network_level attributes_node_type attributes_status_development &&
+            gunicorn --bind 0.0.0.0:8000 --workers 4 --worker-class gevent --worker-connections 1000 --max-requests 1000 --max-requests-jitter 100 --timeout 30 --keep-alive 2 core.wsgi:application"
+    # Remove external port exposure
+    expose:
+      - "8000"
+    volumes:
+      - static_volume:/app/static
+      - media_volume:/app/media
+    environment:
+      - DEBUG=${DEBUG}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
+      - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME}
+      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL}
+      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DEFAULT_SRID=${DEFAULT_SRID}
+      - NEXTCLOUD_URL=${NEXTCLOUD_URL}
+      - NEXTCLOUD_PUBLIC_URL=${NEXTCLOUD_PUBLIC_URL}
+      - NEXTCLOUD_FILEUPLOADER_USERNAME=${NEXTCLOUD_FILEUPLOADER_USERNAME}
+      - NEXTCLOUD_FILEUPLOADER_PASSWORD=${NEXTCLOUD_FILEUPLOADER_PASSWORD}
+      - NEXTCLOUD_BASE_PATH=${NEXTCLOUD_BASE_PATH}
+      - NEXTCLOUD_VERIFY_SSL=${NEXTCLOUD_VERIFY_SSL}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - krit_gis_network
+    # Resource limits for production
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  geoserver:
+    image: kartoza/geoserver:latest
+    container_name: krit_gis_geoserver_prod
+    restart: always
+    # Remove external port exposure
+    expose:
+      - "8080"
+    volumes:
+      - geoserver_data:/opt/geoserver/data_dir
+    environment:
+      - GEOSERVER_ADMIN_USER=${GEOSERVER_ADMIN_USER}
+      - GEOSERVER_ADMIN_PASSWORD=${GEOSERVER_ADMIN_PASSWORD}
+      - POSTGRES_HOST=${DB_HOST}
+      - POSTGRES_PORT=${DB_PORT}
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USERNAME=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - CORS_ENABLED=true
+      - CORS_ALLOWED_ORIGINS=https://${APP_DOMAIN},https://${CLOUD_DOMAIN}
+      - PROXY_BASE_URL=https://${GEOSERVER_DOMAIN}/geoserver
+      - SKIP_DEMO_DATA=true
+      - INSTALL_EXTENSIONS=true
+      - STABLE_EXTENSIONS="ogcapi-features"
+      - GEOSERVER_CSRF_DISABLED=false
+      # Production JVM settings
+      - INITIAL_MEMORY=512M
+      - MAXIMUM_MEMORY=2G
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: curl --fail "http://localhost:8080/geoserver/web/" || exit 1
+      interval: 2m
+      timeout: 30s
+      retries: 3
+      start_period: 2m
+    networks:
+      - krit_gis_network
+    deploy:
+      resources:
+        limits:
+          memory: 2.5G
+        reservations:
+          memory: 1G
+
+  qgis-server:
+    image: qgis/qgis-server:latest
+    container_name: krit_gis_qgis_server_prod
+    restart: always
+    command: >
+      sh -c "
+        mkdir -p /var/www/data/qgis &&
+        ln -sf /usr/lib/cgi-bin/qgis_mapserv.fcgi /var/www/data/qgis/qgis_mapserv.fcgi &&
+        rm -f /tmp/.X99-lock &&
+        fc-cache &&
+        /usr/bin/Xvfb :99 -ac -screen 0 1280x1024x16 +extension GLX +render -noreset >/dev/null &
+        sleep 2 &&
+        nginx &&
+        spawn-fcgi -n -u www-data -g www-data -d /var/lib/qgis -P /run/qgis.pid -p 9993 -- /usr/lib/cgi-bin/qgis_mapserv.fcgi &&
+        tail -f /dev/null
+      "
+    # Remove external port exposure
+    expose:
+      - "80"
+    volumes:
+      - ./qgis/projects:/projects:ro
+      - ./qgis/data:/data:ro
+      - ./qgis/pg_service.conf:/etc/postgresql-common/pg_service.conf:ro
+    environment:
+      - QGIS_SERVER_LOG_LEVEL=1
+      - QGIS_SERVER_LOG_STDERR=1
+      - QGIS_PROJECT_FILE=/projects/default.qgs
+      - QGIS_FCGI_MIN_PROCESSES=2
+      - QGIS_FCGI_MAX_PROCESSES=8
+      - PGSERVICEFILE=/etc/postgresql-common/pg_service.conf
+      - POSTGRES_HOST=${DB_HOST}
+      - POSTGRES_PORT=${DB_PORT}
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - DISPLAY=:99
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost/ows/?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities || exit 1"]
+      interval: 1m
+      timeout: 15s
+      retries: 3
+      start_period: 1m
+    networks:
+      - krit_gis_network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+
+  nextcloud:
+    image: nextcloud:latest
+    container_name: krit_nextcloud_prod
+    restart: always
+    # Remove external port exposure
+    expose:
+      - "80"
+    volumes:
+      - nextcloud_data:/var/www/html
+      - nextcloud_apps:/var/www/html/custom_apps
+      - nextcloud_config:/var/www/html/config
+      - nextcloud_files:/var/www/html/data:rw
+    environment:
+      - POSTGRES_HOST=${DB_HOST}
+      - POSTGRES_DB=${NEXTCLOUD_DATABASE_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
+      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS}
+      - NEXTCLOUD_OVERWRITEHOST=${CLOUD_DOMAIN}
+      - NEXTCLOUD_OVERWRITEPROTOCOL=https
+      # Performance optimizations
+      - PHP_MEMORY_LIMIT=512M
+      - PHP_UPLOAD_LIMIT=10G
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - krit_gis_network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: krit_gis_frontend_prod
+    restart: always
+    expose:
+      - "3000"
+    environment:
+      - ORIGIN=https://${APP_DOMAIN}
+      - NODE_ENV=production
+    networks:
+      - krit_gis_network
+    depends_on:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: krit_gis_nginx_prod
+    restart: always
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_volume:/usr/share/nginx/html/static:ro
+      - media_volume:/usr/share/nginx/html/media:ro
+    expose:
+      - "80"
+    depends_on:
+      - backend
+    networks:
+      - krit_gis_network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  caddy:
+    image: caddy:2
+    container_name: krit_gis_caddy_prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile.production:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      # Optional: Custom log directory
+      - ./logs:/var/log/caddy
+    environment:
+      - XDG_DATA_HOME=/data
+      - XDG_CONFIG_HOME=/config
+      # Pass domain variables to Caddy
+      - DOMAIN_NAME=${DOMAIN_NAME}
+      - API_DOMAIN=${API_DOMAIN}
+      - APP_DOMAIN=${APP_DOMAIN}
+      - CLOUD_DOMAIN=${CLOUD_DOMAIN}
+      - GEOSERVER_DOMAIN=${GEOSERVER_DOMAIN}
+      - QGIS_DOMAIN=${QGIS_DOMAIN}
+    cap_add:
+      - NET_ADMIN
+    depends_on:
+      - nginx
+      - nextcloud
+      - frontend
+      - geoserver
+      - qgis-server
+    networks:
+      - krit_gis_network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+volumes:
+  postgres_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+  static_volume:
+    driver: local
+  media_volume:
+    driver: local
+  geoserver_data:
+    driver: local
+  nextcloud_data:
+    driver: local
+  nextcloud_apps:
+    driver: local
+  nextcloud_config:
+    driver: local
+  nextcloud_files:
+    driver: local
+
+networks:
+  krit_gis_network:
+    name: krit_gis_network_prod
+    driver: bridge 
