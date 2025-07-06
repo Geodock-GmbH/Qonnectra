@@ -34,7 +34,9 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "0").lower() in ("1", "true", "yes")
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
-CSRF_TRUSTED_ORIGINS = ["https://api.localhost"]
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "https://api.localhost").split(
+    ","
+)
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
 
@@ -239,13 +241,10 @@ SIMPLE_JWT = {
     # "AUTH_COOKIE_SAMESITE": "Lax",
 }
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Default SvelteKit dev server
-    "http://127.0.0.1:5173",
-    "https://app.localhost",
-    "http://localhost:3000",
-    "https://api.localhost",
-]
+CORS_ALLOWED_ORIGINS = os.getenv(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:5173,http://127.0.0.1:5173,https://app.localhost,http://localhost:3000,https://api.localhost",
+).split(",")
 CORS_ALLOW_CREDENTIALS = True
 
 # Nextcloud Storage Settings

@@ -77,7 +77,6 @@ class Migration(migrations.Migration):
                 before insert or update of id_trench
                 on trench
                 for each row
-                when (new.id_trench is distinct from old.id_trench)
             execute procedure fn_generate_id_trench();
             """
         ),

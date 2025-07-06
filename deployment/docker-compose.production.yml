@@ -12,8 +12,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
-    # Remove external port exposure for security in production
-    # Only accessible from other containers
     expose:
       - "5432"
     healthcheck:
@@ -229,6 +227,8 @@ services:
     build:
       context: ../frontend
       dockerfile: Dockerfile
+    env_file:
+      - ../frontend/.env
     container_name: krit_gis_frontend_prod
     restart: always
     expose:
