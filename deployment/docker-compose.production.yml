@@ -48,8 +48,7 @@ services:
             python manage.py loaddata attributes_company attributes_construction_type attributes_conduit_type attributes_phase  &&
             python manage.py loaddata attributes_status attributes_surface storage_preference file_type_categories projects flags &&
             python manage.py loaddata attributes_network_level attributes_node_type attributes_status_development &&
-            gunicorn --bind 0.0.0.0:8000 --workers 4 --worker-class gevent --worker-connections 1000 --max-requests 1000 --max-requests-jitter 100 --timeout 30 --keep-alive 2 core.wsgi:application"
-    # Remove external port exposure
+            gunicorn --bind 0.0.0.0:8000 core.wsgi:application"
     expose:
       - "8000"
     volumes:
@@ -62,6 +61,8 @@ services:
       - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME}
       - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL}
       - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}
+      - USE_COOKIE_DOMAIN_MIDDLEWARE=${USE_COOKIE_DOMAIN_MIDDLEWARE}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN}
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
@@ -91,7 +92,6 @@ services:
     image: kartoza/geoserver:latest
     container_name: krit_gis_geoserver_prod
     restart: always
-    # Remove external port exposure
     expose:
       - "8080"
     volumes:
@@ -148,7 +148,6 @@ services:
         spawn-fcgi -n -u www-data -g www-data -d /var/lib/qgis -P /run/qgis.pid -p 9993 -- /usr/lib/cgi-bin/qgis_mapserv.fcgi &&
         tail -f /dev/null
       "
-    # Remove external port exposure
     expose:
       - "80"
     volumes:
@@ -190,7 +189,6 @@ services:
     image: nextcloud:latest
     container_name: krit_nextcloud_prod
     restart: always
-    # Remove external port exposure
     expose:
       - "80"
     volumes:
@@ -228,7 +226,7 @@ services:
       context: ../frontend
       dockerfile: Dockerfile
     env_file:
-      - ../frontend/.env
+      - .env
     container_name: krit_gis_frontend_prod
     restart: always
     expose:
@@ -236,6 +234,7 @@ services:
     environment:
       - ORIGIN=https://${APP_DOMAIN}
       - NODE_ENV=production
+      - API_URL=${API_URL}
     networks:
       - krit_gis_network
     depends_on:
@@ -276,15 +275,13 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./Caddyfile.production:/etc/caddy/Caddyfile:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-      # Optional: Custom log directory
       - ./logs:/var/log/caddy
     environment:
       - XDG_DATA_HOME=/data
       - XDG_CONFIG_HOME=/config
-      # Pass domain variables to Caddy
       - DOMAIN_NAME=${DOMAIN_NAME}
       - API_DOMAIN=${API_DOMAIN}
       - APP_DOMAIN=${APP_DOMAIN}

@@ -12,13 +12,13 @@ export const actions = {
 		const redirectTo = formData.get('redirectTo') || '/';
 
 		try {
-			const response = await fetch(`${API_URL}auth/login/`, {
+			const response = await event.fetch(`${API_URL}auth/login/`, {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json',
-					'X-CSRFToken': event.cookies.get('csrftoken') || ''
+					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({ username, password })
+				body: JSON.stringify({ username, password }),
+				credentials: 'omit'
 			});
 
 			if (!response.ok) {
@@ -30,54 +30,35 @@ export const actions = {
 				return fail(response.status < 500 ? 400 : 500, { error: errorMessage });
 			}
 
-			// 1. Extract access token from the response body
-			const responseData = await response.json();
-			const accessToken = responseData.access;
-
-			if (!accessToken) {
-				console.error('Login response body missing "access" token.');
-				return fail(500, { error: 'Authentication failed: Missing access token in response.' });
-			}
-
-			// 2. Set the access token cookie (mimic settings from hooks.server.js)
-			event.cookies.set('api-access-token', accessToken, {
-				path: '/',
-				httpOnly: true,
-				secure: event.url.protocol === 'https:', // Use same logic as hook
-				sameSite: 'lax',
-				maxAge: 60 * 60 * 24 // Example: 1 day expiry - Align with hook or backend settings
-			});
-
-			// 3. Process and set cookies from Set-Cookie header (for refresh token)
+			// Process and set cookies from Set-Cookie header
 			const setCookieHeader = response.headers.get('set-cookie');
+			console.log('setCookieHeader', setCookieHeader);
 
 			if (setCookieHeader) {
 				// Use set-cookie-parser to properly parse the cookies
 				const cookies = setCookieParser.parse(response);
-
+				console.log('cookies', cookies);
 				cookies.forEach((cookie) => {
-					// Extract cookie options
 					const options = {
 						path: cookie.path || '/',
+						domain: cookie.domain,
 						httpOnly: cookie.httpOnly,
 						secure: cookie.secure || event.url.protocol === 'https:',
-						sameSite: cookie.sameSite || 'Lax',
-						maxAge: cookie.maxAge,
-						expires: cookie.expires
+						sameSite: cookie.sameSite || 'Lax'
 					};
 
 					// Remove undefined options
 					Object.keys(options).forEach((key) => options[key] === undefined && delete options[key]);
 
-					// Set the cookie
+					// Set the cookie on the browser's response
 					event.cookies.set(cookie.name, cookie.value, options);
 				});
 			} else {
 				console.warn(
-					'Login API response did not contain a Set-Cookie header (expected for refresh token).'
+					'Login API response did not contain a Set-Cookie header (expected for auth tokens).'
 				);
-				// Depending on requirements, this might be a failure
-				// return fail(500, { error: 'Authentication response missing refresh token cookie.' });
+				// This might be a failure condition if cookies are the only auth method
+				return fail(500, { error: 'Authentication response missing required tokens.' });
 			}
 		} catch (error) {
 			console.error('Error during login action fetch:', error);

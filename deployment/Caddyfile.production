@@ -1,15 +1,3 @@
-{
-    # Production configuration
-    # Automatic HTTPS with Let's Encrypt
-    email admin@{env.DOMAIN_NAME}
-    
-    # Optional: Enable access logs
-    log {
-        output file /var/log/caddy/access.log
-        format json
-    }
-}
-
 # Backend API
 {env.API_DOMAIN} {
     # Automatic Let's Encrypt SSL
@@ -118,7 +106,7 @@
     }
 }
 
-# Redirect www to non-www (optional)
+# Redirect www to non-www 
 www.{env.DOMAIN_NAME} {
     redir https://{env.DOMAIN_NAME}{uri} permanent
 } 

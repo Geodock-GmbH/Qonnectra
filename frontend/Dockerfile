@@ -18,8 +18,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install production dependencies (if any specific runtime deps are needed)
-# If the adapter-node output includes node_modules, this might not be needed
+# Install production dependencies
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 
