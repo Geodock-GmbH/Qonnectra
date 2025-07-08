@@ -100,7 +100,7 @@
 					if (geometryWkt) {
 						const view = olMapInstance.getView();
 						const geometry = wktFormat.readGeometry(geometryWkt, {
-							dataProjection: 'EPSG:25832',
+							dataProjection: 'EPSG:25832', // TODO: Get from trench data
 							featureProjection: view.getProjection()
 						});
 

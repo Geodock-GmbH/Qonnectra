@@ -3,9 +3,14 @@
 	import AppBar from '$lib/components/AppBar.svelte';
 	import Sidebar from '$lib/components/SideBar.svelte';
 	import { updateUserStore } from '$lib/stores/auth';
+	import { theme } from '$lib/stores/store';
+
 	let { children, data } = $props();
 
 	$effect(() => updateUserStore(data.user));
+	$effect(() => {
+		document.documentElement.setAttribute('data-theme', $theme);
+	});
 </script>
 
 <!-- Root flex container -->

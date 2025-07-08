@@ -1,6 +1,6 @@
 <script>
 	// Skeleton
-	import { Toaster, createToaster, Switch, Slider } from '@skeletonlabs/skeleton-svelte';
+	import { Toaster, createToaster, Switch, Slider, Combobox } from '@skeletonlabs/skeleton-svelte';
 
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
@@ -13,7 +13,8 @@
 		trenchColor,
 		trenchColorSelected,
 		routingMode,
-		routingTolerance
+		routingTolerance,
+		theme
 	} from '$lib/stores/store';
 
 	const toaster = createToaster({
@@ -24,6 +25,12 @@
 	$effect(() => {
 		document.body.style.overflow = 'hidden';
 	});
+
+	const themes = [
+		{ label: 'Modern', value: 'modern' },
+		{ label: 'Vox', value: 'vox' },
+		{ label: 'Wintry', value: 'wintry' }
+	];
 
 	let routingToleranceMarkers = $derived(Array.from({ length: 10 }, (_, i) => i + 1));
 </script>
@@ -76,16 +83,20 @@
 				<dl class="mt-6 divide-y border-t text-sm/6">
 					<div class="py-6 sm:flex">
 						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
-							{m.settings_ui_default_project()}
+							{m.settings_ui_theme()}
 						</dt>
 						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
-							<span>{globalThis.$defaultProject}</span>
-							<button
-								type="button"
-								class="font-semibold text-primary-500 hover:text-primary-600-400"
-							>
-								Update
-							</button>
+							<span></span>
+							<Combobox
+								data={themes}
+								bind:value={$theme}
+								defaultValue={$theme}
+								onValueChange={(e) => {
+									$theme = e.value;
+								}}
+								placeholder={$theme}
+								zIndex="10"
+							/>
 						</dd>
 					</div>
 					<div class="py-6 sm:flex">

@@ -7,9 +7,9 @@
 		IconLayoutSidebarLeftCollapse,
 		IconLayoutSidebarLeftExpand,
 		IconMap2,
-		IconLane,
-		IconTableMinus,
-		IconSettings
+		IconSettings,
+		IconTextPlus,
+		IconTable
 	} from '@tabler/icons-svelte';
 
 	// Paraglide
@@ -43,19 +43,19 @@
 			</Navigation.Tile>
 			<Navigation.Tile
 				href="/trench"
-				labelExpanded={m.trench()}
+				labelExpanded={m.conduit_connection()}
 				title="Trench"
 				selected={page.url.pathname === '/trench'}
 			>
-				<IconLane size={28} class="text-surface-700-300" />
+				<IconTextPlus size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
 			<Navigation.Tile
 				href="/conduit"
-				labelExpanded={m.conduit()}
+				labelExpanded={m.conduit_management()}
 				title="Conduit"
 				selected={page.url.pathname === '/conduit'}
 			>
-				<IconTableMinus size={28} class="text-surface-700-300" />
+				<IconTable size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
 		{/snippet}
 		{#snippet footer()}
