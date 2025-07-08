@@ -17,7 +17,7 @@
 	let password;
 
 	// Read redirectTo query parameter
-	let redirectTo = $page.url.searchParams.get('redirectTo') || '/map';
+	let redirectTo = '/map';
 
 	/** @type {import('./$types').ActionData} */
 	export let form; // Receive action data from the server
@@ -30,6 +30,7 @@
 			description: m.login_critical_error(),
 			type: 'error'
 		});
+		console.log('form', form.error);
 	}
 </script>
 

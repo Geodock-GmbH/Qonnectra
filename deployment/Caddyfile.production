@@ -1,0 +1,112 @@
+# Backend API
+{env.API_DOMAIN} {
+    # Automatic Let's Encrypt SSL
+    reverse_proxy nginx:80 {
+        header_up Host {host}
+        header_up X-Forwarded-Proto https
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+    }
+    
+    # Security headers
+    header {
+        # Enable HSTS
+        Strict-Transport-Security max-age=31536000;
+        # Prevent MIME type sniffing
+        X-Content-Type-Options nosniff
+        # Prevent clickjacking
+        X-Frame-Options DENY
+        # XSS protection
+        X-XSS-Protection "1; mode=block"
+        # Remove server info
+        -Server
+    }
+    
+    # Optional: Rate limiting
+    # rate_limit {
+    #     zone api {
+    #         key {remote_host}
+    #         events 100
+    #         window 1m
+    #     }
+    # }
+}
+
+# Frontend Application
+{env.APP_DOMAIN} {
+    reverse_proxy frontend:3000 {
+        header_up Host {host}
+        header_up X-Forwarded-Proto https
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+    }
+    
+    # Security headers
+    header {
+        Strict-Transport-Security max-age=31536000;
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        -Server
+    }
+}
+
+# Nextcloud
+{env.CLOUD_DOMAIN} {
+    reverse_proxy nextcloud:80 {
+        header_up Host {host}
+        header_up X-Forwarded-Proto https
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+    }
+    
+    # Nextcloud specific headers
+    header {
+        Strict-Transport-Security max-age=31536000;
+        X-Content-Type-Options nosniff
+        X-XSS-Protection "1; mode=block"
+        -Server
+    }
+    
+    # Handle large file uploads
+    request_body {
+        max_size 10GB
+    }
+}
+
+# GeoServer
+{env.GEOSERVER_DOMAIN} {
+    reverse_proxy geoserver:8080 {
+        header_up Host {host}
+        header_up X-Forwarded-Proto https
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+    }
+    
+    header {
+        Strict-Transport-Security max-age=31536000;
+        X-Content-Type-Options nosniff
+        -Server
+    }
+}
+
+# QGIS Server
+{env.QGIS_DOMAIN} {
+    reverse_proxy qgis-server:80 {
+        header_up Host {host}
+        header_up X-Forwarded-Proto https
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+    }
+    
+    header {
+        Strict-Transport-Security max-age=31536000;
+        X-Content-Type-Options nosniff
+        -Server
+    }
+}
+
+# Redirect www to non-www 
+www.{env.DOMAIN_NAME} {
+    redir https://{env.DOMAIN_NAME}{uri} permanent
+} 

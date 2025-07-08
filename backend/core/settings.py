@@ -24,17 +24,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent  # Backend directory
 env_path = BASE_DIR.parent / "deployment" / ".env"
 load_dotenv(dotenv_path=env_path)
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "0").lower() in ("1", "true", "yes")
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
-CSRF_TRUSTED_ORIGINS = ["https://api.localhost"]
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "https://api.localhost").split(
+    ","
+)
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
 
@@ -68,7 +66,19 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
+    "apps.api.middleware.CookieDomainMiddleware",
 ]
+
+# Set to True to use the CookieDomainMiddleware
+# This is needed for the cookies to work across subdomains
+USE_COOKIE_DOMAIN_MIDDLEWARE = os.getenv(
+    "USE_COOKIE_DOMAIN_MIDDLEWARE", "0"
+).lower() in (
+    "1",
+    "true",
+    "yes",
+)
+COOKIE_DOMAIN = os.getenv("APP_DOMAIN", "localhost")
 
 ROOT_URLCONF = "core.urls"
 
@@ -107,6 +117,7 @@ DATABASES = {
 
 # GDAL Configuration
 # Its need when running the django devserver
+# IMPORTANT: Windows and MacOS are not tested
 if platform.system() == "Windows":
     GDAL_LIBRARY_PATH = r"C:\OSGeo4W\bin\gdal304.dll"
     GEOS_LIBRARY_PATH = r"C:\OSGeo4W\bin\geos_c.dll"
@@ -192,11 +203,13 @@ REST_FRAMEWORK = {
     # ]
 }
 
+# dj-rest-auth settings
+# https://dj-rest-auth.readthedocs.io/en/latest/configuration.html
 REST_AUTH = {
     "USE_JWT": True,
     "SESSION_LOGIN": False,
     "JWT_AUTH_COOKIE": "api-access-token",
-    "JWT_AUTH_REFRESH_COOKIE": "api-refresh-token",
+    "JWT_AUTH_REFRESH_COOKIE": None,  # "api-refresh-token",
     "JWT_AUTH_REFRESH_COOKIE_PATH": "/",
     "JWT_AUTH_SECURE": True,
     "JWT_AUTH_HTTPONLY": True,
@@ -228,24 +241,12 @@ SIMPLE_JWT = {
     "TOKEN_TYPE_CLAIM": "token_type",
     "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
     "JTI_CLAIM": "jti",
-    # Cookie specific settings (though dj-rest-auth overrides these with REST_AUTH settings)
-    # These are here for reference but dj-rest-auth's JWT_AUTH_* settings take precedence
-    # "AUTH_COOKIE": "access_token",
-    # "AUTH_COOKIE_REFRESH": "refresh_token",
-    # "AUTH_COOKIE_DOMAIN": None,
-    # "AUTH_COOKIE_SECURE": False,
-    # "AUTH_COOKIE_HTTP_ONLY": True,
-    # "AUTH_COOKIE_PATH": "/",
-    # "AUTH_COOKIE_SAMESITE": "Lax",
 }
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Default SvelteKit dev server
-    "http://127.0.0.1:5173",
-    "https://app.localhost",
-    "http://localhost:3000",
-    "https://api.localhost",
-]
+CORS_ALLOWED_ORIGINS = os.getenv(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000",
+).split(",")
 CORS_ALLOW_CREDENTIALS = True
 
 # Nextcloud Storage Settings

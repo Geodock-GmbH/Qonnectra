@@ -197,3 +197,5 @@ deployment/postgres/data
 deployment/nextcloud/data
 deployment/.env
 deployment/caddy
+
+node_modules
