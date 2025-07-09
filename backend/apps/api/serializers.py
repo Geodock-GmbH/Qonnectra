@@ -331,7 +331,9 @@ class OlTrenchSerializer(GeoFeatureModelSerializer):
     constructor = AttributesCompanySerializer(read_only=True)
 
     # Format date to YYYY/MM/DD
-    date = serializers.DateField(format="%Y/%m/%d", read_only=True)
+    date = serializers.DateField(
+        input_formats=["%Y/%m/%d"], format="%d.%m.%Y", read_only=True
+    )
     construction_depth = serializers.IntegerField(read_only=True)
     construction_details = serializers.CharField(read_only=True)
     internal_execution = serializers.BooleanField(read_only=True)
