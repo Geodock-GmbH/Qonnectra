@@ -6,6 +6,7 @@
 	"settings": "Einstellungen",
 	"menu": "Menü",
 	"login": "Login",
+	"confirm": "Bestätigen",
 	"signin": "Anmelden",
 	"username": "Benutzername",
 	"email": "E-Mail",
@@ -128,5 +129,7 @@
 	"error_fetching_select_options": "Fehler beim Laden der Auswahlfelder",
 	"error_creating_conduit": "Fehler beim Erstellen des Rohres",
 	"error_duplicate_conduit": "Rohr mit diesem Namen existiert bereits",
-	"success_creating_conduit": "Rohr erfolgreich erstellt"
+	"success_creating_conduit": "Rohr erfolgreich erstellt",
+	"success_updating_conduit": "Rohr erfolgreich aktualisiert",
+	"error_updating_conduit": "Fehler beim Aktualisieren des Rohres"
 }

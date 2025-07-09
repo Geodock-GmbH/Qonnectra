@@ -27,6 +27,8 @@
 		rowClickedSignal = $bindable(false)
 	} = $props();
 
+	let selectedConduitName = $state('');
+	let selectedOuterConduit = $state('');
 	let conduitTypes = $state([]);
 	let selectedConduitType = $state([]);
 	let statuses = $state([]);
@@ -37,6 +39,7 @@
 	let selectedOwner = $state([]);
 	let selectedConstructor = $state([]);
 	let selectedManufacturer = $state([]);
+	let selectedDate = $state('');
 	let flags = $state([]);
 	let selectedFlag = $state([]);
 
@@ -48,26 +51,16 @@
 		'flags'
 	];
 
+	// NOTE: This is a bit of a mess, but it works for now
 	async function loadSelectOptions(editMode = false) {
 		try {
 			let editData;
-			// TODO: Make edit mode work
-			if (editMode) {
-				toaster.create({
-					type: 'warning',
-					title: 'Coming Soon',
-					description: 'Edit mode is not yet implemented'
-				});
-				openPipeModal = false;
-				return;
-			}
 			if (editMode) {
 				const editUrl = `${PUBLIC_API_URL}conduit/${pipeData.value}/`;
 				const editRes = await fetch(editUrl, { credentials: 'include' });
 				if (!editRes.ok)
 					throw new Error(`Failed to fetch ${editRes.url} (status ${editRes.status})`);
 				editData = await editRes.json();
-				console.log('editData', editData);
 			}
 			// build full URLs
 			const urls = resources.map((name) => `${PUBLIC_API_URL}${name}/`);
@@ -113,7 +106,22 @@
 			companies = parsedCompanies;
 			flags = parsedFlags;
 			if (editMode) {
-				selectedConduitType = [editData.conduit_type.conduit_type];
+				selectedConduitName = editData.name;
+				selectedOuterConduit = editData.outer_conduit;
+				if (editData.date) {
+					// from DD.MM.YYYY to YYYY-MM-DD
+					const dateParts = editData.date.split('.');
+					selectedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+				} else {
+					selectedDate = '';
+				}
+				selectedConduitType = [editData.conduit_type ? editData.conduit_type.id : ''];
+				selectedStatus = [editData.status ? editData.status.id : ''];
+				selectedNetworkLevel = [editData.network_level ? editData.network_level.id : ''];
+				selectedOwner = [editData.owner ? editData.owner.id : ''];
+				selectedConstructor = [editData.constructor ? editData.constructor.id : ''];
+				selectedManufacturer = [editData.manufacturer ? editData.manufacturer.id : ''];
+				selectedFlag = [editData.flag ? editData.flag.id : ''];
 			}
 		} catch (err) {
 			toaster.create({
@@ -152,8 +160,11 @@
 		});
 
 		try {
-			const response = await fetch(`${PUBLIC_API_URL}conduit/`, {
-				method: 'POST',
+			const url = editMode
+				? `${PUBLIC_API_URL}conduit/${pipeData.value}/`
+				: `${PUBLIC_API_URL}conduit/`;
+			const response = await fetch(url, {
+				method: editMode ? 'PUT' : 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 					'X-CSRFToken': document.cookie
@@ -168,16 +179,16 @@
 				toaster.create({
 					type: 'success',
 					title: m.title_login_success(),
-					description: m.success_creating_conduit()
+					description: editMode ? m.success_updating_conduit() : m.success_creating_conduit()
 				});
 				openPipeModal = false;
 			} else {
 				const errorData = await response.json();
-				console.error('Error creating conduit:', errorData);
+				console.error('Error submitting form:', errorData);
 				toaster.create({
 					type: 'error',
 					title: m.error(),
-					description: m.error_duplicate_conduit()
+					description: editMode ? m.error_updating_conduit() : m.error_duplicate_conduit()
 				});
 			}
 		} catch (error) {
@@ -185,18 +196,31 @@
 			toaster.create({
 				type: 'error',
 				title: m.error(),
-				description: m.error_creating_conduit()
+				description: editMode ? m.error_updating_conduit() : m.error_creating_conduit()
 			});
 		}
 	}
 
-	$effect(() => {
+	async function clearParameters() {
+		editMode = false;
+		selectedConduitName = '';
+		selectedOuterConduit = '';
+		selectedDate = '';
+		selectedConduitType = [];
+		selectedStatus = [];
+		selectedNetworkLevel = [];
+		selectedOwner = [];
+		selectedConstructor = [];
+		selectedManufacturer = [];
+		selectedFlag = [];
+	}
+
+	$effect(async () => {
 		if (rowClickedSignal) {
-			openPipeModal = true;
 			editMode = true;
-			loadSelectOptions(editMode);
+			await loadSelectOptions(editMode);
+			openPipeModal = true;
 			rowClickedSignal = false;
-			editMode = false;
 		}
 	});
 </script>
@@ -211,6 +235,15 @@
 	contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm"
 	backdropClasses="backdrop-blur-sm"
 	classes={isHidden ? 'hidden' : ''}
+	onPointerDownOutside={async (e) => {
+		await clearParameters();
+	}}
+	onInteractOutside={async (e) => {
+		await clearParameters();
+	}}
+	onEscapeKeyDown={async (e) => {
+		await clearParameters();
+	}}
 >
 	{#snippet trigger()}
 		{#if small}
@@ -230,7 +263,14 @@
 		>
 			<label class="label">
 				<span class="label-text">{m.name()}</span>
-				<input type="text" class="input" placeholder="" name="pipe_name" required />
+				<input
+					type="text"
+					class="input"
+					placeholder=""
+					name="pipe_name"
+					required
+					value={selectedConduitName ?? ''}
+				/>
 			</label>
 			<label for="pipe_type" class="label">
 				<span class="label-text">{m.conduit_type()}</span>
@@ -243,6 +283,7 @@
 					required
 					value={selectedConduitType}
 					onValueChange={(e) => (selectedConduitType = e.value)}
+					defaultValue={selectedConduitType}
 					contentBase="max-h-60 overflow-auto"
 				/>
 			</label>
@@ -261,6 +302,7 @@
 					zIndex="10"
 					value={selectedStatus}
 					onValueChange={(e) => (selectedStatus = e.value)}
+					defaultValue={selectedStatus}
 					contentBase="max-h-60 overflow-auto"
 				/>
 			</label>
@@ -274,6 +316,7 @@
 					zIndex="10"
 					value={selectedNetworkLevel}
 					onValueChange={(e) => (selectedNetworkLevel = e.value)}
+					defaultValue={selectedNetworkLevel}
 				/>
 			</label>
 			<label for="owner" class="label">
@@ -286,6 +329,7 @@
 					zIndex="10"
 					value={selectedOwner}
 					onValueChange={(e) => (selectedOwner = e.value)}
+					defaultValue={selectedOwner}
 				/>
 			</label>
 			<label for="constructor" class="label">
@@ -299,6 +343,7 @@
 					value={selectedConstructor}
 					onValueChange={(e) => (selectedConstructor = e.value)}
 					contentBase="max-h-60 overflow-auto"
+					defaultValue={selectedConstructor}
 				/>
 			</label>
 			<label for="manufacturer" class="label">
@@ -313,11 +358,19 @@
 					value={selectedManufacturer}
 					onValueChange={(e) => (selectedManufacturer = e.value)}
 					contentBase="max-h-60 overflow-auto"
+					defaultValue={selectedManufacturer}
 				/>
 			</label>
 			<label for="date" class="label">
 				<span class="label-text">{m.date()}</span>
-				<input type="date" name="date" id="date" class="input" format="yyyy-MM-dd" />
+				<input
+					type="date"
+					name="date"
+					id="date"
+					class="input"
+					format="yyyy-MM-dd"
+					value={selectedDate}
+				/>
 			</label>
 			<label for="flag" class="label">
 				<span class="label-text">{m.flag()}</span>
@@ -331,15 +384,13 @@
 					required
 					onValueChange={(e) => (selectedFlag = e.value)}
 					contentBase="max-h-60 overflow-auto"
+					defaultValue={selectedFlag}
 				/>
 			</label>
 		</form>
 
 		<footer class="flex justify-end gap-4">
-			<button type="button" class="btn preset-tonal" onclick={() => (openPipeModal = false)}>
-				Cancel
-			</button>
-			<button type="submit" class="btn preset-filled" form="pipe-form"> Confirm </button>
+			<button type="submit" class="btn preset-filled" form="pipe-form"> {m.confirm()} </button>
 		</footer>
 	{/snippet}
 </Modal>

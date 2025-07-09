@@ -6,6 +6,7 @@
 	"settings": "Settings",
 	"menu": "Menu",
 	"login": "Login",
+	"confirm": "Confirm",
 	"signin": "Sign in to your account",
 	"username": "Username",
 	"email": "Email address",
@@ -127,5 +128,7 @@
 	"error_fetching_select_options": "Error fetching select options",
 	"error_creating_conduit": "Error creating conduit",
 	"success_creating_conduit": "Conduit created successfully",
-	"error_duplicate_conduit": "A conduit with that name already exists"
+	"error_duplicate_conduit": "A conduit with that name already exists",
+	"success_updating_conduit": "Conduit updated successfully",
+	"error_updating_conduit": "Error updating conduit"
 }
