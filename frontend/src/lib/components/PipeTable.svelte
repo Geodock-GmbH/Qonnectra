@@ -106,7 +106,7 @@
 </script>
 
 <div class="table-wrap overflow-x-auto">
-	<table class="table table-card caption-bottom w-full">
+	<table class="table table-card caption-bottom w-full overflow-scroll">
 		<thead>
 			<tr>
 				{#each headers as header}
