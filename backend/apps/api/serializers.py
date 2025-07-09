@@ -208,7 +208,7 @@ class TrenchSerializer(GeoFeatureModelSerializer):
         required=False,
     )
     # Format date to YYYY/MM/DD
-    date = serializers.DateField(input_formats=["%Y/%m/%d"], format="%d/%m/%Y")
+    date = serializers.DateField(input_formats=["%Y/%m/%d"], format="%d.%m.%Y")
     comment = serializers.CharField(required=False)
     geom = GeometryField()
     project_id = serializers.PrimaryKeyRelatedField(
@@ -445,7 +445,7 @@ class ConduitSerializer(serializers.ModelSerializer):
     outer_conduit = serializers.CharField(required=False, allow_blank=True)
 
     date = serializers.DateField(
-        input_formats=["%Y/%m/%d"], format="%d/%m/%Y", required=False
+        input_formats=["%Y/%m/%d"], format="%d.%m.%Y", required=False
     )
 
     class Meta:
@@ -680,10 +680,10 @@ class NodeSerializer(GeoFeatureModelSerializer):
         source="manufacturer",
     )
     warranty = serializers.DateField(
-        required=False, input_formats=["%Y/%m/%d"], format="%d/%m/%Y"
+        required=False, input_formats=["%Y/%m/%d"], format="%d.%m.%Y"
     )
     date = serializers.DateField(
-        required=False, input_formats=["%Y/%m/%d"], format="%d/%m/%Y"
+        required=False, input_formats=["%Y/%m/%d"], format="%d.%m.%Y"
     )
     geom = GeometryField()
     project_id = serializers.PrimaryKeyRelatedField(
@@ -739,10 +739,10 @@ class OlNodeSerializer(GeoFeatureModelSerializer):
     constructor = AttributesCompanySerializer(read_only=True)
     manufacturer = AttributesCompanySerializer(read_only=True)
     warranty = serializers.DateField(
-        read_only=True, input_formats=["%Y/%m/%d"], format="%d/%m/%Y"
+        read_only=True, input_formats=["%Y/%m/%d"], format="%d.%m.%Y"
     )
     date = serializers.DateField(
-        read_only=True, input_formats=["%Y/%m/%d"], format="%d/%m/%Y"
+        read_only=True, input_formats=["%Y/%m/%d"], format="%d.%m.%Y"
     )
     project = ProjectsSerializer(read_only=True)
     flag = FlagsSerializer(read_only=True)

@@ -14,11 +14,13 @@
 	// Svelte
 	import PipeTable from '$lib/components/PipeTable.svelte';
 	import PipeModal from '$lib/components/PipeModal.svelte';
-	import { selectedProject } from '$lib/stores/store';
+	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
+	import { selectedProject, selectedFlag } from '$lib/stores/store';
 
 	let openPipeModal = $state(false);
 	let rowData = $state(null);
 	let rowClickedSignal = $state(false);
+	let { data } = $props();
 
 	// Toast
 	const toaster = createToaster({
@@ -113,6 +115,8 @@
 				pipeData={rowData}
 				bind:rowClickedSignal
 			/>
+			<FlagCombobox flags={data.flags} flagsError={data.flagsError} />
+			<input type="text" placeholder="Search" class="input" />
 		</nav>
 	</div>
 
@@ -126,7 +130,7 @@
 				onFileAccept={handleFileAccept}
 				onFileReject={handleFileReject}
 			>
-				<button class="btn preset-filled-primary-500">
+				<button name="import-conduit" class="btn preset-filled-primary-500">
 					<IconUpload class="size-4" />
 					<span>{m.import_conduit_xlsx()}</span>
 				</button>
