@@ -18,7 +18,8 @@
 		projectId,
 		searchTerm = '',
 		rowData = $bindable(),
-		rowClickedSignal = $bindable(false)
+		rowClickedSignal = $bindable(false),
+		updatedPipeData = null
 	} = $props();
 
 	let pipes = $state([]);
@@ -29,6 +30,7 @@
 	let count = $derived(size);
 	let deletingIds = $state(new Set());
 	const slicedSource = $derived(pipes.slice((page - 1) * size, page * size));
+	let lastProcessedPipeData = null;
 	let headers = [
 		m.name(),
 		m.conduit_type(),
@@ -101,6 +103,35 @@
 	$effect(() => {
 		if (searchTerm !== undefined) {
 			fetchPipes();
+		}
+	});
+
+	$effect(() => {
+		if (updatedPipeData && updatedPipeData !== lastProcessedPipeData) {
+			const index = pipes.findIndex((p) => p.value === updatedPipeData.uuid);
+			const formattedPipe = {
+				value: updatedPipeData.uuid,
+				name: updatedPipeData.name,
+				conduit_type: updatedPipeData.conduit_type.conduit_type,
+				outer_conduit: updatedPipeData.outer_conduit,
+				status: updatedPipeData.status ? updatedPipeData.status.status : '',
+				network_level: updatedPipeData.network_level
+					? updatedPipeData.network_level.network_level
+					: '',
+				owner: updatedPipeData.owner ? updatedPipeData.owner.company : '',
+				constructor: updatedPipeData.constructor ? updatedPipeData.constructor.company : '',
+				manufacturer: updatedPipeData.manufacturer ? updatedPipeData.manufacturer.company : '',
+				date: updatedPipeData.date,
+				flag: updatedPipeData.flag.flag
+			};
+			if (index !== -1) {
+				// Update existing pipe
+				pipes[index] = formattedPipe;
+			} else {
+				// Add new pipe
+				pipes = [formattedPipe, ...pipes];
+			}
+			lastProcessedPipeData = updatedPipeData;
 		}
 	});
 </script>

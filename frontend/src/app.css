@@ -1,12 +1,15 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 
+@import '@fontsource/press-start-2p';
+
 @import '@skeletonlabs/skeleton';
 @import '@skeletonlabs/skeleton/optional/presets';
 @import '@skeletonlabs/skeleton/themes/vox';
 @import '@skeletonlabs/skeleton/themes/modern';
+@import '@skeletonlabs/skeleton/themes/mona';
 @import '@skeletonlabs/skeleton/themes/wintry';
-
+@import '../16-bit.css';
 
 @custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
 

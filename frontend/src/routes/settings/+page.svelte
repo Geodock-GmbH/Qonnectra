@@ -28,8 +28,10 @@
 
 	const themes = [
 		{ label: 'Modern', value: 'modern' },
+		{ label: 'Mona', value: 'mona' },
 		{ label: 'Vox', value: 'vox' },
-		{ label: 'Wintry', value: 'wintry' }
+		{ label: 'Wintry', value: 'wintry' },
+		{ label: '16-bit', value: '16-bit' }
 	];
 
 	let routingToleranceMarkers = $derived(Array.from({ length: 10 }, (_, i) => i + 1));

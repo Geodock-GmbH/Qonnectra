@@ -24,11 +24,24 @@
 	let { data } = $props();
 	let searchInput = $state('');
 	let searchTerm = $state('');
+	let updatedPipeData = $state(null);
 
 	function performSearch() {
 		searchTerm = searchInput;
 	}
 
+	function handlePipeUpdate(data) {
+		updatedPipeData = data;
+	}
+
+	$effect(() => {
+		if (updatedPipeData) {
+			// Reset after a short delay to allow the table to process the update
+			setTimeout(() => {
+				updatedPipeData = null;
+			}, 100);
+		}
+	});
 	// Toast
 	const toaster = createToaster({
 		placement: 'bottom-end'
@@ -121,6 +134,7 @@
 				{openPipeModal}
 				pipeData={rowData}
 				bind:rowClickedSignal
+				onPipeUpdate={handlePipeUpdate}
 			/>
 			<SearchInput bind:value={searchInput} onSearch={performSearch} />
 		</nav>
@@ -148,4 +162,10 @@
 	</div>
 </div>
 
-<PipeTable projectId={$selectedProject} bind:rowData bind:rowClickedSignal {searchTerm} />
+<PipeTable
+	projectId={$selectedProject}
+	bind:rowData
+	bind:rowClickedSignal
+	{searchTerm}
+	{updatedPipeData}
+/>

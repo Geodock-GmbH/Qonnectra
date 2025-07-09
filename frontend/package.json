@@ -33,6 +33,7 @@
 		"vitest": "^3.0.0"
 	},
 	"dependencies": {
+		"@fontsource/press-start-2p": "^5.2.6",
 		"@inlang/paraglide-js": "^2.0.0",
 		"@tabler/icons-svelte": "^3.31.0",
 		"ol": "^10.5.0",

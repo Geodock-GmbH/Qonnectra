@@ -24,7 +24,8 @@
 		isHidden = false,
 		editMode = false,
 		pipeData = null,
-		rowClickedSignal = $bindable(false)
+		rowClickedSignal = $bindable(false),
+		onPipeUpdate = (data) => {}
 	} = $props();
 
 	let selectedConduitName = $state('');
@@ -176,12 +177,14 @@
 				credentials: 'include'
 			});
 			if (response.ok) {
+				const result = await response.json();
 				toaster.create({
 					type: 'success',
 					title: m.title_login_success(),
 					description: editMode ? m.success_updating_conduit() : m.success_creating_conduit()
 				});
 				openPipeModal = false;
+				onPipeUpdate(result);
 			} else {
 				const errorData = await response.json();
 				console.error('Error submitting form:', errorData);
@@ -259,7 +262,10 @@
 		<form
 			id="pipe-form"
 			class="mx-auto w-full max-w-md space-y-4 grid grid-cols-2 gap-4"
-			onsubmit={handleSubmit}
+			onsubmit={async (e) => {
+				await handleSubmit(e);
+				await clearParameters();
+			}}
 		>
 			<label class="label">
 				<span class="label-text">{m.name()}</span>
