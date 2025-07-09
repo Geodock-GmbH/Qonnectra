@@ -14,7 +14,12 @@
 		placement: 'bottom-end'
 	});
 
-	let { projectId, rowData = $bindable(), rowClickedSignal = $bindable(false) } = $props();
+	let {
+		projectId,
+		searchTerm = '',
+		rowData = $bindable(),
+		rowClickedSignal = $bindable(false)
+	} = $props();
 
 	let pipes = $state([]);
 	let pipesError = $state(null);
@@ -47,6 +52,9 @@
 
 		try {
 			let url = `${PUBLIC_API_URL}conduit/all/?project=${projectId}`;
+			if (searchTerm) {
+				url += `&search=${searchTerm}`;
+			}
 			let response = await fetch(url, { credentials: 'include' });
 
 			if (!response.ok) {
@@ -86,6 +94,12 @@
 
 	$effect(() => {
 		if (projectId) {
+			fetchPipes();
+		}
+	});
+
+	$effect(() => {
+		if (searchTerm !== undefined) {
 			fetchPipes();
 		}
 	});

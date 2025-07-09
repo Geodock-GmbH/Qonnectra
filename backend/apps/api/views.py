@@ -1,4 +1,5 @@
 from django.db import connection
+from django.db.models import Q
 from django.http import HttpResponse
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -285,14 +286,27 @@ class ConduitViewSet(viewsets.ModelViewSet):
     def all_conduits(self, request):
         """
         Returns all conduits with project and flag filters.
+        No pagination is used.
         """
         queryset = Conduit.objects.all().order_by("name")
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
+        search_term = request.query_params.get("search")
         if project_id:
             queryset = queryset.filter(project=project_id)
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
+        if search_term:
+            queryset = queryset.filter(
+                Q(name__icontains=search_term)
+                | Q(conduit_type__conduit_type__icontains=search_term)
+                | Q(outer_conduit__icontains=search_term)
+                | Q(status__status__icontains=search_term)
+                | Q(network_level__network_level__icontains=search_term)
+                | Q(owner__company__icontains=search_term)
+                | Q(constructor__company__icontains=search_term)
+                | Q(manufacturer__company__icontains=search_term)
+            )
         serializer = ConduitSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -331,7 +345,6 @@ class ConduitViewSet(viewsets.ModelViewSet):
 
         if name:
             queryset = queryset.filter(name__icontains=name)
-
         return queryset
 
 

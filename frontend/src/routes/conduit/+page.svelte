@@ -15,12 +15,19 @@
 	import PipeTable from '$lib/components/PipeTable.svelte';
 	import PipeModal from '$lib/components/PipeModal.svelte';
 	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
+	import SearchInput from '$lib/components/SearchInput.svelte';
 	import { selectedProject, selectedFlag } from '$lib/stores/store';
 
 	let openPipeModal = $state(false);
 	let rowData = $state(null);
 	let rowClickedSignal = $state(false);
 	let { data } = $props();
+	let searchInput = $state('');
+	let searchTerm = $state('');
+
+	function performSearch() {
+		searchTerm = searchInput;
+	}
 
 	// Toast
 	const toaster = createToaster({
@@ -108,15 +115,14 @@
 
 <div class="flex justify-between items-center">
 	<div class="flex justify-start">
-		<nav class="btn-group preset-outlined-surface-200-800 flex-col p-2 md:flex-row">
+		<nav class="btn-group preset-outlined-surface-200-800 flex-col justify-between p-2 md:flex-row">
 			<PipeModal
 				projectId={$selectedProject}
 				{openPipeModal}
 				pipeData={rowData}
 				bind:rowClickedSignal
 			/>
-			<FlagCombobox flags={data.flags} flagsError={data.flagsError} />
-			<input type="text" placeholder="Search" class="input" />
+			<SearchInput bind:value={searchInput} onSearch={performSearch} />
 		</nav>
 	</div>
 
@@ -142,4 +148,4 @@
 	</div>
 </div>
 
-<PipeTable projectId={$selectedProject} bind:rowData bind:rowClickedSignal />
+<PipeTable projectId={$selectedProject} bind:rowData bind:rowClickedSignal {searchTerm} />

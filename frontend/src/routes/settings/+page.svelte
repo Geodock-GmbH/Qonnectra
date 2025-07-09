@@ -119,9 +119,9 @@
 				</dl>
 			</div>
 
-			<!-- TODO: Add Map Settings -->
+			<!-- Map Settings -->
 			<div>
-				<h2 class="text-base/7 font-semibold">Map</h2>
+				<h2 class="text-base/7 font-semibold">{m.settings_map()}</h2>
 				<p class="mt-1 text-sm/6">
 					{m.settings_map_description()}
 				</p>
@@ -147,7 +147,7 @@
 					</div>
 					<div class="py-6 sm:flex">
 						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
-							{m.settings_map_selected_trench_color()}
+							{m.settings_map_selected_feature_color()}
 						</dt>
 						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
 							<input type="color" bind:value={$trenchColorSelected} />
@@ -165,12 +165,14 @@
 					</div>
 				</dl>
 			</div>
+
+			<!-- Conduit Connection Settings -->
 			<div>
 				<h2 class="text-base/7 font-semibold">
-					{m.settings_trench()}
+					{m.settings_conduit_connection()}
 				</h2>
 				<p class="mt-1 text-sm/6">
-					{m.settings_trench_description()}
+					{m.settings_conduit_connection_description()}
 				</p>
 
 				<dl class="mt-6 divide-y border-t text-sm/6">

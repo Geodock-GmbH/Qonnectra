@@ -9,7 +9,7 @@
 		IconMap2,
 		IconSettings,
 		IconTextPlus,
-		IconTable
+		IconArrowBarToRight
 	} from '@tabler/icons-svelte';
 
 	// Paraglide
@@ -55,7 +55,7 @@
 				title="Conduit"
 				selected={page.url.pathname === '/conduit'}
 			>
-				<IconTable size={28} class="text-surface-700-300" />
+				<IconArrowBarToRight size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
 		{/snippet}
 		{#snippet footer()}
