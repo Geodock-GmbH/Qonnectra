@@ -30,7 +30,7 @@
 	let count = $derived(size);
 	let deletingIds = $state(new Set());
 	const slicedSource = $derived(pipes.slice((page - 1) * size, page * size));
-	let lastProcessedPipeData = null;
+	let lastUpdateId = null;
 	let headers = [
 		m.name(),
 		m.conduit_type(),
@@ -107,7 +107,7 @@
 	});
 
 	$effect(() => {
-		if (updatedPipeData && updatedPipeData !== lastProcessedPipeData) {
+		if (updatedPipeData && updatedPipeData._updateId !== lastUpdateId) {
 			const index = pipes.findIndex((p) => p.value === updatedPipeData.uuid);
 			const formattedPipe = {
 				value: updatedPipeData.uuid,
@@ -131,7 +131,7 @@
 				// Add new pipe
 				pipes = [formattedPipe, ...pipes];
 			}
-			lastProcessedPipeData = updatedPipeData;
+			lastUpdateId = updatedPipeData._updateId;
 		}
 	});
 </script>

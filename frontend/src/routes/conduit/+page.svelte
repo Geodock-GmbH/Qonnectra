@@ -31,17 +31,13 @@
 	}
 
 	function handlePipeUpdate(data) {
-		updatedPipeData = data;
+		// Add a timestamp to ensure uniqueness
+		updatedPipeData = {
+			...data,
+			_updateId: Date.now()
+		};
 	}
 
-	$effect(() => {
-		if (updatedPipeData) {
-			// Reset after a short delay to allow the table to process the update
-			setTimeout(() => {
-				updatedPipeData = null;
-			}, 100);
-		}
-	});
 	// Toast
 	const toaster = createToaster({
 		placement: 'bottom-end'
