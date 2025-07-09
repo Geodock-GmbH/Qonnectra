@@ -20,6 +20,14 @@ export async function load({ locals, url, fetch, cookies }) {
 	let flagsError = null;
 	let projects = [];
 	let projectsError = null;
+	let appVersion = null;
+
+	// Get app version from package.json
+	const packageJson = await fetch('/package.json').catch(() => null);
+	if (packageJson) {
+		const packageData = await packageJson.json();
+		appVersion = packageData.version;
+	}
 
 	if (isUserAuthenticated) {
 		const accessToken = cookies.get('api-access-token');
@@ -75,6 +83,7 @@ export async function load({ locals, url, fetch, cookies }) {
 		flags,
 		flagsError,
 		projects,
-		projectsError
+		projectsError,
+		appVersion
 	};
 }

@@ -24,8 +24,10 @@
 			{/if}
 		{/snippet}
 		{#snippet trail()}
-			<!-- Light Switch cant be in the settings page because settings are behind a login -->
-			<LightSwitch />
+			<div class="flex items-center gap-6">
+				<p class="text-sm text-surface-700-300">v{data.appVersion}</p>
+				<LightSwitch />
+			</div>
 			{#if $userStore.isAuthenticated}
 				<div class="flex items-center">
 					<form method="POST" action="/logout">

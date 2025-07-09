@@ -32,12 +32,10 @@ export const actions = {
 
 			// Process and set cookies from Set-Cookie header
 			const setCookieHeader = response.headers.get('set-cookie');
-			console.log('setCookieHeader', setCookieHeader);
 
 			if (setCookieHeader) {
 				// Use set-cookie-parser to properly parse the cookies
 				const cookies = setCookieParser.parse(response);
-				console.log('cookies', cookies);
 				cookies.forEach((cookie) => {
 					const options = {
 						path: cookie.path || '/',
