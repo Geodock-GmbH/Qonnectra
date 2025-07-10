@@ -158,10 +158,8 @@
 
 				toaster.create({
 					type: 'success',
-					title: m.success ? m.success() : 'Success',
-					description: m.success_deleting_conduit
-						? m.success_deleting_conduit()
-						: 'Conduit deleted successfully'
+					title: m.success(),
+					description: m.success_deleting_conduit()
 				});
 			} else {
 				throw new Error(`HTTP error! status: ${response.status}`);
@@ -171,9 +169,7 @@
 			toaster.create({
 				type: 'error',
 				title: m.error(),
-				description: m.error_deleting_conduit
-					? m.error_deleting_conduit()
-					: 'Failed to delete conduit'
+				description: m.error_deleting_conduit()
 			});
 		} finally {
 			deletingIds.delete(pipeId);
@@ -222,6 +218,8 @@
 		}
 	});
 </script>
+
+<Toaster {toaster} />
 
 <div class="table-wrap overflow-x-auto">
 	<table class="table table-card caption-bottom w-full overflow-scroll">
