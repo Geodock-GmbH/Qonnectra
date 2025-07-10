@@ -49,6 +49,8 @@
 	"street": "Straße",
 	"housenumber": "Hausnummer",
 	"house_number_suffix": "Zusatz",
+	"close": "Schließen",
+	"delete": "Löschen",
 	"status_development": "Ausbaustatus",
 	"title_missing_information": "Fehlende Informationen",
 	"missing_information": "Bitte geben Sie beide Benutzername und Passwort ein.",
@@ -133,6 +135,7 @@
 	"success_updating_conduit": "Rohr erfolgreich aktualisiert",
 	"success_deleting_conduit": "Rohr erfolgreich gelöscht",
 	"confirm_delete_conduit": "Bist du sicher, dass du das Rohr löschen möchtest?",
+	"confirm_delete_conduit_description": "Rohr ist in schon min. einer Trasse zugeordnet. Bist du sicher, dass du das Rohr löschen möchtest und somit die dazugehörigen Trassenverbindungen?",
 	"error_updating_conduit": "Fehler beim Aktualisieren des Rohres",
 	"error_deleting_conduit": "Fehler beim Löschen des Rohres",
 	"error_conduit_in_use": "Rohr ist in schon min. einer Trasse zugeordnet"

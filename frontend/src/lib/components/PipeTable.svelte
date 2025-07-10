@@ -11,6 +11,7 @@
 	// Svelte
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
+	import MessageBox from '$lib/components/MessageBox.svelte';
 
 	// Toaster
 	const toaster = createToaster({
@@ -46,6 +47,9 @@
 		m.date(),
 		m.flag()
 	];
+	let messageBoxConfirm;
+	let messageBoxAlert;
+	let pendingDeleteId = $state(null);
 
 	async function fetchPipes() {
 		if (!projectId) {
@@ -98,16 +102,16 @@
 	}
 
 	async function handleDelete(pipeId) {
-		// Confirm the deletion
-		if (
-			!confirm(
-				m.confirm_delete_conduit
-					? m.confirm_delete_conduit()
-					: 'Are you sure you want to delete this conduit?'
-			)
-		) {
-			return;
-		}
+		// Store the pipe ID and show confirmation
+		pendingDeleteId = pipeId;
+		messageBoxConfirm.open();
+	}
+
+	async function confirmDelete() {
+		if (!pendingDeleteId) return;
+
+		const pipeId = pendingDeleteId;
+		pendingDeleteId = null;
 
 		// Check if the conduit is in use
 		try {
@@ -122,11 +126,9 @@
 			if (response.ok) {
 				const data = await response.json();
 				if (data.length > 0) {
-					toaster.create({
-						type: 'error',
-						title: m.error(),
-						description: m.error_conduit_in_use()
-					});
+					// Store the pipe ID again for potential force delete
+					pendingDeleteId = pipeId;
+					messageBoxAlert.open();
 					return;
 				}
 			} else {
@@ -134,8 +136,23 @@
 			}
 		} catch (error) {
 			console.error('Delete error:', error);
+			return;
 		}
 
+		// If we get here, conduit is not in use, proceed with delete
+		await performDelete(pipeId);
+	}
+
+	async function forceDelete() {
+		if (!pendingDeleteId) return;
+
+		const pipeId = pendingDeleteId;
+		pendingDeleteId = null;
+
+		await performDelete(pipeId);
+	}
+
+	async function performDelete(pipeId) {
 		// Delete the conduit
 		deletingIds.add(pipeId);
 		deletingIds = new Set(deletingIds); // Trigger reactivity
@@ -292,4 +309,23 @@
 	onPageSizeChange={(e) => (size = e.pageSize)}
 	siblingCount={4}
 	alternative
+/>
+
+<MessageBox
+	bind:this={messageBoxConfirm}
+	heading={m.confirm ? m.confirm() : 'Confirm'}
+	message={m.confirm_delete_conduit
+		? m.confirm_delete_conduit()
+		: 'Are you sure you want to delete this conduit?'}
+	showAcceptButton={true}
+	acceptText={m.delete ? m.delete() : 'Delete'}
+	onAccept={confirmDelete}
+/>
+<MessageBox
+	bind:this={messageBoxAlert}
+	heading={m.confirm()}
+	message={m.confirm_delete_conduit_description()}
+	showAcceptButton={true}
+	acceptText={m.delete ? m.delete() : 'Delete'}
+	onAccept={forceDelete}
 />

@@ -47,6 +47,8 @@
 	"street": "Street",
 	"housenumber": "Housenumber",
 	"house_number_suffix": "Suffix",
+	"close": "Close",
+	"delete": "Delete",
 	"status_development": "Status",
 	"title_missing_information": "Missing information",
 	"missing_information": "Please enter both username and password.",
@@ -133,6 +135,7 @@
 	"success_updating_conduit": "Conduit updated successfully",	
 	"error_updating_conduit": "Error updating conduit",
 	"confirm_delete_conduit": "Delete conduit?",
+	"confirm_delete_conduit_description": "Conduit is in use. Are you sure you want to delete it and the associated trench connections?",
 	"error_deleting_conduit": "Error deleting conduit",
 	"error_conduit_in_use": "Conduit is in use"
 }
