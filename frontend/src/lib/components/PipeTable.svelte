@@ -158,7 +158,7 @@
 
 				toaster.create({
 					type: 'success',
-					title: m.success(),
+					title: m.title_login_success(),
 					description: m.success_deleting_conduit()
 				});
 			} else {
