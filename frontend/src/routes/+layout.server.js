@@ -1,6 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { PUBLIC_ROUTES } from '../hooks.server.js';
 import { API_URL } from '$env/static/private';
+import packageJson from '../../package.json';
 
 /** @type {import('./$types').LayoutServerLoad} */
 export async function load({ locals, url, fetch, cookies }) {
@@ -23,10 +24,8 @@ export async function load({ locals, url, fetch, cookies }) {
 	let appVersion = null;
 
 	// Get app version from package.json
-	const packageJson = await fetch('/package.json').catch(() => null);
 	if (packageJson) {
-		const packageData = await packageJson.json();
-		appVersion = packageData.version;
+		appVersion = packageJson.version;
 	}
 
 	if (isUserAuthenticated) {
