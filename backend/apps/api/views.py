@@ -367,10 +367,16 @@ class TrenchConduitConnectionViewSet(viewsets.ModelViewSet):
         queryset = TrenchConduitConnection.objects.all()
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
+        trench_id = request.query_params.get("id_trench")
+        conduit_id = request.query_params.get("uuid_conduit")
         if project_id:
             queryset = queryset.filter(project=project_id)
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
+        if trench_id:
+            queryset = queryset.filter(uuid_trench__id_trench=trench_id)
+        if conduit_id:
+            queryset = queryset.filter(uuid_conduit__uuid=conduit_id)
         serializer = TrenchConduitSerializer(queryset, many=True)
         return Response(serializer.data)
 

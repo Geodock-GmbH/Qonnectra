@@ -129,6 +129,10 @@
 	"error_creating_conduit": "Error creating conduit",
 	"success_creating_conduit": "Conduit created successfully",
 	"error_duplicate_conduit": "A conduit with that name already exists",
-	"success_updating_conduit": "Conduit updated successfully",
-	"error_updating_conduit": "Error updating conduit"
+	"success_deleting_conduit": "Conduit deleted successfully",
+	"success_updating_conduit": "Conduit updated successfully",	
+	"error_updating_conduit": "Error updating conduit",
+	"confirm_delete_conduit": "Delete conduit?",
+	"error_deleting_conduit": "Error deleting conduit",
+	"error_conduit_in_use": "Conduit is in use"
 }

@@ -5,6 +5,9 @@
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
+	// Tabler
+	import { IconTrash } from '@tabler/icons-svelte';
+
 	// Svelte
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
@@ -94,6 +97,90 @@
 		rowClickedSignal = true;
 	}
 
+	async function handleDelete(pipeId) {
+		// Confirm the deletion
+		if (
+			!confirm(
+				m.confirm_delete_conduit
+					? m.confirm_delete_conduit()
+					: 'Are you sure you want to delete this conduit?'
+			)
+		) {
+			return;
+		}
+
+		// Check if the conduit is in use
+		try {
+			const response = await fetch(
+				`${PUBLIC_API_URL}trench_conduit_connection/all/?uuid_conduit=${pipeId}`,
+				{
+					method: 'GET',
+					credentials: 'include'
+				}
+			);
+
+			if (response.ok) {
+				const data = await response.json();
+				if (data.length > 0) {
+					toaster.create({
+						type: 'error',
+						title: m.error(),
+						description: m.error_conduit_in_use()
+					});
+					return;
+				}
+			} else {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+		} catch (error) {
+			console.error('Delete error:', error);
+		}
+
+		// Delete the conduit
+		deletingIds.add(pipeId);
+		deletingIds = new Set(deletingIds); // Trigger reactivity
+
+		try {
+			const response = await fetch(`${PUBLIC_API_URL}conduit/${pipeId}/`, {
+				method: 'DELETE',
+				headers: {
+					'X-CSRFToken': document.cookie
+						.split('; ')
+						.find((row) => row.startsWith('csrftoken='))
+						?.split('=')[1]
+				},
+				credentials: 'include'
+			});
+
+			if (response.ok) {
+				// Remove from local state immediately
+				pipes = pipes.filter((pipe) => pipe.value !== pipeId);
+
+				toaster.create({
+					type: 'success',
+					title: m.success ? m.success() : 'Success',
+					description: m.success_deleting_conduit
+						? m.success_deleting_conduit()
+						: 'Conduit deleted successfully'
+				});
+			} else {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+		} catch (error) {
+			console.error('Delete error:', error);
+			toaster.create({
+				type: 'error',
+				title: m.error(),
+				description: m.error_deleting_conduit
+					? m.error_deleting_conduit()
+					: 'Failed to delete conduit'
+			});
+		} finally {
+			deletingIds.delete(pipeId);
+			deletingIds = new Set(deletingIds); // Trigger reactivity
+		}
+	}
+
 	$effect(() => {
 		if (projectId) {
 			fetchPipes();
@@ -141,28 +228,7 @@
 		<thead>
 			<tr>
 				{#each headers as header}
-					<th
-						><a href={`#${header}`} class="group inline-flex">
-							{header}
-							<span
-								class="invisible ml-2 flex-none rounded-sm text-gray-400 group-hover:visible group-focus:visible"
-							>
-								<svg
-									class="size-5"
-									viewBox="0 0 20 20"
-									fill="currentColor"
-									aria-hidden="true"
-									data-slot="icon"
-								>
-									<path
-										fill-rule="evenodd"
-										d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z"
-										clip-rule="evenodd"
-									/>
-								</svg>
-							</span>
-						</a></th
-					>
+					<th>{header}</th>
 				{/each}
 			</tr>
 		</thead>
@@ -179,17 +245,41 @@
 				{/each}
 			{:else}
 				{#each slicedSource as row}
-					<tr onclick={() => handleRowClick(row)}>
-						<td data-label={m.name()}>{row.name}</td>
-						<td data-label={m.conduit_type()}>{row.conduit_type}</td>
-						<td data-label={m.outer_conduit()}>{row.outer_conduit}</td>
-						<td data-label={m.status()}>{row.status}</td>
-						<td data-label={m.network_level()}>{row.network_level}</td>
-						<td data-label={m.owner()}>{row.owner}</td>
-						<td data-label={m.constructor()}>{row.constructor}</td>
-						<td data-label={m.manufacturer()}>{row.manufacturer}</td>
-						<td data-label={m.date()}>{row.date}</td>
-						<td data-label={m.flag()}>{row.flag}</td>
+					<tr>
+						<td data-label={m.name()} onclick={() => handleRowClick(row)}>{row.name}</td>
+						<td data-label={m.conduit_type()} onclick={() => handleRowClick(row)}
+							>{row.conduit_type}</td
+						>
+						<td data-label={m.outer_conduit()} onclick={() => handleRowClick(row)}
+							>{row.outer_conduit}</td
+						>
+						<td data-label={m.status()} onclick={() => handleRowClick(row)}>{row.status}</td>
+						<td data-label={m.network_level()} onclick={() => handleRowClick(row)}
+							>{row.network_level}</td
+						>
+						<td data-label={m.owner()} onclick={() => handleRowClick(row)}>{row.owner}</td>
+						<td data-label={m.constructor()} onclick={() => handleRowClick(row)}
+							>{row.constructor}</td
+						>
+						<td data-label={m.manufacturer()} onclick={() => handleRowClick(row)}
+							>{row.manufacturer}</td
+						>
+						<td data-label={m.date()} onclick={() => handleRowClick(row)}>{row.date}</td>
+						<td data-label={m.flag()} onclick={() => handleRowClick(row)}>{row.flag}</td>
+						<td data-label="delete">
+							<button
+								name="delete-pipe"
+								class="btn btn-sm variant-filled-error"
+								onclick={() => handleDelete(row.value)}
+								disabled={deletingIds.has(row.value)}
+							>
+								{#if deletingIds.has(row.value)}
+									<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+								{:else}
+									<IconTrash />
+								{/if}
+							</button>
+						</td>
 					</tr>
 				{/each}
 			{/if}
