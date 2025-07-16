@@ -2,14 +2,12 @@
 	// Skeleton
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
 
-	// Tabler
-	import { IconSun, IconMoon } from '@tabler/icons-svelte';
+	// Icons
+	import { IconMoon, IconSun } from '@tabler/icons-svelte';
 
 	// Svelte
-	import { writable } from 'svelte/store';
 	import { lightSwitchMode } from '$lib/stores/store';
 
-	// Local
 	let checked = $state(false);
 
 	$effect(() => {
@@ -26,6 +24,7 @@
 	};
 </script>
 
+<!-- Head -->
 <svelte:head>
 	<script>
 		const mode = localStorage.getItem('mode') || 'light';
@@ -33,6 +32,7 @@
 	</script>
 </svelte:head>
 
+<!-- LightSwitch -->
 <Switch name="light-switch" controlActive="bg-surface-200" {checked} {onCheckedChange}>
 	{#snippet activeChild()}
 		<IconMoon size="18" />

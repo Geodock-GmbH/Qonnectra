@@ -31,11 +31,16 @@
 		{ label: 'Mona', value: 'mona' },
 		{ label: 'Vox', value: 'vox' },
 		{ label: 'Wintry', value: 'wintry' },
-		{ label: '16-bit', value: '16-bit' }
+		{ label: '16-bit', value: '16-bit' },
+		{ label: 'Bitv 2.0', value: 'bitv' }
 	];
 
 	let routingToleranceMarkers = $derived(Array.from({ length: 10 }, (_, i) => i + 1));
 </script>
+
+<svelte:head>
+	<title>{m.settings()}</title>
+</svelte:head>
 
 <Toaster {toaster}></Toaster>
 

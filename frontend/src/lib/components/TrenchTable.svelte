@@ -10,7 +10,7 @@
 
 	// Svelte
 	import { PUBLIC_API_URL } from '$env/static/public';
-	import { selectedFlag } from '$lib/stores/store';
+	import { selectedFlag, selectedProject } from '$lib/stores/store';
 
 	// Toaster
 	const toaster = createToaster({
@@ -18,7 +18,7 @@
 		id: 'trench-table-toaster'
 	});
 
-	let { conduitId, onTrenchClick } = $props();
+	let { projectId, conduitId, onTrenchClick } = $props();
 
 	let trenches = $state([]);
 	let trenchesError = $state(null);
@@ -157,8 +157,14 @@
 		if (conduitId) {
 			fetchTrenches();
 			// TODO: This must also work on project change
+		} else if (selectedFlag) {
+			emptyTable();
 		}
-		if (selectedFlag) {
+	});
+
+	$effect(() => {
+		if (projectId) {
+			console.log('project change');
 			emptyTable();
 		}
 	});

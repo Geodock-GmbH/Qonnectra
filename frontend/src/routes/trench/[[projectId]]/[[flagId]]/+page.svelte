@@ -2,43 +2,44 @@
 	// Skeleton
 	import { Switch, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
 
-	// Tabler
+	// Icons
 	import { IconCheck, IconX } from '@tabler/icons-svelte';
 
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
 	// Svelte
+	import { goto } from '$app/navigation';
+	import { navigating, page } from '$app/stores';
+	import { PUBLIC_API_URL } from '$env/static/public';
+	import ConduitCombobox from '$lib/components/ConduitCombobox.svelte';
+	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
+	import Map from '$lib/components/Map.svelte';
+	import TrenchTable from '$lib/components/TrenchTable.svelte';
 	import {
-		selectedProject,
-		selectedFlag,
-		selectedConduit,
 		routingMode,
 		routingTolerance,
+		selectedConduit,
+		selectedFlag,
+		selectedProject,
 		trenchColor,
 		trenchColorSelected
 	} from '$lib/stores/store';
-	import { PUBLIC_API_URL } from '$env/static/public';
-	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
-	import ConduitCombobox from '$lib/components/ConduitCombobox.svelte';
-	import TrenchTable from '$lib/components/TrenchTable.svelte';
-	import Map from '$lib/components/Map.svelte';
 	import { onDestroy } from 'svelte';
 
 	// OpenLayers
+	import Feature from 'ol/Feature.js';
+	import MVT from 'ol/format/MVT.js';
+	import WKT from 'ol/format/WKT.js';
+	import VectorLayer from 'ol/layer/Vector.js';
+	import VectorTileLayer from 'ol/layer/VectorTile.js';
 	import 'ol/ol.css';
+	import VectorSource from 'ol/source/Vector.js';
+	import VectorTileSource from 'ol/source/VectorTile.js';
+	import { Circle as CircleStyle, Style } from 'ol/style';
 	import Fill from 'ol/style/Fill.js';
 	import Stroke from 'ol/style/Stroke.js';
 	import Text from 'ol/style/Text.js';
-	import { Style, Circle as CircleStyle } from 'ol/style';
-	import MVT from 'ol/format/MVT.js';
-	import VectorTileLayer from 'ol/layer/VectorTile.js';
-	import VectorTileSource from 'ol/source/VectorTile.js';
-	import VectorLayer from 'ol/layer/Vector.js';
-	import VectorSource from 'ol/source/Vector.js';
-	import WKT from 'ol/format/WKT.js';
-	import { getCenter } from 'ol/extent';
-	import Feature from 'ol/Feature.js';
 
 	let { data } = $props();
 
@@ -57,7 +58,7 @@
 	let endTrenchId = $state(null);
 	let trenchTableInstance;
 
-	function handleFlagChange() {
+	async function handleFlagChange() {
 		$selectedConduit = undefined;
 	}
 
@@ -149,6 +150,19 @@
 			});
 		}
 	}
+
+	$effect(() => {
+		const projectId = $selectedProject;
+		const flagId = $selectedFlag;
+		const currentPath = $page.url.pathname;
+
+		if (projectId && flagId) {
+			const targetPath = `/trench/${projectId}/${flagId}`;
+			if (currentPath !== targetPath) {
+				goto(targetPath, { keepFocus: true, noScroll: true, replaceState: true });
+			}
+		}
+	});
 
 	$effect(() => {
 		if (!$routingMode || $routingMode) {
@@ -459,6 +473,10 @@
 	});
 </script>
 
+<svelte:head>
+	<title>{m.conduit_connection()}</title>
+</svelte:head>
+
 <Toaster {toaster} />
 
 <div class="grid grid-cols-1 md:grid-cols-12 gap-4 h-full">
@@ -502,8 +520,15 @@
 			</div>
 			<FlagCombobox flags={data.flags} flagsError={data.flagsError} onchange={handleFlagChange} />
 			<h3>{m.conduit()}</h3>
-			<ConduitCombobox projectId={$selectedProject} flagId={$selectedFlag} />
+			<ConduitCombobox
+				loading={$navigating !== null}
+				conduits={data.conduits ?? []}
+				conduitsError={data.conduitsError}
+				projectId={$selectedProject}
+				flagId={$selectedFlag}
+			/>
 			<TrenchTable
+				projectId={$selectedProject}
 				conduitId={$selectedConduit}
 				onTrenchClick={handleTrenchClick}
 				bind:this={trenchTableInstance}

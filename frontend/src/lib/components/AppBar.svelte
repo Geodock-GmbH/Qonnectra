@@ -1,9 +1,6 @@
 <script>
 	// Skeleton
-	import { AppBar, Combobox } from '@skeletonlabs/skeleton-svelte';
-
-	// Paraglide
-	import { m } from '$lib/paraglide/messages';
+	import { AppBar } from '@skeletonlabs/skeleton-svelte';
 
 	// Icons
 	import { IconLogout, IconUserCircle } from '@tabler/icons-svelte';
@@ -16,6 +13,7 @@
 	let { data } = $props();
 </script>
 
+<!-- AppBar -->
 <div>
 	<AppBar background="bg-transparent">
 		{#snippet lead()}
@@ -38,7 +36,7 @@
 				</div>
 			{:else}
 				<a href="/login">
-					<button class="btn bg-transparent">
+					<button class="btn bg-transparent" aria-label="Login">
 						<IconUserCircle class="text-surface-700-300" />
 					</button>
 				</a>

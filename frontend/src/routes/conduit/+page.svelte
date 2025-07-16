@@ -158,6 +158,10 @@
 	</div>
 </div>
 
+<svelte:head>
+	<title>{m.conduit_management()}</title>
+</svelte:head>
+
 <PipeTable
 	projectId={$selectedProject}
 	bind:rowData

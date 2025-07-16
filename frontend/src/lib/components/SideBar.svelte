@@ -3,14 +3,7 @@
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 
 	// Icons
-	import {
-		IconLayoutSidebarLeftCollapse,
-		IconLayoutSidebarLeftExpand,
-		IconMap2,
-		IconSettings,
-		IconTextPlus,
-		IconArrowBarToRight
-	} from '@tabler/icons-svelte';
+	import { IconArrowBarToRight, IconMap2, IconSettings, IconTextPlus } from '@tabler/icons-svelte';
 
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
@@ -20,6 +13,7 @@
 	import { sidebarExpanded } from '$lib/stores/store';
 </script>
 
+<!-- SideBar -->
 <div class="hidden md:block border-r-2 border-surface-200-800">
 	<!-- Component -->
 	<Navigation.Rail expanded={$sidebarExpanded}>
@@ -45,7 +39,7 @@
 				href="/trench"
 				labelExpanded={m.conduit_connection()}
 				title="Trench"
-				selected={page.url.pathname === '/trench'}
+				selected={page.url.pathname.startsWith('/trench')}
 			>
 				<IconTextPlus size={28} class="text-surface-700-300" />
 			</Navigation.Tile>

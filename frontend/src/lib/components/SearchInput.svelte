@@ -2,10 +2,9 @@
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
-	// Tabler
+	// Icons
 	import { IconSearch } from '@tabler/icons-svelte';
 
-	// State
 	let { value = $bindable(''), onSearch = () => {} } = $props();
 
 	function handleKeydown(event) {

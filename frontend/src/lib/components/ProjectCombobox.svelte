@@ -3,8 +3,8 @@
 	import { Combobox, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
 
 	// Svelte
-	import { selectedProject } from '$lib/stores/store';
 	import { browser } from '$app/environment';
+	import { selectedProject } from '$lib/stores/store';
 
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
@@ -14,7 +14,8 @@
 		projects = [],
 		projectsError = null,
 		loading = false,
-		placeholderSize = 'size-10'
+		placeholderSize = 'size-10',
+		onChange = () => {}
 	} = $props();
 
 	// Client-side hydration loading state
@@ -60,6 +61,7 @@
 		defaultValue={$selectedProject}
 		onValueChange={(e) => {
 			$selectedProject = e.value;
+			onChange(e);
 		}}
 		placeholder={m.project()}
 		classes="z-10"

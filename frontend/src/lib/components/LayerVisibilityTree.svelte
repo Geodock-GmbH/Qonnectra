@@ -2,18 +2,14 @@
 	// Skeleton
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
 
-	// Tabler icons
+	// Icons
 	import { IconEye, IconEyeOff } from '@tabler/icons-svelte';
 
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
 	// Svelte
-	import { createEventDispatcher } from 'svelte';
-
-	let { layers = [], osmLayer = null } = $props();
-
-	const dispatch = createEventDispatcher();
+	let { layers = [], osmLayer = null, onLayerVisibilityChanged = () => {} } = $props();
 
 	// State to track visibility of each layer
 	let layerVisibility = $state(new Map());
@@ -54,20 +50,16 @@
 		if (layerInfo) {
 			const newVisible = !layerInfo.visible;
 
-			// Update the OpenLayers layer visibility
 			layerInfo.layer.setVisible(newVisible);
 
-			// Update our state
 			layerVisibility.set(layerId, {
 				...layerInfo,
 				visible: newVisible
 			});
 
-			// Trigger reactivity
 			layerVisibility = new Map(layerVisibility);
 
-			// Dispatch event for parent components
-			dispatch('layerVisibilityChanged', {
+			onLayerVisibilityChanged({
 				layerId,
 				visible: newVisible,
 				layer: layerInfo.layer
@@ -76,6 +68,7 @@
 	}
 </script>
 
+<!-- LayerVisibilityTree -->
 <div class="w-64 p-2 bg-surface-50-950 rounded-md shadow">
 	<p class="text-sm text-surface-contrast-100-900 mb-2">{m.layer_visibility()}</p>
 

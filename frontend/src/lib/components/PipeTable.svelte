@@ -285,6 +285,7 @@
 							<button
 								name="delete-pipe"
 								class="btn btn-sm variant-filled-error"
+								aria-label="Delete"
 								onclick={() => handleDelete(row.value)}
 								disabled={deletingIds.has(row.value)}
 							>

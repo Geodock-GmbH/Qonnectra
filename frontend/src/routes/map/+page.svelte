@@ -489,6 +489,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>{m.map()}</title>
+</svelte:head>
+
 <Toaster {toaster}></Toaster>
 
 <div class="map-container relative h-full w-full">

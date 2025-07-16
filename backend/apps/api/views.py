@@ -306,6 +306,7 @@ class ConduitViewSet(viewsets.ModelViewSet):
                 | Q(owner__company__icontains=search_term)
                 | Q(constructor__company__icontains=search_term)
                 | Q(manufacturer__company__icontains=search_term)
+                | Q(flag__flag__icontains=search_term)
             )
         serializer = ConduitSerializer(queryset, many=True)
         return Response(serializer.data)
