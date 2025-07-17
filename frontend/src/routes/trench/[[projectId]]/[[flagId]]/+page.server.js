@@ -1,5 +1,6 @@
 import { API_URL } from '$env/static/private';
 import { m } from '$lib/paraglide/messages';
+import { error } from '@sveltejs/kit';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ fetch, params, depends }) {
@@ -30,3 +31,31 @@ export async function load({ fetch, params, depends }) {
 		return { conduits: [], conduitsError: m.error_fetching_conduits() };
 	}
 }
+
+/** @type {import('./$types').Actions} */
+export const actions = {
+	getTrenchData: async ({ request, fetch }) => {
+		const data = await request.formData();
+		const trenchLabel = data.get('trenchLabel');
+
+		if (!trenchLabel) {
+			throw error(400, 'Trench label is required');
+		}
+
+		try {
+			const response = await fetch(`${API_URL}ol_trench/?id_trench=${trenchLabel}`, {
+				credentials: 'include'
+			});
+
+			if (!response.ok) {
+				throw error(response.status, 'Failed to fetch trench data');
+			}
+
+			const trenchData = await response.json();
+			return { success: true, trenchData };
+		} catch (err) {
+			console.error('Error fetching trench data:', err);
+			throw error(500, 'Failed to fetch trench data');
+		}
+	}
+};

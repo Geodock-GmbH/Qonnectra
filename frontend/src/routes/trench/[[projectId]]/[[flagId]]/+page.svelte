@@ -11,6 +11,7 @@
 	// Svelte
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
+	import { enhance } from '$app/forms';
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import ConduitCombobox from '$lib/components/ConduitCombobox.svelte';
 	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
@@ -73,12 +74,18 @@
 		}
 
 		try {
-			const response = await fetch(`${PUBLIC_API_URL}ol_trench/?id_trench=${trenchLabel}`, {
-				credentials: 'include'
+			const formData = new FormData();
+			formData.append('trenchLabel', trenchLabel);
+
+			const response = await fetch('?/getTrenchData', {
+				method: 'POST',
+				body: formData
 			});
 
-			if (response.ok) {
-				const trenchData = await response.json();
+			const result = await response.json();
+
+			if (result.type === 'success' && result.data?.trenchData) {
+				const trenchData = result.data.trenchData;
 				if (
 					trenchData.results.features[0].geometry &&
 					trenchData.results.features[0].geometry.coordinates
