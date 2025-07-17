@@ -388,8 +388,18 @@
 				selectionStore[featureId] = feature;
 
 				try {
-					const url = `${PUBLIC_API_URL}routing/${startTrenchId}/${endTrenchId}/${$selectedProject}/${$routingTolerance}/`;
-					const response = await fetch(url, { credentials: 'include' });
+					const response = await fetch('/api/routing', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({
+							startTrenchId,
+							endTrenchId,
+							projectId: $selectedProject,
+							tolerance: $routingTolerance
+						})
+					});
 					if (!response.ok) {
 						const errorData = await response.json();
 						throw new Error(
