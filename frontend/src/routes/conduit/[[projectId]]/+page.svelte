@@ -8,26 +8,53 @@
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
-	// Environment
-	import { PUBLIC_API_URL } from '$env/static/public';
-
 	// Svelte
 	import PipeTable from '$lib/components/PipeTable.svelte';
 	import PipeModal from '$lib/components/PipeModal.svelte';
 	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
 	import SearchInput from '$lib/components/SearchInput.svelte';
 	import { selectedProject, selectedFlag } from '$lib/stores/store';
+	import { navigating, page } from '$app/stores';
+	import { goto } from '$app/navigation';
 
 	let openPipeModal = $state(false);
 	let rowData = $state(null);
 	let rowClickedSignal = $state(false);
 	let { data } = $props();
-	let searchInput = $state('');
+	let searchInput = $state(data.searchTerm || '');
 	let searchTerm = $state('');
 	let updatedPipeData = $state(null);
 
+	// Toast
+	const toaster = createToaster({
+		placement: 'bottom-end'
+	});
+
+	$effect(() => {
+		const projectId = $selectedProject;
+		const currentPath = $page.url.pathname;
+		if (projectId) {
+			let targetPath = `/conduit/${projectId}`;
+			const currentSearch = $page.url.search;
+
+			if (currentPath !== targetPath) {
+				goto(targetPath + currentSearch, {
+					keepFocus: true,
+					noScroll: true,
+					replaceState: true
+				});
+			}
+		}
+	});
+
 	function performSearch() {
-		searchTerm = searchInput;
+		const url = new URL($page.url);
+		if (searchInput !== '') {
+			url.searchParams.set('search', searchInput);
+		} else {
+			url.searchParams.delete('search');
+		}
+		goto(url, { keepFocus: true, noScroll: true, replaceState: true });
 	}
 
 	function handlePipeUpdate(data) {
@@ -37,11 +64,6 @@
 			_updateId: Date.now()
 		};
 	}
-
-	// Toast
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
 
 	async function handleFileAccept(event) {
 		const file = event.files[0];
@@ -162,10 +184,20 @@
 	<title>{m.conduit_management()}</title>
 </svelte:head>
 
-<PipeTable
-	projectId={$selectedProject}
-	bind:rowData
-	bind:rowClickedSignal
-	{searchTerm}
-	{updatedPipeData}
-/>
+{#if $navigating}
+	<div class="table-wrap overflow-x-auto">
+		<table class="table table-card caption-bottom w-full overflow-scroll">
+			<thead>
+				<tr>
+					{#each { length: 10 } as _}
+						<td>
+							<div class="h-4 bg-surface-500 rounded animate-pulse w-3/4"></div>
+						</td>
+					{/each}
+				</tr>
+			</thead>
+		</table>
+	</div>
+{:else}
+	<PipeTable pipes={data.pipes} bind:rowData bind:rowClickedSignal {updatedPipeData} />
+{/if}

@@ -47,7 +47,7 @@
 				href="/conduit"
 				labelExpanded={m.conduit_management()}
 				title="Conduit"
-				selected={page.url.pathname === '/conduit'}
+				selected={page.url.pathname.startsWith('/conduit')}
 			>
 				<IconArrowBarToRight size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
