@@ -496,8 +496,10 @@
 
 <Toaster {toaster} />
 
-<div class="grid grid-cols-1 md:grid-cols-12 gap-4 h-full">
-	<div class="md:col-span-8 border-2 rounded-lg border-surface-200-800 overflow-hidden">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
+	<div
+		class="lg:col-span-8 border-2 rounded-lg border-surface-200-800 overflow-hidden min-h-[400px]"
+	>
 		{#if vectorTileLayer}
 			<Map
 				className="rounded-lg overflow-hidden h-full w-full"
@@ -513,43 +515,60 @@
 			</div>
 		{/if}
 	</div>
-	<div class="md:col-span-4 border-2 rounded-lg border-surface-200-800 overflow-auto">
+	<div class="lg:col-span-4 border-2 rounded-lg border-surface-200-800 overflow-auto">
 		<div class="card p-4 flex flex-col gap-3">
-			<div class="flex items-center justify-between">
-				<h3>{m.settings_map_routing_mode()}</h3>
-				<Switch
-					name="routing-mode"
-					checked={$routingMode}
-					onCheckedChange={() => {
-						$routingMode = !$routingMode;
-					}}
-				>
-					{#snippet inactiveChild()}
-						<IconX size="18" />
-					{/snippet}
-					{#snippet activeChild()}
-						<IconCheck size="18" />
-					{/snippet}
-				</Switch>
+			<div class="space-y-4">
+				<!-- Routing Mode Toggle -->
+				<div class="flex items-center justify-between bg-surface-50-900 rounded-lg">
+					<h3 class="text-sm font-medium">{m.settings_map_routing_mode()}</h3>
+					<Switch
+						name="routing-mode"
+						checked={$routingMode}
+						onCheckedChange={() => {
+							$routingMode = !$routingMode;
+						}}
+					>
+						{#snippet inactiveChild()}
+							<IconX size="18" />
+						{/snippet}
+						{#snippet activeChild()}
+							<IconCheck size="18" />
+						{/snippet}
+					</Switch>
+				</div>
+
+				<!-- Flag Selection -->
+				<div class="space-y-2">
+					<h3 class="text-sm font-medium">{m.flag()}</h3>
+					<FlagCombobox
+						flags={data.flags}
+						flagsError={data.flagsError}
+						onchange={handleFlagChange}
+					/>
+				</div>
+
+				<!-- Conduit Selection -->
+				<div class="space-y-2">
+					<h3 class="text-sm font-medium">{m.conduit()}</h3>
+					<ConduitCombobox
+						loading={$navigating !== null}
+						conduits={data.conduits ?? []}
+						conduitsError={data.conduitsError}
+						projectId={$selectedProject}
+						flagId={$selectedFlag}
+					/>
+				</div>
 			</div>
-			<div class="flex items-center justify-between">
-				<h3>{m.flag()}</h3>
+
+			<!-- Trench Table -->
+			<div class="mt-4">
+				<TrenchTable
+					projectId={$selectedProject}
+					conduitId={$selectedConduit}
+					onTrenchClick={handleTrenchClick}
+					bind:this={trenchTableInstance}
+				/>
 			</div>
-			<FlagCombobox flags={data.flags} flagsError={data.flagsError} onchange={handleFlagChange} />
-			<h3>{m.conduit()}</h3>
-			<ConduitCombobox
-				loading={$navigating !== null}
-				conduits={data.conduits ?? []}
-				conduitsError={data.conduitsError}
-				projectId={$selectedProject}
-				flagId={$selectedFlag}
-			/>
-			<TrenchTable
-				projectId={$selectedProject}
-				conduitId={$selectedConduit}
-				onTrenchClick={handleTrenchClick}
-				bind:this={trenchTableInstance}
-			/>
 		</div>
 	</div>
 </div>

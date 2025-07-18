@@ -58,5 +58,7 @@
 		}}
 		placeholder={m.select_flag()}
 		zIndex="10"
+		classes="touch-manipulation"
+		contentBase="max-h-60 overflow-auto touch-manipulation"
 	></Combobox>
 {/if}

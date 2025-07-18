@@ -177,40 +177,45 @@
 <Toaster {toaster}></Toaster>
 
 <div class="table-wrap">
-	<table class="table table-fixed caption-bottom">
-		<thead>
-			<tr>
-				<th>{m.trench_id()}</th>
-			</tr>
-		</thead>
-		<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">
-			{#each slicedSource as row}
-				<tr onclick={() => onTrenchClick?.(row.value, row.label)}>
-					<td>{row.label}</td>
-					<td class="text-right">
-						<button
-							class="btn"
-							disabled={deletingIds.has(row.value)}
-							onclick={(e) => {
-								e.stopPropagation();
-								handleDelete(row.value);
-							}}
-						>
-							<IconTrash />
-						</button>
-					</td>
+	<div class="overflow-x-auto">
+		<table class="table table-fixed caption-bottom w-full">
+			<thead>
+				<tr>
+					<th class="text-left">{m.trench_id()}</th>
 				</tr>
-			{/each}
-		</tbody>
-	</table>
+			</thead>
+			<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">
+				{#each slicedSource as row}
+					<tr onclick={() => onTrenchClick?.(row.value, row.label)} class="touch-manipulation">
+						<td class="py-3 px-2">{row.label}</td>
+						<td class="text-right py-3 px-2">
+							<button
+								class="btn btn-sm touch-manipulation"
+								disabled={deletingIds.has(row.value)}
+								onclick={(e) => {
+									e.stopPropagation();
+									handleDelete(row.value);
+								}}
+							>
+								<IconTrash />
+							</button>
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
+
+	<div class="mt-4">
+		<Pagination
+			data={trenches}
+			{page}
+			onPageChange={(e) => (page = e.page)}
+			pageSize={size}
+			onPageSizeChange={(e) => (size = e.pageSize)}
+			siblingCount={2}
+			alternative
+			{count}
+		/>
+	</div>
 </div>
-<Pagination
-	data={trenches}
-	{page}
-	onPageChange={(e) => (page = e.page)}
-	pageSize={size}
-	onPageSizeChange={(e) => (size = e.pageSize)}
-	siblingCount={4}
-	alternative
-	{count}
-/>
