@@ -145,5 +145,7 @@
 	"error_deleting_conduit": "Error deleting conduit",
 	"error_conduit_in_use": "Conduit is in use",
 	"file_rejected": "File rejected",
-	"file_rejected_description": "The file could not be imported. Please try again."
+	"file_rejected_description": "The file could not be imported. Please try again.",
+	"no_layers_available": "No layers available",
+	"layer_available": "Layer available"
 }

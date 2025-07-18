@@ -156,7 +156,6 @@
 	$effect(() => {
 		if (conduitId) {
 			fetchTrenches();
-			// TODO: This must also work on project change
 		} else if (selectedFlag) {
 			emptyTable();
 		}
@@ -164,7 +163,6 @@
 
 	$effect(() => {
 		if (projectId) {
-			console.log('project change');
 			emptyTable();
 		}
 	});

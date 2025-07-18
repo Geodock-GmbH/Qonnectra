@@ -23,8 +23,8 @@
 </script>
 
 <!-- OpacitySlider -->
-<div class="w-sm p-2 bg-surface-50-950 rounded-md shadow">
-	<p class="text-sm text-surface-contrast-100-900">{m.opacity()}</p>
+<div class="w-full sm:w-sm p-3 sm:p-2 bg-surface-50-950 rounded-md shadow">
+	<p class="text-sm text-surface-contrast-100-900 mb-2">{m.opacity()}</p>
 	<Slider
 		name="opacity"
 		value={sliderValue}
@@ -34,7 +34,8 @@
 		onValueChange={handleSkeletonSliderChange}
 		meterBg="bg-primary-500"
 		thumbRingColor="ring-primary-500"
-		height="h-2"
-		thumbSize="size-4"
+		height="h-3 sm:h-2"
+		thumbSize="size-6 sm:size-4"
+		class="touch-manipulation"
 	/>
 </div>
