@@ -16,7 +16,7 @@
 	import ConduitCombobox from '$lib/components/ConduitCombobox.svelte';
 	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
 	import Map from '$lib/components/Map.svelte';
-	import TrenchTable from '$lib/components/TrenchTable.svelte';
+	import TrenchTable from './TrenchTable.svelte';
 	import {
 		routingMode,
 		routingTolerance,
