@@ -78,7 +78,7 @@
 <!-- LayerVisibilityTree -->
 <div class="w-full max-w-sm md:w-64 p-3 md:p-2 bg-surface-50-950 rounded-md shadow-lg md:shadow">
 	<!-- Header with collapse functionality for mobile -->
-	<div class="flex items-center justify-between mb-3 md:mb-2">
+	<div class="flex items-center justify-between md:mb-2">
 		<p class="text-sm font-medium text-surface-contrast-100-900">{m.layer_visibility()}</p>
 
 		<!-- Mobile collapse button -->
@@ -128,14 +128,4 @@
 			</p>
 		{/if}
 	</div>
-
-	<!-- Mobile collapsed state indicator -->
-	{#if isCollapsed}
-		<div class="md:hidden text-center py-2">
-			<p class="text-xs text-surface-400">
-				{layerVisibility.size + 'x'}
-				{m.layer_available()}
-			</p>
-		</div>
-	{/if}
 </div>

@@ -135,7 +135,7 @@
 		</div>
 	{/if}
 	{#if showLayerVisibilityTree && map}
-		<div class="absolute top-5 right-5 z-10">
+		<div class="absolute top-5 right-5 z-9">
 			<LayerVisibilityTree
 				{layers}
 				{osmLayer}
