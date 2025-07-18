@@ -409,7 +409,7 @@
 					selectionStore[featureId] = feature;
 
 					const properties = feature.getProperties();
-					console.log(properties);
+
 					let html = '<ul>';
 					for (const [key, value] of Object.entries(properties)) {
 						if (typeof value !== 'object' && key !== 'layer' && key !== 'source') {

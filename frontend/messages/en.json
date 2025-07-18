@@ -4,6 +4,7 @@
 	"trench": "Trench",
 	"trench_id": "Trench ID",
 	"settings": "Settings",
+	"more": "More",
 	"menu": "Menu",
 	"login": "Login",
 	"confirm": "Confirm",
@@ -147,5 +148,6 @@
 	"file_rejected": "File rejected",
 	"file_rejected_description": "The file could not be imported. Please try again.",
 	"no_layers_available": "No layers available",
-	"layer_available": "Layer available"
+	"layer_available": "Layer available",
+	"more_sites": "More sites"
 }

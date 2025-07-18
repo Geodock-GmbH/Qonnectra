@@ -4,6 +4,7 @@
 	"trench": "Trasse",
 	"trench_id": "Trassen-ID",
 	"settings": "Einstellungen",
+	"more": "Mehr",
 	"menu": "Menü",
 	"login": "Login",
 	"confirm": "Bestätigen",
@@ -148,5 +149,6 @@
 	"file_rejected": "Datei abgelehnt",
 	"file_rejected_description": "Die Datei konnte nicht importiert werden. Bitte versuche es erneut.",
 	"no_layers_available": "Keine Layer verfügbar",
-	"layer_available": "Layer verfügbar"
+	"layer_available": "Layer verfügbar",
+	"more_sites": "Weitere Seiten"
 }
