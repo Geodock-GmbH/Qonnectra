@@ -76,9 +76,9 @@
 
 		// Show loading toast
 		const loadingToast = toaster.create({
-			type: 'loading',
-			title: 'Importing conduits...',
-			description: 'Please wait while we process your file.'
+			type: 'info',
+			title: m.import(),
+			description: m.importing_conduits_description()
 		});
 
 		try {
@@ -89,18 +89,16 @@
 
 			const result = await response.json();
 
-			console.log('result', result);
-
 			if (response.ok) {
 				toaster.create({
 					type: 'success',
-					title: 'Import Successful',
+					title: m.import_conduits_success(),
 					description:
-						result.message || `Successfully imported ${result.created_count || 0} conduits.`,
-					timeout: 5000
+						result.message || m.import_conduits_success_description(result.created_count || 0)
 				});
+				return;
 			} else {
-				let errorMessage = 'An unknown error occurred.';
+				let errorMessage = m.import_conduits_error_description();
 				if (result.errors && Array.isArray(result.errors)) {
 					errorMessage = result.errors.join('\n');
 				} else if (result.error) {
@@ -109,20 +107,17 @@
 
 				toaster.create({
 					type: 'error',
-					title: 'Import Failed',
-					description: errorMessage,
-					timeout: 10000
+					title: m.import_conduits_error(),
+					description: errorMessage
 				});
+
+				return;
 			}
 		} catch (error) {
-			// Close loading toast
-			toaster.close(loadingToast);
-
 			toaster.create({
 				type: 'error',
-				title: 'Import Error',
-				description: 'An error occurred during import. Please try again.',
-				timeout: 5000
+				title: m.import_conduits_error(),
+				description: m.import_conduits_error_description()
 			});
 			console.error('Import error:', error);
 		}
@@ -134,9 +129,8 @@
 			const errors = rejectedFiles.map((file) => `${file.file.name}: ${file.errors.join(', ')}`);
 			toaster.create({
 				type: 'error',
-				title: 'File Rejected',
-				description: errors.join('\n'),
-				timeout: 5000
+				title: m.file_rejected(),
+				description: m.file_rejected_description() + '\n' + errors.join('\n')
 			});
 		}
 	}

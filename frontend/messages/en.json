@@ -50,6 +50,7 @@
 	"close": "Close",
 	"delete": "Delete",
 	"status_development": "Status",
+	"import": "Import",
 	"title_missing_information": "Missing information",
 	"missing_information": "Please enter both username and password.",
 	"title_logging_in": "Logging in...",
@@ -126,6 +127,11 @@
 	"error_fetching_pipes_description": "The pipes could not be loaded. Please try again.",
 	"error_fetching_pipes_no_pipes": "No pipes found",
 	"import_conduit_xlsx": "Excel Import",
+	"importing_conduits": "Importing conduits...",
+	"import_conduits_success": "Conduits imported successfully",
+	"import_conduits_success_description": "Please refresh the page to see the conduits.",
+	"import_conduits_error": "Error importing conduits",
+	"import_conduits_error_description": "Please try again.",
 	"add_conduit": "Add conduit",
 	"error_fetching_select_options": "Error fetching select options",
 	"error_creating_conduit": "Error creating conduit",
@@ -137,5 +143,7 @@
 	"confirm_delete_conduit": "Delete conduit?",
 	"confirm_delete_conduit_description": "Conduit is in use. Are you sure you want to delete it and the associated trench connections?",
 	"error_deleting_conduit": "Error deleting conduit",
-	"error_conduit_in_use": "Conduit is in use"
+	"error_conduit_in_use": "Conduit is in use",
+	"file_rejected": "File rejected",
+	"file_rejected_description": "The file could not be imported. Please try again."
 }
