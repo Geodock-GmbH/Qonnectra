@@ -9,8 +9,8 @@
 	import { m } from '$lib/paraglide/messages';
 
 	// Svelte
-	import PipeTable from '$lib/components/PipeTable.svelte';
-	import PipeModal from '$lib/components/PipeModal.svelte';
+	import PipeTable from './PipeTable.svelte';
+	import PipeModal from './PipeModal.svelte';
 	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
 	import SearchInput from '$lib/components/SearchInput.svelte';
 	import { selectedProject, selectedFlag } from '$lib/stores/store';
@@ -153,6 +153,11 @@
 				pipeData={rowData}
 				bind:rowClickedSignal
 				onPipeUpdate={handlePipeUpdate}
+				conduitTypes={data.conduitTypes}
+				statuses={data.statuses}
+				networkLevels={data.networkLevels}
+				companies={data.companies}
+				flags={data.flags}
 			/>
 			<SearchInput bind:value={searchInput} onSearch={performSearch} />
 		</nav>
