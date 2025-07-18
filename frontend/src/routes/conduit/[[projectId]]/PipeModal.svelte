@@ -44,8 +44,10 @@
 	let selectedDate = $state('');
 	let selectedFlag = $state([]);
 
-	// NOTE: This is a bit of a mess, but it works for now
-	async function loadSelectOptions(editMode = false) {
+	async function loadSelectOptions(editMode) {
+		if (!editMode) {
+			return;
+		}
 		try {
 			let editData;
 			const editUrl = `${PUBLIC_API_URL}conduit/${pipeData.value}/`;
