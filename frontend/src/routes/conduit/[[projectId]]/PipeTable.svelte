@@ -165,8 +165,8 @@
 				flag: updatedPipeData.flag.flag
 			};
 			if (index !== -1) {
-				// Update existing pipe
-				pipes[index] = formattedPipe;
+				// Update existing pipe - create new array to trigger reactivity
+				pipes = [...pipes.slice(0, index), formattedPipe, ...pipes.slice(index + 1)];
 			} else {
 				// Add new pipe
 				pipes = [formattedPipe, ...pipes];
