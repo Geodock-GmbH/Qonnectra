@@ -3,8 +3,8 @@
 	import { Combobox, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
 
 	// Svelte
-	import { selectedFlag } from '$lib/stores/store';
 	import { browser } from '$app/environment';
+	import { selectedFlag, selectedProject } from '$lib/stores/store';
 
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
@@ -39,6 +39,7 @@
 
 <Toaster {toaster}></Toaster>
 
+<!-- Loading -->
 {#if loading || isHydrating}
 	<div class="placeholder animate-pulse"></div>
 {:else if flagsError}
@@ -46,6 +47,7 @@
 {:else if flags.length === 0}
 	<div class="alert variant-filled-warning">{m.error_fetching_flags_no_flags()}</div>
 {:else}
+	<!-- FlagCombobox -->
 	<Combobox
 		data={flags}
 		bind:value={$selectedFlag}
@@ -56,5 +58,7 @@
 		}}
 		placeholder={m.select_flag()}
 		zIndex="10"
+		classes="touch-manipulation"
+		contentBase="max-h-60 overflow-auto touch-manipulation"
 	></Combobox>
 {/if}

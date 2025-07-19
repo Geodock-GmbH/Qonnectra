@@ -2,6 +2,7 @@
 	import '../app.css';
 	import AppBar from '$lib/components/AppBar.svelte';
 	import Sidebar from '$lib/components/SideBar.svelte';
+	import MobileNav from '$lib/components/MobileNav.svelte';
 	import { updateUserStore } from '$lib/stores/auth';
 	import { theme } from '$lib/stores/store';
 
@@ -15,7 +16,7 @@
 
 <!-- Root flex container -->
 <div class="flex h-screen">
-	<!-- Sidebar: Sticky, full height -->
+	<!-- Sidebar: Sticky, full height (desktop only) -->
 	<Sidebar class="sticky top-0 h-screen flex-shrink-0" />
 
 	<!-- Content Area: Takes remaining space, allows internal scrolling -->
@@ -23,8 +24,12 @@
 		<!-- AppBar: Sticky within this container -->
 		<AppBar class="sticky top-0 z-10 flex-shrink-0" {data} />
 		<!-- Main Content: Scrolls vertically, takes remaining height -->
-		<main class="flex-1 overflow-y-auto p-4">
+		<!-- Add bottom padding on mobile to account for navigation bar -->
+		<main class="flex-1 overflow-y-auto p-4 pb-20 md:pb-4">
 			{@render children()}
 		</main>
 	</div>
 </div>
+
+<!-- Mobile Navigation Bar (fixed at bottom) -->
+<MobileNav />

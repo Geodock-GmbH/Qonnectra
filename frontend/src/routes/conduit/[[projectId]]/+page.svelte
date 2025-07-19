@@ -8,26 +8,53 @@
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
-	// Environment
-	import { PUBLIC_API_URL } from '$env/static/public';
-
 	// Svelte
-	import PipeTable from '$lib/components/PipeTable.svelte';
-	import PipeModal from '$lib/components/PipeModal.svelte';
+	import PipeTable from './PipeTable.svelte';
+	import PipeModal from './PipeModal.svelte';
 	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
 	import SearchInput from '$lib/components/SearchInput.svelte';
 	import { selectedProject, selectedFlag } from '$lib/stores/store';
+	import { navigating, page } from '$app/stores';
+	import { goto } from '$app/navigation';
 
 	let openPipeModal = $state(false);
 	let rowData = $state(null);
 	let rowClickedSignal = $state(false);
 	let { data } = $props();
-	let searchInput = $state('');
+	let searchInput = $state(data.searchTerm || '');
 	let searchTerm = $state('');
 	let updatedPipeData = $state(null);
 
+	// Toast
+	const toaster = createToaster({
+		placement: 'bottom-end'
+	});
+
+	$effect(() => {
+		const projectId = $selectedProject;
+		const currentPath = $page.url.pathname;
+		if (projectId) {
+			let targetPath = `/conduit/${projectId}`;
+			const currentSearch = $page.url.search;
+
+			if (currentPath !== targetPath) {
+				goto(targetPath + currentSearch, {
+					keepFocus: true,
+					noScroll: true,
+					replaceState: true
+				});
+			}
+		}
+	});
+
 	function performSearch() {
-		searchTerm = searchInput;
+		const url = new URL($page.url);
+		if (searchInput !== '') {
+			url.searchParams.set('search', searchInput);
+		} else {
+			url.searchParams.delete('search');
+		}
+		goto(url, { keepFocus: true, noScroll: true, replaceState: true });
 	}
 
 	function handlePipeUpdate(data) {
@@ -37,11 +64,6 @@
 			_updateId: Date.now()
 		};
 	}
-
-	// Toast
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
 
 	async function handleFileAccept(event) {
 		const file = event.files[0];
@@ -54,9 +76,9 @@
 
 		// Show loading toast
 		const loadingToast = toaster.create({
-			type: 'loading',
-			title: 'Importing conduits...',
-			description: 'Please wait while we process your file.'
+			type: 'info',
+			title: m.import(),
+			description: m.importing_conduits_description()
 		});
 
 		try {
@@ -67,18 +89,16 @@
 
 			const result = await response.json();
 
-			console.log('result', result);
-
 			if (response.ok) {
 				toaster.create({
 					type: 'success',
-					title: 'Import Successful',
+					title: m.import_conduits_success(),
 					description:
-						result.message || `Successfully imported ${result.created_count || 0} conduits.`,
-					timeout: 5000
+						result.message || m.import_conduits_success_description(result.created_count || 0)
 				});
+				return;
 			} else {
-				let errorMessage = 'An unknown error occurred.';
+				let errorMessage = m.import_conduits_error_description();
 				if (result.errors && Array.isArray(result.errors)) {
 					errorMessage = result.errors.join('\n');
 				} else if (result.error) {
@@ -87,20 +107,17 @@
 
 				toaster.create({
 					type: 'error',
-					title: 'Import Failed',
-					description: errorMessage,
-					timeout: 10000
+					title: m.import_conduits_error(),
+					description: errorMessage
 				});
+
+				return;
 			}
 		} catch (error) {
-			// Close loading toast
-			toaster.close(loadingToast);
-
 			toaster.create({
 				type: 'error',
-				title: 'Import Error',
-				description: 'An error occurred during import. Please try again.',
-				timeout: 5000
+				title: m.import_conduits_error(),
+				description: m.import_conduits_error_description()
 			});
 			console.error('Import error:', error);
 		}
@@ -112,9 +129,8 @@
 			const errors = rejectedFiles.map((file) => `${file.file.name}: ${file.errors.join(', ')}`);
 			toaster.create({
 				type: 'error',
-				title: 'File Rejected',
-				description: errors.join('\n'),
-				timeout: 5000
+				title: m.file_rejected(),
+				description: m.file_rejected_description() + '\n' + errors.join('\n')
 			});
 		}
 	}
@@ -123,20 +139,27 @@
 <Toaster {toaster} />
 
 <div class="flex justify-between items-center">
-	<div class="flex justify-start">
-		<nav class="btn-group preset-outlined-surface-200-800 flex-col justify-between p-2 md:flex-row">
+	<div class="flex items-center">
+		<nav
+			class="btn-group md:preset-outlined-surface-200-800 flex-col justify-between items-start md:flex-row"
+		>
 			<PipeModal
 				projectId={$selectedProject}
 				{openPipeModal}
 				pipeData={rowData}
 				bind:rowClickedSignal
 				onPipeUpdate={handlePipeUpdate}
+				conduitTypes={data.conduitTypes}
+				statuses={data.statuses}
+				networkLevels={data.networkLevels}
+				companies={data.companies}
+				flags={data.flags}
 			/>
 			<SearchInput bind:value={searchInput} onSearch={performSearch} />
 		</nav>
 	</div>
 
-	<div class="flex justify-end">
+	<div class="hidden md:flex justify-end">
 		<nav class="btn-group preset-outlined-surface-200-800 flex-col p-2 md:flex-row">
 			<FileUpload
 				accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -158,10 +181,24 @@
 	</div>
 </div>
 
-<PipeTable
-	projectId={$selectedProject}
-	bind:rowData
-	bind:rowClickedSignal
-	{searchTerm}
-	{updatedPipeData}
-/>
+<svelte:head>
+	<title>{m.conduit_management()}</title>
+</svelte:head>
+
+{#if $navigating}
+	<div class="table-wrap overflow-x-auto">
+		<table class="table table-card caption-bottom w-full overflow-scroll">
+			<thead>
+				<tr>
+					{#each { length: 10 } as _}
+						<td>
+							<div class="h-4 bg-surface-500 rounded animate-pulse w-3/4"></div>
+						</td>
+					{/each}
+				</tr>
+			</thead>
+		</table>
+	</div>
+{:else}
+	<PipeTable pipes={data.pipes} bind:rowData bind:rowClickedSignal {updatedPipeData} />
+{/if}

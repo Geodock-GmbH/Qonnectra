@@ -2,10 +2,9 @@
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
-	// Tabler
+	// Icons
 	import { IconSearch } from '@tabler/icons-svelte';
 
-	// State
 	let { value = $bindable(''), onSearch = () => {} } = $props();
 
 	function handleKeydown(event) {
@@ -21,7 +20,7 @@
 		<IconSearch size={16} />
 	</div>
 	<input
-		class="ig-input"
+		class="ig-input touch-manipulation text-base"
 		type="search"
 		placeholder={m.search()}
 		bind:value

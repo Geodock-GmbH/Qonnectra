@@ -25,105 +25,52 @@
 		editMode = false,
 		pipeData = null,
 		rowClickedSignal = $bindable(false),
-		onPipeUpdate = (data) => {}
+		onPipeUpdate = (data) => {},
+		conduitTypes = [],
+		statuses = [],
+		networkLevels = [],
+		companies = [],
+		flags = []
 	} = $props();
 
 	let selectedConduitName = $state('');
 	let selectedOuterConduit = $state('');
-	let conduitTypes = $state([]);
 	let selectedConduitType = $state([]);
-	let statuses = $state([]);
 	let selectedStatus = $state([]);
-	let networkLevels = $state([]);
 	let selectedNetworkLevel = $state([]);
-	let companies = $state([]);
 	let selectedOwner = $state([]);
 	let selectedConstructor = $state([]);
 	let selectedManufacturer = $state([]);
 	let selectedDate = $state('');
-	let flags = $state([]);
 	let selectedFlag = $state([]);
 
-	const resources = [
-		'attributes_conduit_type',
-		'attributes_status',
-		'attributes_network_level',
-		'attributes_company',
-		'flags'
-	];
-
-	// NOTE: This is a bit of a mess, but it works for now
-	async function loadSelectOptions(editMode = false) {
+	async function loadSelectOptions(editMode) {
+		if (!editMode) {
+			return;
+		}
 		try {
 			let editData;
-			if (editMode) {
-				const editUrl = `${PUBLIC_API_URL}conduit/${pipeData.value}/`;
-				const editRes = await fetch(editUrl, { credentials: 'include' });
-				if (!editRes.ok)
-					throw new Error(`Failed to fetch ${editRes.url} (status ${editRes.status})`);
-				editData = await editRes.json();
+			const editUrl = `${PUBLIC_API_URL}conduit/${pipeData.value}/`;
+			const editRes = await fetch(editUrl, { credentials: 'include' });
+			if (!editRes.ok) throw new Error(`Failed to fetch ${editRes.url} (status ${editRes.status})`);
+			editData = await editRes.json();
+
+			selectedConduitName = editData.name;
+			selectedOuterConduit = editData.outer_conduit;
+			if (editData.date) {
+				// from DD.MM.YYYY to YYYY-MM-DD
+				const dateParts = editData.date.split('.');
+				selectedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+			} else {
+				selectedDate = '';
 			}
-			// build full URLs
-			const urls = resources.map((name) => `${PUBLIC_API_URL}${name}/`);
-
-			// fetch all endpoints in parallel
-			const responses = await Promise.all(
-				urls.map((url) => fetch(url, { credentials: 'include' }))
-			);
-
-			// parse all JSON bodies in parallel
-			const [
-				parsedConduitTypes,
-				parsedStatuses,
-				parsedNetworkLevels,
-				parsedCompanies,
-				parsedFlags
-			] = await Promise.all(
-				responses.map((res, index) => {
-					if (!res.ok) throw new Error(`Failed to fetch ${res.url} (status ${res.status})`);
-					return res.json().then((data) =>
-						data.map((item) => ({
-							value: item.id,
-							label:
-								resources[index] === 'flags'
-									? item.flag
-									: resources[index] === 'attributes_conduit_type'
-										? item.conduit_type
-										: resources[index] === 'attributes_company'
-											? item.company
-											: resources[index] === 'attributes_status'
-												? item.status
-												: resources[index] === 'attributes_network_level'
-													? item.network_level
-													: item.id
-						}))
-					);
-				})
-			);
-
-			conduitTypes = parsedConduitTypes;
-			statuses = parsedStatuses;
-			networkLevels = parsedNetworkLevels;
-			companies = parsedCompanies;
-			flags = parsedFlags;
-			if (editMode) {
-				selectedConduitName = editData.name;
-				selectedOuterConduit = editData.outer_conduit;
-				if (editData.date) {
-					// from DD.MM.YYYY to YYYY-MM-DD
-					const dateParts = editData.date.split('.');
-					selectedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
-				} else {
-					selectedDate = '';
-				}
-				selectedConduitType = [editData.conduit_type ? editData.conduit_type.id : ''];
-				selectedStatus = [editData.status ? editData.status.id : ''];
-				selectedNetworkLevel = [editData.network_level ? editData.network_level.id : ''];
-				selectedOwner = [editData.owner ? editData.owner.id : ''];
-				selectedConstructor = [editData.constructor ? editData.constructor.id : ''];
-				selectedManufacturer = [editData.manufacturer ? editData.manufacturer.id : ''];
-				selectedFlag = [editData.flag ? editData.flag.id : ''];
-			}
+			selectedConduitType = [editData.conduit_type ? editData.conduit_type.id : ''];
+			selectedStatus = [editData.status ? editData.status.id : ''];
+			selectedNetworkLevel = [editData.network_level ? editData.network_level.id : ''];
+			selectedOwner = [editData.owner ? editData.owner.id : ''];
+			selectedConstructor = [editData.constructor ? editData.constructor.id : ''];
+			selectedManufacturer = [editData.manufacturer ? editData.manufacturer.id : ''];
+			selectedFlag = [editData.flag ? editData.flag.id : ''];
 		} catch (err) {
 			toaster.create({
 				type: 'error',

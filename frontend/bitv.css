@@ -1,0 +1,327 @@
+[data-theme='bitv'] {
+/*── Typography ───────────────────────────────────────────────────────────*/
+--text-scaling:             1.20;
+--base-font-family:         system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+--base-font-size:           1rem;
+--base-line-height:         1.5;
+--base-letter-spacing:      0.02em;
+--base-font-weight:         normal;
+--base-font-style:          normal;
+--base-font-color:          var(--color-surface-950);
+--base-font-color-dark:     var(--color-surface-50);
+
+--heading-font-family:      inherit;
+--heading-font-weight:      700; /* Improved from 'bold' for better consistency */
+--heading-font-style:       normal;
+--heading-font-color:       inherit;
+--heading-font-color-dark:  inherit;
+--heading-letter-spacing:   inherit;
+
+/*── Links ────────────────────────────────────────────────────────────────*/
+--anchor-font-family:       inherit;
+--anchor-font-size:         inherit;
+--anchor-line-height:       inherit;
+--anchor-font-weight:       inherit;
+--anchor-font-style:        inherit;
+--anchor-font-color:        var(--color-primary-600); /* Improved contrast */
+--anchor-font-color-dark:   var(--color-primary-400); /* Improved contrast for dark mode */
+--anchor-letter-spacing:    inherit;
+--anchor-text-decoration:           underline;
+--anchor-text-decoration-hover:     underline;
+--anchor-text-decoration-active:    none;
+--anchor-text-decoration-focus:     underline;
+
+/*── Focus Management (BITV 2.0 Enhancement) ────────────────────────────*/
+--focus-ring-width:         3px;
+--focus-ring-offset:        2px;
+--focus-ring-color:         var(--color-primary-600);
+--focus-ring-color-dark:    var(--color-primary-400);
+--focus-outline-style:      solid;
+--focus-visible-only:       true; /* Only show focus for keyboard navigation */
+
+/*── Spacing & Shape ────────────────────────────────────────────────────*/
+--spacing:                 0.25rem;
+--radius-base:             0.375rem;
+--radius-container:        0.75rem;
+
+/*── Borders & Focus Ring ───────────────────────────────────────────────*/
+--default-border-width:    1px;
+--default-divide-width:    1px;
+--default-ring-width:      3px;
+--default-ring-offset:     2px;
+--default-ring-color:      var(--focus-ring-color);
+
+/*── Motion & Animation (BITV 2.0 Compliance) ──────────────────────────*/
+--transition-duration:     0ms; /* Respects prefers-reduced-motion */
+--animation-duration:      0ms; /* Respects prefers-reduced-motion */
+
+/* Enhanced motion settings for users who don't prefer reduced motion */
+--transition-duration-normal:  200ms;
+--animation-duration-normal:   300ms;
+
+/*── Touch Targets (BITV 2.0 Enhancement) ──────────────────────────────*/
+--touch-target-min-size:   44px; /* WCAG AA compliant (minimum 44x44px) */
+--touch-target-spacing:    8px;  /* Minimum spacing between interactive elements */
+
+/*── Background ────────────────────────────────────────────────────────*/
+--body-background-color:       var(--color-surface-50);
+--body-background-color-dark:  var(--color-surface-950);
+
+/*── High Contrast Mode Support (BITV 2.0 Enhancement) ─────────────────*/
+--high-contrast-border:        2px solid;
+--high-contrast-outline:       2px solid;
+
+/*── Primary (≥4.5:1 on white) ─────────────────────────────────────────*/
+--color-primary-50:   oklch(95% 0.02 258deg);  /* Improved contrast */
+--color-primary-100:  oklch(88% 0.05 258deg);  /* Improved contrast */
+--color-primary-200:  oklch(78% 0.10 258deg);
+--color-primary-300:  oklch(68% 0.15 258deg);
+--color-primary-400:  oklch(58% 0.18 258deg);
+--color-primary-500:  oklch(48% 0.20 258deg);  /* Improved contrast */
+--color-primary-600:  oklch(38% 0.18 258deg);  /* Enhanced for better contrast */
+--color-primary-700:  oklch(32% 0.15 258deg);  /* Enhanced for better contrast */
+--color-primary-800:  oklch(26% 0.12 258deg);  /* Enhanced for better contrast */
+--color-primary-900:  oklch(20% 0.10 258deg);  /* Enhanced for better contrast */
+--color-primary-950:  oklch(15% 0.08 258deg);  /* Enhanced for better contrast */
+--color-primary-contrast-dark:  var(--color-primary-950);
+--color-primary-contrast-light: var(--color-primary-50);
+--color-primary-contrast-50:     var(--color-primary-contrast-dark);
+--color-primary-contrast-100:    var(--color-primary-contrast-dark);
+--color-primary-contrast-200:    var(--color-primary-contrast-dark);
+--color-primary-contrast-300:    var(--color-primary-contrast-dark);
+--color-primary-contrast-400:    var(--color-primary-contrast-light);
+--color-primary-contrast-500:    var(--color-primary-contrast-light);
+--color-primary-contrast-600:    var(--color-primary-contrast-light);
+--color-primary-contrast-700:    var(--color-primary-contrast-light);
+--color-primary-contrast-800:    var(--color-primary-contrast-light);
+--color-primary-contrast-900:    var(--color-primary-contrast-light);
+--color-primary-contrast-950:    var(--color-primary-contrast-light);
+
+/*── Secondary ──────────────────────────────────────────────────────────*/
+--color-secondary-50:   oklch(90% 0.05 300.15deg);    /* Improved contrast */
+--color-secondary-100:  oklch(82% 0.09 303.57deg);    /* Improved contrast */
+--color-secondary-200:  oklch(74% 0.13 304.44deg);
+--color-secondary-300:  oklch(66% 0.17 303.81deg);
+--color-secondary-400:  oklch(58% 0.20 302.75deg);
+--color-secondary-500:  oklch(50% 0.23 300.46deg);
+--color-secondary-600:  oklch(42% 0.21 299.60deg);    /* Enhanced for better contrast */
+--color-secondary-700:  oklch(36% 0.19 298.26deg);    /* Enhanced for better contrast */
+--color-secondary-800:  oklch(30% 0.17 296.27deg);    /* Enhanced for better contrast */
+--color-secondary-900:  oklch(24% 0.15 293.97deg);    /* Enhanced for better contrast */
+--color-secondary-950:  oklch(18% 0.13 291.16deg);    /* Enhanced for better contrast */
+--color-secondary-contrast-dark:  var(--color-secondary-950);
+--color-secondary-contrast-light: var(--color-secondary-50);
+--color-secondary-contrast-50:     var(--color-secondary-contrast-dark);
+--color-secondary-contrast-100:    var(--color-secondary-contrast-dark);
+--color-secondary-contrast-200:    var(--color-secondary-contrast-dark);
+--color-secondary-contrast-300:    var(--color-secondary-contrast-dark);
+--color-secondary-contrast-400:    var(--color-secondary-contrast-light);
+--color-secondary-contrast-500:    var(--color-secondary-contrast-light);
+--color-secondary-contrast-600:    var(--color-secondary-contrast-light);
+--color-secondary-contrast-700:    var(--color-secondary-contrast-light);
+--color-secondary-contrast-800:    var(--color-secondary-contrast-light);
+--color-secondary-contrast-900:    var(--color-secondary-contrast-light);
+--color-secondary-contrast-950:    var(--color-secondary-contrast-light);
+
+/*── Tertiary ───────────────────────────────────────────────────────────*/
+--color-tertiary-50:   oklch(94% 0.08 328.92deg);     /* Improved contrast */
+--color-tertiary-100:  oklch(86% 0.13 339.68deg);     /* Improved contrast */
+--color-tertiary-200:  oklch(78% 0.18 345.55deg);
+--color-tertiary-300:  oklch(70% 0.23 350.68deg);
+--color-tertiary-400:  oklch(62% 0.25 355.85deg);
+--color-tertiary-500:  oklch(54% 0.26   2.48deg);     /* Enhanced for better contrast */
+--color-tertiary-600:  oklch(46% 0.24   1.70deg);     /* Enhanced for better contrast */
+--color-tertiary-700:  oklch(38% 0.22   0.50deg);     /* Enhanced for better contrast */
+--color-tertiary-800:  oklch(30% 0.20 359.66deg);     /* Enhanced for better contrast */
+--color-tertiary-900:  oklch(22% 0.17 357.71deg);     /* Enhanced for better contrast */
+--color-tertiary-950:  oklch(16% 0.15 355.34deg);     /* Enhanced for better contrast */
+--color-tertiary-contrast-dark:  var(--color-tertiary-950);
+--color-tertiary-contrast-light: var(--color-tertiary-50);
+--color-tertiary-contrast-50:     var(--color-tertiary-contrast-dark);
+--color-tertiary-contrast-100:    var(--color-tertiary-contrast-dark);
+--color-tertiary-contrast-200:    var(--color-tertiary-contrast-dark);
+--color-tertiary-contrast-300:    var(--color-tertiary-contrast-light);
+--color-tertiary-contrast-400:    var(--color-tertiary-contrast-light);
+--color-tertiary-contrast-500:    var(--color-tertiary-contrast-light);
+--color-tertiary-contrast-600:    var(--color-tertiary-contrast-light);
+--color-tertiary-contrast-700:    var(--color-tertiary-contrast-light);
+--color-tertiary-contrast-800:    var(--color-tertiary-contrast-light);
+--color-tertiary-contrast-900:    var(--color-tertiary-contrast-light);
+--color-tertiary-contrast-950:    var(--color-tertiary-contrast-light);
+
+/*── Success ────────────────────────────────────────────────────────────*/
+--color-success-50:   oklch(96% 0.09 178.66deg);      /* Improved contrast */
+--color-success-100:  oklch(93% 0.10 178.60deg);      /* Improved contrast */
+--color-success-200:  oklch(90% 0.11 177.16deg);
+--color-success-300:  oklch(87% 0.12 176.90deg);
+--color-success-400:  oklch(84% 0.13 175.45deg);
+--color-success-500:  oklch(80% 0.13 174.95deg);
+--color-success-600:  oklch(65% 0.12 175.70deg);      /* Enhanced for better contrast */
+--color-success-700:  oklch(50% 0.10 175.99deg);      /* Enhanced for better contrast */
+--color-success-800:  oklch(35% 0.08 178.28deg);      /* Enhanced for better contrast */
+--color-success-900:  oklch(25% 0.06 179.74deg);      /* Enhanced for better contrast */
+--color-success-950:  oklch(15% 0.04 185.29deg);      /* Enhanced for better contrast */
+--color-success-contrast-dark:  var(--color-success-950);
+--color-success-contrast-light: var(--color-success-50);
+--color-success-contrast-50:     var(--color-success-contrast-dark);
+--color-success-contrast-100:    var(--color-success-contrast-dark);
+--color-success-contrast-200:    var(--color-success-contrast-dark);
+--color-success-contrast-300:    var(--color-success-contrast-dark);
+--color-success-contrast-400:    var(--color-success-contrast-dark);
+--color-success-contrast-500:    var(--color-success-contrast-dark);
+--color-success-contrast-600:    var(--color-success-contrast-light);
+--color-success-contrast-700:    var(--color-success-contrast-light);
+--color-success-contrast-800:    var(--color-success-contrast-light);
+--color-success-contrast-900:    var(--color-success-contrast-light);
+--color-success-contrast-950:    var(--color-success-contrast-light);
+
+/*── Warning ────────────────────────────────────────────────────────────*/
+--color-warning-50:   oklch(97% 0.05  84.56deg);      /* Improved contrast */
+--color-warning-100:  oklch(94% 0.06  82.16deg);      /* Improved contrast */
+--color-warning-200:  oklch(91% 0.08  80.33deg);
+--color-warning-300:  oklch(88% 0.10  80.01deg);
+--color-warning-400:  oklch(85% 0.12  78.35deg);
+--color-warning-500:  oklch(80% 0.14  76.71deg);
+--color-warning-600:  oklch(68% 0.13  72.25deg);      /* Enhanced for better contrast */
+--color-warning-700:  oklch(56% 0.13  68.09deg);      /* Enhanced for better contrast */
+--color-warning-800:  oklch(44% 0.13  63.18deg);      /* Enhanced for better contrast */
+--color-warning-900:  oklch(32% 0.13  57.97deg);      /* Enhanced for better contrast */
+--color-warning-950:  oklch(20% 0.13  51.44deg);      /* Enhanced for better contrast */
+--color-warning-contrast-dark:  var(--color-warning-950);
+--color-warning-contrast-light: var(--color-warning-50);
+--color-warning-contrast-50:     var(--color-warning-contrast-dark);
+--color-warning-contrast-100:    var(--color-warning-contrast-dark);
+--color-warning-contrast-200:    var(--color-warning-contrast-dark);
+--color-warning-contrast-300:    var(--color-warning-contrast-dark);
+--color-warning-contrast-400:    var(--color-warning-contrast-dark);
+--color-warning-contrast-500:    var(--color-warning-contrast-dark);
+--color-warning-contrast-600:    var(--color-warning-contrast-light);
+--color-warning-contrast-700:    var(--color-warning-contrast-light);
+--color-warning-contrast-800:    var(--color-warning-contrast-light);
+--color-warning-contrast-900:    var(--color-warning-contrast-light);
+--color-warning-contrast-950:    var(--color-warning-contrast-light);
+
+/*── Error ──────────────────────────────────────────────────────────────*/
+--color-error-50:     oklch(94% 0.04  14.04deg);      /* Improved contrast */
+--color-error-100:    oklch(87% 0.07  19.81deg);      /* Improved contrast */
+--color-error-200:    oklch(80% 0.11  21.98deg);
+--color-error-300:    oklch(73% 0.15  24.90deg);
+--color-error-400:    oklch(66% 0.19  26.71deg);
+--color-error-500:    oklch(59% 0.22  28.71deg);      /* Enhanced for better contrast */
+--color-error-600:    oklch(52% 0.21  28.53deg);      /* Enhanced for better contrast */
+--color-error-700:    oklch(45% 0.20  28.58deg);      /* Enhanced for better contrast */
+--color-error-800:    oklch(38% 0.19  28.72deg);      /* Enhanced for better contrast */
+--color-error-900:    oklch(31% 0.18  28.88deg);      /* Enhanced for better contrast */
+--color-error-950:    oklch(24% 0.17  29.23deg);      /* Enhanced for better contrast */
+--color-error-contrast-dark:  var(--color-error-950);
+--color-error-contrast-light: var(--color-error-50);
+--color-error-contrast-50:     var(--color-error-contrast-dark);
+--color-error-contrast-100:    var(--color-error-contrast-dark);
+--color-error-contrast-200:    var(--color-error-contrast-dark);
+--color-error-contrast-300:    var(--color-error-contrast-dark);
+--color-error-contrast-400:    var(--color-error-contrast-dark);
+--color-error-contrast-500:    var(--color-error-contrast-light);
+--color-error-contrast-600:    var(--color-error-contrast-light);
+--color-error-contrast-700:    var(--color-error-contrast-light);
+--color-error-contrast-800:    var(--color-error-contrast-light);
+--color-error-contrast-900:    var(--color-error-contrast-light);
+--color-error-contrast-950:    var(--color-error-contrast-light);
+
+/*── Surface (neutrals) ─────────────────────────────────────────────────*/
+--color-surface-50:   oklch(100% 0  none);
+--color-surface-100:  oklch(95% 0 none);              /* Improved contrast */
+--color-surface-200:  oklch(88% 0 none);              /* Improved contrast */
+--color-surface-300:  oklch(78% 0 none);              /* Improved contrast */
+--color-surface-400:  oklch(68% 0 none);              /* Improved contrast */
+--color-surface-500:  oklch(58% 0 none);              /* Enhanced for better contrast */
+--color-surface-600:  oklch(48% 0 none);              /* Enhanced for better contrast */
+--color-surface-700:  oklch(38% 0 none);              /* Enhanced for better contrast */
+--color-surface-800:  oklch(28% 0 none);              /* Enhanced for better contrast */
+--color-surface-900:  oklch(18% 0 none);              /* Enhanced for better contrast */
+--color-surface-950:  oklch(8%  0 none);              /* Enhanced for better contrast */
+--color-surface-contrast-dark:  var(--color-surface-950);
+--color-surface-contrast-light: var(--color-surface-50);
+--color-surface-contrast-50:     var(--color-surface-contrast-dark);
+--color-surface-contrast-100:    var(--color-surface-contrast-dark);
+--color-surface-contrast-200:    var(--color-surface-contrast-dark);
+--color-surface-contrast-300:    var(--color-surface-contrast-dark);
+--color-surface-contrast-400:    var(--color-surface-contrast-light);
+--color-surface-contrast-500:    var(--color-surface-contrast-light);
+--color-surface-contrast-600:    var(--color-surface-contrast-light);
+--color-surface-contrast-700:    var(--color-surface-contrast-light);
+--color-surface-contrast-800:    var(--color-surface-contrast-light);
+--color-surface-contrast-900:    var(--color-surface-contrast-light);
+--color-surface-contrast-950:    var(--color-surface-contrast-light);
+}
+
+/*── BITV 2.0 Media Queries ─────────────────────────────────────────────*/
+
+/* Respect user's motion preferences (WCAG 2.1 Success Criterion 2.3.3) */
+@media (prefers-reduced-motion: no-preference) {
+  [data-theme='bitv'] {
+    --transition-duration: var(--transition-duration-normal);
+    --animation-duration: var(--animation-duration-normal);
+  }
+}
+
+/* High contrast mode support (Windows High Contrast) */
+@media (prefers-contrast: high) {
+  [data-theme='bitv'] {
+    --default-border-width: 2px;
+    --focus-ring-width: 4px;
+    --anchor-text-decoration: underline;
+    --anchor-text-decoration-hover: underline;
+    --anchor-text-decoration-focus: underline;
+  }
+}
+
+/* Enhanced focus styles for better keyboard navigation */
+[data-theme='bitv'] *:focus-visible {
+  outline: var(--focus-ring-width) var(--focus-outline-style) var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: var(--radius-base);
+}
+
+[data-theme='bitv'] *:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Ensure proper color contrast for interactive elements */
+[data-theme='bitv'] button,
+[data-theme='bitv'] input,
+[data-theme='bitv'] select,
+[data-theme='bitv'] textarea {
+  min-height: var(--touch-target-min-size);
+  min-width: var(--touch-target-min-size);
+}
+
+/* Skip link styles for keyboard users */
+[data-theme='bitv'] .skip-link {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  z-index: 9999;
+  padding: 1rem;
+  background: var(--color-primary-600);
+  color: var(--color-primary-contrast-600);
+  text-decoration: none;
+  transform: translateY(-100%);
+  transition: transform 0.2s ease-in-out;
+}
+
+[data-theme='bitv'] .skip-link:focus {
+  transform: translateY(0);
+}
+
+/* Screen reader only content */
+[data-theme='bitv'] .sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}

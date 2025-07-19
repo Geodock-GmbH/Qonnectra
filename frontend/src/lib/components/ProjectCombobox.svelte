@@ -2,28 +2,27 @@
 	// Skeleton
 	import { Combobox, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
 
-	// Svelte
-	import { selectedProject } from '$lib/stores/store';
-	import { browser } from '$app/environment';
-
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
-	// Props - receive projects and error from parent/layout
-	let {
-		projects = [],
-		projectsError = null,
-		loading = false,
-		placeholderSize = 'size-10'
-	} = $props();
-
-	// Client-side hydration loading state
-	let isHydrating = $state(!browser);
+	// Svelte
+	import { browser } from '$app/environment';
+	import { selectedProject } from '$lib/stores/store';
 
 	// Toaster
 	const toaster = createToaster({
 		placement: 'bottom-end'
 	});
+
+	let {
+		projects = [],
+		projectsError = null,
+		loading = false,
+		placeholderSize = 'size-10',
+		onChange = () => {}
+	} = $props();
+
+	let isHydrating = $state(!browser);
 
 	$effect(() => {
 		if (projectsError && browser) {
@@ -35,7 +34,6 @@
 		}
 	});
 
-	// Update hydration state
 	$effect(() => {
 		if (browser) {
 			isHydrating = false;
@@ -48,9 +46,9 @@
 {#if loading || isHydrating}
 	<div class="placeholder animate-pulse {placeholderSize}"></div>
 {:else if projectsError}
-	<div class="alert variant-filled-error">{projectsError}</div>
+	<div class="alert variant-filled-error text-sm sm:text-base">{projectsError}</div>
 {:else if projects.length === 0}
-	<div class="alert variant-filled-warning">
+	<div class="alert variant-filled-warning text-sm sm:text-base">
 		{m.error_fetching_projects_no_projects()}
 	</div>
 {:else}
@@ -60,9 +58,11 @@
 		defaultValue={$selectedProject}
 		onValueChange={(e) => {
 			$selectedProject = e.value;
+			onChange(e);
 		}}
 		placeholder={m.project()}
-		classes="z-10"
-		contentBase="max-h-60 overflow-auto"
+		classes="z-10 w-full min-w-0 sm:min-w-48 md:min-w-64"
+		zIndex="10"
+		contentBase="max-h-60 overflow-auto touch-manipulation"
 	/>
 {/if}

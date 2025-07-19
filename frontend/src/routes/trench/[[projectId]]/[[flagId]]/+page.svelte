@@ -2,43 +2,45 @@
 	// Skeleton
 	import { Switch, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
 
-	// Tabler
+	// Icons
 	import { IconCheck, IconX } from '@tabler/icons-svelte';
 
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
 	// Svelte
+	import { goto } from '$app/navigation';
+	import { navigating, page } from '$app/stores';
+	import { enhance } from '$app/forms';
+	import { PUBLIC_API_URL } from '$env/static/public';
+	import ConduitCombobox from '$lib/components/ConduitCombobox.svelte';
+	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
+	import Map from '$lib/components/Map.svelte';
+	import TrenchTable from './TrenchTable.svelte';
 	import {
-		selectedProject,
-		selectedFlag,
-		selectedConduit,
 		routingMode,
 		routingTolerance,
+		selectedConduit,
+		selectedFlag,
+		selectedProject,
 		trenchColor,
 		trenchColorSelected
 	} from '$lib/stores/store';
-	import { PUBLIC_API_URL } from '$env/static/public';
-	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
-	import ConduitCombobox from '$lib/components/ConduitCombobox.svelte';
-	import TrenchTable from '$lib/components/TrenchTable.svelte';
-	import Map from '$lib/components/Map.svelte';
 	import { onDestroy } from 'svelte';
 
 	// OpenLayers
+	import Feature from 'ol/Feature.js';
+	import MVT from 'ol/format/MVT.js';
+	import WKT from 'ol/format/WKT.js';
+	import VectorLayer from 'ol/layer/Vector.js';
+	import VectorTileLayer from 'ol/layer/VectorTile.js';
 	import 'ol/ol.css';
+	import VectorSource from 'ol/source/Vector.js';
+	import VectorTileSource from 'ol/source/VectorTile.js';
+	import { Circle as CircleStyle, Style } from 'ol/style';
 	import Fill from 'ol/style/Fill.js';
 	import Stroke from 'ol/style/Stroke.js';
 	import Text from 'ol/style/Text.js';
-	import { Style, Circle as CircleStyle } from 'ol/style';
-	import MVT from 'ol/format/MVT.js';
-	import VectorTileLayer from 'ol/layer/VectorTile.js';
-	import VectorTileSource from 'ol/source/VectorTile.js';
-	import VectorLayer from 'ol/layer/Vector.js';
-	import VectorSource from 'ol/source/Vector.js';
-	import WKT from 'ol/format/WKT.js';
-	import { getCenter } from 'ol/extent';
-	import Feature from 'ol/Feature.js';
 
 	let { data } = $props();
 
@@ -57,7 +59,7 @@
 	let endTrenchId = $state(null);
 	let trenchTableInstance;
 
-	function handleFlagChange() {
+	async function handleFlagChange() {
 		$selectedConduit = undefined;
 	}
 
@@ -72,12 +74,18 @@
 		}
 
 		try {
-			const response = await fetch(`${PUBLIC_API_URL}ol_trench/?id_trench=${trenchLabel}`, {
-				credentials: 'include'
+			const formData = new FormData();
+			formData.append('trenchLabel', trenchLabel);
+
+			const response = await fetch('?/getTrenchData', {
+				method: 'POST',
+				body: formData
 			});
 
-			if (response.ok) {
-				const trenchData = await response.json();
+			const result = await response.json();
+
+			if (result.type === 'success' && result.data?.trenchData) {
+				const trenchData = result.data.trenchData;
 				if (
 					trenchData.results.features[0].geometry &&
 					trenchData.results.features[0].geometry.coordinates
@@ -149,6 +157,19 @@
 			});
 		}
 	}
+
+	$effect(() => {
+		const projectId = $selectedProject;
+		const flagId = $selectedFlag;
+		const currentPath = $page.url.pathname;
+
+		if (projectId && flagId) {
+			const targetPath = `/trench/${projectId}/${flagId}`;
+			if (currentPath !== targetPath) {
+				goto(targetPath, { keepFocus: true, noScroll: true, replaceState: true });
+			}
+		}
+	});
 
 	$effect(() => {
 		if (!$routingMode || $routingMode) {
@@ -374,8 +395,18 @@
 				selectionStore[featureId] = feature;
 
 				try {
-					const url = `${PUBLIC_API_URL}routing/${startTrenchId}/${endTrenchId}/${$selectedProject}/${$routingTolerance}/`;
-					const response = await fetch(url, { credentials: 'include' });
+					const response = await fetch('/api/routing', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({
+							startTrenchId,
+							endTrenchId,
+							projectId: $selectedProject,
+							tolerance: $routingTolerance
+						})
+					});
 					if (!response.ok) {
 						const errorData = await response.json();
 						throw new Error(
@@ -459,10 +490,16 @@
 	});
 </script>
 
+<svelte:head>
+	<title>{m.conduit_connection()}</title>
+</svelte:head>
+
 <Toaster {toaster} />
 
-<div class="grid grid-cols-1 md:grid-cols-12 gap-4 h-full">
-	<div class="md:col-span-8 border-2 rounded-lg border-surface-200-800 overflow-hidden">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
+	<div
+		class="lg:col-span-8 border-2 rounded-lg border-surface-200-800 overflow-hidden min-h-[400px]"
+	>
 		{#if vectorTileLayer}
 			<Map
 				className="rounded-lg overflow-hidden h-full w-full"
@@ -478,36 +515,60 @@
 			</div>
 		{/if}
 	</div>
-	<div class="md:col-span-4 border-2 rounded-lg border-surface-200-800 overflow-auto">
+	<div class="lg:col-span-4 border-2 rounded-lg border-surface-200-800 overflow-auto">
 		<div class="card p-4 flex flex-col gap-3">
-			<div class="flex items-center justify-between">
-				<h3>{m.settings_map_routing_mode()}</h3>
-				<Switch
-					name="routing-mode"
-					checked={$routingMode}
-					onCheckedChange={() => {
-						$routingMode = !$routingMode;
-					}}
-				>
-					{#snippet inactiveChild()}
-						<IconX size="18" />
-					{/snippet}
-					{#snippet activeChild()}
-						<IconCheck size="18" />
-					{/snippet}
-				</Switch>
+			<div class="space-y-4">
+				<!-- Routing Mode Toggle -->
+				<div class="flex items-center justify-between bg-surface-50-900 rounded-lg">
+					<h3 class="text-sm font-medium">{m.settings_map_routing_mode()}</h3>
+					<Switch
+						name="routing-mode"
+						checked={$routingMode}
+						onCheckedChange={() => {
+							$routingMode = !$routingMode;
+						}}
+					>
+						{#snippet inactiveChild()}
+							<IconX size="18" />
+						{/snippet}
+						{#snippet activeChild()}
+							<IconCheck size="18" />
+						{/snippet}
+					</Switch>
+				</div>
+
+				<!-- Flag Selection -->
+				<div class="space-y-2">
+					<h3 class="text-sm font-medium">{m.flag()}</h3>
+					<FlagCombobox
+						flags={data.flags}
+						flagsError={data.flagsError}
+						onchange={handleFlagChange}
+					/>
+				</div>
+
+				<!-- Conduit Selection -->
+				<div class="space-y-2">
+					<h3 class="text-sm font-medium">{m.conduit()}</h3>
+					<ConduitCombobox
+						loading={$navigating !== null}
+						conduits={data.conduits ?? []}
+						conduitsError={data.conduitsError}
+						projectId={$selectedProject}
+						flagId={$selectedFlag}
+					/>
+				</div>
 			</div>
-			<div class="flex items-center justify-between">
-				<h3>{m.flag()}</h3>
+
+			<!-- Trench Table -->
+			<div class="mt-4">
+				<TrenchTable
+					projectId={$selectedProject}
+					conduitId={$selectedConduit}
+					onTrenchClick={handleTrenchClick}
+					bind:this={trenchTableInstance}
+				/>
 			</div>
-			<FlagCombobox flags={data.flags} flagsError={data.flagsError} onchange={handleFlagChange} />
-			<h3>{m.conduit()}</h3>
-			<ConduitCombobox projectId={$selectedProject} flagId={$selectedFlag} />
-			<TrenchTable
-				conduitId={$selectedConduit}
-				onTrenchClick={handleTrenchClick}
-				bind:this={trenchTableInstance}
-			/>
 		</div>
 	</div>
 </div>

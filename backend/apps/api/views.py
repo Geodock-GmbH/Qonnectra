@@ -306,6 +306,7 @@ class ConduitViewSet(viewsets.ModelViewSet):
                 | Q(owner__company__icontains=search_term)
                 | Q(constructor__company__icontains=search_term)
                 | Q(manufacturer__company__icontains=search_term)
+                | Q(flag__flag__icontains=search_term)
             )
         serializer = ConduitSerializer(queryset, many=True)
         return Response(serializer.data)
@@ -724,24 +725,27 @@ class RoutingView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(
-        self,
-        request,
-        start_trench_id,
-        end_trench_id,
-        project_id,
-        tolerance=1,
-        format=None,
-    ):
+    def post(self, request, format=None):
         """
         Calculates and returns the shortest path between two trenches.
 
-        URL: /api/routing/<start_trench_id>/<end_trench_id>/<project_id>/
+        URL: /api/routing/
+        Body (JSON): {
+            "start_trench_id": int,
+            "end_trench_id": int,
+            "project_id": int,
+            "tolerance": int (optional, default=1)
+        }
         """
+        start_trench_id = request.data.get("start_trench_id")
+        end_trench_id = request.data.get("end_trench_id")
+        project_id = request.data.get("project_id")[0]
+        tolerance = request.data.get("tolerance", 1)[0]
+
         try:
             start_id = int(start_trench_id)
             end_id = int(end_trench_id)
-        except ValueError:
+        except (ValueError, TypeError):
             return Response(
                 {"error": "Trench IDs must be integers."},
                 status=status.HTTP_400_BAD_REQUEST,

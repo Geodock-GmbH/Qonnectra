@@ -12,7 +12,8 @@
 		mapOptions = {},
 		className = '',
 		showOpacitySlider = true,
-		showLayerVisibilityTree = true
+		showLayerVisibilityTree = true,
+		onLayerVisibilityChanged = () => {}
 	} = $props();
 
 	let container; // div that will host the map
@@ -107,8 +108,7 @@
 		}
 	});
 
-	function handleOpacitySliderChange(event) {
-		const newOpacity = event.detail;
+	function handleOpacitySliderChange(newOpacity) {
 		currentLayerOpacity = newOpacity;
 		if (osmLayer) {
 			// Check if osmLayer is initialized
@@ -116,10 +116,8 @@
 		}
 	}
 
-	function handleLayerVisibilityChange(event) {
-		// Layer visibility is handled directly by the LayerVisibilityTree component
-		// This event handler can be used for additional logic if needed
-		dispatch('layerVisibilityChanged', event.detail);
+	function handleLayerVisibilityChange(layerInfo) {
+		onLayerVisibilityChanged(layerInfo);
 	}
 </script>
 
@@ -132,16 +130,16 @@
 				maxOpacity={opacitySliderConfig.maxOpacity}
 				stepOpacity={opacitySliderConfig.stepOpacity}
 				opacity={currentLayerOpacity}
-				on:change={handleOpacitySliderChange}
+				onChange={handleOpacitySliderChange}
 			/>
 		</div>
 	{/if}
 	{#if showLayerVisibilityTree && map}
-		<div class="absolute top-5 right-5 z-10">
+		<div class="absolute top-5 right-5 z-9">
 			<LayerVisibilityTree
 				{layers}
 				{osmLayer}
-				on:layerVisibilityChanged={handleLayerVisibilityChange}
+				onLayerVisibilityChanged={handleLayerVisibilityChange}
 			/>
 		</div>
 	{/if}

@@ -19,16 +19,13 @@
 	});
 
 	let {
-		projectId,
-		searchTerm = '',
+		pipes,
 		rowData = $bindable(),
 		rowClickedSignal = $bindable(false),
 		updatedPipeData = null
 	} = $props();
 
-	let pipes = $state([]);
 	let pipesError = $state(null);
-	let loading = $state(false);
 	let page = $state(1);
 	let size = $state(100);
 	let count = $derived(size);
@@ -50,51 +47,6 @@
 	let messageBoxConfirm;
 	let messageBoxAlert;
 	let pendingDeleteId = $state(null);
-
-	async function fetchPipes() {
-		if (!projectId) {
-			return;
-		}
-
-		loading = true;
-		pipesError = null;
-
-		try {
-			let url = `${PUBLIC_API_URL}conduit/all/?project=${projectId}`;
-			if (searchTerm) {
-				url += `&search=${searchTerm}`;
-			}
-			let response = await fetch(url, { credentials: 'include' });
-
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
-			}
-
-			const data = await response.json();
-
-			pipes = data.map((item) => ({
-				value: item.uuid,
-				name: item.name,
-				conduit_type: item.conduit_type.conduit_type,
-				outer_conduit: item.outer_conduit,
-				status: item.status ? item.status.status : '',
-				network_level: item.network_level ? item.network_level.network_level : '',
-				owner: item.owner ? item.owner.company : '',
-				constructor: item.constructor ? item.constructor.company : '',
-				manufacturer: item.manufacturer ? item.manufacturer.company : '',
-				date: item.date,
-				flag: item.flag.flag
-			}));
-		} catch (error) {
-			toaster.create({
-				type: 'error',
-				title: m.error_fetching_pipes(),
-				description: m.error_fetching_pipes_description()
-			});
-		} finally {
-			loading = false;
-		}
-	}
 
 	function handleRowClick(pipe) {
 		rowData = pipe;
@@ -195,18 +147,6 @@
 	}
 
 	$effect(() => {
-		if (projectId) {
-			fetchPipes();
-		}
-	});
-
-	$effect(() => {
-		if (searchTerm !== undefined) {
-			fetchPipes();
-		}
-	});
-
-	$effect(() => {
 		if (updatedPipeData && updatedPipeData._updateId !== lastUpdateId) {
 			const index = pipes.findIndex((p) => p.value === updatedPipeData.uuid);
 			const formattedPipe = {
@@ -225,8 +165,8 @@
 				flag: updatedPipeData.flag.flag
 			};
 			if (index !== -1) {
-				// Update existing pipe
-				pipes[index] = formattedPipe;
+				// Update existing pipe - create new array to trigger reactivity
+				pipes = [...pipes.slice(0, index), formattedPipe, ...pipes.slice(index + 1)];
 			} else {
 				// Add new pipe
 				pipes = [formattedPipe, ...pipes];
@@ -238,27 +178,18 @@
 
 <Toaster {toaster} />
 
-<div class="table-wrap overflow-x-auto">
-	<table class="table table-card caption-bottom w-full overflow-scroll">
-		<thead>
-			<tr>
-				{#each headers as header}
-					<th>{header}</th>
-				{/each}
-			</tr>
-		</thead>
-		<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">
-			{#if loading}
-				{#each { length: size } as _}
-					<tr>
-						{#each { length: 10 } as _}
-							<td>
-								<div class="h-4 bg-surface-500 rounded animate-pulse w-3/4"></div>
-							</td>
-						{/each}
-					</tr>
-				{/each}
-			{:else}
+<!-- Desktop Table View -->
+<div class="hidden md:block">
+	<div class="table-wrap overflow-x-auto">
+		<table class="table table-card caption-bottom w-full overflow-scroll">
+			<thead>
+				<tr>
+					{#each headers as header}
+						<th>{header}</th>
+					{/each}
+				</tr>
+			</thead>
+			<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">
 				{#each slicedSource as row}
 					<tr>
 						<td data-label={m.name()} onclick={() => handleRowClick(row)}>{row.name}</td>
@@ -285,6 +216,7 @@
 							<button
 								name="delete-pipe"
 								class="btn btn-sm variant-filled-error"
+								aria-label="Delete"
 								onclick={() => handleDelete(row.value)}
 								disabled={deletingIds.has(row.value)}
 							>
@@ -297,10 +229,87 @@
 						</td>
 					</tr>
 				{/each}
-			{/if}
-		</tbody>
-	</table>
+			</tbody>
+		</table>
+	</div>
 </div>
+
+<!-- Mobile Card View -->
+<div class="md:hidden space-y-3">
+	{#each slicedSource as row}
+		<div
+			class="card p-4 space-y-3 cursor-pointer hover:bg-surface-100-800 transition-colors touch-manipulation"
+			onclick={() => handleRowClick(row)}
+			onkeydown={(e) => {
+				if (e.key === 'Enter') {
+					handleRowClick(row);
+				}
+			}}
+			role="presentation"
+		>
+			<!-- Primary Info Row -->
+			<div class="flex items-center justify-between border-b border-surface-200-800 pb-2">
+				<div class="flex-1 min-w-0">
+					<h3 class="font-semibold text-lg truncate">{row.name}</h3>
+					<p class="text-sm">{row.conduit_type}</p>
+				</div>
+				<button
+					name="delete-pipe"
+					class="btn btn-sm variant-filled-error flex-shrink-0 ml-2"
+					aria-label="Delete"
+					onclick={(e) => {
+						e.stopPropagation();
+						handleDelete(row.value);
+					}}
+					disabled={deletingIds.has(row.value)}
+				>
+					{#if deletingIds.has(row.value)}
+						<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+					{:else}
+						<IconTrash size={28} class="touch-manipulation" />
+					{/if}
+				</button>
+			</div>
+
+			<!-- Details Grid -->
+			<div class="grid grid-cols-2 gap-3 text-sm">
+				<div>
+					<span class="font-medium text-surface-600-400">{m.outer_conduit()}:</span>
+					<p class="truncate">{row.outer_conduit}</p>
+				</div>
+				<div>
+					<span class="font-medium text-surface-600-400">{m.status()}:</span>
+					<p class="truncate">{row.status}</p>
+				</div>
+				<div>
+					<span class="font-medium text-surface-600-400">{m.network_level()}:</span>
+					<p class="truncate">{row.network_level}</p>
+				</div>
+				<div>
+					<span class="font-medium text-surface-600-400">{m.owner()}:</span>
+					<p class="truncate">{row.owner}</p>
+				</div>
+				<div>
+					<span class="font-medium text-surface-600-400">{m.constructor()}:</span>
+					<p class="truncate">{row.constructor}</p>
+				</div>
+				<div>
+					<span class="font-medium text-surface-600-400">{m.manufacturer()}:</span>
+					<p class="truncate">{row.manufacturer}</p>
+				</div>
+				<div>
+					<span class="font-medium text-surface-600-400">{m.date()}:</span>
+					<p class="truncate">{row.date}</p>
+				</div>
+				<div>
+					<span class="font-medium text-surface-600-400">{m.flag()}:</span>
+					<p class="truncate">{row.flag}</p>
+				</div>
+			</div>
+		</div>
+	{/each}
+</div>
+
 <Pagination
 	data={pipes}
 	{page}
