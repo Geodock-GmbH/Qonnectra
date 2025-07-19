@@ -93,7 +93,8 @@
 	<!-- Backdrop -->
 	<div
 		class="fixed inset-0 bg-black/50 z-40 md:hidden"
-		role="presentation"
+		role="button"
+		tabindex="0"
 		onclick={closeMoreMenu}
 		onkeydown={(event) => {
 			if (event.key === 'Escape') {

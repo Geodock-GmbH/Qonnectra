@@ -245,7 +245,8 @@
 					handleRowClick(row);
 				}
 			}}
-			role="presentation"
+			role="button"
+			tabindex="0"
 		>
 			<!-- Primary Info Row -->
 			<div class="flex items-center justify-between border-b border-surface-200-800 pb-2">
