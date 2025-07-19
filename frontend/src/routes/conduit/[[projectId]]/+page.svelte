@@ -139,8 +139,10 @@
 <Toaster {toaster} />
 
 <div class="flex justify-between items-center">
-	<div class="flex justify-start">
-		<nav class="btn-group preset-outlined-surface-200-800 flex-col justify-between p-2 md:flex-row">
+	<div class="flex items-center">
+		<nav
+			class="btn-group md:preset-outlined-surface-200-800 flex-col justify-between items-start md:flex-row"
+		>
 			<PipeModal
 				projectId={$selectedProject}
 				{openPipeModal}
@@ -157,7 +159,7 @@
 		</nav>
 	</div>
 
-	<div class="flex justify-end">
+	<div class="hidden md:flex justify-end">
 		<nav class="btn-group preset-outlined-surface-200-800 flex-col p-2 md:flex-row">
 			<FileUpload
 				accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

@@ -209,7 +209,7 @@
 							{m.routing_tolerance()}
 						</dt>
 						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
-							<p>{m.routing_tolerance_description()}</p>
+							<p class="hidden md:block">{m.routing_tolerance_description()}</p>
 							<Slider
 								bind:value={$routingTolerance}
 								onValueChange={(e) => ($routingTolerance = e.value)}

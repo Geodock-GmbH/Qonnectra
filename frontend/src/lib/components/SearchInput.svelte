@@ -20,7 +20,7 @@
 		<IconSearch size={16} />
 	</div>
 	<input
-		class="ig-input"
+		class="ig-input touch-manipulation text-base"
 		type="search"
 		placeholder={m.search()}
 		bind:value

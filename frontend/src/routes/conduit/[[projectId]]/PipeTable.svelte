@@ -178,57 +178,138 @@
 
 <Toaster {toaster} />
 
-<div class="table-wrap overflow-x-auto">
-	<table class="table table-card caption-bottom w-full overflow-scroll">
-		<thead>
-			<tr>
-				{#each headers as header}
-					<th>{header}</th>
-				{/each}
-			</tr>
-		</thead>
-		<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">
-			{#each slicedSource as row}
+<!-- Desktop Table View -->
+<div class="hidden md:block">
+	<div class="table-wrap overflow-x-auto">
+		<table class="table table-card caption-bottom w-full overflow-scroll">
+			<thead>
 				<tr>
-					<td data-label={m.name()} onclick={() => handleRowClick(row)}>{row.name}</td>
-					<td data-label={m.conduit_type()} onclick={() => handleRowClick(row)}
-						>{row.conduit_type}</td
-					>
-					<td data-label={m.outer_conduit()} onclick={() => handleRowClick(row)}
-						>{row.outer_conduit}</td
-					>
-					<td data-label={m.status()} onclick={() => handleRowClick(row)}>{row.status}</td>
-					<td data-label={m.network_level()} onclick={() => handleRowClick(row)}
-						>{row.network_level}</td
-					>
-					<td data-label={m.owner()} onclick={() => handleRowClick(row)}>{row.owner}</td>
-					<td data-label={m.constructor()} onclick={() => handleRowClick(row)}>{row.constructor}</td
-					>
-					<td data-label={m.manufacturer()} onclick={() => handleRowClick(row)}
-						>{row.manufacturer}</td
-					>
-					<td data-label={m.date()} onclick={() => handleRowClick(row)}>{row.date}</td>
-					<td data-label={m.flag()} onclick={() => handleRowClick(row)}>{row.flag}</td>
-					<td data-label="delete">
-						<button
-							name="delete-pipe"
-							class="btn btn-sm variant-filled-error"
-							aria-label="Delete"
-							onclick={() => handleDelete(row.value)}
-							disabled={deletingIds.has(row.value)}
-						>
-							{#if deletingIds.has(row.value)}
-								<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-							{:else}
-								<IconTrash />
-							{/if}
-						</button>
-					</td>
+					{#each headers as header}
+						<th>{header}</th>
+					{/each}
 				</tr>
-			{/each}
-		</tbody>
-	</table>
+			</thead>
+			<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">
+				{#each slicedSource as row}
+					<tr>
+						<td data-label={m.name()} onclick={() => handleRowClick(row)}>{row.name}</td>
+						<td data-label={m.conduit_type()} onclick={() => handleRowClick(row)}
+							>{row.conduit_type}</td
+						>
+						<td data-label={m.outer_conduit()} onclick={() => handleRowClick(row)}
+							>{row.outer_conduit}</td
+						>
+						<td data-label={m.status()} onclick={() => handleRowClick(row)}>{row.status}</td>
+						<td data-label={m.network_level()} onclick={() => handleRowClick(row)}
+							>{row.network_level}</td
+						>
+						<td data-label={m.owner()} onclick={() => handleRowClick(row)}>{row.owner}</td>
+						<td data-label={m.constructor()} onclick={() => handleRowClick(row)}
+							>{row.constructor}</td
+						>
+						<td data-label={m.manufacturer()} onclick={() => handleRowClick(row)}
+							>{row.manufacturer}</td
+						>
+						<td data-label={m.date()} onclick={() => handleRowClick(row)}>{row.date}</td>
+						<td data-label={m.flag()} onclick={() => handleRowClick(row)}>{row.flag}</td>
+						<td data-label="delete">
+							<button
+								name="delete-pipe"
+								class="btn btn-sm variant-filled-error"
+								aria-label="Delete"
+								onclick={() => handleDelete(row.value)}
+								disabled={deletingIds.has(row.value)}
+							>
+								{#if deletingIds.has(row.value)}
+									<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+								{:else}
+									<IconTrash />
+								{/if}
+							</button>
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
 </div>
+
+<!-- Mobile Card View -->
+<div class="md:hidden space-y-3">
+	{#each slicedSource as row}
+		<div
+			class="card p-4 space-y-3 cursor-pointer hover:bg-surface-100-800 transition-colors touch-manipulation"
+			onclick={() => handleRowClick(row)}
+			onkeydown={(e) => {
+				if (e.key === 'Enter') {
+					handleRowClick(row);
+				}
+			}}
+			role="presentation"
+		>
+			<!-- Primary Info Row -->
+			<div class="flex items-center justify-between border-b border-surface-200-800 pb-2">
+				<div class="flex-1 min-w-0">
+					<h3 class="font-semibold text-lg truncate">{row.name}</h3>
+					<p class="text-sm">{row.conduit_type}</p>
+				</div>
+				<button
+					name="delete-pipe"
+					class="btn btn-sm variant-filled-error flex-shrink-0 ml-2"
+					aria-label="Delete"
+					onclick={(e) => {
+						e.stopPropagation();
+						handleDelete(row.value);
+					}}
+					disabled={deletingIds.has(row.value)}
+				>
+					{#if deletingIds.has(row.value)}
+						<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+					{:else}
+						<IconTrash size={28} class="touch-manipulation" />
+					{/if}
+				</button>
+			</div>
+
+			<!-- Details Grid -->
+			<div class="grid grid-cols-2 gap-3 text-sm">
+				<div>
+					<span class="font-medium text-surface-600-400">{m.outer_conduit()}:</span>
+					<p class="truncate">{row.outer_conduit}</p>
+				</div>
+				<div>
+					<span class="font-medium text-surface-600-400">{m.status()}:</span>
+					<p class="truncate">{row.status}</p>
+				</div>
+				<div>
+					<span class="font-medium text-surface-600-400">{m.network_level()}:</span>
+					<p class="truncate">{row.network_level}</p>
+				</div>
+				<div>
+					<span class="font-medium text-surface-600-400">{m.owner()}:</span>
+					<p class="truncate">{row.owner}</p>
+				</div>
+				<div>
+					<span class="font-medium text-surface-600-400">{m.constructor()}:</span>
+					<p class="truncate">{row.constructor}</p>
+				</div>
+				<div>
+					<span class="font-medium text-surface-600-400">{m.manufacturer()}:</span>
+					<p class="truncate">{row.manufacturer}</p>
+				</div>
+				<div>
+					<span class="font-medium text-surface-600-400">{m.date()}:</span>
+					<p class="truncate">{row.date}</p>
+				</div>
+				<div>
+					<span class="font-medium text-surface-600-400">{m.flag()}:</span>
+					<p class="truncate">{row.flag}</p>
+				</div>
+			</div>
+		</div>
+	{/each}
+</div>
+
 <Pagination
 	data={pipes}
 	{page}
