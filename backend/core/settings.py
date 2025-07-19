@@ -213,7 +213,7 @@ REST_AUTH = {
     "JWT_AUTH_REFRESH_COOKIE_PATH": "/",
     "JWT_AUTH_SECURE": True,
     "JWT_AUTH_HTTPONLY": True,
-    "JWT_AUTH_SAMESITE": "None",
+    "JWT_AUTH_SAMESITE": "Lax",
 }
 
 # djangorestframework-simplejwt settings
