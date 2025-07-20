@@ -118,7 +118,7 @@
 							class="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-100-800 transition-colors"
 							onclick={closeMoreMenu}
 						>
-							{@render item.icon({ size: 20, class: 'text-surface-700-300' })}
+							<item.icon size={20} class="text-surface-700-300" />
 							<span class="text-surface-900-100">{item.label}</span>
 						</a>
 					{/each}

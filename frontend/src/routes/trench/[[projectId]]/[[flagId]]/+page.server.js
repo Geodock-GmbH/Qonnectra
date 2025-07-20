@@ -3,7 +3,7 @@ import { m } from '$lib/paraglide/messages';
 import { error } from '@sveltejs/kit';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ fetch, params, depends }) {
+export async function load({ fetch, params, depends, cookies }) {
 	depends('app:conduits');
 	const { projectId, flagId } = params;
 
@@ -13,7 +13,10 @@ export async function load({ fetch, params, depends }) {
 
 	try {
 		let url = `${API_URL}conduit/all/?project=${params.projectId}&flag=${params.flagId}`;
-		const response = await fetch(url, { credentials: 'include' });
+		const response = await fetch(url, {
+			credentials: 'include',
+			headers: getAuthHeaders(cookies)
+		});
 
 		if (!response.ok) {
 			console.error(`Failed to fetch conduits: ${response.status}`);
@@ -32,9 +35,18 @@ export async function load({ fetch, params, depends }) {
 	}
 }
 
+function getAuthHeaders(cookies) {
+	const accessToken = cookies.get('api-access-token');
+	const headers = new Headers();
+	if (accessToken) {
+		headers.append('Cookie', `api-access-token=${accessToken}`);
+	}
+	return headers;
+}
+
 /** @type {import('./$types').Actions} */
 export const actions = {
-	getTrenchData: async ({ request, fetch }) => {
+	getTrenchData: async ({ request, fetch, cookies }) => {
 		const data = await request.formData();
 		const trenchLabel = data.get('trenchLabel');
 
@@ -44,7 +56,8 @@ export const actions = {
 
 		try {
 			const response = await fetch(`${API_URL}ol_trench/?id_trench=${trenchLabel}`, {
-				credentials: 'include'
+				credentials: 'include',
+				headers: getAuthHeaders(cookies)
 			});
 
 			if (!response.ok) {
