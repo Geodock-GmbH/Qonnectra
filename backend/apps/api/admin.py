@@ -4,15 +4,18 @@ from .models import (
     AttributesCompany,
     AttributesConduitType,
     AttributesConstructionType,
+    AttributesMicroductStatus,
     AttributesNetworkLevel,
     AttributesNodeType,
     AttributesPhase,
     AttributesStatus,
     AttributesStatusDevelopment,
     AttributesSurface,
+    Conduit,
     FileTypeCategory,
     Flags,
     GtPkMetadata,
+    Microduct,
     Projects,
     StoragePreferences,
 )
@@ -30,4 +33,7 @@ admin.site.register(Flags)
 admin.site.register(AttributesConduitType)
 admin.site.register(AttributesNetworkLevel)
 admin.site.register(AttributesNodeType)
+admin.site.register(AttributesMicroductStatus)
+admin.site.register(Conduit)
+admin.site.register(Microduct)
 admin.site.register(GtPkMetadata)

@@ -5,6 +5,7 @@ from .views import (
     AddressViewSet,
     AttributesCompanyViewSet,
     AttributesConduitTypeViewSet,
+    AttributesMicroductStatusViewSet,
     AttributesNetworkLevelViewSet,
     AttributesStatusViewSet,
     ConduitImportTemplateView,
@@ -12,6 +13,7 @@ from .views import (
     ConduitViewSet,
     FeatureFilesViewSet,
     FlagsViewSet,
+    MicroductViewSet,
     NodeViewSet,
     OlAddressTileViewSet,
     OlAddressViewSet,
@@ -46,10 +48,16 @@ router.register(
     AttributesCompanyViewSet,
     basename="attributes_company",
 )
+router.register(
+    r"attributes_microduct_status",
+    AttributesMicroductStatusViewSet,
+    basename="attributes_microduct_status",
+)
 router.register(r"address", AddressViewSet, basename="address")
 router.register(r"conduit", ConduitViewSet, basename="conduit")
 router.register(r"flags", FlagsViewSet, basename="flags")
 router.register(r"feature_files", FeatureFilesViewSet, basename="feature_files")
+router.register(r"microduct", MicroductViewSet, basename="microduct")
 router.register(r"node", NodeViewSet, basename="node")
 router.register(r"ol_address", OlAddressViewSet, basename="ol_address")
 router.register(r"ol_node", OlNodeViewSet, basename="ol_node")

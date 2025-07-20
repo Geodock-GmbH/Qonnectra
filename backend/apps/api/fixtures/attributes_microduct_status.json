@@ -1,0 +1,9 @@
+[
+    {
+        "model": "api.attributesmicroductstatus",
+        "pk": 1,
+        "fields": {
+            "microduct_status": "Defekt"
+        }
+    }
+]

@@ -9,6 +9,7 @@ from .models import (
     AttributesCompany,
     AttributesConduitType,
     AttributesConstructionType,
+    AttributesMicroductStatus,
     AttributesNetworkLevel,
     AttributesNodeType,
     AttributesPhase,
@@ -18,6 +19,7 @@ from .models import (
     Conduit,
     FeatureFiles,
     Flags,
+    Microduct,
     Node,
     OlAddress,
     OlNode,
@@ -130,6 +132,14 @@ class AttributesStatusDevelopmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = AttributesStatusDevelopment
         fields = ["id", "status"]
+
+
+class AttributesMicroductStatusSerializer(serializers.ModelSerializer):
+    """Serializer for the AttributesMicroductStatus model."""
+
+    class Meta:
+        model = AttributesMicroductStatus
+        fields = ["id", "microduct_status"]
 
 
 class TrenchSerializer(GeoFeatureModelSerializer):
@@ -774,5 +784,56 @@ class OlNodeSerializer(GeoFeatureModelSerializer):
         fields["project"].label = _("Project")
         fields["flag"].label = _("Flag")
         fields["geom"].label = _("Geometry")
+
+        return fields
+
+
+class MicroductSerializer(serializers.ModelSerializer):
+    """Serializer for the Microduct model."""
+
+    # Read only fields
+    uuid = serializers.UUIDField(read_only=True)
+
+    # Get nested serializers for foreign keys
+    uuid_conduit = ConduitSerializer(read_only=True)
+    microduct_status = AttributesMicroductStatusSerializer(read_only=True)
+    uuid_node = NodeSerializer(read_only=True)
+
+    # Add write fields for foreign keys
+    number = serializers.IntegerField(required=True)
+    color = serializers.CharField(required=True)
+    uuid_conduit_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Conduit.objects.all(),
+        source="uuid_conduit",
+    )
+    microduct_status_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesMicroductStatus.objects.all(),
+        source="microduct_status",
+        required=False,
+    )
+    uuid_node_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Node.objects.all(),
+        source="uuid_node",
+        required=False,
+    )
+
+    class Meta:
+        model = Microduct
+        fields = "__all__"
+        ordering = ["number"]
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+
+        # Translate labels
+        fields["number"].label = _("Number")
+        fields["color"].label = _("Color")
+        fields["uuid_conduit_id"].label = _("Conduit")
+        fields["microduct_status_id"].label = _("Microduct Status")
+        fields["uuid_node_id"].label = _("Node")
 
         return fields

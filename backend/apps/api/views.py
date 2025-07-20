@@ -12,11 +12,13 @@ from .models import (
     Address,
     AttributesCompany,
     AttributesConduitType,
+    AttributesMicroductStatus,
     AttributesNetworkLevel,
     AttributesStatus,
     Conduit,
     FeatureFiles,
     Flags,
+    Microduct,
     Node,
     OlAddress,
     OlNode,
@@ -31,11 +33,13 @@ from .serializers import (
     AddressSerializer,
     AttributesCompanySerializer,
     AttributesConduitTypeSerializer,
+    AttributesMicroductStatusSerializer,
     AttributesNetworkLevelSerializer,
     AttributesStatusSerializer,
     ConduitSerializer,
     FeatureFilesSerializer,
     FlagsSerializer,
+    MicroductSerializer,
     NodeSerializer,
     OlAddressSerializer,
     OlNodeSerializer,
@@ -810,3 +814,50 @@ class ConduitImportView(APIView):
             return Response(
                 {"errors": result["errors"]}, status=status.HTTP_400_BAD_REQUEST
             )
+
+
+class AttributesMicroductStatusViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesMicroductStatus model :model:`api.AttributesMicroductStatus`.
+
+    An instance of :model:`api.AttributesMicroductStatus`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesMicroductStatus.objects.all().order_by("microduct_status")
+    serializer_class = AttributesMicroductStatusSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class MicroductViewSet(viewsets.ModelViewSet):
+    """ViewSet for the Microduct model :model:`api.Microduct`.
+
+    An instance of :model:`api.Microduct`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = Microduct.objects.all().order_by("number")
+    serializer_class = MicroductSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned microducts by filtering against query parameters:
+        - `uuid_conduit`: Filter by conduit UUID
+        - `number`: Filter by microduct number
+        - `color`: Filter by color
+        """
+        queryset = Microduct.objects.all()
+        uuid_conduit = self.request.query_params.get("uuid_conduit")
+        number = self.request.query_params.get("number")
+        color = self.request.query_params.get("color")
+
+        if uuid_conduit:
+            queryset = queryset.filter(uuid_conduit=uuid_conduit)
+        if uuid_conduit and number:
+            queryset = queryset.filter(uuid_conduit=uuid_conduit, number=number)
+        if uuid_conduit and color:
+            queryset = queryset.filter(uuid_conduit=uuid_conduit, color=color)
+        return queryset

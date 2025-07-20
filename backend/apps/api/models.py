@@ -5,6 +5,8 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models as gis_models
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
 
 from .storage import NextcloudStorage
@@ -258,6 +260,28 @@ class AttributesStatusDevelopment(models.Model):
         ]
         verbose_name = _("Status Development")
         verbose_name_plural = _("Status Developments")
+
+    def __str__(self):
+        return self.status
+
+
+class AttributesMicroductStatus(models.Model):
+    """Stores all microduct statuses,
+    related to :model:`api.Microduct`.
+    """
+
+    id = models.IntegerField(primary_key=True)
+    microduct_status = models.TextField(
+        _("Microduct Status"), null=False, db_index=True, unique=True
+    )
+
+    class Meta:
+        db_table = "attributes_microduct_status"
+        verbose_name = _("Microduct Status")
+        verbose_name_plural = _("Microduct Statuses")
+
+    def __str__(self):
+        return self.microduct_status
 
 
 # TODO: Implement custom storage class for feature files (nextcloud): https://docs.djangoproject.com/en/4.2/howto/custom-file-storage/
@@ -1199,3 +1223,75 @@ class OlNode(models.Model):
         verbose_name = _("OL Node")
         verbose_name_plural = _("Openlayers Nodes")
         ordering = ["name"]
+
+
+class Microduct(models.Model):
+    """Stores all microducts,
+    related to :model:`api.Conduit`.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    uuid_conduit = models.ForeignKey(
+        Conduit,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="uuid_conduit",
+        db_index=False,
+        verbose_name=_("Conduit"),
+    )
+    number = models.IntegerField(_("Number"), null=False, db_index=False)
+    color = models.TextField(_("Color"), null=False, db_index=False)
+    microduct_status = models.ForeignKey(
+        AttributesMicroductStatus,
+        null=True,
+        on_delete=models.SET_NULL,
+        db_column="microduct_status",
+        db_index=False,
+        verbose_name=_("Microduct Status"),
+    )
+    uuid_node = models.ForeignKey(
+        Node,
+        null=True,
+        on_delete=models.SET_NULL,
+        db_column="uuid_node",
+        db_index=False,
+        verbose_name=_("Node"),
+    )
+
+    class Meta:
+        db_table = "microduct"
+        verbose_name = _("Microduct")
+        verbose_name_plural = _("Microducts")
+        ordering = ["uuid_conduit", "number"]
+        indexes = [
+            models.Index(fields=["uuid_conduit"], name="idx_microduct_conduit"),
+            models.Index(fields=["number"], name="idx_microduct_number"),
+            models.Index(fields=["color"], name="idx_microduct_color"),
+            models.Index(fields=["microduct_status"], name="idx_microduct_status"),
+            models.Index(fields=["uuid_node"], name="idx_microduct_node"),
+        ]
+
+    def __str__(self):
+        return self.uuid_conduit.name + "-" + str(self.number)
+
+
+@receiver(post_save, sender=Conduit)
+def create_microducts_for_conduit(sender, instance, created, **kwargs):
+    """
+    Signal to automatically create microducts when a conduit is created.
+    Creates microducts based on the color_code field in the conduit's conduit_type.
+    """
+    if created and instance.conduit_type and instance.conduit_type.color_code:
+        color_code = instance.conduit_type.color_code
+
+        for number, color in color_code.items():
+            try:
+                microduct_number = int(number)
+
+                Microduct.objects.create(
+                    uuid_conduit=instance, number=microduct_number, color=color
+                )
+
+            except (ValueError, TypeError) as e:
+                print(f"Error creating microduct for conduit {instance.name}: {e}")
+                continue
