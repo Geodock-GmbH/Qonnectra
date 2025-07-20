@@ -1295,3 +1295,55 @@ def create_microducts_for_conduit(sender, instance, created, **kwargs):
             except (ValueError, TypeError) as e:
                 print(f"Error creating microduct for conduit {instance.name}: {e}")
                 continue
+
+
+class MicroductConnection(models.Model):
+    """Stores all microduct connections,
+    related to :model:`api.Microduct`.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    uuid_microduct_from = models.ForeignKey(
+        Microduct,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="uuid_microduct_from",
+        db_index=False,
+        verbose_name=_("Microduct From"),
+        related_name="microduct_connections_from",
+    )
+    uuid_microduct_to = models.ForeignKey(
+        Microduct,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="uuid_microduct_to",
+        db_index=False,
+        verbose_name=_("Microduct To"),
+        related_name="microduct_connections_to",
+    )
+    uuid_node = models.ForeignKey(
+        Node,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="uuid_node",
+        db_index=False,
+        verbose_name=_("Node"),
+    )
+
+    class Meta:
+        db_table = "microduct_connection"
+        verbose_name = _("Microduct Connection")
+        verbose_name_plural = _("Microduct Connections")
+        ordering = ["uuid_microduct_from", "uuid_microduct_to"]
+        indexes = [
+            models.Index(
+                fields=["uuid_microduct_from"], name="idx_microduct_connection_from"
+            ),
+            models.Index(
+                fields=["uuid_microduct_to"], name="idx_microduct_connection_to"
+            ),
+            models.Index(fields=["uuid_node"], name="idx_microduct_connection_node"),
+        ]
+
+    def __str__(self):
+        return self.uuid_microduct_from.name + " -> " + self.uuid_microduct_to.name

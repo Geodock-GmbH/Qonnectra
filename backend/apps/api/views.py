@@ -19,6 +19,7 @@ from .models import (
     FeatureFiles,
     Flags,
     Microduct,
+    MicroductConnection,
     Node,
     OlAddress,
     OlNode,
@@ -39,6 +40,7 @@ from .serializers import (
     ConduitSerializer,
     FeatureFilesSerializer,
     FlagsSerializer,
+    MicroductConnectionSerializer,
     MicroductSerializer,
     NodeSerializer,
     OlAddressSerializer,
@@ -860,4 +862,38 @@ class MicroductViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(uuid_conduit=uuid_conduit, number=number)
         if uuid_conduit and color:
             queryset = queryset.filter(uuid_conduit=uuid_conduit, color=color)
+        return queryset
+
+
+class MicroductConnectionViewSet(viewsets.ModelViewSet):
+    """ViewSet for the MicroductConnection model :model:`api.MicroductConnection`.
+
+    An instance of :model:`api.MicroductConnection`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = MicroductConnection.objects.all()
+    serializer_class = MicroductConnectionSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned microduct connections by filtering against query parameters:
+        - `uuid_microduct_from`: Filter by microduct from UUID
+        - `uuid_microduct_to`: Filter by microduct to UUID
+        - `uuid_node`: Filter by node UUID
+        """
+        queryset = MicroductConnection.objects.all()
+        uuid_microduct_from = self.request.query_params.get("uuid_microduct_from")
+        uuid_microduct_to = self.request.query_params.get("uuid_microduct_to")
+        uuid_node = self.request.query_params.get("uuid_node")
+
+        if uuid_microduct_from:
+            queryset = queryset.filter(uuid_microduct_from=uuid_microduct_from)
+        if uuid_microduct_to:
+            queryset = queryset.filter(uuid_microduct_to=uuid_microduct_to)
+        if uuid_node:
+            queryset = queryset.filter(uuid_node=uuid_node)
         return queryset

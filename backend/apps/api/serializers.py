@@ -20,6 +20,7 @@ from .models import (
     FeatureFiles,
     Flags,
     Microduct,
+    MicroductConnection,
     Node,
     OlAddress,
     OlNode,
@@ -834,6 +835,51 @@ class MicroductSerializer(serializers.ModelSerializer):
         fields["color"].label = _("Color")
         fields["uuid_conduit_id"].label = _("Conduit")
         fields["microduct_status_id"].label = _("Microduct Status")
+        fields["uuid_node_id"].label = _("Node")
+
+        return fields
+
+
+class MicroductConnectionSerializer(serializers.ModelSerializer):
+    """Serializer for the MicroductConnection model."""
+
+    # Read only fields
+    uuid = serializers.UUIDField(read_only=True)
+
+    # Get nested serializers for foreign keys
+    uuid_microduct_from = MicroductSerializer(read_only=True)
+    uuid_microduct_to = MicroductSerializer(read_only=True)
+    uuid_node = NodeSerializer(read_only=True)
+
+    # Add write fields for foreign keys
+    uuid_microduct_from_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Microduct.objects.all(),
+        source="uuid_microduct_from",
+    )
+    uuid_microduct_to_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Microduct.objects.all(),
+        source="uuid_microduct_to",
+    )
+    uuid_node_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Node.objects.all(),
+        source="uuid_node",
+    )
+
+    class Meta:
+        model = MicroductConnection
+        fields = "__all__"
+        ordering = ["uuid_microduct_from", "uuid_microduct_to"]
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+
+        # Translate labels
+        fields["uuid_microduct_from_id"].label = _("Microduct From")
+        fields["uuid_microduct_to_id"].label = _("Microduct To")
         fields["uuid_node_id"].label = _("Node")
 
         return fields

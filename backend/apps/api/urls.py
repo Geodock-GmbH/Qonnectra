@@ -13,6 +13,7 @@ from .views import (
     ConduitViewSet,
     FeatureFilesViewSet,
     FlagsViewSet,
+    MicroductConnectionViewSet,
     MicroductViewSet,
     NodeViewSet,
     OlAddressTileViewSet,
@@ -58,6 +59,9 @@ router.register(r"conduit", ConduitViewSet, basename="conduit")
 router.register(r"flags", FlagsViewSet, basename="flags")
 router.register(r"feature_files", FeatureFilesViewSet, basename="feature_files")
 router.register(r"microduct", MicroductViewSet, basename="microduct")
+router.register(
+    r"microduct_connection", MicroductConnectionViewSet, basename="microduct_connection"
+)
 router.register(r"node", NodeViewSet, basename="node")
 router.register(r"ol_address", OlAddressViewSet, basename="ol_address")
 router.register(r"ol_node", OlNodeViewSet, basename="ol_node")
