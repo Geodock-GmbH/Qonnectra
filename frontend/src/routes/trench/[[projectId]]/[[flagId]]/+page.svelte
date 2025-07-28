@@ -30,17 +30,18 @@
 
 	// OpenLayers
 	import Feature from 'ol/Feature.js';
-	import MVT from 'ol/format/MVT.js';
 	import WKT from 'ol/format/WKT.js';
 	import VectorLayer from 'ol/layer/Vector.js';
 	import VectorTileLayer from 'ol/layer/VectorTile.js';
 	import 'ol/ol.css';
 	import VectorSource from 'ol/source/Vector.js';
-	import VectorTileSource from 'ol/source/VectorTile.js';
 	import { Circle as CircleStyle, Style } from 'ol/style';
 	import Fill from 'ol/style/Fill.js';
 	import Stroke from 'ol/style/Stroke.js';
 	import Text from 'ol/style/Text.js';
+
+	// Map utilities
+	import { createTrenchTileSource, createSelectionLayer } from '$lib/map';
 
 	let { data } = $props();
 
@@ -181,12 +182,16 @@
 		}
 	});
 
-	$effect(() => {
-		if (vectorTileLayer) {
-			vectorTileLayer.getSource().refresh();
-		}
-	});
+	// Error handler for tile loading
+	function handleTileError(message, description) {
+		toaster.create({
+			type: 'error',
+			title: message,
+			description: description
+		});
+	}
 
+	// Custom trench style with labels
 	const trenchStyle = (feature, resolution) =>
 		new Style({
 			fill: new Fill({
@@ -220,22 +225,6 @@
 					: undefined
 		});
 
-	// Style for selected features
-	const selectedStyle = new Style({
-		stroke: new Stroke({
-			color: $trenchColorSelected,
-			width: 5
-		}),
-		fill: new Fill({
-			color: 'rgba(255, 255, 255, 0.5)'
-		}),
-		image: new CircleStyle({
-			radius: 7,
-			fill: new Fill({ color: $trenchColorSelected }),
-			stroke: new Stroke({ color: $trenchColorSelected, width: 2 })
-		})
-	});
-
 	const routeStyle = new Style({
 		stroke: new Stroke({
 			color: 'rgba(255, 0, 0, 0.7)',
@@ -243,53 +232,12 @@
 		})
 	});
 
-	// Create the Vector Tile Layer and Source
+	// Create tile source and layer using the utility functions
 	let tileSource;
 	try {
-		tileSource = new VectorTileSource({
-			format: new MVT({
-				idProperty: 'uuid' // Use 'uuid' for feature identification
-			}),
-			tileUrlFunction: (tileCoord) => {
-				const [z, x, y] = tileCoord;
-				const projectId = parseInt($selectedProject, 10);
-				if (isNaN(projectId)) {
-					return undefined;
-				}
-				return `${PUBLIC_API_URL}ol_trench_tiles/${z}/${x}/${y}.mvt?project=${projectId}`;
-			},
-			tileLoadFunction: (tile, url) => {
-				if (!url) {
-					tile.setState(4); // EMPTY
-					return;
-				}
-				tile.setLoader((extent, resolution, projection) => {
-					fetch(url, { credentials: 'include' })
-						.then((response) => {
-							if (!response.ok) throw new Error(`Failed to load tile: ${response.statusText}`);
-							return response.arrayBuffer();
-						})
-						.then((data) => {
-							const format = tile.getFormat();
-							const features = format.readFeatures(data, {
-								extent: extent,
-								featureProjection: projection
-							});
-							tile.setFeatures(features);
-						})
-						.catch((error) => {
-							console.error('Error loading vector tile:', error);
-							tile.setState(3); // ERROR
-							toaster.create({
-								type: 'error',
-								title: m.error_loading_map_features(),
-								description: m.error_loading_map_features_description()
-							});
-						});
-				});
-			}
-		});
+		tileSource = createTrenchTileSource($selectedProject, handleTileError);
 
+		// Create a custom vector tile layer with labels
 		vectorTileLayer = new VectorTileLayer({
 			source: tileSource,
 			style: trenchStyle,
@@ -306,6 +254,12 @@
 		tileSource = undefined;
 	}
 
+	$effect(() => {
+		if (tileSource) {
+			tileSource.refresh();
+		}
+	});
+
 	function handleMapReady(event) {
 		olMapInstance = event.detail.map;
 		initializeMapInteractions();
@@ -314,14 +268,8 @@
 	function initializeMapInteractions() {
 		if (!olMapInstance || !vectorTileLayer || !tileSource) return;
 
-		// Selection layer for start/end trenches
-		selectionLayer = new VectorTileLayer({
-			renderMode: 'vector',
-			source: tileSource,
-			style: function (feature) {
-				return selectionStore[feature.getId()] ? selectedStyle : undefined;
-			}
-		});
+		// Selection layer for start/end trenches using the utility function
+		selectionLayer = createSelectionLayer(tileSource, $trenchColorSelected, () => selectionStore);
 		olMapInstance.addLayer(selectionLayer);
 
 		// Layer to display the route

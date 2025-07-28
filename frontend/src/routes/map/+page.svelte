@@ -7,20 +7,24 @@
 
 	// Svelte
 	import Map from '$lib/components/Map.svelte';
-	import { PUBLIC_API_URL } from '$env/static/public';
 	import { trenchColor, trenchColorSelected } from '$lib/stores/store';
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { selectedProject } from '$lib/stores/store';
 
 	// OpenLayers
 	import 'ol/ol.css';
-	import Fill from 'ol/style/Fill.js';
-	import Stroke from 'ol/style/Stroke.js';
-	import { Style, Circle as CircleStyle } from 'ol/style';
 	import Overlay from 'ol/Overlay';
-	import MVT from 'ol/format/MVT.js';
-	import VectorTileLayer from 'ol/layer/VectorTile.js';
-	import VectorTileSource from 'ol/source/VectorTile.js';
+
+	// Map utilities
+	import {
+		createTrenchLayer,
+		createAddressLayer,
+		createNodeLayer,
+		createSelectionLayer,
+		createTrenchTileSource,
+		createAddressTileSource,
+		createNodeTileSource
+	} from '$lib/map';
 
 	// Toaster
 	const toaster = createToaster({
@@ -43,252 +47,31 @@
 	let popupOverlay = $state();
 	let selectionStore = $state({});
 
-	$effect(() => {
-		if (tileSource) {
-			tileSource.refresh();
-		}
-		if (addressTileSource) {
-			addressTileSource.refresh();
-		}
-		if (nodeTileSource) {
-			nodeTileSource.refresh();
-		}
-	});
+	// Error handler for tile loading
+	function handleTileError(message, description) {
+		toaster.create({
+			type: 'error',
+			message: message,
+			description: description
+		});
+	}
 
-	// Style for all features (will be applied to the VectorTileLayer)
-	const trenchStyle = new Style({
-		fill: new Fill({
-			color: $trenchColor
-		}),
-		stroke: new Stroke({
-			color: $trenchColor,
-			width: 2
-		}),
-		image: new CircleStyle({
-			radius: 7,
-			fill: new Fill({ color: $trenchColor }),
-			stroke: new Stroke({ color: $trenchColor, width: 2 })
-		})
-	});
+	// Create tile sources and layers
+	let tileSource, addressTileSource, nodeTileSource;
 
-	// Style for selected features
-	const selectedStyle = new Style({
-		fill: new Fill({
-			color: $trenchColorSelected
-		}),
-		stroke: new Stroke({
-			color: $trenchColorSelected,
-			width: 3
-		}),
-		image: new CircleStyle({
-			radius: 7,
-			fill: new Fill({ color: $trenchColorSelected }),
-			stroke: new Stroke({ color: $trenchColorSelected, width: 2 })
-		})
-	});
-
-	// Style for address points
-	const addressStyle = new Style({
-		image: new CircleStyle({
-			radius: 4,
-			fill: new Fill({ color: '#2563eb' }),
-			stroke: new Stroke({ color: '#ffffff', width: 1 })
-		})
-	});
-
-	// Style for node points
-	const nodeStyle = new Style({
-		image: new CircleStyle({
-			radius: 6,
-			fill: new Fill({ color: '#ff6b35' }),
-			stroke: new Stroke({ color: '#ffffff', width: 1 })
-		})
-	});
-
-	// Create the Vector Tile Layer and Source
-	// This runs once when the component script is executed
-	let tileSource; // Define tileSource here to be accessible by selectionLayer
-	let addressTileSource; // Define addressTileSource for the address layer
-	let nodeTileSource; // Define nodeTileSource for the node layer
 	try {
-		tileSource = new VectorTileSource({
-			format: new MVT({
-				idProperty: 'uuid'
-			}),
-			tileUrlFunction: (tileCoord) => {
-				const [z, x, y] = tileCoord;
-				const projectId = parseInt($selectedProject, 10);
-				if (isNaN(projectId)) {
-					return undefined; // Don't load tiles if no project is selected.
-				}
+		tileSource = createTrenchTileSource($selectedProject, handleTileError);
+		addressTileSource = createAddressTileSource($selectedProject, handleTileError);
+		nodeTileSource = createNodeTileSource($selectedProject, handleTileError);
 
-				return `${PUBLIC_API_URL}ol_trench_tiles/${z}/${x}/${y}.mvt?project=${projectId}`;
-			},
-			tileLoadFunction: (tile, url) => {
-				if (!url) {
-					tile.setState(4); // EMPTY
-					return;
-				}
-				tile.setLoader((extent, resolution, projection) => {
-					fetch(url, {
-						credentials: 'include'
-					})
-						.then((response) => {
-							if (!response.ok) {
-								throw new Error(`Failed to load tile: ${response.statusText}`);
-							}
-							return response.arrayBuffer();
-						})
-						.then((data) => {
-							const format = tile.getFormat();
-							const features = format.readFeatures(data, {
-								extent: extent,
-								featureProjection: projection
-							});
-							tile.setFeatures(features);
-						})
-						.catch((error) => {
-							console.error('Error loading vector tile:', error);
-							tile.setState(3); // 3 corresponds to ol.TileState.ERROR
-							toaster.create({
-								type: 'error',
-								message: 'Error loading a map tile',
-								description: error.message || 'Could not fetch tile data.'
-							});
-						});
-				});
-			}
-		});
-
-		vectorTileLayer = new VectorTileLayer({
-			source: tileSource,
-			style: trenchStyle,
-			renderMode: 'vector',
-			properties: {
-				layerId: 'trench-layer',
-				layerName: m.trench()
-			}
-		});
-
-		// Create the Address Tile Source
-		addressTileSource = new VectorTileSource({
-			format: new MVT({
-				idProperty: 'uuid' // Use 'uuid' as the feature ID
-			}),
-			tileUrlFunction: (tileCoord) => {
-				const [z, x, y] = tileCoord;
-				const projectId = parseInt($selectedProject, 10);
-				if (isNaN(projectId)) {
-					return undefined; // Don't load tiles if no project is selected.
-				}
-
-				return `${PUBLIC_API_URL}ol_address_tiles/${z}/${x}/${y}.mvt?project=${projectId}`;
-			},
-			tileLoadFunction: (tile, url) => {
-				if (!url) {
-					tile.setState(4); // EMPTY
-					return;
-				}
-				tile.setLoader((extent, resolution, projection) => {
-					fetch(url, {
-						credentials: 'include'
-					})
-						.then((response) => {
-							if (!response.ok) {
-								throw new Error(`Failed to load address tile: ${response.statusText}`);
-							}
-							return response.arrayBuffer();
-						})
-						.then((data) => {
-							const format = tile.getFormat();
-							const features = format.readFeatures(data, {
-								extent: extent,
-								featureProjection: projection
-							});
-							tile.setFeatures(features);
-						})
-						.catch((error) => {
-							console.error('Error loading address vector tile:', error);
-							tile.setState(3); // 3 corresponds to ol.TileState.ERROR
-							toaster.create({
-								type: 'error',
-								message: 'Error loading address tile',
-								description: error.message || 'Could not fetch address tile data.'
-							});
-						});
-				});
-			}
-		});
-
-		addressLayer = new VectorTileLayer({
-			source: addressTileSource,
-			style: addressStyle,
-			renderMode: 'vector',
-			properties: {
-				layerId: 'address-layer',
-				layerName: m.address()
-			}
-		});
-
-		// Create the Node Tile Source
-		nodeTileSource = new VectorTileSource({
-			format: new MVT({
-				idProperty: 'uuid'
-			}),
-			tileUrlFunction: (tileCoord) => {
-				const [z, x, y] = tileCoord;
-				const projectId = parseInt($selectedProject, 10);
-				if (isNaN(projectId)) {
-					return undefined; // Don't load tiles if no project is selected.
-				}
-
-				return `${PUBLIC_API_URL}ol_node_tiles/${z}/${x}/${y}.mvt?project=${projectId}`;
-			},
-			tileLoadFunction: (tile, url) => {
-				if (!url) {
-					tile.setState(4); // EMPTY
-					return;
-				}
-				tile.setLoader((extent, resolution, projection) => {
-					fetch(url, {
-						credentials: 'include'
-					})
-						.then((response) => {
-							if (!response.ok) {
-								throw new Error(`Failed to load node tile: ${response.statusText}`);
-							}
-							return response.arrayBuffer();
-						})
-						.then((data) => {
-							const format = tile.getFormat();
-							const features = format.readFeatures(data, {
-								extent: extent,
-								featureProjection: projection
-							});
-							tile.setFeatures(features);
-						})
-						.catch((error) => {
-							console.error('Error loading node vector tile:', error);
-							tile.setState(3); // 3 corresponds to ol.TileState.ERROR
-							toaster.create({
-								type: 'error',
-								message: 'Error loading node tile',
-								description: error.message || 'Could not fetch node tile data.'
-							});
-						});
-				});
-			}
-		});
-
-		nodeLayer = new VectorTileLayer({
-			source: nodeTileSource,
-			style: nodeStyle,
-			renderMode: 'vector',
-			properties: {
-				layerId: 'node-layer',
-				layerName: m.node()
-			}
-		});
+		vectorTileLayer = createTrenchLayer(
+			$selectedProject,
+			$trenchColor,
+			m.trench(),
+			handleTileError
+		);
+		addressLayer = createAddressLayer($selectedProject, m.address(), handleTileError);
+		nodeLayer = createNodeLayer($selectedProject, m.node(), handleTileError);
 	} catch (error) {
 		toaster.create({
 			type: 'error',
@@ -303,6 +86,18 @@
 		nodeTileSource = undefined;
 	}
 
+	$effect(() => {
+		if (tileSource) {
+			tileSource.refresh();
+		}
+		if (addressTileSource) {
+			addressTileSource.refresh();
+		}
+		if (nodeTileSource) {
+			nodeTileSource.refresh();
+		}
+	});
+
 	// Handler for the map ready event
 	function handleMapReady(event) {
 		olMapInstance = event.detail.map;
@@ -314,42 +109,23 @@
 		if (!olMapInstance || !vectorTileLayer || !tileSource) return;
 
 		// Create the selection layers for each layer type
-		selectionLayer = new VectorTileLayer({
-			renderMode: 'vector',
-			source: tileSource, // Use the same source as the main trench layer
-			style: function (feature) {
-				if (feature.getId() && selectionStore[feature.getId()]) {
-					return selectedStyle;
-				}
-				return undefined; // Don't render if not selected
-			}
-		});
+		selectionLayer = createSelectionLayer(tileSource, $trenchColorSelected, () => selectionStore);
 		olMapInstance.addLayer(selectionLayer);
 
 		// Create selection layer for addresses
-		addressSelectionLayer = new VectorTileLayer({
-			renderMode: 'vector',
-			source: addressTileSource,
-			style: function (feature) {
-				if (feature.getId() && selectionStore[feature.getId()]) {
-					return selectedStyle;
-				}
-				return undefined;
-			}
-		});
+		addressSelectionLayer = createSelectionLayer(
+			addressTileSource,
+			$trenchColorSelected,
+			() => selectionStore
+		);
 		olMapInstance.addLayer(addressSelectionLayer);
 
 		// Create selection layer for nodes
-		nodeSelectionLayer = new VectorTileLayer({
-			renderMode: 'vector',
-			source: nodeTileSource,
-			style: function (feature) {
-				if (feature.getId() && selectionStore[feature.getId()]) {
-					return selectedStyle;
-				}
-				return undefined;
-			}
-		});
+		nodeSelectionLayer = createSelectionLayer(
+			nodeTileSource,
+			$trenchColorSelected,
+			() => selectionStore
+		);
 		olMapInstance.addLayer(nodeSelectionLayer);
 
 		// Create and add a popup overlay
@@ -437,11 +213,6 @@
 			if (selectionLayer) selectionLayer.changed();
 			if (addressSelectionLayer) addressSelectionLayer.changed();
 			if (nodeSelectionLayer) nodeSelectionLayer.changed();
-
-			// The .then() and .catch() structure is not directly applicable here as forEachFeatureAtPixel is synchronous
-			// and doesn't return a Promise. Error handling for it would be less direct.
-			// If getFeaturesAtPixel itself could throw an error, a try-catch around it would be needed,
-			// but typically it doesn't for simple pixel queries.
 		});
 	}
 
@@ -531,12 +302,10 @@
 	.ol-popup {
 		position: absolute;
 		padding: 8px;
-		/* Removed border and box-shadow to rely on Tailwind classes from the div */
-		transform: translate(-50%, -100%); /* Adjust to keep above pointer */
-		pointer-events: auto; /* Allow interaction with popup content */
-		min-width: 180px; /* Example min-width */
-		/* Ensure popup appears above map features */
-		z-index: 10; /* If you have other absolutely positioned elements */
+		transform: translate(-50%, -100%);
+		pointer-events: auto;
+		min-width: 180px;
+		z-index: 10;
 	}
 	.ol-popup-closer {
 		position: absolute;
@@ -545,13 +314,13 @@
 		text-decoration: none;
 		font-weight: bold;
 		cursor: pointer;
-		color: #fff; /* Example: White color for visibility on primary background */
+		color: #fff;
 	}
-	/* Ensure content area has some padding and text is visible */
+
 	#popup-content {
 		padding: 5px;
-		color: #fff; /* Example: White text for visibility */
-		max-height: 200px; /* Example max height */
-		overflow-y: auto; /* Scroll if content overflows */
+		color: #fff;
+		max-height: 200px;
+		overflow-y: auto;
 	}
 </style>
