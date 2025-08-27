@@ -1,7 +1,9 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"dashboard": "Dashboard",
 	"map": "Map",
 	"trench": "Trench",
+	"pipe_branch": "Pipe branch",
 	"trench_id": "Trench ID",
 	"settings": "Settings",
 	"more": "More",
@@ -52,6 +54,7 @@
 	"delete": "Delete",
 	"status_development": "Status",
 	"import": "Import",
+	"overview": "Overview",
 	"title_missing_information": "Missing information",
 	"missing_information": "Please enter both username and password.",
 	"title_logging_in": "Logging in...",
@@ -68,6 +71,7 @@
 	"search": "Search",
 	"opacity": "Opacity",
 	"project": "Project",
+	"projects": "Projects",
 	"error_fetching_projects": "Error fetching projects",
 	"error_fetching_projects_description": "The projects could not be loaded. Please try again.",
 	"error_fetching_projects_no_projects": "No projects available",
@@ -149,5 +153,9 @@
 	"file_rejected_description": "The file could not be imported. Please try again.",
 	"no_layers_available": "No layers available",
 	"layer_available": "Layer available",
-	"more_sites": "More sites"
+	"more_sites": "More sites",
+	"total_length": "Total length",
+	"breakdown_by_type": "Breakdown by type",
+	"breakdown_by_node_type": "Breakdown by node type",
+	"activities": "Activities"
 }

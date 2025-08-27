@@ -3,7 +3,14 @@
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 
 	// Icons
-	import { IconArrowBarToRight, IconMap2, IconSettings, IconTextPlus } from '@tabler/icons-svelte';
+	import {
+		IconDashboard,
+		IconArrowBarToRight,
+		IconMap2,
+		IconSettings,
+		IconTextPlus,
+		IconAffiliate
+	} from '@tabler/icons-svelte';
 
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
@@ -28,6 +35,14 @@
 		{/snippet}
 		{#snippet tiles()}
 			<Navigation.Tile
+				href="/dashboard"
+				labelExpanded={m.dashboard()}
+				title="Dashboard"
+				selected={page.url.pathname.startsWith('/dashboard')}
+			>
+				<IconDashboard size={28} class="text-surface-700-300" />
+			</Navigation.Tile>
+			<Navigation.Tile
 				href="/map"
 				labelExpanded={m.map()}
 				title="Karte"
@@ -50,6 +65,14 @@
 				selected={page.url.pathname.startsWith('/conduit')}
 			>
 				<IconArrowBarToRight size={28} class="text-surface-700-300" />
+			</Navigation.Tile>
+			<Navigation.Tile
+				href="/pipe-branch"
+				labelExpanded={m.pipe_branch()}
+				title="Pipe branch"
+				selected={page.url.pathname === '/pipe-branch'}
+			>
+				<IconAffiliate size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
 		{/snippet}
 		{#snippet footer()}

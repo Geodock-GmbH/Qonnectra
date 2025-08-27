@@ -5,11 +5,13 @@
 	// Icons
 	import {
 		IconArrowBarToRight,
+		IconDashboard,
 		IconMap2,
 		IconSettings,
 		IconTextPlus,
 		IconDotsVertical,
-		IconChartBar
+		IconChartBar,
+		IconAffiliate
 	} from '@tabler/icons-svelte';
 
 	// Paraglide
@@ -36,6 +38,9 @@
 	// Additional navigation items
 	const additionalNavItems = [
 		// Add more navigation items here when needed
+		{ href: '/trench', label: m.trench(), icon: IconTextPlus },
+		{ href: '/conduit', label: m.conduit(), icon: IconArrowBarToRight },
+		{ href: '/pipe-branch', label: m.pipe_branch(), icon: IconAffiliate },
 		{ href: '/settings', label: m.settings(), icon: IconSettings }
 	];
 
@@ -58,22 +63,13 @@
 			<IconMap2 size={24} class="text-surface-700-300" />
 		</Navigation.Tile>
 		<Navigation.Tile
-			href="/trench"
-			label={m.trench()}
-			title={m.trench()}
-			selected={page.url.pathname.startsWith('/trench')}
+			href="/dashboard"
+			label={m.dashboard()}
+			title={m.dashboard()}
+			selected={page.url.pathname === '/dashboard'}
 		>
-			<IconTextPlus size={24} class="text-surface-700-300" />
+			<IconDashboard size={24} class="text-surface-700-300" />
 		</Navigation.Tile>
-		<Navigation.Tile
-			href="/conduit"
-			label={m.conduit()}
-			title={m.conduit()}
-			selected={page.url.pathname.startsWith('/conduit')}
-		>
-			<IconArrowBarToRight size={24} class="text-surface-700-300" />
-		</Navigation.Tile>
-
 		<!-- More button - only show if there are additional nav items -->
 		{#if additionalNavItems.length > 0}
 			<Navigation.Tile

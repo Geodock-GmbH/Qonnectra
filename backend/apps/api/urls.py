@@ -25,6 +25,7 @@ from .views import (
     ProjectsViewSet,
     RoutingView,
     TrenchConduitConnectionViewSet,
+    TrenchesNearNodeView,
     TrenchViewSet,
 )
 
@@ -100,5 +101,10 @@ urlpatterns = [
         "routing/",
         RoutingView.as_view(),
         name="routing",
+    ),
+    path(
+        "trenches-near-node/",
+        TrenchesNearNodeView.as_view(),
+        name="trenches-near-node",
     ),
 ]

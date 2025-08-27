@@ -1,7 +1,9 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"dashboard": "Dashboard",
 	"map": "Karte",
 	"trench": "Trasse",
+	"pipe_branch": "Rohrverzweigung",
 	"trench_id": "Trassen-ID",
 	"settings": "Einstellungen",
 	"more": "Mehr",
@@ -54,6 +56,7 @@
 	"delete": "Löschen",
 	"status_development": "Ausbaustatus",
 	"import": "Import",
+	"overview": "Übersicht",
 	"title_missing_information": "Fehlende Informationen",
 	"missing_information": "Bitte geben Sie beide Benutzername und Passwort ein.",
 	"title_logging_in": "Einloggen...",
@@ -69,6 +72,7 @@
 	"error_loading_map_features_no_features": "Keine Features verfügbar",
 	"opacity": "Transparenz",
 	"project": "Projekt",
+	"projects": "Projekte",
 	"error_fetching_projects": "Fehler beim Laden der Projekte",
 	"error_fetching_projects_description": "Die Projekte konnten nicht geladen werden. Bitte versuche es erneut.",
 	"error_fetching_projects_no_projects": "Keine Projekte verfügbar",
@@ -150,5 +154,9 @@
 	"file_rejected_description": "Die Datei konnte nicht importiert werden. Bitte versuche es erneut.",
 	"no_layers_available": "Keine Layer verfügbar",
 	"layer_available": "Layer verfügbar",
-	"more_sites": "Weitere Seiten"
+	"more_sites": "Weitere Seiten",
+	"total_length": "Gesamtlänge",
+	"breakdown_by_type": "Aufteilung nach Bauart",
+	"breakdown_by_node_type": "Aufteilung nach Netzknotentyp",
+	"activities": "Aktivitäten"
 }

@@ -1,5 +1,5 @@
 from django.db import connection
-from django.db.models import Q
+from django.db.models import Count, F, Q, Sum
 from django.http import HttpResponse
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -112,7 +112,7 @@ class AttributesCompanyViewSet(viewsets.ReadOnlyModelViewSet):
 class TrenchViewSet(viewsets.ModelViewSet):
     """ViewSet for the Trench model :model:`api.Trench`.
 
-    An instance of :model:`api.Trench`.
+    An instance of :model: `api.Trench`.
     """
 
     permission_classes = [IsAuthenticated]
@@ -131,6 +131,63 @@ class TrenchViewSet(viewsets.ModelViewSet):
         if uuid:
             queryset = queryset.filter(uuid=uuid)
         return queryset
+
+    @action(detail=False, methods=["get"])
+    def length_by_types(self, request):
+        """Get trench lengths grouped by construction type and surface.
+
+        Returns aggregated data showing total length for each combination
+        of construction type and surface. Allows filtering by project and flag.
+        """
+        project = request.query_params.get("project")
+        flag = request.query_params.get("flag")
+
+        queryset = Trench.objects.all()
+
+        if project:
+            queryset = queryset.filter(project=project)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        queryset = (
+            queryset.annotate(
+                bauweise=F("construction_type__construction_type"),
+                oberfläche=F("surface__surface"),
+            )
+            .values("bauweise", "oberfläche")
+            .annotate(gesamt_länge=Sum("length"))
+            .order_by("bauweise", "oberfläche")
+        )
+
+        results = list(queryset)
+
+        return Response({"results": results, "count": len(results)})
+
+    @action(detail=False, methods=["get"])
+    def total_length(self, request):
+        status = self.request.query_params.get("status")
+        project = self.request.query_params.get("project")
+        flag = self.request.query_params.get("flag")
+        surface = self.request.query_params.get("surface")
+        construction_type = self.request.query_params.get("construction_type")
+
+        queryset = self.get_queryset()
+        if status:
+            queryset = queryset.filter(status=status)
+        if project:
+            queryset = queryset.filter(project=project)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+        if surface:
+            queryset = queryset.filter(surface=surface)
+        if construction_type:
+            queryset = queryset.filter(construction_type=construction_type)
+
+        total_length = (
+            queryset.aggregate(total_length=Sum("length"))["total_length"] or 0
+        )
+
+        return Response({"total_length": total_length, "count": queryset.count()})
 
 
 class FeatureFilesViewSet(viewsets.ModelViewSet):
@@ -352,7 +409,7 @@ class ConduitViewSet(viewsets.ModelViewSet):
 
         if name:
             queryset = queryset.filter(name__icontains=name)
-        return queryset
+        return queryset  #
 
 
 class TrenchConduitConnectionViewSet(viewsets.ModelViewSet):
@@ -617,6 +674,33 @@ class NodeViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(name__icontains=name)
 
         return queryset
+
+    @action(detail=False, methods=["get"])
+    def count_of_nodes_by_type(self, request):
+        """
+        Returns the count of nodes by type.
+        """
+        project_id = request.query_params.get("project")
+        flag = request.query_params.get("flag")
+
+        queryset = Node.objects.all()
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        queryset = (
+            queryset.values("node_type__node_type")
+            .annotate(count=Count("node_type"))
+            .order_by("node_type__node_type")
+        )
+
+        result = [
+            {"node_type": row["node_type__node_type"], "count": row["count"]}
+            for row in queryset
+        ]
+
+        return Response({"results": result, "count": len(result)})
 
 
 class OlNodeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -897,3 +981,158 @@ class MicroductConnectionViewSet(viewsets.ModelViewSet):
         if uuid_node:
             queryset = queryset.filter(uuid_node=uuid_node)
         return queryset
+
+
+class TrenchesNearNodeView(APIView):
+    """
+    API view to get trenches near a specific node and their associated microducts.
+
+    This endpoint returns trenches within a specified distance of a node,
+    along with their conduits and microducts.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, format=None):
+        """
+        Returns trenches near a node with their associated microducts.
+
+        Query Parameters:
+        - `node_name`: Name of the node to search around (required)
+        - `distance`: Distance in meters to search around the node (default: 5)
+        - `project`: Project ID to filter by (required)
+        - `flag`: Flag ID to filter by (required)
+
+        Returns:
+        - List of trenches with their associated conduits and microducts
+        """
+        node_name = request.query_params.get("node_name")
+        distance = request.query_params.get("distance", 5)
+        project_id = request.query_params.get("project")
+        flag_id = request.query_params.get("flag")
+
+        if not all([node_name, project_id, flag_id]):
+            return Response(
+                {"error": "node_name, project_id, and flag_id are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            distance = float(distance)
+            project_id = int(project_id)
+            flag_id = int(flag_id)
+        except ValueError:
+            return Response(
+                {"error": "distance, project_id, and flag_id must be numeric values."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        sql = """
+        with trenches_near_node as (
+            select t.uuid
+            from 
+                trench t,
+                node n
+            where st_dwithin(t.geom, n.geom, %s)
+                and n.name = %s
+                and n.project = %s
+                and n.flag = %s
+                and t.project = %s
+                and t.flag = %s
+        )
+        select t.uuid, t.id_trench, c.uuid, c.name, md.uuid, md.number, md.microduct_status
+        from microduct md
+                join conduit c on c.uuid = md.uuid_conduit
+                join trench_conduit_connect tcc on tcc.uuid_conduit = c.uuid
+                join trench t on t.uuid = tcc.uuid_trench
+        where t.project = %s
+        and t.flag = %s
+        and t.uuid = any (select uuid from trenches_near_node)
+        order by t.id_trench, c.name, md.number;
+        """
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    sql,
+                    [
+                        distance,
+                        node_name,
+                        project_id,
+                        flag_id,
+                        project_id,
+                        flag_id,
+                        project_id,
+                        flag_id,
+                    ],
+                )
+
+                rows = cursor.fetchall()
+
+        except Exception as e:
+            return Response(
+                {"error": f"Database error: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        trenches = {}
+        for row in rows:
+            (
+                trench_uuid,
+                trench_id,
+                conduit_uuid,
+                conduit_name,
+                microduct_uuid,
+                microduct_number,
+                microduct_status,
+            ) = row
+
+            if trench_uuid not in trenches:
+                trenches[trench_uuid] = {
+                    "uuid": trench_uuid,
+                    "id_trench": trench_id,
+                    "conduits": {},
+                }
+
+            if conduit_uuid not in trenches[trench_uuid]["conduits"]:
+                trenches[trench_uuid]["conduits"][conduit_uuid] = {
+                    "uuid": conduit_uuid,
+                    "name": conduit_name,
+                    "microducts": [],
+                }
+
+            trenches[trench_uuid]["conduits"][conduit_uuid]["microducts"].append(
+                {
+                    "uuid": microduct_uuid,
+                    "number": microduct_number,
+                    "microduct_status": microduct_status,
+                }
+            )
+
+        result = []
+        for trench_data in trenches.values():
+            conduits_list = []
+            for conduit_data in trench_data["conduits"].values():
+                conduits_list.append(conduit_data)
+
+            result.append(
+                {
+                    "uuid": trench_data["uuid"],
+                    "id_trench": trench_data["id_trench"],
+                    "conduits": conduits_list,
+                }
+            )
+
+        result.sort(key=lambda x: x["id_trench"])
+
+        return Response(
+            {
+                "trenches": result,
+                "count": len(result),
+                "node_name": node_name,
+                "distance": distance,
+                "project_id": project_id,
+                "flag_id": flag_id,
+            },
+            status=status.HTTP_200_OK,
+        )

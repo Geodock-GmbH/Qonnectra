@@ -38,6 +38,7 @@
     "@fontsource/press-start-2p": "^5.2.6",
     "@inlang/paraglide-js": "^2.0.0",
     "@tabler/icons-svelte": "^3.31.0",
+    "@xyflow/svelte": "^1.2.4",
     "ol": "^10.5.0",
     "set-cookie-parser": "^2.7.1"
   }
