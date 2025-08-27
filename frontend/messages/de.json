@@ -156,7 +156,10 @@
 	"layer_available": "Layer verfügbar",
 	"more_sites": "Weitere Seiten",
 	"total_length": "Gesamtlänge",
+	"total_nodes": "Gesamtzahl",
 	"breakdown_by_type": "Aufteilung nach Bauart",
 	"breakdown_by_node_type": "Aufteilung nach Netzknotentyp",
+	"trench_statistics": "Trassenstatistik",
+	"node_statistics": "Netzknotenstatistik",
 	"activities": "Aktivitäten"
 }

@@ -155,7 +155,10 @@
 	"layer_available": "Layer available",
 	"more_sites": "More sites",
 	"total_length": "Total length",
+	"total_nodes": "Total nodes",
 	"breakdown_by_type": "Breakdown by type",
 	"breakdown_by_node_type": "Breakdown by node type",
+	"trench_statistics": "Trench statistics",
+	"node_statistics": "Node statistics",
 	"activities": "Activities"
 }

@@ -66,7 +66,7 @@
 			href="/dashboard"
 			label={m.dashboard()}
 			title={m.dashboard()}
-			selected={page.url.pathname === '/dashboard'}
+			selected={page.url.pathname.startsWith('/dashboard')}
 		>
 			<IconDashboard size={24} class="text-surface-700-300" />
 		</Navigation.Tile>
