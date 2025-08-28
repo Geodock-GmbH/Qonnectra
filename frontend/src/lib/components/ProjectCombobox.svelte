@@ -63,6 +63,6 @@
 		placeholder={m.project()}
 		classes="z-10 w-full min-w-0 sm:min-w-48 md:min-w-64"
 		zIndex="10"
-		contentBase="max-h-60 overflow-auto touch-manipulation"
+		contentBase="max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"
 	/>
 {/if}

@@ -70,7 +70,7 @@
 				href="/pipe-branch"
 				labelExpanded={m.pipe_branch()}
 				title="Pipe branch"
-				selected={page.url.pathname === '/pipe-branch'}
+				selected={page.url.pathname.startsWith('/pipe-branch')}
 			>
 				<IconAffiliate size={28} class="text-surface-700-300" />
 			</Navigation.Tile>

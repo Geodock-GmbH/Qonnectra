@@ -646,13 +646,14 @@ class NodeViewSet(viewsets.ModelViewSet):
         - `project`: Filter by project ID
         - `flag`: Filter by flag ID
         - `name`: Filter by name (case-insensitive partial match)
+        - `node_type`: Filter by node type
         """
         queryset = Node.objects.all().order_by("name")
         uuid = self.request.query_params.get("uuid")
         project_id = self.request.query_params.get("project")
         flag_id = self.request.query_params.get("flag")
         name = self.request.query_params.get("name")
-
+        node_type = self.request.query_params.get("node_type")
         if uuid:
             queryset = queryset.filter(uuid=uuid)
 
@@ -672,6 +673,9 @@ class NodeViewSet(viewsets.ModelViewSet):
 
         if name:
             queryset = queryset.filter(name__icontains=name)
+
+        if node_type:
+            queryset = queryset.filter(node_type=node_type)
 
         return queryset
 
@@ -701,6 +705,37 @@ class NodeViewSet(viewsets.ModelViewSet):
         ]
 
         return Response({"results": result, "count": len(result)})
+
+    @action(detail=False, methods=["get"], url_path="all")
+    def all_nodes(self, request):
+        """
+        Returns all nodes with project and flag filters.
+        No pagination is used.
+        """
+        queryset = Node.objects.all().order_by("name")
+        project_id = request.query_params.get("project")
+        flag_id = request.query_params.get("flag")
+        group = request.query_params.get("group")
+        search_term = request.query_params.get("search")
+
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag_id:
+            queryset = queryset.filter(flag=flag_id)
+        if group:
+            queryset = queryset.filter(node_type__group=group)
+        if search_term:
+            queryset = queryset.filter(
+                Q(name__icontains=search_term)
+                | Q(node_type__node_type__icontains=search_term)
+                | Q(status__status__icontains=search_term)
+                | Q(network_level__network_level__icontains=search_term)
+                | Q(owner__company__icontains=search_term)
+                | Q(manufacturer__company__icontains=search_term)
+                | Q(flag__flag__icontains=search_term)
+            )
+        serializer = NodeSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class OlNodeViewSet(viewsets.ReadOnlyModelViewSet):

@@ -109,9 +109,9 @@
 					>
 						<!-- Title Bar -->
 						<div class="border-b border-surface-300-600 p-4">
-							<h2 class="h3 font-bold text-secondary-500 flex items-center">
+							<h2 class="h3 font-bold text-primary-500 flex items-center">
 								<span>{m.node_statistics()}</span>
-								<div class="flex-1 h-px bg-secondary-500 ml-4"></div>
+								<div class="flex-1 h-px bg-primary-500 ml-4"></div>
 							</h2>
 						</div>
 
@@ -150,7 +150,7 @@
 												</div>
 											</div>
 											<div class="text-right">
-												<div class="font-bold text-lg text-secondary-600-400">
+												<div class="font-bold text-lg text-primary-600-400">
 													{item.count}
 												</div>
 											</div>

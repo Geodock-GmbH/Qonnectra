@@ -161,5 +161,6 @@
 	"breakdown_by_node_type": "Aufteilung nach Netzknotentyp",
 	"trench_statistics": "Trassenstatistik",
 	"node_statistics": "Netzknotenstatistik",
-	"activities": "Aktivitäten"
+	"activities": "Aktivitäten",
+	"select_pipe_branch": "Rohrverzweigung auswählen"
 }

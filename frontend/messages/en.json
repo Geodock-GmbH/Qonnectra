@@ -160,5 +160,6 @@
 	"breakdown_by_node_type": "Breakdown by node type",
 	"trench_statistics": "Trench statistics",
 	"node_statistics": "Node statistics",
-	"activities": "Activities"
+	"activities": "Activities",
+	"select_pipe_branch": "Select pipe branch"
 }
