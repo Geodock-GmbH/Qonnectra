@@ -4,16 +4,17 @@
 	let { id, data } = $props();
 
 	const trenches = $derived(data?.trenches || []);
-	const handleCount = $derived(Math.max(12, trenches.length));
+	const handleCount = $derived(Math.max(1, trenches.length));
 	const radius = $derived(Math.max(50, 30 + handleCount * 8));
 	const diameter = $derived(radius * 2);
 
 	const handlePositions = $derived(
 		Array.from({ length: handleCount }, (_, i) => {
-			const angle = (i / handleCount) * 2 * Math.PI - Math.PI / 2;
-			const x = radius + Math.cos(angle) * (radius - 10);
-			const y = radius + Math.sin(angle) * (radius - 10);
-			return { x, y, angle };
+			// Position handles vertically in the center of the circle
+			const x = radius; // Center horizontally
+			const spacing = (diameter - 40) / (handleCount - 1); // Space between handles, leaving 20px margin on each end
+			const y = 20 + i * spacing; // Start 20px from top, space evenly
+			return { x, y };
 		})
 	);
 </script>

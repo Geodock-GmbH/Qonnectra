@@ -9,6 +9,7 @@
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
 	import PipeBranchNode from './PipeBranchNode.svelte';
+	import PipeBranchEdge from './PipeBranchEdge.svelte';
 
 	// SvelteFlow
 	import { SvelteFlow, Background, Controls, Panel } from '@xyflow/svelte';
@@ -25,12 +26,28 @@
 	let trenches = $state([]);
 
 	const nodeTypes = { pipeBranch: PipeBranchNode };
-	let edges = $state.raw([]);
+	const edgeTypes = { customEdge: PipeBranchEdge };
+	let edges = $state.raw([
+		{
+			id: 'e1',
+			type: 'customEdge',
+			source: 'node-1',
+			target: 'node-2'
+		}
+	]);
 	let nodes = $derived([
 		{
 			id: 'node-1',
 			type: 'pipeBranch',
 			position: { x: 0, y: 0 },
+			data: {
+				trenches: trenches
+			}
+		},
+		{
+			id: 'node-2',
+			type: 'pipeBranch',
+			position: { x: 1000, y: 0 },
 			data: {
 				trenches: trenches
 			}
@@ -75,7 +92,7 @@
 </svelte:head>
 
 <div class="border-2 rounded-lg border-surface-200-800 h-full w-full">
-	<SvelteFlow bind:nodes bind:edges fitView {nodeTypes}>
+	<SvelteFlow bind:nodes bind:edges fitView {nodeTypes} {edgeTypes}>
 		<Panel position="top-left">
 			<GenericCombobox
 				data={branches}
