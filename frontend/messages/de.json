@@ -162,5 +162,6 @@
 	"trench_statistics": "Trassenstatistik",
 	"node_statistics": "Netzknotenstatistik",
 	"activities": "Aktivitäten",
-	"select_pipe_branch": "Rohrverzweigung auswählen"
+	"select_pipe_branch": "Rohrverzweigung auswählen",
+	"no_data_available": "Keine Daten verfügbar"
 }

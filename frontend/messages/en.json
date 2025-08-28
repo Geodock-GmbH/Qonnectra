@@ -161,5 +161,6 @@
 	"trench_statistics": "Trench statistics",
 	"node_statistics": "Node statistics",
 	"activities": "Activities",
-	"select_pipe_branch": "Select pipe branch"
+	"select_pipe_branch": "Select pipe branch",
+	"no_data_available": "No data available"
 }

@@ -1036,7 +1036,6 @@ class TrenchesNearNodeView(APIView):
         - `node_name`: Name of the node to search around (required)
         - `distance`: Distance in meters to search around the node (default: 5)
         - `project`: Project ID to filter by (required)
-        - `flag`: Flag ID to filter by (required)
 
         Returns:
         - List of trenches with their associated conduits and microducts
@@ -1044,21 +1043,19 @@ class TrenchesNearNodeView(APIView):
         node_name = request.query_params.get("node_name")
         distance = request.query_params.get("distance", 5)
         project_id = request.query_params.get("project")
-        flag_id = request.query_params.get("flag")
 
-        if not all([node_name, project_id, flag_id]):
+        if not all([node_name, project_id]):
             return Response(
-                {"error": "node_name, project_id, and flag_id are required."},
+                {"error": "node_name and project_id are required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         try:
             distance = float(distance)
             project_id = int(project_id)
-            flag_id = int(flag_id)
         except ValueError:
             return Response(
-                {"error": "distance, project_id, and flag_id must be numeric values."},
+                {"error": "distance and project_id must be numeric values."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -1071,9 +1068,7 @@ class TrenchesNearNodeView(APIView):
             where st_dwithin(t.geom, n.geom, %s)
                 and n.name = %s
                 and n.project = %s
-                and n.flag = %s
                 and t.project = %s
-                and t.flag = %s
         )
         select t.uuid, t.id_trench, c.uuid, c.name, md.uuid, md.number, md.microduct_status
         from microduct md
@@ -1081,7 +1076,6 @@ class TrenchesNearNodeView(APIView):
                 join trench_conduit_connect tcc on tcc.uuid_conduit = c.uuid
                 join trench t on t.uuid = tcc.uuid_trench
         where t.project = %s
-        and t.flag = %s
         and t.uuid = any (select uuid from trenches_near_node)
         order by t.id_trench, c.name, md.number;
         """
@@ -1094,11 +1088,8 @@ class TrenchesNearNodeView(APIView):
                         distance,
                         node_name,
                         project_id,
-                        flag_id,
                         project_id,
-                        flag_id,
                         project_id,
-                        flag_id,
                     ],
                 )
 
@@ -1167,7 +1158,6 @@ class TrenchesNearNodeView(APIView):
                 "node_name": node_name,
                 "distance": distance,
                 "project_id": project_id,
-                "flag_id": flag_id,
             },
             status=status.HTTP_200_OK,
         )
