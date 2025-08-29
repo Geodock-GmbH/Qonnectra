@@ -36,29 +36,50 @@
 			target: 'node-2'
 		}
 	]);
-	let nodes = $derived(
-		trenches.map((trench, index) => {
-			const totalMicroducts = trench.conduits.reduce((sum, conduit) => sum + conduit.microducts.length, 0);
-			const nodeRadius = Math.max(60, 40 + totalMicroducts * 3);
-			const nodeSpacing = nodeRadius * 3; // Space nodes based on their size
+	let nodes = $state([]);
+
+	$effect(() => {
+		if (!trenches || trenches.length === 0) {
+			nodes = [];
+			return;
+		}
+		
+		const conduitNodes = [];
+		let nodeIndex = 0;
+		
+		trenches.forEach((trench) => {
+			if (!trench.conduits || trench.conduits.length === 0) {
+				return;
+			}
 			
-			return {
-				id: `trench-${trench.uuid}`,
-				type: 'pipeBranch',
-				position: { 
-					x: index * nodeSpacing + nodeRadius, // Center nodes properly
-					y: 150 
-				},
-				data: {
-					trench: trench,
-					totalMicroducts: totalMicroducts,
-					nodeName: apiResponse?.node_name || '',
-					projectId: apiResponse?.project_id || null,
-					distance: apiResponse?.distance || 0
-				}
-			};
-		})
-	);
+			trench.conduits.forEach((conduit) => {
+				const totalMicroducts = conduit.microducts ? conduit.microducts.length : 0;
+				const nodeRadius = Math.max(60, 40 + totalMicroducts * 3);
+				const nodeSpacing = nodeRadius * 3;
+				
+				conduitNodes.push({
+					id: `trench-${trench.uuid}-conduit-${conduit.uuid}`,
+					type: 'pipeBranch',
+					position: { 
+						x: nodeIndex * nodeSpacing + nodeRadius,
+						y: 150 
+					},
+					data: {
+						trench: trench,
+						conduit: conduit,
+						totalMicroducts: totalMicroducts,
+						nodeName: apiResponse?.node_name || '',
+						projectId: apiResponse?.project_id || null,
+						distance: apiResponse?.distance || 0
+					}
+				});
+				nodeIndex++;
+			});
+		});
+		
+		console.log('Created conduit nodes:', conduitNodes.length, conduitNodes);
+		nodes = conduitNodes;
+	});
 
 	async function getTrenchesNearNode(nodeName, project) {
 		if (!nodeName || !project) return;

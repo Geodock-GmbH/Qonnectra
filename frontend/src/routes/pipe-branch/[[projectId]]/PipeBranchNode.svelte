@@ -4,27 +4,26 @@
 	let { id, data } = $props();
 
 	const trench = $derived(data?.trench || null);
+	const conduit = $derived(data?.conduit || null);
 	const totalMicroducts = $derived(data?.totalMicroducts || 0);
 	const nodeName = $derived(data?.nodeName || '');
 	const handleCount = $derived(Math.max(1, totalMicroducts));
 	const radius = $derived(Math.max(60, 40 + handleCount * 3));
 	const diameter = $derived(radius * 2);
 
-	// Create handle data with microduct information
+	// Create handle data with microduct information for this specific conduit
 	const handleData = $derived(() => {
-		if (!trench || !trench.conduits) return [];
+		if (!conduit || !conduit.microducts) return [];
 		
 		const handles = [];
-		trench.conduits.forEach((conduit, conduitIndex) => {
-			conduit.microducts.forEach((microduct, micIndex) => {
-				handles.push({
-					id: `trench-${trench.uuid}-conduit-${conduitIndex}-microduct-${microduct.number}`,
-					microductUuid: microduct.uuid,
-					microductNumber: microduct.number,
-					conduitName: conduit.name,
-					conduitUuid: conduit.uuid,
-					status: microduct.microduct_status
-				});
+		conduit.microducts.forEach((microduct, micIndex) => {
+			handles.push({
+				id: `conduit-${conduit.uuid}-microduct-${microduct.number}`,
+				microductUuid: microduct.uuid,
+				microductNumber: microduct.number,
+				conduitName: conduit.name,
+				conduitUuid: conduit.uuid,
+				status: microduct.microduct_status
 			});
 		});
 		return handles;
@@ -55,7 +54,7 @@
 	
 	<!-- Node center content -->
 	<div class="text-center text-xs font-medium text-surface-700-200">
-		<div class="font-semibold">{nodeName}</div>
+		<div class="font-semibold">{conduit?.name || 'N/A'}</div>
 		<div class="text-xs opacity-70">{totalMicroducts} microducts</div>
 	</div>
 
