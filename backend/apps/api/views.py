@@ -1094,6 +1094,17 @@ class TrenchesNearNodeView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        try:
+            from .models import Node
+
+            node = Node.objects.get(name=node_name, project=project_id)
+            node_uuid = node.uuid
+        except Node.DoesNotExist:
+            return Response(
+                {"error": f"Node '{node_name}' not found in project {project_id}."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         sql = """
         with trenches_near_node as (
             select t.uuid
@@ -1192,6 +1203,7 @@ class TrenchesNearNodeView(APIView):
             {
                 "trenches": result,
                 "count": len(result),
+                "node_uuid": node_uuid,
                 "node_name": node_name,
                 "distance": distance,
                 "project_id": project_id,

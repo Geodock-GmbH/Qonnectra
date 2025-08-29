@@ -85,7 +85,7 @@
 >
 	{#each handlePositions as position, i}
 		<Handle
-			type={i === 0 ? 'target' : 'source'}
+			type="source"
 			position={Position.Top}
 			id={position.handle.id}
 			style="left: {position.x - 8}px; top: {position.y -
@@ -93,6 +93,18 @@
 				? 'var(--color-success-500)'
 				: 'var(--color-surface-400)'};"
 			title="{position.handle.conduitName} - Microduct {position.handle.microductNumber}"
+			isConnectable={true}
+		/>
+		<Handle
+			type="target"
+			position={Position.Top}
+			id={position.handle.id}
+			style="left: {position.x - 8}px; top: {position.y -
+				8}px; position: absolute; transform: none; background-color: {position.handle.status
+				? 'var(--color-success-500)'
+				: 'var(--color-surface-400)'};"
+			title="{position.handle.conduitName} - Microduct {position.handle.microductNumber}"
+			isConnectable={true}
 		/>
 	{/each}
 </div>
