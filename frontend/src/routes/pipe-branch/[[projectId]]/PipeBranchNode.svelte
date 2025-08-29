@@ -87,7 +87,7 @@
 		<Handle
 			type="source"
 			position={Position.Top}
-			id={position.handle.id}
+			id="{position.handle.id}-source"
 			style="left: {position.x - 8}px; top: {position.y -
 				8}px; position: absolute; transform: none; background-color: {position.handle.status
 				? 'var(--color-success-500)'
@@ -98,7 +98,7 @@
 		<Handle
 			type="target"
 			position={Position.Top}
-			id={position.handle.id}
+			id="{position.handle.id}-target"
 			style="left: {position.x - 8}px; top: {position.y -
 				8}px; position: absolute; transform: none; background-color: {position.handle.status
 				? 'var(--color-success-500)'

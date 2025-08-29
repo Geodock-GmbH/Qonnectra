@@ -59,7 +59,8 @@ export async function POST({ request, cookies }) {
 		if (!uuid_microduct_from || !uuid_microduct_to || !uuid_node) {
 			return json(
 				{
-					error: 'Missing required fields: uuid_microduct_from, uuid_microduct_to, and uuid_node are required'
+					error:
+						'Missing required fields: uuid_microduct_from, uuid_microduct_to, and uuid_node are required'
 				},
 				{ status: 400 }
 			);
@@ -86,13 +87,22 @@ export async function POST({ request, cookies }) {
 
 		const backendUrl = `${API_URL}microduct_connection/`;
 
+		console.log('Sending to Django backend:', {
+			url: backendUrl,
+			body: {
+				uuid_microduct_from,
+				uuid_microduct_to,
+				uuid_node
+			}
+		});
+
 		const response = await fetch(backendUrl, {
 			method: 'POST',
 			headers,
 			body: JSON.stringify({
-				uuid_microduct_from,
-				uuid_microduct_to,
-				uuid_node
+				uuid_microduct_from_id: uuid_microduct_from,
+				uuid_microduct_to_id: uuid_microduct_to,
+				uuid_node_id: uuid_node
 			})
 		});
 
