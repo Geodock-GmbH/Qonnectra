@@ -38,7 +38,7 @@ export async function load({ locals, url, fetch, cookies }) {
 		// Load flags and projects in parallel
 		const [flagsResponse, projectsResponse] = await Promise.allSettled([
 			fetch(`${API_URL}flags/`, { headers }),
-			fetch(`${API_URL}projects/`, { headers })
+			fetch(`${API_URL}projects/?active=1`, { headers })
 		]);
 
 		// Handle flags response

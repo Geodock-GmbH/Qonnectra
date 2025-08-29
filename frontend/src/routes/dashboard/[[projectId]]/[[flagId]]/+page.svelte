@@ -6,6 +6,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	// Svelte
+	import DashboardProjectTable from './DashboardProjectTable.svelte';
 	import { navigating, page } from '$app/stores';
 	import { selectedProject } from '$lib/stores/store';
 	import { goto } from '$app/navigation';
@@ -26,7 +27,7 @@
 </script>
 
 <svelte:head>
-	<title>Dashboard</title>
+	<title>{m.dashboard()}</title>
 </svelte:head>
 
 <Tabs value={group} onValueChange={(e) => (group = e.value)}>
@@ -164,7 +165,7 @@
 			</div>
 		</Tabs.Panel>
 		<Tabs.Panel value="projects">
-			<!-- TODO: Add projects -->
+			<DashboardProjectTable data={data.projects} />
 		</Tabs.Panel>
 		<Tabs.Panel value="address">
 			<!-- TODO: Add address -->

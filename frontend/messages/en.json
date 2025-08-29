@@ -1,5 +1,9 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"yes": "Yes",
+	"no": "No",
+	"description": "Description",
+	"active": "Active",
 	"dashboard": "Dashboard",
 	"map": "Map",
 	"trench": "Trench",

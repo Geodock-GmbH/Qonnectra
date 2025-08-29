@@ -20,6 +20,7 @@ class Projects(models.Model):
     id = models.IntegerField(primary_key=True)
     project = models.TextField(_("Project"), null=False, db_index=False, unique=True)
     description = models.TextField(_("Description"), null=True)
+    active = models.BooleanField(_("Active"), null=False, default=True)
 
     class Meta:
         db_table = "projects"
