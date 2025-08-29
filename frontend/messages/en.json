@@ -4,6 +4,8 @@
 	"map": "Map",
 	"trench": "Trench",
 	"pipe_branch": "Pipe branch",
+	"microduct": "Microduct",
+	"microducts": "Microducts",
 	"trench_id": "Trench ID",
 	"settings": "Settings",
 	"more": "More",

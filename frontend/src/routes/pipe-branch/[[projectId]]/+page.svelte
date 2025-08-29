@@ -43,26 +43,26 @@
 			nodes = [];
 			return;
 		}
-		
+
 		const conduitNodes = [];
 		let nodeIndex = 0;
-		
+
 		trenches.forEach((trench) => {
 			if (!trench.conduits || trench.conduits.length === 0) {
 				return;
 			}
-			
+
 			trench.conduits.forEach((conduit) => {
 				const totalMicroducts = conduit.microducts ? conduit.microducts.length : 0;
 				const nodeRadius = Math.max(60, 40 + totalMicroducts * 3);
 				const nodeSpacing = nodeRadius * 3;
-				
+
 				conduitNodes.push({
 					id: `trench-${trench.uuid}-conduit-${conduit.uuid}`,
 					type: 'pipeBranch',
-					position: { 
+					position: {
 						x: nodeIndex * nodeSpacing + nodeRadius,
-						y: 150 
+						y: 150
 					},
 					data: {
 						trench: trench,
@@ -76,8 +76,7 @@
 				nodeIndex++;
 			});
 		});
-		
-		console.log('Created conduit nodes:', conduitNodes.length, conduitNodes);
+
 		nodes = conduitNodes;
 	});
 
@@ -90,7 +89,6 @@
 			);
 			if (response.ok) {
 				apiResponse = await response.json();
-				console.log('API Response:', apiResponse);
 			} else {
 				console.error('Failed to fetch trenches near node:', await response.text());
 				apiResponse = null;

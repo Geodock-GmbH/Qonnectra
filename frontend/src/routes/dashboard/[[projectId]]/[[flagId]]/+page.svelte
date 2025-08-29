@@ -32,8 +32,8 @@
 <Tabs value={group} onValueChange={(e) => (group = e.value)}>
 	{#snippet list()}
 		<Tabs.Control value="stats">{m.overview()}</Tabs.Control>
+		<Tabs.Control value="address">{m.address()}</Tabs.Control>
 		<Tabs.Control value="projects">{m.projects()}</Tabs.Control>
-		<Tabs.Control value="activities">{m.activities()}</Tabs.Control>
 	{/snippet}
 	{#snippet content()}
 		<Tabs.Panel value="stats">
@@ -125,7 +125,7 @@
 										<div class="h-6 bg-surface-500 rounded animate-pulse w-16"></div>
 									{:else}
 										<div class="text-3xl font-extrabold text-surface-900-50">
-											{data.nodesByType.reduce((sum, item) => sum + item.count, 0)}x
+											{data.nodesByType?.reduce((sum, item) => sum + item.count, 0) || 0}x
 										</div>
 									{/if}
 								</div>
@@ -166,8 +166,8 @@
 		<Tabs.Panel value="projects">
 			<!-- TODO: Add projects -->
 		</Tabs.Panel>
-		<Tabs.Panel value="activities">
-			<!-- TODO: Add activities -->
+		<Tabs.Panel value="address">
+			<!-- TODO: Add address -->
 		</Tabs.Panel>
 	{/snippet}
 </Tabs>

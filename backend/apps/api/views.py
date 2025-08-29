@@ -1070,7 +1070,7 @@ class TrenchesNearNodeView(APIView):
                 and n.project = %s
                 and t.project = %s
         )
-        select t.uuid, t.id_trench, c.uuid, c.name, md.uuid, md.number, md.microduct_status
+        select t.uuid, t.id_trench, c.uuid, c.name, md.uuid, md.number, md.color, md.microduct_status
         from microduct md
                 join conduit c on c.uuid = md.uuid_conduit
                 join trench_conduit_connect tcc on tcc.uuid_conduit = c.uuid
@@ -1110,6 +1110,7 @@ class TrenchesNearNodeView(APIView):
                 conduit_name,
                 microduct_uuid,
                 microduct_number,
+                microduct_color,
                 microduct_status,
             ) = row
 
@@ -1131,6 +1132,7 @@ class TrenchesNearNodeView(APIView):
                 {
                     "uuid": microduct_uuid,
                     "number": microduct_number,
+                    "color": microduct_color,
                     "microduct_status": microduct_status,
                 }
             )

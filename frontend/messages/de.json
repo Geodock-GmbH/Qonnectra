@@ -4,6 +4,8 @@
 	"map": "Karte",
 	"trench": "Trasse",
 	"pipe_branch": "Rohrverzweigung",
+	"microduct": "Mikrorohr",
+	"microducts": "Mikrorohre",
 	"trench_id": "Trassen-ID",
 	"settings": "Einstellungen",
 	"more": "Mehr",
