@@ -23,7 +23,8 @@
 	let { data } = $props();
 	let selectedNode = $state([]);
 	let branches = $derived(data?.nodes && Array.isArray(data.nodes) ? data.nodes : []);
-	let trenches = $state([]);
+	let apiResponse = $state(null);
+	let trenches = $derived(apiResponse?.trenches || []);
 
 	const nodeTypes = { pipeBranch: PipeBranchNode };
 	const edgeTypes = { customEdge: PipeBranchEdge };
@@ -35,24 +36,29 @@
 			target: 'node-2'
 		}
 	]);
-	let nodes = $derived([
-		{
-			id: 'node-1',
-			type: 'pipeBranch',
-			position: { x: 0, y: 0 },
-			data: {
-				trenches: trenches
-			}
-		},
-		{
-			id: 'node-2',
-			type: 'pipeBranch',
-			position: { x: 1000, y: 0 },
-			data: {
-				trenches: trenches
-			}
-		}
-	]);
+	let nodes = $derived(
+		trenches.map((trench, index) => {
+			const totalMicroducts = trench.conduits.reduce((sum, conduit) => sum + conduit.microducts.length, 0);
+			const nodeRadius = Math.max(60, 40 + totalMicroducts * 3);
+			const nodeSpacing = nodeRadius * 3; // Space nodes based on their size
+			
+			return {
+				id: `trench-${trench.uuid}`,
+				type: 'pipeBranch',
+				position: { 
+					x: index * nodeSpacing + nodeRadius, // Center nodes properly
+					y: 150 
+				},
+				data: {
+					trench: trench,
+					totalMicroducts: totalMicroducts,
+					nodeName: apiResponse?.node_name || '',
+					projectId: apiResponse?.project_id || null,
+					distance: apiResponse?.distance || 0
+				}
+			};
+		})
+	);
 
 	async function getTrenchesNearNode(nodeName, project) {
 		if (!nodeName || !project) return;
@@ -62,15 +68,15 @@
 				`/api/trench-near-nodes?node_name=${encodeURIComponent(nodeName)}&project=${project}`
 			);
 			if (response.ok) {
-				trenches = await response.json();
-				console.log(trenches);
+				apiResponse = await response.json();
+				console.log('API Response:', apiResponse);
 			} else {
 				console.error('Failed to fetch trenches near node:', await response.text());
-				trenches = [];
+				apiResponse = null;
 			}
 		} catch (error) {
 			console.error('Error fetching trenches near node:', error);
-			trenches = [];
+			apiResponse = null;
 		}
 	}
 
