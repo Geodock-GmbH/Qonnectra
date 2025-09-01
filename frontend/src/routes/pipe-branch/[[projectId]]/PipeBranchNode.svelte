@@ -28,7 +28,7 @@
 	const totalMicroducts = $derived(data?.totalMicroducts || 0);
 	const nodeName = $derived(data?.nodeName || '');
 	const handleCount = $derived(Math.max(1, totalMicroducts));
-	const radius = $derived(Math.max(60, 40 + handleCount * 3));
+	const radius = $derived(Math.max(80, 50 + handleCount * 6));
 	const diameter = $derived(radius * 2);
 
 	const handleData = $derived(() => {

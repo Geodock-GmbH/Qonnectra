@@ -100,7 +100,7 @@
 
 		const centerX = 400;
 		const centerY = 300;
-		const circleRadius = Math.max(300, totalNodes * 30);
+		const circleRadius = Math.max(600, totalNodes * 30);
 
 		trenches.forEach((trench) => {
 			if (!trench.conduits || trench.conduits.length === 0) {
