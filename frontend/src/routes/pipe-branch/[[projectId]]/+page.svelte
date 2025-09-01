@@ -91,6 +91,17 @@
 		const conduitNodes = [];
 		let nodeIndex = 0;
 
+		let totalNodes = 0;
+		trenches.forEach((trench) => {
+			if (trench.conduits && trench.conduits.length > 0) {
+				totalNodes += trench.conduits.length;
+			}
+		});
+
+		const centerX = 400;
+		const centerY = 300;
+		const circleRadius = Math.max(300, totalNodes * 30);
+
 		trenches.forEach((trench) => {
 			if (!trench.conduits || trench.conduits.length === 0) {
 				return;
@@ -98,15 +109,20 @@
 
 			trench.conduits.forEach((conduit) => {
 				const totalMicroducts = conduit.microducts ? conduit.microducts.length : 0;
-				const nodeRadius = Math.max(60, 40 + totalMicroducts * 3);
-				const nodeSpacing = nodeRadius * 3;
+
+				// Calculate angle for this node (evenly distributed around the circle)
+				const angle = (nodeIndex * 2 * Math.PI) / totalNodes;
+
+				// Calculate position using trigonometry
+				const x = centerX + circleRadius * Math.cos(angle);
+				const y = centerY + circleRadius * Math.sin(angle);
 
 				conduitNodes.push({
 					id: `trench-${trench.uuid}-conduit-${conduit.uuid}`,
 					type: 'pipeBranch',
 					position: {
-						x: nodeIndex * nodeSpacing + nodeRadius,
-						y: 150
+						x: x,
+						y: y
 					},
 					data: {
 						trench: trench,
