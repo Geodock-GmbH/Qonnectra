@@ -8,6 +8,14 @@
 	// SvelteFlow
 	import { Position, Handle } from '@xyflow/svelte';
 
+	// Color mapping
+	import {
+		getMicroductColor,
+		getContrastColor,
+		getMicroductBorderColor,
+		isTwoLayerColor
+	} from '$lib/utils/microductColors.js';
+
 	// Toaster
 	const toaster = createToaster({
 		placement: 'bottom-end'
@@ -34,7 +42,12 @@
 				microductNumber: microduct.number,
 				conduitName: conduit.name,
 				conduitUuid: conduit.uuid,
-				status: microduct.microduct_status
+				status: microduct.microduct_status,
+				color: microduct.color,
+				cssColor: getMicroductColor(microduct.color),
+				borderColor: getMicroductBorderColor(microduct.color),
+				isTwoLayer: isTwoLayerColor(microduct.color),
+				contrastColor: getContrastColor(microduct.color)
 			});
 		});
 		return handles;
@@ -99,10 +112,12 @@
 			position={Position.Top}
 			id="{position.handle.id}-source"
 			style="left: {position.x - 8}px; top: {position.y -
-				8}px; position: absolute; transform: none; background-color: {position.handle.status
-				? 'var(--color-success-500)'
-				: 'var(--color-surface-400)'};"
-			title="{position.handle.conduitName} - Microduct {position.handle.microductNumber}"
+				8}px; position: absolute; transform: none; background-color: {position.handle
+				.cssColor}; border: {position.handle.isTwoLayer && position.handle.borderColor
+				? `2px solid ${position.handle.borderColor}`
+				: 'none'}; display: {position.handle.status ? 'none' : 'inline'};"
+			title="{position.handle.conduitName} - Microduct {position.handle.microductNumber} ({position
+				.handle.color})"
 			isConnectable={true}
 		/>
 		<Handle
@@ -110,10 +125,12 @@
 			position={Position.Top}
 			id="{position.handle.id}-target"
 			style="left: {position.x - 8}px; top: {position.y -
-				8}px; position: absolute; transform: none; background-color: {position.handle.status
-				? 'var(--color-success-500)'
-				: 'var(--color-surface-400)'};"
-			title="{position.handle.conduitName} - Microduct {position.handle.microductNumber}"
+				8}px; position: absolute; transform: none; background-color: {position.handle
+				.cssColor}; border: {position.handle.isTwoLayer && position.handle.borderColor
+				? `2px solid ${position.handle.borderColor}`
+				: 'none'}; display: {position.handle.status ? 'none' : 'inline'};"
+			title="{position.handle.conduitName} - Microduct {position.handle.microductNumber} ({position
+				.handle.color})"
 			isConnectable={true}
 		/>
 	{/each}
