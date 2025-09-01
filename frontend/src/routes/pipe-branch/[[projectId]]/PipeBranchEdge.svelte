@@ -100,8 +100,8 @@
 
 <!-- Connection label -->
 {#if isConnected && (sourceHandleData.microductNumber || targetHandleData.microductNumber)}
-	<foreignObject x={labelX - 50} y={labelY - 40} width="100" height="40">
-		<div class="flex items-center gap-1">
+	<foreignObject x={labelX - 50} y={labelY - 40} width="100" height="40" style="z-index: 100;">
+		<div class="flex items-center gap-1" style="z-index: 100;">
 			<div
 				class="z-10 bg-surface-50-950 border border-surface-200-700 rounded px-2 py-1 text-xs text-center shadow-sm"
 				title="Connected: {sourceHandleData.conduitName} MD{sourceHandleData.microductNumber} → {targetHandleData.conduitName} MD{targetHandleData.microductNumber}"
@@ -124,6 +124,7 @@
 	<EdgeLabel x={labelX} y={labelY}>
 		<button
 			class="nodrag nopan bg-error-500 hover:bg-error-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow-sm"
+			style="z-index: 100;"
 			onclick={() =>
 				toaster.promise(handleDeleteEdge(), {
 					success: () => ({

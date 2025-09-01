@@ -124,6 +124,7 @@
 						x: x,
 						y: y
 					},
+					zIndex: 1, // Lower z-index for nodes
 					data: {
 						trench: trench,
 						conduit: conduit,
@@ -205,6 +206,7 @@
 								target: targetNode.id,
 								sourceHandle: sourceHandleId,
 								targetHandle: targetHandleId,
+								zIndex: 10, // Higher z-index for edges
 								data: {
 									uuid: conn.uuid,
 									sourceHandleData: {
@@ -273,6 +275,7 @@
 					const updatedEdges = [...edges];
 					updatedEdges[index] = {
 						...edge,
+						zIndex: 10, // Higher z-index for edges
 						data: {
 							uuid: null, // Will be set after backend persistence
 							sourceHandleData,
@@ -414,6 +417,8 @@
 		defaultEdgeOptions={{ type: 'pipeBranchEdge' }}
 		onbeforeconnect={handleBeforeConnect}
 		connectionMode="loose"
+		elevateEdgesOnSelect={true}
+		elevateNodesOnSelect={false}
 	>
 		<Panel position="top-left">
 			<div class="card bg-surface-50-950">
