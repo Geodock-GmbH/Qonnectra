@@ -2,6 +2,7 @@
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"yes": "Ja",
 	"no": "Nein",
+	"deleting": "Löschen...",
 	"description": "Beschreibung",
 	"active": "Aktiv",
 	"dashboard": "Dashboard",
@@ -169,5 +170,7 @@
 	"node_statistics": "Netzknotenstatistik",
 	"activities": "Aktivitäten",
 	"select_pipe_branch": "Rohrverzweigung auswählen",
-	"no_data_available": "Keine Daten verfügbar"
+	"no_data_available": "Keine Daten verfügbar",
+	"connection_deleted_successfully": "Verbindung erfolgreich gelöscht",
+	"connection_deleted_error": "Fehler beim Löschen der Verbindung"
 }

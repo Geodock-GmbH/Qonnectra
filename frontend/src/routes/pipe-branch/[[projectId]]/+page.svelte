@@ -208,130 +208,6 @@
 		}
 	}
 
-	// Handle new edge connection setup
-	function handleBeforeConnect(connection) {
-		console.log('handleBeforeConnect called with:', connection);
-
-		// Return the connection with custom edge type and initial data
-		return {
-			...connection,
-			type: 'customEdge',
-			data: {
-				uuid: null, // Will be set after backend persistence
-				sourceHandleData: getHandleData(connection.source, connection.sourceHandle),
-				targetHandleData: getHandleData(connection.target, connection.targetHandle)
-			}
-		};
-	}
-
-	// Handle new edge connection persistence
-	async function handleConnect(connection) {
-		console.log('handleConnect called with:', connection);
-
-		// First, find the newly created edge and update it with proper data
-		setTimeout(() => {
-			const newEdge = edges.find(
-				(edge) =>
-					edge.source === connection.source &&
-					edge.target === connection.target &&
-					edge.sourceHandle === connection.sourceHandle &&
-					edge.targetHandle === connection.targetHandle &&
-					(!edge.data || !edge.data.uuid)
-			);
-
-			if (newEdge) {
-				console.log('Found new edge to update:', newEdge);
-				const edgeIndex = edges.findIndex((e) => e.id === newEdge.id);
-
-				if (edgeIndex !== -1) {
-					const sourceHandleData = getHandleData(connection.source, connection.sourceHandle);
-					const targetHandleData = getHandleData(connection.target, connection.targetHandle);
-
-					const updatedEdges = [...edges];
-					updatedEdges[edgeIndex] = {
-						...updatedEdges[edgeIndex],
-						data: {
-							uuid: null, // Will be set after backend persistence
-							sourceHandleData,
-							targetHandleData
-						}
-					};
-					edges = updatedEdges;
-
-					console.log('Updated edge with data:', updatedEdges[edgeIndex]);
-				}
-			}
-		}, 100);
-
-		const sourceMicroductUuid = getMicroductUuid(connection.source, connection.sourceHandle);
-		const targetMicroductUuid = getMicroductUuid(connection.target, connection.targetHandle);
-		const nodeUuid = apiResponse?.node_uuid;
-
-		console.log('Connection data:', {
-			sourceMicroductUuid,
-			targetMicroductUuid,
-			nodeUuid,
-			apiResponse
-		});
-
-		if (!sourceMicroductUuid || !targetMicroductUuid || !nodeUuid) {
-			console.error('Missing required data for connection');
-			return;
-		}
-
-		try {
-			const response = await fetch(`/api/microduct_connection/`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					uuid_microduct_from_id: sourceMicroductUuid,
-					uuid_microduct_to_id: targetMicroductUuid,
-					uuid_node_id: nodeUuid
-				})
-			});
-
-			if (response.ok) {
-				const newConnection = await response.json();
-
-				// Update the existing edge with the connection UUID
-				setTimeout(() => {
-					const edgeIndex = edges.findIndex(
-						(edge) =>
-							edge.source === connection.source &&
-							edge.target === connection.target &&
-							edge.sourceHandle === connection.sourceHandle &&
-							edge.targetHandle === connection.targetHandle &&
-							edge.data &&
-							!edge.data.uuid
-					);
-
-					if (edgeIndex !== -1) {
-						const updatedEdges = [...edges];
-						updatedEdges[edgeIndex] = {
-							...updatedEdges[edgeIndex],
-							id: `connection-${newConnection.uuid}`,
-							data: {
-								...updatedEdges[edgeIndex].data,
-								uuid: newConnection.uuid
-							}
-						};
-						edges = updatedEdges;
-						console.log('Updated edge with backend UUID:', updatedEdges[edgeIndex]);
-					}
-				}, 200);
-			} else {
-				const error = await response.json();
-				console.error('Failed to create connection:', error);
-				alert(`Failed to create connection: ${error.error || 'Unknown error'}`);
-			}
-		} catch (error) {
-			console.error('Error creating connection:', error);
-			alert('Error creating connection');
-		}
-	}
-
 	// Handle edge changes (including new connections)
 	function handleEdgesChange(changes) {
 		console.log('Edges changed:', changes);
@@ -378,27 +254,6 @@
 				}
 			}
 		});
-	}
-
-	// Handle edge deletion
-	async function handleEdgesDelete(edgesToDelete) {
-		console.log('Edges deleted:', edgesToDelete);
-		for (const edge of edgesToDelete) {
-			if (!edge.data?.uuid) continue;
-
-			try {
-				const response = await fetch(`/api/microduct-connection/${edge.data.uuid}/`, {
-					method: 'DELETE'
-				});
-
-				if (!response.ok) {
-					const error = await response.json();
-					console.error('Failed to delete connection:', error);
-				}
-			} catch (error) {
-				console.error('Error deleting connection:', error);
-			}
-		}
 	}
 
 	// Watch for new edges and populate their data
@@ -528,17 +383,6 @@
 		{nodeTypes}
 		{edgeTypes}
 		defaultEdgeOptions={{ type: 'customEdge' }}
-		onBeforeConnect={(params) => {
-			console.log('BEFORE CONNECT:', params);
-			return handleBeforeConnect(params);
-		}}
-		onConnect={(params) => {
-			console.log('ON CONNECT:', params);
-			return handleConnect(params);
-		}}
-		onConnectStart={(event, params) => console.log('CONNECT START:', event, params)}
-		onConnectEnd={(event) => console.log('CONNECT END:', event)}
-		onEdgesDelete={handleEdgesDelete}
 		onNodesChange={(changes) => console.log('Nodes changed:', changes)}
 		onEdgesChange={handleEdgesChange}
 		connectionMode="loose"

@@ -2,6 +2,7 @@
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"yes": "Yes",
 	"no": "No",
+	"deleting": "Deleting...",
 	"description": "Description",
 	"active": "Active",
 	"dashboard": "Dashboard",
@@ -168,5 +169,7 @@
 	"node_statistics": "Node statistics",
 	"activities": "Activities",
 	"select_pipe_branch": "Select pipe branch",
-	"no_data_available": "No data available"
+	"no_data_available": "No data available",
+	"connection_deleted_successfully": "Connection deleted successfully",
+	"connection_deleted_error": "Error deleting connection"
 }
