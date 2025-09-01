@@ -171,5 +171,6 @@
 	"select_pipe_branch": "Select pipe branch",
 	"no_data_available": "No data available",
 	"connection_deleted_successfully": "Connection deleted successfully",
-	"connection_deleted_error": "Error deleting connection"
+	"connection_deleted_error": "Error deleting connection",
+	"error_cannot_connect_microduct_to_itself": "Microduct cannot be connected to itself"
 }

@@ -1,6 +1,6 @@
 <script>
 	// Skeleton
-	import { Combobox } from '@skeletonlabs/skeleton-svelte';
+	import { Combobox, createToaster, Toaster } from '@skeletonlabs/skeleton-svelte';
 
 	// Svelte
 	import { navigating, page } from '$app/stores';
@@ -26,8 +26,13 @@
 	let apiResponse = $state(null);
 	let trenches = $derived(apiResponse?.trenches || []);
 
+	// Toaster
+	const toaster = createToaster({
+		placement: 'bottom-end'
+	});
+
 	const nodeTypes = { pipeBranch: PipeBranchNode };
-	const edgeTypes = { customEdge: PipeBranchEdge };
+	const edgeTypes = { pipeBranchEdge: PipeBranchEdge };
 	let edges = $state.raw([]);
 	let nodes = $state.raw([]);
 
@@ -153,12 +158,16 @@
 				const connectionEdges =
 					connections.results
 						?.map((conn) => {
-							// Find nodes and handle IDs for this connection
-							const sourceNode = nodes.find((n) =>
-								n.data?.conduit?.microducts?.some((m) => m.uuid === conn.uuid_microduct_from.uuid)
+							// Find nodes and handle IDs for this connection using both trench and microduct UUIDs
+							const sourceNode = nodes.find(
+								(n) =>
+									n.data?.trench?.uuid === conn.uuid_trench_from.id &&
+									n.data?.conduit?.microducts?.some((m) => m.uuid === conn.uuid_microduct_from.uuid)
 							);
-							const targetNode = nodes.find((n) =>
-								n.data?.conduit?.microducts?.some((m) => m.uuid === conn.uuid_microduct_to.uuid)
+							const targetNode = nodes.find(
+								(n) =>
+									n.data?.trench?.uuid === conn.uuid_trench_to.id &&
+									n.data?.conduit?.microducts?.some((m) => m.uuid === conn.uuid_microduct_to.uuid)
 							);
 
 							if (!sourceNode || !targetNode) return null;
@@ -175,7 +184,7 @@
 
 							return {
 								id: `connection-${conn.uuid}`,
-								type: 'customEdge',
+								type: 'pipeBranchEdge',
 								source: sourceNode.id,
 								target: targetNode.id,
 								sourceHandle: sourceHandleId,
@@ -208,52 +217,24 @@
 		}
 	}
 
-	// Handle edge changes (including new connections)
-	function handleEdgesChange(changes) {
-		console.log('Edges changed:', changes);
+	// Handle connection validation before connection is made
+	function handleBeforeConnect(connection) {
+		console.log('handleBeforeConnect called with:', connection);
 
-		changes.forEach(async (change) => {
-			if (change.type === 'add' && change.item) {
-				const newEdge = change.item;
-				console.log('New edge detected:', newEdge);
+		// Get handle data for validation
+		const sourceHandleData = getHandleData(connection.source, connection.sourceHandle);
+		const targetHandleData = getHandleData(connection.target, connection.targetHandle);
 
-				// Check if this is a newly created connection that needs data
-				if (
-					!newEdge.data?.uuid &&
-					newEdge.source &&
-					newEdge.target &&
-					newEdge.sourceHandle &&
-					newEdge.targetHandle
-				) {
-					// Populate edge data
-					const sourceHandleData = getHandleData(newEdge.source, newEdge.sourceHandle);
-					const targetHandleData = getHandleData(newEdge.target, newEdge.targetHandle);
+		// Prevent connecting a microduct to itself
+		if (sourceHandleData.microductUuid === targetHandleData.microductUuid) {
+			toaster.error({
+				title: m.error(),
+				description: m.error_cannot_connect_microduct_to_itself()
+			});
+			return false; // Prevent connection
+		}
 
-					// Update the edge with proper data
-					const edgeIndex = edges.findIndex((e) => e.id === newEdge.id);
-					if (edgeIndex !== -1) {
-						const updatedEdges = [...edges];
-						updatedEdges[edgeIndex] = {
-							...updatedEdges[edgeIndex],
-							data: {
-								uuid: null, // Will be set after backend persistence
-								sourceHandleData,
-								targetHandleData
-							}
-						};
-						edges = updatedEdges;
-
-						// Now handle backend persistence
-						await handleConnect({
-							source: newEdge.source,
-							target: newEdge.target,
-							sourceHandle: newEdge.sourceHandle,
-							targetHandle: newEdge.targetHandle
-						});
-					}
-				}
-			}
-		});
+		return connection;
 	}
 
 	// Watch for new edges and populate their data
@@ -290,15 +271,30 @@
 					const nodeUuid = apiResponse?.node_uuid;
 
 					if (sourceMicroductUuid && targetMicroductUuid && nodeUuid) {
+						// Get trench UUIDs from the nodes
+						const sourceNode = nodes.find((n) => n.id === edge.source);
+						const targetNode = nodes.find((n) => n.id === edge.target);
+						const sourceTrenchUuid = sourceNode?.data?.trench?.uuid;
+						const targetTrenchUuid = targetNode?.data?.trench?.uuid;
+
 						console.log('About to save connection with values:', {
 							sourceMicroductUuid,
 							targetMicroductUuid,
 							nodeUuid,
+							sourceTrenchUuid,
+							targetTrenchUuid,
 							sourceType: typeof sourceMicroductUuid,
 							targetType: typeof targetMicroductUuid,
 							nodeType: typeof nodeUuid
 						});
-						saveConnection(edge, sourceMicroductUuid, targetMicroductUuid, nodeUuid);
+						saveConnection(
+							edge,
+							sourceMicroductUuid,
+							targetMicroductUuid,
+							nodeUuid,
+							sourceTrenchUuid,
+							targetTrenchUuid
+						);
 					}
 				}
 			}
@@ -306,7 +302,14 @@
 	});
 
 	// Separate function for backend persistence
-	async function saveConnection(edge, sourceMicroductUuid, targetMicroductUuid, nodeUuid) {
+	async function saveConnection(
+		edge,
+		sourceMicroductUuid,
+		targetMicroductUuid,
+		nodeUuid,
+		sourceTrenchUuid,
+		targetTrenchUuid
+	) {
 		try {
 			// Ensure we have single values, not arrays
 			const fromUuid = Array.isArray(sourceMicroductUuid)
@@ -316,6 +319,12 @@
 				? targetMicroductUuid[0]
 				: targetMicroductUuid;
 			const nodeUuidValue = Array.isArray(nodeUuid) ? nodeUuid[0] : nodeUuid;
+			const sourceTrenchUuidValue = Array.isArray(sourceTrenchUuid)
+				? sourceTrenchUuid[0]
+				: sourceTrenchUuid;
+			const targetTrenchUuidValue = Array.isArray(targetTrenchUuid)
+				? targetTrenchUuid[0]
+				: targetTrenchUuid;
 
 			const response = await fetch('/api/microduct-connections/', {
 				method: 'POST',
@@ -325,7 +334,9 @@
 				body: JSON.stringify({
 					uuid_microduct_from: fromUuid,
 					uuid_microduct_to: toUuid,
-					uuid_node: nodeUuidValue
+					uuid_node: nodeUuidValue,
+					uuid_trench_from: sourceTrenchUuidValue,
+					uuid_trench_to: targetTrenchUuidValue
 				})
 			});
 
@@ -375,6 +386,8 @@
 	<title>{m.pipe_branch()}</title>
 </svelte:head>
 
+<Toaster {toaster}></Toaster>
+
 <div class="border-2 rounded-lg border-surface-200-800 h-full w-full">
 	<SvelteFlow
 		bind:nodes
@@ -382,9 +395,8 @@
 		fitView
 		{nodeTypes}
 		{edgeTypes}
-		defaultEdgeOptions={{ type: 'customEdge' }}
-		onNodesChange={(changes) => console.log('Nodes changed:', changes)}
-		onEdgesChange={handleEdgesChange}
+		defaultEdgeOptions={{ type: 'pipeBranchEdge' }}
+		onbeforeconnect={handleBeforeConnect}
 		connectionMode="loose"
 	>
 		<Panel position="top-left">

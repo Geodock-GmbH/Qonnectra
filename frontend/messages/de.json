@@ -172,5 +172,6 @@
 	"select_pipe_branch": "Rohrverzweigung auswählen",
 	"no_data_available": "Keine Daten verfügbar",
 	"connection_deleted_successfully": "Verbindung erfolgreich gelöscht",
-	"connection_deleted_error": "Fehler beim Löschen der Verbindung"
+	"connection_deleted_error": "Fehler beim Löschen der Verbindung",
+	"error_cannot_connect_microduct_to_itself": "Mikrorohr kann nicht mit sich selbst verbunden werden"
 }

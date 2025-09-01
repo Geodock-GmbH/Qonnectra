@@ -54,13 +54,20 @@ export async function GET({ url, cookies }) {
 export async function POST({ request, cookies }) {
 	try {
 		const body = await request.json();
-		const { uuid_microduct_from, uuid_microduct_to, uuid_node } = body;
+		const { uuid_microduct_from, uuid_microduct_to, uuid_node, uuid_trench_from, uuid_trench_to } =
+			body;
 
-		if (!uuid_microduct_from || !uuid_microduct_to || !uuid_node) {
+		if (
+			!uuid_microduct_from ||
+			!uuid_microduct_to ||
+			!uuid_node ||
+			!uuid_trench_from ||
+			!uuid_trench_to
+		) {
 			return json(
 				{
 					error:
-						'Missing required fields: uuid_microduct_from, uuid_microduct_to, and uuid_node are required'
+						'Missing required fields: uuid_microduct_from, uuid_microduct_to, uuid_node, uuid_trench_from, and uuid_trench_to are required'
 				},
 				{ status: 400 }
 			);
@@ -92,7 +99,9 @@ export async function POST({ request, cookies }) {
 			body: {
 				uuid_microduct_from,
 				uuid_microduct_to,
-				uuid_node
+				uuid_node,
+				uuid_trench_from,
+				uuid_trench_to
 			}
 		});
 
@@ -102,7 +111,9 @@ export async function POST({ request, cookies }) {
 			body: JSON.stringify({
 				uuid_microduct_from_id: uuid_microduct_from,
 				uuid_microduct_to_id: uuid_microduct_to,
-				uuid_node_id: uuid_node
+				uuid_node_id: uuid_node,
+				uuid_trench_from_id: uuid_trench_from,
+				uuid_trench_to_id: uuid_trench_to
 			})
 		});
 
