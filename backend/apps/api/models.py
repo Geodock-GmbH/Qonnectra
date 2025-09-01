@@ -1313,6 +1313,15 @@ class MicroductConnection(models.Model):
         verbose_name=_("Microduct From"),
         related_name="microduct_connections_from",
     )
+    uuid_trench_from = models.ForeignKey(
+        Trench,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="uuid_trench_from",
+        db_index=False,
+        verbose_name=_("Trench From"),
+        related_name="microduct_connections_trench_from",
+    )
     uuid_microduct_to = models.ForeignKey(
         Microduct,
         null=False,
@@ -1321,6 +1330,15 @@ class MicroductConnection(models.Model):
         db_index=False,
         verbose_name=_("Microduct To"),
         related_name="microduct_connections_to",
+    )
+    uuid_trench_to = models.ForeignKey(
+        Trench,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="uuid_trench_to",
+        db_index=False,
+        verbose_name=_("Trench To"),
+        related_name="microduct_connections_trench_to",
     )
     uuid_node = models.ForeignKey(
         Node,
@@ -1342,6 +1360,12 @@ class MicroductConnection(models.Model):
             ),
             models.Index(
                 fields=["uuid_microduct_to"], name="idx_microduct_connection_to"
+            ),
+            models.Index(
+                fields=["uuid_trench_from"], name="idx_microduct_connection_tr_fr"
+            ),
+            models.Index(
+                fields=["uuid_trench_to"], name="idx_microduct_connection_tr_to"
             ),
             models.Index(fields=["uuid_node"], name="idx_microduct_connection_node"),
         ]

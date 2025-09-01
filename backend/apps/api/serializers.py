@@ -848,7 +848,9 @@ class MicroductConnectionSerializer(serializers.ModelSerializer):
 
     # Get nested serializers for foreign keys
     uuid_microduct_from = MicroductSerializer(read_only=True)
+    uuid_trench_from = TrenchSerializer(read_only=True)
     uuid_microduct_to = MicroductSerializer(read_only=True)
+    uuid_trench_to = TrenchSerializer(read_only=True)
     uuid_node = NodeSerializer(read_only=True)
 
     # Add write fields for foreign keys
@@ -857,10 +859,20 @@ class MicroductConnectionSerializer(serializers.ModelSerializer):
         queryset=Microduct.objects.all(),
         source="uuid_microduct_from",
     )
+    uuid_trench_from_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Trench.objects.all(),
+        source="uuid_trench_from",
+    )
     uuid_microduct_to_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=Microduct.objects.all(),
         source="uuid_microduct_to",
+    )
+    uuid_trench_to_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Trench.objects.all(),
+        source="uuid_trench_to",
     )
     uuid_node_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
@@ -880,6 +892,8 @@ class MicroductConnectionSerializer(serializers.ModelSerializer):
         # Translate labels
         fields["uuid_microduct_from_id"].label = _("Microduct From")
         fields["uuid_microduct_to_id"].label = _("Microduct To")
+        fields["uuid_trench_from_id"].label = _("Trench From")
+        fields["uuid_trench_to_id"].label = _("Trench To")
         fields["uuid_node_id"].label = _("Node")
 
         return fields
