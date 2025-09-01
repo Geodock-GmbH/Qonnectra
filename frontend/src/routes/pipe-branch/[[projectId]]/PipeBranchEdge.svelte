@@ -36,7 +36,7 @@
 
 <!-- Connection label -->
 {#if isConnected && (sourceHandleData.microductNumber || targetHandleData.microductNumber)}
-	<foreignObject x={labelX - 40} y={labelY - 10} width="80" height="20">
+	<foreignObject x={labelX - 40} y={labelY - 40} width="80" height="40">
 		<div
 			class="bg-surface-50-950 border border-surface-200-700 rounded px-2 py-1 text-xs text-center shadow-sm"
 			title="Connected: {sourceHandleData.conduitName} MD{sourceHandleData.microductNumber} → {targetHandleData.conduitName} MD{targetHandleData.microductNumber}"

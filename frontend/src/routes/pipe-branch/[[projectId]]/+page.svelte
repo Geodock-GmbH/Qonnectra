@@ -28,18 +28,7 @@
 
 	const nodeTypes = { pipeBranch: PipeBranchNode };
 	const edgeTypes = { customEdge: PipeBranchEdge };
-	let edges = $state.raw([
-		{
-			id: '2',
-			type: 'customEdge',
-			source:
-				'trench-3215e953-06a3-4990-b87e-c81733fe9d20-conduit-ce0cb9d6-b699-428e-a9b8-d8edb29b9aa4', //trench-${trench.uuid}-conduit-${conduit.uuid}
-			sourceHandle: 'conduit-ce0cb9d6-b699-428e-a9b8-d8edb29b9aa4-microduct-1-source', //conduit-${conduit.uuid}-microduct-${microduct.number}-source
-			target:
-				'trench-feca4ba3-53dd-4077-9be6-a8d706374479-conduit-f094b988-af52-4203-ac39-b2eb7f6892b8',
-			targetHandle: 'conduit-f094b988-af52-4203-ac39-b2eb7f6892b8-microduct-4-target' //conduit-${conduit.uuid}-microduct-${microduct.number}-target
-		}
-	]);
+	let edges = $state.raw([]);
 	let nodes = $state.raw([]);
 
 	// Helper function to parse handle ID and extract microduct data
@@ -139,7 +128,7 @@
 			);
 			if (response.ok) {
 				apiResponse = await response.json();
-				// await loadExistingConnections();
+				await loadExistingConnections();
 			} else {
 				console.error('Failed to fetch trenches near node:', await response.text());
 				apiResponse = null;
@@ -156,7 +145,7 @@
 
 		try {
 			const response = await fetch(
-				`/api/microduct_connections/?node_id=${encodeURIComponent(apiResponse.node_uuid)}`
+				`/api/microduct-connections/?node_id=${encodeURIComponent(apiResponse.node_uuid)}`
 			);
 			if (response.ok) {
 				const connections = await response.json();
@@ -393,11 +382,12 @@
 
 	// Handle edge deletion
 	async function handleEdgesDelete(edgesToDelete) {
+		console.log('Edges deleted:', edgesToDelete);
 		for (const edge of edgesToDelete) {
 			if (!edge.data?.uuid) continue;
 
 			try {
-				const response = await fetch(`/api/microduct_connection/${edge.data.uuid}/`, {
+				const response = await fetch(`/api/microduct-connection/${edge.data.uuid}/`, {
 					method: 'DELETE'
 				});
 
@@ -554,20 +544,23 @@
 		connectionMode="loose"
 	>
 		<Panel position="top-left">
-			<GenericCombobox
-				data={branches}
-				bind:value={selectedNode}
-				defaultValue={selectedNode}
-				placeholder={m.select_pipe_branch()}
-				onValueChange={(e) => {
-					selectedNode = e.value;
-					if (e.value && e.value.length > 0) {
-						const nodeName = e.value[0]?.name || e.value[0];
-						const project = $selectedProject?.[0] || $selectedProject;
-						getTrenchesNearNode(nodeName, project);
-					}
-				}}
-			/>
+			<div class="card bg-surface-50-950">
+				<GenericCombobox
+					data={branches}
+					bind:value={selectedNode}
+					defaultValue={selectedNode}
+					placeholder={m.select_pipe_branch()}
+					onValueChange={(e) => {
+						selectedNode = e.value;
+						if (e.value && e.value.length > 0) {
+							const nodeName = e.value[0]?.name || e.value[0];
+							const project = $selectedProject?.[0] || $selectedProject;
+							getTrenchesNearNode(nodeName, project);
+						}
+					}}
+					classes="bg-surface-50-950"
+				/>
+			</div>
 		</Panel>
 		<Background class="z-0" bgColor="var(--color-surface-100-900)" />
 		<Controls />
