@@ -108,7 +108,7 @@
 
 		const centerX = 400;
 		const centerY = 300;
-		const circleRadius = Math.max(600, totalNodes * 30);
+		const circleRadius = Math.max(800, totalNodes * 50);
 
 		trenches.forEach((trench) => {
 			if (!trench.conduits || trench.conduits.length === 0) {
@@ -251,6 +251,15 @@
 		// Get handle data for validation
 		const sourceHandleData = getHandleData(connection.source, connection.sourceHandle);
 		const targetHandleData = getHandleData(connection.target, connection.targetHandle);
+
+		// Prevent connection if the source handle has -source suffix
+		if (connection.sourceHandle && connection.sourceHandle.endsWith('-target')) {
+			toaster.error({
+				title: m.error(),
+				description: m.error_cannot_connect_from_source()
+			});
+			return false; // Prevent connection
+		}
 
 		// Prevent connecting a microduct to itself
 		if (sourceHandleData.microductUuid === targetHandleData.microductUuid) {
@@ -619,6 +628,7 @@
 		connectionMode="loose"
 		elevateEdgesOnSelect={true}
 		elevateNodesOnSelect={false}
+		connectionRadius={100}
 	>
 		{#if isLassoMode}
 			<PipeBranchLasso
@@ -661,14 +671,14 @@
 						</div>
 
 						{#if selectedNodeIds.length === 2}
-							<button class="btn btn-sm variant-filled-success" onclick={autoConnectTwoNodes}>
+							<button class="btn btn-sm preset-filled-primary-500" onclick={autoConnectTwoNodes}>
 								{m.connect_selected_nodes()}
 							</button>
 						{:else if selectedNodeIds.length > 2}
 							<div class="text-xs text-warning-500">{m.select_exactly_2_nodes()}</div>
 						{/if}
 
-						<button class="btn btn-sm variant-outline-surface" onclick={clearLassoSelection}>
+						<button class="btn btn-sm preset-outlined-primary-500" onclick={clearLassoSelection}>
 							{m.clear_selection()}
 						</button>
 					</div>

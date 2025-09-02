@@ -36,9 +36,9 @@
 	const targetHandleData = $derived(data?.targetHandleData || {});
 	const isConnected = $derived(!!connectionUuid);
 
-	// Edge label position
+	// Edge label position - offset more to avoid overlap with bigger nodes
 	const labelX = $derived((sourceX + targetX) / 2);
-	const labelY = $derived((sourceY + targetY) / 2 - 10);
+	const labelY = $derived((sourceY + targetY) / 2 - 20);
 
 	// Handle edge deletion
 	async function handleDeleteEdge() {
@@ -100,16 +100,16 @@
 
 <!-- Connection label -->
 {#if isConnected && (sourceHandleData.microductNumber || targetHandleData.microductNumber)}
-	<foreignObject x={labelX - 50} y={labelY - 0} width="150" height="40" style="z-index: 100;">
-		<div class="flex items-center gap-1" style="z-index: 100;">
+	<foreignObject x={labelX - 60} y={labelY - 0} width="180" height="50" style="z-index: 100;">
+		<div class="flex items-center gap-2" style="z-index: 100;">
 			<div
-				class="z-10 bg-surface-50-950 border border-surface-200-700 rounded px-2 py-1 text-xs text-center shadow-sm"
+				class="z-10 bg-surface-50-950 border border-surface-200-700 rounded px-2 py-1 text-xs text-center shadow-sm font-medium"
 				title="Connected: {sourceHandleData.conduitName} MD{sourceHandleData.microductNumber} → {targetHandleData.conduitName} MD{targetHandleData.microductNumber}"
 			>
 				MD{sourceHandleData.microductNumber}→{targetHandleData.microductNumber}
 			</div>
 			<button
-				class="nodrag nopan bg-error-500 hover:bg-error-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow-sm"
+				class="nodrag nopan bg-error-500 hover:bg-error-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow-sm"
 				onclick={handleDeleteEdge}
 				title="Delete connection"
 			>
