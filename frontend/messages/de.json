@@ -173,5 +173,13 @@
 	"no_data_available": "Keine Daten verfügbar",
 	"connection_deleted_successfully": "Verbindung erfolgreich gelöscht",
 	"connection_deleted_error": "Fehler beim Löschen der Verbindung",
-	"error_cannot_connect_microduct_to_itself": "Mikrorohr kann nicht mit sich selbst verbunden werden"
+	"error_cannot_connect_microduct_to_itself": "Mikrorohr kann nicht mit sich selbst verbunden werden",
+	"lasso_mode": "Lasso-Modus",
+	"partial_selection": "Teilauswahl",
+	"selected": "Ausgewählt",
+	"select_exactly_2_nodes": "Bitte wählen Sie genau 2 Knoten aus",
+	"connect_selected_nodes": "Ausgewählte Knoten verbinden",
+	"clear_selection": "Auswahl löschen",
+	"created_connections": "Verbindungen erfolgreich erstellt",
+	"failed_to_create_connections": "Fehler beim Erstellen von Verbindungen"
 }

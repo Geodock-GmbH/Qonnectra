@@ -90,4 +90,31 @@ class Migration(migrations.Migration):
             execute procedure fn_generate_id_trench();
             """
         ),
+        migrations.RunSQL(
+            """
+            create trigger tg_05_delete_microduct_connection
+                before update of geom
+                on trench
+                for each row
+            execute procedure fn_delete_microduct_connection_on_geom_change();
+            """
+        ),
+        migrations.RunSQL(
+            """
+            create trigger tg_01_delete_microduct_connection
+                before update of geom
+                on node
+                for each row
+            execute procedure fn_delete_microduct_connection_on_geom_change();
+            """
+        ),
+        migrations.RunSQL(
+            """
+            create trigger tg_01_delete_microduct_connection
+                after delete
+                on trench_conduit_connect
+                for each row
+            execute procedure fn_delete_microduct_connection_if_conduit_not_in_trench();
+            """
+        ),
     ]

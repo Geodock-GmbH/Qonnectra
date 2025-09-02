@@ -1052,6 +1052,19 @@ class MicroductConnectionViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(uuid_node=uuid_node)
         return queryset
 
+    @action(detail=False, methods=["get"])
+    def all_connections(self, request):
+        """
+        Returns all microduct connections.
+        - `uuid_node`: Filter by node UUID
+        """
+        queryset = MicroductConnection.objects.all()
+        uuid_node = request.query_params.get("uuid_node")
+        if uuid_node:
+            queryset = queryset.filter(uuid_node=uuid_node)
+        serializer = MicroductConnectionSerializer(queryset, many=True)
+        return Response(serializer.data)
+
 
 class TrenchesNearNodeView(APIView):
     """

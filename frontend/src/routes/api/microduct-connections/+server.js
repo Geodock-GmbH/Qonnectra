@@ -22,7 +22,7 @@ export async function GET({ url, cookies }) {
 			headers.append('Cookie', `api-access-token=${accessToken}`);
 		}
 
-		const backendUrl = `${API_URL}microduct_connection/?uuid_node=${encodeURIComponent(nodeId)}`;
+		const backendUrl = `${API_URL}microduct_connection/all_connections/?uuid_node=${encodeURIComponent(nodeId)}`;
 
 		const response = await fetch(backendUrl, {
 			method: 'GET',

@@ -81,4 +81,70 @@ class Migration(migrations.Migration):
             $$;
             """
         ),
+        migrations.RunSQL(
+            """
+            create or replace function fn_delete_microduct_connection_on_geom_change() returns trigger
+                language plpgsql
+            as
+            $$
+            begin
+                if new.uuid in (select uuid_trench_to from microduct_connection)
+                or new.uuid in (select uuid_trench_from from microduct_connection) then
+                    if not exists(select 1
+                                from node n
+                                join microduct_connection mc on n.uuid = mc.uuid_node
+                                where st_dwithin(n.geom, new.geom, 5)
+                                    and n.project = new.project
+                                and (mc.uuid_trench_to = new.uuid or mc.uuid_trench_from = new.uuid)) then
+                        delete
+                        from microduct_connection
+                        where uuid_trench_to = new.uuid
+                        or uuid_trench_from = new.uuid;
+                    end if;
+                elseif new.uuid in (select uuid_node from microduct_connection) then
+                    if not exists(select 1
+                                from trench t
+                                join microduct_connection mc on t.uuid = mc.uuid_trench_to
+                                                            or t.uuid = mc.uuid_trench_from
+                                where st_dwithin(t.geom, new.geom, 5)
+                                    and t.project = new.project) then
+                        delete
+                        from microduct_connection
+                        where uuid_node = new.uuid;
+                    end if;
+                end if;
+
+                return new;
+            end;
+            $$;
+            """
+        ),
+        migrations.RunSQL(
+            """
+            create or replace function fn_delete_microduct_connection_if_conduit_not_in_trench() returns trigger
+                language plpgsql
+            as
+            $$
+            begin
+                if old.uuid_trench in (select uuid_trench_from from microduct_connection) or
+                    old.uuid_trench in (select uuid_trench_to from microduct_connection) then
+                        if exists(select 1
+                                        from microduct_connection mc
+                                                join microduct md on mc.uuid_microduct_from = md.uuid or mc.uuid_microduct_to = md.uuid
+                                        where (mc.uuid_trench_from = old.uuid_trench or mc.uuid_trench_to = old.uuid_trench)
+                                        and md.uuid_conduit = old.uuid_conduit) then
+                            delete
+                            from microduct_connection
+                            where uuid_trench_from = old.uuid_trench
+                                or uuid_trench_to = old.uuid_trench
+                            and (uuid_microduct_from in (select uuid from microduct where uuid_conduit = old.uuid_conduit)
+                                or uuid_microduct_to in (select uuid from microduct where uuid_conduit = old.uuid_conduit));
+                        end if;
+                end if;
+
+                return old;
+            end;
+            $$;
+            """
+        ),
     ]

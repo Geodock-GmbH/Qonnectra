@@ -172,5 +172,13 @@
 	"no_data_available": "No data available",
 	"connection_deleted_successfully": "Connection deleted successfully",
 	"connection_deleted_error": "Error deleting connection",
-	"error_cannot_connect_microduct_to_itself": "Microduct cannot be connected to itself"
+	"error_cannot_connect_microduct_to_itself": "Microduct cannot be connected to itself",
+	"lasso_mode": "Lasso mode",
+	"partial_selection": "Partial selection",
+	"selected": "Selected",
+	"select_exactly_2_nodes": "Select exactly 2 nodes",
+	"connect_selected_nodes": "Connect selected nodes",
+	"clear_selection": "Clear selection",
+	"created_connections": "Created connections",
+	"failed_to_create_connections": "Failed to create connections"
 }

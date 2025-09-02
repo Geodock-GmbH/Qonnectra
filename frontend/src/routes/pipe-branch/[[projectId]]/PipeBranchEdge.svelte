@@ -100,7 +100,7 @@
 
 <!-- Connection label -->
 {#if isConnected && (sourceHandleData.microductNumber || targetHandleData.microductNumber)}
-	<foreignObject x={labelX - 50} y={labelY - 0} width="100" height="40" style="z-index: 100;">
+	<foreignObject x={labelX - 50} y={labelY - 0} width="150" height="40" style="z-index: 100;">
 		<div class="flex items-center gap-1" style="z-index: 100;">
 			<div
 				class="z-10 bg-surface-50-950 border border-surface-200-700 rounded px-2 py-1 text-xs text-center shadow-sm"

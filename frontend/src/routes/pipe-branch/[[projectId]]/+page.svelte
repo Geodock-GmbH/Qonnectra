@@ -10,6 +10,8 @@
 	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
 	import PipeBranchNode from './PipeBranchNode.svelte';
 	import PipeBranchEdge from './PipeBranchEdge.svelte';
+	import PipeBranchLasso from './PipeBranchLasso.svelte';
+	import LassoModeSwitch from './LassoModeSwitch.svelte';
 
 	// SvelteFlow
 	import { SvelteFlow, Background, Controls, Panel } from '@xyflow/svelte';
@@ -25,6 +27,12 @@
 	let branches = $derived(data?.nodes && Array.isArray(data.nodes) ? data.nodes : []);
 	let apiResponse = $state(null);
 	let trenches = $derived(apiResponse?.trenches || []);
+
+	// Lasso mode state
+	let isLassoMode = $state(false);
+	let partialSelection = $state(false);
+	let selectedNodeIds = $state([]);
+	let lassoComponent = $state(null);
 
 	// Toaster
 	const toaster = createToaster({
@@ -124,6 +132,7 @@
 						x: x,
 						y: y
 					},
+					selected: false, // Initialize with selected state
 					zIndex: 1, // Lower z-index for nodes
 					data: {
 						trench: trench,
@@ -173,7 +182,7 @@
 				const connections = await response.json();
 				// Convert connections to edges
 				const connectionEdges =
-					connections.results
+					connections
 						?.map((conn) => {
 							// Find nodes and handle IDs for this connection using both trench and microduct UUIDs
 							const sourceNode = nodes.find(
@@ -388,6 +397,197 @@
 		}
 	}
 
+	// Handle lasso selection change
+	function handleLassoSelectionChange(selectedIds) {
+		selectedNodeIds = selectedIds;
+	}
+
+	// Handle lasso mode change
+	function handleLassoModeChange(event) {
+		isLassoMode = event.checked;
+		if (!isLassoMode) {
+			// Clear selection when exiting lasso mode
+			selectedNodeIds = [];
+			if (lassoComponent?.clearSelection) {
+				lassoComponent.clearSelection();
+			}
+		}
+	}
+
+	// Handle partial selection change
+	function handlePartialSelectionChange(partial) {
+		partialSelection = partial;
+	}
+
+	// Clear lasso selection
+	function clearLassoSelection() {
+		selectedNodeIds = [];
+		if (lassoComponent?.clearSelection) {
+			lassoComponent.clearSelection();
+		}
+	}
+
+	// Check if edge already exists between two microducts
+	function edgeExists(sourceMicroductUuid, targetMicroductUuid) {
+		return edges.some((edge) => {
+			const sourceData = edge.data?.sourceHandleData;
+			const targetData = edge.data?.targetHandleData;
+			return (
+				(sourceData?.microductUuid === sourceMicroductUuid &&
+					targetData?.microductUuid === targetMicroductUuid) ||
+				(sourceData?.microductUuid === targetMicroductUuid &&
+					targetData?.microductUuid === sourceMicroductUuid)
+			);
+		});
+	}
+
+	// Auto-connect two selected nodes
+	async function autoConnectTwoNodes() {
+		if (selectedNodeIds.length !== 2) {
+			toaster.error({
+				title: m.error(),
+				description: 'Please select exactly 2 nodes'
+			});
+			return;
+		}
+
+		const sourceNodeId = selectedNodeIds[0];
+		const targetNodeId = selectedNodeIds[1];
+
+		const sourceNode = nodes.find((n) => n.id === sourceNodeId);
+		const targetNode = nodes.find((n) => n.id === targetNodeId);
+
+		if (!sourceNode || !targetNode) {
+			toaster.error({
+				title: m.error(),
+				description: 'Could not find selected nodes'
+			});
+			return;
+		}
+
+		const sourceMicroducts = sourceNode.data?.conduit?.microducts || [];
+		const targetMicroducts = targetNode.data?.conduit?.microducts || [];
+
+		// Find matching microducts by number
+		const connections = [];
+		for (const sourceMd of sourceMicroducts) {
+			const targetMd = targetMicroducts.find((t) => t.number === sourceMd.number);
+			if (targetMd && !sourceMd.microduct_status && !targetMd.microduct_status) {
+				// Check if connection already exists
+				if (!edgeExists(sourceMd.uuid, targetMd.uuid)) {
+					connections.push({
+						source: sourceNode.id,
+						target: targetNode.id,
+						sourceHandle: `conduit-${sourceNode.data.conduit.uuid}-microduct-${sourceMd.number}-source`,
+						targetHandle: `conduit-${targetNode.data.conduit.uuid}-microduct-${targetMd.number}-target`,
+						sourceMicroduct: sourceMd,
+						targetMicroduct: targetMd
+					});
+				}
+			}
+		}
+
+		if (connections.length === 0) {
+			toaster.error({
+				title: m.error(),
+				description: 'No matching microducts available for connection'
+			});
+			return;
+		}
+
+		// Create edges for all connections
+		try {
+			let successCount = 0;
+			for (const conn of connections) {
+				// Create temporary edge ID
+				const tempEdgeId = `temp-edge-${Date.now()}-${Math.random()}`;
+
+				// Add edge to UI
+				const newEdge = {
+					id: tempEdgeId,
+					type: 'pipeBranchEdge',
+					source: conn.source,
+					target: conn.target,
+					sourceHandle: conn.sourceHandle,
+					targetHandle: conn.targetHandle,
+					zIndex: 10,
+					data: {
+						uuid: null,
+						sourceHandleData: {
+							microductUuid: conn.sourceMicroduct.uuid,
+							microductNumber: conn.sourceMicroduct.number,
+							conduitName: sourceNode.data.conduit.name,
+							conduitUuid: sourceNode.data.conduit.uuid
+						},
+						targetHandleData: {
+							microductUuid: conn.targetMicroduct.uuid,
+							microductNumber: conn.targetMicroduct.number,
+							conduitName: targetNode.data.conduit.name,
+							conduitUuid: targetNode.data.conduit.uuid
+						}
+					}
+				};
+
+				edges = [...edges, newEdge];
+
+				// Save to backend
+				const response = await fetch('/api/microduct-connections/', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						uuid_microduct_from: conn.sourceMicroduct.uuid,
+						uuid_microduct_to: conn.targetMicroduct.uuid,
+						uuid_node: apiResponse?.node_uuid,
+						uuid_trench_from: sourceNode.data.trench.uuid,
+						uuid_trench_to: targetNode.data.trench.uuid
+					})
+				});
+
+				if (response.ok) {
+					const newConnection = await response.json();
+					// Update edge with backend UUID
+					edges = edges.map((edge) =>
+						edge.id === tempEdgeId
+							? {
+									...edge,
+									id: `connection-${newConnection.uuid}`,
+									data: { ...edge.data, uuid: newConnection.uuid }
+								}
+							: edge
+					);
+					successCount++;
+				} else {
+					// Remove failed edge from UI
+					edges = edges.filter((edge) => edge.id !== tempEdgeId);
+					console.error('Failed to create connection:', await response.text());
+				}
+			}
+
+			// Show result
+			if (successCount > 0) {
+				toaster.success({
+					title: m.title_login_success(),
+					description: `${successCount}x ${m.created_connections()}`
+				});
+			}
+
+			if (successCount < connections.length) {
+				toaster.error({
+					title: m.error(),
+					description: `${connections.length - successCount}x ${m.failed_to_create_connections()}`
+				});
+			}
+		} catch (error) {
+			console.error('Error creating connections:', error);
+			toaster.error({
+				title: m.error(),
+				description: m.failed_to_create_connections()
+			});
+		}
+	}
+
 	$effect(() => {
 		const projectId = $selectedProject;
 		const currentPath = $page.url.pathname;
@@ -420,8 +620,16 @@
 		elevateEdgesOnSelect={true}
 		elevateNodesOnSelect={false}
 	>
+		{#if isLassoMode}
+			<PipeBranchLasso
+				bind:this={lassoComponent}
+				{partialSelection}
+				onSelectionChange={handleLassoSelectionChange}
+			/>
+		{/if}
+
 		<Panel position="top-left">
-			<div class="card bg-surface-50-950">
+			<div class="card bg-surface-50-950 p-4 space-y-4 flex flex-col gap-2">
 				<GenericCombobox
 					data={branches}
 					bind:value={selectedNode}
@@ -429,6 +637,7 @@
 					placeholder={m.select_pipe_branch()}
 					onValueChange={(e) => {
 						selectedNode = e.value;
+						clearLassoSelection();
 						if (e.value && e.value.length > 0) {
 							const nodeName = e.value[0]?.name || e.value[0];
 							const project = $selectedProject?.[0] || $selectedProject;
@@ -437,6 +646,33 @@
 					}}
 					classes="bg-surface-50-950"
 				/>
+				<LassoModeSwitch
+					checked={isLassoMode}
+					onCheckedChange={handleLassoModeChange}
+					partial={partialSelection}
+					onPartialChange={handlePartialSelectionChange}
+				/>
+
+				{#if isLassoMode && selectedNodeIds.length > 0}
+					<div class="space-y-2">
+						<div class="text-sm text-surface-600-300">
+							{m.selected()}: {selectedNodeIds.length}
+							{m.node()}
+						</div>
+
+						{#if selectedNodeIds.length === 2}
+							<button class="btn btn-sm variant-filled-success" onclick={autoConnectTwoNodes}>
+								{m.connect_selected_nodes()}
+							</button>
+						{:else if selectedNodeIds.length > 2}
+							<div class="text-xs text-warning-500">{m.select_exactly_2_nodes()}</div>
+						{/if}
+
+						<button class="btn btn-sm variant-outline-surface" onclick={clearLassoSelection}>
+							{m.clear_selection()}
+						</button>
+					</div>
+				{/if}
 			</div>
 		</Panel>
 		<Background class="z-0" bgColor="var(--color-surface-100-900)" />

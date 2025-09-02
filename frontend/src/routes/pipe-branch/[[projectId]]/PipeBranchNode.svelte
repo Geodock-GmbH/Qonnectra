@@ -21,7 +21,7 @@
 		placement: 'bottom-end'
 	});
 
-	let { id, data } = $props();
+	let { id, data, selected = false } = $props();
 
 	const trench = $derived(data?.trench || null);
 	const conduit = $derived(data?.conduit || null);
