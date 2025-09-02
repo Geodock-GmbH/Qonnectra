@@ -31,7 +31,6 @@
 		{ label: 'Mona', value: 'mona' },
 		{ label: 'Vox', value: 'vox' },
 		{ label: 'Wintry', value: 'wintry' },
-		{ label: '16-bit', value: '16-bit' },
 		{ label: 'Bitv 2.0', value: 'bitv' }
 	];
 
