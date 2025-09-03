@@ -682,6 +682,7 @@
 		elevateEdgesOnSelect={true}
 		elevateNodesOnSelect={false}
 		connectionRadius={100}
+		connectionLineStyle="stroke: var(--color-surface-950-50); stroke-width: 2px;"
 	>
 		{#if isLassoMode}
 			<PipeBranchLasso
