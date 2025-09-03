@@ -18,9 +18,6 @@
 	// Use the edges store for deletion
 	const edges = useEdges();
 
-	// Debug the edge data
-	console.log('Edge data for', id, ':', data);
-
 	let [edgePath] = $derived(
 		getStraightPath({
 			sourceX,
@@ -47,17 +44,15 @@
 		// First delete from backend if it has a UUID
 		if (connectionUuid) {
 			try {
-				const response = await fetch(`/api/microduct-connections/?uuid=${connectionUuid}`, {
-					method: 'DELETE'
+				const formData = new FormData();
+				formData.append('uuid', connectionUuid);
+				const response = await fetch(`?/deleteConnection`, {
+					method: 'POST',
+					body: formData
 				});
 
 				if (!response.ok) {
-					let error;
-					try {
-						error = await response.json();
-					} catch (_) {
-						error = await response.text();
-					}
+					const error = await response.json();
 					console.error('Failed to delete connection:', error);
 					toaster.create({
 						type: 'error',
@@ -94,8 +89,8 @@
 	{id}
 	path={edgePath}
 	style="stroke: {isConnected
-		? 'var(--color-success-500)'
-		: 'var(--color-surface-400)'}; stroke-width: 2;"
+		? 'var(--color-surface-950-50)'
+		: 'var(--color-surface-950-50)'}; stroke-width: 2;"
 />
 
 <!-- Connection label -->
@@ -106,7 +101,7 @@
 				class="z-10 bg-surface-50-950 border border-surface-200-700 rounded px-2 py-1 text-xs text-center shadow-sm font-medium"
 				title="Connected: {sourceHandleData.conduitName} MD{sourceHandleData.microductNumber} → {targetHandleData.conduitName} MD{targetHandleData.microductNumber}"
 			>
-				MD{sourceHandleData.microductNumber}→{targetHandleData.microductNumber}
+				{sourceHandleData.microductNumber} ↔ {targetHandleData.microductNumber}
 			</div>
 			<button
 				class="nodrag nopan bg-error-500 hover:bg-error-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow-sm"

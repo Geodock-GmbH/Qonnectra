@@ -173,7 +173,7 @@
 	"connection_deleted_successfully": "Connection deleted successfully",
 	"connection_deleted_error": "Error deleting connection",
 	"error_cannot_connect_microduct_to_itself": "Microduct cannot be connected to itself",
-	"error_cannot_connect_from_source": "Please do not release over a microduct for a connection",
+	"error_cannot_connect_from_source": "Connect over source",
 	"lasso_mode": "Lasso mode",
 	"partial_selection": "Partial selection",
 	"selected": "Selected",
