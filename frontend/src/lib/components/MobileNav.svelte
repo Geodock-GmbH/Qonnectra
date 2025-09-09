@@ -38,8 +38,8 @@
 	// Additional navigation items
 	const additionalNavItems = [
 		// Add more navigation items here when needed
-		{ href: '/trench', label: m.trench(), icon: IconTextPlus },
-		{ href: '/conduit', label: m.conduit(), icon: IconArrowBarToRight },
+		{ href: '/trench', label: m.conduit_connection(), icon: IconTextPlus },
+		{ href: '/conduit', label: m.conduit_management(), icon: IconArrowBarToRight },
 		{ href: '/pipe-branch', label: m.pipe_branch(), icon: IconAffiliate },
 		{ href: '/settings', label: m.settings(), icon: IconSettings }
 	];

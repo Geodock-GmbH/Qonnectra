@@ -1,7 +1,7 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "0.4.0-beta",
+  "version": "0.4.2-beta",
   "type": "module",
   "scripts": {
     "dev": "vite dev",
@@ -35,7 +35,6 @@
     "vitest": "^3.0.0"
   },
   "dependencies": {
-    "@fontsource/press-start-2p": "^5.2.6",
     "@inlang/paraglide-js": "^2.0.0",
     "@tabler/icons-svelte": "^3.31.0",
     "@xyflow/svelte": "^1.2.4",

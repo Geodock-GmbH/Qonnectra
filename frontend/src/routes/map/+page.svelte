@@ -46,6 +46,7 @@
 	let olMapInstance = $state();
 	let popupOverlay = $state();
 	let selectionStore = $state({});
+	let mapRef = $state();
 
 	// Error handler for tile loading
 	function handleTileError(message, description) {
@@ -54,6 +55,16 @@
 			message: message,
 			description: description
 		});
+	}
+
+	// Search handlers
+	function handleFeatureSelect(feature) {
+		// Handle feature selection if needed
+		console.log('Feature selected:', feature);
+	}
+
+	function handleSearchError(error) {
+		console.error('Search error:', error);
 	}
 
 	// Create tile sources and layers
@@ -73,9 +84,8 @@
 		addressLayer = createAddressLayer($selectedProject, m.address(), handleTileError);
 		nodeLayer = createNodeLayer($selectedProject, m.node(), handleTileError);
 	} catch (error) {
-		toaster.create({
-			type: 'error',
-			message: 'Error initializing map tiles',
+		toaster.error({
+			title: m.error_initializing_map_tiles(),
 			description: error.message || 'Could not set up the tile layer.'
 		});
 		vectorTileLayer = undefined;
@@ -101,18 +111,16 @@
 	// Handler for the map ready event
 	function handleMapReady(event) {
 		olMapInstance = event.detail.map;
-		initializeMapInteractions(); // Call this after map is ready
+		initializeMapInteractions();
 	}
 
-	// Function to initialize map interactions (click listener, popup, selection layer)
+	// Function to initialize map interactions
 	function initializeMapInteractions() {
 		if (!olMapInstance || !vectorTileLayer || !tileSource) return;
 
-		// Create the selection layers for each layer type
 		selectionLayer = createSelectionLayer(tileSource, $trenchColorSelected, () => selectionStore);
 		olMapInstance.addLayer(selectionLayer);
 
-		// Create selection layer for addresses
 		addressSelectionLayer = createSelectionLayer(
 			addressTileSource,
 			$trenchColorSelected,
@@ -120,7 +128,6 @@
 		);
 		olMapInstance.addLayer(addressSelectionLayer);
 
-		// Create selection layer for nodes
 		nodeSelectionLayer = createSelectionLayer(
 			nodeTileSource,
 			$trenchColorSelected,
@@ -128,7 +135,6 @@
 		);
 		olMapInstance.addLayer(nodeSelectionLayer);
 
-		// Create and add a popup overlay
 		const popupContainer = document.getElementById('popup');
 		if (!popupContainer) {
 			console.error('Popup container element not found!');
@@ -147,8 +153,7 @@
 		if (closer) {
 			closer.onclick = () => {
 				popupOverlay.setPosition(undefined);
-				selectionStore = {}; // Clear selection on popup close
-				// Refresh all selection layers
+				selectionStore = {};
 				if (selectionLayer) selectionLayer.changed();
 				if (addressSelectionLayer) addressSelectionLayer.changed();
 				if (nodeSelectionLayer) nodeSelectionLayer.changed();
@@ -161,11 +166,21 @@
 		olMapInstance.on('click', (event) => {
 			if (!vectorTileLayer || !olMapInstance) return;
 
+			// Clear highlight layer if it exists
+			if (mapRef && mapRef.getSearchPanelRef) {
+				const searchPanelRef = mapRef.getSearchPanelRef();
+				if (searchPanelRef && searchPanelRef.getHighlightLayer) {
+					const highlightLayer = searchPanelRef.getHighlightLayer();
+					if (highlightLayer && highlightLayer.getSource()) {
+						highlightLayer.getSource().clear();
+					}
+				}
+			}
+
 			let clickedFeatures = [];
 			olMapInstance.forEachFeatureAtPixel(
 				event.pixel,
 				(feature, layer) => {
-					// The callback is called for each feature found at the pixel (within hitTolerance)
 					clickedFeatures.push(feature);
 				},
 				{
@@ -176,11 +191,10 @@
 			);
 
 			if (clickedFeatures.length > 0) {
-				const feature = clickedFeatures[0]; // Select the first feature found
+				const feature = clickedFeatures[0];
 				const featureId = feature.getId();
 
 				if (featureId) {
-					// Single selection: clear previous, select new
 					selectionStore = {};
 					selectionStore[featureId] = feature;
 
@@ -200,16 +214,13 @@
 					if (content) content.innerHTML = html;
 					popupOverlay.setPosition(event.coordinate);
 				} else {
-					// No feature with ID found, clear selection
 					selectionStore = {};
 					popupOverlay.setPosition(undefined);
 				}
 			} else {
-				// No features found at click, clear selection
 				selectionStore = {};
 				popupOverlay.setPosition(undefined);
 			}
-			// Refresh all selection layers
 			if (selectionLayer) selectionLayer.changed();
 			if (addressSelectionLayer) addressSelectionLayer.changed();
 			if (nodeSelectionLayer) nodeSelectionLayer.changed();
@@ -228,33 +239,31 @@
 		olMapInstance = undefined;
 		popupOverlay = undefined;
 		selectionStore = {};
-		// Selection layers share sources with main layers, so don't dispose sources here
 		selectionLayer = undefined;
 		addressSelectionLayer = undefined;
 		nodeSelectionLayer = undefined;
 
 		if (vectorTileLayer && vectorTileLayer.getSource()) {
-			vectorTileLayer.getSource().dispose(); // Dispose the source
+			vectorTileLayer.getSource().dispose();
 		}
 		vectorTileLayer = undefined;
 
 		if (addressLayer && addressLayer.getSource()) {
-			addressLayer.getSource().dispose(); // Dispose the address source
+			addressLayer.getSource().dispose();
 		}
 		addressLayer = undefined;
 		addressTileSource = undefined;
 
 		if (nodeLayer && nodeLayer.getSource()) {
-			nodeLayer.getSource().dispose(); // Dispose the node source
+			nodeLayer.getSource().dispose();
 		}
 		nodeLayer = undefined;
 		nodeTileSource = undefined;
 	});
 
 	if (data.error) {
-		toaster.create({
-			type: 'error',
-			message: m.error_loading_map_features(),
+		toaster.error({
+			title: m.error_loading_map_features(),
 			description: data.error
 		});
 	}
@@ -284,6 +293,13 @@
 					...(nodeSelectionLayer ? [nodeSelectionLayer] : [])
 				]}
 				on:ready={handleMapReady}
+				onFeatureSelect={handleFeatureSelect}
+				onSearchError={handleSearchError}
+				searchPanelProps={{
+					trenchColorSelected: $trenchColorSelected,
+					alias: data.alias
+				}}
+				bind:this={mapRef}
 			/>
 			<div id="popup" class="ol-popup bg-primary-500 rounded-lg border-2 border-primary-600">
 				<!-- svelte-ignore a11y_invalid_attribute -->

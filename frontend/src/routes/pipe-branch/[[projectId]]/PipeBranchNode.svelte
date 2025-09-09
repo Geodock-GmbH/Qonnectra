@@ -28,7 +28,7 @@
 	const totalMicroducts = $derived(data?.totalMicroducts || 0);
 	const nodeName = $derived(data?.nodeName || '');
 	const handleCount = $derived(Math.max(1, totalMicroducts));
-	const radius = $derived(Math.max(80, 50 + handleCount * 6));
+	const radius = $derived(Math.max(120, 80 + handleCount * 10));
 	const diameter = $derived(radius * 2);
 
 	const handleData = $derived(() => {
@@ -56,8 +56,8 @@
 	const handlePositions = $derived(
 		handleData().map((handle, i) => {
 			const x = radius; // Center horizontally
-			const spacing = handleCount > 1 ? (diameter - 40) / (handleCount - 1) : 0;
-			const y = 20 + i * spacing;
+			const spacing = handleCount > 1 ? (diameter - 60) / (handleCount - 1) : 0;
+			const y = 30 + i * spacing;
 			return {
 				x,
 				y,
@@ -102,8 +102,11 @@
 </div>
 
 <!-- Node handles -->
+<!-- Explanation why we have source and target handles over each other -->
+<!-- When the mousepointer is over a handle, it uses the source id. This happens when also when the user releases the mousebutton over a handle. -->
+<!-- This would not create an edge on the canvas (but in the db so its visible on reload), so we can only connect per snapping. Since its always snapping to the target handle. -->
 <div
-	class="relative bg-surface-50-950 rounded-full border-2 border-surface-200-700 shadow-lg flex items-center justify-center"
+	class="relative rounded-full border-2 border-surface-200-700 shadow-lg flex items-center justify-center"
 	style="width: {diameter}px; height: {diameter}px;"
 >
 	{#each handlePositions as position, i}
@@ -111,11 +114,14 @@
 			type="source"
 			position={Position.Top}
 			id="{position.handle.id}-source"
-			style="left: {position.x - 8}px; top: {position.y -
-				8}px; position: absolute; transform: none; background-color: {position.handle
-				.cssColor}; border: {position.handle.isTwoLayer && position.handle.borderColor
-				? `2px solid ${position.handle.borderColor}`
-				: 'none'}; display: {position.handle.status ? 'none' : 'inline'};"
+			style="left: {position.x - 12}px; top: {position.y -
+				12}px; position: absolute; transform: none; background: {position.handle.isTwoLayer
+				? `linear-gradient(to right, ${position.handle.cssColor} 50%, ${position.handle.borderColor} 50%)`
+				: position.handle
+						.cssColor}; border: 2px solid var(--color-surface-950-50); width: 24px; height: 24px; {position
+				.handle.status
+				? 'opacity: 0.5; text-decoration: line-through;'
+				: ''}"
 			title="{position.handle.conduitName} - Microduct {position.handle.microductNumber} ({position
 				.handle.color})"
 			isConnectable={true}
@@ -124,14 +130,26 @@
 			type="target"
 			position={Position.Top}
 			id="{position.handle.id}-target"
-			style="left: {position.x - 8}px; top: {position.y -
-				8}px; position: absolute; transform: none; background-color: {position.handle
-				.cssColor}; border: {position.handle.isTwoLayer && position.handle.borderColor
-				? `2px solid ${position.handle.borderColor}`
-				: 'none'}; display: {position.handle.status ? 'none' : 'inline'};"
+			style="left: {position.x - 12}px; top: {position.y -
+				12}px; position: absolute; transform: none; background: {position.handle.isTwoLayer
+				? `linear-gradient(to right, ${position.handle.cssColor} 50%, ${position.handle.borderColor} 50%)`
+				: position.handle
+						.cssColor}; border: 2px solid var(--color-surface-950-50); width: 24px; height: 24px; {position
+				.handle.status
+				? 'opacity: 0.5; text-decoration: line-through;'
+				: ''}"
 			title="{position.handle.conduitName} - Microduct {position.handle.microductNumber} ({position
 				.handle.color})"
 			isConnectable={true}
 		/>
+		{#if position.handle.status}
+			<div
+				class="absolute pointer-events-none flex items-center justify-center text-surface-950-50 font-bold text-2xl"
+				style="left: {position.x - 12}px; top: {position.y -
+					12}px; width: 24px; height: 24px; z-index: 10;"
+			>
+				✕
+			</div>
+		{/if}
 	{/each}
 </div>

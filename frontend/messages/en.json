@@ -173,6 +173,7 @@
 	"connection_deleted_successfully": "Connection deleted successfully",
 	"connection_deleted_error": "Error deleting connection",
 	"error_cannot_connect_microduct_to_itself": "Microduct cannot be connected to itself",
+	"error_cannot_connect_from_source": "Connect over source",
 	"lasso_mode": "Lasso mode",
 	"partial_selection": "Partial selection",
 	"selected": "Selected",
@@ -180,5 +181,12 @@
 	"connect_selected_nodes": "Connect selected nodes",
 	"clear_selection": "Clear selection",
 	"created_connections": "Created connections",
-	"failed_to_create_connections": "Failed to create connections"
+	"failed_to_create_connections": "Failed to create connections",
+	"error_search_failed": "Search failed. Please try again.",
+	"feature_found": "Feature found!",
+	"error_feature_not_found": "Feature not found",
+	"error_initializing_map_tiles": "Error initializing map tiles",
+	"searching": "Searching...",
+	"select_a_feature": "Select a feature"
+
 }

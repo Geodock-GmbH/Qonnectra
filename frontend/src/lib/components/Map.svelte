@@ -1,9 +1,10 @@
 <script>
 	import { onMount, createEventDispatcher, onDestroy } from 'svelte';
-	import { browser } from '$app/environment'; // Import browser check
+	import { browser } from '$app/environment';
 	import { mapCenter, mapZoom } from '$lib/stores/store';
-	import OpacitySlider from './OpacitySlider.svelte'; // Import the new OpacitySlider
-	import LayerVisibilityTree from './LayerVisibilityTree.svelte'; // Import the new LayerVisibilityTree
+	import OpacitySlider from './OpacitySlider.svelte';
+	import LayerVisibilityTree from './LayerVisibilityTree.svelte';
+	import SearchPanel from './SearchPanel.svelte';
 
 	// Props
 	let {
@@ -13,23 +14,25 @@
 		className = '',
 		showOpacitySlider = true,
 		showLayerVisibilityTree = true,
-		onLayerVisibilityChanged = () => {}
+		showSearchPanel = true,
+		onLayerVisibilityChanged = () => {},
+		onFeatureSelect = () => {},
+		onSearchError = () => {},
+		searchPanelProps = {}
 	} = $props();
 
-	let container; // div that will host the map
-	let map = $state(); // ol/Map instance
-	let osmLayer = $state(); // Reference to the OSM layer for opacity control
+	let searchPanelRef = $state();
+
+	let container;
+	let map = $state();
+	let osmLayer = $state();
 	const dispatch = createEventDispatcher();
 
-	// Get initial values from the store for SSR safety
-	// We use $state for map so direct $store usage might cause issues
 	let initialCenter = $state(browser ? $mapCenter : [0, 0]);
 	let initialZoom = $state(browser ? $mapZoom : 2);
 
-	// Reactive state for the slider's current opacity value
-	let currentLayerOpacity = $state(1); // Default to fully opaque
+	let currentLayerOpacity = $state(1);
 
-	// Opacity Slider configuration
 	const opacitySliderConfig = {
 		minOpacity: 0,
 		maxOpacity: 1,
@@ -37,43 +40,46 @@
 	};
 
 	onMount(async () => {
-		// dynamically import OL modules to avoid SSR breakage
 		const [
 			{ default: OlMap },
 			{ default: OlView },
-			{ defaults: defaultControls } // defaults is a named export
-		] = await Promise.all([import('ol/Map'), import('ol/View'), import('ol/control')]);
+			{ defaults: defaultControls },
+			{ default: Zoom }
+		] = await Promise.all([
+			import('ol/Map'),
+			import('ol/View'),
+			import('ol/control'),
+			import('ol/control/Zoom')
+		]);
 
-		// Import Tile and OSM here as they are also default exports
 		const [{ default: TileLayer }, { default: OSMSource }] = await Promise.all([
 			import('ol/layer/Tile'),
 			import('ol/source/OSM')
 		]);
 
-		// Create the default OSM base layer
 		osmLayer = new TileLayer({ source: new OSMSource(), opacity: currentLayerOpacity });
 
-		// Combine the default OSM layer with any layers passed in via props
-		// Prepend the OSM layer so it's the base layer
 		const mapLayers = [osmLayer, ...layers];
+
+		// Create controls without zoom controls
+		const controls = defaultControls({
+			zoom: false
+		});
 
 		map = new OlMap({
 			target: container,
-			layers: mapLayers, // Use the combined layers array
+			layers: mapLayers,
 			view: new OlView({
 				center: initialCenter,
-				zoom: initialZoom, // Use initialZoom for map setup
+				zoom: initialZoom,
 				...viewOptions
 			}),
-			controls: defaultControls().extend(mapOptions.controls || []),
+			controls: controls.extend(mapOptions.controls || []),
 			...mapOptions
 		});
 
-		// Initialize currentLayerOpacity from the layer itself, though set above.
-		// This is more for consistency if layer had a different initial opacity.
 		currentLayerOpacity = osmLayer.getOpacity();
 
-		// let parent know map is ready
 		dispatch('ready', { map });
 
 		map.on('moveend', () => {
@@ -82,42 +88,52 @@
 			const newZoom = v.getZoom() ?? 2;
 
 			if (browser) {
-				// Update the store
 				$mapCenter = newCenter;
 				$mapZoom = newZoom;
 			}
-			// Also dispatch event for potential parent listeners
+
 			dispatch('moveend', { center: newCenter, zoom: newZoom });
 		});
 		map.on('click', (e) => dispatch('click', e));
 
 		return () => {
 			if (map) {
-				map.setTarget(undefined); // Use undefined as per OL docs recommendation
-				map = undefined; // Clear the state
+				map.setTarget(undefined);
+				map = undefined;
 			}
 		};
 	});
 
-	// Cleanup function
 	onDestroy(() => {
 		const currentMap = map;
 		if (currentMap) {
 			currentMap.setTarget(undefined);
-			map = undefined; // Ensure map instance is cleared
+			map = undefined;
 		}
 	});
 
 	function handleOpacitySliderChange(newOpacity) {
 		currentLayerOpacity = newOpacity;
 		if (osmLayer) {
-			// Check if osmLayer is initialized
 			osmLayer.setOpacity(newOpacity);
 		}
 	}
 
 	function handleLayerVisibilityChange(layerInfo) {
 		onLayerVisibilityChanged(layerInfo);
+	}
+
+	function handleFeatureSelect(feature) {
+		onFeatureSelect(feature);
+	}
+
+	function handleSearchError(error) {
+		onSearchError(error);
+	}
+
+	// Expose searchPanelRef to parent component
+	export function getSearchPanelRef() {
+		return searchPanelRef;
 	}
 </script>
 
@@ -134,8 +150,19 @@
 			/>
 		</div>
 	{/if}
+	{#if showSearchPanel && map}
+		<div class="absolute top-5 left-5 right-5 lg:right-auto z-10 lg:max-w-md">
+			<SearchPanel
+				olMapInstance={map}
+				onFeatureSelect={handleFeatureSelect}
+				onSearchError={handleSearchError}
+				{...searchPanelProps}
+				bind:this={searchPanelRef}
+			/>
+		</div>
+	{/if}
 	{#if showLayerVisibilityTree && map}
-		<div class="absolute top-5 right-5 z-9">
+		<div class="absolute top-28 right-5 lg:top-5 z-9">
 			<LayerVisibilityTree
 				{layers}
 				{osmLayer}

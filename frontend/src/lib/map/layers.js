@@ -2,8 +2,17 @@
 import VectorTileLayer from 'ol/layer/VectorTile.js';
 
 // Local imports
-import { createTrenchTileSource, createAddressTileSource, createNodeTileSource } from './tileSources.js';
-import { createTrenchStyle, createAddressStyle, createNodeStyle, createSelectedStyle } from './styles.js';
+import {
+	createTrenchTileSource,
+	createAddressTileSource,
+	createNodeTileSource
+} from './tileSources.js';
+import {
+	createTrenchStyle,
+	createAddressStyle,
+	createNodeStyle,
+	createSelectedStyle
+} from './styles.js';
 
 /**
  * Creates a vector tile layer for trenches
@@ -16,7 +25,7 @@ import { createTrenchStyle, createAddressStyle, createNodeStyle, createSelectedS
 export function createTrenchLayer(selectedProject, trenchColor, layerName, onError) {
 	const tileSource = createTrenchTileSource(selectedProject, onError);
 	const style = createTrenchStyle(trenchColor);
-	
+
 	return new VectorTileLayer({
 		source: tileSource,
 		style: style,
@@ -38,7 +47,7 @@ export function createTrenchLayer(selectedProject, trenchColor, layerName, onErr
 export function createAddressLayer(selectedProject, layerName, onError) {
 	const tileSource = createAddressTileSource(selectedProject, onError);
 	const style = createAddressStyle();
-	
+
 	return new VectorTileLayer({
 		source: tileSource,
 		style: style,
@@ -60,7 +69,7 @@ export function createAddressLayer(selectedProject, layerName, onError) {
 export function createNodeLayer(selectedProject, layerName, onError) {
 	const tileSource = createNodeTileSource(selectedProject, onError);
 	const style = createNodeStyle();
-	
+
 	return new VectorTileLayer({
 		source: tileSource,
 		style: style,
@@ -81,7 +90,7 @@ export function createNodeLayer(selectedProject, layerName, onError) {
  */
 export function createSelectionLayer(tileSource, selectedColor, getSelectionStore) {
 	const selectedStyle = createSelectedStyle(selectedColor);
-	
+
 	return new VectorTileLayer({
 		renderMode: 'vector',
 		source: tileSource,

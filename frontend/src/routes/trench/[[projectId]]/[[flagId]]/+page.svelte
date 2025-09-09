@@ -85,22 +85,38 @@
 
 			const result = await response.json();
 
-			if (result.type === 'success' && result.data?.trenchData) {
-				const trenchData = result.data.trenchData;
-				if (
-					trenchData.results.features[0].geometry &&
-					trenchData.results.features[0].geometry.coordinates
-				) {
+			if (result.type === 'success' && result.data) {
+				const parsedData = JSON.parse(result.data);
+				const geometryType = parsedData[12]; // "LineString"
+				const coordinatesRef = parsedData[13]; // Array reference to coordinates
+
+				// The coordinates are stored as separate coordinate pairs in the array
+				const coordinates = [];
+				if (Array.isArray(coordinatesRef)) {
+					for (const coordRef of coordinatesRef) {
+						if (typeof coordRef === 'number' && parsedData[coordRef]) {
+							// Each coordinate pair is stored as an array reference
+							const coordPair = parsedData[coordRef];
+							if (Array.isArray(coordPair) && coordPair.length >= 2) {
+								const x = parsedData[coordPair[0]];
+								const y = parsedData[coordPair[1]];
+								coordinates.push([x, y]);
+							}
+						}
+					}
+				}
+
+				if (geometryType && coordinates.length > 0) {
 					const wktFormat = new WKT();
 					let geometryWkt = '';
 
 					// Handle different geometry types
-					if (trenchData.results.features[0].geometry.type === 'LineString') {
-						geometryWkt = `LINESTRING(${trenchData.results.features[0].geometry.coordinates.map((coord) => `${coord[0]} ${coord[1]}`).join(', ')})`;
-					} else if (trenchData.results.features[0].geometry.type === 'Point') {
-						geometryWkt = `POINT(${trenchData.results.features[0].geometry.coordinates[0]} ${trenchData.results.features[0].geometry.coordinates[1]})`;
-					} else if (trenchData.results.features[0].geometry.type === 'Polygon') {
-						const rings = trenchData.results.features[0].geometry.coordinates
+					if (geometryType === 'LineString') {
+						geometryWkt = `LINESTRING(${coordinates.map((coord) => `${coord[0]} ${coord[1]}`).join(', ')})`;
+					} else if (geometryType === 'Point') {
+						geometryWkt = `POINT(${coordinates[0][0]} ${coordinates[0][1]})`;
+					} else if (geometryType === 'Polygon') {
+						const rings = coordinates
 							.map((ring) => `(${ring.map((coord) => `${coord[0]} ${coord[1]}`).join(', ')})`)
 							.join(', ');
 						geometryWkt = `POLYGON(${rings})`;
@@ -455,6 +471,7 @@
 					? [vectorTileLayer, selectionLayer, routeLayer, highlightLayer]
 					: [vectorTileLayer]}
 				showLayerVisibilityTree={false}
+				showSearchPanel={false}
 				on:ready={handleMapReady}
 			/>
 		{:else}

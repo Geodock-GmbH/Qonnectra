@@ -90,6 +90,41 @@
 		};
 	}
 
+	// Helper function to parse dehydrated response format
+	function parseDehydratedResponse(response) {
+		if (!Array.isArray(response)) return response;
+
+		// Function to resolve a value by following indices
+		function resolveValue(index) {
+			if (typeof index !== 'number') return index;
+			const value = response[index];
+
+			// If it's an object with numeric keys, resolve each property
+			if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+				const resolved = {};
+				for (const [key, valueIndex] of Object.entries(value)) {
+					resolved[key] = resolveValue(valueIndex);
+				}
+				return resolved;
+			}
+
+			// If it's an array, resolve each element
+			if (Array.isArray(value)) {
+				return value.map(resolveValue);
+			}
+
+			return value;
+		}
+
+		// The response structure seems to start with metadata at index 0
+		const metadata = response[0];
+		if (metadata?.type === 1 && metadata?.data) {
+			return resolveValue(metadata.data);
+		}
+
+		return response;
+	}
+
 	$effect(() => {
 		if (!trenches || trenches.length === 0) {
 			nodes = [];
@@ -108,7 +143,7 @@
 
 		const centerX = 400;
 		const centerY = 300;
-		const circleRadius = Math.max(600, totalNodes * 30);
+		const circleRadius = Math.max(800, totalNodes * 50);
 
 		trenches.forEach((trench) => {
 			if (!trench.conduits || trench.conduits.length === 0) {
@@ -154,11 +189,25 @@
 		if (!nodeName || !project) return;
 
 		try {
-			const response = await fetch(
-				`/api/trench-near-nodes?node_name=${encodeURIComponent(nodeName)}&project=${project}`
-			);
+			const formData = new FormData();
+			formData.append('node_name', nodeName);
+			formData.append('project', project);
+
+			const response = await fetch('?/getTrenchesNearNode', {
+				method: 'POST',
+				body: formData
+			});
+
 			if (response.ok) {
-				apiResponse = await response.json();
+				let rawResponse = await response.json();
+				let parsedData = JSON.parse(rawResponse.data);
+
+				// Handle dehydrated response format
+				if (Array.isArray(parsedData) && parsedData[0]?.type === 1) {
+					parsedData = parseDehydratedResponse(parsedData);
+				}
+
+				apiResponse = parsedData;
 				await loadExistingConnections();
 			} else {
 				console.error('Failed to fetch trenches near node:', await response.text());
@@ -175,11 +224,21 @@
 		if (!apiResponse?.node_uuid) return;
 
 		try {
-			const response = await fetch(
-				`/api/microduct-connections/?node_id=${encodeURIComponent(apiResponse.node_uuid)}`
-			);
+			const formData = new FormData();
+			formData.append('node_id', apiResponse.node_uuid);
+			const response = await fetch('?/getConnections', {
+				method: 'POST',
+				body: formData
+			});
+
 			if (response.ok) {
-				const connections = await response.json();
+				let rawResponse = await response.json();
+				let parsedData = JSON.parse(rawResponse.data);
+				if (Array.isArray(parsedData) && parsedData[0]?.type === 1) {
+					parsedData = parseDehydratedResponse(parsedData);
+				}
+
+				const connections = parsedData;
 				// Convert connections to edges
 				const connectionEdges =
 					connections
@@ -246,11 +305,18 @@
 
 	// Handle connection validation before connection is made
 	function handleBeforeConnect(connection) {
-		console.log('handleBeforeConnect called with:', connection);
-
 		// Get handle data for validation
 		const sourceHandleData = getHandleData(connection.source, connection.sourceHandle);
 		const targetHandleData = getHandleData(connection.target, connection.targetHandle);
+
+		// Prevent connection if the source handle has -source suffix
+		if (connection.sourceHandle && connection.sourceHandle.endsWith('-target')) {
+			toaster.error({
+				title: m.error(),
+				description: m.error_cannot_connect_from_source()
+			});
+			return false; // Prevent connection
+		}
 
 		// Prevent connecting a microduct to itself
 		if (sourceHandleData.microductUuid === targetHandleData.microductUuid) {
@@ -271,15 +337,11 @@
 		edges.forEach((edge, index) => {
 			// Check if this is a new edge without data
 			if (edge.id.startsWith('xy-edge__') && (!edge.data || Object.keys(edge.data).length === 0)) {
-				console.log('Detected new edge without data:', edge);
-
 				// Extract connection info from the edge
 				const sourceHandleData = getHandleData(edge.source, edge.sourceHandle);
 				const targetHandleData = getHandleData(edge.target, edge.targetHandle);
 
 				if (sourceHandleData.microductUuid && targetHandleData.microductUuid) {
-					console.log('Populating edge data for:', edge.id);
-
 					// Update the edge with data
 					const updatedEdges = [...edges];
 					updatedEdges[index] = {
@@ -305,16 +367,6 @@
 						const sourceTrenchUuid = sourceNode?.data?.trench?.uuid;
 						const targetTrenchUuid = targetNode?.data?.trench?.uuid;
 
-						console.log('About to save connection with values:', {
-							sourceMicroductUuid,
-							targetMicroductUuid,
-							nodeUuid,
-							sourceTrenchUuid,
-							targetTrenchUuid,
-							sourceType: typeof sourceMicroductUuid,
-							targetType: typeof targetMicroductUuid,
-							nodeType: typeof nodeUuid
-						});
 						saveConnection(
 							edge,
 							sourceMicroductUuid,
@@ -354,22 +406,26 @@
 				? targetTrenchUuid[0]
 				: targetTrenchUuid;
 
-			const response = await fetch('/api/microduct-connections/', {
+			const formData = new FormData();
+			formData.append('uuid_microduct_from', fromUuid);
+			formData.append('uuid_microduct_to', toUuid);
+			formData.append('uuid_node', nodeUuidValue);
+			formData.append('uuid_trench_from', sourceTrenchUuidValue);
+			formData.append('uuid_trench_to', targetTrenchUuidValue);
+
+			const response = await fetch('?/createConnection', {
 				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					uuid_microduct_from: fromUuid,
-					uuid_microduct_to: toUuid,
-					uuid_node: nodeUuidValue,
-					uuid_trench_from: sourceTrenchUuidValue,
-					uuid_trench_to: targetTrenchUuidValue
-				})
+				body: formData
 			});
 
 			if (response.ok) {
-				const newConnection = await response.json();
+				let rawResponse = await response.json();
+				let parsedData = JSON.parse(rawResponse.data);
+				if (Array.isArray(parsedData) && parsedData[0]?.type === 1) {
+					parsedData = parseDehydratedResponse(parsedData);
+				}
+
+				const newConnection = parsedData;
 
 				// Update the edge with the backend UUID
 				const edgeIndex = edges.findIndex((e) => e.id === edge.id);
@@ -384,7 +440,6 @@
 						}
 					};
 					edges = updatedEdges;
-					console.log('Updated edge with backend UUID:', newConnection.uuid);
 				}
 			} else {
 				const error = await response.json();
@@ -530,23 +585,27 @@
 
 				edges = [...edges, newEdge];
 
+				const formData = new FormData();
+				formData.append('uuid_microduct_from', conn.sourceMicroduct.uuid);
+				formData.append('uuid_microduct_to', conn.targetMicroduct.uuid);
+				formData.append('uuid_node', apiResponse?.node_uuid);
+				formData.append('uuid_trench_from', sourceNode.data.trench.uuid);
+				formData.append('uuid_trench_to', targetNode.data.trench.uuid);
+
 				// Save to backend
-				const response = await fetch('/api/microduct-connections/', {
+				const response = await fetch('?/createConnection', {
 					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({
-						uuid_microduct_from: conn.sourceMicroduct.uuid,
-						uuid_microduct_to: conn.targetMicroduct.uuid,
-						uuid_node: apiResponse?.node_uuid,
-						uuid_trench_from: sourceNode.data.trench.uuid,
-						uuid_trench_to: targetNode.data.trench.uuid
-					})
+					body: formData
 				});
 
 				if (response.ok) {
-					const newConnection = await response.json();
+					let rawResponse = await response.json();
+					let parsedData = JSON.parse(rawResponse.data);
+					if (Array.isArray(parsedData) && parsedData[0]?.type === 1) {
+						parsedData = parseDehydratedResponse(parsedData);
+					}
+
+					const newConnection = parsedData;
 					// Update edge with backend UUID
 					edges = edges.map((edge) =>
 						edge.id === tempEdgeId
@@ -596,6 +655,9 @@
 			const targetPath = `/pipe-branch/${projectId}`;
 			if (currentPath !== targetPath) {
 				goto(targetPath, { keepFocus: true, noScroll: true, replaceState: true });
+				nodes = [];
+				edges = [];
+				selectedNode = [];
 			}
 		}
 	});
@@ -619,6 +681,8 @@
 		connectionMode="loose"
 		elevateEdgesOnSelect={true}
 		elevateNodesOnSelect={false}
+		connectionRadius={100}
+		connectionLineStyle="stroke: var(--color-surface-950-50); stroke-width: 2px;"
 	>
 		{#if isLassoMode}
 			<PipeBranchLasso
@@ -661,14 +725,14 @@
 						</div>
 
 						{#if selectedNodeIds.length === 2}
-							<button class="btn btn-sm variant-filled-success" onclick={autoConnectTwoNodes}>
+							<button class="btn btn-sm preset-filled-primary-500" onclick={autoConnectTwoNodes}>
 								{m.connect_selected_nodes()}
 							</button>
 						{:else if selectedNodeIds.length > 2}
 							<div class="text-xs text-warning-500">{m.select_exactly_2_nodes()}</div>
 						{/if}
 
-						<button class="btn btn-sm variant-outline-surface" onclick={clearLassoSelection}>
+						<button class="btn btn-sm preset-outlined-primary-500" onclick={clearLassoSelection}>
 							{m.clear_selection()}
 						</button>
 					</div>
