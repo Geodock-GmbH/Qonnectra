@@ -185,6 +185,7 @@
 	"error_search_failed": "Search failed. Please try again.",
 	"feature_found": "Feature found!",
 	"error_feature_not_found": "Feature not found",
-	"error_initializing_map_tiles": "Error initializing map tiles"
+	"error_initializing_map_tiles": "Error initializing map tiles",
+	"searching": "Searching..."
 
 }

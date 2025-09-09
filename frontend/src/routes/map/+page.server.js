@@ -1,5 +1,6 @@
 import { API_URL } from '$env/static/private';
 import { error } from '@sveltejs/kit';
+import { m } from '$lib/paraglide/messages';
 
 function getAuthHeaders(cookies) {
 	const accessToken = cookies.get('api-access-token');
@@ -73,7 +74,7 @@ export const actions = {
 				if (nodeId && nodeName) {
 					results.push({
 						value: `${nodeId}`,
-						label: `${nodeName}`,
+						label: `${nodeName}` + ' ' + '(' + m.node() + ')',
 						type: 'node',
 						uuid: nodeId,
 						name: nodeName
@@ -90,7 +91,7 @@ export const actions = {
 				if (trenchId && trenchIdNumber) {
 					results.push({
 						value: `${trenchId}`,
-						label: `${trenchIdNumber}`,
+						label: `${trenchIdNumber}` + ' ' + '(' + m.trench() + ')',
 						type: 'trench',
 						uuid: trenchId,
 						id_trench: trenchIdNumber

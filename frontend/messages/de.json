@@ -186,5 +186,6 @@
 	"error_search_failed": "Fehler beim Suchen. Bitte versuche es erneut.",
 	"feature_found": "Feature gefunden!",
 	"error_feature_not_found": "Feature nicht gefunden",
-	"error_initializing_map_tiles": "Fehler beim Initialisieren der Karten-Tile-Layer"
+	"error_initializing_map_tiles": "Fehler beim Initialisieren der Karten-Tile-Layer",
+	"searching": "Suche..."
 }
