@@ -62,9 +62,6 @@ export const actions = {
 			const nodeFeatures = nodeData.features || nodeData || [];
 			const trenchFeatures = trenchData.features || trenchData || [];
 
-			console.log('Node features:', nodeFeatures);
-			console.log('Trench features:', trenchFeatures);
-
 			// Add nodes to results
 			nodeFeatures.forEach((node) => {
 				const props = node.properties;
@@ -98,8 +95,6 @@ export const actions = {
 					});
 				}
 			});
-
-			console.log('Final combobox results:', results);
 			return results;
 		} catch (err) {
 			console.error('Error searching features:', err);
