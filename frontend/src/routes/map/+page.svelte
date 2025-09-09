@@ -46,6 +46,7 @@
 	let olMapInstance = $state();
 	let popupOverlay = $state();
 	let selectionStore = $state({});
+	let mapRef = $state();
 
 	// Error handler for tile loading
 	function handleTileError(message, description) {
@@ -164,6 +165,17 @@
 		// Listen for map clicks to select features
 		olMapInstance.on('click', (event) => {
 			if (!vectorTileLayer || !olMapInstance) return;
+
+			// Clear highlight layer if it exists
+			if (mapRef && mapRef.getSearchPanelRef) {
+				const searchPanelRef = mapRef.getSearchPanelRef();
+				if (searchPanelRef && searchPanelRef.getHighlightLayer) {
+					const highlightLayer = searchPanelRef.getHighlightLayer();
+					if (highlightLayer && highlightLayer.getSource()) {
+						highlightLayer.getSource().clear();
+					}
+				}
+			}
 
 			let clickedFeatures = [];
 			olMapInstance.forEachFeatureAtPixel(
@@ -287,6 +299,7 @@
 					trenchColorSelected: $trenchColorSelected,
 					alias: data.alias
 				}}
+				bind:this={mapRef}
 			/>
 			<div id="popup" class="ol-popup bg-primary-500 rounded-lg border-2 border-primary-600">
 				<!-- svelte-ignore a11y_invalid_attribute -->

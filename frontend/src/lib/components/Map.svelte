@@ -21,6 +21,8 @@
 		searchPanelProps = {}
 	} = $props();
 
+	let searchPanelRef = $state();
+
 	let container;
 	let map = $state();
 	let osmLayer = $state();
@@ -128,6 +130,11 @@
 	function handleSearchError(error) {
 		onSearchError(error);
 	}
+
+	// Expose searchPanelRef to parent component
+	export function getSearchPanelRef() {
+		return searchPanelRef;
+	}
 </script>
 
 <div class="map-container {className}">
@@ -150,6 +157,7 @@
 				onFeatureSelect={handleFeatureSelect}
 				onSearchError={handleSearchError}
 				{...searchPanelProps}
+				bind:this={searchPanelRef}
 			/>
 		</div>
 	{/if}

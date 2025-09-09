@@ -187,5 +187,6 @@
 	"feature_found": "Feature gefunden!",
 	"error_feature_not_found": "Feature nicht gefunden",
 	"error_initializing_map_tiles": "Fehler beim Initialisieren der Karten-Tile-Layer",
-	"searching": "Suche..."
+	"searching": "Suche...",
+	"select_a_feature": "Feature auswählen"
 }

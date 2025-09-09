@@ -186,7 +186,7 @@
 		<div class="mt-3 lg:mt-2">
 			<GenericCombobox
 				data={searchResults}
-				placeholder="Select a feature..."
+				placeholder={m.select_a_feature()}
 				onValueChange={handleFeatureSelect}
 				classes="touch-manipulation text-base lg:text-sm min-h-[44px] lg:min-h-[36px]"
 				contentBase="max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg text-base lg:text-sm"

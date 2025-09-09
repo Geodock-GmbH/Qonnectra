@@ -186,6 +186,7 @@
 	"feature_found": "Feature found!",
 	"error_feature_not_found": "Feature not found",
 	"error_initializing_map_tiles": "Error initializing map tiles",
-	"searching": "Searching..."
+	"searching": "Searching...",
+	"select_a_feature": "Select a feature"
 
 }
