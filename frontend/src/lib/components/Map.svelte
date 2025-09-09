@@ -4,6 +4,7 @@
 	import { mapCenter, mapZoom } from '$lib/stores/store';
 	import OpacitySlider from './OpacitySlider.svelte';
 	import LayerVisibilityTree from './LayerVisibilityTree.svelte';
+	import SearchPanel from './SearchPanel.svelte';
 
 	// Props
 	let {
@@ -13,7 +14,11 @@
 		className = '',
 		showOpacitySlider = true,
 		showLayerVisibilityTree = true,
-		onLayerVisibilityChanged = () => {}
+		showSearchPanel = true,
+		onLayerVisibilityChanged = () => {},
+		onFeatureSelect = () => {},
+		onSearchError = () => {},
+		searchPanelProps = {}
 	} = $props();
 
 	let container;
@@ -33,8 +38,17 @@
 	};
 
 	onMount(async () => {
-		const [{ default: OlMap }, { default: OlView }, { defaults: defaultControls }] =
-			await Promise.all([import('ol/Map'), import('ol/View'), import('ol/control')]);
+		const [
+			{ default: OlMap },
+			{ default: OlView },
+			{ defaults: defaultControls },
+			{ default: Zoom }
+		] = await Promise.all([
+			import('ol/Map'),
+			import('ol/View'),
+			import('ol/control'),
+			import('ol/control/Zoom')
+		]);
 
 		const [{ default: TileLayer }, { default: OSMSource }] = await Promise.all([
 			import('ol/layer/Tile'),
@@ -45,6 +59,11 @@
 
 		const mapLayers = [osmLayer, ...layers];
 
+		// Create controls without zoom controls
+		const controls = defaultControls({
+			zoom: false
+		});
+
 		map = new OlMap({
 			target: container,
 			layers: mapLayers,
@@ -53,7 +72,7 @@
 				zoom: initialZoom,
 				...viewOptions
 			}),
-			controls: defaultControls().extend(mapOptions.controls || []),
+			controls: controls.extend(mapOptions.controls || []),
 			...mapOptions
 		});
 
@@ -101,6 +120,14 @@
 	function handleLayerVisibilityChange(layerInfo) {
 		onLayerVisibilityChanged(layerInfo);
 	}
+
+	function handleFeatureSelect(feature) {
+		onFeatureSelect(feature);
+	}
+
+	function handleSearchError(error) {
+		onSearchError(error);
+	}
 </script>
 
 <div class="map-container {className}">
@@ -122,6 +149,16 @@
 				{layers}
 				{osmLayer}
 				onLayerVisibilityChanged={handleLayerVisibilityChange}
+			/>
+		</div>
+	{/if}
+	{#if showSearchPanel && map}
+		<div class="absolute top-5 left-5 z-10 max-w-md">
+			<SearchPanel
+				olMapInstance={map}
+				onFeatureSelect={handleFeatureSelect}
+				onSearchError={handleSearchError}
+				{...searchPanelProps}
 			/>
 		</div>
 	{/if}

@@ -471,6 +471,7 @@
 					? [vectorTileLayer, selectionLayer, routeLayer, highlightLayer]
 					: [vectorTileLayer]}
 				showLayerVisibilityTree={false}
+				showSearchPanel={false}
 				on:ready={handleMapReady}
 			/>
 		{:else}

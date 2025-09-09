@@ -7,13 +7,9 @@
 
 	// Svelte
 	import Map from '$lib/components/Map.svelte';
-	import SearchInput from '$lib/components/SearchInput.svelte';
-	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { trenchColor, trenchColorSelected } from '$lib/stores/store';
 	import { onDestroy } from 'svelte';
 	import { selectedProject } from '$lib/stores/store';
-	import { enhance } from '$app/forms';
-	import { parse } from 'devalue';
 
 	// OpenLayers
 	import 'ol/ol.css';
@@ -29,15 +25,6 @@
 		createAddressTileSource,
 		createNodeTileSource
 	} from '$lib/map';
-
-	// Search utilities
-	import {
-		createHighlightLayer,
-		createHighlightStyle,
-		parseFeatureGeometry,
-		zoomToFeature,
-		debounce
-	} from '$lib/map/searchUtils';
 
 	// Toaster
 	const toaster = createToaster({
@@ -60,13 +47,6 @@
 	let popupOverlay = $state();
 	let selectionStore = $state({});
 
-	// Search state
-	let searchQuery = $state('');
-	let searchResults = $state([]);
-	let isSearching = $state(false);
-	let showSearchResults = $state(false);
-	let highlightLayer = $state();
-
 	// Error handler for tile loading
 	function handleTileError(message, description) {
 		toaster.create({
@@ -76,118 +56,14 @@
 		});
 	}
 
-	// Search functions
-	const debouncedSearch = debounce(async (query) => {
-		if (!query.trim()) {
-			searchResults = [];
-			showSearchResults = false;
-			return;
-		}
-
-		isSearching = true;
-		try {
-			const formData = new FormData();
-			formData.append('searchQuery', query);
-			formData.append('projectId', $selectedProject);
-
-			const response = await fetch('?/searchFeatures', {
-				method: 'POST',
-				body: formData
-			});
-
-			if (response.ok) {
-				let rawResponse = await response.json();
-				let parsedData = parse(rawResponse.data);
-
-				searchResults = parsedData;
-				showSearchResults = true;
-			} else {
-				console.error('Failed to fetch search results:', await response.text());
-				searchResults = null;
-				showSearchResults = false;
-			}
-		} catch (error) {
-			console.error('Search error:', error);
-			toaster.error({
-				title: m.error(),
-				description: m.error_search_failed()
-			});
-		} finally {
-			isSearching = false;
-		}
-	}, 300);
-
-	function handleSearch() {
-		debouncedSearch(searchQuery);
+	// Search handlers
+	function handleFeatureSelect(feature) {
+		// Handle feature selection if needed
+		console.log('Feature selected:', feature);
 	}
 
-	async function handleFeatureSelect(selectedFeature) {
-		if (!selectedFeature || !olMapInstance) return;
-
-		const { type, value, label } = selectedFeature.items[0];
-
-		try {
-			const formData = new FormData();
-			formData.append('featureType', type);
-			formData.append('featureUuid', value);
-
-			const response = await fetch('?/getFeatureDetails', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = await response.json();
-			let parsedData = parse(result.data);
-
-			if (
-				result.type === 'success' &&
-				parsedData?.success &&
-				parsedData?.feature &&
-				parsedData.feature.length > 0
-			) {
-				const feature = parsedData.feature[0];
-
-				const geometry = await parseFeatureGeometry(
-					feature,
-					'EPSG:25832', //TODO: Change to not be hardcoded
-					olMapInstance.getView().getProjection()
-				);
-
-				if (!highlightLayer) {
-					const highlightStyle = await createHighlightStyle($trenchColorSelected);
-					highlightLayer = await createHighlightLayer(highlightStyle);
-					olMapInstance.addLayer(highlightLayer);
-				}
-
-				const [{ default: Feature }] = await Promise.all([import('ol/Feature')]);
-
-				const highlightFeature = new Feature(geometry);
-				highlightFeature.setId(feature.id);
-
-				highlightLayer.getSource().clear();
-				highlightLayer.getSource().addFeature(highlightFeature);
-
-				await zoomToFeature(olMapInstance, geometry, highlightLayer);
-
-				searchQuery = '';
-				searchResults = [];
-				showSearchResults = false;
-
-				toaster.success({
-					title: m.feature_found()
-				});
-			} else {
-				console.error('Invalid response structure:', parsedData);
-				toaster.error({
-					title: m.error_feature_not_found()
-				});
-			}
-		} catch (error) {
-			console.error('Error fetching feature details:', error);
-			toaster.error({
-				title: m.error9_feature_not_found()
-			});
-		}
+	function handleSearchError(error) {
+		console.error('Search error:', error);
 	}
 
 	// Create tile sources and layers
@@ -303,7 +179,6 @@
 			);
 
 			if (clickedFeatures.length > 0) {
-				highlightLayer.getSource().clear();
 				const feature = clickedFeatures[0];
 				const featureId = feature.getId();
 
@@ -348,7 +223,6 @@
 			if (nodeSelectionLayer) olMapInstance.removeLayer(nodeSelectionLayer);
 			if (addressLayer) olMapInstance.removeLayer(addressLayer);
 			if (nodeLayer) olMapInstance.removeLayer(nodeLayer);
-			if (highlightLayer) olMapInstance.removeLayer(highlightLayer);
 		}
 		olMapInstance = undefined;
 		popupOverlay = undefined;
@@ -373,11 +247,6 @@
 		}
 		nodeLayer = undefined;
 		nodeTileSource = undefined;
-
-		if (highlightLayer && highlightLayer.getSource()) {
-			highlightLayer.getSource().dispose();
-		}
-		highlightLayer = undefined;
 	});
 
 	if (data.error) {
@@ -395,29 +264,6 @@
 <Toaster {toaster}></Toaster>
 
 <div class="map-container relative h-full w-full">
-	<!-- Search Controls -->
-	<div class="absolute top-3 left-15 right-4 z-10 flex flex-col space-y-2 max-w-md">
-		<div class="bg-surface-50-950 rounded-lg border border-surface-200-800 shadow-lg p-3">
-			<SearchInput bind:value={searchQuery} onSearch={handleSearch} />
-
-			{#if showSearchResults && searchResults.length > 0}
-				<div class="mt-2">
-					<GenericCombobox
-						data={searchResults}
-						placeholder="Select a feature..."
-						loading={isSearching}
-						onValueChange={handleFeatureSelect}
-						classes="touch-manipulation text-sm"
-						zIndex="20"
-					/>
-				</div>
-			{/if}
-
-			{#if isSearching}
-				<div class="mt-2 text-sm text-surface-600-400">Searching...</div>
-			{/if}
-		</div>
-	</div>
 	{#if data.error && !vectorTileLayer}
 		<div class="p-4 text-red-700 bg-red-100 border border-red-400 rounded">
 			<p>Error loading initial map data: {data.error}</p>
@@ -432,10 +278,15 @@
 					...(nodeLayer ? [nodeLayer] : []),
 					...(selectionLayer ? [selectionLayer] : []),
 					...(addressSelectionLayer ? [addressSelectionLayer] : []),
-					...(nodeSelectionLayer ? [nodeSelectionLayer] : []),
-					...(highlightLayer ? [highlightLayer] : [])
+					...(nodeSelectionLayer ? [nodeSelectionLayer] : [])
 				]}
 				on:ready={handleMapReady}
+				onFeatureSelect={handleFeatureSelect}
+				onSearchError={handleSearchError}
+				searchPanelProps={{
+					trenchColorSelected: $trenchColorSelected,
+					alias: data.alias
+				}}
 			/>
 			<div id="popup" class="ol-popup bg-primary-500 rounded-lg border-2 border-primary-600">
 				<!-- svelte-ignore a11y_invalid_attribute -->
