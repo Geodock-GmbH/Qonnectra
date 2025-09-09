@@ -179,23 +179,27 @@
 
 <Toaster {toaster}></Toaster>
 
-<div class="bg-surface-50-950 rounded-lg border border-surface-200-800 shadow-lg p-3">
+<div class="bg-surface-50-950 rounded-lg border border-surface-200-800 shadow-lg p-3 lg:p-4 w-full">
 	<SearchInput bind:value={searchQuery} onSearch={handleSearch} />
 
 	{#if showSearchResults && searchResults.length > 0}
-		<div class="mt-2">
+		<div class="mt-3 lg:mt-2">
 			<GenericCombobox
 				data={searchResults}
 				placeholder="Select a feature..."
 				loading={isSearching}
 				onValueChange={handleFeatureSelect}
-				classes="touch-manipulation text-sm"
+				classes="touch-manipulation text-base lg:text-sm min-h-[44px] lg:min-h-[36px]"
+				contentBase="max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg text-base lg:text-sm"
 				zIndex="20"
 			/>
 		</div>
 	{/if}
 
 	{#if isSearching}
-		<div class="mt-2 text-sm text-surface-600-400">Searching...</div>
+		<div class="mt-3 lg:mt-2 text-base lg:text-sm text-surface-600-400 flex items-center justify-center lg:justify-start">
+			<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-500 mr-2"></div>
+			Searching...
+		</div>
 	{/if}
 </div>

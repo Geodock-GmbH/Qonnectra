@@ -143,22 +143,22 @@
 			/>
 		</div>
 	{/if}
-	{#if showLayerVisibilityTree && map}
-		<div class="absolute top-5 right-5 z-9">
-			<LayerVisibilityTree
-				{layers}
-				{osmLayer}
-				onLayerVisibilityChanged={handleLayerVisibilityChange}
-			/>
-		</div>
-	{/if}
 	{#if showSearchPanel && map}
-		<div class="absolute top-5 left-5 z-10 max-w-md">
+		<div class="absolute top-5 left-5 right-5 lg:right-auto z-10 lg:max-w-md">
 			<SearchPanel
 				olMapInstance={map}
 				onFeatureSelect={handleFeatureSelect}
 				onSearchError={handleSearchError}
 				{...searchPanelProps}
+			/>
+		</div>
+	{/if}
+	{#if showLayerVisibilityTree && map}
+		<div class="absolute top-28 right-5 lg:top-5 z-9">
+			<LayerVisibilityTree
+				{layers}
+				{osmLayer}
+				onLayerVisibilityChanged={handleLayerVisibilityChange}
 			/>
 		</div>
 	{/if}
