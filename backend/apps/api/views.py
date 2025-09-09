@@ -189,6 +189,39 @@ class TrenchViewSet(viewsets.ModelViewSet):
 
         return Response({"total_length": total_length, "count": queryset.count()})
 
+    @action(detail=False, methods=["get"], url_path="all")
+    def all_trenches(self, request):
+        """
+        Returns all trenches with project, flag, and search filters.
+        No pagination is used.
+        """
+        queryset = Trench.objects.all().order_by("id_trench")
+        project_id = request.query_params.get("project")
+        flag_id = request.query_params.get("flag")
+        search_term = request.query_params.get("search")
+
+        if project_id:
+            try:
+                project_id = int(project_id)
+                queryset = queryset.filter(project=project_id)
+            except ValueError:
+                queryset = queryset.none()
+
+        if flag_id:
+            try:
+                flag_id = int(flag_id)
+                queryset = queryset.filter(flag=flag_id)
+            except ValueError:
+                queryset = queryset.none()
+
+        if search_term:
+            queryset = queryset.filter(
+                Q(id_trench__icontains=search_term) | Q(comment__icontains=search_term)
+            )
+
+        serializer = TrenchSerializer(queryset, many=True)
+        return Response(serializer.data)
+
 
 class FeatureFilesViewSet(viewsets.ModelViewSet):
     """ViewSet for the FeatureFiles model :model:`api.FeatureFiles`.
@@ -794,8 +827,11 @@ class OlNodeViewSet(viewsets.ReadOnlyModelViewSet):
         - `flag`: Filter by flag ID
         """
         queryset = OlNode.objects.all()
+        uuid = self.request.query_params.get("uuid")
         project_id = self.request.query_params.get("project")
         flag_id = self.request.query_params.get("flag")
+        if uuid:
+            queryset = queryset.filter(uuid=uuid)
         if project_id:
             queryset = queryset.filter(project=project_id)
         if flag_id:

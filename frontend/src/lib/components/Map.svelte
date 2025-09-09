@@ -1,9 +1,9 @@
 <script>
 	import { onMount, createEventDispatcher, onDestroy } from 'svelte';
-	import { browser } from '$app/environment'; // Import browser check
+	import { browser } from '$app/environment';
 	import { mapCenter, mapZoom } from '$lib/stores/store';
-	import OpacitySlider from './OpacitySlider.svelte'; // Import the new OpacitySlider
-	import LayerVisibilityTree from './LayerVisibilityTree.svelte'; // Import the new LayerVisibilityTree
+	import OpacitySlider from './OpacitySlider.svelte';
+	import LayerVisibilityTree from './LayerVisibilityTree.svelte';
 
 	// Props
 	let {
@@ -16,20 +16,16 @@
 		onLayerVisibilityChanged = () => {}
 	} = $props();
 
-	let container; // div that will host the map
-	let map = $state(); // ol/Map instance
-	let osmLayer = $state(); // Reference to the OSM layer for opacity control
+	let container;
+	let map = $state();
+	let osmLayer = $state();
 	const dispatch = createEventDispatcher();
 
-	// Get initial values from the store for SSR safety
-	// We use $state for map so direct $store usage might cause issues
 	let initialCenter = $state(browser ? $mapCenter : [0, 0]);
 	let initialZoom = $state(browser ? $mapZoom : 2);
 
-	// Reactive state for the slider's current opacity value
-	let currentLayerOpacity = $state(1); // Default to fully opaque
+	let currentLayerOpacity = $state(1);
 
-	// Opacity Slider configuration
 	const opacitySliderConfig = {
 		minOpacity: 0,
 		maxOpacity: 1,
@@ -37,43 +33,32 @@
 	};
 
 	onMount(async () => {
-		// dynamically import OL modules to avoid SSR breakage
-		const [
-			{ default: OlMap },
-			{ default: OlView },
-			{ defaults: defaultControls } // defaults is a named export
-		] = await Promise.all([import('ol/Map'), import('ol/View'), import('ol/control')]);
+		const [{ default: OlMap }, { default: OlView }, { defaults: defaultControls }] =
+			await Promise.all([import('ol/Map'), import('ol/View'), import('ol/control')]);
 
-		// Import Tile and OSM here as they are also default exports
 		const [{ default: TileLayer }, { default: OSMSource }] = await Promise.all([
 			import('ol/layer/Tile'),
 			import('ol/source/OSM')
 		]);
 
-		// Create the default OSM base layer
 		osmLayer = new TileLayer({ source: new OSMSource(), opacity: currentLayerOpacity });
 
-		// Combine the default OSM layer with any layers passed in via props
-		// Prepend the OSM layer so it's the base layer
 		const mapLayers = [osmLayer, ...layers];
 
 		map = new OlMap({
 			target: container,
-			layers: mapLayers, // Use the combined layers array
+			layers: mapLayers,
 			view: new OlView({
 				center: initialCenter,
-				zoom: initialZoom, // Use initialZoom for map setup
+				zoom: initialZoom,
 				...viewOptions
 			}),
 			controls: defaultControls().extend(mapOptions.controls || []),
 			...mapOptions
 		});
 
-		// Initialize currentLayerOpacity from the layer itself, though set above.
-		// This is more for consistency if layer had a different initial opacity.
 		currentLayerOpacity = osmLayer.getOpacity();
 
-		// let parent know map is ready
 		dispatch('ready', { map });
 
 		map.on('moveend', () => {
@@ -82,36 +67,33 @@
 			const newZoom = v.getZoom() ?? 2;
 
 			if (browser) {
-				// Update the store
 				$mapCenter = newCenter;
 				$mapZoom = newZoom;
 			}
-			// Also dispatch event for potential parent listeners
+
 			dispatch('moveend', { center: newCenter, zoom: newZoom });
 		});
 		map.on('click', (e) => dispatch('click', e));
 
 		return () => {
 			if (map) {
-				map.setTarget(undefined); // Use undefined as per OL docs recommendation
-				map = undefined; // Clear the state
+				map.setTarget(undefined);
+				map = undefined;
 			}
 		};
 	});
 
-	// Cleanup function
 	onDestroy(() => {
 		const currentMap = map;
 		if (currentMap) {
 			currentMap.setTarget(undefined);
-			map = undefined; // Ensure map instance is cleared
+			map = undefined;
 		}
 	});
 
 	function handleOpacitySliderChange(newOpacity) {
 		currentLayerOpacity = newOpacity;
 		if (osmLayer) {
-			// Check if osmLayer is initialized
 			osmLayer.setOpacity(newOpacity);
 		}
 	}

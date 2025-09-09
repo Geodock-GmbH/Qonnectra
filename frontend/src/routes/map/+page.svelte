@@ -7,9 +7,13 @@
 
 	// Svelte
 	import Map from '$lib/components/Map.svelte';
+	import SearchInput from '$lib/components/SearchInput.svelte';
+	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { trenchColor, trenchColorSelected } from '$lib/stores/store';
 	import { onDestroy } from 'svelte';
 	import { selectedProject } from '$lib/stores/store';
+	import { enhance } from '$app/forms';
+	import { parse } from 'devalue';
 
 	// OpenLayers
 	import 'ol/ol.css';
@@ -25,6 +29,15 @@
 		createAddressTileSource,
 		createNodeTileSource
 	} from '$lib/map';
+
+	// Search utilities
+	import {
+		createHighlightLayer,
+		createHighlightStyle,
+		parseFeatureGeometry,
+		zoomToFeature,
+		debounce
+	} from '$lib/map/searchUtils';
 
 	// Toaster
 	const toaster = createToaster({
@@ -47,6 +60,13 @@
 	let popupOverlay = $state();
 	let selectionStore = $state({});
 
+	// Search state
+	let searchQuery = $state('');
+	let searchResults = $state([]);
+	let isSearching = $state(false);
+	let showSearchResults = $state(false);
+	let highlightLayer = $state();
+
 	// Error handler for tile loading
 	function handleTileError(message, description) {
 		toaster.create({
@@ -54,6 +74,120 @@
 			message: message,
 			description: description
 		});
+	}
+
+	// Search functions
+	const debouncedSearch = debounce(async (query) => {
+		if (!query.trim()) {
+			searchResults = [];
+			showSearchResults = false;
+			return;
+		}
+
+		isSearching = true;
+		try {
+			const formData = new FormData();
+			formData.append('searchQuery', query);
+			formData.append('projectId', $selectedProject);
+
+			const response = await fetch('?/searchFeatures', {
+				method: 'POST',
+				body: formData
+			});
+
+			if (response.ok) {
+				let rawResponse = await response.json();
+				let parsedData = parse(rawResponse.data);
+
+				searchResults = parsedData;
+				showSearchResults = true;
+			} else {
+				console.error('Failed to fetch search results:', await response.text());
+				searchResults = null;
+				showSearchResults = false;
+			}
+		} catch (error) {
+			console.error('Search error:', error);
+			toaster.error({
+				title: m.error(),
+				description: m.error_search_failed()
+			});
+		} finally {
+			isSearching = false;
+		}
+	}, 300);
+
+	function handleSearch() {
+		debouncedSearch(searchQuery);
+	}
+
+	async function handleFeatureSelect(selectedFeature) {
+		if (!selectedFeature || !olMapInstance) return;
+
+		const { type, value, label } = selectedFeature.items[0];
+
+		try {
+			const formData = new FormData();
+			formData.append('featureType', type);
+			formData.append('featureUuid', value);
+
+			const response = await fetch('?/getFeatureDetails', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = await response.json();
+			let parsedData = parse(result.data);
+
+			if (
+				result.type === 'success' &&
+				parsedData?.success &&
+				parsedData?.feature &&
+				parsedData.feature.length > 0
+			) {
+				const feature = parsedData.feature[0];
+
+				const geometry = await parseFeatureGeometry(
+					feature,
+					'EPSG:25832', //TODO: Change to not be hardcoded
+					olMapInstance.getView().getProjection()
+				);
+
+				if (!highlightLayer) {
+					const highlightStyle = await createHighlightStyle($trenchColorSelected);
+					highlightLayer = await createHighlightLayer(highlightStyle);
+					olMapInstance.addLayer(highlightLayer);
+				}
+
+				const [{ default: Feature }] = await Promise.all([import('ol/Feature')]);
+
+				const highlightFeature = new Feature(geometry);
+				highlightFeature.setId(feature.id);
+
+				highlightLayer.getSource().clear();
+				highlightLayer.getSource().addFeature(highlightFeature);
+
+				await zoomToFeature(olMapInstance, geometry, highlightLayer);
+
+				searchQuery = '';
+				searchResults = [];
+				showSearchResults = false;
+
+				toaster.success({
+					title: m.feature_found()
+				});
+			} else {
+				console.error('Invalid response structure:', parsedData);
+				toaster.error({
+					title: m.error_feature_not_found()
+				});
+			}
+		} catch (error) {
+			console.error('Error fetching feature details:', error);
+			toaster.error({
+				title: m.error9_feature_not_found()
+			});
+		}
 	}
 
 	// Create tile sources and layers
@@ -73,9 +207,8 @@
 		addressLayer = createAddressLayer($selectedProject, m.address(), handleTileError);
 		nodeLayer = createNodeLayer($selectedProject, m.node(), handleTileError);
 	} catch (error) {
-		toaster.create({
-			type: 'error',
-			message: 'Error initializing map tiles',
+		toaster.error({
+			title: m.error_initializing_map_tiles(),
 			description: error.message || 'Could not set up the tile layer.'
 		});
 		vectorTileLayer = undefined;
@@ -101,18 +234,16 @@
 	// Handler for the map ready event
 	function handleMapReady(event) {
 		olMapInstance = event.detail.map;
-		initializeMapInteractions(); // Call this after map is ready
+		initializeMapInteractions();
 	}
 
-	// Function to initialize map interactions (click listener, popup, selection layer)
+	// Function to initialize map interactions
 	function initializeMapInteractions() {
 		if (!olMapInstance || !vectorTileLayer || !tileSource) return;
 
-		// Create the selection layers for each layer type
 		selectionLayer = createSelectionLayer(tileSource, $trenchColorSelected, () => selectionStore);
 		olMapInstance.addLayer(selectionLayer);
 
-		// Create selection layer for addresses
 		addressSelectionLayer = createSelectionLayer(
 			addressTileSource,
 			$trenchColorSelected,
@@ -120,7 +251,6 @@
 		);
 		olMapInstance.addLayer(addressSelectionLayer);
 
-		// Create selection layer for nodes
 		nodeSelectionLayer = createSelectionLayer(
 			nodeTileSource,
 			$trenchColorSelected,
@@ -128,7 +258,6 @@
 		);
 		olMapInstance.addLayer(nodeSelectionLayer);
 
-		// Create and add a popup overlay
 		const popupContainer = document.getElementById('popup');
 		if (!popupContainer) {
 			console.error('Popup container element not found!');
@@ -147,8 +276,7 @@
 		if (closer) {
 			closer.onclick = () => {
 				popupOverlay.setPosition(undefined);
-				selectionStore = {}; // Clear selection on popup close
-				// Refresh all selection layers
+				selectionStore = {};
 				if (selectionLayer) selectionLayer.changed();
 				if (addressSelectionLayer) addressSelectionLayer.changed();
 				if (nodeSelectionLayer) nodeSelectionLayer.changed();
@@ -165,7 +293,6 @@
 			olMapInstance.forEachFeatureAtPixel(
 				event.pixel,
 				(feature, layer) => {
-					// The callback is called for each feature found at the pixel (within hitTolerance)
 					clickedFeatures.push(feature);
 				},
 				{
@@ -176,11 +303,11 @@
 			);
 
 			if (clickedFeatures.length > 0) {
-				const feature = clickedFeatures[0]; // Select the first feature found
+				highlightLayer.getSource().clear();
+				const feature = clickedFeatures[0];
 				const featureId = feature.getId();
 
 				if (featureId) {
-					// Single selection: clear previous, select new
 					selectionStore = {};
 					selectionStore[featureId] = feature;
 
@@ -200,16 +327,13 @@
 					if (content) content.innerHTML = html;
 					popupOverlay.setPosition(event.coordinate);
 				} else {
-					// No feature with ID found, clear selection
 					selectionStore = {};
 					popupOverlay.setPosition(undefined);
 				}
 			} else {
-				// No features found at click, clear selection
 				selectionStore = {};
 				popupOverlay.setPosition(undefined);
 			}
-			// Refresh all selection layers
 			if (selectionLayer) selectionLayer.changed();
 			if (addressSelectionLayer) addressSelectionLayer.changed();
 			if (nodeSelectionLayer) nodeSelectionLayer.changed();
@@ -224,37 +348,41 @@
 			if (nodeSelectionLayer) olMapInstance.removeLayer(nodeSelectionLayer);
 			if (addressLayer) olMapInstance.removeLayer(addressLayer);
 			if (nodeLayer) olMapInstance.removeLayer(nodeLayer);
+			if (highlightLayer) olMapInstance.removeLayer(highlightLayer);
 		}
 		olMapInstance = undefined;
 		popupOverlay = undefined;
 		selectionStore = {};
-		// Selection layers share sources with main layers, so don't dispose sources here
 		selectionLayer = undefined;
 		addressSelectionLayer = undefined;
 		nodeSelectionLayer = undefined;
 
 		if (vectorTileLayer && vectorTileLayer.getSource()) {
-			vectorTileLayer.getSource().dispose(); // Dispose the source
+			vectorTileLayer.getSource().dispose();
 		}
 		vectorTileLayer = undefined;
 
 		if (addressLayer && addressLayer.getSource()) {
-			addressLayer.getSource().dispose(); // Dispose the address source
+			addressLayer.getSource().dispose();
 		}
 		addressLayer = undefined;
 		addressTileSource = undefined;
 
 		if (nodeLayer && nodeLayer.getSource()) {
-			nodeLayer.getSource().dispose(); // Dispose the node source
+			nodeLayer.getSource().dispose();
 		}
 		nodeLayer = undefined;
 		nodeTileSource = undefined;
+
+		if (highlightLayer && highlightLayer.getSource()) {
+			highlightLayer.getSource().dispose();
+		}
+		highlightLayer = undefined;
 	});
 
 	if (data.error) {
-		toaster.create({
-			type: 'error',
-			message: m.error_loading_map_features(),
+		toaster.error({
+			title: m.error_loading_map_features(),
 			description: data.error
 		});
 	}
@@ -267,6 +395,29 @@
 <Toaster {toaster}></Toaster>
 
 <div class="map-container relative h-full w-full">
+	<!-- Search Controls -->
+	<div class="absolute top-3 left-15 right-4 z-10 flex flex-col space-y-2 max-w-md">
+		<div class="bg-surface-50-950 rounded-lg border border-surface-200-800 shadow-lg p-3">
+			<SearchInput bind:value={searchQuery} onSearch={handleSearch} />
+
+			{#if showSearchResults && searchResults.length > 0}
+				<div class="mt-2">
+					<GenericCombobox
+						data={searchResults}
+						placeholder="Select a feature..."
+						loading={isSearching}
+						onValueChange={handleFeatureSelect}
+						classes="touch-manipulation text-sm"
+						zIndex="20"
+					/>
+				</div>
+			{/if}
+
+			{#if isSearching}
+				<div class="mt-2 text-sm text-surface-600-400">Searching...</div>
+			{/if}
+		</div>
+	</div>
 	{#if data.error && !vectorTileLayer}
 		<div class="p-4 text-red-700 bg-red-100 border border-red-400 rounded">
 			<p>Error loading initial map data: {data.error}</p>
@@ -281,7 +432,8 @@
 					...(nodeLayer ? [nodeLayer] : []),
 					...(selectionLayer ? [selectionLayer] : []),
 					...(addressSelectionLayer ? [addressSelectionLayer] : []),
-					...(nodeSelectionLayer ? [nodeSelectionLayer] : [])
+					...(nodeSelectionLayer ? [nodeSelectionLayer] : []),
+					...(highlightLayer ? [highlightLayer] : [])
 				]}
 				on:ready={handleMapReady}
 			/>

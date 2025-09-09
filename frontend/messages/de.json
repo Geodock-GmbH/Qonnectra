@@ -182,5 +182,9 @@
 	"connect_selected_nodes": "Ausgewählte Knoten verbinden",
 	"clear_selection": "Auswahl löschen",
 	"created_connections": "Verbindungen erfolgreich erstellt",
-	"failed_to_create_connections": "Fehler beim Erstellen von Verbindungen"
+	"failed_to_create_connections": "Fehler beim Erstellen von Verbindungen",
+	"error_search_failed": "Fehler beim Suchen. Bitte versuche es erneut.",
+	"feature_found": "Feature gefunden!",
+	"error_feature_not_found": "Feature nicht gefunden",
+	"error_initializing_map_tiles": "Fehler beim Initialisieren der Karten-Tile-Layer"
 }
