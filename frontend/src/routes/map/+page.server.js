@@ -132,8 +132,6 @@ export const actions = {
 
 			const featureData = await response.json();
 
-			console.log('Feature data:', featureData);
-
 			// Return the first result since we're searching by UUID
 			const feature = featureData.results?.features || featureData[0];
 

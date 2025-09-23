@@ -9,7 +9,8 @@
 		IconMap2,
 		IconSettings,
 		IconTextPlus,
-		IconAffiliate
+		IconAffiliate,
+		IconTopologyRing2
 	} from '@tabler/icons-svelte';
 
 	// Paraglide
@@ -73,6 +74,14 @@
 				selected={page.url.pathname.startsWith('/pipe-branch')}
 			>
 				<IconAffiliate size={28} class="text-surface-700-300" />
+			</Navigation.Tile>
+			<Navigation.Tile
+				href="/cable"
+				labelExpanded={m.cable_management()}
+				title="Cable"
+				selected={page.url.pathname.startsWith('/cable')}
+			>
+				<IconTopologyRing2 size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
 		{/snippet}
 		{#snippet footer()}

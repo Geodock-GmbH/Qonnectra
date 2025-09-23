@@ -62,6 +62,8 @@
 	"status_development": "Status",
 	"import": "Import",
 	"overview": "Overview",
+	"cable": "Cable",
+	"cable_management": "Cable management",
 	"title_missing_information": "Missing information",
 	"missing_information": "Please enter both username and password.",
 	"title_logging_in": "Logging in...",

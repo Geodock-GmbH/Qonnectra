@@ -151,7 +151,7 @@
 		</div>
 	{/if}
 	{#if showSearchPanel && map}
-		<div class="absolute top-5 left-5 right-5 lg:right-auto z-10 lg:max-w-md">
+		<div class="absolute top-5 left-5 right-5 lg:right-auto z-9 lg:max-w-md">
 			<SearchPanel
 				olMapInstance={map}
 				onFeatureSelect={handleFeatureSelect}

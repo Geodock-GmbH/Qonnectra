@@ -119,6 +119,7 @@ services:
       - ./qgis/projects:/projects:ro
       - ./qgis/data:/data:ro
       - ./qgis/pg_service.conf:/etc/postgresql-common/pg_service.conf:ro
+      - ./qgis/nginx.conf:/etc/nginx/sites-available/default:ro
     environment:
       - QGIS_SERVER_LOG_LEVEL=2
       - QGIS_SERVER_LOG_STDERR=1
