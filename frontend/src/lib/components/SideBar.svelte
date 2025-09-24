@@ -88,7 +88,7 @@
 			<Navigation.Tile
 				href="/settings"
 				labelExpanded={m.settings()}
-				title="Settings"
+				title={m.settings()}
 				selected={page.url.pathname === '/settings'}
 			>
 				<IconSettings size={28} class="text-surface-700-300" />
