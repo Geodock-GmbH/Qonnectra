@@ -42,7 +42,7 @@
 		{ href: '/trench', label: m.conduit_connection(), icon: IconTextPlus },
 		{ href: '/conduit', label: m.conduit_management(), icon: IconArrowBarToRight },
 		{ href: '/pipe-branch', label: m.pipe_branch(), icon: IconAffiliate },
-		{ href: '/cable', label: m.cable_management(), icon: IconTopologyRing2 },
+		{ href: '/network-schema', label: m.network_schema(), icon: IconTopologyRing2 },
 		{ href: '/settings', label: m.settings(), icon: IconSettings }
 	];
 

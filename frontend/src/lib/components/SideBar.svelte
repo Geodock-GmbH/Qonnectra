@@ -38,7 +38,7 @@
 			<Navigation.Tile
 				href="/dashboard"
 				labelExpanded={m.dashboard()}
-				title="Dashboard"
+				title={m.dashboard()}
 				selected={page.url.pathname.startsWith('/dashboard')}
 			>
 				<IconDashboard size={28} class="text-surface-700-300" />
@@ -46,7 +46,7 @@
 			<Navigation.Tile
 				href="/map"
 				labelExpanded={m.map()}
-				title="Karte"
+				title={m.map()}
 				selected={page.url.pathname === '/map'}
 			>
 				<IconMap2 size={28} class="text-surface-700-300" />
@@ -54,7 +54,7 @@
 			<Navigation.Tile
 				href="/trench"
 				labelExpanded={m.conduit_connection()}
-				title="Trench"
+				title={m.conduit_connection()}
 				selected={page.url.pathname.startsWith('/trench')}
 			>
 				<IconTextPlus size={28} class="text-surface-700-300" />
@@ -62,7 +62,7 @@
 			<Navigation.Tile
 				href="/conduit"
 				labelExpanded={m.conduit_management()}
-				title="Conduit"
+				title={m.conduit_management()}
 				selected={page.url.pathname.startsWith('/conduit')}
 			>
 				<IconArrowBarToRight size={28} class="text-surface-700-300" />
@@ -70,16 +70,16 @@
 			<Navigation.Tile
 				href="/pipe-branch"
 				labelExpanded={m.pipe_branch()}
-				title="Pipe branch"
+				title={m.pipe_branch()}
 				selected={page.url.pathname.startsWith('/pipe-branch')}
 			>
 				<IconAffiliate size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
 			<Navigation.Tile
-				href="/cable"
-				labelExpanded={m.cable_management()}
-				title="Cable"
-				selected={page.url.pathname.startsWith('/cable')}
+				href="/network-schema"
+				labelExpanded={m.network_schema()}
+				title={m.network_schema()}
+				selected={page.url.pathname.startsWith('/network-schema')}
 			>
 				<IconTopologyRing2 size={28} class="text-surface-700-300" />
 			</Navigation.Tile>

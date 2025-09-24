@@ -74,7 +74,7 @@
 </script>
 
 <svelte:head>
-	<title>{m.cable_management()}</title>
+	<title>{m.network_schema()}</title>
 </svelte:head>
 
 <div class="flex gap-4 h-full">

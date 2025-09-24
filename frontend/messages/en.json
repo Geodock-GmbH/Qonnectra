@@ -64,6 +64,7 @@
 	"overview": "Overview",
 	"cable": "Cable",
 	"cable_management": "Cable management",
+	"network_schema": "Network schema",
 	"title_missing_information": "Missing information",
 	"missing_information": "Please enter both username and password.",
 	"title_logging_in": "Logging in...",
