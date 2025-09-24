@@ -26,11 +26,11 @@
 	<!-- Component -->
 	<Navigation.Rail expanded={$sidebarExpanded}>
 		{#snippet header()}
-			<!-- TODO: Add Logo and Title -->
+			<!-- TODO: Add Logo -->
 			<div class="flex items-center gap-2">
 				<img src="/favicon.png" alt="Logo" class="w-12 h12" />
 				{#if $sidebarExpanded}
-					<h1 class="text-2xl font-bold">Title</h1>
+					<h1 class="text-2xl font-bold">Qonectra</h1>
 				{/if}
 			</div>
 		{/snippet}

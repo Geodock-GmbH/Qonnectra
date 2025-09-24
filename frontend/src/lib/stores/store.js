@@ -21,3 +21,4 @@ export const routingMode = persisted('routingMode', false);
 export const routingTolerance = persisted('routingTolerance', [1]);
 export const selectedConduit = session('selectedConduit', undefined);
 export const theme = persisted('theme', 'vox');
+export const drawerWidth = persisted('drawerWidth', 400);

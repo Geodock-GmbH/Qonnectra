@@ -15,6 +15,7 @@ from .views import (
     FlagsViewSet,
     MicroductConnectionViewSet,
     MicroductViewSet,
+    NodeCanvasCoordinatesView,
     NodeViewSet,
     OlAddressTileViewSet,
     OlAddressViewSet,
@@ -106,5 +107,10 @@ urlpatterns = [
         "trenches-near-node/",
         TrenchesNearNodeView.as_view(),
         name="trenches-near-node",
+    ),
+    path(
+        "canvas-coordinates/",
+        NodeCanvasCoordinatesView.as_view(),
+        name="node-canvas-coordinates",
     ),
 ]

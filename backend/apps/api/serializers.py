@@ -699,6 +699,8 @@ class NodeSerializer(GeoFeatureModelSerializer):
         required=False, input_formats=["%Y/%m/%d"], format="%d.%m.%Y"
     )
     geom = GeometryField()
+    canvas_x = serializers.FloatField(required=False, allow_null=True)
+    canvas_y = serializers.FloatField(required=False, allow_null=True)
     project_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=Projects.objects.all(),
@@ -732,6 +734,8 @@ class NodeSerializer(GeoFeatureModelSerializer):
         fields["warranty"].label = _("Warranty")
         fields["date"].label = _("Date")
         fields["geom"].label = _("Geometry")
+        fields["canvas_x"].label = _("Canvas X")
+        fields["canvas_y"].label = _("Canvas Y")
         fields["project_id"].label = _("Project")
         fields["flag_id"].label = _("Flag")
 

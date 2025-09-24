@@ -824,6 +824,133 @@ class NodeViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+class NodeCanvasCoordinatesView(APIView):
+    """
+    API view to calculate and store canvas coordinates for nodes.
+
+    This endpoint calculates canvas coordinates based on geographic coordinates
+    and stores them in the canvas_x and canvas_y fields.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, format=None):
+        """
+        Check the status of canvas coordinates for nodes.
+
+        Returns:
+        {
+            "total_nodes": int,
+            "nodes_with_canvas": int,
+            "nodes_missing_canvas": int,
+            "sync_needed": bool
+        }
+        """
+        project_id = request.query_params.get("project_id")
+        flag_id = request.query_params.get("flag_id")
+
+        queryset = Node.objects.filter(geom__isnull=False)
+
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag_id:
+            queryset = queryset.filter(flag=flag_id)
+
+        total_nodes = queryset.count()
+        nodes_with_canvas = queryset.filter(
+            canvas_x__isnull=False, canvas_y__isnull=False
+        ).count()
+        nodes_missing_canvas = total_nodes - nodes_with_canvas
+
+        return Response(
+            {
+                "total_nodes": total_nodes,
+                "nodes_with_canvas": nodes_with_canvas,
+                "nodes_missing_canvas": nodes_missing_canvas,
+                "sync_needed": nodes_missing_canvas > 0,
+            }
+        )
+
+    def post(self, request, format=None):
+        """
+        Calculate and store canvas coordinates for nodes.
+
+        Expected request body:
+        {
+            "project_id": int,  # Optional: filter by project
+            "flag_id": int,     # Optional: filter by flag
+            "scale": float      # Optional: scale factor (default: 1.0)
+        }
+        """
+        project_id = request.data.get("project_id")
+        flag_id = request.data.get("flag_id")
+        scale = request.data.get("scale", 1.0)
+
+        # Get nodes to process
+        queryset = Node.objects.filter(geom__isnull=False)
+
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag_id:
+            queryset = queryset.filter(flag=flag_id)
+
+        nodes = list(queryset)
+
+        if not nodes:
+            return Response({"message": "No nodes found with geometry"}, status=400)
+
+        # Extract coordinates from all nodes
+        coordinates = []
+        for node in nodes:
+            if node.geom:
+                coords = node.geom.coords
+                coordinates.append({"x": coords[0], "y": coords[1], "node": node})
+
+        if not coordinates:
+            return Response({"message": "No valid coordinates found"}, status=400)
+
+        # Calculate bounding box
+        min_x = min(coord["x"] for coord in coordinates)
+        max_x = max(coord["x"] for coord in coordinates)
+        min_y = min(coord["y"] for coord in coordinates)
+        max_y = max(coord["y"] for coord in coordinates)
+
+        # Calculate center
+        center_x = (min_x + max_x) / 2
+        center_y = (min_y + max_y) / 2
+
+        # Update nodes with canvas coordinates
+        updated_count = 0
+        for coord_data in coordinates:
+            node = coord_data["node"]
+            geo_x = coord_data["x"]
+            geo_y = coord_data["y"]
+
+            # Transform to canvas coordinates
+            canvas_x = (geo_x - center_x) * scale
+            canvas_y = -(geo_y - center_y) * scale  # Flip Y axis
+
+            node.canvas_x = canvas_x
+            node.canvas_y = canvas_y
+            node.save(update_fields=["canvas_x", "canvas_y"])
+            updated_count += 1
+
+        return Response(
+            {
+                "message": f"Successfully updated canvas coordinates for {updated_count} nodes",
+                "updated_count": updated_count,
+                "scale": scale,
+                "center": {"x": center_x, "y": center_y},
+                "bounds": {
+                    "min_x": min_x,
+                    "max_x": max_x,
+                    "min_y": min_y,
+                    "max_y": max_y,
+                },
+            }
+        )
+
+
 class OlNodeViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for the OlNode model :model:`api.OlNode`.
 

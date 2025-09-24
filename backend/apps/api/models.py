@@ -1079,6 +1079,8 @@ class Node(models.Model):
     warranty = models.DateField(_("Warranty"), null=True)
     date = models.DateField(_("Date"), null=True)
     geom = gis_models.PointField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
+    canvas_x = models.FloatField(_("Canvas X"), null=True, blank=True)
+    canvas_y = models.FloatField(_("Canvas Y"), null=True, blank=True)
     flag = models.ForeignKey(
         Flags,
         null=False,
@@ -1112,6 +1114,8 @@ class Node(models.Model):
             models.Index(fields=["manufacturer"], name="idx_node_manufacturer"),
             models.Index(fields=["warranty"], name="idx_node_warranty"),
             models.Index(fields=["date"], name="idx_node_date"),
+            models.Index(fields=["canvas_x"], name="idx_node_canvas_x"),
+            models.Index(fields=["canvas_y"], name="idx_node_canvas_y"),
             gis_models.Index(fields=["geom"], name="idx_node_geom"),
         ]
         constraints = [
