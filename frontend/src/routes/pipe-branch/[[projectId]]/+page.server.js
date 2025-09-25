@@ -1,4 +1,5 @@
 import { API_URL } from '$env/static/private';
+import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 import { fail } from '@sveltejs/kit';
 
 /** @type {import('./$types').PageServerLoad} */
@@ -249,12 +250,3 @@ export const actions = {
 		}
 	}
 };
-
-function getAuthHeaders(cookies) {
-	const accessToken = cookies.get('api-access-token');
-	const headers = new Headers();
-	if (accessToken) {
-		headers.append('Cookie', `api-access-token=${accessToken}`);
-	}
-	return headers;
-}

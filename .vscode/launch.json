@@ -1,0 +1,152 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Django Tests (pytest)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "backend/apps/api/tests",
+        "-v",
+        "--tb=short",
+        "-s"
+      ],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "DJANGO_SETTINGS_MODULE": "core.settings",
+        "PYTHONPATH": "${workspaceFolder}/backend"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "django": true
+    },
+    {
+      "name": "Debug Specific Test File",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "${file}",
+        "-v",
+        "--tb=short",
+        "-s"
+      ],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "DJANGO_SETTINGS_MODULE": "core.settings",
+        "PYTHONPATH": "${workspaceFolder}/backend"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "django": true
+    },
+    {
+      "name": "Debug Django Server",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend/manage.py",
+      "args": [
+        "runserver",
+        "0.0.0.0:8000"
+      ],
+      "cwd": "${workspaceFolder}/backend",
+      "env": {
+        "DJANGO_SETTINGS_MODULE": "core.settings",
+        "PYTHONPATH": "${workspaceFolder}/backend"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "django": true
+    },
+    {
+      "name": "Debug Django Tests (models)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "backend/apps/api/tests/test_models.py",
+        "-v",
+        "--tb=short",
+        "-s"
+      ],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "DJANGO_SETTINGS_MODULE": "core.settings",
+        "PYTHONPATH": "${workspaceFolder}/backend"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "django": true
+    },
+    {
+      "name": "Debug Django Tests (views)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "backend/apps/api/tests/test_views.py",
+        "-v",
+        "--tb=short",
+        "-s"
+      ],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "DJANGO_SETTINGS_MODULE": "core.settings",
+        "PYTHONPATH": "${workspaceFolder}/backend"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "django": true
+    },
+    {
+      "name": "Debug Django Tests (integration)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "backend/apps/api/tests/test_integration.py",
+        "-v",
+        "--tb=short",
+        "-s"
+      ],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "DJANGO_SETTINGS_MODULE": "core.settings",
+        "PYTHONPATH": "${workspaceFolder}/backend"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "django": true
+    },
+    {
+      "name": "Run Playwright Tests",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/frontend/node_modules/@playwright/test/cli.js",
+      "args": [
+        "test"
+      ],
+      "cwd": "${workspaceFolder}/frontend",
+      "console": "integratedTerminal",
+      "env": {
+        "NODE_ENV": "test"
+      }
+    },
+    {
+      "name": "Debug Playwright Tests",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/frontend/node_modules/@playwright/test/cli.js",
+      "args": [
+        "test",
+        "--debug"
+      ],
+      "cwd": "${workspaceFolder}/frontend",
+      "console": "integratedTerminal",
+      "env": {
+        "NODE_ENV": "test"
+      }
+    }
+  ]
+}

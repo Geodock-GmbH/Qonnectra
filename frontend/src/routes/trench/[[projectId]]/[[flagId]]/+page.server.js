@@ -1,5 +1,6 @@
 import { API_URL } from '$env/static/private';
 import { m } from '$lib/paraglide/messages';
+import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 import { error } from '@sveltejs/kit';
 
 /** @type {import('./$types').PageServerLoad} */
@@ -33,15 +34,6 @@ export async function load({ fetch, params, depends, cookies }) {
 		console.error('Error fetching conduits:', error);
 		return { conduits: [], conduitsError: m.error_fetching_conduits() };
 	}
-}
-
-function getAuthHeaders(cookies) {
-	const accessToken = cookies.get('api-access-token');
-	const headers = new Headers();
-	if (accessToken) {
-		headers.append('Cookie', `api-access-token=${accessToken}`);
-	}
-	return headers;
 }
 
 /** @type {import('./$types').Actions} */

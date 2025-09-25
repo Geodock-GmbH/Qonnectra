@@ -1,10 +1,10 @@
 import { API_URL } from '$env/static/private';
-import { error } from '@sveltejs/kit';
+import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ fetch, url, depends, cookies, params }) {
 	depends('app:conduits');
-
+	const headers = getAuthHeaders(cookies);
 	const searchParams = url.searchParams;
 	const projectId = params.projectId;
 	const searchTerm = searchParams.get('search') || '';
@@ -32,27 +32,27 @@ export async function load({ fetch, url, depends, cookies, params }) {
 				`${API_URL}conduit/all/?project=${projectId}${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''}`,
 				{
 					credentials: 'include',
-					headers: getAuthHeaders(cookies)
+					headers: headers
 				}
 			),
 			// Select options
 			fetch(`${API_URL}attributes_conduit_type/`, {
 				credentials: 'include',
-				headers: getAuthHeaders(cookies)
+				headers: headers
 			}),
 			fetch(`${API_URL}attributes_status/`, {
 				credentials: 'include',
-				headers: getAuthHeaders(cookies)
+				headers: headers
 			}),
 			fetch(`${API_URL}attributes_network_level/`, {
 				credentials: 'include',
-				headers: getAuthHeaders(cookies)
+				headers: headers
 			}),
 			fetch(`${API_URL}attributes_company/`, {
 				credentials: 'include',
-				headers: getAuthHeaders(cookies)
+				headers: headers
 			}),
-			fetch(`${API_URL}flags/`, { credentials: 'include', headers: getAuthHeaders(cookies) })
+			fetch(`${API_URL}flags/`, { credentials: 'include', headers: headers })
 		]);
 
 		// Process pipes data
@@ -140,13 +140,4 @@ export async function load({ fetch, url, depends, cookies, params }) {
 			flags: []
 		};
 	}
-}
-
-function getAuthHeaders(cookies) {
-	const accessToken = cookies.get('api-access-token');
-	const headers = new Headers();
-	if (accessToken) {
-		headers.append('Cookie', `api-access-token=${accessToken}`);
-	}
-	return headers;
 }

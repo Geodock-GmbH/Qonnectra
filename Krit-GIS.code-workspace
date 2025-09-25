@@ -1,0 +1,44 @@
+{
+  "folders": [
+    {
+      "name": "Krit-GIS (Root)",
+      "path": "."
+    },
+    {
+      "name": "Backend (Django)",
+      "path": "./backend"
+    },
+    {
+      "name": "Frontend (Svelte)",
+      "path": "./frontend"
+    }
+  ],
+  "settings": {
+    "python.defaultInterpreterPath": "./backend/.venv/bin/python",
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestArgs": [
+      "backend/apps/api",
+      "-v",
+      "--tb=short"
+    ],
+    "python.testing.cwd": "${workspaceFolder}",
+    "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    "playwright.reuseBrowser": false,
+    "playwright.showTrace": false
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "ms-python.pylint",
+      "ms-python.flake8",
+      "ms-python.black-formatter",
+      "ms-python.isort",
+      "ms-playwright.playwright",
+      "svelte.svelte-vscode",
+      "bradlc.vscode-tailwindcss",
+      "ms-vscode.vscode-json",
+      "redhat.vscode-yaml"
+    ]
+  }
+}

@@ -8,6 +8,7 @@ from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
 
 from .storage import NextcloudStorage
 
@@ -1376,3 +1377,83 @@ class MicroductConnection(models.Model):
 
     def __str__(self):
         return self.uuid_microduct_from.name + " -> " + self.uuid_microduct_to.name
+
+
+class CanvasSyncStatus(models.Model):
+    """
+    Tracks canvas coordinate synchronization operations to prevent concurrent syncs.
+    Ensures only one sync operation runs per project/flag combination at a time.
+    """
+
+    SYNC_STATUS_CHOICES = [
+        ('IDLE', 'Idle'),
+        ('IN_PROGRESS', 'In Progress'),
+        ('COMPLETED', 'Completed'),
+        ('FAILED', 'Failed'),
+    ]
+
+    sync_key = models.CharField(
+        max_length=100,
+        unique=True,
+        help_text="Unique identifier for sync operation (e.g., 'project_1', 'project_1_flag_5')"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=SYNC_STATUS_CHOICES,
+        default='IDLE'
+    )
+    started_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    last_heartbeat = models.DateTimeField(null=True, blank=True)
+
+    # Sync metadata
+    scale = models.FloatField(null=True, blank=True)
+    center_x = models.FloatField(null=True, blank=True)
+    center_y = models.FloatField(null=True, blank=True)
+    nodes_processed = models.IntegerField(default=0)
+    error_message = models.TextField(null=True, blank=True)
+
+    class Meta:
+        db_table = "canvas_sync_status"
+        verbose_name = _("Canvas Sync Status")
+        verbose_name_plural = _("Canvas Sync Statuses")
+
+    def __str__(self):
+        return f"{self.sync_key} - {self.status}"
+
+    def is_stale(self, timeout_minutes=10):
+        """Check if sync operation is stale (no heartbeat for timeout_minutes)"""
+        if not self.last_heartbeat:
+            return True
+        return timezone.now() - self.last_heartbeat > timezone.timedelta(minutes=timeout_minutes)
+
+    def update_heartbeat(self):
+        """Update heartbeat timestamp to indicate sync is still active"""
+        self.last_heartbeat = timezone.now()
+        self.save(update_fields=['last_heartbeat'])
+
+    @classmethod
+    def get_sync_key(cls, project_id, flag_id=None):
+        """Generate consistent sync key for project/flag combination"""
+        if flag_id:
+            return f"project_{project_id}_flag_{flag_id}"
+        return f"project_{project_id}"
+
+    @classmethod
+    def cleanup_stale_syncs(cls, timeout_minutes=10):
+        """Clean up stale sync operations that are stuck in IN_PROGRESS"""
+        stale_cutoff = timezone.now() - timezone.timedelta(minutes=timeout_minutes)
+        cls.objects.filter(
+            status='IN_PROGRESS',
+            last_heartbeat__lt=stale_cutoff
+        ).update(
+            status='FAILED',
+            completed_at=timezone.now(),
+            error_message='Sync operation timed out'
+        )

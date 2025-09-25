@@ -1,8 +1,10 @@
 import { API_URL } from '$env/static/private';
+import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ fetch, params, cookies }) {
 	const { projectId } = params;
+	const headers = getAuthHeaders(cookies);
 
 	if (!projectId) {
 		return { totalLength: 0, count: 0, lengthByTypes: [] };
@@ -13,19 +15,19 @@ export async function load({ fetch, params, cookies }) {
 			await Promise.all([
 				fetch(`${API_URL}trench/total_length/?project=${projectId}`, {
 					credentials: 'include',
-					headers: getAuthHeaders(cookies)
+					headers: headers
 				}),
 				fetch(`${API_URL}trench/length_by_types/?project=${projectId}`, {
 					credentials: 'include',
-					headers: getAuthHeaders(cookies)
+					headers: headers
 				}),
 				fetch(`${API_URL}node/count_of_nodes_by_type/?project=${projectId}`, {
 					credentials: 'include',
-					headers: getAuthHeaders(cookies)
+					headers: headers
 				}),
 				fetch(`${API_URL}projects/`, {
 					credentials: 'include',
-					headers: getAuthHeaders(cookies)
+					headers: headers
 				})
 			]);
 
@@ -78,13 +80,4 @@ export async function load({ fetch, params, cookies }) {
 		console.error('Error fetching data:', error);
 		return { totalLength: 0, count: 0, lengthByTypes: [], nodesByType: [] };
 	}
-}
-
-function getAuthHeaders(cookies) {
-	const accessToken = cookies.get('api-access-token');
-	const headers = new Headers();
-	if (accessToken) {
-		headers.append('Cookie', `api-access-token=${accessToken}`);
-	}
-	return headers;
 }

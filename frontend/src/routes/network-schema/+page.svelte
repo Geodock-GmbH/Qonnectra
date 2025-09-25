@@ -93,20 +93,41 @@
 			<Controls />
 			<Panel position="top-left">
 				<div class="bg-surface-100-900 p-2 rounded-lg shadow-lg">
-					<h3 class="text-sm font-semibold mb-1">Node Test</h3>
+					<h3 class="text-sm font-semibold mb-1">Network Schema</h3>
 					<p class="text-xs text-surface-700-300">
 						Project: 1 | Total: {nodes.length} nodes
 					</p>
-					{#if data.nodes?.length > 0}
-						<p class="text-xs text-success-700-300 mt-1">✓ Using backend canvas coordinates</p>
+
+					{#if data.syncStatus?.sync_in_progress}
+						<div class="mt-1">
+							<p class="text-xs text-warning-700-300">🔄 Canvas sync in progress</p>
+							<p class="text-xs text-surface-600-400">
+								{data.syncStatus.sync_progress.toFixed(1)}% complete
+							</p>
+							{#if data.syncStatus.sync_started_by}
+								<p class="text-xs text-surface-600-400">
+									Started by: {data.syncStatus.sync_started_by}
+								</p>
+							{/if}
+						</div>
+					{:else if data.syncStatus?.sync_status === 'FAILED'}
+						<p class="text-xs text-error-700-300 mt-1">❌ Canvas sync failed</p>
+						{#if data.syncStatus.error_message}
+							<p class="text-xs text-surface-600-400">
+								{data.syncStatus.error_message}
+							</p>
+						{/if}
+					{:else if data.nodes?.length > 0}
+						<p class="text-xs text-success-700-300 mt-1">✓ Canvas coordinates ready</p>
 					{:else}
 						<p class="text-xs text-warning-700-300 mt-1">⚠ No nodes loaded</p>
 					{/if}
+
 					<button
 						class="btn variant-filled-primary btn-sm mt-2 w-full text-xs"
-						onclick={() => drawerStore.open({ title: 'Test Drawer' })}
+						onclick={() => drawerStore.open({ title: 'Node Details' })}
 					>
-						Test Drawer
+						Node Details
 					</button>
 				</div>
 			</Panel>

@@ -1,6 +1,7 @@
-from django.db import connection
+from django.db import connection, transaction
 from django.db.models import Count, F, Q, Sum
 from django.http import HttpResponse
+from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -15,6 +16,7 @@ from .models import (
     AttributesMicroductStatus,
     AttributesNetworkLevel,
     AttributesStatus,
+    CanvasSyncStatus,
     Conduit,
     FeatureFiles,
     Flags,
@@ -826,29 +828,49 @@ class NodeViewSet(viewsets.ModelViewSet):
 
 class NodeCanvasCoordinatesView(APIView):
     """
-    API view to calculate and store canvas coordinates for nodes.
+    Multi-user safe API view to calculate and store canvas coordinates for nodes.
 
-    This endpoint calculates canvas coordinates based on geographic coordinates
-    and stores them in the canvas_x and canvas_y fields.
+    Uses CanvasSyncStatus model to prevent concurrent sync operations and
+    ensure consistent results across multiple users.
     """
 
     permission_classes = [IsAuthenticated]
 
     def get(self, request, format=None):
         """
-        Check the status of canvas coordinates for nodes.
+        Check the status of canvas coordinates and sync operations.
 
         Returns:
         {
             "total_nodes": int,
             "nodes_with_canvas": int,
             "nodes_missing_canvas": int,
-            "sync_needed": bool
+            "sync_needed": bool,
+            "sync_in_progress": bool,
+            "sync_status": str,
+            "sync_started_at": datetime,
+            "sync_progress": float
         }
         """
         project_id = request.query_params.get("project_id")
         flag_id = request.query_params.get("flag_id")
 
+        # Clean up stale sync operations first
+        CanvasSyncStatus.cleanup_stale_syncs()
+
+        # Generate sync key
+        sync_key = CanvasSyncStatus.get_sync_key(project_id, flag_id)
+
+        # Get or create sync status
+        sync_status, created = CanvasSyncStatus.objects.get_or_create(
+            sync_key=sync_key,
+            defaults={
+                'status': 'IDLE',
+                'started_by': request.user
+            }
+        )
+
+        # Get node statistics
         queryset = Node.objects.filter(geom__isnull=False)
 
         if project_id:
@@ -861,19 +883,29 @@ class NodeCanvasCoordinatesView(APIView):
             canvas_x__isnull=False, canvas_y__isnull=False
         ).count()
         nodes_missing_canvas = total_nodes - nodes_with_canvas
+        sync_needed = nodes_missing_canvas > 0
+        sync_in_progress = sync_status.status == 'IN_PROGRESS'
 
-        return Response(
-            {
-                "total_nodes": total_nodes,
-                "nodes_with_canvas": nodes_with_canvas,
-                "nodes_missing_canvas": nodes_missing_canvas,
-                "sync_needed": nodes_missing_canvas > 0,
-            }
-        )
+        # Calculate progress if sync is in progress
+        progress = 0.0
+        if sync_in_progress and total_nodes > 0:
+            progress = (sync_status.nodes_processed / total_nodes) * 100
+
+        return Response({
+            "total_nodes": total_nodes,
+            "nodes_with_canvas": nodes_with_canvas,
+            "nodes_missing_canvas": nodes_missing_canvas,
+            "sync_needed": sync_needed,
+            "sync_in_progress": sync_in_progress,
+            "sync_status": sync_status.status,
+            "sync_started_at": sync_status.started_at,
+            "sync_progress": progress,
+            "error_message": sync_status.error_message if sync_status.status == 'FAILED' else None
+        })
 
     def post(self, request, format=None):
         """
-        Calculate and store canvas coordinates for nodes.
+        Calculate and store canvas coordinates with concurrency control.
 
         Expected request body:
         {
@@ -886,57 +918,143 @@ class NodeCanvasCoordinatesView(APIView):
         flag_id = request.data.get("flag_id")
         scale = request.data.get("scale", 1.0)
 
-        # Get nodes to process
-        queryset = Node.objects.filter(geom__isnull=False)
+        # Generate sync key
+        sync_key = CanvasSyncStatus.get_sync_key(project_id, flag_id)
 
-        if project_id:
-            queryset = queryset.filter(project=project_id)
-        if flag_id:
-            queryset = queryset.filter(flag=flag_id)
+        try:
+            with transaction.atomic():
+                # Try to acquire sync lock atomically
+                sync_status = CanvasSyncStatus.objects.select_for_update().filter(
+                    sync_key=sync_key
+                ).first()
 
-        nodes = list(queryset)
+                if not sync_status:
+                    sync_status = CanvasSyncStatus.objects.create(
+                        sync_key=sync_key,
+                        status='IN_PROGRESS',
+                        started_by=request.user,
+                        started_at=timezone.now(),
+                        last_heartbeat=timezone.now(),
+                        scale=scale
+                    )
+                else:
+                    # Check if sync is already in progress
+                    if sync_status.status == 'IN_PROGRESS' and not sync_status.is_stale():
+                        return Response({
+                            "message": "Canvas coordinate sync already in progress",
+                            "sync_started_by": sync_status.started_by.username if sync_status.started_by else None,
+                            "sync_started_at": sync_status.started_at,
+                            "estimated_completion": None  # Could add time estimation
+                        }, status=409)  # Conflict
 
-        if not nodes:
-            return Response({"message": "No nodes found with geometry"}, status=400)
+                    # Update sync status to IN_PROGRESS
+                    sync_status.status = 'IN_PROGRESS'
+                    sync_status.started_by = request.user
+                    sync_status.started_at = timezone.now()
+                    sync_status.last_heartbeat = timezone.now()
+                    sync_status.scale = scale
+                    sync_status.nodes_processed = 0
+                    sync_status.error_message = None
+                    sync_status.save()
 
-        # Extract coordinates from all nodes
-        coordinates = []
-        for node in nodes:
-            if node.geom:
-                coords = node.geom.coords
-                coordinates.append({"x": coords[0], "y": coords[1], "node": node})
+            # Now perform the sync operation outside the lock transaction
+            return self._perform_sync(sync_status, project_id, flag_id, scale)
 
-        if not coordinates:
-            return Response({"message": "No valid coordinates found"}, status=400)
+        except Exception as e:
+            # Clean up sync status on error
+            try:
+                sync_status = CanvasSyncStatus.objects.get(sync_key=sync_key)
+                sync_status.status = 'FAILED'
+                sync_status.completed_at = timezone.now()
+                sync_status.error_message = str(e)
+                sync_status.save()
+            except CanvasSyncStatus.DoesNotExist:
+                pass
 
-        # Calculate bounding box
-        min_x = min(coord["x"] for coord in coordinates)
-        max_x = max(coord["x"] for coord in coordinates)
-        min_y = min(coord["y"] for coord in coordinates)
-        max_y = max(coord["y"] for coord in coordinates)
+            return Response({
+                "error": "Failed to start canvas coordinate sync",
+                "message": str(e)
+            }, status=500)
 
-        # Calculate center
-        center_x = (min_x + max_x) / 2
-        center_y = (min_y + max_y) / 2
+    def _perform_sync(self, sync_status, project_id, flag_id, scale):
+        """
+        Perform the actual canvas coordinate synchronization.
+        """
+        try:
+            # Get nodes to process (snapshot at sync start)
+            queryset = Node.objects.filter(geom__isnull=False)
 
-        # Update nodes with canvas coordinates
-        updated_count = 0
-        for coord_data in coordinates:
-            node = coord_data["node"]
-            geo_x = coord_data["x"]
-            geo_y = coord_data["y"]
+            if project_id:
+                queryset = queryset.filter(project=project_id)
+            if flag_id:
+                queryset = queryset.filter(flag=flag_id)
 
-            # Transform to canvas coordinates
-            canvas_x = (geo_x - center_x) * scale
-            canvas_y = -(geo_y - center_y) * scale  # Flip Y axis
+            nodes = list(queryset)
 
-            node.canvas_x = canvas_x
-            node.canvas_y = canvas_y
-            node.save(update_fields=["canvas_x", "canvas_y"])
-            updated_count += 1
+            if not nodes:
+                sync_status.status = 'COMPLETED'
+                sync_status.completed_at = timezone.now()
+                sync_status.save()
+                return Response({"message": "No nodes found with geometry"}, status=400)
 
-        return Response(
-            {
+            # Extract coordinates from all nodes
+            coordinates = []
+            for node in nodes:
+                if node.geom:
+                    coords = node.geom.coords
+                    coordinates.append({"x": coords[0], "y": coords[1], "node": node})
+
+            if not coordinates:
+                sync_status.status = 'COMPLETED'
+                sync_status.completed_at = timezone.now()
+                sync_status.save()
+                return Response({"message": "No valid coordinates found"}, status=400)
+
+            # Calculate bounding box from snapshot
+            min_x = min(coord["x"] for coord in coordinates)
+            max_x = max(coord["x"] for coord in coordinates)
+            min_y = min(coord["y"] for coord in coordinates)
+            max_y = max(coord["y"] for coord in coordinates)
+
+            # Calculate center
+            center_x = (min_x + max_x) / 2
+            center_y = (min_y + max_y) / 2
+
+            # Store calculated values in sync status
+            sync_status.center_x = center_x
+            sync_status.center_y = center_y
+            sync_status.save()
+
+            # Update nodes with canvas coordinates in batches
+            updated_count = 0
+            batch_size = 100
+
+            for i, coord_data in enumerate(coordinates):
+                node = coord_data["node"]
+                geo_x = coord_data["x"]
+                geo_y = coord_data["y"]
+
+                # Transform to canvas coordinates
+                canvas_x = (geo_x - center_x) * scale
+                canvas_y = -(geo_y - center_y) * scale  # Flip Y axis
+
+                node.canvas_x = canvas_x
+                node.canvas_y = canvas_y
+                node.save(update_fields=["canvas_x", "canvas_y"])
+                updated_count += 1
+
+                # Update progress and heartbeat every batch
+                if (i + 1) % batch_size == 0:
+                    sync_status.nodes_processed = updated_count
+                    sync_status.update_heartbeat()
+
+            # Mark sync as completed
+            sync_status.status = 'COMPLETED'
+            sync_status.completed_at = timezone.now()
+            sync_status.nodes_processed = updated_count
+            sync_status.save()
+
+            return Response({
                 "message": f"Successfully updated canvas coordinates for {updated_count} nodes",
                 "updated_count": updated_count,
                 "scale": scale,
@@ -946,9 +1064,16 @@ class NodeCanvasCoordinatesView(APIView):
                     "max_x": max_x,
                     "min_y": min_y,
                     "max_y": max_y,
-                },
-            }
-        )
+                }
+            })
+
+        except Exception as e:
+            # Mark sync as failed
+            sync_status.status = 'FAILED'
+            sync_status.completed_at = timezone.now()
+            sync_status.error_message = str(e)
+            sync_status.save()
+            raise
 
 
 class OlNodeViewSet(viewsets.ReadOnlyModelViewSet):
