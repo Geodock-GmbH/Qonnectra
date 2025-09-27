@@ -39,8 +39,6 @@
 
 	// Handle edge deletion
 	async function handleDeleteEdge() {
-		console.log('Deleting edge with ID:', id, 'and UUID:', connectionUuid);
-
 		// First delete from backend if it has a UUID
 		if (connectionUuid) {
 			try {
@@ -66,7 +64,6 @@
 					title: m.title_success(),
 					description: m.message_connection_deleted_successfully()
 				});
-				console.log('Successfully deleted connection from backend');
 			} catch (error) {
 				console.error('Error deleting connection:', error);
 				toaster.create({

@@ -496,7 +496,7 @@
 		if (selectedNodeIds.length !== 2) {
 			toaster.error({
 				title: m.common_error(),
-				description: 'Please select exactly 2 nodes'
+				description: m.message_please_select_exactly_2_nodes()
 			});
 			return;
 		}
@@ -522,7 +522,7 @@
 		const connections = [];
 		for (const sourceMd of sourceMicroducts) {
 			const targetMd = targetMicroducts.find((t) => t.number === sourceMd.number);
-			if (targetMd && !sourceMd.microduct_status && !targetMd.microduct_status) {
+			if (targetMd) {
 				// Check if connection already exists
 				if (!edgeExists(sourceMd.uuid, targetMd.uuid)) {
 					connections.push({
@@ -721,7 +721,7 @@
 
 						{#if selectedNodeIds.length === 2}
 							<button class="btn btn-sm preset-filled-primary-500" onclick={autoConnectTwoNodes}>
-								{m.connect_selected_nodes()}
+								{m.action_connect_selected_nodes()}
 							</button>
 						{:else if selectedNodeIds.length > 2}
 							<div class="text-xs text-warning-500">{m.form_select_exactly_2_nodes()}</div>
