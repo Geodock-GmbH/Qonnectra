@@ -1,30 +1,27 @@
 <script>
+	// Skeleton
+	import { createToaster, Toaster } from '@skeletonlabs/skeleton-svelte';
+
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
-	// SvelteFlow
-	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
-	import '@xyflow/svelte/dist/style.css';
 	// Svelte
 	import Drawer from '$lib/components/Drawer.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import CableDiagramNode from './CableDiagramNode.svelte';
 	import Card from './Card.svelte';
+	// SvelteFlow
+	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
+	import '@xyflow/svelte/dist/style.css';
+
+	// Toaster
+	const toaster = createToaster({
+		placement: 'bottom-end'
+	});
 
 	/** @type {import('./$types').PageProps} */
 	let { data } = $props();
 	const nodeTypes = { cableDiagramNode: CableDiagramNode };
-
-	const initialNodes = [
-		{
-			id: '1',
-			type: 'cableDiagramNode',
-			position: { x: 0, y: 150 },
-			data: {
-				label: '006_SCH554_R3(H) - Wechsel Egeplast auf Gabocom'
-			}
-		}
-	];
 
 	/**
 	 * Transform Node data to SvelteFlow nodes using backend canvas coordinates
@@ -67,11 +64,60 @@
 
 	let nodes = $state.raw(transformNodesToSvelteFlow(data.nodes));
 	let edges = $state.raw([]);
+
+	async function handleNodeDragStop(event) {
+		const node = event.targetNode;
+		const nodeId = node.id;
+		const newPosition = node.position;
+
+		const originalNode = nodes.find((n) => n.id === nodeId);
+		const originalPosition = { ...originalNode.position };
+
+		try {
+			const formData = new FormData();
+			formData.append('nodeId', nodeId);
+			formData.append('canvas_x', newPosition.x.toString());
+			formData.append('canvas_y', newPosition.y.toString());
+
+			const response = await fetch('?/saveNodeGeometry', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = await response.json();
+
+			if (!response.ok || result.type === 'error') {
+				throw new Error(result.message || 'Failed to save node position');
+			}
+
+			toaster.success({
+				title: m.title_success(),
+				description: m.message_success_updating_position()
+			});
+		} catch (error) {
+			console.error('Error saving node position:', error);
+
+			const nodeIndex = nodes.findIndex((n) => n.id === nodeId);
+			if (nodeIndex !== -1) {
+				nodes[nodeIndex] = {
+					...nodes[nodeIndex],
+					position: originalPosition
+				};
+			}
+
+			toaster.error({
+				title: m.common_error(),
+				description: `${error.message}`
+			});
+		}
+	}
 </script>
 
 <svelte:head>
 	<title>{m.nav_network_schema()}</title>
 </svelte:head>
+
+<Toaster {toaster}></Toaster>
 
 <div class="flex gap-4 h-full">
 	<!-- Main Content -->
@@ -84,6 +130,7 @@
 			connectionMode="loose"
 			snapToGrid={true}
 			snapGrid={[120, 120]}
+			onnodedragstop={handleNodeDragStop}
 		>
 			<Background class="z-0" bgColor="var(--color-surface-100-900) " />
 			<Controls />

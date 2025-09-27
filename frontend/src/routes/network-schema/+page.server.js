@@ -129,3 +129,63 @@ export async function load({ fetch, cookies }) {
 		};
 	}
 }
+
+/** @type {import('./$types').Actions} */
+export const actions = {
+	saveNodeGeometry: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+
+		const nodeId = formData.get('nodeId');
+		const canvas_x = parseFloat(formData.get('canvas_x'));
+		const canvas_y = parseFloat(formData.get('canvas_y'));
+
+		if (!nodeId) {
+			return {
+				type: 'error',
+				message: 'Node ID is required'
+			};
+		}
+
+		if (isNaN(canvas_x) || isNaN(canvas_y)) {
+			return {
+				type: 'error',
+				message: 'Invalid canvas coordinates'
+			};
+		}
+
+		try {
+			const response = await fetch(`${API_URL}node/${nodeId}/`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					canvas_x,
+					canvas_y
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				throw new Error(errorData.detail || `HTTP ${response.status}: Failed to update node position`);
+			}
+
+			const updatedNode = await response.json();
+
+			return {
+				type: 'success',
+				message: 'Node position saved successfully',
+				node: updatedNode
+			};
+		} catch (err) {
+			console.error('Error saving node geometry:', err);
+			return {
+				type: 'error',
+				message: err.message || 'Failed to save node position'
+			};
+		}
+	}
+};

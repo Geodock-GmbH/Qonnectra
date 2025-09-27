@@ -128,6 +128,7 @@
 	"message_success_creating_conduit": "Conduit created successfully",
 	"message_success_deleting_conduit": "Conduit deleted successfully",
 	"message_success_updating_conduit": "Conduit updated successfully",
+	"message_success_updating_position": "Position updated successfully",
 	"message_trench_connection_deleted": "Trench connection deleted",
 	"message_trench_connection_saved": "Trench connection saved",
 	"message_trench_located_description": "Map was centered on trench {trenchLabel}.",

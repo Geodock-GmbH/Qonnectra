@@ -502,6 +502,391 @@ describe('+page.server.js', () => {
 		});
 	});
 
+	describe('saveNodeGeometry action', () => {
+		test('should successfully save node geometry', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						uuid: 'test-node-123',
+						name: 'Test Node',
+						canvas_x: 150.5,
+						canvas_y: 200.3
+					})
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['nodeId', 'test-node-123'],
+							['canvas_x', '150.5'],
+							['canvas_y', '200.3']
+						])
+					)
+			};
+
+			const result = await actions.saveNodeGeometry({
+				request: mockRequest,
+				fetch: mockFetch,
+				cookies: mockCookies
+			});
+
+			expect(result.type).toBe('success');
+			expect(result.message).toBe('Node position saved successfully');
+			expect(result.node.uuid).toBe('test-node-123');
+			expect(result.node.canvas_x).toBe(150.5);
+			expect(result.node.canvas_y).toBe(200.3);
+
+			// Verify the API call
+			const patchCall = mockFetch.mock.calls[0];
+			expect(patchCall[0]).toBe('http://localhost:8000/node/test-node-123/');
+			expect(patchCall[1].method).toBe('PATCH');
+			expect(patchCall[1].credentials).toBe('include');
+			expect(JSON.parse(patchCall[1].body)).toEqual({
+				canvas_x: 150.5,
+				canvas_y: 200.3
+			});
+		});
+
+		test('should return error when nodeId is missing', async () => {
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['canvas_x', '150.5'],
+							['canvas_y', '200.3']
+						])
+					)
+			};
+
+			const result = await actions.saveNodeGeometry({
+				request: mockRequest,
+				fetch: mockFetch,
+				cookies: mockCookies
+			});
+
+			expect(result.type).toBe('error');
+			expect(result.message).toBe('Node ID is required');
+			expect(mockFetch).not.toHaveBeenCalled();
+		});
+
+		test('should return error when canvas coordinates are invalid', async () => {
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['nodeId', 'test-node-123'],
+							['canvas_x', 'invalid'],
+							['canvas_y', '200.3']
+						])
+					)
+			};
+
+			const result = await actions.saveNodeGeometry({
+				request: mockRequest,
+				fetch: mockFetch,
+				cookies: mockCookies
+			});
+
+			expect(result.type).toBe('error');
+			expect(result.message).toBe('Invalid canvas coordinates');
+			expect(mockFetch).not.toHaveBeenCalled();
+		});
+
+		test('should return error when canvas_y is invalid', async () => {
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['nodeId', 'test-node-123'],
+							['canvas_x', '150.5'],
+							['canvas_y', 'not-a-number']
+						])
+					)
+			};
+
+			const result = await actions.saveNodeGeometry({
+				request: mockRequest,
+				fetch: mockFetch,
+				cookies: mockCookies
+			});
+
+			expect(result.type).toBe('error');
+			expect(result.message).toBe('Invalid canvas coordinates');
+			expect(mockFetch).not.toHaveBeenCalled();
+		});
+
+		test('should handle API error response with detail', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 400,
+				json: () =>
+					Promise.resolve({
+						detail: 'Node not found'
+					})
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['nodeId', 'nonexistent-node'],
+							['canvas_x', '150.5'],
+							['canvas_y', '200.3']
+						])
+					)
+			};
+
+			const result = await actions.saveNodeGeometry({
+				request: mockRequest,
+				fetch: mockFetch,
+				cookies: mockCookies
+			});
+
+			expect(result.type).toBe('error');
+			expect(result.message).toBe('Node not found');
+		});
+
+		test('should handle API error response without detail', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 500,
+				json: () => Promise.resolve({})
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['nodeId', 'test-node-123'],
+							['canvas_x', '150.5'],
+							['canvas_y', '200.3']
+						])
+					)
+			};
+
+			const result = await actions.saveNodeGeometry({
+				request: mockRequest,
+				fetch: mockFetch,
+				cookies: mockCookies
+			});
+
+			expect(result.type).toBe('error');
+			expect(result.message).toBe('HTTP 500: Failed to update node position');
+		});
+
+		test('should handle API response with invalid JSON', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 500,
+				json: () => Promise.reject(new Error('Invalid JSON'))
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['nodeId', 'test-node-123'],
+							['canvas_x', '150.5'],
+							['canvas_y', '200.3']
+						])
+					)
+			};
+
+			const result = await actions.saveNodeGeometry({
+				request: mockRequest,
+				fetch: mockFetch,
+				cookies: mockCookies
+			});
+
+			expect(result.type).toBe('error');
+			expect(result.message).toBe('HTTP 500: Failed to update node position');
+		});
+
+		test('should handle network errors', async () => {
+			mockFetch.mockRejectedValueOnce(new Error('Network connection failed'));
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['nodeId', 'test-node-123'],
+							['canvas_x', '150.5'],
+							['canvas_y', '200.3']
+						])
+					)
+			};
+
+			const result = await actions.saveNodeGeometry({
+				request: mockRequest,
+				fetch: mockFetch,
+				cookies: mockCookies
+			});
+
+			expect(result.type).toBe('error');
+			expect(result.message).toBe('Network connection failed');
+		});
+
+		test('should handle generic errors without message', async () => {
+			mockFetch.mockRejectedValueOnce({});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['nodeId', 'test-node-123'],
+							['canvas_x', '150.5'],
+							['canvas_y', '200.3']
+						])
+					)
+			};
+
+			const result = await actions.saveNodeGeometry({
+				request: mockRequest,
+				fetch: mockFetch,
+				cookies: mockCookies
+			});
+
+			expect(result.type).toBe('error');
+			expect(result.message).toBe('Failed to save node position');
+		});
+
+		test('should pass correct request options', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						uuid: 'test-node-123',
+						canvas_x: 150.5,
+						canvas_y: 200.3
+					})
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['nodeId', 'test-node-123'],
+							['canvas_x', '150.5'],
+							['canvas_y', '200.3']
+						])
+					)
+			};
+
+			await actions.saveNodeGeometry({
+				request: mockRequest,
+				fetch: mockFetch,
+				cookies: mockCookies
+			});
+
+			const patchCall = mockFetch.mock.calls[0];
+
+			expect(patchCall[0]).toBe('http://localhost:8000/node/test-node-123/');
+			expect(patchCall[1].method).toBe('PATCH');
+			expect(patchCall[1].credentials).toBe('include');
+			expect(patchCall[1].headers['Content-Type']).toBe('application/json');
+			expect(JSON.parse(patchCall[1].body)).toEqual({
+				canvas_x: 150.5,
+				canvas_y: 200.3
+			});
+		});
+
+		test('should handle zero coordinates correctly', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						uuid: 'test-node-123',
+						canvas_x: 0,
+						canvas_y: 0
+					})
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['nodeId', 'test-node-123'],
+							['canvas_x', '0'],
+							['canvas_y', '0']
+						])
+					)
+			};
+
+			const result = await actions.saveNodeGeometry({
+				request: mockRequest,
+				fetch: mockFetch,
+				cookies: mockCookies
+			});
+
+			expect(result.type).toBe('success');
+			expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({
+				canvas_x: 0,
+				canvas_y: 0
+			});
+		});
+
+		test('should handle negative coordinates correctly', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						uuid: 'test-node-123',
+						canvas_x: -50.5,
+						canvas_y: -100.3
+					})
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['nodeId', 'test-node-123'],
+							['canvas_x', '-50.5'],
+							['canvas_y', '-100.3']
+						])
+					)
+			};
+
+			const result = await actions.saveNodeGeometry({
+				request: mockRequest,
+				fetch: mockFetch,
+				cookies: mockCookies
+			});
+
+			expect(result.type).toBe('success');
+			expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({
+				canvas_x: -50.5,
+				canvas_y: -100.3
+			});
+		});
+	});
+
 	describe('getAuthHeaders', () => {
 		test('should create headers with auth token', async () => {
 			const { getAuthHeaders } = await import('$lib/utils/getAuthHeaders');

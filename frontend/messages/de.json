@@ -128,6 +128,7 @@
 	"message_success_creating_conduit": "Rohr erfolgreich erstellt",
 	"message_success_deleting_conduit": "Rohr erfolgreich gelöscht",
 	"message_success_updating_conduit": "Rohr erfolgreich aktualisiert",
+	"message_success_updating_position": "Position erfolgreich aktualisiert",
 	"message_trench_connection_deleted": "Trassenverbindung erfolgreich gelöscht",
 	"message_trench_connection_saved": "Trassenverbindung gespeichert",
 	"message_trench_located_description": "Karte wurde auf die Trasse {trenchLabel} zentriert.",
