@@ -7,23 +7,20 @@
 
 	// Svelte
 	import Map from '$lib/components/Map.svelte';
-	import { trenchColor, trenchColorSelected } from '$lib/stores/store';
+	import { selectedProject, trenchColor, trenchColorSelected } from '$lib/stores/store';
 	import { onDestroy } from 'svelte';
-	import { selectedProject } from '$lib/stores/store';
-
 	// OpenLayers
 	import 'ol/ol.css';
 	import Overlay from 'ol/Overlay';
-
 	// Map utilities
 	import {
-		createTrenchLayer,
 		createAddressLayer,
-		createNodeLayer,
-		createSelectionLayer,
-		createTrenchTileSource,
 		createAddressTileSource,
-		createNodeTileSource
+		createNodeLayer,
+		createNodeTileSource,
+		createSelectionLayer,
+		createTrenchLayer,
+		createTrenchTileSource
 	} from '$lib/map';
 
 	// Toaster
@@ -78,14 +75,14 @@
 		vectorTileLayer = createTrenchLayer(
 			$selectedProject,
 			$trenchColor,
-			m.trench(),
+			m.nav_trench(),
 			handleTileError
 		);
-		addressLayer = createAddressLayer($selectedProject, m.address(), handleTileError);
-		nodeLayer = createNodeLayer($selectedProject, m.node(), handleTileError);
+		addressLayer = createAddressLayer($selectedProject, m.form_address(), handleTileError);
+		nodeLayer = createNodeLayer($selectedProject, m.form_node(), handleTileError);
 	} catch (error) {
 		toaster.error({
-			title: m.error_initializing_map_tiles(),
+			title: m.title_error_initializing_map_tiles(),
 			description: error.message || 'Could not set up the tile layer.'
 		});
 		vectorTileLayer = undefined;
@@ -263,14 +260,14 @@
 
 	if (data.error) {
 		toaster.error({
-			title: m.error_loading_map_features(),
+			title: m.title_error_loading_map_features(),
 			description: data.error
 		});
 	}
 </script>
 
 <svelte:head>
-	<title>{m.map()}</title>
+	<title>{m.nav_map()}</title>
 </svelte:head>
 
 <Toaster {toaster}></Toaster>

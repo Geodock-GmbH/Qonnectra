@@ -22,12 +22,15 @@
 	<input
 		class="ig-input touch-manipulation text-base lg:text-sm min-h-[44px] lg:min-h-[36px]"
 		type="search"
-		placeholder={m.search()}
+		placeholder={m.common_search()}
 		bind:value
 		onkeydown={handleKeydown}
 	/>
-	<button class="ig-btn preset-filled-primary-500 min-h-[44px] lg:min-h-[36px] px-3 lg:px-4" onclick={onSearch}>
-		<span class="hidden lg:inline">{m.search()}</span>
+	<button
+		class="ig-btn preset-filled-primary-500 min-h-[44px] lg:min-h-[36px] px-3 lg:px-4"
+		onclick={onSearch}
+	>
+		<span class="hidden lg:inline">{m.common_search()}</span>
 		<IconSearch size={20} class="lg:hidden" />
 	</button>
 </div>

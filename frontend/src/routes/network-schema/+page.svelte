@@ -3,17 +3,13 @@
 	import { m } from '$lib/paraglide/messages';
 
 	// SvelteFlow
-	import { SvelteFlow, Background, Controls, Panel } from '@xyflow/svelte';
+	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
 	import '@xyflow/svelte/dist/style.css';
-
 	// Svelte
-	import { drawerStore } from '$lib/stores/drawer';
-	import Card from './Card.svelte';
 	import Drawer from '$lib/components/Drawer.svelte';
+	import { drawerStore } from '$lib/stores/drawer';
 	import CableDiagramNode from './CableDiagramNode.svelte';
-	import { selectedProject } from '$lib/stores/store';
-	import { navigating, page } from '$app/stores';
-	import { goto } from '$app/navigation';
+	import Card from './Card.svelte';
 
 	/** @type {import('./$types').PageProps} */
 	let { data } = $props();
@@ -74,7 +70,7 @@
 </script>
 
 <svelte:head>
-	<title>{m.network_schema()}</title>
+	<title>{m.nav_network_schema()}</title>
 </svelte:head>
 
 <div class="flex gap-4 h-full">

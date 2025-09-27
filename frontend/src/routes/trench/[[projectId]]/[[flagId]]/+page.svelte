@@ -11,12 +11,9 @@
 	// Svelte
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
-	import { enhance } from '$app/forms';
-	import { PUBLIC_API_URL } from '$env/static/public';
 	import ConduitCombobox from '$lib/components/ConduitCombobox.svelte';
 	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
 	import Map from '$lib/components/Map.svelte';
-	import TrenchTable from './TrenchTable.svelte';
 	import {
 		routingMode,
 		routingTolerance,
@@ -27,7 +24,7 @@
 		trenchColorSelected
 	} from '$lib/stores/store';
 	import { onDestroy } from 'svelte';
-
+	import TrenchTable from './TrenchTable.svelte';
 	// OpenLayers
 	import Feature from 'ol/Feature.js';
 	import WKT from 'ol/format/WKT.js';
@@ -39,9 +36,8 @@
 	import Fill from 'ol/style/Fill.js';
 	import Stroke from 'ol/style/Stroke.js';
 	import Text from 'ol/style/Text.js';
-
 	// Map utilities
-	import { createTrenchTileSource, createSelectionLayer } from '$lib/map';
+	import { createSelectionLayer, createTrenchTileSource } from '$lib/map';
 
 	let { data } = $props();
 
@@ -68,7 +64,7 @@
 		if (!olMapInstance || !vectorTileLayer) {
 			toaster.create({
 				type: 'error',
-				title: m.error_loading_map_features(),
+				title: m.title_error_loading_map_features(),
 				description: 'Map not ready'
 			});
 			return;
@@ -155,10 +151,9 @@
 							}
 						});
 
-						toaster.create({
-							type: 'success',
-							title: m.trench_located(),
-							description: m.trench_located_description({ trenchLabel })
+						toaster.success({
+							title: m.title_trench_located(),
+							description: m.message_trench_located_description({ trenchLabel })
 						});
 					}
 				}
@@ -167,10 +162,9 @@
 			}
 		} catch (error) {
 			console.error('Error zooming to trench:', error);
-			toaster.create({
-				type: 'error',
-				title: m.trench_not_visible(),
-				description: m.trench_not_visible_description({ trenchLabel })
+			toaster.error({
+				title: m.title_trench_not_visible(),
+				description: m.message_trench_not_visible_description({ trenchLabel })
 			});
 		}
 	}
@@ -263,8 +257,8 @@
 	} catch (error) {
 		toaster.create({
 			type: 'error',
-			title: m.error_creating_vector_tile_layer(),
-			description: m.error_creating_vector_tile_layer_description()
+			title: m.title_error_creating_vector_tile_layer(),
+			description: m.message_error_creating_vector_tile_layer()
 		});
 		vectorTileLayer = undefined;
 		tileSource = undefined;
@@ -320,10 +314,9 @@
 		if (!olMapInstance) return;
 
 		if ($selectedConduit === undefined) {
-			toaster.create({
-				type: 'error',
-				title: m.no_conduit_selected(),
-				description: m.no_conduit_selected_description()
+			toaster.error({
+				title: m.title_no_conduit_selected(),
+				description: m.message_no_conduit_selected_description()
 			});
 			return;
 		}
@@ -403,18 +396,16 @@
 							await trenchTableInstance.addRoutedTrenches(newSelectionForTrenchTable);
 						}
 					} else {
-						toaster.create({
-							type: 'error',
-							title: m.error_calculating_route(),
-							description: m.error_calculating_route_description()
+						toaster.error({
+							title: m.title_error_calculating_route(),
+							description: m.message_error_calculating_route_description()
 						});
 						throw new Error('No route geometry or traversed trench UUIDs found in response.');
 					}
 				} catch (error) {
 					console.error('Routing error:', error);
-					toaster.create({
-						type: 'error',
-						title: m.error_calculating_route(),
+					toaster.error({
+						title: m.title_error_calculating_route(),
 						description: error.message // TODO: Translate. This comes from the backend. How?
 					});
 					startTrenchId = null;
@@ -455,7 +446,7 @@
 </script>
 
 <svelte:head>
-	<title>{m.conduit_connection()}</title>
+	<title>{m.nav_conduit_connection()}</title>
 </svelte:head>
 
 <Toaster {toaster} />
@@ -485,7 +476,7 @@
 			<div class="space-y-4">
 				<!-- Routing Mode Toggle -->
 				<div class="flex items-center justify-between bg-surface-50-900 rounded-lg">
-					<h3 class="text-sm font-medium">{m.settings_map_routing_mode()}</h3>
+					<h3 class="text-sm font-medium">{m.form_routing_mode()}</h3>
 					<Switch
 						name="routing-mode"
 						checked={$routingMode}
@@ -504,7 +495,7 @@
 
 				<!-- Flag Selection -->
 				<div class="space-y-2">
-					<h3 class="text-sm font-medium">{m.flag()}</h3>
+					<h3 class="text-sm font-medium">{m.form_flag()}</h3>
 					<FlagCombobox
 						flags={data.flags}
 						flagsError={data.flagsError}
@@ -514,7 +505,7 @@
 
 				<!-- Conduit Selection -->
 				<div class="space-y-2">
-					<h3 class="text-sm font-medium">{m.conduit()}</h3>
+					<h3 class="text-sm font-medium">{m.form_conduit()}</h3>
 					<ConduitCombobox
 						loading={$navigating !== null}
 						conduits={data.conduits ?? []}

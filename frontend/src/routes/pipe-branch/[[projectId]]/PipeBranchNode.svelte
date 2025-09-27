@@ -6,13 +6,12 @@
 	import { m } from '$lib/paraglide/messages';
 
 	// SvelteFlow
-	import { Position, Handle } from '@xyflow/svelte';
-
+	import { Handle, Position } from '@xyflow/svelte';
 	// Color mapping
 	import {
-		getMicroductColor,
 		getContrastColor,
 		getMicroductBorderColor,
+		getMicroductColor,
 		isTwoLayerColor
 	} from '$lib/utils/microductColors.js';
 
@@ -77,7 +76,7 @@
 	<div class="flex flex-col gap-1">
 		<div class="flex items-center gap-2">
 			<span class="text-xs font-semibold text-surface-600-300 whitespace-nowrap"
-				>{m.id_trench()}:</span
+				>{m.form_trench_id()}:</span
 			>
 			<span class="font-semibold text-xs text-surface-600-300 break-words"
 				>{trench?.id_trench || 'N/A'}</span
@@ -86,7 +85,7 @@
 		<div class="flex flex-col gap-1">
 			<div class="flex items-center gap-2">
 				<span class="text-xs font-semibold text-surface-700-200 whitespace-nowrap"
-					>{m.conduit()}:</span
+					>{m.form_conduit()}:</span
 				>
 				<span class="font-semibold text-xs text-surface-700-200 break-words"
 					>{conduit?.name || 'N/A'}</span
@@ -94,7 +93,7 @@
 			</div>
 			<div class="flex items-center gap-2">
 				<span class="text-xs font-semibold text-surface-700-200 whitespace-nowrap"
-					>{totalMicroducts}x {totalMicroducts > 1 ? m.microducts() : m.microduct()}</span
+					>{totalMicroducts}x {m.form_microduct({ count: totalMicroducts })}</span
 				>
 			</div>
 		</div>

@@ -6,10 +6,10 @@
 	import { m } from '$lib/paraglide/messages';
 
 	// Svelte
-	import DashboardProjectTable from './DashboardProjectTable.svelte';
+	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
 	import { selectedProject } from '$lib/stores/store';
-	import { goto } from '$app/navigation';
+	import DashboardProjectTable from './DashboardProjectTable.svelte';
 	let { data } = $props();
 	let group = $state('stats');
 
@@ -27,14 +27,14 @@
 </script>
 
 <svelte:head>
-	<title>{m.dashboard()}</title>
+	<title>{m.nav_dashboard()}</title>
 </svelte:head>
 
 <Tabs value={group} onValueChange={(e) => (group = e.value)}>
 	{#snippet list()}
-		<Tabs.Control value="stats">{m.overview()}</Tabs.Control>
-		<Tabs.Control value="address">{m.address()}</Tabs.Control>
-		<Tabs.Control value="projects">{m.projects()}</Tabs.Control>
+		<Tabs.Control value="stats">{m.common_overview()}</Tabs.Control>
+		<Tabs.Control value="address">{m.form_address()}</Tabs.Control>
+		<Tabs.Control value="projects">{m.form_project({ count: data.projects.length })}</Tabs.Control>
 	{/snippet}
 	{#snippet content()}
 		<Tabs.Panel value="stats">
@@ -48,7 +48,7 @@
 						<!-- Title Bar -->
 						<div class="border-b border-surface-300-600 p-4">
 							<h2 class="h3 font-bold text-primary-500 flex items-center">
-								<span>{m.trench_statistics()}</span>
+								<span>{m.form_trench_statistics()}</span>
 								<div class="flex-1 h-px bg-primary-500 ml-4"></div>
 							</h2>
 						</div>
@@ -56,7 +56,9 @@
 						<div class="p-6">
 							<div class="flex items-center gap-4 mb-6">
 								<div>
-									<h3 class="h4 font-semibold text-surface-800-100 mb-1">{m.total_length()}</h3>
+									<h3 class="h4 font-semibold text-surface-800-100 mb-1">
+										{m.form_total_length()}
+									</h3>
 									{#if $navigating}
 										<div class="h-6 bg-surface-500 rounded animate-pulse w-20"></div>
 									{:else}
@@ -70,7 +72,9 @@
 								</div>
 							</div>
 
-							<h4 class="h5 font-semibold text-surface-800-100 mb-4">{m.breakdown_by_type()}</h4>
+							<h4 class="h5 font-semibold text-surface-800-100 mb-4">
+								{m.form_breakdown_by_type()}
+							</h4>
 							<div class="space-y-3 overflow-auto max-h-[400px] pr-2">
 								{#if $navigating}
 									{#each Array(3) as _}
@@ -111,7 +115,7 @@
 						<!-- Title Bar -->
 						<div class="border-b border-surface-300-600 p-4">
 							<h2 class="h3 font-bold text-primary-500 flex items-center">
-								<span>{m.node_statistics()}</span>
+								<span>{m.form_node_statistics()}</span>
 								<div class="flex-1 h-px bg-primary-500 ml-4"></div>
 							</h2>
 						</div>
@@ -120,7 +124,7 @@
 							<div class="flex items-center gap-4 mb-6">
 								<div>
 									<h3 class="h4 font-semibold text-surface-800-100 mb-1">
-										{m.total_nodes()}
+										{m.form_total_nodes()}
 									</h3>
 									{#if $navigating}
 										<div class="h-6 bg-surface-500 rounded animate-pulse w-16"></div>
@@ -133,7 +137,7 @@
 							</div>
 
 							<h4 class="h5 font-semibold text-surface-800-100 mb-4">
-								{m.breakdown_by_node_type()}
+								{m.form_breakdown_by_node_type()}
 							</h4>
 							<div class="space-y-3 overflow-auto max-h-[400px] pr-2">
 								{#if $navigating}

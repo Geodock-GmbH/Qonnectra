@@ -1,16 +1,13 @@
 <script>
 	// Skeleton
-	import { Modal, Combobox, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
-
+	import { Combobox, Modal, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
 	// Tabler
 	import { IconPlus } from '@tabler/icons-svelte';
 
 	// Paraglide
-	import { m, name } from '$lib/paraglide/messages';
-
+	import { m } from '$lib/paraglide/messages';
 	// Svelte
 	import { PUBLIC_API_URL } from '$env/static/public';
-	import { selectedProject } from '$lib/stores/store';
 
 	// Toast
 	const toaster = createToaster({
@@ -72,10 +69,9 @@
 			selectedManufacturer = [editData.manufacturer ? editData.manufacturer.id : ''];
 			selectedFlag = [editData.flag ? editData.flag.id : ''];
 		} catch (err) {
-			toaster.create({
-				type: 'error',
-				title: m.error(),
-				description: m.error_fetching_select_options()
+			toaster.error({
+				title: m.common_error(),
+				description: m.message_error_fetching_select_options()
 			});
 			console.error(err);
 		}
@@ -125,28 +121,31 @@
 			});
 			if (response.ok) {
 				const result = await response.json();
-				toaster.create({
-					type: 'success',
-					title: m.title_login_success(),
-					description: editMode ? m.success_updating_conduit() : m.success_creating_conduit()
+				toaster.success({
+					title: m.title_success(),
+					description: editMode
+						? m.message_success_updating_conduit()
+						: m.message_success_creating_conduit()
 				});
 				openPipeModal = false;
 				onPipeUpdate(result);
 			} else {
 				const errorData = await response.json();
 				console.error('Error submitting form:', errorData);
-				toaster.create({
-					type: 'error',
-					title: m.error(),
-					description: editMode ? m.error_updating_conduit() : m.error_duplicate_conduit()
+				toaster.error({
+					title: m.common_error(),
+					description: editMode
+						? m.message_error_updating_conduit()
+						: m.message_error_duplicate_conduit()
 				});
 			}
 		} catch (error) {
 			console.error('Error submitting form:', error);
-			toaster.create({
-				type: 'error',
-				title: m.error(),
-				description: editMode ? m.error_updating_conduit() : m.error_creating_conduit()
+			toaster.error({
+				title: m.common_error(),
+				description: editMode
+					? m.message_error_updating_conduit()
+					: m.message_error_creating_conduit()
 			});
 		}
 	}
@@ -199,12 +198,12 @@
 		{#if small}
 			<IconPlus size={18} />
 		{:else}
-			{m.add_conduit()}
+			{m.action_add_conduit()}
 		{/if}
 	{/snippet}
 	{#snippet content()}
 		<header class="flex justify-between">
-			<h2 class="h3">{m.add_conduit()}</h2>
+			<h2 class="h3">{m.action_add_conduit()}</h2>
 		</header>
 		<form
 			id="pipe-form"
@@ -215,7 +214,7 @@
 			}}
 		>
 			<label class="label">
-				<span class="label-text">{m.name()}</span>
+				<span class="label-text">{m.common_name()}</span>
 				<input
 					type="text"
 					class="input"
@@ -226,7 +225,7 @@
 				/>
 			</label>
 			<label for="pipe_type" class="label">
-				<span class="label-text">{m.conduit_type()}</span>
+				<span class="label-text">{m.form_conduit_type()}</span>
 				<Combobox
 					name="pipe_type"
 					class="select"
@@ -241,12 +240,12 @@
 				/>
 			</label>
 			<label class="label">
-				<span class="label-text">{m.outer_conduit()}</span>
+				<span class="label-text">{m.form_outer_conduit()}</span>
 				<textarea name="outer_conduit" id="outer_conduit" class="textarea" placeholder=""
 				></textarea>
 			</label>
 			<label for="status" class="label">
-				<span class="label-text">{m.status()}</span>
+				<span class="label-text">{m.form_status()}</span>
 				<Combobox
 					name="status"
 					class="select"
@@ -260,7 +259,7 @@
 				/>
 			</label>
 			<label for="network_level" class="label">
-				<span class="label-text">{m.network_level()}</span>
+				<span class="label-text">{m.form_network_level()}</span>
 				<Combobox
 					name="network_level"
 					class="select"
@@ -273,7 +272,7 @@
 				/>
 			</label>
 			<label for="owner" class="label">
-				<span class="label-text">{m.owner()}</span>
+				<span class="label-text">{m.form_owner()}</span>
 				<Combobox
 					name="owner"
 					class="select"
@@ -286,7 +285,7 @@
 				/>
 			</label>
 			<label for="constructor" class="label">
-				<span class="label-text">{m.constructor()}</span>
+				<span class="label-text">{m.form_constructor()}</span>
 				<Combobox
 					name="constructor"
 					class="select"
@@ -300,7 +299,7 @@
 				/>
 			</label>
 			<label for="manufacturer" class="label">
-				<span class="label-text">{m.manufacturer()}</span>
+				<span class="label-text">{m.form_manufacturer()}</span>
 
 				<Combobox
 					name="manufacturer"
@@ -315,7 +314,7 @@
 				/>
 			</label>
 			<label for="date" class="label">
-				<span class="label-text">{m.date()}</span>
+				<span class="label-text">{m.common_date()}</span>
 				<input
 					type="date"
 					name="date"
@@ -326,7 +325,7 @@
 				/>
 			</label>
 			<label for="flag" class="label">
-				<span class="label-text">{m.flag()}</span>
+				<span class="label-text">{m.form_flag()}</span>
 				<Combobox
 					name="flag"
 					class="select"
@@ -343,7 +342,9 @@
 		</form>
 
 		<footer class="flex justify-end gap-4">
-			<button type="submit" class="btn preset-filled" form="pipe-form"> {m.confirm()} </button>
+			<button type="submit" class="btn preset-filled" form="pipe-form">
+				{m.common_confirm()}
+			</button>
 		</footer>
 	{/snippet}
 </Modal>

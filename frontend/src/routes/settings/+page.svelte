@@ -1,20 +1,18 @@
 <script>
 	// Skeleton
-	import { Toaster, createToaster, Switch, Slider, Combobox } from '@skeletonlabs/skeleton-svelte';
-
+	import { Combobox, createToaster, Slider, Switch, Toaster } from '@skeletonlabs/skeleton-svelte';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
 	// Svelte
 	import { userStore } from '$lib/stores/auth';
 	import {
-		sidebarExpanded,
-		defaultProject,
-		trenchColor,
-		trenchColorSelected,
 		routingMode,
 		routingTolerance,
-		theme
+		sidebarExpanded,
+		theme,
+		trenchColor,
+		trenchColorSelected
 	} from '$lib/stores/store';
 
 	const toaster = createToaster({
@@ -38,7 +36,7 @@
 </script>
 
 <svelte:head>
-	<title>{m.settings()}</title>
+	<title>{m.nav_settings()}</title>
 </svelte:head>
 
 <Toaster {toaster}></Toaster>
@@ -60,7 +58,7 @@
 				<dl class="mt-6 divide-y border-t text-sm/6">
 					<div class="py-6 sm:flex">
 						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
-							{m.settings_user_username()}
+							{m.auth_username()}
 						</dt>
 						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
 							<div>{$userStore.username}</div>
@@ -184,13 +182,13 @@
 				<dl class="mt-6 divide-y border-t text-sm/6">
 					<div class="py-6 sm:flex">
 						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
-							{m.settings_map_routing_mode()}
+							{m.form_routing_mode()}
 						</dt>
 						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
 							{#if $routingMode}
-								<p>{m.settings_map_routing_mode_enabled()}</p>
+								<p>{m.action_routing_mode_enabled()}</p>
 							{:else}
-								<p>{m.settings_map_routing_mode_disabled()}</p>
+								<p>{m.action_routing_mode_disabled()}</p>
 							{/if}
 							<Switch
 								name="routing-mode"
@@ -205,10 +203,10 @@
 				<dl class="mt-6 divide-y border-t text-sm/6">
 					<div class="py-6 sm:flex">
 						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
-							{m.routing_tolerance()}
+							{m.settings_routing_tolerance()}
 						</dt>
 						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
-							<p class="hidden md:block">{m.routing_tolerance_description()}</p>
+							<p class="hidden md:block">{m.settings_routing_tolerance_description()}</p>
 							<Slider
 								bind:value={$routingTolerance}
 								onValueChange={(e) => ($routingTolerance = e.value)}

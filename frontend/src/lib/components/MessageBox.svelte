@@ -10,7 +10,7 @@
 		message,
 		showAcceptButton = false,
 		acceptText = m.accept ? m.accept() : 'Accept',
-		closeText = m.close ? m.close() : 'Close',
+		closeText = m.common_close(),
 		onAccept = null
 	} = $props();
 

@@ -6,21 +6,18 @@
 	import { m } from '$lib/paraglide/messages';
 
 	// Components
-	import SearchInput from './SearchInput.svelte';
 	import GenericCombobox from './GenericCombobox.svelte';
-
+	import SearchInput from './SearchInput.svelte';
 	// Svelte
 	import { selectedProject } from '$lib/stores/store';
-	import { enhance } from '$app/forms';
 	import { parse } from 'devalue';
-
 	// Search utilities
 	import {
 		createHighlightLayer,
 		createHighlightStyle,
+		debounce,
 		parseFeatureGeometry,
-		zoomToFeature,
-		debounce
+		zoomToFeature
 	} from '$lib/map/searchUtils';
 
 	// Props
@@ -77,8 +74,8 @@
 		} catch (error) {
 			console.error('Search error:', error);
 			toaster.error({
-				title: m.error(),
-				description: m.error_search_failed()
+				title: m.common_error(),
+				description: m.message_error_search_failed()
 			});
 			onSearchError(error);
 		} finally {
@@ -143,14 +140,14 @@
 				showSearchResults = false;
 
 				toaster.success({
-					title: m.feature_found()
+					title: m.title_feature_found()
 				});
 
 				onFeatureSelect(feature);
 			} else {
 				console.error('Invalid response structure:', parsedData);
 				toaster.error({
-					title: m.error_feature_not_found()
+					title: m.title_error_feature_not_found()
 				});
 			}
 		} catch (error) {
@@ -186,7 +183,7 @@
 		<div class="mt-3 lg:mt-2">
 			<GenericCombobox
 				data={searchResults}
-				placeholder={m.select_a_feature()}
+				placeholder={m.placeholder_select_a_feature()}
 				onValueChange={handleFeatureSelect}
 				classes="touch-manipulation text-base lg:text-sm min-h-[44px] lg:min-h-[36px]"
 				contentBase="max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg text-base lg:text-sm"
@@ -200,7 +197,7 @@
 			class="mt-3 lg:mt-2 text-base lg:text-sm text-surface-600-400 flex items-center justify-center lg:justify-start"
 		>
 			<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-500 mr-2"></div>
-			{m.searching()}
+			{m.common_searching()}
 		</div>
 	{/if}
 </div>

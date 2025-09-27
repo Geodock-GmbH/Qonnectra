@@ -21,7 +21,7 @@ export async function load({ fetch, params, depends, cookies }) {
 
 		if (!response.ok) {
 			console.error(`Failed to fetch conduits: ${response.status}`);
-			return { conduits: [], conduitsError: m.error_fetching_conduits() };
+			return { conduits: [], conduitsError: m.title_error_fetching_conduits() };
 		}
 
 		const data = await response.json();
@@ -32,7 +32,7 @@ export async function load({ fetch, params, depends, cookies }) {
 		return { conduits, conduitsError: null };
 	} catch (error) {
 		console.error('Error fetching conduits:', error);
-		return { conduits: [], conduitsError: m.error_fetching_conduits() };
+		return { conduits: [], conduitsError: m.title_error_fetching_conduits() };
 	}
 }
 

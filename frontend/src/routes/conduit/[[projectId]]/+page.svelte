@@ -3,19 +3,17 @@
 	import { FileUpload, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
 
 	// Tabler
-	import { IconUpload, IconPlus } from '@tabler/icons-svelte';
-
+	import { IconUpload } from '@tabler/icons-svelte';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
 	// Svelte
-	import PipeTable from './PipeTable.svelte';
-	import PipeModal from './PipeModal.svelte';
-	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
-	import SearchInput from '$lib/components/SearchInput.svelte';
-	import { selectedProject, selectedFlag } from '$lib/stores/store';
-	import { navigating, page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import { navigating, page } from '$app/stores';
+	import SearchInput from '$lib/components/SearchInput.svelte';
+	import { selectedProject } from '$lib/stores/store';
+	import PipeModal from './PipeModal.svelte';
+	import PipeTable from './PipeTable.svelte';
 
 	let openPipeModal = $state(false);
 	let rowData = $state(null);
@@ -77,8 +75,8 @@
 		// Show loading toast
 		const loadingToast = toaster.create({
 			type: 'info',
-			title: m.import(),
-			description: m.importing_conduits_description()
+			title: m.common_import(),
+			description: m.message_importing_conduits_description()
 		});
 
 		try {
@@ -90,34 +88,32 @@
 			const result = await response.json();
 
 			if (response.ok) {
-				toaster.create({
-					type: 'success',
-					title: m.import_conduits_success(),
+				toaster.success({
+					title: m.title_import_conduits_success(),
 					description:
-						result.message || m.import_conduits_success_description(result.created_count || 0)
+						result.message ||
+						m.message_import_conduits_success_description(result.created_count || 0)
 				});
 				return;
 			} else {
-				let errorMessage = m.import_conduits_error_description();
+				let errorMessage = m.message_please_try_again();
 				if (result.errors && Array.isArray(result.errors)) {
 					errorMessage = result.errors.join('\n');
 				} else if (result.error) {
 					errorMessage = result.error;
 				}
 
-				toaster.create({
-					type: 'error',
-					title: m.import_conduits_error(),
+				toaster.error({
+					title: m.title_import_conduits_error(),
 					description: errorMessage
 				});
 
 				return;
 			}
 		} catch (error) {
-			toaster.create({
-				type: 'error',
-				title: m.import_conduits_error(),
-				description: m.import_conduits_error_description()
+			toaster.error({
+				title: m.title_import_conduits_error(),
+				description: m.message_please_try_again()
 			});
 			console.error('Import error:', error);
 		}
@@ -127,10 +123,9 @@
 		const rejectedFiles = event.detail.rejectedFiles;
 		if (rejectedFiles && rejectedFiles.length > 0) {
 			const errors = rejectedFiles.map((file) => `${file.file.name}: ${file.errors.join(', ')}`);
-			toaster.create({
-				type: 'error',
-				title: m.file_rejected(),
-				description: m.file_rejected_description() + '\n' + errors.join('\n')
+			toaster.error({
+				title: m.title_file_rejected(),
+				description: m.message_file_rejected_description() + '\n' + errors.join('\n')
 			});
 		}
 	}
@@ -171,18 +166,18 @@
 			>
 				<button name="import-conduit" class="btn preset-filled-primary-500">
 					<IconUpload class="size-4" />
-					<span>{m.import_conduit_xlsx()}</span>
+					<span>{m.action_import_conduit_xlsx()}</span>
 				</button>
 			</FileUpload>
 			<a href="/conduit/download" download class="btn preset-filled-primary-500">
-				{m.download_template()}
+				{m.action_download_template()}
 			</a>
 		</nav>
 	</div>
 </div>
 
 <svelte:head>
-	<title>{m.conduit_management()}</title>
+	<title>{m.nav_conduit_management()}</title>
 </svelte:head>
 
 {#if $navigating}

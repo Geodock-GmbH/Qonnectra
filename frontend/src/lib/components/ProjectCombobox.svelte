@@ -26,9 +26,8 @@
 
 	$effect(() => {
 		if (projectsError && browser) {
-			toaster.create({
-				type: 'error',
-				message: m.error_fetching_projects(),
+			toaster.error({
+				title: m.title_error_fetching_projects(),
 				description: projectsError
 			});
 		}
@@ -49,7 +48,7 @@
 	<div class="alert variant-filled-error text-sm sm:text-base">{projectsError}</div>
 {:else if projects.length === 0}
 	<div class="alert variant-filled-warning text-sm sm:text-base">
-		{m.error_fetching_projects_no_projects()}
+		{m.message_error_fetching_projects_no_projects()}
 	</div>
 {:else}
 	<Combobox
@@ -60,7 +59,7 @@
 			$selectedProject = e.value;
 			onChange(e);
 		}}
-		placeholder={m.project()}
+		placeholder={m.form_project({ count: 1 })}
 		classes="z-10 w-full min-w-0 sm:min-w-48 md:min-w-64"
 		zIndex="10"
 		contentBase="max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"

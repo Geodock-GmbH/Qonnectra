@@ -1,25 +1,20 @@
 <script>
 	// Skeleton
-	import { Combobox, createToaster, Toaster } from '@skeletonlabs/skeleton-svelte';
-
+	import { createToaster, Toaster } from '@skeletonlabs/skeleton-svelte';
 	// Svelte
-	import { navigating, page } from '$app/stores';
-	import { selectedProject } from '$lib/stores/store';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
-	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
-	import PipeBranchNode from './PipeBranchNode.svelte';
+	import { selectedProject } from '$lib/stores/store';
+	import LassoModeSwitch from './LassoModeSwitch.svelte';
 	import PipeBranchEdge from './PipeBranchEdge.svelte';
 	import PipeBranchLasso from './PipeBranchLasso.svelte';
-	import LassoModeSwitch from './LassoModeSwitch.svelte';
-
+	import PipeBranchNode from './PipeBranchNode.svelte';
 	// SvelteFlow
-	import { SvelteFlow, Background, Controls, Panel } from '@xyflow/svelte';
+	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
 	import '@xyflow/svelte/dist/style.css';
-
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
-	import { derived } from 'svelte/store';
 
 	/** @type {import('./$types').PageProps} */
 	let { data } = $props();
@@ -312,8 +307,8 @@
 		// Prevent connection if the source handle has -source suffix
 		if (connection.sourceHandle && connection.sourceHandle.endsWith('-target')) {
 			toaster.error({
-				title: m.error(),
-				description: m.error_cannot_connect_from_source()
+				title: m.common_error(),
+				description: m.message_error_cannot_connect_from_source()
 			});
 			return false; // Prevent connection
 		}
@@ -321,8 +316,8 @@
 		// Prevent connecting a microduct to itself
 		if (sourceHandleData.microductUuid === targetHandleData.microductUuid) {
 			toaster.error({
-				title: m.error(),
-				description: m.error_cannot_connect_microduct_to_itself()
+				title: m.common_error(),
+				description: m.message_error_cannot_connect_microduct_to_itself()
 			});
 			return false; // Prevent connection
 		}
@@ -500,7 +495,7 @@
 	async function autoConnectTwoNodes() {
 		if (selectedNodeIds.length !== 2) {
 			toaster.error({
-				title: m.error(),
+				title: m.common_error(),
 				description: 'Please select exactly 2 nodes'
 			});
 			return;
@@ -514,7 +509,7 @@
 
 		if (!sourceNode || !targetNode) {
 			toaster.error({
-				title: m.error(),
+				title: m.common_error(),
 				description: 'Could not find selected nodes'
 			});
 			return;
@@ -544,7 +539,7 @@
 
 		if (connections.length === 0) {
 			toaster.error({
-				title: m.error(),
+				title: m.common_error(),
 				description: 'No matching microducts available for connection'
 			});
 			return;
@@ -627,22 +622,22 @@
 			// Show result
 			if (successCount > 0) {
 				toaster.success({
-					title: m.title_login_success(),
-					description: `${successCount}x ${m.created_connections()}`
+					title: m.title_success(),
+					description: `${successCount}x ${m.message_created_connections()}`
 				});
 			}
 
 			if (successCount < connections.length) {
 				toaster.error({
-					title: m.error(),
-					description: `${connections.length - successCount}x ${m.failed_to_create_connections()}`
+					title: m.common_error(),
+					description: `${connections.length - successCount}x ${m.message_failed_to_create_connections()}`
 				});
 			}
 		} catch (error) {
 			console.error('Error creating connections:', error);
 			toaster.error({
-				title: m.error(),
-				description: m.failed_to_create_connections()
+				title: m.common_error(),
+				description: m.message_failed_to_create_connections()
 			});
 		}
 	}
@@ -664,7 +659,7 @@
 </script>
 
 <svelte:head>
-	<title>{m.pipe_branch()}</title>
+	<title>{m.nav_pipe_branch()}</title>
 </svelte:head>
 
 <Toaster {toaster}></Toaster>
@@ -698,7 +693,7 @@
 					data={branches}
 					bind:value={selectedNode}
 					defaultValue={selectedNode}
-					placeholder={m.select_pipe_branch()}
+					placeholder={m.placeholder_select_pipe_branch()}
 					onValueChange={(e) => {
 						selectedNode = e.value;
 						clearLassoSelection();
@@ -720,8 +715,8 @@
 				{#if isLassoMode && selectedNodeIds.length > 0}
 					<div class="space-y-2">
 						<div class="text-sm text-surface-600-300">
-							{m.selected()}: {selectedNodeIds.length}
-							{m.node()}
+							{m.common_selected()}: {selectedNodeIds.length}
+							{m.form_node()}
 						</div>
 
 						{#if selectedNodeIds.length === 2}
@@ -729,11 +724,11 @@
 								{m.connect_selected_nodes()}
 							</button>
 						{:else if selectedNodeIds.length > 2}
-							<div class="text-xs text-warning-500">{m.select_exactly_2_nodes()}</div>
+							<div class="text-xs text-warning-500">{m.form_select_exactly_2_nodes()}</div>
 						{/if}
 
 						<button class="btn btn-sm preset-outlined-primary-500" onclick={clearLassoSelection}>
-							{m.clear_selection()}
+							{m.action_clear_selection()}
 						</button>
 					</div>
 				{/if}

@@ -7,7 +7,6 @@
 
 	// SvelteKit
 	import { enhance } from '$app/forms';
-	import { page } from '$app/stores';
 
 	const toaster = createToaster({
 		placement: 'bottom-end'
@@ -27,7 +26,7 @@
 	$: if (form?.error) {
 		toaster.create({
 			title: m.title_login_error(),
-			description: m.login_critical_error(),
+			description: m.message_login_error(),
 			type: 'error'
 		});
 		console.log('form', form.error);
@@ -40,7 +39,7 @@
 	<!-- Logo -->
 	<img src="/favicon.png" alt="Logo" class="w-16 h-16" />
 	<!-- Title -->
-	<h2 class="text-2xl font-bold">{m.signin()}</h2>
+	<h2 class="text-2xl font-bold">{m.auth_signin()}</h2>
 	<!-- Form -->
 	<!-- Use enhance for progressive enhancement -->
 	<form
@@ -62,7 +61,7 @@
 
 		<!-- Username -->
 		<div class="flex flex-col gap-2">
-			<p class="text-sm">{m.username()}</p>
+			<p class="text-sm">{m.auth_username()}</p>
 			<label for="username">
 				<input type="text" name="username" class="input" required bind:value={username} />
 			</label>
@@ -70,7 +69,7 @@
 		<!-- Password -->
 		<div class="flex flex-col gap-2">
 			<div class="flex flex-row justify-between">
-				<p class="text-sm">{m.password()}</p>
+				<p class="text-sm">{m.auth_password()}</p>
 			</div>
 
 			<label for="password">
@@ -80,7 +79,7 @@
 		<!-- Login Button -->
 		<div class="flex flex-col gap-2">
 			<button type="submit" class="btn preset-filled-primary-500">
-				{m.login()}
+				{m.auth_login()}
 			</button>
 		</div>
 	</form>

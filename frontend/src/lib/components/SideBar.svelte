@@ -4,15 +4,14 @@
 
 	// Icons
 	import {
-		IconDashboard,
+		IconAffiliate,
 		IconArrowBarToRight,
+		IconDashboard,
 		IconMap2,
 		IconSettings,
 		IconTextPlus,
-		IconAffiliate,
 		IconTopologyRing2
 	} from '@tabler/icons-svelte';
-
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
@@ -37,48 +36,48 @@
 		{#snippet tiles()}
 			<Navigation.Tile
 				href="/dashboard"
-				labelExpanded={m.dashboard()}
-				title={m.dashboard()}
+				labelExpanded={m.nav_dashboard()}
+				title={m.nav_dashboard()}
 				selected={page.url.pathname.startsWith('/dashboard')}
 			>
 				<IconDashboard size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
 			<Navigation.Tile
 				href="/map"
-				labelExpanded={m.map()}
-				title={m.map()}
+				labelExpanded={m.nav_map()}
+				title={m.nav_map()}
 				selected={page.url.pathname === '/map'}
 			>
 				<IconMap2 size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
 			<Navigation.Tile
 				href="/trench"
-				labelExpanded={m.conduit_connection()}
-				title={m.conduit_connection()}
+				labelExpanded={m.nav_conduit_connection()}
+				title={m.nav_conduit_connection()}
 				selected={page.url.pathname.startsWith('/trench')}
 			>
 				<IconTextPlus size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
 			<Navigation.Tile
 				href="/conduit"
-				labelExpanded={m.conduit_management()}
-				title={m.conduit_management()}
+				labelExpanded={m.nav_conduit_management()}
+				title={m.nav_conduit_management()}
 				selected={page.url.pathname.startsWith('/conduit')}
 			>
 				<IconArrowBarToRight size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
 			<Navigation.Tile
 				href="/pipe-branch"
-				labelExpanded={m.pipe_branch()}
-				title={m.pipe_branch()}
+				labelExpanded={m.nav_pipe_branch()}
+				title={m.nav_pipe_branch()}
 				selected={page.url.pathname.startsWith('/pipe-branch')}
 			>
 				<IconAffiliate size={28} class="text-surface-700-300" />
 			</Navigation.Tile>
 			<Navigation.Tile
 				href="/network-schema"
-				labelExpanded={m.network_schema()}
-				title={m.network_schema()}
+				labelExpanded={m.nav_network_schema()}
+				title={m.nav_network_schema()}
 				selected={page.url.pathname.startsWith('/network-schema')}
 			>
 				<IconTopologyRing2 size={28} class="text-surface-700-300" />
@@ -87,8 +86,8 @@
 		{#snippet footer()}
 			<Navigation.Tile
 				href="/settings"
-				labelExpanded={m.settings()}
-				title={m.settings()}
+				labelExpanded={m.nav_settings()}
+				title={m.nav_settings()}
 				selected={page.url.pathname === '/settings'}
 			>
 				<IconSettings size={28} class="text-surface-700-300" />

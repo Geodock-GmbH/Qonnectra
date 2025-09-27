@@ -3,8 +3,7 @@
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
 
 	// Icons
-	import { IconEye, IconEyeOff, IconChevronDown, IconChevronUp } from '@tabler/icons-svelte';
-
+	import { IconChevronDown, IconChevronUp, IconEye, IconEyeOff } from '@tabler/icons-svelte';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
@@ -26,7 +25,7 @@
 			newVisibility.set('osm-base-layer', {
 				layer: osmLayer,
 				visible: osmLayer.getVisible(),
-				name: m.osm()
+				name: m.common_osm()
 			});
 		}
 
@@ -79,7 +78,7 @@
 <div class="w-full max-w-sm md:w-64 p-3 md:p-2 bg-surface-50-950 rounded-md shadow-lg md:shadow">
 	<!-- Header with collapse functionality for mobile -->
 	<div class="flex items-center justify-between md:mb-2">
-		<p class="text-sm font-medium text-surface-contrast-100-900">{m.layer_visibility()}</p>
+		<p class="text-sm font-medium text-surface-contrast-100-900">{m.form_layer_visibility()}</p>
 
 		<!-- Mobile collapse button -->
 		<button
@@ -124,7 +123,7 @@
 
 		{#if layerVisibility.size === 0}
 			<p class="text-sm md:text-xs text-surface-400 italic text-center py-2">
-				{m.no_layers_available()}
+				{m.form_no_layers_available()}
 			</p>
 		{/if}
 	</div>

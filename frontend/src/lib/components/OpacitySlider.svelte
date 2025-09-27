@@ -24,7 +24,7 @@
 
 <!-- OpacitySlider -->
 <div class="w-full sm:w-sm p-3 sm:p-2 bg-surface-50-950 rounded-md shadow">
-	<p class="text-sm text-surface-contrast-100-900 mb-2">{m.opacity()}</p>
+	<p class="text-sm text-surface-contrast-100-900 mb-2">{m.common_opacity()}</p>
 	<Slider
 		name="opacity"
 		value={sliderValue}

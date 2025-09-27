@@ -6,7 +6,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	// SvelteFlow
-	import { BaseEdge, getStraightPath, useEdges, EdgeLabel } from '@xyflow/svelte';
+	import { BaseEdge, EdgeLabel, getStraightPath, useEdges } from '@xyflow/svelte';
 
 	let { id, sourceX, sourceY, targetX, targetY, data } = $props();
 
@@ -56,23 +56,23 @@
 					console.error('Failed to delete connection:', error);
 					toaster.create({
 						type: 'error',
-						title: m.error(),
-						description: m.connection_deleted_error()
+						title: m.common_error(),
+						description: m.message_error_connection_deleted()
 					});
 					return;
 				}
 
 				toaster.success({
-					title: m.title_login_success(),
-					description: m.connection_deleted_successfully()
+					title: m.title_success(),
+					description: m.message_connection_deleted_successfully()
 				});
 				console.log('Successfully deleted connection from backend');
 			} catch (error) {
 				console.error('Error deleting connection:', error);
 				toaster.create({
 					type: 'error',
-					title: m.error(),
-					description: m.connection_deleted_error()
+					title: m.common_error(),
+					description: m.message_error_connection_deleted()
 				});
 				return;
 			}
@@ -123,12 +123,12 @@
 			onclick={() =>
 				toaster.promise(handleDeleteEdge(), {
 					success: () => ({
-						title: m.title_login_success(),
-						description: m.connection_deleted_successfully()
+						title: m.title_success(),
+						description: m.message_connection_deleted_successfully()
 					}),
 					error: () => ({
-						title: m.error(),
-						description: m.connection_deleted_error()
+						title: m.common_error(),
+						description: m.message_error_connection_deleted()
 					})
 				})}
 			title="Delete edge"

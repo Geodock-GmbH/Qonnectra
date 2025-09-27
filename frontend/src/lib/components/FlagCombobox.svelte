@@ -4,8 +4,7 @@
 
 	// Svelte
 	import { browser } from '$app/environment';
-	import { selectedFlag, selectedProject } from '$lib/stores/store';
-
+	import { selectedFlag } from '$lib/stores/store';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
@@ -21,9 +20,8 @@
 
 	$effect(() => {
 		if (flagsError && browser) {
-			toaster.create({
-				type: 'error',
-				message: m.error_fetching_flags(),
+			toaster.error({
+				title: m.title_error_fetching_flags(),
 				description: flagsError
 			});
 		}
@@ -45,7 +43,7 @@
 {:else if flagsError}
 	<div class="alert variant-filled-error">{flagsError}</div>
 {:else if flags.length === 0}
-	<div class="alert variant-filled-warning">{m.error_fetching_flags_no_flags()}</div>
+	<div class="alert variant-filled-warning">{m.message_error_fetching_flags_no_flags()}</div>
 {:else}
 	<!-- FlagCombobox -->
 	<Combobox
@@ -56,7 +54,7 @@
 			$selectedFlag = e.value;
 			onchange(e);
 		}}
-		placeholder={m.select_flag()}
+		placeholder={m.placeholder_select_flag()}
 		zIndex="10"
 		classes="touch-manipulation"
 		contentBase="max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg	"

@@ -6,7 +6,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	// Icons
-	import { IconPointer, IconLasso } from '@tabler/icons-svelte';
+	import { IconLasso, IconPointer } from '@tabler/icons-svelte';
 
 	let { checked = false, onCheckedChange, partial = false, onPartialChange } = $props();
 
@@ -26,7 +26,7 @@
 <div class="flex flex-col gap-2">
 	<!-- Lasso Mode Switch -->
 	<div class="flex items-center gap-2">
-		<span class="text-sm font-medium">{m.lasso_mode()}:</span>
+		<span class="text-sm font-medium">{m.form_lasso_mode()}:</span>
 		<Switch
 			name="lasso-mode-switch"
 			controlActive="bg-surface-200"
@@ -52,7 +52,7 @@
 					onchange={handlePartialChange}
 					class="xy-theme__checkbox"
 				/>
-				{m.partial_selection()}
+				{m.form_partial_selection()}
 			</label>
 		</div>
 	{/if}

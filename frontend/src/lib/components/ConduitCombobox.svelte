@@ -5,7 +5,6 @@
 	// Svelte
 	import { browser } from '$app/environment';
 	import { selectedConduit } from '$lib/stores/store';
-
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
@@ -25,9 +24,8 @@
 	// Show error toast
 	$effect(() => {
 		if (conduitsError && browser) {
-			toaster.create({
-				type: 'error',
-				message: m.error_fetching_conduits(),
+			toaster.error({
+				title: m.title_error_fetching_conduits(),
 				description: conduitsError
 			});
 		}
@@ -43,7 +41,7 @@
 		<div class="text-error-500 p-2">{conduitsError}</div>
 	{:else if conduits.length === 0 && (projectId || flagId)}
 		<select class="select" disabled>
-			<option value="">{m.no_conduits_found()}</option>
+			<option value="">{m.message_no_conduits_found()}</option>
 		</select>
 	{:else}
 		<Combobox
@@ -51,7 +49,7 @@
 			bind:value={$selectedConduit}
 			defaultValue={$selectedConduit}
 			onValueChange={(e) => ($selectedConduit = e.value)}
-			placeholder={m.select_conduit()}
+			placeholder={m.placeholder_select_conduit()}
 			zIndex="10"
 			classes="touch-manipulation"
 			contentBase="max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"

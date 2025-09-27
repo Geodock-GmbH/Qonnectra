@@ -63,7 +63,7 @@
 	<div class="alert variant-filled-error text-sm sm:text-base">{error}</div>
 {:else if data.length === 0}
 	<div class="alert variant-filled-warning text-sm sm:text-base">
-		{noDataMessage || m.no_data_available()}
+		{noDataMessage || m.form_no_data_available()}
 	</div>
 {:else}
 	<Combobox

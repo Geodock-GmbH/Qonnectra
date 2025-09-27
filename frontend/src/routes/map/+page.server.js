@@ -63,7 +63,7 @@ export const actions = {
 				if (nodeId && nodeName) {
 					results.push({
 						value: `${nodeId}`,
-						label: `${nodeName}` + ' ' + '(' + m.node() + ')',
+						label: `${nodeName}` + ' ' + '(' + m.form_node() + ')',
 						type: 'node',
 						uuid: nodeId,
 						name: nodeName
@@ -80,7 +80,7 @@ export const actions = {
 				if (trenchId && trenchIdNumber) {
 					results.push({
 						value: `${trenchId}`,
-						label: `${trenchIdNumber}` + ' ' + '(' + m.trench() + ')',
+						label: `${trenchIdNumber}` + ' ' + '(' + m.nav_trench() + ')',
 						type: 'trench',
 						uuid: trenchId,
 						id_trench: trenchIdNumber

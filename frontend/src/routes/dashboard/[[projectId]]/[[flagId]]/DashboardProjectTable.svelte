@@ -1,7 +1,6 @@
 <script>
 	// Skeleton
-	import { Pagination, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
-
+	import { Pagination } from '@skeletonlabs/skeleton-svelte';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
@@ -17,9 +16,9 @@
 		<table class="table caption-bottom">
 			<thead>
 				<tr>
-					<th>{m.project()}</th>
-					<th>{m.description()}</th>
-					<th>{m.active()}</th>
+					<th>{m.form_project({ count: count })}</th>
+					<th>{m.common_description()}</th>
+					<th>{m.common_active()}</th>
 				</tr>
 			</thead>
 			<tbody class="[&>tr]:hover:preset-tonal-primary">
@@ -27,7 +26,7 @@
 					<tr>
 						<td>{row.project}</td>
 						<td>{row.description}</td>
-						<td>{row.active ? m.yes() : m.no()}</td>
+						<td>{row.active ? m.common_yes() : m.common_no()}</td>
 					</tr>
 				{/each}
 			</tbody>

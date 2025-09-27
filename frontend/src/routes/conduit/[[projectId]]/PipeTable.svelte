@@ -10,7 +10,6 @@
 
 	// Svelte
 	import { PUBLIC_API_URL } from '$env/static/public';
-	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
 
 	// Toaster
@@ -33,16 +32,16 @@
 	const slicedSource = $derived(pipes.slice((page - 1) * size, page * size));
 	let lastUpdateId = null;
 	let headers = [
-		m.name(),
-		m.conduit_type(),
-		m.outer_conduit(),
-		m.status(),
-		m.network_level(),
-		m.owner(),
-		m.constructor(),
-		m.manufacturer(),
-		m.date(),
-		m.flag()
+		m.common_name(),
+		m.form_conduit_type(),
+		m.form_outer_conduit(),
+		m.form_status(),
+		m.form_network_level(),
+		m.form_owner(),
+		m.form_constructor(),
+		m.form_manufacturer(),
+		m.common_date(),
+		m.form_flag()
 	];
 	let messageBoxConfirm;
 	let messageBoxAlert;
@@ -125,20 +124,18 @@
 				// Remove from local state immediately
 				pipes = pipes.filter((pipe) => pipe.value !== pipeId);
 
-				toaster.create({
-					type: 'success',
-					title: m.title_login_success(),
-					description: m.success_deleting_conduit()
+				toaster.success({
+					title: m.title_success(),
+					description: m.message_success_deleting_conduit()
 				});
 			} else {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 		} catch (error) {
 			console.error('Delete error:', error);
-			toaster.create({
-				type: 'error',
-				title: m.error(),
-				description: m.error_deleting_conduit()
+			toaster.error({
+				title: m.common_error(),
+				description: m.message_error_deleting_conduit()
 			});
 		} finally {
 			deletingIds.delete(pipeId);
@@ -192,26 +189,26 @@
 			<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">
 				{#each slicedSource as row}
 					<tr>
-						<td data-label={m.name()} onclick={() => handleRowClick(row)}>{row.name}</td>
-						<td data-label={m.conduit_type()} onclick={() => handleRowClick(row)}
+						<td data-label={m.common_name()} onclick={() => handleRowClick(row)}>{row.name}</td>
+						<td data-label={m.form_conduit_type()} onclick={() => handleRowClick(row)}
 							>{row.conduit_type}</td
 						>
-						<td data-label={m.outer_conduit()} onclick={() => handleRowClick(row)}
+						<td data-label={m.formouter_conduit()} onclick={() => handleRowClick(row)}
 							>{row.outer_conduit}</td
 						>
-						<td data-label={m.status()} onclick={() => handleRowClick(row)}>{row.status}</td>
-						<td data-label={m.network_level()} onclick={() => handleRowClick(row)}
+						<td data-label={m.form_status()} onclick={() => handleRowClick(row)}>{row.status}</td>
+						<td data-label={m.form_network_level()} onclick={() => handleRowClick(row)}
 							>{row.network_level}</td
 						>
-						<td data-label={m.owner()} onclick={() => handleRowClick(row)}>{row.owner}</td>
-						<td data-label={m.constructor()} onclick={() => handleRowClick(row)}
+						<td data-label={m.form_owner()} onclick={() => handleRowClick(row)}>{row.owner}</td>
+						<td data-label={m.form_constructor()} onclick={() => handleRowClick(row)}
 							>{row.constructor}</td
 						>
-						<td data-label={m.manufacturer()} onclick={() => handleRowClick(row)}
+						<td data-label={m.form_manufacturer()} onclick={() => handleRowClick(row)}
 							>{row.manufacturer}</td
 						>
-						<td data-label={m.date()} onclick={() => handleRowClick(row)}>{row.date}</td>
-						<td data-label={m.flag()} onclick={() => handleRowClick(row)}>{row.flag}</td>
+						<td data-label={m.common_date()} onclick={() => handleRowClick(row)}>{row.date}</td>
+						<td data-label={m.form_flag()} onclick={() => handleRowClick(row)}>{row.flag}</td>
 						<td data-label="delete">
 							<button
 								name="delete-pipe"
@@ -275,35 +272,35 @@
 			<!-- Details Grid -->
 			<div class="grid grid-cols-2 gap-3 text-sm">
 				<div>
-					<span class="font-medium text-surface-600-400">{m.outer_conduit()}:</span>
+					<span class="font-medium text-surface-600-400">{m.form_outer_conduit()}:</span>
 					<p class="truncate">{row.outer_conduit}</p>
 				</div>
 				<div>
-					<span class="font-medium text-surface-600-400">{m.status()}:</span>
+					<span class="font-medium text-surface-600-400">{m.form_status()}:</span>
 					<p class="truncate">{row.status}</p>
 				</div>
 				<div>
-					<span class="font-medium text-surface-600-400">{m.network_level()}:</span>
+					<span class="font-medium text-surface-600-400">{m.form_network_level()}:</span>
 					<p class="truncate">{row.network_level}</p>
 				</div>
 				<div>
-					<span class="font-medium text-surface-600-400">{m.owner()}:</span>
+					<span class="font-medium text-surface-600-400">{m.form_owner()}:</span>
 					<p class="truncate">{row.owner}</p>
 				</div>
 				<div>
-					<span class="font-medium text-surface-600-400">{m.constructor()}:</span>
+					<span class="font-medium text-surface-600-400">{m.form_constructor()}:</span>
 					<p class="truncate">{row.constructor}</p>
 				</div>
 				<div>
-					<span class="font-medium text-surface-600-400">{m.manufacturer()}:</span>
+					<span class="font-medium text-surface-600-400">{m.form_manufacturer()}:</span>
 					<p class="truncate">{row.manufacturer}</p>
 				</div>
 				<div>
-					<span class="font-medium text-surface-600-400">{m.date()}:</span>
+					<span class="font-medium text-surface-600-400">{m.common_date()}:</span>
 					<p class="truncate">{row.date}</p>
 				</div>
 				<div>
-					<span class="font-medium text-surface-600-400">{m.flag()}:</span>
+					<span class="font-medium text-surface-600-400">{m.form_flag()}:</span>
 					<p class="truncate">{row.flag}</p>
 				</div>
 			</div>
@@ -323,19 +320,17 @@
 
 <MessageBox
 	bind:this={messageBoxConfirm}
-	heading={m.confirm ? m.confirm() : 'Confirm'}
-	message={m.confirm_delete_conduit
-		? m.confirm_delete_conduit()
-		: 'Are you sure you want to delete this conduit?'}
+	heading={m.common_confirm()}
+	message={m.message_confirm_delete_conduit()}
 	showAcceptButton={true}
-	acceptText={m.delete ? m.delete() : 'Delete'}
+	acceptText={m.common_delete()}
 	onAccept={confirmDelete}
 />
 <MessageBox
 	bind:this={messageBoxAlert}
-	heading={m.confirm()}
-	message={m.confirm_delete_conduit_description()}
+	heading={m.common_confirm()}
+	message={m.message_confirm_delete_conduit_description()}
 	showAcceptButton={true}
-	acceptText={m.delete ? m.delete() : 'Delete'}
+	acceptText={m.common_delete()}
 	onAccept={forceDelete}
 />

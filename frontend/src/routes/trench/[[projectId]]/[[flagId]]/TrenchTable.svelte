@@ -10,7 +10,7 @@
 
 	// Svelte
 	import { PUBLIC_API_URL } from '$env/static/public';
-	import { selectedFlag, selectedProject } from '$lib/stores/store';
+	import { selectedFlag } from '$lib/stores/store';
 
 	// Toaster
 	const toaster = createToaster({
@@ -52,7 +52,7 @@
 				trench: item.trench.id
 			}));
 		} catch (error) {
-			trenchesError = m.error_fetching_trenches();
+			trenchesError = m.message_error_fetching_trenches();
 		} finally {
 			loading = false;
 			updateCount();
@@ -70,9 +70,8 @@
 		} else {
 			const errorText = await response.text();
 			console.error('Failed to delete trench connection:', response.status, errorText);
-			toaster.create({
-				type: 'error',
-				description: m.error_deleting_trench_connection()
+			toaster.error({
+				description: m.message_error_deleting_trench_connection()
 			});
 			throw new Error(errorText);
 		}
@@ -89,13 +88,13 @@
 
 		toaster.promise(promise, {
 			loading: {
-				description: m.please_wait()
+				description: m.message_please_wait()
 			},
 			success: {
-				description: m.trench_connection_deleted()
+				description: m.message_trench_connection_deleted()
 			},
 			error: {
-				description: m.error_deleting_trench_connection()
+				description: m.message_error_deleting_trench_connection()
 			}
 		});
 	}
@@ -143,12 +142,12 @@
 			fetchTrenches();
 			toaster.create({
 				type: 'success',
-				description: m.trench_connection_saved()
+				description: m.message_trench_connection_saved()
 			});
 		} else {
 			toaster.create({
 				type: 'warning',
-				description: m.no_new_trench_connections()
+				description: m.message_no_new_trench_connections()
 			});
 		}
 	}
@@ -181,7 +180,7 @@
 		<table class="table table-fixed caption-bottom w-full">
 			<thead>
 				<tr>
-					<th class="text-left">{m.trench_id()}</th>
+					<th class="text-left">{m.form_trench_id()}</th>
 				</tr>
 			</thead>
 			<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">
