@@ -8,6 +8,7 @@
 	// Svelte
 	import { userStore } from '$lib/stores/auth';
 	import LightSwitch from './LightSwitch.svelte';
+	import LocaleSwitcher from './LocaleSwitcher.svelte';
 	import ProjectCombobox from './ProjectCombobox.svelte';
 
 	let { data } = $props();
@@ -26,6 +27,7 @@
 		{#snippet trail()}
 			<div class="flex items-center gap-2 sm:gap-6 flex-shrink-0">
 				<p class="text-xs sm:text-sm text-surface-700-300 hidden sm:block">v{data.appVersion}</p>
+				<LocaleSwitcher />
 				<LightSwitch />
 			</div>
 			{#if $userStore.isAuthenticated}
