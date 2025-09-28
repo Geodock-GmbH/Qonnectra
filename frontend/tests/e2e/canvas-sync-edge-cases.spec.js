@@ -17,13 +17,14 @@ test.describe('Canvas Sync Edge Cases', () => {
 		await page.route('**/canvas-coordinates/?project_id=1', async (route) => {
 			const elapsed = Date.now() - startTime;
 
-			if (elapsed < 31000) { // Less than 31 seconds
+			if (elapsed < 31000) {
+				// Less than 31 seconds
 				await route.fulfill({
 					status: 200,
 					contentType: 'application/json',
 					body: JSON.stringify({
 						sync_in_progress: true,
-						sync_progress: Math.min(elapsed / 1000 * 3, 95), // Slow progress
+						sync_progress: Math.min((elapsed / 1000) * 3, 95), // Slow progress
 						sync_status: 'IN_PROGRESS',
 						sync_started_by: 'slow_user',
 						total_nodes: 100
@@ -111,9 +112,7 @@ test.describe('Canvas Sync Edge Cases', () => {
 			await route.fulfill({
 				status: 200,
 				contentType: 'application/json',
-				body: JSON.stringify([
-					{ id: 1, name: 'Node 1', canvas_x: 100, canvas_y: 200 }
-				])
+				body: JSON.stringify([{ id: 1, name: 'Node 1', canvas_x: 100, canvas_y: 200 }])
 			});
 		});
 
@@ -208,9 +207,7 @@ test.describe('Canvas Sync Edge Cases', () => {
 			await route.fulfill({
 				status: 200,
 				contentType: 'application/json',
-				body: JSON.stringify([
-					{ id: 1, name: 'Robust Node', canvas_x: 100, canvas_y: 200 }
-				])
+				body: JSON.stringify([{ id: 1, name: 'Robust Node', canvas_x: 100, canvas_y: 200 }])
 			});
 		});
 
@@ -309,9 +306,7 @@ test.describe('Canvas Sync Edge Cases', () => {
 			await route.fulfill({
 				status: 200,
 				contentType: 'application/json',
-				body: JSON.stringify([
-					{ id: 1, name: 'Recovery Node', canvas_x: 100, canvas_y: 200 }
-				])
+				body: JSON.stringify([{ id: 1, name: 'Recovery Node', canvas_x: 100, canvas_y: 200 }])
 			});
 		});
 
@@ -328,7 +323,7 @@ test.describe('Canvas Sync Edge Cases', () => {
 
 		await page.route('**/canvas-coordinates/?project_id=1', async (route) => {
 			// Simulate slow API response
-			await new Promise(resolve => setTimeout(resolve, 5000));
+			await new Promise((resolve) => setTimeout(resolve, 5000));
 
 			await route.fulfill({
 				status: 200,
@@ -346,9 +341,7 @@ test.describe('Canvas Sync Edge Cases', () => {
 			await route.fulfill({
 				status: 200,
 				contentType: 'application/json',
-				body: JSON.stringify([
-					{ id: 1, name: 'Slow Node', canvas_x: 100, canvas_y: 200 }
-				])
+				body: JSON.stringify([{ id: 1, name: 'Slow Node', canvas_x: 100, canvas_y: 200 }])
 			});
 		});
 
@@ -373,7 +366,7 @@ test.describe('Canvas Sync Edge Cases', () => {
 
 			// Simulate race condition - later calls might complete first
 			const delay = currentCall === 1 ? 2000 : 100;
-			await new Promise(resolve => setTimeout(resolve, delay));
+			await new Promise((resolve) => setTimeout(resolve, delay));
 
 			const response = {
 				sync_needed: currentCall === 1,
@@ -396,9 +389,7 @@ test.describe('Canvas Sync Edge Cases', () => {
 			await route.fulfill({
 				status: 200,
 				contentType: 'application/json',
-				body: JSON.stringify([
-					{ id: 1, name: 'Race Node', canvas_x: 100, canvas_y: 200 }
-				])
+				body: JSON.stringify([{ id: 1, name: 'Race Node', canvas_x: 100, canvas_y: 200 }])
 			});
 		});
 

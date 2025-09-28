@@ -103,7 +103,10 @@ export function createAddressTileSource(selectedProject, onError) {
 						console.error('Error loading address vector tile:', error);
 						tile.setState(3); // ERROR
 						if (onError) {
-							onError('Error loading address tile', error.message || 'Could not fetch address tile data.');
+							onError(
+								'Error loading address tile',
+								error.message || 'Could not fetch address tile data.'
+							);
 						}
 					});
 			});
@@ -157,7 +160,10 @@ export function createNodeTileSource(selectedProject, onError) {
 						console.error('Error loading node vector tile:', error);
 						tile.setState(3); // ERROR
 						if (onError) {
-							onError('Error loading node tile', error.message || 'Could not fetch node tile data.');
+							onError(
+								'Error loading node tile',
+								error.message || 'Could not fetch node tile data.'
+							);
 						}
 					});
 			});

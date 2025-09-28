@@ -131,9 +131,7 @@ test.describe('Canvas Sync Flow', () => {
 			await route.fulfill({
 				status: 200,
 				contentType: 'application/json',
-				body: JSON.stringify([
-					{ id: 1, name: 'Node 1', canvas_x: 100, canvas_y: 200 }
-				])
+				body: JSON.stringify([{ id: 1, name: 'Node 1', canvas_x: 100, canvas_y: 200 }])
 			});
 		});
 
@@ -247,9 +245,7 @@ test.describe('Canvas Sync Flow', () => {
 			await route.fulfill({
 				status: 200,
 				contentType: 'application/json',
-				body: JSON.stringify([
-					{ id: 1, name: 'Node 1', canvas_x: 100, canvas_y: 200 }
-				])
+				body: JSON.stringify([{ id: 1, name: 'Node 1', canvas_x: 100, canvas_y: 200 }])
 			});
 		});
 

@@ -170,7 +170,9 @@ export const actions = {
 
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.detail || `HTTP ${response.status}: Failed to update node position`);
+				throw new Error(
+					errorData.detail || `HTTP ${response.status}: Failed to update node position`
+				);
 			}
 
 			const updatedNode = await response.json();

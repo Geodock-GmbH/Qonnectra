@@ -36,10 +36,7 @@ test.describe('Multi-User Canvas Sync', () => {
 		});
 
 		// Navigate both users to network-schema simultaneously
-		await Promise.all([
-			page1.goto('/network-schema'),
-			page2.goto('/network-schema')
-		]);
+		await Promise.all([page1.goto('/network-schema'), page2.goto('/network-schema')]);
 
 		// Wait for both pages to load
 		await Promise.all([
@@ -66,10 +63,7 @@ test.describe('Multi-User Canvas Sync', () => {
 		const page1 = await context1.newPage();
 		const page2 = await context2.newPage();
 
-		await Promise.all([
-			loginUser(page1, 'rainer_zufall'),
-			loginUser(page2, 'rainer_zufall')
-		]);
+		await Promise.all([loginUser(page1, 'rainer_zufall'), loginUser(page2, 'rainer_zufall')]);
 
 		// Set up mocks so first user triggers sync, second user waits
 		let syncCompleted = false;
@@ -148,9 +142,7 @@ test.describe('Multi-User Canvas Sync', () => {
 			await route.fulfill({
 				status: 200,
 				contentType: 'application/json',
-				body: JSON.stringify([
-					{ id: 1, name: 'Node 1', canvas_x: null, canvas_y: null }
-				])
+				body: JSON.stringify([{ id: 1, name: 'Node 1', canvas_x: null, canvas_y: null }])
 			});
 		});
 
@@ -219,9 +211,7 @@ test.describe('Multi-User Canvas Sync', () => {
 			await route.fulfill({
 				status: 200,
 				contentType: 'application/json',
-				body: JSON.stringify([
-					{ id: 1, name: 'Node 1', canvas_x: null, canvas_y: null }
-				])
+				body: JSON.stringify([{ id: 1, name: 'Node 1', canvas_x: null, canvas_y: null }])
 			});
 		});
 
@@ -241,10 +231,7 @@ test.describe('Multi-User Canvas Sync', () => {
 		const page1 = await context1.newPage();
 		const page2 = await context2.newPage();
 
-		await Promise.all([
-			loginUser(page1, 'rainer_zufall'),
-			loginUser(page2, 'rainer_zufall')
-		]);
+		await Promise.all([loginUser(page1, 'rainer_zufall'), loginUser(page2, 'rainer_zufall')]);
 
 		// User 1 sees they started the sync
 		await page1.route('**/canvas-coordinates/?project_id=1', async (route) => {
@@ -277,22 +264,23 @@ test.describe('Multi-User Canvas Sync', () => {
 		});
 
 		await Promise.all([
-			page1.route('**/node/all/?project=1', route => route.fulfill({
-				status: 200,
-				contentType: 'application/json',
-				body: JSON.stringify([])
-			})),
-			page2.route('**/node/all/?project=1', route => route.fulfill({
-				status: 200,
-				contentType: 'application/json',
-				body: JSON.stringify([])
-			}))
+			page1.route('**/node/all/?project=1', (route) =>
+				route.fulfill({
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify([])
+				})
+			),
+			page2.route('**/node/all/?project=1', (route) =>
+				route.fulfill({
+					status: 200,
+					contentType: 'application/json',
+					body: JSON.stringify([])
+				})
+			)
 		]);
 
-		await Promise.all([
-			page1.goto('/network-schema'),
-			page2.goto('/network-schema')
-		]);
+		await Promise.all([page1.goto('/network-schema'), page2.goto('/network-schema')]);
 
 		// Both should show sync in progress
 		await Promise.all([
@@ -389,9 +377,7 @@ async function setupSyncMocks(page, syncStateProvider) {
 		await route.fulfill({
 			status: 200,
 			contentType: 'application/json',
-			body: JSON.stringify([
-				{ id: 1, name: 'Node 1', canvas_x: 100, canvas_y: 200 }
-			])
+			body: JSON.stringify([{ id: 1, name: 'Node 1', canvas_x: 100, canvas_y: 200 }])
 		});
 	});
 }

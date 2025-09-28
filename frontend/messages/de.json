@@ -58,8 +58,8 @@
 			"declarations": ["input count", "local countPlural = count: plural"],
 			"selectors": ["countPlural"],
 			"match": {
-			"countPlural=one": "Mikrorohr",
-			"countPlural=other": "Mikrorohre"
+				"countPlural=one": "Mikrorohr",
+				"countPlural=other": "Mikrorohre"
 			}
 		}
 	],

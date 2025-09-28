@@ -26,12 +26,13 @@ export async function createHighlightLayer(highlightStyle) {
  * @returns {Promise<import('ol/style/Style').default>} Highlight style
  */
 export async function createHighlightStyle(color = '#ff0000') {
-	const [{ default: Style }, { default: Stroke }, { default: Fill }, { default: Circle }] = await Promise.all([
-		import('ol/style/Style'),
-		import('ol/style/Stroke'),
-		import('ol/style/Fill'),
-		import('ol/style/Circle')
-	]);
+	const [{ default: Style }, { default: Stroke }, { default: Fill }, { default: Circle }] =
+		await Promise.all([
+			import('ol/style/Style'),
+			import('ol/style/Stroke'),
+			import('ol/style/Fill'),
+			import('ol/style/Circle')
+		]);
 
 	return new Style({
 		stroke: new Stroke({
@@ -62,13 +63,15 @@ export async function createHighlightStyle(color = '#ff0000') {
  * @param {string} toProjection - Target projection (default: map projection)
  * @returns {Promise<import('ol/geom/Geometry').default>} OpenLayers geometry
  */
-export async function parseFeatureGeometry(feature, fromProjection = 'EPSG:25832', toProjection = null) {
-	const [{ default: GeoJSON }] = await Promise.all([
-		import('ol/format/GeoJSON')
-	]);
+export async function parseFeatureGeometry(
+	feature,
+	fromProjection = 'EPSG:25832',
+	toProjection = null
+) {
+	const [{ default: GeoJSON }] = await Promise.all([import('ol/format/GeoJSON')]);
 
 	const geoJsonFormat = new GeoJSON();
-	
+
 	// Parse the geometry from GeoJSON
 	const olFeature = geoJsonFormat.readFeature(feature, {
 		dataProjection: fromProjection,
@@ -90,16 +93,9 @@ export async function parseFeatureGeometry(feature, fromProjection = 'EPSG:25832
  * @param {number} options.blinkCount - Number of blinks for highlight
  */
 export async function zoomToFeature(map, geometry, highlightLayer, options = {}) {
-	const {
-		padding = [50, 50, 50, 50],
-		duration = 1000,
-		maxZoom = 20,
-		blinkCount = 6
-	} = options;
+	const { padding = [50, 50, 50, 50], duration = 1000, maxZoom = 20, blinkCount = 6 } = options;
 
-	const [{ default: Feature }] = await Promise.all([
-		import('ol/Feature')
-	]);
+	const [{ default: Feature }] = await Promise.all([import('ol/Feature')]);
 
 	const view = map.getView();
 	const extent = geometry.getExtent();
@@ -159,7 +155,7 @@ export function debounce(func, wait) {
  * @returns {Array} Formatted results for combobox
  */
 export function formatSearchResults(results, searchTerm) {
-	return results.map(result => ({
+	return results.map((result) => ({
 		...result,
 		// Highlight matching text in label
 		displayLabel: highlightSearchTerm(result.label, searchTerm)
@@ -174,7 +170,7 @@ export function formatSearchResults(results, searchTerm) {
  */
 function highlightSearchTerm(text, searchTerm) {
 	if (!searchTerm) return text;
-	
+
 	const regex = new RegExp(`(${searchTerm})`, 'gi');
 	return text.replace(regex, '<mark>$1</mark>');
 }

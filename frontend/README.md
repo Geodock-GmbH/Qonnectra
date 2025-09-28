@@ -70,10 +70,10 @@ vectorLayer.set('layerName', 'My Layer Display Name');
 
 ```javascript
 <Map
-  layers={[layer1, layer2, layer3]}
-  showOpacitySlider={true}          // Default: true - Show opacity control for base layer
-  showLayerVisibilityTree={true}    // Default: true - Show layer visibility controls
-  on:layerVisibilityChanged={handleLayerVisibilityChange}
+	layers={[layer1, layer2, layer3]}
+	showOpacitySlider={true} // Default: true - Show opacity control for base layer
+	showLayerVisibilityTree={true} // Default: true - Show layer visibility controls
+	on:layerVisibilityChanged={handleLayerVisibilityChange}
 />
 ```
 
@@ -83,8 +83,8 @@ The component dispatches `layerVisibilityChanged` events when a layer's visibili
 
 ```javascript
 function handleLayerVisibilityChange(event) {
-  const { layerId, visible, layer } = event.detail;
-  console.log(`Layer ${layerId} is now ${visible ? 'visible' : 'hidden'}`);
+	const { layerId, visible, layer } = event.detail;
+	console.log(`Layer ${layerId} is now ${visible ? 'visible' : 'hidden'}`);
 }
 ```
 
