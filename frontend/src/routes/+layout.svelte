@@ -1,10 +1,12 @@
 <script>
-	import '../app.css';
 	import AppBar from '$lib/components/AppBar.svelte';
-	import Sidebar from '$lib/components/SideBar.svelte';
 	import MobileNav from '$lib/components/MobileNav.svelte';
+	import Sidebar from '$lib/components/SideBar.svelte';
 	import { updateUserStore } from '$lib/stores/auth';
 	import { theme } from '$lib/stores/store';
+	import { globalToaster } from '$lib/stores/toaster';
+	import { Toaster } from '@skeletonlabs/skeleton-svelte';
+	import '../app.css';
 
 	let { children, data } = $props();
 
@@ -33,3 +35,6 @@
 
 <!-- Mobile Navigation Bar (fixed at bottom) -->
 <MobileNav />
+
+<!-- Global Toaster -->
+<Toaster toaster={globalToaster}></Toaster>

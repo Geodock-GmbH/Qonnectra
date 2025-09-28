@@ -1,7 +1,4 @@
 <script>
-	// Skeleton
-	import { createToaster, Toaster } from '@skeletonlabs/skeleton-svelte';
-
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
@@ -9,6 +6,7 @@
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import Drawer from '$lib/components/Drawer.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
+	import { globalToaster } from '$lib/stores/toaster';
 	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
 	import { onMount } from 'svelte';
 	import CableDiagramNode from './CableDiagramNode.svelte';
@@ -16,11 +14,6 @@
 	// SvelteFlow
 	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
 	import '@xyflow/svelte/dist/style.css';
-
-	// Toaster
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
 
 	/** @type {import('./$types').PageProps} */
 	let { data } = $props();
@@ -34,6 +27,20 @@
 
 	onMount(async () => {
 		await autoLockSvelteFlow();
+		// Show initial sync status
+		if (data.syncStatus) {
+			if (data.syncStatus.sync_status === 'FAILED') {
+				globalToaster.error({
+					title: 'Canvas Sync Failed',
+					description: data.syncStatus.error_message || 'Canvas sync failed'
+				});
+			} else if (data.syncStatus.sync_status === 'COMPLETED') {
+				globalToaster.success({
+					title: 'Canvas Sync Complete',
+					description: 'Canvas coordinates synchronized successfully'
+				});
+			}
+		}
 	});
 
 	/**
@@ -103,7 +110,7 @@
 				throw new Error(result.message || 'Failed to save node position');
 			}
 
-			toaster.success({
+			globalToaster.success({
 				title: m.title_success(),
 				description: m.message_success_updating_position()
 			});
@@ -118,7 +125,7 @@
 				};
 			}
 
-			toaster.error({
+			globalToaster.error({
 				title: m.common_error(),
 				description: `${error.message}`
 			});
@@ -204,8 +211,6 @@
 <svelte:head>
 	<title>{m.nav_network_schema()}</title>
 </svelte:head>
-
-<Toaster {toaster}></Toaster>
 
 <div class="flex gap-4 h-full">
 	<!-- Main Content -->
