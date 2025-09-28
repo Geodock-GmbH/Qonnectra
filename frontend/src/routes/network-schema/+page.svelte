@@ -27,17 +27,15 @@
 
 	onMount(async () => {
 		await autoLockSvelteFlow();
-		// Show initial sync status
 		if (data.syncStatus) {
 			if (data.syncStatus.sync_status === 'FAILED') {
 				globalToaster.error({
-					title: 'Canvas Sync Failed',
-					description: data.syncStatus.error_message || 'Canvas sync failed'
+					title: m.title_error_canvas_sync_failed(),
+					description: data.syncStatus.error_message || m.message_error_canvas_sync_failed()
 				});
 			} else if (data.syncStatus.sync_status === 'COMPLETED') {
 				globalToaster.success({
-					title: 'Canvas Sync Complete',
-					description: 'Canvas coordinates synchronized successfully'
+					title: m.title_success_canvas_sync_complete()
 				});
 			}
 		}
@@ -279,7 +277,7 @@
 							}
 						}}
 					>
-						{positionUpdateActive ? '🔄 Live Updates ON' : '⏸️ Live Updates OFF'}
+						{positionUpdateActive ? 'Live Updates ON' : 'Live Updates OFF'}
 					</button>
 				</div>
 			</Panel>
