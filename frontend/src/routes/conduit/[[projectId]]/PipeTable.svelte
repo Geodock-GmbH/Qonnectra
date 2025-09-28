@@ -193,7 +193,7 @@
 						<td data-label={m.form_conduit_type()} onclick={() => handleRowClick(row)}
 							>{row.conduit_type}</td
 						>
-						<td data-label={m.formouter_conduit()} onclick={() => handleRowClick(row)}
+						<td data-label={m.form_outer_conduit()} onclick={() => handleRowClick(row)}
 							>{row.outer_conduit}</td
 						>
 						<td data-label={m.form_status()} onclick={() => handleRowClick(row)}>{row.status}</td>
