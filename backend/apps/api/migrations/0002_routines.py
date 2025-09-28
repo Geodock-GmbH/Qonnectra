@@ -147,4 +147,27 @@ class Migration(migrations.Migration):
             $$;
             """
         ),
+        migrations.RunSQL(
+            """
+            create or replace function fn_notify_node_canvas_position() returns trigger
+            language plpgsql
+                as
+            $$
+            begin
+                if tg_op = 'UPDATE' and (
+                    old.canvas_x is distinct from new.canvas_x or
+                    old.canvas_y is distinct from new.canvas_y
+                ) then
+                    perform pg_notify('node_position_updates', json_build_object(
+                        'node_id', new.uuid::text,
+                        'canvas_x', new.canvas_x,
+                        'canvas_y', new.canvas_y,
+                        'project_id', new.project
+                    )::text);
+                end if;
+                return new;
+            end;
+            $$;
+            """
+        ),
     ]

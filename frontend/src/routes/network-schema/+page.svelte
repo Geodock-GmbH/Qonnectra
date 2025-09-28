@@ -6,8 +6,11 @@
 	import { m } from '$lib/paraglide/messages';
 
 	// Svelte
+	import { PUBLIC_API_URL } from '$env/static/public';
 	import Drawer from '$lib/components/Drawer.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
+	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
+	import { onMount } from 'svelte';
 	import CableDiagramNode from './CableDiagramNode.svelte';
 	import Card from './Card.svelte';
 	// SvelteFlow
@@ -22,6 +25,16 @@
 	/** @type {import('./$types').PageProps} */
 	let { data } = $props();
 	const nodeTypes = { cableDiagramNode: CableDiagramNode };
+
+	let nodes = $state.raw(transformNodesToSvelteFlow(data.nodes));
+	let edges = $state.raw([]);
+
+	let positionUpdateActive = $state(true);
+	let positionUpdateController = null;
+
+	onMount(async () => {
+		await autoLockSvelteFlow();
+	});
 
 	/**
 	 * Transform Node data to SvelteFlow nodes using backend canvas coordinates
@@ -62,9 +75,9 @@
 		});
 	}
 
-	let nodes = $state.raw(transformNodesToSvelteFlow(data.nodes));
-	let edges = $state.raw([]);
-
+	/**
+	 * Handle node drag stop
+	 */
 	async function handleNodeDragStop(event) {
 		const node = event.targetNode;
 		const nodeId = node.id;
@@ -111,6 +124,81 @@
 			});
 		}
 	}
+
+	/**
+	 * Long-polling endpoint for real-time node position updates
+	 */
+	async function startPositionUpdates() {
+		if (!positionUpdateActive) return;
+
+		positionUpdateController = new AbortController();
+
+		try {
+			while (positionUpdateActive && !positionUpdateController.signal.aborted) {
+				const response = await fetch(
+					`${PUBLIC_API_URL}node-position-listen/?project=1&timeout=30`,
+					{
+						signal: positionUpdateController.signal,
+						credentials: 'include'
+					}
+				);
+
+				if (!response.ok) {
+					console.warn('Position update request failed:', response.status);
+					await new Promise((resolve) => setTimeout(resolve, 5000));
+					continue;
+				}
+
+				const data = await response.json();
+
+				if (data.updates && data.updates.length > 0) {
+					for (const update of data.updates) {
+						nodes = nodes.map((n) => {
+							return n.id === update.node_id
+								? {
+										...n,
+										position: {
+											x: update.canvas_x,
+											y: update.canvas_y
+										}
+									}
+								: n;
+						});
+					}
+				}
+			}
+		} catch (error) {
+			if (error.name !== 'AbortError') {
+				console.error('Position update error:', error);
+				if (positionUpdateActive) {
+					setTimeout(startPositionUpdates, 5000);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Stop position updates
+	 */
+	function stopPositionUpdates() {
+		positionUpdateActive = false;
+		if (positionUpdateController) {
+			positionUpdateController.abort();
+			positionUpdateController = null;
+		}
+	}
+
+	// Start position updates when component mounts
+	$effect(() => {
+		if (positionUpdateActive) {
+			startPositionUpdates();
+		}
+
+		// Cleanup when component unmounts
+		return () => {
+			stopPositionUpdates();
+		};
+	});
 </script>
 
 <svelte:head>
@@ -171,6 +259,22 @@
 						onclick={() => drawerStore.open({ title: 'Node Details' })}
 					>
 						Node Details
+					</button>
+
+					<button
+						class="btn {positionUpdateActive
+							? 'variant-filled-success'
+							: 'variant-filled-surface'} btn-sm mt-1 w-full text-xs"
+						onclick={() => {
+							if (positionUpdateActive) {
+								stopPositionUpdates();
+							} else {
+								positionUpdateActive = true;
+								startPositionUpdates();
+							}
+						}}
+					>
+						{positionUpdateActive ? '🔄 Live Updates ON' : '⏸️ Live Updates OFF'}
 					</button>
 				</div>
 			</Panel>

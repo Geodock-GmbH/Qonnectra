@@ -1,3 +1,7 @@
+import json
+
+import psycopg
+from django.conf import settings
 from django.db import connection, transaction
 from django.db.models import Count, F, Q, Sum
 from django.http import HttpResponse
@@ -863,11 +867,7 @@ class NodeCanvasCoordinatesView(APIView):
 
         # Get or create sync status
         sync_status, created = CanvasSyncStatus.objects.get_or_create(
-            sync_key=sync_key,
-            defaults={
-                'status': 'IDLE',
-                'started_by': request.user
-            }
+            sync_key=sync_key, defaults={"status": "IDLE", "started_by": request.user}
         )
 
         # Get node statistics
@@ -884,24 +884,28 @@ class NodeCanvasCoordinatesView(APIView):
         ).count()
         nodes_missing_canvas = total_nodes - nodes_with_canvas
         sync_needed = nodes_missing_canvas > 0
-        sync_in_progress = sync_status.status == 'IN_PROGRESS'
+        sync_in_progress = sync_status.status == "IN_PROGRESS"
 
         # Calculate progress if sync is in progress
         progress = 0.0
         if sync_in_progress and total_nodes > 0:
             progress = (sync_status.nodes_processed / total_nodes) * 100
 
-        return Response({
-            "total_nodes": total_nodes,
-            "nodes_with_canvas": nodes_with_canvas,
-            "nodes_missing_canvas": nodes_missing_canvas,
-            "sync_needed": sync_needed,
-            "sync_in_progress": sync_in_progress,
-            "sync_status": sync_status.status,
-            "sync_started_at": sync_status.started_at,
-            "sync_progress": progress,
-            "error_message": sync_status.error_message if sync_status.status == 'FAILED' else None
-        })
+        return Response(
+            {
+                "total_nodes": total_nodes,
+                "nodes_with_canvas": nodes_with_canvas,
+                "nodes_missing_canvas": nodes_missing_canvas,
+                "sync_needed": sync_needed,
+                "sync_in_progress": sync_in_progress,
+                "sync_status": sync_status.status,
+                "sync_started_at": sync_status.started_at,
+                "sync_progress": progress,
+                "error_message": sync_status.error_message
+                if sync_status.status == "FAILED"
+                else None,
+            }
+        )
 
     def post(self, request, format=None):
         """
@@ -924,31 +928,41 @@ class NodeCanvasCoordinatesView(APIView):
         try:
             with transaction.atomic():
                 # Try to acquire sync lock atomically
-                sync_status = CanvasSyncStatus.objects.select_for_update().filter(
-                    sync_key=sync_key
-                ).first()
+                sync_status = (
+                    CanvasSyncStatus.objects.select_for_update()
+                    .filter(sync_key=sync_key)
+                    .first()
+                )
 
                 if not sync_status:
                     sync_status = CanvasSyncStatus.objects.create(
                         sync_key=sync_key,
-                        status='IN_PROGRESS',
+                        status="IN_PROGRESS",
                         started_by=request.user,
                         started_at=timezone.now(),
                         last_heartbeat=timezone.now(),
-                        scale=scale
+                        scale=scale,
                     )
                 else:
                     # Check if sync is already in progress
-                    if sync_status.status == 'IN_PROGRESS' and not sync_status.is_stale():
-                        return Response({
-                            "message": "Canvas coordinate sync already in progress",
-                            "sync_started_by": sync_status.started_by.username if sync_status.started_by else None,
-                            "sync_started_at": sync_status.started_at,
-                            "estimated_completion": None  # Could add time estimation
-                        }, status=409)  # Conflict
+                    if (
+                        sync_status.status == "IN_PROGRESS"
+                        and not sync_status.is_stale()
+                    ):
+                        return Response(
+                            {
+                                "message": "Canvas coordinate sync already in progress",
+                                "sync_started_by": sync_status.started_by.username
+                                if sync_status.started_by
+                                else None,
+                                "sync_started_at": sync_status.started_at,
+                                "estimated_completion": None,  # Could add time estimation
+                            },
+                            status=409,
+                        )  # Conflict
 
                     # Update sync status to IN_PROGRESS
-                    sync_status.status = 'IN_PROGRESS'
+                    sync_status.status = "IN_PROGRESS"
                     sync_status.started_by = request.user
                     sync_status.started_at = timezone.now()
                     sync_status.last_heartbeat = timezone.now()
@@ -964,17 +978,17 @@ class NodeCanvasCoordinatesView(APIView):
             # Clean up sync status on error
             try:
                 sync_status = CanvasSyncStatus.objects.get(sync_key=sync_key)
-                sync_status.status = 'FAILED'
+                sync_status.status = "FAILED"
                 sync_status.completed_at = timezone.now()
                 sync_status.error_message = str(e)
                 sync_status.save()
             except CanvasSyncStatus.DoesNotExist:
                 pass
 
-            return Response({
-                "error": "Failed to start canvas coordinate sync",
-                "message": str(e)
-            }, status=500)
+            return Response(
+                {"error": "Failed to start canvas coordinate sync", "message": str(e)},
+                status=500,
+            )
 
     def _perform_sync(self, sync_status, project_id, flag_id, scale):
         """
@@ -992,7 +1006,7 @@ class NodeCanvasCoordinatesView(APIView):
             nodes = list(queryset)
 
             if not nodes:
-                sync_status.status = 'COMPLETED'
+                sync_status.status = "COMPLETED"
                 sync_status.completed_at = timezone.now()
                 sync_status.save()
                 return Response({"message": "No nodes found with geometry"}, status=400)
@@ -1005,7 +1019,7 @@ class NodeCanvasCoordinatesView(APIView):
                     coordinates.append({"x": coords[0], "y": coords[1], "node": node})
 
             if not coordinates:
-                sync_status.status = 'COMPLETED'
+                sync_status.status = "COMPLETED"
                 sync_status.completed_at = timezone.now()
                 sync_status.save()
                 return Response({"message": "No valid coordinates found"}, status=400)
@@ -1049,27 +1063,29 @@ class NodeCanvasCoordinatesView(APIView):
                     sync_status.update_heartbeat()
 
             # Mark sync as completed
-            sync_status.status = 'COMPLETED'
+            sync_status.status = "COMPLETED"
             sync_status.completed_at = timezone.now()
             sync_status.nodes_processed = updated_count
             sync_status.save()
 
-            return Response({
-                "message": f"Successfully updated canvas coordinates for {updated_count} nodes",
-                "updated_count": updated_count,
-                "scale": scale,
-                "center": {"x": center_x, "y": center_y},
-                "bounds": {
-                    "min_x": min_x,
-                    "max_x": max_x,
-                    "min_y": min_y,
-                    "max_y": max_y,
+            return Response(
+                {
+                    "message": f"Successfully updated canvas coordinates for {updated_count} nodes",
+                    "updated_count": updated_count,
+                    "scale": scale,
+                    "center": {"x": center_x, "y": center_y},
+                    "bounds": {
+                        "min_x": min_x,
+                        "max_x": max_x,
+                        "min_y": min_y,
+                        "max_y": max_y,
+                    },
                 }
-            })
+            )
 
         except Exception as e:
             # Mark sync as failed
-            sync_status.status = 'FAILED'
+            sync_status.status = "FAILED"
             sync_status.completed_at = timezone.now()
             sync_status.error_message = str(e)
             sync_status.save()
@@ -1560,3 +1576,65 @@ class TrenchesNearNodeView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class NodePositionListenView(APIView):
+    """
+    Long-polling endpoint for real-time node position updates.
+    Uses PostgreSQL LISTEN/NOTIFY for efficient notifications.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        project_id = request.query_params.get("project", "1")
+        timeout = min(
+            int(request.query_params.get("timeout", "30")), 60
+        )  # Max 60 seconds
+
+        try:
+            db_settings = settings.DATABASES["default"]
+            conn_params = {
+                "host": db_settings["HOST"],
+                "port": db_settings["PORT"],
+                "dbname": db_settings["NAME"],
+                "user": db_settings["USER"],
+                "password": db_settings["PASSWORD"],
+            }
+
+            with psycopg.connect(**conn_params, autocommit=True) as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("LISTEN node_position_updates")
+
+                gen = conn.notifies(timeout=timeout)
+                notifications = []
+
+                try:
+                    for notify in gen:
+                        try:
+                            payload = json.loads(notify.payload)
+                            if str(payload.get("project_id")) == str(project_id):
+                                notifications.append(
+                                    {
+                                        "node_id": payload["node_id"],
+                                        "canvas_x": payload["canvas_x"],
+                                        "canvas_y": payload["canvas_y"],
+                                    }
+                                )
+                        except (json.JSONDecodeError, KeyError):
+                            continue
+
+                        if notifications:
+                            gen.close()
+                            return Response({"updates": notifications})
+
+                except psycopg.OperationalError:
+                    pass
+
+                return Response({"updates": []})
+
+        except Exception as e:
+            return Response(
+                {"error": f"Connection failed: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

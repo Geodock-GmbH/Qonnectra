@@ -110,6 +110,15 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             """
+            create trigger tg_02_notify_node_canvas_position
+                after update of canvas_x, canvas_y
+                on node
+                for each row
+            execute procedure fn_notify_node_canvas_position();
+            """
+        ),
+        migrations.RunSQL(
+            """
             create trigger tg_01_delete_microduct_connection
                 after delete
                 on trench_conduit_connect
