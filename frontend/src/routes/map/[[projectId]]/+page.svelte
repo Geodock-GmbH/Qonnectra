@@ -6,6 +6,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	// Svelte
+	import { page } from '$app/stores';
 	import Map from '$lib/components/Map.svelte';
 	import { selectedProject, trenchColor, trenchColorSelected } from '$lib/stores/store';
 	import { onDestroy } from 'svelte';
@@ -33,6 +34,8 @@
 	/** @type {import('./$types').PageData} */
 	let { data } = $props();
 
+	let prevUrl = $state($page.url.href);
+
 	// State for OpenLayers objects
 	let vectorTileLayer = $state();
 	let addressLayer = $state();
@@ -44,6 +47,7 @@
 	let popupOverlay = $state();
 	let selectionStore = $state({});
 	let mapRef = $state();
+	let tileSource, addressTileSource, nodeTileSource;
 
 	// Error handler for tile loading
 	function handleTileError(message, description) {
@@ -54,6 +58,14 @@
 		});
 	}
 
+	// TODO: Hack to reload the page when the URL changes.
+	$effect(() => {
+		if ($page.url.href !== prevUrl) {
+			prevUrl = $page.url.href;
+			window.location.reload();
+		}
+	});
+
 	// Search handlers
 	function handleFeatureSelect(feature) {
 		// Handle feature selection if needed
@@ -63,9 +75,6 @@
 	function handleSearchError(error) {
 		console.error('Search error:', error);
 	}
-
-	// Create tile sources and layers
-	let tileSource, addressTileSource, nodeTileSource;
 
 	try {
 		tileSource = createTrenchTileSource($selectedProject, handleTileError);

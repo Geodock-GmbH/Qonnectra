@@ -9,7 +9,13 @@ import { error } from '@sveltejs/kit';
  * @param {Object} initialStatus - Initial sync status
  * @returns {Promise<Object>} Final sync status
  */
-export async function _waitForSyncCompletion(fetch, headers, initialStatus, maxWaitTimeMs = 30000) {
+export async function _waitForSyncCompletion(
+	fetch,
+	headers,
+	initialStatus,
+	maxWaitTimeMs = 30000,
+	projectId
+) {
 	const startTime = Date.now();
 	const pollInterval = 2000;
 	let currentStatus = initialStatus;
@@ -20,7 +26,7 @@ export async function _waitForSyncCompletion(fetch, headers, initialStatus, maxW
 		await new Promise((resolve) => setTimeout(resolve, pollInterval));
 
 		try {
-			const response = await fetch(`${API_URL}canvas-coordinates/?project_id=1`, {
+			const response = await fetch(`${API_URL}canvas-coordinates/?project_id=${projectId}`, {
 				credentials: 'include',
 				headers: headers
 			});
@@ -51,16 +57,27 @@ export async function _waitForSyncCompletion(fetch, headers, initialStatus, maxW
 }
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ fetch, cookies }) {
+export async function load({ fetch, cookies, url, params }) {
 	const headers = getAuthHeaders(cookies);
+	const projectId = params.projectId;
+
+	if (!projectId) {
+		return {
+			nodes: [],
+			syncStatus: null
+		};
+	}
 
 	try {
 		let syncStatus = null;
 
-		const syncStatusResponse = await fetch(`${API_URL}canvas-coordinates/?project_id=1`, {
-			credentials: 'include',
-			headers: headers
-		});
+		const syncStatusResponse = await fetch(
+			`${API_URL}canvas-coordinates/?project_id=${projectId}`,
+			{
+				credentials: 'include',
+				headers: headers
+			}
+		);
 
 		if (!syncStatusResponse.ok) {
 			console.warn('Failed to check canvas sync status');
@@ -71,7 +88,7 @@ export async function load({ fetch, cookies }) {
 				console.log(
 					`Canvas sync already in progress (${syncStatus.sync_progress.toFixed(1)}% complete)`
 				);
-				syncStatus = await _waitForSyncCompletion(fetch, headers, syncStatus);
+				syncStatus = await _waitForSyncCompletion(fetch, headers, syncStatus, projectId);
 			} else if (syncStatus.sync_needed) {
 				console.log(`Syncing canvas coordinates for ${syncStatus.nodes_missing_canvas} nodes...`);
 
@@ -83,7 +100,7 @@ export async function load({ fetch, cookies }) {
 						'Content-Type': 'application/json'
 					},
 					body: JSON.stringify({
-						project_id: 1,
+						project_id: projectId,
 						scale: 0.2
 					})
 				});
@@ -102,7 +119,7 @@ export async function load({ fetch, cookies }) {
 			}
 		}
 
-		const nodeResponse = await fetch(`${API_URL}node/all/?project=1`, {
+		const nodeResponse = await fetch(`${API_URL}node/all/?project=${projectId}`, {
 			credentials: 'include',
 			headers: headers
 		});

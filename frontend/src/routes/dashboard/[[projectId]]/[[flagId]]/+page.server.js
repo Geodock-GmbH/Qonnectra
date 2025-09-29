@@ -2,7 +2,7 @@ import { API_URL } from '$env/static/private';
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ fetch, params, cookies }) {
+export async function load({ fetch, cookies, params }) {
 	const { projectId } = params;
 	const headers = getAuthHeaders(cookies);
 

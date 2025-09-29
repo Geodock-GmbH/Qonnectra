@@ -1,4 +1,5 @@
 import { API_URL } from '$env/static/private';
+import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 import { error } from '@sveltejs/kit';
 
 /** @type {import('./$types').RequestHandler} */
@@ -29,11 +30,7 @@ export async function POST({ request, cookies }) {
 		const backendFormData = new FormData();
 		backendFormData.append('file', file);
 
-		const accessToken = cookies.get('api-access-token');
-		const headers = new Headers();
-		if (accessToken) {
-			headers.append('Cookie', `api-access-token=${accessToken}`);
-		}
+		const headers = getAuthHeaders(cookies);
 
 		// Forward the request to Django backend
 		const response = await fetch(`${API_URL}import/conduit/`, {

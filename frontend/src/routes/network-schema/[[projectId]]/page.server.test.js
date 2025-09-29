@@ -93,7 +93,8 @@ describe('+page.server.js', () => {
 				mockFetch,
 				new Headers(),
 				initialStatus,
-				30000 // 30 second timeout
+				30000, // 30 second timeout
+				'1' // projectId
 			);
 
 			expect(result.sync_in_progress).toBe(false);
@@ -139,7 +140,8 @@ describe('+page.server.js', () => {
 				mockFetch,
 				new Headers(),
 				initialStatus,
-				5000 // 5 second timeout for testing
+				5000, // 5 second timeout for testing
+				'1' // projectId
 			);
 
 			// Should timeout and return last status
@@ -183,7 +185,7 @@ describe('+page.server.js', () => {
 
 			const { _waitForSyncCompletion } = await import('./+page.server.js');
 
-			const result = await _waitForSyncCompletion(mockFetch, new Headers(), initialStatus);
+			const result = await _waitForSyncCompletion(mockFetch, new Headers(), initialStatus, 30000, '1');
 
 			// Should handle error gracefully and continue polling
 			expect(mockFetch).toHaveBeenCalledTimes(2); // Error stops polling
@@ -209,7 +211,7 @@ describe('+page.server.js', () => {
 
 			const { _waitForSyncCompletion } = await import('./+page.server.js');
 
-			const result = await _waitForSyncCompletion(mockFetch, new Headers(), initialStatus);
+			const result = await _waitForSyncCompletion(mockFetch, new Headers(), initialStatus, 30000, '1');
 
 			// Should return initial status when polling fails
 			expect(result).toEqual(initialStatus);
@@ -238,7 +240,7 @@ describe('+page.server.js', () => {
 					json: () => Promise.resolve([{ id: 1, name: 'Node 1', canvas_x: 100, canvas_y: 200 }])
 				});
 
-			const result = await load({ fetch: mockFetch, cookies: mockCookies });
+			const result = await load({ fetch: mockFetch, cookies: mockCookies, url: new URL('http://localhost'), params: { projectId: '1' } });
 
 			expect(result.nodes).toHaveLength(1);
 			expect(result.syncStatus).toBeDefined();
@@ -269,7 +271,7 @@ describe('+page.server.js', () => {
 					json: () => Promise.resolve([{ id: 1, name: 'Node 1', canvas_x: 100, canvas_y: 200 }])
 				});
 
-			const result = await load({ fetch: mockFetch, cookies: mockCookies });
+			const result = await load({ fetch: mockFetch, cookies: mockCookies, url: new URL('http://localhost'), params: { projectId: '1' } });
 
 			expect(mockFetch).toHaveBeenCalledTimes(3);
 			expect(result.nodes).toHaveLength(1);
@@ -278,7 +280,7 @@ describe('+page.server.js', () => {
 			const postCall = mockFetch.mock.calls[1];
 			expect(postCall[1].method).toBe('POST');
 			expect(JSON.parse(postCall[1].body)).toEqual({
-				project_id: 1,
+				project_id: '1',
 				scale: 0.2
 			});
 		});
@@ -317,7 +319,7 @@ describe('+page.server.js', () => {
 				return 123;
 			});
 
-			const result = await load({ fetch: mockFetch, cookies: mockCookies });
+			const result = await load({ fetch: mockFetch, cookies: mockCookies, url: new URL('http://localhost'), params: { projectId: '1' } });
 
 			expect(result.nodes).toHaveLength(1);
 			expect(result.syncStatus.sync_status).toBe('COMPLETED');
@@ -350,7 +352,7 @@ describe('+page.server.js', () => {
 					json: () => Promise.resolve([{ id: 1, name: 'Node 1' }])
 				});
 
-			const result = await load({ fetch: mockFetch, cookies: mockCookies });
+			const result = await load({ fetch: mockFetch, cookies: mockCookies, url: new URL('http://localhost'), params: { projectId: '1' } });
 
 			expect(result.nodes).toHaveLength(1);
 			// Should not fail despite the conflict
@@ -367,7 +369,7 @@ describe('+page.server.js', () => {
 					json: () => Promise.resolve([{ id: 1, name: 'Node 1' }])
 				});
 
-			const result = await load({ fetch: mockFetch, cookies: mockCookies });
+			const result = await load({ fetch: mockFetch, cookies: mockCookies, url: new URL('http://localhost'), params: { projectId: '1' } });
 
 			expect(result.nodes).toHaveLength(1);
 			expect(result.syncStatus).toBeNull();
@@ -394,7 +396,7 @@ describe('+page.server.js', () => {
 		test('should handle complete failure gracefully', async () => {
 			mockFetch.mockRejectedValue(new Error('Complete network failure'));
 
-			const result = await load({ fetch: mockFetch, cookies: mockCookies });
+			const result = await load({ fetch: mockFetch, cookies: mockCookies, url: new URL('http://localhost'), params: { projectId: '1' } });
 
 			expect(result.nodes).toEqual([]);
 			expect(result.syncStatus).toBeNull();
@@ -415,7 +417,7 @@ describe('+page.server.js', () => {
 					json: () => Promise.resolve([])
 				});
 
-			await load({ fetch: mockFetch, cookies: mockCookies });
+			await load({ fetch: mockFetch, cookies: mockCookies, url: new URL('http://localhost'), params: { projectId: '1' } });
 
 			// Check that auth headers were passed correctly
 			const firstCall = mockFetch.mock.calls[0];
@@ -442,7 +444,7 @@ describe('+page.server.js', () => {
 					json: () => Promise.resolve([])
 				});
 
-			await load({ fetch: mockFetch, cookies: mockCookies });
+			await load({ fetch: mockFetch, cookies: mockCookies, url: new URL('http://localhost'), params: { projectId: '1' } });
 
 			// Should still make requests but without auth header
 			const firstCall = mockFetch.mock.calls[0];
@@ -471,15 +473,14 @@ describe('+page.server.js', () => {
 					json: () => Promise.resolve([])
 				});
 
-			const result = await load({ fetch: mockFetch, cookies: mockCookies });
+			const result = await load({ fetch: mockFetch, cookies: mockCookies, url: new URL('http://localhost'), params: { projectId: '1' } });
 
 			// Should continue and fetch nodes despite sync failure
 			expect(result.nodes).toEqual([]);
 		});
 
 		test('should handle different project and flag parameters', async () => {
-			// For now the implementation uses hardcoded project_id=1
-			// This test verifies the current behavior
+			// This test verifies that the dynamic projectId parameter is used correctly
 			mockFetch
 				.mockResolvedValueOnce({
 					ok: true,
@@ -494,11 +495,19 @@ describe('+page.server.js', () => {
 					json: () => Promise.resolve([])
 				});
 
-			await load({ fetch: mockFetch, cookies: mockCookies });
+			await load({ fetch: mockFetch, cookies: mockCookies, url: new URL('http://localhost'), params: { projectId: '1' } });
 
 			// Verify project_id=1 is used in both calls
 			expect(mockFetch.mock.calls[0][0]).toContain('project_id=1');
 			expect(mockFetch.mock.calls[1][0]).toContain('project=1');
+		});
+
+		test('should return empty nodes and null syncStatus when projectId is missing', async () => {
+			const result = await load({ fetch: mockFetch, cookies: mockCookies, url: new URL('http://localhost'), params: {} });
+
+			expect(result.nodes).toEqual([]);
+			expect(result.syncStatus).toBeNull();
+			expect(mockFetch).not.toHaveBeenCalled();
 		});
 	});
 

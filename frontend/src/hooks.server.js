@@ -1,10 +1,10 @@
+import { API_URL } from '$env/static/private';
 import { paraglideMiddleware } from '$lib/paraglide/server';
 import { redirect } from '@sveltejs/kit';
-import { API_URL } from '$env/static/private';
 import { sequence } from '@sveltejs/kit/hooks';
 
 // Define routes that should be accessible even without authentication
-export const PUBLIC_ROUTES = ['/login']; // Add more routes here
+export const PUBLIC_ROUTES = ['/login'];
 
 /** @type {import('@sveltejs/kit').Handle} */
 const paraglideHandle = ({ event, resolve }) =>
@@ -16,6 +16,30 @@ const paraglideHandle = ({ event, resolve }) =>
 			}
 		});
 	});
+
+/** @type {import('@sveltejs/kit').Handle} */
+export async function handleProjectRedirect({ event, resolve }) {
+	const url = event.url;
+	const selectedProject = event.cookies.get('selected-project');
+
+	// Define routes that need project slug parameters
+	const PROJECT_ROUTES = [
+		'/dashboard',
+		'/map',
+		'/trench',
+		'/conduit',
+		'/pipe-branch',
+		'/network-schema'
+	];
+
+	const needsProjectSlug = PROJECT_ROUTES.some((route) => url.pathname === route);
+
+	if (needsProjectSlug && selectedProject) {
+		throw redirect(303, `${url.pathname}/${selectedProject}`);
+	}
+
+	return resolve(event);
+}
 
 /** @type {import('@sveltejs/kit').Handle} */
 export async function handleAuth({ event, resolve }) {
@@ -79,4 +103,4 @@ export async function handleAuth({ event, resolve }) {
 	return resolve(event);
 }
 
-export const handle = sequence(paraglideHandle, handleAuth);
+export const handle = sequence(paraglideHandle, handleAuth, handleProjectRedirect);

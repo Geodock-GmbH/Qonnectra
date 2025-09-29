@@ -7,6 +7,8 @@
 
 	// Svelte
 	import { browser } from '$app/environment';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { selectedProject } from '$lib/stores/store';
 
 	// Toaster
@@ -38,6 +40,27 @@
 			isHydrating = false;
 		}
 	});
+
+	// Handle project change with cookie and navigation
+	function handleProjectChange(newProject) {
+		if (!browser) return;
+
+		document.cookie = `selected-project=${newProject}; path=/; max-age=31536000`;
+
+		$selectedProject = newProject;
+
+		const pathSegments = $page.url.pathname.split('/').filter(Boolean);
+		const baseRoute = pathSegments[0] ? `/${pathSegments[0]}` : '/dashboard';
+
+		goto(`${baseRoute}/${newProject}`, {
+			keepFocus: true,
+			noScroll: true,
+			replaceState: true,
+			invalidateAll: true
+		});
+
+		onChange({ value: newProject });
+	}
 </script>
 
 <Toaster {toaster}></Toaster>
@@ -55,10 +78,7 @@
 		data={projects}
 		bind:value={$selectedProject}
 		defaultValue={$selectedProject}
-		onValueChange={(e) => {
-			$selectedProject = e.value;
-			onChange(e);
-		}}
+		onValueChange={(e) => handleProjectChange(e.value)}
 		placeholder={m.form_project({ count: 1 })}
 		classes="z-10 w-full min-w-0 sm:min-w-48 md:min-w-64"
 		zIndex="10"

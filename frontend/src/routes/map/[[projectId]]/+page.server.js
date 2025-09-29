@@ -3,11 +3,6 @@ import { m } from '$lib/paraglide/messages';
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 import { error } from '@sveltejs/kit';
 
-/** @type {import('./$types').PageServerLoad} */
-export async function load() {
-	return {};
-}
-
 /** @type {import('./$types').Actions} */
 export const actions = {
 	searchFeatures: async ({ request, fetch, cookies }) => {

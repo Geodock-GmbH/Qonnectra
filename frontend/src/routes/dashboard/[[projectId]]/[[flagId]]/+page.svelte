@@ -6,24 +6,10 @@
 	import { m } from '$lib/paraglide/messages';
 
 	// Svelte
-	import { goto } from '$app/navigation';
-	import { navigating, page } from '$app/stores';
-	import { selectedProject } from '$lib/stores/store';
+	import { navigating } from '$app/stores';
 	import DashboardProjectTable from './DashboardProjectTable.svelte';
 	let { data } = $props();
 	let group = $state('stats');
-
-	$effect(() => {
-		const projectId = $selectedProject;
-		const currentPath = $page.url.pathname;
-
-		if (projectId) {
-			const targetPath = `/dashboard/${projectId}`;
-			if (currentPath !== targetPath) {
-				goto(targetPath, { keepFocus: true, noScroll: true, replaceState: true });
-			}
-		}
-	});
 </script>
 
 <svelte:head>

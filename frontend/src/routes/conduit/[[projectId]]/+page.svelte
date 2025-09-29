@@ -28,23 +28,6 @@
 		placement: 'bottom-end'
 	});
 
-	$effect(() => {
-		const projectId = $selectedProject;
-		const currentPath = $page.url.pathname;
-		if (projectId) {
-			let targetPath = `/conduit/${projectId}`;
-			const currentSearch = $page.url.search;
-
-			if (currentPath !== targetPath) {
-				goto(targetPath + currentSearch, {
-					keepFocus: true,
-					noScroll: true,
-					replaceState: true
-				});
-			}
-		}
-	});
-
 	function performSearch() {
 		const url = new URL($page.url);
 		if (searchInput !== '') {

@@ -1,7 +1,7 @@
-import { redirect } from '@sveltejs/kit';
-import { PUBLIC_ROUTES } from '../hooks.server.js';
 import { API_URL } from '$env/static/private';
+import { redirect } from '@sveltejs/kit';
 import packageJson from '../../package.json';
+import { PUBLIC_ROUTES } from '../hooks.server.js';
 
 /** @type {import('./$types').LayoutServerLoad} */
 export async function load({ locals, url, fetch, cookies }) {
@@ -15,6 +15,9 @@ export async function load({ locals, url, fetch, cookies }) {
 		const redirectToUrl = `/login?redirectTo=${encodeURIComponent(requestedPath + url.search)}`;
 		throw redirect(303, redirectToUrl);
 	}
+
+	// Get selected project from cookie
+	const selectedProject = cookies.get('selected-project') || ['1'];
 
 	// Load common data for all authenticated pages
 	let flags = [];
@@ -83,6 +86,7 @@ export async function load({ locals, url, fetch, cookies }) {
 		flagsError,
 		projects,
 		projectsError,
-		appVersion
+		appVersion,
+		selectedProject
 	};
 }

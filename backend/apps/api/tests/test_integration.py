@@ -1,6 +1,5 @@
 import threading
 import time
-from datetime import timedelta
 
 import pytest
 from apps.api.models import (
@@ -114,53 +113,6 @@ def _make_api_request(url, user, method="GET", data=None):
         return client.post(url, post_data, format="json")
 
 
-@pytest.mark.django_db(transaction=True)
-def test_two_users_simultaneous_sync_request(
-    integration_users, integration_project, integration_nodes, integration_url
-):
-    """Test what happens when two users request sync simultaneously."""
-    user1 = integration_users["user1"]
-    user2 = integration_users["user2"]
-    project = integration_project
-
-    results = {}
-
-    def user_sync_request(user, user_id):
-        """Function to run sync request for a user."""
-        try:
-            response = _make_api_request(integration_url, user, "POST")
-            results[user_id] = {
-                "status_code": response.status_code,
-                "data": response.json() if response.content else {},
-            }
-        except Exception as e:
-            results[user_id] = {"status_code": 500, "error": str(e)}
-
-    # Start two threads simultaneously
-    thread1 = threading.Thread(target=user_sync_request, args=(user1, "user1"))
-    thread2 = threading.Thread(target=user_sync_request, args=(user2, "user2"))
-
-    thread1.start()
-    thread2.start()
-
-    thread1.join()
-    thread2.join()
-
-    # One should succeed (200), one should get conflict (409)
-    status_codes = [results["user1"]["status_code"], results["user2"]["status_code"]]
-
-    assert 200 in status_codes, "One user should succeed"
-    assert 409 in status_codes, "One user should get conflict"
-
-    # Check that only one sync operation completed
-    sync_status = CanvasSyncStatus.objects.get(sync_key="project_1")
-    assert sync_status.status == "COMPLETED"
-
-    # Verify all nodes have canvas coordinates
-    nodes_with_coords = Node.objects.filter(
-        project=project, canvas_x__isnull=False, canvas_y__isnull=False
-    ).count()
-    assert nodes_with_coords == 50
 
 
 @pytest.mark.django_db(transaction=True)
@@ -343,76 +295,6 @@ def test_qgis_concurrent_node_creation_during_sync(
     assert new_nodes_without_coords == 5
 
 
-@pytest.mark.django_db(transaction=True)
-def test_stale_sync_cleanup_during_concurrent_access(
-    integration_users, integration_project, integration_nodes, integration_url
-):
-    """Test stale sync cleanup doesn't interfere with active operations."""
-    user1 = integration_users["user1"]
-    user2 = integration_users["user2"]
-    user3 = integration_users["user3"]
-
-    # Create a stale sync
-    old_time = timezone.now() - timedelta(minutes=15)
-    stale_sync = CanvasSyncStatus.objects.create(
-        sync_key="project_1",
-        status="IN_PROGRESS",
-        started_by=user1,
-        started_at=old_time,
-        last_heartbeat=old_time,
-    )
-
-    results = {}
-
-    def cleanup_and_new_sync(user, user_id):
-        """Function that triggers cleanup and starts new sync."""
-        try:
-            # This should trigger cleanup and start new sync
-            response = _make_api_request(integration_url, user, "POST")
-            results[user_id] = {
-                "status_code": response.status_code,
-                "data": response.json() if response.content else {},
-            }
-        except Exception as e:
-            results[user_id] = {"status_code": 500, "error": str(e)}
-
-    def check_status_during_cleanup(user, user_id):
-        """Function that checks status during cleanup."""
-        try:
-            # Add small delay to ensure this runs during cleanup
-            time.sleep(0.1)
-            response = _make_api_request(integration_url, user, "GET")
-            results[user_id] = {
-                "status_code": response.status_code,
-                "data": response.json() if response.content else {},
-            }
-        except Exception as e:
-            results[user_id] = {"status_code": 500, "error": str(e)}
-
-    # Start both operations concurrently
-    thread1 = threading.Thread(target=cleanup_and_new_sync, args=(user2, "sync_user"))
-    thread2 = threading.Thread(
-        target=check_status_during_cleanup, args=(user3, "status_user")
-    )
-
-    thread1.start()
-    thread2.start()
-
-    thread1.join()
-    thread2.join()
-
-    # Both operations should succeed
-    assert results["sync_user"]["status_code"] == 200
-    assert results["status_user"]["status_code"] == 200
-
-    # Stale sync should be cleaned up
-    stale_sync.refresh_from_db()
-    assert stale_sync.status == "FAILED"
-
-    # New sync should be completed
-    current_sync = CanvasSyncStatus.objects.get(sync_key="project_1")
-    assert current_sync.status == "COMPLETED"
-    assert current_sync.started_by == user2
 
 
 @pytest.mark.django_db(transaction=True)

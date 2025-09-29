@@ -3,11 +3,10 @@ import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
 import Page from './+page.svelte';
-
-// Mock the paraglide messages
+// Paraglide messages
 vi.mock('$lib/paraglide/messages', () => ({
 	m: {
-		network_schema: () => 'Network Schema'
+		nav_network_schema: () => 'Network Schema'
 	}
 }));
 

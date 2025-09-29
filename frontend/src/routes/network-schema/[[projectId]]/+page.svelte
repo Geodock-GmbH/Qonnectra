@@ -3,17 +3,18 @@
 	import { m } from '$lib/paraglide/messages';
 
 	// Svelte
+	import { page } from '$app/stores';
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import Drawer from '$lib/components/Drawer.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
+	import { selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
+	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
+	import '@xyflow/svelte/dist/style.css';
 	import { onMount } from 'svelte';
 	import CableDiagramNode from './CableDiagramNode.svelte';
 	import Card from './Card.svelte';
-	// SvelteFlow
-	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
-	import '@xyflow/svelte/dist/style.css';
 
 	/** @type {import('./$types').PageProps} */
 	let { data } = $props();
@@ -21,6 +22,7 @@
 
 	let nodes = $state.raw(transformNodesToSvelteFlow(data.nodes));
 	let edges = $state.raw([]);
+	let prevUrl = $state($page.url.href);
 
 	let positionUpdateActive = $state(true);
 	let positionUpdateController = null;
@@ -38,6 +40,14 @@
 					title: m.title_success_canvas_sync_complete()
 				});
 			}
+		}
+	});
+
+	// TODO: Hack to reload the page when the URL changes.
+	$effect(() => {
+		if ($page.url.href !== prevUrl) {
+			prevUrl = $page.url.href;
+			window.location.reload();
 		}
 	});
 
@@ -141,7 +151,7 @@
 		try {
 			while (positionUpdateActive && !positionUpdateController.signal.aborted) {
 				const response = await fetch(
-					`${PUBLIC_API_URL}node-position-listen/?project=1&timeout=30`,
+					`${PUBLIC_API_URL}node-position-listen/?project=${$selectedProject}&timeout=30`,
 					{
 						signal: positionUpdateController.signal,
 						credentials: 'include'
@@ -229,7 +239,7 @@
 				<div class="bg-surface-100-900 p-2 rounded-lg shadow-lg">
 					<h3 class="text-sm font-semibold mb-1">Network Schema</h3>
 					<p class="text-xs text-surface-700-300">
-						Project: 1 | Total: {nodes.length} nodes
+						Project: {$selectedProject} | Total: {nodes.length} nodes
 					</p>
 
 					{#if data.syncStatus?.sync_in_progress}

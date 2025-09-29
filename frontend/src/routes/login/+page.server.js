@@ -1,6 +1,5 @@
-import { redirect, fail } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
-import { parse } from 'cookie';
+import { fail, redirect } from '@sveltejs/kit';
 import setCookieParser from 'set-cookie-parser';
 
 /** @satisfies {import('./$types').Actions} */
@@ -62,6 +61,15 @@ export const actions = {
 			console.error('Error during login action fetch:', error);
 			return fail(500, { error: 'An internal error occurred during login.' });
 		}
+
+		// Set default project cookie
+		event.cookies.set('selected-project', '1', {
+			path: '/',
+			maxAge: 60 * 60 * 24 * 365, // 1 year
+			httpOnly: false,
+			secure: event.url.protocol === 'https:',
+			sameSite: 'Lax'
+		});
 
 		throw redirect(303, redirectTo);
 	}

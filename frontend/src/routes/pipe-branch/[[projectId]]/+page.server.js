@@ -4,7 +4,7 @@ import { fail } from '@sveltejs/kit';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ fetch, params, cookies }) {
-	const { projectId } = params;
+	const projectId = cookies.get('selected-project');
 
 	if (!projectId) {
 		return { nodes: [] };

@@ -1,11 +1,9 @@
 import { API_URL } from '$env/static/private';
+import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
 export async function GET({ cookies, fetch }) {
 	const accessToken = cookies.get('api-access-token');
-	const headers = new Headers();
-	if (accessToken) {
-		headers.append('Cookie', `api-access-token=${accessToken}`);
-	}
+	const headers = getAuthHeaders(cookies);
 
 	const response = await fetch(`${API_URL}template/conduit`, { headers });
 
