@@ -6,6 +6,7 @@ from rest_framework_gis.serializers import GeoFeatureModelSerializer, GeometryFi
 
 from .models import (
     Address,
+    AttributesCableType,
     AttributesCompany,
     AttributesConduitType,
     AttributesConstructionType,
@@ -16,10 +17,12 @@ from .models import (
     AttributesStatus,
     AttributesStatusDevelopment,
     AttributesSurface,
+    Cable,
     Conduit,
     FeatureFiles,
     Flags,
     Microduct,
+    MicroductCableConnection,
     MicroductConnection,
     Node,
     OlAddress,
@@ -141,6 +144,14 @@ class AttributesMicroductStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = AttributesMicroductStatus
         fields = ["id", "microduct_status"]
+
+
+class AttributesCableTypeSerializer(serializers.ModelSerializer):
+    """Serializer for the AttributesCableType model."""
+
+    class Meta:
+        model = AttributesCableType
+        fields = ["id", "cable_type"]
 
 
 class TrenchSerializer(GeoFeatureModelSerializer):
@@ -899,5 +910,160 @@ class MicroductConnectionSerializer(serializers.ModelSerializer):
         fields["uuid_trench_from_id"].label = _("Trench From")
         fields["uuid_trench_to_id"].label = _("Trench To")
         fields["uuid_node_id"].label = _("Node")
+
+        return fields
+
+
+class CableSerializer(serializers.ModelSerializer):
+    """Serializer for the Cable model."""
+
+    # Read only fields
+    uuid = serializers.UUIDField(read_only=True)
+
+    # Get nested serializers for foreign keys
+    cable_type = AttributesCableTypeSerializer(read_only=True)
+    status = AttributesStatusSerializer(read_only=True)
+    network_level = AttributesNetworkLevelSerializer(read_only=True)
+    owner = AttributesCompanySerializer(read_only=True)
+    constructor = AttributesCompanySerializer(read_only=True)
+    manufacturer = AttributesCompanySerializer(read_only=True)
+    project = ProjectsSerializer(read_only=True)
+    flag = FlagsSerializer(read_only=True)
+
+    # Add write fields for foreign keys
+    name = serializers.CharField(
+        validators=[
+            UniqueValidator(
+                queryset=Cable.objects.all(),
+                message=_("A cable with that name already exists."),
+            )
+        ],
+        required=True,
+        label=_("Cable Name"),
+    )
+    cable_type_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesCableType.objects.all(),
+        source="cable_type",
+    )
+    status_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesStatus.objects.all(),
+        source="status",
+    )
+    network_level_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesNetworkLevel.objects.all(),
+        source="network_level",
+    )
+    owner_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesCompany.objects.all(),
+        source="owner",
+    )
+    constructor_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesCompany.objects.all(),
+        source="constructor",
+    )
+    manufacturer_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesCompany.objects.all(),
+        source="manufacturer",
+    )
+    date = serializers.DateField(
+        input_formats=["%Y/%m/%d"], format="%d.%m.%Y", required=False
+    )
+    uuid_node_start_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Node.objects.all(),
+        source="uuid_node_start",
+    )
+    uuid_node_end_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Node.objects.all(),
+        source="uuid_node_end",
+    )
+    project_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Projects.objects.all(),
+        source="project",
+    )
+    flag_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Flags.objects.all(),
+        source="flag",
+    )
+    length = serializers.FloatField(required=False)
+    length_total = serializers.FloatField(required=False)
+    reserve_at_start = serializers.IntegerField(required=False)
+    reserve_at_end = serializers.IntegerField(required=False)
+    reserve_section = serializers.IntegerField(required=False)
+
+    class Meta:
+        model = Cable
+        fields = "__all__"
+        ordering = ["name"]
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+
+        # Translate labels
+        fields["name"].label = _("Cable Name")
+        fields["cable_type_id"].label = _("Cable Type")
+        fields["status_id"].label = _("Status")
+        fields["network_level_id"].label = _("Network Level")
+        fields["owner_id"].label = _("Owner")
+        fields["constructor_id"].label = _("Constructor")
+        fields["manufacturer_id"].label = _("Manufacturer")
+        fields["date"].label = _("Date")
+        fields["uuid_node_start_id"].label = _("Node Start")
+        fields["uuid_node_end_id"].label = _("Node End")
+        fields["length"].label = _("Length")
+        fields["length_total"].label = _("Length Total")
+        fields["reserve_at_start"].label = _("Reserve At Start")
+        fields["reserve_at_end"].label = _("Reserve At End")
+        fields["reserve_section"].label = _("Reserve Section")
+        fields["project_id"].label = _("Project")
+        fields["flag_id"].label = _("Flag")
+
+        return fields
+
+
+class MicroductCableConnectionSerializer(serializers.ModelSerializer):
+    """Serializer for the MicroductCableConnection model."""
+
+    # Read only fields
+    uuid = serializers.UUIDField(read_only=True)
+
+    # Get nested serializers for foreign keys
+    uuid_microduct = MicroductSerializer(read_only=True)
+    uuid_cable = CableSerializer(read_only=True)
+
+    # Add write fields for foreign keys
+    uuid_microduct_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Microduct.objects.all(),
+        source="uuid_microduct",
+    )
+    uuid_cable_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Cable.objects.all(),
+        source="uuid_cable",
+    )
+
+    class Meta:
+        model = MicroductCableConnection
+        fields = "__all__"
+        ordering = ["uuid_microduct", "uuid_cable"]
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+
+        # Translate labels
+        fields["uuid_microduct_id"].label = _("Microduct")
+        fields["uuid_cable_id"].label = _("Cable")
 
         return fields

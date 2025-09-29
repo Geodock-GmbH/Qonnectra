@@ -3,11 +3,7 @@
 	import { createToaster, Toaster } from '@skeletonlabs/skeleton-svelte';
 
 	// Paraglide
-	import { m } from '$lib/paraglide/messages';
-
 	// SvelteFlow
-	import { Position, Handle } from '@xyflow/svelte';
-
 	// Drawer
 	import { drawerStore } from '$lib/stores/drawer';
 
@@ -38,10 +34,6 @@
 
 <Toaster {toaster}></Toaster>
 
-<Handle type="target" position={Position.Top} />
-<Handle type="target" position={Position.Right} />
-<Handle type="target" position={Position.Left} />
-<Handle type="target" position={Position.Bottom} />
 <div
 	class="w-30 h-30 flex items-center justify-center overflow-hidden border border-surface-200-700 rounded-lg shadow-md p-2 cursor-pointer hover:bg-surface-100-800 transition-colors"
 	role="button"

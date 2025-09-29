@@ -7,8 +7,8 @@ from django.contrib.gis.db import models as gis_models
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from .storage import NextcloudStorage
 
@@ -284,6 +284,34 @@ class AttributesMicroductStatus(models.Model):
 
     def __str__(self):
         return self.microduct_status
+
+
+class AttributesCableType(models.Model):
+    """Stores all cable types,
+    related to :model:`api.Cable`.
+    """
+
+    id = models.AutoField(primary_key=True)
+    cable_type = models.TextField(_("Cable Type"), null=False)
+    fiber_count = models.IntegerField(_("Fiber Count"), null=False)
+    bundle_count = models.IntegerField(_("Bundle Count"), null=False)
+    bundle_fiber_count = models.IntegerField(_("Bundle Fiber Count"), null=False)
+    manufacturer = models.ForeignKey(
+        AttributesCompany,
+        null=True,
+        blank=True,
+        on_delete=models.DO_NOTHING,
+        db_column="manufacturer",
+        verbose_name=_("Manufacturer"),
+    )
+
+    class Meta:
+        db_table = "attributes_cable_type"
+        verbose_name = _("Cable Type")
+        verbose_name_plural = _("Cable Types")
+
+    def __str__(self):
+        return self.cable_type
 
 
 # TODO: Implement custom storage class for feature files (nextcloud): https://docs.djangoproject.com/en/4.2/howto/custom-file-storage/
@@ -1386,27 +1414,22 @@ class CanvasSyncStatus(models.Model):
     """
 
     SYNC_STATUS_CHOICES = [
-        ('IDLE', 'Idle'),
-        ('IN_PROGRESS', 'In Progress'),
-        ('COMPLETED', 'Completed'),
-        ('FAILED', 'Failed'),
+        ("IDLE", "Idle"),
+        ("IN_PROGRESS", "In Progress"),
+        ("COMPLETED", "Completed"),
+        ("FAILED", "Failed"),
     ]
 
     sync_key = models.CharField(
         max_length=100,
         unique=True,
-        help_text="Unique identifier for sync operation (e.g., 'project_1', 'project_1_flag_5')"
+        help_text="Unique identifier for sync operation (e.g., 'project_1', 'project_1_flag_5')",
     )
     status = models.CharField(
-        max_length=20,
-        choices=SYNC_STATUS_CHOICES,
-        default='IDLE'
+        max_length=20, choices=SYNC_STATUS_CHOICES, default="IDLE"
     )
     started_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True
     )
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
@@ -1431,12 +1454,14 @@ class CanvasSyncStatus(models.Model):
         """Check if sync operation is stale (no heartbeat for timeout_minutes)"""
         if not self.last_heartbeat:
             return True
-        return timezone.now() - self.last_heartbeat > timezone.timedelta(minutes=timeout_minutes)
+        return timezone.now() - self.last_heartbeat > timezone.timedelta(
+            minutes=timeout_minutes
+        )
 
     def update_heartbeat(self):
         """Update heartbeat timestamp to indicate sync is still active"""
         self.last_heartbeat = timezone.now()
-        self.save(update_fields=['last_heartbeat'])
+        self.save(update_fields=["last_heartbeat"])
 
     @classmethod
     def get_sync_key(cls, project_id, flag_id=None):
@@ -1450,10 +1475,216 @@ class CanvasSyncStatus(models.Model):
         """Clean up stale sync operations that are stuck in IN_PROGRESS"""
         stale_cutoff = timezone.now() - timezone.timedelta(minutes=timeout_minutes)
         cls.objects.filter(
-            status='IN_PROGRESS',
-            last_heartbeat__lt=stale_cutoff
+            status="IN_PROGRESS", last_heartbeat__lt=stale_cutoff
         ).update(
-            status='FAILED',
+            status="FAILED",
             completed_at=timezone.now(),
-            error_message='Sync operation timed out'
+            error_message="Sync operation timed out",
+        )
+
+
+class Cable(models.Model):
+    """Stores all cables,
+    related to :model:`api.MicroductCableConnection`,
+    :model:`api.AttributesCableType`,
+    :model:`api.AttributesStatus`,
+    :model:`api.AttributesCompany`,
+    :model:`api.Node`,
+    :model:`api.Flags`,
+    :model:`api.Projects`.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    name = models.TextField(
+        null=False,
+        unique=True,
+        db_index=False,
+        verbose_name=_("Cable Name"),
+    )
+    cable_type = models.ForeignKey(
+        AttributesCableType,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="cable_type",
+        db_index=False,
+        verbose_name=_("Cable Type"),
+    )
+    status = models.ForeignKey(
+        AttributesStatus,
+        null=True,
+        blank=True,
+        on_delete=models.DO_NOTHING,
+        db_column="status",
+        db_index=False,
+        verbose_name=_("Status"),
+    )
+    network_level = models.ForeignKey(
+        AttributesNetworkLevel,
+        null=True,
+        blank=True,
+        on_delete=models.DO_NOTHING,
+        db_column="network_level",
+        db_index=False,
+        verbose_name=_("Network Level"),
+    )
+    owner = models.ForeignKey(
+        AttributesCompany,
+        null=True,
+        blank=True,
+        on_delete=models.DO_NOTHING,
+        db_column="owner",
+        db_index=False,
+        verbose_name=_("Owner"),
+        related_name="owned_cables",
+    )
+    constructor = models.ForeignKey(
+        AttributesCompany,
+        null=True,
+        blank=True,
+        on_delete=models.DO_NOTHING,
+        db_column="constructor",
+        db_index=False,
+        verbose_name=_("Constructor"),
+        related_name="constructed_cables",
+    )
+    manufacturer = models.ForeignKey(
+        AttributesCompany,
+        null=True,
+        blank=True,
+        on_delete=models.DO_NOTHING,
+        db_column="manufacturer",
+        db_index=False,
+        verbose_name=_("Manufacturer"),
+        related_name="manufactured_cables",
+    )
+    date = models.DateField(_("Date"), null=True, blank=True)
+    uuid_node_start = models.ForeignKey(
+        Node,
+        null=True,
+        blank=True,
+        on_delete=models.DO_NOTHING,
+        db_column="uuid_node_start",
+        db_index=False,
+        verbose_name=_("Node Start"),
+        related_name="node_start_cables",
+    )
+    uuid_node_end = models.ForeignKey(
+        Node,
+        null=True,
+        blank=True,
+        on_delete=models.DO_NOTHING,
+        db_column="uuid_node_end",
+        db_index=False,
+        verbose_name=_("Node End"),
+        related_name="node_end_cables",
+    )
+    length = models.FloatField(_("Length"), null=True, blank=True)
+    length_total = models.FloatField(_("Length Total"), null=True, blank=True)
+    reserve_at_start = models.IntegerField(_("Reserve At Start"), null=True, blank=True)
+    reserve_at_end = models.IntegerField(_("Reserve At End"), null=True, blank=True)
+    reserve_section = models.IntegerField(_("Reserve Section"), null=True, blank=True)
+    project = models.ForeignKey(
+        Projects,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="project",
+        db_index=False,
+        verbose_name=_("Project"),
+    )
+    flag = models.ForeignKey(
+        Flags,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="flag",
+        db_index=False,
+        verbose_name=_("Flag"),
+    )
+
+    class Meta:
+        db_table = "cable"
+        verbose_name = _("Cable")
+        verbose_name_plural = _("Cables")
+        ordering = ["name"]
+        indexes = [
+            models.Index(fields=["name"], name="idx_cable_name"),
+            models.Index(fields=["cable_type"], name="idx_cable_cable_type"),
+            models.Index(fields=["status"], name="idx_cable_status"),
+            models.Index(fields=["network_level"], name="idx_cable_network_level"),
+            models.Index(fields=["owner"], name="idx_cable_owner"),
+            models.Index(fields=["constructor"], name="idx_cable_constructor"),
+            models.Index(fields=["manufacturer"], name="idx_cable_manufacturer"),
+            models.Index(fields=["date"], name="idx_cable_date"),
+            models.Index(fields=["uuid_node_start"], name="idx_cable_uuid_node_start"),
+            models.Index(fields=["uuid_node_end"], name="idx_cable_uuid_node_end"),
+            models.Index(fields=["length"], name="idx_cable_length"),
+            models.Index(fields=["length_total"], name="idx_cable_length_total"),
+            models.Index(
+                fields=["reserve_at_start"], name="idx_cable_reserve_at_start"
+            ),
+            models.Index(fields=["reserve_at_end"], name="idx_cable_reserve_at_end"),
+            models.Index(fields=["reserve_section"], name="idx_cable_reserve_section"),
+            models.Index(fields=["project"], name="idx_cable_project"),
+            models.Index(fields=["flag"], name="idx_cable_flag"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "name"],
+                name="unique_cable",
+            ),
+        ]
+
+    def __str__(self):
+        return self.name
+
+
+class MicroductCableConnection(models.Model):
+    """Stores all microduct cable connections,
+    related to :model:`api.Microduct`,
+    :model:`api.Cable`.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    uuid_microduct = models.ForeignKey(
+        Microduct,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="uuid_microduct",
+        db_index=False,
+        verbose_name=_("Microduct"),
+    )
+    uuid_cable = models.ForeignKey(
+        Cable,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="uuid_cable",
+        db_index=False,
+        verbose_name=_("Cable"),
+    )
+
+    class Meta:
+        db_table = "microduct_cable_connection"
+        verbose_name = _("Microduct Cable Connection")
+        verbose_name_plural = _("Microduct Cable Connections")
+        ordering = ["uuid_microduct", "uuid_cable"]
+        indexes = [
+            models.Index(
+                fields=["uuid_microduct"],
+                name="idx_md_cable_con_uuid_md",
+            ),
+            models.Index(fields=["uuid_cable"], name="idx_md_cable_con_uuid_cable"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["uuid_microduct", "uuid_cable"],
+                name="unique_microduct_cable_connection",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            self.uuid_microduct.uuid_conduit.name
+            + "-"
+            + str(self.uuid_microduct.number)
+            + " to "
+            + self.uuid_cable.name
         )

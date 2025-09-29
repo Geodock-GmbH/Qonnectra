@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from .models import (
+    AttributesCableType,
     AttributesCompany,
     AttributesConduitType,
     AttributesConstructionType,
@@ -11,6 +12,7 @@ from .models import (
     AttributesStatus,
     AttributesStatusDevelopment,
     AttributesSurface,
+    Cable,
     Conduit,
     FileTypeCategory,
     Flags,
@@ -26,6 +28,8 @@ admin.site.register(AttributesConstructionType)
 admin.site.register(AttributesStatus)
 admin.site.register(AttributesPhase)
 admin.site.register(AttributesCompany)
+admin.site.register(AttributesCableType)
+admin.site.register(Cable)
 admin.site.register(Projects)
 admin.site.register(StoragePreferences)
 admin.site.register(FileTypeCategory)

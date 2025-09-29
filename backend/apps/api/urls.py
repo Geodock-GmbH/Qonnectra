@@ -3,16 +3,19 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     AddressViewSet,
+    AttributesCableTypeViewSet,
     AttributesCompanyViewSet,
     AttributesConduitTypeViewSet,
     AttributesMicroductStatusViewSet,
     AttributesNetworkLevelViewSet,
     AttributesStatusViewSet,
+    CableViewSet,
     ConduitImportTemplateView,
     ConduitImportView,
     ConduitViewSet,
     FeatureFilesViewSet,
     FlagsViewSet,
+    MicroductCableConnectionViewSet,
     MicroductConnectionViewSet,
     MicroductViewSet,
     NodeCanvasCoordinatesView,
@@ -57,11 +60,22 @@ router.register(
     AttributesMicroductStatusViewSet,
     basename="attributes_microduct_status",
 )
+router.register(
+    r"attributes_cable_type",
+    AttributesCableTypeViewSet,
+    basename="attributes_cable_type",
+)
 router.register(r"address", AddressViewSet, basename="address")
+router.register(r"cable", CableViewSet, basename="cable")
 router.register(r"conduit", ConduitViewSet, basename="conduit")
 router.register(r"flags", FlagsViewSet, basename="flags")
 router.register(r"feature_files", FeatureFilesViewSet, basename="feature_files")
 router.register(r"microduct", MicroductViewSet, basename="microduct")
+router.register(
+    r"microduct_cable_connection",
+    MicroductCableConnectionViewSet,
+    basename="microduct_cable_connection",
+)
 router.register(
     r"microduct_connection", MicroductConnectionViewSet, basename="microduct_connection"
 )

@@ -6,7 +6,6 @@
 	import { page } from '$app/stores';
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import Drawer from '$lib/components/Drawer.svelte';
-	import { drawerStore } from '$lib/stores/drawer';
 	import { selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
@@ -266,13 +265,6 @@
 					{:else}
 						<p class="text-xs text-warning-700-300 mt-1">⚠ No nodes loaded</p>
 					{/if}
-
-					<button
-						class="btn variant-filled-primary btn-sm mt-2 w-full text-xs"
-						onclick={() => drawerStore.open({ title: 'Node Details' })}
-					>
-						Node Details
-					</button>
 
 					<button
 						class="btn {positionUpdateActive

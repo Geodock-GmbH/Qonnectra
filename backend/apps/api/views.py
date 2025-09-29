@@ -15,16 +15,19 @@ from rest_framework.views import APIView
 
 from .models import (
     Address,
+    AttributesCableType,
     AttributesCompany,
     AttributesConduitType,
     AttributesMicroductStatus,
     AttributesNetworkLevel,
     AttributesStatus,
+    Cable,
     CanvasSyncStatus,
     Conduit,
     FeatureFiles,
     Flags,
     Microduct,
+    MicroductCableConnection,
     MicroductConnection,
     Node,
     OlAddress,
@@ -38,14 +41,17 @@ from .pageination import CustomPagination
 from .routing import find_shortest_path
 from .serializers import (
     AddressSerializer,
+    AttributesCableTypeSerializer,
     AttributesCompanySerializer,
     AttributesConduitTypeSerializer,
     AttributesMicroductStatusSerializer,
     AttributesNetworkLevelSerializer,
     AttributesStatusSerializer,
+    CableSerializer,
     ConduitSerializer,
     FeatureFilesSerializer,
     FlagsSerializer,
+    MicroductCableConnectionSerializer,
     MicroductConnectionSerializer,
     MicroductSerializer,
     NodeSerializer,
@@ -57,6 +63,19 @@ from .serializers import (
     TrenchSerializer,
 )
 from .services import generate_conduit_import_template, import_conduits_from_excel
+
+
+class AttributesCableTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesCableType model :model:`api.AttributesCableType`.
+
+    An instance of :model:`api.AttributesCableType`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesCableType.objects.all().order_by("cable_type")
+    serializer_class = AttributesCableTypeSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
 
 
 class AttributesConduitTypeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -1638,3 +1657,116 @@ class NodePositionListenView(APIView):
                 {"error": f"Connection failed: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class CableViewSet(viewsets.ModelViewSet):
+    """ViewSet for the Cable model :model:`api.Cable`.
+
+    An instance of :model:`api.Cable`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = Cable.objects.all().order_by("name")
+    serializer_class = CableSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+    pagination_class = CustomPagination
+
+    @action(detail=False, methods=["get"], url_path="all")
+    def all_cables(self, request):
+        """
+        Returns all cables with project, flag, and search filters.
+        No pagination is used.
+        """
+        queryset = Cable.objects.all().order_by("name")
+        project_id = request.query_params.get("project")
+        flag_id = request.query_params.get("flag")
+        name = request.query_params.get("name")
+        search_term = request.query_params.get("search")
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag_id:
+            queryset = queryset.filter(flag=flag_id)
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+        if search_term:
+            queryset = queryset.filter(
+                Q(name__icontains=search_term)
+                | Q(cable_type__cable_type__icontains=search_term)
+                | Q(status__status__icontains=search_term)
+                | Q(network_level__network_level__icontains=search_term)
+                | Q(owner__company__icontains=search_term)
+                | Q(constructor__company__icontains=search_term)
+                | Q(manufacturer__company__icontains=search_term)
+                | Q(flag__flag__icontains=search_term)
+            )
+        serializer = CableSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned cables by filtering against query parameters:
+        - `uuid`: Filter by UUID
+        - `project`: Filter by project ID
+        - `flag`: Filter by flag ID
+        - `name`: Filter by name (case-insensitive partial match)
+        """
+        queryset = Cable.objects.all().order_by("name")
+        uuid = self.request.query_params.get("uuid")
+        project_id = self.request.query_params.get("project")
+        flag_id = self.request.query_params.get("flag")
+        name = self.request.query_params.get("name")
+        if uuid:
+            queryset = queryset.filter(uuid=uuid)
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag_id:
+            queryset = queryset.filter(flag=flag_id)
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+        return queryset
+
+
+class MicroductCableConnectionViewSet(viewsets.ModelViewSet):
+    """ViewSet for the MicroductCableConnection model :model:`api.MicroductCableConnection`.
+
+    An instance of :model:`api.MicroductCableConnection`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = MicroductCableConnection.objects.all()
+    serializer_class = MicroductCableConnectionSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned microduct cable connections by filtering against query parameters:
+        - `uuid_microduct`: Filter by microduct UUID
+        - `uuid_cable`: Filter by cable UUID
+        """
+        queryset = MicroductCableConnection.objects.all()
+        uuid_microduct = self.request.query_params.get("uuid_microduct")
+        uuid_cable = self.request.query_params.get("uuid_cable")
+        if uuid_microduct:
+            queryset = queryset.filter(uuid_microduct=uuid_microduct)
+        if uuid_cable:
+            queryset = queryset.filter(uuid_cable=uuid_cable)
+        return queryset
+
+    @action(detail=False, methods=["get"], url_path="all")
+    def all_connections(self, request):
+        """
+        Returns all microduct cable connections.
+        No pagination is used.
+        """
+        queryset = MicroductCableConnection.objects.all()
+        uuid_microduct = request.query_params.get("uuid_microduct")
+        uuid_cable = request.query_params.get("uuid_cable")
+        if uuid_microduct:
+            queryset = queryset.filter(uuid_microduct=uuid_microduct)
+        if uuid_cable:
+            queryset = queryset.filter(uuid_cable=uuid_cable)
+        serializer = MicroductCableConnectionSerializer(queryset, many=True)
+        return Response(serializer.data)
