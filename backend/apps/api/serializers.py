@@ -999,6 +999,8 @@ class CableSerializer(serializers.ModelSerializer):
     reserve_at_start = serializers.IntegerField(required=False)
     reserve_at_end = serializers.IntegerField(required=False)
     reserve_section = serializers.IntegerField(required=False)
+    handle_start = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    handle_end = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = Cable

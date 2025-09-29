@@ -1583,6 +1583,20 @@ class Cable(models.Model):
     reserve_at_start = models.IntegerField(_("Reserve At Start"), null=True, blank=True)
     reserve_at_end = models.IntegerField(_("Reserve At End"), null=True, blank=True)
     reserve_section = models.IntegerField(_("Reserve Section"), null=True, blank=True)
+    handle_start = models.CharField(
+        _("Handle Start"),
+        max_length=10,
+        null=True,
+        blank=True,
+        help_text=_("Handle position at start node (top, right, bottom, left)"),
+    )
+    handle_end = models.CharField(
+        _("Handle End"),
+        max_length=10,
+        null=True,
+        blank=True,
+        help_text=_("Handle position at end node (top, right, bottom, left)"),
+    )
     project = models.ForeignKey(
         Projects,
         null=False,
@@ -1623,6 +1637,8 @@ class Cable(models.Model):
             ),
             models.Index(fields=["reserve_at_end"], name="idx_cable_reserve_at_end"),
             models.Index(fields=["reserve_section"], name="idx_cable_reserve_section"),
+            models.Index(fields=["handle_start"], name="idx_cable_handle_start"),
+            models.Index(fields=["handle_end"], name="idx_cable_handle_end"),
             models.Index(fields=["project"], name="idx_cable_project"),
             models.Index(fields=["flag"], name="idx_cable_flag"),
         ]

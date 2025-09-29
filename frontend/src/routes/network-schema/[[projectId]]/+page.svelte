@@ -235,9 +235,9 @@
 			<Background class="z-0" bgColor="var(--color-surface-100-900) " />
 			<Controls />
 			<Panel position="top-left">
-				<div class="bg-surface-100-900 p-2 rounded-lg shadow-lg">
+				<div class="bg-surface-500 p-2 rounded-lg shadow-lg">
 					<h3 class="text-sm font-semibold mb-1">Network Schema</h3>
-					<p class="text-xs text-surface-700-300">
+					<p class="text-xs">
 						Project: {$selectedProject} | Total: {nodes.length} nodes
 					</p>
 
