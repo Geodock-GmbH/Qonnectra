@@ -1,6 +1,6 @@
 import { API_URL } from '$env/static/private';
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
-import { error } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 
 /**
  * Poll for sync completion with timeout and progress updates
@@ -119,10 +119,17 @@ export async function load({ fetch, cookies, url, params }) {
 			}
 		}
 
-		const nodeResponse = await fetch(`${API_URL}node/all/?project=${projectId}`, {
-			credentials: 'include',
-			headers: headers
-		});
+		// Fetch nodes and cables in parallel
+		const [nodeResponse, cableResponse] = await Promise.all([
+			fetch(`${API_URL}node/all/?project=${projectId}`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}cable/all/?project=${projectId}`, {
+				credentials: 'include',
+				headers: headers
+			})
+		]);
 
 		if (!nodeResponse.ok) {
 			throw error(500, 'Failed to fetch nodes');
@@ -130,8 +137,16 @@ export async function load({ fetch, cookies, url, params }) {
 
 		const nodesData = await nodeResponse.json();
 
+		let cablesData = [];
+		if (cableResponse.ok) {
+			cablesData = await cableResponse.json();
+		} else {
+			console.warn('Failed to fetch cables, continuing without them');
+		}
+
 		return {
 			nodes: nodesData,
+			cables: cablesData,
 			syncStatus: syncStatus || null
 		};
 	} catch (err) {
@@ -205,6 +220,130 @@ export const actions = {
 				type: 'error',
 				message: err.message || 'Failed to save node position'
 			};
+		}
+	},
+
+	getCables: async ({ request, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const projectId = formData.get('project');
+
+			if (!projectId) {
+				return fail(400, {
+					error: 'Missing required parameter: project is required'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const backendUrl = `${API_URL}cable/all/?project=${encodeURIComponent(projectId)}`;
+
+			const response = await fetch(backendUrl, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				let errorData;
+
+				try {
+					errorData = JSON.parse(errorText);
+				} catch {
+					errorData = { error: errorText || `Request failed with status: ${response.status}` };
+				}
+
+				return fail(response.status, errorData);
+			}
+
+			const cables = await response.json();
+			console.log('Cables:', cables);
+			return { type: 'success', data: cables };
+		} catch (error) {
+			console.error('Cable GET action error:', error);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+
+	createCable: async ({ request, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const name = formData.get('name');
+			const cable_type_id = formData.get('cable_type_id');
+			const project_id = formData.get('project_id');
+			const flag_id = formData.get('flag_id');
+			const uuid_node_start_id = formData.get('uuid_node_start_id');
+			const uuid_node_end_id = formData.get('uuid_node_end_id');
+			const handle_start = formData.get('handle_start');
+			const handle_end = formData.get('handle_end');
+
+			// Validate required fields
+			if (!name || !cable_type_id || !project_id || !flag_id) {
+				return fail(400, {
+					error:
+						'Missing required fields: name, cable_type_id, project_id, and flag_id are required'
+				});
+			}
+
+			if (!uuid_node_start_id || !uuid_node_end_id) {
+				return fail(400, {
+					error: 'Missing required fields: uuid_node_start_id and uuid_node_end_id are required'
+				});
+			}
+
+			const headers = new Headers({
+				'Content-Type': 'application/json'
+			});
+
+			const accessToken = cookies.get('api-access-token');
+			if (accessToken) {
+				headers.append('Cookie', `api-access-token=${accessToken}`);
+			}
+
+			const backendUrl = `${API_URL}cable/`;
+
+			const requestBody = {
+				name,
+				cable_type_id: parseInt(cable_type_id),
+				project_id: parseInt(project_id),
+				flag_id: parseInt(flag_id),
+				uuid_node_start_id: uuid_node_start_id,
+				uuid_node_end_id: uuid_node_end_id
+			};
+
+			// Add optional handle fields
+			if (handle_start) {
+				requestBody.handle_start = handle_start;
+			}
+			if (handle_end) {
+				requestBody.handle_end = handle_end;
+			}
+
+			console.log('Creating cable:', requestBody);
+
+			const response = await fetch(backendUrl, {
+				method: 'POST',
+				headers,
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				let errorData;
+
+				try {
+					errorData = JSON.parse(errorText);
+				} catch {
+					errorData = { error: errorText || `Request failed with status: ${response.status}` };
+				}
+
+				return fail(response.status, errorData);
+			}
+
+			const cable = await response.json();
+			return { type: 'success', data: cable };
+		} catch (error) {
+			console.error('Cable POST action error:', error);
+			return fail(500, { error: 'Internal server error' });
 		}
 	}
 };

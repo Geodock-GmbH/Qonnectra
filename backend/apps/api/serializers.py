@@ -948,26 +948,31 @@ class CableSerializer(serializers.ModelSerializer):
     )
     status_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
+        required=False,
         queryset=AttributesStatus.objects.all(),
         source="status",
     )
     network_level_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
+        required=False,
         queryset=AttributesNetworkLevel.objects.all(),
         source="network_level",
     )
     owner_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
+        required=False,
         queryset=AttributesCompany.objects.all(),
         source="owner",
     )
     constructor_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
+        required=False,
         queryset=AttributesCompany.objects.all(),
         source="constructor",
     )
     manufacturer_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
+        required=False,
         queryset=AttributesCompany.objects.all(),
         source="manufacturer",
     )
@@ -976,21 +981,25 @@ class CableSerializer(serializers.ModelSerializer):
     )
     uuid_node_start_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
+        required=True,
         queryset=Node.objects.all(),
         source="uuid_node_start",
     )
     uuid_node_end_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
+        required=True,
         queryset=Node.objects.all(),
         source="uuid_node_end",
     )
     project_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
+        required=True,
         queryset=Projects.objects.all(),
         source="project",
     )
     flag_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
+        required=True,
         queryset=Flags.objects.all(),
         source="flag",
     )
@@ -999,8 +1008,10 @@ class CableSerializer(serializers.ModelSerializer):
     reserve_at_start = serializers.IntegerField(required=False)
     reserve_at_end = serializers.IntegerField(required=False)
     reserve_section = serializers.IntegerField(required=False)
-    handle_start = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    handle_end = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    handle_start = serializers.CharField(
+        required=True, allow_blank=True, allow_null=True
+    )
+    handle_end = serializers.CharField(required=True, allow_blank=True, allow_null=True)
 
     class Meta:
         model = Cable

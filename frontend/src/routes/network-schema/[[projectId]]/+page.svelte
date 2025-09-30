@@ -13,21 +13,60 @@
 	import '@xyflow/svelte/dist/style.css';
 	import { onMount } from 'svelte';
 	import CableDiagramNode from './CableDiagramNode.svelte';
+	import CableDiagrammEdge from './CableDiagrammEdge.svelte';
 	import Card from './Card.svelte';
 
 	/** @type {import('./$types').PageProps} */
 	let { data } = $props();
 	const nodeTypes = { cableDiagramNode: CableDiagramNode };
+	const edgeTypes = { cableDiagramEdge: CableDiagrammEdge };
 
 	let nodes = $state.raw(transformNodesToSvelteFlow(data.nodes));
-	let edges = $state.raw([]);
+	let edges = $state.raw(transformCablesToSvelteFlowEdges(data.cables));
 	let prevUrl = $state($page.url.href);
 
 	let positionUpdateActive = $state(true);
 	let positionUpdateController = null;
 
+	/**
+	 * Transform Cable data to SvelteFlow edges
+	 * @param {Array} cablesData - Array of Cable objects from the API
+	 * @returns {Array} SvelteFlow compatible edges
+	 */
+	function transformCablesToSvelteFlowEdges(cablesData) {
+		const cables = Array.isArray(cablesData) ? cablesData : [];
+
+		if (cables.length === 0) {
+			console.log('No cables found for this project');
+			return [];
+		}
+
+		const edges = cables
+			.filter((cable) => cable.uuid_node_start && cable.uuid_node_end)
+			.map((cable) => ({
+				id: cable.uuid,
+				source: cable.uuid_node_start,
+				target: cable.uuid_node_end,
+				sourceHandle: cable.handle_start
+					? `${cable.uuid_node_start}-${cable.handle_start}-source`
+					: undefined,
+				targetHandle: cable.handle_end
+					? `${cable.uuid_node_end}-${cable.handle_end}-target`
+					: undefined,
+				type: 'cableDiagramEdge',
+				data: {
+					label: cable.name,
+					cable: cable
+				}
+			}));
+
+		console.log(`Loaded ${edges.length} cable edges`);
+		return edges;
+	}
+
 	onMount(async () => {
 		await autoLockSvelteFlow();
+
 		if (data.syncStatus) {
 			if (data.syncStatus.sync_status === 'FAILED') {
 				globalToaster.error({
@@ -139,6 +178,104 @@
 		}
 	}
 
+	// TODO: Delete later
+	/**
+	 * Generate random string for cable names
+	 *
+	 */
+	function generateRandomString(length = 8) {
+		const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+		let result = '';
+		for (let i = 0; i < length; i++) {
+			result += chars.charAt(Math.floor(Math.random() * chars.length));
+		}
+		return result;
+	}
+
+	/**
+	 * Parse handle ID to extract position
+	 * Handle ID format: {nodeUuid}-{position}-{type}
+	 * Returns: 'top', 'right', 'bottom', or 'left'
+	 */
+	function parseHandlePosition(handleId) {
+		if (!handleId) return null;
+		const parts = handleId.split('-');
+		// Position is the second-to-last part (before 'source' or 'target')
+		return parts[parts.length - 2];
+	}
+
+	/**
+	 * Handle new edge connection
+	 * Creates a Cable record in the database using form action
+	 */
+	async function handleConnect(connection) {
+		const { source, target, sourceHandle, targetHandle } = connection;
+
+		// Extract handle positions
+		const handleStart = parseHandlePosition(sourceHandle);
+		const handleEnd = parseHandlePosition(targetHandle);
+
+		// Generate random cable name
+		const cableName = `CABLE_${generateRandomString()}`;
+
+		try {
+			// Create cable via form action
+			// For some reason the parseHandlePosition function returns the opposite of what it should return
+			// This could be because we have overlapping source + target handles for bidirectional connections
+			// Changed are: uuid_node_start_id, uuid_node_end_id, handle_start, handle_end
+			const formData = new FormData();
+			formData.append('name', cableName);
+			formData.append('cable_type_id', '1');
+			formData.append('project_id', $selectedProject);
+			formData.append('flag_id', '1');
+			formData.append('uuid_node_start_id', target);
+			formData.append('uuid_node_end_id', source);
+			if (handleStart) formData.append('handle_start', handleEnd);
+			if (handleEnd) formData.append('handle_end', handleStart);
+
+			const response = await fetch('?/createCable', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = await response.json();
+
+			if (!response.ok || result.type === 'error') {
+				throw new Error(result.error || 'Failed to create cable');
+			}
+
+			const cableData = result.data;
+
+			// Add edge to the flow
+			edges = [
+				...edges,
+				{
+					id: cableData.uuid,
+					source,
+					target,
+					sourceHandle,
+					targetHandle,
+					type: 'cableDiagramEdge',
+					data: {
+						label: cableName,
+						cable: cableData
+					}
+				}
+			];
+
+			globalToaster.success({
+				title: m.title_success(),
+				description: `Cable ${cableName} created successfully`
+			});
+		} catch (error) {
+			console.error('Error creating cable:', error);
+			globalToaster.error({
+				title: m.common_error(),
+				description: `Failed to create cable: ${error.message}`
+			});
+		}
+	}
+
 	/**
 	 * Long-polling endpoint for real-time node position updates
 	 */
@@ -227,10 +364,13 @@
 			bind:edges
 			fitView
 			{nodeTypes}
+			{edgeTypes}
 			connectionMode="loose"
 			snapToGrid={true}
 			snapGrid={[120, 120]}
 			onnodedragstop={handleNodeDragStop}
+			onconnect={handleConnect}
+			connectionRadius={100}
 		>
 			<Background class="z-0" bgColor="var(--color-surface-100-900) " />
 			<Controls />
