@@ -434,6 +434,7 @@
 			onnodedragstop={handleNodeDragStop}
 			onconnect={handleConnect}
 			connectionRadius={100}
+			noPanClass="nopan"
 		>
 			<Background class="z-0" bgColor="var(--color-surface-100-900) " />
 			<Controls />

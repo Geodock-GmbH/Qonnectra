@@ -388,9 +388,7 @@ export const actions = {
 
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));
-				throw new Error(
-					errorData.detail || `HTTP ${response.status}: Failed to update cable path`
-				);
+				throw new Error(errorData.detail || `HTTP ${response.status}: Failed to update cable path`);
 			}
 
 			const updatedCable = await response.json();

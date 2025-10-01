@@ -71,11 +71,12 @@
 	// Vertex editing state
 	let draggingVertexIndex = $state(null);
 	let edgeHovered = $state(false);
+	let svgElement = $state(null);
 
 	/**
-	 * Handle double click on edge to add a new vertex
+	 * Handle click on edge to add a new vertex
 	 */
-	function handleEdgeDoubleClick(event) {
+	function handleEdgeClick(event) {
 		const svg = event.currentTarget.closest('svg');
 		const pt = svg.createSVGPoint();
 		pt.x = event.clientX;
@@ -97,20 +98,27 @@
 	 */
 	function handleVertexMouseDown(event, index) {
 		event.stopPropagation();
+		event.preventDefault();
 		draggingVertexIndex = index;
+
+		// Store SVG element for coordinate conversion
+		svgElement = event.currentTarget.closest('svg');
+
+		// Add window listeners for smooth dragging
+		window.addEventListener('mousemove', handleWindowMouseMove);
+		window.addEventListener('mouseup', handleWindowMouseUp);
 	}
 
 	/**
-	 * Handle vertex drag
+	 * Handle vertex drag on window (so it works even when mouse leaves SVG)
 	 */
-	function handleVertexMouseMove(event) {
-		if (draggingVertexIndex === null) return;
+	function handleWindowMouseMove(event) {
+		if (draggingVertexIndex === null || !svgElement) return;
 
-		const svg = event.currentTarget.closest('svg');
-		const pt = svg.createSVGPoint();
+		const pt = svgElement.createSVGPoint();
 		pt.x = event.clientX;
 		pt.y = event.clientY;
-		const svgCoords = pt.matrixTransform(svg.getScreenCTM().inverse());
+		const svgCoords = pt.matrixTransform(svgElement.getScreenCTM().inverse());
 
 		const waypoints = [...(data?.cable?.diagram_path || [])];
 		waypoints[draggingVertexIndex] = { x: svgCoords.x, y: svgCoords.y };
@@ -124,9 +132,9 @@
 	}
 
 	/**
-	 * Handle vertex drag end
+	 * Handle vertex drag end on window
 	 */
-	function handleVertexMouseUp() {
+	function handleWindowMouseUp() {
 		if (draggingVertexIndex !== null) {
 			// Final update
 			window.dispatchEvent(
@@ -136,6 +144,11 @@
 			);
 		}
 		draggingVertexIndex = null;
+		svgElement = null;
+
+		// Remove window listeners
+		window.removeEventListener('mousemove', handleWindowMouseMove);
+		window.removeEventListener('mouseup', handleWindowMouseUp);
 	}
 
 	/**
@@ -156,32 +169,35 @@
 	}
 </script>
 
-<!-- Invisible wider path for easier interaction -->
-<path
-	d={edgePath}
-	fill="none"
-	stroke="transparent"
-	stroke-width="20"
-	ondblclick={handleEdgeDoubleClick}
+<!-- Base edge with interaction -->
+<g
+	onclick={handleEdgeClick}
+	onkeydown={(e) => {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			handleEdgeClick(e);
+		}
+	}}
 	onmouseenter={() => (edgeHovered = true)}
 	onmouseleave={() => (edgeHovered = false)}
 	style="cursor: pointer;"
 	role="button"
 	tabindex="0"
-/>
-
-<!-- Base edge -->
-<BaseEdge
-	{id}
-	path={edgePath}
-	style="stroke: var(--color-primary-500); stroke-width: 2;"
-	aria-label="Open cable details for {data.label}"
-/>
+>
+	<BaseEdge
+		{id}
+		path={edgePath}
+		interactionWidth={20}
+		style="stroke: var(--color-primary-500); stroke-width: 2;"
+		aria-label="Open cable details for {data.label}"
+	/>
+</g>
 
 <!-- Vertex handles -->
 {#if data?.cable?.diagram_path && Array.isArray(data.cable.diagram_path)}
 	{#each data.cable.diagram_path as vertex, index}
 		<circle
+			class="nopan"
 			cx={vertex.x}
 			cy={vertex.y}
 			r="6"
@@ -190,8 +206,6 @@
 			stroke-width="2"
 			style="cursor: move; opacity: {edgeHovered || draggingVertexIndex === index ? 1 : 0.3};"
 			onmousedown={(e) => handleVertexMouseDown(e, index)}
-			onmousemove={handleVertexMouseMove}
-			onmouseup={handleVertexMouseUp}
 			oncontextmenu={(e) => handleVertexContextMenu(e, index)}
 			aria-label="Drag to move vertex, right-click to delete"
 			role="button"
@@ -207,7 +221,7 @@
 		y={labelY - 12}
 		width="300"
 		height="30"
-		style="z-index: 100; cursor: pointer;"
+		style="cursor: pointer;"
 		onclick={handleEdgeLableClick}
 		onkeydown={handleKeydown}
 		aria-label="Open cable details for {data.label}"
