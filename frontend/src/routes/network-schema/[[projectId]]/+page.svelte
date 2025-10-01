@@ -14,7 +14,6 @@
 	import { onMount } from 'svelte';
 	import CableDiagramNode from './CableDiagramNode.svelte';
 	import CableDiagrammEdge from './CableDiagrammEdge.svelte';
-	import Card from './Card.svelte';
 
 	/** @type {import('./$types').PageProps} */
 	let { data } = $props();
@@ -427,7 +426,5 @@
 	</div>
 
 	<!-- Drawer -->
-	<Drawer>
-		<Card />
-	</Drawer>
+	<Drawer></Drawer>
 </div>
