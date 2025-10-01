@@ -74,6 +74,26 @@
 	let svgElement = $state(null);
 
 	/**
+	 * Calculate the closest point on a line segment to a given point
+	 */
+	function getClosestPointOnSegment(p, a, b) {
+		const dx = b.x - a.x;
+		const dy = b.y - a.y;
+		const lengthSquared = dx * dx + dy * dy;
+
+		if (lengthSquared === 0) return { ...a, t: 0 };
+
+		let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSquared;
+		t = Math.max(0, Math.min(1, t));
+
+		return {
+			x: a.x + t * dx,
+			y: a.y + t * dy,
+			t: t
+		};
+	}
+
+	/**
 	 * Handle click on edge to add a new vertex
 	 */
 	function handleEdgeClick(event) {
@@ -83,7 +103,31 @@
 		pt.y = event.clientY;
 		const svgCoords = pt.matrixTransform(svg.getScreenCTM().inverse());
 		const waypoints = data?.cable?.diagram_path || [];
-		const newWaypoints = [...waypoints, { x: svgCoords.x, y: svgCoords.y }];
+
+		// Build all segments of the path (including source and target)
+		const allPoints = [{ x: sourceX, y: sourceY }, ...waypoints, { x: targetX, y: targetY }];
+
+		// Find the closest segment to the click point
+		let closestSegmentIndex = 0;
+		let minDistance = Infinity;
+		let closestPointOnSegment = null;
+
+		for (let i = 0; i < allPoints.length - 1; i++) {
+			const closest = getClosestPointOnSegment(svgCoords, allPoints[i], allPoints[i + 1]);
+			const distance = Math.sqrt(
+				Math.pow(closest.x - svgCoords.x, 2) + Math.pow(closest.y - svgCoords.y, 2)
+			);
+
+			if (distance < minDistance) {
+				minDistance = distance;
+				closestSegmentIndex = i;
+				closestPointOnSegment = closest;
+			}
+		}
+
+		// Insert the new vertex at the correct position
+		const newWaypoints = [...waypoints];
+		newWaypoints.splice(closestSegmentIndex, 0, { x: svgCoords.x, y: svgCoords.y });
 
 		// Dispatch custom event to update edge
 		window.dispatchEvent(
@@ -203,6 +247,7 @@
 			r="6"
 			fill="var(--color-primary-500)"
 			stroke="white"
+			pointer-events="all"
 			stroke-width="2"
 			style="cursor: move; opacity: {edgeHovered || draggingVertexIndex === index ? 1 : 0.3};"
 			onmousedown={(e) => handleVertexMouseDown(e, index)}
@@ -237,20 +282,3 @@
 		</div>
 	</foreignObject>
 {/if}
-
-<!-- Arrow marker definition -->
-<svg style="position: absolute; top: 0; left: 0;">
-	<defs>
-		<marker
-			id="arrow"
-			viewBox="0 0 10 10"
-			refX="8"
-			refY="5"
-			markerWidth="6"
-			markerHeight="6"
-			orient="auto-start-reverse"
-		>
-			<path d="M 0 0 L 10 5 L 0 10 z" fill="var(--color-primary-500)" />
-		</marker>
-	</defs>
-</svg>
