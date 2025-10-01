@@ -345,5 +345,67 @@ export const actions = {
 			console.error('Cable POST action error:', error);
 			return fail(500, { error: 'Internal server error' });
 		}
+	},
+
+	saveCableGeometry: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+
+		const cableId = formData.get('cableId');
+		const diagramPathJson = formData.get('diagram_path');
+
+		if (!cableId) {
+			return {
+				type: 'error',
+				message: 'Cable ID is required'
+			};
+		}
+
+		let diagram_path = null;
+		if (diagramPathJson) {
+			try {
+				diagram_path = JSON.parse(diagramPathJson);
+			} catch (e) {
+				return {
+					type: 'error',
+					message: 'Invalid diagram path format'
+				};
+			}
+		}
+
+		try {
+			const response = await fetch(`${API_URL}cable/${cableId}/`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					diagram_path
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				throw new Error(
+					errorData.detail || `HTTP ${response.status}: Failed to update cable path`
+				);
+			}
+
+			const updatedCable = await response.json();
+
+			return {
+				type: 'success',
+				message: 'Cable path saved successfully',
+				cable: updatedCable
+			};
+		} catch (err) {
+			console.error('Error saving cable geometry:', err);
+			return {
+				type: 'error',
+				message: err.message || 'Failed to save cable path'
+			};
+		}
 	}
 };

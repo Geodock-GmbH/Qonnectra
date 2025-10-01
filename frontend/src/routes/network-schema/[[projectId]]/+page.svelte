@@ -338,6 +338,61 @@
 		}
 	}
 
+	/**
+	 * Handle cable path updates from CableDiagrammEdge
+	 */
+	async function handleCablePathUpdate(event) {
+		const { edgeId, waypoints, temporary, save } = event.detail;
+
+		// Find and update the edge in the local state
+		edges = edges.map((edge) => {
+			if (edge.id === edgeId) {
+				return {
+					...edge,
+					data: {
+						...edge.data,
+						cable: {
+							...edge.data.cable,
+							diagram_path: waypoints
+						}
+					}
+				};
+			}
+			return edge;
+		});
+
+		// Save to backend if not temporary
+		if (save) {
+			try {
+				const formData = new FormData();
+				formData.append('cableId', edgeId);
+				formData.append('diagram_path', JSON.stringify(waypoints));
+
+				const response = await fetch('?/saveCableGeometry', {
+					method: 'POST',
+					body: formData
+				});
+
+				const result = await response.json();
+
+				if (!response.ok || result.type === 'error') {
+					throw new Error(result.message || 'Failed to save cable path');
+				}
+
+				globalToaster.success({
+					title: m.title_success(),
+					description: 'Cable path updated successfully'
+				});
+			} catch (error) {
+				console.error('Error saving cable path:', error);
+				globalToaster.error({
+					title: m.common_error(),
+					description: `Failed to save cable path: ${error.message}`
+				});
+			}
+		}
+	}
+
 	// Start position updates when component mounts
 	$effect(() => {
 		if (positionUpdateActive) {
@@ -347,6 +402,15 @@
 		// Cleanup when component unmounts
 		return () => {
 			stopPositionUpdates();
+		};
+	});
+
+	// // Listen for cable path update events
+	$effect(() => {
+		window.addEventListener('updateCablePath', handleCablePathUpdate);
+
+		return () => {
+			window.removeEventListener('updateCablePath', handleCablePathUpdate);
 		};
 	});
 </script>

@@ -1597,6 +1597,12 @@ class Cable(models.Model):
         blank=True,
         help_text=_("Handle position at end node (top, right, bottom, left)"),
     )
+    diagram_path = models.JSONField(
+        _("Diagram Path"),
+        null=True,
+        blank=True,
+        help_text=_("Custom waypoints for diagram edge path as array of {x, y} coordinates"),
+    )
     project = models.ForeignKey(
         Projects,
         null=False,

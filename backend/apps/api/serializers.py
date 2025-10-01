@@ -1012,6 +1012,7 @@ class CableSerializer(serializers.ModelSerializer):
         required=True, allow_blank=True, allow_null=True
     )
     handle_end = serializers.CharField(required=True, allow_blank=True, allow_null=True)
+    diagram_path = serializers.JSONField(required=False, allow_null=True)
 
     class Meta:
         model = Cable

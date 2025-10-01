@@ -1,15 +1,8 @@
 <script>
-	// Skeleton
-	import { createToaster, Toaster } from '@skeletonlabs/skeleton-svelte';
 	// SvelteFlow
 	import { Handle, Position } from '@xyflow/svelte';
 	// Drawer
 	import { drawerStore } from '$lib/stores/drawer';
-
-	// Toaster
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
 
 	let { id, data } = $props();
 
@@ -65,8 +58,6 @@
 		}
 	}
 </script>
-
-<Toaster {toaster}></Toaster>
 
 <!-- Handles: top, right, bottom, left -->
 <!-- Each position has overlapping source + target handles for bidirectional connections -->
