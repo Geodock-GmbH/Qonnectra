@@ -282,6 +282,7 @@ export const actions = {
 	createCable: async ({ request, cookies }) => {
 		try {
 			const formData = await request.formData();
+			const uuid = formData.get('uuid');
 			const name = formData.get('name');
 			const cable_type_id = formData.get('cable_type_id');
 			const project_id = formData.get('project_id');
@@ -324,6 +325,11 @@ export const actions = {
 				uuid_node_start_id: uuid_node_start_id,
 				uuid_node_end_id: uuid_node_end_id
 			};
+
+			// Add optional UUID field
+			if (uuid) {
+				requestBody.uuid = uuid;
+			}
 
 			// Add optional handle fields
 			if (handle_start) {

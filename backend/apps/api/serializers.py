@@ -1,7 +1,6 @@
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
 from rest_framework_gis.serializers import GeoFeatureModelSerializer, GeometryField
 
 from .models import (
@@ -412,12 +411,6 @@ class ConduitSerializer(serializers.ModelSerializer):
 
     # Add write fields for foreign keys
     name = serializers.CharField(
-        validators=[
-            UniqueValidator(
-                queryset=Conduit.objects.all(),
-                message=_("A conduit with that name already exists."),
-            )
-        ],
         required=True,
         label=_("Conduit Name"),
     )
@@ -476,6 +469,13 @@ class ConduitSerializer(serializers.ModelSerializer):
         model = Conduit
         fields = "__all__"
         ordering = ["name"]
+        validators = [
+            serializers.UniqueTogetherValidator(
+                queryset=Conduit.objects.all(),
+                fields=["project", "name"],
+                message=_("A conduit with that name already exists."),
+            )
+        ]
 
     def get_fields(self):
         """Dynamically translate field labels."""
@@ -918,7 +918,7 @@ class CableSerializer(serializers.ModelSerializer):
     """Serializer for the Cable model."""
 
     # Read only fields
-    uuid = serializers.UUIDField(read_only=True)
+    uuid = serializers.UUIDField(required=False)
 
     # Get nested serializers for foreign keys
     cable_type = AttributesCableTypeSerializer(read_only=True)
@@ -932,12 +932,6 @@ class CableSerializer(serializers.ModelSerializer):
 
     # Add write fields for foreign keys
     name = serializers.CharField(
-        validators=[
-            UniqueValidator(
-                queryset=Cable.objects.all(),
-                message=_("A cable with that name already exists."),
-            )
-        ],
         required=True,
         label=_("Cable Name"),
     )
@@ -1018,6 +1012,16 @@ class CableSerializer(serializers.ModelSerializer):
         model = Cable
         fields = "__all__"
         ordering = ["name"]
+        validators = [
+            serializers.UniqueTogetherValidator(
+                queryset=Cable.objects.all(),
+                fields=["project", "name"],
+                message=_("A cable with that name already exists."),
+            )
+        ]
+        extra_kwargs = {
+            "uuid": {"required": False},
+        }
 
     def get_fields(self):
         """Dynamically translate field labels."""

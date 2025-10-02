@@ -236,12 +236,16 @@
 			return;
 		}
 
+		// Generate UUID client-side for immediate use
+		const cableUuid = crypto.randomUUID();
+
 		try {
 			// Create cable via form action
 			// For some reason the parseHandlePosition function returns the opposite of what it should return
 			// This could be because we have overlapping source + target handles for bidirectional connections
 			// Changed are: uuid_node_start_id, uuid_node_end_id, handle_start, handle_end
 			const formData = new FormData();
+			formData.append('uuid', cableUuid);
 			formData.append('name', cableName);
 			formData.append('cable_type_id', selectedCableType?.[0]);
 			formData.append('project_id', $selectedProject);
@@ -264,11 +268,18 @@
 
 			const cableData = result.data;
 
-			// Add edge to the flow
+			// Validate that the UUID matches what we sent
+			if (cableData.uuid !== cableUuid) {
+				console.warn(
+					`UUID mismatch: sent ${cableUuid}, received ${cableData.uuid}. Using received UUID.`
+				);
+			}
+
+			// Add edge to the flow using the client-generated UUID
 			edges = [
 				...edges,
 				{
-					id: cableData.uuid,
+					id: cableUuid,
 					source,
 					target,
 					sourceHandle,
@@ -276,7 +287,7 @@
 					type: 'cableDiagramEdge',
 					data: {
 						label: cableName,
-						cable: cableData
+						cable: { ...cableData, uuid: cableUuid }
 					}
 				}
 			];
