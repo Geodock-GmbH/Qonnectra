@@ -31,23 +31,63 @@
 		}
 	});
 
+	/**
+	 * Calculate the midpoint position along the entire path length
+	 * @param {number} srcX - Source X coordinate
+	 * @param {number} srcY - Source Y coordinate
+	 * @param {number} tgtX - Target X coordinate
+	 * @param {number} tgtY - Target Y coordinate
+	 * @param {Array} waypoints - Array of vertex points
+	 * @returns {Object} Object with x and y coordinates of the midpoint
+	 */
+	function getPathMidpoint(srcX, srcY, tgtX, tgtY, waypoints) {
+		const allPoints = [{ x: srcX, y: srcY }, ...(waypoints || []), { x: tgtX, y: tgtY }];
+
+		const segments = [];
+		let totalLength = 0;
+
+		for (let i = 0; i < allPoints.length - 1; i++) {
+			const dx = allPoints[i + 1].x - allPoints[i].x;
+			const dy = allPoints[i + 1].y - allPoints[i].y;
+			const length = Math.sqrt(dx * dx + dy * dy);
+
+			segments.push({
+				start: allPoints[i],
+				end: allPoints[i + 1],
+				length: length,
+				cumulativeStart: totalLength,
+				cumulativeEnd: totalLength + length
+			});
+
+			totalLength += length;
+		}
+
+		const targetLength = totalLength / 2;
+
+		for (const segment of segments) {
+			if (targetLength >= segment.cumulativeStart && targetLength <= segment.cumulativeEnd) {
+				const segmentProgress = (targetLength - segment.cumulativeStart) / segment.length;
+				return {
+					x: segment.start.x + segmentProgress * (segment.end.x - segment.start.x),
+					y: segment.start.y + segmentProgress * (segment.end.y - segment.start.y)
+				};
+			}
+		}
+
+		return { x: (srcX + tgtX) / 2, y: (srcY + tgtY) / 2 };
+	}
+
 	// Calculate label position (midpoint of path)
 	let labelX = $derived.by(() => {
 		const waypoints = data?.cable?.diagram_path;
-		if (waypoints && waypoints.length > 0) {
-			const midIdx = Math.floor(waypoints.length / 2);
-			return waypoints[midIdx].x;
-		}
-		return (sourceX + targetX) / 2;
+		const midpoint = getPathMidpoint(sourceX, sourceY, targetX, targetY, waypoints);
+		return midpoint.x;
 	});
 
 	let labelY = $derived.by(() => {
 		const waypoints = data?.cable?.diagram_path;
-		if (waypoints && waypoints.length > 0) {
-			const midIdx = Math.floor(waypoints.length / 2);
-			return waypoints[midIdx].y;
-		}
-		return (sourceY + targetY) / 2;
+		const midpoint = getPathMidpoint(sourceX, sourceY, targetX, targetY, waypoints);
+		return midpoint.y;
 	});
 
 	/**
@@ -79,6 +119,17 @@
 	let svgElement = $state(null);
 	let shiftPressed = $state(false);
 	let hoveredVertexIndex = $state(null);
+	let labelElement = $state(null);
+	let labelWidth = $state(0);
+
+	/**
+	 * Update labelWidth when labelElement is bound and when label changes
+	 */
+	$effect(() => {
+		if (labelElement && data?.label) {
+			labelWidth = labelElement.offsetWidth + 20;
+		}
+	});
 
 	/**
 	 * Calculate the closest point on a line segment to a given point
@@ -330,19 +381,20 @@
 <!-- Custom label positioned in the middle -->
 {#if data?.label}
 	<foreignObject
-		x={labelX - 150}
+		x={labelWidth > 0 ? labelX - labelWidth / 2 : labelX - 50}
 		y={labelY - 12}
-		width="300"
+		width={labelWidth > 0 ? labelWidth : 100}
 		height="30"
-		style="cursor: pointer;"
+		style="cursor: pointer; pointer-events: bounding-box;"
 		onclick={handleEdgeLableClick}
 		onkeydown={handleKeydown}
 		aria-label="Open cable details for {data.label}"
 		role="button"
 		tabindex="0"
 	>
-		<div class="flex items-center justify-center" style="z-index: 100;">
+		<div class="flex items-center justify-center">
 			<div
+				bind:this={labelElement}
 				class="z-10 bg-surface-50-950 border border-surface-200-700 rounded px-2 py-1 text-xs text-center shadow-sm font-medium"
 			>
 				{data.label}
