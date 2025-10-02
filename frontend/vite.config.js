@@ -14,6 +14,9 @@ export default defineConfig({
 			strategy: ['localStorage', 'baseLocale']
 		})
 	],
+	optimizeDeps: {
+		exclude: ['ol']
+	},
 	test: {
 		workspace: [
 			{

@@ -1,7 +1,11 @@
 <script>
+	// Skeleton
+	import { Switch } from '@skeletonlabs/skeleton-svelte';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
+	//Tabler
+	import { IconRefresh, IconRefreshOff } from '@tabler/icons-svelte';
 	// Svelte
 	import { page } from '$app/stores';
 	import { PUBLIC_API_URL } from '$env/static/public';
@@ -177,18 +181,16 @@
 		}
 	}
 
-	// TODO: Delete later
 	/**
 	 * Generate random string for cable names
-	 *
+	 * @param {number} length - The length of the random string
+	 * @returns {string} The random string
 	 */
-	function generateRandomString(length = 8) {
-		const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-		let result = '';
-		for (let i = 0; i < length; i++) {
-			result += chars.charAt(Math.floor(Math.random() * chars.length));
-		}
-		return result;
+	function generateRandomString(length = 10) {
+		const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+		const array = new Uint32Array(length);
+		crypto.getRandomValues(array);
+		return Array.from(array, (x) => chars[x % chars.length]).join('');
 	}
 
 	/**
@@ -199,7 +201,6 @@
 	function parseHandlePosition(handleId) {
 		if (!handleId) return null;
 		const parts = handleId.split('-');
-		// Position is the second-to-last part (before 'source' or 'target')
 		return parts[parts.length - 2];
 	}
 
@@ -439,52 +440,31 @@
 			<Background class="z-0" bgColor="var(--color-surface-100-900) " />
 			<Controls />
 			<Panel position="top-left">
-				<div class="bg-surface-500 p-2 rounded-lg shadow-lg">
-					<h3 class="text-sm font-semibold mb-1">Network Schema</h3>
-					<p class="text-xs">
-						Project: {$selectedProject} | Total: {nodes.length} nodes
-					</p>
+				<div class="card bg-surface-50-950 p-2 rounded-lg shadow-lg">
+					<h3 class="text-sm font-semibold mb-1">{m.nav_network_schema()}</h3>
 
-					{#if data.syncStatus?.sync_in_progress}
-						<div class="mt-1">
-							<p class="text-xs text-warning-700-300">🔄 Canvas sync in progress</p>
-							<p class="text-xs text-surface-600-400">
-								{data.syncStatus.sync_progress.toFixed(1)}% complete
-							</p>
-							{#if data.syncStatus.sync_started_by}
-								<p class="text-xs text-surface-600-400">
-									Started by: {data.syncStatus.sync_started_by}
-								</p>
-							{/if}
-						</div>
-					{:else if data.syncStatus?.sync_status === 'FAILED'}
-						<p class="text-xs text-error-700-300 mt-1">❌ Canvas sync failed</p>
-						{#if data.syncStatus.error_message}
-							<p class="text-xs text-surface-600-400">
-								{data.syncStatus.error_message}
-							</p>
-						{/if}
-					{:else if data.nodes?.length > 0}
-						<p class="text-xs text-success-700-300 mt-1">✓ Canvas coordinates ready</p>
-					{:else}
-						<p class="text-xs text-warning-700-300 mt-1">⚠ No nodes loaded</p>
-					{/if}
-
-					<button
-						class="btn {positionUpdateActive
-							? 'variant-filled-success'
-							: 'variant-filled-surface'} btn-sm mt-1 w-full text-xs"
-						onclick={() => {
-							if (positionUpdateActive) {
-								stopPositionUpdates();
-							} else {
-								positionUpdateActive = true;
-								startPositionUpdates();
-							}
-						}}
-					>
-						{positionUpdateActive ? 'Live Updates ON' : 'Live Updates OFF'}
-					</button>
+					<div class="gap-2 flex items-center justify-between bg-surface-50-900 rounded-lg">
+						<h3 class="text-sm font-medium">{m.form_live_updates()}</h3>
+						<Switch
+							name="position-update-switch"
+							checked={positionUpdateActive}
+							onCheckedChange={() => {
+								if (positionUpdateActive) {
+									stopPositionUpdates();
+								} else {
+									positionUpdateActive = true;
+									startPositionUpdates();
+								}
+							}}
+						>
+							{#snippet activeChild()}
+								<IconRefresh size="18" />
+							{/snippet}
+							{#snippet inactiveChild()}
+								<IconRefreshOff size="18" />
+							{/snippet}
+						</Switch>
+					</div>
 				</div>
 			</Panel>
 		</SvelteFlow>
