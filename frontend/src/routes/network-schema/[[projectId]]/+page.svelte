@@ -511,3 +511,10 @@
 	<!-- Drawer -->
 	<Drawer></Drawer>
 </div>
+
+<style>
+	/* Hide the default SvelteFlow edge path that appears during connection creation */
+	:global(path[id^='xy-edge__'].svelte-flow__edge-path) {
+		display: none;
+	}
+</style>
