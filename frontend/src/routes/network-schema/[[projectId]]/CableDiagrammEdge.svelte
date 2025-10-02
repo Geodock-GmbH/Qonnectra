@@ -121,6 +121,7 @@
 	let hoveredVertexIndex = $state(null);
 	let labelElement = $state(null);
 	let labelWidth = $state(0);
+	let labelHeight = $state(0);
 
 	/**
 	 * Update labelWidth when labelElement is bound and when label changes
@@ -128,6 +129,7 @@
 	$effect(() => {
 		if (labelElement && data?.label) {
 			labelWidth = labelElement.offsetWidth + 20;
+			labelHeight = labelElement.offsetHeight + 20;
 		}
 	});
 
@@ -384,7 +386,7 @@
 		x={labelWidth > 0 ? labelX - labelWidth / 2 : labelX - 50}
 		y={labelY - 12}
 		width={labelWidth > 0 ? labelWidth : 100}
-		height="30"
+		height={labelHeight > 0 ? labelHeight : 100}
 		style="cursor: pointer; pointer-events: bounding-box;"
 		onclick={handleEdgeLableClick}
 		onkeydown={handleKeydown}

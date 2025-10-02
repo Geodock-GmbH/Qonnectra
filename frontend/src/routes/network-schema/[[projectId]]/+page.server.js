@@ -20,8 +20,6 @@ export async function _waitForSyncCompletion(
 	const pollInterval = 2000;
 	let currentStatus = initialStatus;
 
-	console.log('Waiting for canvas sync to complete...');
-
 	while (currentStatus.sync_in_progress && Date.now() - startTime < maxWaitTimeMs) {
 		await new Promise((resolve) => setTimeout(resolve, pollInterval));
 
@@ -119,13 +117,16 @@ export async function load({ fetch, cookies, url, params }) {
 			}
 		}
 
-		// Fetch nodes and cables in parallel
-		const [nodeResponse, cableResponse] = await Promise.all([
+		const [nodeResponse, cableResponse, cableTypeResponse] = await Promise.all([
 			fetch(`${API_URL}node/all/?project=${projectId}`, {
 				credentials: 'include',
 				headers: headers
 			}),
 			fetch(`${API_URL}cable/all/?project=${projectId}`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}attributes_cable_type/`, {
 				credentials: 'include',
 				headers: headers
 			})
@@ -138,15 +139,27 @@ export async function load({ fetch, cookies, url, params }) {
 		const nodesData = await nodeResponse.json();
 
 		let cablesData = [];
+		let cableTypesData = [];
 		if (cableResponse.ok) {
 			cablesData = await cableResponse.json();
 		} else {
 			console.warn('Failed to fetch cables, continuing without them');
 		}
 
+		if (cableTypeResponse.ok) {
+			cableTypesData = await cableTypeResponse.json();
+			cableTypesData = cableTypesData.map((item) => ({
+				value: item.id,
+				label: item.cable_type
+			}));
+		} else {
+			console.warn('Failed to fetch cable types, continuing without them');
+		}
+
 		return {
 			nodes: nodesData,
 			cables: cablesData,
+			cableTypes: cableTypesData,
 			syncStatus: syncStatus || null
 		};
 	} catch (err) {
@@ -154,9 +167,11 @@ export async function load({ fetch, cookies, url, params }) {
 			throw err;
 		}
 
-		console.error('Error loading cable page:', err);
+		console.error('Error loading network schema page:', err);
 		return {
 			nodes: [],
+			cables: [],
+			cableTypes: [],
 			syncStatus: null
 		};
 	}

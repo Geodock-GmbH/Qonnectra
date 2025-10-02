@@ -1,15 +1,18 @@
 <script>
 	// Skeleton
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
+
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
 	//Tabler
 	import { IconRefresh, IconRefreshOff } from '@tabler/icons-svelte';
+
 	// Svelte
 	import { page } from '$app/stores';
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import Drawer from '$lib/components/Drawer.svelte';
+	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
@@ -21,11 +24,14 @@
 
 	/** @type {import('./$types').PageProps} */
 	let { data } = $props();
+	let userCableName = $state('');
+	let selectedCableType = $state([]);
 	const nodeTypes = { cableDiagramNode: CableDiagramNode };
 	const edgeTypes = { cableDiagramEdge: CableDiagrammEdge };
 
 	let nodes = $state.raw(transformNodesToSvelteFlow(data.nodes));
 	let edges = $state.raw(transformCablesToSvelteFlowEdges(data.cables));
+	let cableTypes = $state(data.cableTypes);
 	let prevUrl = $state($page.url.href);
 
 	let positionUpdateActive = $state(true);
@@ -215,8 +221,20 @@
 		const handleStart = parseHandlePosition(sourceHandle);
 		const handleEnd = parseHandlePosition(targetHandle);
 
-		// Generate random cable name
-		const cableName = `CABLE_${generateRandomString()}`;
+		// Generate cable name: use user input as prefix if provided, always append random string
+		const trimmedName = userCableName.trim();
+		const cableName =
+			trimmedName.length === 0
+				? generateRandomString()
+				: `${trimmedName}-${generateRandomString()}`;
+
+		if (selectedCableType.length === 0) {
+			globalToaster.error({
+				title: m.common_error(),
+				description: 'No cable type selected'
+			});
+			return;
+		}
 
 		try {
 			// Create cable via form action
@@ -225,7 +243,7 @@
 			// Changed are: uuid_node_start_id, uuid_node_end_id, handle_start, handle_end
 			const formData = new FormData();
 			formData.append('name', cableName);
-			formData.append('cable_type_id', '1');
+			formData.append('cable_type_id', selectedCableType?.[0]);
 			formData.append('project_id', $selectedProject);
 			formData.append('flag_id', '1');
 			formData.append('uuid_node_start_id', target);
@@ -441,9 +459,29 @@
 			<Controls />
 			<Panel position="top-left">
 				<div class="card bg-surface-50-950 p-2 rounded-lg shadow-lg">
-					<h3 class="text-sm font-semibold mb-1">{m.nav_network_schema()}</h3>
+					<h1 class="text-lg font-semibold mb-1">{m.common_attributes()}</h1>
+					<div class="flex flex-col gap-2">
+						<label for="cable_name_input" class="text-sm font-medium">
+							<input
+								class="input"
+								type="text"
+								placeholder={m.common_name()}
+								bind:value={userCableName}
+							/>
+						</label>
 
-					<div class="gap-2 flex items-center justify-between bg-surface-50-900 rounded-lg">
+						<GenericCombobox
+							data={cableTypes}
+							bind:value={selectedCableType}
+							defaultValue={selectedCableType}
+							placeholder={m.placeholder_select_cable_type()}
+							onValueChange={(e) => {
+								selectedCableType = e.value;
+							}}
+						/>
+					</div>
+
+					<div class="gap-2 flex items-center justify-between bg-surface-50-900 rounded-lg p-2">
 						<h3 class="text-sm font-medium">{m.form_live_updates()}</h3>
 						<Switch
 							name="position-update-switch"
