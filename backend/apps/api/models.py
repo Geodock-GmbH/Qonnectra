@@ -1601,7 +1601,9 @@ class Cable(models.Model):
         _("Diagram Path"),
         null=True,
         blank=True,
-        help_text=_("Custom waypoints for diagram edge path as array of {x, y} coordinates"),
+        help_text=_(
+            "Custom waypoints for diagram edge path as array of {x, y} coordinates"
+        ),
     )
     project = models.ForeignKey(
         Projects,
@@ -1645,6 +1647,7 @@ class Cable(models.Model):
             models.Index(fields=["reserve_section"], name="idx_cable_reserve_section"),
             models.Index(fields=["handle_start"], name="idx_cable_handle_start"),
             models.Index(fields=["handle_end"], name="idx_cable_handle_end"),
+            models.Index(fields=["diagram_path"], name="idx_cable_diagram_path"),
             models.Index(fields=["project"], name="idx_cable_project"),
             models.Index(fields=["flag"], name="idx_cable_flag"),
         ]

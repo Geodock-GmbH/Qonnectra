@@ -1,6 +1,7 @@
 <script>
-	import { BaseEdge, getBezierPath } from '@xyflow/svelte';
-
+	// SvelteFlow
+	import { BaseEdge, getSmoothStepPath } from '@xyflow/svelte';
+	// Svelte
 	import { drawerStore } from '$lib/stores/drawer';
 
 	let { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data } = $props();
@@ -10,7 +11,6 @@
 		const waypoints = data?.cable?.diagram_path;
 
 		if (waypoints && Array.isArray(waypoints) && waypoints.length > 0) {
-			// Build custom path with waypoints
 			let path = `M ${sourceX},${sourceY}`;
 			waypoints.forEach((point) => {
 				path += ` L ${point.x},${point.y}`;
@@ -18,8 +18,8 @@
 			path += ` L ${targetX},${targetY}`;
 			return path;
 		} else {
-			// Fallback to default bezier path
-			const [bezierPath] = getBezierPath({
+			// Fallback to default smooth step path
+			const [stepPath] = getSmoothStepPath({
 				sourceX,
 				sourceY,
 				targetX,
@@ -27,7 +27,7 @@
 				sourcePosition,
 				targetPosition
 			});
-			return bezierPath;
+			return stepPath;
 		}
 	});
 
@@ -35,7 +35,6 @@
 	let labelX = $derived.by(() => {
 		const waypoints = data?.cable?.diagram_path;
 		if (waypoints && waypoints.length > 0) {
-			// Use middle waypoint or average position
 			const midIdx = Math.floor(waypoints.length / 2);
 			return waypoints[midIdx].x;
 		}
@@ -51,6 +50,9 @@
 		return (sourceY + targetY) / 2;
 	});
 
+	/**
+	 * Handle click on edge label to open cable details
+	 */
 	function handleEdgeLableClick() {
 		drawerStore.open({
 			title: data.label || 'Cable Details',
@@ -61,6 +63,9 @@
 		});
 	}
 
+	/**
+	 * Handle keydown on edge label to open cable details
+	 */
 	function handleKeydown(event) {
 		if (event.key === 'Enter' || event.key === ' ') {
 			event.preventDefault();
@@ -72,9 +77,15 @@
 	let draggingVertexIndex = $state(null);
 	let edgeHovered = $state(false);
 	let svgElement = $state(null);
+	let shiftPressed = $state(false);
+	let hoveredVertexIndex = $state(null);
 
 	/**
 	 * Calculate the closest point on a line segment to a given point
+	 * @param {Object} p - The point to find the closest point on the segment to
+	 * @param {Object} a - The start point of the segment
+	 * @param {Object} b - The end point of the segment
+	 * @returns {Object} The closest point on the segment
 	 */
 	function getClosestPointOnSegment(p, a, b) {
 		const dx = b.x - a.x;
@@ -95,6 +106,7 @@
 
 	/**
 	 * Handle click on edge to add a new vertex
+	 * @param {Object} event - The click event
 	 */
 	function handleEdgeClick(event) {
 		const svg = event.currentTarget.closest('svg');
@@ -104,10 +116,8 @@
 		const svgCoords = pt.matrixTransform(svg.getScreenCTM().inverse());
 		const waypoints = data?.cable?.diagram_path || [];
 
-		// Build all segments of the path (including source and target)
 		const allPoints = [{ x: sourceX, y: sourceY }, ...waypoints, { x: targetX, y: targetY }];
 
-		// Find the closest segment to the click point
 		let closestSegmentIndex = 0;
 		let minDistance = Infinity;
 		let closestPointOnSegment = null;
@@ -125,11 +135,9 @@
 			}
 		}
 
-		// Insert the new vertex at the correct position
 		const newWaypoints = [...waypoints];
 		newWaypoints.splice(closestSegmentIndex, 0, { x: svgCoords.x, y: svgCoords.y });
 
-		// Dispatch custom event to update edge
 		window.dispatchEvent(
 			new CustomEvent('updateCablePath', {
 				detail: { edgeId: id, waypoints: newWaypoints }
@@ -138,11 +146,52 @@
 	}
 
 	/**
-	 * Handle vertex drag start
+	 * Handle keyboard events for Shift key tracking
+	 * @param {Object} event - The keyboard event
+	 */
+	function handleKeyDown(event) {
+		if (event.key === 'Shift') {
+			shiftPressed = true;
+		}
+	}
+
+	/**
+	 * Handle keyup event for Shift key tracking
+	 * @param {Object} event - The keyboard event
+	 */
+	function handleKeyUp(event) {
+		if (event.key === 'Shift') {
+			shiftPressed = false;
+		}
+	}
+
+	// Attach keyboard listeners on mount
+	$effect(() => {
+		window.addEventListener('keydown', handleKeyDown);
+		window.addEventListener('keyup', handleKeyUp);
+
+		return () => {
+			window.removeEventListener('keydown', handleKeyDown);
+			window.removeEventListener('keyup', handleKeyUp);
+		};
+	});
+
+	/**
+	 * Handle vertex click - delete if Shift is pressed, otherwise start drag
+	 * @param {Object} event - The click event
+	 * @param {number} index - The index of the vertex
 	 */
 	function handleVertexMouseDown(event, index) {
 		event.stopPropagation();
 		event.preventDefault();
+
+		// If Shift is pressed, delete the vertex
+		if (shiftPressed) {
+			deleteVertex(index);
+			return;
+		}
+
+		// Otherwise, start dragging
 		draggingVertexIndex = index;
 
 		// Store SVG element for coordinate conversion
@@ -154,7 +203,23 @@
 	}
 
 	/**
+	 * Delete a vertex at the given index
+	 * @param {number} index - The index of the vertex
+	 */
+	function deleteVertex(index) {
+		const waypoints = [...(data?.cable?.diagram_path || [])];
+		waypoints.splice(index, 1);
+
+		window.dispatchEvent(
+			new CustomEvent('updateCablePath', {
+				detail: { edgeId: id, waypoints: waypoints, save: true }
+			})
+		);
+	}
+
+	/**
 	 * Handle vertex drag on window (so it works even when mouse leaves SVG)
+	 * @param {Object} event - The mouse move event
 	 */
 	function handleWindowMouseMove(event) {
 		if (draggingVertexIndex === null || !svgElement) return;
@@ -177,6 +242,7 @@
 
 	/**
 	 * Handle vertex drag end on window
+	 * @param {Object} event - The mouse up event
 	 */
 	function handleWindowMouseUp() {
 		if (draggingVertexIndex !== null) {
@@ -197,19 +263,13 @@
 
 	/**
 	 * Handle vertex right-click to delete
+	 * @param {Object} event - The right-click event
+	 * @param {number} index - The index of the vertex
 	 */
 	function handleVertexContextMenu(event, index) {
 		event.preventDefault();
 		event.stopPropagation();
-
-		const waypoints = [...(data?.cable?.diagram_path || [])];
-		waypoints.splice(index, 1);
-
-		window.dispatchEvent(
-			new CustomEvent('updateCablePath', {
-				detail: { edgeId: id, waypoints: waypoints, save: true }
-			})
-		);
+		deleteVertex(index);
 	}
 </script>
 
@@ -240,19 +300,27 @@
 <!-- Vertex handles -->
 {#if data?.cable?.diagram_path && Array.isArray(data.cable.diagram_path)}
 	{#each data.cable.diagram_path as vertex, index}
+		{@const isHovered = hoveredVertexIndex === index}
+		{@const isDeleteMode = shiftPressed && isHovered}
+		{@const fillColor = isDeleteMode ? 'var(--color-error-500)' : 'var(--color-primary-500)'}
+		{@const cursorStyle = shiftPressed ? 'cursor: crosshair;' : 'cursor: move;'}
 		<circle
 			class="nopan"
 			cx={vertex.x}
 			cy={vertex.y}
 			r="6"
-			fill="var(--color-primary-500)"
+			fill={fillColor}
 			stroke="white"
 			pointer-events="all"
 			stroke-width="2"
-			style="cursor: move; opacity: {edgeHovered || draggingVertexIndex === index ? 1 : 0.3};"
+			style="{cursorStyle} opacity: {edgeHovered || draggingVertexIndex === index ? 1 : 0.3};"
 			onmousedown={(e) => handleVertexMouseDown(e, index)}
+			onmouseenter={() => (hoveredVertexIndex = index)}
+			onmouseleave={() => (hoveredVertexIndex = null)}
 			oncontextmenu={(e) => handleVertexContextMenu(e, index)}
-			aria-label="Drag to move vertex, right-click to delete"
+			aria-label={shiftPressed
+				? 'Click to delete vertex'
+				: 'Drag to move vertex, Shift+Click or right-click to delete'}
 			role="button"
 			tabindex="0"
 		/>
