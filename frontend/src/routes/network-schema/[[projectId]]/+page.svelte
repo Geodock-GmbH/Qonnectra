@@ -13,7 +13,7 @@
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import Drawer from '$lib/components/Drawer.svelte';
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
-	import { selectedProject } from '$lib/stores/store';
+	import { edgeSnappingEnabled, selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
 	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
@@ -504,6 +504,24 @@
 									positionUpdateActive = true;
 									startPositionUpdates();
 								}
+							}}
+						>
+							{#snippet activeChild()}
+								<IconRefresh size="18" />
+							{/snippet}
+							{#snippet inactiveChild()}
+								<IconRefreshOff size="18" />
+							{/snippet}
+						</Switch>
+					</div>
+
+					<div class="gap-2 flex items-center justify-between bg-surface-50-900 rounded-lg p-2">
+						<h3 class="text-sm font-medium">Edge Snapping</h3>
+						<Switch
+							name="edge-snapping-switch"
+							checked={$edgeSnappingEnabled}
+							onCheckedChange={(e) => {
+								$edgeSnappingEnabled = e.checked;
 							}}
 						>
 							{#snippet activeChild()}

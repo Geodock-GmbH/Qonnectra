@@ -3,6 +3,7 @@
 	import { BaseEdge, getSmoothStepPath } from '@xyflow/svelte';
 	// Svelte
 	import { drawerStore } from '$lib/stores/drawer';
+	import { edgeSnappingEnabled } from '$lib/stores/store';
 
 	let { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data } = $props();
 
@@ -123,6 +124,11 @@
 	let labelWidth = $state(0);
 	let labelHeight = $state(0);
 
+	// Edge snapping
+	const SNAP_GRID_SIZE = 20;
+	let showSnapFeedback = $state(false);
+	let snapFeedbackPosition = $state({ x: 0, y: 0 });
+
 	/**
 	 * Update labelWidth when labelElement is bound and when label changes
 	 */
@@ -158,6 +164,38 @@
 	}
 
 	/**
+	 * Snap coordinates to the nearest grid point
+	 * @param {number} x - X coordinate
+	 * @param {number} y - Y coordinate
+	 * @param {number} gridSize - Grid size for snapping
+	 * @param {boolean} showFeedback - Whether to show visual feedback
+	 * @returns {Object} Snapped coordinates
+	 */
+	function snapToGrid(x, y, gridSize = SNAP_GRID_SIZE, showFeedback = false) {
+		// If snapping is disabled, return original coordinates
+		if (!$edgeSnappingEnabled) {
+			return { x, y };
+		}
+
+		const snapped = {
+			x: Math.round(x / gridSize) * gridSize,
+			y: Math.round(y / gridSize) * gridSize
+		};
+
+		// Show visual feedback if snapping occurred and feedback is requested
+		if (showFeedback && (snapped.x !== x || snapped.y !== y)) {
+			showSnapFeedback = true;
+			snapFeedbackPosition = { ...snapped };
+			// Hide feedback after a short delay
+			setTimeout(() => {
+				showSnapFeedback = false;
+			}, 200);
+		}
+
+		return snapped;
+	}
+
+	/**
 	 * Handle click on edge to add a new vertex
 	 * @param {Object} event - The click event
 	 */
@@ -188,8 +226,11 @@
 			}
 		}
 
+		// Snap the new vertex to the grid
+		const snappedPosition = snapToGrid(closestPointOnSegment.x, closestPointOnSegment.y);
+
 		const newWaypoints = [...waypoints];
-		newWaypoints.splice(closestSegmentIndex, 0, { x: svgCoords.x, y: svgCoords.y });
+		newWaypoints.splice(closestSegmentIndex, 0, snappedPosition);
 
 		window.dispatchEvent(
 			new CustomEvent('updateCablePath', {
@@ -282,8 +323,11 @@
 		pt.y = event.clientY;
 		const svgCoords = pt.matrixTransform(svgElement.getScreenCTM().inverse());
 
+		// Snap the dragged vertex to the grid with visual feedback
+		const snappedPosition = snapToGrid(svgCoords.x, svgCoords.y, SNAP_GRID_SIZE, true);
+
 		const waypoints = [...(data?.cable?.diagram_path || [])];
-		waypoints[draggingVertexIndex] = { x: svgCoords.x, y: svgCoords.y };
+		waypoints[draggingVertexIndex] = snappedPosition;
 
 		// Dispatch custom event to update edge
 		window.dispatchEvent(
@@ -403,4 +447,20 @@
 			</div>
 		</div>
 	</foreignObject>
+{/if}
+
+<!-- Visual feedback for grid snapping -->
+{#if showSnapFeedback}
+	<circle
+		cx={snapFeedbackPosition.x}
+		cy={snapFeedbackPosition.y}
+		r="8"
+		fill="none"
+		stroke="var(--color-primary-400)"
+		stroke-width="2"
+		stroke-dasharray="4,4"
+		opacity="0.8"
+		class="animate-pulse"
+		style="pointer-events: none;"
+	/>
 {/if}
