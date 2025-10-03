@@ -37,6 +37,7 @@
 	"form_address_id": "Adressen-ID",
 	"form_breakdown_by_node_type": "Aufteilung nach Netzknotentyp",
 	"form_breakdown_by_type": "Aufteilung nach Bauart",
+	"form_cable_type": "Kabeltyp",
 	"form_city": "Ort",
 	"form_conduit": "Rohr",
 	"form_conduit_type": "Rohrtyp",
@@ -53,6 +54,7 @@
 	"form_internal_execution": "Eigenleistung",
 	"form_layer_visibility": "Sichtbarkeit",
 	"form_lasso_mode": "Lasso-Modus",
+	"form_length_total": "Gesamtlänge",
 	"form_live_updates": "Live-Updates",
 	"form_manufacturer": "Hersteller",
 	"form_microduct": [
@@ -86,6 +88,9 @@
 			}
 		}
 	],
+	"form_reserve_at_end": "Reserve am Ende",
+	"form_reserve_at_start": "Reserve am Anfang",
+	"form_reserve_section": "Reserve auf der Strecke",
 	"form_routing_mode": "Routing-Modus",
 	"form_select_exactly_2_nodes": "Bitte wählen Sie genau 2 Knoten aus",
 	"form_status": "Status",

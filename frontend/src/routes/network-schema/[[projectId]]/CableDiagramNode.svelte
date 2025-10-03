@@ -43,9 +43,9 @@
 
 	function handleNodeClick() {
 		drawerStore.open({
-			title: data.label || 'Node Details',
-			props: {
-				nodeId: id,
+			title: data?.label || 'Node Details',
+			node: {
+				nodeId: data?.label,
 				nodeData: data
 			}
 		});

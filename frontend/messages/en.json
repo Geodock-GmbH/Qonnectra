@@ -37,6 +37,7 @@
 	"form_address_id": "Address ID",
 	"form_breakdown_by_node_type": "Grouped by node type",
 	"form_breakdown_by_type": "Grouped by type",
+	"form_cable_type": "Cable type",
 	"form_city": "City",
 	"form_conduit": "Conduit",
 	"form_conduit_type": "Conduit type",
@@ -53,6 +54,7 @@
 	"form_internal_execution": "Internal execution",
 	"form_layer_visibility": "Layer visibility",
 	"form_lasso_mode": "Lasso mode",
+	"form_length_total": "Total length",
 	"form_live_updates": "Live updates",
 	"form_manufacturer": "Manufacturer",
 	"form_microduct": [
@@ -86,6 +88,9 @@
 			}
 		}
 	],
+	"form_reserve_at_end": "Reserve at end",
+	"form_reserve_at_start": "Reserve at start",
+	"form_reserve_section": "Reserve section",
 	"form_routing_mode": "Routing mode",
 	"form_select_exactly_2_nodes": "Please select exactly 2 nodes",
 	"form_status": "Status",

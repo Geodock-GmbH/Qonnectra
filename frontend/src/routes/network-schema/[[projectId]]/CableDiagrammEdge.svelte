@@ -4,7 +4,8 @@
 	// Svelte
 	import { drawerStore } from '$lib/stores/drawer';
 	import { edgeSnappingEnabled } from '$lib/stores/store';
-
+	import { parse } from 'devalue';
+	import CableAttributeCard from './CableAttributeCard.svelte';
 	let { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data } = $props();
 
 	// Calculate custom path or fallback to bezier
@@ -94,13 +95,22 @@
 	/**
 	 * Handle click on edge label to open cable details
 	 */
-	function handleEdgeLableClick() {
+	async function handleEdgeLableClick() {
+		const formData = new FormData();
+		formData.append('uuid', data?.cable?.uuid);
+		const response = await fetch('?/getCables', {
+			method: 'POST',
+			body: formData
+		});
+		const result = await response.json();
+
+		// Parse the devalue-serialized data
+		const parsedData = typeof result.data === 'string' ? parse(result.data) : result.data;
+
 		drawerStore.open({
-			title: data.label || 'Cable Details',
-			props: {
-				cableId: id,
-				cableData: data
-			}
+			title: data?.label || 'Cable Details',
+			component: CableAttributeCard,
+			props: parsedData
 		});
 	}
 

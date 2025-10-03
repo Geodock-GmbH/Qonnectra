@@ -241,16 +241,16 @@ export const actions = {
 	getCables: async ({ request, cookies }) => {
 		try {
 			const formData = await request.formData();
-			const projectId = formData.get('project');
+			const uuid = formData.get('uuid');
 
-			if (!projectId) {
+			if (!uuid) {
 				return fail(400, {
-					error: 'Missing required parameter: project is required'
+					error: 'Missing required parameter: uuid is required'
 				});
 			}
 
 			const headers = getAuthHeaders(cookies);
-			const backendUrl = `${API_URL}cable/all/?project=${encodeURIComponent(projectId)}`;
+			const backendUrl = `${API_URL}cable/${uuid}`;
 
 			const response = await fetch(backendUrl, {
 				method: 'GET',
@@ -271,8 +271,7 @@ export const actions = {
 			}
 
 			const cables = await response.json();
-			console.log('Cables:', cables);
-			return { type: 'success', data: cables };
+			return cables;
 		} catch (error) {
 			console.error('Cable GET action error:', error);
 			return fail(500, { error: 'Internal server error' });
