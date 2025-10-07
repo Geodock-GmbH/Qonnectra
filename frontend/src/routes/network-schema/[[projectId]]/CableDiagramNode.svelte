@@ -4,7 +4,7 @@
 	import { Handle, Position } from '@xyflow/svelte';
 
 	import { drawerStore } from '$lib/stores/drawer';
-	import CableNodeAttributeCard from './CableNodeAttributeCard.svelte';
+	import CableDiagramNodeAttributeCard from './CableDiagrammNodeAttributeCard.svelte';
 
 	let { id, data } = $props();
 	let currentLabel = $state(data?.label || data?.node?.name || '');
@@ -60,7 +60,7 @@
 
 		drawerStore.open({
 			title: parsedData?.properties?.name || 'Node Details',
-			component: CableNodeAttributeCard,
+			component: CableDiagramNodeAttributeCard,
 			props: {
 				id: id,
 				...parsedData.properties,

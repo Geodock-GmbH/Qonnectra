@@ -106,6 +106,13 @@ class AttributesNodeTypeViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = "id"
     lookup_url_kwarg = "pk"
 
+    def get_queryset(self):
+        queryset = AttributesNodeType.objects.all().order_by("node_type")
+        exclude_group = self.request.query_params.get("exclude_group")
+        if exclude_group:
+            queryset = queryset.exclude(group=exclude_group)
+        return queryset
+
 
 class AttributesStatusViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for the AttributesStatus model :model:`api.AttributesStatus`.
