@@ -668,7 +668,7 @@ class NodeSerializer(GeoFeatureModelSerializer):
     flag = FlagsSerializer(read_only=True)
 
     # Add write fields for foreign keys
-    name = serializers.CharField(required=True)
+    name = serializers.CharField(required=True, label=_("Node Name"))
     node_type_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=AttributesNodeType.objects.all(),

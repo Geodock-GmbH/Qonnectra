@@ -62,6 +62,7 @@
 			title: parsedData?.properties?.name || 'Node Details',
 			component: CableNodeAttributeCard,
 			props: {
+				id: id,
 				...parsedData.properties,
 				onLabelUpdate: (newLabel) => {
 					currentLabel = newLabel;

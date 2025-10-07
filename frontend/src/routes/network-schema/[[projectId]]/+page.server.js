@@ -610,6 +610,74 @@ export const actions = {
 			return fail(500, { error: 'Internal server error' });
 		}
 	},
+	updateNode: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+
+		const nodeId = formData.get('uuid');
+		const name = formData.get('node_name');
+		const node_type_id = formData.get('node_type_id');
+		const status_id = formData.get('status_id');
+		const network_level_id = formData.get('network_level_id');
+		const owner_id = formData.get('owner_id');
+		const constructor_id = formData.get('constructor_id');
+		const manufacturer_id = formData.get('manufacturer_id');
+		const warranty = formData.get('warranty');
+		const date = formData.get('date');
+		const flag_id = formData.get('flag_id');
+
+		if (!nodeId) {
+			return {
+				type: 'error',
+				message: 'Node ID is required'
+			};
+		}
+
+		try {
+			const requestBody = {};
+
+			if (name) requestBody.name = name;
+			if (node_type_id) requestBody.node_type_id = parseInt(node_type_id);
+			if (status_id) requestBody.status_id = parseInt(status_id);
+			if (network_level_id) requestBody.network_level_id = parseInt(network_level_id);
+			if (owner_id) requestBody.owner_id = parseInt(owner_id);
+			if (constructor_id) requestBody.constructor_id = parseInt(constructor_id);
+			if (manufacturer_id) requestBody.manufacturer_id = parseInt(manufacturer_id);
+			if (flag_id) requestBody.flag_id = parseInt(flag_id);
+			if (date) requestBody.date = date;
+			if (warranty) requestBody.warranty = warranty;
+
+			const response = await fetch(`${API_URL}node/${nodeId}/`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			console.log('Response:', response);
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				const errorMessage = errorData.detail || `Failed to update node`;
+				console.error('Error updating node:', errorMessage);
+				return fail(response.status, { message: errorMessage });
+			}
+
+			const updatedNode = await response.json();
+
+			return {
+				success: true,
+				message: 'Node updated successfully',
+				node: updatedNode
+			};
+		} catch (err) {
+			console.error('Error updating node:', err);
+			return fail(500, { message: err.message || 'Failed to update node' });
+		}
+	},
 	saveNodeGeometry: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();

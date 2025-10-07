@@ -1,7 +1,9 @@
 <script>
+	import { deserialize } from '$app/forms';
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import { drawerStore } from '$lib/stores/drawer';
+	import { globalToaster } from '$lib/stores/toaster';
 	import { getContext } from 'svelte';
 
 	const attributes = getContext('attributeOptions') || {
@@ -13,6 +15,7 @@
 	};
 
 	let node = $derived($drawerStore.props);
+	let id = $derived(node?.id || '');
 	let nodeName = $derived(node?.name || '');
 	let nodeType = $derived([node?.node_type?.id]);
 	let nodeStatus = $derived([node?.status?.id]);
@@ -40,6 +43,58 @@
 			nodeFlag = [node.flag?.id];
 		}
 	});
+
+	async function handleSubmit(event) {
+		event.preventDefault();
+		const formData = new FormData(event.target);
+		formData.append('uuid', id);
+		formData.append('node_type_id', nodeType?.[0] || '');
+		formData.append('status_id', nodeStatus?.[0] || '');
+		formData.append('network_level_id', nodeNetworkLevel?.[0] || '');
+		formData.append('owner_id', nodeOwner?.[0] || '');
+		formData.append('constructor_id', nodeConstructor?.[0] || '');
+		formData.append('manufacturer_id', nodeManufacturer?.[0] || '');
+		formData.append('flag_id', nodeFlag?.[0] || '');
+
+		try {
+			const response = await fetch('?/updateNode', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure') {
+				globalToaster.error({
+					title: m.common_error(),
+					description: m.message_error_updating_cable()
+				});
+				return;
+			}
+
+			if (result.type === 'error') {
+				const errorMessage = result.error?.message;
+				globalToaster.error({
+					title: m.common_error(),
+					description: m.message_error_updating_cable()
+				});
+				return;
+			}
+
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_success_updating_cable()
+			});
+			if (onLabelUpdate && nodeName) {
+				onLabelUpdate(nodeName);
+			}
+		} catch (error) {
+			console.error('Error updating node:', error);
+			globalToaster.error({
+				title: m.message_error_updating_cable()
+			});
+		}
+	}
 </script>
 
 <!-- Node form -->
