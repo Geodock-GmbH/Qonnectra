@@ -31,8 +31,8 @@
 	let cableTypes = $state(data.cableTypes);
 	let prevUrl = $state($page.url.href);
 
-	// Set context for cable attributes that child components can access
-	setContext('cableAttributes', {
+	setContext('attributeOptions', {
+		nodeTypes: data.nodeTypes,
 		cableTypes: data.cableTypes,
 		statuses: data.statuses,
 		networkLevels: data.networkLevels,
@@ -130,21 +130,18 @@
 			return {
 				id: nodeOrFeature.id || node.uuid,
 				position: { x, y },
+				type: 'cableDiagramNode',
 				data: {
 					label: node.name || 'Unnamed Node',
-					type: 'Node',
-					nodeType: node.node_type?.node_type,
-					status: node.status?.status,
-					networkLevel: node.network_level?.network_level,
-					owner: node.owner?.company
-				},
-				type: 'cableDiagramNode'
+					node: node
+				}
 			};
 		});
 	}
 
 	/**
 	 * Handle node drag stop
+	 * @param {Object} event - Event object
 	 */
 	async function handleNodeDragStop(event) {
 		const node = event.targetNode;

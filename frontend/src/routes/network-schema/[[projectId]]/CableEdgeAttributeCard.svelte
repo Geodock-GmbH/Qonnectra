@@ -7,7 +7,7 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	import { getContext } from 'svelte';
 
-	const attributes = getContext('cableAttributes') || {
+	const attributes = getContext('attributeOptions') || {
 		cableTypes: [],
 		statuses: [],
 		networkLevels: [],
@@ -252,16 +252,12 @@
 </form>
 
 <!-- Delete and update buttons -->
-<div class="mt-6 flex flex-col sm:flex-row items-end justify-end gap-3">
-	<button
-		type="button"
-		onclick={confirmDelete}
-		class="btn preset-filled-error-500 w-full sm:w-auto"
-	>
-		{m.action_delete_cable()}
+<div class="mt-6 flex flex-col items-end justify-end gap-3">
+	<button type="submit" form="cable-form" class="btn preset-filled w-full">
+		{m.action_save()}
 	</button>
-	<button type="submit" form="cable-form" class="btn preset-filled w-full sm:w-auto">
-		{m.action_refresh()}
+	<button type="button" onclick={confirmDelete} class="btn preset-filled-error-500 w-full">
+		{m.action_delete_cable()}
 	</button>
 </div>
 

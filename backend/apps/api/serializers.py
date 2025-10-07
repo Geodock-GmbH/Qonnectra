@@ -104,6 +104,7 @@ class AttributesNodeTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = AttributesNodeType
         fields = ["id", "node_type", "dimension", "group", "company"]
+        ordering = ["node_type"]
 
 
 class AttributesConduitTypeSerializer(serializers.ModelSerializer):
@@ -704,10 +705,10 @@ class NodeSerializer(GeoFeatureModelSerializer):
         source="manufacturer",
     )
     warranty = serializers.DateField(
-        required=False, input_formats=["%Y/%m/%d"], format="%d.%m.%Y"
+        required=False, input_formats=["%Y-%m-%d"], format="%Y-%m-%d"
     )
     date = serializers.DateField(
-        required=False, input_formats=["%Y/%m/%d"], format="%d.%m.%Y"
+        required=False, input_formats=["%Y-%m-%d"], format="%Y-%m-%d"
     )
     geom = GeometryField()
     canvas_x = serializers.FloatField(required=False, allow_null=True)
@@ -767,10 +768,10 @@ class OlNodeSerializer(GeoFeatureModelSerializer):
     constructor = AttributesCompanySerializer(read_only=True)
     manufacturer = AttributesCompanySerializer(read_only=True)
     warranty = serializers.DateField(
-        read_only=True, input_formats=["%Y/%m/%d"], format="%d.%m.%Y"
+        read_only=True, input_formats=["%Y-%m-%d"], format="%Y-%m-%d"
     )
     date = serializers.DateField(
-        read_only=True, input_formats=["%Y/%m/%d"], format="%d.%m.%Y"
+        read_only=True, input_formats=["%Y-%m-%d"], format="%Y-%m-%d"
     )
     project = ProjectsSerializer(read_only=True)
     flag = FlagsSerializer(read_only=True)

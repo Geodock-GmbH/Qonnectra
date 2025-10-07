@@ -8,6 +8,7 @@ from .views import (
     AttributesConduitTypeViewSet,
     AttributesMicroductStatusViewSet,
     AttributesNetworkLevelViewSet,
+    AttributesNodeTypeViewSet,
     AttributesStatusViewSet,
     CableViewSet,
     ConduitImportTemplateView,
@@ -39,6 +40,11 @@ router.register(
     r"attributes_conduit_type",
     AttributesConduitTypeViewSet,
     basename="attributes_conduit_type",
+)
+router.register(
+    r"attributes_node_type",
+    AttributesNodeTypeViewSet,
+    basename="attributes_node_type",
 )
 router.register(
     r"attributes_status",

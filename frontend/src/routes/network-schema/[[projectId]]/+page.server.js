@@ -127,6 +127,7 @@ export async function load({ fetch, cookies, url, params }) {
 			nodeResponse,
 			cableResponse,
 			cableTypeResponse,
+			nodeTypeResponse,
 			statusResponse,
 			networkLevelResponse,
 			companyResponse,
@@ -141,6 +142,10 @@ export async function load({ fetch, cookies, url, params }) {
 				headers: headers
 			}),
 			fetch(`${API_URL}attributes_cable_type/`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}attributes_node_type/`, {
 				credentials: 'include',
 				headers: headers
 			}),
@@ -170,6 +175,7 @@ export async function load({ fetch, cookies, url, params }) {
 
 		let cablesData = [];
 		let cableTypesData = [];
+		let nodeTypesData = [];
 		let statusData = [];
 		let networkLevelData = [];
 		let companyData = [];
@@ -189,6 +195,16 @@ export async function load({ fetch, cookies, url, params }) {
 			}));
 		} else {
 			console.warn('Failed to fetch cable types, continuing without them');
+		}
+
+		if (nodeTypeResponse.ok) {
+			nodeTypesData = await nodeTypeResponse.json();
+			nodeTypesData = nodeTypesData.map((item) => ({
+				value: item.id,
+				label: item.node_type
+			}));
+		} else {
+			console.warn('Failed to fetch node types data, continuing without it');
 		}
 
 		if (statusResponse.ok) {
@@ -235,6 +251,7 @@ export async function load({ fetch, cookies, url, params }) {
 			nodes: nodesData,
 			cables: cablesData,
 			cableTypes: cableTypesData,
+			nodeTypes: nodeTypesData,
 			statuses: statusData,
 			networkLevels: networkLevelData,
 			companies: companyData,
@@ -251,6 +268,7 @@ export async function load({ fetch, cookies, url, params }) {
 			nodes: [],
 			cables: [],
 			cableTypes: [],
+			nodeTypes: [],
 			statuses: [],
 			networkLevels: [],
 			companies: [],
@@ -262,105 +280,6 @@ export async function load({ fetch, cookies, url, params }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
-	saveNodeGeometry: async ({ request, fetch, cookies }) => {
-		const headers = getAuthHeaders(cookies);
-		const formData = await request.formData();
-
-		const nodeId = formData.get('nodeId');
-		const canvas_x = parseFloat(formData.get('canvas_x'));
-		const canvas_y = parseFloat(formData.get('canvas_y'));
-
-		if (!nodeId) {
-			return {
-				type: 'error',
-				message: 'Node ID is required'
-			};
-		}
-
-		if (isNaN(canvas_x) || isNaN(canvas_y)) {
-			return {
-				type: 'error',
-				message: 'Invalid canvas coordinates'
-			};
-		}
-
-		try {
-			const response = await fetch(`${API_URL}node/${nodeId}/`, {
-				method: 'PATCH',
-				credentials: 'include',
-				headers: {
-					...headers,
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					canvas_x,
-					canvas_y
-				})
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(
-					errorData.detail || `HTTP ${response.status}: Failed to update node position`
-				);
-			}
-
-			const updatedNode = await response.json();
-
-			return {
-				type: 'success',
-				message: 'Node position saved successfully',
-				node: updatedNode
-			};
-		} catch (err) {
-			console.error('Error saving node geometry:', err);
-			return {
-				type: 'error',
-				message: err.message || 'Failed to save node position'
-			};
-		}
-	},
-
-	getCables: async ({ request, cookies }) => {
-		try {
-			const formData = await request.formData();
-			const uuid = formData.get('uuid');
-
-			if (!uuid) {
-				return fail(400, {
-					error: 'Missing required parameter: uuid is required'
-				});
-			}
-
-			const headers = getAuthHeaders(cookies);
-			const backendUrl = `${API_URL}cable/${uuid}`;
-
-			const response = await fetch(backendUrl, {
-				method: 'GET',
-				headers
-			});
-
-			if (!response.ok) {
-				const errorText = await response.text();
-				let errorData;
-
-				try {
-					errorData = JSON.parse(errorText);
-				} catch {
-					errorData = { error: errorText || `Request failed with status: ${response.status}` };
-				}
-
-				return fail(response.status, errorData);
-			}
-
-			const cables = await response.json();
-			return cables;
-		} catch (error) {
-			console.error('Cable GET action error:', error);
-			return fail(500, { error: 'Internal server error' });
-		}
-	},
-
 	createCable: async ({ request, cookies }) => {
 		try {
 			const formData = await request.formData();
@@ -449,67 +368,45 @@ export const actions = {
 			return fail(500, { error: 'Internal server error' });
 		}
 	},
-
-	saveCableGeometry: async ({ request, fetch, cookies }) => {
-		const headers = getAuthHeaders(cookies);
-		const formData = await request.formData();
-
-		const cableId = formData.get('cableId');
-		const diagramPathJson = formData.get('diagram_path');
-
-		if (!cableId) {
-			return {
-				type: 'error',
-				message: 'Cable ID is required'
-			};
-		}
-
-		let diagram_path = null;
-		if (diagramPathJson) {
-			try {
-				diagram_path = JSON.parse(diagramPathJson);
-			} catch (e) {
-				return {
-					type: 'error',
-					message: 'Invalid diagram path format'
-				};
-			}
-		}
-
+	getCables: async ({ request, cookies }) => {
 		try {
-			const response = await fetch(`${API_URL}cable/${cableId}/`, {
-				method: 'PATCH',
-				credentials: 'include',
-				headers: {
-					...headers,
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					diagram_path
-				})
+			const formData = await request.formData();
+			const uuid = formData.get('uuid');
+
+			if (!uuid) {
+				return fail(400, {
+					error: 'Missing required parameter: uuid is required'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const backendUrl = `${API_URL}cable/${uuid}`;
+
+			const response = await fetch(backendUrl, {
+				method: 'GET',
+				headers
 			});
 
 			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.detail || `HTTP ${response.status}: Failed to update cable path`);
+				const errorText = await response.text();
+				let errorData;
+
+				try {
+					errorData = JSON.parse(errorText);
+				} catch {
+					errorData = { error: errorText || `Request failed with status: ${response.status}` };
+				}
+
+				return fail(response.status, errorData);
 			}
 
-			const updatedCable = await response.json();
-
-			return {
-				type: 'success',
-				message: 'Cable path saved successfully',
-				cable: updatedCable
-			};
-		} catch (err) {
-			console.error('Error saving cable geometry:', err);
-			return {
-				type: 'error',
-				message: err.message || 'Failed to save cable path'
-			};
+			const cables = await response.json();
+			return cables;
+		} catch (error) {
+			console.error('Cable GET action error:', error);
+			return fail(500, { error: 'Internal server error' });
 		}
 	},
-
 	updateCable: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();
@@ -582,7 +479,6 @@ export const actions = {
 			return fail(500, { message: err.message || 'Failed to update cable' });
 		}
 	},
-
 	deleteCable: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();
@@ -614,6 +510,162 @@ export const actions = {
 		} catch (err) {
 			console.error('Error deleting cable:', err);
 			return fail(500, { message: err.message || 'Failed to delete cable' });
+		}
+	},
+	saveCableGeometry: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+
+		const cableId = formData.get('cableId');
+		const diagramPathJson = formData.get('diagram_path');
+
+		if (!cableId) {
+			return {
+				type: 'error',
+				message: 'Cable ID is required'
+			};
+		}
+
+		let diagram_path = null;
+		if (diagramPathJson) {
+			try {
+				diagram_path = JSON.parse(diagramPathJson);
+			} catch (e) {
+				return {
+					type: 'error',
+					message: 'Invalid diagram path format'
+				};
+			}
+		}
+
+		try {
+			const response = await fetch(`${API_URL}cable/${cableId}/`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					diagram_path
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				throw new Error(errorData.detail || `HTTP ${response.status}: Failed to update cable path`);
+			}
+
+			const updatedCable = await response.json();
+
+			return {
+				type: 'success',
+				message: 'Cable path saved successfully',
+				cable: updatedCable
+			};
+		} catch (err) {
+			console.error('Error saving cable geometry:', err);
+			return {
+				type: 'error',
+				message: err.message || 'Failed to save cable path'
+			};
+		}
+	},
+	getNodes: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const uuid = formData.get('uuid');
+
+			if (!uuid) {
+				return fail(400, {
+					error: 'Missing required parameter: uuid is required'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const backendUrl = `${API_URL}node/${uuid}`;
+
+			const response = await fetch(backendUrl, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				let errorData;
+
+				try {
+					errorData = JSON.parse(errorText);
+				} catch {
+					errorData = { error: errorText || `Request failed with status: ${response.status}` };
+				}
+
+				return fail(response.status, errorData);
+			}
+
+			const nodes = await response.json();
+			return nodes;
+		} catch (error) {
+			console.error('Node GET action error:', error);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	saveNodeGeometry: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+
+		const nodeId = formData.get('nodeId');
+		const canvas_x = parseFloat(formData.get('canvas_x'));
+		const canvas_y = parseFloat(formData.get('canvas_y'));
+
+		if (!nodeId) {
+			return {
+				type: 'error',
+				message: 'Node ID is required'
+			};
+		}
+
+		if (isNaN(canvas_x) || isNaN(canvas_y)) {
+			return {
+				type: 'error',
+				message: 'Invalid canvas coordinates'
+			};
+		}
+
+		try {
+			const response = await fetch(`${API_URL}node/${nodeId}/`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					canvas_x,
+					canvas_y
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				throw new Error(
+					errorData.detail || `HTTP ${response.status}: Failed to update node position`
+				);
+			}
+
+			const updatedNode = await response.json();
+
+			return {
+				type: 'success',
+				message: 'Node position saved successfully',
+				node: updatedNode
+			};
+		} catch (err) {
+			console.error('Error saving node geometry:', err);
+			return {
+				type: 'error',
+				message: err.message || 'Failed to save node position'
+			};
 		}
 	}
 };

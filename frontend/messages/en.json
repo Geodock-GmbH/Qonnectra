@@ -9,6 +9,7 @@
 	"action_refresh": "Refresh",
 	"action_routing_mode_disabled": "Routing mode disabled",
 	"action_routing_mode_enabled": "Routing mode enabled",
+	"action_save": "Save",
 	"auth_login": "Login",
 	"auth_signin": "Sign in to your account",
 	"auth_username": "Username",

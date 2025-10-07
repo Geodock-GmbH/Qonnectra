@@ -1,10 +1,13 @@
 <script>
+	import { parse } from 'devalue';
 	// SvelteFlow
 	import { Handle, Position } from '@xyflow/svelte';
-	// Drawer
+
 	import { drawerStore } from '$lib/stores/drawer';
+	import CableNodeAttributeCard from './CableNodeAttributeCard.svelte';
 
 	let { id, data } = $props();
+	let currentLabel = $state(data?.label || data?.node?.name || '');
 
 	let handleInit = {
 		top: {
@@ -41,12 +44,29 @@
 		}
 	};
 
-	function handleNodeClick() {
+	/**
+	 * Handle click on node label to open node details
+	 */
+	async function handleNodeClick() {
+		const formData = new FormData();
+		formData.append('uuid', id);
+		const response = await fetch('?/getNodes', {
+			method: 'POST',
+			body: formData
+		});
+		const result = await response.json();
+
+		const parsedData = typeof result.data === 'string' ? parse(result.data) : result.data;
+
 		drawerStore.open({
-			title: data?.label || 'Node Details',
-			node: {
-				nodeId: data?.label,
-				nodeData: data
+			title: parsedData?.properties?.name || 'Node Details',
+			component: CableNodeAttributeCard,
+			props: {
+				...parsedData.properties,
+				onLabelUpdate: (newLabel) => {
+					currentLabel = newLabel;
+					drawerStore.setTitle(newLabel);
+				}
 			}
 		});
 	}
@@ -86,9 +106,9 @@
 	tabindex="0"
 	onclick={handleNodeClick}
 	onkeydown={handleKeydown}
-	aria-label="Open node details for {data.label}"
+	aria-label="Open node details for {currentLabel}"
 >
 	<p class="text-center break-words w-full">
-		{data.label}
+		{currentLabel}
 	</p>
 </div>
