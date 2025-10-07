@@ -62,6 +62,12 @@ export async function load({ fetch, cookies, url, params }) {
 	if (!projectId) {
 		return {
 			nodes: [],
+			cables: [],
+			cableTypes: [],
+			statuses: [],
+			networkLevels: [],
+			companies: [],
+			flags: [],
 			syncStatus: null
 		};
 	}
@@ -117,7 +123,15 @@ export async function load({ fetch, cookies, url, params }) {
 			}
 		}
 
-		const [nodeResponse, cableResponse, cableTypeResponse] = await Promise.all([
+		const [
+			nodeResponse,
+			cableResponse,
+			cableTypeResponse,
+			statusResponse,
+			networkLevelResponse,
+			companyResponse,
+			flagsResponse
+		] = await Promise.all([
 			fetch(`${API_URL}node/all/?project=${projectId}`, {
 				credentials: 'include',
 				headers: headers
@@ -127,6 +141,22 @@ export async function load({ fetch, cookies, url, params }) {
 				headers: headers
 			}),
 			fetch(`${API_URL}attributes_cable_type/`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}attributes_status/`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}attributes_network_level/`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}attributes_company/`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}flags/`, {
 				credentials: 'include',
 				headers: headers
 			})
@@ -140,6 +170,11 @@ export async function load({ fetch, cookies, url, params }) {
 
 		let cablesData = [];
 		let cableTypesData = [];
+		let statusData = [];
+		let networkLevelData = [];
+		let companyData = [];
+		let flagsData = [];
+
 		if (cableResponse.ok) {
 			cablesData = await cableResponse.json();
 		} else {
@@ -156,10 +191,54 @@ export async function load({ fetch, cookies, url, params }) {
 			console.warn('Failed to fetch cable types, continuing without them');
 		}
 
+		if (statusResponse.ok) {
+			statusData = await statusResponse.json();
+			statusData = statusData.map((item) => ({
+				value: item.id,
+				label: item.status
+			}));
+		} else {
+			console.warn('Failed to fetch status data, continuing without it');
+		}
+
+		if (networkLevelResponse.ok) {
+			networkLevelData = await networkLevelResponse.json();
+			networkLevelData = networkLevelData.map((item) => ({
+				value: item.id,
+				label: item.network_level
+			}));
+		} else {
+			console.warn('Failed to fetch network level data, continuing without it');
+		}
+
+		if (companyResponse.ok) {
+			companyData = await companyResponse.json();
+			companyData = companyData.map((item) => ({
+				value: item.id,
+				label: item.company
+			}));
+		} else {
+			console.warn('Failed to fetch company data, continuing without it');
+		}
+
+		if (flagsResponse.ok) {
+			flagsData = await flagsResponse.json();
+			flagsData = flagsData.map((item) => ({
+				value: item.id,
+				label: item.flag
+			}));
+		} else {
+			console.warn('Failed to fetch flags data, continuing without it');
+		}
+
 		return {
 			nodes: nodesData,
 			cables: cablesData,
 			cableTypes: cableTypesData,
+			statuses: statusData,
+			networkLevels: networkLevelData,
+			companies: companyData,
+			flags: flagsData,
 			syncStatus: syncStatus || null
 		};
 	} catch (err) {
@@ -172,6 +251,10 @@ export async function load({ fetch, cookies, url, params }) {
 			nodes: [],
 			cables: [],
 			cableTypes: [],
+			statuses: [],
+			networkLevels: [],
+			companies: [],
+			flags: [],
 			syncStatus: null
 		};
 	}
@@ -423,6 +506,116 @@ export const actions = {
 			return {
 				type: 'error',
 				message: err.message || 'Failed to save cable path'
+			};
+		}
+	},
+
+	updateCable: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+
+		const cableId = formData.get('uuid');
+		const name = formData.get('cable_name');
+		const cable_type_id = formData.get('cable_type_id');
+		const status_id = formData.get('status_id');
+		const network_level_id = formData.get('network_level_id');
+		const owner_id = formData.get('owner_id');
+		const constructor_id = formData.get('constructor_id');
+		const manufacturer_id = formData.get('manufacturer_id');
+		const flag_id = formData.get('flag_id');
+		const date = formData.get('date');
+		const reserve_at_start = formData.get('reserve_at_start');
+		const reserve_at_end = formData.get('reserve_at_end');
+		const reserve_section = formData.get('reserve_section');
+
+		if (!cableId) {
+			return {
+				type: 'error',
+				message: 'Cable ID is required'
+			};
+		}
+
+		try {
+			const requestBody = {};
+
+			if (name) requestBody.name = name;
+			if (cable_type_id) requestBody.cable_type_id = parseInt(cable_type_id);
+			if (status_id) requestBody.status_id = parseInt(status_id);
+			if (network_level_id) requestBody.network_level_id = parseInt(network_level_id);
+			if (owner_id) requestBody.owner_id = parseInt(owner_id);
+			if (constructor_id) requestBody.constructor_id = parseInt(constructor_id);
+			if (manufacturer_id) requestBody.manufacturer_id = parseInt(manufacturer_id);
+			if (flag_id) requestBody.flag_id = parseInt(flag_id);
+			if (date) requestBody.date = date;
+			if (reserve_at_start) requestBody.reserve_at_start = parseInt(reserve_at_start);
+			if (reserve_at_end) requestBody.reserve_at_end = parseInt(reserve_at_end);
+			if (reserve_section) requestBody.reserve_section = parseInt(reserve_section);
+
+			const response = await fetch(`${API_URL}cable/${cableId}/`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				throw new Error(errorData.detail || `HTTP ${response.status}: Failed to update cable`);
+			}
+
+			const updatedCable = await response.json();
+
+			return {
+				type: 'success',
+				message: 'Cable updated successfully',
+				cable: updatedCable
+			};
+		} catch (err) {
+			console.error('Error updating cable:', err);
+			return {
+				type: 'error',
+				message: err.message || 'Failed to update cable'
+			};
+		}
+	},
+
+	deleteCable: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+
+		const cableId = formData.get('uuid');
+
+		if (!cableId) {
+			return {
+				type: 'error',
+				message: 'Cable ID is required'
+			};
+		}
+
+		try {
+			const response = await fetch(`${API_URL}cable/${cableId}/`, {
+				method: 'DELETE',
+				credentials: 'include',
+				headers: headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				throw new Error(errorData.detail || `HTTP ${response.status}: Failed to delete cable`);
+			}
+
+			return {
+				type: 'success',
+				message: 'Cable deleted successfully'
+			};
+		} catch (err) {
+			console.error('Error deleting cable:', err);
+			return {
+				type: 'error',
+				message: err.message || 'Failed to delete cable'
 			};
 		}
 	}

@@ -471,6 +471,6 @@
 		stroke-dasharray="4,4"
 		opacity="0.8"
 		class="animate-pulse"
-		style="pointer-events: none;"
+		style="pointer-events: none; z-index: 5;"
 	/>
 {/if}

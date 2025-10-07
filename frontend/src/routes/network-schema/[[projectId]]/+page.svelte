@@ -5,9 +5,6 @@
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
-	//Tabler
-	import { IconRefresh, IconRefreshOff } from '@tabler/icons-svelte';
-
 	// Svelte
 	import { page } from '$app/stores';
 	import { PUBLIC_API_URL } from '$env/static/public';
@@ -18,7 +15,7 @@
 	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
 	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
 	import '@xyflow/svelte/dist/style.css';
-	import { onMount } from 'svelte';
+	import { onMount, setContext } from 'svelte';
 	import CableDiagramNode from './CableDiagramNode.svelte';
 	import CableDiagrammEdge from './CableDiagrammEdge.svelte';
 
@@ -33,6 +30,15 @@
 	let edges = $state.raw(transformCablesToSvelteFlowEdges(data.cables));
 	let cableTypes = $state(data.cableTypes);
 	let prevUrl = $state($page.url.href);
+
+	// Set context for cable attributes that child components can access
+	setContext('cableAttributes', {
+		cableTypes: data.cableTypes,
+		statuses: data.statuses,
+		networkLevels: data.networkLevels,
+		companies: data.companies,
+		flags: data.flags
+	});
 
 	let positionUpdateActive = $state(true);
 	let positionUpdateController = null;
@@ -201,8 +207,8 @@
 
 	/**
 	 * Parse handle ID to extract position
-	 * Handle ID format: {nodeUuid}-{position}-{type}
-	 * Returns: 'top', 'right', 'bottom', or 'left'
+	 * @param {string} handleId - Handle ID format: {nodeUuid}-{position}-{type}
+	 * @returns {string} 'top', 'right', 'bottom', or 'left'
 	 */
 	function parseHandlePosition(handleId) {
 		if (!handleId) return null;
@@ -505,14 +511,7 @@
 									startPositionUpdates();
 								}
 							}}
-						>
-							{#snippet activeChild()}
-								<IconRefresh size="18" />
-							{/snippet}
-							{#snippet inactiveChild()}
-								<IconRefreshOff size="18" />
-							{/snippet}
-						</Switch>
+						></Switch>
 					</div>
 
 					<div class="gap-2 flex items-center justify-between bg-surface-50-900 rounded-lg p-2">
@@ -523,14 +522,7 @@
 							onCheckedChange={(e) => {
 								$edgeSnappingEnabled = e.checked;
 							}}
-						>
-							{#snippet activeChild()}
-								<IconRefresh size="18" />
-							{/snippet}
-							{#snippet inactiveChild()}
-								<IconRefreshOff size="18" />
-							{/snippet}
-						</Switch>
+						></Switch>
 					</div>
 				</div>
 			</Panel>

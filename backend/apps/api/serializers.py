@@ -971,7 +971,7 @@ class CableSerializer(serializers.ModelSerializer):
         source="manufacturer",
     )
     date = serializers.DateField(
-        input_formats=["%Y/%m/%d"], format="%d.%m.%Y", required=False
+        input_formats=["%Y-%m-%d"], format="%Y-%m-%d", required=False
     )
     uuid_node_start_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
