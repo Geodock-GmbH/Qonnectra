@@ -561,24 +561,25 @@ export const actions = {
 				body: JSON.stringify(requestBody)
 			});
 
+			console.log('Response:', response);
+
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.detail || `HTTP ${response.status}: Failed to update cable`);
+				const errorMessage = errorData.detail || `Failed to update cable`;
+				console.error('Error updating cable:', errorMessage);
+				return fail(response.status, { message: errorMessage });
 			}
 
 			const updatedCable = await response.json();
 
 			return {
-				type: 'success',
+				success: true,
 				message: 'Cable updated successfully',
 				cable: updatedCable
 			};
 		} catch (err) {
 			console.error('Error updating cable:', err);
-			return {
-				type: 'error',
-				message: err.message || 'Failed to update cable'
-			};
+			return fail(500, { message: err.message || 'Failed to update cable' });
 		}
 	},
 
@@ -589,10 +590,7 @@ export const actions = {
 		const cableId = formData.get('uuid');
 
 		if (!cableId) {
-			return {
-				type: 'error',
-				message: 'Cable ID is required'
-			};
+			return fail(400, { message: 'Cable ID is required' });
 		}
 
 		try {
@@ -604,19 +602,18 @@ export const actions = {
 
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.detail || `HTTP ${response.status}: Failed to delete cable`);
+				const errorMessage = errorData.detail || `Failed to delete cable`;
+				console.error('Error deleting cable:', errorMessage);
+				return fail(response.status, { message: errorMessage });
 			}
 
 			return {
-				type: 'success',
+				success: true,
 				message: 'Cable deleted successfully'
 			};
 		} catch (err) {
 			console.error('Error deleting cable:', err);
-			return {
-				type: 'error',
-				message: err.message || 'Failed to delete cable'
-			};
+			return fail(500, { message: err.message || 'Failed to delete cable' });
 		}
 	}
 };

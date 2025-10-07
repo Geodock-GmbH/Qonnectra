@@ -199,7 +199,7 @@
 	 * @returns {string} The random string
 	 */
 	function generateRandomString(length = 10) {
-		const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+		const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 		const array = new Uint32Array(length);
 		crypto.getRandomValues(array);
 		return Array.from(array, (x) => chars[x % chars.length]).join('');
@@ -237,7 +237,7 @@
 		if (selectedCableType.length === 0) {
 			globalToaster.error({
 				title: m.common_error(),
-				description: 'No cable type selected'
+				description: m.message_error_no_cable_type_selected()
 			});
 			return;
 		}

@@ -1,5 +1,7 @@
 <script>
+	import { deserialize } from '$app/forms';
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
+	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
@@ -13,6 +15,7 @@
 		flags: []
 	};
 
+	let messageBoxConfirm = $state(null);
 	let cable = $derived($drawerStore.props);
 	let cableName = $derived(cable?.name || '');
 	let cableType = $derived([cable?.cable_type?.id]);
@@ -28,6 +31,8 @@
 	let cableReserveAtEnd = $derived(cable?.reserve_at_end || '');
 	let cableReserveSection = $derived(cable?.reserve_section || '');
 	let cableFlag = $derived([cable?.flag?.id]);
+
+	let { onLabelUpdate } = $props();
 
 	// Update state when cable changes
 	$effect(() => {
@@ -65,30 +70,46 @@
 				body: formData
 			});
 
-			const result = await response.json();
+			const result = deserialize(await response.text());
 
-			if (response.ok && result.type !== 'error') {
-				globalToaster.success({
-					title: m.title_success(),
-					description: m.message_success_updating_cable()
+			if (result.type === 'failure') {
+				globalToaster.error({
+					title: m.common_error(),
+					description: m.message_error_updating_cable()
 				});
-			} else {
-				throw new Error(result.message || 'Failed to update cable');
+				return;
+			}
+
+			if (result.type === 'error') {
+				const errorMessage = result.error?.message;
+				globalToaster.error({
+					title: m.common_error(),
+					description: m.message_error_updating_cable()
+				});
+				return;
+			}
+
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_success_updating_cable()
+			});
+			if (onLabelUpdate && cableName) {
+				onLabelUpdate(cableName);
 			}
 		} catch (error) {
 			console.error('Error updating cable:', error);
 			globalToaster.error({
-				title: m.common_error(),
-				description: error.message || 'Failed to update cable'
+				title: m.message_error_updating_cable()
 			});
 		}
 	}
 
-	async function handleDelete() {
-		if (!confirm(m.message_confirm_delete_cable())) {
-			return;
-		}
+	async function confirmDelete() {
+		messageBoxConfirm.open();
+	}
 
+	async function handleDelete() {
+		if (!cable.uuid) return;
 		const formData = new FormData();
 		formData.append('uuid', cable.uuid);
 
@@ -120,6 +141,7 @@
 	}
 </script>
 
+<!-- Cable form -->
 <form id="cable-form" class="flex flex-col gap-4" onsubmit={handleSubmit}>
 	<label class="label">
 		<span class="label-text">{m.common_name()}</span>
@@ -229,11 +251,26 @@
 	</label>
 </form>
 
+<!-- Delete and update buttons -->
 <div class="mt-6 flex flex-col sm:flex-row items-end justify-end gap-3">
-	<button type="button" onclick={handleDelete} class="btn preset-filled-error-500 w-full sm:w-auto">
+	<button
+		type="button"
+		onclick={confirmDelete}
+		class="btn preset-filled-error-500 w-full sm:w-auto"
+	>
 		{m.action_delete_cable()}
 	</button>
 	<button type="submit" form="cable-form" class="btn preset-filled w-full sm:w-auto">
 		{m.action_refresh()}
 	</button>
 </div>
+
+<!-- Delete confirmation modal -->
+<MessageBox
+	bind:this={messageBoxConfirm}
+	heading={m.common_confirm()}
+	message={m.message_confirm_delete_cable()}
+	showAcceptButton={true}
+	acceptText={m.common_delete()}
+	onAccept={handleDelete}
+/>

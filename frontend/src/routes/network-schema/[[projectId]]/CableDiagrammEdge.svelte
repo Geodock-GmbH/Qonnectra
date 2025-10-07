@@ -5,8 +5,11 @@
 	import { drawerStore } from '$lib/stores/drawer';
 	import { edgeSnappingEnabled } from '$lib/stores/store';
 	import { parse } from 'devalue';
-	import CableAttributeCard from './CableAttributeCard.svelte';
+	import CableEdgeAttributeCard from './CableEdgeAttributeCard.svelte';
 	let { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data } = $props();
+
+	// Local reactive state for the label
+	let currentLabel = $state(data?.label || data?.cable?.name || '');
 
 	// Calculate custom path or fallback to bezier
 	let edgePath = $derived.by(() => {
@@ -108,14 +111,23 @@
 		const parsedData = typeof result.data === 'string' ? parse(result.data) : result.data;
 
 		drawerStore.open({
-			title: data?.label || 'Cable Details',
-			component: CableAttributeCard,
-			props: parsedData
+			title: parsedData?.name || 'Cable Details',
+			component: CableEdgeAttributeCard,
+			props: {
+				...parsedData,
+				onLabelUpdate: (newLabel) => {
+					// Update local reactive state
+					currentLabel = newLabel;
+					// Update drawer title
+					drawerStore.setTitle(newLabel);
+				}
+			}
 		});
 	}
 
 	/**
 	 * Handle keydown on edge label to open cable details
+	 * @param {Object} event - The keyboard event
 	 */
 	function handleKeydown(event) {
 		if (event.key === 'Enter' || event.key === ' ') {
@@ -143,9 +155,18 @@
 	 * Update labelWidth when labelElement is bound and when label changes
 	 */
 	$effect(() => {
-		if (labelElement && data?.label) {
+		if (labelElement && currentLabel) {
 			labelWidth = labelElement.offsetWidth + 20;
 			labelHeight = labelElement.offsetHeight + 20;
+		}
+	});
+
+	/**
+	 * Sync currentLabel when data changes
+	 */
+	$effect(() => {
+		if (data?.label) {
+			currentLabel = data.label;
 		}
 	});
 
@@ -376,7 +397,6 @@
 	function handleVertexContextMenu(event, index) {
 		event.preventDefault();
 		event.stopPropagation();
-		deleteVertex(index);
 	}
 </script>
 
@@ -435,7 +455,7 @@
 {/if}
 
 <!-- Custom label positioned in the middle -->
-{#if data?.label}
+{#if currentLabel}
 	<foreignObject
 		x={labelWidth > 0 ? labelX - labelWidth / 2 : labelX - 50}
 		y={labelY - 12}
@@ -444,7 +464,7 @@
 		style="cursor: pointer; pointer-events: bounding-box;"
 		onclick={handleEdgeLableClick}
 		onkeydown={handleKeydown}
-		aria-label="Open cable details for {data.label}"
+		aria-label="Open cable details for {currentLabel}"
 		role="button"
 		tabindex="0"
 	>
@@ -453,7 +473,7 @@
 				bind:this={labelElement}
 				class="z-10 bg-surface-50-950 border border-surface-200-700 rounded px-2 py-1 text-xs text-center shadow-sm font-medium"
 			>
-				{data.label}
+				{currentLabel}
 			</div>
 		</div>
 	</foreignObject>

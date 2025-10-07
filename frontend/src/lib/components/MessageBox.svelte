@@ -51,11 +51,11 @@
 			<p>{message}</p>
 		</article>
 		<footer class="flex gap-2 justify-end">
-			<button class="btn preset-filled-surface-500" onclick={close}>
+			<button class="btn preset-filled" onclick={close}>
 				{closeText}
 			</button>
 			{#if showAcceptButton}
-				<button class="btn preset-filled-primary-500" onclick={handleAccept}>
+				<button class="btn preset-filled-error-500" onclick={handleAccept}>
 					{acceptText}
 				</button>
 			{/if}
