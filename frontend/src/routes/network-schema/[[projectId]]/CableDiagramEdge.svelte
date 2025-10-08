@@ -5,7 +5,7 @@
 	import { drawerStore } from '$lib/stores/drawer';
 	import { edgeSnappingEnabled } from '$lib/stores/store';
 	import { parse } from 'devalue';
-	import CableDiagrammEdgeAttributeCard from './CableDiagrammEdgeAttributeCard.svelte';
+	import CableDiagramEdgeAttributeCard from './CableDiagramEdgeAttributeCard.svelte';
 	import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
 
 	let { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data } = $props();
@@ -157,7 +157,7 @@
 
 		drawerStore.open({
 			title: parsedData?.name || 'Cable Details',
-			component: CableDiagrammEdgeAttributeCard,
+			component: CableDiagramEdgeAttributeCard,
 			props: {
 				...parsedData,
 				onLabelUpdate: (newLabel) => {

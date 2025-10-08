@@ -4,7 +4,7 @@
 	import { Handle, Position } from '@xyflow/svelte';
 
 	import { drawerStore } from '$lib/stores/drawer';
-	import CableDiagramNodeAttributeCard from './CableDiagrammNodeAttributeCard.svelte';
+	import CableDiagramNodeAttributeCard from './CableDiagramNodeAttributeCard.svelte';
 
 	let { id, data } = $props();
 	let currentLabel = $state(data?.label || data?.node?.name || '');

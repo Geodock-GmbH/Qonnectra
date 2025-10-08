@@ -16,15 +16,15 @@
 	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
 	import '@xyflow/svelte/dist/style.css';
 	import { onMount, setContext } from 'svelte';
+	import CableDiagramEdge from './CableDiagramEdge.svelte';
 	import CableDiagramNode from './CableDiagramNode.svelte';
-	import CableDiagrammEdge from './CableDiagrammEdge.svelte';
 
 	/** @type {import('./$types').PageProps} */
 	let { data } = $props();
 	let userCableName = $state('');
 	let selectedCableType = $state([]);
 	const nodeTypes = { cableDiagramNode: CableDiagramNode };
-	const edgeTypes = { cableDiagramEdge: CableDiagrammEdge };
+	const edgeTypes = { cableDiagramEdge: CableDiagramEdge };
 
 	let nodes = $state.raw(transformNodesToSvelteFlow(data.nodes));
 	let edges = $state.raw(transformCablesToSvelteFlowEdges(data.cables));
@@ -372,7 +372,7 @@
 	}
 
 	/**
-	 * Handle cable path updates from CableDiagrammEdge
+	 * Handle cable path updates from CableDiagramEdge
 	 */
 	async function handleCablePathUpdate(event) {
 		const { edgeId, waypoints, temporary, save } = event.detail;
