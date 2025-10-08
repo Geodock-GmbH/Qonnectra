@@ -276,7 +276,7 @@ export async function load({ fetch, cookies, url, params }) {
 		} else {
 			console.warn('Failed to fetch flags data, continuing without it');
 		}
-		console.log('cablesData', cablesData);
+
 		return {
 			nodes: nodesData,
 			cables: cablesData,

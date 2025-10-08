@@ -18,11 +18,18 @@
 	// Dragging state
 	let isDragging = $state(false);
 	let isMoveLabelMode = $state(false);
+	let justFinishedDragging = $state(false);
 	let longPressTimer = $state(null);
+	let longPressEvent = $state(null);
 	let dragStartPos = $state({ x: 0, y: 0 });
 	let labelElement = $state(null);
 	let labelWidth = $state(0);
 	let labelHeight = $state(0);
+
+	// Progress ring state for visual feedback
+	let progressValue = $state(0);
+	let progressPosition = $state({ x: 0, y: 0 });
+	let progressInterval = $state(null);
 
 	// Local reactive state for the label text
 	let currentLabel = $state(labelData?.text || cableData?.label || cableData?.cable?.name || '');
@@ -62,16 +69,65 @@
 	 * Handle long press start - begins timer for move mode
 	 */
 	function handleLongPressStart(event) {
-		// Clear any existing timer
+		// Clear any existing timers/intervals
 		if (longPressTimer) {
 			clearTimeout(longPressTimer);
 		}
+		if (progressInterval) {
+			clearInterval(progressInterval);
+		}
 
-		// Start long press timer (3 seconds)
+		// Store the event for later use
+		longPressEvent = event;
+
+		progressValue = 0;
+		progressPosition = {
+			x: event.clientX,
+			y: event.clientY
+		};
+
+		// Animate progress value from 0 to 100 over 1 second
+		const startTime = Date.now();
+		const duration = 1000; // 1 second
+
+		progressInterval = setInterval(() => {
+			const elapsed = Date.now() - startTime;
+			progressValue = Math.min((elapsed / duration) * 100, 100);
+		}, 16); // ~60fps
+
+		// Start long press timer (1 second)
 		longPressTimer = setTimeout(() => {
+			// Clean up progress animation
+			clearInterval(progressInterval);
+			progressInterval = null;
+
+			// Activate move mode
 			isMoveLabelMode = true;
-			// Visual feedback could be added here
-		}, 1000);
+
+			// Automatically start dragging with the stored event
+			if (longPressEvent) {
+				isDragging = true;
+
+				// Convert screen coordinates to flow coordinates
+				const flowPosition = screenToFlowPosition(
+					{
+						x: longPressEvent.clientX,
+						y: longPressEvent.clientY
+					},
+					{ snapToGrid: false }
+				);
+
+				// Store the offset between mouse click and label CENTER position
+				dragStartPos = {
+					x: flowPosition.x - position.x,
+					y: flowPosition.y - position.y
+				};
+
+				// Add event listeners for dragging
+				window.addEventListener('mousemove', handleMouseMove);
+				window.addEventListener('mouseup', handleMouseUp);
+			}
+		}, duration);
 	}
 
 	/**
@@ -82,6 +138,11 @@
 			clearTimeout(longPressTimer);
 			longPressTimer = null;
 		}
+		if (progressInterval) {
+			clearInterval(progressInterval);
+			progressInterval = null;
+		}
+		longPressEvent = null;
 	}
 
 	/**
@@ -89,6 +150,12 @@
 	 */
 	async function handleLabelClick(event) {
 		handleLongPressCancel();
+
+		// Prevent click after dragging
+		if (justFinishedDragging) {
+			justFinishedDragging = false;
+			return;
+		}
 
 		if (isMoveLabelMode) {
 			// Exit move mode without opening drawer
@@ -184,6 +251,10 @@
 	function handleMouseUp() {
 		if (isDragging) {
 			isDragging = false;
+			isMoveLabelMode = false;
+			longPressEvent = null;
+			justFinishedDragging = true;
+
 			window.removeEventListener('mousemove', handleMouseMove);
 			window.removeEventListener('mouseup', handleMouseUp);
 
@@ -196,6 +267,11 @@
 					text: currentLabel
 				});
 			}
+
+			// Reset the flag after a short delay to allow normal clicks again
+			setTimeout(() => {
+				justFinishedDragging = false;
+			}, 100);
 		}
 	}
 
