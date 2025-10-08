@@ -2,10 +2,8 @@
 	// SvelteFlow
 	import { BaseEdge, getSmoothStepPath } from '@xyflow/svelte';
 	// Svelte
-	import { drawerStore } from '$lib/stores/drawer';
 	import { edgeSnappingEnabled } from '$lib/stores/store';
 	import { parse } from 'devalue';
-	import CableDiagramEdgeAttributeCard from './CableDiagramEdgeAttributeCard.svelte';
 	import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
 
 	let { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data } = $props();
@@ -137,47 +135,6 @@
 			}
 		} catch (error) {
 			console.error('Failed to save label position:', error);
-		}
-	}
-
-	/**
-	 * Handle click on edge label to open cable details
-	 */
-	async function handleEdgeLableClick() {
-		const formData = new FormData();
-		formData.append('uuid', data?.cable?.uuid);
-		const response = await fetch('?/getCables', {
-			method: 'POST',
-			body: formData
-		});
-		const result = await response.json();
-
-		// Parse the devalue-serialized data
-		const parsedData = typeof result.data === 'string' ? parse(result.data) : result.data;
-
-		drawerStore.open({
-			title: parsedData?.name || 'Cable Details',
-			component: CableDiagramEdgeAttributeCard,
-			props: {
-				...parsedData,
-				onLabelUpdate: (newLabel) => {
-					// Update local reactive state
-					currentLabel = newLabel;
-					// Update drawer title
-					drawerStore.setTitle(newLabel);
-				}
-			}
-		});
-	}
-
-	/**
-	 * Handle keydown on edge label to open cable details
-	 * @param {Object} event - The keyboard event
-	 */
-	function handleKeydown(event) {
-		if (event.key === 'Enter' || event.key === ' ') {
-			event.preventDefault();
-			handleEdgeLableClick();
 		}
 	}
 

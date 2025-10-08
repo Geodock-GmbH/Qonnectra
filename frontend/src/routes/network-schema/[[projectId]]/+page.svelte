@@ -1,7 +1,6 @@
 <script>
 	// Skeleton
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
-
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
@@ -527,7 +526,7 @@
 	</div>
 
 	<!-- Drawer -->
-	<Drawer></Drawer>
+	<Drawer />
 </div>
 
 <style>

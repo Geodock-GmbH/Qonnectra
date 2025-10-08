@@ -2,7 +2,7 @@
 	import { drawerStore } from '$lib/stores/drawer';
 	import { useSvelteFlow } from '@xyflow/svelte';
 	import { parse } from 'devalue';
-	import CableDiagramEdgeAttributeCard from './CableDiagramEdgeAttributeCard.svelte';
+	import DrawerTabs from './DrawerTabs.svelte';
 
 	let { edgeId, labelData, cableData, defaultX, defaultY, onPositionUpdate } = $props();
 
@@ -215,9 +215,10 @@
 
 		drawerStore.open({
 			title: parsedData?.name || 'Cable Details',
-			component: CableDiagramEdgeAttributeCard,
+			component: DrawerTabs,
 			props: {
 				...parsedData,
+				type: 'edge',
 				onLabelUpdate: (newLabel) => {
 					currentLabel = newLabel;
 					drawerStore.setTitle(newLabel);
