@@ -76,7 +76,6 @@
 				}
 			}));
 
-		console.log(`Loaded ${edges.length} cable edges`);
 		return edges;
 	}
 

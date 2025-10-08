@@ -6,7 +6,7 @@
 
 	let { edgeId, labelData, cableData, defaultX, defaultY, onPositionUpdate } = $props();
 
-	// Get Svelte Flow instance for coordinate transformation
+	// Coordinate transformation
 	const { screenToFlowPosition } = useSvelteFlow();
 
 	// Position state - use saved position or default to calculated midpoint
@@ -29,7 +29,9 @@
 	// Progress ring state for visual feedback
 	let progressValue = $state(0);
 	let progressPosition = $state({ x: 0, y: 0 });
-	let progressInterval = $state(null);
+	let progressFrame = $state(null);
+	let showProgressCircle = $state(false);
+	let progressDelayTimer = $state(null);
 
 	// Local reactive state for the label text
 	let currentLabel = $state(labelData?.text || cableData?.label || cableData?.cable?.name || '');
@@ -73,33 +75,62 @@
 		if (longPressTimer) {
 			clearTimeout(longPressTimer);
 		}
-		if (progressInterval) {
-			clearInterval(progressInterval);
+		if (progressFrame) {
+			cancelAnimationFrame(progressFrame);
+		}
+		if (progressDelayTimer) {
+			clearTimeout(progressDelayTimer);
 		}
 
 		// Store the event for later use
 		longPressEvent = event;
 
 		progressValue = 0;
+		showProgressCircle = false;
+
+		// Convert screen coordinates to flow coordinates for progress ring
+		const flowPos = screenToFlowPosition(
+			{
+				x: event.clientX,
+				y: event.clientY
+			},
+			{ snapToGrid: false }
+		);
 		progressPosition = {
-			x: event.clientX,
-			y: event.clientY
+			x: flowPos.x,
+			y: flowPos.y
 		};
+
+		// Add a 150ms delay before showing the progress circle
+		progressDelayTimer = setTimeout(() => {
+			showProgressCircle = true;
+			progressDelayTimer = null;
+		}, 150);
 
 		// Animate progress value from 0 to 100 over 1 second
 		const startTime = Date.now();
-		const duration = 1000; // 1 second
+		const duration = 500;
 
-		progressInterval = setInterval(() => {
+		function updateProgress() {
 			const elapsed = Date.now() - startTime;
 			progressValue = Math.min((elapsed / duration) * 100, 100);
-		}, 16); // ~60fps
+
+			if (elapsed < duration) {
+				progressFrame = requestAnimationFrame(updateProgress);
+			} else {
+				progressValue = 100;
+				progressFrame = null;
+			}
+		}
+		progressFrame = requestAnimationFrame(updateProgress);
 
 		// Start long press timer (1 second)
 		longPressTimer = setTimeout(() => {
 			// Clean up progress animation
-			clearInterval(progressInterval);
-			progressInterval = null;
+			if (progressFrame) {
+				cancelAnimationFrame(progressFrame);
+				progressFrame = null;
+			}
 
 			// Activate move mode
 			isMoveLabelMode = true;
@@ -138,11 +169,18 @@
 			clearTimeout(longPressTimer);
 			longPressTimer = null;
 		}
-		if (progressInterval) {
-			clearInterval(progressInterval);
-			progressInterval = null;
+		if (progressFrame) {
+			cancelAnimationFrame(progressFrame);
+			progressFrame = null;
+		}
+		if (progressDelayTimer) {
+			clearTimeout(progressDelayTimer);
+			progressDelayTimer = null;
 		}
 		longPressEvent = null;
+		// Reset progress immediately to hide ring
+		progressValue = 0;
+		showProgressCircle = false;
 	}
 
 	/**
@@ -289,6 +327,7 @@
 	}
 </script>
 
+<!-- Label -->
 {#if currentLabel}
 	<foreignObject
 		x={labelWidth > 0 ? position.x - labelWidth / 2 : position.x - 50}
@@ -319,4 +358,30 @@
 			</div>
 		</div>
 	</foreignObject>
+{/if}
+
+<!-- Progress ring overlay near mouse cursor -->
+{#if showProgressCircle && progressValue < 100}
+	<g transform="translate({progressPosition.x} {progressPosition.y})" pointer-events="none">
+		<circle
+			cx="0"
+			cy="0"
+			r="20"
+			fill="none"
+			stroke="var(--color-surface-400)"
+			stroke-width="3"
+			opacity="0.3"
+		/>
+		<circle
+			cx="0"
+			cy="0"
+			r="20"
+			fill="none"
+			stroke="var(--color-primary-500)"
+			stroke-width="3"
+			stroke-dasharray="{(progressValue / 100) * 125.6} 125.6"
+			stroke-linecap="round"
+			transform="rotate(-90)"
+		/>
+	</g>
 {/if}
