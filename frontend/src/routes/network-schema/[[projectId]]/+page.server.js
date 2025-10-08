@@ -126,6 +126,7 @@ export async function load({ fetch, cookies, url, params }) {
 		const [
 			nodeResponse,
 			cableResponse,
+			cableLabelResponse,
 			cableTypeResponse,
 			nodeTypeResponse,
 			statusResponse,
@@ -138,6 +139,10 @@ export async function load({ fetch, cookies, url, params }) {
 				headers: headers
 			}),
 			fetch(`${API_URL}cable/all/?project=${projectId}`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}cable_label/all/?project=${projectId}`, {
 				credentials: 'include',
 				headers: headers
 			}),
@@ -174,6 +179,7 @@ export async function load({ fetch, cookies, url, params }) {
 		const nodesData = await nodeResponse.json();
 
 		let cablesData = [];
+		let cableLabelsData = [];
 		let cableTypesData = [];
 		let nodeTypesData = [];
 		let statusData = [];
@@ -186,6 +192,30 @@ export async function load({ fetch, cookies, url, params }) {
 		} else {
 			console.warn('Failed to fetch cables, continuing without them');
 		}
+
+		if (cableLabelResponse.ok) {
+			cableLabelsData = await cableLabelResponse.json();
+		} else {
+			console.warn('Failed to fetch cable labels, continuing without them');
+		}
+
+		const cableLabelMap = {};
+		cableLabelsData.forEach((label) => {
+			const cableUuid = label.cable?.uuid || label.cable;
+			if (!cableLabelMap[cableUuid]) {
+				cableLabelMap[cableUuid] = [];
+			}
+			cableLabelMap[cableUuid].push(label);
+		});
+
+		cablesData = cablesData.map((cable) => {
+			const cableUuid = cable.uuid || (cable.cable && cable.cable.uuid) || cable.cable;
+			return {
+				...cable,
+				uuid: cableUuid,
+				labelData: cableLabelMap[cableUuid]?.[0] || null
+			};
+		});
 
 		if (cableTypeResponse.ok) {
 			cableTypesData = await cableTypeResponse.json();
@@ -246,7 +276,7 @@ export async function load({ fetch, cookies, url, params }) {
 		} else {
 			console.warn('Failed to fetch flags data, continuing without it');
 		}
-
+		console.log('cablesData', cablesData);
 		return {
 			nodes: nodesData,
 			cables: cablesData,
@@ -339,8 +369,6 @@ export const actions = {
 			if (handle_end) {
 				requestBody.handle_end = handle_end;
 			}
-
-			console.log('Creating cable:', requestBody);
 
 			const response = await fetch(backendUrl, {
 				method: 'POST',
@@ -457,8 +485,6 @@ export const actions = {
 				},
 				body: JSON.stringify(requestBody)
 			});
-
-			console.log('Response:', response);
 
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));
@@ -657,8 +683,6 @@ export const actions = {
 				body: JSON.stringify(requestBody)
 			});
 
-			console.log('Response:', response);
-
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));
 				const errorMessage = errorData.detail || `Failed to update node`;
@@ -733,6 +757,92 @@ export const actions = {
 			return {
 				type: 'error',
 				message: err.message || 'Failed to save node position'
+			};
+		}
+	},
+	updateCableLabel: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+
+		const labelId = formData.get('labelId');
+		const cableId = formData.get('cableId');
+		const text = formData.get('text');
+		const position_x = formData.get('position_x');
+		const position_y = formData.get('position_y');
+		const order = formData.get('order');
+
+		// Validate required fields
+		if (!cableId) {
+			return {
+				type: 'error',
+				message: 'Cable ID is required'
+			};
+		}
+
+		if (position_x === null || position_y === null) {
+			return {
+				type: 'error',
+				message: 'Label position is required'
+			};
+		}
+
+		try {
+			let response;
+
+			if (labelId) {
+				// Update existing label
+				response = await fetch(`${API_URL}cable_label/${labelId}/`, {
+					method: 'PATCH',
+					credentials: 'include',
+					headers: {
+						...headers,
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						position_x: parseFloat(position_x),
+						position_y: parseFloat(position_y)
+					})
+				});
+			} else {
+				// Create new label
+				const requestBody = {
+					cable_id: cableId,
+					text: text || 'Label',
+					position_x: parseFloat(position_x),
+					position_y: parseFloat(position_y),
+					order: order ? parseInt(order) : 0
+				};
+
+				response = await fetch(`${API_URL}cable_label/`, {
+					method: 'POST',
+					credentials: 'include',
+					headers: {
+						...headers,
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify(requestBody)
+				});
+			}
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				throw new Error(
+					errorData.detail || `HTTP ${response.status}: Failed to update cable label`
+				);
+			}
+
+			const updatedLabel = await response.json();
+
+			return {
+				type: 'success',
+				message: labelId ? 'Label position updated successfully' : 'Label created successfully',
+				label: updatedLabel
+			};
+		} catch (err) {
+			console.error('Error saving cable label:', err);
+			return {
+				type: 'error',
+				message: err.message || 'Failed to save cable label'
 			};
 		}
 	}

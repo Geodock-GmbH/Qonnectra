@@ -10,6 +10,7 @@ from .views import (
     AttributesNetworkLevelViewSet,
     AttributesNodeTypeViewSet,
     AttributesStatusViewSet,
+    CableLabelViewSet,
     CableViewSet,
     ConduitImportTemplateView,
     ConduitImportView,
@@ -73,6 +74,7 @@ router.register(
 )
 router.register(r"address", AddressViewSet, basename="address")
 router.register(r"cable", CableViewSet, basename="cable")
+router.register(r"cable_label", CableLabelViewSet, basename="cable_label")
 router.register(r"conduit", ConduitViewSet, basename="conduit")
 router.register(r"flags", FlagsViewSet, basename="flags")
 router.register(r"feature_files", FeatureFilesViewSet, basename="feature_files")

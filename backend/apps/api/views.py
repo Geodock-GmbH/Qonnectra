@@ -23,6 +23,7 @@ from .models import (
     AttributesNodeType,
     AttributesStatus,
     Cable,
+    CableLabel,
     CanvasSyncStatus,
     Conduit,
     FeatureFiles,
@@ -49,6 +50,7 @@ from .serializers import (
     AttributesNetworkLevelSerializer,
     AttributesNodeTypeSerializer,
     AttributesStatusSerializer,
+    CableLabelSerializer,
     CableSerializer,
     ConduitSerializer,
     FeatureFilesSerializer,
@@ -1748,6 +1750,44 @@ class CableViewSet(viewsets.ModelViewSet):
         if name:
             queryset = queryset.filter(name__icontains=name)
         return queryset
+
+
+class CableLabelViewSet(viewsets.ModelViewSet):
+    """ViewSet for the CableLabel model :model:`api.CableLabel`.
+
+    An instance of :model:`api.CableLabel`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = CableLabel.objects.all().order_by("cable", "order")
+    serializer_class = CableLabelSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned labels by filtering against query parameters:
+        - `cable`: Filter by cable UUID
+        """
+        queryset = CableLabel.objects.all().order_by("cable", "order")
+        cable_uuid = self.request.query_params.get("cable")
+        if cable_uuid:
+            queryset = queryset.filter(cable__uuid=cable_uuid)
+        return queryset
+
+    @action(detail=False, methods=["get"], url_path="all")
+    def all_labels(self, request):
+        """
+        Returns all cable labels with optional cable filter.
+        No pagination is used.
+        """
+        queryset = CableLabel.objects.all().order_by("cable", "order")
+        cable_uuid = request.query_params.get("cable")
+        if cable_uuid:
+            queryset = queryset.filter(cable__uuid=cable_uuid)
+        serializer = CableLabelSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class MicroductCableConnectionViewSet(viewsets.ModelViewSet):

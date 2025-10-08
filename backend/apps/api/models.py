@@ -1662,6 +1662,62 @@ class Cable(models.Model):
         return self.name
 
 
+class CableLabel(models.Model):
+    """Stores diagram labels for cables,
+    related to :model:`api.Cable`.
+    Allows multiple positionable labels per cable in the network diagram.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    cable = models.ForeignKey(
+        Cable,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="cable",
+        db_index=True,
+        verbose_name=_("Cable"),
+        related_name="labels",
+    )
+    text = models.TextField(
+        _("Label Text"),
+        null=False,
+        blank=False,
+        help_text=_("The text content to display on the label"),
+    )
+    position_x = models.FloatField(
+        _("Position X"),
+        null=True,
+        blank=True,
+        help_text=_("X coordinate of the label in the diagram canvas"),
+    )
+    position_y = models.FloatField(
+        _("Position Y"),
+        null=True,
+        blank=True,
+        help_text=_("Y coordinate of the label in the diagram canvas"),
+    )
+    order = models.IntegerField(
+        _("Order"),
+        default=0,
+        help_text=_("Display order when multiple labels exist"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "cable_label"
+        verbose_name = _("Cable Label")
+        verbose_name_plural = _("Cable Labels")
+        ordering = ["cable", "order"]
+        indexes = [
+            models.Index(fields=["cable"], name="idx_cable_label_cable"),
+            models.Index(fields=["order"], name="idx_cable_label_order"),
+        ]
+
+    def __str__(self):
+        return f"{self.cable.name} - {self.text[:50]}"
+
+
 class MicroductCableConnection(models.Model):
     """Stores all microduct cable connections,
     related to :model:`api.Microduct`,

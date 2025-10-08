@@ -17,6 +17,7 @@ from .models import (
     AttributesStatusDevelopment,
     AttributesSurface,
     Cable,
+    CableLabel,
     Conduit,
     FeatureFiles,
     Flags,
@@ -1047,6 +1048,33 @@ class CableSerializer(serializers.ModelSerializer):
         fields["project_id"].label = _("Project")
         fields["flag_id"].label = _("Flag")
 
+        return fields
+
+
+class CableLabelSerializer(serializers.ModelSerializer):
+    """Serializer for the CableLabel model."""
+
+    uuid = serializers.UUIDField(required=False)
+    cable_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Cable.objects.all(),
+        source="cable",
+    )
+    cable = CableSerializer(read_only=True)
+
+    class Meta:
+        model = CableLabel
+        fields = "__all__"
+        ordering = ["cable", "order"]
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+        fields["cable_id"].label = _("Cable")
+        fields["text"].label = _("Label Text")
+        fields["position_x"].label = _("Position X")
+        fields["position_y"].label = _("Position Y")
+        fields["order"].label = _("Order")
         return fields
 
 

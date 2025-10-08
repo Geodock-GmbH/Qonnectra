@@ -6,10 +6,13 @@
 	import { edgeSnappingEnabled } from '$lib/stores/store';
 	import { parse } from 'devalue';
 	import CableDiagrammEdgeAttributeCard from './CableDiagrammEdgeAttributeCard.svelte';
+	import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
+
 	let { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data } = $props();
 
-	// Local reactive state for the label
 	let currentLabel = $state(data?.label || data?.cable?.name || '');
+
+	let labelData = $state(data?.labelData || null);
 
 	// Calculate custom path or fallback to bezier
 	let edgePath = $derived.by(() => {
@@ -96,6 +99,48 @@
 	});
 
 	/**
+	 * Handle label position update - saves to backend via server action
+	 * @param {Object} positionData - Object with labelId, x, y, and text coordinates
+	 */
+	async function handleLabelPositionUpdate(positionData) {
+		const cableUuid = data?.cable?.uuid;
+		if (!cableUuid) return;
+
+		try {
+			const formData = new FormData();
+			formData.append('cableId', cableUuid);
+			formData.append('position_x', positionData.x.toString());
+			formData.append('position_y', positionData.y.toString());
+			// Use the text from positionData if provided, otherwise use currentLabel
+			formData.append('text', positionData.text || currentLabel);
+			formData.append('order', '0');
+
+			if (positionData.labelId) {
+				formData.append('labelId', positionData.labelId);
+			}
+
+			const response = await fetch('?/updateCableLabel', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = await response.json();
+
+			// Parse the devalue-serialized response from the action
+			const actionResult = typeof result.data === 'string' ? parse(result.data) : result.data;
+
+			if (actionResult?.type === 'success' && actionResult.label) {
+				labelData = actionResult.label;
+				console.log('Label saved successfully:', labelData);
+			} else if (actionResult?.type === 'error') {
+				console.error('Failed to save label position:', actionResult.message);
+			}
+		} catch (error) {
+			console.error('Failed to save label position:', error);
+		}
+	}
+
+	/**
 	 * Handle click on edge label to open cable details
 	 */
 	async function handleEdgeLableClick() {
@@ -142,24 +187,11 @@
 	let svgElement = $state(null);
 	let shiftPressed = $state(false);
 	let hoveredVertexIndex = $state(null);
-	let labelElement = $state(null);
-	let labelWidth = $state(0);
-	let labelHeight = $state(0);
 
 	// Edge snapping
 	const SNAP_GRID_SIZE = 20;
 	let showSnapFeedback = $state(false);
 	let snapFeedbackPosition = $state({ x: 0, y: 0 });
-
-	/**
-	 * Update labelWidth when labelElement is bound and when label changes
-	 */
-	$effect(() => {
-		if (labelElement && currentLabel) {
-			labelWidth = labelElement.offsetWidth + 20;
-			labelHeight = labelElement.offsetHeight + 20;
-		}
-	});
 
 	/**
 	 * Sync currentLabel when data changes
@@ -454,29 +486,16 @@
 	{/each}
 {/if}
 
-<!-- Custom label positioned in the middle -->
+<!-- Dynamic label with position support -->
 {#if currentLabel}
-	<foreignObject
-		x={labelWidth > 0 ? labelX - labelWidth / 2 : labelX - 50}
-		y={labelY - 12}
-		width={labelWidth > 0 ? labelWidth : 100}
-		height={labelHeight > 0 ? labelHeight : 100}
-		style="cursor: pointer; pointer-events: bounding-box;"
-		onclick={handleEdgeLableClick}
-		onkeydown={handleKeydown}
-		aria-label="Open cable details for {currentLabel}"
-		role="button"
-		tabindex="0"
-	>
-		<div class="flex items-center justify-center">
-			<div
-				bind:this={labelElement}
-				class="z-10 bg-surface-50-950 border border-surface-200-700 rounded px-2 py-1 text-xs text-center shadow-sm font-medium"
-			>
-				{currentLabel}
-			</div>
-		</div>
-	</foreignObject>
+	<DynamicEdgeLabel
+		edgeId={id}
+		{labelData}
+		cableData={data}
+		defaultX={labelX}
+		defaultY={labelY}
+		onPositionUpdate={handleLabelPositionUpdate}
+	/>
 {/if}
 
 <!-- Visual feedback for grid snapping -->

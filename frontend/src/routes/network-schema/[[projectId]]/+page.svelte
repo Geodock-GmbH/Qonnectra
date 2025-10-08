@@ -70,8 +70,9 @@
 					: undefined,
 				type: 'cableDiagramEdge',
 				data: {
-					label: cable.name,
-					cable: cable
+					label: cable.labelData?.text || cable.name,
+					cable: cable,
+					labelData: cable.labelData
 				}
 			}));
 
