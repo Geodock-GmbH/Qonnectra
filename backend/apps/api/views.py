@@ -20,8 +20,10 @@ from .models import (
     AttributesConduitType,
     AttributesMicroductStatus,
     AttributesNetworkLevel,
+    AttributesNodeType,
     AttributesStatus,
     Cable,
+    CableLabel,
     CanvasSyncStatus,
     Conduit,
     FeatureFiles,
@@ -46,7 +48,9 @@ from .serializers import (
     AttributesConduitTypeSerializer,
     AttributesMicroductStatusSerializer,
     AttributesNetworkLevelSerializer,
+    AttributesNodeTypeSerializer,
     AttributesStatusSerializer,
+    CableLabelSerializer,
     CableSerializer,
     ConduitSerializer,
     FeatureFilesSerializer,
@@ -90,6 +94,26 @@ class AttributesConduitTypeViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AttributesConduitTypeSerializer
     lookup_field = "id"
     lookup_url_kwarg = "pk"
+
+
+class AttributesNodeTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesNodeType model :model:`api.AttributesNodeType`.
+
+    An instance of :model:`api.AttributesNodeType`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesNodeType.objects.all().order_by("node_type")
+    serializer_class = AttributesNodeTypeSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+    def get_queryset(self):
+        queryset = AttributesNodeType.objects.all().order_by("node_type")
+        exclude_group = self.request.query_params.get("exclude_group")
+        if exclude_group:
+            queryset = queryset.exclude(group=exclude_group)
+        return queryset
 
 
 class AttributesStatusViewSet(viewsets.ReadOnlyModelViewSet):
@@ -765,29 +789,27 @@ class NodeViewSet(viewsets.ModelViewSet):
         flag_id = self.request.query_params.get("flag")
         name = self.request.query_params.get("name")
         node_type = self.request.query_params.get("node_type")
+        exclude_group = self.request.query_params.get("exclude_group")
         if uuid:
             queryset = queryset.filter(uuid=uuid)
-
         if project_id:
             try:
                 project_id = int(project_id)
                 queryset = queryset.filter(project=project_id)
             except ValueError:
                 queryset = queryset.none()
-
         if flag_id:
             try:
                 flag_id = int(flag_id)
                 queryset = queryset.filter(flag=flag_id)
             except ValueError:
                 queryset = queryset.none()
-
         if name:
             queryset = queryset.filter(name__icontains=name)
-
         if node_type:
             queryset = queryset.filter(node_type=node_type)
-
+        if exclude_group:
+            queryset = queryset.exclude(node_type__group=exclude_group)
         return queryset
 
     @action(detail=False, methods=["get"])
@@ -828,6 +850,7 @@ class NodeViewSet(viewsets.ModelViewSet):
         flag_id = request.query_params.get("flag")
         group = request.query_params.get("group")
         search_term = request.query_params.get("search")
+        exclude_group = request.query_params.get("exclude_group")
 
         if project_id:
             queryset = queryset.filter(project=project_id)
@@ -835,6 +858,8 @@ class NodeViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(flag=flag_id)
         if group:
             queryset = queryset.filter(node_type__group=group)
+        if exclude_group:
+            queryset = queryset.exclude(node_type__group=exclude_group)
         if search_term:
             queryset = queryset.filter(
                 Q(name__icontains=search_term)
@@ -1725,6 +1750,44 @@ class CableViewSet(viewsets.ModelViewSet):
         if name:
             queryset = queryset.filter(name__icontains=name)
         return queryset
+
+
+class CableLabelViewSet(viewsets.ModelViewSet):
+    """ViewSet for the CableLabel model :model:`api.CableLabel`.
+
+    An instance of :model:`api.CableLabel`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = CableLabel.objects.all().order_by("cable", "order")
+    serializer_class = CableLabelSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned labels by filtering against query parameters:
+        - `cable`: Filter by cable UUID
+        """
+        queryset = CableLabel.objects.all().order_by("cable", "order")
+        cable_uuid = self.request.query_params.get("cable")
+        if cable_uuid:
+            queryset = queryset.filter(cable__uuid=cable_uuid)
+        return queryset
+
+    @action(detail=False, methods=["get"], url_path="all")
+    def all_labels(self, request):
+        """
+        Returns all cable labels with optional cable filter.
+        No pagination is used.
+        """
+        queryset = CableLabel.objects.all().order_by("cable", "order")
+        cable_uuid = request.query_params.get("cable")
+        if cable_uuid:
+            queryset = queryset.filter(cable__uuid=cable_uuid)
+        serializer = CableLabelSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class MicroductCableConnectionViewSet(viewsets.ModelViewSet):

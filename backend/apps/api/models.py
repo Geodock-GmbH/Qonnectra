@@ -1597,6 +1597,14 @@ class Cable(models.Model):
         blank=True,
         help_text=_("Handle position at end node (top, right, bottom, left)"),
     )
+    diagram_path = models.JSONField(
+        _("Diagram Path"),
+        null=True,
+        blank=True,
+        help_text=_(
+            "Custom waypoints for diagram edge path as array of {x, y} coordinates"
+        ),
+    )
     project = models.ForeignKey(
         Projects,
         null=False,
@@ -1639,6 +1647,7 @@ class Cable(models.Model):
             models.Index(fields=["reserve_section"], name="idx_cable_reserve_section"),
             models.Index(fields=["handle_start"], name="idx_cable_handle_start"),
             models.Index(fields=["handle_end"], name="idx_cable_handle_end"),
+            models.Index(fields=["diagram_path"], name="idx_cable_diagram_path"),
             models.Index(fields=["project"], name="idx_cable_project"),
             models.Index(fields=["flag"], name="idx_cable_flag"),
         ]
@@ -1651,6 +1660,62 @@ class Cable(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class CableLabel(models.Model):
+    """Stores diagram labels for cables,
+    related to :model:`api.Cable`.
+    Allows multiple positionable labels per cable in the network diagram.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    cable = models.ForeignKey(
+        Cable,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="cable",
+        db_index=True,
+        verbose_name=_("Cable"),
+        related_name="labels",
+    )
+    text = models.TextField(
+        _("Label Text"),
+        null=False,
+        blank=False,
+        help_text=_("The text content to display on the label"),
+    )
+    position_x = models.FloatField(
+        _("Position X"),
+        null=True,
+        blank=True,
+        help_text=_("X coordinate of the label in the diagram canvas"),
+    )
+    position_y = models.FloatField(
+        _("Position Y"),
+        null=True,
+        blank=True,
+        help_text=_("Y coordinate of the label in the diagram canvas"),
+    )
+    order = models.IntegerField(
+        _("Order"),
+        default=0,
+        help_text=_("Display order when multiple labels exist"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "cable_label"
+        verbose_name = _("Cable Label")
+        verbose_name_plural = _("Cable Labels")
+        ordering = ["cable", "order"]
+        indexes = [
+            models.Index(fields=["cable"], name="idx_cable_label_cable"),
+            models.Index(fields=["order"], name="idx_cable_label_order"),
+        ]
+
+    def __str__(self):
+        return f"{self.cable.name} - {self.text[:50]}"
 
 
 class MicroductCableConnection(models.Model):

@@ -1,4 +1,7 @@
 <script>
+	// Skeleton
+	import { Switch } from '@skeletonlabs/skeleton-svelte';
+
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
@@ -6,23 +9,36 @@
 	import { page } from '$app/stores';
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import Drawer from '$lib/components/Drawer.svelte';
-	import { selectedProject } from '$lib/stores/store';
+	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
+	import { edgeSnappingEnabled, selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
 	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
 	import '@xyflow/svelte/dist/style.css';
-	import { onMount } from 'svelte';
+	import { onMount, setContext } from 'svelte';
 	import CableDiagramNode from './CableDiagramNode.svelte';
 	import CableDiagrammEdge from './CableDiagrammEdge.svelte';
 
 	/** @type {import('./$types').PageProps} */
 	let { data } = $props();
+	let userCableName = $state('');
+	let selectedCableType = $state([]);
 	const nodeTypes = { cableDiagramNode: CableDiagramNode };
 	const edgeTypes = { cableDiagramEdge: CableDiagrammEdge };
 
 	let nodes = $state.raw(transformNodesToSvelteFlow(data.nodes));
 	let edges = $state.raw(transformCablesToSvelteFlowEdges(data.cables));
+	let cableTypes = $state(data.cableTypes);
 	let prevUrl = $state($page.url.href);
+
+	setContext('attributeOptions', {
+		nodeTypes: data.nodeTypes,
+		cableTypes: data.cableTypes,
+		statuses: data.statuses,
+		networkLevels: data.networkLevels,
+		companies: data.companies,
+		flags: data.flags
+	});
 
 	let positionUpdateActive = $state(true);
 	let positionUpdateController = null;
@@ -54,12 +70,12 @@
 					: undefined,
 				type: 'cableDiagramEdge',
 				data: {
-					label: cable.name,
-					cable: cable
+					label: cable.labelData?.text || cable.name,
+					cable: cable,
+					labelData: cable.labelData
 				}
 			}));
 
-		console.log(`Loaded ${edges.length} cable edges`);
 		return edges;
 	}
 
@@ -114,21 +130,18 @@
 			return {
 				id: nodeOrFeature.id || node.uuid,
 				position: { x, y },
+				type: 'cableDiagramNode',
 				data: {
 					label: node.name || 'Unnamed Node',
-					type: 'Node',
-					nodeType: node.node_type?.node_type,
-					status: node.status?.status,
-					networkLevel: node.network_level?.network_level,
-					owner: node.owner?.company
-				},
-				type: 'cableDiagramNode'
+					node: node
+				}
 			};
 		});
 	}
 
 	/**
 	 * Handle node drag stop
+	 * @param {Object} event - Event object
 	 */
 	async function handleNodeDragStop(event) {
 		const node = event.targetNode;
@@ -177,29 +190,26 @@
 		}
 	}
 
-	// TODO: Delete later
 	/**
 	 * Generate random string for cable names
-	 *
+	 * @param {number} length - The length of the random string
+	 * @returns {string} The random string
 	 */
-	function generateRandomString(length = 8) {
-		const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-		let result = '';
-		for (let i = 0; i < length; i++) {
-			result += chars.charAt(Math.floor(Math.random() * chars.length));
-		}
-		return result;
+	function generateRandomString(length = 10) {
+		const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+		const array = new Uint32Array(length);
+		crypto.getRandomValues(array);
+		return Array.from(array, (x) => chars[x % chars.length]).join('');
 	}
 
 	/**
 	 * Parse handle ID to extract position
-	 * Handle ID format: {nodeUuid}-{position}-{type}
-	 * Returns: 'top', 'right', 'bottom', or 'left'
+	 * @param {string} handleId - Handle ID format: {nodeUuid}-{position}-{type}
+	 * @returns {string} 'top', 'right', 'bottom', or 'left'
 	 */
 	function parseHandlePosition(handleId) {
 		if (!handleId) return null;
 		const parts = handleId.split('-');
-		// Position is the second-to-last part (before 'source' or 'target')
 		return parts[parts.length - 2];
 	}
 
@@ -214,8 +224,23 @@
 		const handleStart = parseHandlePosition(sourceHandle);
 		const handleEnd = parseHandlePosition(targetHandle);
 
-		// Generate random cable name
-		const cableName = `CABLE_${generateRandomString()}`;
+		// Generate cable name: use user input as prefix if provided, always append random string
+		const trimmedName = userCableName.trim();
+		const cableName =
+			trimmedName.length === 0
+				? generateRandomString()
+				: `${trimmedName}-${generateRandomString()}`;
+
+		if (selectedCableType.length === 0) {
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_no_cable_type_selected()
+			});
+			return;
+		}
+
+		// Generate UUID client-side for immediate use
+		const cableUuid = crypto.randomUUID();
 
 		try {
 			// Create cable via form action
@@ -223,8 +248,9 @@
 			// This could be because we have overlapping source + target handles for bidirectional connections
 			// Changed are: uuid_node_start_id, uuid_node_end_id, handle_start, handle_end
 			const formData = new FormData();
+			formData.append('uuid', cableUuid);
 			formData.append('name', cableName);
-			formData.append('cable_type_id', '1');
+			formData.append('cable_type_id', selectedCableType?.[0]);
 			formData.append('project_id', $selectedProject);
 			formData.append('flag_id', '1');
 			formData.append('uuid_node_start_id', target);
@@ -245,11 +271,18 @@
 
 			const cableData = result.data;
 
-			// Add edge to the flow
+			// Validate that the UUID matches what we sent
+			if (cableData.uuid !== cableUuid) {
+				console.warn(
+					`UUID mismatch: sent ${cableUuid}, received ${cableData.uuid}. Using received UUID.`
+				);
+			}
+
+			// Add edge to the flow using the client-generated UUID
 			edges = [
 				...edges,
 				{
-					id: cableData.uuid,
+					id: cableUuid,
 					source,
 					target,
 					sourceHandle,
@@ -257,7 +290,7 @@
 					type: 'cableDiagramEdge',
 					data: {
 						label: cableName,
-						cable: cableData
+						cable: { ...cableData, uuid: cableUuid }
 					}
 				}
 			];
@@ -338,6 +371,61 @@
 		}
 	}
 
+	/**
+	 * Handle cable path updates from CableDiagrammEdge
+	 */
+	async function handleCablePathUpdate(event) {
+		const { edgeId, waypoints, temporary, save } = event.detail;
+
+		// Find and update the edge in the local state
+		edges = edges.map((edge) => {
+			if (edge.id === edgeId) {
+				return {
+					...edge,
+					data: {
+						...edge.data,
+						cable: {
+							...edge.data.cable,
+							diagram_path: waypoints
+						}
+					}
+				};
+			}
+			return edge;
+		});
+
+		// Save to backend if not temporary
+		if (save) {
+			try {
+				const formData = new FormData();
+				formData.append('cableId', edgeId);
+				formData.append('diagram_path', JSON.stringify(waypoints));
+
+				const response = await fetch('?/saveCableGeometry', {
+					method: 'POST',
+					body: formData
+				});
+
+				const result = await response.json();
+
+				if (!response.ok || result.type === 'error') {
+					throw new Error(result.message || 'Failed to save cable path');
+				}
+
+				globalToaster.success({
+					title: m.title_success(),
+					description: 'Cable path updated successfully'
+				});
+			} catch (error) {
+				console.error('Error saving cable path:', error);
+				globalToaster.error({
+					title: m.common_error(),
+					description: `Failed to save cable path: ${error.message}`
+				});
+			}
+		}
+	}
+
 	// Start position updates when component mounts
 	$effect(() => {
 		if (positionUpdateActive) {
@@ -347,6 +435,15 @@
 		// Cleanup when component unmounts
 		return () => {
 			stopPositionUpdates();
+		};
+	});
+
+	// // Listen for cable path update events
+	$effect(() => {
+		window.addEventListener('updateCablePath', handleCablePathUpdate);
+
+		return () => {
+			window.removeEventListener('updateCablePath', handleCablePathUpdate);
 		};
 	});
 </script>
@@ -370,56 +467,60 @@
 			onnodedragstop={handleNodeDragStop}
 			onconnect={handleConnect}
 			connectionRadius={100}
+			noPanClass="nopan"
 		>
 			<Background class="z-0" bgColor="var(--color-surface-100-900) " />
 			<Controls />
 			<Panel position="top-left">
-				<div class="bg-surface-500 p-2 rounded-lg shadow-lg">
-					<h3 class="text-sm font-semibold mb-1">Network Schema</h3>
-					<p class="text-xs">
-						Project: {$selectedProject} | Total: {nodes.length} nodes
-					</p>
+				<div class="card bg-surface-50-950 p-2 rounded-lg shadow-lg">
+					<h1 class="text-lg font-semibold mb-1">{m.common_attributes()}</h1>
+					<div class="flex flex-col gap-2">
+						<label for="cable_name_input" class="text-sm font-medium">
+							<input
+								class="input"
+								type="text"
+								placeholder={m.common_name()}
+								bind:value={userCableName}
+							/>
+						</label>
 
-					{#if data.syncStatus?.sync_in_progress}
-						<div class="mt-1">
-							<p class="text-xs text-warning-700-300">🔄 Canvas sync in progress</p>
-							<p class="text-xs text-surface-600-400">
-								{data.syncStatus.sync_progress.toFixed(1)}% complete
-							</p>
-							{#if data.syncStatus.sync_started_by}
-								<p class="text-xs text-surface-600-400">
-									Started by: {data.syncStatus.sync_started_by}
-								</p>
-							{/if}
-						</div>
-					{:else if data.syncStatus?.sync_status === 'FAILED'}
-						<p class="text-xs text-error-700-300 mt-1">❌ Canvas sync failed</p>
-						{#if data.syncStatus.error_message}
-							<p class="text-xs text-surface-600-400">
-								{data.syncStatus.error_message}
-							</p>
-						{/if}
-					{:else if data.nodes?.length > 0}
-						<p class="text-xs text-success-700-300 mt-1">✓ Canvas coordinates ready</p>
-					{:else}
-						<p class="text-xs text-warning-700-300 mt-1">⚠ No nodes loaded</p>
-					{/if}
+						<GenericCombobox
+							data={cableTypes}
+							bind:value={selectedCableType}
+							defaultValue={selectedCableType}
+							placeholder={m.placeholder_select_cable_type()}
+							onValueChange={(e) => {
+								selectedCableType = e.value;
+							}}
+						/>
+					</div>
 
-					<button
-						class="btn {positionUpdateActive
-							? 'variant-filled-success'
-							: 'variant-filled-surface'} btn-sm mt-1 w-full text-xs"
-						onclick={() => {
-							if (positionUpdateActive) {
-								stopPositionUpdates();
-							} else {
-								positionUpdateActive = true;
-								startPositionUpdates();
-							}
-						}}
-					>
-						{positionUpdateActive ? 'Live Updates ON' : 'Live Updates OFF'}
-					</button>
+					<div class="gap-2 flex items-center justify-between bg-surface-50-900 rounded-lg p-2">
+						<h3 class="text-sm font-medium">{m.form_live_updates()}</h3>
+						<Switch
+							name="position-update-switch"
+							checked={positionUpdateActive}
+							onCheckedChange={() => {
+								if (positionUpdateActive) {
+									stopPositionUpdates();
+								} else {
+									positionUpdateActive = true;
+									startPositionUpdates();
+								}
+							}}
+						></Switch>
+					</div>
+
+					<div class="gap-2 flex items-center justify-between bg-surface-50-900 rounded-lg p-2">
+						<h3 class="text-sm font-medium">Edge Snapping</h3>
+						<Switch
+							name="edge-snapping-switch"
+							checked={$edgeSnappingEnabled}
+							onCheckedChange={(e) => {
+								$edgeSnappingEnabled = e.checked;
+							}}
+						></Switch>
+					</div>
 				</div>
 			</Panel>
 		</SvelteFlow>
@@ -428,3 +529,10 @@
 	<!-- Drawer -->
 	<Drawer></Drawer>
 </div>
+
+<style>
+	/* Hide the default SvelteFlow edge path that appears during connection creation */
+	:global(path[id^='xy-edge__'].svelte-flow__edge-path) {
+		display: none;
+	}
+</style>

@@ -1,17 +1,13 @@
 <script>
-	// Skeleton
-	import { createToaster, Toaster } from '@skeletonlabs/skeleton-svelte';
+	import { parse } from 'devalue';
 	// SvelteFlow
 	import { Handle, Position } from '@xyflow/svelte';
-	// Drawer
-	import { drawerStore } from '$lib/stores/drawer';
 
-	// Toaster
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
+	import { drawerStore } from '$lib/stores/drawer';
+	import CableDiagramNodeAttributeCard from './CableDiagrammNodeAttributeCard.svelte';
 
 	let { id, data } = $props();
+	let currentLabel = $state(data?.label || data?.node?.name || '');
 
 	let handleInit = {
 		top: {
@@ -48,12 +44,30 @@
 		}
 	};
 
-	function handleNodeClick() {
+	/**
+	 * Handle click on node label to open node details
+	 */
+	async function handleNodeClick() {
+		const formData = new FormData();
+		formData.append('uuid', id);
+		const response = await fetch('?/getNodes', {
+			method: 'POST',
+			body: formData
+		});
+		const result = await response.json();
+
+		const parsedData = typeof result.data === 'string' ? parse(result.data) : result.data;
+
 		drawerStore.open({
-			title: data.label || 'Node Details',
+			title: parsedData?.properties?.name || 'Node Details',
+			component: CableDiagramNodeAttributeCard,
 			props: {
-				nodeId: id,
-				nodeData: data
+				id: id,
+				...parsedData.properties,
+				onLabelUpdate: (newLabel) => {
+					currentLabel = newLabel;
+					drawerStore.setTitle(newLabel);
+				}
 			}
 		});
 	}
@@ -65,8 +79,6 @@
 		}
 	}
 </script>
-
-<Toaster {toaster}></Toaster>
 
 <!-- Handles: top, right, bottom, left -->
 <!-- Each position has overlapping source + target handles for bidirectional connections -->
@@ -95,9 +107,9 @@
 	tabindex="0"
 	onclick={handleNodeClick}
 	onkeydown={handleKeydown}
-	aria-label="Open node details for {data.label}"
+	aria-label="Open node details for {currentLabel}"
 >
 	<p class="text-center break-words w-full">
-		{data.label}
+		{currentLabel}
 	</p>
 </div>

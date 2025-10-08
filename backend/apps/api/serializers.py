@@ -1,7 +1,6 @@
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
 from rest_framework_gis.serializers import GeoFeatureModelSerializer, GeometryField
 
 from .models import (
@@ -18,6 +17,7 @@ from .models import (
     AttributesStatusDevelopment,
     AttributesSurface,
     Cable,
+    CableLabel,
     Conduit,
     FeatureFiles,
     Flags,
@@ -105,6 +105,7 @@ class AttributesNodeTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = AttributesNodeType
         fields = ["id", "node_type", "dimension", "group", "company"]
+        ordering = ["node_type"]
 
 
 class AttributesConduitTypeSerializer(serializers.ModelSerializer):
@@ -412,12 +413,6 @@ class ConduitSerializer(serializers.ModelSerializer):
 
     # Add write fields for foreign keys
     name = serializers.CharField(
-        validators=[
-            UniqueValidator(
-                queryset=Conduit.objects.all(),
-                message=_("A conduit with that name already exists."),
-            )
-        ],
         required=True,
         label=_("Conduit Name"),
     )
@@ -476,6 +471,13 @@ class ConduitSerializer(serializers.ModelSerializer):
         model = Conduit
         fields = "__all__"
         ordering = ["name"]
+        validators = [
+            serializers.UniqueTogetherValidator(
+                queryset=Conduit.objects.all(),
+                fields=["project", "name"],
+                message=_("A conduit with that name already exists."),
+            )
+        ]
 
     def get_fields(self):
         """Dynamically translate field labels."""
@@ -667,7 +669,7 @@ class NodeSerializer(GeoFeatureModelSerializer):
     flag = FlagsSerializer(read_only=True)
 
     # Add write fields for foreign keys
-    name = serializers.CharField(required=True)
+    name = serializers.CharField(required=True, label=_("Node Name"))
     node_type_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=AttributesNodeType.objects.all(),
@@ -704,10 +706,10 @@ class NodeSerializer(GeoFeatureModelSerializer):
         source="manufacturer",
     )
     warranty = serializers.DateField(
-        required=False, input_formats=["%Y/%m/%d"], format="%d.%m.%Y"
+        required=False, input_formats=["%Y-%m-%d"], format="%Y-%m-%d"
     )
     date = serializers.DateField(
-        required=False, input_formats=["%Y/%m/%d"], format="%d.%m.%Y"
+        required=False, input_formats=["%Y-%m-%d"], format="%Y-%m-%d"
     )
     geom = GeometryField()
     canvas_x = serializers.FloatField(required=False, allow_null=True)
@@ -767,10 +769,10 @@ class OlNodeSerializer(GeoFeatureModelSerializer):
     constructor = AttributesCompanySerializer(read_only=True)
     manufacturer = AttributesCompanySerializer(read_only=True)
     warranty = serializers.DateField(
-        read_only=True, input_formats=["%Y/%m/%d"], format="%d.%m.%Y"
+        read_only=True, input_formats=["%Y-%m-%d"], format="%Y-%m-%d"
     )
     date = serializers.DateField(
-        read_only=True, input_formats=["%Y/%m/%d"], format="%d.%m.%Y"
+        read_only=True, input_formats=["%Y-%m-%d"], format="%Y-%m-%d"
     )
     project = ProjectsSerializer(read_only=True)
     flag = FlagsSerializer(read_only=True)
@@ -918,7 +920,7 @@ class CableSerializer(serializers.ModelSerializer):
     """Serializer for the Cable model."""
 
     # Read only fields
-    uuid = serializers.UUIDField(read_only=True)
+    uuid = serializers.UUIDField(required=False)
 
     # Get nested serializers for foreign keys
     cable_type = AttributesCableTypeSerializer(read_only=True)
@@ -932,12 +934,6 @@ class CableSerializer(serializers.ModelSerializer):
 
     # Add write fields for foreign keys
     name = serializers.CharField(
-        validators=[
-            UniqueValidator(
-                queryset=Cable.objects.all(),
-                message=_("A cable with that name already exists."),
-            )
-        ],
         required=True,
         label=_("Cable Name"),
     )
@@ -977,7 +973,7 @@ class CableSerializer(serializers.ModelSerializer):
         source="manufacturer",
     )
     date = serializers.DateField(
-        input_formats=["%Y/%m/%d"], format="%d.%m.%Y", required=False
+        input_formats=["%Y-%m-%d"], format="%Y-%m-%d", required=False
     )
     uuid_node_start_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
@@ -1012,11 +1008,22 @@ class CableSerializer(serializers.ModelSerializer):
         required=True, allow_blank=True, allow_null=True
     )
     handle_end = serializers.CharField(required=True, allow_blank=True, allow_null=True)
+    diagram_path = serializers.JSONField(required=False, allow_null=True)
 
     class Meta:
         model = Cable
         fields = "__all__"
         ordering = ["name"]
+        validators = [
+            serializers.UniqueTogetherValidator(
+                queryset=Cable.objects.all(),
+                fields=["project", "name"],
+                message=_("A cable with that name already exists."),
+            )
+        ]
+        extra_kwargs = {
+            "uuid": {"required": False},
+        }
 
     def get_fields(self):
         """Dynamically translate field labels."""
@@ -1041,6 +1048,33 @@ class CableSerializer(serializers.ModelSerializer):
         fields["project_id"].label = _("Project")
         fields["flag_id"].label = _("Flag")
 
+        return fields
+
+
+class CableLabelSerializer(serializers.ModelSerializer):
+    """Serializer for the CableLabel model."""
+
+    uuid = serializers.UUIDField(required=False)
+    cable_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Cable.objects.all(),
+        source="cable",
+    )
+    cable = CableSerializer(read_only=True)
+
+    class Meta:
+        model = CableLabel
+        fields = "__all__"
+        ordering = ["cable", "order"]
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+        fields["cable_id"].label = _("Cable")
+        fields["text"].label = _("Label Text")
+        fields["position_x"].label = _("Position X")
+        fields["position_y"].label = _("Position Y")
+        fields["order"].label = _("Order")
         return fields
 
 

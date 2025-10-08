@@ -203,7 +203,7 @@
 	{/snippet}
 	{#snippet content()}
 		<header class="flex justify-between">
-			<h2 class="h3">{m.action_add_conduit()}</h2>
+			<h2 class="h3">{m.common_attributes()}</h2>
 		</header>
 		<form
 			id="pipe-form"

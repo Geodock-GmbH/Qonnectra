@@ -18,6 +18,7 @@
 	// Svelte
 	import { page } from '$app/state';
 	import { sidebarExpanded } from '$lib/stores/store';
+	import AppIcon from './AppIcon.svelte';
 </script>
 
 <!-- SideBar -->
@@ -25,9 +26,8 @@
 	<!-- Component -->
 	<Navigation.Rail expanded={$sidebarExpanded}>
 		{#snippet header()}
-			<!-- TODO: Add Logo -->
 			<div class="flex items-center gap-2">
-				<img src="/favicon.png" alt="Logo" class="w-12 h12" />
+				<AppIcon />
 				{#if $sidebarExpanded}
 					<h1 class="text-2xl font-bold">Qonectra</h1>
 				{/if}
