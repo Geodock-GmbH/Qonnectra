@@ -277,15 +277,14 @@
 				);
 			}
 
-			// Add edge to the flow using the client-generated UUID
 			edges = [
 				...edges,
 				{
 					id: cableUuid,
-					source,
-					target,
-					sourceHandle,
-					targetHandle,
+					source: target,
+					target: source,
+					sourceHandle: handleEnd ? `${target}-${handleEnd}-source` : undefined,
+					targetHandle: handleStart ? `${source}-${handleStart}-target` : undefined,
 					type: 'cableDiagramEdge',
 					data: {
 						label: cableName,
@@ -296,13 +295,13 @@
 
 			globalToaster.success({
 				title: m.title_success(),
-				description: `Cable ${cableName} created successfully`
+				description: m.message_success_creating_cable()
 			});
 		} catch (error) {
 			console.error('Error creating cable:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: `Failed to create cable: ${error.message}`
+				description: m.message_error_creating_cable()
 			});
 		}
 	}
@@ -413,13 +412,13 @@
 
 				globalToaster.success({
 					title: m.title_success(),
-					description: 'Cable path updated successfully'
+					description: m.message_success_updating_cable_path()
 				});
 			} catch (error) {
 				console.error('Error saving cable path:', error);
 				globalToaster.error({
 					title: m.common_error(),
-					description: `Failed to save cable path: ${error.message}`
+					description: m.message_error_updating_cable_path()
 				});
 			}
 		}
@@ -450,14 +449,16 @@
 			return;
 		}
 
+		console.log(edge);
+		console.log(cableId);
 		// Backend stores handles swapped: handle_start is for uuid_node_start (edge.target)
 		// and handle_end is for uuid_node_end (edge.source), so we need to swap them here
 		edges = edges.map((e) => {
 			if (e.id === cableId) {
 				return {
 					...e,
-					sourceHandle: handleEnd ? `${edge.source}-${handleEnd}-source` : undefined,
-					targetHandle: handleStart ? `${edge.target}-${handleStart}-target` : undefined,
+					sourceHandle: handleStart ? `${edge.source}-${handleStart}-source` : undefined,
+					targetHandle: handleEnd ? `${edge.target}-${handleEnd}-target` : undefined,
 					data: {
 						...e.data,
 						cable: {
