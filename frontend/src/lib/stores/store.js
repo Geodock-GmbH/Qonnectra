@@ -24,3 +24,4 @@ export const theme = persisted('theme', ['vox']);
 export const drawerWidth = persisted('drawerWidth', 400);
 export const edgeSnappingEnabled = persisted('edgeSnappingEnabled', true);
 export const edgeSnappingGridSize = persisted('edgeSnappingGridSize', 20);
+export const networkSchemaViewport = persisted('networkSchemaViewport', { x: 0, y: 0, zoom: 1 });

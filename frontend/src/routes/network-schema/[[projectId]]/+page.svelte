@@ -17,6 +17,7 @@
 	import { onMount, setContext } from 'svelte';
 	import CableDiagramEdge from './CableDiagramEdge.svelte';
 	import CableDiagramNode from './CableDiagramNode.svelte';
+	import ViewportPersistence from './ViewportPersistence.svelte';
 
 	/** @type {import('./$types').PageProps} */
 	let { data } = $props();
@@ -502,7 +503,7 @@
 		<SvelteFlow
 			bind:nodes
 			bind:edges
-			fitView
+			fitView={nodes.length === 0}
 			{nodeTypes}
 			{edgeTypes}
 			connectionMode="loose"
@@ -513,6 +514,7 @@
 			connectionRadius={100}
 			noPanClass="nopan"
 		>
+			<ViewportPersistence />
 			<Background class="z-0" bgColor="var(--color-surface-100-900) " />
 			<Controls />
 			<Panel position="top-left">
