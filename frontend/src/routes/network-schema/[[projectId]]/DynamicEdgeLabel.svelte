@@ -9,7 +9,6 @@
 	// Coordinate transformation
 	const { screenToFlowPosition } = useSvelteFlow();
 
-	// Position state - use saved position or default to calculated midpoint
 	let position = $state({
 		x: labelData?.position_x ?? defaultX,
 		y: labelData?.position_y ?? defaultY
@@ -69,6 +68,7 @@
 
 	/**
 	 * Handle long press start - begins timer for move mode
+	 * @param {MouseEvent} event - The mouse event
 	 */
 	function handleLongPressStart(event) {
 		// Clear any existing timers/intervals
@@ -82,13 +82,11 @@
 			clearTimeout(progressDelayTimer);
 		}
 
-		// Store the event for later use
 		longPressEvent = event;
 
 		progressValue = 0;
 		showProgressCircle = false;
 
-		// Convert screen coordinates to flow coordinates for progress ring
 		const flowPos = screenToFlowPosition(
 			{
 				x: event.clientX,
@@ -101,13 +99,11 @@
 			y: flowPos.y
 		};
 
-		// Add a 150ms delay before showing the progress circle
 		progressDelayTimer = setTimeout(() => {
 			showProgressCircle = true;
 			progressDelayTimer = null;
 		}, 150);
 
-		// Animate progress value from 0 to 100 over 1 second
 		const startTime = Date.now();
 		const duration = 500;
 
@@ -124,22 +120,17 @@
 		}
 		progressFrame = requestAnimationFrame(updateProgress);
 
-		// Start long press timer (1 second)
 		longPressTimer = setTimeout(() => {
-			// Clean up progress animation
 			if (progressFrame) {
 				cancelAnimationFrame(progressFrame);
 				progressFrame = null;
 			}
 
-			// Activate move mode
 			isMoveLabelMode = true;
 
-			// Automatically start dragging with the stored event
 			if (longPressEvent) {
 				isDragging = true;
 
-				// Convert screen coordinates to flow coordinates
 				const flowPosition = screenToFlowPosition(
 					{
 						x: longPressEvent.clientX,
@@ -148,13 +139,11 @@
 					{ snapToGrid: false }
 				);
 
-				// Store the offset between mouse click and label CENTER position
 				dragStartPos = {
 					x: flowPosition.x - position.x,
 					y: flowPosition.y - position.y
 				};
 
-				// Add event listeners for dragging
 				window.addEventListener('mousemove', handleMouseMove);
 				window.addEventListener('mouseup', handleMouseUp);
 			}
@@ -163,6 +152,7 @@
 
 	/**
 	 * Handle long press cancel - cancels move mode activation
+	 * @param {MouseEvent} event - The mouse event
 	 */
 	function handleLongPressCancel() {
 		if (longPressTimer) {
@@ -178,30 +168,27 @@
 			progressDelayTimer = null;
 		}
 		longPressEvent = null;
-		// Reset progress immediately to hide ring
 		progressValue = 0;
 		showProgressCircle = false;
 	}
 
 	/**
 	 * Handle label click - opens cable details if not in move mode
+	 * @param {MouseEvent} event - The mouse event
 	 */
 	async function handleLabelClick(event) {
 		handleLongPressCancel();
 
-		// Prevent click after dragging
 		if (justFinishedDragging) {
 			justFinishedDragging = false;
 			return;
 		}
 
 		if (isMoveLabelMode) {
-			// Exit move mode without opening drawer
 			isMoveLabelMode = false;
 			return;
 		}
 
-		// Open cable details drawer
 		const formData = new FormData();
 		formData.append('uuid', cableData?.cable?.uuid || cableData?.uuid);
 		const response = await fetch('?/getCables', {
@@ -210,7 +197,6 @@
 		});
 		const result = await response.json();
 
-		// Parse the devalue-serialized data
 		const parsedData = typeof result.data === 'string' ? parse(result.data) : result.data;
 
 		drawerStore.open({
@@ -229,6 +215,7 @@
 
 	/**
 	 * Handle mouse down on label - starts dragging if in move mode
+	 * @param {MouseEvent} event - The mouse event
 	 */
 	function handleMouseDown(event) {
 		if (!isMoveLabelMode) {
@@ -241,8 +228,6 @@
 
 		isDragging = true;
 
-		// Convert screen coordinates to flow coordinates using Svelte Flow's helper
-		// Disable snap-to-grid for smooth label dragging
 		const flowPosition = screenToFlowPosition(
 			{
 				x: event.clientX,
@@ -251,7 +236,6 @@
 			{ snapToGrid: false }
 		);
 
-		// Store the offset between mouse click and label CENTER position
 		dragStartPos = {
 			x: flowPosition.x - position.x,
 			y: flowPosition.y - position.y
@@ -263,12 +247,11 @@
 
 	/**
 	 * Handle mouse move during drag
+	 * @param {MouseEvent} event - The mouse event
 	 */
 	function handleMouseMove(event) {
 		if (!isDragging) return;
 
-		// Convert screen coordinates to flow coordinates using Svelte Flow's helper
-		// Disable snap-to-grid for smooth label dragging
 		const flowPosition = screenToFlowPosition(
 			{
 				x: event.clientX,
@@ -277,7 +260,6 @@
 			{ snapToGrid: false }
 		);
 
-		// Update position by subtracting the stored offset
 		position = {
 			x: flowPosition.x - dragStartPos.x,
 			y: flowPosition.y - dragStartPos.y
@@ -286,6 +268,7 @@
 
 	/**
 	 * Handle mouse up - ends dragging and saves position
+	 * @param {MouseEvent} event - The mouse event
 	 */
 	function handleMouseUp() {
 		if (isDragging) {
@@ -297,7 +280,6 @@
 			window.removeEventListener('mousemove', handleMouseMove);
 			window.removeEventListener('mouseup', handleMouseUp);
 
-			// Save the new position with current label text
 			if (onPositionUpdate) {
 				onPositionUpdate({
 					labelId: labelData?.uuid,
@@ -307,7 +289,6 @@
 				});
 			}
 
-			// Reset the flag after a short delay to allow normal clicks again
 			setTimeout(() => {
 				justFinishedDragging = false;
 			}, 100);
@@ -316,6 +297,7 @@
 
 	/**
 	 * Handle keydown for accessibility
+	 * @param {KeyboardEvent} event - The keyboard event
 	 */
 	function handleKeydown(event) {
 		if (event.key === 'Enter' || event.key === ' ') {

@@ -5,17 +5,20 @@
 	import { m } from '$lib/paraglide/messages';
 	// Svelte
 	import CableDiagramEdgeAttributeCard from './CableDiagramEdgeAttributeCard.svelte';
+	import CableDiagramEdgeHandleConfig from './CableDiagramEdgeHandleConfig.svelte';
 	import CableDiagramNodeAttributeCard from './CableDiagramNodeAttributeCard.svelte';
 
 	let { data, type, onLabelUpdate } = $props();
 
 	let group = $state('attributes');
-	console.log(type);
 </script>
 
 <Tabs value={group} onValueChange={(e) => (group = e.value)}>
 	{#snippet list()}
 		<Tabs.Control value="attributes">{m.common_attributes()}</Tabs.Control>
+		{#if type === 'edge'}
+			<Tabs.Control value="handles">{m.form_handles()}</Tabs.Control>
+		{/if}
 	{/snippet}
 	{#snippet content()}
 		<Tabs.Panel value="attributes">
@@ -25,5 +28,10 @@
 				<CableDiagramNodeAttributeCard {...data} {onLabelUpdate} />
 			{/if}
 		</Tabs.Panel>
+		{#if type === 'edge'}
+			<Tabs.Panel value="handles">
+				<CableDiagramEdgeHandleConfig {...data} />
+			</Tabs.Panel>
+		{/if}
 	{/snippet}
 </Tabs>

@@ -19,7 +19,6 @@
 <Tabs value={group} onValueChange={(e) => (group = e.value)}>
 	{#snippet list()}
 		<Tabs.Control value="stats">{m.common_overview()}</Tabs.Control>
-		<Tabs.Control value="address">{m.form_address()}</Tabs.Control>
 		<Tabs.Control value="projects">{m.form_project({ count: data.projects.length })}</Tabs.Control>
 	{/snippet}
 	{#snippet content()}
@@ -156,9 +155,6 @@
 		</Tabs.Panel>
 		<Tabs.Panel value="projects">
 			<DashboardProjectTable data={data.projects} />
-		</Tabs.Panel>
-		<Tabs.Panel value="address">
-			<!-- TODO: Add address -->
 		</Tabs.Panel>
 	{/snippet}
 </Tabs>

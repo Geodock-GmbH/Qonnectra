@@ -1010,6 +1010,17 @@ class CableSerializer(serializers.ModelSerializer):
     handle_end = serializers.CharField(required=True, allow_blank=True, allow_null=True)
     diagram_path = serializers.JSONField(required=False, allow_null=True)
 
+    uuid_node_start_name = serializers.SerializerMethodField()
+    uuid_node_end_name = serializers.SerializerMethodField()
+
+    def get_uuid_node_start_name(self, obj):
+        """Get the name of the start node."""
+        return obj.uuid_node_start.name if obj.uuid_node_start else None
+
+    def get_uuid_node_end_name(self, obj):
+        """Get the name of the end node."""
+        return obj.uuid_node_end.name if obj.uuid_node_end else None
+
     class Meta:
         model = Cable
         fields = "__all__"

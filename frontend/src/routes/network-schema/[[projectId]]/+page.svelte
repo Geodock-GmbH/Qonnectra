@@ -437,12 +437,56 @@
 		};
 	});
 
+	/**
+	 * Handle cable handle updates - updates edge source/target handles
+	 * @param {CustomEvent} event - Event with handle update details
+	 */
+	function handleCableHandleUpdate(event) {
+		const { cableId, handleStart, handleEnd } = event.detail;
+
+		const edge = edges.find((e) => e.id === cableId);
+		if (!edge) {
+			console.error(`Edge not found for cable ID: ${cableId}`);
+			return;
+		}
+
+		// Backend stores handles swapped: handle_start is for uuid_node_start (edge.target)
+		// and handle_end is for uuid_node_end (edge.source), so we need to swap them here
+		edges = edges.map((e) => {
+			if (e.id === cableId) {
+				return {
+					...e,
+					sourceHandle: handleEnd ? `${edge.source}-${handleEnd}-source` : undefined,
+					targetHandle: handleStart ? `${edge.target}-${handleStart}-target` : undefined,
+					data: {
+						...e.data,
+						cable: {
+							...e.data.cable,
+							handle_start: handleStart,
+							handle_end: handleEnd
+						}
+					}
+				};
+			}
+			return e;
+		});
+	}
+
 	// // Listen for cable path update events
 	$effect(() => {
 		window.addEventListener('updateCablePath', handleCablePathUpdate);
 
 		return () => {
 			window.removeEventListener('updateCablePath', handleCablePathUpdate);
+		};
+	});
+
+	// Listen for cable handle update events
+	$effect(() => {
+		window.addEventListener('updateCableHandles', handleCableHandleUpdate);
+
+		return () => {
+			window.removeEventListener('updateCableHandles', handleCableHandleUpdate);
 		};
 	});
 </script>

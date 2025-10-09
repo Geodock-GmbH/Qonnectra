@@ -1,6 +1,6 @@
 import { API_URL } from '$env/static/private';
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, success } from '@sveltejs/kit';
 
 /**
  * Poll for sync completion with timeout and progress updates
@@ -452,6 +452,8 @@ export const actions = {
 		const reserve_at_start = formData.get('reserve_at_start');
 		const reserve_at_end = formData.get('reserve_at_end');
 		const reserve_section = formData.get('reserve_section');
+		const handle_start = formData.get('handle_start');
+		const handle_end = formData.get('handle_end');
 
 		if (!cableId) {
 			return {
@@ -475,6 +477,8 @@ export const actions = {
 			if (reserve_at_start) requestBody.reserve_at_start = parseInt(reserve_at_start);
 			if (reserve_at_end) requestBody.reserve_at_end = parseInt(reserve_at_end);
 			if (reserve_section) requestBody.reserve_section = parseInt(reserve_section);
+			if (handle_start) requestBody.handle_start = handle_start;
+			if (handle_end) requestBody.handle_end = handle_end;
 
 			const response = await fetch(`${API_URL}cable/${cableId}/`, {
 				method: 'PATCH',
@@ -826,24 +830,20 @@ export const actions = {
 
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));
-				throw new Error(
-					errorData.detail || `HTTP ${response.status}: Failed to update cable label`
-				);
+				return fail(response.status, {
+					message: errorData.detail || 'Failed to update cable label'
+				});
 			}
 
 			const updatedLabel = await response.json();
 
-			return {
-				type: 'success',
+			return success(200, {
 				message: labelId ? 'Label position updated successfully' : 'Label created successfully',
 				label: updatedLabel
-			};
+			});
 		} catch (err) {
 			console.error('Error saving cable label:', err);
-			return {
-				type: 'error',
-				message: err.message || 'Failed to save cable label'
-			};
+			return error(500, { message: err.message || 'Failed to save cable label' });
 		}
 	}
 };

@@ -109,7 +109,6 @@
 			formData.append('cableId', cableUuid);
 			formData.append('position_x', positionData.x.toString());
 			formData.append('position_y', positionData.y.toString());
-			// Use the text from positionData if provided, otherwise use currentLabel
 			formData.append('text', positionData.text || currentLabel);
 			formData.append('order', '0');
 
