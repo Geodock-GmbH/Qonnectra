@@ -72,11 +72,20 @@
 				data: {
 					label: cable.labelData?.text || cable.name,
 					cable: cable,
-					labelData: cable.labelData
+					labelData: cable.labelData,
+					onEdgeDelete: handleEdgeDelete
 				}
 			}));
 
 		return edges;
+	}
+
+	/**
+	 * Handle edge deletion - removes edge from the local state
+	 * @param {string} edgeId - The UUID of the edge/cable to remove
+	 */
+	function handleEdgeDelete(edgeId) {
+		edges = edges.filter((edge) => edge.id !== edgeId);
 	}
 
 	onMount(async () => {
@@ -289,7 +298,8 @@
 					type: 'cableDiagramEdge',
 					data: {
 						label: cableName,
-						cable: { ...cableData, uuid: cableUuid }
+						cable: { ...cableData, uuid: cableUuid },
+						onEdgeDelete: handleEdgeDelete
 					}
 				}
 			];

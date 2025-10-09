@@ -4,7 +4,7 @@
 	import { parse } from 'devalue';
 	import DrawerTabs from './DrawerTabs.svelte';
 
-	let { edgeId, labelData, cableData, defaultX, defaultY, onPositionUpdate } = $props();
+	let { edgeId, labelData, cableData, defaultX, defaultY, onPositionUpdate, onEdgeDelete } = $props();
 
 	// Coordinate transformation
 	const { screenToFlowPosition } = useSvelteFlow();
@@ -208,7 +208,8 @@
 				onLabelUpdate: (newLabel) => {
 					currentLabel = newLabel;
 					drawerStore.setTitle(newLabel);
-				}
+				},
+				onEdgeDelete
 			}
 		});
 	}

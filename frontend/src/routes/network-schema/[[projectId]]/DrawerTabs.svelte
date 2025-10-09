@@ -8,7 +8,7 @@
 	import CableDiagramEdgeHandleConfig from './CableDiagramEdgeHandleConfig.svelte';
 	import CableDiagramNodeAttributeCard from './CableDiagramNodeAttributeCard.svelte';
 
-	let { data, type, onLabelUpdate } = $props();
+	let { data, type, onLabelUpdate, onEdgeDelete } = $props();
 
 	let group = $state('attributes');
 </script>
@@ -23,7 +23,7 @@
 	{#snippet content()}
 		<Tabs.Panel value="attributes">
 			{#if type === 'edge'}
-				<CableDiagramEdgeAttributeCard {...data} {onLabelUpdate} />
+				<CableDiagramEdgeAttributeCard {...data} {onLabelUpdate} {onEdgeDelete} />
 			{:else if type === 'node'}
 				<CableDiagramNodeAttributeCard {...data} {onLabelUpdate} />
 			{/if}

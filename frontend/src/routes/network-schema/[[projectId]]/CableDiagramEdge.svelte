@@ -451,6 +451,7 @@
 		defaultX={labelX}
 		defaultY={labelY}
 		onPositionUpdate={handleLabelPositionUpdate}
+		onEdgeDelete={data?.onEdgeDelete}
 	/>
 {/if}
 

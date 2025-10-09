@@ -32,7 +32,7 @@
 	let cableReserveSection = $derived(cable?.reserve_section || '');
 	let cableFlag = $derived([cable?.flag?.id]);
 
-	let { onLabelUpdate } = $props();
+	let { onLabelUpdate, onEdgeDelete } = $props();
 
 	// Update state when cable changes
 	$effect(() => {
@@ -127,7 +127,7 @@
 					description: m.message_success_deleting_cable()
 				});
 				drawerStore.close();
-				window.location.reload();
+				onEdgeDelete?.(cable.uuid);
 			} else {
 				throw new Error(result.message || m.message_error_deleting_cable());
 			}
