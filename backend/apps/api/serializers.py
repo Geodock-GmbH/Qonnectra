@@ -9,6 +9,7 @@ from .models import (
     AttributesCompany,
     AttributesConduitType,
     AttributesConstructionType,
+    AttributesMicroductColor,
     AttributesMicroductStatus,
     AttributesNetworkLevel,
     AttributesNodeType,
@@ -117,7 +118,6 @@ class AttributesConduitTypeSerializer(serializers.ModelSerializer):
             "id",
             "conduit_type",
             "conduit_count",
-            "color_code",
             "conduit_type_alias",
             "conduit_type_microduct",
         ]
@@ -145,6 +145,25 @@ class AttributesMicroductStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = AttributesMicroductStatus
         fields = ["id", "microduct_status"]
+
+
+class AttributesMicroductColorSerializer(serializers.ModelSerializer):
+    """Serializer for the AttributesMicroductColor model."""
+
+    class Meta:
+        model = AttributesMicroductColor
+        fields = [
+            "id",
+            "name_de",
+            "name_en",
+            "hex_code",
+            "hex_code_secondary",
+            "display_order",
+            "is_active",
+            "description",
+            "is_two_layer",
+        ]
+        read_only_fields = ["is_two_layer"]
 
 
 class AttributesCableTypeSerializer(serializers.ModelSerializer):
@@ -820,6 +839,12 @@ class MicroductSerializer(serializers.ModelSerializer):
     # Add write fields for foreign keys
     number = serializers.IntegerField(required=True)
     color = serializers.CharField(required=True)
+
+    # Color hex codes from AttributesMicroductColor
+    hex_code = serializers.SerializerMethodField(read_only=True)
+    hex_code_secondary = serializers.SerializerMethodField(read_only=True)
+    is_two_layer = serializers.SerializerMethodField(read_only=True)
+
     uuid_conduit_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=Conduit.objects.all(),
@@ -842,6 +867,43 @@ class MicroductSerializer(serializers.ModelSerializer):
         model = Microduct
         fields = "__all__"
         ordering = ["number"]
+
+    def get_hex_code(self, obj):
+        """Get primary hex code from AttributesMicroductColor."""
+        if not obj.color:
+            return "#64748b"  # Default gray
+
+        # Handle two-layer colors (e.g., "rot-weiss")
+        color_name = obj.color.lower()
+        if '-' in color_name:
+            color_name = color_name.split('-')[0]
+
+        try:
+            color_obj = AttributesMicroductColor.objects.get(
+                name_de__iexact=color_name, is_active=True
+            )
+            return color_obj.hex_code
+        except AttributesMicroductColor.DoesNotExist:
+            return "#64748b"  # Default gray
+
+    def get_hex_code_secondary(self, obj):
+        """Get secondary hex code for two-layer colors."""
+        if not obj.color or '-' not in obj.color.lower():
+            return None
+
+        color_name = obj.color.lower().split('-')[1]
+
+        try:
+            color_obj = AttributesMicroductColor.objects.get(
+                name_de__iexact=color_name, is_active=True
+            )
+            return color_obj.hex_code
+        except AttributesMicroductColor.DoesNotExist:
+            return None
+
+    def get_is_two_layer(self, obj):
+        """Check if this is a two-layer/striped color."""
+        return '-' in obj.color.lower() if obj.color else False
 
     def get_fields(self):
         """Dynamically translate field labels."""

@@ -6,6 +6,7 @@ from .views import (
     AttributesCableTypeViewSet,
     AttributesCompanyViewSet,
     AttributesConduitTypeViewSet,
+    AttributesMicroductColorViewSet,
     AttributesMicroductStatusViewSet,
     AttributesNetworkLevelViewSet,
     AttributesNodeTypeViewSet,
@@ -38,9 +39,34 @@ from .views import (
 
 router = DefaultRouter()
 router.register(
+    r"attributes_cable_type",
+    AttributesCableTypeViewSet,
+    basename="attributes_cable_type",
+)
+router.register(
+    r"attributes_company",
+    AttributesCompanyViewSet,
+    basename="attributes_company",
+)
+router.register(
     r"attributes_conduit_type",
     AttributesConduitTypeViewSet,
     basename="attributes_conduit_type",
+)
+router.register(
+    r"attributes_microduct_color",
+    AttributesMicroductColorViewSet,
+    basename="attributes_microduct_color",
+)
+router.register(
+    r"attributes_microduct_status",
+    AttributesMicroductStatusViewSet,
+    basename="attributes_microduct_status",
+)
+router.register(
+    r"attributes_network_level",
+    AttributesNetworkLevelViewSet,
+    basename="attributes_network_level",
 )
 router.register(
     r"attributes_node_type",
@@ -51,26 +77,6 @@ router.register(
     r"attributes_status",
     AttributesStatusViewSet,
     basename="attributes_status",
-)
-router.register(
-    r"attributes_network_level",
-    AttributesNetworkLevelViewSet,
-    basename="attributes_network_level",
-)
-router.register(
-    r"attributes_company",
-    AttributesCompanyViewSet,
-    basename="attributes_company",
-)
-router.register(
-    r"attributes_microduct_status",
-    AttributesMicroductStatusViewSet,
-    basename="attributes_microduct_status",
-)
-router.register(
-    r"attributes_cable_type",
-    AttributesCableTypeViewSet,
-    basename="attributes_cable_type",
 )
 router.register(r"address", AddressViewSet, basename="address")
 router.register(r"cable", CableViewSet, basename="cable")

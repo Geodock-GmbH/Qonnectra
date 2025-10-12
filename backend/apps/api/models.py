@@ -211,7 +211,6 @@ class AttributesConduitType(models.Model):
         db_column="manufacturer",
         verbose_name=_("Manufacturer"),
     )
-    color_code = models.JSONField(_("Color Code"), null=False)
     conduit_type_alias = models.TextField(_("Conduit Type Alias"), null=True)
     conduit_type_microduct = models.IntegerField(_("Conduit Type Microduct"), null=True)
 
@@ -312,6 +311,76 @@ class AttributesCableType(models.Model):
 
     def __str__(self):
         return self.cable_type
+
+
+class AttributesMicroductColor(models.Model):
+    """Stores all available microduct colors with their visual representation.
+    Allows admin to manage color palette for microducts.
+    Related to :model:`api.Microduct`, :model:`api.AttributesConduitType`.
+    """
+
+    id = models.AutoField(primary_key=True)
+
+    name_de = models.CharField(
+        _("German Name"),
+        max_length=50,
+        unique=True,
+        help_text=_("German color name (e.g., 'rot', 'rot-weiss')"),
+    )
+    name_en = models.CharField(
+        _("English Name"),
+        max_length=50,
+        help_text=_("English color name (e.g., 'red', 'red-white')"),
+    )
+
+    hex_code = models.CharField(
+        _("Hex Color Code"),
+        max_length=7,
+        help_text=_("Primary CSS hex color code (e.g., '#dc2626')"),
+    )
+    hex_code_secondary = models.CharField(
+        _("Secondary Hex Color Code"),
+        max_length=7,
+        null=True,
+        blank=True,
+        help_text=_("Secondary color for striped/two-layer microducts (optional)"),
+    )
+
+    display_order = models.IntegerField(
+        _("Display Order"),
+        default=0,
+        help_text=_("Order in which colors appear in selection lists"),
+    )
+    is_active = models.BooleanField(
+        _("Active"),
+        default=True,
+        help_text=_("Inactive colors are hidden but preserved for existing data"),
+    )
+    description = models.TextField(
+        _("Description"),
+        null=True,
+        blank=True,
+        help_text=_("Optional notes about this color"),
+    )
+
+    class Meta:
+        db_table = "attributes_microduct_color"
+        verbose_name = _("Microduct Color")
+        verbose_name_plural = _("Microduct Colors")
+        ordering = ["display_order", "name_de"]
+        indexes = [
+            models.Index(fields=["name_de"], name="idx_md_color_name_de"),
+            models.Index(fields=["display_order"], name="idx_md_color_display_order"),
+            models.Index(fields=["is_active"], name="idx_md_color_is_active"),
+        ]
+
+    def __str__(self):
+        return f"{self.name_de} ({self.name_en})"
+
+    @property
+    def is_two_layer(self):
+        """Check if this is a two-layer/striped color"""
+        return self.hex_code_secondary is not None
 
 
 # TODO: Implement custom storage class for feature files (nextcloud): https://docs.djangoproject.com/en/4.2/howto/custom-file-storage/
@@ -632,7 +701,6 @@ class Trench(models.Model):
 # TODO: Implement residential unit model
 
 
-# OL VIEW
 class OlTrench(models.Model):
     """Stores all trench features rendered on Openlayers,
     related to :model:`api.AttributesSurface`,
@@ -1313,22 +1381,26 @@ class Microduct(models.Model):
 def create_microducts_for_conduit(sender, instance, created, **kwargs):
     """
     Signal to automatically create microducts when a conduit is created.
-    Creates microducts based on the color_code field in the conduit's conduit_type.
+    Creates microducts based on the ConduitTypeColorMapping for the conduit's type.
     """
-    if created and instance.conduit_type and instance.conduit_type.color_code:
-        color_code = instance.conduit_type.color_code
+    if created and instance.conduit_type:
+        color_mappings = (
+            ConduitTypeColorMapping.objects.filter(conduit_type=instance.conduit_type)
+            .select_related("color")
+            .order_by("position")
+        )
 
-        for number, color in color_code.items():
-            try:
-                microduct_number = int(number)
-
-                Microduct.objects.create(
-                    uuid_conduit=instance, number=microduct_number, color=color
-                )
-
-            except (ValueError, TypeError) as e:
-                print(f"Error creating microduct for conduit {instance.name}: {e}")
-                continue
+        if color_mappings.exists():
+            for mapping in color_mappings:
+                try:
+                    Microduct.objects.create(
+                        uuid_conduit=instance,
+                        number=mapping.position,
+                        color=mapping.color.name_de,
+                    )
+                except Exception as e:
+                    print(f"Error creating microduct for conduit {instance.name}: {e}")
+                    continue
 
 
 class MicroductConnection(models.Model):
@@ -1768,4 +1840,34 @@ class MicroductCableConnection(models.Model):
             + str(self.uuid_microduct.number)
             + " to "
             + self.uuid_cable.name
+        )
+
+
+class ConduitTypeColorMapping(models.Model):
+    """Maps positions to colors for each conduit type."""
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    conduit_type = models.ForeignKey(
+        AttributesConduitType,
+        on_delete=models.CASCADE,
+        related_name="color_mappings",
+        verbose_name=_("Conduit Type"),
+    )
+    position = models.IntegerField(
+        _("Position"), help_text=_("Microduct position/number (1-12, etc.)")
+    )
+    color = models.ForeignKey(
+        AttributesMicroductColor, on_delete=models.PROTECT, verbose_name=_("Color")
+    )
+
+    class Meta:
+        db_table = "conduit_type_color_mapping"
+        verbose_name = _("Conduit Type Color Mapping")
+        verbose_name_plural = _("Conduit Type Color Mappings")
+        unique_together = [["conduit_type", "position"]]
+        ordering = ["conduit_type", "position"]
+
+    def __str__(self):
+        return (
+            f"{self.conduit_type.conduit_type} - {self.position} - {self.color.name_de}"
         )

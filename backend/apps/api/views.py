@@ -18,6 +18,7 @@ from .models import (
     AttributesCableType,
     AttributesCompany,
     AttributesConduitType,
+    AttributesMicroductColor,
     AttributesMicroductStatus,
     AttributesNetworkLevel,
     AttributesNodeType,
@@ -46,6 +47,7 @@ from .serializers import (
     AttributesCableTypeSerializer,
     AttributesCompanySerializer,
     AttributesConduitTypeSerializer,
+    AttributesMicroductColorSerializer,
     AttributesMicroductStatusSerializer,
     AttributesNetworkLevelSerializer,
     AttributesNodeTypeSerializer,
@@ -1382,6 +1384,21 @@ class AttributesMicroductStatusViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_url_kwarg = "pk"
 
 
+class AttributesMicroductColorViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesMicroductColor model :model:`api.AttributesMicroductColor`.
+
+    An instance of :model:`api.AttributesMicroductColor`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesMicroductColor.objects.filter(is_active=True).order_by(
+        "display_order", "name_de"
+    )
+    serializer_class = AttributesMicroductColorSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
 class MicroductViewSet(viewsets.ModelViewSet):
     """ViewSet for the Microduct model :model:`api.Microduct`.
 
@@ -1526,11 +1543,17 @@ class TrenchesNearNodeView(APIView):
                 and n.project = %s
                 and t.project = %s
         )
-        select t.uuid, t.id_trench, c.uuid, c.name, md.uuid, md.number, md.color, md.microduct_status
+        select t.uuid, t.id_trench, c.uuid, c.name, md.uuid, md.number, md.color, md.microduct_status, mc.hex_code,
+        mc.hex_code_secondary,
+        mc.name_de,
+        mc.name_en
         from microduct md
                 join conduit c on c.uuid = md.uuid_conduit
                 join trench_conduit_connect tcc on tcc.uuid_conduit = c.uuid
                 join trench t on t.uuid = tcc.uuid_trench
+                left join conduit_type_color_mapping ctcm
+                on ctcm.conduit_type_id = c.conduit_type and md.number = ctcm.position
+                left join attributes_microduct_color mc on ctcm.color_id = mc.id
         where t.project = %s
         and t.uuid = any (select uuid from trenches_near_node)
         order by t.id_trench, c.name, md.number;
@@ -1568,6 +1591,10 @@ class TrenchesNearNodeView(APIView):
                 microduct_number,
                 microduct_color,
                 microduct_status,
+                microduct_hex_code,
+                microduct_hex_code_secondary,
+                microduct_name_de,
+                microduct_name_en,
             ) = row
 
             if trench_uuid not in trenches:
@@ -1590,6 +1617,11 @@ class TrenchesNearNodeView(APIView):
                     "number": microduct_number,
                     "color": microduct_color,
                     "microduct_status": microduct_status,
+                    "hex_code": microduct_hex_code,
+                    "hex_code_secondary": microduct_hex_code_secondary,
+                    "name_de": microduct_name_de,
+                    "name_en": microduct_name_en,
+                    "is_two_layer": microduct_hex_code_secondary is not None,
                 }
             )
 

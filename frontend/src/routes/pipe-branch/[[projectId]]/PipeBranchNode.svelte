@@ -7,13 +7,6 @@
 
 	// SvelteFlow
 	import { Handle, Position } from '@xyflow/svelte';
-	// Color mapping
-	import {
-		getContrastColor,
-		getMicroductBorderColor,
-		getMicroductColor,
-		isTwoLayerColor
-	} from '$lib/utils/microductColors.js';
 
 	// Toaster
 	const toaster = createToaster({
@@ -30,11 +23,36 @@
 	const radius = $derived(Math.max(120, 80 + handleCount * 10));
 	const diameter = $derived(radius * 2);
 
+	/**
+	 * Get contrasting text color (black or white) for a given background color
+	 * @param {string} hexColor - Hex color code
+	 * @returns {string} 'black' or 'white'
+	 */
+	function getContrastColor(hexColor) {
+		if (!hexColor) return 'white';
+
+		// Convert hex to RGB
+		const hex = hexColor.replace('#', '');
+		const r = parseInt(hex.substr(0, 2), 16);
+		const g = parseInt(hex.substr(2, 2), 16);
+		const b = parseInt(hex.substr(4, 2), 16);
+
+		// Calculate luminance
+		const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+		return luminance > 0.5 ? 'black' : 'white';
+	}
+
 	const handleData = $derived(() => {
 		if (!conduit || !conduit.microducts) return [];
 
 		const handles = [];
 		conduit.microducts.forEach((microduct, micIndex) => {
+			const hexCode = microduct.hex_code || '#64748b'; // Default gray
+			const hexCodeSecondary = microduct.hex_code_secondary;
+			const isTwoLayer = microduct.is_two_layer || false;
+			console.log(isTwoLayer);
+
 			handles.push({
 				id: `conduit-${conduit.uuid}-microduct-${microduct.number}`,
 				microductUuid: microduct.uuid,
@@ -43,10 +61,10 @@
 				conduitUuid: conduit.uuid,
 				status: microduct.microduct_status,
 				color: microduct.color,
-				cssColor: getMicroductColor(microduct.color),
-				borderColor: getMicroductBorderColor(microduct.color),
-				isTwoLayer: isTwoLayerColor(microduct.color),
-				contrastColor: getContrastColor(microduct.color)
+				cssColor: hexCode,
+				borderColor: hexCodeSecondary,
+				isTwoLayer: isTwoLayer,
+				contrastColor: getContrastColor(hexCode)
 			});
 		});
 		return handles;

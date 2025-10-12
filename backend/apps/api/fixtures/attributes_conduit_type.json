@@ -5,7 +5,6 @@
         "fields": {
             "conduit_type": "12x10/6",
             "conduit_count": 12,
-            "color_code": {"1": "rot", "2": "grün", "3": "blau", "4": "gelb", "5": "weiss", "6": "grau", "7": "braun", "8": "violett", "9": "türkis", "10": "schwarz", "11": "orange", "12": "pink"},
             "conduit_type_alias": null,
             "conduit_type_microduct": null,
             "manufacturer": null
@@ -17,7 +16,6 @@
         "fields": {
             "conduit_type": "10/6",
             "conduit_count": 1,
-            "color_code": {"1": "orange"},
             "conduit_type_alias": null,
             "conduit_type_microduct": null,
             "manufacturer": null
