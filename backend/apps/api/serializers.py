@@ -483,7 +483,7 @@ class ConduitSerializer(serializers.ModelSerializer):
     outer_conduit = serializers.CharField(required=False, allow_blank=True)
 
     date = serializers.DateField(
-        input_formats=["%Y/%m/%d"], format="%d.%m.%Y", required=False
+        input_formats=["%Y-%m-%d"], format="%Y-%m-%d", required=False
     )
 
     class Meta:
@@ -875,8 +875,8 @@ class MicroductSerializer(serializers.ModelSerializer):
 
         # Handle two-layer colors (e.g., "rot-weiss")
         color_name = obj.color.lower()
-        if '-' in color_name:
-            color_name = color_name.split('-')[0]
+        if "-" in color_name:
+            color_name = color_name.split("-")[0]
 
         try:
             color_obj = AttributesMicroductColor.objects.get(
@@ -888,10 +888,10 @@ class MicroductSerializer(serializers.ModelSerializer):
 
     def get_hex_code_secondary(self, obj):
         """Get secondary hex code for two-layer colors."""
-        if not obj.color or '-' not in obj.color.lower():
+        if not obj.color or "-" not in obj.color.lower():
             return None
 
-        color_name = obj.color.lower().split('-')[1]
+        color_name = obj.color.lower().split("-")[1]
 
         try:
             color_obj = AttributesMicroductColor.objects.get(
@@ -903,7 +903,7 @@ class MicroductSerializer(serializers.ModelSerializer):
 
     def get_is_two_layer(self, obj):
         """Check if this is a two-layer/striped color."""
-        return '-' in obj.color.lower() if obj.color else False
+        return "-" in obj.color.lower() if obj.color else False
 
     def get_fields(self):
         """Dynamically translate field labels."""

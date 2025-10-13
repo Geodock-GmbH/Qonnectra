@@ -54,13 +54,7 @@
 
 			selectedConduitName = editData.name;
 			selectedOuterConduit = editData.outer_conduit;
-			if (editData.date) {
-				// from DD.MM.YYYY to YYYY-MM-DD
-				const dateParts = editData.date.split('.');
-				selectedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
-			} else {
-				selectedDate = '';
-			}
+			selectedDate = editData.date;
 			selectedConduitType = [editData.conduit_type ? editData.conduit_type.id : ''];
 			selectedStatus = [editData.status ? editData.status.id : ''];
 			selectedNetworkLevel = [editData.network_level ? editData.network_level.id : ''];
@@ -92,7 +86,7 @@
 			constructor_id: selectedConstructor?.[0] ?? null,
 			manufacturer_id: selectedManufacturer?.[0] ?? null,
 			flag_id: selectedFlag?.[0] ?? null,
-			date: formProps.date ? formProps.date.replace(/-/g, '/') : null,
+			date: formProps.date ? formProps.date : null,
 			outer_conduit: formProps.outer_conduit ?? null
 		};
 
@@ -315,14 +309,7 @@
 			</label>
 			<label for="date" class="label">
 				<span class="label-text">{m.common_date()}</span>
-				<input
-					type="date"
-					name="date"
-					id="date"
-					class="input"
-					format="yyyy-MM-dd"
-					value={selectedDate}
-				/>
+				<input type="date" name="date" id="date" class="input" value={selectedDate} />
 			</label>
 			<label for="flag" class="label">
 				<span class="label-text">{m.form_flag()}</span>
