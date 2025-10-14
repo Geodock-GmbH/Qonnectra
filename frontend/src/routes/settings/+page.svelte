@@ -6,7 +6,6 @@
 	// Svelte
 	import { userStore } from '$lib/stores/auth';
 	import {
-		routingMode,
 		routingTolerance,
 		sidebarExpanded,
 		theme,
@@ -166,27 +165,6 @@
 					{m.settings_conduit_connection_description()}
 				</p>
 
-				<dl class="mt-6 divide-y border-t text-sm/6">
-					<div class="py-6 sm:flex">
-						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
-							{m.form_routing_mode()}
-						</dt>
-						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
-							{#if $routingMode}
-								<p>{m.action_routing_mode_enabled()}</p>
-							{:else}
-								<p>{m.action_routing_mode_disabled()}</p>
-							{/if}
-							<Switch
-								name="routing-mode"
-								checked={$routingMode}
-								onCheckedChange={() => {
-									$routingMode = !$routingMode;
-								}}
-							/>
-						</dd>
-					</div>
-				</dl>
 				<dl class="mt-6 divide-y border-t text-sm/6">
 					<div class="py-6 sm:flex">
 						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
