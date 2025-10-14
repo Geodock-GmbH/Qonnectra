@@ -1,7 +1,4 @@
 <script>
-	// Skeleton
-	import { Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
-
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
@@ -9,6 +6,7 @@
 	import { page } from '$app/stores';
 	import Map from '$lib/components/Map.svelte';
 	import { selectedProject, trenchColor, trenchColorSelected } from '$lib/stores/store';
+	import { globalToaster } from '$lib/stores/toaster';
 	import { onDestroy } from 'svelte';
 	// OpenLayers
 	import 'ol/ol.css';
@@ -23,11 +21,6 @@
 		createTrenchLayer,
 		createTrenchTileSource
 	} from '$lib/map';
-
-	// Toaster
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
 
 	// TODO: Create AbortController for the fetch request
 
@@ -51,7 +44,7 @@
 
 	// Error handler for tile loading
 	function handleTileError(message, description) {
-		toaster.create({
+		globalToaster.create({
 			type: 'error',
 			message: message,
 			description: description
@@ -90,7 +83,7 @@
 		addressLayer = createAddressLayer($selectedProject, m.form_address(), handleTileError);
 		nodeLayer = createNodeLayer($selectedProject, m.form_node(), handleTileError);
 	} catch (error) {
-		toaster.error({
+		globalToaster.error({
 			title: m.title_error_initializing_map_tiles(),
 			description: error.message || 'Could not set up the tile layer.'
 		});
@@ -268,7 +261,7 @@
 	});
 
 	if (data.error) {
-		toaster.error({
+		globalToaster.error({
 			title: m.title_error_loading_map_features(),
 			description: data.error
 		});
@@ -278,8 +271,6 @@
 <svelte:head>
 	<title>{m.nav_map()}</title>
 </svelte:head>
-
-<Toaster {toaster}></Toaster>
 
 <div class="map-container relative h-full w-full">
 	{#if data.error && !vectorTileLayer}

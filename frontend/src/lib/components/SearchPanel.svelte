@@ -1,15 +1,12 @@
 <script>
-	// Skeleton
-	import { Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
-
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
-
 	// Components
 	import GenericCombobox from './GenericCombobox.svelte';
 	import SearchInput from './SearchInput.svelte';
 	// Svelte
 	import { selectedProject } from '$lib/stores/store';
+	import { globalToaster } from '$lib/stores/toaster';
 	import { parse } from 'devalue';
 	// Search utilities
 	import {
@@ -28,11 +25,6 @@
 		onFeatureSelect = () => {},
 		onSearchError = () => {}
 	} = $props();
-
-	// Toaster
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
 
 	// Search state
 	let searchQuery = $state('');
@@ -73,7 +65,7 @@
 			}
 		} catch (error) {
 			console.error('Search error:', error);
-			toaster.error({
+			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_search_failed()
 			});
@@ -139,20 +131,20 @@
 				searchResults = [];
 				showSearchResults = false;
 
-				toaster.success({
+				globalToaster.success({
 					title: m.title_feature_found()
 				});
 
 				onFeatureSelect(feature);
 			} else {
 				console.error('Invalid response structure:', parsedData);
-				toaster.error({
+				globalToaster.error({
 					title: m.title_error_feature_not_found()
 				});
 			}
 		} catch (error) {
 			console.error('Error fetching feature details:', error);
-			toaster.error({
+			globalToaster.error({
 				title: m.error9_feature_not_found()
 			});
 			onSearchError(error);
@@ -174,9 +166,7 @@
 	}
 </script>
 
-<Toaster {toaster}></Toaster>
-
-<div class="bg-surface-50-950 rounded-lg border border-surface-200-800 shadow-lg p-3 lg:p-4 w-full">
+<div class="bg-surface-50-950 rounded-lg border border-surface-200-800 shadow-lg w-full">
 	<SearchInput bind:value={searchQuery} onSearch={handleSearch} />
 
 	{#if showSearchResults && searchResults.length > 0}

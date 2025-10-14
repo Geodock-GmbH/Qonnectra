@@ -27,9 +27,11 @@
 	<Navigation.Rail expanded={$sidebarExpanded}>
 		{#snippet header()}
 			<div class="flex items-center gap-2">
-				<AppIcon />
 				{#if $sidebarExpanded}
-					<h1 class="text-2xl font-bold">Qonectra</h1>
+					<AppIcon size="2rem" />
+					<h1 class="text-2xl font-semibold">Qonnectra</h1>
+				{:else}
+					<AppIcon />
 				{/if}
 			</div>
 		{/snippet}

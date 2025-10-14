@@ -1,16 +1,9 @@
 <script>
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
-
-	// Skeleton
-	import { Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
-
 	// SvelteKit
 	import { enhance } from '$app/forms';
-
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
+	import { globalToaster } from '$lib/stores/toaster';
 
 	let username;
 	let password;
@@ -24,7 +17,7 @@
 	// Reactive statement to show toast on error
 	// TODO: Login successful toast, should be on the redirectTo page.
 	$: if (form?.error) {
-		toaster.create({
+		globalToaster.create({
 			title: m.title_login_error(),
 			description: m.message_login_error(),
 			type: 'error'
@@ -32,8 +25,6 @@
 		console.log('form', form.error);
 	}
 </script>
-
-<Toaster {toaster}></Toaster>
 
 <div class="flex flex-col gap-4 items-center justify-center">
 	<!-- Logo -->

@@ -1,17 +1,9 @@
 <script>
-	// Skeleton
-	import { createToaster, Toaster } from '@skeletonlabs/skeleton-svelte';
-
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
 	// SvelteFlow
 	import { Handle, Position } from '@xyflow/svelte';
-
-	// Toaster
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
 
 	let { id, data, selected = false } = $props();
 
@@ -83,8 +75,6 @@
 		})
 	);
 </script>
-
-<Toaster {toaster}></Toaster>
 
 <!-- Node label and content box positioned above and to the left -->
 <div

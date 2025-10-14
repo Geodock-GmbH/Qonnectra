@@ -1,7 +1,6 @@
 <script>
 	// Skeleton
-	import { Switch, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
-
+	import { Switch } from '@skeletonlabs/skeleton-svelte';
 	// Icons
 	import { IconCheck, IconX } from '@tabler/icons-svelte';
 
@@ -40,12 +39,6 @@
 	import { createSelectionLayer, createTrenchTileSource } from '$lib/map';
 
 	let { data } = $props();
-
-	// Toaster
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
-
 	let olMapInstance = $state();
 	let vectorTileLayer = $state();
 	let selectionLayer = $state();
@@ -62,8 +55,7 @@
 
 	async function handleTrenchClick(trenchUuid, trenchLabel) {
 		if (!olMapInstance || !vectorTileLayer) {
-			toaster.create({
-				type: 'error',
+			globalToaster.error({
 				title: m.title_error_loading_map_features(),
 				description: 'Map not ready'
 			});
@@ -151,7 +143,7 @@
 							}
 						});
 
-						toaster.success({
+						globalToaster.success({
 							title: m.title_trench_located(),
 							description: m.message_trench_located_description({ trenchLabel })
 						});
@@ -162,7 +154,7 @@
 			}
 		} catch (error) {
 			console.error('Error zooming to trench:', error);
-			toaster.error({
+			globalToaster.error({
 				title: m.title_trench_not_visible(),
 				description: m.message_trench_not_visible_description({ trenchLabel })
 			});
@@ -194,8 +186,7 @@
 
 	// Error handler for tile loading
 	function handleTileError(message, description) {
-		toaster.create({
-			type: 'error',
+		globalToaster.error({
 			title: message,
 			description: description
 		});
@@ -255,8 +246,7 @@
 			declutter: true
 		});
 	} catch (error) {
-		toaster.create({
-			type: 'error',
+		globalToaster.error({
 			title: m.title_error_creating_vector_tile_layer(),
 			description: m.message_error_creating_vector_tile_layer()
 		});
@@ -314,7 +304,7 @@
 		if (!olMapInstance) return;
 
 		if ($selectedConduit === undefined) {
-			toaster.error({
+			globalToaster.error({
 				title: m.title_no_conduit_selected(),
 				description: m.message_no_conduit_selected_description()
 			});
@@ -396,7 +386,7 @@
 							await trenchTableInstance.addRoutedTrenches(newSelectionForTrenchTable);
 						}
 					} else {
-						toaster.error({
+						globalToaster.error({
 							title: m.title_error_calculating_route(),
 							description: m.message_error_calculating_route_description()
 						});
@@ -404,7 +394,7 @@
 					}
 				} catch (error) {
 					console.error('Routing error:', error);
-					toaster.error({
+					globalToaster.error({
 						title: m.title_error_calculating_route(),
 						description: error.message // TODO: Translate. This comes from the backend. How?
 					});
@@ -448,8 +438,6 @@
 <svelte:head>
 	<title>{m.nav_conduit_connection()}</title>
 </svelte:head>
-
-<Toaster {toaster} />
 
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
 	<div

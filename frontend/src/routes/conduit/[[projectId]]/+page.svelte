@@ -1,12 +1,10 @@
 <script>
 	// Skeleton
-	import { FileUpload, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
-
+	import { FileUpload } from '@skeletonlabs/skeleton-svelte';
 	// Tabler
 	import { IconUpload } from '@tabler/icons-svelte';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
-
 	// Svelte
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
@@ -22,11 +20,6 @@
 	let searchInput = $state(data.searchTerm || '');
 	let searchTerm = $state('');
 	let updatedPipeData = $state(null);
-
-	// Toast
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
 
 	function performSearch() {
 		const url = new URL($page.url);
@@ -56,7 +49,7 @@
 		formData.append('file', file);
 
 		// Show loading toast
-		const loadingToast = toaster.create({
+		const loadingToast = globalToaster.create({
 			type: 'info',
 			title: m.common_import(),
 			description: m.message_importing_conduits_description()
@@ -71,7 +64,7 @@
 			const result = await response.json();
 
 			if (response.ok) {
-				toaster.success({
+				globalToaster.success({
 					title: m.title_import_conduits_success(),
 					description:
 						result.message ||
@@ -86,7 +79,7 @@
 					errorMessage = result.error;
 				}
 
-				toaster.error({
+				globalToaster.error({
 					title: m.title_import_conduits_error(),
 					description: errorMessage
 				});
@@ -94,7 +87,7 @@
 				return;
 			}
 		} catch (error) {
-			toaster.error({
+			globalToaster.error({
 				title: m.title_import_conduits_error(),
 				description: m.message_please_try_again()
 			});
@@ -106,15 +99,13 @@
 		const rejectedFiles = event.detail.rejectedFiles;
 		if (rejectedFiles && rejectedFiles.length > 0) {
 			const errors = rejectedFiles.map((file) => `${file.file.name}: ${file.errors.join(', ')}`);
-			toaster.error({
+			globalToaster.error({
 				title: m.title_file_rejected(),
 				description: m.message_file_rejected_description() + '\n' + errors.join('\n')
 			});
 		}
 	}
 </script>
-
-<Toaster {toaster} />
 
 <div class="flex justify-between items-center">
 	<div class="flex items-center">

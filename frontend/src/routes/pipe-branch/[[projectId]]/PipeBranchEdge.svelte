@@ -1,19 +1,14 @@
 <script>
-	// Skeleton
-	import { createToaster, Toaster } from '@skeletonlabs/skeleton-svelte';
-
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
+
+	// Svelte
+	import { globalToaster } from '$lib/stores/toaster';
 
 	// SvelteFlow
 	import { BaseEdge, EdgeLabel, getStraightPath, useEdges } from '@xyflow/svelte';
 
 	let { id, sourceX, sourceY, targetX, targetY, data } = $props();
-
-	// Toaster
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
 
 	// Use the edges store for deletion
 	const edges = useEdges();
@@ -52,22 +47,20 @@
 				if (!response.ok) {
 					const error = await response.json();
 					console.error('Failed to delete connection:', error);
-					toaster.create({
-						type: 'error',
+					globalToaster.error({
 						title: m.common_error(),
 						description: m.message_error_connection_deleted()
 					});
 					return;
 				}
 
-				toaster.success({
+				globalToaster.success({
 					title: m.title_success(),
 					description: m.message_connection_deleted_successfully()
 				});
 			} catch (error) {
 				console.error('Error deleting connection:', error);
-				toaster.create({
-					type: 'error',
+				globalToaster.error({
 					title: m.common_error(),
 					description: m.message_error_connection_deleted()
 				});
@@ -79,8 +72,6 @@
 		edges.update((eds) => eds.filter((edge) => edge.id !== id));
 	}
 </script>
-
-<Toaster {toaster}></Toaster>
 
 <BaseEdge
 	{id}
@@ -118,7 +109,7 @@
 			class="nodrag nopan bg-error-500 hover:bg-error-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow-sm"
 			style="z-index: 100;"
 			onclick={() =>
-				toaster.promise(handleDeleteEdge(), {
+				globalToaster.promise(handleDeleteEdge(), {
 					success: () => ({
 						title: m.title_success(),
 						description: m.message_connection_deleted_successfully()

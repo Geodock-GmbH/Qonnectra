@@ -1,11 +1,10 @@
 <script>
-	// Skeleton
-	import { createToaster, Toaster } from '@skeletonlabs/skeleton-svelte';
 	// Svelte
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { selectedProject } from '$lib/stores/store';
+	import { globalToaster } from '$lib/stores/toaster';
 	import { onMount } from 'svelte';
 	import LassoModeSwitch from './LassoModeSwitch.svelte';
 	import PipeBranchEdge from './PipeBranchEdge.svelte';
@@ -30,11 +29,6 @@
 	let partialSelection = $state(false);
 	let selectedNodeIds = $state([]);
 	let lassoComponent = $state(null);
-
-	// Toaster
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
 
 	onMount(async () => {
 		await autoLockSvelteFlow();
@@ -312,7 +306,7 @@
 
 		// Prevent connection if the source handle has -source suffix
 		if (connection.sourceHandle && connection.sourceHandle.endsWith('-target')) {
-			toaster.error({
+			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_cannot_connect_from_source()
 			});
@@ -321,7 +315,7 @@
 
 		// Prevent connecting a microduct to itself
 		if (sourceHandleData.microductUuid === targetHandleData.microductUuid) {
-			toaster.error({
+			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_cannot_connect_microduct_to_itself()
 			});
@@ -500,7 +494,7 @@
 	// Auto-connect two selected nodes
 	async function autoConnectTwoNodes() {
 		if (selectedNodeIds.length !== 2) {
-			toaster.error({
+			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_please_select_exactly_2_nodes()
 			});
@@ -514,7 +508,7 @@
 		const targetNode = nodes.find((n) => n.id === targetNodeId);
 
 		if (!sourceNode || !targetNode) {
-			toaster.error({
+			globalToaster.error({
 				title: m.common_error(),
 				description: 'Could not find selected nodes'
 			});
@@ -544,7 +538,7 @@
 		}
 
 		if (connections.length === 0) {
-			toaster.error({
+			globalToaster.error({
 				title: m.common_error(),
 				description: 'No matching microducts available for connection'
 			});
@@ -627,21 +621,21 @@
 
 			// Show result
 			if (successCount > 0) {
-				toaster.success({
+				globalToaster.success({
 					title: m.title_success(),
 					description: `${successCount}x ${m.message_created_connections()}`
 				});
 			}
 
 			if (successCount < connections.length) {
-				toaster.error({
+				globalToaster.error({
 					title: m.common_error(),
 					description: `${connections.length - successCount}x ${m.message_failed_to_create_connections()}`
 				});
 			}
 		} catch (error) {
 			console.error('Error creating connections:', error);
-			toaster.error({
+			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_failed_to_create_connections()
 			});
@@ -667,8 +661,6 @@
 <svelte:head>
 	<title>{m.nav_pipe_branch()}</title>
 </svelte:head>
-
-<Toaster {toaster}></Toaster>
 
 <div class="border-2 rounded-lg border-surface-200-800 h-full w-full">
 	<SvelteFlow

@@ -1,7 +1,6 @@
 <script>
 	// Skeleton
-	import { Combobox, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
-
+	import { Combobox } from '@skeletonlabs/skeleton-svelte';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
@@ -10,11 +9,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { selectedProject } from '$lib/stores/store';
-
-	// Toaster
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
+	import { globalToaster } from '$lib/stores/toaster';
 
 	let {
 		projects = [],
@@ -28,7 +23,7 @@
 
 	$effect(() => {
 		if (projectsError && browser) {
-			toaster.error({
+			globalToaster.error({
 				title: m.title_error_fetching_projects(),
 				description: projectsError
 			});
@@ -62,8 +57,6 @@
 		onChange({ value: newProject });
 	}
 </script>
-
-<Toaster {toaster}></Toaster>
 
 {#if loading || isHydrating}
 	<div class="placeholder animate-pulse {placeholderSize}"></div>

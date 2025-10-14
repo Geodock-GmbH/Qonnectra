@@ -1,26 +1,20 @@
 <script>
 	// Skeleton
-	import { Combobox, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
-
+	import { Combobox } from '@skeletonlabs/skeleton-svelte';
 	// Svelte
 	import { browser } from '$app/environment';
 	import { selectedFlag } from '$lib/stores/store';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
-
+	import { globalToaster } from '$lib/stores/toaster';
 	let { flags = [], flagsError = null, loading = false, onchange = (_) => {} } = $props();
 
 	// Client-side hydration loading state
 	let isHydrating = $state(!browser);
 
-	// Toaster
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
-
 	$effect(() => {
 		if (flagsError && browser) {
-			toaster.error({
+			globalToaster.error({
 				title: m.title_error_fetching_flags(),
 				description: flagsError
 			});
@@ -34,8 +28,6 @@
 		}
 	});
 </script>
-
-<Toaster {toaster}></Toaster>
 
 <!-- Loading -->
 {#if loading || isHydrating}

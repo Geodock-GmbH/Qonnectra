@@ -1,8 +1,12 @@
 <script>
-	// SvelteFlow
-	import { BaseEdge, getSmoothStepPath } from '@xyflow/svelte';
-	// Svelte
 	import { edgeSnappingEnabled } from '$lib/stores/store';
+	import {
+		buildEdgePath,
+		getClosestPointOnSegment,
+		getPathMidpoint,
+		snapToGrid
+	} from '$lib/utils/edgeGeometry.js';
+	import { BaseEdge, getSmoothStepPath } from '@xyflow/svelte';
 	import { parse } from 'devalue';
 	import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
 
@@ -12,78 +16,25 @@
 
 	let labelData = $state(data?.labelData || null);
 
-	// Calculate custom path or fallback to bezier
 	let edgePath = $derived.by(() => {
 		const waypoints = data?.cable?.diagram_path;
+		const customPath = buildEdgePath(sourceX, sourceY, targetX, targetY, waypoints);
 
-		if (waypoints && Array.isArray(waypoints) && waypoints.length > 0) {
-			let path = `M ${sourceX},${sourceY}`;
-			waypoints.forEach((point) => {
-				path += ` L ${point.x},${point.y}`;
-			});
-			path += ` L ${targetX},${targetY}`;
-			return path;
-		} else {
-			// Fallback to default smooth step path
-			const [stepPath] = getSmoothStepPath({
-				sourceX,
-				sourceY,
-				targetX,
-				targetY,
-				sourcePosition,
-				targetPosition
-			});
-			return stepPath;
+		if (customPath) {
+			return customPath;
 		}
+
+		const [stepPath] = getSmoothStepPath({
+			sourceX,
+			sourceY,
+			targetX,
+			targetY,
+			sourcePosition,
+			targetPosition
+		});
+		return stepPath;
 	});
 
-	/**
-	 * Calculate the midpoint position along the entire path length
-	 * @param {number} srcX - Source X coordinate
-	 * @param {number} srcY - Source Y coordinate
-	 * @param {number} tgtX - Target X coordinate
-	 * @param {number} tgtY - Target Y coordinate
-	 * @param {Array} waypoints - Array of vertex points
-	 * @returns {Object} Object with x and y coordinates of the midpoint
-	 */
-	function getPathMidpoint(srcX, srcY, tgtX, tgtY, waypoints) {
-		const allPoints = [{ x: srcX, y: srcY }, ...(waypoints || []), { x: tgtX, y: tgtY }];
-
-		const segments = [];
-		let totalLength = 0;
-
-		for (let i = 0; i < allPoints.length - 1; i++) {
-			const dx = allPoints[i + 1].x - allPoints[i].x;
-			const dy = allPoints[i + 1].y - allPoints[i].y;
-			const length = Math.sqrt(dx * dx + dy * dy);
-
-			segments.push({
-				start: allPoints[i],
-				end: allPoints[i + 1],
-				length: length,
-				cumulativeStart: totalLength,
-				cumulativeEnd: totalLength + length
-			});
-
-			totalLength += length;
-		}
-
-		const targetLength = totalLength / 2;
-
-		for (const segment of segments) {
-			if (targetLength >= segment.cumulativeStart && targetLength <= segment.cumulativeEnd) {
-				const segmentProgress = (targetLength - segment.cumulativeStart) / segment.length;
-				return {
-					x: segment.start.x + segmentProgress * (segment.end.x - segment.start.x),
-					y: segment.start.y + segmentProgress * (segment.end.y - segment.start.y)
-				};
-			}
-		}
-
-		return { x: (srcX + tgtX) / 2, y: (srcY + tgtY) / 2 };
-	}
-
-	// Calculate label position (midpoint of path)
 	let labelX = $derived.by(() => {
 		const waypoints = data?.cable?.diagram_path;
 		const midpoint = getPathMidpoint(sourceX, sourceY, targetX, targetY, waypoints);
@@ -159,62 +110,6 @@
 	});
 
 	/**
-	 * Calculate the closest point on a line segment to a given point
-	 * @param {Object} p - The point to find the closest point on the segment to
-	 * @param {Object} a - The start point of the segment
-	 * @param {Object} b - The end point of the segment
-	 * @returns {Object} The closest point on the segment
-	 */
-	function getClosestPointOnSegment(p, a, b) {
-		const dx = b.x - a.x;
-		const dy = b.y - a.y;
-		const lengthSquared = dx * dx + dy * dy;
-
-		if (lengthSquared === 0) return { ...a, t: 0 };
-
-		let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / lengthSquared;
-		t = Math.max(0, Math.min(1, t));
-
-		return {
-			x: a.x + t * dx,
-			y: a.y + t * dy,
-			t: t
-		};
-	}
-
-	/**
-	 * Snap coordinates to the nearest grid point
-	 * @param {number} x - X coordinate
-	 * @param {number} y - Y coordinate
-	 * @param {number} gridSize - Grid size for snapping
-	 * @param {boolean} showFeedback - Whether to show visual feedback
-	 * @returns {Object} Snapped coordinates
-	 */
-	function snapToGrid(x, y, gridSize = SNAP_GRID_SIZE, showFeedback = false) {
-		// If snapping is disabled, return original coordinates
-		if (!$edgeSnappingEnabled) {
-			return { x, y };
-		}
-
-		const snapped = {
-			x: Math.round(x / gridSize) * gridSize,
-			y: Math.round(y / gridSize) * gridSize
-		};
-
-		// Show visual feedback if snapping occurred and feedback is requested
-		if (showFeedback && (snapped.x !== x || snapped.y !== y)) {
-			showSnapFeedback = true;
-			snapFeedbackPosition = { ...snapped };
-			// Hide feedback after a short delay
-			setTimeout(() => {
-				showSnapFeedback = false;
-			}, 200);
-		}
-
-		return snapped;
-	}
-
-	/**
 	 * Handle click on edge to add a new vertex
 	 * @param {Object} event - The click event
 	 */
@@ -245,8 +140,12 @@
 			}
 		}
 
-		// Snap the new vertex to the grid
-		const snappedPosition = snapToGrid(closestPointOnSegment.x, closestPointOnSegment.y);
+		const snappedPosition = snapToGrid(
+			closestPointOnSegment.x,
+			closestPointOnSegment.y,
+			SNAP_GRID_SIZE,
+			$edgeSnappingEnabled
+		);
 
 		const newWaypoints = [...waypoints];
 		newWaypoints.splice(closestSegmentIndex, 0, snappedPosition);
@@ -342,13 +241,27 @@
 		pt.y = event.clientY;
 		const svgCoords = pt.matrixTransform(svgElement.getScreenCTM().inverse());
 
-		// Snap the dragged vertex to the grid with visual feedback
-		const snappedPosition = snapToGrid(svgCoords.x, svgCoords.y, SNAP_GRID_SIZE, true);
+		const snappedPosition = snapToGrid(
+			svgCoords.x,
+			svgCoords.y,
+			SNAP_GRID_SIZE,
+			$edgeSnappingEnabled
+		);
+
+		if (
+			$edgeSnappingEnabled &&
+			(snappedPosition.x !== svgCoords.x || snappedPosition.y !== svgCoords.y)
+		) {
+			showSnapFeedback = true;
+			snapFeedbackPosition = { ...snappedPosition };
+			setTimeout(() => {
+				showSnapFeedback = false;
+			}, 200);
+		}
 
 		const waypoints = [...(data?.cable?.diagram_path || [])];
 		waypoints[draggingVertexIndex] = snappedPosition;
 
-		// Dispatch custom event to update edge
 		window.dispatchEvent(
 			new CustomEvent('updateCablePath', {
 				detail: { edgeId: id, waypoints: waypoints, temporary: true }
@@ -467,6 +380,6 @@
 		stroke-dasharray="4,4"
 		opacity="0.8"
 		class="animate-pulse"
-		style="pointer-events: none; z-index: 5;"
+		style="pointer-events: none; z-index: 15;"
 	/>
 {/if}

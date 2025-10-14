@@ -1,0 +1,9 @@
+[
+    {
+        "model": "api.attributesfiberstatus",
+        "pk": 1,
+        "fields": {
+            "fiber_status": "Defekt"
+        }
+    }
+]

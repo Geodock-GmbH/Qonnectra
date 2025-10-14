@@ -1,7 +1,6 @@
 <script>
 	// Skeleton
-	import { Pagination, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
-
+	import { Pagination } from '@skeletonlabs/skeleton-svelte';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
@@ -11,11 +10,7 @@
 	// Svelte
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import MessageBox from '$lib/components/MessageBox.svelte';
-
-	// Toaster
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
+	import { globalToaster } from '$lib/stores/toaster';
 
 	let {
 		pipes,
@@ -124,7 +119,7 @@
 				// Remove from local state immediately
 				pipes = pipes.filter((pipe) => pipe.value !== pipeId);
 
-				toaster.success({
+				globalToaster.success({
 					title: m.title_success(),
 					description: m.message_success_deleting_conduit()
 				});
@@ -133,7 +128,7 @@
 			}
 		} catch (error) {
 			console.error('Delete error:', error);
-			toaster.error({
+			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_deleting_conduit()
 			});
@@ -172,8 +167,6 @@
 		}
 	});
 </script>
-
-<Toaster {toaster} />
 
 <!-- Desktop Table View -->
 <div class="hidden md:block">

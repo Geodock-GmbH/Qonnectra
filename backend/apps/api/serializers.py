@@ -9,6 +9,7 @@ from .models import (
     AttributesCompany,
     AttributesConduitType,
     AttributesConstructionType,
+    AttributesFiberColor,
     AttributesMicroductColor,
     AttributesMicroductStatus,
     AttributesNetworkLevel,
@@ -19,6 +20,7 @@ from .models import (
     AttributesSurface,
     Cable,
     CableLabel,
+    CableTypeColorMapping,
     Conduit,
     FeatureFiles,
     Flags,
@@ -164,6 +166,33 @@ class AttributesMicroductColorSerializer(serializers.ModelSerializer):
             "is_two_layer",
         ]
         read_only_fields = ["is_two_layer"]
+
+
+class AttributesFiberColorSerializer(serializers.ModelSerializer):
+    """Serializer for the AttributesFiberColor model."""
+
+    class Meta:
+        model = AttributesFiberColor
+        fields = [
+            "id",
+            "name_de",
+            "name_en",
+            "hex_code",
+            "hex_code_secondary",
+            "display_order",
+            "is_active",
+            "description",
+        ]
+
+
+class CableTypeColorMappingSerializer(serializers.ModelSerializer):
+    """Serializer for the CableTypeColorMapping model."""
+
+    color = AttributesFiberColorSerializer(read_only=True)
+
+    class Meta:
+        model = CableTypeColorMapping
+        fields = ["uuid", "cable_type", "position_type", "position", "color", "layer"]
 
 
 class AttributesCableTypeSerializer(serializers.ModelSerializer):

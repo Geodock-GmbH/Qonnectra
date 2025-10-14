@@ -1,7 +1,6 @@
 <script>
 	// Skeleton
-	import { Pagination, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
-
+	import { Pagination } from '@skeletonlabs/skeleton-svelte';
 	// Tabler
 	import { IconTrash } from '@tabler/icons-svelte';
 
@@ -11,12 +10,7 @@
 	// Svelte
 	import { PUBLIC_API_URL } from '$env/static/public';
 	import { selectedFlag } from '$lib/stores/store';
-
-	// Toaster
-	const toaster = createToaster({
-		placement: 'bottom-end',
-		id: 'trench-table-toaster'
-	});
+	import { globalToaster } from '$lib/stores/toaster';
 
 	let { projectId, conduitId, onTrenchClick } = $props();
 
@@ -70,7 +64,7 @@
 		} else {
 			const errorText = await response.text();
 			console.error('Failed to delete trench connection:', response.status, errorText);
-			toaster.error({
+			globalToaster.error({
 				description: m.message_error_deleting_trench_connection()
 			});
 			throw new Error(errorText);
@@ -86,7 +80,7 @@
 			deletingIds.delete(trenchId);
 		});
 
-		toaster.promise(promise, {
+		globalToaster.promise(promise, {
 			loading: {
 				description: m.message_please_wait()
 			},
@@ -140,13 +134,11 @@
 
 			await Promise.all(savePromises);
 			fetchTrenches();
-			toaster.create({
-				type: 'success',
+			globalToaster.success({
 				description: m.message_trench_connection_saved()
 			});
 		} else {
-			toaster.create({
-				type: 'warning',
+			globalToaster.warning({
 				description: m.message_no_new_trench_connections()
 			});
 		}
@@ -172,8 +164,6 @@
 		}
 	});
 </script>
-
-<Toaster {toaster}></Toaster>
 
 <div class="table-wrap">
 	<div class="overflow-x-auto">

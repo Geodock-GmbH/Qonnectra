@@ -18,6 +18,7 @@ from .models import (
     AttributesCableType,
     AttributesCompany,
     AttributesConduitType,
+    AttributesFiberColor,
     AttributesMicroductColor,
     AttributesMicroductStatus,
     AttributesNetworkLevel,
@@ -25,6 +26,7 @@ from .models import (
     AttributesStatus,
     Cable,
     CableLabel,
+    CableTypeColorMapping,
     CanvasSyncStatus,
     Conduit,
     FeatureFiles,
@@ -47,6 +49,7 @@ from .serializers import (
     AttributesCableTypeSerializer,
     AttributesCompanySerializer,
     AttributesConduitTypeSerializer,
+    AttributesFiberColorSerializer,
     AttributesMicroductColorSerializer,
     AttributesMicroductStatusSerializer,
     AttributesNetworkLevelSerializer,
@@ -54,6 +57,7 @@ from .serializers import (
     AttributesStatusSerializer,
     CableLabelSerializer,
     CableSerializer,
+    CableTypeColorMappingSerializer,
     ConduitSerializer,
     FeatureFilesSerializer,
     FlagsSerializer,
@@ -1396,6 +1400,36 @@ class AttributesMicroductColorViewSet(viewsets.ReadOnlyModelViewSet):
     )
     serializer_class = AttributesMicroductColorSerializer
     lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class AttributesFiberColorViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesFiberColor model :model:`api.AttributesFiberColor`.
+
+    An instance of :model:`api.AttributesFiberColor`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesFiberColor.objects.filter(is_active=True).order_by(
+        "display_order", "name_de"
+    )
+    serializer_class = AttributesFiberColorSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class CableTypeColorMappingViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the CableTypeColorMapping model :model:`api.CableTypeColorMapping`.
+
+    An instance of :model:`api.CableTypeColorMapping`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = CableTypeColorMapping.objects.all().order_by(
+        "cable_type", "position_type", "position"
+    )
+    serializer_class = CableTypeColorMappingSerializer
+    lookup_field = "uuid"
     lookup_url_kwarg = "pk"
 
 

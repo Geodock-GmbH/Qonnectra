@@ -1,12 +1,12 @@
 <script>
 	// Skeleton
-	import { Combobox, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
-
+	import { Combobox } from '@skeletonlabs/skeleton-svelte';
 	// Svelte
 	import { browser } from '$app/environment';
 	import { selectedConduit } from '$lib/stores/store';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
+	import { globalToaster } from '$lib/stores/toaster';
 
 	let {
 		loading = false,
@@ -16,23 +16,16 @@
 		conduitsError = null
 	} = $props();
 
-	// Toaster
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
-
 	// Show error toast
 	$effect(() => {
 		if (conduitsError && browser) {
-			toaster.error({
+			globalToaster.error({
 				title: m.title_error_fetching_conduits(),
 				description: conduitsError
 			});
 		}
 	});
 </script>
-
-<Toaster {toaster}></Toaster>
 
 <div>
 	{#if loading}

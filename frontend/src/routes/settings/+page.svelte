@@ -1,9 +1,8 @@
 <script>
 	// Skeleton
-	import { Combobox, createToaster, Slider, Switch, Toaster } from '@skeletonlabs/skeleton-svelte';
+	import { Combobox, Slider, Switch } from '@skeletonlabs/skeleton-svelte';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
-
 	// Svelte
 	import { userStore } from '$lib/stores/auth';
 	import {
@@ -15,22 +14,12 @@
 		trenchColorSelected
 	} from '$lib/stores/store';
 
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
-
 	// Stop page from scrolling
 	$effect(() => {
 		document.body.style.overflow = 'hidden';
 	});
 
-	const themes = [
-		{ label: 'Modern', value: 'modern' },
-		{ label: 'Mona', value: 'mona' },
-		{ label: 'Vox', value: 'vox' },
-		{ label: 'Wintry', value: 'wintry' },
-		{ label: 'Bitv 2.0', value: 'bitv' }
-	];
+	const themes = [{ label: 'Legacy', value: 'legacy' }];
 
 	let routingToleranceMarkers = $derived(Array.from({ length: 10 }, (_, i) => i + 1));
 </script>
@@ -38,8 +27,6 @@
 <svelte:head>
 	<title>{m.nav_settings()}</title>
 </svelte:head>
-
-<Toaster {toaster}></Toaster>
 
 <div class="mx-auto max-w-7xl pt-16 lg:flex lg:gap-x-16 lg:px-8 overflow-y-auto">
 	<h1 class="sr-only">User Settings</h1>

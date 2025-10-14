@@ -58,7 +58,7 @@
 {#if $drawerStore.open}
 	<div
 		bind:this={drawerElement}
-		class="bg-surface-50-950 border-2 rounded-lg border-surface-200-800 shadow-lg flex flex-col relative {className}"
+		class=" border-2 rounded-lg border-surface-200-800 shadow-lg flex flex-col relative {className}"
 		class:transition-all={!isResizing}
 		class:duration-300={!isResizing}
 		class:ease-in-out={!isResizing}

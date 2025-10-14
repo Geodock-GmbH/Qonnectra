@@ -28,7 +28,7 @@
 				<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 					<!-- Trench Statistics Card -->
 					<div
-						class="card preset-filled-surface-50-900 border border-surface-200-800 shadow-lg overflow-hidden"
+						class="card preset-filled-surface-100-900 border border-surface-200-800 shadow-lg overflow-hidden"
 					>
 						<!-- Title Bar -->
 						<div class="border-b border-surface-300-600 p-4">
@@ -95,7 +95,7 @@
 
 					<!-- Node Statistics Card -->
 					<div
-						class="card preset-filled-surface-50-900 border border-surface-200-800 shadow-lg overflow-hidden"
+						class="card preset-filled-surface-100-900 border border-surface-200-800 shadow-lg overflow-hidden"
 					>
 						<!-- Title Bar -->
 						<div class="border-b border-surface-300-600 p-4">

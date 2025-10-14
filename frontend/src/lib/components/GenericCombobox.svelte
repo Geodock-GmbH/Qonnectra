@@ -1,10 +1,9 @@
 <script>
 	// Skeleton
-	import { Combobox, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
-
+	import { Combobox } from '@skeletonlabs/skeleton-svelte';
 	// Svelte
 	import { browser } from '$app/environment';
-
+	import { globalToaster } from '$lib/stores/toaster';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
@@ -21,19 +20,14 @@
 		classes = 'touch-manipulation',
 		zIndex = '10',
 		contentBase = 'max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg',
-		showToaster = true,
 		onValueChange = () => {}
 	} = $props();
 
 	let isHydrating = $state(!browser);
 
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
-
 	$effect(() => {
-		if (error && browser && showToaster) {
-			toaster.create({
+		if (error && browser) {
+			globalToaster.error({
 				type: 'error',
 				message: errorMessage || 'Error loading data',
 				description: error
@@ -52,10 +46,6 @@
 		onValueChange(e);
 	}
 </script>
-
-{#if showToaster}
-	<Toaster {toaster}></Toaster>
-{/if}
 
 {#if loading || isHydrating}
 	<div class="placeholder animate-pulse {placeholderSize}"></div>

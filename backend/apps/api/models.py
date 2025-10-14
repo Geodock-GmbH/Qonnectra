@@ -383,6 +383,93 @@ class AttributesMicroductColor(models.Model):
         return self.hex_code_secondary is not None
 
 
+class AttributesFiberStatus(models.Model):
+    """Stores all fiber statuses,
+    related to :model:`api.Fiber`.
+    """
+
+    id = models.AutoField(primary_key=True)
+    fiber_status = models.TextField(
+        _("Fiber Status"), null=False, db_index=False, unique=True
+    )
+
+    class Meta:
+        db_table = "attributes_fiber_status"
+        verbose_name = _("Fiber Status")
+        verbose_name_plural = _("Fiber Statuses")
+        ordering = ["fiber_status"]
+        indexes = [
+            models.Index(fields=["fiber_status"], name="idx_fiber_status_status"),
+        ]
+
+    def __str__(self):
+        return self.fiber_status
+
+
+class AttributesFiberColor(models.Model):
+    """Stores all colors for fibers and bundles,
+    related to :model:`api.Fiber`.
+    """
+
+    id = models.AutoField(primary_key=True)
+
+    name_de = models.CharField(
+        _("German Name"),
+        max_length=50,
+        unique=True,
+        help_text=_("German color name (e.g., 'rot', 'rot-weiss')"),
+    )
+    name_en = models.CharField(
+        _("English Name"),
+        max_length=50,
+        help_text=_("English color name (e.g., 'red', 'red-white')"),
+    )
+    hex_code = models.CharField(
+        _("Hex Color Code"),
+        max_length=7,
+        help_text=_("Primary CSS hex color code (e.g., '#dc2626')"),
+    )
+    hex_code_secondary = models.CharField(
+        _("Secondary Hex Color Code"),
+        max_length=7,
+        null=True,
+        blank=True,
+        help_text=_("Secondary color for striped/two-layer microducts (optional)"),
+    )
+    display_order = models.IntegerField(
+        _("Display Order"),
+        default=0,
+        help_text=_("Order in which colors appear in selection lists"),
+    )
+    is_active = models.BooleanField(
+        _("Active"),
+        default=True,
+        help_text=_("Inactive colors are hidden but preserved for existing data"),
+    )
+    description = models.TextField(
+        _("Description"),
+        null=True,
+        blank=True,
+        help_text=_("Optional notes about this color"),
+    )
+
+    class Meta:
+        db_table = "attributes_fiber_color"
+        verbose_name = _("Fiber Color")
+        verbose_name_plural = _("Fiber Colors")
+        ordering = ["display_order", "name_de"]
+        indexes = [
+            models.Index(fields=["name_de"], name="idx_fiber_color_name_de"),
+            models.Index(
+                fields=["display_order"], name="idx_fiber_color_display_order"
+            ),
+            models.Index(fields=["is_active"], name="idx_fiber_color_is_active"),
+        ]
+
+    def __str__(self):
+        return f"{self.name_de} ({self.name_en})"
+
+
 # TODO: Implement custom storage class for feature files (nextcloud): https://docs.djangoproject.com/en/4.2/howto/custom-file-storage/
 class FeatureFiles(models.Model):
     """Stores all files for different models,
@@ -1871,3 +1958,259 @@ class ConduitTypeColorMapping(models.Model):
         return (
             f"{self.conduit_type.conduit_type} - {self.position} - {self.color.name_de}"
         )
+
+
+class CableTypeColorMapping(models.Model):
+    """Maps positions to colors for bundles and fibers in each cable type.
+
+    Supports configurable color sequences for both bundle and fiber positions,
+    allowing different color standards (DIN, IEC, etc.) per cable type.
+    """
+
+    POSITION_TYPE_CHOICES = [
+        ("bundle", _("Bundle")),
+        ("fiber", _("Fiber")),
+    ]
+
+    LAYER_CHOICES = [
+        ("inner", _("Inner")),
+        ("outer", _("Outer")),
+    ]
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    cable_type = models.ForeignKey(
+        AttributesCableType,
+        on_delete=models.CASCADE,
+        related_name="color_mappings",
+        verbose_name=_("Cable Type"),
+    )
+    position_type = models.CharField(
+        _("Position Type"),
+        max_length=10,
+        choices=POSITION_TYPE_CHOICES,
+        help_text=_("Whether this mapping is for bundle or fiber colors"),
+    )
+    position = models.IntegerField(
+        _("Position"), help_text=_("Bundle/Fiber position number (1-12, etc.)")
+    )
+    color = models.ForeignKey(
+        AttributesFiberColor,
+        on_delete=models.PROTECT,
+        verbose_name=_("Color"),
+    )
+
+    layer = models.TextField(
+        _("Layer"),
+        default="inner",
+        help_text=_("Inner or outer layer"),
+        choices=LAYER_CHOICES,
+    )
+
+    class Meta:
+        db_table = "cable_type_color_mapping"
+        verbose_name = _("Cable Type Color Mapping")
+        verbose_name_plural = _("Cable Type Color Mappings")
+        unique_together = [["cable_type", "position_type", "position"]]
+        ordering = ["cable_type", "position_type", "position"]
+        indexes = [
+            models.Index(
+                fields=["cable_type", "position_type"], name="idx_cable_color_type"
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.cable_type.cable_type} - {self.position_type} - {self.position} - {self.color.name_de}"
+
+
+class Fiber(models.Model):
+    """Stores all fibers,
+    related to :model:`api.Cable`, :model:`api.Bundle`.
+    """
+
+    uuid = models.UUIDField(
+        default=uuid.uuid4, primary_key=True, help_text=_("The UUID of the fiber")
+    )
+    uuid_cable = models.ForeignKey(
+        Cable,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="uuid_cable",
+        db_index=False,
+        verbose_name=_("Cable"),
+        help_text=_("The cable that the fiber belongs to"),
+    )
+    bundle_number = models.IntegerField(
+        _("Bundle Number"),
+        null=False,
+        help_text=_("The bundle number that the fiber belongs to"),
+    )
+    bundle_color = models.TextField(
+        _("Bundle Color"),
+        null=False,
+        blank=False,
+        help_text=_("The color of the bundle that the fiber belongs to"),
+    )
+    fiber_number_absolute = models.IntegerField(
+        _("Fiber Number Absolute"),
+        null=False,
+        help_text=_("The absolute fiber number that the fiber belongs to"),
+    )
+    fiber_number_in_bundle = models.IntegerField(
+        _("Fiber Number In Bundle"),
+        null=False,
+        help_text=_("The number of the fiber in the bundle that the fiber belongs to"),
+    )
+    fiber_color = models.TextField(
+        _("Fiber Color"),
+        null=False,
+        help_text=_("The color of the fiber that the fiber belongs to"),
+    )
+    active = models.BooleanField(
+        _("Active"),
+        null=False,
+        default=True,
+        help_text=_("Whether the fiber is active"),
+    )
+    fiber_status = models.ForeignKey(
+        AttributesFiberStatus,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        db_column="fiber_status",
+        db_index=False,
+        verbose_name=_("Fiber Status"),
+    )
+    layer = models.TextField(
+        _("Layer"),
+        default="inner",
+        help_text=_("Inner or outer layer"),
+        blank=False,
+        null=False,
+    )
+    flag = models.ForeignKey(
+        Flags,
+        null=False,
+        on_delete=models.PROTECT,
+        db_column="flag",
+        db_index=False,
+        verbose_name=_("Flag"),
+    )
+    project = models.ForeignKey(
+        Projects,
+        null=False,
+        on_delete=models.PROTECT,
+        db_column="project",
+        db_index=False,
+        verbose_name=_("Project"),
+    )
+
+    class Meta:
+        db_table = "fiber"
+        verbose_name = _("Fiber")
+        verbose_name_plural = _("Fibers")
+        ordering = [
+            "uuid_cable",
+            "fiber_number_absolute",
+            "bundle_number",
+            "fiber_number_in_bundle",
+        ]
+        indexes = [
+            models.Index(fields=["uuid_cable"], name="idx_fiber_cable"),
+            models.Index(fields=["bundle_number"], name="idx_fiber_bundle_number"),
+            models.Index(fields=["bundle_color"], name="idx_fiber_bundle_color"),
+            models.Index(
+                fields=["fiber_number_absolute"], name="idx_fiber_number_absolute"
+            ),
+            models.Index(
+                fields=["fiber_number_in_bundle"],
+                name="idx_fiber_number_in_bundle",
+            ),
+            models.Index(fields=["fiber_color"], name="idx_fiber_fiber_color"),
+            models.Index(fields=["active"], name="idx_fiber_active"),
+            models.Index(fields=["fiber_status"], name="idx_fiber_fiber_status"),
+            models.Index(fields=["layer"], name="idx_fiber_layer"),
+            models.Index(fields=["flag"], name="idx_fiber_flag"),
+            models.Index(fields=["project"], name="idx_fiber_project"),
+        ]
+
+    def __str__(self):
+        return f"{self.uuid_cable.name} - {self.bundle_number} - {self.fiber_number_absolute}"
+
+
+@receiver(post_save, sender=Cable)
+def create_fibers_for_cable(sender, instance, created, **kwargs):
+    """
+    Signal to automatically create fibers when a cable is created.
+    Creates fibers based on the CableTypeColorMapping configurations for the cable's type.
+    Uses cable type's bundle_count and bundle_fiber_count to organize fibers properly.
+    """
+    if not created:
+        return
+
+    cable_type = instance.cable_type
+
+    bundle_mappings = (
+        CableTypeColorMapping.objects.filter(
+            cable_type=cable_type, position_type="bundle"
+        )
+        .select_related("color")
+        .order_by("position")
+    )
+
+    fiber_mappings = (
+        CableTypeColorMapping.objects.filter(
+            cable_type=cable_type, position_type="fiber"
+        )
+        .select_related("color")
+        .order_by("position")
+    )
+
+    if not bundle_mappings.exists() or not fiber_mappings.exists():
+        return
+
+    bundle_count = cable_type.bundle_count
+    bundle_fiber_count = cable_type.bundle_fiber_count
+
+    if bundle_mappings.count() < bundle_count:
+        return
+
+    if fiber_mappings.count() < bundle_fiber_count:
+        return
+
+    fibers_to_create = []
+    fiber_number_absolute = 1
+    for bundle_number in range(1, bundle_count + 1):
+        bundle_mapping = bundle_mappings.filter(position=bundle_number).first()
+        bundle_color = (
+            bundle_mapping.color.name_de
+            if bundle_mapping
+            else f"Bundle {bundle_number}"
+        )
+
+        for fiber_in_bundle in range(1, bundle_fiber_count + 1):
+            fiber_mapping = fiber_mappings.filter(position=fiber_in_bundle).first()
+            fiber_color = (
+                fiber_mapping.color.name_de
+                if fiber_mapping
+                else f"Fiber {fiber_in_bundle}"
+            )
+            layer = fiber_mapping.layer if fiber_mapping else _("Inner")
+
+            fiber = Fiber(
+                uuid_cable=instance,
+                bundle_number=bundle_number,
+                bundle_color=bundle_color,
+                fiber_number_absolute=fiber_number_absolute,
+                fiber_number_in_bundle=fiber_in_bundle,
+                fiber_color=fiber_color,
+                active=True,
+                fiber_status=None,
+                flag=instance.flag,
+                project=instance.project,
+                layer=layer,
+            )
+            fibers_to_create.append(fiber)
+            fiber_number_absolute += 1
+
+    if fibers_to_create:
+        Fiber.objects.bulk_create(fibers_to_create)

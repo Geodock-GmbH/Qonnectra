@@ -1,6 +1,6 @@
 <script>
 	// Skeleton
-	import { Combobox, Modal, Toaster, createToaster } from '@skeletonlabs/skeleton-svelte';
+	import { Combobox, Modal } from '@skeletonlabs/skeleton-svelte';
 	// Tabler
 	import { IconPlus } from '@tabler/icons-svelte';
 
@@ -8,11 +8,7 @@
 	import { m } from '$lib/paraglide/messages';
 	// Svelte
 	import { PUBLIC_API_URL } from '$env/static/public';
-
-	// Toast
-	const toaster = createToaster({
-		placement: 'bottom-end'
-	});
+	import { globalToaster } from '$lib/stores/toaster';
 
 	let {
 		projectId,
@@ -63,7 +59,7 @@
 			selectedManufacturer = [editData.manufacturer ? editData.manufacturer.id : ''];
 			selectedFlag = [editData.flag ? editData.flag.id : ''];
 		} catch (err) {
-			toaster.error({
+			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_fetching_select_options()
 			});
@@ -115,7 +111,7 @@
 			});
 			if (response.ok) {
 				const result = await response.json();
-				toaster.success({
+				globalToaster.success({
 					title: m.title_success(),
 					description: editMode
 						? m.message_success_updating_conduit()
@@ -126,7 +122,7 @@
 			} else {
 				const errorData = await response.json();
 				console.error('Error submitting form:', errorData);
-				toaster.error({
+				globalToaster.error({
 					title: m.common_error(),
 					description: editMode
 						? m.message_error_updating_conduit()
@@ -135,7 +131,7 @@
 			}
 		} catch (error) {
 			console.error('Error submitting form:', error);
-			toaster.error({
+			globalToaster.error({
 				title: m.common_error(),
 				description: editMode
 					? m.message_error_updating_conduit()
@@ -167,8 +163,6 @@
 		}
 	});
 </script>
-
-<Toaster {toaster}></Toaster>
 
 <Modal
 	open={openPipeModal}
