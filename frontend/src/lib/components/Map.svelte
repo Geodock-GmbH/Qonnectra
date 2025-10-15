@@ -1,9 +1,9 @@
 <script>
-	import { onMount, createEventDispatcher, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import { mapCenter, mapZoom } from '$lib/stores/store';
-	import OpacitySlider from './OpacitySlider.svelte';
+	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
 	import LayerVisibilityTree from './LayerVisibilityTree.svelte';
+	import OpacitySlider from './OpacitySlider.svelte';
 	import SearchPanel from './SearchPanel.svelte';
 
 	// Props
@@ -18,12 +18,13 @@
 		onLayerVisibilityChanged = () => {},
 		onFeatureSelect = () => {},
 		onSearchError = () => {},
-		searchPanelProps = {}
+		searchPanelProps = {},
+		variant = 'fullscreen' // 'fullscreen' | 'compact'
 	} = $props();
 
 	let searchPanelRef = $state();
 
-	let container;
+	let container = $state();
 	let map = $state();
 	let osmLayer = $state();
 	const dispatch = createEventDispatcher();
@@ -137,40 +138,75 @@
 	}
 </script>
 
-<div class="map-container {className}">
-	<div class="map" bind:this={container}></div>
-	{#if showOpacitySlider && map}
-		<div class="absolute bottom-5 left-5 z-10">
-			<OpacitySlider
-				minOpacity={opacitySliderConfig.minOpacity}
-				maxOpacity={opacitySliderConfig.maxOpacity}
-				stepOpacity={opacitySliderConfig.stepOpacity}
-				opacity={currentLayerOpacity}
-				onChange={handleOpacitySliderChange}
-			/>
+{#if variant === 'compact'}
+	<div class="map-container-compact {className}">
+		<div class="map-controls-compact">
+			{#if showSearchPanel && map}
+				<SearchPanel
+					olMapInstance={map}
+					onFeatureSelect={handleFeatureSelect}
+					onSearchError={handleSearchError}
+					{...searchPanelProps}
+					bind:this={searchPanelRef}
+				/>
+			{/if}
+			{#if showLayerVisibilityTree && map}
+				<LayerVisibilityTree
+					{layers}
+					{osmLayer}
+					onLayerVisibilityChanged={handleLayerVisibilityChange}
+				/>
+			{/if}
+			{#if showOpacitySlider && map}
+				<div class="opacity-slider-compact">
+					<OpacitySlider
+						minOpacity={opacitySliderConfig.minOpacity}
+						maxOpacity={opacitySliderConfig.maxOpacity}
+						stepOpacity={opacitySliderConfig.stepOpacity}
+						opacity={currentLayerOpacity}
+						onChange={handleOpacitySliderChange}
+					/>
+				</div>
+			{/if}
 		</div>
-	{/if}
-	{#if showSearchPanel && map}
-		<div class="absolute top-5 left-5 right-5 lg:right-auto z-9 lg:max-w-md">
-			<SearchPanel
-				olMapInstance={map}
-				onFeatureSelect={handleFeatureSelect}
-				onSearchError={handleSearchError}
-				{...searchPanelProps}
-				bind:this={searchPanelRef}
-			/>
-		</div>
-	{/if}
-	{#if showLayerVisibilityTree && map}
-		<div class="absolute top-28 right-5 lg:top-5 z-9">
-			<LayerVisibilityTree
-				{layers}
-				{osmLayer}
-				onLayerVisibilityChanged={handleLayerVisibilityChange}
-			/>
-		</div>
-	{/if}
-</div>
+		<div class="map" bind:this={container}></div>
+	</div>
+{:else}
+	<div class="map-container {className}">
+		<div class="map" bind:this={container}></div>
+		{#if showOpacitySlider && map}
+			<div class="absolute bottom-5 left-5 z-10">
+				<OpacitySlider
+					minOpacity={opacitySliderConfig.minOpacity}
+					maxOpacity={opacitySliderConfig.maxOpacity}
+					stepOpacity={opacitySliderConfig.stepOpacity}
+					opacity={currentLayerOpacity}
+					onChange={handleOpacitySliderChange}
+				/>
+			</div>
+		{/if}
+		{#if showSearchPanel && map}
+			<div class="absolute top-5 left-5 right-5 lg:right-auto z-9 lg:max-w-md">
+				<SearchPanel
+					olMapInstance={map}
+					onFeatureSelect={handleFeatureSelect}
+					onSearchError={handleSearchError}
+					{...searchPanelProps}
+					bind:this={searchPanelRef}
+				/>
+			</div>
+		{/if}
+		{#if showLayerVisibilityTree && map}
+			<div class="absolute top-28 right-5 lg:top-5 z-9">
+				<LayerVisibilityTree
+					{layers}
+					{osmLayer}
+					onLayerVisibilityChanged={handleLayerVisibilityChange}
+				/>
+			</div>
+		{/if}
+	</div>
+{/if}
 
 <style>
 	.map-container {
@@ -182,5 +218,24 @@
 	.map {
 		width: 100%;
 		height: 100%;
+	}
+
+	.map-container-compact {
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		height: 100%;
+		gap: 0.75rem;
+	}
+
+	.map-controls-compact {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		flex-shrink: 0;
+	}
+
+	.opacity-slider-compact {
+		width: 100%;
 	}
 </style>

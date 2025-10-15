@@ -7,6 +7,7 @@
 		IconAffiliate,
 		IconArrowBarToRight,
 		IconDashboard,
+		IconHome2,
 		IconMap2,
 		IconSettings,
 		IconTextPlus,
@@ -50,6 +51,12 @@
 			label: () => m.nav_pipe_branch(),
 			icon: IconAffiliate,
 			pathMatch: (path) => path.startsWith('/pipe-branch')
+		},
+		{
+			href: '/house-connections',
+			label: () => m.nav_house_connections(),
+			icon: IconHome2,
+			pathMatch: (path) => path.startsWith('/house-connections')
 		},
 		{
 			href: '/network-schema',
