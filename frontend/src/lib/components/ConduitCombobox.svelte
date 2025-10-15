@@ -1,6 +1,6 @@
 <script>
 	// Skeleton
-	import { Combobox } from '@skeletonlabs/skeleton-svelte';
+	import { Combobox, Portal, useListCollection } from '@skeletonlabs/skeleton-svelte';
 	// Svelte
 	import { browser } from '$app/environment';
 	import { selectedConduit } from '$lib/stores/store';
@@ -16,7 +16,16 @@
 		conduitsError = null
 	} = $props();
 
-	// Show error toast
+	const collection = $derived(
+		useListCollection({
+			items: conduits,
+			itemToString: (item) => item?.label ?? '',
+			itemToValue: (item) => item?.value ?? ''
+		})
+	);
+
+	let items = $derived(collection.items);
+
 	$effect(() => {
 		if (conduitsError && browser) {
 			globalToaster.error({
@@ -25,6 +34,21 @@
 			});
 		}
 	});
+
+	function handleValueChange(e) {
+		$selectedConduit = e.value;
+	}
+
+	const onInputValueChange = (e) => {
+		const filtered = conduits.filter((item) =>
+			item.label.toLowerCase().includes(e.inputValue.toLowerCase())
+		);
+		if (filtered.length > 0) {
+			items = filtered;
+		} else {
+			items = conduits;
+		}
+	};
 </script>
 
 <div>
@@ -38,14 +62,31 @@
 		</select>
 	{:else}
 		<Combobox
-			data={conduits}
-			bind:value={$selectedConduit}
-			defaultValue={$selectedConduit}
-			onValueChange={(e) => ($selectedConduit = e.value)}
+			class="touch-manipulation w-full"
 			placeholder={m.placeholder_select_conduit()}
-			zIndex="10"
-			classes="touch-manipulation"
-			contentBase="max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"
-		/>
+			{collection}
+			defaultValue={$selectedConduit}
+			onValueChange={handleValueChange}
+			{onInputValueChange}
+		>
+			<Combobox.Control>
+				<Combobox.Input />
+				<Combobox.Trigger />
+			</Combobox.Control>
+			<Portal>
+				<Combobox.Positioner class="z-10">
+					<Combobox.Content
+						class="z-50 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"
+					>
+						{#each items as item (item.value)}
+							<Combobox.Item {item}>
+								<Combobox.ItemText>{item.label}</Combobox.ItemText>
+								<Combobox.ItemIndicator />
+							</Combobox.Item>
+						{/each}
+					</Combobox.Content>
+				</Combobox.Positioner>
+			</Portal>
+		</Combobox>
 	{/if}
 </div>

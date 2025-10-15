@@ -6,7 +6,6 @@
 	import { m } from '$lib/paraglide/messages';
 
 	// Icons
-	import { IconLasso, IconPointer } from '@tabler/icons-svelte';
 
 	let { checked = false, onCheckedChange, partial = false, onPartialChange } = $props();
 
@@ -27,22 +26,14 @@
 	<!-- Lasso Mode Switch -->
 	<div class="flex items-center gap-2">
 		<span class="text-sm font-medium">{m.form_lasso_mode()}:</span>
-		<Switch
-			name="lasso-mode-switch"
-			controlActive="bg-surface-200"
-			{checked}
-			onCheckedChange={handleModeChange}
-		>
-			{#snippet activeChild()}
-				<IconLasso size="18" />
-			{/snippet}
-			{#snippet inactiveChild()}
-				<IconPointer size="18" />
-			{/snippet}
+		<Switch name="lasso-mode-switch" {checked} onCheckedChange={handleModeChange}>
+			<Switch.Control>
+				<Switch.Thumb />
+			</Switch.Control>
+			<Switch.HiddenInput />
 		</Switch>
 	</div>
 
-	<!-- Partial Selection Checkbox (only shown when lasso mode is active) -->
 	{#if checked}
 		<div class="hidden">
 			<label class="flex items-center gap-2 text-sm">

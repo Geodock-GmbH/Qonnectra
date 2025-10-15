@@ -2,8 +2,7 @@
 	// Skeleton
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
 	// Tabler
-	import { IconTrash } from '@tabler/icons-svelte';
-
+	import { IconArrowLeft, IconArrowRight, IconTrash } from '@tabler/icons-svelte';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
@@ -205,6 +204,26 @@
 			siblingCount={2}
 			alternative
 			{count}
-		/>
+		>
+			<Pagination.PrevTrigger>
+				<IconArrowLeft class="size-4" />
+			</Pagination.PrevTrigger>
+			<Pagination.Context>
+				{#snippet children(pagination)}
+					{#each pagination().pages as pageItem, index (pageItem)}
+						{#if pageItem.type === 'page'}
+							<Pagination.Item {...pageItem}>
+								{pageItem.value}
+							</Pagination.Item>
+						{:else}
+							<Pagination.Ellipsis {index}>&#8230;</Pagination.Ellipsis>
+						{/if}
+					{/each}
+				{/snippet}
+			</Pagination.Context>
+			<Pagination.NextTrigger>
+				<IconArrowRight class="size-4" />
+			</Pagination.NextTrigger>
+		</Pagination>
 	</div>
 </div>

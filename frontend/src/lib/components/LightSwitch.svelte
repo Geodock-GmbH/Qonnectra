@@ -3,8 +3,6 @@
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
 
 	// Icons
-	import { IconMoon, IconSun } from '@tabler/icons-svelte';
-
 	// Svelte
 	import { lightSwitchMode } from '$lib/stores/store';
 
@@ -32,12 +30,9 @@
 	</script>
 </svelte:head>
 
-<!-- LightSwitch -->
-<Switch name="light-switch" controlActive="bg-surface-200" {checked} {onCheckedChange}>
-	{#snippet activeChild()}
-		<IconMoon size="18" />
-	{/snippet}
-	{#snippet inactiveChild()}
-		<IconSun size="18" />
-	{/snippet}
+<Switch name="light-switch" {checked} {onCheckedChange}>
+	<Switch.Control>
+		<Switch.Thumb />
+	</Switch.Control>
+	<Switch.HiddenInput />
 </Switch>

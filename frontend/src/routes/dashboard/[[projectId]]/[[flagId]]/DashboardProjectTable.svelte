@@ -3,12 +3,16 @@
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
+	// Tabler
+	import { IconArrowLeft, IconArrowRight } from '@tabler/icons-svelte';
 
 	let { data } = $props();
 	let page = $state(1);
-	let size = $state(110);
-	let count = $derived(data.length);
-	const slicedSource = $derived(data.slice((page - 1) * size, page * size));
+	let size = $state(10);
+
+	const start = $derived((page - 1) * size);
+	const end = $derived(start + size);
+	const slicedSource = $derived(data.slice(start, end));
 </script>
 
 <div class="table-wrap">
@@ -16,7 +20,7 @@
 		<table class="table caption-bottom">
 			<thead>
 				<tr>
-					<th>{m.form_project({ count: count })}</th>
+					<th>{m.form_project({ count: data.length })}</th>
 					<th>{m.common_description()}</th>
 					<th>{m.common_active()}</th>
 				</tr>
@@ -32,16 +36,32 @@
 			</tbody>
 		</table>
 	</div>
-	<div class="mt-4">
+	<div class="mt-4 flex justify-center">
 		<Pagination
-			{data}
-			{page}
-			onPageChange={(e) => (page = e.page)}
+			count={data.length}
 			pageSize={size}
-			onPageSizeChange={(e) => (size = e.pageSize)}
-			siblingCount={2}
-			alternative
-			{count}
-		/>
+			{page}
+			onPageChange={(event) => (page = event.page)}
+		>
+			<Pagination.PrevTrigger>
+				<IconArrowLeft class="size-4" />
+			</Pagination.PrevTrigger>
+			<Pagination.Context>
+				{#snippet children(pagination)}
+					{#each pagination().pages as pageItem, index (pageItem)}
+						{#if pageItem.type === 'page'}
+							<Pagination.Item {...pageItem}>
+								{pageItem.value}
+							</Pagination.Item>
+						{:else}
+							<Pagination.Ellipsis {index}>&#8230;</Pagination.Ellipsis>
+						{/if}
+					{/each}
+				{/snippet}
+			</Pagination.Context>
+			<Pagination.NextTrigger>
+				<IconArrowRight class="size-4" />
+			</Pagination.NextTrigger>
+		</Pagination>
 	</div>
 </div>

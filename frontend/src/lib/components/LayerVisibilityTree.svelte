@@ -117,7 +117,12 @@
 					checked={layerInfo.visible}
 					onCheckedChange={() => toggleLayerVisibility(layerId)}
 					class="flex-shrink-0"
-				/>
+				>
+					<Switch.Control>
+						<Switch.Thumb />
+					</Switch.Control>
+					<Switch.HiddenInput />
+				</Switch>
 			</div>
 		{/each}
 

@@ -1,6 +1,6 @@
 <script>
 	// Skeleton
-	import { Combobox } from '@skeletonlabs/skeleton-svelte';
+	import { Combobox, Portal, useListCollection } from '@skeletonlabs/skeleton-svelte';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
@@ -21,6 +21,16 @@
 
 	let isHydrating = $state(!browser);
 
+	const collection = $derived(
+		useListCollection({
+			items: projects,
+			itemToString: (item) => item?.label ?? '',
+			itemToValue: (item) => item?.value ?? ''
+		})
+	);
+
+	let items = $derived(collection.items);
+
 	$effect(() => {
 		if (projectsError && browser) {
 			globalToaster.error({
@@ -36,7 +46,6 @@
 		}
 	});
 
-	// Handle project change with cookie and navigation
 	function handleProjectChange(newProject) {
 		if (!browser) return;
 
@@ -56,6 +65,24 @@
 
 		onChange({ value: newProject });
 	}
+
+	function handleValueChange(e) {
+		const newValue = e.value;
+		if (newValue) {
+			handleProjectChange(newValue);
+		}
+	}
+
+	const onInputValueChange = (e) => {
+		const filtered = projects.filter((item) =>
+			item.label.toLowerCase().includes(e.inputValue.toLowerCase())
+		);
+		if (filtered.length > 0) {
+			items = filtered;
+		} else {
+			items = projects;
+		}
+	};
 </script>
 
 {#if loading || isHydrating}
@@ -68,13 +95,30 @@
 	</div>
 {:else}
 	<Combobox
-		data={projects}
-		bind:value={$selectedProject}
-		defaultValue={$selectedProject}
-		onValueChange={(e) => handleProjectChange(e.value)}
+		class="z-10 w-full min-w-0 sm:min-w-48 md:min-w-64"
 		placeholder={m.form_project({ count: 1 })}
-		classes="z-10 w-full min-w-0 sm:min-w-48 md:min-w-64"
-		zIndex="10"
-		contentBase="max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"
-	/>
+		{collection}
+		defaultValue={$selectedProject}
+		onValueChange={handleValueChange}
+		{onInputValueChange}
+	>
+		<Combobox.Control>
+			<Combobox.Input />
+			<Combobox.Trigger />
+		</Combobox.Control>
+		<Portal>
+			<Combobox.Positioner class="z-10">
+				<Combobox.Content
+					class="z-50 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"
+				>
+					{#each items as item (item.value)}
+						<Combobox.Item {item}>
+							<Combobox.ItemText>{item.label}</Combobox.ItemText>
+							<Combobox.ItemIndicator />
+						</Combobox.Item>
+					{/each}
+				</Combobox.Content>
+			</Combobox.Positioner>
+		</Portal>
+	</Combobox>
 {/if}

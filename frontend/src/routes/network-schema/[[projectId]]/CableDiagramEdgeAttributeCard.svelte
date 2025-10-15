@@ -34,7 +34,6 @@
 
 	let { onLabelUpdate, onEdgeDelete } = $props();
 
-	// Update state when cable changes
 	$effect(() => {
 		if (cable) {
 			cableName = cable.name || '';

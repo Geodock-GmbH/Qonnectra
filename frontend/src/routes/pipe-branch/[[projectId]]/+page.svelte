@@ -510,7 +510,7 @@
 		if (!sourceNode || !targetNode) {
 			globalToaster.error({
 				title: m.common_error(),
-				description: 'Could not find selected nodes'
+				description: m.message_error_could_not_find_selected_nodes()
 			});
 			return;
 		}
@@ -540,7 +540,7 @@
 		if (connections.length === 0) {
 			globalToaster.error({
 				title: m.common_error(),
-				description: 'No matching microducts available for connection'
+				description: m.message_error_no_matching_microducts()
 			});
 			return;
 		}
@@ -675,7 +675,7 @@
 		elevateEdgesOnSelect={true}
 		elevateNodesOnSelect={false}
 		connectionRadius={100}
-		connectionLineStyle="stroke: var(--color-surface-950-50); stroke-width: 2px;"
+		connectionLineStyle="stroke: var(--color-surface-50-950); stroke-width: 2px;"
 	>
 		{#if isLassoMode}
 			<PipeBranchLasso
@@ -686,7 +686,7 @@
 		{/if}
 
 		<Panel position="top-left">
-			<div class="card bg-surface-50-950 p-4 space-y-4 flex flex-col gap-2">
+			<div class="card preset-filled-surface-50-950 p-4 space-y-4 flex flex-col gap-2">
 				<h1 class="text-lg font-semibold mb-1">{m.common_attributes()}</h1>
 				<GenericCombobox
 					data={branches}
@@ -702,7 +702,7 @@
 							getTrenchesNearNode(nodeName, project);
 						}
 					}}
-					classes="bg-surface-50-950"
+					inputClasses="text-sm min-w-[240px]"
 				/>
 				<LassoModeSwitch
 					checked={isLassoMode}
@@ -726,7 +726,7 @@
 							<div class="text-xs text-warning-500">{m.form_select_exactly_2_nodes()}</div>
 						{/if}
 
-						<button class="btn btn-sm preset-outlined-primary-500" onclick={clearLassoSelection}>
+						<button class="btn btn-sm preset-filled-warning-500" onclick={clearLassoSelection}>
 							{m.action_clear_selection()}
 						</button>
 					</div>

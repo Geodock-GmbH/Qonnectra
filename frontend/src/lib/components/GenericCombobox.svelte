@@ -1,36 +1,59 @@
 <script>
 	// Skeleton
-	import { Combobox } from '@skeletonlabs/skeleton-svelte';
+	import { Combobox, useListCollection } from '@skeletonlabs/skeleton-svelte';
+	// Paraglide
+	import { m } from '$lib/paraglide/messages';
 	// Svelte
 	import { browser } from '$app/environment';
 	import { globalToaster } from '$lib/stores/toaster';
-	// Paraglide
-	import { m } from '$lib/paraglide/messages';
 
 	let {
 		data = [],
 		value = $bindable(),
-		defaultValue = '',
+		defaultValue = [],
 		placeholder = '',
 		error = null,
 		errorMessage = '',
 		noDataMessage = '',
 		loading = false,
 		placeholderSize = 'size-10',
-		classes = 'touch-manipulation',
+		classes = 'touch-manipulation w-full',
 		zIndex = '10',
-		contentBase = 'max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg',
+		contentBase = 'max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 preset-filled-surface-50-950 shadow-lg',
+		inputClasses = '',
 		onValueChange = () => {}
 	} = $props();
 
+	let isOpen = $state(false);
+
 	let isHydrating = $state(!browser);
+
+	const collection = $derived(
+		useListCollection({
+			items: data,
+			itemToString: (item) => item?.label ?? '',
+			itemToValue: (item) => item?.value ?? ''
+		})
+	);
+
+	let items = $derived(collection.items);
+
+	const onInputValueChange = (e) => {
+		const filtered = data.filter((item) =>
+			item.label.toLowerCase().includes(e.inputValue.toLowerCase())
+		);
+		if (filtered.length > 0) {
+			items = filtered;
+		} else {
+			items = data;
+		}
+	};
 
 	$effect(() => {
 		if (error && browser) {
 			globalToaster.error({
-				type: 'error',
-				message: errorMessage || 'Error loading data',
-				description: error
+				title: error || m.common_error(),
+				description: errorMessage
 			});
 		}
 	});
@@ -45,6 +68,10 @@
 		value = e.value;
 		onValueChange(e);
 	}
+
+	function handleOpenChange(e) {
+		isOpen = e.open;
+	}
 </script>
 
 {#if loading || isHydrating}
@@ -57,13 +84,28 @@
 	</div>
 {:else}
 	<Combobox
-		{data}
-		bind:value
-		{defaultValue}
-		onValueChange={handleValueChange}
+		class={classes}
 		{placeholder}
-		{zIndex}
-		{contentBase}
-		{classes}
-	/>
+		{collection}
+		{defaultValue}
+		bind:value
+		onOpenChange={handleOpenChange}
+		onValueChange={handleValueChange}
+		{onInputValueChange}
+	>
+		<Combobox.Control>
+			<Combobox.Input class="placeholder:text-sm placeholder:truncate {inputClasses}" />
+			<Combobox.Trigger />
+		</Combobox.Control>
+		<Combobox.Positioner>
+			<Combobox.Content class="{contentBase} {isOpen ? 'z-[100]' : `z-${zIndex}`}">
+				{#each items as item (item.value)}
+					<Combobox.Item {item}>
+						<Combobox.ItemText>{item.label}</Combobox.ItemText>
+						<Combobox.ItemIndicator />
+					</Combobox.Item>
+				{/each}
+			</Combobox.Content>
+		</Combobox.Positioner>
+	</Combobox>
 {/if}

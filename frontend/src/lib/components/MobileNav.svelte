@@ -34,9 +34,24 @@
 		showMoreMenu = !showMoreMenu;
 	}
 
+	// Main navigation items
+	const mainNavItems = [
+		{
+			href: '/map',
+			label: () => m.nav_map(),
+			icon: IconMap2,
+			pathMatch: (path) => path.startsWith('/map')
+		},
+		{
+			href: '/dashboard',
+			label: () => m.nav_dashboard(),
+			icon: IconDashboard,
+			pathMatch: (path) => path.startsWith('/dashboard')
+		}
+	];
+
 	// Additional navigation items
 	const additionalNavItems = [
-		// Add more navigation items here when needed
 		{ href: '/trench', label: m.nav_conduit_connection(), icon: IconTextPlus },
 		{ href: '/conduit', label: m.nav_conduit_management(), icon: IconArrowBarToRight },
 		{ href: '/pipe-branch', label: m.nav_pipe_branch(), icon: IconAffiliate },
@@ -45,43 +60,43 @@
 	];
 
 	// Calculate total number of navigation tiles (main tiles + more button if needed)
-	let totalTiles = $derived(4 + (additionalNavItems.length > 0 ? 1 : 0));
+	let totalTiles = $derived(mainNavItems.length + (additionalNavItems.length > 0 ? 1 : 0));
+
+	// Dynamic anchor classes based on selection
+	function getAnchorClass(isSelected) {
+		const baseClass = 'btn hover:preset-tonal flex-col items-center gap-1';
+		return isSelected ? `${baseClass} preset-filled` : baseClass;
+	}
 </script>
 
 <!-- Mobile Navigation Bar -->
 <div
 	class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface-50-900 border-t-2 border-surface-200-800"
-	style="--nav-tiles: {totalTiles}"
 >
-	<Navigation.Bar>
-		<Navigation.Tile
-			href="/map"
-			label={m.nav_map()}
-			title={m.nav_map()}
-			selected={page.url.pathname === '/map'}
-		>
-			<IconMap2 size={24} class="text-surface-700-300" />
-		</Navigation.Tile>
-		<Navigation.Tile
-			href="/dashboard"
-			label={m.nav_dashboard()}
-			title={m.nav_dashboard()}
-			selected={page.url.pathname.startsWith('/dashboard')}
-		>
-			<IconDashboard size={24} class="text-surface-700-300" />
-		</Navigation.Tile>
-		<!-- More button - only show if there are additional nav items -->
-		{#if additionalNavItems.length > 0}
-			<Navigation.Tile
-				label={m.common_more()}
-				title={m.form_more_sites()}
-				selected={showMoreMenu}
-				onclick={toggleMoreMenu}
-			>
-				<IconDotsVertical size={24} class="text-surface-700-300" />
-			</Navigation.Tile>
-		{/if}
-	</Navigation.Bar>
+	<Navigation layout="bar">
+		<Navigation.Menu class="grid gap-2" style="grid-template-columns: repeat({totalTiles}, 1fr);">
+			{#each mainNavItems as item}
+				{@const Icon = item.icon}
+				{@const isSelected = item.pathMatch(page.url.pathname)}
+				<a href={item.href} class={getAnchorClass(isSelected)} title={item.label()}>
+					<Icon size={24} class="text-surface-700-300" />
+					<span class="text-[10px]">{item.label()}</span>
+				</a>
+			{/each}
+			<!-- More button - only show if there are additional nav items -->
+			{#if additionalNavItems.length > 0}
+				<button
+					type="button"
+					class={getAnchorClass(showMoreMenu)}
+					title={m.form_more_sites()}
+					onclick={toggleMoreMenu}
+				>
+					<IconDotsVertical size={24} class="text-surface-700-300" />
+					<span class="text-[10px]">{m.common_more()}</span>
+				</button>
+			{/if}
+		</Navigation.Menu>
+	</Navigation>
 </div>
 
 <!-- More Menu Popup -->
@@ -125,16 +140,3 @@
 		</div>
 	</div>
 {/if}
-
-<style>
-	/* Dynamic tile sizing based on number of tiles */
-	:global(.navigation-bar) {
-		display: grid;
-		grid-template-columns: repeat(var(--nav-tiles, 4), 1fr);
-	}
-
-	:global(.navigation-tile) {
-		min-width: 0;
-		flex: 1;
-	}
-</style>

@@ -1,9 +1,10 @@
 <script>
 	// Skeleton
-	import { Combobox, Slider, Switch } from '@skeletonlabs/skeleton-svelte';
+	import { Slider, Switch } from '@skeletonlabs/skeleton-svelte';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 	// Svelte
+	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { userStore } from '$lib/stores/auth';
 	import {
 		routingTolerance,
@@ -37,9 +38,6 @@
 				<h2 class="text-base/7 font-semibold">
 					{m.settings_user()}
 				</h2>
-				<p class="mt-1 text-sm/6">
-					{m.settings_user_description()}
-				</p>
 
 				<dl class="mt-6 divide-y border-t text-sm/6">
 					<div class="py-6 sm:flex">
@@ -66,9 +64,6 @@
 				<h2 class="text-base/7 font-semibold">
 					{m.settings_ui()}
 				</h2>
-				<p class="mt-1 text-sm/6">
-					{m.settings_ui_description()}
-				</p>
 
 				<dl class="mt-6 divide-y border-t text-sm/6">
 					<div class="py-6 sm:flex">
@@ -77,7 +72,7 @@
 						</dt>
 						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
 							<span></span>
-							<Combobox
+							<GenericCombobox
 								data={themes}
 								bind:value={$theme}
 								defaultValue={$theme}
@@ -86,6 +81,7 @@
 								}}
 								placeholder={$theme}
 								zIndex="10"
+								classes="w-auto"
 							/>
 						</dd>
 					</div>
@@ -103,7 +99,12 @@
 								onCheckedChange={() => {
 									$sidebarExpanded = !$sidebarExpanded;
 								}}
-							/>
+							>
+								<Switch.Control>
+									<Switch.Thumb />
+								</Switch.Control>
+								<Switch.HiddenInput />
+							</Switch>
 						</dd>
 					</div>
 				</dl>
@@ -112,10 +113,6 @@
 			<!-- Map Settings -->
 			<div>
 				<h2 class="text-base/7 font-semibold">{m.settings_map()}</h2>
-				<p class="mt-1 text-sm/6">
-					{m.settings_map_description()}
-				</p>
-
 				<dl class="mt-6 divide-y border-t text-sm/6">
 					<div class="py-6 sm:flex">
 						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
@@ -161,9 +158,6 @@
 				<h2 class="text-base/7 font-semibold">
 					{m.settings_conduit_connection()}
 				</h2>
-				<p class="mt-1 text-sm/6">
-					{m.settings_conduit_connection_description()}
-				</p>
 
 				<dl class="mt-6 divide-y border-t text-sm/6">
 					<div class="py-6 sm:flex">
@@ -173,14 +167,25 @@
 						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
 							<p class="hidden md:block">{m.settings_routing_tolerance_description()}</p>
 							<Slider
-								bind:value={$routingTolerance}
+								value={$routingTolerance}
 								onValueChange={(e) => ($routingTolerance = e.value)}
-								markers={routingToleranceMarkers}
 								max={10}
 								min={1}
-								meterBg="bg-primary-500"
-								thumbRingColor="ring-primary-500"
-							/>
+							>
+								<Slider.Control>
+									<Slider.Track>
+										<Slider.Range class="bg-primary-500" />
+									</Slider.Track>
+									<Slider.Thumb index={0} class="ring-primary-500">
+										<Slider.HiddenInput />
+									</Slider.Thumb>
+								</Slider.Control>
+								<Slider.MarkerGroup>
+									{#each routingToleranceMarkers as marker}
+										<Slider.Marker value={marker} />
+									{/each}
+								</Slider.MarkerGroup>
+							</Slider>
 						</dd>
 					</div>
 				</dl>

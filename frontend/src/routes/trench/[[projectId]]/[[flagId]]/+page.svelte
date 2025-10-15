@@ -22,6 +22,7 @@
 		trenchColor,
 		trenchColorSelected
 	} from '$lib/stores/store';
+	import { globalToaster } from '$lib/stores/toaster';
 	import { onDestroy } from 'svelte';
 	import TrenchTable from './TrenchTable.svelte';
 	// OpenLayers

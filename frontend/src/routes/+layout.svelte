@@ -5,7 +5,7 @@
 	import { updateUserStore } from '$lib/stores/auth';
 	import { theme } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { Toaster } from '@skeletonlabs/skeleton-svelte';
+	import { Toast } from '@skeletonlabs/skeleton-svelte';
 	import '../app.css';
 
 	let { children, data } = $props();
@@ -37,4 +37,14 @@
 <MobileNav />
 
 <!-- Global Toaster -->
-<Toaster toaster={globalToaster}></Toaster>
+<Toast.Group toaster={globalToaster}>
+	{#snippet children(toast)}
+		<Toast {toast}>
+			<Toast.Message>
+				<Toast.Title>{toast.title}</Toast.Title>
+				<Toast.Description>{toast.description}</Toast.Description>
+			</Toast.Message>
+			<Toast.CloseTrigger />
+		</Toast>
+	{/snippet}
+</Toast.Group>
