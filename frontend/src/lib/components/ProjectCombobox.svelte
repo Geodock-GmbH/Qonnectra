@@ -21,7 +21,6 @@
 
 	let isHydrating = $state(!browser);
 
-	// Create collection from projects
 	const collection = $derived(
 		useListCollection({
 			items: projects,
@@ -30,8 +29,7 @@
 		})
 	);
 
-	// Get items from collection for rendering
-	const items = $derived(collection.items);
+	let items = $derived(collection.items);
 
 	$effect(() => {
 		if (projectsError && browser) {
@@ -48,7 +46,6 @@
 		}
 	});
 
-	// Handle project change with cookie and navigation
 	function handleProjectChange(newProject) {
 		if (!browser) return;
 
@@ -75,6 +72,17 @@
 			handleProjectChange(newValue);
 		}
 	}
+
+	const onInputValueChange = (e) => {
+		const filtered = projects.filter((item) =>
+			item.label.toLowerCase().includes(e.inputValue.toLowerCase())
+		);
+		if (filtered.length > 0) {
+			items = filtered;
+		} else {
+			items = projects;
+		}
+	};
 </script>
 
 {#if loading || isHydrating}
@@ -92,6 +100,7 @@
 		{collection}
 		defaultValue={$selectedProject}
 		onValueChange={handleValueChange}
+		{onInputValueChange}
 	>
 		<Combobox.Control>
 			<Combobox.Input />
@@ -100,7 +109,7 @@
 		<Portal>
 			<Combobox.Positioner class="z-10">
 				<Combobox.Content
-					class="max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"
+					class="z-50 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"
 				>
 					{#each items as item (item.value)}
 						<Combobox.Item {item}>

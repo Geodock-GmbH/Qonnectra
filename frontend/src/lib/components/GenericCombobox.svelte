@@ -1,16 +1,16 @@
 <script>
 	// Skeleton
-	import { Combobox, Portal, useListCollection } from '@skeletonlabs/skeleton-svelte';
+	import { Combobox, useListCollection } from '@skeletonlabs/skeleton-svelte';
+	// Paraglide
+	import { m } from '$lib/paraglide/messages';
 	// Svelte
 	import { browser } from '$app/environment';
 	import { globalToaster } from '$lib/stores/toaster';
-	// Paraglide
-	import { m } from '$lib/paraglide/messages';
 
 	let {
 		data = [],
 		value = $bindable(),
-		defaultValue = '',
+		defaultValue = [],
 		placeholder = '',
 		error = null,
 		errorMessage = '',
@@ -19,38 +19,41 @@
 		placeholderSize = 'size-10',
 		classes = 'touch-manipulation w-full',
 		zIndex = '10',
-		contentBase = 'max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg',
-		onValueChange = () => {},
-		itemToString = (item) => item?.label ?? '',
-		itemToValue = (item) => item?.value ?? ''
+		contentBase = 'max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 preset-filled-surface-50-950 shadow-lg',
+		inputClasses = '',
+		onValueChange = () => {}
 	} = $props();
 
-	let isHydrating = $state(!browser);
-	let filteredItems = $state(data);
+	let isOpen = $state(false);
 
-	// Create collection from data
+	let isHydrating = $state(!browser);
+
 	const collection = $derived(
 		useListCollection({
-			items: filteredItems,
-			itemToString,
-			itemToValue
+			items: data,
+			itemToString: (item) => item?.label ?? '',
+			itemToValue: (item) => item?.value ?? ''
 		})
 	);
 
-	// Get items from collection for rendering
-	const items = $derived(collection.items);
+	let items = $derived(collection.items);
 
-	// Update filtered items when data changes
-	$effect(() => {
-		filteredItems = data;
-	});
+	const onInputValueChange = (e) => {
+		const filtered = data.filter((item) =>
+			item.label.toLowerCase().includes(e.inputValue.toLowerCase())
+		);
+		if (filtered.length > 0) {
+			items = filtered;
+		} else {
+			items = data;
+		}
+	};
 
 	$effect(() => {
 		if (error && browser) {
 			globalToaster.error({
-				type: 'error',
-				message: errorMessage || 'Error loading data',
-				description: error
+				title: error || m.common_error(),
+				description: errorMessage
 			});
 		}
 	});
@@ -66,18 +69,8 @@
 		onValueChange(e);
 	}
 
-	function handleInputValueChange(e) {
-		const inputValue = e.inputValue.toLowerCase();
-		const filtered = data.filter((item) => {
-			const itemString = itemToString(item).toLowerCase();
-			return itemString.includes(inputValue);
-		});
-		filteredItems = filtered.length > 0 ? filtered : data;
-	}
-
-	function handleOpenChange() {
-		// Reset filtered items when opening
-		filteredItems = data;
+	function handleOpenChange(e) {
+		isOpen = e.open;
 	}
 </script>
 
@@ -95,26 +88,24 @@
 		{placeholder}
 		{collection}
 		{defaultValue}
-		{value}
-		onValueChange={handleValueChange}
-		onInputValueChange={handleInputValueChange}
+		bind:value
 		onOpenChange={handleOpenChange}
+		onValueChange={handleValueChange}
+		{onInputValueChange}
 	>
 		<Combobox.Control>
-			<Combobox.Input />
+			<Combobox.Input class="placeholder:text-sm placeholder:truncate {inputClasses}" />
 			<Combobox.Trigger />
 		</Combobox.Control>
-		<Portal>
-			<Combobox.Positioner class="z-{zIndex}">
-				<Combobox.Content class={contentBase}>
-					{#each items as item (itemToValue(item))}
-						<Combobox.Item {item}>
-							<Combobox.ItemText>{itemToString(item)}</Combobox.ItemText>
-							<Combobox.ItemIndicator />
-						</Combobox.Item>
-					{/each}
-				</Combobox.Content>
-			</Combobox.Positioner>
-		</Portal>
+		<Combobox.Positioner>
+			<Combobox.Content class="{contentBase} {isOpen ? 'z-[100]' : `z-${zIndex}`}">
+				{#each items as item (item.value)}
+					<Combobox.Item {item}>
+						<Combobox.ItemText>{item.label}</Combobox.ItemText>
+						<Combobox.ItemIndicator />
+					</Combobox.Item>
+				{/each}
+			</Combobox.Content>
+		</Combobox.Positioner>
 	</Combobox>
 {/if}

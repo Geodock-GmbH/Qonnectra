@@ -1,6 +1,6 @@
 <script>
 	// Skeleton
-	import { Combobox, Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
+	import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
 	// Tabler
 	import { IconPlus } from '@tabler/icons-svelte';
 
@@ -163,8 +163,6 @@
 			rowClickedSignal = false;
 		}
 	});
-
-	console.log(conduitTypes);
 </script>
 
 <Dialog
@@ -196,16 +194,14 @@
 		<Dialog.Backdrop class="fixed inset-0 z-50 bg-surface-50-950/50 backdrop-blur-sm" />
 
 		<Dialog.Positioner class="fixed inset-0 z-50 flex items-center justify-center">
-			<Dialog.Content
-				class="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm w-full"
-			>
+			<Dialog.Content class="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm ">
 				<Dialog.Title class="flex justify-between">
 					<h2 class="h3">{m.common_attributes()}</h2>
 				</Dialog.Title>
 
 				<form
 					id="pipe-form"
-					class="mx-auto w-full max-w-md space-y-4 grid grid-cols-2 gap-4"
+					class="space-y-4 grid grid-cols-2 gap-4"
 					onsubmit={async (e) => {
 						await handleSubmit(e);
 						await clearParameters();
@@ -226,11 +222,9 @@
 						<span class="label-text">{m.form_conduit_type()}</span>
 						<GenericCombobox
 							data={conduitTypes}
-							required
 							bind:value={selectedConduitType}
-							onValueChange={(e) => (selectedConduitType = e.value)}
 							defaultValue={selectedConduitType}
-							placeholder={m.form_conduit_type()}
+							onValueChange={(e) => (selectedConduitType = e.value)}
 						/>
 					</label>
 					<label class="label">
@@ -240,71 +234,47 @@
 					</label>
 					<label for="status" class="label">
 						<span class="label-text">{m.form_status()}</span>
-						<Combobox
-							name="status"
-							class="select"
-							id="status"
+						<GenericCombobox
 							data={statuses}
-							zIndex="10"
-							value={selectedStatus}
-							onValueChange={(e) => (selectedStatus = e.value)}
+							bind:value={selectedStatus}
 							defaultValue={selectedStatus}
-							contentBase="max-h-60 overflow-auto"
+							onValueChange={(e) => (selectedStatus = e.value)}
 						/>
 					</label>
 					<label for="network_level" class="label">
 						<span class="label-text">{m.form_network_level()}</span>
-						<Combobox
-							name="network_level"
-							class="select"
-							id="network_level"
+						<GenericCombobox
 							data={networkLevels}
-							zIndex="10"
-							value={selectedNetworkLevel}
-							onValueChange={(e) => (selectedNetworkLevel = e.value)}
+							bind:value={selectedNetworkLevel}
 							defaultValue={selectedNetworkLevel}
+							onValueChange={(e) => (selectedNetworkLevel = e.value)}
 						/>
 					</label>
 					<label for="owner" class="label">
 						<span class="label-text">{m.form_owner()}</span>
-						<Combobox
-							name="owner"
-							class="select"
-							id="owner"
+						<GenericCombobox
 							data={companies}
-							zIndex="10"
-							value={selectedOwner}
-							onValueChange={(e) => (selectedOwner = e.value)}
+							bind:value={selectedOwner}
 							defaultValue={selectedOwner}
+							onValueChange={(e) => (selectedOwner = e.value)}
 						/>
 					</label>
 					<label for="constructor" class="label">
 						<span class="label-text">{m.form_constructor()}</span>
-						<Combobox
-							name="constructor"
-							class="select"
-							id="constructor"
+						<GenericCombobox
 							data={companies}
-							zIndex="10"
-							value={selectedConstructor}
-							onValueChange={(e) => (selectedConstructor = e.value)}
-							contentBase="max-h-60 overflow-auto"
+							bind:value={selectedConstructor}
 							defaultValue={selectedConstructor}
+							onValueChange={(e) => (selectedConstructor = e.value)}
 						/>
 					</label>
 					<label for="manufacturer" class="label">
 						<span class="label-text">{m.form_manufacturer()}</span>
-
-						<Combobox
-							name="manufacturer"
-							class="select"
-							id="manufacturer"
+						<GenericCombobox
 							data={companies}
-							zIndex="10"
-							value={selectedManufacturer}
-							onValueChange={(e) => (selectedManufacturer = e.value)}
-							contentBase="max-h-60 overflow-auto"
+							bind:value={selectedManufacturer}
 							defaultValue={selectedManufacturer}
+							onValueChange={(e) => (selectedManufacturer = e.value)}
 						/>
 					</label>
 					<label for="date" class="label">
@@ -313,17 +283,11 @@
 					</label>
 					<label for="flag" class="label">
 						<span class="label-text">{m.form_flag()}</span>
-						<Combobox
-							name="flag"
-							class="select"
-							id="flag"
+						<GenericCombobox
 							data={flags}
-							zIndex="10"
-							value={selectedFlag}
-							required
-							onValueChange={(e) => (selectedFlag = e.value)}
-							contentBase="max-h-60 overflow-auto"
+							bind:value={selectedFlag}
 							defaultValue={selectedFlag}
+							onValueChange={(e) => (selectedFlag = e.value)}
 						/>
 					</label>
 				</form>

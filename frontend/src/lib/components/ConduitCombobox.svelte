@@ -16,7 +16,6 @@
 		conduitsError = null
 	} = $props();
 
-	// Create collection from conduits
 	const collection = $derived(
 		useListCollection({
 			items: conduits,
@@ -25,10 +24,8 @@
 		})
 	);
 
-	// Get items from collection for rendering
-	const items = $derived(collection.items);
+	let items = $derived(collection.items);
 
-	// Show error toast
 	$effect(() => {
 		if (conduitsError && browser) {
 			globalToaster.error({
@@ -41,6 +38,17 @@
 	function handleValueChange(e) {
 		$selectedConduit = e.value;
 	}
+
+	const onInputValueChange = (e) => {
+		const filtered = conduits.filter((item) =>
+			item.label.toLowerCase().includes(e.inputValue.toLowerCase())
+		);
+		if (filtered.length > 0) {
+			items = filtered;
+		} else {
+			items = conduits;
+		}
+	};
 </script>
 
 <div>
@@ -59,6 +67,7 @@
 			{collection}
 			defaultValue={$selectedConduit}
 			onValueChange={handleValueChange}
+			{onInputValueChange}
 		>
 			<Combobox.Control>
 				<Combobox.Input />
@@ -67,7 +76,7 @@
 			<Portal>
 				<Combobox.Positioner class="z-10">
 					<Combobox.Content
-						class="max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"
+						class="z-50 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"
 					>
 						{#each items as item (item.value)}
 							<Combobox.Item {item}>

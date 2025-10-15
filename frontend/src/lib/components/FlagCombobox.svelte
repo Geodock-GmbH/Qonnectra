@@ -9,10 +9,8 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	let { flags = [], flagsError = null, loading = false, onchange = (_) => {} } = $props();
 
-	// Client-side hydration loading state
 	let isHydrating = $state(!browser);
 
-	// Create collection from flags
 	const collection = $derived(
 		useListCollection({
 			items: flags,
@@ -21,8 +19,7 @@
 		})
 	);
 
-	// Get items from collection for rendering
-	const items = $derived(collection.items);
+	let items = $derived(collection.items);
 
 	$effect(() => {
 		if (flagsError && browser) {
@@ -33,7 +30,6 @@
 		}
 	});
 
-	// Update hydration state
 	$effect(() => {
 		if (browser) {
 			isHydrating = false;
@@ -44,6 +40,17 @@
 		$selectedFlag = e.value;
 		onchange(e);
 	}
+
+	const onInputValueChange = (e) => {
+		const filtered = flags.filter((item) =>
+			item.label.toLowerCase().includes(e.inputValue.toLowerCase())
+		);
+		if (filtered.length > 0) {
+			items = filtered;
+		} else {
+			items = flags;
+		}
+	};
 </script>
 
 <!-- Loading -->
@@ -61,6 +68,7 @@
 		{collection}
 		defaultValue={$selectedFlag}
 		onValueChange={handleValueChange}
+		{onInputValueChange}
 	>
 		<Combobox.Control>
 			<Combobox.Input />
@@ -69,7 +77,7 @@
 		<Portal>
 			<Combobox.Positioner class="z-10">
 				<Combobox.Content
-					class="max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"
+					class="z-50 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"
 				>
 					{#each items as item (item.value)}
 						<Combobox.Item {item}>

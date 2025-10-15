@@ -38,9 +38,6 @@
 				<h2 class="text-base/7 font-semibold">
 					{m.settings_user()}
 				</h2>
-				<p class="mt-1 text-sm/6">
-					{m.settings_user_description()}
-				</p>
 
 				<dl class="mt-6 divide-y border-t text-sm/6">
 					<div class="py-6 sm:flex">
@@ -67,9 +64,6 @@
 				<h2 class="text-base/7 font-semibold">
 					{m.settings_ui()}
 				</h2>
-				<p class="mt-1 text-sm/6">
-					{m.settings_ui_description()}
-				</p>
 
 				<dl class="mt-6 divide-y border-t text-sm/6">
 					<div class="py-6 sm:flex">
@@ -119,10 +113,6 @@
 			<!-- Map Settings -->
 			<div>
 				<h2 class="text-base/7 font-semibold">{m.settings_map()}</h2>
-				<p class="mt-1 text-sm/6">
-					{m.settings_map_description()}
-				</p>
-
 				<dl class="mt-6 divide-y border-t text-sm/6">
 					<div class="py-6 sm:flex">
 						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
@@ -168,9 +158,6 @@
 				<h2 class="text-base/7 font-semibold">
 					{m.settings_conduit_connection()}
 				</h2>
-				<p class="mt-1 text-sm/6">
-					{m.settings_conduit_connection_description()}
-				</p>
 
 				<dl class="mt-6 divide-y border-t text-sm/6">
 					<div class="py-6 sm:flex">

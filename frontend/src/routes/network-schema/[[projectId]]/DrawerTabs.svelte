@@ -14,24 +14,21 @@
 </script>
 
 <Tabs value={group} onValueChange={(e) => (group = e.value)}>
-	{#snippet list()}
-		<Tabs.Control value="attributes">{m.common_attributes()}</Tabs.Control>
+	<Tabs.List>
+		<Tabs.Trigger class="flex-1" value="attributes">{m.common_attributes()}</Tabs.Trigger>
 		{#if type === 'edge'}
-			<Tabs.Control value="handles">{m.form_handles()}</Tabs.Control>
+			<Tabs.Trigger class="flex-1" value="handles">{m.form_handles()}</Tabs.Trigger>
 		{/if}
-	{/snippet}
-	{#snippet content()}
-		<Tabs.Panel value="attributes">
-			{#if type === 'edge'}
-				<CableDiagramEdgeAttributeCard {...data} {onLabelUpdate} {onEdgeDelete} />
-			{:else if type === 'node'}
-				<CableDiagramNodeAttributeCard {...data} {onLabelUpdate} />
-			{/if}
-		</Tabs.Panel>
+		<Tabs.Indicator />
+	</Tabs.List>
+	<Tabs.Content value="attributes">
 		{#if type === 'edge'}
-			<Tabs.Panel value="handles">
-				<CableDiagramEdgeHandleConfig {...data} />
-			</Tabs.Panel>
+			<CableDiagramEdgeAttributeCard {...data} {onLabelUpdate} {onEdgeDelete} />
+		{:else if type === 'node'}
+			<CableDiagramNodeAttributeCard {...data} {onLabelUpdate} />
 		{/if}
-	{/snippet}
+	</Tabs.Content>
+	<Tabs.Content value="handles">
+		<CableDiagramEdgeHandleConfig {...data} />
+	</Tabs.Content>
 </Tabs>
