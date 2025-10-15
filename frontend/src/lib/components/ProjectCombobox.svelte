@@ -30,6 +30,7 @@
 	);
 
 	let items = $derived(collection.items);
+	let isOpen = $state(false);
 
 	$effect(() => {
 		if (projectsError && browser) {
@@ -41,10 +42,20 @@
 	});
 
 	$effect(() => {
+		if (isOpen) {
+			items = projects;
+		}
+	});
+
+	$effect(() => {
 		if (browser) {
 			isHydrating = false;
 		}
 	});
+
+	function handleOpenChange(e) {
+		isOpen = e.open;
+	}
 
 	function handleProjectChange(newProject) {
 		if (!browser) return;
@@ -100,6 +111,7 @@
 		{collection}
 		defaultValue={$selectedProject}
 		onValueChange={handleValueChange}
+		onOpenChange={handleOpenChange}
 		{onInputValueChange}
 	>
 		<Combobox.Control>

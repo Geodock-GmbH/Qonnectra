@@ -50,6 +50,12 @@
 	};
 
 	$effect(() => {
+		if (isOpen) {
+			items = data;
+		}
+	});
+
+	$effect(() => {
 		if (error && browser) {
 			globalToaster.error({
 				title: error || m.common_error(),

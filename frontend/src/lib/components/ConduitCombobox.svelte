@@ -25,6 +25,7 @@
 	);
 
 	let items = $derived(collection.items);
+	let isOpen = $state(false);
 
 	$effect(() => {
 		if (conduitsError && browser) {
@@ -35,8 +36,18 @@
 		}
 	});
 
+	$effect(() => {
+		if (isOpen) {
+			items = conduits;
+		}
+	});
+
 	function handleValueChange(e) {
 		$selectedConduit = e.value;
+	}
+
+	function handleOpenChange(e) {
+		isOpen = e.open;
 	}
 
 	const onInputValueChange = (e) => {
@@ -67,6 +78,7 @@
 			{collection}
 			defaultValue={$selectedConduit}
 			onValueChange={handleValueChange}
+			onOpenChange={handleOpenChange}
 			{onInputValueChange}
 		>
 			<Combobox.Control>

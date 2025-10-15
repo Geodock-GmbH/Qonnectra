@@ -20,6 +20,7 @@
 	);
 
 	let items = $derived(collection.items);
+	let isOpen = $state(false);
 
 	$effect(() => {
 		if (flagsError && browser) {
@@ -27,6 +28,12 @@
 				title: m.title_error_fetching_flags(),
 				description: flagsError
 			});
+		}
+	});
+
+	$effect(() => {
+		if (isOpen) {
+			items = flags;
 		}
 	});
 
@@ -39,6 +46,10 @@
 	function handleValueChange(e) {
 		$selectedFlag = e.value;
 		onchange(e);
+	}
+
+	function handleOpenChange(e) {
+		isOpen = e.open;
 	}
 
 	const onInputValueChange = (e) => {
@@ -68,6 +79,7 @@
 		{collection}
 		defaultValue={$selectedFlag}
 		onValueChange={handleValueChange}
+		onOpenChange={handleOpenChange}
 		{onInputValueChange}
 	>
 		<Combobox.Control>
