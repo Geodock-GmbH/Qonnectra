@@ -2,12 +2,10 @@
 @plugin '@tailwindcss/forms';
 
 @import '@skeletonlabs/skeleton';
-@import '@skeletonlabs/skeleton/optional/presets';
+@import '@skeletonlabs/skeleton-svelte';
 @import '@skeletonlabs/skeleton/themes/legacy';
 
 @custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
-
-@source '../node_modules/@skeletonlabs/skeleton-svelte/dist';
 
 [data-theme='legacy'] {
 	--font-family: system-ui, sans-serif;

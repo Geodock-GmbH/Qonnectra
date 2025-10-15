@@ -1,6 +1,6 @@
 <script>
 	// Skeleton
-	import { Combobox, Modal } from '@skeletonlabs/skeleton-svelte';
+	import { Combobox, Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
 	// Tabler
 	import { IconPlus } from '@tabler/icons-svelte';
 
@@ -8,11 +8,12 @@
 	import { m } from '$lib/paraglide/messages';
 	// Svelte
 	import { PUBLIC_API_URL } from '$env/static/public';
+	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 
 	let {
 		projectId,
-		openPipeModal,
+		openPipeModal = $bindable(false),
 		small = false,
 		isHidden = false,
 		editMode = false,
@@ -162,170 +163,177 @@
 			rowClickedSignal = false;
 		}
 	});
+
+	console.log(conduitTypes);
 </script>
 
-<Modal
-	open={openPipeModal}
-	onclick={() => loadSelectOptions(editMode)}
+<Dialog
+	bind:open={openPipeModal}
 	onOpenChange={(e) => (openPipeModal = e.open)}
-	triggerBase={small ? 'btn-icon preset-filled-primary-500' : 'btn preset-filled-primary-500'}
-	contentBase="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm"
-	backdropClasses="backdrop-blur-sm"
-	classes={isHidden ? 'hidden' : ''}
-	onPointerDownOutside={async (e) => {
+	closeOnInteractOutside={true}
+	closeOnEscape={true}
+	onInteractOutside={async () => {
 		await clearParameters();
 	}}
-	onInteractOutside={async (e) => {
-		await clearParameters();
-	}}
-	onEscapeKeyDown={async (e) => {
+	onEscapeKeyDown={async () => {
 		await clearParameters();
 	}}
 >
-	{#snippet trigger()}
+	<Dialog.Trigger
+		class="{small
+			? 'btn-icon preset-filled-primary-500'
+			: 'btn preset-filled-primary-500'} {isHidden ? 'hidden' : ''}"
+		onclick={() => loadSelectOptions(editMode)}
+	>
 		{#if small}
 			<IconPlus size={18} />
 		{:else}
 			{m.action_add_conduit()}
 		{/if}
-	{/snippet}
-	{#snippet content()}
-		<header class="flex justify-between">
-			<h2 class="h3">{m.common_attributes()}</h2>
-		</header>
-		<form
-			id="pipe-form"
-			class="mx-auto w-full max-w-md space-y-4 grid grid-cols-2 gap-4"
-			onsubmit={async (e) => {
-				await handleSubmit(e);
-				await clearParameters();
-			}}
-		>
-			<label class="label">
-				<span class="label-text">{m.common_name()}</span>
-				<input
-					type="text"
-					class="input"
-					placeholder=""
-					name="pipe_name"
-					required
-					value={selectedConduitName ?? ''}
-				/>
-			</label>
-			<label for="pipe_type" class="label">
-				<span class="label-text">{m.form_conduit_type()}</span>
-				<Combobox
-					name="pipe_type"
-					class="select"
-					id="pipe_type"
-					data={conduitTypes}
-					zIndex="10"
-					required
-					value={selectedConduitType}
-					onValueChange={(e) => (selectedConduitType = e.value)}
-					defaultValue={selectedConduitType}
-					contentBase="max-h-60 overflow-auto"
-				/>
-			</label>
-			<label class="label">
-				<span class="label-text">{m.form_outer_conduit()}</span>
-				<textarea name="outer_conduit" id="outer_conduit" class="textarea" placeholder=""
-				></textarea>
-			</label>
-			<label for="status" class="label">
-				<span class="label-text">{m.form_status()}</span>
-				<Combobox
-					name="status"
-					class="select"
-					id="status"
-					data={statuses}
-					zIndex="10"
-					value={selectedStatus}
-					onValueChange={(e) => (selectedStatus = e.value)}
-					defaultValue={selectedStatus}
-					contentBase="max-h-60 overflow-auto"
-				/>
-			</label>
-			<label for="network_level" class="label">
-				<span class="label-text">{m.form_network_level()}</span>
-				<Combobox
-					name="network_level"
-					class="select"
-					id="network_level"
-					data={networkLevels}
-					zIndex="10"
-					value={selectedNetworkLevel}
-					onValueChange={(e) => (selectedNetworkLevel = e.value)}
-					defaultValue={selectedNetworkLevel}
-				/>
-			</label>
-			<label for="owner" class="label">
-				<span class="label-text">{m.form_owner()}</span>
-				<Combobox
-					name="owner"
-					class="select"
-					id="owner"
-					data={companies}
-					zIndex="10"
-					value={selectedOwner}
-					onValueChange={(e) => (selectedOwner = e.value)}
-					defaultValue={selectedOwner}
-				/>
-			</label>
-			<label for="constructor" class="label">
-				<span class="label-text">{m.form_constructor()}</span>
-				<Combobox
-					name="constructor"
-					class="select"
-					id="constructor"
-					data={companies}
-					zIndex="10"
-					value={selectedConstructor}
-					onValueChange={(e) => (selectedConstructor = e.value)}
-					contentBase="max-h-60 overflow-auto"
-					defaultValue={selectedConstructor}
-				/>
-			</label>
-			<label for="manufacturer" class="label">
-				<span class="label-text">{m.form_manufacturer()}</span>
+	</Dialog.Trigger>
 
-				<Combobox
-					name="manufacturer"
-					class="select"
-					id="manufacturer"
-					data={companies}
-					zIndex="10"
-					value={selectedManufacturer}
-					onValueChange={(e) => (selectedManufacturer = e.value)}
-					contentBase="max-h-60 overflow-auto"
-					defaultValue={selectedManufacturer}
-				/>
-			</label>
-			<label for="date" class="label">
-				<span class="label-text">{m.common_date()}</span>
-				<input type="date" name="date" id="date" class="input" value={selectedDate} />
-			</label>
-			<label for="flag" class="label">
-				<span class="label-text">{m.form_flag()}</span>
-				<Combobox
-					name="flag"
-					class="select"
-					id="flag"
-					data={flags}
-					zIndex="10"
-					value={selectedFlag}
-					required
-					onValueChange={(e) => (selectedFlag = e.value)}
-					contentBase="max-h-60 overflow-auto"
-					defaultValue={selectedFlag}
-				/>
-			</label>
-		</form>
+	<Portal>
+		<Dialog.Backdrop class="fixed inset-0 z-50 bg-surface-50-950/50 backdrop-blur-sm" />
 
-		<footer class="flex justify-end gap-4">
-			<button type="submit" class="btn preset-filled" form="pipe-form">
-				{m.common_confirm()}
-			</button>
-		</footer>
-	{/snippet}
-</Modal>
+		<Dialog.Positioner class="fixed inset-0 z-50 flex items-center justify-center">
+			<Dialog.Content
+				class="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm w-full"
+			>
+				<Dialog.Title class="flex justify-between">
+					<h2 class="h3">{m.common_attributes()}</h2>
+				</Dialog.Title>
+
+				<form
+					id="pipe-form"
+					class="mx-auto w-full max-w-md space-y-4 grid grid-cols-2 gap-4"
+					onsubmit={async (e) => {
+						await handleSubmit(e);
+						await clearParameters();
+					}}
+				>
+					<label class="label">
+						<span class="label-text">{m.common_name()}</span>
+						<input
+							type="text"
+							class="input"
+							placeholder=""
+							name="pipe_name"
+							required
+							value={selectedConduitName ?? ''}
+						/>
+					</label>
+					<label for="pipe_type" class="label">
+						<span class="label-text">{m.form_conduit_type()}</span>
+						<GenericCombobox
+							data={conduitTypes}
+							required
+							bind:value={selectedConduitType}
+							onValueChange={(e) => (selectedConduitType = e.value)}
+							defaultValue={selectedConduitType}
+							placeholder={m.form_conduit_type()}
+						/>
+					</label>
+					<label class="label">
+						<span class="label-text">{m.form_outer_conduit()}</span>
+						<textarea name="outer_conduit" id="outer_conduit" class="textarea" placeholder=""
+						></textarea>
+					</label>
+					<label for="status" class="label">
+						<span class="label-text">{m.form_status()}</span>
+						<Combobox
+							name="status"
+							class="select"
+							id="status"
+							data={statuses}
+							zIndex="10"
+							value={selectedStatus}
+							onValueChange={(e) => (selectedStatus = e.value)}
+							defaultValue={selectedStatus}
+							contentBase="max-h-60 overflow-auto"
+						/>
+					</label>
+					<label for="network_level" class="label">
+						<span class="label-text">{m.form_network_level()}</span>
+						<Combobox
+							name="network_level"
+							class="select"
+							id="network_level"
+							data={networkLevels}
+							zIndex="10"
+							value={selectedNetworkLevel}
+							onValueChange={(e) => (selectedNetworkLevel = e.value)}
+							defaultValue={selectedNetworkLevel}
+						/>
+					</label>
+					<label for="owner" class="label">
+						<span class="label-text">{m.form_owner()}</span>
+						<Combobox
+							name="owner"
+							class="select"
+							id="owner"
+							data={companies}
+							zIndex="10"
+							value={selectedOwner}
+							onValueChange={(e) => (selectedOwner = e.value)}
+							defaultValue={selectedOwner}
+						/>
+					</label>
+					<label for="constructor" class="label">
+						<span class="label-text">{m.form_constructor()}</span>
+						<Combobox
+							name="constructor"
+							class="select"
+							id="constructor"
+							data={companies}
+							zIndex="10"
+							value={selectedConstructor}
+							onValueChange={(e) => (selectedConstructor = e.value)}
+							contentBase="max-h-60 overflow-auto"
+							defaultValue={selectedConstructor}
+						/>
+					</label>
+					<label for="manufacturer" class="label">
+						<span class="label-text">{m.form_manufacturer()}</span>
+
+						<Combobox
+							name="manufacturer"
+							class="select"
+							id="manufacturer"
+							data={companies}
+							zIndex="10"
+							value={selectedManufacturer}
+							onValueChange={(e) => (selectedManufacturer = e.value)}
+							contentBase="max-h-60 overflow-auto"
+							defaultValue={selectedManufacturer}
+						/>
+					</label>
+					<label for="date" class="label">
+						<span class="label-text">{m.common_date()}</span>
+						<input type="date" name="date" id="date" class="input" value={selectedDate} />
+					</label>
+					<label for="flag" class="label">
+						<span class="label-text">{m.form_flag()}</span>
+						<Combobox
+							name="flag"
+							class="select"
+							id="flag"
+							data={flags}
+							zIndex="10"
+							value={selectedFlag}
+							required
+							onValueChange={(e) => (selectedFlag = e.value)}
+							contentBase="max-h-60 overflow-auto"
+							defaultValue={selectedFlag}
+						/>
+					</label>
+				</form>
+
+				<footer class="flex justify-end gap-4">
+					<button type="submit" class="btn preset-filled" form="pipe-form">
+						{m.common_confirm()}
+					</button>
+				</footer>
+			</Dialog.Content>
+		</Dialog.Positioner>
+	</Portal>
+</Dialog>
