@@ -170,7 +170,7 @@
 	<SearchInput bind:value={searchQuery} onSearch={handleSearch} />
 </div>
 <div class="bg-surface-50-950 rounded-lg shadow-lg w-full">
-	{#if showSearchResults && searchResults.length > 0}
+	{#if showSearchResults && searchResults.length > 0 && !isSearching}
 		<div class="mt-3 lg:mt-2">
 			<GenericCombobox
 				data={searchResults}
@@ -185,7 +185,7 @@
 
 	{#if isSearching}
 		<div
-			class="m-3 lg:m-2 text-base lg:text-sm text-surface-600-400 flex items-center justify-center lg:justify-start"
+			class="m-3 lg:m-2 text-base lg:text-sm text-surface-600-400 flex items-center justify-center lg:justify-start lg:min-h-[36px]"
 		>
 			<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-500 mr-2"></div>
 			{m.common_searching()}
