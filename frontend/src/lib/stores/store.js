@@ -6,7 +6,7 @@ const defaultCenter = [0, 0];
 const defaultZoom = 2;
 const defaultProjectValue = ['1'];
 const defaultFlagValue = ['1'];
-const defaultTrenchColor = '#fbb483';
+const defaultTrenchColor = '#000000';
 
 export const sidebarExpanded = persisted('isSidebarExpanded', true);
 export const defaultProject = persisted('defaultProject', defaultProjectValue);

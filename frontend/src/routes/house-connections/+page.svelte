@@ -21,7 +21,11 @@
 	let { data } = $props();
 
 	// Initialize map state to manage layers
-	const mapState = new MapState($selectedProject, $trenchColor, $trenchColorSelected);
+	const mapState = new MapState($selectedProject, $trenchColor, $trenchColorSelected, {
+		trench: true,
+		address: false,
+		node: false
+	});
 
 	// Initialize layers (trench, address, node)
 	const layersInitialized = mapState.initializeLayers();

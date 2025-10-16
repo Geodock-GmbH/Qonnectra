@@ -36,15 +36,27 @@ export class MapState {
 	trenchColor = $state(null);
 	trenchColorSelected = $state(null);
 
+	// Add layer configuration
+	layerConfig = $state({
+		trench: true,
+		address: true,
+		node: true
+	});
+
 	/**
 	 * @param {string} selectedProject - Current project ID
 	 * @param {string} trenchColor - Color for trench rendering
 	 * @param {string} trenchColorSelected - Color for selected trenches
+	 * @param {Object} layerConfig - Configuration for which layers to load (optional)
 	 */
-	constructor(selectedProject, trenchColor, trenchColorSelected) {
+	constructor(selectedProject, trenchColor, trenchColorSelected, layerConfig = null) {
 		this.selectedProject = selectedProject;
 		this.trenchColor = trenchColor;
 		this.trenchColorSelected = trenchColorSelected;
+
+		if (layerConfig) {
+			this.layerConfig = { ...this.layerConfig, ...layerConfig };
+		}
 	}
 
 	/**
@@ -53,24 +65,33 @@ export class MapState {
 	 */
 	initializeLayers() {
 		try {
-			// Create tile sources
-			this.tileSource = createTrenchTileSource(this.selectedProject, this.handleTileError);
-			this.addressTileSource = createAddressTileSource(this.selectedProject, this.handleTileError);
-			this.nodeTileSource = createNodeTileSource(this.selectedProject, this.handleTileError);
+			// Create tile sources only for enabled layers
+			if (this.layerConfig.trench) {
+				this.tileSource = createTrenchTileSource(this.selectedProject, this.handleTileError);
+				this.vectorTileLayer = createTrenchLayer(
+					this.selectedProject,
+					this.trenchColor,
+					m.nav_trench(),
+					this.handleTileError
+				);
+			}
 
-			// Create layers
-			this.vectorTileLayer = createTrenchLayer(
-				this.selectedProject,
-				this.trenchColor,
-				m.nav_trench(),
-				this.handleTileError
-			);
-			this.addressLayer = createAddressLayer(
-				this.selectedProject,
-				m.form_address(),
-				this.handleTileError
-			);
-			this.nodeLayer = createNodeLayer(this.selectedProject, m.form_node(), this.handleTileError);
+			if (this.layerConfig.address) {
+				this.addressTileSource = createAddressTileSource(
+					this.selectedProject,
+					this.handleTileError
+				);
+				this.addressLayer = createAddressLayer(
+					this.selectedProject,
+					m.form_address(),
+					this.handleTileError
+				);
+			}
+
+			if (this.layerConfig.node) {
+				this.nodeTileSource = createNodeTileSource(this.selectedProject, this.handleTileError);
+				this.nodeLayer = createNodeLayer(this.selectedProject, m.form_node(), this.handleTileError);
+			}
 
 			return true;
 		} catch (error) {
@@ -128,13 +149,13 @@ export class MapState {
 	 * Refresh all tile sources
 	 */
 	refreshTileSources() {
-		if (this.tileSource) {
+		if (this.tileSource && this.layerConfig.trench) {
 			this.tileSource.refresh();
 		}
-		if (this.addressTileSource) {
+		if (this.addressTileSource && this.layerConfig.address) {
 			this.addressTileSource.refresh();
 		}
-		if (this.nodeTileSource) {
+		if (this.nodeTileSource && this.layerConfig.node) {
 			this.nodeTileSource.refresh();
 		}
 	}
