@@ -4,21 +4,19 @@
 
 	// Svelte
 	import { page } from '$app/stores';
+	import Drawer from '$lib/components/Drawer.svelte';
 	import { onMount, setContext } from 'svelte';
-
 	// Components
 	import Map from '$lib/components/Map.svelte';
 
 	// Stores
 	import { selectedProject, trenchColor, trenchColorSelected } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
-
 	// Managers
-	import { MapState } from '$lib/classes/MapState.svelte.js';
-	import { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte.js';
-	import { MapPopupManager } from '$lib/classes/MapPopupManager.svelte.js';
 	import { MapInteractionManager } from '$lib/classes/MapInteractionManager.svelte.js';
-
+	import { MapPopupManager } from '$lib/classes/MapPopupManager.svelte.js';
+	import { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte.js';
+	import { MapState } from '$lib/classes/MapState.svelte.js';
 	// OpenLayers CSS
 	import 'ol/ol.css';
 
@@ -67,9 +65,7 @@
 		const olMapInstance = event.detail.map;
 
 		// Initialize selection layers
-		mapState.initializeSelectionLayers(olMapInstance, () =>
-			selectionManager.getSelectionStore()
-		);
+		mapState.initializeSelectionLayers(olMapInstance, () => selectionManager.getSelectionStore());
 
 		// Register selection layers with selection manager
 		const selectionLayers = mapState.getSelectionLayers();
@@ -149,6 +145,8 @@
 		</div>
 	{/if}
 </div>
+
+<Drawer />
 
 <style>
 	.ol-popup {
