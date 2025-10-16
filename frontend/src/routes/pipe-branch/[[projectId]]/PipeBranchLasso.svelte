@@ -1,12 +1,13 @@
 <script>
-	import { useSvelteFlow, useStore, useNodes } from '@xyflow/svelte';
+	import { useNodes, useStore, useSvelteFlow } from '@xyflow/svelte';
 	import { getSvgPathFromStroke } from './lassoUtils.js';
 
 	let { partial = false, onSelectionChange } = $props();
 
 	const nodes = useNodes();
 	const store = useStore();
-	const { flowToScreenPosition, getInternalNode } = useSvelteFlow();
+	const { flowToScreenPosition, getInternalNode, screenToFlowPosition, getViewport, setViewport } =
+		useSvelteFlow();
 
 	let canvas = $state(null);
 	let ctx = $state(null);
@@ -124,6 +125,26 @@
 		}
 	}
 
+	// Handle mouse wheel for zooming to cursor position
+	function handleWheel(e) {
+		e.preventDefault();
+
+		const viewport = getViewport();
+		const { x: viewportX, y: viewportY, zoom } = viewport;
+
+		const delta = -e.deltaY;
+		console.log(delta);
+		const zoomFactor = delta > 0 ? 1.15 : 0.85; // 15% zoom in, 15% zoom out
+		const newZoom = Math.max(store.minZoom, Math.min(store.maxZoom, zoom * zoomFactor));
+
+		const pointBeforeZoom = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+
+		const newViewportX = viewportX - (pointBeforeZoom.x - viewportX) * (newZoom / zoom - 1);
+		const newViewportY = viewportY - (pointBeforeZoom.y - viewportY) * (newZoom / zoom - 1);
+
+		setViewport({ x: newViewportX, y: newViewportY, zoom: newZoom }, { duration: 0 });
+	}
+
 	// Clear selection when component is destroyed or selection is externally cleared
 	export function clearSelection() {
 		selectedNodeIds = new Set();
@@ -147,6 +168,7 @@
 	onpointerdown={handlePointerDown}
 	onpointermove={handlePointerMove}
 	onpointerup={handlePointerUp}
+	onwheel={handleWheel}
 ></canvas>
 
 <style>
