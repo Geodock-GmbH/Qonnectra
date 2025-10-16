@@ -68,11 +68,14 @@ def import_conduits_from_excel(file):
 
         name = row_data.get("name")
         if not name:
-            errors.append(f"Row {row_idx}: Name is required.")
+            errors.append(_("Row %(row)d: Name is required.") % {"row": row_idx})
             continue
 
         if Conduit.objects.filter(name=name).exists():
-            errors.append(f"Row {row_idx}: Conduit with name '{name}' already exists.")
+            errors.append(
+                _("Row %(row)d: Conduit with name '%(name)s' already exists.")
+                % {"row": row_idx, "name": name}
+            )
             continue
 
         try:

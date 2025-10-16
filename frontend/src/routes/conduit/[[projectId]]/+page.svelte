@@ -40,21 +40,14 @@
 		};
 	}
 
-	async function handleFileAccept(event) {
-		const file = event.files[0];
+	async function handleFileUpload(files) {
+		const file = files[0];
 		if (!file) {
 			return;
 		}
 
 		const formData = new FormData();
 		formData.append('file', file);
-
-		// Show loading toast
-		const loadingToast = globalToaster.create({
-			type: 'info',
-			title: m.common_import(),
-			description: m.message_importing_conduits_description()
-		});
 
 		try {
 			const response = await fetch('/conduit/upload', {
@@ -71,6 +64,8 @@
 						result.message ||
 						m.message_import_conduits_success_description(result.created_count || 0)
 				});
+				// Reload the page data
+				window.location.reload();
 				return;
 			} else {
 				let errorMessage = m.message_please_try_again();
@@ -93,17 +88,6 @@
 				description: m.message_please_try_again()
 			});
 			console.error('Import error:', error);
-		}
-	}
-
-	function handleFileReject(event) {
-		const rejectedFiles = event.detail.rejectedFiles;
-		if (rejectedFiles && rejectedFiles.length > 0) {
-			const errors = rejectedFiles.map((file) => `${file.file.name}: ${file.errors.join(', ')}`);
-			globalToaster.error({
-				title: m.title_file_rejected(),
-				description: m.message_file_rejected_description() + '\n' + errors.join('\n')
-			});
 		}
 	}
 
@@ -151,14 +135,17 @@
 				accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 				maxFiles={1}
 				name="conduit-import"
-				maxFileSize={1024 * 1024 * 10}
-				onFileAccept={handleFileAccept}
-				onFileReject={handleFileReject}
+				onFileChange={(details) => {
+					if (details.acceptedFiles.length > 0) {
+						handleFileUpload(details.acceptedFiles);
+					}
+				}}
 			>
-				<button name="import-conduit" class="btn preset-filled-primary-500">
+				<FileUpload.Trigger class="btn preset-filled-primary-500">
 					<IconUpload class="size-4" />
 					<span>{m.action_import_conduit_xlsx()}</span>
-				</button>
+				</FileUpload.Trigger>
+				<FileUpload.HiddenInput />
 			</FileUpload>
 			<button onclick={downloadTemplate} class="btn preset-filled-primary-500">
 				<IconDownload class="size-4" />
