@@ -4,52 +4,47 @@
 
 	// Svelte
 	import { page } from '$app/stores';
+	import { onMount, setContext } from 'svelte';
+
+	// Components
 	import Map from '$lib/components/Map.svelte';
+
+	// Stores
 	import { selectedProject, trenchColor, trenchColorSelected } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { onDestroy } from 'svelte';
-	// OpenLayers
-	import 'ol/ol.css';
-	import Overlay from 'ol/Overlay';
-	// Map utilities
-	import {
-		createAddressLayer,
-		createAddressTileSource,
-		createNodeLayer,
-		createNodeTileSource,
-		createSelectionLayer,
-		createTrenchLayer,
-		createTrenchTileSource
-	} from '$lib/map';
 
-	// TODO: Create AbortController for the fetch request
+	// Managers
+	import { MapState } from '$lib/classes/MapState.svelte.js';
+	import { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte.js';
+	import { MapPopupManager } from '$lib/classes/MapPopupManager.svelte.js';
+	import { MapInteractionManager } from '$lib/classes/MapInteractionManager.svelte.js';
+
+	// OpenLayers CSS
+	import 'ol/ol.css';
 
 	/** @type {import('./$types').PageData} */
 	let { data } = $props();
 
 	let prevUrl = $state($page.url.href);
-
-	// State for OpenLayers objects
-	let vectorTileLayer = $state();
-	let addressLayer = $state();
-	let nodeLayer = $state();
-	let selectionLayer = $state();
-	let addressSelectionLayer = $state();
-	let nodeSelectionLayer = $state();
-	let olMapInstance = $state();
-	let popupOverlay = $state();
-	let selectionStore = $state({});
 	let mapRef = $state();
-	let tileSource, addressTileSource, nodeTileSource;
+	let searchPanelRef = $state();
 
-	// Error handler for tile loading
-	function handleTileError(message, description) {
-		globalToaster.create({
-			type: 'error',
-			message: message,
-			description: description
-		});
-	}
+	// Initialize managers
+	const mapState = new MapState($selectedProject, $trenchColor, $trenchColorSelected);
+	const selectionManager = new MapSelectionManager();
+	const popupManager = new MapPopupManager(data.alias);
+	const interactionManager = new MapInteractionManager(selectionManager, popupManager);
+
+	// Set context for child components if needed
+	setContext('mapManagers', {
+		mapState,
+		selectionManager,
+		popupManager,
+		interactionManager
+	});
+
+	// Initialize layers
+	const layersInitialized = mapState.initializeLayers();
 
 	// TODO: Hack to reload the page when the URL changes.
 	$effect(() => {
@@ -59,207 +54,60 @@
 		}
 	});
 
-	// Search handlers
-	function handleFeatureSelect(feature) {
-		// Handle feature selection if needed
-		console.log('Feature selected:', feature);
-	}
-
-	function handleSearchError(error) {
-		console.error('Search error:', error);
-	}
-
-	try {
-		tileSource = createTrenchTileSource($selectedProject, handleTileError);
-		addressTileSource = createAddressTileSource($selectedProject, handleTileError);
-		nodeTileSource = createNodeTileSource($selectedProject, handleTileError);
-
-		vectorTileLayer = createTrenchLayer(
-			$selectedProject,
-			$trenchColor,
-			m.nav_trench(),
-			handleTileError
-		);
-		addressLayer = createAddressLayer($selectedProject, m.form_address(), handleTileError);
-		nodeLayer = createNodeLayer($selectedProject, m.form_node(), handleTileError);
-	} catch (error) {
-		globalToaster.error({
-			title: m.title_error_initializing_map_tiles(),
-			description: error.message || 'Could not set up the tile layer.'
-		});
-		vectorTileLayer = undefined;
-		tileSource = undefined;
-		addressLayer = undefined;
-		addressTileSource = undefined;
-		nodeLayer = undefined;
-		nodeTileSource = undefined;
-	}
-
+	// Refresh tile sources when they exist
 	$effect(() => {
-		if (tileSource) {
-			tileSource.refresh();
-		}
-		if (addressTileSource) {
-			addressTileSource.refresh();
-		}
-		if (nodeTileSource) {
-			nodeTileSource.refresh();
-		}
+		mapState.refreshTileSources();
 	});
 
-	// Handler for the map ready event
+	/**
+	 * Handler for the map ready event
+	 * Initializes all map interactions and overlays
+	 */
 	function handleMapReady(event) {
-		olMapInstance = event.detail.map;
-		initializeMapInteractions();
+		const olMapInstance = event.detail.map;
+
+		// Initialize selection layers
+		mapState.initializeSelectionLayers(olMapInstance, () =>
+			selectionManager.getSelectionStore()
+		);
+
+		// Register selection layers with selection manager
+		const selectionLayers = mapState.getSelectionLayers();
+		selectionLayers.forEach((layer) => selectionManager.registerSelectionLayer(layer));
+
+		// Initialize popup
+		popupManager.initialize(olMapInstance);
+
+		// Initialize interaction handlers
+		const layers = mapState.getLayerReferences();
+		interactionManager.initialize(olMapInstance, layers, searchPanelRef);
 	}
 
-	// Function to initialize map interactions
-	function initializeMapInteractions() {
-		if (!olMapInstance || !vectorTileLayer || !tileSource) return;
-
-		selectionLayer = createSelectionLayer(tileSource, $trenchColorSelected, () => selectionStore);
-		olMapInstance.addLayer(selectionLayer);
-
-		addressSelectionLayer = createSelectionLayer(
-			addressTileSource,
-			$trenchColorSelected,
-			() => selectionStore
-		);
-		olMapInstance.addLayer(addressSelectionLayer);
-
-		nodeSelectionLayer = createSelectionLayer(
-			nodeTileSource,
-			$trenchColorSelected,
-			() => selectionStore
-		);
-		olMapInstance.addLayer(nodeSelectionLayer);
-
-		const popupContainer = document.getElementById('popup');
-		if (!popupContainer) {
-			console.error('Popup container element not found!');
-			return;
-		}
-		const content = document.getElementById('popup-content');
-		const closer = document.getElementById('popup-closer');
-		popupOverlay = new Overlay({
-			element: popupContainer,
-			autoPan: {
-				animation: { duration: 250 }
+	/**
+	 * Update search panel reference when map component provides it
+	 */
+	$effect(() => {
+		if (mapRef && mapRef.getSearchPanelRef) {
+			searchPanelRef = mapRef.getSearchPanelRef();
+			if (searchPanelRef) {
+				interactionManager.setSearchPanelRef(searchPanelRef);
 			}
-		});
-		olMapInstance.addOverlay(popupOverlay);
-
-		if (closer) {
-			closer.onclick = () => {
-				popupOverlay.setPosition(undefined);
-				selectionStore = {};
-				if (selectionLayer) selectionLayer.changed();
-				if (addressSelectionLayer) addressSelectionLayer.changed();
-				if (nodeSelectionLayer) nodeSelectionLayer.changed();
-				closer.blur();
-				return false;
-			};
 		}
-
-		// Listen for map clicks to select features
-		olMapInstance.on('click', (event) => {
-			if (!vectorTileLayer || !olMapInstance) return;
-
-			// Clear highlight layer if it exists
-			if (mapRef && mapRef.getSearchPanelRef) {
-				const searchPanelRef = mapRef.getSearchPanelRef();
-				if (searchPanelRef && searchPanelRef.getHighlightLayer) {
-					const highlightLayer = searchPanelRef.getHighlightLayer();
-					if (highlightLayer && highlightLayer.getSource()) {
-						highlightLayer.getSource().clear();
-					}
-				}
-			}
-
-			let clickedFeatures = [];
-			olMapInstance.forEachFeatureAtPixel(
-				event.pixel,
-				(feature, layer) => {
-					clickedFeatures.push(feature);
-				},
-				{
-					hitTolerance: 10,
-					layerFilter: (layer) =>
-						layer === vectorTileLayer || layer === addressLayer || layer === nodeLayer // Check trench, address, and node layers
-				}
-			);
-
-			if (clickedFeatures.length > 0) {
-				const feature = clickedFeatures[0];
-				const featureId = feature.getId();
-
-				if (featureId) {
-					selectionStore = {};
-					selectionStore[featureId] = feature;
-
-					const properties = feature.getProperties();
-
-					let html = '<ul>';
-					for (const [key, value] of Object.entries(properties)) {
-						if (typeof value !== 'object' && key !== 'layer' && key !== 'source') {
-							if (data.alias[key]) {
-								html += `<li><strong>${data.alias[key]}:</strong> ${value}</li>`;
-							} else {
-								html += `<li><strong>${key}:</strong> ${value}</li>`;
-							}
-						}
-					}
-					html += '</ul>';
-					if (content) content.innerHTML = html;
-					popupOverlay.setPosition(event.coordinate);
-				} else {
-					selectionStore = {};
-					popupOverlay.setPosition(undefined);
-				}
-			} else {
-				selectionStore = {};
-				popupOverlay.setPosition(undefined);
-			}
-			if (selectionLayer) selectionLayer.changed();
-			if (addressSelectionLayer) addressSelectionLayer.changed();
-			if (nodeSelectionLayer) nodeSelectionLayer.changed();
-		});
-	}
-
-	onDestroy(() => {
-		if (olMapInstance) {
-			if (popupOverlay) olMapInstance.removeOverlay(popupOverlay);
-			if (selectionLayer) olMapInstance.removeLayer(selectionLayer);
-			if (addressSelectionLayer) olMapInstance.removeLayer(addressSelectionLayer);
-			if (nodeSelectionLayer) olMapInstance.removeLayer(nodeSelectionLayer);
-			if (addressLayer) olMapInstance.removeLayer(addressLayer);
-			if (nodeLayer) olMapInstance.removeLayer(nodeLayer);
-		}
-		olMapInstance = undefined;
-		popupOverlay = undefined;
-		selectionStore = {};
-		selectionLayer = undefined;
-		addressSelectionLayer = undefined;
-		nodeSelectionLayer = undefined;
-
-		if (vectorTileLayer && vectorTileLayer.getSource()) {
-			vectorTileLayer.getSource().dispose();
-		}
-		vectorTileLayer = undefined;
-
-		if (addressLayer && addressLayer.getSource()) {
-			addressLayer.getSource().dispose();
-		}
-		addressLayer = undefined;
-		addressTileSource = undefined;
-
-		if (nodeLayer && nodeLayer.getSource()) {
-			nodeLayer.getSource().dispose();
-		}
-		nodeLayer = undefined;
-		nodeTileSource = undefined;
 	});
 
+	/**
+	 * Cleanup on component destroy
+	 */
+	onMount(() => {
+		return () => {
+			mapState.cleanup();
+			selectionManager.cleanup();
+			popupManager.cleanup(mapState.olMap);
+			interactionManager.cleanup();
+		};
+	});
+
+	// Show error if data failed to load
 	if (data.error) {
 		globalToaster.error({
 			title: m.title_error_loading_map_features(),
@@ -273,25 +121,16 @@
 </svelte:head>
 
 <div class="map-container relative h-full w-full">
-	{#if data.error && !vectorTileLayer}
+	{#if data.error && !layersInitialized}
 		<div class="p-4 text-red-700 bg-red-100 border border-red-400 rounded">
 			<p>Error loading initial map data: {data.error}</p>
 		</div>
-	{:else if vectorTileLayer}
+	{:else if layersInitialized}
 		<div class="map-wrapper border-2 rounded-lg border-surface-200-800 h-full w-full">
 			<Map
 				className="rounded-lg overflow-hidden"
-				layers={[
-					vectorTileLayer,
-					...(addressLayer ? [addressLayer] : []),
-					...(nodeLayer ? [nodeLayer] : []),
-					...(selectionLayer ? [selectionLayer] : []),
-					...(addressSelectionLayer ? [addressSelectionLayer] : []),
-					...(nodeSelectionLayer ? [nodeSelectionLayer] : [])
-				]}
+				layers={mapState.getLayers()}
 				on:ready={handleMapReady}
-				onFeatureSelect={handleFeatureSelect}
-				onSearchError={handleSearchError}
 				searchPanelProps={{
 					trenchColorSelected: $trenchColorSelected,
 					alias: data.alias
