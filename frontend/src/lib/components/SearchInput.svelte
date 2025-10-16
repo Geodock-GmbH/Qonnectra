@@ -24,7 +24,7 @@
 		onkeydown={handleKeydown}
 	/>
 	<button
-		class="ig-btn preset-filled-primary-500 min-h-[44px] lg:min-h-[36px] px-3 lg:px-4"
+		class="ig-btn preset-filled-primary-500 min-h-[44px] lg:min-h-[36px] px-3 lg:px-4 rounded-r-md"
 		onclick={onSearch}
 	>
 		<IconSearch size={20} />

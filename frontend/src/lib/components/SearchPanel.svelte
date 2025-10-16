@@ -166,17 +166,17 @@
 	}
 </script>
 
-<div class="bg-surface-50-950 rounded-lg shadow-lg w-full">
+<div class="preset-filled-surface-50-950 rounded-lg shadow-lg w-full">
 	<SearchInput bind:value={searchQuery} onSearch={handleSearch} />
 </div>
-<div class="bg-surface-50-950 rounded-lg shadow-lg w-full">
+<div class="preset-filled-surface-50-950 rounded-lg shadow-lg w-full">
 	{#if showSearchResults && searchResults.length > 0 && !isSearching}
 		<div class="mt-3 lg:mt-2">
 			<GenericCombobox
 				data={searchResults}
 				placeholder={m.placeholder_select_a_feature()}
 				onValueChange={handleFeatureSelect}
-				classes="touch-manipulation text-base lg:text-sm min-h-[44px] lg:min-h-[36px]"
+				classes="touch-manipulation text-base lg:text-sm min-h-[36px] lg:min-h-[36px]"
 				contentBase="max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg text-base lg:text-sm"
 				zIndex="20"
 			/>

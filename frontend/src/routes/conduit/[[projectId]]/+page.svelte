@@ -2,7 +2,7 @@
 	// Skeleton
 	import { FileUpload } from '@skeletonlabs/skeleton-svelte';
 	// Tabler
-	import { IconUpload } from '@tabler/icons-svelte';
+	import { IconDownload, IconUpload } from '@tabler/icons-svelte';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 	// Svelte
@@ -10,6 +10,7 @@
 	import { navigating, page } from '$app/stores';
 	import SearchInput from '$lib/components/SearchInput.svelte';
 	import { selectedProject } from '$lib/stores/store';
+	import { globalToaster } from '$lib/stores/toaster';
 	import PipeModal from './PipeModal.svelte';
 	import PipeTable from './PipeTable.svelte';
 
@@ -105,6 +106,22 @@
 			});
 		}
 	}
+
+	async function downloadTemplate() {
+		const response = await fetch('/conduit/download');
+		const blob = await response.blob();
+		const url = window.URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = 'conduit_import_template.xlsx';
+		a.click();
+		window.URL.revokeObjectURL(url);
+
+		globalToaster.success({
+			title: m.title_success(),
+			description: m.message_success_downloading_template()
+		});
+	}
 </script>
 
 <div class="flex justify-between items-center">
@@ -143,9 +160,10 @@
 					<span>{m.action_import_conduit_xlsx()}</span>
 				</button>
 			</FileUpload>
-			<a href="/conduit/download" download class="btn preset-filled-primary-500">
-				{m.action_download_template()}
-			</a>
+			<button onclick={downloadTemplate} class="btn preset-filled-primary-500">
+				<IconDownload class="size-4" />
+				<span>{m.form_template()}</span>
+			</button>
 		</nav>
 	</div>
 </div>

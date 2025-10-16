@@ -35,16 +35,16 @@
 			pathMatch: (path) => path.startsWith('/map')
 		},
 		{
-			href: '/trench',
-			label: () => m.nav_conduit_connection(),
-			icon: IconTextPlus,
-			pathMatch: (path) => path.startsWith('/trench')
-		},
-		{
 			href: '/conduit',
 			label: () => m.nav_conduit_management(),
 			icon: IconArrowBarToRight,
 			pathMatch: (path) => path.startsWith('/conduit')
+		},
+		{
+			href: '/trench',
+			label: () => m.nav_conduit_connection(),
+			icon: IconTextPlus,
+			pathMatch: (path) => path.startsWith('/trench')
 		},
 		{
 			href: '/pipe-branch',
