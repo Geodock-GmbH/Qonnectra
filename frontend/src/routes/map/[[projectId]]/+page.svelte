@@ -8,8 +8,9 @@
 	import { onMount, setContext } from 'svelte';
 	// Components
 	import Map from '$lib/components/Map.svelte';
-
+	import MapDrawerTabs from './MapDrawerTabs.svelte';
 	// Stores
+	import { drawerStore } from '$lib/stores/drawer';
 	import { selectedProject, trenchColor, trenchColorSelected } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	// Managers
@@ -31,9 +32,14 @@
 	const mapState = new MapState($selectedProject, $trenchColor, $trenchColorSelected);
 	const selectionManager = new MapSelectionManager();
 	const popupManager = new MapPopupManager(data.alias);
-	const interactionManager = new MapInteractionManager(selectionManager, popupManager);
+	const interactionManager = new MapInteractionManager(
+		selectionManager,
+		popupManager,
+		drawerStore,
+		MapDrawerTabs,
+		data.alias
+	);
 
-	// Set context for child components if needed
 	setContext('mapManagers', {
 		mapState,
 		selectionManager,
@@ -116,37 +122,39 @@
 	<title>{m.nav_map()}</title>
 </svelte:head>
 
-<div class="map-container relative h-full w-full">
-	{#if data.error && !layersInitialized}
-		<div class="p-4 text-red-700 bg-red-100 border border-red-400 rounded">
-			<p>Error loading initial map data: {data.error}</p>
-		</div>
-	{:else if layersInitialized}
-		<div class="map-wrapper border-2 rounded-lg border-surface-200-800 h-full w-full">
-			<Map
-				className="rounded-lg overflow-hidden"
-				layers={mapState.getLayers()}
-				on:ready={handleMapReady}
-				searchPanelProps={{
-					trenchColorSelected: $trenchColorSelected,
-					alias: data.alias
-				}}
-				bind:this={mapRef}
-			/>
-			<div id="popup" class="ol-popup bg-primary-500 rounded-lg border-2 border-primary-600">
-				<!-- svelte-ignore a11y_invalid_attribute -->
-				<a href="#" id="popup-closer" class="ol-popup-closer" aria-label="Close popup"></a>
-				<div id="popup-content"></div>
+<div class="flex gap-4 h-full">
+	<div class="flex-1 h-full">
+		{#if data.error && !layersInitialized}
+			<div class="p-4 text-red-700 bg-red-100 border border-red-400 rounded">
+				<p>Error loading initial map data: {data.error}</p>
 			</div>
-		</div>
-	{:else}
-		<div class="p-4 text-yellow-700 bg-yellow-100 border border-yellow-400 rounded">
-			<p>Map tiles could not be loaded. Please check the connection or configuration.</p>
-		</div>
-	{/if}
-</div>
+		{:else if layersInitialized}
+			<div class="map-wrapper border-2 rounded-lg border-surface-200-800 h-full w-full">
+				<Map
+					className="rounded-lg overflow-hidden"
+					layers={mapState.getLayers()}
+					on:ready={handleMapReady}
+					searchPanelProps={{
+						trenchColorSelected: $trenchColorSelected,
+						alias: data.alias
+					}}
+					bind:this={mapRef}
+				/>
+				<div id="popup" class="ol-popup bg-primary-500 rounded-lg border-2 border-primary-600">
+					<!-- svelte-ignore a11y_invalid_attribute -->
+					<a href="#" id="popup-closer" class="ol-popup-closer" aria-label="Close popup"></a>
+					<div id="popup-content"></div>
+				</div>
+			</div>
+		{:else}
+			<div class="p-4 text-yellow-700 bg-yellow-100 border border-yellow-400 rounded">
+				<p>Map tiles could not be loaded. Please check the connection or configuration.</p>
+			</div>
+		{/if}
+	</div>
 
-<Drawer />
+	<Drawer />
+</div>
 
 <style>
 	.ol-popup {

@@ -78,6 +78,7 @@
 	"form_node": "Netzknoten",
 	"form_node_statistics": "Netzknotenstatistik",
 	"form_node_type": "Netzknotentyp",
+	"form_no_attributes_available": "Keine Eigenschaften verfügbar",
 	"form_no_data_available": "Keine Daten verfügbar",
 	"form_no_layers_available": "Keine Layer verfügbar",
 	"form_outer_conduit": "Schutzrohr",

@@ -1,3 +1,5 @@
+import { detectFeatureType, formatFeatureProperties, getFeatureTitle } from '$lib/utils/featureUtils';
+
 /**
  * Manages user interactions with the map
  * Handles click events, feature selection, and coordinates with other managers
@@ -7,15 +9,24 @@ export class MapInteractionManager {
 	layers = $state({});
 	selectionManager = $state(null);
 	popupManager = $state(null);
+	drawerStore = $state(null);
+	drawerComponent = $state(null);
+	alias = $state({});
 	searchPanelRef = $state(null);
 
 	/**
 	 * @param {Object} selectionManager - MapSelectionManager instance
 	 * @param {Object} popupManager - MapPopupManager instance
+	 * @param {Object} drawerStore - Drawer store instance
+	 * @param {Object} drawerComponent - MapDrawerTabs component
+	 * @param {Object} alias - Field name alias mapping (English -> Localized)
 	 */
-	constructor(selectionManager, popupManager) {
+	constructor(selectionManager, popupManager, drawerStore, drawerComponent, alias = {}) {
 		this.selectionManager = selectionManager;
 		this.popupManager = popupManager;
+		this.drawerStore = drawerStore;
+		this.drawerComponent = drawerComponent;
+		this.alias = alias;
 	}
 
 	/**
@@ -54,7 +65,8 @@ export class MapInteractionManager {
 		const clickedFeatures = this.getClickedFeatures(event.pixel);
 
 		if (clickedFeatures.length > 0) {
-			this.handleFeatureClick(clickedFeatures[0], event.coordinate);
+			const { feature, layer } = clickedFeatures[0];
+			this.handleFeatureClick(feature, event.coordinate, layer);
 		} else {
 			this.handleEmptyClick();
 		}
@@ -63,7 +75,7 @@ export class MapInteractionManager {
 	/**
 	 * Get features at a given pixel
 	 * @param {Array} pixel - [x, y] pixel coordinates
-	 * @returns {Array} Array of features at that pixel
+	 * @returns {Array} Array of {feature, layer} objects at that pixel
 	 */
 	getClickedFeatures(pixel) {
 		const clickedFeatures = [];
@@ -77,7 +89,7 @@ export class MapInteractionManager {
 		this.olMap.forEachFeatureAtPixel(
 			pixel,
 			(feature, layer) => {
-				clickedFeatures.push(feature);
+				clickedFeatures.push({ feature, layer });
 			},
 			{
 				hitTolerance: 10,
@@ -92,16 +104,42 @@ export class MapInteractionManager {
 	 * Handle click on a feature
 	 * @param {Object} feature - OpenLayers feature
 	 * @param {Array} coordinate - Map coordinates [x, y]
+	 * @param {Object} layer - OpenLayers layer (optional)
 	 */
-	handleFeatureClick(feature, coordinate) {
+	handleFeatureClick(feature, coordinate, layer = null) {
 		const featureId = feature.getId();
 
 		if (featureId) {
 			// Update selection
 			this.selectionManager.selectFeature(featureId, feature);
 
-			// Show popup
-			this.popupManager.show(coordinate, feature);
+			// Detect feature type (pass layer for better detection)
+			const featureType = detectFeatureType(feature, layer);
+
+			if (featureType && this.drawerStore && this.drawerComponent) {
+				// Get properties from MVT
+				const rawProperties = feature.getProperties();
+				const properties = formatFeatureProperties(rawProperties, featureType);
+
+				// Get display title
+				const title = getFeatureTitle(feature, featureType);
+
+				// Open drawer with feature details
+				this.drawerStore.open({
+					title,
+					component: this.drawerComponent,
+					props: {
+						featureData: properties,
+						featureType,
+						featureId,
+						alias: this.alias
+					},
+					width: 400
+				});
+			} else {
+				// Fallback to popup if drawer not configured
+				this.popupManager.show(coordinate, feature);
+			}
 		} else {
 			this.handleEmptyClick();
 		}
@@ -113,6 +151,11 @@ export class MapInteractionManager {
 	handleEmptyClick() {
 		this.selectionManager.clearSelection();
 		this.popupManager.hide();
+
+		// Close drawer if open
+		if (this.drawerStore) {
+			this.drawerStore.close();
+		}
 	}
 
 	/**

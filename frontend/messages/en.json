@@ -78,6 +78,7 @@
 	"form_node": "Node",
 	"form_node_statistics": "Node statistics",
 	"form_node_type": "Node type",
+	"form_no_attributes_available": "No attributes available",
 	"form_no_data_available": "No data available",
 	"form_no_layers_available": "No layers available",
 	"form_outer_conduit": "Outer conduit",

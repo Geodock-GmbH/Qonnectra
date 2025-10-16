@@ -1,4 +1,5 @@
 <script>
+	import { beforeNavigate } from '$app/navigation';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { onMount } from 'svelte';
 
@@ -41,11 +42,16 @@
 		document.body.style.userSelect = '';
 	}
 
+	beforeNavigate(() => {
+		if ($drawerStore.open) {
+			handleClose();
+		}
+	});
+
 	onMount(() => {
 		document.addEventListener('keydown', handleKeydown);
 		document.addEventListener('mousemove', handleResizeMove);
 		document.addEventListener('mouseup', handleResizeEnd);
-
 		return () => {
 			document.removeEventListener('keydown', handleKeydown);
 			document.removeEventListener('mousemove', handleResizeMove);
