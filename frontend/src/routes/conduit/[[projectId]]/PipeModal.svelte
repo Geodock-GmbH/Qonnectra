@@ -177,7 +177,7 @@
 	}}
 >
 	<Dialog.Trigger
-		class="btn-icon preset-filled-primary-500 {isHidden ? 'hidden' : ''}"
+		class="btn preset-filled-primary-500 {isHidden ? 'hidden' : ''}"
 		onclick={() => loadSelectOptions(editMode)}
 	>
 		<IconPlus size={18} />
