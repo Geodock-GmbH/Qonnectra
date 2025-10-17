@@ -108,6 +108,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>{m.nav_conduit_management()}</title>
+</svelte:head>
+
 <div class="flex justify-between items-center">
 	<div class="flex items-center">
 		<nav
@@ -154,10 +158,6 @@
 		</nav>
 	</div>
 </div>
-
-<svelte:head>
-	<title>{m.nav_conduit_management()}</title>
-</svelte:head>
 
 {#if $navigating}
 	<div class="table-wrap overflow-x-auto">

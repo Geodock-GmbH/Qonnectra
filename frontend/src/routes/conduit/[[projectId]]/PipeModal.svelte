@@ -14,7 +14,6 @@
 	let {
 		projectId,
 		openPipeModal = $bindable(false),
-		small = false,
 		isHidden = false,
 		editMode = false,
 		pipeData = null,
@@ -178,16 +177,11 @@
 	}}
 >
 	<Dialog.Trigger
-		class="{small
-			? 'btn-icon preset-filled-primary-500'
-			: 'btn preset-filled-primary-500'} {isHidden ? 'hidden' : ''}"
+		class="btn-icon preset-filled-primary-500 {isHidden ? 'hidden' : ''}"
 		onclick={() => loadSelectOptions(editMode)}
 	>
-		{#if small}
-			<IconPlus size={18} />
-		{:else}
-			{m.action_add_conduit()}
-		{/if}
+		<IconPlus size={18} />
+		<span class="hidden sm:inline">{m.action_add_conduit()}</span>
 	</Dialog.Trigger>
 
 	<Portal>

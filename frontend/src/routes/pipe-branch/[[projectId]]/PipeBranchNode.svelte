@@ -43,7 +43,6 @@
 			const hexCode = microduct.hex_code || '#64748b'; // Default gray
 			const hexCodeSecondary = microduct.hex_code_secondary;
 			const isTwoLayer = microduct.is_two_layer || false;
-			console.log(isTwoLayer);
 
 			handles.push({
 				id: `conduit-${conduit.uuid}-microduct-${microduct.number}`,
