@@ -35,14 +35,20 @@
 	}
 
 	/**
-	 * Get property entries for display
+	 * Get property entries for display (sorted alphabetically by display label)
 	 * @returns {Array<[string, any]>}
 	 */
 	const propertyEntries = $derived(
-		Object.entries(properties).filter(([key, value]) => {
-			// Skip null/undefined values
-			return value !== null && value !== undefined;
-		})
+		Object.entries(properties)
+			.filter(([key, value]) => {
+				// Skip null/undefined values
+				return value !== null && value !== undefined;
+			})
+			.sort(([keyA], [keyB]) => {
+				const labelA = getDisplayLabel(keyA);
+				const labelB = getDisplayLabel(keyB);
+				return labelA.localeCompare(labelB);
+			})
 	);
 </script>
 

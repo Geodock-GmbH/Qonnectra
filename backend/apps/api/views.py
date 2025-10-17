@@ -526,8 +526,11 @@ class TrenchConduitConnectionViewSet(viewsets.ModelViewSet):
         queryset = TrenchConduitConnection.objects.all()
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
+        trench_uuid = request.query_params.get("uuid_trench")
         trench_id = request.query_params.get("id_trench")
         conduit_id = request.query_params.get("uuid_conduit")
+        if trench_uuid:
+            queryset = queryset.filter(uuid_trench__uuid=trench_uuid)
         if project_id:
             queryset = queryset.filter(project=project_id)
         if flag_id:
@@ -545,9 +548,13 @@ class TrenchConduitConnectionViewSet(viewsets.ModelViewSet):
         by filtering against a `id_trench` or `name` query parameter in the URL.
         """
         queryset = TrenchConduitConnection.objects.all()
+        trench_uuid = self.request.query_params.get("uuid_trench")
         trench_id = self.request.query_params.get("id_trench")
         conduit_id = self.request.query_params.get("uuid_conduit")
         name = self.request.query_params.get("name")
+
+        if trench_uuid:
+            queryset = queryset.filter(uuid_trench__uuid=trench_uuid)
 
         if trench_id:
             queryset = queryset.filter(uuid_trench__id_trench=trench_id)
