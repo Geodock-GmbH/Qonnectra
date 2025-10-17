@@ -147,7 +147,7 @@
 	"message_file_rejected_description": "Die Datei konnte nicht importiert werden. Bitte versuche es erneut.",
 	"message_importing_conduits_description": "Rohre werden importiert...",
 	"message_import_conduits_success_description": "Bitte die Seite neu laden, um die Rohre anzuzeigen.",
-	"message_loading_network_schema": "Netzwerk-Schema wird synchronisiert...",
+	"message_loading_network_schema": "Netzwerkschema synchronisiert...",
 	"message_login_error": "Fehler beim Anmelden. Bitte versuche es erneut.",
 	"message_no_conduits_found": "Keine Rohre gefunden",
 	"message_no_conduit_selected_description": "Bitte wählen Sie ein Rohr aus, um eine Route zu berechnen",
