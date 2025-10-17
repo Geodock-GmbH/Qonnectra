@@ -21,7 +21,7 @@
 
 	let pipesError = $state(null);
 	let page = $state(1);
-	let size = $state(100);
+	let size = $state(20);
 	let count = $derived(size);
 	let deletingIds = $state(new Set());
 	const slicedSource = $derived(pipes.slice((page - 1) * size, page * size));
@@ -301,35 +301,38 @@
 	{/each}
 </div>
 
-<Pagination
-	data={pipes}
-	{page}
-	onPageChange={(e) => (page = e.page)}
-	pageSize={size}
-	onPageSizeChange={(e) => (size = e.pageSize)}
-	siblingCount={4}
-	alternative
->
-	<Pagination.PrevTrigger>
-		<IconArrowLeft class="size-4" />
-	</Pagination.PrevTrigger>
-	<Pagination.Context>
-		{#snippet children(pagination)}
-			{#each pagination().pages as pageItem, index (pageItem)}
-				{#if pageItem.type === 'page'}
-					<Pagination.Item {...pageItem}>
-						{pageItem.value}
-					</Pagination.Item>
-				{:else}
-					<Pagination.Ellipsis {index}>&#8230;</Pagination.Ellipsis>
-				{/if}
-			{/each}
-		{/snippet}
-	</Pagination.Context>
-	<Pagination.NextTrigger>
-		<IconArrowRight class="size-4" />
-	</Pagination.NextTrigger>
-</Pagination>
+<div class="mt-4">
+	<Pagination
+		data={pipes}
+		{page}
+		onPageChange={(e) => (page = e.page)}
+		pageSize={size}
+		onPageSizeChange={(e) => (size = e.pageSize)}
+		siblingCount={4}
+		alternative
+		count={pipes.length}
+	>
+		<Pagination.PrevTrigger>
+			<IconArrowLeft class="size-4" />
+		</Pagination.PrevTrigger>
+		<Pagination.Context>
+			{#snippet children(pagination)}
+				{#each pagination().pages as pageItem, index (pageItem)}
+					{#if pageItem.type === 'page'}
+						<Pagination.Item {...pageItem}>
+							{pageItem.value}
+						</Pagination.Item>
+					{:else}
+						<Pagination.Ellipsis {index}>&#8230;</Pagination.Ellipsis>
+					{/if}
+				{/each}
+			{/snippet}
+		</Pagination.Context>
+		<Pagination.NextTrigger>
+			<IconArrowRight class="size-4" />
+		</Pagination.NextTrigger>
+	</Pagination>
+</div>
 
 <MessageBox
 	bind:this={messageBoxConfirm}

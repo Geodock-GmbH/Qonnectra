@@ -1,5 +1,6 @@
 <script>
 	import AppBar from '$lib/components/AppBar.svelte';
+	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
 	import MobileNav from '$lib/components/MobileNav.svelte';
 	import Sidebar from '$lib/components/SideBar.svelte';
 	import { updateUserStore } from '$lib/stores/auth';
@@ -33,8 +34,11 @@
 	</div>
 </div>
 
-<!-- Mobile Navigation Bar (fixed at bottom) -->
+<!-- Mobile Navigation Bar  -->
 <MobileNav />
+
+<!-- Global Loading Overlay -->
+<LoadingOverlay />
 
 <!-- Global Toaster -->
 <Toast.Group toaster={globalToaster}>
