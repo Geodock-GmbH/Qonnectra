@@ -47,23 +47,17 @@
 </script>
 
 <!-- Attribute display card -->
-<div class="space-y-4">
+<div>
 	{#if propertyEntries.length === 0}
 		<div class="text-surface-600-400 text-sm text-center py-8">
 			{m.form_no_attributes_available()}
 		</div>
 	{:else}
-		<div class="space-y-2">
+		<div class="flex flex-col gap-4">
 			{#each propertyEntries as [key, value] (key)}
-				<div
-					class="flex flex-col gap-1 p-3 rounded-lg bg-surface-100-900 hover:bg-surface-200-800 transition-colors"
-				>
-					<div class="text-xs font-medium text-surface-600-400 uppercase tracking-wide">
-						{getDisplayLabel(key)}
-					</div>
-					<div class="text-sm text-surface-900-50 break-words">
-						{formatValue(value)}
-					</div>
+				<div class="flex flex-col gap-1">
+					<span class="label-text">{getDisplayLabel(key)}</span>
+					<input type="text" class="input" readonly value={formatValue(value)} />
 				</div>
 			{/each}
 		</div>
