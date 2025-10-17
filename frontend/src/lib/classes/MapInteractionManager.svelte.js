@@ -1,4 +1,8 @@
-import { detectFeatureType, formatFeatureProperties, getFeatureTitle } from '$lib/utils/featureUtils';
+import {
+	detectFeatureType,
+	formatFeatureProperties,
+	getFeatureTitle
+} from '$lib/utils/featureUtils';
 
 /**
  * Manages user interactions with the map
@@ -133,8 +137,7 @@ export class MapInteractionManager {
 						featureType,
 						featureId,
 						alias: this.alias
-					},
-					width: 400
+					}
 				});
 			} else {
 				// Fallback to popup if drawer not configured
