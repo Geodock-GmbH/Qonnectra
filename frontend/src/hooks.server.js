@@ -29,7 +29,8 @@ export async function handleProjectRedirect({ event, resolve }) {
 		'/trench',
 		'/conduit',
 		'/pipe-branch',
-		'/network-schema'
+		'/network-schema',
+		'/house-connections'
 	];
 
 	const needsProjectSlug = PROJECT_ROUTES.some((route) => url.pathname === route);
