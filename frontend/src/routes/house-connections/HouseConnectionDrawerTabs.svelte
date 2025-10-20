@@ -1,6 +1,5 @@
 <script>
 	// Components
-	import FeatureAttributeCard from '$lib/components/FeatureAttributeCard.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
 	import { Tabs as SkeletonTabs } from '@skeletonlabs/skeleton-svelte';
 	// Paraglide
@@ -17,13 +16,15 @@
 	/** @type {Props} */
 	let { featureData = {}, featureType = 'trench', featureId = '', alias = {} } = $props();
 
-	let activeTab = $state('attributes');
+	let activeTab = $state('details');
 
-	const tabItems = $derived([{ value: 'attributes', label: m.common_attributes() }]);
+	const tabItems = $derived([{ value: 'details', label: m.common_overview() }]);
 </script>
 
 <Tabs tabs={tabItems} bind:activeTab>
-	<SkeletonTabs.Content value="attributes">
-		<FeatureAttributeCard properties={featureData} {featureType} {alias} />
+	<SkeletonTabs.Content value="details">
+		<div class="text-surface-600-400 text-sm text-center py-8">
+			{m.form_no_attributes_available()}
+		</div>
 	</SkeletonTabs.Content>
 </Tabs>
