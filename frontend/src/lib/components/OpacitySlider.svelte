@@ -29,13 +29,14 @@
 </script>
 
 <!-- OpacitySlider -->
-<div class="preset-filled-surface-50-950 rounded-md shadow lg:min-w-[256px] p-3 cursor-pointer">
+<div class="preset-filled-surface-50-950 rounded-md shadow lg:min-w-[256px] p-3">
 	<Slider
 		value={sliderValue}
 		min={minOpacity}
 		max={maxOpacity}
 		step={stepOpacity}
 		onValueChange={handleSkeletonSliderChange}
+		class="cursor-pointer"
 	>
 		<Slider.Label class="text-sm text-surface-contrast-100-900 mb-2">
 			{m.common_opacity()}
