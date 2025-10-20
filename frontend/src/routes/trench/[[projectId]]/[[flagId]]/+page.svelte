@@ -420,7 +420,7 @@
 			/>
 		{:else}
 			<div class="p-4 text-yellow-700 bg-yellow-100 border border-yellow-400 rounded">
-				<p>Map tiles could not be loaded. Please check the connection or configuration.</p>
+				<p>{m.message_error_could_not_load_map_tiles()}</p>
 			</div>
 		{/if}
 	</div>

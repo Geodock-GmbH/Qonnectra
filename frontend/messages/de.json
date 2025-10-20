@@ -124,6 +124,7 @@
 	"message_error_cannot_connect_microduct_to_itself": "Mikrorohr kann nicht mit sich selbst verbunden werden",
 	"message_error_canvas_sync_failed": "Fehler beim Synchronisieren der Canvas",
 	"message_error_could_not_find_selected_nodes": "Konnte den ausgewählten Knoten nicht finden",
+	"message_error_could_not_load_map_tiles": "Es konnten keine Kacheln geladen werden.",
 	"message_error_connection_deleted": "Fehler beim Löschen der Verbindung",
 	"message_error_creating_cable": "Fehler beim Erstellen des Kabels",
 	"message_error_creating_conduit": "Fehler beim Erstellen des Rohres",

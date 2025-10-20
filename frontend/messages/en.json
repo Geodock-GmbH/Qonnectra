@@ -124,6 +124,7 @@
 	"message_error_cannot_connect_microduct_to_itself": "Microduct cannot be connected to itself",
 	"message_error_canvas_sync_failed": "Canvas sync failed",
 	"message_error_could_not_find_selected_nodes": "Could not find selected nodes",
+	"message_error_could_not_load_map_tiles": "Map tiles could not be loaded. Please check the connection or configuration.",
 	"message_error_connection_deleted": "Error deleting connection",
 	"message_error_creating_cable": "Error creating cable",
 	"message_error_creating_conduit": "Error creating conduit",
