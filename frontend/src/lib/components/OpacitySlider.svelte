@@ -29,7 +29,7 @@
 </script>
 
 <!-- OpacitySlider -->
-<div class="preset-filled-surface-50-950 rounded-md shadow lg:min-w-[256px] p-3">
+<div class="preset-filled-surface-50-950 rounded-md shadow lg:min-w-[256px] p-3 cursor-pointer">
 	<Slider
 		value={sliderValue}
 		min={minOpacity}
