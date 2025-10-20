@@ -43,19 +43,37 @@ export class MapState {
 		node: true
 	});
 
+	// Label configuration
+	labelConfig = $state({
+		trench: { enabled: false, field: 'id_trench', minResolution: 1.5 },
+		address: { enabled: false, field: 'street', minResolution: 1.0 },
+		node: { enabled: false, field: 'id_node', minResolution: 1.0 }
+	});
+
 	/**
 	 * @param {string} selectedProject - Current project ID
 	 * @param {string} trenchColor - Color for trench rendering
 	 * @param {string} trenchColorSelected - Color for selected trenches
 	 * @param {Object} layerConfig - Configuration for which layers to load (optional)
+	 * @param {Object} labelConfig - Configuration for text labels on layers (optional)
 	 */
-	constructor(selectedProject, trenchColor, trenchColorSelected, layerConfig = null) {
+	constructor(
+		selectedProject,
+		trenchColor,
+		trenchColorSelected,
+		layerConfig = null,
+		labelConfig = null
+	) {
 		this.selectedProject = selectedProject;
 		this.trenchColor = trenchColor;
 		this.trenchColorSelected = trenchColorSelected;
 
 		if (layerConfig) {
 			this.layerConfig = { ...this.layerConfig, ...layerConfig };
+		}
+
+		if (labelConfig) {
+			this.labelConfig = { ...this.labelConfig, ...labelConfig };
 		}
 	}
 
@@ -72,7 +90,8 @@ export class MapState {
 					this.selectedProject,
 					this.trenchColor,
 					m.nav_trench(),
-					this.handleTileError
+					this.handleTileError,
+					this.labelConfig.trench
 				);
 			}
 
@@ -84,13 +103,19 @@ export class MapState {
 				this.addressLayer = createAddressLayer(
 					this.selectedProject,
 					m.form_address(),
-					this.handleTileError
+					this.handleTileError,
+					this.labelConfig.address
 				);
 			}
 
 			if (this.layerConfig.node) {
 				this.nodeTileSource = createNodeTileSource(this.selectedProject, this.handleTileError);
-				this.nodeLayer = createNodeLayer(this.selectedProject, m.form_node(), this.handleTileError);
+				this.nodeLayer = createNodeLayer(
+					this.selectedProject,
+					m.form_node(),
+					this.handleTileError,
+					this.labelConfig.node
+				);
 			}
 
 			return true;

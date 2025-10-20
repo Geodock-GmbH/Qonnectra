@@ -9,8 +9,11 @@ import {
 } from './tileSources.js';
 import {
 	createTrenchStyle,
+	createTrenchStyleWithLabels,
 	createAddressStyle,
+	createAddressStyleWithLabels,
 	createNodeStyle,
+	createNodeStyleWithLabels,
 	createSelectedStyle
 } from './styles.js';
 
@@ -20,16 +23,26 @@ import {
  * @param {string} trenchColor - Color for trench features
  * @param {string} layerName - Display name for the layer
  * @param {Function} onError - Error callback function
+ * @param {Object} labelOptions - Optional label configuration
+ * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
+ * @param {string} [labelOptions.field='id_trench'] - Feature property to use for label
+ * @param {number} [labelOptions.minResolution=1.5] - Minimum resolution to show labels
+ * @param {Object} [labelOptions.textStyle] - Custom text style options
  * @returns {VectorTileLayer}
  */
-export function createTrenchLayer(selectedProject, trenchColor, layerName, onError) {
+export function createTrenchLayer(selectedProject, trenchColor, layerName, onError, labelOptions = {}) {
 	const tileSource = createTrenchTileSource(selectedProject, onError);
-	const style = createTrenchStyle(trenchColor);
+
+	// Use style function with labels if enabled, otherwise use static style
+	const style = labelOptions.enabled
+		? createTrenchStyleWithLabels(trenchColor, labelOptions)
+		: createTrenchStyle(trenchColor);
 
 	return new VectorTileLayer({
 		source: tileSource,
 		style: style,
 		renderMode: 'vector',
+		declutter: labelOptions.enabled, // Enable decluttering when labels are shown
 		properties: {
 			layerId: 'trench-layer',
 			layerName: layerName
@@ -42,16 +55,26 @@ export function createTrenchLayer(selectedProject, trenchColor, layerName, onErr
  * @param {import('svelte/store').Readable<string>} selectedProject - Store containing the selected project ID
  * @param {string} layerName - Display name for the layer
  * @param {Function} onError - Error callback function
+ * @param {Object} labelOptions - Optional label configuration
+ * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
+ * @param {string} [labelOptions.field='street'] - Feature property to use for label
+ * @param {number} [labelOptions.minResolution=1.0] - Minimum resolution to show labels
+ * @param {Object} [labelOptions.textStyle] - Custom text style options
  * @returns {VectorTileLayer}
  */
-export function createAddressLayer(selectedProject, layerName, onError) {
+export function createAddressLayer(selectedProject, layerName, onError, labelOptions = {}) {
 	const tileSource = createAddressTileSource(selectedProject, onError);
-	const style = createAddressStyle();
+
+	// Use style function with labels if enabled, otherwise use static style
+	const style = labelOptions.enabled
+		? createAddressStyleWithLabels(labelOptions)
+		: createAddressStyle();
 
 	return new VectorTileLayer({
 		source: tileSource,
 		style: style,
 		renderMode: 'vector',
+		declutter: labelOptions.enabled, // Enable decluttering when labels are shown
 		properties: {
 			layerId: 'address-layer',
 			layerName: layerName
@@ -64,16 +87,26 @@ export function createAddressLayer(selectedProject, layerName, onError) {
  * @param {import('svelte/store').Readable<string>} selectedProject - Store containing the selected project ID
  * @param {string} layerName - Display name for the layer
  * @param {Function} onError - Error callback function
+ * @param {Object} labelOptions - Optional label configuration
+ * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
+ * @param {string} [labelOptions.field='name'] - Feature property to use for label
+ * @param {number} [labelOptions.minResolution=1.0] - Minimum resolution to show labels
+ * @param {Object} [labelOptions.textStyle] - Custom text style options
  * @returns {VectorTileLayer}
  */
-export function createNodeLayer(selectedProject, layerName, onError) {
+export function createNodeLayer(selectedProject, layerName, onError, labelOptions = {}) {
 	const tileSource = createNodeTileSource(selectedProject, onError);
-	const style = createNodeStyle();
+
+	// Use style function with labels if enabled, otherwise use static style
+	const style = labelOptions.enabled
+		? createNodeStyleWithLabels(labelOptions)
+		: createNodeStyle();
 
 	return new VectorTileLayer({
 		source: tileSource,
 		style: style,
 		renderMode: 'vector',
+		declutter: labelOptions.enabled, // Enable decluttering when labels are shown
 		properties: {
 			layerId: 'node-layer',
 			layerName: layerName

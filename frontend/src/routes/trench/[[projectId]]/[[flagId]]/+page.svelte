@@ -1,8 +1,6 @@
 <script>
 	// Skeleton
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
-	// Icons
-	import { IconCheck, IconX } from '@tabler/icons-svelte';
 
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
@@ -23,29 +21,47 @@
 		trenchColorSelected
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { onDestroy } from 'svelte';
+	import { onMount, setContext } from 'svelte';
 	import TrenchTable from './TrenchTable.svelte';
+	// Managers
+	import { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte.js';
+	import { MapState } from '$lib/classes/MapState.svelte.js';
 	// OpenLayers
 	import Feature from 'ol/Feature.js';
 	import WKT from 'ol/format/WKT.js';
 	import VectorLayer from 'ol/layer/Vector.js';
-	import VectorTileLayer from 'ol/layer/VectorTile.js';
 	import 'ol/ol.css';
 	import VectorSource from 'ol/source/Vector.js';
 	import { Circle as CircleStyle, Style } from 'ol/style';
-	import Fill from 'ol/style/Fill.js';
 	import Stroke from 'ol/style/Stroke.js';
-	import Text from 'ol/style/Text.js';
-	// Map utilities
-	import { createSelectionLayer, createTrenchTileSource } from '$lib/map';
 
 	let { data } = $props();
-	let olMapInstance = $state();
-	let vectorTileLayer = $state();
-	let selectionLayer = $state();
+
+	// Initialize managers
+	const mapState = new MapState(
+		$selectedProject,
+		$trenchColor,
+		$trenchColorSelected,
+		{
+			trench: true,
+			address: false,
+			node: false
+		},
+		{
+			trench: { enabled: true, field: 'id_trench', minResolution: 1.5 }
+		}
+	);
+	const selectionManager = new MapSelectionManager();
+
+	// Set context for child components
+	setContext('mapManagers', {
+		mapState,
+		selectionManager
+	});
+
+	// Routing-specific state
 	let routeLayer = $state();
 	let highlightLayer = $state();
-	let selectionStore = $state({});
 	let startTrenchId = $state(null);
 	let endTrenchId = $state(null);
 	let trenchTableInstance;
@@ -55,7 +71,7 @@
 	}
 
 	async function handleTrenchClick(trenchUuid, trenchLabel) {
-		if (!olMapInstance || !vectorTileLayer) {
+		if (!mapState.olMap || !mapState.vectorTileLayer) {
 			globalToaster.error({
 				title: m.title_error_loading_map_features(),
 				description: 'Map not ready'
@@ -112,7 +128,7 @@
 					}
 
 					if (geometryWkt) {
-						const view = olMapInstance.getView();
+						const view = mapState.olMap.getView();
 						const geometry = wktFormat.readGeometry(geometryWkt, {
 							dataProjection: 'EPSG:25832', // TODO: Get from trench data
 							featureProjection: view.getProjection()
@@ -179,54 +195,12 @@
 		if (!$routingMode || $routingMode) {
 			startTrenchId = null;
 			endTrenchId = null;
-			selectionStore = {};
-			if (selectionLayer) selectionLayer.changed();
+			selectionManager.clearSelection();
 			if (routeLayer) routeLayer.getSource().clear();
 		}
 	});
 
-	// Error handler for tile loading
-	function handleTileError(message, description) {
-		globalToaster.error({
-			title: message,
-			description: description
-		});
-	}
-
-	// Custom trench style with labels
-	const trenchStyle = (feature, resolution) =>
-		new Style({
-			fill: new Fill({
-				color: $trenchColor
-			}),
-			stroke: new Stroke({
-				color: $trenchColor,
-				width: 2
-			}),
-			image: new CircleStyle({
-				radius: 7,
-				fill: new Fill({ color: $trenchColor }),
-				stroke: new Stroke({ color: $trenchColor, width: 2 })
-			}),
-			text:
-				resolution < 1.5
-					? new Text({
-							text: (feature.get('id_trench') || '').toString(),
-							font: '12px Calibri,sans-serif',
-							fill: new Fill({
-								color: '#000'
-							}),
-							stroke: new Stroke({
-								color: '#fff',
-								width: 3
-							}),
-							offsetX: 15,
-							offsetY: 15,
-							textAlign: 'center'
-						})
-					: undefined
-		});
-
+	// Styles for routing layers
 	const routeStyle = new Style({
 		stroke: new Stroke({
 			color: 'rgba(255, 0, 0, 0.7)',
@@ -234,52 +208,36 @@
 		})
 	});
 
-	// Create tile source and layer using the utility functions
-	let tileSource;
-	try {
-		tileSource = createTrenchTileSource($selectedProject, handleTileError);
+	// Initialize layers
+	const layersInitialized = mapState.initializeLayers();
 
-		// Create a custom vector tile layer with labels
-		vectorTileLayer = new VectorTileLayer({
-			source: tileSource,
-			style: trenchStyle,
-			renderMode: 'vector',
-			declutter: true
-		});
-	} catch (error) {
-		globalToaster.error({
-			title: m.title_error_creating_vector_tile_layer(),
-			description: m.message_error_creating_vector_tile_layer()
-		});
-		vectorTileLayer = undefined;
-		tileSource = undefined;
-	}
-
+	// Refresh tile sources when they exist
 	$effect(() => {
-		if (tileSource) {
-			tileSource.refresh();
-		}
+		mapState.refreshTileSources();
 	});
 
+	/**
+	 * Handler for the map ready event
+	 * Initializes all map interactions and layers
+	 */
 	function handleMapReady(event) {
-		olMapInstance = event.detail.map;
-		initializeMapInteractions();
-	}
+		const olMapInstance = event.detail.map;
 
-	function initializeMapInteractions() {
-		if (!olMapInstance || !vectorTileLayer || !tileSource) return;
+		// Initialize selection layers
+		mapState.initializeSelectionLayers(olMapInstance, () => selectionManager.getSelectionStore());
 
-		// Selection layer for start/end trenches using the utility function
-		selectionLayer = createSelectionLayer(tileSource, $trenchColorSelected, () => selectionStore);
-		olMapInstance.addLayer(selectionLayer);
+		// Register selection layers with selection manager
+		const selectionLayers = mapState.getSelectionLayers();
+		selectionLayers.forEach((layer) => selectionManager.registerSelectionLayer(layer));
 
 		// Layer to display the route
 		routeLayer = new VectorLayer({
 			source: new VectorSource(),
 			style: routeStyle
 		});
-		olMapInstance.addLayer(routeLayer);
+		mapState.olMap.addLayer(routeLayer);
 
+		// Layer to highlight trenches temporarily
 		highlightLayer = new VectorLayer({
 			source: new VectorSource(),
 			style: new Style({
@@ -296,13 +254,18 @@
 				})
 			})
 		});
-		olMapInstance.addLayer(highlightLayer);
+		mapState.olMap.addLayer(highlightLayer);
 
-		olMapInstance.on('click', handleMapClick);
+		// Register click handler for routing functionality
+		mapState.olMap.on('click', handleMapClick);
 	}
 
+	/**
+	 * Handle map click events for routing and trench selection
+	 * @param {Object} event - OpenLayers map click event
+	 */
 	async function handleMapClick(event) {
-		if (!olMapInstance) return;
+		if (!mapState.olMap) return;
 
 		if ($selectedConduit === undefined) {
 			globalToaster.error({
@@ -312,9 +275,9 @@
 			return;
 		}
 
-		const features = olMapInstance.getFeaturesAtPixel(event.pixel, {
+		const features = mapState.olMap.getFeaturesAtPixel(event.pixel, {
 			hitTolerance: 10,
-			layerFilter: (layer) => layer === vectorTileLayer
+			layerFilter: (layer) => layer === mapState.vectorTileLayer
 		});
 
 		if (features.length === 0) return;
@@ -330,17 +293,17 @@
 			if (startTrenchId && endTrenchId) {
 				startTrenchId = null;
 				endTrenchId = null;
-				selectionStore = {};
+				selectionManager.clearSelection();
 				if (routeLayer) routeLayer.getSource().clear();
 			}
 
 			if (!startTrenchId) {
 				startTrenchId = trenchId;
-				selectionStore[featureId] = feature;
+				selectionManager.selectFeature(featureId, feature);
 			} else if (!endTrenchId) {
 				if (trenchId === startTrenchId) return; // Can't select same trench
 				endTrenchId = trenchId;
-				selectionStore[featureId] = feature;
+				selectionManager.selectFeature(featureId, feature);
 
 				try {
 					const response = await fetch('/api/routing', {
@@ -369,15 +332,17 @@
 						const wktFormat = new WKT();
 						const routeFeature = wktFormat.readFeature(routeData.path_geometry_wkt, {
 							dataProjection: 'EPSG:25832', // TODO: Get from trench data
-							featureProjection: olMapInstance.getView().getProjection()
+							featureProjection: mapState.olMap.getView().getProjection()
 						});
 						if (routeLayer) routeLayer.getSource().addFeature(routeFeature);
 
+						// Update selection to show all traversed trenches
 						const newSelection = {};
 						for (const uuid of routeData.traversed_trench_uuids) {
 							newSelection[uuid] = true;
 						}
-						selectionStore = newSelection;
+						selectionManager.selectionStore = newSelection;
+						selectionManager.updateSelectionLayers();
 
 						const newSelectionForTrenchTable = routeData.traversed_trench_ids.map((id, index) => ({
 							value: routeData.traversed_trench_uuids[index],
@@ -401,14 +366,12 @@
 					});
 					startTrenchId = null;
 					endTrenchId = null;
-					selectionStore = {};
+					selectionManager.clearSelection();
 				}
 			}
-			if (selectionLayer) selectionLayer.changed();
 		} else {
 			// Handle single-click update logic
-			selectionStore = { [featureId]: feature };
-			if (selectionLayer) selectionLayer.changed();
+			selectionManager.selectFeature(featureId, feature);
 
 			const trenchToAdd = [{ value: featureId, label: trenchId }];
 			if (trenchTableInstance) {
@@ -417,22 +380,25 @@
 		}
 	}
 
-	onDestroy(() => {
-		if (olMapInstance) {
-			olMapInstance.un('click', handleMapClick);
-			if (selectionLayer) olMapInstance.removeLayer(selectionLayer);
-			if (routeLayer) olMapInstance.removeLayer(routeLayer);
-			if (highlightLayer) olMapInstance.removeLayer(highlightLayer);
-		}
-		olMapInstance = undefined;
-		selectionStore = {};
-		if (vectorTileLayer && vectorTileLayer.getSource()) {
-			vectorTileLayer.getSource().dispose();
-		}
-		vectorTileLayer = undefined;
-		selectionLayer = undefined;
-		routeLayer = undefined;
-		highlightLayer = undefined;
+	/**
+	 * Cleanup on component destroy
+	 */
+	onMount(() => {
+		return () => {
+			// Remove custom layers
+			if (mapState.olMap) {
+				if (routeLayer) mapState.olMap.removeLayer(routeLayer);
+				if (highlightLayer) mapState.olMap.removeLayer(highlightLayer);
+			}
+
+			// Cleanup managers
+			mapState.cleanup();
+			selectionManager.cleanup();
+
+			// Reset routing state
+			routeLayer = undefined;
+			highlightLayer = undefined;
+		};
 	});
 </script>
 
@@ -444,12 +410,10 @@
 	<div
 		class="lg:col-span-8 border-2 rounded-lg border-surface-200-800 overflow-hidden min-h-[400px]"
 	>
-		{#if vectorTileLayer}
+		{#if layersInitialized}
 			<Map
 				className="rounded-lg overflow-hidden h-full w-full"
-				layers={selectionLayer && routeLayer && highlightLayer
-					? [vectorTileLayer, selectionLayer, routeLayer, highlightLayer]
-					: [vectorTileLayer]}
+				layers={mapState.getLayers()}
 				showLayerVisibilityTree={false}
 				showSearchPanel={false}
 				on:ready={handleMapReady}
@@ -473,12 +437,10 @@
 							$routingMode = !$routingMode;
 						}}
 					>
-						{#snippet inactiveChild()}
-							<IconX size="18" />
-						{/snippet}
-						{#snippet activeChild()}
-							<IconCheck size="18" />
-						{/snippet}
+						<Switch.Control>
+							<Switch.Thumb />
+						</Switch.Control>
+						<Switch.HiddenInput />
 					</Switch>
 				</div>
 

@@ -1,6 +1,7 @@
 // OpenLayers
 import Fill from 'ol/style/Fill.js';
 import Stroke from 'ol/style/Stroke.js';
+import Text from 'ol/style/Text.js';
 import { Style, Circle as CircleStyle } from 'ol/style';
 
 /**
@@ -23,6 +24,74 @@ export function createTrenchStyle(color) {
 			stroke: new Stroke({ color: color, width: 2 })
 		})
 	});
+}
+
+/**
+ * Creates a text style with customizable options
+ * @param {Object} options - Text style options
+ * @param {string} options.text - The text to display
+ * @param {string} [options.font='12px Calibri,sans-serif'] - Font for the text
+ * @param {string} [options.fillColor='#000'] - Fill color for the text
+ * @param {string} [options.strokeColor='#fff'] - Stroke color for text outline
+ * @param {number} [options.strokeWidth=3] - Width of text outline
+ * @param {number} [options.offsetX=15] - Horizontal offset from feature
+ * @param {number} [options.offsetY=15] - Vertical offset from feature
+ * @param {string} [options.textAlign='center'] - Text alignment
+ * @returns {Text}
+ */
+export function createTextStyle(options) {
+	const {
+		text,
+		font = '12px Calibri,sans-serif',
+		fillColor = '#000',
+		strokeColor = '#fff',
+		strokeWidth = 3,
+		offsetX = 15,
+		offsetY = 15,
+		textAlign = 'center'
+	} = options;
+
+	return new Text({
+		text,
+		font,
+		fill: new Fill({ color: fillColor }),
+		stroke: new Stroke({ color: strokeColor, width: strokeWidth }),
+		offsetX,
+		offsetY,
+		textAlign
+	});
+}
+
+/**
+ * Creates a style function for trench features with optional labels
+ * @param {string} color - The color for the trench style
+ * @param {Object} labelOptions - Label configuration options
+ * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
+ * @param {string} [labelOptions.field='id_trench'] - Feature property to use for label
+ * @param {number} [labelOptions.minResolution=1.5] - Minimum resolution to show labels (more zoomed in)
+ * @param {Object} [labelOptions.textStyle] - Custom text style options
+ * @returns {Function} Style function that accepts (feature, resolution)
+ */
+export function createTrenchStyleWithLabels(color, labelOptions = {}) {
+	const {
+		enabled = false,
+		field = 'id_trench',
+		minResolution = 1.5,
+		textStyle = {}
+	} = labelOptions;
+
+	return function (feature, resolution) {
+		const baseStyle = createTrenchStyle(color);
+
+		// Only add text if labels are enabled and resolution is high enough (zoomed in)
+		if (enabled && resolution < minResolution) {
+			const labelText = (feature.get(field) || '').toString();
+			const text = createTextStyle({ text: labelText, ...textStyle });
+			baseStyle.setText(text);
+		}
+
+		return baseStyle;
+	};
 }
 
 /**
@@ -62,6 +131,37 @@ export function createAddressStyle() {
 }
 
 /**
+ * Creates a style function for address points with optional labels
+ * @param {Object} labelOptions - Label configuration options
+ * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
+ * @param {string} [labelOptions.field='street'] - Feature property to use for label
+ * @param {number} [labelOptions.minResolution=1.0] - Minimum resolution to show labels (more zoomed in)
+ * @param {Object} [labelOptions.textStyle] - Custom text style options
+ * @returns {Function} Style function that accepts (feature, resolution)
+ */
+export function createAddressStyleWithLabels(labelOptions = {}) {
+	const {
+		enabled = false,
+		field = 'street',
+		minResolution = 1.0,
+		textStyle = {}
+	} = labelOptions;
+
+	return function (feature, resolution) {
+		const baseStyle = createAddressStyle();
+
+		// Only add text if labels are enabled and resolution is high enough (zoomed in)
+		if (enabled && resolution < minResolution) {
+			const labelText = (feature.get(field) || '').toString();
+			const text = createTextStyle({ text: labelText, ...textStyle });
+			baseStyle.setText(text);
+		}
+
+		return baseStyle;
+	};
+}
+
+/**
  * Creates a style for node points
  * @returns {Style}
  */
@@ -73,4 +173,35 @@ export function createNodeStyle() {
 			stroke: new Stroke({ color: '#ffffff', width: 1 })
 		})
 	});
+}
+
+/**
+ * Creates a style function for node points with optional labels
+ * @param {Object} labelOptions - Label configuration options
+ * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
+ * @param {string} [labelOptions.field='name'] - Feature property to use for label
+ * @param {number} [labelOptions.minResolution=1.0] - Minimum resolution to show labels (more zoomed in)
+ * @param {Object} [labelOptions.textStyle] - Custom text style options
+ * @returns {Function} Style function that accepts (feature, resolution)
+ */
+export function createNodeStyleWithLabels(labelOptions = {}) {
+	const {
+		enabled = false,
+		field = 'name',
+		minResolution = 1.0,
+		textStyle = {}
+	} = labelOptions;
+
+	return function (feature, resolution) {
+		const baseStyle = createNodeStyle();
+
+		// Only add text if labels are enabled and resolution is high enough (zoomed in)
+		if (enabled && resolution < minResolution) {
+			const labelText = (feature.get(field) || '').toString();
+			const text = createTextStyle({ text: labelText, ...textStyle });
+			baseStyle.setText(text);
+		}
+
+		return baseStyle;
+	};
 }
