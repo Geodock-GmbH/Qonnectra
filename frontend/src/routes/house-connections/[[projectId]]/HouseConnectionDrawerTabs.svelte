@@ -2,6 +2,7 @@
 	// Components
 	import Tabs from '$lib/components/Tabs.svelte';
 	import { Tabs as SkeletonTabs } from '@skeletonlabs/skeleton-svelte';
+	import HouseConnectionAccordion from './HouseConnectionAccordion.svelte';
 	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
@@ -23,8 +24,8 @@
 
 <Tabs tabs={tabItems} bind:activeTab>
 	<SkeletonTabs.Content value="details">
-		<div class="text-surface-600-400 text-sm text-center py-8">
-			{m.form_no_attributes_available()}
+		<div>
+			<HouseConnectionAccordion />
 		</div>
 	</SkeletonTabs.Content>
 </Tabs>

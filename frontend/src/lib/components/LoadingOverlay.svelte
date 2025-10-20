@@ -3,7 +3,7 @@
 	import { m } from '$lib/paraglide/messages';
 	import { Progress } from '@skeletonlabs/skeleton-svelte';
 
-	const skipOverlayRoutes = ['/dashboard', '/map', '/trench', 'pipe-branch'];
+	const skipOverlayRoutes = ['/dashboard', '/map', '/trench', '/pipe-branch', '/house-connections'];
 
 	let isNavigating = $derived($navigating !== null);
 	let targetPath = $derived($navigating?.to?.route?.id || '');
