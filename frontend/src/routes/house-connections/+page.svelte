@@ -37,7 +37,12 @@
 		popupManager,
 		drawerStore,
 		HouseConnectionDrawerTabs,
-		data.alias
+		data.alias,
+		{
+			trench: true,
+			address: false,
+			node: false
+		}
 	);
 
 	// Initialize layers (trench, address, node)

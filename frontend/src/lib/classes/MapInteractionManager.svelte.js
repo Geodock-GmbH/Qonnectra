@@ -17,6 +17,11 @@ export class MapInteractionManager {
 	drawerComponent = $state(null);
 	alias = $state({});
 	searchPanelRef = $state(null);
+	selectableLayersConfig = $state({
+		trench: true,
+		address: true,
+		node: true
+	});
 
 	/**
 	 * @param {Object} selectionManager - MapSelectionManager instance
@@ -24,13 +29,25 @@ export class MapInteractionManager {
 	 * @param {Object} drawerStore - Drawer store instance
 	 * @param {Object} drawerComponent - MapDrawerTabs component
 	 * @param {Object} alias - Field name alias mapping (English -> Localized)
+	 * @param {Object} selectableLayersConfig - Configuration for which layers should open drawer on click (optional)
 	 */
-	constructor(selectionManager, popupManager, drawerStore, drawerComponent, alias = {}) {
+	constructor(
+		selectionManager,
+		popupManager,
+		drawerStore,
+		drawerComponent,
+		alias = {},
+		selectableLayersConfig = null
+	) {
 		this.selectionManager = selectionManager;
 		this.popupManager = popupManager;
 		this.drawerStore = drawerStore;
 		this.drawerComponent = drawerComponent;
 		this.alias = alias;
+
+		if (selectableLayersConfig) {
+			this.selectableLayersConfig = { ...this.selectableLayersConfig, ...selectableLayersConfig };
+		}
 	}
 
 	/**
@@ -85,8 +102,17 @@ export class MapInteractionManager {
 		const clickedFeatures = [];
 		const { vectorTileLayer, addressLayer, nodeLayer } = this.layers;
 
-		// Only check configured layers
-		const layersToCheck = [vectorTileLayer, addressLayer, nodeLayer].filter(Boolean);
+		// Only check layers that exist AND are configured as selectable
+		const layersToCheck = [];
+		if (vectorTileLayer && this.selectableLayersConfig.trench) {
+			layersToCheck.push(vectorTileLayer);
+		}
+		if (addressLayer && this.selectableLayersConfig.address) {
+			layersToCheck.push(addressLayer);
+		}
+		if (nodeLayer && this.selectableLayersConfig.node) {
+			layersToCheck.push(nodeLayer);
+		}
 
 		if (layersToCheck.length === 0) return clickedFeatures;
 
@@ -105,6 +131,21 @@ export class MapInteractionManager {
 	}
 
 	/**
+	 * Check if a layer is selectable based on configuration
+	 * @param {Object} layer - OpenLayers layer
+	 * @returns {boolean} True if layer is selectable
+	 */
+	isLayerSelectable(layer) {
+		const { vectorTileLayer, addressLayer, nodeLayer } = this.layers;
+
+		if (layer === vectorTileLayer) return this.selectableLayersConfig.trench;
+		if (layer === addressLayer) return this.selectableLayersConfig.address;
+		if (layer === nodeLayer) return this.selectableLayersConfig.node;
+
+		return false;
+	}
+
+	/**
 	 * Handle click on a feature
 	 * @param {Object} feature - OpenLayers feature
 	 * @param {Array} coordinate - Map coordinates [x, y]
@@ -114,6 +155,11 @@ export class MapInteractionManager {
 		const featureId = feature.getId();
 
 		if (featureId) {
+			if (layer && !this.isLayerSelectable(layer)) {
+				this.handleEmptyClick();
+				return;
+			}
+
 			// Update selection
 			this.selectionManager.selectFeature(featureId, feature);
 
