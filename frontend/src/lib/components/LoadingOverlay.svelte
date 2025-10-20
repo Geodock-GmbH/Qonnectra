@@ -3,9 +3,17 @@
 	import { m } from '$lib/paraglide/messages';
 	import { Progress } from '@skeletonlabs/skeleton-svelte';
 
-	let isLoading = $derived($navigating !== null);
+	const skipOverlayRoutes = ['/dashboard', '/map', '/trench', 'pipe-branch'];
 
+	let isNavigating = $derived($navigating !== null);
 	let targetPath = $derived($navigating?.to?.route?.id || '');
+
+	let shouldSkipOverlay = $derived.by(() => {
+		if (!targetPath) return false;
+		return skipOverlayRoutes.some((route) => targetPath.startsWith(route));
+	});
+
+	let isLoading = $derived(isNavigating && !shouldSkipOverlay);
 
 	let loadingMessage = $derived.by(() => {
 		if (targetPath.includes('network-schema')) {
