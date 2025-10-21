@@ -27,22 +27,13 @@ export function tooltip(content, options = {}) {
 		function showTooltip() {
 			// Create tooltip element
 			tooltipElement = document.createElement('span');
-			tooltipElement.className = `tooltip tooltip-${position}`;
+			tooltipElement.className = `tooltip tooltip-${position} bg-surface-100-900 text-surface-900-100 px-3 py-2 rounded text-sm whitespace-nowrap shadow-lg z-[1000] pointer-events-none`;
 			tooltipElement.textContent = content;
 			tooltipElement.setAttribute('role', 'tooltip');
 
-			// Add styles
+			// Add minimal required styles for positioning
 			Object.assign(tooltipElement.style, {
 				position: 'absolute',
-				backgroundColor: 'rgba(0, 0, 0, 0.9)',
-				color: 'white',
-				padding: '0.5rem 0.75rem',
-				borderRadius: '0.25rem',
-				fontSize: '0.875rem',
-				whiteSpace: 'nowrap',
-				zIndex: '1000',
-				pointerEvents: 'none',
-				boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
 				visibility: 'hidden' // Hide initially to get accurate dimensions
 			});
 
@@ -225,6 +216,9 @@ function addArrow(tooltipElement, side, size, offset = null) {
 	arrow.style.height = '0';
 	arrow.style.border = `${size}px solid transparent`;
 
+	// Get the computed background color from the tooltip to match theme
+	const tooltipBgColor = window.getComputedStyle(tooltipElement).backgroundColor;
+
 	switch (side) {
 		case 'top':
 			arrow.style.bottom = '100%';
@@ -234,7 +228,7 @@ function addArrow(tooltipElement, side, size, offset = null) {
 			} else {
 				arrow.style.transform = 'translateX(-50%)';
 			}
-			arrow.style.borderBottomColor = 'rgba(0, 0, 0, 0.9)';
+			arrow.style.borderBottomColor = tooltipBgColor;
 			break;
 
 		case 'bottom':
@@ -245,7 +239,7 @@ function addArrow(tooltipElement, side, size, offset = null) {
 			} else {
 				arrow.style.transform = 'translateX(-50%)';
 			}
-			arrow.style.borderTopColor = 'rgba(0, 0, 0, 0.9)';
+			arrow.style.borderTopColor = tooltipBgColor;
 			break;
 
 		case 'left':
@@ -256,7 +250,7 @@ function addArrow(tooltipElement, side, size, offset = null) {
 			} else {
 				arrow.style.transform = 'translateY(-50%)';
 			}
-			arrow.style.borderRightColor = 'rgba(0, 0, 0, 0.9)';
+			arrow.style.borderRightColor = tooltipBgColor;
 			break;
 
 		case 'right':
@@ -267,7 +261,7 @@ function addArrow(tooltipElement, side, size, offset = null) {
 			} else {
 				arrow.style.transform = 'translateY(-50%)';
 			}
-			arrow.style.borderLeftColor = 'rgba(0, 0, 0, 0.9)';
+			arrow.style.borderLeftColor = tooltipBgColor;
 			break;
 	}
 
