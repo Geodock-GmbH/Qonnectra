@@ -1,12 +1,9 @@
 <script>
-	// Skeleton
 	import { AppBar } from '@skeletonlabs/skeleton-svelte';
-
-	// Icons
 	import { IconLogout, IconUserCircle } from '@tabler/icons-svelte';
 
-	// Svelte
 	import { userStore } from '$lib/stores/auth';
+
 	import LightSwitch from './LightSwitch.svelte';
 	import LocaleSwitcher from './LocaleSwitcher.svelte';
 	import ProjectCombobox from './ProjectCombobox.svelte';

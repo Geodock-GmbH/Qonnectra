@@ -1,8 +1,7 @@
-// OpenLayers
+import { Circle as CircleStyle, Style } from 'ol/style';
 import Fill from 'ol/style/Fill.js';
 import Stroke from 'ol/style/Stroke.js';
 import Text from 'ol/style/Text.js';
-import { Style, Circle as CircleStyle } from 'ol/style';
 
 /**
  * Creates a style for trench features
@@ -140,12 +139,7 @@ export function createAddressStyle() {
  * @returns {Function} Style function that accepts (feature, resolution)
  */
 export function createAddressStyleWithLabels(labelOptions = {}) {
-	const {
-		enabled = false,
-		field = 'street',
-		minResolution = 1.0,
-		textStyle = {}
-	} = labelOptions;
+	const { enabled = false, field = 'street', minResolution = 1.0, textStyle = {} } = labelOptions;
 
 	return function (feature, resolution) {
 		const baseStyle = createAddressStyle();
@@ -185,12 +179,7 @@ export function createNodeStyle() {
  * @returns {Function} Style function that accepts (feature, resolution)
  */
 export function createNodeStyleWithLabels(labelOptions = {}) {
-	const {
-		enabled = false,
-		field = 'name',
-		minResolution = 1.0,
-		textStyle = {}
-	} = labelOptions;
+	const { enabled = false, field = 'name', minResolution = 1.0, textStyle = {} } = labelOptions;
 
 	return function (feature, resolution) {
 		const baseStyle = createNodeStyle();

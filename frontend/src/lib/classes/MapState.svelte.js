@@ -1,16 +1,17 @@
+import { m } from '$lib/paraglide/messages';
+
+import {
+	createAddressTileSource,
+	createNodeTileSource,
+	createTrenchTileSource
+} from '$lib/map/tileSources';
+import { globalToaster } from '$lib/stores/toaster';
 import {
 	createAddressLayer,
 	createNodeLayer,
 	createSelectionLayer,
 	createTrenchLayer
 } from '$lib/map';
-import {
-	createAddressTileSource,
-	createNodeTileSource,
-	createTrenchTileSource
-} from '$lib/map/tileSources';
-import { m } from '$lib/paraglide/messages';
-import { globalToaster } from '$lib/stores/toaster';
 
 /**
  * Main state manager for the map

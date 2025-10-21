@@ -1,10 +1,10 @@
 <script>
-	// Components
-	import Tabs from '$lib/components/Tabs.svelte';
 	import { Tabs as SkeletonTabs } from '@skeletonlabs/skeleton-svelte';
-	// Paraglide
+
 	import { m } from '$lib/paraglide/messages';
-	// Svelte
+
+	import Tabs from '$lib/components/Tabs.svelte';
+
 	import CableDiagramEdgeAttributeCard from './CableDiagramEdgeAttributeCard.svelte';
 	import CableDiagramEdgeHandleConfig from './CableDiagramEdgeHandleConfig.svelte';
 	import CableDiagramNodeAttributeCard from './CableDiagramNodeAttributeCard.svelte';

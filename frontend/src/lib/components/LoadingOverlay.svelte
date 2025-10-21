@@ -1,7 +1,8 @@
 <script>
 	import { navigating } from '$app/stores';
-	import { m } from '$lib/paraglide/messages';
 	import { Progress } from '@skeletonlabs/skeleton-svelte';
+
+	import { m } from '$lib/paraglide/messages';
 
 	const skipOverlayRoutes = ['/dashboard', '/map', '/trench', '/pipe-branch', '/house-connections'];
 

@@ -1,5 +1,6 @@
-import { API_URL } from '$env/static/private';
 import { redirect } from '@sveltejs/kit';
+import { API_URL } from '$env/static/private';
+
 import packageJson from '../../package.json';
 import { PUBLIC_ROUTES } from '../hooks.server.js';
 

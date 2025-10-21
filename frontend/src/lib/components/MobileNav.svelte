@@ -1,8 +1,8 @@
 <script>
-	// Skeleton
+	import { quintOut } from 'svelte/easing';
+	import { slide } from 'svelte/transition';
+	import { page } from '$app/state';
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
-
-	// Icons
 	import {
 		IconAffiliate,
 		IconArrowBarToRight,
@@ -14,13 +14,8 @@
 		IconTextPlus,
 		IconTopologyRing2
 	} from '@tabler/icons-svelte';
-	// Paraglide
-	import { m } from '$lib/paraglide/messages';
 
-	// Svelte
-	import { page } from '$app/state';
-	import { quintOut } from 'svelte/easing';
-	import { slide } from 'svelte/transition';
+	import { m } from '$lib/paraglide/messages';
 
 	// State for more menu
 	let showMoreMenu = $state(false);

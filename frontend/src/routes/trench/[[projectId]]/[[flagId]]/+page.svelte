@@ -1,13 +1,16 @@
 <script>
-	// Skeleton
-	import { Switch } from '@skeletonlabs/skeleton-svelte';
-
-	// Paraglide
-	import { m } from '$lib/paraglide/messages';
-
-	// Svelte
+	import { onMount, setContext } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
+	import { Switch } from '@skeletonlabs/skeleton-svelte';
+	import Feature from 'ol/Feature.js';
+	import WKT from 'ol/format/WKT.js';
+	import VectorLayer from 'ol/layer/Vector.js';
+
+	import { m } from '$lib/paraglide/messages';
+
+	import { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte.js';
+	import { MapState } from '$lib/classes/MapState.svelte.js';
 	import ConduitCombobox from '$lib/components/ConduitCombobox.svelte';
 	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
 	import Map from '$lib/components/Map.svelte';
@@ -21,16 +24,11 @@
 		trenchColorSelected
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { onMount, setContext } from 'svelte';
+
 	import TrenchTable from './TrenchTable.svelte';
-	// Managers
-	import { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte.js';
-	import { MapState } from '$lib/classes/MapState.svelte.js';
-	// OpenLayers
-	import Feature from 'ol/Feature.js';
-	import WKT from 'ol/format/WKT.js';
-	import VectorLayer from 'ol/layer/Vector.js';
+
 	import 'ol/ol.css';
+
 	import VectorSource from 'ol/source/Vector.js';
 	import { Circle as CircleStyle, Style } from 'ol/style';
 	import Stroke from 'ol/style/Stroke.js';

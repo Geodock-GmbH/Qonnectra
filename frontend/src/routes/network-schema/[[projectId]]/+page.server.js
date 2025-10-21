@@ -1,6 +1,7 @@
-import { API_URL } from '$env/static/private';
-import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 import { error, fail, success } from '@sveltejs/kit';
+import { API_URL } from '$env/static/private';
+
+import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
 /**
  * Poll for sync completion with timeout and progress updates

@@ -1,14 +1,10 @@
 <script>
-	// Skeleton
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
-	// Paraglide
+	import { IconArrowLeft, IconArrowRight, IconTrash } from '@tabler/icons-svelte';
+	import { PUBLIC_API_URL } from '$env/static/public';
+
 	import { m } from '$lib/paraglide/messages';
 
-	// Tabler
-	import { IconArrowLeft, IconArrowRight, IconTrash } from '@tabler/icons-svelte';
-
-	// Svelte
-	import { PUBLIC_API_URL } from '$env/static/public';
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 

@@ -1,11 +1,13 @@
 <script>
+	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
+
+	import { m } from '$lib/paraglide/messages';
+
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
-	import { m } from '$lib/paraglide/messages';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { getContext } from 'svelte';
 
 	const attributes = getContext('attributeOptions') || {
 		cableTypes: [],

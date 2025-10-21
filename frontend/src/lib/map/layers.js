@@ -1,21 +1,20 @@
 // OpenLayers
 import VectorTileLayer from 'ol/layer/VectorTile.js';
 
-// Local imports
 import {
-	createTrenchTileSource,
-	createAddressTileSource,
-	createNodeTileSource
-} from './tileSources.js';
-import {
-	createTrenchStyle,
-	createTrenchStyleWithLabels,
 	createAddressStyle,
 	createAddressStyleWithLabels,
 	createNodeStyle,
 	createNodeStyleWithLabels,
-	createSelectedStyle
+	createSelectedStyle,
+	createTrenchStyle,
+	createTrenchStyleWithLabels
 } from './styles.js';
+import {
+	createAddressTileSource,
+	createNodeTileSource,
+	createTrenchTileSource
+} from './tileSources.js';
 
 /**
  * Creates a vector tile layer for trenches
@@ -30,7 +29,13 @@ import {
  * @param {Object} [labelOptions.textStyle] - Custom text style options
  * @returns {VectorTileLayer}
  */
-export function createTrenchLayer(selectedProject, trenchColor, layerName, onError, labelOptions = {}) {
+export function createTrenchLayer(
+	selectedProject,
+	trenchColor,
+	layerName,
+	onError,
+	labelOptions = {}
+) {
 	const tileSource = createTrenchTileSource(selectedProject, onError);
 
 	// Use style function with labels if enabled, otherwise use static style
@@ -98,9 +103,7 @@ export function createNodeLayer(selectedProject, layerName, onError, labelOption
 	const tileSource = createNodeTileSource(selectedProject, onError);
 
 	// Use style function with labels if enabled, otherwise use static style
-	const style = labelOptions.enabled
-		? createNodeStyleWithLabels(labelOptions)
-		: createNodeStyle();
+	const style = labelOptions.enabled ? createNodeStyleWithLabels(labelOptions) : createNodeStyle();
 
 	return new VectorTileLayer({
 		source: tileSource,

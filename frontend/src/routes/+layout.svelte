@@ -1,4 +1,6 @@
 <script>
+	import { Toast } from '@skeletonlabs/skeleton-svelte';
+
 	import AppBar from '$lib/components/AppBar.svelte';
 	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
 	import MobileNav from '$lib/components/MobileNav.svelte';
@@ -6,7 +8,7 @@
 	import { updateUserStore } from '$lib/stores/auth';
 	import { theme } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { Toast } from '@skeletonlabs/skeleton-svelte';
+
 	import '../app.css';
 
 	let { children, data } = $props();

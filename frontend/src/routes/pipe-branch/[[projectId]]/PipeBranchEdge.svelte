@@ -1,12 +1,9 @@
 <script>
-	// Paraglide
+	import { BaseEdge, EdgeLabel, getStraightPath, useEdges } from '@xyflow/svelte';
+
 	import { m } from '$lib/paraglide/messages';
 
-	// Svelte
 	import { globalToaster } from '$lib/stores/toaster';
-
-	// SvelteFlow
-	import { BaseEdge, EdgeLabel, getStraightPath, useEdges } from '@xyflow/svelte';
 
 	let { id, sourceX, sourceY, targetX, targetY, data } = $props();
 

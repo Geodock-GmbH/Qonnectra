@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Multi-User Canvas Sync', () => {
 	test('should handle concurrent users accessing sync', async ({ browser }) => {

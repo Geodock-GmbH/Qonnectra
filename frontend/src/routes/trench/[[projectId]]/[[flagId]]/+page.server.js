@@ -1,7 +1,9 @@
-import { API_URL } from '$env/static/private';
-import { m } from '$lib/paraglide/messages';
-import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 import { error } from '@sveltejs/kit';
+import { API_URL } from '$env/static/private';
+
+import { m } from '$lib/paraglide/messages';
+
+import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ fetch, params, depends, cookies }) {

@@ -1,9 +1,10 @@
-import { expect, test, describe } from 'vitest';
+import { describe, expect, test } from 'vitest';
+
 import {
-	getPathMidpoint,
+	buildEdgePath,
 	getClosestPointOnSegment,
-	snapToGrid,
-	buildEdgePath
+	getPathMidpoint,
+	snapToGrid
 } from '$lib/utils/edgeGeometry.js';
 
 describe('getPathMidpoint', () => {

@@ -1,7 +1,8 @@
 <script>
-	import { networkSchemaViewport } from '$lib/stores/store';
-	import { useSvelteFlow } from '@xyflow/svelte';
 	import { onMount } from 'svelte';
+	import { useSvelteFlow } from '@xyflow/svelte';
+
+	import { networkSchemaViewport } from '$lib/stores/store';
 
 	const { getViewport, setViewport } = useSvelteFlow();
 

@@ -1,8 +1,8 @@
 <script>
-	// Paraglide
-	import { m } from '$lib/paraglide/messages';
-	// SvelteKit
 	import { enhance } from '$app/forms';
+
+	import { m } from '$lib/paraglide/messages';
+
 	import { globalToaster } from '$lib/stores/toaster';
 
 	let username;

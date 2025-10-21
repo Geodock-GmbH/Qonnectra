@@ -1,7 +1,6 @@
-// OpenLayers
+import { PUBLIC_API_URL } from '$env/static/public';
 import MVT from 'ol/format/MVT.js';
 import VectorTileSource from 'ol/source/VectorTile.js';
-import { PUBLIC_API_URL } from '$env/static/public';
 
 /**
  * Creates a vector tile source for trenches

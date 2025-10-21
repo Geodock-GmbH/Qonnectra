@@ -1,5 +1,6 @@
-import { globalToaster } from '$lib/stores/toaster';
 import { m } from '$lib/paraglide/messages';
+
+import { globalToaster } from '$lib/stores/toaster';
 
 /**
  * Main state manager for the network schema diagram

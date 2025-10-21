@@ -1,9 +1,7 @@
 <script>
-	// Paraglide
-	import { m } from '$lib/paraglide/messages';
-
-	// Icons
 	import { IconSearch } from '@tabler/icons-svelte';
+
+	import { m } from '$lib/paraglide/messages';
 
 	let { value = $bindable(''), onSearch = () => {} } = $props();
 

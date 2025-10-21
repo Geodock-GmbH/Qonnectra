@@ -1,4 +1,7 @@
 <script>
+	import { BaseEdge, getSmoothStepPath } from '@xyflow/svelte';
+	import { parse } from 'devalue';
+
 	import { edgeSnappingEnabled } from '$lib/stores/store';
 	import {
 		buildEdgePath,
@@ -6,8 +9,7 @@
 		getPathMidpoint,
 		snapToGrid
 	} from '$lib/utils/edgeGeometry.js';
-	import { BaseEdge, getSmoothStepPath } from '@xyflow/svelte';
-	import { parse } from 'devalue';
+
 	import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
 
 	let { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data } = $props();

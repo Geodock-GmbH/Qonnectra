@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test('should allow a user to log in', async ({ page }) => {
 	console.log(page.url());

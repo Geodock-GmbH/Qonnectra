@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
 import { load } from './+page.server.js';
 
 // Mock the environment variable

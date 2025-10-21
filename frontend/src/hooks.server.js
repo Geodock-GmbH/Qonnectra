@@ -1,7 +1,8 @@
-import { API_URL } from '$env/static/private';
-import { paraglideMiddleware } from '$lib/paraglide/server';
 import { redirect } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
+import { API_URL } from '$env/static/private';
+
+import { paraglideMiddleware } from '$lib/paraglide/server';
 
 // Define routes that should be accessible even without authentication
 export const PUBLIC_ROUTES = ['/login'];

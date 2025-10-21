@@ -1,10 +1,12 @@
 <script>
+	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
-	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
+
 	import { m } from '$lib/paraglide/messages';
+
+	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { getContext } from 'svelte';
 
 	const attributes = getContext('attributeOptions') || {
 		nodeTypes: [],

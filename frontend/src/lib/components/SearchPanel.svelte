@@ -1,14 +1,8 @@
 <script>
-	// Paraglide
-	import { m } from '$lib/paraglide/messages';
-	// Components
-	import GenericCombobox from './GenericCombobox.svelte';
-	import SearchInput from './SearchInput.svelte';
-	// Svelte
-	import { selectedProject } from '$lib/stores/store';
-	import { globalToaster } from '$lib/stores/toaster';
 	import { parse } from 'devalue';
-	// Search utilities
+
+	import { m } from '$lib/paraglide/messages';
+
 	import {
 		createHighlightLayer,
 		createHighlightStyle,
@@ -16,8 +10,12 @@
 		parseFeatureGeometry,
 		zoomToFeature
 	} from '$lib/map/searchUtils';
+	import { selectedProject } from '$lib/stores/store';
+	import { globalToaster } from '$lib/stores/toaster';
 
-	// Props
+	import GenericCombobox from './GenericCombobox.svelte';
+	import SearchInput from './SearchInput.svelte';
+
 	let {
 		olMapInstance = null,
 		trenchColorSelected = '#ff0000',

@@ -1,13 +1,11 @@
 <script>
-	// Skeleton
-	import { Combobox, Portal, useListCollection } from '@skeletonlabs/skeleton-svelte';
-	// Paraglide
-	import { m } from '$lib/paraglide/messages';
-
-	// Svelte
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { Combobox, Portal, useListCollection } from '@skeletonlabs/skeleton-svelte';
+
+	import { m } from '$lib/paraglide/messages';
+
 	import { selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 

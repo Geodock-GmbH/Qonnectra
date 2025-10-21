@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 import setCookieParser from 'set-cookie-parser';
-// TODO: Clicking logout when the map is loading tiles, creates a lot of network error toasts.
+
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ cookies, fetch, url }) {
 	// Retrieve necessary cookies to forward/clear

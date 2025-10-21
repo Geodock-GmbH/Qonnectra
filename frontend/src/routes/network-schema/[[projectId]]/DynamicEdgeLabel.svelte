@@ -1,10 +1,13 @@
 <script>
-	import { drawerStore } from '$lib/stores/drawer';
 	import { useSvelteFlow } from '@xyflow/svelte';
 	import { parse } from 'devalue';
+
+	import { drawerStore } from '$lib/stores/drawer';
+
 	import DrawerTabs from './DrawerTabs.svelte';
 
-	let { edgeId, labelData, cableData, defaultX, defaultY, onPositionUpdate, onEdgeDelete } = $props();
+	let { edgeId, labelData, cableData, defaultX, defaultY, onPositionUpdate, onEdgeDelete } =
+		$props();
 
 	// Coordinate transformation
 	const { screenToFlowPosition } = useSvelteFlow();

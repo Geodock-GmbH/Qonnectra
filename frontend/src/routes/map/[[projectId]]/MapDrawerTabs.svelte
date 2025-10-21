@@ -1,10 +1,10 @@
 <script>
-	// Components
+	import { Tabs as SkeletonTabs } from '@skeletonlabs/skeleton-svelte';
+
+	import { m } from '$lib/paraglide/messages';
+
 	import FeatureAttributeCard from '$lib/components/FeatureAttributeCard.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
-	import { Tabs as SkeletonTabs } from '@skeletonlabs/skeleton-svelte';
-	// Paraglide
-	import { m } from '$lib/paraglide/messages';
 
 	/**
 	 * @typedef {Object} Props

@@ -1,9 +1,9 @@
 <script>
-	// Svelte
 	import { browser } from '$app/environment';
-	// Paraglide
+
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale, setLocale } from '$lib/paraglide/runtime';
+
 	import GenericCombobox from './GenericCombobox.svelte';
 
 	const locales = [

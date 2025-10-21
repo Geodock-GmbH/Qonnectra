@@ -1,10 +1,8 @@
 <script>
-	// Skeleton
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
-	// Paraglide
-	import { m } from '$lib/paraglide/messages';
-	// Tabler
 	import { IconArrowLeft, IconArrowRight } from '@tabler/icons-svelte';
+
+	import { m } from '$lib/paraglide/messages';
 
 	let { data } = $props();
 	let page = $state(1);

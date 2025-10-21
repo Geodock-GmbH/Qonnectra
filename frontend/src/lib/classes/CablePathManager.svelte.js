@@ -1,5 +1,6 @@
-import { globalToaster } from '$lib/stores/toaster';
 import { m } from '$lib/paraglide/messages';
+
+import { globalToaster } from '$lib/stores/toaster';
 
 /**
  * Manages cable path geometry and handle configuration

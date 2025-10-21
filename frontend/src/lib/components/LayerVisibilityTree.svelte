@@ -1,13 +1,9 @@
 <script>
-	// Skeleton
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
-
-	// Icons
 	import { IconChevronDown, IconChevronUp, IconEye, IconEyeOff } from '@tabler/icons-svelte';
-	// Paraglide
+
 	import { m } from '$lib/paraglide/messages';
 
-	// Svelte
 	let { layers = [], osmLayer = null, onLayerVisibilityChanged = () => {} } = $props();
 
 	// State to track visibility of each layer

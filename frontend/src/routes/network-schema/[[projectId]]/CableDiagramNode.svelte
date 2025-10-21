@@ -1,9 +1,9 @@
 <script>
-	import { parse } from 'devalue';
-	// SvelteFlow
 	import { Handle, Position } from '@xyflow/svelte';
+	import { parse } from 'devalue';
 
 	import { drawerStore } from '$lib/stores/drawer';
+
 	import DrawerTabs from './DrawerTabs.svelte';
 
 	let { id, data } = $props();

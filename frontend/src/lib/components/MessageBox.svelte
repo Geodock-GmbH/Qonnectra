@@ -1,8 +1,6 @@
 <script>
-	// Skeleton
 	import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
 
-	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
 	let {
@@ -43,7 +41,9 @@
 		<Dialog.Backdrop class="fixed inset-0 z-50 bg-surface-50-950/50 backdrop-blur-sm" />
 
 		<Dialog.Positioner class="fixed inset-0 z-50 flex items-center justify-center">
-			<Dialog.Content class="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm w-full">
+			<Dialog.Content
+				class="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm w-full"
+			>
 				<Dialog.Title>
 					<h3 class="text-lg font-bold">{heading}</h3>
 				</Dialog.Title>

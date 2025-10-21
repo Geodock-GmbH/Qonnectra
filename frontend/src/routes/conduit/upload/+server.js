@@ -1,6 +1,7 @@
-import { API_URL } from '$env/static/private';
-import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 import { error } from '@sveltejs/kit';
+import { API_URL } from '$env/static/private';
+
+import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ request, cookies }) {

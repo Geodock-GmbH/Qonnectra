@@ -1,5 +1,5 @@
-import { API_URL } from '$env/static/private';
 import { fail, redirect } from '@sveltejs/kit';
+import { API_URL } from '$env/static/private';
 import setCookieParser from 'set-cookie-parser';
 
 /** @satisfies {import('./$types').Actions} */

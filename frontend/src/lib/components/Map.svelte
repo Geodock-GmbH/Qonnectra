@@ -1,7 +1,9 @@
 <script>
-	import { browser } from '$app/environment';
-	import { mapCenter, mapZoom } from '$lib/stores/store';
 	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
+	import { browser } from '$app/environment';
+
+	import { mapCenter, mapZoom } from '$lib/stores/store';
+
 	import LayerVisibilityTree from './LayerVisibilityTree.svelte';
 	import OpacitySlider from './OpacitySlider.svelte';
 	import SearchPanel from './SearchPanel.svelte';

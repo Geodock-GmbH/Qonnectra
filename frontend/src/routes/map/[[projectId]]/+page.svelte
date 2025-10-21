@@ -1,24 +1,21 @@
 <script>
-	// Paraglide
+	import { onMount, setContext } from 'svelte';
+	import { page } from '$app/stores';
+
 	import { m } from '$lib/paraglide/messages';
 
-	// Svelte
-	import { page } from '$app/stores';
-	import Drawer from '$lib/components/Drawer.svelte';
-	import { onMount, setContext } from 'svelte';
-	// Components
-	import Map from '$lib/components/Map.svelte';
-	import MapDrawerTabs from './MapDrawerTabs.svelte';
-	// Stores
-	import { drawerStore } from '$lib/stores/drawer';
-	import { selectedProject, trenchColor, trenchColorSelected } from '$lib/stores/store';
-	import { globalToaster } from '$lib/stores/toaster';
-	// Managers
 	import { MapInteractionManager } from '$lib/classes/MapInteractionManager.svelte.js';
 	import { MapPopupManager } from '$lib/classes/MapPopupManager.svelte.js';
 	import { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte.js';
 	import { MapState } from '$lib/classes/MapState.svelte.js';
-	// OpenLayers CSS
+	import Drawer from '$lib/components/Drawer.svelte';
+	import Map from '$lib/components/Map.svelte';
+	import { drawerStore } from '$lib/stores/drawer';
+	import { selectedProject, trenchColor, trenchColorSelected } from '$lib/stores/store';
+	import { globalToaster } from '$lib/stores/toaster';
+
+	import MapDrawerTabs from './MapDrawerTabs.svelte';
+
 	import 'ol/ol.css';
 
 	/** @type {import('./$types').PageData} */

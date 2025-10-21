@@ -1,8 +1,11 @@
 import '@testing-library/jest-dom/vitest';
+
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
+
 import Page from './+page.svelte';
+
 // Paraglide messages
 vi.mock('$lib/paraglide/messages', () => ({
 	m: {

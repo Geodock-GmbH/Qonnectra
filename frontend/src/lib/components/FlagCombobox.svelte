@@ -1,12 +1,12 @@
 <script>
-	// Skeleton
-	import { Combobox, Portal, useListCollection } from '@skeletonlabs/skeleton-svelte';
-	// Svelte
 	import { browser } from '$app/environment';
-	import { selectedFlag } from '$lib/stores/store';
-	// Paraglide
+	import { Combobox, Portal, useListCollection } from '@skeletonlabs/skeleton-svelte';
+
 	import { m } from '$lib/paraglide/messages';
+
+	import { selectedFlag } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+
 	let { flags = [], flagsError = null, loading = false, onchange = (_) => {} } = $props();
 
 	let isHydrating = $state(!browser);

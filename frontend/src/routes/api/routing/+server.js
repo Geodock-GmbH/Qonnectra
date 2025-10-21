@@ -1,5 +1,5 @@
-import { API_URL } from '$env/static/private';
 import { json } from '@sveltejs/kit';
+import { API_URL } from '$env/static/private';
 
 export async function POST({ request, cookies }) {
 	try {

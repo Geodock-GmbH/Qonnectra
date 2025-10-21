@@ -1,5 +1,6 @@
 <script>
 	import { useNodes, useStore, useSvelteFlow } from '@xyflow/svelte';
+
 	import { getSvgPathFromStroke } from './lassoUtils.js';
 
 	let { partial = false, onSelectionChange } = $props();

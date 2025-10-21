@@ -11,22 +11,22 @@
 	--font-family: system-ui, sans-serif;
 }
 
-[data-scope="toast"][data-type="info"] {
-    background-color: var(--color-tertiary-500);
-    border-color: var(--color-tertiary-500);
+[data-scope='toast'][data-type='info'] {
+	background-color: var(--color-tertiary-500);
+	border-color: var(--color-tertiary-500);
 }
 
-[data-scope="toast"][data-type="success"] {
-    background-color: var(--color-primary-500);
-    border-color: var(--color-primary-500);
+[data-scope='toast'][data-type='success'] {
+	background-color: var(--color-primary-500);
+	border-color: var(--color-primary-500);
 }
 
-[data-scope="toast"][data-type="error"] {
-    background-color: var(--color-error-500);
-    border-color: var(--color-error-500);
+[data-scope='toast'][data-type='error'] {
+	background-color: var(--color-error-500);
+	border-color: var(--color-error-500);
 }
 
-[data-scope="toast"][data-type="warning"] {
-    background-color: var(--color-warning-500);
-    border-color: var(--color-warning-500);
+[data-scope='toast'][data-type='warning'] {
+	background-color: var(--color-warning-500);
+	border-color: var(--color-warning-500);
 }

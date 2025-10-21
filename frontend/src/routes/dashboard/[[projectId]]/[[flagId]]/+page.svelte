@@ -1,13 +1,11 @@
 <script>
-	// Skeleton
+	import { navigating } from '$app/stores';
 	import { Tabs } from '@skeletonlabs/skeleton-svelte';
 
-	// Paraglide
 	import { m } from '$lib/paraglide/messages';
 
-	// Svelte
-	import { navigating } from '$app/stores';
 	import DashboardProjectTable from './DashboardProjectTable.svelte';
+
 	let { data } = $props();
 </script>
 

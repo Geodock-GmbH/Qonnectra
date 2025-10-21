@@ -1,13 +1,10 @@
 <script>
-	// Skeleton
 	import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
-	// Tabler
 	import { IconPlus } from '@tabler/icons-svelte';
-
-	// Paraglide
-	import { m } from '$lib/paraglide/messages';
-	// Svelte
 	import { PUBLIC_API_URL } from '$env/static/public';
+
+	import { m } from '$lib/paraglide/messages';
+
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 

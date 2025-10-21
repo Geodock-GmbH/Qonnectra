@@ -1,9 +1,8 @@
 <script>
-	// Skeleton
 	import { Slider, Switch } from '@skeletonlabs/skeleton-svelte';
-	// Paraglide
+
 	import { m } from '$lib/paraglide/messages';
-	// Svelte
+
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { userStore } from '$lib/stores/auth';
 	import {

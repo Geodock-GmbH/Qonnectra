@@ -1,4 +1,5 @@
 import { API_URL } from '$env/static/private';
+
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
 /** @type {import('./$types').PageServerLoad} */

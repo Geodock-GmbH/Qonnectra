@@ -1,8 +1,6 @@
 <script>
-	// Skeleton
+	import { page } from '$app/state';
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
-
-	// Icons
 	import {
 		IconAffiliate,
 		IconArrowBarToRight,
@@ -13,12 +11,11 @@
 		IconTextPlus,
 		IconTopologyRing2
 	} from '@tabler/icons-svelte';
-	// Paraglide
+
 	import { m } from '$lib/paraglide/messages';
 
-	// Svelte
-	import { page } from '$app/state';
 	import { sidebarExpanded } from '$lib/stores/store';
+
 	import AppIcon from './AppIcon.svelte';
 
 	const navigationLinks = [

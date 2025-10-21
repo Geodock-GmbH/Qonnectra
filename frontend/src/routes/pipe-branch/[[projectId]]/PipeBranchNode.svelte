@@ -1,9 +1,7 @@
 <script>
-	// Paraglide
-	import { m } from '$lib/paraglide/messages';
-
-	// SvelteFlow
 	import { Handle, Position } from '@xyflow/svelte';
+
+	import { m } from '$lib/paraglide/messages';
 
 	let { id, data, selected = false } = $props();
 

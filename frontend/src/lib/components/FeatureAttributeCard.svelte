@@ -1,5 +1,6 @@
 <script>
 	import { m } from '$lib/paraglide/messages';
+
 	import { getFieldLabel } from '$lib/utils/featureUtils';
 
 	/**

@@ -1,7 +1,8 @@
 <script>
-	import { beforeNavigate } from '$app/navigation';
-	import { drawerStore } from '$lib/stores/drawer';
 	import { onMount } from 'svelte';
+	import { beforeNavigate } from '$app/navigation';
+
+	import { drawerStore } from '$lib/stores/drawer';
 
 	let { children, class: className = '' } = $props();
 

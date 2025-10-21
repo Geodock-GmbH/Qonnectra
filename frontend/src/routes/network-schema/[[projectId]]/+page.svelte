@@ -1,18 +1,23 @@
 <script>
 	import { page } from '$app/stores';
+	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
+	import { Switch } from '@skeletonlabs/skeleton-svelte';
+
+	import { m } from '$lib/paraglide/messages';
+
 	import { CablePathManager } from '$lib/classes/CablePathManager.svelte.js';
 	import { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte.js';
 	import { PositionUpdateManager } from '$lib/classes/PositionUpdateManager.svelte.js';
 	import Drawer from '$lib/components/Drawer.svelte';
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
-	import { m } from '$lib/paraglide/messages';
 	import { edgeSnappingEnabled, selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
-	import { Switch } from '@skeletonlabs/skeleton-svelte';
-	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
+
 	import '@xyflow/svelte/dist/style.css';
+
 	import { onMount, setContext } from 'svelte';
+
 	import CableDiagramEdge from './CableDiagramEdge.svelte';
 	import CableDiagramNode from './CableDiagramNode.svelte';
 	import ViewportPersistence from './ViewportPersistence.svelte';

@@ -1,20 +1,21 @@
 <script>
-	// Svelte
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
+
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { onMount } from 'svelte';
+	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
+
 	import LassoModeSwitch from './LassoModeSwitch.svelte';
 	import PipeBranchEdge from './PipeBranchEdge.svelte';
 	import PipeBranchLasso from './PipeBranchLasso.svelte';
 	import PipeBranchNode from './PipeBranchNode.svelte';
-	// SvelteFlow
-	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
-	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
+
 	import '@xyflow/svelte/dist/style.css';
-	// Paraglide
+
 	import { m } from '$lib/paraglide/messages';
 
 	/** @type {import('./$types').PageProps} */
