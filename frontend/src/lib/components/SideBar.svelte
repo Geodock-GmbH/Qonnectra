@@ -82,7 +82,7 @@
 		<Navigation.Header>
 			<div class="flex items-center gap-2 {$sidebarExpanded ? 'p-2' : 'p-4 justify-center'}">
 				{#if $sidebarExpanded}
-					<AppIcon size="2rem" />
+					<AppIcon size="1.75rem" />
 					<h1 class="text-2xl font-semibold">Qonnectra</h1>
 				{:else}
 					<AppIcon />
