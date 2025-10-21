@@ -14,6 +14,7 @@
 	import { MapPopupManager } from '$lib/classes/MapPopupManager.svelte.js';
 	import { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte.js';
 	import { MapState } from '$lib/classes/MapState.svelte.js';
+	import { NodeAssignmentManager } from '$lib/classes/NodeAssignmentManager.svelte.js';
 	// Stores
 	import { drawerStore } from '$lib/stores/drawer';
 	import { selectedProject, trenchColor, trenchColorSelected } from '$lib/stores/store';
@@ -45,7 +46,10 @@
 		}
 	);
 
-	// Initialize layers (trench, address, node)
+	// Initialize NodeAssignmentManager and pass through drawer props
+	const nodeAssignmentManager = new NodeAssignmentManager(interactionManager);
+	interactionManager.setAdditionalDrawerProps({ nodeAssignmentManager });
+
 	const layersInitialized = mapState.initializeLayers();
 
 	// Refresh tile sources when they exist
@@ -82,6 +86,7 @@
 			selectionManager.cleanup();
 			popupManager.cleanup(mapState.olMap);
 			interactionManager.cleanup();
+			nodeAssignmentManager.cleanup();
 		};
 	});
 </script>

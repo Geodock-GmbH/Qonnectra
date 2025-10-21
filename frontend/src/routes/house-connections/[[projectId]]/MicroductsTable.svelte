@@ -1,6 +1,45 @@
 <script>
 	import { m } from '$lib/paraglide/messages';
-	let { microducts = [], loading = false, error = null } = $props();
+	import { getContext } from 'svelte';
+
+	let { microducts = [], loading = false, error = null, onRefresh = null } = $props();
+
+	const nodeAssignmentManager = getContext('nodeAssignmentManager');
+	const isAssignMode = $derived(nodeAssignmentManager?.isAssignMode || false);
+
+	/**
+	 * Handle the assign click event
+	 * @param {Object} microduct - The microduct object
+	 */
+	function handleAssignClick(microduct) {
+		if (!nodeAssignmentManager) {
+			console.error('NodeAssignmentManager not found in context');
+			return;
+		}
+
+		nodeAssignmentManager.activateAssignMode(microduct.uuid, () => {
+			if (onRefresh) {
+				onRefresh();
+			}
+		});
+	}
+
+	/**
+	 * Handle the remove click event
+	 * @param {Object} microduct - The microduct object
+	 */
+	function handleRemoveClick(microduct) {
+		if (!nodeAssignmentManager) {
+			console.error('NodeAssignmentManager not found in context');
+			return;
+		}
+
+		nodeAssignmentManager.removeNodeFromMicroduct(microduct.uuid, () => {
+			if (onRefresh) {
+				onRefresh();
+			}
+		});
+	}
 </script>
 
 {#if loading}
@@ -50,11 +89,28 @@
 								<span></span>
 							{/if}
 						</td>
-						<td
-							><a class="btn btn-sm preset-filled-primary-500" href="/" aria-label="Edit microduct"
-								>{m.action_assign()}</a
-							></td
-						>
+						<td>
+							<button
+								class="btn btn-sm preset-filled-primary-500"
+								onclick={() => handleAssignClick(microduct)}
+								disabled={isAssignMode}
+								aria-label="Assign node to microduct"
+							>
+								{m.action_assign()}
+							</button>
+						</td>
+						<td>
+							{#if microduct.uuid_node?.properties?.uuid_address?.properties}
+								<button
+									class="btn btn-sm preset-filled-error-500"
+									onclick={() => handleRemoveClick(microduct)}
+									disabled={isAssignMode}
+									aria-label="Remove node from microduct"
+								>
+									{m.action_unassign()}
+								</button>
+							{/if}
+						</td>
 					</tr>
 				{/each}
 			</tbody>

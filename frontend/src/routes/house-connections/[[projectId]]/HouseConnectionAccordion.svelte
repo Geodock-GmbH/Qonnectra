@@ -71,13 +71,14 @@
 	/**
 	 * Fetch microducts for a specific pipe
 	 * @param {string} pipeUuid - The UUID of the pipe
+	 * @param {boolean} forceRefresh - Force refresh even if already loaded
 	 * @returns {Promise<void>}
 	 */
-	async function fetchMicroducts(pipeUuid) {
+	async function fetchMicroducts(pipeUuid, forceRefresh = false) {
 		if (!pipeUuid) return;
 
-		// If already loaded, don't fetch again
-		if (microducts[pipeUuid]) return;
+		// If already loaded and not forcing refresh, don't fetch again
+		if (microducts[pipeUuid] && !forceRefresh) return;
 
 		// Set loading state for this pipe - create new object to trigger reactivity
 		loadingMicroducts = { ...loadingMicroducts, [pipeUuid]: true };
@@ -123,6 +124,14 @@
 		}
 	}
 
+	/**
+	 * Refresh microducts for a specific pipe
+	 * @param {string} pipeUuid - The UUID of the pipe
+	 */
+	async function refreshMicroducts(pipeUuid) {
+		await fetchMicroducts(pipeUuid, true);
+	}
+
 	$effect(() => {
 		if (featureId) {
 			fetchPipesInTrench();
@@ -162,6 +171,7 @@
 							microducts={microducts[item.pipeUuid] || []}
 							loading={loadingMicroducts[item.pipeUuid] || false}
 							error={errorMicroducts[item.pipeUuid] || null}
+							onRefresh={() => refreshMicroducts(item.pipeUuid)}
 						/>
 					</div>
 				</Accordion.ItemContent>

@@ -22,6 +22,7 @@ export class MapInteractionManager {
 		address: true,
 		node: true
 	});
+	additionalDrawerProps = $state({});
 
 	/**
 	 * @param {Object} selectionManager - MapSelectionManager instance
@@ -30,6 +31,7 @@ export class MapInteractionManager {
 	 * @param {Object} drawerComponent - MapDrawerTabs component
 	 * @param {Object} alias - Field name alias mapping (English -> Localized)
 	 * @param {Object} selectableLayersConfig - Configuration for which layers should open drawer on click (optional)
+	 * @param {Object} additionalDrawerProps - Additional props to pass to drawer component (optional)
 	 */
 	constructor(
 		selectionManager,
@@ -37,17 +39,27 @@ export class MapInteractionManager {
 		drawerStore,
 		drawerComponent,
 		alias = {},
-		selectableLayersConfig = null
+		selectableLayersConfig = null,
+		additionalDrawerProps = {}
 	) {
 		this.selectionManager = selectionManager;
 		this.popupManager = popupManager;
 		this.drawerStore = drawerStore;
 		this.drawerComponent = drawerComponent;
 		this.alias = alias;
+		this.additionalDrawerProps = additionalDrawerProps;
 
 		if (selectableLayersConfig) {
 			this.selectableLayersConfig = { ...this.selectableLayersConfig, ...selectableLayersConfig };
 		}
+	}
+
+	/**
+	 * Set additional props to pass to drawer component
+	 * @param {Object} props - Additional props object
+	 */
+	setAdditionalDrawerProps(props) {
+		this.additionalDrawerProps = props;
 	}
 
 	/**
@@ -79,10 +91,8 @@ export class MapInteractionManager {
 	handleMapClick(event) {
 		if (!this.olMap) return;
 
-		// Clear search panel highlight if present
 		this.clearSearchHighlight();
 
-		// Detect features at click pixel
 		const clickedFeatures = this.getClickedFeatures(event.pixel);
 
 		if (clickedFeatures.length > 0) {
@@ -102,7 +112,6 @@ export class MapInteractionManager {
 		const clickedFeatures = [];
 		const { vectorTileLayer, addressLayer, nodeLayer } = this.layers;
 
-		// Only check layers that exist AND are configured as selectable
 		const layersToCheck = [];
 		if (vectorTileLayer && this.selectableLayersConfig.trench) {
 			layersToCheck.push(vectorTileLayer);
@@ -160,21 +169,16 @@ export class MapInteractionManager {
 				return;
 			}
 
-			// Update selection
 			this.selectionManager.selectFeature(featureId, feature);
 
-			// Detect feature type (pass layer for better detection)
 			const featureType = detectFeatureType(feature, layer);
 
 			if (featureType && this.drawerStore && this.drawerComponent) {
-				// Get properties from MVT
 				const rawProperties = feature.getProperties();
 				const properties = formatFeatureProperties(rawProperties, featureType);
 
-				// Get display title
 				const title = getFeatureTitle(feature, featureType);
 
-				// Open drawer with feature details
 				this.drawerStore.open({
 					title,
 					component: this.drawerComponent,
@@ -182,11 +186,11 @@ export class MapInteractionManager {
 						featureData: properties,
 						featureType,
 						featureId,
-						alias: this.alias
+						alias: this.alias,
+						...this.additionalDrawerProps
 					}
 				});
 			} else {
-				// Fallback to popup if drawer not configured
 				this.popupManager.show(coordinate, feature);
 			}
 		} else {
@@ -201,7 +205,6 @@ export class MapInteractionManager {
 		this.selectionManager.clearSelection();
 		this.popupManager.hide();
 
-		// Close drawer if open
 		if (this.drawerStore) {
 			this.drawerStore.close();
 		}
@@ -213,7 +216,6 @@ export class MapInteractionManager {
 	clearSearchHighlight() {
 		if (!this.searchPanelRef) return;
 
-		// Try to access search panel's highlight layer
 		if (this.searchPanelRef.getHighlightLayer) {
 			const highlightLayer = this.searchPanelRef.getHighlightLayer();
 			if (highlightLayer && highlightLayer.getSource()) {
@@ -234,7 +236,6 @@ export class MapInteractionManager {
 	 * Cleanup method to be called on destroy
 	 */
 	cleanup() {
-		// OpenLayers automatically removes event listeners when map is disposed
 		this.olMap = null;
 		this.layers = {};
 		this.searchPanelRef = null;

@@ -890,6 +890,7 @@ class MicroductSerializer(serializers.ModelSerializer):
         queryset=Node.objects.all(),
         source="uuid_node",
         required=False,
+        allow_null=True,
     )
 
     class Meta:
@@ -933,6 +934,12 @@ class MicroductSerializer(serializers.ModelSerializer):
     def get_is_two_layer(self, obj):
         """Check if this is a two-layer/striped color."""
         return "-" in obj.color.lower() if obj.color else False
+
+    def validate_uuid_node_id(self, value):
+        """Validate that the node has an address assigned."""
+        if value and not value.uuid_address:
+            raise serializers.ValidationError(_("This node has no address assigned"))
+        return value
 
     def get_fields(self):
         """Dynamically translate field labels."""
