@@ -59,6 +59,7 @@
 	"form_city": "Ort",
 	"form_color": "Farbe",
 	"form_conduit": "Rohr",
+	"form_conduit_overview": "Rohrübersicht",
 	"form_conduit_type": "Rohrtyp",
 	"form_construction_depth": "Verlegetiefe",
 	"form_construction_details": "Details",
@@ -232,5 +233,7 @@
 	"title_success": "Erfolg",
 	"title_success_canvas_sync_complete": "Canvas Synchronisierung erfolgreich",
 	"title_trench_located": "Trasse gefunden!",
-	"title_trench_not_visible": "Trasse nicht sichtbar!"
+	"title_trench_not_visible": "Trasse nicht sichtbar!",
+	"tooltip_opacity_slider": "Ändert die Transparenz der OpenStreetMap-Hintergrundkarte.",
+	"tooltip_refresh_microducts": "Lädt die Mikrorohre erneut aus der Datenbank um die neuesten Daten anzuzeigen. "
 }

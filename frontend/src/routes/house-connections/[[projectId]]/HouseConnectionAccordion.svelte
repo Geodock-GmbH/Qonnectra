@@ -197,8 +197,8 @@
 							e.stopPropagation();
 							refreshMicroducts(item.pipeUuid);
 						}}
-						aria-label="Refresh microducts"
-						{@attach tooltip('Refresh microducts', { position: 'bottom' })}
+						aria-label={m.tooltip_refresh_microducts()}
+						{@attach tooltip(m.tooltip_refresh_microducts(), { position: 'bottom', delay: 1000})}
 					>
 						<IconRefresh class="size-4" />
 					</button>

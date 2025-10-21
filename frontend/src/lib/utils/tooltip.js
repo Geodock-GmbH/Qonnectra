@@ -42,14 +42,18 @@ export function tooltip(content, options = {}) {
 				whiteSpace: 'nowrap',
 				zIndex: '1000',
 				pointerEvents: 'none',
-				boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+				boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+				visibility: 'hidden' // Hide initially to get accurate dimensions
 			});
 
-			// Position the tooltip
+			// Add to DOM first to get accurate dimensions
+			document.body.appendChild(tooltipElement);
+
+			// Position the tooltip after it's in the DOM
 			positionTooltip(tooltipElement, element, position);
 
-			// Add to DOM
-			document.body.appendChild(tooltipElement);
+			// Make visible after positioning
+			tooltipElement.style.visibility = 'visible';
 		}
 
 		/**
@@ -113,38 +117,93 @@ function positionTooltip(tooltipElement, targetElement, position) {
 	const tooltipRect = tooltipElement.getBoundingClientRect();
 	const offset = 12;
 	const arrowSize = 4;
+	const viewportMargin = 8; // Minimum distance from viewport edge
 
 	let top, left;
+	let arrowOffset = null; // Track if arrow needs repositioning
 
 	switch (position) {
 		case 'top':
 			top = rect.top - tooltipRect.height - offset + window.scrollY;
 			left = rect.left + rect.width / 2 - tooltipRect.width / 2 + window.scrollX;
-			addArrow(tooltipElement, 'bottom', arrowSize);
+
+			// Ensure tooltip doesn't go off-screen horizontally
+			const maxLeft = window.innerWidth - tooltipRect.width - viewportMargin + window.scrollX;
+			const minLeft = viewportMargin + window.scrollX;
+
+			if (left < minLeft) {
+				arrowOffset = left - minLeft; // Track how much we shifted
+				left = minLeft;
+			} else if (left > maxLeft) {
+				arrowOffset = left - maxLeft; // Track how much we shifted
+				left = maxLeft;
+			}
+
+			addArrow(tooltipElement, 'bottom', arrowSize, arrowOffset);
 			break;
 
 		case 'bottom':
 			top = rect.bottom + offset + window.scrollY;
 			left = rect.left + rect.width / 2 - tooltipRect.width / 2 + window.scrollX;
-			addArrow(tooltipElement, 'top', arrowSize);
+
+			// Ensure tooltip doesn't go off-screen horizontally
+			const maxLeftBottom = window.innerWidth - tooltipRect.width - viewportMargin + window.scrollX;
+			const minLeftBottom = viewportMargin + window.scrollX;
+
+			if (left < minLeftBottom) {
+				arrowOffset = left - minLeftBottom; // Track how much we shifted
+				left = minLeftBottom;
+			} else if (left > maxLeftBottom) {
+				arrowOffset = left - maxLeftBottom; // Track how much we shifted
+				left = maxLeftBottom;
+			}
+
+			addArrow(tooltipElement, 'top', arrowSize, arrowOffset);
 			break;
 
 		case 'left':
 			top = rect.top + rect.height / 2 - tooltipRect.height / 2 + window.scrollY;
 			left = rect.left - tooltipRect.width - offset + window.scrollX;
 
-			// Ensure tooltip doesn't go off-screen to the left
-			if (left < 8) {
-				left = 8;
+			// Ensure tooltip doesn't go off-screen horizontally
+			if (left < viewportMargin) {
+				left = viewportMargin;
 			}
 
-			addArrow(tooltipElement, 'right', arrowSize);
+			// Ensure tooltip doesn't go off-screen vertically
+			const maxTop = window.innerHeight - tooltipRect.height - viewportMargin;
+			if (top < viewportMargin) {
+				arrowOffset = top - viewportMargin;
+				top = viewportMargin;
+			} else if (top > maxTop) {
+				arrowOffset = top - maxTop;
+				top = maxTop;
+			}
+
+			addArrow(tooltipElement, 'right', arrowSize, arrowOffset);
 			break;
 
 		case 'right':
 			top = rect.top + rect.height / 2 - tooltipRect.height / 2 + window.scrollY;
 			left = rect.right + offset + window.scrollX;
-			addArrow(tooltipElement, 'left', arrowSize);
+
+			// Ensure tooltip doesn't go off-screen horizontally
+			const maxLeftRight = window.innerWidth - tooltipRect.width - viewportMargin;
+			if (left > maxLeftRight) {
+				left = maxLeftRight;
+			}
+
+			// Ensure tooltip doesn't go off-screen vertically
+			const maxTopRight = window.innerHeight - tooltipRect.height - viewportMargin;
+			if (top < viewportMargin) {
+				arrowOffset = top - viewportMargin;
+				top = viewportMargin;
+			} else if (top > maxTopRight) {
+				arrowOffset = top - maxTopRight;
+				top = maxTopRight;
+			}
+
+			addArrow(tooltipElement, 'left', arrowSize, arrowOffset);
 			break;
 	}
 
@@ -157,8 +216,9 @@ function positionTooltip(tooltipElement, targetElement, position) {
  * @param {HTMLElement} tooltipElement
  * @param {'top' | 'bottom' | 'left' | 'right'} side
  * @param {number} size
+ * @param {number|null} offset - Offset in pixels to shift the arrow (used when tooltip is repositioned to stay in viewport)
  */
-function addArrow(tooltipElement, side, size) {
+function addArrow(tooltipElement, side, size, offset = null) {
 	const arrow = document.createElement('span');
 	arrow.style.position = 'absolute';
 	arrow.style.width = '0';
@@ -169,28 +229,44 @@ function addArrow(tooltipElement, side, size) {
 		case 'top':
 			arrow.style.bottom = '100%';
 			arrow.style.left = '50%';
-			arrow.style.transform = 'translateX(-50%)';
+			if (offset !== null) {
+				arrow.style.transform = `translateX(calc(-50% + ${offset}px))`;
+			} else {
+				arrow.style.transform = 'translateX(-50%)';
+			}
 			arrow.style.borderBottomColor = 'rgba(0, 0, 0, 0.9)';
 			break;
 
 		case 'bottom':
 			arrow.style.top = '100%';
 			arrow.style.left = '50%';
-			arrow.style.transform = 'translateX(-50%)';
+			if (offset !== null) {
+				arrow.style.transform = `translateX(calc(-50% + ${offset}px))`;
+			} else {
+				arrow.style.transform = 'translateX(-50%)';
+			}
 			arrow.style.borderTopColor = 'rgba(0, 0, 0, 0.9)';
 			break;
 
 		case 'left':
 			arrow.style.right = '100%';
 			arrow.style.top = '50%';
-			arrow.style.transform = 'translateY(-50%)';
+			if (offset !== null) {
+				arrow.style.transform = `translateY(calc(-50% + ${offset}px))`;
+			} else {
+				arrow.style.transform = 'translateY(-50%)';
+			}
 			arrow.style.borderRightColor = 'rgba(0, 0, 0, 0.9)';
 			break;
 
 		case 'right':
 			arrow.style.left = '100%';
 			arrow.style.top = '50%';
-			arrow.style.transform = 'translateY(-50%)';
+			if (offset !== null) {
+				arrow.style.transform = `translateY(calc(-50% + ${offset}px))`;
+			} else {
+				arrow.style.transform = 'translateY(-50%)';
+			}
 			arrow.style.borderLeftColor = 'rgba(0, 0, 0, 0.9)';
 			break;
 	}

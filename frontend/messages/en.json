@@ -58,6 +58,7 @@
 	"form_cable_type": "Cable type",
 	"form_city": "City",
 	"form_conduit": "Conduit",
+	"form_conduit_overview": "Conduit overview",
 	"form_conduit_type": "Conduit type",
 	"form_construction_depth": "Construction depth",
 	"form_construction_details": "Construction details",
@@ -229,5 +230,7 @@
 	"title_success": "Success",
 	"title_success_canvas_sync_complete": "Canvas sync complete",
 	"title_trench_located": "Trench located!",
-	"title_trench_not_visible": "Trench not visible!"
+	"title_trench_not_visible": "Trench not visible!",
+	"tooltip_opacity_slider": "Changes the opacity of the OpenStreetMap background map.",
+	"tooltip_refresh_microducts": "Refresh microducts to show the latest data."
 }
