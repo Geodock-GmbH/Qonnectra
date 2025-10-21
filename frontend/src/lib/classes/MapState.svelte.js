@@ -102,7 +102,7 @@ export class MapState {
 				);
 				this.addressLayer = createAddressLayer(
 					this.selectedProject,
-					m.form_address(),
+					m.form_address({ count: 1 }),
 					this.handleTileError,
 					this.labelConfig.address
 				);

@@ -67,7 +67,7 @@ export const actions = {
 					.join(' ');
 				results.push({
 					value: `${addressId}`,
-					label: `${addressName}` + ' ' + '(' + m.form_address() + ')',
+					label: `${addressName}` + ' ' + '(' + m.form_address({ count: 1 }) + ')',
 					type: 'address',
 					uuid: addressId
 				});

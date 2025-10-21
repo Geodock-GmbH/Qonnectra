@@ -36,5 +36,33 @@ export const actions = {
 			console.error('Error getting pipes in trench:', error);
 			return fail(500, { error: 'Internal server error' });
 		}
+	},
+	getMicroducts: async ({ request, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const pipeId = formData.get('uuid');
+
+			if (!pipeId) {
+				return fail(400, { error: 'Pipe ID is required' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const backendUrl = `${API_URL}microduct/all/?uuid_conduit=${pipeId}`;
+
+			const response = await fetch(backendUrl, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				return fail(response.status, { error: 'Failed to get microducts' });
+			}
+
+			const data = await response.json();
+			return data;
+		} catch (error) {
+			console.error('Error getting microducts:', error);
+			return fail(500, { error: 'Internal server error' });
+		}
 	}
 };

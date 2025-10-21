@@ -1473,6 +1473,25 @@ class MicroductViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(uuid_conduit=uuid_conduit, color=color)
         return queryset
 
+    @action(detail=False, methods=["get"], url_path="all")
+    def all_microducts(self, request):
+        """
+        Returns all microducts.
+        No pagination is applied.
+        """
+        queryset = Microduct.objects.all()
+        uuid_conduit = request.query_params.get("uuid_conduit")
+        number = request.query_params.get("number")
+        color = request.query_params.get("color")
+        if uuid_conduit:
+            queryset = queryset.filter(uuid_conduit=uuid_conduit)
+        if uuid_conduit and number:
+            queryset = queryset.filter(uuid_conduit=uuid_conduit, number=number)
+        if uuid_conduit and color:
+            queryset = queryset.filter(uuid_conduit=uuid_conduit, color=color)
+        serializer = MicroductSerializer(queryset, many=True)
+        return Response(serializer.data)
+
 
 class MicroductConnectionViewSet(viewsets.ModelViewSet):
     """ViewSet for the MicroductConnection model :model:`api.MicroductConnection`.

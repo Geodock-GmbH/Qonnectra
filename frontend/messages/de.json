@@ -1,6 +1,7 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"action_add_conduit": "Rohr hinzufügen",
+	"action_assign": "Zuordnen",
 	"action_clear_selection": "Auswahl löschen",
 	"action_connect_selected_nodes": "Ausgewählte Knoten verbinden",
 	"action_delete_cable": "Kabel löschen",
@@ -37,7 +38,16 @@
 	"common_searching": "Suche...",
 	"common_selected": "Ausgewählt",
 	"common_yes": "Ja",
-	"form_address": "Adressen",
+	"form_address": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Adresse",
+				"countPlural=other": "Adressen"
+			}
+		}
+	],
 	"form_address_id": "Adressen-ID",
 	"form_auto_connect": "Auto-Verbindung",
 	"form_bottom": "Unten",
@@ -45,6 +55,7 @@
 	"form_breakdown_by_type": "Aufteilung nach Bauart",
 	"form_cable_type": "Kabeltyp",
 	"form_city": "Ort",
+	"form_color": "Farbe",
 	"form_conduit": "Rohr",
 	"form_conduit_type": "Rohrtyp",
 	"form_construction_depth": "Verlegetiefe",
@@ -82,6 +93,8 @@
 	"form_no_attributes_available": "Keine Eigenschaften verfügbar",
 	"form_no_data_available": "Keine Daten verfügbar",
 	"form_no_layers_available": "Keine Layer verfügbar",
+	"form_no_microducts_available": "Keine Mikrorohre verfügbar",
+	"form_number": "Nummer",
 	"form_outer_conduit": "Schutzrohr",
 	"form_owner": "Eigentümer",
 	"form_partial_selection": "Teilauswahl",
