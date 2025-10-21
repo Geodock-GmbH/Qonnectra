@@ -6,6 +6,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { drawerStore } from '$lib/stores/drawer';
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	import MicroductsTable from './MicroductsTable.svelte';
 
@@ -190,17 +191,17 @@
 				>
 					{item.title}
 					<div class="flex items-center gap-2">
-						<button
-							class="btn btn-sm btn-icon preset-filled-secondary-500"
-							onclick={(e) => {
-								e.stopPropagation();
-								refreshMicroducts(item.pipeUuid);
-							}}
-							aria-label="Refresh microducts"
-							title="Refresh microducts"
-						>
-							<IconRefresh class="size-4" />
-						</button>
+					<button
+						class="btn btn-sm btn-icon preset-filled-secondary-500"
+						onclick={(e) => {
+							e.stopPropagation();
+							refreshMicroducts(item.pipeUuid);
+						}}
+						aria-label="Refresh microducts"
+						{@attach tooltip('Refresh microducts', { position: 'bottom' })}
+					>
+						<IconRefresh class="size-4" />
+					</button>
 						<Accordion.ItemIndicator class="group">
 							<IconMinus class="size-4 group-data-[state=open]:block hidden" />
 							<IconPlus class="size-4 group-data-[state=open]:hidden block" />
