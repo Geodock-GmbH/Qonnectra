@@ -82,8 +82,7 @@
 							{#if microduct.uuid_node?.properties?.uuid_address?.properties}
 								{@const props = microduct.uuid_node.properties.uuid_address.properties}
 								{props.street}
-								{props.housenumber}{#if props.house_number_suffix}{props.house_number_suffix}{/if}
-								{','}
+								{props.housenumber}{props.house_number_suffix}{#if !props.house_number_suffix},{/if}{#if props.house_number_suffix},{/if}
 								{props.zip_code}
 								{props.city}
 							{:else}
