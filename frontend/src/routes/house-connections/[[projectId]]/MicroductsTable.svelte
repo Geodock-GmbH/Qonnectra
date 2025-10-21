@@ -3,7 +3,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	let { microducts = [], loading = false, error = null, onRefresh = null } = $props();
+	let { microducts = [], loading = false, error = null, onMicroductUpdate = null } = $props();
 
 	const nodeAssignmentManager = getContext('nodeAssignmentManager');
 	const isAssignMode = $derived(nodeAssignmentManager?.isAssignMode || false);
@@ -18,9 +18,9 @@
 			return;
 		}
 
-		nodeAssignmentManager.activateAssignMode(microduct.uuid, () => {
-			if (onRefresh) {
-				onRefresh();
+		nodeAssignmentManager.activateAssignMode(microduct.uuid, (updatedData) => {
+			if (onMicroductUpdate && updatedData?.microduct) {
+				onMicroductUpdate(updatedData.microduct);
 			}
 		});
 	}
@@ -35,9 +35,9 @@
 			return;
 		}
 
-		nodeAssignmentManager.removeNodeFromMicroduct(microduct.uuid, () => {
-			if (onRefresh) {
-				onRefresh();
+		nodeAssignmentManager.removeNodeFromMicroduct(microduct.uuid, (updatedData) => {
+			if (onMicroductUpdate && updatedData?.microduct) {
+				onMicroductUpdate(updatedData.microduct);
 			}
 		});
 	}

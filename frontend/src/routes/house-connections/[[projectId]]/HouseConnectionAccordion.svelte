@@ -1,7 +1,7 @@
 <script>
 	import { deserialize } from '$app/forms';
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
-	import { IconMinus, IconPlus } from '@tabler/icons-svelte';
+	import { IconMinus, IconPlus, IconRefresh } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -135,6 +135,32 @@
 		await fetchMicroducts(pipeUuid, true);
 	}
 
+	/**
+	 * Update a specific microduct in the state without full reload
+	 * @param {string} pipeUuid - The UUID of the pipe containing the microduct
+	 * @param {Object} updatedMicroduct - The updated microduct object
+	 */
+	function updateMicroductInState(pipeUuid, updatedMicroduct) {
+		if (!pipeUuid || !updatedMicroduct) {
+			console.warn('Missing pipeUuid or updatedMicroduct');
+			return;
+		}
+
+		const currentMicroducts = microducts[pipeUuid];
+		if (!currentMicroducts) {
+			console.warn(`No microducts found for pipe ${pipeUuid}`);
+			return;
+		}
+
+		// Find and update the specific microduct
+		const updatedList = currentMicroducts.map((m) =>
+			m.uuid === updatedMicroduct.uuid ? updatedMicroduct : m
+		);
+
+		// Update state with new array to trigger reactivity
+		microducts = { ...microducts, [pipeUuid]: updatedList };
+	}
+
 	$effect(() => {
 		if (featureId) {
 			fetchPipesInTrench();
@@ -163,10 +189,23 @@
 					onclick={() => fetchMicroducts(item.pipeUuid)}
 				>
 					{item.title}
-					<Accordion.ItemIndicator class="group">
-						<IconMinus class="size-4 group-data-[state=open]:block hidden" />
-						<IconPlus class="size-4 group-data-[state=open]:hidden block" />
-					</Accordion.ItemIndicator>
+					<div class="flex items-center gap-2">
+						<button
+							class="btn btn-sm btn-icon preset-tonal-surface hover:preset-filled-surface"
+							onclick={(e) => {
+								e.stopPropagation();
+								refreshMicroducts(item.pipeUuid);
+							}}
+							aria-label="Refresh microducts"
+							title="Refresh microducts"
+						>
+							<IconRefresh class="size-4" />
+						</button>
+						<Accordion.ItemIndicator class="group">
+							<IconMinus class="size-4 group-data-[state=open]:block hidden" />
+							<IconPlus class="size-4 group-data-[state=open]:hidden block" />
+						</Accordion.ItemIndicator>
+					</div>
 				</Accordion.ItemTrigger>
 				<Accordion.ItemContent>
 					<div class="space-y-2">
@@ -174,7 +213,8 @@
 							microducts={microducts[item.pipeUuid] || []}
 							loading={loadingMicroducts[item.pipeUuid] || false}
 							error={errorMicroducts[item.pipeUuid] || null}
-							onRefresh={() => refreshMicroducts(item.pipeUuid)}
+							onMicroductUpdate={(updatedMicroduct) =>
+								updateMicroductInState(item.pipeUuid, updatedMicroduct)}
 						/>
 					</div>
 				</Accordion.ItemContent>
