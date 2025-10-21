@@ -191,7 +191,7 @@
 					{item.title}
 					<div class="flex items-center gap-2">
 						<button
-							class="btn btn-sm btn-icon preset-tonal-surface hover:preset-filled-surface"
+							class="btn btn-sm btn-icon preset-filled-secondary-500"
 							onclick={(e) => {
 								e.stopPropagation();
 								refreshMicroducts(item.pipeUuid);

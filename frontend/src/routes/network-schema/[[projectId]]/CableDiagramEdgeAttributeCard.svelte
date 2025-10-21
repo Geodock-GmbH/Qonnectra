@@ -254,7 +254,7 @@
 
 <!-- Delete and update buttons -->
 <div class="mt-6 flex flex-col items-end justify-end gap-3">
-	<button type="submit" form="cable-form" class="btn preset-filled w-full">
+	<button type="submit" form="cable-form" class="btn preset-filled-primary-500 w-full">
 		{m.action_save()}
 	</button>
 	<button type="button" onclick={confirmDelete} class="btn preset-filled-error-500 w-full">
