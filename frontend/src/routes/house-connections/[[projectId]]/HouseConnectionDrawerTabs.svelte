@@ -1,11 +1,11 @@
 <script>
-	// Skeleton
-	import { Tabs as SkeletonTabs } from '@skeletonlabs/skeleton-svelte';
-	// Paraglide
-	import { m } from '$lib/paraglide/messages';
-	// Svelte
-	import Tabs from '$lib/components/Tabs.svelte';
 	import { setContext } from 'svelte';
+	import { Tabs as SkeletonTabs } from '@skeletonlabs/skeleton-svelte';
+
+	import { m } from '$lib/paraglide/messages';
+
+	import Tabs from '$lib/components/Tabs.svelte';
+
 	import HouseConnectionAccordion from './HouseConnectionAccordion.svelte';
 
 	/**

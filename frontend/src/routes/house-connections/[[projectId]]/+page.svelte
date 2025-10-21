@@ -1,24 +1,20 @@
 <script>
-	// Paraglide
-	import { m } from '$lib/paraglide/messages';
-
-	// Svelte
 	import { onMount } from 'svelte';
 
-	// Components
-	import Drawer from '$lib/components/Drawer.svelte';
-	import Map from '$lib/components/Map.svelte';
-	import HouseConnectionDrawerTabs from './HouseConnectionDrawerTabs.svelte';
-	// Managers
+	import { m } from '$lib/paraglide/messages';
+
 	import { MapInteractionManager } from '$lib/classes/MapInteractionManager.svelte.js';
 	import { MapPopupManager } from '$lib/classes/MapPopupManager.svelte.js';
 	import { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte.js';
 	import { MapState } from '$lib/classes/MapState.svelte.js';
 	import { NodeAssignmentManager } from '$lib/classes/NodeAssignmentManager.svelte.js';
-	// Stores
+	import Drawer from '$lib/components/Drawer.svelte';
+	import Map from '$lib/components/Map.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { selectedProject, trenchColor, trenchColorSelected } from '$lib/stores/store';
-	// OpenLayers CSS
+
+	import HouseConnectionDrawerTabs from './HouseConnectionDrawerTabs.svelte';
+
 	import 'ol/ol.css';
 
 	/** @type {import('./$types').PageData} */

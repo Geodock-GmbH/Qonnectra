@@ -1,16 +1,15 @@
 <script>
-	// Skeleton
-	import { FileUpload } from '@skeletonlabs/skeleton-svelte';
-	// Tabler
-	import { IconDownload, IconUpload } from '@tabler/icons-svelte';
-	// Paraglide
-	import { m } from '$lib/paraglide/messages';
-	// Svelte
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
+	import { FileUpload } from '@skeletonlabs/skeleton-svelte';
+	import { IconDownload, IconUpload } from '@tabler/icons-svelte';
+
+	import { m } from '$lib/paraglide/messages';
+
 	import SearchInput from '$lib/components/SearchInput.svelte';
 	import { selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+
 	import PipeModal from './PipeModal.svelte';
 	import PipeTable from './PipeTable.svelte';
 

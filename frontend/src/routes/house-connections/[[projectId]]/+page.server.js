@@ -1,6 +1,7 @@
-import { API_URL } from '$env/static/private';
-import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 import { fail } from '@sveltejs/kit';
+import { API_URL } from '$env/static/private';
+
+import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load() {

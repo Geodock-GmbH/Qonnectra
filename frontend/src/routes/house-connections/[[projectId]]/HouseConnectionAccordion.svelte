@@ -1,9 +1,12 @@
 <script>
 	import { deserialize } from '$app/forms';
-	import { m } from '$lib/paraglide/messages';
-	import { drawerStore } from '$lib/stores/drawer';
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
 	import { IconMinus, IconPlus } from '@tabler/icons-svelte';
+
+	import { m } from '$lib/paraglide/messages';
+
+	import { drawerStore } from '$lib/stores/drawer';
+
 	import MicroductsTable from './MicroductsTable.svelte';
 
 	let featureId = $derived($drawerStore.props?.featureId);

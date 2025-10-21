@@ -1,6 +1,7 @@
 <script>
-	import { m } from '$lib/paraglide/messages';
 	import { getContext } from 'svelte';
+
+	import { m } from '$lib/paraglide/messages';
 
 	let { microducts = [], loading = false, error = null, onRefresh = null } = $props();
 
