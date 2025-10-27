@@ -223,7 +223,7 @@ msgstr "Mikrorohrstatus"
 #: apps/api/models.py:294 apps/api/models.py:309 apps/api/models.py:1692
 #: apps/api/models.py:2008 apps/api/serializers.py:1143
 msgid "Cable Type"
-msgstr "Dateityp"
+msgstr "Kabeltyp"
 
 #: apps/api/models.py:295
 msgid "Fiber Count"
@@ -239,7 +239,7 @@ msgstr "Faserzahl im Bündel"
 
 #: apps/api/models.py:310
 msgid "Cable Types"
-msgstr "Dateityp"
+msgstr "Kabeltypen"
 
 #: apps/api/models.py:325 apps/api/models.py:417
 msgid "German Name"

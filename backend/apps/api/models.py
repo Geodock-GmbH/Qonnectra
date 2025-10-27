@@ -470,7 +470,6 @@ class AttributesFiberColor(models.Model):
         return f"{self.name_de} ({self.name_en})"
 
 
-# TODO: Implement custom storage class for feature files (nextcloud): https://docs.djangoproject.com/en/4.2/howto/custom-file-storage/
 class FeatureFiles(models.Model):
     """Stores all files for different models,
     related to :model:`api.Trench`.
@@ -484,7 +483,14 @@ class FeatureFiles(models.Model):
         verbose_name=_("Feature Type"),
         limit_choices_to={
             "app_label": "api",
-            "model__in": ["trench", "node", "address", "residentialunit"],
+            "model__in": [
+                "trench",
+                "conduit",
+                "cable",
+                "node",
+                "address",
+                "residentialunit",
+            ],
         },
     )
     object_id = models.UUIDField(verbose_name=_("Feature ID"))
@@ -498,8 +504,10 @@ class FeatureFiles(models.Model):
 
         For example:
         - trenches/12345/photos/image.jpg
-        - nodes/67890/documents/report.pdf
-        - addresses/11111/documents/contract.pdf
+        - conduits/K1-HVT-FLS/documents/report.pdf
+        - cables/C1-Main/photos/image.jpg
+        - nodes/N1-POP/documents/spec.pdf
+        - addresses/Bahnstraße 20, 24941 Flensburg/documents/contract.pdf
         """
         prefs = StoragePreferences.objects.first()
 
@@ -526,25 +534,33 @@ class FeatureFiles(models.Model):
             file_category, folder_paths.get("default", model_name + "s")
         )
 
-        # Build the path based on feature type
+        # Determine the feature identifier based on model type
+        feature = instance.feature
         if model_name == "trench":
-            trench = instance.feature
-            if "/" in folder_name:
-                # Handle nested folder structure (e.g., "trenches/photos")
-                base_folder, sub_folder = folder_name.split("/", 1)
-                return f"{base_folder}/{trench.id_trench}/{sub_folder}/{filename}"
-            else:
-                return f"{folder_name}/{trench.id_trench}/{filename}"
-        elif model_name in ["node", "address", "residentialunit"]:
-            # For other feature types, use the object_id
-            if "/" in folder_name:
-                base_folder, sub_folder = folder_name.split("/", 1)
-                return f"{base_folder}/{instance.object_id}/{sub_folder}/{filename}"
-            else:
-                return f"{folder_name}/{instance.object_id}/{filename}"
+            feature_id = feature.id_trench
+        elif model_name == "conduit":
+            feature_id = feature.name
+        elif model_name == "cable":
+            feature_id = feature.name
+        elif model_name == "node":
+            feature_id = feature.name
+        elif model_name == "address":
+            suffix = (
+                f" {feature.house_number_suffix}" if feature.house_number_suffix else ""
+            )
+            feature_id = f"{feature.street} {feature.housenumber}{suffix}, {feature.zip_code} {feature.city}"
+        elif model_name == "residentialunit":
+            feature_id = instance.object_id
+        else:
+            feature_id = instance.object_id
 
-        # Fallback for any other model types
-        return f"{folder_name}/{filename}"
+        # Build the path based on folder structure
+        if "/" in folder_name:
+            # Handle nested folder structure (e.g., "trenches/photos")
+            base_folder, sub_folder = folder_name.split("/", 1)
+            return f"{base_folder}/{feature_id}/{sub_folder}/{filename}"
+        else:
+            return f"{folder_name}/{feature_id}/{filename}"
 
     file_path = models.FileField(
         upload_to=get_upload_path,
@@ -974,6 +990,13 @@ class Conduit(models.Model):
     )
     date = models.DateField(_("Date"), null=True)
 
+    files = GenericRelation(
+        FeatureFiles,
+        content_type_field="content_type",
+        object_id_field="object_id",
+        related_query_name="conduit",
+    )
+
     project = models.ForeignKey(
         Projects,
         null=False,
@@ -1116,6 +1139,14 @@ class Address(models.Model):
     geom = gis_models.PointField(
         _("Geometry"), srid=int(settings.DEFAULT_SRID), null=False
     )
+
+    files = GenericRelation(
+        FeatureFiles,
+        content_type_field="content_type",
+        object_id_field="object_id",
+        related_query_name="address",
+    )
+
     flag = models.ForeignKey(
         Flags,
         null=False,
@@ -1288,6 +1319,14 @@ class Node(models.Model):
     geom = gis_models.PointField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
     canvas_x = models.FloatField(_("Canvas X"), null=True, blank=True)
     canvas_y = models.FloatField(_("Canvas Y"), null=True, blank=True)
+
+    files = GenericRelation(
+        FeatureFiles,
+        content_type_field="content_type",
+        object_id_field="object_id",
+        related_query_name="node",
+    )
+
     flag = models.ForeignKey(
         Flags,
         null=False,
@@ -1787,6 +1826,14 @@ class Cable(models.Model):
             "Custom waypoints for diagram edge path as array of {x, y} coordinates"
         ),
     )
+
+    files = GenericRelation(
+        FeatureFiles,
+        content_type_field="content_type",
+        object_id_field="object_id",
+        related_query_name="cable",
+    )
+
     project = models.ForeignKey(
         Projects,
         null=False,

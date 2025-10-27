@@ -1,0 +1,76 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    .language-selector {
+        display: inline-block;
+        margin-left: 10px;
+    }
+
+    .language-selector form {
+        display: inline-block;
+        margin: 0;
+    }
+
+    .language-selector select {
+        padding: 5px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+        background-color: rgba(255, 255, 255, 0.15);
+        cursor: pointer;
+        font-size: 13px;
+        color: white;
+        font-weight: 300;
+    }
+
+    .language-selector select option {
+        background-color: #417690;
+        color: white;
+    }
+
+    .language-selector select:hover {
+        background-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .language-selector select:focus {
+        outline: none;
+        background-color: rgba(255, 255, 255, 0.25);
+        border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Ensure it stays inline with userlinks */
+    #user-tools {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    @media (max-width: 768px) {
+        .language-selector {
+            display: block;
+            margin: 10px 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block userlinks %}
+{{ block.super }}
+<div class="language-selector">
+    <form action="{% url 'set_language' %}" method="post" id="language-form">
+        {% csrf_token %}
+        <input name="next" type="hidden" value="{{ request.get_full_path }}" />
+        <select name="language" onchange="this.form.submit()">
+            {% get_current_language as LANGUAGE_CODE %}
+            {% get_available_languages as LANGUAGES %}
+            {% for lang_code, lang_name in LANGUAGES %}
+                <option value="{{ lang_code }}"{% if lang_code == LANGUAGE_CODE %} selected{% endif %}>
+                    {{ lang_name }}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+{% endblock %}

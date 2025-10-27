@@ -5,10 +5,6 @@
 -- Create the database
 GRANT ALL PRIVILEGES ON DATABASE krit_gis TO geodock_admin;
 
--- Create nextcloud_db database
-CREATE DATABASE nextcloud_db;
-GRANT ALL PRIVILEGES ON DATABASE nextcloud_db TO geodock_admin;
-
 -- Set the user's client encoding
 \c krit_gis
 ALTER ROLE geodock_admin SET client_encoding TO 'utf8';
