@@ -26,13 +26,5 @@
                 }
             }
         }
-    },
-    {
-        "model": "api.storagepreferences",
-        "pk": 2,
-        "fields": {
-            "mode": "MANUAL",
-            "folder_structure": {}
-        }
     }
 ]

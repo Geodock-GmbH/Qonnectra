@@ -282,6 +282,9 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
     """ViewSet for the FeatureFiles model :model:`api.FeatureFiles`.
 
     An instance of :model:`api.FeatureFiles`.
+
+    Provides authenticated file downloads using Nginx X-Accel-Redirect for
+    secure and efficient file serving.
     """
 
     permission_classes = [IsAuthenticated]
@@ -290,6 +293,78 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
     lookup_field = "uuid"
     lookup_url_kwarg = "pk"
     pagination_class = CustomPagination
+
+    @action(detail=True, methods=["get"], url_path="download")
+    def download(self, request, pk=None):
+        """
+        Download a file using X-Accel-Redirect for efficient serving.
+
+        This endpoint validates user authentication and then redirects
+        to Nginx's internal location for secure file serving.
+        """
+        # get_object() will raise Http404 if not found, no need for try/except
+        file_obj = self.get_object()
+
+        # Build the internal redirect path for Nginx
+        # The file_path.name contains the relative path from MEDIA_ROOT
+        file_path = file_obj.file_path.name
+        redirect_url = f"/media/{file_path}"
+
+        # Create response with X-Accel-Redirect header
+        response = HttpResponse()
+        response["X-Accel-Redirect"] = redirect_url
+        response["Content-Type"] = ""  # Let Nginx determine content type
+        response["Content-Disposition"] = (
+            f'attachment; filename="{file_obj.file_name}.{file_obj.file_type}"'
+        )
+
+        return response
+
+
+class WebDAVAuthView(APIView):
+    """
+    WebDAV authentication endpoint for Caddy forward_auth.
+
+    This endpoint validates Django user credentials and returns:
+    - 200 OK if credentials are valid (authenticated)
+    - 401 Unauthorized if credentials are invalid
+
+    Caddy uses this endpoint to authenticate WebDAV access to media files.
+    """
+
+    permission_classes = [AllowAny]  # We handle auth manually
+
+    def get(self, request):
+        """Handle forward_auth requests from Caddy."""
+        # Check if the user is authenticated via session/token
+        if request.user and request.user.is_authenticated:
+            return Response({"status": "authenticated"}, status=status.HTTP_200_OK)
+
+        # If not authenticated via session, check Authorization header
+        auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+
+        if auth_header.startswith("Basic "):
+            try:
+                import base64
+
+                # Decode Basic auth credentials
+                credentials = base64.b64decode(auth_header[6:]).decode("utf-8")
+                username, password = credentials.split(":", 1)
+
+                # Authenticate user
+                from django.contrib.auth import authenticate
+
+                user = authenticate(username=username, password=password)
+
+                if user is not None and user.is_active:
+                    return Response(
+                        {"status": "authenticated"}, status=status.HTTP_200_OK
+                    )
+            except Exception:
+                pass  # Fall through to unauthorized response
+
+        # Return 401 if authentication failed
+        return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class OlTrenchViewSet(viewsets.ReadOnlyModelViewSet):

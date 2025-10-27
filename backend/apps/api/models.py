@@ -10,7 +10,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from .storage import NextcloudStorage
+from .storage import LocalMediaStorage
 
 
 class Projects(models.Model):
@@ -490,43 +490,65 @@ class FeatureFiles(models.Model):
     object_id = models.UUIDField(verbose_name=_("Feature ID"))
     feature = GenericForeignKey("content_type", "object_id")
 
-    # TODO: Add test for get_upload_path
     def get_upload_path(instance, filename):
-        # TODO: Implement a better manual mode
-        # For now, we just use the default folder structure
+        """
+        Determine the upload path for a file based on feature type and file category.
+
+        The path structure follows: {feature_type}/{feature_id}/{category}/{filename}
+
+        For example:
+        - trenches/12345/photos/image.jpg
+        - nodes/67890/documents/report.pdf
+        - addresses/11111/documents/contract.pdf
+        """
         prefs = StoragePreferences.objects.first()
-        if prefs and prefs.mode == "MANUAL":
-            return "%Y/%m/%d/{filename}"
 
-        if prefs and prefs.mode == "AUTO":
+        # Only support AUTO mode - manual uploads happen via WebDAV
+        if not prefs or prefs.mode != "AUTO":
+            # Default fallback if no preferences exist
             model_name = instance.content_type.model
-            file_extension = instance.get_file_type() or ""
-            file_extension = file_extension.lower()
+            return f"{model_name}s/{instance.object_id}/{filename}"
 
-            try:
-                category_obj = FileTypeCategory.objects.get(extension=file_extension)
-                file_category = category_obj.category
-            except FileTypeCategory.DoesNotExist:
-                file_category = "documents"
+        model_name = instance.content_type.model
+        file_extension = instance.get_file_type() or ""
+        file_extension = file_extension.lower()
 
-            folder_paths = prefs.folder_structure.get(model_name, {})
+        # Determine file category based on extension
+        try:
+            category_obj = FileTypeCategory.objects.get(extension=file_extension)
+            file_category = category_obj.category
+        except FileTypeCategory.DoesNotExist:
+            file_category = "documents"
 
-            folder_name = folder_paths.get(
-                file_category, folder_paths.get("default", model_name + "s")
-            )
-            if model_name == "trench":
-                trench = instance.feature
-                if "/" in folder_name:
-                    base_folder, sub_folder = folder_name.split("/", 1)
-                    return f"{base_folder}/{trench.id_trench}/{sub_folder}/{filename}"
-                else:
-                    return f"{folder_name}/{trench.id_trench}/{filename}"
+        # Get folder structure from preferences
+        folder_paths = prefs.folder_structure.get(model_name, {})
+        folder_name = folder_paths.get(
+            file_category, folder_paths.get("default", model_name + "s")
+        )
 
-            return f"{folder_name}/{filename}"
+        # Build the path based on feature type
+        if model_name == "trench":
+            trench = instance.feature
+            if "/" in folder_name:
+                # Handle nested folder structure (e.g., "trenches/photos")
+                base_folder, sub_folder = folder_name.split("/", 1)
+                return f"{base_folder}/{trench.id_trench}/{sub_folder}/{filename}"
+            else:
+                return f"{folder_name}/{trench.id_trench}/{filename}"
+        elif model_name in ["node", "address", "residentialunit"]:
+            # For other feature types, use the object_id
+            if "/" in folder_name:
+                base_folder, sub_folder = folder_name.split("/", 1)
+                return f"{base_folder}/{instance.object_id}/{sub_folder}/{filename}"
+            else:
+                return f"{folder_name}/{instance.object_id}/{filename}"
+
+        # Fallback for any other model types
+        return f"{folder_name}/{filename}"
 
     file_path = models.FileField(
         upload_to=get_upload_path,
-        storage=NextcloudStorage(),
+        storage=LocalMediaStorage(),
         null=False,
         verbose_name=_("File Path"),
     )
@@ -572,11 +594,13 @@ class FeatureFiles(models.Model):
 class StoragePreferences(models.Model):
     """Stores all storage preferences for different models,
     related to :model:`api.FeatureFiles`.
+
+    Note: Manual mode has been removed. Files uploaded via WebDAV are
+    handled outside of Django's automatic organization.
     """
 
     STORAGE_MODE_CHOICES = [
         ("AUTO", "Automatic Organization"),
-        ("MANUAL", "User Defined"),
     ]
 
     mode = models.CharField(max_length=10, choices=STORAGE_MODE_CHOICES, default="AUTO")
@@ -1034,7 +1058,6 @@ class TrenchConduitConnection(models.Model):
 
 class GtPkMetadata(models.Model):
     """Stores all primary key metadata for different models,
-    used for geoserver,
     related to :model:`api.Trench`.
     """
 

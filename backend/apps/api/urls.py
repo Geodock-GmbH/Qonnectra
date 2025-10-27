@@ -37,6 +37,7 @@ from .views import (
     TrenchConduitConnectionViewSet,
     TrenchesNearNodeView,
     TrenchViewSet,
+    WebDAVAuthView,
 )
 
 router = DefaultRouter()
@@ -95,7 +96,7 @@ router.register(
 )
 router.register(r"conduit", ConduitViewSet, basename="conduit")
 router.register(r"flags", FlagsViewSet, basename="flags")
-router.register(r"feature_files", FeatureFilesViewSet, basename="feature_files")
+router.register(r"feature-files", FeatureFilesViewSet, basename="feature-files")
 router.register(r"microduct", MicroductViewSet, basename="microduct")
 router.register(
     r"microduct_cable_connection",
@@ -158,5 +159,10 @@ urlpatterns = [
         "node-position-listen/",
         NodePositionListenView.as_view(),
         name="node-position-listen",
+    ),
+    path(
+        "auth/webdav-auth/",
+        WebDAVAuthView.as_view(),
+        name="webdav-auth",
     ),
 ]

@@ -196,6 +196,6 @@ frontend/src/lib/paraglide
 deployment/postgres/data
 deployment/nextcloud/data
 deployment/.env
-deployment/caddy
+deployment/caddy/certificates
 
 node_modules

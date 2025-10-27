@@ -78,7 +78,7 @@ USE_COOKIE_DOMAIN_MIDDLEWARE = os.getenv(
     "true",
     "yes",
 )
-COOKIE_DOMAIN = os.getenv("APP_DOMAIN", "localhost")
+COOKIE_DOMAIN = os.getenv("COOKIE_DOMAIN", "localhost")
 
 ROOT_URLCONF = "core.urls"
 
@@ -249,15 +249,10 @@ CORS_ALLOWED_ORIGINS = os.getenv(
 ).split(",")
 CORS_ALLOW_CREDENTIALS = True
 
-# Nextcloud Storage Settings
-NEXTCLOUD_URL = os.getenv("NEXTCLOUD_URL")
-NEXTCLOUD_PUBLIC_URL = os.getenv("NEXTCLOUD_PUBLIC_URL")
-NEXTCLOUD_FILEUPLOADER_USERNAME = os.getenv("NEXTCLOUD_FILEUPLOADER_USERNAME")
-NEXTCLOUD_FILEUPLOADER_PASSWORD = os.getenv("NEXTCLOUD_FILEUPLOADER_PASSWORD")
-NEXTCLOUD_BASE_PATH = os.getenv("NEXTCLOUD_BASE_PATH")
-NEXTCLOUD_VERIFY_SSL = os.getenv("NEXTCLOUD_VERIFY_SSL")
+# Media Files Configuration
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_URL = "/media/"
 
-# Add logging configuration
 if DEBUG:
     LOGGING = {
         "version": 1,
