@@ -30,7 +30,7 @@
 	 */
 	function formatValue(value) {
 		if (value === null || value === undefined) return '-';
-		if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+		if (typeof value === 'boolean') return value ? m.common_yes() : m.common_no();
 		if (value instanceof Date) return value.toLocaleDateString();
 		return String(value);
 	}
