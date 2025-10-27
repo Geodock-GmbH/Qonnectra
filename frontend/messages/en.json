@@ -16,6 +16,7 @@
 	"auth_signin": "Sign in to your account",
 	"auth_username": "Username",
 	"auth_password": "Password",
+	"common_accept": "Accept",
 	"common_active": "Active",
 	"common_attributes": "Attributes",
 	"common_close": "Close",

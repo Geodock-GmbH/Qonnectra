@@ -1,4 +1,4 @@
-import { error, fail, success } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
@@ -838,13 +838,14 @@ export const actions = {
 
 			const updatedLabel = await response.json();
 
-			return success(200, {
+			return {
+				success: true,
 				message: labelId ? 'Label position updated successfully' : 'Label created successfully',
 				label: updatedLabel
-			});
+			};
 		} catch (err) {
 			console.error('Error saving cable label:', err);
-			return error(500, { message: err.message || 'Failed to save cable label' });
+			return fail(500, { message: err.message || 'Failed to save cable label' });
 		}
 	}
 };

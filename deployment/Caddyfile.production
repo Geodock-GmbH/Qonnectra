@@ -1,11 +1,10 @@
 # Backend API
-{env.API_DOMAIN} {
+{$API_DOMAIN} {
     # Automatic Let's Encrypt SSL
     reverse_proxy nginx:80 {
         header_up Host {host}
         header_up X-Forwarded-Proto https
         header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
     }
     
     # Security headers
@@ -33,12 +32,11 @@
 }
 
 # Frontend Application
-{env.APP_DOMAIN} {
+{$APP_DOMAIN} {
     reverse_proxy frontend:3000 {
         header_up Host {host}
         header_up X-Forwarded-Proto https
         header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
     }
     
     # Security headers
@@ -52,7 +50,7 @@
 }
 
 # WebDAV File Access
-{env.FILES_DOMAIN} {
+{$FILES_DOMAIN} {
     # Forward authentication to Django
     route {
         # Authenticate all requests via Django
@@ -84,12 +82,11 @@
 }
 
 # QGIS Server
-{env.QGIS_DOMAIN} {
+{$QGIS_DOMAIN} {
     reverse_proxy qgis-server:80 {
         header_up Host {host}
         header_up X-Forwarded-Proto https
         header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
     }
     
     header {
@@ -99,7 +96,7 @@
     }
 }
 
-# Redirect www to non-www 
-www.{env.DOMAIN_NAME} {
-    redir https://{env.DOMAIN_NAME}{uri} permanent
+# Redirect www to non-www
+www.{$DOMAIN_NAME} {
+    redir https://{$DOMAIN_NAME}{uri} permanent
 } 

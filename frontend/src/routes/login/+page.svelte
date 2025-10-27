@@ -27,8 +27,6 @@
 </script>
 
 <div class="flex flex-col gap-4 items-center justify-center">
-	<!-- Logo -->
-	<img src="/favicon.png" alt="Logo" class="w-16 h-16" />
 	<!-- Title -->
 	<h2 class="text-2xl font-bold">{m.auth_signin()}</h2>
 	<!-- Form -->

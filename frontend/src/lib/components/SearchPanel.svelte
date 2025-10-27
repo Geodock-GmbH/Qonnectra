@@ -137,13 +137,15 @@
 			} else {
 				console.error('Invalid response structure:', parsedData);
 				globalToaster.error({
-					title: m.title_error_feature_not_found()
+					title: m.title_feature_found(),
+					description: m.message_error_search_failed()
 				});
 			}
 		} catch (error) {
 			console.error('Error fetching feature details:', error);
 			globalToaster.error({
-				title: m.error9_feature_not_found()
+				title: m.title_feature_found(),
+				description: m.message_error_search_failed()
 			});
 			onSearchError(error);
 		}

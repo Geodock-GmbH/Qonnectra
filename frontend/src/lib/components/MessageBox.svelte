@@ -7,7 +7,7 @@
 		heading,
 		message,
 		showAcceptButton = false,
-		acceptText = m.accept ? m.accept() : 'Accept',
+		acceptText = m.common_confirm(),
 		closeText = m.common_close(),
 		onAccept = null
 	} = $props();
