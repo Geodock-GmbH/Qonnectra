@@ -2,6 +2,7 @@
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"action_add_conduit": "Rohr hinzufügen",
 	"action_assign": "Zuordnen",
+	"action_browse_files": "Dateien auswählen",
 	"action_clear_selection": "Auswahl löschen",
 	"action_connect_selected_nodes": "Ausgewählte Knoten verbinden",
 	"action_delete_cable": "Kabel löschen",
@@ -12,6 +13,7 @@
 	"action_routing_mode_enabled": "Routing-Modus aktiviert",
 	"action_save": "Speichern",
 	"action_unassign": "Aufheben",
+	"action_upload_files": "Upload",
 	"auth_login": "Login",
 	"auth_signin": "Anmelden",
 	"auth_username": "Benutzername",
@@ -52,6 +54,7 @@
 		}
 	],
 	"form_address_id": "Adressen-ID",
+	"form_attachments": "Anhänge",
 	"form_auto_connect": "Auto-Verbindung",
 	"form_bottom": "Unten",
 	"form_breakdown_by_node_type": "Aufteilung nach Netzknotentyp",
@@ -67,6 +70,16 @@
 	"form_construction_type": "Bauart",
 	"form_constructor": "Baufirma",
 	"form_district": "Ortsteil",
+	"form_files": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Datei",
+				"countPlural=other": "Dateien"
+			}
+		}
+	],
 	"form_flag": "Kennzeichen",
 	"form_funding_status": "Förderstatus",
 	"form_handles": "Fangpunkte",
@@ -119,6 +132,7 @@
 	"form_right": "Rechts",
 	"form_routing_mode": "Routing-Modus",
 	"form_select_exactly_2_nodes": "Bitte wählen Sie genau 2 Knoten aus",
+	"form_select_files_or_drag": "Dateien auswählen oder hierher ziehen",
 	"form_status": "Status",
 	"form_status_development": "Ausbaustatus",
 	"form_street": "Straße",
@@ -186,6 +200,7 @@
 	"message_success_updating_cable_path": "Kabelgeometrie erfolgreich aktualisiert",
 	"message_success_updating_conduit": "Rohr erfolgreich aktualisiert",
 	"message_success_updating_position": "Position erfolgreich aktualisiert",
+	"message_success_uploading_files": "Dateien erfolgreich hochgeladen",
 	"message_trench_connection_deleted": "Trassenverbindung erfolgreich gelöscht",
 	"message_trench_connection_saved": "Trassenverbindung gespeichert",
 	"message_trench_located_description": "Karte wurde auf die Trasse {trenchLabel} zentriert.",

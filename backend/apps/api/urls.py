@@ -18,6 +18,7 @@ from .views import (
     ConduitImportTemplateView,
     ConduitImportView,
     ConduitViewSet,
+    ContentTypeViewSet,
     FeatureFilesViewSet,
     FlagsViewSet,
     MicroductCableConnectionViewSet,
@@ -86,6 +87,7 @@ router.register(
     AttributesStatusViewSet,
     basename="attributes_status",
 )
+router.register(r"content-types", ContentTypeViewSet, basename="content-types")
 router.register(r"address", AddressViewSet, basename="address")
 router.register(r"cable", CableViewSet, basename="cable")
 router.register(r"cable_label", CableLabelViewSet, basename="cable_label")

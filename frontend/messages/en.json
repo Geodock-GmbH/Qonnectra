@@ -2,6 +2,7 @@
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"action_add_conduit": "Add conduit",
 	"action_assign": "Assign",
+	"action_browse_files": "Browse files",
 	"action_clear_selection": "Clear selection",
 	"action_connect_selected_nodes": "Connect selected nodes",
 	"action_delete_cable": "Delete cable",
@@ -12,6 +13,7 @@
 	"action_routing_mode_enabled": "Routing mode enabled",
 	"action_save": "Save",
 	"action_unassign": "Unassign",
+	"action_upload_files": "Upload",
 	"auth_login": "Login",
 	"auth_signin": "Sign in to your account",
 	"auth_username": "Username",
@@ -52,6 +54,7 @@
 		}
 	],
 	"form_address_id": "Address ID",
+	"form_attachments": "Attachments",
 	"form_auto_connect": "Autoconnect",
 	"form_bottom": "Bottom",
 	"form_breakdown_by_node_type": "Grouped by node type",
@@ -66,6 +69,16 @@
 	"form_construction_type": "Construction type",
 	"form_constructor": "Constructor",
 	"form_district": "District",
+	"form_files": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "File",
+				"countPlural=other": "Files"
+			}
+		}
+	],
 	"form_flag": "Flag",
 	"form_funding_status": "Funding status",
 	"form_handles": "Handles",
@@ -117,6 +130,7 @@
 	"form_right": "Right",
 	"form_routing_mode": "Routing mode",
 	"form_select_exactly_2_nodes": "Please select exactly 2 nodes",
+	"form_select_files_or_drag": "Select files or drag here",
 	"form_status": "Status",
 	"form_status_development": "Status development",
 	"form_street": "Street",
@@ -183,6 +197,7 @@
 	"message_success_updating_cable_path": "Cable geometry updated successfully",
 	"message_success_updating_conduit": "Conduit updated successfully",
 	"message_success_updating_position": "Position updated successfully",
+	"message_success_uploading_files": "Files uploaded successfully",
 	"message_trench_connection_deleted": "Trench connection deleted",
 	"message_trench_connection_saved": "Trench connection saved",
 	"message_trench_located_description": "Map was centered on trench {trenchLabel}.",

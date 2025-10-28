@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer, GeometryField
@@ -43,6 +44,15 @@ class ProjectsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Projects
         fields = ["id", "project", "description", "active"]
+
+
+class ContentTypeSerializer(serializers.ModelSerializer):
+    """Serializer for Django ContentType model."""
+
+    class Meta:
+        model = ContentType
+        fields = ["id", "app_label", "model"]
+        read_only_fields = ["id", "app_label", "model"]
 
 
 class FlagsSerializer(serializers.ModelSerializer):

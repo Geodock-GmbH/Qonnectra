@@ -3,6 +3,7 @@ import logging
 
 import psycopg
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 from django.db import connection, transaction
 from django.db.models import Count, F, Q, Sum
 from django.http import HttpResponse
@@ -60,6 +61,7 @@ from .serializers import (
     CableSerializer,
     CableTypeColorMappingSerializer,
     ConduitSerializer,
+    ContentTypeSerializer,
     FeatureFilesSerializer,
     FlagsSerializer,
     MicroductCableConnectionSerializer,
@@ -165,6 +167,29 @@ class AttributesCompanyViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AttributesCompanySerializer
     lookup_field = "id"
     lookup_url_kwarg = "pk"
+
+
+class ContentTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for Django ContentType model."""
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = ContentTypeSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+    def get_queryset(self):
+        """Return only ContentTypes for api app models that support file uploads."""
+        return ContentType.objects.filter(
+            app_label="api",
+            model__in=[
+                "trench",
+                "conduit",
+                "cable",
+                "node",
+                "address",
+                "residentialunit",
+            ],
+        ).order_by("model")
 
 
 class TrenchViewSet(viewsets.ModelViewSet):

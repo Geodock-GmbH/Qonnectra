@@ -200,7 +200,7 @@
 
 <!-- Update buttons -->
 <div class="mt-6 flex flex-col items-end justify-end gap-3">
-	<button type="submit" form="node-form" class="btn preset-filled w-full">
+	<button type="submit" form="node-form" class="btn preset-filled-primary-500 w-full">
 		{m.action_save()}
 	</button>
 </div>
