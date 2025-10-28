@@ -1,4 +1,5 @@
 import json
+import logging
 
 import psycopg
 from django.conf import settings
@@ -73,6 +74,8 @@ from .serializers import (
     TrenchSerializer,
 )
 from .services import generate_conduit_import_template, import_conduits_from_excel
+
+logger = logging.getLogger(__name__)
 
 
 class AttributesCableTypeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -330,18 +333,36 @@ class WebDAVAuthView(APIView):
     - 401 Unauthorized if credentials are invalid
 
     Caddy uses this endpoint to authenticate WebDAV access to media files.
+
+    Supports both JWT cookie authentication (for web users) and HTTP Basic
+    authentication (for WebDAV clients like OS file managers).
     """
 
     permission_classes = [AllowAny]  # We handle auth manually
 
-    def get(self, request):
-        """Handle forward_auth requests from Caddy."""
-        # Check if the user is authenticated via session/token
-        if request.user and request.user.is_authenticated:
-            return Response({"status": "authenticated"}, status=status.HTTP_200_OK)
+    def _authenticate_request(self, request):
+        """
+        Common authentication logic for all HTTP methods.
+        Returns tuple: (success: bool, response_data: dict, status_code: int)
+        """
+        logger.info(
+            f"WebDAV auth request: method={request.method}, "
+            f"path={request.path}, user={request.user}"
+        )
 
-        # If not authenticated via session, check Authorization header
+        # Check if the user is authenticated via session/JWT cookie
+        if request.user and request.user.is_authenticated:
+            logger.info(f"User authenticated via JWT cookie: {request.user.username}")
+            return True, {"status": "authenticated"}, status.HTTP_200_OK
+
+        # If not authenticated via session, check Authorization header for Basic auth
         auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+
+        if not auth_header:
+            logger.info(
+                "No Authorization header provided - sending WWW-Authenticate challenge"
+            )
+            return False, {"error": "Unauthorized"}, status.HTTP_401_UNAUTHORIZED
 
         if auth_header.startswith("Basic "):
             try:
@@ -351,20 +372,81 @@ class WebDAVAuthView(APIView):
                 credentials = base64.b64decode(auth_header[6:]).decode("utf-8")
                 username, password = credentials.split(":", 1)
 
-                # Authenticate user
+                logger.debug(f"Attempting Basic auth for user: {username}")
+
                 from django.contrib.auth import authenticate
 
                 user = authenticate(username=username, password=password)
 
-                if user is not None and user.is_active:
-                    return Response(
-                        {"status": "authenticated"}, status=status.HTTP_200_OK
+                if user is not None:
+                    if user.is_active:
+                        logger.info(f"User authenticated via Basic auth: {username}")
+                        return True, {"status": "authenticated"}, status.HTTP_200_OK
+                    else:
+                        logger.warning(f"User account is inactive: {username}")
+                        return (
+                            False,
+                            {"error": "Account inactive"},
+                            status.HTTP_401_UNAUTHORIZED,
+                        )
+                else:
+                    logger.warning(f"Authentication failed for user: {username}")
+                    return (
+                        False,
+                        {"error": "Invalid credentials"},
+                        status.HTTP_401_UNAUTHORIZED,
                     )
-            except Exception:
-                pass  # Fall through to unauthorized response
 
-        # Return 401 if authentication failed
-        return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+            except ValueError as e:
+                logger.error(f"Failed to parse Basic auth credentials: {e}")
+                return (
+                    False,
+                    {"error": "Invalid Authorization header format"},
+                    status.HTTP_401_UNAUTHORIZED,
+                )
+            except Exception as e:
+                logger.error(f"Unexpected error during Basic auth: {e}", exc_info=True)
+                return (
+                    False,
+                    {"error": "Authentication error"},
+                    status.HTTP_401_UNAUTHORIZED,
+                )
+        else:
+            logger.warning(f"Unsupported Authorization type: {auth_header[:20]}...")
+            return (
+                False,
+                {"error": "Unsupported Authorization type"},
+                status.HTTP_401_UNAUTHORIZED,
+            )
+
+        # Should never reach here, but just in case
+        return False, {"error": "Unauthorized"}, status.HTTP_401_UNAUTHORIZED
+
+    def get(self, request, *args, **kwargs):
+        """Handle GET requests from Caddy forward_auth."""
+        success, data, status_code = self._authenticate_request(request)
+        response = Response(data, status=status_code)
+
+        # If authentication failed, add WWW-Authenticate header to trigger Basic Auth
+        if status_code == status.HTTP_401_UNAUTHORIZED:
+            response["WWW-Authenticate"] = 'Basic realm="WebDAV"'
+
+        return response
+
+    def post(self, request, *args, **kwargs):
+        """Handle POST requests."""
+        success, data, status_code = self._authenticate_request(request)
+        return Response(data, status=status_code)
+
+    def head(self, request, *args, **kwargs):
+        """Handle HEAD requests."""
+        success, data, status_code = self._authenticate_request(request)
+        return Response(data, status=status_code)
+
+    def options(self, request, *args, **kwargs):
+        """Handle OPTIONS requests."""
+        success, data, status_code = self._authenticate_request(request)
+        return Response(data, status=status_code)
 
 
 class OlTrenchViewSet(viewsets.ReadOnlyModelViewSet):
