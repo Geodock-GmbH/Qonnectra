@@ -1,3 +1,7 @@
+# Docker Compose configuration without Caddy (reverse proxy)
+# This is a simplified setup for development without HTTPS/WebDAV support
+# For production or WebDAV file access, use docker-compose.production.yml
+
 services:
   db:
     build:
@@ -14,7 +18,7 @@ services:
     ports:
       - "5440:5432"
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -39,6 +43,7 @@ services:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
       - static_volume:/app/static
+      - media_volume:/app/media
     environment:
       - DEBUG=${DEBUG}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
@@ -52,48 +57,9 @@ services:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - DEFAULT_SRID=${DEFAULT_SRID}
-      - NEXTCLOUD_URL=${NEXTCLOUD_URL}
-      - NEXTCLOUD_PUBLIC_URL=${NEXTCLOUD_PUBLIC_URL}
-      - NEXTCLOUD_FILEUPLOADER_USERNAME=${NEXTCLOUD_FILEUPLOADER_USERNAME}
-      - NEXTCLOUD_FILEUPLOADER_PASSWORD=${NEXTCLOUD_FILEUPLOADER_PASSWORD}
-      - NEXTCLOUD_BASE_PATH=${NEXTCLOUD_BASE_PATH}
-      - NEXTCLOUD_VERIFY_SSL=${NEXTCLOUD_VERIFY_SSL}
     depends_on:
       db:
         condition: service_healthy
-    networks:
-      - krit_gis_network
-
-  geoserver:
-    image: kartoza/geoserver:latest
-    container_name: krit_gis_geoserver
-    restart: unless-stopped
-    ports:
-      - "${GEOSERVER_PORT:-8081}:8080"
-    volumes:
-      - geoserver_data:/opt/geoserver/data_dir
-    environment:
-      - GEOSERVER_ADMIN_USER=${GEOSERVER_ADMIN_USER}
-      - GEOSERVER_ADMIN_PASSWORD=${GEOSERVER_ADMIN_PASSWORD}
-      - POSTGRES_HOST=${DB_HOST}
-      - POSTGRES_PORT=${DB_PORT}
-      - POSTGRES_DB=${DB_NAME}
-      - POSTGRES_USERNAME=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - CORS_ENABLED=true
-      - CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000
-      - SKIP_DEMO_DATA=true
-      - INSTALL_EXTENSIONS=true
-      - STABLE_EXTENSIONS="ogcapi-features"
-      - GEOSERVER_CSRF_DISABLED=true
-    depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test: curl --fail "http://localhost:8080/geoserver/web/" || exit 1
-      interval: 1m
-      timeout: 20s
-      retries: 3
     networks:
       - krit_gis_network
 
@@ -137,37 +103,14 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost/ows/?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost/ows/?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
-    networks:
-      - krit_gis_network
-
-  nextcloud:
-    image: nextcloud:latest
-    container_name: krit_nextcloud
-    restart: unless-stopped
-    ports:
-      - "${NEXTCLOUD_PORT:-8080}:80"
-    volumes:
-      - ./nextcloud/data/nextcloud:/var/www/html
-      - ./nextcloud/data/apps:/var/www/html/custom_apps
-      - ./nextcloud/data/config:/var/www/html/config
-      - ./nextcloud/data/files:/var/www/html/data:rw
-    environment:
-      - POSTGRES_HOST=${DB_HOST}
-      - POSTGRES_DB=${NEXTCLOUD_DATABASE_NAME}
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-      - NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER}
-      - NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD}
-      - NEXTCLOUD_TRUSTED_DOMAINS=localhost:8080,127.0.0.1:8080
-      - NEXTCLOUD_OVERWRITEHOST=localhost:8080
-      - NEXTCLOUD_OVERWRITEPROTOCOL=http
-    depends_on:
-      db:
-        condition: service_healthy
     networks:
       - krit_gis_network
 
@@ -188,9 +131,9 @@ services:
 
 volumes:
   static_volume: {}
-  geoserver_data: {}
+  media_volume: {}
 
 networks:
   krit_gis_network:
     name: krit_gis_network
-    driver: bridge 
+    driver: bridge

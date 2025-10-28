@@ -1,11 +1,10 @@
 # Backend API
-{env.API_DOMAIN} {
+{$API_DOMAIN} {
     # Automatic Let's Encrypt SSL
     reverse_proxy nginx:80 {
         header_up Host {host}
         header_up X-Forwarded-Proto https
         header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
     }
     
     # Security headers
@@ -33,12 +32,11 @@
 }
 
 # Frontend Application
-{env.APP_DOMAIN} {
+{$APP_DOMAIN} {
     reverse_proxy frontend:3000 {
         header_up Host {host}
         header_up X-Forwarded-Proto https
         header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
     }
     
     # Security headers
@@ -51,52 +49,50 @@
     }
 }
 
-# Nextcloud
-{env.CLOUD_DOMAIN} {
-    reverse_proxy nextcloud:80 {
-        header_up Host {host}
-        header_up X-Forwarded-Proto https
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
+# WebDAV File Access
+{$FILES_DOMAIN} {
+    # Forward authentication to Django
+    route {
+        # Authenticate all requests via Django
+        forward_auth nginx:80 {
+            uri /api/v1/auth/webdav-auth/
+            # Forward critical headers to the auth backend
+            header_up Host {upstream_hostport}
+            header_up Authorization {http.request.header.Authorization}
+            header_up X-Forwarded-Method {method}
+            header_up X-Forwarded-URI {uri}
+            # Copy WWW-Authenticate header from auth response to client (triggers Basic Auth)
+            copy_headers WWW-Authenticate
+        }
+
+        # Serve files via WebDAV
+        webdav {
+            root /media
+            prefix /
+        }
     }
-    
-    # Nextcloud specific headers
+
+    # Security headers
     header {
         Strict-Transport-Security max-age=31536000;
         X-Content-Type-Options nosniff
+        X-Frame-Options DENY
         X-XSS-Protection "1; mode=block"
         -Server
     }
-    
+
     # Handle large file uploads
     request_body {
         max_size 10GB
     }
 }
 
-# GeoServer
-{env.GEOSERVER_DOMAIN} {
-    reverse_proxy geoserver:8080 {
-        header_up Host {host}
-        header_up X-Forwarded-Proto https
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-    }
-    
-    header {
-        Strict-Transport-Security max-age=31536000;
-        X-Content-Type-Options nosniff
-        -Server
-    }
-}
-
 # QGIS Server
-{env.QGIS_DOMAIN} {
+{$QGIS_DOMAIN} {
     reverse_proxy qgis-server:80 {
         header_up Host {host}
         header_up X-Forwarded-Proto https
         header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
     }
     
     header {
@@ -106,7 +102,7 @@
     }
 }
 
-# Redirect www to non-www 
-www.{env.DOMAIN_NAME} {
-    redir https://{env.DOMAIN_NAME}{uri} permanent
+# Redirect www to non-www
+www.{$DOMAIN_NAME} {
+    redir https://{$DOMAIN_NAME}{uri} permanent
 } 

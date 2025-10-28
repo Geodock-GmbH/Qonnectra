@@ -10,7 +10,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from .storage import NextcloudStorage
+from .storage import LocalMediaStorage
 
 
 class Projects(models.Model):
@@ -470,7 +470,6 @@ class AttributesFiberColor(models.Model):
         return f"{self.name_de} ({self.name_en})"
 
 
-# TODO: Implement custom storage class for feature files (nextcloud): https://docs.djangoproject.com/en/4.2/howto/custom-file-storage/
 class FeatureFiles(models.Model):
     """Stores all files for different models,
     related to :model:`api.Trench`.
@@ -484,49 +483,88 @@ class FeatureFiles(models.Model):
         verbose_name=_("Feature Type"),
         limit_choices_to={
             "app_label": "api",
-            "model__in": ["trench", "node", "address", "residentialunit"],
+            "model__in": [
+                "trench",
+                "conduit",
+                "cable",
+                "node",
+                "address",
+                "residentialunit",
+            ],
         },
     )
     object_id = models.UUIDField(verbose_name=_("Feature ID"))
     feature = GenericForeignKey("content_type", "object_id")
 
-    # TODO: Add test for get_upload_path
     def get_upload_path(instance, filename):
-        # TODO: Implement a better manual mode
-        # For now, we just use the default folder structure
+        """
+        Determine the upload path for a file based on feature type and file category.
+
+        The path structure follows: {feature_type}/{feature_id}/{category}/{filename}
+
+        For example:
+        - trenches/12345/photos/image.jpg
+        - conduits/K1-HVT-FLS/documents/report.pdf
+        - cables/C1-Main/photos/image.jpg
+        - nodes/N1-POP/documents/spec.pdf
+        - addresses/Bahnstraße 20, 24941 Flensburg/documents/contract.pdf
+        """
         prefs = StoragePreferences.objects.first()
-        if prefs and prefs.mode == "MANUAL":
-            return "%Y/%m/%d/{filename}"
 
-        if prefs and prefs.mode == "AUTO":
+        # Only support AUTO mode - manual uploads happen via WebDAV
+        if not prefs or prefs.mode != "AUTO":
+            # Default fallback if no preferences exist
             model_name = instance.content_type.model
-            file_extension = instance.get_file_type() or ""
-            file_extension = file_extension.lower()
+            return f"{model_name}s/{instance.object_id}/{filename}"
 
-            try:
-                category_obj = FileTypeCategory.objects.get(extension=file_extension)
-                file_category = category_obj.category
-            except FileTypeCategory.DoesNotExist:
-                file_category = "documents"
+        model_name = instance.content_type.model
+        file_extension = instance.get_file_type() or ""
+        file_extension = file_extension.lower()
 
-            folder_paths = prefs.folder_structure.get(model_name, {})
+        # Determine file category based on extension
+        try:
+            category_obj = FileTypeCategory.objects.get(extension=file_extension)
+            file_category = category_obj.category
+        except FileTypeCategory.DoesNotExist:
+            file_category = "documents"
 
-            folder_name = folder_paths.get(
-                file_category, folder_paths.get("default", model_name + "s")
+        # Get folder structure from preferences
+        folder_paths = prefs.folder_structure.get(model_name, {})
+        folder_name = folder_paths.get(
+            file_category, folder_paths.get("default", model_name + "s")
+        )
+
+        # Determine the feature identifier based on model type
+        feature = instance.feature
+        if model_name == "trench":
+            feature_id = feature.id_trench
+        elif model_name == "conduit":
+            feature_id = feature.name
+        elif model_name == "cable":
+            feature_id = feature.name
+        elif model_name == "node":
+            feature_id = feature.name
+        elif model_name == "address":
+            suffix = (
+                f" {feature.house_number_suffix}" if feature.house_number_suffix else ""
             )
-            if model_name == "trench":
-                trench = instance.feature
-                if "/" in folder_name:
-                    base_folder, sub_folder = folder_name.split("/", 1)
-                    return f"{base_folder}/{trench.id_trench}/{sub_folder}/{filename}"
-                else:
-                    return f"{folder_name}/{trench.id_trench}/{filename}"
+            feature_id = f"{feature.street} {feature.housenumber}{suffix}, {feature.zip_code} {feature.city}"
+        elif model_name == "residentialunit":
+            feature_id = instance.object_id
+        else:
+            feature_id = instance.object_id
 
-            return f"{folder_name}/{filename}"
+        # Build the path based on folder structure
+        if "/" in folder_name:
+            # Handle nested folder structure (e.g., "trenches/photos")
+            base_folder, sub_folder = folder_name.split("/", 1)
+            return f"{base_folder}/{feature_id}/{sub_folder}/{filename}"
+        else:
+            return f"{folder_name}/{feature_id}/{filename}"
 
     file_path = models.FileField(
         upload_to=get_upload_path,
-        storage=NextcloudStorage(),
+        storage=LocalMediaStorage(),
         null=False,
         verbose_name=_("File Path"),
     )
@@ -572,11 +610,13 @@ class FeatureFiles(models.Model):
 class StoragePreferences(models.Model):
     """Stores all storage preferences for different models,
     related to :model:`api.FeatureFiles`.
+
+    Note: Manual mode has been removed. Files uploaded via WebDAV are
+    handled outside of Django's automatic organization.
     """
 
     STORAGE_MODE_CHOICES = [
         ("AUTO", "Automatic Organization"),
-        ("MANUAL", "User Defined"),
     ]
 
     mode = models.CharField(max_length=10, choices=STORAGE_MODE_CHOICES, default="AUTO")
@@ -950,6 +990,13 @@ class Conduit(models.Model):
     )
     date = models.DateField(_("Date"), null=True)
 
+    files = GenericRelation(
+        FeatureFiles,
+        content_type_field="content_type",
+        object_id_field="object_id",
+        related_query_name="conduit",
+    )
+
     project = models.ForeignKey(
         Projects,
         null=False,
@@ -1034,7 +1081,6 @@ class TrenchConduitConnection(models.Model):
 
 class GtPkMetadata(models.Model):
     """Stores all primary key metadata for different models,
-    used for geoserver,
     related to :model:`api.Trench`.
     """
 
@@ -1093,6 +1139,14 @@ class Address(models.Model):
     geom = gis_models.PointField(
         _("Geometry"), srid=int(settings.DEFAULT_SRID), null=False
     )
+
+    files = GenericRelation(
+        FeatureFiles,
+        content_type_field="content_type",
+        object_id_field="object_id",
+        related_query_name="address",
+    )
+
     flag = models.ForeignKey(
         Flags,
         null=False,
@@ -1265,6 +1319,14 @@ class Node(models.Model):
     geom = gis_models.PointField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
     canvas_x = models.FloatField(_("Canvas X"), null=True, blank=True)
     canvas_y = models.FloatField(_("Canvas Y"), null=True, blank=True)
+
+    files = GenericRelation(
+        FeatureFiles,
+        content_type_field="content_type",
+        object_id_field="object_id",
+        related_query_name="node",
+    )
+
     flag = models.ForeignKey(
         Flags,
         null=False,
@@ -1764,6 +1826,14 @@ class Cable(models.Model):
             "Custom waypoints for diagram edge path as array of {x, y} coordinates"
         ),
     )
+
+    files = GenericRelation(
+        FeatureFiles,
+        content_type_field="content_type",
+        object_id_field="object_id",
+        related_query_name="cable",
+    )
+
     project = models.ForeignKey(
         Projects,
         null=False,

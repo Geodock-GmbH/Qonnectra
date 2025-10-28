@@ -14,23 +14,6 @@ api.localhost {
     }
 }
 
-# Nextcloud
-cloud.localhost {
-    tls internal # Use Caddy's internal CA for local certs
-    reverse_proxy nextcloud:80 {
-        header_up Host {host} # Preserve original Host header
-    }
-}
-
-# Geoserver
-geoserver.localhost {
-    tls internal
-    reverse_proxy geoserver:8080 { # Point to the geoserver container's exposed port
-        header_up Host {host}
-        # header_up X-Forwarded-Proto https # Restore header
-        # header_up X-Forwarded-Host {host}  # Restore header
-    }
-}
 
 # QGIS Server
 qgis.localhost {
@@ -47,5 +30,25 @@ app.localhost {
     reverse_proxy frontend:3000 {
         header_up Host {host} # Preserve original Host header
         header_up X-Forwarded-Proto {scheme}
+    }
+}
+
+# WebDAV File Access
+files.localhost {
+    tls internal # Use Caddy's internal CA for local certs
+
+    # Forward authentication to Django
+    route {
+        # Authenticate all requests via Django
+        forward_auth nginx:80 {
+            uri /api/auth/webdav-auth/
+            copy_headers Authorization
+        }
+
+        # Serve files via WebDAV
+        webdav {
+            root /media
+            prefix /
+        }
     }
 }

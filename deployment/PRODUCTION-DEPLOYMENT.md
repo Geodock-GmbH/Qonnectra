@@ -5,6 +5,7 @@ This guide walks you through deploying the Krit-GIS stack to a production server
 ## 📋 Prerequisites
 
 ### Server Requirements
+
 - **OS**: Ubuntu 20.04+ or similar Linux distribution
 - **RAM**: Minimum 4GB, recommended 8GB+
 - **Storage**: Minimum 50GB SSD, recommended 100GB+
@@ -12,16 +13,17 @@ This guide walks you through deploying the Krit-GIS stack to a production server
 - **Network**: Public IP address with ports 80 and 443 accessible
 
 ### Domain Requirements
+
 - A registered domain name (e.g., `your-domain.com`)
 - Access to DNS management for your domain
 - Ability to create subdomains:
   - `app.your-domain.com` (Frontend)
   - `api.your-domain.com` (Backend API)
   - `cloud.your-domain.com` (Nextcloud)
-  - `geoserver.your-domain.com` (GeoServer)
   - `qgis.your-domain.com` (QGIS Server)
 
 ### Software Requirements
+
 - Docker (latest version)
 - Docker Compose (latest version)
 - Git
@@ -74,7 +76,6 @@ DOMAIN_NAME=your-domain.com
 API_DOMAIN=api.your-domain.com
 APP_DOMAIN=app.your-domain.com
 CLOUD_DOMAIN=cloud.your-domain.com
-GEOSERVER_DOMAIN=geoserver.your-domain.com
 QGIS_DOMAIN=qgis.your-domain.com
 
 # Database (CHANGE THESE!)
@@ -87,9 +88,6 @@ DJANGO_ALLOWED_HOSTS=your-domain.com,api.your-domain.com
 DJANGO_SUPERUSER_PASSWORD=your_admin_password
 DJANGO_SUPERUSER_EMAIL=admin@your-domain.com
 
-# GeoServer (CHANGE THIS!)
-GEOSERVER_ADMIN_PASSWORD=your_geoserver_password
-
 # Nextcloud (CHANGE THESE!)
 NEXTCLOUD_ADMIN_PASSWORD=your_nextcloud_password
 NEXTCLOUD_FILEUPLOADER_PASSWORD=your_uploader_password
@@ -100,6 +98,7 @@ DEBUG=False
 ```
 
 **Generate a Django secret key:**
+
 ```bash
 python3 -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
 ```
@@ -114,7 +113,6 @@ A       your-domain.com         YOUR_SERVER_IP
 A       app.your-domain.com     YOUR_SERVER_IP
 A       api.your-domain.com     YOUR_SERVER_IP
 A       cloud.your-domain.com   YOUR_SERVER_IP
-A       geoserver.your-domain.com YOUR_SERVER_IP
 A       qgis.your-domain.com    YOUR_SERVER_IP
 ```
 
@@ -304,7 +302,6 @@ After successful deployment, your services will be available at:
 - **API**: https://api.your-domain.com
 - **Django Admin**: https://api.your-domain.com/admin/
 - **Nextcloud**: https://cloud.your-domain.com
-- **GeoServer**: https://geoserver.your-domain.com/geoserver/
 - **QGIS Server**: https://qgis.your-domain.com
 
 ## 🔍 Troubleshooting
@@ -312,28 +309,31 @@ After successful deployment, your services will be available at:
 ### Common Issues
 
 1. **SSL Certificate Issues**
+
    ```bash
    # Check Caddy logs
    docker-compose -f docker-compose.production.yml logs caddy
-   
+
    # Ensure DNS is properly configured
    nslookup your-domain.com
    ```
 
 2. **Database Connection Issues**
+
    ```bash
    # Check database logs
    docker-compose -f docker-compose.production.yml logs db
-   
+
    # Test database connection
    docker-compose -f docker-compose.production.yml exec db psql -U $DB_USER $DB_NAME
    ```
 
 3. **Service Won't Start**
+
    ```bash
    # Check service logs
    docker-compose -f docker-compose.production.yml logs [service-name]
-   
+
    # Check resource usage
    docker stats
    free -h
@@ -376,4 +376,4 @@ If you encounter issues:
 4. **Monitor Logs**: Regularly review logs for suspicious activity
 5. **Network Security**: Use firewalls and restrict access
 6. **SSL/TLS**: Ensure all connections use HTTPS
-7. **Database Security**: Keep database internal to Docker network 
+7. **Database Security**: Keep database internal to Docker network
