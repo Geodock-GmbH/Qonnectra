@@ -703,7 +703,7 @@
 							getTrenchesNearNode(nodeName, project);
 						}
 					}}
-					inputClasses="text-sm min-w-[240px]"
+					inputClasses="min-w-[240px]"
 				/>
 				<LassoModeSwitch
 					checked={isLassoMode}
