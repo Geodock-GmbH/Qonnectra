@@ -46,9 +46,11 @@ export class NetworkSchemaState {
 				id: nodeOrFeature.id || node.uuid,
 				position: { x, y },
 				type: 'cableDiagramNode',
+				selected: false,
 				data: {
 					label: node.name || 'Unnamed Node',
-					node: node
+					node: node,
+					onNodeSelect: (nodeId) => this.selectNode(nodeId)
 				}
 			};
 		});
@@ -116,6 +118,27 @@ export class NetworkSchemaState {
 					}
 				: n;
 		});
+	}
+
+	/**
+	 * Select a specific node and deselect all others
+	 * @param {string} nodeId - The node UUID to select
+	 */
+	selectNode(nodeId) {
+		this.nodes = this.nodes.map((n) => ({
+			...n,
+			selected: n.id === nodeId
+		}));
+	}
+
+	/**
+	 * Deselect all nodes
+	 */
+	deselectAllNodes() {
+		this.nodes = this.nodes.map((n) => ({
+			...n,
+			selected: false
+		}));
 	}
 
 	/**

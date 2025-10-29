@@ -6,7 +6,7 @@
 
 	import DrawerTabs from './DrawerTabs.svelte';
 
-	let { id, data } = $props();
+	let { id, data, selected } = $props();
 	let currentLabel = $state(data?.label || data?.node?.name || '');
 
 	let handleInit = {
@@ -48,6 +48,10 @@
 	 * Handle click on node label to open node details
 	 */
 	async function handleNodeClick() {
+		if (data?.onNodeSelect) {
+			data.onNodeSelect(id);
+		}
+
 		const formData = new FormData();
 		formData.append('uuid', id);
 		const response = await fetch('?/getNodes', {
@@ -103,7 +107,9 @@
 {/each}
 
 <div
-	class="w-30 h-30 flex items-center justify-center overflow-hidden border border-surface-200-700 rounded-lg shadow-md p-2 cursor-pointer hover:bg-surface-100-800 transition-colors"
+	class="w-30 h-30 flex items-center justify-center overflow-hidden border rounded-lg shadow-md p-2 cursor-pointer hover:bg-surface-100-800 transition-colors"
+	class:border-primary-500={selected}
+	class:border-2={selected}
 	role="button"
 	tabindex="0"
 	onclick={handleNodeClick}

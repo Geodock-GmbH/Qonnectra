@@ -3,7 +3,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	let { id, data, selected = false } = $props();
+	let { id, data, selected } = $props();
 
 	const trench = $derived(data?.trench || null);
 	const conduit = $derived(data?.conduit || null);
@@ -112,6 +112,7 @@
 <div
 	class="relative rounded-full border-2 border-surface-200-700 shadow-lg flex items-center justify-center"
 	style="width: {diameter}px; height: {diameter}px;"
+	class:border-primary-500={selected}
 >
 	{#each handlePositions as position, i}
 		<Handle

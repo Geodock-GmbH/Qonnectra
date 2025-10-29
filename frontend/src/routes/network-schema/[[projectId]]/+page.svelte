@@ -10,6 +10,7 @@
 	import { PositionUpdateManager } from '$lib/classes/PositionUpdateManager.svelte.js';
 	import Drawer from '$lib/components/Drawer.svelte';
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
+	import { drawerStore } from '$lib/stores/drawer';
 	import { edgeSnappingEnabled, selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
@@ -150,6 +151,21 @@
 		return () => {
 			window.removeEventListener('updateCableHandles', handleCableHandleUpdate);
 		};
+	});
+
+	/**
+	 * Track drawer state and deselect nodes when drawer closes
+	 */
+	let previousDrawerOpen = $state(false);
+	$effect(() => {
+		const currentDrawerOpen = $drawerStore.open;
+
+		// Detect drawer closing (transition from open to closed)
+		if (previousDrawerOpen && !currentDrawerOpen) {
+			schemaState.deselectAllNodes();
+		}
+
+		previousDrawerOpen = currentDrawerOpen;
 	});
 </script>
 
