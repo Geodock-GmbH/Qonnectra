@@ -181,7 +181,7 @@
 	{:else}
 		<!-- File Upload Section -->
 		<div class="grid gap-4 w-full">
-			<h3 class="text-lg font-semibold">Upload Files</h3>
+			<h3 class="text-lg font-semibold">{m.form_upload_files()}</h3>
 
 			<!-- File Upload Component -->
 			<FileUpload maxFiles={Infinity} {maxFileSize}>
