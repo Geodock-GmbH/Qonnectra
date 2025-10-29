@@ -96,6 +96,7 @@ services:
         fc-cache &&
         /usr/bin/Xvfb :99 -ac -screen 0 1280x1024x16 +extension GLX +render -noreset >/dev/null &
         sleep 2 &&
+        sed -i '/http {/a \    client_max_body_size 500M;' /etc/nginx/nginx.conf &&
         nginx &&
         spawn-fcgi -n -u www-data -g www-data -d /var/lib/qgis -P /run/qgis.pid -p 9993 -- /usr/lib/cgi-bin/qgis_mapserv.fcgi &&
         tail -f /dev/null
@@ -106,7 +107,6 @@ services:
       - ./qgis/projects:/projects:ro
       - ./qgis/data:/data:ro
       - ./qgis/pg_service.conf:/etc/postgresql-common/pg_service.conf:ro
-      - ./qgis/nginx.conf:/etc/nginx/sites-available/default:ro
     environment:
       - QGIS_SERVER_LOG_LEVEL=1
       - QGIS_SERVER_LOG_STDERR=1

@@ -94,11 +94,16 @@
         header_up X-Forwarded-Proto https
         header_up X-Real-IP {remote_host}
     }
-    
+
     header {
         Strict-Transport-Security max-age=31536000;
         X-Content-Type-Options nosniff
         -Server
+    }
+
+    # Handle large WFS POST requests
+    request_body {
+        max_size 100MB
     }
 }
 
