@@ -23,6 +23,7 @@
 	let contentTypeError = $state(null);
 
 	let contentTypesLoaded = $state(false);
+	let maxFileSize = $state(10 * 1024 * 1024); // 10MB
 
 	const contentTypeId = $derived(contentTypesLoaded ? getContentTypeId(featureType) : null);
 
@@ -183,13 +184,16 @@
 			<h3 class="text-lg font-semibold">Upload Files</h3>
 
 			<!-- File Upload Component -->
-			<FileUpload maxFiles={Infinity}>
+			<FileUpload maxFiles={Infinity} {maxFileSize}>
 				<FileUpload.Dropzone
 					class="border-2 border-dashed border-surface-400 rounded-lg p-8 text-center hover:border-primary-500 transition-colors"
 				>
 					<div class="flex flex-col items-center gap-2">
 						<IconFile size={48} />
 						<p class="text-sm">{m.form_select_files_or_drag()}</p>
+						<p class="text-sm">
+							{m.form_max_file_size()}: {Math.round(maxFileSize / 1024 / 1024)} MB
+						</p>
 						<FileUpload.Trigger class="preset-filled-primary-500"
 							>{m.action_browse_files()}</FileUpload.Trigger
 						>

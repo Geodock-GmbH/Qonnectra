@@ -91,6 +91,7 @@
 	"form_length_total": "Total length",
 	"form_live_updates": "Live updates",
 	"form_manufacturer": "Manufacturer",
+	"form_max_file_size": "Max file size",
 	"form_microduct": [
 		{
 			"declarations": ["input count", "local countPlural = count: plural"],
