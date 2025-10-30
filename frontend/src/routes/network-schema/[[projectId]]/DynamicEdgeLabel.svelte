@@ -321,20 +321,25 @@
 		y={position.y - 12}
 		width={labelWidth > 0 ? labelWidth : 100}
 		height={labelHeight > 0 ? labelHeight : 100}
-		style="cursor: {isMoveLabelMode ? 'move' : 'pointer'}; pointer-events: bounding-box;"
-		onclick={handleLabelClick}
+		style="cursor: {isMoveLabelMode
+			? 'move'
+			: 'pointer'}; pointer-events: bounding-box; outline: none;"
 		onmousedown={handleMouseDown}
 		onmouseup={handleLongPressCancel}
 		onmouseleave={handleLongPressCancel}
-		onkeydown={handleKeydown}
-		aria-label={isMoveLabelMode
-			? 'Move label (click to exit)'
-			: 'Open cable details for ' + currentLabel}
-		role="button"
-		tabindex="0"
+		role="presentation"
 		class="nopan"
 	>
-		<div class="flex items-center justify-center">
+		<div
+			class="flex items-center justify-center focus:outline-none"
+			role="button"
+			tabindex="0"
+			onclick={handleLabelClick}
+			onkeydown={handleKeydown}
+			aria-label={isMoveLabelMode
+				? 'Move label (click to exit)'
+				: 'Open cable details for ' + currentLabel}
+		>
 			<div
 				bind:this={labelElement}
 				class="z-10 bg-surface-50-950 border rounded px-2 py-1 text-xs text-center shadow-sm font-medium {isMoveLabelMode

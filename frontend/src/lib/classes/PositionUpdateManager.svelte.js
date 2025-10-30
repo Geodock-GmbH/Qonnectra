@@ -18,6 +18,13 @@ export class PositionUpdateManager {
 	 * @param {Function} onUpdate - Callback function to handle position updates
 	 */
 	async start(projectId, onUpdate) {
+		// Guard: prevent multiple concurrent polling loops
+		if (this.active && this.controller && !this.controller.signal.aborted) {
+			console.warn('Position update manager is already running. Stopping previous instance.');
+			this.stop();
+			await new Promise((resolve) => setTimeout(resolve, 100));
+		}
+
 		this.active = true;
 		this.projectId = projectId;
 		this.onUpdate = onUpdate;

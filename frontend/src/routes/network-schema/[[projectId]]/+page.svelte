@@ -33,6 +33,7 @@
 	const cablePathManager = new CablePathManager();
 
 	let prevUrl = $state($page.url.href);
+	let liveUpdatesEnabled = $state(false);
 
 	setContext('attributeOptions', {
 		nodeTypes: data.nodeTypes,
@@ -113,25 +114,6 @@
 		);
 	}
 
-	/**
-	 * Start or stop position updates
-	 */
-	$effect(() => {
-		if (positionManager.active) {
-			positionManager.start($selectedProject, (updates) => {
-				for (const update of updates) {
-					schemaState.updateNodePosition(update.node_id, {
-						x: update.canvas_x,
-						y: update.canvas_y
-					});
-				}
-			});
-		}
-
-		return () => {
-			positionManager.stop();
-		};
-	});
 
 	/**
 	 * Listen for cable path update events
@@ -221,16 +203,21 @@
 						<h3 class="text-sm font-medium">{m.form_live_updates()}</h3>
 						<Switch
 							name="position-update-switch"
-							checked={positionManager.active}
-							onCheckedChange={() => {
-								positionManager.toggle($selectedProject, (updates) => {
-									for (const update of updates) {
-										schemaState.updateNodePosition(update.node_id, {
-											x: update.canvas_x,
-											y: update.canvas_y
-										});
-									}
-								});
+							checked={liveUpdatesEnabled}
+							onCheckedChange={(e) => {
+								liveUpdatesEnabled = e.checked;
+								if (e.checked) {
+									positionManager.start($selectedProject, (updates) => {
+										for (const update of updates) {
+											schemaState.updateNodePosition(update.node_id, {
+												x: update.canvas_x,
+												y: update.canvas_y
+											});
+										}
+									});
+								} else {
+									positionManager.stop();
+								}
 							}}
 						>
 							<Switch.Control>

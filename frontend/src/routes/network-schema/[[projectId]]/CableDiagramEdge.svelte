@@ -314,7 +314,7 @@
 	}}
 	onmouseenter={() => (edgeHovered = true)}
 	onmouseleave={() => (edgeHovered = false)}
-	style="cursor: pointer;"
+	style="cursor: pointer; outline: none;"
 	role="button"
 	tabindex="0"
 >
