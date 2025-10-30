@@ -1,10 +1,12 @@
 <script>
-	import { createTreeViewCollection, TreeView } from '@skeletonlabs/skeleton-svelte';
-	import { IconFile, IconFolder, IconTrash, IconEdit, IconDownload } from '@tabler/icons-svelte';
-	import { PUBLIC_API_URL } from '$env/static/public';
-	import { m } from '$lib/paraglide/messages';
-	import { globalToaster } from '$lib/stores/toaster';
 	import { SvelteMap } from 'svelte/reactivity';
+	import { createTreeViewCollection, TreeView } from '@skeletonlabs/skeleton-svelte';
+	import { IconDownload, IconEdit, IconFile, IconFolder, IconTrash } from '@tabler/icons-svelte';
+	import { PUBLIC_API_URL } from '$env/static/public';
+
+	import { m } from '$lib/paraglide/messages';
+
+	import { globalToaster } from '$lib/stores/toaster';
 
 	/**
 	 * @typedef {Object} FileExplorerProps
@@ -106,6 +108,14 @@
 	 * Handle file double-click to preview
 	 */
 	function handleFileDoubleClick(file) {
+		const url = `${PUBLIC_API_URL}feature-files/${file.uuid}/preview/`;
+		window.open(url, '_blank');
+	}
+
+	/**
+	 * Download file (triggered by download button)
+	 */
+	function downloadFile(file) {
 		const url = `${PUBLIC_API_URL}feature-files/${file.uuid}/download/`;
 		window.open(url, '_blank');
 	}
@@ -263,17 +273,29 @@
 			if (e.key === 'Escape') deletingFile = null;
 		}}
 	>
-		<div class="bg-surface-100 dark:bg-surface-800 rounded-lg p-6 max-w-md" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+		<div
+			class="bg-surface-100 dark:bg-surface-800 rounded-lg p-6 max-w-md"
+			role="dialog"
+			aria-modal="true"
+			tabindex="-1"
+			onclick={(e) => e.stopPropagation()}
+			onkeydown={(e) => e.stopPropagation()}
+		>
 			<h3 class="text-lg font-semibold mb-4">Confirm Delete</h3>
 			<p class="mb-6">
-				Are you sure you want to delete <strong>{deletingFile.file_name}.{deletingFile.file_type}</strong
+				Are you sure you want to delete <strong
+					>{deletingFile.file_name}.{deletingFile.file_type}</strong
 				>? This action cannot be undone.
 			</p>
 			<div class="flex gap-2 justify-end">
 				<button type="button" onclick={() => (deletingFile = null)} class="btn preset-tonal">
 					Cancel
 				</button>
-				<button type="button" onclick={() => deleteFile(deletingFile)} class="btn preset-filled-error-500">
+				<button
+					type="button"
+					onclick={() => deleteFile(deletingFile)}
+					class="btn preset-filled-error-500"
+				>
 					Delete
 				</button>
 			</div>
@@ -341,15 +363,17 @@
 							</button>
 						{:else}
 							<span class="truncate">{node.name}</span>
-							<div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+							<div
+								class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+							>
 								<button
 									type="button"
 									onclick={(e) => {
 										e.stopPropagation();
-										handleFileDoubleClick(node.fileData);
+										downloadFile(node.fileData);
 									}}
-									class="btn-icon btn-sm preset-tonal"
-									title="Download/Preview"
+									class="btn-icon btn-sm preset-filled-primary-500"
+									title="Download"
 								>
 									<IconDownload class="size-3" />
 								</button>
@@ -359,7 +383,7 @@
 										e.stopPropagation();
 										startEditing(node.fileData);
 									}}
-									class="btn-icon btn-sm preset-tonal"
+									class="btn-icon btn-sm preset-filled-primary-500"
 									title="Rename"
 								>
 									<IconEdit class="size-3" />
@@ -370,7 +394,7 @@
 										e.stopPropagation();
 										deletingFile = node.fileData;
 									}}
-									class="btn-icon btn-sm preset-tonal"
+									class="btn-icon btn-sm preset-filled-error-500"
 									title="Delete"
 								>
 									<IconTrash class="size-3" />

@@ -322,6 +322,21 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
     lookup_url_kwarg = "pk"
     pagination_class = CustomPagination
 
+    def get_queryset(self):
+        """
+        Filter files by object_id query parameter.
+
+        This ensures that files are only returned for the specific feature
+        being viewed, preventing files from leaking between different features.
+        """
+        queryset = FeatureFiles.objects.all().order_by("object_id")
+
+        object_id = self.request.query_params.get("object_id")
+        if object_id:
+            queryset = queryset.filter(object_id=object_id)
+
+        return queryset
+
     @action(detail=True, methods=["get"], url_path="download")
     def download(self, request, pk=None):
         """
