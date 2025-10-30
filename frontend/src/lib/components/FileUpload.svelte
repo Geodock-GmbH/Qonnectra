@@ -24,7 +24,7 @@
 	let contentTypeError = $state(null);
 
 	let contentTypesLoaded = $state(false);
-	let maxFileSize = $state(10 * 1024 * 1024); // 10MB
+	let maxFileSize = $state(50 * 1024 * 1024); // 50MB
 
 	const contentTypeId = $derived(contentTypesLoaded ? getContentTypeId(featureType) : null);
 
