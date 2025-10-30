@@ -4,6 +4,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import FileUpload from '$lib/components/FileUpload.svelte';
+	import FileExplorer from '$lib/components/FileExplorer.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
 
 	import CableDiagramEdgeAttributeCard from './CableDiagramEdgeAttributeCard.svelte';
@@ -33,6 +34,14 @@
 	});
 
 	const featureId = $derived(data?.uuid || data?.id);
+
+	let fileExplorer;
+
+	function handleUploadComplete() {
+		if (fileExplorer) {
+			fileExplorer.refresh();
+		}
+	}
 </script>
 
 <Tabs tabs={tabItems} bind:value={group}>
@@ -47,6 +56,9 @@
 		<CableDiagramEdgeHandleConfig {...data} />
 	</SkeletonTabs.Content>
 	<SkeletonTabs.Content value="files">
-		<FileUpload featureType={type === 'edge' ? 'cable' : 'node'} {featureId} />
+		<div class="space-y-4">
+			<FileUpload featureType={type === 'edge' ? 'cable' : 'node'} {featureId} onUploadComplete={handleUploadComplete} />
+			<FileExplorer bind:this={fileExplorer} featureType={type === 'edge' ? 'cable' : 'node'} {featureId} />
+		</div>
 	</SkeletonTabs.Content>
 </Tabs>

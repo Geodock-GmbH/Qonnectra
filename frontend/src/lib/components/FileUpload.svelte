@@ -12,10 +12,11 @@
 	 * @typedef {Object} FileUploadProps
 	 * @property {string} featureType - The type of feature (e.g., 'cable', 'node', 'trench')
 	 * @property {string} featureId - The UUID of the feature to attach files to
+	 * @property {() => void} [onUploadComplete] - Optional callback called after files are uploaded
 	 */
 
 	/** @type {FileUploadProps} */
-	let { featureType, featureId } = $props();
+	let { featureType, featureId, onUploadComplete } = $props();
 
 	let uploadedFiles = $state([]);
 	let isUploading = $state(false);
@@ -141,6 +142,11 @@
 			// Clear the file picker and reload the list
 			fileUploadApi.clearFiles();
 			await loadFiles();
+
+			// Notify parent component
+			if (onUploadComplete) {
+				onUploadComplete();
+			}
 		} catch (error) {
 			console.error('Error uploading files:', error);
 			globalToaster.error({
