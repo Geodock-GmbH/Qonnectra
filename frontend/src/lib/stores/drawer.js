@@ -3,24 +3,29 @@ import { get, writable } from 'svelte/store';
 import { drawerWidth } from '$lib/stores/store';
 
 function createDrawerStore() {
+	let keyCounter = 0;
+
 	const { subscribe, set, update } = writable({
 		open: false,
 		title: '',
 		component: null,
 		props: {},
-		width: 400
+		width: 400,
+		key: 0
 	});
 
 	return {
 		subscribe,
 		open: ({ title = '', component = null, props = {}, width = null } = {}) => {
 			const finalWidth = width ?? get(drawerWidth);
+			keyCounter += 1;
 			set({
 				open: true,
 				title,
 				component,
 				props,
-				width: finalWidth
+				width: finalWidth,
+				key: keyCounter
 			});
 		},
 		close: () => {
@@ -36,10 +41,12 @@ function createDrawerStore() {
 			}));
 		},
 		setComponent: (component, props = {}) => {
+			keyCounter += 1;
 			update((store) => ({
 				...store,
 				component,
-				props
+				props,
+				key: keyCounter
 			}));
 		},
 		setWidth: (width) => {

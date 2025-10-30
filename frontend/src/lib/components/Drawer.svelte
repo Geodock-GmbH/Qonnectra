@@ -102,7 +102,9 @@
 		<div class="flex-1 overflow-y-auto p-4">
 			{#if $drawerStore.component}
 				{@const Component = $drawerStore.component}
-				<Component {...$drawerStore.props} />
+				{#key $drawerStore.key}
+					<Component {...$drawerStore.props} />
+				{/key}
 			{:else}
 				{@render children?.()}
 			{/if}
