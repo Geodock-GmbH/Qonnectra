@@ -1,98 +1,244 @@
-# sv
+# Qonnectra Frontend
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+SvelteKit-based frontend application for the Qonnectra GIS system, providing an interactive map interface and infrastructure management tools.
 
-## Creating a project
+## Overview
 
-If you're seeing this, you've probably already done this step. Congrats!
+The frontend is built with SvelteKit 2 and Svelte 5, featuring OpenLayers for map visualization, Skeleton UI for components, and Svelte Flow for network schema editing.
+
+## Prerequisites
+
+- Node.js 18 or higher
+- npm (comes with Node.js)
+
+## Setup
+
+### 1. Install Dependencies
 
 ```bash
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
+cd frontend
+npm install
 ```
 
-## Developing
+### 2. Development Server
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Start the development server:
 
 ```bash
 npm run dev
+```
 
-# or start the server and open the app in a new browser tab
+The application will be available at `http://localhost:5173`
+
+Open in browser automatically:
+```bash
 npm run dev -- --open
 ```
 
-## Building
-
-To create a production version of your app:
+### 3. Build for Production
 
 ```bash
 npm run build
 ```
 
-You can preview the production build with `npm run preview`.
+### 4. Preview Production Build
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+```bash
+npm run preview
+```
 
-# Frontend
+## Project Structure
 
-This is the frontend for the Krit-GIS application built with SvelteKit and OpenLayers.
+```
+frontend/
+├── src/
+│   ├── lib/
+│   │   ├── components/     # Reusable Svelte components
+│   │   ├── map/            # OpenLayers map utilities
+│   │   ├── classes/        # JavaScript classes
+│   │   ├── stores/         # Svelte stores for state management
+│   │   └── utils/          # Utility functions
+│   └── routes/             # SvelteKit routes (file-based routing)
+│       ├── map/            # Map view routes
+│       ├── trench/         # Trench management
+│       ├── conduit/        # Conduit management
+│       ├── node/           # Node management
+│       ├── network-schema/ # Network schema editor
+│       └── ...
+├── static/                 # Static assets
+└── messages/               # Translation files (i18n)
+```
 
-## Features
+## Key Components
 
 ### Map Component
 
-The Map component provides a reusable OpenLayers map with the following features:
+Located in `src/lib/components/Map.svelte`, provides:
+- OpenLayers map integration
+- Layer visibility controls
+- Opacity slider for base layer
+- Search panel for address/feature lookup
+- Map state persistence (center, zoom)
 
-- **Opacity Slider**: Control the opacity of the base OSM layer
-- **Layer Visibility Tree**: Toggle visibility of individual map layers on/off
+### Layer Visibility Tree
 
-#### Using the Layer Visibility Tree
+Interactive layer management UI for toggling map layers on/off.
 
-The Map component now includes a layer visibility tree that allows users to toggle individual layers on and off. To use this feature:
+### Route Components
 
-1. **Enable the feature** by setting `showLayerVisibilityTree={true}` (default)
-2. **Add layer names** to your OpenLayers layers for better display in the tree:
+- **Map View** (`routes/map/`): Main map interface with layer management
+- **Trench Management** (`routes/trench/`): Trench CRUD operations
+- **Conduit Management** (`routes/conduit/`): Conduit management
+- **Node Management** (`routes/node/`): Node management
+- **Network Schema** (`routes/network-schema/`): Visual network diagram editor
+- **Pipe Branch** (`routes/pipe-branch/`): Pipe branch visualization
+- **House Connections** (`routes/house-connections/`): Address and connection management
 
-```javascript
-// Example: Adding layer properties for the visibility tree
-vectorLayer.set('layerId', 'my-unique-layer-id');
-vectorLayer.set('layerName', 'My Layer Display Name');
-```
+## State Management
 
-3. **Position**: The layer visibility tree appears in the top-left corner of the map
-4. **Controls**: Each layer gets a toggle switch and visibility icon (eye/eye-off)
+The application uses Svelte stores for state management:
 
-#### Map Component Props
+- **Map State**: Map center, zoom level persistence
+- **Authentication**: User session management
+- **API Client**: Centralized API request handling
 
-```javascript
-<Map
-	layers={[layer1, layer2, layer3]}
-	showOpacitySlider={true} // Default: true - Show opacity control for base layer
-	showLayerVisibilityTree={true} // Default: true - Show layer visibility controls
-	on:layerVisibilityChanged={handleLayerVisibilityChange}
-/>
-```
+Stores are located in `src/lib/stores/`.
 
-#### Layer Visibility Events
+## Routing
 
-The component dispatches `layerVisibilityChanged` events when a layer's visibility is toggled:
+SvelteKit uses file-based routing in the `src/routes/` directory:
 
-```javascript
-function handleLayerVisibilityChange(event) {
-	const { layerId, visible, layer } = event.detail;
-	console.log(`Layer ${layerId} is now ${visible ? 'visible' : 'hidden'}`);
-}
-```
+- `+page.svelte` - Page component
+- `+page.server.js` - Server-side data loading
+- `+layout.svelte` - Layout component
+- `+error.svelte` - Error page
 
-## Development
+Dynamic routes use brackets: `[id]` or `[[optionalId]]`
 
-Install dependencies and start the development server:
+## Internationalization
+
+The application supports multiple languages via [Paraglide](https://paraglide.dev/):
+
+- German (`de`)
+- English (`en`)
+
+Translation files are in `messages/` and managed through Paraglide.
+
+## Styling
+
+- **TailwindCSS 4**: Utility-first CSS framework
+- **Skeleton UI**: Component library for consistent design
+- Custom styles in `src/app.css`
+
+## Testing
+
+### Unit Tests (Vitest)
 
 ```bash
-npm install
-npm run dev
+npm run test:unit
 ```
+
+Run specific test:
+```bash
+npm run test:unit -- --run src/routes/page.svelte.test.js
+```
+
+### End-to-End Tests (Playwright)
+
+```bash
+npx playwright test
+```
+
+Run specific E2E test:
+```bash
+npx playwright test tests/e2e/login.spec.js
+```
+
+View test report:
+```bash
+npx playwright show-report
+```
+
+## Code Formatting
+
+Format code with Prettier:
+
+```bash
+npm run format
+```
+
+Check formatting:
+
+```bash
+npm run lint
+```
+
+## Key Dependencies
+
+### Core
+- **Svelte 5**: Reactive framework with runes
+- **SvelteKit 2**: Full-stack framework
+- **Vite**: Build tool and dev server
+
+### Mapping
+- **OpenLayers 10**: Interactive maps and spatial data visualization
+
+### UI Components
+- **Skeleton UI**: Component library
+- **Tabler Icons**: Icon library
+
+### Visualization
+- **Svelte Flow**: Network diagram visualization
+- **Perfect Freehand**: Hand-drawn path rendering
+
+### Internationalization
+- **Paraglide**: Type-safe i18n
+
+## Svelte 5 Runes
+
+This project uses Svelte 5 with runes for reactivity:
+
+- `$state()` - Reactive state
+- `$derived()` - Computed values
+- `$effect()` - Side effects
+- `$props()` - Component props
+
+Example:
+```svelte
+<script>
+  import { $state, $derived } from 'svelte';
+  
+  let count = $state(0);
+  let doubled = $derived(count * 2);
+</script>
+
+<button onclick={() => count++}>
+  Count: {count} (Doubled: {doubled})
+</button>
+```
+
+## API Integration
+
+The frontend communicates with the Django REST API. API calls are handled through:
+
+- Utility functions in `src/lib/utils/`
+- Server-side data loading in `+page.server.js` files
+- API endpoints configured via environment variables
+
+## Environment Variables
+
+The frontend uses environment variables (typically set via `.env` or deployment configuration):
+
+- `API_URL`: Backend API URL
+- `ORIGIN`: Frontend origin for CORS
+
+## Additional Resources
+
+- [Main README](../README.md)
+- [Backend README](../backend/README.md)
+- [Deployment Guide](../deployment/README.md)
+- [SvelteKit Documentation](https://kit.svelte.dev/)
+- [Svelte 5 Documentation](https://svelte.dev/docs)
+- [OpenLayers Documentation](https://openlayers.org/)
+- [Skeleton UI Documentation](https://www.skeleton.dev/)
+

@@ -1,6 +1,6 @@
 # QGIS Server Setup
 
-This directory contains the QGIS Server configuration for the Krit GIS project.
+This directory contains the QGIS Server configuration for the Qonnectra project.
 
 ## Structure
 
@@ -43,7 +43,7 @@ QGIS Server provides the following OGC services:
 
 1. Create or copy your .qgs project files to the `projects/` directory
 2. Update the `QGIS_PROJECT_FILE` environment variable in docker-compose.yml to point to your project
-3. Restart the QGIS Server container: `docker restart krit_gis_qgis_server`
+3. Restart the QGIS Server container: `docker restart qonnectra_qgis_server_prod` (or check actual container name with `docker ps`)
 
 ### Database Integration
 
@@ -84,7 +84,7 @@ The default project (`default.qgs`) is a minimal empty project in WGS84. To use 
 
 ### Troubleshooting
 
-- Check container logs: `docker logs krit_gis_qgis_server`
+- Check container logs: `docker logs [qgis_container_name]` (use `docker ps` to find the exact container name)
 - Verify project file syntax: Ensure .qgs file is valid XML
 - Database connectivity: Ensure PostgreSQL service is healthy
 - Port conflicts: Check that port 8082 is not used by other services 

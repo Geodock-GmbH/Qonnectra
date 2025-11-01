@@ -1,64 +1,178 @@
-# Todos
+# Qonnectra
 
-## Backend
+## Project Status
 
-- [ ] Apps
-  - [ ] API
-    - [ ] Node model and serializer
-    - [ ] Address model and serializer
-    - [ ] Residential unit model and serializer
-    - [ ] Area model and serializer
-  - [ ] Admin
-- [ ] QGIS-Server through admin django panel. Sharing project folder via docker volumes, DJ Model + admin
-- [ ] Storage SameSite problem
-  - [ ] After auth has been implemented, this could be a problem,
-        Since the first part in the file path is always the same user.
-        Proxy downloads through django or nginx?
-- [ ] Better nextcloud storage integration
-  - [ ] Nextcloud File Uploader User. occ not possible in docker compose up?
-  - [ ] Run the occ command to create the user manually?
-  - [ ] docker-compose exec -u www-data nextcloud_app php /var/www/html/occ user:add newuser
-- [ ] Documentation through django admin docs
-- [ ] i18n and localization
-- [x] DRF JWT Authentication
-- [ ] Tests
-- [ ] django tenants
-- [ ] django websockets
+This project is currently in development. It is not yet ready for production use. Breaking changes are expected.
 
-## Frontend
+A comprehensive GIS (Geographic Information System) application for managing telecommunications infrastructure, built with modern web technologies.
 
-- [ ] UI
-  - [ ] Map
-  - [ ] Layer List
-  - [ ] Layer Detail
-  - [ ] Login
-  - [ ] Register
-  - [ ] Forgot Password
-  - [ ] Reset Password
+## Overview
 
-## Copy the caddy root ca certificate from docker
+Qonnectra is a full-stack web application designed for managing and visualizing telecommunications network infrastructure. It provides tools for managing trenches, conduits, microducts, nodes, addresses, cables, and fibers with spatial data capabilities.
 
-1. Linux:
+## Features
 
-```bash
-docker volume ls | grep caddy_data
-docker volume inspect <full_volume_name> (example output: /var/lib/docker/volumes/deployment_caddy_data/_data)
-sudo cp <volume_mount_point>/caddy/pki/authorities/local/root.crt ~/caddy_root.crt
-sudo chown $USER:$USER ~/caddy_root.crt
-sudo mv ~/caddy_root.crt /usr/local/share/ca-certificates/caddy_root.crt
-sudo update-ca-certificates
+- **Spatial Data Management**: Full PostGIS integration for handling geographic data with support for ETRS89 UTM Zone 32N or 33N (SRID 25832 or 25833)
+- **Interactive Mapping**: OpenLayers-based map interface with layer management, opacity controls, and search functionality
+- **Network Schema Visualization**: Visual network schema editor using Svelte Flow
+- **Multi-Project Support**: Organize infrastructure data by projects with flags and status tracking
+- **File Management**: Integrated file storage with WebDAV support
+- **REST API**: Django REST Framework API with spatial data support
+- **Authentication**: JWT-based authentication with HTTP-only cookies
+- **Internationalization**: Support for German and English (via Paraglide)
+- **QGIS Server Integration**: OGC-compliant map services (WMS, WFS, WMTS)
+
+## Technology Stack
+
+### Backend
+
+- **Django 4.2**: Python web framework
+- **PostgreSQL 17**: Database with PostGIS extension
+- **Django REST Framework**: RESTful API
+- **django-rest-framework-gis**: GIS-specific API features
+- **dj-rest-auth**: JWT authentication
+
+### Frontend
+
+- **SvelteKit**: Full-stack framework (Svelte 5)
+- **OpenLayers 10**: Interactive maps
+- **Skeleton UI**: Component library
+- **Svelte Flow**: Network diagram visualization
+- **TailwindCSS**: Utility-first CSS framework
+- **Paraglide**: Internationalization
+
+### Deployment
+
+- **Docker Compose**: Container orchestration
+- **Caddy**: Reverse proxy with automatic HTTPS
+- **Nginx**: Web server and reverse proxy
+- **QGIS Server**: OGC web services
+
+## Project Structure
+
+```
+Qonnectra/
+├── backend/          # Django REST API
+│   ├── apps/
+│   │   └── api/      # Main API application
+│   └── core/         # Django settings and configuration
+├── frontend/         # SvelteKit application
+│   └── src/
+│       ├── lib/      # Components, utilities, stores
+│       └── routes/   # SvelteKit routes
+└── deployment/       # Docker Compose configuration
+    ├── postgres/     # PostgreSQL setup
+    ├── qgis/         # QGIS Server configuration
+    └── caddy/        # Caddy reverse proxy
 ```
 
-## Edit hostfile
+## Quick Start
 
-1. Linux/macOS:
-   /etc/hosts
+### Prerequisites
 
-```bash
-sudo nano /etc/hosts
-```
+- Docker and Docker Compose
+- Node.js 18+ (for local frontend development)
+- Python 3.10+ (for local backend development)
+- uv package manager (optional, recommended for Python)
 
-2. Windows
-   C:\Windows\System32\drivers\etc\hosts
+### Getting Started
 
-Add something like: 127.0.0.1 app.localhost api.localhost cloud.localhost
+1. **Clone the repository**
+
+   ```bash
+   git clone <repository-url>
+   cd Qonnectra
+   ```
+
+2. **Set up environment variables**
+
+   Create a `.env` file in the `deployment/` directory. See [Deployment README](deployment/README.md) for required variables.
+
+3. **Start services with Docker Compose**
+
+   ```bash
+   cd deployment
+   docker-compose up -d --build
+   ```
+
+4. **Access the application**
+   - Frontend: `https://app.localhost` (or `http://localhost:5173` for local dev)
+   - API: `https://api.localhost` (or `http://localhost:8000` for local dev)
+   - Admin: `https://api.localhost/admin`
+   - QGIS Server: `https://qgis.localhost`
+
+For detailed setup instructions, see the READMEs in each directory:
+
+- [Backend Setup](backend/README.md)
+- [Frontend Setup](frontend/README.md)
+- [Deployment Guide](deployment/README.md)
+
+## Core Data Models
+
+The application manages the following infrastructure components:
+
+- **Trench**: Linear excavation features with construction details (LineString geometry)
+- **Conduit**: Conduits placed in trenches with automatic microduct generation
+- **Microduct**: Individual mini pipes pathways within conduits
+- **Node**: Network junction points (Point geometry)
+- **Address**: Postal addresses (Point geometry)
+- **Cable**: Fiber optic cables with capacity tracking
+- **Fiber**: Individual fiber strands within cables
+
+All spatial data uses ETRS89 UTM Zone 32N (SRID 25832) as the default coordinate system.
+
+## Development Workflow
+
+### Local Development
+
+1. **Backend Development**
+
+   ```bash
+   cd backend
+   uv venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   uv pip install -r uv --dev
+   python manage.py migrate
+   python manage.py runserver
+   ```
+
+2. **Frontend Development**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+### Testing
+
+- **Backend**: `pytest` (see [Backend README](backend/README.md))
+- **Frontend**:
+  - Unit tests: `npm run test:unit` (Vitest)
+  - E2E tests: `npm run test:e2e` (Playwright)
+
+## Contributing
+
+Contributions are welcome! Please ensure that:
+
+1. Code follows the project's style guidelines
+2. Tests are included for new features
+3. Documentation is updated as needed
+4. All tests pass before submitting
+
+## Documentation
+
+- [Backend Documentation](backend/README.md)
+- [Frontend Documentation](frontend/README.md)
+- [Deployment Documentation](deployment/README.md)
+- [QGIS Server Setup](deployment/qgis/README.md)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Additional Resources
+
+- [Django Documentation](https://docs.djangoproject.com/)
+- [SvelteKit Documentation](https://kit.svelte.dev/)
+- [OpenLayers Documentation](https://openlayers.org/)
+- [PostGIS Documentation](https://postgis.net/documentation/)

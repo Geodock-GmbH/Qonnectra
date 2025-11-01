@@ -1,368 +1,240 @@
-# Krit GIS Backend
+# Qonnectra Backend
 
-A Django-based GIS backend service for the Krit GIS project, providing spatial data management and API endpoints.
+Django REST API backend for the Qonnectra GIS application, providing spatial data management and API endpoints for telecommunications infrastructure.
 
-## 🔧 Prerequisites
+## Overview
 
-- uv package manager (optional, recommended)
-- Docker and Docker Compose
+The backend is built with Django 4.2 and Django REST Framework, featuring PostGIS integration for spatial data operations. It provides a RESTful API for managing trenches, conduits, nodes, addresses, cables, and other infrastructure components.
 
-## 🔧 Setup
-
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/your-repo/krit-gis-backend.git
-   cd krit-gis-backend
-   ```
-
-2. Install dependencies:
-   ```bash
-   uv venv
-   ```
-   - On MacOS/Linux:
-     ```bash
-     source .venv/bin/activate
-     uv pip install -r uv --dev
-     ```
-   - On Windows:
-     ```bash
-     .venv\Scripts\activate
-     uv pip install -r uv --dev
-     ```
-
-## ⚙️ Configuration
-
-The project requires configuration across several files. Here's a comprehensive guide to the required settings:
-
-### Environment Variables (.env)
-
-Create a `.env` file in the `deployment` directory with the following variables:
-
-```env
-# Django Settings
-DJANGO_SECRET_KEY=your-secure-secret-key
-DJANGO_ALLOWED_HOSTS=api.localhost,localhost,127.0.0.1
-DEBUG=True  # Set to False in production
-
-# Backend Settings
-BACKEND_PORT=8000
-
-# Database Settings
-DB_NAME=krit_gis
-DB_USER=your-db-user
-DB_PASSWORD=your-db-password
-DB_HOST=krit_gis_db
-DB_PORT=5432
-
-# Geometry Settings
-DEFAULT_SRID=25832  # ETRS89 / UTM zone 32N
-
-# Nextcloud Settings
-NEXTCLOUD_PORT=8080
-NEXTCLOUD_ADMIN_USER=your-nextcloud-admin
-NEXTCLOUD_ADMIN_PASSWORD=your-secure-password
-NEXTCLOUD_TRUSTED_DOMAINS=cloud.localhost localhost 127.0.0.1
-NEXTCLOUD_DATABASE_NAME=nextcloud_db
-
-# Nextcloud File Uploader Settings
-NEXTCLOUD_URL=https://cloud.localhost
-NEXTCLOUD_PUBLIC_URL=https://cloud.localhost
-NEXTCLOUD_FILEUPLOADER_USERNAME=your-nextcloud-fileuploader
-NEXTCLOUD_FILEUPLOADER_PASSWORD=your-secure-password
-
-# Caddy Settings
-CADDY_PORT=80
-CADDY_HTTPS_PORT=443
-
-# Nginx Settings
-NGINX_PORT=80
-
-```
-
-### PostgreSQL Settings (deployment/postgres/init.sql)
-
-The `deployment/postgres/init.sql` file contains the initialization script for the PostgreSQL database. It sets up the database and the PostGIS extension for Django.
-
-### Django Settings (settings.py)
-
-The following settings in `backend/core/settings.py` may need adjustment:
-
-- `CORS_ALLOWED_ORIGINS`
-
-### Docker Compose Configuration
-
-Key settings in `deployment/docker-compose.yml`:
-
-- Database service (db):
-
-  - Port mapping: 5440:5432
-  - Volume mounts for data persistence
-  - PostGIS version: 17-3.5
-
-- Backend service:
-
-  - Port: ${BACKEND_PORT:-8000}
-  - Expose: 8000
-  - Dependencies on database
-  - Environment variables from .env
-
-- Nextcloud service:
-
-  - Port: ${NEXTCLOUD_PORT:-8080}
-  - Expose: 8080
-  - Volume mounts for data, apps, and configuration
-  - Database integration settings
-  - Environment variables from .env
-
-- Caddy service:
-
-  - Port: ${CADDY_PORT:-80}
-  - Port: ${CADDY_HTTPS_PORT:-443}
-  - Volume mounts for data, configuration, and certificates
-  - SSL certificate generation
-
-- Nginx service:
-  - Port: ${NGINX_PORT:-80}
-  - Volume mounts for configuration
-  - Static file serving
-
-## 🐳 Deployment
-
-The project uses Docker Compose for deployment, which sets up four main services:
-
-- PostgreSQL with PostGIS for spatial data
-- Django backend service
-- Nextcloud for file management
-- Caddy for reverse proxy
-- Nginx for reverse proxy and static file serving
-
-### Starting the Services
-
-1. Navigate to the deployment directory:
-
-   ```bash
-   cd ../deployment
-   ```
-
-2. Start all services:
-
-   ```bash
-   docker-compose up -d --build
-   ```
-
-   This will start:
-
-   - PostgreSQL 17 with PostGIS
-   - Django backend
-   - Nextcloud
-   - Caddy for reverse proxy
-   - Nginx for reverse proxy and static file serving
-
-### Service Configuration
-
-#### Database
-
-- **Database name**: your-database-name
-- **Port mapping**: 5440 (external) -> 5432 (internal)
-- **Default credentials**:
-  - **Username**: your-database-user
-  - **Password**: your-database-password
-- **Uses**: PostGIS 3.5 with PostgreSQL 17
-
-#### Backend Service
-
-- **Environment variables** are pre-configured in `docker-compose.yml`:
-  - `ALLOWED_HOSTS`: localhost,127.0.0.1
-  - `DEFAULT_SRID`: 25832 (default for ETRS89 / UTM zone 32N)
-  - **Database connection details**
-  - **CORS settings** for development (localhost:5173)
-  - **Logging configuration** for development
-
-#### Nextcloud
-
-- **Access URL**: http://localhost:8080
-- **Default admin credentials**:
-  - **Username**: your-nextcloud-admin-user
-  - **Password**: your-nextcloud-admin-password
-- **Uses**: PostgreSQL as the database backend
-
-#### Caddy
-
-- **Reverse proxy** for backend and Nextcloud
-- **SSL certificate generation**
-
-#### Nginx
-
-- **Reverse proxy** for backend and Nextcloud
-- **Static file serving**
-
-### Monitoring Services
-
-View running containers:
-
-```bash
-docker-compose ps
-```
-
-View service logs:
-
-```bash
-docker-compose logs [service_name]
-```
-
-### Stopping Services
-
-```bash
-docker-compose down
-```
-
-## 🛠️ Development
-
-### Running Tests
-
-````
-# Krit GIS Backend
-
-A Django-based GIS backend service for the Krit GIS project, providing spatial data management and API endpoints.
-
-## 🔧 Prerequisites
+## Prerequisites
 
 - Python >= 3.10
-- Docker and Docker Compose
+- [uv](https://github.com/astral-sh/uv) package manager (recommended) or pip
 - PostgreSQL 17 with PostGIS extension
-- Git
+- Docker and Docker Compose (for running PostgreSQL)
 
-## 🚀 Quick Start
+## Setup
 
-### Backend Setup
+### 1. Create Virtual Environment
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/Krit-GIS.git
-   cd Krit-GIS/backend
-````
-
-2. Create and activate a virtual environment:
-
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
-
-3. Install dependencies:
-
-   ```bash
-   pip install -e .
-   ```
-
-4. Create a `.env` file in the backend directory or
-   write it directly in the `core/settings.py` file with the following content:
-
-   ```
-   DEBUG=True
-   SECRET_KEY=your-secret-key
-   ALLOWED_HOSTS=localhost,127.0.0.1
-   DATABASE_URL=postgres://geodock_admin:geodock_admin@localhost:5440/krit_gis
-   ```
-
-5. Run migrations:
-
-   ```bash
-   python manage.py migrate
-   ```
-
-6. Start the development server:
-   ```bash
-   python manage.py runserver
-   ```
-
-## 🐳 Deployment
-
-The project uses Docker Compose for deployment, which sets up three main services:
-
-- PostgreSQL with PostGIS for spatial data
-- Django backend service
-- Nextcloud for file management
-
-### Prerequisites
-
-- Docker and Docker Compose
-- Environment variables file (.env) containing:
-  ```
-  DJANGO_SECRET_KEY=your-secret-key
-  ```
-
-### Starting the Services
-
-1. Navigate to the deployment directory:
-
-   ```bash
-   cd ../deployment
-   ```
-
-2. Start all services:
-
-   ```bash
-   docker-compose up -d
-   ```
-
-   This will start:
-
-   - PostgreSQL 17 with PostGIS on port 5440
-   - Django backend on port 8000
-   - Nextcloud on port 8080
-
-### Service Configuration
-
-#### Database
-
-- Database name: krit_gis
-- Port: 5440 (external), 5432 (internal)
-- Default credentials (for development only):
-  - Username: geodock_admin
-  - Password: geodock_admin
-
-#### Backend Service
-
-Environment variables are pre-configured in docker-compose.yml:
-
-- `DEBUG`: Set to False by default
-- `ALLOWED_HOSTS`: localhost,127.0.0.1
-- `DEFAULT_SRID`: 25832
-- Database connection details
-
-#### Nextcloud
-
-- Access URL: http://localhost:8080
-- Default admin credentials (for development only):
-  - Username: admin
-  - Password: admin
-
-### Monitoring Services
-
-View running containers:
+Using uv (recommended):
 
 ```bash
-docker-compose ps
+cd backend
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
 
-View service logs:
+Or using venv:
 
 ```bash
-docker-compose logs [service_name]
+cd backend
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
 
-### Stopping Services
+### 2. Install Dependencies
+
+Using uv:
 
 ```bash
-docker-compose down
+uv pip install -r uv --dev
 ```
 
-## 🛠️ Development
+Or using pip:
+
+```bash
+pip install -e .
+pip install -e ".[dev]"  # For development dependencies
+```
+
+### 3. Environment Configuration
+
+The backend reads environment variables from `deployment/.env`. See the [Deployment README](../deployment/README.md) for required environment variables.
+
+Key variables:
+
+- `DJANGO_SECRET_KEY`: Secret key for Django
+- `DB_NAME`: PostgreSQL database name
+- `DB_USER`: PostgreSQL username
+- `DB_PASSWORD`: PostgreSQL password
+- `DB_HOST`: PostgreSQL host (default: `localhost` for local dev)
+- `DB_PORT`: PostgreSQL port (default: `5440` for Docker, `5432` for direct connection)
+- `DEFAULT_SRID`: Coordinate system SRID (default: `25832` for ETRS89 UTM Zone 32N)
+
+### 4. Database Setup
+
+Ensure PostgreSQL with PostGIS is running. If using Docker Compose:
+
+```bash
+cd ../deployment
+docker-compose up -d db
+```
+
+### 5. Run Migrations
+
+```bash
+python manage.py migrate
+```
+
+### 6. Load Fixtures (Optional)
+
+Load initial data for attributes, projects, and flags:
+
+```bash
+python manage.py loaddata attributes_company attributes_construction_type attributes_conduit_type attributes_phase
+python manage.py loaddata attributes_status attributes_surface storage_preference file_type_categories projects flags
+python manage.py loaddata attributes_network_level attributes_node_type attributes_status_development
+```
+
+### 7. Create Superuser
+
+```bash
+python manage.py createsuperuser
+```
+
+### 8. Run Development Server
+
+```bash
+python manage.py runserver
+```
+
+The API will be available at `http://localhost:8000`
+
+## API Documentation
+
+The API provides RESTful endpoints for all data models. Browse the API at:
+
+- API Root: `http://localhost:8000/api/`
+- Admin Interface: `http://localhost:8000/admin/`
+
+### Key API Endpoints
+
+- `/api/trench/` - Trench management (LineString geometry)
+- `/api/conduit/` - Conduit management
+- `/api/microduct/` - Microduct management
+- `/api/node/` - Node management (Point geometry)
+- `/api/address/` - Address management (Point geometry)
+- `/api/cable/` - Cable management
+- `/api/fiber/` - Fiber management
+- `/api/project/` - Project management
+- `/api/company/` - Company/contractor management
+
+All endpoints support:
+
+- Standard CRUD operations
+- Spatial filtering and queries
+- Pagination
+- Filtering and searching
+- Authentication (JWT via `dj-rest-auth`)
+
+## Database Models
+
+### Core Infrastructure Models
+
+- **Trench**: Linear excavation features with construction details, surface types, and phases
+- **Conduit**: Conduits placed in trenches with type, network level, and manufacturer information
+- **Microduct**: Individual mini pipes pathways within conduits (auto-generated from conduit color codes)
+- **Node**: Network junction points with type, status, and network level classification
+- **Address**: Postal addresses linked to nodes with development status
+- **Cable**: Fiber optic cables with type, capacity, and manufacturer information
+- **Fiber**: Individual fiber strands within cables
+
+### Supporting Models
+
+- **Projects**: Project organization
+- **Flags**: Categorization flags
+- **AttributesCompany**: Contractors, owners, and manufacturers
+- **AttributesStatus**: Status classifications for various entities
+- **AttributesPhase**: Construction phase tracking
+- **StoragePreferences**: File storage configuration
+- **FeatureFiles**: Generic file attachments to any feature
+
+All spatial fields use PostGIS with SRID 25832 (ETRS89 UTM Zone 32N) as the default coordinate system.
+
+## Development
 
 ### Running Tests
 
+```bash
+pytest
 ```
 
+Run specific test file:
+
+```bash
+pytest apps/api/tests/test_models.py
 ```
+
+### Code Formatting
+
+This project uses [ruff](https://github.com/astral-sh/ruff) for linting and formatting:
+
+```bash
+ruff check .
+ruff format .
+```
+
+### Making Migrations
+
+After modifying models:
+
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+### Loading Development Data
+
+Load sample data for testing:
+
+```bash
+python manage.py loaddata <fixture_name>
+```
+
+Available fixtures are in `apps/api/fixtures/`:
+
+- `attributes_*.json` - Attribute tables
+- `projects.json` - Project definitions
+- `flags.json` - Flag definitions
+- `storage_preference.json` - Storage configuration
+
+## Authentication
+
+The API uses JWT authentication via `dj-rest-auth`:
+
+1. Login: `POST /api/auth/login/` with credentials
+2. Returns JWT tokens in HTTP-only cookies
+3. Subsequent requests include cookies automatically
+4. Logout: `POST /api/auth/logout/`
+
+For development, you can also use session authentication via the Django admin.
+
+## File Storage
+
+Files are stored using a custom storage backend that supports Nextcloud integration. File uploads are handled through:
+
+- Generic file attachments via `FeatureFiles` model
+- Project-specific folder organization
+- Integration with Nextcloud WebDAV
+
+## Spatial Data
+
+All spatial operations use PostGIS functions. Key features:
+
+- Geometry fields use `django.contrib.gis.db.models` fields
+- Default SRID: 25832 (ETRS89 UTM Zone 32N)
+- Spatial indexing for performance
+- Support for spatial queries and filters
+
+## API Versioning
+
+The API is versioned. Current version is accessible at `/api/v1/` (if versioning is configured).
+
+## Additional Resources
+
+- [Main README](../README.md)
+- [Deployment Guide](../deployment/README.md)
+- [Django Documentation](https://docs.djangoproject.com/)
+- [Django REST Framework Documentation](https://www.django-rest-framework.org/)
+- [PostGIS Documentation](https://postgis.net/documentation/)
