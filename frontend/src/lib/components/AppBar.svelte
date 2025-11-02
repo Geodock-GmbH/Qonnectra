@@ -27,14 +27,31 @@
 			</AppBar.Headline>
 			<AppBar.Trail>
 				<div class="flex items-center gap-2 sm:gap-6 flex-shrink-0">
-					<p class="text-xs sm:text-sm text-surface-700-300 hidden sm:block">v{data.appVersion}</p>
+					<p class="text-xs sm:text-sm text-surface-700-300 hidden sm:block" aria-label="Version">
+						v{data.appVersion}
+					</p>
+					<span class="border-r h-8"></span>
 					<LocaleSwitcher />
+					<span class="border-r h-8"></span>
+					<a
+						href="https://github.com/Geodock-GmbH/Qonnectra"
+						aria-label="GitHub"
+						class="btn-icon hover:preset-tonal size-5"
+						target="_blank"
+						title="GitHub"
+					>
+						<img src="/github-mark.svg" class="size-5" alt="GitHub Repository" />
+					</a>
 					<LightSwitch />
+					<span class="border-r h-8"></span>
 				</div>
 				{#if $userStore.isAuthenticated}
 					<div class="flex items-center flex-shrink-0">
 						<form method="POST" action="/logout">
-							<button type="submit" class="btn bg-transparent p-2 sm:p-1 touch-manipulation">
+							<button
+								type="submit"
+								class="btn bg-transparent p-2 sm:p-1 touch-manipulation hover:preset-tonal"
+							>
 								<IconLogout class="text-surface-700-300 " />
 							</button>
 						</form>
