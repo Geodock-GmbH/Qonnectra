@@ -1,38 +1,47 @@
 <script>
-	// Skeleton
-	import { Switch } from '@skeletonlabs/skeleton-svelte';
+	import { onMount } from 'svelte';
+	import { IconMoon, IconSun } from '@tabler/icons-svelte';
 
-	// Icons
-	// Svelte
 	import { lightSwitchMode } from '$lib/stores/store';
 
-	let checked = $state(false);
+	let isDark = $state(false);
 
-	$effect(() => {
-		const mode = localStorage.getItem('mode') || 'light';
-		checked = mode === 'dark';
+	onMount(() => {
+		const savedMode = localStorage.getItem('mode') || 'light';
+		isDark = savedMode === 'dark';
+		document.documentElement.setAttribute('data-mode', savedMode);
 	});
 
-	const onCheckedChange = (event) => {
-		const mode = event.checked ? 'dark' : 'light';
-		document.documentElement.setAttribute('data-mode', mode);
-		localStorage.setItem('mode', mode);
-		lightSwitchMode.set(mode);
-		checked = event.checked;
-	};
+	function toggleMode() {
+		isDark = !isDark;
+		const newMode = isDark ? 'dark' : 'light';
+
+		document.documentElement.setAttribute('data-mode', newMode);
+		localStorage.setItem('mode', newMode);
+		lightSwitchMode.set(newMode);
+	}
 </script>
 
-<!-- Head -->
 <svelte:head>
 	<script>
-		const mode = localStorage.getItem('mode') || 'light';
-		document.documentElement.setAttribute('data-mode', mode);
+		(function () {
+			const savedMode = localStorage.getItem('mode') || 'light';
+			document.documentElement.setAttribute('data-mode', savedMode);
+		})();
 	</script>
 </svelte:head>
 
-<Switch name="light-switch" {checked} {onCheckedChange}>
-	<Switch.Control>
-		<Switch.Thumb />
-	</Switch.Control>
-	<Switch.HiddenInput />
-</Switch>
+<button
+	type="button"
+	class="btn-icon hover:preset-tonal"
+	title="Toggle Light/Dark Mode"
+	onclick={toggleMode}
+	aria-checked={isDark}
+	role="switch"
+>
+	{#if isDark}
+		<IconSun class="size-5" />
+	{:else}
+		<IconMoon class="size-5" />
+	{/if}
+</button>
