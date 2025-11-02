@@ -1,12 +1,11 @@
 <script>
-	import { IconMoon, IconSun } from '@tabler/icons-svelte';
 	import { onMount } from 'svelte';
+	import { IconMoon, IconSun } from '@tabler/icons-svelte';
 
 	import { lightSwitchMode } from '$lib/stores/store';
 
 	let isDark = $state(false);
 
-	// Initialize mode on mount
 	onMount(() => {
 		const savedMode = localStorage.getItem('mode') || 'light';
 		isDark = savedMode === 'dark';
@@ -25,8 +24,7 @@
 
 <svelte:head>
 	<script>
-		// Prevent flash of unstyled content by setting mode immediately
-		(function() {
+		(function () {
 			const savedMode = localStorage.getItem('mode') || 'light';
 			document.documentElement.setAttribute('data-mode', savedMode);
 		})();
