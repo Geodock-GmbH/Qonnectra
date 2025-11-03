@@ -127,17 +127,6 @@ export const actions = {
 
 			const backendUrl = `${API_URL}microduct_connection/`;
 
-			console.log('Sending to Django backend:', {
-				url: backendUrl,
-				body: {
-					uuid_microduct_from,
-					uuid_microduct_to,
-					uuid_node,
-					uuid_trench_from,
-					uuid_trench_to
-				}
-			});
-
 			const response = await fetch(backendUrl, {
 				method: 'POST',
 				headers,
