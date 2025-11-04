@@ -28,7 +28,7 @@
 <!-- OpacitySlider -->
 <div 
 	aria-label={m.tooltip_opacity_slider()}
-	class="preset-filled-surface-50-950 rounded-md shadow lg:min-w-[256px] p-3"
+	class="preset-filled-surface-50-950 rounded-md border-1 border-surface-200-800 shadow lg:min-w-[256px] p-3"
 	{@attach tooltip(m.tooltip_opacity_slider(), { position: 'top', delay: 3000})} >
 	<Slider
 		value={sliderValue}
