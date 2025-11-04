@@ -1,5 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
+	import { cubicOut } from 'svelte/easing';
+	import { fly } from 'svelte/transition';
 	import { beforeNavigate } from '$app/navigation';
 
 	import { drawerStore } from '$lib/stores/drawer';
@@ -65,9 +67,10 @@
 {#if $drawerStore.open}
 	<div
 		bind:this={drawerElement}
-		class=" border-2 rounded-lg border-surface-200-800 shadow-lg flex flex-col relative {className}"
-		class:transition-all={!isResizing}
-		class:duration-300={!isResizing}
+		transition:fly={{ x: $drawerStore.width, duration: 300, easing: cubicOut }}
+		class="absolute top-0 right-0 h-full border-2 rounded-lg border-surface-200-800 bg-surface-50-950 shadow-xl flex flex-col z-50 {className}"
+		class:transition={!isResizing}
+		class:duration-500={!isResizing}
 		class:ease-in-out={!isResizing}
 		style="width: {$drawerStore.width}px;"
 		aria-labelledby="drawer-title"

@@ -8,21 +8,17 @@
 	let username;
 	let password;
 
-	// Read redirectTo query parameter
-	let redirectTo = '/map';
+	let redirectTo = '/dashboard';
 
 	/** @type {import('./$types').ActionData} */
-	export let form; // Receive action data from the server
+	export let form;
 
-	// Reactive statement to show toast on error
-	// TODO: Login successful toast, should be on the redirectTo page.
 	$: if (form?.error) {
 		globalToaster.create({
 			title: m.title_login_error(),
 			description: m.message_login_error(),
 			type: 'error'
 		});
-		console.log('form', form.error);
 	}
 </script>
 

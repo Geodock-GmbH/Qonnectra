@@ -121,7 +121,7 @@
 				highlightFeature.setId(feature.id);
 
 				highlightLayer.getSource().clear();
-				highlightLayer.getSource().addFeature(highlightFeature);
+				// highlightLayer.getSource().addFeature(highlightFeature); // Activate this to have it highlighted all the time until the user clicks on another feature
 
 				await zoomToFeature(olMapInstance, geometry, highlightLayer);
 

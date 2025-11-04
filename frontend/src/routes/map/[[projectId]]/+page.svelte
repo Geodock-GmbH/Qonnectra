@@ -47,7 +47,6 @@
 	// Initialize layers
 	const layersInitialized = mapState.initializeLayers();
 
-	// TODO: Hack to reload the page when the URL changes.
 	$effect(() => {
 		if ($page.url.href !== prevUrl) {
 			prevUrl = $page.url.href;
@@ -119,7 +118,7 @@
 	<title>{m.nav_map()}</title>
 </svelte:head>
 
-<div class="flex gap-4 h-full">
+<div class="relative flex gap-4 h-full overflow-hidden">
 	<div class="flex-1 h-full">
 		{#if data.error && !layersInitialized}
 			<div class="p-4 text-red-700 bg-red-100 border border-red-400 rounded">

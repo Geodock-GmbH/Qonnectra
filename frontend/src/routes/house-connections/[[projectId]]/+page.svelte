@@ -21,11 +21,21 @@
 	let { data } = $props();
 
 	// Initialize managers
-	const mapState = new MapState($selectedProject, $trenchColor, $trenchColorSelected, {
-		trench: true,
-		address: true,
-		node: true
-	});
+	const mapState = new MapState(
+		$selectedProject,
+		$trenchColor,
+		$trenchColorSelected,
+		{
+			trench: true,
+			address: true,
+			node: true
+		},
+		{
+			trench: { enabled: true },
+			address: { enabled: true },
+			node: { enabled: true }
+		}
+	);
 
 	const selectionManager = new MapSelectionManager();
 	const popupManager = new MapPopupManager(data.alias);
@@ -91,13 +101,13 @@
 	<title>{m.nav_house_connections()}</title>
 </svelte:head>
 
-<div class="flex gap-4 h-full">
+<div class="relative flex gap-4 h-full overflow-hidden">
 	<div class="flex-1 h-full">
 		{#if layersInitialized}
 			<div class="map-wrapper border-2 rounded-lg border-surface-200-800 h-full w-full">
 				<Map
 					className="rounded-lg overflow-hidden"
-					showSearchPanel={false}
+					showSearchPanel={true}
 					layers={mapState.getLayers()}
 					on:ready={handleMapReady}
 				/>
