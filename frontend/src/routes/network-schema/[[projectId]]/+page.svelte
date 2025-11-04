@@ -155,7 +155,7 @@
 	<title>{m.nav_network_schema()}</title>
 </svelte:head>
 
-<div class="flex gap-4 h-full">
+<div class="relative flex gap-4 h-full overflow-hidden">
 	<div class="flex-1 border-2 rounded-lg border-surface-200-800 h-full">
 		<SvelteFlow
 			bind:nodes={schemaState.nodes}

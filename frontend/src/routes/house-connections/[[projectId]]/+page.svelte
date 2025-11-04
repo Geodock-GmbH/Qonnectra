@@ -91,7 +91,7 @@
 	<title>{m.nav_house_connections()}</title>
 </svelte:head>
 
-<div class="flex gap-4 h-full">
+<div class="relative flex gap-4 h-full overflow-hidden">
 	<div class="flex-1 h-full">
 		{#if layersInitialized}
 			<div class="map-wrapper border-2 rounded-lg border-surface-200-800 h-full w-full">
