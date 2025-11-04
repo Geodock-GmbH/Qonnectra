@@ -298,9 +298,7 @@ class TrenchViewSet(viewsets.ModelViewSet):
                 queryset = queryset.none()
 
         if search_term:
-            queryset = queryset.filter(
-                Q(id_trench__icontains=search_term) | Q(comment__icontains=search_term)
-            )
+            queryset = queryset.filter(Q(id_trench__icontains=search_term))
 
         serializer = TrenchSerializer(queryset, many=True)
         return Response(serializer.data)
@@ -1074,11 +1072,6 @@ class NodeViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(
                 Q(name__icontains=search_term)
                 | Q(node_type__node_type__icontains=search_term)
-                | Q(status__status__icontains=search_term)
-                | Q(network_level__network_level__icontains=search_term)
-                | Q(owner__company__icontains=search_term)
-                | Q(manufacturer__company__icontains=search_term)
-                | Q(flag__flag__icontains=search_term)
             )
         serializer = NodeSerializer(queryset, many=True)
         return Response(serializer.data)

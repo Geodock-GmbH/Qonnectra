@@ -47,7 +47,6 @@
 	// Initialize layers
 	const layersInitialized = mapState.initializeLayers();
 
-	// TODO: Hack to reload the page when the URL changes.
 	$effect(() => {
 		if ($page.url.href !== prevUrl) {
 			prevUrl = $page.url.href;
