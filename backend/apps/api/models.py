@@ -9,6 +9,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from pathvalidate import sanitize_filename
 
 from .storage import LocalMediaStorage
 
@@ -498,24 +499,32 @@ class FeatureFiles(models.Model):
 
     def get_upload_path(instance, filename):
         """
-        Determine the upload path for a file based on feature type and file category.
+        Determine the upload path for a file based on project, feature type and file category.
 
-        The path structure follows: {feature_type}/{feature_id}/{category}/{filename}
+        The path structure follows: {project_name}/{feature_type}/{feature_id}/{category}/{filename}
 
         For example:
-        - trenches/12345/photos/image.jpg
-        - conduits/K1-HVT-FLS/documents/report.pdf
-        - cables/C1-Main/photos/image.jpg
-        - nodes/N1-POP/documents/spec.pdf
-        - addresses/Bahnstraße 20, 24941 Flensburg/documents/contract.pdf
+        - Project Alpha/trenches/12345/photos/image.jpg
+        - Project Beta/conduits/K1-HVT-FLS/documents/report.pdf
+        - Project Alpha/cables/C1-Main/photos/image.jpg
+        - Project Beta/nodes/N1-POP/documents/spec.pdf
+        - Project Alpha/addresses/Bahnstraße 20, 24941 Flensburg/documents/contract.pdf
         """
+
         prefs = StoragePreferences.objects.first()
 
         # Only support AUTO mode - manual uploads happen via WebDAV
         if not prefs or prefs.mode != "AUTO":
             # Default fallback if no preferences exist
             model_name = instance.content_type.model
-            return f"{model_name}s/{instance.object_id}/{filename}"
+            feature = instance.feature
+            project_name = (
+                feature.project.project
+                if hasattr(feature, "project") and feature.project
+                else "default"
+            )
+            project_name = sanitize_filename(project_name)
+            return f"{project_name}/{model_name}s/{instance.object_id}/{filename}"
 
         model_name = instance.content_type.model
         file_extension = instance.get_file_type() or ""
@@ -554,13 +563,20 @@ class FeatureFiles(models.Model):
         else:
             feature_id = instance.object_id
 
-        # Build the path based on folder structure
+        project_name = (
+            feature.project.project
+            if hasattr(feature, "project") and feature.project
+            else "default"
+        )
+        project_name = sanitize_filename(project_name)
+
+        # Build the path based on folder structure with project name as root
         if "/" in folder_name:
             # Handle nested folder structure (e.g., "trenches/photos")
             base_folder, sub_folder = folder_name.split("/", 1)
-            return f"{base_folder}/{feature_id}/{sub_folder}/{filename}"
+            return f"{project_name}/{base_folder}/{feature_id}/{sub_folder}/{filename}"
         else:
-            return f"{folder_name}/{feature_id}/{filename}"
+            return f"{project_name}/{folder_name}/{feature_id}/{filename}"
 
     file_path = models.FileField(
         upload_to=get_upload_path,
@@ -603,6 +619,12 @@ class FeatureFiles(models.Model):
             models.Index(
                 fields=["content_type", "object_id"],
                 name="idx_feature_files_type_id",
+            ),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["content_type", "object_id", "file_path"],
+                name="unique_feature_file_path",
             ),
         ]
 
