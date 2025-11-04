@@ -1,0 +1,79 @@
+publiccodeYmlVersion: 0.4.0
+name: Qonnectra
+url: https://github.com/Geodock-GmbH/Qonnectra
+landingURL: https://www.qonnectra.de
+platforms:
+  - linux
+  - windows
+  - web
+  - mac
+developmentStatus: development
+softwareType: standalone/other
+description:
+  en:
+    localisedName: Qonnectra
+    shortDescription: Fiber optic documentation of passive networks.
+    longDescription: >-
+      Qonnectra is a comprehensive web-based GIS application designed for
+      managing telecommunications network infrastructure. It enables users to
+      plan, document, and visualize fiber optic networks including trenches,
+      conduits, microducts, cables, and connection points.
+
+
+      The application is designed for telecommunications companies, contractors,
+      and municipal utilities who need to manage fiber optic network
+      infrastructure efficiently. It combines the power of professional GIS
+      tools with an intuitive web interface accessible from any modern browser.
+    features:
+      - Geographic information system for telecommunications infrastructure
+      - Interactive map interface
+      - Management of trenches, conduits, microducts, nodes and addresses
+      - Visual network schema editor
+      - Multi-project organization
+      - File storage and management
+      - Integration with QGIS
+      - REST API for third-party integrations
+      - WMS
+      - WFS
+  de:
+    localisedName: Qonnectra
+    shortDescription: Glasfaserdokumentation von passiven Netzen
+    longDescription: >-
+      Qonnectra ist eine umfassende webbasierte GIS-Anwendung zur Verwaltung von
+      Telekommunikationsnetzinfrastruktur. Sie ermöglicht Benutzern die Planung,
+      Dokumentation und Visualisierung von Glasfasernetzen einschließlich
+      Gräben, Leerrohren, Mikrokanälen, Kabeln und Anschlusspunkten.
+
+
+      Die Anwendung richtet sich an Telekommunikationsunternehmen,
+      Bauunternehmen und kommunale Versorgungsbetriebe, die
+      Glasfaser-Netzinfrastruktur effizient verwalten müssen. Sie kombiniert die
+      Leistungsfähigkeit professioneller GIS-Werkzeuge mit einer intuitiven
+      Weboberfläche, die von jedem modernen Browser aus zugänglich ist.
+    features:
+      - Geoinformationssystem für Telekommunikationsinfrastruktur
+      - Interaktive Kartenoberfläche
+      - Verwaltung von Trassen, Rohre, Kabel, Adressen und Netzknoten
+      - Visueller Netzwerk-Schema-Editor
+      - Multi-Projekt-Organisation
+      - Dateispeicherung und -verwaltung
+      - Integration mit QGIS
+      - REST-API für Integrationen von Drittanbietern
+      - WMS
+      - WFS
+legal:
+  license: AGPL-3.0-only
+maintenance:
+  type: internal
+  contacts:
+    - name: Malte Then
+      email: malte.then@geodock.de
+      affiliation: Geodock GmbH
+    - name: Daniel Seehaus
+      email: daniel.seehaus@geodock.de
+      affiliation: Geodock GmbH
+localisation:
+  localisationReady: true
+  availableLanguages:
+    - de
+    - en
