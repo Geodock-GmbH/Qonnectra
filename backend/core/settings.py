@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "dj_rest_auth",
     "rest_framework_simplejwt",
     "corsheaders",
+    "django_json_widget",
 ]
 
 MIDDLEWARE = [

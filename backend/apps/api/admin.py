@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.db import models
+from django_json_widget.widgets import JSONEditorWidget
 
 from .models import (
     AttributesCableType,
@@ -20,7 +22,6 @@ from .models import (
     ConduitTypeColorMapping,
     FileTypeCategory,
     Flags,
-    GtPkMetadata,
     Microduct,
     Projects,
     StoragePreferences,
@@ -108,6 +109,14 @@ class AttributesFiberColorAdmin(admin.ModelAdmin):
     )
 
 
+@admin.register(StoragePreferences)
+class StoragePreferencesAdmin(admin.ModelAdmin):
+    list_display = ("mode", "__str__")
+    formfield_overrides = {
+        models.JSONField: {"widget": JSONEditorWidget(height="600px", width="90%")},
+    }
+
+
 admin.site.register(AttributesSurface)
 admin.site.register(AttributesStatusDevelopment)
 admin.site.register(AttributesConstructionType)
@@ -116,7 +125,6 @@ admin.site.register(AttributesPhase)
 admin.site.register(AttributesCompany)
 admin.site.register(Cable)
 admin.site.register(Projects)
-admin.site.register(StoragePreferences)
 admin.site.register(FileTypeCategory)
 admin.site.register(Flags)
 admin.site.register(AttributesNetworkLevel)
@@ -124,4 +132,3 @@ admin.site.register(AttributesNodeType)
 admin.site.register(AttributesMicroductStatus)
 admin.site.register(Conduit)
 admin.site.register(Microduct)
-admin.site.register(GtPkMetadata)
