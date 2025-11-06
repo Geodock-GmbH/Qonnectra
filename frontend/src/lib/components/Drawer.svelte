@@ -3,6 +3,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import { fly } from 'svelte/transition';
 	import { beforeNavigate } from '$app/navigation';
+	import { innerWidth } from 'svelte/reactivity/window';
 
 	import { drawerStore } from '$lib/stores/drawer';
 
@@ -13,16 +14,28 @@
 	let startX = $state(0);
 	let startWidth = $state(0);
 
+	/**
+	 * Closes the drawer by updating the drawer store state
+	 */
 	function handleClose() {
 		drawerStore.close();
 	}
 
+	/**
+	 * Handles keyboard shortcuts for the drawer
+	 * @param {KeyboardEvent} event - The keyboard event
+	 */
 	function handleKeydown(event) {
 		if (event.key === 'Escape' && $drawerStore.open) {
 			handleClose();
 		}
 	}
 
+	/**
+	 * Initiates the drawer resize operation
+	 * Sets up initial state and applies cursor styles
+	 * @param {MouseEvent} event - The mouse event from the resize handle
+	 */
 	function handleResizeStart(event) {
 		isResizing = true;
 		startX = event.clientX;
@@ -31,19 +44,41 @@
 		document.body.style.userSelect = 'none';
 	}
 
+	/**
+	 * Handles mouse movement during drawer resize
+	 * Calculates new width based on mouse position delta
+	 * @param {MouseEvent} event - The mouse move event
+	 */
 	function handleResizeMove(event) {
 		if (!isResizing) return;
 
-		const deltaX = startX - event.clientX; // Negative because we're resizing from the right
+		const deltaX = startX - event.clientX;
 		const newWidth = startWidth + deltaX;
 		drawerStore.setWidth(newWidth);
 	}
 
+	/**
+	 * Completes the drawer resize operation
+	 * Resets cursor and selection styles
+	 */
 	function handleResizeEnd() {
 		isResizing = false;
 		document.body.style.cursor = '';
 		document.body.style.userSelect = '';
 	}
+
+	/**
+	 * Reactive effect that adjusts drawer width when viewport changes
+	 * Uses Svelte's reactive window.innerWidth to automatically track viewport changes
+	 * Ensures drawer never exceeds 80% of viewport width
+	 */
+	$effect(() => {
+		// innerWidth.current is reactive - this effect re-runs when viewport changes
+		const maxWidth = Math.floor((innerWidth.current ?? 0) * 0.8);
+		if ($drawerStore.width > maxWidth) {
+			drawerStore.setWidth(maxWidth);
+		}
+	});
 
 	beforeNavigate(() => {
 		if ($drawerStore.open) {
@@ -55,6 +90,7 @@
 		document.addEventListener('keydown', handleKeydown);
 		document.addEventListener('mousemove', handleResizeMove);
 		document.addEventListener('mouseup', handleResizeEnd);
+
 		return () => {
 			document.removeEventListener('keydown', handleKeydown);
 			document.removeEventListener('mousemove', handleResizeMove);
@@ -72,7 +108,7 @@
 		class:transition={!isResizing}
 		class:duration-500={!isResizing}
 		class:ease-in-out={!isResizing}
-		style="width: {$drawerStore.width}px;"
+		style="width: {$drawerStore.width}px; max-width: 80vw;"
 		aria-labelledby="drawer-title"
 	>
 		<!-- Header -->

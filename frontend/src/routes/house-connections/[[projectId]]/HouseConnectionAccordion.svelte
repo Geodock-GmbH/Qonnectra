@@ -57,7 +57,9 @@
 			if (result.type === 'success' && result.data) {
 				pipesInTrench = result.data.map((item) => ({
 					id: item.uuid || item.id,
-					title: item.conduit?.name || `Conduit ${item.uuid?.substring(0, 8)}`,
+					title: item.conduit?.name
+						? `${item.conduit.name}${item.conduit.conduit_type?.conduit_type ? ` (${item.conduit.conduit_type.conduit_type})` : ''}`
+						: `Conduit ${item.uuid?.slice(0, 8)}`,
 					description: '',
 					data: item,
 					pipeUuid: item.conduit?.uuid || null
