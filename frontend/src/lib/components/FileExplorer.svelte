@@ -248,11 +248,11 @@
 		</div>
 	{:else if files.length === 0}
 		<div class="text-center py-8 text-surface-500">
-			<p>No files uploaded yet</p>
+			<p>{m.form_no_files_uploaded_yet()}</p>
 		</div>
 	{:else}
 		<TreeView {collection}>
-			<TreeView.Label>Uploaded Files</TreeView.Label>
+			<TreeView.Label>{m.form_uploaded_files()}</TreeView.Label>
 			<TreeView.Tree>
 				{#each collection.rootNode.children || [] as node, index (node)}
 					{@render treeNode(node, [index])}
