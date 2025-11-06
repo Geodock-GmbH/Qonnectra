@@ -1,5 +1,6 @@
 import json
 import logging
+import mimetypes
 
 import psycopg
 from django.conf import settings
@@ -357,6 +358,38 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
         response["Content-Type"] = ""  # Let Nginx determine content type
         response["Content-Disposition"] = (
             f'attachment; filename="{file_obj.file_name}.{file_obj.file_type}"'
+        )
+
+        return response
+
+    @action(detail=True, methods=["get"], url_path="preview")
+    def preview(self, request, pk=None):
+        """
+        Preview a file using X-Accel-Redirect for efficient serving.
+
+        This endpoint validates user authentication and then redirects
+        to Nginx's internal location for secure file serving with inline
+        content disposition, allowing browsers to display the file.
+        """
+        # get_object() will raise Http404 if not found, no need for try/except
+        file_obj = self.get_object()
+
+        # Build the internal redirect path for Nginx
+        # The file_path.name contains the relative path from MEDIA_ROOT
+        file_path = file_obj.file_path.name
+        redirect_url = f"/media/{file_path}"
+
+        # Determine MIME type based on file extension
+        mime_type, _ = mimetypes.guess_type(f"{file_obj.file_name}.{file_obj.file_type}")
+        if mime_type is None:
+            mime_type = "application/octet-stream"
+
+        # Create response with X-Accel-Redirect header
+        response = HttpResponse()
+        response["X-Accel-Redirect"] = redirect_url
+        response["Content-Type"] = mime_type
+        response["Content-Disposition"] = (
+            f'inline; filename="{file_obj.file_name}.{file_obj.file_type}"'
         )
 
         return response
