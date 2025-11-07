@@ -322,9 +322,15 @@
 					class="flex items-center justify-between w-full gap-2 group"
 					role="button"
 					tabindex="0"
-					ondblclick={() => handleFileDoubleClick(node.fileData)}
+					ondblclick={() => {
+						if (editingFile?.uuid !== node.fileData.uuid) {
+							handleFileDoubleClick(node.fileData);
+						}
+					}}
 					onkeydown={(e) => {
-						if (e.key === 'Enter') handleFileDoubleClick(node.fileData);
+						if (e.key === 'Enter' && editingFile?.uuid !== node.fileData.uuid) {
+							handleFileDoubleClick(node.fileData);
+						}
 					}}
 				>
 					<div class="flex items-center gap-2 flex-1 min-w-0">
@@ -335,10 +341,18 @@
 								bind:value={editValue}
 								class="input flex-1 min-w-0 py-0 px-1 h-6"
 								onkeydown={(e) => {
-									if (e.key === 'Enter') saveRename(node.fileData);
-									if (e.key === 'Escape') cancelEditing();
+									if (e.key === 'Enter') {
+										e.stopPropagation();
+										e.preventDefault();
+										saveRename(node.fileData);
+									}
+									if (e.key === 'Escape') {
+										e.stopPropagation();
+										cancelEditing();
+									}
 								}}
 								onclick={(e) => e.stopPropagation()}
+								ondblclick={(e) => e.stopPropagation()}
 							/>
 							<button
 								type="button"
