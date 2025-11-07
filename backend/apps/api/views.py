@@ -333,7 +333,7 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
         This ensures that files are only returned for the specific feature
         being viewed, preventing files from leaking between different features.
         """
-        queryset = FeatureFiles.objects.all().order_by("object_id")
+        queryset = FeatureFiles.objects.all().order_by("file_path")
 
         object_id = self.request.query_params.get("object_id")
         if object_id:
@@ -363,7 +363,9 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
         response = HttpResponse()
         response["X-Accel-Redirect"] = redirect_url
         response["Content-Type"] = ""  # Let Nginx determine content type
-        response["Content-Disposition"] = f"attachment; filename*=UTF-8''{encoded_filename}"
+        response["Content-Disposition"] = (
+            f"attachment; filename*=UTF-8''{encoded_filename}"
+        )
 
         return response
 
@@ -439,6 +441,11 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
         if file_obj.file_path.storage.exists(new_path):
             return Response(
                 {"error": "A file with this name already exists"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        elif len(new_path) >= 255:
+            return Response(
+                {"error": "File path is too long"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

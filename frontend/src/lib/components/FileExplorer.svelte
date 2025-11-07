@@ -45,9 +45,13 @@
 			categoryMap.get(category).push(file);
 		}
 
-		// Build tree structure
+		// Build tree structure - sort categories alphabetically
 		const children = [];
-		for (const [category, categoryFiles] of categoryMap.entries()) {
+		const sortedCategories = Array.from(categoryMap.entries()).sort((a, b) =>
+			a[0].localeCompare(b[0])
+		);
+
+		for (const [category, categoryFiles] of sortedCategories) {
 			children.push({
 				id: `category-${category}`,
 				name: `${category} (${categoryFiles.length})`,
@@ -173,7 +177,7 @@
 	 */
 	function startEditing(file) {
 		editingFile = file;
-		editValue = file.file_name + (file.file_type ? `.${file.file_type}` : '');
+		editValue = file.file_name;
 	}
 
 	/**
@@ -197,6 +201,7 @@
 		}
 
 		try {
+			editValue += file.file_type ? `.${file.file_type}` : '';
 			const response = await fetch(`${PUBLIC_API_URL}feature-files/${file.uuid}/rename/`, {
 				method: 'POST',
 				credentials: 'include',
@@ -349,7 +354,7 @@
 							<button
 								type="button"
 								onclick={() => saveRename(node.fileData)}
-								class="btn-icon btn-sm preset-tonal"
+								class="btn-icon btn-sm preset-filled-primary-500"
 								title="Save"
 							>
 								✓
@@ -357,7 +362,7 @@
 							<button
 								type="button"
 								onclick={cancelEditing}
-								class="btn-icon btn-sm preset-tonal"
+								class="btn-icon btn-sm preset-filled-error-500"
 								title="Cancel"
 							>
 								✕
@@ -365,7 +370,7 @@
 						{:else}
 							<span class="truncate">{node.name}</span>
 							<div
-								class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+								class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
 							>
 								<button
 									type="button"
@@ -376,7 +381,7 @@
 									class="btn-icon btn-sm preset-filled-primary-500"
 									title="Download"
 								>
-									<IconDownload class="size-3" />
+									<IconDownload class="size-4" />
 								</button>
 								<button
 									type="button"
@@ -387,7 +392,7 @@
 									class="btn-icon btn-sm preset-filled-primary-500"
 									title="Rename"
 								>
-									<IconEdit class="size-3" />
+									<IconEdit class="size-4" />
 								</button>
 								<button
 									type="button"
@@ -398,7 +403,7 @@
 									class="btn-icon btn-sm preset-filled-error-500"
 									title="Delete"
 								>
-									<IconTrash class="size-3" />
+									<IconTrash class="size-4" />
 								</button>
 							</div>
 						{/if}
