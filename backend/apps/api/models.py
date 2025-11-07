@@ -663,6 +663,14 @@ class StoragePreferences(models.Model):
     def __str__(self):
         return f"Storage Preferences - {self.mode}"
 
+    def clean(self):
+        """Validate the folder_structure field."""
+        from .validators import validate_storage_preferences_structure
+
+        super().clean()
+        if self.folder_structure:
+            validate_storage_preferences_structure(self.folder_structure)
+
 
 class FileTypeCategory(models.Model):
     """Maps file extensions to categories for organizing uploads.
