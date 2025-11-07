@@ -264,7 +264,7 @@
 		</div>
 	{:else if files.length === 0}
 		<div class="text-center py-8 text-surface-500">
-			<p>{m.form_no_files_uploaded_yet()}</p>
+			<p class="text-sm">{m.form_no_files_uploaded_yet()}</p>
 		</div>
 	{:else}
 		<div class="flex flex-col gap-2">

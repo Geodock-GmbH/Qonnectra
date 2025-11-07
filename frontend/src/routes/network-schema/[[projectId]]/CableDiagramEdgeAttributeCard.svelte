@@ -145,7 +145,7 @@
 <!-- Cable form -->
 <form id="cable-form" class="flex flex-col gap-4" onsubmit={handleSubmit}>
 	<label class="label">
-		<span class="label-text">{m.common_name()}</span>
+		<span class="text-sm">{m.common_name()}</span>
 		<input
 			type="text"
 			class="input"
@@ -157,7 +157,7 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_cable_type()}</span>
+		<span class="text-sm">{m.form_cable_type()}</span>
 		<GenericCombobox
 			data={attributes.cableTypes}
 			bind:value={cableType}
@@ -166,7 +166,7 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_status()}</span>
+		<span class="text-sm">{m.form_status()}</span>
 		<GenericCombobox
 			data={attributes.statuses}
 			bind:value={cableStatus}
@@ -175,7 +175,7 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_network_level()}</span>
+		<span class="text-sm">{m.form_network_level()}</span>
 		<GenericCombobox
 			data={attributes.networkLevels}
 			bind:value={cableNetworkLevel}
@@ -184,7 +184,7 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_owner()}</span>
+		<span class="text-sm">{m.form_owner()}</span>
 		<GenericCombobox
 			data={attributes.companies}
 			bind:value={cableOwner}
@@ -193,7 +193,7 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_constructor()}</span>
+		<span class="text-sm">{m.form_constructor()}</span>
 		<GenericCombobox
 			data={attributes.companies}
 			bind:value={cableConstructor}
@@ -202,7 +202,7 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_manufacturer()}</span>
+		<span class="text-sm">{m.form_manufacturer()}</span>
 		<GenericCombobox
 			data={attributes.companies}
 			bind:value={cableManufacturer}
@@ -211,7 +211,7 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">{m.common_date()}</span>
+		<span class="text-sm">{m.common_date()}</span>
 		<input
 			type="date"
 			class="input"
@@ -222,7 +222,7 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_flag()}</span>
+		<span class="text-sm">{m.form_flag()}</span>
 		<GenericCombobox
 			data={attributes.flags}
 			bind:value={cableFlag}
@@ -231,23 +231,23 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_reserve_at_start()}</span>
+		<span class="text-sm">{m.form_reserve_at_start()}</span>
 		<input type="number" class="input" name="reserve_at_start" value={cableReserveAtStart || 0} />
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_reserve_at_end()}</span>
+		<span class="text-sm">{m.form_reserve_at_end()}</span>
 		<input type="number" class="input" name="reserve_at_end" value={cableReserveAtEnd || 0} />
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_reserve_section()}</span>
+		<span class="text-sm">{m.form_reserve_section()}</span>
 		<input type="number" class="input" name="reserve_section" value={cableReserveSection || 0} />
 	</label>
 	<label class="label">
-		<span class="label-text">{m.common_length()}</span>
+		<span class="text-sm">{m.common_length()}</span>
 		<input type="number" class="input" name="length" readonly value={cableLength || 0} />
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_length_total()}</span>
+		<span class="text-sm">{m.form_length_total()}</span>
 		<input type="number" class="input" name="length_total" readonly value={cableLengthTotal || 0} />
 	</label>
 </form>

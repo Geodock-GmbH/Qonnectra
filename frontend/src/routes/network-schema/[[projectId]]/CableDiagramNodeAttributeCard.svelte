@@ -102,7 +102,7 @@
 <!-- Node form -->
 <form id="node-form" class="flex flex-col gap-4" onsubmit={handleSubmit}>
 	<label class="label">
-		<span class="label-text">{m.common_name()}</span>
+		<span class="text-sm">{m.common_name()}</span>
 		<input
 			type="text"
 			class="input"
@@ -114,7 +114,7 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_node_type()}</span>
+		<span class="text-sm">{m.form_node_type()}</span>
 		<GenericCombobox
 			data={attributes.nodeTypes}
 			bind:value={nodeType}
@@ -123,7 +123,7 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_status()}</span>
+		<span class="text-sm">{m.form_status()}</span>
 		<GenericCombobox
 			data={attributes.statuses}
 			bind:value={nodeStatus}
@@ -132,7 +132,7 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_network_level()}</span>
+		<span class="text-sm">{m.form_network_level()}</span>
 		<GenericCombobox
 			data={attributes.networkLevels}
 			bind:value={nodeNetworkLevel}
@@ -141,7 +141,7 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_owner()}</span>
+		<span class="text-sm">{m.form_owner()}</span>
 		<GenericCombobox
 			data={attributes.companies}
 			bind:value={nodeOwner}
@@ -150,7 +150,7 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_constructor()}</span>
+		<span class="text-sm">{m.form_constructor()}</span>
 		<GenericCombobox
 			data={attributes.companies}
 			bind:value={nodeConstructor}
@@ -159,7 +159,7 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_manufacturer()}</span>
+		<span class="text-sm">{m.form_manufacturer()}</span>
 		<GenericCombobox
 			data={attributes.companies}
 			bind:value={nodeManufacturer}
@@ -168,7 +168,7 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_warranty()}</span>
+		<span class="text-sm">{m.form_warranty()}</span>
 		<input
 			type="date"
 			class="input"
@@ -178,7 +178,7 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">{m.common_date()}</span>
+		<span class="text-sm">{m.common_date()}</span>
 		<input
 			type="date"
 			class="input"
@@ -188,7 +188,7 @@
 		/>
 	</label>
 	<label class="label">
-		<span class="label-text">{m.form_flag()}</span>
+		<span class="text-sm">{m.form_flag()}</span>
 		<GenericCombobox
 			data={attributes.flags}
 			bind:value={nodeFlag}

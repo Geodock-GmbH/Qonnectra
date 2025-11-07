@@ -82,7 +82,7 @@
 <form id="handle-config-form" class="flex flex-col gap-6" onsubmit={handleSubmit}>
 	<!-- Start Node -->
 	<div class="space-y-3">
-		<h3 class="h4 font-semibold">
+		<h3 class="text-lg font-semibold">
 			{cable?.uuid_node_start_name || cable?.uuid_node_start || 'Unknown'}
 		</h3>
 		<div class="space-y-2">
@@ -97,7 +97,7 @@
 							checked={handleStart === option.value}
 							onchange={() => (handleStart = option.value)}
 						/>
-						<p>{option.label}</p>
+						<p class="text-sm">{option.label}</p>
 					</label>
 				{/each}
 			</div>
@@ -106,7 +106,7 @@
 
 	<!-- End Node -->
 	<div class="space-y-3">
-		<h3 class="h4 font-semibold">
+		<h3 class="text-lg font-semibold">
 			{cable?.uuid_node_end_name || cable?.uuid_node_end || 'Unknown'}
 		</h3>
 		<div class="space-y-2">
@@ -131,7 +131,7 @@
 
 <!-- Save button -->
 <div class="mt-6 flex flex-col items-end justify-end gap-3">
-	<button type="submit" form="handle-config-form" class="btn preset-filled w-full">
+	<button type="submit" form="handle-config-form" class="btn preset-filled-primary-500 w-full">
 		{m.action_save()}
 	</button>
 </div>
