@@ -33,9 +33,7 @@ export async function _waitForSyncCompletion(
 			if (response.ok) {
 				currentStatus = await response.json();
 				if (currentStatus.sync_in_progress) {
-					console.log(`Sync progress: ${currentStatus.sync_progress.toFixed(1)}% complete`);
 				} else {
-					console.log(`Sync completed with status: ${currentStatus.sync_status}`);
 					break;
 				}
 			} else {
@@ -90,13 +88,8 @@ export async function load({ fetch, cookies, url, params }) {
 			syncStatus = await syncStatusResponse.json();
 
 			if (syncStatus.sync_in_progress) {
-				console.log(
-					`Canvas sync already in progress (${syncStatus.sync_progress.toFixed(1)}% complete)`
-				);
 				syncStatus = await _waitForSyncCompletion(fetch, headers, syncStatus, projectId);
 			} else if (syncStatus.sync_needed) {
-				console.log(`Syncing canvas coordinates for ${syncStatus.nodes_missing_canvas} nodes...`);
-
 				const syncResponse = await fetch(`${API_URL}canvas-coordinates/`, {
 					method: 'POST',
 					credentials: 'include',
@@ -112,14 +105,10 @@ export async function load({ fetch, cookies, url, params }) {
 
 				if (syncResponse.status === 409) {
 					const conflictData = await syncResponse.json();
-					console.log('Sync started by another user:', conflictData.sync_started_by);
 				} else if (!syncResponse.ok) {
 					console.error('Failed to sync canvas coordinates');
 				} else {
 					const syncResult = await syncResponse.json();
-					console.log(
-						`Successfully synced canvas coordinates for ${syncResult.updated_count} nodes`
-					);
 				}
 			}
 		}
@@ -776,7 +765,6 @@ export const actions = {
 		const position_y = formData.get('position_y');
 		const order = formData.get('order');
 
-		// Validate required fields
 		if (!cableId) {
 			return {
 				type: 'error',
@@ -795,7 +783,6 @@ export const actions = {
 			let response;
 
 			if (labelId) {
-				// Update existing label
 				response = await fetch(`${API_URL}cable_label/${labelId}/`, {
 					method: 'PATCH',
 					credentials: 'include',
@@ -804,29 +791,74 @@ export const actions = {
 						'Content-Type': 'application/json'
 					},
 					body: JSON.stringify({
+						text: text,
 						position_x: parseFloat(position_x),
 						position_y: parseFloat(position_y)
 					})
 				});
 			} else {
-				// Create new label
-				const requestBody = {
-					cable_id: cableId,
-					text: text || 'Label',
-					position_x: parseFloat(position_x),
-					position_y: parseFloat(position_y),
-					order: order ? parseInt(order) : 0
-				};
-
-				response = await fetch(`${API_URL}cable_label/`, {
-					method: 'POST',
+				const existingLabelResponse = await fetch(`${API_URL}cable_label/?cable_uuid=${cableId}`, {
+					method: 'GET',
 					credentials: 'include',
-					headers: {
-						...headers,
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify(requestBody)
+					headers: headers
 				});
+
+				if (existingLabelResponse.ok) {
+					const existingLabels = await existingLabelResponse.json();
+
+					if (existingLabels && existingLabels.length > 0) {
+						const existingLabel = existingLabels[0];
+						response = await fetch(`${API_URL}cable_label/${existingLabel.uuid}/`, {
+							method: 'PATCH',
+							credentials: 'include',
+							headers: {
+								...headers,
+								'Content-Type': 'application/json'
+							},
+							body: JSON.stringify({
+								text: text,
+								position_x: parseFloat(position_x),
+								position_y: parseFloat(position_y)
+							})
+						});
+					} else {
+						const requestBody = {
+							cable_id: cableId,
+							text: text || 'Label',
+							position_x: parseFloat(position_x),
+							position_y: parseFloat(position_y),
+							order: order ? parseInt(order) : 0
+						};
+
+						response = await fetch(`${API_URL}cable_label/`, {
+							method: 'POST',
+							credentials: 'include',
+							headers: {
+								...headers,
+								'Content-Type': 'application/json'
+							},
+							body: JSON.stringify(requestBody)
+						});
+					}
+				} else {
+					const requestBody = {
+						cable_id: cableId,
+						text: text || 'Label',
+						position_x: parseFloat(position_x),
+						position_y: parseFloat(position_y),
+						order: order ? parseInt(order) : 0
+					};
+
+					response = await fetch(`${API_URL}cable_label/`, {
+						method: 'POST',
+						credentials: 'include',
+						headers: {
+							...headers,
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(requestBody)
+					});
+				}
 			}
 
 			if (!response.ok) {
@@ -839,7 +871,7 @@ export const actions = {
 			const updatedLabel = await response.json();
 
 			return {
-				success: true,
+				type: 'success',
 				message: labelId ? 'Label position updated successfully' : 'Label created successfully',
 				label: updatedLabel
 			};

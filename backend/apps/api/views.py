@@ -462,6 +462,31 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete both the database record and the physical file.
+
+        This override ensures that when a FeatureFile is deleted via the API,
+        both the database entry and the actual file on disk are removed.
+        """
+        instance = self.get_object()
+
+        # Delete the physical file first
+        if instance.file_path:
+            try:
+                # This calls the storage backend's delete() method
+                instance.file_path.delete(save=False)
+                logger.info(f"Deleted physical file: {instance.file_path.name}")
+            except Exception as e:
+                logger.error(
+                    f"Error deleting physical file {instance.file_path.name}: {e}"
+                )
+                # Continue to delete DB record even if file deletion fails
+                # (file might already be gone)
+
+        # Delete the database record
+        return super().destroy(request, *args, **kwargs)
+
 
 class WebDAVAuthView(APIView):
     """

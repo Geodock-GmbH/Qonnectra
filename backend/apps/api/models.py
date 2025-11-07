@@ -6,7 +6,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models as gis_models
 from django.db import models
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -1994,6 +1994,36 @@ class MicroductCableConnection(models.Model):
             + " to "
             + self.uuid_cable.name
         )
+
+
+@receiver(pre_save, sender=Cable)
+def track_cable_name_change(sender, instance, **kwargs):
+    """
+    Track the old cable name before save to detect if it changed.
+    Stores the old name as a temporary attribute on the instance.
+    """
+    if instance.pk:
+        try:
+            old_cable = Cable.objects.get(pk=instance.pk)
+            instance._old_name = old_cable.name
+        except Cable.DoesNotExist:
+            instance._old_name = None
+    else:
+        instance._old_name = None
+
+
+@receiver(post_save, sender=Cable)
+def update_cable_labels_on_name_change(sender, instance, created, **kwargs):
+    """
+    Automatically update all cable labels when the cable name changes.
+    Updates CableLabel.text to match the new Cable.name.
+    """
+    if created:
+        return
+
+    old_name = getattr(instance, "_old_name", None)
+    if old_name is not None and old_name != instance.name:
+        instance.labels.update(text=instance.name)
 
 
 class ConduitTypeColorMapping(models.Model):

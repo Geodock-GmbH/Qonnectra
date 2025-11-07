@@ -6,6 +6,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 
 	/**
@@ -23,6 +24,7 @@
 	let editingFile = $state(null);
 	let editValue = $state('');
 	let deletingFile = $state(null);
+	let deleteMessageBox;
 
 	/**
 	 * Transform flat file list into tree structure
@@ -82,9 +84,12 @@
 		error = null;
 
 		try {
-			const response = await fetch(`${PUBLIC_API_URL}feature-files/?object_id=${featureId}`, {
-				credentials: 'include'
-			});
+			const response = await fetch(
+				`${PUBLIC_API_URL}feature-files/?object_id=${featureId}&page_size=100`,
+				{
+					credentials: 'include'
+				}
+			);
 
 			if (!response.ok) {
 				throw new Error(`Failed to load files: ${response.status}`);
@@ -121,9 +126,20 @@
 	}
 
 	/**
+	 * Show delete confirmation dialog
+	 */
+	function confirmDelete(file) {
+		deletingFile = file;
+		deleteMessageBox.open();
+	}
+
+	/**
 	 * Delete file
 	 */
-	async function deleteFile(file) {
+	async function deleteFile() {
+		const file = deletingFile;
+		if (!file) return;
+
 		try {
 			const response = await fetch(`${PUBLIC_API_URL}feature-files/${file.uuid}/`, {
 				method: 'DELETE',
@@ -246,57 +262,33 @@
 			<p>{m.form_no_files_uploaded_yet()}</p>
 		</div>
 	{:else}
-		<TreeView {collection}>
-			<TreeView.Label>{m.form_uploaded_files()}</TreeView.Label>
-			<TreeView.Tree>
-				{#each collection.rootNode.children || [] as node, index (node)}
-					{@render treeNode(node, [index])}
-				{/each}
-			</TreeView.Tree>
-		</TreeView>
+		<div class="flex flex-col gap-2">
+			<TreeView {collection}>
+				<TreeView.Label>{m.form_uploaded_files()}</TreeView.Label>
+				<div class="max-h-96 overflow-y-auto overflow-x-hidden">
+					<TreeView.Tree>
+						{#each collection.rootNode.children || [] as node, index (node)}
+							{@render treeNode(node, [index])}
+						{/each}
+					</TreeView.Tree>
+				</div>
+			</TreeView>
+		</div>
 	{/if}
 </div>
 
 <!-- Confirmation Dialog for Delete -->
-{#if deletingFile}
-	<div
-		class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-		role="button"
-		tabindex="0"
-		onclick={() => (deletingFile = null)}
-		onkeydown={(e) => {
-			if (e.key === 'Escape') deletingFile = null;
-		}}
-	>
-		<div
-			class="bg-surface-100 dark:bg-surface-800 rounded-lg p-6 max-w-md"
-			role="dialog"
-			aria-modal="true"
-			tabindex="-1"
-			onclick={(e) => e.stopPropagation()}
-			onkeydown={(e) => e.stopPropagation()}
-		>
-			<h3 class="text-lg font-semibold mb-4">Confirm Delete</h3>
-			<p class="mb-6">
-				Are you sure you want to delete <strong
-					>{deletingFile.file_name}.{deletingFile.file_type}</strong
-				>? This action cannot be undone.
-			</p>
-			<div class="flex gap-2 justify-end">
-				<button type="button" onclick={() => (deletingFile = null)} class="btn preset-tonal">
-					Cancel
-				</button>
-				<button
-					type="button"
-					onclick={() => deleteFile(deletingFile)}
-					class="btn preset-filled-error-500"
-				>
-					Delete
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
+<MessageBox
+	bind:this={deleteMessageBox}
+	heading="Confirm Delete"
+	message={deletingFile
+		? `Are you sure you want to delete ${deletingFile.file_name}.${deletingFile.file_type}? This action cannot be undone.`
+		: ''}
+	showAcceptButton={true}
+	acceptText="Delete"
+	closeText="Cancel"
+	onAccept={deleteFile}
+/>
 
 {#snippet treeNode(node, indexPath)}
 	<TreeView.NodeProvider value={{ node, indexPath }}>
@@ -401,7 +393,7 @@
 									type="button"
 									onclick={(e) => {
 										e.stopPropagation();
-										deletingFile = node.fileData;
+										confirmDelete(node.fileData);
 									}}
 									class="btn-icon btn-sm preset-filled-error-500"
 									title="Delete"
