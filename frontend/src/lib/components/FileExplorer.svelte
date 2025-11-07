@@ -181,25 +181,20 @@
 		}
 
 		try {
-			// Extract path components
-			const pathParts = file.file_path.split('/');
-			// Replace filename while keeping the rest of the path
-			pathParts[pathParts.length - 1] = editValue;
-			const newPath = pathParts.join('/');
-
-			const response = await fetch(`${PUBLIC_API_URL}feature-files/${file.uuid}/`, {
-				method: 'PATCH',
+			const response = await fetch(`${PUBLIC_API_URL}feature-files/${file.uuid}/rename/`, {
+				method: 'POST',
 				credentials: 'include',
 				headers: {
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					file_path: newPath
+					new_filename: editValue
 				})
 			});
 
 			if (!response.ok) {
-				throw new Error(`Failed to rename file: ${response.status}`);
+				const errorData = await response.json();
+				throw new Error(errorData.error || `Failed to rename file: ${response.status}`);
 			}
 
 			globalToaster.success({

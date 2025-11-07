@@ -1,3 +1,4 @@
+import os
 import uuid
 
 from django.conf import settings
@@ -591,17 +592,21 @@ class FeatureFiles(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     def get_file_name(instance):
-        file_name = instance.file_path.name
+        file_path = instance.file_path.name
         try:
-            parts = file_name.split(".")
-            return parts[0] if len(parts) > 1 else file_name
+            # Extract just the filename from the full path
+            filename = os.path.basename(file_path)
+            parts = filename.split(".")
+            return parts[0] if len(parts) > 1 else filename
         except Exception:
-            return file_name
+            return file_path
 
     def get_file_type(instance):
-        file_name = instance.file_path.name
+        file_path = instance.file_path.name
         try:
-            parts = file_name.split(".")
+            # Extract just the filename from the full path
+            filename = os.path.basename(file_path)
+            parts = filename.split(".")
             return parts[-1] if len(parts) > 1 else None
         except Exception:
             return None
