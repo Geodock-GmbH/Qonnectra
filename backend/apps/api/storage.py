@@ -4,6 +4,7 @@ Custom storage backend for local filesystem storage.
 
 import logging
 import os
+import unicodedata
 
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
@@ -24,6 +25,7 @@ class LocalMediaStorage(FileSystemStorage):
 
     Files are organized in a structured hierarchy:
     media/
+    project_name/
     ├── trenches/
     │   ├── [trench_id]/
     │   │   ├── photos/
@@ -50,6 +52,24 @@ class LocalMediaStorage(FileSystemStorage):
         super().__init__(location=location, base_url=base_url)
         logger.info(f"LocalMediaStorage initialized with location: {location}")
 
+    def get_valid_name(self, name):
+        """
+        Preserve Unicode characters including umlauts.
+
+        Django's default get_valid_name() strips diacritical marks due to
+        Unicode normalization issues (NFD vs NFC). This override normalizes
+        to NFC form to preserve umlauts (ä, ö, ü) and other accented characters
+        while ensuring cross-platform compatibility.
+
+        Args:
+            name: The original filename
+
+        Returns:
+            The filename normalized to NFC form
+        """
+        # Normalize to NFC (composed form) to preserve accented characters
+        return unicodedata.normalize("NFC", name)
+
     def get_available_name(self, name, max_length=None):
         """
         Return a filename that's available in the storage mechanism.
@@ -74,7 +94,6 @@ class LocalMediaStorage(FileSystemStorage):
         Returns:
             The name of the saved file
         """
-        # Ensure directory exists
         full_path = self.path(name)
         directory = os.path.dirname(full_path)
 
@@ -86,7 +105,6 @@ class LocalMediaStorage(FileSystemStorage):
                 logger.error(f"Error creating directory {directory}: {e}")
                 raise
 
-        # Save the file using parent class method
         return super()._save(name, content)
 
     def delete(self, name):
@@ -118,7 +136,6 @@ class LocalMediaStorage(FileSystemStorage):
         if self.base_url is None:
             raise ValueError("This file is not accessible via a URL.")
 
-        # Return the URL path (Nginx will handle serving with authentication)
         url = super().url(name)
         logger.debug(f"Generated URL for {name}: {url}")
         return url

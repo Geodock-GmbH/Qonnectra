@@ -2,6 +2,7 @@ import json
 import logging
 import mimetypes
 import os
+from urllib.parse import quote
 
 import psycopg
 from django.conf import settings
@@ -11,6 +12,7 @@ from django.db import connection, transaction
 from django.db.models import Count, F, Q, Sum
 from django.http import HttpResponse
 from django.utils import timezone
+from django.utils.encoding import iri_to_uri
 from pathvalidate import sanitize_filename
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -351,13 +353,17 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
 
         file_path = file_obj.file_path.name
         redirect_url = f"/media/{file_path}"
+        # Convert IRI to URI for Nginx X-Accel-Redirect (encodes Unicode characters)
+        redirect_url = iri_to_uri(redirect_url)
+
+        # Construct filename and encode for RFC 2231 to support non-ASCII characters
+        filename = f"{file_obj.file_name}.{file_obj.file_type}"
+        encoded_filename = quote(filename)
 
         response = HttpResponse()
         response["X-Accel-Redirect"] = redirect_url
         response["Content-Type"] = ""  # Let Nginx determine content type
-        response["Content-Disposition"] = (
-            f'attachment; filename="{file_obj.file_name}.{file_obj.file_type}"'
-        )
+        response["Content-Disposition"] = f"attachment; filename*=UTF-8''{encoded_filename}"
 
         return response
 
@@ -374,19 +380,21 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
 
         file_path = file_obj.file_path.name
         redirect_url = f"/media/{file_path}"
+        # Convert IRI to URI for Nginx X-Accel-Redirect (encodes Unicode characters)
+        redirect_url = iri_to_uri(redirect_url)
 
-        mime_type, _ = mimetypes.guess_type(
-            f"{file_obj.file_name}.{file_obj.file_type}"
-        )
+        # Construct filename and encode for RFC 2231 to support non-ASCII characters
+        filename = f"{file_obj.file_name}.{file_obj.file_type}"
+        encoded_filename = quote(filename)
+
+        mime_type, _ = mimetypes.guess_type(filename)
         if mime_type is None:
             mime_type = "application/octet-stream"
 
         response = HttpResponse()
         response["X-Accel-Redirect"] = redirect_url
         response["Content-Type"] = mime_type
-        response["Content-Disposition"] = (
-            f'inline; filename="{file_obj.file_name}.{file_obj.file_type}"'
-        )
+        response["Content-Disposition"] = f"inline; filename*=UTF-8''{encoded_filename}"
 
         return response
 
