@@ -89,10 +89,24 @@
 
 # QGIS Server
 {$QGIS_DOMAIN} {
-    reverse_proxy qgis-server:80 {
-        header_up Host {host}
-        header_up X-Forwarded-Proto https
-        header_up X-Real-IP {remote_host}
+    # Forward authentication to Django
+    route {
+        # Authenticate all requests via Django
+        forward_auth nginx:80 {
+            uri /api/v1/auth/qgis-auth/
+            header_up Host {upstream_hostport}
+            header_up Authorization {http.request.header.Authorization}
+            header_up X-Forwarded-Method {method}
+            header_up X-Forwarded-URI {uri}
+            copy_headers WWW-Authenticate
+        }
+
+        # Proxy to QGIS Server
+        reverse_proxy qgis-server:80 {
+            header_up Host {host}
+            header_up X-Forwarded-Proto https
+            header_up X-Real-IP {remote_host}
+        }
     }
 
     header {
