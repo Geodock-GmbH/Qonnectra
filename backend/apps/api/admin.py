@@ -1,4 +1,7 @@
 from django.contrib import admin
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+from django_json_widget.widgets import JSONEditorWidget
 
 from .models import (
     AttributesCableType,
@@ -20,10 +23,11 @@ from .models import (
     ConduitTypeColorMapping,
     FileTypeCategory,
     Flags,
-    GtPkMetadata,
     Microduct,
     Projects,
+    QGISProject,
     StoragePreferences,
+    Trench,
 )
 
 
@@ -108,6 +112,88 @@ class AttributesFiberColorAdmin(admin.ModelAdmin):
     )
 
 
+@admin.register(StoragePreferences)
+class StoragePreferencesAdmin(admin.ModelAdmin):
+    list_display = ("mode", "__str__")
+    formfield_overrides = {
+        models.JSONField: {"widget": JSONEditorWidget(height="600px", width="90%")},
+    }
+
+
+@admin.register(QGISProject)
+class QGISProjectAdmin(admin.ModelAdmin):
+    list_display = ("display_name", "name", "created_at", "created_by")
+    list_filter = ("name", "created_at")
+    search_fields = ("name", "display_name", "description")
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+        "created_by",
+        "get_wms_url",
+        "get_wfs_url",
+    )
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "name",
+                    "display_name",
+                    "description",
+                    "project_file",
+                )
+            },
+        ),
+        (
+            "Access URLs",
+            {
+                "fields": ("get_wms_url", "get_wfs_url"),
+                "description": _(
+                    "Use these URLs to access the QGIS project via WMS/WFS services"
+                ),
+            },
+        ),
+        (
+            "Metadata",
+            {
+                "fields": ("created_at", "updated_at", "created_by"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+
+    def save_model(self, request, obj, form, change):
+        """Auto-populate created_by field."""
+        if not change:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+
+        from django.contrib import messages
+
+        messages.warning(
+            request,
+            _(
+                "QGIS project saved successfully. Please restart QGIS Server manually using docker-compose."
+            ),
+        )
+
+    def get_wms_url(self, obj):
+        """Display WMS access URL in admin."""
+        if obj.project_file:
+            return obj.get_wms_url()
+        return "-"
+
+    get_wms_url.short_description = "WMS URL"
+
+    def get_wfs_url(self, obj):
+        """Display WFS access URL in admin."""
+        if obj.project_file:
+            return obj.get_wfs_url()
+        return "-"
+
+    get_wfs_url.short_description = "WFS URL"
+
+
 admin.site.register(AttributesSurface)
 admin.site.register(AttributesStatusDevelopment)
 admin.site.register(AttributesConstructionType)
@@ -116,7 +202,6 @@ admin.site.register(AttributesPhase)
 admin.site.register(AttributesCompany)
 admin.site.register(Cable)
 admin.site.register(Projects)
-admin.site.register(StoragePreferences)
 admin.site.register(FileTypeCategory)
 admin.site.register(Flags)
 admin.site.register(AttributesNetworkLevel)
@@ -124,4 +209,4 @@ admin.site.register(AttributesNodeType)
 admin.site.register(AttributesMicroductStatus)
 admin.site.register(Conduit)
 admin.site.register(Microduct)
-admin.site.register(GtPkMetadata)
+admin.site.register(Trench)

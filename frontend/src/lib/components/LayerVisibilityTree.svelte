@@ -6,13 +6,10 @@
 
 	let { layers = [], osmLayer = null, onLayerVisibilityChanged = () => {} } = $props();
 
-	// State to track visibility of each layer
 	let layerVisibility = $state(new Map());
 
-	// Mobile state
 	let isCollapsed = $state(false);
 
-	// Initialize visibility state when layers change
 	$effect(() => {
 		const newVisibility = new Map();
 
@@ -25,12 +22,10 @@
 			});
 		}
 
-		// Add other layers with generated names if they don't have custom names
 		layers.forEach((layer, index) => {
 			const layerId = layer.get('layerId');
 			const layerName = layer.get('layerName');
 
-			// Removes undefined layers like selection layer
 			if (layerId && layerName) {
 				newVisibility.set(layerId, {
 					layer: layer,
@@ -71,7 +66,9 @@
 </script>
 
 <!-- LayerVisibilityTree -->
-<div class="w-full max-w-sm md:w-64 p-3 md:p-2 bg-surface-50-950 rounded-md shadow-lg md:shadow">
+<div
+	class="w-full max-w-sm md:w-64 p-3 md:p-2 border-1 border-surface-200-800 bg-surface-50-950 rounded-md shadow-lg md:shadow"
+>
 	<!-- Header with collapse functionality for mobile -->
 	<div class="flex items-center justify-between md:mb-2">
 		<p class="text-sm font-medium text-surface-contrast-100-900">{m.form_layer_visibility()}</p>

@@ -44,6 +44,7 @@ services:
     volumes:
       - static_volume:/app/static
       - media_volume:/app/media
+      - ./qgis/projects:/app/qgis/projects
     environment:
       - DEBUG=${DEBUG}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
@@ -89,7 +90,7 @@ services:
     environment:
       - QGIS_SERVER_LOG_LEVEL=2
       - QGIS_SERVER_LOG_STDERR=1
-      - QGIS_PROJECT_FILE=/projects/default.qgs
+      # - QGIS_PROJECT_FILE=/projects/default.qgs
       - QGIS_FCGI_MIN_PROCESSES=1
       - QGIS_FCGI_MAX_PROCESSES=4
       - PGSERVICEFILE=/etc/postgresql-common/pg_service.conf
@@ -106,7 +107,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "curl -f http://localhost/ows/?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities || exit 1",
+          "curl -f 'http://localhost/ows/?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities&MAP=/projects/default.qgs' || exit 1",
         ]
       interval: 30s
       timeout: 10s

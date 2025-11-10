@@ -1,3 +1,5 @@
+import logging
+import os
 import uuid
 
 from django.conf import settings
@@ -5,12 +7,15 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models as gis_models
 from django.db import models
-from django.db.models.signals import post_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from pathvalidate import sanitize_filename
 
-from .storage import LocalMediaStorage
+from .storage import LocalMediaStorage, QGISProjectStorage
+
+logger = logging.getLogger(__name__)
 
 
 class Projects(models.Model):
@@ -498,24 +503,32 @@ class FeatureFiles(models.Model):
 
     def get_upload_path(instance, filename):
         """
-        Determine the upload path for a file based on feature type and file category.
+        Determine the upload path for a file based on project, feature type and file category.
 
-        The path structure follows: {feature_type}/{feature_id}/{category}/{filename}
+        The path structure follows: {project_name}/{feature_type}/{feature_id}/{category}/{filename}
 
         For example:
-        - trenches/12345/photos/image.jpg
-        - conduits/K1-HVT-FLS/documents/report.pdf
-        - cables/C1-Main/photos/image.jpg
-        - nodes/N1-POP/documents/spec.pdf
-        - addresses/Bahnstraße 20, 24941 Flensburg/documents/contract.pdf
+        - Project Alpha/trenches/12345/photos/image.jpg
+        - Project Beta/conduits/K1-HVT-FLS/documents/report.pdf
+        - Project Alpha/cables/C1-Main/photos/image.jpg
+        - Project Beta/nodes/N1-POP/documents/spec.pdf
+        - Project Alpha/addresses/Bahnstraße 20, 24941 Flensburg/documents/contract.pdf
         """
+
         prefs = StoragePreferences.objects.first()
 
         # Only support AUTO mode - manual uploads happen via WebDAV
         if not prefs or prefs.mode != "AUTO":
             # Default fallback if no preferences exist
             model_name = instance.content_type.model
-            return f"{model_name}s/{instance.object_id}/{filename}"
+            feature = instance.feature
+            project_name = (
+                feature.project.project
+                if hasattr(feature, "project") and feature.project
+                else "default"
+            )
+            project_name = sanitize_filename(project_name)
+            return f"{project_name}/{model_name}s/{instance.object_id}/{filename}"
 
         model_name = instance.content_type.model
         file_extension = instance.get_file_type() or ""
@@ -554,19 +567,27 @@ class FeatureFiles(models.Model):
         else:
             feature_id = instance.object_id
 
-        # Build the path based on folder structure
+        project_name = (
+            feature.project.project
+            if hasattr(feature, "project") and feature.project
+            else "default"
+        )
+        project_name = sanitize_filename(project_name)
+
+        # Build the path based on folder structure with project name as root
         if "/" in folder_name:
             # Handle nested folder structure (e.g., "trenches/photos")
             base_folder, sub_folder = folder_name.split("/", 1)
-            return f"{base_folder}/{feature_id}/{sub_folder}/{filename}"
+            return f"{project_name}/{base_folder}/{feature_id}/{sub_folder}/{filename}"
         else:
-            return f"{folder_name}/{feature_id}/{filename}"
+            return f"{project_name}/{folder_name}/{feature_id}/{filename}"
 
     file_path = models.FileField(
         upload_to=get_upload_path,
         storage=LocalMediaStorage(),
         null=False,
         verbose_name=_("File Path"),
+        max_length=500,
     )
 
     file_name = models.TextField(null=False, verbose_name=_("File Name"))
@@ -575,17 +596,21 @@ class FeatureFiles(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     def get_file_name(instance):
-        file_name = instance.file_path.name
+        file_path = instance.file_path.name
         try:
-            parts = file_name.split(".")
-            return parts[0] if len(parts) > 1 else file_name
+            # Extract just the filename from the full path
+            filename = os.path.basename(file_path)
+            parts = filename.split(".")
+            return parts[0] if len(parts) > 1 else filename
         except Exception:
-            return file_name
+            return file_path
 
     def get_file_type(instance):
-        file_name = instance.file_path.name
+        file_path = instance.file_path.name
         try:
-            parts = file_name.split(".")
+            # Extract just the filename from the full path
+            filename = os.path.basename(file_path)
+            parts = filename.split(".")
             return parts[-1] if len(parts) > 1 else None
         except Exception:
             return None
@@ -605,6 +630,12 @@ class FeatureFiles(models.Model):
                 name="idx_feature_files_type_id",
             ),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["content_type", "object_id", "file_path"],
+                name="unique_feature_file_path",
+            ),
+        ]
 
 
 class StoragePreferences(models.Model):
@@ -620,7 +651,6 @@ class StoragePreferences(models.Model):
     ]
 
     mode = models.CharField(max_length=10, choices=STORAGE_MODE_CHOICES, default="AUTO")
-
     folder_structure = models.JSONField(
         default=dict,
         help_text=_(
@@ -633,6 +663,17 @@ class StoragePreferences(models.Model):
         db_table = "storage_preferences"
         verbose_name = _("Storage Preference")
         verbose_name_plural = _("Storage Preferences")
+
+    def __str__(self):
+        return f"Storage Preferences - {self.mode}"
+
+    def clean(self):
+        """Validate the folder_structure field."""
+        from .validators import validate_storage_preferences_structure
+
+        super().clean()
+        if self.folder_structure:
+            validate_storage_preferences_structure(self.folder_structure)
 
 
 class FileTypeCategory(models.Model):
@@ -1077,39 +1118,6 @@ class TrenchConduitConnection(models.Model):
                 name="idx_trench_conduit_con_cond",
             ),
         ]
-
-
-class GtPkMetadata(models.Model):
-    """Stores all primary key metadata for different models,
-    related to :model:`api.Trench`.
-    """
-
-    table_schema = models.CharField(max_length=32, null=False)
-    table_name = models.CharField(max_length=32, null=False)
-    pk_column = models.CharField(max_length=32, null=False)
-    pk_column_idx = models.IntegerField(null=True)
-    pk_policy = models.CharField(max_length=32, null=True)
-    pk_sequence = models.CharField(max_length=64, null=True)
-
-    class Meta:
-        db_table = "gt_pk_metadata"
-        verbose_name = _("GT PK Metadata")
-        verbose_name_plural = _("GT PK Metadata")
-        indexes = [
-            models.Index(
-                fields=["table_schema", "table_name", "pk_column"],
-                name="idx_gpm_schema_name_pk_column",
-            ),
-        ]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["table_schema", "table_name", "pk_column"],
-                name="unique_gt_pk_metadata",
-            ),
-        ]
-
-    def __str__(self):
-        return f"{self.table_schema}.{self.table_name}.{self.pk_column}"
 
 
 class Address(models.Model):
@@ -2000,6 +2008,36 @@ class MicroductCableConnection(models.Model):
         )
 
 
+@receiver(pre_save, sender=Cable)
+def track_cable_name_change(sender, instance, **kwargs):
+    """
+    Track the old cable name before save to detect if it changed.
+    Stores the old name as a temporary attribute on the instance.
+    """
+    if instance.pk:
+        try:
+            old_cable = Cable.objects.get(pk=instance.pk)
+            instance._old_name = old_cable.name
+        except Cable.DoesNotExist:
+            instance._old_name = None
+    else:
+        instance._old_name = None
+
+
+@receiver(post_save, sender=Cable)
+def update_cable_labels_on_name_change(sender, instance, created, **kwargs):
+    """
+    Automatically update all cable labels when the cable name changes.
+    Updates CableLabel.text to match the new Cable.name.
+    """
+    if created:
+        return
+
+    old_name = getattr(instance, "_old_name", None)
+    if old_name is not None and old_name != instance.name:
+        instance.labels.update(text=instance.name)
+
+
 class ConduitTypeColorMapping(models.Model):
     """Maps positions to colors for each conduit type."""
 
@@ -2284,3 +2322,100 @@ def create_fibers_for_cable(sender, instance, created, **kwargs):
 
     if fibers_to_create:
         Fiber.objects.bulk_create(fibers_to_create)
+
+
+class QGISProject(models.Model):
+    """Stores QGIS project files for WMS/WFS services.
+
+    Projects are stored in deployment/qgis/projects/ and can be accessed via:
+    - WMS: https://domain/qgis/?SERVICE=WMS&MAP=/projects/{name}.qgs
+    - WFS: https://domain/qgis/?SERVICE=WFS&MAP=/projects/{name}.qgs
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    name = models.SlugField(
+        _("Project Name"),
+        max_length=100,
+        unique=True,
+        help_text=_(
+            "Slug-like identifier used in WMS/WFS URLs (e.g., 'infrastructure', 'public-map')"
+        ),
+    )
+    display_name = models.CharField(
+        _("Display Name"),
+        max_length=200,
+        help_text=_("Human-readable project name"),
+    )
+    description = models.TextField(
+        _("Description"),
+        blank=True,
+        help_text=_("Optional description of this QGIS project"),
+    )
+
+    def get_qgis_upload_path(instance, filename):
+        """
+        Generate upload path for QGIS project files.
+        Files are stored as: {name}.qgs or {name}.qgz
+        """
+        ext = os.path.splitext(filename)[1]
+        return f"{instance.name}{ext}"
+
+    project_file = models.FileField(
+        _("QGIS Project File"),
+        upload_to=get_qgis_upload_path,
+        storage=QGISProjectStorage(),
+        help_text=_("QGIS project file (.qgs or .qgz)"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name=_("Created By"),
+    )
+
+    class Meta:
+        db_table = "qgis_projects"
+        verbose_name = _("QGIS Project")
+        verbose_name_plural = _("QGIS Projects")
+        ordering = ["display_name", "-created_at"]
+
+    def __str__(self):
+        return self.display_name
+
+    def clean(self):
+        """Validate project file extension."""
+        from django.core.exceptions import ValidationError
+
+        if self.project_file:
+            ext = os.path.splitext(self.project_file.name)[1].lower()
+            if ext not in [".qgs", ".qgz"]:
+                raise ValidationError(
+                    {"project_file": _("Only .qgs and .qgz files are allowed.")}
+                )
+
+    def get_wms_url(self):
+        """Get WMS access URL for this project."""
+        return f"?SERVICE=WMS&MAP=/projects/{self.name}{os.path.splitext(self.project_file.name)[1]}"
+
+    def get_wfs_url(self):
+        """Get WFS access URL for this project."""
+        return f"?SERVICE=WFS&MAP=/projects/{self.name}{os.path.splitext(self.project_file.name)[1]}"
+
+
+@receiver(post_delete, sender=QGISProject)
+def qgis_project_deleted(sender, instance, **kwargs):
+    """
+    Handle QGIS project deletion.
+
+    - Delete the physical file from storage
+    """
+    if instance.project_file:
+        try:
+            instance.project_file.delete(save=False)
+            logger.info(f"Deleted QGIS project file: {instance.project_file.name}")
+        except Exception as e:
+            logger.error(
+                f"Error deleting QGIS project file {instance.project_file.name}: {e}"
+            )

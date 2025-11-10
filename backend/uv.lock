@@ -27,6 +27,7 @@ dependencies = [
     { name = "dj-rest-auth" },
     { name = "django" },
     { name = "django-cors-headers" },
+    { name = "django-json-widget" },
     { name = "djangorestframework" },
     { name = "djangorestframework-gis" },
     { name = "djangorestframework-simplejwt" },
@@ -36,6 +37,7 @@ dependencies = [
     { name = "networkx", version = "3.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "networkx", version = "3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "openpyxl" },
+    { name = "pathvalidate" },
     { name = "psycopg", extra = ["binary"] },
     { name = "python-dotenv" },
     { name = "requests" },
@@ -54,6 +56,7 @@ requires-dist = [
     { name = "dj-rest-auth", specifier = ">=7.0.1" },
     { name = "django", specifier = "==4.2.17" },
     { name = "django-cors-headers", specifier = ">=4.6.0" },
+    { name = "django-json-widget", specifier = ">=2.0.0" },
     { name = "djangorestframework", specifier = ">=3.15.2" },
     { name = "djangorestframework-gis", specifier = ">=1.1" },
     { name = "djangorestframework-simplejwt", specifier = ">=5.5.0" },
@@ -62,6 +65,7 @@ requires-dist = [
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "networkx", specifier = ">=3.4.2" },
     { name = "openpyxl", specifier = ">=3.1.5" },
+    { name = "pathvalidate", specifier = ">=3.3.1" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.4" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "requests", specifier = ">=2.32.3" },
@@ -201,6 +205,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/50/bc/dc19ae39c235332926dd0efe0951f663fa1a9fc6be8430737ff7fd566b20/django_filter-24.3.tar.gz", hash = "sha256:d8ccaf6732afd21ca0542f6733b11591030fa98669f8d15599b358e24a2cd9c3", size = 144444, upload-time = "2024-08-02T13:27:58.132Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/09/b1/92f1c30b47c1ebf510c35a2ccad9448f73437e5891bbd2b4febe357cc3de/django_filter-24.3-py3-none-any.whl", hash = "sha256:c4852822928ce17fb699bcfccd644b3574f1a2d80aeb2b4ff4f16b02dd49dc64", size = 95011, upload-time = "2024-08-02T13:27:55.616Z" },
+]
+
+[[package]]
+name = "django-json-widget"
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/3f/84/db3338004d664cad952119a44254987fe23805243b167c5211aa52c0f5e4/django_json_widget-2.1.0.tar.gz", hash = "sha256:0f040b8b329d5032dc1136cf50c01dc7563a07b8f0c3f5324b9051bc3e6eaa83", size = 383610, upload-time = "2025-10-24T15:12:16.258Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f0/c5/313336b98874ae1e8776e62777a75ce0c97ab47b66475bc7979f2e7176b4/django_json_widget-2.1.0-py2.py3-none-any.whl", hash = "sha256:fc30781292000c745449632d0f2d6ddd8f2415172664ae9fad42f1cd407a5612", size = 293397, upload-time = "2025-10-24T15:12:13.209Z" },
 ]
 
 [[package]]
@@ -588,6 +601,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/15/aa/3fc3181d12b95da71f5c2537c3e3b3af6ab3a8c392ab41ebb766e0929bc6/pandas-2.3.0-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1a881bc1309f3fce34696d07b00f13335c41f5f5a8770a33b09ebe23261cfc67", size = 11966182, upload-time = "2025-06-05T03:27:47.652Z" },
     { url = "https://files.pythonhosted.org/packages/37/e7/e12f2d9b0a2c4a2cc86e2aabff7ccfd24f03e597d770abfa2acd313ee46b/pandas-2.3.0-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:e1991bbb96f4050b09b5f811253c4f3cf05ee89a589379aa36cd623f21a31d6f", size = 12547686, upload-time = "2025-06-06T00:00:26.142Z" },
     { url = "https://files.pythonhosted.org/packages/39/c2/646d2e93e0af70f4e5359d870a63584dacbc324b54d73e6b3267920ff117/pandas-2.3.0-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:bb3be958022198531eb7ec2008cfc78c5b1eed51af8600c6c5d9160d89d8d249", size = 13231847, upload-time = "2025-06-05T03:27:51.465Z" },
+]
+
+[[package]]
+name = "pathvalidate"
+version = "3.3.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/fa/2a/52a8da6fe965dea6192eb716b357558e103aea0a1e9a8352ad575a8406ca/pathvalidate-3.3.1.tar.gz", hash = "sha256:b18c07212bfead624345bb8e1d6141cdcf15a39736994ea0b94035ad2b1ba177", size = 63262, upload-time = "2025-06-15T09:07:20.736Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9a/70/875f4a23bfc4731703a5835487d0d2fb999031bd415e7d17c0ae615c18b7/pathvalidate-3.3.1-py3-none-any.whl", hash = "sha256:5263baab691f8e1af96092fa5137ee17df5bdfbd6cff1fcac4d6ef4bc2e1735f", size = 24305, upload-time = "2025-06-15T09:07:19.117Z" },
 ]
 
 [[package]]

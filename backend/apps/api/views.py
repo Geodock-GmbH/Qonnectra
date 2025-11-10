@@ -1,13 +1,19 @@
 import json
 import logging
+import mimetypes
+import os
+from urllib.parse import quote
 
 import psycopg
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.core.files.base import ContentFile
 from django.db import connection, transaction
 from django.db.models import Count, F, Q, Sum
 from django.http import HttpResponse
 from django.utils import timezone
+from django.utils.encoding import iri_to_uri
+from pathvalidate import sanitize_filename
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -327,7 +333,7 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
         This ensures that files are only returned for the specific feature
         being viewed, preventing files from leaking between different features.
         """
-        queryset = FeatureFiles.objects.all().order_by("object_id")
+        queryset = FeatureFiles.objects.all().order_by("file_path")
 
         object_id = self.request.query_params.get("object_id")
         if object_id:
@@ -343,23 +349,158 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
         This endpoint validates user authentication and then redirects
         to Nginx's internal location for secure file serving.
         """
-        # get_object() will raise Http404 if not found, no need for try/except
         file_obj = self.get_object()
 
-        # Build the internal redirect path for Nginx
-        # The file_path.name contains the relative path from MEDIA_ROOT
         file_path = file_obj.file_path.name
         redirect_url = f"/media/{file_path}"
+        # Convert IRI to URI for Nginx X-Accel-Redirect (encodes Unicode characters)
+        redirect_url = iri_to_uri(redirect_url)
 
-        # Create response with X-Accel-Redirect header
+        # Construct filename and encode for RFC 2231 to support non-ASCII characters
+        filename = f"{file_obj.file_name}.{file_obj.file_type}"
+        encoded_filename = quote(filename)
+
         response = HttpResponse()
         response["X-Accel-Redirect"] = redirect_url
         response["Content-Type"] = ""  # Let Nginx determine content type
         response["Content-Disposition"] = (
-            f'attachment; filename="{file_obj.file_name}.{file_obj.file_type}"'
+            f"attachment; filename*=UTF-8''{encoded_filename}"
         )
 
         return response
+
+    @action(detail=True, methods=["get"], url_path="preview")
+    def preview(self, request, pk=None):
+        """
+        Preview a file using X-Accel-Redirect for efficient serving.
+
+        This endpoint validates user authentication and then redirects
+        to Nginx's internal location for secure file serving with inline
+        content disposition, allowing browsers to display the file.
+        """
+        file_obj = self.get_object()
+
+        file_path = file_obj.file_path.name
+        redirect_url = f"/media/{file_path}"
+        # Convert IRI to URI for Nginx X-Accel-Redirect (encodes Unicode characters)
+        redirect_url = iri_to_uri(redirect_url)
+
+        # Construct filename and encode for RFC 2231 to support non-ASCII characters
+        filename = f"{file_obj.file_name}.{file_obj.file_type}"
+        encoded_filename = quote(filename)
+
+        mime_type, _ = mimetypes.guess_type(filename)
+        if mime_type is None:
+            mime_type = "application/octet-stream"
+
+        response = HttpResponse()
+        response["X-Accel-Redirect"] = redirect_url
+        response["Content-Type"] = mime_type
+        response["Content-Disposition"] = f"inline; filename*=UTF-8''{encoded_filename}"
+
+        return response
+
+    @action(detail=True, methods=["post"], url_path="rename")
+    def rename(self, request, pk=None):
+        """
+        Rename a file by updating both the filesystem and database.
+
+        This endpoint:
+        1. Validates the new filename
+        2. Physically renames the file in storage
+        3. Updates the database record atomically
+        4. Returns the updated file object
+
+        Request body:
+            {
+                "new_filename": "newname.ext"
+            }
+        """
+        file_obj = self.get_object()
+        new_filename = request.data.get("new_filename")
+
+        if not new_filename:
+            return Response(
+                {"error": "new_filename is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            new_filename = sanitize_filename(new_filename)
+        except Exception as e:
+            return Response(
+                {"error": f"Invalid filename: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        old_path = file_obj.file_path.name
+
+        old_dir = os.path.dirname(old_path)
+        new_path = os.path.join(old_dir, new_filename)
+
+        if file_obj.file_path.storage.exists(new_path):
+            return Response(
+                {"error": "A file with this name already exists"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        elif len(new_path) >= 255:
+            return Response(
+                {"error": "File path is too long"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            with transaction.atomic():
+                with file_obj.file_path.storage.open(old_path, "rb") as old_file:
+                    file_content = old_file.read()
+
+                file_obj.file_path.storage.save(new_path, ContentFile(file_content))
+
+                file_obj.file_path.storage.delete(old_path)
+
+                file_obj.file_path.name = new_path
+
+                filename_only = os.path.basename(new_path)
+                name_parts = filename_only.rsplit(".", 1)
+                file_obj.file_name = (
+                    name_parts[0] if len(name_parts) > 1 else filename_only
+                )
+                file_obj.file_type = name_parts[1] if len(name_parts) > 1 else None
+                file_obj.save()
+
+            serializer = self.get_serializer(file_obj)
+            return Response(serializer.data)
+
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to rename file: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Delete both the database record and the physical file.
+
+        This override ensures that when a FeatureFile is deleted via the API,
+        both the database entry and the actual file on disk are removed.
+        """
+        instance = self.get_object()
+
+        # Delete the physical file first
+        if instance.file_path:
+            try:
+                # This calls the storage backend's delete() method
+                instance.file_path.delete(save=False)
+                logger.info(f"Deleted physical file: {instance.file_path.name}")
+            except Exception as e:
+                logger.error(
+                    f"Error deleting physical file {instance.file_path.name}: {e}"
+                )
+                # Continue to delete DB record even if file deletion fails
+                # (file might already be gone)
+
+        # Delete the database record
+        return super().destroy(request, *args, **kwargs)
 
 
 class WebDAVAuthView(APIView):

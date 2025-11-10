@@ -6,6 +6,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 
 	/**
@@ -23,6 +24,7 @@
 	let editingFile = $state(null);
 	let editValue = $state('');
 	let deletingFile = $state(null);
+	let deleteMessageBox;
 
 	/**
 	 * Transform flat file list into tree structure
@@ -43,9 +45,13 @@
 			categoryMap.get(category).push(file);
 		}
 
-		// Build tree structure
+		// Build tree structure - sort categories alphabetically
 		const children = [];
-		for (const [category, categoryFiles] of categoryMap.entries()) {
+		const sortedCategories = Array.from(categoryMap.entries()).sort((a, b) =>
+			a[0].localeCompare(b[0])
+		);
+
+		for (const [category, categoryFiles] of sortedCategories) {
 			children.push({
 				id: `category-${category}`,
 				name: `${category} (${categoryFiles.length})`,
@@ -82,9 +88,12 @@
 		error = null;
 
 		try {
-			const response = await fetch(`${PUBLIC_API_URL}feature-files/?object_id=${featureId}`, {
-				credentials: 'include'
-			});
+			const response = await fetch(
+				`${PUBLIC_API_URL}feature-files/?object_id=${featureId}&page_size=100`,
+				{
+					credentials: 'include'
+				}
+			);
 
 			if (!response.ok) {
 				throw new Error(`Failed to load files: ${response.status}`);
@@ -121,9 +130,20 @@
 	}
 
 	/**
+	 * Show delete confirmation dialog
+	 */
+	function confirmDelete(file) {
+		deletingFile = file;
+		deleteMessageBox.open();
+	}
+
+	/**
 	 * Delete file
 	 */
-	async function deleteFile(file) {
+	async function deleteFile() {
+		const file = deletingFile;
+		if (!file) return;
+
 		try {
 			const response = await fetch(`${PUBLIC_API_URL}feature-files/${file.uuid}/`, {
 				method: 'DELETE',
@@ -157,7 +177,7 @@
 	 */
 	function startEditing(file) {
 		editingFile = file;
-		editValue = file.file_name + (file.file_type ? `.${file.file_type}` : '');
+		editValue = file.file_name;
 	}
 
 	/**
@@ -181,25 +201,21 @@
 		}
 
 		try {
-			// Extract path components
-			const pathParts = file.file_path.split('/');
-			// Replace filename while keeping the rest of the path
-			pathParts[pathParts.length - 1] = editValue;
-			const newPath = pathParts.join('/');
-
-			const response = await fetch(`${PUBLIC_API_URL}feature-files/${file.uuid}/`, {
-				method: 'PATCH',
+			editValue += file.file_type ? `.${file.file_type}` : '';
+			const response = await fetch(`${PUBLIC_API_URL}feature-files/${file.uuid}/rename/`, {
+				method: 'POST',
 				credentials: 'include',
 				headers: {
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					file_path: newPath
+					new_filename: editValue
 				})
 			});
 
 			if (!response.ok) {
-				throw new Error(`Failed to rename file: ${response.status}`);
+				const errorData = await response.json();
+				throw new Error(errorData.error || `Failed to rename file: ${response.status}`);
 			}
 
 			globalToaster.success({
@@ -248,60 +264,36 @@
 		</div>
 	{:else if files.length === 0}
 		<div class="text-center py-8 text-surface-500">
-			<p>No files uploaded yet</p>
+			<p class="text-sm">{m.form_no_files_uploaded_yet()}</p>
 		</div>
 	{:else}
-		<TreeView {collection}>
-			<TreeView.Label>Uploaded Files</TreeView.Label>
-			<TreeView.Tree>
-				{#each collection.rootNode.children || [] as node, index (node)}
-					{@render treeNode(node, [index])}
-				{/each}
-			</TreeView.Tree>
-		</TreeView>
+		<div class="flex flex-col gap-2">
+			<TreeView {collection}>
+				<TreeView.Label>{m.form_uploaded_files()}</TreeView.Label>
+				<div class="max-h-96 overflow-y-auto overflow-x-hidden">
+					<TreeView.Tree>
+						{#each collection.rootNode.children || [] as node, index (node)}
+							{@render treeNode(node, [index])}
+						{/each}
+					</TreeView.Tree>
+				</div>
+			</TreeView>
+		</div>
 	{/if}
 </div>
 
 <!-- Confirmation Dialog for Delete -->
-{#if deletingFile}
-	<div
-		class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-		role="button"
-		tabindex="0"
-		onclick={() => (deletingFile = null)}
-		onkeydown={(e) => {
-			if (e.key === 'Escape') deletingFile = null;
-		}}
-	>
-		<div
-			class="bg-surface-100 dark:bg-surface-800 rounded-lg p-6 max-w-md"
-			role="dialog"
-			aria-modal="true"
-			tabindex="-1"
-			onclick={(e) => e.stopPropagation()}
-			onkeydown={(e) => e.stopPropagation()}
-		>
-			<h3 class="text-lg font-semibold mb-4">Confirm Delete</h3>
-			<p class="mb-6">
-				Are you sure you want to delete <strong
-					>{deletingFile.file_name}.{deletingFile.file_type}</strong
-				>? This action cannot be undone.
-			</p>
-			<div class="flex gap-2 justify-end">
-				<button type="button" onclick={() => (deletingFile = null)} class="btn preset-tonal">
-					Cancel
-				</button>
-				<button
-					type="button"
-					onclick={() => deleteFile(deletingFile)}
-					class="btn preset-filled-error-500"
-				>
-					Delete
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
+<MessageBox
+	bind:this={deleteMessageBox}
+	heading="Confirm Delete"
+	message={deletingFile
+		? `Are you sure you want to delete ${deletingFile.file_name}.${deletingFile.file_type}? This action cannot be undone.`
+		: ''}
+	showAcceptButton={true}
+	acceptText="Delete"
+	closeText="Cancel"
+	onAccept={deleteFile}
+/>
 
 {#snippet treeNode(node, indexPath)}
 	<TreeView.NodeProvider value={{ node, indexPath }}>
@@ -327,9 +319,15 @@
 					class="flex items-center justify-between w-full gap-2 group"
 					role="button"
 					tabindex="0"
-					ondblclick={() => handleFileDoubleClick(node.fileData)}
+					ondblclick={() => {
+						if (editingFile?.uuid !== node.fileData.uuid) {
+							handleFileDoubleClick(node.fileData);
+						}
+					}}
 					onkeydown={(e) => {
-						if (e.key === 'Enter') handleFileDoubleClick(node.fileData);
+						if (e.key === 'Enter' && editingFile?.uuid !== node.fileData.uuid) {
+							handleFileDoubleClick(node.fileData);
+						}
 					}}
 				>
 					<div class="flex items-center gap-2 flex-1 min-w-0">
@@ -340,15 +338,23 @@
 								bind:value={editValue}
 								class="input flex-1 min-w-0 py-0 px-1 h-6"
 								onkeydown={(e) => {
-									if (e.key === 'Enter') saveRename(node.fileData);
-									if (e.key === 'Escape') cancelEditing();
+									if (e.key === 'Enter') {
+										e.stopPropagation();
+										e.preventDefault();
+										saveRename(node.fileData);
+									}
+									if (e.key === 'Escape') {
+										e.stopPropagation();
+										cancelEditing();
+									}
 								}}
 								onclick={(e) => e.stopPropagation()}
+								ondblclick={(e) => e.stopPropagation()}
 							/>
 							<button
 								type="button"
 								onclick={() => saveRename(node.fileData)}
-								class="btn-icon btn-sm preset-tonal"
+								class="btn-icon btn-sm preset-filled-primary-500"
 								title="Save"
 							>
 								✓
@@ -356,7 +362,7 @@
 							<button
 								type="button"
 								onclick={cancelEditing}
-								class="btn-icon btn-sm preset-tonal"
+								class="btn-icon btn-sm preset-filled-error-500"
 								title="Cancel"
 							>
 								✕
@@ -364,7 +370,7 @@
 						{:else}
 							<span class="truncate">{node.name}</span>
 							<div
-								class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+								class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
 							>
 								<button
 									type="button"
@@ -375,7 +381,7 @@
 									class="btn-icon btn-sm preset-filled-primary-500"
 									title="Download"
 								>
-									<IconDownload class="size-3" />
+									<IconDownload class="size-4" />
 								</button>
 								<button
 									type="button"
@@ -386,18 +392,18 @@
 									class="btn-icon btn-sm preset-filled-primary-500"
 									title="Rename"
 								>
-									<IconEdit class="size-3" />
+									<IconEdit class="size-4" />
 								</button>
 								<button
 									type="button"
 									onclick={(e) => {
 										e.stopPropagation();
-										deletingFile = node.fileData;
+										confirmDelete(node.fileData);
 									}}
 									class="btn-icon btn-sm preset-filled-error-500"
 									title="Delete"
 								>
-									<IconTrash class="size-3" />
+									<IconTrash class="size-4" />
 								</button>
 							</div>
 						{/if}
