@@ -1,3 +1,4 @@
+import logging
 import os
 import uuid
 
@@ -6,13 +7,15 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models as gis_models
 from django.db import models
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from pathvalidate import sanitize_filename
 
-from .storage import LocalMediaStorage
+from .storage import LocalMediaStorage, QGISProjectStorage
+
+logger = logging.getLogger(__name__)
 
 
 class Projects(models.Model):
@@ -2319,3 +2322,100 @@ def create_fibers_for_cable(sender, instance, created, **kwargs):
 
     if fibers_to_create:
         Fiber.objects.bulk_create(fibers_to_create)
+
+
+class QGISProject(models.Model):
+    """Stores QGIS project files for WMS/WFS services.
+
+    Projects are stored in deployment/qgis/projects/ and can be accessed via:
+    - WMS: https://domain/qgis/?SERVICE=WMS&MAP=/projects/{name}.qgs
+    - WFS: https://domain/qgis/?SERVICE=WFS&MAP=/projects/{name}.qgs
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    name = models.SlugField(
+        _("Project Name"),
+        max_length=100,
+        unique=True,
+        help_text=_(
+            "Slug-like identifier used in WMS/WFS URLs (e.g., 'infrastructure', 'public-map')"
+        ),
+    )
+    display_name = models.CharField(
+        _("Display Name"),
+        max_length=200,
+        help_text=_("Human-readable project name"),
+    )
+    description = models.TextField(
+        _("Description"),
+        blank=True,
+        help_text=_("Optional description of this QGIS project"),
+    )
+
+    def get_qgis_upload_path(instance, filename):
+        """
+        Generate upload path for QGIS project files.
+        Files are stored as: {name}.qgs or {name}.qgz
+        """
+        ext = os.path.splitext(filename)[1]
+        return f"{instance.name}{ext}"
+
+    project_file = models.FileField(
+        _("QGIS Project File"),
+        upload_to=get_qgis_upload_path,
+        storage=QGISProjectStorage(),
+        help_text=_("QGIS project file (.qgs or .qgz)"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name=_("Created By"),
+    )
+
+    class Meta:
+        db_table = "qgis_projects"
+        verbose_name = _("QGIS Project")
+        verbose_name_plural = _("QGIS Projects")
+        ordering = ["display_name", "-created_at"]
+
+    def __str__(self):
+        return self.display_name
+
+    def clean(self):
+        """Validate project file extension."""
+        from django.core.exceptions import ValidationError
+
+        if self.project_file:
+            ext = os.path.splitext(self.project_file.name)[1].lower()
+            if ext not in [".qgs", ".qgz"]:
+                raise ValidationError(
+                    {"project_file": _("Only .qgs and .qgz files are allowed.")}
+                )
+
+    def get_wms_url(self):
+        """Get WMS access URL for this project."""
+        return f"?SERVICE=WMS&MAP=/projects/{self.name}{os.path.splitext(self.project_file.name)[1]}"
+
+    def get_wfs_url(self):
+        """Get WFS access URL for this project."""
+        return f"?SERVICE=WFS&MAP=/projects/{self.name}{os.path.splitext(self.project_file.name)[1]}"
+
+
+@receiver(post_delete, sender=QGISProject)
+def qgis_project_deleted(sender, instance, **kwargs):
+    """
+    Handle QGIS project deletion.
+
+    - Delete the physical file from storage
+    """
+    if instance.project_file:
+        try:
+            instance.project_file.delete(save=False)
+            logger.info(f"Deleted QGIS project file: {instance.project_file.name}")
+        except Exception as e:
+            logger.error(
+                f"Error deleting QGIS project file {instance.project_file.name}: {e}"
+            )

@@ -139,3 +139,101 @@ class LocalMediaStorage(FileSystemStorage):
         url = super().url(name)
         logger.debug(f"Generated URL for {name}: {url}")
         return url
+
+
+@deconstructible
+class QGISProjectStorage(FileSystemStorage):
+    """
+    Custom storage class for QGIS project files.
+
+    Stores project files in deployment/qgis/projects/ directory
+    which is mounted as a read-only volume in the QGIS Server container.
+    """
+
+    def __init__(self, location=None, base_url=None):
+        """
+        Initialize the storage backend for QGIS projects.
+
+        Files are stored in:
+        - Docker: /app/qgis/projects (mounted from host ./qgis/projects)
+        - Development: {project_root}/deployment/qgis/projects
+        """
+        if location is None:
+            if os.path.exists("/app") and os.path.isdir("/app"):
+                location = "/app/qgis/projects"
+                logger.info("Detected Docker environment, using container path")
+            else:
+                project_root = os.path.dirname(
+                    os.path.dirname(
+                        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    )
+                )
+                location = os.path.join(project_root, "deployment", "qgis", "projects")
+                logger.info(
+                    "Detected local development environment, using relative path"
+                )
+
+        # QGIS projects don't need a base URL (served via QGIS Server, not Django)
+        base_url = None
+
+        super().__init__(location=location, base_url=base_url)
+        logger.info(f"QGISProjectStorage initialized with location: {location}")
+
+    def get_valid_name(self, name):
+        """
+        Preserve the exact filename for QGIS projects.
+        """
+        return unicodedata.normalize("NFC", name)
+
+    def get_available_name(self, name, max_length=None):
+        """
+        Allow overwriting existing project files.
+        """
+        if self.exists(name):
+            logger.info(f"QGIS project {name} already exists, will be overwritten")
+            os.remove(os.path.join(self.location, name))
+        return name
+
+    def _save(self, name, content):
+        """
+        Save QGIS project file to deployment/qgis/projects/.
+        """
+        full_path = self.path(name)
+        directory = os.path.dirname(full_path)
+
+        logger.info(f"QGISProjectStorage._save() called with name: {name}")
+        logger.info(f"Full file path will be: {full_path}")
+        logger.info(f"Storage location: {self.location}")
+
+        if not os.path.exists(directory):
+            try:
+                os.makedirs(directory, exist_ok=True)
+                logger.info(f"Created QGIS projects directory: {directory}")
+            except OSError as e:
+                logger.error(f"Error creating QGIS projects directory {directory}: {e}")
+                raise
+
+        result = super()._save(name, content)
+
+        if os.path.exists(full_path):
+            file_size = os.path.getsize(full_path)
+            logger.info(
+                f"Successfully saved QGIS project: {name} to {full_path} (size: {file_size} bytes)"
+            )
+        else:
+            logger.error(
+                f"QGIS project file was not saved to expected location: {full_path}"
+            )
+
+        return result
+
+    def delete(self, name):
+        """
+        Delete QGIS project file.
+        """
+        try:
+            super().delete(name)
+            logger.info(f"Deleted QGIS project: {name}")
+        except Exception as e:
+            logger.error(f"Error deleting QGIS project {name}: {e}")
+            raise
