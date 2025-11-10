@@ -584,7 +584,7 @@ class FeatureFiles(models.Model):
         storage=LocalMediaStorage(),
         null=False,
         verbose_name=_("File Path"),
-        max_length=254,
+        max_length=500,
     )
 
     file_name = models.TextField(null=False, verbose_name=_("File Name"))
