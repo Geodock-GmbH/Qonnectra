@@ -653,15 +653,10 @@ class QGISAuthView(APIView):
             f"path={request.path}, user={request.user}"
         )
 
-        # Check if the user is authenticated via session/JWT cookie
         if request.user and request.user.is_authenticated:
             logger.info(f"User authenticated via JWT cookie: {request.user.username}")
-            # Optional: Add fine-grained permission checks here
-            # Example: if not request.user.has_perm('api.can_access_qgis'):
-            #     return False, {"error": "No QGIS access"}, status.HTTP_403_FORBIDDEN
             return True, {"status": "authenticated"}, status.HTTP_200_OK
 
-        # If not authenticated via session, check Authorization header for Basic auth
         auth_header = request.META.get("HTTP_AUTHORIZATION", "")
 
         if not auth_header:
@@ -674,7 +669,6 @@ class QGISAuthView(APIView):
             try:
                 import base64
 
-                # Decode Basic auth credentials
                 credentials = base64.b64decode(auth_header[6:]).decode("utf-8")
                 username, password = credentials.split(":", 1)
 
@@ -687,7 +681,6 @@ class QGISAuthView(APIView):
                 if user is not None:
                     if user.is_active:
                         logger.info(f"User authenticated via Basic auth: {username}")
-                        # Optional: Add fine-grained permission checks here
                         return True, {"status": "authenticated"}, status.HTTP_200_OK
                     else:
                         logger.warning(f"User account is inactive: {username}")
