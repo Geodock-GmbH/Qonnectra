@@ -38,6 +38,7 @@ from .views import (
     TrenchConduitConnectionViewSet,
     TrenchesNearNodeView,
     TrenchViewSet,
+    QGISAuthView,
     WebDAVAuthView,
 )
 
@@ -166,5 +167,10 @@ urlpatterns = [
         "auth/webdav-auth/",
         WebDAVAuthView.as_view(),
         name="webdav-auth",
+    ),
+    path(
+        "auth/qgis-auth/",
+        QGISAuthView.as_view(),
+        name="qgis-auth",
     ),
 ]

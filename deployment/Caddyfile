@@ -18,9 +18,20 @@ api.localhost {
 # QGIS Server
 qgis.localhost {
     tls internal
-    reverse_proxy qgis-server:80 {
-        header_up Host {host}
-        header_up X-Forwarded-Proto https
+
+    # Forward authentication to Django
+    route {
+        # Authenticate all requests via Django
+        forward_auth nginx:80 {
+            uri /api/auth/qgis-auth/
+            copy_headers Authorization
+        }
+
+        # Proxy to QGIS Server
+        reverse_proxy qgis-server:80 {
+            header_up Host {host}
+            header_up X-Forwarded-Proto https
+        }
     }
 }
 

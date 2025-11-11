@@ -598,7 +598,6 @@ class WebDAVAuthView(APIView):
                 status.HTTP_401_UNAUTHORIZED,
             )
 
-        # Should never reach here, but just in case
         return False, {"error": "Unauthorized"}, status.HTTP_401_UNAUTHORIZED
 
     def get(self, request, *args, **kwargs):
@@ -621,6 +620,137 @@ class WebDAVAuthView(APIView):
         """Handle HEAD requests."""
         success, data, status_code = self._authenticate_request(request)
         return Response(data, status=status_code)
+
+    def options(self, request, *args, **kwargs):
+        """Handle OPTIONS requests."""
+        success, data, status_code = self._authenticate_request(request)
+        return Response(data, status=status_code)
+
+
+class QGISAuthView(APIView):
+    """
+    QGIS Server authentication endpoint for Caddy forward_auth.
+
+    This endpoint validates Django user credentials and returns:
+    - 200 OK if credentials are valid and user has QGIS access
+    - 401 Unauthorized if credentials are invalid or user lacks permissions
+
+    Caddy uses this endpoint to authenticate WMS/WFS/WCS access to QGIS Server.
+
+    Supports both JWT cookie authentication (for web browsers) and HTTP Basic
+    authentication (for QGIS Desktop and other GIS clients).
+    """
+
+    permission_classes = [AllowAny]  # We handle auth manually
+
+    def _authenticate_request(self, request):
+        """
+        Common authentication logic for all HTTP methods.
+        Returns tuple: (success: bool, response_data: dict, status_code: int)
+        """
+        logger.info(
+            f"QGIS auth request: method={request.method}, "
+            f"path={request.path}, user={request.user}"
+        )
+
+        if request.user and request.user.is_authenticated:
+            logger.info(f"User authenticated via JWT cookie: {request.user.username}")
+            return True, {"status": "authenticated"}, status.HTTP_200_OK
+
+        auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+
+        if not auth_header:
+            logger.info(
+                "No Authorization header provided - sending WWW-Authenticate challenge"
+            )
+            return False, {"error": "Unauthorized"}, status.HTTP_401_UNAUTHORIZED
+
+        if auth_header.startswith("Basic "):
+            try:
+                import base64
+
+                credentials = base64.b64decode(auth_header[6:]).decode("utf-8")
+                username, password = credentials.split(":", 1)
+
+                logger.debug(f"Attempting Basic auth for QGIS access: {username}")
+
+                from django.contrib.auth import authenticate
+
+                user = authenticate(username=username, password=password)
+
+                if user is not None:
+                    if user.is_active:
+                        logger.info(f"User authenticated via Basic auth: {username}")
+                        return True, {"status": "authenticated"}, status.HTTP_200_OK
+                    else:
+                        logger.warning(f"User account is inactive: {username}")
+                        return (
+                            False,
+                            {"error": "Account inactive"},
+                            status.HTTP_401_UNAUTHORIZED,
+                        )
+                else:
+                    logger.warning(f"Authentication failed for user: {username}")
+                    return (
+                        False,
+                        {"error": "Invalid credentials"},
+                        status.HTTP_401_UNAUTHORIZED,
+                    )
+
+            except ValueError as e:
+                logger.error(f"Failed to parse Basic auth credentials: {e}")
+                return (
+                    False,
+                    {"error": "Invalid Authorization header format"},
+                    status.HTTP_401_UNAUTHORIZED,
+                )
+            except Exception as e:
+                logger.error(f"Unexpected error during Basic auth: {e}", exc_info=True)
+                return (
+                    False,
+                    {"error": "Authentication error"},
+                    status.HTTP_401_UNAUTHORIZED,
+                )
+        else:
+            logger.warning(f"Unsupported Authorization type: {auth_header[:20]}...")
+            return (
+                False,
+                {"error": "Unsupported Authorization type"},
+                status.HTTP_401_UNAUTHORIZED,
+            )
+
+        return False, {"error": "Unauthorized"}, status.HTTP_401_UNAUTHORIZED
+
+    def get(self, request, *args, **kwargs):
+        """Handle GET requests from Caddy forward_auth."""
+        success, data, status_code = self._authenticate_request(request)
+        response = Response(data, status=status_code)
+
+        # If authentication failed, add WWW-Authenticate header to trigger Basic Auth
+        if status_code == status.HTTP_401_UNAUTHORIZED:
+            response["WWW-Authenticate"] = 'Basic realm="QGIS Server"'
+
+        return response
+
+    def post(self, request, *args, **kwargs):
+        """Handle POST requests."""
+        success, data, status_code = self._authenticate_request(request)
+        response = Response(data, status=status_code)
+
+        if status_code == status.HTTP_401_UNAUTHORIZED:
+            response["WWW-Authenticate"] = 'Basic realm="QGIS Server"'
+
+        return response
+
+    def head(self, request, *args, **kwargs):
+        """Handle HEAD requests."""
+        success, data, status_code = self._authenticate_request(request)
+        response = Response(data, status=status_code)
+
+        if status_code == status.HTTP_401_UNAUTHORIZED:
+            response["WWW-Authenticate"] = 'Basic realm="QGIS Server"'
+
+        return response
 
     def options(self, request, *args, **kwargs):
         """Handle OPTIONS requests."""
