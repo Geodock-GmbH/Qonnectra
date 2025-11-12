@@ -24,6 +24,12 @@ services:
       retries: 5
     networks:
       - krit_gis_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=database"
 
   backend:
     build:
@@ -63,6 +69,12 @@ services:
         condition: service_healthy
     networks:
       - krit_gis_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=backend"
 
   qgis-server:
     image: qgis/qgis-server:latest
@@ -114,6 +126,12 @@ services:
       retries: 3
     networks:
       - krit_gis_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=qgis-server"
 
   frontend:
     build:
@@ -129,6 +147,12 @@ services:
       - krit_gis_network
     depends_on:
       - backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=frontend"
 
 volumes:
   static_volume: {}

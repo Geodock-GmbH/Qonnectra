@@ -21,6 +21,8 @@ from .views import (
     ContentTypeViewSet,
     FeatureFilesViewSet,
     FlagsViewSet,
+    FrontendLogView,
+    LogEntryViewSet,
     MicroductCableConnectionViewSet,
     MicroductConnectionViewSet,
     MicroductViewSet,
@@ -34,11 +36,11 @@ from .views import (
     OlTrenchTileViewSet,
     OlTrenchViewSet,
     ProjectsViewSet,
+    QGISAuthView,
     RoutingView,
     TrenchConduitConnectionViewSet,
     TrenchesNearNodeView,
     TrenchViewSet,
-    QGISAuthView,
     WebDAVAuthView,
 )
 
@@ -120,7 +122,10 @@ router.register(
     TrenchConduitConnectionViewSet,
     basename="trench_conduit_connection",
 )
+router.register(r"logs", LogEntryViewSet, basename="logs")
+
 urlpatterns = [
+    path("logs/frontend/", FrontendLogView.as_view(), name="frontend-logs"),
     path("", include(router.urls)),
     path(
         "template/conduit/",

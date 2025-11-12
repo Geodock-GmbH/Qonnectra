@@ -6,7 +6,9 @@ import { writable } from 'svelte/store';
  * @property {number} [pk]
  * @property {string} [username]
  * @property {string} [email]
- * // Add other user properties received from the API as needed
+ * @property {boolean} [is_staff]
+ * @property {boolean} [is_superuser]
+ * @property {boolean} [isAdmin]
  */
 
 /**

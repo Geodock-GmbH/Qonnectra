@@ -61,7 +61,8 @@ export async function handleAuth({ event, resolve }) {
 			const userDetails = await initialResponse.json();
 			event.locals.user = {
 				isAuthenticated: true,
-				...userDetails
+				...userDetails,
+				isAdmin: userDetails.is_staff || false
 			};
 		} else if (initialResponse.status === 401 || initialResponse.status === 403) {
 			event.cookies.delete('api-access-token', { path: '/' });

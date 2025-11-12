@@ -216,6 +216,7 @@ REST_AUTH = {
     "JWT_AUTH_SECURE": True,
     "JWT_AUTH_HTTPONLY": True,
     "JWT_AUTH_SAMESITE": "Lax",
+    "USER_DETAILS_SERIALIZER": "apps.api.serializers.CustomUserDetailsSerializer",
 }
 
 # djangorestframework-simplejwt settings
@@ -255,24 +256,30 @@ CORS_ALLOW_CREDENTIALS = True
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 MEDIA_URL = "/media/"
 
-if DEBUG:
-    LOGGING = {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "handlers": {
-            "console": {
-                "class": "logging.StreamHandler",
-            },
+# Configure logging
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
         },
-        "root": {
-            "handlers": ["console"],
+        "database": {
+            "class": "apps.api.handlers.DatabaseLogHandler",
             "level": "INFO",
         },
-        "loggers": {
-            "apps.api": {
-                "handlers": ["console"],
-                "level": "DEBUG",
-                "propagate": True,
-            },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "apps.api": {
+            "handlers": ["console", "database"],
+            "level": "DEBUG"
+            if DEBUG
+            else "INFO",  # Only change this value. Keep the other values as is.
+            "propagate": False,  # Don't propagate to root to avoid duplicate logs
         },
-    }
+    },
+}

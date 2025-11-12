@@ -22,7 +22,6 @@ services:
       start_period: 60s
     networks:
       - krit_gis_network
-    # Production optimizations
     shm_size: 256m
     command: >
       postgres
@@ -34,6 +33,12 @@ services:
       -c default_statistics_target=100
       -c random_page_cost=1.1
       -c effective_io_concurrency=200
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=database"
 
   backend:
     build:
@@ -77,13 +82,18 @@ services:
         condition: service_healthy
     networks:
       - krit_gis_network
-    # Resource limits for production
     deploy:
       resources:
         limits:
           memory: 1G
         reservations:
           memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=backend"
 
   qgis-server:
     image: qgis/qgis-server:latest
@@ -142,6 +152,12 @@ services:
           memory: 1G
         reservations:
           memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=qgis-server"
 
   frontend:
     build:
@@ -167,6 +183,13 @@ services:
           memory: 512M
         reservations:
           memory: 256M
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=frontend"
 
   nginx:
     image: nginx:stable-alpine

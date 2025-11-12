@@ -25,6 +25,7 @@ from .models import (
     Conduit,
     FeatureFiles,
     Flags,
+    LogEntry,
     Microduct,
     MicroductCableConnection,
     MicroductConnection,
@@ -227,13 +228,11 @@ class TrenchSerializer(GeoFeatureModelSerializer):
         dict: The serialized trench.
     """
 
-    # Read only fields
     uuid = serializers.UUIDField(read_only=True)
     id_trench = serializers.IntegerField(read_only=True)
     house_connection = serializers.BooleanField(read_only=True)
     length = serializers.DecimalField(read_only=True, max_digits=12, decimal_places=4)
 
-    # Get nested serializers for foreign keys
     surface = AttributesSurfaceSerializer(read_only=True)
     construction_type = AttributesConstructionTypeSerializer(read_only=True)
     status = AttributesStatusSerializer(read_only=True)
@@ -243,7 +242,6 @@ class TrenchSerializer(GeoFeatureModelSerializer):
     project = ProjectsSerializer(read_only=True)
     flag = FlagsSerializer(read_only=True)
 
-    # Add write fields for foreign keys
     surface_value = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=AttributesSurface.objects.all(),
@@ -288,7 +286,6 @@ class TrenchSerializer(GeoFeatureModelSerializer):
         source="constructor",
         required=False,
     )
-    # Format date to YYYY/MM/DD
     date = serializers.DateField(input_formats=["%Y/%m/%d"], format="%d.%m.%Y")
     comment = serializers.CharField(required=False)
     geom = GeometryField()
@@ -311,13 +308,11 @@ class TrenchSerializer(GeoFeatureModelSerializer):
 
     def validate_geom(self, value):
         """Validate geometry before saving"""
-        # Check geometry type
         if value.geom_type != "LineString":
             raise serializers.ValidationError(
                 f"{_('Geometry type must be LineString, not')} {value.geom_type}"
             )
 
-        # Transform to default SRID
         if value.srid != settings.DEFAULT_SRID:
             try:
                 value.transform(settings.DEFAULT_SRID)
@@ -332,7 +327,6 @@ class TrenchSerializer(GeoFeatureModelSerializer):
         """Dynamically translate choices in the browsable API form."""
         fields = super().get_fields()
 
-        # Translate labels for write-only fields
         fields["surface_value"].label = _("Surface")
         fields["construction_type_id"].label = _("Construction Type")
         fields["status_id"].label = _("Status")
@@ -378,7 +372,6 @@ class FeatureFilesSerializer(serializers.ModelSerializer):
         """Dynamically translate field labels."""
         fields = super().get_fields()
 
-        # Translate labels
         fields["content_type"].label = _("Feature Type")
         fields["object_id"].label = _("Feature ID")
         fields["file_path"].label = _("File Path")
@@ -397,13 +390,11 @@ class OlTrenchSerializer(GeoFeatureModelSerializer):
         GeoFeatureModelSerializer (GeoFeatureModelSerializer): The base serializer class.
     """
 
-    # Read only fields for all fields since this is a view
     uuid = serializers.UUIDField(read_only=True)
     id_trench = serializers.IntegerField(read_only=True)
     house_connection = serializers.BooleanField(read_only=True)
     length = serializers.DecimalField(read_only=True, max_digits=12, decimal_places=4)
 
-    # Get nested serializers for foreign keys
     surface = AttributesSurfaceSerializer(read_only=True)
     construction_type = AttributesConstructionTypeSerializer(read_only=True)
     status = AttributesStatusSerializer(read_only=True)
@@ -411,7 +402,6 @@ class OlTrenchSerializer(GeoFeatureModelSerializer):
     owner = AttributesCompanySerializer(read_only=True)
     constructor = AttributesCompanySerializer(read_only=True)
 
-    # Format date to YYYY/MM/DD
     date = serializers.DateField(
         input_formats=["%Y/%m/%d"], format="%d.%m.%Y", read_only=True
     )
@@ -434,7 +424,6 @@ class OlTrenchSerializer(GeoFeatureModelSerializer):
         """Dynamically translate field labels."""
         fields = super().get_fields()
 
-        # Translate labels
         fields["surface"].label = _("Surface")
         fields["construction_type"].label = _("Construction Type")
         fields["status"].label = _("Status")
@@ -456,10 +445,8 @@ class OlTrenchSerializer(GeoFeatureModelSerializer):
 class ConduitSerializer(serializers.ModelSerializer):
     """Serializer for the Conduit model."""
 
-    # Read only fields
     uuid = serializers.UUIDField(read_only=True)
 
-    # Get nested serializers for foreign keys
     conduit_type = AttributesConduitTypeSerializer(read_only=True)
     status = AttributesStatusSerializer(read_only=True)
     network_level = AttributesNetworkLevelSerializer(read_only=True)
@@ -469,7 +456,6 @@ class ConduitSerializer(serializers.ModelSerializer):
     project = ProjectsSerializer(read_only=True)
     flag = FlagsSerializer(read_only=True)
 
-    # Add write fields for foreign keys
     name = serializers.CharField(
         required=True,
         label=_("Conduit Name"),
@@ -540,7 +526,6 @@ class ConduitSerializer(serializers.ModelSerializer):
     def get_fields(self):
         """Dynamically translate field labels."""
         fields = super().get_fields()
-        # Translate labels
         fields["conduit_type_id"].label = _("Conduit Type")
         fields["status_id"].label = _("Status")
         fields["network_level_id"].label = _("Network Level")
@@ -557,10 +542,8 @@ class ConduitSerializer(serializers.ModelSerializer):
 class TrenchConduitSerializer(serializers.ModelSerializer):
     """Serializer for the TrenchConduit model."""
 
-    # Read only fields
     uuid = serializers.UUIDField(read_only=True)
 
-    # Get nested serializers for foreign keys for read operations
     trench = TrenchSerializer(read_only=True, source="uuid_trench")
     conduit = ConduitSerializer(read_only=True, source="uuid_conduit")
 
@@ -572,7 +555,6 @@ class TrenchConduitSerializer(serializers.ModelSerializer):
         """Dynamically translate field labels."""
         fields = super().get_fields()
 
-        # Translate labels
         fields["trench"].label = _("Trench")
         fields["conduit"].label = _("Conduit")
 
@@ -582,15 +564,12 @@ class TrenchConduitSerializer(serializers.ModelSerializer):
 class AddressSerializer(GeoFeatureModelSerializer):
     """Serializer for the Address model."""
 
-    # Read only fields
     uuid = serializers.UUIDField(read_only=True)
 
-    # Get nested serializers for foreign keys
     status_development = AttributesStatusDevelopmentSerializer(read_only=True)
     flag = FlagsSerializer(read_only=True)
     project = ProjectsSerializer(read_only=True)
 
-    # Add write fields for foreign keys
     id_address = serializers.IntegerField(required=False)
     zip_code = serializers.CharField(required=True)
     city = serializers.CharField(required=True)
@@ -625,7 +604,6 @@ class AddressSerializer(GeoFeatureModelSerializer):
         """Dynamically translate field labels."""
         fields = super().get_fields()
 
-        # Translate labels
         fields["id_address"].label = _("Address ID")
         fields["zip_code"].label = _("Zip Code")
         fields["city"].label = _("City")
@@ -642,13 +620,11 @@ class AddressSerializer(GeoFeatureModelSerializer):
 
     def validate_geom(self, value):
         """Validate geometry before saving"""
-        # Check geometry type
         if value.geom_type != "Point":
             raise serializers.ValidationError(
                 f"{_('Geometry type must be Point, not')} {value.geom_type}"
             )
 
-        # Transform to default SRID
         if value.srid != settings.DEFAULT_SRID:
             try:
                 value.transform(settings.DEFAULT_SRID)
@@ -667,10 +643,8 @@ class OlAddressSerializer(GeoFeatureModelSerializer):
         GeoFeatureModelSerializer (GeoFeatureModelSerializer): The base serializer class.
     """
 
-    # Read only fields
     uuid = serializers.UUIDField(read_only=True)
 
-    # Get nested serializers for foreign keys
     flag = FlagsSerializer(read_only=True)
     project = ProjectsSerializer(read_only=True)
     status_development = AttributesStatusDevelopmentSerializer(read_only=True)
@@ -693,7 +667,6 @@ class OlAddressSerializer(GeoFeatureModelSerializer):
         """Dynamically translate field labels."""
         fields = super().get_fields()
 
-        # Translate labels
         fields["flag"].label = _("Flag")
         fields["project"].label = _("Project")
         fields["status_development"].label = _("Status Development")
@@ -712,10 +685,8 @@ class OlAddressSerializer(GeoFeatureModelSerializer):
 class NodeSerializer(GeoFeatureModelSerializer):
     """Serializer for the Node model."""
 
-    # Read only fields
     uuid = serializers.UUIDField(read_only=True)
 
-    # Get nested serializers for foreign keys
     uuid_address = AddressSerializer(read_only=True)
     node_type = AttributesNodeTypeSerializer(read_only=True)
     status = AttributesStatusSerializer(read_only=True)
@@ -726,7 +697,6 @@ class NodeSerializer(GeoFeatureModelSerializer):
     project = ProjectsSerializer(read_only=True)
     flag = FlagsSerializer(read_only=True)
 
-    # Add write fields for foreign keys
     name = serializers.CharField(required=True, label=_("Node Name"))
     node_type_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
@@ -793,7 +763,6 @@ class NodeSerializer(GeoFeatureModelSerializer):
         """Dynamically translate field labels."""
         fields = super().get_fields()
 
-        # Translate labels
         fields["name"].label = _("Node Name")
         fields["node_type_id"].label = _("Node Type")
         fields["uuid_address_id"].label = _("Address")
@@ -816,7 +785,6 @@ class NodeSerializer(GeoFeatureModelSerializer):
 class OlNodeSerializer(GeoFeatureModelSerializer):
     """Serializer for the OlNode model."""
 
-    # Read only fields
     uuid = serializers.UUIDField(read_only=True)
     name = serializers.CharField(read_only=True)
     node_type = AttributesNodeTypeSerializer(read_only=True)
@@ -846,7 +814,6 @@ class OlNodeSerializer(GeoFeatureModelSerializer):
         """Dynamically translate field labels."""
         fields = super().get_fields()
 
-        # Translate labels
         fields["name"].label = _("Node Name")
         fields["node_type"].label = _("Node Type")
         fields["uuid_address"].label = _("Address")
@@ -867,19 +834,15 @@ class OlNodeSerializer(GeoFeatureModelSerializer):
 class MicroductSerializer(serializers.ModelSerializer):
     """Serializer for the Microduct model."""
 
-    # Read only fields
     uuid = serializers.UUIDField(read_only=True)
 
-    # Get nested serializers for foreign keys
     uuid_conduit = ConduitSerializer(read_only=True)
     microduct_status = AttributesMicroductStatusSerializer(read_only=True)
     uuid_node = NodeSerializer(read_only=True)
 
-    # Add write fields for foreign keys
     number = serializers.IntegerField(required=True)
     color = serializers.CharField(required=True)
 
-    # Color hex codes from AttributesMicroductColor
     hex_code = serializers.SerializerMethodField(read_only=True)
     hex_code_secondary = serializers.SerializerMethodField(read_only=True)
     is_two_layer = serializers.SerializerMethodField(read_only=True)
@@ -911,9 +874,8 @@ class MicroductSerializer(serializers.ModelSerializer):
     def get_hex_code(self, obj):
         """Get primary hex code from AttributesMicroductColor."""
         if not obj.color:
-            return "#64748b"  # Default gray
+            return "#64748b"
 
-        # Handle two-layer colors (e.g., "rot-weiss")
         color_name = obj.color.lower()
         if "-" in color_name:
             color_name = color_name.split("-")[0]
@@ -924,7 +886,7 @@ class MicroductSerializer(serializers.ModelSerializer):
             )
             return color_obj.hex_code
         except AttributesMicroductColor.DoesNotExist:
-            return "#64748b"  # Default gray
+            return "#64748b"
 
     def get_hex_code_secondary(self, obj):
         """Get secondary hex code for two-layer colors."""
@@ -955,7 +917,6 @@ class MicroductSerializer(serializers.ModelSerializer):
         """Dynamically translate field labels."""
         fields = super().get_fields()
 
-        # Translate labels
         fields["number"].label = _("Number")
         fields["color"].label = _("Color")
         fields["uuid_conduit_id"].label = _("Conduit")
@@ -968,17 +929,14 @@ class MicroductSerializer(serializers.ModelSerializer):
 class MicroductConnectionSerializer(serializers.ModelSerializer):
     """Serializer for the MicroductConnection model."""
 
-    # Read only fields
     uuid = serializers.UUIDField(read_only=True)
 
-    # Get nested serializers for foreign keys
     uuid_microduct_from = MicroductSerializer(read_only=True)
     uuid_trench_from = TrenchSerializer(read_only=True)
     uuid_microduct_to = MicroductSerializer(read_only=True)
     uuid_trench_to = TrenchSerializer(read_only=True)
     uuid_node = NodeSerializer(read_only=True)
 
-    # Add write fields for foreign keys
     uuid_microduct_from_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=Microduct.objects.all(),
@@ -1014,7 +972,6 @@ class MicroductConnectionSerializer(serializers.ModelSerializer):
         """Dynamically translate field labels."""
         fields = super().get_fields()
 
-        # Translate labels
         fields["uuid_microduct_from_id"].label = _("Microduct From")
         fields["uuid_microduct_to_id"].label = _("Microduct To")
         fields["uuid_trench_from_id"].label = _("Trench From")
@@ -1027,10 +984,7 @@ class MicroductConnectionSerializer(serializers.ModelSerializer):
 class CableSerializer(serializers.ModelSerializer):
     """Serializer for the Cable model."""
 
-    # Read only fields
     uuid = serializers.UUIDField(required=False)
-
-    # Get nested serializers for foreign keys
     cable_type = AttributesCableTypeSerializer(read_only=True)
     status = AttributesStatusSerializer(read_only=True)
     network_level = AttributesNetworkLevelSerializer(read_only=True)
@@ -1040,7 +994,6 @@ class CableSerializer(serializers.ModelSerializer):
     project = ProjectsSerializer(read_only=True)
     flag = FlagsSerializer(read_only=True)
 
-    # Add write fields for foreign keys
     name = serializers.CharField(
         required=True,
         label=_("Cable Name"),
@@ -1148,7 +1101,6 @@ class CableSerializer(serializers.ModelSerializer):
         """Dynamically translate field labels."""
         fields = super().get_fields()
 
-        # Translate labels
         fields["name"].label = _("Cable Name")
         fields["cable_type_id"].label = _("Cable Type")
         fields["status_id"].label = _("Status")
@@ -1200,14 +1152,11 @@ class CableLabelSerializer(serializers.ModelSerializer):
 class MicroductCableConnectionSerializer(serializers.ModelSerializer):
     """Serializer for the MicroductCableConnection model."""
 
-    # Read only fields
     uuid = serializers.UUIDField(read_only=True)
 
-    # Get nested serializers for foreign keys
     uuid_microduct = MicroductSerializer(read_only=True)
     uuid_cable = CableSerializer(read_only=True)
 
-    # Add write fields for foreign keys
     uuid_microduct_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=Microduct.objects.all(),
@@ -1228,8 +1177,52 @@ class MicroductCableConnectionSerializer(serializers.ModelSerializer):
         """Dynamically translate field labels."""
         fields = super().get_fields()
 
-        # Translate labels
         fields["uuid_microduct_id"].label = _("Microduct")
         fields["uuid_cable_id"].label = _("Cable")
 
         return fields
+
+
+class LogEntrySerializer(serializers.ModelSerializer):
+    """Serializer for the LogEntry model."""
+
+    username = serializers.CharField(
+        source="user.username", read_only=True, allow_null=True
+    )
+    user_email = serializers.EmailField(
+        source="user.email", read_only=True, allow_null=True
+    )
+    project = ProjectsSerializer(read_only=True)
+
+    class Meta:
+        model = LogEntry
+        fields = [
+            "uuid",
+            "timestamp",
+            "level",
+            "logger_name",
+            "message",
+            "user",
+            "username",
+            "user_email",
+            "source",
+            "path",
+            "extra_data",
+            "project",
+        ]
+        read_only_fields = ["uuid", "timestamp"]
+
+
+class CustomUserDetailsSerializer(serializers.Serializer):
+    """
+    Custom serializer for user details that includes the is_staff flag.
+    This overrides the default dj-rest-auth user serializer.
+    """
+
+    pk = serializers.IntegerField(read_only=True)
+    username = serializers.CharField(read_only=True)
+    email = serializers.EmailField(read_only=True)
+    first_name = serializers.CharField(read_only=True)
+    last_name = serializers.CharField(read_only=True)
+    is_staff = serializers.BooleanField(read_only=True)
+    is_superuser = serializers.BooleanField(read_only=True)

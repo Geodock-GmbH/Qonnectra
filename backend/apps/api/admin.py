@@ -23,6 +23,7 @@ from .models import (
     ConduitTypeColorMapping,
     FileTypeCategory,
     Flags,
+    LogEntry,
     Microduct,
     Projects,
     QGISProject,
@@ -210,3 +211,53 @@ admin.site.register(AttributesMicroductStatus)
 admin.site.register(Conduit)
 admin.site.register(Microduct)
 admin.site.register(Trench)
+
+
+@admin.register(LogEntry)
+class LogEntryAdmin(admin.ModelAdmin):
+    """Admin interface for LogEntry model."""
+
+    list_display = ('timestamp', 'level', 'source', 'username', 'project', 'logger_name', 'short_message')
+    list_filter = ('level', 'source', 'project', 'timestamp', 'logger_name')
+    search_fields = ('message', 'logger_name', 'user__username', 'project__project')
+    readonly_fields = ('uuid', 'timestamp', 'level', 'logger_name', 'message', 'user', 'source', 'path', 'extra_data', 'project')
+    date_hierarchy = 'timestamp'
+    ordering = ('-timestamp',)
+
+    fieldsets = (
+        (_('Log Information'), {
+            'fields': ('uuid', 'timestamp', 'level', 'logger_name', 'source')
+        }),
+        (_('Message'), {
+            'fields': ('message',)
+        }),
+        (_('User & Context'), {
+            'fields': ('user', 'project', 'path')
+        }),
+        (_('Extra Data'), {
+            'fields': ('extra_data',),
+            'classes': ('collapse',)
+        }),
+    )
+
+    formfield_overrides = {
+        models.JSONField: {'widget': JSONEditorWidget},
+    }
+
+    def has_add_permission(self, request):
+        """Disable adding log entries manually."""
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        """Disable editing log entries."""
+        return False
+
+    def username(self, obj):
+        """Display username instead of user object."""
+        return obj.user.username if obj.user else '-'
+    username.short_description = _('User')
+
+    def short_message(self, obj):
+        """Display truncated message in list view."""
+        return obj.message[:100] + '...' if len(obj.message) > 100 else obj.message
+    short_message.short_description = _('Message')

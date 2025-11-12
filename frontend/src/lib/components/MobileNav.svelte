@@ -8,6 +8,7 @@
 		IconArrowBarToRight,
 		IconDashboard,
 		IconDotsVertical,
+		IconFileText,
 		IconHome2,
 		IconMap2,
 		IconSettings,
@@ -17,20 +18,22 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	// State for more menu
 	let showMoreMenu = $state(false);
 
-	// Function to close more menu
+	/**
+	 * Close more menu
+	 */
 	function closeMoreMenu() {
 		showMoreMenu = false;
 	}
 
-	// Function to toggle more menu
+	/**
+	 * Toggle more menu
+	 */
 	function toggleMoreMenu() {
 		showMoreMenu = !showMoreMenu;
 	}
 
-	// Main navigation items
 	const mainNavItems = [
 		{
 			href: '/map',
@@ -46,20 +49,23 @@
 		}
 	];
 
-	// Additional navigation items
 	const additionalNavItems = [
 		{ href: '/conduit', label: m.nav_conduit_management(), icon: IconArrowBarToRight },
 		{ href: '/trench', label: m.nav_conduit_connection(), icon: IconTextPlus },
 		{ href: '/pipe-branch', label: m.nav_pipe_branch(), icon: IconAffiliate },
 		{ href: '/house-connections', label: m.nav_house_connections(), icon: IconHome2 },
 		{ href: '/network-schema', label: m.nav_network_schema(), icon: IconTopologyRing2 },
+		{ href: '/admin/logs', label: 'System Logs', icon: IconFileText },
 		{ href: '/settings', label: m.nav_settings(), icon: IconSettings }
 	];
 
-	// Calculate total number of navigation tiles (main tiles + more button if needed)
 	let totalTiles = $derived(mainNavItems.length + (additionalNavItems.length > 0 ? 1 : 0));
 
-	// Dynamic anchor classes based on selection
+	/**
+	 * Get anchor class based on selection
+	 * @param {boolean} isSelected - Whether the item is selected
+	 * @returns {string} - The anchor class
+	 */
 	function getAnchorClass(isSelected) {
 		const baseClass = 'btn hover:preset-tonal flex-col items-center gap-1';
 		return isSelected ? `${baseClass} preset-filled` : baseClass;
@@ -80,7 +86,7 @@
 					<span class="text-[10px]">{item.label()}</span>
 				</a>
 			{/each}
-			<!-- More button - only show if there are additional nav items -->
+			<!-- More button -->
 			{#if additionalNavItems.length > 0}
 				<button
 					type="button"

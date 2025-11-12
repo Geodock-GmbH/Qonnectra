@@ -39,6 +39,7 @@ from .models import (
     Conduit,
     FeatureFiles,
     Flags,
+    LogEntry,
     Microduct,
     MicroductCableConnection,
     MicroductConnection,
@@ -70,6 +71,7 @@ from .serializers import (
     ContentTypeSerializer,
     FeatureFilesSerializer,
     FlagsSerializer,
+    LogEntrySerializer,
     MicroductCableConnectionSerializer,
     MicroductConnectionSerializer,
     MicroductSerializer,
@@ -876,8 +878,10 @@ class ProjectsViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         queryset = Projects.objects.all().order_by("project")
         active = self.request.query_params.get("active")
-        if active:
-            queryset = queryset.filter(active=active)
+        if active is not None:
+            # Convert string 'true'/'false' to boolean
+            active_bool = active.lower() in ("true", "1", "yes")
+            queryset = queryset.filter(active=active_bool)
         return queryset
 
 
@@ -2386,3 +2390,140 @@ class MicroductCableConnectionViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(uuid_cable=uuid_cable)
         serializer = MicroductCableConnectionSerializer(queryset, many=True)
         return Response(serializer.data)
+
+
+class LogEntryViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for viewing application logs.
+
+    Only accessible to staff users (is_staff=True).
+    Provides filtering by date range, log level, user, source, project, and search.
+
+    Query parameters:
+    - level: Filter by log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    - source: Filter by source (backend, frontend)
+    - user: Filter by user ID
+    - project: Filter by project ID
+    - search: Search in message and logger_name
+    - date_from: Filter logs from this date (ISO format)
+    - date_to: Filter logs until this date (ISO format)
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = (
+        LogEntry.objects.all().select_related("user", "project").order_by("-timestamp")
+    )
+    serializer_class = LogEntrySerializer
+    pagination_class = CustomPagination
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+
+    def get_queryset(self):
+        """Filter queryset based on query parameters."""
+        queryset = super().get_queryset()
+
+        # Only allow staff users to view logs
+        if not self.request.user.is_staff:
+            return LogEntry.objects.none()
+
+        # Filter by log level
+        level = self.request.query_params.get("level")
+        if level:
+            queryset = queryset.filter(level=level.upper())
+
+        # Filter by source
+        source = self.request.query_params.get("source")
+        if source:
+            queryset = queryset.filter(source=source)
+
+        # Filter by user
+        user_id = self.request.query_params.get("user")
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+
+        # Filter by project
+        project_id = self.request.query_params.get("project")
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+
+        # Search in message and logger_name
+        search = self.request.query_params.get("search")
+        if search:
+            queryset = queryset.filter(
+                Q(message__icontains=search) | Q(logger_name__icontains=search)
+            )
+
+        # Filter by date range
+        date_from = self.request.query_params.get("date_from")
+        if date_from:
+            queryset = queryset.filter(timestamp__gte=date_from)
+
+        date_to = self.request.query_params.get("date_to")
+        if date_to:
+            queryset = queryset.filter(timestamp__lte=date_to)
+
+        return queryset
+
+
+class FrontendLogView(APIView):
+    """
+    API endpoint for submitting frontend logs.
+
+    POST /api/v1/logs/frontend/
+
+    Request body:
+    {
+        "level": "ERROR",
+        "message": "Error message",
+        "path": "/some/path",
+        "extra_data": {...},
+        "project": "1"
+    }
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        """Submit a frontend log entry."""
+        try:
+            level = request.data.get("level", "INFO").upper()
+            message = request.data.get("message", "")
+            path = request.data.get("path", "")
+            extra_data = request.data.get("extra_data", {})
+            project_id = request.data.get("project", None)
+
+            # Validate level
+            valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+            if level not in valid_levels:
+                level = "INFO"
+
+            project_instance = None
+            if project_id is not None:
+                try:
+                    if isinstance(project_id, list):
+                        project_id = project_id[0]
+                    project_id = int(project_id)
+                    project_instance = Projects.objects.get(id=project_id)
+                except (ValueError, Projects.DoesNotExist, TypeError):
+                    project_instance = None
+
+            # Create log entry
+            LogEntry.objects.create(
+                level=level,
+                logger_name="frontend",
+                message=message[:10000],  # Limit message length
+                user=request.user,
+                source="frontend",
+                path=path[:500] if path else None,
+                extra_data=extra_data,
+                project=project_instance,
+            )
+
+            return Response({"status": "success"}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            logger.error(f"Error creating frontend log entry: {e}")
+            return Response(
+                {"error": "Failed to create log entry"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
