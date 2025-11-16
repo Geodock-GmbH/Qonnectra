@@ -55,7 +55,7 @@
 		{ href: '/pipe-branch', label: m.nav_pipe_branch(), icon: IconAffiliate },
 		{ href: '/house-connections', label: m.nav_house_connections(), icon: IconHome2 },
 		{ href: '/network-schema', label: m.nav_network_schema(), icon: IconTopologyRing2 },
-		{ href: '/admin/logs', label: 'System Logs', icon: IconFileText },
+		{ href: '/admin/logs', label: m.nav_logs(), icon: IconFileText },
 		{ href: '/settings', label: m.nav_settings(), icon: IconSettings }
 	];
 

@@ -86,6 +86,8 @@ class Migration(migrations.Migration):
                     v_construction_types integer[] := (select array_agg(id) from attributes_construction_type);
                     v_surface_types      integer[] := (select array_agg(id) from attributes_surface);
                     v_node_types         integer[] := (select array_agg(id) from attributes_node_type);
+                    v_flag_ids           integer[] := (select array_agg(id) from flags);
+                    v_project_ids        integer[] := (select array_agg(id) from projects);
                     v_notification       jsonb;
                 BEGIN
                     if tg_op = 'INSERT' then
@@ -174,6 +176,44 @@ class Migration(migrations.Migration):
                                 raise exception using message = v_error_message, errcode = '23503';
                             end if;
 
+                            if new.flag <> all (v_flag_ids) then
+                                v_error_message := 'Flag must be a valid flag.' || ' ' ||
+                                                '(' || new.name || ')';
+                                v_error_detail :=
+                                        v_error_detail ||
+                                        jsonb_build_object('error_type', 'foreign_key_violation', 'field', 'flag', 'uuid',
+                                                        new.uuid, 'attempted_value', new.flag, 'valid_values',
+                                                        v_flag_ids);
+                                v_notification := jsonb_build_object(
+                                        'level', 'ERROR',
+                                        'logger_name', 'trigger.node',
+                                        'message', v_error_message,
+                                        'extra_data', v_error_detail,
+                                        'project_id', v_project_id
+                                                );
+                                perform autonomous_pg_notify('wfs_error_channel', v_notification::text);
+                                raise exception using message = v_error_message, errcode = '23503';
+                            end if;
+
+                            if new.project <> all (v_project_ids) then
+                                v_error_message := 'Project must be a valid project.' || ' ' ||
+                                                '(' || new.name || ')';
+                                v_error_detail :=
+                                        v_error_detail ||
+                                        jsonb_build_object('error_type', 'foreign_key_violation', 'field', 'project', 'uuid',
+                                                        new.uuid, 'attempted_value', new.project, 'valid_values',
+                                                        v_project_ids);
+                                v_notification := jsonb_build_object(
+                                        'level', 'ERROR',
+                                        'logger_name', 'trigger.node',
+                                        'message', v_error_message,
+                                        'extra_data', v_error_detail,
+                                        'project_id', v_project_id
+                                                );
+                                perform autonomous_pg_notify('wfs_error_channel', v_notification::text);
+                                raise exception using message = v_error_message, errcode = '23503';
+                            end if;
+
                         end if;
 
                         if tg_op = 'DELETE' then
@@ -221,6 +261,55 @@ class Migration(migrations.Migration):
                                 perform autonomous_pg_notify('wfs_error_channel', v_notification::text);
                                 raise exception using message = v_error_message, errcode = '23502';
                             end if;
+
+                            if new.flag <> all (v_flag_ids) then
+                                v_error_message := 'Flag must be a valid flag.' || ' ' ||
+                                                format('(%s %s%s, %s %s)',
+                                                        coalesce(new.street, ''),
+                                                        coalesce(new.housenumber::text, ''),
+                                                        coalesce(new.house_number_suffix, ''),
+                                                        coalesce(new.zip_code, ''),
+                                                        coalesce(new.city, ''));
+                                v_error_detail :=
+                                        v_error_detail ||
+                                        jsonb_build_object('error_type', 'foreign_key_violation', 'field', 'flag', 'uuid',
+                                                        new.uuid, 'attempted_value', new.flag, 'valid_values',
+                                                        v_flag_ids);
+                                v_notification := jsonb_build_object(
+                                        'level', 'ERROR',
+                                        'logger_name', 'trigger.address',
+                                        'message', v_error_message,
+                                        'extra_data', v_error_detail,
+                                        'project_id', v_project_id
+                                                );
+                                perform autonomous_pg_notify('wfs_error_channel', v_notification::text);
+                                raise exception using message = v_error_message, errcode = '23503';
+                            end if;
+
+                            if new.project <> all (v_project_ids) then
+                                v_error_message := 'Project must be a valid project.' || ' ' ||
+                                                format('(%s %s%s, %s %s)',
+                                                        coalesce(new.street, ''),
+                                                        coalesce(new.housenumber::text, ''),
+                                                        coalesce(new.house_number_suffix, ''),
+                                                        coalesce(new.zip_code, ''),
+                                                        coalesce(new.city, ''));
+                                v_error_detail :=
+                                        v_error_detail ||
+                                        jsonb_build_object('error_type', 'foreign_key_violation', 'field', 'project', 'uuid',
+                                                        new.uuid, 'attempted_value', new.project, 'valid_values',
+                                                        v_project_ids);
+                                v_notification := jsonb_build_object(
+                                        'level', 'ERROR',
+                                        'logger_name', 'trigger.address',
+                                        'message', v_error_message,
+                                        'extra_data', v_error_detail,
+                                        'project_id', v_project_id
+                                                );
+                                perform autonomous_pg_notify('wfs_error_channel', v_notification::text);
+                                raise exception using message = v_error_message, errcode = '23503';
+                            end if;
+
                         end if;
 
                         if tg_op = 'DELETE' then
@@ -294,6 +383,44 @@ class Migration(migrations.Migration):
                                         jsonb_build_object('error_type', 'foreign_key_violation', 'field', 'surface', 'id_trench',
                                                         new.id_trench, 'attempted_value', new.surface, 'valid_values',
                                                         v_surface_types);
+                                v_notification := jsonb_build_object(
+                                        'level', 'ERROR',
+                                        'logger_name', 'trigger.trench',
+                                        'message', v_error_message,
+                                        'extra_data', v_error_detail,
+                                        'project_id', v_project_id
+                                                );
+                                perform autonomous_pg_notify('wfs_error_channel', v_notification::text);
+                                raise exception using message = v_error_message, errcode = '23503';
+                            end if;
+
+                            if new.flag <> all (v_flag_ids) then
+                                v_error_message := 'Flag must be a valid flag.' || ' ' ||
+                                                '(' || new.id_trench || ')';
+                                v_error_detail :=
+                                        v_error_detail ||
+                                        jsonb_build_object('error_type', 'foreign_key_violation', 'field', 'flag', 'id_trench',
+                                                        new.id_trench, 'attempted_value', new.flag, 'valid_values',
+                                                        v_flag_ids);
+                                v_notification := jsonb_build_object(
+                                        'level', 'ERROR',
+                                        'logger_name', 'trigger.trench',
+                                        'message', v_error_message,
+                                        'extra_data', v_error_detail,
+                                        'project_id', v_project_id
+                                                );
+                                perform autonomous_pg_notify('wfs_error_channel', v_notification::text);
+                                raise exception using message = v_error_message, errcode = '23503';
+                            end if;
+
+                            if new.project <> all (v_project_ids) then
+                                v_error_message := 'Project must be a valid project.' || ' ' ||
+                                                '(' || new.id_trench || ')';
+                                v_error_detail :=
+                                        v_error_detail ||
+                                        jsonb_build_object('error_type', 'foreign_key_violation', 'field', 'project', 'id_trench',
+                                                        new.id_trench, 'attempted_value', new.project, 'valid_values',
+                                                        v_project_ids);
                                 v_notification := jsonb_build_object(
                                         'level', 'ERROR',
                                         'logger_name', 'trigger.trench',
