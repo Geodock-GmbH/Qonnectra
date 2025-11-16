@@ -278,7 +278,7 @@ LOGGING = {
             "handlers": ["console", "database"],
             "level": "DEBUG"
             if DEBUG
-            else "INFO",  # Only change this value. Keep the other values as is.
+            else "WARNING",  # Only change this value. Keep the other values as is.
             "propagate": False,  # Don't propagate to root to avoid duplicate logs
         },
     },

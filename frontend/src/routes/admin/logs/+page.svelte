@@ -4,6 +4,8 @@
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
 	import { IconArrowLeft, IconArrowRight } from '@tabler/icons-svelte';
 
+	import { m } from '$lib/paraglide/messages';
+
 	/** @type {import('./$types').PageData} */
 	let { data } = $props();
 
@@ -19,7 +21,8 @@
 	const sources = [
 		{ value: '', label: 'All Sources' },
 		{ value: 'backend', label: 'Backend' },
-		{ value: 'frontend', label: 'Frontend' }
+		{ value: 'frontend', label: 'Frontend' },
+		{ value: 'wfs', label: 'WFS (QGIS Server)' }
 	];
 
 	let filters = $state({
@@ -82,7 +85,8 @@
 	function getSourceColor(source) {
 		const colors = {
 			backend: 'preset-filled-tertiary-500',
-			frontend: 'preset-filled-warning-500'
+			frontend: 'preset-filled-warning-500',
+			wfs: 'preset-filled-error-500'
 		};
 		return colors[source] || colors.backend;
 	}
@@ -103,18 +107,18 @@
 </script>
 
 <svelte:head>
-	<title>System Logs</title>
+	<title>{m.nav_logs()}</title>
 </svelte:head>
 
 <div class="mx-auto max-w-7xl pt-16 px-4 sm:px-6 lg:px-8 overflow-y-auto h-screen pb-32">
-	<h1 class="text-2xl font-bold mb-6">System Logs</h1>
+	<h1 class="text-2xl font-bold mb-6 text-primary-500">{m.nav_logs()}</h1>
 
 	<!-- Filters -->
 	<div class="preset-filled-surface-50-950 rounded-lg shadow p-4 mb-6">
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 			<!-- Log Level Filter -->
 			<div>
-				<label for="level" class="block text-sm font-medium mb-1">Level</label>
+				<label for="level" class="block text-sm font-medium mb-1">{m.form_level()}</label>
 				<select id="level" bind:value={filters.level} class="select w-full">
 					{#each logLevels as option (option.value)}
 						<option value={option.value}>{option.label}</option>
@@ -124,7 +128,7 @@
 
 			<!-- Source Filter -->
 			<div>
-				<label for="source" class="block text-sm font-medium mb-1">Source</label>
+				<label for="source" class="block text-sm font-medium mb-1">{m.form_source()}</label>
 				<select id="source" bind:value={filters.source} class="select w-full">
 					{#each sources as option (option.value)}
 						<option value={option.value}>{option.label}</option>
@@ -134,7 +138,9 @@
 
 			<!-- Project Filter -->
 			<div>
-				<label for="project" class="block text-sm font-medium mb-1">Project</label>
+				<label for="project" class="block text-sm font-medium mb-1"
+					>{m.form_project({ count: 1 })}</label
+				>
 				<select id="project" bind:value={filters.project} class="select w-full">
 					<option value="">All Projects</option>
 					{#each data.projects || [] as project (project.id)}
@@ -145,19 +151,19 @@
 
 			<!-- Search -->
 			<div>
-				<label for="search" class="block text-sm font-medium mb-1">Search</label>
+				<label for="search" class="block text-sm font-medium mb-1">{m.common_search()}</label>
 				<input
 					id="search"
 					type="text"
 					bind:value={filters.search}
-					placeholder="Search message..."
+					placeholder={m.common_searching()}
 					class="input w-full"
 				/>
 			</div>
 
 			<!-- Date From -->
 			<div>
-				<label for="dateFrom" class="block text-sm font-medium mb-1">From Date</label>
+				<label for="dateFrom" class="block text-sm font-medium mb-1">{m.form_date_from()}</label>
 				<input
 					id="dateFrom"
 					type="datetime-local"
@@ -168,23 +174,20 @@
 
 			<!-- Date To -->
 			<div>
-				<label for="dateTo" class="block text-sm font-medium mb-1">To Date</label>
+				<label for="dateTo" class="block text-sm font-medium mb-1">{m.form_date_to()}</label>
 				<input id="dateTo" type="datetime-local" bind:value={filters.dateTo} class="input w-full" />
 			</div>
 		</div>
 
 		<!-- Filter Actions -->
 		<div class="mt-4 flex gap-2">
-			<button onclick={applyFilters} class="btn preset-filled-primary-500"> Apply Filters </button>
+			<button onclick={applyFilters} class="btn preset-filled-primary-500">
+				{m.action_apply_filters()}
+			</button>
 			<button onclick={() => goto('/admin/logs')} class="btn preset-filled-surface-500">
-				Clear Filters
+				{m.action_clear_filters()}
 			</button>
 		</div>
-	</div>
-
-	<!-- Results Count -->
-	<div class="mb-4 text-sm text-surface-600-300">
-		Showing {data.logs.length} of {data.count} log entries
 	</div>
 
 	<!-- Logs Table -->
@@ -194,12 +197,12 @@
 				<table class="table caption-bottom w-full">
 					<thead>
 						<tr>
-							<th class="text-left">Timestamp</th>
-							<th class="text-left">Level</th>
-							<th class="text-left">Source</th>
-							<th class="text-left">Project</th>
-							<th class="text-left">User</th>
-							<th class="text-left">Message</th>
+							<th class="text-left">{m.form_timestamp()}</th>
+							<th class="text-left">{m.form_level()}</th>
+							<th class="text-left">{m.form_source()}</th>
+							<th class="text-left">{m.form_project({ count: 1 })}</th>
+							<th class="text-left">{m.auth_username()}</th>
+							<th class="text-left">{m.form_message()}</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -235,7 +238,7 @@
 						{:else}
 							<tr>
 								<td colspan="6" class="px-4 py-8 text-center text-surface-500-500">
-									No log entries found
+									{m.message_no_logs_found()}
 								</td>
 							</tr>
 						{/each}

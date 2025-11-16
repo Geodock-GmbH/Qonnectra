@@ -116,12 +116,12 @@
 				<a
 					href="/admin/logs"
 					class={getAnchorClass(page.url.pathname === '/admin/logs')}
-					title="System Logs"
-					aria-label="System Logs"
+					title={m.nav_logs()}
+					aria-label={m.nav_logs()}
 				>
 					<IconFileText size={28} class="text-surface-700-300" />
 					{#if $sidebarExpanded}
-						<span>System Logs</span>
+						<span>{m.nav_logs()}</span>
 					{/if}
 				</a>
 			{/if}

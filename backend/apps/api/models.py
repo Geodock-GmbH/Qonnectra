@@ -2438,6 +2438,7 @@ class LogEntry(models.Model):
     SOURCE_CHOICES = [
         ("backend", "Backend"),
         ("frontend", "Frontend"),
+        ("wfs", "WFS (QGIS Server)"),
     ]
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)

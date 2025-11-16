@@ -213,35 +213,85 @@ admin.site.register(Microduct)
 admin.site.register(Trench)
 
 
+class WFSErrorFilter(admin.SimpleListFilter):
+    """Filter for WFS-related errors in LogEntry."""
+
+    title = _("WFS Errors")
+    parameter_name = "wfs_errors"
+
+    def lookups(self, request, model_admin):
+        return (
+            ("wfs_all", _("All WFS logs")),
+            ("wfs_errors", _("WFS errors only")),
+            ("wfs_node", _("Node errors")),
+            ("wfs_address", _("Address errors")),
+            ("wfs_trench", _("Trench errors")),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == "wfs_all":
+            return queryset.filter(source="wfs")
+        elif self.value() == "wfs_errors":
+            return queryset.filter(source="wfs", level="ERROR")
+        elif self.value() == "wfs_node":
+            return queryset.filter(source="wfs", logger_name="trigger.node")
+        elif self.value() == "wfs_address":
+            return queryset.filter(source="wfs", logger_name="trigger.address")
+        elif self.value() == "wfs_trench":
+            return queryset.filter(source="wfs", logger_name="trigger.trench")
+        return queryset
+
+
 @admin.register(LogEntry)
 class LogEntryAdmin(admin.ModelAdmin):
     """Admin interface for LogEntry model."""
 
-    list_display = ('timestamp', 'level', 'source', 'username', 'project', 'logger_name', 'short_message')
-    list_filter = ('level', 'source', 'project', 'timestamp', 'logger_name')
-    search_fields = ('message', 'logger_name', 'user__username', 'project__project')
-    readonly_fields = ('uuid', 'timestamp', 'level', 'logger_name', 'message', 'user', 'source', 'path', 'extra_data', 'project')
-    date_hierarchy = 'timestamp'
-    ordering = ('-timestamp',)
+    list_display = (
+        "timestamp",
+        "level",
+        "source",
+        "username",
+        "project",
+        "logger_name",
+        "short_message",
+        "error_type_display",
+    )
+    list_filter = (
+        "level",
+        "source",
+        WFSErrorFilter,
+        "project",
+        "timestamp",
+        "logger_name",
+    )
+    search_fields = ("message", "logger_name", "user__username", "project__project")
+    readonly_fields = (
+        "uuid",
+        "timestamp",
+        "level",
+        "logger_name",
+        "message",
+        "user",
+        "source",
+        "path",
+        "extra_data",
+        "project",
+    )
+    date_hierarchy = "timestamp"
+    ordering = ("-timestamp",)
 
     fieldsets = (
-        (_('Log Information'), {
-            'fields': ('uuid', 'timestamp', 'level', 'logger_name', 'source')
-        }),
-        (_('Message'), {
-            'fields': ('message',)
-        }),
-        (_('User & Context'), {
-            'fields': ('user', 'project', 'path')
-        }),
-        (_('Extra Data'), {
-            'fields': ('extra_data',),
-            'classes': ('collapse',)
-        }),
+        (
+            _("Log Information"),
+            {"fields": ("uuid", "timestamp", "level", "logger_name", "source")},
+        ),
+        (_("Message"), {"fields": ("message",)}),
+        (_("User & Context"), {"fields": ("user", "project", "path")}),
+        (_("Extra Data"), {"fields": ("extra_data",), "classes": ("collapse",)}),
     )
 
     formfield_overrides = {
-        models.JSONField: {'widget': JSONEditorWidget},
+        models.JSONField: {"widget": JSONEditorWidget},
     }
 
     def has_add_permission(self, request):
@@ -254,10 +304,22 @@ class LogEntryAdmin(admin.ModelAdmin):
 
     def username(self, obj):
         """Display username instead of user object."""
-        return obj.user.username if obj.user else '-'
-    username.short_description = _('User')
+        return obj.user.username if obj.user else "-"
+
+    username.short_description = _("User")
 
     def short_message(self, obj):
         """Display truncated message in list view."""
-        return obj.message[:100] + '...' if len(obj.message) > 100 else obj.message
-    short_message.short_description = _('Message')
+        return obj.message[:100] + "..." if len(obj.message) > 100 else obj.message
+
+    short_message.short_description = _("Message")
+
+    def error_type_display(self, obj):
+        """Display error type from extra_data if available."""
+        if obj.extra_data and isinstance(obj.extra_data, dict):
+            error_type = obj.extra_data.get("error_type", "")
+            if error_type:
+                return error_type.replace("_", " ").title()
+        return "-"
+
+    error_type_display.short_description = _("Error Type")
