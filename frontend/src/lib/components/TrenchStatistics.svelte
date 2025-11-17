@@ -1,4 +1,6 @@
 <script>
+	import { m } from '$lib/paraglide/messages';
+
 	import TrenchChart from './TrenchChart.svelte';
 
 	let {
@@ -138,36 +140,40 @@
 <div class="space-y-6 max-w-6xl mx-auto">
 	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 		<!-- Surface Type Chart -->
-		<TrenchChart data={surfaceData} title="Gesamtlänge pro Oberfläche" color="#0ea5e9" />
+		<TrenchChart data={surfaceData} title={m.form_length_by_surface()} color="#0ea5e9" />
 
 		<!-- Construction Type Chart -->
-		<TrenchChart data={constructionData} title="Gesamtlänge pro Verlegeart" color="#10b981" />
+		<TrenchChart
+			data={constructionData}
+			title={m.form_length_by_construction_type()}
+			color="#10b981"
+		/>
 
 		<!-- Average House Connection Length -->
 		<TrenchChart
 			data={avgHouseConnectionData}
-			title="Durchschnittliche Hausanschlusslänge"
+			title={m.form_average_house_connection_length()}
 			color="#f59e0b"
 			unit="m"
 		/>
 
 		<!-- Length with Funding -->
-		<TrenchChart data={lengthWithFundingData} title="Länge gefördert" color="#8b5cf6" />
+		<TrenchChart data={lengthWithFundingData} title={m.form_length_funded()} color="#8b5cf6" />
 
 		<!-- Length with Internal Execution -->
 		<TrenchChart
 			data={lengthWithInternalExecutionData}
-			title="Länge Eigenleistung"
+			title={m.form_length_internal_execution()}
 			color="#ec4899"
 		/>
 
 		<!-- Length by Status -->
-		<TrenchChart data={statusData} title="Gesamtlänge pro Status" color="#06b6d4" />
+		<TrenchChart data={statusData} title={m.form_length_by_status()} color="#06b6d4" />
 
 		<!-- Length by Network Level -->
-		<TrenchChart data={networkLevelData} title="Gesamtlänge pro Netzebene" color="#14b8a6" />
+		<TrenchChart data={networkLevelData} title={m.form_length_by_network_level()} color="#14b8a6" />
 
 		<!-- Longest 5 Routes -->
-		<TrenchChart data={longestRoutesData} title="Längsten 5 Trassen im Netz" color="#f97316" />
+		<TrenchChart data={longestRoutesData} title={m.form_longest_5_routes()} color="#f97316" />
 	</div>
 </div>
