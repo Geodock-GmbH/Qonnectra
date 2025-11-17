@@ -75,14 +75,16 @@
 	"form_constructor": "Baufirma",
 	"form_date_from": "Von Datum",
 	"form_date_to": "Bis Datum",
-	"form_days": {
-		"declarations": ["input count", "local countPlural = count: plural"],
-		"selectors": ["countPlural"],
-		"match": {
-			"countPlural=one": "Tag",
-			"countPlural=other": "Tage"
+	"form_days": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Tag",
+				"countPlural=other": "Tage"
+			}
 		}
-	},
+	],
 	"form_district": "Ortsteil",
 	"form_expires_in": "Läuft ab in",
 	"form_expires_on": "Läuft ab am",

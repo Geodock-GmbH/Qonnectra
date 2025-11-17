@@ -65,6 +65,7 @@
 	"form_breakdown_by_type": "Grouped by type",
 	"form_cable_type": "Cable type",
 	"form_city": "City",
+	"form_color": "Color",
 	"form_conduit": "Conduit",
 	"form_conduit_overview": "Conduit overview",
 	"form_conduit_type": "Conduit type",
@@ -74,14 +75,16 @@
 	"form_constructor": "Constructor",
 	"form_date_from": "From date",
 	"form_date_to": "To date",
-	"form_days": {
-		"declarations": ["input count", "local countPlural = count: plural"],
-		"selectors": ["countPlural"],
-		"match": {
-			"countPlural=one": "day",
-			"countPlural=other": "days"
+	"form_days": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "day",
+				"countPlural=other": "days"
+			}
 		}
-	},
+	],
 	"form_district": "District",
 	"form_expires_in": "Expires in",
 	"form_expires_on": "Expires on",
@@ -139,6 +142,7 @@
 	"form_no_microducts_available": "No microducts available",
 	"form_no_files_uploaded_yet": "No files uploaded yet",
 	"form_no_warranties_expiring": "No warranties expiring soon",
+	"form_number": "Number",
 	"form_outer_conduit": "Outer conduit",
 	"form_owner": "Owner",
 	"form_partial_selection": "Partial selection",
