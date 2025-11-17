@@ -40,6 +40,7 @@
 		"@inlang/paraglide-js": "^2.0.0",
 		"@tabler/icons-svelte": "^3.31.0",
 		"@xyflow/svelte": "^1.2.4",
+		"chart.js": "^4.5.1",
 		"ol": "^10.5.0",
 		"perfect-freehand": "^1.2.2",
 		"set-cookie-parser": "^2.7.1"

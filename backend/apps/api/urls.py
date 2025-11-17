@@ -6,12 +6,14 @@ from .views import (
     AttributesCableTypeViewSet,
     AttributesCompanyViewSet,
     AttributesConduitTypeViewSet,
+    AttributesConstructionTypeViewSet,
     AttributesFiberColorViewSet,
     AttributesMicroductColorViewSet,
     AttributesMicroductStatusViewSet,
     AttributesNetworkLevelViewSet,
     AttributesNodeTypeViewSet,
     AttributesStatusViewSet,
+    AttributesSurfaceViewSet,
     CableLabelViewSet,
     CableTypeColorMappingViewSet,
     CableViewSet,
@@ -59,6 +61,16 @@ router.register(
     r"attributes_conduit_type",
     AttributesConduitTypeViewSet,
     basename="attributes_conduit_type",
+)
+router.register(
+    r"attributes_construction_type",
+    AttributesConstructionTypeViewSet,
+    basename="attributes_construction_type",
+)
+router.register(
+    r"attributes_surface",
+    AttributesSurfaceViewSet,
+    basename="attributes_surface",
 )
 router.register(
     r"attributes_fiber_color",

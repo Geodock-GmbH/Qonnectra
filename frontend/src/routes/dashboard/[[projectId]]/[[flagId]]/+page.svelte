@@ -5,6 +5,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import DashboardProjectTable from './DashboardProjectTable.svelte';
+	import TrenchStatistics from '$lib/components/TrenchStatistics.svelte';
 
 	let { data } = $props();
 </script>
@@ -16,6 +17,7 @@
 <Tabs defaultValue="stats">
 	<Tabs.List>
 		<Tabs.Trigger value="stats">{m.common_overview()}</Tabs.Trigger>
+		<Tabs.Trigger value="trench">{m.nav_trench()}</Tabs.Trigger>
 		<Tabs.Trigger value="projects">{m.form_project({ count: data.projects.length })}</Tabs.Trigger>
 		<Tabs.Indicator />
 	</Tabs.List>
@@ -149,6 +151,17 @@
 				</div>
 			</div>
 		</div>
+	</Tabs.Content>
+	<Tabs.Content value="trench">
+		<TrenchStatistics
+			lengthByTypes={data.lengthByTypes}
+			avgHouseConnectionLength={data.avgHouseConnectionLength}
+			lengthWithFunding={data.lengthWithFunding}
+			lengthWithInternalExecution={data.lengthWithInternalExecution}
+			lengthByStatus={data.lengthByStatus}
+			lengthByNetworkLevel={data.lengthByNetworkLevel}
+			longestRoutes={data.longestRoutes}
+		/>
 	</Tabs.Content>
 	<Tabs.Content value="projects">
 		<DashboardProjectTable data={data.projects} />

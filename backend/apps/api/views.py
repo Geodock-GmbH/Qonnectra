@@ -9,7 +9,7 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.base import ContentFile
 from django.db import connection, transaction
-from django.db.models import Count, F, Q, Sum
+from django.db.models import Avg, Count, F, Q, Sum
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
@@ -26,12 +26,14 @@ from .models import (
     AttributesCableType,
     AttributesCompany,
     AttributesConduitType,
+    AttributesConstructionType,
     AttributesFiberColor,
     AttributesMicroductColor,
     AttributesMicroductStatus,
     AttributesNetworkLevel,
     AttributesNodeType,
     AttributesStatus,
+    AttributesSurface,
     Cable,
     CableLabel,
     CableTypeColorMapping,
@@ -58,12 +60,14 @@ from .serializers import (
     AttributesCableTypeSerializer,
     AttributesCompanySerializer,
     AttributesConduitTypeSerializer,
+    AttributesConstructionTypeSerializer,
     AttributesFiberColorSerializer,
     AttributesMicroductColorSerializer,
     AttributesMicroductStatusSerializer,
     AttributesNetworkLevelSerializer,
     AttributesNodeTypeSerializer,
     AttributesStatusSerializer,
+    AttributesSurfaceSerializer,
     CableLabelSerializer,
     CableSerializer,
     CableTypeColorMappingSerializer,
@@ -200,6 +204,32 @@ class ContentTypeViewSet(viewsets.ReadOnlyModelViewSet):
         ).order_by("model")
 
 
+class AttributesConstructionTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesConstructionType model :model:`api.AttributesConstructionType`.
+
+    An instance of :model:`api.AttributesConstructionType`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesConstructionType.objects.all().order_by("construction_type")
+    serializer_class = AttributesConstructionTypeSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class AttributesSurfaceViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesSurface model :model:`api.AttributesSurface`.
+
+    An instance of :model:`api.AttributesSurface`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesSurface.objects.all().order_by("surface")
+    serializer_class = AttributesSurfaceSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
 class TrenchViewSet(viewsets.ModelViewSet):
     """ViewSet for the Trench model :model:`api.Trench`.
 
@@ -279,6 +309,130 @@ class TrenchViewSet(viewsets.ModelViewSet):
         )
 
         return Response({"total_length": total_length, "count": queryset.count()})
+
+    @action(detail=False, methods=["get"])
+    def average_house_connection_length(self, request):
+        project = self.request.query_params.get("project")
+        flag = self.request.query_params.get("flag")
+
+        queryset = self.get_queryset().filter(house_connection=True)
+
+        if project:
+            queryset = queryset.filter(project=project)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        avg_length = queryset.aggregate(avg_length=Avg("length"))["avg_length"] or 0
+
+        return Response({"average_length": avg_length, "count": queryset.count()})
+
+    @action(detail=False, methods=["get"])
+    def length_with_funding(self, request):
+        project = self.request.query_params.get("project")
+        flag = self.request.query_params.get("flag")
+
+        queryset = self.get_queryset().filter(funding_status=True)
+
+        if project:
+            queryset = queryset.filter(project=project)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        total_length = (
+            queryset.aggregate(total_length=Sum("length"))["total_length"] or 0
+        )
+
+        return Response({"total_length": total_length, "count": queryset.count()})
+
+    @action(detail=False, methods=["get"])
+    def length_with_internal_execution(self, request):
+        project = self.request.query_params.get("project")
+        flag = self.request.query_params.get("flag")
+
+        queryset = self.get_queryset().filter(internal_execution=True)
+
+        if project:
+            queryset = queryset.filter(project=project)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        total_length = (
+            queryset.aggregate(total_length=Sum("length"))["total_length"] or 0
+        )
+
+        return Response({"total_length": total_length, "count": queryset.count()})
+
+    @action(detail=False, methods=["get"])
+    def length_by_status(self, request):
+        project = self.request.query_params.get("project")
+        flag = self.request.query_params.get("flag")
+
+        queryset = self.get_queryset()
+
+        if project:
+            queryset = queryset.filter(project=project)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        queryset = (
+            queryset.annotate(status_name=F("status__status"))
+            .values("status_name")
+            .annotate(gesamt_länge=Sum("length"))
+            .order_by("status_name")
+        )
+
+        results = list(queryset)
+
+        return Response({"results": results, "count": len(results)})
+
+    @action(detail=False, methods=["get"])
+    def length_by_phase(self, request):
+        project = self.request.query_params.get("project")
+        flag = self.request.query_params.get("flag")
+
+        queryset = self.get_queryset()
+
+        if project:
+            queryset = queryset.filter(project=project)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        queryset = (
+            queryset.annotate(network_level=F("phase__phase"))
+            .values("network_level")
+            .annotate(gesamt_länge=Sum("length"))
+            .order_by("network_level")
+        )
+
+        results = list(queryset)
+
+        return Response({"results": results, "count": len(results)})
+
+    @action(detail=False, methods=["get"])
+    def longest_routes(self, request):
+        project = self.request.query_params.get("project")
+        flag = self.request.query_params.get("flag")
+        limit = int(self.request.query_params.get("limit", 5))
+
+        queryset = self.get_queryset()
+
+        if project:
+            queryset = queryset.filter(project=project)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        queryset = (
+            queryset.annotate(
+                construction_type_name=F("construction_type__construction_type"),
+                surface_name=F("surface__surface"),
+            )
+            .values("id_trench", "length", "construction_type_name", "surface_name")
+            .order_by("-length")[:limit]
+        )
+
+        results = list(queryset)
+
+        return Response({"results": results, "count": len(results)})
 
     @action(detail=False, methods=["get"], url_path="all")
     def all_trenches(self, request):

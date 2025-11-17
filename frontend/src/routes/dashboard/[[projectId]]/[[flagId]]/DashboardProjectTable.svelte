@@ -11,6 +11,7 @@
 	const start = $derived((page - 1) * size);
 	const end = $derived(start + size);
 	const slicedSource = $derived(data.slice(start, end));
+	const totalPages = $derived(Math.ceil(data.length / size) || 1);
 </script>
 
 <div class="table-wrap">
@@ -34,32 +35,34 @@
 			</tbody>
 		</table>
 	</div>
-	<div class="mt-4 flex justify-center">
-		<Pagination
-			count={data.length}
-			pageSize={size}
-			{page}
-			onPageChange={(event) => (page = event.page)}
-		>
-			<Pagination.PrevTrigger>
-				<IconArrowLeft class="size-4" />
-			</Pagination.PrevTrigger>
-			<Pagination.Context>
-				{#snippet children(pagination)}
-					{#each pagination().pages as pageItem, index (pageItem)}
-						{#if pageItem.type === 'page'}
-							<Pagination.Item {...pageItem}>
-								{pageItem.value}
-							</Pagination.Item>
-						{:else}
-							<Pagination.Ellipsis {index}>&#8230;</Pagination.Ellipsis>
-						{/if}
-					{/each}
-				{/snippet}
-			</Pagination.Context>
-			<Pagination.NextTrigger>
-				<IconArrowRight class="size-4" />
-			</Pagination.NextTrigger>
-		</Pagination>
-	</div>
+	{#if totalPages > 1}
+		<div class="mt-4 flex justify-center">
+			<Pagination
+				count={data.length}
+				pageSize={size}
+				{page}
+				onPageChange={(event) => (page = event.page)}
+			>
+				<Pagination.PrevTrigger>
+					<IconArrowLeft class="size-4" />
+				</Pagination.PrevTrigger>
+				<Pagination.Context>
+					{#snippet children(pagination)}
+						{#each pagination().pages as pageItem, index (pageItem)}
+							{#if pageItem.type === 'page'}
+								<Pagination.Item {...pageItem}>
+									{pageItem.value}
+								</Pagination.Item>
+							{:else}
+								<Pagination.Ellipsis {index}>&#8230;</Pagination.Ellipsis>
+							{/if}
+						{/each}
+					{/snippet}
+				</Pagination.Context>
+				<Pagination.NextTrigger>
+					<IconArrowRight class="size-4" />
+				</Pagination.NextTrigger>
+			</Pagination>
+		</div>
+	{/if}
 </div>
