@@ -17,7 +17,8 @@ export async function load({ fetch, cookies, params }) {
 			lengthWithInternalExecution: 0,
 			lengthByStatus: [],
 			lengthByNetworkLevel: [],
-			longestRoutes: []
+			longestRoutes: [],
+			expiringWarranties: []
 		};
 	}
 
@@ -32,7 +33,8 @@ export async function load({ fetch, cookies, params }) {
 			lengthWithInternalExecutionResponse,
 			lengthByStatusResponse,
 			lengthByNetworkLevelResponse,
-			longestRoutesResponse
+			longestRoutesResponse,
+			expiringWarrantiesResponse
 		] = await Promise.all([
 			fetch(`${API_URL}trench/total_length/?project=${projectId}`, {
 				credentials: 'include',
@@ -71,6 +73,10 @@ export async function load({ fetch, cookies, params }) {
 				headers: headers
 			}),
 			fetch(`${API_URL}trench/longest_routes/?project=${projectId}&limit=5`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}node/expiring_warranties/?project=${projectId}`, {
 				credentials: 'include',
 				headers: headers
 			})
@@ -126,6 +132,10 @@ export async function load({ fetch, cookies, params }) {
 			console.error(`Failed to fetch longest routes: ${longestRoutesResponse.status}`);
 		}
 
+		if (!expiringWarrantiesResponse.ok) {
+			console.error(`Failed to fetch expiring warranties: ${expiringWarrantiesResponse.status}`);
+		}
+
 		const [
 			trenchData,
 			lengthByTypesData,
@@ -136,7 +146,8 @@ export async function load({ fetch, cookies, params }) {
 			lengthWithInternalExecutionData,
 			lengthByStatusData,
 			lengthByNetworkLevelData,
-			longestRoutesData
+			longestRoutesData,
+			expiringWarrantiesData
 		] = await Promise.all([
 			trenchResponse.json(),
 			lengthByTypesResponse.json(),
@@ -148,10 +159,9 @@ export async function load({ fetch, cookies, params }) {
 				? lengthWithInternalExecutionResponse.json()
 				: { total_length: 0 },
 			lengthByStatusResponse.ok ? lengthByStatusResponse.json() : { results: [] },
-			lengthByNetworkLevelResponse.ok
-				? lengthByNetworkLevelResponse.json()
-				: { results: [] },
-			longestRoutesResponse.ok ? longestRoutesResponse.json() : { results: [] }
+			lengthByNetworkLevelResponse.ok ? lengthByNetworkLevelResponse.json() : { results: [] },
+			longestRoutesResponse.ok ? longestRoutesResponse.json() : { results: [] },
+			expiringWarrantiesResponse.ok ? expiringWarrantiesResponse.json() : { results: [] }
 		]);
 
 		return {
@@ -176,7 +186,8 @@ export async function load({ fetch, cookies, params }) {
 			lengthWithInternalExecution: lengthWithInternalExecutionData.total_length || 0,
 			lengthByStatus: lengthByStatusData.results || [],
 			lengthByNetworkLevel: lengthByNetworkLevelData.results || [],
-			longestRoutes: longestRoutesData.results || []
+			longestRoutes: longestRoutesData.results || [],
+			expiringWarranties: expiringWarrantiesData.results || []
 		};
 	} catch (error) {
 		console.error('Error fetching data:', error);
@@ -190,7 +201,8 @@ export async function load({ fetch, cookies, params }) {
 			lengthWithInternalExecution: 0,
 			lengthByStatus: [],
 			lengthByNetworkLevel: [],
-			longestRoutes: []
+			longestRoutes: [],
+			expiringWarranties: []
 		};
 	}
 }

@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { BarController, BarElement, CategoryScale, Chart, LinearScale, Tooltip } from 'chart.js';
 
+	import { m } from '$lib/paraglide/messages';
+
 	Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip);
 
 	let { data = [], title = '', color = '#0ea5e9', unit = 'km' } = $props();
@@ -70,15 +72,15 @@
 						beginAtZero: true,
 						title: {
 							display: true,
-							text: 'Länge (' + unit + ')',
+							text: m.common_length() + ' (' + unit + ')',
 							font: {
 								size: 12,
 								weight: 'bold'
 							}
 						},
 						grid: {
-							display: true,
-							color: 'rgba(0, 0, 0, 0.1)'
+							display: false,
+							color: 'var(--preset-filled-surface-100-900)'
 						},
 						ticks: {
 							callback: function (value) {
@@ -88,7 +90,8 @@
 					},
 					y: {
 						grid: {
-							display: false
+							display: false,
+							color: 'var(--preset-filled-surface-100-900)'
 						},
 						ticks: {
 							font: {
@@ -106,10 +109,10 @@
 	class="card preset-filled-surface-100-900 border border-surface-200-800 shadow-lg overflow-hidden"
 >
 	<!-- Title Bar -->
-	<div class="border-b border-surface-300-600 p-4">
-		<h3 class="h4 font-bold text-primary-500 flex items-center">
+	<div class="border-b border-surface-300-700 p-4">
+		<h3 class="h4 font-bold text-primary-900-100 flex items-center">
 			<span>{title}</span>
-			<div class="flex-1 h-px bg-primary-500 ml-4"></div>
+			<div class="flex-1 h-px bg-primary-900-100 ml-4"></div>
 		</h3>
 	</div>
 

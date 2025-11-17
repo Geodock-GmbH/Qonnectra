@@ -1476,6 +1476,51 @@ class NodeViewSet(viewsets.ModelViewSet):
 
         return Response({"results": result, "count": len(result)})
 
+    @action(detail=False, methods=["get"])
+    def expiring_warranties(self, request):
+        """
+        Returns the next 5 nodes with warranties expiring soonest.
+        Filters out nodes with no warranty or expired warranties.
+        """
+        from datetime import date
+
+        project_id = request.query_params.get("project")
+        flag = request.query_params.get("flag")
+
+        queryset = Node.objects.filter(
+            warranty__isnull=False, warranty__gte=date.today()
+        )
+
+        if project_id:
+            try:
+                project_id = int(project_id)
+                queryset = queryset.filter(project=project_id)
+            except ValueError:
+                queryset = queryset.none()
+        if flag:
+            try:
+                flag = int(flag)
+                queryset = queryset.filter(flag=flag)
+            except ValueError:
+                queryset = queryset.none()
+
+        queryset = queryset.order_by("warranty")[:5]
+
+        result = []
+        for node in queryset:
+            days_until_expiry = (node.warranty - date.today()).days
+            result.append(
+                {
+                    "id": node.uuid,
+                    "name": node.name,
+                    "warranty": node.warranty.strftime("%Y-%m-%d"),
+                    "node_type": node.node_type.node_type if node.node_type else None,
+                    "days_until_expiry": days_until_expiry,
+                }
+            )
+
+        return Response({"results": result, "count": len(result)})
+
     @action(detail=False, methods=["get"], url_path="all")
     def all_nodes(self, request):
         """

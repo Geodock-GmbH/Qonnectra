@@ -44,6 +44,7 @@
 	"common_search": "Search",
 	"common_searching": "Searching...",
 	"common_selected": "Selected",
+	"common_unknown": "Unknown",
 	"common_yes": "Yes",
 	"form_address": [
 		{
@@ -73,7 +74,17 @@
 	"form_constructor": "Constructor",
 	"form_date_from": "From date",
 	"form_date_to": "To date",
+	"form_days": {
+		"declarations": ["input count", "local countPlural = count: plural"],
+		"selectors": ["countPlural"],
+		"match": {
+			"countPlural=one": "day",
+			"countPlural=other": "days"
+		}
+	},
 	"form_district": "District",
+	"form_expires_in": "Expires in",
+	"form_expires_on": "Expires on",
 	"form_files": [
 		{
 			"declarations": ["input count", "local countPlural = count: plural"],
@@ -102,7 +113,7 @@
 	"form_length_total": "Total length",
 	"form_level": "Log level",
 	"form_live_updates": "Live updates",
-	"form_longest_5_routes": "Longest 5 routes",
+	"form_longest_5_routes": "Longest routes",
 	"form_manufacturer": "Manufacturer",
 	"form_max_file_size": "Max file size",
 	"form_message": "Message",
@@ -118,6 +129,7 @@
 	],
 	"form_more_sites": "More sites",
 	"form_network_level": "Network level",
+	"form_next_expiring_warranties": "Next Expiring Warranties",
 	"form_node": "Node",
 	"form_node_statistics": "Node statistics",
 	"form_node_type": "Node type",
@@ -126,6 +138,7 @@
 	"form_no_layers_available": "No layers available",
 	"form_no_microducts_available": "No microducts available",
 	"form_no_files_uploaded_yet": "No files uploaded yet",
+	"form_no_warranties_expiring": "No warranties expiring soon",
 	"form_outer_conduit": "Outer conduit",
 	"form_owner": "Owner",
 	"form_partial_selection": "Partial selection",

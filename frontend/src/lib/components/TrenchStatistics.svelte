@@ -49,7 +49,6 @@
 			aggregated[item.bauweise] += item.gesamt_länge;
 		});
 
-		// Convert to array and sort by value (descending)
 		return Object.entries(aggregated)
 			.map(([label, value]) => ({
 				label,
@@ -65,8 +64,8 @@
 	const avgHouseConnectionData = $derived.by(() => {
 		return [
 			{
-				label: 'Durchschnittliche Hausanschlusslänge',
-				value: avgHouseConnectionLength // Keep in meters
+				label: m.form_average_house_connection_length(),
+				value: avgHouseConnectionLength
 			}
 		];
 	});
@@ -78,7 +77,7 @@
 	const lengthWithFundingData = $derived.by(() => {
 		return [
 			{
-				label: 'Länge gefördert',
+				label: m.form_length_funded(),
 				value: lengthWithFunding / 1000
 			}
 		];
@@ -91,7 +90,7 @@
 	const lengthWithInternalExecutionData = $derived.by(() => {
 		return [
 			{
-				label: 'Länge Eigenleistung',
+				label: m.form_length_internal_execution(),
 				value: lengthWithInternalExecution / 1000
 			}
 		];
@@ -105,7 +104,7 @@
 		return lengthByStatus
 			?.filter((item) => item.status_name !== null)
 			.map((item) => ({
-				label: item.status_name || 'Unbekannt',
+				label: item.status_name || m.common_unknown(),
 				value: (item.gesamt_länge || 0) / 1000
 			}))
 			.sort((a, b) => b.value - a.value);
@@ -119,7 +118,7 @@
 		return lengthByNetworkLevel
 			?.filter((item) => item.network_level !== null)
 			.map((item) => ({
-				label: item.network_level || 'Unbekannt',
+				label: item.network_level || m.common_unknown(),
 				value: (item.gesamt_länge || 0) / 1000
 			}))
 			.sort((a, b) => b.value - a.value);
@@ -131,7 +130,7 @@
 	 */
 	const longestRoutesData = $derived.by(() => {
 		return longestRoutes?.map((item) => ({
-			label: `${item.construction_type_name || 'Unbekannt'} - ${item.surface_name || 'Unbekannt'}`,
+			label: `${item.construction_type_name || m.common_unknown()} - ${item.surface_name || m.common_unknown()}`,
 			value: (item.length || 0) / 1000
 		}));
 	});

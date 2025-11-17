@@ -44,6 +44,7 @@
 	"common_search": "Suchen",
 	"common_searching": "Suche...",
 	"common_selected": "Ausgewählt",
+	"common_unknown": "Unbekannt",
 	"common_yes": "Ja",
 	"form_address": [
 		{
@@ -74,7 +75,17 @@
 	"form_constructor": "Baufirma",
 	"form_date_from": "Von Datum",
 	"form_date_to": "Bis Datum",
+	"form_days": {
+		"declarations": ["input count", "local countPlural = count: plural"],
+		"selectors": ["countPlural"],
+		"match": {
+			"countPlural=one": "Tag",
+			"countPlural=other": "Tage"
+		}
+	},
 	"form_district": "Ortsteil",
+	"form_expires_in": "Läuft ab in",
+	"form_expires_on": "Läuft ab am",
 	"form_files": [
 		{
 			"declarations": ["input count", "local countPlural = count: plural"],
@@ -103,7 +114,7 @@
 	"form_length_total": "Gesamtlänge",
 	"form_level": "Log-Level",
 	"form_live_updates": "Live-Updates",
-	"form_longest_5_routes": "Längsten 5 Trassen im Netz",
+	"form_longest_5_routes": "Längsten Trassen im Netz",
 	"form_manufacturer": "Hersteller",
 	"form_max_file_size": "Maximale Dateigröße",
 	"form_message": "Nachricht",
@@ -119,6 +130,7 @@
 	],
 	"form_more_sites": "Weitere Seiten",
 	"form_network_level": "Netzebene",
+	"form_next_expiring_warranties": "Nächste ablaufende Garantien",
 	"form_node": "Netzknoten",
 	"form_node_statistics": "Netzknotenstatistik",
 	"form_node_type": "Netzknotentyp",
@@ -127,6 +139,7 @@
 	"form_no_layers_available": "Keine Layer verfügbar",
 	"form_no_microducts_available": "Keine Mikrorohre verfügbar",
 	"form_no_files_uploaded_yet": "Keine Dateien hochgeladen",
+	"form_no_warranties_expiring": "Keine Garantien laufen bald ab",
 	"form_number": "Nummer",
 	"form_outer_conduit": "Schutzrohr",
 	"form_owner": "Eigentümer",
