@@ -3,7 +3,7 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("api", "0029_logentry_project_logentry_idx_log_entry_project"),
+        ("api", "0004_views"),
     ]
 
     operations = [
