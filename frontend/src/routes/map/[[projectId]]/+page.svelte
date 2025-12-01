@@ -1,6 +1,7 @@
 <script>
 	import { onMount, setContext } from 'svelte';
 	import { page } from '$app/stores';
+	import { PUBLIC_API_URL } from '$env/static/public';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -11,7 +12,7 @@
 	import Drawer from '$lib/components/Drawer.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
-	import { selectedProject, trenchColor, trenchColorSelected } from '$lib/stores/store';
+	import { selectedProject, trenchColor, trenchColorSelected, nodeTypeStyles } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
 	import MapDrawerTabs from './MapDrawerTabs.svelte';
@@ -24,6 +25,7 @@
 	let prevUrl = $state($page.url.href);
 	let mapRef = $state();
 	let searchPanelRef = $state();
+	let nodeTypes = $state([]);
 
 	// Initialize managers
 	const mapState = new MapState($selectedProject, $trenchColor, $trenchColorSelected);
@@ -47,6 +49,24 @@
 	// Initialize layers
 	const layersInitialized = mapState.initializeLayers();
 
+	// Fetch node types on mount
+	$effect(() => {
+		fetchNodeTypes();
+	});
+
+	async function fetchNodeTypes() {
+		try {
+			const response = await fetch(`${PUBLIC_API_URL}attributes_node_type/`, {
+				credentials: 'include'
+			});
+			if (response.ok) {
+				nodeTypes = await response.json();
+			}
+		} catch (error) {
+			console.error('Error fetching node types:', error);
+		}
+	}
+
 	$effect(() => {
 		if ($page.url.href !== prevUrl) {
 			prevUrl = $page.url.href;
@@ -57,6 +77,14 @@
 	// Refresh tile sources when they exist
 	$effect(() => {
 		mapState.refreshTileSources();
+	});
+
+	// Update node layer style when nodeTypeStyles changes
+	$effect(() => {
+		const styles = $nodeTypeStyles;
+		if (Object.keys(styles).length > 0) {
+			mapState.updateNodeLayerStyle(styles);
+		}
 	});
 
 	/**
@@ -129,6 +157,7 @@
 				<Map
 					className="rounded-lg overflow-hidden"
 					layers={mapState.getLayers()}
+					{nodeTypes}
 					on:ready={handleMapReady}
 					searchPanelProps={{
 						trenchColorSelected: $trenchColorSelected,

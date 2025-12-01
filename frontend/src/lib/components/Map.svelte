@@ -18,9 +18,11 @@
 		showLayerVisibilityTree = true,
 		showSearchPanel = true,
 		onLayerVisibilityChanged = () => {},
+		onNodeTypeVisibilityChanged = () => {},
 		onFeatureSelect = () => {},
 		onSearchError = () => {},
 		searchPanelProps = {},
+		nodeTypes = [],
 		variant = 'fullscreen' // 'fullscreen' | 'compact'
 	} = $props();
 
@@ -126,6 +128,10 @@
 		onLayerVisibilityChanged(layerInfo);
 	}
 
+	function handleNodeTypeVisibilityChange(nodeTypeInfo) {
+		onNodeTypeVisibilityChanged(nodeTypeInfo);
+	}
+
 	function handleFeatureSelect(feature) {
 		onFeatureSelect(feature);
 	}
@@ -156,7 +162,9 @@
 				<LayerVisibilityTree
 					{layers}
 					{osmLayer}
+					{nodeTypes}
 					onLayerVisibilityChanged={handleLayerVisibilityChange}
+					onNodeTypeVisibilityChanged={handleNodeTypeVisibilityChange}
 				/>
 			{/if}
 			{#if showOpacitySlider && map}
@@ -203,7 +211,9 @@
 				<LayerVisibilityTree
 					{layers}
 					{osmLayer}
+					{nodeTypes}
 					onLayerVisibilityChanged={handleLayerVisibilityChange}
+					onNodeTypeVisibilityChanged={handleNodeTypeVisibilityChange}
 				/>
 			</div>
 		{/if}

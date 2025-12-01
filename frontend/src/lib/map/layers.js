@@ -5,6 +5,7 @@ import {
 	createAddressStyle,
 	createAddressStyleWithLabels,
 	createNodeStyle,
+	createNodeStyleByType,
 	createNodeStyleWithLabels,
 	createSelectedStyle,
 	createTrenchStyle,
@@ -97,13 +98,26 @@ export function createAddressLayer(selectedProject, layerName, onError, labelOpt
  * @param {string} [labelOptions.field='name'] - Feature property to use for label
  * @param {number} [labelOptions.minResolution=1.0] - Minimum resolution to show labels
  * @param {Object} [labelOptions.textStyle] - Custom text style options
+ * @param {Object} [nodeTypeStyles={}] - Optional per-type style configuration
  * @returns {VectorTileLayer}
  */
-export function createNodeLayer(selectedProject, layerName, onError, labelOptions = {}) {
+export function createNodeLayer(
+	selectedProject,
+	layerName,
+	onError,
+	labelOptions = {},
+	nodeTypeStyles = null
+) {
 	const tileSource = createNodeTileSource(selectedProject, onError);
 
-	// Use style function with labels if enabled, otherwise use static style
-	const style = labelOptions.enabled ? createNodeStyleWithLabels(labelOptions) : createNodeStyle();
+	let style;
+	if (nodeTypeStyles !== null) {
+		style = createNodeStyleByType(nodeTypeStyles, labelOptions);
+	} else if (labelOptions.enabled) {
+		style = createNodeStyleWithLabels(labelOptions);
+	} else {
+		style = createNodeStyle();
+	}
 
 	return new VectorTileLayer({
 		source: tileSource,
