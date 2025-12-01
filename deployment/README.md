@@ -493,6 +493,29 @@ docker-compose exec backend python manage.py migrate
 docker-compose up -d --build [service_name]
 ```
 
+### Enable BuildKit (Required)
+
+The Dockerfiles use BuildKit features for faster builds (npm cache persistence). Add these environment variables system-wide:
+
+```bash
+sudo nano /etc/environment
+```
+
+Add these lines:
+```
+DOCKER_BUILDKIT=1
+COMPOSE_DOCKER_CLI_BUILD=1
+```
+
+Save and reboot (or log out and back in).
+
+**Why?** BuildKit enables:
+- Persistent npm/pip caches between builds
+- Parallel layer building
+- Better build output
+
+Without these variables, builds will fail with: `unknown flag: mount`
+
 ---
 
 ## Health Checks
