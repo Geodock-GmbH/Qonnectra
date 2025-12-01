@@ -1,6 +1,10 @@
-import { error } from '@sveltejs/kit';
+import { getNodeTypes } from '$lib/server/attributes';
+import { getFeatureDetailsByType, searchFeaturesInProject } from '$lib/server/featureSearch';
 
-import { searchFeaturesInProject, getFeatureDetailsByType } from '$lib/server/featureSearch';
+/** @type {import('./$types').PageServerLoad} */
+export async function load({ fetch, cookies }) {
+	return getNodeTypes(fetch, cookies);
+}
 
 /** @type {import('./$types').Actions} */
 export const actions = {

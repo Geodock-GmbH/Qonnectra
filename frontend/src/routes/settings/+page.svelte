@@ -1,6 +1,5 @@
 <script>
 	import { Slider, Switch } from '@skeletonlabs/skeleton-svelte';
-	import { PUBLIC_API_URL } from '$env/static/public';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -16,38 +15,20 @@
 		trenchColorSelected
 	} from '$lib/stores/store';
 
+	/** @type {import('./$types').PageData} */
+	let { data } = $props();
+
 	const themes = [{ label: 'Legacy', value: 'legacy' }];
 
 	let routingToleranceMarkers = $derived(Array.from({ length: 10 }, (_, i) => i + 1));
-	let sizeMarkers = $derived(Array.from({ length: 28 }, (_, i) => i + 3)); // 3-30
 
-	// Node types from API
-	let nodeTypes = $state([]);
-	let nodeTypesLoading = $state(true);
-	let nodeTypesError = $state(null);
-
-	// Fetch node types on mount
+	// Initialize styles for any new node types from server data
 	$effect(() => {
-		fetchNodeTypes();
-	});
-
-	async function fetchNodeTypes() {
-		try {
-			nodeTypesLoading = true;
-			nodeTypesError = null;
-			const response = await fetch(`${PUBLIC_API_URL}attributes_node_type/`, {
-				credentials: 'include'
-			});
-			if (!response.ok) {
-				throw new Error(`Failed to fetch node types: ${response.status}`);
-			}
-			nodeTypes = await response.json();
-
-			// Initialize styles for any new types
+		if (data.nodeTypes && data.nodeTypes.length > 0) {
 			const currentStyles = $nodeTypeStyles;
 			let hasNewTypes = false;
 
-			nodeTypes.forEach((nodeType) => {
+			data.nodeTypes.forEach((nodeType) => {
 				if (!currentStyles[nodeType.node_type]) {
 					currentStyles[nodeType.node_type] = {
 						color: DEFAULT_NODE_COLOR,
@@ -61,13 +42,8 @@
 			if (hasNewTypes) {
 				$nodeTypeStyles = { ...currentStyles };
 			}
-		} catch (error) {
-			nodeTypesError = error.message;
-			console.error('Error fetching node types:', error);
-		} finally {
-			nodeTypesLoading = false;
 		}
-	}
+	});
 
 	function updateNodeTypeColor(nodeTypeName, color) {
 		const currentStyles = $nodeTypeStyles;
@@ -105,7 +81,7 @@
 
 	function resetAllNodeTypeStyles() {
 		const newStyles = {};
-		nodeTypes.forEach((nodeType) => {
+		data.nodeTypes.forEach((nodeType) => {
 			newStyles[nodeType.node_type] = {
 				color: DEFAULT_NODE_COLOR,
 				size: DEFAULT_NODE_SIZE,
@@ -259,7 +235,7 @@
 			<div>
 				<div class="flex items-center justify-between">
 					<h2 class="text-base/7 font-semibold">{m.settings_node_type_styles()}</h2>
-					{#if nodeTypes.length > 0}
+					{#if data.nodeTypes.length > 0}
 						<button
 							type="button"
 							class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
@@ -270,15 +246,13 @@
 					{/if}
 				</div>
 
-				{#if nodeTypesLoading}
-					<div class="mt-6 text-sm">{m.common_loading()}...</div>
-				{:else if nodeTypesError}
-					<div class="mt-6 text-sm text-error-500">{nodeTypesError}</div>
-				{:else if nodeTypes.length === 0}
+				{#if data.nodeTypesError}
+					<div class="mt-6 text-sm text-error-500">{data.nodeTypesError}</div>
+				{:else if data.nodeTypes.length === 0}
 					<div class="mt-6 text-sm">{m.form_no_data_available()}</div>
 				{:else}
 					<div class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-						{#each nodeTypes as nodeType}
+						{#each data.nodeTypes as nodeType}
 							{@const style = getNodeTypeStyle(nodeType.node_type)}
 							<div
 								class="card preset-filled-surface-100-900 relative group rounded-lg border border-surface-200-800 p-4 hover:border-surface-400-600 transition-colors"

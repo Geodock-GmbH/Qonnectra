@@ -1,12 +1,13 @@
-import { error, fail } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
+import { getNodeTypes } from '$lib/server/attributes';
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
-import { searchFeaturesInProject, getFeatureDetailsByType } from '$lib/server/featureSearch';
+import { getFeatureDetailsByType, searchFeaturesInProject } from '$lib/server/featureSearch';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load() {
-	return {};
+export async function load({ fetch, cookies }) {
+	return getNodeTypes(fetch, cookies);
 }
 
 /** @type {import('./$types').Actions} */
