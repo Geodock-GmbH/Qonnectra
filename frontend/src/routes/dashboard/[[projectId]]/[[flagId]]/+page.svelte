@@ -48,7 +48,7 @@
 						</div>
 					</div>
 
-					<h4 class="h5 font-semibold text-surface-800-100 mb-4">
+					<h4 class="h5 font-semibold text-surface-800-200 mb-4">
 						{m.form_breakdown_by_type()}
 					</h4>
 					<div class="space-y-3 overflow-auto max-h-[400px] pr-2">
@@ -59,13 +59,13 @@
 						{:else}
 							{#each data.lengthByTypes as item (`${item.bauweise}-${item.oberfläche}`)}
 								<div
-									class="flex justify-between items-center p-3 bg-surface-100-800 rounded-lg border border-surface-300-600 hover:bg-surface-200-700 transition-colors"
+									class="flex justify-between items-center p-3 bg-surface-100-900 rounded-lg border border-surface-800-200 hover:border-surface-200-800 hover:preset-filled-primary-500 transition-colors"
 								>
 									<div class="flex-1">
-										<div class="font-medium text-surface-900-50">
+										<div class="font-medium text-surface-900-100">
 											{item.bauweise}
 										</div>
-										<div class="text-sm text-surface-600-300">
+										<div class="text-sm text-surface-600-400">
 											{item.oberfläche}
 										</div>
 									</div>
@@ -87,20 +87,20 @@
 				<DashboardCard title={m.form_node_statistics()}>
 					<div class="flex items-center gap-4 mb-6">
 						<div>
-							<h3 class="h4 font-semibold text-surface-800-100 mb-1">
+							<h3 class="h4 font-semibold text-surface-800-200 mb-1">
 								{m.form_total_nodes()}
 							</h3>
 							{#if $navigating}
 								<div class="h-6 bg-surface-500 rounded animate-pulse w-16"></div>
 							{:else}
-								<div class="text-3xl font-extrabold text-surface-900-50">
+								<div class="text-3xl font-extrabold text-surface-900-100">
 									{data.nodesByType?.reduce((sum, item) => sum + item.count, 0) || 0}x
 								</div>
 							{/if}
 						</div>
 					</div>
 
-					<h4 class="h5 font-semibold text-surface-800-100 mb-4">
+					<h4 class="h5 font-semibold text-surface-800-200 mb-4">
 						{m.form_breakdown_by_node_type()}
 					</h4>
 					<div class="space-y-3 overflow-auto max-h-[400px] pr-2">
@@ -111,10 +111,10 @@
 						{:else}
 							{#each data.nodesByType as item (item.node_type)}
 								<div
-									class="flex justify-between items-center p-3 bg-surface-100-800 rounded-lg border border-surface-300-600 hover:bg-surface-200-700 transition-colors"
+									class="flex justify-between items-center p-3 bg-surface-100-900 rounded-lg border border-surface-800-200 hover:border-surface-200-800 hover:preset-filled-primary-500 transition-colors"
 								>
 									<div class="flex-1">
-										<div class="font-medium text-surface-900-50">
+										<div class="font-medium text-surface-900-100">
 											{item.node_type}
 										</div>
 									</div>
