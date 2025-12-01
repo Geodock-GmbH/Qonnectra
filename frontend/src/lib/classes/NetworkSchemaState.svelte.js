@@ -1,6 +1,9 @@
+import { page } from '$app/state';
+
 import { m } from '$lib/paraglide/messages';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 /**
  * Main state manager for the network schema diagram
@@ -233,6 +236,18 @@ export class NetworkSchemaState {
 				: `${trimmedName}-${this.generateRandomString()}`;
 
 		if (this.selectedCableType.length === 0) {
+			await logToBackendClient({
+				level: 'ERROR',
+				message: 'No cable type selected when attempting to create cable',
+				path: page.url.pathname,
+				extraData: {
+					source,
+					target,
+					cableName,
+					from: 'handleConnect'
+				},
+				project: selectedProject
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_no_cable_type_selected()

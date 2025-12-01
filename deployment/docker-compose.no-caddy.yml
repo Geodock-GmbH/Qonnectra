@@ -14,7 +14,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - ./postgres/data:/var/lib/postgresql/data
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./postgres/init.sh:/docker-entrypoint-initdb.d/01-init.sh
     ports:
       - "5440:5432"
     healthcheck:
@@ -24,6 +24,12 @@ services:
       retries: 5
     networks:
       - krit_gis_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=database"
 
   backend:
     build:
@@ -63,6 +69,12 @@ services:
         condition: service_healthy
     networks:
       - krit_gis_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=backend"
 
   qgis-server:
     image: qgis/qgis-server:latest
@@ -114,6 +126,39 @@ services:
       retries: 3
     networks:
       - krit_gis_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=qgis-server"
+
+  wfs-listener:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: krit_gis_wfs_listener
+    restart: unless-stopped
+    command: python manage.py listen_wfs_errors
+    environment:
+      - DEBUG=${DEBUG}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - krit_gis_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=wfs-listener"
 
   frontend:
     build:
@@ -129,6 +174,12 @@ services:
       - krit_gis_network
     depends_on:
       - backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=frontend"
 
 volumes:
   static_volume: {}

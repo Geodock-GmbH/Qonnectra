@@ -190,6 +190,64 @@
       "isBackground": true
     },
     {
+      "label": "Djanog Makemessages",
+      "type": "shell",
+      "command": "uv",
+      "args": [
+        "run",
+        "manage.py",
+        "makemessages",
+        "-l",
+        "de",
+        "--ignore",
+        "venv",
+        "--ignore",
+        "node_modules"
+      ],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": {
+          "DJANGO_SETTINGS_MODULE": "core.settings",
+          "PYTHONPATH": "${workspaceFolder}/backend"
+        }
+      },
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "Djanog Compilemessages",
+      "type": "shell",
+      "command": "uv",
+      "args": [
+        "run",
+        "manage.py",
+        "compilemessages"
+      ],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/backend",
+        "env": {
+          "DJANGO_SETTINGS_MODULE": "core.settings",
+          "PYTHONPATH": "${workspaceFolder}/backend"
+        }
+      },
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
       "label": "Frontend Dev Server",
       "type": "shell",
       "command": "npm",

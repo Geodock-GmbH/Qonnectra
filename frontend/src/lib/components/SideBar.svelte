@@ -5,6 +5,7 @@
 		IconAffiliate,
 		IconArrowBarToRight,
 		IconDashboard,
+		IconFileText,
 		IconHome2,
 		IconMap2,
 		IconSettings,
@@ -14,6 +15,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { userStore } from '$lib/stores/auth';
 	import { sidebarExpanded } from '$lib/stores/store';
 
 	import AppIcon from './AppIcon.svelte';
@@ -63,7 +65,6 @@
 		}
 	];
 
-	// Dynamic anchor classes based on selection
 	function getAnchorClass(isSelected) {
 		const justifyClass = $sidebarExpanded ? 'justify-start' : 'justify-center';
 		const paddingClass = $sidebarExpanded ? 'px-2' : 'px-2 py-3';
@@ -111,6 +112,19 @@
 			</Navigation.Group>
 		</Navigation.Content>
 		<Navigation.Footer>
+			{#if $userStore.isAdmin}
+				<a
+					href="/admin/logs"
+					class={getAnchorClass(page.url.pathname === '/admin/logs')}
+					title={m.nav_logs()}
+					aria-label={m.nav_logs()}
+				>
+					<IconFileText size={28} class="text-surface-700-300" />
+					{#if $sidebarExpanded}
+						<span>{m.nav_logs()}</span>
+					{/if}
+				</a>
+			{/if}
 			<a
 				href="/settings"
 				class={getAnchorClass(page.url.pathname === '/settings')}

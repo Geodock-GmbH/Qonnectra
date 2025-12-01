@@ -1,5 +1,6 @@
 import { m } from '$lib/paraglide/messages';
 
+import { createNodeStyleByType } from '$lib/map/styles';
 import {
 	createAddressTileSource,
 	createNodeTileSource,
@@ -233,6 +234,21 @@ export class MapState {
 			description: description
 		});
 	};
+
+	/**
+	 * Update the node layer style based on node type styles
+	 * @param {Object} nodeTypeStyles - Object mapping node type names to style config
+	 */
+	updateNodeLayerStyle(nodeTypeStyles) {
+		if (!this.nodeLayer) return;
+
+		const newStyle = createNodeStyleByType(nodeTypeStyles, this.labelConfig.node);
+		this.nodeLayer.setStyle(newStyle);
+
+		if (this.nodeTileSource) {
+			this.nodeTileSource.refresh();
+		}
+	}
 
 	/**
 	 * Cleanup method to be called on destroy

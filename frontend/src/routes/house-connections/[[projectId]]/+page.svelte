@@ -11,7 +11,7 @@
 	import Drawer from '$lib/components/Drawer.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
-	import { selectedProject, trenchColor, trenchColorSelected } from '$lib/stores/store';
+	import { nodeTypeStyles, selectedProject, trenchColor, trenchColorSelected } from '$lib/stores/store';
 
 	import HouseConnectionDrawerTabs from './HouseConnectionDrawerTabs.svelte';
 
@@ -63,6 +63,14 @@
 		mapState.refreshTileSources();
 	});
 
+	// Update node layer style when nodeTypeStyles changes
+	$effect(() => {
+		const styles = $nodeTypeStyles;
+		if (Object.keys(styles).length > 0) {
+			mapState.updateNodeLayerStyle(styles);
+		}
+	});
+
 	/**
 	 * Handler for the map ready event
 	 * Initializes all map interactions and overlays
@@ -109,6 +117,7 @@
 					className="rounded-lg overflow-hidden"
 					showSearchPanel={true}
 					layers={mapState.getLayers()}
+					nodeTypes={data.nodeTypes ?? []}
 					on:ready={handleMapReady}
 				/>
 				<div id="popup" class="ol-popup bg-primary-500 rounded-lg border-2 border-primary-600">

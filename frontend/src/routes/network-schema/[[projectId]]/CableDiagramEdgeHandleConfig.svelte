@@ -18,7 +18,7 @@
 	});
 
 	const handleOptions = [
-		{ label: m.from_top(), value: 'top' },
+		{ label: m.form_top(), value: 'top' },
 		{ label: m.form_right(), value: 'right' },
 		{ label: m.form_bottom(), value: 'bottom' },
 		{ label: m.form_left(), value: 'left' }

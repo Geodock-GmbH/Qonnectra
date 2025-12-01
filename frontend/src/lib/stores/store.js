@@ -25,3 +25,7 @@ export const drawerWidth = persisted('drawerWidth', 400);
 export const edgeSnappingEnabled = persisted('edgeSnappingEnabled', true);
 export const edgeSnappingGridSize = persisted('edgeSnappingGridSize', 20);
 export const networkSchemaViewport = persisted('networkSchemaViewport', { x: 0, y: 0, zoom: 1 });
+
+// Node type styles - stores color, size, and visibility per node type
+// Structure: { [node_type_name]: { color: '#hex', size: number, visible: boolean } }
+export const nodeTypeStyles = persisted('nodeTypeStyles', {});

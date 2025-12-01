@@ -28,7 +28,7 @@
 			<AppBar.Trail>
 				<div class="flex items-center gap-2 sm:gap-6 flex-shrink-0">
 					<p
-						class="rounded-full px-2 py-1 bg-surface-200-800/50 text-xs sm:text-sm text-surface-700-300 hidden sm:block transition-all duration-200 hover:scale-105"
+						class="rounded-full px-2 py-1 bg-surface-200-800/50 text-xs sm:text-sm hidden sm:block transition-all duration-200 hover:scale-105"
 						aria-label="Version"
 					>
 						v{data.appVersion}

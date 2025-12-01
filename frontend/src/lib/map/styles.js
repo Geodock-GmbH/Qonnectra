@@ -184,7 +184,6 @@ export function createNodeStyleWithLabels(labelOptions = {}) {
 	return function (feature, resolution) {
 		const baseStyle = createNodeStyle();
 
-		// Only add text if labels are enabled and resolution is high enough (zoomed in)
 		if (enabled && resolution < minResolution) {
 			const labelText = (feature.get(field) || '').toString();
 			const text = createTextStyle({ text: labelText, ...textStyle });
@@ -192,5 +191,73 @@ export function createNodeStyleWithLabels(labelOptions = {}) {
 		}
 
 		return baseStyle;
+	};
+}
+
+/**
+ * Default node style configuration
+ */
+export const DEFAULT_NODE_COLOR = '#ff6b35';
+export const DEFAULT_NODE_SIZE = 6;
+
+/**
+ * Creates a style function for node points with per-type styling
+ * @param {Object} nodeTypeStyles - Object mapping node type names to style config
+ *   { [node_type]: { color: '#hex', size: number, visible: boolean } }
+ * @param {Object} labelOptions - Label configuration options
+ * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
+ * @param {string} [labelOptions.field='name'] - Feature property to use for label
+ * @param {number} [labelOptions.minResolution=1.0] - Minimum resolution to show labels
+ * @param {Object} [labelOptions.textStyle] - Custom text style options
+ * @returns {Function} Style function that accepts (feature, resolution)
+ */
+export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
+	const { enabled = false, field = 'name', minResolution = 1.0, textStyle = {} } = labelOptions;
+
+	const styleCache = new Map();
+
+	return function (feature, resolution) {
+		const nodeType = feature.get('node_type');
+		const typeConfig = nodeTypeStyles[nodeType] || {
+			color: DEFAULT_NODE_COLOR,
+			size: DEFAULT_NODE_SIZE,
+			visible: true
+		};
+
+		if (!typeConfig.visible) {
+			return null;
+		}
+
+		const showLabels = enabled && resolution < minResolution;
+		const cacheKey = `${nodeType || 'default'}_${typeConfig.color}_${typeConfig.size}_${showLabels}`;
+
+		if (styleCache.has(cacheKey)) {
+			const cachedStyle = styleCache.get(cacheKey);
+			if (showLabels) {
+				const labelText = (feature.get(field) || '').toString();
+				cachedStyle.getText()?.setText(labelText);
+			}
+			return cachedStyle;
+		}
+
+		const style = new Style({
+			image: new CircleStyle({
+				radius: typeConfig.size || DEFAULT_NODE_SIZE,
+				fill: new Fill({ color: typeConfig.color || DEFAULT_NODE_COLOR }),
+				stroke: new Stroke({ color: '#ffffff', width: 1 })
+			})
+		});
+
+		if (showLabels) {
+			const labelText = (feature.get(field) || '').toString();
+			const text = createTextStyle({ text: labelText, ...textStyle });
+			style.setText(text);
+		}
+
+		if (!showLabels) {
+			styleCache.set(cacheKey, style);
+		}
+
+		return style;
 	};
 }

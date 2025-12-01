@@ -11,7 +11,12 @@
 	import Drawer from '$lib/components/Drawer.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
-	import { selectedProject, trenchColor, trenchColorSelected } from '$lib/stores/store';
+	import {
+		nodeTypeStyles,
+		selectedProject,
+		trenchColor,
+		trenchColorSelected
+	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
 	import MapDrawerTabs from './MapDrawerTabs.svelte';
@@ -20,7 +25,6 @@
 
 	/** @type {import('./$types').PageData} */
 	let { data } = $props();
-
 	let prevUrl = $state($page.url.href);
 	let mapRef = $state();
 	let searchPanelRef = $state();
@@ -57,6 +61,14 @@
 	// Refresh tile sources when they exist
 	$effect(() => {
 		mapState.refreshTileSources();
+	});
+
+	// Update node layer style when nodeTypeStyles changes
+	$effect(() => {
+		const styles = $nodeTypeStyles;
+		if (Object.keys(styles).length > 0) {
+			mapState.updateNodeLayerStyle(styles);
+		}
 	});
 
 	/**
@@ -129,6 +141,7 @@
 				<Map
 					className="rounded-lg overflow-hidden"
 					layers={mapState.getLayers()}
+					nodeTypes={data.nodeTypes ?? []}
 					on:ready={handleMapReady}
 					searchPanelProps={{
 						trenchColorSelected: $trenchColorSelected,

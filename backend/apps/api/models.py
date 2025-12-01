@@ -215,9 +215,14 @@ class AttributesConduitType(models.Model):
         on_delete=models.DO_NOTHING,
         db_column="manufacturer",
         verbose_name=_("Manufacturer"),
+        blank=True,
     )
-    conduit_type_alias = models.TextField(_("Conduit Type Alias"), null=True)
-    conduit_type_microduct = models.IntegerField(_("Conduit Type Microduct"), null=True)
+    conduit_type_alias = models.TextField(
+        _("Conduit Type Alias"), null=True, blank=True
+    )
+    conduit_type_microduct = models.IntegerField(
+        _("Conduit Type Microduct"), null=True, blank=True
+    )
 
     class Meta:
         db_table = "attributes_conduit_type"
@@ -2408,7 +2413,6 @@ class QGISProject(models.Model):
 def qgis_project_deleted(sender, instance, **kwargs):
     """
     Handle QGIS project deletion.
-
     - Delete the physical file from storage
     """
     if instance.project_file:
@@ -2419,3 +2423,100 @@ def qgis_project_deleted(sender, instance, **kwargs):
             logger.error(
                 f"Error deleting QGIS project file {instance.project_file.name}: {e}"
             )
+
+
+class LogEntry(models.Model):
+    """Stores application logs for monitoring and debugging.
+
+    Captures logs from both backend (Django) and frontend (SvelteKit) with
+    context about the user, request path, and additional metadata.
+    """
+
+    LOG_LEVEL_CHOICES = [
+        ("DEBUG", "Debug"),
+        ("INFO", "Info"),
+        ("WARNING", "Warning"),
+        ("ERROR", "Error"),
+        ("CRITICAL", "Critical"),
+    ]
+
+    SOURCE_CHOICES = [
+        ("backend", "Backend"),
+        ("frontend", "Frontend"),
+        ("wfs", "WFS (QGIS Server)"),
+    ]
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    timestamp = models.DateTimeField(
+        auto_now_add=True, db_index=True, verbose_name=_("Timestamp")
+    )
+    level = models.CharField(
+        max_length=20,
+        choices=LOG_LEVEL_CHOICES,
+        db_index=True,
+        verbose_name=_("Log Level"),
+    )
+    logger_name = models.CharField(
+        max_length=255,
+        verbose_name=_("Logger Name"),
+        help_text=_("Name of the logger (e.g., 'apps.api', 'frontend.auth')"),
+    )
+    message = models.TextField(
+        verbose_name=_("Message"), help_text=_("The log message")
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="application_logs",
+        verbose_name=_("User"),
+        help_text=_("User associated with this log entry"),
+    )
+    source = models.CharField(
+        max_length=50,
+        choices=SOURCE_CHOICES,
+        default="backend",
+        db_index=True,
+        verbose_name=_("Source"),
+        help_text=_("Whether this log came from backend or frontend"),
+    )
+    path = models.CharField(
+        max_length=500,
+        null=True,
+        blank=True,
+        verbose_name=_("Path"),
+        help_text=_("Request path or URL where the log occurred"),
+    )
+    extra_data = models.JSONField(
+        null=True,
+        blank=True,
+        verbose_name=_("Extra Data"),
+        help_text=_("Additional context data (request method, IP, user agent, etc.)"),
+    )
+    project = models.ForeignKey(
+        Projects,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="logs",
+        verbose_name=_("Project"),
+        help_text=_("Project associated with this log entry (if applicable)"),
+    )
+
+    class Meta:
+        db_table = "log_entry"
+        verbose_name = _("Log Entry")
+        verbose_name_plural = _("Log Entries")
+        ordering = ["-timestamp"]
+        indexes = [
+            models.Index(fields=["-timestamp"], name="idx_log_entry_timestamp"),
+            models.Index(fields=["level"], name="idx_log_entry_level"),
+            models.Index(fields=["user"], name="idx_log_entry_user"),
+            models.Index(fields=["source"], name="idx_log_entry_source"),
+            models.Index(fields=["logger_name"], name="idx_log_entry_logger_name"),
+            models.Index(fields=["project"], name="idx_log_entry_project"),
+        ]
+
+    def __str__(self):
+        return f"[{self.timestamp}] {self.level}: {self.message[:50]}"

@@ -9,7 +9,7 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.base import ContentFile
 from django.db import connection, transaction
-from django.db.models import Count, F, Q, Sum
+from django.db.models import Avg, Count, F, Q, Sum
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
@@ -26,12 +26,14 @@ from .models import (
     AttributesCableType,
     AttributesCompany,
     AttributesConduitType,
+    AttributesConstructionType,
     AttributesFiberColor,
     AttributesMicroductColor,
     AttributesMicroductStatus,
     AttributesNetworkLevel,
     AttributesNodeType,
     AttributesStatus,
+    AttributesSurface,
     Cable,
     CableLabel,
     CableTypeColorMapping,
@@ -39,6 +41,7 @@ from .models import (
     Conduit,
     FeatureFiles,
     Flags,
+    LogEntry,
     Microduct,
     MicroductCableConnection,
     MicroductConnection,
@@ -57,12 +60,14 @@ from .serializers import (
     AttributesCableTypeSerializer,
     AttributesCompanySerializer,
     AttributesConduitTypeSerializer,
+    AttributesConstructionTypeSerializer,
     AttributesFiberColorSerializer,
     AttributesMicroductColorSerializer,
     AttributesMicroductStatusSerializer,
     AttributesNetworkLevelSerializer,
     AttributesNodeTypeSerializer,
     AttributesStatusSerializer,
+    AttributesSurfaceSerializer,
     CableLabelSerializer,
     CableSerializer,
     CableTypeColorMappingSerializer,
@@ -70,6 +75,7 @@ from .serializers import (
     ContentTypeSerializer,
     FeatureFilesSerializer,
     FlagsSerializer,
+    LogEntrySerializer,
     MicroductCableConnectionSerializer,
     MicroductConnectionSerializer,
     MicroductSerializer,
@@ -198,6 +204,32 @@ class ContentTypeViewSet(viewsets.ReadOnlyModelViewSet):
         ).order_by("model")
 
 
+class AttributesConstructionTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesConstructionType model :model:`api.AttributesConstructionType`.
+
+    An instance of :model:`api.AttributesConstructionType`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesConstructionType.objects.all().order_by("construction_type")
+    serializer_class = AttributesConstructionTypeSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class AttributesSurfaceViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesSurface model :model:`api.AttributesSurface`.
+
+    An instance of :model:`api.AttributesSurface`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesSurface.objects.all().order_by("surface")
+    serializer_class = AttributesSurfaceSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
 class TrenchViewSet(viewsets.ModelViewSet):
     """ViewSet for the Trench model :model:`api.Trench`.
 
@@ -277,6 +309,130 @@ class TrenchViewSet(viewsets.ModelViewSet):
         )
 
         return Response({"total_length": total_length, "count": queryset.count()})
+
+    @action(detail=False, methods=["get"])
+    def average_house_connection_length(self, request):
+        project = self.request.query_params.get("project")
+        flag = self.request.query_params.get("flag")
+
+        queryset = self.get_queryset().filter(house_connection=True)
+
+        if project:
+            queryset = queryset.filter(project=project)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        avg_length = queryset.aggregate(avg_length=Avg("length"))["avg_length"] or 0
+
+        return Response({"average_length": avg_length, "count": queryset.count()})
+
+    @action(detail=False, methods=["get"])
+    def length_with_funding(self, request):
+        project = self.request.query_params.get("project")
+        flag = self.request.query_params.get("flag")
+
+        queryset = self.get_queryset().filter(funding_status=True)
+
+        if project:
+            queryset = queryset.filter(project=project)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        total_length = (
+            queryset.aggregate(total_length=Sum("length"))["total_length"] or 0
+        )
+
+        return Response({"total_length": total_length, "count": queryset.count()})
+
+    @action(detail=False, methods=["get"])
+    def length_with_internal_execution(self, request):
+        project = self.request.query_params.get("project")
+        flag = self.request.query_params.get("flag")
+
+        queryset = self.get_queryset().filter(internal_execution=True)
+
+        if project:
+            queryset = queryset.filter(project=project)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        total_length = (
+            queryset.aggregate(total_length=Sum("length"))["total_length"] or 0
+        )
+
+        return Response({"total_length": total_length, "count": queryset.count()})
+
+    @action(detail=False, methods=["get"])
+    def length_by_status(self, request):
+        project = self.request.query_params.get("project")
+        flag = self.request.query_params.get("flag")
+
+        queryset = self.get_queryset()
+
+        if project:
+            queryset = queryset.filter(project=project)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        queryset = (
+            queryset.annotate(status_name=F("status__status"))
+            .values("status_name")
+            .annotate(gesamt_länge=Sum("length"))
+            .order_by("status_name")
+        )
+
+        results = list(queryset)
+
+        return Response({"results": results, "count": len(results)})
+
+    @action(detail=False, methods=["get"])
+    def length_by_phase(self, request):
+        project = self.request.query_params.get("project")
+        flag = self.request.query_params.get("flag")
+
+        queryset = self.get_queryset()
+
+        if project:
+            queryset = queryset.filter(project=project)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        queryset = (
+            queryset.annotate(network_level=F("phase__phase"))
+            .values("network_level")
+            .annotate(gesamt_länge=Sum("length"))
+            .order_by("network_level")
+        )
+
+        results = list(queryset)
+
+        return Response({"results": results, "count": len(results)})
+
+    @action(detail=False, methods=["get"])
+    def longest_routes(self, request):
+        project = self.request.query_params.get("project")
+        flag = self.request.query_params.get("flag")
+        limit = int(self.request.query_params.get("limit", 5))
+
+        queryset = self.get_queryset()
+
+        if project:
+            queryset = queryset.filter(project=project)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        queryset = (
+            queryset.annotate(
+                construction_type_name=F("construction_type__construction_type"),
+                surface_name=F("surface__surface"),
+            )
+            .values("id_trench", "length", "construction_type_name", "surface_name")
+            .order_by("-length")[:limit]
+        )
+
+        results = list(queryset)
+
+        return Response({"results": results, "count": len(results)})
 
     @action(detail=False, methods=["get"], url_path="all")
     def all_trenches(self, request):
@@ -876,8 +1032,10 @@ class ProjectsViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         queryset = Projects.objects.all().order_by("project")
         active = self.request.query_params.get("active")
-        if active:
-            queryset = queryset.filter(active=active)
+        if active is not None:
+            # Convert string 'true'/'false' to boolean
+            active_bool = active.lower() in ("true", "1", "yes")
+            queryset = queryset.filter(active=active_bool)
         return queryset
 
 
@@ -1315,6 +1473,51 @@ class NodeViewSet(viewsets.ModelViewSet):
             {"node_type": row["node_type__node_type"], "count": row["count"]}
             for row in queryset
         ]
+
+        return Response({"results": result, "count": len(result)})
+
+    @action(detail=False, methods=["get"])
+    def expiring_warranties(self, request):
+        """
+        Returns the next 5 nodes with warranties expiring soonest.
+        Filters out nodes with no warranty or expired warranties.
+        """
+        from datetime import date
+
+        project_id = request.query_params.get("project")
+        flag = request.query_params.get("flag")
+
+        queryset = Node.objects.filter(
+            warranty__isnull=False, warranty__gte=date.today()
+        )
+
+        if project_id:
+            try:
+                project_id = int(project_id)
+                queryset = queryset.filter(project=project_id)
+            except ValueError:
+                queryset = queryset.none()
+        if flag:
+            try:
+                flag = int(flag)
+                queryset = queryset.filter(flag=flag)
+            except ValueError:
+                queryset = queryset.none()
+
+        queryset = queryset.order_by("warranty")[:5]
+
+        result = []
+        for node in queryset:
+            days_until_expiry = (node.warranty - date.today()).days
+            result.append(
+                {
+                    "id": node.uuid,
+                    "name": node.name,
+                    "warranty": node.warranty.strftime("%Y-%m-%d"),
+                    "node_type": node.node_type.node_type if node.node_type else None,
+                    "days_until_expiry": days_until_expiry,
+                }
+            )
 
         return Response({"results": result, "count": len(result)})
 
@@ -2386,3 +2589,140 @@ class MicroductCableConnectionViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(uuid_cable=uuid_cable)
         serializer = MicroductCableConnectionSerializer(queryset, many=True)
         return Response(serializer.data)
+
+
+class LogEntryViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for viewing application logs.
+
+    Only accessible to staff users (is_staff=True).
+    Provides filtering by date range, log level, user, source, project, and search.
+
+    Query parameters:
+    - level: Filter by log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    - source: Filter by source (backend, frontend)
+    - user: Filter by user ID
+    - project: Filter by project ID
+    - search: Search in message and logger_name
+    - date_from: Filter logs from this date (ISO format)
+    - date_to: Filter logs until this date (ISO format)
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = (
+        LogEntry.objects.all().select_related("user", "project").order_by("-timestamp")
+    )
+    serializer_class = LogEntrySerializer
+    pagination_class = CustomPagination
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+
+    def get_queryset(self):
+        """Filter queryset based on query parameters."""
+        queryset = super().get_queryset()
+
+        # Only allow staff users to view logs
+        if not self.request.user.is_staff:
+            return LogEntry.objects.none()
+
+        # Filter by log level
+        level = self.request.query_params.get("level")
+        if level:
+            queryset = queryset.filter(level=level.upper())
+
+        # Filter by source
+        source = self.request.query_params.get("source")
+        if source:
+            queryset = queryset.filter(source=source)
+
+        # Filter by user
+        user_id = self.request.query_params.get("user")
+        if user_id:
+            queryset = queryset.filter(user_id=user_id)
+
+        # Filter by project
+        project_id = self.request.query_params.get("project")
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+
+        # Search in message and logger_name
+        search = self.request.query_params.get("search")
+        if search:
+            queryset = queryset.filter(
+                Q(message__icontains=search) | Q(logger_name__icontains=search)
+            )
+
+        # Filter by date range
+        date_from = self.request.query_params.get("date_from")
+        if date_from:
+            queryset = queryset.filter(timestamp__gte=date_from)
+
+        date_to = self.request.query_params.get("date_to")
+        if date_to:
+            queryset = queryset.filter(timestamp__lte=date_to)
+
+        return queryset
+
+
+class FrontendLogView(APIView):
+    """
+    API endpoint for submitting frontend logs.
+
+    POST /api/v1/logs/frontend/
+
+    Request body:
+    {
+        "level": "ERROR",
+        "message": "Error message",
+        "path": "/some/path",
+        "extra_data": {...},
+        "project": "1"
+    }
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        """Submit a frontend log entry."""
+        try:
+            level = request.data.get("level", "INFO").upper()
+            message = request.data.get("message", "")
+            path = request.data.get("path", "")
+            extra_data = request.data.get("extra_data", {})
+            project_id = request.data.get("project", None)
+
+            # Validate level
+            valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+            if level not in valid_levels:
+                level = "INFO"
+
+            project_instance = None
+            if project_id is not None:
+                try:
+                    if isinstance(project_id, list):
+                        project_id = project_id[0]
+                    project_id = int(project_id)
+                    project_instance = Projects.objects.get(id=project_id)
+                except (ValueError, Projects.DoesNotExist, TypeError):
+                    project_instance = None
+
+            # Create log entry
+            LogEntry.objects.create(
+                level=level,
+                logger_name="frontend",
+                message=message[:10000],  # Limit message length
+                user=request.user,
+                source="frontend",
+                path=path[:500] if path else None,
+                extra_data=extra_data,
+                project=project_instance,
+            )
+
+            return Response({"status": "success"}, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            logger.error(f"Error creating frontend log entry: {e}")
+            return Response(
+                {"error": "Failed to create log entry"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
