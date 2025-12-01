@@ -208,8 +208,90 @@ admin.site.register(Flags)
 admin.site.register(AttributesNetworkLevel)
 admin.site.register(AttributesNodeType)
 admin.site.register(AttributesMicroductStatus)
-admin.site.register(Conduit)
 admin.site.register(Microduct)
+
+
+@admin.register(Conduit)
+class ConduitAdmin(admin.ModelAdmin):
+    """Admin interface for Conduit model with action to create missing microducts."""
+
+    list_display = ("name", "conduit_type", "microduct_count", "has_color_mappings")
+    list_filter = ("conduit_type",)
+    search_fields = ("name",)
+    actions = ["create_microducts_for_empty_conduits"]
+
+    @admin.display(description=_("Microducts"))
+    def microduct_count(self, obj):
+        """Display the number of microducts for this conduit."""
+        return obj.microduct_set.count()
+
+    @admin.display(boolean=True, description=_("Type Has Mappings"))
+    def has_color_mappings(self, obj):
+        """Check if the conduit's type has color mappings configured."""
+        if not obj.conduit_type:
+            return False
+        return obj.conduit_type.color_mappings.exists()
+
+    @admin.action(
+        description=_("Create microducts for selected conduits (only if empty)")
+    )
+    def create_microducts_for_empty_conduits(self, request, queryset):
+        """
+        Create microducts for selected conduits that don't have any.
+        Only processes conduits with zero microducts - no partial filling.
+        """
+        from django.db.models import Count
+
+        created_count = 0
+        skipped_has_microducts = 0
+        skipped_no_mappings = 0
+
+        queryset = queryset.annotate(md_count=Count("microduct"))
+
+        for conduit in queryset:
+            if conduit.md_count > 0:
+                skipped_has_microducts += 1
+                continue
+
+            if not conduit.conduit_type:
+                skipped_no_mappings += 1
+                continue
+
+            color_mappings = (
+                ConduitTypeColorMapping.objects.filter(
+                    conduit_type=conduit.conduit_type
+                )
+                .select_related("color")
+                .order_by("position")
+            )
+
+            if not color_mappings.exists():
+                skipped_no_mappings += 1
+                continue
+
+            for mapping in color_mappings:
+                Microduct.objects.create(
+                    uuid_conduit=conduit,
+                    number=mapping.position,
+                    color=mapping.color.name_de,
+                )
+            created_count += 1
+
+        self.message_user(
+            request,
+            _(
+                "Created microducts for %(created)d conduit(s). "
+                "Skipped %(has_microducts)d (already have microducts), "
+                "%(no_mappings)d (no type or no color mappings)."
+            )
+            % {
+                "created": created_count,
+                "has_microducts": skipped_has_microducts,
+                "no_mappings": skipped_no_mappings,
+            },
+        )
+
+
 admin.site.register(Trench)
 
 

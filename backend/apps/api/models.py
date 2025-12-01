@@ -215,9 +215,14 @@ class AttributesConduitType(models.Model):
         on_delete=models.DO_NOTHING,
         db_column="manufacturer",
         verbose_name=_("Manufacturer"),
+        blank=True,
     )
-    conduit_type_alias = models.TextField(_("Conduit Type Alias"), null=True)
-    conduit_type_microduct = models.IntegerField(_("Conduit Type Microduct"), null=True)
+    conduit_type_alias = models.TextField(
+        _("Conduit Type Alias"), null=True, blank=True
+    )
+    conduit_type_microduct = models.IntegerField(
+        _("Conduit Type Microduct"), null=True, blank=True
+    )
 
     class Meta:
         db_table = "attributes_conduit_type"
