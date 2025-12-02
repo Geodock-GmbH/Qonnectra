@@ -10,20 +10,38 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { DEFAULT_NODE_COLOR, DEFAULT_NODE_SIZE } from '$lib/map/styles';
-	import { nodeTypeStyles } from '$lib/stores/store';
+	import { DEFAULT_NODE_COLOR, DEFAULT_NODE_SIZE, DEFAULT_TRENCH_COLOR } from '$lib/map/styles';
+	import {
+		nodeTypeStyles,
+		trenchConstructionTypeStyles,
+		trenchStyleMode,
+		trenchSurfaceStyles
+	} from '$lib/stores/store';
 
 	let {
 		layers = [],
 		osmLayer = null,
 		nodeTypes = [],
+		surfaces = [],
+		constructionTypes = [],
 		onLayerVisibilityChanged = () => {},
-		onNodeTypeVisibilityChanged = () => {}
+		onNodeTypeVisibilityChanged = () => {},
+		onTrenchTypeVisibilityChanged = () => {}
 	} = $props();
 
 	let layerVisibility = $state(new Map());
 	let isCollapsed = $state(false);
 	let isNodeSubtypesExpanded = $state(false);
+	let isTrenchSubtypesExpanded = $state(false);
+
+	// Derive which trench types to show based on mode
+	let trenchTypes = $derived(
+		$trenchStyleMode === 'surface'
+			? surfaces
+			: $trenchStyleMode === 'construction_type'
+				? constructionTypes
+				: []
+	);
 
 	// Initialize node type styles for any new types when node types change
 	$effect(() => {
@@ -162,6 +180,88 @@
 		const config = $nodeTypeStyles[nodeTypeName];
 		return config?.color || DEFAULT_NODE_COLOR;
 	}
+
+	/**
+	 * Toggle the expansion state of the trench subtypes
+	 */
+	function toggleTrenchSubtypes() {
+		isTrenchSubtypesExpanded = !isTrenchSubtypesExpanded;
+	}
+
+	/**
+	 * Get the name key for a trench type based on current style mode
+	 * @param {Object} trenchType - The trench type object
+	 * @returns {string} The name of the trench type
+	 */
+	function getTrenchTypeName(trenchType) {
+		return $trenchStyleMode === 'surface' ? trenchType.surface : trenchType.construction_type;
+	}
+
+	/**
+	 * Check if a trench type is visible
+	 * @param {string} typeName - The name of the trench type to check
+	 * @returns {boolean} True if the trench type is visible
+	 */
+	function isTrenchTypeVisible(typeName) {
+		const styles =
+			$trenchStyleMode === 'surface' ? $trenchSurfaceStyles : $trenchConstructionTypeStyles;
+		const config = styles[typeName];
+		return config ? config.visible : true;
+	}
+
+	/**
+	 * Get the color of a trench type
+	 * @param {string} typeName - The name of the trench type to get the color of
+	 * @returns {string} The color of the trench type
+	 */
+	function getTrenchTypeColor(typeName) {
+		const styles =
+			$trenchStyleMode === 'surface' ? $trenchSurfaceStyles : $trenchConstructionTypeStyles;
+		const config = styles[typeName];
+		return config?.color || DEFAULT_TRENCH_COLOR;
+	}
+
+	/**
+	 * Toggle the visibility of a trench type
+	 * @param {string} typeName - The name of the trench type to toggle
+	 */
+	function toggleTrenchTypeVisibility(typeName) {
+		if ($trenchStyleMode === 'surface') {
+			const currentStyles = $trenchSurfaceStyles;
+			const currentConfig = currentStyles[typeName] || {
+				color: DEFAULT_TRENCH_COLOR,
+				visible: true
+			};
+
+			$trenchSurfaceStyles = {
+				...currentStyles,
+				[typeName]: {
+					...currentConfig,
+					visible: !currentConfig.visible
+				}
+			};
+		} else if ($trenchStyleMode === 'construction_type') {
+			const currentStyles = $trenchConstructionTypeStyles;
+			const currentConfig = currentStyles[typeName] || {
+				color: DEFAULT_TRENCH_COLOR,
+				visible: true
+			};
+
+			$trenchConstructionTypeStyles = {
+				...currentStyles,
+				[typeName]: {
+					...currentConfig,
+					visible: !currentConfig.visible
+				}
+			};
+		}
+
+		onTrenchTypeVisibilityChanged({
+			trenchType: typeName,
+			visible: !isTrenchTypeVisible(typeName),
+			styleMode: $trenchStyleMode
+		});
+	}
 </script>
 
 <!-- LayerVisibilityTree -->
@@ -202,6 +302,20 @@
 								aria-label={isNodeSubtypesExpanded ? 'Collapse node types' : 'Expand node types'}
 							>
 								{#if isNodeSubtypesExpanded}
+									<IconChevronDown size="14" class="text-surface-500" />
+								{:else}
+									<IconChevronRight size="14" class="text-surface-500" />
+								{/if}
+							</button>
+						{:else if layerId === 'trench-layer' && trenchTypes.length > 0}
+							<button
+								class="p-0.5 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+								onclick={toggleTrenchSubtypes}
+								aria-label={isTrenchSubtypesExpanded
+									? 'Collapse trench types'
+									: 'Expand trench types'}
+							>
+								{#if isTrenchSubtypesExpanded}
 									<IconChevronDown size="14" class="text-surface-500" />
 								{:else}
 									<IconChevronRight size="14" class="text-surface-500" />
@@ -269,6 +383,48 @@
 									size="sm"
 									checked={visible}
 									onCheckedChange={() => toggleNodeTypeVisibility(nodeType.node_type)}
+									class="flex-shrink-0"
+								>
+									<Switch.Control>
+										<Switch.Thumb />
+									</Switch.Control>
+									<Switch.HiddenInput />
+								</Switch>
+							</div>
+						{/each}
+					</div>
+				{/if}
+
+				<!-- Trench type subtypes (expandable) -->
+				{#if layerId === 'trench-layer' && isTrenchSubtypesExpanded && trenchTypes.length > 0}
+					<div class="ml-6 mt-1 space-y-1 border-l border-surface-200-700 pl-2">
+						{#each trenchTypes as trenchType (trenchType.id)}
+							{@const typeName = getTrenchTypeName(trenchType)}
+							{@const visible = isTrenchTypeVisible(typeName)}
+							{@const color = getTrenchTypeColor(typeName)}
+							<div
+								class="flex items-center justify-between p-1.5 md:p-1 rounded-md hover:bg-surface-100-800 transition-colors"
+							>
+								<div class="flex items-center gap-2 flex-1 min-w-0">
+									<!-- Color indicator line (for trenches) -->
+									<span class="w-4 h-1 flex-shrink-0 rounded-sm" style="background-color: {color};"
+									></span>
+
+									{#if visible}
+										<IconEye size="14" class="text-primary-900-100 flex-shrink-0" />
+									{:else}
+										<IconEyeOff size="14" class="text-surface-900-100 flex-shrink-0" />
+									{/if}
+									<span class="text-xs text-surface-contrast-100-900 truncate" title={typeName}>
+										{typeName}
+									</span>
+								</div>
+
+								<Switch
+									name="trench-type-visibility-{trenchType.id}"
+									size="sm"
+									checked={visible}
+									onCheckedChange={() => toggleTrenchTypeVisibility(typeName)}
 									class="flex-shrink-0"
 								>
 									<Switch.Control>

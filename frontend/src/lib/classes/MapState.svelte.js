@@ -1,6 +1,10 @@
 import { m } from '$lib/paraglide/messages';
 
-import { createNodeStyleByType } from '$lib/map/styles';
+import {
+	createNodeStyleByType,
+	createTrenchStyle,
+	createTrenchStyleByAttribute
+} from '$lib/map/styles';
 import {
 	createAddressTileSource,
 	createNodeTileSource,
@@ -247,6 +251,36 @@ export class MapState {
 
 		if (this.nodeTileSource) {
 			this.nodeTileSource.refresh();
+		}
+	}
+
+	/**
+	 * Update the trench layer style based on style mode and attribute styles
+	 * @param {string} styleMode - 'none' | 'surface' | 'construction_type'
+	 * @param {Object} surfaceStyles - Object mapping surface names to style config
+	 * @param {Object} constructionTypeStyles - Object mapping construction type names to style config
+	 * @param {string} fallbackColor - Color to use when styleMode is 'none'
+	 */
+	updateTrenchLayerStyle(styleMode, surfaceStyles, constructionTypeStyles, fallbackColor) {
+		if (!this.vectorTileLayer) return;
+
+		let newStyle;
+		if (styleMode === 'none') {
+			newStyle = createTrenchStyle(fallbackColor);
+		} else {
+			const attributeStyles = styleMode === 'surface' ? surfaceStyles : constructionTypeStyles;
+			newStyle = createTrenchStyleByAttribute(
+				attributeStyles,
+				styleMode,
+				fallbackColor,
+				this.labelConfig.trench
+			);
+		}
+
+		this.vectorTileLayer.setStyle(newStyle);
+
+		if (this.tileSource) {
+			this.tileSource.refresh();
 		}
 	}
 

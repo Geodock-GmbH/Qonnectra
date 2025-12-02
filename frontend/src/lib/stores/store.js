@@ -29,3 +29,15 @@ export const networkSchemaViewport = persisted('networkSchemaViewport', { x: 0, 
 // Node type styles - stores color, size, and visibility per node type
 // Structure: { [node_type_name]: { color: '#hex', size: number, visible: boolean } }
 export const nodeTypeStyles = persisted('nodeTypeStyles', {});
+
+// Trench styling mode - determines how trenches are colored on the map
+// 'none' = single color (uses trenchColor), 'surface' = by surface type, 'construction_type' = by construction type
+export const trenchStyleMode = persisted('trenchStyleMode', 'none');
+
+// Trench surface styles - stores color and visibility per surface type
+// Structure: { [surface_name]: { color: '#hex', visible: boolean } }
+export const trenchSurfaceStyles = persisted('trenchSurfaceStyles', {});
+
+// Trench construction type styles - stores color and visibility per construction type
+// Structure: { [construction_type_name]: { color: '#hex', visible: boolean } }
+export const trenchConstructionTypeStyles = persisted('trenchConstructionTypeStyles', {});

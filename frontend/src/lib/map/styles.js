@@ -201,6 +201,12 @@ export const DEFAULT_NODE_COLOR = '#ff6b35';
 export const DEFAULT_NODE_SIZE = 6;
 
 /**
+ * Default trench style configuration
+ */
+export const DEFAULT_TRENCH_COLOR = '#fbb483';
+export const DEFAULT_TRENCH_WIDTH = 2;
+
+/**
  * Creates a style function for node points with per-type styling
  * @param {Object} nodeTypeStyles - Object mapping node type names to style config
  *   { [node_type]: { color: '#hex', size: number, visible: boolean } }
@@ -245,6 +251,101 @@ export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
 				radius: typeConfig.size || DEFAULT_NODE_SIZE,
 				fill: new Fill({ color: typeConfig.color || DEFAULT_NODE_COLOR }),
 				stroke: new Stroke({ color: '#ffffff', width: 1 })
+			})
+		});
+
+		if (showLabels) {
+			const labelText = (feature.get(field) || '').toString();
+			const text = createTextStyle({ text: labelText, ...textStyle });
+			style.setText(text);
+		}
+
+		if (!showLabels) {
+			styleCache.set(cacheKey, style);
+		}
+
+		return style;
+	};
+}
+
+/**
+ * Creates a style function for trench features with per-attribute styling
+ * @param {Object} attributeStyles - Object mapping attribute values to style config
+ *   { [attribute_value]: { color: '#hex', visible: boolean } }
+ * @param {string} styleMode - 'surface' | 'construction_type' | 'none'
+ * @param {string} fallbackColor - Color to use when styleMode is 'none' or attribute not found
+ * @param {Object} labelOptions - Label configuration options
+ * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
+ * @param {string} [labelOptions.field='id_trench'] - Feature property to use for label
+ * @param {number} [labelOptions.minResolution=1.5] - Minimum resolution to show labels
+ * @param {Object} [labelOptions.textStyle] - Custom text style options
+ * @returns {Function} Style function that accepts (feature, resolution)
+ */
+export function createTrenchStyleByAttribute(
+	attributeStyles = {},
+	styleMode = 'none',
+	fallbackColor = DEFAULT_TRENCH_COLOR,
+	labelOptions = {}
+) {
+	const {
+		enabled = false,
+		field = 'id_trench',
+		minResolution = 1.5,
+		textStyle = {}
+	} = labelOptions;
+
+	const styleCache = new Map();
+
+	return function (feature, resolution) {
+		let color = fallbackColor;
+		let visible = true;
+
+		// Determine color based on style mode
+		if (styleMode === 'surface') {
+			const surfaceValue = feature.get('surface');
+			const config = attributeStyles[surfaceValue];
+			if (config) {
+				color = config.color || fallbackColor;
+				visible = config.visible !== false;
+			}
+		} else if (styleMode === 'construction_type') {
+			const constructionTypeValue = feature.get('construction_type');
+			const config = attributeStyles[constructionTypeValue];
+			if (config) {
+				color = config.color || fallbackColor;
+				visible = config.visible !== false;
+			}
+		}
+
+		// Return null if this attribute value should be hidden
+		if (!visible) {
+			return null;
+		}
+
+		const showLabels = enabled && resolution < minResolution;
+		const cacheKey = `${styleMode}_${color}_${showLabels}`;
+
+		if (styleCache.has(cacheKey)) {
+			const cachedStyle = styleCache.get(cacheKey);
+			if (showLabels) {
+				const labelText = (feature.get(field) || '').toString();
+				cachedStyle.getText()?.setText(labelText);
+			}
+			return cachedStyle;
+		}
+
+		const style = new Style({
+			fill: new Fill({
+				color: color
+			}),
+			stroke: new Stroke({
+				color: color,
+				width: DEFAULT_TRENCH_WIDTH
+			}),
+			image: new CircleStyle({
+				radius: 7,
+				fill: new Fill({ color: color }),
+				stroke: new Stroke({ color: color, width: 2 })
 			})
 		});
 
