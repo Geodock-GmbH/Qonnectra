@@ -25,7 +25,7 @@ class Projects(models.Model):
 
     id = models.IntegerField(primary_key=True)
     project = models.TextField(_("Project"), null=False, db_index=False, unique=True)
-    description = models.TextField(_("Description"), null=True)
+    description = models.TextField(_("Description"), null=True, blank=True)
     active = models.BooleanField(_("Active"), null=False, default=True)
 
     class Meta:
@@ -153,12 +153,12 @@ class AttributesCompany(models.Model):
 
     id = models.IntegerField(primary_key=True)
     company = models.TextField(_("Company"), null=False, db_index=False)
-    city = models.TextField(_("City"), null=True)
-    postal_code = models.TextField(_("Postal Code"), null=True)
-    street = models.TextField(_("Street"), null=True)
+    city = models.TextField(_("City"), null=True, blank=True)
+    postal_code = models.TextField(_("Postal Code"), null=True, blank=True)
+    street = models.TextField(_("Street"), null=True, blank=True)
     housenumber = models.TextField(_("Housenumber"), null=True)
-    phone = models.TextField(_("Phone"), null=True)
-    email = models.TextField(_("Email"), null=True)
+    phone = models.TextField(_("Phone"), null=True, blank=True)
+    email = models.TextField(_("Email"), null=True, blank=True)
 
     class Meta:
         db_table = "attributes_company"
@@ -182,9 +182,9 @@ class AttributesNodeType(models.Model):
 
     id = models.IntegerField(primary_key=True)
     node_type = models.TextField(_("Node Type"), null=False, db_index=False)
-    dimension = models.TextField(_("Dimension"), null=True)
-    group = models.TextField(_("Group"), null=True)
-    company = models.TextField(_("Company"), null=True)
+    dimension = models.TextField(_("Dimension"), null=True, blank=True)
+    group = models.TextField(_("Group"), null=True, blank=True)
+    company = models.TextField(_("Company"), null=True, blank=True)
 
     class Meta:
         db_table = "attributes_node_type"
@@ -506,6 +506,34 @@ class FeatureFiles(models.Model):
     object_id = models.UUIDField(verbose_name=_("Feature ID"))
     feature = GenericForeignKey("content_type", "object_id")
 
+    def get_feature_identifier(instance):
+        """
+        Get the human-readable identifier for a feature based on its model type.
+
+        Returns the appropriate identifier (id_trench, name, address string, etc.)
+        instead of the UUID.
+        """
+        model_name = instance.content_type.model
+        feature = instance.feature
+
+        if model_name == "trench":
+            return feature.id_trench
+        elif model_name == "conduit":
+            return feature.name
+        elif model_name == "cable":
+            return feature.name
+        elif model_name == "node":
+            return feature.name
+        elif model_name == "address":
+            suffix = (
+                f" {feature.house_number_suffix}" if feature.house_number_suffix else ""
+            )
+            return f"{feature.street} {feature.housenumber}{suffix}, {feature.zip_code} {feature.city}"
+        elif model_name == "residentialunit":
+            return instance.object_id
+        else:
+            return instance.object_id
+
     def get_upload_path(instance, filename):
         """
         Determine the upload path for a file based on project, feature type and file category.
@@ -521,21 +549,22 @@ class FeatureFiles(models.Model):
         """
 
         prefs = StoragePreferences.objects.first()
+        model_name = instance.content_type.model
+        feature = instance.feature
+        feature_id = FeatureFiles.get_feature_identifier(instance)
+
+        project_name = (
+            feature.project.project
+            if hasattr(feature, "project") and feature.project
+            else "default"
+        )
+        project_name = sanitize_filename(project_name)
 
         # Only support AUTO mode - manual uploads happen via WebDAV
         if not prefs or prefs.mode != "AUTO":
             # Default fallback if no preferences exist
-            model_name = instance.content_type.model
-            feature = instance.feature
-            project_name = (
-                feature.project.project
-                if hasattr(feature, "project") and feature.project
-                else "default"
-            )
-            project_name = sanitize_filename(project_name)
-            return f"{project_name}/{model_name}s/{instance.object_id}/{filename}"
+            return f"{project_name}/{model_name}s/{feature_id}/{filename}"
 
-        model_name = instance.content_type.model
         file_extension = instance.get_file_type() or ""
         file_extension = file_extension.lower()
 
@@ -551,33 +580,6 @@ class FeatureFiles(models.Model):
         folder_name = folder_paths.get(
             file_category, folder_paths.get("default", model_name + "s")
         )
-
-        # Determine the feature identifier based on model type
-        feature = instance.feature
-        if model_name == "trench":
-            feature_id = feature.id_trench
-        elif model_name == "conduit":
-            feature_id = feature.name
-        elif model_name == "cable":
-            feature_id = feature.name
-        elif model_name == "node":
-            feature_id = feature.name
-        elif model_name == "address":
-            suffix = (
-                f" {feature.house_number_suffix}" if feature.house_number_suffix else ""
-            )
-            feature_id = f"{feature.street} {feature.housenumber}{suffix}, {feature.zip_code} {feature.city}"
-        elif model_name == "residentialunit":
-            feature_id = instance.object_id
-        else:
-            feature_id = instance.object_id
-
-        project_name = (
-            feature.project.project
-            if hasattr(feature, "project") and feature.project
-            else "default"
-        )
-        project_name = sanitize_filename(project_name)
 
         # Build the path based on folder structure with project name as root
         if "/" in folder_name:
@@ -750,14 +752,17 @@ class Trench(models.Model):
     construction_depth = models.IntegerField(
         _("Construction Depth"),
         null=True,
+        blank=True,
     )
     construction_details = models.TextField(
         _("Construction Details"),
         null=True,
+        blank=True,
     )
     status = models.ForeignKey(
         AttributesStatus,
         null=True,
+        blank=True,
         on_delete=models.CASCADE,
         db_column="status",
         db_index=False,
@@ -766,6 +771,7 @@ class Trench(models.Model):
     phase = models.ForeignKey(
         AttributesPhase,
         null=True,
+        blank=True,
         on_delete=models.CASCADE,
         db_column="phase",
         db_index=False,
@@ -774,10 +780,12 @@ class Trench(models.Model):
     internal_execution = models.BooleanField(
         _("Internal Execution"),
         null=True,
+        blank=True,
     )
     funding_status = models.BooleanField(
         _("Funding Status"),
         null=True,
+        blank=True,
     )
     owner = models.ForeignKey(
         AttributesCompany,
@@ -791,17 +799,19 @@ class Trench(models.Model):
     constructor = models.ForeignKey(
         AttributesCompany,
         null=True,
+        blank=True,
         on_delete=models.CASCADE,
         related_name="executed_trenches",
         db_column="constructor",
         db_index=False,
         verbose_name=_("Constructor"),
     )
-    date = models.DateField(_("Date"), null=True)
-    comment = models.TextField(_("Comment"), null=True)
+    date = models.DateField(_("Date"), null=True, blank=True)
+    comment = models.TextField(_("Comment"), null=True, blank=True)
     house_connection = models.BooleanField(
         _("House Connection"),
         null=True,
+        blank=True,
         default=False,
     )
     length = models.DecimalField(
@@ -899,11 +909,16 @@ class OlTrench(models.Model):
         db_column="construction_type",
         verbose_name=_("Construction Type"),
     )
-    construction_depth = models.IntegerField(_("Construction Depth"), null=True)
-    construction_details = models.TextField(_("Construction Details"), null=True)
+    construction_depth = models.IntegerField(
+        _("Construction Depth"), null=True, blank=True
+    )
+    construction_details = models.TextField(
+        _("Construction Details"), null=True, blank=True
+    )
     status = models.ForeignKey(
         AttributesStatus,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="status",
         verbose_name=_("Status"),
@@ -911,15 +926,19 @@ class OlTrench(models.Model):
     phase = models.ForeignKey(
         AttributesPhase,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="phase",
         verbose_name=_("Phase"),
     )
-    internal_execution = models.BooleanField(_("Internal Execution"), null=True)
-    funding_status = models.BooleanField(_("Funding Status"), null=True)
+    internal_execution = models.BooleanField(
+        _("Internal Execution"), null=True, blank=True
+    )
+    funding_status = models.BooleanField(_("Funding Status"), null=True, blank=True)
     owner = models.ForeignKey(
         AttributesCompany,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         related_name="owned_ol_trenches",
         db_column="owner",
@@ -928,14 +947,15 @@ class OlTrench(models.Model):
     constructor = models.ForeignKey(
         AttributesCompany,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         related_name="executed_ol_trenches",
         db_column="constructor",
         verbose_name=_("Constructor"),
     )
-    date = models.DateField(_("Date"), null=True)
-    comment = models.TextField(_("Comment"), null=True)
-    house_connection = models.BooleanField(_("House Connection"), null=True)
+    date = models.DateField(_("Date"), null=True, blank=True)
+    comment = models.TextField(_("Comment"), null=True, blank=True)
+    house_connection = models.BooleanField(_("House Connection"), null=True, blank=True)
     length = models.DecimalField(_("Length"), max_digits=12, decimal_places=4)
     geom = gis_models.LineStringField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
     project = models.ForeignKey(
@@ -989,11 +1009,13 @@ class Conduit(models.Model):
     )
     outer_conduit = models.TextField(
         null=True,
+        blank=True,
         db_index=False,
     )
     status = models.ForeignKey(
         AttributesStatus,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="status",
         db_index=False,
@@ -1002,6 +1024,7 @@ class Conduit(models.Model):
     network_level = models.ForeignKey(
         AttributesNetworkLevel,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="network_level",
         db_index=False,
@@ -1010,6 +1033,7 @@ class Conduit(models.Model):
     owner = models.ForeignKey(
         AttributesCompany,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="owner",
         db_index=False,
@@ -1019,6 +1043,7 @@ class Conduit(models.Model):
     constructor = models.ForeignKey(
         AttributesCompany,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="constructor",
         db_index=False,
@@ -1028,13 +1053,14 @@ class Conduit(models.Model):
     manufacturer = models.ForeignKey(
         AttributesCompany,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="manufacturer",
         db_index=False,
         verbose_name=_("Manufacturer"),
         related_name="manufactured_conduits",
     )
-    date = models.DateField(_("Date"), null=True)
+    date = models.DateField(_("Date"), null=True, blank=True)
 
     files = GenericRelation(
         FeatureFiles,
@@ -1134,16 +1160,21 @@ class Address(models.Model):
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
-    id_address = models.IntegerField(_("Address ID"), null=True, unique=True)
+    id_address = models.IntegerField(
+        _("Address ID"), null=True, unique=True, blank=True
+    )
     zip_code = models.TextField(_("Zip Code"), null=False)
     city = models.TextField(_("City"), null=False)
-    district = models.TextField(_("District"), null=True)
+    district = models.TextField(_("District"), null=True, blank=True)
     street = models.TextField(_("Street"), null=False)
     housenumber = models.IntegerField(_("Housenumber"), null=False)
-    house_number_suffix = models.TextField(_("House Number Suffix"), null=True)
+    house_number_suffix = models.TextField(
+        _("House Number Suffix"), null=True, blank=True
+    )
     status_development = models.ForeignKey(
         AttributesStatusDevelopment,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="status_development",
         db_index=False,
@@ -1241,6 +1272,7 @@ class OlAddress(models.Model):
     status_development = models.ForeignKey(
         AttributesStatusDevelopment,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="status_development",
         db_index=False,
@@ -1279,6 +1311,7 @@ class Node(models.Model):
     uuid_address = models.ForeignKey(
         Address,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="uuid_address",
         db_index=False,
@@ -1287,6 +1320,7 @@ class Node(models.Model):
     status = models.ForeignKey(
         AttributesStatus,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="status",
         db_index=False,
@@ -1295,6 +1329,7 @@ class Node(models.Model):
     network_level = models.ForeignKey(
         AttributesNetworkLevel,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="network_level",
         db_index=False,
@@ -1303,6 +1338,7 @@ class Node(models.Model):
     owner = models.ForeignKey(
         AttributesCompany,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="owner",
         db_index=False,
@@ -1312,6 +1348,7 @@ class Node(models.Model):
     constructor = models.ForeignKey(
         AttributesCompany,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="constructor",
         db_index=False,
@@ -1321,14 +1358,15 @@ class Node(models.Model):
     manufacturer = models.ForeignKey(
         AttributesCompany,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="manufacturer",
         db_index=False,
         verbose_name=_("Manufacturer"),
         related_name="manufactured_nodes",
     )
-    warranty = models.DateField(_("Warranty"), null=True)
-    date = models.DateField(_("Date"), null=True)
+    warranty = models.DateField(_("Warranty"), null=True, blank=True)
+    date = models.DateField(_("Date"), null=True, blank=True)
     geom = gis_models.PointField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
     canvas_x = models.FloatField(_("Canvas X"), null=True, blank=True)
     canvas_y = models.FloatField(_("Canvas Y"), null=True, blank=True)
@@ -1413,6 +1451,7 @@ class OlNode(models.Model):
     uuid_address = models.ForeignKey(
         Address,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="uuid_address",
         db_index=False,
@@ -1421,6 +1460,7 @@ class OlNode(models.Model):
     status = models.ForeignKey(
         AttributesStatus,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="status",
         db_index=False,
@@ -1429,6 +1469,7 @@ class OlNode(models.Model):
     network_level = models.ForeignKey(
         AttributesNetworkLevel,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="network_level",
         db_index=False,
@@ -1437,6 +1478,7 @@ class OlNode(models.Model):
     owner = models.ForeignKey(
         AttributesCompany,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="owner",
         db_index=False,
@@ -1446,6 +1488,7 @@ class OlNode(models.Model):
     constructor = models.ForeignKey(
         AttributesCompany,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="constructor",
         db_index=False,
@@ -1455,14 +1498,15 @@ class OlNode(models.Model):
     manufacturer = models.ForeignKey(
         AttributesCompany,
         null=True,
+        blank=True,
         on_delete=models.DO_NOTHING,
         db_column="manufacturer",
         db_index=False,
         verbose_name=_("Manufacturer"),
         related_name="manufactured_ol_nodes",
     )
-    warranty = models.DateField(_("Warranty"), null=True)
-    date = models.DateField(_("Date"), null=True)
+    warranty = models.DateField(_("Warranty"), null=True, blank=True)
+    date = models.DateField(_("Date"), null=True, blank=True)
     geom = gis_models.PointField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
     flag = models.ForeignKey(
         Flags,
@@ -1508,6 +1552,7 @@ class Microduct(models.Model):
     microduct_status = models.ForeignKey(
         AttributesMicroductStatus,
         null=True,
+        blank=True,
         on_delete=models.SET_NULL,
         db_column="microduct_status",
         db_index=False,
@@ -1516,6 +1561,7 @@ class Microduct(models.Model):
     uuid_node = models.ForeignKey(
         Node,
         null=True,
+        blank=True,
         on_delete=models.SET_NULL,
         db_column="uuid_node",
         db_index=False,
@@ -2377,6 +2423,7 @@ class QGISProject(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
+        blank=True,
         verbose_name=_("Created By"),
     )
 

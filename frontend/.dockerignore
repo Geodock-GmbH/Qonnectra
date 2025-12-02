@@ -1,0 +1,12 @@
+node_modules
+.svelte-kit
+build
+.git
+*.md
+.env*
+.DS_Store
+coverage
+playwright-report
+test-results
+*.log
+.vscode

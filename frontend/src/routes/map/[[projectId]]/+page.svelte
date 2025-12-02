@@ -15,7 +15,10 @@
 		nodeTypeStyles,
 		selectedProject,
 		trenchColor,
-		trenchColorSelected
+		trenchColorSelected,
+		trenchConstructionTypeStyles,
+		trenchStyleMode,
+		trenchSurfaceStyles
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
@@ -69,6 +72,15 @@
 		if (Object.keys(styles).length > 0) {
 			mapState.updateNodeLayerStyle(styles);
 		}
+	});
+
+	// Update trench layer style when trench style settings change
+	$effect(() => {
+		const mode = $trenchStyleMode;
+		const surfaceStyles = $trenchSurfaceStyles;
+		const constructionTypeStyles = $trenchConstructionTypeStyles;
+		const color = $trenchColor;
+		mapState.updateTrenchLayerStyle(mode, surfaceStyles, constructionTypeStyles, color);
 	});
 
 	/**
@@ -142,6 +154,8 @@
 					className="rounded-lg overflow-hidden"
 					layers={mapState.getLayers()}
 					nodeTypes={data.nodeTypes ?? []}
+					surfaces={data.surfaces ?? []}
+					constructionTypes={data.constructionTypes ?? []}
 					on:ready={handleMapReady}
 					searchPanelProps={{
 						trenchColorSelected: $trenchColorSelected,

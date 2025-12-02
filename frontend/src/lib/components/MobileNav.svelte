@@ -50,8 +50,8 @@
 	];
 
 	const additionalNavItems = [
-		{ href: '/conduit', label: m.nav_conduit_management(), icon: IconArrowBarToRight },
-		{ href: '/trench', label: m.nav_conduit_connection(), icon: IconTextPlus },
+		{ href: '/conduit', label: m.nav_conduit_management(), icon: IconTextPlus },
+		{ href: '/trench', label: m.nav_conduit_connection(), icon: IconArrowBarToRight },
 		{ href: '/pipe-branch', label: m.nav_pipe_branch(), icon: IconAffiliate },
 		{ href: '/house-connections', label: m.nav_house_connections(), icon: IconHome2 },
 		{ href: '/network-schema', label: m.nav_network_schema(), icon: IconTopologyRing2 },

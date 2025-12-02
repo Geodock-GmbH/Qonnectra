@@ -196,6 +196,9 @@ services:
     build:
       context: ../frontend
       dockerfile: Dockerfile
+      args:
+        - API_URL=${API_URL}
+        - PUBLIC_API_URL=${PUBLIC_API_URL}
     env_file:
       - .env
     container_name: krit_gis_frontend_prod

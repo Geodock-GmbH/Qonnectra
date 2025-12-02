@@ -1,9 +1,9 @@
 <script>
-	import { Tabs as SkeletonTabs } from '@skeletonlabs/skeleton-svelte';
-
 	import { m } from '$lib/paraglide/messages';
 
 	import FeatureAttributeCard from '$lib/components/FeatureAttributeCard.svelte';
+	import FileExplorer from '$lib/components/FileExplorer.svelte';
+	import FileUpload from '$lib/components/FileUpload.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
 
 	/**
@@ -19,11 +19,37 @@
 
 	let activeTab = $state('attributes');
 
-	const tabItems = $derived([{ value: 'attributes', label: m.common_attributes() }]);
+	const tabItems = $derived([
+		{ value: 'attributes', label: m.common_attributes() },
+		{ value: 'files', label: m.form_attachments() }
+	]);
+
+	let fileExplorer = $state(null);
+
+	function handleUploadComplete() {
+		if (fileExplorer) {
+			fileExplorer.refresh();
+		}
+	}
 </script>
 
-<Tabs tabs={tabItems} bind:activeTab>
-	<SkeletonTabs.Content value="attributes">
+<Tabs tabs={tabItems} bind:value={activeTab}>
+	{#if activeTab === 'attributes'}
 		<FeatureAttributeCard properties={featureData} {featureType} {alias} />
-	</SkeletonTabs.Content>
+	{/if}
+
+	{#if activeTab === 'files'}
+		<div class="space-y-4">
+			<FileUpload
+				{featureType}
+				{featureId}
+				onUploadComplete={handleUploadComplete}
+			/>
+			<FileExplorer
+				bind:this={fileExplorer}
+				{featureType}
+				{featureId}
+			/>
+		</div>
+	{/if}
 </Tabs>

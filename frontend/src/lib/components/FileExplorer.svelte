@@ -285,13 +285,16 @@
 <!-- Confirmation Dialog for Delete -->
 <MessageBox
 	bind:this={deleteMessageBox}
-	heading="Confirm Delete"
+	heading={m.action_delete_file()}
 	message={deletingFile
-		? `Are you sure you want to delete ${deletingFile.file_name}.${deletingFile.file_type}? This action cannot be undone.`
+		? m.message_confirm_delete_file({
+				file_name: deletingFile.file_name,
+				file_type: deletingFile.file_type
+			})
 		: ''}
 	showAcceptButton={true}
-	acceptText="Delete"
-	closeText="Cancel"
+	acceptText={m.common_delete()}
+	closeText={m.common_cancel()}
 	onAccept={deleteFile}
 />
 
@@ -355,7 +358,7 @@
 								type="button"
 								onclick={() => saveRename(node.fileData)}
 								class="btn-icon btn-sm preset-filled-primary-500"
-								title="Save"
+								title={m.action_save()}
 							>
 								✓
 							</button>
@@ -363,7 +366,7 @@
 								type="button"
 								onclick={cancelEditing}
 								class="btn-icon btn-sm preset-filled-error-500"
-								title="Cancel"
+								title={m.common_cancel()}
 							>
 								✕
 							</button>
@@ -379,7 +382,7 @@
 										downloadFile(node.fileData);
 									}}
 									class="btn-icon btn-sm preset-filled-primary-500"
-									title="Download"
+									title={m.action_download()}
 								>
 									<IconDownload class="size-4" />
 								</button>
@@ -390,7 +393,7 @@
 										startEditing(node.fileData);
 									}}
 									class="btn-icon btn-sm preset-filled-primary-500"
-									title="Rename"
+									title={m.action_rename()}
 								>
 									<IconEdit class="size-4" />
 								</button>
@@ -401,7 +404,7 @@
 										confirmDelete(node.fileData);
 									}}
 									class="btn-icon btn-sm preset-filled-error-500"
-									title="Delete"
+									title={m.action_delete_file()}
 								>
 									<IconTrash class="size-4" />
 								</button>

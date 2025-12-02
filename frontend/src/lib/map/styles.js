@@ -79,17 +79,34 @@ export function createTrenchStyleWithLabels(color, labelOptions = {}) {
 		textStyle = {}
 	} = labelOptions;
 
-	return function (feature, resolution) {
-		const baseStyle = createTrenchStyle(color);
+	// Cache the geometry style since it never changes for this color
+	const geometryStyle = new Style({
+		fill: new Fill({
+			color: color
+		}),
+		stroke: new Stroke({
+			color: color,
+			width: 2
+		}),
+		image: new CircleStyle({
+			radius: 7,
+			fill: new Fill({ color: color }),
+			stroke: new Stroke({ color: color, width: 2 })
+		}),
+		declutterMode: 'none'
+	});
 
-		// Only add text if labels are enabled and resolution is high enough (zoomed in)
+	return function (feature, resolution) {
 		if (enabled && resolution < minResolution) {
 			const labelText = (feature.get(field) || '').toString();
-			const text = createTextStyle({ text: labelText, ...textStyle });
-			baseStyle.setText(text);
+			const labelStyle = new Style({
+				text: createTextStyle({ text: labelText, ...textStyle }),
+				declutterMode: 'declutter'
+			});
+			return [geometryStyle, labelStyle];
 		}
 
-		return baseStyle;
+		return geometryStyle;
 	};
 }
 
@@ -141,17 +158,27 @@ export function createAddressStyle() {
 export function createAddressStyleWithLabels(labelOptions = {}) {
 	const { enabled = false, field = 'street', minResolution = 1.0, textStyle = {} } = labelOptions;
 
-	return function (feature, resolution) {
-		const baseStyle = createAddressStyle();
+	// Cache the geometry style since it never changes
+	const geometryStyle = new Style({
+		image: new CircleStyle({
+			radius: 4,
+			fill: new Fill({ color: '#2563eb' }),
+			stroke: new Stroke({ color: '#ffffff', width: 1 })
+		}),
+		declutterMode: 'none'
+	});
 
-		// Only add text if labels are enabled and resolution is high enough (zoomed in)
+	return function (feature, resolution) {
 		if (enabled && resolution < minResolution) {
 			const labelText = (feature.get(field) || '').toString();
-			const text = createTextStyle({ text: labelText, ...textStyle });
-			baseStyle.setText(text);
+			const labelStyle = new Style({
+				text: createTextStyle({ text: labelText, ...textStyle }),
+				declutterMode: 'declutter'
+			});
+			return [geometryStyle, labelStyle];
 		}
 
-		return baseStyle;
+		return geometryStyle;
 	};
 }
 
@@ -181,16 +208,194 @@ export function createNodeStyle() {
 export function createNodeStyleWithLabels(labelOptions = {}) {
 	const { enabled = false, field = 'name', minResolution = 1.0, textStyle = {} } = labelOptions;
 
-	return function (feature, resolution) {
-		const baseStyle = createNodeStyle();
+	// Cache the geometry style since it never changes
+	const geometryStyle = new Style({
+		image: new CircleStyle({
+			radius: 6,
+			fill: new Fill({ color: '#ff6b35' }),
+			stroke: new Stroke({ color: '#ffffff', width: 1 })
+		}),
+		declutterMode: 'none'
+	});
 
+	return function (feature, resolution) {
 		if (enabled && resolution < minResolution) {
 			const labelText = (feature.get(field) || '').toString();
-			const text = createTextStyle({ text: labelText, ...textStyle });
-			baseStyle.setText(text);
+			const labelStyle = new Style({
+				text: createTextStyle({ text: labelText, ...textStyle }),
+				declutterMode: 'declutter'
+			});
+			return [geometryStyle, labelStyle];
 		}
 
-		return baseStyle;
+		return geometryStyle;
+	};
+}
+
+/**
+ * Default node style configuration
+ */
+export const DEFAULT_NODE_COLOR = '#ff6b35';
+export const DEFAULT_NODE_SIZE = 6;
+
+/**
+ * Default trench style configuration
+ */
+export const DEFAULT_TRENCH_COLOR = '#fbb483';
+export const DEFAULT_TRENCH_WIDTH = 2;
+
+/**
+ * Creates a style function for node points with per-type styling
+ * @param {Object} nodeTypeStyles - Object mapping node type names to style config
+ *   { [node_type]: { color: '#hex', size: number, visible: boolean } }
+ * @param {Object} labelOptions - Label configuration options
+ * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
+ * @param {string} [labelOptions.field='name'] - Feature property to use for label
+ * @param {number} [labelOptions.minResolution=1.0] - Minimum resolution to show labels
+ * @param {Object} [labelOptions.textStyle] - Custom text style options
+ * @returns {Function} Style function that accepts (feature, resolution)
+ */
+export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
+	const { enabled = false, field = 'name', minResolution = 1.0, textStyle = {} } = labelOptions;
+
+	const geometryStyleCache = new Map();
+
+	return function (feature, resolution) {
+		const nodeType = feature.get('node_type');
+		const typeConfig = nodeTypeStyles[nodeType] || {
+			color: DEFAULT_NODE_COLOR,
+			size: DEFAULT_NODE_SIZE,
+			visible: true
+		};
+
+		if (!typeConfig.visible) {
+			return null;
+		}
+
+		const geometryCacheKey = `${nodeType || 'default'}_${typeConfig.color}_${typeConfig.size}`;
+
+		// Get or create geometry-only style (always rendered, never decluttered)
+		let geometryStyle = geometryStyleCache.get(geometryCacheKey);
+		if (!geometryStyle) {
+			geometryStyle = new Style({
+				image: new CircleStyle({
+					radius: typeConfig.size || DEFAULT_NODE_SIZE,
+					fill: new Fill({ color: typeConfig.color || DEFAULT_NODE_COLOR }),
+					stroke: new Stroke({ color: '#ffffff', width: 1 })
+				}),
+				// Mark as non-declutterable so the point always renders
+				declutterMode: 'none'
+			});
+			geometryStyleCache.set(geometryCacheKey, geometryStyle);
+		}
+
+		const showLabels = enabled && resolution < minResolution;
+
+		if (showLabels) {
+			const labelText = (feature.get(field) || '').toString();
+			// Create separate label style that can be decluttered
+			const labelStyle = new Style({
+				text: createTextStyle({ text: labelText, ...textStyle }),
+				// Labels can be decluttered (hidden when overlapping)
+				declutterMode: 'declutter'
+			});
+			// Return both styles - geometry always shows, label may be hidden
+			return [geometryStyle, labelStyle];
+		}
+
+		return geometryStyle;
+	};
+}
+
+/**
+ * Creates a style function for trench features with per-attribute styling
+ * @param {Object} attributeStyles - Object mapping attribute values to style config
+ *   { [attribute_value]: { color: '#hex', visible: boolean } }
+ * @param {string} styleMode - 'surface' | 'construction_type' | 'none'
+ * @param {string} fallbackColor - Color to use when styleMode is 'none' or attribute not found
+ * @param {Object} labelOptions - Label configuration options
+ * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
+ * @param {string} [labelOptions.field='id_trench'] - Feature property to use for label
+ * @param {number} [labelOptions.minResolution=1.5] - Minimum resolution to show labels
+ * @param {Object} [labelOptions.textStyle] - Custom text style options
+ * @returns {Function} Style function that accepts (feature, resolution)
+ */
+export function createTrenchStyleByAttribute(
+	attributeStyles = {},
+	styleMode = 'none',
+	fallbackColor = DEFAULT_TRENCH_COLOR,
+	labelOptions = {}
+) {
+	const {
+		enabled = false,
+		field = 'id_trench',
+		minResolution = 1.5,
+		textStyle = {}
+	} = labelOptions;
+
+	const geometryStyleCache = new Map();
+
+	return function (feature, resolution) {
+		let color = fallbackColor;
+		let visible = true;
+
+		// Determine color based on style mode
+		if (styleMode === 'surface') {
+			const surfaceValue = feature.get('surface');
+			const config = attributeStyles[surfaceValue];
+			if (config) {
+				color = config.color || fallbackColor;
+				visible = config.visible !== false;
+			}
+		} else if (styleMode === 'construction_type') {
+			const constructionTypeValue = feature.get('construction_type');
+			const config = attributeStyles[constructionTypeValue];
+			if (config) {
+				color = config.color || fallbackColor;
+				visible = config.visible !== false;
+			}
+		}
+
+		// Return null if this attribute value should be hidden
+		if (!visible) {
+			return null;
+		}
+
+		const geometryCacheKey = `${styleMode}_${color}`;
+
+		// Get or create geometry style (never decluttered)
+		let geometryStyle = geometryStyleCache.get(geometryCacheKey);
+		if (!geometryStyle) {
+			geometryStyle = new Style({
+				fill: new Fill({
+					color: color
+				}),
+				stroke: new Stroke({
+					color: color,
+					width: DEFAULT_TRENCH_WIDTH
+				}),
+				image: new CircleStyle({
+					radius: 7,
+					fill: new Fill({ color: color }),
+					stroke: new Stroke({ color: color, width: 2 })
+				}),
+				declutterMode: 'none'
+			});
+			geometryStyleCache.set(geometryCacheKey, geometryStyle);
+		}
+
+		const showLabels = enabled && resolution < minResolution;
+
+		if (showLabels) {
+			const labelText = (feature.get(field) || '').toString();
+			const labelStyle = new Style({
+				text: createTextStyle({ text: labelText, ...textStyle }),
+				declutterMode: 'declutter'
+			});
+			return [geometryStyle, labelStyle];
+		}
+
+		return geometryStyle;
 	};
 }
 
@@ -250,14 +455,180 @@ export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
 
 		if (showLabels) {
 			const labelText = (feature.get(field) || '').toString();
-			const text = createTextStyle({ text: labelText, ...textStyle });
-			style.setText(text);
+			const labelStyle = new Style({
+				text: createTextStyle({ text: labelText, ...textStyle }),
+				declutterMode: 'declutter'
+			});
+			return [geometryStyle, labelStyle];
 		}
 
-		if (!showLabels) {
-			styleCache.set(cacheKey, style);
+		return geometryStyle;
+	};
+}
+
+/**
+ * Default node style configuration
+ */
+export const DEFAULT_NODE_COLOR = '#ff6b35';
+export const DEFAULT_NODE_SIZE = 6;
+
+/**
+ * Default trench style configuration
+ */
+export const DEFAULT_TRENCH_COLOR = '#fbb483';
+export const DEFAULT_TRENCH_WIDTH = 2;
+
+/**
+ * Creates a style function for node points with per-type styling
+ * @param {Object} nodeTypeStyles - Object mapping node type names to style config
+ *   { [node_type]: { color: '#hex', size: number, visible: boolean } }
+ * @param {Object} labelOptions - Label configuration options
+ * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
+ * @param {string} [labelOptions.field='name'] - Feature property to use for label
+ * @param {number} [labelOptions.minResolution=1.0] - Minimum resolution to show labels
+ * @param {Object} [labelOptions.textStyle] - Custom text style options
+ * @returns {Function} Style function that accepts (feature, resolution)
+ */
+export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
+	const { enabled = false, field = 'name', minResolution = 1.0, textStyle = {} } = labelOptions;
+
+	const geometryStyleCache = new Map();
+
+	return function (feature, resolution) {
+		const nodeType = feature.get('node_type');
+		const typeConfig = nodeTypeStyles[nodeType] || {
+			color: DEFAULT_NODE_COLOR,
+			size: DEFAULT_NODE_SIZE,
+			visible: true
+		};
+
+		if (!typeConfig.visible) {
+			return null;
 		}
 
-		return style;
+		const geometryCacheKey = `${nodeType || 'default'}_${typeConfig.color}_${typeConfig.size}`;
+
+		// Get or create geometry-only style (always rendered, never decluttered)
+		let geometryStyle = geometryStyleCache.get(geometryCacheKey);
+		if (!geometryStyle) {
+			geometryStyle = new Style({
+				image: new CircleStyle({
+					radius: typeConfig.size || DEFAULT_NODE_SIZE,
+					fill: new Fill({ color: typeConfig.color || DEFAULT_NODE_COLOR }),
+					stroke: new Stroke({ color: '#ffffff', width: 1 })
+				}),
+				// Mark as non-declutterable so the point always renders
+				declutterMode: 'none'
+			});
+			geometryStyleCache.set(geometryCacheKey, geometryStyle);
+		}
+
+		const showLabels = enabled && resolution < minResolution;
+
+		if (showLabels) {
+			const labelText = (feature.get(field) || '').toString();
+			// Create separate label style that can be decluttered
+			const labelStyle = new Style({
+				text: createTextStyle({ text: labelText, ...textStyle }),
+				// Labels can be decluttered (hidden when overlapping)
+				declutterMode: 'declutter'
+			});
+			// Return both styles - geometry always shows, label may be hidden
+			return [geometryStyle, labelStyle];
+		}
+
+		return geometryStyle;
+	};
+}
+
+/**
+ * Creates a style function for trench features with per-attribute styling
+ * @param {Object} attributeStyles - Object mapping attribute values to style config
+ *   { [attribute_value]: { color: '#hex', visible: boolean } }
+ * @param {string} styleMode - 'surface' | 'construction_type' | 'none'
+ * @param {string} fallbackColor - Color to use when styleMode is 'none' or attribute not found
+ * @param {Object} labelOptions - Label configuration options
+ * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
+ * @param {string} [labelOptions.field='id_trench'] - Feature property to use for label
+ * @param {number} [labelOptions.minResolution=1.5] - Minimum resolution to show labels
+ * @param {Object} [labelOptions.textStyle] - Custom text style options
+ * @returns {Function} Style function that accepts (feature, resolution)
+ */
+export function createTrenchStyleByAttribute(
+	attributeStyles = {},
+	styleMode = 'none',
+	fallbackColor = DEFAULT_TRENCH_COLOR,
+	labelOptions = {}
+) {
+	const {
+		enabled = false,
+		field = 'id_trench',
+		minResolution = 1.5,
+		textStyle = {}
+	} = labelOptions;
+
+	const geometryStyleCache = new Map();
+
+	return function (feature, resolution) {
+		let color = fallbackColor;
+		let visible = true;
+
+		// Determine color based on style mode
+		if (styleMode === 'surface') {
+			const surfaceValue = feature.get('surface');
+			const config = attributeStyles[surfaceValue];
+			if (config) {
+				color = config.color || fallbackColor;
+				visible = config.visible !== false;
+			}
+		} else if (styleMode === 'construction_type') {
+			const constructionTypeValue = feature.get('construction_type');
+			const config = attributeStyles[constructionTypeValue];
+			if (config) {
+				color = config.color || fallbackColor;
+				visible = config.visible !== false;
+			}
+		}
+
+		// Return null if this attribute value should be hidden
+		if (!visible) {
+			return null;
+		}
+
+		const geometryCacheKey = `${styleMode}_${color}`;
+
+		// Get or create geometry style (never decluttered)
+		let geometryStyle = geometryStyleCache.get(geometryCacheKey);
+		if (!geometryStyle) {
+			geometryStyle = new Style({
+				fill: new Fill({
+					color: color
+				}),
+				stroke: new Stroke({
+					color: color,
+					width: DEFAULT_TRENCH_WIDTH
+				}),
+				image: new CircleStyle({
+					radius: 7,
+					fill: new Fill({ color: color }),
+					stroke: new Stroke({ color: color, width: 2 })
+				}),
+				declutterMode: 'none'
+			});
+			geometryStyleCache.set(geometryCacheKey, geometryStyle);
+		}
+
+		const showLabels = enabled && resolution < minResolution;
+
+		if (showLabels) {
+			const labelText = (feature.get(field) || '').toString();
+			const labelStyle = new Style({
+				text: createTextStyle({ text: labelText, ...textStyle }),
+				declutterMode: 'declutter'
+			});
+			return [geometryStyle, labelStyle];
+		}
+
+		return geometryStyle;
 	};
 }

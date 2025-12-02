@@ -124,7 +124,7 @@ export async function load({ fetch, cookies, url, params }) {
 			companyResponse,
 			flagsResponse
 		] = await Promise.all([
-			fetch(`${API_URL}node/all/?project=${projectId}`, {
+			fetch(`${API_URL}node/all/?project=${projectId}&exclude_group=HA`, {
 				credentials: 'include',
 				headers: headers
 			}),

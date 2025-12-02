@@ -19,10 +19,13 @@
 		showSearchPanel = true,
 		onLayerVisibilityChanged = () => {},
 		onNodeTypeVisibilityChanged = () => {},
+		onTrenchTypeVisibilityChanged = () => {},
 		onFeatureSelect = () => {},
 		onSearchError = () => {},
 		searchPanelProps = {},
 		nodeTypes = [],
+		surfaces = [],
+		constructionTypes = [],
 		variant = 'fullscreen' // 'fullscreen' | 'compact'
 	} = $props();
 
@@ -132,6 +135,10 @@
 		onNodeTypeVisibilityChanged(nodeTypeInfo);
 	}
 
+	function handleTrenchTypeVisibilityChange(trenchTypeInfo) {
+		onTrenchTypeVisibilityChanged(trenchTypeInfo);
+	}
+
 	function handleFeatureSelect(feature) {
 		onFeatureSelect(feature);
 	}
@@ -163,8 +170,11 @@
 					{layers}
 					{osmLayer}
 					{nodeTypes}
+					{surfaces}
+					{constructionTypes}
 					onLayerVisibilityChanged={handleLayerVisibilityChange}
 					onNodeTypeVisibilityChanged={handleNodeTypeVisibilityChange}
+					onTrenchTypeVisibilityChanged={handleTrenchTypeVisibilityChange}
 				/>
 			{/if}
 			{#if showOpacitySlider && map}
@@ -212,8 +222,11 @@
 					{layers}
 					{osmLayer}
 					{nodeTypes}
+					{surfaces}
+					{constructionTypes}
 					onLayerVisibilityChanged={handleLayerVisibilityChange}
 					onNodeTypeVisibilityChanged={handleNodeTypeVisibilityChange}
+					onTrenchTypeVisibilityChanged={handleTrenchTypeVisibilityChange}
 				/>
 			</div>
 		{/if}
