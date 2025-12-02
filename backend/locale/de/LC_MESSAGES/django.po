@@ -818,7 +818,7 @@ msgstr "Graben-Rohr-Verbindungen"
 
 #: apps/api/models.py:2103 apps/api/models.py:2153
 msgid "Position"
-msgstr "Beschreibung"
+msgstr "Position"
 
 #: apps/api/models.py:2103
 msgid "Microduct position/number (1-12, etc.)"
@@ -826,11 +826,11 @@ msgstr "Mikrorohrposition/Nummer (1-12, etc.)"
 
 #: apps/api/models.py:2111
 msgid "Conduit Type Color Mapping"
-msgstr "Rohrtyp-Alias"
+msgstr "Rohrtyp-Farbzuordnung"
 
 #: apps/api/models.py:2112
 msgid "Conduit Type Color Mappings"
-msgstr "Rohrtyp-Alias"
+msgstr "Rohrtyp-Farbzuordnungen"
 
 #: apps/api/models.py:2130
 msgid "Bundle"
