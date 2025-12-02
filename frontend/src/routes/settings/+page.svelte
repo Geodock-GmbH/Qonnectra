@@ -3,22 +3,18 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { DEFAULT_NODE_COLOR, DEFAULT_NODE_SIZE } from '$lib/map/styles';
 	import { userStore } from '$lib/stores/auth';
 	import {
 		nodeTypeStyles,
 		routingTolerance,
 		sidebarExpanded,
-		theme,
 		trenchColor,
 		trenchColorSelected
 	} from '$lib/stores/store';
 
 	/** @type {import('./$types').PageData} */
 	let { data } = $props();
-
-	const themes = [{ label: 'Legacy', value: 'legacy' }];
 
 	let routingToleranceMarkers = $derived(Array.from({ length: 10 }, (_, i) => i + 1));
 
@@ -144,25 +140,6 @@
 				</h2>
 
 				<dl class="mt-6 divide-y border-t text-sm/6">
-					<div class="py-6 sm:flex">
-						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
-							{m.settings_ui_theme()}
-						</dt>
-						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
-							<span></span>
-							<GenericCombobox
-								data={themes}
-								bind:value={$theme}
-								defaultValue={$theme}
-								onValueChange={(e) => {
-									$theme = e.value;
-								}}
-								placeholder={$theme}
-								zIndex="10"
-								classes="w-auto"
-							/>
-						</dd>
-					</div>
 					<div class="py-6 sm:flex">
 						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">Sidebar</dt>
 						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
