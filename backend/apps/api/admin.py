@@ -9,6 +9,7 @@ from .models import (
     AttributesConduitType,
     AttributesConstructionType,
     AttributesFiberColor,
+    AttributesFiberStatus,
     AttributesMicroductColor,
     AttributesMicroductStatus,
     AttributesNetworkLevel,
@@ -209,6 +210,7 @@ admin.site.register(AttributesNetworkLevel)
 admin.site.register(AttributesNodeType)
 admin.site.register(AttributesMicroductStatus)
 admin.site.register(Microduct)
+admin.site.register(AttributesFiberStatus)
 
 
 @admin.register(Conduit)

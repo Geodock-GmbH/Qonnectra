@@ -3,28 +3,28 @@
         "model": "api.attributesnetworklevel",
         "pk": 1,
         "fields": {
-            "network_level": "Hausanschluss-Ebene"
+            "network_level": "Netzebene 1"
         }
     },
     {
         "model": "api.attributesnetworklevel",
         "pk": 2,
         "fields": {
-            "network_level": "Verteilnetz-Ebene"
+            "network_level": "Netzebene 2"
         }
     },
     {
         "model": "api.attributesnetworklevel",
         "pk": 3,
         "fields": {
-            "network_level": "Hauptkabel-Ebene"
+            "network_level": "Netzebene 3"
         }
     },
     {
         "model": "api.attributesnetworklevel",
         "pk": 4,
         "fields": {
-            "network_level": "Backbone-Ebene"
+            "network_level": "Netzebene 4"
         }
     }
 ]

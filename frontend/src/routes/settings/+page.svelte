@@ -109,7 +109,7 @@
 		<div class="mx-auto max-w-2xl lg:mx-0 lg:max-w-none space-y-16 sm:space-y-20 pb-20">
 			<!-- User Settings -->
 			<div>
-				<h2 class="text-base/7 font-semibold">
+				<h2 class="text-base/7 font-semibold text-primary-900-100">
 					{m.settings_user()}
 				</h2>
 
@@ -135,7 +135,7 @@
 
 			<!-- UI Settings -->
 			<div>
-				<h2 class="text-base/7 font-semibold">
+				<h2 class="text-base/7 font-semibold text-primary-900-100">
 					{m.settings_ui()}
 				</h2>
 
@@ -167,7 +167,7 @@
 
 			<!-- Map Settings -->
 			<div>
-				<h2 class="text-base/7 font-semibold">{m.settings_map()}</h2>
+				<h2 class="text-base/7 font-semibold text-primary-900-100">{m.settings_map()}</h2>
 				<dl class="mt-6 divide-y border-t text-sm/6">
 					<div class="py-6 sm:flex">
 						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
@@ -211,7 +211,9 @@
 			<!-- Node Type Styles -->
 			<div>
 				<div class="flex items-center justify-between">
-					<h2 class="text-base/7 font-semibold">{m.settings_node_type_styles()}</h2>
+					<h2 class="text-base/7 font-semibold text-primary-900-100">
+						{m.settings_node_type_styles()}
+					</h2>
 					{#if data.nodeTypes.length > 0}
 						<button
 							type="button"
@@ -306,7 +308,7 @@
 
 			<!-- Conduit Connection Settings -->
 			<div>
-				<h2 class="text-base/7 font-semibold">
+				<h2 class="text-base/7 font-semibold text-primary-900-100">
 					{m.settings_conduit_connection()}
 				</h2>
 
