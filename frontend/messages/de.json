@@ -85,7 +85,7 @@
 			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Tag",
-				"countPlural=other": "Tage"
+				"countPlural=other": "Tagen"
 			}
 		}
 	],
@@ -209,6 +209,7 @@
 	"message_error_fetching_select_options": "Fehler beim Laden der Auswahlfelder",
 	"message_error_fetching_trenches": "Fehler beim Laden der Trassen",
 	"message_error_go_back_home": "Zurück zur Startseite",
+	"message_error_no_cables_found": "Keine Kabeltypen verfügbar",
 	"message_error_no_cable_type_selected": "Kein Kabeltyp ausgewählt",
 	"message_error_no_matching_microducts": "Keine passenden Mikrorohre für die Verbindung verfügbar",
 	"message_error_search_failed": "Fehler beim Suchen. Bitte versuche es erneut.",

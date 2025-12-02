@@ -209,6 +209,7 @@
 	"message_error_fetching_select_options": "Error fetching select options",
 	"message_error_fetching_trenches": "Error fetching trenches",
 	"message_error_go_back_home": "Go back home",
+	"message_error_no_cables_found": "No cable types available",
 	"message_error_no_cable_type_selected": "No cable type selected",
 	"message_error_no_matching_microducts": "No matching microducts available for connection",
 	"message_error_search_failed": "Search failed. Please try again.",

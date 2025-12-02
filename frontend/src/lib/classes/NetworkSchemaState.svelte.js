@@ -10,8 +10,8 @@ import { logToBackendClient } from '$lib/utils/logToBackendClient';
  * Manages nodes, edges, cable types, and diagram interactions
  */
 export class NetworkSchemaState {
-	nodes = $state([]);
-	edges = $state([]);
+	nodes = $state.raw([]);
+	edges = $state.raw([]);
 	cableTypes = $state([]);
 	userCableName = $state('');
 	selectedCableType = $state([]);
@@ -68,7 +68,10 @@ export class NetworkSchemaState {
 		const cables = Array.isArray(cablesData) ? cablesData : [];
 
 		if (cables.length === 0) {
-			console.log('No cables found for this project');
+			globalToaster.info({
+				title: m.common_info(),
+				description: m.message_error_no_cables_found()
+			});
 			return [];
 		}
 
