@@ -506,6 +506,34 @@ class FeatureFiles(models.Model):
     object_id = models.UUIDField(verbose_name=_("Feature ID"))
     feature = GenericForeignKey("content_type", "object_id")
 
+    def get_feature_identifier(instance):
+        """
+        Get the human-readable identifier for a feature based on its model type.
+
+        Returns the appropriate identifier (id_trench, name, address string, etc.)
+        instead of the UUID.
+        """
+        model_name = instance.content_type.model
+        feature = instance.feature
+
+        if model_name == "trench":
+            return feature.id_trench
+        elif model_name == "conduit":
+            return feature.name
+        elif model_name == "cable":
+            return feature.name
+        elif model_name == "node":
+            return feature.name
+        elif model_name == "address":
+            suffix = (
+                f" {feature.house_number_suffix}" if feature.house_number_suffix else ""
+            )
+            return f"{feature.street} {feature.housenumber}{suffix}, {feature.zip_code} {feature.city}"
+        elif model_name == "residentialunit":
+            return instance.object_id
+        else:
+            return instance.object_id
+
     def get_upload_path(instance, filename):
         """
         Determine the upload path for a file based on project, feature type and file category.
@@ -521,21 +549,22 @@ class FeatureFiles(models.Model):
         """
 
         prefs = StoragePreferences.objects.first()
+        model_name = instance.content_type.model
+        feature = instance.feature
+        feature_id = FeatureFiles.get_feature_identifier(instance)
+
+        project_name = (
+            feature.project.project
+            if hasattr(feature, "project") and feature.project
+            else "default"
+        )
+        project_name = sanitize_filename(project_name)
 
         # Only support AUTO mode - manual uploads happen via WebDAV
         if not prefs or prefs.mode != "AUTO":
             # Default fallback if no preferences exist
-            model_name = instance.content_type.model
-            feature = instance.feature
-            project_name = (
-                feature.project.project
-                if hasattr(feature, "project") and feature.project
-                else "default"
-            )
-            project_name = sanitize_filename(project_name)
-            return f"{project_name}/{model_name}s/{instance.object_id}/{filename}"
+            return f"{project_name}/{model_name}s/{feature_id}/{filename}"
 
-        model_name = instance.content_type.model
         file_extension = instance.get_file_type() or ""
         file_extension = file_extension.lower()
 
@@ -551,33 +580,6 @@ class FeatureFiles(models.Model):
         folder_name = folder_paths.get(
             file_category, folder_paths.get("default", model_name + "s")
         )
-
-        # Determine the feature identifier based on model type
-        feature = instance.feature
-        if model_name == "trench":
-            feature_id = feature.id_trench
-        elif model_name == "conduit":
-            feature_id = feature.name
-        elif model_name == "cable":
-            feature_id = feature.name
-        elif model_name == "node":
-            feature_id = feature.name
-        elif model_name == "address":
-            suffix = (
-                f" {feature.house_number_suffix}" if feature.house_number_suffix else ""
-            )
-            feature_id = f"{feature.street} {feature.housenumber}{suffix}, {feature.zip_code} {feature.city}"
-        elif model_name == "residentialunit":
-            feature_id = instance.object_id
-        else:
-            feature_id = instance.object_id
-
-        project_name = (
-            feature.project.project
-            if hasattr(feature, "project") and feature.project
-            else "default"
-        )
-        project_name = sanitize_filename(project_name)
 
         # Build the path based on folder structure with project name as root
         if "/" in folder_name:
