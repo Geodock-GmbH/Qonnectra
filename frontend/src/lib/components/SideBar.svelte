@@ -36,13 +36,13 @@
 		{
 			href: '/conduit',
 			label: () => m.nav_conduit_management(),
-			icon: IconArrowBarToRight,
+			icon: IconTextPlus,
 			pathMatch: (path) => path.startsWith('/conduit')
 		},
 		{
 			href: '/trench',
 			label: () => m.nav_conduit_connection(),
-			icon: IconTextPlus,
+			icon: IconArrowBarToRight,
 			pathMatch: (path) => path.startsWith('/trench')
 		},
 		{

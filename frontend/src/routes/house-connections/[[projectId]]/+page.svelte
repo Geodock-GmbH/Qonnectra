@@ -11,7 +11,15 @@
 	import Drawer from '$lib/components/Drawer.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
-	import { nodeTypeStyles, selectedProject, trenchColor, trenchColorSelected } from '$lib/stores/store';
+	import {
+		nodeTypeStyles,
+		selectedProject,
+		trenchColor,
+		trenchColorSelected,
+		trenchConstructionTypeStyles,
+		trenchStyleMode,
+		trenchSurfaceStyles
+	} from '$lib/stores/store';
 
 	import HouseConnectionDrawerTabs from './HouseConnectionDrawerTabs.svelte';
 
@@ -71,6 +79,15 @@
 		}
 	});
 
+	// Update trench layer style when trench style settings change
+	$effect(() => {
+		const mode = $trenchStyleMode;
+		const surfaceStyles = $trenchSurfaceStyles;
+		const constructionTypeStyles = $trenchConstructionTypeStyles;
+		const color = $trenchColor;
+		mapState.updateTrenchLayerStyle(mode, surfaceStyles, constructionTypeStyles, color);
+	});
+
 	/**
 	 * Handler for the map ready event
 	 * Initializes all map interactions and overlays
@@ -118,6 +135,8 @@
 					showSearchPanel={true}
 					layers={mapState.getLayers()}
 					nodeTypes={data.nodeTypes ?? []}
+					surfaces={data.surfaces ?? []}
+					constructionTypes={data.constructionTypes ?? []}
 					on:ready={handleMapReady}
 				/>
 				<div id="popup" class="ol-popup bg-primary-500 rounded-lg border-2 border-primary-600">

@@ -79,17 +79,34 @@ export function createTrenchStyleWithLabels(color, labelOptions = {}) {
 		textStyle = {}
 	} = labelOptions;
 
-	return function (feature, resolution) {
-		const baseStyle = createTrenchStyle(color);
+	// Cache the geometry style since it never changes for this color
+	const geometryStyle = new Style({
+		fill: new Fill({
+			color: color
+		}),
+		stroke: new Stroke({
+			color: color,
+			width: 2
+		}),
+		image: new CircleStyle({
+			radius: 7,
+			fill: new Fill({ color: color }),
+			stroke: new Stroke({ color: color, width: 2 })
+		}),
+		declutterMode: 'none'
+	});
 
-		// Only add text if labels are enabled and resolution is high enough (zoomed in)
+	return function (feature, resolution) {
 		if (enabled && resolution < minResolution) {
 			const labelText = (feature.get(field) || '').toString();
-			const text = createTextStyle({ text: labelText, ...textStyle });
-			baseStyle.setText(text);
+			const labelStyle = new Style({
+				text: createTextStyle({ text: labelText, ...textStyle }),
+				declutterMode: 'declutter'
+			});
+			return [geometryStyle, labelStyle];
 		}
 
-		return baseStyle;
+		return geometryStyle;
 	};
 }
 
@@ -141,17 +158,27 @@ export function createAddressStyle() {
 export function createAddressStyleWithLabels(labelOptions = {}) {
 	const { enabled = false, field = 'street', minResolution = 1.0, textStyle = {} } = labelOptions;
 
-	return function (feature, resolution) {
-		const baseStyle = createAddressStyle();
+	// Cache the geometry style since it never changes
+	const geometryStyle = new Style({
+		image: new CircleStyle({
+			radius: 4,
+			fill: new Fill({ color: '#2563eb' }),
+			stroke: new Stroke({ color: '#ffffff', width: 1 })
+		}),
+		declutterMode: 'none'
+	});
 
-		// Only add text if labels are enabled and resolution is high enough (zoomed in)
+	return function (feature, resolution) {
 		if (enabled && resolution < minResolution) {
 			const labelText = (feature.get(field) || '').toString();
-			const text = createTextStyle({ text: labelText, ...textStyle });
-			baseStyle.setText(text);
+			const labelStyle = new Style({
+				text: createTextStyle({ text: labelText, ...textStyle }),
+				declutterMode: 'declutter'
+			});
+			return [geometryStyle, labelStyle];
 		}
 
-		return baseStyle;
+		return geometryStyle;
 	};
 }
 
@@ -181,16 +208,27 @@ export function createNodeStyle() {
 export function createNodeStyleWithLabels(labelOptions = {}) {
 	const { enabled = false, field = 'name', minResolution = 1.0, textStyle = {} } = labelOptions;
 
-	return function (feature, resolution) {
-		const baseStyle = createNodeStyle();
+	// Cache the geometry style since it never changes
+	const geometryStyle = new Style({
+		image: new CircleStyle({
+			radius: 6,
+			fill: new Fill({ color: '#ff6b35' }),
+			stroke: new Stroke({ color: '#ffffff', width: 1 })
+		}),
+		declutterMode: 'none'
+	});
 
+	return function (feature, resolution) {
 		if (enabled && resolution < minResolution) {
 			const labelText = (feature.get(field) || '').toString();
-			const text = createTextStyle({ text: labelText, ...textStyle });
-			baseStyle.setText(text);
+			const labelStyle = new Style({
+				text: createTextStyle({ text: labelText, ...textStyle }),
+				declutterMode: 'declutter'
+			});
+			return [geometryStyle, labelStyle];
 		}
 
-		return baseStyle;
+		return geometryStyle;
 	};
 }
 
@@ -220,7 +258,7 @@ export const DEFAULT_TRENCH_WIDTH = 2;
 export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
 	const { enabled = false, field = 'name', minResolution = 1.0, textStyle = {} } = labelOptions;
 
-	const styleCache = new Map();
+	const geometryStyleCache = new Map();
 
 	return function (feature, resolution) {
 		const nodeType = feature.get('node_type');
@@ -234,37 +272,38 @@ export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
 			return null;
 		}
 
-		const showLabels = enabled && resolution < minResolution;
-		const cacheKey = `${nodeType || 'default'}_${typeConfig.color}_${typeConfig.size}_${showLabels}`;
+		const geometryCacheKey = `${nodeType || 'default'}_${typeConfig.color}_${typeConfig.size}`;
 
-		if (styleCache.has(cacheKey)) {
-			const cachedStyle = styleCache.get(cacheKey);
-			if (showLabels) {
-				const labelText = (feature.get(field) || '').toString();
-				cachedStyle.getText()?.setText(labelText);
-			}
-			return cachedStyle;
+		// Get or create geometry-only style (always rendered, never decluttered)
+		let geometryStyle = geometryStyleCache.get(geometryCacheKey);
+		if (!geometryStyle) {
+			geometryStyle = new Style({
+				image: new CircleStyle({
+					radius: typeConfig.size || DEFAULT_NODE_SIZE,
+					fill: new Fill({ color: typeConfig.color || DEFAULT_NODE_COLOR }),
+					stroke: new Stroke({ color: '#ffffff', width: 1 })
+				}),
+				// Mark as non-declutterable so the point always renders
+				declutterMode: 'none'
+			});
+			geometryStyleCache.set(geometryCacheKey, geometryStyle);
 		}
 
-		const style = new Style({
-			image: new CircleStyle({
-				radius: typeConfig.size || DEFAULT_NODE_SIZE,
-				fill: new Fill({ color: typeConfig.color || DEFAULT_NODE_COLOR }),
-				stroke: new Stroke({ color: '#ffffff', width: 1 })
-			})
-		});
+		const showLabels = enabled && resolution < minResolution;
 
 		if (showLabels) {
 			const labelText = (feature.get(field) || '').toString();
-			const text = createTextStyle({ text: labelText, ...textStyle });
-			style.setText(text);
+			// Create separate label style that can be decluttered
+			const labelStyle = new Style({
+				text: createTextStyle({ text: labelText, ...textStyle }),
+				// Labels can be decluttered (hidden when overlapping)
+				declutterMode: 'declutter'
+			});
+			// Return both styles - geometry always shows, label may be hidden
+			return [geometryStyle, labelStyle];
 		}
 
-		if (!showLabels) {
-			styleCache.set(cacheKey, style);
-		}
-
-		return style;
+		return geometryStyle;
 	};
 }
 
@@ -294,7 +333,7 @@ export function createTrenchStyleByAttribute(
 		textStyle = {}
 	} = labelOptions;
 
-	const styleCache = new Map();
+	const geometryStyleCache = new Map();
 
 	return function (feature, resolution) {
 		let color = fallbackColor;
@@ -322,43 +361,40 @@ export function createTrenchStyleByAttribute(
 			return null;
 		}
 
-		const showLabels = enabled && resolution < minResolution;
-		const cacheKey = `${styleMode}_${color}_${showLabels}`;
+		const geometryCacheKey = `${styleMode}_${color}`;
 
-		if (styleCache.has(cacheKey)) {
-			const cachedStyle = styleCache.get(cacheKey);
-			if (showLabels) {
-				const labelText = (feature.get(field) || '').toString();
-				cachedStyle.getText()?.setText(labelText);
-			}
-			return cachedStyle;
+		// Get or create geometry style (never decluttered)
+		let geometryStyle = geometryStyleCache.get(geometryCacheKey);
+		if (!geometryStyle) {
+			geometryStyle = new Style({
+				fill: new Fill({
+					color: color
+				}),
+				stroke: new Stroke({
+					color: color,
+					width: DEFAULT_TRENCH_WIDTH
+				}),
+				image: new CircleStyle({
+					radius: 7,
+					fill: new Fill({ color: color }),
+					stroke: new Stroke({ color: color, width: 2 })
+				}),
+				declutterMode: 'none'
+			});
+			geometryStyleCache.set(geometryCacheKey, geometryStyle);
 		}
 
-		const style = new Style({
-			fill: new Fill({
-				color: color
-			}),
-			stroke: new Stroke({
-				color: color,
-				width: DEFAULT_TRENCH_WIDTH
-			}),
-			image: new CircleStyle({
-				radius: 7,
-				fill: new Fill({ color: color }),
-				stroke: new Stroke({ color: color, width: 2 })
-			})
-		});
+		const showLabels = enabled && resolution < minResolution;
 
 		if (showLabels) {
 			const labelText = (feature.get(field) || '').toString();
-			const text = createTextStyle({ text: labelText, ...textStyle });
-			style.setText(text);
+			const labelStyle = new Style({
+				text: createTextStyle({ text: labelText, ...textStyle }),
+				declutterMode: 'declutter'
+			});
+			return [geometryStyle, labelStyle];
 		}
 
-		if (!showLabels) {
-			styleCache.set(cacheKey, style);
-		}
-
-		return style;
+		return geometryStyle;
 	};
 }

@@ -16,9 +16,9 @@
 		selectedProject,
 		trenchColor,
 		trenchColorSelected,
+		trenchConstructionTypeStyles,
 		trenchStyleMode,
-		trenchSurfaceStyles,
-		trenchConstructionTypeStyles
+		trenchSurfaceStyles
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
