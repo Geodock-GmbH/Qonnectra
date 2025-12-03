@@ -36,7 +36,7 @@
 		// Group files by category
 		for (const file of fileList) {
 			// Extract category from file path (e.g., "trenches/123/photos/image.jpg" -> "photos")
-			const pathParts = file.file_path.split('/');
+			const pathParts = decodeURIComponent(file.file_path).split('/');
 			const category = pathParts.length >= 3 ? pathParts[pathParts.length - 2] : 'uncategorized';
 
 			if (!categoryMap.has(category)) {
