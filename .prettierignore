@@ -1,0 +1,13 @@
+# VSCode settings - keep unformatted
+.vscode/
+
+# Backend Django templates
+backend/templates/
+backend/**/*.html
+
+# Package lock files
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+bun.lock
+bun.lockb

@@ -1228,7 +1228,11 @@ class Address(models.Model):
 
     def __str__(self):
         """Return the address."""
-        return f"{self.street} {self.housenumber} {self.house_number_suffix}"
+        return (
+            f"{self.street} {self.housenumber} {self.house_number_suffix}, {self.zip_code} {self.city}"
+            if self.house_number_suffix
+            else f"{self.street} {self.housenumber}, {self.zip_code} {self.city}"
+        )
 
 
 class OlAddress(models.Model):

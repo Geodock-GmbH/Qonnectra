@@ -1,0 +1,109 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+    &rsaquo;
+    <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_label|capfirst }}</a>
+    &rsaquo;
+    <a href="{% url 'admin:api_featurefiles_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+    &rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<div style="margin-bottom: 20px;">
+    <h2>{% translate "Selected Files" %}</h2>
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background: #f8f8f8;">
+                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">
+                    {% translate "File Name" %}
+                </th>
+                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">
+                    {% translate "File Type" %}
+                </th>
+                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">
+                    {% translate "Current Feature Type" %}
+                </th>
+                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">
+                    {% translate "File Path" %}
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for file in files %}
+            <tr>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">
+                    {{ file.file_name }}
+                </td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">
+                    {{ file.file_type|default:"-" }}
+                </td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee;">
+                    {{ file.content_type.model|capfirst }}
+                </td>
+                <td style="padding: 8px; border-bottom: 1px solid #eee; font-size: 0.9em; color: #666;">
+                    {{ file.file_path }}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="padding: 8px; text-align: center; color: #999;">
+                    {% translate "No files selected" %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <fieldset class="module aligned">
+        <h2>{% translate "Move to Feature" %}</h2>
+
+        <div class="form-row">
+            <div>
+                <label for="id_target_feature_type">{{ form.target_feature_type.label }}:</label>
+                {{ form.target_feature_type }}
+                {% if form.target_feature_type.help_text %}
+                <p class="help">{{ form.target_feature_type.help_text }}</p>
+                {% endif %}
+                {% for error in form.target_feature_type.errors %}
+                <p class="errornote">{{ error }}</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div>
+                <label for="id_target_feature_id">{{ form.target_feature_id.label }}:</label>
+                {{ form.target_feature_id }}
+                {% if form.target_feature_id.help_text %}
+                <p class="help">{{ form.target_feature_id.help_text }}</p>
+                {% endif %}
+                {% for error in form.target_feature_id.errors %}
+                <p class="errornote">{{ error }}</p>
+                {% endfor %}
+            </div>
+        </div>
+    </fieldset>
+
+    <div class="submit-row" style="margin-top: 20px;">
+        <input type="submit" value="{% translate 'Move Files' %}" class="default" />
+        <a href="{% url 'admin:api_featurefiles_changelist' %}" class="button cancel-link" style="margin-left: 10px;">
+            {% translate "Cancel" %}
+        </a>
+    </div>
+</form>
+
+<div style="margin-top: 30px; padding: 15px; background: #fffbe6; border: 1px solid #ffe58f; border-radius: 4px;">
+</div>
+{% endblock %}

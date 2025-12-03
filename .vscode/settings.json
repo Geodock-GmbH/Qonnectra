@@ -24,6 +24,14 @@
     "editor.defaultFormatter": "svelte.svelte-vscode",
     "editor.formatOnSave": true,
   },
+  "[html]": {
+    "editor.formatOnSave": false,
+  },
+  "prettier.ignorePath": ".prettierignore",
+  "files.associations": {
+    "**/backend/templates/**/*.html": "django-html",
+    "*.svelte": "svelte"
+  },
   
   "playwright.reuseBrowser": false,
   "playwright.showTrace": false,
@@ -53,10 +61,6 @@
     "**/.coverage": true,
     "**/playwright-report": true,
     "**/test-results": true
-  },
-  
-  "files.associations": {
-    "*.svelte": "svelte"
   },
   
   "editor.formatOnSave": true,

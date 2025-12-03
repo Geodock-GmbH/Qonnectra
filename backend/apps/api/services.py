@@ -330,3 +330,109 @@ def rename_feature_folder(instance, old_identifier, new_identifier):
                 f"No folder to rename for {model_name} "
                 f"'{old_identifier}' (no files uploaded yet)"
             )
+
+
+def move_file_to_feature(file_obj, target_feature, target_content_type):
+    """
+    Move a FeatureFile to a different feature, updating both the database
+    and the physical file location.
+
+    Args:
+        file_obj: FeatureFiles instance to move
+        target_feature: Target model instance (Node, Cable, Conduit, Trench, or Address)
+        target_content_type: ContentType for the target model
+
+    Returns:
+        tuple: (success: bool, new_path: str or None, error: str or None)
+    """
+    storage = LocalMediaStorage()
+    old_path = file_obj.file_path.name
+
+    prefs = StoragePreferences.objects.first()
+    model_name = target_content_type.model
+
+    if model_name == "trench":
+        feature_id = target_feature.id_trench
+    elif model_name in ("conduit", "cable", "node"):
+        feature_id = target_feature.name
+    elif model_name == "address":
+        suffix = (
+            f" {target_feature.house_number_suffix}"
+            if target_feature.house_number_suffix
+            else ""
+        )
+        feature_id = (
+            f"{target_feature.street} {target_feature.housenumber}{suffix}, "
+            f"{target_feature.zip_code} {target_feature.city}"
+        )
+    else:
+        feature_id = str(target_feature.pk)
+
+    feature_id = sanitize_filename(str(feature_id))
+
+    project_name = (
+        target_feature.project.project
+        if hasattr(target_feature, "project") and target_feature.project
+        else "default"
+    )
+    project_name = sanitize_filename(project_name)
+
+    file_extension = file_obj.file_type or ""
+    file_extension = file_extension.lower()
+
+    try:
+        from .models import FileTypeCategory
+
+        category_obj = FileTypeCategory.objects.get(extension=file_extension)
+        file_category = category_obj.category
+    except FileTypeCategory.DoesNotExist:
+        file_category = "documents"
+
+    if prefs and prefs.mode == "AUTO" and prefs.folder_structure:
+        folder_paths = prefs.folder_structure.get(model_name, {})
+        folder_name = folder_paths.get(
+            file_category, folder_paths.get("default", model_name + "s")
+        )
+
+        if "/" in folder_name:
+            base_folder, sub_folder = folder_name.split("/", 1)
+            new_path = (
+                f"{project_name}/{base_folder}/{feature_id}/{sub_folder}/"
+                f"{file_obj.file_name}.{file_obj.file_type}"
+            )
+        else:
+            new_path = (
+                f"{project_name}/{folder_name}/{feature_id}/"
+                f"{file_obj.file_name}.{file_obj.file_type}"
+            )
+    else:
+        new_path = (
+            f"{project_name}/{model_name}s/{feature_id}/"
+            f"{file_obj.file_name}.{file_obj.file_type}"
+        )
+
+    if storage.exists(new_path):
+        return (False, None, f"File already exists at target path: {new_path}")
+
+    try:
+        if storage.exists(old_path):
+            old_file = storage.open(old_path, "rb")
+            content = old_file.read()
+            old_file.close()
+
+            from django.core.files.base import ContentFile
+
+            storage.save(new_path, ContentFile(content))
+
+            storage.delete(old_path)
+
+            logger.info(f"Moved file from {old_path} to {new_path}")
+        else:
+            logger.warning(
+                f"Physical file not found at {old_path}, updating database path only"
+            )
+    except Exception as e:
+        logger.error(f"Error moving file from {old_path} to {new_path}: {e}")
+        return (False, None, str(e))
+
+    return (True, new_path, None)
