@@ -1,9 +1,9 @@
 <script>
 	import { onMount } from 'svelte';
 	import { cubicOut } from 'svelte/easing';
+	import { innerWidth } from 'svelte/reactivity/window';
 	import { fly } from 'svelte/transition';
 	import { beforeNavigate } from '$app/navigation';
-	import { innerWidth } from 'svelte/reactivity/window';
 
 	import { drawerStore } from '$lib/stores/drawer';
 
@@ -13,6 +13,12 @@
 	let isResizing = $state(false);
 	let startX = $state(0);
 	let startWidth = $state(0);
+
+	let drawerOpen = $derived($drawerStore.open);
+	let drawerTitle = $derived($drawerStore.title);
+	let drawerWidth = $derived($drawerStore.width);
+	let DrawerComponent = $derived($drawerStore.component);
+	let drawerProps = $derived($drawerStore.props);
 
 	/**
 	 * Closes the drawer by updating the drawer store state
@@ -26,7 +32,7 @@
 	 * @param {KeyboardEvent} event - The keyboard event
 	 */
 	function handleKeydown(event) {
-		if (event.key === 'Escape' && $drawerStore.open) {
+		if (event.key === 'Escape' && drawerOpen) {
 			handleClose();
 		}
 	}
@@ -75,13 +81,13 @@
 	$effect(() => {
 		// innerWidth.current is reactive - this effect re-runs when viewport changes
 		const maxWidth = Math.floor((innerWidth.current ?? 0) * 0.8);
-		if ($drawerStore.width > maxWidth) {
+		if (drawerWidth > maxWidth) {
 			drawerStore.setWidth(maxWidth);
 		}
 	});
 
 	beforeNavigate(() => {
-		if ($drawerStore.open) {
+		if (drawerOpen) {
 			handleClose();
 		}
 	});
@@ -100,15 +106,15 @@
 </script>
 
 <!-- Drawer Card -->
-{#if $drawerStore.open}
+{#if drawerOpen}
 	<div
 		bind:this={drawerElement}
-		transition:fly={{ x: $drawerStore.width, duration: 300, easing: cubicOut }}
+		transition:fly={{ x: drawerWidth, duration: 300, easing: cubicOut }}
 		class="absolute top-0 right-0 h-full border-2 rounded-lg border-surface-200-800 bg-surface-50-950 shadow-xl flex flex-col z-50 {className}"
 		class:transition={!isResizing}
 		class:duration-500={!isResizing}
 		class:ease-in-out={!isResizing}
-		style="width: {$drawerStore.width}px; max-width: 80vw;"
+		style="width: {drawerWidth}px; max-width: 80vw;"
 		aria-labelledby="drawer-title"
 	>
 		<!-- Header -->
@@ -119,7 +125,7 @@
 				id="drawer-title"
 				class="text-lg font-semibold text-surface-900-50 overflow-hidden text-ellipsis"
 			>
-				{$drawerStore.title || 'Details'}
+				{drawerTitle || 'Details'}
 			</h2>
 			<button
 				onclick={handleClose}
@@ -139,9 +145,8 @@
 
 		<!-- Content -->
 		<div class="flex-1 overflow-y-auto p-4">
-			{#if $drawerStore.component}
-				{@const Component = $drawerStore.component}
-				<Component {...$drawerStore.props} />
+			{#if DrawerComponent}
+				<DrawerComponent {...drawerProps} />
 			{:else}
 				{@render children?.()}
 			{/if}
