@@ -1,8 +1,12 @@
+import logging
+
 import openpyxl
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from openpyxl import load_workbook
+from pathvalidate import sanitize_filename
 
 from .models import (
     AttributesCompany,
@@ -10,9 +14,14 @@ from .models import (
     AttributesNetworkLevel,
     AttributesStatus,
     Conduit,
+    FeatureFiles,
     Flags,
     Projects,
+    StoragePreferences,
 )
+from .storage import LocalMediaStorage
+
+logger = logging.getLogger(__name__)
 
 
 def import_conduits_from_excel(file):
@@ -243,3 +252,81 @@ def generate_conduit_import_template():
     workbook.save(response)
 
     return response
+
+
+def rename_feature_folder(instance, old_identifier, new_identifier):
+    """
+    Rename storage folder when a feature's identifier changes.
+
+    Updates both the filesystem folder and all FeatureFiles.file_path entries
+    in the database within an atomic transaction.
+
+    Args:
+        instance: Model instance (Node, Cable, Conduit, Trench, or Address)
+        old_identifier: Previous identifier value (name, id_trench, or address string)
+        new_identifier: New identifier value
+
+    Raises:
+        OSError: If folder rename fails (rolls back the entire operation)
+    """
+    prefs = StoragePreferences.objects.first()
+    model_name = instance._meta.model_name
+
+    project_name = (
+        instance.project.project
+        if hasattr(instance, "project") and instance.project
+        else "default"
+    )
+    project_name = sanitize_filename(project_name)
+
+    old_feature_folder = sanitize_filename(str(old_identifier))
+    new_feature_folder = sanitize_filename(str(new_identifier))
+
+    if prefs and prefs.folder_structure:
+        folder_config = prefs.folder_structure.get(model_name, {})
+        if isinstance(folder_config, dict):
+            for category, path in folder_config.items():
+                if "/" in path:
+                    base_folder = path.split("/", 1)[0]
+                    break
+                else:
+                    base_folder = path
+                    break
+            else:
+                base_folder = f"{model_name}s"
+        else:
+            base_folder = folder_config if folder_config else f"{model_name}s"
+    else:
+        base_folder = f"{model_name}s"
+
+    old_path = f"{project_name}/{base_folder}/{old_feature_folder}"
+    new_path = f"{project_name}/{base_folder}/{new_feature_folder}"
+
+    storage = LocalMediaStorage()
+    content_type = ContentType.objects.get_for_model(instance)
+
+    with transaction.atomic():
+        folder_existed = storage.rename_folder(old_path, new_path)
+
+        if folder_existed:
+            files = FeatureFiles.objects.select_for_update().filter(
+                content_type=content_type, object_id=instance.pk
+            )
+            updated_count = 0
+            for f in files:
+                old_file_path = f.file_path.name
+                if old_path in old_file_path:
+                    f.file_path.name = old_file_path.replace(old_path, new_path, 1)
+                    f.save(update_fields=["file_path"])
+                    updated_count += 1
+
+            logger.info(
+                f"Renamed feature folder for {model_name} "
+                f"'{old_identifier}' -> '{new_identifier}', "
+                f"updated {updated_count} file path(s)"
+            )
+        else:
+            logger.debug(
+                f"No folder to rename for {model_name} "
+                f"'{old_identifier}' (no files uploaded yet)"
+            )

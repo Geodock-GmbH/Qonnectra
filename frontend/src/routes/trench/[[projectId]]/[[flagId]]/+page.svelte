@@ -360,7 +360,7 @@
 					console.error('Routing error:', error);
 					globalToaster.error({
 						title: m.title_error_calculating_route(),
-						description: error.message // TODO: Translate. This comes from the backend. How?
+						description: error.message
 					});
 					startTrenchId = null;
 					endTrenchId = null;

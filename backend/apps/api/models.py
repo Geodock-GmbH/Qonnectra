@@ -879,11 +879,6 @@ class Trench(models.Model):
         ]
 
 
-# TODO: Implement area model
-# TODO: Refactor area count trigger, fn_update_area_counts and fn_area_counts_area_update to be dynamic
-# TODO: Implement residential unit model
-
-
 class OlTrench(models.Model):
     """Stores all trench features rendered on Openlayers,
     related to :model:`api.AttributesSurface`,
@@ -2080,6 +2075,7 @@ def update_cable_labels_on_name_change(sender, instance, created, **kwargs):
     """
     Automatically update all cable labels when the cable name changes.
     Updates CableLabel.text to match the new Cable.name.
+    Also renames the file storage folder if the cable name changed.
     """
     if created:
         return
@@ -2087,6 +2083,17 @@ def update_cable_labels_on_name_change(sender, instance, created, **kwargs):
     old_name = getattr(instance, "_old_name", None)
     if old_name is not None and old_name != instance.name:
         instance.labels.update(text=instance.name)
+
+        # Rename the file storage folder
+        from apps.api.services import rename_feature_folder
+
+        try:
+            rename_feature_folder(instance, old_name, instance.name)
+        except OSError:
+            # Rollback: restore old name and re-raise
+            instance.name = old_name
+            instance.save(update_fields=["name"])
+            raise
 
 
 class ConduitTypeColorMapping(models.Model):
@@ -2567,3 +2574,155 @@ class LogEntry(models.Model):
 
     def __str__(self):
         return f"[{self.timestamp}] {self.level}: {self.message[:50]}"
+
+
+def get_feature_folder_identifier(instance):
+    """
+    Get the folder identifier for a feature.
+
+    This mirrors FeatureFiles.get_feature_identifier() to ensure consistency
+    between upload paths and folder rename operations.
+
+    Args:
+        instance: A model instance (Node, Cable, Conduit, Trench, or Address)
+
+    Returns:
+        The string identifier used for the feature's folder name
+    """
+    model_name = instance._meta.model_name
+    if model_name == "trench":
+        return str(instance.id_trench)
+    elif model_name in ("conduit", "cable", "node"):
+        return instance.name
+    elif model_name == "address":
+        suffix = instance.house_number_suffix or ""
+        return f"{instance.street} {instance.housenumber}{suffix}, {instance.zip_code} {instance.city}"
+    return str(instance.pk)
+
+
+@receiver(pre_save, sender=Node)
+def track_node_name_change(sender, instance, **kwargs):
+    """Track old node name before save to detect if it changed."""
+    if instance.pk:
+        try:
+            instance._old_identifier = Node.objects.get(pk=instance.pk).name
+        except Node.DoesNotExist:
+            instance._old_identifier = None
+    else:
+        instance._old_identifier = None
+
+
+@receiver(post_save, sender=Node)
+def rename_node_folder_on_name_change(sender, instance, created, **kwargs):
+    """Rename file folder when node name changes."""
+    if created:
+        return
+
+    old_id = getattr(instance, "_old_identifier", None)
+    new_id = instance.name
+    if old_id is not None and old_id != new_id:
+        from apps.api.services import rename_feature_folder
+
+        try:
+            rename_feature_folder(instance, old_id, new_id)
+        except OSError:
+            # Rollback: restore old name and re-raise
+            instance.name = old_id
+            instance.save(update_fields=["name"])
+            raise
+
+
+@receiver(pre_save, sender=Conduit)
+def track_conduit_name_change(sender, instance, **kwargs):
+    """Track old conduit name before save to detect if it changed."""
+    if instance.pk:
+        try:
+            instance._old_identifier = Conduit.objects.get(pk=instance.pk).name
+        except Conduit.DoesNotExist:
+            instance._old_identifier = None
+    else:
+        instance._old_identifier = None
+
+
+@receiver(post_save, sender=Conduit)
+def rename_conduit_folder_on_name_change(sender, instance, created, **kwargs):
+    """Rename file folder when conduit name changes."""
+    if created:
+        return
+
+    old_id = getattr(instance, "_old_identifier", None)
+    new_id = instance.name
+    if old_id is not None and old_id != new_id:
+        from apps.api.services import rename_feature_folder
+
+        try:
+            rename_feature_folder(instance, old_id, new_id)
+        except OSError:
+            # Rollback: restore old name and re-raise
+            instance.name = old_id
+            instance.save(update_fields=["name"])
+            raise
+
+
+@receiver(pre_save, sender=Trench)
+def track_trench_id_change(sender, instance, **kwargs):
+    """Track old trench id_trench before save to detect if it changed."""
+    if instance.pk:
+        try:
+            instance._old_identifier = str(Trench.objects.get(pk=instance.pk).id_trench)
+        except Trench.DoesNotExist:
+            instance._old_identifier = None
+    else:
+        instance._old_identifier = None
+
+
+@receiver(post_save, sender=Trench)
+def rename_trench_folder_on_id_change(sender, instance, created, **kwargs):
+    """Rename file folder when trench id_trench changes."""
+    if created:
+        return
+
+    old_id = getattr(instance, "_old_identifier", None)
+    new_id = str(instance.id_trench)
+    if old_id is not None and old_id != new_id:
+        from apps.api.services import rename_feature_folder
+
+        try:
+            rename_feature_folder(instance, old_id, new_id)
+        except OSError:
+            # Rollback: restore old id_trench and re-raise
+            instance.id_trench = int(old_id)
+            instance.save(update_fields=["id_trench"])
+            raise
+
+
+@receiver(pre_save, sender=Address)
+def track_address_identifier_change(sender, instance, **kwargs):
+    """Track old address folder identifier before save to detect if it changed."""
+    if instance.pk:
+        try:
+            old_instance = Address.objects.get(pk=instance.pk)
+            instance._old_identifier = get_feature_folder_identifier(old_instance)
+        except Address.DoesNotExist:
+            instance._old_identifier = None
+    else:
+        instance._old_identifier = None
+
+
+@receiver(post_save, sender=Address)
+def rename_address_folder_on_change(sender, instance, created, **kwargs):
+    """Rename file folder when address fields change."""
+    if created:
+        return
+
+    old_id = getattr(instance, "_old_identifier", None)
+    new_id = get_feature_folder_identifier(instance)
+    if old_id is not None and old_id != new_id:
+        from apps.api.services import rename_feature_folder
+
+        try:
+            rename_feature_folder(instance, old_id, new_id)
+        except OSError:
+            # For Address, multiple fields contribute to the identifier.
+            # We just re-raise the error - the DB transaction will rollback.
+            raise

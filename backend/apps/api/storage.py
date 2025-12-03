@@ -140,6 +140,37 @@ class LocalMediaStorage(FileSystemStorage):
         logger.debug(f"Generated URL for {name}: {url}")
         return url
 
+    def rename_folder(self, old_folder_path, new_folder_path):
+        """
+        Rename a folder in the storage filesystem.
+
+        Used when a feature's identifier changes (e.g., Node name, Cable name)
+        to keep the folder structure consistent with the feature's current name.
+
+        Args:
+            old_folder_path: Relative path from MEDIA_ROOT (e.g., "Project/nodes/OldName")
+            new_folder_path: New relative path (e.g., "Project/nodes/NewName")
+
+        Returns:
+            bool: True if folder was renamed, False if old folder doesn't exist
+
+        Raises:
+            OSError: If rename fails (permissions, new path already exists, etc.)
+        """
+        old_full = os.path.join(self.location, old_folder_path)
+        new_full = os.path.join(self.location, new_folder_path)
+
+        if not os.path.exists(old_full):
+            logger.debug(f"Folder does not exist, skipping rename: {old_folder_path}")
+            return False
+
+        if os.path.exists(new_full):
+            raise OSError(f"Target folder already exists: {new_folder_path}")
+
+        os.rename(old_full, new_full)
+        logger.info(f"Renamed folder: {old_folder_path} -> {new_folder_path}")
+        return True
+
 
 @deconstructible
 class QGISProjectStorage(FileSystemStorage):
