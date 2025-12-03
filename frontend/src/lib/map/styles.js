@@ -148,15 +148,15 @@ export function createAddressStyle() {
 
 /**
  * Creates a style function for address points with optional labels
+ * Labels display: street + house_number + house_number_suffix (if present)
  * @param {Object} labelOptions - Label configuration options
  * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
- * @param {string} [labelOptions.field='street'] - Feature property to use for label
  * @param {number} [labelOptions.minResolution=1.0] - Minimum resolution to show labels (more zoomed in)
  * @param {Object} [labelOptions.textStyle] - Custom text style options
  * @returns {Function} Style function that accepts (feature, resolution)
  */
 export function createAddressStyleWithLabels(labelOptions = {}) {
-	const { enabled = false, field = 'street', minResolution = 1.0, textStyle = {} } = labelOptions;
+	const { enabled = false, minResolution = 1.0, textStyle = {} } = labelOptions;
 
 	// Cache the geometry style since it never changes
 	const geometryStyle = new Style({
@@ -170,7 +170,10 @@ export function createAddressStyleWithLabels(labelOptions = {}) {
 
 	return function (feature, resolution) {
 		if (enabled && resolution < minResolution) {
-			const labelText = (feature.get(field) || '').toString();
+			const street = feature.get('street') || '';
+			const houseNumber = feature.get('housenumber') || '';
+			const suffix = feature.get('house_number_suffix');
+			const labelText = `${street} ${houseNumber}${suffix || ''}`.trim();
 			const labelStyle = new Style({
 				text: createTextStyle({ text: labelText, ...textStyle }),
 				declutterMode: 'declutter'

@@ -63,7 +63,6 @@ export function createTrenchLayer(
  * @param {Function} onError - Error callback function
  * @param {Object} labelOptions - Optional label configuration
  * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
- * @param {string} [labelOptions.field='street'] - Feature property to use for label
  * @param {number} [labelOptions.minResolution=1.0] - Minimum resolution to show labels
  * @param {Object} [labelOptions.textStyle] - Custom text style options
  * @returns {VectorTileLayer}
