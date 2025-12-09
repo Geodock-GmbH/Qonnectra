@@ -3,6 +3,7 @@ import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 import { getConstructionTypes, getNodeTypes, getSurfaces } from '$lib/server/attributes';
+import { getPipesInTrench, getMicroducts } from '$lib/server/conduitData';
 import { getFeatureDetailsByType, searchFeaturesInProject } from '$lib/server/featureSearch';
 
 /** @type {import('./$types').PageServerLoad} */
@@ -22,61 +23,18 @@ export async function load({ fetch, cookies }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
-	getPipesInTrench: async ({ request, cookies }) => {
-		try {
-			const formData = await request.formData();
-			const trenchId = formData.get('uuid');
+	getPipesInTrench: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const trenchId = formData.get('uuid');
 
-			if (!trenchId) {
-				return fail(400, { error: 'Trench ID is required' });
-			}
-
-			const headers = getAuthHeaders(cookies);
-			const backendUrl = `${API_URL}trench_conduit_connection/all/?uuid_trench=${trenchId}`;
-
-			const response = await fetch(backendUrl, {
-				method: 'GET',
-				headers
-			});
-
-			if (!response.ok) {
-				return fail(response.status, { error: 'Failed to get pipes in trench' });
-			}
-
-			const data = await response.json();
-			return data;
-		} catch (error) {
-			console.error('Error getting pipes in trench:', error);
-			return fail(500, { error: 'Internal server error' });
-		}
+		return getPipesInTrench(fetch, cookies, trenchId);
 	},
-	getMicroducts: async ({ request, cookies }) => {
-		try {
-			const formData = await request.formData();
-			const pipeId = formData.get('uuid');
 
-			if (!pipeId) {
-				return fail(400, { error: 'Pipe ID is required' });
-			}
+	getMicroducts: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const pipeId = formData.get('uuid');
 
-			const headers = getAuthHeaders(cookies);
-			const backendUrl = `${API_URL}microduct/all/?uuid_conduit=${pipeId}`;
-
-			const response = await fetch(backendUrl, {
-				method: 'GET',
-				headers
-			});
-
-			if (!response.ok) {
-				return fail(response.status, { error: 'Failed to get microducts' });
-			}
-
-			const data = await response.json();
-			return data;
-		} catch (error) {
-			console.error('Error getting microducts:', error);
-			return fail(500, { error: 'Internal server error' });
-		}
+		return getMicroducts(fetch, cookies, pipeId);
 	},
 	assignNodeToMicroduct: async ({ request, fetch, cookies }) => {
 		try {
