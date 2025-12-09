@@ -11,6 +11,7 @@ export function getFieldAliases() {
 		status: m.form_status(),
 		network_level: m.form_network_level(),
 		owner: m.form_owner(),
+		company: m.form_company(),
 		constructor: m.form_constructor(),
 		manufacturer: m.form_manufacturer(),
 		date: m.common_date(),
