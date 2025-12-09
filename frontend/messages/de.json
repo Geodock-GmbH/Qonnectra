@@ -263,6 +263,7 @@
 	"placeholder_select_conduit": "Rohr auswählen",
 	"placeholder_select_flag": "Kennzeichen auswählen",
 	"placeholder_select_pipe_branch": "Rohrverzweigung auswählen",
+	"settings_address_style": "Adressen-Stil",
 	"settings_conduit_connection": "Rohrzuordnung",
 	"settings_construction_type_styles": "Bauart-Stile",
 	"settings_map": "Karte",

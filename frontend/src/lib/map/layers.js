@@ -17,10 +17,14 @@ import {
 	createTrenchTileSource
 } from './tileSources.js';
 
+// Default style values (match store defaults)
+const DEFAULT_TRENCH_COLOR = '#000000';
+const DEFAULT_ADDRESS_COLOR = '#2563eb';
+const DEFAULT_ADDRESS_SIZE = 4;
+
 /**
  * Creates a vector tile layer for trenches
  * @param {import('svelte/store').Readable<string>} selectedProject - Store containing the selected project ID
- * @param {string} trenchColor - Color for trench features
  * @param {string} layerName - Display name for the layer
  * @param {Function} onError - Error callback function
  * @param {Object} labelOptions - Optional label configuration
@@ -30,19 +34,13 @@ import {
  * @param {Object} [labelOptions.textStyle] - Custom text style options
  * @returns {VectorTileLayer}
  */
-export function createTrenchLayer(
-	selectedProject,
-	trenchColor,
-	layerName,
-	onError,
-	labelOptions = {}
-) {
+export function createTrenchLayer(selectedProject, layerName, onError, labelOptions = {}) {
 	const tileSource = createTrenchTileSource(selectedProject, onError);
 
 	// Use style function with labels if enabled, otherwise use static style
 	const style = labelOptions.enabled
-		? createTrenchStyleWithLabels(trenchColor, labelOptions)
-		: createTrenchStyle(trenchColor);
+		? createTrenchStyleWithLabels(DEFAULT_TRENCH_COLOR, labelOptions)
+		: createTrenchStyle(DEFAULT_TRENCH_COLOR);
 
 	return new VectorTileLayer({
 		source: tileSource,
@@ -71,9 +69,7 @@ export function createAddressLayer(selectedProject, layerName, onError, labelOpt
 	const tileSource = createAddressTileSource(selectedProject, onError);
 
 	// Use style function with labels if enabled, otherwise use static style
-	const style = labelOptions.enabled
-		? createAddressStyleWithLabels(labelOptions)
-		: createAddressStyle();
+	const style = createAddressStyleWithLabels(DEFAULT_ADDRESS_COLOR, DEFAULT_ADDRESS_SIZE, labelOptions);
 
 	return new VectorTileLayer({
 		source: tileSource,

@@ -12,6 +12,7 @@
 	import Map from '$lib/components/Map.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import {
+		addressStyle,
 		labelVisibilityConfig,
 		nodeTypeStyles,
 		selectedProject,
@@ -21,6 +22,7 @@
 		trenchStyleMode,
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
+	import { get } from 'svelte/store';
 
 	import HouseConnectionDrawerTabs from './HouseConnectionDrawerTabs.svelte';
 
@@ -30,7 +32,7 @@
 	let { data } = $props();
 
 	// Initialize managers
-	const mapState = new MapState($selectedProject, $trenchColor, $trenchColorSelected, {
+	const mapState = new MapState($selectedProject, get(trenchColorSelected), {
 		trench: true,
 		address: true,
 		node: true
@@ -77,6 +79,13 @@
 		const constructionTypeStyles = $trenchConstructionTypeStyles;
 		const color = $trenchColor;
 		mapState.updateTrenchLayerStyle(mode, surfaceStyles, constructionTypeStyles, color);
+	});
+
+	// Update address layer style when address style settings change
+	$effect(() => {
+		const color = $addressStyle.color;
+		const size = $addressStyle.size;
+		mapState.updateAddressLayerStyle(color, size);
 	});
 
 	/**

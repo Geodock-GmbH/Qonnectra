@@ -19,6 +19,12 @@ import {
 	createTrenchLayer
 } from '$lib/map';
 
+// Default style values (match store defaults)
+const DEFAULT_TRENCH_COLOR = '#000000';
+const DEFAULT_SELECTED_COLOR = '#000000';
+const DEFAULT_ADDRESS_COLOR = '#2563eb';
+const DEFAULT_ADDRESS_SIZE = 4;
+
 /**
  * Main state manager for the map
  * Manages layers, tile sources, and map instance
@@ -40,8 +46,9 @@ export class MapState {
 
 	// Configuration
 	selectedProject = $state(null);
-	trenchColor = $state(null);
-	trenchColorSelected = $state(null);
+	selectedColor = $state(DEFAULT_SELECTED_COLOR);
+	addressColor = $state(DEFAULT_ADDRESS_COLOR);
+	addressSize = $state(DEFAULT_ADDRESS_SIZE);
 
 	// Add layer configuration
 	layerConfig = $state({
@@ -59,21 +66,13 @@ export class MapState {
 
 	/**
 	 * @param {string} selectedProject - Current project ID
-	 * @param {string} trenchColor - Color for trench rendering
-	 * @param {string} trenchColorSelected - Color for selected trenches
+	 * @param {string} selectedColor - Color for selected features (optional, for selection layers)
 	 * @param {Object} layerConfig - Configuration for which layers to load (optional)
 	 * @param {Object} labelConfig - Configuration for text labels on layers (optional)
 	 */
-	constructor(
-		selectedProject,
-		trenchColor,
-		trenchColorSelected,
-		layerConfig = null,
-		labelConfig = null
-	) {
+	constructor(selectedProject, selectedColor = DEFAULT_SELECTED_COLOR, layerConfig = null, labelConfig = null) {
 		this.selectedProject = selectedProject;
-		this.trenchColor = trenchColor;
-		this.trenchColorSelected = trenchColorSelected;
+		this.selectedColor = selectedColor;
 
 		if (layerConfig) {
 			this.layerConfig = { ...this.layerConfig, ...layerConfig };
@@ -95,7 +94,6 @@ export class MapState {
 				this.tileSource = createTrenchTileSource(this.selectedProject, this.handleTileError);
 				this.vectorTileLayer = createTrenchLayer(
 					this.selectedProject,
-					this.trenchColor,
 					m.nav_trench(),
 					this.handleTileError,
 					this.labelConfig.trench
@@ -157,21 +155,21 @@ export class MapState {
 		// Create selection layers
 		this.selectionLayer = createSelectionLayer(
 			this.tileSource,
-			this.trenchColorSelected,
+			this.selectedColor,
 			getSelectionStore
 		);
 		this.olMap.addLayer(this.selectionLayer);
 
 		this.addressSelectionLayer = createSelectionLayer(
 			this.addressTileSource,
-			this.trenchColorSelected,
+			this.selectedColor,
 			getSelectionStore
 		);
 		this.olMap.addLayer(this.addressSelectionLayer);
 
 		this.nodeSelectionLayer = createSelectionLayer(
 			this.nodeTileSource,
-			this.trenchColorSelected,
+			this.selectedColor,
 			getSelectionStore
 		);
 		this.olMap.addLayer(this.nodeSelectionLayer);
@@ -286,12 +284,26 @@ export class MapState {
 	}
 
 	/**
-	 * Update the address layer style with current label config
+	 * Update the address layer style with current label config and style settings
+	 * @param {string} [color] - Optional color to update
+	 * @param {number} [size] - Optional size to update
 	 */
-	updateAddressLayerStyle() {
+	updateAddressLayerStyle(color = null, size = null) {
 		if (!this.addressLayer) return;
 
-		const newStyle = createAddressStyleWithLabels(this.labelConfig.address);
+		// Update stored values if provided
+		if (color !== null) {
+			this.addressColor = color;
+		}
+		if (size !== null) {
+			this.addressSize = size;
+		}
+
+		const newStyle = createAddressStyleWithLabels(
+			this.addressColor,
+			this.addressSize,
+			this.labelConfig.address
+		);
 		this.addressLayer.setStyle(newStyle);
 
 		if (this.addressTileSource) {

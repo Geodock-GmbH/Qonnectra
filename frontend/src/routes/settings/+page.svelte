@@ -3,9 +3,16 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { DEFAULT_NODE_COLOR, DEFAULT_NODE_SIZE, DEFAULT_TRENCH_COLOR } from '$lib/map/styles';
+	import {
+		DEFAULT_ADDRESS_COLOR,
+		DEFAULT_ADDRESS_SIZE,
+		DEFAULT_NODE_COLOR,
+		DEFAULT_NODE_SIZE,
+		DEFAULT_TRENCH_COLOR
+	} from '$lib/map/styles';
 	import { userStore } from '$lib/stores/auth';
 	import {
+		addressStyle,
 		nodeTypeStyles,
 		routingTolerance,
 		sidebarExpanded,
@@ -228,6 +235,28 @@
 				visible: true
 			}
 		);
+	}
+
+	// Address style functions
+	function updateAddressColor(color) {
+		$addressStyle = {
+			...$addressStyle,
+			color
+		};
+	}
+
+	function updateAddressSize(size) {
+		$addressStyle = {
+			...$addressStyle,
+			size: size[0]
+		};
+	}
+
+	function resetAddressStyle() {
+		$addressStyle = {
+			color: DEFAULT_ADDRESS_COLOR,
+			size: DEFAULT_ADDRESS_SIZE
+		};
 	}
 </script>
 
@@ -642,6 +671,93 @@
 						{/each}
 					</div>
 				{/if}
+			</div>
+
+			<!-- Address Style -->
+			<div>
+				<div class="flex items-center justify-between">
+					<h2 class="text-base/7 font-semibold text-primary-900-100">
+						{m.settings_address_style()}
+					</h2>
+					<button
+						type="button"
+						class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
+						onclick={resetAddressStyle}
+					>
+						{m.common_reset_all()}
+					</button>
+				</div>
+
+				<div class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+					<div
+						class="card preset-filled-surface-100-900 relative group rounded-lg border border-surface-200-800 p-4 hover:border-surface-400-600 transition-colors"
+					>
+						<!-- Header with name and reset -->
+						<div class="flex items-center justify-between mb-4">
+							<h3 class="font-medium text-sm truncate pr-2">Address Points</h3>
+							<button
+								type="button"
+								class="text-xs hover:text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity"
+								onclick={resetAddressStyle}
+							>
+								Reset
+							</button>
+						</div>
+
+						<!-- Visual preview -->
+						<div class="flex items-center justify-center mb-4 py-3 bg-surface-100-800 rounded">
+							<span
+								class="rounded-full shadow-sm transition-all"
+								style="background-color: {$addressStyle.color}; width: {$addressStyle.size *
+									4}px; height: {$addressStyle.size * 4}px;"
+							></span>
+						</div>
+
+						<!-- Controls -->
+						<div class="space-y-3">
+							<!-- Color -->
+							<div class="flex items-center gap-3">
+								<label class="relative cursor-pointer">
+									<input
+										type="color"
+										value={$addressStyle.color}
+										onchange={(e) => updateAddressColor(e.target.value)}
+										class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+									/>
+									<span
+										class="block w-8 h-8 rounded-md border-2 border-surface-200-700 hover:border-primary-500 transition-colors shadow-sm"
+										style="background-color: {$addressStyle.color};"
+									></span>
+								</label>
+								<span class="text-xs flex-1">{m.settings_node_type_color()}</span>
+								<span class="text-xs font-mono">{$addressStyle.color}</span>
+							</div>
+
+							<!-- Size -->
+							<div class="flex items-center gap-3">
+								<span class="text-xs w-16">{m.settings_node_type_size()}</span>
+								<div class="flex-1">
+									<Slider
+										value={[$addressStyle.size]}
+										onValueChange={(e) => updateAddressSize(e.value)}
+										max={30}
+										min={3}
+									>
+										<Slider.Control>
+											<Slider.Track>
+												<Slider.Range class="bg-primary-500" />
+											</Slider.Track>
+											<Slider.Thumb index={0} class="ring-primary-500">
+												<Slider.HiddenInput />
+											</Slider.Thumb>
+										</Slider.Control>
+									</Slider>
+								</div>
+								<span class="text-xs font-mono w-4 text-right">{$addressStyle.size}</span>
+							</div>
+						</div>
+					</div>
+				</div>
 			</div>
 
 			<!-- Conduit Connection Settings -->

@@ -262,6 +262,7 @@
 	"placeholder_select_conduit": "Select conduit",
 	"placeholder_select_flag": "Select flag",
 	"placeholder_select_pipe_branch": "Select pipe branch",
+	"settings_address_style": "Address Styles",
 	"settings_conduit_connection": "Conduit connection",
 	"settings_construction_type_styles": "Construction Type Styles",
 	"settings_map": "Map",

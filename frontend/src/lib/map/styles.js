@@ -149,20 +149,26 @@ export function createAddressStyle() {
 /**
  * Creates a style function for address points with optional labels
  * Labels display: street + house_number + house_number_suffix (if present)
+ * @param {string} [color=DEFAULT_ADDRESS_COLOR] - The color for the address point
+ * @param {number} [size=DEFAULT_ADDRESS_SIZE] - The radius for the address point
  * @param {Object} labelOptions - Label configuration options
  * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
  * @param {number} [labelOptions.minResolution=1.0] - Minimum resolution to show labels (more zoomed in)
  * @param {Object} [labelOptions.textStyle] - Custom text style options
  * @returns {Function} Style function that accepts (feature, resolution)
  */
-export function createAddressStyleWithLabels(labelOptions = {}) {
+export function createAddressStyleWithLabels(
+	color = DEFAULT_ADDRESS_COLOR,
+	size = DEFAULT_ADDRESS_SIZE,
+	labelOptions = {}
+) {
 	const { enabled = false, minResolution = 1.0, textStyle = {} } = labelOptions;
 
 	// Cache the geometry style since it never changes
 	const geometryStyle = new Style({
 		image: new CircleStyle({
-			radius: 4,
-			fill: new Fill({ color: '#2563eb' }),
+			radius: size,
+			fill: new Fill({ color: color }),
 			stroke: new Stroke({ color: '#ffffff', width: 1 })
 		}),
 		declutterMode: 'none'
@@ -248,6 +254,12 @@ export const DEFAULT_NODE_SIZE = 6;
  */
 export const DEFAULT_TRENCH_COLOR = '#fbb483';
 export const DEFAULT_TRENCH_WIDTH = 2;
+
+/**
+ * Default address style configuration
+ */
+export const DEFAULT_ADDRESS_COLOR = '#2563eb';
+export const DEFAULT_ADDRESS_SIZE = 4;
 
 /**
  * Creates a style function for node points with per-type styling
