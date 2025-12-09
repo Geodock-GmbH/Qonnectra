@@ -4,7 +4,7 @@
 		IconChevronDown,
 		IconChevronRight,
 		IconChevronUp,
-		IconCircleLetterA,
+		IconCircleLetterL,
 		IconEye,
 		IconEyeOff
 	} from '@tabler/icons-svelte';
@@ -392,7 +392,7 @@
 								aria-label={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
 								title={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
 							>
-								<IconCircleLetterA
+								<IconCircleLetterL
 									size="24"
 									class={isLabelEnabled(layerId) ? 'text-primary-500' : 'text-surface-400'}
 								/>
