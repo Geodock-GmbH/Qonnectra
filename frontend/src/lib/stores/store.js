@@ -41,3 +41,11 @@ export const trenchSurfaceStyles = persisted('trenchSurfaceStyles', {});
 // Trench construction type styles - stores color and visibility per construction type
 // Structure: { [construction_type_name]: { color: '#hex', visible: boolean } }
 export const trenchConstructionTypeStyles = persisted('trenchConstructionTypeStyles', {});
+
+// Label visibility configuration - controls whether labels are shown on map layers
+// Structure: { trench: boolean, address: boolean, node: boolean }
+export const labelVisibilityConfig = persisted('labelVisibilityConfig', {
+	trench: false,
+	address: false,
+	node: false
+});

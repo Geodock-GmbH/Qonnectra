@@ -114,7 +114,6 @@
 		);
 	}
 
-
 	/**
 	 * Listen for cable path update events
 	 */

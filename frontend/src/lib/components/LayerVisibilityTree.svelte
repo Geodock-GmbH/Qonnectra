@@ -4,6 +4,7 @@
 		IconChevronDown,
 		IconChevronRight,
 		IconChevronUp,
+		IconCircleLetterA,
 		IconEye,
 		IconEyeOff
 	} from '@tabler/icons-svelte';
@@ -12,6 +13,7 @@
 
 	import { DEFAULT_NODE_COLOR, DEFAULT_NODE_SIZE, DEFAULT_TRENCH_COLOR } from '$lib/map/styles';
 	import {
+		labelVisibilityConfig,
 		nodeTypeStyles,
 		trenchConstructionTypeStyles,
 		trenchStyleMode,
@@ -26,7 +28,8 @@
 		constructionTypes = [],
 		onLayerVisibilityChanged = () => {},
 		onNodeTypeVisibilityChanged = () => {},
-		onTrenchTypeVisibilityChanged = () => {}
+		onTrenchTypeVisibilityChanged = () => {},
+		onLabelVisibilityChanged = () => {}
 	} = $props();
 
 	let layerVisibility = $state(new Map());
@@ -262,6 +265,51 @@
 			styleMode: $trenchStyleMode
 		});
 	}
+
+	/**
+	 * Map layer ID to label config key
+	 * @param {string} layerId - The layer ID
+	 * @returns {string|null} The label config key or null if not supported
+	 */
+	function getLabelConfigKey(layerId) {
+		const mapping = {
+			'trench-layer': 'trench',
+			'address-layer': 'address',
+			'node-layer': 'node'
+		};
+		return mapping[layerId] || null;
+	}
+
+	/**
+	 * Check if labels are enabled for a layer
+	 * @param {string} layerId - The layer ID
+	 * @returns {boolean} True if labels are enabled
+	 */
+	function isLabelEnabled(layerId) {
+		const key = getLabelConfigKey(layerId);
+		return key ? $labelVisibilityConfig[key] : false;
+	}
+
+	/**
+	 * Toggle label visibility for a layer
+	 * @param {string} layerId - The layer ID
+	 */
+	function toggleLabelVisibility(layerId) {
+		const key = getLabelConfigKey(layerId);
+		if (!key) return;
+
+		const newEnabled = !$labelVisibilityConfig[key];
+		$labelVisibilityConfig = {
+			...$labelVisibilityConfig,
+			[key]: newEnabled
+		};
+
+		onLabelVisibilityChanged({
+			layerId,
+			labelType: key,
+			enabled: newEnabled
+		});
+	}
 </script>
 
 <!-- LayerVisibilityTree -->
@@ -335,18 +383,34 @@
 						</span>
 					</div>
 
-					<Switch
-						name="layer-visibility-{layerId}"
-						size="sm"
-						checked={layerInfo.visible}
-						onCheckedChange={() => toggleLayerVisibility(layerId)}
-						class="flex-shrink-0"
-					>
-						<Switch.Control>
-							<Switch.Thumb />
-						</Switch.Control>
-						<Switch.HiddenInput />
-					</Switch>
+					<div class="flex items-center gap-1 flex-shrink-0">
+						<!-- Label toggle button - only for trench, address, node layers -->
+						{#if getLabelConfigKey(layerId)}
+							<button
+								class="p-1 rounded hover:bg-surface-200-700 transition-colors"
+								onclick={() => toggleLabelVisibility(layerId)}
+								aria-label={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
+								title={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
+							>
+								<IconCircleLetterA
+									size="24"
+									class={isLabelEnabled(layerId) ? 'text-primary-500' : 'text-surface-400'}
+								/>
+							</button>
+						{/if}
+
+						<Switch
+							name="layer-visibility-{layerId}"
+							size="sm"
+							checked={layerInfo.visible}
+							onCheckedChange={() => toggleLayerVisibility(layerId)}
+						>
+							<Switch.Control>
+								<Switch.Thumb />
+							</Switch.Control>
+							<Switch.HiddenInput />
+						</Switch>
+					</div>
 				</div>
 
 				<!-- Node type subtypes (expandable) -->

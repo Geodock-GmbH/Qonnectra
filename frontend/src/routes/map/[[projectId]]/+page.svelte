@@ -12,6 +12,7 @@
 	import Map from '$lib/components/Map.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import {
+		labelVisibilityConfig,
 		nodeTypeStyles,
 		selectedProject,
 		trenchColor,
@@ -81,6 +82,32 @@
 		const constructionTypeStyles = $trenchConstructionTypeStyles;
 		const color = $trenchColor;
 		mapState.updateTrenchLayerStyle(mode, surfaceStyles, constructionTypeStyles, color);
+	});
+
+	// Update label visibility when labelVisibilityConfig changes
+	$effect(() => {
+		const config = $labelVisibilityConfig;
+		const mode = $trenchStyleMode;
+		const surfaceStyles = $trenchSurfaceStyles;
+		const constructionTypeStyles = $trenchConstructionTypeStyles;
+		const color = $trenchColor;
+		const nodeStyles = $nodeTypeStyles;
+
+		// Update each layer type based on config
+		if (config.trench !== undefined) {
+			mapState.updateLabelVisibility('trench', config.trench, {
+				mode,
+				surfaceStyles,
+				constructionTypeStyles,
+				color
+			});
+		}
+		if (config.address !== undefined) {
+			mapState.updateLabelVisibility('address', config.address, {});
+		}
+		if (config.node !== undefined) {
+			mapState.updateLabelVisibility('node', config.node, { nodeTypeStyles: nodeStyles });
+		}
 	});
 
 	/**

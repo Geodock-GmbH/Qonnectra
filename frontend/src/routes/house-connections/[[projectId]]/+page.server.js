@@ -3,7 +3,7 @@ import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 import { getConstructionTypes, getNodeTypes, getSurfaces } from '$lib/server/attributes';
-import { getPipesInTrench, getMicroducts } from '$lib/server/conduitData';
+import { getMicroducts, getPipesInTrench } from '$lib/server/conduitData';
 import { getFeatureDetailsByType, searchFeaturesInProject } from '$lib/server/featureSearch';
 
 /** @type {import('./$types').PageServerLoad} */

@@ -1,6 +1,8 @@
 import { error } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
+
 import { m } from '$lib/paraglide/messages';
+
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
 /**
@@ -25,13 +27,10 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 					headers: getAuthHeaders(cookies)
 				}
 			),
-			fetch(
-				`${API_URL}node/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
-				{
-					credentials: 'include',
-					headers: getAuthHeaders(cookies)
-				}
-			),
+			fetch(`${API_URL}node/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`, {
+				credentials: 'include',
+				headers: getAuthHeaders(cookies)
+			}),
 			fetch(
 				`${API_URL}trench/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
 				{

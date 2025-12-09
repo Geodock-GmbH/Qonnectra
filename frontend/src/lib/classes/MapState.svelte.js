@@ -1,6 +1,7 @@
 import { m } from '$lib/paraglide/messages';
 
 import {
+	createAddressStyleWithLabels,
 	createNodeStyleByType,
 	createTrenchStyle,
 	createTrenchStyleByAttribute
@@ -53,7 +54,7 @@ export class MapState {
 	labelConfig = $state({
 		trench: { enabled: false, field: 'id_trench', minResolution: 1.5 },
 		address: { enabled: false, field: 'street', minResolution: 1.0 },
-		node: { enabled: false, field: 'id_node', minResolution: 1.0 }
+		node: { enabled: false, field: 'name', minResolution: 1.0 }
 	});
 
 	/**
@@ -281,6 +282,57 @@ export class MapState {
 
 		if (this.tileSource) {
 			this.tileSource.refresh();
+		}
+	}
+
+	/**
+	 * Update the address layer style with current label config
+	 */
+	updateAddressLayerStyle() {
+		if (!this.addressLayer) return;
+
+		const newStyle = createAddressStyleWithLabels(this.labelConfig.address);
+		this.addressLayer.setStyle(newStyle);
+
+		if (this.addressTileSource) {
+			this.addressTileSource.refresh();
+		}
+	}
+
+	/**
+	 * Update label visibility for a specific layer type
+	 * @param {string} layerType - 'trench' | 'address' | 'node'
+	 * @param {boolean} enabled - Whether labels should be shown
+	 * @param {Object} currentStyles - Current style settings (for trench: { mode, surfaceStyles, constructionTypeStyles, color }, for node: nodeTypeStyles)
+	 */
+	updateLabelVisibility(layerType, enabled, currentStyles = {}) {
+		// Update the label config without triggering reactivity by using plain object mutation
+		// This is safe because labelConfig is only read during style creation
+		const currentLabelConfig = this.labelConfig[layerType];
+		if (currentLabelConfig.enabled === enabled) {
+			return; // No change needed
+		}
+		currentLabelConfig.enabled = enabled;
+
+		switch (layerType) {
+			case 'trench':
+				if (currentStyles.mode !== undefined) {
+					this.updateTrenchLayerStyle(
+						currentStyles.mode,
+						currentStyles.surfaceStyles || {},
+						currentStyles.constructionTypeStyles || {},
+						currentStyles.color || this.trenchColor
+					);
+				}
+				break;
+			case 'address':
+				this.updateAddressLayerStyle();
+				break;
+			case 'node':
+				if (currentStyles.nodeTypeStyles) {
+					this.updateNodeLayerStyle(currentStyles.nodeTypeStyles);
+				}
+				break;
 		}
 	}
 

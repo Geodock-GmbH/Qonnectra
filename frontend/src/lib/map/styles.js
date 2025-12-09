@@ -173,7 +173,9 @@ export function createAddressStyleWithLabels(labelOptions = {}) {
 			const street = feature.get('street') || '';
 			const houseNumber = feature.get('housenumber') || '';
 			const suffix = feature.get('house_number_suffix');
-			const labelText = `${street} ${houseNumber}${suffix || ''}`.trim();
+			const postalCode = feature.get('zip_code') || '';
+			const city = feature.get('city') || '';
+			const labelText = `${street} ${houseNumber}${suffix || ''}, ${postalCode} ${city}`.trim();
 			const labelStyle = new Style({
 				text: createTextStyle({ text: labelText, ...textStyle }),
 				declutterMode: 'declutter'

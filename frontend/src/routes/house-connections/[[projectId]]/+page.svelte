@@ -12,6 +12,7 @@
 	import Map from '$lib/components/Map.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import {
+		labelVisibilityConfig,
 		nodeTypeStyles,
 		selectedProject,
 		trenchColor,
@@ -29,21 +30,11 @@
 	let { data } = $props();
 
 	// Initialize managers
-	const mapState = new MapState(
-		$selectedProject,
-		$trenchColor,
-		$trenchColorSelected,
-		{
-			trench: true,
-			address: true,
-			node: true
-		},
-		{
-			trench: { enabled: true },
-			address: { enabled: true },
-			node: { enabled: true }
-		}
-	);
+	const mapState = new MapState($selectedProject, $trenchColor, $trenchColorSelected, {
+		trench: true,
+		address: true,
+		node: true
+	});
 
 	const selectionManager = new MapSelectionManager();
 	const popupManager = new MapPopupManager(data.alias);
@@ -109,6 +100,32 @@
 		const layers = mapState.getLayerReferences();
 		interactionManager.initialize(olMapInstance, layers);
 	}
+
+	// Update label visibility when labelVisibilityConfig changes
+	$effect(() => {
+		const config = $labelVisibilityConfig;
+		const mode = $trenchStyleMode;
+		const surfaceStyles = $trenchSurfaceStyles;
+		const constructionTypeStyles = $trenchConstructionTypeStyles;
+		const color = $trenchColor;
+		const nodeStyles = $nodeTypeStyles;
+
+		// Update each layer type based on config
+		if (config.trench !== undefined) {
+			mapState.updateLabelVisibility('trench', config.trench, {
+				mode,
+				surfaceStyles,
+				constructionTypeStyles,
+				color
+			});
+		}
+		if (config.address !== undefined) {
+			mapState.updateLabelVisibility('address', config.address, {});
+		}
+		if (config.node !== undefined) {
+			mapState.updateLabelVisibility('node', config.node, { nodeTypeStyles: nodeStyles });
+		}
+	});
 
 	// Cleanup on destroy
 	onMount(() => {
