@@ -1,4 +1,5 @@
 import { getConstructionTypes, getNodeTypes, getSurfaces } from '$lib/server/attributes';
+import { getMicroducts, getPipesInTrench } from '$lib/server/conduitData';
 import { getFeatureDetailsByType, searchFeaturesInProject } from '$lib/server/featureSearch';
 
 /** @type {import('./$types').PageServerLoad} */
@@ -32,5 +33,19 @@ export const actions = {
 		const featureUuid = data.get('featureUuid');
 
 		return getFeatureDetailsByType(fetch, cookies, featureType, featureUuid);
+	},
+
+	getPipesInTrench: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const trenchId = formData.get('uuid');
+
+		return getPipesInTrench(fetch, cookies, trenchId);
+	},
+
+	getMicroducts: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const pipeId = formData.get('uuid');
+
+		return getMicroducts(fetch, cookies, pipeId);
 	}
 };

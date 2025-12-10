@@ -1,16 +1,19 @@
 <script>
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
-	import { IconMinus, IconPlus, IconRefresh } from '@tabler/icons-svelte';
+	import { IconMinus, IconPlus } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import { ConduitDataManager } from '$lib/classes/ConduitDataManager.svelte.js';
-	import { drawerStore } from '$lib/stores/drawer';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import MicroductsDisplayTable from '$lib/components/MicroductsDisplayTable.svelte';
 
-	import MicroductsTable from './MicroductsTable.svelte';
+	/**
+	 * @typedef {Object} Props
+	 * @property {string} featureId - UUID of the trench feature
+	 */
 
-	let featureId = $derived($drawerStore.props?.featureId);
+	/** @type {Props} */
+	let { featureId = '' } = $props();
 
 	const dataManager = new ConduitDataManager();
 
@@ -42,32 +45,17 @@
 					onclick={() => dataManager.fetchMicroducts(item.pipeUuid)}
 				>
 					{item.title}
-					<div class="flex items-center gap-2">
-						<button
-							class="btn btn-sm btn-icon preset-filled-secondary-500"
-							onclick={(e) => {
-								e.stopPropagation();
-								dataManager.refreshMicroducts(item.pipeUuid);
-							}}
-							aria-label={m.tooltip_refresh_microducts()}
-							{@attach tooltip(m.tooltip_refresh_microducts(), { position: 'bottom', delay: 1000 })}
-						>
-							<IconRefresh class="size-4" />
-						</button>
-						<Accordion.ItemIndicator class="group">
-							<IconMinus class="size-4 group-data-[state=open]:block hidden" />
-							<IconPlus class="size-4 group-data-[state=open]:hidden block" />
-						</Accordion.ItemIndicator>
-					</div>
+					<Accordion.ItemIndicator class="group">
+						<IconMinus class="size-4 group-data-[state=open]:block hidden" />
+						<IconPlus class="size-4 group-data-[state=open]:hidden block" />
+					</Accordion.ItemIndicator>
 				</Accordion.ItemTrigger>
 				<Accordion.ItemContent>
 					<div class="space-y-2">
-						<MicroductsTable
+						<MicroductsDisplayTable
 							microducts={dataManager.getMicroductsForPipe(item.pipeUuid)}
 							loading={dataManager.isLoadingMicroducts(item.pipeUuid)}
 							error={dataManager.getMicroductsError(item.pipeUuid)}
-							onMicroductUpdate={(updatedMicroduct) =>
-								dataManager.updateMicroductInState(item.pipeUuid, updatedMicroduct)}
 						/>
 					</div>
 				</Accordion.ItemContent>

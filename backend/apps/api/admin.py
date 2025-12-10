@@ -1,9 +1,15 @@
-from django.contrib import admin
-from django.db import models
+from django import forms
+from django.contrib import admin, messages
+from django.contrib.contenttypes.models import ContentType
+from django.db import models, transaction
+from django.shortcuts import redirect, render
+from django.urls import path, reverse
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from django_json_widget.widgets import JSONEditorWidget
 
 from .models import (
+    Address,
     AttributesCableType,
     AttributesCompany,
     AttributesConduitType,
@@ -22,15 +28,80 @@ from .models import (
     CableTypeColorMapping,
     Conduit,
     ConduitTypeColorMapping,
+    FeatureFiles,
     FileTypeCategory,
     Flags,
     LogEntry,
     Microduct,
+    Node,
     Projects,
     QGISProject,
     StoragePreferences,
     Trench,
 )
+from .services import move_file_to_feature
+from .storage import LocalMediaStorage
+
+FEATURE_MODEL_MAP = {
+    "trench": Trench,
+    "conduit": Conduit,
+    "cable": Cable,
+    "node": Node,
+    "address": Address,
+}
+
+admin.site.register(AttributesSurface)
+admin.site.register(AttributesStatusDevelopment)
+admin.site.register(AttributesConstructionType)
+admin.site.register(AttributesStatus)
+admin.site.register(AttributesPhase)
+admin.site.register(AttributesCompany)
+admin.site.register(Cable)
+admin.site.register(Projects)
+admin.site.register(FileTypeCategory)
+admin.site.register(Flags)
+admin.site.register(AttributesNetworkLevel)
+admin.site.register(AttributesNodeType)
+admin.site.register(AttributesMicroductStatus)
+admin.site.register(Microduct)
+admin.site.register(AttributesFiberStatus)
+
+
+@admin.register(Address)
+class AddressAdmin(admin.ModelAdmin):
+    list_display = (
+        "street",
+        "housenumber",
+        "house_number_suffix",
+        "zip_code",
+        "city",
+        "district",
+        "status_development",
+        "flag",
+        "project",
+    )
+    list_filter = (
+        "street",
+        "housenumber",
+        "house_number_suffix",
+        "zip_code",
+        "city",
+        "district",
+        "status_development",
+        "flag",
+        "project",
+    )
+    search_fields = (
+        "street",
+        "housenumber",
+        "house_number_suffix",
+        "zip_code",
+        "city",
+        "district",
+        "status_development",
+        "flag",
+        "project",
+    )
 
 
 class ConduitTypeColorMappingInline(admin.TabularInline):
@@ -196,21 +267,18 @@ class QGISProjectAdmin(admin.ModelAdmin):
     get_wfs_url.short_description = "WFS URL"
 
 
-admin.site.register(AttributesSurface)
-admin.site.register(AttributesStatusDevelopment)
-admin.site.register(AttributesConstructionType)
-admin.site.register(AttributesStatus)
-admin.site.register(AttributesPhase)
-admin.site.register(AttributesCompany)
-admin.site.register(Cable)
-admin.site.register(Projects)
-admin.site.register(FileTypeCategory)
-admin.site.register(Flags)
-admin.site.register(AttributesNetworkLevel)
-admin.site.register(AttributesNodeType)
-admin.site.register(AttributesMicroductStatus)
-admin.site.register(Microduct)
-admin.site.register(AttributesFiberStatus)
+@admin.register(Node)
+class NodeAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "node_type",
+        "status",
+        "network_level",
+        "owner",
+        "constructor",
+    )
+    list_filter = ("node_type", "status", "network_level", "owner", "constructor")
+    search_fields = ("name",)
 
 
 @admin.register(Conduit)
@@ -407,3 +475,311 @@ class LogEntryAdmin(admin.ModelAdmin):
         return "-"
 
     error_type_display.short_description = _("Error Type")
+
+
+class OrphanedFilesFilter(admin.SimpleListFilter):
+    """Filter to show only orphaned FeatureFiles (where the linked feature no longer exists)."""
+
+    title = _("Orphan Status")
+    parameter_name = "orphan_status"
+
+    def lookups(self, request, model_admin):
+        self._model_admin = model_admin
+        return (
+            ("orphaned", _("Orphaned files only")),
+            ("valid", _("Valid files only")),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == "orphaned":
+            return self._model_admin.get_orphaned_files(queryset)
+        elif self.value() == "valid":
+            orphaned_ids = self._model_admin.get_orphaned_files(queryset).values_list(
+                "uuid", flat=True
+            )
+            return queryset.exclude(uuid__in=orphaned_ids)
+        return queryset
+
+
+class MoveFilesForm(forms.Form):
+    """Form for selecting target feature to move orphaned files to."""
+
+    target_feature_type = forms.ChoiceField(
+        label=_("Target Feature Type"),
+        choices=[
+            ("trench", _("Trench")),
+            ("conduit", _("Conduit")),
+            ("cable", _("Cable")),
+            ("node", _("Node")),
+            ("address", _("Address")),
+        ],
+    )
+    target_feature_id = forms.UUIDField(
+        label=_("Target Feature UUID"),
+        help_text=_("Enter the UUID of the feature to move the files to."),
+    )
+
+
+@admin.register(FeatureFiles)
+class FeatureFilesAdmin(admin.ModelAdmin):
+    """
+    Admin interface for FeatureFiles with orphan detection and management.
+
+    Allows administrators to:
+    - View all feature files with their associated feature info
+    - Filter to show only orphaned files (where the feature was deleted)
+    - Move orphaned files to another existing feature
+    - Delete orphaned files and their database entries
+    """
+
+    def get_actions(self, request):
+        """Remove the default delete action to prevent orphaning files on disk."""
+        actions = super().get_actions(request)
+        if "delete_selected" in actions:
+            del actions["delete_selected"]
+        return actions
+
+    list_display = (
+        "file_name",
+        "file_type",
+        "feature_type_display",
+        "feature_identifier_display",
+        "orphan_status_display",
+        "created_at",
+    )
+    list_filter = (OrphanedFilesFilter, "content_type", "file_type", "created_at")
+    search_fields = ("file_name", "file_path", "description")
+    readonly_fields = (
+        "uuid",
+        "file_name",
+        "file_type",
+        "created_at",
+        "file_path",
+        "content_type",
+        "object_id",
+    )
+    ordering = ("-created_at",)
+    actions = ["delete_orphaned_files", "move_to_feature"]
+
+    def get_urls(self):
+        """Add custom URL for move files form."""
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "move-files/",
+                self.admin_site.admin_view(self.move_files_view),
+                name="api_featurefiles_move",
+            ),
+        ]
+        return custom_urls + urls
+
+    def get_orphaned_files(self, queryset=None):
+        """
+        Find all FeatureFiles where the linked feature no longer exists.
+
+        Returns a queryset of orphaned FeatureFiles.
+        """
+        if queryset is None:
+            queryset = FeatureFiles.objects.all()
+
+        orphaned_uuids = []
+
+        for content_type in ContentType.objects.filter(
+            app_label="api",
+            model__in=FEATURE_MODEL_MAP.keys(),
+        ):
+            model_class = FEATURE_MODEL_MAP.get(content_type.model)
+            if not model_class:
+                continue
+
+            file_object_ids = queryset.filter(content_type=content_type).values_list(
+                "object_id", flat=True
+            )
+
+            if not file_object_ids:
+                continue
+
+            existing_feature_ids = set(
+                model_class.objects.filter(uuid__in=file_object_ids).values_list(
+                    "uuid", flat=True
+                )
+            )
+
+            for file_obj in queryset.filter(content_type=content_type):
+                if file_obj.object_id not in existing_feature_ids:
+                    orphaned_uuids.append(file_obj.uuid)
+
+        return queryset.filter(uuid__in=orphaned_uuids)
+
+    def is_orphaned(self, obj):
+        """Check if a single FeatureFiles instance is orphaned."""
+        model_class = FEATURE_MODEL_MAP.get(obj.content_type.model)
+        if not model_class:
+            return True
+        return not model_class.objects.filter(uuid=obj.object_id).exists()
+
+    @admin.display(description=_("Feature Type"))
+    def feature_type_display(self, obj):
+        """Display the feature type (model name)."""
+        return obj.content_type.model.title()
+
+    @admin.display(description=_("Feature Identifier"))
+    def feature_identifier_display(self, obj):
+        """Display the feature identifier or indicate if orphaned."""
+        if self.is_orphaned(obj):
+            return format_html(
+                '<span style="color: #999; font-style: italic;">{} ({})</span>',
+                _("Feature deleted"),
+                str(obj.object_id)[:8] + "...",
+            )
+        return FeatureFiles.get_feature_identifier(obj)
+
+    @admin.display(description=_("Status"))
+    def orphan_status_display(self, obj):
+        """Display orphan status with color indicator."""
+        if self.is_orphaned(obj):
+            return format_html(
+                '<span style="color: #dc3545; font-weight: bold;">⚠ {}</span>',
+                _("Orphaned"),
+            )
+        return format_html(
+            '<span style="color: #28a745;">✓ {}</span>',
+            _("Valid"),
+        )
+
+    @admin.action(description=_("Delete selected orphaned files and their data"))
+    def delete_orphaned_files(self, request, queryset):
+        """
+        Delete orphaned files from storage and remove their database entries.
+
+        Only processes files that are actually orphaned.
+        """
+        storage = LocalMediaStorage()
+        deleted_count = 0
+        skipped_count = 0
+
+        with transaction.atomic():
+            for file_obj in queryset:
+                if not self.is_orphaned(file_obj):
+                    skipped_count += 1
+                    continue
+
+                try:
+                    if file_obj.file_path and storage.exists(file_obj.file_path.name):
+                        storage.delete(file_obj.file_path.name)
+                except Exception as e:
+                    messages.warning(
+                        request,
+                        _("Could not delete file %(path)s: %(error)s")
+                        % {"path": file_obj.file_path.name, "error": str(e)},
+                    )
+
+                file_obj.delete()
+                deleted_count += 1
+
+        if deleted_count > 0:
+            messages.success(
+                request,
+                _("Successfully deleted %(count)d orphaned file(s).")
+                % {"count": deleted_count},
+            )
+        if skipped_count > 0:
+            messages.info(
+                request,
+                _("Skipped %(count)d file(s) that are not orphaned.")
+                % {"count": skipped_count},
+            )
+
+    @admin.action(description=_("Move selected files to another feature"))
+    def move_to_feature(self, request, queryset):
+        """Redirect to move files form."""
+        selected = queryset.values_list("uuid", flat=True)
+        selected_str = ",".join(str(uuid) for uuid in selected)
+        return redirect(f"{reverse('admin:api_featurefiles_move')}?ids={selected_str}")
+
+    def move_files_view(self, request):
+        """Handle the move files form submission."""
+        ids_param = request.GET.get("ids", "")
+        if not ids_param:
+            messages.error(request, _("No files selected."))
+            return redirect("admin:api_featurefiles_changelist")
+
+        file_uuids = [uuid.strip() for uuid in ids_param.split(",") if uuid.strip()]
+        files = FeatureFiles.objects.filter(uuid__in=file_uuids)
+
+        if request.method == "POST":
+            form = MoveFilesForm(request.POST)
+            if form.is_valid():
+                target_type = form.cleaned_data["target_feature_type"]
+                target_id = form.cleaned_data["target_feature_id"]
+
+                model_class = FEATURE_MODEL_MAP.get(target_type)
+                if not model_class:
+                    messages.error(request, _("Invalid target feature type."))
+                    return redirect("admin:api_featurefiles_changelist")
+
+                if not model_class.objects.filter(uuid=target_id).exists():
+                    messages.error(
+                        request,
+                        _("Target feature with UUID %(uuid)s does not exist.")
+                        % {"uuid": target_id},
+                    )
+                    return redirect("admin:api_featurefiles_changelist")
+
+                target_content_type = ContentType.objects.get_for_model(model_class)
+
+                target_feature = model_class.objects.get(uuid=target_id)
+
+                moved_count = 0
+                failed_files = []
+
+                with transaction.atomic():
+                    for file_obj in files:
+                        success, new_path, error = move_file_to_feature(
+                            file_obj, target_feature, target_content_type
+                        )
+
+                        if not success:
+                            failed_files.append((file_obj.file_name, error))
+                            continue
+
+                        file_obj.content_type = target_content_type
+                        file_obj.object_id = target_id
+                        if new_path:
+                            file_obj.file_path.name = new_path
+                        file_obj.save(
+                            update_fields=["content_type", "object_id", "file_path"]
+                        )
+                        moved_count += 1
+
+                if moved_count > 0:
+                    messages.success(
+                        request,
+                        _("Successfully moved %(count)d file(s) to %(type)s %(uuid)s.")
+                        % {
+                            "count": moved_count,
+                            "type": target_type,
+                            "uuid": str(target_id)[:8] + "...",
+                        },
+                    )
+
+                if failed_files:
+                    for file_name, error in failed_files:
+                        messages.error(
+                            request,
+                            _("Failed to move %(file)s: %(error)s")
+                            % {"file": file_name, "error": error},
+                        )
+
+                return redirect("admin:api_featurefiles_changelist")
+        else:
+            form = MoveFilesForm()
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": _("Move Files to Another Feature"),
+            "form": form,
+            "files": files,
+            "opts": self.model._meta,
+        }
+        return render(request, "admin/api/featurefiles/move_files.html", context)

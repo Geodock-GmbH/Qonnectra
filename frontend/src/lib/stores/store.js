@@ -30,6 +30,10 @@ export const networkSchemaViewport = persisted('networkSchemaViewport', { x: 0, 
 // Structure: { [node_type_name]: { color: '#hex', size: number, visible: boolean } }
 export const nodeTypeStyles = persisted('nodeTypeStyles', {});
 
+// Address style - stores color and size for address points
+// Structure: { color: '#hex', size: number }
+export const addressStyle = persisted('addressStyle', { color: '#2563eb', size: 4 });
+
 // Trench styling mode - determines how trenches are colored on the map
 // 'none' = single color (uses trenchColor), 'surface' = by surface type, 'construction_type' = by construction type
 export const trenchStyleMode = persisted('trenchStyleMode', 'none');
@@ -41,3 +45,11 @@ export const trenchSurfaceStyles = persisted('trenchSurfaceStyles', {});
 // Trench construction type styles - stores color and visibility per construction type
 // Structure: { [construction_type_name]: { color: '#hex', visible: boolean } }
 export const trenchConstructionTypeStyles = persisted('trenchConstructionTypeStyles', {});
+
+// Label visibility configuration - controls whether labels are shown on map layers
+// Structure: { trench: boolean, address: boolean, node: boolean }
+export const labelVisibilityConfig = persisted('labelVisibilityConfig', {
+	trench: false,
+	address: false,
+	node: false
+});

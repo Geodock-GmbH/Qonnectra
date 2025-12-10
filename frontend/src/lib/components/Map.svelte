@@ -20,6 +20,7 @@
 		onLayerVisibilityChanged = () => {},
 		onNodeTypeVisibilityChanged = () => {},
 		onTrenchTypeVisibilityChanged = () => {},
+		onLabelVisibilityChanged = () => {},
 		onFeatureSelect = () => {},
 		onSearchError = () => {},
 		searchPanelProps = {},
@@ -139,6 +140,10 @@
 		onTrenchTypeVisibilityChanged(trenchTypeInfo);
 	}
 
+	function handleLabelVisibilityChange(labelInfo) {
+		onLabelVisibilityChanged(labelInfo);
+	}
+
 	function handleFeatureSelect(feature) {
 		onFeatureSelect(feature);
 	}
@@ -175,6 +180,7 @@
 					onLayerVisibilityChanged={handleLayerVisibilityChange}
 					onNodeTypeVisibilityChanged={handleNodeTypeVisibilityChange}
 					onTrenchTypeVisibilityChanged={handleTrenchTypeVisibilityChange}
+					onLabelVisibilityChanged={handleLabelVisibilityChange}
 				/>
 			{/if}
 			{#if showOpacitySlider && map}
@@ -227,6 +233,7 @@
 					onLayerVisibilityChanged={handleLayerVisibilityChange}
 					onNodeTypeVisibilityChanged={handleNodeTypeVisibilityChange}
 					onTrenchTypeVisibilityChanged={handleTrenchTypeVisibilityChange}
+					onLabelVisibilityChanged={handleLabelVisibilityChange}
 				/>
 			</div>
 		{/if}

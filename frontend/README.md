@@ -31,6 +31,7 @@ npm run dev
 The application will be available at `http://localhost:5173`
 
 Open in browser automatically:
+
 ```bash
 npm run dev -- --open
 ```
@@ -74,6 +75,7 @@ frontend/
 ### Map Component
 
 Located in `src/lib/components/Map.svelte`, provides:
+
 - OpenLayers map integration
 - Layer visibility controls
 - Opacity slider for base layer
@@ -139,6 +141,7 @@ npm run test:unit
 ```
 
 Run specific test:
+
 ```bash
 npm run test:unit -- --run src/routes/page.svelte.test.js
 ```
@@ -150,11 +153,13 @@ npx playwright test
 ```
 
 Run specific E2E test:
+
 ```bash
 npx playwright test tests/e2e/login.spec.js
 ```
 
 View test report:
+
 ```bash
 npx playwright show-report
 ```
@@ -176,22 +181,27 @@ npm run lint
 ## Key Dependencies
 
 ### Core
+
 - **Svelte 5**: Reactive framework with runes
 - **SvelteKit 2**: Full-stack framework
 - **Vite**: Build tool and dev server
 
 ### Mapping
+
 - **OpenLayers 10**: Interactive maps and spatial data visualization
 
 ### UI Components
+
 - **Skeleton UI**: Component library
 - **Tabler Icons**: Icon library
 
 ### Visualization
+
 - **Svelte Flow**: Network diagram visualization
 - **Perfect Freehand**: Hand-drawn path rendering
 
 ### Internationalization
+
 - **Paraglide**: Type-safe i18n
 
 ## Svelte 5 Runes
@@ -204,16 +214,17 @@ This project uses Svelte 5 with runes for reactivity:
 - `$props()` - Component props
 
 Example:
+
 ```svelte
 <script>
-  import { $state, $derived } from 'svelte';
-  
-  let count = $state(0);
-  let doubled = $derived(count * 2);
+	import { $derived, $state } from 'svelte';
+
+	let count = $state(0);
+	let doubled = $derived(count * 2);
 </script>
 
 <button onclick={() => count++}>
-  Count: {count} (Doubled: {doubled})
+	Count: {count} (Doubled: {doubled})
 </button>
 ```
 
@@ -241,4 +252,3 @@ The frontend uses environment variables (typically set via `.env` or deployment 
 - [Svelte 5 Documentation](https://svelte.dev/docs)
 - [OpenLayers Documentation](https://openlayers.org/)
 - [Skeleton UI Documentation](https://www.skeleton.dev/)
-

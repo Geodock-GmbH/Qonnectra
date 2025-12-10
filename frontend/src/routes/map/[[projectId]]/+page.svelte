@@ -12,6 +12,8 @@
 	import Map from '$lib/components/Map.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import {
+		addressStyle,
+		labelVisibilityConfig,
 		nodeTypeStyles,
 		selectedProject,
 		trenchColor,
@@ -20,6 +22,7 @@
 		trenchStyleMode,
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
+	import { get } from 'svelte/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
 	import MapDrawerTabs from './MapDrawerTabs.svelte';
@@ -33,7 +36,7 @@
 	let searchPanelRef = $state();
 
 	// Initialize managers
-	const mapState = new MapState($selectedProject, $trenchColor, $trenchColorSelected);
+	const mapState = new MapState($selectedProject, get(trenchColorSelected));
 	const selectionManager = new MapSelectionManager();
 	const popupManager = new MapPopupManager(data.alias);
 	const interactionManager = new MapInteractionManager(
@@ -81,6 +84,39 @@
 		const constructionTypeStyles = $trenchConstructionTypeStyles;
 		const color = $trenchColor;
 		mapState.updateTrenchLayerStyle(mode, surfaceStyles, constructionTypeStyles, color);
+	});
+
+	// Update address layer style when address style settings change
+	$effect(() => {
+		const color = $addressStyle.color;
+		const size = $addressStyle.size;
+		mapState.updateAddressLayerStyle(color, size);
+	});
+
+	// Update label visibility when labelVisibilityConfig changes
+	$effect(() => {
+		const config = $labelVisibilityConfig;
+		const mode = $trenchStyleMode;
+		const surfaceStyles = $trenchSurfaceStyles;
+		const constructionTypeStyles = $trenchConstructionTypeStyles;
+		const color = $trenchColor;
+		const nodeStyles = $nodeTypeStyles;
+
+		// Update each layer type based on config
+		if (config.trench !== undefined) {
+			mapState.updateLabelVisibility('trench', config.trench, {
+				mode,
+				surfaceStyles,
+				constructionTypeStyles,
+				color
+			});
+		}
+		if (config.address !== undefined) {
+			mapState.updateLabelVisibility('address', config.address, {});
+		}
+		if (config.node !== undefined) {
+			mapState.updateLabelVisibility('node', config.node, { nodeTypeStyles: nodeStyles });
+		}
 	});
 
 	/**

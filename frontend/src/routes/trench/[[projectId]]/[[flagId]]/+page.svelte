@@ -20,9 +20,9 @@
 		selectedConduit,
 		selectedFlag,
 		selectedProject,
-		trenchColor,
 		trenchColorSelected
 	} from '$lib/stores/store';
+	import { get } from 'svelte/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
 	import TrenchTable from './TrenchTable.svelte';
@@ -38,8 +38,7 @@
 	// Initialize managers
 	const mapState = new MapState(
 		$selectedProject,
-		$trenchColor,
-		$trenchColorSelected,
+		get(trenchColorSelected),
 		{
 			trench: true,
 			address: false,
@@ -360,7 +359,7 @@
 					console.error('Routing error:', error);
 					globalToaster.error({
 						title: m.title_error_calculating_route(),
-						description: error.message // TODO: Translate. This comes from the backend. How?
+						description: error.message
 					});
 					startTrenchId = null;
 					endTrenchId = null;

@@ -1,5 +1,5 @@
 <script>
-	import { Tooltip, Portal } from '@skeletonlabs/skeleton-svelte';
+	import { Portal, Tooltip } from '@skeletonlabs/skeleton-svelte';
 
 	/**
 	 * @typedef {Object} Props

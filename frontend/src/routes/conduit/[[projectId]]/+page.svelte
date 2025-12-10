@@ -1,4 +1,5 @@
 <script>
+	import { setContext } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
 	import { FileUpload } from '@skeletonlabs/skeleton-svelte';
@@ -6,6 +7,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { ConduitState } from '$lib/classes/ConduitState.svelte.js';
+	import Drawer from '$lib/components/Drawer.svelte';
 	import SearchInput from '$lib/components/SearchInput.svelte';
 	import { selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
@@ -13,13 +16,29 @@
 	import PipeModal from './PipeModal.svelte';
 	import PipeTable from './PipeTable.svelte';
 
-	let openPipeModal = $state(false);
-	let rowData = $state(null);
-	let rowClickedSignal = $state(false);
 	let { data } = $props();
 	let searchInput = $state(data.searchTerm || '');
-	let searchTerm = $state('');
-	let updatedPipeData = $state(null);
+	let openPipeModal = $state(false);
+
+	// Initialize state manager
+	const conduitState = new ConduitState(data);
+
+	// Update conduits when data changes (e.g., after search)
+	$effect(() => {
+		conduitState.setConduits(data.pipes);
+	});
+
+	// Set context for attribute options (eliminates prop drilling)
+	setContext('attributeOptions', {
+		conduitTypes: data.conduitTypes,
+		statuses: data.statuses,
+		networkLevels: data.networkLevels,
+		companies: data.companies,
+		flags: data.flags
+	});
+
+	// Set context for conduit state (for form defaults persistence)
+	setContext('conduitState', conduitState);
 
 	function performSearch() {
 		const url = new URL($page.url);
@@ -31,12 +50,21 @@
 		goto(url, { keepFocus: true, noScroll: true, replaceState: true });
 	}
 
-	function handlePipeUpdate(data) {
-		// Add a timestamp to ensure uniqueness
-		updatedPipeData = {
-			...data,
-			_updateId: Date.now()
-		};
+	// Handler for conduit update from drawer
+	function handleConduitUpdate(updatedConduit) {
+		conduitState.updateConduit(updatedConduit);
+	}
+
+	// Handler for conduit delete from drawer
+	function handleConduitDelete(conduitId) {
+		conduitState.deleteConduit(conduitId);
+	}
+
+	// Handler for new conduit from modal
+	function handleConduitCreate(newConduit) {
+		if (newConduit) {
+			conduitState.addConduit(newConduit);
+		}
 	}
 
 	async function handleFileUpload(files) {
@@ -111,67 +139,72 @@
 	<title>{m.nav_conduit_management()}</title>
 </svelte:head>
 
-<div class="flex justify-between items-center">
-	<div class="flex items-center">
-		<nav
-			class="btn-group md:preset-outlined-surface-200-800 flex-col justify-between items-start md:flex-row"
-		>
-			<PipeModal
-				projectId={$selectedProject}
-				{openPipeModal}
-				pipeData={rowData}
-				bind:rowClickedSignal
-				onPipeUpdate={handlePipeUpdate}
-				conduitTypes={data.conduitTypes}
-				statuses={data.statuses}
-				networkLevels={data.networkLevels}
-				companies={data.companies}
-				flags={data.flags}
-			/>
-			<SearchInput bind:value={searchInput} onSearch={performSearch} />
-		</nav>
+<div class="relative flex gap-4 h-full overflow-hidden">
+	<div class="flex-1 flex flex-col overflow-hidden h-full border-2 rounded-lg border-surface-200-800 p-4">
+		<div class="flex justify-between items-center">
+			<div class="flex items-center">
+				<nav
+					class="btn-group md:preset-outlined-surface-200-800 flex-col justify-between items-start md:flex-row"
+				>
+					<PipeModal
+						projectId={$selectedProject}
+						bind:openPipeModal
+						onPipeCreate={handleConduitCreate}
+					/>
+					<SearchInput bind:value={searchInput} onSearch={performSearch} />
+				</nav>
+			</div>
+
+			<div class="hidden md:flex justify-end">
+				<nav class="btn-group preset-outlined-surface-200-800 flex-col p-2 md:flex-row">
+					<FileUpload
+						accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+						maxFiles={1}
+						name="conduit-import"
+						onFileChange={(details) => {
+							if (details.acceptedFiles.length > 0) {
+								handleFileUpload(details.acceptedFiles);
+							}
+						}}
+					>
+						<FileUpload.Trigger class="btn preset-filled-primary-500">
+							<IconUpload class="size-4" />
+							<span>{m.action_import_conduit_xlsx()}</span>
+						</FileUpload.Trigger>
+						<FileUpload.HiddenInput />
+					</FileUpload>
+					<button onclick={downloadTemplate} class="btn preset-filled-primary-500">
+						<IconDownload class="size-4" />
+						<span>{m.form_template()}</span>
+					</button>
+				</nav>
+			</div>
+		</div>
+
+		<div class="flex-1 min-h-0">
+			{#if $navigating}
+				<div class="table-wrap overflow-x-auto">
+					<table class="table table-card caption-bottom w-full overflow-scroll">
+						<thead>
+							<tr>
+								{#each { length: 10 } as _}
+									<td>
+										<div class="h-4 bg-surface-500 rounded animate-pulse w-3/4"></div>
+									</td>
+								{/each}
+							</tr>
+						</thead>
+					</table>
+				</div>
+			{:else}
+				<PipeTable
+					pipes={conduitState.conduits}
+					onConduitUpdate={handleConduitUpdate}
+					onConduitDelete={handleConduitDelete}
+				/>
+			{/if}
+		</div>
 	</div>
 
-	<div class="hidden md:flex justify-end">
-		<nav class="btn-group preset-outlined-surface-200-800 flex-col p-2 md:flex-row">
-			<FileUpload
-				accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-				maxFiles={1}
-				name="conduit-import"
-				onFileChange={(details) => {
-					if (details.acceptedFiles.length > 0) {
-						handleFileUpload(details.acceptedFiles);
-					}
-				}}
-			>
-				<FileUpload.Trigger class="btn preset-filled-primary-500">
-					<IconUpload class="size-4" />
-					<span>{m.action_import_conduit_xlsx()}</span>
-				</FileUpload.Trigger>
-				<FileUpload.HiddenInput />
-			</FileUpload>
-			<button onclick={downloadTemplate} class="btn preset-filled-primary-500">
-				<IconDownload class="size-4" />
-				<span>{m.form_template()}</span>
-			</button>
-		</nav>
-	</div>
+	<Drawer />
 </div>
-
-{#if $navigating}
-	<div class="table-wrap overflow-x-auto">
-		<table class="table table-card caption-bottom w-full overflow-scroll">
-			<thead>
-				<tr>
-					{#each { length: 10 } as _}
-						<td>
-							<div class="h-4 bg-surface-500 rounded animate-pulse w-3/4"></div>
-						</td>
-					{/each}
-				</tr>
-			</thead>
-		</table>
-	</div>
-{:else}
-	<PipeTable pipes={data.pipes} bind:rowData bind:rowClickedSignal {updatedPipeData} />
-{/if}

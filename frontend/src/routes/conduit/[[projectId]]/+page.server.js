@@ -1,3 +1,5 @@
+import { fail } from '@sveltejs/kit';
+
 import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
@@ -142,3 +144,199 @@ export async function load({ fetch, url, depends, cookies, params }) {
 		};
 	}
 }
+
+/** @type {import('./$types').Actions} */
+export const actions = {
+	/**
+	 * Get a single conduit by UUID
+	 */
+	getConduit: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const uuid = formData.get('uuid');
+
+			if (!uuid) {
+				return fail(400, { error: 'Missing required parameter: uuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}conduit/${uuid}/`, {
+				method: 'GET',
+				credentials: 'include',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				return fail(response.status, { error: errorText });
+			}
+
+			const conduit = await response.json();
+			return { conduit };
+		} catch (error) {
+			console.error('Conduit GET action error:', error);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+
+	/**
+	 * Update an existing conduit
+	 */
+	updateConduit: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+
+		const conduitId = formData.get('uuid');
+		const name = formData.get('conduit_name');
+		const conduit_type_id = formData.get('conduit_type_id');
+		const outer_conduit = formData.get('outer_conduit');
+		const status_id = formData.get('status_id');
+		const network_level_id = formData.get('network_level_id');
+		const owner_id = formData.get('owner_id');
+		const constructor_id = formData.get('constructor_id');
+		const manufacturer_id = formData.get('manufacturer_id');
+		const flag_id = formData.get('flag_id');
+		const date = formData.get('date');
+
+		if (!conduitId) {
+			return fail(400, { message: 'Conduit ID is required' });
+		}
+
+		try {
+			const requestBody = {};
+			if (name) requestBody.name = name;
+			if (conduit_type_id) requestBody.conduit_type_id = parseInt(conduit_type_id);
+			if (outer_conduit !== null) requestBody.outer_conduit = outer_conduit;
+			if (status_id) requestBody.status_id = parseInt(status_id);
+			if (network_level_id) requestBody.network_level_id = parseInt(network_level_id);
+			if (owner_id) requestBody.owner_id = parseInt(owner_id);
+			if (constructor_id) requestBody.constructor_id = parseInt(constructor_id);
+			if (manufacturer_id) requestBody.manufacturer_id = parseInt(manufacturer_id);
+			if (flag_id) requestBody.flag_id = parseInt(flag_id);
+			if (date) requestBody.date = date;
+
+			const response = await fetch(`${API_URL}conduit/${conduitId}/`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, { message: errorData.detail || 'Failed to update conduit' });
+			}
+
+			const updatedConduit = await response.json();
+			return {
+				success: true,
+				message: 'Conduit updated successfully',
+				conduit: updatedConduit
+			};
+		} catch (err) {
+			console.error('Error updating conduit:', err);
+			return fail(500, { message: err.message || 'Failed to update conduit' });
+		}
+	},
+
+	/**
+	 * Delete a conduit
+	 */
+	deleteConduit: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+
+		const conduitId = formData.get('uuid');
+
+		if (!conduitId) {
+			return fail(400, { message: 'Conduit ID is required' });
+		}
+
+		try {
+			const response = await fetch(`${API_URL}conduit/${conduitId}/`, {
+				method: 'DELETE',
+				credentials: 'include',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, { message: errorData.detail || 'Failed to delete conduit' });
+			}
+
+			return {
+				success: true,
+				message: 'Conduit deleted successfully'
+			};
+		} catch (err) {
+			console.error('Error deleting conduit:', err);
+			return fail(500, { message: err.message || 'Failed to delete conduit' });
+		}
+	},
+
+	/**
+	 * Create a new conduit
+	 */
+	createConduit: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+
+		const name = formData.get('name');
+		const project_id = formData.get('project_id');
+		const conduit_type_id = formData.get('conduit_type_id');
+		const outer_conduit = formData.get('outer_conduit');
+		const status_id = formData.get('status_id');
+		const network_level_id = formData.get('network_level_id');
+		const owner_id = formData.get('owner_id');
+		const constructor_id = formData.get('constructor_id');
+		const manufacturer_id = formData.get('manufacturer_id');
+		const flag_id = formData.get('flag_id');
+		const date = formData.get('date');
+
+		if (!name) {
+			return fail(400, { message: 'Conduit name is required' });
+		}
+
+		try {
+			const requestBody = { name };
+			if (project_id) requestBody.project_id = parseInt(project_id);
+			if (conduit_type_id) requestBody.conduit_type_id = parseInt(conduit_type_id);
+			if (outer_conduit) requestBody.outer_conduit = outer_conduit;
+			if (status_id) requestBody.status_id = parseInt(status_id);
+			if (network_level_id) requestBody.network_level_id = parseInt(network_level_id);
+			if (owner_id) requestBody.owner_id = parseInt(owner_id);
+			if (constructor_id) requestBody.constructor_id = parseInt(constructor_id);
+			if (manufacturer_id) requestBody.manufacturer_id = parseInt(manufacturer_id);
+			if (flag_id) requestBody.flag_id = parseInt(flag_id);
+			if (date) requestBody.date = date;
+
+			const response = await fetch(`${API_URL}conduit/`, {
+				method: 'POST',
+				credentials: 'include',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, { message: errorData.detail || 'Failed to create conduit' });
+			}
+
+			const newConduit = await response.json();
+			return {
+				success: true,
+				message: 'Conduit created successfully',
+				conduit: newConduit
+			};
+		} catch (err) {
+			console.error('Error creating conduit:', err);
+			return fail(500, { message: err.message || 'Failed to create conduit' });
+		}
+	}
+};

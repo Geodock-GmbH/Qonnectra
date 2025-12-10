@@ -10,7 +10,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.files.base import ContentFile
 from django.db import connection, transaction
 from django.db.models import Avg, Count, F, Q, Sum
-from django.http import HttpResponse
+from django.http import FileResponse, HttpResponse
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from pathvalidate import sanitize_filename
@@ -504,17 +504,33 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
 
         This endpoint validates user authentication and then redirects
         to Nginx's internal location for secure file serving.
+
+        In development mode (DEBUG=True), files are served directly via
+        Django's FileResponse since X-Accel-Redirect requires Nginx.
         """
         file_obj = self.get_object()
-
-        file_path = file_obj.file_path.name
-        redirect_url = f"/media/{file_path}"
-        # Convert IRI to URI for Nginx X-Accel-Redirect (encodes Unicode characters)
-        redirect_url = iri_to_uri(redirect_url)
 
         # Construct filename and encode for RFC 2231 to support non-ASCII characters
         filename = f"{file_obj.file_name}.{file_obj.file_type}"
         encoded_filename = quote(filename)
+
+        # In development, serve files directly (X-Accel-Redirect requires Nginx)
+        if settings.DEBUG:
+            mime_type, _ = mimetypes.guess_type(filename)
+            if mime_type is None:
+                mime_type = "application/octet-stream"
+            file_handle = file_obj.file_path.open("rb")
+            response = FileResponse(file_handle, content_type=mime_type)
+            response["Content-Disposition"] = (
+                f"attachment; filename*=UTF-8''{encoded_filename}"
+            )
+            return response
+
+        # In production, use X-Accel-Redirect for Nginx
+        file_path = file_obj.file_path.name
+        redirect_url = f"/media/{file_path}"
+        # Convert IRI to URI for Nginx X-Accel-Redirect (encodes Unicode characters)
+        redirect_url = iri_to_uri(redirect_url)
 
         response = HttpResponse()
         response["X-Accel-Redirect"] = redirect_url
@@ -533,13 +549,11 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
         This endpoint validates user authentication and then redirects
         to Nginx's internal location for secure file serving with inline
         content disposition, allowing browsers to display the file.
+
+        In development mode (DEBUG=True), files are served directly via
+        Django's FileResponse since X-Accel-Redirect requires Nginx.
         """
         file_obj = self.get_object()
-
-        file_path = file_obj.file_path.name
-        redirect_url = f"/media/{file_path}"
-        # Convert IRI to URI for Nginx X-Accel-Redirect (encodes Unicode characters)
-        redirect_url = iri_to_uri(redirect_url)
 
         # Construct filename and encode for RFC 2231 to support non-ASCII characters
         filename = f"{file_obj.file_name}.{file_obj.file_type}"
@@ -548,6 +562,19 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
         mime_type, _ = mimetypes.guess_type(filename)
         if mime_type is None:
             mime_type = "application/octet-stream"
+
+        # In development, serve files directly (X-Accel-Redirect requires Nginx)
+        if settings.DEBUG:
+            file_handle = file_obj.file_path.open("rb")
+            response = FileResponse(file_handle, content_type=mime_type)
+            response["Content-Disposition"] = f"inline; filename*=UTF-8''{encoded_filename}"
+            return response
+
+        # In production, use X-Accel-Redirect for Nginx
+        file_path = file_obj.file_path.name
+        redirect_url = f"/media/{file_path}"
+        # Convert IRI to URI for Nginx X-Accel-Redirect (encodes Unicode characters)
+        redirect_url = iri_to_uri(redirect_url)
 
         response = HttpResponse()
         response["X-Accel-Redirect"] = redirect_url

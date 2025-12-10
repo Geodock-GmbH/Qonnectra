@@ -6,6 +6,8 @@
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
 
+	import MapConduitAccordion from './MapConduitAccordion.svelte';
+
 	/**
 	 * @typedef {Object} Props
 	 * @property {Object} featureData - Feature properties from MVT
@@ -21,6 +23,7 @@
 
 	const tabItems = $derived([
 		{ value: 'attributes', label: m.common_attributes() },
+		...(featureType === 'trench' ? [{ value: 'conduits', label: m.form_conduit_overview() }] : []),
 		{ value: 'files', label: m.form_attachments() }
 	]);
 
@@ -38,18 +41,14 @@
 		<FeatureAttributeCard properties={featureData} {featureType} {alias} />
 	{/if}
 
+	{#if activeTab === 'conduits' && featureType === 'trench'}
+		<MapConduitAccordion {featureId} />
+	{/if}
+
 	{#if activeTab === 'files'}
 		<div class="space-y-4">
-			<FileUpload
-				{featureType}
-				{featureId}
-				onUploadComplete={handleUploadComplete}
-			/>
-			<FileExplorer
-				bind:this={fileExplorer}
-				{featureType}
-				{featureId}
-			/>
+			<FileUpload {featureType} {featureId} onUploadComplete={handleUploadComplete} />
+			<FileExplorer bind:this={fileExplorer} {featureType} {featureId} />
 		</div>
 	{/if}
 </Tabs>

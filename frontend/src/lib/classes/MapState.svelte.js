@@ -1,6 +1,7 @@
 import { m } from '$lib/paraglide/messages';
 
 import {
+	createAddressStyleWithLabels,
 	createNodeStyleByType,
 	createTrenchStyle,
 	createTrenchStyleByAttribute
@@ -17,6 +18,12 @@ import {
 	createSelectionLayer,
 	createTrenchLayer
 } from '$lib/map';
+
+// Default style values (match store defaults)
+const DEFAULT_TRENCH_COLOR = '#000000';
+const DEFAULT_SELECTED_COLOR = '#000000';
+const DEFAULT_ADDRESS_COLOR = '#2563eb';
+const DEFAULT_ADDRESS_SIZE = 4;
 
 /**
  * Main state manager for the map
@@ -39,8 +46,9 @@ export class MapState {
 
 	// Configuration
 	selectedProject = $state(null);
-	trenchColor = $state(null);
-	trenchColorSelected = $state(null);
+	selectedColor = $state(DEFAULT_SELECTED_COLOR);
+	addressColor = $state(DEFAULT_ADDRESS_COLOR);
+	addressSize = $state(DEFAULT_ADDRESS_SIZE);
 
 	// Add layer configuration
 	layerConfig = $state({
@@ -53,26 +61,18 @@ export class MapState {
 	labelConfig = $state({
 		trench: { enabled: false, field: 'id_trench', minResolution: 1.5 },
 		address: { enabled: false, field: 'street', minResolution: 1.0 },
-		node: { enabled: false, field: 'id_node', minResolution: 1.0 }
+		node: { enabled: false, field: 'name', minResolution: 1.0 }
 	});
 
 	/**
 	 * @param {string} selectedProject - Current project ID
-	 * @param {string} trenchColor - Color for trench rendering
-	 * @param {string} trenchColorSelected - Color for selected trenches
+	 * @param {string} selectedColor - Color for selected features (optional, for selection layers)
 	 * @param {Object} layerConfig - Configuration for which layers to load (optional)
 	 * @param {Object} labelConfig - Configuration for text labels on layers (optional)
 	 */
-	constructor(
-		selectedProject,
-		trenchColor,
-		trenchColorSelected,
-		layerConfig = null,
-		labelConfig = null
-	) {
+	constructor(selectedProject, selectedColor = DEFAULT_SELECTED_COLOR, layerConfig = null, labelConfig = null) {
 		this.selectedProject = selectedProject;
-		this.trenchColor = trenchColor;
-		this.trenchColorSelected = trenchColorSelected;
+		this.selectedColor = selectedColor;
 
 		if (layerConfig) {
 			this.layerConfig = { ...this.layerConfig, ...layerConfig };
@@ -94,7 +94,6 @@ export class MapState {
 				this.tileSource = createTrenchTileSource(this.selectedProject, this.handleTileError);
 				this.vectorTileLayer = createTrenchLayer(
 					this.selectedProject,
-					this.trenchColor,
 					m.nav_trench(),
 					this.handleTileError,
 					this.labelConfig.trench
@@ -156,21 +155,21 @@ export class MapState {
 		// Create selection layers
 		this.selectionLayer = createSelectionLayer(
 			this.tileSource,
-			this.trenchColorSelected,
+			this.selectedColor,
 			getSelectionStore
 		);
 		this.olMap.addLayer(this.selectionLayer);
 
 		this.addressSelectionLayer = createSelectionLayer(
 			this.addressTileSource,
-			this.trenchColorSelected,
+			this.selectedColor,
 			getSelectionStore
 		);
 		this.olMap.addLayer(this.addressSelectionLayer);
 
 		this.nodeSelectionLayer = createSelectionLayer(
 			this.nodeTileSource,
-			this.trenchColorSelected,
+			this.selectedColor,
 			getSelectionStore
 		);
 		this.olMap.addLayer(this.nodeSelectionLayer);
@@ -281,6 +280,71 @@ export class MapState {
 
 		if (this.tileSource) {
 			this.tileSource.refresh();
+		}
+	}
+
+	/**
+	 * Update the address layer style with current label config and style settings
+	 * @param {string} [color] - Optional color to update
+	 * @param {number} [size] - Optional size to update
+	 */
+	updateAddressLayerStyle(color = null, size = null) {
+		if (!this.addressLayer) return;
+
+		// Update stored values if provided
+		if (color !== null) {
+			this.addressColor = color;
+		}
+		if (size !== null) {
+			this.addressSize = size;
+		}
+
+		const newStyle = createAddressStyleWithLabels(
+			this.addressColor,
+			this.addressSize,
+			this.labelConfig.address
+		);
+		this.addressLayer.setStyle(newStyle);
+
+		if (this.addressTileSource) {
+			this.addressTileSource.refresh();
+		}
+	}
+
+	/**
+	 * Update label visibility for a specific layer type
+	 * @param {string} layerType - 'trench' | 'address' | 'node'
+	 * @param {boolean} enabled - Whether labels should be shown
+	 * @param {Object} currentStyles - Current style settings (for trench: { mode, surfaceStyles, constructionTypeStyles, color }, for node: nodeTypeStyles)
+	 */
+	updateLabelVisibility(layerType, enabled, currentStyles = {}) {
+		// Update the label config without triggering reactivity by using plain object mutation
+		// This is safe because labelConfig is only read during style creation
+		const currentLabelConfig = this.labelConfig[layerType];
+		if (currentLabelConfig.enabled === enabled) {
+			return; // No change needed
+		}
+		currentLabelConfig.enabled = enabled;
+
+		switch (layerType) {
+			case 'trench':
+				if (currentStyles.mode !== undefined) {
+					this.updateTrenchLayerStyle(
+						currentStyles.mode,
+						currentStyles.surfaceStyles || {},
+						currentStyles.constructionTypeStyles || {},
+						currentStyles.color || this.trenchColor
+					);
+				}
+				break;
+			case 'address':
+				this.updateAddressLayerStyle();
+				break;
+			case 'node':
+				if (currentStyles.nodeTypeStyles) {
+					this.updateNodeLayerStyle(currentStyles.nodeTypeStyles);
+				}
+				break;
 		}
 	}
 
