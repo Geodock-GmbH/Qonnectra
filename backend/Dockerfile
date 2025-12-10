@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     binutils \
     libproj-dev \
     gdal-bin \
+    gettext \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
