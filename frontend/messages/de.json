@@ -6,6 +6,7 @@
 	"action_browse_files": "Dateien auswählen",
 	"action_clear_filters": "Filter löschen",
 	"action_clear_selection": "Auswahl löschen",
+	"action_close": "Schließen",
 	"action_connect_selected_nodes": "Ausgewählte Knoten verbinden",
 	"action_delete_cable": "Kabel löschen",
 	"action_delete_conduit": "Rohr löschen",

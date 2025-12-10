@@ -1,8 +1,8 @@
 <script>
 	import { getContext } from 'svelte';
+	import { deserialize } from '$app/forms';
 	import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
 	import { IconPlus } from '@tabler/icons-svelte';
-	import { deserialize } from '$app/forms';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -25,6 +25,9 @@
 		flags: []
 	};
 
+	// Get conduit state for form defaults persistence
+	const conduitState = getContext('conduitState');
+
 	let selectedConduitName = $state('');
 	let selectedOuterConduit = $state('');
 	let selectedConduitType = $state([]);
@@ -35,6 +38,30 @@
 	let selectedManufacturer = $state([]);
 	let selectedDate = $state('');
 	let selectedFlag = $state([]);
+
+	// Track if we've initialized defaults for this modal open
+	let hasInitialized = $state(false);
+
+	// Initialize form fields from defaults when modal opens
+	$effect(() => {
+		if (openPipeModal && !hasInitialized) {
+			const defaults = conduitState?.getDefaults() || {};
+			selectedConduitName = defaults.conduitName || '';
+			selectedOuterConduit = defaults.outerConduit || '';
+			selectedConduitType = defaults.conduitType || [];
+			selectedStatus = defaults.status || [];
+			selectedNetworkLevel = defaults.networkLevel || [];
+			selectedOwner = defaults.owner || [];
+			selectedConstructor = defaults.constructor || [];
+			selectedManufacturer = defaults.manufacturer || [];
+			selectedDate = defaults.date || '';
+			selectedFlag = defaults.flag || [];
+			hasInitialized = true;
+		}
+		if (!openPipeModal) {
+			hasInitialized = false;
+		}
+	});
 
 	async function handleSubmit(event) {
 		event.preventDefault();
@@ -77,9 +104,23 @@
 				title: m.title_success(),
 				description: m.message_success_creating_conduit()
 			});
-			openPipeModal = false;
+
+			// Save current values as defaults for next creation
+			conduitState?.setDefaults({
+				conduitName: selectedConduitName,
+				outerConduit: selectedOuterConduit,
+				conduitType: selectedConduitType,
+				status: selectedStatus,
+				networkLevel: selectedNetworkLevel,
+				owner: selectedOwner,
+				constructor: selectedConstructor,
+				manufacturer: selectedManufacturer,
+				date: selectedDate,
+				flag: selectedFlag
+			});
+
+			// Keep modal open, keep all values - just notify parent of new conduit
 			onPipeCreate(result.data?.conduit);
-			clearParameters();
 		} catch (error) {
 			console.error('Error creating conduit:', error);
 			globalToaster.error({
@@ -100,6 +141,11 @@
 		selectedConstructor = [];
 		selectedManufacturer = [];
 		selectedFlag = [];
+	}
+
+	function handleClose() {
+		openPipeModal = false;
+		clearParameters();
 	}
 </script>
 
@@ -236,8 +282,11 @@
 				</form>
 
 				<footer class="flex justify-end gap-4">
+					<button type="button" class="btn preset-outlined" onclick={handleClose}>
+						{m.action_close()}
+					</button>
 					<button type="submit" class="btn preset-filled" form="pipe-form">
-						{m.common_confirm()}
+						{m.action_save()}
 					</button>
 				</footer>
 			</Dialog.Content>

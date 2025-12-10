@@ -37,6 +37,9 @@
 		flags: data.flags
 	});
 
+	// Set context for conduit state (for form defaults persistence)
+	setContext('conduitState', conduitState);
+
 	function performSearch() {
 		const url = new URL($page.url);
 		if (searchInput !== '') {

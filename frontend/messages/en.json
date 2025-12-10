@@ -6,6 +6,7 @@
 	"action_browse_files": "Browse files",
 	"action_clear_filters": "Clear filters",
 	"action_clear_selection": "Clear selection",
+	"action_close": "Close",
 	"action_connect_selected_nodes": "Connect selected nodes",
 	"action_delete_cable": "Delete cable",
 	"action_delete_conduit": "Delete conduit",
