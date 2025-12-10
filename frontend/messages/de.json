@@ -12,6 +12,7 @@
 	"action_delete_conduit": "Rohr löschen",
 	"action_delete_file": "Datei löschen",
 	"action_download": "Herunterladen",
+	"action_highlight_trenches": "Trassen auf Karte hervorheben",
 	"action_import_conduit_xlsx": "Excel Import",
 	"action_refresh": "Aktualisieren",
 	"action_rename": "Umbenennen",

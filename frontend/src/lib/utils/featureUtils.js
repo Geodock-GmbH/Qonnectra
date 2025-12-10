@@ -85,7 +85,7 @@ export function getFeatureTitle(feature, type) {
 			return props.id_trench ? `${props.id_trench}` : 'Trench Details';
 		case 'address':
 			if (props.street && props.housenumber) {
-				return `${props.street} ${props.housenumber}${props.house_number_suffix || ''}`;
+				return `${props.street} ${props.housenumber}${props.house_number_suffix || ''}, ${props.zip_code} ${props.city}`;
 			}
 			return props.id_address ? `${props.id_address}` : 'Address Details';
 		case 'node':

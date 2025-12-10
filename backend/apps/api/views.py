@@ -1120,6 +1120,18 @@ class ConduitViewSet(viewsets.ModelViewSet):
         serializer = ConduitSerializer(queryset, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["get"], url_path="trenches")
+    def get_trenches(self, request, pk=None):
+        """
+        Returns all trench UUIDs that contain this conduit.
+        """
+        conduit = self.get_object()
+        trench_uuids = TrenchConduitConnection.objects.filter(
+            uuid_conduit=conduit
+        ).values_list("uuid_trench__uuid", flat=True)
+
+        return Response({"trench_uuids": list(trench_uuids)})
+
     def get_queryset(self):
         """
         Optionally restricts the returned conduits by filtering against query parameters:

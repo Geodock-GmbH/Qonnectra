@@ -1,6 +1,8 @@
 <script>
+	import { getContext } from 'svelte';
+	import { deserialize } from '$app/forms';
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
-	import { IconMinus, IconPlus } from '@tabler/icons-svelte';
+	import { IconMapPin, IconMinus, IconPlus } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -17,11 +19,50 @@
 
 	const dataManager = new ConduitDataManager();
 
+	/** @type {{ selectionManager: import('$lib/classes/MapSelectionManager.svelte.js').MapSelectionManager }} */
+	const { selectionManager } = getContext('mapManagers');
+
+	/** @type {Record<string, boolean>} */
+	let highlightLoading = $state({});
+
 	$effect(() => {
 		if (featureId) {
 			dataManager.fetchPipesInTrench(featureId);
 		}
 	});
+
+	/**
+	 * Highlight all trenches containing the specified conduit on the map
+	 * @param {Event} event - Click event
+	 * @param {string} pipeUuid - UUID of the conduit
+	 */
+	async function handleHighlightTrenches(event, pipeUuid) {
+		event.stopPropagation();
+
+		if (!pipeUuid || highlightLoading[pipeUuid]) return;
+
+		highlightLoading = { ...highlightLoading, [pipeUuid]: true };
+
+		try {
+			const formData = new FormData();
+			formData.append('uuid', pipeUuid);
+
+			const response = await fetch('?/getTrenchesForConduit', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'success' && result.data?.trench_uuids) {
+				selectionManager.selectMultipleFeatures(result.data.trench_uuids);
+			}
+		} catch (err) {
+			console.error('Error highlighting trenches:', err);
+		} finally {
+			highlightLoading = { ...highlightLoading, [pipeUuid]: false };
+		}
+	}
 </script>
 
 {#if dataManager.loading}
@@ -44,7 +85,22 @@
 					class="flex justify-between items-center"
 					onclick={() => dataManager.fetchMicroducts(item.pipeUuid)}
 				>
-					{item.title}
+					<span class="flex-1 text-left">{item.title}</span>
+					<button
+						type="button"
+						class="btn btn-sm btn-icon preset-filled-secondary-500 p-1 mr-2"
+						title={m.action_highlight_trenches()}
+						onclick={(e) => handleHighlightTrenches(e, item.pipeUuid)}
+						disabled={highlightLoading[item.pipeUuid]}
+					>
+						{#if highlightLoading[item.pipeUuid]}
+							<span
+								class="size-4 animate-spin border-2 border-current border-t-transparent rounded-full"
+							></span>
+						{:else}
+							<IconMapPin class="size-4" />
+						{/if}
+					</button>
 					<Accordion.ItemIndicator class="group">
 						<IconMinus class="size-4 group-data-[state=open]:block hidden" />
 						<IconPlus class="size-4 group-data-[state=open]:hidden block" />

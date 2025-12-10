@@ -12,6 +12,7 @@
 	"action_delete_conduit": "Delete conduit",
 	"action_delete_file": "Delete file",
 	"action_download": "Download",
+	"action_highlight_trenches": "Highlight trenches on map",
 	"action_import_conduit_xlsx": "Excel Import",
 	"action_refresh": "Refresh",
 	"action_rename": "Rename",
