@@ -47,7 +47,8 @@ services:
     container_name: krit_gis_backend_prod
     restart: always
     command: >
-      sh -c "python manage.py collectstatic --noinput &&
+      sh -c "python manage.py compilemessages &&
+            python manage.py collectstatic --noinput &&
             python manage.py migrate &&
             python manage.py shell -c \"from django.contrib.auth import get_user_model; import os; User = get_user_model(); username = os.environ.get('DJANGO_SUPERUSER_USERNAME'); User.objects.filter(username=username).exists() or User.objects.create_superuser(username, os.environ.get('DJANGO_SUPERUSER_EMAIL'), os.environ.get('DJANGO_SUPERUSER_PASSWORD'))\" &&
             python manage.py loaddata attributes_company attributes_construction_type attributes_conduit_type attributes_phase  &&
