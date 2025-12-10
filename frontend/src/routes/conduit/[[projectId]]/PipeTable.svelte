@@ -175,14 +175,10 @@
 	<!-- Fixed pagination at bottom -->
 	<div class="flex-shrink-0 pt-4">
 	<Pagination
-		data={pipes}
+		count={pipes.length}
+		pageSize={size}
 		{page}
 		onPageChange={(e) => (page = e.page)}
-		pageSize={size}
-		onPageSizeChange={(e) => (size = e.pageSize)}
-		siblingCount={4}
-		alternative
-		count={pipes.length}
 	>
 		<Pagination.PrevTrigger>
 			<IconArrowLeft class="size-4" />
