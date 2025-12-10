@@ -68,3 +68,36 @@ export async function getMicroducts(fetch, cookies, pipeId) {
 		return fail(500, { error: 'Internal server error' });
 	}
 }
+
+/**
+ * Fetch all trench UUIDs that contain a specific conduit
+ * @param {typeof fetch} fetch - SvelteKit fetch
+ * @param {import('@sveltejs/kit').Cookies} cookies - SvelteKit cookies
+ * @param {string} conduitId - UUID of the conduit
+ * @returns {Promise<Object>} The trench UUIDs data or failure response
+ */
+export async function getTrenchesForConduit(fetch, cookies, conduitId) {
+	if (!conduitId) {
+		return fail(400, { error: 'Conduit ID is required' });
+	}
+
+	try {
+		const headers = getAuthHeaders(cookies);
+		const backendUrl = `${API_URL}conduit/${conduitId}/trenches/`;
+
+		const response = await fetch(backendUrl, {
+			method: 'GET',
+			headers
+		});
+
+		if (!response.ok) {
+			return fail(response.status, { error: 'Failed to get trenches for conduit' });
+		}
+
+		const data = await response.json();
+		return data;
+	} catch (error) {
+		console.error('Error getting trenches for conduit:', error);
+		return fail(500, { error: 'Internal server error' });
+	}
+}

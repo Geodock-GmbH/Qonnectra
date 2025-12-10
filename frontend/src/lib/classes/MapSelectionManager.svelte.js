@@ -19,6 +19,19 @@ export class MapSelectionManager {
 	}
 
 	/**
+	 * Select multiple features by their IDs
+	 * @param {string[]} featureIds - Array of feature IDs to select
+	 */
+	selectMultipleFeatures(featureIds) {
+		const newSelection = {};
+		featureIds.forEach((id) => {
+			newSelection[id] = true;
+		});
+		this.selectionStore = newSelection;
+		this.updateSelectionLayers();
+	}
+
+	/**
 	 * Clear all selections
 	 */
 	clearSelection() {

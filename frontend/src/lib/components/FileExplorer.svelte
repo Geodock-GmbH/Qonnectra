@@ -253,11 +253,11 @@
 <div class="flex flex-col gap-4 p-4">
 	{#if isLoading}
 		<div class="text-center py-8 text-surface-500">
-			<p>Loading files...</p>
+			<p>{m.form_loading_files()}</p>
 		</div>
 	{:else if error}
 		<div class="text-center py-8 text-error-500 space-y-2">
-			<p>Error loading files: {error}</p>
+			<p>{m.form_error_loading_files({ error })}</p>
 			<button type="button" onclick={loadFiles} class="btn preset-filled-primary-500">
 				Retry
 			</button>
