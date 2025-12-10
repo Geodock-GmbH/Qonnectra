@@ -126,6 +126,8 @@
 	"form_length_total": "Gesamtlänge",
 	"form_level": "Log-Level",
 	"form_live_updates": "Live-Updates",
+	"form_loading_files": "Dateien werden geladen...",
+	"form_error_loading_files": "Fehler beim Laden der Dateien: {error}",
 	"form_longest_5_routes": "Längsten Trassen im Netz",
 	"form_manufacturer": "Hersteller",
 	"form_max_file_size": "Maximale Dateigröße",
