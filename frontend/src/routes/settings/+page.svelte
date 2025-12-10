@@ -346,7 +346,7 @@
 									$trenchColorSelected = '#fbb483';
 								}}
 							>
-								Reset
+								{m.common_reset()}
 							</button>
 						</dd>
 					</div>
@@ -365,7 +365,7 @@
 									$trenchColor = '#fbb483';
 								}}
 							>
-								Reset
+								{m.common_reset()}
 							</button>
 						</dd>
 					</div>
@@ -530,7 +530,7 @@
 											class="text-xs hover:text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity"
 											onclick={() => resetConstructionTypeStyle(constructionType.construction_type)}
 										>
-											Reset
+											{m.common_reset()}
 										</button>
 									</div>
 
@@ -611,7 +611,7 @@
 										class="text-xs hover:text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity"
 										onclick={() => resetNodeTypeStyle(nodeType.node_type)}
 									>
-										Reset
+										{m.common_reset()}
 									</button>
 								</div>
 
@@ -684,7 +684,7 @@
 						class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
 						onclick={resetAddressStyle}
 					>
-						{m.common_reset_all()}
+						{m.common_reset()}
 					</button>
 				</div>
 
@@ -694,13 +694,13 @@
 					>
 						<!-- Header with name and reset -->
 						<div class="flex items-center justify-between mb-4">
-							<h3 class="font-medium text-sm truncate pr-2">Address Points</h3>
+							<h3 class="font-medium text-sm truncate pr-2">{m.form_address_points()}</h3>
 							<button
 								type="button"
 								class="text-xs hover:text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity"
 								onclick={resetAddressStyle}
 							>
-								Reset
+								{m.common_reset()}
 							</button>
 						</div>
 

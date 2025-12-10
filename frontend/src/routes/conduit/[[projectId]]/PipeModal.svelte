@@ -1,7 +1,8 @@
 <script>
+	import { getContext } from 'svelte';
 	import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
 	import { IconPlus } from '@tabler/icons-svelte';
-	import { PUBLIC_API_URL } from '$env/static/public';
+	import { deserialize } from '$app/forms';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -12,16 +13,17 @@
 		projectId,
 		openPipeModal = $bindable(false),
 		isHidden = false,
-		editMode = false,
-		pipeData = null,
-		rowClickedSignal = $bindable(false),
-		onPipeUpdate = (data) => {},
-		conduitTypes = [],
-		statuses = [],
-		networkLevels = [],
-		companies = [],
-		flags = []
+		onPipeCreate = (data) => {}
 	} = $props();
+
+	// Get attribute options from context (no more prop drilling)
+	const attributes = getContext('attributeOptions') || {
+		conduitTypes: [],
+		statuses: [],
+		networkLevels: [],
+		companies: [],
+		flags: []
+	};
 
 	let selectedConduitName = $state('');
 	let selectedOuterConduit = $state('');
@@ -34,111 +36,60 @@
 	let selectedDate = $state('');
 	let selectedFlag = $state([]);
 
-	async function loadSelectOptions(editMode) {
-		if (!editMode) {
-			return;
-		}
-		try {
-			let editData;
-			const editUrl = `${PUBLIC_API_URL}conduit/${pipeData.value}/`;
-			const editRes = await fetch(editUrl, { credentials: 'include' });
-			if (!editRes.ok) throw new Error(`Failed to fetch ${editRes.url} (status ${editRes.status})`);
-			editData = await editRes.json();
-
-			selectedConduitName = editData.name;
-			selectedOuterConduit = editData.outer_conduit;
-			selectedDate = editData.date;
-			selectedConduitType = [editData.conduit_type ? editData.conduit_type.id : ''];
-			selectedStatus = [editData.status ? editData.status.id : ''];
-			selectedNetworkLevel = [editData.network_level ? editData.network_level.id : ''];
-			selectedOwner = [editData.owner ? editData.owner.id : ''];
-			selectedConstructor = [editData.constructor ? editData.constructor.id : ''];
-			selectedManufacturer = [editData.manufacturer ? editData.manufacturer.id : ''];
-			selectedFlag = [editData.flag ? editData.flag.id : ''];
-		} catch (err) {
-			globalToaster.error({
-				title: m.common_error(),
-				description: m.message_error_fetching_select_options()
-			});
-			console.error(err);
-		}
-	}
-
 	async function handleSubmit(event) {
 		event.preventDefault();
 		const formData = new FormData(event.target);
 		const formProps = Object.fromEntries(formData.entries());
 
-		const body = {
-			name: formProps.pipe_name,
-			project_id: projectId?.[0] ?? null,
-			conduit_type_id: selectedConduitType?.[0] ?? null,
-			status_id: selectedStatus?.[0] ?? null,
-			network_level_id: selectedNetworkLevel?.[0] ?? null,
-			owner_id: selectedOwner?.[0] ?? null,
-			constructor_id: selectedConstructor?.[0] ?? null,
-			manufacturer_id: selectedManufacturer?.[0] ?? null,
-			flag_id: selectedFlag?.[0] ?? null,
-			date: formProps.date ? formProps.date : null,
-			outer_conduit: formProps.outer_conduit ?? null
-		};
-
-		// Remove null values to avoid sending empty fields
-		Object.keys(body).forEach((key) => {
-			if (body[key] === null || body[key] === undefined || body[key] === '') {
-				delete body[key];
-			}
-		});
+		// Build form data for server action
+		const actionFormData = new FormData();
+		actionFormData.append('name', formProps.pipe_name);
+		if (projectId?.[0]) actionFormData.append('project_id', projectId[0]);
+		if (selectedConduitType?.[0]) actionFormData.append('conduit_type_id', selectedConduitType[0]);
+		if (selectedStatus?.[0]) actionFormData.append('status_id', selectedStatus[0]);
+		if (selectedNetworkLevel?.[0])
+			actionFormData.append('network_level_id', selectedNetworkLevel[0]);
+		if (selectedOwner?.[0]) actionFormData.append('owner_id', selectedOwner[0]);
+		if (selectedConstructor?.[0]) actionFormData.append('constructor_id', selectedConstructor[0]);
+		if (selectedManufacturer?.[0])
+			actionFormData.append('manufacturer_id', selectedManufacturer[0]);
+		if (selectedFlag?.[0]) actionFormData.append('flag_id', selectedFlag[0]);
+		if (formProps.date) actionFormData.append('date', formProps.date);
+		if (formProps.outer_conduit) actionFormData.append('outer_conduit', formProps.outer_conduit);
 
 		try {
-			const url = editMode
-				? `${PUBLIC_API_URL}conduit/${pipeData.value}/`
-				: `${PUBLIC_API_URL}conduit/`;
-			const response = await fetch(url, {
-				method: editMode ? 'PUT' : 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-CSRFToken': document.cookie
-						.split('; ')
-						.find((row) => row.startsWith('csrftoken='))
-						?.split('=')[1]
-				},
-				body: JSON.stringify(body),
-				credentials: 'include'
+			const response = await fetch('?/createConduit', {
+				method: 'POST',
+				body: actionFormData
 			});
-			if (response.ok) {
-				const result = await response.json();
-				globalToaster.success({
-					title: m.title_success(),
-					description: editMode
-						? m.message_success_updating_conduit()
-						: m.message_success_creating_conduit()
-				});
-				openPipeModal = false;
-				onPipeUpdate(result);
-			} else {
-				const errorData = await response.json();
-				console.error('Error submitting form:', errorData);
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
 				globalToaster.error({
 					title: m.common_error(),
-					description: editMode
-						? m.message_error_updating_conduit()
-						: m.message_error_duplicate_conduit()
+					description: result.data?.message || m.message_error_creating_conduit()
 				});
+				return;
 			}
+
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_success_creating_conduit()
+			});
+			openPipeModal = false;
+			onPipeCreate(result.data?.conduit);
+			clearParameters();
 		} catch (error) {
-			console.error('Error submitting form:', error);
+			console.error('Error creating conduit:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: editMode
-					? m.message_error_updating_conduit()
-					: m.message_error_creating_conduit()
+				description: m.message_error_creating_conduit()
 			});
 		}
 	}
 
-	async function clearParameters() {
-		editMode = false;
+	function clearParameters() {
 		selectedConduitName = '';
 		selectedOuterConduit = '';
 		selectedDate = '';
@@ -150,15 +101,6 @@
 		selectedManufacturer = [];
 		selectedFlag = [];
 	}
-
-	$effect(async () => {
-		if (rowClickedSignal) {
-			editMode = true;
-			await loadSelectOptions(editMode);
-			openPipeModal = true;
-			rowClickedSignal = false;
-		}
-	});
 </script>
 
 <Dialog
@@ -166,17 +108,14 @@
 	onOpenChange={(e) => (openPipeModal = e.open)}
 	closeOnInteractOutside={true}
 	closeOnEscape={true}
-	onInteractOutside={async () => {
-		await clearParameters();
+	onInteractOutside={() => {
+		clearParameters();
 	}}
-	onEscapeKeyDown={async () => {
-		await clearParameters();
+	onEscapeKeyDown={() => {
+		clearParameters();
 	}}
 >
-	<Dialog.Trigger
-		class="btn preset-filled-primary-500 {isHidden ? 'hidden' : ''}"
-		onclick={() => loadSelectOptions(editMode)}
-	>
+	<Dialog.Trigger class="btn preset-filled-primary-500 {isHidden ? 'hidden' : ''}">
 		<IconPlus size={18} />
 		<span class="hidden sm:inline">{m.action_add_conduit()}</span>
 	</Dialog.Trigger>
@@ -187,7 +126,7 @@
 		<Dialog.Positioner class="fixed inset-0 z-50 flex items-center justify-center">
 			<Dialog.Content class="card bg-surface-100-900 p-4 space-y-4 shadow-xl max-w-screen-sm ">
 				<Dialog.Title class="flex justify-between">
-					<h2 class="h3">{m.common_attributes()}</h2>
+					<h2 class="h3">{m.action_add_conduit()}</h2>
 				</Dialog.Title>
 
 				<form
@@ -195,7 +134,6 @@
 					class="space-y-4 grid grid-cols-2 gap-4"
 					onsubmit={async (e) => {
 						await handleSubmit(e);
-						await clearParameters();
 					}}
 				>
 					<label class="label">
@@ -206,13 +144,14 @@
 							placeholder=""
 							name="pipe_name"
 							required
-							value={selectedConduitName ?? ''}
+							value={selectedConduitName}
+							oninput={(e) => (selectedConduitName = e.target.value)}
 						/>
 					</label>
 					<label for="pipe_type" class="label">
 						<span class="label-text">{m.form_conduit_type()}</span>
 						<GenericCombobox
-							data={conduitTypes}
+							data={attributes.conduitTypes}
 							bind:value={selectedConduitType}
 							defaultValue={selectedConduitType}
 							onValueChange={(e) => (selectedConduitType = e.value)}
@@ -220,13 +159,19 @@
 					</label>
 					<label class="label">
 						<span class="label-text">{m.form_outer_conduit()}</span>
-						<textarea name="outer_conduit" id="outer_conduit" class="textarea" placeholder=""
+						<textarea
+							name="outer_conduit"
+							id="outer_conduit"
+							class="textarea"
+							placeholder=""
+							value={selectedOuterConduit}
+							oninput={(e) => (selectedOuterConduit = e.target.value)}
 						></textarea>
 					</label>
 					<label for="status" class="label">
 						<span class="label-text">{m.form_status()}</span>
 						<GenericCombobox
-							data={statuses}
+							data={attributes.statuses}
 							bind:value={selectedStatus}
 							defaultValue={selectedStatus}
 							onValueChange={(e) => (selectedStatus = e.value)}
@@ -235,7 +180,7 @@
 					<label for="network_level" class="label">
 						<span class="label-text">{m.form_network_level()}</span>
 						<GenericCombobox
-							data={networkLevels}
+							data={attributes.networkLevels}
 							bind:value={selectedNetworkLevel}
 							defaultValue={selectedNetworkLevel}
 							onValueChange={(e) => (selectedNetworkLevel = e.value)}
@@ -244,7 +189,7 @@
 					<label for="owner" class="label">
 						<span class="label-text">{m.form_owner()}</span>
 						<GenericCombobox
-							data={companies}
+							data={attributes.companies}
 							bind:value={selectedOwner}
 							defaultValue={selectedOwner}
 							onValueChange={(e) => (selectedOwner = e.value)}
@@ -253,7 +198,7 @@
 					<label for="constructor" class="label">
 						<span class="label-text">{m.form_constructor()}</span>
 						<GenericCombobox
-							data={companies}
+							data={attributes.companies}
 							bind:value={selectedConstructor}
 							defaultValue={selectedConstructor}
 							onValueChange={(e) => (selectedConstructor = e.value)}
@@ -262,7 +207,7 @@
 					<label for="manufacturer" class="label">
 						<span class="label-text">{m.form_manufacturer()}</span>
 						<GenericCombobox
-							data={companies}
+							data={attributes.companies}
 							bind:value={selectedManufacturer}
 							defaultValue={selectedManufacturer}
 							onValueChange={(e) => (selectedManufacturer = e.value)}
@@ -270,12 +215,19 @@
 					</label>
 					<label for="date" class="label">
 						<span class="label-text">{m.common_date()}</span>
-						<input type="date" name="date" id="date" class="input" value={selectedDate} />
+						<input
+							type="date"
+							name="date"
+							id="date"
+							class="input"
+							value={selectedDate}
+							oninput={(e) => (selectedDate = e.target.value)}
+						/>
 					</label>
 					<label for="flag" class="label">
 						<span class="label-text">{m.form_flag()}</span>
 						<GenericCombobox
-							data={flags}
+							data={attributes.flags}
 							bind:value={selectedFlag}
 							defaultValue={selectedFlag}
 							onValueChange={(e) => (selectedFlag = e.value)}
