@@ -1,5 +1,7 @@
 <script>
 	import { onMount, setContext } from 'svelte';
+	import { get } from 'svelte/store';
+	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
@@ -15,14 +17,20 @@
 	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import {
+		addressStyle,
+		labelVisibilityConfig,
+		nodeTypeStyles,
 		routingMode,
 		routingTolerance,
 		selectedConduit,
 		selectedFlag,
 		selectedProject,
-		trenchColorSelected
+		trenchColor,
+		trenchColorSelected,
+		trenchConstructionTypeStyles,
+		trenchStyleMode,
+		trenchSurfaceStyles
 	} from '$lib/stores/store';
-	import { get } from 'svelte/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
 	import TrenchTable from './TrenchTable.svelte';
@@ -35,38 +43,32 @@
 
 	let { data } = $props();
 
-	// Initialize managers
-	const mapState = new MapState(
-		$selectedProject,
-		get(trenchColorSelected),
-		{
-			trench: true,
-			address: false,
-			node: false
-		},
-		{
-			trench: { enabled: true, field: 'id_trench', minResolution: 1.5 }
-		}
-	);
+	const mapState = new MapState($selectedProject, get(trenchColorSelected));
 	const selectionManager = new MapSelectionManager();
 
-	// Set context for child components
 	setContext('mapManagers', {
 		mapState,
 		selectionManager
 	});
 
-	// Routing-specific state
 	let routeLayer = $state();
 	let highlightLayer = $state();
 	let startTrenchId = $state(null);
 	let endTrenchId = $state(null);
 	let trenchTableInstance;
 
+	/**
+	 * Handles flag change by clearing the selected conduit
+	 */
 	async function handleFlagChange() {
 		$selectedConduit = undefined;
 	}
 
+	/**
+	 * Handles trench click event, fetches trench geometry and zooms to it on the map
+	 * @param {string} trenchUuid - UUID of the trench
+	 * @param {string} trenchLabel - Label/ID of the trench
+	 */
 	async function handleTrenchClick(trenchUuid, trenchLabel) {
 		if (!mapState.olMap || !mapState.vectorTileLayer) {
 			globalToaster.error({
@@ -89,15 +91,13 @@
 
 			if (result.type === 'success' && result.data) {
 				const parsedData = JSON.parse(result.data);
-				const geometryType = parsedData[12]; // "LineString"
-				const coordinatesRef = parsedData[13]; // Array reference to coordinates
+				const geometryType = parsedData[12];
+				const coordinatesRef = parsedData[13];
 
-				// The coordinates are stored as separate coordinate pairs in the array
 				const coordinates = [];
 				if (Array.isArray(coordinatesRef)) {
 					for (const coordRef of coordinatesRef) {
 						if (typeof coordRef === 'number' && parsedData[coordRef]) {
-							// Each coordinate pair is stored as an array reference
 							const coordPair = parsedData[coordRef];
 							if (Array.isArray(coordPair) && coordPair.length >= 2) {
 								const x = parsedData[coordPair[0]];
@@ -112,7 +112,6 @@
 					const wktFormat = new WKT();
 					let geometryWkt = '';
 
-					// Handle different geometry types
 					if (geometryType === 'LineString') {
 						geometryWkt = `LINESTRING(${coordinates.map((coord) => `${coord[0]} ${coord[1]}`).join(', ')})`;
 					} else if (geometryType === 'Point') {
@@ -127,7 +126,7 @@
 					if (geometryWkt) {
 						const view = mapState.olMap.getView();
 						const geometry = wktFormat.readGeometry(geometryWkt, {
-							dataProjection: 'EPSG:25832', // TODO: Get from trench data
+							dataProjection: 'EPSG:25832',
 							featureProjection: view.getProjection()
 						});
 
@@ -197,7 +196,6 @@
 		}
 	});
 
-	// Styles for routing layers
 	const routeStyle = new Style({
 		stroke: new Stroke({
 			color: 'rgba(255, 0, 0, 0.7)',
@@ -205,10 +203,8 @@
 		})
 	});
 
-	// Initialize layers
 	const layersInitialized = mapState.initializeLayers();
 
-	// Refresh tile sources when they exist
 	$effect(() => {
 		mapState.refreshTileSources();
 	});
@@ -217,24 +213,25 @@
 	 * Handler for the map ready event
 	 * Initializes all map interactions and layers
 	 */
+	/**
+	 * Handler for the map ready event
+	 * Initializes all map interactions and layers
+	 * @param {CustomEvent} event - Map ready event containing the OpenLayers map instance
+	 */
 	function handleMapReady(event) {
 		const olMapInstance = event.detail.map;
 
-		// Initialize selection layers
 		mapState.initializeSelectionLayers(olMapInstance, () => selectionManager.getSelectionStore());
 
-		// Register selection layers with selection manager
 		const selectionLayers = mapState.getSelectionLayers();
 		selectionLayers.forEach((layer) => selectionManager.registerSelectionLayer(layer));
 
-		// Layer to display the route
 		routeLayer = new VectorLayer({
 			source: new VectorSource(),
 			style: routeStyle
 		});
 		mapState.olMap.addLayer(routeLayer);
 
-		// Layer to highlight trenches temporarily
 		highlightLayer = new VectorLayer({
 			source: new VectorSource(),
 			style: new Style({
@@ -253,7 +250,6 @@
 		});
 		mapState.olMap.addLayer(highlightLayer);
 
-		// Register click handler for routing functionality
 		mapState.olMap.on('click', handleMapClick);
 	}
 
@@ -281,12 +277,11 @@
 
 		const feature = features[0];
 		const trenchId = feature.get('id_trench');
-		const featureId = feature.getId(); // This is the UUID of the trench feature
+		const featureId = feature.getId();
 
 		if (!trenchId || !featureId) return;
 
 		if ($routingMode) {
-			// Handle routing logic
 			if (startTrenchId && endTrenchId) {
 				startTrenchId = null;
 				endTrenchId = null;
@@ -298,42 +293,38 @@
 				startTrenchId = trenchId;
 				selectionManager.selectFeature(featureId, feature);
 			} else if (!endTrenchId) {
-				if (trenchId === startTrenchId) return; // Can't select same trench
+				if (trenchId === startTrenchId) return;
 				endTrenchId = trenchId;
 				selectionManager.selectFeature(featureId, feature);
 
 				try {
-					const response = await fetch('/api/routing', {
+					const formData = new FormData();
+					formData.append('startTrenchId', startTrenchId);
+					formData.append('endTrenchId', endTrenchId);
+					formData.append('projectId', $selectedProject);
+					formData.append('tolerance', $routingTolerance);
+
+					const response = await fetch('?/calculateRoute', {
 						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json'
-						},
-						body: JSON.stringify({
-							startTrenchId,
-							endTrenchId,
-							projectId: $selectedProject,
-							tolerance: $routingTolerance
-						})
+						body: formData
 					});
-					if (!response.ok) {
-						const errorData = await response.json();
-						throw new Error(
-							errorData.error ||
-								errorData.detail ||
-								`Routing failed with status: ${response.status}`
-						);
+
+					const result = deserialize(await response.text());
+
+					if (result.type === 'failure' || result.type === 'error') {
+						throw new Error(result.data?.error || result.data?.detail || 'Routing failed');
 					}
-					const routeData = await response.json();
+
+					const routeData = result.data?.routeData;
 
 					if (routeData.path_geometry_wkt && routeData.traversed_trench_uuids) {
 						const wktFormat = new WKT();
 						const routeFeature = wktFormat.readFeature(routeData.path_geometry_wkt, {
-							dataProjection: 'EPSG:25832', // TODO: Get from trench data
+							dataProjection: 'EPSG:25832',
 							featureProjection: mapState.olMap.getView().getProjection()
 						});
 						if (routeLayer) routeLayer.getSource().addFeature(routeFeature);
 
-						// Update selection to show all traversed trenches
 						const newSelection = {};
 						for (const uuid of routeData.traversed_trench_uuids) {
 							newSelection[uuid] = true;
@@ -367,7 +358,6 @@
 				}
 			}
 		} else {
-			// Handle single-click update logic
 			selectionManager.selectFeature(featureId, feature);
 
 			const trenchToAdd = [{ value: featureId, label: trenchId }];
@@ -377,22 +367,64 @@
 		}
 	}
 
+	$effect(() => {
+		const styles = $nodeTypeStyles;
+		if (Object.keys(styles).length > 0) {
+			mapState.updateNodeLayerStyle(styles);
+		}
+	});
+
+	$effect(() => {
+		const mode = $trenchStyleMode;
+		const surfaceStyles = $trenchSurfaceStyles;
+		const constructionTypeStyles = $trenchConstructionTypeStyles;
+		const color = $trenchColor;
+		mapState.updateTrenchLayerStyle(mode, surfaceStyles, constructionTypeStyles, color);
+	});
+
+	$effect(() => {
+		const color = $addressStyle.color;
+		const size = $addressStyle.size;
+		mapState.updateAddressLayerStyle(color, size);
+	});
+
+	$effect(() => {
+		const config = $labelVisibilityConfig;
+		const mode = $trenchStyleMode;
+		const surfaceStyles = $trenchSurfaceStyles;
+		const constructionTypeStyles = $trenchConstructionTypeStyles;
+		const color = $trenchColor;
+		const nodeStyles = $nodeTypeStyles;
+
+		if (config.trench !== undefined) {
+			mapState.updateLabelVisibility('trench', config.trench, {
+				mode,
+				surfaceStyles,
+				constructionTypeStyles,
+				color
+			});
+		}
+		if (config.address !== undefined) {
+			mapState.updateLabelVisibility('address', config.address, {});
+		}
+		if (config.node !== undefined) {
+			mapState.updateLabelVisibility('node', config.node, { nodeTypeStyles: nodeStyles });
+		}
+	});
+
 	/**
 	 * Cleanup on component destroy
 	 */
 	onMount(() => {
 		return () => {
-			// Remove custom layers
 			if (mapState.olMap) {
 				if (routeLayer) mapState.olMap.removeLayer(routeLayer);
 				if (highlightLayer) mapState.olMap.removeLayer(highlightLayer);
 			}
 
-			// Cleanup managers
 			mapState.cleanup();
 			selectionManager.cleanup();
 
-			// Reset routing state
 			routeLayer = undefined;
 			highlightLayer = undefined;
 		};
@@ -411,7 +443,7 @@
 			<Map
 				className="rounded-lg overflow-hidden h-full w-full"
 				layers={mapState.getLayers()}
-				showLayerVisibilityTree={false}
+				showLayerVisibilityTree={true}
 				showSearchPanel={false}
 				on:ready={handleMapReady}
 			/>
