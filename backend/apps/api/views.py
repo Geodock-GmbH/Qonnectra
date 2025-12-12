@@ -567,7 +567,9 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
         if settings.DEBUG:
             file_handle = file_obj.file_path.open("rb")
             response = FileResponse(file_handle, content_type=mime_type)
-            response["Content-Disposition"] = f"inline; filename*=UTF-8''{encoded_filename}"
+            response["Content-Disposition"] = (
+                f"inline; filename*=UTF-8''{encoded_filename}"
+            )
             return response
 
         # In production, use X-Accel-Redirect for Nginx
@@ -2057,6 +2059,8 @@ class ConduitImportView(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser)
 
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
     def post(self, request, *args, **kwargs):
         file_obj = request.FILES.get("file")
         if not file_obj:
@@ -2064,25 +2068,35 @@ class ConduitImportView(APIView):
                 {"error": "No file uploaded."}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        if not file_obj.name.endswith((".xlsx")):
+        if not file_obj.name.endswith(".xlsx"):
             return Response(
                 {"error": "Invalid file format. Please upload an .xlsx file."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if file_obj.size > self.MAX_FILE_SIZE:
+            return Response(
+                {
+                    "error": f"File too large. Maximum size is {self.MAX_FILE_SIZE // (1024 * 1024)}MB."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         result = import_conduits_from_excel(file_obj)
 
         if result["success"]:
-            return Response(
-                {
-                    "message": f"Successfully imported {result['created_count']} conduits."
-                },
-                status=status.HTTP_201_CREATED,
-            )
+            response_data = {
+                "message": f"Successfully imported {result['created_count']} conduits.",
+                "created_count": result["created_count"],
+            }
+            if result.get("warnings"):
+                response_data["warnings"] = result["warnings"]
+            return Response(response_data, status=status.HTTP_201_CREATED)
         else:
-            return Response(
-                {"errors": result["errors"]}, status=status.HTTP_400_BAD_REQUEST
-            )
+            response_data = {"errors": result["errors"]}
+            if result.get("warnings"):
+                response_data["warnings"] = result["warnings"]
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
 
 class AttributesMicroductStatusViewSet(viewsets.ReadOnlyModelViewSet):

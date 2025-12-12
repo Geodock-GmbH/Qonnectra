@@ -54,6 +54,7 @@
 	"common_searching": "Searching...",
 	"common_selected": "Selected",
 	"common_unknown": "Unknown",
+	"common_warning": "Warning",
 	"common_yes": "Yes",
 	"form_address": [
 		{
@@ -237,6 +238,7 @@
 	"message_no_new_trench_connections": "No new trench connections",
 	"message_no_conduit_selected_description": "Please select a conduit to calculate a route",
 	"message_no_logs_found": "No logs found",
+	"message_no_results_found": "No results found",
 	"message_please_select_exactly_2_nodes": "Please select exactly 2 nodes",
 	"message_please_try_again": "Please try again.",
 	"message_please_wait": "Please wait...",

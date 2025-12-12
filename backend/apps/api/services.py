@@ -24,14 +24,46 @@ from .storage import LocalMediaStorage
 logger = logging.getLogger(__name__)
 
 
-def import_conduits_from_excel(file):
+def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
     """
     Imports conduits from an Excel file, validates data, and creates new records.
+
+    Args:
+        file: The uploaded Excel file object
+        max_file_size: Maximum allowed file size in bytes (default 10MB)
+
+    Returns:
+        dict: Contains 'success' boolean and either 'created_count' or 'errors' list
     """
-    workbook = load_workbook(file)
+    # File size validation
+    file.seek(0, 2)  # Seek to end
+    file_size = file.tell()
+    file.seek(0)  # Seek back to start
+
+    if file_size > max_file_size:
+        return {
+            "success": False,
+            "errors": [
+                str(
+                    _("File too large. Maximum size is %(size)dMB.")
+                    % {"size": max_file_size // (1024 * 1024)}
+                )
+            ],
+        }
+
+    try:
+        workbook = load_workbook(file)
+    except Exception as e:
+        logger.error(f"Failed to load Excel workbook: {e}")
+        return {
+            "success": False,
+            "errors": [str(_("Invalid Excel file. Could not read workbook."))],
+        }
+
     sheet = workbook.active
 
     errors = []
+    warnings = []
     conduits_to_create = []
 
     # Get translated headers to match the file
@@ -54,6 +86,13 @@ def import_conduits_from_excel(file):
 
     header_from_file = [cell.value for cell in sheet[1]]
 
+    # Validate headers exist
+    if not header_from_file or all(h is None for h in header_from_file):
+        return {
+            "success": False,
+            "errors": [str(_("No headers found in Excel file. First row must contain column headers."))],
+        }
+
     # Map file headers to a more usable format
     header_map = {
         headers_translated[0]: "name",
@@ -68,6 +107,29 @@ def import_conduits_from_excel(file):
         headers_translated[9]: "project",
         headers_translated[10]: "flag",
     }
+
+    # Check for required 'Name' header
+    if headers_translated[0] not in header_from_file:
+        return {
+            "success": False,
+            "errors": [
+                str(
+                    _("Required 'Name' column not found. Expected header: '%(header)s'")
+                    % {"header": headers_translated[0]}
+                )
+            ],
+        }
+
+    # Check for unrecognized columns (warning, not error)
+    unmapped_headers = [h for h in header_from_file if h and h not in header_map]
+    if unmapped_headers:
+        warnings.append(
+            str(
+                _("Unrecognized columns will be ignored: %(columns)s")
+                % {"columns": ", ".join(unmapped_headers)}
+            )
+        )
+
     mapped_header = [header_map.get(h) for h in header_from_file]
 
     for row_idx, row in enumerate(
@@ -183,15 +245,19 @@ def import_conduits_from_excel(file):
             errors.append(f"Row {row_idx}: An unexpected error occurred: {e}")
 
     if errors:
-        return {"success": False, "errors": errors}
+        return {"success": False, "errors": errors, "warnings": warnings}
 
     try:
         with transaction.atomic():
             Conduit.objects.bulk_create(conduits_to_create)
     except Exception as e:
-        return {"success": False, "errors": [f"Failed to save to database: {e}"]}
+        logger.error(f"Failed to bulk create conduits: {e}")
+        return {"success": False, "errors": [str(_("Failed to save to database: %(error)s") % {"error": str(e)})]}
 
-    return {"success": True, "created_count": len(conduits_to_create)}
+    result = {"success": True, "created_count": len(conduits_to_create)}
+    if warnings:
+        result["warnings"] = warnings
+    return result
 
 
 def generate_conduit_import_template():
