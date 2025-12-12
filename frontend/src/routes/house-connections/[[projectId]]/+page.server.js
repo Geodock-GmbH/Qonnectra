@@ -4,7 +4,11 @@ import { API_URL } from '$env/static/private';
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 import { getConstructionTypes, getNodeTypes, getSurfaces } from '$lib/server/attributes';
 import { getMicroducts, getPipesInTrench } from '$lib/server/conduitData';
-import { getFeatureDetailsByType, searchFeaturesInProject } from '$lib/server/featureSearch';
+import {
+	getFeatureDetailsByType,
+	getTrenchGeometriesForConduit,
+	searchFeaturesInProject
+} from '$lib/server/featureSearch';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ fetch, cookies }) {
@@ -127,5 +131,12 @@ export const actions = {
 		const featureUuid = data.get('featureUuid');
 
 		return getFeatureDetailsByType(fetch, cookies, featureType, featureUuid);
+	},
+
+	getConduitTrenches: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const conduitUuid = formData.get('conduitUuid');
+
+		return getTrenchGeometriesForConduit(fetch, cookies, conduitUuid);
 	}
 };

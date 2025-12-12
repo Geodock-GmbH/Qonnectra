@@ -1,4 +1,5 @@
 <script>
+	import { getContext } from 'svelte';
 	import { parse } from 'devalue';
 
 	import { m } from '$lib/paraglide/messages';
@@ -8,7 +9,9 @@
 		createHighlightStyle,
 		debounce,
 		parseFeatureGeometry,
-		zoomToFeature
+		parseMultipleFeatureGeometries,
+		zoomToFeature,
+		zoomToMultipleFeatures
 	} from '$lib/map/searchUtils';
 	import { selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
@@ -24,7 +27,9 @@
 		onSearchError = () => {}
 	} = $props();
 
-	// Search state
+	const mapManagers = getContext('mapManagers');
+	const selectionManager = mapManagers?.selectionManager;
+
 	let searchQuery = $state('');
 	let searchResults = $state([]);
 	let isSearching = $state(false);
@@ -83,6 +88,11 @@
 		const { type, value, label } = selectedFeature.items[0];
 
 		try {
+			if (type === 'conduit') {
+				await handleConduitSelect(value);
+				return;
+			}
+
 			const formData = new FormData();
 			formData.append('featureType', type);
 			formData.append('featureUuid', value);
@@ -121,7 +131,6 @@
 				highlightFeature.setId(feature.id);
 
 				highlightLayer.getSource().clear();
-				// highlightLayer.getSource().addFeature(highlightFeature); // Activate this to have it highlighted all the time until the user clicks on another feature
 
 				await zoomToFeature(olMapInstance, geometry, highlightLayer);
 
@@ -145,6 +154,91 @@
 			console.error('Error fetching feature details:', error);
 			globalToaster.error({
 				title: m.title_feature_found(),
+				description: m.message_error_search_failed()
+			});
+			onSearchError(error);
+		}
+	}
+
+	/**
+	 * Handle conduit selection - zooms to all trenches containing the conduit
+	 * @param {string} conduitUuid - UUID of the selected conduit
+	 */
+	async function handleConduitSelect(conduitUuid) {
+		try {
+			const formData = new FormData();
+			formData.append('conduitUuid', conduitUuid);
+
+			const response = await fetch('?/getConduitTrenches', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = await response.json();
+			let parsedData = parse(result.data);
+
+			if (result.type === 'success' && parsedData?.success) {
+				if (!parsedData.trenches || parsedData.trenches.length === 0) {
+					globalToaster.warning({
+						title: m.form_conduit(),
+						description: m.message_no_conduits_found()
+					});
+					return;
+				}
+
+				// Parse all trench geometries
+				const geometries = await parseMultipleFeatureGeometries(
+					parsedData.trenches,
+					'EPSG:25832',
+					olMapInstance.getView().getProjection()
+				);
+
+				// Ensure highlight layer exists
+				if (!highlightLayer) {
+					const highlightStyle = await createHighlightStyle(trenchColorSelected);
+					highlightLayer = await createHighlightLayer(highlightStyle);
+					olMapInstance.addLayer(highlightLayer);
+				}
+
+				highlightLayer.getSource().clear();
+
+				// Zoom to all trenches with blinking animation (features persist after blink)
+				await zoomToMultipleFeatures(olMapInstance, geometries, highlightLayer, {
+					maxZoom: 17
+				});
+
+				// Also use selectionManager for persistent layer highlighting (if available)
+				if (selectionManager && parsedData.trenchUuids) {
+					selectionManager.selectMultipleFeatures(parsedData.trenchUuids);
+				}
+
+				// Clear search state
+				searchQuery = '';
+				searchResults = [];
+				showSearchResults = false;
+
+				globalToaster.success({
+					title: m.title_feature_found(),
+					description: `${parsedData.trenches.length} ${m.nav_trench()}`
+				});
+
+				onFeatureSelect({
+					type: 'conduit',
+					uuid: conduitUuid,
+					trenches: parsedData.trenches,
+					trenchUuids: parsedData.trenchUuids
+				});
+			} else {
+				console.error('Invalid response structure:', parsedData);
+				globalToaster.error({
+					title: m.common_error(),
+					description: m.message_error_search_failed()
+				});
+			}
+		} catch (error) {
+			console.error('Error fetching conduit trenches:', error);
+			globalToaster.error({
+				title: m.common_error(),
 				description: m.message_error_search_failed()
 			});
 			onSearchError(error);

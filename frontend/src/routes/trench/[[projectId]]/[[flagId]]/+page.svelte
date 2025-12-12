@@ -5,7 +5,6 @@
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
-	import Feature from 'ol/Feature.js';
 	import WKT from 'ol/format/WKT.js';
 	import VectorLayer from 'ol/layer/Vector.js';
 
@@ -16,6 +15,7 @@
 	import ConduitCombobox from '$lib/components/ConduitCombobox.svelte';
 	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
 	import Map from '$lib/components/Map.svelte';
+	import { zoomToFeature } from '$lib/map/searchUtils.js';
 	import {
 		addressStyle,
 		labelVisibilityConfig,
@@ -130,31 +130,7 @@
 							featureProjection: view.getProjection()
 						});
 
-						const featureExtent = geometry.getExtent();
-						view.fit(featureExtent, {
-							duration: 1000,
-							padding: [50, 50, 50, 50],
-							maxZoom: 20,
-							callback: () => {
-								if (highlightLayer) {
-									const highlightFeature = new Feature(geometry);
-									const source = highlightLayer.getSource();
-									let blinkCount = 0;
-									const blinkInterval = setInterval(() => {
-										if (blinkCount % 2 === 0) {
-											source.addFeature(highlightFeature);
-										} else {
-											source.removeFeature(highlightFeature);
-										}
-										blinkCount++;
-										if (blinkCount >= 6) {
-											clearInterval(blinkInterval);
-											source.removeFeature(highlightFeature);
-										}
-									}, 300);
-								}
-							}
-						});
+						await zoomToFeature(mapState.olMap, geometry, highlightLayer, { maxZoom: 20 });
 
 						globalToaster.success({
 							title: m.title_trench_located(),

@@ -19,7 +19,7 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 	}
 
 	try {
-		const [addAddressResponse, nodeResponse, trenchResponse] = await Promise.all([
+		const [addAddressResponse, nodeResponse, trenchResponse, conduitResponse] = await Promise.all([
 			fetch(
 				`${API_URL}address/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
 				{
@@ -37,17 +37,25 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 					credentials: 'include',
 					headers: getAuthHeaders(cookies)
 				}
+			),
+			fetch(
+				`${API_URL}conduit/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
+				{
+					credentials: 'include',
+					headers: getAuthHeaders(cookies)
+				}
 			)
 		]);
 
-		if (!addAddressResponse.ok || !nodeResponse.ok || !trenchResponse.ok) {
+		if (!addAddressResponse.ok || !nodeResponse.ok || !trenchResponse.ok || !conduitResponse.ok) {
 			throw error(500, 'Failed to fetch search results');
 		}
 
-		const [addAddressData, nodeData, trenchData] = await Promise.all([
+		const [addAddressData, nodeData, trenchData, conduitData] = await Promise.all([
 			addAddressResponse.json(),
 			nodeResponse.json(),
-			trenchResponse.json()
+			trenchResponse.json(),
+			conduitResponse.json()
 		]);
 
 		const results = [];
@@ -98,6 +106,29 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 					type: 'trench',
 					uuid: trenchId,
 					id_trench: trenchIdNumber
+				});
+			}
+		});
+
+		const conduitFeatures = conduitData || [];
+		conduitFeatures.forEach((conduit) => {
+			const conduitUuid = conduit.uuid;
+			const conduitName = conduit.name;
+			const conduitTypeName = conduit.conduit_type?.conduit_type || '';
+
+			if (conduitUuid && conduitName) {
+				const labelParts = [conduitName];
+				if (conduitTypeName) {
+					labelParts.push(`- ${conduitTypeName}`);
+				}
+				labelParts.push(`(${m.form_conduit()})`);
+
+				results.push({
+					value: `${conduitUuid}`,
+					label: labelParts.join(' '),
+					type: 'conduit',
+					uuid: conduitUuid,
+					name: conduitName
 				});
 			}
 		});
@@ -154,5 +185,64 @@ export async function getFeatureDetailsByType(fetch, cookies, featureType, featu
 	} catch (err) {
 		console.error('Error fetching feature details:', err);
 		throw error(500, 'Failed to fetch feature details');
+	}
+}
+
+/**
+ * Get all trench geometries for a conduit (conduits span multiple trenches)
+ * @param {Function} fetch - SvelteKit fetch function
+ * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
+ * @param {string} conduitUuid - UUID of the conduit
+ * @returns {Promise<{success: boolean, trenches: any[], trenchUuids: string[]}>} Trench geometries and UUIDs
+ */
+export async function getTrenchGeometriesForConduit(fetch, cookies, conduitUuid) {
+	if (!conduitUuid) {
+		throw error(400, 'Conduit UUID is required');
+	}
+
+	try {
+		const trenchesResponse = await fetch(`${API_URL}conduit/${conduitUuid}/trenches/`, {
+			credentials: 'include',
+			headers: getAuthHeaders(cookies)
+		});
+
+		if (!trenchesResponse.ok) {
+			throw error(trenchesResponse.status, 'Failed to fetch trenches for conduit');
+		}
+
+		const { trench_uuids } = await trenchesResponse.json();
+
+		if (!trench_uuids || trench_uuids.length === 0) {
+			return { success: true, trenches: [], trenchUuids: [] };
+		}
+
+		const trenchPromises = trench_uuids.map((uuid) =>
+			fetch(`${API_URL}ol_trench/?uuid=${uuid}`, {
+				credentials: 'include',
+				headers: getAuthHeaders(cookies)
+			})
+		);
+
+		const trenchResponses = await Promise.all(trenchPromises);
+		const trenches = [];
+
+		for (const response of trenchResponses) {
+			if (response.ok) {
+				const data = await response.json();
+				const features = data.results?.features || data;
+				if (features && features.length > 0) {
+					trenches.push(features[0]);
+				}
+			}
+		}
+
+		return {
+			success: true,
+			trenches,
+			trenchUuids: trench_uuids
+		};
+	} catch (err) {
+		console.error('Error fetching trench geometries for conduit:', err);
+		throw error(500, 'Failed to fetch trench geometries for conduit');
 	}
 }

@@ -174,3 +174,79 @@ function highlightSearchTerm(text, searchTerm) {
 	const regex = new RegExp(`(${searchTerm})`, 'gi');
 	return text.replace(regex, '<mark>$1</mark>');
 }
+
+/**
+ * Parse multiple GeoJSON features to OpenLayers geometries
+ * @param {Object[]} features - Array of GeoJSON features from API
+ * @param {string} fromProjection - Source projection (default: 'EPSG:25832')
+ * @param {string} toProjection - Target projection (default: map projection)
+ * @returns {Promise<import('ol/geom/Geometry').default[]>} Array of OpenLayers geometries
+ */
+export async function parseMultipleFeatureGeometries(
+	features,
+	fromProjection = 'EPSG:25832',
+	toProjection = null
+) {
+	const geometries = await Promise.all(
+		features.map((feature) => parseFeatureGeometry(feature, fromProjection, toProjection))
+	);
+	return geometries;
+}
+
+/**
+ * Zooms the map to multiple features with animation and highlighting
+ * @param {import('ol/Map').default} map - OpenLayers map instance
+ * @param {import('ol/geom/Geometry').default[]} geometries - Array of geometries to zoom to
+ * @param {import('ol/layer/Vector').default} highlightLayer - Layer for highlighting
+ * @param {Object} options - Zoom options
+ * @param {number[]} options.padding - Padding around the features [top, right, bottom, left]
+ * @param {number} options.duration - Animation duration in ms
+ * @param {number} options.maxZoom - Maximum zoom level
+ * @param {number} options.blinkCount - Number of blinks for highlight
+ */
+export async function zoomToMultipleFeatures(map, geometries, highlightLayer, options = {}) {
+	const { padding = [50, 50, 50, 50], duration = 1000, maxZoom = 17, blinkCount = 6 } = options;
+
+	const [{ default: Feature }, { extend, createEmpty }] = await Promise.all([
+		import('ol/Feature'),
+		import('ol/extent')
+	]);
+
+	let combinedExtent = createEmpty();
+	geometries.forEach((geometry) => {
+		extend(combinedExtent, geometry.getExtent());
+	});
+
+	const view = map.getView();
+
+	view.fit(combinedExtent, {
+		duration: duration,
+		padding: padding,
+		maxZoom: maxZoom,
+		callback: () => {
+			if (highlightLayer) {
+				const highlightFeatures = geometries.map((g) => new Feature(g));
+				const source = highlightLayer.getSource();
+				let currentBlinkCount = 0;
+
+				const blinkInterval = setInterval(() => {
+					if (currentBlinkCount % 2 === 0) {
+						highlightFeatures.forEach((f) => source.addFeature(f));
+					} else {
+						highlightFeatures.forEach((f) => source.removeFeature(f));
+					}
+					currentBlinkCount++;
+
+					if (currentBlinkCount >= blinkCount) {
+						clearInterval(blinkInterval);
+						highlightFeatures.forEach((f) => {
+							if (!source.hasFeature(f)) {
+								source.addFeature(f);
+							}
+						});
+					}
+				}, 300);
+			}
+		}
+	});
+}
