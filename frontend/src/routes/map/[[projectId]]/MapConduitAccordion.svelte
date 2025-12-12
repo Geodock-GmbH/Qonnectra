@@ -2,7 +2,7 @@
 	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
-	import { IconMapPin, IconMinus, IconPlus } from '@tabler/icons-svelte';
+	import { IconHighlight, IconMinus, IconPlus } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -98,7 +98,7 @@
 								class="size-4 animate-spin border-2 border-current border-t-transparent rounded-full"
 							></span>
 						{:else}
-							<IconMapPin class="size-4" />
+							<IconHighlight class="size-4" />
 						{/if}
 					</button>
 					<Accordion.ItemIndicator class="group">
