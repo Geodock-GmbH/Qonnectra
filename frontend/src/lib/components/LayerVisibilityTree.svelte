@@ -4,9 +4,10 @@
 		IconChevronDown,
 		IconChevronRight,
 		IconChevronUp,
-		IconCircleLetterL,
 		IconEye,
-		IconEyeOff
+		IconEyeOff,
+		IconLabel,
+		IconLabelFilled
 	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -345,7 +346,7 @@
 						<!-- Expand/collapse button for node layer -->
 						{#if layerId === 'node-layer' && nodeTypes.length > 0}
 							<button
-								class="p-0.5 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
 								onclick={toggleNodeSubtypes}
 								aria-label={isNodeSubtypesExpanded ? 'Collapse node types' : 'Expand node types'}
 							>
@@ -357,7 +358,7 @@
 							</button>
 						{:else if layerId === 'trench-layer' && trenchTypes.length > 0}
 							<button
-								class="p-0.5 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
 								onclick={toggleTrenchSubtypes}
 								aria-label={isTrenchSubtypesExpanded
 									? 'Collapse trench types'
@@ -370,14 +371,16 @@
 								{/if}
 							</button>
 						{:else}
-							<span class="w-5 flex-shrink-0"></span>
+							<span class="w-5 h-5 flex-shrink-0"></span>
 						{/if}
 
-						{#if layerInfo.visible}
-							<IconEye size="18" class="text-primary-900-100 flex-shrink-0" />
-						{:else}
-							<IconEyeOff size="18" class="text-surface-900-100 flex-shrink-0" />
-						{/if}
+						<div class="flex items-center justify-center w-5 h-5 flex-shrink-0">
+							{#if layerInfo.visible}
+								<IconEye size="18" class="text-primary-900-100" />
+							{:else}
+								<IconEyeOff size="18" class="text-surface-900-100" />
+							{/if}
+						</div>
 						<span class="text-sm md:text-xs px-2 md:px-0 text-surface-contrast-100-900 truncate">
 							{layerInfo.name}
 						</span>
@@ -392,10 +395,11 @@
 								aria-label={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
 								title={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
 							>
-								<IconCircleLetterL
-									size="24"
-									class={isLabelEnabled(layerId) ? 'text-primary-500' : 'text-surface-400'}
-								/>
+								{#if isLabelEnabled(layerId)}
+									<IconLabelFilled size="24" class="text-primary-500" />
+								{:else}
+									<IconLabel size="24" class="text-surface-400" />
+								{/if}
 							</button>
 						{/if}
 
@@ -430,9 +434,9 @@
 									></span>
 
 									{#if visible}
-										<IconEye size="14" class="text-primary-900-100 flex-shrink-0" />
+										<IconEye size="18" class="text-primary-900-100 flex-shrink-0" />
 									{:else}
-										<IconEyeOff size="14" class="text-surface-900-100 flex-shrink-0" />
+										<IconEyeOff size="18" class="text-surface-900-100 flex-shrink-0" />
 									{/if}
 									<span
 										class="text-xs text-surface-contrast-100-900 truncate"
@@ -475,9 +479,9 @@
 									></span>
 
 									{#if visible}
-										<IconEye size="14" class="text-primary-900-100 flex-shrink-0" />
+										<IconEye size="18" class="text-primary-900-100 flex-shrink-0" />
 									{:else}
-										<IconEyeOff size="14" class="text-surface-900-100 flex-shrink-0" />
+										<IconEyeOff size="18" class="text-surface-900-100 flex-shrink-0" />
 									{/if}
 									<span class="text-xs text-surface-contrast-100-900 truncate" title={typeName}>
 										{typeName}

@@ -392,7 +392,7 @@
 										e.stopPropagation();
 										startEditing(node.fileData);
 									}}
-									class="btn-icon btn-sm preset-filled-primary-500"
+									class="btn-icon btn-sm preset-filled-warning-500"
 									title={m.action_rename()}
 								>
 									<IconEdit class="size-4" />

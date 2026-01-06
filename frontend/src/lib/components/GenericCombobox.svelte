@@ -105,8 +105,8 @@
 		<Combobox.Positioner>
 			<Combobox.Content class="{contentBase} {isOpen ? 'z-[100]' : `z-${zIndex}`}">
 				{#each items as item (item.value)}
-					<Combobox.Item {item}>
-						<Combobox.ItemText>{item.label}</Combobox.ItemText>
+					<Combobox.Item {item} class="text-surface-800-200">
+						<Combobox.ItemText class="text-surface-800-200">{item.label}</Combobox.ItemText>
 						<Combobox.ItemIndicator />
 					</Combobox.Item>
 				{/each}

@@ -122,8 +122,8 @@
 					class="z-50 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"
 				>
 					{#each items as item (item.value)}
-						<Combobox.Item {item}>
-							<Combobox.ItemText>{item.label}</Combobox.ItemText>
+						<Combobox.Item {item} class="text-surface-800-200">
+							<Combobox.ItemText class="text-surface-800-200">{item.label}</Combobox.ItemText>
 							<Combobox.ItemIndicator />
 						</Combobox.Item>
 					{/each}
