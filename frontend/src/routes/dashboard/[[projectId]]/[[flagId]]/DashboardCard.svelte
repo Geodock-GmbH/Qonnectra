@@ -2,14 +2,12 @@
 	let { title, children } = $props();
 </script>
 
-<div
-	class="card preset-filled-surface-100-900 border border-surface-200-800 shadow-lg overflow-hidden"
->
+<div class="card border-2 border-surface-200-800 shadow-lg overflow-hidden">
 	<!-- Title Bar -->
-	<div class="border-b border-surface-300-600 p-4">
-		<h2 class="h3 font-bold text-primary-900-100 flex items-center">
+	<div class="border-b-2 border-surface-200-800 p-4">
+		<h2 class="h3 font-bold text-primary-500 flex items-center">
 			<span>{title}</span>
-			<div class="flex-1 h-px bg-primary-900-100 ml-4"></div>
+			<div class="flex-1 h-px bg-primary-500 ml-4"></div>
 		</h2>
 	</div>
 

@@ -59,7 +59,7 @@
 						{:else}
 							{#each data.lengthByTypes as item (`${item.bauweise}-${item.oberfläche}`)}
 								<div
-									class="flex justify-between items-center p-3 bg-surface-100-900 rounded-lg border border-surface-800-200 hover:border-surface-200-800 hover:preset-filled-primary-500 transition-colors"
+									class="flex justify-between items-center p-3 rounded-lg border border-surface-200-800 hover:border-surface-200-800 hover:preset-filled-primary-500 transition-colors"
 								>
 									<div class="flex-1">
 										<div class="font-medium text-surface-900-100">
@@ -70,7 +70,7 @@
 										</div>
 									</div>
 									<div class="text-right">
-										<div class="font-bold text-lg text-primary-900-100">
+										<div class="font-bold text-lg text-primary-500">
 											{(item.gesamt_länge / 1000).toLocaleString('de-DE', {
 												minimumFractionDigits: 2,
 												maximumFractionDigits: 2
@@ -111,7 +111,7 @@
 						{:else}
 							{#each data.nodesByType as item (item.node_type)}
 								<div
-									class="flex justify-between items-center p-3 bg-surface-100-900 rounded-lg border border-surface-800-200 hover:border-surface-200-800 hover:preset-filled-primary-500 transition-colors"
+									class="flex justify-between items-center p-3 rounded-lg border border-surface-200-800 hover:border-surface-200-800 hover:preset-filled-primary-500 transition-colors"
 								>
 									<div class="flex-1">
 										<div class="font-medium text-surface-900-100">
@@ -119,7 +119,7 @@
 										</div>
 									</div>
 									<div class="text-right">
-										<div class="font-bold text-lg text-primary-900-100">
+										<div class="font-bold text-lg text-primary-500">
 											{item.count}x
 										</div>
 									</div>
