@@ -117,6 +117,7 @@
 	"form_housenumber": "Housenumber",
 	"form_house_number_suffix": "Suffix",
 	"form_internal_execution": "Internal execution",
+	"form_layer": "Layer",
 	"form_layer_visibility": "Layer visibility",
 	"form_left": "Left",
 	"form_length_by_construction_type": "Length by construction type",

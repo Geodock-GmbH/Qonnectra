@@ -1,5 +1,4 @@
 <script>
-	import { Switch } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconChevronDown,
 		IconChevronRight,
@@ -335,7 +334,7 @@
 >
 	<!-- Header with collapse functionality for mobile -->
 	<div class="flex items-center justify-between md:mb-2">
-		<p class="text-sm font-medium text-surface-contrast-100-900">{m.form_layer_visibility()}</p>
+		<p class="text-sm font-medium text-surface-contrast-100-900">{m.form_layer()}</p>
 
 		<!-- Mobile collapse button -->
 		<button
@@ -390,13 +389,6 @@
 							<span class="w-5 h-5 flex-shrink-0"></span>
 						{/if}
 
-						<div class="flex items-center justify-center w-5 h-5 flex-shrink-0">
-							{#if layerInfo.visible}
-								<IconEye size="18" class="text-primary-900-100" />
-							{:else}
-								<IconEyeOff size="18" class="text-surface-900-100" />
-							{/if}
-						</div>
 						<span class="text-sm md:text-xs px-2 md:px-0 text-surface-contrast-100-900 truncate">
 							{layerInfo.name}
 						</span>
@@ -431,17 +423,19 @@
 							</button>
 						{/if}
 
-						<Switch
-							name="layer-visibility-{layerId}"
-							size="sm"
-							checked={layerInfo.visible}
-							onCheckedChange={() => toggleLayerVisibility(layerId)}
+						<!-- Visibility toggle button -->
+						<button
+							class="p-1 rounded hover:bg-surface-200-700 transition-colors"
+							onclick={() => toggleLayerVisibility(layerId)}
+							aria-label={layerInfo.visible ? 'Hide layer' : 'Show layer'}
+							title={layerInfo.visible ? 'Hide layer' : 'Show layer'}
 						>
-							<Switch.Control>
-								<Switch.Thumb />
-							</Switch.Control>
-							<Switch.HiddenInput />
-						</Switch>
+							{#if layerInfo.visible}
+								<IconEye size="24" class="text-primary-500" />
+							{:else}
+								<IconEyeOff size="24" class="text-surface-400" />
+							{/if}
+						</button>
 					</div>
 				</div>
 
@@ -461,11 +455,6 @@
 										style="background-color: {color};"
 									></span>
 
-									{#if visible}
-										<IconEye size="18" class="text-primary-900-100 flex-shrink-0" />
-									{:else}
-										<IconEyeOff size="18" class="text-surface-900-100 flex-shrink-0" />
-									{/if}
 									<span
 										class="text-xs text-surface-contrast-100-900 truncate"
 										title={nodeType.node_type}
@@ -474,18 +463,18 @@
 									</span>
 								</div>
 
-								<Switch
-									name="node-type-visibility-{nodeType.id}"
-									size="sm"
-									checked={visible}
-									onCheckedChange={() => toggleNodeTypeVisibility(nodeType.node_type)}
-									class="flex-shrink-0"
+								<button
+									class="p-1 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+									onclick={() => toggleNodeTypeVisibility(nodeType.node_type)}
+									aria-label={visible ? 'Hide node type' : 'Show node type'}
+									title={visible ? 'Hide node type' : 'Show node type'}
 								>
-									<Switch.Control>
-										<Switch.Thumb />
-									</Switch.Control>
-									<Switch.HiddenInput />
-								</Switch>
+									{#if visible}
+										<IconEye size="24" class="text-primary-500" />
+									{:else}
+										<IconEyeOff size="24" class="text-surface-400" />
+									{/if}
+								</button>
 							</div>
 						{/each}
 					</div>
@@ -506,28 +495,23 @@
 									<span class="w-4 h-1 flex-shrink-0 rounded-sm" style="background-color: {color};"
 									></span>
 
-									{#if visible}
-										<IconEye size="18" class="text-primary-900-100 flex-shrink-0" />
-									{:else}
-										<IconEyeOff size="18" class="text-surface-900-100 flex-shrink-0" />
-									{/if}
 									<span class="text-xs text-surface-contrast-100-900 truncate" title={typeName}>
 										{typeName}
 									</span>
 								</div>
 
-								<Switch
-									name="trench-type-visibility-{trenchType.id}"
-									size="sm"
-									checked={visible}
-									onCheckedChange={() => toggleTrenchTypeVisibility(typeName)}
-									class="flex-shrink-0"
+								<button
+									class="p-1 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+									onclick={() => toggleTrenchTypeVisibility(typeName)}
+									aria-label={visible ? 'Hide trench type' : 'Show trench type'}
+									title={visible ? 'Hide trench type' : 'Show trench type'}
 								>
-									<Switch.Control>
-										<Switch.Thumb />
-									</Switch.Control>
-									<Switch.HiddenInput />
-								</Switch>
+									{#if visible}
+										<IconEye size="24" class="text-primary-500" />
+									{:else}
+										<IconEyeOff size="24" class="text-surface-400" />
+									{/if}
+								</button>
 							</div>
 						{/each}
 					</div>
