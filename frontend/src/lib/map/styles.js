@@ -325,6 +325,22 @@ export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
 }
 
 /**
+ * Creates a style for highlighting linked trenches
+ * Uses a dashed stroke to differentiate from solid selection
+ * @param {string} color - The color for the linked trench style (default: skeleton secondary-500)
+ * @returns {Style}
+ */
+export function createLinkedTrenchStyle(color = '#06b6d4') {
+	return new Style({
+		stroke: new Stroke({
+			color: color,
+			width: 5,
+			lineDash: [8, 4]
+		})
+	});
+}
+
+/**
  * Creates a style function for trench features with per-attribute styling
  * @param {Object} attributeStyles - Object mapping attribute values to style config
  *   { [attribute_value]: { color: '#hex', visible: boolean } }

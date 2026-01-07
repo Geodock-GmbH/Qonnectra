@@ -1,5 +1,6 @@
 <script>
 	import { onMount, setContext } from 'svelte';
+	import { get } from 'svelte/store';
 	import { page } from '$app/stores';
 
 	import { m } from '$lib/paraglide/messages';
@@ -22,7 +23,6 @@
 		trenchStyleMode,
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
-	import { get } from 'svelte/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
 	import MapDrawerTabs from './MapDrawerTabs.svelte';

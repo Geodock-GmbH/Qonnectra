@@ -35,7 +35,7 @@
 	});
 
 	$effect(() => {
-		if (!canvas || !data || data.length === 0) return;
+		if (!canvas || !data || data.length === 0 || data.every((item) => !item.value)) return;
 
 		// Re-render chart when theme changes (themeMode is a dependency)
 		themeMode;
@@ -162,7 +162,13 @@
 	<!-- Chart Container -->
 	<div class="p-6">
 		<div class="relative" style="height: 300px;">
-			<canvas bind:this={canvas}></canvas>
+			{#if !data || data.length === 0 || data.every((item) => !item.value)}
+				<div class="flex items-center justify-center h-full text-surface-500">
+					{m.form_no_data_available()}
+				</div>
+			{:else}
+				<canvas bind:this={canvas}></canvas>
+			{/if}
 		</div>
 	</div>
 </div>

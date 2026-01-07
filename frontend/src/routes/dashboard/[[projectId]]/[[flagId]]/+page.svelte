@@ -70,7 +70,7 @@
 										</div>
 									</div>
 									<div class="text-right">
-										<div class="font-bold text-lg text-primary-500">
+										<div class="font-bold text-lg text-surface-900-100">
 											{(item.gesamt_länge / 1000).toLocaleString('de-DE', {
 												minimumFractionDigits: 2,
 												maximumFractionDigits: 2
@@ -119,7 +119,7 @@
 										</div>
 									</div>
 									<div class="text-right">
-										<div class="font-bold text-lg text-primary-500">
+										<div class="font-bold text-lg text-surface-900-100">
 											{item.count}x
 										</div>
 									</div>

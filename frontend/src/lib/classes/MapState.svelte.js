@@ -70,7 +70,12 @@ export class MapState {
 	 * @param {Object} layerConfig - Configuration for which layers to load (optional)
 	 * @param {Object} labelConfig - Configuration for text labels on layers (optional)
 	 */
-	constructor(selectedProject, selectedColor = DEFAULT_SELECTED_COLOR, layerConfig = null, labelConfig = null) {
+	constructor(
+		selectedProject,
+		selectedColor = DEFAULT_SELECTED_COLOR,
+		layerConfig = null,
+		labelConfig = null
+	) {
 		this.selectedProject = selectedProject;
 		this.selectedColor = selectedColor;
 

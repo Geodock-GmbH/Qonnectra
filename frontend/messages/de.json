@@ -178,6 +178,7 @@
 	"form_routing_mode": "Routing-Modus",
 	"form_select_exactly_2_nodes": "Bitte wählen Sie genau 2 Knoten aus",
 	"form_select_files_or_drag": "Dateien auswählen oder hierher ziehen",
+	"form_show_linked_trenches": "Trassenverbindungen anzeigen",
 	"form_source": "Quelle",
 	"form_status": "Status",
 	"form_status_development": "Ausbaustatus",

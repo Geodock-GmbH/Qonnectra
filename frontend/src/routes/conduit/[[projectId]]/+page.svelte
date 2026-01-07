@@ -4,7 +4,7 @@
 	import { goto, invalidate } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
 	import { FileUpload } from '@skeletonlabs/skeleton-svelte';
-	import { IconDownload, IconUpload, IconLoader2 } from '@tabler/icons-svelte';
+	import { IconDownload, IconLoader2, IconUpload } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -157,7 +157,9 @@
 </svelte:head>
 
 <div class="relative flex gap-4 h-full overflow-hidden">
-	<div class="flex-1 flex flex-col overflow-hidden h-full border-2 rounded-lg border-surface-200-800 p-4">
+	<div
+		class="flex-1 flex flex-col overflow-hidden h-full border-2 rounded-lg border-surface-200-800 p-4"
+	>
 		<div class="flex justify-between items-center">
 			<div class="flex items-center">
 				<nav

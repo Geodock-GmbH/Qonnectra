@@ -25,6 +25,7 @@
 		selectedConduit,
 		selectedFlag,
 		selectedProject,
+		showLinkedTrenches,
 		trenchColor,
 		trenchColorSelected,
 		trenchConstructionTypeStyles,
@@ -37,9 +38,12 @@
 
 	import 'ol/ol.css';
 
+	import VectorTileLayer from 'ol/layer/VectorTile.js';
 	import VectorSource from 'ol/source/Vector.js';
 	import { Circle as CircleStyle, Style } from 'ol/style';
 	import Stroke from 'ol/style/Stroke.js';
+
+	import { createLinkedTrenchStyle } from '$lib/map/styles.js';
 
 	let { data } = $props();
 
@@ -53,6 +57,8 @@
 
 	let routeLayer = $state();
 	let highlightLayer = $state();
+	let linkedTrenchesLayer = $state();
+	let linkedTrenchUuids = $state(new Set());
 	let startTrenchId = $state(null);
 	let endTrenchId = $state(null);
 	let trenchTableInstance;
@@ -62,6 +68,18 @@
 	 */
 	async function handleFlagChange() {
 		$selectedConduit = undefined;
+	}
+
+	/**
+	 * Handles changes to the trench connections list
+	 * Updates the linked trenches UUIDs for highlighting
+	 * @param {Array} trenches - Array of trench connection objects
+	 */
+	function handleTrenchesChange(trenches) {
+		linkedTrenchUuids = new Set(trenches.map((t) => t.trench));
+		if (linkedTrenchesLayer) {
+			linkedTrenchesLayer.changed();
+		}
 	}
 
 	/**
@@ -201,6 +219,21 @@
 
 		const selectionLayers = mapState.getSelectionLayers();
 		selectionLayers.forEach((layer) => selectionManager.registerSelectionLayer(layer));
+
+		// Create linked trenches highlight layer
+		const linkedTrenchStyle = createLinkedTrenchStyle();
+		linkedTrenchesLayer = new VectorTileLayer({
+			renderMode: 'vector',
+			source: mapState.vectorTileLayer.getSource(),
+			style: function (feature) {
+				if (feature.getId() && linkedTrenchUuids.has(feature.getId())) {
+					return linkedTrenchStyle;
+				}
+				return undefined;
+			},
+			visible: $showLinkedTrenches
+		});
+		mapState.olMap.addLayer(linkedTrenchesLayer);
 
 		routeLayer = new VectorLayer({
 			source: new VectorSource(),
@@ -388,6 +421,13 @@
 		}
 	});
 
+	// Toggle linked trenches layer visibility
+	$effect(() => {
+		if (linkedTrenchesLayer) {
+			linkedTrenchesLayer.setVisible($showLinkedTrenches);
+		}
+	});
+
 	/**
 	 * Cleanup on component destroy
 	 */
@@ -396,6 +436,7 @@
 			if (mapState.olMap) {
 				if (routeLayer) mapState.olMap.removeLayer(routeLayer);
 				if (highlightLayer) mapState.olMap.removeLayer(highlightLayer);
+				if (linkedTrenchesLayer) mapState.olMap.removeLayer(linkedTrenchesLayer);
 			}
 
 			mapState.cleanup();
@@ -403,6 +444,7 @@
 
 			routeLayer = undefined;
 			highlightLayer = undefined;
+			linkedTrenchesLayer = undefined;
 		};
 	});
 </script>
@@ -449,6 +491,23 @@
 					</Switch>
 				</div>
 
+				<!-- Show Linked Trenches Toggle -->
+				<div class="flex items-center justify-between bg-surface-50-900 rounded-lg">
+					<h3 class="text-sm font-medium">{m.form_show_linked_trenches()}</h3>
+					<Switch
+						name="show-linked-trenches"
+						checked={$showLinkedTrenches}
+						onCheckedChange={() => {
+							$showLinkedTrenches = !$showLinkedTrenches;
+						}}
+					>
+						<Switch.Control>
+							<Switch.Thumb />
+						</Switch.Control>
+						<Switch.HiddenInput />
+					</Switch>
+				</div>
+
 				<!-- Flag Selection -->
 				<div class="space-y-2">
 					<h3 class="text-sm font-medium">{m.form_flag()}</h3>
@@ -478,6 +537,7 @@
 					projectId={$selectedProject}
 					conduitId={$selectedConduit}
 					onTrenchClick={handleTrenchClick}
+					onTrenchesChange={handleTrenchesChange}
 					bind:this={trenchTableInstance}
 				/>
 			</div>

@@ -8,7 +8,7 @@
 	import { selectedFlag } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
-	let { projectId, conduitId, onTrenchClick } = $props();
+	let { projectId, conduitId, onTrenchClick, onTrenchesChange } = $props();
 
 	let trenches = $state([]);
 	let trenchesError = $state(null);
@@ -52,6 +52,8 @@
 		} finally {
 			loading = false;
 			updateCount();
+			// Notify parent of trenches change for linked trenches highlight
+			onTrenchesChange?.(trenches);
 		}
 	}
 

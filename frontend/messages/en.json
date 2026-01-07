@@ -178,6 +178,7 @@
 	"form_routing_mode": "Routing mode",
 	"form_select_exactly_2_nodes": "Please select exactly 2 nodes",
 	"form_select_files_or_drag": "Select files or drag here",
+	"form_show_linked_trenches": "Show trench connections",
 	"form_source": "Source",
 	"form_status": "Status",
 	"form_status_development": "Status development",
