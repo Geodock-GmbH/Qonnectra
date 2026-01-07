@@ -189,13 +189,13 @@ export async function getFeatureDetailsByType(fetch, cookies, featureType, featu
 }
 
 /**
- * Get all trench geometries for a conduit (conduits span multiple trenches)
+ * Get all trench UUIDs for a conduit (conduits span multiple trenches)
  * @param {Function} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} conduitUuid - UUID of the conduit
- * @returns {Promise<{success: boolean, trenches: any[], trenchUuids: string[]}>} Trench geometries and UUIDs
+ * @returns {Promise<{success: boolean, trenchUuids: string[]}>} Trench UUIDs
  */
-export async function getTrenchGeometriesForConduit(fetch, cookies, conduitUuid) {
+export async function getTrenchUuidsForConduit(fetch, cookies, conduitUuid) {
 	if (!conduitUuid) {
 		throw error(400, 'Conduit UUID is required');
 	}
@@ -212,38 +212,13 @@ export async function getTrenchGeometriesForConduit(fetch, cookies, conduitUuid)
 
 		const { trench_uuids } = await trenchesResponse.json();
 
-		if (!trench_uuids || trench_uuids.length === 0) {
-			return { success: true, trenches: [], trenchUuids: [] };
-		}
-
-		const trenchPromises = trench_uuids.map((uuid) =>
-			fetch(`${API_URL}ol_trench/?uuid=${uuid}`, {
-				credentials: 'include',
-				headers: getAuthHeaders(cookies)
-			})
-		);
-
-		const trenchResponses = await Promise.all(trenchPromises);
-		const trenches = [];
-
-		for (const response of trenchResponses) {
-			if (response.ok) {
-				const data = await response.json();
-				const features = data.results?.features || data;
-				if (features && features.length > 0) {
-					trenches.push(features[0]);
-				}
-			}
-		}
-
 		return {
 			success: true,
-			trenches,
-			trenchUuids: trench_uuids
+			trenchUuids: trench_uuids || []
 		};
 	} catch (err) {
-		console.error('Error fetching trench geometries for conduit:', err);
-		throw error(500, 'Failed to fetch trench geometries for conduit');
+		console.error('Error fetching trench UUIDs for conduit:', err);
+		throw error(500, 'Failed to fetch trench UUIDs for conduit');
 	}
 }
 

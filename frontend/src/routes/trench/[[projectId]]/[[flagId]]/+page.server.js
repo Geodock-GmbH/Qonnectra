@@ -8,7 +8,7 @@ import { getPipesInTrench, getTrenchesForConduit } from '$lib/server/conduitData
 import {
 	getFeatureDetailsByType,
 	getLayerExtent,
-	getTrenchGeometriesForConduit,
+	getTrenchUuidsForConduit,
 	searchFeaturesInProject
 } from '$lib/server/featureSearch';
 
@@ -303,7 +303,7 @@ export const actions = {
 		const formData = await request.formData();
 		const conduitUuid = formData.get('conduitUuid');
 
-		return getTrenchGeometriesForConduit(fetch, cookies, conduitUuid);
+		return getTrenchUuidsForConduit(fetch, cookies, conduitUuid);
 	},
 	getLayerExtent: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
