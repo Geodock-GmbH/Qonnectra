@@ -71,25 +71,30 @@
 		}
 	});
 
+	// Define layer display order priority (lower number = higher priority)
+	const LAYER_ORDER = {
+		'address-layer': 1,
+		'node-layer': 2,
+		'trench-layer': 3
+	};
+
 	// Update layer visibility when layers change
 	$effect(() => {
 		const newVisibility = new Map();
 
-		layers.forEach((layer, index) => {
+		// Sort layers by display order: Address first, then node, then trench
+		const sortedLayers = [...layers].sort((a, b) => {
+			const aId = a.get('layerId');
+			const bId = b.get('layerId');
+			const aOrder = LAYER_ORDER[aId] ?? 999;
+			const bOrder = LAYER_ORDER[bId] ?? 999;
+			return aOrder - bOrder;
+		});
+
+		// Build visibility map from sorted layers
+		for (const layer of sortedLayers) {
 			const layerId = layer.get('layerId');
 			const layerName = layer.get('layerName');
-
-			// Change layer order for the visibility tree
-			// Address first, then node, then trench
-			if (layerId === 'address-layer') {
-				layers.splice(index, 1);
-				layers.unshift(layer);
-			} else if (layerId === 'node-layer') {
-				layers.splice(index, 1);
-				layers.splice(index, 0, layer);
-			} else if (layerId === 'trench-layer') {
-				layers.splice(index, 1);
-			}
 
 			if (layerId && layerName) {
 				newVisibility.set(layerId, {
@@ -98,7 +103,7 @@
 					name: layerName
 				});
 			}
-		});
+		}
 
 		// Add OSM layer if provided
 		if (osmLayer) {
