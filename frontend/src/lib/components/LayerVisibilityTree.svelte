@@ -79,6 +79,18 @@
 			const layerId = layer.get('layerId');
 			const layerName = layer.get('layerName');
 
+			// Change layer order for the visibility tree
+			// Address first, then node, then trench
+			if (layerId === 'address-layer') {
+				layers.splice(index, 1);
+				layers.unshift(layer);
+			} else if (layerId === 'node-layer') {
+				layers.splice(index, 1);
+				layers.splice(index, 0, layer);
+			} else if (layerId === 'trench-layer') {
+				layers.splice(index, 1);
+			}
+
 			if (layerId && layerName) {
 				newVisibility.set(layerId, {
 					layer: layer,
