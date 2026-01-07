@@ -2,7 +2,8 @@
 	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
 	import { browser } from '$app/environment';
 
-	import { mapCenter, mapZoom } from '$lib/stores/store';
+	import { mapCenter, mapZoom, selectedProject } from '$lib/stores/store';
+	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 
 	import LayerVisibilityTree from './LayerVisibilityTree.svelte';
 	import OpacitySlider from './OpacitySlider.svelte';
@@ -152,6 +153,12 @@
 		onSearchError(error);
 	}
 
+	// Create zoom to layer extent handler using utility function
+	const handleZoomToExtent = createZoomToLayerExtentHandler(
+		() => map,
+		() => $selectedProject
+	);
+
 	// Expose searchPanelRef to parent component
 	export function getSearchPanelRef() {
 		return searchPanelRef;
@@ -181,6 +188,7 @@
 					onNodeTypeVisibilityChanged={handleNodeTypeVisibilityChange}
 					onTrenchTypeVisibilityChanged={handleTrenchTypeVisibilityChange}
 					onLabelVisibilityChanged={handleLabelVisibilityChange}
+					onZoomToExtent={handleZoomToExtent}
 				/>
 			{/if}
 			{#if showOpacitySlider && map}
@@ -234,6 +242,7 @@
 					onNodeTypeVisibilityChanged={handleNodeTypeVisibilityChange}
 					onTrenchTypeVisibilityChanged={handleTrenchTypeVisibilityChange}
 					onLabelVisibilityChanged={handleLabelVisibilityChange}
+					onZoomToExtent={handleZoomToExtent}
 				/>
 			</div>
 		{/if}

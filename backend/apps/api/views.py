@@ -2779,3 +2779,88 @@ class FrontendLogView(APIView):
                 {"error": "Failed to create log entry"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class LayerExtentView(APIView):
+    """
+    API view to get the bounding box extent for a layer type.
+
+    Returns the extent in EPSG:3857 (Web Mercator) for direct use by OpenLayers.
+    Uses PostGIS ST_Extent for efficient bounding box calculation.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, format=None):
+        """
+        Returns the bounding box extent for a layer filtered by project.
+
+        Query Parameters:
+        - `layer`: Layer type ('trench', 'address', or 'node') - required
+        - `project`: Project ID to filter by - required
+
+        Returns:
+        - extent: [xmin, ymin, xmax, ymax] in EPSG:3857, or null if no features
+        - layer: The requested layer type
+        """
+        layer = request.query_params.get("layer")
+        project = request.query_params.get("project")
+
+        if not layer or not project:
+            return Response(
+                {"error": "Both 'layer' and 'project' parameters are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        layer_tables = {
+            "trench": "ol_trench",
+            "address": "ol_address",
+            "node": "ol_node",
+        }
+
+        if layer not in layer_tables:
+            return Response(
+                {"error": f"Invalid layer. Must be one of: {', '.join(layer_tables.keys())}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            project_id = int(project)
+        except ValueError:
+            return Response(
+                {"error": "Project must be a numeric value"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        sql = f"""
+            SELECT
+                ST_XMin(extent), ST_YMin(extent),
+                ST_XMax(extent), ST_YMax(extent)
+            FROM (
+                SELECT ST_Extent(ST_Transform(geom, 3857)) as extent
+                FROM {layer_tables[layer]}
+                WHERE project = %(project)s
+            ) as bounds
+        """
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(sql, {"project": project_id})
+                row = cursor.fetchone()
+
+            if row and row[0] is not None:
+                return Response({
+                    "extent": [row[0], row[1], row[2], row[3]],
+                    "layer": layer,
+                })
+            return Response({
+                "extent": None,
+                "layer": layer,
+            })
+
+        except Exception as e:
+            logger.error(f"Error fetching layer extent: {e}")
+            return Response(
+                {"error": "Failed to calculate layer extent"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

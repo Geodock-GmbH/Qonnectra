@@ -1,7 +1,6 @@
 <script>
 	import { onMount, setContext } from 'svelte';
 	import { get } from 'svelte/store';
-	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
@@ -16,6 +15,7 @@
 	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import { zoomToFeature } from '$lib/map/searchUtils.js';
+	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 	import {
 		addressStyle,
 		labelVisibilityConfig,
@@ -262,6 +262,12 @@
 		mapState.olMap.on('click', handleMapClick);
 	}
 
+	// Create zoom to layer extent handler using utility function
+	const handleZoomToExtent = createZoomToLayerExtentHandler(
+		() => mapState.olMap,
+		() => $selectedProject
+	);
+
 	/**
 	 * Handle map click events for routing and trench selection
 	 * @param {Object} event - OpenLayers map click event
@@ -468,6 +474,7 @@
 					trenchColorSelected: $trenchColorSelected,
 					alias: data.alias
 				}}
+				onZoomToExtent={handleZoomToExtent}
 			/>
 		{:else}
 			<div class="p-4 text-yellow-700 bg-yellow-100 border border-yellow-400 rounded">

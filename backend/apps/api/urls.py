@@ -24,6 +24,7 @@ from .views import (
     FeatureFilesViewSet,
     FlagsViewSet,
     FrontendLogView,
+    LayerExtentView,
     LogEntryViewSet,
     MicroductCableConnectionViewSet,
     MicroductConnectionViewSet,
@@ -190,5 +191,10 @@ urlpatterns = [
         "auth/qgis-auth/",
         QGISAuthView.as_view(),
         name="qgis-auth",
+    ),
+    path(
+        "layer-extent/",
+        LayerExtentView.as_view(),
+        name="layer-extent",
     ),
 ]

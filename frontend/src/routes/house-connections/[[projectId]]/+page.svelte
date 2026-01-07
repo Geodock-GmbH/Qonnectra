@@ -23,6 +23,7 @@
 		trenchStyleMode,
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
+	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 
 	import HouseConnectionDrawerTabs from './HouseConnectionDrawerTabs.svelte';
 
@@ -112,6 +113,12 @@
 		interactionManager.initialize(olMapInstance, layers, searchPanelRef);
 	}
 
+	// Create zoom to layer extent handler using utility function
+	const handleZoomToExtent = createZoomToLayerExtentHandler(
+		() => mapState.olMap,
+		() => $selectedProject
+	);
+
 	/**
 	 * Update search panel reference when map component provides it
 	 */
@@ -183,6 +190,7 @@
 						alias: data.alias
 					}}
 					bind:this={mapRef}
+					onZoomToExtent={handleZoomToExtent}
 				/>
 				<div id="popup" class="ol-popup bg-primary-500 rounded-lg border-2 border-primary-600">
 					<!-- svelte-ignore a11y_invalid_attribute -->

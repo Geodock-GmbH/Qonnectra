@@ -7,6 +7,7 @@ import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 import { getPipesInTrench, getTrenchesForConduit } from '$lib/server/conduitData';
 import {
 	getFeatureDetailsByType,
+	getLayerExtent,
 	getTrenchGeometriesForConduit,
 	searchFeaturesInProject
 } from '$lib/server/featureSearch';
@@ -303,5 +304,12 @@ export const actions = {
 		const conduitUuid = formData.get('conduitUuid');
 
 		return getTrenchGeometriesForConduit(fetch, cookies, conduitUuid);
+	},
+	getLayerExtent: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const layerType = formData.get('layerType');
+		const projectId = formData.get('projectId');
+
+		return getLayerExtent(fetch, cookies, layerType, projectId);
 	}
 };

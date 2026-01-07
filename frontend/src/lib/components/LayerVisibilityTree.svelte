@@ -7,7 +7,8 @@
 		IconEye,
 		IconEyeOff,
 		IconLabel,
-		IconLabelFilled
+		IconLabelFilled,
+		IconZoomScan
 	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -30,7 +31,8 @@
 		onLayerVisibilityChanged = () => {},
 		onNodeTypeVisibilityChanged = () => {},
 		onTrenchTypeVisibilityChanged = () => {},
-		onLabelVisibilityChanged = () => {}
+		onLabelVisibilityChanged = () => {},
+		onZoomToExtent = () => {}
 	} = $props();
 
 	let layerVisibility = $state(new Map());
@@ -282,6 +284,20 @@
 	}
 
 	/**
+	 * Map layer ID to API layer type for extent endpoint
+	 * @param {string} layerId - The layer ID
+	 * @returns {string|null} The API layer type or null if not supported
+	 */
+	function getExtentLayerType(layerId) {
+		const mapping = {
+			'trench-layer': 'trench',
+			'address-layer': 'address',
+			'node-layer': 'node'
+		};
+		return mapping[layerId] || null;
+	}
+
+	/**
 	 * Check if labels are enabled for a layer
 	 * @param {string} layerId - The layer ID
 	 * @returns {boolean} True if labels are enabled
@@ -387,6 +403,18 @@
 					</div>
 
 					<div class="flex items-center gap-1 flex-shrink-0">
+						<!-- Zoom to extent button - only for trench, address, node layers -->
+						{#if getExtentLayerType(layerId)}
+							<button
+								class="p-1 rounded hover:bg-surface-200-700 transition-colors"
+								onclick={() => onZoomToExtent({ layerId, layerType: getExtentLayerType(layerId) })}
+								aria-label="Zoom to layer extent"
+								title="Zoom to layer extent"
+							>
+								<IconZoomScan size="24" class="text-surface-500 hover:text-primary-500" />
+							</button>
+						{/if}
+
 						<!-- Label toggle button - only for trench, address, node layers -->
 						{#if getLabelConfigKey(layerId)}
 							<button

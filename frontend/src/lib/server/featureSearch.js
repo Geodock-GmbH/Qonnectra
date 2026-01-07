@@ -246,3 +246,36 @@ export async function getTrenchGeometriesForConduit(fetch, cookies, conduitUuid)
 		throw error(500, 'Failed to fetch trench geometries for conduit');
 	}
 }
+
+/**
+ * Get the bounding box extent for a layer type
+ * @param {Function} fetch - SvelteKit fetch function
+ * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
+ * @param {string} layerType - Type of layer ('trench', 'address', 'node')
+ * @param {string} projectId - The project ID
+ * @returns {Promise<{extent: number[]|null, layer: string}>} Layer extent in EPSG:3857
+ */
+export async function getLayerExtent(fetch, cookies, layerType, projectId) {
+	if (!layerType || !projectId) {
+		throw error(400, 'Layer type and project ID are required');
+	}
+
+	try {
+		const response = await fetch(
+			`${API_URL}layer-extent/?layer=${encodeURIComponent(layerType)}&project=${projectId}`,
+			{
+				credentials: 'include',
+				headers: getAuthHeaders(cookies)
+			}
+		);
+
+		if (!response.ok) {
+			throw error(response.status, 'Failed to fetch layer extent');
+		}
+
+		return response.json();
+	} catch (err) {
+		console.error('Error fetching layer extent:', err);
+		throw error(500, 'Failed to fetch layer extent');
+	}
+}

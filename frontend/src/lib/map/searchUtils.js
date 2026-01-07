@@ -194,6 +194,22 @@ export async function parseMultipleFeatureGeometries(
 }
 
 /**
+ * Zooms the map to a bounding box extent with animation
+ * @param {import('ol/Map').default} map - OpenLayers map instance
+ * @param {number[]} extent - Bounding box [xmin, ymin, xmax, ymax] in EPSG:3857
+ * @param {Object} options - Zoom options
+ * @param {number[]} options.padding - Padding around the extent [top, right, bottom, left]
+ * @param {number} options.duration - Animation duration in ms
+ * @param {number} options.maxZoom - Maximum zoom level
+ */
+export function zoomToExtent(map, extent, options = {}) {
+	const { padding = [50, 50, 50, 50], duration = 800, maxZoom = 18 } = options;
+
+	const view = map.getView();
+	view.fit(extent, { duration, padding, maxZoom });
+}
+
+/**
  * Zooms the map to multiple features with animation and highlighting
  * @param {import('ol/Map').default} map - OpenLayers map instance
  * @param {import('ol/geom/Geometry').default[]} geometries - Array of geometries to zoom to
