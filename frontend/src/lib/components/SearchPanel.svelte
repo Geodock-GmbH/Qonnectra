@@ -207,11 +207,6 @@
 					maxZoom: 17
 				});
 
-				// Also use selectionManager for persistent layer highlighting (if available)
-				if (selectionManager && parsedData.trenchUuids) {
-					selectionManager.selectMultipleFeatures(parsedData.trenchUuids);
-				}
-
 				// Clear search state
 				searchQuery = '';
 				searchResults = [];

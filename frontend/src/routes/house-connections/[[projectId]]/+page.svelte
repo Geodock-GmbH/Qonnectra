@@ -30,6 +30,8 @@
 
 	/** @type {import('./$types').PageData} */
 	let { data } = $props();
+	let mapRef = $state();
+	let searchPanelRef = $state();
 
 	// Initialize managers
 	const mapState = new MapState($selectedProject, get(trenchColorSelected), {
@@ -107,8 +109,20 @@
 
 		// Initialize interaction handlers
 		const layers = mapState.getLayerReferences();
-		interactionManager.initialize(olMapInstance, layers);
+		interactionManager.initialize(olMapInstance, layers, searchPanelRef);
 	}
+
+	/**
+	 * Update search panel reference when map component provides it
+	 */
+	$effect(() => {
+		if (mapRef && mapRef.getSearchPanelRef) {
+			searchPanelRef = mapRef.getSearchPanelRef();
+			if (searchPanelRef) {
+				interactionManager.setSearchPanelRef(searchPanelRef);
+			}
+		}
+	});
 
 	// Update label visibility when labelVisibilityConfig changes
 	$effect(() => {
@@ -164,6 +178,11 @@
 					surfaces={data.surfaces ?? []}
 					constructionTypes={data.constructionTypes ?? []}
 					on:ready={handleMapReady}
+					searchPanelProps={{
+						trenchColorSelected: $trenchColorSelected,
+						alias: data.alias
+					}}
+					bind:this={mapRef}
 				/>
 				<div id="popup" class="ol-popup bg-primary-500 rounded-lg border-2 border-primary-600">
 					<!-- svelte-ignore a11y_invalid_attribute -->

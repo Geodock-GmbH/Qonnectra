@@ -462,8 +462,12 @@
 				className="rounded-lg overflow-hidden h-full w-full"
 				layers={mapState.getLayers()}
 				showLayerVisibilityTree={true}
-				showSearchPanel={false}
+				showSearchPanel={true}
 				on:ready={handleMapReady}
+				searchPanelProps={{
+					trenchColorSelected: $trenchColorSelected,
+					alias: data.alias
+				}}
 			/>
 		{:else}
 			<div class="p-4 text-yellow-700 bg-yellow-100 border border-yellow-400 rounded">

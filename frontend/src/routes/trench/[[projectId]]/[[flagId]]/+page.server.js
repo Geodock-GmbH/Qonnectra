@@ -4,6 +4,12 @@ import { API_URL } from '$env/static/private';
 import { m } from '$lib/paraglide/messages';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
+import { getPipesInTrench, getTrenchesForConduit } from '$lib/server/conduitData';
+import {
+	getFeatureDetailsByType,
+	getTrenchGeometriesForConduit,
+	searchFeaturesInProject
+} from '$lib/server/featureSearch';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ fetch, params, depends, cookies }) {
@@ -240,5 +246,62 @@ export const actions = {
 			console.error('Error creating trench connection:', err);
 			return fail(500, { error: 'Failed to create trench connection' });
 		}
+	},
+
+	/**
+	 * Searches for features in a project by query
+	 * @type {import('./$types').Action}
+	 */
+	searchFeatures: async ({ request, fetch, cookies }) => {
+		const data = await request.formData();
+		const searchQuery = data.get('searchQuery');
+		const projectId = data.get('projectId');
+
+		return searchFeaturesInProject(fetch, cookies, searchQuery, projectId);
+	},
+
+	/**
+	 * Gets feature details by type and UUID
+	 * @type {import('./$types').Action}
+	 */
+	getFeatureDetails: async ({ request, fetch, cookies }) => {
+		const data = await request.formData();
+		const featureType = data.get('featureType');
+		const featureUuid = data.get('featureUuid');
+
+		return getFeatureDetailsByType(fetch, cookies, featureType, featureUuid);
+	},
+
+	/**
+	 * Gets all pipes/conduits in a specific trench
+	 * @type {import('./$types').Action}
+	 */
+	getPipesInTrench: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const trenchId = formData.get('uuid');
+
+		return getPipesInTrench(fetch, cookies, trenchId);
+	},
+
+	/**
+	 * Gets all trenches containing a specific conduit
+	 * @type {import('./$types').Action}
+	 */
+	getTrenchesForConduit: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const conduitId = formData.get('uuid');
+
+		return getTrenchesForConduit(fetch, cookies, conduitId);
+	},
+
+	/**
+	 * Gets trench geometries for a conduit (for map highlighting)
+	 * @type {import('./$types').Action}
+	 */
+	getConduitTrenches: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const conduitUuid = formData.get('conduitUuid');
+
+		return getTrenchGeometriesForConduit(fetch, cookies, conduitUuid);
 	}
 };
