@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
+	import VectorTileLayer from 'ol/layer/VectorTile.js';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -11,6 +12,7 @@
 	import { NodeAssignmentManager } from '$lib/classes/NodeAssignmentManager.svelte.js';
 	import Drawer from '$lib/components/Drawer.svelte';
 	import Map from '$lib/components/Map.svelte';
+	import { createLinkedTrenchStyle } from '$lib/map/styles.js';
 	import { drawerStore } from '$lib/stores/drawer';
 	import {
 		addressStyle,
@@ -33,6 +35,12 @@
 	let { data } = $props();
 	let mapRef = $state();
 	let searchPanelRef = $state();
+
+	// Linked trenches highlighting state
+	let linkedTrenchesLayer = $state();
+	let linkedTrenchUuids = $state(new Set());
+	/** @type {Object<string, Set<string>>} Object of conduitId to Set of trenchUuids */
+	let highlightsByConduit = {};
 
 	// Initialize managers
 	const mapState = new MapState($selectedProject, get(trenchColorSelected), {
@@ -58,7 +66,52 @@
 
 	// Initialize NodeAssignmentManager and pass through drawer props
 	const nodeAssignmentManager = new NodeAssignmentManager(interactionManager);
-	interactionManager.setAdditionalDrawerProps({ nodeAssignmentManager });
+
+	/**
+	 * Handle highlight changes from accordion
+	 * @param {string} conduitId - UUID of the conduit
+	 * @param {string[]} trenchUuids - Array of trench UUIDs
+	 * @param {boolean} isOpen - Whether the accordion item was opened
+	 */
+	function handleHighlightChange(conduitId, trenchUuids, isOpen) {
+		if (isOpen) {
+			// Add trench UUIDs for this conduit
+			highlightsByConduit[conduitId] = new Set(trenchUuids);
+		} else {
+			// Remove trench UUIDs for this conduit
+			delete highlightsByConduit[conduitId];
+		}
+
+		// Recalculate combined set of all trench UUIDs
+		const allTrenchUuids = new Set();
+		for (const uuids of Object.values(highlightsByConduit)) {
+			for (const uuid of uuids) {
+				allTrenchUuids.add(uuid);
+			}
+		}
+		linkedTrenchUuids = allTrenchUuids;
+
+		// Trigger layer re-render
+		if (linkedTrenchesLayer) {
+			linkedTrenchesLayer.changed();
+		}
+	}
+
+	/**
+	 * Clear all trench highlights (called when drawer closes or feature changes)
+	 */
+	function clearAllHighlights() {
+		highlightsByConduit = {};
+		linkedTrenchUuids = new Set();
+		if (linkedTrenchesLayer) {
+			linkedTrenchesLayer.changed();
+		}
+	}
+
+	interactionManager.setAdditionalDrawerProps({
+		nodeAssignmentManager,
+		onHighlightChange: handleHighlightChange
+	});
 
 	const layersInitialized = mapState.initializeLayers();
 
@@ -104,6 +157,21 @@
 		// Register selection layers with selection manager
 		const selectionLayers = mapState.getSelectionLayers();
 		selectionLayers.forEach((layer) => selectionManager.registerSelectionLayer(layer));
+
+		// Create linked trenches highlight layer
+		const linkedTrenchStyle = createLinkedTrenchStyle();
+		linkedTrenchesLayer = new VectorTileLayer({
+			renderMode: 'vector',
+			source: mapState.vectorTileLayer.getSource(),
+			style: function (feature) {
+				if (feature.getId() && linkedTrenchUuids.has(feature.getId())) {
+					return linkedTrenchStyle;
+				}
+				return undefined;
+			},
+			visible: true
+		});
+		mapState.olMap.addLayer(linkedTrenchesLayer);
 
 		// Initialize popup
 		popupManager.initialize(olMapInstance);
@@ -157,9 +225,29 @@
 		}
 	});
 
+	// Clear highlights when drawer closes or feature changes
+	let previousFeatureId = $state(null);
+	$effect(() => {
+		const currentFeatureId = $drawerStore.props?.featureId;
+		const isOpen = $drawerStore.open;
+
+		// Clear highlights if drawer closed or feature changed
+		if (!isOpen || (currentFeatureId !== previousFeatureId && previousFeatureId !== null)) {
+			clearAllHighlights();
+		}
+
+		previousFeatureId = currentFeatureId;
+	});
+
 	// Cleanup on destroy
 	onMount(() => {
 		return () => {
+			// Remove linked trenches layer
+			if (mapState.olMap && linkedTrenchesLayer) {
+				mapState.olMap.removeLayer(linkedTrenchesLayer);
+			}
+			linkedTrenchesLayer = undefined;
+
 			mapState.cleanup();
 			selectionManager.cleanup();
 			popupManager.cleanup(mapState.olMap);

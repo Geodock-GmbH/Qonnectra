@@ -15,6 +15,7 @@
 	 * @property {string} featureId - UUID of the feature
 	 * @property {Object} alias - Field name alias mapping (English -> Localized)
 	 * @property {Object} nodeAssignmentManager - NodeAssignmentManager instance (optional)
+	 * @property {(conduitId: string, trenchUuids: string[], isOpen: boolean) => void} [onHighlightChange] - Callback for highlight changes
 	 */
 
 	/** @type {Props} */
@@ -23,7 +24,8 @@
 		featureType = 'trench',
 		featureId = '',
 		alias = {},
-		nodeAssignmentManager = null
+		nodeAssignmentManager = null,
+		onHighlightChange
 	} = $props();
 
 	if (nodeAssignmentManager) {
@@ -38,7 +40,7 @@
 <Tabs tabs={tabItems} bind:activeTab>
 	<SkeletonTabs.Content value="details">
 		<div>
-			<HouseConnectionAccordion />
+			<HouseConnectionAccordion {onHighlightChange} />
 		</div>
 	</SkeletonTabs.Content>
 </Tabs>

@@ -202,9 +202,9 @@ export class MapState {
 	getLayers() {
 		const layers = [];
 
-		if (this.vectorTileLayer) layers.push(this.vectorTileLayer);
 		if (this.addressLayer) layers.push(this.addressLayer);
 		if (this.nodeLayer) layers.push(this.nodeLayer);
+		if (this.vectorTileLayer) layers.push(this.vectorTileLayer);
 
 		return layers;
 	}

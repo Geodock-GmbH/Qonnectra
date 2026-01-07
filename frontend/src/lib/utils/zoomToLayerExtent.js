@@ -1,4 +1,5 @@
 import { deserialize } from '$app/forms';
+
 import { zoomToExtent } from '$lib/map/searchUtils';
 
 /**
@@ -15,7 +16,7 @@ export function createZoomToLayerExtentHandler(getMap, getProjectId) {
 	return async function handleZoomToExtent({ layerId, layerType }) {
 		const map = getMap();
 		const projectId = getProjectId();
-		
+
 		if (!map || !projectId) return;
 
 		try {
@@ -37,4 +38,3 @@ export function createZoomToLayerExtentHandler(getMap, getProjectId) {
 		}
 	};
 }
-

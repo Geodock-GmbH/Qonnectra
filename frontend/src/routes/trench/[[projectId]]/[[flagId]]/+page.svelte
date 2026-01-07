@@ -15,7 +15,6 @@
 	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import { zoomToFeature } from '$lib/map/searchUtils.js';
-	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 	import {
 		addressStyle,
 		labelVisibilityConfig,
@@ -33,6 +32,7 @@
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 
 	import TrenchTable from './TrenchTable.svelte';
 

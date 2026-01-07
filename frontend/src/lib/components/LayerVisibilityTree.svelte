@@ -75,15 +75,6 @@
 	$effect(() => {
 		const newVisibility = new Map();
 
-		// Add OSM layer if provided
-		if (osmLayer) {
-			newVisibility.set('osm-base-layer', {
-				layer: osmLayer,
-				visible: osmLayer.getVisible(),
-				name: m.common_osm()
-			});
-		}
-
 		layers.forEach((layer, index) => {
 			const layerId = layer.get('layerId');
 			const layerName = layer.get('layerName');
@@ -96,6 +87,15 @@
 				});
 			}
 		});
+
+		// Add OSM layer if provided
+		if (osmLayer) {
+			newVisibility.set('osm-base-layer', {
+				layer: osmLayer,
+				visible: osmLayer.getVisible(),
+				name: m.common_osm()
+			});
+		}
 
 		layerVisibility = newVisibility;
 	});
