@@ -44,7 +44,6 @@ from .views import (
     TrenchConduitConnectionViewSet,
     TrenchesNearNodeView,
     TrenchViewSet,
-    QGISAuthView,
     WebDAVAuthView,
 )
 
