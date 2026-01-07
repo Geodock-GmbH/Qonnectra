@@ -105,8 +105,11 @@
 		<Combobox.Positioner>
 			<Combobox.Content class="{contentBase} {isOpen ? 'z-[100]' : `z-${zIndex}`}">
 				{#each items as item (item.value)}
-					<Combobox.Item {item} class="text-surface-800-200">
-						<Combobox.ItemText class="text-surface-800-200">{item.label}</Combobox.ItemText>
+					<Combobox.Item
+						{item}
+						class="cursor-pointer px-3 py-2 rounded-md data-[highlighted]:not-data-[selected]:bg-surface-200-800 data-[selected]:bg-primary-500 data-[selected]:text-white data-[highlighted]:data-[selected]:bg-primary-600"
+					>
+						<Combobox.ItemText>{item.label}</Combobox.ItemText>
 						<Combobox.ItemIndicator />
 					</Combobox.Item>
 				{/each}
