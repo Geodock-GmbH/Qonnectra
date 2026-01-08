@@ -7,7 +7,6 @@
 
 	import { CablePathManager } from '$lib/classes/CablePathManager.svelte.js';
 	import { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte.js';
-	import { PositionUpdateManager } from '$lib/classes/PositionUpdateManager.svelte.js';
 	import Drawer from '$lib/components/Drawer.svelte';
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
@@ -29,11 +28,9 @@
 	const edgeTypes = { cableDiagramEdge: CableDiagramEdge };
 
 	const schemaState = new NetworkSchemaState(data);
-	const positionManager = new PositionUpdateManager();
 	const cablePathManager = new CablePathManager();
 
 	let prevUrl = $state($page.url.href);
-	let liveUpdatesEnabled = $state(false);
 
 	setContext('attributeOptions', {
 		nodeTypes: data.nodeTypes,
@@ -196,34 +193,6 @@
 							}}
 							contentBase="preset-filled-surface-50-950"
 						/>
-					</div>
-
-					<div class="gap-2 flex items-center justify-between bg-surface-50-900 rounded-lg p-2">
-						<h3 class="text-sm font-medium">{m.form_live_updates()}</h3>
-						<Switch
-							name="position-update-switch"
-							checked={liveUpdatesEnabled}
-							onCheckedChange={(e) => {
-								liveUpdatesEnabled = e.checked;
-								if (e.checked) {
-									positionManager.start($selectedProject, (updates) => {
-										for (const update of updates) {
-											schemaState.updateNodePosition(update.node_id, {
-												x: update.canvas_x,
-												y: update.canvas_y
-											});
-										}
-									});
-								} else {
-									positionManager.stop();
-								}
-							}}
-						>
-							<Switch.Control>
-								<Switch.Thumb />
-							</Switch.Control>
-							<Switch.HiddenInput />
-						</Switch>
 					</div>
 
 					<div class="gap-2 flex items-center justify-between bg-surface-50-900 rounded-lg p-2">

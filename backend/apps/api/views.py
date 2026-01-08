@@ -2431,68 +2431,6 @@ class TrenchesNearNodeView(APIView):
         )
 
 
-class NodePositionListenView(APIView):
-    """
-    Long-polling endpoint for real-time node position updates.
-    Uses PostgreSQL LISTEN/NOTIFY for efficient notifications.
-    """
-
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        project_id = request.query_params.get("project", "1")
-        timeout = min(
-            int(request.query_params.get("timeout", "30")), 60
-        )  # Max 60 seconds
-
-        try:
-            db_settings = settings.DATABASES["default"]
-            conn_params = {
-                "host": db_settings["HOST"],
-                "port": db_settings["PORT"],
-                "dbname": db_settings["NAME"],
-                "user": db_settings["USER"],
-                "password": db_settings["PASSWORD"],
-            }
-
-            with psycopg.connect(**conn_params, autocommit=True) as conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("LISTEN node_position_updates")
-
-                gen = conn.notifies(timeout=timeout)
-                notifications = []
-
-                try:
-                    for notify in gen:
-                        try:
-                            payload = json.loads(notify.payload)
-                            if str(payload.get("project_id")) == str(project_id):
-                                notifications.append(
-                                    {
-                                        "node_id": payload["node_id"],
-                                        "canvas_x": payload["canvas_x"],
-                                        "canvas_y": payload["canvas_y"],
-                                    }
-                                )
-                        except (json.JSONDecodeError, KeyError):
-                            continue
-
-                        if notifications:
-                            gen.close()
-                            return Response({"updates": notifications})
-
-                except psycopg.OperationalError:
-                    pass
-
-                return Response({"updates": []})
-
-        except Exception as e:
-            return Response(
-                {"error": f"Connection failed: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-
 class CableViewSet(viewsets.ModelViewSet):
     """ViewSet for the Cable model :model:`api.Cable`.
 

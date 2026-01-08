@@ -128,7 +128,6 @@
 	"form_length_internal_execution": "Length internal execution",
 	"form_length_total": "Total length",
 	"form_level": "Log level",
-	"form_live_updates": "Live updates",
 	"form_loading_files": "Loading files...",
 	"form_error_loading_files": "Error loading files: {error}",
 	"form_longest_5_routes": "Longest routes",

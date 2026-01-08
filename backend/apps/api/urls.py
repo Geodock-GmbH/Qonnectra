@@ -30,7 +30,6 @@ from .views import (
     MicroductConnectionViewSet,
     MicroductViewSet,
     NodeCanvasCoordinatesView,
-    NodePositionListenView,
     NodeViewSet,
     OlAddressTileViewSet,
     OlAddressViewSet,
@@ -175,11 +174,6 @@ urlpatterns = [
         "canvas-coordinates/",
         NodeCanvasCoordinatesView.as_view(),
         name="node-canvas-coordinates",
-    ),
-    path(
-        "node-position-listen/",
-        NodePositionListenView.as_view(),
-        name="node-position-listen",
     ),
     path(
         "auth/webdav-auth/",

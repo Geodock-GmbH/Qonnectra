@@ -108,25 +108,6 @@ export class NetworkSchemaState {
 	}
 
 	/**
-	 * Update node position in local state
-	 * @param {string} nodeId - The node UUID
-	 * @param {Object} position - New position with x and y coordinates
-	 */
-	updateNodePosition(nodeId, position) {
-		this.nodes = this.nodes.map((n) => {
-			return n.id === nodeId
-				? {
-						...n,
-						position: {
-							x: position.x,
-							y: position.y
-						}
-					}
-				: n;
-		});
-	}
-
-	/**
 	 * Select a specific node and deselect all others
 	 * @param {string} nodeId - The node UUID to select
 	 */
