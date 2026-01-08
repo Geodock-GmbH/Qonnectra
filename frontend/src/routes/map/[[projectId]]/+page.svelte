@@ -1,7 +1,6 @@
 <script>
-	import { onMount, setContext } from 'svelte';
+	import { onMount, setContext, untrack } from 'svelte';
 	import { get } from 'svelte/store';
-	import { page } from '$app/stores';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -31,7 +30,6 @@
 
 	/** @type {import('./$types').PageData} */
 	let { data } = $props();
-	let prevUrl = $state($page.url.href);
 	let mapRef = $state();
 	let searchPanelRef = $state();
 
@@ -57,11 +55,16 @@
 	// Initialize layers
 	const layersInitialized = mapState.initializeLayers();
 
+	// Reinitialize map layers when project changes
 	$effect(() => {
-		if ($page.url.href !== prevUrl) {
-			prevUrl = $page.url.href;
-			window.location.reload();
-		}
+		const currentProject = $selectedProject;
+		// Only reinitialize if project actually changed and map is ready
+		untrack(() => {
+			if (mapState.olMap && currentProject !== mapState.selectedProject) {
+				mapState.reinitializeForProject(currentProject);
+				selectionManager.clearSelection();
+			}
+		});
 	});
 
 	// Refresh tile sources when they exist

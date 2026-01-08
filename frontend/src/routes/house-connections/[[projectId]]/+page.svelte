@@ -1,5 +1,5 @@
 <script>
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { get } from 'svelte/store';
 	import VectorTileLayer from 'ol/layer/VectorTile.js';
 
@@ -237,6 +237,18 @@
 		}
 
 		previousFeatureId = currentFeatureId;
+	});
+
+	// Reinitialize map layers when project changes
+	$effect(() => {
+		const currentProject = $selectedProject;
+		// Only reinitialize if project actually changed and map is ready
+		untrack(() => {
+			if (mapState.olMap && currentProject !== mapState.selectedProject) {
+				mapState.reinitializeForProject(currentProject);
+				selectionManager.clearSelection();
+			}
+		});
 	});
 
 	// Cleanup on destroy

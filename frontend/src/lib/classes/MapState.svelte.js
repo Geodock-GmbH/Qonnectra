@@ -196,6 +196,56 @@ export class MapState {
 	}
 
 	/**
+	 * Reinitialize tile sources for a new project
+	 * Clears cached tiles and creates new sources with the new project ID
+	 * @param {string} newProjectId - The new project ID
+	 */
+	reinitializeForProject(newProjectId) {
+		if (this.selectedProject === newProjectId) return;
+
+		this.selectedProject = newProjectId;
+
+		if (this.vectorTileLayer && this.layerConfig.trench) {
+			const oldSource = this.vectorTileLayer.getSource();
+			if (oldSource) {
+				oldSource.clear();
+			}
+			this.tileSource = createTrenchTileSource(newProjectId, this.handleTileError);
+			this.vectorTileLayer.setSource(this.tileSource);
+
+			if (this.selectionLayer) {
+				this.selectionLayer.setSource(this.tileSource);
+			}
+		}
+
+		if (this.addressLayer && this.layerConfig.address) {
+			const oldSource = this.addressLayer.getSource();
+			if (oldSource) {
+				oldSource.clear();
+			}
+			this.addressTileSource = createAddressTileSource(newProjectId, this.handleTileError);
+			this.addressLayer.setSource(this.addressTileSource);
+
+			if (this.addressSelectionLayer) {
+				this.addressSelectionLayer.setSource(this.addressTileSource);
+			}
+		}
+
+		if (this.nodeLayer && this.layerConfig.node) {
+			const oldSource = this.nodeLayer.getSource();
+			if (oldSource) {
+				oldSource.clear();
+			}
+			this.nodeTileSource = createNodeTileSource(newProjectId, this.handleTileError);
+			this.nodeLayer.setSource(this.nodeTileSource);
+
+			if (this.nodeSelectionLayer) {
+				this.nodeSelectionLayer.setSource(this.nodeTileSource);
+			}
+		}
+	}
+
+	/**
 	 * Get all layers as an array for passing to Map component
 	 * @returns {Array} Array of OpenLayers layers
 	 */

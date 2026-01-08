@@ -1,5 +1,5 @@
 <script>
-	import { onMount, setContext } from 'svelte';
+	import { onMount, setContext, untrack } from 'svelte';
 	import { get } from 'svelte/store';
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
@@ -168,6 +168,7 @@
 		}
 	}
 
+	// Navigate to trench page when project or flag changes
 	$effect(() => {
 		const projectId = $selectedProject;
 		const flagId = $selectedFlag;
@@ -181,6 +182,7 @@
 		}
 	});
 
+	// Clear routing state when routing mode changes
 	$effect(() => {
 		if (!$routingMode || $routingMode) {
 			startTrenchId = null;
@@ -188,6 +190,18 @@
 			selectionManager.clearSelection();
 			if (routeLayer) routeLayer.getSource().clear();
 		}
+	});
+
+	// Reinitialize map layers when project changes
+	$effect(() => {
+		const currentProject = $selectedProject;
+		// Only reinitialize if project actually changed and map is ready
+		untrack(() => {
+			if (mapState.olMap && currentProject !== mapState.selectedProject) {
+				mapState.reinitializeForProject(currentProject);
+				selectionManager.clearSelection();
+			}
+		});
 	});
 
 	const routeStyle = new Style({
