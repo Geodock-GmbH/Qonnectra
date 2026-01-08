@@ -3,6 +3,8 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     AddressViewSet,
+    AreaViewSet,
+    AttributesAreaTypeViewSet,
     AttributesCableTypeViewSet,
     AttributesCompanyViewSet,
     AttributesConduitTypeViewSet,
@@ -33,6 +35,7 @@ from .views import (
     NodeViewSet,
     OlAddressTileViewSet,
     OlAddressViewSet,
+    OlAreaViewSet,
     OlNodeTileViewSet,
     OlNodeViewSet,
     OlTrenchTileViewSet,
@@ -102,8 +105,14 @@ router.register(
     AttributesStatusViewSet,
     basename="attributes_status",
 )
+router.register(
+    r"attributes_area_type",
+    AttributesAreaTypeViewSet,
+    basename="attributes_area_type",
+)
 router.register(r"content-types", ContentTypeViewSet, basename="content-types")
 router.register(r"address", AddressViewSet, basename="address")
+router.register(r"area", AreaViewSet, basename="area")
 router.register(r"cable", CableViewSet, basename="cable")
 router.register(r"cable_label", CableLabelViewSet, basename="cable_label")
 router.register(
@@ -125,6 +134,7 @@ router.register(
 )
 router.register(r"node", NodeViewSet, basename="node")
 router.register(r"ol_address", OlAddressViewSet, basename="ol_address")
+router.register(r"ol_area", OlAreaViewSet, basename="ol_area")
 router.register(r"ol_node", OlNodeViewSet, basename="ol_node")
 router.register(r"ol_trench", OlTrenchViewSet, basename="ol_trench")
 router.register(r"projects", ProjectsViewSet, basename="projects")

@@ -6,6 +6,8 @@ from rest_framework_gis.serializers import GeoFeatureModelSerializer, GeometryFi
 
 from .models import (
     Address,
+    Area,
+    AttributesAreaType,
     AttributesCableType,
     AttributesCompany,
     AttributesConduitType,
@@ -31,6 +33,7 @@ from .models import (
     MicroductConnection,
     Node,
     OlAddress,
+    OlArea,
     OlNode,
     OlTrench,
     Projects,
@@ -212,6 +215,14 @@ class AttributesCableTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = AttributesCableType
         fields = ["id", "cable_type"]
+
+
+class AttributesAreaTypeSerializer(serializers.ModelSerializer):
+    """Serializer for the AttributesAreaType model."""
+
+    class Meta:
+        model = AttributesAreaType
+        fields = ["id", "area_type"]
 
 
 class TrenchSerializer(GeoFeatureModelSerializer):
@@ -826,6 +837,93 @@ class OlNodeSerializer(GeoFeatureModelSerializer):
         fields["date"].label = _("Date")
         fields["project"].label = _("Project")
         fields["flag"].label = _("Flag")
+        fields["geom"].label = _("Geometry")
+
+        return fields
+
+
+class AreaSerializer(GeoFeatureModelSerializer):
+    """Serializer for the Area model."""
+
+    uuid = serializers.UUIDField(read_only=True)
+    area_type_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesAreaType.objects.all(),
+        source="area_type",
+    )
+    flag_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Flags.objects.all(),
+        source="flag",
+    )
+    project_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Projects.objects.all(),
+        source="project",
+    )
+    geom = GeometryField()
+
+    class Meta:
+        model = Area
+        geo_field = "geom"
+        fields = "__all__"
+        ordering = ["area_type"]
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+
+        fields["area_type_id"].label = _("Area Type")
+        fields["flag_id"].label = _("Flag")
+        fields["project_id"].label = _("Project")
+        fields["geom"].label = _("Geometry")
+
+        return fields
+
+    def validate_geom(self, value):
+        """Validate geometry before saving"""
+        if value.geom_type != "Polygon":
+            raise serializers.ValidationError(
+                f"{_('Geometry type must be Polygon, not')} {value.geom_type}"
+            )
+
+        if value.srid != settings.DEFAULT_SRID:
+            try:
+                value.transform(settings.DEFAULT_SRID)
+            except Exception as e:
+                raise serializers.ValidationError(
+                    f"{_('Could not transform coordinates to EPSG:')} {settings.DEFAULT_SRID}: {str(e)}"
+                )
+
+        return value
+
+
+class OlAreaSerializer(GeoFeatureModelSerializer):
+    """Serializer for the OlArea model.
+
+    Args:
+        GeoFeatureModelSerializer (GeoFeatureModelSerializer): The base serializer class.
+    """
+
+    uuid = serializers.UUIDField(read_only=True)
+    area_type = AttributesAreaTypeSerializer(read_only=True)
+    flag = FlagsSerializer(read_only=True)
+    project = ProjectsSerializer(read_only=True)
+    geom = GeometryField(read_only=True)
+
+    class Meta:
+        model = OlArea
+        geo_field = "geom"
+        fields = "__all__"
+        ordering = ["area_type"]
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+
+        fields["area_type"].label = _("Area Type")
+        fields["flag"].label = _("Flag")
+        fields["project"].label = _("Project")
         fields["geom"].label = _("Geometry")
 
         return fields

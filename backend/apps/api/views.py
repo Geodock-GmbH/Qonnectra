@@ -23,6 +23,8 @@ from rest_framework.views import APIView
 
 from .models import (
     Address,
+    Area,
+    AttributesAreaType,
     AttributesCableType,
     AttributesCompany,
     AttributesConduitType,
@@ -48,6 +50,7 @@ from .models import (
     NetworkSchemaSettings,
     Node,
     OlAddress,
+    OlArea,
     OlNode,
     OlTrench,
     Projects,
@@ -58,6 +61,8 @@ from .pageination import CustomPagination
 from .routing import find_shortest_path
 from .serializers import (
     AddressSerializer,
+    AreaSerializer,
+    AttributesAreaTypeSerializer,
     AttributesCableTypeSerializer,
     AttributesCompanySerializer,
     AttributesConduitTypeSerializer,
@@ -82,6 +87,7 @@ from .serializers import (
     MicroductSerializer,
     NodeSerializer,
     OlAddressSerializer,
+    OlAreaSerializer,
     OlNodeSerializer,
     OlTrenchSerializer,
     ProjectsSerializer,
@@ -227,6 +233,19 @@ class AttributesSurfaceViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = AttributesSurface.objects.all().order_by("surface")
     serializer_class = AttributesSurfaceSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class AttributesAreaTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesAreaType model :model:`api.AttributesAreaType`.
+
+    An instance of :model:`api.AttributesAreaType`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesAreaType.objects.all().order_by("area_type")
+    serializer_class = AttributesAreaTypeSerializer
     lookup_field = "id"
     lookup_url_kwarg = "pk"
 
@@ -2789,7 +2808,9 @@ class LayerExtentView(APIView):
 
         if layer not in layer_tables:
             return Response(
-                {"error": f"Invalid layer. Must be one of: {', '.join(layer_tables.keys())}"},
+                {
+                    "error": f"Invalid layer. Must be one of: {', '.join(layer_tables.keys())}"
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -2818,14 +2839,18 @@ class LayerExtentView(APIView):
                 row = cursor.fetchone()
 
             if row and row[0] is not None:
-                return Response({
-                    "extent": [row[0], row[1], row[2], row[3]],
+                return Response(
+                    {
+                        "extent": [row[0], row[1], row[2], row[3]],
+                        "layer": layer,
+                    }
+                )
+            return Response(
+                {
+                    "extent": None,
                     "layer": layer,
-                })
-            return Response({
-                "extent": None,
-                "layer": layer,
-            })
+                }
+            )
 
         except Exception as e:
             logger.error(f"Error fetching layer extent: {e}")
@@ -2833,3 +2858,116 @@ class LayerExtentView(APIView):
                 {"error": "Failed to calculate layer extent"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class AreaViewSet(viewsets.ModelViewSet):
+    """ViewSet for the Area model :model:`api.Area`.
+
+    An instance of :model:`api.Area`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = Area.objects.all().order_by("name")
+    serializer_class = AreaSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned areas by filtering against query parameters:
+        - `uuid`: Filter by UUID
+        - `project`: Filter by project ID
+        - `flag`: Filter by flag ID
+        - `name`: Filter by name (case-insensitive partial match)
+        """
+        queryset = Area.objects.all().order_by("name")
+        uuid = self.request.query_params.get("uuid")
+        project_id = self.request.query_params.get("project")
+        flag_id = self.request.query_params.get("flag")
+        name = self.request.query_params.get("name")
+        if uuid:
+            queryset = queryset.filter(uuid=uuid)
+        if project_id:
+            try:
+                project_id = int(project_id)
+                queryset = queryset.filter(project=project_id)
+            except ValueError:
+                queryset = queryset.none()
+        if flag_id:
+            try:
+                flag_id = int(flag_id)
+                queryset = queryset.filter(flag=flag_id)
+            except ValueError:
+                queryset = queryset.none()
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+        return queryset
+
+    @action(detail=False, methods=["get"], url_path="all")
+    def all_areas(self, request):
+        """
+        Returns all areas with project and flag filters.
+        No pagination is used.
+        """
+        queryset = Area.objects.all().order_by("name")
+        project_id = request.query_params.get("project")
+        flag_id = request.query_params.get("flag")
+        search_term = request.query_params.get("search")
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag_id:
+            queryset = queryset.filter(flag=flag_id)
+        if search_term:
+            queryset = queryset.filter(
+                Q(name__icontains=search_term)
+                | Q(area_type__area_type__icontains=search_term)
+            )
+        serializer = AreaSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+class OlAreaViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the OlArea model :model:`api.OlArea`.
+
+    An instance of :model:`api.OlArea`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = OlArea.objects.all().order_by("area_type", "uuid")
+    serializer_class = OlAreaSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned areas by filtering against query parameters:
+        - `uuid`: Filter by UUID
+        - `project`: Filter by project ID
+        - `flag`: Filter by flag ID
+        """
+        queryset = OlArea.objects.all().order_by("area_type", "uuid")
+        project_id = self.request.query_params.get("project")
+        flag_id = self.request.query_params.get("flag")
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag_id:
+            queryset = queryset.filter(flag=flag_id)
+        return queryset
+
+    @action(detail=False, methods=["get"], url_path="all")
+    def all_ol_areas(self, request):
+        """
+        Returns all ol_areas with project and flag filters.
+        No pagination is used.
+        """
+        queryset = OlArea.objects.all().order_by("area_type", "uuid")
+        project_id = request.query_params.get("project")
+        flag_id = request.query_params.get("flag")
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag_id:
+            queryset = queryset.filter(flag=flag_id)
+        serializer = OlAreaSerializer(queryset, many=True)
+        return Response(serializer.data)

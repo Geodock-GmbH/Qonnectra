@@ -10,6 +10,8 @@ from django_json_widget.widgets import JSONEditorWidget
 
 from .models import (
     Address,
+    Area,
+    AttributesAreaType,
     AttributesCableType,
     AttributesCompany,
     AttributesConduitType,
@@ -57,8 +59,10 @@ admin.site.register(AttributesConstructionType)
 admin.site.register(AttributesStatus)
 admin.site.register(AttributesPhase)
 admin.site.register(AttributesCompany)
+admin.site.register(AttributesAreaType)
 admin.site.register(Cable)
 admin.site.register(FileTypeCategory)
+admin.site.register(Area)
 admin.site.register(Flags)
 admin.site.register(AttributesNetworkLevel)
 admin.site.register(AttributesNodeType)

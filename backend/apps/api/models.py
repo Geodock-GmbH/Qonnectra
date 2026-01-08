@@ -520,6 +520,26 @@ class AttributesFiberColor(models.Model):
         return f"{self.name_de} ({self.name_en})"
 
 
+class AttributesAreaType(models.Model):
+    """Stores all area types"""
+
+    id = models.AutoField(primary_key=True)
+    area_type = models.TextField(
+        _("Area Type"), null=False, blank=False, db_index=False, unique=True
+    )
+
+    class Meta:
+        db_table = "attributes_area_type"
+        indexes = [
+            models.Index(fields=["area_type"], name="idx_area_type_area_type"),
+        ]
+        verbose_name = _("Area Type")
+        verbose_name_plural = _("Area Types")
+
+    def __str__(self):
+        return self.area_type
+
+
 class FeatureFiles(models.Model):
     """Stores all files for different models,
     related to :model:`api.Trench`.
@@ -571,6 +591,8 @@ class FeatureFiles(models.Model):
             return f"{feature.street} {feature.housenumber}{suffix}, {feature.zip_code} {feature.city}"
         elif model_name == "residentialunit":
             return instance.object_id
+        elif model_name == "area":
+            return feature.name
         else:
             return instance.object_id
 
@@ -586,6 +608,7 @@ class FeatureFiles(models.Model):
         - Project Alpha/cables/C1-Main/photos/image.jpg
         - Project Beta/nodes/N1-POP/documents/spec.pdf
         - Project Alpha/addresses/Bahnstraße 20, 24941 Flensburg/documents/contract.pdf
+        - Project Alpha/areas/Projektgebiet/documents/report.pdf
         """
 
         prefs = StoragePreferences.objects.first()
@@ -1570,6 +1593,107 @@ class OlNode(models.Model):
         verbose_name = _("OL Node")
         verbose_name_plural = _("Openlayers Nodes")
         ordering = ["name"]
+
+
+class Area(models.Model):
+    """Stores all polygons,
+    related to :model:`api.Projects`,
+    :model:`api.Flags`,
+    :model:`api.AttributesAreaType`.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    area_type = models.ForeignKey(
+        AttributesAreaType, on_delete=models.DO_NOTHING, db_column="area_type"
+    )
+    name = models.TextField(
+        null=False,
+        unique=True,
+        db_index=False,
+        verbose_name=_("Area Name"),
+    )
+    geom = gis_models.PolygonField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
+
+    project = models.ForeignKey(
+        Projects,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="project",
+        db_index=False,
+        verbose_name=_("Project"),
+    )
+
+    flag = models.ForeignKey(
+        Flags,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="flag",
+        db_index=False,
+        verbose_name=_("Flag"),
+    )
+
+    files = GenericRelation(
+        FeatureFiles,
+        content_type_field="content_type",
+        object_id_field="object_id",
+        related_query_name="area",
+    )
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = "area"
+        verbose_name = _("Area")
+        verbose_name_plural = _("Areas")
+        ordering = ["name"]
+        indexes = [
+            models.Index(fields=["area_type"], name="idx_area_area_type"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "name"],
+                name="unique_area",
+            ),
+        ]
+
+
+class OlArea(models.Model):
+    """Stores all areas rendered on Openlayers,
+    related to :model:`api.Area`.
+    """
+
+    uuid = models.UUIDField(primary_key=True)
+    geom = gis_models.PolygonField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
+    area_type = models.ForeignKey(
+        AttributesAreaType, on_delete=models.DO_NOTHING, db_column="area_type"
+    )
+    flag = models.ForeignKey(
+        Flags,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="flag",
+        db_index=False,
+        verbose_name=_("Flag"),
+    )
+    project = models.ForeignKey(
+        Projects,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="project",
+        db_index=False,
+        verbose_name=_("Project"),
+    )
+
+    class Meta:
+        managed = False
+        db_table = "ol_area"
+        verbose_name = _("OL Area")
+        verbose_name_plural = _("OL Areas")
+        ordering = ["area_type"]
+        indexes = [
+            models.Index(fields=["area_type"], name="idx_ol_area_area_type"),
+        ]
 
 
 class Microduct(models.Model):
