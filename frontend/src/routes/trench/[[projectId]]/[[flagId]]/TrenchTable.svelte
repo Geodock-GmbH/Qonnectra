@@ -1,14 +1,14 @@
 <script>
+	import { deserialize } from '$app/forms';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
 	import { IconArrowLeft, IconArrowRight, IconTrash } from '@tabler/icons-svelte';
-	import { PUBLIC_API_URL } from '$env/static/public';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import { selectedFlag } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
-	let { projectId, conduitId, onTrenchClick } = $props();
+	let { projectId, conduitId, onTrenchClick, onTrenchesChange } = $props();
 
 	let trenches = $state([]);
 	let trenchesError = $state(null);
@@ -19,6 +19,9 @@
 	let deletingIds = $state(new Set());
 	const slicedSource = $derived(trenches.slice((page - 1) * size, page * size));
 
+	/**
+	 * Fetches trench connections for the selected conduit
+	 */
 	async function fetchTrenches() {
 		if (!conduitId) {
 			return;
@@ -28,45 +31,62 @@
 		trenchesError = null;
 
 		try {
-			let url = `${PUBLIC_API_URL}trench_conduit_connection/all/?uuid_conduit=${conduitId}`;
-			let response = await fetch(url, { credentials: 'include' });
+			const formData = new FormData();
+			formData.append('conduitId', conduitId);
 
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
+			const response = await fetch('?/getTrenchConnections', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to fetch trenches');
 			}
 
-			const data = await response.json();
-			trenches = data.map((item) => ({
-				value: item.uuid,
-				label: item.trench.properties.id_trench,
-				trench: item.trench.id
-			}));
+			trenches = result.data?.trenches || [];
 		} catch (error) {
 			trenchesError = m.message_error_fetching_trenches();
+			console.error('Error fetching trenches:', error);
 		} finally {
 			loading = false;
 			updateCount();
+			// Notify parent of trenches change for linked trenches highlight
+			onTrenchesChange?.(trenches);
 		}
 	}
 
-	async function deleteTrench(trenchId) {
-		const response = await fetch(`${PUBLIC_API_URL}trench_conduit_connection/${trenchId}/`, {
-			method: 'DELETE',
-			credentials: 'include'
+	/**
+	 * Deletes a trench connection by ID
+	 * @param {string} connectionId - UUID of the connection to delete
+	 */
+	async function deleteTrench(connectionId) {
+		const formData = new FormData();
+		formData.append('connectionId', connectionId);
+
+		const response = await fetch('?/deleteTrenchConnection', {
+			method: 'POST',
+			body: formData
 		});
 
-		if (response.ok) {
-			await fetchTrenches();
-		} else {
-			const errorText = await response.text();
-			console.error('Failed to delete trench connection:', response.status, errorText);
+		const result = deserialize(await response.text());
+
+		if (result.type === 'failure' || result.type === 'error') {
+			console.error('Failed to delete trench connection:', result.data?.error);
 			globalToaster.error({
 				description: m.message_error_deleting_trench_connection()
 			});
-			throw new Error(errorText);
+			throw new Error(result.data?.error);
 		}
+
+		await fetchTrenches();
 	}
 
+	/**
+	 * Handles deletion of a trench connection with loading state management
+	 * @param {string} trenchId - UUID of the trench connection to delete
+	 */
 	function handleDelete(trenchId) {
 		if (deletingIds.has(trenchId)) return;
 
@@ -89,36 +109,48 @@
 		});
 	}
 
+	/**
+	 * Saves a new trench connection for the selected conduit
+	 * @param {string} trenchId - UUID of the trench to connect
+	 */
 	async function saveTrenchConnection(trenchId) {
-		const response = await fetch(`${PUBLIC_API_URL}trench_conduit_connection/`, {
+		const formData = new FormData();
+		formData.append('conduitId', conduitId[0]);
+		formData.append('trenchId', trenchId);
+
+		const response = await fetch('?/createTrenchConnection', {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({
-				uuid_conduit: conduitId[0],
-				uuid_trench: trenchId
-			}),
-			credentials: 'include'
+			body: formData
 		});
 
-		if (!response.ok) {
-			const errorText = await response.text();
-			console.error('Failed to save trench connection:', response.status, errorText);
-			throw new Error(errorText);
+		const result = deserialize(await response.text());
+
+		if (result.type === 'failure' || result.type === 'error') {
+			console.error('Failed to save trench connection:', result.data?.error);
+			throw new Error(result.data?.error);
 		}
 	}
 
+	/**
+	 * Clears the trench table data
+	 */
 	function emptyTable() {
 		trenches = [];
 		trenchesError = null;
 		loading = false;
 	}
 
+	/**
+	 * Updates the count derived value based on current trenches
+	 */
 	function updateCount() {
 		count = trenches.length;
 	}
 
+	/**
+	 * Adds routed trenches to the table, creating connections for new trenches
+	 * @param {Array<{value: string, label: string}>} routedTrenches - Array of trench objects to add
+	 */
 	export async function addRoutedTrenches(routedTrenches) {
 		if (!routedTrenches?.length) return;
 

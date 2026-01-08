@@ -10,12 +10,66 @@
 
 	import MicroductsTable from './MicroductsTable.svelte';
 
+	/**
+	 * @typedef {Object} Props
+	 * @property {(conduitId: string, trenchUuids: string[], isOpen: boolean) => void} [onHighlightChange] - Callback for highlight changes
+	 */
+
+	/** @type {Props} */
+	let { onHighlightChange } = $props();
+
 	let featureId = $derived($drawerStore.props?.featureId);
 
 	const dataManager = new ConduitDataManager();
 
+	// Track which accordion items are currently open
+	let openItems = $state([]);
+
+	/**
+	 * Handle accordion value change
+	 * Detects which items were opened/closed and triggers highlight changes
+	 * @param {{ value: string[] }} details - Accordion change details
+	 */
+	async function handleAccordionChange(details) {
+		const newOpenItems = details.value;
+		const previousOpenItems = openItems;
+
+		// Find newly opened items
+		const opened = newOpenItems.filter((id) => !previousOpenItems.includes(id));
+
+		// Find newly closed items
+		const closed = previousOpenItems.filter((id) => !newOpenItems.includes(id));
+
+		// Update state
+		openItems = newOpenItems;
+
+		// Handle opened items - fetch trench UUIDs and notify parent
+		for (const itemId of opened) {
+			const item = dataManager.pipesInTrench.find((p) => p.id === itemId);
+			if (item?.pipeUuid) {
+				// Fetch microducts (existing behavior)
+				dataManager.fetchMicroducts(item.pipeUuid);
+
+				// Fetch trench UUIDs for highlighting
+				const trenchUuids = await dataManager.fetchTrenchUuidsForConduit(item.pipeUuid);
+				onHighlightChange?.(item.pipeUuid, trenchUuids, true);
+			}
+		}
+
+		// Handle closed items - notify parent to remove highlighting
+		for (const itemId of closed) {
+			const item = dataManager.pipesInTrench.find((p) => p.id === itemId);
+			if (item?.pipeUuid) {
+				const trenchUuids = dataManager.getTrenchUuidsForConduit(item.pipeUuid);
+				onHighlightChange?.(item.pipeUuid, trenchUuids, false);
+			}
+		}
+	}
+
 	$effect(() => {
 		if (featureId) {
+			// Reset open items when feature changes
+			openItems = [];
 			dataManager.fetchPipesInTrench(featureId);
 		}
 	});
@@ -34,13 +88,10 @@
 		<p>{m.message_no_conduits_found()}</p>
 	</div>
 {:else}
-	<Accordion>
+	<Accordion multiple value={openItems} onValueChange={handleAccordionChange}>
 		{#each dataManager.pipesInTrench as item (item.id)}
 			<Accordion.Item value={item.id}>
-				<Accordion.ItemTrigger
-					class="flex justify-between items-center"
-					onclick={() => dataManager.fetchMicroducts(item.pipeUuid)}
-				>
+				<Accordion.ItemTrigger class="flex justify-between items-center">
 					{item.title}
 					<div class="flex items-center gap-2">
 						<button

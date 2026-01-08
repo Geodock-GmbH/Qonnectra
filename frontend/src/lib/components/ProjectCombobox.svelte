@@ -122,7 +122,10 @@
 					class="z-50 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"
 				>
 					{#each items as item (item.value)}
-						<Combobox.Item {item}>
+						<Combobox.Item
+							{item}
+							class="cursor-pointer px-3 py-2 rounded-md data-[highlighted]:not-data-[selected]:bg-surface-200-800 data-[selected]:bg-primary-500 data-[selected]:text-white data-[highlighted]:data-[selected]:bg-primary-600"
+						>
 							<Combobox.ItemText>{item.label}</Combobox.ItemText>
 							<Combobox.ItemIndicator />
 						</Combobox.Item>

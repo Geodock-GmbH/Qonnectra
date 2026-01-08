@@ -567,7 +567,9 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
         if settings.DEBUG:
             file_handle = file_obj.file_path.open("rb")
             response = FileResponse(file_handle, content_type=mime_type)
-            response["Content-Disposition"] = f"inline; filename*=UTF-8''{encoded_filename}"
+            response["Content-Disposition"] = (
+                f"inline; filename*=UTF-8''{encoded_filename}"
+            )
             return response
 
         # In production, use X-Accel-Redirect for Nginx
@@ -2057,6 +2059,8 @@ class ConduitImportView(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser)
 
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
     def post(self, request, *args, **kwargs):
         file_obj = request.FILES.get("file")
         if not file_obj:
@@ -2064,25 +2068,35 @@ class ConduitImportView(APIView):
                 {"error": "No file uploaded."}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        if not file_obj.name.endswith((".xlsx")):
+        if not file_obj.name.endswith(".xlsx"):
             return Response(
                 {"error": "Invalid file format. Please upload an .xlsx file."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if file_obj.size > self.MAX_FILE_SIZE:
+            return Response(
+                {
+                    "error": f"File too large. Maximum size is {self.MAX_FILE_SIZE // (1024 * 1024)}MB."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         result = import_conduits_from_excel(file_obj)
 
         if result["success"]:
-            return Response(
-                {
-                    "message": f"Successfully imported {result['created_count']} conduits."
-                },
-                status=status.HTTP_201_CREATED,
-            )
+            response_data = {
+                "message": f"Successfully imported {result['created_count']} conduits.",
+                "created_count": result["created_count"],
+            }
+            if result.get("warnings"):
+                response_data["warnings"] = result["warnings"]
+            return Response(response_data, status=status.HTTP_201_CREATED)
         else:
-            return Response(
-                {"errors": result["errors"]}, status=status.HTTP_400_BAD_REQUEST
-            )
+            response_data = {"errors": result["errors"]}
+            if result.get("warnings"):
+                response_data["warnings"] = result["warnings"]
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
 
 
 class AttributesMicroductStatusViewSet(viewsets.ReadOnlyModelViewSet):
@@ -2417,68 +2431,6 @@ class TrenchesNearNodeView(APIView):
         )
 
 
-class NodePositionListenView(APIView):
-    """
-    Long-polling endpoint for real-time node position updates.
-    Uses PostgreSQL LISTEN/NOTIFY for efficient notifications.
-    """
-
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        project_id = request.query_params.get("project", "1")
-        timeout = min(
-            int(request.query_params.get("timeout", "30")), 60
-        )  # Max 60 seconds
-
-        try:
-            db_settings = settings.DATABASES["default"]
-            conn_params = {
-                "host": db_settings["HOST"],
-                "port": db_settings["PORT"],
-                "dbname": db_settings["NAME"],
-                "user": db_settings["USER"],
-                "password": db_settings["PASSWORD"],
-            }
-
-            with psycopg.connect(**conn_params, autocommit=True) as conn:
-                with conn.cursor() as cursor:
-                    cursor.execute("LISTEN node_position_updates")
-
-                gen = conn.notifies(timeout=timeout)
-                notifications = []
-
-                try:
-                    for notify in gen:
-                        try:
-                            payload = json.loads(notify.payload)
-                            if str(payload.get("project_id")) == str(project_id):
-                                notifications.append(
-                                    {
-                                        "node_id": payload["node_id"],
-                                        "canvas_x": payload["canvas_x"],
-                                        "canvas_y": payload["canvas_y"],
-                                    }
-                                )
-                        except (json.JSONDecodeError, KeyError):
-                            continue
-
-                        if notifications:
-                            gen.close()
-                            return Response({"updates": notifications})
-
-                except psycopg.OperationalError:
-                    pass
-
-                return Response({"updates": []})
-
-        except Exception as e:
-            return Response(
-                {"error": f"Connection failed: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-
 class CableViewSet(viewsets.ModelViewSet):
     """ViewSet for the Cable model :model:`api.Cable`.
 
@@ -2763,5 +2715,90 @@ class FrontendLogView(APIView):
             logger.error(f"Error creating frontend log entry: {e}")
             return Response(
                 {"error": "Failed to create log entry"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class LayerExtentView(APIView):
+    """
+    API view to get the bounding box extent for a layer type.
+
+    Returns the extent in EPSG:3857 (Web Mercator) for direct use by OpenLayers.
+    Uses PostGIS ST_Extent for efficient bounding box calculation.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, format=None):
+        """
+        Returns the bounding box extent for a layer filtered by project.
+
+        Query Parameters:
+        - `layer`: Layer type ('trench', 'address', or 'node') - required
+        - `project`: Project ID to filter by - required
+
+        Returns:
+        - extent: [xmin, ymin, xmax, ymax] in EPSG:3857, or null if no features
+        - layer: The requested layer type
+        """
+        layer = request.query_params.get("layer")
+        project = request.query_params.get("project")
+
+        if not layer or not project:
+            return Response(
+                {"error": "Both 'layer' and 'project' parameters are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        layer_tables = {
+            "trench": "ol_trench",
+            "address": "ol_address",
+            "node": "ol_node",
+        }
+
+        if layer not in layer_tables:
+            return Response(
+                {"error": f"Invalid layer. Must be one of: {', '.join(layer_tables.keys())}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            project_id = int(project)
+        except ValueError:
+            return Response(
+                {"error": "Project must be a numeric value"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        sql = f"""
+            SELECT
+                ST_XMin(extent), ST_YMin(extent),
+                ST_XMax(extent), ST_YMax(extent)
+            FROM (
+                SELECT ST_Extent(ST_Transform(geom, 3857)) as extent
+                FROM {layer_tables[layer]}
+                WHERE project = %(project)s
+            ) as bounds
+        """
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(sql, {"project": project_id})
+                row = cursor.fetchone()
+
+            if row and row[0] is not None:
+                return Response({
+                    "extent": [row[0], row[1], row[2], row[3]],
+                    "layer": layer,
+                })
+            return Response({
+                "extent": None,
+                "layer": layer,
+            })
+
+        except Exception as e:
+            logger.error(f"Error fetching layer extent: {e}")
+            return Response(
+                {"error": "Failed to calculate layer extent"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

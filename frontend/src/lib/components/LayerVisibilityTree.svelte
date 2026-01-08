@@ -1,12 +1,13 @@
 <script>
-	import { Switch } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconChevronDown,
 		IconChevronRight,
 		IconChevronUp,
-		IconCircleLetterL,
 		IconEye,
-		IconEyeOff
+		IconEyeOff,
+		IconLabel,
+		IconLabelFilled,
+		IconZoomScan
 	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -29,7 +30,8 @@
 		onLayerVisibilityChanged = () => {},
 		onNodeTypeVisibilityChanged = () => {},
 		onTrenchTypeVisibilityChanged = () => {},
-		onLabelVisibilityChanged = () => {}
+		onLabelVisibilityChanged = () => {},
+		onZoomToExtent = () => {}
 	} = $props();
 
 	let layerVisibility = $state(new Map());
@@ -69,20 +71,28 @@
 		}
 	});
 
+	// Define layer display order priority (lower number = higher priority)
+	const LAYER_ORDER = {
+		'address-layer': 1,
+		'node-layer': 2,
+		'trench-layer': 3
+	};
+
 	// Update layer visibility when layers change
 	$effect(() => {
 		const newVisibility = new Map();
 
-		// Add OSM layer if provided
-		if (osmLayer) {
-			newVisibility.set('osm-base-layer', {
-				layer: osmLayer,
-				visible: osmLayer.getVisible(),
-				name: m.common_osm()
-			});
-		}
+		// Sort layers by display order: Address first, then node, then trench
+		const sortedLayers = [...layers].sort((a, b) => {
+			const aId = a.get('layerId');
+			const bId = b.get('layerId');
+			const aOrder = LAYER_ORDER[aId] ?? 999;
+			const bOrder = LAYER_ORDER[bId] ?? 999;
+			return aOrder - bOrder;
+		});
 
-		layers.forEach((layer, index) => {
+		// Build visibility map from sorted layers
+		for (const layer of sortedLayers) {
 			const layerId = layer.get('layerId');
 			const layerName = layer.get('layerName');
 
@@ -93,7 +103,16 @@
 					name: layerName
 				});
 			}
-		});
+		}
+
+		// Add OSM layer if provided
+		if (osmLayer) {
+			newVisibility.set('osm-base-layer', {
+				layer: osmLayer,
+				visible: osmLayer.getVisible(),
+				name: m.common_osm()
+			});
+		}
 
 		layerVisibility = newVisibility;
 	});
@@ -281,6 +300,20 @@
 	}
 
 	/**
+	 * Map layer ID to API layer type for extent endpoint
+	 * @param {string} layerId - The layer ID
+	 * @returns {string|null} The API layer type or null if not supported
+	 */
+	function getExtentLayerType(layerId) {
+		const mapping = {
+			'trench-layer': 'trench',
+			'address-layer': 'address',
+			'node-layer': 'node'
+		};
+		return mapping[layerId] || null;
+	}
+
+	/**
 	 * Check if labels are enabled for a layer
 	 * @param {string} layerId - The layer ID
 	 * @returns {boolean} True if labels are enabled
@@ -318,7 +351,7 @@
 >
 	<!-- Header with collapse functionality for mobile -->
 	<div class="flex items-center justify-between md:mb-2">
-		<p class="text-sm font-medium text-surface-contrast-100-900">{m.form_layer_visibility()}</p>
+		<p class="text-sm font-medium text-surface-contrast-100-900">{m.form_layer()}</p>
 
 		<!-- Mobile collapse button -->
 		<button
@@ -345,7 +378,7 @@
 						<!-- Expand/collapse button for node layer -->
 						{#if layerId === 'node-layer' && nodeTypes.length > 0}
 							<button
-								class="p-0.5 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
 								onclick={toggleNodeSubtypes}
 								aria-label={isNodeSubtypesExpanded ? 'Collapse node types' : 'Expand node types'}
 							>
@@ -357,7 +390,7 @@
 							</button>
 						{:else if layerId === 'trench-layer' && trenchTypes.length > 0}
 							<button
-								class="p-0.5 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
 								onclick={toggleTrenchSubtypes}
 								aria-label={isTrenchSubtypesExpanded
 									? 'Collapse trench types'
@@ -370,20 +403,27 @@
 								{/if}
 							</button>
 						{:else}
-							<span class="w-5 flex-shrink-0"></span>
+							<span class="w-5 h-5 flex-shrink-0"></span>
 						{/if}
 
-						{#if layerInfo.visible}
-							<IconEye size="18" class="text-primary-900-100 flex-shrink-0" />
-						{:else}
-							<IconEyeOff size="18" class="text-surface-900-100 flex-shrink-0" />
-						{/if}
 						<span class="text-sm md:text-xs px-2 md:px-0 text-surface-contrast-100-900 truncate">
 							{layerInfo.name}
 						</span>
 					</div>
 
 					<div class="flex items-center gap-1 flex-shrink-0">
+						<!-- Zoom to extent button - only for trench, address, node layers -->
+						{#if getExtentLayerType(layerId)}
+							<button
+								class="p-1 rounded hover:bg-surface-200-700 transition-colors"
+								onclick={() => onZoomToExtent({ layerId, layerType: getExtentLayerType(layerId) })}
+								aria-label="Zoom to layer extent"
+								title="Zoom to layer extent"
+							>
+								<IconZoomScan size="24" class="text-surface-500 hover:text-primary-500" />
+							</button>
+						{/if}
+
 						<!-- Label toggle button - only for trench, address, node layers -->
 						{#if getLabelConfigKey(layerId)}
 							<button
@@ -392,24 +432,27 @@
 								aria-label={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
 								title={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
 							>
-								<IconCircleLetterL
-									size="24"
-									class={isLabelEnabled(layerId) ? 'text-primary-500' : 'text-surface-400'}
-								/>
+								{#if isLabelEnabled(layerId)}
+									<IconLabelFilled size="24" class="text-primary-500" />
+								{:else}
+									<IconLabel size="24" class="text-surface-400" />
+								{/if}
 							</button>
 						{/if}
 
-						<Switch
-							name="layer-visibility-{layerId}"
-							size="sm"
-							checked={layerInfo.visible}
-							onCheckedChange={() => toggleLayerVisibility(layerId)}
+						<!-- Visibility toggle button -->
+						<button
+							class="p-1 rounded hover:bg-surface-200-700 transition-colors"
+							onclick={() => toggleLayerVisibility(layerId)}
+							aria-label={layerInfo.visible ? 'Hide layer' : 'Show layer'}
+							title={layerInfo.visible ? 'Hide layer' : 'Show layer'}
 						>
-							<Switch.Control>
-								<Switch.Thumb />
-							</Switch.Control>
-							<Switch.HiddenInput />
-						</Switch>
+							{#if layerInfo.visible}
+								<IconEye size="24" class="text-primary-500" />
+							{:else}
+								<IconEyeOff size="24" class="text-surface-400" />
+							{/if}
+						</button>
 					</div>
 				</div>
 
@@ -429,11 +472,6 @@
 										style="background-color: {color};"
 									></span>
 
-									{#if visible}
-										<IconEye size="14" class="text-primary-900-100 flex-shrink-0" />
-									{:else}
-										<IconEyeOff size="14" class="text-surface-900-100 flex-shrink-0" />
-									{/if}
 									<span
 										class="text-xs text-surface-contrast-100-900 truncate"
 										title={nodeType.node_type}
@@ -442,18 +480,18 @@
 									</span>
 								</div>
 
-								<Switch
-									name="node-type-visibility-{nodeType.id}"
-									size="sm"
-									checked={visible}
-									onCheckedChange={() => toggleNodeTypeVisibility(nodeType.node_type)}
-									class="flex-shrink-0"
+								<button
+									class="p-1 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+									onclick={() => toggleNodeTypeVisibility(nodeType.node_type)}
+									aria-label={visible ? 'Hide node type' : 'Show node type'}
+									title={visible ? 'Hide node type' : 'Show node type'}
 								>
-									<Switch.Control>
-										<Switch.Thumb />
-									</Switch.Control>
-									<Switch.HiddenInput />
-								</Switch>
+									{#if visible}
+										<IconEye size="24" class="text-primary-500" />
+									{:else}
+										<IconEyeOff size="24" class="text-surface-400" />
+									{/if}
+								</button>
 							</div>
 						{/each}
 					</div>
@@ -474,28 +512,23 @@
 									<span class="w-4 h-1 flex-shrink-0 rounded-sm" style="background-color: {color};"
 									></span>
 
-									{#if visible}
-										<IconEye size="14" class="text-primary-900-100 flex-shrink-0" />
-									{:else}
-										<IconEyeOff size="14" class="text-surface-900-100 flex-shrink-0" />
-									{/if}
 									<span class="text-xs text-surface-contrast-100-900 truncate" title={typeName}>
 										{typeName}
 									</span>
 								</div>
 
-								<Switch
-									name="trench-type-visibility-{trenchType.id}"
-									size="sm"
-									checked={visible}
-									onCheckedChange={() => toggleTrenchTypeVisibility(typeName)}
-									class="flex-shrink-0"
+								<button
+									class="p-1 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+									onclick={() => toggleTrenchTypeVisibility(typeName)}
+									aria-label={visible ? 'Hide trench type' : 'Show trench type'}
+									title={visible ? 'Hide trench type' : 'Show trench type'}
 								>
-									<Switch.Control>
-										<Switch.Thumb />
-									</Switch.Control>
-									<Switch.HiddenInput />
-								</Switch>
+									{#if visible}
+										<IconEye size="24" class="text-primary-500" />
+									{:else}
+										<IconEyeOff size="24" class="text-surface-400" />
+									{/if}
+								</button>
 							</div>
 						{/each}
 					</div>

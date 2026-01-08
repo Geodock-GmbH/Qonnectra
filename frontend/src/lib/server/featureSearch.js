@@ -19,7 +19,7 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 	}
 
 	try {
-		const [addAddressResponse, nodeResponse, trenchResponse] = await Promise.all([
+		const [addAddressResponse, nodeResponse, trenchResponse, conduitResponse] = await Promise.all([
 			fetch(
 				`${API_URL}address/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
 				{
@@ -37,17 +37,25 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 					credentials: 'include',
 					headers: getAuthHeaders(cookies)
 				}
+			),
+			fetch(
+				`${API_URL}conduit/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
+				{
+					credentials: 'include',
+					headers: getAuthHeaders(cookies)
+				}
 			)
 		]);
 
-		if (!addAddressResponse.ok || !nodeResponse.ok || !trenchResponse.ok) {
+		if (!addAddressResponse.ok || !nodeResponse.ok || !trenchResponse.ok || !conduitResponse.ok) {
 			throw error(500, 'Failed to fetch search results');
 		}
 
-		const [addAddressData, nodeData, trenchData] = await Promise.all([
+		const [addAddressData, nodeData, trenchData, conduitData] = await Promise.all([
 			addAddressResponse.json(),
 			nodeResponse.json(),
-			trenchResponse.json()
+			trenchResponse.json(),
+			conduitResponse.json()
 		]);
 
 		const results = [];
@@ -98,6 +106,29 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 					type: 'trench',
 					uuid: trenchId,
 					id_trench: trenchIdNumber
+				});
+			}
+		});
+
+		const conduitFeatures = conduitData || [];
+		conduitFeatures.forEach((conduit) => {
+			const conduitUuid = conduit.uuid;
+			const conduitName = conduit.name;
+			const conduitTypeName = conduit.conduit_type?.conduit_type || '';
+
+			if (conduitUuid && conduitName) {
+				const labelParts = [conduitName];
+				if (conduitTypeName) {
+					labelParts.push(`- ${conduitTypeName}`);
+				}
+				labelParts.push(`(${m.form_conduit()})`);
+
+				results.push({
+					value: `${conduitUuid}`,
+					label: labelParts.join(' '),
+					type: 'conduit',
+					uuid: conduitUuid,
+					name: conduitName
 				});
 			}
 		});
@@ -154,5 +185,72 @@ export async function getFeatureDetailsByType(fetch, cookies, featureType, featu
 	} catch (err) {
 		console.error('Error fetching feature details:', err);
 		throw error(500, 'Failed to fetch feature details');
+	}
+}
+
+/**
+ * Get all trench UUIDs for a conduit (conduits span multiple trenches)
+ * @param {Function} fetch - SvelteKit fetch function
+ * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
+ * @param {string} conduitUuid - UUID of the conduit
+ * @returns {Promise<{success: boolean, trenchUuids: string[]}>} Trench UUIDs
+ */
+export async function getTrenchUuidsForConduit(fetch, cookies, conduitUuid) {
+	if (!conduitUuid) {
+		throw error(400, 'Conduit UUID is required');
+	}
+
+	try {
+		const trenchesResponse = await fetch(`${API_URL}conduit/${conduitUuid}/trenches/`, {
+			credentials: 'include',
+			headers: getAuthHeaders(cookies)
+		});
+
+		if (!trenchesResponse.ok) {
+			throw error(trenchesResponse.status, 'Failed to fetch trenches for conduit');
+		}
+
+		const { trench_uuids } = await trenchesResponse.json();
+
+		return {
+			success: true,
+			trenchUuids: trench_uuids || []
+		};
+	} catch (err) {
+		console.error('Error fetching trench UUIDs for conduit:', err);
+		throw error(500, 'Failed to fetch trench UUIDs for conduit');
+	}
+}
+
+/**
+ * Get the bounding box extent for a layer type
+ * @param {Function} fetch - SvelteKit fetch function
+ * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
+ * @param {string} layerType - Type of layer ('trench', 'address', 'node')
+ * @param {string} projectId - The project ID
+ * @returns {Promise<{extent: number[]|null, layer: string}>} Layer extent in EPSG:3857
+ */
+export async function getLayerExtent(fetch, cookies, layerType, projectId) {
+	if (!layerType || !projectId) {
+		throw error(400, 'Layer type and project ID are required');
+	}
+
+	try {
+		const response = await fetch(
+			`${API_URL}layer-extent/?layer=${encodeURIComponent(layerType)}&project=${projectId}`,
+			{
+				credentials: 'include',
+				headers: getAuthHeaders(cookies)
+			}
+		);
+
+		if (!response.ok) {
+			throw error(response.status, 'Failed to fetch layer extent');
+		}
+
+		return response.json();
+	} catch (err) {
+		console.error('Error fetching layer extent:', err);
+		throw error(500, 'Failed to fetch layer extent');
 	}
 }

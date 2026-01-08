@@ -30,7 +30,7 @@
 		<table class="table table-hover">
 			<thead>
 				<tr>
-					<th>{m.form_number()}</th>
+					<th>#</th>
 					<th>{m.form_color()}</th>
 					<th>{m.form_address({ count: 1 })}</th>
 					{#if actions}

@@ -18,6 +18,10 @@ export class ConduitDataManager {
 	/** @type {Record<string, string|null>} */
 	errorMicroducts = $state({});
 
+	// State for trench UUIDs (keyed by conduitUuid)
+	/** @type {Record<string, string[]>} */
+	trenchUuidsByConduit = $state({});
+
 	/**
 	 * Fetch all conduits/pipes in a trench
 	 * @param {string} featureId - UUID of the trench
@@ -193,6 +197,53 @@ export class ConduitDataManager {
 	}
 
 	/**
+	 * Fetch trench UUIDs for a specific conduit
+	 * @param {string} conduitUuid - UUID of the conduit
+	 * @returns {Promise<string[]>} Array of trench UUIDs
+	 */
+	async fetchTrenchUuidsForConduit(conduitUuid) {
+		if (!conduitUuid) return [];
+
+		// Return cached result if available
+		if (this.trenchUuidsByConduit[conduitUuid]) {
+			return this.trenchUuidsByConduit[conduitUuid];
+		}
+
+		try {
+			const formData = new FormData();
+			formData.append('conduitUuid', conduitUuid);
+
+			const response = await fetch('?/getConduitTrenches', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
+				console.error('Failed to fetch trench UUIDs:', result.data?.error);
+				return [];
+			}
+
+			const trenchUuids = result.data?.trenchUuids || [];
+			this.trenchUuidsByConduit = { ...this.trenchUuidsByConduit, [conduitUuid]: trenchUuids };
+			return trenchUuids;
+		} catch (err) {
+			console.error('Error fetching trench UUIDs for conduit:', err);
+			return [];
+		}
+	}
+
+	/**
+	 * Get cached trench UUIDs for a conduit
+	 * @param {string} conduitUuid - UUID of the conduit
+	 * @returns {string[]} Array of trench UUIDs
+	 */
+	getTrenchUuidsForConduit(conduitUuid) {
+		return this.trenchUuidsByConduit[conduitUuid] || [];
+	}
+
+	/**
 	 * Reset all state
 	 */
 	reset() {
@@ -202,6 +253,7 @@ export class ConduitDataManager {
 		this.microducts = {};
 		this.loadingMicroducts = {};
 		this.errorMicroducts = {};
+		this.trenchUuidsByConduit = {};
 	}
 
 	/**

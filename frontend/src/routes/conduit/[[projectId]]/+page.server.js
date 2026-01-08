@@ -1,8 +1,9 @@
 import { fail } from '@sveltejs/kit';
-
 import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ fetch, url, depends, cookies, params }) {
@@ -337,6 +338,76 @@ export const actions = {
 		} catch (err) {
 			console.error('Error creating conduit:', err);
 			return fail(500, { message: err.message || 'Failed to create conduit' });
+		}
+	},
+
+	/**
+	 * Upload conduits from Excel file
+	 */
+	uploadConduits: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+
+		try {
+			const formData = await request.formData();
+			const file = formData.get('file');
+
+			// Validate file exists and is a File object
+			if (!file || !(file instanceof File)) {
+				return fail(400, {
+					uploadError: true,
+					message: 'No file uploaded or invalid file'
+				});
+			}
+
+			if (
+				!file.name.endsWith('.xlsx') &&
+				file.type !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+			) {
+				return fail(400, {
+					uploadError: true,
+					message: 'Invalid file format. Please upload an .xlsx file.'
+				});
+			}
+
+			if (file.size > MAX_FILE_SIZE) {
+				return fail(400, {
+					uploadError: true,
+					message: `File too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB.`
+				});
+			}
+
+			const backendFormData = new FormData();
+			backendFormData.append('file', file);
+
+			const response = await fetch(`${API_URL}import/conduit/`, {
+				method: 'POST',
+				body: backendFormData,
+				headers: headers
+			});
+
+			const result = await response.json();
+
+			if (!response.ok) {
+				return fail(response.status, {
+					uploadError: true,
+					message: result.error || 'Import failed',
+					errors: result.errors || [],
+					warnings: result.warnings || []
+				});
+			}
+
+			return {
+				uploadSuccess: true,
+				createdCount: result.created_count || 0,
+				message: result.message,
+				warnings: result.warnings || []
+			};
+		} catch (err) {
+			console.error('Upload error:', err);
+			return fail(500, {
+				uploadError: true,
+				message: 'Internal server error during file upload'
+			});
 		}
 	}
 };

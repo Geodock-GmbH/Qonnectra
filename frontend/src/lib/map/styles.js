@@ -141,7 +141,7 @@ export function createAddressStyle() {
 		image: new CircleStyle({
 			radius: 4,
 			fill: new Fill({ color: '#2563eb' }),
-			stroke: new Stroke({ color: '#ffffff', width: 1 })
+			stroke: new Stroke({ color: '#000000', width: 1 })
 		})
 	});
 }
@@ -169,7 +169,7 @@ export function createAddressStyleWithLabels(
 		image: new CircleStyle({
 			radius: size,
 			fill: new Fill({ color: color }),
-			stroke: new Stroke({ color: '#ffffff', width: 1 })
+			stroke: new Stroke({ color: '#000000', width: 1 })
 		}),
 		declutterMode: 'none'
 	});
@@ -202,7 +202,7 @@ export function createNodeStyle() {
 		image: new CircleStyle({
 			radius: 6,
 			fill: new Fill({ color: '#ff6b35' }),
-			stroke: new Stroke({ color: '#ffffff', width: 1 })
+			stroke: new Stroke({ color: '#000000', width: 1 })
 		})
 	});
 }
@@ -224,7 +224,7 @@ export function createNodeStyleWithLabels(labelOptions = {}) {
 		image: new CircleStyle({
 			radius: 6,
 			fill: new Fill({ color: '#ff6b35' }),
-			stroke: new Stroke({ color: '#ffffff', width: 1 })
+			stroke: new Stroke({ color: '#000000', width: 1 })
 		}),
 		declutterMode: 'none'
 	});
@@ -298,7 +298,7 @@ export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
 				image: new CircleStyle({
 					radius: typeConfig.size || DEFAULT_NODE_SIZE,
 					fill: new Fill({ color: typeConfig.color || DEFAULT_NODE_COLOR }),
-					stroke: new Stroke({ color: '#ffffff', width: 1 })
+					stroke: new Stroke({ color: '#000000', width: 1 })
 				}),
 				// Mark as non-declutterable so the point always renders
 				declutterMode: 'none'
@@ -322,6 +322,22 @@ export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
 
 		return geometryStyle;
 	};
+}
+
+/**
+ * Creates a style for highlighting linked trenches
+ * Uses a dashed stroke to differentiate from solid selection
+ * @param {string} color - The color for the linked trench style (default: skeleton secondary-500)
+ * @returns {Style}
+ */
+export function createLinkedTrenchStyle(color = '#06b6d4') {
+	return new Style({
+		stroke: new Stroke({
+			color: color,
+			width: 5,
+			lineDash: [8, 4]
+		})
+	});
 }
 
 /**

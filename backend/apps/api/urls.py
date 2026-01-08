@@ -24,12 +24,12 @@ from .views import (
     FeatureFilesViewSet,
     FlagsViewSet,
     FrontendLogView,
+    LayerExtentView,
     LogEntryViewSet,
     MicroductCableConnectionViewSet,
     MicroductConnectionViewSet,
     MicroductViewSet,
     NodeCanvasCoordinatesView,
-    NodePositionListenView,
     NodeViewSet,
     OlAddressTileViewSet,
     OlAddressViewSet,
@@ -43,7 +43,6 @@ from .views import (
     TrenchConduitConnectionViewSet,
     TrenchesNearNodeView,
     TrenchViewSet,
-    QGISAuthView,
     WebDAVAuthView,
 )
 
@@ -177,11 +176,6 @@ urlpatterns = [
         name="node-canvas-coordinates",
     ),
     path(
-        "node-position-listen/",
-        NodePositionListenView.as_view(),
-        name="node-position-listen",
-    ),
-    path(
         "auth/webdav-auth/",
         WebDAVAuthView.as_view(),
         name="webdav-auth",
@@ -190,5 +184,10 @@ urlpatterns = [
         "auth/qgis-auth/",
         QGISAuthView.as_view(),
         name="qgis-auth",
+    ),
+    path(
+        "layer-extent/",
+        LayerExtentView.as_view(),
+        name="layer-extent",
     ),
 ]

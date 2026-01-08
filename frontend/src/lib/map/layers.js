@@ -69,7 +69,11 @@ export function createAddressLayer(selectedProject, layerName, onError, labelOpt
 	const tileSource = createAddressTileSource(selectedProject, onError);
 
 	// Use style function with labels if enabled, otherwise use static style
-	const style = createAddressStyleWithLabels(DEFAULT_ADDRESS_COLOR, DEFAULT_ADDRESS_SIZE, labelOptions);
+	const style = createAddressStyleWithLabels(
+		DEFAULT_ADDRESS_COLOR,
+		DEFAULT_ADDRESS_SIZE,
+		labelOptions
+	);
 
 	return new VectorTileLayer({
 		source: tileSource,

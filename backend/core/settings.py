@@ -281,5 +281,10 @@ LOGGING = {
             else "WARNING",  # Only change this value. Keep the other values as is.
             "propagate": False,  # Don't propagate to root to avoid duplicate logs
         },
+        "django.request": {
+            "handlers": ["console", "database"],
+            "level": "ERROR",
+            "propagate": False,
+        },
     },
 }
