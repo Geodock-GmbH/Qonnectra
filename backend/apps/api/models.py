@@ -37,6 +37,46 @@ class Projects(models.Model):
         return self.project
 
 
+class NetworkSchemaSettings(models.Model):
+    """Project-specific settings for network schema display.
+
+    Configures which node types are excluded when loading nodes
+    for the network schema view.
+    """
+
+    project = models.OneToOneField(
+        Projects,
+        on_delete=models.CASCADE,
+        related_name="network_schema_settings",
+        primary_key=True,
+        verbose_name=_("Project"),
+    )
+    excluded_node_types = models.ManyToManyField(
+        "AttributesNodeType",
+        blank=True,
+        related_name="excluded_from_schemas",
+        verbose_name=_("Excluded Node Types"),
+        help_text=_("Select node types to exclude from the network schema view."),
+    )
+
+    class Meta:
+        db_table = "network_schema_settings"
+        verbose_name = _("Network Schema Settings")
+        verbose_name_plural = _("Network Schema Settings")
+
+    def __str__(self):
+        excluded_count = self.excluded_node_types.count()
+        return f"{self.project.project} - {excluded_count} excluded"
+
+    @classmethod
+    def get_settings_for_project(cls, project_id):
+        """Get settings for a project. Returns None if not configured."""
+        try:
+            return cls.objects.get(project_id=project_id)
+        except cls.DoesNotExist:
+            return None
+
+
 class Flags(models.Model):
     """Stores all flags,
     related to :model:`api.Trench`.

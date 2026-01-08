@@ -33,6 +33,7 @@ from .models import (
     Flags,
     LogEntry,
     Microduct,
+    NetworkSchemaSettings,
     Node,
     Projects,
     QGISProject,
@@ -57,7 +58,6 @@ admin.site.register(AttributesStatus)
 admin.site.register(AttributesPhase)
 admin.site.register(AttributesCompany)
 admin.site.register(Cable)
-admin.site.register(Projects)
 admin.site.register(FileTypeCategory)
 admin.site.register(Flags)
 admin.site.register(AttributesNetworkLevel)
@@ -65,6 +65,66 @@ admin.site.register(AttributesNodeType)
 admin.site.register(AttributesMicroductStatus)
 admin.site.register(Microduct)
 admin.site.register(AttributesFiberStatus)
+
+
+class NetworkSchemaSettingsInline(admin.StackedInline):
+    """Inline admin for Network Schema Settings within Project admin."""
+
+    model = NetworkSchemaSettings
+    can_delete = False
+    verbose_name = _("Network Schema Settings")
+    verbose_name_plural = _("Network Schema Settings")
+    filter_horizontal = ("excluded_node_types",)
+
+
+@admin.register(Projects)
+class ProjectsAdmin(admin.ModelAdmin):
+    """Admin interface for Projects with Network Schema Settings."""
+
+    list_display = ("project", "description", "active", "excluded_types_display")
+    list_filter = ("active",)
+    search_fields = ("project", "description")
+    inlines = [NetworkSchemaSettingsInline]
+
+    @admin.display(description=_("Excluded Node Types"))
+    def excluded_types_display(self, obj):
+        """Display excluded node types for list view."""
+        try:
+            settings = obj.network_schema_settings
+            count = settings.excluded_node_types.count()
+            if count > 0:
+                types = settings.excluded_node_types.all()[:3]
+                names = [t.node_type for t in types]
+                suffix = f"... (+{count - 3})" if count > 3 else ""
+                return ", ".join(names) + suffix
+            return _("None")
+        except NetworkSchemaSettings.DoesNotExist:
+            return format_html(
+                '<span style="color: #dc3545;">⚠ {}</span>',
+                _("Not configured"),
+            )
+
+
+@admin.register(NetworkSchemaSettings)
+class NetworkSchemaSettingsAdmin(admin.ModelAdmin):
+    """Standalone admin for Network Schema Settings."""
+
+    list_display = ("project", "excluded_count", "excluded_types_preview")
+    list_filter = ("project",)
+    search_fields = ("project__project",)
+    filter_horizontal = ("excluded_node_types",)
+    autocomplete_fields = ["project"]
+
+    @admin.display(description=_("Excluded Count"))
+    def excluded_count(self, obj):
+        return obj.excluded_node_types.count()
+
+    @admin.display(description=_("Excluded Types"))
+    def excluded_types_preview(self, obj):
+        types = obj.excluded_node_types.all()[:5]
+        names = [t.node_type for t in types]
+        suffix = "..." if obj.excluded_node_types.count() > 5 else ""
+        return ", ".join(names) + suffix if names else _("None")
 
 
 @admin.register(Address)

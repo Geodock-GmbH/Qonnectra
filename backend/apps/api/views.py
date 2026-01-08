@@ -45,6 +45,7 @@ from .models import (
     Microduct,
     MicroductCableConnection,
     MicroductConnection,
+    NetworkSchemaSettings,
     Node,
     OlAddress,
     OlNode,
@@ -1567,6 +1568,9 @@ class NodeViewSet(viewsets.ModelViewSet):
         """
         Returns all nodes with project and flag filters.
         No pagination is used.
+
+        If project settings are configured, excluded node types are automatically
+        filtered out unless an explicit exclude_group parameter is provided.
         """
         queryset = Node.objects.all().order_by("name")
         project_id = request.query_params.get("project")
@@ -1574,14 +1578,28 @@ class NodeViewSet(viewsets.ModelViewSet):
         group = request.query_params.get("group")
         search_term = request.query_params.get("search")
         exclude_group = request.query_params.get("exclude_group")
+        settings_configured = False
 
         if project_id:
             queryset = queryset.filter(project=project_id)
+
+            # Apply project-specific exclusions if no explicit exclude_group provided
+            if exclude_group is None:
+                settings = NetworkSchemaSettings.get_settings_for_project(project_id)
+                if settings is not None:
+                    settings_configured = True
+                    excluded_type_ids = list(
+                        settings.excluded_node_types.values_list("id", flat=True)
+                    )
+                    if excluded_type_ids:
+                        queryset = queryset.exclude(node_type_id__in=excluded_type_ids)
+
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
         if group:
             queryset = queryset.filter(node_type__group=group)
         if exclude_group:
+            # Explicit exclude_group overrides project settings
             queryset = queryset.exclude(node_type__group=exclude_group)
         if search_term:
             queryset = queryset.filter(
@@ -1589,7 +1607,20 @@ class NodeViewSet(viewsets.ModelViewSet):
                 | Q(node_type__node_type__icontains=search_term)
             )
         serializer = NodeSerializer(queryset, many=True)
-        return Response(serializer.data)
+        data = serializer.data
+
+        # Add metadata about settings configuration to the GeoJSON response
+        if isinstance(data, dict) and data.get("type") == "FeatureCollection":
+            data["metadata"] = {"settings_configured": settings_configured}
+        elif isinstance(data, list):
+            # Wrap in FeatureCollection format with metadata
+            data = {
+                "type": "FeatureCollection",
+                "features": data,
+                "metadata": {"settings_configured": settings_configured},
+            }
+
+        return Response(data)
 
 
 class NodeCanvasCoordinatesView(APIView):

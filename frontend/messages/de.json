@@ -239,6 +239,7 @@
 	"message_no_conduit_selected_description": "Bitte wählen Sie ein Rohr aus, um eine Route zu berechnen",
 	"message_no_logs_found": "Keine Logs gefunden",
 	"message_no_new_trench_connections": "Keine neuen Trassenverbindungen",
+	"message_network_schema_settings_not_configured": "Die Netzschema-Einstellungen sind für dieses Projekt nicht konfiguriert. Bitte konfigurieren Sie diese im Admin-Bereich.",
 	"message_no_results_found": "Keine Ergebnisse gefunden",
 	"message_please_select_exactly_2_nodes": "Bitte wählen Sie genau 2 Knoten aus",
 	"message_please_try_again": "Bitte versuche es erneut.",
