@@ -255,29 +255,39 @@
 	}
 </script>
 
-<div class="preset-filled-surface-50-950 rounded-lg shadow-lg w-full">
-	<SearchInput bind:value={searchQuery} onSearch={handleSearch} />
-</div>
-<div class="preset-filled-surface-50-950 rounded-lg shadow-lg w-full">
+<div class="w-full space-y-2">
+	<!-- Search Input -->
+	<div class="preset-filled-surface-50-950 rounded-lg shadow-md border border-surface-200-800/50">
+		<SearchInput bind:value={searchQuery} onSearch={handleSearch} />
+	</div>
+
+	<!-- Search Results -->
 	{#if showSearchResults && searchResults.length > 0 && !isSearching}
-		<div class="mt-3 lg:mt-2">
+		<div
+			class="preset-filled-surface-50-950 rounded-lg shadow-md border border-surface-200-800/50 p-2 animate-in fade-in slide-in-from-top-1 duration-200 flex items-center"
+		>
 			<GenericCombobox
 				data={searchResults}
 				placeholder={m.placeholder_select_a_feature()}
 				onValueChange={handleFeatureSelect}
-				classes="touch-manipulation text-base lg:text-sm min-h-[36px] lg:min-h-[36px]"
-				contentBase="max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg text-base lg:text-sm"
+				classes="touch-manipulation text-base sm:text-sm w-full"
+				contentBase="max-h-[50vh] sm:max-h-60 overflow-auto touch-manipulation rounded-lg border border-surface-200-800 bg-surface-50-950 shadow-xl text-base sm:text-sm"
 				zIndex="20"
 			/>
 		</div>
 	{/if}
 
+	<!-- Loading State -->
 	{#if isSearching}
 		<div
-			class="m-3 lg:m-2 text-base lg:text-sm text-surface-600-400 flex items-center justify-center lg:justify-start lg:min-h-[36px]"
+			class="preset-filled-surface-50-950 rounded-lg shadow-md border border-surface-200-800/50 p-4 sm:p-3"
 		>
-			<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-500 mr-2"></div>
-			{m.common_searching()}
+			<div class="flex items-center justify-center sm:justify-start gap-3">
+				<div
+					class="animate-spin rounded-full h-5 w-5 sm:h-4 sm:w-4 border-2 border-primary-500 border-t-transparent"
+				></div>
+				<span class="text-base sm:text-sm text-surface-600-400">{m.common_searching()}</span>
+			</div>
 		</div>
 	{/if}
 </div>

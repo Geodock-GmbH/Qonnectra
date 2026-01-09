@@ -14,32 +14,39 @@
 <!-- AppBar -->
 <div>
 	<AppBar class="bg-transparent border-b-2 border-surface-200-800">
-		<AppBar.Toolbar class="grid-cols-[auto_1fr_auto]">
-			<AppBar.Lead>
+		<AppBar.Toolbar
+			class="grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[auto_1fr_auto] gap-2 sm:gap-4 px-2 sm:px-4"
+		>
+			<AppBar.Lead class="min-w-0 flex items-center">
 				{#if $userStore.isAuthenticated}
-					<div class="w-full max-w-full min-w-0 px-2 sm:px-0">
+					<div class="w-full min-w-0">
 						<ProjectCombobox projects={data.projects} projectsError={data.projectsError} />
 					</div>
 				{/if}
 			</AppBar.Lead>
-			<AppBar.Headline>
+			<AppBar.Headline class="hidden sm:block">
 				<!-- Optional headline content can go here -->
 			</AppBar.Headline>
 			<AppBar.Trail>
-				<div class="flex items-center gap-2 sm:gap-6 flex-shrink-0">
+				<div class="flex items-center gap-1 sm:gap-4 flex-shrink-0">
+					<!-- Version badge - hidden on mobile -->
 					<p
 						class="rounded-full px-2 py-1 bg-surface-200-800/50 text-xs sm:text-sm hidden sm:block transition-all duration-200 hover:scale-105"
 						aria-label="Version"
 					>
 						v{data.appVersion}
 					</p>
-					<span class="border-r h-8 border-surface-200-800"></span>
+					<span class="border-r h-6 sm:h-8 border-surface-200-800 hidden md:block"></span>
+
+					<!-- Locale Switcher -->
 					<LocaleSwitcher />
-					<span class="border-r h-8 border-surface-200-800"></span>
+					<span class="border-r h-6 sm:h-8 border-surface-200-800 hidden sm:block"></span>
+
+					<!-- GitHub link - hidden on mobile -->
 					<a
 						href="https://github.com/Geodock-GmbH/Qonnectra"
 						aria-label="GitHub"
-						class="btn-icon hover:preset-tonal size-5"
+						class="btn-icon hover:preset-tonal size-5 hidden sm:flex"
 						target="_blank"
 						title="GitHub"
 					>
@@ -56,24 +63,30 @@
 							/>
 						</svg>
 					</a>
+
+					<!-- Light Switch -->
 					<LightSwitch />
-					<span class="border-r h-8 border-surface-200-800"></span>
+					<span class="border-r h-6 sm:h-8 border-surface-200-800"></span>
+
+					<!-- Login/Logout -->
 					{#if $userStore.isAuthenticated}
-						<div class="flex items-center flex-shrink-0">
-							<form method="POST" action="/logout">
-								<button
-									type="submit"
-									class="btn-icon hover:preset-tonal"
-									aria-label="Logout"
-									title="Logout"
-								>
-									<IconLogout class="size-5" />
-								</button>
-							</form>
-						</div>
+						<form method="POST" action="/logout">
+							<button
+								type="submit"
+								class="btn-icon hover:preset-tonal p-2 sm:p-1"
+								aria-label="Logout"
+								title="Logout"
+							>
+								<IconLogout class="size-5" />
+							</button>
+						</form>
 					{:else}
 						<a href="/login">
-							<button class="btn-icon hover:preset-tonal size-5" aria-label="Login" title="Login">
+							<button
+								class="btn-icon hover:preset-tonal p-2 sm:p-1"
+								aria-label="Login"
+								title="Login"
+							>
 								<IconLogin class="size-5" />
 							</button>
 						</a>

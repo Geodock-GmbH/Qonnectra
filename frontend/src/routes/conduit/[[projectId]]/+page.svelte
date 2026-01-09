@@ -163,7 +163,7 @@
 		<div class="flex justify-between items-center">
 			<div class="flex items-center">
 				<nav
-					class="btn-group md:preset-outlined-surface-200-800 flex-col justify-between items-start md:flex-row"
+					class="btn-group md:preset-outlined-surface-200-800 flex-col justify-between items-start md:flex-row md:items-center md:justify-start md:gap-2"
 				>
 					<PipeModal
 						projectId={$selectedProject}

@@ -98,9 +98,9 @@
 		onValueChange={handleValueChange}
 		{onInputValueChange}
 	>
-		<Combobox.Control>
+		<Combobox.Control class="flex items-center min-h-[48px] sm:min-h-[40px]">
 			<Combobox.Input class="placeholder:text-sm placeholder:truncate {inputClasses}" />
-			<Combobox.Trigger />
+			<Combobox.Trigger class="flex-shrink-0" />
 		</Combobox.Control>
 		<Combobox.Positioner>
 			<Combobox.Content class="{contentBase} {isOpen ? 'z-[100]' : `z-${zIndex}`}">

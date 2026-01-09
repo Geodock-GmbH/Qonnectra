@@ -208,6 +208,7 @@
 					nodeTypes={data.nodeTypes ?? []}
 					surfaces={data.surfaces ?? []}
 					constructionTypes={data.constructionTypes ?? []}
+					areaTypes={data.areaTypes ?? []}
 					on:ready={handleMapReady}
 					searchPanelProps={{
 						trenchColorSelected: $trenchColorSelected,

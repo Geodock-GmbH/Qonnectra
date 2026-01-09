@@ -265,9 +265,7 @@ export async function getTrenchUuidsForConduit(fetch, cookies, conduitUuid) {
 		);
 
 		const trenchResponses = await Promise.all(trenchPromises);
-		const trenches = trenchResponses
-			.map((r) => r.results?.features?.[0] || r[0])
-			.filter(Boolean);
+		const trenches = trenchResponses.map((r) => r.results?.features?.[0] || r[0]).filter(Boolean);
 
 		return {
 			success: true,
