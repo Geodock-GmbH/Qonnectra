@@ -13,6 +13,7 @@
 	import { drawerStore } from '$lib/stores/drawer';
 	import {
 		addressStyle,
+		areaTypeStyles,
 		labelVisibilityConfig,
 		nodeTypeStyles,
 		selectedProject,
@@ -96,6 +97,14 @@
 		mapState.updateAddressLayerStyle(color, size);
 	});
 
+	// Update area layer style when areaTypeStyles changes
+	$effect(() => {
+		const styles = $areaTypeStyles;
+		if (Object.keys(styles).length > 0) {
+			mapState.updateAreaLayerStyle(styles);
+		}
+	});
+
 	// Update label visibility when labelVisibilityConfig changes
 	$effect(() => {
 		const config = $labelVisibilityConfig;
@@ -104,6 +113,7 @@
 		const constructionTypeStyles = $trenchConstructionTypeStyles;
 		const color = $trenchColor;
 		const nodeStyles = $nodeTypeStyles;
+		const areaStyles = $areaTypeStyles;
 
 		// Update each layer type based on config
 		if (config.trench !== undefined) {
@@ -119,6 +129,9 @@
 		}
 		if (config.node !== undefined) {
 			mapState.updateLabelVisibility('node', config.node, { nodeTypeStyles: nodeStyles });
+		}
+		if (config.area !== undefined) {
+			mapState.updateLabelVisibility('area', config.area, { areaTypeStyles: areaStyles });
 		}
 	});
 

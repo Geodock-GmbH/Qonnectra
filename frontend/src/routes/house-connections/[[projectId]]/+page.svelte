@@ -16,6 +16,7 @@
 	import { drawerStore } from '$lib/stores/drawer';
 	import {
 		addressStyle,
+		areaTypeStyles,
 		labelVisibilityConfig,
 		nodeTypeStyles,
 		selectedProject,
@@ -46,7 +47,8 @@
 	const mapState = new MapState($selectedProject, get(trenchColorSelected), {
 		trench: true,
 		address: true,
-		node: true
+		node: true,
+		area: true
 	});
 
 	const selectionManager = new MapSelectionManager();
@@ -60,7 +62,8 @@
 		{
 			trench: true,
 			address: false,
-			node: false
+			node: false,
+			area: false
 		}
 	);
 
@@ -144,6 +147,14 @@
 		mapState.updateAddressLayerStyle(color, size);
 	});
 
+	// Update area layer style when areaTypeStyles changes
+	$effect(() => {
+		const styles = $areaTypeStyles;
+		if (Object.keys(styles).length > 0) {
+			mapState.updateAreaLayerStyle(styles);
+		}
+	});
+
 	/**
 	 * Handler for the map ready event
 	 * Initializes all map interactions and overlays
@@ -207,6 +218,7 @@
 		const constructionTypeStyles = $trenchConstructionTypeStyles;
 		const color = $trenchColor;
 		const nodeStyles = $nodeTypeStyles;
+		const areaStyles = $areaTypeStyles;
 
 		// Update each layer type based on config
 		if (config.trench !== undefined) {
@@ -222,6 +234,9 @@
 		}
 		if (config.node !== undefined) {
 			mapState.updateLabelVisibility('node', config.node, { nodeTypeStyles: nodeStyles });
+		}
+		if (config.area !== undefined) {
+			mapState.updateLabelVisibility('area', config.area, { areaTypeStyles: areaStyles });
 		}
 	});
 
@@ -284,6 +299,7 @@
 					nodeTypes={data.nodeTypes ?? []}
 					surfaces={data.surfaces ?? []}
 					constructionTypes={data.constructionTypes ?? []}
+					areaTypes={data.areaTypes ?? []}
 					on:ready={handleMapReady}
 					searchPanelProps={{
 						trenchColorSelected: $trenchColorSelected,

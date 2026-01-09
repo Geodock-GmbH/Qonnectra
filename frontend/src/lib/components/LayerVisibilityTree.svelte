@@ -12,9 +12,16 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { DEFAULT_NODE_COLOR, DEFAULT_NODE_SIZE, DEFAULT_TRENCH_COLOR } from '$lib/map/styles';
 	import {
+		DEFAULT_AREA_COLOR,
+		DEFAULT_NODE_COLOR,
+		DEFAULT_NODE_SIZE,
+		DEFAULT_TRENCH_COLOR
+	} from '$lib/map/styles';
+	import {
+		areaTypeStyles,
 		labelVisibilityConfig,
+		layerVisibilityConfig,
 		nodeTypeStyles,
 		trenchConstructionTypeStyles,
 		trenchStyleMode,
@@ -27,9 +34,11 @@
 		nodeTypes = [],
 		surfaces = [],
 		constructionTypes = [],
+		areaTypes = [],
 		onLayerVisibilityChanged = () => {},
 		onNodeTypeVisibilityChanged = () => {},
 		onTrenchTypeVisibilityChanged = () => {},
+		onAreaTypeVisibilityChanged = () => {},
 		onLabelVisibilityChanged = () => {},
 		onZoomToExtent = () => {}
 	} = $props();
@@ -38,6 +47,7 @@
 	let isCollapsed = $state(false);
 	let isNodeSubtypesExpanded = $state(false);
 	let isTrenchSubtypesExpanded = $state(false);
+	let isAreaSubtypesExpanded = $state(false);
 
 	// Derive which trench types to show based on mode
 	let trenchTypes = $derived(
@@ -75,14 +85,36 @@
 	const LAYER_ORDER = {
 		'address-layer': 1,
 		'node-layer': 2,
-		'trench-layer': 3
+		'trench-layer': 3,
+		'area-layer': 4
 	};
+
+	// Initialize area type styles for any new types when area types change
+	$effect(() => {
+		if (areaTypes.length > 0) {
+			const currentStyles = $areaTypeStyles;
+			let hasNewTypes = false;
+
+			areaTypes.forEach((areaType) => {
+				if (!currentStyles[areaType.area_type]) {
+					currentStyles[areaType.area_type] = {
+						color: DEFAULT_AREA_COLOR,
+						visible: true
+					};
+					hasNewTypes = true;
+				}
+			});
+
+			if (hasNewTypes) {
+				$areaTypeStyles = { ...currentStyles };
+			}
+		}
+	});
 
 	// Update layer visibility when layers change
 	$effect(() => {
 		const newVisibility = new Map();
 
-		// Sort layers by display order: Address first, then node, then trench
 		const sortedLayers = [...layers].sort((a, b) => {
 			const aId = a.get('layerId');
 			const bId = b.get('layerId');
@@ -91,25 +123,29 @@
 			return aOrder - bOrder;
 		});
 
-		// Build visibility map from sorted layers
 		for (const layer of sortedLayers) {
 			const layerId = layer.get('layerId');
 			const layerName = layer.get('layerName');
 
 			if (layerId && layerName) {
+				const persistedVisible = $layerVisibilityConfig[layerId] ?? true;
+				layer.setVisible(persistedVisible);
+
 				newVisibility.set(layerId, {
 					layer: layer,
-					visible: layer.getVisible(),
+					visible: persistedVisible,
 					name: layerName
 				});
 			}
 		}
 
-		// Add OSM layer if provided
 		if (osmLayer) {
+			const osmVisible = $layerVisibilityConfig['osm-base-layer'] ?? true;
+			osmLayer.setVisible(osmVisible);
+
 			newVisibility.set('osm-base-layer', {
 				layer: osmLayer,
-				visible: osmLayer.getVisible(),
+				visible: osmVisible,
 				name: m.common_osm()
 			});
 		}
@@ -134,6 +170,11 @@
 			});
 
 			layerVisibility = new Map(layerVisibility);
+
+			$layerVisibilityConfig = {
+				...$layerVisibilityConfig,
+				[layerId]: newVisible
+			};
 
 			onLayerVisibilityChanged({
 				layerId,
@@ -286,6 +327,58 @@
 	}
 
 	/**
+	 * Toggle the expansion state of the area subtypes
+	 */
+	function toggleAreaSubtypes() {
+		isAreaSubtypesExpanded = !isAreaSubtypesExpanded;
+	}
+
+	/**
+	 * Check if an area type is visible
+	 * @param {string} areaTypeName - The name of the area type to check
+	 * @returns {boolean} True if the area type is visible
+	 */
+	function isAreaTypeVisible(areaTypeName) {
+		const config = $areaTypeStyles[areaTypeName];
+		return config ? config.visible : true;
+	}
+
+	/**
+	 * Get the color of an area type
+	 * @param {string} areaTypeName - The name of the area type to get the color of
+	 * @returns {string} The color of the area type
+	 */
+	function getAreaTypeColor(areaTypeName) {
+		const config = $areaTypeStyles[areaTypeName];
+		return config?.color || DEFAULT_AREA_COLOR;
+	}
+
+	/**
+	 * Toggle the visibility of an area type
+	 * @param {string} areaTypeName - The name of the area type to toggle
+	 */
+	function toggleAreaTypeVisibility(areaTypeName) {
+		const currentStyles = $areaTypeStyles;
+		const currentConfig = currentStyles[areaTypeName] || {
+			color: DEFAULT_AREA_COLOR,
+			visible: true
+		};
+
+		$areaTypeStyles = {
+			...currentStyles,
+			[areaTypeName]: {
+				...currentConfig,
+				visible: !currentConfig.visible
+			}
+		};
+
+		onAreaTypeVisibilityChanged({
+			areaType: areaTypeName,
+			visible: !currentConfig.visible
+		});
+	}
+
+	/**
 	 * Map layer ID to label config key
 	 * @param {string} layerId - The layer ID
 	 * @returns {string|null} The label config key or null if not supported
@@ -294,7 +387,8 @@
 		const mapping = {
 			'trench-layer': 'trench',
 			'address-layer': 'address',
-			'node-layer': 'node'
+			'node-layer': 'node',
+			'area-layer': 'area'
 		};
 		return mapping[layerId] || null;
 	}
@@ -308,7 +402,8 @@
 		const mapping = {
 			'trench-layer': 'trench',
 			'address-layer': 'address',
-			'node-layer': 'node'
+			'node-layer': 'node',
+			'area-layer': 'area'
 		};
 		return mapping[layerId] || null;
 	}
@@ -397,6 +492,18 @@
 									: 'Expand trench types'}
 							>
 								{#if isTrenchSubtypesExpanded}
+									<IconChevronDown size="14" class="text-surface-500" />
+								{:else}
+									<IconChevronRight size="14" class="text-surface-500" />
+								{/if}
+							</button>
+						{:else if layerId === 'area-layer' && areaTypes.length > 0}
+							<button
+								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+								onclick={toggleAreaSubtypes}
+								aria-label={isAreaSubtypesExpanded ? 'Collapse area types' : 'Expand area types'}
+							>
+								{#if isAreaSubtypesExpanded}
 									<IconChevronDown size="14" class="text-surface-500" />
 								{:else}
 									<IconChevronRight size="14" class="text-surface-500" />
@@ -522,6 +629,47 @@
 									onclick={() => toggleTrenchTypeVisibility(typeName)}
 									aria-label={visible ? 'Hide trench type' : 'Show trench type'}
 									title={visible ? 'Hide trench type' : 'Show trench type'}
+								>
+									{#if visible}
+										<IconEye size="24" class="text-primary-500" />
+									{:else}
+										<IconEyeOff size="24" class="text-surface-400" />
+									{/if}
+								</button>
+							</div>
+						{/each}
+					</div>
+				{/if}
+
+				<!-- Area type subtypes (expandable) -->
+				{#if layerId === 'area-layer' && isAreaSubtypesExpanded && areaTypes.length > 0}
+					<div class="ml-6 mt-1 space-y-1 border-l border-surface-200-700 pl-2">
+						{#each areaTypes as areaType (areaType.id)}
+							{@const visible = isAreaTypeVisible(areaType.area_type)}
+							{@const color = getAreaTypeColor(areaType.area_type)}
+							<div
+								class="flex items-center justify-between p-1.5 md:p-1 rounded-md hover:bg-surface-100-800 transition-colors"
+							>
+								<div class="flex items-center gap-2 flex-1 min-w-0">
+									<!-- Color indicator square (for areas/polygons) -->
+									<span
+										class="w-3 h-3 flex-shrink-0 rounded-sm border border-surface-300-600"
+										style="background-color: {color}; opacity: 0.5;"
+									></span>
+
+									<span
+										class="text-xs text-surface-contrast-100-900 truncate"
+										title={areaType.area_type}
+									>
+										{areaType.area_type}
+									</span>
+								</div>
+
+								<button
+									class="p-1 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+									onclick={() => toggleAreaTypeVisibility(areaType.area_type)}
+									aria-label={visible ? 'Hide area type' : 'Show area type'}
+									title={visible ? 'Hide area type' : 'Show area type'}
 								>
 									{#if visible}
 										<IconEye size="24" class="text-primary-500" />

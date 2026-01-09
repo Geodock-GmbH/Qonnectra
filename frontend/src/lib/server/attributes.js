@@ -79,3 +79,29 @@ export async function getConstructionTypes(fetch, cookies) {
 		return { constructionTypes: [], constructionTypesError: err.message };
 	}
 }
+
+/**
+ * Fetch area types for area styling
+ * @param {Function} fetch - SvelteKit fetch function
+ * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
+ * @returns {Promise<{areaTypes: Array, areaTypesError: string|null}>}
+ */
+export async function getAreaTypes(fetch, cookies) {
+	try {
+		const response = await fetch(`${API_URL}attributes_area_type/`, {
+			credentials: 'include',
+			headers: getAuthHeaders(cookies)
+		});
+
+		if (!response.ok) {
+			console.error(`Failed to fetch area types: ${response.status}`);
+			return { areaTypes: [], areaTypesError: 'Failed to load area types' };
+		}
+
+		const areaTypes = await response.json();
+		return { areaTypes, areaTypesError: null };
+	} catch (err) {
+		console.error('Error fetching area types:', err);
+		return { areaTypes: [], areaTypesError: err.message };
+	}
+}

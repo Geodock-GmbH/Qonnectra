@@ -207,6 +207,7 @@ class ContentTypeViewSet(viewsets.ReadOnlyModelViewSet):
                 "node",
                 "address",
                 "residentialunit",
+                "area",
             ],
         ).order_by("model")
 
@@ -2784,7 +2785,7 @@ class LayerExtentView(APIView):
         Returns the bounding box extent for a layer filtered by project.
 
         Query Parameters:
-        - `layer`: Layer type ('trench', 'address', or 'node') - required
+        - `layer`: Layer type ('trench', 'address', 'node', or 'area') - required
         - `project`: Project ID to filter by - required
 
         Returns:
@@ -2804,6 +2805,7 @@ class LayerExtentView(APIView):
             "trench": "ol_trench",
             "address": "ol_address",
             "node": "ol_node",
+            "area": "ol_area",
         }
 
         if layer not in layer_tables:
@@ -2971,3 +2973,65 @@ class OlAreaViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(flag=flag_id)
         serializer = OlAreaSerializer(queryset, many=True)
         return Response(serializer.data)
+
+
+class OlAreaTileViewSet(APIView):
+    """ViewSet for the OlArea model :model:`api.OlArea`.
+
+    An instance of :model:`api.OlArea`.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, z, x, y, format=None):
+        """
+        Serves MVT tiles for OlArea.
+        URL: /api/ol_area_tiles/{z}/{x}/{y}.mvt?project={project}
+        """
+        sql = """
+            WITH mvtgeom AS (
+                SELECT
+                ST_AsMVTGeom(
+                        a.geom,
+                        ST_TileEnvelope(%(z)s, %(x)s, %(y)s),
+                        extent => 4096,
+                        buffer => 64
+                    ) AS geom,
+                    a.uuid,
+                    a.name,
+                    at.area_type,
+                    f.flag
+            FROM ol_area a
+            LEFT JOIN attributes_area_type at ON a.area_type = at.id
+            LEFT JOIN flags f ON a.flag = f.id
+                WHERE
+                    a.geom && ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096))
+                    AND a.project = %(project)s
+            )
+            SELECT ST_AsMVT(mvtgeom, 'ol_area', 4096, 'geom') AS mvt
+            FROM mvtgeom;
+        """
+        project_id = request.query_params.get("project")
+        if project_id is None:
+            return HttpResponse(
+                "No project ID provided", status=400, content_type="text/plain"
+            )
+        try:
+            project_id = int(project_id)
+        except ValueError:
+            return HttpResponse(
+                "Invalid project ID", status=400, content_type="text/plain"
+            )
+
+        params = {"z": int(z), "x": int(x), "y": int(y), "project": project_id}
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            row = cursor.fetchone()
+
+        if row and row[0]:
+            return HttpResponse(
+                row[0], content_type="application/vnd.mapbox-vector-tile"
+            )
+        else:
+            return HttpResponse(status=204)

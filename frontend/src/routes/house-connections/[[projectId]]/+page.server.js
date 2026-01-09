@@ -2,7 +2,12 @@ import { fail } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
-import { getConstructionTypes, getNodeTypes, getSurfaces } from '$lib/server/attributes';
+import {
+	getAreaTypes,
+	getConstructionTypes,
+	getNodeTypes,
+	getSurfaces
+} from '$lib/server/attributes';
 import { getMicroducts, getPipesInTrench } from '$lib/server/conduitData';
 import {
 	getFeatureDetailsByType,
@@ -13,16 +18,18 @@ import {
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ fetch, cookies }) {
-	const [nodeTypesData, surfacesData, constructionTypesData] = await Promise.all([
+	const [nodeTypesData, surfacesData, constructionTypesData, areaTypesData] = await Promise.all([
 		getNodeTypes(fetch, cookies),
 		getSurfaces(fetch, cookies),
-		getConstructionTypes(fetch, cookies)
+		getConstructionTypes(fetch, cookies),
+		getAreaTypes(fetch, cookies)
 	]);
 
 	return {
 		...nodeTypesData,
 		...surfacesData,
-		...constructionTypesData
+		...constructionTypesData,
+		...areaTypesData
 	};
 }
 

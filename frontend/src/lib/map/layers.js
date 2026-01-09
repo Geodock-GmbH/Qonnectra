@@ -1,18 +1,20 @@
-// OpenLayers
 import VectorTileLayer from 'ol/layer/VectorTile.js';
 
 import {
-	createAddressStyle,
 	createAddressStyleWithLabels,
+	createAreaStyleByType,
+	createAreaStyleWithLabels,
 	createNodeStyle,
 	createNodeStyleByType,
 	createNodeStyleWithLabels,
 	createSelectedStyle,
 	createTrenchStyle,
-	createTrenchStyleWithLabels
+	createTrenchStyleWithLabels,
+	DEFAULT_AREA_COLOR
 } from './styles.js';
 import {
 	createAddressTileSource,
+	createAreaTileSource,
 	createNodeTileSource,
 	createTrenchTileSource
 } from './tileSources.js';
@@ -37,7 +39,6 @@ const DEFAULT_ADDRESS_SIZE = 4;
 export function createTrenchLayer(selectedProject, layerName, onError, labelOptions = {}) {
 	const tileSource = createTrenchTileSource(selectedProject, onError);
 
-	// Use style function with labels if enabled, otherwise use static style
 	const style = labelOptions.enabled
 		? createTrenchStyleWithLabels(DEFAULT_TRENCH_COLOR, labelOptions)
 		: createTrenchStyle(DEFAULT_TRENCH_COLOR);
@@ -68,7 +69,6 @@ export function createTrenchLayer(selectedProject, layerName, onError, labelOpti
 export function createAddressLayer(selectedProject, layerName, onError, labelOptions = {}) {
 	const tileSource = createAddressTileSource(selectedProject, onError);
 
-	// Use style function with labels if enabled, otherwise use static style
 	const style = createAddressStyleWithLabels(
 		DEFAULT_ADDRESS_COLOR,
 		DEFAULT_ADDRESS_SIZE,
@@ -125,6 +125,47 @@ export function createNodeLayer(
 		declutter: labelOptions.enabled, // Enable decluttering when labels are shown
 		properties: {
 			layerId: 'node-layer',
+			layerName: layerName
+		}
+	});
+}
+
+/**
+ * Creates a vector tile layer for areas (polygons)
+ * @param {import('svelte/store').Readable<string>} selectedProject - Store containing the selected project ID
+ * @param {string} layerName - Display name for the layer
+ * @param {Function} onError - Error callback function
+ * @param {Object} labelOptions - Optional label configuration
+ * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
+ * @param {string} [labelOptions.field='name'] - Feature property to use for label
+ * @param {number} [labelOptions.minResolution=5.0] - Minimum resolution to show labels
+ * @param {Object} [labelOptions.textStyle] - Custom text style options
+ * @param {Object} [areaTypeStyles=null] - Optional per-type style configuration
+ * @returns {VectorTileLayer}
+ */
+export function createAreaLayer(
+	selectedProject,
+	layerName,
+	onError,
+	labelOptions = {},
+	areaTypeStyles = null
+) {
+	const tileSource = createAreaTileSource(selectedProject, onError);
+
+	let style;
+	if (areaTypeStyles !== null) {
+		style = createAreaStyleByType(areaTypeStyles, labelOptions);
+	} else {
+		style = createAreaStyleWithLabels(DEFAULT_AREA_COLOR, 0.3, labelOptions);
+	}
+
+	return new VectorTileLayer({
+		source: tileSource,
+		style: style,
+		renderMode: 'vector',
+		declutter: labelOptions.enabled, // Enable decluttering when labels are shown
+		properties: {
+			layerId: 'area-layer',
 			layerName: layerName
 		}
 	});

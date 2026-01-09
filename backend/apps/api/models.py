@@ -560,6 +560,7 @@ class FeatureFiles(models.Model):
                 "node",
                 "address",
                 "residentialunit",
+                "area",
             ],
         },
     )

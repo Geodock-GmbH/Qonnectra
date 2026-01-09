@@ -17,6 +17,7 @@
 	import { zoomToFeature } from '$lib/map/searchUtils.js';
 	import {
 		addressStyle,
+		areaTypeStyles,
 		labelVisibilityConfig,
 		nodeTypeStyles,
 		routingMode,
@@ -47,7 +48,12 @@
 
 	let { data } = $props();
 
-	const mapState = new MapState($selectedProject, get(trenchColorSelected));
+	const mapState = new MapState($selectedProject, get(trenchColorSelected), {
+		trench: true,
+		address: true,
+		node: true,
+		area: true
+	});
 	const selectionManager = new MapSelectionManager();
 
 	setContext('mapManagers', {
@@ -417,6 +423,14 @@
 		mapState.updateAddressLayerStyle(color, size);
 	});
 
+	// Update area layer style when areaTypeStyles changes
+	$effect(() => {
+		const styles = $areaTypeStyles;
+		if (Object.keys(styles).length > 0) {
+			mapState.updateAreaLayerStyle(styles);
+		}
+	});
+
 	$effect(() => {
 		const config = $labelVisibilityConfig;
 		const mode = $trenchStyleMode;
@@ -424,6 +438,7 @@
 		const constructionTypeStyles = $trenchConstructionTypeStyles;
 		const color = $trenchColor;
 		const nodeStyles = $nodeTypeStyles;
+		const areaStyles = $areaTypeStyles;
 
 		if (config.trench !== undefined) {
 			mapState.updateLabelVisibility('trench', config.trench, {
@@ -438,6 +453,9 @@
 		}
 		if (config.node !== undefined) {
 			mapState.updateLabelVisibility('node', config.node, { nodeTypeStyles: nodeStyles });
+		}
+		if (config.area !== undefined) {
+			mapState.updateLabelVisibility('area', config.area, { areaTypeStyles: areaStyles });
 		}
 	});
 
@@ -484,6 +502,10 @@
 				showLayerVisibilityTree={true}
 				showSearchPanel={true}
 				on:ready={handleMapReady}
+				nodeTypes={data.nodeTypes ?? []}
+				surfaces={data.surfaces ?? []}
+				constructionTypes={data.constructionTypes ?? []}
+				areaTypes={data.areaTypes ?? []}
 				searchPanelProps={{
 					trenchColorSelected: $trenchColorSelected,
 					alias: data.alias

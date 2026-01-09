@@ -35,6 +35,7 @@ from .views import (
     NodeViewSet,
     OlAddressTileViewSet,
     OlAddressViewSet,
+    OlAreaTileViewSet,
     OlAreaViewSet,
     OlNodeTileViewSet,
     OlNodeViewSet,
@@ -169,6 +170,11 @@ urlpatterns = [
         "ol_trench_tiles/<int:z>/<int:x>/<int:y>.mvt",
         OlTrenchTileViewSet.as_view(),
         name="ol_trench_tiles",
+    ),
+    path(
+        "ol_area_tiles/<int:z>/<int:x>/<int:y>.mvt",
+        OlAreaTileViewSet.as_view(),
+        name="ol_area_tiles",
     ),
     path(
         "routing/",
