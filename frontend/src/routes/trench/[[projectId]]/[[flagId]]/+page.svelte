@@ -522,7 +522,9 @@
 		<div class="card p-4 flex flex-col gap-3">
 			<div class="space-y-4">
 				<!-- Routing Mode Toggle -->
-				<div class="flex items-center justify-between bg-surface-50-900 rounded-lg">
+				<div
+					class="flex items-center border border-surface-200-800 p-4 justify-between bg-surface-50-900 rounded-lg"
+				>
 					<h3 class="text-sm font-medium">{m.form_routing_mode()}</h3>
 					<Switch
 						name="routing-mode"
@@ -539,7 +541,9 @@
 				</div>
 
 				<!-- Show Linked Trenches Toggle -->
-				<div class="flex items-center justify-between bg-surface-50-900 rounded-lg">
+				<div
+					class="flex items-center border border-surface-200-800 p-4 justify-between bg-surface-50-900 rounded-lg"
+				>
 					<h3 class="text-sm font-medium">{m.form_show_linked_trenches()}</h3>
 					<Switch
 						name="show-linked-trenches"
