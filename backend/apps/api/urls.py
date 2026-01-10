@@ -26,6 +26,7 @@ from .views import (
     FeatureFilesViewSet,
     FlagsViewSet,
     FrontendLogView,
+    GeoPackageSchemaView,
     LayerExtentView,
     LogEntryViewSet,
     MicroductCableConnectionViewSet,
@@ -156,6 +157,7 @@ urlpatterns = [
         name="conduit-import-template",
     ),
     path("import/conduit/", ConduitImportView.as_view(), name="conduit-import"),
+    path("schema.gpkg", GeoPackageSchemaView.as_view(), name="geopackage-schema"),
     path(
         "ol_address_tiles/<int:z>/<int:x>/<int:y>.mvt",
         OlAddressTileViewSet.as_view(),

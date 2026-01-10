@@ -2753,7 +2753,7 @@ def get_feature_folder_identifier(instance):
     between upload paths and folder rename operations.
 
     Args:
-        instance: A model instance (Node, Cable, Conduit, Trench, or Address)
+        instance: A model instance (Node, Cable, Conduit, Trench, Address, or Area)
 
     Returns:
         The string identifier used for the feature's folder name
@@ -2761,7 +2761,7 @@ def get_feature_folder_identifier(instance):
     model_name = instance._meta.model_name
     if model_name == "trench":
         return str(instance.id_trench)
-    elif model_name in ("conduit", "cable", "node"):
+    elif model_name in ("conduit", "cable", "node", "area"):
         return instance.name
     elif model_name == "address":
         suffix = instance.house_number_suffix or ""
@@ -2895,3 +2895,37 @@ def rename_address_folder_on_change(sender, instance, created, **kwargs):
             # For Address, multiple fields contribute to the identifier.
             # We just re-raise the error - the DB transaction will rollback.
             raise
+
+
+class GeoPackageSchemaConfig(models.Model):
+    """Configuration for GeoPackage schema downloads.
+
+    Stores selected layers as a JSON list. The available layers
+    are dynamically loaded from GEOPACKAGE_LAYER_CONFIG in the admin form.
+    """
+
+    name = models.CharField(
+        _("Configuration Name"),
+        max_length=100,
+        default="Default",
+        help_text=_("Name for this configuration"),
+    )
+    selected_layers = models.JSONField(
+        _("Selected Layers"),
+        default=list,
+        blank=True,
+        help_text=_("List of layer names to include in the GeoPackage schema."),
+    )
+
+    class Meta:
+        db_table = "geopackage_schema_config"
+        verbose_name = _("GeoPackage Schema Configuration")
+        verbose_name_plural = _("GeoPackage Schema Configurations")
+
+    def __str__(self):
+        count = len(self.selected_layers) if self.selected_layers else 0
+        return f"{self.name} - {count} layer(s) selected"
+
+    def get_layer_names(self):
+        """Return list of layer names for use with generate_geopackage_schema."""
+        return self.selected_layers or []

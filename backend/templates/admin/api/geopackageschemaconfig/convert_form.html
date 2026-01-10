@@ -1,0 +1,38 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_label|capfirst }}</a>
+    &rsaquo; <a href="{% url 'admin:api_geopackageschemaconfig_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+    &rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <h1>{{ title }}</h1>
+    <p>{% translate "Upload a QGIS project file (.qgs or .qgz) to convert OGR/GeoPackage datasources to PostgreSQL. The converted file will be downloaded automatically." %}</p>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <fieldset class="module aligned">
+            <div class="form-row">
+                {{ form.qgis_file.errors }}
+                <label for="id_qgis_file">{{ form.qgis_file.label }}:</label>
+                {{ form.qgis_file }}
+                {% if form.qgis_file.help_text %}
+                <p class="help">{{ form.qgis_file.help_text }}</p>
+                {% endif %}
+            </div>
+        </fieldset>
+
+        <div class="submit-row">
+            <input type="submit" value="{% translate 'Convert and Download' %}" class="default">
+            <a href="{% url 'admin:api_geopackageschemaconfig_changelist' %}" class="button cancel-link">{% translate 'Cancel' %}</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

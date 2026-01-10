@@ -1,10 +1,8 @@
-import json
 import logging
 import mimetypes
 import os
 from urllib.parse import quote
 
-import psycopg
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.base import ContentFile
@@ -94,7 +92,12 @@ from .serializers import (
     TrenchConduitSerializer,
     TrenchSerializer,
 )
-from .services import generate_conduit_import_template, import_conduits_from_excel
+from .services import (
+    GEOPACKAGE_LAYER_CONFIG,
+    generate_conduit_import_template,
+    generate_geopackage_schema,
+    import_conduits_from_excel,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -2148,6 +2151,45 @@ class ConduitImportView(APIView):
             if result.get("warnings"):
                 response_data["warnings"] = result["warnings"]
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GeoPackageSchemaView(APIView):
+    """
+    API endpoint to download GeoPackage schema.
+
+    GET /api/v1/schema.gpkg - Download GeoPackage with all tables
+    GET /api/v1/schema.gpkg?layers=trench,node,address - Download with specific layers
+
+    Query parameters:
+        layers: Comma-separated list of layer names to include (optional)
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        layers_param = request.query_params.get("layers")
+        layers = None
+        if layers_param:
+            layers = [
+                layer.strip() for layer in layers_param.split(",") if layer.strip()
+            ]
+
+        try:
+            return generate_geopackage_schema(layers=layers)
+        except ValueError as e:
+            return Response(
+                {
+                    "error": str(e),
+                    "available_layers": list(GEOPACKAGE_LAYER_CONFIG.keys()),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            logger.error(f"Failed to generate GeoPackage: {e}")
+            return Response(
+                {"error": "Failed to generate GeoPackage schema."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class AttributesMicroductStatusViewSet(viewsets.ReadOnlyModelViewSet):

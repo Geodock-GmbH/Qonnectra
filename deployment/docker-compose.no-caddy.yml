@@ -64,6 +64,7 @@ services:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - DEFAULT_SRID=${DEFAULT_SRID}
+      - QGIS_PG_SERVICE_NAME=${QGIS_PG_SERVICE_NAME:-qonnectra_db}
     depends_on:
       db:
         condition: service_healthy
