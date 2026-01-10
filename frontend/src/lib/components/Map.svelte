@@ -2,7 +2,7 @@
 	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
 	import { browser } from '$app/environment';
 
-	import { mapCenter, mapZoom, selectedProject } from '$lib/stores/store';
+	import { layerOpacity, mapCenter, mapZoom, selectedProject } from '$lib/stores/store';
 	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 
 	import LayerVisibilityTree from './LayerVisibilityTree.svelte';
@@ -42,7 +42,7 @@
 	let initialCenter = $state(browser ? $mapCenter : [0, 0]);
 	let initialZoom = $state(browser ? $mapZoom : 2);
 
-	let currentLayerOpacity = $state(1);
+	let currentLayerOpacity = $state(browser ? $layerOpacity : 1);
 
 	const opacitySliderConfig = {
 		minOpacity: 0,
@@ -68,7 +68,9 @@
 			import('ol/source/OSM')
 		]);
 
-		osmLayer = new TileLayer({ source: new OSMSource(), opacity: currentLayerOpacity });
+		const initialOpacity = browser ? $layerOpacity : 1;
+		currentLayerOpacity = initialOpacity;
+		osmLayer = new TileLayer({ source: new OSMSource(), opacity: initialOpacity });
 
 		const mapLayers = [osmLayer, ...layers];
 
@@ -89,7 +91,13 @@
 			...mapOptions
 		});
 
-		currentLayerOpacity = osmLayer.getOpacity();
+		// Ensure opacity is synced with store
+		if (browser && osmLayer) {
+			currentLayerOpacity = $layerOpacity;
+			osmLayer.setOpacity($layerOpacity);
+		} else {
+			currentLayerOpacity = osmLayer.getOpacity();
+		}
 
 		dispatch('ready', { map });
 
@@ -125,6 +133,9 @@
 
 	function handleOpacitySliderChange(newOpacity) {
 		currentLayerOpacity = newOpacity;
+		if (browser) {
+			$layerOpacity = newOpacity;
+		}
 		if (osmLayer) {
 			osmLayer.setOpacity(newOpacity);
 		}

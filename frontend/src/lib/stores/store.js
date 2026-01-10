@@ -69,3 +69,7 @@ export const layerVisibilityConfig = persisted('layerVisibilityConfig', {
 	'area-layer': true,
 	'osm-base-layer': true
 });
+
+// Layer opacity configuration - controls the opacity of the base OSM layer
+// Value: number between 0 and 1
+export const layerOpacity = persisted('layerOpacity', 1);

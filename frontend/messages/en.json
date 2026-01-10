@@ -69,6 +69,7 @@
 	"form_address_id": "Address ID",
 	"form_address_points": "Address points",
 	"form_area": "Area",
+	"form_area_type": "Area type",
 	"form_attachments": "Attachments",
 	"form_auto_connect": "Autoconnect",
 	"form_average_house_connection_length": "Average house connection length",
