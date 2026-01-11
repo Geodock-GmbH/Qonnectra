@@ -124,7 +124,7 @@ export async function load({ fetch, cookies, url, params }) {
 			companyResponse,
 			flagsResponse
 		] = await Promise.all([
-			fetch(`${API_URL}node/all/?project=${projectId}&exclude_group=HA`, {
+			fetch(`${API_URL}node/all/?project=${projectId}`, {
 				credentials: 'include',
 				headers: headers
 			}),
@@ -167,6 +167,7 @@ export async function load({ fetch, cookies, url, params }) {
 		}
 
 		const nodesData = await nodeResponse.json();
+		const networkSchemaSettingsConfigured = nodesData?.metadata?.settings_configured ?? false;
 
 		let cablesData = [];
 		let cableLabelsData = [];
@@ -276,7 +277,8 @@ export async function load({ fetch, cookies, url, params }) {
 			networkLevels: networkLevelData,
 			companies: companyData,
 			flags: flagsData,
-			syncStatus: syncStatus || null
+			syncStatus: syncStatus || null,
+			networkSchemaSettingsConfigured
 		};
 	} catch (err) {
 		if (err.status === 500 && err.message === 'Failed to fetch nodes') {
@@ -293,7 +295,8 @@ export async function load({ fetch, cookies, url, params }) {
 			networkLevels: [],
 			companies: [],
 			flags: [],
-			syncStatus: null
+			syncStatus: null,
+			networkSchemaSettingsConfigured: false
 		};
 	}
 }

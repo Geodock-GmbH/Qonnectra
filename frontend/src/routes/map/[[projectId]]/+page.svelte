@@ -1,7 +1,6 @@
 <script>
-	import { onMount, setContext } from 'svelte';
+	import { onMount, setContext, untrack } from 'svelte';
 	import { get } from 'svelte/store';
-	import { page } from '$app/stores';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -14,6 +13,7 @@
 	import { drawerStore } from '$lib/stores/drawer';
 	import {
 		addressStyle,
+		areaTypeStyles,
 		labelVisibilityConfig,
 		nodeTypeStyles,
 		selectedProject,
@@ -31,7 +31,6 @@
 
 	/** @type {import('./$types').PageData} */
 	let { data } = $props();
-	let prevUrl = $state($page.url.href);
 	let mapRef = $state();
 	let searchPanelRef = $state();
 
@@ -57,11 +56,16 @@
 	// Initialize layers
 	const layersInitialized = mapState.initializeLayers();
 
+	// Reinitialize map layers when project changes
 	$effect(() => {
-		if ($page.url.href !== prevUrl) {
-			prevUrl = $page.url.href;
-			window.location.reload();
-		}
+		const currentProject = $selectedProject;
+		// Only reinitialize if project actually changed and map is ready
+		untrack(() => {
+			if (mapState.olMap && currentProject !== mapState.selectedProject) {
+				mapState.reinitializeForProject(currentProject);
+				selectionManager.clearSelection();
+			}
+		});
 	});
 
 	// Refresh tile sources when they exist
@@ -93,6 +97,14 @@
 		mapState.updateAddressLayerStyle(color, size);
 	});
 
+	// Update area layer style when areaTypeStyles changes
+	$effect(() => {
+		const styles = $areaTypeStyles;
+		if (Object.keys(styles).length > 0) {
+			mapState.updateAreaLayerStyle(styles);
+		}
+	});
+
 	// Update label visibility when labelVisibilityConfig changes
 	$effect(() => {
 		const config = $labelVisibilityConfig;
@@ -101,6 +113,7 @@
 		const constructionTypeStyles = $trenchConstructionTypeStyles;
 		const color = $trenchColor;
 		const nodeStyles = $nodeTypeStyles;
+		const areaStyles = $areaTypeStyles;
 
 		// Update each layer type based on config
 		if (config.trench !== undefined) {
@@ -116,6 +129,9 @@
 		}
 		if (config.node !== undefined) {
 			mapState.updateLabelVisibility('node', config.node, { nodeTypeStyles: nodeStyles });
+		}
+		if (config.area !== undefined) {
+			mapState.updateLabelVisibility('area', config.area, { areaTypeStyles: areaStyles });
 		}
 	});
 
@@ -192,6 +208,7 @@
 					nodeTypes={data.nodeTypes ?? []}
 					surfaces={data.surfaces ?? []}
 					constructionTypes={data.constructionTypes ?? []}
+					areaTypes={data.areaTypes ?? []}
 					on:ready={handleMapReady}
 					searchPanelProps={{
 						trenchColorSelected: $trenchColorSelected,

@@ -1,12 +1,20 @@
 import logging
+import tempfile
+import xml.etree.ElementTree as ET
+import zipfile
+from io import BytesIO
 
+import geopandas as gpd
 import openpyxl
+import pandas as pd
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
-from django.db import transaction
+from django.db import connection, transaction
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from openpyxl import load_workbook
 from pathvalidate import sanitize_filename
+from shapely.geometry import LineString, Point, Polygon
 
 from .models import (
     AttributesCompany,
@@ -90,7 +98,13 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
     if not header_from_file or all(h is None for h in header_from_file):
         return {
             "success": False,
-            "errors": [str(_("No headers found in Excel file. First row must contain column headers."))],
+            "errors": [
+                str(
+                    _(
+                        "No headers found in Excel file. First row must contain column headers."
+                    )
+                )
+            ],
         }
 
     # Map file headers to a more usable format
@@ -252,7 +266,12 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
             Conduit.objects.bulk_create(conduits_to_create)
     except Exception as e:
         logger.error(f"Failed to bulk create conduits: {e}")
-        return {"success": False, "errors": [str(_("Failed to save to database: %(error)s") % {"error": str(e)})]}
+        return {
+            "success": False,
+            "errors": [
+                str(_("Failed to save to database: %(error)s") % {"error": str(e)})
+            ],
+        }
 
     result = {"success": True, "created_count": len(conduits_to_create)}
     if warnings:
@@ -405,7 +424,7 @@ def move_file_to_feature(file_obj, target_feature, target_content_type):
 
     Args:
         file_obj: FeatureFiles instance to move
-        target_feature: Target model instance (Node, Cable, Conduit, Trench, or Address)
+        target_feature: Target model instance (Node, Cable, Conduit, Trench, Address, or Area)
         target_content_type: ContentType for the target model
 
     Returns:
@@ -419,7 +438,7 @@ def move_file_to_feature(file_obj, target_feature, target_content_type):
 
     if model_name == "trench":
         feature_id = target_feature.id_trench
-    elif model_name in ("conduit", "cable", "node"):
+    elif model_name in ("conduit", "cable", "node", "area"):
         feature_id = target_feature.name
     elif model_name == "address":
         suffix = (
@@ -502,3 +521,425 @@ def move_file_to_feature(file_obj, target_feature, target_content_type):
         return (False, None, str(e))
 
     return (True, new_path, None)
+
+
+# Layer configuration registry mapping layer names to database metadata
+GEOPACKAGE_LAYER_CONFIG = {
+    # Geometry layers (with geom field)
+    "trench": {
+        "db_table": "trench",
+        "geometry_type": "LineString",
+        "pk": "uuid",
+        "geom_column": "geom",
+    },
+    "node": {
+        "db_table": "node",
+        "geometry_type": "Point",
+        "pk": "uuid",
+        "geom_column": "geom",
+    },
+    "address": {
+        "db_table": "address",
+        "geometry_type": "Point",
+        "pk": "uuid",
+        "geom_column": "geom",
+    },
+    "area": {
+        "db_table": "area",
+        "geometry_type": "Polygon",
+        "pk": "uuid",
+        "geom_column": "geom",
+    },
+    # Non-geometry layers (attribute/relation tables)
+    "conduit": {
+        "db_table": "conduit",
+        "geometry_type": None,
+        "pk": "uuid",
+    },
+    "microduct": {
+        "db_table": "microduct",
+        "geometry_type": None,
+        "pk": "uuid",
+    },
+    "cable": {
+        "db_table": "cable",
+        "geometry_type": None,
+        "pk": "uuid",
+    },
+    # Attribute lookup tables
+    "attributes_surface": {
+        "db_table": "attributes_surface",
+        "geometry_type": None,
+        "pk": "id",
+    },
+    "attributes_construction_type": {
+        "db_table": "attributes_construction_type",
+        "geometry_type": None,
+        "pk": "id",
+    },
+    "attributes_status": {
+        "db_table": "attributes_status",
+        "geometry_type": None,
+        "pk": "id",
+    },
+    "attributes_phase": {
+        "db_table": "attributes_phase",
+        "geometry_type": None,
+        "pk": "id",
+    },
+    "attributes_company": {
+        "db_table": "attributes_company",
+        "geometry_type": None,
+        "pk": "id",
+    },
+    "attributes_node_type": {
+        "db_table": "attributes_node_type",
+        "geometry_type": None,
+        "pk": "id",
+    },
+    "attributes_conduit_type": {
+        "db_table": "attributes_conduit_type",
+        "geometry_type": None,
+        "pk": "id",
+    },
+    "attributes_network_level": {
+        "db_table": "attributes_network_level",
+        "geometry_type": None,
+        "pk": "id",
+    },
+    "attributes_status_development": {
+        "db_table": "attributes_status_development",
+        "geometry_type": None,
+        "pk": "id",
+    },
+    "attributes_microduct_status": {
+        "db_table": "attributes_microduct_status",
+        "geometry_type": None,
+        "pk": "id",
+    },
+    "attributes_cable_type": {
+        "db_table": "attributes_cable_type",
+        "geometry_type": None,
+        "pk": "id",
+    },
+    "attributes_microduct_color": {
+        "db_table": "attributes_microduct_color",
+        "geometry_type": None,
+        "pk": "id",
+    },
+    "attributes_fiber_status": {
+        "db_table": "attributes_fiber_status",
+        "geometry_type": None,
+        "pk": "id",
+    },
+    "attributes_fiber_color": {
+        "db_table": "attributes_fiber_color",
+        "geometry_type": None,
+        "pk": "id",
+    },
+    "attributes_area_type": {
+        "db_table": "attributes_area_type",
+        "geometry_type": None,
+        "pk": "id",
+    },
+    "projects": {
+        "db_table": "projects",
+        "geometry_type": None,
+        "pk": "id",
+    },
+    "flags": {
+        "db_table": "flags",
+        "geometry_type": None,
+        "pk": "id",
+    },
+}
+
+
+def _get_table_columns(table_name: str) -> list[dict]:
+    """
+    Get column information for a database table.
+
+    Returns list of dicts with 'name', 'type', 'nullable' keys.
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT column_name, data_type, is_nullable, udt_name
+            FROM information_schema.columns
+            WHERE table_name = %s AND table_schema = 'public'
+            ORDER BY ordinal_position
+            """,
+            [table_name],
+        )
+        columns = []
+        for row in cursor.fetchall():
+            columns.append(
+                {
+                    "name": row[0],
+                    "type": row[1],
+                    "nullable": row[2] == "YES",
+                    "udt_name": row[3],
+                }
+            )
+        return columns
+
+
+def _postgres_type_to_pandas(pg_type: str, udt_name: str) -> str:
+    """Map PostgreSQL data type to pandas dtype string."""
+    type_mapping = {
+        "uuid": "object",
+        "character varying": "object",
+        "text": "object",
+        "integer": "Int64",
+        "bigint": "Int64",
+        "smallint": "Int64",
+        "numeric": "float64",
+        "double precision": "float64",
+        "real": "float64",
+        "boolean": "boolean",
+        "date": "object",
+        "timestamp without time zone": "object",
+        "timestamp with time zone": "object",
+        "json": "object",
+        "jsonb": "object",
+        "USER-DEFINED": "object",  # geometry, etc.
+    }
+    return type_mapping.get(pg_type, "object")
+
+
+def generate_geopackage_schema(layers: list[str] | None = None) -> HttpResponse:
+    """
+    Generate an empty GeoPackage file with the database schema.
+
+    Args:
+        layers: Optional list of layer names to include. If None, includes all layers.
+
+    Returns:
+        HttpResponse with the GeoPackage file as attachment.
+    """
+    if layers is None:
+        layers = list(GEOPACKAGE_LAYER_CONFIG.keys())
+    else:
+        # Validate layer names
+        invalid = [layer for layer in layers if layer not in GEOPACKAGE_LAYER_CONFIG]
+        if invalid:
+            raise ValueError(f"Invalid layer names: {invalid}")
+
+    srid = getattr(settings, "DEFAULT_SRID", 25832)
+
+    with tempfile.NamedTemporaryFile(suffix=".gpkg", delete=False) as tmp_file:
+        gpkg_path = tmp_file.name
+
+    try:
+        for layer_name in layers:
+            config = GEOPACKAGE_LAYER_CONFIG[layer_name]
+            table_name = config["db_table"]
+            geom_type = config.get("geometry_type")
+            geom_column = config.get("geom_column", "geom")
+
+            columns = _get_table_columns(table_name)
+            if not columns:
+                logger.warning(f"No columns found for table {table_name}, skipping")
+                continue
+
+            data = {}
+            for col in columns:
+                if col["udt_name"] == "geometry":
+                    continue
+                dtype = _postgres_type_to_pandas(col["type"], col["udt_name"])
+                data[col["name"]] = pd.Series(dtype=dtype)
+
+            df = pd.DataFrame(data)
+
+            if geom_type:
+                geometry_class = {
+                    "Point": Point,
+                    "LineString": LineString,
+                    "Polygon": Polygon,
+                }
+                geom_cls = geometry_class.get(geom_type)
+                if geom_cls:
+                    gdf = gpd.GeoDataFrame(
+                        df,
+                        geometry=gpd.GeoSeries([], crs=f"EPSG:{srid}"),
+                        crs=f"EPSG:{srid}",
+                    )
+                    gdf = gdf.rename_geometry(geom_column)
+                else:
+                    gdf = gpd.GeoDataFrame(df, crs=f"EPSG:{srid}")
+            else:
+                gdf = gpd.GeoDataFrame(df)
+
+            gdf.to_file(gpkg_path, driver="GPKG", layer=layer_name)
+            logger.info(f"Added layer '{layer_name}' to GeoPackage")
+
+        with open(gpkg_path, "rb") as f:
+            gpkg_content = f.read()
+
+        response = HttpResponse(
+            gpkg_content, content_type="application/geopackage+sqlite3"
+        )
+        response["Content-Disposition"] = 'attachment; filename="schema.gpkg"'
+        return response
+
+    finally:
+        import os
+
+        if os.path.exists(gpkg_path):
+            os.unlink(gpkg_path)
+
+
+def _build_postgres_datasource(
+    layer_name: str, pg_service: str, srid: int
+) -> str | None:
+    """
+    Build PostgreSQL datasource string for a layer.
+
+    Returns None if layer is not in configuration.
+    """
+    config = GEOPACKAGE_LAYER_CONFIG.get(layer_name)
+    if not config:
+        return None
+
+    table_name = config["db_table"]
+    pk = config["pk"]
+    geom_type = config.get("geometry_type")
+    geom_column = config.get("geom_column", "geom")
+
+    if geom_type:
+        return (
+            f"service='{pg_service}' key='{pk}' srid={srid} type={geom_type} "
+            f'checkPrimaryKeyUnicity=\'0\' table="public"."{table_name}" ({geom_column})'
+        )
+    else:
+        return (
+            f"service='{pg_service}' key='{pk}' "
+            f'checkPrimaryKeyUnicity=\'0\' table="public"."{table_name}"'
+        )
+
+
+def _extract_layer_name_from_gpkg_source(source: str) -> str | None:
+    """
+    Extract layer name from GeoPackage datasource string.
+
+    Example: "./schema.gpkg|layername=address" -> "address"
+    """
+    if "|layername=" in source:
+        return source.split("|layername=")[-1]
+    return None
+
+
+def convert_qgs_to_postgres(qgs_content: bytes) -> bytes:
+    """
+    Transform QGS XML datasources from GeoPackage to PostgreSQL pg_service.
+
+    Args:
+        qgs_content: Raw bytes of QGS XML file.
+
+    Returns:
+        Transformed QGS XML content as bytes.
+    """
+    pg_service = getattr(settings, "QGIS_PG_SERVICE_NAME", "krit_gis_db")
+    srid = getattr(settings, "DEFAULT_SRID", 25832)
+
+    tree = ET.ElementTree(ET.fromstring(qgs_content))
+    root = tree.getroot()
+
+    converted_layers = []
+
+    for layer_tree in root.iter("layer-tree-layer"):
+        provider_key = layer_tree.get("providerKey")
+        source = layer_tree.get("source", "")
+
+        if provider_key == "ogr" and "|layername=" in source:
+            layer_name = _extract_layer_name_from_gpkg_source(source)
+            if layer_name:
+                pg_source = _build_postgres_datasource(layer_name, pg_service, srid)
+                if pg_source:
+                    layer_tree.set("providerKey", "postgres")
+                    layer_tree.set("source", pg_source)
+                    converted_layers.append(layer_name)
+
+    for maplayer in root.iter("maplayer"):
+        provider_elem = maplayer.find("provider")
+        datasource_elem = maplayer.find("datasource")
+
+        if provider_elem is not None and datasource_elem is not None:
+            if provider_elem.text == "ogr" and datasource_elem.text:
+                layer_name = _extract_layer_name_from_gpkg_source(datasource_elem.text)
+                if layer_name:
+                    pg_source = _build_postgres_datasource(layer_name, pg_service, srid)
+                    if pg_source:
+                        provider_elem.text = "postgres"
+                        datasource_elem.text = pg_source
+
+    for gps_settings in root.iter("ProjectGpsSettings"):
+        provider = gps_settings.get("destinationLayerProvider")
+        source = gps_settings.get("destinationLayerSource", "")
+
+        if provider == "ogr" and "|layername=" in source:
+            layer_name = _extract_layer_name_from_gpkg_source(source)
+            if layer_name:
+                pg_source = _build_postgres_datasource(layer_name, pg_service, srid)
+                if pg_source:
+                    gps_settings.set("destinationLayerProvider", "postgres")
+                    gps_settings.set("destinationLayerSource", pg_source)
+
+    logger.info(
+        f"Converted {len(converted_layers)} layers to PostgreSQL: {converted_layers}"
+    )
+
+    output = BytesIO()
+    tree.write(output, encoding="utf-8", xml_declaration=True)
+    return output.getvalue()
+
+
+def handle_qgis_file(file_content: bytes, filename: str) -> tuple[bytes, bool]:
+    """
+    Extract QGS content from QGS or QGZ file.
+
+    Args:
+        file_content: Raw file bytes
+        filename: Original filename to determine format
+
+    Returns:
+        Tuple of (qgs_content_bytes, is_qgz)
+    """
+    if filename.lower().endswith(".qgz"):
+        with zipfile.ZipFile(BytesIO(file_content), "r") as zf:
+            qgs_files = [n for n in zf.namelist() if n.endswith(".qgs")]
+            if not qgs_files:
+                raise ValueError("No .qgs file found inside .qgz archive")
+            qgs_content = zf.read(qgs_files[0])
+            return qgs_content, True
+    else:
+        return file_content, False
+
+
+def repackage_qgz(
+    qgs_content: bytes, original_qgz: bytes, qgs_filename: str = None
+) -> bytes:
+    """
+    Repackage modified QGS content back into QGZ format.
+
+    Args:
+        qgs_content: Modified QGS XML bytes
+        original_qgz: Original QGZ file bytes (to preserve other files)
+        qgs_filename: Optional QGS filename to use inside the archive
+
+    Returns:
+        New QGZ file bytes
+    """
+    output = BytesIO()
+
+    with zipfile.ZipFile(BytesIO(original_qgz), "r") as original_zip:
+        with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as new_zip:
+            for item in original_zip.namelist():
+                if item.endswith(".qgs"):
+                    new_zip.writestr(item, qgs_content)
+                    if qgs_filename is None:
+                        qgs_filename = item
+                else:
+                    new_zip.writestr(item, original_zip.read(item))
+
+    return output.getvalue()

@@ -37,6 +37,46 @@ class Projects(models.Model):
         return self.project
 
 
+class NetworkSchemaSettings(models.Model):
+    """Project-specific settings for network schema display.
+
+    Configures which node types are excluded when loading nodes
+    for the network schema view.
+    """
+
+    project = models.OneToOneField(
+        Projects,
+        on_delete=models.CASCADE,
+        related_name="network_schema_settings",
+        primary_key=True,
+        verbose_name=_("Project"),
+    )
+    excluded_node_types = models.ManyToManyField(
+        "AttributesNodeType",
+        blank=True,
+        related_name="excluded_from_schemas",
+        verbose_name=_("Excluded Node Types"),
+        help_text=_("Select node types to exclude from the network schema view."),
+    )
+
+    class Meta:
+        db_table = "network_schema_settings"
+        verbose_name = _("Network Schema Settings")
+        verbose_name_plural = _("Network Schema Settings")
+
+    def __str__(self):
+        excluded_count = self.excluded_node_types.count()
+        return f"{self.project.project} - {excluded_count} excluded"
+
+    @classmethod
+    def get_settings_for_project(cls, project_id):
+        """Get settings for a project. Returns None if not configured."""
+        try:
+            return cls.objects.get(project_id=project_id)
+        except cls.DoesNotExist:
+            return None
+
+
 class Flags(models.Model):
     """Stores all flags,
     related to :model:`api.Trench`.
@@ -480,6 +520,26 @@ class AttributesFiberColor(models.Model):
         return f"{self.name_de} ({self.name_en})"
 
 
+class AttributesAreaType(models.Model):
+    """Stores all area types"""
+
+    id = models.AutoField(primary_key=True)
+    area_type = models.TextField(
+        _("Area Type"), null=False, blank=False, db_index=False, unique=True
+    )
+
+    class Meta:
+        db_table = "attributes_area_type"
+        indexes = [
+            models.Index(fields=["area_type"], name="idx_area_type_area_type"),
+        ]
+        verbose_name = _("Area Type")
+        verbose_name_plural = _("Area Types")
+
+    def __str__(self):
+        return self.area_type
+
+
 class FeatureFiles(models.Model):
     """Stores all files for different models,
     related to :model:`api.Trench`.
@@ -500,6 +560,7 @@ class FeatureFiles(models.Model):
                 "node",
                 "address",
                 "residentialunit",
+                "area",
             ],
         },
     )
@@ -531,6 +592,8 @@ class FeatureFiles(models.Model):
             return f"{feature.street} {feature.housenumber}{suffix}, {feature.zip_code} {feature.city}"
         elif model_name == "residentialunit":
             return instance.object_id
+        elif model_name == "area":
+            return feature.name
         else:
             return instance.object_id
 
@@ -546,6 +609,7 @@ class FeatureFiles(models.Model):
         - Project Alpha/cables/C1-Main/photos/image.jpg
         - Project Beta/nodes/N1-POP/documents/spec.pdf
         - Project Alpha/addresses/Bahnstraße 20, 24941 Flensburg/documents/contract.pdf
+        - Project Alpha/areas/Projektgebiet/documents/report.pdf
         """
 
         prefs = StoragePreferences.objects.first()
@@ -1530,6 +1594,107 @@ class OlNode(models.Model):
         verbose_name = _("OL Node")
         verbose_name_plural = _("Openlayers Nodes")
         ordering = ["name"]
+
+
+class Area(models.Model):
+    """Stores all polygons,
+    related to :model:`api.Projects`,
+    :model:`api.Flags`,
+    :model:`api.AttributesAreaType`.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    area_type = models.ForeignKey(
+        AttributesAreaType, on_delete=models.DO_NOTHING, db_column="area_type"
+    )
+    name = models.TextField(
+        null=False,
+        unique=True,
+        db_index=False,
+        verbose_name=_("Area Name"),
+    )
+    geom = gis_models.PolygonField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
+
+    project = models.ForeignKey(
+        Projects,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="project",
+        db_index=False,
+        verbose_name=_("Project"),
+    )
+
+    flag = models.ForeignKey(
+        Flags,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="flag",
+        db_index=False,
+        verbose_name=_("Flag"),
+    )
+
+    files = GenericRelation(
+        FeatureFiles,
+        content_type_field="content_type",
+        object_id_field="object_id",
+        related_query_name="area",
+    )
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = "area"
+        verbose_name = _("Area")
+        verbose_name_plural = _("Areas")
+        ordering = ["name"]
+        indexes = [
+            models.Index(fields=["area_type"], name="idx_area_area_type"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "name"],
+                name="unique_area",
+            ),
+        ]
+
+
+class OlArea(models.Model):
+    """Stores all areas rendered on Openlayers,
+    related to :model:`api.Area`.
+    """
+
+    uuid = models.UUIDField(primary_key=True)
+    geom = gis_models.PolygonField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
+    area_type = models.ForeignKey(
+        AttributesAreaType, on_delete=models.DO_NOTHING, db_column="area_type"
+    )
+    flag = models.ForeignKey(
+        Flags,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="flag",
+        db_index=False,
+        verbose_name=_("Flag"),
+    )
+    project = models.ForeignKey(
+        Projects,
+        null=False,
+        on_delete=models.DO_NOTHING,
+        db_column="project",
+        db_index=False,
+        verbose_name=_("Project"),
+    )
+
+    class Meta:
+        managed = False
+        db_table = "ol_area"
+        verbose_name = _("OL Area")
+        verbose_name_plural = _("OL Areas")
+        ordering = ["area_type"]
+        indexes = [
+            models.Index(fields=["area_type"], name="idx_ol_area_area_type"),
+        ]
 
 
 class Microduct(models.Model):
@@ -2588,7 +2753,7 @@ def get_feature_folder_identifier(instance):
     between upload paths and folder rename operations.
 
     Args:
-        instance: A model instance (Node, Cable, Conduit, Trench, or Address)
+        instance: A model instance (Node, Cable, Conduit, Trench, Address, or Area)
 
     Returns:
         The string identifier used for the feature's folder name
@@ -2596,7 +2761,7 @@ def get_feature_folder_identifier(instance):
     model_name = instance._meta.model_name
     if model_name == "trench":
         return str(instance.id_trench)
-    elif model_name in ("conduit", "cable", "node"):
+    elif model_name in ("conduit", "cable", "node", "area"):
         return instance.name
     elif model_name == "address":
         suffix = instance.house_number_suffix or ""
@@ -2730,3 +2895,37 @@ def rename_address_folder_on_change(sender, instance, created, **kwargs):
             # For Address, multiple fields contribute to the identifier.
             # We just re-raise the error - the DB transaction will rollback.
             raise
+
+
+class GeoPackageSchemaConfig(models.Model):
+    """Configuration for GeoPackage schema downloads.
+
+    Stores selected layers as a JSON list. The available layers
+    are dynamically loaded from GEOPACKAGE_LAYER_CONFIG in the admin form.
+    """
+
+    name = models.CharField(
+        _("Configuration Name"),
+        max_length=100,
+        default="Default",
+        help_text=_("Name for this configuration"),
+    )
+    selected_layers = models.JSONField(
+        _("Selected Layers"),
+        default=list,
+        blank=True,
+        help_text=_("List of layer names to include in the GeoPackage schema."),
+    )
+
+    class Meta:
+        db_table = "geopackage_schema_config"
+        verbose_name = _("GeoPackage Schema Configuration")
+        verbose_name_plural = _("GeoPackage Schema Configurations")
+
+    def __str__(self):
+        count = len(self.selected_layers) if self.selected_layers else 0
+        return f"{self.name} - {count} layer(s) selected"
+
+    def get_layer_names(self):
+        """Return list of layer names for use with generate_geopackage_schema."""
+        return self.selected_layers or []

@@ -194,6 +194,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Default SRID for geometry fields
 DEFAULT_SRID = int(os.getenv("DEFAULT_SRID", "25832"))
 
+# QGIS pg_service name for datasource conversion
+QGIS_PG_SERVICE_NAME = os.getenv("QGIS_PG_SERVICE_NAME", "krit_gis_db")
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         # Use JWTCookieAuthentication for cookie-based JWT auth

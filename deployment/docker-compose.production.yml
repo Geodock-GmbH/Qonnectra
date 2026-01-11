@@ -53,7 +53,7 @@ services:
             python manage.py shell -c \"from django.contrib.auth import get_user_model; import os; User = get_user_model(); username = os.environ.get('DJANGO_SUPERUSER_USERNAME'); User.objects.filter(username=username).exists() or User.objects.create_superuser(username, os.environ.get('DJANGO_SUPERUSER_EMAIL'), os.environ.get('DJANGO_SUPERUSER_PASSWORD'))\" &&
             python manage.py loaddata attributes_company attributes_construction_type attributes_conduit_type attributes_phase  &&
             python manage.py loaddata attributes_status attributes_surface storage_preference file_type_categories projects flags &&
-            python manage.py loaddata attributes_network_level attributes_node_type attributes_status_development &&
+            python manage.py loaddata attributes_network_level attributes_node_type attributes_status_development attributes_area_types &&
             gunicorn --bind 0.0.0.0:8000 core.wsgi:application"
     expose:
       - "8000"
@@ -76,6 +76,7 @@ services:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - DEFAULT_SRID=${DEFAULT_SRID}
+      - QGIS_PG_SERVICE_NAME=${QGIS_PG_SERVICE_NAME:-qonnectra_db}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
       - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
     depends_on:

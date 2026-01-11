@@ -6,7 +6,7 @@
  * Detect the type of feature based on layer or properties
  * @param {Object} feature - OpenLayers feature
  * @param {Object} layer - OpenLayers layer (optional)
- * @returns {string|null} - 'trench', 'address', 'node', or null
+ * @returns {string|null} - 'trench', 'address', 'node', 'area', or null
  */
 export function detectFeatureType(feature, layer = null) {
 	if (!feature) return null;
@@ -18,6 +18,7 @@ export function detectFeatureType(feature, layer = null) {
 			if (layerId === 'trench-layer') return 'trench';
 			if (layerId === 'address-layer') return 'address';
 			if (layerId === 'node-layer') return 'node';
+			if (layerId === 'area-layer') return 'area';
 		}
 
 		// Fallback: try layer name
@@ -26,6 +27,8 @@ export function detectFeatureType(feature, layer = null) {
 			if (layerName.includes('trench') || layerName.includes('Trench')) return 'trench';
 			if (layerName.includes('address') || layerName.includes('Address')) return 'address';
 			if (layerName.includes('node') || layerName.includes('Node')) return 'node';
+			if (layerName.includes('area') || layerName.includes('Area') || layerName.includes('Fläche'))
+				return 'area';
 		}
 	}
 
@@ -39,6 +42,9 @@ export function detectFeatureType(feature, layer = null) {
 	}
 	if (props.node_type !== undefined || props.network_level !== undefined) {
 		return 'node';
+	}
+	if (props.area_type !== undefined) {
+		return 'area';
 	}
 
 	return null;
@@ -72,7 +78,7 @@ export function formatFeatureProperties(properties, type) {
 /**
  * Get a display title for a feature
  * @param {Object} feature - OpenLayers feature
- * @param {string} type - Feature type ('trench', 'address', 'node')
+ * @param {string} type - Feature type ('trench', 'address', 'node', 'area')
  * @returns {string} - Display title
  */
 export function getFeatureTitle(feature, type) {
@@ -90,6 +96,8 @@ export function getFeatureTitle(feature, type) {
 			return props.id_address ? `${props.id_address}` : 'Address Details';
 		case 'node':
 			return props.name ? `${props.name}` : 'Node Details';
+		case 'area':
+			return props.name ? `${props.name}` : 'Area Details';
 		default:
 			return 'Feature Details';
 	}

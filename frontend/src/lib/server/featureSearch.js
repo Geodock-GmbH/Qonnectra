@@ -19,43 +19,61 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 	}
 
 	try {
-		const [addAddressResponse, nodeResponse, trenchResponse, conduitResponse] = await Promise.all([
-			fetch(
-				`${API_URL}address/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
-				{
-					credentials: 'include',
-					headers: getAuthHeaders(cookies)
-				}
-			),
-			fetch(`${API_URL}node/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`, {
-				credentials: 'include',
-				headers: getAuthHeaders(cookies)
-			}),
-			fetch(
-				`${API_URL}trench/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
-				{
-					credentials: 'include',
-					headers: getAuthHeaders(cookies)
-				}
-			),
-			fetch(
-				`${API_URL}conduit/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
-				{
-					credentials: 'include',
-					headers: getAuthHeaders(cookies)
-				}
-			)
-		]);
+		const [addAddressResponse, nodeResponse, trenchResponse, conduitResponse, areaResponse] =
+			await Promise.all([
+				fetch(
+					`${API_URL}address/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
+					{
+						credentials: 'include',
+						headers: getAuthHeaders(cookies)
+					}
+				),
+				fetch(
+					`${API_URL}node/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
+					{
+						credentials: 'include',
+						headers: getAuthHeaders(cookies)
+					}
+				),
+				fetch(
+					`${API_URL}trench/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
+					{
+						credentials: 'include',
+						headers: getAuthHeaders(cookies)
+					}
+				),
+				fetch(
+					`${API_URL}conduit/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
+					{
+						credentials: 'include',
+						headers: getAuthHeaders(cookies)
+					}
+				),
+				fetch(
+					`${API_URL}area/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
+					{
+						credentials: 'include',
+						headers: getAuthHeaders(cookies)
+					}
+				)
+			]);
 
-		if (!addAddressResponse.ok || !nodeResponse.ok || !trenchResponse.ok || !conduitResponse.ok) {
+		if (
+			!addAddressResponse.ok ||
+			!nodeResponse.ok ||
+			!trenchResponse.ok ||
+			!conduitResponse.ok ||
+			!areaResponse.ok
+		) {
 			throw error(500, 'Failed to fetch search results');
 		}
 
-		const [addAddressData, nodeData, trenchData, conduitData] = await Promise.all([
+		const [addAddressData, nodeData, trenchData, conduitData, areaData] = await Promise.all([
 			addAddressResponse.json(),
 			nodeResponse.json(),
 			trenchResponse.json(),
-			conduitResponse.json()
+			conduitResponse.json(),
+			areaResponse.json()
 		]);
 
 		const results = [];
@@ -63,6 +81,7 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 		const addressFeatures = addAddressData.features || addAddressData || [];
 		const nodeFeatures = nodeData.features || nodeData || [];
 		const trenchFeatures = trenchData.features || trenchData || [];
+		const areaFeatures = areaData.features || areaData || [];
 
 		addressFeatures.forEach((address) => {
 			const props = address.properties;
@@ -133,6 +152,21 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 			}
 		});
 
+		areaFeatures.forEach((area) => {
+			const props = area.properties;
+			const areaId = area.id;
+			const areaName = props.name;
+
+			if (areaId && areaName) {
+				results.push({
+					value: `${areaId}`,
+					label: `${areaName}` + ' ' + '(' + m.form_area() + ')',
+					type: 'area',
+					uuid: areaId,
+					name: areaName
+				});
+			}
+		});
 		return results;
 	} catch (err) {
 		console.error('Error searching features:', err);
@@ -146,21 +180,25 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} featureType - Type of feature ('node', 'trench', or 'address')
  * @param {string} featureUuid - UUID of the feature
+ * @param {string} projectId - The project ID to filter by
  * @returns {Promise<{success: boolean, feature: any}>} Feature details
  */
-export async function getFeatureDetailsByType(fetch, cookies, featureType, featureUuid) {
+export async function getFeatureDetailsByType(fetch, cookies, featureType, featureUuid, projectId) {
 	if (!featureType || !featureUuid) {
 		throw error(400, 'Feature type and UUID are required');
 	}
 
 	try {
 		let apiEndpoint;
+		const projectParam = projectId ? `&project=${projectId}` : '';
 		if (featureType === 'node') {
-			apiEndpoint = `${API_URL}ol_node/?uuid=${featureUuid}`;
+			apiEndpoint = `${API_URL}ol_node/?uuid=${featureUuid}${projectParam}`;
 		} else if (featureType === 'trench') {
-			apiEndpoint = `${API_URL}ol_trench/?uuid=${featureUuid}`;
+			apiEndpoint = `${API_URL}ol_trench/?uuid=${featureUuid}${projectParam}`;
 		} else if (featureType === 'address') {
-			apiEndpoint = `${API_URL}ol_address/?uuid=${featureUuid}`;
+			apiEndpoint = `${API_URL}ol_address/?uuid=${featureUuid}${projectParam}`;
+		} else if (featureType === 'area') {
+			apiEndpoint = `${API_URL}ol_area/?uuid=${featureUuid}${projectParam}`;
 		} else {
 			throw error(400, 'Invalid feature type');
 		}
@@ -189,11 +227,11 @@ export async function getFeatureDetailsByType(fetch, cookies, featureType, featu
 }
 
 /**
- * Get all trench UUIDs for a conduit (conduits span multiple trenches)
+ * Get all trench UUIDs and geometries for a conduit (conduits span multiple trenches)
  * @param {Function} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} conduitUuid - UUID of the conduit
- * @returns {Promise<{success: boolean, trenchUuids: string[]}>} Trench UUIDs
+ * @returns {Promise<{success: boolean, trenches: Array, trenchUuids: string[]}>} Trench features and UUIDs
  */
 export async function getTrenchUuidsForConduit(fetch, cookies, conduitUuid) {
 	if (!conduitUuid) {
@@ -211,14 +249,34 @@ export async function getTrenchUuidsForConduit(fetch, cookies, conduitUuid) {
 		}
 
 		const { trench_uuids } = await trenchesResponse.json();
+		const trenchUuids = trench_uuids || [];
+
+		if (trenchUuids.length === 0) {
+			return {
+				success: true,
+				trenches: [],
+				trenchUuids: []
+			};
+		}
+
+		const trenchPromises = trenchUuids.map((uuid) =>
+			fetch(`${API_URL}ol_trench/?uuid=${uuid}`, {
+				credentials: 'include',
+				headers: getAuthHeaders(cookies)
+			}).then((res) => res.json())
+		);
+
+		const trenchResponses = await Promise.all(trenchPromises);
+		const trenches = trenchResponses.map((r) => r.results?.features?.[0] || r[0]).filter(Boolean);
 
 		return {
 			success: true,
-			trenchUuids: trench_uuids || []
+			trenches,
+			trenchUuids
 		};
 	} catch (err) {
-		console.error('Error fetching trench UUIDs for conduit:', err);
-		throw error(500, 'Failed to fetch trench UUIDs for conduit');
+		console.error('Error fetching trenches for conduit:', err);
+		throw error(500, 'Failed to fetch trenches for conduit');
 	}
 }
 

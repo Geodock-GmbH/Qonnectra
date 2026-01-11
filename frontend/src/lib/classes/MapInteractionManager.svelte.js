@@ -20,7 +20,8 @@ export class MapInteractionManager {
 	selectableLayersConfig = $state({
 		trench: true,
 		address: true,
-		node: true
+		node: true,
+		area: true
 	});
 	additionalDrawerProps = $state({});
 
@@ -110,7 +111,7 @@ export class MapInteractionManager {
 	 */
 	getClickedFeatures(pixel) {
 		const clickedFeatures = [];
-		const { vectorTileLayer, addressLayer, nodeLayer } = this.layers;
+		const { vectorTileLayer, addressLayer, nodeLayer, areaLayer } = this.layers;
 
 		const layersToCheck = [];
 		if (vectorTileLayer && this.selectableLayersConfig.trench) {
@@ -121,6 +122,9 @@ export class MapInteractionManager {
 		}
 		if (nodeLayer && this.selectableLayersConfig.node) {
 			layersToCheck.push(nodeLayer);
+		}
+		if (areaLayer && this.selectableLayersConfig.area) {
+			layersToCheck.push(areaLayer);
 		}
 
 		if (layersToCheck.length === 0) return clickedFeatures;
@@ -145,11 +149,12 @@ export class MapInteractionManager {
 	 * @returns {boolean} True if layer is selectable
 	 */
 	isLayerSelectable(layer) {
-		const { vectorTileLayer, addressLayer, nodeLayer } = this.layers;
+		const { vectorTileLayer, addressLayer, nodeLayer, areaLayer } = this.layers;
 
 		if (layer === vectorTileLayer) return this.selectableLayersConfig.trench;
 		if (layer === addressLayer) return this.selectableLayersConfig.address;
 		if (layer === nodeLayer) return this.selectableLayersConfig.node;
+		if (layer === areaLayer) return this.selectableLayersConfig.area;
 
 		return false;
 	}

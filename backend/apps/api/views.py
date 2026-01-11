@@ -1,10 +1,8 @@
-import json
 import logging
 import mimetypes
 import os
 from urllib.parse import quote
 
-import psycopg
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.base import ContentFile
@@ -23,6 +21,8 @@ from rest_framework.views import APIView
 
 from .models import (
     Address,
+    Area,
+    AttributesAreaType,
     AttributesCableType,
     AttributesCompany,
     AttributesConduitType,
@@ -45,8 +45,10 @@ from .models import (
     Microduct,
     MicroductCableConnection,
     MicroductConnection,
+    NetworkSchemaSettings,
     Node,
     OlAddress,
+    OlArea,
     OlNode,
     OlTrench,
     Projects,
@@ -57,6 +59,8 @@ from .pageination import CustomPagination
 from .routing import find_shortest_path
 from .serializers import (
     AddressSerializer,
+    AreaSerializer,
+    AttributesAreaTypeSerializer,
     AttributesCableTypeSerializer,
     AttributesCompanySerializer,
     AttributesConduitTypeSerializer,
@@ -81,13 +85,19 @@ from .serializers import (
     MicroductSerializer,
     NodeSerializer,
     OlAddressSerializer,
+    OlAreaSerializer,
     OlNodeSerializer,
     OlTrenchSerializer,
     ProjectsSerializer,
     TrenchConduitSerializer,
     TrenchSerializer,
 )
-from .services import generate_conduit_import_template, import_conduits_from_excel
+from .services import (
+    GEOPACKAGE_LAYER_CONFIG,
+    generate_conduit_import_template,
+    generate_geopackage_schema,
+    import_conduits_from_excel,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -200,6 +210,7 @@ class ContentTypeViewSet(viewsets.ReadOnlyModelViewSet):
                 "node",
                 "address",
                 "residentialunit",
+                "area",
             ],
         ).order_by("model")
 
@@ -226,6 +237,19 @@ class AttributesSurfaceViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = AttributesSurface.objects.all().order_by("surface")
     serializer_class = AttributesSurfaceSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class AttributesAreaTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesAreaType model :model:`api.AttributesAreaType`.
+
+    An instance of :model:`api.AttributesAreaType`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesAreaType.objects.all().order_by("area_type")
+    serializer_class = AttributesAreaTypeSerializer
     lookup_field = "id"
     lookup_url_kwarg = "pk"
 
@@ -1309,14 +1333,16 @@ class AddressViewSet(viewsets.ModelViewSet):
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
         if search_term:
-            queryset = queryset.filter(
-                Q(street__icontains=search_term)
-                | Q(housenumber__icontains=search_term)
-                | Q(house_number_suffix__icontains=search_term)
-                | Q(zip_code__icontains=search_term)
-                | Q(city__icontains=search_term)
-                | Q(district__icontains=search_term)
-            )
+            tokens = search_term.strip().split()
+            for token in tokens:
+                queryset = queryset.filter(
+                    Q(street__icontains=token)
+                    | Q(housenumber__icontains=token)
+                    | Q(house_number_suffix__icontains=token)
+                    | Q(zip_code__icontains=token)
+                    | Q(city__icontains=token)
+                    | Q(district__icontains=token)
+                )
         serializer = AddressSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -1344,8 +1370,11 @@ class OlAddressViewSet(viewsets.ReadOnlyModelViewSet):
         - `flag`: Filter by flag ID
         """
         queryset = OlAddress.objects.all()
+        uuid = self.request.query_params.get("uuid")
         project_id = self.request.query_params.get("project")
         flag_id = self.request.query_params.get("flag")
+        if uuid:
+            queryset = queryset.filter(uuid=uuid)
         if project_id:
             queryset = queryset.filter(project=project_id)
         if flag_id:
@@ -1567,6 +1596,9 @@ class NodeViewSet(viewsets.ModelViewSet):
         """
         Returns all nodes with project and flag filters.
         No pagination is used.
+
+        If project settings are configured, excluded node types are automatically
+        filtered out unless an explicit exclude_group parameter is provided.
         """
         queryset = Node.objects.all().order_by("name")
         project_id = request.query_params.get("project")
@@ -1574,14 +1606,28 @@ class NodeViewSet(viewsets.ModelViewSet):
         group = request.query_params.get("group")
         search_term = request.query_params.get("search")
         exclude_group = request.query_params.get("exclude_group")
+        settings_configured = False
 
         if project_id:
             queryset = queryset.filter(project=project_id)
+
+            # Apply project-specific exclusions if no explicit exclude_group provided
+            if exclude_group is None:
+                settings = NetworkSchemaSettings.get_settings_for_project(project_id)
+                if settings is not None:
+                    settings_configured = True
+                    excluded_type_ids = list(
+                        settings.excluded_node_types.values_list("id", flat=True)
+                    )
+                    if excluded_type_ids:
+                        queryset = queryset.exclude(node_type_id__in=excluded_type_ids)
+
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
         if group:
             queryset = queryset.filter(node_type__group=group)
         if exclude_group:
+            # Explicit exclude_group overrides project settings
             queryset = queryset.exclude(node_type__group=exclude_group)
         if search_term:
             queryset = queryset.filter(
@@ -1589,7 +1635,20 @@ class NodeViewSet(viewsets.ModelViewSet):
                 | Q(node_type__node_type__icontains=search_term)
             )
         serializer = NodeSerializer(queryset, many=True)
-        return Response(serializer.data)
+        data = serializer.data
+
+        # Add metadata about settings configuration to the GeoJSON response
+        if isinstance(data, dict) and data.get("type") == "FeatureCollection":
+            data["metadata"] = {"settings_configured": settings_configured}
+        elif isinstance(data, list):
+            # Wrap in FeatureCollection format with metadata
+            data = {
+                "type": "FeatureCollection",
+                "features": data,
+                "metadata": {"settings_configured": settings_configured},
+            }
+
+        return Response(data)
 
 
 class NodeCanvasCoordinatesView(APIView):
@@ -2097,6 +2156,45 @@ class ConduitImportView(APIView):
             if result.get("warnings"):
                 response_data["warnings"] = result["warnings"]
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GeoPackageSchemaView(APIView):
+    """
+    API endpoint to download GeoPackage schema.
+
+    GET /api/v1/schema.gpkg - Download GeoPackage with all tables
+    GET /api/v1/schema.gpkg?layers=trench,node,address - Download with specific layers
+
+    Query parameters:
+        layers: Comma-separated list of layer names to include (optional)
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        layers_param = request.query_params.get("layers")
+        layers = None
+        if layers_param:
+            layers = [
+                layer.strip() for layer in layers_param.split(",") if layer.strip()
+            ]
+
+        try:
+            return generate_geopackage_schema(layers=layers)
+        except ValueError as e:
+            return Response(
+                {
+                    "error": str(e),
+                    "available_layers": list(GEOPACKAGE_LAYER_CONFIG.keys()),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            logger.error(f"Failed to generate GeoPackage: {e}")
+            return Response(
+                {"error": "Failed to generate GeoPackage schema."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class AttributesMicroductStatusViewSet(viewsets.ReadOnlyModelViewSet):
@@ -2734,7 +2832,7 @@ class LayerExtentView(APIView):
         Returns the bounding box extent for a layer filtered by project.
 
         Query Parameters:
-        - `layer`: Layer type ('trench', 'address', or 'node') - required
+        - `layer`: Layer type ('trench', 'address', 'node', or 'area') - required
         - `project`: Project ID to filter by - required
 
         Returns:
@@ -2754,11 +2852,14 @@ class LayerExtentView(APIView):
             "trench": "ol_trench",
             "address": "ol_address",
             "node": "ol_node",
+            "area": "ol_area",
         }
 
         if layer not in layer_tables:
             return Response(
-                {"error": f"Invalid layer. Must be one of: {', '.join(layer_tables.keys())}"},
+                {
+                    "error": f"Invalid layer. Must be one of: {', '.join(layer_tables.keys())}"
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -2787,14 +2888,18 @@ class LayerExtentView(APIView):
                 row = cursor.fetchone()
 
             if row and row[0] is not None:
-                return Response({
-                    "extent": [row[0], row[1], row[2], row[3]],
+                return Response(
+                    {
+                        "extent": [row[0], row[1], row[2], row[3]],
+                        "layer": layer,
+                    }
+                )
+            return Response(
+                {
+                    "extent": None,
                     "layer": layer,
-                })
-            return Response({
-                "extent": None,
-                "layer": layer,
-            })
+                }
+            )
 
         except Exception as e:
             logger.error(f"Error fetching layer extent: {e}")
@@ -2802,3 +2907,181 @@ class LayerExtentView(APIView):
                 {"error": "Failed to calculate layer extent"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class AreaViewSet(viewsets.ModelViewSet):
+    """ViewSet for the Area model :model:`api.Area`.
+
+    An instance of :model:`api.Area`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = Area.objects.all().order_by("name")
+    serializer_class = AreaSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned areas by filtering against query parameters:
+        - `uuid`: Filter by UUID
+        - `project`: Filter by project ID
+        - `flag`: Filter by flag ID
+        - `name`: Filter by name (case-insensitive partial match)
+        """
+        queryset = Area.objects.all().order_by("name")
+        uuid = self.request.query_params.get("uuid")
+        project_id = self.request.query_params.get("project")
+        flag_id = self.request.query_params.get("flag")
+        name = self.request.query_params.get("name")
+        if uuid:
+            queryset = queryset.filter(uuid=uuid)
+        if project_id:
+            try:
+                project_id = int(project_id)
+                queryset = queryset.filter(project=project_id)
+            except ValueError:
+                queryset = queryset.none()
+        if flag_id:
+            try:
+                flag_id = int(flag_id)
+                queryset = queryset.filter(flag=flag_id)
+            except ValueError:
+                queryset = queryset.none()
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+        return queryset
+
+    @action(detail=False, methods=["get"], url_path="all")
+    def all_areas(self, request):
+        """
+        Returns all areas with project and flag filters.
+        No pagination is used.
+        """
+        queryset = Area.objects.all().order_by("name")
+        project_id = request.query_params.get("project")
+        flag_id = request.query_params.get("flag")
+        search_term = request.query_params.get("search")
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag_id:
+            queryset = queryset.filter(flag=flag_id)
+        if search_term:
+            queryset = queryset.filter(
+                Q(name__icontains=search_term)
+                | Q(area_type__area_type__icontains=search_term)
+            )
+        serializer = AreaSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+class OlAreaViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the OlArea model :model:`api.OlArea`.
+
+    An instance of :model:`api.OlArea`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = OlArea.objects.all().order_by("area_type", "uuid")
+    serializer_class = OlAreaSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned areas by filtering against query parameters:
+        - `uuid`: Filter by UUID
+        - `project`: Filter by project ID
+        - `flag`: Filter by flag ID
+        """
+        queryset = OlArea.objects.all().order_by("area_type", "uuid")
+        uuid = self.request.query_params.get("uuid")
+        project_id = self.request.query_params.get("project")
+        flag_id = self.request.query_params.get("flag")
+        if uuid:
+            queryset = queryset.filter(uuid=uuid)
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag_id:
+            queryset = queryset.filter(flag=flag_id)
+        return queryset
+
+    @action(detail=False, methods=["get"], url_path="all")
+    def all_ol_areas(self, request):
+        """
+        Returns all ol_areas with project and flag filters.
+        No pagination is used.
+        """
+        queryset = OlArea.objects.all().order_by("area_type", "uuid")
+        project_id = request.query_params.get("project")
+        flag_id = request.query_params.get("flag")
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag_id:
+            queryset = queryset.filter(flag=flag_id)
+        serializer = OlAreaSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+class OlAreaTileViewSet(APIView):
+    """ViewSet for the OlArea model :model:`api.OlArea`.
+
+    An instance of :model:`api.OlArea`.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, z, x, y, format=None):
+        """
+        Serves MVT tiles for OlArea.
+        URL: /api/ol_area_tiles/{z}/{x}/{y}.mvt?project={project}
+        """
+        sql = """
+            WITH mvtgeom AS (
+                SELECT
+                ST_AsMVTGeom(
+                        a.geom,
+                        ST_TileEnvelope(%(z)s, %(x)s, %(y)s),
+                        extent => 4096,
+                        buffer => 64
+                    ) AS geom,
+                    a.uuid,
+                    a.name,
+                    at.area_type,
+                    f.flag
+            FROM ol_area a
+            LEFT JOIN attributes_area_type at ON a.area_type = at.id
+            LEFT JOIN flags f ON a.flag = f.id
+                WHERE
+                    a.geom && ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096))
+                    AND a.project = %(project)s
+            )
+            SELECT ST_AsMVT(mvtgeom, 'ol_area', 4096, 'geom') AS mvt
+            FROM mvtgeom;
+        """
+        project_id = request.query_params.get("project")
+        if project_id is None:
+            return HttpResponse(
+                "No project ID provided", status=400, content_type="text/plain"
+            )
+        try:
+            project_id = int(project_id)
+        except ValueError:
+            return HttpResponse(
+                "Invalid project ID", status=400, content_type="text/plain"
+            )
+
+        params = {"z": int(z), "x": int(x), "y": int(y), "project": project_id}
+
+        with connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            row = cursor.fetchone()
+
+        if row and row[0]:
+            return HttpResponse(
+                row[0], content_type="application/vnd.mapbox-vector-tile"
+            )
+        else:
+            return HttpResponse(status=204)

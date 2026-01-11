@@ -2,18 +2,21 @@ import { m } from '$lib/paraglide/messages';
 
 import {
 	createAddressStyleWithLabels,
+	createAreaStyleByType,
 	createNodeStyleByType,
 	createTrenchStyle,
 	createTrenchStyleByAttribute
 } from '$lib/map/styles';
 import {
 	createAddressTileSource,
+	createAreaTileSource,
 	createNodeTileSource,
 	createTrenchTileSource
 } from '$lib/map/tileSources';
 import { globalToaster } from '$lib/stores/toaster';
 import {
 	createAddressLayer,
+	createAreaLayer,
 	createNodeLayer,
 	createSelectionLayer,
 	createTrenchLayer
@@ -35,14 +38,17 @@ export class MapState {
 	vectorTileLayer = $state(null);
 	addressLayer = $state(null);
 	nodeLayer = $state(null);
+	areaLayer = $state(null);
 	selectionLayer = $state(null);
 	addressSelectionLayer = $state(null);
 	nodeSelectionLayer = $state(null);
+	areaSelectionLayer = $state(null);
 
 	// Tile sources
 	tileSource = $state(null);
 	addressTileSource = $state(null);
 	nodeTileSource = $state(null);
+	areaTileSource = $state(null);
 
 	// Configuration
 	selectedProject = $state(null);
@@ -54,14 +60,16 @@ export class MapState {
 	layerConfig = $state({
 		trench: true,
 		address: true,
-		node: true
+		node: true,
+		area: true
 	});
 
 	// Label configuration
 	labelConfig = $state({
 		trench: { enabled: false, field: 'id_trench', minResolution: 1.5 },
 		address: { enabled: false, field: 'street', minResolution: 1.0 },
-		node: { enabled: false, field: 'name', minResolution: 1.0 }
+		node: { enabled: false, field: 'name', minResolution: 1.0 },
+		area: { enabled: false, field: 'name', minResolution: 5.0 }
 	});
 
 	/**
@@ -94,7 +102,6 @@ export class MapState {
 	 */
 	initializeLayers() {
 		try {
-			// Create tile sources only for enabled layers
 			if (this.layerConfig.trench) {
 				this.tileSource = createTrenchTileSource(this.selectedProject, this.handleTileError);
 				this.vectorTileLayer = createTrenchLayer(
@@ -128,6 +135,16 @@ export class MapState {
 				);
 			}
 
+			if (this.layerConfig.area) {
+				this.areaTileSource = createAreaTileSource(this.selectedProject, this.handleTileError);
+				this.areaLayer = createAreaLayer(
+					this.selectedProject,
+					m.form_area(),
+					this.handleTileError,
+					this.labelConfig.area
+				);
+			}
+
 			return true;
 		} catch (error) {
 			globalToaster.error({
@@ -135,13 +152,14 @@ export class MapState {
 				description: error.message || 'Could not set up the tile layer.'
 			});
 
-			// Reset everything on error
 			this.vectorTileLayer = null;
 			this.tileSource = null;
 			this.addressLayer = null;
 			this.addressTileSource = null;
 			this.nodeLayer = null;
 			this.nodeTileSource = null;
+			this.areaLayer = null;
+			this.areaTileSource = null;
 
 			return false;
 		}
@@ -157,7 +175,6 @@ export class MapState {
 
 		this.olMap = olMap;
 
-		// Create selection layers
 		this.selectionLayer = createSelectionLayer(
 			this.tileSource,
 			this.selectedColor,
@@ -178,6 +195,15 @@ export class MapState {
 			getSelectionStore
 		);
 		this.olMap.addLayer(this.nodeSelectionLayer);
+
+		if (this.areaTileSource) {
+			this.areaSelectionLayer = createSelectionLayer(
+				this.areaTileSource,
+				this.selectedColor,
+				getSelectionStore
+			);
+			this.olMap.addLayer(this.areaSelectionLayer);
+		}
 	}
 
 	/**
@@ -193,15 +219,83 @@ export class MapState {
 		if (this.nodeTileSource && this.layerConfig.node) {
 			this.nodeTileSource.refresh();
 		}
+		if (this.areaTileSource && this.layerConfig.area) {
+			this.areaTileSource.refresh();
+		}
+	}
+
+	/**
+	 * Reinitialize tile sources for a new project
+	 * Clears cached tiles and creates new sources with the new project ID
+	 * @param {string} newProjectId - The new project ID
+	 */
+	reinitializeForProject(newProjectId) {
+		if (this.selectedProject === newProjectId) return;
+
+		this.selectedProject = newProjectId;
+
+		if (this.vectorTileLayer && this.layerConfig.trench) {
+			const oldSource = this.vectorTileLayer.getSource();
+			if (oldSource) {
+				oldSource.clear();
+			}
+			this.tileSource = createTrenchTileSource(newProjectId, this.handleTileError);
+			this.vectorTileLayer.setSource(this.tileSource);
+
+			if (this.selectionLayer) {
+				this.selectionLayer.setSource(this.tileSource);
+			}
+		}
+
+		if (this.addressLayer && this.layerConfig.address) {
+			const oldSource = this.addressLayer.getSource();
+			if (oldSource) {
+				oldSource.clear();
+			}
+			this.addressTileSource = createAddressTileSource(newProjectId, this.handleTileError);
+			this.addressLayer.setSource(this.addressTileSource);
+
+			if (this.addressSelectionLayer) {
+				this.addressSelectionLayer.setSource(this.addressTileSource);
+			}
+		}
+
+		if (this.nodeLayer && this.layerConfig.node) {
+			const oldSource = this.nodeLayer.getSource();
+			if (oldSource) {
+				oldSource.clear();
+			}
+			this.nodeTileSource = createNodeTileSource(newProjectId, this.handleTileError);
+			this.nodeLayer.setSource(this.nodeTileSource);
+
+			if (this.nodeSelectionLayer) {
+				this.nodeSelectionLayer.setSource(this.nodeTileSource);
+			}
+		}
+
+		if (this.areaLayer && this.layerConfig.area) {
+			const oldSource = this.areaLayer.getSource();
+			if (oldSource) {
+				oldSource.clear();
+			}
+			this.areaTileSource = createAreaTileSource(newProjectId, this.handleTileError);
+			this.areaLayer.setSource(this.areaTileSource);
+
+			if (this.areaSelectionLayer) {
+				this.areaSelectionLayer.setSource(this.areaTileSource);
+			}
+		}
 	}
 
 	/**
 	 * Get all layers as an array for passing to Map component
+	 * Area layer is added first so it renders below other layers
 	 * @returns {Array} Array of OpenLayers layers
 	 */
 	getLayers() {
 		const layers = [];
 
+		if (this.areaLayer) layers.push(this.areaLayer);
 		if (this.vectorTileLayer) layers.push(this.vectorTileLayer);
 		if (this.addressLayer) layers.push(this.addressLayer);
 		if (this.nodeLayer) layers.push(this.nodeLayer);
@@ -214,9 +308,12 @@ export class MapState {
 	 * @returns {Array} Array of selection layers
 	 */
 	getSelectionLayers() {
-		return [this.selectionLayer, this.addressSelectionLayer, this.nodeSelectionLayer].filter(
-			Boolean
-		);
+		return [
+			this.selectionLayer,
+			this.addressSelectionLayer,
+			this.nodeSelectionLayer,
+			this.areaSelectionLayer
+		].filter(Boolean);
 	}
 
 	/**
@@ -227,7 +324,8 @@ export class MapState {
 		return {
 			vectorTileLayer: this.vectorTileLayer,
 			addressLayer: this.addressLayer,
-			nodeLayer: this.nodeLayer
+			nodeLayer: this.nodeLayer,
+			areaLayer: this.areaLayer
 		};
 	}
 
@@ -296,7 +394,6 @@ export class MapState {
 	updateAddressLayerStyle(color = null, size = null) {
 		if (!this.addressLayer) return;
 
-		// Update stored values if provided
 		if (color !== null) {
 			this.addressColor = color;
 		}
@@ -317,17 +414,30 @@ export class MapState {
 	}
 
 	/**
+	 * Update the area layer style based on area type styles
+	 * @param {Object} areaTypeStyles - Object mapping area type names to style config
+	 */
+	updateAreaLayerStyle(areaTypeStyles) {
+		if (!this.areaLayer) return;
+
+		const newStyle = createAreaStyleByType(areaTypeStyles, this.labelConfig.area);
+		this.areaLayer.setStyle(newStyle);
+
+		if (this.areaTileSource) {
+			this.areaTileSource.refresh();
+		}
+	}
+
+	/**
 	 * Update label visibility for a specific layer type
-	 * @param {string} layerType - 'trench' | 'address' | 'node'
+	 * @param {string} layerType - 'trench' | 'address' | 'node' | 'area'
 	 * @param {boolean} enabled - Whether labels should be shown
-	 * @param {Object} currentStyles - Current style settings (for trench: { mode, surfaceStyles, constructionTypeStyles, color }, for node: nodeTypeStyles)
+	 * @param {Object} currentStyles - Current style settings (for trench: { mode, surfaceStyles, constructionTypeStyles, color }, for node: nodeTypeStyles, for area: areaTypeStyles)
 	 */
 	updateLabelVisibility(layerType, enabled, currentStyles = {}) {
-		// Update the label config without triggering reactivity by using plain object mutation
-		// This is safe because labelConfig is only read during style creation
 		const currentLabelConfig = this.labelConfig[layerType];
 		if (currentLabelConfig.enabled === enabled) {
-			return; // No change needed
+			return;
 		}
 		currentLabelConfig.enabled = enabled;
 
@@ -350,6 +460,11 @@ export class MapState {
 					this.updateNodeLayerStyle(currentStyles.nodeTypeStyles);
 				}
 				break;
+			case 'area':
+				if (currentStyles.areaTypeStyles) {
+					this.updateAreaLayerStyle(currentStyles.areaTypeStyles);
+				}
+				break;
 		}
 	}
 
@@ -359,7 +474,6 @@ export class MapState {
 	cleanup() {
 		if (!this.olMap) return;
 
-		// Remove selection layers
 		if (this.selectionLayer) {
 			this.olMap.removeLayer(this.selectionLayer);
 		}
@@ -369,8 +483,10 @@ export class MapState {
 		if (this.nodeSelectionLayer) {
 			this.olMap.removeLayer(this.nodeSelectionLayer);
 		}
+		if (this.areaSelectionLayer) {
+			this.olMap.removeLayer(this.areaSelectionLayer);
+		}
 
-		// Dispose of tile sources
 		if (this.vectorTileLayer && this.vectorTileLayer.getSource()) {
 			this.vectorTileLayer.getSource().dispose();
 		}
@@ -380,17 +496,22 @@ export class MapState {
 		if (this.nodeLayer && this.nodeLayer.getSource()) {
 			this.nodeLayer.getSource().dispose();
 		}
+		if (this.areaLayer && this.areaLayer.getSource()) {
+			this.areaLayer.getSource().dispose();
+		}
 
-		// Reset state
 		this.olMap = null;
 		this.vectorTileLayer = null;
 		this.addressLayer = null;
 		this.nodeLayer = null;
+		this.areaLayer = null;
 		this.selectionLayer = null;
 		this.addressSelectionLayer = null;
 		this.nodeSelectionLayer = null;
+		this.areaSelectionLayer = null;
 		this.tileSource = null;
 		this.addressTileSource = null;
 		this.nodeTileSource = null;
+		this.areaTileSource = null;
 	}
 }

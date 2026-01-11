@@ -1,0 +1,23 @@
+[
+    {
+        "model": "api.attributesareatype",
+        "pk": 1,
+        "fields": {
+            "area_type": "Projektgebiet"
+        }
+    },
+    {
+        "model": "api.attributesareatype",
+        "pk": 2,
+        "fields": {
+            "area_type": "POP-Gebiet"
+        }
+    },
+    {
+        "model": "api.attributesareatype",
+        "pk": 3,
+        "fields": {
+            "area_type": "NVt-Gebiet"
+        }
+    }
+]

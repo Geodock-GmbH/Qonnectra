@@ -47,6 +47,13 @@
 	onMount(async () => {
 		await autoLockSvelteFlow();
 
+		if (!data.networkSchemaSettingsConfigured && $selectedProject) {
+			globalToaster.warning({
+				title: m.common_warning(),
+				description: m.message_network_schema_settings_not_configured()
+			});
+		}
+
 		if (data.syncStatus) {
 			if (data.syncStatus.sync_status === 'FAILED') {
 				globalToaster.error({

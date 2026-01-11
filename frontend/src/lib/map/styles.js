@@ -79,7 +79,6 @@ export function createTrenchStyleWithLabels(color, labelOptions = {}) {
 		textStyle = {}
 	} = labelOptions;
 
-	// Cache the geometry style since it never changes for this color
 	const geometryStyle = new Style({
 		fill: new Fill({
 			color: color
@@ -164,7 +163,6 @@ export function createAddressStyleWithLabels(
 ) {
 	const { enabled = false, minResolution = 1.0, textStyle = {} } = labelOptions;
 
-	// Cache the geometry style since it never changes
 	const geometryStyle = new Style({
 		image: new CircleStyle({
 			radius: size,
@@ -219,7 +217,6 @@ export function createNodeStyle() {
 export function createNodeStyleWithLabels(labelOptions = {}) {
 	const { enabled = false, field = 'name', minResolution = 1.0, textStyle = {} } = labelOptions;
 
-	// Cache the geometry style since it never changes
 	const geometryStyle = new Style({
 		image: new CircleStyle({
 			radius: 6,
@@ -262,6 +259,12 @@ export const DEFAULT_ADDRESS_COLOR = '#2563eb';
 export const DEFAULT_ADDRESS_SIZE = 4;
 
 /**
+ * Default area style configuration
+ */
+export const DEFAULT_AREA_COLOR = '#22c55e';
+export const DEFAULT_AREA_OPACITY = 0.3;
+
+/**
  * Creates a style function for node points with per-type styling
  * @param {Object} nodeTypeStyles - Object mapping node type names to style config
  *   { [node_type]: { color: '#hex', size: number, visible: boolean } }
@@ -291,7 +294,6 @@ export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
 
 		const geometryCacheKey = `${nodeType || 'default'}_${typeConfig.color}_${typeConfig.size}`;
 
-		// Get or create geometry-only style (always rendered, never decluttered)
 		let geometryStyle = geometryStyleCache.get(geometryCacheKey);
 		if (!geometryStyle) {
 			geometryStyle = new Style({
@@ -300,7 +302,6 @@ export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
 					fill: new Fill({ color: typeConfig.color || DEFAULT_NODE_COLOR }),
 					stroke: new Stroke({ color: '#000000', width: 1 })
 				}),
-				// Mark as non-declutterable so the point always renders
 				declutterMode: 'none'
 			});
 			geometryStyleCache.set(geometryCacheKey, geometryStyle);
@@ -310,13 +311,10 @@ export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
 
 		if (showLabels) {
 			const labelText = (feature.get(field) || '').toString();
-			// Create separate label style that can be decluttered
 			const labelStyle = new Style({
 				text: createTextStyle({ text: labelText, ...textStyle }),
-				// Labels can be decluttered (hidden when overlapping)
 				declutterMode: 'declutter'
 			});
-			// Return both styles - geometry always shows, label may be hidden
 			return [geometryStyle, labelStyle];
 		}
 
@@ -372,7 +370,6 @@ export function createTrenchStyleByAttribute(
 		let color = fallbackColor;
 		let visible = true;
 
-		// Determine color based on style mode
 		if (styleMode === 'surface') {
 			const surfaceValue = feature.get('surface');
 			const config = attributeStyles[surfaceValue];
@@ -389,14 +386,12 @@ export function createTrenchStyleByAttribute(
 			}
 		}
 
-		// Return null if this attribute value should be hidden
 		if (!visible) {
 			return null;
 		}
 
 		const geometryCacheKey = `${styleMode}_${color}`;
 
-		// Get or create geometry style (never decluttered)
 		let geometryStyle = geometryStyleCache.get(geometryCacheKey);
 		if (!geometryStyle) {
 			geometryStyle = new Style({
@@ -430,4 +425,145 @@ export function createTrenchStyleByAttribute(
 
 		return geometryStyle;
 	};
+}
+
+/**
+ * Creates a style for area polygons
+ * @param {string} color - The fill color for the area
+ * @param {number} [opacity=DEFAULT_AREA_OPACITY] - Fill opacity (0-1)
+ * @returns {Style}
+ */
+export function createAreaStyle(color, opacity = DEFAULT_AREA_OPACITY) {
+	const fillColor = hexToRgba(color, opacity);
+
+	return new Style({
+		fill: new Fill({
+			color: fillColor
+		}),
+		stroke: new Stroke({
+			color: color,
+			width: 2
+		})
+	});
+}
+
+/**
+ * Creates a style function for area polygons with optional labels
+ * @param {string} color - The fill color for the area
+ * @param {number} [opacity=DEFAULT_AREA_OPACITY] - Fill opacity (0-1)
+ * @param {Object} labelOptions - Label configuration options
+ * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
+ * @param {string} [labelOptions.field='name'] - Feature property to use for label
+ * @param {number} [labelOptions.minResolution=5.0] - Minimum resolution to show labels
+ * @param {Object} [labelOptions.textStyle] - Custom text style options
+ * @returns {Function} Style function that accepts (feature, resolution)
+ */
+export function createAreaStyleWithLabels(
+	color = DEFAULT_AREA_COLOR,
+	opacity = DEFAULT_AREA_OPACITY,
+	labelOptions = {}
+) {
+	const { enabled = false, field = 'name', minResolution = 5.0, textStyle = {} } = labelOptions;
+
+	const fillColor = hexToRgba(color, opacity);
+
+	const geometryStyle = new Style({
+		fill: new Fill({
+			color: fillColor
+		}),
+		stroke: new Stroke({
+			color: color,
+			width: 2
+		}),
+		declutterMode: 'none'
+	});
+
+	return function (feature, resolution) {
+		if (enabled && resolution < minResolution) {
+			const labelText = (feature.get(field) || '').toString();
+			const labelStyle = new Style({
+				text: createTextStyle({ text: labelText, offsetX: 0, offsetY: 0, ...textStyle }),
+				declutterMode: 'declutter'
+			});
+			return [geometryStyle, labelStyle];
+		}
+
+		return geometryStyle;
+	};
+}
+
+/**
+ * Creates a style function for area polygons with per-type styling
+ * @param {Object} areaTypeStyles - Object mapping area type IDs to style config
+ *   { [area_type_id]: { color: '#hex', visible: boolean } }
+ * @param {Object} labelOptions - Label configuration options
+ * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
+ * @param {string} [labelOptions.field='name'] - Feature property to use for label
+ * @param {number} [labelOptions.minResolution=5.0] - Minimum resolution to show labels
+ * @param {Object} [labelOptions.textStyle] - Custom text style options
+ * @returns {Function} Style function that accepts (feature, resolution)
+ */
+export function createAreaStyleByType(areaTypeStyles = {}, labelOptions = {}) {
+	const { enabled = false, field = 'name', minResolution = 5.0, textStyle = {} } = labelOptions;
+
+	const geometryStyleCache = new Map();
+
+	return function (feature, resolution) {
+		const areaType = feature.get('area_type');
+		const typeConfig = areaTypeStyles[areaType] || {
+			color: DEFAULT_AREA_COLOR,
+			visible: true
+		};
+
+		if (!typeConfig.visible) {
+			return null;
+		}
+
+		const geometryCacheKey = `${areaType || 'default'}_${typeConfig.color}`;
+
+		let geometryStyle = geometryStyleCache.get(geometryCacheKey);
+		if (!geometryStyle) {
+			const fillColor = hexToRgba(typeConfig.color || DEFAULT_AREA_COLOR, DEFAULT_AREA_OPACITY);
+			geometryStyle = new Style({
+				fill: new Fill({
+					color: fillColor
+				}),
+				stroke: new Stroke({
+					color: typeConfig.color || DEFAULT_AREA_COLOR,
+					width: 2
+				}),
+				declutterMode: 'none'
+			});
+			geometryStyleCache.set(geometryCacheKey, geometryStyle);
+		}
+
+		const showLabels = enabled && resolution < minResolution;
+
+		if (showLabels) {
+			const labelText = (feature.get(field) || '').toString();
+			const labelStyle = new Style({
+				text: createTextStyle({ text: labelText, offsetX: 0, offsetY: 0, ...textStyle }),
+				declutterMode: 'declutter'
+			});
+			return [geometryStyle, labelStyle];
+		}
+
+		return geometryStyle;
+	};
+}
+
+/**
+ * Helper function to convert hex color to rgba
+ * @param {string} hex - Hex color code (e.g., '#ff0000')
+ * @param {number} alpha - Alpha value (0-1)
+ * @returns {string} RGBA color string
+ */
+function hexToRgba(hex, alpha) {
+	hex = hex.replace('#', '');
+
+	const r = parseInt(hex.substring(0, 2), 16);
+	const g = parseInt(hex.substring(2, 4), 16);
+	const b = parseInt(hex.substring(4, 6), 16);
+
+	return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }

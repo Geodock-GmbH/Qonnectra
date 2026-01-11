@@ -2,7 +2,7 @@
 	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
 	import { browser } from '$app/environment';
 
-	import { mapCenter, mapZoom, selectedProject } from '$lib/stores/store';
+	import { layerOpacity, mapCenter, mapZoom, selectedProject } from '$lib/stores/store';
 	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 
 	import LayerVisibilityTree from './LayerVisibilityTree.svelte';
@@ -28,6 +28,7 @@
 		nodeTypes = [],
 		surfaces = [],
 		constructionTypes = [],
+		areaTypes = [],
 		variant = 'fullscreen' // 'fullscreen' | 'compact'
 	} = $props();
 
@@ -41,7 +42,7 @@
 	let initialCenter = $state(browser ? $mapCenter : [0, 0]);
 	let initialZoom = $state(browser ? $mapZoom : 2);
 
-	let currentLayerOpacity = $state(1);
+	let currentLayerOpacity = $state(browser ? $layerOpacity : 1);
 
 	const opacitySliderConfig = {
 		minOpacity: 0,
@@ -67,7 +68,9 @@
 			import('ol/source/OSM')
 		]);
 
-		osmLayer = new TileLayer({ source: new OSMSource(), opacity: currentLayerOpacity });
+		const initialOpacity = browser ? $layerOpacity : 1;
+		currentLayerOpacity = initialOpacity;
+		osmLayer = new TileLayer({ source: new OSMSource(), opacity: initialOpacity });
 
 		const mapLayers = [osmLayer, ...layers];
 
@@ -88,7 +91,13 @@
 			...mapOptions
 		});
 
-		currentLayerOpacity = osmLayer.getOpacity();
+		// Ensure opacity is synced with store
+		if (browser && osmLayer) {
+			currentLayerOpacity = $layerOpacity;
+			osmLayer.setOpacity($layerOpacity);
+		} else {
+			currentLayerOpacity = osmLayer.getOpacity();
+		}
 
 		dispatch('ready', { map });
 
@@ -124,6 +133,9 @@
 
 	function handleOpacitySliderChange(newOpacity) {
 		currentLayerOpacity = newOpacity;
+		if (browser) {
+			$layerOpacity = newOpacity;
+		}
 		if (osmLayer) {
 			osmLayer.setOpacity(newOpacity);
 		}
@@ -184,6 +196,7 @@
 					{nodeTypes}
 					{surfaces}
 					{constructionTypes}
+					{areaTypes}
 					onLayerVisibilityChanged={handleLayerVisibilityChange}
 					onNodeTypeVisibilityChanged={handleNodeTypeVisibilityChange}
 					onTrenchTypeVisibilityChanged={handleTrenchTypeVisibilityChange}
@@ -208,8 +221,12 @@
 {:else}
 	<div class="map-container {className}">
 		<div class="map" bind:this={container}></div>
+
+		<!-- Opacity slider: top-right on mobile (below search), bottom-left on desktop -->
 		{#if showOpacitySlider && map}
-			<div class="absolute bottom-5 left-5 z-10">
+			<div
+				class="absolute top-20 left-3 right-3 sm:top-auto sm:right-auto sm:left-4 sm:bottom-5 z-10 sm:max-w-[280px]"
+			>
 				<OpacitySlider
 					minOpacity={opacitySliderConfig.minOpacity}
 					maxOpacity={opacitySliderConfig.maxOpacity}
@@ -219,8 +236,10 @@
 				/>
 			</div>
 		{/if}
+
+		<!-- Search panel: Full width on mobile with safe padding -->
 		{#if showSearchPanel && map}
-			<div class="absolute top-5 left-5 right-5 lg:right-auto z-9 lg:max-w-md">
+			<div class="absolute top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-auto z-10 sm:max-w-md">
 				<SearchPanel
 					olMapInstance={map}
 					onFeatureSelect={handleFeatureSelect}
@@ -230,14 +249,17 @@
 				/>
 			</div>
 		{/if}
+
+		<!-- Layer visibility tree: Desktop sidebar, Mobile FAB + bottom sheet -->
 		{#if showLayerVisibilityTree && map}
-			<div class="absolute top-28 right-5 lg:top-5 z-9">
+			<div class="sm:absolute sm:top-4 sm:right-4 z-10">
 				<LayerVisibilityTree
 					{layers}
 					{osmLayer}
 					{nodeTypes}
 					{surfaces}
 					{constructionTypes}
+					{areaTypes}
 					onLayerVisibilityChanged={handleLayerVisibilityChange}
 					onNodeTypeVisibilityChanged={handleNodeTypeVisibilityChange}
 					onTrenchTypeVisibilityChanged={handleTrenchTypeVisibilityChange}

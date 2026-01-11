@@ -1,3 +1,5 @@
+import os
+
 from django import forms
 from django.contrib import admin, messages
 from django.contrib.contenttypes.models import ContentType
@@ -10,6 +12,8 @@ from django_json_widget.widgets import JSONEditorWidget
 
 from .models import (
     Address,
+    Area,
+    AttributesAreaType,
     AttributesCableType,
     AttributesCompany,
     AttributesConduitType,
@@ -31,16 +35,195 @@ from .models import (
     FeatureFiles,
     FileTypeCategory,
     Flags,
+    GeoPackageSchemaConfig,
     LogEntry,
     Microduct,
+    NetworkSchemaSettings,
     Node,
     Projects,
     QGISProject,
     StoragePreferences,
     Trench,
 )
-from .services import move_file_to_feature
+from .services import (
+    GEOPACKAGE_LAYER_CONFIG,
+    generate_geopackage_schema,
+    move_file_to_feature,
+)
 from .storage import LocalMediaStorage
+
+
+class GeoPackageSchemaConfigForm(forms.ModelForm):
+    """Form for GeoPackageSchemaConfig with FilteredSelectMultiple widget."""
+
+    selected_layers = forms.MultipleChoiceField(
+        label=_("Selected Layers"),
+        required=False,
+        widget=admin.widgets.FilteredSelectMultiple(
+            verbose_name=_("Layers"),
+            is_stacked=False,
+        ),
+        help_text=_("Select layers to include in the GeoPackage schema download."),
+    )
+
+    class Meta:
+        model = GeoPackageSchemaConfig
+        fields = ["name", "selected_layers"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        choices = []
+        for layer_name, config in GEOPACKAGE_LAYER_CONFIG.items():
+            geom_type = config.get("geometry_type")
+            label = (
+                f"{layer_name} ({geom_type})" if geom_type else f"{layer_name} (Table)"
+            )
+            choices.append((layer_name, label))
+        self.fields["selected_layers"].choices = choices
+
+        if self.instance and self.instance.pk:
+            self.fields["selected_layers"].initial = self.instance.selected_layers or []
+
+    def clean_selected_layers(self):
+        """Convert the list back to a format suitable for JSONField."""
+        return list(self.cleaned_data.get("selected_layers", []))
+
+
+class QGISProjectConvertForm(forms.Form):
+    """Form for uploading QGS/QGZ file to convert OGR to PostgreSQL datasources."""
+
+    qgis_file = forms.FileField(
+        label=_("QGIS Project File"),
+        help_text=_(
+            "Upload a QGS or QGZ file to convert OGR/GeoPackage datasources to PostgreSQL."
+        ),
+    )
+
+    def clean_qgis_file(self):
+        uploaded_file = self.cleaned_data.get("qgis_file")
+        if uploaded_file:
+            filename = uploaded_file.name.lower()
+            if not filename.endswith((".qgs", ".qgz")):
+                raise forms.ValidationError(_("Only .qgs and .qgz files are allowed."))
+        return uploaded_file
+
+
+@admin.register(GeoPackageSchemaConfig)
+class GeoPackageSchemaConfigAdmin(admin.ModelAdmin):
+    """Admin for GeoPackage schema configuration with filter_horizontal-style UI."""
+
+    form = GeoPackageSchemaConfigForm
+    list_display = ("name", "layer_count", "layer_preview")
+    actions = ["download_geopackage_schema"]
+    change_list_template = "admin/api/geopackageschemaconfig/change_list.html"
+
+    class Media:
+        css = {"all": ["admin/css/widgets.css"]}
+        js = ["admin/js/core.js"]
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "convert-qgis/",
+                self.admin_site.admin_view(self.convert_qgis_view),
+                name="api_geopackageschemaconfig_convert",
+            ),
+        ]
+        return custom_urls + urls
+
+    def convert_qgis_view(self, request):
+        """View to upload and convert QGIS project file."""
+        from django.http import HttpResponse
+
+        from .services import convert_qgs_to_postgres, handle_qgis_file, repackage_qgz
+
+        if request.method == "POST":
+            form = QGISProjectConvertForm(request.POST, request.FILES)
+            if form.is_valid():
+                uploaded_file = form.cleaned_data["qgis_file"]
+                filename = uploaded_file.name
+
+                try:
+                    file_content = uploaded_file.read()
+
+                    qgs_content, is_qgz = handle_qgis_file(file_content, filename)
+                    converted_content = convert_qgs_to_postgres(qgs_content)
+
+                    if is_qgz:
+                        final_content = repackage_qgz(converted_content, file_content)
+                        content_type = "application/zip"
+                    else:
+                        final_content = converted_content
+                        content_type = "application/xml"
+
+                    response = HttpResponse(final_content, content_type=content_type)
+                    response["Content-Disposition"] = (
+                        f'attachment; filename="{filename}"'
+                    )
+                    return response
+
+                except Exception as e:
+                    messages.error(
+                        request,
+                        _("Error converting file: %(error)s") % {"error": str(e)},
+                    )
+        else:
+            form = QGISProjectConvertForm()
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": _("Convert QGIS Project to PostgreSQL Datasources"),
+            "form": form,
+            "opts": self.model._meta,
+        }
+        return render(
+            request, "admin/api/geopackageschemaconfig/convert_form.html", context
+        )
+
+    @admin.display(description=_("Layers"))
+    def layer_count(self, obj):
+        return len(obj.selected_layers) if obj.selected_layers else 0
+
+    @admin.display(description=_("Selected Layers"))
+    def layer_preview(self, obj):
+        layers = (obj.selected_layers or [])[:5]
+        suffix = "..." if len(obj.selected_layers or []) > 5 else ""
+        return ", ".join(layers) + suffix if layers else _("None selected")
+
+    @admin.action(
+        description=_("Download GeoPackage schema for selected configuration")
+    )
+    def download_geopackage_schema(self, request, queryset):
+        """Download GeoPackage schema with selected layers."""
+        if queryset.count() != 1:
+            self.message_user(
+                request,
+                _("Please select exactly one configuration to download."),
+                level=messages.ERROR,
+            )
+            return
+
+        config = queryset.first()
+        layer_names = config.get_layer_names()
+
+        if not layer_names:
+            self.message_user(
+                request,
+                _("No layers selected. Please select at least one layer."),
+                level=messages.ERROR,
+            )
+            return
+
+        try:
+            return generate_geopackage_schema(layers=layer_names)
+        except Exception as e:
+            self.message_user(
+                request,
+                _("Error generating GeoPackage: %(error)s") % {"error": str(e)},
+                level=messages.ERROR,
+            )
+
 
 FEATURE_MODEL_MAP = {
     "trench": Trench,
@@ -48,6 +231,7 @@ FEATURE_MODEL_MAP = {
     "cable": Cable,
     "node": Node,
     "address": Address,
+    "area": Area,
 }
 
 admin.site.register(AttributesSurface)
@@ -56,15 +240,76 @@ admin.site.register(AttributesConstructionType)
 admin.site.register(AttributesStatus)
 admin.site.register(AttributesPhase)
 admin.site.register(AttributesCompany)
+admin.site.register(AttributesAreaType)
 admin.site.register(Cable)
-admin.site.register(Projects)
 admin.site.register(FileTypeCategory)
+admin.site.register(Area)
 admin.site.register(Flags)
 admin.site.register(AttributesNetworkLevel)
 admin.site.register(AttributesNodeType)
 admin.site.register(AttributesMicroductStatus)
 admin.site.register(Microduct)
 admin.site.register(AttributesFiberStatus)
+
+
+class NetworkSchemaSettingsInline(admin.StackedInline):
+    """Inline admin for Network Schema Settings within Project admin."""
+
+    model = NetworkSchemaSettings
+    can_delete = False
+    verbose_name = _("Network Schema Settings")
+    verbose_name_plural = _("Network Schema Settings")
+    filter_horizontal = ("excluded_node_types",)
+
+
+@admin.register(Projects)
+class ProjectsAdmin(admin.ModelAdmin):
+    """Admin interface for Projects with Network Schema Settings."""
+
+    list_display = ("project", "description", "active", "excluded_types_display")
+    list_filter = ("active",)
+    search_fields = ("project", "description")
+    inlines = [NetworkSchemaSettingsInline]
+
+    @admin.display(description=_("Excluded Node Types"))
+    def excluded_types_display(self, obj):
+        """Display excluded node types for list view."""
+        try:
+            settings = obj.network_schema_settings
+            count = settings.excluded_node_types.count()
+            if count > 0:
+                types = settings.excluded_node_types.all()[:3]
+                names = [t.node_type for t in types]
+                suffix = f"... (+{count - 3})" if count > 3 else ""
+                return ", ".join(names) + suffix
+            return _("None")
+        except NetworkSchemaSettings.DoesNotExist:
+            return format_html(
+                '<span style="color: #dc3545;">⚠ {}</span>',
+                _("Not configured"),
+            )
+
+
+@admin.register(NetworkSchemaSettings)
+class NetworkSchemaSettingsAdmin(admin.ModelAdmin):
+    """Standalone admin for Network Schema Settings."""
+
+    list_display = ("project", "excluded_count", "excluded_types_preview")
+    list_filter = ("project",)
+    search_fields = ("project__project",)
+    filter_horizontal = ("excluded_node_types",)
+    autocomplete_fields = ["project"]
+
+    @admin.display(description=_("Excluded Count"))
+    def excluded_count(self, obj):
+        return obj.excluded_node_types.count()
+
+    @admin.display(description=_("Excluded Types"))
+    def excluded_types_preview(self, obj):
+        types = obj.excluded_node_types.all()[:5]
+        names = [t.node_type for t in types]
+        suffix = "..." if obj.excluded_node_types.count() > 5 else ""
+        return ", ".join(names) + suffix if names else _("None")
 
 
 @admin.register(Address)
@@ -234,6 +479,7 @@ class QGISProjectAdmin(admin.ModelAdmin):
             },
         ),
     )
+    actions = ["download_with_postgres_datasources"]
 
     def save_model(self, request, obj, form, change):
         """Auto-populate created_by field."""
@@ -265,6 +511,64 @@ class QGISProjectAdmin(admin.ModelAdmin):
         return "-"
 
     get_wfs_url.short_description = "WFS URL"
+
+    def download_with_postgres_datasources(self, request, queryset):
+        """
+        Download QGIS project with datasources converted from GeoPackage to PostgreSQL.
+
+        Only works with single selection.
+        """
+        from django.http import HttpResponse
+
+        from .services import convert_qgs_to_postgres, handle_qgis_file, repackage_qgz
+
+        if queryset.count() != 1:
+            self.message_user(
+                request,
+                _("Please select exactly one project to convert."),
+                level=messages.ERROR,
+            )
+            return
+
+        project = queryset.first()
+
+        if not project.project_file:
+            self.message_user(
+                request,
+                _("Selected project has no file attached."),
+                level=messages.ERROR,
+            )
+            return
+
+        try:
+            file_content = project.project_file.read()
+            filename = os.path.basename(project.project_file.name)
+
+            qgs_content, is_qgz = handle_qgis_file(file_content, filename)
+            converted_content = convert_qgs_to_postgres(qgs_content)
+
+            if is_qgz:
+                final_content = repackage_qgz(converted_content, file_content)
+                content_type = "application/zip"
+            else:
+                final_content = converted_content
+                content_type = "application/xml"
+
+            response = HttpResponse(final_content, content_type=content_type)
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            return response
+
+        except Exception as e:
+            self.message_user(
+                request,
+                _("Error converting project: %(error)s") % {"error": str(e)},
+                level=messages.ERROR,
+            )
+            return
+
+    download_with_postgres_datasources.short_description = _(
+        "Download with PostgreSQL datasources"
+    )
 
 
 @admin.register(Node)
@@ -512,6 +816,7 @@ class MoveFilesForm(forms.Form):
             ("cable", _("Cable")),
             ("node", _("Node")),
             ("address", _("Address")),
+            ("area", _("Area")),
         ],
     )
     target_feature_id = forms.UUIDField(

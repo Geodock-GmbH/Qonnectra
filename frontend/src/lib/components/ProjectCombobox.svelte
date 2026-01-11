@@ -97,14 +97,14 @@
 {#if loading || isHydrating}
 	<div class="placeholder animate-pulse {placeholderSize}"></div>
 {:else if projectsError}
-	<div class="alert variant-filled-error text-sm sm:text-base">{projectsError}</div>
+	<div class="alert variant-filled-error text-xs sm:text-sm line-clamp-1">{projectsError}</div>
 {:else if projects.length === 0}
-	<div class="alert variant-filled-warning text-sm sm:text-base">
+	<div class="alert variant-filled-warning text-xs sm:text-sm line-clamp-1">
 		{m.message_error_fetching_projects_no_projects()}
 	</div>
 {:else}
 	<Combobox
-		class="z-10 w-full min-w-0 sm:min-w-48 md:min-w-64"
+		class="z-10 w-full min-w-0 max-w-[200px] sm:max-w-none sm:min-w-[180px] md:min-w-[240px]"
 		placeholder={m.form_project({ count: 1 })}
 		{collection}
 		defaultValue={$selectedProject}
@@ -112,21 +112,25 @@
 		onOpenChange={handleOpenChange}
 		{onInputValueChange}
 	>
-		<Combobox.Control>
-			<Combobox.Input />
-			<Combobox.Trigger />
+		<Combobox.Control
+			class="flex items-center h-[35px] focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:outline-none transition-shadow rounded"
+		>
+			<Combobox.Input
+				class="placeholder:text-sm placeholder:truncate h-full w-full border-0 bg-transparent focus:ring-0 focus:outline-none focus:bg-transparent"
+			/>
+			<Combobox.Trigger class="flex-shrink-0" />
 		</Combobox.Control>
 		<Portal>
-			<Combobox.Positioner class="z-10">
+			<Combobox.Positioner class="z-50">
 				<Combobox.Content
-					class="z-50 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"
+					class="z-50 max-h-[50vh] sm:max-h-60 min-w-[200px] overflow-auto touch-manipulation rounded-lg border border-surface-200-800 bg-surface-50-950 shadow-xl"
 				>
 					{#each items as item (item.value)}
 						<Combobox.Item
 							{item}
-							class="cursor-pointer px-3 py-2 rounded-md data-[highlighted]:not-data-[selected]:bg-surface-200-800 data-[selected]:bg-primary-500 data-[selected]:text-white data-[highlighted]:data-[selected]:bg-primary-600"
+							class="cursor-pointer px-4 py-3 sm:px-3 sm:py-2 text-sm rounded-md data-[highlighted]:not-data-[selected]:bg-surface-200-800 data-[selected]:bg-primary-500 data-[selected]:text-white data-[highlighted]:data-[selected]:bg-primary-600 active:scale-[0.98] transition-transform"
 						>
-							<Combobox.ItemText>{item.label}</Combobox.ItemText>
+							<Combobox.ItemText class="truncate">{item.label}</Combobox.ItemText>
 							<Combobox.ItemIndicator />
 						</Combobox.Item>
 					{/each}

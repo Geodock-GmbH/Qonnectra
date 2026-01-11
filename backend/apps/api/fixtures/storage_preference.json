@@ -10,16 +10,30 @@
                     "documents": "trenches/documents",
                     "photos": "trenches/photos"
                 },
+                "area": {
+                    "default": "areas",
+                    "photos": "areas/photos",
+                    "documents": "areas/documents"
+                },
                 "node": {
                     "default": "nodes",
                     "photos": "nodes/photos",
                     "documents": "nodes/documents"
                 },
                 "address": {
-                    "default": "addresses"
+                    "default": "addresses",
+                    "documents": "addresses/documents",
+                    "photos": "addresses/photos"
+                },
+                "conduit": {
+                    "default": "conduits",
+                    "photos": "conduits/photos",
+                    "documents": "conduits/documents"
                 },
                 "residentialunit": {
-                    "default": "residential_units"
+                    "default": "residential_units",
+                    "photos": "residential_units/photos",
+                    "documents": "residential_units/documents"
                 },
                 "featurefiles": {
                     "default": "attachments"

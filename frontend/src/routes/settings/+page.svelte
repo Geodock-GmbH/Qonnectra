@@ -6,6 +6,7 @@
 	import {
 		DEFAULT_ADDRESS_COLOR,
 		DEFAULT_ADDRESS_SIZE,
+		DEFAULT_AREA_COLOR,
 		DEFAULT_NODE_COLOR,
 		DEFAULT_NODE_SIZE,
 		DEFAULT_TRENCH_COLOR
@@ -13,6 +14,7 @@
 	import { userStore } from '$lib/stores/auth';
 	import {
 		addressStyle,
+		areaTypeStyles,
 		nodeTypeStyles,
 		routingTolerance,
 		sidebarExpanded,
@@ -91,6 +93,28 @@
 
 			if (hasNewTypes) {
 				$trenchConstructionTypeStyles = { ...currentStyles };
+			}
+		}
+	});
+
+	// Initialize styles for any new area types from server data
+	$effect(() => {
+		if (data.areaTypes && data.areaTypes.length > 0) {
+			const currentStyles = $areaTypeStyles;
+			let hasNewTypes = false;
+
+			data.areaTypes.forEach((areaType) => {
+				if (!currentStyles[areaType.area_type]) {
+					currentStyles[areaType.area_type] = {
+						color: DEFAULT_AREA_COLOR,
+						visible: true
+					};
+					hasNewTypes = true;
+				}
+			});
+
+			if (hasNewTypes) {
+				$areaTypeStyles = { ...currentStyles };
 			}
 		}
 	});
@@ -257,6 +281,49 @@
 			color: DEFAULT_ADDRESS_COLOR,
 			size: DEFAULT_ADDRESS_SIZE
 		};
+	}
+
+	// Area type style functions
+	function updateAreaTypeColor(areaTypeName, color) {
+		const currentStyles = $areaTypeStyles;
+		$areaTypeStyles = {
+			...currentStyles,
+			[areaTypeName]: {
+				...currentStyles[areaTypeName],
+				color
+			}
+		};
+	}
+
+	function resetAreaTypeStyle(areaTypeName) {
+		const currentStyles = $areaTypeStyles;
+		$areaTypeStyles = {
+			...currentStyles,
+			[areaTypeName]: {
+				color: DEFAULT_AREA_COLOR,
+				visible: currentStyles[areaTypeName]?.visible ?? true
+			}
+		};
+	}
+
+	function resetAllAreaTypeStyles() {
+		const newStyles = {};
+		data.areaTypes.forEach((areaType) => {
+			newStyles[areaType.area_type] = {
+				color: DEFAULT_AREA_COLOR,
+				visible: $areaTypeStyles[areaType.area_type]?.visible ?? true
+			};
+		});
+		$areaTypeStyles = newStyles;
+	}
+
+	function getAreaTypeStyle(areaTypeName) {
+		return (
+			$areaTypeStyles[areaTypeName] || {
+				color: DEFAULT_AREA_COLOR,
+				visible: true
+			}
+		);
 	}
 </script>
 
@@ -758,6 +825,80 @@
 						</div>
 					</div>
 				</div>
+			</div>
+
+			<!-- Area Type Styles -->
+			<div>
+				<div class="flex items-center justify-between">
+					<h2 class="text-base/7 font-semibold text-primary-900-100">
+						{m.settings_area_type_styles()}
+					</h2>
+					{#if data.areaTypes && data.areaTypes.length > 0}
+						<button
+							type="button"
+							class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
+							onclick={resetAllAreaTypeStyles}
+						>
+							{m.common_reset_all()}
+						</button>
+					{/if}
+				</div>
+
+				{#if data.areaTypesError}
+					<div class="mt-6 text-sm text-error-500">{data.areaTypesError}</div>
+				{:else if !data.areaTypes || data.areaTypes.length === 0}
+					<div class="mt-6 text-sm">{m.form_no_data_available()}</div>
+				{:else}
+					<div class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+						{#each data.areaTypes as areaType}
+							{@const style = getAreaTypeStyle(areaType.area_type)}
+							<div
+								class="card preset-filled-surface-100-900 relative group rounded-lg border border-surface-200-800 p-4 hover:border-surface-400-600 transition-colors"
+							>
+								<!-- Header with name and reset -->
+								<div class="flex items-center justify-between mb-4">
+									<h3 class="font-medium text-sm truncate pr-2">{areaType.area_type}</h3>
+									<button
+										type="button"
+										class="text-xs hover:text-primary-500 opacity-0 group-hover:opacity-100 transition-opacity"
+										onclick={() => resetAreaTypeStyle(areaType.area_type)}
+									>
+										{m.common_reset()}
+									</button>
+								</div>
+
+								<!-- Visual preview (polygon style) -->
+								<div class="flex items-center justify-center mb-4 py-3 bg-surface-100-800 rounded">
+									<span
+										class="w-12 h-8 rounded shadow-sm transition-all border-2"
+										style="background-color: {style.color}; opacity: 0.3; border-color: {style.color};"
+									></span>
+								</div>
+
+								<!-- Controls -->
+								<div class="space-y-3">
+									<!-- Color -->
+									<div class="flex items-center gap-3">
+										<label class="relative cursor-pointer">
+											<input
+												type="color"
+												value={style.color}
+												onchange={(e) => updateAreaTypeColor(areaType.area_type, e.target.value)}
+												class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+											/>
+											<span
+												class="block w-8 h-8 rounded-md border-2 border-surface-200-700 hover:border-primary-500 transition-colors shadow-sm"
+												style="background-color: {style.color};"
+											></span>
+										</label>
+										<span class="text-xs flex-1">{m.settings_node_type_color()}</span>
+										<span class="text-xs font-mono">{style.color}</span>
+									</div>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
 			</div>
 
 			<!-- Conduit Connection Settings -->

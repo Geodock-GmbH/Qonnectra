@@ -1,5 +1,5 @@
 <script>
-	import { onMount, setContext } from 'svelte';
+	import { onMount, setContext, untrack } from 'svelte';
 	import { get } from 'svelte/store';
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
@@ -17,6 +17,7 @@
 	import { zoomToFeature } from '$lib/map/searchUtils.js';
 	import {
 		addressStyle,
+		areaTypeStyles,
 		labelVisibilityConfig,
 		nodeTypeStyles,
 		routingMode,
@@ -47,7 +48,12 @@
 
 	let { data } = $props();
 
-	const mapState = new MapState($selectedProject, get(trenchColorSelected));
+	const mapState = new MapState($selectedProject, get(trenchColorSelected), {
+		trench: true,
+		address: true,
+		node: true,
+		area: true
+	});
 	const selectionManager = new MapSelectionManager();
 
 	setContext('mapManagers', {
@@ -168,6 +174,7 @@
 		}
 	}
 
+	// Navigate to trench page when project or flag changes
 	$effect(() => {
 		const projectId = $selectedProject;
 		const flagId = $selectedFlag;
@@ -181,6 +188,7 @@
 		}
 	});
 
+	// Clear routing state when routing mode changes
 	$effect(() => {
 		if (!$routingMode || $routingMode) {
 			startTrenchId = null;
@@ -188,6 +196,18 @@
 			selectionManager.clearSelection();
 			if (routeLayer) routeLayer.getSource().clear();
 		}
+	});
+
+	// Reinitialize map layers when project changes
+	$effect(() => {
+		const currentProject = $selectedProject;
+		// Only reinitialize if project actually changed and map is ready
+		untrack(() => {
+			if (mapState.olMap && currentProject !== mapState.selectedProject) {
+				mapState.reinitializeForProject(currentProject);
+				selectionManager.clearSelection();
+			}
+		});
 	});
 
 	const routeStyle = new Style({
@@ -403,6 +423,14 @@
 		mapState.updateAddressLayerStyle(color, size);
 	});
 
+	// Update area layer style when areaTypeStyles changes
+	$effect(() => {
+		const styles = $areaTypeStyles;
+		if (Object.keys(styles).length > 0) {
+			mapState.updateAreaLayerStyle(styles);
+		}
+	});
+
 	$effect(() => {
 		const config = $labelVisibilityConfig;
 		const mode = $trenchStyleMode;
@@ -410,6 +438,7 @@
 		const constructionTypeStyles = $trenchConstructionTypeStyles;
 		const color = $trenchColor;
 		const nodeStyles = $nodeTypeStyles;
+		const areaStyles = $areaTypeStyles;
 
 		if (config.trench !== undefined) {
 			mapState.updateLabelVisibility('trench', config.trench, {
@@ -424,6 +453,9 @@
 		}
 		if (config.node !== undefined) {
 			mapState.updateLabelVisibility('node', config.node, { nodeTypeStyles: nodeStyles });
+		}
+		if (config.area !== undefined) {
+			mapState.updateLabelVisibility('area', config.area, { areaTypeStyles: areaStyles });
 		}
 	});
 
@@ -470,6 +502,10 @@
 				showLayerVisibilityTree={true}
 				showSearchPanel={true}
 				on:ready={handleMapReady}
+				nodeTypes={data.nodeTypes ?? []}
+				surfaces={data.surfaces ?? []}
+				constructionTypes={data.constructionTypes ?? []}
+				areaTypes={data.areaTypes ?? []}
 				searchPanelProps={{
 					trenchColorSelected: $trenchColorSelected,
 					alias: data.alias
@@ -486,7 +522,9 @@
 		<div class="card p-4 flex flex-col gap-3">
 			<div class="space-y-4">
 				<!-- Routing Mode Toggle -->
-				<div class="flex items-center justify-between bg-surface-50-900 rounded-lg">
+				<div
+					class="flex items-center border border-surface-200-800 p-4 justify-between bg-surface-50-900 rounded-lg"
+				>
 					<h3 class="text-sm font-medium">{m.form_routing_mode()}</h3>
 					<Switch
 						name="routing-mode"
@@ -503,7 +541,9 @@
 				</div>
 
 				<!-- Show Linked Trenches Toggle -->
-				<div class="flex items-center justify-between bg-surface-50-900 rounded-lg">
+				<div
+					class="flex items-center border border-surface-200-800 p-4 justify-between bg-surface-50-900 rounded-lg"
+				>
 					<h3 class="text-sm font-medium">{m.form_show_linked_trenches()}</h3>
 					<Switch
 						name="show-linked-trenches"

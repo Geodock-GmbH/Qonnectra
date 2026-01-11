@@ -4,6 +4,12 @@ import { API_URL } from '$env/static/private';
 import { m } from '$lib/paraglide/messages';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
+import {
+	getAreaTypes,
+	getConstructionTypes,
+	getNodeTypes,
+	getSurfaces
+} from '$lib/server/attributes';
 import { getPipesInTrench, getTrenchesForConduit } from '$lib/server/conduitData';
 import {
 	getFeatureDetailsByType,
@@ -17,8 +23,23 @@ export async function load({ fetch, params, depends, cookies }) {
 	depends('app:conduits');
 	const { projectId, flagId } = params;
 
+	// Fetch attribute types for layer styling
+	const [nodeTypesData, surfacesData, constructionTypesData, areaTypesData] = await Promise.all([
+		getNodeTypes(fetch, cookies),
+		getSurfaces(fetch, cookies),
+		getConstructionTypes(fetch, cookies),
+		getAreaTypes(fetch, cookies)
+	]);
+
 	if (!projectId || !flagId) {
-		return { conduits: [], conduitsError: null };
+		return {
+			conduits: [],
+			conduitsError: null,
+			...nodeTypesData,
+			...surfacesData,
+			...constructionTypesData,
+			...areaTypesData
+		};
 	}
 
 	try {
@@ -30,7 +51,14 @@ export async function load({ fetch, params, depends, cookies }) {
 
 		if (!response.ok) {
 			console.error(`Failed to fetch conduits: ${response.status}`);
-			return { conduits: [], conduitsError: m.title_error_fetching_conduits() };
+			return {
+				conduits: [],
+				conduitsError: m.title_error_fetching_conduits(),
+				...nodeTypesData,
+				...surfacesData,
+				...constructionTypesData,
+				...areaTypesData
+			};
 		}
 
 		const data = await response.json();
@@ -38,10 +66,24 @@ export async function load({ fetch, params, depends, cookies }) {
 			value: item.uuid,
 			label: item.name
 		}));
-		return { conduits, conduitsError: null };
+		return {
+			conduits,
+			conduitsError: null,
+			...nodeTypesData,
+			...surfacesData,
+			...constructionTypesData,
+			...areaTypesData
+		};
 	} catch (error) {
 		console.error('Error fetching conduits:', error);
-		return { conduits: [], conduitsError: m.title_error_fetching_conduits() };
+		return {
+			conduits: [],
+			conduitsError: m.title_error_fetching_conduits(),
+			...nodeTypesData,
+			...surfacesData,
+			...constructionTypesData,
+			...areaTypesData
+		};
 	}
 }
 

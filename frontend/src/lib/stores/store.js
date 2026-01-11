@@ -48,9 +48,28 @@ export const trenchSurfaceStyles = persisted('trenchSurfaceStyles', {});
 export const trenchConstructionTypeStyles = persisted('trenchConstructionTypeStyles', {});
 
 // Label visibility configuration - controls whether labels are shown on map layers
-// Structure: { trench: boolean, address: boolean, node: boolean }
+// Structure: { trench: boolean, address: boolean, node: boolean, area: boolean }
 export const labelVisibilityConfig = persisted('labelVisibilityConfig', {
 	trench: false,
 	address: false,
-	node: false
+	node: false,
+	area: false
 });
+
+// Area type styles - stores color and visibility per area type
+// Structure: { [area_type_name]: { color: '#hex', visible: boolean } }
+export const areaTypeStyles = persisted('areaTypeStyles', {});
+
+// Layer visibility configuration - controls whether map layers are visible
+// Structure: { [layerId]: boolean }
+export const layerVisibilityConfig = persisted('layerVisibilityConfig', {
+	'address-layer': true,
+	'node-layer': true,
+	'trench-layer': true,
+	'area-layer': true,
+	'osm-base-layer': true
+});
+
+// Layer opacity configuration - controls the opacity of the base OSM layer
+// Value: number between 0 and 1
+export const layerOpacity = persisted('layerOpacity', 1);
