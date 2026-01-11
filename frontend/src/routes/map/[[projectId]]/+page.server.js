@@ -43,8 +43,9 @@ export const actions = {
 		const data = await request.formData();
 		const featureType = data.get('featureType');
 		const featureUuid = data.get('featureUuid');
+		const projectId = data.get('projectId');
 
-		return getFeatureDetailsByType(fetch, cookies, featureType, featureUuid);
+		return getFeatureDetailsByType(fetch, cookies, featureType, featureUuid, projectId);
 	},
 
 	getPipesInTrench: async ({ request, fetch, cookies }) => {

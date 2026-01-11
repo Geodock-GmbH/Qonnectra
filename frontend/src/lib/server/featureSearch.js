@@ -180,23 +180,25 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} featureType - Type of feature ('node', 'trench', or 'address')
  * @param {string} featureUuid - UUID of the feature
+ * @param {string} projectId - The project ID to filter by
  * @returns {Promise<{success: boolean, feature: any}>} Feature details
  */
-export async function getFeatureDetailsByType(fetch, cookies, featureType, featureUuid) {
+export async function getFeatureDetailsByType(fetch, cookies, featureType, featureUuid, projectId) {
 	if (!featureType || !featureUuid) {
 		throw error(400, 'Feature type and UUID are required');
 	}
 
 	try {
 		let apiEndpoint;
+		const projectParam = projectId ? `&project=${projectId}` : '';
 		if (featureType === 'node') {
-			apiEndpoint = `${API_URL}ol_node/?uuid=${featureUuid}`;
+			apiEndpoint = `${API_URL}ol_node/?uuid=${featureUuid}${projectParam}`;
 		} else if (featureType === 'trench') {
-			apiEndpoint = `${API_URL}ol_trench/?uuid=${featureUuid}`;
+			apiEndpoint = `${API_URL}ol_trench/?uuid=${featureUuid}${projectParam}`;
 		} else if (featureType === 'address') {
-			apiEndpoint = `${API_URL}ol_address/?uuid=${featureUuid}`;
+			apiEndpoint = `${API_URL}ol_address/?uuid=${featureUuid}${projectParam}`;
 		} else if (featureType === 'area') {
-			apiEndpoint = `${API_URL}ol_area/?uuid=${featureUuid}`;
+			apiEndpoint = `${API_URL}ol_area/?uuid=${featureUuid}${projectParam}`;
 		} else {
 			throw error(400, 'Invalid feature type');
 		}

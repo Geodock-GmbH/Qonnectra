@@ -96,6 +96,7 @@
 			const formData = new FormData();
 			formData.append('featureType', type);
 			formData.append('featureUuid', value);
+			formData.append('projectId', $selectedProject);
 
 			const response = await fetch('?/getFeatureDetails', {
 				method: 'POST',

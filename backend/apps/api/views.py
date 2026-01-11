@@ -1333,14 +1333,16 @@ class AddressViewSet(viewsets.ModelViewSet):
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
         if search_term:
-            queryset = queryset.filter(
-                Q(street__icontains=search_term)
-                | Q(housenumber__icontains=search_term)
-                | Q(house_number_suffix__icontains=search_term)
-                | Q(zip_code__icontains=search_term)
-                | Q(city__icontains=search_term)
-                | Q(district__icontains=search_term)
-            )
+            tokens = search_term.strip().split()
+            for token in tokens:
+                queryset = queryset.filter(
+                    Q(street__icontains=token)
+                    | Q(housenumber__icontains=token)
+                    | Q(house_number_suffix__icontains=token)
+                    | Q(zip_code__icontains=token)
+                    | Q(city__icontains=token)
+                    | Q(district__icontains=token)
+                )
         serializer = AddressSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -1368,8 +1370,11 @@ class OlAddressViewSet(viewsets.ReadOnlyModelViewSet):
         - `flag`: Filter by flag ID
         """
         queryset = OlAddress.objects.all()
+        uuid = self.request.query_params.get("uuid")
         project_id = self.request.query_params.get("project")
         flag_id = self.request.query_params.get("flag")
+        if uuid:
+            queryset = queryset.filter(uuid=uuid)
         if project_id:
             queryset = queryset.filter(project=project_id)
         if flag_id:
@@ -2992,8 +2997,11 @@ class OlAreaViewSet(viewsets.ReadOnlyModelViewSet):
         - `flag`: Filter by flag ID
         """
         queryset = OlArea.objects.all().order_by("area_type", "uuid")
+        uuid = self.request.query_params.get("uuid")
         project_id = self.request.query_params.get("project")
         flag_id = self.request.query_params.get("flag")
+        if uuid:
+            queryset = queryset.filter(uuid=uuid)
         if project_id:
             queryset = queryset.filter(project=project_id)
         if flag_id:
