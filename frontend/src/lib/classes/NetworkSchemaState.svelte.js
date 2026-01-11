@@ -68,10 +68,6 @@ export class NetworkSchemaState {
 		const cables = Array.isArray(cablesData) ? cablesData : [];
 
 		if (cables.length === 0) {
-			globalToaster.info({
-				title: m.common_info(),
-				description: m.message_error_no_cables_found()
-			});
 			return [];
 		}
 

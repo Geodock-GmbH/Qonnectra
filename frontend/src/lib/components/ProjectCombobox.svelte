@@ -51,6 +51,14 @@
 		}
 	});
 
+	// Sync store from URL parameter (source of truth after server-side redirects)
+	$effect(() => {
+		const urlProjectId = $page.params.projectId;
+		if (browser && urlProjectId && urlProjectId !== $selectedProject?.[0]) {
+			$selectedProject = [urlProjectId];
+		}
+	});
+
 	function handleOpenChange(e) {
 		isOpen = e.open;
 	}
@@ -108,6 +116,7 @@
 		placeholder={m.form_project({ count: 1 })}
 		{collection}
 		defaultValue={$selectedProject}
+		value={$selectedProject}
 		onValueChange={handleValueChange}
 		onOpenChange={handleOpenChange}
 		{onInputValueChange}

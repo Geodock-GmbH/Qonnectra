@@ -7,6 +7,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models as gis_models
 from django.db import models
+from django.db.models import Q
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -1054,7 +1055,6 @@ class Conduit(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
     name = models.TextField(
         null=False,
-        unique=True,
         db_index=False,
         verbose_name=_("Conduit Name"),
     )
@@ -1219,9 +1219,7 @@ class Address(models.Model):
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
-    id_address = models.IntegerField(
-        _("Address ID"), null=True, unique=True, blank=True
-    )
+    id_address = models.IntegerField(_("Address ID"), null=True, blank=True)
     zip_code = models.TextField(_("Zip Code"), null=False)
     city = models.TextField(_("City"), null=False)
     district = models.TextField(_("District"), null=True, blank=True)
@@ -1288,6 +1286,13 @@ class Address(models.Model):
             models.Index(fields=["project"], name="idx_address_project"),
             models.Index(fields=["flag"], name="idx_address_flag"),
             gis_models.Index(fields=["geom"], name="idx_address_geom"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "id_address"],
+                name="unique_address",
+                condition=Q(id_address__isnull=False),
+            ),
         ]
 
     def __str__(self):
@@ -1609,7 +1614,6 @@ class Area(models.Model):
     )
     name = models.TextField(
         null=False,
-        unique=True,
         db_index=False,
         verbose_name=_("Area Name"),
     )

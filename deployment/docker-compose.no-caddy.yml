@@ -134,13 +134,15 @@ services:
         max-file: "3"
         labels: "service=qgis-server"
 
-  wfs-listener:
+  pg-error-parser:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    container_name: krit_gis_wfs_listener
+    container_name: krit_gis_pg_error_parser
     restart: unless-stopped
-    command: python manage.py listen_wfs_errors
+    command: python manage.py parse_pg_errors --container krit_gis_db
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - DEBUG=${DEBUG}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
@@ -159,7 +161,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-        labels: "service=wfs-listener"
+        labels: "service=pg-error-parser"
 
   frontend:
     build:
