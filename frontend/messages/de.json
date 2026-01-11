@@ -293,7 +293,7 @@
 	"settings_node_type_color": "Farbe",
 	"settings_node_type_size": "Größe",
 	"settings_node_type_styles": "Netzknotentyp-Stile",
-	"settings_area_type_styles": "Flächentyp-Stile",
+	"settings_area_type_styles": "Gebietstyp-Stile",
 	"settings_surface_styles": "Oberflächen-Stile",
 	"settings_trench_style_by_construction_type": "Nach Bauart",
 	"settings_trench_style_by_surface": "Nach Oberfläche",
