@@ -579,7 +579,7 @@
 
 				<!-- Conduit Selection -->
 				<div class="space-y-2">
-					<h3 class="text-sm font-medium">{m.form_conduit()}</h3>
+					<h3 class="text-sm font-medium">{m.form_conduit({ count: 1 })}</h3>
 					<ConduitCombobox
 						loading={$navigating !== null}
 						conduits={data.conduits ?? []}

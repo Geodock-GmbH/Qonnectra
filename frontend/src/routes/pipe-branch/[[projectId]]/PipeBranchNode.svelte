@@ -90,7 +90,7 @@
 		<div class="flex flex-col gap-1">
 			<div class="flex items-center gap-2">
 				<span class="text-xs font-semibold text-surface-700-200 whitespace-nowrap"
-					>{m.form_conduit()}:</span
+					>{m.form_conduit({ count: 1 })}:</span
 				>
 				<span class="font-semibold text-xs text-surface-700-200 break-words"
 					>{conduit?.name || 'N/A'}</span
@@ -120,7 +120,8 @@
 			type="source"
 			position={Position.Right}
 			id="{position.handle.id}-source"
-			style="left: {position.x - 12}px; top: {position.y - 12}px; position: absolute; transform: none; width: 24px; height: 24px; background: {position
+			style="left: {position.x - 12}px; top: {position.y -
+				12}px; position: absolute; transform: none; width: 24px; height: 24px; background: {position
 				.handle.isTwoLayer
 				? `linear-gradient(to right, ${position.handle.cssColor} 50%, ${position.handle.borderColor} 50%)`
 				: position.handle.cssColor}; border: 2px solid var(--color-surface-950-50); {position.handle
@@ -135,7 +136,8 @@
 			type="target"
 			position={Position.Left}
 			id="{position.handle.id}-target"
-			style="left: {position.x - 12}px; top: {position.y - 12}px; position: absolute; transform: none; width: 24px; height: 24px; background: {position
+			style="left: {position.x - 12}px; top: {position.y -
+				12}px; position: absolute; transform: none; width: 24px; height: 24px; background: {position
 				.handle.isTwoLayer
 				? `linear-gradient(to right, ${position.handle.cssColor} 50%, ${position.handle.borderColor} 50%)`
 				: position.handle.cssColor}; border: 2px solid var(--color-surface-950-50); {position.handle
@@ -149,7 +151,8 @@
 		{#if position.handle.status}
 			<div
 				class="absolute pointer-events-none flex items-center justify-center text-surface-950-50 font-bold text-2xl"
-				style="left: {position.x - 12}px; top: {position.y - 12}px; width: 24px; height: 24px; z-index: 10;"
+				style="left: {position.x - 12}px; top: {position.y -
+					12}px; width: 24px; height: 24px; z-index: 10;"
 			>
 				✕
 			</div>

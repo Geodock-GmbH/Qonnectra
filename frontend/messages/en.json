@@ -89,7 +89,21 @@
 	"form_city": "City",
 	"form_color": "Color",
 	"form_company": "Company",
-	"form_conduit": "Conduit",
+	"form_conduit": [
+		{
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
+			"match": {
+				"countPlural=one": "Conduit",
+				"countPlural=other": "Conduits"
+			}
+		}
+	],
 	"form_conduit_overview": "Conduit overview",
 	"form_conduit_type": "Conduit type",
 	"form_construction_depth": "Construction depth",

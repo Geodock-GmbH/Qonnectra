@@ -89,7 +89,21 @@
 	"form_city": "Ort",
 	"form_color": "Farbe",
 	"form_company": "Firma",
-	"form_conduit": "Rohr",
+	"form_conduit": [
+		{
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
+			"match": {
+				"countPlural=one": "Rohr",
+				"countPlural=other": "Rohre"
+			}
+		}
+	],
 	"form_conduit_overview": "Rohrübersicht",
 	"form_conduit_type": "Rohrtyp",
 	"form_construction_depth": "Verlegetiefe",

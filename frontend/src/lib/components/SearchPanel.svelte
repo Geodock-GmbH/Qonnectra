@@ -181,7 +181,7 @@
 			if (result.type === 'success' && parsedData?.success) {
 				if (!parsedData.trenches || parsedData.trenches.length === 0) {
 					globalToaster.warning({
-						title: m.form_conduit(),
+						title: m.form_conduit({ count: 1 }),
 						description: m.message_no_conduits_found()
 					});
 					return;

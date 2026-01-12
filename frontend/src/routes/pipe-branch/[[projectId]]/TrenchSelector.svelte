@@ -189,7 +189,7 @@
 	<div class="flex-shrink-0 text-sm text-surface-600-300 mb-4">
 		{m.message_trenches_found({ count: trenches.length })} | {m.common_selected()}:
 		{getTotalSelectedConduits()}
-		{m.form_conduit()}
+		{m.form_conduit({ count: getTotalSelectedConduits() })}
 	</div>
 
 	<div class="flex-1 min-h-0 overflow-y-auto">
@@ -234,7 +234,7 @@
 								</div>
 								<div class="text-sm text-surface-600-300">
 									{selectedCount}/{totalCount}
-									{m.form_conduit()}
+									{m.form_conduit({ count: selectedCount })}
 								</div>
 							</div>
 						</div>

@@ -771,7 +771,7 @@
 								<div class="flex items-center gap-3 flex-1 min-w-0">
 									<span class="w-8 h-8 flex-shrink-0"></span>
 									<span class="text-base font-medium text-surface-contrast-100-900 truncate">
-										{m.form_conduit()}
+										{m.form_conduit({ count: 1 })}
 									</span>
 								</div>
 								<div class="flex items-center gap-1 flex-shrink-0">
@@ -1031,7 +1031,7 @@
 
 					<!-- Layer name -->
 					<span class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0">
-						{m.form_conduit()}
+						{m.form_conduit({ count: 1 })}
 					</span>
 
 					<!-- Spacer for zoom button column -->
