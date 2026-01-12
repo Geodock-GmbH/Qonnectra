@@ -8,18 +8,21 @@ export async function load({ fetch, params, cookies }) {
 	const projectId = cookies.get('selected-project');
 
 	if (!projectId) {
-		return { nodes: [] };
+		return { nodes: [], pipeBranchConfigured: false };
 	}
 
 	try {
-		const response = await fetch(`${API_URL}node/all/?project=${projectId}&group=RAB`, {
-			credentials: 'include',
-			headers: getAuthHeaders(cookies)
-		});
+		const response = await fetch(
+			`${API_URL}node/all/?project=${projectId}&use_pipe_branch_settings=true`,
+			{
+				credentials: 'include',
+				headers: getAuthHeaders(cookies)
+			}
+		);
 
 		if (!response.ok) {
 			console.error(`Failed to fetch nodes: ${response.status}`);
-			return { nodes: [] };
+			return { nodes: [], pipeBranchConfigured: false };
 		}
 
 		const data = await response.json();
@@ -32,16 +35,20 @@ export async function load({ fetch, params, cookies }) {
 		) {
 			const nodes = data.features.map((feature) => ({
 				label: feature.properties.name,
-				value: feature.properties.name
+				value: feature.properties.name,
+				uuid: feature.properties.uuid
 			}));
-			return { nodes };
+			return {
+				nodes,
+				pipeBranchConfigured: data.metadata?.pipe_branch_configured || false
+			};
 		} else {
 			console.error('Invalid GeoJSON FeatureCollection structure:', data);
-			return { nodes: [] };
+			return { nodes: [], pipeBranchConfigured: false };
 		}
 	} catch (error) {
 		console.error('Error fetching data:', error);
-		return { nodes: [] };
+		return { nodes: [], pipeBranchConfigured: false };
 	}
 }
 
@@ -101,16 +108,15 @@ export const actions = {
 				!uuid_microduct_to ||
 				!uuid_node ||
 				!uuid_trench_from ||
-				!uuid_trench_to
-			) {
-				return fail(400, {
-					error:
-						'Missing required fields: uuid_microduct_from, uuid_microduct_to, uuid_node, uuid_trench_from, and uuid_trench_to are required'
-				});
-			}
+			!uuid_trench_to
+		) {
+			return fail(400, {
+				error:
+					'Missing required fields: uuid_microduct_from, uuid_microduct_to, uuid_node, uuid_trench_from, and uuid_trench_to are required'
+			});
+		}
 
-			// Validate that we're not connecting a microduct to itself
-			if (uuid_microduct_from === uuid_microduct_to) {
+		if (uuid_microduct_from === uuid_microduct_to) {
 				return fail(400, {
 					error: 'Cannot connect a microduct to itself'
 				});
@@ -236,6 +242,101 @@ export const actions = {
 			return { type: 'success', data: trenches };
 		} catch (error) {
 			console.error('Trench near nodes action error:', error);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+
+	getTrenchSelections: async ({ request, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeUuid = formData.get('node_uuid');
+
+			if (!nodeUuid) {
+				return fail(400, {
+					error: 'Missing required parameter: node_uuid is required'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const backendUrl = `${API_URL}node-trench-selection/by-node/${encodeURIComponent(nodeUuid)}/`;
+
+			const response = await fetch(backendUrl, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				let errorData;
+
+				try {
+					errorData = JSON.parse(errorText);
+				} catch {
+					errorData = { error: errorText || `Request failed with status: ${response.status}` };
+				}
+
+				return fail(response.status, errorData);
+			}
+
+			const selections = await response.json();
+			return { type: 'success', data: selections };
+		} catch (error) {
+			console.error('Trench selections GET action error:', error);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+
+	saveTrenchSelections: async ({ request, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeUuid = formData.get('node_uuid');
+			const trenchUuidsStr = formData.get('trench_uuids');
+
+			if (!nodeUuid) {
+				return fail(400, {
+					error: 'Missing required parameter: node_uuid is required'
+				});
+			}
+
+			const trenchUuids = trenchUuidsStr ? JSON.parse(trenchUuidsStr) : [];
+
+			const headers = new Headers({
+				'Content-Type': 'application/json'
+			});
+
+			const accessToken = cookies.get('api-access-token');
+			if (accessToken) {
+				headers.append('Cookie', `api-access-token=${accessToken}`);
+			}
+
+			const backendUrl = `${API_URL}node-trench-selection/bulk-update/`;
+
+			const response = await fetch(backendUrl, {
+				method: 'POST',
+				headers,
+				body: JSON.stringify({
+					node_uuid: nodeUuid,
+					trench_uuids: trenchUuids
+				})
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				let errorData;
+
+				try {
+					errorData = JSON.parse(errorText);
+				} catch {
+					errorData = { error: errorText || `Request failed with status: ${response.status}` };
+				}
+
+				return fail(response.status, errorData);
+			}
+
+			const selections = await response.json();
+			return { type: 'success', data: selections };
+		} catch (error) {
+			console.error('Trench selections POST action error:', error);
 			return fail(500, { error: 'Internal server error' });
 		}
 	}

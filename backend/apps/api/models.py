@@ -78,6 +78,58 @@ class NetworkSchemaSettings(models.Model):
             return None
 
 
+class PipeBranchSettings(models.Model):
+    """Project-specific settings for pipe-branch canvas display.
+
+    Configures which node types are ALLOWED to appear in the pipe-branch
+    node selection dropdown.
+    """
+
+    project = models.OneToOneField(
+        Projects,
+        on_delete=models.CASCADE,
+        related_name="pipe_branch_settings",
+        primary_key=True,
+        verbose_name=_("Project"),
+    )
+    allowed_node_types = models.ManyToManyField(
+        "AttributesNodeType",
+        blank=True,
+        related_name="allowed_in_pipe_branch",
+        verbose_name=_("Allowed Node Types"),
+        help_text=_("Select node types to include in the pipe-branch node selection."),
+    )
+
+    class Meta:
+        db_table = "pipe_branch_settings"
+        verbose_name = _("Pipe Branch Settings")
+        verbose_name_plural = _("Pipe Branch Settings")
+
+    def __str__(self):
+        allowed_count = self.allowed_node_types.count()
+        return f"{self.project.project} - {allowed_count} allowed"
+
+    @classmethod
+    def get_settings_for_project(cls, project_id):
+        """Get settings for a project. Returns None if not configured."""
+        try:
+            return cls.objects.get(project_id=project_id)
+        except cls.DoesNotExist:
+            return None
+
+    @classmethod
+    def get_allowed_type_ids(cls, project_id):
+        """Get list of allowed node type IDs for a project.
+
+        Returns None if settings not configured (meaning all types allowed).
+        Returns empty list if configured but no types selected.
+        """
+        settings = cls.get_settings_for_project(project_id)
+        if settings is None:
+            return None
+        return list(settings.allowed_node_types.values_list("id", flat=True))
+
+
 class Flags(models.Model):
     """Stores all flags,
     related to :model:`api.Trench`.
@@ -1493,6 +1545,43 @@ class Node(models.Model):
     def __str__(self):
         """Return the node name."""
         return self.name
+
+
+class NodeTrenchSelection(models.Model):
+    """Tracks which trenches are selected for display on the pipe-branch canvas for each node.
+
+    When a user selects trenches to load on the canvas, this selection is persisted
+    so that the same trenches are automatically loaded when returning to this node.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
+    node = models.ForeignKey(
+        Node,
+        on_delete=models.CASCADE,
+        related_name="trench_selections",
+        verbose_name=_("Node"),
+    )
+    trench = models.ForeignKey(
+        Trench,
+        on_delete=models.CASCADE,
+        related_name="node_selections",
+        verbose_name=_("Trench"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+
+    class Meta:
+        db_table = "node_trench_selection"
+        verbose_name = _("Node Trench Selection")
+        verbose_name_plural = _("Node Trench Selections")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["node", "trench"],
+                name="unique_node_trench_selection",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.node.name} - {self.trench.id_trench}"
 
 
 class OlNode(models.Model):

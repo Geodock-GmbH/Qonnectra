@@ -47,10 +47,12 @@ from .models import (
     MicroductConnection,
     NetworkSchemaSettings,
     Node,
+    NodeTrenchSelection,
     OlAddress,
     OlArea,
     OlNode,
     OlTrench,
+    PipeBranchSettings,
     Projects,
     Trench,
     TrenchConduitConnection,
@@ -84,6 +86,8 @@ from .serializers import (
     MicroductConnectionSerializer,
     MicroductSerializer,
     NodeSerializer,
+    NodeTrenchSelectionBulkSerializer,
+    NodeTrenchSelectionSerializer,
     OlAddressSerializer,
     OlAreaSerializer,
     OlNodeSerializer,
@@ -778,7 +782,13 @@ class WebDAVAuthView(APIView):
                             status.HTTP_401_UNAUTHORIZED,
                         )
                 else:
-                    logger.warning(f"Authentication failed for user: {username}")
+                    logger.warning(
+                        f"Authentication failed for user: {username}",
+                        extra={
+                            "request": request,
+                            "path": request.path,
+                        },
+                    )
                     return (
                         False,
                         {"error": "Invalid credentials"},
@@ -892,7 +902,13 @@ class QGISAuthView(APIView):
                         logger.info(f"User authenticated via Basic auth: {username}")
                         return True, {"status": "authenticated"}, status.HTTP_200_OK
                     else:
-                        logger.warning(f"User account is inactive: {username}")
+                        logger.warning(
+                            f"User account is inactive: {username}",
+                            extra={
+                                "request": request,
+                                "path": request.path,
+                            },
+                        )
                         return (
                             False,
                             {"error": "Account inactive"},
@@ -1597,6 +1613,14 @@ class NodeViewSet(viewsets.ModelViewSet):
         Returns all nodes with project and flag filters.
         No pagination is used.
 
+        Query Parameters:
+        - `project`: Filter by project ID
+        - `flag`: Filter by flag ID
+        - `group`: Filter by node type group
+        - `exclude_group`: Exclude nodes by node type group
+        - `search`: Search term for name/type
+        - `use_pipe_branch_settings`: If 'true', apply project's pipe-branch allowed types
+
         If project settings are configured, excluded node types are automatically
         filtered out unless an explicit exclude_group parameter is provided.
         """
@@ -1606,13 +1630,26 @@ class NodeViewSet(viewsets.ModelViewSet):
         group = request.query_params.get("group")
         search_term = request.query_params.get("search")
         exclude_group = request.query_params.get("exclude_group")
+        use_pipe_branch_settings = request.query_params.get("use_pipe_branch_settings")
         settings_configured = False
+        pipe_branch_configured = False
 
         if project_id:
             queryset = queryset.filter(project=project_id)
 
+            # Apply pipe-branch settings if requested
+            if use_pipe_branch_settings == "true":
+                allowed_type_ids = PipeBranchSettings.get_allowed_type_ids(project_id)
+                if allowed_type_ids is not None:
+                    pipe_branch_configured = True
+                    if allowed_type_ids:  # If list is not empty
+                        queryset = queryset.filter(node_type_id__in=allowed_type_ids)
+                    else:
+                        # Empty list means no types allowed, return empty
+                        queryset = queryset.none()
             # Apply project-specific exclusions if no explicit exclude_group provided
-            if exclude_group is None:
+            # and not using pipe_branch_settings
+            elif exclude_group is None:
                 settings = NetworkSchemaSettings.get_settings_for_project(project_id)
                 if settings is not None:
                     settings_configured = True
@@ -1639,13 +1676,19 @@ class NodeViewSet(viewsets.ModelViewSet):
 
         # Add metadata about settings configuration to the GeoJSON response
         if isinstance(data, dict) and data.get("type") == "FeatureCollection":
-            data["metadata"] = {"settings_configured": settings_configured}
+            data["metadata"] = {
+                "settings_configured": settings_configured,
+                "pipe_branch_configured": pipe_branch_configured,
+            }
         elif isinstance(data, list):
             # Wrap in FeatureCollection format with metadata
             data = {
                 "type": "FeatureCollection",
                 "features": data,
-                "metadata": {"settings_configured": settings_configured},
+                "metadata": {
+                    "settings_configured": settings_configured,
+                    "pipe_branch_configured": pipe_branch_configured,
+                },
             }
 
         return Response(data)
@@ -3085,3 +3128,74 @@ class OlAreaTileViewSet(APIView):
             )
         else:
             return HttpResponse(status=204)
+
+
+class NodeTrenchSelectionViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing node-trench selections for the pipe-branch canvas.
+
+    This tracks which trenches a user has selected to display on the pipe-branch
+    canvas for a given node. Selections are persisted so they auto-load when
+    the user returns to the same node.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = NodeTrenchSelection.objects.all()
+    serializer_class = NodeTrenchSelectionSerializer
+    lookup_field = "uuid"
+
+    def get_queryset(self):
+        """Filter selections by node if specified."""
+        queryset = super().get_queryset()
+        node_uuid = self.request.query_params.get("node")
+        if node_uuid:
+            queryset = queryset.filter(node__uuid=node_uuid)
+        return queryset.select_related("node", "trench")
+
+    @action(detail=False, methods=["get"], url_path="by-node/(?P<node_uuid>[^/.]+)")
+    def by_node(self, request, node_uuid=None):
+        """Get all trench selections for a specific node."""
+        selections = NodeTrenchSelection.objects.filter(
+            node__uuid=node_uuid
+        ).select_related("trench")
+        serializer = self.get_serializer(selections, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["post"], url_path="bulk-update")
+    def bulk_update(self, request):
+        """Bulk update trench selections for a node.
+
+        This replaces all existing selections for the node with the provided list.
+        Expects: { "node_uuid": "...", "trench_uuids": ["...", "..."] }
+        """
+        serializer = NodeTrenchSelectionBulkSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        node_uuid = serializer.validated_data["node_uuid"]
+        trench_uuids = serializer.validated_data["trench_uuids"]
+
+        try:
+            node = Node.objects.get(uuid=node_uuid)
+        except Node.DoesNotExist:
+            return Response(
+                {"error": f"Node with uuid {node_uuid} not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        NodeTrenchSelection.objects.filter(node=node).delete()
+
+        new_selections = []
+        for trench_uuid in trench_uuids:
+            try:
+                trench = Trench.objects.get(uuid=trench_uuid)
+                new_selections.append(NodeTrenchSelection(node=node, trench=trench))
+            except Trench.DoesNotExist:
+                continue
+
+        if new_selections:
+            NodeTrenchSelection.objects.bulk_create(new_selections)
+
+        updated_selections = NodeTrenchSelection.objects.filter(
+            node=node
+        ).select_related("trench")
+        result_serializer = NodeTrenchSelectionSerializer(updated_selections, many=True)
+        return Response(result_serializer.data, status=status.HTTP_200_OK)

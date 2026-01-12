@@ -1,0 +1,9 @@
+[
+    {
+        "model": "api.pipebranchsettings",
+        "pk": 1,
+        "fields": {
+            "project_id": 1
+        }
+    }
+]

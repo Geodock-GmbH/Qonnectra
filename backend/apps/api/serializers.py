@@ -32,6 +32,7 @@ from .models import (
     MicroductCableConnection,
     MicroductConnection,
     Node,
+    NodeTrenchSelection,
     OlAddress,
     OlArea,
     OlNode,
@@ -1324,3 +1325,32 @@ class CustomUserDetailsSerializer(serializers.Serializer):
     last_name = serializers.CharField(read_only=True)
     is_staff = serializers.BooleanField(read_only=True)
     is_superuser = serializers.BooleanField(read_only=True)
+
+
+class NodeTrenchSelectionSerializer(serializers.ModelSerializer):
+    """Serializer for the NodeTrenchSelection model."""
+
+    trench_id_trench = serializers.CharField(source="trench.id_trench", read_only=True)
+    node_name = serializers.CharField(source="node.name", read_only=True)
+
+    class Meta:
+        model = NodeTrenchSelection
+        fields = [
+            "uuid",
+            "node",
+            "node_name",
+            "trench",
+            "trench_id_trench",
+            "created_at",
+        ]
+        read_only_fields = ["uuid", "created_at"]
+
+
+class NodeTrenchSelectionBulkSerializer(serializers.Serializer):
+    """Serializer for bulk updating trench selections for a node."""
+
+    node_uuid = serializers.UUIDField()
+    trench_uuids = serializers.ListField(
+        child=serializers.UUIDField(),
+        allow_empty=True,
+    )

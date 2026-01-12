@@ -40,6 +40,7 @@ from .models import (
     Microduct,
     NetworkSchemaSettings,
     Node,
+    PipeBranchSettings,
     Projects,
     QGISProject,
     StoragePreferences,
@@ -243,7 +244,15 @@ admin.site.register(AttributesCompany)
 admin.site.register(AttributesAreaType)
 admin.site.register(Cable)
 admin.site.register(FileTypeCategory)
-admin.site.register(Area)
+
+
+@admin.register(Area)
+class AreaAdmin(admin.ModelAdmin):
+    list_display = ("name", "area_type", "project", "flag")
+    list_filter = ("area_type", "project", "flag")
+    search_fields = ("name", "project__project", "flag__flag", "area_type__area_type")
+
+
 admin.site.register(Flags)
 admin.site.register(AttributesNetworkLevel)
 admin.site.register(AttributesNodeType)
@@ -262,14 +271,30 @@ class NetworkSchemaSettingsInline(admin.StackedInline):
     filter_horizontal = ("excluded_node_types",)
 
 
+class PipeBranchSettingsInline(admin.StackedInline):
+    """Inline admin for Pipe Branch Settings within Project admin."""
+
+    model = PipeBranchSettings
+    can_delete = False
+    verbose_name = _("Pipe Branch Settings")
+    verbose_name_plural = _("Pipe Branch Settings")
+    filter_horizontal = ("allowed_node_types",)
+
+
 @admin.register(Projects)
 class ProjectsAdmin(admin.ModelAdmin):
-    """Admin interface for Projects with Network Schema Settings."""
+    """Admin interface for Projects with Network Schema and Pipe Branch Settings."""
 
-    list_display = ("project", "description", "active", "excluded_types_display")
+    list_display = (
+        "project",
+        "description",
+        "active",
+        "excluded_types_display",
+        "allowed_pipe_branch_types_display",
+    )
     list_filter = ("active",)
     search_fields = ("project", "description")
-    inlines = [NetworkSchemaSettingsInline]
+    inlines = [NetworkSchemaSettingsInline, PipeBranchSettingsInline]
 
     @admin.display(description=_("Excluded Node Types"))
     def excluded_types_display(self, obj):
@@ -286,6 +311,24 @@ class ProjectsAdmin(admin.ModelAdmin):
         except NetworkSchemaSettings.DoesNotExist:
             return format_html(
                 '<span style="color: #dc3545;">⚠ {}</span>',
+                _("Not configured"),
+            )
+
+    @admin.display(description=_("Pipe Branch Types"))
+    def allowed_pipe_branch_types_display(self, obj):
+        """Display allowed node types for pipe-branch in list view."""
+        try:
+            settings = obj.pipe_branch_settings
+            count = settings.allowed_node_types.count()
+            if count > 0:
+                types = settings.allowed_node_types.all()[:3]
+                names = [t.node_type for t in types]
+                suffix = f"... (+{count - 3})" if count > 3 else ""
+                return ", ".join(names) + suffix
+            return _("None configured")
+        except PipeBranchSettings.DoesNotExist:
+            return format_html(
+                '<span style="color: #ffc107;">⚠ {}</span>',
                 _("Not configured"),
             )
 
@@ -309,6 +352,28 @@ class NetworkSchemaSettingsAdmin(admin.ModelAdmin):
         types = obj.excluded_node_types.all()[:5]
         names = [t.node_type for t in types]
         suffix = "..." if obj.excluded_node_types.count() > 5 else ""
+        return ", ".join(names) + suffix if names else _("None")
+
+
+@admin.register(PipeBranchSettings)
+class PipeBranchSettingsAdmin(admin.ModelAdmin):
+    """Standalone admin for Pipe Branch Settings."""
+
+    list_display = ("project", "allowed_count", "allowed_types_preview")
+    list_filter = ("project",)
+    search_fields = ("project__project",)
+    filter_horizontal = ("allowed_node_types",)
+    autocomplete_fields = ["project"]
+
+    @admin.display(description=_("Allowed Count"))
+    def allowed_count(self, obj):
+        return obj.allowed_node_types.count()
+
+    @admin.display(description=_("Allowed Types"))
+    def allowed_types_preview(self, obj):
+        types = obj.allowed_node_types.all()[:5]
+        names = [t.node_type for t in types]
+        suffix = "..." if obj.allowed_node_types.count() > 5 else ""
         return ", ".join(names) + suffix if names else _("None")
 
 
@@ -666,7 +731,36 @@ class ConduitAdmin(admin.ModelAdmin):
         )
 
 
-admin.site.register(Trench)
+@admin.register(Trench)
+class TrenchAdmin(admin.ModelAdmin):
+    list_display = (
+        "id_trench",
+        "surface",
+        "construction_type",
+        "status",
+        "phase",
+        "owner",
+        "constructor",
+        "project",
+        "flag",
+    )
+    list_filter = (
+        "surface",
+        "construction_type",
+        "status",
+        "phase",
+        "owner",
+        "constructor",
+        "project",
+        "flag",
+    )
+    search_fields = (
+        "id_trench",
+        "construction_details",
+        "comment",
+        "project__project",
+        "flag__flag",
+    )
 
 
 class WFSErrorFilter(admin.SimpleListFilter):
