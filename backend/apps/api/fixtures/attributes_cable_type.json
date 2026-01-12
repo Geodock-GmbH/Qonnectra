@@ -1,0 +1,79 @@
+[
+    {
+        "model": "api.attributescabletype",
+        "pk": 1,
+        "fields": {
+            "cable_type": "LTMC144(12x12)",
+            "fiber_count": 144,
+            "bundle_count": 12,
+            "bundle_fiber_count": 12,
+            "manufacturer": null
+        }
+    },
+    {
+        "model": "api.attributescabletype",
+        "pk": 2,
+        "fields": {
+            "cable_type": "LTMC432(18x24)",
+            "fiber_count": 432,
+            "bundle_count": 18,
+            "bundle_fiber_count": 24,
+            "manufacturer": null
+        }
+    },
+    {
+        "model": "api.attributescabletype",
+        "pk": 3,
+        "fields": {
+            "cable_type": "LTMC288(12x24)",
+            "fiber_count": 288,
+            "bundle_count": 12,
+            "bundle_fiber_count": 24,
+            "manufacturer": null
+        }
+    },
+    {
+        "model": "api.attributescabletype",
+        "pk": 4,
+        "fields": {
+            "cable_type": "MUC E9/125(4)",
+            "fiber_count": 4,
+            "bundle_count": 1,
+            "bundle_fiber_count": 4,
+            "manufacturer": null
+        }
+    },
+    {
+        "model": "api.attributescabletype",
+        "pk": 5,
+        "fields": {
+            "cable_type": "MUC E9/125(6)",
+            "fiber_count": 6,
+            "bundle_count": 1,
+            "bundle_fiber_count": 6,
+            "manufacturer": null
+        }
+    },
+    {
+        "model": "api.attributescabletype",
+        "pk": 6,
+        "fields": {
+            "cable_type": "MUC E9/125(12)",
+            "fiber_count": 12,
+            "bundle_count": 1,
+            "bundle_fiber_count": 12,
+            "manufacturer": null
+        }
+    },
+    {
+        "model": "api.attributescabletype",
+        "pk": 7,
+        "fields": {
+            "cable_type": "LTMC48(4x12)",
+            "fiber_count": 48,
+            "bundle_count": 4,
+            "bundle_fiber_count": 12,
+            "manufacturer": null
+        }
+    }
+]

@@ -20,5 +20,49 @@
             "conduit_type_microduct": null,
             "manufacturer": null
         }
+    },
+    {
+        "model": "api.attributesconduittype",
+        "pk": 3,
+        "fields": {
+            "conduit_type": "24x7/4",
+            "conduit_count": 24,
+            "conduit_type_alias": null,
+            "conduit_type_microduct": null,
+            "manufacturer": null
+        }
+    },
+    {
+        "model": "api.attributesconduittype",
+        "pk": 4,
+        "fields": {
+            "conduit_type": "7/4",
+            "conduit_count": 1,
+            "conduit_type_alias": null,
+            "conduit_type_microduct": null,
+            "manufacturer": null
+        }
+    },
+    {
+        "model": "api.attributesconduittype",
+        "pk": 5,
+        "fields": {
+            "conduit_type": "7x16/12",
+            "conduit_count": 7,
+            "conduit_type_alias": null,
+            "conduit_type_microduct": null,
+            "manufacturer": null
+        }
+    },
+    {
+        "model": "api.attributesconduittype",
+        "pk": 6,
+        "fields": {
+            "conduit_type": "16/12",
+            "conduit_count": 1,
+            "conduit_type_alias": null,
+            "conduit_type_microduct": null,
+            "manufacturer": null
+        }
     }
 ]

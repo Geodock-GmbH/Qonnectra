@@ -45,6 +45,7 @@ services:
             python manage.py loaddata attributes_status attributes_surface storage_preference file_type_categories projects flags &&
             python manage.py loaddata attributes_network_level attributes_node_type attributes_status_development attributes_area_types &&
             python manage.py loaddata pipe_branch_settings network_schema_settings attributes_fiber_status attributes_microduct_status &&
+            python manage.py loaddata attributes_microduct_color attributes_cable_type attributes_fiber_color conduit_type_color_mapping cable_type_color_mapping &&
             gunicorn --bind 0.0.0.0:8000 core.wsgi:application"
     ports:
       - "${BACKEND_PORT:-8000}:8000"

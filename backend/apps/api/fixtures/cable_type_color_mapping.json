@@ -1,0 +1,1575 @@
+[
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "9bb78640-f8a1-4a49-81f3-c20aba5bb1c1",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "bundle",
+            "position": 1,
+            "color": 1,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "0e68810a-76c2-4cd2-bda9-258451bae306",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "bundle",
+            "position": 2,
+            "color": 2,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "61902e4a-3489-4d07-b43e-b14eb718f414",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "bundle",
+            "position": 3,
+            "color": 3,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "177b0fa9-0be8-41ab-8192-65a913aab874",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "bundle",
+            "position": 4,
+            "color": 4,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "8b15f372-5798-4e23-ac30-05ac538b3b39",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "bundle",
+            "position": 5,
+            "color": 5,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "d4d6740a-3790-49fe-be55-4621f95bc7d6",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "bundle",
+            "position": 6,
+            "color": 7,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "8e349df1-3043-41ac-a971-c3c4a70e7d95",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "bundle",
+            "position": 7,
+            "color": 6,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "201e8211-c8f6-4840-b6b4-637bac4a0556",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "bundle",
+            "position": 8,
+            "color": 8,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "db56d3e4-ddbe-4ee6-83b3-2a352f023e89",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "bundle",
+            "position": 9,
+            "color": 9,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "a17267a6-f6bd-44f8-9a53-c4ac8678fa12",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "bundle",
+            "position": 10,
+            "color": 10,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "3c8177ac-a9b9-4648-8359-a6fd87a92eef",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "bundle",
+            "position": 11,
+            "color": 11,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "c8e47de8-7298-43f0-b9b1-de3b82c9794c",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "bundle",
+            "position": 12,
+            "color": 12,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "8e269840-0b18-4cb3-beba-749497553d33",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "fiber",
+            "position": 1,
+            "color": 1,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "07a0ce73-0ed3-452d-ba4e-c90e5a9979ea",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "fiber",
+            "position": 2,
+            "color": 2,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "64f53277-f692-4fce-a99b-28791d35604d",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "fiber",
+            "position": 3,
+            "color": 3,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "8f8ff733-bad7-4b5e-b0f3-85b46118aa8e",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "fiber",
+            "position": 4,
+            "color": 4,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "f2eacd90-2ceb-45b3-afa2-03c0bb02d9e8",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "fiber",
+            "position": 5,
+            "color": 5,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "c6b1f050-a6c5-44b3-b927-1828ec795045",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "fiber",
+            "position": 6,
+            "color": 6,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "5eb4b29f-7e4e-4fa9-a7e8-42771974ee23",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "fiber",
+            "position": 7,
+            "color": 7,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "61f8338e-fc72-42f7-adac-37eea02a4cc7",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "fiber",
+            "position": 8,
+            "color": 8,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "12e818df-cd40-4c37-8650-d2605f3ae2bf",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "fiber",
+            "position": 9,
+            "color": 9,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "12d72b5d-5dc6-44b2-bc78-9b7fcd85c926",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "fiber",
+            "position": 10,
+            "color": 10,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "eb77f107-409d-4014-adac-fd781f91ca10",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "fiber",
+            "position": 11,
+            "color": 11,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "04fedb0a-c4f2-44d7-afbf-694bde4f22cb",
+        "fields": {
+            "cable_type": 1,
+            "position_type": "fiber",
+            "position": 12,
+            "color": 12,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "9fe04376-737e-44eb-8b03-530fab159a12",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "bundle",
+            "position": 1,
+            "color": 1,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "1768459c-0389-4893-a555-e74c92668001",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "bundle",
+            "position": 2,
+            "color": 2,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "3aa08a34-a5e5-4c11-8e28-146d85bf6893",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "bundle",
+            "position": 3,
+            "color": 3,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "700217e7-d38f-4a80-a84d-2aa62f604e34",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "bundle",
+            "position": 4,
+            "color": 4,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "15c72a56-9154-4670-9caa-c91b94050a92",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "bundle",
+            "position": 5,
+            "color": 5,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "bb4c03be-51b2-4650-9b7e-e20b4cad9f69",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "bundle",
+            "position": 6,
+            "color": 7,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "d725d097-a9a9-49ac-aee7-1673a988e8ee",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "bundle",
+            "position": 7,
+            "color": 6,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "ece05a3c-6698-4310-bfe9-50687dade1b6",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "bundle",
+            "position": 8,
+            "color": 8,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "c5044e5b-d818-42b0-b6e0-b33a0988ba50",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "bundle",
+            "position": 9,
+            "color": 9,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "53ad7bb8-4e18-4550-9f30-e62d40b272b1",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "bundle",
+            "position": 10,
+            "color": 10,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "375f7749-538f-4390-abb9-7c9ca1296d90",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "bundle",
+            "position": 11,
+            "color": 11,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "256ca06f-2cc5-4870-9617-c53a867ddd2f",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "bundle",
+            "position": 12,
+            "color": 12,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "218035bb-5c4b-435c-8dbd-dab469819dbd",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "bundle",
+            "position": 13,
+            "color": 1,
+            "layer": "outer"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "83324bab-5e4d-45a7-8bff-24da5f55a173",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "bundle",
+            "position": 14,
+            "color": 2,
+            "layer": "outer"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "24cffb09-e367-4961-8ba6-bfa99a64b4bf",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "bundle",
+            "position": 15,
+            "color": 3,
+            "layer": "outer"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "e36598cc-429d-4b81-8ed0-639afea48773",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "bundle",
+            "position": 16,
+            "color": 4,
+            "layer": "outer"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "f5e4a8f9-c1d1-4e1b-bc3a-bd74bd2ebd87",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "bundle",
+            "position": 17,
+            "color": 5,
+            "layer": "outer"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "e1ba5e95-098b-41e7-ab1a-49b26c3d1410",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "bundle",
+            "position": 18,
+            "color": 7,
+            "layer": "outer"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "548f7842-9e9a-48de-99e6-69cdd2fc0642",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 1,
+            "color": 1,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "c8c8638d-5909-4b16-b58e-51f5e8aeebbb",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 2,
+            "color": 2,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "b13c5450-2d26-480f-8825-167dcc251baa",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 3,
+            "color": 3,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "fceaba67-1f6a-47c7-a8bc-53366b685afa",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 4,
+            "color": 4,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "48588d0d-6ae8-4c5e-b6c9-deb3ef5ffc21",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 5,
+            "color": 5,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "fc7609cb-9e34-4a7d-83be-bb73273abc76",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 6,
+            "color": 6,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "ca4597d1-9772-4d5c-9ccb-72d1e7eaba24",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 7,
+            "color": 7,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "9f2dad4a-e515-492b-a67b-e556c5807f6f",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 8,
+            "color": 8,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "6f08c6ed-2682-4438-93a4-d9eeb951b501",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 9,
+            "color": 9,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "72976794-4c67-48fd-874a-c237c5eafe07",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 10,
+            "color": 10,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "f29d29f7-1943-42c1-a1f3-22de22485b3c",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 11,
+            "color": 11,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "b77e03c6-96be-40f7-869a-f695d8371b40",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 12,
+            "color": 12,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "bc10c0b6-cae8-42c0-bbfd-eb100d986ba2",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 13,
+            "color": 13,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "5da38fc4-9da4-4d4d-9bf3-4718b6259167",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 14,
+            "color": 14,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "ac5a64af-c8f3-466e-8174-b77a106cf513",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 15,
+            "color": 15,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "a5771858-089a-4a82-afb6-58f0bf0e4024",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 16,
+            "color": 16,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "c2836e1b-c0bf-4eab-8052-546e070bd07f",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 17,
+            "color": 17,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "0b57fe5b-5cd6-4b62-8d95-08a13ed085b8",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 18,
+            "color": 18,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "e409bfba-f115-47c8-b5c1-3d4ebbb2c5a3",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 19,
+            "color": 19,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "a7dac66c-fed1-4483-9d55-addb618de1e9",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 20,
+            "color": 20,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "024727a8-88e1-4a60-9cd2-3fe2e4456739",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 21,
+            "color": 21,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "93ea1014-4dd2-42a8-a0aa-2c36952242ab",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 22,
+            "color": 22,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "31f2400d-aa5e-48bb-a023-ce91e777deb5",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 23,
+            "color": 23,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "0aadbacf-3448-4dff-84b4-19367159cf3c",
+        "fields": {
+            "cable_type": 2,
+            "position_type": "fiber",
+            "position": 24,
+            "color": 24,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "85a76973-c5e6-4ee6-9b4e-f3975b21f656",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "bundle",
+            "position": 1,
+            "color": 1,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "b4dd2fb2-6a31-4e1f-a6d9-df9414e75bd3",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "bundle",
+            "position": 2,
+            "color": 2,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "fdcc5692-4cd2-4dfb-9e00-1f3232fc432b",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "bundle",
+            "position": 3,
+            "color": 3,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "7acf39c2-296e-4d65-9c50-e5f2bfc148fc",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "bundle",
+            "position": 4,
+            "color": 4,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "25d8a082-d062-4283-9fc0-088c85969df4",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "bundle",
+            "position": 5,
+            "color": 5,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "3d5a9d02-63af-4fe4-b906-7d4d668561c3",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "bundle",
+            "position": 6,
+            "color": 7,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "59c00579-350d-4d40-8f2a-c260b35db09a",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "bundle",
+            "position": 7,
+            "color": 6,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "6913e60f-c83a-48b1-86e6-1b32daf97b09",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "bundle",
+            "position": 8,
+            "color": 8,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "7735bd6f-e6de-4726-8440-63b70c7ce22e",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "bundle",
+            "position": 9,
+            "color": 9,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "166ba4ff-b1cd-4462-bcc2-9c484f812eb8",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "bundle",
+            "position": 10,
+            "color": 10,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "5175f574-2fc3-4382-81bb-85792e4cc55b",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "bundle",
+            "position": 11,
+            "color": 11,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "417813b2-495b-46c9-872f-c95236c1bfdd",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "bundle",
+            "position": 12,
+            "color": 12,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "71171abe-2552-436b-8c34-120db7bd2d7a",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 1,
+            "color": 1,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "ec05ad3c-73a3-4a06-b9e7-08a80762692e",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 2,
+            "color": 2,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "a56dc0e2-b823-4216-80e8-7b9a8204d9c8",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 3,
+            "color": 3,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "1ec7b3d0-d7dd-4ec2-8dd8-facd3931ed5b",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 4,
+            "color": 4,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "63e7bc66-bf09-43f9-9e70-9234778a6c4a",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 5,
+            "color": 5,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "7a24fb9e-3da9-4c22-9c53-394c91d8cb24",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 6,
+            "color": 6,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "f0fcff9a-523e-47f5-a415-c89c41768e84",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 7,
+            "color": 7,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "12768460-b3b9-4e73-9257-ade56d5e593a",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 8,
+            "color": 8,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "1af9c313-f68a-432a-84c1-2433fd1e5655",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 9,
+            "color": 9,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "2fd01da6-a6b1-4ad6-8e9a-99263e7df347",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 10,
+            "color": 10,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "21848c55-b09a-4812-a0bb-8da8295f2a5a",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 11,
+            "color": 11,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "09e4e6f2-df40-4021-a1ae-c4d560d8b28e",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 12,
+            "color": 12,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "7b74bd55-c862-4b0b-89ba-4dae2ff1a122",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 13,
+            "color": 13,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "fa65e5c7-b216-42d1-8b48-c5ff01ccf097",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 14,
+            "color": 14,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "765bfe55-6e07-4621-9a8e-1b3f66b9d9d1",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 15,
+            "color": 15,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "aa4fd0b9-57c9-4261-b5c6-ae6bda8766fe",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 16,
+            "color": 16,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "1331d600-9d38-4bd9-8f49-b1f4db018daf",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 17,
+            "color": 17,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "0ae67bce-5735-43eb-98a3-d85fcb9b2555",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 18,
+            "color": 18,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "8ed1997c-9ad0-4a4b-8a3f-a3e0499934fa",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 19,
+            "color": 19,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "02f79d7a-0be1-4b64-a5f8-b06b37614176",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 20,
+            "color": 20,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "89f631d7-2a53-4939-9bbb-abd3259be588",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 21,
+            "color": 21,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "5df4ad53-eef9-42ed-a3d6-57f2012cb43a",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 22,
+            "color": 22,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "b2f7f60b-3d9b-4b51-81a5-2d1d8936cb60",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 23,
+            "color": 23,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "49dd375d-4a87-499d-9587-1ef983011c2b",
+        "fields": {
+            "cable_type": 3,
+            "position_type": "fiber",
+            "position": 24,
+            "color": 24,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "cd22273b-6e91-45c2-be10-c66dd9ecdc71",
+        "fields": {
+            "cable_type": 4,
+            "position_type": "bundle",
+            "position": 1,
+            "color": 1,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "99aa0340-fcb3-4859-ac2b-6decb0ef74b1",
+        "fields": {
+            "cable_type": 4,
+            "position_type": "fiber",
+            "position": 1,
+            "color": 1,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "d4a64f49-b69a-4fc8-9747-01b782e21ef4",
+        "fields": {
+            "cable_type": 4,
+            "position_type": "fiber",
+            "position": 2,
+            "color": 2,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "d59259fa-7304-4580-8b11-f4eb8794804c",
+        "fields": {
+            "cable_type": 4,
+            "position_type": "fiber",
+            "position": 3,
+            "color": 3,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "b95bb9d3-dcde-4a7e-b448-40cb88a1de22",
+        "fields": {
+            "cable_type": 4,
+            "position_type": "fiber",
+            "position": 4,
+            "color": 4,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "c55eb1f6-6265-4231-9bce-60b7afeff26d",
+        "fields": {
+            "cable_type": 5,
+            "position_type": "bundle",
+            "position": 1,
+            "color": 1,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "d5a6e371-1c87-4e12-873e-edf700292164",
+        "fields": {
+            "cable_type": 5,
+            "position_type": "fiber",
+            "position": 1,
+            "color": 1,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "7c884222-269a-426c-9c4b-8dd1d8b388cc",
+        "fields": {
+            "cable_type": 5,
+            "position_type": "fiber",
+            "position": 2,
+            "color": 2,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "b6217719-e04b-44f3-9134-075a65ae2c14",
+        "fields": {
+            "cable_type": 5,
+            "position_type": "fiber",
+            "position": 3,
+            "color": 3,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "1ddc3890-a60f-4f40-8a80-70b15d6b7cc1",
+        "fields": {
+            "cable_type": 5,
+            "position_type": "fiber",
+            "position": 4,
+            "color": 4,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "cef0bcec-814d-4576-a1ec-738d3066a127",
+        "fields": {
+            "cable_type": 5,
+            "position_type": "fiber",
+            "position": 5,
+            "color": 5,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "1dd918a5-eab0-45fe-9a7c-3fed3c945ef0",
+        "fields": {
+            "cable_type": 5,
+            "position_type": "fiber",
+            "position": 6,
+            "color": 6,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "3b8ad7bd-56b8-4779-a7f8-ea3abe2e1211",
+        "fields": {
+            "cable_type": 6,
+            "position_type": "bundle",
+            "position": 1,
+            "color": 1,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "3ad0df1d-3bf2-4e68-9ed6-00ab3085a5fb",
+        "fields": {
+            "cable_type": 6,
+            "position_type": "fiber",
+            "position": 1,
+            "color": 1,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "f07808f1-3f28-4834-af73-02a0fa9c9adc",
+        "fields": {
+            "cable_type": 6,
+            "position_type": "fiber",
+            "position": 2,
+            "color": 2,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "a891d40a-9fed-4b71-b7a7-1bc3be9864e5",
+        "fields": {
+            "cable_type": 6,
+            "position_type": "fiber",
+            "position": 3,
+            "color": 3,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "c4be44ef-2781-44a0-b09e-3c430cf61bf1",
+        "fields": {
+            "cable_type": 6,
+            "position_type": "fiber",
+            "position": 4,
+            "color": 4,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "11b669dd-0c22-450d-990f-060097d35c04",
+        "fields": {
+            "cable_type": 6,
+            "position_type": "fiber",
+            "position": 5,
+            "color": 5,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "f87f8d38-8b49-4d1d-b4d1-f2cfdd5e45d4",
+        "fields": {
+            "cable_type": 6,
+            "position_type": "fiber",
+            "position": 6,
+            "color": 6,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "02a8b6b2-d925-46a6-a709-f165effa95a0",
+        "fields": {
+            "cable_type": 6,
+            "position_type": "fiber",
+            "position": 7,
+            "color": 7,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "d3f51bcc-5006-470d-8e3e-7497205c5273",
+        "fields": {
+            "cable_type": 6,
+            "position_type": "fiber",
+            "position": 8,
+            "color": 8,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "c0628456-57e6-425f-bf09-fff8c9c83a8c",
+        "fields": {
+            "cable_type": 6,
+            "position_type": "fiber",
+            "position": 9,
+            "color": 9,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "67d764a8-89ff-4628-9931-76b611ffbacb",
+        "fields": {
+            "cable_type": 6,
+            "position_type": "fiber",
+            "position": 10,
+            "color": 10,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "c06e2c77-877c-4eb6-85ad-a98d0673aa51",
+        "fields": {
+            "cable_type": 6,
+            "position_type": "fiber",
+            "position": 11,
+            "color": 11,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "730fb19a-889e-441b-b970-3c928e92e98a",
+        "fields": {
+            "cable_type": 6,
+            "position_type": "fiber",
+            "position": 12,
+            "color": 12,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "09d5529c-3973-49ca-bd89-122bba39a522",
+        "fields": {
+            "cable_type": 7,
+            "position_type": "bundle",
+            "position": 1,
+            "color": 1,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "cb16c5a3-3bd2-47f6-bc98-11093c8ba109",
+        "fields": {
+            "cable_type": 7,
+            "position_type": "bundle",
+            "position": 2,
+            "color": 2,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "4d0c195a-e0ae-4e5c-82af-5a8a794e163c",
+        "fields": {
+            "cable_type": 7,
+            "position_type": "bundle",
+            "position": 3,
+            "color": 3,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "ab900f63-a41a-420c-a687-ca28c7c1833b",
+        "fields": {
+            "cable_type": 7,
+            "position_type": "bundle",
+            "position": 4,
+            "color": 4,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "a75e13f3-e7a6-4d63-bfd8-c061aecf4a38",
+        "fields": {
+            "cable_type": 7,
+            "position_type": "fiber",
+            "position": 1,
+            "color": 1,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "5fe90659-3bc9-41ed-9182-520ab3e06e86",
+        "fields": {
+            "cable_type": 7,
+            "position_type": "fiber",
+            "position": 2,
+            "color": 2,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "0496debd-3b82-4639-9198-9fc30aa1bc44",
+        "fields": {
+            "cable_type": 7,
+            "position_type": "fiber",
+            "position": 3,
+            "color": 3,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "bc337c78-557c-406d-becf-4869f1ee8e1f",
+        "fields": {
+            "cable_type": 7,
+            "position_type": "fiber",
+            "position": 4,
+            "color": 4,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "d01ae53b-d67d-4207-9115-8e9bc24cc189",
+        "fields": {
+            "cable_type": 7,
+            "position_type": "fiber",
+            "position": 5,
+            "color": 5,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "637c5642-75de-4677-8338-f36d97f1df8e",
+        "fields": {
+            "cable_type": 7,
+            "position_type": "fiber",
+            "position": 6,
+            "color": 6,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "eb6b7934-d117-40ea-83c6-0c6aa3ccf3d8",
+        "fields": {
+            "cable_type": 7,
+            "position_type": "fiber",
+            "position": 7,
+            "color": 7,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "65ce9c3d-9463-464b-b7fb-297d089b8bbc",
+        "fields": {
+            "cable_type": 7,
+            "position_type": "fiber",
+            "position": 8,
+            "color": 8,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "8149b4c8-bf08-497a-8d1d-4f568139c62f",
+        "fields": {
+            "cable_type": 7,
+            "position_type": "fiber",
+            "position": 9,
+            "color": 9,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "3ec62c25-2551-445c-914e-854f7aff712a",
+        "fields": {
+            "cable_type": 7,
+            "position_type": "fiber",
+            "position": 10,
+            "color": 10,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "a4fc65b0-01d4-47fc-9297-d26408bf42c7",
+        "fields": {
+            "cable_type": 7,
+            "position_type": "fiber",
+            "position": 11,
+            "color": 11,
+            "layer": "inner"
+        }
+    },
+    {
+        "model": "api.cabletypecolormapping",
+        "uuid": "2e65a399-7cbc-456c-9668-3c0673cb6378",
+        "fields": {
+            "cable_type": 7,
+            "position_type": "fiber",
+            "position": 12,
+            "color": 12,
+            "layer": "inner"
+        }
+    }
+]

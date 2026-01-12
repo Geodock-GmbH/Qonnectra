@@ -1,0 +1,314 @@
+[
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 1,
+        "fields": {
+            "name_de": "rot",
+            "name_en": "red",
+            "hex_code": "#dc2626",
+            "hex_code_secondary": null,
+            "display_order": 1,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 2,
+        "fields": {
+            "name_de": "gr\u00fcn",
+            "name_en": "green",
+            "hex_code": "#16a34a",
+            "hex_code_secondary": null,
+            "display_order": 2,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 3,
+        "fields": {
+            "name_de": "blau",
+            "name_en": "blue",
+            "hex_code": "#2563eb",
+            "hex_code_secondary": null,
+            "display_order": 3,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 4,
+        "fields": {
+            "name_de": "gelb",
+            "name_en": "yellow",
+            "hex_code": "#eab308",
+            "hex_code_secondary": null,
+            "display_order": 4,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 5,
+        "fields": {
+            "name_de": "weiss",
+            "name_en": "white",
+            "hex_code": "#ffffff",
+            "hex_code_secondary": null,
+            "display_order": 5,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 6,
+        "fields": {
+            "name_de": "grau",
+            "name_en": "gray",
+            "hex_code": "#6b7280",
+            "hex_code_secondary": null,
+            "display_order": 6,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 7,
+        "fields": {
+            "name_de": "braun",
+            "name_en": "brown",
+            "hex_code": "#92400e",
+            "hex_code_secondary": null,
+            "display_order": 7,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 8,
+        "fields": {
+            "name_de": "violett",
+            "name_en": "violet",
+            "hex_code": "#9333ea",
+            "hex_code_secondary": null,
+            "display_order": 8,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 9,
+        "fields": {
+            "name_de": "t\u00fcrkis",
+            "name_en": "turquoise",
+            "hex_code": "#06b6d4",
+            "hex_code_secondary": null,
+            "display_order": 9,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 10,
+        "fields": {
+            "name_de": "schwarz",
+            "name_en": "black",
+            "hex_code": "#000000",
+            "hex_code_secondary": null,
+            "display_order": 10,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 11,
+        "fields": {
+            "name_de": "orange",
+            "name_en": "orange",
+            "hex_code": "#ea580c",
+            "hex_code_secondary": null,
+            "display_order": 11,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 12,
+        "fields": {
+            "name_de": "pink",
+            "name_en": "pink",
+            "hex_code": "#ec4899",
+            "hex_code_secondary": null,
+            "display_order": 12,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 13,
+        "fields": {
+            "name_de": "rot-schwarz",
+            "name_en": "red-black",
+            "hex_code": "#dc2626",
+            "hex_code_secondary": "#000000",
+            "display_order": 13,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 14,
+        "fields": {
+            "name_de": "gr\u00fcn-schwarz",
+            "name_en": "green-black",
+            "hex_code": "#16a34a",
+            "hex_code_secondary": "#000000",
+            "display_order": 14,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 15,
+        "fields": {
+            "name_de": "blau-schwarz",
+            "name_en": "blue-black",
+            "hex_code": "#2563eb",
+            "hex_code_secondary": "#000000",
+            "display_order": 15,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 16,
+        "fields": {
+            "name_de": "gelb-schwarz",
+            "name_en": "yellow-black",
+            "hex_code": "#eab308",
+            "hex_code_secondary": "#000000",
+            "display_order": 16,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 17,
+        "fields": {
+            "name_de": "weiss-schwarz",
+            "name_en": "white-black",
+            "hex_code": "#ffffff",
+            "hex_code_secondary": "#000000",
+            "display_order": 17,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 18,
+        "fields": {
+            "name_de": "braun-schwarz",
+            "name_en": "brown-black",
+            "hex_code": "#92400e",
+            "hex_code_secondary": "#000000",
+            "display_order": 18,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 19,
+        "fields": {
+            "name_de": "grau-schwarz",
+            "name_en": "gray-black",
+            "hex_code": "#6b7280",
+            "hex_code_secondary": "#000000",
+            "display_order": 19,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 20,
+        "fields": {
+            "name_de": "violett-schwarz",
+            "name_en": "violet-black",
+            "hex_code": "#9333ea",
+            "hex_code_secondary": "#000000",
+            "display_order": 20,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 21,
+        "fields": {
+            "name_de": "t\u00fcrkis-schwarz",
+            "name_en": "turquoise-black",
+            "hex_code": "#06b6d4",
+            "hex_code_secondary": "#000000",
+            "display_order": 21,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 22,
+        "fields": {
+            "name_de": "schwarz-schwarz",
+            "name_en": "black-black",
+            "hex_code": "#000000",
+            "hex_code_secondary": "#000000",
+            "display_order": 22,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 23,
+        "fields": {
+            "name_de": "orange-schwarz",
+            "name_en": "orange-black",
+            "hex_code": "#ea580c",
+            "hex_code_secondary": "#000000",
+            "display_order": 23,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesfibercolor",
+        "pk": 24,
+        "fields": {
+            "name_de": "pink-schwarz",
+            "name_en": "pink-black",
+            "hex_code": "#ec4899",
+            "hex_code_secondary": "#000000",
+            "display_order": 24,
+            "is_active": true,
+            "description": null
+        }
+    }
+]

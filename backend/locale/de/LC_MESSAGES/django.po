@@ -630,7 +630,7 @@ msgstr "Sekundärer CSS-Farbcode"
 
 #: apps/api/models.py:449 apps/api/models.py:540
 msgid "Secondary color for striped/two-layer microducts (optional)"
-msgstr "Sekundäre Farbe für gestreifte/zweilagige Mikrorohre (optional)"
+msgstr "Sekundäre Farbe für gestreifte/zweilagige Mikrorohre/Fasern (optional)"
 
 #: apps/api/models.py:453 apps/api/models.py:543
 msgid "Display Order"

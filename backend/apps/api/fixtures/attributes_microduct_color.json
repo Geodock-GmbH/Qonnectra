@@ -1,0 +1,314 @@
+[
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 1,
+        "fields": {
+            "name_de": "rot",
+            "name_en": "red",
+            "hex_code": "#dc2626",
+            "hex_code_secondary": null,
+            "display_order": 1,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 2,
+        "fields": {
+            "name_de": "gr\u00fcn",
+            "name_en": "green",
+            "hex_code": "#16a34a",
+            "hex_code_secondary": null,
+            "display_order": 2,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 3,
+        "fields": {
+            "name_de": "blau",
+            "name_en": "blue",
+            "hex_code": "#2563eb",
+            "hex_code_secondary": null,
+            "display_order": 3,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 4,
+        "fields": {
+            "name_de": "gelb",
+            "name_en": "yellow",
+            "hex_code": "#eab308",
+            "hex_code_secondary": null,
+            "display_order": 4,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 5,
+        "fields": {
+            "name_de": "weiss",
+            "name_en": "white",
+            "hex_code": "#ffffff",
+            "hex_code_secondary": null,
+            "display_order": 5,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 6,
+        "fields": {
+            "name_de": "grau",
+            "name_en": "gray",
+            "hex_code": "#6b7280",
+            "hex_code_secondary": null,
+            "display_order": 6,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 7,
+        "fields": {
+            "name_de": "braun",
+            "name_en": "brown",
+            "hex_code": "#92400e",
+            "hex_code_secondary": null,
+            "display_order": 7,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 8,
+        "fields": {
+            "name_de": "violett",
+            "name_en": "violet",
+            "hex_code": "#9333ea",
+            "hex_code_secondary": null,
+            "display_order": 8,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 9,
+        "fields": {
+            "name_de": "t\u00fcrkis",
+            "name_en": "turquoise",
+            "hex_code": "#06b6d4",
+            "hex_code_secondary": null,
+            "display_order": 9,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 10,
+        "fields": {
+            "name_de": "schwarz",
+            "name_en": "black",
+            "hex_code": "#000000",
+            "hex_code_secondary": null,
+            "display_order": 10,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 11,
+        "fields": {
+            "name_de": "orange",
+            "name_en": "orange",
+            "hex_code": "#ea580c",
+            "hex_code_secondary": null,
+            "display_order": 11,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 12,
+        "fields": {
+            "name_de": "pink",
+            "name_en": "pink",
+            "hex_code": "#ec4899",
+            "hex_code_secondary": null,
+            "display_order": 12,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 13,
+        "fields": {
+            "name_de": "rot-weiss",
+            "name_en": "red-white",
+            "hex_code": "#dc2626",
+            "hex_code_secondary": "#ffffff",
+            "display_order": 13,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 14,
+        "fields": {
+            "name_de": "gr\u00fcn-weiss",
+            "name_en": "green-white",
+            "hex_code": "#16a34a",
+            "hex_code_secondary": "#ffffff",
+            "display_order": 14,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 15,
+        "fields": {
+            "name_de": "blau-weiss",
+            "name_en": "blue-white",
+            "hex_code": "#2563eb",
+            "hex_code_secondary": "#ffffff",
+            "display_order": 15,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 16,
+        "fields": {
+            "name_de": "gelb-weiss",
+            "name_en": "yellow-white",
+            "hex_code": "#eab308",
+            "hex_code_secondary": "#ffffff",
+            "display_order": 16,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 17,
+        "fields": {
+            "name_de": "weiss-weiss",
+            "name_en": "white-white",
+            "hex_code": "#ffffff",
+            "hex_code_secondary": "#ffffff",
+            "display_order": 17,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 18,
+        "fields": {
+            "name_de": "braun-weiss",
+            "name_en": "brown-white",
+            "hex_code": "#92400e",
+            "hex_code_secondary": "#ffffff",
+            "display_order": 18,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 19,
+        "fields": {
+            "name_de": "grau-weiss",
+            "name_en": "gray-white",
+            "hex_code": "#6b7280",
+            "hex_code_secondary": "#ffffff",
+            "display_order": 19,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 20,
+        "fields": {
+            "name_de": "violett-weiss",
+            "name_en": "violet-white",
+            "hex_code": "#9333ea",
+            "hex_code_secondary": "#ffffff",
+            "display_order": 20,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 21,
+        "fields": {
+            "name_de": "t\u00fcrkis-weiss",
+            "name_en": "turquoise-white",
+            "hex_code": "#06b6d4",
+            "hex_code_secondary": "#ffffff",
+            "display_order": 21,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 22,
+        "fields": {
+            "name_de": "schwarz-weiss",
+            "name_en": "black-white",
+            "hex_code": "#000000",
+            "hex_code_secondary": "#ffffff",
+            "display_order": 22,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 23,
+        "fields": {
+            "name_de": "orange-weiss",
+            "name_en": "orange-white",
+            "hex_code": "#ea580c",
+            "hex_code_secondary": "#ffffff",
+            "display_order": 23,
+            "is_active": true,
+            "description": null
+        }
+    },
+    {
+        "model": "api.attributesmicroductcolor",
+        "pk": 24,
+        "fields": {
+            "name_de": "pink-weiss",
+            "name_en": "pink-white",
+            "hex_code": "#ec4899",
+            "hex_code_secondary": "#ffffff",
+            "display_order": 24,
+            "is_active": true,
+            "description": null
+        }
+    }
+]
