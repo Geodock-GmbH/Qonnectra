@@ -67,6 +67,7 @@ export class MapState {
 	// Label configuration
 	labelConfig = $state({
 		trench: { enabled: false, field: 'id_trench', minResolution: 1.5 },
+		conduit: { enabled: false, field: 'conduit_names', minResolution: 1.5 },
 		address: { enabled: false, field: 'street', minResolution: 1.0 },
 		node: { enabled: false, field: 'name', minResolution: 1.0 },
 		area: { enabled: false, field: 'name', minResolution: 5.0 }
@@ -368,14 +369,19 @@ export class MapState {
 
 		let newStyle;
 		if (styleMode === 'none') {
-			newStyle = createTrenchStyle(fallbackColor);
+			newStyle = createTrenchStyle(
+				fallbackColor,
+				this.labelConfig.trench,
+				this.labelConfig.conduit
+			);
 		} else {
 			const attributeStyles = styleMode === 'surface' ? surfaceStyles : constructionTypeStyles;
 			newStyle = createTrenchStyleByAttribute(
 				attributeStyles,
 				styleMode,
 				fallbackColor,
-				this.labelConfig.trench
+				this.labelConfig.trench,
+				this.labelConfig.conduit
 			);
 		}
 
@@ -430,9 +436,9 @@ export class MapState {
 
 	/**
 	 * Update label visibility for a specific layer type
-	 * @param {string} layerType - 'trench' | 'address' | 'node' | 'area'
+	 * @param {string} layerType - 'trench' | 'address' | 'node' | 'area' | 'conduit'
 	 * @param {boolean} enabled - Whether labels should be shown
-	 * @param {Object} currentStyles - Current style settings (for trench: { mode, surfaceStyles, constructionTypeStyles, color }, for node: nodeTypeStyles, for area: areaTypeStyles)
+	 * @param {Object} currentStyles - Current style settings (for trench/conduit: { mode, surfaceStyles, constructionTypeStyles, color }, for node: nodeTypeStyles, for area: areaTypeStyles)
 	 */
 	updateLabelVisibility(layerType, enabled, currentStyles = {}) {
 		const currentLabelConfig = this.labelConfig[layerType];
@@ -443,6 +449,7 @@ export class MapState {
 
 		switch (layerType) {
 			case 'trench':
+			case 'conduit':
 				if (currentStyles.mode !== undefined) {
 					this.updateTrenchLayerStyle(
 						currentStyles.mode,

@@ -439,6 +439,31 @@
 	}
 
 	/**
+	 * Check if conduit labels are enabled
+	 * @returns {boolean} True if conduit labels are enabled
+	 */
+	function isConduitLabelEnabled() {
+		return $labelVisibilityConfig.conduit || false;
+	}
+
+	/**
+	 * Toggle conduit label visibility
+	 */
+	function toggleConduitLabelVisibility() {
+		const newEnabled = !$labelVisibilityConfig.conduit;
+		$labelVisibilityConfig = {
+			...$labelVisibilityConfig,
+			conduit: newEnabled
+		};
+
+		onLabelVisibilityChanged({
+			layerId: 'trench-layer', // Uses trench layer
+			labelType: 'conduit',
+			enabled: newEnabled
+		});
+	}
+
+	/**
 	 * Toggle the mobile bottom sheet open/closed
 	 */
 	function toggleMobileSheet() {
@@ -475,6 +500,7 @@
 		const diff = currentY - startY;
 		if (diff > 0) {
 			currentTranslate = diff;
+			e.preventDefault();
 		}
 	}
 
@@ -512,8 +538,8 @@
 
 		<!-- Sheet -->
 		<div
-			class="fixed bottom-0 left-0 right-0 z-40 bg-surface-50-950 rounded-t-2xl shadow-2xl max-h-[70vh] flex flex-col animate-in slide-in-from-bottom duration-300"
-			style="transform: translateY({currentTranslate}px); transition: {isDragging
+			class="fixed bottom-0 left-0 right-0 z-40 bg-surface-50-950 rounded-t-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300"
+			style="height: 85vh; max-height: calc(85vh - env(safe-area-inset-bottom)); transform: translateY({currentTranslate}px); transition: {isDragging
 				? 'none'
 				: 'transform 0.2s ease-out'};"
 		>
@@ -737,10 +763,39 @@
 							</div>
 						{/if}
 					</div>
+
+					<!-- Conduit Labels - after trench layer -->
+					{#if layerId === 'trench-layer'}
+						<div class="bg-surface-100-900 rounded-xl overflow-hidden">
+							<div class="flex items-center justify-between p-3">
+								<div class="flex items-center gap-3 flex-1 min-w-0">
+									<span class="w-8 h-8 flex-shrink-0"></span>
+									<span class="text-base font-medium text-surface-contrast-100-900 truncate">
+										{m.form_conduit()}
+									</span>
+								</div>
+								<div class="flex items-center gap-1 flex-shrink-0">
+									<button
+										class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all flex-shrink-0"
+										onclick={toggleConduitLabelVisibility}
+										aria-label={isConduitLabelEnabled()
+											? 'Hide conduit labels'
+											: 'Show conduit labels'}
+									>
+										{#if isConduitLabelEnabled()}
+											<IconLabelFilled size="22" class="text-primary-500" />
+										{:else}
+											<IconLabel size="22" class="text-surface-900-100" />
+										{/if}
+									</button>
+								</div>
+							</div>
+						</div>
+					{/if}
 				{/each}
 
 				{#if layerVisibility.size === 0}
-					<p class="text-base text-surface-400 italic text-center py-6">
+					<p class="text-sm text-surface-400 italic text-center py-6">
 						{m.form_no_layers_available()}
 					</p>
 				{/if}
@@ -763,94 +818,99 @@
 		{#each Array.from(layerVisibility.entries()) as [layerId, layerInfo]}
 			<div>
 				<div
-					class="flex items-center justify-between px-1 rounded-md hover:bg-surface-100-800 transition-colors"
+					class="flex items-center gap-1.5 py-1 rounded hover:bg-surface-100-800 transition-colors"
 				>
-					<div class="flex items-center gap-2 flex-1 min-w-0">
-						{#if layerId === 'node-layer' && nodeTypes.length > 0}
-							<button
-								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
-								onclick={toggleNodeSubtypes}
-								aria-label={isNodeSubtypesExpanded ? 'Collapse' : 'Expand'}
-							>
-								{#if isNodeSubtypesExpanded}
-									<IconChevronDown size="14" class="text-surface-900-100" />
-								{:else}
-									<IconChevronRight size="14" class="text-surface-900-100" />
-								{/if}
-							</button>
-						{:else if layerId === 'trench-layer' && trenchTypes.length > 0}
-							<button
-								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
-								onclick={toggleTrenchSubtypes}
-								aria-label={isTrenchSubtypesExpanded ? 'Collapse' : 'Expand'}
-							>
-								{#if isTrenchSubtypesExpanded}
-									<IconChevronDown size="14" class="text-surface-900-100" />
-								{:else}
-									<IconChevronRight size="14" class="text-surface-900-100" />
-								{/if}
-							</button>
-						{:else if layerId === 'area-layer' && areaTypes.length > 0}
-							<button
-								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
-								onclick={toggleAreaSubtypes}
-								aria-label={isAreaSubtypesExpanded ? 'Collapse' : 'Expand'}
-							>
-								{#if isAreaSubtypesExpanded}
-									<IconChevronDown size="14" class="text-surface-900-100" />
-								{:else}
-									<IconChevronRight size="14" class="text-surface-900-100" />
-								{/if}
-							</button>
-						{:else}
-							<span class="w-5 h-5 flex-shrink-0"></span>
-						{/if}
-
-						<span class="text-xs text-surface-contrast-100-900 truncate">
-							{layerInfo.name}
-						</span>
-					</div>
-
-					<div class="flex items-center gap-1 flex-shrink-0">
-						{#if getExtentLayerType(layerId)}
-							<button
-								class="p-1 rounded hover:bg-surface-200-700 transition-colors"
-								onclick={() => onZoomToExtent({ layerId, layerType: getExtentLayerType(layerId) })}
-								aria-label="Zoom to extent"
-								title="Zoom to extent"
-							>
-								<IconZoomScan size="24" class="text-surface-900-100 hover:text-primary-500" />
-							</button>
-						{/if}
-
-						{#if getLabelConfigKey(layerId)}
-							<button
-								class="p-1 rounded hover:bg-surface-200-700 transition-colors"
-								onclick={() => toggleLabelVisibility(layerId)}
-								aria-label={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
-								title={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
-							>
-								{#if isLabelEnabled(layerId)}
-									<IconLabelFilled size="24" class="text-primary-500" />
-								{:else}
-									<IconLabel size="24" class="text-surface-900-100" />
-								{/if}
-							</button>
-						{/if}
-
+					<!-- Expand/Collapse button -->
+					{#if layerId === 'node-layer' && nodeTypes.length > 0}
 						<button
-							class="p-1 rounded hover:bg-surface-200-700 transition-colors"
-							onclick={() => toggleLayerVisibility(layerId)}
-							aria-label={layerInfo.visible ? 'Hide layer' : 'Show layer'}
-							title={layerInfo.visible ? 'Hide layer' : 'Show layer'}
+							class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+							onclick={toggleNodeSubtypes}
+							aria-label={isNodeSubtypesExpanded ? 'Collapse' : 'Expand'}
 						>
-							{#if layerInfo.visible}
-								<IconEye size="24" class="text-primary-500" />
+							{#if isNodeSubtypesExpanded}
+								<IconChevronDown size="14" class="text-surface-900-100" />
 							{:else}
-								<IconEyeOff size="24" class="text-surface-900-100" />
+								<IconChevronRight size="14" class="text-surface-900-100" />
 							{/if}
 						</button>
-					</div>
+					{:else if layerId === 'trench-layer' && trenchTypes.length > 0}
+						<button
+							class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+							onclick={toggleTrenchSubtypes}
+							aria-label={isTrenchSubtypesExpanded ? 'Collapse' : 'Expand'}
+						>
+							{#if isTrenchSubtypesExpanded}
+								<IconChevronDown size="14" class="text-surface-900-100" />
+							{:else}
+								<IconChevronRight size="14" class="text-surface-900-100" />
+							{/if}
+						</button>
+					{:else if layerId === 'area-layer' && areaTypes.length > 0}
+						<button
+							class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+							onclick={toggleAreaSubtypes}
+							aria-label={isAreaSubtypesExpanded ? 'Collapse' : 'Expand'}
+						>
+							{#if isAreaSubtypesExpanded}
+								<IconChevronDown size="14" class="text-surface-900-100" />
+							{:else}
+								<IconChevronRight size="14" class="text-surface-900-100" />
+							{/if}
+						</button>
+					{:else}
+						<span class="w-5 h-5 flex-shrink-0"></span>
+					{/if}
+
+					<!-- Layer name -->
+					<span class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0">
+						{layerInfo.name}
+					</span>
+
+					<!-- Zoom button -->
+					{#if getExtentLayerType(layerId)}
+						<button
+							class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
+							onclick={() => onZoomToExtent({ layerId, layerType: getExtentLayerType(layerId) })}
+							aria-label="Zoom to extent"
+							title="Zoom to extent"
+						>
+							<IconZoomScan size={24} class="text-surface-500" />
+						</button>
+					{:else}
+						<span class="w-6 flex-shrink-0"></span>
+					{/if}
+
+					<!-- Label button -->
+					{#if getLabelConfigKey(layerId)}
+						<button
+							class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
+							onclick={() => toggleLabelVisibility(layerId)}
+							aria-label={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
+							title={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
+						>
+							{#if isLabelEnabled(layerId)}
+								<IconLabelFilled size={24} class="text-primary-500" />
+							{:else}
+								<IconLabel size={24} class="text-surface-500" />
+							{/if}
+						</button>
+					{:else}
+						<span class="w-6 flex-shrink-0"></span>
+					{/if}
+
+					<!-- Visibility button -->
+					<button
+						class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
+						onclick={() => toggleLayerVisibility(layerId)}
+						aria-label={layerInfo.visible ? 'Hide layer' : 'Show layer'}
+						title={layerInfo.visible ? 'Hide layer' : 'Show layer'}
+					>
+						{#if layerInfo.visible}
+							<IconEye size={24} class="text-primary-500" />
+						{:else}
+							<IconEyeOff size={24} class="text-surface-500" />
+						{/if}
+					</button>
 				</div>
 
 				<!-- Node type subtypes -->
@@ -880,9 +940,9 @@
 									aria-label={visible ? 'Hide' : 'Show'}
 								>
 									{#if visible}
-										<IconEye size="24" class="text-primary-500" />
+										<IconEye size={24} class="text-primary-500" />
 									{:else}
-										<IconEyeOff size="24" class="text-surface-900-100" />
+										<IconEyeOff size={24} class="text-surface-900-100" />
 									{/if}
 								</button>
 							</div>
@@ -913,9 +973,9 @@
 									aria-label={visible ? 'Hide' : 'Show'}
 								>
 									{#if visible}
-										<IconEye size="24" class="text-primary-500" />
+										<IconEye size={24} class="text-primary-500" />
 									{:else}
-										<IconEyeOff size="24" class="text-surface-900-100" />
+										<IconEyeOff size={24} class="text-surface-900-100" />
 									{/if}
 								</button>
 							</div>
@@ -950,9 +1010,9 @@
 									aria-label={visible ? 'Hide' : 'Show'}
 								>
 									{#if visible}
-										<IconEye size="24" class="text-primary-500" />
+										<IconEye size={24} class="text-primary-500" />
 									{:else}
-										<IconEyeOff size="24" class="text-surface-900-100" />
+										<IconEyeOff size={24} class="text-surface-900-100" />
 									{/if}
 								</button>
 							</div>
@@ -960,6 +1020,41 @@
 					</div>
 				{/if}
 			</div>
+
+			<!-- Conduit Labels - separate entry after trench layer -->
+			{#if layerId === 'trench-layer'}
+				<div
+					class="flex items-center gap-1.5 py-1 rounded hover:bg-surface-100-800 transition-colors"
+				>
+					<!-- Spacer for expand button -->
+					<span class="w-5 h-5 flex-shrink-0"></span>
+
+					<!-- Layer name -->
+					<span class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0">
+						{m.form_conduit()}
+					</span>
+
+					<!-- Spacer for zoom button column -->
+					<span class="w-6 flex-shrink-0"></span>
+
+					<!-- Label button -->
+					<button
+						class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
+						onclick={toggleConduitLabelVisibility}
+						aria-label={isConduitLabelEnabled() ? 'Hide conduit labels' : 'Show conduit labels'}
+						title={isConduitLabelEnabled() ? 'Hide conduit labels' : 'Show conduit labels'}
+					>
+						{#if isConduitLabelEnabled()}
+							<IconLabelFilled size="24" class="text-primary-500" />
+						{:else}
+							<IconLabel size="24" class="text-surface-500" />
+						{/if}
+					</button>
+
+					<!-- Spacer for visibility button column -->
+					<span class="w-6 flex-shrink-0"></span>
+				</div>
+			{/if}
 		{/each}
 
 		{#if layerVisibility.size === 0}

@@ -48,12 +48,13 @@ export const trenchSurfaceStyles = persisted('trenchSurfaceStyles', {});
 export const trenchConstructionTypeStyles = persisted('trenchConstructionTypeStyles', {});
 
 // Label visibility configuration - controls whether labels are shown on map layers
-// Structure: { trench: boolean, address: boolean, node: boolean, area: boolean }
+// Structure: { trench: boolean, address: boolean, node: boolean, area: boolean, conduit: boolean }
 export const labelVisibilityConfig = persisted('labelVisibilityConfig', {
 	trench: false,
 	address: false,
 	node: false,
-	area: false
+	area: false,
+	conduit: false
 });
 
 // Area type styles - stores color and visibility per area type

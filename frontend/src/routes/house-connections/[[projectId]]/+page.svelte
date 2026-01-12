@@ -220,9 +220,16 @@
 		const nodeStyles = $nodeTypeStyles;
 		const areaStyles = $areaTypeStyles;
 
-		// Update each layer type based on config
 		if (config.trench !== undefined) {
 			mapState.updateLabelVisibility('trench', config.trench, {
+				mode,
+				surfaceStyles,
+				constructionTypeStyles,
+				color
+			});
+		}
+		if (config.conduit !== undefined) {
+			mapState.updateLabelVisibility('conduit', config.conduit, {
 				mode,
 				surfaceStyles,
 				constructionTypeStyles,

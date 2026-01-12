@@ -448,6 +448,14 @@
 				color
 			});
 		}
+		if (config.conduit !== undefined) {
+			mapState.updateLabelVisibility('conduit', config.conduit, {
+				mode,
+				surfaceStyles,
+				constructionTypeStyles,
+				color
+			});
+		}
 		if (config.address !== undefined) {
 			mapState.updateLabelVisibility('address', config.address, {});
 		}

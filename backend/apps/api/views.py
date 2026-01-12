@@ -1045,7 +1045,14 @@ class OlTrenchTileViewSet(APIView):
                     ph.phase,
                     st.status,
                     s.surface,
-                    f.flag
+                    f.flag,
+                    COALESCE(
+                        (SELECT STRING_AGG(co.name, ', ' ORDER BY co.name)
+                         FROM public.trench_conduit_connect tcc
+                         JOIN public.conduit co ON tcc.uuid_conduit = co.uuid
+                         WHERE tcc.uuid_trench = t.uuid),
+                        ''
+                    ) AS conduit_names
                 FROM
                     public.ol_trench t
                 LEFT JOIN public.flags f ON t.flag = f.id
