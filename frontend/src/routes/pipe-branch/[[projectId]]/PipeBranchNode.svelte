@@ -115,17 +115,17 @@
 	class:border-primary-500={selected}
 >
 	{#each handlePositions as position, i}
+		<!-- Handles with full size for interaction, but edge connects from center -->
 		<Handle
 			type="source"
-			position={Position.Top}
+			position={Position.Right}
 			id="{position.handle.id}-source"
-			style="left: {position.x - 12}px; top: {position.y -
-				12}px; position: absolute; transform: none; background: {position.handle.isTwoLayer
+			style="left: {position.x - 12}px; top: {position.y - 12}px; position: absolute; transform: none; width: 24px; height: 24px; background: {position
+				.handle.isTwoLayer
 				? `linear-gradient(to right, ${position.handle.cssColor} 50%, ${position.handle.borderColor} 50%)`
-				: position.handle
-						.cssColor}; border: 2px solid var(--color-surface-950-50); width: 24px; height: 24px; {position
-				.handle.status
-				? 'opacity: 0.5; text-decoration: line-through;'
+				: position.handle.cssColor}; border: 2px solid var(--color-surface-950-50); {position.handle
+				.status
+				? 'opacity: 0.5;'
 				: ''}"
 			title="{position.handle.conduitName} - Microduct {position.handle.microductNumber} ({position
 				.handle.color})"
@@ -133,15 +133,14 @@
 		/>
 		<Handle
 			type="target"
-			position={Position.Top}
+			position={Position.Left}
 			id="{position.handle.id}-target"
-			style="left: {position.x - 12}px; top: {position.y -
-				12}px; position: absolute; transform: none; background: {position.handle.isTwoLayer
+			style="left: {position.x - 12}px; top: {position.y - 12}px; position: absolute; transform: none; width: 24px; height: 24px; background: {position
+				.handle.isTwoLayer
 				? `linear-gradient(to right, ${position.handle.cssColor} 50%, ${position.handle.borderColor} 50%)`
-				: position.handle
-						.cssColor}; border: 2px solid var(--color-surface-950-50); width: 24px; height: 24px; {position
-				.handle.status
-				? 'opacity: 0.5; text-decoration: line-through;'
+				: position.handle.cssColor}; border: 2px solid var(--color-surface-950-50); {position.handle
+				.status
+				? 'opacity: 0.5;'
 				: ''}"
 			title="{position.handle.conduitName} - Microduct {position.handle.microductNumber} ({position
 				.handle.color})"
@@ -150,8 +149,7 @@
 		{#if position.handle.status}
 			<div
 				class="absolute pointer-events-none flex items-center justify-center text-surface-950-50 font-bold text-2xl"
-				style="left: {position.x - 12}px; top: {position.y -
-					12}px; width: 24px; height: 24px; z-index: 10;"
+				style="left: {position.x - 12}px; top: {position.y - 12}px; width: 24px; height: 24px; z-index: 10;"
 			>
 				✕
 			</div>

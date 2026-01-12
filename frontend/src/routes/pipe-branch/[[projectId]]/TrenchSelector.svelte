@@ -1,6 +1,13 @@
 <script>
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
-	import { IconMinus, IconPlus } from '@tabler/icons-svelte';
+	import {
+		IconLock,
+		IconMinus,
+		IconPlus,
+		IconSquare,
+		IconSquareCheck,
+		IconSquareMinus
+	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -195,13 +202,9 @@
 				<Accordion.Item value={trench.uuid}>
 					<Accordion.ItemTrigger class="flex justify-between items-center">
 						<div class="flex items-center gap-3">
-							<div
-								class="w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer
-									{selectionState === 'all'
-									? 'bg-primary-500 border-primary-500'
-									: selectionState === 'partial'
-										? 'bg-primary-500/50 border-primary-500'
-										: 'border-surface-400'}"
+							<button
+								type="button"
+								class="cursor-pointer"
 								role="checkbox"
 								aria-checked={selectionState === 'all'}
 								tabindex="0"
@@ -218,11 +221,13 @@
 								}}
 							>
 								{#if selectionState === 'all'}
-									<span class="text-white text-sm">✓</span>
+									<IconSquareCheck class="size-8 text-primary-500" />
 								{:else if selectionState === 'partial'}
-									<span class="text-white text-sm">−</span>
+									<IconSquareMinus class="size-8 text-primary-500" />
+								{:else}
+									<IconSquare class="size-8 text-surface-400" />
 								{/if}
-							</div>
+							</button>
 							<div class="text-left">
 								<div class="font-semibold">
 									{m.form_trench_id()}: {trench.id_trench}
@@ -252,14 +257,15 @@
 										disabled={isLocked}
 									>
 										<div class="flex-shrink-0 pl-4">
-											<div
-												class="w-4 h-4 rounded border-2 flex items-center justify-center
-													{isSelected ? 'bg-primary-500 border-primary-500' : 'border-surface-400'}"
-											>
-												{#if isSelected}
-													<span class="text-white text-xs">{isLocked ? '🔒' : '✓'}</span>
+											{#if isSelected}
+												{#if isLocked}
+													<IconLock class="size-8 text-primary-500" />
+												{:else}
+													<IconSquareCheck class="size-8 text-primary-500" />
 												{/if}
-											</div>
+											{:else}
+												<IconSquare class="size-8 text-surface-400" />
+											{/if}
 										</div>
 										<div class="flex-grow">
 											<div class="text-sm font-medium flex items-center gap-2">
