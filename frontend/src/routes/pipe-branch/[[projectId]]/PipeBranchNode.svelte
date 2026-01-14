@@ -73,7 +73,7 @@
 	);
 </script>
 
-<!-- Node label and content box positioned above and to the left -->
+<!-- PipeBranchNode: Node label and info box -->
 <div
 	class="absolute top-0 left-0 bg-surface-50-950 border border-surface-200-700 rounded-lg shadow-md p-2 min-w-[120px] max-w-[250px]"
 	style="transform: translate(-100%, -100%);"
@@ -105,17 +105,13 @@
 	</div>
 </div>
 
-<!-- Node handles -->
-<!-- Explanation why we have source and target handles over each other -->
-<!-- When the mousepointer is over a handle, it uses the source id. This happens when also when the user releases the mousebutton over a handle. -->
-<!-- This would not create an edge on the canvas (but in the db so its visible on reload), so we can only connect per snapping. Since its always snapping to the target handle. -->
+<!-- PipeBranchNode: Node handles container -->
 <div
 	class="relative rounded-full border-2 border-surface-200-700 shadow-lg flex items-center justify-center"
 	style="width: {diameter}px; height: {diameter}px;"
 	class:border-primary-500={selected}
 >
 	{#each handlePositions as position, i}
-		<!-- Handles with full size for interaction, but edge connects from center -->
 		<Handle
 			type="source"
 			position={Position.Right}

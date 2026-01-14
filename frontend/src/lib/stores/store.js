@@ -74,3 +74,12 @@ export const layerVisibilityConfig = persisted('layerVisibilityConfig', {
 // Layer opacity configuration - controls the opacity of the base OSM layer
 // Value: number between 0 and 1
 export const layerOpacity = persisted('layerOpacity', 1);
+
+// Basemap theme - controls which map style is used (light or dark)
+// Value: 'light' | 'dark'
+export const basemapTheme = persisted('basemapTheme', 'light');
+
+// Tile server availability - tracks whether the vector tile server is available
+// When false, falls back to standard OSM raster tiles
+// Value: boolean
+export const tileServerAvailable = persisted('tileServerAvailable', true);

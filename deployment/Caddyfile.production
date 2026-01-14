@@ -121,6 +121,25 @@
     }
 }
 
+# Vector Tile Server
+{$TILE_SERVER_DOMAIN} {
+    reverse_proxy tileserver:8080 {
+        header_up Host {host}
+        header_up X-Forwarded-Proto https
+        header_up X-Real-IP {remote_host}
+    }
+
+    # Security headers
+    header {
+        Strict-Transport-Security max-age=31536000;
+        X-Content-Type-Options nosniff
+        -Server
+        # Allow CORS for tile requests from app domain
+        Access-Control-Allow-Origin *
+        Access-Control-Allow-Methods "GET, OPTIONS"
+    }
+}
+
 # Redirect www to non-www
 www.{$DOMAIN_NAME} {
     redir https://{$DOMAIN_NAME}{uri} permanent

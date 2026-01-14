@@ -186,6 +186,23 @@ services:
         max-file: "3"
         labels: "service=frontend"
 
+  tileserver:
+    image: maptiler/tileserver-gl:latest
+    container_name: krit_gis_tileserver
+    restart: unless-stopped
+    volumes:
+      - ./tiles:/data
+    ports:
+      - "${TILE_SERVER_PORT:-8090}:8080"
+    networks:
+      - krit_gis_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=tileserver"
+
 volumes:
   static_volume: {}
   media_volume: {}

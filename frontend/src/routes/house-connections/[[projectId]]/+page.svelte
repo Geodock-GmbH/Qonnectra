@@ -180,7 +180,10 @@
 				}
 				return undefined;
 			},
-			visible: true
+			visible: true,
+			properties: {
+				isHighlightLayer: true
+			}
 		});
 		mapState.olMap.addLayer(linkedTrenchesLayer);
 

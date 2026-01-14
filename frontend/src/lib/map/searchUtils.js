@@ -16,7 +16,10 @@ export async function createHighlightLayer(highlightStyle) {
 	return new VectorLayer({
 		source: new VectorSource(),
 		style: highlightStyle,
-		zIndex: 1000 // Ensure it renders on top
+		zIndex: 1000,
+		properties: {
+			isHighlightLayer: true
+		}
 	});
 }
 

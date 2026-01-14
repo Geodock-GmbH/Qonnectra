@@ -1050,8 +1050,7 @@ class OlTrenchTileViewSet(APIView):
                         (SELECT STRING_AGG(co.name, ', ' ORDER BY co.name)
                          FROM public.trench_conduit_connect tcc
                          JOIN public.conduit co ON tcc.uuid_conduit = co.uuid
-                         WHERE tcc.uuid_trench = t.uuid),
-                        ''
+                         WHERE tcc.uuid_trench = t.uuid)
                     ) AS conduit_names
                 FROM
                     public.ol_trench t

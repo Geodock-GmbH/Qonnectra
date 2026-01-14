@@ -22,7 +22,6 @@ import {
 	createTrenchLayer
 } from '$lib/map';
 
-// Default style values (match store defaults)
 const DEFAULT_TRENCH_COLOR = '#000000';
 const DEFAULT_SELECTED_COLOR = '#000000';
 const DEFAULT_ADDRESS_COLOR = '#2563eb';
@@ -64,7 +63,6 @@ export class MapState {
 		area: true
 	});
 
-	// Label configuration
 	labelConfig = $state({
 		trench: { enabled: false, field: 'id_trench', minResolution: 1.5 },
 		conduit: { enabled: false, field: 'conduit_names', minResolution: 1.5 },

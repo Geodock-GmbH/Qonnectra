@@ -36,7 +36,6 @@
 	let showSearchResults = $state(false);
 	let highlightLayer = $state();
 
-	// Search functions
 	const debouncedSearch = debounce(async (query) => {
 		if (!query.trim()) {
 			searchResults = [];
@@ -116,7 +115,7 @@
 
 				const geometry = await parseFeatureGeometry(
 					feature,
-					'EPSG:25832', //TODO: Change to not be hardcoded
+					'EPSG:25832',
 					olMapInstance.getView().getProjection()
 				);
 
@@ -132,7 +131,6 @@
 				highlightFeature.setId(feature.id);
 
 				highlightLayer.getSource().clear();
-
 				await zoomToFeature(olMapInstance, geometry, highlightLayer);
 
 				searchQuery = '';
@@ -187,14 +185,12 @@
 					return;
 				}
 
-				// Parse all trench geometries
 				const geometries = await parseMultipleFeatureGeometries(
 					parsedData.trenches,
 					'EPSG:25832',
 					olMapInstance.getView().getProjection()
 				);
 
-				// Ensure highlight layer exists
 				if (!highlightLayer) {
 					const highlightStyle = await createHighlightStyle(trenchColorSelected);
 					highlightLayer = await createHighlightLayer(highlightStyle);
@@ -202,13 +198,10 @@
 				}
 
 				highlightLayer.getSource().clear();
-
-				// Zoom to all trenches with blinking animation (features persist after blink)
 				await zoomToMultipleFeatures(olMapInstance, geometries, highlightLayer, {
 					maxZoom: 17
 				});
 
-				// Clear search state
 				searchQuery = '';
 				searchResults = [];
 				showSearchResults = false;
@@ -241,7 +234,6 @@
 		}
 	}
 
-	// Expose methods for external control
 	export function clearSearch() {
 		searchQuery = '';
 		searchResults = [];
@@ -256,13 +248,14 @@
 	}
 </script>
 
+<!-- SearchPanel: Main container -->
 <div class="w-full space-y-2">
-	<!-- Search Input -->
+	<!-- SearchPanel: Search input wrapper -->
 	<div class="preset-filled-surface-50-950 rounded-lg shadow-md border border-surface-200-800/50">
 		<SearchInput bind:value={searchQuery} onSearch={handleSearch} />
 	</div>
 
-	<!-- Search Results -->
+	<!-- SearchPanel: Search results dropdown -->
 	{#if showSearchResults && searchResults.length > 0 && !isSearching}
 		<div
 			class="preset-filled-surface-50-950 rounded-lg shadow-md border border-surface-200-800/50 p-2 animate-in fade-in slide-in-from-top-1 duration-200 flex items-center"
@@ -278,7 +271,7 @@
 		</div>
 	{/if}
 
-	<!-- Loading State -->
+	<!-- SearchPanel: Loading state -->
 	{#if isSearching}
 		<div
 			class="preset-filled-surface-50-950 rounded-lg shadow-md border border-surface-200-800/50 p-4 sm:p-3"

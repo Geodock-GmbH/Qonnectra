@@ -6,7 +6,9 @@
 		IconEyeOff,
 		IconLabel,
 		IconLabelFilled,
+		IconMoon,
 		IconStack2,
+		IconSun,
 		IconX,
 		IconZoomScan
 	} from '@tabler/icons-svelte';
@@ -21,6 +23,7 @@
 	} from '$lib/map/styles';
 	import {
 		areaTypeStyles,
+		basemapTheme,
 		labelVisibilityConfig,
 		layerVisibilityConfig,
 		nodeTypeStyles,
@@ -36,6 +39,7 @@
 		surfaces = [],
 		constructionTypes = [],
 		areaTypes = [],
+		usingFallbackOSM = false,
 		onLayerVisibilityChanged = () => {},
 		onNodeTypeVisibilityChanged = () => {},
 		onTrenchTypeVisibilityChanged = () => {},
@@ -44,12 +48,18 @@
 		onZoomToExtent = () => {}
 	} = $props();
 
+	/**
+	 * Toggle the basemap theme between light and dark
+	 */
+	function toggleBasemapTheme() {
+		$basemapTheme = $basemapTheme === 'light' ? 'dark' : 'light';
+	}
+
 	let layerVisibility = $state(new Map());
 	let isNodeSubtypesExpanded = $state(false);
 	let isTrenchSubtypesExpanded = $state(false);
 	let isAreaSubtypesExpanded = $state(false);
 
-	// Mobile bottom sheet states
 	let isMobileSheetOpen = $state(false);
 	let isDragging = $state(false);
 	let startY = $state(0);
@@ -87,7 +97,6 @@
 		}
 	});
 
-	// Define layer display order priority (lower number = higher priority)
 	const LAYER_ORDER = {
 		'address-layer': 1,
 		'node-layer': 2,
@@ -145,12 +154,17 @@
 			}
 		}
 
+		const osmVisible = $layerVisibilityConfig['osm-base-layer'] ?? true;
 		if (osmLayer) {
-			const osmVisible = $layerVisibilityConfig['osm-base-layer'] ?? true;
 			osmLayer.setVisible(osmVisible);
-
 			newVisibility.set('osm-base-layer', {
 				layer: osmLayer,
+				visible: osmVisible,
+				name: m.common_osm()
+			});
+		} else {
+			newVisibility.set('osm-base-layer', {
+				layer: null,
 				visible: osmVisible,
 				name: m.common_osm()
 			});
@@ -168,7 +182,9 @@
 		if (layerInfo) {
 			const newVisible = !layerInfo.visible;
 
-			layerInfo.layer.setVisible(newVisible);
+			if (layerInfo.layer) {
+				layerInfo.layer.setVisible(newVisible);
+			}
 
 			layerVisibility.set(layerId, {
 				...layerInfo,
@@ -517,7 +533,7 @@
 	}
 </script>
 
-<!-- Mobile: Floating Action Button to open layer sheet -->
+<!-- LayerVisibilityTree: Mobile bottom sheet variant -->
 <div class="sm:hidden">
 	<button
 		onclick={toggleMobileSheet}
@@ -630,7 +646,7 @@
 											onZoomToExtent({ layerId, layerType: getExtentLayerType(layerId) })}
 										aria-label="Zoom to extent"
 									>
-										<IconZoomScan size="22" class="text-surface-500" />
+										<IconZoomScan size="22" class="text-surface-900-100" />
 									</button>
 								{/if}
 
@@ -644,6 +660,23 @@
 											<IconLabelFilled size="22" class="text-primary-500" />
 										{:else}
 											<IconLabel size="22" class="text-surface-900-100" />
+										{/if}
+									</button>
+								{/if}
+
+								<!-- Theme toggle for OSM base layer (only when using vector tiles) -->
+								{#if layerId === 'osm-base-layer' && !usingFallbackOSM}
+									<button
+										class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all"
+										onclick={toggleBasemapTheme}
+										aria-label={$basemapTheme === 'light'
+											? 'Switch to dark theme'
+											: 'Switch to light theme'}
+									>
+										{#if $basemapTheme === 'light'}
+											<IconMoon size="22" class="text-surface-900-100" />
+										{:else}
+											<IconSun size="22" class="text-yellow-500" />
 										{/if}
 									</button>
 								{/if}
@@ -804,9 +837,9 @@
 	{/if}
 </div>
 
-<!-- Desktop: Traditional sidebar panel -->
+<!-- LayerVisibilityTree: Desktop sidebar variant -->
 <div
-	class="hidden sm:flex sm:flex-col w-64 max-h-[calc(100vh-12rem)] p-3 border border-surface-200-800 bg-surface-50-950 rounded-lg shadow-md"
+	class="hidden sm:flex sm:flex-col w-72 max-h-[calc(100vh-12rem)] p-3 border border-surface-200-800 bg-surface-50-950 rounded-lg shadow-md"
 >
 	<!-- Header -->
 	<div class="flex items-center justify-between mb-3 pb-2 border-surface-200-800 flex-shrink-0">
@@ -874,7 +907,7 @@
 							aria-label="Zoom to extent"
 							title="Zoom to extent"
 						>
-							<IconZoomScan size={24} class="text-surface-500" />
+							<IconZoomScan size={24} class="text-surface-900-100" />
 						</button>
 					{:else}
 						<span class="w-6 flex-shrink-0"></span>
@@ -891,11 +924,29 @@
 							{#if isLabelEnabled(layerId)}
 								<IconLabelFilled size={24} class="text-primary-500" />
 							{:else}
-								<IconLabel size={24} class="text-surface-500" />
+								<IconLabel size={24} class="text-surface-900-100" />
 							{/if}
 						</button>
 					{:else}
 						<span class="w-6 flex-shrink-0"></span>
+					{/if}
+
+					<!-- Theme toggle for OSM base layer (only when using vector tiles) -->
+					{#if layerId === 'osm-base-layer' && !usingFallbackOSM}
+						<button
+							class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
+							onclick={toggleBasemapTheme}
+							aria-label={$basemapTheme === 'light'
+								? 'Switch to dark theme'
+								: 'Switch to light theme'}
+							title={$basemapTheme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
+						>
+							{#if $basemapTheme === 'light'}
+								<IconMoon size={24} class="text-surface-900-100" />
+							{:else}
+								<IconSun size={24} class="text-yellow-500" />
+							{/if}
+						</button>
 					{/if}
 
 					<!-- Visibility button -->
@@ -908,7 +959,7 @@
 						{#if layerInfo.visible}
 							<IconEye size={24} class="text-primary-500" />
 						{:else}
-							<IconEyeOff size={24} class="text-surface-500" />
+							<IconEyeOff size={24} class="text-surface-900-100" />
 						{/if}
 					</button>
 				</div>
@@ -1047,7 +1098,7 @@
 						{#if isConduitLabelEnabled()}
 							<IconLabelFilled size="24" class="text-primary-500" />
 						{:else}
-							<IconLabel size="24" class="text-surface-500" />
+							<IconLabel size="24" class="text-surface-900-100" />
 						{/if}
 					</button>
 

@@ -108,15 +108,15 @@ export const actions = {
 				!uuid_microduct_to ||
 				!uuid_node ||
 				!uuid_trench_from ||
-			!uuid_trench_to
-		) {
-			return fail(400, {
-				error:
-					'Missing required fields: uuid_microduct_from, uuid_microduct_to, uuid_node, uuid_trench_from, and uuid_trench_to are required'
-			});
-		}
+				!uuid_trench_to
+			) {
+				return fail(400, {
+					error:
+						'Missing required fields: uuid_microduct_from, uuid_microduct_to, uuid_node, uuid_trench_from, and uuid_trench_to are required'
+				});
+			}
 
-		if (uuid_microduct_from === uuid_microduct_to) {
+			if (uuid_microduct_from === uuid_microduct_to) {
 				return fail(400, {
 					error: 'Cannot connect a microduct to itself'
 				});

@@ -62,13 +62,8 @@
 	"common_yes": "Yes",
 	"form_address": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Address",
 				"countPlural=other": "Addresses"
@@ -91,13 +86,8 @@
 	"form_company": "Company",
 	"form_conduit": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Conduit",
 				"countPlural=other": "Conduits"
@@ -114,13 +104,8 @@
 	"form_date_to": "To date",
 	"form_days": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "day",
 				"countPlural=other": "days"
@@ -133,13 +118,8 @@
 	"form_expires_on": "Expires on",
 	"form_files": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "File",
 				"countPlural=other": "Files"
@@ -171,13 +151,8 @@
 	"form_message": "Message",
 	"form_microduct": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Microduct",
 				"countPlural=other": "Microducts"
@@ -203,13 +178,8 @@
 	"form_phase": "Phase",
 	"form_project": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Project",
 				"countPlural=other": "Projects"

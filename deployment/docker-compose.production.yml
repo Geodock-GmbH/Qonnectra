@@ -205,6 +205,7 @@ services:
       args:
         - API_URL=${API_URL}
         - PUBLIC_API_URL=${PUBLIC_API_URL}
+        - PUBLIC_TILE_SERVER_URL=${PUBLIC_TILE_SERVER_URL}
     env_file:
       - .env
     container_name: krit_gis_frontend_prod
@@ -215,6 +216,8 @@ services:
       - ORIGIN=https://${APP_DOMAIN}
       - NODE_ENV=production
       - API_URL=${API_URL}
+      - PUBLIC_API_URL=${PUBLIC_API_URL}
+      - PUBLIC_TILE_SERVER_URL=${PUBLIC_TILE_SERVER_URL}
     networks:
       - krit_gis_network
     depends_on:
@@ -254,6 +257,31 @@ services:
         reservations:
           memory: 64M
 
+  tileserver:
+    image: maptiler/tileserver-gl:latest
+    container_name: krit_gis_tileserver_prod
+    restart: always
+    user: "1000:1000"
+    volumes:
+      - ./tiles:/data:ro
+    command: ["--config", "/data/config.json", "--public_url", "https://${TILE_SERVER_DOMAIN}"]
+    expose:
+      - "8080"
+    networks:
+      - krit_gis_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=tileserver"
+
   caddy:
     build:
       context: ./caddy
@@ -277,12 +305,14 @@ services:
       - APP_DOMAIN=${APP_DOMAIN}
       - FILES_DOMAIN=${FILES_DOMAIN}
       - QGIS_DOMAIN=${QGIS_DOMAIN}
+      - TILE_SERVER_DOMAIN=${TILE_SERVER_DOMAIN}
     cap_add:
       - NET_ADMIN
     depends_on:
       - nginx
       - frontend
       - qgis-server
+      - tileserver
     networks:
       - krit_gis_network
     deploy:
