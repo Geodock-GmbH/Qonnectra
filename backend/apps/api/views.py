@@ -1021,11 +1021,25 @@ class OlTrenchTileViewSet(APIView):
         URL: /api/ol_trench_tiles/{z}/{x}/{y}.mvt?project={project}
         """
         sql = """
-            WITH mvtgeom AS (
+            WITH
+            bounds AS (
+                SELECT
+                    ST_TileEnvelope(%(z)s, %(x)s, %(y)s) AS tile_bounds,
+                    ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096)) AS tile_bounds_margin
+            ),
+            trench_conduits AS (
+                SELECT
+                    tcc.uuid_trench,
+                    STRING_AGG(co.name, ', ' ORDER BY co.name) AS conduit_names
+                FROM public.trench_conduit_connect tcc
+                JOIN public.conduit co ON tcc.uuid_conduit = co.uuid
+                GROUP BY tcc.uuid_trench
+            ),
+            mvtgeom AS (
                 SELECT
                     ST_AsMVTGeom(
-                        t.geom, 
-                        ST_TileEnvelope(%(z)s, %(x)s, %(y)s),
+                        t.geom_3857,
+                        b.tile_bounds,
                         extent => 4096,
                         buffer => 64
                     ) AS geom,
@@ -1046,14 +1060,9 @@ class OlTrenchTileViewSet(APIView):
                     st.status,
                     s.surface,
                     f.flag,
-                    COALESCE(
-                        (SELECT STRING_AGG(co.name, ', ' ORDER BY co.name)
-                         FROM public.trench_conduit_connect tcc
-                         JOIN public.conduit co ON tcc.uuid_conduit = co.uuid
-                         WHERE tcc.uuid_trench = t.uuid)
-                    ) AS conduit_names
-                FROM
-                    public.ol_trench t
+                    tc.conduit_names
+                FROM bounds b
+                CROSS JOIN public.trench t
                 LEFT JOIN public.flags f ON t.flag = f.id
                 LEFT JOIN public.attributes_surface s ON t.surface = s.id
                 LEFT JOIN public.attributes_construction_type ct ON t.construction_type = ct.id
@@ -1061,8 +1070,9 @@ class OlTrenchTileViewSet(APIView):
                 LEFT JOIN public.attributes_status st ON t.status = st.id
                 LEFT JOIN public.attributes_company c1 ON t.constructor = c1.id
                 LEFT JOIN public.attributes_company c2 ON t.owner = c2.id
+                LEFT JOIN trench_conduits tc ON t.uuid = tc.uuid_trench
                 WHERE
-                    t.geom && ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096))
+                    t.geom_3857 && b.tile_bounds_margin
                     AND t.project = %(project)s
             )
             SELECT ST_AsMVT(mvtgeom, 'ol_trench', 4096, 'geom') AS mvt
@@ -1436,11 +1446,17 @@ class OlAddressTileViewSet(APIView):
         URL: /api/ol_address_tiles/{z}/{x}/{y}.mvt?project={project}
         """
         sql = """
-            WITH mvtgeom AS (
-                SELECT 
-                ST_AsMVTGeom(
-                        a.geom, 
-                        ST_TileEnvelope(%(z)s, %(x)s, %(y)s),
+            WITH
+            bounds AS (
+                SELECT
+                    ST_TileEnvelope(%(z)s, %(x)s, %(y)s) AS tile_bounds,
+                    ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096)) AS tile_bounds_margin
+            ),
+            mvtgeom AS (
+                SELECT
+                    ST_AsMVTGeom(
+                        a.geom_3857,
+                        b.tile_bounds,
                         extent => 4096,
                         buffer => 64
                     ) AS geom,
@@ -1454,11 +1470,12 @@ class OlAddressTileViewSet(APIView):
                     a.house_number_suffix,
                     f.flag,
                     sd.status
-            FROM ol_address  a
-            LEFT JOIN attributes_status_development sd ON a.status_development = sd.id
-            LEFT JOIN flags f ON a.flag = f.id
+                FROM bounds b
+                CROSS JOIN public.address a
+                LEFT JOIN public.attributes_status_development sd ON a.status_development = sd.id
+                LEFT JOIN public.flags f ON a.flag = f.id
                 WHERE
-                    a.geom && ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096))
+                    a.geom_3857 && b.tile_bounds_margin
                     AND a.project = %(project)s
             )
             SELECT ST_AsMVT(mvtgeom, 'ol_address', 4096, 'geom') AS mvt
@@ -2040,11 +2057,17 @@ class OlNodeTileViewSet(APIView):
         URL: /api/ol_node_tiles/{z}/{x}/{y}.mvt?project={project}
         """
         sql = """
-            WITH mvtgeom AS (
-                SELECT 
-                ST_AsMVTGeom(
-                        n.geom, 
-                        ST_TileEnvelope(%(z)s, %(x)s, %(y)s),
+            WITH
+            bounds AS (
+                SELECT
+                    ST_TileEnvelope(%(z)s, %(x)s, %(y)s) AS tile_bounds,
+                    ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096)) AS tile_bounds_margin
+            ),
+            mvtgeom AS (
+                SELECT
+                    ST_AsMVTGeom(
+                        n.geom_3857,
+                        b.tile_bounds,
                         extent => 4096,
                         buffer => 64
                     ) AS geom,
@@ -2059,19 +2082,20 @@ class OlNodeTileViewSet(APIView):
                     nt.node_type,
                     c1.company,
                     s.status,
-                    coalesce(a.street || ' ' || a.housenumber, a.house_number_suffix,
-                    a.street || '' || a.housenumber) as address
-                FROM ol_node n
-                LEFT JOIN address a on n.uuid_address = a.uuid
-                LEFT JOIN attributes_company c1 on n.owner = c1.id
-                LEFT JOIN attributes_company c2 on n.constructor = c2.id
-                LEFT JOIN attributes_company c3 on n.manufacturer = c3.id
-                LEFT JOIN attributes_network_level nl on n.network_level = nl.id
-                LEFT JOIN attributes_node_type nt on n.node_type = nt.id
-                LEFT JOIN attributes_status s on n.status = s.id
-                LEFT JOIN flags f on n.flag = f.id
+                    COALESCE(a.street || ' ' || a.housenumber, a.house_number_suffix,
+                        a.street || '' || a.housenumber) AS address
+                FROM bounds b
+                CROSS JOIN public.node n
+                LEFT JOIN public.address a ON n.uuid_address = a.uuid
+                LEFT JOIN public.attributes_company c1 ON n.owner = c1.id
+                LEFT JOIN public.attributes_company c2 ON n.constructor = c2.id
+                LEFT JOIN public.attributes_company c3 ON n.manufacturer = c3.id
+                LEFT JOIN public.attributes_network_level nl ON n.network_level = nl.id
+                LEFT JOIN public.attributes_node_type nt ON n.node_type = nt.id
+                LEFT JOIN public.attributes_status s ON n.status = s.id
+                LEFT JOIN public.flags f ON n.flag = f.id
                 WHERE
-                    n.geom && ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096))
+                    n.geom_3857 && b.tile_bounds_margin
                     AND n.project = %(project)s
             )
             SELECT ST_AsMVT(mvtgeom, 'ol_node', 4096, 'geom') AS mvt
@@ -3088,11 +3112,17 @@ class OlAreaTileViewSet(APIView):
         URL: /api/ol_area_tiles/{z}/{x}/{y}.mvt?project={project}
         """
         sql = """
-            WITH mvtgeom AS (
+            WITH
+            bounds AS (
                 SELECT
-                ST_AsMVTGeom(
-                        a.geom,
-                        ST_TileEnvelope(%(z)s, %(x)s, %(y)s),
+                    ST_TileEnvelope(%(z)s, %(x)s, %(y)s) AS tile_bounds,
+                    ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096)) AS tile_bounds_margin
+            ),
+            mvtgeom AS (
+                SELECT
+                    ST_AsMVTGeom(
+                        a.geom_3857,
+                        b.tile_bounds,
                         extent => 4096,
                         buffer => 64
                     ) AS geom,
@@ -3100,11 +3130,12 @@ class OlAreaTileViewSet(APIView):
                     a.name,
                     at.area_type,
                     f.flag
-            FROM ol_area a
-            LEFT JOIN attributes_area_type at ON a.area_type = at.id
-            LEFT JOIN flags f ON a.flag = f.id
+                FROM bounds b
+                CROSS JOIN public.area a
+                LEFT JOIN public.attributes_area_type at ON a.area_type = at.id
+                LEFT JOIN public.flags f ON a.flag = f.id
                 WHERE
-                    a.geom && ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096))
+                    a.geom_3857 && b.tile_bounds_margin
                     AND a.project = %(project)s
             )
             SELECT ST_AsMVT(mvtgeom, 'ol_area', 4096, 'geom') AS mvt
