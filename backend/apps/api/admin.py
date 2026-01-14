@@ -16,6 +16,8 @@ from .models import (
     AttributesAreaType,
     AttributesCableType,
     AttributesCompany,
+    AttributesComponentStructure,
+    AttributesComponentType,
     AttributesConduitType,
     AttributesConstructionType,
     AttributesFiberColor,
@@ -242,6 +244,8 @@ admin.site.register(AttributesStatus)
 admin.site.register(AttributesPhase)
 admin.site.register(AttributesCompany)
 admin.site.register(AttributesAreaType)
+admin.site.register(AttributesComponentType)
+admin.site.register(AttributesComponentStructure)
 admin.site.register(Cable)
 admin.site.register(FileTypeCategory)
 

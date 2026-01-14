@@ -593,6 +593,97 @@ class AttributesAreaType(models.Model):
         return self.area_type
 
 
+class AttributesComponentType(models.Model):
+    """Stores all component types"""
+
+    id = models.AutoField(primary_key=True)
+    component_type = models.TextField(
+        _("Component Type"),
+        null=False,
+        blank=False,
+        db_index=False,
+        unique=True,
+        help_text=_(
+            "The type of the component (e.g. 'Router', 'Switch', 'Access Point', etc.)"
+        ),
+    )
+    occupied_slots = models.IntegerField(
+        _("Occupied Slots"),
+        null=False,
+        blank=False,
+        default=1,
+        help_text=_("Number of slots occupied by the component (default: 1)"),
+    )
+    manufacturer = models.ForeignKey(
+        AttributesCompany,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_column="manufacturer",
+        verbose_name=_("Manufacturer"),
+        help_text=_("The manufacturer of the component"),
+    )
+
+    class Meta:
+        db_table = "attributes_component_type"
+        verbose_name = _("Component Type")
+        verbose_name_plural = _("Component Types")
+        ordering = ["component_type"]
+        indexes = [
+            models.Index(fields=["component_type"], name="idx_component_type"),
+        ]
+
+    def __str__(self):
+        return self.component_type
+
+
+class AttributesComponentStructure(models.Model):
+    """Stores all component structures"""
+
+    class InOrOut(models.TextChoices):
+        IN = "in", _("In")
+        OUT = "out", _("Out")
+
+    id = models.AutoField(primary_key=True)
+    component_type = models.ForeignKey(
+        AttributesComponentType,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE,
+        verbose_name=_("Component Type"),
+    )
+    in_or_out = models.CharField(
+        _("In or Out"),
+        max_length=10,
+        choices=InOrOut.choices,
+        null=False,
+        blank=False,
+    )
+    port = models.IntegerField(_("Port"), null=False, blank=False)
+    port_alias = models.TextField(_("Port Alias"), null=True, blank=True)
+
+    class Meta:
+        db_table = "attributes_component_structure"
+        verbose_name = _("Component Structure")
+        verbose_name_plural = _("Component Structures")
+        ordering = ["component_type", "in_or_out", "port"]
+        indexes = [
+            models.Index(
+                fields=["component_type", "in_or_out", "port"],
+                name="idx_component_structure_type",
+            ),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["component_type", "in_or_out", "port"],
+                name="unique_component_structure",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.component_type} - {self.in_or_out} - {self.port}"
+
+
 class FeatureFiles(models.Model):
     """Stores all files for different models,
     related to :model:`api.Trench`.
@@ -3022,3 +3113,159 @@ class GeoPackageSchemaConfig(models.Model):
     def get_layer_names(self):
         """Return list of layer names for use with generate_geopackage_schema."""
         return self.selected_layers or []
+
+
+class NodeSlotConfiguration(models.Model):
+    """Stores the slot configuration for a node side."""
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    uuid_node = models.ForeignKey(
+        Node,
+        on_delete=models.CASCADE,
+        verbose_name=_("Node"),
+        db_column="uuid_node",
+        related_name="slot_configurations",
+        db_index=False,
+    )
+    side = models.CharField(
+        _("Side"),
+        max_length=50,
+        help_text=_("The name of the side (e.g., 'A', 'B', 'Left Side', 'Right Side')"),
+    )
+    total_slots = models.IntegerField(
+        _("Total Slots"),
+        null=False,
+        blank=False,
+        help_text=_("The total number of slots available on this side"),
+    )
+
+    class Meta:
+        db_table = "node_slot_configuration"
+        verbose_name = _("Node Slot Configuration")
+        verbose_name_plural = _("Node Slot Configurations")
+        ordering = ["uuid_node", "side"]
+        indexes = [
+            models.Index(fields=["uuid_node"], name="idx_node_slot_config_node"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["uuid_node", "side"],
+                name="unique_node_slot_config_side",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.uuid_node} - {self.side}: {self.total_slots} slots"
+
+
+class NodeStructure(models.Model):
+    """Stores the structure of a node."""
+
+    class Purpose(models.TextChoices):
+        COMPONENT = "component", _("Component")
+        RESERVE = "reserve", _("Reserve")
+        EMPTY = "empty", _("Empty")
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    uuid_node = models.ForeignKey(
+        Node,
+        on_delete=models.CASCADE,
+        verbose_name=_("Node"),
+        db_column="uuid_node",
+        db_index=False,
+    )
+    slot_configuration = models.ForeignKey(
+        NodeSlotConfiguration,
+        on_delete=models.CASCADE,
+        verbose_name=_("Slot Configuration"),
+        db_column="slot_configuration",
+        related_name="structures",
+        db_index=False,
+        help_text=_("The slot configuration (side) where this structure is placed"),
+    )
+    component_type = models.ForeignKey(
+        AttributesComponentType,
+        on_delete=models.CASCADE,
+        verbose_name=_("Component Type"),
+        db_column="component_type",
+        db_index=False,
+        null=True,
+        blank=True,
+    )
+    component_structure = models.ForeignKey(
+        AttributesComponentStructure,
+        on_delete=models.CASCADE,
+        verbose_name=_("Component Structure"),
+        db_column="component_structure",
+        db_index=False,
+        null=True,
+        blank=True,
+    )
+    slot_start = models.IntegerField(
+        _("Slot Start"),
+        null=False,
+        blank=False,
+        help_text=_("The start slot of the component in the node"),
+    )
+    slot_end = models.IntegerField(
+        _("Slot End"),
+        null=False,
+        blank=False,
+        help_text=_("The end slot of the component in the node"),
+    )
+    clip_number = models.IntegerField(
+        _("Clip Slot Number"),
+        null=True,
+        blank=True,
+        help_text=_("The number of the clip in the component"),
+    )
+    purpose = models.CharField(
+        _("Purpose"),
+        max_length=20,
+        choices=Purpose.choices,
+        default=Purpose.COMPONENT,
+        help_text=_("The purpose of this slot range (component, reserve, or empty)"),
+    )
+    label = models.CharField(
+        _("Label"),
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text=_(
+            "Optional label for this slot range (e.g., 'Reserve for future use')"
+        ),
+    )
+
+    class Meta:
+        db_table = "node_structure"
+        verbose_name = _("Node Structure")
+        verbose_name_plural = _("Node Structures")
+        ordering = ["uuid_node", "slot_configuration", "slot_start"]
+        indexes = [
+            models.Index(fields=["uuid_node"], name="idx_node_structure_node"),
+            models.Index(
+                fields=["slot_configuration"], name="idx_node_structure_slot_config"
+            ),
+            models.Index(
+                fields=["component_type"], name="idx_node_structure_comp_type"
+            ),
+            models.Index(
+                fields=["component_structure"],
+                name="idx_node_component_structure",
+            ),
+            models.Index(fields=["purpose"], name="idx_node_structure_purpose"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["slot_configuration", "slot_start", "slot_end"],
+                name="unique_node_structure_slot",
+            ),
+        ]
+
+    def __str__(self):
+        side_name = (
+            self.slot_configuration.side if self.slot_configuration else "Unknown"
+        )
+        if self.purpose == self.Purpose.COMPONENT:
+            return f"{self.uuid_node} - {side_name} - {self.component_type} - Slots {self.slot_start}-{self.slot_end}"
+        return f"{self.uuid_node} - {side_name} - {self.get_purpose_display()} - Slots {self.slot_start}-{self.slot_end}"

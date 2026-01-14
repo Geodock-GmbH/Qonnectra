@@ -7,6 +7,8 @@ from .views import (
     AttributesAreaTypeViewSet,
     AttributesCableTypeViewSet,
     AttributesCompanyViewSet,
+    AttributesComponentStructureViewSet,
+    AttributesComponentTypeViewSet,
     AttributesConduitTypeViewSet,
     AttributesConstructionTypeViewSet,
     AttributesFiberColorViewSet,
@@ -33,6 +35,8 @@ from .views import (
     MicroductConnectionViewSet,
     MicroductViewSet,
     NodeCanvasCoordinatesView,
+    NodeSlotConfigurationViewSet,
+    NodeStructureViewSet,
     NodeTrenchSelectionViewSet,
     NodeViewSet,
     OlAddressTileViewSet,
@@ -113,6 +117,16 @@ router.register(
     AttributesAreaTypeViewSet,
     basename="attributes_area_type",
 )
+router.register(
+    r"attributes_component_type",
+    AttributesComponentTypeViewSet,
+    basename="attributes_component_type",
+)
+router.register(
+    r"attributes_component_structure",
+    AttributesComponentStructureViewSet,
+    basename="attributes_component_structure",
+)
 router.register(r"content-types", ContentTypeViewSet, basename="content-types")
 router.register(r"address", AddressViewSet, basename="address")
 router.register(r"area", AreaViewSet, basename="area")
@@ -152,6 +166,16 @@ router.register(
     r"node-trench-selection",
     NodeTrenchSelectionViewSet,
     basename="node-trench-selection",
+)
+router.register(
+    r"node-structure",
+    NodeStructureViewSet,
+    basename="node-structure",
+)
+router.register(
+    r"node-slot-configuration",
+    NodeSlotConfigurationViewSet,
+    basename="node-slot-configuration",
 )
 
 urlpatterns = [

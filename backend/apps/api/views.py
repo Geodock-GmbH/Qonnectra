@@ -25,6 +25,8 @@ from .models import (
     AttributesAreaType,
     AttributesCableType,
     AttributesCompany,
+    AttributesComponentStructure,
+    AttributesComponentType,
     AttributesConduitType,
     AttributesConstructionType,
     AttributesFiberColor,
@@ -47,6 +49,8 @@ from .models import (
     MicroductConnection,
     NetworkSchemaSettings,
     Node,
+    NodeSlotConfiguration,
+    NodeStructure,
     NodeTrenchSelection,
     OlAddress,
     OlArea,
@@ -65,6 +69,8 @@ from .serializers import (
     AttributesAreaTypeSerializer,
     AttributesCableTypeSerializer,
     AttributesCompanySerializer,
+    AttributesComponentStructureSerializer,
+    AttributesComponentTypeSerializer,
     AttributesConduitTypeSerializer,
     AttributesConstructionTypeSerializer,
     AttributesFiberColorSerializer,
@@ -86,6 +92,8 @@ from .serializers import (
     MicroductConnectionSerializer,
     MicroductSerializer,
     NodeSerializer,
+    NodeSlotConfigurationSerializer,
+    NodeStructureSerializer,
     NodeTrenchSelectionBulkSerializer,
     NodeTrenchSelectionSerializer,
     OlAddressSerializer,
@@ -254,6 +262,22 @@ class AttributesAreaTypeViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = AttributesAreaType.objects.all().order_by("area_type")
     serializer_class = AttributesAreaTypeSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class AttributesComponentTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesComponentType.objects.all().order_by("component_type")
+    serializer_class = AttributesComponentTypeSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class AttributesComponentStructureViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesComponentStructure.objects.all().order_by("component_type")
+    serializer_class = AttributesComponentStructureSerializer
     lookup_field = "id"
     lookup_url_kwarg = "pk"
 
@@ -3236,3 +3260,106 @@ class NodeTrenchSelectionViewSet(viewsets.ModelViewSet):
         ).select_related("trench")
         result_serializer = NodeTrenchSelectionSerializer(updated_selections, many=True)
         return Response(result_serializer.data, status=status.HTTP_200_OK)
+
+
+class NodeSlotConfigurationViewSet(viewsets.ModelViewSet):
+    """ViewSet for the NodeSlotConfiguration model.
+
+    Manages slot configurations for nodes, allowing users to define
+    the total number of slots available on each side of a node.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = NodeSlotConfiguration.objects.all().order_by("uuid_node", "side")
+    serializer_class = NodeSlotConfigurationSerializer
+    lookup_field = "uuid"
+
+    def get_queryset(self):
+        """Filter slot configurations by node if specified."""
+        queryset = super().get_queryset()
+        node_uuid = self.request.query_params.get("node")
+        if node_uuid:
+            queryset = queryset.filter(uuid_node__uuid=node_uuid)
+        return queryset.select_related("uuid_node")
+
+    @action(detail=False, methods=["get"], url_path="by-node/(?P<node_uuid>[^/.]+)")
+    def by_node(self, request, node_uuid=None):
+        """Get all slot configurations for a specific node with usage stats."""
+        configs = NodeSlotConfiguration.objects.filter(
+            uuid_node__uuid=node_uuid
+        ).select_related("uuid_node")
+        serializer = self.get_serializer(configs, many=True)
+        return Response(serializer.data)
+
+
+class NodeStructureViewSet(viewsets.ModelViewSet):
+    """ViewSet for the NodeStructure model.
+
+    Manages the structure of components within a node, including
+    component types, structures, and their slot positions.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = NodeStructure.objects.all().order_by("uuid_node", "slot_configuration", "slot_start")
+    serializer_class = NodeStructureSerializer
+    lookup_field = "uuid"
+
+    def get_queryset(self):
+        """Filter node structures by node, slot_configuration, or purpose if specified."""
+        queryset = super().get_queryset()
+        node_uuid = self.request.query_params.get("node")
+        slot_config_uuid = self.request.query_params.get("slot_configuration")
+        purpose = self.request.query_params.get("purpose")
+
+        if node_uuid:
+            queryset = queryset.filter(uuid_node__uuid=node_uuid)
+        if slot_config_uuid:
+            queryset = queryset.filter(slot_configuration__uuid=slot_config_uuid)
+        if purpose:
+            queryset = queryset.filter(purpose=purpose)
+
+        return queryset.select_related(
+            "uuid_node", "slot_configuration", "component_type", "component_structure"
+        )
+
+    @action(detail=False, methods=["get"], url_path="by-node/(?P<node_uuid>[^/.]+)")
+    def by_node(self, request, node_uuid=None):
+        """Get all structures for a specific node grouped by slot configuration."""
+        structures = NodeStructure.objects.filter(
+            uuid_node__uuid=node_uuid
+        ).select_related(
+            "slot_configuration", "component_type", "component_structure"
+        ).order_by("slot_configuration", "slot_start")
+        serializer = self.get_serializer(structures, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="summary/(?P<node_uuid>[^/.]+)")
+    def summary(self, request, node_uuid=None):
+        """Get a summary of slot usage for a node."""
+        try:
+            node = Node.objects.get(uuid=node_uuid)
+        except Node.DoesNotExist:
+            return Response(
+                {"error": "Node not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        configs = NodeSlotConfiguration.objects.filter(uuid_node=node)
+
+        summary = {}
+        for config in configs:
+            side_structures = config.structures.all()
+            used = sum(s.slot_end - s.slot_start + 1 for s in side_structures)
+            components = side_structures.filter(purpose=NodeStructure.Purpose.COMPONENT).count()
+            reserves = side_structures.filter(purpose=NodeStructure.Purpose.RESERVE).count()
+
+            summary[config.side] = {
+                "uuid": str(config.uuid),
+                "total_slots": config.total_slots,
+                "used_slots": used,
+                "free_slots": config.total_slots - used,
+                "component_count": components,
+                "reserve_count": reserves,
+            }
+
+        return Response(summary)

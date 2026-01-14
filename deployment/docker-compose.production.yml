@@ -56,6 +56,7 @@ services:
             python manage.py loaddata attributes_network_level attributes_node_type attributes_status_development attributes_area_types &&
             python manage.py loaddata pipe_branch_settings network_schema_settings attributes_fiber_status attributes_microduct_status &&
             python manage.py loaddata attributes_microduct_color attributes_cable_type attributes_fiber_color conduit_type_color_mapping cable_type_color_mapping &&
+            python manage.py loaddata attributes_component_type attributes_component_structure &&
             gunicorn --bind 0.0.0.0:8000 core.wsgi:application"
     expose:
       - "8000"
@@ -264,7 +265,13 @@ services:
     user: "1000:1000"
     volumes:
       - ./tiles:/data:ro
-    command: ["--config", "/data/config.json", "--public_url", "https://${TILE_SERVER_DOMAIN}"]
+    command:
+      [
+        "--config",
+        "/data/config.json",
+        "--public_url",
+        "https://${TILE_SERVER_DOMAIN}",
+      ]
     expose:
       - "8080"
     networks:

@@ -10,6 +10,8 @@ from .models import (
     AttributesAreaType,
     AttributesCableType,
     AttributesCompany,
+    AttributesComponentStructure,
+    AttributesComponentType,
     AttributesConduitType,
     AttributesConstructionType,
     AttributesFiberColor,
@@ -32,6 +34,8 @@ from .models import (
     MicroductCableConnection,
     MicroductConnection,
     Node,
+    NodeSlotConfiguration,
+    NodeStructure,
     NodeTrenchSelection,
     OlAddress,
     OlArea,
@@ -224,6 +228,22 @@ class AttributesAreaTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = AttributesAreaType
         fields = ["id", "area_type"]
+
+
+class AttributesComponentTypeSerializer(serializers.ModelSerializer):
+    """Serializer for the AttributesComponentType model."""
+
+    class Meta:
+        model = AttributesComponentType
+        fields = ["id", "component_type", "manufacturer"]
+
+
+class AttributesComponentStructureSerializer(serializers.ModelSerializer):
+    """Serializer for the AttributesComponentStructure model."""
+
+    class Meta:
+        model = AttributesComponentStructure
+        fields = ["id", "component_type", "in_or_out", "port", "port_alias"]
 
 
 class TrenchSerializer(GeoFeatureModelSerializer):
@@ -1354,3 +1374,144 @@ class NodeTrenchSelectionBulkSerializer(serializers.Serializer):
         child=serializers.UUIDField(),
         allow_empty=True,
     )
+
+
+class NodeSlotConfigurationSerializer(serializers.ModelSerializer):
+    """Serializer for the NodeSlotConfiguration model."""
+
+    uuid = serializers.UUIDField(read_only=True)
+
+    uuid_node = NodeSerializer(read_only=True)
+
+    uuid_node_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Node.objects.all(),
+        source="uuid_node",
+    )
+    side = serializers.CharField(required=True, max_length=50)
+    total_slots = serializers.IntegerField(required=True)
+
+    used_slots = serializers.SerializerMethodField(read_only=True)
+    free_slots = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = NodeSlotConfiguration
+        fields = "__all__"
+        ordering = ["uuid_node", "side"]
+
+    def get_used_slots(self, obj):
+        """Calculate total used slots from NodeStructure entries."""
+        structures = obj.structures.all()
+        return sum(s.slot_end - s.slot_start + 1 for s in structures)
+
+    def get_free_slots(self, obj):
+        """Calculate remaining free slots."""
+        return obj.total_slots - self.get_used_slots(obj)
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+
+        fields["uuid_node_id"].label = _("Node")
+        fields["side"].label = _("Side")
+        fields["total_slots"].label = _("Total Slots")
+
+        return fields
+
+
+class NodeStructureSerializer(serializers.ModelSerializer):
+    """Serializer for the NodeStructure model."""
+
+    uuid = serializers.UUIDField(read_only=True)
+
+    uuid_node = NodeSerializer(read_only=True)
+    slot_configuration = NodeSlotConfigurationSerializer(read_only=True)
+    component_type = AttributesComponentTypeSerializer(read_only=True)
+    component_structure = AttributesComponentStructureSerializer(read_only=True)
+
+    uuid_node_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Node.objects.all(),
+        source="uuid_node",
+    )
+    slot_configuration_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=NodeSlotConfiguration.objects.all(),
+        source="slot_configuration",
+    )
+    component_type_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesComponentType.objects.all(),
+        source="component_type",
+        required=False,
+        allow_null=True,
+    )
+    component_structure_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesComponentStructure.objects.all(),
+        source="component_structure",
+        required=False,
+        allow_null=True,
+    )
+    slot_start = serializers.IntegerField(required=True)
+    slot_end = serializers.IntegerField(required=True)
+    clip_number = serializers.IntegerField(required=False, allow_null=True)
+    purpose = serializers.ChoiceField(
+        choices=NodeStructure.Purpose.choices,
+        default=NodeStructure.Purpose.COMPONENT,
+    )
+    label = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
+    slot_count = serializers.SerializerMethodField(read_only=True)
+    side_name = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = NodeStructure
+        fields = "__all__"
+        ordering = ["uuid_node", "slot_configuration", "slot_start"]
+
+    def get_slot_count(self, obj):
+        """Calculate the number of slots used by this structure."""
+        return obj.slot_end - obj.slot_start + 1
+
+    def get_side_name(self, obj):
+        """Get the side name from the slot configuration."""
+        return obj.slot_configuration.side if obj.slot_configuration else None
+
+    def validate(self, data):
+        """Validate that component fields are provided when purpose is 'component'."""
+        purpose = data.get("purpose", NodeStructure.Purpose.COMPONENT)
+        if purpose == NodeStructure.Purpose.COMPONENT:
+            if not data.get("component_type"):
+                raise serializers.ValidationError(
+                    {
+                        "component_type_id": _(
+                            "Component type is required for component entries."
+                        )
+                    }
+                )
+            if not data.get("component_structure"):
+                raise serializers.ValidationError(
+                    {
+                        "component_structure_id": _(
+                            "Component structure is required for component entries."
+                        )
+                    }
+                )
+        return data
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+
+        fields["uuid_node_id"].label = _("Node")
+        fields["slot_configuration_id"].label = _("Slot Configuration")
+        fields["component_type_id"].label = _("Component Type")
+        fields["component_structure_id"].label = _("Component Structure")
+        fields["slot_start"].label = _("Slot Start")
+        fields["slot_end"].label = _("Slot End")
+        fields["clip_number"].label = _("Clip Number")
+        fields["purpose"].label = _("Purpose")
+        fields["label"].label = _("Label")
+
+        return fields
