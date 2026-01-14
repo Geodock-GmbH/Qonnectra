@@ -10,11 +10,16 @@
 	// Use the edges store for deletion
 	const edges = useEdges();
 
+	// Offset to center: handles are 24px, Position.Right adds 12px, Position.Left subtracts 12px
+	// We need to reverse these offsets to connect to the center of the handles
+	const centeredSourceX = $derived(sourceX - 12);
+	const centeredTargetX = $derived(targetX + 12);
+
 	let [edgePath] = $derived(
 		getStraightPath({
-			sourceX,
+			sourceX: centeredSourceX,
 			sourceY,
-			targetX,
+			targetX: centeredTargetX,
 			targetY
 		})
 	);
@@ -25,8 +30,8 @@
 	const targetHandleData = $derived(data?.targetHandleData || {});
 	const isConnected = $derived(!!connectionUuid);
 
-	// Edge label position - offset more to avoid overlap with bigger nodes
-	const labelX = $derived((sourceX + targetX) / 2);
+	// Edge label position - use centered coordinates for proper placement
+	const labelX = $derived((centeredSourceX + centeredTargetX) / 2);
 	const labelY = $derived((sourceY + targetY) / 2 - 20);
 
 	// Handle edge deletion
@@ -89,11 +94,18 @@
 				{sourceHandleData.microductNumber} ↔ {targetHandleData.microductNumber}
 			</div>
 			<button
-				class="nodrag nopan bg-error-500 hover:bg-error-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow-sm"
+				class="nodrag nopan bg-error-500 hover:bg-error-600 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"
 				onclick={handleDeleteEdge}
 				title="Delete connection"
 			>
-				×
+				<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="3"
+						d="M6 18L18 6M6 6l12 12"
+					/>
+				</svg>
 			</button>
 		</div>
 	</foreignObject>
@@ -103,7 +115,7 @@
 {#if !isConnected}
 	<EdgeLabel x={labelX} y={labelY}>
 		<button
-			class="nodrag nopan bg-error-500 hover:bg-error-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow-sm"
+			class="nodrag nopan bg-error-500 hover:bg-error-600 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"
 			style="z-index: 100;"
 			onclick={() =>
 				globalToaster.promise(handleDeleteEdge(), {
@@ -118,7 +130,14 @@
 				})}
 			title="Delete edge"
 		>
-			×
+			<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="3"
+					d="M6 18L18 6M6 6l12 12"
+				/>
+			</svg>
 		</button>
 	</EdgeLabel>
 {/if}

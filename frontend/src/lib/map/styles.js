@@ -4,12 +4,22 @@ import Stroke from 'ol/style/Stroke.js';
 import Text from 'ol/style/Text.js';
 
 /**
- * Creates a style for trench features
+ * Creates a style function for trench features with optional trench and conduit labels
  * @param {string} color - The color for the trench style
- * @returns {Style}
+ * @param {Object} [labelOptions={}] - Trench label configuration options
+ * @param {boolean} [labelOptions.enabled=false] - Whether to show trench labels
+ * @param {string} [labelOptions.field='id_trench'] - Feature property to use for trench label
+ * @param {number} [labelOptions.minResolution=1.5] - Minimum resolution to show trench labels
+ * @param {Object} [labelOptions.textStyle] - Custom text style options for trench labels
+ * @param {Object} [conduitLabelOptions={}] - Conduit label configuration options
+ * @param {boolean} [conduitLabelOptions.enabled=false] - Whether to show conduit labels
+ * @param {string} [conduitLabelOptions.field='conduit_names'] - Feature property to use for conduit label
+ * @param {number} [conduitLabelOptions.minResolution=1.5] - Minimum resolution to show conduit labels
+ * @param {Object} [conduitLabelOptions.textStyle] - Custom text style options for conduit labels
+ * @returns {Style|Function} Style or style function that accepts (feature, resolution)
  */
-export function createTrenchStyle(color) {
-	return new Style({
+export function createTrenchStyle(color, labelOptions = {}, conduitLabelOptions = {}) {
+	const geometryStyle = new Style({
 		fill: new Fill({
 			color: color
 		}),
@@ -21,8 +31,59 @@ export function createTrenchStyle(color) {
 			radius: 7,
 			fill: new Fill({ color: color }),
 			stroke: new Stroke({ color: color, width: 2 })
-		})
+		}),
+		declutterMode: 'none'
 	});
+
+	const trenchEnabled = labelOptions.enabled || false;
+	const conduitEnabled = conduitLabelOptions.enabled || false;
+
+	// If no labels are enabled, return static style
+	if (!trenchEnabled && !conduitEnabled) {
+		return geometryStyle;
+	}
+
+	const trenchField = labelOptions.field || 'id_trench';
+	const trenchMinRes = labelOptions.minResolution || 1.5;
+	const trenchTextStyle = labelOptions.textStyle || {};
+
+	const conduitField = conduitLabelOptions.field || 'conduit_names';
+	const conduitMinRes = conduitLabelOptions.minResolution || 1.5;
+	const conduitTextStyle = conduitLabelOptions.textStyle || {};
+
+	return function (feature, resolution) {
+		const styles = [geometryStyle];
+
+		if (trenchEnabled && resolution < trenchMinRes) {
+			const labelText = (feature.get(trenchField) || '').toString();
+			if (labelText) {
+				styles.push(
+					new Style({
+						text: createTextStyle({ text: labelText, ...trenchTextStyle }),
+						declutterMode: 'declutter'
+					})
+				);
+			}
+		}
+
+		if (conduitEnabled && resolution < conduitMinRes) {
+			const conduitText = (feature.get(conduitField) || '').toString();
+			if (conduitText) {
+				styles.push(
+					new Style({
+						text: createTextStyle({
+							text: conduitText,
+							offsetY: 30,
+							...conduitTextStyle
+						}),
+						declutterMode: 'declutter'
+					})
+				);
+			}
+		}
+
+		return styles.length === 1 ? geometryStyle : styles;
+	};
 }
 
 /**
@@ -344,25 +405,34 @@ export function createLinkedTrenchStyle(color = '#06b6d4') {
  *   { [attribute_value]: { color: '#hex', visible: boolean } }
  * @param {string} styleMode - 'surface' | 'construction_type' | 'none'
  * @param {string} fallbackColor - Color to use when styleMode is 'none' or attribute not found
- * @param {Object} labelOptions - Label configuration options
- * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
- * @param {string} [labelOptions.field='id_trench'] - Feature property to use for label
- * @param {number} [labelOptions.minResolution=1.5] - Minimum resolution to show labels
- * @param {Object} [labelOptions.textStyle] - Custom text style options
+ * @param {Object} labelOptions - Trench label configuration options
+ * @param {boolean} [labelOptions.enabled=false] - Whether to show trench labels
+ * @param {string} [labelOptions.field='id_trench'] - Feature property to use for trench label
+ * @param {number} [labelOptions.minResolution=1.5] - Minimum resolution to show trench labels
+ * @param {Object} [labelOptions.textStyle] - Custom text style options for trench labels
+ * @param {Object} [conduitLabelOptions={}] - Conduit label configuration options
+ * @param {boolean} [conduitLabelOptions.enabled=false] - Whether to show conduit labels
+ * @param {string} [conduitLabelOptions.field='conduit_names'] - Feature property to use for conduit label
+ * @param {number} [conduitLabelOptions.minResolution=1.5] - Minimum resolution to show conduit labels
+ * @param {Object} [conduitLabelOptions.textStyle] - Custom text style options for conduit labels
  * @returns {Function} Style function that accepts (feature, resolution)
  */
 export function createTrenchStyleByAttribute(
 	attributeStyles = {},
 	styleMode = 'none',
 	fallbackColor = DEFAULT_TRENCH_COLOR,
-	labelOptions = {}
+	labelOptions = {},
+	conduitLabelOptions = {}
 ) {
-	const {
-		enabled = false,
-		field = 'id_trench',
-		minResolution = 1.5,
-		textStyle = {}
-	} = labelOptions;
+	const trenchEnabled = labelOptions.enabled || false;
+	const trenchField = labelOptions.field || 'id_trench';
+	const trenchMinRes = labelOptions.minResolution || 1.5;
+	const trenchTextStyle = labelOptions.textStyle || {};
+
+	const conduitEnabled = conduitLabelOptions.enabled || false;
+	const conduitField = conduitLabelOptions.field || 'conduit_names';
+	const conduitMinRes = conduitLabelOptions.minResolution || 1.5;
+	const conduitTextStyle = conduitLabelOptions.textStyle || {};
 
 	const geometryStyleCache = new Map();
 
@@ -412,18 +482,37 @@ export function createTrenchStyleByAttribute(
 			geometryStyleCache.set(geometryCacheKey, geometryStyle);
 		}
 
-		const showLabels = enabled && resolution < minResolution;
+		const styles = [geometryStyle];
 
-		if (showLabels) {
-			const labelText = (feature.get(field) || '').toString();
-			const labelStyle = new Style({
-				text: createTextStyle({ text: labelText, ...textStyle }),
-				declutterMode: 'declutter'
-			});
-			return [geometryStyle, labelStyle];
+		if (trenchEnabled && resolution < trenchMinRes) {
+			const labelText = (feature.get(trenchField) || '').toString();
+			if (labelText) {
+				styles.push(
+					new Style({
+						text: createTextStyle({ text: labelText, ...trenchTextStyle }),
+						declutterMode: 'declutter'
+					})
+				);
+			}
 		}
 
-		return geometryStyle;
+		if (conduitEnabled && resolution < conduitMinRes) {
+			const conduitText = (feature.get(conduitField) || '').toString();
+			if (conduitText) {
+				styles.push(
+					new Style({
+						text: createTextStyle({
+							text: conduitText,
+							offsetY: 30, // Offset below trench label
+							...conduitTextStyle
+						}),
+						declutterMode: 'declutter'
+					})
+				);
+			}
+		}
+
+		return styles.length === 1 ? geometryStyle : styles;
 	};
 }
 

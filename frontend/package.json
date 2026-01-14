@@ -1,7 +1,7 @@
 {
 	"name": "frontend",
 	"private": true,
-	"version": "0.6.5",
+	"version": "0.6.6",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -42,6 +42,7 @@
 		"@xyflow/svelte": "^1.2.4",
 		"chart.js": "^4.5.1",
 		"ol": "^10.5.0",
+		"ol-mapbox-style": "^13.2.0",
 		"perfect-freehand": "^1.2.2",
 		"set-cookie-parser": "^2.7.1"
 	}

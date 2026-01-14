@@ -48,12 +48,13 @@ export const trenchSurfaceStyles = persisted('trenchSurfaceStyles', {});
 export const trenchConstructionTypeStyles = persisted('trenchConstructionTypeStyles', {});
 
 // Label visibility configuration - controls whether labels are shown on map layers
-// Structure: { trench: boolean, address: boolean, node: boolean, area: boolean }
+// Structure: { trench: boolean, address: boolean, node: boolean, area: boolean, conduit: boolean }
 export const labelVisibilityConfig = persisted('labelVisibilityConfig', {
 	trench: false,
 	address: false,
 	node: false,
-	area: false
+	area: false,
+	conduit: false
 });
 
 // Area type styles - stores color and visibility per area type
@@ -73,3 +74,12 @@ export const layerVisibilityConfig = persisted('layerVisibilityConfig', {
 // Layer opacity configuration - controls the opacity of the base OSM layer
 // Value: number between 0 and 1
 export const layerOpacity = persisted('layerOpacity', 1);
+
+// Basemap theme - controls which map style is used (light or dark)
+// Value: 'light' | 'dark'
+export const basemapTheme = persisted('basemapTheme', 'light');
+
+// Tile server availability - tracks whether the vector tile server is available
+// When false, falls back to standard OSM raster tiles
+// Value: boolean
+export const tileServerAvailable = persisted('tileServerAvailable', true);

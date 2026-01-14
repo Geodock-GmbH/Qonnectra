@@ -37,6 +37,7 @@ export function getFieldAliases() {
 		house_number_suffix: m.form_house_number_suffix(),
 		status_development: m.form_status_development(),
 		house_connection: m.form_house_connection(),
-		area_type: m.form_area_type()
+		area_type: m.form_area_type(),
+		conduit_names: m.form_conduit({ count: 2 })
 	};
 }

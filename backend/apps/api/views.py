@@ -47,10 +47,12 @@ from .models import (
     MicroductConnection,
     NetworkSchemaSettings,
     Node,
+    NodeTrenchSelection,
     OlAddress,
     OlArea,
     OlNode,
     OlTrench,
+    PipeBranchSettings,
     Projects,
     Trench,
     TrenchConduitConnection,
@@ -84,6 +86,8 @@ from .serializers import (
     MicroductConnectionSerializer,
     MicroductSerializer,
     NodeSerializer,
+    NodeTrenchSelectionBulkSerializer,
+    NodeTrenchSelectionSerializer,
     OlAddressSerializer,
     OlAreaSerializer,
     OlNodeSerializer,
@@ -778,7 +782,13 @@ class WebDAVAuthView(APIView):
                             status.HTTP_401_UNAUTHORIZED,
                         )
                 else:
-                    logger.warning(f"Authentication failed for user: {username}")
+                    logger.warning(
+                        f"Authentication failed for user: {username}",
+                        extra={
+                            "request": request,
+                            "path": request.path,
+                        },
+                    )
                     return (
                         False,
                         {"error": "Invalid credentials"},
@@ -892,7 +902,13 @@ class QGISAuthView(APIView):
                         logger.info(f"User authenticated via Basic auth: {username}")
                         return True, {"status": "authenticated"}, status.HTTP_200_OK
                     else:
-                        logger.warning(f"User account is inactive: {username}")
+                        logger.warning(
+                            f"User account is inactive: {username}",
+                            extra={
+                                "request": request,
+                                "path": request.path,
+                            },
+                        )
                         return (
                             False,
                             {"error": "Account inactive"},
@@ -1005,11 +1021,25 @@ class OlTrenchTileViewSet(APIView):
         URL: /api/ol_trench_tiles/{z}/{x}/{y}.mvt?project={project}
         """
         sql = """
-            WITH mvtgeom AS (
+            WITH
+            bounds AS (
+                SELECT
+                    ST_TileEnvelope(%(z)s, %(x)s, %(y)s) AS tile_bounds,
+                    ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096)) AS tile_bounds_margin
+            ),
+            trench_conduits AS (
+                SELECT
+                    tcc.uuid_trench,
+                    STRING_AGG(co.name, ', ' ORDER BY co.name) AS conduit_names
+                FROM public.trench_conduit_connect tcc
+                JOIN public.conduit co ON tcc.uuid_conduit = co.uuid
+                GROUP BY tcc.uuid_trench
+            ),
+            mvtgeom AS (
                 SELECT
                     ST_AsMVTGeom(
-                        t.geom, 
-                        ST_TileEnvelope(%(z)s, %(x)s, %(y)s),
+                        t.geom_3857,
+                        b.tile_bounds,
                         extent => 4096,
                         buffer => 64
                     ) AS geom,
@@ -1029,9 +1059,10 @@ class OlTrenchTileViewSet(APIView):
                     ph.phase,
                     st.status,
                     s.surface,
-                    f.flag
-                FROM
-                    public.ol_trench t
+                    f.flag,
+                    tc.conduit_names
+                FROM bounds b
+                CROSS JOIN public.trench t
                 LEFT JOIN public.flags f ON t.flag = f.id
                 LEFT JOIN public.attributes_surface s ON t.surface = s.id
                 LEFT JOIN public.attributes_construction_type ct ON t.construction_type = ct.id
@@ -1039,8 +1070,9 @@ class OlTrenchTileViewSet(APIView):
                 LEFT JOIN public.attributes_status st ON t.status = st.id
                 LEFT JOIN public.attributes_company c1 ON t.constructor = c1.id
                 LEFT JOIN public.attributes_company c2 ON t.owner = c2.id
+                LEFT JOIN trench_conduits tc ON t.uuid = tc.uuid_trench
                 WHERE
-                    t.geom && ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096))
+                    t.geom_3857 && b.tile_bounds_margin
                     AND t.project = %(project)s
             )
             SELECT ST_AsMVT(mvtgeom, 'ol_trench', 4096, 'geom') AS mvt
@@ -1414,11 +1446,17 @@ class OlAddressTileViewSet(APIView):
         URL: /api/ol_address_tiles/{z}/{x}/{y}.mvt?project={project}
         """
         sql = """
-            WITH mvtgeom AS (
-                SELECT 
-                ST_AsMVTGeom(
-                        a.geom, 
-                        ST_TileEnvelope(%(z)s, %(x)s, %(y)s),
+            WITH
+            bounds AS (
+                SELECT
+                    ST_TileEnvelope(%(z)s, %(x)s, %(y)s) AS tile_bounds,
+                    ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096)) AS tile_bounds_margin
+            ),
+            mvtgeom AS (
+                SELECT
+                    ST_AsMVTGeom(
+                        a.geom_3857,
+                        b.tile_bounds,
                         extent => 4096,
                         buffer => 64
                     ) AS geom,
@@ -1432,11 +1470,12 @@ class OlAddressTileViewSet(APIView):
                     a.house_number_suffix,
                     f.flag,
                     sd.status
-            FROM ol_address  a
-            LEFT JOIN attributes_status_development sd ON a.status_development = sd.id
-            LEFT JOIN flags f ON a.flag = f.id
+                FROM bounds b
+                CROSS JOIN public.address a
+                LEFT JOIN public.attributes_status_development sd ON a.status_development = sd.id
+                LEFT JOIN public.flags f ON a.flag = f.id
                 WHERE
-                    a.geom && ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096))
+                    a.geom_3857 && b.tile_bounds_margin
                     AND a.project = %(project)s
             )
             SELECT ST_AsMVT(mvtgeom, 'ol_address', 4096, 'geom') AS mvt
@@ -1597,6 +1636,14 @@ class NodeViewSet(viewsets.ModelViewSet):
         Returns all nodes with project and flag filters.
         No pagination is used.
 
+        Query Parameters:
+        - `project`: Filter by project ID
+        - `flag`: Filter by flag ID
+        - `group`: Filter by node type group
+        - `exclude_group`: Exclude nodes by node type group
+        - `search`: Search term for name/type
+        - `use_pipe_branch_settings`: If 'true', apply project's pipe-branch allowed types
+
         If project settings are configured, excluded node types are automatically
         filtered out unless an explicit exclude_group parameter is provided.
         """
@@ -1606,13 +1653,26 @@ class NodeViewSet(viewsets.ModelViewSet):
         group = request.query_params.get("group")
         search_term = request.query_params.get("search")
         exclude_group = request.query_params.get("exclude_group")
+        use_pipe_branch_settings = request.query_params.get("use_pipe_branch_settings")
         settings_configured = False
+        pipe_branch_configured = False
 
         if project_id:
             queryset = queryset.filter(project=project_id)
 
+            # Apply pipe-branch settings if requested
+            if use_pipe_branch_settings == "true":
+                allowed_type_ids = PipeBranchSettings.get_allowed_type_ids(project_id)
+                if allowed_type_ids is not None:
+                    pipe_branch_configured = True
+                    if allowed_type_ids:  # If list is not empty
+                        queryset = queryset.filter(node_type_id__in=allowed_type_ids)
+                    else:
+                        # Empty list means no types allowed, return empty
+                        queryset = queryset.none()
             # Apply project-specific exclusions if no explicit exclude_group provided
-            if exclude_group is None:
+            # and not using pipe_branch_settings
+            elif exclude_group is None:
                 settings = NetworkSchemaSettings.get_settings_for_project(project_id)
                 if settings is not None:
                     settings_configured = True
@@ -1639,13 +1699,19 @@ class NodeViewSet(viewsets.ModelViewSet):
 
         # Add metadata about settings configuration to the GeoJSON response
         if isinstance(data, dict) and data.get("type") == "FeatureCollection":
-            data["metadata"] = {"settings_configured": settings_configured}
+            data["metadata"] = {
+                "settings_configured": settings_configured,
+                "pipe_branch_configured": pipe_branch_configured,
+            }
         elif isinstance(data, list):
             # Wrap in FeatureCollection format with metadata
             data = {
                 "type": "FeatureCollection",
                 "features": data,
-                "metadata": {"settings_configured": settings_configured},
+                "metadata": {
+                    "settings_configured": settings_configured,
+                    "pipe_branch_configured": pipe_branch_configured,
+                },
             }
 
         return Response(data)
@@ -1991,11 +2057,17 @@ class OlNodeTileViewSet(APIView):
         URL: /api/ol_node_tiles/{z}/{x}/{y}.mvt?project={project}
         """
         sql = """
-            WITH mvtgeom AS (
-                SELECT 
-                ST_AsMVTGeom(
-                        n.geom, 
-                        ST_TileEnvelope(%(z)s, %(x)s, %(y)s),
+            WITH
+            bounds AS (
+                SELECT
+                    ST_TileEnvelope(%(z)s, %(x)s, %(y)s) AS tile_bounds,
+                    ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096)) AS tile_bounds_margin
+            ),
+            mvtgeom AS (
+                SELECT
+                    ST_AsMVTGeom(
+                        n.geom_3857,
+                        b.tile_bounds,
                         extent => 4096,
                         buffer => 64
                     ) AS geom,
@@ -2010,19 +2082,20 @@ class OlNodeTileViewSet(APIView):
                     nt.node_type,
                     c1.company,
                     s.status,
-                    coalesce(a.street || ' ' || a.housenumber, a.house_number_suffix,
-                    a.street || '' || a.housenumber) as address
-                FROM ol_node n
-                LEFT JOIN address a on n.uuid_address = a.uuid
-                LEFT JOIN attributes_company c1 on n.owner = c1.id
-                LEFT JOIN attributes_company c2 on n.constructor = c2.id
-                LEFT JOIN attributes_company c3 on n.manufacturer = c3.id
-                LEFT JOIN attributes_network_level nl on n.network_level = nl.id
-                LEFT JOIN attributes_node_type nt on n.node_type = nt.id
-                LEFT JOIN attributes_status s on n.status = s.id
-                LEFT JOIN flags f on n.flag = f.id
+                    COALESCE(a.street || ' ' || a.housenumber, a.house_number_suffix,
+                        a.street || '' || a.housenumber) AS address
+                FROM bounds b
+                CROSS JOIN public.node n
+                LEFT JOIN public.address a ON n.uuid_address = a.uuid
+                LEFT JOIN public.attributes_company c1 ON n.owner = c1.id
+                LEFT JOIN public.attributes_company c2 ON n.constructor = c2.id
+                LEFT JOIN public.attributes_company c3 ON n.manufacturer = c3.id
+                LEFT JOIN public.attributes_network_level nl ON n.network_level = nl.id
+                LEFT JOIN public.attributes_node_type nt ON n.node_type = nt.id
+                LEFT JOIN public.attributes_status s ON n.status = s.id
+                LEFT JOIN public.flags f ON n.flag = f.id
                 WHERE
-                    n.geom && ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096))
+                    n.geom_3857 && b.tile_bounds_margin
                     AND n.project = %(project)s
             )
             SELECT ST_AsMVT(mvtgeom, 'ol_node', 4096, 'geom') AS mvt
@@ -3039,11 +3112,17 @@ class OlAreaTileViewSet(APIView):
         URL: /api/ol_area_tiles/{z}/{x}/{y}.mvt?project={project}
         """
         sql = """
-            WITH mvtgeom AS (
+            WITH
+            bounds AS (
                 SELECT
-                ST_AsMVTGeom(
-                        a.geom,
-                        ST_TileEnvelope(%(z)s, %(x)s, %(y)s),
+                    ST_TileEnvelope(%(z)s, %(x)s, %(y)s) AS tile_bounds,
+                    ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096)) AS tile_bounds_margin
+            ),
+            mvtgeom AS (
+                SELECT
+                    ST_AsMVTGeom(
+                        a.geom_3857,
+                        b.tile_bounds,
                         extent => 4096,
                         buffer => 64
                     ) AS geom,
@@ -3051,11 +3130,12 @@ class OlAreaTileViewSet(APIView):
                     a.name,
                     at.area_type,
                     f.flag
-            FROM ol_area a
-            LEFT JOIN attributes_area_type at ON a.area_type = at.id
-            LEFT JOIN flags f ON a.flag = f.id
+                FROM bounds b
+                CROSS JOIN public.area a
+                LEFT JOIN public.attributes_area_type at ON a.area_type = at.id
+                LEFT JOIN public.flags f ON a.flag = f.id
                 WHERE
-                    a.geom && ST_TileEnvelope(%(z)s, %(x)s, %(y)s, margin => (64.0 / 4096))
+                    a.geom_3857 && b.tile_bounds_margin
                     AND a.project = %(project)s
             )
             SELECT ST_AsMVT(mvtgeom, 'ol_area', 4096, 'geom') AS mvt
@@ -3085,3 +3165,74 @@ class OlAreaTileViewSet(APIView):
             )
         else:
             return HttpResponse(status=204)
+
+
+class NodeTrenchSelectionViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing node-trench selections for the pipe-branch canvas.
+
+    This tracks which trenches a user has selected to display on the pipe-branch
+    canvas for a given node. Selections are persisted so they auto-load when
+    the user returns to the same node.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = NodeTrenchSelection.objects.all()
+    serializer_class = NodeTrenchSelectionSerializer
+    lookup_field = "uuid"
+
+    def get_queryset(self):
+        """Filter selections by node if specified."""
+        queryset = super().get_queryset()
+        node_uuid = self.request.query_params.get("node")
+        if node_uuid:
+            queryset = queryset.filter(node__uuid=node_uuid)
+        return queryset.select_related("node", "trench")
+
+    @action(detail=False, methods=["get"], url_path="by-node/(?P<node_uuid>[^/.]+)")
+    def by_node(self, request, node_uuid=None):
+        """Get all trench selections for a specific node."""
+        selections = NodeTrenchSelection.objects.filter(
+            node__uuid=node_uuid
+        ).select_related("trench")
+        serializer = self.get_serializer(selections, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["post"], url_path="bulk-update")
+    def bulk_update(self, request):
+        """Bulk update trench selections for a node.
+
+        This replaces all existing selections for the node with the provided list.
+        Expects: { "node_uuid": "...", "trench_uuids": ["...", "..."] }
+        """
+        serializer = NodeTrenchSelectionBulkSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        node_uuid = serializer.validated_data["node_uuid"]
+        trench_uuids = serializer.validated_data["trench_uuids"]
+
+        try:
+            node = Node.objects.get(uuid=node_uuid)
+        except Node.DoesNotExist:
+            return Response(
+                {"error": f"Node with uuid {node_uuid} not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        NodeTrenchSelection.objects.filter(node=node).delete()
+
+        new_selections = []
+        for trench_uuid in trench_uuids:
+            try:
+                trench = Trench.objects.get(uuid=trench_uuid)
+                new_selections.append(NodeTrenchSelection(node=node, trench=trench))
+            except Trench.DoesNotExist:
+                continue
+
+        if new_selections:
+            NodeTrenchSelection.objects.bulk_create(new_selections)
+
+        updated_selections = NodeTrenchSelection.objects.filter(
+            node=node
+        ).select_related("trench")
+        result_serializer = NodeTrenchSelectionSerializer(updated_selections, many=True)
+        return Response(result_serializer.data, status=status.HTTP_200_OK)

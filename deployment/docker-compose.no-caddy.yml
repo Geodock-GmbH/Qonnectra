@@ -44,6 +44,8 @@ services:
             python manage.py loaddata attributes_company attributes_construction_type attributes_conduit_type attributes_phase  &&
             python manage.py loaddata attributes_status attributes_surface storage_preference file_type_categories projects flags &&
             python manage.py loaddata attributes_network_level attributes_node_type attributes_status_development attributes_area_types &&
+            python manage.py loaddata pipe_branch_settings network_schema_settings attributes_fiber_status attributes_microduct_status &&
+            python manage.py loaddata attributes_microduct_color attributes_cable_type attributes_fiber_color conduit_type_color_mapping cable_type_color_mapping &&
             gunicorn --bind 0.0.0.0:8000 core.wsgi:application"
     ports:
       - "${BACKEND_PORT:-8000}:8000"
@@ -134,13 +136,15 @@ services:
         max-file: "3"
         labels: "service=qgis-server"
 
-  wfs-listener:
+  pg-error-parser:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    container_name: krit_gis_wfs_listener
+    container_name: krit_gis_pg_error_parser
     restart: unless-stopped
-    command: python manage.py listen_wfs_errors
+    command: python manage.py parse_pg_errors --container krit_gis_db
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - DEBUG=${DEBUG}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
@@ -159,7 +163,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-        labels: "service=wfs-listener"
+        labels: "service=pg-error-parser"
 
   frontend:
     build:
@@ -181,6 +185,23 @@ services:
         max-size: "10m"
         max-file: "3"
         labels: "service=frontend"
+
+  tileserver:
+    image: maptiler/tileserver-gl:latest
+    container_name: krit_gis_tileserver
+    restart: unless-stopped
+    volumes:
+      - ./tiles:/data
+    ports:
+      - "${TILE_SERVER_PORT:-8090}:8080"
+    networks:
+      - krit_gis_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=tileserver"
 
 volumes:
   static_volume: {}

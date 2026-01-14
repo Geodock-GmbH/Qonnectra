@@ -190,6 +190,9 @@ export function createSelectionLayer(tileSource, selectedColor, getSelectionStor
 				return selectedStyle;
 			}
 			return undefined; // Don't render if not selected
+		},
+		properties: {
+			isSelectionLayer: true
 		}
 	});
 }

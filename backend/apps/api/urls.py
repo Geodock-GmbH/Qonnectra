@@ -33,6 +33,7 @@ from .views import (
     MicroductConnectionViewSet,
     MicroductViewSet,
     NodeCanvasCoordinatesView,
+    NodeTrenchSelectionViewSet,
     NodeViewSet,
     OlAddressTileViewSet,
     OlAddressViewSet,
@@ -147,6 +148,11 @@ router.register(
     basename="trench_conduit_connection",
 )
 router.register(r"logs", LogEntryViewSet, basename="logs")
+router.register(
+    r"node-trench-selection",
+    NodeTrenchSelectionViewSet,
+    basename="node-trench-selection",
+)
 
 urlpatterns = [
     path("logs/frontend/", FrontendLogView.as_view(), name="frontend-logs"),

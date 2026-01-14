@@ -140,7 +140,7 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 				if (conduitTypeName) {
 					labelParts.push(`- ${conduitTypeName}`);
 				}
-				labelParts.push(`(${m.form_conduit()})`);
+				labelParts.push(`(${m.form_conduit({ count: 1 })})`);
 
 				results.push({
 					value: `${conduitUuid}`,

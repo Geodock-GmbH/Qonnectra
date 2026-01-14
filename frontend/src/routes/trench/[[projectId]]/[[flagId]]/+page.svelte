@@ -1,6 +1,7 @@
 <script>
 	import { onMount, setContext, untrack } from 'svelte';
 	import { get } from 'svelte/store';
+	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
@@ -251,13 +252,19 @@
 				}
 				return undefined;
 			},
-			visible: $showLinkedTrenches
+			visible: $showLinkedTrenches,
+			properties: {
+				isHighlightLayer: true
+			}
 		});
 		mapState.olMap.addLayer(linkedTrenchesLayer);
 
 		routeLayer = new VectorLayer({
 			source: new VectorSource(),
-			style: routeStyle
+			style: routeStyle,
+			properties: {
+				isHighlightLayer: true
+			}
 		});
 		mapState.olMap.addLayer(routeLayer);
 
@@ -275,7 +282,10 @@
 						width: 4
 					})
 				})
-			})
+			}),
+			properties: {
+				isHighlightLayer: true
+			}
 		});
 		mapState.olMap.addLayer(highlightLayer);
 
@@ -448,6 +458,14 @@
 				color
 			});
 		}
+		if (config.conduit !== undefined) {
+			mapState.updateLabelVisibility('conduit', config.conduit, {
+				mode,
+				surfaceStyles,
+				constructionTypeStyles,
+				color
+			});
+		}
 		if (config.address !== undefined) {
 			mapState.updateLabelVisibility('address', config.address, {});
 		}
@@ -571,7 +589,7 @@
 
 				<!-- Conduit Selection -->
 				<div class="space-y-2">
-					<h3 class="text-sm font-medium">{m.form_conduit()}</h3>
+					<h3 class="text-sm font-medium">{m.form_conduit({ count: 1 })}</h3>
 					<ConduitCombobox
 						loading={$navigating !== null}
 						conduits={data.conduits ?? []}

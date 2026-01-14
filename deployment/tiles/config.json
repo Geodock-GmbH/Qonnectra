@@ -1,0 +1,29 @@
+{
+  "options": {
+    "paths": {
+      "styles": "styles"
+    },
+    "serveAllFonts": true
+  },
+  "data": {
+    "germany": {
+      "mbtiles": "germany.mbtiles"
+    }
+  },
+  "styles": {
+    "light": {
+      "style": "light.json",
+      "serve_rendered": false,
+      "tilejson": {
+        "type": "overlay"
+      }
+    },
+    "dark": {
+      "style": "dark.json",
+      "serve_rendered": false,
+      "tilejson": {
+        "type": "overlay"
+      }
+    }
+  }
+}

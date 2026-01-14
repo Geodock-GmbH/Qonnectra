@@ -190,7 +190,7 @@
       "isBackground": true
     },
     {
-      "label": "Djanog Makemessages",
+      "label": "Django Makemessages",
       "type": "shell",
       "command": "uv",
       "args": [
@@ -222,7 +222,7 @@
       "isBackground": true
     },
     {
-      "label": "Djanog Compilemessages",
+      "label": "Django Compilemessages",
       "type": "shell",
       "command": "uv",
       "args": [

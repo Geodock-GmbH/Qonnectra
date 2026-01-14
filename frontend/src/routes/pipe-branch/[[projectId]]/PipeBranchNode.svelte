@@ -73,7 +73,7 @@
 	);
 </script>
 
-<!-- Node label and content box positioned above and to the left -->
+<!-- PipeBranchNode: Node label and info box -->
 <div
 	class="absolute top-0 left-0 bg-surface-50-950 border border-surface-200-700 rounded-lg shadow-md p-2 min-w-[120px] max-w-[250px]"
 	style="transform: translate(-100%, -100%);"
@@ -90,7 +90,7 @@
 		<div class="flex flex-col gap-1">
 			<div class="flex items-center gap-2">
 				<span class="text-xs font-semibold text-surface-700-200 whitespace-nowrap"
-					>{m.form_conduit()}:</span
+					>{m.form_conduit({ count: 1 })}:</span
 				>
 				<span class="font-semibold text-xs text-surface-700-200 break-words"
 					>{conduit?.name || 'N/A'}</span
@@ -105,10 +105,7 @@
 	</div>
 </div>
 
-<!-- Node handles -->
-<!-- Explanation why we have source and target handles over each other -->
-<!-- When the mousepointer is over a handle, it uses the source id. This happens when also when the user releases the mousebutton over a handle. -->
-<!-- This would not create an edge on the canvas (but in the db so its visible on reload), so we can only connect per snapping. Since its always snapping to the target handle. -->
+<!-- PipeBranchNode: Node handles container -->
 <div
 	class="relative rounded-full border-2 border-surface-200-700 shadow-lg flex items-center justify-center"
 	style="width: {diameter}px; height: {diameter}px;"
@@ -117,15 +114,15 @@
 	{#each handlePositions as position, i}
 		<Handle
 			type="source"
-			position={Position.Top}
+			position={Position.Right}
 			id="{position.handle.id}-source"
 			style="left: {position.x - 12}px; top: {position.y -
-				12}px; position: absolute; transform: none; background: {position.handle.isTwoLayer
+				12}px; position: absolute; transform: none; width: 24px; height: 24px; background: {position
+				.handle.isTwoLayer
 				? `linear-gradient(to right, ${position.handle.cssColor} 50%, ${position.handle.borderColor} 50%)`
-				: position.handle
-						.cssColor}; border: 2px solid var(--color-surface-950-50); width: 24px; height: 24px; {position
-				.handle.status
-				? 'opacity: 0.5; text-decoration: line-through;'
+				: position.handle.cssColor}; border: 2px solid var(--color-surface-950-50); {position.handle
+				.status
+				? 'opacity: 0.5;'
 				: ''}"
 			title="{position.handle.conduitName} - Microduct {position.handle.microductNumber} ({position
 				.handle.color})"
@@ -133,15 +130,15 @@
 		/>
 		<Handle
 			type="target"
-			position={Position.Top}
+			position={Position.Left}
 			id="{position.handle.id}-target"
 			style="left: {position.x - 12}px; top: {position.y -
-				12}px; position: absolute; transform: none; background: {position.handle.isTwoLayer
+				12}px; position: absolute; transform: none; width: 24px; height: 24px; background: {position
+				.handle.isTwoLayer
 				? `linear-gradient(to right, ${position.handle.cssColor} 50%, ${position.handle.borderColor} 50%)`
-				: position.handle
-						.cssColor}; border: 2px solid var(--color-surface-950-50); width: 24px; height: 24px; {position
-				.handle.status
-				? 'opacity: 0.5; text-decoration: line-through;'
+				: position.handle.cssColor}; border: 2px solid var(--color-surface-950-50); {position.handle
+				.status
+				? 'opacity: 0.5;'
 				: ''}"
 			title="{position.handle.conduitName} - Microduct {position.handle.microductNumber} ({position
 				.handle.color})"
