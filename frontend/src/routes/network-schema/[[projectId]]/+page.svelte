@@ -203,7 +203,7 @@
 					</div>
 
 					<div class="gap-2 flex items-center justify-between bg-surface-50-900 rounded-lg p-2">
-						<h3 class="text-sm font-medium">Edge Snapping</h3>
+						<h3 class="text-sm font-medium">{m.form_snapping()}</h3>
 						<Switch
 							name="edge-snapping-switch"
 							checked={$edgeSnappingEnabled}

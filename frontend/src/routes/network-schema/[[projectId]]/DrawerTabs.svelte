@@ -1,15 +1,21 @@
 <script>
+	import { IconSettings } from '@tabler/icons-svelte';
+
 	import { m } from '$lib/paraglide/messages';
 
 	import FileExplorer from '$lib/components/FileExplorer.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
+	import FloatingPanel from '$lib/components/FloatingPanel.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
 
 	import CableDiagramEdgeAttributeCard from './CableDiagramEdgeAttributeCard.svelte';
 	import CableDiagramEdgeHandleConfig from './CableDiagramEdgeHandleConfig.svelte';
 	import CableDiagramNodeAttributeCard from './CableDiagramNodeAttributeCard.svelte';
+	import NodeSlotConfigPanel from './NodeSlotConfigPanel.svelte';
 
 	let allProps = $props();
+
+	let slotConfigPanelOpen = $state(false);
 
 	let group = $state('attributes');
 
@@ -26,6 +32,9 @@
 		const baseTabs = [{ value: 'attributes', label: m.common_attributes() }];
 		if (type === 'edge') {
 			baseTabs.push({ value: 'handles', label: m.form_handles() });
+		}
+		if (type === 'node') {
+			baseTabs.push({ value: 'actions', label: m.form_actions() });
 		}
 		baseTabs.push({ value: 'files', label: m.form_attachments() });
 		return baseTabs;
@@ -62,6 +71,21 @@
 		<CableDiagramEdgeHandleConfig {...data} />
 	{/if}
 
+	{#if group === 'actions'}
+		{#if type === 'node'}
+			<div class="space-y-4">
+				<button
+					type="button"
+					class="btn preset-filled-primary-500 w-full"
+					onclick={() => (slotConfigPanelOpen = true)}
+				>
+					<IconSettings size={18} />
+					{m.action_configure_slots()}
+				</button>
+			</div>
+		{/if}
+	{/if}
+
 	{#if group === 'files'}
 		<div class="space-y-4">
 			<FileUpload
@@ -77,3 +101,14 @@
 		</div>
 	{/if}
 </Tabs>
+
+{#if type === 'node'}
+	<FloatingPanel
+		bind:open={slotConfigPanelOpen}
+		title={m.title_slot_configuration()}
+		width={500}
+		height={400}
+	>
+		<NodeSlotConfigPanel nodeUuid={data.uuid || data.id} nodeName={data.name} />
+	</FloatingPanel>
+{/if}

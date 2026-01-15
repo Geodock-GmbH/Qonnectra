@@ -757,6 +757,143 @@ export const actions = {
 			};
 		}
 	},
+	getSlotConfigurations: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeUuid = formData.get('nodeUuid');
+
+			if (!nodeUuid) {
+				return fail(400, { error: 'Missing required parameter: nodeUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-slot-configuration/by-node/${nodeUuid}/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch slot configurations'
+				});
+			}
+
+			const configurations = await response.json();
+			return { configurations };
+		} catch (err) {
+			console.error('Error fetching slot configurations:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	createSlotConfiguration: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeUuid = formData.get('nodeUuid');
+			const side = formData.get('side');
+			const totalSlots = formData.get('totalSlots');
+
+			if (!nodeUuid || !side || !totalSlots) {
+				return fail(400, {
+					error: 'Missing required fields: nodeUuid, side, and totalSlots are required'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-slot-configuration/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					uuid_node_id: nodeUuid,
+					side: side,
+					total_slots: parseInt(totalSlots)
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to create slot configuration'
+				});
+			}
+
+			const configuration = await response.json();
+			return { success: true, configuration };
+		} catch (err) {
+			console.error('Error creating slot configuration:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	updateSlotConfiguration: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const configUuid = formData.get('configUuid');
+			const side = formData.get('side');
+			const totalSlots = formData.get('totalSlots');
+
+			if (!configUuid) {
+				return fail(400, { error: 'Missing required parameter: configUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const requestBody = {};
+			if (side) requestBody.side = side;
+			if (totalSlots) requestBody.total_slots = parseInt(totalSlots);
+
+			const response = await fetch(`${API_URL}node-slot-configuration/${configUuid}/`, {
+				method: 'PATCH',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to update slot configuration'
+				});
+			}
+
+			const configuration = await response.json();
+			return { success: true, configuration };
+		} catch (err) {
+			console.error('Error updating slot configuration:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	deleteSlotConfiguration: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const configUuid = formData.get('configUuid');
+
+			if (!configUuid) {
+				return fail(400, { error: 'Missing required parameter: configUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-slot-configuration/${configUuid}/`, {
+				method: 'DELETE',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to delete slot configuration'
+				});
+			}
+
+			return { success: true };
+		} catch (err) {
+			console.error('Error deleting slot configuration:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
 	updateCableLabel: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();
