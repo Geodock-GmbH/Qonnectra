@@ -24,6 +24,8 @@ from .views import (
     ConduitImportTemplateView,
     ConduitImportView,
     ConduitViewSet,
+    ContainerTypeViewSet,
+    ContainerViewSet,
     ContentTypeViewSet,
     FeatureFilesViewSet,
     FlagsViewSet,
@@ -176,6 +178,16 @@ router.register(
     r"node-slot-configuration",
     NodeSlotConfigurationViewSet,
     basename="node-slot-configuration",
+)
+router.register(
+    r"container-type",
+    ContainerTypeViewSet,
+    basename="container-type",
+)
+router.register(
+    r"container",
+    ContainerViewSet,
+    basename="container",
 )
 
 urlpatterns = [

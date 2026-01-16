@@ -34,6 +34,7 @@ from .models import (
     CableTypeColorMapping,
     Conduit,
     ConduitTypeColorMapping,
+    ContainerType,
     FeatureFiles,
     FileTypeCategory,
     Flags,
@@ -1186,3 +1187,35 @@ class FeatureFilesAdmin(admin.ModelAdmin):
             "opts": self.model._meta,
         }
         return render(request, "admin/api/featurefiles/move_files.html", context)
+
+
+@admin.register(ContainerType)
+class ContainerTypeAdmin(admin.ModelAdmin):
+    """Admin interface for managing container types (global definitions)."""
+
+    list_display = ("name", "display_order", "is_active")
+    list_filter = ("is_active",)
+    list_editable = ("display_order", "is_active")
+    search_fields = ("name", "description")
+    ordering = ("display_order", "name")
+
+    fieldsets = (
+        (None, {"fields": ("name", "description")}),
+        (
+            _("Display Settings"),
+            {"fields": ("icon", "color", "display_order", "is_active")},
+        ),
+    )
+
+    def color_preview(self, obj):
+        """Display color swatch in admin list."""
+        if obj.color:
+            return format_html(
+                '<span style="background-color: {}; padding: 2px 10px; '
+                'border-radius: 3px;">&nbsp;</span> {}',
+                obj.color,
+                obj.color,
+            )
+        return "-"
+
+    color_preview.short_description = _("Color")

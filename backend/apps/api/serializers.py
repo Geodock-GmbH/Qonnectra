@@ -27,6 +27,8 @@ from .models import (
     CableLabel,
     CableTypeColorMapping,
     Conduit,
+    Container,
+    ContainerType,
     FeatureFiles,
     Flags,
     LogEntry,
@@ -1515,3 +1517,136 @@ class NodeStructureSerializer(serializers.ModelSerializer):
         fields["label"].label = _("Label")
 
         return fields
+
+
+class ContainerTypeSerializer(serializers.ModelSerializer):
+    """Serializer for the ContainerType model (admin-defined types)."""
+
+    class Meta:
+        model = ContainerType
+        fields = [
+            "id",
+            "name",
+            "description",
+            "icon",
+            "color",
+            "display_order",
+            "is_active",
+        ]
+
+
+class ContainerSerializer(serializers.ModelSerializer):
+    """Serializer for Container instances."""
+
+    uuid = serializers.UUIDField(read_only=True)
+    container_type = ContainerTypeSerializer(read_only=True)
+    container_type_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=ContainerType.objects.filter(is_active=True),
+        source="container_type",
+    )
+    uuid_node_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Node.objects.all(),
+        source="uuid_node",
+    )
+    parent_container_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Container.objects.all(),
+        source="parent_container",
+        required=False,
+        allow_null=True,
+    )
+    display_name = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Container
+        fields = [
+            "uuid",
+            "uuid_node_id",
+            "container_type",
+            "container_type_id",
+            "parent_container",
+            "parent_container_id",
+            "name",
+            "sort_order",
+            "is_expanded",
+            "display_name",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_display_name(self, obj):
+        return obj.get_display_name()
+
+
+class ContainerTreeSerializer(serializers.ModelSerializer):
+    """
+    Recursive serializer for building the full container tree with nested items.
+    Returns containers with their children and slot configurations.
+    """
+
+    uuid = serializers.UUIDField(read_only=True)
+    container_type = ContainerTypeSerializer(read_only=True)
+    display_name = serializers.SerializerMethodField()
+    children = serializers.SerializerMethodField()
+    slot_configurations = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Container
+        fields = [
+            "uuid",
+            "container_type",
+            "name",
+            "display_name",
+            "sort_order",
+            "is_expanded",
+            "children",
+            "slot_configurations",
+        ]
+
+    def get_display_name(self, obj):
+        return obj.get_display_name()
+
+    def get_children(self, obj):
+        """Recursively serialize child containers."""
+        children = obj.children.all().order_by("sort_order")
+        return ContainerTreeSerializer(children, many=True, context=self.context).data
+
+    def get_slot_configurations(self, obj):
+        """Serialize slot configurations in this container."""
+        configs = obj.slot_configurations.all().order_by("sort_order", "side")
+        return NodeSlotConfigurationListSerializer(
+            configs, many=True, context=self.context
+        ).data
+
+
+class NodeSlotConfigurationListSerializer(serializers.ModelSerializer):
+    """
+    Lightweight serializer for slot configurations in container tree.
+    Does not include nested node data to avoid circular references.
+    """
+
+    uuid = serializers.UUIDField(read_only=True)
+    used_slots = serializers.SerializerMethodField(read_only=True)
+    free_slots = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = NodeSlotConfiguration
+        fields = [
+            "uuid",
+            "side",
+            "total_slots",
+            "sort_order",
+            "used_slots",
+            "free_slots",
+        ]
+
+    def get_used_slots(self, obj):
+        """Calculate total used slots from NodeStructure entries."""
+        structures = obj.structures.all()
+        return sum(s.slot_end - s.slot_start + 1 for s in structures)
+
+    def get_free_slots(self, obj):
+        """Calculate remaining free slots."""
+        return obj.total_slots - self.get_used_slots(obj)

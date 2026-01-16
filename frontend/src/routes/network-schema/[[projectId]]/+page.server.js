@@ -894,6 +894,220 @@ export const actions = {
 			return fail(500, { error: 'Internal server error' });
 		}
 	},
+	getContainerTypes: async ({ fetch, cookies }) => {
+		try {
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}container-type/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				return fail(response.status, { error: 'Failed to fetch container types' });
+			}
+
+			const containerTypes = await response.json();
+			return { containerTypes };
+		} catch (err) {
+			console.error('Error fetching container types:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	getContainerHierarchy: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeUuid = formData.get('nodeUuid');
+
+			if (!nodeUuid) {
+				return fail(400, { error: 'Missing required parameter: nodeUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}container/tree/${nodeUuid}/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch hierarchy'
+				});
+			}
+
+			const hierarchy = await response.json();
+			return { hierarchy };
+		} catch (err) {
+			console.error('Error fetching container hierarchy:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	createContainer: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeUuid = formData.get('nodeUuid');
+			const containerTypeId = formData.get('containerTypeId');
+			const name = formData.get('name');
+			const parentContainerId = formData.get('parentContainerId');
+
+			if (!nodeUuid || !containerTypeId) {
+				return fail(400, {
+					error: 'Missing required fields: nodeUuid and containerTypeId'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const requestBody = {
+				uuid_node_id: nodeUuid,
+				container_type_id: parseInt(containerTypeId)
+			};
+
+			if (name) requestBody.name = name;
+			if (parentContainerId) requestBody.parent_container_id = parentContainerId;
+
+			const response = await fetch(`${API_URL}container/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to create container'
+				});
+			}
+
+			const container = await response.json();
+			return { success: true, container };
+		} catch (err) {
+			console.error('Error creating container:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	deleteContainer: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const containerUuid = formData.get('containerUuid');
+
+			if (!containerUuid) {
+				return fail(400, { error: 'Missing required parameter: containerUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}container/${containerUuid}/`, {
+				method: 'DELETE',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to delete container'
+				});
+			}
+
+			return { success: true };
+		} catch (err) {
+			console.error('Error deleting container:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	moveItem: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const itemType = formData.get('itemType');
+			const itemUuid = formData.get('itemUuid');
+			const targetContainerId = formData.get('targetContainerId') || null;
+
+			if (!itemType || !itemUuid) {
+				return fail(400, { error: 'Missing required parameters' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			let endpoint;
+			let body;
+
+			if (itemType === 'container') {
+				endpoint = `${API_URL}container/${itemUuid}/move/`;
+				body = { parent_container_id: targetContainerId || null };
+			} else if (itemType === 'slot_configuration') {
+				endpoint = `${API_URL}node-slot-configuration/${itemUuid}/move-to-container/`;
+				body = { container_id: targetContainerId || null };
+			} else {
+				return fail(400, { error: 'Invalid item type' });
+			}
+
+			const response = await fetch(endpoint, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(body)
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to move item'
+				});
+			}
+
+			return { success: true };
+		} catch (err) {
+			console.error('Error moving item:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	toggleContainerExpanded: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const containerUuid = formData.get('containerUuid');
+
+			if (!containerUuid) {
+				return fail(400, { error: 'Missing containerUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+
+			// First get current state
+			const getResponse = await fetch(`${API_URL}container/${containerUuid}/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!getResponse.ok) {
+				return fail(getResponse.status, { error: 'Container not found' });
+			}
+
+			const container = await getResponse.json();
+
+			// Toggle the state
+			const response = await fetch(`${API_URL}container/${containerUuid}/`, {
+				method: 'PATCH',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					is_expanded: !container.is_expanded
+				})
+			});
+
+			if (!response.ok) {
+				return fail(response.status, { error: 'Failed to update container' });
+			}
+
+			return { success: true };
+		} catch (err) {
+			console.error('Error toggling container:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
 	updateCableLabel: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();

@@ -3127,6 +3127,16 @@ class NodeSlotConfiguration(models.Model):
         related_name="slot_configurations",
         db_index=False,
     )
+    container = models.ForeignKey(
+        "Container",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Container"),
+        db_column="container",
+        related_name="slot_configurations",
+        help_text=_("Optional container this slot configuration belongs to"),
+    )
     side = models.CharField(
         _("Side"),
         max_length=50,
@@ -3138,14 +3148,20 @@ class NodeSlotConfiguration(models.Model):
         blank=False,
         help_text=_("The total number of slots available on this side"),
     )
+    sort_order = models.IntegerField(
+        _("Sort Order"),
+        default=0,
+        help_text=_("Order of this configuration among siblings"),
+    )
 
     class Meta:
         db_table = "node_slot_configuration"
         verbose_name = _("Node Slot Configuration")
         verbose_name_plural = _("Node Slot Configurations")
-        ordering = ["uuid_node", "side"]
+        ordering = ["uuid_node", "sort_order", "side"]
         indexes = [
             models.Index(fields=["uuid_node"], name="idx_node_slot_config_node"),
+            models.Index(fields=["container"], name="idx_node_slot_config_container"),
         ]
         constraints = [
             models.UniqueConstraint(
@@ -3269,3 +3285,141 @@ class NodeStructure(models.Model):
         if self.purpose == self.Purpose.COMPONENT:
             return f"{self.uuid_node} - {side_name} - {self.component_type} - Slots {self.slot_start}-{self.slot_end}"
         return f"{self.uuid_node} - {side_name} - {self.get_purpose_display()} - Slots {self.slot_start}-{self.slot_end}"
+
+
+class ContainerType(models.Model):
+    """
+    Admin-defined container types for organizing NodeSlotConfigurations.
+    These are GLOBAL (not project-specific) and managed via Django Admin only.
+    Examples: "MFG-Door-Left", "MFG-19-inch-Rack", "Node-Cabinet"
+    """
+
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(
+        _("Name"),
+        max_length=100,
+        unique=True,
+        help_text=_(
+            "The name of the container type (e.g., 'MFG-Door-Left', '19-inch Rack')"
+        ),
+    )
+    description = models.TextField(
+        _("Description"),
+        null=True,
+        blank=True,
+        help_text=_("Optional description of this container type"),
+    )
+    icon = models.CharField(
+        _("Icon"),
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text=_(
+            "Optional icon identifier for frontend display (e.g., 'folder', 'server')"
+        ),
+    )
+    color = models.CharField(
+        _("Color"),
+        max_length=7,
+        null=True,
+        blank=True,
+        help_text=_("Optional hex color code for visual distinction (e.g., '#3B82F6')"),
+    )
+    display_order = models.IntegerField(
+        _("Display Order"),
+        default=0,
+        help_text=_("Order in which this type appears in selection dropdowns"),
+    )
+    is_active = models.BooleanField(
+        _("Active"),
+        default=True,
+        help_text=_("Whether this container type is available for use"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "container_type"
+        verbose_name = _("Container Type")
+        verbose_name_plural = _("Container Types")
+        ordering = ["display_order", "name"]
+
+    def __str__(self):
+        return self.name
+
+
+class Container(models.Model):
+    """
+    User-created container instances that can hold:
+    - Other containers (nested hierarchy)
+    - NodeSlotConfigurations
+
+    Containers are node-specific and support arbitrary nesting depth.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    uuid_node = models.ForeignKey(
+        Node,
+        on_delete=models.CASCADE,
+        verbose_name=_("Node"),
+        db_column="uuid_node",
+        related_name="containers",
+        help_text=_("The node this container belongs to"),
+    )
+    container_type = models.ForeignKey(
+        ContainerType,
+        on_delete=models.PROTECT,
+        verbose_name=_("Container Type"),
+        db_column="container_type",
+        related_name="instances",
+        help_text=_("The type of this container"),
+    )
+    parent_container = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name=_("Parent Container"),
+        db_column="parent_container",
+        related_name="children",
+        help_text=_("The parent container (null if top-level)"),
+    )
+    name = models.CharField(
+        _("Name"),
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text=_("Optional custom name for this container instance"),
+    )
+    sort_order = models.IntegerField(
+        _("Sort Order"),
+        default=0,
+        help_text=_("Order of this container among siblings"),
+    )
+    is_expanded = models.BooleanField(
+        _("Expanded"),
+        default=True,
+        help_text=_("Whether this container is expanded in the UI"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "container"
+        verbose_name = _("Container")
+        verbose_name_plural = _("Containers")
+        ordering = ["uuid_node", "sort_order"]
+        indexes = [
+            models.Index(fields=["uuid_node"], name="idx_container_node"),
+            models.Index(fields=["parent_container"], name="idx_container_parent"),
+            models.Index(fields=["container_type"], name="idx_container_type"),
+        ]
+
+    def __str__(self):
+        type_name = self.container_type.name if self.container_type else "Unknown"
+        custom_name = f" ({self.name})" if self.name else ""
+        return f"{type_name}{custom_name}"
+
+    def get_display_name(self):
+        """Return display name (custom name or type name)."""
+        return self.name or self.container_type.name

@@ -41,6 +41,8 @@ from .models import (
     CableTypeColorMapping,
     CanvasSyncStatus,
     Conduit,
+    Container,
+    ContainerType,
     FeatureFiles,
     Flags,
     LogEntry,
@@ -84,6 +86,9 @@ from .serializers import (
     CableSerializer,
     CableTypeColorMappingSerializer,
     ConduitSerializer,
+    ContainerSerializer,
+    ContainerTreeSerializer,
+    ContainerTypeSerializer,
     ContentTypeSerializer,
     FeatureFilesSerializer,
     FlagsSerializer,
@@ -92,6 +97,7 @@ from .serializers import (
     MicroductConnectionSerializer,
     MicroductSerializer,
     NodeSerializer,
+    NodeSlotConfigurationListSerializer,
     NodeSlotConfigurationSerializer,
     NodeStructureSerializer,
     NodeTrenchSelectionBulkSerializer,
@@ -3291,6 +3297,43 @@ class NodeSlotConfigurationViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(configs, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["post"], url_path="move-to-container")
+    def move_to_container(self, request, uuid=None):
+        """
+        Move a slot configuration into a container or to root level.
+
+        Request body:
+        {
+            "container_id": "uuid" | null,  # Target container (null for root)
+            "sort_order": 0  # Position within container/root
+        }
+        """
+        config = self.get_object()
+        container_id = request.data.get("container_id")
+        sort_order = request.data.get("sort_order", 0)
+
+        if container_id:
+            try:
+                container = Container.objects.get(uuid=container_id)
+                # Verify container belongs to same node
+                if container.uuid_node_id != config.uuid_node_id:
+                    return Response(
+                        {"error": "Container belongs to a different node"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                config.container = container
+            except Container.DoesNotExist:
+                return Response(
+                    {"error": "Container not found"}, status=status.HTTP_404_NOT_FOUND
+                )
+        else:
+            config.container = None
+
+        config.sort_order = sort_order
+        config.save()
+
+        return Response(NodeSlotConfigurationSerializer(config).data)
+
 
 class NodeStructureViewSet(viewsets.ModelViewSet):
     """ViewSet for the NodeStructure model.
@@ -3363,3 +3406,129 @@ class NodeStructureViewSet(viewsets.ModelViewSet):
             }
 
         return Response(summary)
+
+
+class ContainerTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only ViewSet for ContainerType model.
+    Only returns active container types.
+    Admin management is done via Django Admin.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = ContainerType.objects.filter(is_active=True).order_by(
+        "display_order", "name"
+    )
+    serializer_class = ContainerTypeSerializer
+
+
+class ContainerViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for Container instances.
+    Supports CRUD operations and hierarchy manipulation.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = Container.objects.all().select_related(
+        "container_type", "parent_container", "uuid_node"
+    )
+    serializer_class = ContainerSerializer
+    lookup_field = "uuid"
+
+    def get_queryset(self):
+        """Filter containers by node if specified."""
+        queryset = super().get_queryset()
+        node_uuid = self.request.query_params.get("node")
+        if node_uuid:
+            queryset = queryset.filter(uuid_node__uuid=node_uuid)
+        return queryset.order_by("sort_order")
+
+    @action(detail=False, methods=["get"], url_path="by-node/(?P<node_uuid>[^/.]+)")
+    def by_node(self, request, node_uuid=None):
+        """Get all containers for a specific node as a flat list."""
+        containers = (
+            Container.objects.filter(uuid_node__uuid=node_uuid)
+            .select_related("container_type", "parent_container")
+            .order_by("sort_order")
+        )
+        serializer = self.get_serializer(containers, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="tree/(?P<node_uuid>[^/.]+)")
+    def tree(self, request, node_uuid=None):
+        """
+        Get the complete container hierarchy for a node.
+        Returns a tree structure with nested containers and slot configurations.
+        """
+        try:
+            node = Node.objects.get(uuid=node_uuid)
+        except Node.DoesNotExist:
+            return Response(
+                {"error": "Node not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Get root-level containers (no parent)
+        root_containers = (
+            Container.objects.filter(uuid_node=node, parent_container__isnull=True)
+            .select_related("container_type")
+            .prefetch_related("children", "slot_configurations")
+            .order_by("sort_order")
+        )
+
+        # Get root-level slot configurations (not in any container)
+        root_configs = NodeSlotConfiguration.objects.filter(
+            uuid_node=node, container__isnull=True
+        ).order_by("sort_order", "side")
+
+        return Response(
+            {
+                "containers": ContainerTreeSerializer(root_containers, many=True).data,
+                "root_slot_configurations": NodeSlotConfigurationListSerializer(
+                    root_configs, many=True
+                ).data,
+            }
+        )
+
+    @action(detail=True, methods=["post"], url_path="move")
+    def move(self, request, uuid=None):
+        """
+        Move a container to a new parent or reorder within siblings.
+
+        Request body:
+        {
+            "parent_container_id": "uuid" | null,  # New parent (null for root)
+            "sort_order": 0  # New position among siblings
+        }
+        """
+        container = self.get_object()
+        parent_id = request.data.get("parent_container_id")
+        sort_order = request.data.get("sort_order", 0)
+
+        # Validate: cannot move container into itself or its descendants
+        if parent_id:
+            try:
+                new_parent = Container.objects.get(uuid=parent_id)
+                # Check for circular reference
+                ancestor = new_parent
+                while ancestor:
+                    if ancestor.uuid == container.uuid:
+                        return Response(
+                            {
+                                "error": "Cannot move container into itself or its descendants"
+                            },
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                    ancestor = ancestor.parent_container
+                container.parent_container = new_parent
+            except Container.DoesNotExist:
+                return Response(
+                    {"error": "Parent container not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+        else:
+            container.parent_container = None
+
+        container.sort_order = sort_order
+        container.save()
+
+        return Response(ContainerSerializer(container).data)
