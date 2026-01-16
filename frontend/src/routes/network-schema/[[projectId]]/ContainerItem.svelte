@@ -45,8 +45,6 @@
 	}
 
 	function handleDragLeave(e) {
-		// Only set dragOver to false if we're leaving the container element
-		// and not entering a child element
 		if (!e.currentTarget.contains(e.relatedTarget)) {
 			dragOver = false;
 		}
@@ -59,7 +57,6 @@
 
 		try {
 			const data = JSON.parse(e.dataTransfer.getData('application/json'));
-			// Don't allow dropping a container into itself
 			if (data.type === 'container' && data.uuid === container.uuid) {
 				return;
 			}
@@ -73,10 +70,11 @@
 		onToggleExpand?.(container.uuid);
 	}
 
-	const paddingLeft = $derived(`${depth * 1.5}rem`);
 	const hasChildren = $derived(
 		container.children?.length > 0 || container.slot_configurations?.length > 0
 	);
+
+	const paddingLeft = $derived(`${depth * 1.5}rem`);
 </script>
 
 <div class="container-item" class:drag-over={dragOver} style:padding-left={paddingLeft}>
@@ -126,6 +124,19 @@
 
 	{#if container.is_expanded && hasChildren}
 		<div class="children mt-1 space-y-1">
+			<!-- Slot configurations first -->
+			{#each container.slot_configurations || [] as config (config.uuid)}
+				<div animate:flip={{ duration: 200 }}>
+					<SlotConfigItem
+						{config}
+						depth={depth + 1}
+						onEdit={onEditSlotConfig}
+						onDelete={onDeleteSlotConfig}
+					/>
+				</div>
+			{/each}
+
+			<!-- Child containers after slot configs -->
 			{#each container.children || [] as child (child.uuid)}
 				<div animate:flip={{ duration: 200 }}>
 					<Self
@@ -136,17 +147,6 @@
 						{onToggleExpand}
 						{onEditSlotConfig}
 						{onDeleteSlotConfig}
-					/>
-				</div>
-			{/each}
-
-			{#each container.slot_configurations || [] as config (config.uuid)}
-				<div animate:flip={{ duration: 200 }}>
-					<SlotConfigItem
-						{config}
-						depth={depth + 1}
-						onEdit={onEditSlotConfig}
-						onDelete={onDeleteSlotConfig}
 					/>
 				</div>
 			{/each}

@@ -533,7 +533,7 @@
 				<span class="text-surface-500">{m.message_no_slot_configurations()}</span>
 			</div>
 		{:else}
-			<div class="space-y-2">
+			<div class="space-y-1">
 				<!-- Root-level containers -->
 				{#each hierarchy.containers as container (container.uuid)}
 					<div animate:flip={{ duration: 200 }}>
