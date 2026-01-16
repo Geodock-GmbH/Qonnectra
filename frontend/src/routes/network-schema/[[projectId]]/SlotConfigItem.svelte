@@ -1,9 +1,9 @@
 <script>
-	import { IconGripVertical, IconPencil, IconTrash } from '@tabler/icons-svelte';
+	import { IconEye, IconGripVertical, IconPencil, IconTrash } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
-	let { config, depth = 0, onEdit, onDelete, onDragStart } = $props();
+	let { config, depth = 0, onEdit, onDelete, onDragStart, onViewStructure } = $props();
 
 	function handleDragStart(e) {
 		e.dataTransfer.setData(
@@ -44,6 +44,15 @@
 		</div>
 
 		<div class="flex items-center gap-1 flex-shrink-0">
+			<button
+				type="button"
+				class="btn btn-sm preset-filled-secondary-500 p-1.5"
+				onclick={() => onViewStructure?.(config.uuid)}
+				title={m.action_view_structure()}
+			>
+				<IconEye size={14} />
+			</button>
+
 			<button
 				type="button"
 				class="btn btn-sm preset-filled-warning-500 p-1.5"

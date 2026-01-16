@@ -19,7 +19,8 @@
 		onMove,
 		onToggleExpand,
 		onEditSlotConfig,
-		onDeleteSlotConfig
+		onDeleteSlotConfig,
+		onViewStructure
 	} = $props();
 
 	let dragOver = $state(false);
@@ -132,6 +133,7 @@
 						depth={depth + 1}
 						onEdit={onEditSlotConfig}
 						onDelete={onDeleteSlotConfig}
+						{onViewStructure}
 					/>
 				</div>
 			{/each}
@@ -147,6 +149,7 @@
 						{onToggleExpand}
 						{onEditSlotConfig}
 						{onDeleteSlotConfig}
+						{onViewStructure}
 					/>
 				</div>
 			{/each}

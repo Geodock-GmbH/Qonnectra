@@ -1,5 +1,5 @@
 <script>
-	import { IconSettings } from '@tabler/icons-svelte';
+	import { IconLayoutList, IconSettings } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -12,10 +12,20 @@
 	import CableDiagramEdgeHandleConfig from './CableDiagramEdgeHandleConfig.svelte';
 	import CableDiagramNodeAttributeCard from './CableDiagramNodeAttributeCard.svelte';
 	import NodeSlotConfigPanel from './NodeSlotConfigPanel.svelte';
+	import NodeStructurePanel from './NodeStructurePanel.svelte';
 
 	let allProps = $props();
 
 	let slotConfigPanelOpen = $state(false);
+	let structurePanelOpen = $state(false);
+	let structurePanelSlotConfigUuid = $state(null);
+
+	// Shared state for slot configurations - allows both panels to stay in sync
+	// Using a reactive object that both panels can read and update
+	let sharedSlotState = $state({
+		slotConfigurations: [],
+		lastUpdated: 0
+	});
 
 	let group = $state('attributes');
 
@@ -56,6 +66,11 @@
 			fileExplorer.refresh();
 		}
 	}
+
+	function handleOpenStructurePanel(slotConfigUuid = null) {
+		structurePanelSlotConfigUuid = slotConfigUuid;
+		structurePanelOpen = true;
+	}
 </script>
 
 <Tabs tabs={tabItems} bind:value={group}>
@@ -81,6 +96,14 @@
 				>
 					<IconSettings size={18} />
 					{m.action_configure_slots()}
+				</button>
+				<button
+					type="button"
+					class="btn preset-filled-secondary-500 w-full"
+					onclick={() => handleOpenStructurePanel()}
+				>
+					<IconLayoutList size={18} />
+					{m.action_configure_structure()}
 				</button>
 			</div>
 		{/if}
@@ -108,7 +131,30 @@
 		title={m.title_slot_configuration()}
 		width={500}
 		height={400}
+		maxWidth={1920}
+		maxHeight={1080}
 	>
-		<NodeSlotConfigPanel nodeUuid={data.uuid || data.id} nodeName={data.name} />
+		<NodeSlotConfigPanel
+			nodeUuid={data.uuid || data.id}
+			nodeName={data.name}
+			onViewStructure={(slotConfigUuid) => handleOpenStructurePanel(slotConfigUuid)}
+			{sharedSlotState}
+		/>
+	</FloatingPanel>
+
+	<FloatingPanel
+		bind:open={structurePanelOpen}
+		title={m.title_node_structure()}
+		width={700}
+		height={500}
+		maxWidth={1920}
+		maxHeight={1080}
+	>
+		<NodeStructurePanel
+			nodeUuid={data.uuid || data.id}
+			nodeName={data.name}
+			initialSlotConfigUuid={structurePanelSlotConfigUuid}
+			{sharedSlotState}
+		/>
 	</FloatingPanel>
 {/if}

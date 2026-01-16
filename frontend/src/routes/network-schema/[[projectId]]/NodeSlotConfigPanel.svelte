@@ -10,7 +10,7 @@
 	import ContainerItem from './ContainerItem.svelte';
 	import SlotConfigItem from './SlotConfigItem.svelte';
 
-	let { nodeUuid, nodeName = '' } = $props();
+	let { nodeUuid, nodeName = '', onViewStructure, sharedSlotState = null } = $props();
 
 	// Hierarchy state
 	let hierarchy = $state({ containers: [], root_slot_configurations: [] });
@@ -75,6 +75,14 @@
 			}
 
 			hierarchy = result.data?.hierarchy || { containers: [], root_slot_configurations: [] };
+
+			// Update shared state so NodeStructurePanel gets the latest slot configurations
+			if (sharedSlotState) {
+				// Flatten all slot configurations from hierarchy (root + nested in containers)
+				const allSlotConfigs = extractAllSlotConfigurations(hierarchy);
+				sharedSlotState.slotConfigurations = allSlotConfigs;
+				sharedSlotState.lastUpdated = Date.now();
+			}
 		} catch (err) {
 			console.error('Error fetching hierarchy:', err);
 			globalToaster.error({
@@ -85,6 +93,27 @@
 		} finally {
 			loading = false;
 		}
+	}
+
+	/**
+	 * Extract all slot configurations from hierarchy (root level + nested in containers)
+	 */
+	function extractAllSlotConfigurations(h) {
+		const configs = [...(h.root_slot_configurations || [])];
+
+		function extractFromContainers(containers) {
+			for (const container of containers || []) {
+				if (container.slot_configurations) {
+					configs.push(...container.slot_configurations);
+				}
+				if (container.children) {
+					extractFromContainers(container.children);
+				}
+			}
+		}
+
+		extractFromContainers(h.containers);
+		return configs;
 	}
 
 	/**
@@ -544,6 +573,7 @@
 							onToggleExpand={handleToggleExpand}
 							onEditSlotConfig={startEdit}
 							onDeleteSlotConfig={handleDelete}
+							{onViewStructure}
 						/>
 					</div>
 				{/each}
@@ -551,7 +581,7 @@
 				<!-- Root-level slot configurations -->
 				{#each hierarchy.root_slot_configurations as config (config.uuid)}
 					<div animate:flip={{ duration: 200 }}>
-						<SlotConfigItem {config} onEdit={startEdit} onDelete={handleDelete} />
+						<SlotConfigItem {config} onEdit={startEdit} onDelete={handleDelete} {onViewStructure} />
 					</div>
 				{/each}
 			</div>

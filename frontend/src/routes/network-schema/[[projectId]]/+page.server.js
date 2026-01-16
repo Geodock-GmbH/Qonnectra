@@ -1233,5 +1233,66 @@ export const actions = {
 			console.error('Error saving cable label:', err);
 			return fail(500, { message: err.message || 'Failed to save cable label' });
 		}
+	},
+	getSlotConfigurationsForNode: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeUuid = formData.get('nodeUuid');
+
+			if (!nodeUuid) {
+				return fail(400, { error: 'Missing required parameter: nodeUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-slot-configuration/by-node/${nodeUuid}/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch slot configurations'
+				});
+			}
+
+			const configurations = await response.json();
+			return { configurations };
+		} catch (err) {
+			console.error('Error fetching slot configurations:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	getNodeStructures: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const slotConfigUuid = formData.get('slotConfigUuid');
+
+			if (!slotConfigUuid) {
+				return fail(400, { error: 'Missing required parameter: slotConfigUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(
+				`${API_URL}node-structure/?slot_configuration=${slotConfigUuid}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch node structures'
+				});
+			}
+
+			const structures = await response.json();
+			return { structures };
+		} catch (err) {
+			console.error('Error fetching node structures:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
 	}
 };
