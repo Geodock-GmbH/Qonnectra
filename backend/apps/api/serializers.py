@@ -36,7 +36,9 @@ from .models import (
     MicroductCableConnection,
     MicroductConnection,
     Node,
+    NodeSlotClipNumber,
     NodeSlotConfiguration,
+    NodeSlotDivider,
     NodeStructure,
     NodeTrenchSelection,
     OlAddress,
@@ -1512,6 +1514,76 @@ class NodeStructureSerializer(serializers.ModelSerializer):
         fields["label"].label = _("Label")
 
         return fields
+
+
+class NodeSlotDividerSerializer(serializers.ModelSerializer):
+    """Serializer for the NodeSlotDivider model."""
+
+    uuid = serializers.UUIDField(read_only=True)
+    slot_configuration_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=NodeSlotConfiguration.objects.all(),
+        source="slot_configuration",
+    )
+
+    class Meta:
+        model = NodeSlotDivider
+        fields = ["uuid", "slot_configuration", "slot_configuration_id", "after_slot"]
+        read_only_fields = ["uuid", "slot_configuration"]
+
+    def validate(self, data):
+        """Validate that after_slot is within valid range."""
+        slot_config = data.get("slot_configuration")
+        after_slot = data.get("after_slot")
+
+        if slot_config and after_slot:
+            if after_slot < 1 or after_slot >= slot_config.total_slots:
+                raise serializers.ValidationError(
+                    {
+                        "after_slot": _(
+                            "Divider position must be between 1 and total_slots - 1."
+                        )
+                    }
+                )
+        return data
+
+
+class NodeSlotClipNumberSerializer(serializers.ModelSerializer):
+    """Serializer for the NodeSlotClipNumber model."""
+
+    uuid = serializers.UUIDField(read_only=True)
+    slot_configuration_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=NodeSlotConfiguration.objects.all(),
+        source="slot_configuration",
+    )
+
+    class Meta:
+        model = NodeSlotClipNumber
+        fields = [
+            "uuid",
+            "slot_configuration",
+            "slot_configuration_id",
+            "slot_number",
+            "clip_number",
+        ]
+        read_only_fields = ["uuid", "slot_configuration"]
+
+    def validate(self, data):
+        """Validate that slot_number is within valid range."""
+        slot_config = data.get("slot_configuration")
+        slot_number = data.get("slot_number")
+
+        if slot_config and slot_number:
+            if slot_number < 1 or slot_number > slot_config.total_slots:
+                raise serializers.ValidationError(
+                    {
+                        "slot_number": _(
+                            "Slot number must be between 1 and total_slots."
+                        )
+                    }
+                )
+        return data
 
 
 class ContainerTypeSerializer(serializers.ModelSerializer):

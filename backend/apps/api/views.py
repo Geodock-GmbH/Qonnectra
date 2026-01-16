@@ -51,7 +51,9 @@ from .models import (
     MicroductConnection,
     NetworkSchemaSettings,
     Node,
+    NodeSlotClipNumber,
     NodeSlotConfiguration,
+    NodeSlotDivider,
     NodeStructure,
     NodeTrenchSelection,
     OlAddress,
@@ -97,8 +99,10 @@ from .serializers import (
     MicroductConnectionSerializer,
     MicroductSerializer,
     NodeSerializer,
+    NodeSlotClipNumberSerializer,
     NodeSlotConfigurationListSerializer,
     NodeSlotConfigurationSerializer,
+    NodeSlotDividerSerializer,
     NodeStructureSerializer,
     NodeTrenchSelectionBulkSerializer,
     NodeTrenchSelectionSerializer,
@@ -3457,6 +3461,83 @@ class NodeStructureViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(structure)
         return Response(serializer.data)
+
+
+class NodeSlotDividerViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for NodeSlotDivider model.
+    Manages horizontal divider lines between TPU slots for visual grouping.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = NodeSlotDivider.objects.all().order_by("slot_configuration", "after_slot")
+    serializer_class = NodeSlotDividerSerializer
+    lookup_field = "uuid"
+
+    def get_queryset(self):
+        """Filter dividers by slot_configuration if specified."""
+        queryset = super().get_queryset()
+        slot_config_uuid = self.request.query_params.get("slot_configuration")
+
+        if slot_config_uuid:
+            queryset = queryset.filter(slot_configuration__uuid=slot_config_uuid)
+
+        return queryset.select_related("slot_configuration")
+
+
+class NodeSlotClipNumberViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for NodeSlotClipNumber model.
+    Manages custom clip numbers for individual slots.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = NodeSlotClipNumber.objects.all().order_by("slot_configuration", "slot_number")
+    serializer_class = NodeSlotClipNumberSerializer
+    lookup_field = "uuid"
+
+    def get_queryset(self):
+        """Filter clip numbers by slot_configuration if specified."""
+        queryset = super().get_queryset()
+        slot_config_uuid = self.request.query_params.get("slot_configuration")
+
+        if slot_config_uuid:
+            queryset = queryset.filter(slot_configuration__uuid=slot_config_uuid)
+
+        return queryset.select_related("slot_configuration")
+
+    @action(detail=False, methods=["post"], url_path="upsert")
+    def upsert(self, request):
+        """Create or update a clip number for a slot."""
+        slot_config_id = request.data.get("slot_configuration_id")
+        slot_number = request.data.get("slot_number")
+        clip_number = request.data.get("clip_number")
+
+        if not all([slot_config_id, slot_number, clip_number]):
+            return Response(
+                {"error": "slot_configuration_id, slot_number, and clip_number are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            slot_config = NodeSlotConfiguration.objects.get(uuid=slot_config_id)
+        except NodeSlotConfiguration.DoesNotExist:
+            return Response(
+                {"error": "Slot configuration not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        clip_number_obj, created = NodeSlotClipNumber.objects.update_or_create(
+            slot_configuration=slot_config,
+            slot_number=int(slot_number),
+            defaults={"clip_number": clip_number}
+        )
+
+        serializer = self.get_serializer(clip_number_obj)
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
 
 
 class ContainerTypeViewSet(viewsets.ReadOnlyModelViewSet):

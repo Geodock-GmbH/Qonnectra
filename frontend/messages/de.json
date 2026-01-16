@@ -393,5 +393,11 @@
 	"message_error_slots_occupied": "Slots sind bereits belegt",
 	"message_success_placing_component": "Komponente erfolgreich platziert",
 	"message_error_deleting_structure": "Fehler beim Löschen der Struktur",
-	"message_success_deleting_structure": "Struktur erfolgreich gelöscht"
+	"message_success_deleting_structure": "Struktur erfolgreich gelöscht",
+	"message_success_moving_component": "Komponente erfolgreich verschoben",
+	"message_error_saving_clip_number": "Fehler beim Speichern der Clip-Nummer",
+	"message_error_creating_divider": "Fehler beim Erstellen der Trennlinie",
+	"message_error_deleting_divider": "Fehler beim Löschen der Trennlinie",
+	"tooltip_double_click_divider": "Doppelklick zum Umschalten der Trennlinie",
+	"tooltip_click_to_edit": "Klicken zum Bearbeiten"
 }

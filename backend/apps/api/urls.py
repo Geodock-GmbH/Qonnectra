@@ -37,7 +37,9 @@ from .views import (
     MicroductConnectionViewSet,
     MicroductViewSet,
     NodeCanvasCoordinatesView,
+    NodeSlotClipNumberViewSet,
     NodeSlotConfigurationViewSet,
+    NodeSlotDividerViewSet,
     NodeStructureViewSet,
     NodeTrenchSelectionViewSet,
     NodeViewSet,
@@ -178,6 +180,16 @@ router.register(
     r"node-slot-configuration",
     NodeSlotConfigurationViewSet,
     basename="node-slot-configuration",
+)
+router.register(
+    r"node-slot-divider",
+    NodeSlotDividerViewSet,
+    basename="node-slot-divider",
+)
+router.register(
+    r"node-slot-clip-number",
+    NodeSlotClipNumberViewSet,
+    basename="node-slot-clip-number",
 )
 router.register(
     r"container-type",

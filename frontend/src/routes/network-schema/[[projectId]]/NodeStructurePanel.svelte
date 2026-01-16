@@ -9,7 +9,12 @@
 
 	import ComponentTypeSidebar from './ComponentTypeSidebar.svelte';
 
-	let { nodeUuid, nodeName = '', initialSlotConfigUuid = null, sharedSlotState = $bindable(null) } = $props();
+	let {
+		nodeUuid,
+		nodeName = '',
+		initialSlotConfigUuid = null,
+		sharedSlotState = $bindable(null)
+	} = $props();
 
 	// State
 	let localSlotConfigurations = $state([]);
@@ -17,6 +22,12 @@
 	let structures = $state([]);
 	let loading = $state(true);
 	let loadingStructures = $state(false);
+
+	// Dividers and clip numbers state
+	let dividers = $state([]);
+	let clipNumbers = $state(new Map());
+	let editingClipSlot = $state(null);
+	let editingClipValue = $state('');
 
 	// Drag state
 	let isDragging = $state(false);
@@ -58,9 +69,22 @@
 		return occupied;
 	});
 
+	// Compute divider positions as a Set for fast lookup
+	const dividerAfterSlots = $derived.by(() => {
+		// Access length to ensure reactivity is tracked
+		const len = dividers.length;
+		return new Set(dividers.map((d) => d.after_slot));
+	});
+
 	// Slot grid data
 	const slotRows = $derived.by(() => {
 		if (!selectedConfig) return [];
+		// Access these at the top to ensure reactivity tracking
+		const currentDividers = dividerAfterSlots;
+		const currentClipNumbers = clipNumbers;
+		const currentOccupied = occupiedSlots;
+		const currentDropPreview = dropPreviewSlots;
+
 		const rows = [];
 		for (let slot = 1; slot <= selectedConfig.total_slots; slot++) {
 			const structure = structures.find((s) => s.slot_start <= slot && s.slot_end >= slot);
@@ -69,8 +93,10 @@
 				structure,
 				isBlockStart: structure?.slot_start === slot,
 				blockSize: structure ? structure.slot_end - structure.slot_start + 1 : 0,
-				isOccupied: occupiedSlots.has(slot),
-				isDropTarget: dropPreviewSlots.includes(slot)
+				isOccupied: currentOccupied.has(slot),
+				isDropTarget: currentDropPreview.includes(slot),
+				hasDividerAfter: currentDividers.has(slot),
+				clipNumber: currentClipNumbers.get(slot) || null
 			});
 		}
 		return rows;
@@ -163,10 +189,217 @@
 	}
 
 	/**
+	 * Fetch dividers for the selected slot configuration
+	 */
+	async function fetchDividers() {
+		if (!selectedSlotConfigUuid) {
+			dividers = [];
+			return;
+		}
+
+		try {
+			const formData = new FormData();
+			formData.append('slotConfigUuid', selectedSlotConfigUuid);
+
+			const response = await fetch('?/getSlotDividers', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to fetch dividers');
+			}
+
+			dividers = result.data?.dividers || [];
+		} catch (err) {
+			console.error('Error fetching dividers:', err);
+			dividers = [];
+		}
+	}
+
+	/**
+	 * Fetch clip numbers for the selected slot configuration
+	 */
+	async function fetchClipNumbers() {
+		if (!selectedSlotConfigUuid) {
+			clipNumbers = new Map();
+			return;
+		}
+
+		try {
+			const formData = new FormData();
+			formData.append('slotConfigUuid', selectedSlotConfigUuid);
+
+			const response = await fetch('?/getSlotClipNumbers', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to fetch clip numbers');
+			}
+
+			const clips = result.data?.clipNumbers || [];
+			const newMap = new Map();
+			for (const clip of clips) {
+				newMap.set(clip.slot_number, clip.clip_number);
+			}
+			clipNumbers = newMap;
+		} catch (err) {
+			console.error('Error fetching clip numbers:', err);
+			clipNumbers = new Map();
+		}
+	}
+
+	/**
 	 * Handle side selection change
 	 */
 	function handleSideChange(e) {
 		selectedSlotConfigUuid = e.target.value;
+	}
+
+	/**
+	 * Start editing a clip number
+	 */
+	function startEditingClip(slotNumber, currentValue) {
+		editingClipSlot = slotNumber;
+		editingClipValue = currentValue || String(slotNumber);
+	}
+
+	/**
+	 * Save the edited clip number
+	 */
+	async function saveClipNumber() {
+		if (editingClipSlot === null || !editingClipValue.trim()) {
+			editingClipSlot = null;
+			editingClipValue = '';
+			return;
+		}
+
+		const slotNumber = editingClipSlot;
+		const newClipNumber = editingClipValue.trim();
+
+		// Optimistic update
+		const previousClipNumbers = new Map(clipNumbers);
+		clipNumbers.set(slotNumber, newClipNumber);
+		clipNumbers = new Map(clipNumbers); // Trigger reactivity
+
+		editingClipSlot = null;
+		editingClipValue = '';
+
+		try {
+			const formData = new FormData();
+			formData.append('slotConfigUuid', selectedSlotConfigUuid);
+			formData.append('slotNumber', slotNumber.toString());
+			formData.append('clipNumber', newClipNumber);
+
+			const response = await fetch('?/upsertSlotClipNumber', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to save clip number');
+			}
+		} catch (err) {
+			console.error('Error saving clip number:', err);
+			clipNumbers = previousClipNumbers;
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_saving_clip_number()
+			});
+		}
+	}
+
+	/**
+	 * Handle clip number input keydown
+	 */
+	function handleClipKeydown(e) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			saveClipNumber();
+		} else if (e.key === 'Escape') {
+			editingClipSlot = null;
+			editingClipValue = '';
+		}
+	}
+
+	/**
+	 * Toggle a divider after a slot
+	 */
+	async function toggleDivider(slotNumber) {
+		const existingDivider = dividers.find((d) => d.after_slot === slotNumber);
+
+		if (existingDivider) {
+			// Delete the divider
+			const previousDividers = [...dividers];
+			dividers = dividers.filter((d) => d.uuid !== existingDivider.uuid);
+
+			try {
+				const formData = new FormData();
+				formData.append('dividerUuid', existingDivider.uuid);
+
+				const response = await fetch('?/deleteSlotDivider', {
+					method: 'POST',
+					body: formData
+				});
+
+				const result = deserialize(await response.text());
+
+				if (result.type === 'failure' || result.type === 'error') {
+					throw new Error(result.data?.error || 'Failed to delete divider');
+				}
+			} catch (err) {
+				console.error('Error deleting divider:', err);
+				dividers = previousDividers;
+				globalToaster.error({
+					title: m.common_error(),
+					description: m.message_error_deleting_divider()
+				});
+			}
+		} else {
+			// Create a new divider
+			const tempUuid = `temp-${Date.now()}`;
+			const optimisticDivider = {
+				uuid: tempUuid,
+				slot_configuration: selectedSlotConfigUuid,
+				after_slot: slotNumber
+			};
+			dividers = [...dividers, optimisticDivider];
+
+			try {
+				const formData = new FormData();
+				formData.append('slotConfigUuid', selectedSlotConfigUuid);
+				formData.append('afterSlot', slotNumber.toString());
+
+				const response = await fetch('?/createSlotDivider', {
+					method: 'POST',
+					body: formData
+				});
+
+				const result = deserialize(await response.text());
+
+				if (result.type === 'failure' || result.type === 'error') {
+					throw new Error(result.data?.error || 'Failed to create divider');
+				}
+
+				// Replace temp with real divider
+				dividers = dividers.map((d) => (d.uuid === tempUuid ? result.data.divider : d));
+			} catch (err) {
+				console.error('Error creating divider:', err);
+				dividers = dividers.filter((d) => d.uuid !== tempUuid);
+				globalToaster.error({
+					title: m.common_error(),
+					description: m.message_error_creating_divider()
+				});
+			}
+		}
 	}
 
 	// Drag handlers
@@ -187,23 +420,17 @@
 	}
 
 	function handleStructureDragStart(e, structure) {
-		e.dataTransfer.setData(
-			'application/json',
-			JSON.stringify({
-				type: 'existing_structure',
-				uuid: structure.uuid,
-				slot_start: structure.slot_start,
-				slot_end: structure.slot_end,
-				occupied_slots: structure.slot_end - structure.slot_start + 1
-			})
-		);
-		e.dataTransfer.effectAllowed = 'move';
-		isDragging = true;
-		draggedItem = {
+		const dragData = {
 			type: 'existing_structure',
 			uuid: structure.uuid,
+			slot_start: structure.slot_start,
+			slot_end: structure.slot_end,
 			occupied_slots: structure.slot_end - structure.slot_start + 1
 		};
+		e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+		e.dataTransfer.effectAllowed = 'move';
+		isDragging = true;
+		draggedItem = dragData;
 	}
 
 	function handleSlotDragOver(e, slotNumber) {
@@ -235,7 +462,12 @@
 		}
 
 		dropPreviewSlots = preview;
-		e.dataTransfer.dropEffect = canDrop ? 'copy' : 'none';
+		// Use 'move' for existing structures, 'copy' for new components
+		e.dataTransfer.dropEffect = canDrop
+			? draggedItem?.type === 'existing_structure'
+				? 'move'
+				: 'copy'
+			: 'none';
 	}
 
 	function handleSlotDragLeave(e) {
@@ -254,23 +486,33 @@
 
 	async function handleSlotDrop(e, slotNumber) {
 		e.preventDefault();
-		const previewSlots = [...dropPreviewSlots];
 		dropPreviewSlots = [];
 		isDragging = false;
 
+		const jsonData = e.dataTransfer.getData('application/json');
+		if (!jsonData) {
+			draggedItem = null;
+			return;
+		}
+
 		try {
-			const data = JSON.parse(e.dataTransfer.getData('application/json'));
+			const data = JSON.parse(jsonData);
 
 			if (data.type === 'component_type') {
 				await createStructure(data, slotNumber);
 			} else if (data.type === 'existing_structure') {
+				// Skip if dropping on the same position
+				if (data.slot_start === slotNumber) {
+					draggedItem = null;
+					return;
+				}
 				await moveStructure(data, slotNumber);
 			}
 		} catch (err) {
 			console.error('Drop error:', err);
 			globalToaster.error({
 				title: m.common_error(),
-				description: m.message_error_placing_component()
+				description: err.message || m.message_error_placing_component()
 			});
 		}
 
@@ -401,6 +643,11 @@
 			structures = structures.map((s) =>
 				s.uuid === structureData.uuid ? result.data.structure : s
 			);
+
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_success_moving_component()
+			});
 		} catch (err) {
 			// Revert optimistic update
 			structures = previousStructures;
@@ -444,6 +691,8 @@
 	$effect(() => {
 		if (selectedSlotConfigUuid) {
 			fetchStructures();
+			fetchDividers();
+			fetchClipNumbers();
 		}
 	});
 
@@ -501,115 +750,144 @@
 		</div>
 
 		<!-- Slot Grid -->
-		<div
-			class="flex-1 overflow-auto border border-surface-200-800 rounded-lg"
-			ondragleave={handleGridDragLeave}
-			role="list"
-		>
-			{#if loading}
-				<div class="flex items-center justify-center py-8">
-					<span class="text-surface-500">{m.common_loading()}</span>
-				</div>
-			{:else if slotConfigurations.length === 0}
-				<div class="flex items-center justify-center py-8">
-					<span class="text-surface-500">{m.message_no_slot_configurations()}</span>
-				</div>
-			{:else if loadingStructures}
-				<div class="flex items-center justify-center py-8">
-					<span class="text-surface-500">{m.common_loading()}</span>
-				</div>
-			{:else}
-				<div class="slot-grid" class:dragging={isDragging}>
-					<!-- Header row -->
-					<div class="grid-header">{m.form_tpu()}</div>
-					<div class="grid-header">{m.form_component()}</div>
-					<div class="grid-header">{m.form_clip_number()}</div>
+		<div class="flex-1 flex flex-col border border-surface-200-800 rounded-lg overflow-hidden">
+			<!-- Header row (outside scrollable area) -->
+			<div class="slot-grid-header">
+				<div class="grid-header">{m.form_tpu()}</div>
+				<div class="grid-header">{m.form_component()}</div>
+				<div class="grid-header">{m.form_clip_number()}</div>
+			</div>
 
-					<!-- Slot rows -->
-					{#each slotRows as row (row.slotNumber)}
-						<!-- TPU number cell -->
-						<div
-							class="slot-number"
-							class:drop-target={row.isDropTarget}
-							class:occupied={row.isOccupied && !row.isDropTarget}
-						>
-							{row.slotNumber}
-						</div>
+			<!-- Scrollable content -->
+			<div class="flex-1 overflow-auto" ondragleave={handleGridDragLeave} role="list">
+				{#if loading}
+					<div class="flex items-center justify-center py-8">
+						<span class="text-surface-500">{m.common_loading()}</span>
+					</div>
+				{:else if slotConfigurations.length === 0}
+					<div class="flex items-center justify-center py-8">
+						<span class="text-surface-500">{m.message_no_slot_configurations()}</span>
+					</div>
+				{:else if loadingStructures}
+					<div class="flex items-center justify-center py-8">
+						<span class="text-surface-500">{m.common_loading()}</span>
+					</div>
+				{:else}
+					<div class="slot-grid" class:dragging={isDragging}>
+						<!-- Slot rows -->
+						{#each slotRows as row (row.slotNumber)}
+							<!-- TPU number cell -->
+							<div
+								class="slot-number"
+								class:drop-target={row.isDropTarget}
+								class:occupied={row.isOccupied && !row.isDropTarget}
+								class:has-divider-after={row.hasDividerAfter}
+								ondblclick={() => toggleDivider(row.slotNumber)}
+								title={m.tooltip_double_click_divider()}
+							>
+								{row.slotNumber}
+							</div>
 
-						<!-- Component cell -->
-						<div
-							class="slot-content"
-							class:drop-target={row.isDropTarget}
-							class:can-drop={row.isDropTarget &&
-								(!row.isOccupied ||
-									(draggedItem?.type === 'existing_structure' &&
-										occupiedSlots.get(row.slotNumber) === draggedItem?.uuid))}
-							class:cannot-drop={row.isDropTarget &&
-								row.isOccupied &&
-								(draggedItem?.type !== 'existing_structure' ||
-									occupiedSlots.get(row.slotNumber) !== draggedItem?.uuid)}
-							ondragover={(e) => handleSlotDragOver(e, row.slotNumber)}
-							ondragleave={handleSlotDragLeave}
-							ondrop={(e) => handleSlotDrop(e, row.slotNumber)}
-							role="listitem"
-						>
-							{#if row.isBlockStart && row.structure}
-								<div
-									class="structure-block group"
-									style:--row-height="{row.blockSize * 36}px"
-									draggable="true"
-									ondragstart={(e) => handleStructureDragStart(e, row.structure)}
-									ondragend={handleSidebarDragEnd}
-									role="button"
-									tabindex="0"
-								>
-									<IconGripVertical size={14} class="cursor-grab text-surface-400 flex-shrink-0" />
-									<div class="flex-1 min-w-0">
-										<div class="font-medium text-sm truncate">
-											{row.structure.component_type?.component_type || row.structure.label || '-'}
-										</div>
-										{#if row.structure.component_structure?.article_number}
-											<div class="text-xs text-surface-500 truncate">
-												{row.structure.component_structure.article_number}
+							<!-- Component cell -->
+							<div
+								class="slot-content"
+								class:drop-target={row.isDropTarget}
+								class:can-drop={row.isDropTarget &&
+									(!row.isOccupied ||
+										(draggedItem?.type === 'existing_structure' &&
+											occupiedSlots.get(row.slotNumber) === draggedItem?.uuid))}
+								class:cannot-drop={row.isDropTarget &&
+									row.isOccupied &&
+									(draggedItem?.type !== 'existing_structure' ||
+										occupiedSlots.get(row.slotNumber) !== draggedItem?.uuid)}
+								class:has-divider-after={row.hasDividerAfter}
+								ondragover={(e) => handleSlotDragOver(e, row.slotNumber)}
+								ondragleave={handleSlotDragLeave}
+								ondrop={(e) => handleSlotDrop(e, row.slotNumber)}
+								role="listitem"
+							>
+								{#if row.isBlockStart && row.structure}
+									<div
+										class="structure-block group"
+										style:--row-height="{row.blockSize * 36}px"
+										draggable="true"
+										ondragstart={(e) => handleStructureDragStart(e, row.structure)}
+										ondragend={handleSidebarDragEnd}
+										role="button"
+										tabindex="0"
+									>
+										<IconGripVertical
+											size={14}
+											class="cursor-grab text-surface-400 flex-shrink-0"
+										/>
+										<div class="flex-1 min-w-0">
+											<div class="font-medium text-sm truncate">
+												{row.structure.component_type?.component_type || row.structure.label || '-'}
 											</div>
-										{/if}
+											{#if row.structure.component_structure?.article_number}
+												<div class="text-xs text-surface-500 truncate">
+													{row.structure.component_structure.article_number}
+												</div>
+											{/if}
+										</div>
+										<button
+											type="button"
+											class="delete-btn opacity-0 group-hover:opacity-100"
+											onclick={(e) => {
+												e.stopPropagation();
+												handleDeleteStructure(row.structure.uuid);
+											}}
+										>
+											<IconTrash size={16} class="text-surface-950-50" />
+										</button>
 									</div>
+								{:else if !row.isOccupied}
+									<span class="text-surface-400 text-sm">-</span>
+								{/if}
+							</div>
+
+							<!-- Clip number cell (editable) -->
+							<div
+								class="slot-clip"
+								class:drop-target={row.isDropTarget}
+								class:occupied={row.isOccupied && !row.isDropTarget}
+								class:has-divider-after={row.hasDividerAfter}
+							>
+								{#if editingClipSlot === row.slotNumber}
+									<input
+										type="text"
+										class="clip-input"
+										bind:value={editingClipValue}
+										onblur={saveClipNumber}
+										onkeydown={handleClipKeydown}
+										autofocus
+									/>
+								{:else}
 									<button
 										type="button"
-										class="delete-btn opacity-0 group-hover:opacity-100"
-										onclick={(e) => {
-											e.stopPropagation();
-											handleDeleteStructure(row.structure.uuid);
-										}}
+										class="clip-value"
+										onclick={() => startEditingClip(row.slotNumber, row.clipNumber)}
+										title={m.tooltip_click_to_edit()}
 									>
-										<IconTrash size={14} />
+										{row.clipNumber || row.slotNumber}
 									</button>
-								</div>
-							{:else if !row.isOccupied}
-								<span class="text-surface-400 text-sm">-</span>
-							{/if}
-						</div>
-
-						<!-- Clip number cell -->
-						<div
-							class="slot-clip"
-							class:drop-target={row.isDropTarget}
-							class:occupied={row.isOccupied && !row.isDropTarget}
-						>
-							{#if row.structure}
-								{row.structure.clip_number ?? row.slotNumber}
-							{:else}
-								<span class="text-surface-400">{row.slotNumber}</span>
-							{/if}
-						</div>
-					{/each}
-				</div>
-			{/if}
+								{/if}
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
 		</div>
 	</div>
 </div>
 
 <style>
+	.slot-grid-header {
+		display: grid;
+		grid-template-columns: 60px 1fr 60px;
+		flex-shrink: 0;
+	}
+
 	.slot-grid {
 		display: grid;
 		grid-template-columns: 60px 1fr 60px;
@@ -621,9 +899,6 @@
 		font-weight: 600;
 		font-size: 0.875rem;
 		background: rgb(var(--color-surface-100));
-		position: sticky;
-		top: 0;
-		z-index: 10;
 		border-bottom: 1px solid rgb(var(--color-surface-200));
 	}
 
@@ -651,6 +926,7 @@
 		transition:
 			background-color 0.15s,
 			outline 0.15s;
+		position: relative;
 	}
 
 	.slot-content.drop-target.can-drop {
@@ -676,7 +952,7 @@
 	}
 
 	.structure-block {
-		width: 100%;
+		width: calc(100% - 4px);
 		height: var(--row-height, 32px);
 		padding: 4px 8px;
 		background: rgb(var(--color-primary-100));
@@ -686,7 +962,10 @@
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		position: relative;
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		z-index: 5;
 		transition:
 			background-color 0.15s,
 			transform 0.1s;
@@ -718,5 +997,46 @@
 
 	.dragging .slot-content:not(.drop-target) {
 		opacity: 0.6;
+	}
+
+	/* Divider styles */
+	.has-divider-after {
+		border-bottom: 1px solid var(--color-surface-950-50) !important;
+	}
+
+	/* Editable clip number styles */
+	.clip-value {
+		width: 100%;
+		height: 100%;
+		background: transparent;
+		border: none;
+		font-family: monospace;
+		text-align: center;
+		cursor: pointer;
+		padding: 0;
+		color: inherit;
+		transition: background-color 0.15s;
+	}
+
+	.clip-value:hover {
+		background: rgba(var(--color-primary-500), 0.1);
+		border-radius: 2px;
+	}
+
+	.clip-input {
+		width: 100%;
+		height: 24px;
+		background: white;
+		border: 2px solid rgb(var(--color-primary-500));
+		border-radius: 2px;
+		font-family: monospace;
+		text-align: center;
+		font-size: 0.875rem;
+		padding: 0 4px;
+		outline: none;
+	}
+
+	.clip-input:focus {
+		box-shadow: 0 0 0 2px rgba(var(--color-primary-500), 0.2);
 	}
 </style>

@@ -3287,6 +3287,91 @@ class NodeStructure(models.Model):
         return f"{self.uuid_node} - {side_name} - {self.get_purpose_display()} - Slots {self.slot_start}-{self.slot_end}"
 
 
+class NodeSlotDivider(models.Model):
+    """
+    Stores horizontal divider lines between TPU slots for visual grouping.
+    Dividers appear after the specified slot number.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    slot_configuration = models.ForeignKey(
+        NodeSlotConfiguration,
+        on_delete=models.CASCADE,
+        verbose_name=_("Slot Configuration"),
+        db_column="slot_configuration",
+        related_name="dividers",
+        db_index=True,
+        help_text=_("The slot configuration this divider belongs to"),
+    )
+    after_slot = models.IntegerField(
+        _("After Slot"),
+        null=False,
+        blank=False,
+        help_text=_("The slot number after which this divider appears"),
+    )
+
+    class Meta:
+        db_table = "node_slot_divider"
+        verbose_name = _("Node Slot Divider")
+        verbose_name_plural = _("Node Slot Dividers")
+        ordering = ["slot_configuration", "after_slot"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["slot_configuration", "after_slot"],
+                name="unique_slot_divider",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.slot_configuration} - Divider after slot {self.after_slot}"
+
+
+class NodeSlotClipNumber(models.Model):
+    """
+    Stores custom clip numbers for individual slots.
+    Allows users to assign their own clip number labels per slot.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    slot_configuration = models.ForeignKey(
+        NodeSlotConfiguration,
+        on_delete=models.CASCADE,
+        verbose_name=_("Slot Configuration"),
+        db_column="slot_configuration",
+        related_name="clip_numbers",
+        db_index=True,
+        help_text=_("The slot configuration this clip number belongs to"),
+    )
+    slot_number = models.IntegerField(
+        _("Slot Number"),
+        null=False,
+        blank=False,
+        help_text=_("The slot number this clip number is assigned to"),
+    )
+    clip_number = models.CharField(
+        _("Clip Number"),
+        max_length=20,
+        null=False,
+        blank=False,
+        help_text=_("The custom clip number label (e.g., '1', '1A', '2B')"),
+    )
+
+    class Meta:
+        db_table = "node_slot_clip_number"
+        verbose_name = _("Node Slot Clip Number")
+        verbose_name_plural = _("Node Slot Clip Numbers")
+        ordering = ["slot_configuration", "slot_number"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["slot_configuration", "slot_number"],
+                name="unique_slot_clip_number",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.slot_configuration} - Slot {self.slot_number}: {self.clip_number}"
+
+
 class ContainerType(models.Model):
     """
     Admin-defined container types for organizing NodeSlotConfigurations.

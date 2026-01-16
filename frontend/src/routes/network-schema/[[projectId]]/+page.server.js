@@ -1364,7 +1364,9 @@ export const actions = {
 				} else if (typeof errorData === 'object') {
 					// DRF returns field errors as object
 					const fieldErrors = Object.entries(errorData)
-						.map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
+						.map(
+							([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`
+						)
 						.join('; ');
 					if (fieldErrors) errorMessage = fieldErrors;
 				}
@@ -1437,6 +1439,182 @@ export const actions = {
 			return { success: true };
 		} catch (err) {
 			console.error('Error deleting node structure:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	getSlotDividers: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const slotConfigUuid = formData.get('slotConfigUuid');
+
+			if (!slotConfigUuid) {
+				return fail(400, { error: 'Missing required parameter: slotConfigUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(
+				`${API_URL}node-slot-divider/?slot_configuration=${slotConfigUuid}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch dividers'
+				});
+			}
+
+			const data = await response.json();
+			// Handle both paginated and non-paginated responses
+			const dividers = Array.isArray(data) ? data : data.results || [];
+			return { dividers };
+		} catch (err) {
+			console.error('Error fetching slot dividers:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	createSlotDivider: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const slotConfigUuid = formData.get('slotConfigUuid');
+			const afterSlot = formData.get('afterSlot');
+
+			if (!slotConfigUuid || !afterSlot) {
+				return fail(400, {
+					error: 'Missing required fields: slotConfigUuid, afterSlot'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-slot-divider/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					slot_configuration_id: slotConfigUuid,
+					after_slot: parseInt(afterSlot)
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.after_slot?.[0] || 'Failed to create divider'
+				});
+			}
+
+			const divider = await response.json();
+			return { success: true, divider };
+		} catch (err) {
+			console.error('Error creating slot divider:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	deleteSlotDivider: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const dividerUuid = formData.get('dividerUuid');
+
+			if (!dividerUuid) {
+				return fail(400, { error: 'Missing required parameter: dividerUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-slot-divider/${dividerUuid}/`, {
+				method: 'DELETE',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to delete divider'
+				});
+			}
+
+			return { success: true };
+		} catch (err) {
+			console.error('Error deleting slot divider:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	getSlotClipNumbers: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const slotConfigUuid = formData.get('slotConfigUuid');
+
+			if (!slotConfigUuid) {
+				return fail(400, { error: 'Missing required parameter: slotConfigUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(
+				`${API_URL}node-slot-clip-number/?slot_configuration=${slotConfigUuid}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch clip numbers'
+				});
+			}
+
+			const data = await response.json();
+			// Handle both paginated and non-paginated responses
+			const clipNumbers = Array.isArray(data) ? data : data.results || [];
+			return { clipNumbers };
+		} catch (err) {
+			console.error('Error fetching slot clip numbers:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	upsertSlotClipNumber: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const slotConfigUuid = formData.get('slotConfigUuid');
+			const slotNumber = formData.get('slotNumber');
+			const clipNumber = formData.get('clipNumber');
+
+			if (!slotConfigUuid || !slotNumber || !clipNumber) {
+				return fail(400, {
+					error: 'Missing required fields: slotConfigUuid, slotNumber, clipNumber'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-slot-clip-number/upsert/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					slot_configuration_id: slotConfigUuid,
+					slot_number: parseInt(slotNumber),
+					clip_number: clipNumber
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to update clip number'
+				});
+			}
+
+			const clipNumberData = await response.json();
+			return { success: true, clipNumber: clipNumberData };
+		} catch (err) {
+			console.error('Error upserting slot clip number:', err);
 			return fail(500, { error: 'Internal server error' });
 		}
 	}
