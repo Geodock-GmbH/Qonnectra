@@ -3407,6 +3407,57 @@ class NodeStructureViewSet(viewsets.ModelViewSet):
 
         return Response(summary)
 
+    @action(detail=True, methods=["post"], url_path="move")
+    def move(self, request, uuid=None):
+        """Move a structure to a new slot position."""
+        structure = self.get_object()
+        new_slot_start = request.data.get("slot_start")
+
+        if new_slot_start is None:
+            return Response(
+                {"error": "slot_start is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            new_slot_start = int(new_slot_start)
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "slot_start must be an integer"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        slot_count = structure.slot_end - structure.slot_start + 1
+        new_slot_end = new_slot_start + slot_count - 1
+
+        # Validate slot range within configuration bounds
+        config = structure.slot_configuration
+        if new_slot_start < 1 or new_slot_end > config.total_slots:
+            return Response(
+                {"error": "Invalid slot range"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check for overlaps with other structures (excluding self)
+        overlapping = NodeStructure.objects.filter(
+            slot_configuration=config
+        ).exclude(uuid=structure.uuid).filter(
+            Q(slot_start__lte=new_slot_end) & Q(slot_end__gte=new_slot_start)
+        )
+
+        if overlapping.exists():
+            return Response(
+                {"error": "Slots already occupied"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        structure.slot_start = new_slot_start
+        structure.slot_end = new_slot_end
+        structure.save()
+
+        serializer = self.get_serializer(structure)
+        return Response(serializer.data)
+
 
 class ContainerTypeViewSet(viewsets.ReadOnlyModelViewSet):
     """

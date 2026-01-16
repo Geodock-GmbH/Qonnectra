@@ -381,5 +381,16 @@
 	"title_trench_located": "Trench located!",
 	"title_trench_not_visible": "Trench not visible!",
 	"tooltip_opacity_slider": "Changes the opacity of the OpenStreetMap background map.",
-	"tooltip_refresh_microducts": "Refresh microducts to show the latest data."
+	"tooltip_refresh_microducts": "Refresh microducts to show the latest data.",
+	"action_expand": "Expand",
+	"action_collapse": "Collapse",
+	"form_component": "Component",
+	"form_component_types": "Component Types",
+	"message_no_component_types": "No component types available",
+	"message_error_placing_component": "Failed to place component",
+	"message_error_not_enough_slots": "Not enough slots available",
+	"message_error_slots_occupied": "Slots are already occupied",
+	"message_success_placing_component": "Component placed successfully",
+	"message_error_deleting_structure": "Failed to delete structure",
+	"message_success_deleting_structure": "Structure deleted successfully"
 }

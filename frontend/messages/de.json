@@ -382,5 +382,16 @@
 	"title_trench_located": "Trasse gefunden!",
 	"title_trench_not_visible": "Trasse nicht sichtbar!",
 	"tooltip_opacity_slider": "Ändert die Transparenz der OpenStreetMap-Hintergrundkarte.",
-	"tooltip_refresh_microducts": "Lädt die Mikrorohre erneut aus der Datenbank um die neuesten Daten anzuzeigen. "
+	"tooltip_refresh_microducts": "Lädt die Mikrorohre erneut aus der Datenbank um die neuesten Daten anzuzeigen. ",
+	"action_expand": "Erweitern",
+	"action_collapse": "Einklappen",
+	"form_component": "Komponente",
+	"form_component_types": "Komponententypen",
+	"message_no_component_types": "Keine Komponententypen verfügbar",
+	"message_error_placing_component": "Fehler beim Platzieren der Komponente",
+	"message_error_not_enough_slots": "Nicht genug Slots verfügbar",
+	"message_error_slots_occupied": "Slots sind bereits belegt",
+	"message_success_placing_component": "Komponente erfolgreich platziert",
+	"message_error_deleting_structure": "Fehler beim Löschen der Struktur",
+	"message_success_deleting_structure": "Struktur erfolgreich gelöscht"
 }

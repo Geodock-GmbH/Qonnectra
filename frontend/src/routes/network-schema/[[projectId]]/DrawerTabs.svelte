@@ -138,7 +138,7 @@
 			nodeUuid={data.uuid || data.id}
 			nodeName={data.name}
 			onViewStructure={(slotConfigUuid) => handleOpenStructurePanel(slotConfigUuid)}
-			{sharedSlotState}
+			bind:sharedSlotState
 		/>
 	</FloatingPanel>
 
@@ -154,7 +154,7 @@
 			nodeUuid={data.uuid || data.id}
 			nodeName={data.name}
 			initialSlotConfigUuid={structurePanelSlotConfigUuid}
-			{sharedSlotState}
+			bind:sharedSlotState
 		/>
 	</FloatingPanel>
 {/if}

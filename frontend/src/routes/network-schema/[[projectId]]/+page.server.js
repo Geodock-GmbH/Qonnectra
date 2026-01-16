@@ -1294,5 +1294,150 @@ export const actions = {
 			console.error('Error fetching node structures:', err);
 			return fail(500, { error: 'Internal server error' });
 		}
+	},
+	getComponentTypes: async ({ fetch, cookies }) => {
+		try {
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}attributes_component_type/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				return fail(response.status, { error: 'Failed to fetch component types' });
+			}
+
+			const componentTypes = await response.json();
+			return { componentTypes };
+		} catch (err) {
+			console.error('Error fetching component types:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	createNodeStructure: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeUuid = formData.get('nodeUuid');
+			const slotConfigUuid = formData.get('slotConfigUuid');
+			const componentTypeId = formData.get('componentTypeId');
+			const slotStart = formData.get('slotStart');
+			const slotEnd = formData.get('slotEnd');
+			const purpose = formData.get('purpose') || 'component';
+			const label = formData.get('label');
+
+			if (!nodeUuid || !slotConfigUuid || !slotStart || !slotEnd) {
+				return fail(400, {
+					error: 'Missing required fields: nodeUuid, slotConfigUuid, slotStart, slotEnd'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const requestBody = {
+				uuid_node_id: nodeUuid,
+				slot_configuration_id: slotConfigUuid,
+				slot_start: parseInt(slotStart),
+				slot_end: parseInt(slotEnd),
+				purpose
+			};
+
+			if (componentTypeId) requestBody.component_type_id = parseInt(componentTypeId);
+			if (label) requestBody.label = label;
+
+			const response = await fetch(`${API_URL}node-structure/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				console.error('Error creating node structure:', response.status, errorData);
+				// Build error message from all fields
+				let errorMessage = 'Failed to create structure';
+				if (errorData.detail) {
+					errorMessage = errorData.detail;
+				} else if (errorData.error) {
+					errorMessage = errorData.error;
+				} else if (typeof errorData === 'object') {
+					// DRF returns field errors as object
+					const fieldErrors = Object.entries(errorData)
+						.map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
+						.join('; ');
+					if (fieldErrors) errorMessage = fieldErrors;
+				}
+				return fail(response.status, { error: errorMessage });
+			}
+
+			const structure = await response.json();
+			return { success: true, structure };
+		} catch (err) {
+			console.error('Error creating node structure:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	moveNodeStructure: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const structureUuid = formData.get('structureUuid');
+			const slotStart = formData.get('slotStart');
+
+			if (!structureUuid || !slotStart) {
+				return fail(400, { error: 'Missing required parameters: structureUuid, slotStart' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-structure/${structureUuid}/move/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ slot_start: parseInt(slotStart) })
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to move structure'
+				});
+			}
+
+			const structure = await response.json();
+			return { success: true, structure };
+		} catch (err) {
+			console.error('Error moving node structure:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	deleteNodeStructure: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const structureUuid = formData.get('structureUuid');
+
+			if (!structureUuid) {
+				return fail(400, { error: 'Missing required parameter: structureUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-structure/${structureUuid}/`, {
+				method: 'DELETE',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to delete structure'
+				});
+			}
+
+			return { success: true };
+		} catch (err) {
+			console.error('Error deleting node structure:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
 	}
 };

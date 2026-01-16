@@ -237,7 +237,7 @@ class AttributesComponentTypeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AttributesComponentType
-        fields = ["id", "component_type", "manufacturer"]
+        fields = ["id", "component_type", "occupied_slots", "manufacturer"]
 
 
 class AttributesComponentStructureSerializer(serializers.ModelSerializer):
@@ -1481,7 +1481,10 @@ class NodeStructureSerializer(serializers.ModelSerializer):
         return obj.slot_configuration.side if obj.slot_configuration else None
 
     def validate(self, data):
-        """Validate that component fields are provided when purpose is 'component'."""
+        """Validate that component_type is provided when purpose is 'component'.
+
+        Note: component_structure is optional - it can be configured later.
+        """
         purpose = data.get("purpose", NodeStructure.Purpose.COMPONENT)
         if purpose == NodeStructure.Purpose.COMPONENT:
             if not data.get("component_type"):
@@ -1489,14 +1492,6 @@ class NodeStructureSerializer(serializers.ModelSerializer):
                     {
                         "component_type_id": _(
                             "Component type is required for component entries."
-                        )
-                    }
-                )
-            if not data.get("component_structure"):
-                raise serializers.ValidationError(
-                    {
-                        "component_structure_id": _(
-                            "Component structure is required for component entries."
                         )
                     }
                 )

@@ -10,7 +10,7 @@
 	import ContainerItem from './ContainerItem.svelte';
 	import SlotConfigItem from './SlotConfigItem.svelte';
 
-	let { nodeUuid, nodeName = '', onViewStructure, sharedSlotState = null } = $props();
+	let { nodeUuid, nodeName = '', onViewStructure, sharedSlotState = $bindable(null) } = $props();
 
 	// Hierarchy state
 	let hierarchy = $state({ containers: [], root_slot_configurations: [] });
