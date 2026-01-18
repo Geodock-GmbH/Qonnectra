@@ -31,6 +31,7 @@ from .models import (
     ContainerType,
     FeatureFiles,
     Fiber,
+    FiberSplice,
     Flags,
     LogEntry,
     Microduct,
@@ -1585,6 +1586,56 @@ class NodeSlotClipNumberSerializer(serializers.ModelSerializer):
                     }
                 )
         return data
+
+
+class AttributesComponentStructureSerializer(serializers.ModelSerializer):
+    """Serializer for AttributesComponentStructure (component ports)."""
+
+    class Meta:
+        model = AttributesComponentStructure
+        fields = ["id", "component_type", "in_or_out", "port", "port_alias"]
+
+
+class FiberSpliceSerializer(serializers.ModelSerializer):
+    """Serializer for FiberSplice model."""
+
+    # Include nested info for display
+    fiber_a_details = serializers.SerializerMethodField()
+    fiber_b_details = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FiberSplice
+        fields = [
+            "uuid",
+            "node_structure",
+            "port_number",
+            "fiber_a",
+            "cable_a",
+            "fiber_b",
+            "cable_b",
+            "fiber_a_details",
+            "fiber_b_details",
+        ]
+
+    def _get_fiber_details(self, fiber, cable):
+        """Helper to get fiber details dict."""
+        if not fiber:
+            return None
+        return {
+            "uuid": str(fiber.uuid),
+            "fiber_number": fiber.fiber_number_absolute,
+            "fiber_color": fiber.fiber_color,
+            "bundle_number": fiber.bundle_number,
+            "bundle_color": fiber.bundle_color,
+            "cable_uuid": str(cable.uuid) if cable else None,
+            "cable_name": cable.name if cable else None,
+        }
+
+    def get_fiber_a_details(self, obj):
+        return self._get_fiber_details(obj.fiber_a, obj.cable_a)
+
+    def get_fiber_b_details(self, obj):
+        return self._get_fiber_details(obj.fiber_b, obj.cable_b)
 
 
 class ContainerTypeSerializer(serializers.ModelSerializer):

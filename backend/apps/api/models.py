@@ -3372,6 +3372,103 @@ class NodeSlotClipNumber(models.Model):
         return f"{self.slot_configuration} - Slot {self.slot_number}: {self.clip_number}"
 
 
+class FiberSplice(models.Model):
+    """
+    Stores fiber splice connections within a node component.
+    Each record represents a complete splice: connecting fiber_a to fiber_b
+    at a specific port number within a component.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+
+    # Link to the specific component placement in the node
+    node_structure = models.ForeignKey(
+        NodeStructure,
+        on_delete=models.CASCADE,
+        verbose_name=_("Node Structure"),
+        db_column="node_structure",
+        related_name="fiber_splices",
+        help_text=_("The component placement this splice belongs to"),
+    )
+
+    # The port number (1-12 for a 12-port splice cassette, 1-8 for a 1:8 splitter, etc.)
+    port_number = models.PositiveIntegerField(
+        _("Port Number"),
+        help_text=_("The port number on the component (e.g., 1-12 for a splice cassette)"),
+    )
+
+    # First fiber and cable (nullable for partial connections)
+    fiber_a = models.ForeignKey(
+        Fiber,
+        on_delete=models.CASCADE,
+        verbose_name=_("Fiber A"),
+        db_column="fiber_a",
+        related_name="splices_as_a",
+        null=True,
+        blank=True,
+        help_text=_("First fiber in this splice connection"),
+    )
+
+    cable_a = models.ForeignKey(
+        Cable,
+        on_delete=models.CASCADE,
+        verbose_name=_("Cable A"),
+        db_column="cable_a",
+        related_name="fiber_splices_as_a",
+        null=True,
+        blank=True,
+        help_text=_("The cable of fiber A (denormalized for CASCADE delete)"),
+    )
+
+    # Second fiber and cable (nullable for partial connections)
+    fiber_b = models.ForeignKey(
+        Fiber,
+        on_delete=models.CASCADE,
+        verbose_name=_("Fiber B"),
+        db_column="fiber_b",
+        related_name="splices_as_b",
+        null=True,
+        blank=True,
+        help_text=_("Second fiber in this splice connection"),
+    )
+
+    cable_b = models.ForeignKey(
+        Cable,
+        on_delete=models.CASCADE,
+        verbose_name=_("Cable B"),
+        db_column="cable_b",
+        related_name="fiber_splices_as_b",
+        null=True,
+        blank=True,
+        help_text=_("The cable of fiber B (denormalized for CASCADE delete)"),
+    )
+
+    class Meta:
+        db_table = "fiber_splice"
+        verbose_name = _("Fiber Splice")
+        verbose_name_plural = _("Fiber Splices")
+        ordering = ["node_structure", "port_number"]
+        indexes = [
+            models.Index(fields=["node_structure"], name="idx_fiber_splice_node_struct"),
+            models.Index(fields=["fiber_a"], name="idx_fiber_splice_fiber_a"),
+            models.Index(fields=["fiber_b"], name="idx_fiber_splice_fiber_b"),
+            models.Index(fields=["cable_a"], name="idx_fiber_splice_cable_a"),
+            models.Index(fields=["cable_b"], name="idx_fiber_splice_cable_b"),
+        ]
+        constraints = [
+            # Each port in a node structure can only have one splice record
+            models.UniqueConstraint(
+                fields=["node_structure", "port_number"],
+                name="unique_fiber_splice_port",
+            ),
+        ]
+
+    def __str__(self):
+        a_str = f"A:{self.fiber_a}" if self.fiber_a else "A:-"
+        b_str = f"B:{self.fiber_b}" if self.fiber_b else "B:-"
+        return f"{self.node_structure} Port {self.port_number}: {a_str} ↔ {b_str}"
+
+
 class ContainerType(models.Model):
     """
     Admin-defined container types for organizing NodeSlotConfigurations.

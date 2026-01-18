@@ -404,5 +404,14 @@
 	"message_error_creating_divider": "Failed to create divider",
 	"message_error_deleting_divider": "Failed to delete divider",
 	"tooltip_double_click_divider": "Double-click to toggle divider line",
-	"tooltip_click_to_edit": "Click to edit"
+	"tooltip_click_to_edit": "Click to edit",
+	"form_ports": "Ports",
+	"form_port": "Port",
+	"form_fiber_a": "Fiber A",
+	"form_fiber_b": "Fiber B",
+	"message_no_ports": "No ports configured for this component",
+	"message_drop_fiber_here": "Drop fiber here",
+	"message_fiber_connected": "Fiber connected successfully",
+	"message_error_connecting_fiber": "Failed to connect fiber",
+	"message_only_fibers_allowed": "Only individual fibers can be connected to ports"
 }

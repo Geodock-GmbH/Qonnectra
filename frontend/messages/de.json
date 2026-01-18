@@ -405,5 +405,14 @@
 	"message_error_creating_divider": "Fehler beim Erstellen der Trennlinie",
 	"message_error_deleting_divider": "Fehler beim Löschen der Trennlinie",
 	"tooltip_double_click_divider": "Doppelklick zum Umschalten der Trennlinie",
-	"tooltip_click_to_edit": "Klicken zum Bearbeiten"
+	"tooltip_click_to_edit": "Klicken zum Bearbeiten",
+	"form_ports": "Ports",
+	"form_port": "Port",
+	"form_fiber_a": "Faser A",
+	"form_fiber_b": "Faser B",
+	"message_no_ports": "Keine Ports für diese Komponente konfiguriert",
+	"message_drop_fiber_here": "Faser hier ablegen",
+	"message_fiber_connected": "Faser erfolgreich verbunden",
+	"message_error_connecting_fiber": "Fehler beim Verbinden der Faser",
+	"message_only_fibers_allowed": "Nur einzelne Fasern können mit Ports verbunden werden"
 }

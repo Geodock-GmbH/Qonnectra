@@ -1694,5 +1694,153 @@ export const actions = {
 			console.error('Error fetching fiber colors:', err);
 			return fail(500, { error: 'Internal server error' });
 		}
+	},
+	getComponentPorts: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const componentTypeId = formData.get('componentTypeId');
+
+			if (!componentTypeId) {
+				return fail(400, { error: 'Missing required parameter: componentTypeId' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(
+				`${API_URL}attributes_component_structure/?component_type=${componentTypeId}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch component ports'
+				});
+			}
+
+			const ports = await response.json();
+			return { ports };
+		} catch (err) {
+			console.error('Error fetching component ports:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	getFiberSplices: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeStructureUuid = formData.get('nodeStructureUuid');
+
+			if (!nodeStructureUuid) {
+				return fail(400, { error: 'Missing required parameter: nodeStructureUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}fiber-splice/?node_structure=${nodeStructureUuid}`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch fiber splices'
+				});
+			}
+
+			const splices = await response.json();
+			return { splices };
+		} catch (err) {
+			console.error('Error fetching fiber splices:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	upsertFiberSplice: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeStructureUuid = formData.get('nodeStructureUuid');
+			const portNumber = formData.get('portNumber');
+			const side = formData.get('side');
+			const fiberUuid = formData.get('fiberUuid');
+			const cableUuid = formData.get('cableUuid');
+
+			if (!nodeStructureUuid || !portNumber || !side || !fiberUuid || !cableUuid) {
+				return fail(400, {
+					error:
+						'Missing required fields: nodeStructureUuid, portNumber, side, fiberUuid, cableUuid'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}fiber-splice/upsert/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					node_structure: nodeStructureUuid,
+					port_number: parseInt(portNumber),
+					side: side,
+					fiber_uuid: fiberUuid,
+					cable_uuid: cableUuid
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to save fiber splice'
+				});
+			}
+
+			const splice = await response.json();
+			return { success: true, splice };
+		} catch (err) {
+			console.error('Error upserting fiber splice:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	clearFiberSplice: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeStructureUuid = formData.get('nodeStructureUuid');
+			const portNumber = formData.get('portNumber');
+			const side = formData.get('side');
+
+			if (!nodeStructureUuid || !portNumber || !side) {
+				return fail(400, {
+					error: 'Missing required fields: nodeStructureUuid, portNumber, side'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}fiber-splice/clear-port/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					node_structure: nodeStructureUuid,
+					port_number: parseInt(portNumber),
+					side: side
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to clear fiber splice'
+				});
+			}
+
+			const result = await response.json();
+			return { success: true, deleted: result.deleted };
+		} catch (err) {
+			console.error('Error clearing fiber splice:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
 	}
 };

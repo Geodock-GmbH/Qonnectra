@@ -45,6 +45,7 @@ from .models import (
     ContainerType,
     FeatureFiles,
     Fiber,
+    FiberSplice,
     Flags,
     LogEntry,
     Microduct,
@@ -96,6 +97,7 @@ from .serializers import (
     ContentTypeSerializer,
     FeatureFilesSerializer,
     FiberSerializer,
+    FiberSpliceSerializer,
     FlagsSerializer,
     LogEntrySerializer,
     MicroductCableConnectionSerializer,
@@ -3610,6 +3612,160 @@ class NodeSlotClipNumberViewSet(viewsets.ModelViewSet):
             serializer.data,
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
         )
+
+
+class AttributesComponentStructureViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only ViewSet for AttributesComponentStructure model.
+    Returns ports (IN/OUT) for a given component type.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesComponentStructure.objects.all()
+    serializer_class = AttributesComponentStructureSerializer
+
+    def get_queryset(self):
+        """Filter by component_type if specified."""
+        queryset = super().get_queryset()
+        component_type_id = self.request.query_params.get("component_type")
+
+        if component_type_id:
+            queryset = queryset.filter(component_type_id=component_type_id)
+
+        return queryset.order_by("in_or_out", "port")
+
+
+class FiberSpliceViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for FiberSplice model.
+    Manages fiber splice connections within node components.
+    Each splice connects fiber_a to fiber_b at a specific port number.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = FiberSplice.objects.all()
+    serializer_class = FiberSpliceSerializer
+    lookup_field = "uuid"
+
+    def get_queryset(self):
+        """Filter splices by node_structure if specified."""
+        queryset = super().get_queryset()
+        node_structure = self.request.query_params.get("node_structure")
+
+        if node_structure:
+            queryset = queryset.filter(node_structure=node_structure)
+
+        return queryset.select_related(
+            "fiber_a", "cable_a", "fiber_b", "cable_b", "node_structure"
+        )
+
+    @action(detail=False, methods=["post"], url_path="upsert")
+    def upsert(self, request):
+        """
+        Create or update a fiber splice connection.
+        Specify which side ('a' or 'b') the fiber should be placed on.
+        """
+        node_structure_uuid = request.data.get("node_structure")
+        port_number = request.data.get("port_number")
+        side = request.data.get("side")  # 'a' or 'b'
+        fiber_uuid = request.data.get("fiber_uuid")
+        cable_uuid = request.data.get("cable_uuid")
+
+        if not all([node_structure_uuid, port_number, side, fiber_uuid, cable_uuid]):
+            return Response(
+                {"error": "node_structure, port_number, side, fiber_uuid, and cable_uuid are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if side not in ("a", "b"):
+            return Response(
+                {"error": "side must be 'a' or 'b'"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            node_structure = NodeStructure.objects.get(uuid=node_structure_uuid)
+        except NodeStructure.DoesNotExist:
+            return Response(
+                {"error": "Node structure not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Get or create the splice record for this port
+        splice, created = FiberSplice.objects.get_or_create(
+            node_structure=node_structure,
+            port_number=port_number,
+        )
+
+        # Update the appropriate side
+        if side == "a":
+            splice.fiber_a_id = fiber_uuid
+            splice.cable_a_id = cable_uuid
+        else:
+            splice.fiber_b_id = fiber_uuid
+            splice.cable_b_id = cable_uuid
+
+        splice.save()
+
+        serializer = self.get_serializer(splice)
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
+
+    @action(detail=False, methods=["post"], url_path="clear-port")
+    def clear_port(self, request):
+        """
+        Clear a fiber from a specific side of a port.
+        If both sides become empty, delete the splice record.
+        """
+        node_structure_uuid = request.data.get("node_structure")
+        port_number = request.data.get("port_number")
+        side = request.data.get("side")  # 'a' or 'b'
+
+        if not all([node_structure_uuid, port_number, side]):
+            return Response(
+                {"error": "node_structure, port_number, and side are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if side not in ("a", "b"):
+            return Response(
+                {"error": "side must be 'a' or 'b'"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            node_structure = NodeStructure.objects.get(uuid=node_structure_uuid)
+        except NodeStructure.DoesNotExist:
+            return Response(
+                {"error": "Node structure not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            splice = FiberSplice.objects.get(
+                node_structure=node_structure,
+                port_number=port_number
+            )
+        except FiberSplice.DoesNotExist:
+            return Response({"deleted": False, "message": "No splice found"})
+
+        # Clear the appropriate side
+        if side == "a":
+            splice.fiber_a = None
+            splice.cable_a = None
+        else:
+            splice.fiber_b = None
+            splice.cable_b = None
+
+        # If both sides are empty, delete the record
+        if splice.fiber_a is None and splice.fiber_b is None:
+            splice.delete()
+            return Response({"deleted": True, "message": "Splice record deleted"})
+
+        splice.save()
+        return Response({"deleted": True, "message": f"Fiber cleared from side {side}"})
 
 
 class ContainerTypeViewSet(viewsets.ReadOnlyModelViewSet):

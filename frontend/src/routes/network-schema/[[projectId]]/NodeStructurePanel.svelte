@@ -1,7 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { deserialize } from '$app/forms';
-	import { IconGripVertical, IconTrash } from '@tabler/icons-svelte';
+	import { IconGripVertical, IconTrash, IconX } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -37,6 +37,13 @@
 
 	// Refresh trigger for CableFiberSidebar - increments on mount to trigger refresh
 	let cableRefreshTrigger = $state(0);
+
+	// Port table state - for displaying component ports and fiber splices
+	let selectedStructure = $state(null);
+	let componentPorts = $state([]);
+	let fiberSplices = $state([]);
+	let loadingPorts = $state(false);
+	let fiberColors = $state([]);
 
 	// Update selection when initialSlotConfigUuid prop changes
 	$effect(() => {
@@ -105,6 +112,60 @@
 		}
 		return rows;
 	});
+
+	// Build port rows from component ports and splices
+	// Each row represents one splice connection (fiber_a ↔ fiber_b)
+	// For a splice cassette: 12 IN ports paired with 12 OUT ports = 12 rows
+	// For a splitter 1:8: 1 IN port paired with 8 OUT ports = 8 rows (IN fiber on port 1 only)
+	const portRows = $derived.by(() => {
+		if (!componentPorts.length) return [];
+
+		const inPorts = componentPorts.filter((p) => p.in_or_out === 'in');
+		const outPorts = componentPorts.filter((p) => p.in_or_out === 'out');
+
+		// Determine how many rows we need based on max port number on either side
+		const maxInPort = inPorts.length > 0 ? Math.max(...inPorts.map((p) => p.port)) : 0;
+		const maxOutPort = outPorts.length > 0 ? Math.max(...outPorts.map((p) => p.port)) : 0;
+		const maxPort = Math.max(maxInPort, maxOutPort);
+
+		const rows = [];
+		for (let port = 1; port <= maxPort; port++) {
+			// Check if this port exists on IN and/or OUT side
+			const hasInPort = inPorts.some((p) => p.port === port);
+			const hasOutPort = outPorts.some((p) => p.port === port);
+
+			// Find the splice for this port
+			const splice = fiberSplices.find((s) => s.port_number === port);
+
+			rows.push({
+				portNumber: port,
+				hasInPort,
+				hasOutPort,
+				splice,
+				fiberA: splice?.fiber_a_details || null,
+				fiberB: splice?.fiber_b_details || null
+			});
+		}
+		return rows;
+	});
+
+	// Color lookup map - maps color names (de/en) to hex codes
+	const colorMap = $derived.by(() => {
+		const map = new Map();
+		for (const color of fiberColors) {
+			map.set(color.name_de, color.hex_code);
+			map.set(color.name_en, color.hex_code);
+		}
+		return map;
+	});
+
+	/**
+	 * Get color hex value from fiber color name
+	 */
+	function getColorHex(fiberColorName) {
+		if (!fiberColorName) return '#999999';
+		return colorMap.get(fiberColorName) || '#999999';
+	}
 
 	/**
 	 * Fetch slot configurations for the node (fallback when shared state not available)
@@ -703,6 +764,267 @@
 		}
 	}
 
+	/**
+	 * Select a structure to show its port table
+	 */
+	async function selectStructure(structure) {
+		if (selectedStructure?.uuid === structure?.uuid) {
+			// Toggle off if clicking the same structure
+			selectedStructure = null;
+			componentPorts = [];
+			fiberSplices = [];
+			return;
+		}
+
+		selectedStructure = structure;
+		if (!structure?.component_type?.id) {
+			componentPorts = [];
+			fiberSplices = [];
+			return;
+		}
+
+		loadingPorts = true;
+		try {
+			await Promise.all([
+				fetchComponentPorts(structure.component_type.id),
+				fetchFiberSplices(structure.uuid),
+				fetchFiberColorsIfNeeded()
+			]);
+		} finally {
+			loadingPorts = false;
+		}
+	}
+
+	/**
+	 * Fetch component ports (IN/OUT) for a component type
+	 */
+	async function fetchComponentPorts(componentTypeId) {
+		try {
+			const formData = new FormData();
+			formData.append('componentTypeId', componentTypeId.toString());
+
+			const response = await fetch('?/getComponentPorts', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to fetch component ports');
+			}
+
+			componentPorts = result.data?.ports || [];
+		} catch (err) {
+			console.error('Error fetching component ports:', err);
+			componentPorts = [];
+		}
+	}
+
+	/**
+	 * Fetch fiber splices for a node structure
+	 */
+	async function fetchFiberSplices(nodeStructureUuid) {
+		try {
+			const formData = new FormData();
+			formData.append('nodeStructureUuid', nodeStructureUuid);
+
+			const response = await fetch('?/getFiberSplices', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to fetch fiber splices');
+			}
+
+			fiberSplices = result.data?.splices || [];
+		} catch (err) {
+			console.error('Error fetching fiber splices:', err);
+			fiberSplices = [];
+		}
+	}
+
+	/**
+	 * Fetch fiber colors if not already loaded
+	 */
+	async function fetchFiberColorsIfNeeded() {
+		if (fiberColors.length > 0) return;
+
+		try {
+			const response = await fetch('?/getFiberColors', {
+				method: 'POST',
+				body: new FormData()
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to fetch fiber colors');
+			}
+
+			fiberColors = result.data?.fiberColors || [];
+		} catch (err) {
+			console.error('Error fetching fiber colors:', err);
+		}
+	}
+
+	/**
+	 * Handle dragover on port cell
+	 */
+	function handlePortDragOver(e) {
+		e.preventDefault();
+		e.dataTransfer.dropEffect = 'copy';
+	}
+
+	/**
+	 * Handle fiber drop on a port cell
+	 * @param {DragEvent} e
+	 * @param {number} portNumber
+	 * @param {'a' | 'b'} side - Which side of the splice to place the fiber
+	 */
+	async function handlePortDrop(e, portNumber, side) {
+		e.preventDefault();
+
+		const jsonData = e.dataTransfer.getData('application/json');
+		if (!jsonData) return;
+
+		const data = JSON.parse(jsonData);
+		if (data.type !== 'fiber') {
+			globalToaster.warning({
+				title: m.common_warning?.() || 'Warning',
+				description:
+					m.message_only_fibers_allowed?.() || 'Only individual fibers can be connected to ports'
+			});
+			return;
+		}
+
+		// Optimistic update - find or create splice for this port
+		const previousSplices = [...fiberSplices];
+		const existingSplice = fiberSplices.find((s) => s.port_number === portNumber);
+
+		const fiberDetails = {
+			uuid: data.uuid,
+			fiber_number: data.fiber_number,
+			fiber_color: data.fiber_color,
+			bundle_number: data.bundle_number,
+			cable_name: data.cable_name
+		};
+
+		if (existingSplice) {
+			// Update existing splice
+			fiberSplices = fiberSplices.map((s) => {
+				if (s.port_number === portNumber) {
+					return {
+						...s,
+						[`fiber_${side}_details`]: fiberDetails
+					};
+				}
+				return s;
+			});
+		} else {
+			// Create new splice
+			const newSplice = {
+				uuid: `temp-${Date.now()}`,
+				port_number: portNumber,
+				fiber_a_details: side === 'a' ? fiberDetails : null,
+				fiber_b_details: side === 'b' ? fiberDetails : null
+			};
+			fiberSplices = [...fiberSplices, newSplice];
+		}
+
+		try {
+			const formData = new FormData();
+			formData.append('nodeStructureUuid', selectedStructure.uuid);
+			formData.append('portNumber', portNumber.toString());
+			formData.append('side', side);
+			formData.append('fiberUuid', data.uuid);
+			formData.append('cableUuid', data.cable_uuid);
+
+			const response = await fetch('?/upsertFiberSplice', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to save fiber splice');
+			}
+
+			// Replace optimistic with real data from server
+			const serverSplice = result.data.splice;
+			fiberSplices = fiberSplices.map((s) => (s.port_number === portNumber ? serverSplice : s));
+
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_fiber_connected?.() || 'Fiber connected successfully'
+			});
+		} catch (err) {
+			console.error('Error saving fiber splice:', err);
+			fiberSplices = previousSplices;
+			globalToaster.error({
+				title: m.common_error(),
+				description:
+					err.message || m.message_error_connecting_fiber?.() || 'Failed to connect fiber'
+			});
+		}
+	}
+
+	/**
+	 * Clear a fiber from a port side
+	 * @param {number} portNumber
+	 * @param {'a' | 'b'} side - Which side to clear
+	 */
+	async function handleClearPort(portNumber, side) {
+		const previousSplices = [...fiberSplices];
+
+		// Optimistic update - clear the specific side
+		fiberSplices = fiberSplices
+			.map((s) => {
+				if (s.port_number === portNumber) {
+					const updated = {
+						...s,
+						[`fiber_${side}_details`]: null
+					};
+					// Remove splice entirely if both sides are now empty
+					if (!updated.fiber_a_details && !updated.fiber_b_details) {
+						return null;
+					}
+					return updated;
+				}
+				return s;
+			})
+			.filter(Boolean);
+
+		try {
+			const formData = new FormData();
+			formData.append('nodeStructureUuid', selectedStructure.uuid);
+			formData.append('portNumber', portNumber.toString());
+			formData.append('side', side);
+
+			const response = await fetch('?/clearFiberSplice', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to clear fiber splice');
+			}
+		} catch (err) {
+			console.error('Error clearing fiber splice:', err);
+			fiberSplices = previousSplices;
+			globalToaster.error({
+				title: m.common_error(),
+				description: err.message || 'Failed to clear fiber'
+			});
+		}
+	}
+
 	// Effects
 	$effect(() => {
 		if (selectedSlotConfigUuid) {
@@ -827,10 +1149,13 @@
 								{#if row.isBlockStart && row.structure}
 									<div
 										class="structure-block group"
+										class:selected={selectedStructure?.uuid === row.structure.uuid}
 										style:--row-height="{row.blockSize * 36}px"
 										draggable="true"
 										ondragstart={(e) => handleStructureDragStart(e, row.structure)}
 										ondragend={handleSidebarDragEnd}
+										onclick={() => selectStructure(row.structure)}
+										onkeydown={(e) => e.key === 'Enter' && selectStructure(row.structure)}
 										role="button"
 										tabindex="0"
 									>
@@ -896,6 +1221,126 @@
 				{/if}
 			</div>
 		</div>
+
+		<!-- Port Table Section - shown when a structure is selected -->
+		{#if selectedStructure}
+			<div class="port-table-section">
+				<div class="port-table-header">
+					<h4 class="font-medium text-sm">
+						{selectedStructure.component_type?.component_type || '-'} - {m.form_ports?.() ||
+							'Ports'}
+					</h4>
+					<button
+						type="button"
+						class="close-btn"
+						onclick={() => {
+							selectedStructure = null;
+							componentPorts = [];
+							fiberSplices = [];
+						}}
+					>
+						<IconX size={16} />
+					</button>
+				</div>
+
+				{#if loadingPorts}
+					<div class="flex items-center justify-center py-4">
+						<span class="text-surface-500">{m.common_loading()}</span>
+					</div>
+				{:else if portRows.length === 0}
+					<div class="flex items-center justify-center py-4">
+						<span class="text-surface-500"
+							>{m.message_no_ports?.() || 'No ports configured for this component'}</span
+						>
+					</div>
+				{:else}
+					<div class="port-grid-header">
+						<div class="grid-header">{m.form_port?.() || 'Port'}</div>
+						<div class="grid-header">{m.form_fiber_a?.() || 'Fiber A'}</div>
+						<div class="grid-header">{m.form_fiber_b?.() || 'Fiber B'}</div>
+					</div>
+
+					<div class="port-grid-3col">
+						{#each portRows as row (row.portNumber)}
+							<!-- Port Number -->
+							<div class="port-number">
+								{row.portNumber}
+							</div>
+
+							<!-- Fiber A (drop target) - only show if this port has an IN port -->
+							<div
+								class="fiber-cell"
+								class:has-fiber={row.fiberA}
+								class:no-port={!row.hasInPort}
+								ondragover={row.hasInPort ? handlePortDragOver : undefined}
+								ondrop={row.hasInPort ? (e) => handlePortDrop(e, row.portNumber, 'a') : undefined}
+								role="button"
+								tabindex={row.hasInPort ? 0 : -1}
+							>
+								{#if row.fiberA}
+									<span
+										class="fiber-dot"
+										style:background-color={getColorHex(row.fiberA.fiber_color)}
+									></span>
+									<span class="fiber-info">
+										<span class="fiber-number">{row.fiberA.fiber_number}</span>
+										<span class="fiber-bundle">B{row.fiberA.bundle_number}</span>
+										<span class="fiber-cable">{row.fiberA.cable_name}</span>
+									</span>
+									<button
+										type="button"
+										class="clear-btn"
+										onclick={() => handleClearPort(row.portNumber, 'a')}
+									>
+										<IconX size={12} />
+									</button>
+								{:else if row.hasInPort}
+									<span class="drop-hint">{m.message_drop_fiber_here?.() || 'Drop fiber here'}</span
+									>
+								{:else}
+									<span class="no-port-indicator">-</span>
+								{/if}
+							</div>
+
+							<!-- Fiber B (drop target) - only show if this port has an OUT port -->
+							<div
+								class="fiber-cell"
+								class:has-fiber={row.fiberB}
+								class:no-port={!row.hasOutPort}
+								ondragover={row.hasOutPort ? handlePortDragOver : undefined}
+								ondrop={row.hasOutPort ? (e) => handlePortDrop(e, row.portNumber, 'b') : undefined}
+								role="button"
+								tabindex={row.hasOutPort ? 0 : -1}
+							>
+								{#if row.fiberB}
+									<span
+										class="fiber-dot"
+										style:background-color={getColorHex(row.fiberB.fiber_color)}
+									></span>
+									<span class="fiber-info">
+										<span class="fiber-number">{row.fiberB.fiber_number}</span>
+										<span class="fiber-bundle">B{row.fiberB.bundle_number}</span>
+										<span class="fiber-cable">{row.fiberB.cable_name}</span>
+									</span>
+									<button
+										type="button"
+										class="clear-btn"
+										onclick={() => handleClearPort(row.portNumber, 'b')}
+									>
+										<IconX size={12} />
+									</button>
+								{:else if row.hasOutPort}
+									<span class="drop-hint">{m.message_drop_fiber_here?.() || 'Drop fiber here'}</span
+									>
+								{:else}
+									<span class="no-port-indicator">-</span>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		{/if}
 	</div>
 
 	<!-- Cable/Fiber Sidebar -->
@@ -1064,5 +1509,158 @@
 
 	.clip-input:focus {
 		box-shadow: 0 0 0 2px rgba(var(--color-primary-500), 0.2);
+	}
+
+	/* Selected structure highlight */
+	.structure-block.selected {
+		background: rgb(var(--color-primary-200));
+		border-color: rgb(var(--color-primary-500));
+		box-shadow: 0 0 0 2px rgba(var(--color-primary-500), 0.3);
+	}
+
+	/* Port table section styles */
+	.port-table-section {
+		margin-top: 16px;
+		border: 1px solid rgb(var(--color-surface-200));
+		border-radius: 8px;
+		background: rgb(var(--color-surface-50));
+		overflow: hidden;
+	}
+
+	.port-table-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 8px 12px;
+		background: rgb(var(--color-surface-100));
+		border-bottom: 1px solid rgb(var(--color-surface-200));
+	}
+
+	.close-btn {
+		padding: 4px;
+		border-radius: 4px;
+		color: rgb(var(--color-surface-500));
+		transition:
+			background-color 0.15s,
+			color 0.15s;
+	}
+
+	.close-btn:hover {
+		background: rgb(var(--color-surface-200));
+		color: rgb(var(--color-surface-700));
+	}
+
+	.port-grid-header {
+		display: grid;
+		grid-template-columns: 60px 1fr 1fr;
+	}
+
+	.port-grid-3col {
+		display: grid;
+		grid-template-columns: 60px 1fr 1fr;
+		max-height: 300px;
+		overflow-y: auto;
+	}
+
+	.port-number {
+		padding: 6px 8px;
+		font-family: monospace;
+		text-align: center;
+		font-size: 0.75rem;
+		background: rgb(var(--color-surface-50));
+		border-bottom: 1px solid rgb(var(--color-surface-200));
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.fiber-cell {
+		padding: 4px 8px;
+		min-height: 32px;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		border-bottom: 1px solid rgb(var(--color-surface-200));
+		border-left: 1px dashed rgb(var(--color-surface-200));
+		background: rgb(var(--color-surface-50));
+		transition: background-color 0.15s;
+	}
+
+	.fiber-cell:not(.has-fiber):not(.no-port) {
+		border-left-color: rgb(var(--color-surface-300));
+	}
+
+	.fiber-cell:hover:not(.has-fiber):not(.no-port) {
+		background: rgba(var(--color-primary-500), 0.05);
+	}
+
+	.fiber-cell.has-fiber {
+		background: rgba(var(--color-primary-500), 0.08);
+	}
+
+	.fiber-cell.no-port {
+		background: rgb(var(--color-surface-100));
+		cursor: default;
+	}
+
+	.no-port-indicator {
+		color: rgb(var(--color-surface-300));
+		font-size: 0.75rem;
+	}
+
+	.fiber-dot {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		flex-shrink: 0;
+		border: 1px solid rgba(0, 0, 0, 0.2);
+	}
+
+	.fiber-info {
+		font-size: 0.75rem;
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		overflow: hidden;
+	}
+
+	.fiber-number {
+		font-weight: 600;
+		flex-shrink: 0;
+	}
+
+	.fiber-bundle {
+		color: rgb(var(--color-surface-500));
+		flex-shrink: 0;
+	}
+
+	.fiber-cable {
+		color: rgb(var(--color-surface-400));
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.drop-hint {
+		color: rgb(var(--color-surface-400));
+		font-size: 0.7rem;
+		font-style: italic;
+	}
+
+	.clear-btn {
+		padding: 2px;
+		border-radius: 2px;
+		color: rgb(var(--color-surface-400));
+		transition:
+			background-color 0.15s,
+			color 0.15s;
+		flex-shrink: 0;
+	}
+
+	.clear-btn:hover {
+		background: rgb(var(--color-error-100));
+		color: rgb(var(--color-error-600));
 	}
 </style>
