@@ -44,6 +44,7 @@ from .models import (
     Container,
     ContainerType,
     FeatureFiles,
+    Fiber,
     Flags,
     LogEntry,
     Microduct,
@@ -84,6 +85,7 @@ from .serializers import (
     AttributesNodeTypeSerializer,
     AttributesStatusSerializer,
     AttributesSurfaceSerializer,
+    CableAtNodeSerializer,
     CableLabelSerializer,
     CableSerializer,
     CableTypeColorMappingSerializer,
@@ -93,6 +95,7 @@ from .serializers import (
     ContainerTypeSerializer,
     ContentTypeSerializer,
     FeatureFilesSerializer,
+    FiberSerializer,
     FlagsSerializer,
     LogEntrySerializer,
     MicroductCableConnectionSerializer,
@@ -2703,6 +2706,26 @@ class CableViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(name__icontains=name)
         return queryset
 
+    @action(detail=False, methods=["get"], url_path="at-node/(?P<node_uuid>[^/.]+)")
+    def cables_at_node(self, request, node_uuid=None):
+        """
+        Returns all cables that start or end at the specified node.
+        """
+        if not node_uuid:
+            return Response(
+                {"error": "node_uuid is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        queryset = Cable.objects.filter(
+            Q(uuid_node_start=node_uuid) | Q(uuid_node_end=node_uuid)
+        ).select_related("cable_type").order_by("name")
+
+        serializer = CableAtNodeSerializer(
+            queryset, many=True, context={"node_uuid": node_uuid}
+        )
+        return Response(serializer.data)
+
 
 class CableLabelViewSet(viewsets.ModelViewSet):
     """ViewSet for the CableLabel model :model:`api.CableLabel`.
@@ -2784,6 +2807,55 @@ class MicroductCableConnectionViewSet(viewsets.ModelViewSet):
         if uuid_cable:
             queryset = queryset.filter(uuid_cable=uuid_cable)
         serializer = MicroductCableConnectionSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+class FiberViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the Fiber model :model:`api.Fiber`.
+
+    Read-only access to fiber data with filtering by cable.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = Fiber.objects.all().order_by(
+        "uuid_cable", "bundle_number", "fiber_number_in_bundle"
+    )
+    serializer_class = FiberSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned fibers by filtering against query parameters:
+        - `cable`: Filter by cable UUID
+        - `bundle_number`: Filter by bundle number
+        """
+        queryset = Fiber.objects.all().order_by(
+            "uuid_cable", "bundle_number", "fiber_number_in_bundle"
+        )
+        cable_uuid = self.request.query_params.get("cable")
+        bundle_number = self.request.query_params.get("bundle_number")
+        if cable_uuid:
+            queryset = queryset.filter(uuid_cable=cable_uuid)
+        if bundle_number:
+            queryset = queryset.filter(bundle_number=bundle_number)
+        return queryset
+
+    @action(detail=False, methods=["get"], url_path="by-cable/(?P<cable_uuid>[^/.]+)")
+    def fibers_by_cable(self, request, cable_uuid=None):
+        """
+        Returns all fibers for a specific cable, ordered by bundle and fiber number.
+        """
+        if not cable_uuid:
+            return Response(
+                {"error": "cable_uuid is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        queryset = Fiber.objects.filter(uuid_cable=cable_uuid).order_by(
+            "bundle_number", "fiber_number_in_bundle"
+        )
+        serializer = FiberSerializer(queryset, many=True)
         return Response(serializer.data)
 
 

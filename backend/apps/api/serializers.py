@@ -30,6 +30,7 @@ from .models import (
     Container,
     ContainerType,
     FeatureFiles,
+    Fiber,
     Flags,
     LogEntry,
     Microduct,
@@ -1717,3 +1718,79 @@ class NodeSlotConfigurationListSerializer(serializers.ModelSerializer):
     def get_free_slots(self, obj):
         """Calculate remaining free slots."""
         return obj.total_slots - self.get_used_slots(obj)
+
+
+class FiberSerializer(serializers.ModelSerializer):
+    """Serializer for the Fiber model."""
+
+    uuid = serializers.UUIDField(read_only=True)
+    cable_name = serializers.CharField(source="uuid_cable.name", read_only=True)
+
+    uuid_cable_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Cable.objects.all(),
+        source="uuid_cable",
+    )
+
+    class Meta:
+        model = Fiber
+        fields = [
+            "uuid",
+            "uuid_cable",
+            "uuid_cable_id",
+            "cable_name",
+            "bundle_number",
+            "bundle_color",
+            "fiber_number_absolute",
+            "fiber_number_in_bundle",
+            "fiber_color",
+            "active",
+            "layer",
+            "fiber_status",
+            "flag",
+            "project",
+        ]
+        read_only_fields = ["uuid"]
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+        fields["bundle_number"].label = _("Bundle Number")
+        fields["bundle_color"].label = _("Bundle Color")
+        fields["fiber_number_absolute"].label = _("Fiber Number (Absolute)")
+        fields["fiber_number_in_bundle"].label = _("Fiber Number (In Bundle)")
+        fields["fiber_color"].label = _("Fiber Color")
+        fields["active"].label = _("Active")
+        fields["layer"].label = _("Layer")
+        return fields
+
+
+class CableAtNodeSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for cables at a node with direction info."""
+
+    uuid = serializers.UUIDField(read_only=True)
+    cable_type = AttributesCableTypeSerializer(read_only=True)
+    direction = serializers.SerializerMethodField()
+    fiber_count = serializers.IntegerField(source="cable_type.fiber_count", read_only=True)
+    bundle_count = serializers.IntegerField(source="cable_type.bundle_count", read_only=True)
+
+    class Meta:
+        model = Cable
+        fields = [
+            "uuid",
+            "name",
+            "cable_type",
+            "direction",
+            "fiber_count",
+            "bundle_count",
+        ]
+
+    def get_direction(self, obj):
+        """Determine if cable starts or ends at the node."""
+        node_uuid = self.context.get("node_uuid")
+        if node_uuid:
+            if str(obj.uuid_node_start_id) == str(node_uuid):
+                return "start"
+            elif str(obj.uuid_node_end_id) == str(node_uuid):
+                return "end"
+        return None

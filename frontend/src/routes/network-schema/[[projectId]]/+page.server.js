@@ -1617,5 +1617,82 @@ export const actions = {
 			console.error('Error upserting slot clip number:', err);
 			return fail(500, { error: 'Internal server error' });
 		}
+	},
+	getCablesAtNode: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeUuid = formData.get('nodeUuid');
+
+			if (!nodeUuid) {
+				return fail(400, { error: 'Missing required parameter: nodeUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}cable/at-node/${nodeUuid}/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch cables at node'
+				});
+			}
+
+			const cables = await response.json();
+			return { cables };
+		} catch (err) {
+			console.error('Error fetching cables at node:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	getFibersForCable: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const cableUuid = formData.get('cableUuid');
+
+			if (!cableUuid) {
+				return fail(400, { error: 'Missing required parameter: cableUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}fiber/by-cable/${cableUuid}/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch fibers for cable'
+				});
+			}
+
+			const fibers = await response.json();
+			return { fibers };
+		} catch (err) {
+			console.error('Error fetching fibers for cable:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	getFiberColors: async ({ fetch, cookies }) => {
+		try {
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}attributes_fiber_color/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				return fail(response.status, { error: 'Failed to fetch fiber colors' });
+			}
+
+			const fiberColors = await response.json();
+			return { fiberColors };
+		} catch (err) {
+			console.error('Error fetching fiber colors:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
 	}
 };

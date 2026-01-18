@@ -28,6 +28,7 @@ from .views import (
     ContainerViewSet,
     ContentTypeViewSet,
     FeatureFilesViewSet,
+    FiberViewSet,
     FlagsViewSet,
     FrontendLogView,
     GeoPackageSchemaView,
@@ -153,6 +154,7 @@ router.register(
 router.register(
     r"microduct_connection", MicroductConnectionViewSet, basename="microduct_connection"
 )
+router.register(r"fiber", FiberViewSet, basename="fiber")
 router.register(r"node", NodeViewSet, basename="node")
 router.register(r"ol_address", OlAddressViewSet, basename="ol_address")
 router.register(r"ol_area", OlAreaViewSet, basename="ol_area")

@@ -7,6 +7,7 @@
 
 	import { globalToaster } from '$lib/stores/toaster';
 
+	import CableFiberSidebar from './CableFiberSidebar.svelte';
 	import ComponentTypeSidebar from './ComponentTypeSidebar.svelte';
 
 	let {
@@ -33,6 +34,9 @@
 	let isDragging = $state(false);
 	let draggedItem = $state(null);
 	let dropPreviewSlots = $state([]);
+
+	// Refresh trigger for CableFiberSidebar - increments on mount to trigger refresh
+	let cableRefreshTrigger = $state(0);
 
 	// Update selection when initialSlotConfigUuid prop changes
 	$effect(() => {
@@ -419,6 +423,18 @@
 		dropPreviewSlots = [];
 	}
 
+	// Cable/Fiber sidebar drag handlers
+	function handleCableFiberDragStart(dragData) {
+		isDragging = true;
+		draggedItem = dragData;
+	}
+
+	function handleCableFiberDragEnd() {
+		isDragging = false;
+		draggedItem = null;
+		dropPreviewSlots = [];
+	}
+
 	function handleStructureDragStart(e, structure) {
 		const dragData = {
 			type: 'existing_structure',
@@ -713,6 +729,8 @@
 
 	onMount(() => {
 		fetchSlotConfigurations();
+		// Trigger cable sidebar refresh when panel opens
+		cableRefreshTrigger++;
 	});
 </script>
 
@@ -879,6 +897,14 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- Cable/Fiber Sidebar -->
+	<CableFiberSidebar
+		{nodeUuid}
+		refreshTrigger={cableRefreshTrigger}
+		onDragStart={handleCableFiberDragStart}
+		onDragEnd={handleCableFiberDragEnd}
+	/>
 </div>
 
 <style>
