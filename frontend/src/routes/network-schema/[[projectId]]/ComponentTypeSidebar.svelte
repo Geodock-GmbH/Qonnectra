@@ -1,9 +1,11 @@
 <script>
-	import { onMount } from 'svelte';
+	import { getContext, onMount } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { IconChevronLeft, IconChevronRight, IconGripVertical } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
+
+	import { DRAG_DROP_CONTEXT_KEY } from '$lib/classes/DragDropManager.svelte.js';
 
 	let {
 		onDragStart = () => {},
@@ -11,6 +13,8 @@
 		isMobile = false,
 		onMobileSelect = () => {}
 	} = $props();
+
+	const dragDropManager = getContext(DRAG_DROP_CONTEXT_KEY);
 
 	let componentTypes = $state([]);
 	let loading = $state(true);
@@ -46,15 +50,25 @@
 			})
 		);
 		e.dataTransfer.effectAllowed = 'copy';
+
+		if (dragDropManager) {
+			dragDropManager.startComponentDrag(componentType);
+		}
 		onDragStart(componentType);
 	}
 
 	function handleDragEnd() {
+		if (dragDropManager) {
+			dragDropManager.endDrag();
+		}
 		onDragEnd();
 	}
 
 	function handleItemClick(componentType) {
 		if (isMobile) {
+			if (dragDropManager) {
+				dragDropManager.selectMobileComponent(componentType);
+			}
 			onMobileSelect(componentType);
 		}
 	}

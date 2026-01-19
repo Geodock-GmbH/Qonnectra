@@ -1,0 +1,282 @@
+/**
+ * Manager for drag-and-drop state across components.
+ * Shared via context for coordinated drag-drop between sidebars and grid.
+ */
+export class DragDropManager {
+	/** @type {boolean} */
+	isDragging = $state(false);
+
+	/** @type {Object|null} */
+	draggedItem = $state(null);
+
+	/** @type {Array<number>} */
+	dropPreviewSlots = $state([]);
+
+	/** @type {Object|null} - Mobile selection item */
+	mobileSelectedItem = $state(null);
+
+	/**
+	 * Start a drag operation
+	 * @param {Object} item - The item being dragged
+	 */
+	startDrag(item) {
+		this.isDragging = true;
+		this.draggedItem = item;
+	}
+
+	/**
+	 * End a drag operation
+	 */
+	endDrag() {
+		this.isDragging = false;
+		this.draggedItem = null;
+		this.dropPreviewSlots = [];
+	}
+
+	/**
+	 * Start dragging a component type from sidebar
+	 * @param {Object} componentType
+	 */
+	startComponentDrag(componentType) {
+		this.startDrag({
+			type: 'component_type',
+			id: componentType.id,
+			name: componentType.component_type,
+			occupied_slots: componentType.occupied_slots
+		});
+	}
+
+	/**
+	 * Start dragging an existing structure
+	 * @param {Event} e - Drag event
+	 * @param {Object} structure
+	 */
+	startStructureDrag(e, structure) {
+		const dragData = {
+			type: 'existing_structure',
+			uuid: structure.uuid,
+			slot_start: structure.slot_start,
+			slot_end: structure.slot_end,
+			occupied_slots: structure.slot_end - structure.slot_start + 1
+		};
+		e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+		e.dataTransfer.effectAllowed = 'move';
+		this.startDrag(dragData);
+	}
+
+	/**
+	 * Start dragging a cable
+	 * @param {Event} e - Drag event
+	 * @param {Object} cable
+	 */
+	startCableDrag(e, cable) {
+		const dragData = {
+			type: 'cable',
+			uuid: cable.uuid,
+			name: cable.name,
+			fiber_count: cable.fiber_count,
+			direction: cable.direction
+		};
+		e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+		e.dataTransfer.effectAllowed = 'copy';
+		this.startDrag(dragData);
+	}
+
+	/**
+	 * Start dragging a bundle
+	 * @param {Event} e - Drag event
+	 * @param {Object} cable
+	 * @param {Object} bundle
+	 */
+	startBundleDrag(e, cable, bundle) {
+		e.stopPropagation();
+		const dragData = {
+			type: 'bundle',
+			cable_uuid: cable.uuid,
+			cable_name: cable.name,
+			bundle_number: bundle.bundleNumber,
+			bundle_color: bundle.bundleColor,
+			fiber_count: bundle.fibers.length
+		};
+		e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+		e.dataTransfer.effectAllowed = 'copy';
+		this.startDrag(dragData);
+	}
+
+	/**
+	 * Start dragging a fiber
+	 * @param {Event} e - Drag event
+	 * @param {Object} cable
+	 * @param {Object} bundle
+	 * @param {Object} fiber
+	 */
+	startFiberDrag(e, cable, bundle, fiber) {
+		e.stopPropagation();
+		const dragData = {
+			type: 'fiber',
+			uuid: fiber.uuid,
+			cable_uuid: cable.uuid,
+			cable_name: cable.name,
+			bundle_number: fiber.bundle_number,
+			fiber_number: fiber.fiber_number_absolute,
+			fiber_color: fiber.fiber_color
+		};
+		e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+		e.dataTransfer.effectAllowed = 'copy';
+		this.startDrag(dragData);
+	}
+
+	/**
+	 * Update drop preview for slot grid
+	 * @param {number} slotNumber - Target slot number
+	 * @param {number} totalSlots - Total slots in config
+	 * @param {Map<number, string>} occupiedSlots - Map of occupied slots
+	 * @returns {{preview: Array<number>, canDrop: boolean}}
+	 */
+	updateDropPreview(slotNumber, totalSlots, occupiedSlots) {
+		const occupiedSlotsCount = this.draggedItem?.occupied_slots || 1;
+		const previewEnd = Math.min(slotNumber + occupiedSlotsCount - 1, totalSlots);
+		const preview = [];
+		let canDrop = true;
+
+		for (let i = slotNumber; i <= previewEnd; i++) {
+			preview.push(i);
+			const occupyingStructureUuid = occupiedSlots.get(i);
+			if (occupyingStructureUuid) {
+				if (
+					this.draggedItem?.type !== 'existing_structure' ||
+					occupyingStructureUuid !== this.draggedItem?.uuid
+				) {
+					canDrop = false;
+				}
+			}
+		}
+
+		if (preview.length < occupiedSlotsCount) {
+			canDrop = false;
+		}
+
+		this.dropPreviewSlots = preview;
+		return { preview, canDrop };
+	}
+
+	/**
+	 * Clear drop preview
+	 */
+	clearDropPreview() {
+		this.dropPreviewSlots = [];
+	}
+
+	/**
+	 * Validate if a drop is allowed at a slot
+	 * @param {number} slotNumber
+	 * @param {Map<number, string>} occupiedSlots
+	 * @returns {boolean}
+	 */
+	validateDropTarget(slotNumber, occupiedSlots) {
+		const occupyingUuid = occupiedSlots.get(slotNumber);
+		if (!occupyingUuid) return true;
+		if (
+			this.draggedItem?.type === 'existing_structure' &&
+			occupyingUuid === this.draggedItem?.uuid
+		) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Get drop effect based on drag type
+	 * @param {boolean} canDrop
+	 * @returns {'copy'|'move'|'none'}
+	 */
+	getDropEffect(canDrop) {
+		if (!canDrop) return 'none';
+		return this.draggedItem?.type === 'existing_structure' ? 'move' : 'copy';
+	}
+
+	/**
+	 * Parse drop data from a drop event
+	 * @param {DragEvent} e
+	 * @returns {Object|null}
+	 */
+	parseDropData(e) {
+		const jsonData = e.dataTransfer.getData('application/json');
+		if (!jsonData) return null;
+		try {
+			return JSON.parse(jsonData);
+		} catch {
+			return null;
+		}
+	}
+
+	/**
+	 * Select an item for mobile (tap-to-place mode)
+	 * @param {Object} item
+	 */
+	selectMobileItem(item) {
+		this.mobileSelectedItem = item;
+	}
+
+	/**
+	 * Select a component for mobile placement
+	 * @param {Object} componentType
+	 */
+	selectMobileComponent(componentType) {
+		this.mobileSelectedItem = {
+			type: 'component_type',
+			id: componentType.id,
+			name: componentType.component_type,
+			occupied_slots: componentType.occupied_slots
+		};
+	}
+
+	/**
+	 * Select a fiber for mobile placement
+	 * @param {Object} cable
+	 * @param {Object} bundle
+	 * @param {Object} fiber
+	 */
+	selectMobileFiber(cable, bundle, fiber) {
+		this.mobileSelectedItem = {
+			type: 'fiber',
+			uuid: fiber.uuid,
+			cable_uuid: cable.uuid,
+			cable_name: cable.name,
+			bundle_number: fiber.bundle_number,
+			fiber_number: fiber.fiber_number_absolute,
+			fiber_color: fiber.fiber_color,
+			name: `${cable.name} - Fiber ${fiber.fiber_number_absolute}`
+		};
+	}
+
+	/**
+	 * Clear mobile selection
+	 */
+	clearMobileSelection() {
+		this.mobileSelectedItem = null;
+	}
+
+	/**
+	 * Clear mobile selection when switching to desktop
+	 * @param {boolean} isMobile
+	 */
+	handleResponsiveChange(isMobile) {
+		if (!isMobile) {
+			this.mobileSelectedItem = null;
+		}
+	}
+
+	/**
+	 * Cleanup manager state
+	 */
+	cleanup() {
+		this.isDragging = false;
+		this.draggedItem = null;
+		this.dropPreviewSlots = [];
+		this.mobileSelectedItem = null;
+	}
+}
+
+/** Context key for DragDropManager */
+export const DRAG_DROP_CONTEXT_KEY = 'dragDropManager';

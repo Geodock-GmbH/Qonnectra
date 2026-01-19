@@ -1,6 +1,5 @@
 <script>
-	import { onMount } from 'svelte';
-	import { deserialize } from '$app/forms';
+	import { getContext, onMount } from 'svelte';
 	import {
 		IconArrowLeft,
 		IconArrowRight,
@@ -12,145 +11,19 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	let {
-		nodeUuid,
-		onDragStart = () => {},
-		onDragEnd = () => {},
-		refreshTrigger = 0,
-		isMobile = false,
-		onMobileSelect = () => {}
-	} = $props();
+	import { CableFiberDataManager } from '$lib/classes/CableFiberDataManager.svelte.js';
+	import { DRAG_DROP_CONTEXT_KEY } from '$lib/classes/DragDropManager.svelte.js';
 
-	// State
-	let cables = $state([]);
-	let fiberColors = $state([]);
-	let loading = $state(true);
+	let { nodeUuid, refreshTrigger = 0, isMobile = false } = $props();
+
+	const dragDropManager = getContext(DRAG_DROP_CONTEXT_KEY);
+
+	const dataManager = new CableFiberDataManager(nodeUuid);
+
 	let collapsed = $state(false);
 	let lastRefreshTrigger = $state(0);
-
-	// Expanded state for accordions
 	let expandedCables = $state(new Set());
-	let expandedBundles = $state(new Map()); // Map<cableUuid, Set<bundleNumber>>
-
-	// Fibers cache per cable
-	let fibersCache = $state(new Map()); // Map<cableUuid, fiber[]>
-	let loadingFibers = $state(new Set()); // Set of cable UUIDs currently loading
-
-	// Color lookup map
-	const colorMap = $derived.by(() => {
-		const map = new Map();
-		for (const color of fiberColors) {
-			map.set(color.name_de, color.hex_code);
-			map.set(color.name_en, color.hex_code);
-		}
-		return map;
-	});
-
-	/**
-	 * Fetch cables at the node
-	 */
-	async function fetchCables() {
-		if (!nodeUuid) return;
-
-		loading = true;
-		try {
-			const formData = new FormData();
-			formData.append('nodeUuid', nodeUuid);
-
-			const response = await fetch('?/getCablesAtNode', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'success') {
-				cables = result.data?.cables || [];
-			}
-		} catch (err) {
-			console.error('Error fetching cables:', err);
-		} finally {
-			loading = false;
-		}
-	}
-
-	/**
-	 * Fetch fiber colors
-	 */
-	async function fetchFiberColors() {
-		try {
-			const response = await fetch('?/getFiberColors', {
-				method: 'POST',
-				body: new FormData()
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'success') {
-				fiberColors = result.data?.fiberColors || [];
-			}
-		} catch (err) {
-			console.error('Error fetching fiber colors:', err);
-		}
-	}
-
-	/**
-	 * Fetch fibers for a cable (lazy loading)
-	 */
-	async function fetchFibersForCable(cableUuid) {
-		if (fibersCache.has(cableUuid) || loadingFibers.has(cableUuid)) return;
-
-		loadingFibers.add(cableUuid);
-		loadingFibers = new Set(loadingFibers);
-
-		try {
-			const formData = new FormData();
-			formData.append('cableUuid', cableUuid);
-
-			const response = await fetch('?/getFibersForCable', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'success') {
-				fibersCache.set(cableUuid, result.data?.fibers || []);
-				fibersCache = new Map(fibersCache);
-			}
-		} catch (err) {
-			console.error('Error fetching fibers:', err);
-		} finally {
-			loadingFibers.delete(cableUuid);
-			loadingFibers = new Set(loadingFibers);
-		}
-	}
-
-	/**
-	 * Group fibers by bundle number
-	 */
-	function groupFibersByBundle(fibers) {
-		const groups = new Map();
-		for (const fiber of fibers) {
-			const bundleKey = fiber.bundle_number;
-			if (!groups.has(bundleKey)) {
-				groups.set(bundleKey, {
-					bundleNumber: fiber.bundle_number,
-					bundleColor: fiber.bundle_color,
-					fibers: []
-				});
-			}
-			groups.get(bundleKey).fibers.push(fiber);
-		}
-		return Array.from(groups.values()).sort((a, b) => a.bundleNumber - b.bundleNumber);
-	}
-
-	/**
-	 * Get color hex code from color name
-	 */
-	function getColorHex(colorName) {
-		return colorMap.get(colorName) || '#999999';
-	}
+	let expandedBundles = $state(new Map());
 
 	/**
 	 * Toggle cable accordion
@@ -160,8 +33,7 @@
 			expandedCables.delete(cableUuid);
 		} else {
 			expandedCables.add(cableUuid);
-			// Load fibers when expanding
-			fetchFibersForCable(cableUuid);
+			dataManager.fetchFibersForCable(cableUuid);
 		}
 		expandedCables = new Set(expandedCables);
 	}
@@ -189,104 +61,49 @@
 		return expandedBundles.get(cableUuid)?.has(bundleNumber) ?? false;
 	}
 
-	// Drag handlers for cable
 	function handleCableDragStart(e, cable) {
-		e.dataTransfer.setData(
-			'application/json',
-			JSON.stringify({
-				type: 'cable',
-				uuid: cable.uuid,
-				name: cable.name,
-				fiber_count: cable.fiber_count,
-				direction: cable.direction
-			})
-		);
-		e.dataTransfer.effectAllowed = 'copy';
-		onDragStart({ type: 'cable', cable });
+		dragDropManager?.startCableDrag(e, cable);
 	}
 
-	// Drag handlers for bundle
 	function handleBundleDragStart(e, cable, bundle) {
-		e.stopPropagation();
-		e.dataTransfer.setData(
-			'application/json',
-			JSON.stringify({
-				type: 'bundle',
-				cable_uuid: cable.uuid,
-				cable_name: cable.name,
-				bundle_number: bundle.bundleNumber,
-				bundle_color: bundle.bundleColor,
-				fiber_count: bundle.fibers.length
-			})
-		);
-		e.dataTransfer.effectAllowed = 'copy';
-		onDragStart({ type: 'bundle', cable, bundle });
+		dragDropManager?.startBundleDrag(e, cable, bundle);
 	}
 
-	// Drag handlers for fiber
 	function handleFiberDragStart(e, cable, bundle, fiber) {
-		e.stopPropagation();
-		e.dataTransfer.setData(
-			'application/json',
-			JSON.stringify({
-				type: 'fiber',
-				uuid: fiber.uuid,
-				cable_uuid: cable.uuid,
-				cable_name: cable.name,
-				bundle_number: fiber.bundle_number,
-				fiber_number: fiber.fiber_number_absolute,
-				fiber_color: fiber.fiber_color
-			})
-		);
-		e.dataTransfer.effectAllowed = 'copy';
-		onDragStart({ type: 'fiber', cable, bundle, fiber });
+		dragDropManager?.startFiberDrag(e, cable, bundle, fiber);
 	}
 
 	function handleDragEnd() {
-		onDragEnd();
+		dragDropManager?.endDrag();
 	}
 
 	function handleMobileFiberClick(cable, bundle, fiber) {
 		if (isMobile) {
-			onMobileSelect({
-				type: 'fiber',
-				uuid: fiber.uuid,
-				cable_uuid: cable.uuid,
-				cable_name: cable.name,
-				bundle_number: fiber.bundle_number,
-				fiber_number: fiber.fiber_number_absolute,
-				fiber_color: fiber.fiber_color,
-				name: `${cable.name} - Fiber ${fiber.fiber_number_absolute}`
-			});
+			dragDropManager?.selectMobileFiber(cable, bundle, fiber);
 		}
 	}
 
-	// Re-fetch when nodeUuid changes
 	$effect(() => {
 		if (nodeUuid) {
-			// Reset state
-			cables = [];
-			fibersCache = new Map();
+			dataManager.setNodeUuid(nodeUuid);
 			expandedCables = new Set();
 			expandedBundles = new Map();
-			fetchCables();
+			dataManager.fetchCables();
 		}
 	});
 
-	// Re-fetch when refreshTrigger changes (panel opened)
 	$effect(() => {
 		if (refreshTrigger > lastRefreshTrigger && nodeUuid) {
 			lastRefreshTrigger = refreshTrigger;
-			// Clear fibers cache to get fresh data
-			fibersCache = new Map();
-			fetchCables();
+			dataManager.clearFibersCache();
+			dataManager.fetchCables();
 		}
 	});
 
 	onMount(() => {
-		fetchFiberColors();
+		dataManager.fetchFiberColors();
 		if (nodeUuid) {
-			fetchCables();
+			dataManager.fetchCables();
 		}
 	});
 </script>
@@ -294,16 +111,16 @@
 {#if isMobile}
 	<!-- Mobile: Simplified accordion without sidebar wrapper -->
 	<div class="space-y-2">
-		{#if loading}
+		{#if dataManager.loading}
 			<div class="text-center py-4 text-surface-500">{m.common_loading()}</div>
-		{:else if cables.length === 0}
+		{:else if dataManager.cables.length === 0}
 			<div class="text-center py-4 text-surface-500 text-sm">{m.message_no_cables()}</div>
 		{:else}
-			{#each cables as cable (cable.uuid)}
+			{#each dataManager.cables as cable (cable.uuid)}
 				{@const isExpanded = expandedCables.has(cable.uuid)}
-				{@const fibers = fibersCache.get(cable.uuid) || []}
-				{@const bundles = groupFibersByBundle(fibers)}
-				{@const isLoadingFibers = loadingFibers.has(cable.uuid)}
+				{@const fibers = dataManager.getFibersForCable(cable.uuid)}
+				{@const bundles = dataManager.groupFibersByBundle(fibers)}
+				{@const isLoadingFibers = dataManager.isLoadingFibers(cable.uuid)}
 
 				<div class="rounded-lg border border-surface-300-700 bg-surface-200-800 overflow-hidden">
 					<!-- Cable Header -->
@@ -354,7 +171,7 @@
 											/>
 											<span
 												class="w-4 h-4 rounded-full flex-shrink-0 border border-white/20"
-												style:background-color={getColorHex(bundle.bundleColor)}
+												style:background-color={dataManager.getColorHex(bundle.bundleColor)}
 											></span>
 											<span class="text-sm font-medium">
 												{m.form_bundle()}
@@ -373,7 +190,7 @@
 													>
 														<span
 															class="w-3 h-3 rounded-full flex-shrink-0 border border-white/20"
-															style:background-color={getColorHex(fiber.fiber_color)}
+															style:background-color={dataManager.getColorHex(fiber.fiber_color)}
 														></span>
 														<span class="text-sm font-mono">{fiber.fiber_number_absolute}</span>
 													</button>
@@ -409,19 +226,18 @@
 			<div class="sidebar-content">
 				<h3 class="text-sm font-semibold mb-2 px-2">{m.form_cables()}</h3>
 
-				{#if loading}
+				{#if dataManager.loading}
 					<div class="text-center py-4 text-surface-500">{m.common_loading()}</div>
-				{:else if cables.length === 0}
+				{:else if dataManager.cables.length === 0}
 					<div class="text-center py-4 text-surface-500 text-xs">{m.message_no_cables()}</div>
 				{:else}
 					<div class="cable-list">
-						{#each cables as cable (cable.uuid)}
+						{#each dataManager.cables as cable (cable.uuid)}
 							{@const isExpanded = expandedCables.has(cable.uuid)}
-							{@const fibers = fibersCache.get(cable.uuid) || []}
-							{@const bundles = groupFibersByBundle(fibers)}
-							{@const isLoadingFibers = loadingFibers.has(cable.uuid)}
+							{@const fibers = dataManager.getFibersForCable(cable.uuid)}
+							{@const bundles = dataManager.groupFibersByBundle(fibers)}
+							{@const isLoadingFibers = dataManager.isLoadingFibers(cable.uuid)}
 
-							<!-- Cable accordion -->
 							<div class="cable-item">
 								<div
 									class="cable-header"
@@ -496,7 +312,7 @@
 														</button>
 														<span
 															class="color-dot"
-															style:background-color={getColorHex(bundle.bundleColor)}
+															style:background-color={dataManager.getColorHex(bundle.bundleColor)}
 														></span>
 														<div class="flex-1 min-w-0">
 															<span class="bundle-name">
@@ -524,7 +340,9 @@
 																	/>
 																	<span
 																		class="color-dot small"
-																		style:background-color={getColorHex(fiber.fiber_color)}
+																		style:background-color={dataManager.getColorHex(
+																			fiber.fiber_color
+																		)}
 																	></span>
 																	<span class="fiber-number">
 																		{fiber.fiber_number_absolute}
