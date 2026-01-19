@@ -145,8 +145,10 @@
 	<FloatingPanel
 		bind:open={structurePanelOpen}
 		title={m.title_node_structure()}
-		width={700}
-		height={500}
+		width={900}
+		height={600}
+		minWidth={600}
+		minHeight={400}
 		maxWidth={1920}
 		maxHeight={1080}
 	>
