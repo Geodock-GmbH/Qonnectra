@@ -110,10 +110,14 @@
 	</div>
 {:else}
 	<!-- Desktop: Original sidebar -->
-	<div class="component-sidebar" class:collapsed>
+	<div
+		class="relative w-[200px] min-w-[200px] border-r border-[var(--color-surface-200-800)] bg-[var(--color-surface-100-900)] transition-all duration-200 ease-in-out flex flex-col {collapsed
+			? 'w-[40px] min-w-[40px]'
+			: ''}"
+	>
 		<button
 			type="button"
-			class="toggle-btn"
+			class="absolute top-2 -right-3 z-10 w-6 h-6 rounded-full bg-[var(--color-surface-100-900)] border border-[var(--color-surface-300-700)] flex items-center justify-center cursor-pointer transition-colors duration-150 hover:bg-[var(--color-surface-200-800)]"
 			onclick={() => (collapsed = !collapsed)}
 			title={collapsed ? m.action_expand() : m.action_collapse()}
 		>
@@ -125,7 +129,7 @@
 		</button>
 
 		{#if !collapsed}
-			<div class="sidebar-content">
+			<div class="flex-1 overflow-y-auto p-2 px-1">
 				<h3 class="text-sm font-semibold mb-2 px-2">{m.form_component_types()}</h3>
 
 				{#if loading}
@@ -136,7 +140,7 @@
 					<div class="space-y-1">
 						{#each componentTypes as ct (ct.id)}
 							<div
-								class="component-item"
+								class="flex items-center gap-1.5 px-2 py-1.5 mx-1 rounded bg-[var(--color-surface-100-900)] border border-[var(--color-surface-200-800)] cursor-grab transition-colors duration-150 hover:bg-[var(--color-surface-200-800)] hover:border-[var(--color-primary-500)] active:cursor-grabbing"
 								draggable="true"
 								ondragstart={(e) => handleDragStart(e, ct)}
 								ondragend={handleDragEnd}
@@ -158,77 +162,3 @@
 		{/if}
 	</div>
 {/if}
-
-<style>
-	.component-sidebar {
-		position: relative;
-		width: 200px;
-		min-width: 200px;
-		border-right: 1px solid rgb(var(--color-surface-200));
-		background: rgb(var(--color-surface-50));
-		transition: all 0.2s ease;
-		display: flex;
-		flex-direction: column;
-	}
-
-	:global([data-mode='dark']) .component-sidebar {
-		border-right-color: rgb(var(--color-surface-700));
-		background: rgb(var(--color-surface-900));
-	}
-
-	.component-sidebar.collapsed {
-		width: 40px;
-		min-width: 40px;
-	}
-
-	.toggle-btn {
-		position: absolute;
-		top: 8px;
-		right: -12px;
-		z-index: 10;
-		width: 24px;
-		height: 24px;
-		border-radius: 50%;
-		background: rgb(var(--color-surface-100));
-		border: 1px solid rgb(var(--color-surface-300));
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		cursor: pointer;
-		transition: background-color 0.15s;
-	}
-
-	.toggle-btn:hover {
-		background: rgb(var(--color-surface-200));
-	}
-
-	.sidebar-content {
-		flex: 1;
-		overflow-y: auto;
-		padding: 8px 4px;
-	}
-
-	.component-item {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		padding: 6px 8px;
-		margin: 0 4px;
-		border-radius: 4px;
-		background: rgb(var(--color-surface-100));
-		border: 1px solid rgb(var(--color-surface-200));
-		cursor: grab;
-		transition:
-			background-color 0.15s,
-			border-color 0.15s;
-	}
-
-	.component-item:hover {
-		background: rgb(var(--color-surface-200));
-		border-color: rgb(var(--color-primary-500));
-	}
-
-	.component-item:active {
-		cursor: grabbing;
-	}
-</style>

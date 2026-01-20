@@ -6,6 +6,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { CablePathManager } from '$lib/classes/CablePathManager.svelte.js';
+	import { NetworkSchemaSearchManager } from '$lib/classes/NetworkSchemaSearchManager.svelte.js';
 	import { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte.js';
 	import Drawer from '$lib/components/Drawer.svelte';
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
@@ -20,6 +21,7 @@
 
 	import CableDiagramEdge from './CableDiagramEdge.svelte';
 	import CableDiagramNode from './CableDiagramNode.svelte';
+	import NetworkSchemaSearch from './NetworkSchemaSearch.svelte';
 	import ViewportPersistence from './ViewportPersistence.svelte';
 
 	let { data } = $props();
@@ -29,6 +31,7 @@
 
 	const schemaState = new NetworkSchemaState(data);
 	const cablePathManager = new CablePathManager();
+	const searchManager = new NetworkSchemaSearchManager(schemaState);
 
 	let prevUrl = $state($page.url.href);
 
@@ -178,7 +181,11 @@
 			<Background class="z-0" bgColor="var(--color-surface-100-900) " />
 			<Controls />
 			<Panel position="top-left">
-				<div class="card bg-surface-50-950 p-2 rounded-lg shadow-lg">
+				<div class="card bg-surface-50-950 p-2 rounded-lg shadow-lg w-64">
+					<div class="mb-3">
+						<NetworkSchemaSearch {searchManager} {schemaState} />
+					</div>
+
 					<h1 class="text-lg font-semibold mb-1">{m.common_attributes()}</h1>
 					<div class="flex flex-col gap-2">
 						<label for="cable_name_input" class="text-sm font-medium">
@@ -202,7 +209,9 @@
 						/>
 					</div>
 
-					<div class="gap-2 flex items-center justify-between bg-surface-50-900 rounded-lg p-2">
+					<div
+						class="gap-2 flex items-center justify-between bg-surface-50-900 rounded-lg p-2 mt-2"
+					>
 						<h3 class="text-sm font-medium">{m.form_snapping()}</h3>
 						<Switch
 							name="edge-snapping-switch"

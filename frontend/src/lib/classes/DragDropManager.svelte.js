@@ -68,14 +68,25 @@ export class DragDropManager {
 	 * Start dragging a cable
 	 * @param {Event} e - Drag event
 	 * @param {Object} cable
+	 * @param {Array<Object>|null} fibers - Optional pre-loaded fibers array
 	 */
-	startCableDrag(e, cable) {
+	startCableDrag(e, cable, fibers = null) {
 		const dragData = {
 			type: 'cable',
 			uuid: cable.uuid,
 			name: cable.name,
 			fiber_count: cable.fiber_count,
-			direction: cable.direction
+			direction: cable.direction,
+			fibers: fibers
+				? fibers.map((f) => ({
+						uuid: f.uuid,
+						fiber_number_absolute: f.fiber_number_absolute,
+						fiber_number_in_bundle: f.fiber_number_in_bundle,
+						fiber_color: f.fiber_color,
+						bundle_number: f.bundle_number,
+						bundle_color: f.bundle_color
+					}))
+				: null
 		};
 		e.dataTransfer.setData('application/json', JSON.stringify(dragData));
 		e.dataTransfer.effectAllowed = 'copy';
@@ -90,13 +101,22 @@ export class DragDropManager {
 	 */
 	startBundleDrag(e, cable, bundle) {
 		e.stopPropagation();
+		// Include fibers array for multi-fiber drop functionality
+		const fibers = bundle.fibers.map((f) => ({
+			uuid: f.uuid,
+			fiber_number_absolute: f.fiber_number_absolute,
+			fiber_number_in_bundle: f.fiber_number_in_bundle,
+			fiber_color: f.fiber_color,
+			bundle_number: f.bundle_number
+		}));
 		const dragData = {
 			type: 'bundle',
 			cable_uuid: cable.uuid,
 			cable_name: cable.name,
 			bundle_number: bundle.bundleNumber,
 			bundle_color: bundle.bundleColor,
-			fiber_count: bundle.fibers.length
+			fiber_count: bundle.fibers.length,
+			fibers
 		};
 		e.dataTransfer.setData('application/json', JSON.stringify(dragData));
 		e.dataTransfer.effectAllowed = 'copy';

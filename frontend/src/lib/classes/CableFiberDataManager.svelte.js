@@ -192,6 +192,20 @@ export class CableFiberDataManager {
 	}
 
 	/**
+	 * Get all fibers for a cable, fetching if necessary
+	 * @param {string} cableUuid
+	 * @returns {Promise<Array<Object>>}
+	 */
+	async getAllFibersForCable(cableUuid) {
+		if (this.fibersCache.has(cableUuid)) {
+			return this.fibersCache.get(cableUuid);
+		}
+
+		await this.fetchFibersForCable(cableUuid);
+		return this.fibersCache.get(cableUuid) || [];
+	}
+
+	/**
 	 * Cleanup manager state
 	 */
 	cleanup() {

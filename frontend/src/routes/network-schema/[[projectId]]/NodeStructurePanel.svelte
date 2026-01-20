@@ -242,11 +242,17 @@
 		}
 	}
 
-	async function handlePortDrop(portNumber, side, fiberData) {
-		const success = await spliceManager.handlePortDrop(portNumber, side, fiberData);
+	async function handlePortDrop(portNumber, side, dropData) {
+		// For cable drops, pass all structures to enable multi-component filling
+		const structures = dropData.type === 'cable' ? structureManager.structures : [];
+		const success = await spliceManager.handlePortDrop(portNumber, side, dropData, structures);
 
-		if (isMobile && success && dragDropManager.mobileSelectedItem?.type === 'fiber') {
-			dragDropManager.clearMobileSelection();
+		// Clear mobile selection on success for any fiber-related drop type
+		if (isMobile && success) {
+			const dropType = dragDropManager.mobileSelectedItem?.type;
+			if (dropType === 'fiber' || dropType === 'bundle' || dropType === 'cable') {
+				dragDropManager.clearMobileSelection();
+			}
 		}
 	}
 
@@ -444,46 +450,52 @@
 					</div>
 				</div>
 
-				<!-- Slot Grid -->
-				<SlotGrid
-					{slotRows}
-					structures={structureManager.structures}
-					selectedStructure={spliceManager.selectedStructure}
-					isDragging={dragDropManager.isDragging}
-					draggedItem={dragDropManager.draggedItem}
-					bind:dropPreviewSlots={dragDropManager.dropPreviewSlots}
-					occupiedSlots={structureManager.occupiedSlots}
-					loading={structureManager.loading}
-					loadingStructures={structureManager.loadingStructures}
-					{isMobile}
-					onSlotDragOver={handleSlotDragOver}
-					onSlotDrop={handleSlotDrop}
-					onStructureDragStart={handleStructureDragStart}
-					onStructureDragEnd={handleSidebarDragEnd}
-					onStructureSelect={handleStructureSelect}
-					onStructureDelete={handleDeleteStructure}
-					onToggleDivider={toggleDivider}
-					onStartEditingClip={startEditingClip}
-					{editingClipSlot}
-					bind:editingClipValue
-					onSaveClipNumber={saveClipNumber}
-					onClipKeydown={handleClipKeydown}
-				/>
-
-				<!-- Port Table (when structure selected) -->
-				{#if spliceManager.selectedStructure}
-					<div class="flex-shrink-0">
-						<PortTable
-							structureName={spliceManager.selectedStructure.component_type?.component_type || '-'}
-							portRows={spliceManager.portRows}
-							fiberColors={spliceManager.fiberColors}
-							loading={spliceManager.loadingPorts}
-							onPortDrop={handlePortDrop}
-							onClearPort={handleClearPort}
-							onClose={handleClosePortTable}
+				<!-- Slot Grid and Port Table container - share space when both visible -->
+				<div class="flex-1 flex flex-col gap-4 min-h-0 overflow-hidden">
+					<!-- Slot Grid -->
+					<div class="flex-1 min-h-0 overflow-hidden">
+						<SlotGrid
+							{slotRows}
+							structures={structureManager.structures}
+							selectedStructure={spliceManager.selectedStructure}
+							isDragging={dragDropManager.isDragging}
+							draggedItem={dragDropManager.draggedItem}
+							bind:dropPreviewSlots={dragDropManager.dropPreviewSlots}
+							occupiedSlots={structureManager.occupiedSlots}
+							loading={structureManager.loading}
+							loadingStructures={structureManager.loadingStructures}
+							{isMobile}
+							onSlotDragOver={handleSlotDragOver}
+							onSlotDrop={handleSlotDrop}
+							onStructureDragStart={handleStructureDragStart}
+							onStructureDragEnd={handleSidebarDragEnd}
+							onStructureSelect={handleStructureSelect}
+							onStructureDelete={handleDeleteStructure}
+							onToggleDivider={toggleDivider}
+							onStartEditingClip={startEditingClip}
+							{editingClipSlot}
+							bind:editingClipValue
+							onSaveClipNumber={saveClipNumber}
+							onClipKeydown={handleClipKeydown}
 						/>
 					</div>
-				{/if}
+
+					<!-- Port Table (when structure selected) -->
+					{#if spliceManager.selectedStructure}
+						<div class="flex-1 min-h-0 overflow-hidden">
+							<PortTable
+								structureName={spliceManager.selectedStructure.component_type?.component_type ||
+									'-'}
+								portRows={spliceManager.portRows}
+								fiberColors={spliceManager.fiberColors}
+								loading={spliceManager.loadingPorts}
+								onPortDrop={handlePortDrop}
+								onClearPort={handleClearPort}
+								onClose={handleClosePortTable}
+							/>
+						</div>
+					{/if}
+				</div>
 			</div>
 
 			<!-- Right Sidebar: Cables/Fibers -->

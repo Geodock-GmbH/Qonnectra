@@ -61,8 +61,10 @@
 		return expandedBundles.get(cableUuid)?.has(bundleNumber) ?? false;
 	}
 
-	function handleCableDragStart(e, cable) {
-		dragDropManager?.startCableDrag(e, cable);
+	async function handleCableDragStart(e, cable) {
+		// Pre-fetch fibers if not cached, so they're available for drop
+		const fibers = await dataManager.getAllFibersForCable(cable.uuid);
+		dragDropManager?.startCableDrag(e, cable, fibers);
 	}
 
 	function handleBundleDragStart(e, cable, bundle) {
@@ -208,10 +210,14 @@
 	</div>
 {:else}
 	<!-- Desktop: Original sidebar -->
-	<div class="cable-fiber-sidebar" class:collapsed>
+	<div
+		class="relative w-[240px] min-w-[240px] border-l border-[var(--color-surface-200-800)] bg-[var(--color-surface-100-900)] transition-all duration-200 ease-in-out flex flex-col {collapsed
+			? 'w-[40px] min-w-[40px]'
+			: ''}"
+	>
 		<button
 			type="button"
-			class="toggle-btn"
+			class="absolute top-2 -left-3 z-10 w-6 h-6 rounded-full bg-[var(--color-surface-100-900)] border border-[var(--color-surface-300-700)] flex items-center justify-center cursor-pointer transition-colors duration-150 hover:bg-[var(--color-surface-200-800)]"
 			onclick={() => (collapsed = !collapsed)}
 			title={collapsed ? m.action_expand() : m.action_collapse()}
 		>
@@ -223,7 +229,7 @@
 		</button>
 
 		{#if !collapsed}
-			<div class="sidebar-content">
+			<div class="flex-1 overflow-y-auto p-2 px-1">
 				<h3 class="text-sm font-semibold mb-2 px-2">{m.form_cables()}</h3>
 
 				{#if dataManager.loading}
@@ -231,16 +237,18 @@
 				{:else if dataManager.cables.length === 0}
 					<div class="text-center py-4 text-surface-500 text-xs">{m.message_no_cables()}</div>
 				{:else}
-					<div class="cable-list">
+					<div class="flex flex-col gap-1">
 						{#each dataManager.cables as cable (cable.uuid)}
 							{@const isExpanded = expandedCables.has(cable.uuid)}
 							{@const fibers = dataManager.getFibersForCable(cable.uuid)}
 							{@const bundles = dataManager.groupFibersByBundle(fibers)}
 							{@const isLoadingFibers = dataManager.isLoadingFibers(cable.uuid)}
 
-							<div class="cable-item">
+							<div
+								class="bg-[var(--color-surface-100-900)] border border-[var(--color-surface-200-800)] rounded overflow-hidden"
+							>
 								<div
-									class="cable-header"
+									class="flex items-center gap-1.5 px-2.5 py-2 cursor-grab transition-colors duration-150 hover:bg-[var(--color-surface-200-800)] active:cursor-grabbing"
 									draggable="true"
 									ondragstart={(e) => handleCableDragStart(e, cable)}
 									ondragend={handleDragEnd}
@@ -248,22 +256,28 @@
 									tabindex="0"
 								>
 									<IconGripVertical size={14} class="text-surface-400 flex-shrink-0 cursor-grab" />
-									<button type="button" class="expand-btn" onclick={() => toggleCable(cable.uuid)}>
+									<button
+										type="button"
+										class="p-0.5 bg-transparent border-none cursor-pointer flex items-center justify-center"
+										onclick={() => toggleCable(cable.uuid)}
+									>
 										<IconChevronDown
 											size={14}
-											class="chevron transition-transform {isExpanded ? 'rotate-0' : '-rotate-90'}"
+											class="transition-transform {isExpanded ? 'rotate-0' : '-rotate-90'}"
 										/>
 									</button>
 									<div class="flex-1 min-w-0">
-										<div class="cable-name">
+										<div
+											class="text-sm font-medium flex items-center gap-1 whitespace-nowrap overflow-hidden text-ellipsis"
+										>
 											{cable.name}
 											{#if cable.direction === 'start'}
-												<IconArrowRight size={12} class="direction-icon" />
+												<IconArrowRight size={12} />
 											{:else}
-												<IconArrowLeft size={12} class="direction-icon" />
+												<IconArrowLeft size={12} />
 											{/if}
 										</div>
-										<div class="cable-info">
+										<div class="text-xs text-[var(--color-surface-500)]">
 											{cable.fiber_count}
 											{m.form_fibers()}
 										</div>
@@ -271,7 +285,9 @@
 								</div>
 
 								{#if isExpanded}
-									<div class="cable-content">
+									<div
+										class="border-t border-[var(--color-surface-200-800)] p-1 bg-[var(--color-surface-100-900)]"
+									>
 										{#if isLoadingFibers}
 											<div class="text-center py-2 text-surface-500 text-xs">
 												{m.common_loading()}
@@ -285,9 +301,9 @@
 												{@const isBundleOpen = isBundleExpanded(cable.uuid, bundle.bundleNumber)}
 
 												<!-- Bundle accordion -->
-												<div class="bundle-item">
+												<div class="mb-0.5">
 													<div
-														class="bundle-header"
+														class="flex items-center gap-1.5 px-2 py-1.5 cursor-grab rounded transition-colors duration-150 hover:bg-[var(--color-surface-200-800)] active:cursor-grabbing"
 														draggable="true"
 														ondragstart={(e) => handleBundleDragStart(e, cable, bundle)}
 														ondragend={handleDragEnd}
@@ -300,35 +316,37 @@
 														/>
 														<button
 															type="button"
-															class="expand-btn"
+															class="p-0.5 bg-transparent border-none cursor-pointer flex items-center justify-center"
 															onclick={() => toggleBundle(cable.uuid, bundle.bundleNumber)}
 														>
 															<IconChevronDown
 																size={12}
-																class="chevron transition-transform {isBundleOpen
+																class="transition-transform {isBundleOpen
 																	? 'rotate-0'
 																	: '-rotate-90'}"
 															/>
 														</button>
 														<span
-															class="color-dot"
+															class="w-3 h-3 rounded-full flex-shrink-0 border border-black/10"
 															style:background-color={dataManager.getColorHex(bundle.bundleColor)}
 														></span>
 														<div class="flex-1 min-w-0">
-															<span class="bundle-name">
+															<span class="text-[0.8125rem] font-medium">
 																{m.form_bundle()}
 																{bundle.bundleNumber}
 															</span>
-															<span class="bundle-info">({bundle.fibers.length})</span>
+															<span class="text-xs text-[var(--color-surface-500)] ml-1"
+																>({bundle.fibers.length})</span
+															>
 														</div>
 													</div>
 
 													{#if isBundleOpen}
-														<div class="bundle-content">
+														<div class="pl-5 pt-1">
 															{#each bundle.fibers as fiber (fiber.uuid)}
 																<!-- Fiber item -->
 																<div
-																	class="fiber-item"
+																	class="flex items-center gap-1.5 px-2 py-1.5 cursor-grab rounded-sm transition-colors duration-150 hover:bg-[var(--color-surface-200-800)] active:cursor-grabbing"
 																	draggable="true"
 																	ondragstart={(e) => handleFiberDragStart(e, cable, bundle, fiber)}
 																	ondragend={handleDragEnd}
@@ -339,12 +357,12 @@
 																		class="text-surface-400 flex-shrink-0 cursor-grab"
 																	/>
 																	<span
-																		class="color-dot small"
+																		class="w-2.5 h-2.5 rounded-full flex-shrink-0 border border-black/10"
 																		style:background-color={dataManager.getColorHex(
 																			fiber.fiber_color
 																		)}
 																	></span>
-																	<span class="fiber-number">
+																	<span class="text-[0.8125rem] font-mono">
 																		{fiber.fiber_number_absolute}
 																	</span>
 																</div>
@@ -364,189 +382,3 @@
 		{/if}
 	</div>
 {/if}
-
-<style>
-	.cable-fiber-sidebar {
-		position: relative;
-		width: 240px;
-		min-width: 240px;
-		border-left: 1px solid rgb(var(--color-surface-200));
-		background: rgb(var(--color-surface-50));
-		transition: all 0.2s ease;
-		display: flex;
-		flex-direction: column;
-	}
-
-	:global([data-mode='dark']) .cable-fiber-sidebar {
-		border-left-color: rgb(var(--color-surface-700));
-		background: rgb(var(--color-surface-900));
-	}
-
-	.cable-fiber-sidebar.collapsed {
-		width: 40px;
-		min-width: 40px;
-	}
-
-	.toggle-btn {
-		position: absolute;
-		top: 8px;
-		left: -12px;
-		z-index: 10;
-		width: 24px;
-		height: 24px;
-		border-radius: 50%;
-		background: rgb(var(--color-surface-100));
-		border: 1px solid rgb(var(--color-surface-300));
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		cursor: pointer;
-		transition: background-color 0.15s;
-	}
-
-	.toggle-btn:hover {
-		background: rgb(var(--color-surface-200));
-	}
-
-	.sidebar-content {
-		flex: 1;
-		overflow-y: auto;
-		padding: 8px 4px;
-	}
-
-	.cable-list {
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-
-	.cable-item {
-		background: rgb(var(--color-surface-100));
-		border: 1px solid rgb(var(--color-surface-200));
-		border-radius: 4px;
-		overflow: hidden;
-	}
-
-	.cable-header {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		padding: 8px 10px;
-		cursor: grab;
-		transition: background-color 0.15s;
-	}
-
-	.cable-header:hover {
-		background: rgb(var(--color-surface-200));
-	}
-
-	.cable-header:active {
-		cursor: grabbing;
-	}
-
-	.expand-btn {
-		padding: 2px;
-		background: transparent;
-		border: none;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.cable-name {
-		font-size: 0.875rem;
-		font-weight: 500;
-		display: flex;
-		align-items: center;
-		gap: 4px;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.cable-info {
-		font-size: 0.75rem;
-		color: rgb(var(--color-surface-500));
-	}
-
-	.cable-content {
-		border-top: 1px solid rgb(var(--color-surface-200));
-		padding: 4px;
-		background: rgb(var(--color-surface-50));
-	}
-
-	.bundle-item {
-		margin-bottom: 2px;
-	}
-
-	.bundle-header {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		padding: 6px 8px;
-		cursor: grab;
-		border-radius: 4px;
-		transition: background-color 0.15s;
-	}
-
-	.bundle-header:hover {
-		background: rgb(var(--color-surface-200));
-	}
-
-	.bundle-header:active {
-		cursor: grabbing;
-	}
-
-	.bundle-name {
-		font-size: 0.8125rem;
-		font-weight: 500;
-	}
-
-	.bundle-info {
-		font-size: 0.75rem;
-		color: rgb(var(--color-surface-500));
-		margin-left: 4px;
-	}
-
-	.bundle-content {
-		padding-left: 20px;
-		padding-top: 4px;
-	}
-
-	.fiber-item {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		padding: 5px 8px;
-		cursor: grab;
-		border-radius: 3px;
-		transition: background-color 0.15s;
-	}
-
-	.fiber-item:hover {
-		background: rgb(var(--color-surface-200));
-	}
-
-	.fiber-item:active {
-		cursor: grabbing;
-	}
-
-	.fiber-number {
-		font-size: 0.8125rem;
-		font-family: monospace;
-	}
-
-	.color-dot {
-		width: 12px;
-		height: 12px;
-		border-radius: 50%;
-		flex-shrink: 0;
-		border: 1px solid rgba(0, 0, 0, 0.1);
-	}
-
-	.color-dot.small {
-		width: 10px;
-		height: 10px;
-	}
-</style>

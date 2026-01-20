@@ -72,7 +72,7 @@
 >
 	{#if fiber}
 		<!-- Connected Fiber Display -->
-		<div class="flex items-center gap-2 group">
+		<div class="flex items-center gap-2 group w-full">
 			<span
 				class="w-4 h-4 rounded-full border-2 border-white shadow-sm flex-shrink-0"
 				style="background-color: {colorHex}"
@@ -89,14 +89,14 @@
 			</div>
 			<button
 				type="button"
-				class="p-1.5 rounded-md opacity-0 group-hover:opacity-100 {accentClasses.clearHover} text-error-500 transition-all"
+				class="btn-sm ml-auto p-1 rounded-md opacity-0 group-hover:opacity-100 bg-error-500 hover:bg-error-600 text-white transition-all flex-shrink-0"
 				onclick={(e) => {
 					e.stopPropagation();
 					onClear();
 				}}
 				aria-label={m.common_clear?.() || 'Clear'}
 			>
-				<IconTrash size={14} />
+				<IconTrash size={20} />
 			</button>
 		</div>
 	{:else if hasPort}

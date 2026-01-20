@@ -66,7 +66,7 @@
 </script>
 
 <div
-	class="flex-1 flex flex-col border border-surface-200-800 rounded-xl overflow-hidden bg-surface-100-900 shadow-sm"
+	class="h-full flex flex-col border border-surface-200-800 rounded-xl overflow-hidden bg-surface-100-900 shadow-sm"
 >
 	<!-- Header row (outside scrollable area) -->
 	<div class="slot-grid-header grid grid-cols-[60px_1fr_80px] bg-surface-200-800 flex-shrink-0">
@@ -92,17 +92,20 @@
 			</div>
 		{:else}
 			<div
-				class="slot-grid"
-				class:dragging={isDragging}
-				class:mobile-selecting={mobileSelectedItem}
+				class="grid grid-cols-[60px_1fr_80px] bg-[var(--color-surface-50-950)] {isDragging
+					? '[&_.slot-content:not(.drop-target)]:opacity-60'
+					: ''} {mobileSelectedItem ? '[&_.slot-content:not(.mobile-tap-target)]:opacity-50' : ''}"
 			>
 				{#each slotRows as row (row.slotNumber)}
 					<!-- TPU number cell -->
 					<div
-						class="slot-number"
-						class:drop-target={row.isDropTarget}
-						class:occupied={row.isOccupied && !row.isDropTarget}
-						class:has-divider-after={row.hasDividerAfter}
+						class="px-3 py-2 font-mono text-center bg-[var(--color-surface-100-900)] border-b border-[var(--color-surface-200-800)] transition-colors duration-150 h-10 flex items-center justify-center {row.isDropTarget
+							? 'bg-[rgba(34,197,94,0.15)]'
+							: ''} {row.isOccupied && !row.isDropTarget
+							? 'bg-[var(--color-surface-200-800)]'
+							: ''} {row.hasDividerAfter
+							? 'border-b-2 border-[var(--color-surface-500)] relative z-10'
+							: ''}"
 						ondblclick={() => onToggleDivider(row.slotNumber)}
 						title={m.tooltip_double_click_divider?.() || 'Double-click to toggle divider'}
 						role="cell"
@@ -113,18 +116,21 @@
 
 					<!-- Component cell -->
 					<div
-						class="slot-content"
-						class:drop-target={row.isDropTarget}
-						class:can-drop={row.isDropTarget &&
-							(!row.isOccupied ||
-								(draggedItem?.type === 'existing_structure' &&
-									occupiedSlots.get(row.slotNumber) === draggedItem?.uuid))}
-						class:cannot-drop={row.isDropTarget &&
-							row.isOccupied &&
-							(draggedItem?.type !== 'existing_structure' ||
-								occupiedSlots.get(row.slotNumber) !== draggedItem?.uuid)}
-						class:has-divider-after={row.hasDividerAfter}
-						class:mobile-tap-target={isMobile && mobileSelectedItem && !row.isOccupied}
+						class="slot-content px-2 py-0.5 min-h-10 bg-[var(--color-surface-50-950)] border-b border-[var(--color-surface-200-800)] flex items-center transition-[background-color,outline] duration-150 relative {row.isDropTarget &&
+						(!row.isOccupied ||
+							(draggedItem?.type === 'existing_structure' &&
+								occupiedSlots.get(row.slotNumber) === draggedItem?.uuid))
+							? 'bg-[rgba(34,197,94,0.1)] outline-2 outline-dashed outline-green-500 outline-offset-[-2px]'
+							: ''} {row.isDropTarget &&
+						row.isOccupied &&
+						(draggedItem?.type !== 'existing_structure' ||
+							occupiedSlots.get(row.slotNumber) !== draggedItem?.uuid)
+							? 'bg-[rgba(239,68,68,0.1)] outline-2 outline-dashed outline-red-500 outline-offset-[-2px]'
+							: ''} {row.hasDividerAfter
+							? 'border-b-2 border-[var(--color-surface-500)] relative z-10'
+							: ''} {isMobile && mobileSelectedItem && !row.isOccupied
+							? 'bg-[var(--color-primary-500)]/5 cursor-pointer hover:bg-[var(--color-primary-500)]/10'
+							: ''}"
 						ondragover={(e) => handleSlotDragOver(e, row.slotNumber)}
 						ondragleave={handleSlotDragLeave}
 						ondrop={(e) => handleSlotDrop(e, row.slotNumber)}
@@ -135,8 +141,10 @@
 					>
 						{#if row.isBlockStart && row.structure}
 							<div
-								class="structure-block group"
-								class:selected={selectedStructure?.uuid === row.structure.uuid}
+								class="structure-block w-[calc(100%-4px)] h-[calc(var(--row-height,36px)-4px)] px-2.5 py-1.5 bg-[var(--color-surface-200-800)] border border-[var(--color-surface-300-700)] rounded-lg cursor-pointer flex items-center gap-2 absolute top-0.5 left-0.5 z-[1] shadow-sm transition-[background-color,transform,box-shadow] duration-150 hover:bg-[var(--color-surface-300-700)] hover:shadow-md hover:-translate-y-px active:scale-[0.98] group {selectedStructure?.uuid ===
+								row.structure.uuid
+									? 'bg-[var(--color-primary-500)] border-[var(--color-primary-600)] text-white shadow-[0_0_0_3px_var(--color-primary-500)/30%,0_4px_12px_rgba(0,0,0,0.15)] hover:bg-[var(--color-primary-400)] [&_.text-surface-500]:!text-white/80 [&_*:global(.text-surface-400)]:!text-white/70'
+									: ''}"
 								style:--row-height="{row.blockSize * 40}px"
 								draggable={!isMobile}
 								ondragstart={(e) => onStructureDragStart(e, row.structure)}
@@ -159,14 +167,14 @@
 								</div>
 								<button
 									type="button"
-									class="delete-btn opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100"
+									class="btn-sm rounded-md opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 bg-error-500 hover:bg-error-600 text-white transition-all flex-shrink-0"
 									onclick={(e) => {
 										e.stopPropagation();
 										onStructureDelete(row.structure.uuid);
 									}}
 									aria-label={m.common_delete?.() || 'Delete'}
 								>
-									<IconTrash size={16} class="text-surface-950-50" />
+									<IconTrash size={20} />
 								</button>
 							</div>
 						{:else if !row.isOccupied}
@@ -184,16 +192,19 @@
 
 					<!-- Clip number cell (editable) -->
 					<div
-						class="slot-clip"
-						class:drop-target={row.isDropTarget}
-						class:occupied={row.isOccupied && !row.isDropTarget}
-						class:has-divider-after={row.hasDividerAfter}
+						class="px-3 py-2 font-mono text-center bg-[var(--color-surface-100-900)] border-b border-[var(--color-surface-200-800)] transition-colors duration-150 h-10 flex items-center justify-center {row.isDropTarget
+							? 'bg-[rgba(34,197,94,0.15)]'
+							: ''} {row.isOccupied && !row.isDropTarget
+							? 'bg-[var(--color-surface-200-800)]'
+							: ''} {row.hasDividerAfter
+							? 'border-b-2 border-[var(--color-surface-500)] relative z-10'
+							: ''}"
 						role="gridcell"
 					>
 						{#if editingClipSlot === row.slotNumber}
 							<input
 								type="text"
-								class="clip-input"
+								class="w-full h-7 bg-[var(--color-surface-50-950)] border-2 border-[var(--color-primary-500)] rounded font-mono text-center text-sm px-1 outline-none [&:focus]:shadow-[0_0_0_2px_var(--color-primary-500)/20]"
 								bind:value={editingClipValue}
 								onblur={onSaveClipNumber}
 								onkeydown={onClipKeydown}
@@ -201,7 +212,7 @@
 						{:else}
 							<button
 								type="button"
-								class="clip-value"
+								class="w-full h-full bg-transparent border-none font-mono text-center cursor-pointer p-0 transition-colors duration-150 rounded hover:bg-[var(--color-surface-200-800)]"
 								onclick={() => onStartEditingClip(row.slotNumber, row.clipNumber)}
 								title={m.tooltip_click_to_edit?.() || 'Click to edit'}
 							>
@@ -214,212 +225,3 @@
 		{/if}
 	</div>
 </div>
-
-<style>
-	.slot-grid {
-		display: grid;
-		grid-template-columns: 60px 1fr 80px;
-		background: rgb(var(--color-surface-50));
-	}
-
-	@media (prefers-color-scheme: dark) {
-		.slot-grid {
-			background: rgb(var(--color-surface-900));
-		}
-	}
-
-	.slot-number,
-	.slot-clip {
-		padding: 8px 12px;
-		font-family: monospace;
-		text-align: center;
-		background: rgb(var(--color-surface-50));
-		border-bottom: 1px solid rgb(var(--color-surface-200));
-		transition: background-color 0.15s;
-		height: 40px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	@media (prefers-color-scheme: dark) {
-		.slot-number,
-		.slot-clip {
-			background: rgb(var(--color-surface-900));
-			border-bottom-color: rgb(var(--color-surface-700));
-		}
-	}
-
-	.slot-content {
-		padding: 2px 8px;
-		min-height: 40px;
-		background: rgb(var(--color-surface-50));
-		border-bottom: 1px solid rgb(var(--color-surface-200));
-		display: flex;
-		align-items: center;
-		transition:
-			background-color 0.15s,
-			outline 0.15s;
-		position: relative;
-	}
-
-	@media (prefers-color-scheme: dark) {
-		.slot-content {
-			background: rgb(var(--color-surface-900));
-			border-bottom-color: rgb(var(--color-surface-700));
-		}
-	}
-
-	.slot-content.drop-target.can-drop {
-		background: rgba(34, 197, 94, 0.1);
-		outline: 2px dashed rgb(34, 197, 94);
-		outline-offset: -2px;
-	}
-
-	.slot-content.drop-target.cannot-drop {
-		background: rgba(239, 68, 68, 0.1);
-		outline: 2px dashed rgb(239, 68, 68);
-		outline-offset: -2px;
-	}
-
-	.slot-content.mobile-tap-target {
-		background: rgba(var(--color-primary-500), 0.05);
-		cursor: pointer;
-	}
-
-	.slot-content.mobile-tap-target:hover {
-		background: rgba(var(--color-primary-500), 0.1);
-	}
-
-	.slot-number.drop-target,
-	.slot-clip.drop-target {
-		background: rgba(34, 197, 94, 0.15);
-	}
-
-	.slot-number.occupied,
-	.slot-clip.occupied {
-		background: rgba(var(--color-primary-500), 0.08);
-	}
-
-	.structure-block {
-		width: calc(100% - 4px);
-		height: var(--row-height, 36px);
-		padding: 6px 10px;
-		background: linear-gradient(
-			135deg,
-			rgba(var(--color-primary-500), 0.18),
-			rgba(var(--color-primary-500), 0.1)
-		);
-		border: 1px solid rgba(var(--color-primary-500), 0.35);
-		border-radius: 8px;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		position: absolute;
-		top: 2px;
-		left: 2px;
-		z-index: 5;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-		transition:
-			background-color 0.15s,
-			transform 0.1s,
-			box-shadow 0.15s;
-	}
-
-	.structure-block:hover {
-		background: linear-gradient(
-			135deg,
-			rgba(var(--color-primary-500), 0.2),
-			rgba(var(--color-primary-500), 0.12)
-		);
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-		transform: translateY(-1px);
-	}
-
-	.structure-block:active {
-		transform: scale(0.98);
-	}
-
-	.structure-block.selected {
-		background: linear-gradient(
-			135deg,
-			rgba(var(--color-primary-500), 0.25),
-			rgba(var(--color-primary-500), 0.15)
-		);
-		border-color: rgb(var(--color-primary-500));
-		box-shadow: 0 0 0 2px rgba(var(--color-primary-500), 0.2);
-	}
-
-	.delete-btn {
-		padding: 4px;
-		background: rgb(var(--color-error-500));
-		color: white;
-		border-radius: 6px;
-		transition:
-			opacity 0.15s,
-			background-color 0.15s;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.delete-btn:hover {
-		background: rgb(var(--color-error-600));
-	}
-
-	.dragging .slot-content:not(.drop-target) {
-		opacity: 0.6;
-	}
-
-	.mobile-selecting .slot-content:not(.mobile-tap-target) {
-		opacity: 0.5;
-	}
-
-	/* Divider styles */
-	.has-divider-after {
-		border-bottom: 2px solid rgb(var(--color-surface-500)) !important;
-	}
-
-	/* Editable clip number styles */
-	.clip-value {
-		width: 100%;
-		height: 100%;
-		background: transparent;
-		border: none;
-		font-family: monospace;
-		text-align: center;
-		cursor: pointer;
-		padding: 0;
-		color: inherit;
-		transition: background-color 0.15s;
-		border-radius: 4px;
-	}
-
-	.clip-value:hover {
-		background: rgba(var(--color-primary-500), 0.1);
-	}
-
-	.clip-input {
-		width: 100%;
-		height: 28px;
-		background: white;
-		border: 2px solid rgb(var(--color-primary-500));
-		border-radius: 4px;
-		font-family: monospace;
-		text-align: center;
-		font-size: 0.875rem;
-		padding: 0 4px;
-		outline: none;
-	}
-
-	.clip-input:focus {
-		box-shadow: 0 0 0 2px rgba(var(--color-primary-500), 0.2);
-	}
-
-	@media (prefers-color-scheme: dark) {
-		.clip-input {
-			background: rgb(var(--color-surface-800));
-		}
-	}
-</style>

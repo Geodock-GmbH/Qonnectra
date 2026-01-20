@@ -40,7 +40,7 @@
 </script>
 
 <div
-	class="port-table-container rounded-xl border border-surface-200-800 bg-surface-100-900 overflow-hidden"
+	class="port-table-container h-full flex flex-col rounded-xl border border-surface-200-800 bg-surface-100-900 overflow-hidden"
 >
 	<!-- Header -->
 	<div
@@ -92,14 +92,14 @@
 		</div>
 
 		<!-- Scrollable rows -->
-		<div class="max-h-[300px] overflow-y-auto">
+		<div class="flex-1 overflow-y-auto min-h-0">
 			{#each portRows as row (row.portNumber)}
 				<div
-					class="grid grid-cols-[60px_1fr_1fr] border-b border-surface-200-800 last:border-b-0 hover:bg-surface-150-850 transition-colors"
+					class="grid grid-cols-[60px_1fr_1fr] border-b border-surface-200-800 last:border-b-0 hover:bg-surface-100-900 transition-colors"
 				>
 					<!-- Port Number -->
 					<div
-						class="px-3 py-2.5 text-center font-mono text-sm bg-surface-150-850 border-r border-surface-200-800 flex items-center justify-center"
+						class="px-3 py-2.5 text-center font-mono text-sm bg-surface-100-900 border-r border-surface-200-800 flex items-center justify-center"
 					>
 						{row.portNumber}
 					</div>
