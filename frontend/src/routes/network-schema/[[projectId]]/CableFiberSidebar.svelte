@@ -211,9 +211,9 @@
 {:else}
 	<!-- Desktop: Original sidebar -->
 	<div
-		class="relative w-[240px] min-w-[240px] border-l border-[var(--color-surface-200-800)] bg-[var(--color-surface-100-900)] transition-all duration-200 ease-in-out flex flex-col {collapsed
-			? 'w-[40px] min-w-[40px]'
-			: ''}"
+		class="relative border-l border-[var(--color-surface-200-800)] bg-[var(--color-surface-100-900)] transition-all duration-200 ease-in-out flex flex-col"
+		style:width={collapsed ? '40px' : '240px'}
+		style:min-width={collapsed ? '40px' : '240px'}
 	>
 		<button
 			type="button"

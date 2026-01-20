@@ -78,9 +78,13 @@
 			setCenter(position.x, position.y, { duration: 500, zoom: 1 });
 		}
 
-		// Select the node to show green highlight border
-		if (highlightResult && result.type === 'node') {
-			schemaState.selectNode(result.id);
+		// Select the node/edge to show green highlight border
+		if (highlightResult) {
+			if (result.type === 'node') {
+				schemaState.selectNode(result.id);
+			} else {
+				schemaState.selectEdge(result.id);
+			}
 		}
 
 		// Open drawer with item details

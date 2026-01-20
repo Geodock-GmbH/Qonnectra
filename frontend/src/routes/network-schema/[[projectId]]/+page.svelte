@@ -182,10 +182,6 @@
 			<Controls />
 			<Panel position="top-left">
 				<div class="card bg-surface-50-950 p-2 rounded-lg shadow-lg w-64">
-					<div class="mb-3">
-						<NetworkSchemaSearch {searchManager} {schemaState} />
-					</div>
-
 					<h1 class="text-lg font-semibold mb-1">{m.common_attributes()}</h1>
 					<div class="flex flex-col gap-2">
 						<label for="cable_name_input" class="text-sm font-medium">
@@ -225,6 +221,10 @@
 							</Switch.Control>
 							<Switch.HiddenInput />
 						</Switch>
+					</div>
+					<hr class="hr" />
+					<div class="mt-3">
+						<NetworkSchemaSearch {searchManager} {schemaState} />
 					</div>
 				</div>
 			</Panel>

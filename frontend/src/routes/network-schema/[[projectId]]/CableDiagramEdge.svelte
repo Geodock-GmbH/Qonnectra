@@ -12,7 +12,8 @@
 
 	import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
 
-	let { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data } = $props();
+	let { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected } =
+		$props();
 
 	let currentLabel = $state(data?.label || data?.cable?.name || '');
 
@@ -367,6 +368,8 @@
 		defaultY={labelY}
 		onPositionUpdate={handleLabelPositionUpdate}
 		onEdgeDelete={data?.onEdgeDelete}
+		onEdgeSelect={data?.onEdgeSelect}
+		{selected}
 	/>
 {/if}
 

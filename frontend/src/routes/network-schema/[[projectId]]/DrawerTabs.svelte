@@ -129,8 +129,8 @@
 	<FloatingPanel
 		bind:open={slotConfigPanelOpen}
 		title={m.title_slot_configuration()}
-		width={500}
-		height={400}
+		width={900}
+		height={600}
 		maxWidth={1920}
 		maxHeight={1080}
 	>

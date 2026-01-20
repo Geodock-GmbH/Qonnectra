@@ -6,8 +6,17 @@
 
 	import DrawerTabs from './DrawerTabs.svelte';
 
-	let { edgeId, labelData, cableData, defaultX, defaultY, onPositionUpdate, onEdgeDelete } =
-		$props();
+	let {
+		edgeId,
+		labelData,
+		cableData,
+		defaultX,
+		defaultY,
+		onPositionUpdate,
+		onEdgeDelete,
+		onEdgeSelect,
+		selected = false
+	} = $props();
 
 	// Coordinate transformation
 	const { screenToFlowPosition } = useSvelteFlow();
@@ -192,6 +201,11 @@
 			return;
 		}
 
+		// Select the edge to show highlight
+		if (onEdgeSelect) {
+			onEdgeSelect(edgeId);
+		}
+
 		const formData = new FormData();
 		formData.append('uuid', cableData?.cable?.uuid || cableData?.uuid);
 		const response = await fetch('?/getCables', {
@@ -342,7 +356,8 @@
 		>
 			<div
 				bind:this={labelElement}
-				class="z-10 bg-surface-50-950 border rounded px-2 py-1 text-xs text-center shadow-sm font-medium {isMoveLabelMode
+				class="z-10 bg-surface-50-950 border rounded px-2 py-1 text-xs text-center shadow-sm font-medium {isMoveLabelMode ||
+				selected
 					? 'border-primary-500 ring-2 ring-primary-400'
 					: 'border-surface-200-700'}"
 			>

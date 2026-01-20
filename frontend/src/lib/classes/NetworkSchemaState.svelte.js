@@ -88,7 +88,8 @@ export class NetworkSchemaState {
 					label: cable.labelData?.text || cable.name,
 					cable: cable,
 					labelData: cable.labelData,
-					onEdgeDelete: (edgeId) => this.handleEdgeDelete(edgeId)
+					onEdgeDelete: (edgeId) => this.handleEdgeDelete(edgeId),
+					onEdgeSelect: (edgeId) => this.selectEdge(edgeId)
 				}
 			}));
 
@@ -120,6 +121,27 @@ export class NetworkSchemaState {
 	deselectAllNodes() {
 		this.nodes = this.nodes.map((n) => ({
 			...n,
+			selected: false
+		}));
+	}
+
+	/**
+	 * Select a single edge (cable) by ID
+	 * @param {string} edgeId - The edge ID to select
+	 */
+	selectEdge(edgeId) {
+		this.edges = this.edges.map((e) => ({
+			...e,
+			selected: e.id === edgeId
+		}));
+	}
+
+	/**
+	 * Deselect all edges
+	 */
+	deselectAllEdges() {
+		this.edges = this.edges.map((e) => ({
+			...e,
 			selected: false
 		}));
 	}
