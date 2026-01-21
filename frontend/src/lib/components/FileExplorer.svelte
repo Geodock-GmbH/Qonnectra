@@ -252,7 +252,7 @@
 
 <div class="flex flex-col gap-4 p-4">
 	{#if isLoading}
-		<div class="text-center py-8 text-surface-500">
+		<div class="text-center py-8 text-surface-950-50">
 			<p>{m.form_loading_files()}</p>
 		</div>
 	{:else if error}
@@ -263,7 +263,7 @@
 			</button>
 		</div>
 	{:else if files.length === 0}
-		<div class="text-center py-8 text-surface-500">
+		<div class="text-center py-8 text-surface-950-50">
 			<p class="text-sm">{m.form_no_files_uploaded_yet()}</p>
 		</div>
 	{:else}

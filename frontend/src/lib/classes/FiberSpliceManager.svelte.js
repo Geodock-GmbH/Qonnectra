@@ -450,6 +450,34 @@ export class FiberSpliceManager {
 	}
 
 	/**
+	 * Fetch fibers for a cable
+	 * @param {string} cableUuid
+	 * @returns {Promise<Array<Object>>}
+	 */
+	async #fetchFibersForCable(cableUuid) {
+		try {
+			const formData = new FormData();
+			formData.append('cableUuid', cableUuid);
+
+			const response = await fetch('?/getFibersForCable', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to fetch fibers');
+			}
+
+			return result.data?.fibers || [];
+		} catch (err) {
+			console.error('Error fetching fibers for cable:', err);
+			return [];
+		}
+	}
+
+	/**
 	 * Handle dropping a cable onto a port - fills sequential ports with all fibers
 	 * Continues to subsequent components in slot order if fibers remain
 	 * @param {number} startPort - Starting port number
@@ -459,11 +487,22 @@ export class FiberSpliceManager {
 	 * @returns {Promise<boolean>} - True if any fibers were connected
 	 */
 	async handleCableDrop(startPort, side, cableData, allStructures = []) {
-		const fibers = cableData.fibers || [];
+		let fibers = cableData.fibers || [];
+
+		// If fibers not in drag data, fetch them now
+		if (fibers.length === 0 && cableData.uuid) {
+			globalToaster.info({
+				title: m.common_loading?.() || 'Loading',
+				description: m.message_loading_fibers?.() || 'Loading fibers...'
+			});
+
+			fibers = await this.#fetchFibersForCable(cableData.uuid);
+		}
+
 		if (fibers.length === 0) {
 			globalToaster.warning({
 				title: m.common_warning?.() || 'Warning',
-				description: m.message_cable_no_fibers?.() || 'Cable fibers not loaded'
+				description: m.message_cable_no_fibers?.() || 'Cable has no fibers'
 			});
 			return false;
 		}

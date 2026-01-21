@@ -61,10 +61,10 @@
 		return expandedBundles.get(cableUuid)?.has(bundleNumber) ?? false;
 	}
 
-	async function handleCableDragStart(e, cable) {
-		// Pre-fetch fibers if not cached, so they're available for drop
-		const fibers = await dataManager.getAllFibersForCable(cable.uuid);
-		dragDropManager?.startCableDrag(e, cable, fibers);
+	function handleCableDragStart(e, cable) {
+		// Get cached fibers synchronously - must be sync for drag data transfer
+		const cachedFibers = dataManager.getCachedFibersForCable(cable.uuid);
+		dragDropManager?.startCableDrag(e, cable, cachedFibers);
 	}
 
 	function handleBundleDragStart(e, cable, bundle) {

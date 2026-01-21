@@ -146,6 +146,16 @@ export class CableFiberDataManager {
 	}
 
 	/**
+	 * Get cached fibers for a cable, or null if not cached
+	 * Used for synchronous operations like drag start
+	 * @param {string} cableUuid
+	 * @returns {Array<Object>|null}
+	 */
+	getCachedFibersForCable(cableUuid) {
+		return this.fibersCache.get(cableUuid) || null;
+	}
+
+	/**
 	 * Check if fibers are loading for a cable
 	 * @param {string} cableUuid
 	 * @returns {boolean}

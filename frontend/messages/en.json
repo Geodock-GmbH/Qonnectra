@@ -45,6 +45,7 @@
 	"common_comment": "Comment",
 	"common_conduit_details": "Conduit Details",
 	"common_confirm": "Confirm",
+	"common_connected_to_ports": "connected to ports",
 	"common_date": "Date",
 	"common_delete": "Delete",
 	"common_description": "Description",
@@ -73,8 +74,13 @@
 	"form_actions": "Actions",
 	"form_address": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Address",
 				"countPlural=other": "Addresses"
@@ -105,8 +111,13 @@
 	"form_components": "Components",
 	"form_conduit": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Conduit",
 				"countPlural=other": "Conduits"
@@ -126,8 +137,13 @@
 	"form_date_to": "To date",
 	"form_days": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "day",
 				"countPlural=other": "days"
@@ -145,8 +161,13 @@
 	"form_fibers": "Fibers",
 	"form_files": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "File",
 				"countPlural=other": "Files"
@@ -179,8 +200,13 @@
 	"form_message": "Message",
 	"form_microduct": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Microduct",
 				"countPlural=other": "Microducts"
@@ -208,8 +234,13 @@
 	"form_ports": "Ports",
 	"form_project": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Project",
 				"countPlural=other": "Projects"
@@ -248,11 +279,12 @@
 	"form_used_slots": "Used",
 	"form_warranty": "Warranty",
 	"form_zip_code": "Zip code",
+	"message_cable_no_fibers": "Cable has no fibers",
+	"message_cannot_delete_node_has_cables": "This node cannot be deleted because it has connected cables. Please remove the cables first.",
 	"message_confirm_delete_cable": "Are you sure you want to delete this cable?",
 	"message_confirm_delete_conduit": "Delete conduit?",
 	"message_confirm_delete_conduit_description": "Conduit is in use. Are you sure you want to delete it and the associated trench connections?",
 	"message_confirm_delete_file": "Are you sure you want to delete this file? This action cannot be undone.",
-	"message_cannot_delete_node_has_cables": "This node cannot be deleted because it has connected cables. Please remove the cables first.",
 	"message_confirm_delete_node": "Are you sure you want to delete this node?",
 	"message_connection_deleted_successfully": "Connection deleted successfully",
 	"message_created_connections": "Created connections",
@@ -301,6 +333,7 @@
 	"message_error_updating_cable": "Error updating cable",
 	"message_error_updating_cable_path": "Error updating cable path",
 	"message_error_updating_conduit": "Error updating conduit",
+	"message_error_updating_node": "Error updating node",
 	"message_error_updating_slot_configuration": "Error updating slot configuration",
 	"message_failed_to_create_connections": "Failed to create connections",
 	"message_fiber_connected": "Fiber connected successfully",
@@ -309,6 +342,7 @@
 	"message_import_conduits_success_description": "Please refresh the page to see the conduits.",
 	"message_importing_conduits_description": "Importing conduits...",
 	"message_info_node_has_no_address_assigned": "This node has no address assigned.",
+	"message_loading_fibers": "Loading fibers...",
 	"message_loading_network_schema": "Synchronizing Network Schema...",
 	"message_login_error": "Login error. Please try again.",
 	"message_network_schema_settings_not_configured": "Network schema settings are not configured for this project. Please configure them in the admin panel.",
@@ -347,6 +381,7 @@
 	"message_success_updating_cable": "Cable updated successfully",
 	"message_success_updating_cable_path": "Cable geometry updated successfully",
 	"message_success_updating_conduit": "Conduit updated successfully",
+	"message_success_updating_node": "Node updated successfully",
 	"message_success_updating_position": "Position updated successfully",
 	"message_success_updating_slot_configuration": "Slot configuration updated successfully",
 	"message_success_uploading_files": "Files uploaded successfully",

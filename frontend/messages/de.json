@@ -45,6 +45,7 @@
 	"common_comment": "Bemerkungen",
 	"common_conduit_details": "Rohr-Details",
 	"common_confirm": "Bestätigen",
+	"common_connected_to_ports": "mit Ports verbunden",
 	"common_date": "Datum",
 	"common_delete": "Löschen",
 	"common_description": "Beschreibung",
@@ -73,8 +74,13 @@
 	"form_actions": "Aktionen",
 	"form_address": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Adresse",
 				"countPlural=other": "Adressen"
@@ -105,8 +111,13 @@
 	"form_components": "Komponenten",
 	"form_conduit": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Rohr",
 				"countPlural=other": "Rohre"
@@ -126,8 +137,13 @@
 	"form_date_to": "Bis Datum",
 	"form_days": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Tag",
 				"countPlural=other": "Tagen"
@@ -145,8 +161,13 @@
 	"form_fibers": "Fasern",
 	"form_files": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Datei",
 				"countPlural=other": "Dateien"
@@ -179,8 +200,13 @@
 	"form_message": "Nachricht",
 	"form_microduct": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Mikrorohr",
 				"countPlural=other": "Mikrorohre"
@@ -208,8 +234,13 @@
 	"form_ports": "Ports",
 	"form_project": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Projekt",
 				"countPlural=other": "Projekte"
@@ -248,11 +279,12 @@
 	"form_used_slots": "Belegt",
 	"form_warranty": "Gewährleistung",
 	"form_zip_code": "PLZ",
+	"message_cable_no_fibers": "Kabel hat keine Fasern",
+	"message_cannot_delete_node_has_cables": "Dieser Knoten kann nicht gelöscht werden, da Kabel verbunden sind. Bitte entferne zuerst die Kabel.",
 	"message_confirm_delete_cable": "Bist du sicher, dass du das Kabel löschen möchtest?",
 	"message_confirm_delete_conduit": "Bist du sicher, dass du das Rohr löschen möchtest?",
 	"message_confirm_delete_conduit_description": "Rohr ist in schon min. einer Trasse zugeordnet. Bist du sicher, dass du das Rohr löschen möchtest und somit die dazugehörigen Trassenverbindungen?",
 	"message_confirm_delete_file": "Bist du sicher, dass du diese Datei löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
-	"message_cannot_delete_node_has_cables": "Dieser Knoten kann nicht gelöscht werden, da Kabel verbunden sind. Bitte entferne zuerst die Kabel.",
 	"message_confirm_delete_node": "Bist du sicher, dass du diesen Knoten löschen möchtest?",
 	"message_connection_deleted_successfully": "Verbindung erfolgreich gelöscht",
 	"message_created_connections": "Verbindungen erfolgreich erstellt",
@@ -301,6 +333,7 @@
 	"message_error_updating_cable": "Fehler beim Aktualisieren des Kabels",
 	"message_error_updating_cable_path": "Fehler beim Aktualisieren der Kabelgeometrie",
 	"message_error_updating_conduit": "Fehler beim Aktualisieren des Rohres",
+	"message_error_updating_node": "Fehler beim Aktualisieren des Knotens",
 	"message_error_updating_slot_configuration": "Fehler beim Aktualisieren der Slot-Konfiguration",
 	"message_failed_to_create_connections": "Fehler beim Erstellen von Verbindungen",
 	"message_fiber_connected": "Faser erfolgreich verbunden",
@@ -309,6 +342,7 @@
 	"message_import_conduits_success_description": "Bitte die Seite neu laden, um die Rohre anzuzeigen.",
 	"message_importing_conduits_description": "Rohre werden importiert...",
 	"message_info_node_has_no_address_assigned": "Diesem Netzknoten wurde noch keine Adresse zugeordnet.",
+	"message_loading_fibers": "Fasern werden geladen...",
 	"message_loading_network_schema": "Netzwerkschema synchronisiert...",
 	"message_login_error": "Fehler beim Anmelden. Bitte versuche es erneut.",
 	"message_network_schema_settings_not_configured": "Die Netzschema-Einstellungen sind für dieses Projekt nicht konfiguriert. Bitte konfigurieren Sie diese im Admin-Bereich.",
@@ -338,7 +372,7 @@
 	"message_success_deleting_cable": "Kabel erfolgreich gelöscht",
 	"message_success_deleting_conduit": "Rohr erfolgreich gelöscht",
 	"message_success_deleting_container": "Container erfolgreich gelöscht",
-	"message_success_deleting_node": "Knoten erfolgreich gelöscht",
+	"message_success_deleting_node": "Netzknoten erfolgreich gelöscht",
 	"message_success_deleting_slot_configuration": "Slot-Konfiguration erfolgreich gelöscht",
 	"message_success_deleting_structure": "Struktur erfolgreich gelöscht",
 	"message_success_downloading_template": "Vorlage erfolgreich heruntergeladen",
@@ -348,6 +382,7 @@
 	"message_success_updating_cable": "Kabel erfolgreich aktualisiert",
 	"message_success_updating_cable_path": "Kabelgeometrie erfolgreich aktualisiert",
 	"message_success_updating_conduit": "Rohr erfolgreich aktualisiert",
+	"message_success_updating_node": "Netzknoten erfolgreich aktualisiert",
 	"message_success_updating_position": "Position erfolgreich aktualisiert",
 	"message_success_updating_slot_configuration": "Slot-Konfiguration erfolgreich aktualisiert",
 	"message_success_uploading_files": "Dateien erfolgreich hochgeladen",

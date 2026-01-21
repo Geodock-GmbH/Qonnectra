@@ -1,6 +1,6 @@
 <script>
-	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
+	import { getContext } from 'svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -8,6 +8,7 @@
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	const attributes = getContext('attributeOptions') || {
 		nodeTypes: [],
@@ -131,7 +132,7 @@
 			if (result.type === 'failure') {
 				globalToaster.error({
 					title: m.common_error(),
-					description: m.message_error_updating_cable()
+					description: m.message_error_updating_node()
 				});
 				return;
 			}
@@ -140,14 +141,14 @@
 				const errorMessage = result.error?.message;
 				globalToaster.error({
 					title: m.common_error(),
-					description: m.message_error_updating_cable()
+					description: m.message_error_updating_node()
 				});
 				return;
 			}
 
 			globalToaster.success({
 				title: m.title_success(),
-				description: m.message_success_updating_cable()
+				description: m.message_success_updating_node()
 			});
 			if (onLabelUpdate && nodeName) {
 				onLabelUpdate(nodeName);
@@ -155,7 +156,7 @@
 		} catch (error) {
 			console.error('Error updating node:', error);
 			globalToaster.error({
-				title: m.message_error_updating_cable()
+				title: m.message_error_updating_node()
 			});
 		}
 	}
@@ -357,7 +358,7 @@
 		type="button"
 		onclick={confirmDelete}
 		disabled={isCheckingDependencies || hasConnectedCables}
-		title={hasConnectedCables ? m.message_cannot_delete_node_has_cables() : ''}
+		{@attach tooltip(hasConnectedCables ? m.message_cannot_delete_node_has_cables() : '')}
 		class="btn preset-filled-error-500 w-full disabled:opacity-50 disabled:cursor-not-allowed"
 	>
 		{m.action_delete_node?.() || 'Delete Node'}
