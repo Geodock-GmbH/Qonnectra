@@ -30,13 +30,14 @@
 	let group = $state('attributes');
 
 	const data = $derived.by(() => {
-		const { type, onLabelUpdate, onEdgeDelete, ...rest } = allProps;
+		const { type, onLabelUpdate, onEdgeDelete, onNodeDelete, ...rest } = allProps;
 		return rest;
 	});
 
 	const type = $derived(allProps.type);
 	const onLabelUpdate = $derived(allProps.onLabelUpdate);
 	const onEdgeDelete = $derived(allProps.onEdgeDelete);
+	const onNodeDelete = $derived(allProps.onNodeDelete);
 
 	const tabItems = $derived.by(() => {
 		const baseTabs = [{ value: 'attributes', label: m.common_attributes() }];
@@ -78,7 +79,7 @@
 		{#if type === 'edge'}
 			<CableDiagramEdgeAttributeCard {...data} {onLabelUpdate} {onEdgeDelete} />
 		{:else if type === 'node'}
-			<CableDiagramNodeAttributeCard {...data} {onLabelUpdate} />
+			<CableDiagramNodeAttributeCard {...data} {onLabelUpdate} {onNodeDelete} />
 		{/if}
 	{/if}
 

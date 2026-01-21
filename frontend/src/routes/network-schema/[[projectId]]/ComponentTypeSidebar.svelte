@@ -149,7 +149,7 @@
 								<IconGripVertical size={14} class="text-surface-400 flex-shrink-0" />
 								<div class="flex-1 min-w-0">
 									<div class="text-sm font-medium truncate">{ct.component_type}</div>
-									<div class="text-xs text-surface-500">
+									<div class="text-xs text-surface-950-50">
 										{ct.occupied_slots}
 										{ct.occupied_slots === 1 ? 'slot' : 'slots'}
 									</div>

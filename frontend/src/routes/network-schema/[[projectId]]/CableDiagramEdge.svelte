@@ -51,6 +51,35 @@
 	});
 
 	/**
+	 * Handle label reset - deletes the label entry from database
+	 * @param {string} labelId - The UUID of the label to delete
+	 */
+	async function handleLabelReset(labelId) {
+		if (!labelId) return;
+
+		try {
+			const formData = new FormData();
+			formData.append('labelId', labelId);
+
+			const response = await fetch('?/deleteCableLabel', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = await response.json();
+
+			if (result.type === 'success' || response.ok) {
+				// Clear labelData so label uses default position
+				labelData = null;
+			} else {
+				console.error('Failed to reset label:', result.message);
+			}
+		} catch (error) {
+			console.error('Failed to reset label:', error);
+		}
+	}
+
+	/**
 	 * Handle label position update - saves to backend via server action
 	 * @param {Object} positionData - Object with labelId, x, y, and text coordinates
 	 */
@@ -82,7 +111,6 @@
 
 			if (actionResult?.type === 'success' && actionResult.label) {
 				labelData = actionResult.label;
-				console.log('Label saved successfully:', labelData);
 			} else if (actionResult?.type === 'error') {
 				console.error('Failed to save label position:', actionResult.message);
 			}
@@ -367,6 +395,7 @@
 		defaultX={labelX}
 		defaultY={labelY}
 		onPositionUpdate={handleLabelPositionUpdate}
+		onLabelReset={handleLabelReset}
 		onEdgeDelete={data?.onEdgeDelete}
 		onEdgeSelect={data?.onEdgeSelect}
 		{selected}

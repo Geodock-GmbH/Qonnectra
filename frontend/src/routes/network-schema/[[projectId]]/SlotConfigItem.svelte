@@ -36,7 +36,7 @@
 
 		<div class="flex-1 min-w-0">
 			<div class="font-medium text-sm truncate">{config.side}</div>
-			<div class="text-xs text-surface-500">
+			<div class="text-xs text-surface-950-50">
 				{m.form_total_slots()}: {config.total_slots} |
 				{m.form_used_slots()}: {config.used_slots ?? 0} |
 				{m.form_free_slots()}: {config.free_slots ?? config.total_slots}

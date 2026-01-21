@@ -13,10 +13,15 @@
 		defaultX,
 		defaultY,
 		onPositionUpdate,
+		onLabelReset,
 		onEdgeDelete,
 		onEdgeSelect,
 		selected = false
 	} = $props();
+
+	// Shift key tracking for label reset
+	let shiftPressed = $state(false);
+	let labelHovered = $state(false);
 
 	// Coordinate transformation
 	const { screenToFlowPosition } = useSvelteFlow();
@@ -186,6 +191,7 @@
 
 	/**
 	 * Handle label click - opens cable details if not in move mode
+	 * Shift+Click resets label position to edge midpoint
 	 * @param {MouseEvent} event - The mouse event
 	 */
 	async function handleLabelClick(event) {
@@ -198,6 +204,16 @@
 
 		if (isMoveLabelMode) {
 			isMoveLabelMode = false;
+			return;
+		}
+
+		// Shift+Click to reset label position
+		if (shiftPressed && labelData?.uuid && onLabelReset) {
+			event.preventDefault();
+			event.stopPropagation();
+			// Reset local position immediately for instant feedback
+			position = { x: defaultX, y: defaultY };
+			onLabelReset(labelData.uuid);
 			return;
 		}
 
@@ -326,21 +342,51 @@
 			isMoveLabelMode = false;
 		}
 	}
+
+	/**
+	 * Handle global keyboard events for Shift key tracking
+	 */
+	function handleGlobalKeyDown(event) {
+		if (event.key === 'Shift') {
+			shiftPressed = true;
+		}
+	}
+
+	function handleGlobalKeyUp(event) {
+		if (event.key === 'Shift') {
+			shiftPressed = false;
+		}
+	}
+
+	// Attach global keyboard listeners
+	$effect(() => {
+		window.addEventListener('keydown', handleGlobalKeyDown);
+		window.addEventListener('keyup', handleGlobalKeyUp);
+
+		return () => {
+			window.removeEventListener('keydown', handleGlobalKeyDown);
+			window.removeEventListener('keyup', handleGlobalKeyUp);
+		};
+	});
 </script>
 
 <!-- Label -->
 {#if currentLabel}
+	{@const isResetMode = shiftPressed && labelHovered && labelData?.uuid}
+	{@const cursorStyle = isResetMode ? 'crosshair' : isMoveLabelMode ? 'move' : 'pointer'}
 	<foreignObject
 		x={labelWidth > 0 ? position.x - labelWidth / 2 : position.x - 50}
 		y={position.y - 12}
 		width={labelWidth > 0 ? labelWidth : 100}
 		height={labelHeight > 0 ? labelHeight : 100}
-		style="cursor: {isMoveLabelMode
-			? 'move'
-			: 'pointer'}; pointer-events: bounding-box; outline: none;"
+		style="cursor: {cursorStyle}; pointer-events: bounding-box; outline: none;"
 		onmousedown={handleMouseDown}
 		onmouseup={handleLongPressCancel}
-		onmouseleave={handleLongPressCancel}
+		onmouseenter={() => (labelHovered = true)}
+		onmouseleave={() => {
+			labelHovered = false;
+			handleLongPressCancel();
+		}}
 		role="presentation"
 		class="nopan"
 	>
@@ -350,16 +396,19 @@
 			tabindex="0"
 			onclick={handleLabelClick}
 			onkeydown={handleKeydown}
-			aria-label={isMoveLabelMode
-				? 'Move label (click to exit)'
-				: 'Open cable details for ' + currentLabel}
+			aria-label={isResetMode
+				? 'Click to reset label position'
+				: isMoveLabelMode
+					? 'Move label (click to exit)'
+					: 'Open cable details for ' + currentLabel}
 		>
 			<div
 				bind:this={labelElement}
-				class="z-10 bg-surface-50-950 border rounded px-2 py-1 text-xs text-center shadow-sm font-medium {isMoveLabelMode ||
-				selected
-					? 'border-primary-500 ring-2 ring-primary-400'
-					: 'border-surface-200-700'}"
+				class="z-10 bg-surface-50-950 border rounded px-2 py-1 text-xs text-center shadow-sm font-medium {isResetMode
+					? 'border-error-500 ring-2 ring-error-400 bg-error-50 dark:bg-error-950'
+					: isMoveLabelMode || selected
+						? 'border-primary-500 ring-2 ring-primary-400'
+						: 'border-surface-200-700'}"
 			>
 				{currentLabel}
 			</div>

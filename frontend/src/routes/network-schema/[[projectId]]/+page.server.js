@@ -699,6 +699,131 @@ export const actions = {
 			return fail(500, { message: err.message || 'Failed to update node' });
 		}
 	},
+	deleteNode: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const nodeId = formData.get('uuid');
+
+		if (!nodeId) {
+			return {
+				type: 'error',
+				message: 'Node ID is required'
+			};
+		}
+
+		try {
+			const response = await fetch(`${API_URL}node/${nodeId}/`, {
+				method: 'DELETE',
+				credentials: 'include',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					message: errorData.detail || 'Failed to delete node'
+				});
+			}
+
+			return {
+				type: 'success',
+				message: 'Node deleted successfully'
+			};
+		} catch (err) {
+			console.error('Error deleting node:', err);
+			return fail(500, { message: err.message || 'Failed to delete node' });
+		}
+	},
+	getNodeDependencies: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const nodeId = formData.get('nodeUuid');
+
+		if (!nodeId) {
+			return fail(400, { error: 'Node ID is required' });
+		}
+
+		try {
+			// Fetch cables connected to this node (start or end) using the dedicated endpoint
+			const cablesResponse = await fetch(`${API_URL}cable/at-node/${nodeId}/`, {
+				method: 'GET',
+				headers
+			});
+
+			let cables = [];
+			if (cablesResponse.ok) {
+				cables = await cablesResponse.json();
+			}
+
+			// Fetch structures placed in this node
+			const structuresResponse = await fetch(`${API_URL}node-structure/?node=${nodeId}`, {
+				method: 'GET',
+				headers
+			});
+
+			let structures = [];
+			if (structuresResponse.ok) {
+				structures = await structuresResponse.json();
+			}
+
+			return {
+				cables: cables || [],
+				structures: structures || []
+			};
+		} catch (err) {
+			console.error('Error fetching node dependencies:', err);
+			return fail(500, { error: 'Failed to fetch node dependencies' });
+		}
+	},
+	getCableSplices: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const cableUuid = formData.get('cableUuid');
+
+		if (!cableUuid) {
+			return fail(400, { error: 'Cable UUID is required' });
+		}
+
+		try {
+			// Fetch fiber splices where this cable is cable_a
+			const splicesAResponse = await fetch(`${API_URL}fiber-splice/?cable_a=${cableUuid}`, {
+				method: 'GET',
+				headers
+			});
+
+			// Fetch fiber splices where this cable is cable_b
+			const splicesBResponse = await fetch(`${API_URL}fiber-splice/?cable_b=${cableUuid}`, {
+				method: 'GET',
+				headers
+			});
+
+			let splicesA = [];
+			let splicesB = [];
+			if (splicesAResponse.ok) {
+				splicesA = await splicesAResponse.json();
+			}
+			if (splicesBResponse.ok) {
+				splicesB = await splicesBResponse.json();
+			}
+
+			// Combine and deduplicate splices
+			const spliceMap = new Map();
+			[...splicesA, ...splicesB].forEach((splice) => {
+				if (splice.uuid) {
+					spliceMap.set(splice.uuid, splice);
+				}
+			});
+			const splices = Array.from(spliceMap.values());
+
+			return {
+				splices: splices || [],
+				connectedFiberCount: splices.length
+			};
+		} catch (err) {
+			console.error('Error fetching cable splices:', err);
+			return fail(500, { error: 'Failed to fetch cable splices' });
+		}
+	},
 	saveNodeGeometry: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();
@@ -1232,6 +1357,41 @@ export const actions = {
 		} catch (err) {
 			console.error('Error saving cable label:', err);
 			return fail(500, { message: err.message || 'Failed to save cable label' });
+		}
+	},
+	deleteCableLabel: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const labelId = formData.get('labelId');
+
+		if (!labelId) {
+			return {
+				type: 'error',
+				message: 'Label ID is required'
+			};
+		}
+
+		try {
+			const response = await fetch(`${API_URL}cable_label/${labelId}/`, {
+				method: 'DELETE',
+				credentials: 'include',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					message: errorData.detail || 'Failed to delete cable label'
+				});
+			}
+
+			return {
+				type: 'success',
+				message: 'Label deleted successfully'
+			};
+		} catch (err) {
+			console.error('Error deleting cable label:', err);
+			return fail(500, { message: err.message || 'Failed to delete cable label' });
 		}
 	},
 	getSlotConfigurationsForNode: async ({ request, fetch, cookies }) => {

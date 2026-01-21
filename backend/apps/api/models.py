@@ -3369,7 +3369,9 @@ class NodeSlotClipNumber(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.slot_configuration} - Slot {self.slot_number}: {self.clip_number}"
+        return (
+            f"{self.slot_configuration} - Slot {self.slot_number}: {self.clip_number}"
+        )
 
 
 class FiberSplice(models.Model):
@@ -3394,7 +3396,9 @@ class FiberSplice(models.Model):
     # The port number (1-12 for a 12-port splice cassette, 1-8 for a 1:8 splitter, etc.)
     port_number = models.PositiveIntegerField(
         _("Port Number"),
-        help_text=_("The port number on the component (e.g., 1-12 for a splice cassette)"),
+        help_text=_(
+            "The port number on the component (e.g., 1-12 for a splice cassette)"
+        ),
     )
 
     # First fiber and cable (nullable for partial connections)
@@ -3449,7 +3453,9 @@ class FiberSplice(models.Model):
         verbose_name_plural = _("Fiber Splices")
         ordering = ["node_structure", "port_number"]
         indexes = [
-            models.Index(fields=["node_structure"], name="idx_fiber_splice_node_struct"),
+            models.Index(
+                fields=["node_structure"], name="idx_fiber_splice_node_struct"
+            ),
             models.Index(fields=["fiber_a"], name="idx_fiber_splice_fiber_a"),
             models.Index(fields=["fiber_b"], name="idx_fiber_splice_fiber_b"),
             models.Index(fields=["cable_a"], name="idx_fiber_splice_cable_a"),

@@ -72,7 +72,8 @@
 				onLabelUpdate: (newLabel) => {
 					currentLabel = newLabel;
 					drawerStore.setTitle(newLabel);
-				}
+				},
+				onNodeDelete: data?.onNodeDelete
 			}
 		});
 	}

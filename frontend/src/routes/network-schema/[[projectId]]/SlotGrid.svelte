@@ -84,11 +84,11 @@
 	>
 		{#if loading || loadingStructures}
 			<div class="flex items-center justify-center py-8">
-				<span class="text-surface-500">{m.common_loading()}</span>
+				<span class="text-surface-950-50">{m.common_loading()}</span>
 			</div>
 		{:else if slotRows.length === 0}
 			<div class="flex items-center justify-center py-8">
-				<span class="text-surface-500">{m.message_no_slot_configurations()}</span>
+				<span class="text-surface-950-50">{m.message_no_slot_configurations()}</span>
 			</div>
 		{:else}
 			<div
@@ -143,7 +143,7 @@
 							<div
 								class="structure-block w-[calc(100%-4px)] h-[calc(var(--row-height,36px)-4px)] px-2.5 py-1.5 bg-[var(--color-surface-200-800)] border border-[var(--color-surface-300-700)] rounded-lg cursor-pointer flex items-center gap-2 absolute top-0.5 left-0.5 z-[1] shadow-sm transition-[background-color,transform,box-shadow] duration-150 hover:bg-[var(--color-surface-300-700)] hover:shadow-md hover:-translate-y-px active:scale-[0.98] group {selectedStructure?.uuid ===
 								row.structure.uuid
-									? 'bg-[var(--color-primary-500)] border-[var(--color-primary-600)] text-white shadow-[0_0_0_3px_var(--color-primary-500)/30%,0_4px_12px_rgba(0,0,0,0.15)] hover:bg-[var(--color-primary-400)] [&_.text-surface-500]:!text-white/80 [&_*:global(.text-surface-400)]:!text-white/70'
+									? 'bg-[var(--color-primary-500)] border-[var(--color-primary-600)] text-white shadow-[0_0_0_3px_var(--color-primary-500)/30%,0_4px_12px_rgba(0,0,0,0.15)] hover:bg-[var(--color-primary-400)] [&_.text-surface-950-50]:!text-white/80 [&_*:global(.text-surface-400)]:!text-white/70'
 									: ''}"
 								style:--row-height="{row.blockSize * 40}px"
 								draggable={!isMobile}
@@ -153,14 +153,17 @@
 								tabindex="0"
 							>
 								{#if !isMobile}
-									<IconGripVertical size={14} class="cursor-grab text-surface-400 flex-shrink-0" />
+									<IconGripVertical
+										size={14}
+										class="cursor-grab text-surface-950-50 flex-shrink-0"
+									/>
 								{/if}
 								<div class="flex-1 min-w-0">
 									<div class="font-medium text-sm truncate">
 										{row.structure.component_type?.component_type || row.structure.label || '-'}
 									</div>
 									{#if row.structure.component_structure?.article_number}
-										<div class="text-xs text-surface-500 truncate">
+										<div class="text-xs text-surface-950-50 truncate">
 											{row.structure.component_structure.article_number}
 										</div>
 									{/if}
@@ -178,7 +181,7 @@
 								</button>
 							</div>
 						{:else if !row.isOccupied}
-							<span class="text-surface-400 text-sm">
+							<span class="text-surface-950-50 text-sm">
 								{#if isMobile && mobileSelectedItem}
 									<span class="text-primary-500 text-xs"
 										>{m.action_tap_to_place?.() || 'Tap to place'}</span

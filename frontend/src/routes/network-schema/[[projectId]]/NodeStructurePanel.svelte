@@ -1,5 +1,6 @@
 <script>
 	import { onMount, setContext } from 'svelte';
+	import { deserialize } from '$app/forms';
 	import { IconLayoutList, IconPlug, IconTopologyRing2 } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -7,6 +8,7 @@
 	import { DRAG_DROP_CONTEXT_KEY, DragDropManager } from '$lib/classes/DragDropManager.svelte.js';
 	import { FiberSpliceManager } from '$lib/classes/FiberSpliceManager.svelte.js';
 	import { NodeStructureManager } from '$lib/classes/NodeStructureManager.svelte.js';
+	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 
 	import CableFiberSidebar from './CableFiberSidebar.svelte';
@@ -31,6 +33,11 @@
 
 	let editingClipSlot = $state(null);
 	let editingClipValue = $state('');
+
+	// Delete confirmation state
+	let deleteMessageBox = $state(null);
+	let pendingDeleteUuid = $state(null);
+	let pendingDeleteSpliceCount = $state(0);
 
 	const structureManager = new NodeStructureManager(
 		nodeUuid,
@@ -236,9 +243,53 @@
 	}
 
 	async function handleDeleteStructure(structureUuid) {
+		// Check if the structure has fiber splices before deleting
+		try {
+			const formData = new FormData();
+			formData.append('nodeStructureUuid', structureUuid);
+
+			const response = await fetch('?/getFiberSplices', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+			const splices = result.data?.splices || [];
+
+			// Count splices that have actual fiber connections
+			const activeSpliceCount = splices.filter(
+				(s) => s.fiber_a_details || s.fiber_b_details
+			).length;
+
+			if (activeSpliceCount > 0) {
+				// Show confirmation dialog
+				pendingDeleteUuid = structureUuid;
+				pendingDeleteSpliceCount = activeSpliceCount;
+				deleteMessageBox.open();
+				return;
+			}
+
+			// No splices, delete directly
+			await executeDelete(structureUuid);
+		} catch (err) {
+			console.error('Error checking splices before delete:', err);
+			// On error, proceed with delete (backend will handle cascading)
+			await executeDelete(structureUuid);
+		}
+	}
+
+	async function executeDelete(structureUuid) {
 		const deleted = await structureManager.deleteStructure(structureUuid);
 		if (deleted) {
 			spliceManager.onStructureDeleted(structureUuid);
+		}
+	}
+
+	async function confirmDeleteStructure() {
+		if (pendingDeleteUuid) {
+			await executeDelete(pendingDeleteUuid);
+			pendingDeleteUuid = null;
+			pendingDeleteSpliceCount = 0;
 		}
 	}
 
@@ -282,7 +333,7 @@
 			<!-- Header -->
 			<div class="flex-shrink-0 p-3 border-b border-surface-200-800 bg-surface-100-900">
 				{#if containerPath}
-					<div class="text-xs text-surface-500 mb-1">
+					<div class="text-xs text-surface-950-50 mb-1">
 						{containerPath}
 					</div>
 				{/if}
@@ -297,7 +348,7 @@
 						{/each}
 					</select>
 					{#if selectedConfig}
-						<span class="text-xs text-surface-500 whitespace-nowrap">
+						<span class="text-xs text-surface-950-50 whitespace-nowrap">
 							{selectedConfig.total_slots}
 							{m.form_slots?.() || 'Slots'}
 						</span>
@@ -347,8 +398,7 @@
 
 			<!-- Mobile Bottom Tabs -->
 			<div
-				class="fixed bottom-0 left-0 right-0 z-30
-				       bg-surface-100-900 border-t border-surface-200-800"
+				class="fixed bottom-0 left-0 right-0 z-30 bg-surface-100-900 border-t border-surface-200-800"
 			>
 				<div class="grid grid-cols-3 gap-1 p-2">
 					<button
@@ -422,7 +472,7 @@
 				<!-- Header -->
 				<div class="flex-shrink-0 space-y-3">
 					{#if containerPath}
-						<div class="text-sm text-surface-500">
+						<div class="text-sm text-surface-950-50">
 							<span class="font-medium">{m.form_container_path?.() || 'Container'}:</span>
 							{containerPath}
 						</div>
@@ -443,7 +493,7 @@
 						</label>
 
 						{#if selectedConfig}
-							<div class="text-sm text-surface-500 pt-5">
+							<div class="text-sm text-surface-950-50 pt-5">
 								{m.form_total_slots()}: {selectedConfig.total_slots}
 							</div>
 						{/if}
@@ -503,3 +553,13 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Delete confirmation modal for structures with fiber splices -->
+<MessageBox
+	bind:this={deleteMessageBox}
+	heading={m.common_confirm()}
+	message={`${m.common_delete?.() || 'Delete'} ${m.form_component?.() || 'component'}? ${pendingDeleteSpliceCount} ${m.form_fiber_splices?.() || 'fiber splices'} ${m.common_will_be_deleted?.() || 'will be deleted'}.`}
+	showAcceptButton={true}
+	acceptText={m.common_delete()}
+	onAccept={confirmDeleteStructure}
+/>

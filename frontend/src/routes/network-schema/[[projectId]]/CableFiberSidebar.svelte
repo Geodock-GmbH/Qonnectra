@@ -277,7 +277,7 @@
 												<IconArrowLeft size={12} />
 											{/if}
 										</div>
-										<div class="text-xs text-[var(--color-surface-500)]">
+										<div class="text-xs text-[var(--color-surface-950-50)]">
 											{cable.fiber_count}
 											{m.form_fibers()}
 										</div>

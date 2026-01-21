@@ -53,7 +53,8 @@ export class NetworkSchemaState {
 				data: {
 					label: node.name || 'Unnamed Node',
 					node: node,
-					onNodeSelect: (nodeId) => this.selectNode(nodeId)
+					onNodeSelect: (nodeId) => this.selectNode(nodeId),
+					onNodeDelete: (nodeId) => this.handleNodeDelete(nodeId)
 				}
 			};
 		});
@@ -102,6 +103,17 @@ export class NetworkSchemaState {
 	 */
 	handleEdgeDelete(edgeId) {
 		this.edges = this.edges.filter((edge) => edge.id !== edgeId);
+	}
+
+	/**
+	 * Handle node deletion - removes node and connected edges from local state
+	 * @param {string} nodeId - The UUID of the node to remove
+	 */
+	handleNodeDelete(nodeId) {
+		// Remove the node
+		this.nodes = this.nodes.filter((node) => node.id !== nodeId);
+		// Remove any connected edges
+		this.edges = this.edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId);
 	}
 
 	/**

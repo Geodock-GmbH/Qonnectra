@@ -14,7 +14,8 @@
 		schemaState,
 		panToResult = true,
 		highlightResult = true,
-		openDrawer = true
+		openDrawer = true,
+		onNodeDelete = null
 	} = $props();
 
 	const { setCenter } = useSvelteFlow();
@@ -123,7 +124,8 @@
 				type: 'node',
 				onLabelUpdate: (newLabel) => {
 					drawerStore.setTitle(newLabel);
-				}
+				},
+				onNodeDelete
 			}
 		});
 	}

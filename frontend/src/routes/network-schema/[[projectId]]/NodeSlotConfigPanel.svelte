@@ -5,6 +5,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 
 	import ContainerItem from './ContainerItem.svelte';
@@ -30,6 +31,11 @@
 
 	// Drag state for root drop zone
 	let rootDragOver = $state(false);
+
+	// Delete confirmation state
+	let deleteSlotConfigMessageBox = $state(null);
+	let pendingDeleteConfigUuid = $state(null);
+	let pendingDeleteStructureCount = $state(0);
 
 	/**
 	 * Fetch container types (global)
@@ -363,6 +369,37 @@
 	}
 
 	async function handleDelete(uuid) {
+		// Check if the slot configuration has structures before deleting
+		try {
+			const formData = new FormData();
+			formData.append('slotConfigUuid', uuid);
+
+			const response = await fetch('?/getNodeStructures', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+			const structures = result.data?.structures || [];
+
+			if (structures.length > 0) {
+				// Show confirmation dialog
+				pendingDeleteConfigUuid = uuid;
+				pendingDeleteStructureCount = structures.length;
+				deleteSlotConfigMessageBox.open();
+				return;
+			}
+
+			// No structures, delete directly
+			await executeDeleteSlotConfig(uuid);
+		} catch (err) {
+			console.error('Error checking structures before delete:', err);
+			// On error, proceed with delete (backend will handle cascading)
+			await executeDeleteSlotConfig(uuid);
+		}
+	}
+
+	async function executeDeleteSlotConfig(uuid) {
 		try {
 			const formData = new FormData();
 			formData.append('configUuid', uuid);
@@ -389,6 +426,14 @@
 				title: m.common_error(),
 				description: m.message_error_deleting_slot_configuration()
 			});
+		}
+	}
+
+	async function confirmDeleteSlotConfig() {
+		if (pendingDeleteConfigUuid) {
+			await executeDeleteSlotConfig(pendingDeleteConfigUuid);
+			pendingDeleteConfigUuid = null;
+			pendingDeleteStructureCount = 0;
 		}
 	}
 
@@ -445,7 +490,7 @@
 <div class="flex flex-col gap-4 h-full">
 	<!-- Header -->
 	<div class="flex items-center justify-between">
-		<h3 class="text-sm font-medium text-surface-600-400">
+		<h3 class="text-sm font-medium text-surface-950-50">
 			{nodeName ? `${m.form_node()}: ${nodeName}` : m.title_slot_configuration()}
 		</h3>
 		{#if !isCreating && !isCreatingContainer && !editingUuid}
@@ -588,6 +633,16 @@
 		{/if}
 	</div>
 </div>
+
+<!-- Delete confirmation modal for slot configs with structures -->
+<MessageBox
+	bind:this={deleteSlotConfigMessageBox}
+	heading={m.common_confirm()}
+	message={`${m.common_delete?.() || 'Delete'} ${m.form_slot_configuration?.() || 'slot configuration'}? ${pendingDeleteStructureCount} ${m.form_components?.() || 'components'} ${m.common_will_be_deleted?.() || 'will be deleted'}.`}
+	showAcceptButton={true}
+	acceptText={m.common_delete()}
+	onAccept={confirmDeleteSlotConfig}
+/>
 
 <style>
 	.drag-over-root {
