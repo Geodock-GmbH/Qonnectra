@@ -68,6 +68,47 @@
 		if (!row.mergeInfoB) return true;
 		return row.mergeInfoB.isFirstInGroup;
 	}
+
+	// Check if a port can be selected for merging on the current side
+	function canSelectForMerge(row) {
+		if (mergeSide === 'a') {
+			// Can select if: has IN port AND not already merged on A side
+			return row.hasInPort && !row.mergeInfoA;
+		} else {
+			// Can select if: has OUT port AND not already merged on B side
+			return row.hasOutPort && !row.mergeInfoB;
+		}
+	}
+
+	// Get all selectable port numbers for the current side
+	const selectablePortNumbers = $derived(
+		portRows.filter((row) => canSelectForMerge(row)).map((row) => row.portNumber)
+	);
+
+	// Check if all selectable ports are selected
+	const allSelected = $derived(
+		selectablePortNumbers.length > 0 &&
+			selectablePortNumbers.every((portNum) => selectedForMerge.has(`${portNum}-${mergeSide}`))
+	);
+
+	// Toggle all selectable ports
+	function toggleSelectAll() {
+		if (allSelected) {
+			// Deselect all
+			for (const portNum of selectablePortNumbers) {
+				if (selectedForMerge.has(`${portNum}-${mergeSide}`)) {
+					onTogglePortSelection(portNum, mergeSide);
+				}
+			}
+		} else {
+			// Select all that aren't already selected
+			for (const portNum of selectablePortNumbers) {
+				if (!selectedForMerge.has(`${portNum}-${mergeSide}`)) {
+					onTogglePortSelection(portNum, mergeSide);
+				}
+			}
+		}
+	}
 </script>
 
 <div
@@ -87,17 +128,6 @@
 			</div>
 		</div>
 		<div class="flex items-center gap-2">
-			<!-- Merge mode toggle -->
-			<button
-				type="button"
-				class="p-2 rounded-lg transition-colors {mergeSelectionMode
-					? 'bg-primary-500 text-white'
-					: 'hover:bg-surface-300-700'}"
-				onclick={onToggleMergeMode}
-				title={m.action_merge_ports?.() || 'Merge ports'}
-			>
-				<IconArrowMerge size={18} />
-			</button>
 			<button
 				type="button"
 				class="p-2 rounded-lg hover:bg-surface-300-700 transition-colors"
@@ -125,38 +155,68 @@
 			class="grid {gridCols} bg-surface-200-800 border-b border-surface-200-800 text-xs font-semibold uppercase tracking-wide text-surface-500"
 		>
 			{#if mergeSelectionMode}
-				<div class="px-2 py-2.5 text-center">
-					<!-- Checkbox column header -->
+				<div class="px-2 py-2.5 flex items-center justify-center">
+					{#if selectablePortNumbers.length > 0}
+						<input
+							type="checkbox"
+							class="checkbox"
+							checked={allSelected}
+							onchange={toggleSelectAll}
+							title={allSelected ? 'Deselect all' : 'Select all'}
+						/>
+					{/if}
 				</div>
 			{/if}
-			<div class="px-3 py-2.5 text-center">
+			<div class="px-3 py-2.5 flex items-center justify-center">
 				{m.form_port?.() || 'Port'}
 			</div>
 			<div
-				class="px-3 py-2.5 flex items-center gap-2 border-l border-surface-200-800 cursor-pointer transition-colors {mergeSelectionMode &&
-				mergeSide === 'a'
-					? 'bg-primary-500/20'
-					: ''}"
-				onclick={() => mergeSelectionMode && onSetMergeSide('a')}
-				role={mergeSelectionMode ? 'button' : 'presentation'}
+				class="px-3 py-2.5 flex items-center justify-between gap-2 border-l border-surface-200-800"
 			>
-				{m.form_fiber_a?.() || 'Faser A'} (IN)
-				{#if mergeSelectionMode && mergeSide === 'a'}
-					<span class="text-primary-500 text-[10px]">*</span>
-				{/if}
+				<span>{m.form_fiber_a?.() || 'Faser A'} (IN)</span>
+				<button
+					type="button"
+					class="p-1.5 rounded-lg transition-colors {mergeSelectionMode && mergeSide === 'a'
+						? 'preset-filled-primary-500 text-white'
+						: 'hover:bg-surface-300-700'}"
+					onclick={() => {
+						if (mergeSelectionMode && mergeSide === 'a') {
+							onToggleMergeMode();
+						} else if (mergeSelectionMode) {
+							onSetMergeSide('a');
+						} else {
+							onSetMergeSide('a');
+							onToggleMergeMode();
+						}
+					}}
+					title={m.action_merge_ports?.() || 'Merge ports'}
+				>
+					<IconArrowMerge size={20} />
+				</button>
 			</div>
 			<div
-				class="px-3 py-2.5 flex items-center gap-2 border-l border-surface-200-800 cursor-pointer transition-colors {mergeSelectionMode &&
-				mergeSide === 'b'
-					? 'bg-primary-500/20'
-					: ''}"
-				onclick={() => mergeSelectionMode && onSetMergeSide('b')}
-				role={mergeSelectionMode ? 'button' : 'presentation'}
+				class="px-3 py-2.5 flex items-center justify-between gap-2 border-l border-surface-200-800"
 			>
-				{m.form_fiber_b?.() || 'Faser B'} (OUT)
-				{#if mergeSelectionMode && mergeSide === 'b'}
-					<span class="text-primary-500 text-[10px]">*</span>
-				{/if}
+				<span>{m.form_fiber_b?.() || 'Faser B'} (OUT)</span>
+				<button
+					type="button"
+					class="p-1.5 rounded-lg transition-colors {mergeSelectionMode && mergeSide === 'b'
+						? 'preset-filled-primary-500 text-white'
+						: 'hover:bg-surface-300-700'}"
+					onclick={() => {
+						if (mergeSelectionMode && mergeSide === 'b') {
+							onToggleMergeMode();
+						} else if (mergeSelectionMode) {
+							onSetMergeSide('b');
+						} else {
+							onSetMergeSide('b');
+							onToggleMergeMode();
+						}
+					}}
+					title={m.action_merge_ports?.() || 'Merge ports'}
+				>
+					<IconArrowMerge size={16} />
+				</button>
 			</div>
 		</div>
 
@@ -169,7 +229,7 @@
 						<div
 							class="px-2 py-2.5 flex items-center justify-center border-b border-surface-200-800"
 						>
-							{#if (mergeSide === 'a' && !row.mergeInfoA) || (mergeSide === 'b' && !row.mergeInfoB)}
+							{#if canSelectForMerge(row)}
 								<input
 									type="checkbox"
 									class="checkbox"
@@ -182,7 +242,7 @@
 
 					<!-- Port Number -->
 					<div
-						class="px-3 py-2.5 text-center font-mono text-sm bg-surface-100-900 border-r border-b border-surface-200-800 flex items-center justify-center"
+						class="px-3 py-2.5 text-center font-mono text-sm bg-surface-200-800 border-r border-b border-surface-200-800 flex items-center justify-center"
 					>
 						{row.portNumber}
 					</div>

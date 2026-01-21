@@ -73,7 +73,7 @@
 		: ''} {isDragOver && hasPort
 		? `${accentClasses.bgHover} outline outline-dashed ${accentClasses.outline}`
 		: ''} {fiber && spanRows <= 1 ? accentClasses.bg : ''} {spanRows > 1
-		? 'bg-surface-50 dark:bg-surface-900 border-2 border-primary-500 rounded-r-lg shadow-md'
+		? 'bg-surface-50 dark:bg-surface-900  border-primary-500 '
 		: ''} flex items-center"
 	style={spanRows > 1 ? `grid-row: span ${spanRows}` : ''}
 	ondragover={handleDragOver}
@@ -93,13 +93,6 @@
 					<span class="font-mono">{fiber.fiber_number}</span>
 					<span class="text-surface-400">|</span>
 					<span class="text-surface-500">B{fiber.bundle_number}</span>
-					{#if isMerged && connectedCount > 0}
-						<span
-							class="text-xs px-1.5 py-0.5 rounded bg-primary-500/20 text-primary-500 font-medium"
-						>
-							{connectedCount}/{mergedCount}
-						</span>
-					{/if}
 				</div>
 				<div class="text-xs text-surface-400 truncate">
 					{fiber.cable_name}
@@ -155,14 +148,7 @@
 				</div>
 			{/if}
 			<div class="flex items-center gap-2 text-xs italic">
-				{#if isMerged}
-					<span>
-						{m.message_drop_fibers_here?.({ count: mergedCount }) ||
-							`Drop ${mergedCount} fibers here`}
-					</span>
-				{:else}
-					<span>{m.message_drop_fiber_here?.() || 'Faser hier ablegen'}</span>
-				{/if}
+				<span>{m.message_drop_fiber_here?.() || 'Faser hier ablegen'}</span>
 			</div>
 		</div>
 	{:else}

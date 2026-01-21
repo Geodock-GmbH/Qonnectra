@@ -2,6 +2,7 @@
 	import { IconGripVertical, IconTrash } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	let {
 		slotRows = [],
@@ -118,7 +119,7 @@
 				{#each slotRows as row (row.slotNumber)}
 					<!-- TPU number cell -->
 					<div
-						class="px-3 py-2 font-mono text-center bg-[var(--color-surface-100-900)] border-b border-[var(--color-surface-200-800)] transition-colors duration-150 h-10 flex items-center justify-center {row.isDropTarget
+						class="px-3 py-2 font-mono text-center bg-[var(--color-surface-200-800)] border-b border-[var(--color-surface-200-800)] transition-colors duration-150 h-10 flex items-center justify-center {row.isDropTarget
 							? 'bg-[rgba(34,197,94,0.15)]'
 							: ''} {row.isOccupied && !row.isDropTarget
 							? 'bg-[var(--color-surface-200-800)]'
@@ -126,7 +127,7 @@
 							? 'border-b-2 border-[var(--color-surface-500)] relative z-10'
 							: ''}"
 						ondblclick={() => onToggleDivider(row.slotNumber)}
-						title={m.tooltip_double_click_divider?.() || 'Double-click to toggle divider'}
+						{@attach tooltip(m.tooltip_double_click_divider?.() || 'Double-click to toggle divider')}
 						role="cell"
 						tabindex="0"
 					>
@@ -218,7 +219,7 @@
 
 					<!-- Clip number cell (editable) -->
 					<div
-						class="px-3 py-2 font-mono text-center bg-[var(--color-surface-100-900)] border-b border-[var(--color-surface-200-800)] transition-colors duration-150 h-10 flex items-center justify-center {row.isDropTarget
+						class="px-3 py-2 font-mono text-center bg-[var(--color-surface-200-800)] border-b border-[var(--color-surface-200-800)] transition-colors duration-150 h-10 flex items-center justify-center {row.isDropTarget
 							? 'bg-[rgba(34,197,94,0.15)]'
 							: ''} {row.isOccupied && !row.isDropTarget
 							? 'bg-[var(--color-surface-200-800)]'

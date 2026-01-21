@@ -3450,24 +3450,27 @@ class FiberSplice(models.Model):
         help_text=_("The cable of fiber B (denormalized for CASCADE delete)"),
     )
 
-    # Merge group for port linking (e.g., splitter ports)
-    merge_group = models.UUIDField(
-        _("Merge Group"),
+    # Merge groups for port linking (e.g., splitter ports)
+    # Each side can have its own independent merge group
+    merge_group_a = models.UUIDField(
+        _("Merge Group A"),
         null=True,
         blank=True,
         db_index=True,
         help_text=_(
-            "UUID grouping ports that should receive fibers together. "
-            "Used for asymmetric components like splitters (e.g., 1:8 has 8 OUT ports merged)."
+            "UUID grouping ports on side A (IN) that share a fiber. "
+            "Used for asymmetric components like splitters."
         ),
     )
-    merge_side = models.CharField(
-        _("Merge Side"),
-        max_length=1,
-        choices=[("a", "A (IN)"), ("b", "B (OUT)")],
+    merge_group_b = models.UUIDField(
+        _("Merge Group B"),
         null=True,
         blank=True,
-        help_text=_("Which side (A/IN or B/OUT) is merged for this port."),
+        db_index=True,
+        help_text=_(
+            "UUID grouping ports on side B (OUT) that share a fiber. "
+            "Used for asymmetric components like splitters."
+        ),
     )
 
     # Shared fiber fields for merged port groups
@@ -3530,7 +3533,8 @@ class FiberSplice(models.Model):
             models.Index(fields=["fiber_b"], name="idx_fiber_splice_fiber_b"),
             models.Index(fields=["cable_a"], name="idx_fiber_splice_cable_a"),
             models.Index(fields=["cable_b"], name="idx_fiber_splice_cable_b"),
-            models.Index(fields=["merge_group"], name="idx_fiber_splice_merge_grp"),
+            models.Index(fields=["merge_group_a"], name="idx_fiber_splice_merge_grp_a"),
+            models.Index(fields=["merge_group_b"], name="idx_fiber_splice_merge_grp_b"),
             models.Index(
                 fields=["shared_fiber_a"], name="idx_fiber_splice_shrd_fib_a"
             ),

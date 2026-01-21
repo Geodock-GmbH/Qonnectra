@@ -60,8 +60,11 @@ export class FiberSpliceManager {
 				splice,
 				fiberA: splice?.fiber_a_details || null,
 				fiberB: splice?.fiber_b_details || null,
-				mergeGroup: splice?.merge_group || null,
-				mergeGroupInfo: splice?.merge_group_info || null
+				// Side-specific merge groups (independent merging per side)
+				mergeGroupA: splice?.merge_group_a || null,
+				mergeGroupB: splice?.merge_group_b || null,
+				mergeGroupAInfo: splice?.merge_group_a_info || null,
+				mergeGroupBInfo: splice?.merge_group_b_info || null
 			});
 		}
 		return rows;
@@ -76,17 +79,24 @@ export class FiberSpliceManager {
 		const baseRows = this.portRows;
 		if (baseRows.length === 0) return [];
 
-		// Build merge groups per side
+		// Build merge groups per side (using independent merge_group_a and merge_group_b)
 		const mergeGroupsA = new Map(); // groupId -> sorted port numbers
 		const mergeGroupsB = new Map();
 
 		for (const splice of this.fiberSplices) {
-			if (splice.merge_group && splice.merge_side) {
-				const map = splice.merge_side === 'a' ? mergeGroupsA : mergeGroupsB;
-				if (!map.has(splice.merge_group)) {
-					map.set(splice.merge_group, []);
+			// Check side A merge group
+			if (splice.merge_group_a) {
+				if (!mergeGroupsA.has(splice.merge_group_a)) {
+					mergeGroupsA.set(splice.merge_group_a, []);
 				}
-				map.get(splice.merge_group).push(splice.port_number);
+				mergeGroupsA.get(splice.merge_group_a).push(splice.port_number);
+			}
+			// Check side B merge group (independent from side A)
+			if (splice.merge_group_b) {
+				if (!mergeGroupsB.has(splice.merge_group_b)) {
+					mergeGroupsB.set(splice.merge_group_b, []);
+				}
+				mergeGroupsB.get(splice.merge_group_b).push(splice.port_number);
 			}
 		}
 
@@ -94,47 +104,50 @@ export class FiberSpliceManager {
 		for (const ports of mergeGroupsA.values()) ports.sort((a, b) => a - b);
 		for (const ports of mergeGroupsB.values()) ports.sort((a, b) => a - b);
 
-		// Get fiber(s) for a merge group
-		// For the merged side: there's ONE shared fiber (return just the first, deduplicated)
-		// For the non-merged side: there are individual fibers per port
+		// Get fiber(s) for a merge group on a specific side
+		// When merged: there's ONE shared fiber (return just the first, deduplicated)
 		const getFibersForGroup = (groupId, side) => {
+			const mergeGroupField = side === 'a' ? 'merge_group_a' : 'merge_group_b';
 			const fiberKey = side === 'a' ? 'fiber_a_details' : 'fiber_b_details';
+
 			const fibersWithData = this.fiberSplices
-				.filter((s) => s.merge_group === groupId && s[fiberKey])
+				.filter((s) => s[mergeGroupField] === groupId && s[fiberKey])
 				.map((s) => s[fiberKey]);
 
-			// Check if this is the merged side (shared fiber - all will be the same)
-			const firstSplice = this.fiberSplices.find((s) => s.merge_group === groupId);
-			const isMergedSide = firstSplice?.merge_side === side;
-
-			if (isMergedSide && fibersWithData.length > 0) {
+			// Merged side always uses shared fiber - all will be the same
+			if (fibersWithData.length > 0) {
 				// Return just the first (shared) fiber - they're all the same
 				return [fibersWithData[0]];
 			}
 
-			// Non-merged side: return all individual fibers
 			return fibersWithData;
 		};
 
 		// Build merge info for a port/side
 		const buildMergeInfo = (portNumber, side, groupMap) => {
-			// Find splice for this port with merge on this side
-			const splice = this.fiberSplices.find(
-				(s) => s.port_number === portNumber && s.merge_side === side
-			);
-			if (!splice?.merge_group) return null;
+			const mergeGroupField = side === 'a' ? 'merge_group_a' : 'merge_group_b';
 
-			const ports = groupMap.get(splice.merge_group);
+			// Find splice for this port with merge group on this side
+			const splice = this.fiberSplices.find(
+				(s) => s.port_number === portNumber && s[mergeGroupField]
+			);
+			if (!splice?.[mergeGroupField]) return null;
+
+			const groupId = splice[mergeGroupField];
+			const ports = groupMap.get(groupId);
 			if (!ports) return null;
 
 			const isFirst = ports[0] === portNumber;
-			const fibers = getFibersForGroup(splice.merge_group, side);
+			const fibers = getFibersForGroup(groupId, side);
+
+			const firstPort = ports[0];
+			const lastPort = ports[ports.length - 1];
 
 			return {
-				groupId: splice.merge_group,
+				groupId: groupId,
 				isFirstInGroup: isFirst,
 				groupSize: ports.length,
-				portRange: `${ports[0]}-${ports[ports.length - 1]}`,
+				portRange: `${firstPort}-${lastPort}`,
 				fibers,
 				fiberCount: fibers.length
 			};
@@ -329,9 +342,10 @@ export class FiberSpliceManager {
 		const previousSplices = [...this.fiberSplices];
 		const existingSplice = this.fiberSplices.find((s) => s.port_number === portNumber);
 
-		// Check if this port is merged on this side
-		// If so, the backend will set it as a shared fiber for all ports in the group
-		const isMergedOnThisSide = existingSplice?.merge_group && existingSplice?.merge_side === side;
+		// Check if this port is merged on this side (using side-specific merge group)
+		const mergeGroupField = `merge_group_${side}`;
+		const mergeGroupValue = existingSplice?.[mergeGroupField];
+		const isMergedOnThisSide = mergeGroupValue != null;
 
 		const fiberDetails = {
 			uuid: fiberData.uuid,
@@ -344,9 +358,8 @@ export class FiberSpliceManager {
 		// Optimistic update for UI
 		if (isMergedOnThisSide) {
 			// Update all ports in the merge group
-			const mergeGroup = existingSplice.merge_group;
 			this.fiberSplices = this.fiberSplices.map((s) => {
-				if (s.merge_group === mergeGroup) {
+				if (s[mergeGroupField] === mergeGroupValue) {
 					return {
 						...s,
 						[`fiber_${side}_details`]: fiberDetails
@@ -870,16 +883,16 @@ export class FiberSpliceManager {
 		const previousSplices = [...this.fiberSplices];
 		const existingSplice = this.fiberSplices.find((s) => s.port_number === portNumber);
 
-		// Check if this port is merged on this side
-		// If so, clearing will affect all ports in the merge group
-		const isMergedOnThisSide = existingSplice?.merge_group && existingSplice?.merge_side === side;
+		// Check if this port is merged on this side (using side-specific merge group)
+		const mergeGroupField = `merge_group_${side}`;
+		const mergeGroupValue = existingSplice?.[mergeGroupField];
+		const isMergedOnThisSide = mergeGroupValue != null;
 
 		// Optimistic update
 		if (isMergedOnThisSide) {
 			// Clear fiber on all ports in the merge group
-			const mergeGroup = existingSplice.merge_group;
 			this.fiberSplices = this.fiberSplices.map((s) => {
-				if (s.merge_group === mergeGroup) {
+				if (s[mergeGroupField] === mergeGroupValue) {
 					return {
 						...s,
 						[`fiber_${side}_details`]: null
@@ -895,8 +908,13 @@ export class FiberSpliceManager {
 							...s,
 							[`fiber_${side}_details`]: null
 						};
-						// Only remove if both sides empty and not in a merge group
-						if (!updated.fiber_a_details && !updated.fiber_b_details && !updated.merge_group) {
+						// Only remove if both sides empty and not in any merge group
+						if (
+							!updated.fiber_a_details &&
+							!updated.fiber_b_details &&
+							!updated.merge_group_a &&
+							!updated.merge_group_b
+						) {
 							return null;
 						}
 						return updated;
@@ -1033,6 +1051,20 @@ export class FiberSpliceManager {
 			}
 		}
 
+		// Sort port numbers and check for contiguity
+		portNumbers.sort((a, b) => a - b);
+		for (let i = 1; i < portNumbers.length; i++) {
+			if (portNumbers[i] !== portNumbers[i - 1] + 1) {
+				globalToaster.warning({
+					title: m.common_warning?.() || 'Warning',
+					description:
+						m.message_ports_must_be_consecutive?.() ||
+						'Ports must be consecutive (e.g., 1-2-3, not 1-3)'
+				});
+				return false;
+			}
+		}
+
 		try {
 			const formData = new FormData();
 			formData.append('nodeStructureUuid', this.selectedStructure.uuid);
@@ -1083,9 +1115,15 @@ export class FiberSpliceManager {
 		if (!mergeGroupId) return false;
 
 		// If no specific ports provided, get all ports in the group
+		// Check both side A and side B merge groups
 		if (portNumbers.length === 0) {
-			const groupSplice = this.fiberSplices.find((s) => s.merge_group === mergeGroupId);
-			portNumbers = groupSplice?.merge_group_info?.port_numbers || [];
+			let groupSplice = this.fiberSplices.find((s) => s.merge_group_a === mergeGroupId);
+			if (groupSplice) {
+				portNumbers = groupSplice?.merge_group_a_info?.port_numbers || [];
+			} else {
+				groupSplice = this.fiberSplices.find((s) => s.merge_group_b === mergeGroupId);
+				portNumbers = groupSplice?.merge_group_b_info?.port_numbers || [];
+			}
 		}
 
 		if (portNumbers.length === 0) return false;
@@ -1133,10 +1171,14 @@ export class FiberSpliceManager {
 	 * @returns {Promise<boolean>} - True if successful
 	 */
 	async handleMergedPortDrop(mergeGroupId, side, dropData) {
+		// Find the merge group - check both side A and side B
+		const mergeGroupField = `merge_group_${side}`;
+		const mergeGroupInfoField = `merge_group_${side}_info`;
+		let groupSplice = this.fiberSplices.find((s) => s[mergeGroupField] === mergeGroupId);
+
 		// For single fiber, just connect to first port in group
 		if (dropData.type === 'fiber') {
-			const groupSplice = this.fiberSplices.find((s) => s.merge_group === mergeGroupId);
-			const firstPort = groupSplice?.merge_group_info?.port_numbers?.[0];
+			const firstPort = groupSplice?.[mergeGroupInfoField]?.port_numbers?.[0];
 			if (firstPort) {
 				return this.handleSingleFiberDrop(firstPort, side, dropData);
 			}
@@ -1154,8 +1196,7 @@ export class FiberSpliceManager {
 		}
 
 		// Get merge group info
-		const groupSplice = this.fiberSplices.find((s) => s.merge_group === mergeGroupId);
-		const mergeInfo = groupSplice?.merge_group_info;
+		const mergeInfo = groupSplice?.[mergeGroupInfoField];
 		const portCount = mergeInfo?.port_count || 1;
 
 		// Prepare fibers data for API (limit to port count)

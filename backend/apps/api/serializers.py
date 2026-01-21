@@ -1602,7 +1602,8 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
     # Include nested info for display
     fiber_a_details = serializers.SerializerMethodField()
     fiber_b_details = serializers.SerializerMethodField()
-    merge_group_info = serializers.SerializerMethodField()
+    merge_group_a_info = serializers.SerializerMethodField()
+    merge_group_b_info = serializers.SerializerMethodField()
 
     class Meta:
         model = FiberSplice
@@ -1616,9 +1617,11 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
             "cable_b",
             "fiber_a_details",
             "fiber_b_details",
-            "merge_group",
-            "merge_side",
-            "merge_group_info",
+            # Side-specific merge groups (independent merging per side)
+            "merge_group_a",
+            "merge_group_b",
+            "merge_group_a_info",
+            "merge_group_b_info",
             # Shared fiber fields (for merged port groups)
             "shared_fiber_a",
             "shared_cable_a",
@@ -1643,29 +1646,30 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
     def get_fiber_a_details(self, obj):
         """
         Get fiber A details.
-        If port is merged on side A, use shared_fiber_a instead of individual fiber_a.
+        If port is merged on side A (has merge_group_a), use shared_fiber_a.
         """
-        if obj.merge_side == "a" and obj.shared_fiber_a:
+        if obj.merge_group_a and obj.shared_fiber_a:
             return self._get_fiber_details(obj.shared_fiber_a, obj.shared_cable_a)
         return self._get_fiber_details(obj.fiber_a, obj.cable_a)
 
     def get_fiber_b_details(self, obj):
         """
         Get fiber B details.
-        If port is merged on side B, use shared_fiber_b instead of individual fiber_b.
+        If port is merged on side B (has merge_group_b), use shared_fiber_b.
         """
-        if obj.merge_side == "b" and obj.shared_fiber_b:
+        if obj.merge_group_b and obj.shared_fiber_b:
             return self._get_fiber_details(obj.shared_fiber_b, obj.shared_cable_b)
         return self._get_fiber_details(obj.fiber_b, obj.cable_b)
 
-    def get_merge_group_info(self, obj):
-        """Get info about the merge group this splice belongs to."""
-        if not obj.merge_group:
+    def _get_merge_group_info(self, obj, side):
+        """Get info about a merge group on a specific side."""
+        merge_group = getattr(obj, f"merge_group_{side}")
+        if not merge_group:
             return None
 
         # Get all port numbers in the same merge group
         siblings = list(
-            FiberSplice.objects.filter(merge_group=obj.merge_group)
+            FiberSplice.objects.filter(**{f"merge_group_{side}": merge_group})
             .values_list("port_number", flat=True)
             .order_by("port_number")
         )
@@ -1674,12 +1678,20 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
             return None
 
         return {
-            "merge_group_id": str(obj.merge_group),
-            "side": obj.merge_side,
+            "merge_group_id": str(merge_group),
+            "side": side,
             "port_numbers": siblings,
             "port_count": len(siblings),
             "port_range": f"{min(siblings)}-{max(siblings)}" if len(siblings) > 1 else str(siblings[0]),
         }
+
+    def get_merge_group_a_info(self, obj):
+        """Get info about the merge group on side A."""
+        return self._get_merge_group_info(obj, "a")
+
+    def get_merge_group_b_info(self, obj):
+        """Get info about the merge group on side B."""
+        return self._get_merge_group_info(obj, "b")
 
 
 class PortMergeSerializer(serializers.Serializer):
