@@ -1,5 +1,5 @@
 <script>
-	import { IconTrash } from '@tabler/icons-svelte';
+	import { IconArrowsSplit, IconTrash } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -10,10 +10,14 @@
 		colorHex = '#999999',
 		onDrop = () => {},
 		onClear = () => {},
+		onUnmerge = () => {},
 		// Merge props
 		isMerged = false,
 		mergedCount = 0,
-		connectedCount = 0
+		connectedCount = 0,
+		// Spanning props for merged cells
+		spanRows = 1,
+		portRange = ''
 	} = $props();
 
 	let isDragOver = $state(false);
@@ -64,11 +68,14 @@
 </script>
 
 <div
-	class="fiber-cell relative px-3 py-2 min-h-[44px] transition-all duration-150 border-l border-surface-200-800 {!hasPort
+	class="fiber-cell px-3 py-2 min-h-[44px] transition-all duration-150 border-l border-b border-surface-200-800 {!hasPort
 		? 'bg-surface-200-800 cursor-not-allowed'
 		: ''} {isDragOver && hasPort
-		? `${accentClasses.bgHover} outline  outline-dashed ${accentClasses.outline}`
-		: ''} {fiber ? accentClasses.bg : ''} flex items-center"
+		? `${accentClasses.bgHover} outline outline-dashed ${accentClasses.outline}`
+		: ''} {fiber && spanRows <= 1 ? accentClasses.bg : ''} {spanRows > 1
+		? 'bg-surface-50 dark:bg-surface-900 border-2 border-primary-500 rounded-r-lg shadow-md'
+		: ''} flex items-center"
+	style={spanRows > 1 ? `grid-row: span ${spanRows}` : ''}
 	ondragover={handleDragOver}
 	ondragleave={handleDragLeave}
 	ondrop={handleDrop}
@@ -98,21 +105,55 @@
 					{fiber.cable_name}
 				</div>
 			</div>
-			<button
-				type="button"
-				class="btn-sm ml-auto p-1 rounded-md opacity-0 group-hover:opacity-100 bg-error-500 hover:bg-error-600 text-white transition-all flex-shrink-0"
-				onclick={(e) => {
-					e.stopPropagation();
-					onClear();
-				}}
-				aria-label={m.common_clear?.() || 'Clear'}
-			>
-				<IconTrash size={20} />
-			</button>
+			<div class="flex items-center gap-1 ml-auto">
+				{#if spanRows > 1}
+					<button
+						type="button"
+						class="p-1 rounded hover:bg-surface-300-700 transition-colors opacity-0 group-hover:opacity-100"
+						onclick={(e) => {
+							e.stopPropagation();
+							onUnmerge();
+						}}
+						title={m.action_unmerge?.() || 'Unmerge'}
+					>
+						<IconArrowsSplit size={16} />
+					</button>
+				{/if}
+				<button
+					type="button"
+					class="btn-sm p-1 rounded-md opacity-0 group-hover:opacity-100 bg-error-500 hover:bg-error-600 text-white transition-all flex-shrink-0"
+					onclick={(e) => {
+						e.stopPropagation();
+						onClear();
+					}}
+					aria-label={m.common_clear?.() || 'Clear'}
+				>
+					<IconTrash size={20} />
+				</button>
+			</div>
 		</div>
 	{:else if hasPort}
 		<!-- Empty Drop Zone -->
-		<div class="flex items-center justify-center w-full text-surface-400">
+		<div class="flex flex-col items-center justify-center w-full h-full text-surface-400 group">
+			{#if spanRows > 1}
+				<!-- Merged empty state with port range -->
+				<div
+					class="flex items-center gap-2 text-sm font-medium text-primary-600 dark:text-primary-400 mb-1"
+				>
+					<span class="font-mono">{portRange}</span>
+					<button
+						type="button"
+						class="p-1 rounded hover:bg-surface-300-700 transition-colors opacity-0 group-hover:opacity-100"
+						onclick={(e) => {
+							e.stopPropagation();
+							onUnmerge();
+						}}
+						title={m.action_unmerge?.() || 'Unmerge'}
+					>
+						<IconArrowsSplit size={14} />
+					</button>
+				</div>
+			{/if}
 			<div class="flex items-center gap-2 text-xs italic">
 				{#if isMerged}
 					<span>

@@ -1,5 +1,5 @@
 <script>
-	import { IconArrowMerge, IconArrowsSplit, IconX } from '@tabler/icons-svelte';
+	import { IconArrowMerge, IconX } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -16,11 +16,13 @@
 		// Merge functionality props
 		mergeSelectionMode = false,
 		selectedForMerge = new Set(),
+		mergeSide = 'a',
 		onToggleMergeMode = () => {},
 		onTogglePortSelection = () => {},
 		onMergePorts = () => {},
 		onUnmergePorts = () => {},
-		onMergedPortDrop = () => {}
+		onMergedPortDrop = () => {},
+		onSetMergeSide = () => {}
 	} = $props();
 
 	// Color lookup map
@@ -32,6 +34,11 @@
 		}
 		return map;
 	});
+
+	// Compute grid columns based on merge mode
+	const gridCols = $derived(
+		mergeSelectionMode ? 'grid-cols-[40px_60px_1fr_1fr]' : 'grid-cols-[60px_1fr_1fr]'
+	);
 
 	function getColorHex(fiberColorName) {
 		if (!fiberColorName) return '#999999';
@@ -46,8 +53,20 @@
 		onClearPort(portNumber, side);
 	}
 
-	function isPortSelected(portNumber, side) {
-		return selectedForMerge.has(`${portNumber}-${side}`);
+	function isPortSelected(portNumber) {
+		return selectedForMerge.has(`${portNumber}-${mergeSide}`);
+	}
+
+	// Check if this row should render the A cell (not spanned by previous row)
+	function shouldRenderCellA(row) {
+		if (!row.mergeInfoA) return true;
+		return row.mergeInfoA.isFirstInGroup;
+	}
+
+	// Check if this row should render the B cell (not spanned by previous row)
+	function shouldRenderCellB(row) {
+		if (!row.mergeInfoB) return true;
+		return row.mergeInfoB.isFirstInGroup;
 	}
 </script>
 
@@ -101,11 +120,9 @@
 			</span>
 		</div>
 	{:else}
-		<!-- Column Headers (outside scroll container) -->
+		<!-- Column Headers -->
 		<div
-			class="grid {mergeSelectionMode
-				? 'grid-cols-[40px_60px_1fr_1fr]'
-				: 'grid-cols-[60px_1fr_1fr]'} bg-surface-200-800 border-b border-surface-200-800 text-xs font-semibold uppercase tracking-wide text-surface-500"
+			class="grid {gridCols} bg-surface-200-800 border-b border-surface-200-800 text-xs font-semibold uppercase tracking-wide text-surface-500"
 		>
 			{#if mergeSelectionMode}
 				<div class="px-2 py-2.5 text-center">
@@ -115,125 +132,134 @@
 			<div class="px-3 py-2.5 text-center">
 				{m.form_port?.() || 'Port'}
 			</div>
-			<div class="px-3 py-2.5 flex items-center gap-2 border-l border-surface-200-800">
+			<div
+				class="px-3 py-2.5 flex items-center gap-2 border-l border-surface-200-800 cursor-pointer transition-colors {mergeSelectionMode &&
+				mergeSide === 'a'
+					? 'bg-primary-500/20'
+					: ''}"
+				onclick={() => mergeSelectionMode && onSetMergeSide('a')}
+				role={mergeSelectionMode ? 'button' : 'presentation'}
+			>
 				{m.form_fiber_a?.() || 'Faser A'} (IN)
+				{#if mergeSelectionMode && mergeSide === 'a'}
+					<span class="text-primary-500 text-[10px]">*</span>
+				{/if}
 			</div>
-			<div class="px-3 py-2.5 flex items-center gap-2 border-l border-surface-200-800">
+			<div
+				class="px-3 py-2.5 flex items-center gap-2 border-l border-surface-200-800 cursor-pointer transition-colors {mergeSelectionMode &&
+				mergeSide === 'b'
+					? 'bg-primary-500/20'
+					: ''}"
+				onclick={() => mergeSelectionMode && onSetMergeSide('b')}
+				role={mergeSelectionMode ? 'button' : 'presentation'}
+			>
 				{m.form_fiber_b?.() || 'Faser B'} (OUT)
+				{#if mergeSelectionMode && mergeSide === 'b'}
+					<span class="text-primary-500 text-[10px]">*</span>
+				{/if}
 			</div>
 		</div>
 
-		<!-- Scrollable rows -->
+		<!-- Scrollable table body using single grid -->
 		<div class="flex-1 overflow-y-auto min-h-0">
-			{#each portRows as row (row.isMerged ? row.mergeGroupId : row.portNumber)}
-				{#if row.isMerged}
-					<!-- Merged Port Group Row -->
-					<div
-						class="grid {mergeSelectionMode
-							? 'grid-cols-[40px_60px_1fr_1fr]'
-							: 'grid-cols-[60px_1fr_1fr]'} border-b border-surface-200-800 last:border-b-0 bg-primary-500/5"
-					>
-						{#if mergeSelectionMode}
-							<div class="px-2 py-2.5 flex items-center justify-center">
-								<!-- Can't select merged rows for merge -->
-							</div>
-						{/if}
-						<!-- Port Range -->
+			<div class="grid {gridCols}" style="grid-auto-rows: minmax(44px, auto);">
+				{#each portRows as row (row.portNumber)}
+					<!-- Checkbox column (merge mode only) -->
+					{#if mergeSelectionMode}
 						<div
-							class="px-3 py-2.5 text-center font-mono text-sm bg-primary-500/10 border-r border-surface-200-800 flex items-center justify-center gap-1"
+							class="px-2 py-2.5 flex items-center justify-center border-b border-surface-200-800"
 						>
-							<span class="font-semibold">{row.mergedPortRange}</span>
-							<button
-								type="button"
-								class="p-1 rounded hover:bg-surface-300-700 transition-colors"
-								onclick={() => onUnmergePorts(row.mergeGroupId)}
-								title={m.action_unmerge?.() || 'Unmerge'}
-							>
-								<IconArrowsSplit size={14} />
-							</button>
-						</div>
-
-						<!-- Fiber A Cell (IN) - Merged -->
-						<FiberCell
-							fiber={row.fiberACount > 0 ? row.fibersA[0] : null}
-							hasPort={row.hasInPort}
-							side="a"
-							colorHex={getColorHex(row.fibersA[0]?.fiber_color)}
-							isMerged={true}
-							mergedCount={row.mergedPortCount}
-							connectedCount={row.fiberACount}
-							onDrop={(data) => onMergedPortDrop(row.mergeGroupId, 'a', data)}
-							onClear={() => handleClearPort(row.portNumber, 'a')}
-						/>
-
-						<!-- Fiber B Cell (OUT) - Merged -->
-						<FiberCell
-							fiber={row.fiberBCount > 0 ? row.fibersB[0] : null}
-							hasPort={row.hasOutPort}
-							side="b"
-							colorHex={getColorHex(row.fibersB[0]?.fiber_color)}
-							isMerged={true}
-							mergedCount={row.mergedPortCount}
-							connectedCount={row.fiberBCount}
-							onDrop={(data) => onMergedPortDrop(row.mergeGroupId, 'b', data)}
-							onClear={() => handleClearPort(row.portNumber, 'b')}
-						/>
-					</div>
-				{:else}
-					<!-- Regular Port Row -->
-					<div
-						class="grid {mergeSelectionMode
-							? 'grid-cols-[40px_60px_1fr_1fr]'
-							: 'grid-cols-[60px_1fr_1fr]'} border-b border-surface-200-800 last:border-b-0 hover:bg-surface-100-900 transition-colors"
-					>
-						{#if mergeSelectionMode}
-							<div class="px-2 py-2.5 flex items-center justify-center">
+							{#if (mergeSide === 'a' && !row.mergeInfoA) || (mergeSide === 'b' && !row.mergeInfoB)}
 								<input
 									type="checkbox"
 									class="checkbox"
-									checked={isPortSelected(row.portNumber, 'a') ||
-										isPortSelected(row.portNumber, 'b')}
-									onchange={() => {
-										// Select both sides for simplicity
-										onTogglePortSelection(row.portNumber, 'a');
-									}}
+									checked={isPortSelected(row.portNumber)}
+									onchange={() => onTogglePortSelection(row.portNumber, mergeSide)}
 								/>
-							</div>
-						{/if}
-						<!-- Port Number -->
-						<div
-							class="px-3 py-2.5 text-center font-mono text-sm bg-surface-100-900 border-r border-surface-200-800 flex items-center justify-center"
-						>
-							{row.portNumber}
+							{/if}
 						</div>
+					{/if}
 
-						<!-- Fiber A Cell (IN) -->
-						<FiberCell
-							fiber={row.fiberA}
-							hasPort={row.hasInPort}
-							side="a"
-							colorHex={getColorHex(row.fiberA?.fiber_color)}
-							onDrop={(data) => handlePortDrop(row.portNumber, 'a', data)}
-							onClear={() => handleClearPort(row.portNumber, 'a')}
-						/>
-
-						<!-- Fiber B Cell (OUT) -->
-						<FiberCell
-							fiber={row.fiberB}
-							hasPort={row.hasOutPort}
-							side="b"
-							colorHex={getColorHex(row.fiberB?.fiber_color)}
-							onDrop={(data) => handlePortDrop(row.portNumber, 'b', data)}
-							onClear={() => handleClearPort(row.portNumber, 'b')}
-						/>
+					<!-- Port Number -->
+					<div
+						class="px-3 py-2.5 text-center font-mono text-sm bg-surface-100-900 border-r border-b border-surface-200-800 flex items-center justify-center"
+					>
+						{row.portNumber}
 					</div>
-				{/if}
-			{/each}
+
+					<!-- Fiber A Cell (IN) -->
+					{#if shouldRenderCellA(row)}
+						{#if row.mergeInfoA}
+							<!-- Merged cell spanning multiple rows -->
+							<FiberCell
+								fiber={row.mergeInfoA.fibers?.[0] || null}
+								hasPort={row.hasInPort}
+								side="a"
+								colorHex={getColorHex(row.mergeInfoA.fibers?.[0]?.fiber_color)}
+								isMerged={true}
+								mergedCount={row.mergeInfoA.groupSize}
+								connectedCount={row.mergeInfoA.fiberCount}
+								spanRows={row.mergeInfoA.groupSize}
+								portRange={row.mergeInfoA.portRange}
+								onDrop={(data) => onMergedPortDrop(row.mergeInfoA.groupId, 'a', data)}
+								onClear={() => handleClearPort(row.portNumber, 'a')}
+								onUnmerge={() => onUnmergePorts(row.mergeInfoA.groupId)}
+							/>
+						{:else}
+							<!-- Normal unmerged cell -->
+							<FiberCell
+								fiber={row.fiberA}
+								hasPort={row.hasInPort}
+								side="a"
+								colorHex={getColorHex(row.fiberA?.fiber_color)}
+								onDrop={(data) => handlePortDrop(row.portNumber, 'a', data)}
+								onClear={() => handleClearPort(row.portNumber, 'a')}
+							/>
+						{/if}
+					{/if}
+
+					<!-- Fiber B Cell (OUT) -->
+					{#if shouldRenderCellB(row)}
+						{#if row.mergeInfoB}
+							<!-- Merged cell spanning multiple rows -->
+							<FiberCell
+								fiber={row.mergeInfoB.fibers?.[0] || null}
+								hasPort={row.hasOutPort}
+								side="b"
+								colorHex={getColorHex(row.mergeInfoB.fibers?.[0]?.fiber_color)}
+								isMerged={true}
+								mergedCount={row.mergeInfoB.groupSize}
+								connectedCount={row.mergeInfoB.fiberCount}
+								spanRows={row.mergeInfoB.groupSize}
+								portRange={row.mergeInfoB.portRange}
+								onDrop={(data) => onMergedPortDrop(row.mergeInfoB.groupId, 'b', data)}
+								onClear={() => handleClearPort(row.portNumber, 'b')}
+								onUnmerge={() => onUnmergePorts(row.mergeInfoB.groupId)}
+							/>
+						{:else}
+							<!-- Normal unmerged cell -->
+							<FiberCell
+								fiber={row.fiberB}
+								hasPort={row.hasOutPort}
+								side="b"
+								colorHex={getColorHex(row.fiberB?.fiber_color)}
+								onDrop={(data) => handlePortDrop(row.portNumber, 'b', data)}
+								onClear={() => handleClearPort(row.portNumber, 'b')}
+							/>
+						{/if}
+					{/if}
+				{/each}
+			</div>
 		</div>
 
 		<!-- Merge Action Bar (when ports selected) -->
 		{#if mergeSelectionMode && selectedForMerge.size >= 2}
-			<div class="p-2 border-t border-surface-200-800 bg-surface-200-800 flex justify-end gap-2">
+			<div
+				class="p-2 border-t border-surface-200-800 bg-surface-200-800 flex justify-between items-center gap-2"
+			>
+				<span class="text-xs text-surface-500">
+					{m.form_side?.() || 'Side'}: {mergeSide === 'a' ? 'A (IN)' : 'B (OUT)'}
+				</span>
 				<button type="button" class="btn preset-filled-primary-500 text-sm" onclick={onMergePorts}>
 					<IconArrowMerge size={16} />
 					{m.action_merge?.() || 'Merge'}

@@ -467,6 +467,7 @@
 						onClose={handleClosePortTable}
 						mergeSelectionMode={spliceManager.mergeSelectionMode}
 						selectedForMerge={spliceManager.selectedForMerge}
+						mergeSide={spliceManager.mergeSide}
 						onToggleMergeMode={() => spliceManager.toggleMergeSelectionMode()}
 						onTogglePortSelection={(portNumber, side) =>
 							spliceManager.togglePortSelection(portNumber, side)}
@@ -474,6 +475,7 @@
 						onUnmergePorts={(mergeGroupId) => spliceManager.unmergePorts(mergeGroupId)}
 						onMergedPortDrop={(mergeGroupId, side, data) =>
 							spliceManager.handleMergedPortDrop(mergeGroupId, side, data)}
+						onSetMergeSide={(side) => spliceManager.setMergeSide(side)}
 					/>
 				{/if}
 			</MobileBottomSheet>

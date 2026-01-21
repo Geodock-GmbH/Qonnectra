@@ -3461,6 +3461,61 @@ class FiberSplice(models.Model):
             "Used for asymmetric components like splitters (e.g., 1:8 has 8 OUT ports merged)."
         ),
     )
+    merge_side = models.CharField(
+        _("Merge Side"),
+        max_length=1,
+        choices=[("a", "A (IN)"), ("b", "B (OUT)")],
+        null=True,
+        blank=True,
+        help_text=_("Which side (A/IN or B/OUT) is merged for this port."),
+    )
+
+    # Shared fiber fields for merged port groups
+    # When ports are merged on a side, ONE fiber is shared across all ports in the group
+    shared_fiber_a = models.ForeignKey(
+        Fiber,
+        on_delete=models.CASCADE,
+        verbose_name=_("Shared Fiber A"),
+        db_column="shared_fiber_a",
+        related_name="shared_splices_as_a",
+        null=True,
+        blank=True,
+        help_text=_(
+            "Shared fiber A for merged port groups (one fiber for all ports in group on side A)."
+        ),
+    )
+    shared_cable_a = models.ForeignKey(
+        Cable,
+        on_delete=models.CASCADE,
+        verbose_name=_("Shared Cable A"),
+        db_column="shared_cable_a",
+        related_name="shared_fiber_splices_as_a",
+        null=True,
+        blank=True,
+        help_text=_("The cable of shared fiber A (denormalized for CASCADE delete)."),
+    )
+    shared_fiber_b = models.ForeignKey(
+        Fiber,
+        on_delete=models.CASCADE,
+        verbose_name=_("Shared Fiber B"),
+        db_column="shared_fiber_b",
+        related_name="shared_splices_as_b",
+        null=True,
+        blank=True,
+        help_text=_(
+            "Shared fiber B for merged port groups (one fiber for all ports in group on side B)."
+        ),
+    )
+    shared_cable_b = models.ForeignKey(
+        Cable,
+        on_delete=models.CASCADE,
+        verbose_name=_("Shared Cable B"),
+        db_column="shared_cable_b",
+        related_name="shared_fiber_splices_as_b",
+        null=True,
+        blank=True,
+        help_text=_("The cable of shared fiber B (denormalized for CASCADE delete)."),
+    )
 
     class Meta:
         db_table = "fiber_splice"
@@ -3476,6 +3531,12 @@ class FiberSplice(models.Model):
             models.Index(fields=["cable_a"], name="idx_fiber_splice_cable_a"),
             models.Index(fields=["cable_b"], name="idx_fiber_splice_cable_b"),
             models.Index(fields=["merge_group"], name="idx_fiber_splice_merge_grp"),
+            models.Index(
+                fields=["shared_fiber_a"], name="idx_fiber_splice_shrd_fib_a"
+            ),
+            models.Index(
+                fields=["shared_fiber_b"], name="idx_fiber_splice_shrd_fib_b"
+            ),
         ]
         constraints = [
             # Each port in a node structure can only have one splice record

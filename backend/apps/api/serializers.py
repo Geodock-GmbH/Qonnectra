@@ -1617,7 +1617,13 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
             "fiber_a_details",
             "fiber_b_details",
             "merge_group",
+            "merge_side",
             "merge_group_info",
+            # Shared fiber fields (for merged port groups)
+            "shared_fiber_a",
+            "shared_cable_a",
+            "shared_fiber_b",
+            "shared_cable_b",
         ]
 
     def _get_fiber_details(self, fiber, cable):
@@ -1635,9 +1641,21 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
         }
 
     def get_fiber_a_details(self, obj):
+        """
+        Get fiber A details.
+        If port is merged on side A, use shared_fiber_a instead of individual fiber_a.
+        """
+        if obj.merge_side == "a" and obj.shared_fiber_a:
+            return self._get_fiber_details(obj.shared_fiber_a, obj.shared_cable_a)
         return self._get_fiber_details(obj.fiber_a, obj.cable_a)
 
     def get_fiber_b_details(self, obj):
+        """
+        Get fiber B details.
+        If port is merged on side B, use shared_fiber_b instead of individual fiber_b.
+        """
+        if obj.merge_side == "b" and obj.shared_fiber_b:
+            return self._get_fiber_details(obj.shared_fiber_b, obj.shared_cable_b)
         return self._get_fiber_details(obj.fiber_b, obj.cable_b)
 
     def get_merge_group_info(self, obj):
@@ -1657,6 +1675,7 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
 
         return {
             "merge_group_id": str(obj.merge_group),
+            "side": obj.merge_side,
             "port_numbers": siblings,
             "port_count": len(siblings),
             "port_range": f"{min(siblings)}-{max(siblings)}" if len(siblings) > 1 else str(siblings[0]),
@@ -1673,9 +1692,8 @@ class PortMergeSerializer(serializers.Serializer):
         help_text="List of port numbers to merge (minimum 2)",
     )
     side = serializers.ChoiceField(
-        choices=["a", "b", "both"],
-        default="both",
-        help_text="Which side to apply merge: 'a' (IN), 'b' (OUT), or 'both'",
+        choices=["a", "b"],
+        help_text="Which side to merge: 'a' (IN) or 'b' (OUT)",
     )
 
 

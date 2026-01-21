@@ -1,6 +1,7 @@
 import logging
 import mimetypes
 import os
+import uuid
 from urllib.parse import quote
 
 from django.conf import settings
@@ -3715,6 +3716,9 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
         """
         Create or update a fiber splice connection.
         Specify which side ('a' or 'b') the fiber should be placed on.
+
+        If the port is part of a merge group AND the drop is on the merged side,
+        the fiber becomes a SHARED fiber for all ports in the group.
         """
         node_structure_uuid = request.data.get("node_structure")
         port_number = request.data.get("port_number")
@@ -3748,15 +3752,28 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
             port_number=port_number,
         )
 
-        # Update the appropriate side
-        if side == "a":
-            splice.fiber_a_id = fiber_uuid
-            splice.cable_a_id = cable_uuid
-        else:
-            splice.fiber_b_id = fiber_uuid
-            splice.cable_b_id = cable_uuid
+        # Check if this port is merged on this side
+        is_merged_on_this_side = splice.merge_group and splice.merge_side == side
 
-        splice.save()
+        if is_merged_on_this_side:
+            # Set SHARED fiber for ALL ports in the merge group
+            FiberSplice.objects.filter(merge_group=splice.merge_group).update(
+                **{
+                    f"shared_fiber_{side}_id": fiber_uuid,
+                    f"shared_cable_{side}_id": cable_uuid,
+                }
+            )
+            # Re-fetch the splice to get updated data
+            splice.refresh_from_db()
+        else:
+            # Set individual fiber (non-merged side or not in a merge group)
+            if side == "a":
+                splice.fiber_a_id = fiber_uuid
+                splice.cable_a_id = cable_uuid
+            else:
+                splice.fiber_b_id = fiber_uuid
+                splice.cable_b_id = cable_uuid
+            splice.save()
 
         serializer = self.get_serializer(splice)
         return Response(
@@ -3768,7 +3785,10 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
     def clear_port(self, request):
         """
         Clear a fiber from a specific side of a port.
-        If both sides become empty, delete the splice record.
+        If both sides become empty AND not in a merge group, delete the splice record.
+
+        If the port is merged on this side, clears the SHARED fiber for all ports
+        in the merge group, but keeps the merge group structure intact.
         """
         node_structure_uuid = request.data.get("node_structure")
         port_number = request.data.get("port_number")
@@ -3802,27 +3822,54 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
         except FiberSplice.DoesNotExist:
             return Response({"deleted": False, "message": "No splice found"})
 
-        # Clear the appropriate side
-        if side == "a":
-            splice.fiber_a = None
-            splice.cable_a = None
+        # Check if this port is merged on this side
+        is_merged_on_this_side = splice.merge_group and splice.merge_side == side
+
+        if is_merged_on_this_side:
+            # Clear SHARED fiber for ALL ports in the merge group
+            # Keep the merge group structure intact
+            FiberSplice.objects.filter(merge_group=splice.merge_group).update(
+                **{
+                    f"shared_fiber_{side}": None,
+                    f"shared_cable_{side}": None,
+                }
+            )
+            return Response({
+                "deleted": True,
+                "message": f"Shared fiber cleared from merge group on side {side}",
+                "merge_group_preserved": True
+            })
         else:
-            splice.fiber_b = None
-            splice.cable_b = None
+            # Clear individual fiber on this side
+            if side == "a":
+                splice.fiber_a = None
+                splice.cable_a = None
+            else:
+                splice.fiber_b = None
+                splice.cable_b = None
 
-        # If both sides are empty, delete the record
-        if splice.fiber_a is None and splice.fiber_b is None:
-            splice.delete()
-            return Response({"deleted": True, "message": "Splice record deleted"})
+            # Check if we should delete the record
+            # Only delete if: both sides empty, no shared fibers, and not in a merge group
+            both_sides_empty = splice.fiber_a is None and splice.fiber_b is None
+            no_shared_fibers = splice.shared_fiber_a is None and splice.shared_fiber_b is None
+            not_in_merge = not splice.merge_group
 
-        splice.save()
-        return Response({"deleted": True, "message": f"Fiber cleared from side {side}"})
+            if both_sides_empty and no_shared_fibers and not_in_merge:
+                splice.delete()
+                return Response({"deleted": True, "message": "Splice record deleted"})
+
+            splice.save()
+            return Response({"deleted": True, "message": f"Fiber cleared from side {side}"})
 
     @action(detail=False, methods=["post"], url_path="merge-ports")
     def merge_ports(self, request):
         """
-        Merge multiple ports into a group.
+        Merge multiple ports into a group for a specific side (A or B).
         Creates a new merge_group UUID and assigns it to specified ports.
+
+        If any port has an existing fiber on the merged side, it becomes the
+        SHARED fiber for all ports in the group. Individual fibers on the
+        merged side are cleared.
         """
         from .serializers import PortMergeSerializer
 
@@ -3831,6 +3878,7 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
 
         node_structure_uuid = serializer.validated_data["node_structure"]
         port_numbers = serializer.validated_data["port_numbers"]
+        side = serializer.validated_data["side"]
 
         try:
             node_structure = NodeStructure.objects.get(uuid=node_structure_uuid)
@@ -3845,18 +3893,56 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
 
         # Get or create splice records for each port
         splices = []
+        existing_fiber = None
+        existing_cable = None
+
         for port_num in port_numbers:
             splice, created = FiberSplice.objects.get_or_create(
                 node_structure=node_structure,
                 port_number=port_num,
             )
+            # Check if this port has an existing fiber on the merge side
+            # Use the first one we find as the shared fiber
+            if existing_fiber is None:
+                if side == "a" and splice.fiber_a:
+                    existing_fiber = splice.fiber_a
+                    existing_cable = splice.cable_a
+                elif side == "b" and splice.fiber_b:
+                    existing_fiber = splice.fiber_b
+                    existing_cable = splice.cable_b
+
             splice.merge_group = merge_group_id
-            splice.save()
+            splice.merge_side = side
             splices.append(splice)
+
+        # If we found an existing fiber, make it the shared fiber for all ports
+        # Also clear individual fibers on the merged side
+        for splice in splices:
+            if existing_fiber:
+                if side == "a":
+                    splice.shared_fiber_a = existing_fiber
+                    splice.shared_cable_a = existing_cable
+                    splice.fiber_a = None
+                    splice.cable_a = None
+                else:
+                    splice.shared_fiber_b = existing_fiber
+                    splice.shared_cable_b = existing_cable
+                    splice.fiber_b = None
+                    splice.cable_b = None
+            else:
+                # No existing fiber, just clear individual fibers on merged side
+                if side == "a":
+                    splice.fiber_a = None
+                    splice.cable_a = None
+                else:
+                    splice.fiber_b = None
+                    splice.cable_b = None
+            splice.save()
 
         return Response(
             {
                 "merge_group": str(merge_group_id),
+                "side": side,
                 "port_numbers": port_numbers,
                 "splices": FiberSpliceSerializer(splices, many=True).data,
             }
@@ -3868,6 +3954,9 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
         Remove specific ports from a merge group.
         Sets merge_group to NULL for specified ports.
         If only one port remains in group, unmerges that one too.
+
+        When unmerging, converts the shared fiber back to an individual fiber
+        on the first unmerged port, then clears shared fibers.
         """
         from .serializers import PortUnmergeSerializer
 
@@ -3886,16 +3975,66 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        # Get the first splice to determine the merge_side and shared fiber
+        first_splice = group_splices.first()
+        merge_side = first_splice.merge_side
+
+        # Get the shared fiber (if any) to convert back to individual
+        shared_fiber = None
+        shared_cable = None
+        if merge_side == "a":
+            shared_fiber = first_splice.shared_fiber_a
+            shared_cable = first_splice.shared_cable_a
+        elif merge_side == "b":
+            shared_fiber = first_splice.shared_fiber_b
+            shared_cable = first_splice.shared_cable_b
+
         # Unmerge specified ports
-        unmerged = group_splices.filter(port_number__in=port_numbers)
-        unmerged.update(merge_group=None)
+        unmerged_splices = list(group_splices.filter(port_number__in=port_numbers))
+
+        # Convert shared fiber to individual fiber on the first unmerged port
+        if shared_fiber and unmerged_splices:
+            first_unmerged = unmerged_splices[0]
+            if merge_side == "a":
+                first_unmerged.fiber_a = shared_fiber
+                first_unmerged.cable_a = shared_cable
+            else:
+                first_unmerged.fiber_b = shared_fiber
+                first_unmerged.cable_b = shared_cable
+
+        # Clear merge info and shared fibers on all unmerged ports
+        for splice in unmerged_splices:
+            splice.merge_group = None
+            splice.merge_side = None
+            splice.shared_fiber_a = None
+            splice.shared_cable_a = None
+            splice.shared_fiber_b = None
+            splice.shared_cable_b = None
+            splice.save()
 
         # Check remaining ports in group
         remaining = group_splices.exclude(port_number__in=port_numbers)
         remaining_count = remaining.count()
+
         if remaining_count == 1:
             # Only one port left, unmerge it too (can't have a group of 1)
-            remaining.update(merge_group=None)
+            remaining_splice = remaining.first()
+
+            # Convert shared fiber to individual for the last remaining port
+            if merge_side == "a" and remaining_splice.shared_fiber_a:
+                remaining_splice.fiber_a = remaining_splice.shared_fiber_a
+                remaining_splice.cable_a = remaining_splice.shared_cable_a
+            elif merge_side == "b" and remaining_splice.shared_fiber_b:
+                remaining_splice.fiber_b = remaining_splice.shared_fiber_b
+                remaining_splice.cable_b = remaining_splice.shared_cable_b
+
+            remaining_splice.merge_group = None
+            remaining_splice.merge_side = None
+            remaining_splice.shared_fiber_a = None
+            remaining_splice.shared_cable_a = None
+            remaining_splice.shared_fiber_b = None
+            remaining_splice.shared_cable_b = None
+            remaining_splice.save()
             remaining_count = 0
 
         return Response(
@@ -3908,8 +4047,13 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["post"], url_path="upsert-merged")
     def upsert_merged(self, request):
         """
-        Upsert fibers to a merge group - assigns fibers to all ports in the group.
-        Used when dropping a bundle onto a merged port group.
+        Upsert fibers to a merge group.
+
+        Behavior depends on which side is being targeted:
+        - If dropping on the MERGED side: Use the FIRST fiber as the shared fiber
+          for all ports in the group (splitter input behavior)
+        - If dropping on the NON-MERGED side: Fill individual fibers sequentially
+          across ports (splitter outputs behavior)
         """
         merge_group = request.data.get("merge_group")
         side = request.data.get("side")  # 'a' or 'b'
@@ -3928,36 +4072,61 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
             )
 
         # Get all splices in this merge group, ordered by port number
-        splices = FiberSplice.objects.filter(merge_group=merge_group).order_by(
-            "port_number"
+        splices = list(
+            FiberSplice.objects.filter(merge_group=merge_group).order_by("port_number")
         )
 
-        if not splices.exists():
+        if not splices:
             return Response(
                 {"error": "Merge group not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # Assign fibers to ports in order
-        updated_splices = []
-        for i, splice in enumerate(splices):
-            if i < len(fibers):
-                fiber_data = fibers[i]
-                if side == "a":
-                    splice.fiber_a_id = fiber_data["uuid"]
-                    splice.cable_a_id = fiber_data["cable_uuid"]
-                else:
-                    splice.fiber_b_id = fiber_data["uuid"]
-                    splice.cable_b_id = fiber_data["cable_uuid"]
-                splice.save()
-                updated_splices.append(splice)
+        # Determine if this side is the merged side
+        merge_side = splices[0].merge_side
+        is_merged_side = merge_side == side
 
-        return Response(
-            {
-                "updated_count": len(updated_splices),
-                "splices": FiberSpliceSerializer(updated_splices, many=True).data,
-            }
-        )
+        if is_merged_side:
+            # Dropping on MERGED side: Use FIRST fiber as shared fiber for ALL ports
+            first_fiber = fibers[0]
+            for splice in splices:
+                if side == "a":
+                    splice.shared_fiber_a_id = first_fiber["uuid"]
+                    splice.shared_cable_a_id = first_fiber["cable_uuid"]
+                else:
+                    splice.shared_fiber_b_id = first_fiber["uuid"]
+                    splice.shared_cable_b_id = first_fiber["cable_uuid"]
+                splice.save()
+
+            return Response(
+                {
+                    "updated_count": len(splices),
+                    "mode": "shared_fiber",
+                    "splices": FiberSpliceSerializer(splices, many=True).data,
+                }
+            )
+        else:
+            # Dropping on NON-MERGED side: Fill individual fibers sequentially
+            updated_splices = []
+            for i, splice in enumerate(splices):
+                if i < len(fibers):
+                    fiber_data = fibers[i]
+                    if side == "a":
+                        splice.fiber_a_id = fiber_data["uuid"]
+                        splice.cable_a_id = fiber_data["cable_uuid"]
+                    else:
+                        splice.fiber_b_id = fiber_data["uuid"]
+                        splice.cable_b_id = fiber_data["cable_uuid"]
+                    splice.save()
+                    updated_splices.append(splice)
+
+            return Response(
+                {
+                    "updated_count": len(updated_splices),
+                    "mode": "individual_fibers",
+                    "splices": FiberSpliceSerializer(updated_splices, many=True).data,
+                }
+            )
 
 
 class ContainerTypeViewSet(viewsets.ReadOnlyModelViewSet):
