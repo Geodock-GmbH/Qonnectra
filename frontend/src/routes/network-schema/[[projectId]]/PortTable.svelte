@@ -255,6 +255,8 @@
 								fiber={row.mergeInfoA.fibers?.[0] || null}
 								hasPort={row.hasInPort}
 								side="a"
+								portNumber={row.portNumber}
+								cableUuid={row.mergeInfoA.fibers?.[0]?.cable_uuid}
 								colorHex={getColorHex(row.mergeInfoA.fibers?.[0]?.fiber_color)}
 								isMerged={true}
 								mergedCount={row.mergeInfoA.groupSize}
@@ -271,6 +273,8 @@
 								fiber={row.fiberA}
 								hasPort={row.hasInPort}
 								side="a"
+								portNumber={row.portNumber}
+								cableUuid={row.fiberA?.cable_uuid}
 								colorHex={getColorHex(row.fiberA?.fiber_color)}
 								onDrop={(data) => handlePortDrop(row.portNumber, 'a', data)}
 								onClear={() => handleClearPort(row.portNumber, 'a')}
@@ -286,6 +290,8 @@
 								fiber={row.mergeInfoB.fibers?.[0] || null}
 								hasPort={row.hasOutPort}
 								side="b"
+								portNumber={row.portNumber}
+								cableUuid={row.mergeInfoB.fibers?.[0]?.cable_uuid}
 								colorHex={getColorHex(row.mergeInfoB.fibers?.[0]?.fiber_color)}
 								isMerged={true}
 								mergedCount={row.mergeInfoB.groupSize}
@@ -302,6 +308,8 @@
 								fiber={row.fiberB}
 								hasPort={row.hasOutPort}
 								side="b"
+								portNumber={row.portNumber}
+								cableUuid={row.fiberB?.cable_uuid}
 								colorHex={getColorHex(row.fiberB?.fiber_color)}
 								onDrop={(data) => handlePortDrop(row.portNumber, 'b', data)}
 								onClear={() => handleClearPort(row.portNumber, 'b')}

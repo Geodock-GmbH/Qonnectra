@@ -8,6 +8,8 @@
 		hasPort = true,
 		side = 'a',
 		colorHex = '#999999',
+		portNumber = 0,
+		cableUuid = null,
 		onDrop = () => {},
 		onClear = () => {},
 		onUnmerge = () => {},
@@ -21,6 +23,7 @@
 	} = $props();
 
 	let isDragOver = $state(false);
+	let isDragging = $state(false);
 
 	// Color accent based on side
 	const accentClasses = $derived(
@@ -39,10 +42,44 @@
 				}
 	);
 
+	function handleDragStart(e) {
+		if (!fiber || !hasPort || isMerged) return;
+
+		isDragging = true;
+
+		// Create drag data with fiber info and source location
+		const dragData = {
+			type: 'fiber',
+			uuid: fiber.uuid,
+			cable_uuid: cableUuid || fiber.cable_uuid,
+			cable_name: fiber.cable_name,
+			fiber_number: fiber.fiber_number,
+			fiber_color: fiber.fiber_color,
+			bundle_number: fiber.bundle_number,
+			// Source info for move operation
+			sourcePortNumber: portNumber,
+			sourceSide: side,
+			isMove: true
+		};
+
+		e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+		e.dataTransfer.effectAllowed = 'move';
+	}
+
+	function handleDragEnd() {
+		isDragging = false;
+	}
+
 	function handleDragOver(e) {
 		if (!hasPort) return;
 		e.preventDefault();
-		e.dataTransfer.dropEffect = 'copy';
+		e.stopPropagation();
+		// Accept both copy (external drops) and move (internal reorder)
+		if (e.dataTransfer.effectAllowed === 'move') {
+			e.dataTransfer.dropEffect = 'move';
+		} else {
+			e.dataTransfer.dropEffect = 'copy';
+		}
 		isDragOver = true;
 	}
 
@@ -53,6 +90,7 @@
 	function handleDrop(e) {
 		if (!hasPort) return;
 		e.preventDefault();
+		e.stopPropagation();
 		isDragOver = false;
 
 		const jsonData = e.dataTransfer.getData('application/json');
@@ -82,8 +120,18 @@
 	role={hasPort ? 'button' : 'presentation'}
 >
 	{#if fiber}
-		<!-- Connected Fiber Display -->
-		<div class="flex items-center gap-2 group w-full">
+		<!-- Connected Fiber Display - draggable for move operations, also accepts drops for override -->
+		<div
+			class="flex items-center gap-2 group w-full {!isMerged ? 'cursor-grab active:cursor-grabbing' : ''} {isDragging ? 'opacity-50' : ''}"
+			draggable={!isMerged}
+			ondragstart={handleDragStart}
+			ondragend={handleDragEnd}
+			ondragover={handleDragOver}
+			ondragleave={handleDragLeave}
+			ondrop={handleDrop}
+			role="button"
+			tabindex="0"
+		>
 			<span
 				class="w-4 h-4 rounded-full border-2 border-white shadow-sm flex-shrink-0"
 				style="background-color: {colorHex}"

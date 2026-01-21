@@ -24,6 +24,9 @@ export class FiberSpliceManager {
 	/** @type {boolean} */
 	loadingPorts = $state(false);
 
+	/** @type {boolean} - Whether a bulk operation (cable/bundle drop) is in progress */
+	bulkOperationInProgress = $state(false);
+
 	/** @type {Set<string>} - Currently selected port keys for merging (format: "portNumber-side") */
 	selectedForMerge = $state(new Set());
 
@@ -168,6 +171,16 @@ export class FiberSpliceManager {
 	 * @returns {Promise<boolean>} - True if structure was selected (vs deselected)
 	 */
 	async selectStructure(structure, isMobile = false) {
+		// Don't allow switching while a bulk operation is in progress
+		if (this.bulkOperationInProgress) {
+			globalToaster.warning({
+				title: m.common_warning?.() || 'Warning',
+				description:
+					m.message_operation_in_progress?.() || 'Please wait for the current operation to complete'
+			});
+			return false;
+		}
+
 		if (this.selectedStructure?.uuid === structure?.uuid) {
 			this.selectedStructure = null;
 			this.componentPorts = [];
@@ -284,6 +297,16 @@ export class FiberSpliceManager {
 	 */
 	async handlePortDrop(portNumber, side, dropData, allStructures = []) {
 		if (dropData.type === 'fiber') {
+			// Check if this is a move operation (drag from another port)
+			if (dropData.isMove && dropData.sourcePortNumber && dropData.sourceSide) {
+				return this.handleFiberMove(
+					dropData.sourcePortNumber,
+					dropData.sourceSide,
+					portNumber,
+					side,
+					dropData
+				);
+			}
 			return this.handleSingleFiberDrop(portNumber, side, dropData);
 		} else if (dropData.type === 'bundle') {
 			return this.handleBundleDrop(portNumber, side, dropData);
@@ -296,6 +319,32 @@ export class FiberSpliceManager {
 			description: m.message_unsupported_drop_type?.() || 'Unsupported drop type'
 		});
 		return false;
+	}
+
+	/**
+	 * Handle moving a fiber from one port to another
+	 * @param {number} sourcePort - Source port number
+	 * @param {'a'|'b'} sourceSide - Source side
+	 * @param {number} targetPort - Target port number
+	 * @param {'a'|'b'} targetSide - Target side
+	 * @param {Object} fiberData - Fiber data
+	 * @returns {Promise<boolean>} - True if successful
+	 */
+	async handleFiberMove(sourcePort, sourceSide, targetPort, targetSide, fiberData) {
+		// Don't do anything if dropping on the same cell
+		if (sourcePort === targetPort && sourceSide === targetSide) {
+			return false;
+		}
+
+		// First, place the fiber in the target port
+		const success = await this.handleSingleFiberDrop(targetPort, targetSide, fiberData);
+
+		if (success) {
+			// Then clear the source port
+			await this.handleClearPort(sourcePort, sourceSide);
+		}
+
+		return success;
 	}
 
 	/**
@@ -470,6 +519,7 @@ export class FiberSpliceManager {
 			return false;
 		}
 
+		this.bulkOperationInProgress = true;
 		const previousSplices = [...this.fiberSplices];
 		let successCount = 0;
 		let errorOccurred = false;
@@ -548,6 +598,8 @@ export class FiberSpliceManager {
 				break; // Stop on first error
 			}
 		}
+
+		this.bulkOperationInProgress = false;
 
 		// Show result toast
 		if (errorOccurred && successCount === 0) {
@@ -637,6 +689,8 @@ export class FiberSpliceManager {
 			return false;
 		}
 
+		this.bulkOperationInProgress = true;
+
 		// Sort fibers by bundle then by fiber number (to fill sequentially)
 		const sortedFibers = [...fibers].sort((a, b) => {
 			if (a.bundle_number !== b.bundle_number) {
@@ -704,10 +758,21 @@ export class FiberSpliceManager {
 			if (availablePorts.length === 0) continue;
 
 			let structureSuccessCount = 0;
+			const processedMergeGroups = new Set(); // Track merge groups we've already handled
 
 			// Fill available ports with fibers
 			for (const portNumber of availablePorts) {
 				if (fiberIndex >= sortedFibers.length) break;
+
+				// Check if this port is part of a merge group on this side
+				const mergeGroupField = `merge_group_${side}`;
+				const existingSplice = splices.find((s) => s.port_number === portNumber);
+				const mergeGroupId = existingSplice?.[mergeGroupField];
+
+				// Skip if we already processed this merge group
+				if (mergeGroupId && processedMergeGroups.has(mergeGroupId)) {
+					continue;
+				}
 
 				const fiber = sortedFibers[fiberIndex];
 
@@ -746,6 +811,11 @@ export class FiberSpliceManager {
 						}
 					}
 
+					// Mark this merge group as processed so we skip other ports in it
+					if (mergeGroupId) {
+						processedMergeGroups.add(mergeGroupId);
+					}
+
 					totalSuccessCount++;
 					structureSuccessCount++;
 					fiberIndex++;
@@ -765,6 +835,7 @@ export class FiberSpliceManager {
 
 		// Show result toast
 		if (errorOccurred && totalSuccessCount === 0) {
+			this.bulkOperationInProgress = false;
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_connecting_fiber?.() || 'Failed to connect fibers'
@@ -793,6 +864,7 @@ export class FiberSpliceManager {
 			});
 		}
 
+		this.bulkOperationInProgress = false;
 		return totalSuccessCount > 0;
 	}
 
@@ -1180,6 +1252,16 @@ export class FiberSpliceManager {
 		if (dropData.type === 'fiber') {
 			const firstPort = groupSplice?.[mergeGroupInfoField]?.port_numbers?.[0];
 			if (firstPort) {
+				// Check if this is a move operation (drag from another port)
+				if (dropData.isMove && dropData.sourcePortNumber && dropData.sourceSide) {
+					return this.handleFiberMove(
+						dropData.sourcePortNumber,
+						dropData.sourceSide,
+						firstPort,
+						side,
+						dropData
+					);
+				}
 				return this.handleSingleFiberDrop(firstPort, side, dropData);
 			}
 			return false;
