@@ -1625,6 +1625,8 @@ class Node(models.Model):
             models.Index(fields=["canvas_x"], name="idx_node_canvas_x"),
             models.Index(fields=["canvas_y"], name="idx_node_canvas_y"),
             gis_models.Index(fields=["geom"], name="idx_node_geom"),
+            models.Index(fields=["flag"], name="idx_node_flag"),
+            models.Index(fields=["project", "flag"], name="idx_node_project_flag"),
         ]
         constraints = [
             models.UniqueConstraint(
@@ -2286,6 +2288,7 @@ class Cable(models.Model):
             models.Index(fields=["diagram_path"], name="idx_cable_diagram_path"),
             models.Index(fields=["project"], name="idx_cable_project"),
             models.Index(fields=["flag"], name="idx_cable_flag"),
+            models.Index(fields=["project", "flag"], name="idx_cable_project_flag"),
         ]
         constraints = [
             models.UniqueConstraint(

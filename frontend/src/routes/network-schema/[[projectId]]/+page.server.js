@@ -72,6 +72,35 @@ export async function load({ fetch, cookies, url, params }) {
 	}
 
 	try {
+		// Start fetching attribute data immediately (these don't depend on sync)
+		const attributesFetchPromise = Promise.all([
+			fetch(`${API_URL}attributes_cable_type/`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}attributes_node_type/`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}attributes_status/`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}attributes_network_level/`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}attributes_company/`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}flags/`, {
+				credentials: 'include',
+				headers: headers
+			})
+		]);
+
+		// Handle sync status check and potential sync operation
 		let syncStatus = null;
 
 		const syncStatusResponse = await fetch(
@@ -113,17 +142,22 @@ export async function load({ fetch, cookies, url, params }) {
 			}
 		}
 
+		// Fetch project-specific data (nodes, cables, labels) after sync completes
+		// and await the already-started attributes fetch
 		const [
+			[
+				cableTypeResponse,
+				nodeTypeResponse,
+				statusResponse,
+				networkLevelResponse,
+				companyResponse,
+				flagsResponse
+			],
 			nodeResponse,
 			cableResponse,
-			cableLabelResponse,
-			cableTypeResponse,
-			nodeTypeResponse,
-			statusResponse,
-			networkLevelResponse,
-			companyResponse,
-			flagsResponse
+			cableLabelResponse
 		] = await Promise.all([
+			attributesFetchPromise,
 			fetch(`${API_URL}node/all/?project=${projectId}`, {
 				credentials: 'include',
 				headers: headers
@@ -133,30 +167,6 @@ export async function load({ fetch, cookies, url, params }) {
 				headers: headers
 			}),
 			fetch(`${API_URL}cable_label/all/?project=${projectId}`, {
-				credentials: 'include',
-				headers: headers
-			}),
-			fetch(`${API_URL}attributes_cable_type/`, {
-				credentials: 'include',
-				headers: headers
-			}),
-			fetch(`${API_URL}attributes_node_type/`, {
-				credentials: 'include',
-				headers: headers
-			}),
-			fetch(`${API_URL}attributes_status/`, {
-				credentials: 'include',
-				headers: headers
-			}),
-			fetch(`${API_URL}attributes_network_level/`, {
-				credentials: 'include',
-				headers: headers
-			}),
-			fetch(`${API_URL}attributes_company/`, {
-				credentials: 'include',
-				headers: headers
-			}),
-			fetch(`${API_URL}flags/`, {
 				credentials: 'include',
 				headers: headers
 			})

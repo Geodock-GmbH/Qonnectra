@@ -507,7 +507,16 @@ class TrenchViewSet(viewsets.ModelViewSet):
         Returns all trenches with project, flag, and search filters.
         No pagination is used.
         """
-        queryset = Trench.objects.all().order_by("id_trench")
+        queryset = Trench.objects.select_related(
+            "surface",
+            "construction_type",
+            "status",
+            "phase",
+            "owner",
+            "constructor",
+            "project",
+            "flag",
+        ).order_by("id_trench")
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
         search_term = request.query_params.get("search")
@@ -1194,7 +1203,16 @@ class ConduitViewSet(viewsets.ModelViewSet):
         Returns all conduits with project and flag filters.
         No pagination is used.
         """
-        queryset = Conduit.objects.all().order_by("name")
+        queryset = Conduit.objects.select_related(
+            "conduit_type",
+            "status",
+            "network_level",
+            "owner",
+            "constructor",
+            "manufacturer",
+            "project",
+            "flag",
+        ).order_by("name")
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
         search_term = request.query_params.get("search")
@@ -1393,9 +1411,11 @@ class AddressViewSet(viewsets.ModelViewSet):
         Returns all addresses with project and flag filters.
         No pagination is used.
         """
-        queryset = Address.objects.all().order_by(
-            "street", "housenumber", "house_number_suffix"
-        )
+        queryset = Address.objects.select_related(
+            "status_development",
+            "flag",
+            "project",
+        ).order_by("street", "housenumber", "house_number_suffix")
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
         search_term = request.query_params.get("search")
@@ -1686,7 +1706,17 @@ class NodeViewSet(viewsets.ModelViewSet):
         If project settings are configured, excluded node types are automatically
         filtered out unless an explicit exclude_group parameter is provided.
         """
-        queryset = Node.objects.all().order_by("name")
+        queryset = Node.objects.select_related(
+            "node_type",
+            "uuid_address",
+            "status",
+            "network_level",
+            "owner",
+            "constructor",
+            "manufacturer",
+            "project",
+            "flag",
+        ).order_by("name")
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
         group = request.query_params.get("group")
@@ -1965,28 +1995,30 @@ class NodeCanvasCoordinatesView(APIView):
             sync_status.center_y = center_y
             sync_status.save()
 
-            # Update nodes with canvas coordinates in batches
-            updated_count = 0
-            batch_size = 100
+            # Update nodes with canvas coordinates using bulk_update
+            batch_size = 500
+            nodes_to_update = []
 
-            for i, coord_data in enumerate(coordinates):
+            for coord_data in coordinates:
                 node = coord_data["node"]
                 geo_x = coord_data["x"]
                 geo_y = coord_data["y"]
 
                 # Transform to canvas coordinates
-                canvas_x = (geo_x - center_x) * scale
-                canvas_y = -(geo_y - center_y) * scale  # Flip Y axis
+                node.canvas_x = (geo_x - center_x) * scale
+                node.canvas_y = -(geo_y - center_y) * scale  # Flip Y axis
+                nodes_to_update.append(node)
 
-                node.canvas_x = canvas_x
-                node.canvas_y = canvas_y
-                node.save(update_fields=["canvas_x", "canvas_y"])
-                updated_count += 1
+            # Perform bulk update in batches
+            updated_count = 0
+            for i in range(0, len(nodes_to_update), batch_size):
+                batch = nodes_to_update[i : i + batch_size]
+                Node.objects.bulk_update(batch, ["canvas_x", "canvas_y"])
+                updated_count += len(batch)
 
-                # Update progress and heartbeat every batch
-                if (i + 1) % batch_size == 0:
-                    sync_status.nodes_processed = updated_count
-                    sync_status.update_heartbeat()
+                # Update progress and heartbeat after each batch
+                sync_status.nodes_processed = updated_count
+                sync_status.update_heartbeat()
 
             # Mark sync as completed
             sync_status.status = "COMPLETED"
@@ -2660,7 +2692,18 @@ class CableViewSet(viewsets.ModelViewSet):
         Returns all cables with project, flag, and search filters.
         No pagination is used.
         """
-        queryset = Cable.objects.all().order_by("name")
+        queryset = Cable.objects.select_related(
+            "cable_type",
+            "status",
+            "network_level",
+            "owner",
+            "constructor",
+            "manufacturer",
+            "project",
+            "flag",
+            "uuid_node_start",
+            "uuid_node_end",
+        ).order_by("name")
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
         name = request.query_params.get("name")
