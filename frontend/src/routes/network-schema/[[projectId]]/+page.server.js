@@ -2012,5 +2012,126 @@ export const actions = {
 			console.error('Error clearing fiber splice:', err);
 			return fail(500, { error: 'Internal server error' });
 		}
+	},
+	mergePorts: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeStructureUuid = formData.get('nodeStructureUuid');
+			const portNumbers = JSON.parse(formData.get('portNumbers') || '[]');
+			const side = formData.get('side') || 'both';
+
+			if (!nodeStructureUuid || portNumbers.length < 2) {
+				return fail(400, {
+					error: 'Missing required fields: nodeStructureUuid and at least 2 port numbers'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}fiber-splice/merge-ports/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					node_structure: nodeStructureUuid,
+					port_numbers: portNumbers,
+					side: side
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to merge ports'
+				});
+			}
+
+			const result = await response.json();
+			return { success: true, ...result };
+		} catch (err) {
+			console.error('Error merging ports:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	unmergePorts: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const mergeGroup = formData.get('mergeGroup');
+			const portNumbers = JSON.parse(formData.get('portNumbers') || '[]');
+
+			if (!mergeGroup || portNumbers.length < 1) {
+				return fail(400, {
+					error: 'Missing required fields: mergeGroup and at least 1 port number'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}fiber-splice/unmerge-ports/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					merge_group: mergeGroup,
+					port_numbers: portNumbers
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to unmerge ports'
+				});
+			}
+
+			const result = await response.json();
+			return { success: true, ...result };
+		} catch (err) {
+			console.error('Error unmerging ports:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	upsertMergedSplice: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const mergeGroup = formData.get('mergeGroup');
+			const side = formData.get('side');
+			const fibers = JSON.parse(formData.get('fibers') || '[]');
+
+			if (!mergeGroup || !side || fibers.length === 0) {
+				return fail(400, {
+					error: 'Missing required fields: mergeGroup, side, and fibers'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}fiber-splice/upsert-merged/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					merge_group: mergeGroup,
+					side: side,
+					fibers: fibers
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to connect fibers to merged ports'
+				});
+			}
+
+			const result = await response.json();
+			return { success: true, ...result };
+		} catch (err) {
+			console.error('Error upserting merged splice:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
 	}
 };

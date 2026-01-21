@@ -24,6 +24,12 @@ export class FiberSpliceManager {
 	/** @type {boolean} */
 	loadingPorts = $state(false);
 
+	/** @type {Set<string>} - Currently selected port keys for merging (format: "portNumber-side") */
+	selectedForMerge = $state(new Set());
+
+	/** @type {boolean} - Whether merge selection mode is active */
+	mergeSelectionMode = $state(false);
+
 	/**
 	 * Get port rows for rendering the port table
 	 * @returns {Array<Object>}
@@ -50,10 +56,68 @@ export class FiberSpliceManager {
 				hasOutPort,
 				splice,
 				fiberA: splice?.fiber_a_details || null,
-				fiberB: splice?.fiber_b_details || null
+				fiberB: splice?.fiber_b_details || null,
+				mergeGroup: splice?.merge_group || null,
+				mergeGroupInfo: splice?.merge_group_info || null
 			});
 		}
 		return rows;
+	}
+
+	/**
+	 * Get port rows with merge groups collapsed into single rows
+	 * @returns {Array<Object>}
+	 */
+	get portRowsWithMerge() {
+		const baseRows = this.portRows;
+		if (baseRows.length === 0) return [];
+
+		const processedGroups = new Set();
+		const result = [];
+
+		for (const row of baseRows) {
+			const mergeGroup = row.mergeGroup;
+
+			if (mergeGroup && !processedGroups.has(mergeGroup)) {
+				// First occurrence of this merge group - create a merged row
+				processedGroups.add(mergeGroup);
+
+				const mergeInfo = row.mergeGroupInfo;
+				const groupPorts = mergeInfo?.port_numbers || [row.portNumber];
+
+				// Get all fibers in this merge group
+				const groupSplices = this.fiberSplices.filter((s) => s.merge_group === mergeGroup);
+				const fibersA = groupSplices.filter((s) => s.fiber_a_details).map((s) => s.fiber_a_details);
+				const fibersB = groupSplices.filter((s) => s.fiber_b_details).map((s) => s.fiber_b_details);
+
+				result.push({
+					...row,
+					isMerged: true,
+					mergeGroupId: mergeGroup,
+					mergedPortNumbers: groupPorts,
+					mergedPortRange: mergeInfo?.port_range || row.portNumber.toString(),
+					mergedPortCount: groupPorts.length,
+					fibersA,
+					fibersB,
+					// For display, show count of connected fibers
+					fiberACount: fibersA.length,
+					fiberBCount: fibersB.length
+				});
+			} else if (!mergeGroup) {
+				// Regular unmerged port
+				result.push({
+					...row,
+					isMerged: false,
+					mergeGroupId: null,
+					mergedPortNumbers: [row.portNumber],
+					mergedPortRange: row.portNumber.toString(),
+					mergedPortCount: 1
+				});
+			}
+			// Skip ports that are part of an already-processed merge group
+		}
+
+		return result;
 	}
 
 	/**
@@ -813,6 +877,240 @@ export class FiberSpliceManager {
 		}
 	}
 
+	// ========== Merge/Unmerge Operations ==========
+
+	/**
+	 * Toggle merge selection mode
+	 */
+	toggleMergeSelectionMode() {
+		this.mergeSelectionMode = !this.mergeSelectionMode;
+		if (!this.mergeSelectionMode) {
+			this.selectedForMerge = new Set();
+		}
+	}
+
+	/**
+	 * Toggle port selection for merge operation
+	 * @param {number} portNumber
+	 * @param {'a'|'b'} side
+	 */
+	togglePortSelection(portNumber, side) {
+		const key = `${portNumber}-${side}`;
+		const newSet = new Set(this.selectedForMerge);
+		if (newSet.has(key)) {
+			newSet.delete(key);
+		} else {
+			newSet.add(key);
+		}
+		this.selectedForMerge = newSet;
+	}
+
+	/**
+	 * Clear all merge selections
+	 */
+	clearMergeSelection() {
+		this.selectedForMerge = new Set();
+	}
+
+	/**
+	 * Merge selected ports
+	 * @returns {Promise<boolean>} - True if successful
+	 */
+	async mergeSelectedPorts() {
+		if (this.selectedForMerge.size < 2) {
+			globalToaster.warning({
+				title: m.common_warning?.() || 'Warning',
+				description: m.message_select_at_least_two_ports?.() || 'Select at least 2 ports to merge'
+			});
+			return false;
+		}
+
+		// Parse selections to get port numbers and side
+		const portNumbers = [];
+		let side = null;
+		for (const key of this.selectedForMerge) {
+			const [portNum, portSide] = key.split('-');
+			portNumbers.push(parseInt(portNum));
+			if (!side) side = portSide;
+			else if (side !== portSide) {
+				globalToaster.warning({
+					title: m.common_warning?.() || 'Warning',
+					description:
+						m.message_cannot_merge_different_sides?.() || 'Cannot merge ports from different sides'
+				});
+				return false;
+			}
+		}
+
+		try {
+			const formData = new FormData();
+			formData.append('nodeStructureUuid', this.selectedStructure.uuid);
+			formData.append('portNumbers', JSON.stringify(portNumbers));
+			formData.append('side', side);
+
+			const response = await fetch('?/mergePorts', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to merge ports');
+			}
+
+			// Refresh splices
+			await this.fetchFiberSplices(this.selectedStructure.uuid);
+			this.selectedForMerge = new Set();
+			this.mergeSelectionMode = false;
+
+			globalToaster.success({
+				title: m.title_success?.() || 'Success',
+				description:
+					m.message_ports_merged?.({ count: portNumbers.length }) ||
+					`Merged ${portNumbers.length} ports`
+			});
+
+			return true;
+		} catch (err) {
+			console.error('Error merging ports:', err);
+			globalToaster.error({
+				title: m.common_error(),
+				description: err.message || 'Failed to merge ports'
+			});
+			return false;
+		}
+	}
+
+	/**
+	 * Unmerge ports from a merge group
+	 * @param {string} mergeGroupId
+	 * @param {Array<number>} portNumbers - Specific ports to unmerge (if empty, unmerge all)
+	 * @returns {Promise<boolean>} - True if successful
+	 */
+	async unmergePorts(mergeGroupId, portNumbers = []) {
+		if (!mergeGroupId) return false;
+
+		// If no specific ports provided, get all ports in the group
+		if (portNumbers.length === 0) {
+			const groupSplice = this.fiberSplices.find((s) => s.merge_group === mergeGroupId);
+			portNumbers = groupSplice?.merge_group_info?.port_numbers || [];
+		}
+
+		if (portNumbers.length === 0) return false;
+
+		try {
+			const formData = new FormData();
+			formData.append('mergeGroup', mergeGroupId);
+			formData.append('portNumbers', JSON.stringify(portNumbers));
+
+			const response = await fetch('?/unmergePorts', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to unmerge ports');
+			}
+
+			// Refresh splices
+			await this.fetchFiberSplices(this.selectedStructure.uuid);
+
+			globalToaster.success({
+				title: m.title_success?.() || 'Success',
+				description: m.message_ports_unmerged?.() || 'Ports unmerged'
+			});
+
+			return true;
+		} catch (err) {
+			console.error('Error unmerging ports:', err);
+			globalToaster.error({
+				title: m.common_error(),
+				description: err.message || 'Failed to unmerge ports'
+			});
+			return false;
+		}
+	}
+
+	/**
+	 * Handle drop on a merged port group
+	 * @param {string} mergeGroupId
+	 * @param {'a'|'b'} side
+	 * @param {Object} dropData
+	 * @returns {Promise<boolean>} - True if successful
+	 */
+	async handleMergedPortDrop(mergeGroupId, side, dropData) {
+		// For single fiber, just connect to first port in group
+		if (dropData.type === 'fiber') {
+			const groupSplice = this.fiberSplices.find((s) => s.merge_group === mergeGroupId);
+			const firstPort = groupSplice?.merge_group_info?.port_numbers?.[0];
+			if (firstPort) {
+				return this.handleSingleFiberDrop(firstPort, side, dropData);
+			}
+			return false;
+		}
+
+		// For bundle or cable, fill all ports in merge group
+		const fibers = dropData.fibers || [];
+		if (fibers.length === 0) {
+			globalToaster.warning({
+				title: m.common_warning?.() || 'Warning',
+				description: m.message_no_fibers_to_drop?.() || 'No fibers to drop'
+			});
+			return false;
+		}
+
+		// Get merge group info
+		const groupSplice = this.fiberSplices.find((s) => s.merge_group === mergeGroupId);
+		const mergeInfo = groupSplice?.merge_group_info;
+		const portCount = mergeInfo?.port_count || 1;
+
+		// Prepare fibers data for API (limit to port count)
+		const fiberData = fibers.slice(0, portCount).map((f) => ({
+			uuid: f.uuid,
+			cable_uuid: dropData.cable_uuid || dropData.uuid
+		}));
+
+		try {
+			const formData = new FormData();
+			formData.append('mergeGroup', mergeGroupId);
+			formData.append('side', side);
+			formData.append('fibers', JSON.stringify(fiberData));
+
+			const response = await fetch('?/upsertMergedSplice', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to connect fibers');
+			}
+
+			// Refresh splices
+			await this.fetchFiberSplices(this.selectedStructure.uuid);
+
+			globalToaster.success({
+				title: m.title_success?.() || 'Success',
+				description:
+					m.message_fibers_connected_to_merged?.({ count: fiberData.length }) ||
+					`Connected ${fiberData.length} fibers to merged ports`
+			});
+
+			return true;
+		} catch (err) {
+			console.error('Error dropping on merged ports:', err);
+			globalToaster.error({
+				title: m.common_error(),
+				description: err.message || 'Failed to connect fibers'
+			});
+			return false;
+		}
+	}
+
 	/**
 	 * Cleanup manager state
 	 */
@@ -822,5 +1120,7 @@ export class FiberSpliceManager {
 		this.fiberSplices = [];
 		this.fiberColors = [];
 		this.loadingPorts = false;
+		this.selectedForMerge = new Set();
+		this.mergeSelectionMode = false;
 	}
 }

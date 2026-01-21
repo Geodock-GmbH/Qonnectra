@@ -9,7 +9,11 @@
 		side = 'a',
 		colorHex = '#999999',
 		onDrop = () => {},
-		onClear = () => {}
+		onClear = () => {},
+		// Merge props
+		isMerged = false,
+		mergedCount = 0,
+		connectedCount = 0
 	} = $props();
 
 	let isDragOver = $state(false);
@@ -82,6 +86,13 @@
 					<span class="font-mono">{fiber.fiber_number}</span>
 					<span class="text-surface-400">|</span>
 					<span class="text-surface-500">B{fiber.bundle_number}</span>
+					{#if isMerged && connectedCount > 0}
+						<span
+							class="text-xs px-1.5 py-0.5 rounded bg-primary-500/20 text-primary-500 font-medium"
+						>
+							{connectedCount}/{mergedCount}
+						</span>
+					{/if}
 				</div>
 				<div class="text-xs text-surface-400 truncate">
 					{fiber.cable_name}
@@ -103,7 +114,14 @@
 		<!-- Empty Drop Zone -->
 		<div class="flex items-center justify-center w-full text-surface-400">
 			<div class="flex items-center gap-2 text-xs italic">
-				<span>{m.message_drop_fiber_here?.() || 'Faser hier ablegen'}</span>
+				{#if isMerged}
+					<span>
+						{m.message_drop_fibers_here?.({ count: mergedCount }) ||
+							`Drop ${mergedCount} fibers here`}
+					</span>
+				{:else}
+					<span>{m.message_drop_fiber_here?.() || 'Faser hier ablegen'}</span>
+				{/if}
 			</div>
 		</div>
 	{:else}

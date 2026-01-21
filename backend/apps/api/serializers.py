@@ -1602,6 +1602,7 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
     # Include nested info for display
     fiber_a_details = serializers.SerializerMethodField()
     fiber_b_details = serializers.SerializerMethodField()
+    merge_group_info = serializers.SerializerMethodField()
 
     class Meta:
         model = FiberSplice
@@ -1615,6 +1616,8 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
             "cable_b",
             "fiber_a_details",
             "fiber_b_details",
+            "merge_group",
+            "merge_group_info",
         ]
 
     def _get_fiber_details(self, fiber, cable):
@@ -1636,6 +1639,55 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
 
     def get_fiber_b_details(self, obj):
         return self._get_fiber_details(obj.fiber_b, obj.cable_b)
+
+    def get_merge_group_info(self, obj):
+        """Get info about the merge group this splice belongs to."""
+        if not obj.merge_group:
+            return None
+
+        # Get all port numbers in the same merge group
+        siblings = list(
+            FiberSplice.objects.filter(merge_group=obj.merge_group)
+            .values_list("port_number", flat=True)
+            .order_by("port_number")
+        )
+
+        if not siblings:
+            return None
+
+        return {
+            "merge_group_id": str(obj.merge_group),
+            "port_numbers": siblings,
+            "port_count": len(siblings),
+            "port_range": f"{min(siblings)}-{max(siblings)}" if len(siblings) > 1 else str(siblings[0]),
+        }
+
+
+class PortMergeSerializer(serializers.Serializer):
+    """Serializer for port merge operations."""
+
+    node_structure = serializers.UUIDField()
+    port_numbers = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        min_length=2,
+        help_text="List of port numbers to merge (minimum 2)",
+    )
+    side = serializers.ChoiceField(
+        choices=["a", "b", "both"],
+        default="both",
+        help_text="Which side to apply merge: 'a' (IN), 'b' (OUT), or 'both'",
+    )
+
+
+class PortUnmergeSerializer(serializers.Serializer):
+    """Serializer for unmerging specific ports from a group."""
+
+    merge_group = serializers.UUIDField()
+    port_numbers = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        min_length=1,
+        help_text="List of port numbers to unmerge from the group",
+    )
 
 
 class ContainerTypeSerializer(serializers.ModelSerializer):

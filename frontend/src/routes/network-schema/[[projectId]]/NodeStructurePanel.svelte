@@ -187,6 +187,8 @@
 		try {
 			if (data.type === 'component_type') {
 				await structureManager.createStructure(data, slotNumber);
+			} else if (data.type === 'multi_component_type') {
+				await structureManager.createMultipleStructures(data, slotNumber);
 			} else if (data.type === 'existing_structure') {
 				if (data.slot_start === slotNumber) {
 					dragDropManager.endDrag();
@@ -216,7 +218,12 @@
 		if (!dragDropManager.mobileSelectedItem) return;
 
 		try {
-			await structureManager.createStructure(dragDropManager.mobileSelectedItem, slotNumber);
+			const item = dragDropManager.mobileSelectedItem;
+			if (item.type === 'multi_component_type') {
+				await structureManager.createMultipleStructures(item, slotNumber);
+			} else {
+				await structureManager.createStructure(item, slotNumber);
+			}
 		} catch (err) {
 			globalToaster.error({
 				title: m.common_error(),
@@ -379,6 +386,7 @@
 					isDragging={dragDropManager.isDragging}
 					draggedItem={dragDropManager.draggedItem}
 					bind:dropPreviewSlots={dragDropManager.dropPreviewSlots}
+					componentRanges={dragDropManager.componentRanges}
 					occupiedSlots={structureManager.occupiedSlots}
 					loading={structureManager.loading}
 					loadingStructures={structureManager.loadingStructures}
@@ -451,12 +459,21 @@
 				{:else if activeSheet === 'ports' && spliceManager.selectedStructure}
 					<PortTable
 						structureName={spliceManager.selectedStructure.component_type?.component_type || '-'}
-						portRows={spliceManager.portRows}
+						portRows={spliceManager.portRowsWithMerge}
 						fiberColors={spliceManager.fiberColors}
 						loading={spliceManager.loadingPorts}
 						onPortDrop={handlePortDrop}
 						onClearPort={handleClearPort}
 						onClose={handleClosePortTable}
+						mergeSelectionMode={spliceManager.mergeSelectionMode}
+						selectedForMerge={spliceManager.selectedForMerge}
+						onToggleMergeMode={() => spliceManager.toggleMergeSelectionMode()}
+						onTogglePortSelection={(portNumber, side) =>
+							spliceManager.togglePortSelection(portNumber, side)}
+						onMergePorts={() => spliceManager.mergeSelectedPorts()}
+						onUnmergePorts={(mergeGroupId) => spliceManager.unmergePorts(mergeGroupId)}
+						onMergedPortDrop={(mergeGroupId, side, data) =>
+							spliceManager.handleMergedPortDrop(mergeGroupId, side, data)}
 					/>
 				{/if}
 			</MobileBottomSheet>
@@ -511,6 +528,7 @@
 							isDragging={dragDropManager.isDragging}
 							draggedItem={dragDropManager.draggedItem}
 							bind:dropPreviewSlots={dragDropManager.dropPreviewSlots}
+							componentRanges={dragDropManager.componentRanges}
 							occupiedSlots={structureManager.occupiedSlots}
 							loading={structureManager.loading}
 							loadingStructures={structureManager.loadingStructures}
@@ -536,12 +554,21 @@
 							<PortTable
 								structureName={spliceManager.selectedStructure.component_type?.component_type ||
 									'-'}
-								portRows={spliceManager.portRows}
+								portRows={spliceManager.portRowsWithMerge}
 								fiberColors={spliceManager.fiberColors}
 								loading={spliceManager.loadingPorts}
 								onPortDrop={handlePortDrop}
 								onClearPort={handleClearPort}
 								onClose={handleClosePortTable}
+								mergeSelectionMode={spliceManager.mergeSelectionMode}
+								selectedForMerge={spliceManager.selectedForMerge}
+								onToggleMergeMode={() => spliceManager.toggleMergeSelectionMode()}
+								onTogglePortSelection={(portNumber, side) =>
+									spliceManager.togglePortSelection(portNumber, side)}
+								onMergePorts={() => spliceManager.mergeSelectedPorts()}
+								onUnmergePorts={(mergeGroupId) => spliceManager.unmergePorts(mergeGroupId)}
+								onMergedPortDrop={(mergeGroupId, side, data) =>
+									spliceManager.handleMergedPortDrop(mergeGroupId, side, data)}
 							/>
 						</div>
 					{/if}

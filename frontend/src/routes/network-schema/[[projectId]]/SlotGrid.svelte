@@ -10,6 +10,7 @@
 		isDragging = false,
 		draggedItem = null,
 		dropPreviewSlots = $bindable([]),
+		componentRanges = [],
 		occupiedSlots = new Map(),
 		loading = false,
 		loadingStructures = false,
@@ -29,6 +30,24 @@
 		onSaveClipNumber = () => {},
 		onClipKeydown = () => {}
 	} = $props();
+
+	/**
+	 * Check if a slot is the first slot of a component range in multi-drop preview
+	 * @param {number} slotNumber
+	 * @returns {boolean}
+	 */
+	function isComponentRangeStart(slotNumber) {
+		return componentRanges.some((r) => r.start === slotNumber);
+	}
+
+	/**
+	 * Check if a slot is the last slot of a component range in multi-drop preview
+	 * @param {number} slotNumber
+	 * @returns {boolean}
+	 */
+	function isComponentRangeEnd(slotNumber) {
+		return componentRanges.some((r) => r.end === slotNumber);
+	}
 
 	function handleSlotDragOver(e, slotNumber) {
 		e.preventDefault();
@@ -130,6 +149,10 @@
 							? 'border-b-2 border-[var(--color-surface-500)] relative z-10'
 							: ''} {isMobile && mobileSelectedItem && !row.isOccupied
 							? 'bg-[var(--color-primary-500)]/5 cursor-pointer hover:bg-[var(--color-primary-500)]/10'
+							: ''} {isComponentRangeStart(row.slotNumber) && componentRanges.length > 1
+							? 'border-t-2 border-t-green-500'
+							: ''} {isComponentRangeEnd(row.slotNumber) && componentRanges.length > 1
+							? 'border-b-2 border-b-green-500'
 							: ''}"
 						ondragover={(e) => handleSlotDragOver(e, row.slotNumber)}
 						ondragleave={handleSlotDragLeave}

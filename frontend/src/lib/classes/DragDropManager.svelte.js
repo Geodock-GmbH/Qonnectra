@@ -15,6 +15,9 @@ export class DragDropManager {
 	/** @type {Object|null} - Mobile selection item */
 	mobileSelectedItem = $state(null);
 
+	/** @type {Array<{start: number, end: number}>} - Component boundaries for multi-drop preview */
+	componentRanges = $state([]);
+
 	/**
 	 * Start a drag operation
 	 * @param {Object} item - The item being dragged
@@ -31,6 +34,7 @@ export class DragDropManager {
 		this.isDragging = false;
 		this.draggedItem = null;
 		this.dropPreviewSlots = [];
+		this.componentRanges = [];
 	}
 
 	/**
@@ -43,6 +47,22 @@ export class DragDropManager {
 			id: componentType.id,
 			name: componentType.component_type,
 			occupied_slots: componentType.occupied_slots
+		});
+	}
+
+	/**
+	 * Start dragging multiple components of the same type
+	 * @param {Object} componentType
+	 * @param {number} count - Number of components to place
+	 */
+	startMultiComponentDrag(componentType, count) {
+		this.startDrag({
+			type: 'multi_component_type',
+			id: componentType.id,
+			name: componentType.component_type,
+			occupied_slots: componentType.occupied_slots,
+			count: count,
+			total_slots: componentType.occupied_slots * count
 		});
 	}
 
@@ -151,12 +171,18 @@ export class DragDropManager {
 	 * @param {number} slotNumber - Target slot number
 	 * @param {number} totalSlots - Total slots in config
 	 * @param {Map<number, string>} occupiedSlots - Map of occupied slots
-	 * @returns {{preview: Array<number>, canDrop: boolean}}
+	 * @returns {{preview: Array<number>, canDrop: boolean, componentRanges: Array<{start: number, end: number}>}}
 	 */
 	updateDropPreview(slotNumber, totalSlots, occupiedSlots) {
-		const occupiedSlotsCount = this.draggedItem?.occupied_slots || 1;
+		const isMulti = this.draggedItem?.type === 'multi_component_type';
+		const singleOccupied = this.draggedItem?.occupied_slots || 1;
+		const count = isMulti ? this.draggedItem?.count || 1 : 1;
+		const occupiedSlotsCount = isMulti
+			? this.draggedItem?.total_slots || singleOccupied
+			: singleOccupied;
 		const previewEnd = Math.min(slotNumber + occupiedSlotsCount - 1, totalSlots);
 		const preview = [];
+		const componentRanges = [];
 		let canDrop = true;
 
 		for (let i = slotNumber; i <= previewEnd; i++) {
@@ -176,8 +202,20 @@ export class DragDropManager {
 			canDrop = false;
 		}
 
+		// Calculate component ranges for visual feedback
+		if (canDrop && isMulti) {
+			for (let c = 0; c < count; c++) {
+				const start = slotNumber + c * singleOccupied;
+				const end = start + singleOccupied - 1;
+				componentRanges.push({ start, end });
+			}
+		} else if (canDrop) {
+			componentRanges.push({ start: slotNumber, end: slotNumber + singleOccupied - 1 });
+		}
+
 		this.dropPreviewSlots = preview;
-		return { preview, canDrop };
+		this.componentRanges = componentRanges;
+		return { preview, canDrop, componentRanges };
 	}
 
 	/**
@@ -185,6 +223,7 @@ export class DragDropManager {
 	 */
 	clearDropPreview() {
 		this.dropPreviewSlots = [];
+		this.componentRanges = [];
 	}
 
 	/**
@@ -241,14 +280,26 @@ export class DragDropManager {
 	/**
 	 * Select a component for mobile placement
 	 * @param {Object} componentType
+	 * @param {number} count - Number of components (default 1)
 	 */
-	selectMobileComponent(componentType) {
-		this.mobileSelectedItem = {
-			type: 'component_type',
-			id: componentType.id,
-			name: componentType.component_type,
-			occupied_slots: componentType.occupied_slots
-		};
+	selectMobileComponent(componentType, count = 1) {
+		if (count > 1) {
+			this.mobileSelectedItem = {
+				type: 'multi_component_type',
+				id: componentType.id,
+				name: componentType.component_type,
+				occupied_slots: componentType.occupied_slots,
+				count: count,
+				total_slots: componentType.occupied_slots * count
+			};
+		} else {
+			this.mobileSelectedItem = {
+				type: 'component_type',
+				id: componentType.id,
+				name: componentType.component_type,
+				occupied_slots: componentType.occupied_slots
+			};
+		}
 	}
 
 	/**
@@ -294,6 +345,7 @@ export class DragDropManager {
 		this.isDragging = false;
 		this.draggedItem = null;
 		this.dropPreviewSlots = [];
+		this.componentRanges = [];
 		this.mobileSelectedItem = null;
 	}
 }

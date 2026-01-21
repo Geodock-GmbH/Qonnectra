@@ -362,6 +362,105 @@ export class NodeStructureManager {
 	}
 
 	/**
+	 * Create multiple structures at consecutive slots
+	 * @param {Object} componentData - Component type data with id, name, occupied_slots, count, total_slots
+	 * @param {number} slotStart - Starting slot number
+	 */
+	async createMultipleStructures(componentData, slotStart) {
+		const singleSlots = componentData.occupied_slots;
+		const count = componentData.count || 1;
+		const totalSlotsNeeded = componentData.total_slots || singleSlots * count;
+		const slotEnd = slotStart + totalSlotsNeeded - 1;
+
+		// Validate all slots are available
+		if (slotEnd > this.selectedConfig.total_slots) {
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_not_enough_slots()
+			});
+			return;
+		}
+
+		for (let i = slotStart; i <= slotEnd; i++) {
+			if (this.occupiedSlots.has(i)) {
+				globalToaster.error({
+					title: m.common_error(),
+					description: m.message_error_slots_occupied()
+				});
+				return;
+			}
+		}
+
+		// Create optimistic structures
+		const tempStructures = [];
+		for (let c = 0; c < count; c++) {
+			const compSlotStart = slotStart + c * singleSlots;
+			const compSlotEnd = compSlotStart + singleSlots - 1;
+			const tempUuid = `temp-${Date.now()}-${c}`;
+			tempStructures.push({
+				uuid: tempUuid,
+				slot_start: compSlotStart,
+				slot_end: compSlotEnd,
+				component_type: { id: componentData.id, component_type: componentData.name },
+				component_structure: null,
+				purpose: 'component',
+				label: null
+			});
+		}
+		this.structures = [...this.structures, ...tempStructures];
+
+		// Create structures sequentially
+		const createdStructures = [];
+		try {
+			for (let c = 0; c < count; c++) {
+				const compSlotStart = slotStart + c * singleSlots;
+				const compSlotEnd = compSlotStart + singleSlots - 1;
+
+				const formData = new FormData();
+				formData.append('nodeUuid', this.nodeUuid);
+				formData.append('slotConfigUuid', this.selectedSlotConfigUuid);
+				formData.append('componentTypeId', componentData.id.toString());
+				formData.append('slotStart', compSlotStart.toString());
+				formData.append('slotEnd', compSlotEnd.toString());
+				formData.append('purpose', 'component');
+
+				const response = await fetch('?/createNodeStructure', {
+					method: 'POST',
+					body: formData
+				});
+
+				const result = deserialize(await response.text());
+
+				if (result.type === 'failure' || result.type === 'error') {
+					throw new Error(result.data?.error || `Failed to create structure ${c + 1}`);
+				}
+
+				createdStructures.push(result.data.structure);
+
+				// Update the temp structure with the real one
+				const tempUuid = tempStructures[c].uuid;
+				this.structures = this.structures.map((s) =>
+					s.uuid === tempUuid ? result.data.structure : s
+				);
+			}
+
+			globalToaster.success({
+				title: m.title_success(),
+				description:
+					m.message_success_placing_components?.({ count }) ||
+					`Successfully placed ${count} components`
+			});
+		} catch (err) {
+			// Remove all temp structures that weren't replaced
+			const createdUuids = new Set(createdStructures.map((s) => s.uuid));
+			this.structures = this.structures.filter(
+				(s) => !s.uuid.startsWith('temp-') || createdUuids.has(s.uuid)
+			);
+			throw err;
+		}
+	}
+
+	/**
 	 * Move an existing structure to a new slot
 	 * @param {Object} structureData - Structure data with uuid and occupied_slots
 	 * @param {number} newSlotStart - New starting slot number

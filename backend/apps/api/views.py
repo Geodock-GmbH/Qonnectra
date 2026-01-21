@@ -3818,6 +3818,147 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
         splice.save()
         return Response({"deleted": True, "message": f"Fiber cleared from side {side}"})
 
+    @action(detail=False, methods=["post"], url_path="merge-ports")
+    def merge_ports(self, request):
+        """
+        Merge multiple ports into a group.
+        Creates a new merge_group UUID and assigns it to specified ports.
+        """
+        from .serializers import PortMergeSerializer
+
+        serializer = PortMergeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        node_structure_uuid = serializer.validated_data["node_structure"]
+        port_numbers = serializer.validated_data["port_numbers"]
+
+        try:
+            node_structure = NodeStructure.objects.get(uuid=node_structure_uuid)
+        except NodeStructure.DoesNotExist:
+            return Response(
+                {"error": "Node structure not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Generate new merge group UUID
+        merge_group_id = uuid.uuid4()
+
+        # Get or create splice records for each port
+        splices = []
+        for port_num in port_numbers:
+            splice, created = FiberSplice.objects.get_or_create(
+                node_structure=node_structure,
+                port_number=port_num,
+            )
+            splice.merge_group = merge_group_id
+            splice.save()
+            splices.append(splice)
+
+        return Response(
+            {
+                "merge_group": str(merge_group_id),
+                "port_numbers": port_numbers,
+                "splices": FiberSpliceSerializer(splices, many=True).data,
+            }
+        )
+
+    @action(detail=False, methods=["post"], url_path="unmerge-ports")
+    def unmerge_ports(self, request):
+        """
+        Remove specific ports from a merge group.
+        Sets merge_group to NULL for specified ports.
+        If only one port remains in group, unmerges that one too.
+        """
+        from .serializers import PortUnmergeSerializer
+
+        serializer = PortUnmergeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        merge_group = serializer.validated_data["merge_group"]
+        port_numbers = serializer.validated_data["port_numbers"]
+
+        # Get all splices in this merge group
+        group_splices = FiberSplice.objects.filter(merge_group=merge_group)
+
+        if not group_splices.exists():
+            return Response(
+                {"error": "Merge group not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Unmerge specified ports
+        unmerged = group_splices.filter(port_number__in=port_numbers)
+        unmerged.update(merge_group=None)
+
+        # Check remaining ports in group
+        remaining = group_splices.exclude(port_number__in=port_numbers)
+        remaining_count = remaining.count()
+        if remaining_count == 1:
+            # Only one port left, unmerge it too (can't have a group of 1)
+            remaining.update(merge_group=None)
+            remaining_count = 0
+
+        return Response(
+            {
+                "unmerged_ports": port_numbers,
+                "remaining_in_group": remaining_count,
+            }
+        )
+
+    @action(detail=False, methods=["post"], url_path="upsert-merged")
+    def upsert_merged(self, request):
+        """
+        Upsert fibers to a merge group - assigns fibers to all ports in the group.
+        Used when dropping a bundle onto a merged port group.
+        """
+        merge_group = request.data.get("merge_group")
+        side = request.data.get("side")  # 'a' or 'b'
+        fibers = request.data.get("fibers")  # List of {uuid, cable_uuid}
+
+        if not all([merge_group, side, fibers]):
+            return Response(
+                {"error": "merge_group, side, and fibers are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if side not in ("a", "b"):
+            return Response(
+                {"error": "side must be 'a' or 'b'"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Get all splices in this merge group, ordered by port number
+        splices = FiberSplice.objects.filter(merge_group=merge_group).order_by(
+            "port_number"
+        )
+
+        if not splices.exists():
+            return Response(
+                {"error": "Merge group not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Assign fibers to ports in order
+        updated_splices = []
+        for i, splice in enumerate(splices):
+            if i < len(fibers):
+                fiber_data = fibers[i]
+                if side == "a":
+                    splice.fiber_a_id = fiber_data["uuid"]
+                    splice.cable_a_id = fiber_data["cable_uuid"]
+                else:
+                    splice.fiber_b_id = fiber_data["uuid"]
+                    splice.cable_b_id = fiber_data["cable_uuid"]
+                splice.save()
+                updated_splices.append(splice)
+
+        return Response(
+            {
+                "updated_count": len(updated_splices),
+                "splices": FiberSpliceSerializer(updated_splices, many=True).data,
+            }
+        )
+
 
 class ContainerTypeViewSet(viewsets.ReadOnlyModelViewSet):
     """

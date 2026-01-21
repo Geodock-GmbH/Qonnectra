@@ -3450,6 +3450,18 @@ class FiberSplice(models.Model):
         help_text=_("The cable of fiber B (denormalized for CASCADE delete)"),
     )
 
+    # Merge group for port linking (e.g., splitter ports)
+    merge_group = models.UUIDField(
+        _("Merge Group"),
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=_(
+            "UUID grouping ports that should receive fibers together. "
+            "Used for asymmetric components like splitters (e.g., 1:8 has 8 OUT ports merged)."
+        ),
+    )
+
     class Meta:
         db_table = "fiber_splice"
         verbose_name = _("Fiber Splice")
@@ -3463,6 +3475,7 @@ class FiberSplice(models.Model):
             models.Index(fields=["fiber_b"], name="idx_fiber_splice_fiber_b"),
             models.Index(fields=["cable_a"], name="idx_fiber_splice_cable_a"),
             models.Index(fields=["cable_b"], name="idx_fiber_splice_cable_b"),
+            models.Index(fields=["merge_group"], name="idx_fiber_splice_merge_grp"),
         ]
         constraints = [
             # Each port in a node structure can only have one splice record
