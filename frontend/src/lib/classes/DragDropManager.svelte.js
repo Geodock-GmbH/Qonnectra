@@ -1,3 +1,5 @@
+import { m } from '$lib/paraglide/messages';
+
 /**
  * Manager for drag-and-drop state across components.
  * Shared via context for coordinated drag-drop between sidebars and grid.
@@ -317,7 +319,7 @@ export class DragDropManager {
 			bundle_number: fiber.bundle_number,
 			fiber_number: fiber.fiber_number_absolute,
 			fiber_color: fiber.fiber_color,
-			name: `${cable.name} - Fiber ${fiber.fiber_number_absolute}`
+			name: `${cable.name} - ${m.form_fiber()} ${fiber.fiber_number_absolute}`
 		};
 	}
 

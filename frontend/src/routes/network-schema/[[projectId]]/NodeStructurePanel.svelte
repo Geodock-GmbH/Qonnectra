@@ -356,8 +356,7 @@
 					</select>
 					{#if selectedConfig}
 						<span class="text-xs text-surface-950-50 whitespace-nowrap">
-							{selectedConfig.total_slots}
-							{m.form_slots?.() || 'Slots'}
+							{selectedConfig.total_slots} {m.form_slot({ count: selectedConfig.total_slots })}
 						</span>
 					{/if}
 				</div>
@@ -371,7 +370,7 @@
 							class="text-xs text-primary-600 dark:text-primary-400"
 							onclick={() => dragDropManager.clearMobileSelection()}
 						>
-							{m.common_cancel?.() || 'Cancel'}
+							{m.common_cancel()}
 						</button>
 					</div>
 				{/if}
@@ -417,7 +416,7 @@
 						onclick={() => (activeSheet = activeSheet === 'components' ? null : 'components')}
 					>
 						<IconLayoutList size={20} />
-						<span>{m.form_components?.() || 'Components'}</span>
+						<span>{m.form_components()}</span>
 					</button>
 					<button
 						type="button"
@@ -438,7 +437,7 @@
 						disabled={!spliceManager.selectedStructure}
 					>
 						<IconPlug size={20} />
-						<span>{m.form_ports?.() || 'Ports'}</span>
+						<span>{m.form_ports()}</span>
 					</button>
 				</div>
 			</div>
@@ -450,7 +449,7 @@
 					? m.form_component_types()
 					: activeSheet === 'cables'
 						? m.form_cables()
-						: m.form_ports?.() || 'Ports'}
+						: m.form_ports()}
 			>
 				{#if activeSheet === 'components'}
 					<ComponentTypeSidebar {isMobile} onMobileSelect={handleMobileComponentSelect} />
@@ -492,7 +491,7 @@
 				<div class="flex-shrink-0 space-y-3">
 					{#if containerPath}
 						<div class="text-sm text-surface-950-50">
-							<span class="font-medium">{m.form_container_path?.() || 'Container'}:</span>
+							<span class="font-medium">{m.form_container_path()}:</span>
 							{containerPath}
 						</div>
 					{/if}

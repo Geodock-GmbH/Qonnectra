@@ -83,7 +83,7 @@
 	<!-- Start Node -->
 	<div class="space-y-3">
 		<h3 class="text-lg font-semibold">
-			{cable?.uuid_node_start_name || cable?.uuid_node_start || 'Unknown'}
+			{cable?.uuid_node_start_name || cable?.uuid_node_start || m.common_unknown()}
 		</h3>
 		<div class="space-y-2">
 			<div class="space-y-2">
@@ -107,7 +107,7 @@
 	<!-- End Node -->
 	<div class="space-y-3">
 		<h3 class="text-lg font-semibold">
-			{cable?.uuid_node_end_name || cable?.uuid_node_end || 'Unknown'}
+			{cable?.uuid_node_end_name || cable?.uuid_node_end || m.common_unknown()}
 		</h3>
 		<div class="space-y-2">
 			<div class="space-y-2">

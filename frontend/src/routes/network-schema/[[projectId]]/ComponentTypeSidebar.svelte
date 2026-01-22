@@ -143,8 +143,7 @@
 						<div class="flex-1 min-w-0">
 							<div class="font-medium truncate">{ct.component_type}</div>
 							<div class="text-sm text-surface-500">
-								{ct.occupied_slots * qty}
-								{ct.occupied_slots * qty === 1 ? 'slot' : 'slots'}
+								{ct.occupied_slots * qty} {m.form_slot({ count: ct.occupied_slots * qty })}
 								{#if qty > 1}
 									<span class="text-primary-500">({qty}x)</span>
 								{/if}
@@ -224,8 +223,7 @@
 								<div class="flex-1 min-w-0">
 									<div class="text-sm font-medium truncate">{ct.component_type}</div>
 									<div class="text-xs text-surface-950-50">
-										{ct.occupied_slots * qty}
-										{ct.occupied_slots * qty === 1 ? 'slot' : 'slots'}
+										{ct.occupied_slots * qty} {m.form_slot({ count: ct.occupied_slots * qty })}
 										{#if qty > 1}
 											<span class="text-primary-500">({qty}x)</span>
 										{/if}

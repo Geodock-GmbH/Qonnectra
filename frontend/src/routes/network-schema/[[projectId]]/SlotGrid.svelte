@@ -100,7 +100,7 @@
 		class="flex-1 overflow-auto"
 		ondragleave={handleGridDragLeave}
 		role="list"
-		aria-label={m.form_slot_grid?.() || 'Slot grid'}
+		aria-label={m.form_slot_grid()}
 	>
 		{#if loading || loadingStructures}
 			<div class="flex items-center justify-center py-8">
@@ -127,7 +127,7 @@
 							? 'border-b-2 border-[var(--color-surface-500)] relative z-10'
 							: ''}"
 						ondblclick={() => onToggleDivider(row.slotNumber)}
-						{@attach tooltip(m.tooltip_double_click_divider?.() || 'Double-click to toggle divider')}
+						{@attach tooltip(m.tooltip_double_click_divider())}
 						role="cell"
 						tabindex="0"
 					>
@@ -207,9 +207,7 @@
 						{:else if !row.isOccupied}
 							<span class="text-surface-950-50 text-sm">
 								{#if isMobile && mobileSelectedItem}
-									<span class="text-primary-500 text-xs"
-										>{m.action_tap_to_place?.() || 'Tap to place'}</span
-									>
+									<span class="text-primary-500 text-xs">{m.action_tap_to_place()}</span>
 								{:else}
 									-
 								{/if}
@@ -241,7 +239,7 @@
 								type="button"
 								class="w-full h-full bg-transparent border-none font-mono text-center cursor-pointer p-0 transition-colors duration-150 rounded hover:bg-[var(--color-surface-200-800)]"
 								onclick={() => onStartEditingClip(row.slotNumber, row.clipNumber)}
-								title={m.tooltip_click_to_edit?.() || 'Click to edit'}
+								title={m.tooltip_click_to_edit()}
 							>
 								{row.clipNumber || row.slotNumber}
 							</button>

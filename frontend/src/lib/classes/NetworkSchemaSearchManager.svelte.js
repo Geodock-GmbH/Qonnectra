@@ -1,3 +1,5 @@
+import { m } from '$lib/paraglide/messages';
+
 /**
  * Search manager for the network schema diagram
  * Handles searching nodes and cables by name with configurable result behavior
@@ -47,7 +49,7 @@ export class NetworkSchemaSearchManager {
 			.map((node) => ({
 				type: /** @type {'node'} */ ('node'),
 				id: node.id,
-				name: node.data?.label || node.data?.node?.name || 'Unnamed Node',
+				name: node.data?.label || node.data?.node?.name || m.form_unnamed_node(),
 				position: node.position,
 				data: node.data
 			}));
@@ -60,7 +62,7 @@ export class NetworkSchemaSearchManager {
 			.map((edge) => ({
 				type: /** @type {'cable'} */ ('cable'),
 				id: edge.id,
-				name: edge.data?.label || edge.data?.cable?.name || 'Unnamed Cable',
+				name: edge.data?.label || edge.data?.cable?.name || m.form_unnamed_cable(),
 				source: edge.source,
 				target: edge.target,
 				data: edge.data

@@ -116,7 +116,7 @@
 		const parsedData = typeof result.data === 'string' ? parse(result.data) : result.data;
 
 		drawerStore.open({
-			title: parsedData?.properties?.name || 'Node Details',
+			title: parsedData?.properties?.name || m.title_node_details(),
 			component: DrawerTabs,
 			props: {
 				id: nodeId,
@@ -124,6 +124,7 @@
 				type: 'node',
 				onLabelUpdate: (newLabel) => {
 					drawerStore.setTitle(newLabel);
+					schemaState.updateNodeName(nodeId, newLabel);
 				},
 				onNodeDelete
 			}
@@ -145,13 +146,14 @@
 		const parsedData = typeof result.data === 'string' ? parse(result.data) : result.data;
 
 		drawerStore.open({
-			title: parsedData?.name || 'Cable Details',
+			title: parsedData?.name || m.title_cable_details(),
 			component: DrawerTabs,
 			props: {
 				...parsedData,
 				type: 'edge',
 				onLabelUpdate: (newLabel) => {
 					drawerStore.setTitle(newLabel);
+					schemaState.updateEdgeName(cableId, newLabel);
 				}
 			}
 		});

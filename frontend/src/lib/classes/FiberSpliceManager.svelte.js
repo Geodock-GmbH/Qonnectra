@@ -615,16 +615,15 @@ export class FiberSpliceManager {
 		if (successCount === totalFibers) {
 			globalToaster.success({
 				title: m.title_success(),
-				description:
-					m.message_bundle_connected?.({ count: successCount }) ||
-					`Connected ${successCount} fibers`
+				description: m.message_bundle_connected({ count: successCount })
 			});
 		} else {
 			globalToaster.warning({
-				title: m.common_warning?.() || 'Warning',
-				description:
-					m.message_partial_bundle_connected?.({ connected: successCount, total: totalFibers }) ||
-					`Connected ${successCount} of ${totalFibers} fibers`
+				title: m.common_warning(),
+				description: m.message_partial_bundle_connected({
+					connected: successCount,
+					total: totalFibers
+				})
 			});
 		}
 
@@ -844,23 +843,21 @@ export class FiberSpliceManager {
 		}
 
 		const totalFibers = sortedFibers.length;
-		const componentInfo = componentsUsed.length > 1 ? ` (${componentsUsed.length} components)` : '';
+		const componentInfo =
+			componentsUsed.length > 1 ? ` ${m.message_component_count({ count: componentsUsed.length })}` : '';
 
 		if (totalSuccessCount === totalFibers) {
 			globalToaster.success({
 				title: m.title_success(),
-				description:
-					m.message_cable_connected?.({ count: totalSuccessCount }) ||
-					`Connected ${totalSuccessCount} fibers${componentInfo}`
+				description: `${m.message_cable_connected({ count: totalSuccessCount })}${componentInfo}`
 			});
 		} else {
-			globalToaster.warning({
-				title: m.common_warning?.() || 'Warning',
-				description:
-					m.message_partial_cable_connected?.({
-						connected: totalSuccessCount,
-						total: totalFibers
-					}) || `Connected ${totalSuccessCount} of ${totalFibers} fibers${componentInfo}`
+			globalToaster.info({
+				title: m.common_info(),
+				description: `${m.message_partial_cable_connected({
+					connected: totalSuccessCount,
+					total: totalFibers
+				})}${componentInfo}`
 			});
 		}
 
@@ -1308,10 +1305,8 @@ export class FiberSpliceManager {
 			await this.fetchFiberSplices(this.selectedStructure.uuid);
 
 			globalToaster.success({
-				title: m.title_success?.() || 'Success',
-				description:
-					m.message_fibers_connected_to_merged?.({ count: fiberData.length }) ||
-					`Connected ${fiberData.length} fibers to merged ports`
+				title: m.title_success(),
+				description: m.message_fibers_connected_to_merged({ count: fiberData.length })
 			});
 
 			return true;

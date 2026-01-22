@@ -45,16 +45,19 @@ export class NetworkSchemaState {
 				y = -geoY * 0.0001;
 			}
 
+			const nodeId = nodeOrFeature.id || node.uuid;
+
 			return {
-				id: nodeOrFeature.id || node.uuid,
+				id: nodeId,
 				position: { x, y },
 				type: 'cableDiagramNode',
 				selected: false,
 				data: {
-					label: node.name || 'Unnamed Node',
+					label: node.name || m.form_unnamed_node(),
 					node: node,
 					onNodeSelect: (nodeId) => this.selectNode(nodeId),
-					onNodeDelete: (nodeId) => this.handleNodeDelete(nodeId)
+					onNodeDelete: (nodeId) => this.handleNodeDelete(nodeId),
+					onNameUpdate: (newName) => this.updateNodeName(nodeId, newName)
 				}
 			};
 		});
@@ -90,7 +93,8 @@ export class NetworkSchemaState {
 					cable: cable,
 					labelData: cable.labelData,
 					onEdgeDelete: (edgeId) => this.handleEdgeDelete(edgeId),
-					onEdgeSelect: (edgeId) => this.selectEdge(edgeId)
+					onEdgeSelect: (edgeId) => this.selectEdge(edgeId),
+					onNameUpdate: (newName) => this.updateEdgeName(cable.uuid, newName)
 				}
 			}));
 
@@ -379,6 +383,54 @@ export class NetworkSchemaState {
 				};
 			}
 			return e;
+		});
+	}
+
+	/**
+	 * Update node name in local state
+	 * @param {string} nodeId - Node UUID
+	 * @param {string} newName - New name for the node
+	 */
+	updateNodeName(nodeId, newName) {
+		this.nodes = this.nodes.map((node) => {
+			if (node.id === nodeId) {
+				return {
+					...node,
+					data: {
+						...node.data,
+						label: newName,
+						node: {
+							...node.data.node,
+							name: newName
+						}
+					}
+				};
+			}
+			return node;
+		});
+	}
+
+	/**
+	 * Update edge/cable name in local state
+	 * @param {string} edgeId - Edge UUID
+	 * @param {string} newName - New name for the cable
+	 */
+	updateEdgeName(edgeId, newName) {
+		this.edges = this.edges.map((edge) => {
+			if (edge.id === edgeId) {
+				return {
+					...edge,
+					data: {
+						...edge.data,
+						label: newName,
+						cable: {
+							...edge.data.cable,
+							name: newName
+						}
+					}
+				};
+			}
+			return edge;
 		});
 	}
 }

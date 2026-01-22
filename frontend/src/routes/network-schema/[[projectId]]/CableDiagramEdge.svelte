@@ -2,6 +2,8 @@
 	import { BaseEdge, getSmoothStepPath } from '@xyflow/svelte';
 	import { parse } from 'devalue';
 
+	import { m } from '$lib/paraglide/messages';
+
 	import { edgeSnappingEnabled } from '$lib/stores/store';
 	import {
 		buildEdgePath,
@@ -352,7 +354,7 @@
 		path={edgePath}
 		interactionWidth={20}
 		style="stroke: var(--color-primary-500); stroke-width: 2;"
-		aria-label="Open cable details for {data.label}"
+		aria-label={m.tooltip_open_cable_details({ label: data.label })}
 	/>
 </g>
 
@@ -378,8 +380,8 @@
 			onmouseleave={() => (hoveredVertexIndex = null)}
 			oncontextmenu={(e) => handleVertexContextMenu(e, index)}
 			aria-label={shiftPressed
-				? 'Click to delete vertex'
-				: 'Drag to move vertex, Shift+Click or right-click to delete'}
+				? m.tooltip_click_to_delete_vertex()
+				: m.tooltip_drag_to_move_vertex()}
 			role="button"
 			tabindex="0"
 		/>

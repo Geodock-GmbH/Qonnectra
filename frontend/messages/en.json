@@ -32,6 +32,7 @@
 	"action_save": "Save",
 	"action_select_all": "Select All",
 	"action_select_none": "Select None",
+	"action_tap_to_place": "Tap to place",
 	"action_unassign": "Unassign",
 	"action_unmerge": "Unmerge",
 	"action_upload_files": "Upload",
@@ -77,8 +78,13 @@
 	"form_actions": "Actions",
 	"form_address": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Address",
 				"countPlural=other": "Addresses"
@@ -109,8 +115,13 @@
 	"form_components": "Components",
 	"form_conduit": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Conduit",
 				"countPlural=other": "Conduits"
@@ -130,8 +141,13 @@
 	"form_date_to": "To date",
 	"form_days": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "day",
 				"countPlural=other": "days"
@@ -149,8 +165,13 @@
 	"form_fibers": "Fibers",
 	"form_files": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "File",
 				"countPlural=other": "Files"
@@ -183,8 +204,13 @@
 	"form_message": "Message",
 	"form_microduct": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Microduct",
 				"countPlural=other": "Microducts"
@@ -212,8 +238,13 @@
 	"form_ports": "Ports",
 	"form_project": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Project",
 				"countPlural=other": "Projects"
@@ -230,7 +261,23 @@
 	"form_select_side": "Select Side",
 	"form_show_linked_trenches": "Show trench connections",
 	"form_side": "Side",
+	"form_slot": [
+		{
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
+			"match": {
+				"countPlural=one": "slot",
+				"countPlural=other": "slots"
+			}
+		}
+	],
 	"form_slot_configuration": "Slot configuration",
+	"form_slot_grid": "Slot grid",
 	"form_snapping": "Snapping",
 	"form_source": "Source",
 	"form_status": "Status",
@@ -246,14 +293,20 @@
 	"form_tpu": "TPU",
 	"form_trench_id": "Trench ID",
 	"form_trench_statistics": "Trench statistics",
+	"form_unnamed_cable": "Unnamed Cable",
+	"form_unnamed_node": "Unnamed Node",
 	"form_upload_files": "Upload files",
 	"form_uploaded_files": "Uploaded files",
 	"form_usage": "Usage",
 	"form_used_slots": "Used",
 	"form_warranty": "Warranty",
 	"form_zip_code": "Zip code",
+	"message_bundle_connected": "Connected {count} fibers",
+	"message_cable_connected": "Connected {count} fibers",
 	"message_cable_no_fibers": "Cable has no fibers",
 	"message_cannot_delete_node_has_cables": "This node cannot be deleted because it has connected cables. Please remove the cables first.",
+	"message_cannot_merge_different_sides": "Cannot merge ports from different sides",
+	"message_component_count": "({count} components)",
 	"message_confirm_delete_cable": "Are you sure you want to delete this cable?",
 	"message_confirm_delete_conduit": "Delete conduit?",
 	"message_confirm_delete_conduit_description": "Conduit is in use. Are you sure you want to delete it and the associated trench connections?",
@@ -311,6 +364,7 @@
 	"message_error_updating_slot_configuration": "Error updating slot configuration",
 	"message_failed_to_create_connections": "Failed to create connections",
 	"message_fiber_connected": "Fiber connected successfully",
+	"message_fibers_connected_to_merged": "Connected {count} fibers to merged ports",
 	"message_file_rejected_description": "The file could not be imported. Please try again.",
 	"message_has_connections": "Has connections",
 	"message_import_conduits_success_description": "Please refresh the page to see the conduits.",
@@ -325,6 +379,7 @@
 	"message_no_conduit_selected_description": "Please select a conduit to calculate a route",
 	"message_no_conduits_found": "No conduits found",
 	"message_no_fibers": "No fibers",
+	"message_no_fibers_to_drop": "No fibers to drop",
 	"message_no_logs_found": "No logs found",
 	"message_no_new_trench_connections": "No new trench connections",
 	"message_no_ports": "No ports configured for this component",
@@ -333,6 +388,8 @@
 	"message_no_structures": "No structures found",
 	"message_no_trenches_near_node": "No trenches found near this node",
 	"message_only_fibers_allowed": "Only individual fibers can be connected to ports",
+	"message_partial_bundle_connected": "Connected {connected} of {total} fibers",
+	"message_partial_cable_connected": "Connected {connected} of {total} fibers",
 	"message_pipe_branch_not_configured": "Pipe branch settings not configured for this project.",
 	"message_please_select_exactly_2_nodes": "Please select exactly 2 nodes",
 	"message_please_try_again": "Please try again.",
@@ -340,9 +397,6 @@
 	"message_ports_merged": "Merged {count} ports",
 	"message_ports_unmerged": "Ports unmerged",
 	"message_select_at_least_two_ports": "Select at least 2 ports to merge",
-	"message_cannot_merge_different_sides": "Cannot merge ports from different sides",
-	"message_fibers_connected_to_merged": "Connected {count} fibers to merged ports",
-	"message_no_fibers_to_drop": "No fibers to drop",
 	"message_success_assigned_node": "Node assigned successfully",
 	"message_success_creating_cable": "Cable created successfully",
 	"message_success_creating_conduit": "Conduit created successfully",
@@ -413,6 +467,7 @@
 	"settings_ui_theme": "Theme",
 	"settings_user": "User",
 	"settings_user_email": "Email address",
+	"title_cable_details": "Cable Details",
 	"title_error_calculating_route": "Error calculating route",
 	"title_error_canvas_sync_failed": "Canvas sync failed",
 	"title_error_creating_vector_tile_layer": "Error creating vector tile layer",
@@ -428,6 +483,7 @@
 	"title_import_conduits_success": "Conduits imported successfully",
 	"title_login_error": "Login error",
 	"title_no_conduit_selected": "No conduit selected",
+	"title_node_details": "Node Details",
 	"title_node_structure": "Node Structure",
 	"title_select_trenches": "Select Trenches",
 	"title_slot_configuration": "Node Slot Configuration",
@@ -435,8 +491,14 @@
 	"title_success_canvas_sync_complete": "Canvas sync complete",
 	"title_trench_located": "Trench located!",
 	"title_trench_not_visible": "Trench not visible!",
+	"tooltip_click_to_delete_vertex": "Click to delete vertex",
 	"tooltip_click_to_edit": "Click to edit",
+	"tooltip_click_to_reset_label_position": "Click to reset label position",
 	"tooltip_double_click_divider": "Double-click to toggle divider line",
+	"tooltip_drag_to_move_vertex": "Drag to move vertex, Shift+Click or right-click to delete",
+	"tooltip_move_label_click_to_exit": "Move label (click to exit)",
 	"tooltip_opacity_slider": "Changes the opacity of the OpenStreetMap background map.",
+	"tooltip_open_cable_details": "Open cable details for {label}",
+	"tooltip_open_node_details": "Open node details for {label}",
 	"tooltip_refresh_microducts": "Refresh microducts to show the latest data."
 }

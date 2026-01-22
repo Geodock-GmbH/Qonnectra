@@ -122,7 +122,9 @@
 	{#if fiber}
 		<!-- Connected Fiber Display - draggable for move operations, also accepts drops for override -->
 		<div
-			class="flex items-center gap-2 group w-full {!isMerged ? 'cursor-grab active:cursor-grabbing' : ''} {isDragging ? 'opacity-50' : ''}"
+			class="flex items-center gap-2 group w-full {!isMerged
+				? 'cursor-grab active:cursor-grabbing'
+				: ''} {isDragging ? 'opacity-50' : ''}"
 			draggable={!isMerged}
 			ondragstart={handleDragStart}
 			ondragend={handleDragEnd}
@@ -196,7 +198,7 @@
 				</div>
 			{/if}
 			<div class="flex items-center gap-2 text-xs italic">
-				<span>{m.message_drop_fiber_here?.() || 'Faser hier ablegen'}</span>
+				<span>{m.message_drop_fiber_here()}</span>
 			</div>
 		</div>
 	{:else}

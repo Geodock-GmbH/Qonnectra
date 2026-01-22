@@ -2,6 +2,8 @@
 	import { useSvelteFlow } from '@xyflow/svelte';
 	import { parse } from 'devalue';
 
+	import { m } from '$lib/paraglide/messages';
+
 	import { drawerStore } from '$lib/stores/drawer';
 
 	import DrawerTabs from './DrawerTabs.svelte';
@@ -233,7 +235,7 @@
 		const parsedData = typeof result.data === 'string' ? parse(result.data) : result.data;
 
 		drawerStore.open({
-			title: parsedData?.name || 'Cable Details',
+			title: parsedData?.name || m.title_cable_details(),
 			component: DrawerTabs,
 			props: {
 				...parsedData,
@@ -241,6 +243,7 @@
 				onLabelUpdate: (newLabel) => {
 					currentLabel = newLabel;
 					drawerStore.setTitle(newLabel);
+					cableData?.onNameUpdate?.(newLabel);
 				},
 				onEdgeDelete
 			}
@@ -397,10 +400,10 @@
 			onclick={handleLabelClick}
 			onkeydown={handleKeydown}
 			aria-label={isResetMode
-				? 'Click to reset label position'
+				? m.tooltip_click_to_reset_label_position()
 				: isMoveLabelMode
-					? 'Move label (click to exit)'
-					: 'Open cable details for ' + currentLabel}
+					? m.tooltip_move_label_click_to_exit()
+					: m.tooltip_open_cable_details({ label: currentLabel })}
 		>
 			<div
 				bind:this={labelElement}
