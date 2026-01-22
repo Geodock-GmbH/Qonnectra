@@ -20,6 +20,7 @@
 		zIndex = '10',
 		contentBase = 'max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 preset-filled-surface-50-950 shadow-lg',
 		inputClasses = '',
+		disabled = false,
 		onValueChange = () => {}
 	} = $props();
 
@@ -94,6 +95,7 @@
 		{collection}
 		{defaultValue}
 		bind:value
+		{disabled}
 		onOpenChange={handleOpenChange}
 		onValueChange={handleValueChange}
 		{onInputValueChange}

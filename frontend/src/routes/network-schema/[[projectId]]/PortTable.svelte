@@ -1,29 +1,24 @@
 <script>
+	import { getContext } from 'svelte';
 	import { IconArrowMerge, IconX } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { NODE_STRUCTURE_CONTEXT_KEY } from '$lib/classes/NodeStructureContext.svelte.js';
+
 	import FiberCell from './FiberCell.svelte';
 
-	let {
-		structureName = '',
-		portRows = [],
-		fiberColors = [],
-		loading = false,
-		onPortDrop = () => {},
-		onClearPort = () => {},
-		onClose = () => {},
-		// Merge functionality props
-		mergeSelectionMode = false,
-		selectedForMerge = new Set(),
-		mergeSide = 'a',
-		onToggleMergeMode = () => {},
-		onTogglePortSelection = () => {},
-		onMergePorts = () => {},
-		onUnmergePorts = () => {},
-		onMergedPortDrop = () => {},
-		onSetMergeSide = () => {}
-	} = $props();
+	// Get context - most state comes from here
+	const context = getContext(NODE_STRUCTURE_CONTEXT_KEY);
+
+	// Only essential props needed for rendering
+	let { structureName = '', portRows = [], loading = false } = $props();
+
+	// Derive state from context
+	const fiberColors = $derived(context?.fiberColors ?? []);
+	const mergeSelectionMode = $derived(context?.mergeSelectionMode ?? false);
+	const selectedForMerge = $derived(context?.selectedForMerge ?? new Set());
+	const mergeSide = $derived(context?.mergeSide ?? 'a');
 
 	// Color lookup map
 	const colorMap = $derived.by(() => {
@@ -46,11 +41,39 @@
 	}
 
 	function handlePortDrop(portNumber, side, fiberData) {
-		onPortDrop(portNumber, side, fiberData);
+		context?.portActions?.onDrop(portNumber, side, fiberData);
 	}
 
 	function handleClearPort(portNumber, side) {
-		onClearPort(portNumber, side);
+		context?.portActions?.onClear(portNumber, side);
+	}
+
+	function handleClose() {
+		context?.portActions?.onClose();
+	}
+
+	function handleToggleMergeMode() {
+		context?.portActions?.onToggleMergeMode();
+	}
+
+	function handleTogglePortSelection(portNumber, side) {
+		context?.portActions?.onTogglePortSelection(portNumber, side);
+	}
+
+	function handleMergePorts() {
+		context?.portActions?.onMergePorts();
+	}
+
+	function handleUnmergePorts(mergeGroupId) {
+		context?.portActions?.onUnmergePorts(mergeGroupId);
+	}
+
+	function handleMergedPortDrop(mergeGroupId, side, data) {
+		context?.portActions?.onMergedPortDrop(mergeGroupId, side, data);
+	}
+
+	function handleSetMergeSide(side) {
+		context?.portActions?.onSetMergeSide(side);
 	}
 
 	function isPortSelected(portNumber) {
@@ -97,14 +120,14 @@
 			// Deselect all
 			for (const portNum of selectablePortNumbers) {
 				if (selectedForMerge.has(`${portNum}-${mergeSide}`)) {
-					onTogglePortSelection(portNum, mergeSide);
+					handleTogglePortSelection(portNum, mergeSide);
 				}
 			}
 		} else {
 			// Select all that aren't already selected
 			for (const portNum of selectablePortNumbers) {
 				if (!selectedForMerge.has(`${portNum}-${mergeSide}`)) {
-					onTogglePortSelection(portNum, mergeSide);
+					handleTogglePortSelection(portNum, mergeSide);
 				}
 			}
 		}
@@ -121,7 +144,7 @@
 		<div class="flex items-center gap-3">
 			<div>
 				<h4 class="font-semibold text-sm leading-tight">{structureName}</h4>
-				<p class="text-[11px] leading-tight text-surface-500">
+				<p class="text-[11px] leading-tight text-surface-950-50">
 					{portRows.length}
 					{m.form_ports?.() || 'Ports'}
 				</p>
@@ -131,7 +154,7 @@
 			<button
 				type="button"
 				class="p-2 rounded-lg hover:bg-surface-300-700 transition-colors"
-				onclick={onClose}
+				onclick={handleClose}
 				aria-label={m.common_close?.() || 'Close'}
 			>
 				<IconX size={18} />
@@ -141,18 +164,18 @@
 
 	{#if loading}
 		<div class="flex items-center justify-center py-8">
-			<span class="text-surface-500">{m.common_loading()}</span>
+			<span class="text-surface-950-50">{m.common_loading()}</span>
 		</div>
 	{:else if portRows.length === 0}
 		<div class="flex items-center justify-center py-8">
-			<span class="text-surface-500">
+			<span class="text-surface-950-50">
 				{m.message_no_ports?.() || 'No ports configured for this component'}
 			</span>
 		</div>
 	{:else}
 		<!-- Column Headers -->
 		<div
-			class="grid {gridCols} bg-surface-200-800 border-b border-surface-200-800 text-xs font-semibold uppercase tracking-wide text-surface-500"
+			class="grid {gridCols} bg-surface-200-800 border-b border-surface-200-800 text-xs font-semibold uppercase tracking-wide text-surface-950-50"
 		>
 			{#if mergeSelectionMode}
 				<div class="px-2 py-2.5 flex items-center justify-center">
@@ -168,25 +191,26 @@
 				</div>
 			{/if}
 			<div class="px-3 py-2.5 flex items-center justify-center">
-				{m.form_port?.() || 'Port'}
+				<span class="text-surface-950-50">{m.form_port?.() || 'Port'}</span>
 			</div>
 			<div
 				class="px-3 py-2.5 flex items-center justify-between gap-2 border-l border-surface-200-800"
 			>
-				<span>{m.form_fiber_a?.() || 'Faser A'} (IN)</span>
+				<span class="text-surface-950-50">{m.form_fiber_a?.() || 'Faser A'}</span>
 				<button
 					type="button"
-					class="p-1.5 rounded-lg transition-colors {mergeSelectionMode && mergeSide === 'a'
+					class="p-1.5 rounded-lg transition-colors text-surface-950-50 {mergeSelectionMode &&
+					mergeSide === 'a'
 						? 'preset-filled-primary-500 text-white'
 						: 'hover:bg-surface-300-700'}"
 					onclick={() => {
 						if (mergeSelectionMode && mergeSide === 'a') {
-							onToggleMergeMode();
+							handleToggleMergeMode();
 						} else if (mergeSelectionMode) {
-							onSetMergeSide('a');
+							handleSetMergeSide('a');
 						} else {
-							onSetMergeSide('a');
-							onToggleMergeMode();
+							handleSetMergeSide('a');
+							handleToggleMergeMode();
 						}
 					}}
 					title={m.action_merge_ports?.() || 'Merge ports'}
@@ -197,25 +221,26 @@
 			<div
 				class="px-3 py-2.5 flex items-center justify-between gap-2 border-l border-surface-200-800"
 			>
-				<span>{m.form_fiber_b?.() || 'Faser B'} (OUT)</span>
+				<span class="text-surface-950-50">{m.form_fiber_b?.() || 'Faser B'} </span>
 				<button
 					type="button"
-					class="p-1.5 rounded-lg transition-colors {mergeSelectionMode && mergeSide === 'b'
+					class="p-1.5 rounded-lg transition-colors text-surface-950-50 {mergeSelectionMode &&
+					mergeSide === 'b'
 						? 'preset-filled-primary-500 text-white'
 						: 'hover:bg-surface-300-700'}"
 					onclick={() => {
 						if (mergeSelectionMode && mergeSide === 'b') {
-							onToggleMergeMode();
+							handleToggleMergeMode();
 						} else if (mergeSelectionMode) {
-							onSetMergeSide('b');
+							handleSetMergeSide('b');
 						} else {
-							onSetMergeSide('b');
-							onToggleMergeMode();
+							handleSetMergeSide('b');
+							handleToggleMergeMode();
 						}
 					}}
 					title={m.action_merge_ports?.() || 'Merge ports'}
 				>
-					<IconArrowMerge size={16} />
+					<IconArrowMerge size={20} />
 				</button>
 			</div>
 		</div>
@@ -234,7 +259,7 @@
 									type="checkbox"
 									class="checkbox"
 									checked={isPortSelected(row.portNumber)}
-									onchange={() => onTogglePortSelection(row.portNumber, mergeSide)}
+									onchange={() => handleTogglePortSelection(row.portNumber, mergeSide)}
 								/>
 							{/if}
 						</div>
@@ -263,9 +288,9 @@
 								connectedCount={row.mergeInfoA.fiberCount}
 								spanRows={row.mergeInfoA.groupSize}
 								portRange={row.mergeInfoA.portRange}
-								onDrop={(data) => onMergedPortDrop(row.mergeInfoA.groupId, 'a', data)}
+								onDrop={(data) => handleMergedPortDrop(row.mergeInfoA.groupId, 'a', data)}
 								onClear={() => handleClearPort(row.portNumber, 'a')}
-								onUnmerge={() => onUnmergePorts(row.mergeInfoA.groupId)}
+								onUnmerge={() => handleUnmergePorts(row.mergeInfoA.groupId)}
 							/>
 						{:else}
 							<!-- Normal unmerged cell -->
@@ -298,9 +323,9 @@
 								connectedCount={row.mergeInfoB.fiberCount}
 								spanRows={row.mergeInfoB.groupSize}
 								portRange={row.mergeInfoB.portRange}
-								onDrop={(data) => onMergedPortDrop(row.mergeInfoB.groupId, 'b', data)}
+								onDrop={(data) => handleMergedPortDrop(row.mergeInfoB.groupId, 'b', data)}
 								onClear={() => handleClearPort(row.portNumber, 'b')}
-								onUnmerge={() => onUnmergePorts(row.mergeInfoB.groupId)}
+								onUnmerge={() => handleUnmergePorts(row.mergeInfoB.groupId)}
 							/>
 						{:else}
 							<!-- Normal unmerged cell -->
@@ -325,10 +350,14 @@
 			<div
 				class="p-2 border-t border-surface-200-800 bg-surface-200-800 flex justify-between items-center gap-2"
 			>
-				<span class="text-xs text-surface-500">
+				<span class="text-xs text-surface-950-50">
 					{m.form_side?.() || 'Side'}: {mergeSide === 'a' ? 'A (IN)' : 'B (OUT)'}
 				</span>
-				<button type="button" class="btn preset-filled-primary-500 text-sm" onclick={onMergePorts}>
+				<button
+					type="button"
+					class="btn preset-filled-primary-500 text-sm"
+					onclick={handleMergePorts}
+				>
 					<IconArrowMerge size={16} />
 					{m.action_merge?.() || 'Merge'}
 					{selectedForMerge.size}

@@ -1,15 +1,15 @@
 <script>
 	import { onMount, setContext } from 'svelte';
-	import { deserialize } from '$app/forms';
 	import { IconLayoutList, IconPlug, IconTopologyRing2 } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { DRAG_DROP_CONTEXT_KEY, DragDropManager } from '$lib/classes/DragDropManager.svelte.js';
-	import { FiberSpliceManager } from '$lib/classes/FiberSpliceManager.svelte.js';
-	import { NodeStructureManager } from '$lib/classes/NodeStructureManager.svelte.js';
+	import {
+		DRAG_DROP_CONTEXT_KEY,
+		NODE_STRUCTURE_CONTEXT_KEY,
+		NodeStructureContext
+	} from '$lib/classes/NodeStructureContext.svelte.js';
 	import MessageBox from '$lib/components/MessageBox.svelte';
-	import { globalToaster } from '$lib/stores/toaster';
 
 	import CableFiberSidebar from './CableFiberSidebar.svelte';
 	import ComponentTypeSidebar from './ComponentTypeSidebar.svelte';
@@ -24,43 +24,36 @@
 		sharedSlotState = $bindable(null)
 	} = $props();
 
+	// ========== Responsive State ==========
 	let innerWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1024);
 	const isMobile = $derived(innerWidth < 768);
 
+	// ========== UI State (local to this component) ==========
 	let activeSheet = $state(null);
-
 	let cableRefreshTrigger = $state(0);
-
-	let editingClipSlot = $state(null);
-	let editingClipValue = $state('');
 
 	// Delete confirmation state
 	let deleteMessageBox = $state(null);
 	let pendingDeleteUuid = $state(null);
 	let pendingDeleteSpliceCount = $state(0);
 
-	const structureManager = new NodeStructureManager(
-		nodeUuid,
+	// ========== Context Creation ==========
+	const context = new NodeStructureContext(nodeUuid, {
 		initialSlotConfigUuid,
 		sharedSlotState
-	);
-	const spliceManager = new FiberSpliceManager();
-	const dragDropManager = new DragDropManager();
-
-	setContext(DRAG_DROP_CONTEXT_KEY, dragDropManager);
-
-	const slotConfigurations = $derived(structureManager.slotConfigurations);
-	const selectedConfig = $derived(structureManager.selectedConfig);
-	const containerPath = $derived(structureManager.containerPath);
-
-	const slotRows = $derived.by(() => {
-		const baseRows = structureManager.computeSlotRows();
-		return baseRows.map((row) => ({
-			...row,
-			isDropTarget: dragDropManager.dropPreviewSlots.includes(row.slotNumber)
-		}));
 	});
 
+	// Share context with children
+	setContext(NODE_STRUCTURE_CONTEXT_KEY, context);
+	setContext(DRAG_DROP_CONTEXT_KEY, context.getDragDropManager());
+
+	// ========== Derived State from Context ==========
+	const slotConfigurations = $derived(context.slotConfigurations);
+	const selectedConfig = $derived(context.selectedConfig);
+	const containerPath = $derived(context.containerPath);
+	const slotRows = $derived(context.computeSlotRows());
+
+	// ========== Effects ==========
 	function handleResize() {
 		innerWidth = window.innerWidth;
 	}
@@ -70,20 +63,14 @@
 	$effect(() => {
 		if (nodeUuid && nodeUuid !== previousNodeUuid) {
 			previousNodeUuid = nodeUuid;
-
-			structureManager.setNodeUuid(nodeUuid, sharedSlotState);
-			structureManager.fetchSlotConfigurations();
-
-			spliceManager.closePortTable();
-
-			dragDropManager.cleanup();
-
+			context.setNodeUuid(nodeUuid, sharedSlotState);
+			context.initialize();
 			cableRefreshTrigger++;
 		}
 	});
 
 	$effect(() => {
-		dragDropManager.handleResponsiveChange(isMobile);
+		context.handleResponsiveChange(isMobile);
 		if (!isMobile) {
 			activeSheet = null;
 		}
@@ -91,239 +78,66 @@
 
 	$effect(() => {
 		if (initialSlotConfigUuid) {
-			structureManager.selectSlotConfig(initialSlotConfigUuid);
+			context.selectSlotConfig(initialSlotConfigUuid);
 		}
 	});
 
 	$effect(() => {
 		if (sharedSlotState?.lastUpdated) {
-			structureManager.syncWithSharedState(sharedSlotState);
+			context.syncWithSharedState(sharedSlotState);
 		}
 	});
 
 	$effect(() => {
-		if (structureManager.selectedSlotConfigUuid) {
-			structureManager.fetchAllForSlotConfig();
+		if (context.selectedSlotConfigUuid) {
+			context.fetchAllForSlotConfig();
 		}
 	});
 
 	// ========== Event Handlers ==========
-
 	function handleSideChange(e) {
-		structureManager.selectSlotConfig(e.target.value);
+		context.selectSlotConfig(e.target.value);
 	}
 
-	function startEditingClip(slotNumber, currentValue) {
-		editingClipSlot = slotNumber;
-		editingClipValue = currentValue || String(slotNumber);
-	}
-
-	async function saveClipNumber() {
-		if (editingClipSlot === null || !editingClipValue.trim()) {
-			editingClipSlot = null;
-			editingClipValue = '';
-			return;
-		}
-
-		const slotNumber = editingClipSlot;
-		const clipValue = editingClipValue;
-
-		editingClipSlot = null;
-		editingClipValue = '';
-
-		await structureManager.saveClipNumber(slotNumber, clipValue);
-	}
-
-	function handleClipKeydown(e) {
-		if (e.key === 'Enter') {
-			e.preventDefault();
-			saveClipNumber();
-		} else if (e.key === 'Escape') {
-			editingClipSlot = null;
-			editingClipValue = '';
-		}
-	}
-
-	async function toggleDivider(slotNumber) {
-		await structureManager.toggleDivider(slotNumber);
-	}
-
-	// ========== Drag Handlers ==========
-
-	function handleSidebarDragStart(componentType) {
-		dragDropManager.startComponentDrag(componentType);
-	}
-
-	function handleSidebarDragEnd() {
-		dragDropManager.endDrag();
-	}
-
-	function handleStructureDragStart(e, structure) {
-		dragDropManager.startStructureDrag(e, structure);
-	}
-
-	function handleSlotDragOver(e, slotNumber) {
-		e.preventDefault();
-
-		const { canDrop } = dragDropManager.updateDropPreview(
-			slotNumber,
-			selectedConfig?.total_slots || 0,
-			structureManager.occupiedSlots
-		);
-
-		e.dataTransfer.dropEffect = dragDropManager.getDropEffect(canDrop);
-	}
-
-	async function handleSlotDrop(e, slotNumber) {
-		e.preventDefault();
-		dragDropManager.clearDropPreview();
-
-		const data = dragDropManager.parseDropData(e);
-		if (!data) {
-			dragDropManager.endDrag();
-			return;
-		}
-
-		try {
-			if (data.type === 'component_type') {
-				await structureManager.createStructure(data, slotNumber);
-			} else if (data.type === 'multi_component_type') {
-				await structureManager.createMultipleStructures(data, slotNumber);
-			} else if (data.type === 'existing_structure') {
-				if (data.slot_start === slotNumber) {
-					dragDropManager.endDrag();
-					return;
-				}
-				await structureManager.moveStructure(data, slotNumber);
-			}
-		} catch (err) {
-			console.error('Drop error:', err);
-			globalToaster.error({
-				title: m.common_error(),
-				description: err.message || m.message_error_placing_component()
-			});
-		}
-
-		dragDropManager.endDrag();
-	}
-
-	// ========== Mobile Handlers ==========
-
-	function handleMobileComponentSelect(componentType) {
-		dragDropManager.selectMobileComponent(componentType);
-		activeSheet = null;
-	}
-
-	async function handleMobileSlotTap(slotNumber) {
-		if (!dragDropManager.mobileSelectedItem) return;
-
-		try {
-			const item = dragDropManager.mobileSelectedItem;
-			if (item.type === 'multi_component_type') {
-				await structureManager.createMultipleStructures(item, slotNumber);
-			} else {
-				await structureManager.createStructure(item, slotNumber);
-			}
-		} catch (err) {
-			globalToaster.error({
-				title: m.common_error(),
-				description: err.message || m.message_error_placing_component()
-			});
-		}
-
-		dragDropManager.clearMobileSelection();
-	}
-
-	function handleMobileFiberSelect(fiberData) {
-		dragDropManager.selectMobileItem(fiberData);
-		activeSheet = 'ports';
-	}
-
-	// ========== Structure Selection / Port Table ==========
-
+	// Wrapper for structure select to handle mobile sheet
 	async function handleStructureSelect(structure) {
-		const wasSelected = await spliceManager.selectStructure(structure, isMobile);
-
+		const wasSelected = await context.structureActions.onSelect(structure);
 		if (isMobile && wasSelected) {
 			activeSheet = 'ports';
 		}
 	}
 
+	// Wrapper for structure delete to handle confirmation dialog
 	async function handleDeleteStructure(structureUuid) {
-		// Check if the structure has fiber splices before deleting
-		try {
-			const formData = new FormData();
-			formData.append('nodeStructureUuid', structureUuid);
-
-			const response = await fetch('?/getFiberSplices', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-			const splices = result.data?.splices || [];
-
-			// Count splices that have actual fiber connections
-			const activeSpliceCount = splices.filter(
-				(s) => s.fiber_a_details || s.fiber_b_details
-			).length;
-
-			if (activeSpliceCount > 0) {
-				// Show confirmation dialog
-				pendingDeleteUuid = structureUuid;
-				pendingDeleteSpliceCount = activeSpliceCount;
-				deleteMessageBox.open();
-				return;
-			}
-
-			// No splices, delete directly
-			await executeDelete(structureUuid);
-		} catch (err) {
-			console.error('Error checking splices before delete:', err);
-			// On error, proceed with delete (backend will handle cascading)
-			await executeDelete(structureUuid);
-		}
-	}
-
-	async function executeDelete(structureUuid) {
-		const deleted = await structureManager.deleteStructure(structureUuid);
-		if (deleted) {
-			spliceManager.onStructureDeleted(structureUuid);
+		const result = await context.structureActions.onDelete(structureUuid);
+		if (result?.needsConfirmation) {
+			pendingDeleteUuid = result.structureUuid;
+			pendingDeleteSpliceCount = result.spliceCount;
+			deleteMessageBox.open();
 		}
 	}
 
 	async function confirmDeleteStructure() {
 		if (pendingDeleteUuid) {
-			await executeDelete(pendingDeleteUuid);
+			await context.executeDelete(pendingDeleteUuid);
 			pendingDeleteUuid = null;
 			pendingDeleteSpliceCount = 0;
 		}
 	}
 
-	async function handlePortDrop(portNumber, side, dropData) {
-		// For cable drops, pass all structures to enable multi-component filling
-		const structures = dropData.type === 'cable' ? structureManager.structures : [];
-		const success = await spliceManager.handlePortDrop(portNumber, side, dropData, structures);
-
-		// Clear mobile selection on success for any fiber-related drop type
-		if (isMobile && success) {
-			const dropType = dragDropManager.mobileSelectedItem?.type;
-			if (dropType === 'fiber' || dropType === 'bundle' || dropType === 'cable') {
-				dragDropManager.clearMobileSelection();
-			}
-		}
+	// Mobile-specific handlers
+	function handleMobileComponentSelect(componentType) {
+		context.sidebarActions.onMobileSelect(componentType);
+		activeSheet = null;
 	}
 
-	async function handleClearPort(portNumber, side) {
-		await spliceManager.handleClearPort(portNumber, side);
-	}
-
-	function handleClosePortTable() {
-		spliceManager.closePortTable();
+	function handleMobileFiberSelect(fiberData) {
+		context.mobileActions.onFiberSelect(fiberData);
+		activeSheet = 'ports';
 	}
 
 	onMount(() => {
-		structureManager.fetchSlotConfigurations();
+		context.initialize();
 		cableRefreshTrigger++;
 
 		if (typeof window !== 'undefined') {
@@ -347,7 +161,7 @@
 				<div class="flex items-center gap-2">
 					<select
 						class="select flex-1 text-sm"
-						value={structureManager.selectedSlotConfigUuid}
+						value={context.selectedSlotConfigUuid}
 						onchange={handleSideChange}
 					>
 						{#each slotConfigurations as config (config.uuid)}
@@ -361,15 +175,15 @@
 						</span>
 					{/if}
 				</div>
-				{#if dragDropManager.mobileSelectedItem}
+				{#if context.mobileSelectedItem}
 					<div
 						class="mt-2 px-3 py-2 bg-primary-100 dark:bg-primary-900 rounded-lg text-sm flex items-center justify-between"
 					>
-						<span class="font-medium">{dragDropManager.mobileSelectedItem.name}</span>
+						<span class="font-medium">{context.mobileSelectedItem.name}</span>
 						<button
 							type="button"
 							class="text-xs text-primary-600 dark:text-primary-400"
-							onclick={() => dragDropManager.clearMobileSelection()}
+							onclick={() => context.mobileActions.onClearSelection()}
 						>
 							{m.common_cancel()}
 						</button>
@@ -377,30 +191,15 @@
 				{/if}
 			</div>
 
-			<!-- Slot Grid -->
+			<!-- Slot Grid (now with minimal props - gets state from context) -->
 			<div class="flex-1 overflow-hidden p-3">
 				<SlotGrid
 					{slotRows}
-					structures={structureManager.structures}
-					selectedStructure={spliceManager.selectedStructure}
-					isDragging={dragDropManager.isDragging}
-					draggedItem={dragDropManager.draggedItem}
-					bind:dropPreviewSlots={dragDropManager.dropPreviewSlots}
-					componentRanges={dragDropManager.componentRanges}
-					occupiedSlots={structureManager.occupiedSlots}
-					loading={structureManager.loading}
-					loadingStructures={structureManager.loadingStructures}
+					loading={context.loading}
+					loadingStructures={context.loadingStructures}
 					{isMobile}
-					mobileSelectedItem={dragDropManager.mobileSelectedItem}
-					onSlotTap={handleMobileSlotTap}
 					onStructureSelect={handleStructureSelect}
 					onStructureDelete={handleDeleteStructure}
-					onToggleDivider={toggleDivider}
-					onStartEditingClip={startEditingClip}
-					{editingClipSlot}
-					bind:editingClipValue
-					onSaveClipNumber={saveClipNumber}
-					onClipKeydown={handleClipKeydown}
 				/>
 			</div>
 
@@ -435,7 +234,7 @@
 							? 'preset-filled-primary-500'
 							: 'preset-tonal'}"
 						onclick={() => (activeSheet = activeSheet === 'ports' ? null : 'ports')}
-						disabled={!spliceManager.selectedStructure}
+						disabled={!context.selectedStructure}
 					>
 						<IconPlug size={20} />
 						<span>{m.form_ports()}</span>
@@ -456,26 +255,12 @@
 					<ComponentTypeSidebar {isMobile} onMobileSelect={handleMobileComponentSelect} />
 				{:else if activeSheet === 'cables'}
 					<CableFiberSidebar {nodeUuid} refreshTrigger={cableRefreshTrigger} {isMobile} />
-				{:else if activeSheet === 'ports' && spliceManager.selectedStructure}
+				{:else if activeSheet === 'ports' && context.selectedStructure}
+					<!-- PortTable now gets most state from context -->
 					<PortTable
-						structureName={spliceManager.selectedStructure.component_type?.component_type || '-'}
-						portRows={spliceManager.portRowsWithMerge}
-						fiberColors={spliceManager.fiberColors}
-						loading={spliceManager.loadingPorts}
-						onPortDrop={handlePortDrop}
-						onClearPort={handleClearPort}
-						onClose={handleClosePortTable}
-						mergeSelectionMode={spliceManager.mergeSelectionMode}
-						selectedForMerge={spliceManager.selectedForMerge}
-						mergeSide={spliceManager.mergeSide}
-						onToggleMergeMode={() => spliceManager.toggleMergeSelectionMode()}
-						onTogglePortSelection={(portNumber, side) =>
-							spliceManager.togglePortSelection(portNumber, side)}
-						onMergePorts={() => spliceManager.mergeSelectedPorts()}
-						onUnmergePorts={(mergeGroupId) => spliceManager.unmergePorts(mergeGroupId)}
-						onMergedPortDrop={(mergeGroupId, side, data) =>
-							spliceManager.handleMergedPortDrop(mergeGroupId, side, data)}
-						onSetMergeSide={(side) => spliceManager.setMergeSide(side)}
+						structureName={context.selectedStructure.component_type?.component_type || '-'}
+						portRows={context.portRowsWithMerge}
+						loading={context.loadingPorts}
 					/>
 				{/if}
 			</MobileBottomSheet>
@@ -484,7 +269,10 @@
 		<!-- ========== DESKTOP LAYOUT ========== -->
 		<div class="flex h-full">
 			<!-- Left Sidebar: Component Types -->
-			<ComponentTypeSidebar onDragStart={handleSidebarDragStart} onDragEnd={handleSidebarDragEnd} />
+			<ComponentTypeSidebar
+				onDragStart={context.sidebarActions.onDragStart}
+				onDragEnd={context.sidebarActions.onDragEnd}
+			/>
 
 			<!-- Main Content -->
 			<div class="flex-1 flex flex-col gap-4 p-4 min-w-0 overflow-hidden">
@@ -502,7 +290,7 @@
 							<span class="text-sm font-medium">{m.form_select_side()}</span>
 							<select
 								class="select"
-								value={structureManager.selectedSlotConfigUuid}
+								value={context.selectedSlotConfigUuid}
 								onchange={handleSideChange}
 							>
 								{#each slotConfigurations as config (config.uuid)}
@@ -521,58 +309,25 @@
 
 				<!-- Slot Grid and Port Table container - share space when both visible -->
 				<div class="flex-1 flex flex-col gap-4 min-h-0 overflow-hidden">
-					<!-- Slot Grid -->
+					<!-- Slot Grid (now with minimal props - gets state from context) -->
 					<div class="flex-1 min-h-0 overflow-hidden">
 						<SlotGrid
 							{slotRows}
-							structures={structureManager.structures}
-							selectedStructure={spliceManager.selectedStructure}
-							isDragging={dragDropManager.isDragging}
-							draggedItem={dragDropManager.draggedItem}
-							bind:dropPreviewSlots={dragDropManager.dropPreviewSlots}
-							componentRanges={dragDropManager.componentRanges}
-							occupiedSlots={structureManager.occupiedSlots}
-							loading={structureManager.loading}
-							loadingStructures={structureManager.loadingStructures}
+							loading={context.loading}
+							loadingStructures={context.loadingStructures}
 							{isMobile}
-							onSlotDragOver={handleSlotDragOver}
-							onSlotDrop={handleSlotDrop}
-							onStructureDragStart={handleStructureDragStart}
-							onStructureDragEnd={handleSidebarDragEnd}
 							onStructureSelect={handleStructureSelect}
 							onStructureDelete={handleDeleteStructure}
-							onToggleDivider={toggleDivider}
-							onStartEditingClip={startEditingClip}
-							{editingClipSlot}
-							bind:editingClipValue
-							onSaveClipNumber={saveClipNumber}
-							onClipKeydown={handleClipKeydown}
 						/>
 					</div>
 
-					<!-- Port Table (when structure selected) -->
-					{#if spliceManager.selectedStructure}
+					<!-- Port Table (when structure selected) - now with minimal props -->
+					{#if context.selectedStructure}
 						<div class="flex-1 min-h-0 overflow-hidden">
 							<PortTable
-								structureName={spliceManager.selectedStructure.component_type?.component_type ||
-									'-'}
-								portRows={spliceManager.portRowsWithMerge}
-								fiberColors={spliceManager.fiberColors}
-								loading={spliceManager.loadingPorts}
-								onPortDrop={handlePortDrop}
-								onClearPort={handleClearPort}
-								onClose={handleClosePortTable}
-								mergeSelectionMode={spliceManager.mergeSelectionMode}
-								selectedForMerge={spliceManager.selectedForMerge}
-								mergeSide={spliceManager.mergeSide}
-								onToggleMergeMode={() => spliceManager.toggleMergeSelectionMode()}
-								onTogglePortSelection={(portNumber, side) =>
-									spliceManager.togglePortSelection(portNumber, side)}
-								onMergePorts={() => spliceManager.mergeSelectedPorts()}
-								onUnmergePorts={(mergeGroupId) => spliceManager.unmergePorts(mergeGroupId)}
-								onMergedPortDrop={(mergeGroupId, side, data) =>
-									spliceManager.handleMergedPortDrop(mergeGroupId, side, data)}
-								onSetMergeSide={(side) => spliceManager.setMergeSide(side)}
+								structureName={context.selectedStructure.component_type?.component_type || '-'}
+								portRows={context.portRowsWithMerge}
+								loading={context.loadingPorts}
 							/>
 						</div>
 					{/if}

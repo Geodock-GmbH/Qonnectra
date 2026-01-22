@@ -257,7 +257,8 @@
 				if (deleteResult.type === 'failure' || deleteResult.type === 'error') {
 					globalToaster.error({
 						title: m.common_error(),
-						description: m.message_error_deleting_splices?.() || 'Failed to delete fiber connections'
+						description:
+							m.message_error_deleting_splices?.() || 'Failed to delete fiber connections'
 					});
 					handleCancelNodeChange();
 					return;
@@ -298,7 +299,9 @@
 
 		<!-- Node Selection -->
 		<div class="space-y-2">
-			<label class="text-sm font-medium">{m.form_change_node?.() || 'Change Node'}</label>
+			<label for="node-start" class="text-sm font-medium"
+				>{m.form_change_node?.() || 'Change Node'}</label
+			>
 			{#if loadingNodes}
 				<p class="text-sm text-surface-500">{m.common_loading()}</p>
 			{:else}
@@ -319,7 +322,9 @@
 
 		<!-- Handle Position -->
 		<div class="space-y-2">
-			<label class="text-sm font-medium">{m.form_handle_position?.() || 'Handle Position'}</label>
+			<label for="handle-start" class="text-sm font-medium"
+				>{m.form_handle_position?.() || 'Handle Position'}</label
+			>
 			<div class="space-y-2">
 				{#each handleOptions as option}
 					<label class="flex items-center space-x-2">
@@ -348,7 +353,9 @@
 
 		<!-- Node Selection -->
 		<div class="space-y-2">
-			<label class="text-sm font-medium">{m.form_change_node?.() || 'Change Node'}</label>
+			<label for="node-end" class="text-sm font-medium"
+				>{m.form_change_node?.() || 'Change Node'}</label
+			>
 			{#if loadingNodes}
 				<p class="text-sm text-surface-500">{m.common_loading()}</p>
 			{:else}
@@ -369,7 +376,9 @@
 
 		<!-- Handle Position -->
 		<div class="space-y-2">
-			<label class="text-sm font-medium">{m.form_handle_position?.() || 'Handle Position'}</label>
+			<label for="handle-end" class="text-sm font-medium"
+				>{m.form_handle_position?.() || 'Handle Position'}</label
+			>
 			<div class="space-y-2">
 				{#each handleOptions as option}
 					<label class="flex items-center space-x-2">

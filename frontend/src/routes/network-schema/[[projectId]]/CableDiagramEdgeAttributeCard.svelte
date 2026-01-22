@@ -192,6 +192,7 @@
 			bind:value={cableType}
 			defaultValue={cableType}
 			onValueChange={(e) => (cableType = e.value)}
+			disabled={true}
 		/>
 	</label>
 	<label class="label">
