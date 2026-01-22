@@ -15,7 +15,7 @@ export class NetworkSchemaSearchManager {
 	highlightResult = $state(true);
 
 	/** @type {boolean} - Whether to open the drawer for the selected result */
-	openDrawer = $state(true);
+	openDrawer = $state(false);
 
 	/** @type {string|null} - UUID of the currently highlighted item */
 	highlightedItemId = $state(null);

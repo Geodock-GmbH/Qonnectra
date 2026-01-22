@@ -318,7 +318,9 @@ export class NetworkSchemaState {
 					data: {
 						label: cableName,
 						cable: { ...cableData, uuid: cableUuid },
-						onEdgeDelete: (edgeId) => this.handleEdgeDelete(edgeId)
+						onEdgeDelete: (edgeId) => this.handleEdgeDelete(edgeId),
+						onEdgeSelect: (edgeId) => this.selectEdge(edgeId),
+						onNameUpdate: (newName) => this.updateEdgeName(cableUuid, newName)
 					}
 				}
 			];

@@ -181,7 +181,7 @@
 			<Background class="z-0" bgColor="var(--color-surface-100-900) " />
 			<Controls />
 			<Panel position="top-left">
-				<div class="card bg-surface-50-950 p-2 rounded-lg shadow-lg w-64">
+				<div class="card bg-surface-50-950 p-2 rounded-lg shadow-lg w-72">
 					<h1 class="text-lg font-semibold mb-1">{m.common_attributes()}</h1>
 					<div class="flex flex-col gap-2">
 						<label for="cable_name_input" class="text-sm font-medium">

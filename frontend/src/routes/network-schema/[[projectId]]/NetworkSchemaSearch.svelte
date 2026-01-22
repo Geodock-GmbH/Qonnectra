@@ -12,9 +12,6 @@
 	let {
 		searchManager,
 		schemaState,
-		panToResult = true,
-		highlightResult = true,
-		openDrawer = true,
 		onNodeDelete = null
 	} = $props();
 
@@ -75,12 +72,12 @@
 		const position = searchManager.getResultPosition(result);
 
 		// Pan to the result
-		if (panToResult && position) {
+		if (searchManager.panToResult && position) {
 			setCenter(position.x, position.y, { duration: 500, zoom: 1 });
 		}
 
 		// Select the node/edge to show green highlight border
-		if (highlightResult) {
+		if (searchManager.highlightResult) {
 			if (result.type === 'node') {
 				schemaState.selectNode(result.id);
 			} else {
@@ -89,7 +86,7 @@
 		}
 
 		// Open drawer with item details
-		if (openDrawer) {
+		if (searchManager.openDrawer) {
 			if (result.type === 'node') {
 				await openNodeDrawer(result.id);
 			} else {
