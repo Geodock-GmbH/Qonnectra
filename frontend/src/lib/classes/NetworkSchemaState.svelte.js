@@ -106,7 +106,19 @@ export class NetworkSchemaState {
 	 * @param {string} edgeId - The UUID of the edge/cable to remove
 	 */
 	handleEdgeDelete(edgeId) {
-		this.edges = this.edges.filter((edge) => edge.id !== edgeId);
+		const edge = this.edges.find((e) => e.id === edgeId);
+		const affectedNodeIds = edge ? [edge.source, edge.target] : [];
+
+		this.edges = this.edges.filter((e) => e.id !== edgeId);
+
+		// Dispatch event for sidebar refresh
+		if (affectedNodeIds.length > 0) {
+			window.dispatchEvent(
+				new CustomEvent('cableConnectionChanged', {
+					detail: { nodeIds: affectedNodeIds }
+				})
+			);
+		}
 	}
 
 	/**
@@ -329,6 +341,13 @@ export class NetworkSchemaState {
 				title: m.title_success(),
 				description: m.message_success_creating_cable()
 			});
+
+			// Dispatch event for sidebar refresh (source and target are swapped in the edge creation)
+			window.dispatchEvent(
+				new CustomEvent('cableConnectionChanged', {
+					detail: { nodeIds: [source, target] }
+				})
+			);
 		} catch (error) {
 			console.error('Error creating cable:', error);
 			globalToaster.error({
@@ -431,6 +450,50 @@ export class NetworkSchemaState {
 						}
 					}
 				};
+			}
+			return edge;
+		});
+	}
+
+	/**
+	 * Update edge connection to a different node
+	 * @param {string} edgeId - Edge UUID
+	 * @param {string} side - 'start' or 'end'
+	 * @param {string} newNodeId - New node UUID
+	 * @param {string} handlePosition - Handle position at new node
+	 */
+	updateEdgeConnection(edgeId, side, newNodeId, handlePosition) {
+		this.edges = this.edges.map((edge) => {
+			if (edge.id === edgeId) {
+				if (side === 'start') {
+					return {
+						...edge,
+						source: newNodeId,
+						sourceHandle: handlePosition ? `${newNodeId}-${handlePosition}-source` : undefined,
+						data: {
+							...edge.data,
+							cable: {
+								...edge.data.cable,
+								uuid_node_start: newNodeId,
+								handle_start: handlePosition
+							}
+						}
+					};
+				} else {
+					return {
+						...edge,
+						target: newNodeId,
+						targetHandle: handlePosition ? `${newNodeId}-${handlePosition}-target` : undefined,
+						data: {
+							...edge.data,
+							cable: {
+								...edge.data.cable,
+								uuid_node_end: newNodeId,
+								handle_end: handlePosition
+							}
+						}
+					};
+				}
 			}
 			return edge;
 		});

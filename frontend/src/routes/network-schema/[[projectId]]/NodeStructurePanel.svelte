@@ -356,7 +356,8 @@
 					</select>
 					{#if selectedConfig}
 						<span class="text-xs text-surface-950-50 whitespace-nowrap">
-							{selectedConfig.total_slots} {m.form_slot({ count: selectedConfig.total_slots })}
+							{selectedConfig.total_slots}
+							{m.form_slot({ count: selectedConfig.total_slots })}
 						</span>
 					{/if}
 				</div>

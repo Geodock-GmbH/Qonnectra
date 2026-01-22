@@ -9,11 +9,7 @@
 
 	import DrawerTabs from './DrawerTabs.svelte';
 
-	let {
-		searchManager,
-		schemaState,
-		onNodeDelete = null
-	} = $props();
+	let { searchManager, schemaState, onNodeDelete = null } = $props();
 
 	const { setCenter } = useSvelteFlow();
 

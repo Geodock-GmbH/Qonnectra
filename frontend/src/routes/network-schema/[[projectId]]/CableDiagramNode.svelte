@@ -118,7 +118,7 @@
 	tabindex="0"
 	onclick={handleNodeClick}
 	onkeydown={handleKeydown}
-		aria-label={m.tooltip_open_node_details({ label: currentLabel })}
+	aria-label={m.tooltip_open_node_details({ label: currentLabel })}
 >
 	<p class="text-center break-words w-full">
 		{currentLabel}

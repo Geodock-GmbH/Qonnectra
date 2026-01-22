@@ -2133,5 +2133,218 @@ export const actions = {
 			console.error('Error upserting merged splice:', err);
 			return fail(500, { error: 'Internal server error' });
 		}
+	},
+	updateCableConnection: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+
+		const cableId = formData.get('uuid');
+		const uuid_node_start_id = formData.get('uuid_node_start_id');
+		const uuid_node_end_id = formData.get('uuid_node_end_id');
+		const handle_start = formData.get('handle_start');
+		const handle_end = formData.get('handle_end');
+
+		if (!cableId) {
+			return fail(400, { message: 'Cable ID is required' });
+		}
+
+		try {
+			const requestBody = {};
+			if (uuid_node_start_id) requestBody.uuid_node_start_id = uuid_node_start_id;
+			if (uuid_node_end_id) requestBody.uuid_node_end_id = uuid_node_end_id;
+			if (handle_start) requestBody.handle_start = handle_start;
+			if (handle_end) requestBody.handle_end = handle_end;
+
+			const response = await fetch(`${API_URL}cable/${cableId}/`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					message: errorData.detail || 'Failed to update cable connection'
+				});
+			}
+
+			const updatedCable = await response.json();
+			return { success: true, cable: updatedCable };
+		} catch (err) {
+			console.error('Error updating cable connection:', err);
+			return fail(500, { message: err.message || 'Failed to update cable connection' });
+		}
+	},
+	getCableSplicesAtNode: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+
+		const cableUuid = formData.get('cableUuid');
+		const nodeUuid = formData.get('nodeUuid');
+
+		if (!cableUuid || !nodeUuid) {
+			return fail(400, { error: 'Cable UUID and Node UUID are required' });
+		}
+
+		try {
+			// Fetch fiber splices where this cable's fibers are connected at this node
+			// We need to check both cable_a and cable_b, and also check node_structure.uuid_node
+			const splicesAResponse = await fetch(
+				`${API_URL}fiber-splice/?cable_a=${cableUuid}&node_structure__uuid_node=${nodeUuid}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			const splicesBResponse = await fetch(
+				`${API_URL}fiber-splice/?cable_b=${cableUuid}&node_structure__uuid_node=${nodeUuid}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			let splicesA = [];
+			let splicesB = [];
+			if (splicesAResponse.ok) {
+				splicesA = await splicesAResponse.json();
+			}
+			if (splicesBResponse.ok) {
+				splicesB = await splicesBResponse.json();
+			}
+
+			// Combine and deduplicate splices
+			const spliceMap = new Map();
+			[...splicesA, ...splicesB].forEach((splice) => {
+				if (splice.uuid) {
+					spliceMap.set(splice.uuid, splice);
+				}
+			});
+			const splices = Array.from(spliceMap.values());
+
+			return {
+				splices: splices || [],
+				connectedFiberCount: splices.length
+			};
+		} catch (err) {
+			console.error('Error fetching cable splices at node:', err);
+			return fail(500, { error: 'Failed to fetch cable splices' });
+		}
+	},
+	deleteCableSplicesAtNode: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+
+		const cableUuid = formData.get('cableUuid');
+		const nodeUuid = formData.get('nodeUuid');
+
+		if (!cableUuid || !nodeUuid) {
+			return fail(400, { error: 'Cable UUID and Node UUID are required' });
+		}
+
+		try {
+			// First fetch all splices for this cable at this node (both as cable_a and cable_b)
+			const splicesAResponse = await fetch(
+				`${API_URL}fiber-splice/?cable_a=${cableUuid}&node_structure__uuid_node=${nodeUuid}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			const splicesBResponse = await fetch(
+				`${API_URL}fiber-splice/?cable_b=${cableUuid}&node_structure__uuid_node=${nodeUuid}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			let splicesA = [];
+			let splicesB = [];
+			if (splicesAResponse.ok) {
+				splicesA = await splicesAResponse.json();
+			}
+			if (splicesBResponse.ok) {
+				splicesB = await splicesBResponse.json();
+			}
+
+			// Combine and deduplicate splices
+			const spliceMap = new Map();
+			[...splicesA, ...splicesB].forEach((splice) => {
+				if (splice.uuid) {
+					spliceMap.set(splice.uuid, splice);
+				}
+			});
+			const splicesToDelete = Array.from(spliceMap.values());
+
+			// Delete each splice
+			const deleteResults = await Promise.all(
+				splicesToDelete.map(async (splice) => {
+					const deleteResponse = await fetch(`${API_URL}fiber-splice/${splice.uuid}/`, {
+						method: 'DELETE',
+						headers
+					});
+					return { uuid: splice.uuid, success: deleteResponse.ok };
+				})
+			);
+
+			const failedDeletes = deleteResults.filter((r) => !r.success);
+			if (failedDeletes.length > 0) {
+				console.warn('Some splices failed to delete:', failedDeletes);
+			}
+
+			return {
+				success: true,
+				deletedCount: deleteResults.filter((r) => r.success).length,
+				failedCount: failedDeletes.length
+			};
+		} catch (err) {
+			console.error('Error deleting cable splices at node:', err);
+			return fail(500, { error: 'Failed to delete cable splices' });
+		}
+	},
+	getAllNodes: async ({ fetch, cookies, params }) => {
+		const headers = getAuthHeaders(cookies);
+		const projectId = params.projectId;
+
+		if (!projectId) {
+			return fail(400, { error: 'Project ID is required' });
+		}
+
+		try {
+			const response = await fetch(`${API_URL}node/all/?project=${projectId}`, {
+				credentials: 'include',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch nodes'
+				});
+			}
+
+			const nodesData = await response.json();
+			// Extract nodes from GeoJSON FeatureCollection if needed
+			const nodes = nodesData?.features || nodesData || [];
+			return {
+				nodes: nodes.map((nodeOrFeature) => {
+					const node = nodeOrFeature.properties || nodeOrFeature;
+					return {
+						value: nodeOrFeature.id || node.uuid,
+						label: node.name || 'Unnamed Node'
+					};
+				})
+			};
+		} catch (err) {
+			console.error('Error fetching all nodes:', err);
+			return fail(500, { error: 'Failed to fetch nodes' });
+		}
 	}
 };

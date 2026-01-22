@@ -102,6 +102,22 @@
 		}
 	});
 
+	// Listen for cable connection changes from the diagram
+	$effect(() => {
+		function handleCableConnectionChanged(event) {
+			const { nodeIds } = event.detail;
+			if (nodeIds && nodeIds.includes(nodeUuid)) {
+				dataManager.clearFibersCache();
+				dataManager.fetchCables();
+			}
+		}
+
+		window.addEventListener('cableConnectionChanged', handleCableConnectionChanged);
+		return () => {
+			window.removeEventListener('cableConnectionChanged', handleCableConnectionChanged);
+		};
+	});
+
 	onMount(() => {
 		dataManager.fetchFiberColors();
 		if (nodeUuid) {

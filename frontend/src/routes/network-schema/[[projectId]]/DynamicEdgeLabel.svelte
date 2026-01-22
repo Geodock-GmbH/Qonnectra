@@ -408,9 +408,9 @@
 			<div
 				bind:this={labelElement}
 				class="z-10 bg-surface-50-950 border rounded px-2 py-1 text-xs text-center shadow-sm font-medium {isResetMode
-					? 'border-error-500 ring-2 ring-error-400 bg-error-50 dark:bg-error-950'
+					? 'border-error-500  ring-error-400 bg-error-50 dark:bg-error-950'
 					: isMoveLabelMode || selected
-						? 'border-primary-500 ring-2 ring-primary-400'
+						? 'border-primary-500  ring-primary-400'
 						: 'border-surface-200-700'}"
 			>
 				{currentLabel}

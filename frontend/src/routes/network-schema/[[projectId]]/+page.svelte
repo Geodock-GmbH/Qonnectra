@@ -142,6 +142,24 @@
 	});
 
 	/**
+	 * Listen for cable connection changed events (from handle config reconnection)
+	 */
+	$effect(() => {
+		function handleCableConnectionChangedEvent(event) {
+			const { cableId, side, newNodeId, handlePosition } = event.detail;
+			// If this is an edge reconnection event (has cableId and side), update the edge
+			if (cableId && side && newNodeId) {
+				schemaState.updateEdgeConnection(cableId, side, newNodeId, handlePosition);
+			}
+		}
+
+		window.addEventListener('cableConnectionChanged', handleCableConnectionChangedEvent);
+		return () => {
+			window.removeEventListener('cableConnectionChanged', handleCableConnectionChangedEvent);
+		};
+	});
+
+	/**
 	 * Track drawer state and deselect nodes when drawer closes
 	 */
 	let previousDrawerOpen = $state(false);

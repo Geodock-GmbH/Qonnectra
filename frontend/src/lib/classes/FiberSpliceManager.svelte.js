@@ -844,7 +844,9 @@ export class FiberSpliceManager {
 
 		const totalFibers = sortedFibers.length;
 		const componentInfo =
-			componentsUsed.length > 1 ? ` ${m.message_component_count({ count: componentsUsed.length })}` : '';
+			componentsUsed.length > 1
+				? ` ${m.message_component_count({ count: componentsUsed.length })}`
+				: '';
 
 		if (totalSuccessCount === totalFibers) {
 			globalToaster.success({
