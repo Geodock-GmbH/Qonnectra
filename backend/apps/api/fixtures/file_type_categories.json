@@ -33,6 +33,70 @@
     },
     {
         "model": "api.filetypecategory",
+        "pk": "webp",
+        "fields": {
+            "category": "photos",
+            "description": "WebP image format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "svg",
+        "fields": {
+            "category": "photos",
+            "description": "Scalable Vector Graphics"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "tiff",
+        "fields": {
+            "category": "photos",
+            "description": "Tagged Image File Format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "tif",
+        "fields": {
+            "category": "photos",
+            "description": "Tagged Image File Format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "bmp",
+        "fields": {
+            "category": "photos",
+            "description": "Bitmap image format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "heic",
+        "fields": {
+            "category": "photos",
+            "description": "High Efficiency Image Container (Apple)"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "heif",
+        "fields": {
+            "category": "photos",
+            "description": "High Efficiency Image Format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "ico",
+        "fields": {
+            "category": "photos",
+            "description": "Icon file format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
         "pk": "pdf",
         "fields": {
             "category": "documents",
@@ -73,6 +137,78 @@
     },
     {
         "model": "api.filetypecategory",
+        "pk": "ppt",
+        "fields": {
+            "category": "documents",
+            "description": "Microsoft PowerPoint presentation"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "pptx",
+        "fields": {
+            "category": "documents",
+            "description": "Microsoft PowerPoint presentation (OOXML)"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "txt",
+        "fields": {
+            "category": "documents",
+            "description": "Plain text file"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "rtf",
+        "fields": {
+            "category": "documents",
+            "description": "Rich Text Format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "odt",
+        "fields": {
+            "category": "documents",
+            "description": "OpenDocument Text document"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "ods",
+        "fields": {
+            "category": "documents",
+            "description": "OpenDocument Spreadsheet"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "odp",
+        "fields": {
+            "category": "documents",
+            "description": "OpenDocument Presentation"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "csv",
+        "fields": {
+            "category": "documents",
+            "description": "Comma-separated values file"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "md",
+        "fields": {
+            "category": "documents",
+            "description": "Markdown document"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
         "pk": "dwg",
         "fields": {
             "category": "cad",
@@ -85,6 +221,230 @@
         "fields": {
             "category": "cad",
             "description": "Drawing Exchange Format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "shp",
+        "fields": {
+            "category": "cad",
+            "description": "ESRI Shapefile"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "shx",
+        "fields": {
+            "category": "cad",
+            "description": "ESRI Shapefile index"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "dbf",
+        "fields": {
+            "category": "cad",
+            "description": "dBASE database file (used with shapefiles)"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "prj",
+        "fields": {
+            "category": "cad",
+            "description": "Projection file (used with shapefiles)"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "kml",
+        "fields": {
+            "category": "cad",
+            "description": "Keyhole Markup Language (Google Earth)"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "kmz",
+        "fields": {
+            "category": "cad",
+            "description": "Compressed KML file"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "geojson",
+        "fields": {
+            "category": "cad",
+            "description": "GeoJSON geographic data format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "gpkg",
+        "fields": {
+            "category": "cad",
+            "description": "GeoPackage spatial database"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "qgs",
+        "fields": {
+            "category": "cad",
+            "description": "QGIS project file"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "qgz",
+        "fields": {
+            "category": "cad",
+            "description": "Compressed QGIS project file"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "gml",
+        "fields": {
+            "category": "cad",
+            "description": "Geography Markup Language"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "geotiff",
+        "fields": {
+            "category": "cad",
+            "description": "GeoTIFF georeferenced raster image"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "mp4",
+        "fields": {
+            "category": "videos",
+            "description": "MPEG-4 video format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "mov",
+        "fields": {
+            "category": "videos",
+            "description": "QuickTime video format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "avi",
+        "fields": {
+            "category": "videos",
+            "description": "Audio Video Interleave format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "mkv",
+        "fields": {
+            "category": "videos",
+            "description": "Matroska video container"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "webm",
+        "fields": {
+            "category": "videos",
+            "description": "WebM video format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "zip",
+        "fields": {
+            "category": "archives",
+            "description": "ZIP archive format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "rar",
+        "fields": {
+            "category": "archives",
+            "description": "RAR archive format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "7z",
+        "fields": {
+            "category": "archives",
+            "description": "7-Zip archive format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "tar",
+        "fields": {
+            "category": "archives",
+            "description": "TAR archive format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "gz",
+        "fields": {
+            "category": "archives",
+            "description": "Gzip compressed file"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "json",
+        "fields": {
+            "category": "data",
+            "description": "JSON data format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "xml",
+        "fields": {
+            "category": "data",
+            "description": "XML markup language"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "yaml",
+        "fields": {
+            "category": "data",
+            "description": "YAML data serialization format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "yml",
+        "fields": {
+            "category": "data",
+            "description": "YAML data serialization format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "las",
+        "fields": {
+            "category": "data",
+            "description": "LASer point cloud data format"
+        }
+    },
+    {
+        "model": "api.filetypecategory",
+        "pk": "laz",
+        "fields": {
+            "category": "data",
+            "description": "Compressed LAS point cloud format"
         }
     }
 ]
