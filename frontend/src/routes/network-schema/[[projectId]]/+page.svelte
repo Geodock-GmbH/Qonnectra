@@ -41,7 +41,8 @@
 		statuses: data.statuses,
 		networkLevels: data.networkLevels,
 		companies: data.companies,
-		flags: data.flags
+		flags: data.flags,
+		excludedNodeTypeIds: data.excludedNodeTypeIds
 	});
 
 	/**

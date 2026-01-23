@@ -6,6 +6,7 @@
  * @param {Object} [options] - Tooltip options
  * @param {'top' | 'bottom' | 'left' | 'right'} [options.position='top'] - Position of the tooltip
  * @param {number} [options.delay=200] - Delay in milliseconds before showing tooltip
+ * @param {boolean} [options.disabled=false] - Whether to disable the tooltip
  * @returns {import('svelte/attachments').Attachment}
  *
  * @example
@@ -15,9 +16,13 @@
  * ```
  */
 export function tooltip(content, options = {}) {
-	const { position = 'top', delay = 200 } = options;
+	const { position = 'top', delay = 200, disabled = false } = options;
 
 	return (element) => {
+		if (disabled) {
+			return () => {};
+		}
+
 		let tooltipElement = null;
 		let timeoutId = null;
 

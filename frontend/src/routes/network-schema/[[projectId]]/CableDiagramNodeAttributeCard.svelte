@@ -15,7 +15,8 @@
 		statuses: [],
 		networkLevels: [],
 		companies: [],
-		flags: []
+		flags: [],
+		excludedNodeTypeIds: []
 	};
 
 	let node = $derived($drawerStore.props);
@@ -271,6 +272,7 @@
 			bind:value={nodeType}
 			defaultValue={nodeType}
 			onValueChange={(e) => (nodeType = e.value)}
+			disabledValues={attributes.excludedNodeTypeIds}
 		/>
 	</label>
 	<label class="label">
@@ -358,7 +360,7 @@
 		type="button"
 		onclick={confirmDelete}
 		disabled={isCheckingDependencies || hasConnectedCables}
-		{@attach tooltip(hasConnectedCables ? m.message_cannot_delete_node_has_cables() : '')}
+		{@attach tooltip(m.message_cannot_delete_node_has_cables(), { disabled: !hasConnectedCables })}
 		class="btn preset-filled-error-500 w-full disabled:opacity-50 disabled:cursor-not-allowed"
 	>
 		{m.action_delete_node?.() || 'Delete Node'}

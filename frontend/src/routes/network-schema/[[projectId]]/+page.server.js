@@ -178,6 +178,7 @@ export async function load({ fetch, cookies, url, params }) {
 
 		const nodesData = await nodeResponse.json();
 		const networkSchemaSettingsConfigured = nodesData?.metadata?.settings_configured ?? false;
+		const excludedNodeTypeIds = nodesData?.metadata?.excluded_node_type_ids ?? [];
 
 		let cablesData = [];
 		let cableLabelsData = [];
@@ -288,7 +289,8 @@ export async function load({ fetch, cookies, url, params }) {
 			companies: companyData,
 			flags: flagsData,
 			syncStatus: syncStatus || null,
-			networkSchemaSettingsConfigured
+			networkSchemaSettingsConfigured,
+			excludedNodeTypeIds
 		};
 	} catch (err) {
 		if (err.status === 500 && err.message === 'Failed to fetch nodes') {
@@ -306,7 +308,8 @@ export async function load({ fetch, cookies, url, params }) {
 			companies: [],
 			flags: [],
 			syncStatus: null,
-			networkSchemaSettingsConfigured: false
+			networkSchemaSettingsConfigured: false,
+			excludedNodeTypeIds: []
 		};
 	}
 }

@@ -21,6 +21,7 @@
 		contentBase = 'max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 preset-filled-surface-50-950 shadow-lg',
 		inputClasses = '',
 		disabled = false,
+		disabledValues = [],
 		onValueChange = () => {}
 	} = $props();
 
@@ -32,7 +33,8 @@
 		useListCollection({
 			items: data,
 			itemToString: (item) => item?.label ?? '',
-			itemToValue: (item) => item?.value ?? ''
+			itemToValue: (item) => item?.value ?? '',
+			isItemDisabled: (item) => disabledValues.includes(item?.value)
 		})
 	);
 
@@ -109,7 +111,7 @@
 				{#each items as item (item.value)}
 					<Combobox.Item
 						{item}
-						class="cursor-pointer px-3 py-2 rounded-md data-[highlighted]:not-data-[selected]:bg-surface-200-800 data-[selected]:bg-primary-500 data-[selected]:text-white data-[highlighted]:data-[selected]:bg-primary-600"
+						class="cursor-pointer px-3 py-2 rounded-md data-[highlighted]:not-data-[selected]:bg-surface-200-800 data-[selected]:bg-primary-500 data-[selected]:text-white data-[highlighted]:data-[selected]:bg-primary-600 data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed"
 					>
 						<Combobox.ItemText>{item.label}</Combobox.ItemText>
 						<Combobox.ItemIndicator />

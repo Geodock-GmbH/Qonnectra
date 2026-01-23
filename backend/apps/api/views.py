@@ -290,14 +290,6 @@ class AttributesComponentTypeViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_url_kwarg = "pk"
 
 
-class AttributesComponentStructureViewSet(viewsets.ReadOnlyModelViewSet):
-    permission_classes = [IsAuthenticated]
-    queryset = AttributesComponentStructure.objects.all().order_by("component_type")
-    serializer_class = AttributesComponentStructureSerializer
-    lookup_field = "id"
-    lookup_url_kwarg = "pk"
-
-
 class TrenchViewSet(viewsets.ModelViewSet):
     """ViewSet for the Trench model :model:`api.Trench`.
 
@@ -1726,6 +1718,7 @@ class NodeViewSet(viewsets.ModelViewSet):
         use_pipe_branch_settings = request.query_params.get("use_pipe_branch_settings")
         settings_configured = False
         pipe_branch_configured = False
+        excluded_type_ids = []
 
         if project_id:
             queryset = queryset.filter(project=project_id)
@@ -1772,6 +1765,7 @@ class NodeViewSet(viewsets.ModelViewSet):
             data["metadata"] = {
                 "settings_configured": settings_configured,
                 "pipe_branch_configured": pipe_branch_configured,
+                "excluded_node_type_ids": excluded_type_ids,
             }
         elif isinstance(data, list):
             # Wrap in FeatureCollection format with metadata
@@ -1781,6 +1775,7 @@ class NodeViewSet(viewsets.ModelViewSet):
                 "metadata": {
                     "settings_configured": settings_configured,
                     "pipe_branch_configured": pipe_branch_configured,
+                    "excluded_node_type_ids": excluded_type_ids,
                 },
             }
 
@@ -2763,9 +2758,13 @@ class CableViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        queryset = Cable.objects.filter(
-            Q(uuid_node_start=node_uuid) | Q(uuid_node_end=node_uuid)
-        ).select_related("cable_type").order_by("name")
+        queryset = (
+            Cable.objects.filter(
+                Q(uuid_node_start=node_uuid) | Q(uuid_node_end=node_uuid)
+            )
+            .select_related("cable_type")
+            .order_by("name")
+        )
 
         serializer = CableAtNodeSerializer(
             queryset, many=True, context={"node_uuid": node_uuid}
@@ -3465,7 +3464,9 @@ class NodeStructureViewSet(viewsets.ModelViewSet):
     """
 
     permission_classes = [IsAuthenticated]
-    queryset = NodeStructure.objects.all().order_by("uuid_node", "slot_configuration", "slot_start")
+    queryset = NodeStructure.objects.all().order_by(
+        "uuid_node", "slot_configuration", "slot_start"
+    )
     serializer_class = NodeStructureSerializer
     lookup_field = "uuid"
 
@@ -3490,11 +3491,13 @@ class NodeStructureViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="by-node/(?P<node_uuid>[^/.]+)")
     def by_node(self, request, node_uuid=None):
         """Get all structures for a specific node grouped by slot configuration."""
-        structures = NodeStructure.objects.filter(
-            uuid_node__uuid=node_uuid
-        ).select_related(
-            "slot_configuration", "component_type", "component_structure"
-        ).order_by("slot_configuration", "slot_start")
+        structures = (
+            NodeStructure.objects.filter(uuid_node__uuid=node_uuid)
+            .select_related(
+                "slot_configuration", "component_type", "component_structure"
+            )
+            .order_by("slot_configuration", "slot_start")
+        )
         serializer = self.get_serializer(structures, many=True)
         return Response(serializer.data)
 
@@ -3505,8 +3508,7 @@ class NodeStructureViewSet(viewsets.ModelViewSet):
             node = Node.objects.get(uuid=node_uuid)
         except Node.DoesNotExist:
             return Response(
-                {"error": "Node not found"},
-                status=status.HTTP_404_NOT_FOUND
+                {"error": "Node not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
         configs = NodeSlotConfiguration.objects.filter(uuid_node=node)
@@ -3515,8 +3517,12 @@ class NodeStructureViewSet(viewsets.ModelViewSet):
         for config in configs:
             side_structures = config.structures.all()
             used = sum(s.slot_end - s.slot_start + 1 for s in side_structures)
-            components = side_structures.filter(purpose=NodeStructure.Purpose.COMPONENT).count()
-            reserves = side_structures.filter(purpose=NodeStructure.Purpose.RESERVE).count()
+            components = side_structures.filter(
+                purpose=NodeStructure.Purpose.COMPONENT
+            ).count()
+            reserves = side_structures.filter(
+                purpose=NodeStructure.Purpose.RESERVE
+            ).count()
 
             summary[config.side] = {
                 "uuid": str(config.uuid),
@@ -3537,8 +3543,7 @@ class NodeStructureViewSet(viewsets.ModelViewSet):
 
         if new_slot_start is None:
             return Response(
-                {"error": "slot_start is required"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "slot_start is required"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
@@ -3546,7 +3551,7 @@ class NodeStructureViewSet(viewsets.ModelViewSet):
         except (TypeError, ValueError):
             return Response(
                 {"error": "slot_start must be an integer"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         slot_count = structure.slot_end - structure.slot_start + 1
@@ -3556,21 +3561,19 @@ class NodeStructureViewSet(viewsets.ModelViewSet):
         config = structure.slot_configuration
         if new_slot_start < 1 or new_slot_end > config.total_slots:
             return Response(
-                {"error": "Invalid slot range"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "Invalid slot range"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         # Check for overlaps with other structures (excluding self)
-        overlapping = NodeStructure.objects.filter(
-            slot_configuration=config
-        ).exclude(uuid=structure.uuid).filter(
-            Q(slot_start__lte=new_slot_end) & Q(slot_end__gte=new_slot_start)
+        overlapping = (
+            NodeStructure.objects.filter(slot_configuration=config)
+            .exclude(uuid=structure.uuid)
+            .filter(Q(slot_start__lte=new_slot_end) & Q(slot_end__gte=new_slot_start))
         )
 
         if overlapping.exists():
             return Response(
-                {"error": "Slots already occupied"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "Slots already occupied"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         structure.slot_start = new_slot_start
@@ -3588,7 +3591,9 @@ class NodeSlotDividerViewSet(viewsets.ModelViewSet):
     """
 
     permission_classes = [IsAuthenticated]
-    queryset = NodeSlotDivider.objects.all().order_by("slot_configuration", "after_slot")
+    queryset = NodeSlotDivider.objects.all().order_by(
+        "slot_configuration", "after_slot"
+    )
     serializer_class = NodeSlotDividerSerializer
     lookup_field = "uuid"
 
@@ -3610,7 +3615,9 @@ class NodeSlotClipNumberViewSet(viewsets.ModelViewSet):
     """
 
     permission_classes = [IsAuthenticated]
-    queryset = NodeSlotClipNumber.objects.all().order_by("slot_configuration", "slot_number")
+    queryset = NodeSlotClipNumber.objects.all().order_by(
+        "slot_configuration", "slot_number"
+    )
     serializer_class = NodeSlotClipNumberSerializer
     lookup_field = "uuid"
 
@@ -3633,8 +3640,10 @@ class NodeSlotClipNumberViewSet(viewsets.ModelViewSet):
 
         if not all([slot_config_id, slot_number, clip_number]):
             return Response(
-                {"error": "slot_configuration_id, slot_number, and clip_number are required"},
-                status=status.HTTP_400_BAD_REQUEST
+                {
+                    "error": "slot_configuration_id, slot_number, and clip_number are required"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         try:
@@ -3642,19 +3651,19 @@ class NodeSlotClipNumberViewSet(viewsets.ModelViewSet):
         except NodeSlotConfiguration.DoesNotExist:
             return Response(
                 {"error": "Slot configuration not found"},
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         clip_number_obj, created = NodeSlotClipNumber.objects.update_or_create(
             slot_configuration=slot_config,
             slot_number=int(slot_number),
-            defaults={"clip_number": clip_number}
+            defaults={"clip_number": clip_number},
         )
 
         serializer = self.get_serializer(clip_number_obj)
         return Response(
             serializer.data,
-            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
 
 
@@ -3728,22 +3737,22 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
 
         if not all([node_structure_uuid, port_number, side, fiber_uuid, cable_uuid]):
             return Response(
-                {"error": "node_structure, port_number, side, fiber_uuid, and cable_uuid are required"},
-                status=status.HTTP_400_BAD_REQUEST
+                {
+                    "error": "node_structure, port_number, side, fiber_uuid, and cable_uuid are required"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if side not in ("a", "b"):
             return Response(
-                {"error": "side must be 'a' or 'b'"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "side must be 'a' or 'b'"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
             node_structure = NodeStructure.objects.get(uuid=node_structure_uuid)
         except NodeStructure.DoesNotExist:
             return Response(
-                {"error": "Node structure not found"},
-                status=status.HTTP_404_NOT_FOUND
+                {"error": "Node structure not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
         # Get or create the splice record for this port
@@ -3780,7 +3789,7 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(splice)
         return Response(
             serializer.data,
-            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
 
     @action(detail=False, methods=["post"], url_path="clear-port")
@@ -3799,27 +3808,24 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
         if not all([node_structure_uuid, port_number, side]):
             return Response(
                 {"error": "node_structure, port_number, and side are required"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if side not in ("a", "b"):
             return Response(
-                {"error": "side must be 'a' or 'b'"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "side must be 'a' or 'b'"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
             node_structure = NodeStructure.objects.get(uuid=node_structure_uuid)
         except NodeStructure.DoesNotExist:
             return Response(
-                {"error": "Node structure not found"},
-                status=status.HTTP_404_NOT_FOUND
+                {"error": "Node structure not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
         try:
             splice = FiberSplice.objects.get(
-                node_structure=node_structure,
-                port_number=port_number
+                node_structure=node_structure, port_number=port_number
             )
         except FiberSplice.DoesNotExist:
             return Response({"deleted": False, "message": "No splice found"})
@@ -3838,11 +3844,13 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
                     f"shared_cable_{side}": None,
                 }
             )
-            return Response({
-                "deleted": True,
-                "message": f"Shared fiber cleared from merge group on side {side}",
-                "merge_group_preserved": True
-            })
+            return Response(
+                {
+                    "deleted": True,
+                    "message": f"Shared fiber cleared from merge group on side {side}",
+                    "merge_group_preserved": True,
+                }
+            )
         else:
             # Clear individual fiber on this side
             if side == "a":
@@ -3855,15 +3863,21 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
             # Check if we should delete the record
             # Only delete if: both sides empty, no shared fibers, and not in any merge group
             both_sides_empty = splice.fiber_a is None and splice.fiber_b is None
-            no_shared_fibers = splice.shared_fiber_a is None and splice.shared_fiber_b is None
-            not_in_any_merge = splice.merge_group_a is None and splice.merge_group_b is None
+            no_shared_fibers = (
+                splice.shared_fiber_a is None and splice.shared_fiber_b is None
+            )
+            not_in_any_merge = (
+                splice.merge_group_a is None and splice.merge_group_b is None
+            )
 
             if both_sides_empty and no_shared_fibers and not_in_any_merge:
                 splice.delete()
                 return Response({"deleted": True, "message": "Splice record deleted"})
 
             splice.save()
-            return Response({"deleted": True, "message": f"Fiber cleared from side {side}"})
+            return Response(
+                {"deleted": True, "message": f"Fiber cleared from side {side}"}
+            )
 
     @action(detail=False, methods=["post"], url_path="merge-ports")
     def merge_ports(self, request):
@@ -4070,9 +4084,9 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
 
         Behavior depends on whether the merge group is on this side:
         - If dropping on the MERGED side (this side has the merge group):
-          Use the FIRST fiber as the shared fiber for all ports in the group
+        Use the FIRST fiber as the shared fiber for all ports in the group
         - If dropping on the OTHER side (not merged on this side):
-          Fill individual fibers sequentially across ports
+        Fill individual fibers sequentially across ports
         """
         merge_group = request.data.get("merge_group")
         side = request.data.get("side")  # 'a' or 'b'
@@ -4090,15 +4104,15 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Determine which side this merge group belongs to
-        merge_group_field_a = "merge_group_a"
-        merge_group_field_b = "merge_group_b"
-
         splices_a = list(
-            FiberSplice.objects.filter(merge_group_a=merge_group).order_by("port_number")
+            FiberSplice.objects.filter(merge_group_a=merge_group).order_by(
+                "port_number"
+            )
         )
         splices_b = list(
-            FiberSplice.objects.filter(merge_group_b=merge_group).order_by("port_number")
+            FiberSplice.objects.filter(merge_group_b=merge_group).order_by(
+                "port_number"
+            )
         )
 
         if splices_a:
