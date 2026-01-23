@@ -125,7 +125,7 @@
 	<div class="slot-grid-header grid grid-cols-[60px_1fr_80px] bg-surface-200-800 flex-shrink-0">
 		<div class="px-3 py-2.5 text-center font-semibold text-sm">{m.form_tpu()}</div>
 		<div class="px-3 py-2.5 font-semibold text-sm">{m.form_component()}</div>
-		<div class="px-3 py-2.5 text-center font-semibold text-sm">{m.form_clip_number()}</div>
+		<div class="px-3 py-2.5 text-left font-semibold text-sm">{m.form_clip_number()}</div>
 	</div>
 
 	<!-- Scrollable content -->
