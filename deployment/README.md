@@ -1,6 +1,6 @@
-# Qonnectra Deployment
+# qonnectra Deployment
 
-This guide covers three deployment scenarios for Qonnectra: local development with manual setup, Docker Compose development, and production deployment.
+This guide covers three deployment scenarios for qonnectra: local development with manual setup, Docker Compose development, and production deployment.
 
 ## Deployment Options
 
@@ -299,6 +299,7 @@ API_DOMAIN=api.localhost
 APP_DOMAIN=app.localhost
 FILES_DOMAIN=files.localhost
 QGIS_DOMAIN=qgis.localhost
+TILES_DOMAIN=tiles.localhost
 
 # API URL (for frontend)
 API_URL=https://api.localhost/api/
@@ -342,22 +343,25 @@ docker-compose logs [service_name]
 - **Frontend**: `https://app.localhost`
 - **API**: `https://api.localhost`
 - **Django Admin**: `https://api.localhost/admin`
-- **QGIS Server**: `https://qgis.localhost`
+- **QGIS Server**: `https://qgis.localhost/ows/?MAP=/projects/<project>.qgs`
+- **TileServer**: `https://tiles.localhost`
+- **Files (WebDAV)**: `https://files.localhost`
 - **Database**: Not exposed externally (internal network only)
 
 ### Services Overview
 
-#### Database (PostgreSQL)
+#### Database (PostgreSQL 17)
 
 - **Port**: 5440 (external) → 5432 (internal)
 - **Volume**: `postgres_data` for data persistence
 - **Health Check**: PostgreSQL readiness check
 - **Initialization**: `postgres/init.sql` sets up PostGIS extension
+- **Extensions**: PostGIS for spatial data support
 
-#### Backend (Django)
+#### Backend (Django 5.2)
 
 - **Port**: 8000 (internal, exposed via nginx/caddy)
-- **Volumes**: 
+- **Volumes**:
   - `static_volume` for static files
   - `media_volume` for user uploads
 - **Commands**:
@@ -367,23 +371,49 @@ docker-compose logs [service_name]
   - Loads fixtures
   - Starts Gunicorn
 - **Depends on**: Database service
+- **Special Features**:
+  - GeoPackage schema export endpoint
+  - Vector tile endpoints (MVT)
+  - Excel import/export for conduits
 
-#### Frontend (SvelteKit)
+#### Frontend (SvelteKit 2)
 
 - **Port**: 3000 (internal, exposed via nginx/caddy)
-- **Environment**: Production build
+- **Environment**: Production build with Node.js adapter
 - **Depends on**: Backend service
+- **Features**:
+  - OpenLayers 10 for mapping
+  - Svelte Flow for network diagrams
+  - Vector tile support
 
 #### QGIS Server
 
 - **Image**: `qgis/qgis-server:latest`
 - **Port**: 80 (internal, exposed via caddy)
 - **Volumes**:
-  - `qgis/projects/` for QGIS project files
+  - `qgis/projects/` for QGIS project files (.qgs)
   - `qgis/data/` for additional data
   - `qgis/pg_service.conf` for database connection
-- **Services**: WMS, WFS, WMTS, WCS
+- **Services**: WMS, WFS (with ?MAP=/projects/<project>.qgs parameter), WMTS, WCS, OGC API Features
+- **Authentication**: Django forward_auth integration
 - See [QGIS Server README](qgis/README.md) for details
+
+#### TileServer-GL
+
+- **Port**: 8080 (internal, exposed via caddy as tiles subdomain)
+- **Function**: Vector tile server for base map rendering
+- **Volumes**:
+  - `tiles/germany.mbtiles` - Base map data (3.2GB)
+  - `tiles/config.json` - TileServer configuration
+  - `tiles/light.json` - Light theme style
+  - `tiles/dark.json` - Dark theme style
+  - `tiles/fonts/` - Font glyphs for labels
+- **Features**:
+  - High-performance vector tile serving
+  - Dynamic light/dark theme switching
+  - Font serving for map labels
+  - Health checks for tile availability
+- **Data Source**: Mbtiles generated from Planetiler (OSM data)
 
 #### Caddy
 
@@ -392,8 +422,14 @@ docker-compose logs [service_name]
 - **Volumes**:
   - `caddy_data` for certificates and data
   - `caddy_config` for configuration
-  - `Caddyfile` for routing rules
-- **Features**: Automatic HTTPS, subdomain routing
+  - `Caddyfile.production` for routing rules
+- **Features**:
+  - Automatic HTTPS with Let's Encrypt
+  - Subdomain routing (app, api, qgis, tiles, files)
+  - Forward authentication for QGIS Server
+  - CORS headers for tile server
+  - Security headers (HSTS, X-Frame-Options, etc.)
+  - Request body limits (10GB for WebDAV, 100MB for WFS)
 
 #### Nginx
 
@@ -403,6 +439,7 @@ docker-compose logs [service_name]
   - `nginx/nginx.conf` for configuration
   - `static_volume` for Django static files
   - `media_volume` for media files
+- **Features**: Static file caching and gzip compression
 
 ---
 
@@ -564,7 +601,16 @@ Persistent data is stored in Docker volumes:
 
 ### QGIS Server Issues
 
-See [QGIS Server README](qgis/README.md) for troubleshooting.
+See [QGIS Server README](qgis/README.md) for troubleshooting. Remember to include the MAP parameter in WFS/WMS requests: `?MAP=/projects/<project>.qgs`
+
+### TileServer Issues
+
+1. Check TileServer logs: `docker-compose logs tileserver`
+2. Verify mbtiles file exists: `ls -lh deployment/tiles/germany.mbtiles`
+3. Test tile endpoint directly: `curl http://localhost:8080/styles/light.json`
+4. Check CORS headers for tile requests
+5. Verify frontend is using correct tile server URL
+6. For missing tiles: May need to regenerate mbtiles from Planetiler with updated OSM data
 
 ### Certificate Issues (Caddy)
 

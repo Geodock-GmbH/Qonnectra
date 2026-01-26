@@ -4,7 +4,7 @@ Django REST API backend for the Qonnectra GIS application, providing spatial dat
 
 ## Overview
 
-The backend is built with Django 4.2 and Django REST Framework, featuring PostGIS integration for spatial data operations. It provides a RESTful API for managing trenches, conduits, nodes, addresses, cables, and other infrastructure components.
+The backend is built with Django 5.2 and Django REST Framework, featuring PostGIS integration for spatial data operations. It provides a RESTful API for managing trenches, conduits, nodes, addresses, cables, fibers, and other infrastructure components, including advanced node structure management and fiber splice tracking.
 
 ## Prerequisites
 
@@ -110,6 +110,7 @@ The API provides RESTful endpoints for all data models. Browse the API at:
 
 ### Key API Endpoints
 
+**Infrastructure Management:**
 - `/api/trench/` - Trench management (LineString geometry)
 - `/api/conduit/` - Conduit management
 - `/api/microduct/` - Microduct management
@@ -117,8 +118,32 @@ The API provides RESTful endpoints for all data models. Browse the API at:
 - `/api/address/` - Address management (Point geometry)
 - `/api/cable/` - Cable management
 - `/api/fiber/` - Fiber management
+
+**Node Structure & Network:**
+- `/api/node-slot-configuration/` - Node slot configuration management
+- `/api/node-slot-divider/` - Slot divider management
+- `/api/node-slot-clip-number/` - Clip numbering for slots
+- `/api/fiber-splice/` - Fiber splice tracking
+- `/api/container/` - Container management
+- `/api/container-type/` - Container type definitions
+
+**Component Management:**
+- `/api/attributes-component-type/` - Component types
+- `/api/attributes-component-structure/` - Component structures
+
+**Organizational:**
 - `/api/project/` - Project management
 - `/api/company/` - Company/contractor management
+- `/api/flags/` - Feature flagging
+
+**Special Endpoints:**
+- `GET /api/schema.gpkg` - Download GeoPackage schema (optional `?layers=` parameter)
+- `GET /api/ol_*_tiles/<z>/<x>/<y>.mvt` - Vector tiles for map layers
+- `POST /api/import/conduit/` - Import conduits from Excel
+- `GET /api/template/conduit/` - Download Excel import template
+- `GET /api/routing/` - Network routing queries
+- `GET /api/trenches-near-node/` - Spatial proximity queries
+- `POST /api/logs/frontend/` - Frontend error logging
 
 All endpoints support:
 
@@ -140,6 +165,20 @@ All endpoints support:
 - **Cable**: Fiber optic cables with type, capacity, and manufacturer information
 - **Fiber**: Individual fiber strands within cables
 
+### Node Structure & Network Management Models
+
+- **NodeSlotConfiguration**: Port layout and slot management for network nodes
+- **NodeSlotDivider**: Organization of slot divisions within nodes
+- **NodeSlotClipNumber**: Clip numbering system for node slots
+- **FiberSplice**: Fiber connection tracking and splice management
+- **Container**: Logical grouping containers for network components
+- **ContainerType**: Container categorization and types
+
+### Component Management Models
+
+- **AttributesComponentType**: Hardware component type definitions
+- **AttributesComponentStructure**: Component structure specifications
+
 ### Supporting Models
 
 - **Projects**: Project organization
@@ -147,10 +186,13 @@ All endpoints support:
 - **AttributesCompany**: Contractors, owners, and manufacturers
 - **AttributesStatus**: Status classifications for various entities
 - **AttributesPhase**: Construction phase tracking
+- **AttributesNetworkLevel**: Network hierarchy levels
+- **AttributesNodeType**: Node type classifications
+- **AttributesStatusDevelopment**: Development status tracking
 - **StoragePreferences**: File storage configuration
 - **FeatureFiles**: Generic file attachments to any feature
 
-All spatial fields use PostGIS with SRID 25832 (ETRS89 UTM Zone 32N) as the default coordinate system.
+All spatial fields use PostGIS with SRID 25832 or 25833 (ETRS89 UTM Zone 32N or 33N) as the coordinate system.
 
 ## Development
 

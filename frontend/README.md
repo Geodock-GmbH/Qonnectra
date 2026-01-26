@@ -76,11 +76,14 @@ frontend/
 
 Located in `src/lib/components/Map.svelte`, provides:
 
-- OpenLayers map integration
-- Layer visibility controls
+- OpenLayers 10 map integration
+- Layer visibility controls with tree structure
 - Opacity slider for base layer
+- Vector tile support with TileServer-GL integration (light/dark themes)
 - Search panel for address/feature lookup
 - Map state persistence (center, zoom)
+- MVT (Mapbox Vector Tile) layer support
+- Dynamic theme switching
 
 ### Layer Visibility Tree
 
@@ -88,13 +91,16 @@ Interactive layer management UI for toggling map layers on/off.
 
 ### Route Components
 
-- **Map View** (`routes/map/`): Main map interface with layer management
+- **Map View** (`routes/map/`): Main map interface with layer management and vector tile support
 - **Trench Management** (`routes/trench/`): Trench CRUD operations
 - **Conduit Management** (`routes/conduit/`): Conduit management
-- **Node Management** (`routes/node/`): Node management
-- **Network Schema** (`routes/network-schema/`): Visual network diagram editor
+- **Node Management** (`routes/node/`): Node management with slot configuration
+- **Network Schema** (`routes/network-schema/`): Visual network diagram editor with Svelte Flow
 - **Pipe Branch** (`routes/pipe-branch/`): Pipe branch visualization
 - **House Connections** (`routes/house-connections/`): Address and connection management
+- **Node Structure Panel**: Advanced node slot configuration and management
+- **Fiber Splice Manager**: Visual fiber splice tracking and management
+- **Container Management**: Container organization and tracking
 
 ## State Management
 
@@ -189,6 +195,7 @@ npm run lint
 ### Mapping
 
 - **OpenLayers 10**: Interactive maps and spatial data visualization
+- **ol-mapbox-style**: Mapbox style integration for vector tiles
 
 ### UI Components
 
@@ -197,36 +204,13 @@ npm run lint
 
 ### Visualization
 
-- **Svelte Flow**: Network diagram visualization
+- **Svelte Flow**: Network diagram visualization and interactive node/edge editing
 - **Perfect Freehand**: Hand-drawn path rendering
+- **Chart.js**: Data visualization and charting
 
 ### Internationalization
 
 - **Paraglide**: Type-safe i18n
-
-## Svelte 5 Runes
-
-This project uses Svelte 5 with runes for reactivity:
-
-- `$state()` - Reactive state
-- `$derived()` - Computed values
-- `$effect()` - Side effects
-- `$props()` - Component props
-
-Example:
-
-```svelte
-<script>
-	import { $derived, $state } from 'svelte';
-
-	let count = $state(0);
-	let doubled = $derived(count * 2);
-</script>
-
-<button onclick={() => count++}>
-	Count: {count} (Doubled: {doubled})
-</button>
-```
 
 ## API Integration
 
