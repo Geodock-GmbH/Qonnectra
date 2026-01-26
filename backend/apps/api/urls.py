@@ -28,6 +28,8 @@ from .views import (
     ContainerViewSet,
     ContentTypeViewSet,
     FeatureFilesViewSet,
+    FiberSpliceViewSet,
+    FiberViewSet,
     FlagsViewSet,
     FrontendLogView,
     GeoPackageSchemaView,
@@ -37,7 +39,9 @@ from .views import (
     MicroductConnectionViewSet,
     MicroductViewSet,
     NodeCanvasCoordinatesView,
+    NodeSlotClipNumberViewSet,
     NodeSlotConfigurationViewSet,
+    NodeSlotDividerViewSet,
     NodeStructureViewSet,
     NodeTrenchSelectionViewSet,
     NodeViewSet,
@@ -151,6 +155,8 @@ router.register(
 router.register(
     r"microduct_connection", MicroductConnectionViewSet, basename="microduct_connection"
 )
+router.register(r"fiber", FiberViewSet, basename="fiber")
+router.register(r"fiber-splice", FiberSpliceViewSet, basename="fiber-splice")
 router.register(r"node", NodeViewSet, basename="node")
 router.register(r"ol_address", OlAddressViewSet, basename="ol_address")
 router.register(r"ol_area", OlAreaViewSet, basename="ol_area")
@@ -178,6 +184,16 @@ router.register(
     r"node-slot-configuration",
     NodeSlotConfigurationViewSet,
     basename="node-slot-configuration",
+)
+router.register(
+    r"node-slot-divider",
+    NodeSlotDividerViewSet,
+    basename="node-slot-divider",
+)
+router.register(
+    r"node-slot-clip-number",
+    NodeSlotClipNumberViewSet,
+    basename="node-slot-clip-number",
 )
 router.register(
     r"container-type",

@@ -2,6 +2,8 @@
 	import { BaseEdge, getSmoothStepPath } from '@xyflow/svelte';
 	import { parse } from 'devalue';
 
+	import { m } from '$lib/paraglide/messages';
+
 	import { edgeSnappingEnabled } from '$lib/stores/store';
 	import {
 		buildEdgePath,
@@ -12,7 +14,8 @@
 
 	import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
 
-	let { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data } = $props();
+	let { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected } =
+		$props();
 
 	let currentLabel = $state(data?.label || data?.cable?.name || '');
 
@@ -50,6 +53,35 @@
 	});
 
 	/**
+	 * Handle label reset - deletes the label entry from database
+	 * @param {string} labelId - The UUID of the label to delete
+	 */
+	async function handleLabelReset(labelId) {
+		if (!labelId) return;
+
+		try {
+			const formData = new FormData();
+			formData.append('labelId', labelId);
+
+			const response = await fetch('?/deleteCableLabel', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = await response.json();
+
+			if (result.type === 'success' || response.ok) {
+				// Clear labelData so label uses default position
+				labelData = null;
+			} else {
+				console.error('Failed to reset label:', result.message);
+			}
+		} catch (error) {
+			console.error('Failed to reset label:', error);
+		}
+	}
+
+	/**
 	 * Handle label position update - saves to backend via server action
 	 * @param {Object} positionData - Object with labelId, x, y, and text coordinates
 	 */
@@ -81,7 +113,6 @@
 
 			if (actionResult?.type === 'success' && actionResult.label) {
 				labelData = actionResult.label;
-				console.log('Label saved successfully:', labelData);
 			} else if (actionResult?.type === 'error') {
 				console.error('Failed to save label position:', actionResult.message);
 			}
@@ -323,7 +354,7 @@
 		path={edgePath}
 		interactionWidth={20}
 		style="stroke: var(--color-primary-500); stroke-width: 2;"
-		aria-label="Open cable details for {data.label}"
+		aria-label={m.tooltip_open_cable_details({ label: data.label })}
 	/>
 </g>
 
@@ -349,8 +380,8 @@
 			onmouseleave={() => (hoveredVertexIndex = null)}
 			oncontextmenu={(e) => handleVertexContextMenu(e, index)}
 			aria-label={shiftPressed
-				? 'Click to delete vertex'
-				: 'Drag to move vertex, Shift+Click or right-click to delete'}
+				? m.tooltip_click_to_delete_vertex()
+				: m.tooltip_drag_to_move_vertex()}
 			role="button"
 			tabindex="0"
 		/>
@@ -366,7 +397,10 @@
 		defaultX={labelX}
 		defaultY={labelY}
 		onPositionUpdate={handleLabelPositionUpdate}
+		onLabelReset={handleLabelReset}
 		onEdgeDelete={data?.onEdgeDelete}
+		onEdgeSelect={data?.onEdgeSelect}
+		{selected}
 	/>
 {/if}
 

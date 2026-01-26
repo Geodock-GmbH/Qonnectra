@@ -1,5 +1,5 @@
 <script>
-	import { IconSettings } from '@tabler/icons-svelte';
+	import { IconLayoutList, IconSettings } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -12,21 +12,32 @@
 	import CableDiagramEdgeHandleConfig from './CableDiagramEdgeHandleConfig.svelte';
 	import CableDiagramNodeAttributeCard from './CableDiagramNodeAttributeCard.svelte';
 	import NodeSlotConfigPanel from './NodeSlotConfigPanel.svelte';
+	import NodeStructurePanel from './NodeStructurePanel.svelte';
 
 	let allProps = $props();
 
 	let slotConfigPanelOpen = $state(false);
+	let structurePanelOpen = $state(false);
+	let structurePanelSlotConfigUuid = $state(null);
+
+	// Shared state for slot configurations - allows both panels to stay in sync
+	// Using a reactive object that both panels can read and update
+	let sharedSlotState = $state({
+		slotConfigurations: [],
+		lastUpdated: 0
+	});
 
 	let group = $state('attributes');
 
 	const data = $derived.by(() => {
-		const { type, onLabelUpdate, onEdgeDelete, ...rest } = allProps;
+		const { type, onLabelUpdate, onEdgeDelete, onNodeDelete, ...rest } = allProps;
 		return rest;
 	});
 
 	const type = $derived(allProps.type);
 	const onLabelUpdate = $derived(allProps.onLabelUpdate);
 	const onEdgeDelete = $derived(allProps.onEdgeDelete);
+	const onNodeDelete = $derived(allProps.onNodeDelete);
 
 	const tabItems = $derived.by(() => {
 		const baseTabs = [{ value: 'attributes', label: m.common_attributes() }];
@@ -56,6 +67,11 @@
 			fileExplorer.refresh();
 		}
 	}
+
+	function handleOpenStructurePanel(slotConfigUuid = null) {
+		structurePanelSlotConfigUuid = slotConfigUuid;
+		structurePanelOpen = true;
+	}
 </script>
 
 <Tabs tabs={tabItems} bind:value={group}>
@@ -63,7 +79,7 @@
 		{#if type === 'edge'}
 			<CableDiagramEdgeAttributeCard {...data} {onLabelUpdate} {onEdgeDelete} />
 		{:else if type === 'node'}
-			<CableDiagramNodeAttributeCard {...data} {onLabelUpdate} />
+			<CableDiagramNodeAttributeCard {...data} {onLabelUpdate} {onNodeDelete} />
 		{/if}
 	{/if}
 
@@ -81,6 +97,14 @@
 				>
 					<IconSettings size={18} />
 					{m.action_configure_slots()}
+				</button>
+				<button
+					type="button"
+					class="btn preset-filled-secondary-500 w-full"
+					onclick={() => handleOpenStructurePanel()}
+				>
+					<IconLayoutList size={18} />
+					{m.action_configure_structure()}
 				</button>
 			</div>
 		{/if}
@@ -106,9 +130,34 @@
 	<FloatingPanel
 		bind:open={slotConfigPanelOpen}
 		title={m.title_slot_configuration()}
-		width={500}
-		height={400}
+		width={900}
+		height={600}
+		maxWidth={1920}
+		maxHeight={1080}
 	>
-		<NodeSlotConfigPanel nodeUuid={data.uuid || data.id} nodeName={data.name} />
+		<NodeSlotConfigPanel
+			nodeUuid={data.uuid || data.id}
+			nodeName={data.name}
+			onViewStructure={(slotConfigUuid) => handleOpenStructurePanel(slotConfigUuid)}
+			bind:sharedSlotState
+		/>
+	</FloatingPanel>
+
+	<FloatingPanel
+		bind:open={structurePanelOpen}
+		title={m.title_node_structure()}
+		width={900}
+		height={600}
+		minWidth={600}
+		minHeight={400}
+		maxWidth={1920}
+		maxHeight={1080}
+	>
+		<NodeStructurePanel
+			nodeUuid={data.uuid || data.id}
+			nodeName={data.name}
+			initialSlotConfigUuid={structurePanelSlotConfigUuid}
+			bind:sharedSlotState
+		/>
 	</FloatingPanel>
 {/if}

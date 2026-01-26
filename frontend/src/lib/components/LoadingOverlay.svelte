@@ -46,7 +46,7 @@
 			<!-- Loading message -->
 			<div class="text-center">
 				<h3 class="text-lg font-semibold mb-1">{loadingMessage}</h3>
-				<p class="text-sm text-surface-400-600">{m.message_please_wait()}</p>
+				<p class="text-sm text-surface-950-50">{m.message_please_wait()}</p>
 			</div>
 		</div>
 	</div>

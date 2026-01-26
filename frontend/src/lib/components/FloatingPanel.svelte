@@ -1,6 +1,12 @@
 <script>
 	import { Portal, FloatingPanel as SkeletonFloatingPanel } from '@skeletonlabs/skeleton-svelte';
-	import { IconGripVertical, IconX } from '@tabler/icons-svelte';
+	import {
+		IconGripVertical,
+		IconMaximize,
+		IconMaximizeOff,
+		IconMinus,
+		IconX
+	} from '@tabler/icons-svelte';
 
 	let {
 		open = $bindable(false),
@@ -75,6 +81,15 @@
 							{title}
 						</SkeletonFloatingPanel.Title>
 						<SkeletonFloatingPanel.Control class="flex items-center">
+							<SkeletonFloatingPanel.StageTrigger stage="minimized">
+								<IconMinus class="size-4" />
+							</SkeletonFloatingPanel.StageTrigger>
+							<SkeletonFloatingPanel.StageTrigger stage="maximized">
+								<IconMaximize class="size-4" />
+							</SkeletonFloatingPanel.StageTrigger>
+							<SkeletonFloatingPanel.StageTrigger stage="default">
+								<IconMaximizeOff class="size-4" />
+							</SkeletonFloatingPanel.StageTrigger>
 							<SkeletonFloatingPanel.CloseTrigger
 								class="p-1 rounded hover:bg-surface-200-800 transition-colors"
 							>

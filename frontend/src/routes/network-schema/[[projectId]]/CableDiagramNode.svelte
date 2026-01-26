@@ -2,6 +2,8 @@
 	import { Handle, Position } from '@xyflow/svelte';
 	import { parse } from 'devalue';
 
+	import { m } from '$lib/paraglide/messages';
+
 	import { drawerStore } from '$lib/stores/drawer';
 
 	import DrawerTabs from './DrawerTabs.svelte';
@@ -63,7 +65,7 @@
 		const parsedData = typeof result.data === 'string' ? parse(result.data) : result.data;
 
 		drawerStore.open({
-			title: parsedData?.properties?.name || 'Node Details',
+			title: parsedData?.properties?.name || m.title_node_details(),
 			component: DrawerTabs,
 			props: {
 				id: id,
@@ -72,7 +74,9 @@
 				onLabelUpdate: (newLabel) => {
 					currentLabel = newLabel;
 					drawerStore.setTitle(newLabel);
-				}
+					data?.onNameUpdate?.(newLabel);
+				},
+				onNodeDelete: data?.onNodeDelete
 			}
 		});
 	}
@@ -114,7 +118,7 @@
 	tabindex="0"
 	onclick={handleNodeClick}
 	onkeydown={handleKeydown}
-	aria-label="Open node details for {currentLabel}"
+	aria-label={m.tooltip_open_node_details({ label: currentLabel })}
 >
 	<p class="text-center break-words w-full">
 		{currentLabel}

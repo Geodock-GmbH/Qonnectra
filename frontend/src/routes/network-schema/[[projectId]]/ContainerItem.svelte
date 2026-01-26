@@ -19,7 +19,8 @@
 		onMove,
 		onToggleExpand,
 		onEditSlotConfig,
-		onDeleteSlotConfig
+		onDeleteSlotConfig,
+		onViewStructure
 	} = $props();
 
 	let dragOver = $state(false);
@@ -79,7 +80,7 @@
 
 <div class="container-item" class:drag-over={dragOver} style:padding-left={paddingLeft}>
 	<div
-		class="flex items-center gap-2 m-1 p-2 bg-surface-100-900 rounded border border-surface-200-800"
+		class="flex items-center gap-2 m-1 p-2 bg-[var(--color-surface-200-800)] border-b border-[var(--color-surface-300-700)] rounded border"
 		draggable="true"
 		ondragstart={handleDragStart}
 		ondragover={handleDragOver}
@@ -132,6 +133,7 @@
 						depth={depth + 1}
 						onEdit={onEditSlotConfig}
 						onDelete={onDeleteSlotConfig}
+						{onViewStructure}
 					/>
 				</div>
 			{/each}
@@ -147,6 +149,7 @@
 						{onToggleExpand}
 						{onEditSlotConfig}
 						{onDeleteSlotConfig}
+						{onViewStructure}
 					/>
 				</div>
 			{/each}
