@@ -72,6 +72,35 @@ export async function load({ fetch, cookies, url, params }) {
 	}
 
 	try {
+		// Start fetching attribute data immediately (these don't depend on sync)
+		const attributesFetchPromise = Promise.all([
+			fetch(`${API_URL}attributes_cable_type/`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}attributes_node_type/`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}attributes_status/`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}attributes_network_level/`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}attributes_company/`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}flags/`, {
+				credentials: 'include',
+				headers: headers
+			})
+		]);
+
+		// Handle sync status check and potential sync operation
 		let syncStatus = null;
 
 		const syncStatusResponse = await fetch(
@@ -113,17 +142,22 @@ export async function load({ fetch, cookies, url, params }) {
 			}
 		}
 
+		// Fetch project-specific data (nodes, cables, labels) after sync completes
+		// and await the already-started attributes fetch
 		const [
+			[
+				cableTypeResponse,
+				nodeTypeResponse,
+				statusResponse,
+				networkLevelResponse,
+				companyResponse,
+				flagsResponse
+			],
 			nodeResponse,
 			cableResponse,
-			cableLabelResponse,
-			cableTypeResponse,
-			nodeTypeResponse,
-			statusResponse,
-			networkLevelResponse,
-			companyResponse,
-			flagsResponse
+			cableLabelResponse
 		] = await Promise.all([
+			attributesFetchPromise,
 			fetch(`${API_URL}node/all/?project=${projectId}`, {
 				credentials: 'include',
 				headers: headers
@@ -135,30 +169,6 @@ export async function load({ fetch, cookies, url, params }) {
 			fetch(`${API_URL}cable_label/all/?project=${projectId}`, {
 				credentials: 'include',
 				headers: headers
-			}),
-			fetch(`${API_URL}attributes_cable_type/`, {
-				credentials: 'include',
-				headers: headers
-			}),
-			fetch(`${API_URL}attributes_node_type/`, {
-				credentials: 'include',
-				headers: headers
-			}),
-			fetch(`${API_URL}attributes_status/`, {
-				credentials: 'include',
-				headers: headers
-			}),
-			fetch(`${API_URL}attributes_network_level/`, {
-				credentials: 'include',
-				headers: headers
-			}),
-			fetch(`${API_URL}attributes_company/`, {
-				credentials: 'include',
-				headers: headers
-			}),
-			fetch(`${API_URL}flags/`, {
-				credentials: 'include',
-				headers: headers
 			})
 		]);
 
@@ -168,6 +178,7 @@ export async function load({ fetch, cookies, url, params }) {
 
 		const nodesData = await nodeResponse.json();
 		const networkSchemaSettingsConfigured = nodesData?.metadata?.settings_configured ?? false;
+		const excludedNodeTypeIds = nodesData?.metadata?.excluded_node_type_ids ?? [];
 
 		let cablesData = [];
 		let cableLabelsData = [];
@@ -278,7 +289,8 @@ export async function load({ fetch, cookies, url, params }) {
 			companies: companyData,
 			flags: flagsData,
 			syncStatus: syncStatus || null,
-			networkSchemaSettingsConfigured
+			networkSchemaSettingsConfigured,
+			excludedNodeTypeIds
 		};
 	} catch (err) {
 		if (err.status === 500 && err.message === 'Failed to fetch nodes') {
@@ -296,7 +308,8 @@ export async function load({ fetch, cookies, url, params }) {
 			companies: [],
 			flags: [],
 			syncStatus: null,
-			networkSchemaSettingsConfigured: false
+			networkSchemaSettingsConfigured: false,
+			excludedNodeTypeIds: []
 		};
 	}
 }
@@ -699,6 +712,131 @@ export const actions = {
 			return fail(500, { message: err.message || 'Failed to update node' });
 		}
 	},
+	deleteNode: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const nodeId = formData.get('uuid');
+
+		if (!nodeId) {
+			return {
+				type: 'error',
+				message: 'Node ID is required'
+			};
+		}
+
+		try {
+			const response = await fetch(`${API_URL}node/${nodeId}/`, {
+				method: 'DELETE',
+				credentials: 'include',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					message: errorData.detail || 'Failed to delete node'
+				});
+			}
+
+			return {
+				type: 'success',
+				message: 'Node deleted successfully'
+			};
+		} catch (err) {
+			console.error('Error deleting node:', err);
+			return fail(500, { message: err.message || 'Failed to delete node' });
+		}
+	},
+	getNodeDependencies: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const nodeId = formData.get('nodeUuid');
+
+		if (!nodeId) {
+			return fail(400, { error: 'Node ID is required' });
+		}
+
+		try {
+			// Fetch cables connected to this node (start or end) using the dedicated endpoint
+			const cablesResponse = await fetch(`${API_URL}cable/at-node/${nodeId}/`, {
+				method: 'GET',
+				headers
+			});
+
+			let cables = [];
+			if (cablesResponse.ok) {
+				cables = await cablesResponse.json();
+			}
+
+			// Fetch structures placed in this node
+			const structuresResponse = await fetch(`${API_URL}node-structure/?node=${nodeId}`, {
+				method: 'GET',
+				headers
+			});
+
+			let structures = [];
+			if (structuresResponse.ok) {
+				structures = await structuresResponse.json();
+			}
+
+			return {
+				cables: cables || [],
+				structures: structures || []
+			};
+		} catch (err) {
+			console.error('Error fetching node dependencies:', err);
+			return fail(500, { error: 'Failed to fetch node dependencies' });
+		}
+	},
+	getCableSplices: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const cableUuid = formData.get('cableUuid');
+
+		if (!cableUuid) {
+			return fail(400, { error: 'Cable UUID is required' });
+		}
+
+		try {
+			// Fetch fiber splices where this cable is cable_a
+			const splicesAResponse = await fetch(`${API_URL}fiber-splice/?cable_a=${cableUuid}`, {
+				method: 'GET',
+				headers
+			});
+
+			// Fetch fiber splices where this cable is cable_b
+			const splicesBResponse = await fetch(`${API_URL}fiber-splice/?cable_b=${cableUuid}`, {
+				method: 'GET',
+				headers
+			});
+
+			let splicesA = [];
+			let splicesB = [];
+			if (splicesAResponse.ok) {
+				splicesA = await splicesAResponse.json();
+			}
+			if (splicesBResponse.ok) {
+				splicesB = await splicesBResponse.json();
+			}
+
+			// Combine and deduplicate splices
+			const spliceMap = new Map();
+			[...splicesA, ...splicesB].forEach((splice) => {
+				if (splice.uuid) {
+					spliceMap.set(splice.uuid, splice);
+				}
+			});
+			const splices = Array.from(spliceMap.values());
+
+			return {
+				splices: splices || [],
+				connectedFiberCount: splices.length
+			};
+		} catch (err) {
+			console.error('Error fetching cable splices:', err);
+			return fail(500, { error: 'Failed to fetch cable splices' });
+		}
+	},
 	saveNodeGeometry: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();
@@ -755,6 +893,357 @@ export const actions = {
 				type: 'error',
 				message: err.message || 'Failed to save node position'
 			};
+		}
+	},
+	getSlotConfigurations: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeUuid = formData.get('nodeUuid');
+
+			if (!nodeUuid) {
+				return fail(400, { error: 'Missing required parameter: nodeUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-slot-configuration/by-node/${nodeUuid}/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch slot configurations'
+				});
+			}
+
+			const configurations = await response.json();
+			return { configurations };
+		} catch (err) {
+			console.error('Error fetching slot configurations:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	createSlotConfiguration: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeUuid = formData.get('nodeUuid');
+			const side = formData.get('side');
+			const totalSlots = formData.get('totalSlots');
+
+			if (!nodeUuid || !side || !totalSlots) {
+				return fail(400, {
+					error: 'Missing required fields: nodeUuid, side, and totalSlots are required'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-slot-configuration/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					uuid_node_id: nodeUuid,
+					side: side,
+					total_slots: parseInt(totalSlots)
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to create slot configuration'
+				});
+			}
+
+			const configuration = await response.json();
+			return { success: true, configuration };
+		} catch (err) {
+			console.error('Error creating slot configuration:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	updateSlotConfiguration: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const configUuid = formData.get('configUuid');
+			const side = formData.get('side');
+			const totalSlots = formData.get('totalSlots');
+
+			if (!configUuid) {
+				return fail(400, { error: 'Missing required parameter: configUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const requestBody = {};
+			if (side) requestBody.side = side;
+			if (totalSlots) requestBody.total_slots = parseInt(totalSlots);
+
+			const response = await fetch(`${API_URL}node-slot-configuration/${configUuid}/`, {
+				method: 'PATCH',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to update slot configuration'
+				});
+			}
+
+			const configuration = await response.json();
+			return { success: true, configuration };
+		} catch (err) {
+			console.error('Error updating slot configuration:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	deleteSlotConfiguration: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const configUuid = formData.get('configUuid');
+
+			if (!configUuid) {
+				return fail(400, { error: 'Missing required parameter: configUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-slot-configuration/${configUuid}/`, {
+				method: 'DELETE',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to delete slot configuration'
+				});
+			}
+
+			return { success: true };
+		} catch (err) {
+			console.error('Error deleting slot configuration:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	getContainerTypes: async ({ fetch, cookies }) => {
+		try {
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}container-type/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				return fail(response.status, { error: 'Failed to fetch container types' });
+			}
+
+			const containerTypes = await response.json();
+			return { containerTypes };
+		} catch (err) {
+			console.error('Error fetching container types:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	getContainerHierarchy: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeUuid = formData.get('nodeUuid');
+
+			if (!nodeUuid) {
+				return fail(400, { error: 'Missing required parameter: nodeUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}container/tree/${nodeUuid}/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch hierarchy'
+				});
+			}
+
+			const hierarchy = await response.json();
+			return { hierarchy };
+		} catch (err) {
+			console.error('Error fetching container hierarchy:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	createContainer: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeUuid = formData.get('nodeUuid');
+			const containerTypeId = formData.get('containerTypeId');
+			const name = formData.get('name');
+			const parentContainerId = formData.get('parentContainerId');
+
+			if (!nodeUuid || !containerTypeId) {
+				return fail(400, {
+					error: 'Missing required fields: nodeUuid and containerTypeId'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const requestBody = {
+				uuid_node_id: nodeUuid,
+				container_type_id: parseInt(containerTypeId)
+			};
+
+			if (name) requestBody.name = name;
+			if (parentContainerId) requestBody.parent_container_id = parentContainerId;
+
+			const response = await fetch(`${API_URL}container/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to create container'
+				});
+			}
+
+			const container = await response.json();
+			return { success: true, container };
+		} catch (err) {
+			console.error('Error creating container:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	deleteContainer: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const containerUuid = formData.get('containerUuid');
+
+			if (!containerUuid) {
+				return fail(400, { error: 'Missing required parameter: containerUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}container/${containerUuid}/`, {
+				method: 'DELETE',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to delete container'
+				});
+			}
+
+			return { success: true };
+		} catch (err) {
+			console.error('Error deleting container:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	moveItem: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const itemType = formData.get('itemType');
+			const itemUuid = formData.get('itemUuid');
+			const targetContainerId = formData.get('targetContainerId') || null;
+
+			if (!itemType || !itemUuid) {
+				return fail(400, { error: 'Missing required parameters' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			let endpoint;
+			let body;
+
+			if (itemType === 'container') {
+				endpoint = `${API_URL}container/${itemUuid}/move/`;
+				body = { parent_container_id: targetContainerId || null };
+			} else if (itemType === 'slot_configuration') {
+				endpoint = `${API_URL}node-slot-configuration/${itemUuid}/move-to-container/`;
+				body = { container_id: targetContainerId || null };
+			} else {
+				return fail(400, { error: 'Invalid item type' });
+			}
+
+			const response = await fetch(endpoint, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(body)
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to move item'
+				});
+			}
+
+			return { success: true };
+		} catch (err) {
+			console.error('Error moving item:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	toggleContainerExpanded: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const containerUuid = formData.get('containerUuid');
+
+			if (!containerUuid) {
+				return fail(400, { error: 'Missing containerUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+
+			// First get current state
+			const getResponse = await fetch(`${API_URL}container/${containerUuid}/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!getResponse.ok) {
+				return fail(getResponse.status, { error: 'Container not found' });
+			}
+
+			const container = await getResponse.json();
+
+			// Toggle the state
+			const response = await fetch(`${API_URL}container/${containerUuid}/`, {
+				method: 'PATCH',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					is_expanded: !container.is_expanded
+				})
+			});
+
+			if (!response.ok) {
+				return fail(response.status, { error: 'Failed to update container' });
+			}
+
+			return { success: true };
+		} catch (err) {
+			console.error('Error toggling container:', err);
+			return fail(500, { error: 'Internal server error' });
 		}
 	},
 	updateCableLabel: async ({ request, fetch, cookies }) => {
@@ -881,6 +1370,984 @@ export const actions = {
 		} catch (err) {
 			console.error('Error saving cable label:', err);
 			return fail(500, { message: err.message || 'Failed to save cable label' });
+		}
+	},
+	deleteCableLabel: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const labelId = formData.get('labelId');
+
+		if (!labelId) {
+			return {
+				type: 'error',
+				message: 'Label ID is required'
+			};
+		}
+
+		try {
+			const response = await fetch(`${API_URL}cable_label/${labelId}/`, {
+				method: 'DELETE',
+				credentials: 'include',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					message: errorData.detail || 'Failed to delete cable label'
+				});
+			}
+
+			return {
+				type: 'success',
+				message: 'Label deleted successfully'
+			};
+		} catch (err) {
+			console.error('Error deleting cable label:', err);
+			return fail(500, { message: err.message || 'Failed to delete cable label' });
+		}
+	},
+	getSlotConfigurationsForNode: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeUuid = formData.get('nodeUuid');
+
+			if (!nodeUuid) {
+				return fail(400, { error: 'Missing required parameter: nodeUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-slot-configuration/by-node/${nodeUuid}/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch slot configurations'
+				});
+			}
+
+			const configurations = await response.json();
+			return { configurations };
+		} catch (err) {
+			console.error('Error fetching slot configurations:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	getNodeStructures: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const slotConfigUuid = formData.get('slotConfigUuid');
+
+			if (!slotConfigUuid) {
+				return fail(400, { error: 'Missing required parameter: slotConfigUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(
+				`${API_URL}node-structure/?slot_configuration=${slotConfigUuid}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch node structures'
+				});
+			}
+
+			const structures = await response.json();
+			return { structures };
+		} catch (err) {
+			console.error('Error fetching node structures:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	getComponentTypes: async ({ fetch, cookies }) => {
+		try {
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}attributes_component_type/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				return fail(response.status, { error: 'Failed to fetch component types' });
+			}
+
+			const componentTypes = await response.json();
+			return { componentTypes };
+		} catch (err) {
+			console.error('Error fetching component types:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	createNodeStructure: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeUuid = formData.get('nodeUuid');
+			const slotConfigUuid = formData.get('slotConfigUuid');
+			const componentTypeId = formData.get('componentTypeId');
+			const slotStart = formData.get('slotStart');
+			const slotEnd = formData.get('slotEnd');
+			const purpose = formData.get('purpose') || 'component';
+			const label = formData.get('label');
+
+			if (!nodeUuid || !slotConfigUuid || !slotStart || !slotEnd) {
+				return fail(400, {
+					error: 'Missing required fields: nodeUuid, slotConfigUuid, slotStart, slotEnd'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const requestBody = {
+				uuid_node_id: nodeUuid,
+				slot_configuration_id: slotConfigUuid,
+				slot_start: parseInt(slotStart),
+				slot_end: parseInt(slotEnd),
+				purpose
+			};
+
+			if (componentTypeId) requestBody.component_type_id = parseInt(componentTypeId);
+			if (label) requestBody.label = label;
+
+			const response = await fetch(`${API_URL}node-structure/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				console.error('Error creating node structure:', response.status, errorData);
+				// Build error message from all fields
+				let errorMessage = 'Failed to create structure';
+				if (errorData.detail) {
+					errorMessage = errorData.detail;
+				} else if (errorData.error) {
+					errorMessage = errorData.error;
+				} else if (typeof errorData === 'object') {
+					// DRF returns field errors as object
+					const fieldErrors = Object.entries(errorData)
+						.map(
+							([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`
+						)
+						.join('; ');
+					if (fieldErrors) errorMessage = fieldErrors;
+				}
+				return fail(response.status, { error: errorMessage });
+			}
+
+			const structure = await response.json();
+			return { success: true, structure };
+		} catch (err) {
+			console.error('Error creating node structure:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	moveNodeStructure: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const structureUuid = formData.get('structureUuid');
+			const slotStart = formData.get('slotStart');
+
+			if (!structureUuid || !slotStart) {
+				return fail(400, { error: 'Missing required parameters: structureUuid, slotStart' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-structure/${structureUuid}/move/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ slot_start: parseInt(slotStart) })
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to move structure'
+				});
+			}
+
+			const structure = await response.json();
+			return { success: true, structure };
+		} catch (err) {
+			console.error('Error moving node structure:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	deleteNodeStructure: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const structureUuid = formData.get('structureUuid');
+
+			if (!structureUuid) {
+				return fail(400, { error: 'Missing required parameter: structureUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-structure/${structureUuid}/`, {
+				method: 'DELETE',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to delete structure'
+				});
+			}
+
+			return { success: true };
+		} catch (err) {
+			console.error('Error deleting node structure:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	getSlotDividers: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const slotConfigUuid = formData.get('slotConfigUuid');
+
+			if (!slotConfigUuid) {
+				return fail(400, { error: 'Missing required parameter: slotConfigUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(
+				`${API_URL}node-slot-divider/?slot_configuration=${slotConfigUuid}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch dividers'
+				});
+			}
+
+			const data = await response.json();
+			// Handle both paginated and non-paginated responses
+			const dividers = Array.isArray(data) ? data : data.results || [];
+			return { dividers };
+		} catch (err) {
+			console.error('Error fetching slot dividers:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	createSlotDivider: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const slotConfigUuid = formData.get('slotConfigUuid');
+			const afterSlot = formData.get('afterSlot');
+
+			if (!slotConfigUuid || !afterSlot) {
+				return fail(400, {
+					error: 'Missing required fields: slotConfigUuid, afterSlot'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-slot-divider/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					slot_configuration_id: slotConfigUuid,
+					after_slot: parseInt(afterSlot)
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.after_slot?.[0] || 'Failed to create divider'
+				});
+			}
+
+			const divider = await response.json();
+			return { success: true, divider };
+		} catch (err) {
+			console.error('Error creating slot divider:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	deleteSlotDivider: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const dividerUuid = formData.get('dividerUuid');
+
+			if (!dividerUuid) {
+				return fail(400, { error: 'Missing required parameter: dividerUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-slot-divider/${dividerUuid}/`, {
+				method: 'DELETE',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to delete divider'
+				});
+			}
+
+			return { success: true };
+		} catch (err) {
+			console.error('Error deleting slot divider:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	getSlotClipNumbers: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const slotConfigUuid = formData.get('slotConfigUuid');
+
+			if (!slotConfigUuid) {
+				return fail(400, { error: 'Missing required parameter: slotConfigUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(
+				`${API_URL}node-slot-clip-number/?slot_configuration=${slotConfigUuid}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch clip numbers'
+				});
+			}
+
+			const data = await response.json();
+			// Handle both paginated and non-paginated responses
+			const clipNumbers = Array.isArray(data) ? data : data.results || [];
+			return { clipNumbers };
+		} catch (err) {
+			console.error('Error fetching slot clip numbers:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	upsertSlotClipNumber: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const slotConfigUuid = formData.get('slotConfigUuid');
+			const slotNumber = formData.get('slotNumber');
+			const clipNumber = formData.get('clipNumber');
+
+			if (!slotConfigUuid || !slotNumber || !clipNumber) {
+				return fail(400, {
+					error: 'Missing required fields: slotConfigUuid, slotNumber, clipNumber'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-slot-clip-number/upsert/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					slot_configuration_id: slotConfigUuid,
+					slot_number: parseInt(slotNumber),
+					clip_number: clipNumber
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to update clip number'
+				});
+			}
+
+			const clipNumberData = await response.json();
+			return { success: true, clipNumber: clipNumberData };
+		} catch (err) {
+			console.error('Error upserting slot clip number:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	getCablesAtNode: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeUuid = formData.get('nodeUuid');
+
+			if (!nodeUuid) {
+				return fail(400, { error: 'Missing required parameter: nodeUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}cable/at-node/${nodeUuid}/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch cables at node'
+				});
+			}
+
+			const cables = await response.json();
+			return { cables };
+		} catch (err) {
+			console.error('Error fetching cables at node:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	getFibersForCable: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const cableUuid = formData.get('cableUuid');
+
+			if (!cableUuid) {
+				return fail(400, { error: 'Missing required parameter: cableUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}fiber/by-cable/${cableUuid}/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch fibers for cable'
+				});
+			}
+
+			const fibers = await response.json();
+			return { fibers };
+		} catch (err) {
+			console.error('Error fetching fibers for cable:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	getFiberColors: async ({ fetch, cookies }) => {
+		try {
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}attributes_fiber_color/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				return fail(response.status, { error: 'Failed to fetch fiber colors' });
+			}
+
+			const fiberColors = await response.json();
+			return { fiberColors };
+		} catch (err) {
+			console.error('Error fetching fiber colors:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	getComponentPorts: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const componentTypeId = formData.get('componentTypeId');
+
+			if (!componentTypeId) {
+				return fail(400, { error: 'Missing required parameter: componentTypeId' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(
+				`${API_URL}attributes_component_structure/?component_type=${componentTypeId}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch component ports'
+				});
+			}
+
+			const ports = await response.json();
+			return { ports };
+		} catch (err) {
+			console.error('Error fetching component ports:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	getFiberSplices: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeStructureUuid = formData.get('nodeStructureUuid');
+
+			if (!nodeStructureUuid) {
+				return fail(400, { error: 'Missing required parameter: nodeStructureUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}fiber-splice/?node_structure=${nodeStructureUuid}`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch fiber splices'
+				});
+			}
+
+			const splices = await response.json();
+			return { splices };
+		} catch (err) {
+			console.error('Error fetching fiber splices:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	upsertFiberSplice: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeStructureUuid = formData.get('nodeStructureUuid');
+			const portNumber = formData.get('portNumber');
+			const side = formData.get('side');
+			const fiberUuid = formData.get('fiberUuid');
+			const cableUuid = formData.get('cableUuid');
+
+			if (!nodeStructureUuid || !portNumber || !side || !fiberUuid || !cableUuid) {
+				return fail(400, {
+					error:
+						'Missing required fields: nodeStructureUuid, portNumber, side, fiberUuid, cableUuid'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}fiber-splice/upsert/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					node_structure: nodeStructureUuid,
+					port_number: parseInt(portNumber),
+					side: side,
+					fiber_uuid: fiberUuid,
+					cable_uuid: cableUuid
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to save fiber splice'
+				});
+			}
+
+			const splice = await response.json();
+			return { success: true, splice };
+		} catch (err) {
+			console.error('Error upserting fiber splice:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	clearFiberSplice: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeStructureUuid = formData.get('nodeStructureUuid');
+			const portNumber = formData.get('portNumber');
+			const side = formData.get('side');
+
+			if (!nodeStructureUuid || !portNumber || !side) {
+				return fail(400, {
+					error: 'Missing required fields: nodeStructureUuid, portNumber, side'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}fiber-splice/clear-port/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					node_structure: nodeStructureUuid,
+					port_number: parseInt(portNumber),
+					side: side
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to clear fiber splice'
+				});
+			}
+
+			const result = await response.json();
+			return { success: true, deleted: result.deleted };
+		} catch (err) {
+			console.error('Error clearing fiber splice:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	mergePorts: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeStructureUuid = formData.get('nodeStructureUuid');
+			const portNumbers = JSON.parse(formData.get('portNumbers') || '[]');
+			const side = formData.get('side') || 'both';
+
+			if (!nodeStructureUuid || portNumbers.length < 2) {
+				return fail(400, {
+					error: 'Missing required fields: nodeStructureUuid and at least 2 port numbers'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}fiber-splice/merge-ports/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					node_structure: nodeStructureUuid,
+					port_numbers: portNumbers,
+					side: side
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to merge ports'
+				});
+			}
+
+			const result = await response.json();
+			return { success: true, ...result };
+		} catch (err) {
+			console.error('Error merging ports:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	unmergePorts: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const mergeGroup = formData.get('mergeGroup');
+			const portNumbers = JSON.parse(formData.get('portNumbers') || '[]');
+
+			if (!mergeGroup || portNumbers.length < 1) {
+				return fail(400, {
+					error: 'Missing required fields: mergeGroup and at least 1 port number'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}fiber-splice/unmerge-ports/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					merge_group: mergeGroup,
+					port_numbers: portNumbers
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to unmerge ports'
+				});
+			}
+
+			const result = await response.json();
+			return { success: true, ...result };
+		} catch (err) {
+			console.error('Error unmerging ports:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	upsertMergedSplice: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const mergeGroup = formData.get('mergeGroup');
+			const side = formData.get('side');
+			const fibers = JSON.parse(formData.get('fibers') || '[]');
+
+			if (!mergeGroup || !side || fibers.length === 0) {
+				return fail(400, {
+					error: 'Missing required fields: mergeGroup, side, and fibers'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}fiber-splice/upsert-merged/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					merge_group: mergeGroup,
+					side: side,
+					fibers: fibers
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to connect fibers to merged ports'
+				});
+			}
+
+			const result = await response.json();
+			return { success: true, ...result };
+		} catch (err) {
+			console.error('Error upserting merged splice:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	updateCableConnection: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+
+		const cableId = formData.get('uuid');
+		const uuid_node_start_id = formData.get('uuid_node_start_id');
+		const uuid_node_end_id = formData.get('uuid_node_end_id');
+		const handle_start = formData.get('handle_start');
+		const handle_end = formData.get('handle_end');
+
+		if (!cableId) {
+			return fail(400, { message: 'Cable ID is required' });
+		}
+
+		try {
+			const requestBody = {};
+			if (uuid_node_start_id) requestBody.uuid_node_start_id = uuid_node_start_id;
+			if (uuid_node_end_id) requestBody.uuid_node_end_id = uuid_node_end_id;
+			if (handle_start) requestBody.handle_start = handle_start;
+			if (handle_end) requestBody.handle_end = handle_end;
+
+			const response = await fetch(`${API_URL}cable/${cableId}/`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					message: errorData.detail || 'Failed to update cable connection'
+				});
+			}
+
+			const updatedCable = await response.json();
+			return { success: true, cable: updatedCable };
+		} catch (err) {
+			console.error('Error updating cable connection:', err);
+			return fail(500, { message: err.message || 'Failed to update cable connection' });
+		}
+	},
+	getCableSplicesAtNode: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+
+		const cableUuid = formData.get('cableUuid');
+		const nodeUuid = formData.get('nodeUuid');
+
+		if (!cableUuid || !nodeUuid) {
+			return fail(400, { error: 'Cable UUID and Node UUID are required' });
+		}
+
+		try {
+			// Fetch fiber splices where this cable's fibers are connected at this node
+			// We need to check both cable_a and cable_b, and also check node_structure.uuid_node
+			const splicesAResponse = await fetch(
+				`${API_URL}fiber-splice/?cable_a=${cableUuid}&node_structure__uuid_node=${nodeUuid}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			const splicesBResponse = await fetch(
+				`${API_URL}fiber-splice/?cable_b=${cableUuid}&node_structure__uuid_node=${nodeUuid}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			let splicesA = [];
+			let splicesB = [];
+			if (splicesAResponse.ok) {
+				splicesA = await splicesAResponse.json();
+			}
+			if (splicesBResponse.ok) {
+				splicesB = await splicesBResponse.json();
+			}
+
+			// Combine and deduplicate splices
+			const spliceMap = new Map();
+			[...splicesA, ...splicesB].forEach((splice) => {
+				if (splice.uuid) {
+					spliceMap.set(splice.uuid, splice);
+				}
+			});
+			const splices = Array.from(spliceMap.values());
+
+			return {
+				splices: splices || [],
+				connectedFiberCount: splices.length
+			};
+		} catch (err) {
+			console.error('Error fetching cable splices at node:', err);
+			return fail(500, { error: 'Failed to fetch cable splices' });
+		}
+	},
+	deleteCableSplicesAtNode: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+
+		const cableUuid = formData.get('cableUuid');
+		const nodeUuid = formData.get('nodeUuid');
+
+		if (!cableUuid || !nodeUuid) {
+			return fail(400, { error: 'Cable UUID and Node UUID are required' });
+		}
+
+		try {
+			// First fetch all splices for this cable at this node (both as cable_a and cable_b)
+			const splicesAResponse = await fetch(
+				`${API_URL}fiber-splice/?cable_a=${cableUuid}&node_structure__uuid_node=${nodeUuid}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			const splicesBResponse = await fetch(
+				`${API_URL}fiber-splice/?cable_b=${cableUuid}&node_structure__uuid_node=${nodeUuid}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			let splicesA = [];
+			let splicesB = [];
+			if (splicesAResponse.ok) {
+				splicesA = await splicesAResponse.json();
+			}
+			if (splicesBResponse.ok) {
+				splicesB = await splicesBResponse.json();
+			}
+
+			// Combine and deduplicate splices
+			const spliceMap = new Map();
+			[...splicesA, ...splicesB].forEach((splice) => {
+				if (splice.uuid) {
+					spliceMap.set(splice.uuid, splice);
+				}
+			});
+			const splicesToDelete = Array.from(spliceMap.values());
+
+			// Delete each splice
+			const deleteResults = await Promise.all(
+				splicesToDelete.map(async (splice) => {
+					const deleteResponse = await fetch(`${API_URL}fiber-splice/${splice.uuid}/`, {
+						method: 'DELETE',
+						headers
+					});
+					return { uuid: splice.uuid, success: deleteResponse.ok };
+				})
+			);
+
+			const failedDeletes = deleteResults.filter((r) => !r.success);
+			if (failedDeletes.length > 0) {
+				console.warn('Some splices failed to delete:', failedDeletes);
+			}
+
+			return {
+				success: true,
+				deletedCount: deleteResults.filter((r) => r.success).length,
+				failedCount: failedDeletes.length
+			};
+		} catch (err) {
+			console.error('Error deleting cable splices at node:', err);
+			return fail(500, { error: 'Failed to delete cable splices' });
+		}
+	},
+	getAllNodes: async ({ fetch, cookies, params }) => {
+		const headers = getAuthHeaders(cookies);
+		const projectId = params.projectId;
+
+		if (!projectId) {
+			return fail(400, { error: 'Project ID is required' });
+		}
+
+		try {
+			const response = await fetch(`${API_URL}node/all/?project=${projectId}`, {
+				credentials: 'include',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch nodes'
+				});
+			}
+
+			const nodesData = await response.json();
+			// Extract nodes from GeoJSON FeatureCollection if needed
+			const nodes = nodesData?.features || nodesData || [];
+			return {
+				nodes: nodes.map((nodeOrFeature) => {
+					const node = nodeOrFeature.properties || nodeOrFeature;
+					return {
+						value: nodeOrFeature.id || node.uuid,
+						label: node.name || 'Unnamed Node'
+					};
+				})
+			};
+		} catch (err) {
+			console.error('Error fetching all nodes:', err);
+			return fail(500, { error: 'Failed to fetch nodes' });
 		}
 	}
 };

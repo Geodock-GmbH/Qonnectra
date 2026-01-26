@@ -30,3 +30,66 @@
 	background-color: var(--color-warning-500);
 	border-color: var(--color-warning-500);
 }
+
+
+
+
+/**
+ * Svelte Flow Controls Customization
+ * Changes the background and icon color of the flow panel controls.
+ */
+
+.svelte-flow__controls {
+	background-color: var(--color-surface-100, #f3f4f6);
+	border-radius: 0.5rem;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+	padding: 0.5rem;
+}
+
+.svelte-flow__controls-button {
+	background-color: var(--color-primary-100, #e0e7ff);
+	border: none;
+	color: var(--color-primary-700, #3730a3);
+	transition: background 0.18s, color 0.18s;
+	border-radius: 0.375rem;
+	padding: 0.45rem;
+	margin: 0.15rem 0;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.svelte-flow__controls-button:hover,
+.svelte-flow__controls-button:focus-visible {
+	background-color: var(--color-primary-200, #c7d2fe);
+	color: var(--color-primary-900, #1e293b);
+	outline: none;
+}
+
+.svelte-flow__controls-button svg {
+	fill: currentColor;
+	width: 1.15rem;
+	height: 1.15rem;
+	display: block;
+}
+
+.svelte-flow__controls-button.svelte-flow__controls-zoomin {
+	color: var(--color-success-700, #166534);
+}
+
+.svelte-flow__controls-button.svelte-flow__controls-zoomout {
+	color: var(--color-error-700, #b91c1c);
+}
+
+.svelte-flow__controls-button.svelte-flow__controls-fitview {
+	color: var(--color-info-700, #0369a1);
+}
+
+.svelte-flow__controls-button.svelte-flow__controls-interactive {
+	color: var(--color-warning-700, #b45309);
+}
+
+.svelte-flow__panel.svelte-flow__attribution {
+	color: var(--color-surface-950-50, #e5e7eb);
+}

@@ -19,6 +19,15 @@
 
 	let messageBoxConfirm = $state(null);
 	let cable = $derived($drawerStore.props);
+	let fiberCount = $derived(cable?.cable_type?.fiber_count || cable?.fiber_count || 0);
+	let connectedSpliceCount = $state(0);
+
+	// Reset connected splice count when cable changes
+	$effect(() => {
+		if (cable?.uuid) {
+			connectedSpliceCount = 0;
+		}
+	});
 	let cableName = $derived(cable?.name || '');
 	let cableType = $derived([cable?.cable_type?.id]);
 	let cableStatus = $derived([cable?.status?.id]);
@@ -106,6 +115,26 @@
 	}
 
 	async function confirmDelete() {
+		if (!cable?.uuid) return;
+
+		// Check for connected fiber splices before showing delete dialog
+		try {
+			const formData = new FormData();
+			formData.append('cableUuid', cable.uuid);
+
+			const response = await fetch('?/getCableSplices', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+			const splices = result.data?.splices || [];
+			connectedSpliceCount = splices.length;
+		} catch (err) {
+			console.error('Error checking cable splices:', err);
+			connectedSpliceCount = 0;
+		}
+
 		messageBoxConfirm.open();
 	}
 
@@ -163,6 +192,7 @@
 			bind:value={cableType}
 			defaultValue={cableType}
 			onValueChange={(e) => (cableType = e.value)}
+			disabled={true}
 		/>
 	</label>
 	<label class="label">
@@ -266,7 +296,11 @@
 <MessageBox
 	bind:this={messageBoxConfirm}
 	heading={m.common_confirm()}
-	message={m.message_confirm_delete_cable()}
+	message={connectedSpliceCount > 0
+		? `${m.message_confirm_delete_cable()} ${connectedSpliceCount} ${m.form_fibers?.() || 'fibers'} ${m.common_connected_to_ports?.() || 'connected to ports'}.`
+		: fiberCount > 0
+			? `${m.message_confirm_delete_cable()} ${m.form_fibers?.() || 'Fibers'}: ${fiberCount}`
+			: m.message_confirm_delete_cable()}
 	showAcceptButton={true}
 	acceptText={m.common_delete()}
 	onAccept={handleDelete}

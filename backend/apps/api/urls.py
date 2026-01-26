@@ -7,6 +7,8 @@ from .views import (
     AttributesAreaTypeViewSet,
     AttributesCableTypeViewSet,
     AttributesCompanyViewSet,
+    AttributesComponentStructureViewSet,
+    AttributesComponentTypeViewSet,
     AttributesConduitTypeViewSet,
     AttributesConstructionTypeViewSet,
     AttributesFiberColorViewSet,
@@ -22,8 +24,12 @@ from .views import (
     ConduitImportTemplateView,
     ConduitImportView,
     ConduitViewSet,
+    ContainerTypeViewSet,
+    ContainerViewSet,
     ContentTypeViewSet,
     FeatureFilesViewSet,
+    FiberSpliceViewSet,
+    FiberViewSet,
     FlagsViewSet,
     FrontendLogView,
     GeoPackageSchemaView,
@@ -33,6 +39,10 @@ from .views import (
     MicroductConnectionViewSet,
     MicroductViewSet,
     NodeCanvasCoordinatesView,
+    NodeSlotClipNumberViewSet,
+    NodeSlotConfigurationViewSet,
+    NodeSlotDividerViewSet,
+    NodeStructureViewSet,
     NodeTrenchSelectionViewSet,
     NodeViewSet,
     OlAddressTileViewSet,
@@ -113,6 +123,16 @@ router.register(
     AttributesAreaTypeViewSet,
     basename="attributes_area_type",
 )
+router.register(
+    r"attributes_component_type",
+    AttributesComponentTypeViewSet,
+    basename="attributes_component_type",
+)
+router.register(
+    r"attributes_component_structure",
+    AttributesComponentStructureViewSet,
+    basename="attributes_component_structure",
+)
 router.register(r"content-types", ContentTypeViewSet, basename="content-types")
 router.register(r"address", AddressViewSet, basename="address")
 router.register(r"area", AreaViewSet, basename="area")
@@ -135,6 +155,8 @@ router.register(
 router.register(
     r"microduct_connection", MicroductConnectionViewSet, basename="microduct_connection"
 )
+router.register(r"fiber", FiberViewSet, basename="fiber")
+router.register(r"fiber-splice", FiberSpliceViewSet, basename="fiber-splice")
 router.register(r"node", NodeViewSet, basename="node")
 router.register(r"ol_address", OlAddressViewSet, basename="ol_address")
 router.register(r"ol_area", OlAreaViewSet, basename="ol_area")
@@ -152,6 +174,36 @@ router.register(
     r"node-trench-selection",
     NodeTrenchSelectionViewSet,
     basename="node-trench-selection",
+)
+router.register(
+    r"node-structure",
+    NodeStructureViewSet,
+    basename="node-structure",
+)
+router.register(
+    r"node-slot-configuration",
+    NodeSlotConfigurationViewSet,
+    basename="node-slot-configuration",
+)
+router.register(
+    r"node-slot-divider",
+    NodeSlotDividerViewSet,
+    basename="node-slot-divider",
+)
+router.register(
+    r"node-slot-clip-number",
+    NodeSlotClipNumberViewSet,
+    basename="node-slot-clip-number",
+)
+router.register(
+    r"container-type",
+    ContainerTypeViewSet,
+    basename="container-type",
+)
+router.register(
+    r"container",
+    ContainerViewSet,
+    basename="container",
 )
 
 urlpatterns = [

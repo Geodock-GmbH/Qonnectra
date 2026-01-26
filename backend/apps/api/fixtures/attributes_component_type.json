@@ -1,0 +1,20 @@
+[
+    {
+        "model": "api.attributescomponenttype",
+        "pk": 1,
+        "fields": {
+            "component_type": "Spleisskassette",
+            "occupied_slots": 1,
+            "manufacturer": null
+        }
+    },
+    {
+        "model": "api.attributescomponenttype",
+        "pk": 2,
+        "fields": {
+            "component_type": "Splitter 1:8",
+            "occupied_slots": 2,
+            "manufacturer": null
+        }
+    }
+]

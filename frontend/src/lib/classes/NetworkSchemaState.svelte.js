@@ -45,15 +45,19 @@ export class NetworkSchemaState {
 				y = -geoY * 0.0001;
 			}
 
+			const nodeId = nodeOrFeature.id || node.uuid;
+
 			return {
-				id: nodeOrFeature.id || node.uuid,
+				id: nodeId,
 				position: { x, y },
 				type: 'cableDiagramNode',
 				selected: false,
 				data: {
-					label: node.name || 'Unnamed Node',
+					label: node.name || m.form_unnamed_node(),
 					node: node,
-					onNodeSelect: (nodeId) => this.selectNode(nodeId)
+					onNodeSelect: (nodeId) => this.selectNode(nodeId),
+					onNodeDelete: (nodeId) => this.handleNodeDelete(nodeId),
+					onNameUpdate: (newName) => this.updateNodeName(nodeId, newName)
 				}
 			};
 		});
@@ -88,7 +92,9 @@ export class NetworkSchemaState {
 					label: cable.labelData?.text || cable.name,
 					cable: cable,
 					labelData: cable.labelData,
-					onEdgeDelete: (edgeId) => this.handleEdgeDelete(edgeId)
+					onEdgeDelete: (edgeId) => this.handleEdgeDelete(edgeId),
+					onEdgeSelect: (edgeId) => this.selectEdge(edgeId),
+					onNameUpdate: (newName) => this.updateEdgeName(cable.uuid, newName)
 				}
 			}));
 
@@ -100,7 +106,30 @@ export class NetworkSchemaState {
 	 * @param {string} edgeId - The UUID of the edge/cable to remove
 	 */
 	handleEdgeDelete(edgeId) {
-		this.edges = this.edges.filter((edge) => edge.id !== edgeId);
+		const edge = this.edges.find((e) => e.id === edgeId);
+		const affectedNodeIds = edge ? [edge.source, edge.target] : [];
+
+		this.edges = this.edges.filter((e) => e.id !== edgeId);
+
+		// Dispatch event for sidebar refresh
+		if (affectedNodeIds.length > 0) {
+			window.dispatchEvent(
+				new CustomEvent('cableConnectionChanged', {
+					detail: { nodeIds: affectedNodeIds }
+				})
+			);
+		}
+	}
+
+	/**
+	 * Handle node deletion - removes node and connected edges from local state
+	 * @param {string} nodeId - The UUID of the node to remove
+	 */
+	handleNodeDelete(nodeId) {
+		// Remove the node
+		this.nodes = this.nodes.filter((node) => node.id !== nodeId);
+		// Remove any connected edges
+		this.edges = this.edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId);
 	}
 
 	/**
@@ -120,6 +149,27 @@ export class NetworkSchemaState {
 	deselectAllNodes() {
 		this.nodes = this.nodes.map((n) => ({
 			...n,
+			selected: false
+		}));
+	}
+
+	/**
+	 * Select a single edge (cable) by ID
+	 * @param {string} edgeId - The edge ID to select
+	 */
+	selectEdge(edgeId) {
+		this.edges = this.edges.map((e) => ({
+			...e,
+			selected: e.id === edgeId
+		}));
+	}
+
+	/**
+	 * Deselect all edges
+	 */
+	deselectAllEdges() {
+		this.edges = this.edges.map((e) => ({
+			...e,
 			selected: false
 		}));
 	}
@@ -280,7 +330,9 @@ export class NetworkSchemaState {
 					data: {
 						label: cableName,
 						cable: { ...cableData, uuid: cableUuid },
-						onEdgeDelete: (edgeId) => this.handleEdgeDelete(edgeId)
+						onEdgeDelete: (edgeId) => this.handleEdgeDelete(edgeId),
+						onEdgeSelect: (edgeId) => this.selectEdge(edgeId),
+						onNameUpdate: (newName) => this.updateEdgeName(cableUuid, newName)
 					}
 				}
 			];
@@ -289,6 +341,13 @@ export class NetworkSchemaState {
 				title: m.title_success(),
 				description: m.message_success_creating_cable()
 			});
+
+			// Dispatch event for sidebar refresh (source and target are swapped in the edge creation)
+			window.dispatchEvent(
+				new CustomEvent('cableConnectionChanged', {
+					detail: { nodeIds: [source, target] }
+				})
+			);
 		} catch (error) {
 			console.error('Error creating cable:', error);
 			globalToaster.error({
@@ -345,6 +404,98 @@ export class NetworkSchemaState {
 				};
 			}
 			return e;
+		});
+	}
+
+	/**
+	 * Update node name in local state
+	 * @param {string} nodeId - Node UUID
+	 * @param {string} newName - New name for the node
+	 */
+	updateNodeName(nodeId, newName) {
+		this.nodes = this.nodes.map((node) => {
+			if (node.id === nodeId) {
+				return {
+					...node,
+					data: {
+						...node.data,
+						label: newName,
+						node: {
+							...node.data.node,
+							name: newName
+						}
+					}
+				};
+			}
+			return node;
+		});
+	}
+
+	/**
+	 * Update edge/cable name in local state
+	 * @param {string} edgeId - Edge UUID
+	 * @param {string} newName - New name for the cable
+	 */
+	updateEdgeName(edgeId, newName) {
+		this.edges = this.edges.map((edge) => {
+			if (edge.id === edgeId) {
+				return {
+					...edge,
+					data: {
+						...edge.data,
+						label: newName,
+						cable: {
+							...edge.data.cable,
+							name: newName
+						}
+					}
+				};
+			}
+			return edge;
+		});
+	}
+
+	/**
+	 * Update edge connection to a different node
+	 * @param {string} edgeId - Edge UUID
+	 * @param {string} side - 'start' or 'end'
+	 * @param {string} newNodeId - New node UUID
+	 * @param {string} handlePosition - Handle position at new node
+	 */
+	updateEdgeConnection(edgeId, side, newNodeId, handlePosition) {
+		this.edges = this.edges.map((edge) => {
+			if (edge.id === edgeId) {
+				if (side === 'start') {
+					return {
+						...edge,
+						source: newNodeId,
+						sourceHandle: handlePosition ? `${newNodeId}-${handlePosition}-source` : undefined,
+						data: {
+							...edge.data,
+							cable: {
+								...edge.data.cable,
+								uuid_node_start: newNodeId,
+								handle_start: handlePosition
+							}
+						}
+					};
+				} else {
+					return {
+						...edge,
+						target: newNodeId,
+						targetHandle: handlePosition ? `${newNodeId}-${handlePosition}-target` : undefined,
+						data: {
+							...edge.data,
+							cable: {
+								...edge.data.cable,
+								uuid_node_end: newNodeId,
+								handle_end: handlePosition
+							}
+						}
+					};
+				}
+			}
+			return edge;
 		});
 	}
 }

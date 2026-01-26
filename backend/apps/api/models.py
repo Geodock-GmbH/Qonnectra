@@ -593,6 +593,97 @@ class AttributesAreaType(models.Model):
         return self.area_type
 
 
+class AttributesComponentType(models.Model):
+    """Stores all component types"""
+
+    id = models.AutoField(primary_key=True)
+    component_type = models.TextField(
+        _("Component Type"),
+        null=False,
+        blank=False,
+        db_index=False,
+        unique=True,
+        help_text=_(
+            "The type of the component (e.g. 'Router', 'Switch', 'Access Point', etc.)"
+        ),
+    )
+    occupied_slots = models.IntegerField(
+        _("Occupied Slots"),
+        null=False,
+        blank=False,
+        default=1,
+        help_text=_("Number of slots occupied by the component (default: 1)"),
+    )
+    manufacturer = models.ForeignKey(
+        AttributesCompany,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_column="manufacturer",
+        verbose_name=_("Manufacturer"),
+        help_text=_("The manufacturer of the component"),
+    )
+
+    class Meta:
+        db_table = "attributes_component_type"
+        verbose_name = _("Component Type")
+        verbose_name_plural = _("Component Types")
+        ordering = ["component_type"]
+        indexes = [
+            models.Index(fields=["component_type"], name="idx_component_type"),
+        ]
+
+    def __str__(self):
+        return self.component_type
+
+
+class AttributesComponentStructure(models.Model):
+    """Stores all component structures"""
+
+    class InOrOut(models.TextChoices):
+        IN = "in", _("In")
+        OUT = "out", _("Out")
+
+    id = models.AutoField(primary_key=True)
+    component_type = models.ForeignKey(
+        AttributesComponentType,
+        null=False,
+        blank=False,
+        on_delete=models.CASCADE,
+        verbose_name=_("Component Type"),
+    )
+    in_or_out = models.CharField(
+        _("In or Out"),
+        max_length=10,
+        choices=InOrOut.choices,
+        null=False,
+        blank=False,
+    )
+    port = models.IntegerField(_("Port"), null=False, blank=False)
+    port_alias = models.TextField(_("Port Alias"), null=True, blank=True)
+
+    class Meta:
+        db_table = "attributes_component_structure"
+        verbose_name = _("Component Structure")
+        verbose_name_plural = _("Component Structures")
+        ordering = ["component_type", "in_or_out", "port"]
+        indexes = [
+            models.Index(
+                fields=["component_type", "in_or_out", "port"],
+                name="idx_component_structure_type",
+            ),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["component_type", "in_or_out", "port"],
+                name="unique_component_structure",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.component_type} - {self.in_or_out} - {self.port}"
+
+
 class FeatureFiles(models.Model):
     """Stores all files for different models,
     related to :model:`api.Trench`.
@@ -1534,6 +1625,8 @@ class Node(models.Model):
             models.Index(fields=["canvas_x"], name="idx_node_canvas_x"),
             models.Index(fields=["canvas_y"], name="idx_node_canvas_y"),
             gis_models.Index(fields=["geom"], name="idx_node_geom"),
+            models.Index(fields=["flag"], name="idx_node_flag"),
+            models.Index(fields=["project", "flag"], name="idx_node_project_flag"),
         ]
         constraints = [
             models.UniqueConstraint(
@@ -2195,6 +2288,7 @@ class Cable(models.Model):
             models.Index(fields=["diagram_path"], name="idx_cable_diagram_path"),
             models.Index(fields=["project"], name="idx_cable_project"),
             models.Index(fields=["flag"], name="idx_cable_flag"),
+            models.Index(fields=["project", "flag"], name="idx_cable_project_flag"),
         ]
         constraints = [
             models.UniqueConstraint(
@@ -3022,3 +3116,579 @@ class GeoPackageSchemaConfig(models.Model):
     def get_layer_names(self):
         """Return list of layer names for use with generate_geopackage_schema."""
         return self.selected_layers or []
+
+
+class NodeSlotConfiguration(models.Model):
+    """Stores the slot configuration for a node side."""
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    uuid_node = models.ForeignKey(
+        Node,
+        on_delete=models.CASCADE,
+        verbose_name=_("Node"),
+        db_column="uuid_node",
+        related_name="slot_configurations",
+        db_index=False,
+    )
+    container = models.ForeignKey(
+        "Container",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Container"),
+        db_column="container",
+        related_name="slot_configurations",
+        help_text=_("Optional container this slot configuration belongs to"),
+    )
+    side = models.CharField(
+        _("Side"),
+        max_length=50,
+        help_text=_("The name of the side (e.g., 'A', 'B', 'Left Side', 'Right Side')"),
+    )
+    total_slots = models.IntegerField(
+        _("Total Slots"),
+        null=False,
+        blank=False,
+        help_text=_("The total number of slots available on this side"),
+    )
+    sort_order = models.IntegerField(
+        _("Sort Order"),
+        default=0,
+        help_text=_("Order of this configuration among siblings"),
+    )
+
+    class Meta:
+        db_table = "node_slot_configuration"
+        verbose_name = _("Node Slot Configuration")
+        verbose_name_plural = _("Node Slot Configurations")
+        ordering = ["uuid_node", "sort_order", "side"]
+        indexes = [
+            models.Index(fields=["uuid_node"], name="idx_node_slot_config_node"),
+            models.Index(fields=["container"], name="idx_node_slot_config_container"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["uuid_node", "side"],
+                name="unique_node_slot_config_side",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.uuid_node} - {self.side}: {self.total_slots} slots"
+
+
+class NodeStructure(models.Model):
+    """Stores the structure of a node."""
+
+    class Purpose(models.TextChoices):
+        COMPONENT = "component", _("Component")
+        RESERVE = "reserve", _("Reserve")
+        EMPTY = "empty", _("Empty")
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    uuid_node = models.ForeignKey(
+        Node,
+        on_delete=models.CASCADE,
+        verbose_name=_("Node"),
+        db_column="uuid_node",
+        db_index=False,
+    )
+    slot_configuration = models.ForeignKey(
+        NodeSlotConfiguration,
+        on_delete=models.CASCADE,
+        verbose_name=_("Slot Configuration"),
+        db_column="slot_configuration",
+        related_name="structures",
+        db_index=False,
+        help_text=_("The slot configuration (side) where this structure is placed"),
+    )
+    component_type = models.ForeignKey(
+        AttributesComponentType,
+        on_delete=models.CASCADE,
+        verbose_name=_("Component Type"),
+        db_column="component_type",
+        db_index=False,
+        null=True,
+        blank=True,
+    )
+    component_structure = models.ForeignKey(
+        AttributesComponentStructure,
+        on_delete=models.CASCADE,
+        verbose_name=_("Component Structure"),
+        db_column="component_structure",
+        db_index=False,
+        null=True,
+        blank=True,
+    )
+    slot_start = models.IntegerField(
+        _("Slot Start"),
+        null=False,
+        blank=False,
+        help_text=_("The start slot of the component in the node"),
+    )
+    slot_end = models.IntegerField(
+        _("Slot End"),
+        null=False,
+        blank=False,
+        help_text=_("The end slot of the component in the node"),
+    )
+    clip_number = models.IntegerField(
+        _("Clip Slot Number"),
+        null=True,
+        blank=True,
+        help_text=_("The number of the clip in the component"),
+    )
+    purpose = models.CharField(
+        _("Purpose"),
+        max_length=20,
+        choices=Purpose.choices,
+        default=Purpose.COMPONENT,
+        help_text=_("The purpose of this slot range (component, reserve, or empty)"),
+    )
+    label = models.CharField(
+        _("Label"),
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text=_(
+            "Optional label for this slot range (e.g., 'Reserve for future use')"
+        ),
+    )
+
+    class Meta:
+        db_table = "node_structure"
+        verbose_name = _("Node Structure")
+        verbose_name_plural = _("Node Structures")
+        ordering = ["uuid_node", "slot_configuration", "slot_start"]
+        indexes = [
+            models.Index(fields=["uuid_node"], name="idx_node_structure_node"),
+            models.Index(
+                fields=["slot_configuration"], name="idx_node_structure_slot_config"
+            ),
+            models.Index(
+                fields=["component_type"], name="idx_node_structure_comp_type"
+            ),
+            models.Index(
+                fields=["component_structure"],
+                name="idx_node_component_structure",
+            ),
+            models.Index(fields=["purpose"], name="idx_node_structure_purpose"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["slot_configuration", "slot_start", "slot_end"],
+                name="unique_node_structure_slot",
+            ),
+        ]
+
+    def __str__(self):
+        side_name = (
+            self.slot_configuration.side if self.slot_configuration else "Unknown"
+        )
+        if self.purpose == self.Purpose.COMPONENT:
+            return f"{self.uuid_node} - {side_name} - {self.component_type} - Slots {self.slot_start}-{self.slot_end}"
+        return f"{self.uuid_node} - {side_name} - {self.get_purpose_display()} - Slots {self.slot_start}-{self.slot_end}"
+
+
+class NodeSlotDivider(models.Model):
+    """
+    Stores horizontal divider lines between TPU slots for visual grouping.
+    Dividers appear after the specified slot number.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    slot_configuration = models.ForeignKey(
+        NodeSlotConfiguration,
+        on_delete=models.CASCADE,
+        verbose_name=_("Slot Configuration"),
+        db_column="slot_configuration",
+        related_name="dividers",
+        db_index=True,
+        help_text=_("The slot configuration this divider belongs to"),
+    )
+    after_slot = models.IntegerField(
+        _("After Slot"),
+        null=False,
+        blank=False,
+        help_text=_("The slot number after which this divider appears"),
+    )
+
+    class Meta:
+        db_table = "node_slot_divider"
+        verbose_name = _("Node Slot Divider")
+        verbose_name_plural = _("Node Slot Dividers")
+        ordering = ["slot_configuration", "after_slot"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["slot_configuration", "after_slot"],
+                name="unique_slot_divider",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.slot_configuration} - Divider after slot {self.after_slot}"
+
+
+class NodeSlotClipNumber(models.Model):
+    """
+    Stores custom clip numbers for individual slots.
+    Allows users to assign their own clip number labels per slot.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    slot_configuration = models.ForeignKey(
+        NodeSlotConfiguration,
+        on_delete=models.CASCADE,
+        verbose_name=_("Slot Configuration"),
+        db_column="slot_configuration",
+        related_name="clip_numbers",
+        db_index=True,
+        help_text=_("The slot configuration this clip number belongs to"),
+    )
+    slot_number = models.IntegerField(
+        _("Slot Number"),
+        null=False,
+        blank=False,
+        help_text=_("The slot number this clip number is assigned to"),
+    )
+    clip_number = models.CharField(
+        _("Clip Number"),
+        max_length=20,
+        null=False,
+        blank=False,
+        help_text=_("The custom clip number label (e.g., '1', '1A', '2B')"),
+    )
+
+    class Meta:
+        db_table = "node_slot_clip_number"
+        verbose_name = _("Node Slot Clip Number")
+        verbose_name_plural = _("Node Slot Clip Numbers")
+        ordering = ["slot_configuration", "slot_number"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["slot_configuration", "slot_number"],
+                name="unique_slot_clip_number",
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.slot_configuration} - Slot {self.slot_number}: {self.clip_number}"
+        )
+
+
+class FiberSplice(models.Model):
+    """
+    Stores fiber splice connections within a node component.
+    Each record represents a complete splice: connecting fiber_a to fiber_b
+    at a specific port number within a component.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+
+    # Link to the specific component placement in the node
+    node_structure = models.ForeignKey(
+        NodeStructure,
+        on_delete=models.CASCADE,
+        verbose_name=_("Node Structure"),
+        db_column="node_structure",
+        related_name="fiber_splices",
+        help_text=_("The component placement this splice belongs to"),
+    )
+
+    # The port number (1-12 for a 12-port splice cassette, 1-8 for a 1:8 splitter, etc.)
+    port_number = models.PositiveIntegerField(
+        _("Port Number"),
+        help_text=_(
+            "The port number on the component (e.g., 1-12 for a splice cassette)"
+        ),
+    )
+
+    # First fiber and cable (nullable for partial connections)
+    fiber_a = models.ForeignKey(
+        Fiber,
+        on_delete=models.CASCADE,
+        verbose_name=_("Fiber A"),
+        db_column="fiber_a",
+        related_name="splices_as_a",
+        null=True,
+        blank=True,
+        help_text=_("First fiber in this splice connection"),
+    )
+
+    cable_a = models.ForeignKey(
+        Cable,
+        on_delete=models.CASCADE,
+        verbose_name=_("Cable A"),
+        db_column="cable_a",
+        related_name="fiber_splices_as_a",
+        null=True,
+        blank=True,
+        help_text=_("The cable of fiber A (denormalized for CASCADE delete)"),
+    )
+
+    # Second fiber and cable (nullable for partial connections)
+    fiber_b = models.ForeignKey(
+        Fiber,
+        on_delete=models.CASCADE,
+        verbose_name=_("Fiber B"),
+        db_column="fiber_b",
+        related_name="splices_as_b",
+        null=True,
+        blank=True,
+        help_text=_("Second fiber in this splice connection"),
+    )
+
+    cable_b = models.ForeignKey(
+        Cable,
+        on_delete=models.CASCADE,
+        verbose_name=_("Cable B"),
+        db_column="cable_b",
+        related_name="fiber_splices_as_b",
+        null=True,
+        blank=True,
+        help_text=_("The cable of fiber B (denormalized for CASCADE delete)"),
+    )
+
+    # Merge groups for port linking (e.g., splitter ports)
+    # Each side can have its own independent merge group
+    merge_group_a = models.UUIDField(
+        _("Merge Group A"),
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=_(
+            "UUID grouping ports on side A (IN) that share a fiber. "
+            "Used for asymmetric components like splitters."
+        ),
+    )
+    merge_group_b = models.UUIDField(
+        _("Merge Group B"),
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=_(
+            "UUID grouping ports on side B (OUT) that share a fiber. "
+            "Used for asymmetric components like splitters."
+        ),
+    )
+
+    # Shared fiber fields for merged port groups
+    # When ports are merged on a side, ONE fiber is shared across all ports in the group
+    shared_fiber_a = models.ForeignKey(
+        Fiber,
+        on_delete=models.CASCADE,
+        verbose_name=_("Shared Fiber A"),
+        db_column="shared_fiber_a",
+        related_name="shared_splices_as_a",
+        null=True,
+        blank=True,
+        help_text=_(
+            "Shared fiber A for merged port groups (one fiber for all ports in group on side A)."
+        ),
+    )
+    shared_cable_a = models.ForeignKey(
+        Cable,
+        on_delete=models.CASCADE,
+        verbose_name=_("Shared Cable A"),
+        db_column="shared_cable_a",
+        related_name="shared_fiber_splices_as_a",
+        null=True,
+        blank=True,
+        help_text=_("The cable of shared fiber A (denormalized for CASCADE delete)."),
+    )
+    shared_fiber_b = models.ForeignKey(
+        Fiber,
+        on_delete=models.CASCADE,
+        verbose_name=_("Shared Fiber B"),
+        db_column="shared_fiber_b",
+        related_name="shared_splices_as_b",
+        null=True,
+        blank=True,
+        help_text=_(
+            "Shared fiber B for merged port groups (one fiber for all ports in group on side B)."
+        ),
+    )
+    shared_cable_b = models.ForeignKey(
+        Cable,
+        on_delete=models.CASCADE,
+        verbose_name=_("Shared Cable B"),
+        db_column="shared_cable_b",
+        related_name="shared_fiber_splices_as_b",
+        null=True,
+        blank=True,
+        help_text=_("The cable of shared fiber B (denormalized for CASCADE delete)."),
+    )
+
+    class Meta:
+        db_table = "fiber_splice"
+        verbose_name = _("Fiber Splice")
+        verbose_name_plural = _("Fiber Splices")
+        ordering = ["node_structure", "port_number"]
+        indexes = [
+            models.Index(
+                fields=["node_structure"], name="idx_fiber_splice_node_struct"
+            ),
+            models.Index(fields=["fiber_a"], name="idx_fiber_splice_fiber_a"),
+            models.Index(fields=["fiber_b"], name="idx_fiber_splice_fiber_b"),
+            models.Index(fields=["cable_a"], name="idx_fiber_splice_cable_a"),
+            models.Index(fields=["cable_b"], name="idx_fiber_splice_cable_b"),
+            models.Index(fields=["merge_group_a"], name="idx_fiber_splice_merge_grp_a"),
+            models.Index(fields=["merge_group_b"], name="idx_fiber_splice_merge_grp_b"),
+            models.Index(
+                fields=["shared_fiber_a"], name="idx_fiber_splice_shrd_fib_a"
+            ),
+            models.Index(
+                fields=["shared_fiber_b"], name="idx_fiber_splice_shrd_fib_b"
+            ),
+        ]
+        constraints = [
+            # Each port in a node structure can only have one splice record
+            models.UniqueConstraint(
+                fields=["node_structure", "port_number"],
+                name="unique_fiber_splice_port",
+            ),
+        ]
+
+    def __str__(self):
+        a_str = f"A:{self.fiber_a}" if self.fiber_a else "A:-"
+        b_str = f"B:{self.fiber_b}" if self.fiber_b else "B:-"
+        return f"{self.node_structure} Port {self.port_number}: {a_str} ↔ {b_str}"
+
+
+class ContainerType(models.Model):
+    """
+    Admin-defined container types for organizing NodeSlotConfigurations.
+    These are GLOBAL (not project-specific) and managed via Django Admin only.
+    Examples: "MFG-Door-Left", "MFG-19-inch-Rack", "Node-Cabinet"
+    """
+
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(
+        _("Name"),
+        max_length=100,
+        unique=True,
+        help_text=_(
+            "The name of the container type (e.g., 'MFG-Door-Left', '19-inch Rack')"
+        ),
+    )
+    description = models.TextField(
+        _("Description"),
+        null=True,
+        blank=True,
+        help_text=_("Optional description of this container type"),
+    )
+    icon = models.CharField(
+        _("Icon"),
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text=_(
+            "Optional icon identifier for frontend display (e.g., 'folder', 'server')"
+        ),
+    )
+    color = models.CharField(
+        _("Color"),
+        max_length=7,
+        null=True,
+        blank=True,
+        help_text=_("Optional hex color code for visual distinction (e.g., '#3B82F6')"),
+    )
+    display_order = models.IntegerField(
+        _("Display Order"),
+        default=0,
+        help_text=_("Order in which this type appears in selection dropdowns"),
+    )
+    is_active = models.BooleanField(
+        _("Active"),
+        default=True,
+        help_text=_("Whether this container type is available for use"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "container_type"
+        verbose_name = _("Container Type")
+        verbose_name_plural = _("Container Types")
+        ordering = ["display_order", "name"]
+
+    def __str__(self):
+        return self.name
+
+
+class Container(models.Model):
+    """
+    User-created container instances that can hold:
+    - Other containers (nested hierarchy)
+    - NodeSlotConfigurations
+
+    Containers are node-specific and support arbitrary nesting depth.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    uuid_node = models.ForeignKey(
+        Node,
+        on_delete=models.CASCADE,
+        verbose_name=_("Node"),
+        db_column="uuid_node",
+        related_name="containers",
+        help_text=_("The node this container belongs to"),
+    )
+    container_type = models.ForeignKey(
+        ContainerType,
+        on_delete=models.PROTECT,
+        verbose_name=_("Container Type"),
+        db_column="container_type",
+        related_name="instances",
+        help_text=_("The type of this container"),
+    )
+    parent_container = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name=_("Parent Container"),
+        db_column="parent_container",
+        related_name="children",
+        help_text=_("The parent container (null if top-level)"),
+    )
+    name = models.CharField(
+        _("Name"),
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text=_("Optional custom name for this container instance"),
+    )
+    sort_order = models.IntegerField(
+        _("Sort Order"),
+        default=0,
+        help_text=_("Order of this container among siblings"),
+    )
+    is_expanded = models.BooleanField(
+        _("Expanded"),
+        default=True,
+        help_text=_("Whether this container is expanded in the UI"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "container"
+        verbose_name = _("Container")
+        verbose_name_plural = _("Containers")
+        ordering = ["uuid_node", "sort_order"]
+        indexes = [
+            models.Index(fields=["uuid_node"], name="idx_container_node"),
+            models.Index(fields=["parent_container"], name="idx_container_parent"),
+            models.Index(fields=["container_type"], name="idx_container_type"),
+        ]
+
+    def __str__(self):
+        type_name = self.container_type.name if self.container_type else "Unknown"
+        custom_name = f" ({self.name})" if self.name else ""
+        return f"{type_name}{custom_name}"
+
+    def get_display_name(self):
+        """Return display name (custom name or type name)."""
+        return self.name or self.container_type.name

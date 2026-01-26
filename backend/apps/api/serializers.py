@@ -10,6 +10,8 @@ from .models import (
     AttributesAreaType,
     AttributesCableType,
     AttributesCompany,
+    AttributesComponentStructure,
+    AttributesComponentType,
     AttributesConduitType,
     AttributesConstructionType,
     AttributesFiberColor,
@@ -25,13 +27,21 @@ from .models import (
     CableLabel,
     CableTypeColorMapping,
     Conduit,
+    Container,
+    ContainerType,
     FeatureFiles,
+    Fiber,
+    FiberSplice,
     Flags,
     LogEntry,
     Microduct,
     MicroductCableConnection,
     MicroductConnection,
     Node,
+    NodeSlotClipNumber,
+    NodeSlotConfiguration,
+    NodeSlotDivider,
+    NodeStructure,
     NodeTrenchSelection,
     OlAddress,
     OlArea,
@@ -224,6 +234,22 @@ class AttributesAreaTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = AttributesAreaType
         fields = ["id", "area_type"]
+
+
+class AttributesComponentTypeSerializer(serializers.ModelSerializer):
+    """Serializer for the AttributesComponentType model."""
+
+    class Meta:
+        model = AttributesComponentType
+        fields = ["id", "component_type", "occupied_slots", "manufacturer"]
+
+
+class AttributesComponentStructureSerializer(serializers.ModelSerializer):
+    """Serializer for the AttributesComponentStructure model."""
+
+    class Meta:
+        model = AttributesComponentStructure
+        fields = ["id", "component_type", "in_or_out", "port", "port_alias"]
 
 
 class TrenchSerializer(GeoFeatureModelSerializer):
@@ -1354,3 +1380,550 @@ class NodeTrenchSelectionBulkSerializer(serializers.Serializer):
         child=serializers.UUIDField(),
         allow_empty=True,
     )
+
+
+class NodeSlotConfigurationSerializer(serializers.ModelSerializer):
+    """Serializer for the NodeSlotConfiguration model."""
+
+    uuid = serializers.UUIDField(read_only=True)
+
+    uuid_node = NodeSerializer(read_only=True)
+
+    uuid_node_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Node.objects.all(),
+        source="uuid_node",
+    )
+    side = serializers.CharField(required=True, max_length=50)
+    total_slots = serializers.IntegerField(required=True)
+
+    used_slots = serializers.SerializerMethodField(read_only=True)
+    free_slots = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = NodeSlotConfiguration
+        fields = "__all__"
+        ordering = ["uuid_node", "side"]
+
+    def get_used_slots(self, obj):
+        """Calculate total used slots from NodeStructure entries."""
+        structures = obj.structures.all()
+        return sum(s.slot_end - s.slot_start + 1 for s in structures)
+
+    def get_free_slots(self, obj):
+        """Calculate remaining free slots."""
+        return obj.total_slots - self.get_used_slots(obj)
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+
+        fields["uuid_node_id"].label = _("Node")
+        fields["side"].label = _("Side")
+        fields["total_slots"].label = _("Total Slots")
+
+        return fields
+
+
+class NodeStructureSerializer(serializers.ModelSerializer):
+    """Serializer for the NodeStructure model."""
+
+    uuid = serializers.UUIDField(read_only=True)
+
+    uuid_node = NodeSerializer(read_only=True)
+    slot_configuration = NodeSlotConfigurationSerializer(read_only=True)
+    component_type = AttributesComponentTypeSerializer(read_only=True)
+    component_structure = AttributesComponentStructureSerializer(read_only=True)
+
+    uuid_node_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Node.objects.all(),
+        source="uuid_node",
+    )
+    slot_configuration_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=NodeSlotConfiguration.objects.all(),
+        source="slot_configuration",
+    )
+    component_type_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesComponentType.objects.all(),
+        source="component_type",
+        required=False,
+        allow_null=True,
+    )
+    component_structure_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesComponentStructure.objects.all(),
+        source="component_structure",
+        required=False,
+        allow_null=True,
+    )
+    slot_start = serializers.IntegerField(required=True)
+    slot_end = serializers.IntegerField(required=True)
+    clip_number = serializers.IntegerField(required=False, allow_null=True)
+    purpose = serializers.ChoiceField(
+        choices=NodeStructure.Purpose.choices,
+        default=NodeStructure.Purpose.COMPONENT,
+    )
+    label = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+
+    slot_count = serializers.SerializerMethodField(read_only=True)
+    side_name = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = NodeStructure
+        fields = "__all__"
+        ordering = ["uuid_node", "slot_configuration", "slot_start"]
+
+    def get_slot_count(self, obj):
+        """Calculate the number of slots used by this structure."""
+        return obj.slot_end - obj.slot_start + 1
+
+    def get_side_name(self, obj):
+        """Get the side name from the slot configuration."""
+        return obj.slot_configuration.side if obj.slot_configuration else None
+
+    def validate(self, data):
+        """Validate that component_type is provided when purpose is 'component'.
+
+        Note: component_structure is optional - it can be configured later.
+        """
+        purpose = data.get("purpose", NodeStructure.Purpose.COMPONENT)
+        if purpose == NodeStructure.Purpose.COMPONENT:
+            if not data.get("component_type"):
+                raise serializers.ValidationError(
+                    {
+                        "component_type_id": _(
+                            "Component type is required for component entries."
+                        )
+                    }
+                )
+        return data
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+
+        fields["uuid_node_id"].label = _("Node")
+        fields["slot_configuration_id"].label = _("Slot Configuration")
+        fields["component_type_id"].label = _("Component Type")
+        fields["component_structure_id"].label = _("Component Structure")
+        fields["slot_start"].label = _("Slot Start")
+        fields["slot_end"].label = _("Slot End")
+        fields["clip_number"].label = _("Clip Number")
+        fields["purpose"].label = _("Purpose")
+        fields["label"].label = _("Label")
+
+        return fields
+
+
+class NodeSlotDividerSerializer(serializers.ModelSerializer):
+    """Serializer for the NodeSlotDivider model."""
+
+    uuid = serializers.UUIDField(read_only=True)
+    slot_configuration_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=NodeSlotConfiguration.objects.all(),
+        source="slot_configuration",
+    )
+
+    class Meta:
+        model = NodeSlotDivider
+        fields = ["uuid", "slot_configuration", "slot_configuration_id", "after_slot"]
+        read_only_fields = ["uuid", "slot_configuration"]
+
+    def validate(self, data):
+        """Validate that after_slot is within valid range."""
+        slot_config = data.get("slot_configuration")
+        after_slot = data.get("after_slot")
+
+        if slot_config and after_slot:
+            if after_slot < 1 or after_slot >= slot_config.total_slots:
+                raise serializers.ValidationError(
+                    {
+                        "after_slot": _(
+                            "Divider position must be between 1 and total_slots - 1."
+                        )
+                    }
+                )
+        return data
+
+
+class NodeSlotClipNumberSerializer(serializers.ModelSerializer):
+    """Serializer for the NodeSlotClipNumber model."""
+
+    uuid = serializers.UUIDField(read_only=True)
+    slot_configuration_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=NodeSlotConfiguration.objects.all(),
+        source="slot_configuration",
+    )
+
+    class Meta:
+        model = NodeSlotClipNumber
+        fields = [
+            "uuid",
+            "slot_configuration",
+            "slot_configuration_id",
+            "slot_number",
+            "clip_number",
+        ]
+        read_only_fields = ["uuid", "slot_configuration"]
+
+    def validate(self, data):
+        """Validate that slot_number is within valid range."""
+        slot_config = data.get("slot_configuration")
+        slot_number = data.get("slot_number")
+
+        if slot_config and slot_number:
+            if slot_number < 1 or slot_number > slot_config.total_slots:
+                raise serializers.ValidationError(
+                    {
+                        "slot_number": _(
+                            "Slot number must be between 1 and total_slots."
+                        )
+                    }
+                )
+        return data
+
+
+class AttributesComponentStructureSerializer(serializers.ModelSerializer):
+    """Serializer for AttributesComponentStructure (component ports)."""
+
+    class Meta:
+        model = AttributesComponentStructure
+        fields = ["id", "component_type", "in_or_out", "port", "port_alias"]
+
+
+class FiberSpliceSerializer(serializers.ModelSerializer):
+    """Serializer for FiberSplice model."""
+
+    # Include nested info for display
+    fiber_a_details = serializers.SerializerMethodField()
+    fiber_b_details = serializers.SerializerMethodField()
+    merge_group_a_info = serializers.SerializerMethodField()
+    merge_group_b_info = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FiberSplice
+        fields = [
+            "uuid",
+            "node_structure",
+            "port_number",
+            "fiber_a",
+            "cable_a",
+            "fiber_b",
+            "cable_b",
+            "fiber_a_details",
+            "fiber_b_details",
+            # Side-specific merge groups (independent merging per side)
+            "merge_group_a",
+            "merge_group_b",
+            "merge_group_a_info",
+            "merge_group_b_info",
+            # Shared fiber fields (for merged port groups)
+            "shared_fiber_a",
+            "shared_cable_a",
+            "shared_fiber_b",
+            "shared_cable_b",
+        ]
+
+    def _get_fiber_details(self, fiber, cable):
+        """Helper to get fiber details dict."""
+        if not fiber:
+            return None
+        return {
+            "uuid": str(fiber.uuid),
+            "fiber_number": fiber.fiber_number_absolute,
+            "fiber_color": fiber.fiber_color,
+            "bundle_number": fiber.bundle_number,
+            "bundle_color": fiber.bundle_color,
+            "cable_uuid": str(cable.uuid) if cable else None,
+            "cable_name": cable.name if cable else None,
+        }
+
+    def get_fiber_a_details(self, obj):
+        """
+        Get fiber A details.
+        If port is merged on side A (has merge_group_a), use shared_fiber_a.
+        """
+        if obj.merge_group_a and obj.shared_fiber_a:
+            return self._get_fiber_details(obj.shared_fiber_a, obj.shared_cable_a)
+        return self._get_fiber_details(obj.fiber_a, obj.cable_a)
+
+    def get_fiber_b_details(self, obj):
+        """
+        Get fiber B details.
+        If port is merged on side B (has merge_group_b), use shared_fiber_b.
+        """
+        if obj.merge_group_b and obj.shared_fiber_b:
+            return self._get_fiber_details(obj.shared_fiber_b, obj.shared_cable_b)
+        return self._get_fiber_details(obj.fiber_b, obj.cable_b)
+
+    def _get_merge_group_info(self, obj, side):
+        """Get info about a merge group on a specific side."""
+        merge_group = getattr(obj, f"merge_group_{side}")
+        if not merge_group:
+            return None
+
+        # Get all port numbers in the same merge group
+        siblings = list(
+            FiberSplice.objects.filter(**{f"merge_group_{side}": merge_group})
+            .values_list("port_number", flat=True)
+            .order_by("port_number")
+        )
+
+        if not siblings:
+            return None
+
+        return {
+            "merge_group_id": str(merge_group),
+            "side": side,
+            "port_numbers": siblings,
+            "port_count": len(siblings),
+            "port_range": f"{min(siblings)}-{max(siblings)}" if len(siblings) > 1 else str(siblings[0]),
+        }
+
+    def get_merge_group_a_info(self, obj):
+        """Get info about the merge group on side A."""
+        return self._get_merge_group_info(obj, "a")
+
+    def get_merge_group_b_info(self, obj):
+        """Get info about the merge group on side B."""
+        return self._get_merge_group_info(obj, "b")
+
+
+class PortMergeSerializer(serializers.Serializer):
+    """Serializer for port merge operations."""
+
+    node_structure = serializers.UUIDField()
+    port_numbers = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        min_length=2,
+        help_text="List of port numbers to merge (minimum 2)",
+    )
+    side = serializers.ChoiceField(
+        choices=["a", "b"],
+        help_text="Which side to merge: 'a' (IN) or 'b' (OUT)",
+    )
+
+
+class PortUnmergeSerializer(serializers.Serializer):
+    """Serializer for unmerging specific ports from a group."""
+
+    merge_group = serializers.UUIDField()
+    port_numbers = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        min_length=1,
+        help_text="List of port numbers to unmerge from the group",
+    )
+
+
+class ContainerTypeSerializer(serializers.ModelSerializer):
+    """Serializer for the ContainerType model (admin-defined types)."""
+
+    class Meta:
+        model = ContainerType
+        fields = [
+            "id",
+            "name",
+            "description",
+            "icon",
+            "color",
+            "display_order",
+            "is_active",
+        ]
+
+
+class ContainerSerializer(serializers.ModelSerializer):
+    """Serializer for Container instances."""
+
+    uuid = serializers.UUIDField(read_only=True)
+    container_type = ContainerTypeSerializer(read_only=True)
+    container_type_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=ContainerType.objects.filter(is_active=True),
+        source="container_type",
+    )
+    uuid_node_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Node.objects.all(),
+        source="uuid_node",
+    )
+    parent_container_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Container.objects.all(),
+        source="parent_container",
+        required=False,
+        allow_null=True,
+    )
+    display_name = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Container
+        fields = [
+            "uuid",
+            "uuid_node_id",
+            "container_type",
+            "container_type_id",
+            "parent_container",
+            "parent_container_id",
+            "name",
+            "sort_order",
+            "is_expanded",
+            "display_name",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_display_name(self, obj):
+        return obj.get_display_name()
+
+
+class ContainerTreeSerializer(serializers.ModelSerializer):
+    """
+    Recursive serializer for building the full container tree with nested items.
+    Returns containers with their children and slot configurations.
+    """
+
+    uuid = serializers.UUIDField(read_only=True)
+    container_type = ContainerTypeSerializer(read_only=True)
+    display_name = serializers.SerializerMethodField()
+    children = serializers.SerializerMethodField()
+    slot_configurations = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Container
+        fields = [
+            "uuid",
+            "container_type",
+            "name",
+            "display_name",
+            "sort_order",
+            "is_expanded",
+            "children",
+            "slot_configurations",
+        ]
+
+    def get_display_name(self, obj):
+        return obj.get_display_name()
+
+    def get_children(self, obj):
+        """Recursively serialize child containers."""
+        children = obj.children.all().order_by("sort_order")
+        return ContainerTreeSerializer(children, many=True, context=self.context).data
+
+    def get_slot_configurations(self, obj):
+        """Serialize slot configurations in this container."""
+        configs = obj.slot_configurations.all().order_by("sort_order", "side")
+        return NodeSlotConfigurationListSerializer(
+            configs, many=True, context=self.context
+        ).data
+
+
+class NodeSlotConfigurationListSerializer(serializers.ModelSerializer):
+    """
+    Lightweight serializer for slot configurations in container tree.
+    Does not include nested node data to avoid circular references.
+    """
+
+    uuid = serializers.UUIDField(read_only=True)
+    used_slots = serializers.SerializerMethodField(read_only=True)
+    free_slots = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = NodeSlotConfiguration
+        fields = [
+            "uuid",
+            "side",
+            "total_slots",
+            "sort_order",
+            "used_slots",
+            "free_slots",
+        ]
+
+    def get_used_slots(self, obj):
+        """Calculate total used slots from NodeStructure entries."""
+        structures = obj.structures.all()
+        return sum(s.slot_end - s.slot_start + 1 for s in structures)
+
+    def get_free_slots(self, obj):
+        """Calculate remaining free slots."""
+        return obj.total_slots - self.get_used_slots(obj)
+
+
+class FiberSerializer(serializers.ModelSerializer):
+    """Serializer for the Fiber model."""
+
+    uuid = serializers.UUIDField(read_only=True)
+    cable_name = serializers.CharField(source="uuid_cable.name", read_only=True)
+
+    uuid_cable_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Cable.objects.all(),
+        source="uuid_cable",
+    )
+
+    class Meta:
+        model = Fiber
+        fields = [
+            "uuid",
+            "uuid_cable",
+            "uuid_cable_id",
+            "cable_name",
+            "bundle_number",
+            "bundle_color",
+            "fiber_number_absolute",
+            "fiber_number_in_bundle",
+            "fiber_color",
+            "active",
+            "layer",
+            "fiber_status",
+            "flag",
+            "project",
+        ]
+        read_only_fields = ["uuid"]
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+        fields["bundle_number"].label = _("Bundle Number")
+        fields["bundle_color"].label = _("Bundle Color")
+        fields["fiber_number_absolute"].label = _("Fiber Number (Absolute)")
+        fields["fiber_number_in_bundle"].label = _("Fiber Number (In Bundle)")
+        fields["fiber_color"].label = _("Fiber Color")
+        fields["active"].label = _("Active")
+        fields["layer"].label = _("Layer")
+        return fields
+
+
+class CableAtNodeSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for cables at a node with direction info."""
+
+    uuid = serializers.UUIDField(read_only=True)
+    cable_type = AttributesCableTypeSerializer(read_only=True)
+    direction = serializers.SerializerMethodField()
+    fiber_count = serializers.IntegerField(source="cable_type.fiber_count", read_only=True)
+    bundle_count = serializers.IntegerField(source="cable_type.bundle_count", read_only=True)
+
+    class Meta:
+        model = Cable
+        fields = [
+            "uuid",
+            "name",
+            "cable_type",
+            "direction",
+            "fiber_count",
+            "bundle_count",
+        ]
+
+    def get_direction(self, obj):
+        """Determine if cable starts or ends at the node."""
+        node_uuid = self.context.get("node_uuid")
+        if node_uuid:
+            if str(obj.uuid_node_start_id) == str(node_uuid):
+                return "start"
+            elif str(obj.uuid_node_end_id) == str(node_uuid):
+                return "end"
+        return None

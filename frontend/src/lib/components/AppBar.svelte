@@ -73,7 +73,7 @@
 						<form method="POST" action="/logout">
 							<button
 								type="submit"
-								class="btn-icon hover:preset-tonal p-2 sm:p-1"
+								class="btn-icon hover:preset-tonal"
 								aria-label="Logout"
 								title="Logout"
 							>
@@ -82,11 +82,7 @@
 						</form>
 					{:else}
 						<a href="/login">
-							<button
-								class="btn-icon hover:preset-tonal p-2 sm:p-1"
-								aria-label="Login"
-								title="Login"
-							>
+							<button class="btn-icon hover:preset-tonal" aria-label="Login" title="Login">
 								<IconLogin class="size-5" />
 							</button>
 						</a>

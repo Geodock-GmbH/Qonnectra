@@ -81,6 +81,19 @@ function createDrawerStore() {
 				...store,
 				width: clampedWidth
 			}));
+		},
+		/**
+		 * Updates specific props without replacing all props
+		 * @param {Object} newProps - Props to merge with existing props
+		 */
+		updateProps: (newProps) => {
+			update((store) => ({
+				...store,
+				props: {
+					...store.props,
+					...newProps
+				}
+			}));
 		}
 	};
 }

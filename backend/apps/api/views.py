@@ -1,6 +1,7 @@
 import logging
 import mimetypes
 import os
+import uuid
 from urllib.parse import quote
 
 from django.conf import settings
@@ -25,6 +26,8 @@ from .models import (
     AttributesAreaType,
     AttributesCableType,
     AttributesCompany,
+    AttributesComponentStructure,
+    AttributesComponentType,
     AttributesConduitType,
     AttributesConstructionType,
     AttributesFiberColor,
@@ -39,7 +42,11 @@ from .models import (
     CableTypeColorMapping,
     CanvasSyncStatus,
     Conduit,
+    Container,
+    ContainerType,
     FeatureFiles,
+    Fiber,
+    FiberSplice,
     Flags,
     LogEntry,
     Microduct,
@@ -47,6 +54,10 @@ from .models import (
     MicroductConnection,
     NetworkSchemaSettings,
     Node,
+    NodeSlotClipNumber,
+    NodeSlotConfiguration,
+    NodeSlotDivider,
+    NodeStructure,
     NodeTrenchSelection,
     OlAddress,
     OlArea,
@@ -65,6 +76,8 @@ from .serializers import (
     AttributesAreaTypeSerializer,
     AttributesCableTypeSerializer,
     AttributesCompanySerializer,
+    AttributesComponentStructureSerializer,
+    AttributesComponentTypeSerializer,
     AttributesConduitTypeSerializer,
     AttributesConstructionTypeSerializer,
     AttributesFiberColorSerializer,
@@ -74,18 +87,29 @@ from .serializers import (
     AttributesNodeTypeSerializer,
     AttributesStatusSerializer,
     AttributesSurfaceSerializer,
+    CableAtNodeSerializer,
     CableLabelSerializer,
     CableSerializer,
     CableTypeColorMappingSerializer,
     ConduitSerializer,
+    ContainerSerializer,
+    ContainerTreeSerializer,
+    ContainerTypeSerializer,
     ContentTypeSerializer,
     FeatureFilesSerializer,
+    FiberSerializer,
+    FiberSpliceSerializer,
     FlagsSerializer,
     LogEntrySerializer,
     MicroductCableConnectionSerializer,
     MicroductConnectionSerializer,
     MicroductSerializer,
     NodeSerializer,
+    NodeSlotClipNumberSerializer,
+    NodeSlotConfigurationListSerializer,
+    NodeSlotConfigurationSerializer,
+    NodeSlotDividerSerializer,
+    NodeStructureSerializer,
     NodeTrenchSelectionBulkSerializer,
     NodeTrenchSelectionSerializer,
     OlAddressSerializer,
@@ -254,6 +278,14 @@ class AttributesAreaTypeViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = AttributesAreaType.objects.all().order_by("area_type")
     serializer_class = AttributesAreaTypeSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class AttributesComponentTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesComponentType.objects.all().order_by("component_type")
+    serializer_class = AttributesComponentTypeSerializer
     lookup_field = "id"
     lookup_url_kwarg = "pk"
 
@@ -468,7 +500,16 @@ class TrenchViewSet(viewsets.ModelViewSet):
         Returns all trenches with project, flag, and search filters.
         No pagination is used.
         """
-        queryset = Trench.objects.all().order_by("id_trench")
+        queryset = Trench.objects.select_related(
+            "surface",
+            "construction_type",
+            "status",
+            "phase",
+            "owner",
+            "constructor",
+            "project",
+            "flag",
+        ).order_by("id_trench")
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
         search_term = request.query_params.get("search")
@@ -1155,7 +1196,16 @@ class ConduitViewSet(viewsets.ModelViewSet):
         Returns all conduits with project and flag filters.
         No pagination is used.
         """
-        queryset = Conduit.objects.all().order_by("name")
+        queryset = Conduit.objects.select_related(
+            "conduit_type",
+            "status",
+            "network_level",
+            "owner",
+            "constructor",
+            "manufacturer",
+            "project",
+            "flag",
+        ).order_by("name")
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
         search_term = request.query_params.get("search")
@@ -1354,9 +1404,11 @@ class AddressViewSet(viewsets.ModelViewSet):
         Returns all addresses with project and flag filters.
         No pagination is used.
         """
-        queryset = Address.objects.all().order_by(
-            "street", "housenumber", "house_number_suffix"
-        )
+        queryset = Address.objects.select_related(
+            "status_development",
+            "flag",
+            "project",
+        ).order_by("street", "housenumber", "house_number_suffix")
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
         search_term = request.query_params.get("search")
@@ -1647,7 +1699,17 @@ class NodeViewSet(viewsets.ModelViewSet):
         If project settings are configured, excluded node types are automatically
         filtered out unless an explicit exclude_group parameter is provided.
         """
-        queryset = Node.objects.all().order_by("name")
+        queryset = Node.objects.select_related(
+            "node_type",
+            "uuid_address",
+            "status",
+            "network_level",
+            "owner",
+            "constructor",
+            "manufacturer",
+            "project",
+            "flag",
+        ).order_by("name")
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
         group = request.query_params.get("group")
@@ -1656,6 +1718,7 @@ class NodeViewSet(viewsets.ModelViewSet):
         use_pipe_branch_settings = request.query_params.get("use_pipe_branch_settings")
         settings_configured = False
         pipe_branch_configured = False
+        excluded_type_ids = []
 
         if project_id:
             queryset = queryset.filter(project=project_id)
@@ -1702,6 +1765,7 @@ class NodeViewSet(viewsets.ModelViewSet):
             data["metadata"] = {
                 "settings_configured": settings_configured,
                 "pipe_branch_configured": pipe_branch_configured,
+                "excluded_node_type_ids": excluded_type_ids,
             }
         elif isinstance(data, list):
             # Wrap in FeatureCollection format with metadata
@@ -1711,6 +1775,7 @@ class NodeViewSet(viewsets.ModelViewSet):
                 "metadata": {
                     "settings_configured": settings_configured,
                     "pipe_branch_configured": pipe_branch_configured,
+                    "excluded_node_type_ids": excluded_type_ids,
                 },
             }
 
@@ -1926,28 +1991,30 @@ class NodeCanvasCoordinatesView(APIView):
             sync_status.center_y = center_y
             sync_status.save()
 
-            # Update nodes with canvas coordinates in batches
-            updated_count = 0
-            batch_size = 100
+            # Update nodes with canvas coordinates using bulk_update
+            batch_size = 500
+            nodes_to_update = []
 
-            for i, coord_data in enumerate(coordinates):
+            for coord_data in coordinates:
                 node = coord_data["node"]
                 geo_x = coord_data["x"]
                 geo_y = coord_data["y"]
 
                 # Transform to canvas coordinates
-                canvas_x = (geo_x - center_x) * scale
-                canvas_y = -(geo_y - center_y) * scale  # Flip Y axis
+                node.canvas_x = (geo_x - center_x) * scale
+                node.canvas_y = -(geo_y - center_y) * scale  # Flip Y axis
+                nodes_to_update.append(node)
 
-                node.canvas_x = canvas_x
-                node.canvas_y = canvas_y
-                node.save(update_fields=["canvas_x", "canvas_y"])
-                updated_count += 1
+            # Perform bulk update in batches
+            updated_count = 0
+            for i in range(0, len(nodes_to_update), batch_size):
+                batch = nodes_to_update[i : i + batch_size]
+                Node.objects.bulk_update(batch, ["canvas_x", "canvas_y"])
+                updated_count += len(batch)
 
-                # Update progress and heartbeat every batch
-                if (i + 1) % batch_size == 0:
-                    sync_status.nodes_processed = updated_count
-                    sync_status.update_heartbeat()
+                # Update progress and heartbeat after each batch
+                sync_status.nodes_processed = updated_count
+                sync_status.update_heartbeat()
 
             # Mark sync as completed
             sync_status.status = "COMPLETED"
@@ -2621,7 +2688,18 @@ class CableViewSet(viewsets.ModelViewSet):
         Returns all cables with project, flag, and search filters.
         No pagination is used.
         """
-        queryset = Cable.objects.all().order_by("name")
+        queryset = Cable.objects.select_related(
+            "cable_type",
+            "status",
+            "network_level",
+            "owner",
+            "constructor",
+            "manufacturer",
+            "project",
+            "flag",
+            "uuid_node_start",
+            "uuid_node_end",
+        ).order_by("name")
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
         name = request.query_params.get("name")
@@ -2668,6 +2746,30 @@ class CableViewSet(viewsets.ModelViewSet):
         if name:
             queryset = queryset.filter(name__icontains=name)
         return queryset
+
+    @action(detail=False, methods=["get"], url_path="at-node/(?P<node_uuid>[^/.]+)")
+    def cables_at_node(self, request, node_uuid=None):
+        """
+        Returns all cables that start or end at the specified node.
+        """
+        if not node_uuid:
+            return Response(
+                {"error": "node_uuid is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        queryset = (
+            Cable.objects.filter(
+                Q(uuid_node_start=node_uuid) | Q(uuid_node_end=node_uuid)
+            )
+            .select_related("cable_type")
+            .order_by("name")
+        )
+
+        serializer = CableAtNodeSerializer(
+            queryset, many=True, context={"node_uuid": node_uuid}
+        )
+        return Response(serializer.data)
 
 
 class CableLabelViewSet(viewsets.ModelViewSet):
@@ -2750,6 +2852,55 @@ class MicroductCableConnectionViewSet(viewsets.ModelViewSet):
         if uuid_cable:
             queryset = queryset.filter(uuid_cable=uuid_cable)
         serializer = MicroductCableConnectionSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+class FiberViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the Fiber model :model:`api.Fiber`.
+
+    Read-only access to fiber data with filtering by cable.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = Fiber.objects.all().order_by(
+        "uuid_cable", "bundle_number", "fiber_number_in_bundle"
+    )
+    serializer_class = FiberSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned fibers by filtering against query parameters:
+        - `cable`: Filter by cable UUID
+        - `bundle_number`: Filter by bundle number
+        """
+        queryset = Fiber.objects.all().order_by(
+            "uuid_cable", "bundle_number", "fiber_number_in_bundle"
+        )
+        cable_uuid = self.request.query_params.get("cable")
+        bundle_number = self.request.query_params.get("bundle_number")
+        if cable_uuid:
+            queryset = queryset.filter(uuid_cable=cable_uuid)
+        if bundle_number:
+            queryset = queryset.filter(bundle_number=bundle_number)
+        return queryset
+
+    @action(detail=False, methods=["get"], url_path="by-cable/(?P<cable_uuid>[^/.]+)")
+    def fibers_by_cable(self, request, cable_uuid=None):
+        """
+        Returns all fibers for a specific cable, ordered by bundle and fiber number.
+        """
+        if not cable_uuid:
+            return Response(
+                {"error": "cable_uuid is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        queryset = Fiber.objects.filter(uuid_cable=cable_uuid).order_by(
+            "bundle_number", "fiber_number_in_bundle"
+        )
+        serializer = FiberSerializer(queryset, many=True)
         return Response(serializer.data)
 
 
@@ -3236,3 +3387,913 @@ class NodeTrenchSelectionViewSet(viewsets.ModelViewSet):
         ).select_related("trench")
         result_serializer = NodeTrenchSelectionSerializer(updated_selections, many=True)
         return Response(result_serializer.data, status=status.HTTP_200_OK)
+
+
+class NodeSlotConfigurationViewSet(viewsets.ModelViewSet):
+    """ViewSet for the NodeSlotConfiguration model.
+
+    Manages slot configurations for nodes, allowing users to define
+    the total number of slots available on each side of a node.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = NodeSlotConfiguration.objects.all().order_by("uuid_node", "side")
+    serializer_class = NodeSlotConfigurationSerializer
+    lookup_field = "uuid"
+
+    def get_queryset(self):
+        """Filter slot configurations by node if specified."""
+        queryset = super().get_queryset()
+        node_uuid = self.request.query_params.get("node")
+        if node_uuid:
+            queryset = queryset.filter(uuid_node__uuid=node_uuid)
+        return queryset.select_related("uuid_node")
+
+    @action(detail=False, methods=["get"], url_path="by-node/(?P<node_uuid>[^/.]+)")
+    def by_node(self, request, node_uuid=None):
+        """Get all slot configurations for a specific node with usage stats."""
+        configs = NodeSlotConfiguration.objects.filter(
+            uuid_node__uuid=node_uuid
+        ).select_related("uuid_node")
+        serializer = self.get_serializer(configs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], url_path="move-to-container")
+    def move_to_container(self, request, uuid=None):
+        """
+        Move a slot configuration into a container or to root level.
+
+        Request body:
+        {
+            "container_id": "uuid" | null,  # Target container (null for root)
+            "sort_order": 0  # Position within container/root
+        }
+        """
+        config = self.get_object()
+        container_id = request.data.get("container_id")
+        sort_order = request.data.get("sort_order", 0)
+
+        if container_id:
+            try:
+                container = Container.objects.get(uuid=container_id)
+                # Verify container belongs to same node
+                if container.uuid_node_id != config.uuid_node_id:
+                    return Response(
+                        {"error": "Container belongs to a different node"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                config.container = container
+            except Container.DoesNotExist:
+                return Response(
+                    {"error": "Container not found"}, status=status.HTTP_404_NOT_FOUND
+                )
+        else:
+            config.container = None
+
+        config.sort_order = sort_order
+        config.save()
+
+        return Response(NodeSlotConfigurationSerializer(config).data)
+
+
+class NodeStructureViewSet(viewsets.ModelViewSet):
+    """ViewSet for the NodeStructure model.
+
+    Manages the structure of components within a node, including
+    component types, structures, and their slot positions.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = NodeStructure.objects.all().order_by(
+        "uuid_node", "slot_configuration", "slot_start"
+    )
+    serializer_class = NodeStructureSerializer
+    lookup_field = "uuid"
+
+    def get_queryset(self):
+        """Filter node structures by node, slot_configuration, or purpose if specified."""
+        queryset = super().get_queryset()
+        node_uuid = self.request.query_params.get("node")
+        slot_config_uuid = self.request.query_params.get("slot_configuration")
+        purpose = self.request.query_params.get("purpose")
+
+        if node_uuid:
+            queryset = queryset.filter(uuid_node__uuid=node_uuid)
+        if slot_config_uuid:
+            queryset = queryset.filter(slot_configuration__uuid=slot_config_uuid)
+        if purpose:
+            queryset = queryset.filter(purpose=purpose)
+
+        return queryset.select_related(
+            "uuid_node", "slot_configuration", "component_type", "component_structure"
+        )
+
+    @action(detail=False, methods=["get"], url_path="by-node/(?P<node_uuid>[^/.]+)")
+    def by_node(self, request, node_uuid=None):
+        """Get all structures for a specific node grouped by slot configuration."""
+        structures = (
+            NodeStructure.objects.filter(uuid_node__uuid=node_uuid)
+            .select_related(
+                "slot_configuration", "component_type", "component_structure"
+            )
+            .order_by("slot_configuration", "slot_start")
+        )
+        serializer = self.get_serializer(structures, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="summary/(?P<node_uuid>[^/.]+)")
+    def summary(self, request, node_uuid=None):
+        """Get a summary of slot usage for a node."""
+        try:
+            node = Node.objects.get(uuid=node_uuid)
+        except Node.DoesNotExist:
+            return Response(
+                {"error": "Node not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        configs = NodeSlotConfiguration.objects.filter(uuid_node=node)
+
+        summary = {}
+        for config in configs:
+            side_structures = config.structures.all()
+            used = sum(s.slot_end - s.slot_start + 1 for s in side_structures)
+            components = side_structures.filter(
+                purpose=NodeStructure.Purpose.COMPONENT
+            ).count()
+            reserves = side_structures.filter(
+                purpose=NodeStructure.Purpose.RESERVE
+            ).count()
+
+            summary[config.side] = {
+                "uuid": str(config.uuid),
+                "total_slots": config.total_slots,
+                "used_slots": used,
+                "free_slots": config.total_slots - used,
+                "component_count": components,
+                "reserve_count": reserves,
+            }
+
+        return Response(summary)
+
+    @action(detail=True, methods=["post"], url_path="move")
+    def move(self, request, uuid=None):
+        """Move a structure to a new slot position."""
+        structure = self.get_object()
+        new_slot_start = request.data.get("slot_start")
+
+        if new_slot_start is None:
+            return Response(
+                {"error": "slot_start is required"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            new_slot_start = int(new_slot_start)
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "slot_start must be an integer"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        slot_count = structure.slot_end - structure.slot_start + 1
+        new_slot_end = new_slot_start + slot_count - 1
+
+        # Validate slot range within configuration bounds
+        config = structure.slot_configuration
+        if new_slot_start < 1 or new_slot_end > config.total_slots:
+            return Response(
+                {"error": "Invalid slot range"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check for overlaps with other structures (excluding self)
+        overlapping = (
+            NodeStructure.objects.filter(slot_configuration=config)
+            .exclude(uuid=structure.uuid)
+            .filter(Q(slot_start__lte=new_slot_end) & Q(slot_end__gte=new_slot_start))
+        )
+
+        if overlapping.exists():
+            return Response(
+                {"error": "Slots already occupied"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        structure.slot_start = new_slot_start
+        structure.slot_end = new_slot_end
+        structure.save()
+
+        serializer = self.get_serializer(structure)
+        return Response(serializer.data)
+
+
+class NodeSlotDividerViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for NodeSlotDivider model.
+    Manages horizontal divider lines between TPU slots for visual grouping.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = NodeSlotDivider.objects.all().order_by(
+        "slot_configuration", "after_slot"
+    )
+    serializer_class = NodeSlotDividerSerializer
+    lookup_field = "uuid"
+
+    def get_queryset(self):
+        """Filter dividers by slot_configuration if specified."""
+        queryset = super().get_queryset()
+        slot_config_uuid = self.request.query_params.get("slot_configuration")
+
+        if slot_config_uuid:
+            queryset = queryset.filter(slot_configuration__uuid=slot_config_uuid)
+
+        return queryset.select_related("slot_configuration")
+
+
+class NodeSlotClipNumberViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for NodeSlotClipNumber model.
+    Manages custom clip numbers for individual slots.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = NodeSlotClipNumber.objects.all().order_by(
+        "slot_configuration", "slot_number"
+    )
+    serializer_class = NodeSlotClipNumberSerializer
+    lookup_field = "uuid"
+
+    def get_queryset(self):
+        """Filter clip numbers by slot_configuration if specified."""
+        queryset = super().get_queryset()
+        slot_config_uuid = self.request.query_params.get("slot_configuration")
+
+        if slot_config_uuid:
+            queryset = queryset.filter(slot_configuration__uuid=slot_config_uuid)
+
+        return queryset.select_related("slot_configuration")
+
+    @action(detail=False, methods=["post"], url_path="upsert")
+    def upsert(self, request):
+        """Create or update a clip number for a slot."""
+        slot_config_id = request.data.get("slot_configuration_id")
+        slot_number = request.data.get("slot_number")
+        clip_number = request.data.get("clip_number")
+
+        if not all([slot_config_id, slot_number, clip_number]):
+            return Response(
+                {
+                    "error": "slot_configuration_id, slot_number, and clip_number are required"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            slot_config = NodeSlotConfiguration.objects.get(uuid=slot_config_id)
+        except NodeSlotConfiguration.DoesNotExist:
+            return Response(
+                {"error": "Slot configuration not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        clip_number_obj, created = NodeSlotClipNumber.objects.update_or_create(
+            slot_configuration=slot_config,
+            slot_number=int(slot_number),
+            defaults={"clip_number": clip_number},
+        )
+
+        serializer = self.get_serializer(clip_number_obj)
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
+class AttributesComponentStructureViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only ViewSet for AttributesComponentStructure model.
+    Returns ports (IN/OUT) for a given component type.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesComponentStructure.objects.all()
+    serializer_class = AttributesComponentStructureSerializer
+
+    def get_queryset(self):
+        """Filter by component_type if specified."""
+        queryset = super().get_queryset()
+        component_type_id = self.request.query_params.get("component_type")
+
+        if component_type_id:
+            queryset = queryset.filter(component_type_id=component_type_id)
+
+        return queryset.order_by("in_or_out", "port")
+
+
+class FiberSpliceViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for FiberSplice model.
+    Manages fiber splice connections within node components.
+    Each splice connects fiber_a to fiber_b at a specific port number.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = FiberSplice.objects.all()
+    serializer_class = FiberSpliceSerializer
+    lookup_field = "uuid"
+
+    def get_queryset(self):
+        """Filter splices by node_structure, cable_a, or cable_b if specified."""
+        queryset = super().get_queryset()
+        node_structure = self.request.query_params.get("node_structure")
+        cable_a = self.request.query_params.get("cable_a")
+        cable_b = self.request.query_params.get("cable_b")
+
+        if node_structure:
+            queryset = queryset.filter(node_structure=node_structure)
+
+        if cable_a:
+            queryset = queryset.filter(cable_a=cable_a)
+
+        if cable_b:
+            queryset = queryset.filter(cable_b=cable_b)
+
+        return queryset.select_related(
+            "fiber_a", "cable_a", "fiber_b", "cable_b", "node_structure"
+        )
+
+    @action(detail=False, methods=["post"], url_path="upsert")
+    def upsert(self, request):
+        """
+        Create or update a fiber splice connection.
+        Specify which side ('a' or 'b') the fiber should be placed on.
+
+        If the port is part of a merge group on this side,
+        the fiber becomes a SHARED fiber for all ports in the group.
+        """
+        node_structure_uuid = request.data.get("node_structure")
+        port_number = request.data.get("port_number")
+        side = request.data.get("side")  # 'a' or 'b'
+        fiber_uuid = request.data.get("fiber_uuid")
+        cable_uuid = request.data.get("cable_uuid")
+
+        if not all([node_structure_uuid, port_number, side, fiber_uuid, cable_uuid]):
+            return Response(
+                {
+                    "error": "node_structure, port_number, side, fiber_uuid, and cable_uuid are required"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if side not in ("a", "b"):
+            return Response(
+                {"error": "side must be 'a' or 'b'"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            node_structure = NodeStructure.objects.get(uuid=node_structure_uuid)
+        except NodeStructure.DoesNotExist:
+            return Response(
+                {"error": "Node structure not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Get or create the splice record for this port
+        splice, created = FiberSplice.objects.get_or_create(
+            node_structure=node_structure,
+            port_number=port_number,
+        )
+
+        # Check if this port is merged on this side (using side-specific merge group)
+        merge_group_field = f"merge_group_{side}"
+        merge_group_value = getattr(splice, merge_group_field)
+        is_merged_on_this_side = merge_group_value is not None
+
+        if is_merged_on_this_side:
+            # Set SHARED fiber for ALL ports in the merge group
+            FiberSplice.objects.filter(**{merge_group_field: merge_group_value}).update(
+                **{
+                    f"shared_fiber_{side}_id": fiber_uuid,
+                    f"shared_cable_{side}_id": cable_uuid,
+                }
+            )
+            # Re-fetch the splice to get updated data
+            splice.refresh_from_db()
+        else:
+            # Set individual fiber (not in a merge group on this side)
+            if side == "a":
+                splice.fiber_a_id = fiber_uuid
+                splice.cable_a_id = cable_uuid
+            else:
+                splice.fiber_b_id = fiber_uuid
+                splice.cable_b_id = cable_uuid
+            splice.save()
+
+        serializer = self.get_serializer(splice)
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+    @action(detail=False, methods=["post"], url_path="clear-port")
+    def clear_port(self, request):
+        """
+        Clear a fiber from a specific side of a port.
+        If both sides become empty AND not in any merge group, delete the splice record.
+
+        If the port is merged on this side, clears the SHARED fiber for all ports
+        in the merge group, but keeps the merge group structure intact.
+        """
+        node_structure_uuid = request.data.get("node_structure")
+        port_number = request.data.get("port_number")
+        side = request.data.get("side")  # 'a' or 'b'
+
+        if not all([node_structure_uuid, port_number, side]):
+            return Response(
+                {"error": "node_structure, port_number, and side are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if side not in ("a", "b"):
+            return Response(
+                {"error": "side must be 'a' or 'b'"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            node_structure = NodeStructure.objects.get(uuid=node_structure_uuid)
+        except NodeStructure.DoesNotExist:
+            return Response(
+                {"error": "Node structure not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        try:
+            splice = FiberSplice.objects.get(
+                node_structure=node_structure, port_number=port_number
+            )
+        except FiberSplice.DoesNotExist:
+            return Response({"deleted": False, "message": "No splice found"})
+
+        # Check if this port is merged on this side (using side-specific merge group)
+        merge_group_field = f"merge_group_{side}"
+        merge_group_value = getattr(splice, merge_group_field)
+        is_merged_on_this_side = merge_group_value is not None
+
+        if is_merged_on_this_side:
+            # Clear SHARED fiber for ALL ports in the merge group
+            # Keep the merge group structure intact
+            FiberSplice.objects.filter(**{merge_group_field: merge_group_value}).update(
+                **{
+                    f"shared_fiber_{side}": None,
+                    f"shared_cable_{side}": None,
+                }
+            )
+            return Response(
+                {
+                    "deleted": True,
+                    "message": f"Shared fiber cleared from merge group on side {side}",
+                    "merge_group_preserved": True,
+                }
+            )
+        else:
+            # Clear individual fiber on this side
+            if side == "a":
+                splice.fiber_a = None
+                splice.cable_a = None
+            else:
+                splice.fiber_b = None
+                splice.cable_b = None
+
+            # Check if we should delete the record
+            # Only delete if: both sides empty, no shared fibers, and not in any merge group
+            both_sides_empty = splice.fiber_a is None and splice.fiber_b is None
+            no_shared_fibers = (
+                splice.shared_fiber_a is None and splice.shared_fiber_b is None
+            )
+            not_in_any_merge = (
+                splice.merge_group_a is None and splice.merge_group_b is None
+            )
+
+            if both_sides_empty and no_shared_fibers and not_in_any_merge:
+                splice.delete()
+                return Response({"deleted": True, "message": "Splice record deleted"})
+
+            splice.save()
+            return Response(
+                {"deleted": True, "message": f"Fiber cleared from side {side}"}
+            )
+
+    @action(detail=False, methods=["post"], url_path="merge-ports")
+    def merge_ports(self, request):
+        """
+        Merge multiple ports into a group for a specific side (A or B).
+        Creates a new merge_group UUID and assigns it to the side-specific field.
+
+        Each side has its own independent merge group, allowing ports to be
+        merged on both sides simultaneously (e.g., splitter with merged input AND output).
+
+        If any port has an existing fiber on the merged side, it becomes the
+        SHARED fiber for all ports in the group. Individual fibers on the
+        merged side are cleared.
+        """
+        from .serializers import PortMergeSerializer
+
+        serializer = PortMergeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        node_structure_uuid = serializer.validated_data["node_structure"]
+        port_numbers = serializer.validated_data["port_numbers"]
+        side = serializer.validated_data["side"]
+
+        try:
+            node_structure = NodeStructure.objects.get(uuid=node_structure_uuid)
+        except NodeStructure.DoesNotExist:
+            return Response(
+                {"error": "Node structure not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Generate new merge group UUID for this side
+        merge_group_id = uuid.uuid4()
+        merge_group_field = f"merge_group_{side}"
+
+        # Get or create splice records for each port
+        splices = []
+        existing_fiber = None
+        existing_cable = None
+
+        for port_num in port_numbers:
+            splice, created = FiberSplice.objects.get_or_create(
+                node_structure=node_structure,
+                port_number=port_num,
+            )
+            # Check if this port has an existing fiber on the merge side
+            # Use the first one we find as the shared fiber
+            if existing_fiber is None:
+                if side == "a" and splice.fiber_a:
+                    existing_fiber = splice.fiber_a
+                    existing_cable = splice.cable_a
+                elif side == "b" and splice.fiber_b:
+                    existing_fiber = splice.fiber_b
+                    existing_cable = splice.cable_b
+
+            # Set the side-specific merge group (preserves the other side's merge group)
+            setattr(splice, merge_group_field, merge_group_id)
+            splices.append(splice)
+
+        # If we found an existing fiber, make it the shared fiber for all ports
+        # Also clear individual fibers on the merged side
+        for splice in splices:
+            if existing_fiber:
+                if side == "a":
+                    splice.shared_fiber_a = existing_fiber
+                    splice.shared_cable_a = existing_cable
+                    splice.fiber_a = None
+                    splice.cable_a = None
+                else:
+                    splice.shared_fiber_b = existing_fiber
+                    splice.shared_cable_b = existing_cable
+                    splice.fiber_b = None
+                    splice.cable_b = None
+            else:
+                # No existing fiber, just clear individual fibers on merged side
+                if side == "a":
+                    splice.fiber_a = None
+                    splice.cable_a = None
+                else:
+                    splice.fiber_b = None
+                    splice.cable_b = None
+            splice.save()
+
+        return Response(
+            {
+                "merge_group": str(merge_group_id),
+                "side": side,
+                "port_numbers": port_numbers,
+                "splices": FiberSpliceSerializer(splices, many=True).data,
+            }
+        )
+
+    @action(detail=False, methods=["post"], url_path="unmerge-ports")
+    def unmerge_ports(self, request):
+        """
+        Remove specific ports from a merge group on a specific side.
+        Sets merge_group_a or merge_group_b to NULL for specified ports.
+        If only one port remains in group, unmerges that one too.
+
+        When unmerging, converts the shared fiber back to an individual fiber
+        on the first unmerged port, then clears shared fibers for that side only.
+        """
+        from .serializers import PortUnmergeSerializer
+
+        serializer = PortUnmergeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        merge_group = serializer.validated_data["merge_group"]
+        port_numbers = serializer.validated_data["port_numbers"]
+
+        # Try to find the merge group on side A first, then side B
+        group_splices_a = FiberSplice.objects.filter(merge_group_a=merge_group)
+        group_splices_b = FiberSplice.objects.filter(merge_group_b=merge_group)
+
+        if group_splices_a.exists():
+            group_splices = group_splices_a
+            side = "a"
+            merge_group_field = "merge_group_a"
+        elif group_splices_b.exists():
+            group_splices = group_splices_b
+            side = "b"
+            merge_group_field = "merge_group_b"
+        else:
+            return Response(
+                {"error": "Merge group not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Get the first splice to determine the shared fiber
+        first_splice = group_splices.first()
+
+        # Get the shared fiber (if any) to convert back to individual
+        shared_fiber = None
+        shared_cable = None
+        if side == "a":
+            shared_fiber = first_splice.shared_fiber_a
+            shared_cable = first_splice.shared_cable_a
+        else:
+            shared_fiber = first_splice.shared_fiber_b
+            shared_cable = first_splice.shared_cable_b
+
+        # Unmerge specified ports
+        unmerged_splices = list(group_splices.filter(port_number__in=port_numbers))
+
+        # Convert shared fiber to individual fiber on the first unmerged port
+        if shared_fiber and unmerged_splices:
+            first_unmerged = unmerged_splices[0]
+            if side == "a":
+                first_unmerged.fiber_a = shared_fiber
+                first_unmerged.cable_a = shared_cable
+            else:
+                first_unmerged.fiber_b = shared_fiber
+                first_unmerged.cable_b = shared_cable
+
+        # Clear merge info and shared fibers for THIS SIDE ONLY on unmerged ports
+        for splice in unmerged_splices:
+            setattr(splice, merge_group_field, None)
+            if side == "a":
+                splice.shared_fiber_a = None
+                splice.shared_cable_a = None
+            else:
+                splice.shared_fiber_b = None
+                splice.shared_cable_b = None
+            splice.save()
+
+        # Check remaining ports in group
+        remaining = group_splices.exclude(port_number__in=port_numbers)
+        remaining_count = remaining.count()
+
+        if remaining_count == 1:
+            # Only one port left, unmerge it too (can't have a group of 1)
+            remaining_splice = remaining.first()
+
+            # Convert shared fiber to individual for the last remaining port
+            if side == "a" and remaining_splice.shared_fiber_a:
+                remaining_splice.fiber_a = remaining_splice.shared_fiber_a
+                remaining_splice.cable_a = remaining_splice.shared_cable_a
+            elif side == "b" and remaining_splice.shared_fiber_b:
+                remaining_splice.fiber_b = remaining_splice.shared_fiber_b
+                remaining_splice.cable_b = remaining_splice.shared_cable_b
+
+            setattr(remaining_splice, merge_group_field, None)
+            if side == "a":
+                remaining_splice.shared_fiber_a = None
+                remaining_splice.shared_cable_a = None
+            else:
+                remaining_splice.shared_fiber_b = None
+                remaining_splice.shared_cable_b = None
+            remaining_splice.save()
+            remaining_count = 0
+
+        return Response(
+            {
+                "unmerged_ports": port_numbers,
+                "remaining_in_group": remaining_count,
+                "side": side,
+            }
+        )
+
+    @action(detail=False, methods=["post"], url_path="upsert-merged")
+    def upsert_merged(self, request):
+        """
+        Upsert fibers to a merge group on a specific side.
+
+        Behavior depends on whether the merge group is on this side:
+        - If dropping on the MERGED side (this side has the merge group):
+        Use the FIRST fiber as the shared fiber for all ports in the group
+        - If dropping on the OTHER side (not merged on this side):
+        Fill individual fibers sequentially across ports
+        """
+        merge_group = request.data.get("merge_group")
+        side = request.data.get("side")  # 'a' or 'b'
+        fibers = request.data.get("fibers")  # List of {uuid, cable_uuid}
+
+        if not all([merge_group, side, fibers]):
+            return Response(
+                {"error": "merge_group, side, and fibers are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if side not in ("a", "b"):
+            return Response(
+                {"error": "side must be 'a' or 'b'"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        splices_a = list(
+            FiberSplice.objects.filter(merge_group_a=merge_group).order_by(
+                "port_number"
+            )
+        )
+        splices_b = list(
+            FiberSplice.objects.filter(merge_group_b=merge_group).order_by(
+                "port_number"
+            )
+        )
+
+        if splices_a:
+            splices = splices_a
+            merge_group_side = "a"
+        elif splices_b:
+            splices = splices_b
+            merge_group_side = "b"
+        else:
+            return Response(
+                {"error": "Merge group not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Determine if we're dropping on the same side as the merge group
+        is_merged_side = merge_group_side == side
+
+        if is_merged_side:
+            # Dropping on MERGED side: Use FIRST fiber as shared fiber for ALL ports
+            first_fiber = fibers[0]
+            for splice in splices:
+                if side == "a":
+                    splice.shared_fiber_a_id = first_fiber["uuid"]
+                    splice.shared_cable_a_id = first_fiber["cable_uuid"]
+                else:
+                    splice.shared_fiber_b_id = first_fiber["uuid"]
+                    splice.shared_cable_b_id = first_fiber["cable_uuid"]
+                splice.save()
+
+            return Response(
+                {
+                    "updated_count": len(splices),
+                    "mode": "shared_fiber",
+                    "splices": FiberSpliceSerializer(splices, many=True).data,
+                }
+            )
+        else:
+            # Dropping on NON-MERGED side: Fill individual fibers sequentially
+            updated_splices = []
+            for i, splice in enumerate(splices):
+                if i < len(fibers):
+                    fiber_data = fibers[i]
+                    if side == "a":
+                        splice.fiber_a_id = fiber_data["uuid"]
+                        splice.cable_a_id = fiber_data["cable_uuid"]
+                    else:
+                        splice.fiber_b_id = fiber_data["uuid"]
+                        splice.cable_b_id = fiber_data["cable_uuid"]
+                    splice.save()
+                    updated_splices.append(splice)
+
+            return Response(
+                {
+                    "updated_count": len(updated_splices),
+                    "mode": "individual_fibers",
+                    "splices": FiberSpliceSerializer(updated_splices, many=True).data,
+                }
+            )
+
+
+class ContainerTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only ViewSet for ContainerType model.
+    Only returns active container types.
+    Admin management is done via Django Admin.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = ContainerType.objects.filter(is_active=True).order_by(
+        "display_order", "name"
+    )
+    serializer_class = ContainerTypeSerializer
+
+
+class ContainerViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for Container instances.
+    Supports CRUD operations and hierarchy manipulation.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = Container.objects.all().select_related(
+        "container_type", "parent_container", "uuid_node"
+    )
+    serializer_class = ContainerSerializer
+    lookup_field = "uuid"
+
+    def get_queryset(self):
+        """Filter containers by node if specified."""
+        queryset = super().get_queryset()
+        node_uuid = self.request.query_params.get("node")
+        if node_uuid:
+            queryset = queryset.filter(uuid_node__uuid=node_uuid)
+        return queryset.order_by("sort_order")
+
+    @action(detail=False, methods=["get"], url_path="by-node/(?P<node_uuid>[^/.]+)")
+    def by_node(self, request, node_uuid=None):
+        """Get all containers for a specific node as a flat list."""
+        containers = (
+            Container.objects.filter(uuid_node__uuid=node_uuid)
+            .select_related("container_type", "parent_container")
+            .order_by("sort_order")
+        )
+        serializer = self.get_serializer(containers, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="tree/(?P<node_uuid>[^/.]+)")
+    def tree(self, request, node_uuid=None):
+        """
+        Get the complete container hierarchy for a node.
+        Returns a tree structure with nested containers and slot configurations.
+        """
+        try:
+            node = Node.objects.get(uuid=node_uuid)
+        except Node.DoesNotExist:
+            return Response(
+                {"error": "Node not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Get root-level containers (no parent)
+        root_containers = (
+            Container.objects.filter(uuid_node=node, parent_container__isnull=True)
+            .select_related("container_type")
+            .prefetch_related("children", "slot_configurations")
+            .order_by("sort_order")
+        )
+
+        # Get root-level slot configurations (not in any container)
+        root_configs = NodeSlotConfiguration.objects.filter(
+            uuid_node=node, container__isnull=True
+        ).order_by("sort_order", "side")
+
+        return Response(
+            {
+                "containers": ContainerTreeSerializer(root_containers, many=True).data,
+                "root_slot_configurations": NodeSlotConfigurationListSerializer(
+                    root_configs, many=True
+                ).data,
+            }
+        )
+
+    @action(detail=True, methods=["post"], url_path="move")
+    def move(self, request, uuid=None):
+        """
+        Move a container to a new parent or reorder within siblings.
+
+        Request body:
+        {
+            "parent_container_id": "uuid" | null,  # New parent (null for root)
+            "sort_order": 0  # New position among siblings
+        }
+        """
+        container = self.get_object()
+        parent_id = request.data.get("parent_container_id")
+        sort_order = request.data.get("sort_order", 0)
+
+        # Validate: cannot move container into itself or its descendants
+        if parent_id:
+            try:
+                new_parent = Container.objects.get(uuid=parent_id)
+                # Check for circular reference
+                ancestor = new_parent
+                while ancestor:
+                    if ancestor.uuid == container.uuid:
+                        return Response(
+                            {
+                                "error": "Cannot move container into itself or its descendants"
+                            },
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                    ancestor = ancestor.parent_container
+                container.parent_container = new_parent
+            except Container.DoesNotExist:
+                return Response(
+                    {"error": "Parent container not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+        else:
+            container.parent_container = None
+
+        container.sort_order = sort_order
+        container.save()
+
+        return Response(ContainerSerializer(container).data)
