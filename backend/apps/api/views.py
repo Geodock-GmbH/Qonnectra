@@ -3701,14 +3701,20 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
     lookup_field = "uuid"
 
     def get_queryset(self):
-        """Filter splices by node_structure, cable_a, or cable_b if specified."""
+        """Filter splices by node_structure, node_structure__uuid_node, cable_a, or cable_b if specified."""
         queryset = super().get_queryset()
         node_structure = self.request.query_params.get("node_structure")
+        node_structure_uuid_node = self.request.query_params.get(
+            "node_structure__uuid_node"
+        )
         cable_a = self.request.query_params.get("cable_a")
         cable_b = self.request.query_params.get("cable_b")
 
         if node_structure:
             queryset = queryset.filter(node_structure=node_structure)
+
+        if node_structure_uuid_node:
+            queryset = queryset.filter(node_structure__uuid_node=node_structure_uuid_node)
 
         if cable_a:
             queryset = queryset.filter(cable_a=cable_a)

@@ -16,10 +16,36 @@ export class NetworkSchemaState {
 	userCableName = $state('');
 	selectedCableType = $state([]);
 
-	constructor(initialData) {
-		this.nodes = this.transformNodesToSvelteFlow(initialData.nodes);
-		this.edges = this.transformCablesToSvelteFlowEdges(initialData.cables);
-		this.cableTypes = initialData.cableTypes;
+	/** @type {boolean} - Track if already initialized to prevent duplicate initialization */
+	#initialized = $state(false);
+
+	/**
+	 * @param {Object} [initialData] - Optional initial data (can be initialized later via initialize())
+	 */
+	constructor(initialData = null) {
+		if (initialData) {
+			this.initialize(initialData);
+		}
+	}
+
+	/**
+	 * Check if the state has been initialized
+	 * @returns {boolean}
+	 */
+	get initialized() {
+		return this.#initialized;
+	}
+
+	/**
+	 * Initialize or re-initialize the state with data
+	 * @param {Object} data - The page data containing nodes, cables, and cableTypes
+	 */
+	initialize(data) {
+		if (!data || this.#initialized) return;
+		this.nodes = this.transformNodesToSvelteFlow(data.nodes);
+		this.edges = this.transformCablesToSvelteFlowEdges(data.cables);
+		this.cableTypes = data.cableTypes;
+		this.#initialized = true;
 	}
 
 	/**

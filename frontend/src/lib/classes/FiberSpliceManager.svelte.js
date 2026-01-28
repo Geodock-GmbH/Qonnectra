@@ -473,6 +473,9 @@ export class FiberSpliceManager {
 					: m.message_fiber_connected?.() || 'Fiber connected successfully'
 			});
 
+			// Dispatch event for fiber usage tracking
+			this.#dispatchFiberSpliceChanged();
+
 			return true;
 		} catch (err) {
 			console.error('Error saving fiber splice:', err);
@@ -625,6 +628,11 @@ export class FiberSpliceManager {
 					total: totalFibers
 				})
 			});
+		}
+
+		// Dispatch event for fiber usage tracking
+		if (successCount > 0) {
+			this.#dispatchFiberSpliceChanged();
 		}
 
 		return successCount > 0;
@@ -863,6 +871,11 @@ export class FiberSpliceManager {
 			});
 		}
 
+		// Dispatch event for fiber usage tracking
+		if (totalSuccessCount > 0) {
+			this.#dispatchFiberSpliceChanged();
+		}
+
 		this.bulkOperationInProgress = false;
 		return totalSuccessCount > 0;
 	}
@@ -1016,6 +1029,9 @@ export class FiberSpliceManager {
 			if (isMergedOnThisSide) {
 				await this.fetchFiberSplices(this.selectedStructure.uuid);
 			}
+
+			// Dispatch event for fiber usage tracking
+			this.#dispatchFiberSpliceChanged();
 		} catch (err) {
 			console.error('Error clearing fiber splice:', err);
 			this.fiberSplices = previousSplices;
@@ -1311,6 +1327,9 @@ export class FiberSpliceManager {
 				description: m.message_fibers_connected_to_merged({ count: fiberData.length })
 			});
 
+			// Dispatch event for fiber usage tracking
+			this.#dispatchFiberSpliceChanged();
+
 			return true;
 		} catch (err) {
 			console.error('Error dropping on merged ports:', err);
@@ -1333,5 +1352,15 @@ export class FiberSpliceManager {
 		this.loadingPorts = false;
 		this.selectedForMerge = new Set();
 		this.mergeSelectionMode = false;
+	}
+
+	/**
+	 * Dispatch a custom event when fiber splices change
+	 * Used to notify other components (like CableFiberSidebar) to refresh fiber usage
+	 */
+	#dispatchFiberSpliceChanged() {
+		if (typeof window !== 'undefined') {
+			window.dispatchEvent(new CustomEvent('fiberSpliceChanged'));
+		}
 	}
 }

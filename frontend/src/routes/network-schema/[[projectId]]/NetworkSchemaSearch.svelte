@@ -211,12 +211,12 @@
 					onmouseenter={() => (selectedIndex = index)}
 				>
 					{#if result.type === 'node'}
-						<IconPoint size={16} class="text-primary-500 flex-shrink-0" />
+						<IconPoint size={16} class="text-primary-500 shrink-0" />
 					{:else}
-						<IconLine size={16} class="text-secondary-500 flex-shrink-0" />
+						<IconLine size={16} class="text-secondary-500 shrink-0" />
 					{/if}
 					<span class="truncate flex-1">{result.name}</span>
-					<span class="text-xs text-surface-400 flex-shrink-0">
+					<span class="text-xs text-surface-400 shrink-0">
 						{result.type === 'node' ? m.form_node() : m.form_cables()}
 					</span>
 				</button>

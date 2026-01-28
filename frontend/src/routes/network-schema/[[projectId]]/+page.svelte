@@ -29,13 +29,20 @@
 	const nodeTypes = { cableDiagramNode: CableDiagramNode };
 	const edgeTypes = { cableDiagramEdge: CableDiagramEdge };
 
-	const schemaState = new NetworkSchemaState(data);
+	// Create managers - schemaState initialized reactively via $effect
+	const schemaState = new NetworkSchemaState();
 	const cablePathManager = new CablePathManager();
 	const searchManager = new NetworkSchemaSearchManager(schemaState);
 
 	let prevUrl = $state($page.url.href);
 
-	setContext('attributeOptions', {
+	// Initialize schema state when data is available
+	$effect(() => {
+		schemaState.initialize(data);
+	});
+
+	// Context with derived attribute options - stays reactive to data changes
+	const attributeOptions = $derived({
 		nodeTypes: data.nodeTypes,
 		cableTypes: data.cableTypes,
 		statuses: data.statuses,
@@ -43,6 +50,30 @@
 		companies: data.companies,
 		flags: data.flags,
 		excludedNodeTypeIds: data.excludedNodeTypeIds
+	});
+
+	setContext('attributeOptions', {
+		get nodeTypes() {
+			return attributeOptions.nodeTypes;
+		},
+		get cableTypes() {
+			return attributeOptions.cableTypes;
+		},
+		get statuses() {
+			return attributeOptions.statuses;
+		},
+		get networkLevels() {
+			return attributeOptions.networkLevels;
+		},
+		get companies() {
+			return attributeOptions.companies;
+		},
+		get flags() {
+			return attributeOptions.flags;
+		},
+		get excludedNodeTypeIds() {
+			return attributeOptions.excludedNodeTypeIds;
+		}
 	});
 
 	/**
@@ -185,7 +216,7 @@
 		<SvelteFlow
 			bind:nodes={schemaState.nodes}
 			bind:edges={schemaState.edges}
-			fitView={schemaState.nodes.length === 0}
+			fitView={schemaState.initialized && schemaState.nodes.length === 0}
 			{nodeTypes}
 			{edgeTypes}
 			connectionMode="loose"

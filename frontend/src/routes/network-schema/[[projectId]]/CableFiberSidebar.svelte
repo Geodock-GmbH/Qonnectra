@@ -18,7 +18,8 @@
 
 	const dragDropManager = getContext(DRAG_DROP_CONTEXT_KEY);
 
-	const dataManager = new CableFiberDataManager(nodeUuid);
+	// Create manager without initial nodeUuid - will be set reactively via $effect
+	const dataManager = new CableFiberDataManager();
 
 	let collapsed = $state(false);
 	let lastRefreshTrigger = $state(0);
@@ -91,6 +92,7 @@
 			expandedCables = new Set();
 			expandedBundles = new Map();
 			dataManager.fetchCables();
+			dataManager.fetchFiberUsage();
 		}
 	});
 
@@ -99,6 +101,7 @@
 			lastRefreshTrigger = refreshTrigger;
 			dataManager.clearFibersCache();
 			dataManager.fetchCables();
+			dataManager.fetchFiberUsage();
 		}
 	});
 
@@ -109,6 +112,7 @@
 			if (nodeIds && nodeIds.includes(nodeUuid)) {
 				dataManager.clearFibersCache();
 				dataManager.fetchCables();
+				dataManager.fetchFiberUsage();
 			}
 		}
 
@@ -118,10 +122,25 @@
 		};
 	});
 
+	// Listen for fiber splice changes to refresh usage indicators
+	$effect(() => {
+		function handleFiberSpliceChanged() {
+			if (nodeUuid) {
+				dataManager.fetchFiberUsage();
+			}
+		}
+
+		window.addEventListener('fiberSpliceChanged', handleFiberSpliceChanged);
+		return () => {
+			window.removeEventListener('fiberSpliceChanged', handleFiberSpliceChanged);
+		};
+	});
+
 	onMount(() => {
 		dataManager.fetchFiberColors();
 		if (nodeUuid) {
 			dataManager.fetchCables();
+			dataManager.fetchFiberUsage();
 		}
 	});
 </script>
@@ -149,7 +168,7 @@
 					>
 						<IconChevronDown
 							size={18}
-							class="transition-transform flex-shrink-0 {isExpanded ? 'rotate-0' : '-rotate-90'}"
+							class="transition-transform shrink-0 {isExpanded ? 'rotate-0' : '-rotate-90'}"
 						/>
 						<div class="flex-1 min-w-0">
 							<div class="font-medium flex items-center gap-2">
@@ -173,22 +192,25 @@
 							{:else}
 								{#each bundles as bundle (bundle.bundleNumber)}
 									{@const isBundleOpen = isBundleExpanded(cable.uuid, bundle.bundleNumber)}
+									{@const bundleFullyUsed = dataManager.isBundleFullyUsed(bundle.fibers)}
 
 									<div class="border-b border-surface-200-800 last:border-b-0">
 										<!-- Bundle Header -->
 										<button
 											type="button"
-											class="w-full flex items-center gap-2 px-4 py-2 text-left hover:bg-surface-200-800 transition-colors"
+											class="w-full flex items-center gap-2 px-4 py-2 text-left transition-colors {bundleFullyUsed
+												? 'bg-success-100 dark:bg-success-900/30 hover:bg-success-200 dark:hover:bg-success-900/50'
+												: 'hover:bg-surface-200-800'}"
 											onclick={() => toggleBundle(cable.uuid, bundle.bundleNumber)}
 										>
 											<IconChevronDown
 												size={14}
-												class="transition-transform flex-shrink-0 {isBundleOpen
+												class="transition-transform shrink-0 {isBundleOpen
 													? 'rotate-0'
 													: '-rotate-90'}"
 											/>
 											<span
-												class="w-4 h-4 rounded-full flex-shrink-0 border border-white/20"
+												class="w-4 h-4 rounded-full shrink-0 border border-white/20"
 												style:background-color={dataManager.getColorHex(bundle.bundleColor)}
 											></span>
 											<span class="text-sm font-medium">
@@ -201,13 +223,16 @@
 										{#if isBundleOpen}
 											<div class="pl-8 pb-2">
 												{#each bundle.fibers as fiber (fiber.uuid)}
+													{@const fiberUsed = dataManager.isFiberUsed(fiber.uuid)}
 													<button
 														type="button"
-														class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-primary-100 dark:hover:bg-primary-900/30 rounded-md transition-colors"
+														class="w-full flex items-center gap-2 px-3 py-2 text-left rounded-md transition-colors {fiberUsed
+															? 'bg-success-100 dark:bg-success-900/30 hover:bg-success-200 dark:hover:bg-success-900/50'
+															: 'hover:bg-primary-100 dark:hover:bg-primary-900/30'}"
 														onclick={() => handleMobileFiberClick(cable, bundle, fiber)}
 													>
 														<span
-															class="w-3 h-3 rounded-full flex-shrink-0 border border-white/20"
+															class="w-3 h-3 rounded-full shrink-0 border border-white/20"
 															style:background-color={dataManager.getColorHex(fiber.fiber_color)}
 														></span>
 														<span class="text-sm font-mono">{fiber.fiber_number_absolute}</span>
@@ -227,13 +252,13 @@
 {:else}
 	<!-- Desktop: Original sidebar -->
 	<div
-		class="relative border-l border-[var(--color-surface-200-800)] bg-[var(--color-surface-100-900)] transition-all duration-200 ease-in-out flex flex-col"
+		class="relative border-l border-(--color-surface-200-800) bg-(--color-surface-100-900) transition-all duration-200 ease-in-out flex flex-col"
 		style:width={collapsed ? '40px' : '240px'}
 		style:min-width={collapsed ? '40px' : '240px'}
 	>
 		<button
 			type="button"
-			class="absolute top-2 -left-3 z-10 w-6 h-6 rounded-full bg-[var(--color-surface-100-900)] border border-[var(--color-surface-300-700)] flex items-center justify-center cursor-pointer transition-colors duration-150 hover:bg-[var(--color-surface-200-800)]"
+			class="absolute top-2 -left-3 z-10 w-6 h-6 rounded-full bg-(--color-surface-100-900) border border-(--color-surface-300-700) flex items-center justify-center cursor-pointer transition-colors duration-150 hover:bg-(--color-surface-200-800)"
 			onclick={() => (collapsed = !collapsed)}
 			title={collapsed ? m.action_expand() : m.action_collapse()}
 		>
@@ -261,17 +286,17 @@
 							{@const isLoadingFibers = dataManager.isLoadingFibers(cable.uuid)}
 
 							<div
-								class="bg-[var(--color-surface-100-900)] border border-[var(--color-surface-200-800)] rounded overflow-hidden"
+								class="bg-(--color-surface-100-900) border border-(--color-surface-200-800) rounded overflow-hidden"
 							>
 								<div
-									class="flex items-center gap-1.5 px-2.5 py-2 cursor-grab transition-colors duration-150 hover:bg-[var(--color-surface-200-800)] active:cursor-grabbing"
+									class="flex items-center gap-1.5 px-2.5 py-2 cursor-grab transition-colors duration-150 hover:bg-(--color-surface-200-800) active:cursor-grabbing"
 									draggable="true"
 									ondragstart={(e) => handleCableDragStart(e, cable)}
 									ondragend={handleDragEnd}
 									role="button"
 									tabindex="0"
 								>
-									<IconGripVertical size={14} class="text-surface-400 flex-shrink-0 cursor-grab" />
+									<IconGripVertical size={14} class="text-surface-400 shrink-0 cursor-grab" />
 									<button
 										type="button"
 										class="p-0.5 bg-transparent border-none cursor-pointer flex items-center justify-center"
@@ -293,7 +318,7 @@
 												<IconArrowLeft size={12} />
 											{/if}
 										</div>
-										<div class="text-xs text-[var(--color-surface-950-50)]">
+										<div class="text-xs text-(--color-surface-950-50)">
 											{cable.fiber_count}
 											{m.form_fibers()}
 										</div>
@@ -302,7 +327,7 @@
 
 								{#if isExpanded}
 									<div
-										class="border-t border-[var(--color-surface-200-800)] p-1 bg-[var(--color-surface-100-900)]"
+										class="border-t border-(--color-surface-200-800) p-1 bg-(--color-surface-100-900)"
 									>
 										{#if isLoadingFibers}
 											<div class="text-center py-2 text-surface-500 text-xs">
@@ -315,11 +340,14 @@
 										{:else}
 											{#each bundles as bundle (bundle.bundleNumber)}
 												{@const isBundleOpen = isBundleExpanded(cable.uuid, bundle.bundleNumber)}
+												{@const bundleFullyUsed = dataManager.isBundleFullyUsed(bundle.fibers)}
 
 												<!-- Bundle accordion -->
 												<div class="mb-0.5">
 													<div
-														class="flex items-center gap-1.5 px-2 py-1.5 cursor-grab rounded transition-colors duration-150 hover:bg-[var(--color-surface-200-800)] active:cursor-grabbing"
+														class="flex items-center gap-1.5 px-2 py-1.5 cursor-grab rounded transition-colors duration-150 active:cursor-grabbing {bundleFullyUsed
+															? 'bg-success-100 dark:bg-success-900/30 hover:bg-success-200 dark:hover:bg-success-900/50'
+															: 'hover:bg-(--color-surface-200-800)'}"
 														draggable="true"
 														ondragstart={(e) => handleBundleDragStart(e, cable, bundle)}
 														ondragend={handleDragEnd}
@@ -328,7 +356,7 @@
 													>
 														<IconGripVertical
 															size={12}
-															class="text-surface-400 flex-shrink-0 cursor-grab"
+															class="text-surface-400 shrink-0 cursor-grab"
 														/>
 														<button
 															type="button"
@@ -343,7 +371,7 @@
 															/>
 														</button>
 														<span
-															class="w-3 h-3 rounded-full flex-shrink-0 border border-black/10"
+															class="w-3 h-3 rounded-full shrink-0 border border-black/10"
 															style:background-color={dataManager.getColorHex(bundle.bundleColor)}
 														></span>
 														<div class="flex-1 min-w-0">
@@ -351,7 +379,7 @@
 																{m.form_bundle()}
 																{bundle.bundleNumber}
 															</span>
-															<span class="text-xs text-[var(--color-surface-500)] ml-1"
+															<span class="text-xs text-(--color-surface-500) ml-1"
 																>({bundle.fibers.length})</span
 															>
 														</div>
@@ -360,9 +388,12 @@
 													{#if isBundleOpen}
 														<div class="pl-5 pt-1">
 															{#each bundle.fibers as fiber (fiber.uuid)}
+																{@const fiberUsed = dataManager.isFiberUsed(fiber.uuid)}
 																<!-- Fiber item -->
 																<div
-																	class="flex items-center gap-1.5 px-2 py-1.5 cursor-grab rounded-sm transition-colors duration-150 hover:bg-[var(--color-surface-200-800)] active:cursor-grabbing"
+																	class="flex items-center gap-1.5 px-2 py-1.5 cursor-grab rounded-sm transition-colors duration-150 active:cursor-grabbing {fiberUsed
+																		? 'bg-success-100 dark:bg-success-900/30 hover:bg-success-200 dark:hover:bg-success-900/50'
+																		: 'hover:bg-(--color-surface-200-800)'}"
 																	draggable="true"
 																	ondragstart={(e) => handleFiberDragStart(e, cable, bundle, fiber)}
 																	ondragend={handleDragEnd}
@@ -370,10 +401,10 @@
 																>
 																	<IconGripVertical
 																		size={12}
-																		class="text-surface-400 flex-shrink-0 cursor-grab"
+																		class="text-surface-400 shrink-0 cursor-grab"
 																	/>
 																	<span
-																		class="w-2.5 h-2.5 rounded-full flex-shrink-0 border border-black/10"
+																		class="w-2.5 h-2.5 rounded-full shrink-0 border border-black/10"
 																		style:background-color={dataManager.getColorHex(
 																			fiber.fiber_color
 																		)}

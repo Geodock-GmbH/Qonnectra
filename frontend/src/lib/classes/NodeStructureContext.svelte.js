@@ -48,12 +48,12 @@ export class NodeStructureContext {
 	// ========== Constructor ==========
 
 	/**
-	 * @param {string|null} nodeUuid - Node UUID
-	 * @param {Object} options - Configuration options
-	 * @param {string|null} options.initialSlotConfigUuid - Initial slot config selection
-	 * @param {Object|null} options.sharedSlotState - Shared state from parent
+	 * @param {string|null} [nodeUuid] - Node UUID (optional, can be set later via setNodeUuid)
+	 * @param {Object} [options] - Configuration options
+	 * @param {string|null} [options.initialSlotConfigUuid] - Initial slot config selection
+	 * @param {Object|null} [options.sharedSlotState] - Shared state from parent
 	 */
-	constructor(nodeUuid, options = {}) {
+	constructor(nodeUuid = null, options = {}) {
 		this.#structureManager = new NodeStructureManager(
 			nodeUuid,
 			options.initialSlotConfigUuid,
@@ -61,6 +61,14 @@ export class NodeStructureContext {
 		);
 		this.#spliceManager = new FiberSpliceManager();
 		this.#dragDropManager = new DragDropManager();
+	}
+
+	/**
+	 * Set the initial slot configuration UUID
+	 * @param {string} uuid - Slot configuration UUID to select
+	 */
+	setInitialSlotConfigUuid(uuid) {
+		this.#structureManager.selectSlotConfig(uuid);
 	}
 
 	// ========== Exposed State (Read-Only via Getters) ==========

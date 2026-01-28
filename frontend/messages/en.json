@@ -1,6 +1,7 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"action_add": "Add",
+	"action_back": "Back",
 	"action_add_conduit": "Add conduit",
 	"action_add_container": "Add Container",
 	"action_apply_filters": "Apply filters",

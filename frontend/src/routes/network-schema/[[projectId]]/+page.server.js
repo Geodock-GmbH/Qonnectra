@@ -2349,5 +2349,50 @@ export const actions = {
 			console.error('Error fetching all nodes:', err);
 			return fail(500, { error: 'Failed to fetch nodes' });
 		}
+	},
+	getFiberUsageInNode: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const nodeUuid = formData.get('nodeUuid');
+
+		if (!nodeUuid) {
+			return fail(400, { error: 'Node UUID is required' });
+		}
+
+		try {
+			// Fetch all fiber splices for this node (across all structures)
+			const response = await fetch(
+				`${API_URL}fiber-splice/?node_structure__uuid_node=${nodeUuid}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch fiber usage'
+				});
+			}
+
+			const splices = await response.json();
+
+			// Collect all unique fiber UUIDs that are used in this node
+			const usedFiberUuids = new Set();
+			splices.forEach((splice) => {
+				if (splice.fiber_a) usedFiberUuids.add(splice.fiber_a);
+				if (splice.fiber_b) usedFiberUuids.add(splice.fiber_b);
+				if (splice.shared_fiber_a) usedFiberUuids.add(splice.shared_fiber_a);
+				if (splice.shared_fiber_b) usedFiberUuids.add(splice.shared_fiber_b);
+			});
+
+			return {
+				usedFiberUuids: Array.from(usedFiberUuids)
+			};
+		} catch (err) {
+			console.error('Error fetching fiber usage in node:', err);
+			return fail(500, { error: 'Failed to fetch fiber usage' });
+		}
 	}
 };

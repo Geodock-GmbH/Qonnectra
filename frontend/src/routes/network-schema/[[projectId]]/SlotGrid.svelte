@@ -1,9 +1,10 @@
 <script>
-	import { IconGripVertical, IconTrash } from '@tabler/icons-svelte';
 	import { getContext } from 'svelte';
+	import { IconGripVertical, IconTrash } from '@tabler/icons-svelte';
+
+	import { m } from '$lib/paraglide/messages';
 
 	import { NODE_STRUCTURE_CONTEXT_KEY } from '$lib/classes/NodeStructureContext.svelte.js';
-	import { m } from '$lib/paraglide/messages';
 	import { tooltip } from '$lib/utils/tooltip.js';
 
 	// Get context - most state comes from here
@@ -122,7 +123,7 @@
 	class="h-full flex flex-col border border-surface-200-800 rounded-xl overflow-hidden bg-surface-100-900 shadow-sm"
 >
 	<!-- Header row (outside scrollable area) -->
-	<div class="slot-grid-header grid grid-cols-[60px_1fr_80px] bg-surface-200-800 flex-shrink-0">
+	<div class="slot-grid-header grid grid-cols-[60px_1fr_80px] bg-surface-200-800 shrink-0">
 		<div class="px-3 py-2.5 text-center font-semibold text-sm">{m.form_tpu()}</div>
 		<div class="px-3 py-2.5 font-semibold text-sm">{m.form_component()}</div>
 		<div class="px-3 py-2.5 text-left font-semibold text-sm">{m.form_clip_number()}</div>
@@ -145,19 +146,19 @@
 			</div>
 		{:else}
 			<div
-				class="grid grid-cols-[60px_1fr_80px] bg-[var(--color-surface-50-950)] {isDragging
+				class="grid grid-cols-[60px_1fr_80px] bg-(--color-surface-50-950) {isDragging
 					? '[&_.slot-content:not(.drop-target)]:opacity-60'
 					: ''} {mobileSelectedItem ? '[&_.slot-content:not(.mobile-tap-target)]:opacity-50' : ''}"
 			>
 				{#each slotRows as row (row.slotNumber)}
 					<!-- TPU number cell -->
 					<div
-						class="px-3 py-2 font-mono text-center bg-[var(--color-surface-200-800)] border-b border-[var(--color-surface-200-800)] transition-colors duration-150 h-10 flex items-center justify-center {row.isDropTarget
+						class="px-3 py-2 font-mono text-center bg-(--color-surface-200-800) border-b border-(--color-surface-200-800) transition-colors duration-150 h-10 flex items-center justify-center {row.isDropTarget
 							? 'bg-[rgba(34,197,94,0.15)]'
 							: ''} {row.isOccupied && !row.isDropTarget
-							? 'bg-[var(--color-surface-200-800)]'
+							? 'bg-(--color-surface-200-800)'
 							: ''} {row.hasDividerAfter
-							? 'border-b-2 border-[var(--color-surface-500)] relative z-10'
+							? 'border-b-2 border-(--color-surface-500) relative z-10'
 							: ''}"
 						ondblclick={() => handleToggleDivider(row.slotNumber)}
 						{@attach tooltip(m.tooltip_double_click_divider())}
@@ -169,20 +170,20 @@
 
 					<!-- Component cell -->
 					<div
-						class="slot-content px-2 py-0.5 min-h-10 bg-[var(--color-surface-50-950)] border-b border-[var(--color-surface-200-800)] flex items-center transition-[background-color,outline] duration-150 relative {row.isDropTarget &&
+						class="slot-content px-2 py-0.5 min-h-10 bg-(--color-surface-50-950) border-b border-(--color-surface-200-800) flex items-center transition-[background-color,outline] duration-150 relative {row.isDropTarget &&
 						(!row.isOccupied ||
 							(draggedItem?.type === 'existing_structure' &&
 								occupiedSlots.get(row.slotNumber) === draggedItem?.uuid))
-							? 'bg-[rgba(34,197,94,0.1)] outline-2 outline-dashed outline-green-500 outline-offset-[-2px]'
+							? 'bg-[rgba(34,197,94,0.1)] outline-2 outline-dashed outline-green-500 -outline-offset-2'
 							: ''} {row.isDropTarget &&
 						row.isOccupied &&
 						(draggedItem?.type !== 'existing_structure' ||
 							occupiedSlots.get(row.slotNumber) !== draggedItem?.uuid)
-							? 'bg-[rgba(239,68,68,0.1)] outline-2 outline-dashed outline-red-500 outline-offset-[-2px]'
+							? 'bg-[rgba(239,68,68,0.1)] outline-2 outline-dashed outline-red-500 outline-offset-2'
 							: ''} {row.hasDividerAfter
-							? 'border-b-2 border-[var(--color-surface-500)] relative z-10'
+							? 'border-b-2 border-(--color-surface-500) relative z-10'
 							: ''} {isMobile && mobileSelectedItem && !row.isOccupied
-							? 'bg-[var(--color-primary-500)]/5 cursor-pointer hover:bg-[var(--color-primary-500)]/10'
+							? 'bg-(--color-primary-500)/5 cursor-pointer hover:bg-(--color-primary-500)/10'
 							: ''} {isComponentRangeStart(row.slotNumber) && componentRanges.length > 1
 							? 'border-t-2 border-t-green-500'
 							: ''} {isComponentRangeEnd(row.slotNumber) && componentRanges.length > 1
@@ -198,9 +199,9 @@
 					>
 						{#if row.isBlockStart && row.structure}
 							<div
-								class="structure-block w-[calc(100%-4px)] h-[calc(var(--row-height,36px)-4px)] px-2.5 py-1.5 bg-[var(--color-surface-200-800)] border border-[var(--color-surface-300-700)] rounded-lg cursor-pointer flex items-center gap-2 absolute top-0.5 left-0.5 z-[1] shadow-sm transition-[background-color,transform,box-shadow] duration-150 hover:bg-[var(--color-surface-300-700)] hover:shadow-md hover:-translate-y-px active:scale-[0.98] group {selectedStructure?.uuid ===
+								class="structure-block w-[calc(100%-4px)] h-[calc(var(--row-height,36px)-4px)] px-2.5 py-1.5 bg-(--color-surface-200-800) border border-(--color-surface-300-700) rounded-lg cursor-pointer flex items-center gap-2 absolute top-0.5 left-0.5 z-1 shadow-sm transition-[background-color,transform,box-shadow] duration-150 hover:bg-(--color-surface-300-700) hover:shadow-md hover:-translate-y-px active:scale-[0.98] group {selectedStructure?.uuid ===
 								row.structure?.uuid
-									? 'bg-[var(--color-primary-500)] border-[var(--color-primary-600)] text-white shadow-[0_0_0_3px_var(--color-primary-500)/30%,0_4px_12px_rgba(0,0,0,0.15)] hover:bg-[var(--color-primary-400)] [&_.text-surface-950-50]:!text-white/80 [&_*:global(.text-surface-400)]:!text-white/70 dark:bg-[var(--color-primary-200)] dark:border-[var(--color-primary-300)] dark:hover:bg-[var(--color-primary-300)] dark:shadow-[0_0_0_3px_var(--color-primary-500)/30%,0_4px_12px_rgba(0,0,0,0.15)] dark:[&_.text-surface-950-50]:!text-surface-900 dark:[&_*:global(.text-surface-400)]:!text-surface-600'
+									? 'bg-(--color-primary-500) border-(--color-primary-600) text-white shadow-[0_0_0_3px_(--color-primary-500)/30%,0_4px_12px_rgba(0,0,0,0.15)] hover:bg-(--color-primary-400) [&_.text-surface-950-50]:text-white/80! [&_*:global(.text-surface-400)]:text-white/70! dark:bg-(--color-primary-200) dark:border-(--color-primary-300) dark:hover:bg-(--color-primary-300) dark:shadow-[0_0_0_3px_(--color-primary-500)/30%,0_4px_12px_rgba(0,0,0,0.15)] dark:[&_.text-surface-950-50]:text-surface-900! dark:[&_*:global(.text-surface-400)]:text-surface-600!'
 									: ''}"
 								style:--row-height="{row.blockSize * 40}px"
 								draggable={!isMobile}
@@ -210,10 +211,7 @@
 								tabindex="0"
 							>
 								{#if !isMobile}
-									<IconGripVertical
-										size={14}
-										class="cursor-grab text-surface-950-50 flex-shrink-0"
-									/>
+									<IconGripVertical size={14} class="cursor-grab text-surface-950-50 shrink-0" />
 								{/if}
 								<div class="flex-1 min-w-0">
 									<div class="font-medium text-sm text-surface-950-50 truncate">
@@ -227,7 +225,7 @@
 								</div>
 								<button
 									type="button"
-									class="btn-sm rounded-md opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 bg-error-500 hover:bg-error-600 text-white  transition-all flex-shrink-0"
+									class="btn-sm rounded-md opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 bg-error-500 hover:bg-error-600 text-white transition-all shrink-0"
 									onclick={(e) => {
 										e.stopPropagation();
 										row.structure && onStructureDelete(row.structure.uuid);
@@ -250,19 +248,19 @@
 
 					<!-- Clip number cell (editable) -->
 					<div
-						class="px-3 py-2 font-mono text-center bg-[var(--color-surface-200-800)] border-b border-[var(--color-surface-200-800)] transition-colors duration-150 h-10 flex items-center justify-center {row.isDropTarget
+						class="px-3 py-2 font-mono text-center bg-(--color-surface-200-800) border-b border-(--color-surface-200-800) transition-colors duration-150 h-10 flex items-center justify-center {row.isDropTarget
 							? 'bg-[rgba(34,197,94,0.15)]'
 							: ''} {row.isOccupied && !row.isDropTarget
-							? 'bg-[var(--color-surface-200-800)]'
+							? 'bg-(--color-surface-200-800)'
 							: ''} {row.hasDividerAfter
-							? 'border-b-2 border-[var(--color-surface-500)] relative z-10'
+							? 'border-b-2 border-(--color-surface-500) relative z-10'
 							: ''}"
 						role="gridcell"
 					>
 						{#if editingClipSlot === row.slotNumber}
 							<input
 								type="text"
-								class="w-full h-7 bg-[var(--color-surface-50-950)] border-2 border-[var(--color-primary-500)] rounded font-mono text-center text-sm px-1 outline-none [&:focus]:shadow-[0_0_0_2px_var(--color-primary-500)/20]"
+								class="w-full h-7 bg-(--color-surface-50-950) border-2 border-(--color-primary-500) rounded font-mono text-center text-sm px-1 outline-none focus:shadow-[0_0_0_2px_(--color-primary-500)/20]"
 								value={editingClipValue}
 								oninput={handleClipInput}
 								onblur={handleSaveClipNumber}
@@ -271,7 +269,7 @@
 						{:else}
 							<button
 								type="button"
-								class="w-full h-full bg-transparent border-none font-mono text-center cursor-pointer p-0 transition-colors duration-150 rounded hover:bg-[var(--color-surface-200-800)]"
+								class="w-full h-full bg-transparent border-none font-mono text-center cursor-pointer p-0 transition-colors duration-150 rounded hover:bg-(--color-surface-200-800)"
 								onclick={() => handleStartEditingClip(row.slotNumber, row.clipNumber)}
 								title={m.tooltip_click_to_edit()}
 							>

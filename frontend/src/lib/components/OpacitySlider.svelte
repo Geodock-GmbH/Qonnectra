@@ -1,8 +1,9 @@
 <script>
-	import { tooltip } from '$lib/utils/tooltip.js';
 	import { Slider } from '@skeletonlabs/skeleton-svelte';
 
 	import { m } from '$lib/paraglide/messages';
+
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	let {
 		minOpacity = 0,
@@ -12,7 +13,7 @@
 		onChange = () => {}
 	} = $props();
 
-	let sliderValue = $state([opacity]);
+	let sliderValue = $state(/** @type {number[]} */ ([1]));
 
 	function handleSkeletonSliderChange(detail) {
 		const newOpacityValue = detail.value[0];
@@ -20,6 +21,7 @@
 		onChange(newOpacityValue);
 	}
 
+	// Sync slider value with opacity prop changes
 	$effect(() => {
 		sliderValue = [opacity];
 	});
