@@ -748,6 +748,13 @@ class NodeSerializer(GeoFeatureModelSerializer):
         required=False,
         allow_null=True,
     )
+    parent_node_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Node.objects.all(),
+        source="parent_node",
+        required=False,
+        allow_null=True,
+    )
     status_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=AttributesStatus.objects.all(),
@@ -822,6 +829,7 @@ class NodeSerializer(GeoFeatureModelSerializer):
         fields["name"].label = _("Node Name")
         fields["node_type_id"].label = _("Node Type")
         fields["uuid_address_id"].label = _("Address")
+        fields["parent_node_id"].label = _("Parent Node")
         fields["status_id"].label = _("Status")
         fields["network_level_id"].label = _("Network Level")
         fields["owner_id"].label = _("Owner")
@@ -845,6 +853,7 @@ class OlNodeSerializer(GeoFeatureModelSerializer):
     name = serializers.CharField(read_only=True)
     node_type = AttributesNodeTypeSerializer(read_only=True)
     uuid_address = OlAddressSerializer(read_only=True)
+    parent_node = NodeSerializer(read_only=True)
     status = AttributesStatusSerializer(read_only=True)
     network_level = AttributesNetworkLevelSerializer(read_only=True)
     owner = AttributesCompanySerializer(read_only=True)
@@ -873,6 +882,7 @@ class OlNodeSerializer(GeoFeatureModelSerializer):
         fields["name"].label = _("Node Name")
         fields["node_type"].label = _("Node Type")
         fields["uuid_address"].label = _("Address")
+        fields["parent_node"].label = _("Parent Node")
         fields["status"].label = _("Status")
         fields["network_level"].label = _("Network Level")
         fields["owner"].label = _("Owner")

@@ -399,6 +399,7 @@
 	"message_trench_located_description": "Karte wurde auf die Trasse {trenchLabel} zentriert.",
 	"message_trench_not_visible_description": "Die Trasse {trenchLabel} ist nicht derzeit auf der Karte sichtbar. Versuchen Sie, herauszukommen oder das Projekt zu ändern.",
 	"message_trenches_found": "{count} Trassen in der Nähe gefunden",
+	"nav_address": "Adressen",
 	"nav_conduit_connection": "Rohrzuordnung",
 	"nav_conduit_management": "Rohrverwaltung",
 	"nav_dashboard": "Dashboard",

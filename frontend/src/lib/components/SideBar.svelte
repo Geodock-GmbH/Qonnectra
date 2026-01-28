@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 	import {
+		IconAddressBook,
 		IconAffiliate,
 		IconArrowBarToRight,
 		IconDashboard,
@@ -62,6 +63,12 @@
 			label: () => m.nav_network_schema(),
 			icon: IconTopologyRing2,
 			pathMatch: (path) => path.startsWith('/network-schema')
+		},
+		{
+			href: '/address',
+			label: () => m.nav_address(),
+			icon: IconAddressBook,
+			pathMatch: (path) => path.startsWith('/address')
 		}
 	];
 

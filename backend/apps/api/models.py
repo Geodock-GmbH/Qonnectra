@@ -1528,6 +1528,15 @@ class Node(models.Model):
         db_index=False,
         verbose_name=_("Address"),
     )
+    parent_node = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_column="parent_node",
+        db_index=False,
+        verbose_name=_("Parent Node"),
+    )
     status = models.ForeignKey(
         AttributesStatus,
         null=True,
@@ -1706,6 +1715,15 @@ class OlNode(models.Model):
         db_column="uuid_address",
         db_index=False,
         verbose_name=_("Address"),
+    )
+    parent_node = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_column="parent_node",
+        db_index=False,
+        verbose_name=_("Parent Node"),
     )
     status = models.ForeignKey(
         AttributesStatus,
@@ -3535,12 +3553,8 @@ class FiberSplice(models.Model):
             models.Index(fields=["cable_b"], name="idx_fiber_splice_cable_b"),
             models.Index(fields=["merge_group_a"], name="idx_fiber_splice_merge_grp_a"),
             models.Index(fields=["merge_group_b"], name="idx_fiber_splice_merge_grp_b"),
-            models.Index(
-                fields=["shared_fiber_a"], name="idx_fiber_splice_shrd_fib_a"
-            ),
-            models.Index(
-                fields=["shared_fiber_b"], name="idx_fiber_splice_shrd_fib_b"
-            ),
+            models.Index(fields=["shared_fiber_a"], name="idx_fiber_splice_shrd_fib_a"),
+            models.Index(fields=["shared_fiber_b"], name="idx_fiber_splice_shrd_fib_b"),
         ]
         constraints = [
             # Each port in a node structure can only have one splice record

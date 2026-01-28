@@ -398,6 +398,7 @@
 	"message_trench_located_description": "Map was centered on trench {trenchLabel}.",
 	"message_trench_not_visible_description": "The trench {trenchLabel} is not currently visible on the map. Try zooming out or changing the project.",
 	"message_trenches_found": "{count} trenches found nearby",
+	"nav_address": "Addresses",
 	"nav_conduit_connection": "Conduit Connection",
 	"nav_conduit_management": "Conduit Table",
 	"nav_dashboard": "Dashboard",

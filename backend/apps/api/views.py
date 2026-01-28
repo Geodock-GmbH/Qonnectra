@@ -1580,13 +1580,32 @@ class NodeViewSet(viewsets.ModelViewSet):
         - `flag`: Filter by flag ID
         - `name`: Filter by name (case-insensitive partial match)
         - `node_type`: Filter by node type
+        - `parent_node`: Filter by parent node UUID
+        - `uuid_address`: Filter by address UUID
+        - `has_parent`: Filter nodes that have / do not have a parent
+        - `has_address`: Filter nodes that have / do not have an address
         """
-        queryset = Node.objects.all().order_by("name")
+        queryset = Node.objects.select_related(
+            "node_type",
+            "uuid_address",
+            "parent_node",
+            "status",
+            "network_level",
+            "owner",
+            "constructor",
+            "manufacturer",
+            "project",
+            "flag",
+        ).order_by("name")
         uuid = self.request.query_params.get("uuid")
         project_id = self.request.query_params.get("project")
         flag_id = self.request.query_params.get("flag")
         name = self.request.query_params.get("name")
         node_type = self.request.query_params.get("node_type")
+        parent_uuid = self.request.query_params.get("parent_node")
+        uuid_address = self.request.query_params.get("uuid_address")
+        has_parent = self.request.query_params.get("has_parent")
+        has_address = self.request.query_params.get("has_address")
         exclude_group = self.request.query_params.get("exclude_group")
         if uuid:
             queryset = queryset.filter(uuid=uuid)
@@ -1606,6 +1625,22 @@ class NodeViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(name__icontains=name)
         if node_type:
             queryset = queryset.filter(node_type=node_type)
+        if parent_uuid:
+            queryset = queryset.filter(parent_node__uuid=parent_uuid)
+        if uuid_address:
+            queryset = queryset.filter(uuid_address__uuid=uuid_address)
+        if has_parent is not None:
+            value = has_parent.lower()
+            if value in ["1", "true", "yes"]:
+                queryset = queryset.filter(parent_node__isnull=False)
+            elif value in ["0", "false", "no"]:
+                queryset = queryset.filter(parent_node__isnull=True)
+        if has_address is not None:
+            value = has_address.lower()
+            if value in ["1", "true", "yes"]:
+                queryset = queryset.filter(uuid_address__isnull=False)
+            elif value in ["0", "false", "no"]:
+                queryset = queryset.filter(uuid_address__isnull=True)
         if exclude_group:
             queryset = queryset.exclude(node_type__group=exclude_group)
         return queryset
@@ -2065,17 +2100,52 @@ class OlNodeViewSet(viewsets.ReadOnlyModelViewSet):
         - `uuid`: Filter by UUID
         - `project`: Filter by project ID
         - `flag`: Filter by flag ID
+        - `parent_node`: Filter by parent node UUID
+        - `uuid_address`: Filter by address UUID
+        - `has_parent`: Filter nodes that have / do not have a parent
+        - `has_address`: Filter nodes that have / do not have an address
         """
-        queryset = OlNode.objects.all()
+        queryset = OlNode.objects.select_related(
+            "node_type",
+            "uuid_address",
+            "parent_node",
+            "status",
+            "network_level",
+            "owner",
+            "constructor",
+            "manufacturer",
+            "project",
+            "flag",
+        )
         uuid = self.request.query_params.get("uuid")
         project_id = self.request.query_params.get("project")
         flag_id = self.request.query_params.get("flag")
+        parent_uuid = self.request.query_params.get("parent_node")
+        uuid_address = self.request.query_params.get("uuid_address")
+        has_parent = self.request.query_params.get("has_parent")
+        has_address = self.request.query_params.get("has_address")
         if uuid:
             queryset = queryset.filter(uuid=uuid)
         if project_id:
             queryset = queryset.filter(project=project_id)
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
+        if parent_uuid:
+            queryset = queryset.filter(parent_node__uuid=parent_uuid)
+        if uuid_address:
+            queryset = queryset.filter(uuid_address__uuid=uuid_address)
+        if has_parent is not None:
+            value = has_parent.lower()
+            if value in ["1", "true", "yes"]:
+                queryset = queryset.filter(parent_node__isnull=False)
+            elif value in ["0", "false", "no"]:
+                queryset = queryset.filter(parent_node__isnull=True)
+        if has_address is not None:
+            value = has_address.lower()
+            if value in ["1", "true", "yes"]:
+                queryset = queryset.filter(uuid_address__isnull=False)
+            elif value in ["0", "false", "no"]:
+                queryset = queryset.filter(uuid_address__isnull=True)
         return queryset
 
     @action(detail=False, methods=["get"], url_path="all")
@@ -3714,7 +3784,9 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(node_structure=node_structure)
 
         if node_structure_uuid_node:
-            queryset = queryset.filter(node_structure__uuid_node=node_structure_uuid_node)
+            queryset = queryset.filter(
+                node_structure__uuid_node=node_structure_uuid_node
+            )
 
         if cable_a:
             queryset = queryset.filter(cable_a=cable_a)
