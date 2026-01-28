@@ -745,37 +745,55 @@ class NodeSerializer(GeoFeatureModelSerializer):
         write_only=True,
         queryset=Address.objects.all(),
         source="uuid_address",
+        required=False,
+        allow_null=True,
     )
     status_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=AttributesStatus.objects.all(),
         source="status",
+        required=False,
+        allow_null=True,
     )
     network_level_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=AttributesNetworkLevel.objects.all(),
         source="network_level",
+        required=False,
+        allow_null=True,
     )
     owner_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=AttributesCompany.objects.all(),
         source="owner",
+        required=False,
+        allow_null=True,
     )
     constructor_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=AttributesCompany.objects.all(),
         source="constructor",
+        required=False,
+        allow_null=True,
     )
     manufacturer_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=AttributesCompany.objects.all(),
         source="manufacturer",
+        required=False,
+        allow_null=True,
     )
     warranty = serializers.DateField(
-        required=False, input_formats=["%Y-%m-%d"], format="%Y-%m-%d"
+        required=False,
+        input_formats=["%Y-%m-%d"],
+        format="%Y-%m-%d",
+        allow_null=True,
     )
     date = serializers.DateField(
-        required=False, input_formats=["%Y-%m-%d"], format="%Y-%m-%d"
+        required=False,
+        input_formats=["%Y-%m-%d"],
+        format="%Y-%m-%d",
+        allow_null=True,
     )
     geom = GeometryField()
     canvas_x = serializers.FloatField(required=False, allow_null=True)
@@ -873,6 +891,9 @@ class AreaSerializer(GeoFeatureModelSerializer):
     """Serializer for the Area model."""
 
     uuid = serializers.UUIDField(read_only=True)
+    area_type = AttributesAreaTypeSerializer(read_only=True)
+    flag = FlagsSerializer(read_only=True)
+    project = ProjectsSerializer(read_only=True)
     area_type_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=AttributesAreaType.objects.all(),
@@ -1579,11 +1600,7 @@ class NodeSlotClipNumberSerializer(serializers.ModelSerializer):
         if slot_config and slot_number:
             if slot_number < 1 or slot_number > slot_config.total_slots:
                 raise serializers.ValidationError(
-                    {
-                        "slot_number": _(
-                            "Slot number must be between 1 and total_slots."
-                        )
-                    }
+                    {"slot_number": _("Slot number must be between 1 and total_slots.")}
                 )
         return data
 
@@ -1682,7 +1699,9 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
             "side": side,
             "port_numbers": siblings,
             "port_count": len(siblings),
-            "port_range": f"{min(siblings)}-{max(siblings)}" if len(siblings) > 1 else str(siblings[0]),
+            "port_range": f"{min(siblings)}-{max(siblings)}"
+            if len(siblings) > 1
+            else str(siblings[0]),
         }
 
     def get_merge_group_a_info(self, obj):
@@ -1904,8 +1923,12 @@ class CableAtNodeSerializer(serializers.ModelSerializer):
     uuid = serializers.UUIDField(read_only=True)
     cable_type = AttributesCableTypeSerializer(read_only=True)
     direction = serializers.SerializerMethodField()
-    fiber_count = serializers.IntegerField(source="cable_type.fiber_count", read_only=True)
-    bundle_count = serializers.IntegerField(source="cable_type.bundle_count", read_only=True)
+    fiber_count = serializers.IntegerField(
+        source="cable_type.fiber_count", read_only=True
+    )
+    bundle_count = serializers.IntegerField(
+        source="cable_type.bundle_count", read_only=True
+    )
 
     class Meta:
         model = Cable
