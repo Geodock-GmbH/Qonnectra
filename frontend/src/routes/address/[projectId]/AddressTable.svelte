@@ -1,5 +1,6 @@
 <script>
-	import { deserialize } from '$app/forms';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconArrowLeft,
@@ -11,27 +12,30 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { drawerStore } from '$lib/stores/drawer';
-	import { globalToaster } from '$lib/stores/toaster';
+	let { addresses } = $props();
 
-	import ConduitDrawerTabs from './ConduitDrawerTabs.svelte';
-
-	let { pipes, onConduitUpdate = () => {}, onConduitDelete = () => {} } = $props();
-
-	let page = $state(1);
+	let pageNum = $state(1);
 	let size = $state(20);
 
 	// Column configuration with sortable/filterable flags
 	const columnConfig = [
-		{ key: 'name', label: m.common_name(), sortable: true, filterable: true },
-		{ key: 'conduit_type', label: m.form_conduit_type(), sortable: true, filterable: true },
-		{ key: 'outer_conduit', label: m.form_outer_conduit(), sortable: true, filterable: true },
-		{ key: 'status', label: m.form_status(), sortable: true, filterable: true },
-		{ key: 'network_level', label: m.form_network_level(), sortable: true, filterable: true },
-		{ key: 'owner', label: m.form_owner(), sortable: true, filterable: true },
-		{ key: 'constructor', label: m.form_constructor(), sortable: true, filterable: true },
-		{ key: 'manufacturer', label: m.form_manufacturer(), sortable: true, filterable: true },
-		{ key: 'date', label: m.common_date(), sortable: true, filterable: true, sortType: 'date' },
+		{ key: 'street', label: m.form_street(), sortable: true, filterable: true },
+		{ key: 'housenumber', label: m.form_housenumber(), sortable: true, filterable: true },
+		{
+			key: 'house_number_suffix',
+			label: m.form_house_number_suffix(),
+			sortable: true,
+			filterable: true
+		},
+		{ key: 'zip_code', label: m.form_zip_code(), sortable: true, filterable: true },
+		{ key: 'city', label: m.form_city(), sortable: true, filterable: true },
+		{ key: 'district', label: m.form_district(), sortable: true, filterable: true },
+		{
+			key: 'status_development',
+			label: m.form_status_development(),
+			sortable: true,
+			filterable: true
+		},
 		{ key: 'flag', label: m.form_flag(), sortable: true, filterable: true }
 	];
 
@@ -41,15 +45,13 @@
 
 	// Filter state - object with column keys
 	let filters = $state({
-		name: '',
-		conduit_type: '',
-		outer_conduit: '',
-		status: '',
-		network_level: '',
-		owner: '',
-		constructor: '',
-		manufacturer: '',
-		date: '',
+		street: '',
+		housenumber: '',
+		house_number_suffix: '',
+		zip_code: '',
+		city: '',
+		district: '',
+		status_development: '',
 		flag: ''
 	});
 
@@ -72,7 +74,7 @@
 			sortColumn = columnKey;
 			sortDirection = 'asc';
 		}
-		page = 1; // Reset to first page on sort change
+		pageNum = 1; // Reset to first page on sort change
 	}
 
 	/**
@@ -80,34 +82,32 @@
 	 */
 	function updateFilter(columnKey, value) {
 		filters[columnKey] = value;
-		page = 1; // Reset to first page on filter change
+		pageNum = 1; // Reset to first page on filter change
 	}
 
-	// Apply filters to pipes
-	const filteredPipes = $derived.by(() => {
-		return pipes.filter((pipe) => {
+	// Apply filters to addresses
+	const filteredAddresses = $derived.by(() => {
+		return addresses.filter((address) => {
 			return Object.entries(filters).every(([key, filterValue]) => {
 				if (!filterValue) return true;
-				const cellValue = String(pipe[key] || '').toLowerCase();
+				const cellValue = String(address[key] || '').toLowerCase();
 				return cellValue.includes(filterValue.toLowerCase());
 			});
 		});
 	});
 
-	// Apply sorting to filtered pipes
-	const sortedPipes = $derived.by(() => {
-		if (!sortColumn) return filteredPipes;
+	// Apply sorting to filtered addresses
+	const sortedAddresses = $derived.by(() => {
+		if (!sortColumn) return filteredAddresses;
 
-		const column = columnConfig.find((c) => c.key === sortColumn);
-
-		return [...filteredPipes].sort((a, b) => {
+		return [...filteredAddresses].sort((a, b) => {
 			let aVal = a[sortColumn] ?? '';
 			let bVal = b[sortColumn] ?? '';
 
-			// Handle date sorting
-			if (column?.sortType === 'date') {
-				aVal = aVal ? new Date(aVal).getTime() : 0;
-				bVal = bVal ? new Date(bVal).getTime() : 0;
+			// Handle numeric sorting for housenumber
+			if (sortColumn === 'housenumber') {
+				aVal = aVal !== '' ? Number(aVal) : 0;
+				bVal = bVal !== '' ? Number(bVal) : 0;
 			} else {
 				aVal = String(aVal).toLowerCase();
 				bVal = String(bVal).toLowerCase();
@@ -120,15 +120,15 @@
 	});
 
 	// Paginate sorted data
-	const slicedSource = $derived(sortedPipes.slice((page - 1) * size, page * size));
+	const slicedSource = $derived(sortedAddresses.slice((pageNum - 1) * size, pageNum * size));
 
 	// Mobile filtered and paginated data
-	const mobileFilteredPipes = $derived.by(() => {
-		if (!mobileSearchTerm) return sortedPipes;
+	const mobileFilteredAddresses = $derived.by(() => {
+		if (!mobileSearchTerm) return sortedAddresses;
 
 		const term = mobileSearchTerm.toLowerCase();
-		return sortedPipes.filter((pipe) => {
-			return Object.values(pipe).some((value) =>
+		return sortedAddresses.filter((address) => {
+			return Object.values(address).some((value) =>
 				String(value || '')
 					.toLowerCase()
 					.includes(term)
@@ -136,58 +136,17 @@
 		});
 	});
 
-	const mobileSlicedSource = $derived(mobileFilteredPipes.slice((page - 1) * size, page * size));
+	const mobileSlicedSource = $derived(
+		mobileFilteredAddresses.slice((pageNum - 1) * size, pageNum * size)
+	);
 
-	// Total count for pagination - use sortedPipes for desktop, mobileFilteredPipes for mobile
-	// We'll use sortedPipes.length as the baseline since mobile filter is additive
-	const totalFilteredCount = $derived(sortedPipes.length);
-	const mobileTotalCount = $derived(mobileFilteredPipes.length);
+	// Total count for pagination
+	const totalFilteredCount = $derived(sortedAddresses.length);
+	const mobileTotalCount = $derived(mobileFilteredAddresses.length);
 
-	async function handleRowClick(pipe) {
-		// Fetch full conduit details via server action
-		const formData = new FormData();
-		formData.append('uuid', pipe.value);
-
-		try {
-			const response = await fetch('?/getConduit', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = deserialize(await response.text());
-
-			if (result.type === 'failure' || result.type === 'error') {
-				globalToaster.error({
-					title: m.common_error(),
-					description: m.message_error_fetching_conduit()
-				});
-				return;
-			}
-
-			const conduitData = result.data?.conduit;
-
-			// Open drawer with conduit details
-			drawerStore.open({
-				title: conduitData?.name || m.common_conduit_details(),
-				component: ConduitDrawerTabs,
-				props: {
-					...conduitData,
-					onConduitUpdate: (updatedConduit) => {
-						onConduitUpdate(updatedConduit);
-						drawerStore.setTitle(updatedConduit.name);
-					},
-					onConduitDelete: (conduitId) => {
-						onConduitDelete(conduitId);
-					}
-				}
-			});
-		} catch (error) {
-			console.error('Error fetching conduit:', error);
-			globalToaster.error({
-				title: m.common_error(),
-				description: m.message_error_fetching_conduit()
-			});
-		}
+	function handleRowClick(address) {
+		const projectId = page.params.projectId;
+		goto(`/address/${projectId}/${address.value}`);
 	}
 </script>
 
@@ -237,6 +196,8 @@
 								<th class="p-1">
 									{#if column.filterable}
 										<input
+											id={`filter-${column.key}`}
+											name={`filter-${column.key}`}
 											type="text"
 											class="input text-sm py-1 px-2 w-full text-surface-contrast-100-900"
 											placeholder={m.common_search()}
@@ -272,11 +233,13 @@
 			<!-- Mobile Filter Input -->
 			<div class="mb-3">
 				<input
+					id="mobile-search"
+					name="mobile-search"
 					type="text"
 					class="input w-full"
 					placeholder={m.common_search()}
 					bind:value={mobileSearchTerm}
-					oninput={() => (page = 1)}
+					oninput={() => (pageNum = 1)}
 				/>
 			</div>
 
@@ -296,40 +259,23 @@
 						<!-- Primary Info Row -->
 						<div class="flex items-center justify-between border-b border-surface-200-800 pb-2">
 							<div class="flex-1 min-w-0">
-								<h3 class="font-semibold text-lg truncate">{row.name}</h3>
-								<p class="text-sm">{row.conduit_type}</p>
+								<h3 class="font-semibold text-lg truncate">
+									{row.street}
+									{row.housenumber}{row.house_number_suffix}
+								</h3>
+								<p class="text-sm">{row.zip_code} {row.city}</p>
 							</div>
 						</div>
 
 						<!-- Details Grid -->
 						<div class="grid grid-cols-2 gap-3 text-sm">
 							<div>
-								<span class="font-medium text-surface-600-400">{m.form_outer_conduit()}:</span>
-								<p class="truncate">{row.outer_conduit}</p>
+								<span class="font-medium text-surface-600-400">{m.form_district()}:</span>
+								<p class="truncate">{row.district}</p>
 							</div>
 							<div>
-								<span class="font-medium text-surface-600-400">{m.form_status()}:</span>
-								<p class="truncate">{row.status}</p>
-							</div>
-							<div>
-								<span class="font-medium text-surface-600-400">{m.form_network_level()}:</span>
-								<p class="truncate">{row.network_level}</p>
-							</div>
-							<div>
-								<span class="font-medium text-surface-600-400">{m.form_owner()}:</span>
-								<p class="truncate">{row.owner}</p>
-							</div>
-							<div>
-								<span class="font-medium text-surface-600-400">{m.form_constructor()}:</span>
-								<p class="truncate">{row.constructor}</p>
-							</div>
-							<div>
-								<span class="font-medium text-surface-600-400">{m.form_manufacturer()}:</span>
-								<p class="truncate">{row.manufacturer}</p>
-							</div>
-							<div>
-								<span class="font-medium text-surface-600-400">{m.common_date()}:</span>
-								<p class="truncate">{row.date}</p>
+								<span class="font-medium text-surface-600-400">{m.form_status_development()}:</span>
+								<p class="truncate">{row.status_development}</p>
 							</div>
 							<div>
 								<span class="font-medium text-surface-600-400">{m.form_flag()}:</span>
@@ -353,8 +299,8 @@
 			<Pagination
 				count={totalFilteredCount}
 				pageSize={size}
-				{page}
-				onPageChange={(e) => (page = e.page)}
+				page={pageNum}
+				onPageChange={(e) => (pageNum = e.page)}
 			>
 				<Pagination.PrevTrigger>
 					<IconArrowLeft class="size-4" />
@@ -383,8 +329,8 @@
 			<Pagination
 				count={mobileTotalCount}
 				pageSize={size}
-				{page}
-				onPageChange={(e) => (page = e.page)}
+				page={pageNum}
+				onPageChange={(e) => (pageNum = e.page)}
 			>
 				<Pagination.PrevTrigger>
 					<IconArrowLeft class="size-4" />

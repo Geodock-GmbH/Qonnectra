@@ -1,6 +1,6 @@
 <script>
 	import { browser } from '$app/environment';
-	import { Combobox, useListCollection } from '@skeletonlabs/skeleton-svelte';
+	import { Combobox, Portal, useListCollection } from '@skeletonlabs/skeleton-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -104,20 +104,22 @@
 	>
 		<Combobox.Control class="flex items-center min-h-[48px] sm:min-h-[40px]">
 			<Combobox.Input class="placeholder:text-sm placeholder:truncate {inputClasses}" />
-			<Combobox.Trigger class="flex-shrink-0" />
+			<Combobox.Trigger class="shrink-0" />
 		</Combobox.Control>
-		<Combobox.Positioner>
-			<Combobox.Content class="{contentBase} {isOpen ? 'z-[100]' : `z-${zIndex}`}">
-				{#each items as item (item.value)}
-					<Combobox.Item
-						{item}
-						class="cursor-pointer px-3 py-2 rounded-md data-[highlighted]:not-data-[selected]:bg-surface-200-800 data-[selected]:bg-primary-500 data-[selected]:text-white data-[highlighted]:data-[selected]:bg-primary-600 data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed"
-					>
-						<Combobox.ItemText>{item.label}</Combobox.ItemText>
-						<Combobox.ItemIndicator />
-					</Combobox.Item>
-				{/each}
-			</Combobox.Content>
-		</Combobox.Positioner>
+		<Portal>
+			<Combobox.Positioner class={isOpen ? 'z-100' : `z-${zIndex}`}>
+				<Combobox.Content class={contentBase}>
+					{#each items as item (item.value)}
+						<Combobox.Item
+							{item}
+							class="cursor-pointer px-3 py-2 rounded-md data-highlighted:not-data-selected:bg-surface-200-800 data-selected:bg-primary-500 data-selected:text-white data-highlighted:data-selected:bg-primary-600 data-disabled:opacity-50 data-disabled:cursor-not-allowed"
+						>
+							<Combobox.ItemText>{item.label}</Combobox.ItemText>
+							<Combobox.ItemIndicator />
+						</Combobox.Item>
+					{/each}
+				</Combobox.Content>
+			</Combobox.Positioner>
+		</Portal>
 	</Combobox>
 {/if}

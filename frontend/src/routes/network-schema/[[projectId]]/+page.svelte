@@ -251,7 +251,7 @@
 							onValueChange={(e) => {
 								schemaState.selectedCableType = e.value;
 							}}
-							contentBase="preset-filled-surface-50-950"
+							contentBase="preset-filled-surface-50-950 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 shadow-lg"
 						/>
 					</div>
 

@@ -1368,9 +1368,12 @@ class AddressViewSet(viewsets.ModelViewSet):
         - `flag`: Filter by flag ID
         - `name`: Filter by name (case-insensitive partial match)
         """
-        queryset = Address.objects.all().order_by(
-            "street", "housenumber", "house_number_suffix"
-        )
+        queryset = Address.objects.select_related(
+            "status_development",
+            "flag",
+            "project",
+        ).order_by("street", "housenumber", "house_number_suffix")
+
         uuid = self.request.query_params.get("uuid")
         project_id = self.request.query_params.get("project")
         flag_id = self.request.query_params.get("flag")
@@ -1980,42 +1983,48 @@ class NodeCanvasCoordinatesView(APIView):
     def _perform_sync(self, sync_status, project_id, flag_id, scale):
         """
         Perform the actual canvas coordinate synchronization.
+
+        Only calculates positions for nodes missing canvas coordinates,
+        preserving user-positioned nodes. The bounding box is calculated
+        from ALL nodes.
         """
         try:
-            # Get nodes to process (snapshot at sync start)
-            queryset = Node.objects.filter(geom__isnull=False)
+            # Get ALL nodes with geometry for bounding box calculation
+            all_queryset = Node.objects.filter(geom__isnull=False)
 
             if project_id:
-                queryset = queryset.filter(project=project_id)
+                all_queryset = all_queryset.filter(project=project_id)
             if flag_id:
-                queryset = queryset.filter(flag=flag_id)
+                all_queryset = all_queryset.filter(flag=flag_id)
 
-            nodes = list(queryset)
+            all_nodes = list(all_queryset)
 
-            if not nodes:
+            if not all_nodes:
                 sync_status.status = "COMPLETED"
                 sync_status.completed_at = timezone.now()
                 sync_status.save()
                 return Response({"message": "No nodes found with geometry"}, status=400)
 
-            # Extract coordinates from all nodes
-            coordinates = []
-            for node in nodes:
+            # Extract coordinates from ALL nodes for bounding box
+            all_coordinates = []
+            for node in all_nodes:
                 if node.geom:
                     coords = node.geom.coords
-                    coordinates.append({"x": coords[0], "y": coords[1], "node": node})
+                    all_coordinates.append(
+                        {"x": coords[0], "y": coords[1], "node": node}
+                    )
 
-            if not coordinates:
+            if not all_coordinates:
                 sync_status.status = "COMPLETED"
                 sync_status.completed_at = timezone.now()
                 sync_status.save()
                 return Response({"message": "No valid coordinates found"}, status=400)
 
-            # Calculate bounding box from snapshot
-            min_x = min(coord["x"] for coord in coordinates)
-            max_x = max(coord["x"] for coord in coordinates)
-            min_y = min(coord["y"] for coord in coordinates)
-            max_y = max(coord["y"] for coord in coordinates)
+            # Calculate bounding box from ALL nodes
+            min_x = min(coord["x"] for coord in all_coordinates)
+            max_x = max(coord["x"] for coord in all_coordinates)
+            min_y = min(coord["y"] for coord in all_coordinates)
+            max_y = max(coord["y"] for coord in all_coordinates)
 
             # Calculate center
             center_x = (min_x + max_x) / 2
@@ -2026,12 +2035,17 @@ class NodeCanvasCoordinatesView(APIView):
             sync_status.center_y = center_y
             sync_status.save()
 
-            # Update nodes with canvas coordinates using bulk_update
+            # Only update nodes MISSING canvas coordinates, preserving user-positioned nodes
             batch_size = 500
             nodes_to_update = []
 
-            for coord_data in coordinates:
+            for coord_data in all_coordinates:
                 node = coord_data["node"]
+
+                # Skip nodes that already have canvas coordinates
+                if node.canvas_x is not None and node.canvas_y is not None:
+                    continue
+
                 geo_x = coord_data["x"]
                 geo_y = coord_data["y"]
 
@@ -2751,6 +2765,36 @@ class CableViewSet(viewsets.ModelViewSet):
     lookup_field = "uuid"
     lookup_url_kwarg = "pk"
     pagination_class = CustomPagination
+
+    def create(self, request, *args, **kwargs):
+        """Override create to add a warning when cable type has incomplete color mappings."""
+        response = super().create(request, *args, **kwargs)
+
+        cable_type_id = request.data.get("cable_type_id")
+        if cable_type_id:
+            try:
+                cable_type = AttributesCableType.objects.get(pk=cable_type_id)
+                bundle_mapping_count = CableTypeColorMapping.objects.filter(
+                    cable_type=cable_type, position_type="bundle"
+                ).count()
+                fiber_mapping_count = CableTypeColorMapping.objects.filter(
+                    cable_type=cable_type, position_type="fiber"
+                ).count()
+
+                if (
+                    bundle_mapping_count < cable_type.bundle_count
+                    or fiber_mapping_count < cable_type.bundle_fiber_count
+                ):
+                    response.data["warning"] = (
+                        f"Cable type '{cable_type.cable_type}' has incomplete color mappings: "
+                        f"needs {cable_type.bundle_count} bundle mapping(s) but has {bundle_mapping_count}, "
+                        f"needs {cable_type.bundle_fiber_count} fiber mapping(s) but has {fiber_mapping_count}. "
+                        f"Fibers were not generated."
+                    )
+            except AttributesCableType.DoesNotExist:
+                pass
+
+        return response
 
     @action(detail=False, methods=["get"], url_path="all")
     def all_cables(self, request):
