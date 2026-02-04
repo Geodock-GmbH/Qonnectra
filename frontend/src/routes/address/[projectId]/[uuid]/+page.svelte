@@ -226,11 +226,11 @@
 	<title>{street} {housenumber}{house_number_suffix} - {m.nav_address()}</title>
 </svelte:head>
 
-<div class="max-w-6xl mx-auto space-y-6">
+<div class="max-w-6xl mx-auto space-y-8">
 	<!-- Header -->
-	<div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-		<button onclick={goBack} class="btn preset-tonal">
-			<IconArrowLeft class="size-4" />
+	<div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-6 sm:px-8">
+		<button onclick={goBack} class="btn preset-tonal inline-flex items-center gap-2">
+			<IconArrowLeft class="size-4 shrink-0" />
 			<span>{m.common_back()}</span>
 		</button>
 		<div class="flex-1 min-w-0">
@@ -240,23 +240,25 @@
 			</h1>
 			<p class="text-sm text-surface-500">{zip_code} {city}</p>
 		</div>
-		<div class="flex items-center gap-2 shrink-0">
-			<div class="relative group">
-				<button
-					onclick={openDeleteConfirm}
-					class="btn preset-filled-error-500"
-					disabled={isDeleting || isLinkedToNode}
-					{@attach tooltip(m.message_address_linked_to_node(), { disabled: !isLinkedToNode })}
-				>
-					<IconTrash class="size-4" />
-					<span class="hidden sm:inline">{m.action_delete()}</span>
-				</button>
-			</div>
-			<button onclick={handleSave} class="btn preset-filled-primary-500" disabled={isSaving}>
+		<div class="flex items-center gap-3 shrink-0">
+			<button
+				onclick={openDeleteConfirm}
+				class="btn preset-tonal-error inline-flex items-center gap-2"
+				disabled={isDeleting || isLinkedToNode}
+				{@attach tooltip(m.message_address_linked_to_node(), { disabled: !isLinkedToNode })}
+			>
+				<IconTrash class="size-4 shrink-0" />
+				<span class="hidden sm:inline">{m.action_delete()}</span>
+			</button>
+			<button
+				onclick={handleSave}
+				class="btn preset-filled-primary-500 inline-flex items-center gap-2"
+				disabled={isSaving}
+			>
 				{#if isSaving}
 					<span>{m.common_loading()}</span>
 				{:else}
-					<IconDeviceFloppy class="size-4" />
+					<IconDeviceFloppy class="size-4 shrink-0" />
 					<span>{m.common_save()}</span>
 				{/if}
 			</button>
@@ -271,107 +273,128 @@
 		<!-- Top Row: Form + Map -->
 		<div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
 			<!-- Left: Address Form -->
-			<div class="lg:col-span-3 card p-6 space-y-5">
+			<div class="lg:col-span-3 card p-6 sm:p-8 space-y-6">
 				<!-- Section: Address Information -->
-				<div class="flex items-center gap-2">
+				<div class="flex items-center gap-2.5 pb-3 border-b border-surface-200-800">
 					<IconHome class="size-5 text-primary-500" />
-					<h2 class="text-lg font-semibold">{m.section_address_information()}</h2>
+					<h2 class="text-xl font-semibold">{m.section_address_information()}</h2>
 				</div>
 
-				<label class="label">
-					<span class="label-text">{m.form_street()} <span class="text-error-500">*</span></span>
-					<input type="text" class="input" bind:value={street} />
-				</label>
-
-				<div class="grid grid-cols-2 gap-4">
+				<div class="space-y-5">
 					<label class="label">
-						<span class="label-text"
-							>{m.form_housenumber()} <span class="text-error-500">*</span></span
+						<span class="label-text text-sm text-surface-600-400"
+							>{m.form_street()} <span class="text-error-400">*</span></span
 						>
-						<input type="number" class="input" bind:value={housenumber} />
+						<input type="text" class="input transition-colors" bind:value={street} />
 					</label>
-					<label class="label">
-						<span class="label-text">{m.form_house_number_suffix()}</span>
-						<input type="text" class="input" bind:value={house_number_suffix} />
-					</label>
-				</div>
 
-				<div class="grid grid-cols-2 gap-4">
+					<div class="grid grid-cols-2 gap-4">
+						<label class="label">
+							<span class="label-text text-sm text-surface-600-400"
+								>{m.form_housenumber()} <span class="text-error-400">*</span></span
+							>
+							<input type="number" class="input transition-colors" bind:value={housenumber} />
+						</label>
+						<label class="label">
+							<span class="label-text text-sm text-surface-600-400"
+								>{m.form_house_number_suffix()}</span
+							>
+							<input type="text" class="input transition-colors" bind:value={house_number_suffix} />
+						</label>
+					</div>
+
+					<div class="grid grid-cols-2 gap-4">
+						<label class="label">
+							<span class="label-text text-sm text-surface-600-400"
+								>{m.form_zip_code()} <span class="text-error-400">*</span></span
+							>
+							<input type="text" class="input transition-colors" bind:value={zip_code} />
+						</label>
+						<label class="label">
+							<span class="label-text text-sm text-surface-600-400"
+								>{m.form_city()} <span class="text-error-400">*</span></span
+							>
+							<input type="text" class="input transition-colors" bind:value={city} />
+						</label>
+					</div>
+
 					<label class="label">
-						<span class="label-text">{m.form_zip_code()} <span class="text-error-500">*</span></span
+						<span class="label-text text-sm text-surface-600-400">{m.form_district()}</span>
+						<input type="text" class="input transition-colors" bind:value={district} />
+					</label>
+
+					<label class="label">
+						<span class="label-text text-sm text-surface-600-400"
+							>{m.form_status_development()}</span
 						>
-						<input type="text" class="input" bind:value={zip_code} />
+						<select class="select transition-colors" bind:value={status_development_id}>
+							<option value="">-</option>
+							{#each statusDevelopments as option (option.value)}
+								<option value={option.value}>{option.label}</option>
+							{/each}
+						</select>
 					</label>
+
 					<label class="label">
-						<span class="label-text">{m.form_city()} <span class="text-error-500">*</span></span>
-						<input type="text" class="input" bind:value={city} />
+						<span class="label-text text-sm text-surface-600-400">{m.form_flag()}</span>
+						<select class="select transition-colors" bind:value={flag_id}>
+							<option value="">-</option>
+							{#each flags as option (option.value)}
+								<option value={option.value}>{option.label}</option>
+							{/each}
+						</select>
+					</label>
+
+					<label class="label">
+						<span class="label-text text-sm text-surface-600-400"
+							>{m.form_project({ count: 1 })}</span
+						>
+						<input
+							type="text"
+							class="input bg-surface-50-950 cursor-default"
+							bind:value={project}
+							readonly
+						/>
 					</label>
 				</div>
-
-				<label class="label">
-					<span class="label-text">{m.form_district()}</span>
-					<input type="text" class="input" bind:value={district} />
-				</label>
-
-				<label class="label">
-					<span class="label-text">{m.form_status_development()}</span>
-					<select class="select" bind:value={status_development_id}>
-						<option value="">-</option>
-						{#each statusDevelopments as option (option.value)}
-							<option value={option.value}>{option.label}</option>
-						{/each}
-					</select>
-				</label>
-
-				<label class="label">
-					<span class="label-text">{m.form_flag()}</span>
-					<select class="select" bind:value={flag_id}>
-						<option value="">-</option>
-						{#each flags as option (option.value)}
-							<option value={option.value}>{option.label}</option>
-						{/each}
-					</select>
-				</label>
-				<label for="project_id">
-					<span class="label-text">{m.form_project({ count: 1 })}</span>
-					<input type="text" class="input" bind:value={project} readonly />
-				</label>
 			</div>
 
 			<!-- Right: Mini Map -->
-			<div class="lg:col-span-2 card p-6 space-y-4">
-				<div class="flex items-center gap-2">
+			<div class="lg:col-span-2 card p-6 sm:p-8 space-y-4">
+				<div class="flex items-center gap-2.5 pb-3 border-b border-surface-200-800">
 					<IconMapPin class="size-5 text-primary-500" />
-					<h2 class="text-lg font-semibold">{m.section_location()}</h2>
+					<h2 class="text-xl font-semibold">{m.section_location()}</h2>
 				</div>
 
 				{#if geom3857?.coordinates && mapReady && addressMarkerLayer}
-					<div class="h-64 md:h-80 rounded-lg overflow-hidden border border-surface-200-800">
-						<Map
-							variant="compact"
-							layers={[addressMarkerLayer]}
-							viewOptions={{
-								center: mapCenter,
-								zoom: 18
-							}}
-							showOpacitySlider={false}
-							showLayerVisibilityTree={false}
-							showSearchPanel={false}
-						/>
+					<div class="space-y-2">
+						<div class="h-64 md:h-80 rounded-lg overflow-hidden border border-surface-200-800">
+							<Map
+								variant="compact"
+								layers={[addressMarkerLayer]}
+								viewOptions={{
+									center: mapCenter,
+									zoom: 18
+								}}
+								showOpacitySlider={false}
+								showLayerVisibilityTree={false}
+								showSearchPanel={false}
+							/>
+						</div>
 					</div>
 				{:else if geom3857?.coordinates}
 					<div
-						class="h-64 md:h-80 rounded-lg border border-surface-200-800 flex items-center justify-center"
+						class="h-64 md:h-80 rounded-lg border border-surface-200-800 flex items-center justify-center animate-pulse"
 					>
-						<p class="text-sm text-surface-500">{m.common_loading()}</p>
+						<p class="text-sm text-surface-400">{m.common_loading()}</p>
 					</div>
 				{:else}
 					<div
 						class="h-64 md:h-80 rounded-lg border border-dashed border-surface-300-700 flex items-center justify-center"
 					>
-						<div class="text-center text-surface-500">
-							<IconMapPin class="size-12 mx-auto mb-2 opacity-50" />
-							<p class="text-sm">{m.message_no_location_data()}</p>
+						<div class="text-center text-surface-400">
+							<IconMapPin class="size-16 mx-auto mb-3 opacity-30" />
+							<p class="text-sm font-medium text-surface-500">{m.message_no_location_data()}</p>
 						</div>
 					</div>
 				{/if}
@@ -379,27 +402,40 @@
 		</div>
 
 		<!-- Microduct Connections -->
-		<div class="card p-6 space-y-4">
-			<div class="flex items-center gap-2">
+		<div class="card p-6 sm:p-8 space-y-6">
+			<div class="flex items-center gap-2.5 pb-3 border-b border-surface-200-800">
 				<IconLink class="size-5 text-primary-500" />
-				<h2 class="text-lg font-semibold">{m.section_microduct_connections()}</h2>
+				<h2 class="text-xl font-semibold">{m.section_microduct_connections()}</h2>
+				{#if linkedMicroducts.length > 0}
+					<span class="badge preset-tonal-primary text-xs ml-auto">{linkedMicroducts.length}</span>
+				{/if}
 			</div>
 
 			{#if linkedMicroducts.length > 0}
-				<div class="overflow-x-auto">
+				<div class="overflow-x-auto -mx-2">
 					<table class="table">
 						<thead>
 							<tr>
-								<th>{m.table_node()}</th>
-								<th>{m.table_conduit_name()}</th>
-								<th>{m.table_conduit_type()}</th>
-								<th>{m.table_microduct_number()}</th>
-								<th>{m.table_color()}</th>
+								<th class="text-xs font-medium text-surface-500 uppercase tracking-wider"
+									>{m.table_node()}</th
+								>
+								<th class="text-xs font-medium text-surface-500 uppercase tracking-wider"
+									>{m.table_conduit_name()}</th
+								>
+								<th class="text-xs font-medium text-surface-500 uppercase tracking-wider"
+									>{m.table_conduit_type()}</th
+								>
+								<th class="text-xs font-medium text-surface-500 uppercase tracking-wider"
+									>{m.table_microduct_number()}</th
+								>
+								<th class="text-xs font-medium text-surface-500 uppercase tracking-wider"
+									>{m.table_color()}</th
+								>
 							</tr>
 						</thead>
 						<tbody>
 							{#each linkedMicroducts as md (md.uuid)}
-								<tr>
+								<tr class="hover:preset-tonal-primary transition-colors">
 									<td>{md.nodeName}</td>
 									<td>{md.conduitName}</td>
 									<td>{md.conduitType}</td>
@@ -411,9 +447,9 @@
 					</table>
 				</div>
 			{:else}
-				<div class="rounded-lg border border-dashed border-surface-300-700 p-8 text-center">
-					<IconLink class="size-12 mx-auto mb-3 text-surface-400 opacity-50" />
-					<p class="text-sm text-surface-500">{m.message_no_microducts_linked()}</p>
+				<div class="rounded-lg border border-dashed border-surface-300-700 p-10 text-center">
+					<IconLink class="size-16 mx-auto mb-4 text-surface-300 opacity-40" />
+					<p class="text-sm font-medium text-surface-500">{m.message_no_microducts_linked()}</p>
 				</div>
 			{/if}
 		</div>
@@ -421,10 +457,10 @@
 		<!-- Bottom Row: Files + Residential Units -->
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 			<!-- Files -->
-			<div class="card p-6 space-y-4">
-				<div class="flex items-center gap-2">
+			<div class="card p-6 sm:p-8 space-y-6">
+				<div class="flex items-center gap-2.5 pb-3 border-b border-surface-200-800">
 					<IconFolder class="size-5 text-primary-500" />
-					<h2 class="text-lg font-semibold">{m.form_attachments()}</h2>
+					<h2 class="text-xl font-semibold">{m.form_attachments()}</h2>
 				</div>
 
 				{#if featureId}
@@ -434,22 +470,22 @@
 			</div>
 
 			<!-- Residential Units -->
-			<div class="card p-6 space-y-4">
-				<div class="flex items-center gap-2">
+			<div class="card p-6 sm:p-8 space-y-6">
+				<div class="flex items-center gap-2.5 pb-3 border-b border-surface-200-800">
 					<IconUsers class="size-5 text-primary-500" />
-					<h2 class="text-lg font-semibold">{m.section_residential_units()}</h2>
-					<span class="badge preset-filled-surface-500 text-xs ml-auto">
+					<h2 class="text-xl font-semibold">{m.section_residential_units()}</h2>
+					<span class="badge preset-tonal-surface text-xs ml-auto">
 						<IconLock class="size-3" />
 						<span>{m.common_coming_soon()}</span>
 					</span>
 				</div>
 
-				<div class="rounded-lg border border-dashed border-surface-300-700 p-8 text-center">
-					<IconUsers class="size-12 mx-auto mb-3 text-surface-400 opacity-50" />
-					<p class="text-sm text-surface-500 font-medium">
+				<div class="rounded-lg border border-dashed border-surface-300-700 p-10 text-center">
+					<IconUsers class="size-16 mx-auto mb-4 text-surface-300 opacity-30" />
+					<p class="text-sm font-medium text-surface-500">
 						{m.message_residential_units_coming_soon()}
 					</p>
-					<p class="text-xs text-surface-400 mt-1">
+					<p class="text-xs text-surface-400 mt-2">
 						{m.message_residential_units_description()}
 					</p>
 				</div>
