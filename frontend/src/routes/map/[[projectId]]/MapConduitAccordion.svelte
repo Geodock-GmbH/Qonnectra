@@ -78,7 +78,7 @@
 		<p>{m.message_no_conduits_found()}</p>
 	</div>
 {:else}
-	<Accordion>
+	<Accordion multiple>
 		{#each dataManager.pipesInTrench as item (item.id)}
 			<Accordion.Item value={item.id}>
 				<Accordion.ItemTrigger
