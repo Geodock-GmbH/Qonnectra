@@ -1,35 +1,122 @@
 <script>
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { IconArrowLeft, IconTrash } from '@tabler/icons-svelte';
+	import {
+		IconArrowLeft,
+		IconDeviceFloppy,
+		IconFolder,
+		IconHome,
+		IconLink,
+		IconLock,
+		IconMapPin,
+		IconTrash,
+		IconUsers
+	} from '@tabler/icons-svelte';
+
+	import 'ol/ol.css';
+
+	import { onMount } from 'svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
+	import FileExplorer from '$lib/components/FileExplorer.svelte';
+	import FileUpload from '$lib/components/FileUpload.svelte';
+	import Map from '$lib/components/Map.svelte';
+	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	let { data } = $props();
 
 	let isSaving = $state(false);
 	let isDeleting = $state(false);
-	let showDeleteConfirm = $state(false);
 
-	// Derive values from data (reactive)
 	const address = $derived(data.address);
 	const projectId = $derived(data.projectId);
 	const addressError = $derived(data.addressError);
 	const statusDevelopments = $derived(data.statusDevelopments);
 	const flags = $derived(data.flags);
+	const geom3857 = $derived(data.address?.geom_3857 || null);
+	const featureId = $derived(address?.uuid);
+	const linkedNodes = $derived(data.linkedNodes || []);
+	const linkedMicroducts = $derived(data.linkedMicroducts || []);
+	const isLinkedToNode = $derived(linkedNodes.length > 0);
 
-	// Form values - initialize from address
-	let street = $state(data.address?.street || '');
-	let housenumber = $state(data.address?.housenumber ?? '');
-	let house_number_suffix = $state(data.address?.house_number_suffix || '');
-	let zip_code = $state(data.address?.zip_code || '');
-	let city = $state(data.address?.city || '');
-	let district = $state(data.address?.district || '');
-	let status_development_id = $state(data.address?.status_development?.id || '');
-	let flag_id = $state(data.address?.flag?.id || '');
+	/**
+	 * Get the initial address from the data
+	 * @returns {Object} The initial address
+	 */
+	function getInitialAddress() {
+		return data.address;
+	}
+	const initialAddress = getInitialAddress();
+	let street = $state(initialAddress?.street || '');
+	let housenumber = $state(initialAddress?.housenumber ?? '');
+	let house_number_suffix = $state(initialAddress?.house_number_suffix || '');
+	let zip_code = $state(initialAddress?.zip_code || '');
+	let city = $state(initialAddress?.city || '');
+	let district = $state(initialAddress?.district || '');
+	let status_development_id = $state(initialAddress?.status_development?.id || '');
+	let flag_id = $state(initialAddress?.flag?.id || '');
+	let project = $state(initialAddress?.project?.project || '');
+	let deleteMessageBox = $state(null);
+	let fileExplorer = $state(null);
 
+	let addressMarkerLayer = $state(null);
+	let mapCenter = $state(null);
+	let mapReady = $state(false);
+
+	onMount(async () => {
+		if (!geom3857 || !geom3857.coordinates) return;
+		const [
+			{ default: VectorLayer },
+			{ default: VectorSource },
+			{ default: Feature },
+			{ default: Point },
+			{ default: Style },
+			{ default: CircleStyle },
+			{ default: Fill },
+			{ default: Stroke }
+		] = await Promise.all([
+			import('ol/layer/Vector'),
+			import('ol/source/Vector'),
+			import('ol/Feature'),
+			import('ol/geom/Point'),
+			import('ol/style/Style'),
+			import('ol/style/Circle'),
+			import('ol/style/Fill'),
+			import('ol/style/Stroke')
+		]);
+
+		const coords = geom3857.coordinates;
+		mapCenter = coords;
+
+		const pointFeature = new Feature({
+			geometry: new Point(coords)
+		});
+
+		const markerStyle = new Style({
+			image: new CircleStyle({
+				radius: 8,
+				fill: new Fill({ color: 'rgba(59, 130, 246, 0.8)' }),
+				stroke: new Stroke({ color: '#1d4ed8', width: 2 })
+			})
+		});
+
+		addressMarkerLayer = new VectorLayer({
+			source: new VectorSource({
+				features: [pointFeature]
+			}),
+			style: markerStyle,
+			zIndex: 100
+		});
+
+		mapReady = true;
+	});
+
+	/**
+	 * Handle the save action
+	 */
 	async function handleSave() {
 		isSaving = true;
 		const formData = new FormData();
@@ -73,6 +160,9 @@
 		}
 	}
 
+	/**
+	 * Handle the delete action
+	 */
 	async function handleDelete() {
 		isDeleting = true;
 		const formData = new FormData();
@@ -105,10 +195,28 @@
 			});
 		} finally {
 			isDeleting = false;
-			showDeleteConfirm = false;
 		}
 	}
 
+	/**
+	 * Open the delete confirmation modal
+	 */
+	function openDeleteConfirm() {
+		deleteMessageBox.open();
+	}
+
+	/**
+	 * Handle the upload complete event
+	 */
+	function handleUploadComplete() {
+		if (fileExplorer) {
+			fileExplorer.refresh();
+		}
+	}
+
+	/**
+	 * Go back to the address list page
+	 */
 	function goBack() {
 		goto(`/address/${projectId}`);
 	}
@@ -118,147 +226,245 @@
 	<title>{street} {housenumber}{house_number_suffix} - {m.nav_address()}</title>
 </svelte:head>
 
-<div class="h-full overflow-auto p-4">
-	<div class="max-w-2xl mx-auto">
-		<!-- Header -->
-		<div class="flex items-center gap-4 mb-6">
-			<button onclick={goBack} class="btn preset-tonal">
-				<IconArrowLeft class="size-4" />
-				<span>{m.common_back()}</span>
-			</button>
-			<h1 class="text-2xl font-bold flex-1">
+<div class="max-w-6xl mx-auto space-y-6">
+	<!-- Header -->
+	<div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+		<button onclick={goBack} class="btn preset-tonal">
+			<IconArrowLeft class="size-4" />
+			<span>{m.common_back()}</span>
+		</button>
+		<div class="flex-1 min-w-0">
+			<h1 class="text-2xl font-bold truncate">
 				{street}
 				{housenumber}{house_number_suffix}
 			</h1>
+			<p class="text-sm text-surface-500">{zip_code} {city}</p>
 		</div>
-
-		{#if addressError}
-			<div class="card preset-filled-error-500 p-4">
-				<p>{addressError}</p>
+		<div class="flex items-center gap-2 shrink-0">
+			<div class="relative group">
+				<button
+					onclick={openDeleteConfirm}
+					class="btn preset-filled-error-500"
+					disabled={isDeleting || isLinkedToNode}
+					{@attach tooltip(m.message_address_linked_to_node(), { disabled: !isLinkedToNode })}
+				>
+					<IconTrash class="size-4" />
+					<span class="hidden sm:inline">{m.action_delete()}</span>
+				</button>
 			</div>
-		{:else if address}
-			<div class="card p-6 space-y-4">
-				<!-- Street -->
+			<button onclick={handleSave} class="btn preset-filled-primary-500" disabled={isSaving}>
+				{#if isSaving}
+					<span>{m.common_loading()}</span>
+				{:else}
+					<IconDeviceFloppy class="size-4" />
+					<span>{m.common_save()}</span>
+				{/if}
+			</button>
+		</div>
+	</div>
+
+	{#if addressError}
+		<div class="card preset-filled-error-500 p-4">
+			<p>{addressError}</p>
+		</div>
+	{:else if address}
+		<!-- Top Row: Form + Map -->
+		<div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+			<!-- Left: Address Form -->
+			<div class="lg:col-span-3 card p-6 space-y-5">
+				<!-- Section: Address Information -->
+				<div class="flex items-center gap-2">
+					<IconHome class="size-5 text-primary-500" />
+					<h2 class="text-lg font-semibold">{m.section_address_information()}</h2>
+				</div>
+
 				<label class="label">
-					<span class="label-text">{m.form_street()}</span>
-					<input id="street" name="street" type="text" class="input" bind:value={street} />
+					<span class="label-text">{m.form_street()} <span class="text-error-500">*</span></span>
+					<input type="text" class="input" bind:value={street} />
 				</label>
 
-				<!-- Housenumber & Suffix -->
 				<div class="grid grid-cols-2 gap-4">
 					<label class="label">
-						<span class="label-text">{m.form_housenumber()}</span>
-						<input
-							id="housenumber"
-							name="housenumber"
-							type="number"
-							class="input"
-							bind:value={housenumber}
-						/>
+						<span class="label-text"
+							>{m.form_housenumber()} <span class="text-error-500">*</span></span
+						>
+						<input type="number" class="input" bind:value={housenumber} />
 					</label>
 					<label class="label">
 						<span class="label-text">{m.form_house_number_suffix()}</span>
-						<input
-							id="house_number_suffix"
-							name="house_number_suffix"
-							type="text"
-							class="input"
-							bind:value={house_number_suffix}
-						/>
+						<input type="text" class="input" bind:value={house_number_suffix} />
 					</label>
 				</div>
 
-				<!-- Zip Code & City -->
 				<div class="grid grid-cols-2 gap-4">
 					<label class="label">
-						<span class="label-text">{m.form_zip_code()}</span>
-						<input id="zip_code" name="zip_code" type="text" class="input" bind:value={zip_code} />
+						<span class="label-text">{m.form_zip_code()} <span class="text-error-500">*</span></span
+						>
+						<input type="text" class="input" bind:value={zip_code} />
 					</label>
 					<label class="label">
-						<span class="label-text">{m.form_city()}</span>
-						<input id="city" name="city" type="text" class="input" bind:value={city} />
+						<span class="label-text">{m.form_city()} <span class="text-error-500">*</span></span>
+						<input type="text" class="input" bind:value={city} />
 					</label>
 				</div>
 
-				<!-- District -->
 				<label class="label">
 					<span class="label-text">{m.form_district()}</span>
-					<input id="district" name="district" type="text" class="input" bind:value={district} />
+					<input type="text" class="input" bind:value={district} />
 				</label>
 
-				<!-- Status Development -->
 				<label class="label">
 					<span class="label-text">{m.form_status_development()}</span>
-					<select
-						id="status_development_id"
-						name="status_development_id"
-						class="select"
-						bind:value={status_development_id}
-					>
+					<select class="select" bind:value={status_development_id}>
 						<option value="">-</option>
-						{#each statusDevelopments as option}
+						{#each statusDevelopments as option (option.value)}
 							<option value={option.value}>{option.label}</option>
 						{/each}
 					</select>
 				</label>
 
-				<!-- Flag -->
 				<label class="label">
 					<span class="label-text">{m.form_flag()}</span>
-					<select id="flag_id" name="flag_id" class="select" bind:value={flag_id}>
+					<select class="select" bind:value={flag_id}>
 						<option value="">-</option>
-						{#each flags as option}
+						{#each flags as option (option.value)}
 							<option value={option.value}>{option.label}</option>
 						{/each}
 					</select>
 				</label>
-
-				<!-- Actions -->
-				<div class="flex justify-between pt-4 border-t border-surface-200-800">
-					<button
-						onclick={() => (showDeleteConfirm = true)}
-						class="btn preset-filled-error-500"
-						disabled={isDeleting}
-					>
-						<IconTrash class="size-4" />
-						<span>{m.action_delete()}</span>
-					</button>
-
-					<button onclick={handleSave} class="btn preset-filled-primary-500" disabled={isSaving}>
-						{#if isSaving}
-							<span>{m.common_loading()}</span>
-						{:else}
-							<span>{m.common_save()}</span>
-						{/if}
-					</button>
-				</div>
+				<label for="project_id">
+					<span class="label-text">{m.form_project({ count: 1 })}</span>
+					<input type="text" class="input" bind:value={project} readonly />
+				</label>
 			</div>
 
-			<!-- Delete Confirmation -->
-			{#if showDeleteConfirm}
-				<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-					<div class="card p-6 max-w-md w-full mx-4">
-						<h2 class="text-xl font-bold mb-4">{m.common_confirm_delete()}</h2>
-						<p class="mb-6">{m.message_confirm_delete_address()}</p>
-						<div class="flex justify-end gap-2">
-							<button onclick={() => (showDeleteConfirm = false)} class="btn preset-tonal">
-								{m.common_cancel()}
-							</button>
-							<button
-								onclick={handleDelete}
-								class="btn preset-filled-error-500"
-								disabled={isDeleting}
-							>
-								{#if isDeleting}
-									<span>{m.common_loading()}</span>
-								{:else}
-									<span>{m.action_delete()}</span>
-								{/if}
-							</button>
+			<!-- Right: Mini Map -->
+			<div class="lg:col-span-2 card p-6 space-y-4">
+				<div class="flex items-center gap-2">
+					<IconMapPin class="size-5 text-primary-500" />
+					<h2 class="text-lg font-semibold">{m.section_location()}</h2>
+				</div>
+
+				{#if geom3857?.coordinates && mapReady && addressMarkerLayer}
+					<div class="h-64 md:h-80 rounded-lg overflow-hidden border border-surface-200-800">
+						<Map
+							variant="compact"
+							layers={[addressMarkerLayer]}
+							viewOptions={{
+								center: mapCenter,
+								zoom: 18
+							}}
+							showOpacitySlider={false}
+							showLayerVisibilityTree={false}
+							showSearchPanel={false}
+						/>
+					</div>
+				{:else if geom3857?.coordinates}
+					<div
+						class="h-64 md:h-80 rounded-lg border border-surface-200-800 flex items-center justify-center"
+					>
+						<p class="text-sm text-surface-500">{m.common_loading()}</p>
+					</div>
+				{:else}
+					<div
+						class="h-64 md:h-80 rounded-lg border border-dashed border-surface-300-700 flex items-center justify-center"
+					>
+						<div class="text-center text-surface-500">
+							<IconMapPin class="size-12 mx-auto mb-2 opacity-50" />
+							<p class="text-sm">{m.message_no_location_data()}</p>
 						</div>
 					</div>
+				{/if}
+			</div>
+		</div>
+
+		<!-- Microduct Connections -->
+		<div class="card p-6 space-y-4">
+			<div class="flex items-center gap-2">
+				<IconLink class="size-5 text-primary-500" />
+				<h2 class="text-lg font-semibold">{m.section_microduct_connections()}</h2>
+			</div>
+
+			{#if linkedMicroducts.length > 0}
+				<div class="overflow-x-auto">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>{m.table_node()}</th>
+								<th>{m.table_conduit_name()}</th>
+								<th>{m.table_conduit_type()}</th>
+								<th>{m.table_microduct_number()}</th>
+								<th>{m.table_color()}</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each linkedMicroducts as md (md.uuid)}
+								<tr>
+									<td>{md.nodeName}</td>
+									<td>{md.conduitName}</td>
+									<td>{md.conduitType}</td>
+									<td>{md.number}</td>
+									<td>{md.color}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{:else}
+				<div class="rounded-lg border border-dashed border-surface-300-700 p-8 text-center">
+					<IconLink class="size-12 mx-auto mb-3 text-surface-400 opacity-50" />
+					<p class="text-sm text-surface-500">{m.message_no_microducts_linked()}</p>
 				</div>
 			{/if}
-		{/if}
-	</div>
+		</div>
+
+		<!-- Bottom Row: Files + Residential Units -->
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+			<!-- Files -->
+			<div class="card p-6 space-y-4">
+				<div class="flex items-center gap-2">
+					<IconFolder class="size-5 text-primary-500" />
+					<h2 class="text-lg font-semibold">{m.form_attachments()}</h2>
+				</div>
+
+				{#if featureId}
+					<FileUpload featureType="address" {featureId} onUploadComplete={handleUploadComplete} />
+					<FileExplorer bind:this={fileExplorer} featureType="address" {featureId} />
+				{/if}
+			</div>
+
+			<!-- Residential Units -->
+			<div class="card p-6 space-y-4">
+				<div class="flex items-center gap-2">
+					<IconUsers class="size-5 text-primary-500" />
+					<h2 class="text-lg font-semibold">{m.section_residential_units()}</h2>
+					<span class="badge preset-filled-surface-500 text-xs ml-auto">
+						<IconLock class="size-3" />
+						<span>{m.common_coming_soon()}</span>
+					</span>
+				</div>
+
+				<div class="rounded-lg border border-dashed border-surface-300-700 p-8 text-center">
+					<IconUsers class="size-12 mx-auto mb-3 text-surface-400 opacity-50" />
+					<p class="text-sm text-surface-500 font-medium">
+						{m.message_residential_units_coming_soon()}
+					</p>
+					<p class="text-xs text-surface-400 mt-1">
+						{m.message_residential_units_description()}
+					</p>
+				</div>
+			</div>
+		</div>
+	{/if}
 </div>
+
+<!-- Delete Confirmation -->
+<MessageBox
+	bind:this={deleteMessageBox}
+	heading={m.common_confirm_delete()}
+	message={m.message_confirm_delete_address()}
+	showAcceptButton={true}
+	acceptText={m.action_delete()}
+	closeText={m.common_cancel()}
+	onAccept={handleDelete}
+/>

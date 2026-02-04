@@ -631,6 +631,7 @@ class AddressSerializer(GeoFeatureModelSerializer):
         source="project",
     )
     geom = GeometryField()
+    geom_3857 = GeometryField(read_only=True)
 
     class Meta:
         model = Address

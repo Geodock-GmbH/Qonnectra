@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models as gis_models
+from django.contrib.gis.db.models.functions import Transform
 from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_delete, post_save, pre_save
@@ -1034,6 +1035,11 @@ class Trench(models.Model):
         srid=int(settings.DEFAULT_SRID),
         spatial_index=False,
     )
+    geom_3857 = models.GeneratedField(
+        expression=Transform("geom", 3857),
+        output_field=gis_models.LineStringField(srid=3857),
+        db_persist=True,
+    )
 
     files = GenericRelation(
         FeatureFiles,
@@ -1383,6 +1389,11 @@ class Address(models.Model):
     geom = gis_models.PointField(
         _("Geometry"), srid=int(settings.DEFAULT_SRID), null=False
     )
+    geom_3857 = models.GeneratedField(
+        expression=Transform("geom", 3857),
+        output_field=gis_models.PointField(srid=3857),
+        db_persist=True,
+    )
 
     files = GenericRelation(
         FeatureFiles,
@@ -1588,6 +1599,11 @@ class Node(models.Model):
     warranty = models.DateField(_("Warranty"), null=True, blank=True)
     date = models.DateField(_("Date"), null=True, blank=True)
     geom = gis_models.PointField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
+    geom_3857 = models.GeneratedField(
+        expression=Transform("geom", 3857),
+        output_field=gis_models.PointField(srid=3857),
+        db_persist=True,
+    )
     canvas_x = models.FloatField(_("Canvas X"), null=True, blank=True)
     canvas_y = models.FloatField(_("Canvas Y"), null=True, blank=True)
 
@@ -1818,6 +1834,11 @@ class Area(models.Model):
         verbose_name=_("Area Name"),
     )
     geom = gis_models.PolygonField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
+    geom_3857 = models.GeneratedField(
+        expression=Transform("geom", 3857),
+        output_field=gis_models.PolygonField(srid=3857),
+        db_persist=True,
+    )
 
     project = models.ForeignKey(
         Projects,

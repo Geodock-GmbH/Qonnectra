@@ -16,6 +16,7 @@ from .views import (
     AttributesMicroductStatusViewSet,
     AttributesNetworkLevelViewSet,
     AttributesNodeTypeViewSet,
+    AttributesStatusDevelopmentViewSet,
     AttributesStatusViewSet,
     AttributesSurfaceViewSet,
     CableLabelViewSet,
@@ -132,6 +133,11 @@ router.register(
     r"attributes_component_structure",
     AttributesComponentStructureViewSet,
     basename="attributes_component_structure",
+)
+router.register(
+    r"attributes_status_development",
+    AttributesStatusDevelopmentViewSet,
+    basename="attributes_status_development",
 )
 router.register(r"content-types", ContentTypeViewSet, basename="content-types")
 router.register(r"address", AddressViewSet, basename="address")

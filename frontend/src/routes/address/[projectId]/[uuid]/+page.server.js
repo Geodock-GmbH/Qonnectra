@@ -9,7 +9,6 @@ export async function load({ fetch, cookies, params }) {
 	const { projectId, uuid } = params;
 
 	try {
-		// Fetch address and select options in parallel
 		const [addressResponse, ...selectResponses] = await Promise.all([
 			fetch(`${API_URL}address/${uuid}/`, {
 				credentials: 'include',
@@ -29,7 +28,9 @@ export async function load({ fetch, cookies, params }) {
 				addressError: 'Failed to fetch address',
 				projectId,
 				statusDevelopments: [],
-				flags: []
+				flags: [],
+				linkedNodes: [],
+				linkedMicroducts: []
 			};
 		}
 
@@ -37,17 +38,17 @@ export async function load({ fetch, cookies, params }) {
 		// GeoFeatureModelSerializer returns GeoJSON format - extract properties and id
 		const address = {
 			...(addressData.properties || addressData),
-			uuid: addressData.id || addressData.properties?.uuid || addressData.uuid
+			uuid: addressData.id || addressData.properties?.uuid || addressData.uuid,
+			geom_3857: addressData.properties?.geom_3857 || addressData.geom_3857 || null
 		};
 
-		// Process select options
 		const [statusDevelopmentsData, flagsData] = await Promise.all(
 			selectResponses.map((res) => (res.ok ? res.json() : []))
 		);
 
 		const statusDevelopments = statusDevelopmentsData.map((item) => ({
 			value: item.id,
-			label: item.status_development
+			label: item.status
 		}));
 
 		const flags = flagsData.map((item) => ({
@@ -55,12 +56,62 @@ export async function load({ fetch, cookies, params }) {
 			label: item.flag
 		}));
 
+		// Fetch nodes linked to this address
+		let linkedNodes = [];
+		let linkedMicroducts = [];
+		try {
+			const nodesResponse = await fetch(`${API_URL}node/?uuid_address=${uuid}`, {
+				credentials: 'include',
+				headers
+			});
+			if (nodesResponse.ok) {
+				const nodesData = await nodesResponse.json();
+				const features = nodesData.features || nodesData.results?.features || [];
+				linkedNodes = features.map((f) => ({
+					uuid: f.id || f.properties?.uuid,
+					name: f.properties?.name || ''
+				}));
+
+				// Fetch microducts for each linked node
+				if (linkedNodes.length > 0) {
+					const microductResponses = await Promise.all(
+						linkedNodes.map((node) =>
+							fetch(`${API_URL}microduct/all/?uuid_node=${node.uuid}`, {
+								credentials: 'include',
+								headers
+							})
+						)
+					);
+					for (let i = 0; i < microductResponses.length; i++) {
+						if (microductResponses[i].ok) {
+							const microducts = await microductResponses[i].json();
+							for (const md of microducts) {
+								linkedMicroducts.push({
+									uuid: md.uuid,
+									number: md.number,
+									color: md.color,
+									conduitName: md.uuid_conduit?.name || '',
+									conduitType: md.uuid_conduit?.conduit_type?.conduit_type || '',
+									nodeName: linkedNodes[i].name,
+									nodeUuid: linkedNodes[i].uuid
+								});
+							}
+						}
+					}
+				}
+			}
+		} catch (err) {
+			console.error('Error fetching linked nodes/microducts:', err);
+		}
+
 		return {
 			address,
 			addressError: null,
 			projectId,
 			statusDevelopments,
-			flags
+			flags,
+			linkedNodes,
+			linkedMicroducts
 		};
 	} catch (err) {
 		console.error('Error fetching address:', err);
@@ -69,16 +120,15 @@ export async function load({ fetch, cookies, params }) {
 			addressError: 'Error occurred while fetching address',
 			projectId,
 			statusDevelopments: [],
-			flags: []
+			flags: [],
+			linkedNodes: [],
+			linkedMicroducts: []
 		};
 	}
 }
 
 /** @type {import('./$types').Actions} */
 export const actions = {
-	/**
-	 * Update an existing address
-	 */
 	updateAddress: async ({ request, fetch, cookies, params }) => {
 		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();
@@ -95,22 +145,17 @@ export const actions = {
 
 		try {
 			const requestBody = {};
-			// Required fields - always include
 			if (street) requestBody.street = street;
 			if (housenumber) requestBody.housenumber = parseInt(housenumber);
 			if (zip_code) requestBody.zip_code = zip_code;
 			if (city) requestBody.city = city;
 
-			// Optional text fields - only include if they have a value
 			if (house_number_suffix) requestBody.house_number_suffix = house_number_suffix;
 			if (district) requestBody.district = district;
 
-			// Foreign keys - only include if a valid ID is selected
 			if (status_development_id)
 				requestBody.status_development_id = parseInt(status_development_id);
 			if (flag_id) requestBody.flag_id = parseInt(flag_id);
-
-			console.log('PATCH request body:', JSON.stringify(requestBody));
 
 			const response = await fetch(`${API_URL}address/${uuid}/`, {
 				method: 'PATCH',
@@ -125,7 +170,6 @@ export const actions = {
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));
 				console.error('PATCH error response:', errorData);
-				// Handle both 'detail' (DRF standard) and field-level errors
 				const message =
 					errorData.detail ||
 					Object.entries(errorData)
@@ -152,10 +196,6 @@ export const actions = {
 			return fail(500, { message: err.message || 'Failed to update address' });
 		}
 	},
-
-	/**
-	 * Delete an address
-	 */
 	deleteAddress: async ({ request, fetch, cookies, params }) => {
 		const headers = getAuthHeaders(cookies);
 		const { projectId, uuid } = params;
@@ -172,10 +212,8 @@ export const actions = {
 				return fail(response.status, { message: errorData.detail || 'Failed to delete address' });
 			}
 
-			// Redirect to list page after successful deletion
 			redirect(303, `/address/${projectId}`);
 		} catch (err) {
-			// If it's a redirect, rethrow it
 			if (err.status === 303) throw err;
 			console.error('Error deleting address:', err);
 			return fail(500, { message: err.message || 'Failed to delete address' });

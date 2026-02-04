@@ -36,6 +36,7 @@ from .models import (
     AttributesNetworkLevel,
     AttributesNodeType,
     AttributesStatus,
+    AttributesStatusDevelopment,
     AttributesSurface,
     Cable,
     CableLabel,
@@ -85,6 +86,7 @@ from .serializers import (
     AttributesMicroductStatusSerializer,
     AttributesNetworkLevelSerializer,
     AttributesNodeTypeSerializer,
+    AttributesStatusDevelopmentSerializer,
     AttributesStatusSerializer,
     AttributesSurfaceSerializer,
     CableAtNodeSerializer,
@@ -286,6 +288,19 @@ class AttributesComponentTypeViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = AttributesComponentType.objects.all().order_by("component_type")
     serializer_class = AttributesComponentTypeSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class AttributesStatusDevelopmentViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesStatusDevelopment model :model:`api.AttributesStatusDevelopment`.
+
+    An instance of :model:`api.AttributesStatusDevelopment`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesStatusDevelopment.objects.all().order_by("status")
+    serializer_class = AttributesStatusDevelopmentSerializer
     lookup_field = "id"
     lookup_url_kwarg = "pk"
 
@@ -2498,11 +2513,13 @@ class MicroductViewSet(viewsets.ModelViewSet):
         - `uuid_conduit`: Filter by conduit UUID
         - `number`: Filter by microduct number
         - `color`: Filter by color
+        - `uuid_node`: Filter by node UUID
         """
         queryset = Microduct.objects.all()
         uuid_conduit = self.request.query_params.get("uuid_conduit")
         number = self.request.query_params.get("number")
         color = self.request.query_params.get("color")
+        uuid_node = self.request.query_params.get("uuid_node")
 
         if uuid_conduit:
             queryset = queryset.filter(uuid_conduit=uuid_conduit)
@@ -2510,6 +2527,8 @@ class MicroductViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(uuid_conduit=uuid_conduit, number=number)
         if uuid_conduit and color:
             queryset = queryset.filter(uuid_conduit=uuid_conduit, color=color)
+        if uuid_node:
+            queryset = queryset.filter(uuid_node=uuid_node)
         return queryset
 
     @action(detail=False, methods=["get"], url_path="all")
@@ -2522,12 +2541,15 @@ class MicroductViewSet(viewsets.ModelViewSet):
         uuid_conduit = request.query_params.get("uuid_conduit")
         number = request.query_params.get("number")
         color = request.query_params.get("color")
+        uuid_node = request.query_params.get("uuid_node")
         if uuid_conduit:
             queryset = queryset.filter(uuid_conduit=uuid_conduit)
         if uuid_conduit and number:
             queryset = queryset.filter(uuid_conduit=uuid_conduit, number=number)
         if uuid_conduit and color:
             queryset = queryset.filter(uuid_conduit=uuid_conduit, color=color)
+        if uuid_node:
+            queryset = queryset.filter(uuid_node=uuid_node)
         serializer = MicroductSerializer(queryset, many=True)
         return Response(serializer.data)
 
