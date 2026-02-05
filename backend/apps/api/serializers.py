@@ -545,7 +545,7 @@ class AddressSerializer(GeoFeatureModelSerializer):
     flag = FlagsSerializer(read_only=True)
     project = ProjectsSerializer(read_only=True)
 
-    id_address = serializers.CharField(required=False, read_only=True, max_length=7)
+    id_address = serializers.CharField(required=False, max_length=7)
     zip_code = serializers.CharField(required=True)
     city = serializers.CharField(required=True)
     district = serializers.CharField(required=False)

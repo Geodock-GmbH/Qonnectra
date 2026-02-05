@@ -52,6 +52,7 @@
 		return data.address;
 	}
 	const initialAddress = getInitialAddress();
+	let id_address = $state(initialAddress?.id_address || '');
 	let street = $state(initialAddress?.street || '');
 	let housenumber = $state(initialAddress?.housenumber ?? '');
 	let house_number_suffix = $state(initialAddress?.house_number_suffix || '');
@@ -67,6 +68,8 @@
 	let addressMarkerLayer = $state(null);
 	let mapCenter = $state(null);
 	let mapReady = $state(false);
+
+	let derivedIdAddress = $derived(id_address);
 
 	onMount(async () => {
 		if (!geom3857 || !geom3857.coordinates) return;
@@ -131,6 +134,7 @@
 		if (status_development_id)
 			formData.append('status_development_id', status_development_id.toString());
 		if (flag_id) formData.append('flag_id', flag_id.toString());
+		if (derivedIdAddress) formData.append('id_address', derivedIdAddress.toString());
 
 		try {
 			const response = await fetch('?/updateAddress', {
@@ -141,6 +145,10 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
+				const updated = result.data?.address;
+				if (updated?.id_address != null) {
+					id_address = updated.id_address;
+				}
 				globalToaster.success({
 					title: m.title_success(),
 					description: m.message_success_updating_address()
@@ -216,7 +224,7 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				data.address.id_address = result.data.id_address;
+				id_address = result.data.id_address;
 				globalToaster.success({
 					title: m.title_success(),
 					description: m.message_success_regenerating_id()
@@ -328,9 +336,9 @@
 							>
 							<input
 								type="text"
-								class="input bg-surface-50-950 cursor-default font-mono tracking-wider"
-								value={address?.id_address || ''}
-								readonly
+								class="input transition-colors"
+								maxlength="7"
+								bind:value={derivedIdAddress}
 							/>
 						</label>
 						<button

@@ -142,6 +142,7 @@ export const actions = {
 		const district = formData.get('district');
 		const status_development_id = formData.get('status_development_id');
 		const flag_id = formData.get('flag_id');
+		const id_address = formData.get('id_address');
 
 		try {
 			const requestBody = {};
@@ -156,6 +157,7 @@ export const actions = {
 			if (status_development_id)
 				requestBody.status_development_id = parseInt(status_development_id);
 			if (flag_id) requestBody.flag_id = parseInt(flag_id);
+			if (id_address) requestBody.id_address = id_address.toUpperCase();
 
 			const response = await fetch(`${API_URL}address/${uuid}/`, {
 				method: 'PATCH',
