@@ -94,7 +94,16 @@
 			}
 		}
 	],
-	"form_address_id": "Address ID",
+	"form_address_id": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Address ID",
+				"countPlural=other": "Address IDs"
+			}
+		}
+	],
 	"form_address_points": "Address points",
 	"form_area": "Area",
 	"form_area_type": "Area type",

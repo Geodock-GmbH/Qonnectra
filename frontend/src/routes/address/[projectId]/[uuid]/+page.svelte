@@ -324,7 +324,7 @@
 					<div class="flex items-end gap-3">
 						<label class="label flex-1">
 							<span class="label-text text-sm text-surface-600-400"
-								>{m.form_id_address()}</span
+								>{m.form_id_address({ count: 1 })}</span
 							>
 							<input
 								type="text"

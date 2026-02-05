@@ -94,7 +94,16 @@
 			}
 		}
 	],
-	"form_address_id": "Adressen-ID",
+	"form_address_id": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Adress-ID",
+				"countPlural=other": "Adressen-IDs"
+			}
+		}
+	],
 	"form_address_points": "Adressenpunkte",
 	"form_area": "Gebiet",
 	"form_area_type": "Gebietstyp",

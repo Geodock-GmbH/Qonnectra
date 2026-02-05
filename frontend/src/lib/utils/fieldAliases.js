@@ -28,7 +28,7 @@ export function getFieldAliases() {
 		funding_status: m.form_funding_status(),
 		comment: m.common_comment(),
 		address: m.form_address({ count: 1 }),
-		id_address: m.form_address_id(),
+		id_address: m.form_address_id({ count: 1 }),
 		zip_code: m.form_zip_code(),
 		city: m.form_city(),
 		district: m.form_district(),
