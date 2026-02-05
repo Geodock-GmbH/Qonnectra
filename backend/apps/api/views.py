@@ -60,10 +60,6 @@ from .models import (
     NodeSlotDivider,
     NodeStructure,
     NodeTrenchSelection,
-    OlAddress,
-    OlArea,
-    OlNode,
-    OlTrench,
     PipeBranchSettings,
     Projects,
     Trench,
@@ -114,10 +110,6 @@ from .serializers import (
     NodeStructureSerializer,
     NodeTrenchSelectionBulkSerializer,
     NodeTrenchSelectionSerializer,
-    OlAddressSerializer,
-    OlAreaSerializer,
-    OlNodeSerializer,
-    OlTrenchSerializer,
     ProjectsSerializer,
     TrenchConduitSerializer,
     TrenchSerializer,
@@ -1039,30 +1031,6 @@ class QGISAuthView(APIView):
         return Response(data, status=status_code)
 
 
-class OlTrenchViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the OlTrench model :model:`api.OlTrench`.
-
-    An instance of :model:`api.OlTrench`.
-    """
-
-    permission_classes = [IsAuthenticated]
-    queryset = OlTrench.objects.all().order_by("id_trench")
-    serializer_class = OlTrenchSerializer
-    lookup_field = "id_trench"
-    lookup_url_kwarg = "pk"
-    pagination_class = CustomPagination
-
-    def get_queryset(self):
-        queryset = OlTrench.objects.all()
-        id_trench = self.request.query_params.get("id_trench")
-        if id_trench:
-            queryset = queryset.filter(id_trench=id_trench)
-        uuid = self.request.query_params.get("uuid")
-        if uuid:
-            queryset = queryset.filter(uuid=uuid)
-        return queryset
-
-
 class OlTrenchTileViewSet(APIView):
     """ViewSet for the OlTrench model :model:`api.OlTrench`.
 
@@ -1448,57 +1416,18 @@ class AddressViewSet(viewsets.ModelViewSet):
         serializer = AddressSerializer(queryset, many=True)
         return Response(serializer.data)
 
-
-class OlAddressViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the OlAddress model :model:`api.OlAddress`.
-
-    An instance of :model:`api.OlAddress`.
-    """
-
-    permission_classes = [IsAuthenticated]
-    queryset = OlAddress.objects.all().order_by(
-        "street", "housenumber", "house_number_suffix"
-    )
-    serializer_class = OlAddressSerializer
-    lookup_field = "uuid"
-    lookup_url_kwarg = "pk"
-    pagination_class = CustomPagination
-
-    def get_queryset(self):
-        """
-        Optionally restricts the returned addresses by filtering against query parameters:
-        - `uuid`: Filter by UUID
-        - `project`: Filter by project ID
-        - `flag`: Filter by flag ID
-        """
-        queryset = OlAddress.objects.all()
-        uuid = self.request.query_params.get("uuid")
-        project_id = self.request.query_params.get("project")
-        flag_id = self.request.query_params.get("flag")
-        if uuid:
-            queryset = queryset.filter(uuid=uuid)
-        if project_id:
-            queryset = queryset.filter(project=project_id)
-        if flag_id:
-            queryset = queryset.filter(flag=flag_id)
-        return queryset
-
-    @action(detail=False, methods=["get"], url_path="all")
-    def all_ol_addresses(self, request):
-        """
-        Returns all ol_addresses with project and flag filters.
-        No pagination is used.
-        """
-        queryset = OlAddress.objects.all().order_by(
-            "street", "housenumber", "house_number_suffix"
-        )
-        project_id = request.query_params.get("project")
-        flag_id = request.query_params.get("flag")
-        if project_id:
-            queryset = queryset.filter(project=project_id)
-        if flag_id:
-            queryset = queryset.filter(flag=flag_id)
-        serializer = OlAddressSerializer(queryset, many=True)
+    @action(detail=True, methods=["post"], url_path="regenerate-id")
+    def regenerate_id(self, request, pk=None):
+        """Regenerate the Base32 address ID for this address."""
+        address = self.get_object()
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT fn_generate_address_id(%s)", [address.project_id]
+            )
+            new_id = cursor.fetchone()[0]
+        address.id_address = new_id
+        address.save(update_fields=["id_address"])
+        serializer = self.get_serializer(address)
         return Response(serializer.data)
 
 
@@ -2108,105 +2037,6 @@ class NodeCanvasCoordinatesView(APIView):
             sync_status.error_message = str(e)
             sync_status.save()
             raise
-
-
-class OlNodeViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the OlNode model :model:`api.OlNode`.
-
-    An instance of :model:`api.OlNode`.
-    """
-
-    permission_classes = [IsAuthenticated]
-    queryset = OlNode.objects.all().order_by("name")
-    serializer_class = OlNodeSerializer
-    lookup_field = "uuid"
-    lookup_url_kwarg = "pk"
-    pagination_class = CustomPagination
-
-    def get_queryset(self):
-        """
-        Optionally restricts the returned addresses by filtering against query parameters:
-        - `uuid`: Filter by UUID
-        - `project`: Filter by project ID
-        - `flag`: Filter by flag ID
-        - `parent_node`: Filter by parent node UUID
-        - `uuid_address`: Filter by address UUID
-        - `has_parent`: Filter nodes that have / do not have a parent
-        - `has_address`: Filter nodes that have / do not have an address
-        """
-        queryset = OlNode.objects.select_related(
-            "node_type",
-            "uuid_address",
-            "parent_node",
-            "status",
-            "network_level",
-            "owner",
-            "constructor",
-            "manufacturer",
-            "project",
-            "flag",
-        )
-        uuid = self.request.query_params.get("uuid")
-        project_id = self.request.query_params.get("project")
-        flag_id = self.request.query_params.get("flag")
-        parent_uuid = self.request.query_params.get("parent_node")
-        uuid_address = self.request.query_params.get("uuid_address")
-        has_parent = self.request.query_params.get("has_parent")
-        has_address = self.request.query_params.get("has_address")
-        if uuid:
-            queryset = queryset.filter(uuid=uuid)
-        if project_id:
-            queryset = queryset.filter(project=project_id)
-        if flag_id:
-            queryset = queryset.filter(flag=flag_id)
-        if parent_uuid:
-            queryset = queryset.filter(parent_node__uuid=parent_uuid)
-        if uuid_address:
-            queryset = queryset.filter(uuid_address__uuid=uuid_address)
-        if has_parent is not None:
-            value = has_parent.lower()
-            if value in ["1", "true", "yes"]:
-                queryset = queryset.filter(parent_node__isnull=False)
-            elif value in ["0", "false", "no"]:
-                queryset = queryset.filter(parent_node__isnull=True)
-        if has_address is not None:
-            value = has_address.lower()
-            if value in ["1", "true", "yes"]:
-                queryset = queryset.filter(uuid_address__isnull=False)
-            elif value in ["0", "false", "no"]:
-                queryset = queryset.filter(uuid_address__isnull=True)
-        return queryset
-
-    @action(detail=False, methods=["get"], url_path="all")
-    def all_ol_nodes(self, request):
-        """
-        Returns all ol_nodes with project and flag filters.
-        No pagination is used.
-        """
-        queryset = OlNode.objects.all().order_by("name")
-        project_id = request.query_params.get("project")
-        flag_id = request.query_params.get("flag")
-        group = request.query_params.get("group")
-        search_term = request.query_params.get("search")
-
-        if project_id:
-            queryset = queryset.filter(project=project_id)
-        if flag_id:
-            queryset = queryset.filter(flag=flag_id)
-        if group:
-            queryset = queryset.filter(node_type__group=group)
-        if search_term:
-            queryset = queryset.filter(
-                Q(name__icontains=search_term)
-                | Q(node_type__node_type__icontains=search_term)
-                | Q(status__status__icontains=search_term)
-                | Q(network_level__network_level__icontains=search_term)
-                | Q(owner__company__icontains=search_term)
-                | Q(manufacturer__company__icontains=search_term)
-                | Q(flag__flag__icontains=search_term)
-            )
-        serializer = OlNodeSerializer(queryset, many=True)
-        return Response(serializer.data)
 
 
 class OlNodeTileViewSet(APIView):
@@ -3209,10 +3039,10 @@ class LayerExtentView(APIView):
             )
 
         layer_tables = {
-            "trench": "ol_trench",
-            "address": "ol_address",
-            "node": "ol_node",
-            "area": "ol_area",
+            "trench": "trench",
+            "address": "address",
+            "node": "node",
+            "area": "area",
         }
 
         if layer not in layer_tables:
@@ -3236,7 +3066,7 @@ class LayerExtentView(APIView):
                 ST_XMin(extent), ST_YMin(extent),
                 ST_XMax(extent), ST_YMax(extent)
             FROM (
-                SELECT ST_Extent(ST_Transform(geom, 3857)) as extent
+                SELECT ST_Extent(geom_3857) as extent
                 FROM {layer_tables[layer]}
                 WHERE project = %(project)s
             ) as bounds
@@ -3333,55 +3163,6 @@ class AreaViewSet(viewsets.ModelViewSet):
                 | Q(area_type__area_type__icontains=search_term)
             )
         serializer = AreaSerializer(queryset, many=True)
-        return Response(serializer.data)
-
-
-class OlAreaViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the OlArea model :model:`api.OlArea`.
-
-    An instance of :model:`api.OlArea`.
-    """
-
-    permission_classes = [IsAuthenticated]
-    queryset = OlArea.objects.all().order_by("area_type", "uuid")
-    serializer_class = OlAreaSerializer
-    lookup_field = "uuid"
-    lookup_url_kwarg = "pk"
-    pagination_class = CustomPagination
-
-    def get_queryset(self):
-        """
-        Optionally restricts the returned areas by filtering against query parameters:
-        - `uuid`: Filter by UUID
-        - `project`: Filter by project ID
-        - `flag`: Filter by flag ID
-        """
-        queryset = OlArea.objects.all().order_by("area_type", "uuid")
-        uuid = self.request.query_params.get("uuid")
-        project_id = self.request.query_params.get("project")
-        flag_id = self.request.query_params.get("flag")
-        if uuid:
-            queryset = queryset.filter(uuid=uuid)
-        if project_id:
-            queryset = queryset.filter(project=project_id)
-        if flag_id:
-            queryset = queryset.filter(flag=flag_id)
-        return queryset
-
-    @action(detail=False, methods=["get"], url_path="all")
-    def all_ol_areas(self, request):
-        """
-        Returns all ol_areas with project and flag filters.
-        No pagination is used.
-        """
-        queryset = OlArea.objects.all().order_by("area_type", "uuid")
-        project_id = request.query_params.get("project")
-        flag_id = request.query_params.get("flag")
-        if project_id:
-            queryset = queryset.filter(project=project_id)
-        if flag_id:
-            queryset = queryset.filter(flag=flag_id)
-        serializer = OlAreaSerializer(queryset, many=True)
         return Response(serializer.data)
 
 

@@ -19,6 +19,7 @@
 
 	// Column configuration with sortable/filterable flags
 	const columnConfig = [
+		{ key: 'id_address', label: m.form_id_address(), sortable: true, filterable: true },
 		{ key: 'street', label: m.form_street(), sortable: true, filterable: true },
 		{ key: 'housenumber', label: m.form_housenumber(), sortable: true, filterable: true },
 		{
@@ -45,6 +46,7 @@
 
 	// Filter state - object with column keys
 	let filters = $state({
+		id_address: '',
 		street: '',
 		housenumber: '',
 		house_number_suffix: '',
@@ -265,6 +267,9 @@
 								</h3>
 								<p class="text-sm">{row.zip_code} {row.city}</p>
 							</div>
+							{#if row.id_address}
+								<span class="badge preset-tonal-primary text-xs font-mono">{row.id_address}</span>
+							{/if}
 						</div>
 
 						<!-- Details Grid -->

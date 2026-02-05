@@ -47,13 +47,9 @@ from .views import (
     NodeTrenchSelectionViewSet,
     NodeViewSet,
     OlAddressTileViewSet,
-    OlAddressViewSet,
     OlAreaTileViewSet,
-    OlAreaViewSet,
     OlNodeTileViewSet,
-    OlNodeViewSet,
     OlTrenchTileViewSet,
-    OlTrenchViewSet,
     ProjectsViewSet,
     QGISAuthView,
     RoutingView,
@@ -164,10 +160,6 @@ router.register(
 router.register(r"fiber", FiberViewSet, basename="fiber")
 router.register(r"fiber-splice", FiberSpliceViewSet, basename="fiber-splice")
 router.register(r"node", NodeViewSet, basename="node")
-router.register(r"ol_address", OlAddressViewSet, basename="ol_address")
-router.register(r"ol_area", OlAreaViewSet, basename="ol_area")
-router.register(r"ol_node", OlNodeViewSet, basename="ol_node")
-router.register(r"ol_trench", OlTrenchViewSet, basename="ol_trench")
 router.register(r"projects", ProjectsViewSet, basename="projects")
 router.register(r"trench", TrenchViewSet, basename="trench")
 router.register(

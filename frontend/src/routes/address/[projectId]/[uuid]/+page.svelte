@@ -9,6 +9,7 @@
 		IconLink,
 		IconLock,
 		IconMapPin,
+		IconRefresh,
 		IconTrash,
 		IconUsers
 	} from '@tabler/icons-svelte';
@@ -30,6 +31,7 @@
 
 	let isSaving = $state(false);
 	let isDeleting = $state(false);
+	let isRegenerating = $state(false);
 
 	const address = $derived(data.address);
 	const projectId = $derived(data.projectId);
@@ -199,6 +201,44 @@
 	}
 
 	/**
+	 * Handle the regenerate ID action
+	 */
+	async function handleRegenerateId() {
+		isRegenerating = true;
+		const formData = new FormData();
+
+		try {
+			const response = await fetch('?/regenerateId', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'success') {
+				data.address.id_address = result.data.id_address;
+				globalToaster.success({
+					title: m.title_success(),
+					description: m.message_success_regenerating_id()
+				});
+			} else {
+				globalToaster.error({
+					title: m.common_error(),
+					description: result.data?.message || m.message_error_regenerating_id()
+				});
+			}
+		} catch (error) {
+			console.error('Error regenerating address ID:', error);
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_regenerating_id()
+			});
+		} finally {
+			isRegenerating = false;
+		}
+	}
+
+	/**
 	 * Open the delete confirmation modal
 	 */
 	function openDeleteConfirm() {
@@ -281,6 +321,32 @@
 				</div>
 
 				<div class="space-y-5">
+					<div class="flex items-end gap-3">
+						<label class="label flex-1">
+							<span class="label-text text-sm text-surface-600-400"
+								>{m.form_id_address()}</span
+							>
+							<input
+								type="text"
+								class="input bg-surface-50-950 cursor-default font-mono tracking-wider"
+								value={address?.id_address || ''}
+								readonly
+							/>
+						</label>
+						<button
+							onclick={handleRegenerateId}
+							class="btn preset-tonal inline-flex items-center gap-2"
+							disabled={isRegenerating}
+						>
+							{#if isRegenerating}
+								<span>{m.common_loading()}</span>
+							{:else}
+								<IconRefresh class="size-4 shrink-0" />
+								<span>{m.action_regenerate_id()}</span>
+							{/if}
+						</button>
+					</div>
+
 					<label class="label">
 						<span class="label-text text-sm text-surface-600-400"
 							>{m.form_street()} <span class="text-error-400">*</span></span

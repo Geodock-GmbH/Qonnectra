@@ -1093,103 +1093,6 @@ class Trench(models.Model):
         ]
 
 
-class OlTrench(models.Model):
-    """Stores all trench features rendered on Openlayers,
-    related to :model:`api.AttributesSurface`,
-    :model:`api.AttributesConstructionType`,
-    :model:`api.AttributesStatus`,
-    :model:`api.AttributesPhase`,
-    :model:`api.AttributesCompany`,
-    :model:`api.Projects`,
-    :model:`api.Flags`.
-    """
-
-    uuid = models.UUIDField(primary_key=True)
-    id_trench = models.IntegerField(_("Trench ID"))
-    surface = models.ForeignKey(
-        AttributesSurface,
-        on_delete=models.DO_NOTHING,
-        db_column="surface",
-        verbose_name=_("Surface"),
-    )
-    construction_type = models.ForeignKey(
-        AttributesConstructionType,
-        on_delete=models.DO_NOTHING,
-        db_column="construction_type",
-        verbose_name=_("Construction Type"),
-    )
-    construction_depth = models.IntegerField(
-        _("Construction Depth"), null=True, blank=True
-    )
-    construction_details = models.TextField(
-        _("Construction Details"), null=True, blank=True
-    )
-    status = models.ForeignKey(
-        AttributesStatus,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        db_column="status",
-        verbose_name=_("Status"),
-    )
-    phase = models.ForeignKey(
-        AttributesPhase,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        db_column="phase",
-        verbose_name=_("Phase"),
-    )
-    internal_execution = models.BooleanField(
-        _("Internal Execution"), null=True, blank=True
-    )
-    funding_status = models.BooleanField(_("Funding Status"), null=True, blank=True)
-    owner = models.ForeignKey(
-        AttributesCompany,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        related_name="owned_ol_trenches",
-        db_column="owner",
-        verbose_name=_("Owner"),
-    )
-    constructor = models.ForeignKey(
-        AttributesCompany,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        related_name="executed_ol_trenches",
-        db_column="constructor",
-        verbose_name=_("Constructor"),
-    )
-    date = models.DateField(_("Date"), null=True, blank=True)
-    comment = models.TextField(_("Comment"), null=True, blank=True)
-    house_connection = models.BooleanField(_("House Connection"), null=True, blank=True)
-    length = models.DecimalField(_("Length"), max_digits=12, decimal_places=4)
-    geom = gis_models.LineStringField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
-    project = models.ForeignKey(
-        Projects,
-        null=False,
-        on_delete=models.DO_NOTHING,
-        db_column="project",
-        verbose_name=_("Project"),
-    )
-    flag = models.ForeignKey(
-        Flags,
-        null=False,
-        on_delete=models.DO_NOTHING,
-        db_column="flag",
-        verbose_name=_("Flag"),
-    )
-
-    class Meta:
-        managed = False
-        db_table = "ol_trench"
-        verbose_name = _("OL Trench")
-        verbose_name_plural = _("OL Trenches")
-        ordering = ["id_trench"]
-
-
 class Conduit(models.Model):
     """Stores all conduits,
     related to :model:`api.TrenchConduitConnection`,
@@ -1368,7 +1271,7 @@ class Address(models.Model):
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
-    id_address = models.IntegerField(_("Address ID"), null=True, blank=True)
+    id_address = models.CharField(_("Address ID"), max_length=7, null=True, blank=True)
     zip_code = models.TextField(_("Zip Code"), null=False)
     city = models.TextField(_("City"), null=False)
     district = models.TextField(_("District"), null=True, blank=True)
@@ -1456,57 +1359,6 @@ class Address(models.Model):
             if self.house_number_suffix
             else f"{self.street} {self.housenumber}, {self.zip_code} {self.city}"
         )
-
-
-class OlAddress(models.Model):
-    """Stores all addresses rendered on Openlayers,
-    related to :model:`api.Address`,
-    :model:`api.AttributesStatusDevelopment`,
-    :model:`api.Flags`,
-    :model:`api.Projects`.
-    """
-
-    uuid = models.UUIDField(primary_key=True)
-    id_address = models.IntegerField(_("Address ID"))
-    zip_code = models.TextField(_("Zip Code"))
-    city = models.TextField(_("City"))
-    district = models.TextField(_("District"))
-    street = models.TextField(_("Street"))
-    housenumber = models.IntegerField(_("Housenumber"))
-    house_number_suffix = models.TextField(_("House Number Suffix"))
-    geom = gis_models.PointField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
-    flag = models.ForeignKey(
-        Flags,
-        null=False,
-        on_delete=models.DO_NOTHING,
-        db_column="flag",
-        db_index=False,
-        verbose_name=_("Flag"),
-    )
-    project = models.ForeignKey(
-        Projects,
-        null=False,
-        on_delete=models.DO_NOTHING,
-        db_column="project",
-        db_index=False,
-        verbose_name=_("Project"),
-    )
-    status_development = models.ForeignKey(
-        AttributesStatusDevelopment,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        db_column="status_development",
-        db_index=False,
-        verbose_name=_("Status Development"),
-    )
-
-    class Meta:
-        managed = False
-        db_table = "ol_address"
-        verbose_name = _("OL Address")
-        verbose_name_plural = _("Openlayers Addresses")
-        ordering = ["street", "housenumber", "house_number_suffix"]
 
 
 class Node(models.Model):
@@ -1702,121 +1554,6 @@ class NodeTrenchSelection(models.Model):
         return f"{self.node.name} - {self.trench.id_trench}"
 
 
-class OlNode(models.Model):
-    """Stores all nodes rendered on Openlayers,
-    related to :model:`api.Node`,
-    :model:`api.AttributesNodeType`,
-    :model:`api.AttributesStatus`,
-    :model:`api.AttributesNetworkLevel`,
-    :model:`api.AttributesCompany`,
-    :model:`api.Flags`,
-    :model:`api.Projects`.
-    """
-
-    uuid = models.UUIDField(primary_key=True)
-    name = models.TextField(_("Node Name"))
-    node_type = models.ForeignKey(
-        AttributesNodeType,
-        null=False,
-        on_delete=models.DO_NOTHING,
-        db_column="node_type",
-        db_index=False,
-        verbose_name=_("Node Type"),
-    )
-    uuid_address = models.ForeignKey(
-        Address,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        db_column="uuid_address",
-        db_index=False,
-        verbose_name=_("Address"),
-    )
-    parent_node = models.ForeignKey(
-        "self",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        db_column="parent_node",
-        db_index=False,
-        verbose_name=_("Parent Node"),
-    )
-    status = models.ForeignKey(
-        AttributesStatus,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        db_column="status",
-        db_index=False,
-        verbose_name=_("Status"),
-    )
-    network_level = models.ForeignKey(
-        AttributesNetworkLevel,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        db_column="network_level",
-        db_index=False,
-        verbose_name=_("Network Level"),
-    )
-    owner = models.ForeignKey(
-        AttributesCompany,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        db_column="owner",
-        db_index=False,
-        verbose_name=_("Owner"),
-        related_name="owned_ol_nodes",
-    )
-    constructor = models.ForeignKey(
-        AttributesCompany,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        db_column="constructor",
-        db_index=False,
-        verbose_name=_("Constructor"),
-        related_name="constructed_ol_nodes",
-    )
-    manufacturer = models.ForeignKey(
-        AttributesCompany,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        db_column="manufacturer",
-        db_index=False,
-        verbose_name=_("Manufacturer"),
-        related_name="manufactured_ol_nodes",
-    )
-    warranty = models.DateField(_("Warranty"), null=True, blank=True)
-    date = models.DateField(_("Date"), null=True, blank=True)
-    geom = gis_models.PointField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
-    flag = models.ForeignKey(
-        Flags,
-        null=False,
-        on_delete=models.DO_NOTHING,
-        db_column="flag",
-        db_index=False,
-        verbose_name=_("Flag"),
-    )
-    project = models.ForeignKey(
-        Projects,
-        null=False,
-        on_delete=models.DO_NOTHING,
-        db_column="project",
-        db_index=False,
-        verbose_name=_("Project"),
-    )
-
-    class Meta:
-        managed = False
-        db_table = "ol_node"
-        verbose_name = _("OL Node")
-        verbose_name_plural = _("Openlayers Nodes")
-        ordering = ["name"]
-
-
 class Area(models.Model):
     """Stores all polygons,
     related to :model:`api.Projects`,
@@ -1881,44 +1618,6 @@ class Area(models.Model):
                 fields=["project", "name"],
                 name="unique_area",
             ),
-        ]
-
-
-class OlArea(models.Model):
-    """Stores all areas rendered on Openlayers,
-    related to :model:`api.Area`.
-    """
-
-    uuid = models.UUIDField(primary_key=True)
-    geom = gis_models.PolygonField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
-    area_type = models.ForeignKey(
-        AttributesAreaType, on_delete=models.DO_NOTHING, db_column="area_type"
-    )
-    flag = models.ForeignKey(
-        Flags,
-        null=False,
-        on_delete=models.DO_NOTHING,
-        db_column="flag",
-        db_index=False,
-        verbose_name=_("Flag"),
-    )
-    project = models.ForeignKey(
-        Projects,
-        null=False,
-        on_delete=models.DO_NOTHING,
-        db_column="project",
-        db_index=False,
-        verbose_name=_("Project"),
-    )
-
-    class Meta:
-        managed = False
-        db_table = "ol_area"
-        verbose_name = _("OL Area")
-        verbose_name_plural = _("OL Areas")
-        ordering = ["area_type"]
-        indexes = [
-            models.Index(fields=["area_type"], name="idx_ol_area_area_type"),
         ]
 
 

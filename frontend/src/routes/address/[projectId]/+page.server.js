@@ -61,6 +61,7 @@ export async function load({ fetch, url, depends, cookies, params }) {
 			const item = feature.properties;
 			return {
 				value: feature.id,
+				id_address: item.id_address || '',
 				street: item.street || '',
 				housenumber: item.housenumber ?? '',
 				house_number_suffix: item.house_number_suffix || '',

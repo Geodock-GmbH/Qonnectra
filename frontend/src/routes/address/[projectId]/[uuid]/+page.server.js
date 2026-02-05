@@ -196,6 +196,35 @@ export const actions = {
 			return fail(500, { message: err.message || 'Failed to update address' });
 		}
 	},
+	regenerateId: async ({ fetch, cookies, params }) => {
+		const headers = getAuthHeaders(cookies);
+		const { uuid } = params;
+
+		try {
+			const response = await fetch(`${API_URL}address/${uuid}/regenerate-id/`, {
+				method: 'POST',
+				credentials: 'include',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				}
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					message: errorData.detail || 'Failed to regenerate address ID'
+				});
+			}
+
+			const updatedData = await response.json();
+			const id_address = updatedData.properties?.id_address || updatedData.id_address;
+			return { success: true, id_address };
+		} catch (err) {
+			console.error('Error regenerating address ID:', err);
+			return fail(500, { message: err.message || 'Failed to regenerate address ID' });
+		}
+	},
 	deleteAddress: async ({ request, fetch, cookies, params }) => {
 		const headers = getAuthHeaders(cookies);
 		const { projectId, uuid } = params;
