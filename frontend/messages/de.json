@@ -228,6 +228,7 @@
 	"form_number": "Nummer",
 	"form_outer_conduit": "Schutzrohr",
 	"form_owner": "Eigentümer",
+	"form_parent_node_name": "Übergeordneter Netzknoten",
 	"form_partial_selection": "Teilauswahl",
 	"form_phase": "Phase",
 	"form_port": "Port",

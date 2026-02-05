@@ -1421,9 +1421,7 @@ class AddressViewSet(viewsets.ModelViewSet):
         """Regenerate the Base32 address ID for this address."""
         address = self.get_object()
         with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT fn_generate_address_id(%s)", [address.project_id]
-            )
+            cursor.execute("SELECT fn_generate_address_id(%s)", [address.project_id])
             new_id = cursor.fetchone()[0]
         address.id_address = new_id
         address.save(update_fields=["id_address"])
@@ -2079,10 +2077,12 @@ class OlNodeTileViewSet(APIView):
                     c1.company,
                     s.status,
                     COALESCE(a.street || ' ' || a.housenumber, a.house_number_suffix,
-                        a.street || '' || a.housenumber) AS address
+                        a.street || '' || a.housenumber) AS address,
+                    parent_n.name AS parent_node_name
                 FROM bounds b
                 CROSS JOIN public.node n
                 LEFT JOIN public.address a ON n.uuid_address = a.uuid
+                LEFT JOIN public.node parent_n ON n.parent_node = parent_n.uuid
                 LEFT JOIN public.attributes_company c1 ON n.owner = c1.id
                 LEFT JOIN public.attributes_company c2 ON n.constructor = c2.id
                 LEFT JOIN public.attributes_company c3 ON n.manufacturer = c3.id

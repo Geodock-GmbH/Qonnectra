@@ -228,6 +228,7 @@
 	"form_number": "Number",
 	"form_outer_conduit": "Outer conduit",
 	"form_owner": "Owner",
+	"form_parent_node_name": "Parent node",
 	"form_partial_selection": "Partial selection",
 	"form_phase": "Phase",
 	"form_port": "Port",
