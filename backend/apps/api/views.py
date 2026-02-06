@@ -40,7 +40,6 @@ from .models import (
     AttributesStatus,
     AttributesStatusDevelopment,
     AttributesSurface,
-    ResidentialUnit,
     Cable,
     CableLabel,
     CableTypeColorMapping,
@@ -65,6 +64,7 @@ from .models import (
     NodeTrenchSelection,
     PipeBranchSettings,
     Projects,
+    ResidentialUnit,
     Trench,
     TrenchConduitConnection,
 )
@@ -90,7 +90,6 @@ from .serializers import (
     AttributesStatusDevelopmentSerializer,
     AttributesStatusSerializer,
     AttributesSurfaceSerializer,
-    ResidentialUnitSerializer,
     CableAtNodeSerializer,
     CableLabelSerializer,
     CableSerializer,
@@ -117,6 +116,7 @@ from .serializers import (
     NodeTrenchSelectionBulkSerializer,
     NodeTrenchSelectionSerializer,
     ProjectsSerializer,
+    ResidentialUnitSerializer,
     TrenchConduitSerializer,
     TrenchSerializer,
 )
@@ -307,7 +307,9 @@ class AttributesResidentialUnitTypeViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for the AttributesResidentialUnitType model."""
 
     permission_classes = [IsAuthenticated]
-    queryset = AttributesResidentialUnitType.objects.all().order_by("residential_unit_type")
+    queryset = AttributesResidentialUnitType.objects.all().order_by(
+        "residential_unit_type"
+    )
     serializer_class = AttributesResidentialUnitTypeSerializer
     lookup_field = "id"
     lookup_url_kwarg = "pk"
@@ -1473,7 +1475,7 @@ class ResidentialUnitViewSet(viewsets.ModelViewSet):
             "uuid_address",
             "residential_unit_type",
             "status",
-        ).order_by("uuid_address", "floor", "side")
+        ).order_by("uuid_address", "id_residential_unit", "floor", "side")
 
         uuid_address = self.request.query_params.get("uuid_address")
         if uuid_address:
@@ -1484,11 +1486,15 @@ class ResidentialUnitViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="all")
     def all_units(self, request):
         """Returns all residential units for an address. No pagination."""
-        queryset = self.get_queryset()
+        queryset = ResidentialUnit.objects.select_related(
+            "uuid_address",
+            "residential_unit_type",
+            "status",
+        ).order_by("uuid_address", "floor", "side")
         uuid_address = request.query_params.get("uuid_address")
         if uuid_address:
-            queryset = queryset.filter(uuid_address=uuid_address)
-        serializer = self.get_serializer(queryset, many=True)
+            queryset = queryset.filter(uuid_address__uuid=uuid_address)
+        serializer = ResidentialUnitSerializer(queryset, many=True)
         return Response(serializer.data)
 
 

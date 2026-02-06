@@ -3,7 +3,7 @@ import os
 import uuid
 
 from django.conf import settings
-from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models as gis_models
 from django.contrib.gis.db.models.functions import Transform
@@ -1120,13 +1120,6 @@ class Trench(models.Model):
         db_persist=True,
     )
 
-    files = GenericRelation(
-        FeatureFiles,
-        content_type_field="content_type",
-        object_id_field="object_id",
-        related_query_name="trench",
-    )
-
     project = models.ForeignKey(
         Projects,
         null=False,
@@ -1252,13 +1245,6 @@ class Conduit(models.Model):
     )
     date = models.DateField(_("Date"), null=True, blank=True)
 
-    files = GenericRelation(
-        FeatureFiles,
-        content_type_field="content_type",
-        object_id_field="object_id",
-        related_query_name="conduit",
-    )
-
     project = models.ForeignKey(
         Projects,
         null=False,
@@ -1377,13 +1363,6 @@ class Address(models.Model):
         db_persist=True,
     )
 
-    files = GenericRelation(
-        FeatureFiles,
-        content_type_field="content_type",
-        object_id_field="object_id",
-        related_query_name="address",
-    )
-
     flag = models.ForeignKey(
         Flags,
         null=False,
@@ -1484,13 +1463,6 @@ class ResidentialUnit(models.Model):
         _("Resident Recorded Date"), null=True, blank=True
     )
     ready_for_service = models.DateField(_("Ready for Service"), null=True, blank=True)
-
-    files = GenericRelation(
-        FeatureFiles,
-        content_type_field="content_type",
-        object_id_field="object_id",
-        related_query_name="residentialunit",
-    )
 
     class Meta:
         db_table = "residential_unit"
@@ -1617,13 +1589,6 @@ class Node(models.Model):
     )
     canvas_x = models.FloatField(_("Canvas X"), null=True, blank=True)
     canvas_y = models.FloatField(_("Canvas Y"), null=True, blank=True)
-
-    files = GenericRelation(
-        FeatureFiles,
-        content_type_field="content_type",
-        object_id_field="object_id",
-        related_query_name="node",
-    )
 
     flag = models.ForeignKey(
         Flags,
@@ -1752,13 +1717,6 @@ class Area(models.Model):
         db_column="flag",
         db_index=False,
         verbose_name=_("Flag"),
-    )
-
-    files = GenericRelation(
-        FeatureFiles,
-        content_type_field="content_type",
-        object_id_field="object_id",
-        related_query_name="area",
     )
 
     def __str__(self):
@@ -2131,13 +2089,6 @@ class Cable(models.Model):
         help_text=_(
             "Custom waypoints for diagram edge path as array of {x, y} coordinates"
         ),
-    )
-
-    files = GenericRelation(
-        FeatureFiles,
-        content_type_field="content_type",
-        object_id_field="object_id",
-        related_query_name="cable",
     )
 
     project = models.ForeignKey(
@@ -2729,32 +2680,6 @@ def qgis_project_deleted(sender, instance, **kwargs):
         except Exception as e:
             logger.error(
                 f"Error deleting QGIS project file {instance.project_file.name}: {e}"
-            )
-
-
-@receiver(post_delete, sender=FeatureFiles)
-def feature_file_deleted(sender, instance, **kwargs):
-    """
-    Delete physical file from storage when a FeatureFiles DB record is deleted.
-
-    This handles cleanup for both:
-    - Cascade deletions (when a parent feature with GenericRelation is deleted)
-    - Direct ORM deletions (admin bulk actions, etc.)
-
-    The storage.exists() check prevents errors when FeatureFilesViewSet.destroy()
-    has already deleted the physical file before the signal fires.
-    """
-    if instance.file_path:
-        try:
-            storage = instance.file_path.storage
-            if storage.exists(instance.file_path.name):
-                storage.delete(instance.file_path.name)
-                logger.info(
-                    f"Deleted physical file on record deletion: {instance.file_path.name}"
-                )
-        except Exception as e:
-            logger.error(
-                f"Error deleting physical file {instance.file_path.name}: {e}"
             )
 
 

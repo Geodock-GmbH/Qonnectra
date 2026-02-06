@@ -4,6 +4,7 @@ from django import forms
 from django.contrib import admin, messages
 from django.contrib.contenttypes.models import ContentType
 from django.db import models, transaction
+from django.db.models import Case, Exists, IntegerField, OuterRef, Q, Value, When
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
 from django.utils.html import format_html
@@ -570,14 +571,13 @@ class AddressAdmin(admin.ModelAdmin):
     )
     search_fields = (
         "street",
-        "housenumber",
         "house_number_suffix",
         "zip_code",
         "city",
         "district",
-        "status_development",
-        "flag",
-        "project",
+        "status_development__status",
+        "flag__flag",
+        "project__project",
     )
 
 
@@ -1143,6 +1143,61 @@ class FeatureFilesAdmin(admin.ModelAdmin):
     ordering = ("-created_at",)
     actions = ["delete_orphaned_files", "move_to_feature"]
 
+    def get_queryset(self, request):
+        """Annotate queryset with orphaned status for sorting."""
+        queryset = super().get_queryset(request)
+        
+        # Create subqueries to check if feature exists for each model type
+        orphaned_conditions = []
+        
+        for model_name, model_class in FEATURE_MODEL_MAP.items():
+            try:
+                content_type = ContentType.objects.get(
+                    app_label="api", model=model_name
+                )
+            except ContentType.DoesNotExist:
+                continue
+            
+            # Check if feature exists in this model
+            feature_exists = Exists(
+                model_class.objects.filter(
+                    uuid=OuterRef("object_id")
+                )
+            )
+            
+            # If content_type matches and feature doesn't exist, it's orphaned
+            orphaned_conditions.append(
+                When(
+                    Q(content_type=content_type) & ~feature_exists,
+                    then=Value(1)
+                )
+            )
+        
+        # Also mark as orphaned if content_type doesn't match any known model
+        unknown_content_types = ContentType.objects.filter(
+            app_label="api"
+        ).exclude(
+            model__in=FEATURE_MODEL_MAP.keys()
+        )
+        if unknown_content_types.exists():
+            orphaned_conditions.append(
+                When(
+                    content_type__in=unknown_content_types,
+                    then=Value(1)
+                )
+            )
+        
+        # Annotate: 1 if orphaned, 0 if valid
+        queryset = queryset.annotate(
+            _is_orphaned=Case(
+                *orphaned_conditions,
+                default=Value(0),
+                output_field=IntegerField()
+            )
+        )
+        
+        return queryset
+
     def get_urls(self):
         """Add custom URL for move files form."""
         urls = super().get_urls()
@@ -1216,10 +1271,15 @@ class FeatureFilesAdmin(admin.ModelAdmin):
             )
         return FeatureFiles.get_feature_identifier(obj)
 
-    @admin.display(description=_("Status"))
+    @admin.display(description=_("Status"), ordering="_is_orphaned")
     def orphan_status_display(self, obj):
         """Display orphan status with color indicator."""
-        if self.is_orphaned(obj):
+        # Use annotation if available, otherwise fall back to method check
+        is_orphaned = getattr(obj, "_is_orphaned", None)
+        if is_orphaned is None:
+            is_orphaned = 1 if self.is_orphaned(obj) else 0
+        
+        if is_orphaned:
             return format_html(
                 '<span style="color: #dc3545; font-weight: bold;">⚠ {}</span>',
                 _("Orphaned"),
