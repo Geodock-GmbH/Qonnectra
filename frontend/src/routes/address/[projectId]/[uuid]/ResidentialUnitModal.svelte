@@ -89,7 +89,7 @@
 	onInteractOutside={resetForm}
 	onEscapeKeyDown={resetForm}
 >
-	<Dialog.Trigger class="btn preset-tonal-primary btn-sm">
+	<Dialog.Trigger class="btn preset-filled-primary-500 btn-sm">
 		<IconPlus class="size-4" />
 		<span>{m.action_add()}</span>
 	</Dialog.Trigger>

@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import {
 		IconArrowLeft,
+		IconBuilding,
 		IconDeviceFloppy,
 		IconFolder,
 		IconHome,
@@ -15,6 +16,7 @@
 	import 'ol/ol.css';
 
 	import { onMount } from 'svelte';
+	import proj4 from 'proj4';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -38,7 +40,9 @@
 	const addressError = $derived(data.addressError);
 	const statusDevelopments = $derived(data.statusDevelopments);
 	const flags = $derived(data.flags);
+	const geom = $derived(data.address?.geom || null);
 	const geom3857 = $derived(data.address?.geom_3857 || null);
+	const geom4326 = $derived(data.address?.geom_3857 || null);
 	const featureId = $derived(address?.uuid);
 	const linkedNodes = $derived(data.linkedNodes || []);
 	const linkedMicroducts = $derived(data.linkedMicroducts || []);
@@ -121,6 +125,22 @@
 
 		mapReady = true;
 	});
+
+	/**
+	 * Convert the geometry from 3857 to 4326
+	 * @returns {String} The converted geometry
+	 */
+	function convert3857To4326() {
+		if (!geom3857 || !geom3857.coordinates) return null;
+		const coords4326 = proj4('EPSG:3857', 'EPSG:4326', geom3857.coordinates);
+		return `${coords4326[1].toFixed(6)}, ${coords4326[0].toFixed(6)}`;
+	}
+
+	function convert3857ToDefault() {
+		if (!geom3857 || !geom3857.coordinates) return null;
+		const coordsDefault = proj4('EPSG:3857', 'EPSG:25832', geom3857.coordinates);
+		return `${coordsDefault[0].toFixed(6)}, ${coordsDefault[1].toFixed(6)}`;
+	}
 
 	/**
 	 * Handle the save action
@@ -277,21 +297,34 @@
 	<title>{street} {housenumber}{house_number_suffix} - {m.nav_address()}</title>
 </svelte:head>
 
-<div class="max-w-6xl mx-auto space-y-8">
+<div class="max-w-6xl mx-auto space-y-6">
 	<!-- Header -->
-	<div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-6 sm:px-8">
-		<button onclick={goBack} class="btn preset-tonal-primary inline-flex items-center gap-2">
-			<IconArrowLeft class="size-4 shrink-0" />
-			<span>{m.common_back()}</span>
-		</button>
-		<div class="flex-1 min-w-0">
-			<h1 class="text-2xl font-bold truncate">
-				{street}
-				{housenumber}{house_number_suffix}
-			</h1>
-			<p class="text-sm text-surface-500">{zip_code} {city}</p>
+	<div class="card p-4 flex items-center justify-between gap-4">
+		<div class="flex items-center gap-4 min-w-0">
+			<button
+				onclick={goBack}
+				class="btn preset-tonal-primary inline-flex items-center gap-2 shrink-0"
+			>
+				<IconArrowLeft class="size-4 shrink-0" />
+				<span>{m.common_back()}</span>
+			</button>
+			<div class="flex items-center gap-3 min-w-0">
+				<div class="size-10 rounded-lg bg-primary-500/15 flex items-center justify-center shrink-0">
+					<IconHome class="size-5 text-primary-500" />
+				</div>
+				<div class="min-w-0">
+					<h1 class="text-2xl font-bold truncate">
+						{street}
+						{housenumber}{house_number_suffix}
+					</h1>
+					<p class="text-sm text-surface-900-100">
+						{zip_code}
+						{city}{district ? ` · ${district}` : ''}
+					</p>
+				</div>
+			</div>
 		</div>
-		<div class="flex items-center gap-3 shrink-0">
+		<div class="flex items-center gap-2 shrink-0">
 			<button
 				onclick={openDeleteConfirm}
 				class="btn preset-filled-error-500 inline-flex items-center gap-2"
@@ -324,14 +357,16 @@
 		<!-- Top Row: Form + Map -->
 		<div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
 			<!-- Left: Address Form -->
-			<div class="lg:col-span-3 card p-6 sm:p-8 space-y-6">
+			<div class="lg:col-span-3 card p-6 space-y-6">
 				<!-- Section: Address Information -->
-				<div class="flex items-center gap-2.5 pb-3 border-b border-surface-200-800">
+				<div class="flex items-center gap-3">
+					<div class="w-1 h-6 rounded-full bg-primary-500"></div>
 					<IconHome class="size-5 text-primary-500" />
-					<h2 class="text-xl font-semibold">{m.section_address_information()}</h2>
+					<h2 class="text-lg font-semibold">{m.section_address_information()}</h2>
 				</div>
 
-				<div class="space-y-5">
+				<div class="space-y-4">
+					<!-- ID Row -->
 					<div class="flex items-end gap-3">
 						<label class="label flex-1">
 							<span class="label-text text-sm text-surface-900-100"
@@ -339,21 +374,22 @@
 							>
 							<input
 								type="text"
-								class="input transition-colors"
+								class="input"
 								maxlength="7"
+								name="id_address"
 								bind:value={derivedIdAddress}
 							/>
 						</label>
 						<button
 							onclick={handleRegenerateId}
-							class="btn preset-tonal inline-flex items-center gap-2"
+							class="btn preset-tonal-primary inline-flex items-center gap-2"
 							disabled={isRegenerating}
 						>
 							{#if isRegenerating}
 								<span>{m.common_loading()}</span>
 							{:else}
 								<IconRefresh class="size-4 shrink-0" />
-								<span>{m.action_regenerate_id()}</span>
+								<span class="hidden sm:inline">{m.action_regenerate_id()}</span>
 							{/if}
 						</button>
 					</div>
@@ -362,7 +398,7 @@
 						<span class="label-text text-sm text-surface-900-100"
 							>{m.form_street()} <span class="text-error-400">*</span></span
 						>
-						<input type="text" class="input transition-colors" bind:value={street} />
+						<input type="text" class="input" name="street" bind:value={street} />
 					</label>
 
 					<div class="grid grid-cols-2 gap-4">
@@ -370,13 +406,18 @@
 							<span class="label-text text-sm text-surface-900-100"
 								>{m.form_housenumber()} <span class="text-error-400">*</span></span
 							>
-							<input type="number" class="input transition-colors" bind:value={housenumber} />
+							<input type="number" class="input" name="housenumber" bind:value={housenumber} />
 						</label>
 						<label class="label">
 							<span class="label-text text-sm text-surface-900-100"
 								>{m.form_house_number_suffix()}</span
 							>
-							<input type="text" class="input transition-colors" bind:value={house_number_suffix} />
+							<input
+								type="text"
+								class="input"
+								name="house_number_suffix"
+								bind:value={house_number_suffix}
+							/>
 						</label>
 					</div>
 
@@ -385,26 +426,36 @@
 							<span class="label-text text-sm text-surface-900-100"
 								>{m.form_zip_code()} <span class="text-error-400">*</span></span
 							>
-							<input type="text" class="input transition-colors" bind:value={zip_code} />
+							<input type="text" class="input" name="zip_code" bind:value={zip_code} />
 						</label>
 						<label class="label">
 							<span class="label-text text-sm text-surface-900-100"
 								>{m.form_city()} <span class="text-error-400">*</span></span
 							>
-							<input type="text" class="input transition-colors" bind:value={city} />
+							<input type="text" class="input" name="city" bind:value={city} />
 						</label>
 					</div>
 
 					<label class="label">
 						<span class="label-text text-sm text-surface-900-100">{m.form_district()}</span>
-						<input type="text" class="input transition-colors" bind:value={district} />
+						<input type="text" class="input" name="district" bind:value={district} />
 					</label>
+
+					<!-- Divider -->
+					<div class="border-t border-surface-200-800"></div>
+
+					<!-- Classification Fields -->
+					<div class="flex items-center gap-3 pt-1">
+						<div class="w-1 h-6 rounded-full bg-tertiary-500"></div>
+						<IconBuilding class="size-5 text-tertiary-500" />
+						<h2 class="text-lg font-semibold">{m.section_classification()}</h2>
+					</div>
 
 					<label class="label">
 						<span class="label-text text-sm text-surface-900-100"
 							>{m.form_status_development()}</span
 						>
-						<select class="select transition-colors" bind:value={status_development_id}>
+						<select class="select" name="status_development_id" bind:value={status_development_id}>
 							<option value="">-</option>
 							{#each statusDevelopments as option (option.value)}
 								<option value={option.value}>{option.label}</option>
@@ -416,7 +467,7 @@
 						<span class="label-text text-sm text-surface-900-100"
 							>{m.form_flag()} <span class="text-error-400">*</span></span
 						>
-						<select class="select transition-colors" bind:value={flag_id}>
+						<select class="select" name="flag_id" bind:value={flag_id}>
 							<option value="">-</option>
 							{#each flags as option (option.value)}
 								<option value={option.value}>{option.label}</option>
@@ -430,7 +481,8 @@
 						>
 						<input
 							type="text"
-							class="input bg-surface-50-950 cursor-default"
+							class="input bg-surface-50-950 cursor-default opacity-60"
+							name="project"
 							bind:value={project}
 							readonly
 						/>
@@ -439,27 +491,26 @@
 			</div>
 
 			<!-- Right: Mini Map -->
-			<div class="lg:col-span-2 card p-6 sm:p-8 space-y-4">
-				<div class="flex items-center gap-2.5 pb-3 border-b border-surface-200-800">
-					<IconMapPin class="size-5 text-primary-500" />
-					<h2 class="text-xl font-semibold">{m.section_location()}</h2>
+			<div class="lg:col-span-2 card p-6 space-y-4">
+				<div class="flex items-center gap-3">
+					<div class="w-1 h-6 rounded-full bg-info-500"></div>
+					<IconMapPin class="size-5 text-info-500" />
+					<h2 class="text-lg font-semibold">{m.section_location()}</h2>
 				</div>
 
 				{#if geom3857?.coordinates && mapReady && addressMarkerLayer}
-					<div class="space-y-2">
-						<div class="h-64 md:h-80 rounded-lg overflow-hidden border border-surface-200-800">
-							<Map
-								variant="compact"
-								layers={[addressMarkerLayer]}
-								viewOptions={{
-									center: mapCenter,
-									zoom: 18
-								}}
-								showOpacitySlider={false}
-								showLayerVisibilityTree={false}
-								showSearchPanel={false}
-							/>
-						</div>
+					<div class="h-64 md:h-80 rounded-lg overflow-hidden border border-surface-200-800">
+						<Map
+							variant="compact"
+							layers={[addressMarkerLayer]}
+							viewOptions={{
+								center: mapCenter,
+								zoom: 18
+							}}
+							showOpacitySlider={false}
+							showLayerVisibilityTree={false}
+							showSearchPanel={false}
+						/>
 					</div>
 				{:else if geom3857?.coordinates}
 					<div
@@ -472,8 +523,30 @@
 						class="h-64 md:h-80 rounded-lg border border-dashed border-surface-300-700 flex items-center justify-center"
 					>
 						<div class="text-center text-surface-400">
-							<IconMapPin class="size-16 mx-auto mb-3 opacity-30" />
-							<p class="text-sm font-medium text-surface-500">{m.message_no_location_data()}</p>
+							<IconMapPin class="size-12 mx-auto mb-2 opacity-30" />
+							<p class="text-sm font-medium text-surface-900-100">
+								{m.message_no_location_data()}
+							</p>
+						</div>
+					</div>
+				{/if}
+
+				<!-- Coordinates display -->
+				{#if geom3857?.coordinates}
+					<div
+						class="flex items-start gap-2 text-xs text-surface-900-100 bg-surface-50-950 rounded px-3 py-2 flex-col"
+					>
+						<div class="flex items-center gap-2">
+							<IconMapPin class="size-3.5 shrink-0" />
+							<span class="font-mono">
+								{convert3857ToDefault()}
+							</span>
+						</div>
+						<div class="flex items-center gap-2">
+							<IconMapPin class="size-3.5 shrink-0" />
+							<span class="font-mono">
+								{convert3857To4326()}
+							</span>
 						</div>
 					</div>
 				{/if}
@@ -481,17 +554,18 @@
 		</div>
 
 		<!-- Microduct Connections -->
-		<div class="card p-6 sm:p-8 space-y-6">
-			<div class="flex items-center gap-2.5 pb-3 border-b border-surface-200-800">
-				<IconLink class="size-5 text-primary-500" />
-				<h2 class="text-xl font-semibold">{m.section_microduct_connections()}</h2>
+		<div class="card p-6 space-y-4">
+			<div class="flex items-center gap-3">
+				<div class="w-1 h-6 rounded-full bg-warning-500"></div>
+				<IconLink class="size-5 text-warning-500" />
+				<h2 class="text-lg font-semibold">{m.section_microduct_connections()}</h2>
 				{#if linkedMicroducts.length > 0}
 					<span class="badge preset-tonal-primary text-xs ml-auto">{linkedMicroducts.length}</span>
 				{/if}
 			</div>
 
 			{#if linkedMicroducts.length > 0}
-				<div class="overflow-x-auto -mx-2">
+				<div class="overflow-x-auto">
 					<table class="table">
 						<thead>
 							<tr>
@@ -515,20 +589,36 @@
 						<tbody>
 							{#each linkedMicroducts as md (md.uuid)}
 								<tr class="hover:preset-tonal-primary transition-colors">
-									<td>{md.nodeName}</td>
+									<td class="font-medium">{md.nodeName}</td>
 									<td>{md.conduitName}</td>
 									<td>{md.conduitType}</td>
-									<td>{md.number}</td>
-									<td>{md.color}</td>
+									<td>
+										<span
+											class="inline-flex items-center justify-center size-7 rounded-md bg-surface-200-800 text-xs font-mono font-medium"
+										>
+											{md.number}
+										</span>
+									</td>
+									<td>
+										<span class="inline-flex items-center gap-2">
+											<span
+												class="size-3 rounded-full border border-surface-300-700"
+												style="background-color: {md.color?.toLowerCase() || 'transparent'}"
+											></span>
+											{md.color}
+										</span>
+									</td>
 								</tr>
 							{/each}
 						</tbody>
 					</table>
 				</div>
 			{:else}
-				<div class="rounded-lg border border-dashed border-surface-300-700 p-10 text-center">
-					<IconLink class="size-16 mx-auto mb-4 text-surface-300 opacity-40" />
-					<p class="text-sm font-medium text-surface-900-100">{m.message_no_microducts_linked()}</p>
+				<div class="rounded-lg border border-dashed border-surface-300-700 p-8 text-center">
+					<IconLink class="size-10 mx-auto mb-3 text-warning-500 opacity-40" />
+					<p class="text-sm font-medium text-surface-900-100">
+						{m.message_no_microducts_linked()}
+					</p>
 				</div>
 			{/if}
 		</div>
@@ -536,10 +626,11 @@
 		<!-- Bottom Row: Files + Residential Units -->
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 			<!-- Files -->
-			<div class="card p-6 sm:p-8 space-y-6">
-				<div class="flex items-center gap-2.5 pb-3 border-b border-surface-200-800">
-					<IconFolder class="size-5 text-primary-500" />
-					<h2 class="text-xl font-semibold">{m.form_attachments()}</h2>
+			<div class="card p-6 space-y-4">
+				<div class="flex items-center gap-3">
+					<div class="w-1 h-6 rounded-full bg-success-500"></div>
+					<IconFolder class="size-5 text-success-500" />
+					<h2 class="text-lg font-semibold">{m.form_attachments()}</h2>
 				</div>
 
 				{#if featureId}

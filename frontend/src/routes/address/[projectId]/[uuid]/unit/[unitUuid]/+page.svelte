@@ -4,9 +4,11 @@
 	import {
 		IconArrowLeft,
 		IconDeviceFloppy,
+		IconDoor,
 		IconFolder,
-		IconHome,
+		IconHash,
 		IconRefresh,
+		IconTag,
 		IconTrash,
 		IconUser
 	} from '@tabler/icons-svelte';
@@ -205,20 +207,32 @@
 	<title>{displayTitle} - {m.section_residential_units({ count: 1 })}</title>
 </svelte:head>
 
-<div class="max-w-4xl mx-auto space-y-8">
+<div class="max-w-4xl mx-auto space-y-6">
 	<!-- Header -->
-	<div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-6 sm:px-8">
-		<button onclick={goBack} class="btn preset-tonal inline-flex items-center gap-2">
-			<IconArrowLeft class="size-4 shrink-0" />
-			<span>{m.common_back()}</span>
-		</button>
-		<div class="flex-1 min-w-0">
-			<h1 class="text-2xl font-bold truncate">
-				{displayTitle}
-			</h1>
-			<p class="text-sm text-surface-900-100">{m.section_residential_units({ count: 1 })}</p>
+	<div class="card p-4 flex items-center justify-between gap-4">
+		<div class="flex items-center gap-4 min-w-0">
+			<button
+				onclick={goBack}
+				class="btn preset-tonal-primary inline-flex items-center gap-2 shrink-0"
+			>
+				<IconArrowLeft class="size-4 shrink-0" />
+				<span>{m.common_back()}</span>
+			</button>
+			<div class="flex items-center gap-3 min-w-0">
+				<div class="size-10 rounded-lg bg-primary-500/15 flex items-center justify-center shrink-0">
+					<IconDoor class="size-5 text-primary-500" />
+				</div>
+				<div class="min-w-0">
+					<h1 class="text-2xl font-bold truncate">
+						{displayTitle}
+					</h1>
+					<p class="text-sm text-surface-900-100">
+						{m.section_residential_units({ count: 1 })}
+					</p>
+				</div>
+			</div>
 		</div>
-		<div class="flex items-center gap-3 shrink-0">
+		<div class="flex items-center gap-2 shrink-0">
 			<button
 				onclick={openDeleteConfirm}
 				class="btn preset-filled-error-500 inline-flex items-center gap-2"
@@ -247,91 +261,71 @@
 			<p>{unitError}</p>
 		</div>
 	{:else if unit}
-		<!-- Main Form Card -->
-		<div class="card p-6 sm:p-8 space-y-6">
-			<!-- Section: Identification -->
-			<div class="flex items-center gap-2.5 pb-3 border-b border-surface-200-800">
-				<IconHome class="size-5 text-primary-500" />
-				<h2 class="text-xl font-semibold">{m.form_id_residential_unit()}</h2>
-			</div>
+		<!-- Identification + Location Row -->
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+			<!-- Identification -->
+			<div class="card p-6 space-y-4">
+				<div class="flex items-center gap-3">
+					<div class="w-1 h-6 rounded-full bg-primary-500"></div>
+					<IconHash class="size-5 text-primary-500" />
+					<h2 class="text-lg font-semibold">{m.form_id_residential_unit()}</h2>
+				</div>
 
-			<div class="space-y-5">
-				<div class="flex items-end gap-3">
-					<label class="label flex-1">
-						<span class="label-text text-sm text-surface-900-100"
-							>{m.form_id_residential_unit()}</span
+				<div class="space-y-4">
+					<div class="flex items-end gap-3">
+						<label class="label flex-1">
+							<span class="label-text text-sm text-surface-900-100"
+								>{m.form_id_residential_unit()}</span
+							>
+							<input
+								type="text"
+								class="input"
+								maxlength="8"
+								name="id_residential_unit"
+								bind:value={formIdResidentialUnit}
+							/>
+						</label>
+						<button
+							onclick={handleRegenerateId}
+							class="btn preset-tonal-primary inline-flex items-center gap-2"
+							disabled={isRegenerating}
 						>
-						<input
-							type="text"
-							class="input transition-colors"
-							maxlength="8"
-							bind:value={formIdResidentialUnit}
-						/>
-					</label>
-					<button
-						onclick={handleRegenerateId}
-						class="btn preset-tonal inline-flex items-center gap-2"
-						disabled={isRegenerating}
-					>
-						{#if isRegenerating}
-							<span>{m.common_loading()}</span>
-						{:else}
-							<IconRefresh class="size-4 shrink-0" />
-							<span>{m.action_regenerate_id()}</span>
-						{/if}
-					</button>
-				</div>
+							{#if isRegenerating}
+								<span>{m.common_loading()}</span>
+							{:else}
+								<IconRefresh class="size-4 shrink-0" />
+								<span class="hidden sm:inline">{m.action_regenerate_id()}</span>
+							{/if}
+						</button>
+					</div>
 
-				<div class="grid grid-cols-2 gap-4">
-					<label class="label">
-						<span class="label-text text-sm text-surface-900-100">{m.form_external_id_1()}</span>
-						<input type="text" class="input transition-colors" bind:value={formExternalId1} />
-					</label>
-					<label class="label">
-						<span class="label-text text-sm text-surface-900-100">{m.form_external_id_2()}</span>
-						<input type="text" class="input transition-colors" bind:value={formExternalId2} />
-					</label>
+					<div class="grid grid-cols-2 gap-4">
+						<label class="label">
+							<span class="label-text text-sm text-surface-900-100">{m.form_external_id_1()}</span>
+							<input type="text" class="input" name="external_id_1" bind:value={formExternalId1} />
+						</label>
+						<label class="label">
+							<span class="label-text text-sm text-surface-900-100">{m.form_external_id_2()}</span>
+							<input type="text" class="input" name="external_id_2" bind:value={formExternalId2} />
+						</label>
+					</div>
 				</div>
 			</div>
 
-			<!-- Section: Location -->
-			<div class="flex items-center gap-2.5 pb-3 border-b border-surface-200-800 pt-4">
-				<IconHome class="size-5 text-primary-500" />
-				<h2 class="text-xl font-semibold">{m.section_location()}</h2>
-			</div>
-
-			<div class="space-y-5">
-				<div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-					<label class="label">
-						<span class="label-text text-sm text-surface-900-100">{m.form_floor()}</span>
-						<input type="number" class="input transition-colors" bind:value={formFloor} />
-					</label>
-					<label class="label">
-						<span class="label-text text-sm text-surface-900-100"
-							>{m.form_residential_unit_side()}</span
-						>
-						<input type="text" class="input transition-colors" bind:value={formSide} />
-					</label>
-					<label class="label">
-						<span class="label-text text-sm text-surface-900-100">{m.form_building_section()}</span>
-						<input type="text" class="input transition-colors" bind:value={formBuildingSection} />
-					</label>
+			<!-- Classification -->
+			<div class="card p-6 space-y-4">
+				<div class="flex items-center gap-3">
+					<div class="w-1 h-6 rounded-full bg-tertiary-500"></div>
+					<IconTag class="size-5 text-tertiary-500" />
+					<h2 class="text-lg font-semibold">{m.section_classification()}</h2>
 				</div>
-			</div>
 
-			<!-- Section: Classification -->
-			<div class="flex items-center gap-2.5 pb-3 border-b border-surface-200-800 pt-4">
-				<IconHome class="size-5 text-primary-500" />
-				<h2 class="text-xl font-semibold">{m.form_residential_unit_type()}</h2>
-			</div>
-
-			<div class="space-y-5">
-				<div class="grid grid-cols-2 gap-4">
+				<div class="space-y-4">
 					<label class="label">
 						<span class="label-text text-sm text-surface-900-100"
 							>{m.form_residential_unit_type()}</span
 						>
-						<select class="select transition-colors" bind:value={formTypeId}>
+						<select class="select" name="residential_unit_type_id" bind:value={formTypeId}>
 							<option value="">-</option>
 							{#each residentialUnitTypes as type (type.value)}
 								<option value={type.value}>{type.label}</option>
@@ -342,7 +336,7 @@
 						<span class="label-text text-sm text-surface-900-100"
 							>{m.form_residential_unit_status()}</span
 						>
-						<select class="select transition-colors" bind:value={formStatusId}>
+						<select class="select" name="status_id" bind:value={formStatusId}>
 							<option value="">-</option>
 							{#each residentialUnitStatuses as status (status.value)}
 								<option value={status.value}>{status.label}</option>
@@ -351,44 +345,86 @@
 					</label>
 				</div>
 			</div>
+		</div>
 
-			<!-- Section: Resident Information -->
-			<div class="flex items-center gap-2.5 pb-3 border-b border-surface-200-800 pt-4">
-				<IconUser class="size-5 text-primary-500" />
-				<h2 class="text-xl font-semibold">{m.from_resident()}</h2>
+		<!-- Location + Resident Row -->
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+			<!-- Location -->
+			<div class="card p-6 space-y-4">
+				<div class="flex items-center gap-3">
+					<div class="w-1 h-6 rounded-full bg-secondary-500"></div>
+					<IconDoor class="size-5 text-secondary-500" />
+					<h2 class="text-lg font-semibold">{m.section_location()}</h2>
+				</div>
+
+				<div class="grid grid-cols-3 gap-4">
+					<label class="label">
+						<span class="label-text text-sm text-surface-900-100">{m.form_floor()}</span>
+						<input type="number" class="input" name="floor" bind:value={formFloor} />
+					</label>
+					<label class="label">
+						<span class="label-text text-sm text-surface-900-100"
+							>{m.form_residential_unit_side()}</span
+						>
+						<input type="text" class="input" name="side" bind:value={formSide} />
+					</label>
+					<label class="label">
+						<span class="label-text text-sm text-surface-900-100">{m.form_building_section()}</span>
+						<input
+							type="text"
+							class="input"
+							name="building_section"
+							bind:value={formBuildingSection}
+						/>
+					</label>
+				</div>
 			</div>
 
-			<div class="space-y-5">
-				<label class="label">
-					<span class="label-text text-sm text-surface-900-100">{m.form_resident_name()}</span>
-					<input type="text" class="input transition-colors" bind:value={formResidentName} />
-				</label>
+			<!-- Resident Information -->
+			<div class="card p-6 space-y-4">
+				<div class="flex items-center gap-3">
+					<div class="w-1 h-6 rounded-full bg-warning-500"></div>
+					<IconUser class="size-5 text-warning-500" />
+					<h2 class="text-lg font-semibold">{m.from_resident()}</h2>
+				</div>
 
-				<div class="grid grid-cols-2 gap-4">
+				<div class="space-y-4">
+					<label class="label">
+						<span class="label-text text-sm text-surface-900-100">{m.form_resident_name()}</span>
+						<input type="text" class="input" name="resident_name" bind:value={formResidentName} />
+					</label>
+
 					<label class="label">
 						<span class="label-text text-sm text-surface-900-100"
 							>{m.form_resident_recorded_date()}</span
 						>
 						<input
 							type="date"
-							class="input transition-colors"
+							class="input"
+							name="resident_recorded_date"
 							bind:value={formResidentRecordedDate}
 						/>
 					</label>
 					<label class="label">
 						<span class="label-text text-sm text-surface-900-100">{m.form_ready_for_service()}</span
 						>
-						<input type="date" class="input transition-colors" bind:value={formReadyForService} />
+						<input
+							type="date"
+							class="input"
+							name="ready_for_service"
+							bind:value={formReadyForService}
+						/>
 					</label>
 				</div>
 			</div>
 		</div>
 
-		<!-- Files -->
-		<div class="card p-6 sm:p-8 space-y-6">
-			<div class="flex items-center gap-2.5 pb-3 border-b border-surface-200-800">
-				<IconFolder class="size-5 text-primary-500" />
-				<h2 class="text-xl font-semibold">{m.form_attachments()}</h2>
+		<!-- Files - Full Width -->
+		<div class="card p-6 space-y-4">
+			<div class="flex items-center gap-3">
+				<div class="w-1 h-6 rounded-full bg-success-500"></div>
+				<IconFolder class="size-5 text-success-500" />
+				<h2 class="text-lg font-semibold">{m.form_attachments()}</h2>
 			</div>
 
 			{#if featureId}

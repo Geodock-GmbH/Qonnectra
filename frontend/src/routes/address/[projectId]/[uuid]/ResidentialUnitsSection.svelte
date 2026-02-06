@@ -170,24 +170,25 @@
 	}
 </script>
 
-<div class="card p-6 sm:p-8 space-y-6">
-	<div class="flex items-center gap-2.5 pb-3 border-b border-surface-200-800">
+<div class="card p-6 space-y-4">
+	<div class="flex items-center gap-3">
+		<div class="w-1 h-6 rounded-full bg-primary-500"></div>
 		<IconUsers class="size-5 text-primary-500" />
-		<h2 class="text-xl font-semibold">{m.section_residential_units()}</h2>
+		<h2 class="text-lg font-semibold">{m.section_residential_units()}</h2>
 		{#if residentialUnits.length > 0}
-			<span class="badge preset-tonal-primary text-xs ml-auto"
-				>{sortedUnits.length === residentialUnits.length
+			<span class="badge preset-tonal-primary text-xs ml-auto">
+				{sortedUnits.length === residentialUnits.length
 					? residentialUnits.length
-					: `${sortedUnits.length} / ${residentialUnits.length}`}</span
-			>
+					: `${sortedUnits.length} / ${residentialUnits.length}`}
+			</span>
 		{/if}
-		<div class="ml-2">
+		<div class={residentialUnits.length > 0 ? 'ml-2' : 'ml-auto'}>
 			<ResidentialUnitModal {residentialUnitTypes} {residentialUnitStatuses} bind:openModal />
 		</div>
 	</div>
 
 	{#if residentialUnits.length > 0}
-		<div class="overflow-x-auto -mx-2">
+		<div class="overflow-x-auto">
 			<table class="table">
 				<thead>
 					<tr>
@@ -239,7 +240,15 @@
 							onclick={() => navigateToUnit(unit.uuid)}
 						>
 							{#each columnConfig as column (column.key)}
-								<td>{getCellValue(unit, column.key) || '-'}</td>
+								<td>
+									{#if column.key === 'id_residential_unit'}
+										<span class="font-medium font-mono text-sm">
+											{getCellValue(unit, column.key) || '-'}
+										</span>
+									{:else}
+										{getCellValue(unit, column.key) || '-'}
+									{/if}
+								</td>
 							{/each}
 							<td>
 								<button
@@ -286,8 +295,8 @@
 			</div>
 		{/if}
 	{:else}
-		<div class="rounded-lg border border-dashed border-surface-300-700 p-10 text-center">
-			<IconUsers class="size-16 mx-auto mb-4 text-surface-300 opacity-40" />
+		<div class="rounded-lg border border-dashed border-surface-300-700 p-8 text-center">
+			<IconUsers class="size-10 mx-auto mb-3 text-surface-300 opacity-40" />
 			<p class="text-sm font-medium text-surface-500">{m.message_no_residential_units()}</p>
 		</div>
 	{/if}
