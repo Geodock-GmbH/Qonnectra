@@ -1497,6 +1497,21 @@ class ResidentialUnitViewSet(viewsets.ModelViewSet):
         serializer = ResidentialUnitSerializer(queryset, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["post"], url_path="regenerate-id")
+    def regenerate_id(self, request, pk=None):
+        """Regenerate the Base28 residential unit ID for this unit."""
+        unit = self.get_object()
+        project_id = unit.uuid_address.project_id
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT fn_generate_residential_unit_id(%s)", [project_id]
+            )
+            new_id = cursor.fetchone()[0]
+        unit.id_residential_unit = new_id
+        unit.save(update_fields=["id_residential_unit"])
+        serializer = self.get_serializer(unit)
+        return Response(serializer.data)
+
 
 class OlAddressTileViewSet(APIView):
     """ViewSet for the OlAddress model :model:`api.OlAddress`.

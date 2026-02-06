@@ -14,8 +14,6 @@
 		openModal = $bindable(false)
 	} = $props();
 
-	let isCreating = $state(false);
-
 	// Form state
 	let formIdResidentialUnit = $state('');
 	let formFloor = $state('');
@@ -44,7 +42,6 @@
 
 	async function handleSubmit(event) {
 		event.preventDefault();
-		isCreating = true;
 
 		const formData = new FormData();
 		if (formIdResidentialUnit) formData.append('id_residential_unit', formIdResidentialUnit);
@@ -68,7 +65,6 @@
 					title: m.title_success(),
 					description: m.message_success_creating_residential_unit()
 				});
-				handleClose();
 				invalidateAll();
 			} else {
 				globalToaster.error({
@@ -81,8 +77,6 @@
 				title: m.common_error(),
 				description: m.message_error_creating_residential_unit()
 			});
-		} finally {
-			isCreating = false;
 		}
 	}
 </script>
@@ -120,6 +114,7 @@
 							class="input transition-colors"
 							bind:value={formIdResidentialUnit}
 							placeholder=""
+							maxlength="8"
 						/>
 					</label>
 
@@ -182,17 +177,12 @@
 					</div>
 				</form>
 
-				<footer class="flex justify-end gap-3 pt-2">
-					<button type="button" class="btn preset-tonal" onclick={handleClose}>
-						{m.common_cancel()}
+				<footer class="flex justify-end gap-4">
+					<button type="button" class="btn preset-outlined" onclick={handleClose}>
+						{m.action_close()}
 					</button>
-					<button
-						type="submit"
-						class="btn preset-filled-primary"
-						form="residential-unit-form"
-						disabled={isCreating}
-					>
-						{isCreating ? m.common_loading() : m.common_save()}
+					<button type="submit" class="btn preset-filled" form="residential-unit-form">
+						{m.action_save()}
 					</button>
 				</footer>
 			</Dialog.Content>

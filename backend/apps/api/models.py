@@ -1434,8 +1434,8 @@ class ResidentialUnit(models.Model):
         related_name="residential_units",
         verbose_name=_("Address"),
     )
-    id_residential_unit = models.TextField(
-        _("Residential Unit ID"), null=True, blank=True, unique=True
+    id_residential_unit = models.CharField(
+        _("Residential Unit ID"), max_length=8, null=True, blank=True
     )
     residential_unit_type = models.ForeignKey(
         AttributesResidentialUnitType,

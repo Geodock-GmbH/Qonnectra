@@ -280,7 +280,7 @@
 <div class="max-w-6xl mx-auto space-y-8">
 	<!-- Header -->
 	<div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-6 sm:px-8">
-		<button onclick={goBack} class="btn preset-tonal inline-flex items-center gap-2">
+		<button onclick={goBack} class="btn preset-tonal-primary inline-flex items-center gap-2">
 			<IconArrowLeft class="size-4 shrink-0" />
 			<span>{m.common_back()}</span>
 		</button>
@@ -294,7 +294,7 @@
 		<div class="flex items-center gap-3 shrink-0">
 			<button
 				onclick={openDeleteConfirm}
-				class="btn preset-tonal-error inline-flex items-center gap-2"
+				class="btn preset-filled-error-500 inline-flex items-center gap-2"
 				disabled={isDeleting || isLinkedToNode}
 				{@attach tooltip(m.message_address_linked_to_node(), { disabled: !isLinkedToNode })}
 			>
@@ -528,7 +528,7 @@
 			{:else}
 				<div class="rounded-lg border border-dashed border-surface-300-700 p-10 text-center">
 					<IconLink class="size-16 mx-auto mb-4 text-surface-300 opacity-40" />
-					<p class="text-sm font-medium text-surface-500">{m.message_no_microducts_linked()}</p>
+					<p class="text-sm font-medium text-surface-900-100">{m.message_no_microducts_linked()}</p>
 				</div>
 			{/if}
 		</div>

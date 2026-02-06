@@ -170,5 +170,37 @@ export const actions = {
 			console.error('Error deleting residential unit:', err);
 			return fail(500, { message: err.message || 'Failed to delete residential unit' });
 		}
+	},
+
+	regenerateId: async ({ fetch, cookies, params }) => {
+		const headers = getAuthHeaders(cookies);
+		const { unitUuid } = params;
+
+		try {
+			const response = await fetch(`${API_URL}residential-unit/${unitUuid}/regenerate-id/`, {
+				method: 'POST',
+				credentials: 'include',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				}
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					message: errorData.detail || 'Failed to regenerate residential unit ID'
+				});
+			}
+
+			const updatedData = await response.json();
+			const id_residential_unit = updatedData.id_residential_unit;
+			return { success: true, id_residential_unit };
+		} catch (err) {
+			console.error('Error regenerating residential unit ID:', err);
+			return fail(500, {
+				message: err.message || 'Failed to regenerate residential unit ID'
+			});
+		}
 	}
 };

@@ -659,7 +659,7 @@ class ResidentialUnitSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
     id_residential_unit = serializers.CharField(
-        required=False, allow_blank=True, allow_null=True
+        required=False, allow_blank=True, allow_null=True, max_length=8
     )
     floor = serializers.IntegerField(required=False, allow_null=True)
     side = serializers.CharField(required=False, allow_blank=True, allow_null=True)

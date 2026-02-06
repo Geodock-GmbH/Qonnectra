@@ -1,8 +1,15 @@
 <script>
 	import { deserialize } from '$app/forms';
 	import { goto, invalidateAll } from '$app/navigation';
-	import { IconArrowLeft, IconArrowRight, IconTrash, IconUsers } from '@tabler/icons-svelte';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
+	import {
+		IconArrowLeft,
+		IconArrowRight,
+		IconChevronDown,
+		IconChevronUp,
+		IconTrash,
+		IconUsers
+	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -25,10 +32,97 @@
 	let page = $state(1);
 	let size = $state(10);
 
+	// Column configuration
+	const columnConfig = [
+		{
+			key: 'id_residential_unit',
+			label: m.table_residential_unit_id(),
+			sortable: true,
+			filterable: true
+		},
+		{ key: 'floor', label: m.table_floor(), sortable: true, filterable: true },
+		{ key: 'side', label: m.table_side(), sortable: true, filterable: true },
+		{
+			key: 'residential_unit_type',
+			label: m.table_residential_unit_type(),
+			sortable: true,
+			filterable: true
+		},
+		{ key: 'status', label: m.table_residential_unit_status(), sortable: true, filterable: true }
+	];
+
+	// Filter state
+	let filters = $state({
+		id_residential_unit: '',
+		floor: '',
+		side: '',
+		residential_unit_type: '',
+		status: ''
+	});
+
+	// Sort state
+	let sortColumn = $state(null);
+	let sortDirection = $state('asc');
+
+	function updateFilter(columnKey, value) {
+		filters[columnKey] = value;
+		page = 1;
+	}
+
+	function toggleSort(columnKey) {
+		if (sortColumn === columnKey) {
+			if (sortDirection === 'asc') {
+				sortDirection = 'desc';
+			} else {
+				sortColumn = null;
+				sortDirection = 'asc';
+			}
+		} else {
+			sortColumn = columnKey;
+			sortDirection = 'asc';
+		}
+		page = 1;
+	}
+
+	/**
+	 * Get the display value for a unit's column
+	 * @param {Object} unit
+	 * @param {string} key
+	 * @returns {string}
+	 */
+	function getCellValue(unit, key) {
+		if (key === 'residential_unit_type')
+			return unit.residential_unit_type?.residential_unit_type ?? '';
+		if (key === 'status') return unit.status?.status ?? '';
+		return unit[key] ?? '';
+	}
+
+	// Filter → Sort → Paginate
+	const filteredUnits = $derived.by(() => {
+		return residentialUnits.filter((unit) => {
+			return Object.entries(filters).every(([key, filterValue]) => {
+				if (!filterValue) return true;
+				const cellValue = String(getCellValue(unit, key)).toLowerCase();
+				return cellValue.includes(filterValue.toLowerCase());
+			});
+		});
+	});
+
+	const sortedUnits = $derived.by(() => {
+		if (!sortColumn) return filteredUnits;
+		return [...filteredUnits].sort((a, b) => {
+			const aVal = String(getCellValue(a, sortColumn)).toLowerCase();
+			const bVal = String(getCellValue(b, sortColumn)).toLowerCase();
+			if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+			if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+			return 0;
+		});
+	});
+
 	const start = $derived((page - 1) * size);
 	const end = $derived(start + size);
-	const paginatedUnits = $derived(residentialUnits.slice(start, end));
-	const totalPages = $derived(Math.ceil(residentialUnits.length / size) || 1);
+	const paginatedUnits = $derived(sortedUnits.slice(start, end));
+	const totalPages = $derived(Math.ceil(sortedUnits.length / size) || 1);
 
 	function navigateToUnit(unitUuid) {
 		goto(`/address/${projectId}/${addressUuid}/unit/${unitUuid}`);
@@ -81,7 +175,11 @@
 		<IconUsers class="size-5 text-primary-500" />
 		<h2 class="text-xl font-semibold">{m.section_residential_units()}</h2>
 		{#if residentialUnits.length > 0}
-			<span class="badge preset-tonal-primary text-xs ml-auto">{residentialUnits.length}</span>
+			<span class="badge preset-tonal-primary text-xs ml-auto"
+				>{sortedUnits.length === residentialUnits.length
+					? residentialUnits.length
+					: `${sortedUnits.length} / ${residentialUnits.length}`}</span
+			>
 		{/if}
 		<div class="ml-2">
 			<ResidentialUnitModal {residentialUnitTypes} {residentialUnitStatuses} bind:openModal />
@@ -93,24 +191,45 @@
 			<table class="table">
 				<thead>
 					<tr>
-						<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider">
-							{m.table_residential_unit_id()}
-						</th>
-						<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider">
-							{m.table_floor()}
-						</th>
-						<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider">
-							{m.table_side()}
-						</th>
-						<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider">
-							{m.table_residential_unit_type()}
-						</th>
-						<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider">
-							{m.table_residential_unit_status()}
-						</th>
+						{#each columnConfig as column (column.key)}
+							<th
+								class="text-xs font-medium text-surface-900-100 uppercase tracking-wider {column.sortable
+									? 'cursor-pointer select-none'
+									: ''}"
+								onclick={() => column.sortable && toggleSort(column.key)}
+							>
+								<span class="inline-flex items-center gap-1">
+									{column.label}
+									{#if column.sortable && sortColumn === column.key}
+										{#if sortDirection === 'asc'}
+											<IconChevronUp class="size-3" />
+										{:else}
+											<IconChevronDown class="size-3" />
+										{/if}
+									{/if}
+								</span>
+							</th>
+						{/each}
 						<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider">
 							{m.form_actions()}
 						</th>
+					</tr>
+					<!-- Filter Row -->
+					<tr class="bg-surface-50-900">
+						{#each columnConfig as column (column.key)}
+							<th class="p-1">
+								{#if column.filterable}
+									<input
+										type="text"
+										class="input text-sm py-1 px-2 w-full"
+										placeholder={m.common_search()}
+										value={filters[column.key]}
+										oninput={(e) => updateFilter(column.key, e.target.value)}
+									/>
+								{/if}
+							</th>
+						{/each}
+						<th></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -119,15 +238,13 @@
 							class="hover:preset-tonal-primary transition-colors cursor-pointer"
 							onclick={() => navigateToUnit(unit.uuid)}
 						>
-							<td>{unit.id_residential_unit ?? '-'}</td>
-							<td>{unit.floor ?? '-'}</td>
-							<td>{unit.side ?? '-'}</td>
-							<td>{unit.residential_unit_type?.residential_unit_type ?? '-'}</td>
-							<td>{unit.status?.status ?? '-'}</td>
+							{#each columnConfig as column (column.key)}
+								<td>{getCellValue(unit, column.key) || '-'}</td>
+							{/each}
 							<td>
 								<button
 									onclick={(e) => confirmDelete(e, unit.uuid)}
-									class="btn btn-sm preset-tonal-error"
+									class="btn btn-sm preset-filled-error-500"
 									title={m.action_delete()}
 								>
 									<IconTrash class="size-4" />
@@ -141,7 +258,7 @@
 		{#if totalPages > 1}
 			<div class="mt-4 flex justify-center">
 				<Pagination
-					count={residentialUnits.length}
+					count={sortedUnits.length}
 					pageSize={size}
 					{page}
 					onPageChange={(event) => (page = event.page)}

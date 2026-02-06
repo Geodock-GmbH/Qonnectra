@@ -6,6 +6,7 @@
 		IconDeviceFloppy,
 		IconFolder,
 		IconHome,
+		IconRefresh,
 		IconTrash,
 		IconUser
 	} from '@tabler/icons-svelte';
@@ -21,6 +22,7 @@
 
 	let isSaving = $state(false);
 	let isDeleting = $state(false);
+	let isRegenerating = $state(false);
 
 	const unit = $derived(data.unit);
 	const unitError = $derived(data.unitError);
@@ -149,6 +151,41 @@
 		}
 	}
 
+	async function handleRegenerateId() {
+		isRegenerating = true;
+		const formData = new FormData();
+
+		try {
+			const response = await fetch('?/regenerateId', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'success') {
+				formIdResidentialUnit = result.data.id_residential_unit;
+				globalToaster.success({
+					title: m.title_success(),
+					description: m.message_success_regenerating_residential_unit_id()
+				});
+			} else {
+				globalToaster.error({
+					title: m.common_error(),
+					description: result.data?.message || m.message_error_regenerating_residential_unit_id()
+				});
+			}
+		} catch (error) {
+			console.error('Error regenerating residential unit ID:', error);
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_regenerating_residential_unit_id()
+			});
+		} finally {
+			isRegenerating = false;
+		}
+	}
+
 	function handleUploadComplete() {
 		if (fileExplorer) {
 			fileExplorer.refresh();
@@ -184,7 +221,7 @@
 		<div class="flex items-center gap-3 shrink-0">
 			<button
 				onclick={openDeleteConfirm}
-				class="btn preset-tonal-error inline-flex items-center gap-2"
+				class="btn preset-filled-error-500 inline-flex items-center gap-2"
 				disabled={isDeleting}
 			>
 				<IconTrash class="size-4 shrink-0" />
@@ -219,11 +256,31 @@
 			</div>
 
 			<div class="space-y-5">
-				<label class="label">
-					<span class="label-text text-sm text-surface-900-100">{m.form_id_residential_unit()}</span
+				<div class="flex items-end gap-3">
+					<label class="label flex-1">
+						<span class="label-text text-sm text-surface-900-100"
+							>{m.form_id_residential_unit()}</span
+						>
+						<input
+							type="text"
+							class="input transition-colors"
+							maxlength="8"
+							bind:value={formIdResidentialUnit}
+						/>
+					</label>
+					<button
+						onclick={handleRegenerateId}
+						class="btn preset-tonal inline-flex items-center gap-2"
+						disabled={isRegenerating}
 					>
-					<input type="text" class="input transition-colors" bind:value={formIdResidentialUnit} />
-				</label>
+						{#if isRegenerating}
+							<span>{m.common_loading()}</span>
+						{:else}
+							<IconRefresh class="size-4 shrink-0" />
+							<span>{m.action_regenerate_id()}</span>
+						{/if}
+					</button>
+				</div>
 
 				<div class="grid grid-cols-2 gap-4">
 					<label class="label">
@@ -298,7 +355,7 @@
 			<!-- Section: Resident Information -->
 			<div class="flex items-center gap-2.5 pb-3 border-b border-surface-200-800 pt-4">
 				<IconUser class="size-5 text-primary-500" />
-				<h2 class="text-xl font-semibold">{m.form_resident_name()}</h2>
+				<h2 class="text-xl font-semibold">{m.from_resident()}</h2>
 			</div>
 
 			<div class="space-y-5">
@@ -335,7 +392,11 @@
 			</div>
 
 			{#if featureId}
-				<FileUpload featureType="residentialunit" {featureId} onUploadComplete={handleUploadComplete} />
+				<FileUpload
+					featureType="residentialunit"
+					{featureId}
+					onUploadComplete={handleUploadComplete}
+				/>
 				<FileExplorer bind:this={fileExplorer} featureType="residentialunit" {featureId} />
 			{/if}
 		</div>
