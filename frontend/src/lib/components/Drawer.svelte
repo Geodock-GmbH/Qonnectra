@@ -118,9 +118,7 @@
 		aria-labelledby="drawer-title"
 	>
 		<!-- Header -->
-		<div
-			class="flex items-center justify-between p-4 border-b border-surface-200-800 flex-shrink-0"
-		>
+		<div class="flex items-center justify-between p-4 border-b border-surface-200-800 shrink-0">
 			<h2
 				id="drawer-title"
 				class="text-lg font-semibold text-surface-900-50 overflow-hidden text-ellipsis"
