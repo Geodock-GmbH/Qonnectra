@@ -128,7 +128,7 @@ export async function load({ fetch, cookies, url, params }) {
 					},
 					body: JSON.stringify({
 						project_id: projectId,
-						scale: 0.2
+						scale: 0.5
 					})
 				});
 

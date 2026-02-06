@@ -109,10 +109,8 @@ def _make_api_request(url, user, method="GET", data=None):
     if method == "GET":
         return client.get(url, {"project_id": 1})
     elif method == "POST":
-        post_data = data or {"project_id": 1, "scale": 0.2}
+        post_data = data or {"project_id": 1, "scale": 0.5}
         return client.post(url, post_data, format="json")
-
-
 
 
 @pytest.mark.django_db(transaction=True)
@@ -295,8 +293,6 @@ def test_qgis_concurrent_node_creation_during_sync(
     assert new_nodes_without_coords == 5
 
 
-
-
 @pytest.mark.django_db(transaction=True)
 def test_performance_with_large_node_set(
     integration_users,
@@ -396,7 +392,7 @@ def test_concurrent_sync_attempts_across_projects(
             client = APIClient()
             client.force_authenticate(user=user)
             response = client.post(
-                integration_url, {"project_id": project_id, "scale": 0.2}, format="json"
+                integration_url, {"project_id": project_id, "scale": 0.5}, format="json"
             )
             results[user_id] = {
                 "status_code": response.status_code,
