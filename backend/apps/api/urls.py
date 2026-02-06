@@ -16,9 +16,12 @@ from .views import (
     AttributesMicroductStatusViewSet,
     AttributesNetworkLevelViewSet,
     AttributesNodeTypeViewSet,
+    AttributesResidentialUnitStatusViewSet,
+    AttributesResidentialUnitTypeViewSet,
     AttributesStatusDevelopmentViewSet,
     AttributesStatusViewSet,
     AttributesSurfaceViewSet,
+    ResidentialUnitViewSet,
     CableLabelViewSet,
     CableTypeColorMappingViewSet,
     CableViewSet,
@@ -135,8 +138,19 @@ router.register(
     AttributesStatusDevelopmentViewSet,
     basename="attributes_status_development",
 )
+router.register(
+    r"attributes_residential_unit_type",
+    AttributesResidentialUnitTypeViewSet,
+    basename="attributes_residential_unit_type",
+)
+router.register(
+    r"attributes_residential_unit_status",
+    AttributesResidentialUnitStatusViewSet,
+    basename="attributes_residential_unit_status",
+)
 router.register(r"content-types", ContentTypeViewSet, basename="content-types")
 router.register(r"address", AddressViewSet, basename="address")
+router.register(r"residential-unit", ResidentialUnitViewSet, basename="residential-unit")
 router.register(r"area", AreaViewSet, basename="area")
 router.register(r"cable", CableViewSet, basename="cable")
 router.register(r"cable_label", CableLabelViewSet, basename="cable_label")

@@ -2,8 +2,8 @@
  * Search utilities for map features
  */
 
-import proj4 from 'proj4';
 import { register } from 'ol/proj/proj4';
+import proj4 from 'proj4';
 
 // Register EPSG:25832 (ETRS89 / UTM zone 32N) so OpenLayers can transform
 // coordinates from the backend's native SRID to the map's EPSG:3857.

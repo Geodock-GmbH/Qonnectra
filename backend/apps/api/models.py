@@ -370,6 +370,54 @@ class AttributesStatusDevelopment(models.Model):
         return self.status
 
 
+class AttributesResidentialUnitType(models.Model):
+    """Stores all residential unit types,
+    related to :model:`api.ResidentialUnit`.
+    """
+
+    id = models.IntegerField(primary_key=True)
+    residential_unit_type = models.TextField(
+        _("Residential Unit Type"), null=False, db_index=False, unique=True
+    )
+
+    class Meta:
+        db_table = "attributes_residential_unit_type"
+        indexes = [
+            models.Index(
+                fields=["residential_unit_type"],
+                name="idx_res_unit_type",
+            ),
+        ]
+        verbose_name = _("Residential Unit Type")
+        verbose_name_plural = _("Residential Unit Types")
+
+    def __str__(self):
+        return self.residential_unit_type
+
+
+class AttributesResidentialUnitStatus(models.Model):
+    """Stores all residential unit statuses,
+    related to :model:`api.ResidentialUnit`.
+    """
+
+    id = models.IntegerField(primary_key=True)
+    status = models.TextField(_("Status"), null=False, db_index=False, unique=True)
+
+    class Meta:
+        db_table = "attributes_residential_unit_status"
+        indexes = [
+            models.Index(
+                fields=["status"],
+                name="idx_res_unit_status",
+            ),
+        ]
+        verbose_name = _("Residential Unit Status")
+        verbose_name_plural = _("Residential Unit Statuses")
+
+    def __str__(self):
+        return self.status
+
+
 class AttributesMicroductStatus(models.Model):
     """Stores all microduct statuses,
     related to :model:`api.Microduct`.
@@ -731,12 +779,10 @@ class FeatureFiles(models.Model):
         elif model_name == "node":
             return feature.name
         elif model_name == "address":
-            suffix = (
-                f" {feature.house_number_suffix}" if feature.house_number_suffix else ""
-            )
+            suffix = feature.house_number_suffix or ""
             return f"{feature.street} {feature.housenumber}{suffix}, {feature.zip_code} {feature.city}"
         elif model_name == "residentialunit":
-            return instance.object_id
+            return feature.id_residential_unit or str(instance.object_id)
         elif model_name == "area":
             return feature.name
         else:
@@ -754,6 +800,7 @@ class FeatureFiles(models.Model):
         - Project Alpha/cables/C1-Main/photos/image.jpg
         - Project Beta/nodes/N1-POP/documents/spec.pdf
         - Project Alpha/addresses/Bahnstraße 20, 24941 Flensburg/documents/contract.pdf
+        - Project Alpha/addresses/Bahnstraße 20, 24941 Flensburg/residential_units/WE-001/documents/lease.pdf
         - Project Alpha/areas/Projektgebiet/documents/report.pdf
         """
 
@@ -762,16 +809,30 @@ class FeatureFiles(models.Model):
         feature = instance.feature
         feature_id = FeatureFiles.get_feature_identifier(instance)
 
-        project_name = (
-            feature.project.project
-            if hasattr(feature, "project") and feature.project
-            else "default"
-        )
-        project_name = sanitize_filename(project_name)
+        # For residential units, derive project from parent address
+        if model_name == "residentialunit":
+            address = feature.uuid_address
+            project_name = (
+                address.project.project
+                if hasattr(address, "project") and address.project
+                else "default"
+            )
+            project_name = sanitize_filename(project_name)
+            suffix = address.house_number_suffix or ""
+            address_id = f"{address.street} {address.housenumber}{suffix}, {address.zip_code} {address.city}"
+        else:
+            project_name = (
+                feature.project.project
+                if hasattr(feature, "project") and feature.project
+                else "default"
+            )
+            project_name = sanitize_filename(project_name)
 
         # Only support AUTO mode - manual uploads happen via WebDAV
         if not prefs or prefs.mode != "AUTO":
             # Default fallback if no preferences exist
+            if model_name == "residentialunit":
+                return f"{project_name}/addresses/{address_id}/residential_units/{feature_id}/{filename}"
             return f"{project_name}/{model_name}s/{feature_id}/{filename}"
 
         file_extension = instance.get_file_type() or ""
@@ -783,6 +844,24 @@ class FeatureFiles(models.Model):
             file_category = category_obj.category
         except FileTypeCategory.DoesNotExist:
             file_category = "documents"
+
+        # For residential units, nest inside the parent address folder
+        if model_name == "residentialunit":
+            # Use address folder structure as base, then nest residential unit inside
+            address_folder_paths = prefs.folder_structure.get("address", {})
+            address_folder_name = address_folder_paths.get(
+                "default", "addresses"
+            )
+            ru_folder_paths = prefs.folder_structure.get(model_name, {})
+            ru_folder_name = ru_folder_paths.get(
+                file_category, ru_folder_paths.get("default", "residential_units")
+            )
+            # Path: project/addresses/address_id/residential_units/unit_id/category/file
+            if "/" in ru_folder_name:
+                base_folder, sub_folder = ru_folder_name.split("/", 1)
+                return f"{project_name}/{address_folder_name}/{address_id}/{base_folder}/{feature_id}/{sub_folder}/{filename}"
+            else:
+                return f"{project_name}/{address_folder_name}/{address_id}/{ru_folder_name}/{feature_id}/{filename}"
 
         # Get folder structure from preferences
         folder_paths = prefs.folder_structure.get(model_name, {})
@@ -1359,6 +1438,86 @@ class Address(models.Model):
             if self.house_number_suffix
             else f"{self.street} {self.housenumber}, {self.zip_code} {self.city}"
         )
+
+
+class ResidentialUnit(models.Model):
+    """Stores all residential units,
+    related to :model:`api.Address`,
+    :model:`api.AttributesResidentialUnitType`,
+    :model:`api.AttributesResidentialUnitStatus`.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    uuid_address = models.ForeignKey(
+        Address,
+        on_delete=models.CASCADE,
+        db_column="uuid_address",
+        related_name="residential_units",
+        verbose_name=_("Address"),
+    )
+    id_residential_unit = models.TextField(
+        _("Residential Unit ID"), null=True, blank=True, unique=True
+    )
+    residential_unit_type = models.ForeignKey(
+        AttributesResidentialUnitType,
+        null=True,
+        blank=True,
+        on_delete=models.RESTRICT,
+        db_column="residential_unit_type",
+        verbose_name=_("Residential Unit Type"),
+    )
+    floor = models.IntegerField(_("Floor"), null=True, blank=True)
+    side = models.TextField(_("Side"), null=True, blank=True)
+    building_section = models.TextField(_("Building Section"), null=True, blank=True)
+    status = models.ForeignKey(
+        AttributesResidentialUnitStatus,
+        null=True,
+        blank=True,
+        on_delete=models.RESTRICT,
+        db_column="status",
+        verbose_name=_("Status"),
+    )
+    external_id_1 = models.TextField(_("External ID 1"), null=True, blank=True)
+    external_id_2 = models.TextField(_("External ID 2"), null=True, blank=True)
+    resident_name = models.TextField(_("Resident Name"), null=True, blank=True)
+    resident_recorded_date = models.DateField(
+        _("Resident Recorded Date"), null=True, blank=True
+    )
+    ready_for_service = models.DateField(_("Ready for Service"), null=True, blank=True)
+
+    files = GenericRelation(
+        FeatureFiles,
+        content_type_field="content_type",
+        object_id_field="object_id",
+        related_query_name="residentialunit",
+    )
+
+    class Meta:
+        db_table = "residential_unit"
+        verbose_name = _("Residential Unit")
+        verbose_name_plural = _("Residential Units")
+        ordering = ["uuid_address", "floor", "side"]
+        indexes = [
+            models.Index(
+                fields=["id_residential_unit"],
+                name="idx_res_unit_id",
+            ),
+            models.Index(fields=["uuid_address"], name="idx_res_unit_address"),
+            models.Index(fields=["floor"], name="idx_res_unit_floor"),
+            models.Index(fields=["status"], name="idx_res_unit_status_fk"),
+            models.Index(
+                fields=["residential_unit_type"],
+                name="idx_res_unit_type_fk",
+            ),
+        ]
+
+    def __str__(self):
+        parts = []
+        if self.floor is not None:
+            parts.append(f"Floor {self.floor}")
+        if self.side:
+            parts.append(self.side)
+        return " ".join(parts) if parts else str(self.uuid)[:8]
 
 
 class Node(models.Model):
@@ -2573,6 +2732,32 @@ def qgis_project_deleted(sender, instance, **kwargs):
             )
 
 
+@receiver(post_delete, sender=FeatureFiles)
+def feature_file_deleted(sender, instance, **kwargs):
+    """
+    Delete physical file from storage when a FeatureFiles DB record is deleted.
+
+    This handles cleanup for both:
+    - Cascade deletions (when a parent feature with GenericRelation is deleted)
+    - Direct ORM deletions (admin bulk actions, etc.)
+
+    The storage.exists() check prevents errors when FeatureFilesViewSet.destroy()
+    has already deleted the physical file before the signal fires.
+    """
+    if instance.file_path:
+        try:
+            storage = instance.file_path.storage
+            if storage.exists(instance.file_path.name):
+                storage.delete(instance.file_path.name)
+                logger.info(
+                    f"Deleted physical file on record deletion: {instance.file_path.name}"
+                )
+        except Exception as e:
+            logger.error(
+                f"Error deleting physical file {instance.file_path.name}: {e}"
+            )
+
+
 class LogEntry(models.Model):
     """Stores application logs for monitoring and debugging.
 
@@ -2678,7 +2863,7 @@ def get_feature_folder_identifier(instance):
     between upload paths and folder rename operations.
 
     Args:
-        instance: A model instance (Node, Cable, Conduit, Trench, Address, or Area)
+        instance: A model instance (Node, Cable, Conduit, Trench, Address, ResidentialUnit, or Area)
 
     Returns:
         The string identifier used for the feature's folder name
@@ -2691,6 +2876,8 @@ def get_feature_folder_identifier(instance):
     elif model_name == "address":
         suffix = instance.house_number_suffix or ""
         return f"{instance.street} {instance.housenumber}{suffix}, {instance.zip_code} {instance.city}"
+    elif model_name == "residentialunit":
+        return instance.id_residential_unit or str(instance.pk)
     return str(instance.pk)
 
 
@@ -2819,6 +3006,40 @@ def rename_address_folder_on_change(sender, instance, created, **kwargs):
         except OSError:
             # For Address, multiple fields contribute to the identifier.
             # We just re-raise the error - the DB transaction will rollback.
+            raise
+
+
+@receiver(pre_save, sender=ResidentialUnit)
+def track_residential_unit_id_change(sender, instance, **kwargs):
+    """Track old residential unit id before save to detect if it changed."""
+    if instance.pk:
+        try:
+            old_instance = ResidentialUnit.objects.get(pk=instance.pk)
+            instance._old_identifier = old_instance.id_residential_unit
+        except ResidentialUnit.DoesNotExist:
+            instance._old_identifier = None
+    else:
+        instance._old_identifier = None
+
+
+@receiver(post_save, sender=ResidentialUnit)
+def rename_residential_unit_folder_on_change(sender, instance, created, **kwargs):
+    """Rename file folder when residential unit id changes."""
+    if created:
+        return
+
+    old_id = getattr(instance, "_old_identifier", None)
+    new_id = instance.id_residential_unit
+
+    # Only rename when both old and new IDs are non-null and different
+    if old_id is not None and new_id is not None and str(old_id) != str(new_id):
+        from apps.api.services import rename_feature_folder
+
+        try:
+            rename_feature_folder(instance, old_id, new_id)
+        except OSError:
+            instance.id_residential_unit = old_id
+            instance.save(update_fields=["id_residential_unit"])
             raise
 
 

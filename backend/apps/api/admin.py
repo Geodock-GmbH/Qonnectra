@@ -27,9 +27,12 @@ from .models import (
     AttributesNetworkLevel,
     AttributesNodeType,
     AttributesPhase,
+    AttributesResidentialUnitStatus,
+    AttributesResidentialUnitType,
     AttributesStatus,
     AttributesStatusDevelopment,
     AttributesSurface,
+    ResidentialUnit,
     Cable,
     CableTypeColorMapping,
     Fiber,
@@ -236,11 +239,14 @@ FEATURE_MODEL_MAP = {
     "cable": Cable,
     "node": Node,
     "address": Address,
+    "residentialunit": ResidentialUnit,
     "area": Area,
 }
 
 admin.site.register(AttributesSurface)
 admin.site.register(AttributesStatusDevelopment)
+admin.site.register(AttributesResidentialUnitType)
+admin.site.register(AttributesResidentialUnitStatus)
 admin.site.register(AttributesConstructionType)
 admin.site.register(AttributesStatus)
 admin.site.register(AttributesPhase)
@@ -573,6 +579,21 @@ class AddressAdmin(admin.ModelAdmin):
         "flag",
         "project",
     )
+
+
+@admin.register(ResidentialUnit)
+class ResidentialUnitAdmin(admin.ModelAdmin):
+    list_display = (
+        "uuid",
+        "uuid_address",
+        "floor",
+        "side",
+        "residential_unit_type",
+        "status",
+    )
+    list_filter = ("residential_unit_type", "status")
+    search_fields = ("id_residential_unit", "resident_name")
+    ordering = ("uuid_address", "floor", "side")
 
 
 class ConduitTypeColorMappingInline(admin.TabularInline):
@@ -1071,6 +1092,7 @@ class MoveFilesForm(forms.Form):
             ("cable", _("Cable")),
             ("node", _("Node")),
             ("address", _("Address")),
+            ("residentialunit", _("Residential Unit")),
             ("area", _("Area")),
         ],
     )

@@ -20,6 +20,8 @@ from .models import (
     AttributesNetworkLevel,
     AttributesNodeType,
     AttributesPhase,
+    AttributesResidentialUnitStatus,
+    AttributesResidentialUnitType,
     AttributesStatus,
     AttributesStatusDevelopment,
     AttributesSurface,
@@ -44,6 +46,7 @@ from .models import (
     NodeStructure,
     NodeTrenchSelection,
     Projects,
+    ResidentialUnit,
     Trench,
     TrenchConduitConnection,
 )
@@ -159,6 +162,22 @@ class AttributesStatusDevelopmentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AttributesStatusDevelopment
+        fields = ["id", "status"]
+
+
+class AttributesResidentialUnitTypeSerializer(serializers.ModelSerializer):
+    """Serializer for the AttributesResidentialUnitType model."""
+
+    class Meta:
+        model = AttributesResidentialUnitType
+        fields = ["id", "residential_unit_type"]
+
+
+class AttributesResidentialUnitStatusSerializer(serializers.ModelSerializer):
+    """Serializer for the AttributesResidentialUnitStatus model."""
+
+    class Meta:
+        model = AttributesResidentialUnitStatus
         fields = ["id", "status"]
 
 
@@ -610,6 +629,91 @@ class AddressSerializer(GeoFeatureModelSerializer):
                 )
 
         return value
+
+
+class ResidentialUnitSerializer(serializers.ModelSerializer):
+    """Serializer for the ResidentialUnit model."""
+
+    uuid = serializers.UUIDField(read_only=True)
+
+    residential_unit_type = AttributesResidentialUnitTypeSerializer(read_only=True)
+    status = AttributesResidentialUnitStatusSerializer(read_only=True)
+
+    uuid_address_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Address.objects.all(),
+        source="uuid_address",
+    )
+    residential_unit_type_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesResidentialUnitType.objects.all(),
+        source="residential_unit_type",
+        required=False,
+        allow_null=True,
+    )
+    status_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesResidentialUnitStatus.objects.all(),
+        source="status",
+        required=False,
+        allow_null=True,
+    )
+    id_residential_unit = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
+    floor = serializers.IntegerField(required=False, allow_null=True)
+    side = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    building_section = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
+    external_id_1 = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
+    external_id_2 = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
+    resident_name = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
+    resident_recorded_date = serializers.DateField(
+        required=False,
+        allow_null=True,
+        input_formats=["%Y-%m-%d"],
+        format="%Y-%m-%d",
+    )
+    ready_for_service = serializers.DateField(
+        required=False,
+        allow_null=True,
+        input_formats=["%Y-%m-%d"],
+        format="%Y-%m-%d",
+    )
+
+    class Meta:
+        model = ResidentialUnit
+        fields = "__all__"
+        ordering = ["uuid_address", "floor", "side"]
+        extra_kwargs = {
+            "uuid_address": {"read_only": True},
+        }
+
+    def get_fields(self):
+        """Dynamically translate field labels."""
+        fields = super().get_fields()
+
+        fields["uuid_address_id"].label = _("Address")
+        fields["residential_unit_type_id"].label = _("Residential Unit Type")
+        fields["status_id"].label = _("Status")
+        fields["id_residential_unit"].label = _("Residential Unit ID")
+        fields["floor"].label = _("Floor")
+        fields["side"].label = _("Side")
+        fields["building_section"].label = _("Building Section")
+        fields["external_id_1"].label = _("External ID 1")
+        fields["external_id_2"].label = _("External ID 2")
+        fields["resident_name"].label = _("Resident Name")
+        fields["resident_recorded_date"].label = _("Resident Recorded Date")
+        fields["ready_for_service"].label = _("Ready for Service")
+
+        return fields
 
 
 class NodeSerializer(GeoFeatureModelSerializer):

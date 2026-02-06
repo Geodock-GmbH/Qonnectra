@@ -7,33 +7,57 @@
             "folder_structure": {
                 "trench": {
                     "default": "trenches",
+                    "archives": "trenches/archives",
+                    "cad": "trenches/cad",
+                    "data": "trenches/data",
                     "documents": "trenches/documents",
-                    "photos": "trenches/photos"
+                    "photos": "trenches/photos",
+                    "videos": "trenches/videos"
                 },
                 "area": {
                     "default": "areas",
+                    "archives": "areas/archives",
+                    "cad": "areas/cad",
+                    "data": "areas/data",
+                    "documents": "areas/documents",
                     "photos": "areas/photos",
-                    "documents": "areas/documents"
+                    "videos": "areas/videos"
                 },
                 "node": {
                     "default": "nodes",
+                    "archives": "nodes/archives",
+                    "cad": "nodes/cad",
+                    "data": "nodes/data",
+                    "documents": "nodes/documents",
                     "photos": "nodes/photos",
-                    "documents": "nodes/documents"
+                    "videos": "nodes/videos"
                 },
                 "address": {
                     "default": "addresses",
+                    "archives": "addresses/archives",
+                    "cad": "addresses/cad",
+                    "data": "addresses/data",
                     "documents": "addresses/documents",
-                    "photos": "addresses/photos"
+                    "photos": "addresses/photos",
+                    "videos": "addresses/videos"
                 },
                 "conduit": {
                     "default": "conduits",
+                    "archives": "conduits/archives",
+                    "cad": "conduits/cad",
+                    "data": "conduits/data",
+                    "documents": "conduits/documents",
                     "photos": "conduits/photos",
-                    "documents": "conduits/documents"
+                    "videos": "conduits/videos"
                 },
                 "residentialunit": {
                     "default": "residential_units",
+                    "archives": "residential_units/archives",
+                    "cad": "residential_units/cad",
+                    "data": "residential_units/data",
+                    "documents": "residential_units/documents",
                     "photos": "residential_units/photos",
-                    "documents": "residential_units/documents"
+                    "videos": "residential_units/videos"
                 },
                 "featurefiles": {
                     "default": "attachments"

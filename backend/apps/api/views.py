@@ -35,9 +35,12 @@ from .models import (
     AttributesMicroductStatus,
     AttributesNetworkLevel,
     AttributesNodeType,
+    AttributesResidentialUnitStatus,
+    AttributesResidentialUnitType,
     AttributesStatus,
     AttributesStatusDevelopment,
     AttributesSurface,
+    ResidentialUnit,
     Cable,
     CableLabel,
     CableTypeColorMapping,
@@ -82,9 +85,12 @@ from .serializers import (
     AttributesMicroductStatusSerializer,
     AttributesNetworkLevelSerializer,
     AttributesNodeTypeSerializer,
+    AttributesResidentialUnitStatusSerializer,
+    AttributesResidentialUnitTypeSerializer,
     AttributesStatusDevelopmentSerializer,
     AttributesStatusSerializer,
     AttributesSurfaceSerializer,
+    ResidentialUnitSerializer,
     CableAtNodeSerializer,
     CableLabelSerializer,
     CableSerializer,
@@ -293,6 +299,26 @@ class AttributesStatusDevelopmentViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = AttributesStatusDevelopment.objects.all().order_by("status")
     serializer_class = AttributesStatusDevelopmentSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class AttributesResidentialUnitTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesResidentialUnitType model."""
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesResidentialUnitType.objects.all().order_by("residential_unit_type")
+    serializer_class = AttributesResidentialUnitTypeSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class AttributesResidentialUnitStatusViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesResidentialUnitStatus model."""
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesResidentialUnitStatus.objects.all().order_by("status")
+    serializer_class = AttributesResidentialUnitStatusSerializer
     lookup_field = "id"
     lookup_url_kwarg = "pk"
 
@@ -1426,6 +1452,43 @@ class AddressViewSet(viewsets.ModelViewSet):
         address.id_address = new_id
         address.save(update_fields=["id_address"])
         serializer = self.get_serializer(address)
+        return Response(serializer.data)
+
+
+class ResidentialUnitViewSet(viewsets.ModelViewSet):
+    """ViewSet for the ResidentialUnit model."""
+
+    permission_classes = [IsAuthenticated]
+    queryset = ResidentialUnit.objects.all().order_by("uuid_address", "floor", "side")
+    serializer_class = ResidentialUnitSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+
+    def get_queryset(self):
+        """
+        Optionally restricts the returned residential units by filtering against query parameters:
+        - `uuid_address`: Filter by address UUID
+        """
+        queryset = ResidentialUnit.objects.select_related(
+            "uuid_address",
+            "residential_unit_type",
+            "status",
+        ).order_by("uuid_address", "floor", "side")
+
+        uuid_address = self.request.query_params.get("uuid_address")
+        if uuid_address:
+            queryset = queryset.filter(uuid_address=uuid_address)
+
+        return queryset
+
+    @action(detail=False, methods=["get"], url_path="all")
+    def all_units(self, request):
+        """Returns all residential units for an address. No pagination."""
+        queryset = self.get_queryset()
+        uuid_address = request.query_params.get("uuid_address")
+        if uuid_address:
+            queryset = queryset.filter(uuid_address=uuid_address)
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
 

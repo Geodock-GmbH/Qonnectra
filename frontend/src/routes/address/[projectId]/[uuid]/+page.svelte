@@ -7,11 +7,9 @@
 		IconFolder,
 		IconHome,
 		IconLink,
-		IconLock,
 		IconMapPin,
 		IconRefresh,
-		IconTrash,
-		IconUsers
+		IconTrash
 	} from '@tabler/icons-svelte';
 
 	import 'ol/ol.css';
@@ -26,6 +24,8 @@
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { tooltip } from '$lib/utils/tooltip.js';
+
+	import ResidentialUnitsSection from './ResidentialUnitsSection.svelte';
 
 	let { data } = $props();
 
@@ -43,6 +43,9 @@
 	const linkedNodes = $derived(data.linkedNodes || []);
 	const linkedMicroducts = $derived(data.linkedMicroducts || []);
 	const isLinkedToNode = $derived(linkedNodes.length > 0);
+	const residentialUnits = $derived(data.residentialUnits || []);
+	const residentialUnitTypes = $derived(data.residentialUnitTypes || []);
+	const residentialUnitStatuses = $derived(data.residentialUnitStatuses || []);
 
 	/**
 	 * Get the initial address from the data
@@ -331,7 +334,7 @@
 				<div class="space-y-5">
 					<div class="flex items-end gap-3">
 						<label class="label flex-1">
-							<span class="label-text text-sm text-surface-600-400"
+							<span class="label-text text-sm text-surface-900-100"
 								>{m.form_id_address({ count: 1 })}</span
 							>
 							<input
@@ -356,7 +359,7 @@
 					</div>
 
 					<label class="label">
-						<span class="label-text text-sm text-surface-600-400"
+						<span class="label-text text-sm text-surface-900-100"
 							>{m.form_street()} <span class="text-error-400">*</span></span
 						>
 						<input type="text" class="input transition-colors" bind:value={street} />
@@ -364,13 +367,13 @@
 
 					<div class="grid grid-cols-2 gap-4">
 						<label class="label">
-							<span class="label-text text-sm text-surface-600-400"
+							<span class="label-text text-sm text-surface-900-100"
 								>{m.form_housenumber()} <span class="text-error-400">*</span></span
 							>
 							<input type="number" class="input transition-colors" bind:value={housenumber} />
 						</label>
 						<label class="label">
-							<span class="label-text text-sm text-surface-600-400"
+							<span class="label-text text-sm text-surface-900-100"
 								>{m.form_house_number_suffix()}</span
 							>
 							<input type="text" class="input transition-colors" bind:value={house_number_suffix} />
@@ -379,13 +382,13 @@
 
 					<div class="grid grid-cols-2 gap-4">
 						<label class="label">
-							<span class="label-text text-sm text-surface-600-400"
+							<span class="label-text text-sm text-surface-900-100"
 								>{m.form_zip_code()} <span class="text-error-400">*</span></span
 							>
 							<input type="text" class="input transition-colors" bind:value={zip_code} />
 						</label>
 						<label class="label">
-							<span class="label-text text-sm text-surface-600-400"
+							<span class="label-text text-sm text-surface-900-100"
 								>{m.form_city()} <span class="text-error-400">*</span></span
 							>
 							<input type="text" class="input transition-colors" bind:value={city} />
@@ -393,12 +396,12 @@
 					</div>
 
 					<label class="label">
-						<span class="label-text text-sm text-surface-600-400">{m.form_district()}</span>
+						<span class="label-text text-sm text-surface-900-100">{m.form_district()}</span>
 						<input type="text" class="input transition-colors" bind:value={district} />
 					</label>
 
 					<label class="label">
-						<span class="label-text text-sm text-surface-600-400"
+						<span class="label-text text-sm text-surface-900-100"
 							>{m.form_status_development()}</span
 						>
 						<select class="select transition-colors" bind:value={status_development_id}>
@@ -410,7 +413,9 @@
 					</label>
 
 					<label class="label">
-						<span class="label-text text-sm text-surface-600-400">{m.form_flag()}</span>
+						<span class="label-text text-sm text-surface-900-100"
+							>{m.form_flag()} <span class="text-error-400">*</span></span
+						>
 						<select class="select transition-colors" bind:value={flag_id}>
 							<option value="">-</option>
 							{#each flags as option (option.value)}
@@ -420,8 +425,8 @@
 					</label>
 
 					<label class="label">
-						<span class="label-text text-sm text-surface-600-400"
-							>{m.form_project({ count: 1 })}</span
+						<span class="label-text text-sm text-surface-900-100"
+							>{m.form_project({ count: 1 })} <span class="text-error-400">*</span></span
 						>
 						<input
 							type="text"
@@ -490,19 +495,19 @@
 					<table class="table">
 						<thead>
 							<tr>
-								<th class="text-xs font-medium text-surface-500 uppercase tracking-wider"
+								<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider"
 									>{m.table_node()}</th
 								>
-								<th class="text-xs font-medium text-surface-500 uppercase tracking-wider"
+								<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider"
 									>{m.table_conduit_name()}</th
 								>
-								<th class="text-xs font-medium text-surface-500 uppercase tracking-wider"
+								<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider"
 									>{m.table_conduit_type()}</th
 								>
-								<th class="text-xs font-medium text-surface-500 uppercase tracking-wider"
+								<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider"
 									>{m.table_microduct_number()}</th
 								>
-								<th class="text-xs font-medium text-surface-500 uppercase tracking-wider"
+								<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider"
 									>{m.table_color()}</th
 								>
 							</tr>
@@ -544,26 +549,13 @@
 			</div>
 
 			<!-- Residential Units -->
-			<div class="card p-6 sm:p-8 space-y-6">
-				<div class="flex items-center gap-2.5 pb-3 border-b border-surface-200-800">
-					<IconUsers class="size-5 text-primary-500" />
-					<h2 class="text-xl font-semibold">{m.section_residential_units()}</h2>
-					<span class="badge preset-tonal-surface text-xs ml-auto">
-						<IconLock class="size-3" />
-						<span>{m.common_coming_soon()}</span>
-					</span>
-				</div>
-
-				<div class="rounded-lg border border-dashed border-surface-300-700 p-10 text-center">
-					<IconUsers class="size-16 mx-auto mb-4 text-surface-300 opacity-30" />
-					<p class="text-sm font-medium text-surface-500">
-						{m.message_residential_units_coming_soon()}
-					</p>
-					<p class="text-xs text-surface-400 mt-2">
-						{m.message_residential_units_description()}
-					</p>
-				</div>
-			</div>
+			<ResidentialUnitsSection
+				{residentialUnits}
+				{residentialUnitTypes}
+				{residentialUnitStatuses}
+				{projectId}
+				addressUuid={address.uuid}
+			/>
 		</div>
 	{/if}
 </div>

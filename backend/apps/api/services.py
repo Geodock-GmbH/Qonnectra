@@ -347,8 +347,8 @@ def rename_feature_folder(instance, old_identifier, new_identifier):
     in the database within an atomic transaction.
 
     Args:
-        instance: Model instance (Node, Cable, Conduit, Trench, or Address)
-        old_identifier: Previous identifier value (name, id_trench, or address string)
+        instance: Model instance (Node, Cable, Conduit, Trench, Address, or ResidentialUnit)
+        old_identifier: Previous identifier value (name, id_trench, address string, or id_residential_unit)
         new_identifier: New identifier value
 
     Raises:
@@ -357,35 +357,66 @@ def rename_feature_folder(instance, old_identifier, new_identifier):
     prefs = StoragePreferences.objects.first()
     model_name = instance._meta.model_name
 
-    project_name = (
-        instance.project.project
-        if hasattr(instance, "project") and instance.project
-        else "default"
-    )
+    # ResidentialUnit derives project from parent address
+    if model_name == "residentialunit":
+        address = instance.uuid_address
+        project_name = (
+            address.project.project
+            if hasattr(address, "project") and address.project
+            else "default"
+        )
+    else:
+        project_name = (
+            instance.project.project
+            if hasattr(instance, "project") and instance.project
+            else "default"
+        )
     project_name = sanitize_filename(project_name)
 
     old_feature_folder = sanitize_filename(str(old_identifier))
     new_feature_folder = sanitize_filename(str(new_identifier))
 
-    if prefs and prefs.folder_structure:
-        folder_config = prefs.folder_structure.get(model_name, {})
-        if isinstance(folder_config, dict):
-            for category, path in folder_config.items():
-                if "/" in path:
-                    base_folder = path.split("/", 1)[0]
-                    break
-                else:
-                    base_folder = path
-                    break
-            else:
-                base_folder = f"{model_name}s"
-        else:
-            base_folder = folder_config if folder_config else f"{model_name}s"
-    else:
-        base_folder = f"{model_name}s"
+    # ResidentialUnit folders are nested under the parent address folder
+    if model_name == "residentialunit":
+        suffix = address.house_number_suffix or ""
+        address_id = sanitize_filename(
+            f"{address.street} {address.housenumber}{suffix}, "
+            f"{address.zip_code} {address.city}"
+        )
 
-    old_path = f"{project_name}/{base_folder}/{old_feature_folder}"
-    new_path = f"{project_name}/{base_folder}/{new_feature_folder}"
+        if prefs and prefs.folder_structure:
+            address_folder_config = prefs.folder_structure.get("address", {})
+            address_base = address_folder_config.get("default", "addresses")
+            ru_folder_config = prefs.folder_structure.get("residentialunit", {})
+            ru_base = ru_folder_config.get("default", "residential_units")
+            if "/" in ru_base:
+                ru_base = ru_base.split("/", 1)[0]
+        else:
+            address_base = "addresses"
+            ru_base = "residential_units"
+
+        old_path = f"{project_name}/{address_base}/{address_id}/{ru_base}/{old_feature_folder}"
+        new_path = f"{project_name}/{address_base}/{address_id}/{ru_base}/{new_feature_folder}"
+    else:
+        if prefs and prefs.folder_structure:
+            folder_config = prefs.folder_structure.get(model_name, {})
+            if isinstance(folder_config, dict):
+                for category, path in folder_config.items():
+                    if "/" in path:
+                        base_folder = path.split("/", 1)[0]
+                        break
+                    else:
+                        base_folder = path
+                        break
+                else:
+                    base_folder = f"{model_name}s"
+            else:
+                base_folder = folder_config if folder_config else f"{model_name}s"
+        else:
+            base_folder = f"{model_name}s"
+
+        old_path = f"{project_name}/{base_folder}/{old_feature_folder}"
+        new_path = f"{project_name}/{base_folder}/{new_feature_folder}"
 
     storage = LocalMediaStorage()
     content_type = ContentType.objects.get_for_model(instance)
@@ -424,7 +455,7 @@ def move_file_to_feature(file_obj, target_feature, target_content_type):
 
     Args:
         file_obj: FeatureFiles instance to move
-        target_feature: Target model instance (Node, Cable, Conduit, Trench, Address, or Area)
+        target_feature: Target model instance (Node, Cable, Conduit, Trench, Address, ResidentialUnit, or Area)
         target_content_type: ContentType for the target model
 
     Returns:
@@ -441,25 +472,32 @@ def move_file_to_feature(file_obj, target_feature, target_content_type):
     elif model_name in ("conduit", "cable", "node", "area"):
         feature_id = target_feature.name
     elif model_name == "address":
-        suffix = (
-            f" {target_feature.house_number_suffix}"
-            if target_feature.house_number_suffix
-            else ""
-        )
+        suffix = target_feature.house_number_suffix or ""
         feature_id = (
             f"{target_feature.street} {target_feature.housenumber}{suffix}, "
             f"{target_feature.zip_code} {target_feature.city}"
         )
+    elif model_name == "residentialunit":
+        feature_id = target_feature.id_residential_unit or str(target_feature.pk)
     else:
         feature_id = str(target_feature.pk)
 
     feature_id = sanitize_filename(str(feature_id))
 
-    project_name = (
-        target_feature.project.project
-        if hasattr(target_feature, "project") and target_feature.project
-        else "default"
-    )
+    # ResidentialUnit derives project from parent address
+    if model_name == "residentialunit":
+        address = target_feature.uuid_address
+        project_name = (
+            address.project.project
+            if hasattr(address, "project") and address.project
+            else "default"
+        )
+    else:
+        project_name = (
+            target_feature.project.project
+            if hasattr(target_feature, "project") and target_feature.project
+            else "default"
+        )
     project_name = sanitize_filename(project_name)
 
     file_extension = file_obj.file_type or ""
@@ -473,7 +511,46 @@ def move_file_to_feature(file_obj, target_feature, target_content_type):
     except FileTypeCategory.DoesNotExist:
         file_category = "documents"
 
-    if prefs and prefs.mode == "AUTO" and prefs.folder_structure:
+    if model_name == "residentialunit" and prefs and prefs.mode == "AUTO" and prefs.folder_structure:
+        # ResidentialUnit uses nested path under parent address folder
+        address = target_feature.uuid_address
+        suffix = address.house_number_suffix or ""
+        address_id = sanitize_filename(
+            f"{address.street} {address.housenumber}{suffix}, "
+            f"{address.zip_code} {address.city}"
+        )
+        address_folder_paths = prefs.folder_structure.get("address", {})
+        address_folder_name = address_folder_paths.get("default", "addresses")
+        ru_folder_paths = prefs.folder_structure.get("residentialunit", {})
+        ru_folder_name = ru_folder_paths.get(
+            file_category, ru_folder_paths.get("default", "residential_units")
+        )
+        if "/" in ru_folder_name:
+            ru_base, sub_folder = ru_folder_name.split("/", 1)
+            new_path = (
+                f"{project_name}/{address_folder_name}/{address_id}/"
+                f"{ru_base}/{feature_id}/{sub_folder}/"
+                f"{file_obj.file_name}.{file_obj.file_type}"
+            )
+        else:
+            new_path = (
+                f"{project_name}/{address_folder_name}/{address_id}/"
+                f"{ru_folder_name}/{feature_id}/"
+                f"{file_obj.file_name}.{file_obj.file_type}"
+            )
+    elif model_name == "residentialunit":
+        # Fallback without preferences
+        address = target_feature.uuid_address
+        suffix = address.house_number_suffix or ""
+        address_id = sanitize_filename(
+            f"{address.street} {address.housenumber}{suffix}, "
+            f"{address.zip_code} {address.city}"
+        )
+        new_path = (
+            f"{project_name}/addresses/{address_id}/residential_units/{feature_id}/"
+            f"{file_obj.file_name}.{file_obj.file_type}"
+        )
+    elif prefs and prefs.mode == "AUTO" and prefs.folder_structure:
         folder_paths = prefs.folder_structure.get(model_name, {})
         folder_name = folder_paths.get(
             file_category, folder_paths.get("default", model_name + "s")
