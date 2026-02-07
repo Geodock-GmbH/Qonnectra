@@ -176,7 +176,7 @@
 			<!-- Address -->
 			<Navigation.Group>
 				{#if $sidebarExpanded}
-					<Navigation.Label>{m.nav_address()}</Navigation.Label>
+					<Navigation.Label>{m.form_building({ count: 2 })}</Navigation.Label>
 				{/if}
 				<Navigation.Menu>
 					{#each addressLinks as link}
