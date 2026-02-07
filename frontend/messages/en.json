@@ -113,6 +113,16 @@
 	"form_attachments": "Attachments",
 	"form_auto_connect": "Autoconnect",
 	"form_average_house_connection_length": "Average house connection length",
+	"form_building": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Building",
+				"countPlural=other": "Buildings"
+			}
+		}
+	],
 	"form_building_section": "Building Section",
 	"form_bottom": "Bottom",
 	"form_breakdown_by_node_type": "Grouped by node type",
@@ -454,6 +464,9 @@
 	"message_trenches_found": "{count} trenches found nearby",
 	"message_warning_cable_type_incomplete_color_mappings": "Cable type has incomplete color mappings. Bundle and fiber counts do not match. Fibers were not generated. Please correct the color mappings in the Admin area.",
 	"nav_address": "Addresses",
+	"nav_category_infrastructure": "Infrastructure",
+	"nav_category_main": "Main",
+	"nav_category_system": "System",
 	"nav_conduit_connection": "Conduit Connection",
 	"nav_conduit_management": "Conduit Table",
 	"nav_dashboard": "Dashboard",

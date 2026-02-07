@@ -113,6 +113,16 @@
 	"form_attachments": "Anhänge",
 	"form_auto_connect": "Auto-Verbindung",
 	"form_average_house_connection_length": "Durchschnittliche Hausanschlusslänge",
+	"form_building": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Gebäude",
+				"countPlural=other": "Gebäude"
+			}
+		}
+	],
 	"form_building_section": "Gebäudeteil",
 	"form_bottom": "Unten",
 	"form_breakdown_by_node_type": "Aufteilung nach Netzknotentyp",
@@ -455,6 +465,9 @@
 	"message_trenches_found": "{count} Trassen in der Nähe gefunden",
 	"message_warning_cable_type_incomplete_color_mappings": "Kabeltyp hat unvollständige Farbzuordnungen. Bündel- und Faseranzahl stimmen nicht überein. Fasern wurden nicht generiert. Bitte korrigieren Sie die Farbzuordnungen im Admin-Bereich.",
 	"nav_address": "Adressen",
+	"nav_category_infrastructure": "Infrastruktur",
+	"nav_category_main": "Hauptnavigation",
+	"nav_category_system": "System",
 	"nav_conduit_connection": "Rohrzuordnung",
 	"nav_conduit_management": "Rohrverwaltung",
 	"nav_dashboard": "Dashboard",

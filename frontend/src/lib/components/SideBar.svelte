@@ -21,7 +21,7 @@
 
 	import AppIcon from './AppIcon.svelte';
 
-	const navigationLinks = [
+	const mainLinks = [
 		{
 			href: '/dashboard',
 			label: () => m.nav_dashboard(),
@@ -33,7 +33,10 @@
 			label: () => m.nav_map(),
 			icon: IconMap2,
 			pathMatch: (path) => path.startsWith('/map')
-		},
+		}
+	];
+
+	const infrastructureLinks = [
 		{
 			href: '/conduit',
 			label: () => m.nav_conduit_management(),
@@ -63,7 +66,10 @@
 			label: () => m.nav_network_schema(),
 			icon: IconTopologyRing2,
 			pathMatch: (path) => path.startsWith('/network-schema')
-		},
+		}
+	];
+
+	const addressLinks = [
 		{
 			href: '/address',
 			label: () => m.nav_address(),
@@ -71,6 +77,25 @@
 			pathMatch: (path) => path.startsWith('/address')
 		}
 	];
+
+	const footerLinks = $derived([
+		...($userStore.isAdmin
+			? [
+					{
+						href: '/admin/logs',
+						label: () => m.nav_logs(),
+						icon: IconFileText,
+						pathMatch: (path) => path === '/admin/logs'
+					}
+				]
+			: []),
+		{
+			href: '/settings',
+			label: () => m.nav_settings(),
+			icon: IconSettings,
+			pathMatch: (path) => path.startsWith('/settings')
+		}
+	]);
 
 	function getAnchorClass(isSelected) {
 		const justifyClass = $sidebarExpanded ? 'justify-start' : 'justify-center';
@@ -98,9 +123,63 @@
 			</div>
 		</Navigation.Header>
 		<Navigation.Content>
+			<!-- Main Navigation -->
 			<Navigation.Group>
+				{#if $sidebarExpanded}
+					<Navigation.Label class="text-surface-900-100">{m.nav_category_main()}</Navigation.Label>
+				{/if}
 				<Navigation.Menu>
-					{#each navigationLinks as link}
+					{#each mainLinks as link}
+						{@const Icon = link.icon}
+						{@const isSelected = link.pathMatch(page.url.pathname)}
+						<a
+							href={link.href}
+							class={getAnchorClass(isSelected)}
+							title={link.label()}
+							aria-label={link.label()}
+						>
+							<Icon size={28} class="text-surface-700-300" />
+							{#if $sidebarExpanded}
+								<span>{link.label()}</span>
+							{/if}
+						</a>
+					{/each}
+				</Navigation.Menu>
+			</Navigation.Group>
+
+			<!-- Infrastructure -->
+			<Navigation.Group>
+				{#if $sidebarExpanded}
+					<Navigation.Label class="text-surface-900-100"
+						>{m.nav_category_infrastructure()}</Navigation.Label
+					>
+				{/if}
+				<Navigation.Menu>
+					{#each infrastructureLinks as link}
+						{@const Icon = link.icon}
+						{@const isSelected = link.pathMatch(page.url.pathname)}
+						<a
+							href={link.href}
+							class={getAnchorClass(isSelected)}
+							title={link.label()}
+							aria-label={link.label()}
+						>
+							<Icon size={28} class="text-surface-700-300" />
+							{#if $sidebarExpanded}
+								<span>{link.label()}</span>
+							{/if}
+						</a>
+					{/each}
+				</Navigation.Menu>
+			</Navigation.Group>
+
+			<!-- Address -->
+			<Navigation.Group>
+				{#if $sidebarExpanded}
+					<Navigation.Label>{m.nav_address()}</Navigation.Label>
+				{/if}
+				<Navigation.Menu>
+					{#each addressLinks as link}
 						{@const Icon = link.icon}
 						{@const isSelected = link.pathMatch(page.url.pathname)}
 						<a
@@ -119,30 +198,28 @@
 			</Navigation.Group>
 		</Navigation.Content>
 		<Navigation.Footer>
-			{#if $userStore.isAdmin}
-				<a
-					href="/admin/logs"
-					class={getAnchorClass(page.url.pathname === '/admin/logs')}
-					title={m.nav_logs()}
-					aria-label={m.nav_logs()}
-				>
-					<IconFileText size={28} class="text-surface-700-300" />
-					{#if $sidebarExpanded}
-						<span>{m.nav_logs()}</span>
-					{/if}
-				</a>
-			{/if}
-			<a
-				href="/settings"
-				class={getAnchorClass(page.url.pathname === '/settings')}
-				title={m.nav_settings()}
-				aria-label={m.nav_settings()}
-			>
-				<IconSettings size={28} class="text-surface-700-300" />
+			<Navigation.Group>
 				{#if $sidebarExpanded}
-					<span>{m.nav_settings()}</span>
+					<Navigation.Label>{m.nav_category_system()}</Navigation.Label>
 				{/if}
-			</a>
+				<Navigation.Menu>
+					{#each footerLinks as link}
+						{@const Icon = link.icon}
+						{@const isSelected = link.pathMatch(page.url.pathname)}
+						<a
+							href={link.href}
+							class={getAnchorClass(isSelected)}
+							title={link.label()}
+							aria-label={link.label()}
+						>
+							<Icon size={28} class="text-surface-700-300" />
+							{#if $sidebarExpanded}
+								<span>{link.label()}</span>
+							{/if}
+						</a>
+					{/each}
+				</Navigation.Menu>
+			</Navigation.Group>
 		</Navigation.Footer>
 	</Navigation>
 </div>
