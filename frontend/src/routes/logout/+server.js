@@ -53,6 +53,10 @@ export async function POST({ cookies, fetch, url }) {
 		console.error('Error during logout API call:', error);
 	}
 
+	// Ensure both auth cookies are removed
+	cookies.delete('api-access-token', { path: '/' });
+	cookies.delete('api-refresh-token', { path: '/' });
+
 	// Redirect to the login page
 	throw redirect(303, '/login');
 }
