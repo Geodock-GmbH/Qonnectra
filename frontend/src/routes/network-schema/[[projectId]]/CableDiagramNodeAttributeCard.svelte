@@ -21,16 +21,16 @@
 
 	let node = $derived($drawerStore.props);
 	let id = $derived(node?.id || '');
-	let nodeName = $derived(node?.name || '');
-	let nodeType = $derived([node?.node_type?.id]);
-	let nodeStatus = $derived([node?.status?.id]);
-	let nodeNetworkLevel = $derived([node?.network_level?.id]);
-	let nodeOwner = $derived([node?.owner?.id]);
-	let nodeConstructor = $derived([node?.constructor?.id]);
-	let nodeManufacturer = $derived([node?.manufacturer?.id]);
-	let nodeWarranty = $derived(node?.warranty || '');
-	let nodeDate = $derived(node?.date || '');
-	let nodeFlag = $derived([node?.flag?.id]);
+	let nodeName = $state('');
+	let nodeType = $state([]);
+	let nodeStatus = $state([]);
+	let nodeNetworkLevel = $state([]);
+	let nodeOwner = $state([]);
+	let nodeConstructor = $state([]);
+	let nodeManufacturer = $state([]);
+	let nodeWarranty = $state('');
+	let nodeDate = $state('');
+	let nodeFlag = $state([]);
 
 	let { onLabelUpdate, onNodeDelete } = $props();
 
@@ -98,15 +98,15 @@
 	$effect(() => {
 		if (node) {
 			nodeName = node.name || '';
-			nodeType = [node.node_type?.id];
-			nodeStatus = [node.status?.id];
-			nodeNetworkLevel = [node.network_level?.id];
-			nodeOwner = [node.owner?.id];
-			nodeConstructor = [node.constructor?.id];
-			nodeManufacturer = [node.manufacturer?.id];
+			nodeType = node.node_type?.id != null ? [node.node_type.id] : [];
+			nodeStatus = node.status?.id != null ? [node.status.id] : [];
+			nodeNetworkLevel = node.network_level?.id != null ? [node.network_level.id] : [];
+			nodeOwner = node.owner?.id != null ? [node.owner.id] : [];
+			nodeConstructor = node.constructor?.id != null ? [node.constructor.id] : [];
+			nodeManufacturer = node.manufacturer?.id != null ? [node.manufacturer.id] : [];
 			nodeWarranty = node.warranty || '';
 			nodeDate = node.date || '';
-			nodeFlag = [node.flag?.id];
+			nodeFlag = node.flag?.id != null ? [node.flag.id] : [];
 		}
 	});
 
@@ -273,6 +273,7 @@
 			defaultValue={nodeType}
 			onValueChange={(e) => (nodeType = e.value)}
 			disabledValues={attributes.excludedNodeTypeIds}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">
@@ -282,6 +283,7 @@
 			bind:value={nodeStatus}
 			defaultValue={nodeStatus}
 			onValueChange={(e) => (nodeStatus = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">
@@ -291,6 +293,7 @@
 			bind:value={nodeNetworkLevel}
 			defaultValue={nodeNetworkLevel}
 			onValueChange={(e) => (nodeNetworkLevel = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">
@@ -300,6 +303,7 @@
 			bind:value={nodeOwner}
 			defaultValue={nodeOwner}
 			onValueChange={(e) => (nodeOwner = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">
@@ -309,6 +313,7 @@
 			bind:value={nodeConstructor}
 			defaultValue={nodeConstructor}
 			onValueChange={(e) => (nodeConstructor = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">
@@ -318,6 +323,7 @@
 			bind:value={nodeManufacturer}
 			defaultValue={nodeManufacturer}
 			onValueChange={(e) => (nodeManufacturer = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">
@@ -347,6 +353,7 @@
 			bind:value={nodeFlag}
 			defaultValue={nodeFlag}
 			onValueChange={(e) => (nodeFlag = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 </form>

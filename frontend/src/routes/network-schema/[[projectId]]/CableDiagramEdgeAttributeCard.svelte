@@ -28,37 +28,37 @@
 			connectedSpliceCount = 0;
 		}
 	});
-	let cableName = $derived(cable?.name || '');
-	let cableType = $derived([cable?.cable_type?.id]);
-	let cableStatus = $derived([cable?.status?.id]);
-	let cableNetworkLevel = $derived([cable?.network_level?.id]);
-	let cableOwner = $derived([cable?.owner?.id]);
-	let cableConstructor = $derived([cable?.constructor?.id]);
-	let cableManufacturer = $derived([cable?.manufacturer?.id]);
-	let cableDate = $derived(cable?.date || '');
+	let cableName = $state('');
+	let cableType = $state([]);
+	let cableStatus = $state([]);
+	let cableNetworkLevel = $state([]);
+	let cableOwner = $state([]);
+	let cableConstructor = $state([]);
+	let cableManufacturer = $state([]);
+	let cableDate = $state('');
 	let cableLength = $derived(cable?.length || '');
 	let cableLengthTotal = $derived(cable?.length_total || '');
-	let cableReserveAtStart = $derived(cable?.reserve_at_start || '');
-	let cableReserveAtEnd = $derived(cable?.reserve_at_end || '');
-	let cableReserveSection = $derived(cable?.reserve_section || '');
-	let cableFlag = $derived([cable?.flag?.id]);
+	let cableReserveAtStart = $state('');
+	let cableReserveAtEnd = $state('');
+	let cableReserveSection = $state('');
+	let cableFlag = $state([]);
 
 	let { onLabelUpdate, onEdgeDelete } = $props();
 
 	$effect(() => {
 		if (cable) {
 			cableName = cable.name || '';
-			cableType = [cable.cable_type?.id];
-			cableStatus = [cable.status?.id];
-			cableNetworkLevel = [cable.network_level?.id];
-			cableOwner = [cable.owner?.id];
-			cableConstructor = [cable.constructor?.id];
-			cableManufacturer = [cable.manufacturer?.id];
+			cableType = cable.cable_type?.id != null ? [cable.cable_type.id] : [];
+			cableStatus = cable.status?.id != null ? [cable.status.id] : [];
+			cableNetworkLevel = cable.network_level?.id != null ? [cable.network_level.id] : [];
+			cableOwner = cable.owner?.id != null ? [cable.owner.id] : [];
+			cableConstructor = cable.constructor?.id != null ? [cable.constructor.id] : [];
+			cableManufacturer = cable.manufacturer?.id != null ? [cable.manufacturer.id] : [];
 			cableDate = cable.date || '';
 			cableReserveAtStart = cable.reserve_at_start || '';
 			cableReserveAtEnd = cable.reserve_at_end || '';
 			cableReserveSection = cable.reserve_section || '';
-			cableFlag = [cable.flag?.id];
+			cableFlag = cable.flag?.id != null ? [cable.flag.id] : [];
 		}
 	});
 
@@ -193,6 +193,7 @@
 			defaultValue={cableType}
 			onValueChange={(e) => (cableType = e.value)}
 			disabled={true}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">
@@ -202,6 +203,7 @@
 			bind:value={cableStatus}
 			defaultValue={cableStatus}
 			onValueChange={(e) => (cableStatus = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">
@@ -211,6 +213,7 @@
 			bind:value={cableNetworkLevel}
 			defaultValue={cableNetworkLevel}
 			onValueChange={(e) => (cableNetworkLevel = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">
@@ -220,6 +223,7 @@
 			bind:value={cableOwner}
 			defaultValue={cableOwner}
 			onValueChange={(e) => (cableOwner = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">
@@ -229,6 +233,7 @@
 			bind:value={cableConstructor}
 			defaultValue={cableConstructor}
 			onValueChange={(e) => (cableConstructor = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">
@@ -238,6 +243,7 @@
 			bind:value={cableManufacturer}
 			defaultValue={cableManufacturer}
 			onValueChange={(e) => (cableManufacturer = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">
@@ -258,6 +264,7 @@
 			bind:value={cableFlag}
 			defaultValue={cableFlag}
 			onValueChange={(e) => (cableFlag = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">

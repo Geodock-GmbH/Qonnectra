@@ -23,33 +23,47 @@
 	// Get conduit data from drawer store props
 	let conduit = $derived($drawerStore.props);
 
-	// Local state for form fields (using $derived for initial values, reassigned in $effect)
-	let conduitName = $derived(conduit?.name || '');
-	let conduitOuterConduit = $derived(conduit?.outer_conduit || '');
-	let conduitType = $derived([conduit?.conduit_type?.id]);
-	let conduitStatus = $derived([conduit?.status?.id]);
-	let conduitNetworkLevel = $derived([conduit?.network_level?.id]);
-	let conduitOwner = $derived([conduit?.owner?.id]);
-	let conduitConstructor = $derived([conduit?.constructor?.id]);
-	let conduitManufacturer = $derived([conduit?.manufacturer?.id]);
-	let conduitDate = $derived(conduit?.date || '');
-	let conduitFlag = $derived([conduit?.flag?.id]);
+	// Mutable state for form fields - required for bind:value to work with GenericCombobox
+	let conduitName = $state('');
+	let conduitOuterConduit = $state('');
+	let conduitType = $state([]);
+	let conduitStatus = $state([]);
+	let conduitNetworkLevel = $state([]);
+	let conduitOwner = $state([]);
+	let conduitConstructor = $state([]);
+	let conduitManufacturer = $state([]);
+	let conduitDate = $state('');
+	let conduitFlag = $state([]);
 
 	let { onConduitUpdate, onConduitDelete } = $props();
 
 	// Sync form fields when conduit changes
 	$effect(() => {
 		if (conduit) {
+			// #region agent log
+			fetch('http://127.0.0.1:7243/ingest/ce537700-dc76-46fa-bb6c-67a77367f431', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					location: 'ConduitAttributeCard.svelte:sync',
+					message: 'ConduitAttributeCard sync from conduit (post-fix)',
+					data: { conduitUuid: conduit?.uuid, conduitTypeId: conduit?.conduit_type?.id },
+					hypothesisId: 'post-fix',
+					runId: 'post-fix',
+					timestamp: Date.now()
+				})
+			}).catch(() => {});
+			// #endregion
 			conduitName = conduit.name || '';
 			conduitOuterConduit = conduit.outer_conduit || '';
-			conduitType = [conduit.conduit_type?.id];
-			conduitStatus = [conduit.status?.id];
-			conduitNetworkLevel = [conduit.network_level?.id];
-			conduitOwner = [conduit.owner?.id];
-			conduitConstructor = [conduit.constructor?.id];
-			conduitManufacturer = [conduit.manufacturer?.id];
+			conduitType = conduit.conduit_type?.id != null ? [conduit.conduit_type.id] : [];
+			conduitStatus = conduit.status?.id != null ? [conduit.status.id] : [];
+			conduitNetworkLevel = conduit.network_level?.id != null ? [conduit.network_level.id] : [];
+			conduitOwner = conduit.owner?.id != null ? [conduit.owner.id] : [];
+			conduitConstructor = conduit.constructor?.id != null ? [conduit.constructor.id] : [];
+			conduitManufacturer = conduit.manufacturer?.id != null ? [conduit.manufacturer.id] : [];
 			conduitDate = conduit.date || '';
-			conduitFlag = [conduit.flag?.id];
+			conduitFlag = conduit.flag?.id != null ? [conduit.flag.id] : [];
 		}
 	});
 
@@ -158,6 +172,7 @@
 			bind:value={conduitType}
 			defaultValue={conduitType}
 			onValueChange={(e) => (conduitType = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">
@@ -177,6 +192,7 @@
 			bind:value={conduitStatus}
 			defaultValue={conduitStatus}
 			onValueChange={(e) => (conduitStatus = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">
@@ -186,6 +202,7 @@
 			bind:value={conduitNetworkLevel}
 			defaultValue={conduitNetworkLevel}
 			onValueChange={(e) => (conduitNetworkLevel = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">
@@ -195,6 +212,7 @@
 			bind:value={conduitOwner}
 			defaultValue={conduitOwner}
 			onValueChange={(e) => (conduitOwner = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">
@@ -204,6 +222,7 @@
 			bind:value={conduitConstructor}
 			defaultValue={conduitConstructor}
 			onValueChange={(e) => (conduitConstructor = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">
@@ -213,6 +232,7 @@
 			bind:value={conduitManufacturer}
 			defaultValue={conduitManufacturer}
 			onValueChange={(e) => (conduitManufacturer = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 	<label class="label">
@@ -232,6 +252,7 @@
 			bind:value={conduitFlag}
 			defaultValue={conduitFlag}
 			onValueChange={(e) => (conduitFlag = e.value)}
+			renderInPlace={true}
 		/>
 	</label>
 </form>

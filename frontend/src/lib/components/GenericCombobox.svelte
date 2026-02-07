@@ -22,7 +22,9 @@
 		inputClasses = '',
 		disabled = false,
 		disabledValues = [],
-		onValueChange = () => {}
+		onValueChange = () => {},
+		renderInPlace = false,
+		required = false
 	} = $props();
 
 	let isOpen = $state(false);
@@ -73,11 +75,37 @@
 	});
 
 	function handleValueChange(e) {
+		// #region agent log
+		fetch('http://127.0.0.1:7243/ingest/ce537700-dc76-46fa-bb6c-67a77367f431', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				location: 'GenericCombobox.svelte:handleValueChange',
+				message: 'handleValueChange called',
+				data: { newValue: e?.value, dataLength: data?.length },
+				hypothesisId: 'D',
+				timestamp: Date.now()
+			})
+		}).catch(() => {});
+		// #endregion
 		value = e.value;
 		onValueChange(e);
 	}
 
 	function handleOpenChange(e) {
+		// #region agent log
+		fetch('http://127.0.0.1:7243/ingest/ce537700-dc76-46fa-bb6c-67a77367f431', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				location: 'GenericCombobox.svelte:handleOpenChange',
+				message: 'handleOpenChange called',
+				data: { open: e?.open },
+				hypothesisId: 'D',
+				timestamp: Date.now()
+			})
+		}).catch(() => {});
+		// #endregion
 		isOpen = e.open;
 	}
 </script>
@@ -91,35 +119,38 @@
 		{noDataMessage || m.form_no_data_available()}
 	</div>
 {:else}
-	<Combobox
-		class={classes}
-		{placeholder}
-		{collection}
-		{defaultValue}
-		bind:value
-		{disabled}
-		onOpenChange={handleOpenChange}
-		onValueChange={handleValueChange}
-		{onInputValueChange}
-	>
-		<Combobox.Control class="flex items-center min-h-[48px] sm:min-h-[40px]">
-			<Combobox.Input class="placeholder:text-sm placeholder:truncate {inputClasses}" />
-			<Combobox.Trigger class="shrink-0" />
-		</Combobox.Control>
-		<Portal>
-			<Combobox.Positioner class={isOpen ? 'z-100' : `z-${zIndex}`}>
-				<Combobox.Content class={contentBase}>
-					{#each items as item (item.value)}
-						<Combobox.Item
-							{item}
-							class="cursor-pointer px-3 py-2 rounded-md data-highlighted:not-data-selected:bg-surface-200-800 data-selected:bg-primary-500 data-selected:text-white data-highlighted:data-selected:bg-primary-600 data-disabled:opacity-50 data-disabled:cursor-not-allowed"
-						>
-							<Combobox.ItemText>{item.label}</Combobox.ItemText>
-							<Combobox.ItemIndicator />
-						</Combobox.Item>
-					{/each}
-				</Combobox.Content>
-			</Combobox.Positioner>
-		</Portal>
-	</Combobox>
+	<div class={renderInPlace ? (isOpen ? 'relative z-9999' : 'relative') : ''}>
+		<Combobox
+			class={classes}
+			{placeholder}
+			{required}
+			{collection}
+			{defaultValue}
+			bind:value
+			{disabled}
+			onOpenChange={handleOpenChange}
+			onValueChange={handleValueChange}
+			{onInputValueChange}
+		>
+			<Combobox.Control class="flex items-center min-h-[48px] sm:min-h-[40px]">
+				<Combobox.Input class="placeholder:text-sm placeholder:truncate {inputClasses}" />
+				<Combobox.Trigger class="shrink-0" />
+			</Combobox.Control>
+			<Portal disabled={renderInPlace}>
+				<Combobox.Positioner class={isOpen ? 'z-9999' : `z-${zIndex}`}>
+					<Combobox.Content class={contentBase}>
+						{#each items as item (item.value)}
+							<Combobox.Item
+								{item}
+								class="cursor-pointer px-3 py-2 rounded-md data-highlighted:not-data-selected:bg-surface-200-800 data-selected:bg-primary-500 data-selected:text-white data-highlighted:data-selected:bg-primary-600 data-disabled:opacity-50 data-disabled:cursor-not-allowed"
+							>
+								<Combobox.ItemText>{item.label}</Combobox.ItemText>
+								<Combobox.ItemIndicator />
+							</Combobox.Item>
+						{/each}
+					</Combobox.Content>
+				</Combobox.Positioner>
+			</Portal>
+		</Combobox>
+	</div>
 {/if}

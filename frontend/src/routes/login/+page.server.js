@@ -62,14 +62,16 @@ export const actions = {
 			return fail(500, { error: 'An internal error occurred during login.' });
 		}
 
-		// Set default project cookie
-		event.cookies.set('selected-project', '1', {
-			path: '/',
-			maxAge: 60 * 60 * 24 * 365, // 1 year
-			httpOnly: false,
-			secure: event.url.protocol === 'https:',
-			sameSite: 'Lax'
-		});
+		// Preserve existing project cookie, or set default if none exists
+		if (!event.cookies.get('selected-project')) {
+			event.cookies.set('selected-project', '1', {
+				path: '/',
+				maxAge: 60 * 60 * 24 * 365, // 1 year
+				httpOnly: false,
+				secure: event.url.protocol === 'https:',
+				sameSite: 'Lax'
+			});
+		}
 
 		throw redirect(303, redirectTo);
 	}
