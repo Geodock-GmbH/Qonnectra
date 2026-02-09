@@ -1,0 +1,57 @@
+# Docker Compose Override Template
+# Copy this file to docker-compose.override.yml for local customizations.
+# The override file is gitignored, so your changes won't pollute git status.
+#
+# Usage:
+#   cp docker-compose.override.yml.template docker-compose.override.yml
+#   # Edit docker-compose.override.yml as needed
+#   docker compose -f docker-compose.dev.yml up -d
+#   # or for production:
+#   docker compose up -d
+
+# Common customizations:
+
+services:
+  # Example: Change container names (useful for running multiple instances)
+  # db:
+  #   container_name: my_project_db
+  # backend:
+  #   container_name: my_project_backend
+  # frontend:
+  #   container_name: my_project_frontend
+
+  # Example: Expose database port for external tools (DBeaver, pgAdmin, etc.)
+  # db:
+  #   ports:
+  #     - "5440:5432"
+
+  # Example: Mount local backend code for development (hot reload)
+  # backend:
+  #   volumes:
+  #     - ../backend:/app
+  #   command: python manage.py runserver 0.0.0.0:8000
+
+  # Example: Override frontend for local development
+  # frontend:
+  #   build:
+  #     context: ../frontend
+  #   volumes:
+  #     - ../frontend:/app
+  #     - /app/node_modules
+
+  # Example: Add resource limits
+  # backend:
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 1G
+
+  # Example: Change restart policy
+  # backend:
+  #   restart: "no"
+
+  # Example: Override environment variables
+  # backend:
+  #   environment:
+  #     - DEBUG=True
+  #     - DJANGO_SECRET_KEY=my-local-secret-key

@@ -1,29 +1,40 @@
-# Docker Compose configuration without Caddy (reverse proxy)
-# This is a simplified setup for development without HTTPS/WebDAV support
-# For production or WebDAV file access, use docker-compose.production.yml
-
 services:
   db:
     build:
       context: ./postgres
       dockerfile: Dockerfile
-    container_name: krit_gis_db
+    container_name: qonnectra_db_prod
+    restart: always
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+      QGIS_DB_USER: ${QGIS_DB_USER:-}
+      QGIS_DB_PASSWORD: ${QGIS_DB_PASSWORD:-}
     volumes:
-      - ./postgres/data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
       - ./postgres/init.sh:/docker-entrypoint-initdb.d/01-init.sh
-    ports:
-      - "5440:5432"
+    expose:
+      - "5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 10s
-      timeout: 5s
+      interval: 30s
+      timeout: 10s
       retries: 5
+      start_period: 60s
     networks:
-      - krit_gis_network
+      - qonnectra_network
+    shm_size: 256m
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
     logging:
       driver: "json-file"
       options:
@@ -35,10 +46,11 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    container_name: krit_gis_backend
-    restart: unless-stopped
+    container_name: qonnectra_backend_prod
+    restart: always
     command: >
-      sh -c "python manage.py collectstatic --noinput &&
+      sh -c "python manage.py compilemessages &&
+            python manage.py collectstatic --noinput &&
             python manage.py migrate &&
             python manage.py shell -c \"from django.contrib.auth import get_user_model; import os; User = get_user_model(); username = os.environ.get('DJANGO_SUPERUSER_USERNAME'); User.objects.filter(username=username).exists() or User.objects.create_superuser(username, os.environ.get('DJANGO_SUPERUSER_EMAIL'), os.environ.get('DJANGO_SUPERUSER_PASSWORD'))\" &&
             python manage.py loaddata attributes_company attributes_construction_type attributes_conduit_type attributes_phase  &&
@@ -48,8 +60,8 @@ services:
             python manage.py loaddata attributes_microduct_color attributes_cable_type attributes_fiber_color conduit_type_color_mapping cable_type_color_mapping &&
             python manage.py loaddata attributes_component_type attributes_component_structure attributes_residential_unit_type attributes_residential_unit_status &&
             gunicorn --bind 0.0.0.0:8000 core.wsgi:application"
-    ports:
-      - "${BACKEND_PORT:-8000}:8000"
+    expose:
+      - "8000"
     volumes:
       - static_volume:/app/static
       - media_volume:/app/media
@@ -61,18 +73,28 @@ services:
       - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME}
       - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL}
       - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}
+      - USE_COOKIE_DOMAIN_MIDDLEWARE=${USE_COOKIE_DOMAIN_MIDDLEWARE}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN}
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - DEFAULT_SRID=${DEFAULT_SRID}
-      - QGIS_PG_SERVICE_NAME=${QGIS_PG_SERVICE_NAME:-qonnectra_db}
+      - QGIS_PG_SERVICE_NAME=${QGIS_PG_SERVICE_NAME:-qonnectra}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
     depends_on:
       db:
         condition: service_healthy
     networks:
-      - krit_gis_network
+      - qonnectra_network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
     logging:
       driver: "json-file"
       options:
@@ -82,8 +104,8 @@ services:
 
   qgis-server:
     image: qgis/qgis-server:latest
-    container_name: krit_gis_qgis_server
-    restart: unless-stopped
+    container_name: qonnectra_qgis_server_prod
+    restart: always
     command: >
       sh -c "
         mkdir -p /var/www/data/qgis &&
@@ -92,23 +114,22 @@ services:
         fc-cache &&
         /usr/bin/Xvfb :99 -ac -screen 0 1280x1024x16 +extension GLX +render -noreset >/dev/null &
         sleep 2 &&
+        sed -i '/http {/a \    client_max_body_size 500M;' /etc/nginx/nginx.conf &&
         nginx &&
         spawn-fcgi -n -u www-data -g www-data -d /var/lib/qgis -P /run/qgis.pid -p 9993 -- /usr/lib/cgi-bin/qgis_mapserv.fcgi &&
         tail -f /dev/null
       "
-    ports:
-      - "${QGIS_SERVER_PORT:-8082}:80"
+    expose:
+      - "80"
     volumes:
       - ./qgis/projects:/projects:ro
       - ./qgis/data:/data:ro
       - ./qgis/pg_service.conf:/etc/postgresql-common/pg_service.conf:ro
-      - ./qgis/nginx.conf:/etc/nginx/sites-available/default:ro
     environment:
-      - QGIS_SERVER_LOG_LEVEL=2
+      - QGIS_SERVER_LOG_LEVEL=1
       - QGIS_SERVER_LOG_STDERR=1
-      # - QGIS_PROJECT_FILE=/projects/default.qgs
-      - QGIS_FCGI_MIN_PROCESSES=1
-      - QGIS_FCGI_MAX_PROCESSES=4
+      - QGIS_FCGI_MIN_PROCESSES=2
+      - QGIS_FCGI_MAX_PROCESSES=8
       - PGSERVICEFILE=/etc/postgresql-common/pg_service.conf
       - POSTGRES_HOST=${DB_HOST}
       - POSTGRES_PORT=${DB_PORT}
@@ -120,16 +141,19 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -f 'http://localhost/ows/?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetCapabilities&MAP=/projects/default.qgs' || exit 1",
-        ]
-      interval: 30s
+      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+      interval: 1m
       timeout: 10s
       retries: 3
+      start_period: 30s
     networks:
-      - krit_gis_network
+      - qonnectra_network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
     logging:
       driver: "json-file"
       options:
@@ -141,9 +165,9 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    container_name: krit_gis_pg_error_parser
-    restart: unless-stopped
-    command: python manage.py parse_pg_errors --container krit_gis_db
+    container_name: qonnectra_pg_error_parser_prod
+    restart: always
+    command: python manage.py parse_pg_errors --container qonnectra_db_prod
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
@@ -158,7 +182,13 @@ services:
       db:
         condition: service_healthy
     networks:
-      - krit_gis_network
+      - qonnectra_network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -170,16 +200,33 @@ services:
     build:
       context: ../frontend
       dockerfile: Dockerfile
-    container_name: krit_gis_frontend
-    restart: unless-stopped
-    ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      args:
+        - API_URL=${API_URL}
+        - PUBLIC_API_URL=${PUBLIC_API_URL}
+        - PUBLIC_TILE_SERVER_URL=${PUBLIC_TILE_SERVER_URL}
+    env_file:
+      - .env
+    container_name: qonnectra_frontend_prod
+    restart: always
+    expose:
+      - "3000"
     environment:
-      - ORIGIN=http://localhost:3000
+      - ORIGIN=https://${APP_DOMAIN}
+      - NODE_ENV=production
+      - API_URL=${API_URL}
+      - PUBLIC_API_URL=${PUBLIC_API_URL}
+      - PUBLIC_TILE_SERVER_URL=${PUBLIC_TILE_SERVER_URL}
     networks:
-      - krit_gis_network
+      - qonnectra_network
     depends_on:
       - backend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    # Logging configuration
     logging:
       driver: "json-file"
       options:
@@ -187,16 +234,51 @@ services:
         max-file: "3"
         labels: "service=frontend"
 
+  nginx:
+    image: nginx:stable-alpine
+    container_name: qonnectra_nginx_prod
+    restart: always
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_volume:/usr/share/nginx/html/static:ro
+      - media_volume:/usr/share/nginx/html/media:ro
+    expose:
+      - "80"
+    depends_on:
+      - backend
+    networks:
+      - qonnectra_network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
   tileserver:
     image: maptiler/tileserver-gl:latest
-    container_name: krit_gis_tileserver
-    restart: unless-stopped
+    container_name: qonnectra_tileserver_prod
+    restart: always
+    user: "1000:1000"
     volumes:
-      - ./tiles:/data
-    ports:
-      - "${TILE_SERVER_PORT:-8090}:8080"
+      - ./tiles:/data:ro
+    command:
+      [
+        "--config",
+        "/data/config.json",
+        "--public_url",
+        "https://${TILE_SERVER_DOMAIN}",
+      ]
+    expose:
+      - "8080"
     networks:
-      - krit_gis_network
+      - qonnectra_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
     logging:
       driver: "json-file"
       options:
@@ -204,11 +286,59 @@ services:
         max-file: "3"
         labels: "service=tileserver"
 
+  caddy:
+    build:
+      context: ./caddy
+      dockerfile: Dockerfile
+    container_name: qonnectra_caddy_prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile.production:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./logs:/var/log/caddy
+      - media_volume:/media:ro # Mount media volume for WebDAV access
+    environment:
+      - XDG_DATA_HOME=/data
+      - XDG_CONFIG_HOME=/config
+      - DOMAIN_NAME=${DOMAIN_NAME}
+      - API_DOMAIN=${API_DOMAIN}
+      - APP_DOMAIN=${APP_DOMAIN}
+      - FILES_DOMAIN=${FILES_DOMAIN}
+      - QGIS_DOMAIN=${QGIS_DOMAIN}
+      - TILE_SERVER_DOMAIN=${TILE_SERVER_DOMAIN}
+    cap_add:
+      - NET_ADMIN
+    depends_on:
+      - nginx
+      - frontend
+      - qgis-server
+      - tileserver
+    networks:
+      - qonnectra_network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
 volumes:
-  static_volume: {}
-  media_volume: {}
+  postgres_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+  static_volume:
+    driver: local
+  media_volume:
+    driver: local
 
 networks:
-  krit_gis_network:
-    name: krit_gis_network
+  qonnectra_network:
+    name: qonnectra_network_prod
     driver: bridge

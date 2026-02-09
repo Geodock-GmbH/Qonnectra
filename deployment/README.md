@@ -1,12 +1,22 @@
 # qonnectra Deployment
 
-This guide covers three deployment scenarios for qonnectra: local development with manual setup, Docker Compose development, and production deployment.
+This guide covers deployment scenarios for qonnectra: local development with manual setup, Docker Compose development with local HTTPS, and production deployment.
 
 ## Deployment Options
 
 1. **Local Development** - Manual PostgreSQL setup with VS Code tasks for backend/frontend
-2. **Docker Compose (No Caddy)** - Development environment with Docker services
-3. **Production Deployment** - Full stack with Caddy reverse proxy and HTTPS
+2. **Docker Compose (Development)** - Full stack with Caddy local HTTPS (self-signed certificates)
+3. **Production Deployment** - Full stack with Caddy reverse proxy and Let's Encrypt HTTPS
+
+## Docker Compose Files
+
+| File | Purpose |
+|------|---------|
+| `docker-compose.yml` | Production deployment (default) |
+| `docker-compose.dev.yml` | Development with Caddy local HTTPS |
+| `docker-compose.override.yml.template` | Template for local customizations |
+
+**Note:** Copy `docker-compose.override.yml.template` to `docker-compose.override.yml` for local customizations. The override file is gitignored.
 
 ---
 
@@ -155,16 +165,16 @@ npm run dev
 
 ---
 
-## 2. Docker Compose (No Caddy)
+## 2. Docker Compose (Development with Local HTTPS)
 
-This setup uses Docker Compose for all services except Caddy, ideal for development with containerized services.
+This setup uses Docker Compose for all services with Caddy providing local HTTPS using self-signed certificates. Caddy automatically installs its CA certificate on first run.
 
 ### Prerequisites
 
 - Docker Engine 20.10+
 - Docker Compose 2.0+
 - Minimum 4GB RAM available
-- Ports 8000, 5173, 5440 available
+- Ports 80, 443 available
 
 ### Setup Steps
 
@@ -175,9 +185,9 @@ Create a `.env` file in the `deployment/` directory:
 ```bash
 # Django Settings
 DJANGO_SECRET_KEY=your-secret-key-here
-DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+DJANGO_ALLOWED_HOSTS=api.localhost,localhost,127.0.0.1
 DEBUG=True
-CSRF_TRUSTED_ORIGINS=http://localhost:5173,http://localhost:8000
+CSRF_TRUSTED_ORIGINS=https://api.localhost,https://app.localhost
 
 # Database
 DB_NAME=qonnectra
@@ -190,59 +200,49 @@ DB_PORT=5432
 DEFAULT_SRID=25832  # ETRS89 / UTM zone 32N or 33N
 
 # CORS
-CORS_ALLOWED_ORIGINS=http://localhost:5173
+CORS_ALLOWED_ORIGINS=https://app.localhost
 
 # Django Superuser
 DJANGO_SUPERUSER_USERNAME=admin
 DJANGO_SUPERUSER_EMAIL=admin@example.com
 DJANGO_SUPERUSER_PASSWORD=your-admin-password
 
-# Cookie Domain (optional)
-USE_COOKIE_DOMAIN_MIDDLEWARE=False
+# Cookie Domain (for cross-subdomain cookies)
+USE_COOKIE_DOMAIN_MIDDLEWARE=True
+COOKIE_DOMAIN=.localhost
 ```
 
-#### 2.2 Frontend Environment Configuration
-
-Create a `.env` file in the `frontend/` directory:
-
-```bash
-# API URL (pointing to Docker backend)
-API_URL=http://localhost:8000/api/
-
-# Origin
-ORIGIN=http://localhost:5173
-```
-
-#### 2.3 Start Services
+#### 2.2 Start Services
 
 ```bash
 cd deployment
-docker-compose -f docker-compose.no-caddy.yml up -d --build
+docker compose -f docker-compose.dev.yml up -d --build
 ```
 
-#### 2.4 Run Migrations
+On first run, Caddy will attempt to install its CA certificate. You may be prompted for your password to trust the certificate. After that, all `*.localhost` domains will work with valid HTTPS.
 
+If Caddy fails to install the certificate automatically, run:
 ```bash
-docker-compose exec backend python manage.py migrate
-docker-compose exec backend python manage.py loaddata attributes_company attributes_construction_type attributes_conduit_type attributes_phase
-docker-compose exec backend python manage.py loaddata attributes_status attributes_surface storage_preference file_type_categories projects flags
-docker-compose exec backend python manage.py loaddata attributes_network_level attributes_node_type attributes_status_development
+docker compose -f docker-compose.dev.yml exec caddy caddy trust
+```
+
+#### 2.3 Local Customizations (Optional)
+
+For local customizations that shouldn't be committed:
+```bash
+cp docker-compose.override.yml.template docker-compose.override.yml
+# Edit docker-compose.override.yml as needed
 ```
 
 ### Accessing Services
 
-- **Frontend**: `http://localhost:3000` (if running in container) or `http://localhost:5173` (if running locally)
-- **API**: `http://localhost:8000`
-- **Django Admin**: `http://localhost:8000/admin`
-- **Database**: `localhost:5440` (external port)
-
-### Running Frontend Locally with Docker Backend
-
-You can run the frontend locally while using the Docker backend:
-
-1. Ensure Docker services are running (backend, database)
-2. Start frontend locally: `cd frontend && npm run dev`
-3. Frontend will connect to `http://localhost:8000` (Docker backend)
+- **Frontend**: `https://app.localhost`
+- **API**: `https://api.localhost`
+- **Django Admin**: `https://api.localhost/admin`
+- **QGIS Server**: `https://qgis.localhost`
+- **TileServer**: `https://tiles.localhost`
+- **Files (WebDAV)**: `https://files.localhost`
+- **Database**: `localhost:5440` (external port, configurable via `DB_EXTERNAL_PORT`)
 
 ---
 
@@ -323,7 +323,7 @@ ORIGIN=https://app.localhost
 
 ```bash
 cd deployment
-docker-compose -f docker-compose.production.yml up -d --build
+docker compose up -d --build
 ```
 
 #### 3.4 Verify Services
@@ -355,8 +355,11 @@ docker-compose logs [service_name]
 - **Port**: 5440 (external) → 5432 (internal)
 - **Volume**: `postgres_data` for data persistence
 - **Health Check**: PostgreSQL readiness check
-- **Initialization**: `postgres/init.sql` sets up PostGIS extension
-- **Extensions**: PostGIS for spatial data support
+- **Initialization**: `postgres/init.sh` sets up extensions and users
+- **Extensions**: PostGIS, pgRouting, dblink, pgcrypto
+- **Users**:
+  - Main user (`DB_USER`) - full privileges for Django backend
+  - QGIS user (`QGIS_DB_USER`) - limited read-write access for WFS/WMS
 
 #### Backend (Django 5.2)
 
@@ -390,30 +393,98 @@ docker-compose logs [service_name]
 
 - **Image**: `qgis/qgis-server:latest`
 - **Port**: 80 (internal, exposed via caddy)
+- **Setup Required**:
+  1. Copy `qgis/pg_service.conf.template` to `qgis/pg_service.conf`
+  2. Edit `pg_service.conf` with your database credentials
+  3. Add your QGIS project files to `qgis/projects/`
 - **Volumes**:
-  - `qgis/projects/` for QGIS project files (.qgs)
+  - `qgis/projects/` for QGIS project files (.qgs) - user-provided
   - `qgis/data/` for additional data
-  - `qgis/pg_service.conf` for database connection
+  - `qgis/pg_service.conf` for database connection (create from template)
 - **Services**: WMS, WFS (with ?MAP=/projects/<project>.qgs parameter), WMTS, WCS, OGC API Features
 - **Authentication**: Django forward_auth integration
-- See [QGIS Server README](qgis/README.md) for details
+- See [QGIS Server Setup](qgis/environment-variables.md) for detailed configuration
 
 #### TileServer-GL
 
 - **Port**: 8080 (internal, exposed via caddy as tiles subdomain)
 - **Function**: Vector tile server for base map rendering
+- **Setup Required**: Generate mbtiles using Planetiler (see [Generating Map Tiles](#generating-map-tiles-with-planetiler) below)
 - **Volumes**:
-  - `tiles/germany.mbtiles` - Base map data (3.2GB)
+  - `tiles/*.mbtiles` - Vector tile data (user-generated, not included in repo)
   - `tiles/config.json` - TileServer configuration
-  - `tiles/light.json` - Light theme style
-  - `tiles/dark.json` - Dark theme style
-  - `tiles/fonts/` - Font glyphs for labels
+  - `tiles/styles/light.json` - Light theme style
+  - `tiles/styles/dark.json` - Dark theme style
 - **Features**:
   - High-performance vector tile serving
   - Dynamic light/dark theme switching
   - Font serving for map labels
-  - Health checks for tile availability
 - **Data Source**: Mbtiles generated from Planetiler (OSM data)
+
+#### Generating Map Tiles with Planetiler
+
+[Planetiler](https://github.com/onthegomap/planetiler) is a fast tool for generating vector tiles from OpenStreetMap data. You need to generate mbtiles before starting the TileServer.
+
+**Prerequisites:**
+- Java 21 or later (`java --version`)
+- 8GB+ RAM recommended
+- Disk space: ~2x the size of your OSM data file
+
+**Quick Start:**
+
+```bash
+cd deployment/tiles
+
+# Download Planetiler (one-time)
+wget https://github.com/onthegomap/planetiler/releases/latest/download/planetiler.jar
+
+# Generate tiles for Germany (~3GB output)
+java -Xmx8g -jar planetiler.jar --download --area=germany --output=germany.mbtiles
+
+# Or for a smaller region (e.g., a German state)
+java -Xmx4g -jar planetiler.jar --download --area=berlin --output=berlin.mbtiles
+```
+
+**Using a Local OSM File:**
+
+Download PBF files from [Geofabrik](https://download.geofabrik.de/):
+
+```bash
+# Download OSM data
+wget https://download.geofabrik.de/europe/germany-latest.osm.pbf
+
+# Generate tiles from local file
+java -Xmx8g -jar planetiler.jar --osm-path=germany-latest.osm.pbf --output=tiles/germany.mbtiles
+```
+
+**Memory Recommendations:**
+
+| Region | RAM | Approximate Output Size |
+|--------|-----|------------------------|
+| City (e.g., Berlin) | 2-4GB | 100-500MB |
+| State/Province | 4-8GB | 500MB-2GB |
+| Country (e.g., Germany) | 8-16GB | 2-5GB |
+| Continent | 32GB+ | 20GB+ |
+
+**Updating config.json:**
+
+After generating your mbtiles, update `tiles/config.json` to reference your file:
+
+```json
+{
+  "data": {
+    "your-region": {
+      "mbtiles": "your-region.mbtiles"
+    }
+  }
+}
+```
+
+**Common Issues:**
+
+- **OutOfMemoryError**: Increase `-Xmx` value or use a smaller region
+- **Slow generation**: Use SSD storage, increase RAM
+- **Missing tiles at high zoom**: Planetiler may skip sparse areas; this is normal
 
 #### Caddy
 
@@ -455,6 +526,8 @@ docker-compose logs [service_name]
 | `DB_PASSWORD` | Yes | PostgreSQL password | `secure-password` |
 | `DB_HOST` | Yes | Database host | `localhost` or `db` |
 | `DB_PORT` | Yes | Database port | `5432` |
+| `QGIS_DB_USER` | No | QGIS database user (limited permissions) | `qgis_user` |
+| `QGIS_DB_PASSWORD` | No | QGIS database password | `qgis-password` |
 | `DJANGO_SUPERUSER_USERNAME` | Yes | Admin username | `admin` |
 | `DJANGO_SUPERUSER_EMAIL` | Yes | Admin email | `admin@example.com` |
 | `DJANGO_SUPERUSER_PASSWORD` | Yes | Admin password | `admin-password` |
@@ -560,7 +633,7 @@ Without these variables, builds will fail with: `unknown flag: mount`
 Services include health checks:
 
 - **Database**: PostgreSQL readiness (`pg_isready`)
-- **QGIS Server**: WMS capabilities endpoint
+- **QGIS Server**: HTTP endpoint check (verifies server is running)
 - **Backend**: Django application (implicit via dependencies)
 
 ---
@@ -601,16 +674,25 @@ Persistent data is stored in Docker volumes:
 
 ### QGIS Server Issues
 
-See [QGIS Server README](qgis/README.md) for troubleshooting. Remember to include the MAP parameter in WFS/WMS requests: `?MAP=/projects/<project>.qgs`
+1. **Setup checklist**:
+   - Ensure `qgis/pg_service.conf` exists (copy from `pg_service.conf.template`)
+   - Verify database credentials in `pg_service.conf` are correct
+   - Confirm your QGIS project is in `qgis/projects/`
+2. Check QGIS Server logs: `docker-compose logs qgis-server`
+3. Remember to include the MAP parameter in requests: `?MAP=/projects/<project>.qgs`
+4. See [QGIS Server Setup](qgis/environment-variables.md) for detailed configuration
 
 ### TileServer Issues
 
-1. Check TileServer logs: `docker-compose logs tileserver`
-2. Verify mbtiles file exists: `ls -lh deployment/tiles/germany.mbtiles`
-3. Test tile endpoint directly: `curl http://localhost:8080/styles/light.json`
-4. Check CORS headers for tile requests
-5. Verify frontend is using correct tile server URL
-6. For missing tiles: May need to regenerate mbtiles from Planetiler with updated OSM data
+1. **Setup checklist**:
+   - Ensure mbtiles file exists (generate with Planetiler - see [Generating Map Tiles](#generating-map-tiles-with-planetiler))
+   - Verify `tiles/config.json` references the correct mbtiles file
+2. Check TileServer logs: `docker-compose logs tileserver`
+3. Verify mbtiles file exists: `ls -lh deployment/tiles/*.mbtiles`
+4. Test tile endpoint directly: `curl http://localhost:8080/styles/light.json`
+5. Check CORS headers for tile requests
+6. Verify frontend is using correct tile server URL (`PUBLIC_TILE_SERVER_URL`)
+7. For missing or outdated tiles: Regenerate mbtiles from Planetiler with updated OSM data
 
 ### Certificate Issues (Caddy)
 

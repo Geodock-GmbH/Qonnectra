@@ -197,5 +197,8 @@ deployment/postgres/data
 deployment/nextcloud/data
 deployment/.env
 deployment/caddy/certificates
+deployment/docker-compose.override.yml
+deployment/logs
+deployment/qgis/pg_service.conf
 
 node_modules

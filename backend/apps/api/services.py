@@ -395,8 +395,12 @@ def rename_feature_folder(instance, old_identifier, new_identifier):
             address_base = "addresses"
             ru_base = "residential_units"
 
-        old_path = f"{project_name}/{address_base}/{address_id}/{ru_base}/{old_feature_folder}"
-        new_path = f"{project_name}/{address_base}/{address_id}/{ru_base}/{new_feature_folder}"
+        old_path = (
+            f"{project_name}/{address_base}/{address_id}/{ru_base}/{old_feature_folder}"
+        )
+        new_path = (
+            f"{project_name}/{address_base}/{address_id}/{ru_base}/{new_feature_folder}"
+        )
     else:
         if prefs and prefs.folder_structure:
             folder_config = prefs.folder_structure.get(model_name, {})
@@ -511,7 +515,12 @@ def move_file_to_feature(file_obj, target_feature, target_content_type):
     except FileTypeCategory.DoesNotExist:
         file_category = "documents"
 
-    if model_name == "residentialunit" and prefs and prefs.mode == "AUTO" and prefs.folder_structure:
+    if (
+        model_name == "residentialunit"
+        and prefs
+        and prefs.mode == "AUTO"
+        and prefs.folder_structure
+    ):
         # ResidentialUnit uses nested path under parent address folder
         address = target_feature.uuid_address
         suffix = address.house_number_suffix or ""
@@ -916,7 +925,7 @@ def convert_qgs_to_postgres(qgs_content: bytes) -> bytes:
     Returns:
         Transformed QGS XML content as bytes.
     """
-    pg_service = getattr(settings, "QGIS_PG_SERVICE_NAME", "krit_gis_db")
+    pg_service = getattr(settings, "QGIS_PG_SERVICE_NAME", "qonnectra")
     srid = getattr(settings, "DEFAULT_SRID", 25832)
 
     tree = ET.ElementTree(ET.fromstring(qgs_content))
