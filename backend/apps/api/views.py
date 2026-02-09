@@ -1065,7 +1065,7 @@ class OlTrenchTileViewSet(APIView):
     An instance of :model:`api.OlTrench`.
     """
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, z, x, y, format=None):
         """
@@ -1519,7 +1519,7 @@ class OlAddressTileViewSet(APIView):
     An instance of :model:`api.OlAddress`.
     """
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, z, x, y, format=None):
         """
@@ -2127,7 +2127,7 @@ class OlNodeTileViewSet(APIView):
     An instance of :model:`api.OlNode`.
     """
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, z, x, y, format=None):
         """
@@ -3256,7 +3256,7 @@ class OlAreaTileViewSet(APIView):
     An instance of :model:`api.OlArea`.
     """
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, z, x, y, format=None):
         """

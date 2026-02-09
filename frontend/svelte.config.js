@@ -4,7 +4,7 @@ export default {
 	kit: {
 		adapter: adapter(),
 		csrf: {
-			checkOrigin: false // Disable built-in origin checking
+			trustedOrigins: ['*'] // Rely on Django's CSRF protection
 		}
 	}
 };
