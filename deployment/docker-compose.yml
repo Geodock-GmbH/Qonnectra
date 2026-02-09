@@ -107,12 +107,12 @@ services:
       sh -c "
         mkdir -p /etc/postgresql-common &&
         cat > /etc/postgresql-common/pg_service.conf <<EOF
-      [${QGIS_PG_SERVICE_NAME:-qonnectra}]
+      [$${QGIS_PG_SERVICE_NAME}]
       host=db
       port=5432
-      dbname=${DB_NAME}
-      user=${QGIS_DB_USER}
-      password=${QGIS_DB_PASSWORD}
+      dbname=$${DB_NAME}
+      user=$${QGIS_DB_USER}
+      password=$${QGIS_DB_PASSWORD}
       sslmode=disable
       EOF
         mkdir -p /var/www/data/qgis &&
