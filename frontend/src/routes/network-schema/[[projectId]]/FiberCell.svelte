@@ -135,7 +135,7 @@
 			tabindex="0"
 		>
 			<span
-				class="w-4 h-4 rounded-full border-2 border-white shadow-sm flex-shrink-0"
+				class="w-4 h-4 rounded-full border-2 border-white shadow-sm shrink-0"
 				style="background-color: {colorHex}"
 			></span>
 			<div class="flex-1 min-w-0">
@@ -164,7 +164,7 @@
 				{/if}
 				<button
 					type="button"
-					class="btn-sm p-1 rounded-md opacity-0 group-hover:opacity-100 bg-error-500 hover:bg-error-600 text-white transition-all flex-shrink-0"
+					class="btn-sm p-1 rounded-md opacity-0 group-hover:opacity-100 bg-error-500 hover:bg-error-600 text-white transition-all shrink-0"
 					onclick={(e) => {
 						e.stopPropagation();
 						onClear();

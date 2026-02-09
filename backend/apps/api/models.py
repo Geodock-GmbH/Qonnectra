@@ -3,9 +3,10 @@ import os
 import uuid
 
 from django.conf import settings
-from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis.db import models as gis_models
+from django.contrib.gis.db.models.functions import Transform
 from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_delete, post_save, pre_save
@@ -364,6 +365,54 @@ class AttributesStatusDevelopment(models.Model):
         ]
         verbose_name = _("Status Development")
         verbose_name_plural = _("Status Developments")
+
+    def __str__(self):
+        return self.status
+
+
+class AttributesResidentialUnitType(models.Model):
+    """Stores all residential unit types,
+    related to :model:`api.ResidentialUnit`.
+    """
+
+    id = models.IntegerField(primary_key=True)
+    residential_unit_type = models.TextField(
+        _("Residential Unit Type"), null=False, db_index=False, unique=True
+    )
+
+    class Meta:
+        db_table = "attributes_residential_unit_type"
+        indexes = [
+            models.Index(
+                fields=["residential_unit_type"],
+                name="idx_res_unit_type",
+            ),
+        ]
+        verbose_name = _("Residential Unit Type")
+        verbose_name_plural = _("Residential Unit Types")
+
+    def __str__(self):
+        return self.residential_unit_type
+
+
+class AttributesResidentialUnitStatus(models.Model):
+    """Stores all residential unit statuses,
+    related to :model:`api.ResidentialUnit`.
+    """
+
+    id = models.IntegerField(primary_key=True)
+    status = models.TextField(_("Status"), null=False, db_index=False, unique=True)
+
+    class Meta:
+        db_table = "attributes_residential_unit_status"
+        indexes = [
+            models.Index(
+                fields=["status"],
+                name="idx_res_unit_status",
+            ),
+        ]
+        verbose_name = _("Residential Unit Status")
+        verbose_name_plural = _("Residential Unit Statuses")
 
     def __str__(self):
         return self.status
@@ -730,12 +779,10 @@ class FeatureFiles(models.Model):
         elif model_name == "node":
             return feature.name
         elif model_name == "address":
-            suffix = (
-                f" {feature.house_number_suffix}" if feature.house_number_suffix else ""
-            )
+            suffix = feature.house_number_suffix or ""
             return f"{feature.street} {feature.housenumber}{suffix}, {feature.zip_code} {feature.city}"
         elif model_name == "residentialunit":
-            return instance.object_id
+            return feature.id_residential_unit or str(instance.object_id)
         elif model_name == "area":
             return feature.name
         else:
@@ -753,6 +800,7 @@ class FeatureFiles(models.Model):
         - Project Alpha/cables/C1-Main/photos/image.jpg
         - Project Beta/nodes/N1-POP/documents/spec.pdf
         - Project Alpha/addresses/Bahnstraße 20, 24941 Flensburg/documents/contract.pdf
+        - Project Alpha/addresses/Bahnstraße 20, 24941 Flensburg/residential_units/WE-001/documents/lease.pdf
         - Project Alpha/areas/Projektgebiet/documents/report.pdf
         """
 
@@ -761,16 +809,30 @@ class FeatureFiles(models.Model):
         feature = instance.feature
         feature_id = FeatureFiles.get_feature_identifier(instance)
 
-        project_name = (
-            feature.project.project
-            if hasattr(feature, "project") and feature.project
-            else "default"
-        )
-        project_name = sanitize_filename(project_name)
+        # For residential units, derive project from parent address
+        if model_name == "residentialunit":
+            address = feature.uuid_address
+            project_name = (
+                address.project.project
+                if hasattr(address, "project") and address.project
+                else "default"
+            )
+            project_name = sanitize_filename(project_name)
+            suffix = address.house_number_suffix or ""
+            address_id = f"{address.street} {address.housenumber}{suffix}, {address.zip_code} {address.city}"
+        else:
+            project_name = (
+                feature.project.project
+                if hasattr(feature, "project") and feature.project
+                else "default"
+            )
+            project_name = sanitize_filename(project_name)
 
         # Only support AUTO mode - manual uploads happen via WebDAV
         if not prefs or prefs.mode != "AUTO":
             # Default fallback if no preferences exist
+            if model_name == "residentialunit":
+                return f"{project_name}/addresses/{address_id}/residential_units/{feature_id}/{filename}"
             return f"{project_name}/{model_name}s/{feature_id}/{filename}"
 
         file_extension = instance.get_file_type() or ""
@@ -782,6 +844,24 @@ class FeatureFiles(models.Model):
             file_category = category_obj.category
         except FileTypeCategory.DoesNotExist:
             file_category = "documents"
+
+        # For residential units, nest inside the parent address folder
+        if model_name == "residentialunit":
+            # Use address folder structure as base, then nest residential unit inside
+            address_folder_paths = prefs.folder_structure.get("address", {})
+            address_folder_name = address_folder_paths.get(
+                "default", "addresses"
+            )
+            ru_folder_paths = prefs.folder_structure.get(model_name, {})
+            ru_folder_name = ru_folder_paths.get(
+                file_category, ru_folder_paths.get("default", "residential_units")
+            )
+            # Path: project/addresses/address_id/residential_units/unit_id/category/file
+            if "/" in ru_folder_name:
+                base_folder, sub_folder = ru_folder_name.split("/", 1)
+                return f"{project_name}/{address_folder_name}/{address_id}/{base_folder}/{feature_id}/{sub_folder}/{filename}"
+            else:
+                return f"{project_name}/{address_folder_name}/{address_id}/{ru_folder_name}/{feature_id}/{filename}"
 
         # Get folder structure from preferences
         folder_paths = prefs.folder_structure.get(model_name, {})
@@ -1034,12 +1114,10 @@ class Trench(models.Model):
         srid=int(settings.DEFAULT_SRID),
         spatial_index=False,
     )
-
-    files = GenericRelation(
-        FeatureFiles,
-        content_type_field="content_type",
-        object_id_field="object_id",
-        related_query_name="trench",
+    geom_3857 = models.GeneratedField(
+        expression=Transform("geom", 3857),
+        output_field=gis_models.LineStringField(srid=3857),
+        db_persist=True,
     )
 
     project = models.ForeignKey(
@@ -1085,103 +1163,6 @@ class Trench(models.Model):
             models.Index(fields=["constructor"], name="idx_trench_constructor"),
             gis_models.Index(fields=["geom"], name="idx_trench_geom"),
         ]
-
-
-class OlTrench(models.Model):
-    """Stores all trench features rendered on Openlayers,
-    related to :model:`api.AttributesSurface`,
-    :model:`api.AttributesConstructionType`,
-    :model:`api.AttributesStatus`,
-    :model:`api.AttributesPhase`,
-    :model:`api.AttributesCompany`,
-    :model:`api.Projects`,
-    :model:`api.Flags`.
-    """
-
-    uuid = models.UUIDField(primary_key=True)
-    id_trench = models.IntegerField(_("Trench ID"))
-    surface = models.ForeignKey(
-        AttributesSurface,
-        on_delete=models.DO_NOTHING,
-        db_column="surface",
-        verbose_name=_("Surface"),
-    )
-    construction_type = models.ForeignKey(
-        AttributesConstructionType,
-        on_delete=models.DO_NOTHING,
-        db_column="construction_type",
-        verbose_name=_("Construction Type"),
-    )
-    construction_depth = models.IntegerField(
-        _("Construction Depth"), null=True, blank=True
-    )
-    construction_details = models.TextField(
-        _("Construction Details"), null=True, blank=True
-    )
-    status = models.ForeignKey(
-        AttributesStatus,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        db_column="status",
-        verbose_name=_("Status"),
-    )
-    phase = models.ForeignKey(
-        AttributesPhase,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        db_column="phase",
-        verbose_name=_("Phase"),
-    )
-    internal_execution = models.BooleanField(
-        _("Internal Execution"), null=True, blank=True
-    )
-    funding_status = models.BooleanField(_("Funding Status"), null=True, blank=True)
-    owner = models.ForeignKey(
-        AttributesCompany,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        related_name="owned_ol_trenches",
-        db_column="owner",
-        verbose_name=_("Owner"),
-    )
-    constructor = models.ForeignKey(
-        AttributesCompany,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        related_name="executed_ol_trenches",
-        db_column="constructor",
-        verbose_name=_("Constructor"),
-    )
-    date = models.DateField(_("Date"), null=True, blank=True)
-    comment = models.TextField(_("Comment"), null=True, blank=True)
-    house_connection = models.BooleanField(_("House Connection"), null=True, blank=True)
-    length = models.DecimalField(_("Length"), max_digits=12, decimal_places=4)
-    geom = gis_models.LineStringField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
-    project = models.ForeignKey(
-        Projects,
-        null=False,
-        on_delete=models.DO_NOTHING,
-        db_column="project",
-        verbose_name=_("Project"),
-    )
-    flag = models.ForeignKey(
-        Flags,
-        null=False,
-        on_delete=models.DO_NOTHING,
-        db_column="flag",
-        verbose_name=_("Flag"),
-    )
-
-    class Meta:
-        managed = False
-        db_table = "ol_trench"
-        verbose_name = _("OL Trench")
-        verbose_name_plural = _("OL Trenches")
-        ordering = ["id_trench"]
 
 
 class Conduit(models.Model):
@@ -1263,13 +1244,6 @@ class Conduit(models.Model):
         related_name="manufactured_conduits",
     )
     date = models.DateField(_("Date"), null=True, blank=True)
-
-    files = GenericRelation(
-        FeatureFiles,
-        content_type_field="content_type",
-        object_id_field="object_id",
-        related_query_name="conduit",
-    )
 
     project = models.ForeignKey(
         Projects,
@@ -1362,7 +1336,7 @@ class Address(models.Model):
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
-    id_address = models.IntegerField(_("Address ID"), null=True, blank=True)
+    id_address = models.CharField(_("Address ID"), max_length=7, null=True, blank=True)
     zip_code = models.TextField(_("Zip Code"), null=False)
     city = models.TextField(_("City"), null=False)
     district = models.TextField(_("District"), null=True, blank=True)
@@ -1383,12 +1357,10 @@ class Address(models.Model):
     geom = gis_models.PointField(
         _("Geometry"), srid=int(settings.DEFAULT_SRID), null=False
     )
-
-    files = GenericRelation(
-        FeatureFiles,
-        content_type_field="content_type",
-        object_id_field="object_id",
-        related_query_name="address",
+    geom_3857 = models.GeneratedField(
+        expression=Transform("geom", 3857),
+        output_field=gis_models.PointField(srid=3857),
+        db_persist=True,
     )
 
     flag = models.ForeignKey(
@@ -1447,55 +1419,77 @@ class Address(models.Model):
         )
 
 
-class OlAddress(models.Model):
-    """Stores all addresses rendered on Openlayers,
+class ResidentialUnit(models.Model):
+    """Stores all residential units,
     related to :model:`api.Address`,
-    :model:`api.AttributesStatusDevelopment`,
-    :model:`api.Flags`,
-    :model:`api.Projects`.
+    :model:`api.AttributesResidentialUnitType`,
+    :model:`api.AttributesResidentialUnitStatus`.
     """
 
-    uuid = models.UUIDField(primary_key=True)
-    id_address = models.IntegerField(_("Address ID"))
-    zip_code = models.TextField(_("Zip Code"))
-    city = models.TextField(_("City"))
-    district = models.TextField(_("District"))
-    street = models.TextField(_("Street"))
-    housenumber = models.IntegerField(_("Housenumber"))
-    house_number_suffix = models.TextField(_("House Number Suffix"))
-    geom = gis_models.PointField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
-    flag = models.ForeignKey(
-        Flags,
-        null=False,
-        on_delete=models.DO_NOTHING,
-        db_column="flag",
-        db_index=False,
-        verbose_name=_("Flag"),
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    uuid_address = models.ForeignKey(
+        Address,
+        on_delete=models.CASCADE,
+        db_column="uuid_address",
+        related_name="residential_units",
+        verbose_name=_("Address"),
     )
-    project = models.ForeignKey(
-        Projects,
-        null=False,
-        on_delete=models.DO_NOTHING,
-        db_column="project",
-        db_index=False,
-        verbose_name=_("Project"),
+    id_residential_unit = models.CharField(
+        _("Residential Unit ID"), max_length=8, null=True, blank=True
     )
-    status_development = models.ForeignKey(
-        AttributesStatusDevelopment,
+    residential_unit_type = models.ForeignKey(
+        AttributesResidentialUnitType,
         null=True,
         blank=True,
-        on_delete=models.DO_NOTHING,
-        db_column="status_development",
-        db_index=False,
-        verbose_name=_("Status Development"),
+        on_delete=models.RESTRICT,
+        db_column="residential_unit_type",
+        verbose_name=_("Residential Unit Type"),
     )
+    floor = models.IntegerField(_("Floor"), null=True, blank=True)
+    side = models.TextField(_("Side"), null=True, blank=True)
+    building_section = models.TextField(_("Building Section"), null=True, blank=True)
+    status = models.ForeignKey(
+        AttributesResidentialUnitStatus,
+        null=True,
+        blank=True,
+        on_delete=models.RESTRICT,
+        db_column="status",
+        verbose_name=_("Status"),
+    )
+    external_id_1 = models.TextField(_("External ID 1"), null=True, blank=True)
+    external_id_2 = models.TextField(_("External ID 2"), null=True, blank=True)
+    resident_name = models.TextField(_("Resident Name"), null=True, blank=True)
+    resident_recorded_date = models.DateField(
+        _("Resident Recorded Date"), null=True, blank=True
+    )
+    ready_for_service = models.DateField(_("Ready for Service"), null=True, blank=True)
 
     class Meta:
-        managed = False
-        db_table = "ol_address"
-        verbose_name = _("OL Address")
-        verbose_name_plural = _("Openlayers Addresses")
-        ordering = ["street", "housenumber", "house_number_suffix"]
+        db_table = "residential_unit"
+        verbose_name = _("Residential Unit")
+        verbose_name_plural = _("Residential Units")
+        ordering = ["uuid_address", "floor", "side"]
+        indexes = [
+            models.Index(
+                fields=["id_residential_unit"],
+                name="idx_res_unit_id",
+            ),
+            models.Index(fields=["uuid_address"], name="idx_res_unit_address"),
+            models.Index(fields=["floor"], name="idx_res_unit_floor"),
+            models.Index(fields=["status"], name="idx_res_unit_status_fk"),
+            models.Index(
+                fields=["residential_unit_type"],
+                name="idx_res_unit_type_fk",
+            ),
+        ]
+
+    def __str__(self):
+        parts = []
+        if self.floor is not None:
+            parts.append(f"Floor {self.floor}")
+        if self.side:
+            parts.append(self.side)
+        return " ".join(parts) if parts else str(self.uuid)[:8]
 
 
 class Node(models.Model):
@@ -1527,6 +1521,15 @@ class Node(models.Model):
         db_column="uuid_address",
         db_index=False,
         verbose_name=_("Address"),
+    )
+    parent_node = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_column="parent_node",
+        db_index=False,
+        verbose_name=_("Parent Node"),
     )
     status = models.ForeignKey(
         AttributesStatus,
@@ -1579,15 +1582,13 @@ class Node(models.Model):
     warranty = models.DateField(_("Warranty"), null=True, blank=True)
     date = models.DateField(_("Date"), null=True, blank=True)
     geom = gis_models.PointField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
+    geom_3857 = models.GeneratedField(
+        expression=Transform("geom", 3857),
+        output_field=gis_models.PointField(srid=3857),
+        db_persist=True,
+    )
     canvas_x = models.FloatField(_("Canvas X"), null=True, blank=True)
     canvas_y = models.FloatField(_("Canvas Y"), null=True, blank=True)
-
-    files = GenericRelation(
-        FeatureFiles,
-        content_type_field="content_type",
-        object_id_field="object_id",
-        related_query_name="node",
-    )
 
     flag = models.ForeignKey(
         Flags,
@@ -1677,112 +1678,6 @@ class NodeTrenchSelection(models.Model):
         return f"{self.node.name} - {self.trench.id_trench}"
 
 
-class OlNode(models.Model):
-    """Stores all nodes rendered on Openlayers,
-    related to :model:`api.Node`,
-    :model:`api.AttributesNodeType`,
-    :model:`api.AttributesStatus`,
-    :model:`api.AttributesNetworkLevel`,
-    :model:`api.AttributesCompany`,
-    :model:`api.Flags`,
-    :model:`api.Projects`.
-    """
-
-    uuid = models.UUIDField(primary_key=True)
-    name = models.TextField(_("Node Name"))
-    node_type = models.ForeignKey(
-        AttributesNodeType,
-        null=False,
-        on_delete=models.DO_NOTHING,
-        db_column="node_type",
-        db_index=False,
-        verbose_name=_("Node Type"),
-    )
-    uuid_address = models.ForeignKey(
-        Address,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        db_column="uuid_address",
-        db_index=False,
-        verbose_name=_("Address"),
-    )
-    status = models.ForeignKey(
-        AttributesStatus,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        db_column="status",
-        db_index=False,
-        verbose_name=_("Status"),
-    )
-    network_level = models.ForeignKey(
-        AttributesNetworkLevel,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        db_column="network_level",
-        db_index=False,
-        verbose_name=_("Network Level"),
-    )
-    owner = models.ForeignKey(
-        AttributesCompany,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        db_column="owner",
-        db_index=False,
-        verbose_name=_("Owner"),
-        related_name="owned_ol_nodes",
-    )
-    constructor = models.ForeignKey(
-        AttributesCompany,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        db_column="constructor",
-        db_index=False,
-        verbose_name=_("Constructor"),
-        related_name="constructed_ol_nodes",
-    )
-    manufacturer = models.ForeignKey(
-        AttributesCompany,
-        null=True,
-        blank=True,
-        on_delete=models.DO_NOTHING,
-        db_column="manufacturer",
-        db_index=False,
-        verbose_name=_("Manufacturer"),
-        related_name="manufactured_ol_nodes",
-    )
-    warranty = models.DateField(_("Warranty"), null=True, blank=True)
-    date = models.DateField(_("Date"), null=True, blank=True)
-    geom = gis_models.PointField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
-    flag = models.ForeignKey(
-        Flags,
-        null=False,
-        on_delete=models.DO_NOTHING,
-        db_column="flag",
-        db_index=False,
-        verbose_name=_("Flag"),
-    )
-    project = models.ForeignKey(
-        Projects,
-        null=False,
-        on_delete=models.DO_NOTHING,
-        db_column="project",
-        db_index=False,
-        verbose_name=_("Project"),
-    )
-
-    class Meta:
-        managed = False
-        db_table = "ol_node"
-        verbose_name = _("OL Node")
-        verbose_name_plural = _("Openlayers Nodes")
-        ordering = ["name"]
-
-
 class Area(models.Model):
     """Stores all polygons,
     related to :model:`api.Projects`,
@@ -1800,6 +1695,11 @@ class Area(models.Model):
         verbose_name=_("Area Name"),
     )
     geom = gis_models.PolygonField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
+    geom_3857 = models.GeneratedField(
+        expression=Transform("geom", 3857),
+        output_field=gis_models.PolygonField(srid=3857),
+        db_persist=True,
+    )
 
     project = models.ForeignKey(
         Projects,
@@ -1817,13 +1717,6 @@ class Area(models.Model):
         db_column="flag",
         db_index=False,
         verbose_name=_("Flag"),
-    )
-
-    files = GenericRelation(
-        FeatureFiles,
-        content_type_field="content_type",
-        object_id_field="object_id",
-        related_query_name="area",
     )
 
     def __str__(self):
@@ -1842,44 +1735,6 @@ class Area(models.Model):
                 fields=["project", "name"],
                 name="unique_area",
             ),
-        ]
-
-
-class OlArea(models.Model):
-    """Stores all areas rendered on Openlayers,
-    related to :model:`api.Area`.
-    """
-
-    uuid = models.UUIDField(primary_key=True)
-    geom = gis_models.PolygonField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
-    area_type = models.ForeignKey(
-        AttributesAreaType, on_delete=models.DO_NOTHING, db_column="area_type"
-    )
-    flag = models.ForeignKey(
-        Flags,
-        null=False,
-        on_delete=models.DO_NOTHING,
-        db_column="flag",
-        db_index=False,
-        verbose_name=_("Flag"),
-    )
-    project = models.ForeignKey(
-        Projects,
-        null=False,
-        on_delete=models.DO_NOTHING,
-        db_column="project",
-        db_index=False,
-        verbose_name=_("Project"),
-    )
-
-    class Meta:
-        managed = False
-        db_table = "ol_area"
-        verbose_name = _("OL Area")
-        verbose_name_plural = _("OL Areas")
-        ordering = ["area_type"]
-        indexes = [
-            models.Index(fields=["area_type"], name="idx_ol_area_area_type"),
         ]
 
 
@@ -2234,13 +2089,6 @@ class Cable(models.Model):
         help_text=_(
             "Custom waypoints for diagram edge path as array of {x, y} coordinates"
         ),
-    )
-
-    files = GenericRelation(
-        FeatureFiles,
-        content_type_field="content_type",
-        object_id_field="object_id",
-        related_query_name="cable",
     )
 
     project = models.ForeignKey(
@@ -2940,7 +2788,7 @@ def get_feature_folder_identifier(instance):
     between upload paths and folder rename operations.
 
     Args:
-        instance: A model instance (Node, Cable, Conduit, Trench, Address, or Area)
+        instance: A model instance (Node, Cable, Conduit, Trench, Address, ResidentialUnit, or Area)
 
     Returns:
         The string identifier used for the feature's folder name
@@ -2953,6 +2801,8 @@ def get_feature_folder_identifier(instance):
     elif model_name == "address":
         suffix = instance.house_number_suffix or ""
         return f"{instance.street} {instance.housenumber}{suffix}, {instance.zip_code} {instance.city}"
+    elif model_name == "residentialunit":
+        return instance.id_residential_unit or str(instance.pk)
     return str(instance.pk)
 
 
@@ -3081,6 +2931,40 @@ def rename_address_folder_on_change(sender, instance, created, **kwargs):
         except OSError:
             # For Address, multiple fields contribute to the identifier.
             # We just re-raise the error - the DB transaction will rollback.
+            raise
+
+
+@receiver(pre_save, sender=ResidentialUnit)
+def track_residential_unit_id_change(sender, instance, **kwargs):
+    """Track old residential unit id before save to detect if it changed."""
+    if instance.pk:
+        try:
+            old_instance = ResidentialUnit.objects.get(pk=instance.pk)
+            instance._old_identifier = old_instance.id_residential_unit
+        except ResidentialUnit.DoesNotExist:
+            instance._old_identifier = None
+    else:
+        instance._old_identifier = None
+
+
+@receiver(post_save, sender=ResidentialUnit)
+def rename_residential_unit_folder_on_change(sender, instance, created, **kwargs):
+    """Rename file folder when residential unit id changes."""
+    if created:
+        return
+
+    old_id = getattr(instance, "_old_identifier", None)
+    new_id = instance.id_residential_unit
+
+    # Only rename when both old and new IDs are non-null and different
+    if old_id is not None and new_id is not None and str(old_id) != str(new_id):
+        from apps.api.services import rename_feature_folder
+
+        try:
+            rename_feature_folder(instance, old_id, new_id)
+        except OSError:
+            instance.id_residential_unit = old_id
+            instance.save(update_fields=["id_residential_unit"])
             raise
 
 
@@ -3535,12 +3419,8 @@ class FiberSplice(models.Model):
             models.Index(fields=["cable_b"], name="idx_fiber_splice_cable_b"),
             models.Index(fields=["merge_group_a"], name="idx_fiber_splice_merge_grp_a"),
             models.Index(fields=["merge_group_b"], name="idx_fiber_splice_merge_grp_b"),
-            models.Index(
-                fields=["shared_fiber_a"], name="idx_fiber_splice_shrd_fib_a"
-            ),
-            models.Index(
-                fields=["shared_fiber_b"], name="idx_fiber_splice_shrd_fib_b"
-            ),
+            models.Index(fields=["shared_fiber_a"], name="idx_fiber_splice_shrd_fib_a"),
+            models.Index(fields=["shared_fiber_b"], name="idx_fiber_splice_shrd_fib_b"),
         ]
         constraints = [
             # Each port in a node structure can only have one splice record

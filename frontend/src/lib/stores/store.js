@@ -1,16 +1,16 @@
+import { writable } from 'svelte/store';
+
 import { persisted } from './persisted';
 import { session } from './session';
 
 // Default values
 const defaultCenter = [0, 0];
 const defaultZoom = 2;
-const defaultProjectValue = ['1'];
 const defaultFlagValue = ['1'];
 const defaultTrenchColor = '#000000';
 
 export const sidebarExpanded = persisted('isSidebarExpanded', true);
-export const defaultProject = persisted('defaultProject', defaultProjectValue);
-export const selectedProject = persisted('selectedProject', defaultProjectValue);
+export const selectedProject = writable('1');
 export const mapCenter = persisted('mapCenter', defaultCenter);
 export const mapZoom = persisted('mapZoom', defaultZoom);
 export const trenchColor = persisted('trenchColor', defaultTrenchColor);

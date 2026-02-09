@@ -1,6 +1,6 @@
 <script>
 	import { onMount, setContext } from 'svelte';
-	import { IconLayoutList, IconPlug, IconTopologyRing2 } from '@tabler/icons-svelte';
+	import { IconArrowLeft, IconLayoutList, IconPlug, IconTopologyRing2 } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -31,6 +31,7 @@
 	// ========== UI State (local to this component) ==========
 	let activeSheet = $state(null);
 	let cableRefreshTrigger = $state(0);
+	let showPortTableFullScreen = $state(false);
 
 	// Delete confirmation state
 	let deleteMessageBox = $state(null);
@@ -38,10 +39,8 @@
 	let pendingDeleteSpliceCount = $state(0);
 
 	// ========== Context Creation ==========
-	const context = new NodeStructureContext(nodeUuid, {
-		initialSlotConfigUuid,
-		sharedSlotState
-	});
+	// Note: Context is created with initial prop values and updated reactively via $effect below
+	const context = new NodeStructureContext();
 
 	// Share context with children
 	setContext(NODE_STRUCTURE_CONTEXT_KEY, context);
@@ -58,7 +57,7 @@
 		innerWidth = window.innerWidth;
 	}
 
-	let previousNodeUuid = $state(nodeUuid);
+	let previousNodeUuid = $state(/** @type {string|null} */ (null));
 
 	$effect(() => {
 		if (nodeUuid && nodeUuid !== previousNodeUuid) {
@@ -69,16 +68,17 @@
 		}
 	});
 
+	// Handle initialSlotConfigUuid changes reactively
 	$effect(() => {
-		context.handleResponsiveChange(isMobile);
-		if (!isMobile) {
-			activeSheet = null;
+		if (initialSlotConfigUuid) {
+			context.setInitialSlotConfigUuid(initialSlotConfigUuid);
 		}
 	});
 
 	$effect(() => {
-		if (initialSlotConfigUuid) {
-			context.selectSlotConfig(initialSlotConfigUuid);
+		context.handleResponsiveChange(isMobile);
+		if (!isMobile) {
+			activeSheet = null;
 		}
 	});
 
@@ -99,12 +99,22 @@
 		context.selectSlotConfig(e.target.value);
 	}
 
-	// Wrapper for structure select to handle mobile sheet
+	// Wrapper for structure select to handle mobile sheet and desktop full-screen
 	async function handleStructureSelect(structure) {
 		const wasSelected = await context.structureActions.onSelect(structure);
-		if (isMobile && wasSelected) {
-			activeSheet = 'ports';
+		if (wasSelected) {
+			if (isMobile) {
+				activeSheet = 'ports';
+			} else {
+				showPortTableFullScreen = true;
+			}
 		}
+	}
+
+	// Handler for back button from PortTable full-screen view
+	function handleBackToGrid() {
+		showPortTableFullScreen = false;
+		context.portActions.onClose();
 	}
 
 	// Wrapper for structure delete to handle confirmation dialog
@@ -152,7 +162,7 @@
 		<!-- ========== MOBILE LAYOUT ========== -->
 		<div class="flex flex-col h-full pb-16">
 			<!-- Header -->
-			<div class="flex-shrink-0 p-3 border-b border-surface-200-800 bg-surface-100-900">
+			<div class="shrink-0 p-3 border-b border-surface-200-800 bg-surface-100-900">
 				{#if containerPath}
 					<div class="text-xs text-surface-950-50 mb-1">
 						{containerPath}
@@ -277,7 +287,7 @@
 			<!-- Main Content -->
 			<div class="flex-1 flex flex-col gap-4 p-4 min-w-0 overflow-hidden">
 				<!-- Header -->
-				<div class="flex-shrink-0 space-y-3">
+				<div class="shrink-0 space-y-3">
 					{#if containerPath}
 						<div class="text-sm text-surface-950-50">
 							<span class="font-medium">{m.form_container_path()}:</span>
@@ -307,27 +317,40 @@
 					</div>
 				</div>
 
-				<!-- Slot Grid and Port Table container - share space when both visible -->
-				<div class="flex-1 flex flex-col gap-4 min-h-0 overflow-hidden">
-					<!-- Slot Grid (now with minimal props - gets state from context) -->
-					<div class="flex-1 min-h-0 overflow-hidden">
-						<SlotGrid
-							{slotRows}
-							loading={context.loading}
-							loadingStructures={context.loadingStructures}
-							{isMobile}
-							onStructureSelect={handleStructureSelect}
-							onStructureDelete={handleDeleteStructure}
-						/>
-					</div>
-
-					<!-- Port Table (when structure selected) - now with minimal props -->
-					{#if context.selectedStructure}
+				<!-- Slot Grid OR Port Table (full-screen when structure selected) -->
+				<div class="flex-1 flex flex-col min-h-0 overflow-hidden">
+					{#if showPortTableFullScreen && context.selectedStructure}
+						<!-- Port Table Full Screen View -->
+						<div class="flex items-center gap-3 mb-3">
+							<button
+								type="button"
+								class="btn preset-tonal flex items-center gap-2"
+								onclick={handleBackToGrid}
+							>
+								<IconArrowLeft size={16} />
+								<span>{m.action_back()}</span>
+							</button>
+							<span class="text-sm font-medium">
+								{context.selectedStructure.component_type?.component_type || '-'}
+							</span>
+						</div>
 						<div class="flex-1 min-h-0 overflow-hidden">
 							<PortTable
 								structureName={context.selectedStructure.component_type?.component_type || '-'}
 								portRows={context.portRowsWithMerge}
 								loading={context.loadingPorts}
+							/>
+						</div>
+					{:else}
+						<!-- Slot Grid View -->
+						<div class="flex-1 min-h-0 overflow-hidden">
+							<SlotGrid
+								{slotRows}
+								loading={context.loading}
+								loadingStructures={context.loadingStructures}
+								{isMobile}
+								onStructureSelect={handleStructureSelect}
+								onStructureDelete={handleDeleteStructure}
 							/>
 						</div>
 					{/if}

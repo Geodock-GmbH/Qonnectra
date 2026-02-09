@@ -347,7 +347,7 @@
 	</div>
 
 	<!-- Fixed pagination at bottom -->
-	<div class="flex-shrink-0 pt-4">
+	<div class="shrink-0 pt-4">
 		<!-- Desktop pagination (uses desktop filter count) -->
 		<div class="hidden md:block">
 			<Pagination

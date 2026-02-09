@@ -28,7 +28,7 @@
 				<!-- Optional headline content can go here -->
 			</AppBar.Headline>
 			<AppBar.Trail>
-				<div class="flex items-center gap-1 sm:gap-4 flex-shrink-0">
+				<div class="flex items-center gap-1 sm:gap-4 shrink-0">
 					<!-- Version badge - hidden on mobile -->
 					<p
 						class="rounded-full px-2 py-1 bg-surface-200-800/50 text-xs sm:text-sm hidden sm:block transition-all duration-200 hover:scale-105"

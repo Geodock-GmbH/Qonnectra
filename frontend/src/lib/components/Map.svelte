@@ -449,14 +449,12 @@
 		flex-direction: column;
 		width: 100%;
 		height: 100%;
-		gap: 0.75rem;
 	}
 
 	/* Map controls wrapper - compact variant */
 	.map-controls-compact {
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
 		flex-shrink: 0;
 	}
 

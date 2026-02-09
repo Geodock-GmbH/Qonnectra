@@ -35,7 +35,10 @@ from .models import (
     AttributesMicroductStatus,
     AttributesNetworkLevel,
     AttributesNodeType,
+    AttributesResidentialUnitStatus,
+    AttributesResidentialUnitType,
     AttributesStatus,
+    AttributesStatusDevelopment,
     AttributesSurface,
     Cable,
     CableLabel,
@@ -59,12 +62,9 @@ from .models import (
     NodeSlotDivider,
     NodeStructure,
     NodeTrenchSelection,
-    OlAddress,
-    OlArea,
-    OlNode,
-    OlTrench,
     PipeBranchSettings,
     Projects,
+    ResidentialUnit,
     Trench,
     TrenchConduitConnection,
 )
@@ -85,6 +85,9 @@ from .serializers import (
     AttributesMicroductStatusSerializer,
     AttributesNetworkLevelSerializer,
     AttributesNodeTypeSerializer,
+    AttributesResidentialUnitStatusSerializer,
+    AttributesResidentialUnitTypeSerializer,
+    AttributesStatusDevelopmentSerializer,
     AttributesStatusSerializer,
     AttributesSurfaceSerializer,
     CableAtNodeSerializer,
@@ -112,11 +115,8 @@ from .serializers import (
     NodeStructureSerializer,
     NodeTrenchSelectionBulkSerializer,
     NodeTrenchSelectionSerializer,
-    OlAddressSerializer,
-    OlAreaSerializer,
-    OlNodeSerializer,
-    OlTrenchSerializer,
     ProjectsSerializer,
+    ResidentialUnitSerializer,
     TrenchConduitSerializer,
     TrenchSerializer,
 )
@@ -286,6 +286,41 @@ class AttributesComponentTypeViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = AttributesComponentType.objects.all().order_by("component_type")
     serializer_class = AttributesComponentTypeSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class AttributesStatusDevelopmentViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesStatusDevelopment model :model:`api.AttributesStatusDevelopment`.
+
+    An instance of :model:`api.AttributesStatusDevelopment`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesStatusDevelopment.objects.all().order_by("status")
+    serializer_class = AttributesStatusDevelopmentSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class AttributesResidentialUnitTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesResidentialUnitType model."""
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesResidentialUnitType.objects.all().order_by(
+        "residential_unit_type"
+    )
+    serializer_class = AttributesResidentialUnitTypeSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class AttributesResidentialUnitStatusViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesResidentialUnitStatus model."""
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesResidentialUnitStatus.objects.all().order_by("status")
+    serializer_class = AttributesResidentialUnitStatusSerializer
     lookup_field = "id"
     lookup_url_kwarg = "pk"
 
@@ -1024,37 +1059,13 @@ class QGISAuthView(APIView):
         return Response(data, status=status_code)
 
 
-class OlTrenchViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the OlTrench model :model:`api.OlTrench`.
-
-    An instance of :model:`api.OlTrench`.
-    """
-
-    permission_classes = [IsAuthenticated]
-    queryset = OlTrench.objects.all().order_by("id_trench")
-    serializer_class = OlTrenchSerializer
-    lookup_field = "id_trench"
-    lookup_url_kwarg = "pk"
-    pagination_class = CustomPagination
-
-    def get_queryset(self):
-        queryset = OlTrench.objects.all()
-        id_trench = self.request.query_params.get("id_trench")
-        if id_trench:
-            queryset = queryset.filter(id_trench=id_trench)
-        uuid = self.request.query_params.get("uuid")
-        if uuid:
-            queryset = queryset.filter(uuid=uuid)
-        return queryset
-
-
 class OlTrenchTileViewSet(APIView):
     """ViewSet for the OlTrench model :model:`api.OlTrench`.
 
     An instance of :model:`api.OlTrench`.
     """
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, z, x, y, format=None):
         """
@@ -1368,9 +1379,12 @@ class AddressViewSet(viewsets.ModelViewSet):
         - `flag`: Filter by flag ID
         - `name`: Filter by name (case-insensitive partial match)
         """
-        queryset = Address.objects.all().order_by(
-            "street", "housenumber", "house_number_suffix"
-        )
+        queryset = Address.objects.select_related(
+            "status_development",
+            "flag",
+            "project",
+        ).order_by("street", "housenumber", "house_number_suffix")
+
         uuid = self.request.query_params.get("uuid")
         project_id = self.request.query_params.get("project")
         flag_id = self.request.query_params.get("flag")
@@ -1430,57 +1444,72 @@ class AddressViewSet(viewsets.ModelViewSet):
         serializer = AddressSerializer(queryset, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["post"], url_path="regenerate-id")
+    def regenerate_id(self, request, pk=None):
+        """Regenerate the Base32 address ID for this address."""
+        address = self.get_object()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT fn_generate_address_id(%s)", [address.project_id])
+            new_id = cursor.fetchone()[0]
+        address.id_address = new_id
+        address.save(update_fields=["id_address"])
+        serializer = self.get_serializer(address)
+        return Response(serializer.data)
 
-class OlAddressViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the OlAddress model :model:`api.OlAddress`.
 
-    An instance of :model:`api.OlAddress`.
-    """
+class ResidentialUnitViewSet(viewsets.ModelViewSet):
+    """ViewSet for the ResidentialUnit model."""
 
     permission_classes = [IsAuthenticated]
-    queryset = OlAddress.objects.all().order_by(
-        "street", "housenumber", "house_number_suffix"
-    )
-    serializer_class = OlAddressSerializer
+    queryset = ResidentialUnit.objects.all().order_by("uuid_address", "floor", "side")
+    serializer_class = ResidentialUnitSerializer
     lookup_field = "uuid"
     lookup_url_kwarg = "pk"
-    pagination_class = CustomPagination
 
     def get_queryset(self):
         """
-        Optionally restricts the returned addresses by filtering against query parameters:
-        - `uuid`: Filter by UUID
-        - `project`: Filter by project ID
-        - `flag`: Filter by flag ID
+        Optionally restricts the returned residential units by filtering against query parameters:
+        - `uuid_address`: Filter by address UUID
         """
-        queryset = OlAddress.objects.all()
-        uuid = self.request.query_params.get("uuid")
-        project_id = self.request.query_params.get("project")
-        flag_id = self.request.query_params.get("flag")
-        if uuid:
-            queryset = queryset.filter(uuid=uuid)
-        if project_id:
-            queryset = queryset.filter(project=project_id)
-        if flag_id:
-            queryset = queryset.filter(flag=flag_id)
+        queryset = ResidentialUnit.objects.select_related(
+            "uuid_address",
+            "residential_unit_type",
+            "status",
+        ).order_by("uuid_address", "id_residential_unit", "floor", "side")
+
+        uuid_address = self.request.query_params.get("uuid_address")
+        if uuid_address:
+            queryset = queryset.filter(uuid_address=uuid_address)
+
         return queryset
 
     @action(detail=False, methods=["get"], url_path="all")
-    def all_ol_addresses(self, request):
-        """
-        Returns all ol_addresses with project and flag filters.
-        No pagination is used.
-        """
-        queryset = OlAddress.objects.all().order_by(
-            "street", "housenumber", "house_number_suffix"
-        )
-        project_id = request.query_params.get("project")
-        flag_id = request.query_params.get("flag")
-        if project_id:
-            queryset = queryset.filter(project=project_id)
-        if flag_id:
-            queryset = queryset.filter(flag=flag_id)
-        serializer = OlAddressSerializer(queryset, many=True)
+    def all_units(self, request):
+        """Returns all residential units for an address. No pagination."""
+        queryset = ResidentialUnit.objects.select_related(
+            "uuid_address",
+            "residential_unit_type",
+            "status",
+        ).order_by("uuid_address", "floor", "side")
+        uuid_address = request.query_params.get("uuid_address")
+        if uuid_address:
+            queryset = queryset.filter(uuid_address__uuid=uuid_address)
+        serializer = ResidentialUnitSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], url_path="regenerate-id")
+    def regenerate_id(self, request, pk=None):
+        """Regenerate the Base28 residential unit ID for this unit."""
+        unit = self.get_object()
+        project_id = unit.uuid_address.project_id
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT fn_generate_residential_unit_id(%s)", [project_id]
+            )
+            new_id = cursor.fetchone()[0]
+        unit.id_residential_unit = new_id
+        unit.save(update_fields=["id_residential_unit"])
+        serializer = self.get_serializer(unit)
         return Response(serializer.data)
 
 
@@ -1490,7 +1519,7 @@ class OlAddressTileViewSet(APIView):
     An instance of :model:`api.OlAddress`.
     """
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, z, x, y, format=None):
         """
@@ -1580,13 +1609,32 @@ class NodeViewSet(viewsets.ModelViewSet):
         - `flag`: Filter by flag ID
         - `name`: Filter by name (case-insensitive partial match)
         - `node_type`: Filter by node type
+        - `parent_node`: Filter by parent node UUID
+        - `uuid_address`: Filter by address UUID
+        - `has_parent`: Filter nodes that have / do not have a parent
+        - `has_address`: Filter nodes that have / do not have an address
         """
-        queryset = Node.objects.all().order_by("name")
+        queryset = Node.objects.select_related(
+            "node_type",
+            "uuid_address",
+            "parent_node",
+            "status",
+            "network_level",
+            "owner",
+            "constructor",
+            "manufacturer",
+            "project",
+            "flag",
+        ).order_by("name")
         uuid = self.request.query_params.get("uuid")
         project_id = self.request.query_params.get("project")
         flag_id = self.request.query_params.get("flag")
         name = self.request.query_params.get("name")
         node_type = self.request.query_params.get("node_type")
+        parent_uuid = self.request.query_params.get("parent_node")
+        uuid_address = self.request.query_params.get("uuid_address")
+        has_parent = self.request.query_params.get("has_parent")
+        has_address = self.request.query_params.get("has_address")
         exclude_group = self.request.query_params.get("exclude_group")
         if uuid:
             queryset = queryset.filter(uuid=uuid)
@@ -1606,6 +1654,22 @@ class NodeViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(name__icontains=name)
         if node_type:
             queryset = queryset.filter(node_type=node_type)
+        if parent_uuid:
+            queryset = queryset.filter(parent_node__uuid=parent_uuid)
+        if uuid_address:
+            queryset = queryset.filter(uuid_address__uuid=uuid_address)
+        if has_parent is not None:
+            value = has_parent.lower()
+            if value in ["1", "true", "yes"]:
+                queryset = queryset.filter(parent_node__isnull=False)
+            elif value in ["0", "false", "no"]:
+                queryset = queryset.filter(parent_node__isnull=True)
+        if has_address is not None:
+            value = has_address.lower()
+            if value in ["1", "true", "yes"]:
+                queryset = queryset.filter(uuid_address__isnull=False)
+            elif value in ["0", "false", "no"]:
+                queryset = queryset.filter(uuid_address__isnull=True)
         if exclude_group:
             queryset = queryset.exclude(node_type__group=exclude_group)
         return queryset
@@ -1945,42 +2009,48 @@ class NodeCanvasCoordinatesView(APIView):
     def _perform_sync(self, sync_status, project_id, flag_id, scale):
         """
         Perform the actual canvas coordinate synchronization.
+
+        Only calculates positions for nodes missing canvas coordinates,
+        preserving user-positioned nodes. The bounding box is calculated
+        from ALL nodes.
         """
         try:
-            # Get nodes to process (snapshot at sync start)
-            queryset = Node.objects.filter(geom__isnull=False)
+            # Get ALL nodes with geometry for bounding box calculation
+            all_queryset = Node.objects.filter(geom__isnull=False)
 
             if project_id:
-                queryset = queryset.filter(project=project_id)
+                all_queryset = all_queryset.filter(project=project_id)
             if flag_id:
-                queryset = queryset.filter(flag=flag_id)
+                all_queryset = all_queryset.filter(flag=flag_id)
 
-            nodes = list(queryset)
+            all_nodes = list(all_queryset)
 
-            if not nodes:
+            if not all_nodes:
                 sync_status.status = "COMPLETED"
                 sync_status.completed_at = timezone.now()
                 sync_status.save()
                 return Response({"message": "No nodes found with geometry"}, status=400)
 
-            # Extract coordinates from all nodes
-            coordinates = []
-            for node in nodes:
+            # Extract coordinates from ALL nodes for bounding box
+            all_coordinates = []
+            for node in all_nodes:
                 if node.geom:
                     coords = node.geom.coords
-                    coordinates.append({"x": coords[0], "y": coords[1], "node": node})
+                    all_coordinates.append(
+                        {"x": coords[0], "y": coords[1], "node": node}
+                    )
 
-            if not coordinates:
+            if not all_coordinates:
                 sync_status.status = "COMPLETED"
                 sync_status.completed_at = timezone.now()
                 sync_status.save()
                 return Response({"message": "No valid coordinates found"}, status=400)
 
-            # Calculate bounding box from snapshot
-            min_x = min(coord["x"] for coord in coordinates)
-            max_x = max(coord["x"] for coord in coordinates)
-            min_y = min(coord["y"] for coord in coordinates)
-            max_y = max(coord["y"] for coord in coordinates)
+            # Calculate bounding box from ALL nodes
+            min_x = min(coord["x"] for coord in all_coordinates)
+            max_x = max(coord["x"] for coord in all_coordinates)
+            min_y = min(coord["y"] for coord in all_coordinates)
+            max_y = max(coord["y"] for coord in all_coordinates)
 
             # Calculate center
             center_x = (min_x + max_x) / 2
@@ -1991,12 +2061,17 @@ class NodeCanvasCoordinatesView(APIView):
             sync_status.center_y = center_y
             sync_status.save()
 
-            # Update nodes with canvas coordinates using bulk_update
+            # Only update nodes MISSING canvas coordinates, preserving user-positioned nodes
             batch_size = 500
             nodes_to_update = []
 
-            for coord_data in coordinates:
+            for coord_data in all_coordinates:
                 node = coord_data["node"]
+
+                # Skip nodes that already have canvas coordinates
+                if node.canvas_x is not None and node.canvas_y is not None:
+                    continue
+
                 geo_x = coord_data["x"]
                 geo_y = coord_data["y"]
 
@@ -2046,77 +2121,13 @@ class NodeCanvasCoordinatesView(APIView):
             raise
 
 
-class OlNodeViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the OlNode model :model:`api.OlNode`.
-
-    An instance of :model:`api.OlNode`.
-    """
-
-    permission_classes = [IsAuthenticated]
-    queryset = OlNode.objects.all().order_by("name")
-    serializer_class = OlNodeSerializer
-    lookup_field = "uuid"
-    lookup_url_kwarg = "pk"
-    pagination_class = CustomPagination
-
-    def get_queryset(self):
-        """
-        Optionally restricts the returned addresses by filtering against query parameters:
-        - `uuid`: Filter by UUID
-        - `project`: Filter by project ID
-        - `flag`: Filter by flag ID
-        """
-        queryset = OlNode.objects.all()
-        uuid = self.request.query_params.get("uuid")
-        project_id = self.request.query_params.get("project")
-        flag_id = self.request.query_params.get("flag")
-        if uuid:
-            queryset = queryset.filter(uuid=uuid)
-        if project_id:
-            queryset = queryset.filter(project=project_id)
-        if flag_id:
-            queryset = queryset.filter(flag=flag_id)
-        return queryset
-
-    @action(detail=False, methods=["get"], url_path="all")
-    def all_ol_nodes(self, request):
-        """
-        Returns all ol_nodes with project and flag filters.
-        No pagination is used.
-        """
-        queryset = OlNode.objects.all().order_by("name")
-        project_id = request.query_params.get("project")
-        flag_id = request.query_params.get("flag")
-        group = request.query_params.get("group")
-        search_term = request.query_params.get("search")
-
-        if project_id:
-            queryset = queryset.filter(project=project_id)
-        if flag_id:
-            queryset = queryset.filter(flag=flag_id)
-        if group:
-            queryset = queryset.filter(node_type__group=group)
-        if search_term:
-            queryset = queryset.filter(
-                Q(name__icontains=search_term)
-                | Q(node_type__node_type__icontains=search_term)
-                | Q(status__status__icontains=search_term)
-                | Q(network_level__network_level__icontains=search_term)
-                | Q(owner__company__icontains=search_term)
-                | Q(manufacturer__company__icontains=search_term)
-                | Q(flag__flag__icontains=search_term)
-            )
-        serializer = OlNodeSerializer(queryset, many=True)
-        return Response(serializer.data)
-
-
 class OlNodeTileViewSet(APIView):
     """ViewSet for the OlNode model :model:`api.OlNode`.
 
     An instance of :model:`api.OlNode`.
     """
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, z, x, y, format=None):
         """
@@ -2150,10 +2161,12 @@ class OlNodeTileViewSet(APIView):
                     c1.company,
                     s.status,
                     COALESCE(a.street || ' ' || a.housenumber, a.house_number_suffix,
-                        a.street || '' || a.housenumber) AS address
+                        a.street || '' || a.housenumber) AS address,
+                    parent_n.name AS parent_node_name
                 FROM bounds b
                 CROSS JOIN public.node n
                 LEFT JOIN public.address a ON n.uuid_address = a.uuid
+                LEFT JOIN public.node parent_n ON n.parent_node = parent_n.uuid
                 LEFT JOIN public.attributes_company c1 ON n.owner = c1.id
                 LEFT JOIN public.attributes_company c2 ON n.constructor = c2.id
                 LEFT JOIN public.attributes_company c3 ON n.manufacturer = c3.id
@@ -2414,11 +2427,13 @@ class MicroductViewSet(viewsets.ModelViewSet):
         - `uuid_conduit`: Filter by conduit UUID
         - `number`: Filter by microduct number
         - `color`: Filter by color
+        - `uuid_node`: Filter by node UUID
         """
         queryset = Microduct.objects.all()
         uuid_conduit = self.request.query_params.get("uuid_conduit")
         number = self.request.query_params.get("number")
         color = self.request.query_params.get("color")
+        uuid_node = self.request.query_params.get("uuid_node")
 
         if uuid_conduit:
             queryset = queryset.filter(uuid_conduit=uuid_conduit)
@@ -2426,6 +2441,8 @@ class MicroductViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(uuid_conduit=uuid_conduit, number=number)
         if uuid_conduit and color:
             queryset = queryset.filter(uuid_conduit=uuid_conduit, color=color)
+        if uuid_node:
+            queryset = queryset.filter(uuid_node=uuid_node)
         return queryset
 
     @action(detail=False, methods=["get"], url_path="all")
@@ -2438,12 +2455,15 @@ class MicroductViewSet(viewsets.ModelViewSet):
         uuid_conduit = request.query_params.get("uuid_conduit")
         number = request.query_params.get("number")
         color = request.query_params.get("color")
+        uuid_node = request.query_params.get("uuid_node")
         if uuid_conduit:
             queryset = queryset.filter(uuid_conduit=uuid_conduit)
         if uuid_conduit and number:
             queryset = queryset.filter(uuid_conduit=uuid_conduit, number=number)
         if uuid_conduit and color:
             queryset = queryset.filter(uuid_conduit=uuid_conduit, color=color)
+        if uuid_node:
+            queryset = queryset.filter(uuid_node=uuid_node)
         serializer = MicroductSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -2681,6 +2701,36 @@ class CableViewSet(viewsets.ModelViewSet):
     lookup_field = "uuid"
     lookup_url_kwarg = "pk"
     pagination_class = CustomPagination
+
+    def create(self, request, *args, **kwargs):
+        """Override create to add a warning when cable type has incomplete color mappings."""
+        response = super().create(request, *args, **kwargs)
+
+        cable_type_id = request.data.get("cable_type_id")
+        if cable_type_id:
+            try:
+                cable_type = AttributesCableType.objects.get(pk=cable_type_id)
+                bundle_mapping_count = CableTypeColorMapping.objects.filter(
+                    cable_type=cable_type, position_type="bundle"
+                ).count()
+                fiber_mapping_count = CableTypeColorMapping.objects.filter(
+                    cable_type=cable_type, position_type="fiber"
+                ).count()
+
+                if (
+                    bundle_mapping_count < cable_type.bundle_count
+                    or fiber_mapping_count < cable_type.bundle_fiber_count
+                ):
+                    response.data["warning"] = (
+                        f"Cable type '{cable_type.cable_type}' has incomplete color mappings: "
+                        f"needs {cable_type.bundle_count} bundle mapping(s) but has {bundle_mapping_count}, "
+                        f"needs {cable_type.bundle_fiber_count} fiber mapping(s) but has {fiber_mapping_count}. "
+                        f"Fibers were not generated."
+                    )
+            except AttributesCableType.DoesNotExist:
+                pass
+
+        return response
 
     @action(detail=False, methods=["get"], url_path="all")
     def all_cables(self, request):
@@ -3073,10 +3123,10 @@ class LayerExtentView(APIView):
             )
 
         layer_tables = {
-            "trench": "ol_trench",
-            "address": "ol_address",
-            "node": "ol_node",
-            "area": "ol_area",
+            "trench": "trench",
+            "address": "address",
+            "node": "node",
+            "area": "area",
         }
 
         if layer not in layer_tables:
@@ -3100,7 +3150,7 @@ class LayerExtentView(APIView):
                 ST_XMin(extent), ST_YMin(extent),
                 ST_XMax(extent), ST_YMax(extent)
             FROM (
-                SELECT ST_Extent(ST_Transform(geom, 3857)) as extent
+                SELECT ST_Extent(geom_3857) as extent
                 FROM {layer_tables[layer]}
                 WHERE project = %(project)s
             ) as bounds
@@ -3200,62 +3250,13 @@ class AreaViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class OlAreaViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the OlArea model :model:`api.OlArea`.
-
-    An instance of :model:`api.OlArea`.
-    """
-
-    permission_classes = [IsAuthenticated]
-    queryset = OlArea.objects.all().order_by("area_type", "uuid")
-    serializer_class = OlAreaSerializer
-    lookup_field = "uuid"
-    lookup_url_kwarg = "pk"
-    pagination_class = CustomPagination
-
-    def get_queryset(self):
-        """
-        Optionally restricts the returned areas by filtering against query parameters:
-        - `uuid`: Filter by UUID
-        - `project`: Filter by project ID
-        - `flag`: Filter by flag ID
-        """
-        queryset = OlArea.objects.all().order_by("area_type", "uuid")
-        uuid = self.request.query_params.get("uuid")
-        project_id = self.request.query_params.get("project")
-        flag_id = self.request.query_params.get("flag")
-        if uuid:
-            queryset = queryset.filter(uuid=uuid)
-        if project_id:
-            queryset = queryset.filter(project=project_id)
-        if flag_id:
-            queryset = queryset.filter(flag=flag_id)
-        return queryset
-
-    @action(detail=False, methods=["get"], url_path="all")
-    def all_ol_areas(self, request):
-        """
-        Returns all ol_areas with project and flag filters.
-        No pagination is used.
-        """
-        queryset = OlArea.objects.all().order_by("area_type", "uuid")
-        project_id = request.query_params.get("project")
-        flag_id = request.query_params.get("flag")
-        if project_id:
-            queryset = queryset.filter(project=project_id)
-        if flag_id:
-            queryset = queryset.filter(flag=flag_id)
-        serializer = OlAreaSerializer(queryset, many=True)
-        return Response(serializer.data)
-
-
 class OlAreaTileViewSet(APIView):
     """ViewSet for the OlArea model :model:`api.OlArea`.
 
     An instance of :model:`api.OlArea`.
     """
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, z, x, y, format=None):
         """
@@ -3701,14 +3702,22 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
     lookup_field = "uuid"
 
     def get_queryset(self):
-        """Filter splices by node_structure, cable_a, or cable_b if specified."""
+        """Filter splices by node_structure, node_structure__uuid_node, cable_a, or cable_b if specified."""
         queryset = super().get_queryset()
         node_structure = self.request.query_params.get("node_structure")
+        node_structure_uuid_node = self.request.query_params.get(
+            "node_structure__uuid_node"
+        )
         cable_a = self.request.query_params.get("cable_a")
         cable_b = self.request.query_params.get("cable_b")
 
         if node_structure:
             queryset = queryset.filter(node_structure=node_structure)
+
+        if node_structure_uuid_node:
+            queryset = queryset.filter(
+                node_structure__uuid_node=node_structure_uuid_node
+            )
 
         if cable_a:
             queryset = queryset.filter(cable_a=cable_a)

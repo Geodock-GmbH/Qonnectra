@@ -1,10 +1,10 @@
-import pytest
 from datetime import timedelta
-from django.utils import timezone
+
+import pytest
+from apps.api.models import CanvasSyncStatus
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
-
-from apps.api.models import CanvasSyncStatus
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -13,9 +13,7 @@ User = get_user_model()
 def user(db):
     """Create a test user."""
     return User.objects.create_user(
-        username='testuser',
-        email='test@example.com',
-        password='testpass123'
+        username="testuser", email="test@example.com", password="testpass123"
     )
 
 
@@ -45,9 +43,7 @@ class TestCanvasSyncStatusModel:
     def test_sync_status_creation(self, user):
         """Test creating a CanvasSyncStatus instance."""
         sync_status = CanvasSyncStatus.objects.create(
-            sync_key="project_1",
-            status="IDLE",
-            started_by=user
+            sync_key="project_1", status="IDLE", started_by=user
         )
 
         assert sync_status.sync_key == "project_1"
@@ -59,24 +55,18 @@ class TestCanvasSyncStatusModel:
     def test_sync_key_uniqueness(self, user):
         """Test that sync_key must be unique."""
         CanvasSyncStatus.objects.create(
-            sync_key="project_1",
-            status="IDLE",
-            started_by=user
+            sync_key="project_1", status="IDLE", started_by=user
         )
 
         with pytest.raises(IntegrityError):
             CanvasSyncStatus.objects.create(
-                sync_key="project_1",
-                status="IN_PROGRESS",
-                started_by=user
+                sync_key="project_1", status="IN_PROGRESS", started_by=user
             )
 
     def test_is_stale_no_heartbeat(self, user):
         """Test stale detection when no heartbeat is set."""
         sync_status = CanvasSyncStatus.objects.create(
-            sync_key="project_1",
-            status="IN_PROGRESS",
-            started_by=user
+            sync_key="project_1", status="IN_PROGRESS", started_by=user
         )
 
         assert sync_status.is_stale() is True
@@ -87,7 +77,7 @@ class TestCanvasSyncStatusModel:
             sync_key="project_1",
             status="IN_PROGRESS",
             started_by=user,
-            last_heartbeat=timezone.now()
+            last_heartbeat=timezone.now(),
         )
 
         assert sync_status.is_stale() is False
@@ -99,7 +89,7 @@ class TestCanvasSyncStatusModel:
             sync_key="project_1",
             status="IN_PROGRESS",
             started_by=user,
-            last_heartbeat=old_time
+            last_heartbeat=old_time,
         )
 
         assert sync_status.is_stale(timeout_minutes=10) is True
@@ -111,7 +101,7 @@ class TestCanvasSyncStatusModel:
             sync_key="project_1",
             status="IN_PROGRESS",
             started_by=user,
-            last_heartbeat=recent_time
+            last_heartbeat=recent_time,
         )
 
         # Should not be stale with 10 minute timeout
@@ -123,9 +113,7 @@ class TestCanvasSyncStatusModel:
     def test_update_heartbeat(self, user):
         """Test heartbeat update functionality."""
         sync_status = CanvasSyncStatus.objects.create(
-            sync_key="project_1",
-            status="IN_PROGRESS",
-            started_by=user
+            sync_key="project_1", status="IN_PROGRESS", started_by=user
         )
 
         initial_heartbeat = sync_status.last_heartbeat
@@ -142,7 +130,7 @@ class TestCanvasSyncStatusModel:
             sync_key="project_1",
             status="IN_PROGRESS",
             started_by=user,
-            last_heartbeat=timezone.now()
+            last_heartbeat=timezone.now(),
         )
 
         initial_count = CanvasSyncStatus.objects.count()
@@ -164,7 +152,7 @@ class TestCanvasSyncStatusModel:
             sync_key="project_1",
             status="IN_PROGRESS",
             started_by=user,
-            last_heartbeat=old_time
+            last_heartbeat=old_time,
         )
 
         # Create fresh sync
@@ -172,7 +160,7 @@ class TestCanvasSyncStatusModel:
             sync_key="project_2",
             status="IN_PROGRESS",
             started_by=user,
-            last_heartbeat=timezone.now()
+            last_heartbeat=timezone.now(),
         )
 
         CanvasSyncStatus.cleanup_stale_syncs(timeout_minutes=10)
@@ -199,21 +187,21 @@ class TestCanvasSyncStatusModel:
             sync_key="project_1",
             status="COMPLETED",
             started_by=user,
-            last_heartbeat=old_time
+            last_heartbeat=old_time,
         )
 
         failed_sync = CanvasSyncStatus.objects.create(
             sync_key="project_2",
             status="FAILED",
             started_by=user,
-            last_heartbeat=old_time
+            last_heartbeat=old_time,
         )
 
         in_progress_sync = CanvasSyncStatus.objects.create(
             sync_key="project_3",
             status="IN_PROGRESS",
             started_by=user,
-            last_heartbeat=old_time
+            last_heartbeat=old_time,
         )
 
         CanvasSyncStatus.cleanup_stale_syncs(timeout_minutes=10)
@@ -231,9 +219,7 @@ class TestCanvasSyncStatusModel:
     def test_str_representation(self, user):
         """Test string representation of CanvasSyncStatus."""
         sync_status = CanvasSyncStatus.objects.create(
-            sync_key="project_1_flag_5",
-            status="IN_PROGRESS",
-            started_by=user
+            sync_key="project_1_flag_5", status="IN_PROGRESS", started_by=user
         )
 
         expected_str = "project_1_flag_5 - IN_PROGRESS"
@@ -245,25 +231,23 @@ class TestCanvasSyncStatusModel:
             sync_key="project_1",
             status="COMPLETED",
             started_by=user,
-            scale=0.2,
+            scale=0.5,
             center_x=1000.5,
             center_y=2000.75,
-            nodes_processed=150
+            nodes_processed=150,
         )
 
-        assert sync_status.scale == 0.2
+        assert sync_status.scale == 0.5
         assert sync_status.center_x == 1000.5
         assert sync_status.center_y == 2000.75
         assert sync_status.nodes_processed == 150
 
     def test_status_choices_validation(self, user):
         """Test that only valid status choices are accepted."""
-        valid_statuses = ['IDLE', 'IN_PROGRESS', 'COMPLETED', 'FAILED']
+        valid_statuses = ["IDLE", "IN_PROGRESS", "COMPLETED", "FAILED"]
 
         for status in valid_statuses:
             sync_status = CanvasSyncStatus.objects.create(
-                sync_key=f"project_{status}",
-                status=status,
-                started_by=user
+                sync_key=f"project_{status}", status=status, started_by=user
             )
             assert sync_status.status == status

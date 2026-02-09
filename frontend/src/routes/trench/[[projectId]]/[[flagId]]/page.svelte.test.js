@@ -301,7 +301,7 @@ describe('Trench Page Component', () => {
 
 		// Mock successful fetch responses
 		fetch.mockImplementation((url) => {
-			if (url.includes('ol_trench')) {
+			if (url.includes('trench/?id_trench=')) {
 				return Promise.resolve({
 					ok: true,
 					json: () =>
@@ -380,7 +380,7 @@ describe('Trench Page Component', () => {
 
 		// Verify fetch was called with the correct URL
 		expect(fetch).toHaveBeenCalledWith(
-			expect.stringContaining('ol_trench/?id_trench=123'),
+			expect.stringContaining('trench/?id_trench=123'),
 			expect.any(Object)
 		);
 	});

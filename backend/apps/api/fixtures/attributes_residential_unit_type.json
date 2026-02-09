@@ -1,0 +1,37 @@
+[
+  {
+    "model": "api.attributesresidentialunittype",
+    "pk": 1,
+    "fields": {
+      "residential_unit_type": "privat"
+    }
+  },
+  {
+    "model": "api.attributesresidentialunittype",
+    "pk": 2,
+    "fields": {
+      "residential_unit_type": "gewerbe"
+    }
+  },
+  {
+    "model": "api.attributesresidentialunittype",
+    "pk": 3,
+    "fields": {
+      "residential_unit_type": "krankenhaus"
+    }
+  },
+  {
+    "model": "api.attributesresidentialunittype",
+    "pk": 4,
+    "fields": {
+      "residential_unit_type": "oeffentlich"
+    }
+  },
+  {
+    "model": "api.attributesresidentialunittype",
+    "pk": 5,
+    "fields": {
+      "residential_unit_type": "schule"
+    }
+  }
+]

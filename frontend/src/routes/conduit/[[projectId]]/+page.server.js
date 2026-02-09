@@ -13,33 +13,9 @@ export async function load({ fetch, url, depends, cookies, params }) {
 	const projectId = params.projectId;
 	const searchTerm = searchParams.get('search') || '';
 
-	if (!projectId) {
-		return {
-			pipes: [],
-			pipesError: null,
-			searchTerm,
-			projectId,
-			// Add select options here
-			conduitTypes: [],
-			statuses: [],
-			networkLevels: [],
-			companies: [],
-			flags: []
-		};
-	}
-
 	try {
-		// Fetch pipes and select options in parallel
-		const [pipesResponse, ...selectResponses] = await Promise.all([
-			// Pipes data
-			fetch(
-				`${API_URL}conduit/all/?project=${projectId}${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''}`,
-				{
-					credentials: 'include',
-					headers: headers
-				}
-			),
-			// Select options
+		// Always fetch attribute options (they are global, not project-specific)
+		const selectFetches = [
 			fetch(`${API_URL}attributes_conduit_type/`, {
 				credentials: 'include',
 				headers: headers
@@ -57,38 +33,47 @@ export async function load({ fetch, url, depends, cookies, params }) {
 				headers: headers
 			}),
 			fetch(`${API_URL}flags/`, { credentials: 'include', headers: headers })
+		];
+
+		// Only fetch pipes if we have a projectId
+		const pipesFetch = projectId
+			? fetch(
+					`${API_URL}conduit/all/?project=${projectId}${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''}`,
+					{
+						credentials: 'include',
+						headers: headers
+					}
+				)
+			: null;
+
+		const [pipesResponse, ...selectResponses] = await Promise.all([
+			pipesFetch,
+			...selectFetches
 		]);
 
 		// Process pipes data
-		if (!pipesResponse.ok) {
-			console.error(`Failed to fetch conduits: ${pipesResponse.status}`);
-			return {
-				pipes: [],
-				pipesError: 'Failed to fetch conduits',
-				searchTerm,
-				projectId,
-				conduitTypes: [],
-				statuses: [],
-				networkLevels: [],
-				companies: [],
-				flags: []
-			};
-		}
+		let pipes = [];
+		let pipesError = null;
 
-		const pipesData = await pipesResponse.json();
-		const pipes = pipesData.map((item) => ({
-			value: item.uuid,
-			name: item.name,
-			conduit_type: item.conduit_type.conduit_type,
-			outer_conduit: item.outer_conduit,
-			status: item.status ? item.status.status : '',
-			network_level: item.network_level ? item.network_level.network_level : '',
-			owner: item.owner ? item.owner.company : '',
-			constructor: item.constructor ? item.constructor.company : '',
-			manufacturer: item.manufacturer ? item.manufacturer.company : '',
-			date: item.date,
-			flag: item.flag.flag
-		}));
+		if (pipesResponse && pipesResponse.ok) {
+			const pipesData = await pipesResponse.json();
+			pipes = pipesData.map((item) => ({
+				value: item.uuid,
+				name: item.name,
+				conduit_type: item.conduit_type.conduit_type,
+				outer_conduit: item.outer_conduit,
+				status: item.status ? item.status.status : '',
+				network_level: item.network_level ? item.network_level.network_level : '',
+				owner: item.owner ? item.owner.company : '',
+				constructor: item.constructor ? item.constructor.company : '',
+				manufacturer: item.manufacturer ? item.manufacturer.company : '',
+				date: item.date,
+				flag: item.flag.flag
+			}));
+		} else if (pipesResponse && !pipesResponse.ok) {
+			console.error(`Failed to fetch conduits: ${pipesResponse.status}`);
+			pipesError = 'Failed to fetch conduits';
+		}
 
 		// Process select options
 		const [conduitTypesData, statusesData, networkLevelsData, companiesData, flagsData] =
@@ -121,7 +106,7 @@ export async function load({ fetch, url, depends, cookies, params }) {
 
 		return {
 			pipes,
-			pipesError: null,
+			pipesError,
 			searchTerm,
 			projectId,
 			conduitTypes,

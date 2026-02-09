@@ -267,6 +267,25 @@
       },
       "problemMatcher": [],
       "isBackground": true
+    },
+    {
+      "label": "Mark Untranslated PO Entries",
+      "type": "shell",
+      "command": "python3",
+      "args": [
+        "${workspaceFolder}/.vscode/mark_untranslated_po.py"
+      ],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
     }
   ]
 }

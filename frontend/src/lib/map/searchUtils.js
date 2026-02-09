@@ -2,6 +2,17 @@
  * Search utilities for map features
  */
 
+import { register } from 'ol/proj/proj4';
+import proj4 from 'proj4';
+
+// Register EPSG:25832 (ETRS89 / UTM zone 32N) so OpenLayers can transform
+// coordinates from the backend's native SRID to the map's EPSG:3857.
+proj4.defs(
+	'EPSG:25832',
+	'+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs'
+);
+register(proj4);
+
 /**
  * Creates a highlight layer for temporarily highlighting features
  * @param {import('ol/style/Style').default} highlightStyle - Style for the highlight

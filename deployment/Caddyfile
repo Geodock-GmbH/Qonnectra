@@ -63,3 +63,17 @@ files.localhost {
         }
     }
 }
+
+# Vector Tile Server
+tiles.localhost {
+    tls internal # Use Caddy's internal CA for local certs
+    reverse_proxy tileserver:8080 {
+        header_up Host {host}
+        header_up X-Forwarded-Proto https
+    }
+    # Allow CORS for tile requests
+    header {
+        Access-Control-Allow-Origin *
+        Access-Control-Allow-Methods "GET, OPTIONS"
+    }
+}

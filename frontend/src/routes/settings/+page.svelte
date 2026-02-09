@@ -261,6 +261,66 @@
 		);
 	}
 
+	function randomHexColor() {
+		return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+	}
+
+	function randomSize(min = 3, max = 30) {
+		return Math.floor(Math.random() * (max - min + 1)) + min;
+	}
+
+	function randomizeAllNodeTypeStyles() {
+		const newStyles = {};
+		data.nodeTypes.forEach((nodeType) => {
+			newStyles[nodeType.node_type] = {
+				color: randomHexColor(),
+				size: randomSize(),
+				visible: $nodeTypeStyles[nodeType.node_type]?.visible ?? true
+			};
+		});
+		$nodeTypeStyles = newStyles;
+	}
+
+	function randomizeAllSurfaceStyles() {
+		const newStyles = {};
+		data.surfaces.forEach((surface) => {
+			newStyles[surface.surface] = {
+				color: randomHexColor(),
+				visible: $trenchSurfaceStyles[surface.surface]?.visible ?? true
+			};
+		});
+		$trenchSurfaceStyles = newStyles;
+	}
+
+	function randomizeAllConstructionTypeStyles() {
+		const newStyles = {};
+		data.constructionTypes.forEach((constructionType) => {
+			newStyles[constructionType.construction_type] = {
+				color: randomHexColor(),
+				visible: $trenchConstructionTypeStyles[constructionType.construction_type]?.visible ?? true
+			};
+		});
+		$trenchConstructionTypeStyles = newStyles;
+	}
+
+	function randomizeAddressStyle() {
+		$addressStyle = {
+			color: randomHexColor(),
+			size: randomSize()
+		};
+	}
+
+	function randomizeAllAreaTypeStyles() {
+		const newStyles = {};
+		data.areaTypes.forEach((areaType) => {
+			newStyles[areaType.area_type] = {
+				color: randomHexColor(),
+				visible: $areaTypeStyles[areaType.area_type]?.visible ?? true
+			};
+		});
+		$areaTypeStyles = newStyles;
+	}
+
 	// Address style functions
 	function updateAddressColor(color) {
 		$addressStyle = {
@@ -488,13 +548,22 @@
 							{m.settings_surface_styles()}
 						</h2>
 						{#if data.surfaces && data.surfaces.length > 0}
-							<button
-								type="button"
-								class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
-								onclick={resetAllSurfaceStyles}
-							>
-								{m.common_reset_all()}
-							</button>
+							<div class="flex gap-3">
+								<button
+									type="button"
+									class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
+									onclick={randomizeAllSurfaceStyles}
+								>
+									{m.common_randomize_all()}
+								</button>
+								<button
+									type="button"
+									class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
+									onclick={resetAllSurfaceStyles}
+								>
+									{m.common_reset_all()}
+								</button>
+							</div>
 						{/if}
 					</div>
 
@@ -566,13 +635,22 @@
 							{m.settings_construction_type_styles()}
 						</h2>
 						{#if data.constructionTypes && data.constructionTypes.length > 0}
-							<button
-								type="button"
-								class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
-								onclick={resetAllConstructionTypeStyles}
-							>
-								{m.common_reset_all()}
-							</button>
+							<div class="flex gap-3">
+								<button
+									type="button"
+									class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
+									onclick={randomizeAllConstructionTypeStyles}
+								>
+									{m.common_randomize_all()}
+								</button>
+								<button
+									type="button"
+									class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
+									onclick={resetAllConstructionTypeStyles}
+								>
+									{m.common_reset_all()}
+								</button>
+							</div>
 						{/if}
 					</div>
 
@@ -649,13 +727,22 @@
 						{m.settings_node_type_styles()}
 					</h2>
 					{#if data.nodeTypes.length > 0}
-						<button
-							type="button"
-							class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
-							onclick={resetAllNodeTypeStyles}
-						>
-							{m.common_reset_all()}
-						</button>
+						<div class="flex gap-3">
+							<button
+								type="button"
+								class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
+								onclick={randomizeAllNodeTypeStyles}
+							>
+								{m.common_randomize_all()}
+							</button>
+							<button
+								type="button"
+								class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
+								onclick={resetAllNodeTypeStyles}
+							>
+								{m.common_reset_all()}
+							</button>
+						</div>
 					{/if}
 				</div>
 
@@ -746,13 +833,22 @@
 					<h2 class="text-base/7 font-semibold text-primary-900-100">
 						{m.settings_address_style()}
 					</h2>
-					<button
-						type="button"
-						class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
-						onclick={resetAddressStyle}
-					>
-						{m.common_reset()}
-					</button>
+					<div class="flex gap-3">
+						<button
+							type="button"
+							class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
+							onclick={randomizeAddressStyle}
+						>
+							{m.common_randomize_all()}
+						</button>
+						<button
+							type="button"
+							class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
+							onclick={resetAddressStyle}
+						>
+							{m.common_reset()}
+						</button>
+					</div>
 				</div>
 
 				<div class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -834,13 +930,22 @@
 						{m.settings_area_type_styles()}
 					</h2>
 					{#if data.areaTypes && data.areaTypes.length > 0}
-						<button
-							type="button"
-							class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
-							onclick={resetAllAreaTypeStyles}
-						>
-							{m.common_reset_all()}
-						</button>
+						<div class="flex gap-3">
+							<button
+								type="button"
+								class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
+								onclick={randomizeAllAreaTypeStyles}
+							>
+								{m.common_randomize_all()}
+							</button>
+							<button
+								type="button"
+								class="font-semibold text-sm text-primary-500 hover:text-primary-600-400"
+								onclick={resetAllAreaTypeStyles}
+							>
+								{m.common_reset_all()}
+							</button>
+						</div>
 					{/if}
 				</div>
 

@@ -32,7 +32,7 @@
 	<div
 		class="flex items-center gap-2 m-1 p-2 bg-surface-50-950 rounded border border-surface-200-800"
 	>
-		<IconGripVertical size={16} class="cursor-grab text-surface-400 flex-shrink-0" />
+		<IconGripVertical size={16} class="cursor-grab text-surface-400 shrink-0" />
 
 		<div class="flex-1 min-w-0">
 			<div class="font-medium text-sm truncate">{config.side}</div>
@@ -43,7 +43,7 @@
 			</div>
 		</div>
 
-		<div class="flex items-center gap-1 flex-shrink-0">
+		<div class="flex items-center gap-1 shrink-0">
 			<button
 				type="button"
 				class="btn btn-sm preset-filled-secondary-500 p-1.5"

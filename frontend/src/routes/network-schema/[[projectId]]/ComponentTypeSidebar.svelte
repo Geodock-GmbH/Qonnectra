@@ -64,8 +64,21 @@
 	 */
 	function updateQuantity(ctId, delta) {
 		const current = getQuantity(ctId);
-		const newValue = Math.max(1, Math.min(10, current + delta));
+		const newValue = Math.max(1, Math.min(99, current + delta));
 		quantities.set(ctId, newValue);
+		quantities = new Map(quantities);
+	}
+
+	/**
+	 * Set quantity directly for a component type
+	 * @param {number} ctId
+	 * @param {string|number} value
+	 */
+	function setQuantity(ctId, value) {
+		const numValue = parseInt(value, 10);
+		if (isNaN(numValue)) return;
+		const clampedValue = Math.max(1, Math.min(99, numValue));
+		quantities.set(ctId, clampedValue);
 		quantities = new Map(quantities);
 	}
 
@@ -136,7 +149,7 @@
 						onclick={() => handleItemClick(ct)}
 					>
 						<div
-							class="w-10 h-10 rounded-lg bg-primary-500/20 flex items-center justify-center flex-shrink-0"
+							class="w-10 h-10 rounded-lg bg-primary-500/20 flex items-center justify-center shrink-0"
 						>
 							<IconGripVertical size={20} class="text-primary-500" />
 						</div>
@@ -152,7 +165,7 @@
 						</div>
 					</button>
 					<!-- Quantity controls -->
-					<div class="flex items-center gap-1 flex-shrink-0">
+					<div class="flex items-center gap-1 shrink-0">
 						<button
 							type="button"
 							class="w-8 h-8 flex items-center justify-center rounded bg-surface-300-700 hover:bg-surface-400-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -164,7 +177,16 @@
 						>
 							<IconMinus size={14} />
 						</button>
-						<span class="w-6 text-center text-sm font-mono">{qty}</span>
+						<input
+							type="number"
+							min="1"
+							max="99"
+							class="w-10 h-8 text-center text-sm font-mono bg-surface-300-700 rounded border-none focus:ring-1 focus:ring-primary-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+							value={qty}
+							onclick={(e) => e.stopPropagation()}
+							oninput={(e) => setQuantity(ct.id, e.target.value)}
+							onblur={(e) => setQuantity(ct.id, e.target.value)}
+						/>
 						<button
 							type="button"
 							class="w-8 h-8 flex items-center justify-center rounded bg-surface-300-700 hover:bg-surface-400-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -172,7 +194,7 @@
 								e.stopPropagation();
 								updateQuantity(ct.id, 1);
 							}}
-							disabled={qty >= 10}
+							disabled={qty >= 99}
 						>
 							<IconPlus size={14} />
 						</button>
@@ -184,13 +206,13 @@
 {:else}
 	<!-- Desktop: Original sidebar -->
 	<div
-		class="relative border-r border-[var(--color-surface-200-800)] bg-[var(--color-surface-100-900)] transition-all duration-200 ease-in-out flex flex-col"
+		class="relative border-r border-(--color-surface-200-800) bg-(--color-surface-100-900) transition-all duration-200 ease-in-out flex flex-col"
 		style:width={collapsed ? '40px' : '200px'}
 		style:min-width={collapsed ? '40px' : '200px'}
 	>
 		<button
 			type="button"
-			class="absolute top-2 -right-3 z-10 w-6 h-6 rounded-full bg-[var(--color-surface-100-900)] border border-[var(--color-surface-300-700)] flex items-center justify-center cursor-pointer transition-colors duration-150 hover:bg-[var(--color-surface-200-800)]"
+			class="absolute top-2 -right-3 z-10 w-6 h-6 rounded-full bg-(--color-surface-100-900) border border-(--color-surface-300-700) flex items-center justify-center cursor-pointer transition-colors duration-150 hover:bg-(--color-surface-200-800)"
 			onclick={() => (collapsed = !collapsed)}
 			title={collapsed ? m.action_expand() : m.action_collapse()}
 		>
@@ -214,13 +236,13 @@
 						{#each componentTypes as ct (ct.id)}
 							{@const qty = getQuantity(ct.id)}
 							<div
-								class="flex items-center gap-1.5 px-2 py-1.5 mx-1 rounded bg-[var(--color-surface-100-900)] border border-[var(--color-surface-200-800)] cursor-grab transition-colors duration-150 hover:bg-[var(--color-surface-200-800)] hover:border-[var(--color-primary-500)] active:cursor-grabbing"
+								class="flex items-center gap-1.5 px-2 py-1.5 mx-1 rounded bg-(--color-surface-100-900) border border-(--color-surface-200-800) cursor-grab transition-colors duration-150 hover:bg-(--color-surface-200-800) hover:border-(--color-primary-500) active:cursor-grabbing"
 								draggable="true"
 								ondragstart={(e) => handleDragStart(e, ct)}
 								ondragend={handleDragEnd}
 								role="listitem"
 							>
-								<IconGripVertical size={14} class="text-surface-400 flex-shrink-0" />
+								<IconGripVertical size={14} class="text-surface-400 shrink-0" />
 								<div class="flex-1 min-w-0">
 									<div class="text-sm font-medium truncate">{ct.component_type}</div>
 									<div class="text-xs text-surface-950-50">
@@ -232,7 +254,7 @@
 									</div>
 								</div>
 								<!-- Quantity controls -->
-								<div class="flex items-center gap-0.5 flex-shrink-0">
+								<div class="flex items-center gap-0.5 shrink-0">
 									<button
 										type="button"
 										class="w-5 h-5 flex items-center justify-center rounded bg-surface-200-800 hover:bg-surface-300-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -246,7 +268,18 @@
 									>
 										<IconMinus size={10} />
 									</button>
-									<span class="w-4 text-center text-xs font-mono">{qty}</span>
+									<input
+										type="number"
+										min="1"
+										max="99"
+										class="w-8 h-5 text-center text-xs font-mono bg-surface-200-800 rounded border-none focus:ring-1 focus:ring-primary-500 p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+										value={qty}
+										onclick={(e) => e.stopPropagation()}
+										onmousedown={(e) => e.stopPropagation()}
+										oninput={(e) => setQuantity(ct.id, e.target.value)}
+										onblur={(e) => setQuantity(ct.id, e.target.value)}
+										draggable="false"
+									/>
 									<button
 										type="button"
 										class="w-5 h-5 flex items-center justify-center rounded bg-surface-200-800 hover:bg-surface-300-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -255,7 +288,7 @@
 											updateQuantity(ct.id, 1);
 										}}
 										onmousedown={(e) => e.stopPropagation()}
-										disabled={qty >= 10}
+										disabled={qty >= 99}
 										draggable="false"
 									>
 										<IconPlus size={10} />

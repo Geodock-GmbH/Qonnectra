@@ -1,7 +1,7 @@
 {
 	"name": "frontend",
 	"private": true,
-	"version": "0.6.7",
+	"version": "0.7.0",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -44,6 +44,7 @@
 		"ol": "^10.5.0",
 		"ol-mapbox-style": "^13.2.0",
 		"perfect-freehand": "^1.2.2",
+		"proj4": "^2.20.2",
 		"set-cookie-parser": "^2.7.1"
 	}
 }

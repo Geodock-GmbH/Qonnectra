@@ -1,0 +1,16 @@
+[
+  {
+    "model": "api.attributesresidentialunitstatus",
+    "pk": 1,
+    "fields": {
+      "status": "connected"
+    }
+  },
+  {
+    "model": "api.attributesresidentialunitstatus",
+    "pk": 2,
+    "fields": {
+      "status": "not connected"
+    }
+  }
+]

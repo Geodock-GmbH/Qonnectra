@@ -54,10 +54,13 @@
 	// Sync store from URL parameter (source of truth after server-side redirects)
 	$effect(() => {
 		const urlProjectId = $page.params.projectId;
-		if (browser && urlProjectId && urlProjectId !== $selectedProject?.[0]) {
-			$selectedProject = [urlProjectId];
+		if (browser && urlProjectId && urlProjectId !== $selectedProject) {
+			$selectedProject = urlProjectId;
 		}
 	});
+
+	// Wrap string store value in array for Skeleton Combobox (expects string[])
+	let comboboxValue = $derived($selectedProject ? [$selectedProject] : []);
 
 	function handleOpenChange(e) {
 		isOpen = e.open;
@@ -85,8 +88,8 @@
 
 	function handleValueChange(e) {
 		const newValue = e.value;
-		if (newValue) {
-			handleProjectChange(newValue);
+		if (newValue && newValue.length > 0) {
+			handleProjectChange(newValue[0]);
 		}
 	}
 
@@ -115,8 +118,8 @@
 		class="z-10 w-full min-w-0 max-w-[200px] sm:max-w-none sm:min-w-[180px] md:min-w-[240px]"
 		placeholder={m.form_project({ count: 1 })}
 		{collection}
-		defaultValue={$selectedProject}
-		value={$selectedProject}
+		defaultValue={comboboxValue}
+		value={comboboxValue}
 		onValueChange={handleValueChange}
 		onOpenChange={handleOpenChange}
 		{onInputValueChange}
@@ -127,7 +130,7 @@
 			<Combobox.Input
 				class="placeholder:text-sm placeholder:truncate h-full w-full border-0 bg-transparent focus:ring-0 focus:outline-none focus:bg-transparent"
 			/>
-			<Combobox.Trigger class="flex-shrink-0" />
+			<Combobox.Trigger class="shrink-0" />
 		</Combobox.Control>
 		<Portal>
 			<Combobox.Positioner class="z-50">
@@ -137,7 +140,7 @@
 					{#each items as item (item.value)}
 						<Combobox.Item
 							{item}
-							class="cursor-pointer px-4 py-3 sm:px-3 sm:py-2 text-sm rounded-md data-[highlighted]:not-data-[selected]:bg-surface-200-800 data-[selected]:bg-primary-500 data-[selected]:text-white data-[highlighted]:data-[selected]:bg-primary-600 active:scale-[0.98] transition-transform"
+							class="cursor-pointer px-4 py-3 sm:px-3 sm:py-2 text-sm rounded-md data-highlighted:not-data-selected:bg-surface-200-800 data-selected:bg-primary-500 data-selected:text-white data-highlighted:data-selected:bg-primary-600 active:scale-[0.98] transition-transform"
 						>
 							<Combobox.ItemText class="truncate">{item.label}</Combobox.ItemText>
 							<Combobox.ItemIndicator />

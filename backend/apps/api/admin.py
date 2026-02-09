@@ -4,6 +4,7 @@ from django import forms
 from django.contrib import admin, messages
 from django.contrib.contenttypes.models import ContentType
 from django.db import models, transaction
+from django.db.models import Case, Exists, IntegerField, OuterRef, Q, Value, When
 from django.shortcuts import redirect, render
 from django.urls import path, reverse
 from django.utils.html import format_html
@@ -27,11 +28,15 @@ from .models import (
     AttributesNetworkLevel,
     AttributesNodeType,
     AttributesPhase,
+    AttributesResidentialUnitStatus,
+    AttributesResidentialUnitType,
     AttributesStatus,
     AttributesStatusDevelopment,
     AttributesSurface,
+    ResidentialUnit,
     Cable,
     CableTypeColorMapping,
+    Fiber,
     Conduit,
     ConduitTypeColorMapping,
     ContainerType,
@@ -235,11 +240,14 @@ FEATURE_MODEL_MAP = {
     "cable": Cable,
     "node": Node,
     "address": Address,
+    "residentialunit": ResidentialUnit,
     "area": Area,
 }
 
 admin.site.register(AttributesSurface)
 admin.site.register(AttributesStatusDevelopment)
+admin.site.register(AttributesResidentialUnitType)
+admin.site.register(AttributesResidentialUnitStatus)
 admin.site.register(AttributesConstructionType)
 admin.site.register(AttributesStatus)
 admin.site.register(AttributesPhase)
@@ -247,8 +255,163 @@ admin.site.register(AttributesCompany)
 admin.site.register(AttributesAreaType)
 admin.site.register(AttributesComponentType)
 admin.site.register(AttributesComponentStructure)
-admin.site.register(Cable)
 admin.site.register(FileTypeCategory)
+
+
+@admin.register(Cable)
+class CableAdmin(admin.ModelAdmin):
+    """Admin interface for Cable model with action to create missing fibers."""
+
+    list_display = (
+        "name",
+        "cable_type",
+        "project",
+        "flag",
+        "fiber_count_display",
+        "has_color_mappings",
+    )
+    list_filter = ("cable_type", "project", "flag")
+    search_fields = ("name",)
+    actions = ["create_fibers_for_empty_cables"]
+
+    @admin.display(description=_("Fibers"))
+    def fiber_count_display(self, obj):
+        """Display the number of fibers for this cable."""
+        return obj.fiber_set.count()
+
+    @admin.display(boolean=True, description=_("Type Has Mappings"))
+    def has_color_mappings(self, obj):
+        """Check if the cable's type has complete color mappings configured."""
+        if not obj.cable_type:
+            return False
+        cable_type = obj.cable_type
+        bundle_count = CableTypeColorMapping.objects.filter(
+            cable_type=cable_type, position_type="bundle"
+        ).count()
+        fiber_count = CableTypeColorMapping.objects.filter(
+            cable_type=cable_type, position_type="fiber"
+        ).count()
+        return (
+            bundle_count >= cable_type.bundle_count
+            and fiber_count >= cable_type.bundle_fiber_count
+        )
+
+    @admin.action(
+        description=_("Create fibers for selected cables (only if empty)")
+    )
+    def create_fibers_for_empty_cables(self, request, queryset):
+        """
+        Create fibers for selected cables that don't have any.
+        Only processes cables with zero fibers - no partial filling.
+        Uses the same logic as the create_fibers_for_cable signal.
+        """
+        from django.db.models import Count
+
+        created_count = 0
+        skipped_has_fibers = 0
+        skipped_no_mappings = 0
+
+        queryset = queryset.annotate(fiber_count=Count("fiber"))
+
+        for cable in queryset:
+            if cable.fiber_count > 0:
+                skipped_has_fibers += 1
+                continue
+
+            cable_type = cable.cable_type
+            if not cable_type:
+                skipped_no_mappings += 1
+                continue
+
+            bundle_mappings = (
+                CableTypeColorMapping.objects.filter(
+                    cable_type=cable_type, position_type="bundle"
+                )
+                .select_related("color")
+                .order_by("position")
+            )
+
+            fiber_mappings = (
+                CableTypeColorMapping.objects.filter(
+                    cable_type=cable_type, position_type="fiber"
+                )
+                .select_related("color")
+                .order_by("position")
+            )
+
+            if not bundle_mappings.exists() or not fiber_mappings.exists():
+                skipped_no_mappings += 1
+                continue
+
+            bundle_count = cable_type.bundle_count
+            bundle_fiber_count = cable_type.bundle_fiber_count
+
+            if (
+                bundle_mappings.count() < bundle_count
+                or fiber_mappings.count() < bundle_fiber_count
+            ):
+                skipped_no_mappings += 1
+                continue
+
+            fibers_to_create = []
+            fiber_number_absolute = 1
+            for bundle_number in range(1, bundle_count + 1):
+                bundle_mapping = bundle_mappings.filter(
+                    position=bundle_number
+                ).first()
+                bundle_color = (
+                    bundle_mapping.color.name_de
+                    if bundle_mapping
+                    else f"Bundle {bundle_number}"
+                )
+
+                for fiber_in_bundle in range(1, bundle_fiber_count + 1):
+                    fiber_mapping = fiber_mappings.filter(
+                        position=fiber_in_bundle
+                    ).first()
+                    fiber_color = (
+                        fiber_mapping.color.name_de
+                        if fiber_mapping
+                        else f"Fiber {fiber_in_bundle}"
+                    )
+                    layer = (
+                        fiber_mapping.layer if fiber_mapping else "inner"
+                    )
+
+                    fibers_to_create.append(
+                        Fiber(
+                            uuid_cable=cable,
+                            bundle_number=bundle_number,
+                            bundle_color=bundle_color,
+                            fiber_number_absolute=fiber_number_absolute,
+                            fiber_number_in_bundle=fiber_in_bundle,
+                            fiber_color=fiber_color,
+                            active=True,
+                            fiber_status=None,
+                            flag=cable.flag,
+                            project=cable.project,
+                            layer=layer,
+                        )
+                    )
+                    fiber_number_absolute += 1
+
+            if fibers_to_create:
+                Fiber.objects.bulk_create(fibers_to_create)
+                created_count += 1
+
+        self.message_user(
+            request,
+            _(
+                "Created fibers for %(created)d cable(s). "
+                "Skipped %(has_fibers)d (already have fibers), "
+                "%(no_mappings)d (no type or incomplete color mappings)."
+            )
+            % {
+                "created": created_count,
+                "has_fibers": skipped_has_fibers,
+                "no_mappings": skipped_no_mappings,
+            },
+        )
 
 
 @admin.register(Area)
@@ -408,15 +571,29 @@ class AddressAdmin(admin.ModelAdmin):
     )
     search_fields = (
         "street",
-        "housenumber",
         "house_number_suffix",
         "zip_code",
         "city",
         "district",
-        "status_development",
-        "flag",
-        "project",
+        "status_development__status",
+        "flag__flag",
+        "project__project",
     )
+
+
+@admin.register(ResidentialUnit)
+class ResidentialUnitAdmin(admin.ModelAdmin):
+    list_display = (
+        "uuid",
+        "uuid_address",
+        "floor",
+        "side",
+        "residential_unit_type",
+        "status",
+    )
+    list_filter = ("residential_unit_type", "status")
+    search_fields = ("id_residential_unit", "resident_name")
+    ordering = ("uuid_address", "floor", "side")
 
 
 class ConduitTypeColorMappingInline(admin.TabularInline):
@@ -915,6 +1092,7 @@ class MoveFilesForm(forms.Form):
             ("cable", _("Cable")),
             ("node", _("Node")),
             ("address", _("Address")),
+            ("residentialunit", _("Residential Unit")),
             ("area", _("Area")),
         ],
     )
@@ -964,6 +1142,61 @@ class FeatureFilesAdmin(admin.ModelAdmin):
     )
     ordering = ("-created_at",)
     actions = ["delete_orphaned_files", "move_to_feature"]
+
+    def get_queryset(self, request):
+        """Annotate queryset with orphaned status for sorting."""
+        queryset = super().get_queryset(request)
+        
+        # Create subqueries to check if feature exists for each model type
+        orphaned_conditions = []
+        
+        for model_name, model_class in FEATURE_MODEL_MAP.items():
+            try:
+                content_type = ContentType.objects.get(
+                    app_label="api", model=model_name
+                )
+            except ContentType.DoesNotExist:
+                continue
+            
+            # Check if feature exists in this model
+            feature_exists = Exists(
+                model_class.objects.filter(
+                    uuid=OuterRef("object_id")
+                )
+            )
+            
+            # If content_type matches and feature doesn't exist, it's orphaned
+            orphaned_conditions.append(
+                When(
+                    Q(content_type=content_type) & ~feature_exists,
+                    then=Value(1)
+                )
+            )
+        
+        # Also mark as orphaned if content_type doesn't match any known model
+        unknown_content_types = ContentType.objects.filter(
+            app_label="api"
+        ).exclude(
+            model__in=FEATURE_MODEL_MAP.keys()
+        )
+        if unknown_content_types.exists():
+            orphaned_conditions.append(
+                When(
+                    content_type__in=unknown_content_types,
+                    then=Value(1)
+                )
+            )
+        
+        # Annotate: 1 if orphaned, 0 if valid
+        queryset = queryset.annotate(
+            _is_orphaned=Case(
+                *orphaned_conditions,
+                default=Value(0),
+                output_field=IntegerField()
+            )
+        )
+        
+        return queryset
 
     def get_urls(self):
         """Add custom URL for move files form."""
@@ -1038,10 +1271,15 @@ class FeatureFilesAdmin(admin.ModelAdmin):
             )
         return FeatureFiles.get_feature_identifier(obj)
 
-    @admin.display(description=_("Status"))
+    @admin.display(description=_("Status"), ordering="_is_orphaned")
     def orphan_status_display(self, obj):
         """Display orphan status with color indicator."""
-        if self.is_orphaned(obj):
+        # Use annotation if available, otherwise fall back to method check
+        is_orphaned = getattr(obj, "_is_orphaned", None)
+        if is_orphaned is None:
+            is_orphaned = 1 if self.is_orphaned(obj) else 0
+        
+        if is_orphaned:
             return format_html(
                 '<span style="color: #dc3545; font-weight: bold;">⚠ {}</span>',
                 _("Orphaned"),

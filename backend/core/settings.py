@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "dj_rest_auth",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_json_widget",
 ]
@@ -195,7 +196,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 DEFAULT_SRID = int(os.getenv("DEFAULT_SRID", "25832"))
 
 # QGIS pg_service name for datasource conversion
-QGIS_PG_SERVICE_NAME = os.getenv("QGIS_PG_SERVICE_NAME", "krit_gis_db")
+QGIS_PG_SERVICE_NAME = os.getenv("QGIS_PG_SERVICE_NAME", "qonnectra")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -214,7 +215,7 @@ REST_AUTH = {
     "USE_JWT": True,
     "SESSION_LOGIN": False,
     "JWT_AUTH_COOKIE": "api-access-token",
-    "JWT_AUTH_REFRESH_COOKIE": None,  # "api-refresh-token",
+    "JWT_AUTH_REFRESH_COOKIE": "api-refresh-token",
     "JWT_AUTH_REFRESH_COOKIE_PATH": "/",
     "JWT_AUTH_SECURE": True,
     "JWT_AUTH_HTTPONLY": True,
@@ -225,10 +226,10 @@ REST_AUTH = {
 # djangorestframework-simplejwt settings
 # https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=7),  # Adjust as needed
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Adjust as needed
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,  # Obtain a new refresh token when refreshing
-    "BLACKLIST_AFTER_ROTATION": False,  # Blacklist old refresh token
+    "BLACKLIST_AFTER_ROTATION": True,  # Blacklist old refresh token after rotation
     "UPDATE_LAST_LOGIN": True,
     "ALGORITHM": "HS256",
     "SIGNING_KEY": SECRET_KEY,  # Uses Django SECRET_KEY by default

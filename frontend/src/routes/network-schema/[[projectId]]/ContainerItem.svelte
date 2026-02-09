@@ -80,7 +80,7 @@
 
 <div class="container-item" class:drag-over={dragOver} style:padding-left={paddingLeft}>
 	<div
-		class="flex items-center gap-2 m-1 p-2 bg-[var(--color-surface-200-800)] border-b border-[var(--color-surface-300-700)] rounded border"
+		class="flex items-center gap-2 m-1 p-2 bg-(--color-surface-200-800) border-b border-(--color-surface-300-700) rounded border"
 		draggable="true"
 		ondragstart={handleDragStart}
 		ondragover={handleDragOver}
@@ -91,12 +91,12 @@
 		aria-expanded={container.is_expanded}
 		tabindex="0"
 	>
-		<IconGripVertical size={16} class="cursor-grab text-surface-400 flex-shrink-0" />
+		<IconGripVertical size={16} class="cursor-grab text-surface-400 shrink-0" />
 
 		{#if hasChildren}
 			<button
 				type="button"
-				class="p-0.5 hover:bg-surface-200-800 rounded flex-shrink-0"
+				class="p-0.5 hover:bg-surface-200-800 rounded shrink-0"
 				onclick={toggleExpand}
 			>
 				{#if container.is_expanded}
@@ -106,7 +106,7 @@
 				{/if}
 			</button>
 		{:else}
-			<span class="w-5 flex-shrink-0"></span>
+			<span class="w-5 shrink-0"></span>
 		{/if}
 
 		<span class="flex-1 font-medium text-sm truncate">
@@ -115,7 +115,7 @@
 
 		<button
 			type="button"
-			class="btn btn-sm preset-filled-error-500 p-1.5 flex-shrink-0"
+			class="btn btn-sm preset-filled-error-500 p-1.5 shrink-0"
 			onclick={() => onDelete?.(container.uuid)}
 			title={m.common_delete()}
 		>

@@ -17,9 +17,11 @@
 	let { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected } =
 		$props();
 
-	let currentLabel = $state(data?.label || data?.cable?.name || '');
+	// Label state - synced reactively via $effect below
+	let currentLabel = $state('');
 
-	let labelData = $state(data?.labelData || null);
+	// Label data for positioning - synced reactively via $effect below
+	let labelData = $state(/** @type {Object|null} */ (null));
 
 	let edgePath = $derived.by(() => {
 		const waypoints = data?.cable?.diagram_path;
@@ -137,8 +139,16 @@
 	 * Sync currentLabel when data changes
 	 */
 	$effect(() => {
-		if (data?.label) {
-			currentLabel = data.label;
+		currentLabel = data?.label || data?.cable?.name || '';
+	});
+
+	/**
+	 * Sync labelData when data changes
+	 */
+	$effect(() => {
+		// Only update if we don't have local labelData yet or if data.labelData changed
+		if (data?.labelData !== undefined) {
+			labelData = data.labelData;
 		}
 	});
 

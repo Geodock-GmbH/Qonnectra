@@ -893,7 +893,7 @@
 							clearLassoSelection();
 							if (e.value && e.value.length > 0) {
 								const nodeName = e.value[0]?.name || e.value[0];
-								const project = $selectedProject?.[0] || $selectedProject;
+								const project = $selectedProject;
 								getTrenchesNearNode(nodeName, project);
 							}
 						}}

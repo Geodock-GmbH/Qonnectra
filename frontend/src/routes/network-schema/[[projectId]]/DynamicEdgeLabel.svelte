@@ -28,10 +28,8 @@
 	// Coordinate transformation
 	const { screenToFlowPosition } = useSvelteFlow();
 
-	let position = $state({
-		x: labelData?.position_x ?? defaultX,
-		y: labelData?.position_y ?? defaultY
-	});
+	// Position state - initialized with defaults, synced reactively via $effect below
+	let position = $state({ x: 0, y: 0 });
 
 	// Dragging state
 	let isDragging = $state(false);
@@ -51,8 +49,8 @@
 	let showProgressCircle = $state(false);
 	let progressDelayTimer = $state(null);
 
-	// Local reactive state for the label text
-	let currentLabel = $state(labelData?.text || cableData?.label || cableData?.cable?.name || '');
+	// Local reactive state for the label text - synced reactively via $effect below
+	let currentLabel = $state('');
 
 	/**
 	 * Update label dimensions when element is bound
@@ -68,21 +66,17 @@
 	 * Sync label text when data changes
 	 */
 	$effect(() => {
-		if (labelData?.text) {
-			currentLabel = labelData.text;
-		}
+		currentLabel = labelData?.text || cableData?.label || cableData?.cable?.name || '';
 	});
 
 	/**
-	 * Sync position when labelData changes
+	 * Sync position when labelData or defaults change
 	 */
 	$effect(() => {
-		if (labelData?.position_x !== undefined && labelData?.position_y !== undefined) {
-			position = {
-				x: labelData.position_x,
-				y: labelData.position_y
-			};
-		}
+		position = {
+			x: labelData?.position_x ?? defaultX,
+			y: labelData?.position_y ?? defaultY
+		};
 	});
 
 	/**

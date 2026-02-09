@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 	import {
+		IconAddressBook,
 		IconAffiliate,
 		IconArrowBarToRight,
 		IconDashboard,
@@ -55,6 +56,7 @@
 		{ href: '/pipe-branch', label: m.nav_pipe_branch(), icon: IconAffiliate },
 		{ href: '/house-connections', label: m.nav_house_connections(), icon: IconHome2 },
 		{ href: '/network-schema', label: m.nav_network_schema(), icon: IconTopologyRing2 },
+		{ href: '/address', label: m.nav_address(), icon: IconAddressBook },
 		{ href: '/admin/logs', label: m.nav_logs(), icon: IconFileText },
 		{ href: '/settings', label: m.nav_settings(), icon: IconSettings }
 	];

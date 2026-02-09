@@ -1,6 +1,8 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"action_add": "Hinzufügen",
+	"action_add_residential_unit": "Wohneinheit hinzufügen",
+	"action_back": "Zurück",
 	"action_add_conduit": "Rohr hinzufügen",
 	"action_add_container": "Container hinzufügen",
 	"action_apply_filters": "Filter anwenden",
@@ -13,6 +15,7 @@
 	"action_configure_slots": "Slots konfigurieren",
 	"action_configure_structure": "Struktur konfigurieren",
 	"action_connect_selected_nodes": "Ausgewählte Netzknoten verbinden",
+	"action_delete": "Löschen",
 	"action_delete_cable": "Kabel löschen",
 	"action_delete_conduit": "Rohr löschen",
 	"action_delete_file": "Datei löschen",
@@ -26,6 +29,7 @@
 	"action_merge": "Zusammenführen",
 	"action_merge_ports": "Ports zusammenführen",
 	"action_refresh": "Aktualisieren",
+	"action_regenerate_id": "ID neu generieren",
 	"action_rename": "Umbenennen",
 	"action_routing_mode_disabled": "Routing-Modus deaktiviert",
 	"action_routing_mode_enabled": "Routing-Modus aktiviert",
@@ -43,12 +47,15 @@
 	"auth_username": "Benutzername",
 	"common_accept": "Akzeptieren",
 	"common_active": "Aktiv",
+	"common_back": "Zurück",
 	"common_attributes": "Eigenschaften",
 	"common_cancel": "Abbrechen",
 	"common_close": "Schließen",
+	"common_coming_soon": "Demnächst verfügbar",
 	"common_comment": "Bemerkungen",
 	"common_conduit_details": "Rohr-Details",
 	"common_confirm": "Bestätigen",
+	"common_confirm_delete": "Löschen bestätigen",
 	"common_connected_to_ports": "mit Ports verbunden",
 	"common_continue": "Fortfahren",
 	"common_date": "Datum",
@@ -68,7 +75,9 @@
 	"common_osm": "OpenStreetMap",
 	"common_overview": "Übersicht",
 	"common_reset": "Zurücksetzen",
+	"common_randomize_all": "Zufällig",
 	"common_reset_all": "Alle zurücksetzen",
+	"common_save": "Speichern",
 	"common_search": "Suchen",
 	"common_searching": "Suche...",
 	"common_selected": "Ausgewählt",
@@ -79,20 +88,24 @@
 	"form_actions": "Aktionen",
 	"form_address": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Adresse",
 				"countPlural=other": "Adressen"
 			}
 		}
 	],
-	"form_address_id": "Adressen-ID",
+	"form_address_id": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Adress-ID",
+				"countPlural=other": "Adressen-IDs"
+			}
+		}
+	],
 	"form_address_points": "Adressenpunkte",
 	"form_area": "Gebiet",
 	"form_area_type": "Gebietstyp",
@@ -100,6 +113,17 @@
 	"form_attachments": "Anhänge",
 	"form_auto_connect": "Auto-Verbindung",
 	"form_average_house_connection_length": "Durchschnittliche Hausanschlusslänge",
+	"form_building": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Gebäude",
+				"countPlural=other": "Gebäude"
+			}
+		}
+	],
+	"form_building_section": "Gebäudeteil",
 	"form_bottom": "Unten",
 	"form_breakdown_by_node_type": "Aufteilung nach Netzknotentyp",
 	"form_breakdown_by_type": "Aufteilung nach Bauart",
@@ -117,13 +141,8 @@
 	"form_components": "Komponenten",
 	"form_conduit": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Rohr",
 				"countPlural=other": "Rohre"
@@ -143,13 +162,8 @@
 	"form_date_to": "Bis Datum",
 	"form_days": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Tag",
 				"countPlural=other": "Tagen"
@@ -160,6 +174,8 @@
 	"form_error_loading_files": "Fehler beim Laden der Dateien: {error}",
 	"form_expires_in": "Läuft ab in",
 	"form_expires_on": "Läuft ab am",
+	"form_external_id_1": "Externe Kennung 1",
+	"form_external_id_2": "Externe Kennung 2",
 	"form_fiber": "Faser",
 	"form_fiber_a": "Faser A",
 	"form_fiber_b": "Faser B",
@@ -168,13 +184,8 @@
 	"form_fibers": "Fasern",
 	"form_files": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Datei",
 				"countPlural=other": "Dateien"
@@ -182,6 +193,9 @@
 		}
 	],
 	"form_flag": "Kennzeichen",
+	"form_floor": "Etage",
+	"form_id_address": "Adress-ID",
+	"form_id_residential_unit": "Wohneinheit-ID",
 	"form_free_slots": "Frei",
 	"form_funding_status": "Förderstatus",
 	"form_handle_position": "Fangpunkt Position",
@@ -208,13 +222,8 @@
 	"form_message": "Nachricht",
 	"form_microduct": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Mikrorohr",
 				"countPlural=other": "Mikrorohre"
@@ -236,19 +245,23 @@
 	"form_number": "Nummer",
 	"form_outer_conduit": "Schutzrohr",
 	"form_owner": "Eigentümer",
+	"form_parent_node_name": "Übergeordneter Netzknoten",
 	"form_partial_selection": "Teilauswahl",
 	"form_phase": "Phase",
 	"form_port": "Port",
 	"form_ports": "Ports",
+	"form_ready_for_service": "Betriebsbereit",
+	"from_resident": "Bewohner",
+	"form_resident_name": "Name des Bewohners",
+	"form_resident_recorded_date": "Erfassungsdatum Bewohner",
+	"form_residential_unit_side": "Seite",
+	"form_residential_unit_status": "Status",
+	"form_residential_unit_suffix": "Anhang",
+	"form_residential_unit_type": "Typ",
 	"form_project": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Projekt",
 				"countPlural=other": "Projekte"
@@ -267,13 +280,8 @@
 	"form_side": "Seite",
 	"form_slot": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Slot",
 				"countPlural=other": "Slots"
@@ -311,8 +319,10 @@
 	"message_cannot_delete_node_has_cables": "Dieser Netzknoten kann nicht gelöscht werden, da Kabel verbunden sind. Bitte entferne zuerst die Kabel.",
 	"message_cannot_merge_different_sides": "Ports von verschiedenen Seiten können nicht zusammengeführt werden",
 	"message_component_count": "({count} Komponenten)",
+	"message_confirm_delete_address": "Bist du sicher, dass du diese Adresse löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
 	"message_confirm_delete_cable": "Bist du sicher, dass du das Kabel löschen möchtest?",
 	"message_confirm_delete_conduit": "Bist du sicher, dass du das Rohr löschen möchtest?",
+	"message_confirm_delete_residential_unit": "Bist du sicher, dass du diese Wohneinheit löschen möchtest?",
 	"message_confirm_delete_conduit_description": "Rohr ist in schon min. einer Trasse zugeordnet. Bist du sicher, dass du das Rohr löschen möchtest und somit die dazugehörigen Trassenverbindungen?",
 	"message_confirm_delete_file": "Bist du sicher, dass du diese Datei löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
 	"message_confirm_delete_node": "Bist du sicher, dass du diesen Netzknoten löschen möchtest?",
@@ -333,13 +343,16 @@
 	"message_error_creating_conduit": "Fehler beim Erstellen des Rohres",
 	"message_error_creating_container": "Fehler beim Erstellen des Containers",
 	"message_error_creating_divider": "Fehler beim Erstellen der Trennlinie",
+	"message_error_creating_residential_unit": "Fehler beim Erstellen der Wohneinheit",
 	"message_error_creating_slot_configuration": "Fehler beim Erstellen der Slot-Konfiguration",
 	"message_error_creating_vector_tile_layer": "Die Vektor-Tile-Layer konnte nicht erstellt werden. Bitte versuche es erneut.",
 	"message_error_deleting_cable": "Fehler beim Löschen des Kabels",
+	"message_error_deleting_address": "Fehler beim Löschen der Adresse",
 	"message_error_deleting_conduit": "Fehler beim Löschen des Rohres",
 	"message_error_deleting_container": "Fehler beim Löschen des Containers",
 	"message_error_deleting_divider": "Fehler beim Löschen der Trennlinie",
 	"message_error_deleting_node": "Fehler beim Löschen des Netzknotens",
+	"message_error_deleting_residential_unit": "Fehler beim Löschen der Wohneinheit",
 	"message_error_deleting_slot_configuration": "Fehler beim Löschen der Slot-Konfiguration",
 	"message_error_deleting_splices": "Fehler beim Löschen der Faserverbindungen",
 	"message_error_deleting_structure": "Fehler beim Löschen der Struktur",
@@ -360,14 +373,18 @@
 	"message_error_no_matching_microducts": "Keine passenden Mikrorohre für die Verbindung verfügbar",
 	"message_error_not_enough_slots": "Nicht genug Slots verfügbar",
 	"message_error_placing_component": "Fehler beim Platzieren der Komponente",
+	"message_error_regenerating_id": "Fehler beim Neugenerieren der Adress-ID.",
+	"message_error_regenerating_residential_unit_id": "Fehler beim Neugenerieren der Wohneinheits-ID.",
 	"message_error_saving_clip_number": "Fehler beim Speichern der Clip-Nummer",
 	"message_error_search_failed": "Fehler beim Suchen. Bitte versuche es erneut.",
 	"message_error_slots_occupied": "Slots sind bereits belegt",
+	"message_error_updating_address": "Fehler beim Aktualisieren der Adresse",
 	"message_error_updating_cable": "Fehler beim Aktualisieren des Kabels",
 	"message_error_updating_cable_path": "Fehler beim Aktualisieren der Kabelgeometrie",
 	"message_error_updating_conduit": "Fehler beim Aktualisieren des Rohres",
 	"message_error_updating_node": "Fehler beim Aktualisieren des Netzknotens",
 	"message_error_updating_slot_configuration": "Fehler beim Aktualisieren der Slot-Konfiguration",
+	"message_error_updating_residential_unit": "Fehler beim Aktualisieren der Wohneinheit",
 	"message_failed_to_create_connections": "Fehler beim Erstellen von Verbindungen",
 	"message_fiber_connected": "Faser erfolgreich verbunden",
 	"message_fibers_connected_to_merged": "{count} Fasern mit zusammengeführten Ports verbunden",
@@ -375,20 +392,24 @@
 	"message_has_connections": "Hat Verbindungen",
 	"message_import_conduits_success_description": "Bitte die Seite neu laden, um die Rohre anzuzeigen.",
 	"message_importing_conduits_description": "Rohre werden importiert...",
+	"message_address_linked_to_node": "Diese Adresse ist mit einem Netzknoten verknüpft und kann nicht gelöscht werden.",
 	"message_info_node_has_no_address_assigned": "Diesem Netzknoten wurde noch keine Adresse zugeordnet.",
 	"message_loading_fibers": "Fasern werden geladen...",
 	"message_loading_network_schema": "Netzwerkschema synchronisiert...",
 	"message_login_error": "Fehler beim Anmelden. Bitte versuche es erneut.",
 	"message_network_schema_settings_not_configured": "Die Netzschema-Einstellungen sind für dieses Projekt nicht konfiguriert. Bitte konfigurieren Sie diese im Admin-Bereich.",
 	"message_no_cables": "Keine Kabel an diesem Netzknoten",
+	"message_no_microducts_linked": "Keine Mikrorohre mit dieser Adresse verknüpft",
 	"message_no_component_types": "Keine Komponententypen verfügbar",
 	"message_no_conduit_selected_description": "Bitte wählen Sie ein Rohr aus, um eine Route zu berechnen",
 	"message_no_conduits_found": "Keine Rohre gefunden",
 	"message_no_fibers": "Keine Fasern",
 	"message_no_fibers_to_drop": "Keine Fasern zum Ablegen",
+	"message_no_location_data": "Keine Standortdaten verfügbar",
 	"message_no_logs_found": "Keine Logs gefunden",
 	"message_no_new_trench_connections": "Keine neuen Trassenverbindungen",
 	"message_no_ports": "Keine Ports für diese Komponente konfiguriert",
+	"message_no_residential_units": "Keine Wohneinheiten gefunden",
 	"message_no_results_found": "Keine Ergebnisse gefunden",
 	"message_no_slot_configurations": "Keine Slot-Konfigurationen gefunden",
 	"message_no_structures": "Keine Strukturen gefunden",
@@ -401,6 +422,8 @@
 	"message_please_try_again": "Bitte versuche es erneut.",
 	"message_please_wait": "Bitte warten...",
 	"message_ports_merged": "{count} Ports zusammengeführt",
+	"message_residential_units_coming_soon": "Die Verwaltung von Wohneinheiten wird bald verfügbar sein",
+	"message_residential_units_description": "Wohneinheiten dieser Adresse verwalten und nachverfolgen.",
 	"message_ports_unmerged": "Ports getrennt",
 	"message_select_at_least_two_ports": "Wählen Sie mindestens 2 Ports zum Zusammenführen aus",
 	"message_success_assigned_node": "Hausanschluss erfolgreich zugeordnet",
@@ -409,17 +432,24 @@
 	"message_success_creating_conduit": "Rohr erfolgreich erstellt",
 	"message_success_creating_container": "Container erfolgreich erstellt",
 	"message_success_creating_slot_configuration": "Slot-Konfiguration erfolgreich erstellt",
+	"message_success_deleting_address": "Adresse erfolgreich gelöscht",
 	"message_success_deleting_cable": "Kabel erfolgreich gelöscht",
 	"message_success_deleting_conduit": "Rohr erfolgreich gelöscht",
 	"message_success_deleting_container": "Container erfolgreich gelöscht",
 	"message_success_deleting_node": "Netzknoten erfolgreich gelöscht",
+	"message_success_deleting_residential_unit": "Wohneinheit erfolgreich gelöscht",
 	"message_success_deleting_slot_configuration": "Slot-Konfiguration erfolgreich gelöscht",
 	"message_success_deleting_structure": "Struktur erfolgreich gelöscht",
 	"message_success_downloading_template": "Vorlage erfolgreich heruntergeladen",
+	"message_success_regenerating_id": "Adress-ID erfolgreich neu generiert.",
+	"message_success_regenerating_residential_unit_id": "Wohneinheits-ID erfolgreich neu generiert.",
 	"message_success_moving_component": "Komponente erfolgreich verschoben",
 	"message_success_placing_component": "Komponente erfolgreich platziert",
 	"message_success_placing_components": "{count} Komponenten erfolgreich platziert",
+	"message_success_creating_residential_unit": "Wohneinheit erfolgreich erstellt",
 	"message_success_unassigned_node": "Hausanschluss erfolgreich aufgehoben",
+	"message_success_updating_residential_unit": "Wohneinheit erfolgreich aktualisiert",
+	"message_success_updating_address": "Adresse erfolgreich aktualisiert",
 	"message_success_updating_cable": "Kabel erfolgreich aktualisiert",
 	"message_success_updating_cable_path": "Kabelgeometrie erfolgreich aktualisiert",
 	"message_success_updating_conduit": "Rohr erfolgreich aktualisiert",
@@ -433,6 +463,11 @@
 	"message_trench_located_description": "Karte wurde auf die Trasse {trenchLabel} zentriert.",
 	"message_trench_not_visible_description": "Die Trasse {trenchLabel} ist nicht derzeit auf der Karte sichtbar. Versuchen Sie, herauszukommen oder das Projekt zu ändern.",
 	"message_trenches_found": "{count} Trassen in der Nähe gefunden",
+	"message_warning_cable_type_incomplete_color_mappings": "Kabeltyp hat unvollständige Farbzuordnungen. Bündel- und Faseranzahl stimmen nicht überein. Fasern wurden nicht generiert. Bitte korrigieren Sie die Farbzuordnungen im Admin-Bereich.",
+	"nav_address": "Adressen",
+	"nav_category_infrastructure": "Infrastruktur",
+	"nav_category_main": "Hauptnavigation",
+	"nav_category_system": "System",
 	"nav_conduit_connection": "Rohrzuordnung",
 	"nav_conduit_management": "Rohrverwaltung",
 	"nav_dashboard": "Dashboard",
@@ -452,6 +487,20 @@
 	"placeholder_select_node": "Netzknoten auswählen...",
 	"placeholder_select_pipe_branch": "Rohrverzweigung auswählen",
 	"placeholder_slot_side": "A, B, etc.",
+	"section_address_information": "Adressinformationen",
+	"section_classification": "Klassifizierung",
+	"section_location": "Standort",
+	"section_microduct_connections": "Mikrorohrverbindungen",
+	"section_residential_units": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Wohneinheit",
+				"countPlural=other": "Wohneinheiten"
+			}
+		}
+	],
 	"settings_address_style": "Adressen-Stil",
 	"settings_area_type_styles": "Gebietstyp-Stile",
 	"settings_conduit_connection": "Rohrzuordnung",
@@ -475,6 +524,17 @@
 	"settings_ui_theme": "Theme",
 	"settings_user": "Benutzer",
 	"settings_user_email": "E-Mail",
+	"table_building_section": "Gebäudeteil",
+	"table_color": "Farbe",
+	"table_conduit_name": "Rohrname",
+	"table_conduit_type": "Rohrtyp",
+	"table_floor": "Etage",
+	"table_microduct_number": "Nummer",
+	"table_node": "Netzknoten",
+	"table_residential_unit_id": "ID",
+	"table_residential_unit_status": "Status",
+	"table_residential_unit_type": "Typ",
+	"table_side": "Seite",
 	"title_cable_details": "Kabel-Details",
 	"title_error_calculating_route": "Fehler beim Berechnen der Route",
 	"title_error_canvas_sync_failed": "Fehler beim Synchronisieren der Canvas",

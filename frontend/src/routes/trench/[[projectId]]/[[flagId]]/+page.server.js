@@ -102,7 +102,7 @@ export const actions = {
 		}
 
 		try {
-			const response = await fetch(`${API_URL}ol_trench/?id_trench=${trenchLabel}`, {
+			const response = await fetch(`${API_URL}trench/?id_trench=${trenchLabel}`, {
 				credentials: 'include',
 				headers: getAuthHeaders(cookies)
 			});

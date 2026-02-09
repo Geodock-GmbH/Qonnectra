@@ -334,7 +334,7 @@
 					}}
 				>
 					<div class="flex items-center gap-2 flex-1 min-w-0">
-						<IconFile class="size-4 flex-shrink-0" />
+						<IconFile class="size-4 shrink-0" />
 						{#if editingFile?.uuid === node.fileData.uuid}
 							<input
 								type="text"

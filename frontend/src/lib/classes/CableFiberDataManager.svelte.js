@@ -23,6 +23,12 @@ export class CableFiberDataManager {
 	/** @type {boolean} */
 	loading = $state(true);
 
+	/** @type {Set<string>} - UUIDs of fibers that are used (connected) in the current node */
+	usedFiberUuids = $state(new Set());
+
+	/** @type {boolean} */
+	loadingFiberUsage = $state(false);
+
 	/**
 	 * @param {string|null} nodeUuid - Initial node UUID
 	 */
@@ -51,6 +57,7 @@ export class CableFiberDataManager {
 		this.nodeUuid = uuid;
 		this.cables = [];
 		this.fibersCache = new Map();
+		this.usedFiberUuids = new Set();
 	}
 
 	/**
@@ -79,6 +86,54 @@ export class CableFiberDataManager {
 		} finally {
 			this.loading = false;
 		}
+	}
+
+	/**
+	 * Fetch fiber usage for the current node
+	 * Returns a set of fiber UUIDs that are connected in this node
+	 */
+	async fetchFiberUsage() {
+		if (!this.nodeUuid) return;
+
+		this.loadingFiberUsage = true;
+		try {
+			const formData = new FormData();
+			formData.append('nodeUuid', this.nodeUuid);
+
+			const response = await fetch('?/getFiberUsageInNode', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'success') {
+				this.usedFiberUuids = new Set(result.data?.usedFiberUuids || []);
+			}
+		} catch (err) {
+			console.error('Error fetching fiber usage:', err);
+		} finally {
+			this.loadingFiberUsage = false;
+		}
+	}
+
+	/**
+	 * Check if a fiber is used (connected) in this node
+	 * @param {string} fiberUuid
+	 * @returns {boolean}
+	 */
+	isFiberUsed(fiberUuid) {
+		return this.usedFiberUuids.has(fiberUuid);
+	}
+
+	/**
+	 * Check if all fibers in a bundle are used in this node
+	 * @param {Array<Object>} bundleFibers - Array of fiber objects
+	 * @returns {boolean}
+	 */
+	isBundleFullyUsed(bundleFibers) {
+		if (!bundleFibers || bundleFibers.length === 0) return false;
+		return bundleFibers.every((fiber) => this.usedFiberUuids.has(fiber.uuid));
 	}
 
 	/**
@@ -225,5 +280,7 @@ export class CableFiberDataManager {
 		this.fibersCache = new Map();
 		this.loadingFibers = new Set();
 		this.loading = false;
+		this.usedFiberUuids = new Set();
+		this.loadingFiberUsage = false;
 	}
 }

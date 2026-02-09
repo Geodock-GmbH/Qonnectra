@@ -17,8 +17,7 @@ export async function load({ locals, url, fetch, cookies }) {
 		throw redirect(303, redirectToUrl);
 	}
 
-	// Get selected project from cookie
-	const selectedProject = cookies.get('selected-project') || ['1'];
+	let selectedProject = cookies.get('selected-project') || null;
 
 	// Load common data for all authenticated pages
 	let flags = [];
@@ -78,6 +77,14 @@ export async function load({ locals, url, fetch, cookies }) {
 				console.error('Failed to load projects:', projectsResponse.reason);
 			}
 		}
+	}
+
+	// If no project cookie, use first available project or fallback to '1'
+	if (!selectedProject && projects.length > 0) {
+		selectedProject = projects[0].value;
+	}
+	if (!selectedProject) {
+		selectedProject = '1';
 	}
 
 	// locals.user is populated by the hooks.server.js handle function

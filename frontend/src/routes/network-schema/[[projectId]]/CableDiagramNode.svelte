@@ -9,9 +9,16 @@
 	import DrawerTabs from './DrawerTabs.svelte';
 
 	let { id, data, selected } = $props();
-	let currentLabel = $state(data?.label || data?.node?.name || '');
 
-	let handleInit = {
+	// Label state - synced reactively via $effect
+	let currentLabel = $state('');
+
+	$effect(() => {
+		currentLabel = data?.label || data?.node?.name || '';
+	});
+
+	// Handle configuration - derived to stay reactive with id changes
+	const handleInit = $derived({
 		top: {
 			source: {
 				id: `${id}-top-source`
@@ -44,7 +51,7 @@
 				id: `${id}-left-target`
 			}
 		}
-	};
+	});
 
 	/**
 	 * Handle click on node label to open node details
@@ -120,7 +127,7 @@
 	onkeydown={handleKeydown}
 	aria-label={m.tooltip_open_node_details({ label: currentLabel })}
 >
-	<p class="text-center break-words w-full">
+	<p class="text-center wrap-break-word w-full">
 		{currentLabel}
 	</p>
 </div>

@@ -192,13 +192,13 @@ export async function getFeatureDetailsByType(fetch, cookies, featureType, featu
 		let apiEndpoint;
 		const projectParam = projectId ? `&project=${projectId}` : '';
 		if (featureType === 'node') {
-			apiEndpoint = `${API_URL}ol_node/?uuid=${featureUuid}${projectParam}`;
+			apiEndpoint = `${API_URL}node/?uuid=${featureUuid}${projectParam}`;
 		} else if (featureType === 'trench') {
-			apiEndpoint = `${API_URL}ol_trench/?uuid=${featureUuid}${projectParam}`;
+			apiEndpoint = `${API_URL}trench/?uuid=${featureUuid}${projectParam}`;
 		} else if (featureType === 'address') {
-			apiEndpoint = `${API_URL}ol_address/?uuid=${featureUuid}${projectParam}`;
+			apiEndpoint = `${API_URL}address/?uuid=${featureUuid}${projectParam}`;
 		} else if (featureType === 'area') {
-			apiEndpoint = `${API_URL}ol_area/?uuid=${featureUuid}${projectParam}`;
+			apiEndpoint = `${API_URL}area/?uuid=${featureUuid}${projectParam}`;
 		} else {
 			throw error(400, 'Invalid feature type');
 		}
@@ -260,7 +260,7 @@ export async function getTrenchUuidsForConduit(fetch, cookies, conduitUuid) {
 		}
 
 		const trenchPromises = trenchUuids.map((uuid) =>
-			fetch(`${API_URL}ol_trench/?uuid=${uuid}`, {
+			fetch(`${API_URL}trench/?uuid=${uuid}`, {
 				credentials: 'include',
 				headers: getAuthHeaders(cookies)
 			}).then((res) => res.json())

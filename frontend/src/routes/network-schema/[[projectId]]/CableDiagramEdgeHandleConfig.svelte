@@ -316,6 +316,7 @@
 							handleNodeChange('start', newNodeId);
 						}
 					}}
+					renderInPlace={true}
 				/>
 			{/if}
 		</div>
@@ -370,6 +371,7 @@
 							handleNodeChange('end', newNodeId);
 						}
 					}}
+					renderInPlace={true}
 				/>
 			{/if}
 		</div>

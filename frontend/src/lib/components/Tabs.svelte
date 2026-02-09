@@ -35,7 +35,7 @@
 	<SkeletonTabs {value} onValueChange={handleValueChange}>
 		<SkeletonTabs.List>
 			{#each tabs as tab (tab.value)}
-				<SkeletonTabs.Trigger class="flex-1" value={tab.value}>
+				<SkeletonTabs.Trigger class="flex-1 min-w-0 truncate" value={tab.value}>
 					{tab.label}
 				</SkeletonTabs.Trigger>
 			{/each}

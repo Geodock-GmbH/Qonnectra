@@ -1,3 +1,4 @@
+import { deserialize } from '$app/forms';
 import { page } from '$app/state';
 
 import { m } from '$lib/paraglide/messages';
@@ -16,10 +17,36 @@ export class NetworkSchemaState {
 	userCableName = $state('');
 	selectedCableType = $state([]);
 
-	constructor(initialData) {
-		this.nodes = this.transformNodesToSvelteFlow(initialData.nodes);
-		this.edges = this.transformCablesToSvelteFlowEdges(initialData.cables);
-		this.cableTypes = initialData.cableTypes;
+	/** @type {boolean} - Track if already initialized to prevent duplicate initialization */
+	#initialized = $state(false);
+
+	/**
+	 * @param {Object} [initialData] - Optional initial data (can be initialized later via initialize())
+	 */
+	constructor(initialData = null) {
+		if (initialData) {
+			this.initialize(initialData);
+		}
+	}
+
+	/**
+	 * Check if the state has been initialized
+	 * @returns {boolean}
+	 */
+	get initialized() {
+		return this.#initialized;
+	}
+
+	/**
+	 * Initialize or re-initialize the state with data
+	 * @param {Object} data - The page data containing nodes, cables, and cableTypes
+	 */
+	initialize(data) {
+		if (!data || this.#initialized) return;
+		this.nodes = this.transformNodesToSvelteFlow(data.nodes);
+		this.edges = this.transformCablesToSvelteFlowEdges(data.cables);
+		this.cableTypes = data.cableTypes;
+		this.#initialized = true;
 	}
 
 	/**
@@ -268,13 +295,14 @@ export class NetworkSchemaState {
 		if (this.selectedCableType.length === 0) {
 			await logToBackendClient({
 				level: 'ERROR',
-				message: 'No cable type selected when attempting to create cable',
+				message: m.message_error_no_cable_type_selected(),
 				path: page.url.pathname,
 				extraData: {
 					source,
 					target,
 					cableName,
-					from: 'handleConnect'
+					from: 'handleConnect',
+					message: 'No cable type selected when attempting to create cable'
 				},
 				project: selectedProject
 			});
@@ -304,13 +332,13 @@ export class NetworkSchemaState {
 				body: formData
 			});
 
-			const result = await response.json();
+			const result = deserialize(await response.text());
 
-			if (!response.ok || result.type === 'error') {
-				throw new Error(result.error || 'Failed to create cable');
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to create cable');
 			}
 
-			const cableData = result.data;
+			const cableData = result.data?.data;
 
 			if (cableData.uuid !== cableUuid) {
 				console.warn(
@@ -341,6 +369,27 @@ export class NetworkSchemaState {
 				title: m.title_success(),
 				description: m.message_success_creating_cable()
 			});
+
+			if (cableData.warning) {
+				await logToBackendClient({
+					level: 'WARNING',
+					message: m.message_error_no_cable_type_selected(),
+					path: page.url.pathname,
+					extraData: {
+						source,
+						target,
+						cableName,
+						from: 'handleConnect',
+						message: cableData.warning
+					},
+					project: selectedProject
+				});
+
+				globalToaster.warning({
+					title: m.common_warning(),
+					description: m.message_warning_cable_type_incomplete_color_mappings()
+				});
+			}
 
 			// Dispatch event for sidebar refresh (source and target are swapped in the edge creation)
 			window.dispatchEvent(

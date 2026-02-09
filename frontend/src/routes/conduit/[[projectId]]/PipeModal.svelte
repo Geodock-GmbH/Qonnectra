@@ -25,6 +25,27 @@
 		flags: []
 	};
 
+	// #region agent log
+	$effect(() => {
+		if (openPipeModal) {
+			fetch('http://127.0.0.1:7243/ingest/ce537700-dc76-46fa-bb6c-67a77367f431', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					location: 'PipeModal.svelte',
+					message: 'PipeModal open - attributeOptions check',
+					data: {
+						conduitTypesLength: attributes?.conduitTypes?.length ?? 'missing',
+						statusesLength: attributes?.statuses?.length ?? 'missing'
+					},
+					hypothesisId: 'B',
+					timestamp: Date.now()
+				})
+			}).catch(() => {});
+		}
+	});
+	// #endregion
+
 	// Get conduit state for form defaults persistence
 	const conduitState = getContext('conduitState');
 
@@ -71,7 +92,7 @@
 		// Build form data for server action
 		const actionFormData = new FormData();
 		actionFormData.append('name', formProps.pipe_name);
-		if (projectId?.[0]) actionFormData.append('project_id', projectId[0]);
+		if (projectId) actionFormData.append('project_id', projectId);
 		if (selectedConduitType?.[0]) actionFormData.append('conduit_type_id', selectedConduitType[0]);
 		if (selectedStatus?.[0]) actionFormData.append('status_id', selectedStatus[0]);
 		if (selectedNetworkLevel?.[0])
@@ -201,6 +222,8 @@
 							bind:value={selectedConduitType}
 							defaultValue={selectedConduitType}
 							onValueChange={(e) => (selectedConduitType = e.value)}
+							renderInPlace={true}
+							required={true}
 						/>
 					</label>
 					<label class="label">
@@ -221,6 +244,7 @@
 							bind:value={selectedStatus}
 							defaultValue={selectedStatus}
 							onValueChange={(e) => (selectedStatus = e.value)}
+							renderInPlace={true}
 						/>
 					</label>
 					<label for="network_level" class="label">
@@ -230,6 +254,7 @@
 							bind:value={selectedNetworkLevel}
 							defaultValue={selectedNetworkLevel}
 							onValueChange={(e) => (selectedNetworkLevel = e.value)}
+							renderInPlace={true}
 						/>
 					</label>
 					<label for="owner" class="label">
@@ -239,6 +264,7 @@
 							bind:value={selectedOwner}
 							defaultValue={selectedOwner}
 							onValueChange={(e) => (selectedOwner = e.value)}
+							renderInPlace={true}
 						/>
 					</label>
 					<label for="constructor" class="label">
@@ -248,6 +274,7 @@
 							bind:value={selectedConstructor}
 							defaultValue={selectedConstructor}
 							onValueChange={(e) => (selectedConstructor = e.value)}
+							renderInPlace={true}
 						/>
 					</label>
 					<label for="manufacturer" class="label">
@@ -257,6 +284,7 @@
 							bind:value={selectedManufacturer}
 							defaultValue={selectedManufacturer}
 							onValueChange={(e) => (selectedManufacturer = e.value)}
+							renderInPlace={true}
 						/>
 					</label>
 					<label for="date" class="label">
@@ -277,6 +305,8 @@
 							bind:value={selectedFlag}
 							defaultValue={selectedFlag}
 							onValueChange={(e) => (selectedFlag = e.value)}
+							renderInPlace={true}
+							required={true}
 						/>
 					</label>
 				</form>
