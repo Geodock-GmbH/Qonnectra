@@ -20,6 +20,7 @@ Qonnectra is a full-stack web application designed for managing and visualizing 
 - **Fiber Splice Tracking**: Comprehensive fiber splice management with visual editor
 - **Container Management**: Logical grouping and organization of network components
 - **Component Management**: Hardware component tracking with types and structures
+- **Building Management**: Addresses and Residential units management with status and type tracking
 - **Multi-Project Support**: Organize infrastructure data by projects with flags and status tracking
 - **File Management**: Integrated file storage with WebDAV support
 - **REST API**: Django REST Framework API with spatial data support and vector tile endpoints
