@@ -106,13 +106,7 @@ services:
     command: >
       sh -c "
         mkdir -p /etc/postgresql-common &&
-        echo \"[$${QGIS_PG_SERVICE_NAME}]
-      host=db
-      port=5432
-      dbname=$${DB_NAME}
-      user=$${QGIS_DB_USER}
-      password=$${QGIS_DB_PASSWORD}
-      sslmode=disable\" > /etc/postgresql-common/pg_service.conf &&
+        printf '[%s]\nhost=db\nport=5432\ndbname=%s\nuser=%s\npassword=%s\nsslmode=disable\n' \"$${QGIS_PG_SERVICE_NAME}\" \"$${DB_NAME}\" \"$${QGIS_DB_USER}\" \"$${QGIS_DB_PASSWORD}\" > /etc/postgresql-common/pg_service.conf &&
         mkdir -p /var/www/data/qgis &&
         ln -sf /usr/lib/cgi-bin/qgis_mapserv.fcgi /var/www/data/qgis/qgis_mapserv.fcgi &&
         rm -f /tmp/.X99-lock &&
