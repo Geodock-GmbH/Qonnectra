@@ -18,7 +18,8 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Docker CLI (for pg-error-parser to read container logs)
-RUN curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-24.0.7.tgz | \
+# Using Docker 27.x for API version 1.47 compatibility
+RUN curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-27.4.1.tgz | \
     tar xz --strip-components=1 -C /usr/local/bin docker/docker
 
 # Install Python dependencies
