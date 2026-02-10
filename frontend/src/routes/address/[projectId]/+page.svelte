@@ -11,19 +11,16 @@
 
 	let { data } = $props();
 
-	// Derive searchTerm from data (reactive to URL changes like browser back)
 	const searchTerm = $derived(data.searchTerm || '');
 	let searchInput = $state('');
 
-	// Sync searchInput when searchTerm changes (e.g., browser back/forward)
 	$effect(() => {
 		searchInput = searchTerm;
 	});
 
-	// Derive addresses from data (reactive to data changes)
 	const addresses = $derived(data.addresses);
+	const pagination = $derived(data.pagination);
 
-	// Set context for attribute options
 	setContext('attributeOptions', {
 		get statusDevelopments() {
 			return data.statusDevelopments;
@@ -40,6 +37,7 @@
 		} else {
 			url.searchParams.delete('search');
 		}
+		url.searchParams.set('page', '1');
 		goto(url, { keepFocus: true, noScroll: true, replaceState: true });
 	}
 </script>
@@ -78,7 +76,7 @@
 					</table>
 				</div>
 			{:else}
-				<AddressTable {addresses} />
+				<AddressTable {addresses} {pagination} />
 			{/if}
 		</div>
 	</div>

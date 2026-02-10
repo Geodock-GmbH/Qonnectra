@@ -1,5 +1,6 @@
 <script>
 	import { deserialize } from '$app/forms';
+	import { goto } from '$app/navigation';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconArrowLeft,
@@ -16,10 +17,7 @@
 
 	import ConduitDrawerTabs from './ConduitDrawerTabs.svelte';
 
-	let { pipes, onConduitUpdate = () => {}, onConduitDelete = () => {} } = $props();
-
-	let page = $state(1);
-	let size = $state(20);
+	let { pipes, pagination, onConduitUpdate = () => {}, onConduitDelete = () => {} } = $props();
 
 	// Column configuration with sortable/filterable flags
 	const columnConfig = [
@@ -56,15 +54,11 @@
 	// Mobile global filter
 	let mobileSearchTerm = $state('');
 
-	/**
-	 * Toggle sort for a column (cycles through: asc -> desc -> none)
-	 */
 	function toggleSort(columnKey) {
 		if (sortColumn === columnKey) {
 			if (sortDirection === 'asc') {
 				sortDirection = 'desc';
 			} else {
-				// Reset sort
 				sortColumn = null;
 				sortDirection = 'asc';
 			}
@@ -72,15 +66,23 @@
 			sortColumn = columnKey;
 			sortDirection = 'asc';
 		}
-		page = 1; // Reset to first page on sort change
 	}
 
-	/**
-	 * Update filter for a column
-	 */
 	function updateFilter(columnKey, value) {
 		filters[columnKey] = value;
-		page = 1; // Reset to first page on filter change
+	}
+
+	function goToPage(newPage) {
+		const url = new URL(window.location.href);
+		url.searchParams.set('page', String(newPage));
+		goto(url.pathname + url.search);
+	}
+
+	function changePageSize(newSize) {
+		const url = new URL(window.location.href);
+		url.searchParams.set('page_size', String(newSize));
+		url.searchParams.set('page', '1');
+		goto(url.pathname + url.search);
 	}
 
 	// Apply filters to pipes
@@ -94,7 +96,6 @@
 		});
 	});
 
-	// Apply sorting to filtered pipes
 	const sortedPipes = $derived.by(() => {
 		if (!sortColumn) return filteredPipes;
 
@@ -104,7 +105,6 @@
 			let aVal = a[sortColumn] ?? '';
 			let bVal = b[sortColumn] ?? '';
 
-			// Handle date sorting
 			if (column?.sortType === 'date') {
 				aVal = aVal ? new Date(aVal).getTime() : 0;
 				bVal = bVal ? new Date(bVal).getTime() : 0;
@@ -119,10 +119,6 @@
 		});
 	});
 
-	// Paginate sorted data
-	const slicedSource = $derived(sortedPipes.slice((page - 1) * size, page * size));
-
-	// Mobile filtered and paginated data
 	const mobileFilteredPipes = $derived.by(() => {
 		if (!mobileSearchTerm) return sortedPipes;
 
@@ -135,13 +131,6 @@
 			);
 		});
 	});
-
-	const mobileSlicedSource = $derived(mobileFilteredPipes.slice((page - 1) * size, page * size));
-
-	// Total count for pagination - use sortedPipes for desktop, mobileFilteredPipes for mobile
-	// We'll use sortedPipes.length as the baseline since mobile filter is additive
-	const totalFilteredCount = $derived(sortedPipes.length);
-	const mobileTotalCount = $derived(mobileFilteredPipes.length);
 
 	async function handleRowClick(pipe) {
 		// Fetch full conduit details via server action
@@ -249,7 +238,7 @@
 						</tr>
 					</thead>
 					<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">
-						{#each slicedSource as row (row.value)}
+						{#each sortedPipes as row (row.value)}
 							<tr onclick={() => handleRowClick(row)}>
 								{#each columnConfig as column (column.key)}
 									<td data-label={column.label}>{row[column.key]}</td>
@@ -276,12 +265,11 @@
 					class="input w-full"
 					placeholder={m.common_search()}
 					bind:value={mobileSearchTerm}
-					oninput={() => (page = 1)}
 				/>
 			</div>
 
 			<div class="space-y-3">
-				{#each mobileSlicedSource as row (row.value)}
+				{#each mobileFilteredPipes as row (row.value)}
 					<div
 						class="card p-4 space-y-3 cursor-pointer hover:bg-surface-100-800 transition-colors touch-manipulation"
 						onclick={() => handleRowClick(row)}
@@ -348,50 +336,23 @@
 
 	<!-- Fixed pagination at bottom -->
 	<div class="shrink-0 pt-4">
-		<!-- Desktop pagination (uses desktop filter count) -->
-		<div class="hidden md:block">
+		<div class="flex items-center justify-between gap-4">
+			<span class="text-sm text-surface-600-400">
+				{pagination.totalCount}
+				{m.common_results()}
+			</span>
 			<Pagination
-				count={totalFilteredCount}
-				pageSize={size}
-				{page}
-				onPageChange={(e) => (page = e.page)}
+				count={pagination.totalCount}
+				pageSize={pagination.pageSize}
+				page={pagination.page}
+				onPageChange={(e) => goToPage(e.page)}
 			>
 				<Pagination.PrevTrigger>
 					<IconArrowLeft class="size-4" />
 				</Pagination.PrevTrigger>
 				<Pagination.Context>
-					{#snippet children(pagination)}
-						{#each pagination().pages as pageItem, index (pageItem)}
-							{#if pageItem.type === 'page'}
-								<Pagination.Item {...pageItem}>
-									{pageItem.value}
-								</Pagination.Item>
-							{:else}
-								<Pagination.Ellipsis {index}>&#8230;</Pagination.Ellipsis>
-							{/if}
-						{/each}
-					{/snippet}
-				</Pagination.Context>
-				<Pagination.NextTrigger>
-					<IconArrowRight class="size-4" />
-				</Pagination.NextTrigger>
-			</Pagination>
-		</div>
-
-		<!-- Mobile pagination (uses mobile filter count) -->
-		<div class="md:hidden">
-			<Pagination
-				count={mobileTotalCount}
-				pageSize={size}
-				{page}
-				onPageChange={(e) => (page = e.page)}
-			>
-				<Pagination.PrevTrigger>
-					<IconArrowLeft class="size-4" />
-				</Pagination.PrevTrigger>
-				<Pagination.Context>
-					{#snippet children(pagination)}
-						{#each pagination().pages as pageItem, index (pageItem)}
+					{#snippet children(paginationCtx)}
+						{#each paginationCtx().pages as pageItem, index (pageItem)}
 							{#if pageItem.type === 'page'}
 								<Pagination.Item {...pageItem}>
 									{pageItem.value}

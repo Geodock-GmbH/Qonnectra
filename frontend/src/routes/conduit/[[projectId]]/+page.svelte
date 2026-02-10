@@ -26,7 +26,13 @@
 	// Initialize state manager
 	const conduitState = new ConduitState(data);
 
-	// Update conduits when data changes (e.g., after search)
+	const searchTerm = $derived(data.searchTerm || '');
+	const pagination = $derived(data.pagination);
+
+	$effect(() => {
+		searchInput = searchTerm;
+	});
+
 	$effect(() => {
 		conduitState.setConduits(data.pipes);
 	});
@@ -50,6 +56,7 @@
 		} else {
 			url.searchParams.delete('search');
 		}
+		url.searchParams.set('page', '1');
 		goto(url, { keepFocus: true, noScroll: true, replaceState: true });
 	}
 
@@ -234,6 +241,7 @@
 			{:else}
 				<PipeTable
 					pipes={conduitState.conduits}
+					{pagination}
 					onConduitUpdate={handleConduitUpdate}
 					onConduitDelete={handleConduitDelete}
 				/>

@@ -12,10 +12,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	let { addresses } = $props();
-
-	let pageNum = $state(1);
-	let size = $state(20);
+	let { addresses, pagination } = $props();
 
 	// Column configuration with sortable/filterable flags
 	const columnConfig = [
@@ -60,15 +57,11 @@
 	// Mobile global filter
 	let mobileSearchTerm = $state('');
 
-	/**
-	 * Toggle sort for a column (cycles through: asc -> desc -> none)
-	 */
 	function toggleSort(columnKey) {
 		if (sortColumn === columnKey) {
 			if (sortDirection === 'asc') {
 				sortDirection = 'desc';
 			} else {
-				// Reset sort
 				sortColumn = null;
 				sortDirection = 'asc';
 			}
@@ -76,18 +69,25 @@
 			sortColumn = columnKey;
 			sortDirection = 'asc';
 		}
-		pageNum = 1; // Reset to first page on sort change
 	}
 
-	/**
-	 * Update filter for a column
-	 */
 	function updateFilter(columnKey, value) {
 		filters[columnKey] = value;
-		pageNum = 1; // Reset to first page on filter change
 	}
 
-	// Apply filters to addresses
+	function goToPage(newPage) {
+		const url = new URL(window.location.href);
+		url.searchParams.set('page', String(newPage));
+		goto(url.pathname + url.search);
+	}
+
+	function changePageSize(newSize) {
+		const url = new URL(window.location.href);
+		url.searchParams.set('page_size', String(newSize));
+		url.searchParams.set('page', '1');
+		goto(url.pathname + url.search);
+	}
+
 	const filteredAddresses = $derived.by(() => {
 		return addresses.filter((address) => {
 			return Object.entries(filters).every(([key, filterValue]) => {
@@ -98,7 +98,6 @@
 		});
 	});
 
-	// Apply sorting to filtered addresses
 	const sortedAddresses = $derived.by(() => {
 		if (!sortColumn) return filteredAddresses;
 
@@ -106,7 +105,6 @@
 			let aVal = a[sortColumn] ?? '';
 			let bVal = b[sortColumn] ?? '';
 
-			// Handle numeric sorting for housenumber
 			if (sortColumn === 'housenumber') {
 				aVal = aVal !== '' ? Number(aVal) : 0;
 				bVal = bVal !== '' ? Number(bVal) : 0;
@@ -121,10 +119,6 @@
 		});
 	});
 
-	// Paginate sorted data
-	const slicedSource = $derived(sortedAddresses.slice((pageNum - 1) * size, pageNum * size));
-
-	// Mobile filtered and paginated data
 	const mobileFilteredAddresses = $derived.by(() => {
 		if (!mobileSearchTerm) return sortedAddresses;
 
@@ -137,14 +131,6 @@
 			);
 		});
 	});
-
-	const mobileSlicedSource = $derived(
-		mobileFilteredAddresses.slice((pageNum - 1) * size, pageNum * size)
-	);
-
-	// Total count for pagination
-	const totalFilteredCount = $derived(sortedAddresses.length);
-	const mobileTotalCount = $derived(mobileFilteredAddresses.length);
 
 	function handleRowClick(address) {
 		const projectId = page.params.projectId;
@@ -212,7 +198,7 @@
 						</tr>
 					</thead>
 					<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">
-						{#each slicedSource as row (row.value)}
+						{#each sortedAddresses as row (row.value)}
 							<tr onclick={() => handleRowClick(row)}>
 								{#each columnConfig as column (column.key)}
 									<td data-label={column.label}>{row[column.key]}</td>
@@ -241,12 +227,11 @@
 					class="input w-full"
 					placeholder={m.common_search()}
 					bind:value={mobileSearchTerm}
-					oninput={() => (pageNum = 1)}
 				/>
 			</div>
 
 			<div class="space-y-3">
-				{#each mobileSlicedSource as row (row.value)}
+				{#each mobileFilteredAddresses as row (row.value)}
 					<div
 						class="card p-4 space-y-3 cursor-pointer hover:bg-surface-100-800 transition-colors touch-manipulation"
 						onclick={() => handleRowClick(row)}
@@ -299,50 +284,23 @@
 
 	<!-- Fixed pagination at bottom -->
 	<div class="shrink-0 pt-4">
-		<!-- Desktop pagination (uses desktop filter count) -->
-		<div class="hidden md:block">
+		<div class="flex items-center justify-between gap-4">
+			<span class="text-sm text-surface-600-400">
+				{pagination.totalCount}
+				{m.common_results()}
+			</span>
 			<Pagination
-				count={totalFilteredCount}
-				pageSize={size}
-				page={pageNum}
-				onPageChange={(e) => (pageNum = e.page)}
+				count={pagination.totalCount}
+				pageSize={pagination.pageSize}
+				page={pagination.page}
+				onPageChange={(e) => goToPage(e.page)}
 			>
 				<Pagination.PrevTrigger>
 					<IconArrowLeft class="size-4" />
 				</Pagination.PrevTrigger>
 				<Pagination.Context>
-					{#snippet children(pagination)}
-						{#each pagination().pages as pageItem, index (pageItem)}
-							{#if pageItem.type === 'page'}
-								<Pagination.Item {...pageItem}>
-									{pageItem.value}
-								</Pagination.Item>
-							{:else}
-								<Pagination.Ellipsis {index}>&#8230;</Pagination.Ellipsis>
-							{/if}
-						{/each}
-					{/snippet}
-				</Pagination.Context>
-				<Pagination.NextTrigger>
-					<IconArrowRight class="size-4" />
-				</Pagination.NextTrigger>
-			</Pagination>
-		</div>
-
-		<!-- Mobile pagination (uses mobile filter count) -->
-		<div class="md:hidden">
-			<Pagination
-				count={mobileTotalCount}
-				pageSize={size}
-				page={pageNum}
-				onPageChange={(e) => (pageNum = e.page)}
-			>
-				<Pagination.PrevTrigger>
-					<IconArrowLeft class="size-4" />
-				</Pagination.PrevTrigger>
-				<Pagination.Context>
-					{#snippet children(pagination)}
-						{#each pagination().pages as pageItem, index (pageItem)}
+					{#snippet children(paginationCtx)}
+						{#each paginationCtx().pages as pageItem, index (pageItem)}
 							{#if pageItem.type === 'page'}
 								<Pagination.Item {...pageItem}>
 									{pageItem.value}

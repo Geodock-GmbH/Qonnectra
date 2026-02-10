@@ -533,6 +533,62 @@ class ConduitSerializer(serializers.ModelSerializer):
         return fields
 
 
+class ConduitListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for paginated conduit lists (no nested serializers)."""
+
+    conduit_type = serializers.CharField(
+        source="conduit_type.conduit_type",
+        read_only=True,
+        default="",
+    )
+    status = serializers.CharField(
+        source="status.status",
+        read_only=True,
+        default="",
+    )
+    network_level = serializers.CharField(
+        source="network_level.network_level",
+        read_only=True,
+        default="",
+    )
+    owner = serializers.CharField(
+        source="owner.company",
+        read_only=True,
+        default="",
+    )
+    constructor = serializers.CharField(
+        source="constructor.company",
+        read_only=True,
+        default="",
+    )
+    manufacturer = serializers.CharField(
+        source="manufacturer.company",
+        read_only=True,
+        default="",
+    )
+    flag = serializers.CharField(
+        source="flag.flag",
+        read_only=True,
+        default="",
+    )
+
+    class Meta:
+        model = Conduit
+        fields = [
+            "uuid",
+            "name",
+            "conduit_type",
+            "outer_conduit",
+            "status",
+            "network_level",
+            "owner",
+            "constructor",
+            "manufacturer",
+            "date",
+            "flag",
+        ]
+
+
 class TrenchConduitSerializer(serializers.ModelSerializer):
     """Serializer for the TrenchConduit model."""
 
@@ -629,6 +685,32 @@ class AddressSerializer(GeoFeatureModelSerializer):
                 )
 
         return value
+
+
+class AddressListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for paginated address lists (no geometry)."""
+
+    status_development = serializers.CharField(
+        source="status_development.status_development",
+        read_only=True,
+        default="",
+    )
+    flag = serializers.CharField(source="flag.flag", read_only=True, default="")
+
+    class Meta:
+        model = Address
+        fields = [
+            "uuid",
+            "id_address",
+            "street",
+            "housenumber",
+            "house_number_suffix",
+            "zip_code",
+            "city",
+            "district",
+            "status_development",
+            "flag",
+        ]
 
 
 class ResidentialUnitSerializer(serializers.ModelSerializer):

@@ -75,9 +75,7 @@ async function attemptTokenRefresh(event) {
 					secure: cookie.secure || event.url.protocol === 'https:',
 					sameSite: cookie.sameSite || 'Lax'
 				};
-				Object.keys(options).forEach(
-					(key) => options[key] === undefined && delete options[key]
-				);
+				Object.keys(options).forEach((key) => options[key] === undefined && delete options[key]);
 				event.cookies.set(cookie.name, cookie.value, options);
 			});
 		}
@@ -134,11 +132,7 @@ export async function handleAuth({ event, resolve }) {
 			};
 		} else {
 			if (response.status !== 401 && response.status !== 403) {
-				console.error(
-					'API error fetching user:',
-					response.status,
-					await response.text()
-				);
+				console.error('API error fetching user:', response.status, await response.text());
 			}
 			clearAuthCookies(event);
 			event.locals.user = { isAuthenticated: false };

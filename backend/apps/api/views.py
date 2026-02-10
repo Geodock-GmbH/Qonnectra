@@ -71,6 +71,7 @@ from .models import (
 from .pageination import CustomPagination
 from .routing import find_shortest_path
 from .serializers import (
+    AddressListSerializer,
     AddressSerializer,
     AreaSerializer,
     AttributesAreaTypeSerializer,
@@ -94,6 +95,7 @@ from .serializers import (
     CableLabelSerializer,
     CableSerializer,
     CableTypeColorMappingSerializer,
+    ConduitListSerializer,
     ConduitSerializer,
     ContainerSerializer,
     ContainerTreeSerializer,
@@ -1204,8 +1206,14 @@ class ConduitViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="all")
     def all_conduits(self, request):
         """
-        Returns all conduits with project and flag filters.
-        No pagination is used.
+        Returns conduits with server-side pagination.
+
+        Query params:
+        - project: Filter by project ID (required)
+        - flag: Filter by flag ID
+        - search: Search term
+        - page: Page number (default: 1)
+        - page_size: Items per page (default: 50, max: 200)
         """
         queryset = Conduit.objects.select_related(
             "conduit_type",
@@ -1214,14 +1222,21 @@ class ConduitViewSet(viewsets.ModelViewSet):
             "owner",
             "constructor",
             "manufacturer",
-            "project",
             "flag",
         ).order_by("name")
+
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
         search_term = request.query_params.get("search")
-        if project_id:
-            queryset = queryset.filter(project=project_id)
+
+        if not project_id:
+            return Response(
+                {"error": "project parameter required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        queryset = queryset.filter(project=project_id)
+
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
         if search_term:
@@ -1236,8 +1251,31 @@ class ConduitViewSet(viewsets.ModelViewSet):
                 | Q(manufacturer__company__icontains=search_term)
                 | Q(flag__flag__icontains=search_term)
             )
-        serializer = ConduitSerializer(queryset, many=True)
-        return Response(serializer.data)
+
+        total_count = queryset.count()
+
+        try:
+            page = int(request.query_params.get("page", 1))
+            page_size = min(int(request.query_params.get("page_size", 50)), 200)
+        except ValueError:
+            page = 1
+            page_size = 50
+
+        start = (page - 1) * page_size
+        end = start + page_size
+        queryset = queryset[start:end]
+
+        serializer = ConduitListSerializer(queryset, many=True)
+
+        return Response(
+            {
+                "results": serializer.data,
+                "count": total_count,
+                "page": page,
+                "page_size": page_size,
+                "total_pages": (total_count + page_size - 1) // page_size,
+            }
+        )
 
     @action(detail=True, methods=["get"], url_path="trenches")
     def get_trenches(self, request, pk=None):
@@ -1415,21 +1453,35 @@ class AddressViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="all")
     def all_addresses(self, request):
         """
-        Returns all addresses with project and flag filters.
-        No pagination is used.
+        Returns addresses with server-side pagination.
+
+        Query params:
+        - project: Filter by project ID (required)
+        - flag: Filter by flag ID
+        - search: Search term (searches street, housenumber, etc.)
+        - page: Page number (default: 1)
+        - page_size: Items per page (default: 50, max: 200)
         """
         queryset = Address.objects.select_related(
             "status_development",
             "flag",
-            "project",
         ).order_by("street", "housenumber", "house_number_suffix")
+
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
         search_term = request.query_params.get("search")
-        if project_id:
-            queryset = queryset.filter(project=project_id)
+
+        if not project_id:
+            return Response(
+                {"error": "project parameter required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        queryset = queryset.filter(project=project_id)
+
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
+
         if search_term:
             tokens = search_term.strip().split()
             for token in tokens:
@@ -1441,8 +1493,31 @@ class AddressViewSet(viewsets.ModelViewSet):
                     | Q(city__icontains=token)
                     | Q(district__icontains=token)
                 )
-        serializer = AddressSerializer(queryset, many=True)
-        return Response(serializer.data)
+
+        total_count = queryset.count()
+
+        try:
+            page = int(request.query_params.get("page", 1))
+            page_size = min(int(request.query_params.get("page_size", 50)), 200)
+        except ValueError:
+            page = 1
+            page_size = 50
+
+        start = (page - 1) * page_size
+        end = start + page_size
+        queryset = queryset[start:end]
+
+        serializer = AddressListSerializer(queryset, many=True)
+
+        return Response(
+            {
+                "results": serializer.data,
+                "count": total_count,
+                "page": page,
+                "page_size": page_size,
+                "total_pages": (total_count + page_size - 1) // page_size,
+            }
+        )
 
     @action(detail=True, methods=["post"], url_path="regenerate-id")
     def regenerate_id(self, request, pk=None):
