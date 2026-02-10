@@ -62,7 +62,8 @@ export async function load({ fetch, params, depends, cookies }) {
 		}
 
 		const data = await response.json();
-		const conduits = data.map((item) => ({
+		const conduitList = data.results || data;
+		const conduits = conduitList.map((item) => ({
 			value: item.uuid,
 			label: item.name
 		}));

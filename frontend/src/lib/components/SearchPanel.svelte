@@ -1,5 +1,7 @@
 <script>
 	import { getContext } from 'svelte';
+	import { cubicOut } from 'svelte/easing';
+	import { fade, fly } from 'svelte/transition';
 	import { parse } from 'devalue';
 
 	import { m } from '$lib/paraglide/messages';
@@ -16,7 +18,6 @@
 	import { selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
-	import GenericCombobox from './GenericCombobox.svelte';
 	import SearchInput from './SearchInput.svelte';
 
 	let {
@@ -32,9 +33,65 @@
 
 	let searchQuery = $state('');
 	let searchResults = $state([]);
+	let filterQuery = $state('');
 	let isSearching = $state(false);
 	let showSearchResults = $state(false);
 	let highlightLayer = $state();
+
+	const FILTER_THRESHOLD = 10;
+
+	let filteredResults = $derived(
+		filterQuery.trim()
+			? searchResults.filter((r) => r.label.toLowerCase().includes(filterQuery.toLowerCase()))
+			: searchResults
+	);
+
+	const TYPE_CONFIG = {
+		address: {
+			getLabel: () => m.form_address({ count: 1 }),
+			bg: 'bg-emerald-500/15',
+			text: 'text-emerald-600',
+			darkBg: 'dark:bg-emerald-400/20',
+			darkText: 'dark:text-emerald-400'
+		},
+		node: {
+			getLabel: () => m.form_node(),
+			bg: 'bg-blue-500/15',
+			text: 'text-blue-600',
+			darkBg: 'dark:bg-blue-400/20',
+			darkText: 'dark:text-blue-400'
+		},
+		trench: {
+			getLabel: () => m.nav_trench(),
+			bg: 'bg-purple-500/15',
+			text: 'text-purple-600',
+			darkBg: 'dark:bg-purple-400/20',
+			darkText: 'dark:text-purple-400'
+		},
+		conduit: {
+			getLabel: () => m.form_conduit({ count: 1 }),
+			bg: 'bg-amber-500/15',
+			text: 'text-amber-600',
+			darkBg: 'dark:bg-amber-400/20',
+			darkText: 'dark:text-amber-400'
+		},
+		area: {
+			getLabel: () => m.form_area(),
+			bg: 'bg-rose-500/15',
+			text: 'text-rose-600',
+			darkBg: 'dark:bg-rose-400/20',
+			darkText: 'dark:text-rose-400'
+		}
+	};
+
+	/**
+	 * Get display name from label by removing the type suffix
+	 * @param {string} label - Full label with type suffix
+	 * @returns {string} Clean display name
+	 */
+	function getDisplayName(label) {
+		return label.replace(/\s*\([^)]*\)\s*$/, '').trim();
+	}
 
 	const debouncedSearch = debounce(async (query) => {
 		if (!query.trim()) {
@@ -59,6 +116,7 @@
 				let parsedData = parse(rawResponse.data);
 
 				searchResults = parsedData;
+				filterQuery = '';
 				showSearchResults = true;
 			} else {
 				console.error('Failed to fetch search results:', await response.text());
@@ -81,10 +139,14 @@
 		debouncedSearch(searchQuery);
 	}
 
-	async function handleFeatureSelect(selectedFeature) {
-		if (!selectedFeature || !olMapInstance) return;
+	/**
+	 * Handle result item click
+	 * @param {Object} result - Selected result item
+	 */
+	async function handleResultClick(result) {
+		if (!result || !olMapInstance) return;
 
-		const { type, value, label } = selectedFeature.items[0];
+		const { type, value } = result;
 
 		try {
 			if (type === 'conduit') {
@@ -102,11 +164,11 @@
 				body: formData
 			});
 
-			const result = await response.json();
-			let parsedData = parse(result.data);
+			const jsonResult = await response.json();
+			let parsedData = parse(jsonResult.data);
 
 			if (
-				result.type === 'success' &&
+				jsonResult.type === 'success' &&
 				parsedData?.success &&
 				parsedData?.feature &&
 				parsedData.feature.length > 0
@@ -248,40 +310,308 @@
 	}
 </script>
 
-<!-- SearchPanel: Main container -->
-<div class="w-full space-y-2">
-	<!-- SearchPanel: Search input wrapper -->
-	<div class="preset-filled-surface-50-950 rounded-lg shadow-md border border-surface-200-800/50">
-		<SearchInput bind:value={searchQuery} onSearch={handleSearch} />
-	</div>
+<div class="search-panel">
+	<SearchInput bind:value={searchQuery} onSearch={handleSearch} />
 
-	<!-- SearchPanel: Search results dropdown -->
-	{#if showSearchResults && searchResults.length > 0 && !isSearching}
-		<div
-			class="preset-filled-surface-50-950 rounded-lg shadow-md border border-surface-200-800/50 p-2 animate-in fade-in slide-in-from-top-1 duration-200 flex items-center"
-		>
-			<GenericCombobox
-				data={searchResults}
-				placeholder={m.placeholder_select_a_feature()}
-				onValueChange={handleFeatureSelect}
-				classes="touch-manipulation text-base sm:text-sm w-full"
-				contentBase="max-h-[50vh] sm:max-h-60 overflow-auto touch-manipulation rounded-lg border border-surface-200-800 bg-surface-50-950 shadow-xl text-base sm:text-sm"
-				zIndex="20"
-			/>
+	{#if showSearchResults && searchResults && searchResults.length > 0 && !isSearching}
+		<div class="results-container" transition:fly={{ y: -8, duration: 200, easing: cubicOut }}>
+			<div class="results-header">
+				<span class="results-count">{filteredResults.length}</span>
+				<span class="results-label"
+					>{searchResults.length > filteredResults.length
+						? `/ ${searchResults.length}`
+						: 'results'}</span
+				>
+				{#if searchResults.length >= FILTER_THRESHOLD}
+					<input
+						type="text"
+						class="filter-input"
+						placeholder={m.common_filter ? m.common_filter() : 'Filter...'}
+						bind:value={filterQuery}
+					/>
+				{/if}
+			</div>
+			<ul class="results-list">
+				{#each filteredResults as result, index (result.value)}
+					{@const config = TYPE_CONFIG[result.type] || TYPE_CONFIG.node}
+					<li
+						class="result-item"
+						style="animation-delay: {index * 30}ms"
+						transition:fade={{ duration: 150 }}
+					>
+						<button type="button" class="result-button" onclick={() => handleResultClick(result)}>
+							<span class="type-badge {config.bg} {config.text} {config.darkBg} {config.darkText}">
+								{config.getLabel()}
+							</span>
+							<span class="result-name">{getDisplayName(result.label)}</span>
+						</button>
+					</li>
+				{/each}
+			</ul>
+			{#if filteredResults.length === 0 && filterQuery.trim()}
+				<div class="no-results">
+					{m.common_no_results ? m.common_no_results() : 'No matches'}
+				</div>
+			{/if}
 		</div>
 	{/if}
 
-	<!-- SearchPanel: Loading state -->
 	{#if isSearching}
-		<div
-			class="preset-filled-surface-50-950 rounded-lg shadow-md border border-surface-200-800/50 p-4 sm:p-3"
-		>
-			<div class="flex items-center justify-center sm:justify-start gap-3">
-				<div
-					class="animate-spin rounded-full h-5 w-5 sm:h-4 sm:w-4 border-2 border-primary-500 border-t-transparent"
-				></div>
-				<span class="text-base sm:text-sm text-surface-600-400">{m.common_searching()}</span>
+		<div class="loading-container" transition:fade={{ duration: 150 }}>
+			<div class="loading-dots">
+				<span class="dot"></span>
+				<span class="dot"></span>
+				<span class="dot"></span>
 			</div>
+			<span class="loading-text">{m.common_searching()}</span>
 		</div>
 	{/if}
 </div>
+
+<style>
+	.search-panel {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.results-container {
+		background: var(--color-surface-50);
+		border: 1.5px solid var(--color-surface-200);
+		border-radius: 12px;
+		overflow: hidden;
+		box-shadow:
+			0 4px 6px -1px rgba(0, 0, 0, 0.1),
+			0 2px 4px -2px rgba(0, 0, 0, 0.1);
+	}
+
+	:global([data-mode='dark']) .results-container {
+		background: var(--color-surface-900);
+		border-color: var(--color-surface-700);
+	}
+
+	.results-header {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		padding: 10px 14px;
+		border-bottom: 1px solid var(--color-surface-200);
+		background: var(--color-surface-100);
+	}
+
+	:global([data-mode='dark']) .results-header {
+		background: var(--color-surface-800);
+		border-color: var(--color-surface-700);
+	}
+
+	.results-count {
+		font-weight: 700;
+		font-size: 13px;
+		color: #f59e0b;
+	}
+
+	.results-label {
+		font-size: 12px;
+		font-weight: 500;
+		letter-spacing: 0.03em;
+		text-transform: uppercase;
+		color: var(--color-surface-500);
+	}
+
+	.filter-input {
+		margin-left: auto;
+		padding: 4px 10px;
+		font-size: 12px;
+		border: 1px solid var(--color-surface-300);
+		border-radius: 6px;
+		background: var(--color-surface-50);
+		color: var(--color-surface-900);
+		outline: none;
+		width: 120px;
+		transition:
+			border-color 0.15s ease,
+			box-shadow 0.15s ease;
+	}
+
+	.filter-input::placeholder {
+		color: var(--color-surface-400);
+	}
+
+	.filter-input:focus {
+		border-color: #f59e0b;
+		box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
+	}
+
+	:global([data-mode='dark']) .filter-input {
+		background: var(--color-surface-800);
+		border-color: var(--color-surface-600);
+		color: var(--color-surface-100);
+	}
+
+	:global([data-mode='dark']) .filter-input::placeholder {
+		color: var(--color-surface-500);
+	}
+
+	.no-results {
+		padding: 16px;
+		text-align: center;
+		font-size: 13px;
+		color: var(--color-surface-500);
+	}
+
+	.results-list {
+		list-style: none;
+		margin: 0;
+		padding: 6px;
+		max-height: 50vh;
+		overflow-y: auto;
+	}
+
+	.result-item {
+		opacity: 0;
+		animation: fadeSlideIn 0.25s ease-out forwards;
+	}
+
+	@keyframes fadeSlideIn {
+		from {
+			opacity: 0;
+			transform: translateY(-4px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	.result-button {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		width: 100%;
+		padding: 10px 12px;
+		background: transparent;
+		border: none;
+		border-radius: 8px;
+		cursor: pointer;
+		text-align: left;
+		transition:
+			background-color 0.15s ease,
+			transform 0.15s ease;
+	}
+
+	.result-button:hover {
+		background: var(--color-surface-100);
+		transform: translateY(-1px);
+	}
+
+	:global([data-mode='dark']) .result-button:hover {
+		background: var(--color-surface-800);
+	}
+
+	.result-button:active {
+		transform: translateY(0);
+	}
+
+	.type-badge {
+		flex-shrink: 0;
+		padding: 4px 8px;
+		border-radius: 4px;
+		font-size: 10px;
+		font-weight: 700;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+	}
+
+	.result-name {
+		flex: 1;
+		font-size: 14px;
+		font-weight: 500;
+		color: var(--color-surface-900);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	:global([data-mode='dark']) .result-name {
+		color: var(--color-surface-100);
+	}
+
+	.loading-container {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 12px;
+		padding: 16px;
+		background: var(--color-surface-50);
+		border: 1.5px solid var(--color-surface-200);
+		border-radius: 12px;
+	}
+
+	:global([data-mode='dark']) .loading-container {
+		background: var(--color-surface-900);
+		border-color: var(--color-surface-700);
+	}
+
+	.loading-dots {
+		display: flex;
+		gap: 4px;
+	}
+
+	.dot {
+		width: 8px;
+		height: 8px;
+		background: #f59e0b;
+		border-radius: 50%;
+		animation: pulse 1.2s ease-in-out infinite;
+	}
+
+	.dot:nth-child(2) {
+		animation-delay: 0.15s;
+	}
+
+	.dot:nth-child(3) {
+		animation-delay: 0.3s;
+	}
+
+	@keyframes pulse {
+		0%,
+		100% {
+			opacity: 0.3;
+			transform: scale(0.8);
+		}
+		50% {
+			opacity: 1;
+			transform: scale(1);
+		}
+	}
+
+	.loading-text {
+		font-size: 13px;
+		font-weight: 500;
+		color: var(--color-surface-500);
+	}
+
+	@media (min-width: 640px) {
+		.results-header {
+			padding: 8px 12px;
+		}
+
+		.results-list {
+			max-height: 240px;
+			padding: 4px;
+		}
+
+		.result-button {
+			padding: 8px 10px;
+		}
+
+		.result-name {
+			font-size: 13px;
+		}
+
+		.loading-container {
+			padding: 12px;
+		}
+	}
+</style>
