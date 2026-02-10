@@ -124,6 +124,7 @@ services:
     volumes:
       - ./qgis/projects:/projects:ro
       - ./qgis/data:/data:ro
+      - ./qgis/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     environment:
       - QGIS_SERVER_LOG_LEVEL=1
       - QGIS_SERVER_LOG_STDERR=1
