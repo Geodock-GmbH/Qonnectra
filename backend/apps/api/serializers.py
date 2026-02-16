@@ -798,6 +798,14 @@ class ResidentialUnitSerializer(serializers.ModelSerializer):
         return fields
 
 
+class ParentNodeSerializer(serializers.ModelSerializer):
+    """Minimal serializer for parent node references to avoid circular imports."""
+
+    class Meta:
+        model = Node
+        fields = ["uuid", "name"]
+
+
 class NodeSerializer(GeoFeatureModelSerializer):
     """Serializer for the Node model."""
 
@@ -812,6 +820,7 @@ class NodeSerializer(GeoFeatureModelSerializer):
     manufacturer = AttributesCompanySerializer(read_only=True)
     project = ProjectsSerializer(read_only=True)
     flag = FlagsSerializer(read_only=True)
+    parent_node = ParentNodeSerializer(read_only=True)
 
     name = serializers.CharField(required=True, label=_("Node Name"))
     node_type_id = serializers.PrimaryKeyRelatedField(

@@ -661,6 +661,7 @@ export const actions = {
 		const warranty = formData.get('warranty');
 		const date = formData.get('date');
 		const flag_id = formData.get('flag_id');
+		const parent_node_id = formData.get('parent_node_id');
 
 		if (!nodeId) {
 			return {
@@ -682,6 +683,11 @@ export const actions = {
 			if (flag_id) requestBody.flag_id = parseInt(flag_id);
 			if (date) requestBody.date = date;
 			if (warranty) requestBody.warranty = warranty;
+			if (parent_node_id) {
+				requestBody.parent_node_id = parent_node_id;
+			} else {
+				requestBody.parent_node_id = null;
+			}
 
 			const response = await fetch(`${API_URL}node/${nodeId}/`, {
 				method: 'PATCH',

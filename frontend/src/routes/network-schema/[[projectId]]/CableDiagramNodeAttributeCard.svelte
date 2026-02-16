@@ -31,6 +31,8 @@
 	let nodeWarranty = $state('');
 	let nodeDate = $state('');
 	let nodeFlag = $state([]);
+	let nodeParentNode = $state([]);
+	let availableNodes = $state([]);
 
 	let { onLabelUpdate, onNodeDelete } = $props();
 
@@ -107,6 +109,32 @@
 			nodeWarranty = node.warranty || '';
 			nodeDate = node.date || '';
 			nodeFlag = node.flag?.id != null ? [node.flag.id] : [];
+			nodeParentNode = node.parent_node?.uuid != null ? [node.parent_node.uuid] : [];
+		}
+	});
+
+	/**
+	 * Fetch available nodes for parent node selection
+	 */
+	async function fetchAvailableNodes() {
+		try {
+			const response = await fetch('?/getAllNodes', {
+				method: 'POST',
+				body: new FormData()
+			});
+
+			const result = deserialize(await response.text());
+			if (result.data?.nodes) {
+				availableNodes = result.data.nodes.filter((n) => n.value !== id);
+			}
+		} catch (err) {
+			console.error('Error fetching available nodes:', err);
+		}
+	}
+
+	$effect(() => {
+		if (id) {
+			fetchAvailableNodes();
 		}
 	});
 
@@ -121,6 +149,7 @@
 		formData.append('constructor_id', nodeConstructor?.[0] || '');
 		formData.append('manufacturer_id', nodeManufacturer?.[0] || '');
 		formData.append('flag_id', nodeFlag?.[0] || '');
+		formData.append('parent_node_id', nodeParentNode?.[0] || '');
 
 		try {
 			const response = await fetch('?/updateNode', {
@@ -353,6 +382,16 @@
 			bind:value={nodeFlag}
 			defaultValue={nodeFlag}
 			onValueChange={(e) => (nodeFlag = e.value)}
+			renderInPlace={true}
+		/>
+	</label>
+	<label class="label">
+		<span class="text-sm">{m.form_parent_node_name()}</span>
+		<GenericCombobox
+			data={availableNodes}
+			bind:value={nodeParentNode}
+			defaultValue={nodeParentNode}
+			onValueChange={(e) => (nodeParentNode = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
