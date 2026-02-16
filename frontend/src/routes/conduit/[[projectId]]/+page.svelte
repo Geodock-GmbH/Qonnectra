@@ -18,13 +18,13 @@
 	import PipeTable from './PipeTable.svelte';
 
 	let { data } = $props();
-	let searchInput = $state(data.searchTerm || '');
+	let searchInput = $state('');
 	let openPipeModal = $state(false);
 	let isUploading = $state(false);
 	let uploadFormRef = $state(null);
 
-	// Initialize state manager
-	const conduitState = new ConduitState(data);
+	// Initialize state manager (pipes are synced from data in $effect below)
+	const conduitState = new ConduitState({ pipes: [] });
 
 	const searchTerm = $derived(data.searchTerm || '');
 	const pagination = $derived(data.pagination);
@@ -37,13 +37,15 @@
 		conduitState.setConduits(data.pipes);
 	});
 
-	// Set context for attribute options (eliminates prop drilling)
-	setContext('attributeOptions', {
-		conduitTypes: data.conduitTypes,
-		statuses: data.statuses,
-		networkLevels: data.networkLevels,
-		companies: data.companies,
-		flags: data.flags
+	// Set context for attribute options (eliminates prop drilling) – reactive so it updates when data loads
+	$effect(() => {
+		setContext('attributeOptions', {
+			conduitTypes: data.conduitTypes,
+			statuses: data.statuses,
+			networkLevels: data.networkLevels,
+			companies: data.companies,
+			flags: data.flags
+		});
 	});
 
 	// Set context for conduit state (for form defaults persistence)
