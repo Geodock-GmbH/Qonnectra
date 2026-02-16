@@ -10,6 +10,7 @@ services:
     build:
       context: ./postgres
       dockerfile: Dockerfile
+    image: qonnectra/db:dev
     container_name: qonnectra_db_dev
     environment:
       POSTGRES_DB: ${DB_NAME}
@@ -41,18 +42,14 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
+    image: qonnectra/backend:dev
     container_name: qonnectra_backend_dev
     restart: unless-stopped
     command: >
       sh -c "python manage.py collectstatic --noinput &&
             python manage.py migrate &&
             python manage.py shell -c \"from django.contrib.auth import get_user_model; import os; User = get_user_model(); username = os.environ.get('DJANGO_SUPERUSER_USERNAME'); User.objects.filter(username=username).exists() or User.objects.create_superuser(username, os.environ.get('DJANGO_SUPERUSER_EMAIL'), os.environ.get('DJANGO_SUPERUSER_PASSWORD'))\" &&
-            python manage.py loaddata attributes_company attributes_construction_type attributes_conduit_type attributes_phase  &&
-            python manage.py loaddata attributes_status attributes_surface storage_preference file_type_categories projects flags &&
-            python manage.py loaddata attributes_network_level attributes_node_type attributes_status_development attributes_area_types &&
-            python manage.py loaddata pipe_branch_settings network_schema_settings attributes_fiber_status attributes_microduct_status &&
-            python manage.py loaddata attributes_microduct_color attributes_cable_type attributes_fiber_color conduit_type_color_mapping cable_type_color_mapping &&
-            python manage.py loaddata attributes_component_type attributes_component_structure attributes_residential_unit_type attributes_residential_unit_status &&
+            python manage.py load_initial_data &&
             gunicorn --bind 0.0.0.0:8000 core.wsgi:application"
     expose:
       - "8000"
@@ -95,12 +92,23 @@ services:
     restart: unless-stopped
     command: >
       sh -c "
+        mkdir -p /etc/postgresql-common &&
+        cat > /etc/postgresql-common/pg_service.conf <<EOF
+      [${QGIS_PG_SERVICE_NAME:-qonnectra}]
+      host=db
+      port=5432
+      dbname=${DB_NAME}
+      user=${QGIS_DB_USER}
+      password=${QGIS_DB_PASSWORD}
+      sslmode=disable
+      EOF
         mkdir -p /var/www/data/qgis &&
         ln -sf /usr/lib/cgi-bin/qgis_mapserv.fcgi /var/www/data/qgis/qgis_mapserv.fcgi &&
         rm -f /tmp/.X99-lock &&
         fc-cache &&
         /usr/bin/Xvfb :99 -ac -screen 0 1280x1024x16 +extension GLX +render -noreset >/dev/null &
         sleep 2 &&
+        grep -q 'client_max_body_size' /etc/nginx/nginx.conf || sed -i '/http {/a \    client_max_body_size 500M;' /etc/nginx/nginx.conf &&
         nginx &&
         spawn-fcgi -n -u www-data -g www-data -d /var/lib/qgis -P /run/qgis.pid -p 9993 -- /usr/lib/cgi-bin/qgis_mapserv.fcgi &&
         tail -f /dev/null
@@ -110,7 +118,6 @@ services:
     volumes:
       - ./qgis/projects:/projects:ro
       - ./qgis/data:/data:ro
-      - ./qgis/pg_service.conf:/etc/postgresql-common/pg_service.conf:ro
       - ./qgis/nginx.conf:/etc/nginx/sites-available/default:ro
     environment:
       - QGIS_SERVER_LOG_LEVEL=2
@@ -118,11 +125,10 @@ services:
       - QGIS_FCGI_MIN_PROCESSES=1
       - QGIS_FCGI_MAX_PROCESSES=4
       - PGSERVICEFILE=/etc/postgresql-common/pg_service.conf
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=${DB_NAME}
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - QGIS_PG_SERVICE_NAME=${QGIS_PG_SERVICE_NAME:-qonnectra}
+      - DB_NAME=${DB_NAME}
+      - QGIS_DB_USER=${QGIS_DB_USER}
+      - QGIS_DB_PASSWORD=${QGIS_DB_PASSWORD}
       - DISPLAY=:99
     depends_on:
       db:
@@ -144,6 +150,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
+    image: qonnectra/pg-error-parser:dev
     container_name: qonnectra_pg_error_parser_dev
     restart: unless-stopped
     command: python manage.py parse_pg_errors --container qonnectra_db_dev
@@ -176,6 +183,7 @@ services:
         - API_URL=${API_URL:-https://api.localhost/api/}
         - PUBLIC_API_URL=${PUBLIC_API_URL:-https://api.localhost/api/}
         - PUBLIC_TILE_SERVER_URL=${PUBLIC_TILE_SERVER_URL:-https://tiles.localhost}
+    image: qonnectra/frontend:dev
     container_name: qonnectra_frontend_dev
     restart: unless-stopped
     expose:
@@ -239,6 +247,7 @@ services:
     build:
       context: ./caddy
       dockerfile: Dockerfile
+    image: qonnectra/caddy:dev
     container_name: qonnectra_caddy_dev
     restart: unless-stopped
     ports:
@@ -261,10 +270,14 @@ services:
       - qonnectra_network
 
 volumes:
-  static_volume: {}
-  media_volume: {}
-  caddy_data: {}
-  caddy_config: {}
+  static_volume:
+    name: qonnectra_static_dev
+  media_volume:
+    name: qonnectra_media_dev
+  caddy_data:
+    name: qonnectra_caddy_data_dev
+  caddy_config:
+    name: qonnectra_caddy_config_dev
 
 networks:
   qonnectra_network:

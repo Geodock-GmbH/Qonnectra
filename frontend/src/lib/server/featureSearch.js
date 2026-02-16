@@ -78,14 +78,16 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 
 		const results = [];
 
-		const addressFeatures = addAddressData.features || addAddressData || [];
+		const addressFeatures =
+			addAddressData.results || addAddressData.features || addAddressData || [];
 		const nodeFeatures = nodeData.features || nodeData || [];
 		const trenchFeatures = trenchData.features || trenchData || [];
 		const areaFeatures = areaData.features || areaData || [];
 
 		addressFeatures.forEach((address) => {
-			const props = address.properties;
-			const addressId = address.id;
+			const isGeoJSON = !!address.properties;
+			const props = isGeoJSON ? address.properties : address;
+			const addressId = isGeoJSON ? address.id : address.uuid;
 			const addressName = [props.street, props.housenumber, props.house_number_suffix]
 				.filter(Boolean)
 				.join(' ');
@@ -129,11 +131,11 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 			}
 		});
 
-		const conduitFeatures = conduitData || [];
+		const conduitFeatures = conduitData.results || conduitData || [];
 		conduitFeatures.forEach((conduit) => {
 			const conduitUuid = conduit.uuid;
 			const conduitName = conduit.name;
-			const conduitTypeName = conduit.conduit_type?.conduit_type || '';
+			const conduitTypeName = conduit.conduit_type || '';
 
 			if (conduitUuid && conduitName) {
 				const labelParts = [conduitName];

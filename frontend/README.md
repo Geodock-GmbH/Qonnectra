@@ -358,10 +358,10 @@ They are typically constructed in `+page.svelte` files and exposed via:
 import { setContext } from 'svelte';
 
 setContext('mapManagers', {
-  mapState,
-  selectionManager,
-  popupManager,
-  interactionManager
+	mapState,
+	selectionManager,
+	popupManager,
+	interactionManager
 });
 ```
 
@@ -586,4 +586,3 @@ Alternative commented configurations in `.env.example` show how to target Docker
 - **Skeleton UI docs**: `https://www.skeleton.dev/`
 - **Svelte Flow docs**: `https://svelteflow.dev/api-reference`
 - **Paraglide docs**: `https://paraglide.dev/`
-

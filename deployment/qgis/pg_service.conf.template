@@ -1,21 +1,24 @@
 # PostgreSQL Service Configuration for QGIS Server
 # ================================================
-# Copy this file to pg_service.conf and update with your database credentials.
-# The service name (in brackets) should match what your QGIS project expects.
+# NOTE: This file is auto-generated at container startup using environment
+# variables from .env. You do NOT need to manually create pg_service.conf.
 #
-# Example: If your QGIS project uses service='qonnectra', use [qonnectra] below.
+# The following variables are used:
+#   - QGIS_PG_SERVICE_NAME (default: qonnectra) - service name in brackets
+#   - DB_NAME - database name
+#   - QGIS_DB_USER - database user for QGIS
+#   - QGIS_DB_PASSWORD - password for QGIS user
 #
-# This file is mounted read-only into the QGIS Server container at:
-# /etc/postgresql-common/pg_service.conf
+# This ensures password is defined in only one place (.env) to avoid drift.
 #
-# IMPORTANT: Use the QGIS database user (QGIS_DB_USER) here, not the main
-# database admin user. The QGIS user has limited permissions for WFS/WMS
-# access. See .env.production.template for the credentials.
-
-[qonnectra]
-host=db
-port=5432
-dbname=your_database_name
-user=qgis_user
-password=your_qgis_user_password
-sslmode=disable
+# The service name should match what your QGIS project expects
+# (e.g., service='qonnectra' in layer connection strings).
+#
+# Example of auto-generated content:
+# [qonnectra]
+# host=db
+# port=5432
+# dbname=qonnectra
+# user=qgis_user
+# password=your_qgis_user_password
+# sslmode=disable
