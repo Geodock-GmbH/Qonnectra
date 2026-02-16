@@ -95,6 +95,7 @@ from .serializers import (
     CableLabelSerializer,
     CableSerializer,
     CableTypeColorMappingSerializer,
+    ConduitForTrenchSelectionSerializer,
     ConduitListSerializer,
     ConduitSerializer,
     ContainerSerializer,
@@ -4381,3 +4382,187 @@ class ContainerViewSet(viewsets.ModelViewSet):
         container.save()
 
         return Response(ContainerSerializer(container).data)
+
+
+class ConduitsByTrenchesView(APIView):
+    """Get deduplicated conduits for selected trenches."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        trench_ids = request.query_params.get("trench_ids", "")
+        cable_id = request.query_params.get("cable_id")
+
+        # Validate cable_id UUID format if provided
+        if cable_id:
+            try:
+                uuid.UUID(cable_id)
+            except ValueError:
+                cable_id = None
+
+        if not trench_ids:
+            return Response([])
+
+        trench_uuid_list = [
+            uuid_str.strip() for uuid_str in trench_ids.split(",") if uuid_str.strip()
+        ]
+
+        # Get unique conduits from TrenchConduitConnection
+        conduit_ids = (
+            TrenchConduitConnection.objects.filter(uuid_trench_id__in=trench_uuid_list)
+            .values_list("uuid_conduit_id", flat=True)
+            .distinct()
+        )
+
+        conduits = Conduit.objects.filter(uuid__in=conduit_ids).select_related(
+            "conduit_type"
+        )
+
+        serializer = ConduitForTrenchSelectionSerializer(
+            conduits, many=True, context={"cable_id": cable_id}
+        )
+        return Response(serializer.data)
+
+
+class MicropipesByConduitsView(APIView):
+    """Get micropipes with availability info across selected conduits."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        conduit_ids = request.query_params.get("conduit_ids", "")
+        cable_id = request.query_params.get("cable_id")
+
+        # Validate cable_id UUID format if provided
+        if cable_id:
+            try:
+                uuid.UUID(cable_id)
+            except ValueError:
+                cable_id = None
+
+        if not conduit_ids:
+            return Response([])
+
+        conduit_uuid_list = [
+            uuid_str.strip() for uuid_str in conduit_ids.split(",") if uuid_str.strip()
+        ]
+        conduits = Conduit.objects.filter(uuid__in=conduit_uuid_list)
+        conduit_map = {str(c.uuid): c.name for c in conduits}
+
+        # Get all microducts for these conduits
+        microducts = Microduct.objects.filter(
+            uuid_conduit_id__in=conduit_uuid_list
+        ).select_related("uuid_conduit")
+
+        # Get color hex codes
+        color_mapping = {
+            c.name_de: c.hex_code
+            for c in AttributesMicroductColor.objects.filter(is_active=True)
+        }
+
+        # Group by (number, color)
+        micropipe_groups = {}
+        for md in microducts:
+            key = (md.number, md.color)
+            if key not in micropipe_groups:
+                micropipe_groups[key] = {
+                    "number": md.number,
+                    "color_name": md.color,
+                    "color_hex": color_mapping.get(md.color, "#808080"),
+                    "available_in": [],
+                    "microduct_uuids": {},
+                }
+            micropipe_groups[key]["available_in"].append(str(md.uuid_conduit_id))
+            micropipe_groups[key]["microduct_uuids"][str(md.uuid_conduit_id)] = str(
+                md.uuid
+            )
+
+        # Check which are linked to this cable
+        linked_microducts = set()
+        if cable_id:
+            linked_microducts = set(
+                MicroductCableConnection.objects.filter(
+                    uuid_cable_id=cable_id, uuid_microduct__uuid_conduit_id__in=conduit_uuid_list
+                )
+                .values_list("uuid_microduct_id", flat=True)
+                .distinct()
+            )
+
+        # Build response
+        result = []
+        conduit_set = set(conduit_uuid_list)
+        for key, data in sorted(micropipe_groups.items(), key=lambda x: x[0]):
+            available_set = set(data["available_in"])
+            missing_conduits = conduit_set - available_set
+
+            # Check if linked to cable
+            is_linked = any(
+                uuid.UUID(md_uuid) in linked_microducts
+                for md_uuid in data["microduct_uuids"].values()
+            )
+
+            result.append(
+                {
+                    "number": data["number"],
+                    "color_name": data["color_name"],
+                    "color_hex": data["color_hex"],
+                    "available_in": list(available_set),
+                    "available_in_all": len(missing_conduits) == 0,
+                    "linked_to_cable": is_linked,
+                    "missing_in": [conduit_map.get(c, c) for c in missing_conduits],
+                }
+            )
+
+        return Response(result)
+
+
+class CableMicropipeConnectionsView(APIView):
+    """Manage cable-micropipe connections."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, cable_id):
+        """Create connections for a micropipe across multiple conduits."""
+        micropipe_number = request.data.get("micropipe_number")
+        color = request.data.get("color")
+        conduit_ids = request.data.get("conduit_ids", [])
+
+        if not micropipe_number or not color or not conduit_ids:
+            return Response(
+                {"error": "micropipe_number, color, and conduit_ids are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Find matching microducts
+        microducts = Microduct.objects.filter(
+            uuid_conduit_id__in=conduit_ids, number=micropipe_number, color=color
+        )
+
+        created = []
+        for md in microducts:
+            conn, was_created = MicroductCableConnection.objects.get_or_create(
+                uuid_microduct=md, uuid_cable_id=cable_id
+            )
+            if was_created:
+                created.append(str(conn.uuid))
+
+        return Response({"created": created, "count": len(created)})
+
+    def delete(self, request, cable_id):
+        """Remove connections for a micropipe across conduits."""
+        micropipe_number = request.data.get("micropipe_number")
+        conduit_ids = request.data.get("conduit_ids", [])
+
+        if not micropipe_number or not conduit_ids:
+            return Response(
+                {"error": "micropipe_number and conduit_ids are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        deleted, _ = MicroductCableConnection.objects.filter(
+            uuid_cable_id=cable_id,
+            uuid_microduct__uuid_conduit_id__in=conduit_ids,
+            uuid_microduct__number=micropipe_number,
+        ).delete()
+
+        return Response({"deleted": deleted})
