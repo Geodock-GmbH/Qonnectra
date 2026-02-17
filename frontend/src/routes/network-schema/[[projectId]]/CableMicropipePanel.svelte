@@ -11,7 +11,6 @@
 		IconSquare,
 		IconSquareCheck
 	} from '@tabler/icons-svelte';
-
 	import { m } from '$lib/paraglide/messages';
 
 	import { CableMicropipeManager } from '$lib/classes/CableMicropipeManager.svelte.js';
@@ -359,7 +358,7 @@
 	</div>
 
 	<!-- Right: Selection Panel -->
-	<div class="w-72 shrink-0 flex flex-col border-l border-surface-200-800 bg-surface-50-950">
+	<div class="w-80 shrink-0 flex flex-col border-l border-surface-200-800 bg-surface-50-950 overflow-hidden">
 		<!-- Header -->
 		<div class="shrink-0 p-4 border-b border-surface-200-800">
 			<h3 class="text-lg font-semibold">{m.title_cable_micropipe_linking()}</h3>
@@ -367,22 +366,28 @@
 		</div>
 
 		<!-- Step indicator -->
-		<div class="shrink-0 flex items-center gap-4 p-4 border-b border-surface-200-800">
-			<div
-				class="flex items-center gap-2 px-3 py-1 rounded-full
-					{manager.step === 1 ? 'bg-primary-500 text-white' : 'bg-surface-200-800 text-surface-600-300'}"
+		<div class="shrink-0 flex items-center gap-2 p-4 border-b border-surface-200-800">
+			<button
+				type="button"
+				class="flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors
+					{manager.step === 1 ? 'bg-primary-500 text-white' : 'bg-surface-200-800 text-surface-600-300 hover:bg-surface-300-700'}"
+				onclick={() => manager.goToStep1()}
 			>
 				<span class="text-sm font-medium">1</span>
 				<span class="text-sm">{m.form_selected_trenches()}</span>
-			</div>
+			</button>
 			<div class="flex-1 h-px bg-surface-300-700"></div>
-			<div
-				class="flex items-center gap-2 px-3 py-1 rounded-full
-					{manager.step === 2 ? 'bg-primary-500 text-white' : 'bg-surface-200-800 text-surface-600-300'}"
+			<button
+				type="button"
+				class="flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors
+					{manager.step === 2 ? 'bg-primary-500 text-white' : 'bg-surface-200-800 text-surface-600-300'}
+					{manager.selectedConduitIds.size === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-surface-300-700'}"
+				onclick={() => manager.selectedConduitIds.size > 0 && manager.goToStep2()}
+				disabled={manager.selectedConduitIds.size === 0}
 			>
 				<span class="text-sm font-medium">2</span>
 				<span class="text-sm">{m.form_micropipes()}</span>
-			</div>
+			</button>
 		</div>
 
 		<!-- Content area -->
@@ -541,45 +546,33 @@
 		</div>
 
 		<!-- Footer with actions -->
-		<div class="shrink-0 p-4 border-t border-surface-200-800 flex items-center gap-2">
+		<div class="shrink-0 p-4 border-t border-surface-200-800 flex flex-col gap-2">
 			{#if manager.step === 1}
 				<button
 					type="button"
-					class="btn preset-outlined-surface-500"
-					onclick={clearMapSelection}
-					disabled={manager.selectedTrenchIds.size === 0}
-				>
-					{m.action_clear_selection()}
-				</button>
-				<div class="flex-1"></div>
-				<button type="button" class="btn preset-outlined-surface-500" onclick={onClose}>
-					{m.common_cancel()}
-				</button>
-				<button
-					type="button"
-					class="btn preset-filled-primary-500"
+					class="btn w-full preset-filled-primary-500"
 					onclick={() => manager.goToStep2()}
 					disabled={manager.selectedConduitIds.size === 0 || manager.loading}
 				>
 					{m.action_next()}
 				</button>
+				<div class="flex gap-2">
+					<button
+						type="button"
+						class="btn flex-1 preset-outlined"
+						onclick={clearMapSelection}
+						disabled={manager.selectedTrenchIds.size === 0}
+					>
+						{m.action_clear_selection()}
+					</button>
+					<button type="button" class="btn flex-1 preset-outlined" onclick={onClose}>
+						{m.common_cancel()}
+					</button>
+				</div>
 			{:else}
 				<button
 					type="button"
-					class="btn preset-outlined-surface-500"
-					onclick={() => manager.goToStep1()}
-					disabled={manager.saving}
-				>
-					<IconArrowLeft class="size-4" />
-					{m.action_back()}
-				</button>
-				<div class="flex-1"></div>
-				<button type="button" class="btn preset-outlined-surface-500" onclick={onClose}>
-					{m.common_cancel()}
-				</button>
-				<button
-					type="button"
-					class="btn preset-filled-primary-500"
+					class="btn w-full preset-filled-primary-500"
 					onclick={() => manager.saveLinkage()}
 					disabled={!manager.selectedMicropipe || manager.saving}
 				>
@@ -590,6 +583,20 @@
 					{/if}
 					{m.action_save()}
 				</button>
+				<div class="flex gap-2">
+					<button
+						type="button"
+						class="btn flex-1 preset-outlined"
+						onclick={() => manager.goToStep1()}
+						disabled={manager.saving}
+					>
+						<IconArrowLeft class="size-4" />
+						{m.action_back()}
+					</button>
+					<button type="button" class="btn flex-1 preset-outlined" onclick={onClose}>
+						{m.common_cancel()}
+					</button>
+				</div>
 			{/if}
 		</div>
 	</div>
