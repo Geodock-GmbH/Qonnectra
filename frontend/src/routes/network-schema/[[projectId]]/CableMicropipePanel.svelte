@@ -515,78 +515,78 @@
 									</tr>
 								</thead>
 								<tbody>
-								{#each manager.micropipes as mp (mp.number + '-' + mp.color_name)}
-									{@const isAvailable = mp.available_in_all}
-									{@const isSelected = isMicropipeSelected(mp)}
-									<tr
-										class="border-b border-surface-200-800 transition-colors
+									{#each manager.micropipes as mp (mp.number + '-' + mp.color_name)}
+										{@const isAvailable = mp.available_in_all}
+										{@const isSelected = isMicropipeSelected(mp)}
+										<tr
+											class="border-b border-surface-200-800 transition-colors
 											{isAvailable ? 'hover:bg-surface-200-800 cursor-pointer' : 'opacity-50 cursor-not-allowed'}
 											{isSelected ? 'bg-primary-500/20' : ''}"
-										onclick={() => isAvailable && manager.selectMicropipe(mp)}
-										role="button"
-										tabindex={isAvailable ? 0 : -1}
-										onkeydown={(e) => {
-											if (isAvailable && (e.key === 'Enter' || e.key === ' ')) {
-												e.preventDefault();
-												manager.selectMicropipe(mp);
-											}
-										}}
-									>
-										<td class="p-2 font-mono">{mp.number}</td>
-										<td class="p-2">
-											<div class="flex items-center gap-2">
-												<div
-													class="w-4 h-4 rounded border border-surface-300-700"
-													style="background-color: {mp.color_hex}"
-												></div>
-												<span>{mp.color_name}</span>
-											</div>
-										</td>
-										<td class="p-2 text-center">
-											{#if isAvailable}
-												<IconCheck class="size-5 text-success-500 mx-auto" />
-											{:else}
-												<span
-													class="text-xs text-warning-500"
-													title={m.message_micropipe_not_in_conduit({
-														conduits: mp.missing_in.join(', ')
-													})}
-												>
-													{mp.available_in.length}/{manager.selectedConduitIds.size}
-												</span>
-											{/if}
-										</td>
-										<td class="p-2 text-center">
-											{#if mp.linked_to_cable}
-												<div class="flex items-center justify-center gap-1">
-													<span
-														class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success-500/20 text-success-700 dark:text-success-300 text-xs"
-													>
-														<IconLink class="size-3" />
-														{m.message_linked()}
-													</span>
-													<button
-														type="button"
-														class="p-1 rounded hover:bg-error-500/20 text-error-500 transition-colors"
-														title={m.action_remove_linkage()}
-														onclick={async (e) => {
-															e.stopPropagation();
-															await manager.removeLinkage(mp.number, mp.available_in);
-															onLinkageChange();
-														}}
-														disabled={manager.saving}
-													>
-														<IconLinkOff class="size-4" />
-													</button>
+											onclick={() => isAvailable && manager.selectMicropipe(mp)}
+											role="button"
+											tabindex={isAvailable ? 0 : -1}
+											onkeydown={(e) => {
+												if (isAvailable && (e.key === 'Enter' || e.key === ' ')) {
+													e.preventDefault();
+													manager.selectMicropipe(mp);
+												}
+											}}
+										>
+											<td class="p-2 font-mono">{mp.number}</td>
+											<td class="p-2">
+												<div class="flex items-center gap-2">
+													<div
+														class="w-4 h-4 rounded border border-surface-300-700"
+														style="background-color: {mp.color_hex}"
+													></div>
+													<span>{mp.color_name}</span>
 												</div>
-											{:else if isSelected}
-												<IconSquareCheck class="size-5 text-primary-500 mx-auto" />
-											{:else}
-												<IconSquare class="size-5 text-surface-400 mx-auto" />
-											{/if}
-										</td>
-									</tr>
-								{/each}
+											</td>
+											<td class="p-2 text-center">
+												{#if isAvailable}
+													<IconCheck class="size-5 text-success-500 mx-auto" />
+												{:else}
+													<span
+														class="text-xs text-warning-500"
+														title={m.message_micropipe_not_in_conduit({
+															conduits: mp.missing_in.join(', ')
+														})}
+													>
+														{mp.available_in.length}/{manager.selectedConduitIds.size}
+													</span>
+												{/if}
+											</td>
+											<td class="p-2 text-center">
+												{#if mp.linked_to_cable}
+													<div class="flex items-center justify-center gap-1">
+														<span
+															class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success-500/20 text-success-700 dark:text-success-300 text-xs"
+														>
+															<IconLink class="size-3" />
+															{m.message_linked()}
+														</span>
+														<button
+															type="button"
+															class="p-1 rounded hover:bg-error-500/20 text-error-500 transition-colors"
+															title={m.action_remove_linkage()}
+															onclick={async (e) => {
+																e.stopPropagation();
+																await manager.removeLinkage(mp.number, mp.available_in);
+																onLinkageChange();
+															}}
+															disabled={manager.saving}
+														>
+															<IconLinkOff class="size-4" />
+														</button>
+													</div>
+												{:else if isSelected}
+													<IconSquareCheck class="size-5 text-primary-500 mx-auto" />
+												{:else}
+													<IconSquare class="size-5 text-surface-400 mx-auto" />
+												{/if}
+											</td>
+										</tr>
+									{/each}
 								</tbody>
 							</table>
 						</div>

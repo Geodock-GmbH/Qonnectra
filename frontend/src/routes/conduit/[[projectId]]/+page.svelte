@@ -39,11 +39,21 @@
 
 	// Set context for attribute options and conduit state (must be synchronous during initialization)
 	setContext('attributeOptions', {
-		get conduitTypes() { return data.conduitTypes; },
-		get statuses() { return data.statuses; },
-		get networkLevels() { return data.networkLevels; },
-		get companies() { return data.companies; },
-		get flags() { return data.flags; }
+		get conduitTypes() {
+			return data.conduitTypes;
+		},
+		get statuses() {
+			return data.statuses;
+		},
+		get networkLevels() {
+			return data.networkLevels;
+		},
+		get companies() {
+			return data.companies;
+		},
+		get flags() {
+			return data.flags;
+		}
 	});
 	setContext('conduitState', conduitState);
 

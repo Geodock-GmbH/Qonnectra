@@ -65,7 +65,7 @@ export async function load({ fetch, params, depends, cookies }) {
 		const conduitList = data.results || data;
 		const conduits = conduitList.map((item) => ({
 			value: item.uuid,
-			label: item.name
+			label: item.name + ' (' + item.conduit_type + ')'
 		}));
 		return {
 			conduits,

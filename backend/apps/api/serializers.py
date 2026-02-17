@@ -1007,6 +1007,7 @@ class MicroductSerializer(serializers.ModelSerializer):
     hex_code = serializers.SerializerMethodField(read_only=True)
     hex_code_secondary = serializers.SerializerMethodField(read_only=True)
     is_two_layer = serializers.SerializerMethodField(read_only=True)
+    cable_connection = serializers.SerializerMethodField(read_only=True)
 
     uuid_conduit_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
@@ -1067,6 +1068,21 @@ class MicroductSerializer(serializers.ModelSerializer):
     def get_is_two_layer(self, obj):
         """Check if this is a two-layer/striped color."""
         return "-" in obj.color.lower() if obj.color else False
+
+    def get_cable_connection(self, obj):
+        """Get connected cable info if any."""
+        connection = (
+            MicroductCableConnection.objects.filter(uuid_microduct=obj)
+            .select_related("uuid_cable__cable_type")
+            .first()
+        )
+        if not connection:
+            return None
+        cable = connection.uuid_cable
+        return {
+            "name": cable.name,
+            "type": cable.cable_type.cable_type if cable.cable_type else None,
+        }
 
     def validate_uuid_node_id(self, value):
         """Validate that the node has an address assigned."""
