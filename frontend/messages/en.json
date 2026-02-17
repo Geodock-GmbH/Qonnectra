@@ -212,6 +212,7 @@
 	"form_internal_execution": "Internal execution",
 	"form_layer": "Layer",
 	"form_layer_visibility": "Layer visibility",
+	"label_show_cable_route": "Show route",
 	"form_left": "Left",
 	"form_length_by_construction_type": "Length by construction type",
 	"form_length_by_network_level": "Length by network level",

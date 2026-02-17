@@ -2,6 +2,7 @@
 	import { onDestroy } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { page } from '$app/stores';
+	import { Switch } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconArrowLeft,
 		IconCheck,
@@ -18,11 +19,12 @@
 	import { CableMicropipeManager } from '$lib/classes/CableMicropipeManager.svelte.js';
 	import { MapState } from '$lib/classes/MapState.svelte.js';
 	import Map from '$lib/components/Map.svelte';
-	import { createSelectedStyle } from '$lib/map/styles.js';
+	import { createLinkedTrenchStyle, createSelectedStyle } from '$lib/map/styles.js';
 	import {
 		areaTypeStyles,
 		labelVisibilityConfig,
 		nodeTypeStyles,
+		showCableRoute,
 		trenchColor,
 		trenchConstructionTypeStyles,
 		trenchStyleMode,
@@ -43,6 +45,8 @@
 	let selectionLayer = $state();
 	/** @type {SvelteSet<string>} Selected feature IDs for highlighting */
 	let selectedFeatureIds = $state(new SvelteSet());
+	/** @type {VectorTileLayer|undefined} */
+	let cableRouteLayer = $state();
 
 	// Initialize MapState for this panel
 	const projectId = $page.params.projectId;
@@ -64,6 +68,28 @@
 			if (selectionLayer) {
 				selectionLayer.changed();
 			}
+			if (cableRouteLayer) {
+				cableRouteLayer.changed();
+			}
+		}
+	});
+
+	/**
+	 * Sync cable route layer visibility with store
+	 */
+	$effect(() => {
+		if (cableRouteLayer) {
+			cableRouteLayer.setVisible($showCableRoute);
+		}
+	});
+
+	/**
+	 * Update cable route layer when linkedTrenchIds changes
+	 */
+	$effect(() => {
+		const _ = manager.linkedTrenchIds.size;
+		if (cableRouteLayer) {
+			cableRouteLayer.changed();
 		}
 	});
 
@@ -158,6 +184,25 @@
 			}
 		});
 		olMap.addLayer(selectionLayer);
+
+		// Create cable route layer for highlighting linked trenches
+		const linkedTrenchStyle = createLinkedTrenchStyle('#06b6d4');
+		cableRouteLayer = new VectorTileLayer({
+			renderMode: 'vector',
+			source: mapState.vectorTileLayer.getSource(),
+			style: function (feature) {
+				const featureId = String(feature.getId() || feature.get('uuid'));
+				if (featureId && manager.linkedTrenchIds.has(featureId)) {
+					return linkedTrenchStyle;
+				}
+				return undefined;
+			},
+			visible: $showCableRoute,
+			properties: {
+				isCableRouteLayer: true
+			}
+		});
+		olMap.addLayer(cableRouteLayer);
 
 		await setupInteractions();
 	}
@@ -272,6 +317,10 @@
 			olMap.removeLayer(selectionLayer);
 			selectionLayer = undefined;
 		}
+		if (olMap && cableRouteLayer) {
+			olMap.removeLayer(cableRouteLayer);
+			cableRouteLayer = undefined;
+		}
 		mapState.cleanup();
 		olMap = undefined;
 		selectedFeatureIds = new SvelteSet();
@@ -325,7 +374,24 @@
 	>
 		<!-- Header -->
 		<div class="shrink-0 p-4 border-b border-surface-200-800">
-			<h3 class="text-lg font-semibold">{cableName}</h3>
+			<div class="flex items-center justify-between gap-2">
+				<h3 class="text-lg font-semibold truncate">{cableName}</h3>
+				{#if manager.linkedTrenchIds.size > 0}
+					<div class="flex items-center gap-2 shrink-0">
+						<span class="text-xs text-surface-500">{m.label_show_cable_route()}</span>
+						<Switch
+							name="showCableRoute"
+							checked={$showCableRoute}
+							onCheckedChange={(e) => ($showCableRoute = e.checked)}
+						>
+							<Switch.Control>
+								<Switch.Thumb />
+							</Switch.Control>
+							<Switch.HiddenInput />
+						</Switch>
+					</div>
+				{/if}
+			</div>
 		</div>
 
 		<!-- Step indicator -->

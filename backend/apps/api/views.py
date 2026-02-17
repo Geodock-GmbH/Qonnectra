@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from pathvalidate import sanitize_filename
 from rest_framework import status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -4604,3 +4604,19 @@ class CableMicropipeConnectionsView(APIView):
         ).delete()
 
         return Response({"deleted": deleted})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_trenches_for_cable_connections(request, cable_id):
+    """
+    Get all trench UUIDs where the cable has micropipe connections.
+    Path: Cable -> MicroductCableConnection -> Microduct -> Conduit -> TrenchConduitConnection -> Trench
+    """
+    trench_uuids = list(
+        Trench.objects.filter(
+            trenchconduitconnection__uuid_conduit__microduct__microductcableconnection__uuid_cable_id=cable_id
+        ).distinct().values_list('uuid', flat=True)
+    )
+
+    return Response({'trench_uuids': [str(uuid) for uuid in trench_uuids]})

@@ -30,6 +30,9 @@ export class CableMicropipeManager {
 	/** @type {{number: number, color_name: string}|null} */
 	selectedMicropipe = $state(null);
 
+	/** @type {SvelteSet<string>} */
+	linkedTrenchIds = $state(new SvelteSet());
+
 	/** @type {1|2} */
 	step = $state(1);
 
@@ -48,6 +51,7 @@ export class CableMicropipeManager {
 		this.cableId = cableId;
 		this.cableName = cableName;
 		this.reset();
+		this.fetchLinkedTrenches();
 	}
 
 	/**
@@ -59,7 +63,42 @@ export class CableMicropipeManager {
 		this.selectedConduitIds = new SvelteSet();
 		this.micropipes = [];
 		this.selectedMicropipe = null;
+		this.linkedTrenchIds = new SvelteSet();
 		this.step = 1;
+	}
+
+	/**
+	 * Fetch trench IDs where this cable has micropipe connections
+	 */
+	async fetchLinkedTrenches() {
+		if (!this.cableId) {
+			this.linkedTrenchIds = new SvelteSet();
+			return;
+		}
+
+		try {
+			const formData = new FormData();
+			formData.append('cableId', this.cableId);
+
+			const response = await fetch('?/getLinkedTrenchesForCable', {
+				method: 'POST',
+				body: formData
+			});
+
+			const textResponse = await response.text();
+			const result = deserialize(textResponse);
+
+			if (result.type === 'failure') {
+				console.error('Failed to fetch linked trenches:', result.data?.error);
+				this.linkedTrenchIds = new SvelteSet();
+				return;
+			}
+
+			this.linkedTrenchIds = new SvelteSet(result.data?.trench_uuids || []);
+		} catch (error) {
+			console.error('Error fetching linked trenches:', error);
+			this.linkedTrenchIds = new SvelteSet();
+		}
 	}
 
 	/**
@@ -233,6 +272,7 @@ export class CableMicropipeManager {
 
 			// Refresh conduits to update linkage status
 			await this.fetchConduitsForTrenches();
+			await this.fetchLinkedTrenches();
 			this.goToStep1();
 		} catch (error) {
 			console.error('Error saving linkage:', error);
@@ -275,6 +315,7 @@ export class CableMicropipeManager {
 				description: m.message_connection_deleted_successfully()
 			});
 			await this.fetchConduitsForTrenches();
+			await this.fetchLinkedTrenches();
 			this.goToStep1();
 		} catch (error) {
 			console.error('Error removing linkage:', error);

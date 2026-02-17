@@ -212,6 +212,7 @@
 	"form_internal_execution": "Eigenleistung",
 	"form_layer": "Layer",
 	"form_layer_visibility": "Sichtbarkeit",
+	"label_show_cable_route": "Route anzeigen",
 	"form_left": "Links",
 	"form_length_by_construction_type": "Gesamtlänge pro Verlegeart",
 	"form_length_by_network_level": "Gesamtlänge pro Netzebene",
