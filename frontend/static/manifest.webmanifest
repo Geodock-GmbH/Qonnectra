@@ -1,0 +1,53 @@
+{
+	"name": "Qonnectra",
+	"short_name": "Qonnectra",
+	"description": "GIS application for telecommunications infrastructure management",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#1a1a1a",
+	"theme_color": "#15803d",
+	"orientation": "any",
+	"icons": [
+		{
+			"src": "/icons/icon-192x192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/icon-512x512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/icon-maskable-192x192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "maskable"
+		},
+		{
+			"src": "/icons/icon-maskable-512x512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		}
+	],
+	"screenshots": [
+		{
+			"src": "/screenshots/desktop-wide.png",
+			"sizes": "1920x1080",
+			"type": "image/png",
+			"form_factor": "wide",
+			"label": "Desktop view of Qonnectra"
+		},
+		{
+			"src": "/screenshots/mobile-narrow.png",
+			"sizes": "750x1334",
+			"type": "image/png",
+			"form_factor": "narrow",
+			"label": "Mobile view of Qonnectra"
+		}
+	],
+	"categories": ["utilities", "productivity"]
+}
