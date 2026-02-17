@@ -504,16 +504,17 @@
 					{:else if manager.micropipes.length === 0}
 						<p class="text-sm text-surface-500 p-4">{m.message_no_conduits_in_trenches()}</p>
 					{:else}
-						<table class="w-full text-sm">
-							<thead class="bg-surface-200-800 sticky top-0">
-								<tr>
-									<th class="p-2 text-left w-12">#</th>
-									<th class="p-2 text-left">{m.form_color()}</th>
-									<th class="p-2 text-center">{m.form_available()}</th>
-									<th class="p-2 text-center">{m.form_status()}</th>
-								</tr>
-							</thead>
-							<tbody>
+						<div class="overflow-auto max-h-full">
+							<table class="w-full text-sm">
+								<thead class="bg-surface-200-800 sticky top-0 z-10">
+									<tr>
+										<th class="p-2 text-left w-12">#</th>
+										<th class="p-2 text-left">{m.form_color()}</th>
+										<th class="p-2 text-center">{m.form_available()}</th>
+										<th class="p-2 text-center">{m.form_status()}</th>
+									</tr>
+								</thead>
+								<tbody>
 								{#each manager.micropipes as mp (mp.number + '-' + mp.color_name)}
 									{@const isAvailable = mp.available_in_all}
 									{@const isSelected = isMicropipeSelected(mp)}
@@ -586,8 +587,9 @@
 										</td>
 									</tr>
 								{/each}
-							</tbody>
-						</table>
+								</tbody>
+							</table>
+						</div>
 					{/if}
 				</div>
 			{/if}
