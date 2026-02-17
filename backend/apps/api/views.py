@@ -4620,3 +4620,15 @@ def get_trenches_for_cable_connections(request, cable_id):
     )
 
     return Response({'trench_uuids': [str(uuid) for uuid in trench_uuids]})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_conduits_for_cable(request, cable_id):
+    """Get all conduit names where the cable has micropipe connections."""
+    conduit_names = list(
+        Conduit.objects.filter(
+            microduct__microductcableconnection__uuid_cable_id=cable_id
+        ).distinct().values_list('name', flat=True)
+    )
+    return Response({'conduit_names': conduit_names})

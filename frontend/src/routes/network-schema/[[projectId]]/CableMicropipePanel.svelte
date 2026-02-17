@@ -33,7 +33,7 @@
 
 	import 'ol/ol.css';
 
-	let { cableId, cableName, onClose = () => {} } = $props();
+	let { cableId, cableName, onClose = () => {}, onLinkageChange = () => {} } = $props();
 
 	const manager = new CableMicropipeManager();
 
@@ -568,9 +568,10 @@
 														type="button"
 														class="p-1 rounded hover:bg-error-500/20 text-error-500 transition-colors"
 														title={m.action_remove_linkage()}
-														onclick={(e) => {
+														onclick={async (e) => {
 															e.stopPropagation();
-															manager.removeLinkage(mp.number, mp.available_in);
+															await manager.removeLinkage(mp.number, mp.available_in);
+															onLinkageChange();
 														}}
 														disabled={manager.saving}
 													>
@@ -620,7 +621,10 @@
 				<button
 					type="button"
 					class="btn w-full preset-filled-primary-500"
-					onclick={() => manager.saveLinkage()}
+					onclick={async () => {
+						await manager.saveLinkage();
+						onLinkageChange();
+					}}
 					disabled={!manager.selectedMicropipe || manager.saving}
 				>
 					{#if manager.saving}

@@ -1,4 +1,5 @@
 <script>
+	import { deserialize } from '$app/forms';
 	import { IconLayoutList, IconLink, IconSettings } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -7,6 +8,7 @@
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import FloatingPanel from '$lib/components/FloatingPanel.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
+	import { drawerStore } from '$lib/stores/drawer';
 
 	import CableDiagramEdgeAttributeCard from './CableDiagramEdgeAttributeCard.svelte';
 	import CableDiagramEdgeHandleConfig from './CableDiagramEdgeHandleConfig.svelte';
@@ -75,12 +77,40 @@
 		structurePanelSlotConfigUuid = slotConfigUuid;
 		structurePanelOpen = true;
 	}
+
+	/**
+	 * Refresh cable data from the server and update drawer props
+	 */
+	async function refreshCableData() {
+		if (type !== 'edge' || !featureId) return;
+
+		try {
+			const formData = new FormData();
+			formData.append('uuid', featureId);
+			const response = await fetch('?/getCables', {
+				method: 'POST',
+				body: formData
+			});
+			const result = deserialize(await response.text());
+			if (result.type === 'success' && result.data) {
+				const parsedData = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
+				drawerStore.updateProps(parsedData);
+			}
+		} catch (err) {
+			console.error('Error refreshing cable data:', err);
+		}
+	}
 </script>
 
 <Tabs tabs={tabItems} bind:value={group}>
 	{#if group === 'attributes'}
 		{#if type === 'edge'}
-			<CableDiagramEdgeAttributeCard {...data} {onLabelUpdate} {onEdgeDelete} />
+			<CableDiagramEdgeAttributeCard
+				{...data}
+				{onLabelUpdate}
+				{onEdgeDelete}
+				onSaveComplete={refreshCableData}
+			/>
 		{:else if type === 'node'}
 			<CableDiagramNodeAttributeCard {...data} {onLabelUpdate} {onNodeDelete} />
 		{/if}
@@ -191,6 +221,7 @@
 			cableId={data.uuid || data.id}
 			cableName={data.name}
 			onClose={() => (micropipePanelOpen = false)}
+			onLinkageChange={refreshCableData}
 		/>
 	</FloatingPanel>
 {/if}

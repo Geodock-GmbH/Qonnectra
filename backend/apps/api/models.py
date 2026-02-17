@@ -2145,6 +2145,30 @@ class Cable(models.Model):
             ),
         ]
 
+    def calculate_length_from_connections(self):
+        """
+        Calculate cable length by summing lengths of all trenches
+        where this cable has micropipe connections.
+        """
+        from django.db.models import Sum
+
+        total = Trench.objects.filter(
+            trenchconduitconnection__uuid_conduit__microduct__microductcableconnection__uuid_cable=self
+        ).distinct().aggregate(total=Sum('length'))['total']
+
+        return float(total) if total else 0.0
+
+    def update_length_from_connections(self):
+        """Update length and length_total based on micropipe connections."""
+        self.length = self.calculate_length_from_connections()
+        self.length_total = (
+            self.length +
+            (self.reserve_at_start or 0) +
+            (self.reserve_at_end or 0) +
+            (self.reserve_section or 0)
+        )
+        self.save(update_fields=['length', 'length_total'])
+
     def __str__(self):
         return self.name
 
@@ -2258,6 +2282,23 @@ class MicroductCableConnection(models.Model):
         )
 
 
+@receiver(post_save, sender=MicroductCableConnection)
+def update_cable_length_on_connection_create(sender, instance, created, **kwargs):
+    """Recalculate cable length when a micropipe connection is created."""
+    if created:
+        instance.uuid_cable.update_length_from_connections()
+
+
+@receiver(post_delete, sender=MicroductCableConnection)
+def update_cable_length_on_connection_delete(sender, instance, **kwargs):
+    """Recalculate cable length when a micropipe connection is deleted."""
+    try:
+        cable = Cable.objects.get(pk=instance.uuid_cable_id)
+        cable.update_length_from_connections()
+    except Cable.DoesNotExist:
+        pass
+
+
 @receiver(pre_save, sender=Cable)
 def track_cable_name_change(sender, instance, **kwargs):
     """
@@ -2272,6 +2313,18 @@ def track_cable_name_change(sender, instance, **kwargs):
             instance._old_name = None
     else:
         instance._old_name = None
+
+
+@receiver(pre_save, sender=Cable)
+def update_length_total_on_reserve_change(sender, instance, **kwargs):
+    """Recalculate length_total when reserve fields change."""
+    if instance.pk and instance.length is not None:
+        instance.length_total = (
+            instance.length +
+            (instance.reserve_at_start or 0) +
+            (instance.reserve_at_end or 0) +
+            (instance.reserve_section or 0)
+        )
 
 
 @receiver(post_save, sender=Cable)

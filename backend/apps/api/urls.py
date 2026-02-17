@@ -38,6 +38,7 @@ from .views import (
     FlagsViewSet,
     FrontendLogView,
     GeoPackageSchemaView,
+    get_conduits_for_cable,
     get_trenches_for_cable_connections,
     LayerExtentView,
     LogEntryViewSet,
@@ -301,5 +302,10 @@ urlpatterns = [
         "cables/<uuid:cable_id>/linked-trenches/",
         get_trenches_for_cable_connections,
         name="cable-linked-trenches",
+    ),
+    path(
+        "cables/<uuid:cable_id>/conduits/",
+        get_conduits_for_cable,
+        name="cable-conduits",
     ),
 ]

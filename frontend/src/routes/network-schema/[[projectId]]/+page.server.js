@@ -2673,5 +2673,34 @@ export const actions = {
 			console.error('Error fetching linked trenches for cable:', err);
 			return fail(500, { error: 'Failed to fetch linked trenches' });
 		}
+	},
+	getConduitsForCable: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const cableId = formData.get('cableId');
+
+		if (!cableId) {
+			return fail(400, { error: 'Cable ID is required' });
+		}
+
+		try {
+			const response = await fetch(`${API_URL}cables/${cableId}/conduits/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch conduits'
+				});
+			}
+
+			const data = await response.json();
+			return { conduit_names: data.conduit_names || [] };
+		} catch (err) {
+			console.error('Error fetching conduits for cable:', err);
+			return fail(500, { error: 'Failed to fetch conduits' });
+		}
 	}
 };

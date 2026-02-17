@@ -26,8 +26,8 @@
 		trenchStyleMode,
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
-	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte.js';
+	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 
 	import HouseConnectionDrawerTabs from './HouseConnectionDrawerTabs.svelte';
 

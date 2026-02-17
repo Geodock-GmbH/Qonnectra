@@ -34,8 +34,8 @@
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte.js';
+	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 
 	import TrenchTable from './TrenchTable.svelte';
 
