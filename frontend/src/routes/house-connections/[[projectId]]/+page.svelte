@@ -53,7 +53,9 @@
 	});
 
 	const selectionManager = new MapSelectionManager();
+	// svelte-ignore state_referenced_locally
 	const popupManager = new MapPopupManager(data.alias);
+	// svelte-ignore state_referenced_locally
 	const interactionManager = new MapInteractionManager(
 		selectionManager,
 		popupManager,

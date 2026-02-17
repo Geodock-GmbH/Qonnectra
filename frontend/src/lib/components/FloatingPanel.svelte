@@ -21,6 +21,7 @@
 		children
 	} = $props();
 
+	// svelte-ignore state_referenced_locally
 	let size = $state({ width, height });
 
 	/**

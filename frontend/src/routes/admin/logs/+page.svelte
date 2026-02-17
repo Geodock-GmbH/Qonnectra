@@ -25,6 +25,7 @@
 		{ value: 'wfs', label: 'WFS (QGIS Server)' }
 	];
 
+	// svelte-ignore state_referenced_locally
 	let filters = $state({
 		level: data.filters.level || '',
 		source: data.filters.source || '',
