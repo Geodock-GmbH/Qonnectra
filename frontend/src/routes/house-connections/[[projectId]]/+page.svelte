@@ -27,6 +27,7 @@
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
 	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
+	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte.js';
 
 	import HouseConnectionDrawerTabs from './HouseConnectionDrawerTabs.svelte';
 
@@ -278,7 +279,9 @@
 
 	// Cleanup on destroy
 	onMount(() => {
+		startHeartbeat();
 		return () => {
+			stopHeartbeat();
 			// Remove linked trenches layer
 			if (mapState.olMap && linkedTrenchesLayer) {
 				mapState.olMap.removeLayer(linkedTrenchesLayer);
