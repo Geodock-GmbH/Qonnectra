@@ -1,5 +1,5 @@
 <script>
-	import { IconLayoutList, IconSettings } from '@tabler/icons-svelte';
+	import { IconLayoutList, IconLink, IconSettings } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -11,6 +11,7 @@
 	import CableDiagramEdgeAttributeCard from './CableDiagramEdgeAttributeCard.svelte';
 	import CableDiagramEdgeHandleConfig from './CableDiagramEdgeHandleConfig.svelte';
 	import CableDiagramNodeAttributeCard from './CableDiagramNodeAttributeCard.svelte';
+	import CableMicropipePanel from './CableMicropipePanel.svelte';
 	import NodeSlotConfigPanel from './NodeSlotConfigPanel.svelte';
 	import NodeStructurePanel from './NodeStructurePanel.svelte';
 
@@ -19,6 +20,7 @@
 	let slotConfigPanelOpen = $state(false);
 	let structurePanelOpen = $state(false);
 	let structurePanelSlotConfigUuid = $state(null);
+	let micropipePanelOpen = $state(false);
 
 	// Shared state for slot configurations - allows both panels to stay in sync
 	// Using a reactive object that both panels can read and update
@@ -43,6 +45,7 @@
 		const baseTabs = [{ value: 'attributes', label: m.common_attributes() }];
 		if (type === 'edge') {
 			baseTabs.push({ value: 'handles', label: m.form_handles() });
+			baseTabs.push({ value: 'actions', label: m.form_actions() });
 		}
 		if (type === 'node') {
 			baseTabs.push({ value: 'actions', label: m.form_actions() });
@@ -107,6 +110,17 @@
 					{m.action_configure_structure()}
 				</button>
 			</div>
+		{:else if type === 'edge'}
+			<div class="space-y-4">
+				<button
+					type="button"
+					class="btn preset-filled-primary-500 w-full"
+					onclick={() => (micropipePanelOpen = true)}
+				>
+					<IconLink size={18} />
+					{m.action_link_micropipes()}
+				</button>
+			</div>
 		{/if}
 	{/if}
 
@@ -158,6 +172,25 @@
 			nodeName={data.name}
 			initialSlotConfigUuid={structurePanelSlotConfigUuid}
 			bind:sharedSlotState
+		/>
+	</FloatingPanel>
+{/if}
+
+{#if type === 'edge' && micropipePanelOpen}
+	<FloatingPanel
+		bind:open={micropipePanelOpen}
+		title={m.title_cable_micropipe_linking()}
+		width={1200}
+		height={700}
+		minWidth={800}
+		minHeight={500}
+		maxWidth={1920}
+		maxHeight={1080}
+	>
+		<CableMicropipePanel
+			cableId={data.uuid || data.id}
+			cableName={data.name}
+			onClose={() => (micropipePanelOpen = false)}
 		/>
 	</FloatingPanel>
 {/if}

@@ -1965,3 +1965,46 @@ class CableAtNodeSerializer(serializers.ModelSerializer):
             elif str(obj.uuid_node_end_id) == str(node_uuid):
                 return "end"
         return None
+
+
+class ConduitForTrenchSelectionSerializer(serializers.ModelSerializer):
+    """Serializer for conduits returned when selecting by trenches."""
+
+    conduit_type_name = serializers.CharField(
+        source="conduit_type.conduit_type", read_only=True
+    )
+    has_cable_linkage = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Conduit
+        fields = [
+            "uuid",
+            "name",
+            "conduit_type_name",
+            "has_cable_linkage",
+        ]
+
+    def get_has_cable_linkage(self, obj):
+        """Check if this conduit has any micropipes linked to the current cable."""
+        linked_conduit_ids = self.context.get("linked_conduit_ids")
+        if linked_conduit_ids is not None:
+            return obj.uuid in linked_conduit_ids
+        # Fallback for backwards compatibility
+        cable_id = self.context.get("cable_id")
+        if not cable_id:
+            return False
+        return MicroductCableConnection.objects.filter(
+            uuid_microduct__uuid_conduit=obj, uuid_cable_id=cable_id
+        ).exists()
+
+
+class MicropipeAvailabilitySerializer(serializers.Serializer):
+    """Serializer for micropipe availability across conduits."""
+
+    number = serializers.IntegerField()
+    color_name = serializers.CharField()
+    color_hex = serializers.CharField()
+    available_in = serializers.ListField(child=serializers.UUIDField())
+    available_in_all = serializers.BooleanField()
+    linked_to_cable = serializers.BooleanField()
+    missing_in = serializers.ListField(child=serializers.CharField())

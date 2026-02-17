@@ -260,6 +260,9 @@ CORS_ALLOW_CREDENTIALS = True
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 MEDIA_URL = "/media/"
 
+# Increase max fields for large form submissions (e.g., bulk operations, complex GeoJSON)
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+
 # Configure logging
 LOGGING = {
     "version": 1,
