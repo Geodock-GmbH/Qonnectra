@@ -2,7 +2,12 @@ import { error, fail } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
-import { getLayerExtent, searchFeaturesInProject } from '$lib/server/featureSearch';
+import {
+	getFeatureDetailsByType,
+	getLayerExtent,
+	getTrenchUuidsForConduit,
+	searchFeaturesInProject
+} from '$lib/server/featureSearch';
 
 /**
  * Poll for sync completion with timeout and progress updates
@@ -2625,5 +2630,19 @@ export const actions = {
 		const projectId = data.get('projectId');
 
 		return searchFeaturesInProject(fetch, cookies, searchQuery, projectId);
+	},
+	getFeatureDetails: async ({ request, fetch, cookies }) => {
+		const data = await request.formData();
+		const featureType = data.get('featureType');
+		const featureUuid = data.get('featureUuid');
+		const projectId = data.get('projectId');
+
+		return getFeatureDetailsByType(fetch, cookies, featureType, featureUuid, projectId);
+	},
+	getConduitTrenches: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const conduitUuid = formData.get('conduitUuid');
+
+		return getTrenchUuidsForConduit(fetch, cookies, conduitUuid);
 	}
 };

@@ -150,20 +150,27 @@
 
 		if (labelType === 'trench' && trenchLayer) {
 			applyTrenchStyle();
+			trenchLayer.setProperties({ declutter: enabled });
+			trenchLayer.changed();
+		} else if (labelType === 'conduit' && trenchLayer) {
+			applyTrenchStyle();
 			trenchLayer.changed();
 		} else if (labelType === 'node' && nodeLayer) {
 			const style = createNodeStyleByType(get(nodeTypeStyles), { enabled });
 			nodeLayer.setStyle(style);
+			nodeLayer.setProperties({ declutter: enabled });
 			nodeLayer.changed();
 		} else if (labelType === 'address' && addressLayer) {
 			const style = createAddressStyleWithLabels(DEFAULT_ADDRESS_COLOR, DEFAULT_ADDRESS_SIZE, {
 				enabled
 			});
 			addressLayer.setStyle(style);
+			addressLayer.setProperties({ declutter: enabled });
 			addressLayer.changed();
 		} else if (labelType === 'area' && areaLayer) {
 			const style = createAreaStyleByType(get(areaTypeStyles), { enabled });
 			areaLayer.setStyle(style);
+			areaLayer.setProperties({ declutter: enabled });
 			areaLayer.changed();
 		}
 	}
@@ -179,13 +186,20 @@
 		const surfaceStyles = get(trenchSurfaceStyles);
 		const constructionStyles = get(trenchConstructionTypeStyles);
 		const labelConfig = { enabled: get(labelVisibilityConfig).trench || false };
+		const conduitLabelConfig = { enabled: get(labelVisibilityConfig).conduit || false };
 
 		let baseStyle;
 		if (mode === 'none' || mode === undefined) {
-			baseStyle = createTrenchStyle(color, labelConfig, {});
+			baseStyle = createTrenchStyle(color, labelConfig, conduitLabelConfig);
 		} else {
 			const attributeStyles = mode === 'surface' ? surfaceStyles : constructionStyles;
-			baseStyle = createTrenchStyleByAttribute(attributeStyles, mode, color, labelConfig, {});
+			baseStyle = createTrenchStyleByAttribute(
+				attributeStyles,
+				mode,
+				color,
+				labelConfig,
+				conduitLabelConfig
+			);
 		}
 
 		// Wrap with selection handling
