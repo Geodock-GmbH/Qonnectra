@@ -275,6 +275,7 @@ export class CableMicropipeManager {
 				description: m.message_connection_deleted_successfully()
 			});
 			await this.fetchConduitsForTrenches();
+			this.goToStep1();
 		} catch (error) {
 			console.error('Error removing linkage:', error);
 			globalToaster.error({

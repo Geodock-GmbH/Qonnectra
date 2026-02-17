@@ -25,6 +25,7 @@
 		areaTypeStyles,
 		basemapTheme,
 		labelVisibilityConfig,
+		layerTreeExpanded,
 		layerVisibilityConfig,
 		nodeTypeStyles,
 		trenchConstructionTypeStyles,
@@ -498,6 +499,13 @@
 	}
 
 	/**
+	 * Toggle the layer tree expanded state (desktop only)
+	 */
+	function toggleLayerTreeExpanded() {
+		$layerTreeExpanded = !$layerTreeExpanded;
+	}
+
+	/**
 	 * Handle touch start for drag gesture
 	 * @param {TouchEvent} e - Touch event
 	 */
@@ -839,279 +847,297 @@
 
 <!-- LayerVisibilityTree: Desktop sidebar variant -->
 <div
-	class="hidden sm:flex sm:flex-col w-72 max-h-[calc(100vh-12rem)] p-3 border border-surface-200-800 bg-surface-50-950 rounded-lg shadow-md"
+	class="hidden sm:flex sm:flex-col w-72 p-3 border border-surface-200-800 bg-surface-50-950 rounded-lg shadow-md"
+	class:max-h-[calc(100vh-12rem)]={$layerTreeExpanded}
 >
 	<!-- Header -->
-	<div class="flex items-center justify-between mb-3 pb-2 border-surface-200-800 flex-shrink-0">
-		<p class="text-sm font-semibold text-surface-contrast-100-900">{m.form_layer()}</p>
+	<div class="flex items-center justify-between flex-shrink-0">
+		<button
+			class="flex items-center gap-1.5 hover:bg-surface-100-800 rounded px-1 py-0.5 transition-colors"
+			onclick={toggleLayerTreeExpanded}
+			aria-label={$layerTreeExpanded ? 'Collapse layer tree' : 'Expand layer tree'}
+		>
+			{#if $layerTreeExpanded}
+				<IconChevronDown size="16" class="text-surface-900-100" />
+			{:else}
+				<IconChevronRight size="16" class="text-surface-900-100" />
+			{/if}
+			<p class="text-sm font-semibold text-surface-contrast-100-900">{m.form_layer()}</p>
+		</button>
 	</div>
 
 	<!-- Layer list -->
-	<div class="space-y-1.5 overflow-y-auto flex-1 min-h-0">
-		{#each Array.from(layerVisibility.entries()) as [layerId, layerInfo]}
-			<div>
-				<div
-					class="flex items-center gap-1.5 py-1 rounded hover:bg-surface-100-800 transition-colors"
-				>
-					<!-- Expand/Collapse button -->
-					{#if layerId === 'node-layer' && nodeTypes.length > 0}
+	{#if $layerTreeExpanded}
+		<div
+			class="space-y-1.5 overflow-y-auto flex-1 min-h-0 mt-3 pt-2 border-t border-surface-200-800"
+		>
+			{#each Array.from(layerVisibility.entries()) as [layerId, layerInfo]}
+				<div>
+					<div
+						class="flex items-center gap-1.5 py-1 rounded hover:bg-surface-100-800 transition-colors"
+					>
+						<!-- Expand/Collapse button -->
+						{#if layerId === 'node-layer' && nodeTypes.length > 0}
+							<button
+								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+								onclick={toggleNodeSubtypes}
+								aria-label={isNodeSubtypesExpanded ? 'Collapse' : 'Expand'}
+							>
+								{#if isNodeSubtypesExpanded}
+									<IconChevronDown size="14" class="text-surface-900-100" />
+								{:else}
+									<IconChevronRight size="14" class="text-surface-900-100" />
+								{/if}
+							</button>
+						{:else if layerId === 'trench-layer' && trenchTypes.length > 0}
+							<button
+								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+								onclick={toggleTrenchSubtypes}
+								aria-label={isTrenchSubtypesExpanded ? 'Collapse' : 'Expand'}
+							>
+								{#if isTrenchSubtypesExpanded}
+									<IconChevronDown size="14" class="text-surface-900-100" />
+								{:else}
+									<IconChevronRight size="14" class="text-surface-900-100" />
+								{/if}
+							</button>
+						{:else if layerId === 'area-layer' && areaTypes.length > 0}
+							<button
+								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+								onclick={toggleAreaSubtypes}
+								aria-label={isAreaSubtypesExpanded ? 'Collapse' : 'Expand'}
+							>
+								{#if isAreaSubtypesExpanded}
+									<IconChevronDown size="14" class="text-surface-900-100" />
+								{:else}
+									<IconChevronRight size="14" class="text-surface-900-100" />
+								{/if}
+							</button>
+						{:else}
+							<span class="w-5 h-5 flex-shrink-0"></span>
+						{/if}
+
+						<!-- Layer name -->
+						<span class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0">
+							{layerInfo.name}
+						</span>
+
+						<!-- Zoom button -->
+						{#if getExtentLayerType(layerId)}
+							<button
+								class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
+								onclick={() => onZoomToExtent({ layerId, layerType: getExtentLayerType(layerId) })}
+								aria-label="Zoom to extent"
+								title="Zoom to extent"
+							>
+								<IconZoomScan size={24} class="text-surface-900-100" />
+							</button>
+						{:else}
+							<span class="w-6 flex-shrink-0"></span>
+						{/if}
+
+						<!-- Label button -->
+						{#if getLabelConfigKey(layerId)}
+							<button
+								class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
+								onclick={() => toggleLabelVisibility(layerId)}
+								aria-label={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
+								title={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
+							>
+								{#if isLabelEnabled(layerId)}
+									<IconLabelFilled size={24} class="text-primary-500" />
+								{:else}
+									<IconLabel size={24} class="text-surface-900-100" />
+								{/if}
+							</button>
+						{:else}
+							<span class="w-6 flex-shrink-0"></span>
+						{/if}
+
+						<!-- Theme toggle for OSM base layer (only when using vector tiles) -->
+						{#if layerId === 'osm-base-layer' && !usingFallbackOSM}
+							<button
+								class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
+								onclick={toggleBasemapTheme}
+								aria-label={$basemapTheme === 'light'
+									? 'Switch to dark theme'
+									: 'Switch to light theme'}
+								title={$basemapTheme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
+							>
+								{#if $basemapTheme === 'light'}
+									<IconMoon size={24} class="text-surface-900-100" />
+								{:else}
+									<IconSun size={24} class="text-yellow-500" />
+								{/if}
+							</button>
+						{/if}
+
+						<!-- Visibility button -->
 						<button
-							class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
-							onclick={toggleNodeSubtypes}
-							aria-label={isNodeSubtypesExpanded ? 'Collapse' : 'Expand'}
+							class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
+							onclick={() => toggleLayerVisibility(layerId)}
+							aria-label={layerInfo.visible ? 'Hide layer' : 'Show layer'}
+							title={layerInfo.visible ? 'Hide layer' : 'Show layer'}
 						>
-							{#if isNodeSubtypesExpanded}
-								<IconChevronDown size="14" class="text-surface-900-100" />
+							{#if layerInfo.visible}
+								<IconEye size={24} class="text-primary-500" />
 							{:else}
-								<IconChevronRight size="14" class="text-surface-900-100" />
+								<IconEyeOff size={24} class="text-surface-900-100" />
 							{/if}
 						</button>
-					{:else if layerId === 'trench-layer' && trenchTypes.length > 0}
-						<button
-							class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
-							onclick={toggleTrenchSubtypes}
-							aria-label={isTrenchSubtypesExpanded ? 'Collapse' : 'Expand'}
-						>
-							{#if isTrenchSubtypesExpanded}
-								<IconChevronDown size="14" class="text-surface-900-100" />
-							{:else}
-								<IconChevronRight size="14" class="text-surface-900-100" />
-							{/if}
-						</button>
-					{:else if layerId === 'area-layer' && areaTypes.length > 0}
-						<button
-							class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
-							onclick={toggleAreaSubtypes}
-							aria-label={isAreaSubtypesExpanded ? 'Collapse' : 'Expand'}
-						>
-							{#if isAreaSubtypesExpanded}
-								<IconChevronDown size="14" class="text-surface-900-100" />
-							{:else}
-								<IconChevronRight size="14" class="text-surface-900-100" />
-							{/if}
-						</button>
-					{:else}
+					</div>
+
+					<!-- Node type subtypes -->
+					{#if layerId === 'node-layer' && isNodeSubtypesExpanded && nodeTypes.length > 0}
+						<div class="ml-6 mt-1 space-y-1 border-l-2 border-surface-200-700 pl-2">
+							{#each nodeTypes as nodeType}
+								{@const visible = isNodeTypeVisible(nodeType.node_type)}
+								{@const color = getNodeTypeColor(nodeType.node_type)}
+								<div
+									class="flex items-center justify-between py-1 px-1 rounded hover:bg-surface-100-800 transition-colors"
+								>
+									<div class="flex items-center gap-2 flex-1 min-w-0">
+										<span
+											class="w-3 h-3 rounded-full flex-shrink-0 border border-surface-300-600"
+											style="background-color: {color};"
+										></span>
+										<span
+											class="text-xs text-surface-contrast-100-900 truncate"
+											title={nodeType.node_type}
+										>
+											{nodeType.node_type}
+										</span>
+									</div>
+									<button
+										class="p-1 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+										onclick={() => toggleNodeTypeVisibility(nodeType.node_type)}
+										aria-label={visible ? 'Hide' : 'Show'}
+									>
+										{#if visible}
+											<IconEye size={24} class="text-primary-500" />
+										{:else}
+											<IconEyeOff size={24} class="text-surface-900-100" />
+										{/if}
+									</button>
+								</div>
+							{/each}
+						</div>
+					{/if}
+
+					<!-- Trench type subtypes -->
+					{#if layerId === 'trench-layer' && isTrenchSubtypesExpanded && trenchTypes.length > 0}
+						<div class="ml-6 mt-1 space-y-1 border-l-2 border-surface-200-700 pl-2">
+							{#each trenchTypes as trenchType (trenchType.id)}
+								{@const typeName = getTrenchTypeName(trenchType)}
+								{@const visible = isTrenchTypeVisible(typeName)}
+								{@const color = getTrenchTypeColor(typeName)}
+								<div
+									class="flex items-center justify-between py-1 px-1 rounded hover:bg-surface-100-800 transition-colors"
+								>
+									<div class="flex items-center gap-2 flex-1 min-w-0">
+										<span
+											class="w-4 h-1 flex-shrink-0 rounded-sm"
+											style="background-color: {color};"
+										></span>
+										<span class="text-xs text-surface-contrast-100-900 truncate" title={typeName}>
+											{typeName}
+										</span>
+									</div>
+									<button
+										class="p-1 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+										onclick={() => toggleTrenchTypeVisibility(typeName)}
+										aria-label={visible ? 'Hide' : 'Show'}
+									>
+										{#if visible}
+											<IconEye size={24} class="text-primary-500" />
+										{:else}
+											<IconEyeOff size={24} class="text-surface-900-100" />
+										{/if}
+									</button>
+								</div>
+							{/each}
+						</div>
+					{/if}
+
+					<!-- Area type subtypes -->
+					{#if layerId === 'area-layer' && isAreaSubtypesExpanded && areaTypes.length > 0}
+						<div class="ml-6 mt-1 space-y-1 border-l-2 border-surface-200-700 pl-2">
+							{#each areaTypes as areaType (areaType.id)}
+								{@const visible = isAreaTypeVisible(areaType.area_type)}
+								{@const color = getAreaTypeColor(areaType.area_type)}
+								<div
+									class="flex items-center justify-between py-1 px-1 rounded hover:bg-surface-100-800 transition-colors"
+								>
+									<div class="flex items-center gap-2 flex-1 min-w-0">
+										<span
+											class="w-3 h-3 flex-shrink-0 rounded-sm border border-surface-300-600"
+											style="background-color: {color}; opacity: 0.6;"
+										></span>
+										<span
+											class="text-xs text-surface-contrast-100-900 truncate"
+											title={areaType.area_type}
+										>
+											{areaType.area_type}
+										</span>
+									</div>
+									<button
+										class="p-1 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+										onclick={() => toggleAreaTypeVisibility(areaType.area_type)}
+										aria-label={visible ? 'Hide' : 'Show'}
+									>
+										{#if visible}
+											<IconEye size={24} class="text-primary-500" />
+										{:else}
+											<IconEyeOff size={24} class="text-surface-900-100" />
+										{/if}
+									</button>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
+
+				<!-- Conduit Labels - separate entry after trench layer -->
+				{#if layerId === 'trench-layer'}
+					<div
+						class="flex items-center gap-1.5 py-1 rounded hover:bg-surface-100-800 transition-colors"
+					>
+						<!-- Spacer for expand button -->
 						<span class="w-5 h-5 flex-shrink-0"></span>
-					{/if}
 
-					<!-- Layer name -->
-					<span class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0">
-						{layerInfo.name}
-					</span>
+						<!-- Layer name -->
+						<span class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0">
+							{m.form_conduit({ count: 1 })}
+						</span>
 
-					<!-- Zoom button -->
-					{#if getExtentLayerType(layerId)}
-						<button
-							class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
-							onclick={() => onZoomToExtent({ layerId, layerType: getExtentLayerType(layerId) })}
-							aria-label="Zoom to extent"
-							title="Zoom to extent"
-						>
-							<IconZoomScan size={24} class="text-surface-900-100" />
-						</button>
-					{:else}
+						<!-- Spacer for zoom button column -->
 						<span class="w-6 flex-shrink-0"></span>
-					{/if}
 
-					<!-- Label button -->
-					{#if getLabelConfigKey(layerId)}
+						<!-- Label button -->
 						<button
 							class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
-							onclick={() => toggleLabelVisibility(layerId)}
-							aria-label={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
-							title={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
+							onclick={toggleConduitLabelVisibility}
+							aria-label={isConduitLabelEnabled() ? 'Hide conduit labels' : 'Show conduit labels'}
+							title={isConduitLabelEnabled() ? 'Hide conduit labels' : 'Show conduit labels'}
 						>
-							{#if isLabelEnabled(layerId)}
-								<IconLabelFilled size={24} class="text-primary-500" />
+							{#if isConduitLabelEnabled()}
+								<IconLabelFilled size="24" class="text-primary-500" />
 							{:else}
-								<IconLabel size={24} class="text-surface-900-100" />
+								<IconLabel size="24" class="text-surface-900-100" />
 							{/if}
 						</button>
-					{:else}
+
+						<!-- Spacer for visibility button column -->
 						<span class="w-6 flex-shrink-0"></span>
-					{/if}
-
-					<!-- Theme toggle for OSM base layer (only when using vector tiles) -->
-					{#if layerId === 'osm-base-layer' && !usingFallbackOSM}
-						<button
-							class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
-							onclick={toggleBasemapTheme}
-							aria-label={$basemapTheme === 'light'
-								? 'Switch to dark theme'
-								: 'Switch to light theme'}
-							title={$basemapTheme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
-						>
-							{#if $basemapTheme === 'light'}
-								<IconMoon size={24} class="text-surface-900-100" />
-							{:else}
-								<IconSun size={24} class="text-yellow-500" />
-							{/if}
-						</button>
-					{/if}
-
-					<!-- Visibility button -->
-					<button
-						class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
-						onclick={() => toggleLayerVisibility(layerId)}
-						aria-label={layerInfo.visible ? 'Hide layer' : 'Show layer'}
-						title={layerInfo.visible ? 'Hide layer' : 'Show layer'}
-					>
-						{#if layerInfo.visible}
-							<IconEye size={24} class="text-primary-500" />
-						{:else}
-							<IconEyeOff size={24} class="text-surface-900-100" />
-						{/if}
-					</button>
-				</div>
-
-				<!-- Node type subtypes -->
-				{#if layerId === 'node-layer' && isNodeSubtypesExpanded && nodeTypes.length > 0}
-					<div class="ml-6 mt-1 space-y-1 border-l-2 border-surface-200-700 pl-2">
-						{#each nodeTypes as nodeType}
-							{@const visible = isNodeTypeVisible(nodeType.node_type)}
-							{@const color = getNodeTypeColor(nodeType.node_type)}
-							<div
-								class="flex items-center justify-between py-1 px-1 rounded hover:bg-surface-100-800 transition-colors"
-							>
-								<div class="flex items-center gap-2 flex-1 min-w-0">
-									<span
-										class="w-3 h-3 rounded-full flex-shrink-0 border border-surface-300-600"
-										style="background-color: {color};"
-									></span>
-									<span
-										class="text-xs text-surface-contrast-100-900 truncate"
-										title={nodeType.node_type}
-									>
-										{nodeType.node_type}
-									</span>
-								</div>
-								<button
-									class="p-1 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
-									onclick={() => toggleNodeTypeVisibility(nodeType.node_type)}
-									aria-label={visible ? 'Hide' : 'Show'}
-								>
-									{#if visible}
-										<IconEye size={24} class="text-primary-500" />
-									{:else}
-										<IconEyeOff size={24} class="text-surface-900-100" />
-									{/if}
-								</button>
-							</div>
-						{/each}
 					</div>
 				{/if}
+			{/each}
 
-				<!-- Trench type subtypes -->
-				{#if layerId === 'trench-layer' && isTrenchSubtypesExpanded && trenchTypes.length > 0}
-					<div class="ml-6 mt-1 space-y-1 border-l-2 border-surface-200-700 pl-2">
-						{#each trenchTypes as trenchType (trenchType.id)}
-							{@const typeName = getTrenchTypeName(trenchType)}
-							{@const visible = isTrenchTypeVisible(typeName)}
-							{@const color = getTrenchTypeColor(typeName)}
-							<div
-								class="flex items-center justify-between py-1 px-1 rounded hover:bg-surface-100-800 transition-colors"
-							>
-								<div class="flex items-center gap-2 flex-1 min-w-0">
-									<span class="w-4 h-1 flex-shrink-0 rounded-sm" style="background-color: {color};"
-									></span>
-									<span class="text-xs text-surface-contrast-100-900 truncate" title={typeName}>
-										{typeName}
-									</span>
-								</div>
-								<button
-									class="p-1 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
-									onclick={() => toggleTrenchTypeVisibility(typeName)}
-									aria-label={visible ? 'Hide' : 'Show'}
-								>
-									{#if visible}
-										<IconEye size={24} class="text-primary-500" />
-									{:else}
-										<IconEyeOff size={24} class="text-surface-900-100" />
-									{/if}
-								</button>
-							</div>
-						{/each}
-					</div>
-				{/if}
-
-				<!-- Area type subtypes -->
-				{#if layerId === 'area-layer' && isAreaSubtypesExpanded && areaTypes.length > 0}
-					<div class="ml-6 mt-1 space-y-1 border-l-2 border-surface-200-700 pl-2">
-						{#each areaTypes as areaType (areaType.id)}
-							{@const visible = isAreaTypeVisible(areaType.area_type)}
-							{@const color = getAreaTypeColor(areaType.area_type)}
-							<div
-								class="flex items-center justify-between py-1 px-1 rounded hover:bg-surface-100-800 transition-colors"
-							>
-								<div class="flex items-center gap-2 flex-1 min-w-0">
-									<span
-										class="w-3 h-3 flex-shrink-0 rounded-sm border border-surface-300-600"
-										style="background-color: {color}; opacity: 0.6;"
-									></span>
-									<span
-										class="text-xs text-surface-contrast-100-900 truncate"
-										title={areaType.area_type}
-									>
-										{areaType.area_type}
-									</span>
-								</div>
-								<button
-									class="p-1 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
-									onclick={() => toggleAreaTypeVisibility(areaType.area_type)}
-									aria-label={visible ? 'Hide' : 'Show'}
-								>
-									{#if visible}
-										<IconEye size={24} class="text-primary-500" />
-									{:else}
-										<IconEyeOff size={24} class="text-surface-900-100" />
-									{/if}
-								</button>
-							</div>
-						{/each}
-					</div>
-				{/if}
-			</div>
-
-			<!-- Conduit Labels - separate entry after trench layer -->
-			{#if layerId === 'trench-layer'}
-				<div
-					class="flex items-center gap-1.5 py-1 rounded hover:bg-surface-100-800 transition-colors"
-				>
-					<!-- Spacer for expand button -->
-					<span class="w-5 h-5 flex-shrink-0"></span>
-
-					<!-- Layer name -->
-					<span class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0">
-						{m.form_conduit({ count: 1 })}
-					</span>
-
-					<!-- Spacer for zoom button column -->
-					<span class="w-6 flex-shrink-0"></span>
-
-					<!-- Label button -->
-					<button
-						class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
-						onclick={toggleConduitLabelVisibility}
-						aria-label={isConduitLabelEnabled() ? 'Hide conduit labels' : 'Show conduit labels'}
-						title={isConduitLabelEnabled() ? 'Hide conduit labels' : 'Show conduit labels'}
-					>
-						{#if isConduitLabelEnabled()}
-							<IconLabelFilled size="24" class="text-primary-500" />
-						{:else}
-							<IconLabel size="24" class="text-surface-900-100" />
-						{/if}
-					</button>
-
-					<!-- Spacer for visibility button column -->
-					<span class="w-6 flex-shrink-0"></span>
-				</div>
+			{#if layerVisibility.size === 0}
+				<p class="text-xs text-surface-400 italic text-center py-3">
+					{m.form_no_layers_available()}
+				</p>
 			{/if}
-		{/each}
-
-		{#if layerVisibility.size === 0}
-			<p class="text-xs text-surface-400 italic text-center py-3">
-				{m.form_no_layers_available()}
-			</p>
-		{/if}
-	</div>
+		</div>
+	{/if}
 </div>

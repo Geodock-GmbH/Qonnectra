@@ -7,10 +7,12 @@
 		IconArrowLeft,
 		IconCheck,
 		IconLink,
+		IconLinkOff,
 		IconLoader,
 		IconSquare,
 		IconSquareCheck
 	} from '@tabler/icons-svelte';
+
 	import { m } from '$lib/paraglide/messages';
 
 	import { CableMicropipeManager } from '$lib/classes/CableMicropipeManager.svelte.js';
@@ -358,11 +360,12 @@
 	</div>
 
 	<!-- Right: Selection Panel -->
-	<div class="w-80 shrink-0 flex flex-col border-l border-surface-200-800 bg-surface-50-950 overflow-hidden">
+	<div
+		class="w-96 shrink-0 flex flex-col border-l border-surface-200-800 bg-surface-50-950 overflow-hidden"
+	>
 		<!-- Header -->
 		<div class="shrink-0 p-4 border-b border-surface-200-800">
-			<h3 class="text-lg font-semibold">{m.title_cable_micropipe_linking()}</h3>
-			<p class="text-sm text-surface-600-300">{cableName}</p>
+			<h3 class="text-lg font-semibold">{cableName}</h3>
 		</div>
 
 		<!-- Step indicator -->
@@ -370,7 +373,9 @@
 			<button
 				type="button"
 				class="flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors
-					{manager.step === 1 ? 'bg-primary-500 text-white' : 'bg-surface-200-800 text-surface-600-300 hover:bg-surface-300-700'}"
+					{manager.step === 1
+					? 'bg-primary-500 text-white'
+					: 'bg-surface-200-800 text-surface-600-300 hover:bg-surface-300-700'}"
 				onclick={() => manager.goToStep1()}
 			>
 				<span class="text-sm font-medium">1</span>
@@ -381,7 +386,9 @@
 				type="button"
 				class="flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors
 					{manager.step === 2 ? 'bg-primary-500 text-white' : 'bg-surface-200-800 text-surface-600-300'}
-					{manager.selectedConduitIds.size === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-surface-300-700'}"
+					{manager.selectedConduitIds.size === 0
+					? 'opacity-50 cursor-not-allowed'
+					: 'hover:bg-surface-300-700'}"
 				onclick={() => manager.selectedConduitIds.size > 0 && manager.goToStep2()}
 				disabled={manager.selectedConduitIds.size === 0}
 			>
@@ -524,12 +531,26 @@
 										</td>
 										<td class="p-2 text-center">
 											{#if mp.linked_to_cable}
-												<span
-													class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success-500/20 text-success-700 dark:text-success-300 text-xs"
-												>
-													<IconLink class="size-3" />
-													{m.message_linked()}
-												</span>
+												<div class="flex items-center justify-center gap-1">
+													<span
+														class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success-500/20 text-success-700 dark:text-success-300 text-xs"
+													>
+														<IconLink class="size-3" />
+														{m.message_linked()}
+													</span>
+													<button
+														type="button"
+														class="p-1 rounded hover:bg-error-500/20 text-error-500 transition-colors"
+														title={m.action_remove_linkage()}
+														onclick={(e) => {
+															e.stopPropagation();
+															manager.removeLinkage(mp.number, mp.available_in);
+														}}
+														disabled={manager.saving}
+													>
+														<IconLinkOff class="size-4" />
+													</button>
+												</div>
 											{:else if isSelected}
 												<IconSquareCheck class="size-5 text-primary-500 mx-auto" />
 											{:else}

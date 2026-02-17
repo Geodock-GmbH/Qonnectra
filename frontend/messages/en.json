@@ -32,6 +32,7 @@
 	"action_merge_ports": "Merge ports",
 	"action_refresh": "Refresh",
 	"action_regenerate_id": "Regenerate ID",
+	"action_remove_linkage": "Remove linkage",
 	"action_rename": "Rename",
 	"action_routing_mode_disabled": "Routing mode disabled",
 	"action_routing_mode_enabled": "Routing mode enabled",

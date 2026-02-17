@@ -32,6 +32,7 @@
 	"action_merge_ports": "Ports zusammenführen",
 	"action_refresh": "Aktualisieren",
 	"action_regenerate_id": "ID neu generieren",
+	"action_remove_linkage": "Verknüpfung entfernen",
 	"action_rename": "Umbenennen",
 	"action_routing_mode_disabled": "Routing-Modus deaktiviert",
 	"action_routing_mode_enabled": "Routing-Modus aktiviert",
