@@ -4398,17 +4398,30 @@ class ConduitsByTrenchesView(APIView):
             try:
                 uuid.UUID(cable_id)
             except ValueError:
-                cable_id = None
+                return Response(
+                    {"error": "Invalid cable_id format"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         if not trench_ids:
             return Response([])
 
-        trench_uuid_list = [
-            uuid_str.strip() for uuid_str in trench_ids.split(",") if uuid_str.strip()
-        ]
+        # Validate each trench UUID
+        trench_uuid_list = []
+        for uuid_str in trench_ids.split(","):
+            uuid_str = uuid_str.strip()
+            if uuid_str:
+                try:
+                    uuid.UUID(uuid_str)
+                    trench_uuid_list.append(uuid_str)
+                except ValueError:
+                    return Response(
+                        {"error": f"Invalid trench UUID format: {uuid_str}"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
         # Get unique conduits from TrenchConduitConnection
-        conduit_ids = (
+        conduit_ids = list(
             TrenchConduitConnection.objects.filter(uuid_trench_id__in=trench_uuid_list)
             .values_list("uuid_conduit_id", flat=True)
             .distinct()
@@ -4418,8 +4431,20 @@ class ConduitsByTrenchesView(APIView):
             "conduit_type"
         )
 
+        # Prefetch linked conduit IDs to avoid N+1 queries
+        linked_conduit_ids = set()
+        if cable_id:
+            linked_conduit_ids = set(
+                MicroductCableConnection.objects.filter(
+                    uuid_cable_id=cable_id,
+                    uuid_microduct__uuid_conduit_id__in=conduit_ids,
+                ).values_list("uuid_microduct__uuid_conduit_id", flat=True)
+            )
+
         serializer = ConduitForTrenchSelectionSerializer(
-            conduits, many=True, context={"cable_id": cable_id}
+            conduits,
+            many=True,
+            context={"cable_id": cable_id, "linked_conduit_ids": linked_conduit_ids},
         )
         return Response(serializer.data)
 
@@ -4438,14 +4463,27 @@ class MicropipesByConduitsView(APIView):
             try:
                 uuid.UUID(cable_id)
             except ValueError:
-                cable_id = None
+                return Response(
+                    {"error": "Invalid cable_id format"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         if not conduit_ids:
             return Response([])
 
-        conduit_uuid_list = [
-            uuid_str.strip() for uuid_str in conduit_ids.split(",") if uuid_str.strip()
-        ]
+        # Validate each conduit UUID
+        conduit_uuid_list = []
+        for uuid_str in conduit_ids.split(","):
+            uuid_str = uuid_str.strip()
+            if uuid_str:
+                try:
+                    uuid.UUID(uuid_str)
+                    conduit_uuid_list.append(uuid_str)
+                except ValueError:
+                    return Response(
+                        {"error": f"Invalid conduit UUID format: {uuid_str}"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
         conduits = Conduit.objects.filter(uuid__in=conduit_uuid_list)
         conduit_map = {str(c.uuid): c.name for c in conduits}
 
