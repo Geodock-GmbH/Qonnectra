@@ -24,6 +24,7 @@
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte.js';
 
 	import MapDrawerTabs from './MapDrawerTabs.svelte';
 
@@ -180,7 +181,10 @@
 	 * Cleanup on component destroy
 	 */
 	onMount(() => {
+		startHeartbeat();
+
 		return () => {
+			stopHeartbeat();
 			mapState.cleanup();
 			selectionManager.cleanup();
 			popupManager.cleanup(mapState.olMap);
