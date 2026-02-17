@@ -232,7 +232,10 @@
 									{/if}
 								</td>
 								<td class="py-3 px-4">{log.username || '-'}</td>
-								<td class="py-3 px-4 max-w-2xl break-words whitespace-normal" title={log.message}>
+								<td
+									class="py-3 px-4 max-w-2xl wrap-break-words whitespace-normal break-all"
+									title={log.message}
+								>
 									{log.message}
 								</td>
 							</tr>
