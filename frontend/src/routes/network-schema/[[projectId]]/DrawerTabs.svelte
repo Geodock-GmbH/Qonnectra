@@ -176,7 +176,7 @@
 	</FloatingPanel>
 {/if}
 
-{#if type === 'edge'}
+{#if type === 'edge' && micropipePanelOpen}
 	<FloatingPanel
 		bind:open={micropipePanelOpen}
 		title={m.title_cable_micropipe_linking()}

@@ -1,5 +1,5 @@
 <script>
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { page } from '$app/stores';
 	import {
@@ -11,10 +11,9 @@
 		IconSquare,
 		IconSquareCheck
 	} from '@tabler/icons-svelte';
+	import VectorTileLayer from 'ol/layer/VectorTile.js';
 
 	import { m } from '$lib/paraglide/messages';
-
-	import VectorTileLayer from 'ol/layer/VectorTile.js';
 
 	import { CableMicropipeManager } from '$lib/classes/CableMicropipeManager.svelte.js';
 	import { MapState } from '$lib/classes/MapState.svelte.js';
@@ -50,9 +49,21 @@
 	const mapState = new MapState(projectId);
 	const layersInitialized = mapState.initializeLayers();
 
-	onMount(() => {
-		if (cableId && cableName) {
+	/** @type {string|null} */
+	let previousCableId = $state(null);
+
+	/**
+	 * Reinitialize when cableId changes (like NodeStructurePanel does with nodeUuid)
+	 */
+	$effect(() => {
+		if (cableId && cableId !== previousCableId) {
+			previousCableId = cableId;
 			manager.initialize(cableId, cableName);
+			// Clear map selection when switching cables
+			selectedFeatureIds = new SvelteSet();
+			if (selectionLayer) {
+				selectionLayer.changed();
+			}
 		}
 	});
 
