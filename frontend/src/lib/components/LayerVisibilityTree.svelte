@@ -603,7 +603,7 @@
 								<!-- Expand/collapse button -->
 								{#if layerId === 'node-layer' && nodeTypes.length > 0}
 									<button
-										class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-200-800 transition-colors flex-shrink-0"
+										class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-200-800 transition-colors shrink-0"
 										onclick={toggleNodeSubtypes}
 										aria-label={isNodeSubtypesExpanded ? 'Collapse' : 'Expand'}
 									>
@@ -615,7 +615,7 @@
 									</button>
 								{:else if layerId === 'trench-layer' && trenchTypes.length > 0}
 									<button
-										class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-200-800 transition-colors flex-shrink-0"
+										class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-200-800 transition-colors shrink-0"
 										onclick={toggleTrenchSubtypes}
 										aria-label={isTrenchSubtypesExpanded ? 'Collapse' : 'Expand'}
 									>
@@ -627,7 +627,7 @@
 									</button>
 								{:else if layerId === 'area-layer' && areaTypes.length > 0}
 									<button
-										class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-200-800 transition-colors flex-shrink-0"
+										class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-200-800 transition-colors shrink-0"
 										onclick={toggleAreaSubtypes}
 										aria-label={isAreaSubtypesExpanded ? 'Collapse' : 'Expand'}
 									>
@@ -638,7 +638,7 @@
 										{/if}
 									</button>
 								{:else}
-									<span class="w-8 h-8 flex-shrink-0"></span>
+									<span class="w-8 h-8 shrink-0"></span>
 								{/if}
 
 								<span class="text-base font-medium text-surface-contrast-100-900 truncate">
@@ -646,7 +646,7 @@
 								</span>
 							</div>
 
-							<div class="flex items-center gap-1 flex-shrink-0">
+							<div class="flex items-center gap-1 shrink-0">
 								{#if getExtentLayerType(layerId)}
 									<button
 										class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all"
@@ -714,7 +714,7 @@
 									>
 										<div class="flex items-center gap-3 flex-1 min-w-0">
 											<span
-												class="w-4 h-4 rounded-full flex-shrink-0 border-2 border-surface-300-600"
+												class="w-4 h-4 rounded-full shrink-0 border-2 border-surface-300-600"
 												style="background-color: {color};"
 											></span>
 											<span class="text-sm text-surface-contrast-100-900 truncate">
@@ -722,7 +722,7 @@
 											</span>
 										</div>
 										<button
-											class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all flex-shrink-0"
+											class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all shrink-0"
 											onclick={() => toggleNodeTypeVisibility(nodeType.node_type)}
 											aria-label={visible ? 'Hide' : 'Show'}
 										>
@@ -748,7 +748,7 @@
 									>
 										<div class="flex items-center gap-3 flex-1 min-w-0">
 											<span
-												class="w-5 h-1.5 flex-shrink-0 rounded-full"
+												class="w-5 h-1.5 shrink-0 rounded-full"
 												style="background-color: {color};"
 											></span>
 											<span class="text-sm text-surface-contrast-100-900 truncate">
@@ -756,7 +756,7 @@
 											</span>
 										</div>
 										<button
-											class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all flex-shrink-0"
+											class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all shrink-0"
 											onclick={() => toggleTrenchTypeVisibility(typeName)}
 											aria-label={visible ? 'Hide' : 'Show'}
 										>
@@ -781,7 +781,7 @@
 									>
 										<div class="flex items-center gap-3 flex-1 min-w-0">
 											<span
-												class="w-4 h-4 flex-shrink-0 rounded border-2 border-surface-300-600"
+												class="w-4 h-4 shrink-0 rounded border-2 border-surface-300-600"
 												style="background-color: {color}; opacity: 0.6;"
 											></span>
 											<span class="text-sm text-surface-contrast-100-900 truncate">
@@ -789,7 +789,7 @@
 											</span>
 										</div>
 										<button
-											class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all flex-shrink-0"
+											class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all shrink-0"
 											onclick={() => toggleAreaTypeVisibility(areaType.area_type)}
 											aria-label={visible ? 'Hide' : 'Show'}
 										>
@@ -810,14 +810,14 @@
 						<div class="bg-surface-100-900 rounded-xl overflow-hidden">
 							<div class="flex items-center justify-between p-3">
 								<div class="flex items-center gap-3 flex-1 min-w-0">
-									<span class="w-8 h-8 flex-shrink-0"></span>
+									<span class="w-8 h-8 shrink-0"></span>
 									<span class="text-base font-medium text-surface-contrast-100-900 truncate">
 										{m.form_conduit({ count: 1 })}
 									</span>
 								</div>
-								<div class="flex items-center gap-1 flex-shrink-0">
+								<div class="flex items-center gap-1 shrink-0">
 									<button
-										class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all flex-shrink-0"
+										class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all shrink-0"
 										onclick={toggleConduitLabelVisibility}
 										aria-label={isConduitLabelEnabled()
 											? 'Hide conduit labels'
@@ -851,7 +851,7 @@
 	class:max-h-[calc(100vh-12rem)]={$layerTreeExpanded}
 >
 	<!-- Header -->
-	<div class="flex items-center justify-between flex-shrink-0">
+	<div class="flex items-center justify-between shrink-0">
 		<button
 			class="flex items-center gap-1.5 hover:bg-surface-100-800 rounded px-1 py-0.5 transition-colors"
 			onclick={toggleLayerTreeExpanded}
@@ -879,7 +879,7 @@
 						<!-- Expand/Collapse button -->
 						{#if layerId === 'node-layer' && nodeTypes.length > 0}
 							<button
-								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors shrink-0"
 								onclick={toggleNodeSubtypes}
 								aria-label={isNodeSubtypesExpanded ? 'Collapse' : 'Expand'}
 							>
@@ -891,7 +891,7 @@
 							</button>
 						{:else if layerId === 'trench-layer' && trenchTypes.length > 0}
 							<button
-								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors shrink-0"
 								onclick={toggleTrenchSubtypes}
 								aria-label={isTrenchSubtypesExpanded ? 'Collapse' : 'Expand'}
 							>
@@ -903,7 +903,7 @@
 							</button>
 						{:else if layerId === 'area-layer' && areaTypes.length > 0}
 							<button
-								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors shrink-0"
 								onclick={toggleAreaSubtypes}
 								aria-label={isAreaSubtypesExpanded ? 'Collapse' : 'Expand'}
 							>
@@ -914,7 +914,7 @@
 								{/if}
 							</button>
 						{:else}
-							<span class="w-5 h-5 flex-shrink-0"></span>
+							<span class="w-5 h-5 shrink-0"></span>
 						{/if}
 
 						<!-- Layer name -->
@@ -925,7 +925,7 @@
 						<!-- Zoom button -->
 						{#if getExtentLayerType(layerId)}
 							<button
-								class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
+								class="w-6 flex items-center justify-center shrink-0 rounded hover:bg-surface-200-700 transition-colors"
 								onclick={() => onZoomToExtent({ layerId, layerType: getExtentLayerType(layerId) })}
 								aria-label="Zoom to extent"
 								title="Zoom to extent"
@@ -933,13 +933,13 @@
 								<IconZoomScan size={24} class="text-surface-900-100" />
 							</button>
 						{:else}
-							<span class="w-6 flex-shrink-0"></span>
+							<span class="w-6 shrink-0"></span>
 						{/if}
 
 						<!-- Label button -->
 						{#if getLabelConfigKey(layerId)}
 							<button
-								class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
+								class="w-6 flex items-center justify-center shrink-0 rounded hover:bg-surface-200-700 transition-colors"
 								onclick={() => toggleLabelVisibility(layerId)}
 								aria-label={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
 								title={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
@@ -951,13 +951,13 @@
 								{/if}
 							</button>
 						{:else}
-							<span class="w-6 flex-shrink-0"></span>
+							<span class="w-6 shrink-0"></span>
 						{/if}
 
 						<!-- Theme toggle for OSM base layer (only when using vector tiles) -->
 						{#if layerId === 'osm-base-layer' && !usingFallbackOSM}
 							<button
-								class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
+								class="w-6 flex items-center justify-center shrink-0 rounded hover:bg-surface-200-700 transition-colors"
 								onclick={toggleBasemapTheme}
 								aria-label={$basemapTheme === 'light'
 									? 'Switch to dark theme'
@@ -974,7 +974,7 @@
 
 						<!-- Visibility button -->
 						<button
-							class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
+							class="w-6 flex items-center justify-center shrink-0 rounded hover:bg-surface-200-700 transition-colors"
 							onclick={() => toggleLayerVisibility(layerId)}
 							aria-label={layerInfo.visible ? 'Hide layer' : 'Show layer'}
 							title={layerInfo.visible ? 'Hide layer' : 'Show layer'}
@@ -998,7 +998,7 @@
 								>
 									<div class="flex items-center gap-2 flex-1 min-w-0">
 										<span
-											class="w-3 h-3 rounded-full flex-shrink-0 border border-surface-300-600"
+											class="w-3 h-3 rounded-full shrink-0 border border-surface-300-600"
 											style="background-color: {color};"
 										></span>
 										<span
@@ -1009,7 +1009,7 @@
 										</span>
 									</div>
 									<button
-										class="p-1 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+										class="p-1 rounded hover:bg-surface-200-700 transition-colors shrink-0"
 										onclick={() => toggleNodeTypeVisibility(nodeType.node_type)}
 										aria-label={visible ? 'Hide' : 'Show'}
 									>
@@ -1035,16 +1035,14 @@
 									class="flex items-center justify-between py-1 px-1 rounded hover:bg-surface-100-800 transition-colors"
 								>
 									<div class="flex items-center gap-2 flex-1 min-w-0">
-										<span
-											class="w-4 h-1 flex-shrink-0 rounded-sm"
-											style="background-color: {color};"
+										<span class="w-4 h-1 shrink-0 rounded-sm" style="background-color: {color};"
 										></span>
 										<span class="text-xs text-surface-contrast-100-900 truncate" title={typeName}>
 											{typeName}
 										</span>
 									</div>
 									<button
-										class="p-1 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+										class="p-1 rounded hover:bg-surface-200-700 transition-colors shrink-0"
 										onclick={() => toggleTrenchTypeVisibility(typeName)}
 										aria-label={visible ? 'Hide' : 'Show'}
 									>
@@ -1070,7 +1068,7 @@
 								>
 									<div class="flex items-center gap-2 flex-1 min-w-0">
 										<span
-											class="w-3 h-3 flex-shrink-0 rounded-sm border border-surface-300-600"
+											class="w-3 h-3 shrink-0 rounded-sm border border-surface-300-600"
 											style="background-color: {color}; opacity: 0.6;"
 										></span>
 										<span
@@ -1081,7 +1079,7 @@
 										</span>
 									</div>
 									<button
-										class="p-1 rounded hover:bg-surface-200-700 transition-colors flex-shrink-0"
+										class="p-1 rounded hover:bg-surface-200-700 transition-colors shrink-0"
 										onclick={() => toggleAreaTypeVisibility(areaType.area_type)}
 										aria-label={visible ? 'Hide' : 'Show'}
 									>
@@ -1103,7 +1101,7 @@
 						class="flex items-center gap-1.5 py-1 rounded hover:bg-surface-100-800 transition-colors"
 					>
 						<!-- Spacer for expand button -->
-						<span class="w-5 h-5 flex-shrink-0"></span>
+						<span class="w-5 h-5 shrink-0"></span>
 
 						<!-- Layer name -->
 						<span class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0">
@@ -1111,11 +1109,11 @@
 						</span>
 
 						<!-- Spacer for zoom button column -->
-						<span class="w-6 flex-shrink-0"></span>
+						<span class="w-6 shrink-0"></span>
 
 						<!-- Label button -->
 						<button
-							class="w-6 flex items-center justify-center flex-shrink-0 rounded hover:bg-surface-200-700 transition-colors"
+							class="w-6 flex items-center justify-center shrink-0 rounded hover:bg-surface-200-700 transition-colors"
 							onclick={toggleConduitLabelVisibility}
 							aria-label={isConduitLabelEnabled() ? 'Hide conduit labels' : 'Show conduit labels'}
 							title={isConduitLabelEnabled() ? 'Hide conduit labels' : 'Show conduit labels'}
@@ -1128,7 +1126,7 @@
 						</button>
 
 						<!-- Spacer for visibility button column -->
-						<span class="w-6 flex-shrink-0"></span>
+						<span class="w-6 shrink-0"></span>
 					</div>
 				{/if}
 			{/each}

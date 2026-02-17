@@ -1,7 +1,6 @@
 <script>
 	import { onDestroy, onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
-	import { get } from 'svelte/store';
 	import { page } from '$app/stores';
 	import {
 		IconArrowLeft,
@@ -15,23 +14,12 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import VectorTileLayer from 'ol/layer/VectorTile.js';
+
 	import { CableMicropipeManager } from '$lib/classes/CableMicropipeManager.svelte.js';
+	import { MapState } from '$lib/classes/MapState.svelte.js';
 	import Map from '$lib/components/Map.svelte';
-	import {
-		createAddressLayer,
-		createAreaLayer,
-		createNodeLayer,
-		createTrenchLayer
-	} from '$lib/map/layers.js';
-	import {
-		createAddressStyleWithLabels,
-		createAreaStyleByType,
-		createNodeStyleByType,
-		createTrenchStyle,
-		createTrenchStyleByAttribute,
-		DEFAULT_ADDRESS_COLOR,
-		DEFAULT_ADDRESS_SIZE
-	} from '$lib/map/styles.js';
+	import { createSelectedStyle } from '$lib/map/styles.js';
 	import {
 		areaTypeStyles,
 		labelVisibilityConfig,
@@ -50,176 +38,116 @@
 
 	/** @type {import('ol').Map|undefined} */
 	let olMap = $state();
-	/** @type {import('ol/layer/VectorTile').default|undefined} */
-	let trenchLayer = $state();
-	/** @type {import('ol/layer/VectorTile').default|undefined} */
-	let nodeLayer = $state();
-	/** @type {import('ol/layer/VectorTile').default|undefined} */
-	let addressLayer = $state();
-	/** @type {import('ol/layer/VectorTile').default|undefined} */
-	let areaLayer = $state();
 	/** @type {import('ol/interaction/DragBox').default|undefined} */
 	let dragBoxInteraction = $state();
+	/** @type {VectorTileLayer|undefined} */
+	let selectionLayer = $state();
 	/** @type {SvelteSet<string>} Selected feature IDs for highlighting */
 	let selectedFeatureIds = $state(new SvelteSet());
 
-	/** @type {Array} Layers to pass to Map component */
-	let layers = $state([]);
-	let layersInitialized = $state(false);
+	// Initialize MapState for this panel
+	const projectId = $page.params.projectId;
+	const mapState = new MapState(projectId);
+	const layersInitialized = mapState.initializeLayers();
 
-	/** @type {import('ol/style/Style').default|undefined} */
-	let selectedStyle;
-
-	onMount(async () => {
+	onMount(() => {
 		if (cableId && cableName) {
 			manager.initialize(cableId, cableName);
 		}
-
-		// Load styles first
-		const [{ default: Style }, { default: Stroke }] = await Promise.all([
-			import('ol/style/Style'),
-			import('ol/style/Stroke')
-		]);
-
-		selectedStyle = new Style({
-			stroke: new Stroke({
-				color: '#ff6600',
-				width: 4
-			})
-		});
-
-		initializeLayers();
 	});
 
 	onDestroy(() => {
 		cleanup();
 	});
 
-	/**
-	 * Initialize layers for the map
-	 */
-	function initializeLayers() {
-		const projectId = $page.params.projectId;
-		if (!projectId) return;
-
-		// Create trench layer with current style settings
-		trenchLayer = createTrenchLayer(
-			projectId,
-			m.nav_trench(),
-			(error) => console.error('Trench layer error:', error),
-			{ enabled: get(labelVisibilityConfig).trench || false }
-		);
-
-		// Apply trench style based on current mode
-		applyTrenchStyle();
-
-		// Create other layers for context
-		nodeLayer = createNodeLayer(
-			projectId,
-			m.form_node(),
-			(error) => console.error('Node layer error:', error),
-			{ enabled: get(labelVisibilityConfig).node || false },
-			get(nodeTypeStyles)
-		);
-
-		addressLayer = createAddressLayer(
-			projectId,
-			m.form_address({ count: 1 }),
-			(error) => console.error('Address layer error:', error),
-			{ enabled: get(labelVisibilityConfig).address || false }
-		);
-
-		areaLayer = createAreaLayer(
-			projectId,
-			m.form_area(),
-			(error) => console.error('Area layer error:', error),
-			{ enabled: get(labelVisibilityConfig).area || false },
-			get(areaTypeStyles)
-		);
-
-		layers = [areaLayer, trenchLayer, nodeLayer, addressLayer];
-		layersInitialized = true;
-	}
-
-	/**
-	 * Handle label visibility change from LayerVisibilityTree
-	 * @param {{ layerId: string, labelType: string, enabled: boolean }} labelInfo
-	 */
-	function handleLabelVisibilityChange(labelInfo) {
-		const { labelType, enabled } = labelInfo;
-
-		if (labelType === 'trench' && trenchLayer) {
-			applyTrenchStyle();
-			trenchLayer.setProperties({ declutter: enabled });
-			trenchLayer.changed();
-		} else if (labelType === 'conduit' && trenchLayer) {
-			applyTrenchStyle();
-			trenchLayer.changed();
-		} else if (labelType === 'node' && nodeLayer) {
-			const style = createNodeStyleByType(get(nodeTypeStyles), { enabled });
-			nodeLayer.setStyle(style);
-			nodeLayer.setProperties({ declutter: enabled });
-			nodeLayer.changed();
-		} else if (labelType === 'address' && addressLayer) {
-			const style = createAddressStyleWithLabels(DEFAULT_ADDRESS_COLOR, DEFAULT_ADDRESS_SIZE, {
-				enabled
-			});
-			addressLayer.setStyle(style);
-			addressLayer.setProperties({ declutter: enabled });
-			addressLayer.changed();
-		} else if (labelType === 'area' && areaLayer) {
-			const style = createAreaStyleByType(get(areaTypeStyles), { enabled });
-			areaLayer.setStyle(style);
-			areaLayer.setProperties({ declutter: enabled });
-			areaLayer.changed();
+	// Update node layer style when nodeTypeStyles changes
+	$effect(() => {
+		const styles = $nodeTypeStyles;
+		if (Object.keys(styles).length > 0) {
+			mapState.updateNodeLayerStyle(styles);
 		}
-	}
+	});
 
-	/**
-	 * Apply trench style based on current settings
-	 */
-	function applyTrenchStyle() {
-		if (!trenchLayer) return;
+	// Update trench layer style when trench style settings change
+	$effect(() => {
+		const mode = $trenchStyleMode;
+		const surfaceStyles = $trenchSurfaceStyles;
+		const constructionTypeStyles = $trenchConstructionTypeStyles;
+		const color = $trenchColor;
+		mapState.updateTrenchLayerStyle(mode, surfaceStyles, constructionTypeStyles, color);
+	});
 
-		const mode = get(trenchStyleMode);
-		const color = get(trenchColor);
-		const surfaceStyles = get(trenchSurfaceStyles);
-		const constructionStyles = get(trenchConstructionTypeStyles);
-		const labelConfig = { enabled: get(labelVisibilityConfig).trench || false };
-		const conduitLabelConfig = { enabled: get(labelVisibilityConfig).conduit || false };
+	// Update area layer style when areaTypeStyles changes
+	$effect(() => {
+		const styles = $areaTypeStyles;
+		if (Object.keys(styles).length > 0) {
+			mapState.updateAreaLayerStyle(styles);
+		}
+	});
 
-		let baseStyle;
-		if (mode === 'none' || mode === undefined) {
-			baseStyle = createTrenchStyle(color, labelConfig, conduitLabelConfig);
-		} else {
-			const attributeStyles = mode === 'surface' ? surfaceStyles : constructionStyles;
-			baseStyle = createTrenchStyleByAttribute(
-				attributeStyles,
+	// Update label visibility when labelVisibilityConfig changes
+	$effect(() => {
+		const config = $labelVisibilityConfig;
+		const mode = $trenchStyleMode;
+		const surfaceStyles = $trenchSurfaceStyles;
+		const constructionTypeStyles = $trenchConstructionTypeStyles;
+		const color = $trenchColor;
+		const nodeStyles = $nodeTypeStyles;
+		const areaStyles = $areaTypeStyles;
+
+		if (config.trench !== undefined) {
+			mapState.updateLabelVisibility('trench', config.trench, {
 				mode,
-				color,
-				labelConfig,
-				conduitLabelConfig
-			);
+				surfaceStyles,
+				constructionTypeStyles,
+				color
+			});
 		}
-
-		// Wrap with selection handling
-		trenchLayer.setStyle((feature, resolution) => {
-			const featureId = feature.getId() || feature.get('uuid');
-			if (featureId && selectedFeatureIds.has(String(featureId))) {
-				return selectedStyle;
-			}
-			if (typeof baseStyle === 'function') {
-				return baseStyle(feature, resolution);
-			}
-			return baseStyle;
-		});
-	}
+		if (config.conduit !== undefined) {
+			mapState.updateLabelVisibility('conduit', config.conduit, {
+				mode,
+				surfaceStyles,
+				constructionTypeStyles,
+				color
+			});
+		}
+		if (config.address !== undefined) {
+			mapState.updateLabelVisibility('address', config.address, {});
+		}
+		if (config.node !== undefined) {
+			mapState.updateLabelVisibility('node', config.node, { nodeTypeStyles: nodeStyles });
+		}
+		if (config.area !== undefined) {
+			mapState.updateLabelVisibility('area', config.area, { areaTypeStyles: areaStyles });
+		}
+	});
 
 	/**
 	 * Handle map ready event
 	 */
 	async function handleMapReady(event) {
 		olMap = event.detail.map;
+		mapState.olMap = olMap;
+
+		// Create selection layer for highlighting selected trenches
+		const selectedStyle = createSelectedStyle('#ff6600');
+		selectionLayer = new VectorTileLayer({
+			renderMode: 'vector',
+			source: mapState.vectorTileLayer.getSource(),
+			style: function (feature) {
+				const featureId = String(feature.getId() || feature.get('uuid'));
+				if (featureId && selectedFeatureIds.has(featureId)) {
+					return selectedStyle;
+				}
+				return undefined;
+			},
+			visible: true,
+			properties: {
+				isSelectionLayer: true
+			}
+		});
+		olMap.addLayer(selectionLayer);
+
 		await setupInteractions();
 	}
 
@@ -227,7 +155,7 @@
 	 * Setup custom interactions for trench selection
 	 */
 	async function setupInteractions() {
-		if (!olMap || !trenchLayer) return;
+		if (!olMap || !mapState.vectorTileLayer) return;
 
 		const [{ default: DragBox }, { shiftKeyOnly }] = await Promise.all([
 			import('ol/interaction/DragBox'),
@@ -238,7 +166,7 @@
 		olMap.on('click', (evt) => {
 			const features = olMap.getFeaturesAtPixel(evt.pixel, {
 				hitTolerance: 10,
-				layerFilter: (layer) => layer === trenchLayer
+				layerFilter: (layer) => layer === mapState.vectorTileLayer
 			});
 
 			if (features && features.length > 0) {
@@ -253,7 +181,9 @@
 						newSet.add(featureId);
 					}
 					selectedFeatureIds = newSet;
-					trenchLayer.changed();
+					if (selectionLayer) {
+						selectionLayer.changed();
+					}
 					syncSelectionToManager();
 				}
 			}
@@ -277,7 +207,7 @@
 				for (let y = boxPixelMax[1]; y <= boxPixelMin[1]; y += stepY) {
 					const features = olMap.getFeaturesAtPixel([x, y], {
 						hitTolerance: 10,
-						layerFilter: (layer) => layer === trenchLayer
+						layerFilter: (layer) => layer === mapState.vectorTileLayer
 					});
 					if (features) {
 						features.forEach((feature) => {
@@ -291,7 +221,9 @@
 			}
 
 			selectedFeatureIds = newSet;
-			trenchLayer.changed();
+			if (selectionLayer) {
+				selectionLayer.changed();
+			}
 			syncSelectionToManager();
 		});
 
@@ -311,8 +243,8 @@
 	 */
 	function clearMapSelection() {
 		selectedFeatureIds = new SvelteSet();
-		if (trenchLayer) {
-			trenchLayer.changed();
+		if (selectionLayer) {
+			selectionLayer.changed();
 		}
 		manager.clearTrenchSelection();
 	}
@@ -325,8 +257,12 @@
 			olMap.removeInteraction(dragBoxInteraction);
 			dragBoxInteraction = undefined;
 		}
+		if (olMap && selectionLayer) {
+			olMap.removeLayer(selectionLayer);
+			selectionLayer = undefined;
+		}
+		mapState.cleanup();
 		olMap = undefined;
-		trenchLayer = undefined;
 		selectedFeatureIds = new SvelteSet();
 	}
 
@@ -358,12 +294,11 @@
 		{#if layersInitialized}
 			<Map
 				className="h-full w-full"
-				{layers}
+				layers={mapState.getLayers()}
 				variant="fullscreen"
 				showSearchPanel={true}
 				showLayerVisibilityTree={true}
 				showOpacitySlider={true}
-				onLabelVisibilityChanged={handleLabelVisibilityChange}
 				on:ready={handleMapReady}
 			/>
 		{:else}
