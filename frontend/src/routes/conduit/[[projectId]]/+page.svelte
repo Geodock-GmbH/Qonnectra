@@ -37,18 +37,14 @@
 		conduitState.setConduits(data.pipes);
 	});
 
-	// Set context for attribute options (eliminates prop drilling) – reactive so it updates when data loads
-	$effect(() => {
-		setContext('attributeOptions', {
-			conduitTypes: data.conduitTypes,
-			statuses: data.statuses,
-			networkLevels: data.networkLevels,
-			companies: data.companies,
-			flags: data.flags
-		});
+	// Set context for attribute options and conduit state (must be synchronous during initialization)
+	setContext('attributeOptions', {
+		get conduitTypes() { return data.conduitTypes; },
+		get statuses() { return data.statuses; },
+		get networkLevels() { return data.networkLevels; },
+		get companies() { return data.companies; },
+		get flags() { return data.flags; }
 	});
-
-	// Set context for conduit state (for form defaults persistence)
 	setContext('conduitState', conduitState);
 
 	function performSearch() {
