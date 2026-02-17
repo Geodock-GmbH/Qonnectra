@@ -2,6 +2,12 @@ import { error, fail } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
+import {
+	getFeatureDetailsByType,
+	getLayerExtent,
+	getTrenchUuidsForConduit,
+	searchFeaturesInProject
+} from '$lib/server/featureSearch';
 
 /**
  * Poll for sync completion with timeout and progress updates
@@ -661,6 +667,7 @@ export const actions = {
 		const warranty = formData.get('warranty');
 		const date = formData.get('date');
 		const flag_id = formData.get('flag_id');
+		const parent_node_id = formData.get('parent_node_id');
 
 		if (!nodeId) {
 			return {
@@ -682,6 +689,11 @@ export const actions = {
 			if (flag_id) requestBody.flag_id = parseInt(flag_id);
 			if (date) requestBody.date = date;
 			if (warranty) requestBody.warranty = warranty;
+			if (parent_node_id) {
+				requestBody.parent_node_id = parent_node_id;
+			} else {
+				requestBody.parent_node_id = null;
+			}
 
 			const response = await fetch(`${API_URL}node/${nodeId}/`, {
 				method: 'PATCH',
@@ -2393,6 +2405,302 @@ export const actions = {
 		} catch (err) {
 			console.error('Error fetching fiber usage in node:', err);
 			return fail(500, { error: 'Failed to fetch fiber usage' });
+		}
+	},
+	getTrenchesForCable: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const cableId = formData.get('cableId');
+
+		if (!cableId) {
+			return fail(400, { error: 'Cable ID is required' });
+		}
+
+		try {
+			// Get the cable to find its start and end nodes
+			const cableResponse = await fetch(`${API_URL}cable/${cableId}/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!cableResponse.ok) {
+				return fail(cableResponse.status, { error: 'Failed to fetch cable' });
+			}
+
+			const cable = await cableResponse.json();
+			const nodeIds = [cable.uuid_node_start, cable.uuid_node_end].filter(Boolean);
+
+			if (nodeIds.length === 0) {
+				return { trenches: [] };
+			}
+
+			// Fetch trench selections for both nodes
+			const allTrenches = [];
+			for (const nodeId of nodeIds) {
+				const selectionsResponse = await fetch(
+					`${API_URL}node-trench-selection/by-node/${nodeId}/`,
+					{
+						method: 'GET',
+						headers
+					}
+				);
+
+				if (selectionsResponse.ok) {
+					const selections = await selectionsResponse.json();
+					for (const selection of selections) {
+						if (selection.trench && !allTrenches.find((t) => t.uuid === selection.trench.uuid)) {
+							allTrenches.push(selection.trench);
+						}
+					}
+				}
+			}
+
+			return { trenches: allTrenches };
+		} catch (err) {
+			console.error('Error fetching trenches for cable:', err);
+			return fail(500, { error: 'Failed to fetch trenches' });
+		}
+	},
+	getConduitsByTrenches: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const trenchIds = formData.get('trenchIds');
+		const cableId = formData.get('cableId');
+
+		if (!trenchIds) {
+			return { conduits: [] };
+		}
+
+		try {
+			let url = `${API_URL}conduits/by-trenches/?trench_ids=${encodeURIComponent(trenchIds)}`;
+			if (cableId) {
+				url += `&cable_id=${encodeURIComponent(cableId)}`;
+			}
+
+			const response = await fetch(url, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch conduits'
+				});
+			}
+
+			const conduits = await response.json();
+			return { conduits };
+		} catch (err) {
+			console.error('Error fetching conduits by trenches:', err);
+			return fail(500, { error: 'Failed to fetch conduits' });
+		}
+	},
+	getMicropipesByConduits: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const conduitIds = formData.get('conduitIds');
+		const cableId = formData.get('cableId');
+
+		if (!conduitIds) {
+			return { micropipes: [] };
+		}
+
+		try {
+			let url = `${API_URL}micropipes/by-conduits/?conduit_ids=${encodeURIComponent(conduitIds)}`;
+			if (cableId) {
+				url += `&cable_id=${encodeURIComponent(cableId)}`;
+			}
+
+			const response = await fetch(url, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch micropipes'
+				});
+			}
+
+			const micropipes = await response.json();
+			return { micropipes };
+		} catch (err) {
+			console.error('Error fetching micropipes by conduits:', err);
+			return fail(500, { error: 'Failed to fetch micropipes' });
+		}
+	},
+	createMicropipeConnections: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const cableId = formData.get('cableId');
+		const micropipeNumber = formData.get('micropipeNumber');
+		const color = formData.get('color');
+		const conduitIdsJson = formData.get('conduitIds');
+
+		if (!cableId || !micropipeNumber || !color || !conduitIdsJson) {
+			return fail(400, {
+				error: 'Missing required fields: cableId, micropipeNumber, color, conduitIds'
+			});
+		}
+
+		try {
+			const conduitIds = JSON.parse(conduitIdsJson);
+
+			const response = await fetch(`${API_URL}cables/${cableId}/micropipe-connections/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					micropipe_number: parseInt(micropipeNumber),
+					color: color,
+					conduit_ids: conduitIds
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to create connections'
+				});
+			}
+
+			const result = await response.json();
+			return { success: true, ...result };
+		} catch (err) {
+			console.error('Error creating micropipe connections:', err);
+			return fail(500, { error: 'Failed to create connections' });
+		}
+	},
+	deleteMicropipeConnections: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const cableId = formData.get('cableId');
+		const micropipeNumber = formData.get('micropipeNumber');
+		const conduitIdsJson = formData.get('conduitIds');
+
+		if (!cableId || !micropipeNumber || !conduitIdsJson) {
+			return fail(400, {
+				error: 'Missing required fields: cableId, micropipeNumber, conduitIds'
+			});
+		}
+
+		try {
+			const conduitIds = JSON.parse(conduitIdsJson);
+
+			const response = await fetch(`${API_URL}cables/${cableId}/micropipe-connections/`, {
+				method: 'DELETE',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					micropipe_number: parseInt(micropipeNumber),
+					conduit_ids: conduitIds
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to delete connections'
+				});
+			}
+
+			const result = await response.json();
+			return { success: true, ...result };
+		} catch (err) {
+			console.error('Error deleting micropipe connections:', err);
+			return fail(500, { error: 'Failed to delete connections' });
+		}
+	},
+	getLayerExtent: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const layerType = formData.get('layerType');
+		const projectId = formData.get('projectId');
+
+		return getLayerExtent(fetch, cookies, layerType, projectId);
+	},
+	searchFeatures: async ({ request, fetch, cookies }) => {
+		const data = await request.formData();
+		const searchQuery = data.get('searchQuery');
+		const projectId = data.get('projectId');
+
+		return searchFeaturesInProject(fetch, cookies, searchQuery, projectId);
+	},
+	getFeatureDetails: async ({ request, fetch, cookies }) => {
+		const data = await request.formData();
+		const featureType = data.get('featureType');
+		const featureUuid = data.get('featureUuid');
+		const projectId = data.get('projectId');
+
+		return getFeatureDetailsByType(fetch, cookies, featureType, featureUuid, projectId);
+	},
+	getConduitTrenches: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const conduitUuid = formData.get('conduitUuid');
+
+		return getTrenchUuidsForConduit(fetch, cookies, conduitUuid);
+	},
+	getLinkedTrenchesForCable: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const cableId = formData.get('cableId');
+
+		if (!cableId) {
+			return fail(400, { error: 'Cable ID is required' });
+		}
+
+		try {
+			const response = await fetch(`${API_URL}cables/${cableId}/linked-trenches/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch linked trenches'
+				});
+			}
+
+			const data = await response.json();
+			return { trench_uuids: data.trench_uuids || [] };
+		} catch (err) {
+			console.error('Error fetching linked trenches for cable:', err);
+			return fail(500, { error: 'Failed to fetch linked trenches' });
+		}
+	},
+	getConduitsForCable: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const cableId = formData.get('cableId');
+
+		if (!cableId) {
+			return fail(400, { error: 'Cable ID is required' });
+		}
+
+		try {
+			const response = await fetch(`${API_URL}cables/${cableId}/conduits/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch conduits'
+				});
+			}
+
+			const data = await response.json();
+			return { conduit_names: data.conduit_names || [] };
+		} catch (err) {
+			console.error('Error fetching conduits for cable:', err);
+			return fail(500, { error: 'Failed to fetch conduits' });
 		}
 	}
 };

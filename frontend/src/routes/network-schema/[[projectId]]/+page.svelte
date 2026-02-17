@@ -14,6 +14,7 @@
 	import { edgeSnappingEnabled, selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
+	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte.js';
 
 	import '@xyflow/svelte/dist/style.css';
 
@@ -80,6 +81,7 @@
 	 * Initialize component and check sync status
 	 */
 	onMount(async () => {
+		startHeartbeat();
 		await autoLockSvelteFlow();
 
 		if (!data.networkSchemaSettingsConfigured && $selectedProject) {
@@ -101,6 +103,10 @@
 				});
 			}
 		}
+
+		return () => {
+			stopHeartbeat();
+		};
 	});
 
 	/**

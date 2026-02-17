@@ -798,6 +798,14 @@ class ResidentialUnitSerializer(serializers.ModelSerializer):
         return fields
 
 
+class ParentNodeSerializer(serializers.ModelSerializer):
+    """Minimal serializer for parent node references to avoid circular imports."""
+
+    class Meta:
+        model = Node
+        fields = ["uuid", "name"]
+
+
 class NodeSerializer(GeoFeatureModelSerializer):
     """Serializer for the Node model."""
 
@@ -812,6 +820,7 @@ class NodeSerializer(GeoFeatureModelSerializer):
     manufacturer = AttributesCompanySerializer(read_only=True)
     project = ProjectsSerializer(read_only=True)
     flag = FlagsSerializer(read_only=True)
+    parent_node = ParentNodeSerializer(read_only=True)
 
     name = serializers.CharField(required=True, label=_("Node Name"))
     node_type_id = serializers.PrimaryKeyRelatedField(
@@ -998,6 +1007,7 @@ class MicroductSerializer(serializers.ModelSerializer):
     hex_code = serializers.SerializerMethodField(read_only=True)
     hex_code_secondary = serializers.SerializerMethodField(read_only=True)
     is_two_layer = serializers.SerializerMethodField(read_only=True)
+    cable_connection = serializers.SerializerMethodField(read_only=True)
 
     uuid_conduit_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
@@ -1058,6 +1068,21 @@ class MicroductSerializer(serializers.ModelSerializer):
     def get_is_two_layer(self, obj):
         """Check if this is a two-layer/striped color."""
         return "-" in obj.color.lower() if obj.color else False
+
+    def get_cable_connection(self, obj):
+        """Get connected cable info if any."""
+        connection = (
+            MicroductCableConnection.objects.filter(uuid_microduct=obj)
+            .select_related("uuid_cable__cable_type")
+            .first()
+        )
+        if not connection:
+            return None
+        cable = connection.uuid_cable
+        return {
+            "name": cable.name,
+            "type": cable.cable_type.cable_type if cable.cable_type else None,
+        }
 
     def validate_uuid_node_id(self, value):
         """Validate that the node has an address assigned."""
@@ -1956,3 +1981,46 @@ class CableAtNodeSerializer(serializers.ModelSerializer):
             elif str(obj.uuid_node_end_id) == str(node_uuid):
                 return "end"
         return None
+
+
+class ConduitForTrenchSelectionSerializer(serializers.ModelSerializer):
+    """Serializer for conduits returned when selecting by trenches."""
+
+    conduit_type_name = serializers.CharField(
+        source="conduit_type.conduit_type", read_only=True
+    )
+    has_cable_linkage = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Conduit
+        fields = [
+            "uuid",
+            "name",
+            "conduit_type_name",
+            "has_cable_linkage",
+        ]
+
+    def get_has_cable_linkage(self, obj):
+        """Check if this conduit has any micropipes linked to the current cable."""
+        linked_conduit_ids = self.context.get("linked_conduit_ids")
+        if linked_conduit_ids is not None:
+            return obj.uuid in linked_conduit_ids
+        # Fallback for backwards compatibility
+        cable_id = self.context.get("cable_id")
+        if not cable_id:
+            return False
+        return MicroductCableConnection.objects.filter(
+            uuid_microduct__uuid_conduit=obj, uuid_cable_id=cable_id
+        ).exists()
+
+
+class MicropipeAvailabilitySerializer(serializers.Serializer):
+    """Serializer for micropipe availability across conduits."""
+
+    number = serializers.IntegerField()
+    color_name = serializers.CharField()
+    color_hex = serializers.CharField()
+    available_in = serializers.ListField(child=serializers.UUIDField())
+    available_in_all = serializers.BooleanField()
+    linked_to_cable = serializers.BooleanField()
+    missing_in = serializers.ListField(child=serializers.CharField())

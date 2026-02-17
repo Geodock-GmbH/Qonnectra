@@ -28,6 +28,7 @@
 		onHighlightChange
 	} = $props();
 
+	// svelte-ignore state_referenced_locally
 	if (nodeAssignmentManager) {
 		setContext('nodeAssignmentManager', nodeAssignmentManager);
 	}

@@ -203,10 +203,10 @@ REST_FRAMEWORK = {
         # Use JWTCookieAuthentication for cookie-based JWT auth
         "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
     ),
-    # Add permission settings if needed globally, otherwise handle per-view
-    # 'DEFAULT_PERMISSION_CLASSES': [
-    #     'rest_framework.permissions.IsAuthenticatedOrReadOnly'
-    # ]
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
+    ]
+    + (["rest_framework.renderers.BrowsableAPIRenderer"] if DEBUG else []),
 }
 
 # dj-rest-auth settings
@@ -259,6 +259,9 @@ CORS_ALLOW_CREDENTIALS = True
 # Media Files Configuration
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 MEDIA_URL = "/media/"
+
+# Increase max fields for large form submissions (e.g., bulk operations, complex GeoJSON)
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
 
 # Configure logging
 LOGGING = {

@@ -25,6 +25,7 @@
 		{ value: 'wfs', label: 'WFS (QGIS Server)' }
 	];
 
+	// svelte-ignore state_referenced_locally
 	let filters = $state({
 		level: data.filters.level || '',
 		source: data.filters.source || '',
@@ -231,7 +232,10 @@
 									{/if}
 								</td>
 								<td class="py-3 px-4">{log.username || '-'}</td>
-								<td class="py-3 px-4 max-w-2xl break-words whitespace-normal" title={log.message}>
+								<td
+									class="py-3 px-4 max-w-2xl wrap-break-words whitespace-normal break-all"
+									title={log.message}
+								>
 									{log.message}
 								</td>
 							</tr>

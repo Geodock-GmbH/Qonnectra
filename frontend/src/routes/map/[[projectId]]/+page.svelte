@@ -24,6 +24,7 @@
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte.js';
 
 	import MapDrawerTabs from './MapDrawerTabs.svelte';
 
@@ -37,7 +38,9 @@
 	// Initialize managers
 	const mapState = new MapState($selectedProject, get(trenchColorSelected));
 	const selectionManager = new MapSelectionManager();
+	// svelte-ignore state_referenced_locally
 	const popupManager = new MapPopupManager(data.alias);
+	// svelte-ignore state_referenced_locally
 	const interactionManager = new MapInteractionManager(
 		selectionManager,
 		popupManager,
@@ -180,7 +183,10 @@
 	 * Cleanup on component destroy
 	 */
 	onMount(() => {
+		startHeartbeat();
+
 		return () => {
+			stopHeartbeat();
 			mapState.cleanup();
 			selectionManager.cleanup();
 			popupManager.cleanup(mapState.olMap);
@@ -188,7 +194,7 @@
 		};
 	});
 
-	// Show error if data failed to load
+	// svelte-ignore state_referenced_locally
 	if (data.error) {
 		globalToaster.error({
 			title: m.title_error_loading_map_features(),

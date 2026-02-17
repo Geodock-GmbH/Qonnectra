@@ -21,13 +21,33 @@
 	let cable = $derived($drawerStore.props);
 	let fiberCount = $derived(cable?.cable_type?.fiber_count || cable?.fiber_count || 0);
 	let connectedSpliceCount = $state(0);
+	let connectedConduits = $state('');
 
-	// Reset connected splice count when cable changes
+	// Reset connected splice count and fetch conduits when cable changes
 	$effect(() => {
 		if (cable?.uuid) {
 			connectedSpliceCount = 0;
+			fetchConnectedConduits(cable.uuid);
 		}
 	});
+
+	async function fetchConnectedConduits(cableId) {
+		try {
+			const formData = new FormData();
+			formData.append('cableId', cableId);
+			const response = await fetch('?/getConduitsForCable', {
+				method: 'POST',
+				body: formData
+			});
+			const result = deserialize(await response.text());
+			if (result.type === 'success') {
+				connectedConduits = result.data?.conduit_names?.join(', ') || '';
+			}
+		} catch (err) {
+			console.error('Error fetching connected conduits:', err);
+			connectedConduits = '';
+		}
+	}
 	let cableName = $state('');
 	let cableType = $state([]);
 	let cableStatus = $state([]);
@@ -43,7 +63,7 @@
 	let cableReserveSection = $state('');
 	let cableFlag = $state([]);
 
-	let { onLabelUpdate, onEdgeDelete } = $props();
+	let { onLabelUpdate, onEdgeDelete, onSaveComplete = () => {} } = $props();
 
 	$effect(() => {
 		if (cable) {
@@ -106,6 +126,8 @@
 			if (onLabelUpdate && cableName) {
 				onLabelUpdate(cableName);
 			}
+			// Refresh cable data to update length/length_total
+			await onSaveComplete();
 		} catch (error) {
 			console.error('Error updating cable:', error);
 			globalToaster.error({
@@ -195,6 +217,10 @@
 			disabled={true}
 			renderInPlace={true}
 		/>
+	</label>
+	<label class="label">
+		<span class="text-sm">{m.form_connected_conduits()}</span>
+		<input type="text" class="input" readonly value={connectedConduits} />
 	</label>
 	<label class="label">
 		<span class="text-sm">{m.form_status()}</span>

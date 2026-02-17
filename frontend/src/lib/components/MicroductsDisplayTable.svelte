@@ -33,6 +33,7 @@
 					<th>#</th>
 					<th>{m.form_color()}</th>
 					<th>{m.form_address({ count: 1 })}</th>
+					<th>{m.form_cables()}</th>
 					{#if actions}
 						<th></th>
 					{/if}
@@ -60,6 +61,14 @@
 								{props.city}
 							{:else}
 								<span></span>
+							{/if}
+						</td>
+						<td>
+							{#if microduct.cable_connection}
+								{microduct.cable_connection.name}
+								{#if microduct.cable_connection.type}
+									({microduct.cable_connection.type})
+								{/if}
 							{/if}
 						</td>
 						{#if actions}

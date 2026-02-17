@@ -26,6 +26,7 @@
 		trenchStyleMode,
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
+	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte.js';
 	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 
 	import HouseConnectionDrawerTabs from './HouseConnectionDrawerTabs.svelte';
@@ -52,7 +53,9 @@
 	});
 
 	const selectionManager = new MapSelectionManager();
+	// svelte-ignore state_referenced_locally
 	const popupManager = new MapPopupManager(data.alias);
+	// svelte-ignore state_referenced_locally
 	const interactionManager = new MapInteractionManager(
 		selectionManager,
 		popupManager,
@@ -278,7 +281,9 @@
 
 	// Cleanup on destroy
 	onMount(() => {
+		startHeartbeat();
 		return () => {
+			stopHeartbeat();
 			// Remove linked trenches layer
 			if (mapState.olMap && linkedTrenchesLayer) {
 				mapState.olMap.removeLayer(linkedTrenchesLayer);

@@ -66,6 +66,17 @@
 		isOpen = e.open;
 	}
 
+	const PROJECT_AWARE_ROUTES = [
+		'/conduit',
+		'/network-schema',
+		'/dashboard',
+		'/house-connections',
+		'/map',
+		'/pipe-branch',
+		'/address',
+		'/trench'
+	];
+
 	function handleProjectChange(newProject) {
 		if (!browser) return;
 
@@ -76,12 +87,15 @@
 		const pathSegments = $page.url.pathname.split('/').filter(Boolean);
 		const baseRoute = pathSegments[0] ? `/${pathSegments[0]}` : '/dashboard';
 
-		goto(`${baseRoute}/${newProject}`, {
-			keepFocus: true,
-			noScroll: true,
-			replaceState: true,
-			invalidateAll: true
-		});
+		// Only navigate with project ID for routes that support it
+		if (PROJECT_AWARE_ROUTES.includes(baseRoute)) {
+			goto(`${baseRoute}/${newProject}`, {
+				keepFocus: true,
+				noScroll: true,
+				replaceState: true,
+				invalidateAll: true
+			});
+		}
 
 		onChange({ value: newProject });
 	}
