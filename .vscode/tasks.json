@@ -2,117 +2,19 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Run All Backend Tests",
-      "type": "shell",
-      "command": "python",
-      "args": [
-        "-m",
-        "pytest",
-        "backend/apps/api/tests",
-        "-v",
-        "--tb=short"
-      ],
-      "group": "test",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      },
-      "options": {
-        "cwd": "${workspaceFolder}",
-        "env": {
-          "DJANGO_SETTINGS_MODULE": "core.settings",
-          "PYTHONPATH": "${workspaceFolder}/backend"
-        }
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run Backend Unit Tests",
-      "type": "shell",
-      "command": "python",
-      "args": [
-        "-m",
-        "pytest",
-        "backend/apps/api/tests/test_models.py",
-        "backend/apps/api/tests/test_views.py",
-        "-v",
-        "--tb=short"
-      ],
-      "group": "test",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      },
-      "options": {
-        "cwd": "${workspaceFolder}",
-        "env": {
-          "DJANGO_SETTINGS_MODULE": "core.settings",
-          "PYTHONPATH": "${workspaceFolder}/backend"
-        }
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run Backend Integration Tests",
-      "type": "shell",
-      "command": "python",
-      "args": [
-        "-m",
-        "pytest",
-        "backend/apps/api/tests/test_integration.py",
-        "-v",
-        "--tb=short"
-      ],
-      "group": "test",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      },
-      "options": {
-        "cwd": "${workspaceFolder}",
-        "env": {
-          "DJANGO_SETTINGS_MODULE": "core.settings",
-          "PYTHONPATH": "${workspaceFolder}/backend"
-        }
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run Frontend Tests (Playwright)",
-      "type": "shell",
-      "command": "npm",
-      "args": [
-        "run",
-        "test"
-      ],
-      "group": "test",
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared"
-      },
-      "options": {
-        "cwd": "${workspaceFolder}/frontend"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run Frontend Tests (Debug)",
+      "label": "E2E: Playwright Tests",
       "type": "shell",
       "command": "npx",
       "args": [
         "playwright",
         "test",
-        "--debug"
+        "tests/e2e/",
+        "--project=chromium"
       ],
-      "group": "test",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
       "presentation": {
         "echo": true,
         "reveal": "always",
@@ -125,11 +27,15 @@
       "problemMatcher": []
     },
     {
-      "label": "Run All Tests (Backend + Frontend)",
-      "dependsOrder": "sequence",
-      "dependsOn": [
-        "Run All Backend Tests",
-        "Run Frontend Tests (Playwright)"
+      "label": "Backend: Pytest",
+      "type": "shell",
+      "command": "uv",
+      "args": [
+        "run",
+        "pytest",
+        "apps/api/tests/",
+        "-v",
+        "--tb=short"
       ],
       "group": "test",
       "presentation": {
@@ -137,7 +43,31 @@
         "reveal": "always",
         "focus": false,
         "panel": "shared"
-      }
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Frontend: Vitest Unit Tests",
+      "type": "shell",
+      "command": "npm",
+      "args": [
+        "run",
+        "test:unit"
+      ],
+      "group": "test",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": []
     },
     {
       "label": "Django Migrate",

@@ -534,6 +534,70 @@ test.describe('Conduit Route Tests', () => {
 			// Modal should be closed (dialog will have data-state="closed")
 			await expect(openDialog).not.toBeVisible({ timeout: 5000 });
 		});
+
+		test('should show comboboxes in create modal', async ({ page }) => {
+			const addButton = page.locator('[data-testid="add-conduit-button"]');
+			await expect(addButton).toBeVisible();
+			await addButton.click();
+
+			const dialog = page.locator('[role="dialog"][data-state="open"]');
+			await expect(dialog).toBeVisible({ timeout: 10000 });
+
+			await expect(
+				dialog.locator('label[for="pipe_type"]').getByRole('combobox')
+			).toBeVisible();
+			await expect(
+				dialog.locator('label[for="status"]').getByRole('combobox')
+			).toBeVisible();
+			await expect(
+				dialog.locator('label[for="network_level"]').getByRole('combobox')
+			).toBeVisible();
+			await expect(
+				dialog.locator('label[for="owner"]').getByRole('combobox')
+			).toBeVisible();
+		});
+
+		test('should open conduit type combobox and select an option', async ({ page }) => {
+			const addButton = page.locator('[data-testid="add-conduit-button"]');
+			await expect(addButton).toBeVisible();
+			await addButton.click();
+
+			const dialog = page.locator('[role="dialog"][data-state="open"]');
+			await expect(dialog).toBeVisible({ timeout: 10000 });
+
+			const pipeTypeLabel = dialog.locator('label[for="pipe_type"]');
+			await expect(pipeTypeLabel.getByRole('combobox')).toBeVisible();
+			await pipeTypeLabel.getByRole('button').click();
+
+			const listbox = page.getByRole('listbox');
+			await expect(listbox).toBeVisible({ timeout: 10000 });
+			const firstOption = listbox.getByRole('option').first();
+			await expect(firstOption).toBeVisible({ timeout: 10000 });
+			await firstOption.click();
+
+			await expect(dialog).toBeVisible();
+		});
+
+		test('should open status combobox and select an option', async ({ page }) => {
+			const addButton = page.locator('[data-testid="add-conduit-button"]');
+			await expect(addButton).toBeVisible();
+			await addButton.click();
+
+			const dialog = page.locator('[role="dialog"][data-state="open"]');
+			await expect(dialog).toBeVisible({ timeout: 10000 });
+
+			const statusLabel = dialog.locator('label[for="status"]');
+			await expect(statusLabel.getByRole('combobox')).toBeVisible();
+			await statusLabel.getByRole('button').click();
+
+			const listbox = page.getByRole('listbox');
+			await expect(listbox).toBeVisible({ timeout: 10000 });
+			const firstOption = listbox.getByRole('option').first();
+			await expect(firstOption).toBeVisible({ timeout: 10000 });
+			await firstOption.click();
+
+			await expect(dialog).toBeVisible();
+		});
 	});
 
 	// ========================================================================
@@ -541,24 +605,17 @@ test.describe('Conduit Route Tests', () => {
 	// ========================================================================
 	test.describe('Search & Filter', () => {
 		test('should filter table using search input', async ({ page }) => {
-			// Find the main search input
 			const searchInput = page.locator('[data-testid="search-input"]');
 			await expect(searchInput).toBeVisible();
 			await searchInput.fill('test');
 
-			// Wait a moment for debouncing
 			await page.waitForTimeout(100);
 
-			// Click the search button to trigger search
 			const searchButton = page.locator('.search-button');
 			await searchButton.click();
 
-			// Wait for URL to update (uses replaceState so no navigation event)
-			await page.waitForFunction(() => window.location.href.includes('search=test'), {
-				timeout: 10000
-			});
+			await page.waitForURL(/search=test/, { timeout: 10000 });
 
-			// URL should have updated with search parameter
 			await expect(page).toHaveURL(/search=test/);
 		});
 
@@ -603,19 +660,13 @@ test.describe('Conduit Route Tests', () => {
 			await expect(searchInput).toBeVisible();
 			await searchInput.fill('searchterm');
 
-			// Wait a moment for debouncing
 			await page.waitForTimeout(100);
 
-			// Click the search button to trigger search
 			const searchButton = page.locator('.search-button');
 			await searchButton.click();
 
-			// Wait for URL to update (uses replaceState so no navigation event)
-			await page.waitForFunction(() => window.location.href.includes('search=searchterm'), {
-				timeout: 10000
-			});
+			await page.waitForURL(/search=searchterm/, { timeout: 10000 });
 
-			// URL should contain search parameter
 			await expect(page).toHaveURL(/search=searchterm/);
 		});
 	});
