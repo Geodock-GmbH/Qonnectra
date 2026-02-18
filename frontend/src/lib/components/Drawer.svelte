@@ -116,6 +116,7 @@
 		class:ease-in-out={!isResizing}
 		style="width: {drawerWidth}px; max-width: 80vw;"
 		aria-labelledby="drawer-title"
+		data-drawer
 	>
 		<!-- Header -->
 		<div class="flex items-center justify-between p-4 border-b border-surface-200-800 shrink-0">

@@ -180,11 +180,11 @@
 	}
 </script>
 
-<div class="flex flex-col h-full min-h-0">
+<div class="flex flex-col h-full min-h-0" data-testid="conduit-table-container">
 	<!-- Scrollable content area -->
 	<div class="flex-1 min-h-0 overflow-y-auto">
 		<!-- Desktop Table View -->
-		<div class="hidden md:block">
+		<div class="hidden md:block" data-testid="conduit-desktop-view">
 			<div class="table-wrap overflow-x-auto">
 				<table class="table table-card caption-bottom w-full overflow-scroll">
 					<thead>
@@ -257,7 +257,7 @@
 		</div>
 
 		<!-- Mobile Card View -->
-		<div class="md:hidden">
+		<div class="md:hidden" data-testid="conduit-mobile-view">
 			<!-- Mobile Filter Input -->
 			<div class="mb-3">
 				<input
@@ -280,6 +280,7 @@
 						}}
 						role="button"
 						tabindex="0"
+						data-testid="conduit-card"
 					>
 						<!-- Primary Info Row -->
 						<div class="flex items-center justify-between border-b border-surface-200-800 pb-2">
@@ -337,7 +338,7 @@
 	<!-- Fixed pagination at bottom -->
 	<div class="shrink-0 pt-4">
 		<div class="flex items-center justify-between gap-4">
-			<span class="text-sm text-surface-600-400">
+			<span class="text-sm text-surface-600-400" data-testid="pagination-count">
 				{pagination.totalCount}
 				{m.common_results()}
 			</span>
