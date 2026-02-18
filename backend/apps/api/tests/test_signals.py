@@ -1,6 +1,4 @@
 """
-Tests for Django signal handlers in the Krit-GIS API.
-
 These tests verify the automatic behavior triggered by model saves and deletes,
 including microduct creation, fiber creation, cable length updates, and folder renaming.
 """

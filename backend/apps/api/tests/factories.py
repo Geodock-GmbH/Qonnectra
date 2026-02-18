@@ -1,13 +1,9 @@
 """
-Factory Boy factories for testing Krit-GIS models.
-
 These factories provide a clean way to create test data for the application's models,
 handling the complex relationships and required fields automatically.
 """
 
 import factory
-from django.contrib.gis.geos import LineString, Point
-
 from apps.api.models import (
     Address,
     Area,
@@ -38,6 +34,7 @@ from apps.api.models import (
     Trench,
     TrenchConduitConnection,
 )
+from django.contrib.gis.geos import LineString, Point
 
 
 class ProjectFactory(factory.django.DjangoModelFactory):
@@ -191,9 +188,7 @@ class TrenchFactory(factory.django.DjangoModelFactory):
     surface = factory.SubFactory(SurfaceFactory)
     construction_type = factory.SubFactory(ConstructionTypeFactory)
     length = factory.LazyAttribute(lambda o: 100.0)
-    geom = factory.LazyAttribute(
-        lambda o: LineString((0, 0), (100, 0), srid=25832)
-    )
+    geom = factory.LazyAttribute(lambda o: LineString((0, 0), (100, 0), srid=25832))
     project = factory.SubFactory(ProjectFactory)
     flag = factory.SubFactory(FlagFactory)
 
@@ -342,9 +337,7 @@ class AreaFactory(factory.django.DjangoModelFactory):
 
     area_type = factory.SubFactory(AreaTypeFactory)
     name = factory.Sequence(lambda n: f"Area-{n}")
-    geom = factory.LazyAttribute(
-        lambda o: "POLYGON((0 0, 100 0, 100 100, 0 100, 0 0))"
-    )
+    geom = factory.LazyAttribute(lambda o: "POLYGON((0 0, 100 0, 100 100, 0 100, 0 0))")
     project = factory.SubFactory(ProjectFactory)
     flag = factory.SubFactory(FlagFactory)
 

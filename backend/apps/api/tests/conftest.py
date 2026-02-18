@@ -1,6 +1,4 @@
 """
-Pytest configuration and shared fixtures for Krit-GIS API tests.
-
 This module provides reusable fixtures that can be used across all test modules,
 built on top of Factory Boy factories for consistent test data creation.
 """

@@ -1,15 +1,10 @@
 """
 Tests for FeatureFiles model methods.
-
-These tests verify the file path generation and feature identifier extraction
-for different model types in the Krit-GIS system.
 """
 
 from unittest.mock import MagicMock
 
 import pytest
-from django.contrib.contenttypes.models import ContentType
-
 from apps.api.models import (
     Address,
     Area,
@@ -21,6 +16,7 @@ from apps.api.models import (
     StoragePreferences,
     Trench,
 )
+from django.contrib.contenttypes.models import ContentType
 
 from .factories import (
     AddressFactory,
@@ -338,7 +334,9 @@ class TestFeatureFilesGetUploadPath:
         feature_file.file_path.name = "contract.pdf"
 
         path = FeatureFiles.get_upload_path(feature_file, "contract.pdf")
-        assert path == "Address Project/addresss/Teststraße 10, 12345 Hamburg/contract.pdf"
+        assert (
+            path == "Address Project/addresss/Teststraße 10, 12345 Hamburg/contract.pdf"
+        )
 
     def test_upload_path_uses_storage_preferences(self):
         """Verify upload path uses custom folder structure from StoragePreferences."""
