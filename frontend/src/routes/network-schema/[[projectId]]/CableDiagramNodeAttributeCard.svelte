@@ -33,6 +33,7 @@
 	let nodeFlag = $state([]);
 	let nodeParentNode = $state([]);
 	let availableNodes = $state([]);
+	let isLoadingParentNodes = $state(false);
 
 	let { onLabelUpdate, onNodeDelete } = $props();
 
@@ -117,6 +118,7 @@
 	 * Fetch available nodes for parent node selection
 	 */
 	async function fetchAvailableNodes() {
+		isLoadingParentNodes = true;
 		try {
 			const response = await fetch('?/getAllNodes', {
 				method: 'POST',
@@ -129,6 +131,8 @@
 			}
 		} catch (err) {
 			console.error('Error fetching available nodes:', err);
+		} finally {
+			isLoadingParentNodes = false;
 		}
 	}
 
@@ -393,6 +397,8 @@
 			defaultValue={nodeParentNode}
 			onValueChange={(e) => (nodeParentNode = e.value)}
 			renderInPlace={true}
+			loading={isLoadingParentNodes}
+			placeholderSize="size-8 w-full"
 		/>
 	</label>
 </form>
