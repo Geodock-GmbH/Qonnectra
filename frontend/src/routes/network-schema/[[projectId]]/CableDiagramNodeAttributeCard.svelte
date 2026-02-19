@@ -398,7 +398,7 @@
 			onValueChange={(e) => (nodeParentNode = e.value)}
 			renderInPlace={true}
 			loading={isLoadingParentNodes}
-			placeholderSize="size-8 w-full"
+			placeholderSize="w-full size-10"
 		/>
 	</label>
 </form>
