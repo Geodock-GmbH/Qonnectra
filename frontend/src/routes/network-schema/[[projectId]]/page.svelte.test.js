@@ -13,6 +13,15 @@ vi.mock('$lib/paraglide/messages', () => ({
 	}
 }));
 
+vi.mock('$env/dynamic/public', () => ({
+	env: { PUBLIC_TILE_SERVER_URL: '' }
+}));
+
+vi.mock('$lib/utils/tokenHeartbeat.svelte.js', () => ({
+	startHeartbeat: vi.fn(),
+	stopHeartbeat: vi.fn()
+}));
+
 // Mock SvelteFlow components
 vi.mock('@xyflow/svelte', () => ({
 	SvelteFlow: vi.fn().mockImplementation(({ children, ...props }) => {
@@ -39,13 +48,27 @@ vi.mock('@xyflow/svelte', () => ({
 // Mock stores
 vi.mock('$lib/stores/drawer', () => ({
 	drawerStore: {
+		subscribe: (cb) => {
+			cb({ open: false });
+			return { unsubscribe: vi.fn() };
+		},
 		open: vi.fn()
 	}
 }));
 
 vi.mock('$app/stores', () => ({
-	navigating: { subscribe: vi.fn() },
-	page: { subscribe: vi.fn() }
+	navigating: {
+		subscribe: (cb) => {
+			cb(null);
+			return { unsubscribe: vi.fn() };
+		}
+	},
+	page: {
+		subscribe: (cb) => {
+			cb({ url: new URL('http://localhost/network-schema/1') });
+			return { unsubscribe: vi.fn() };
+		}
+	}
 }));
 
 vi.mock('$app/navigation', () => ({
@@ -53,7 +76,18 @@ vi.mock('$app/navigation', () => ({
 }));
 
 vi.mock('$lib/stores/store', () => ({
-	selectedProject: { subscribe: vi.fn() }
+	selectedProject: {
+		subscribe: (cb) => {
+			cb(null);
+			return { unsubscribe: vi.fn() };
+		}
+	},
+	edgeSnappingEnabled: {
+		subscribe: (cb) => {
+			cb(false);
+			return { unsubscribe: vi.fn() };
+		}
+	}
 }));
 
 // Mock custom components
