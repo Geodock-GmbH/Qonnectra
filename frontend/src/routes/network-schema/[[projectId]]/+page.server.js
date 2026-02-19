@@ -176,7 +176,8 @@ export async function load({ fetch, cookies, url, params }) {
 			],
 			nodeResponse,
 			cableResponse,
-			cableLabelResponse
+			cableLabelResponse,
+			cableMicropipeResponse
 		] = await Promise.all([
 			attributesFetchPromise,
 			fetch(`${API_URL}node/all/?project=${projectId}`, {
@@ -188,6 +189,10 @@ export async function load({ fetch, cookies, url, params }) {
 				headers: headers
 			}),
 			fetch(`${API_URL}cable_label/all/?project=${projectId}`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}cables/micropipe-summary/${projectId}/`, {
 				credentials: 'include',
 				headers: headers
 			})
@@ -203,6 +208,7 @@ export async function load({ fetch, cookies, url, params }) {
 
 		let cablesData = [];
 		let cableLabelsData = [];
+		let cableMicropipeConnections = {};
 		let cableTypesData = [];
 		let nodeTypesData = [];
 		let statusData = [];
@@ -220,6 +226,12 @@ export async function load({ fetch, cookies, url, params }) {
 			cableLabelsData = await cableLabelResponse.json();
 		} else {
 			console.warn('Failed to fetch cable labels, continuing without them');
+		}
+
+		if (cableMicropipeResponse.ok) {
+			cableMicropipeConnections = await cableMicropipeResponse.json();
+		} else {
+			console.warn('Failed to fetch cable micropipe connections, continuing without them');
 		}
 
 		const cableLabelMap = {};
@@ -303,6 +315,7 @@ export async function load({ fetch, cookies, url, params }) {
 		return {
 			nodes: nodesData,
 			cables: cablesData,
+			cableMicropipeConnections,
 			cableTypes: cableTypesData,
 			nodeTypes: nodeTypesData,
 			statuses: statusData,
@@ -322,6 +335,7 @@ export async function load({ fetch, cookies, url, params }) {
 		return {
 			nodes: [],
 			cables: [],
+			cableMicropipeConnections: {},
 			cableTypes: [],
 			nodeTypes: [],
 			statuses: [],
@@ -2430,6 +2444,46 @@ export const actions = {
 		} catch (err) {
 			console.error('Error fetching conduits for cable:', err);
 			return fail(500, { error: 'Failed to fetch conduits' });
+		}
+	},
+	getMicropipeConnectionsForCable: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const cableId = formData.get('uuid');
+
+		if (!cableId) {
+			return fail(400, { error: 'Cable ID is required' });
+		}
+
+		try {
+			const response = await fetch(
+				`${API_URL}microduct_cable_connection/all/?uuid_cable=${cableId}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch micropipe connections'
+				});
+			}
+
+			const connections = await response.json();
+
+			// Transform to the format expected by the edge component
+			const transformed = connections.map((conn) => ({
+				number: conn.uuid_microduct?.number,
+				color_hex: conn.uuid_microduct?.hex_code || '#64748b',
+				color_name: conn.uuid_microduct?.color
+			}));
+
+			return { connections: transformed };
+		} catch (err) {
+			console.error('Error fetching micropipe connections for cable:', err);
+			return fail(500, { error: 'Failed to fetch micropipe connections' });
 		}
 	}
 };

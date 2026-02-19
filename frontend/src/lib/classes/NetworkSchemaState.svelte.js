@@ -39,12 +39,12 @@ export class NetworkSchemaState {
 
 	/**
 	 * Initialize or re-initialize the state with data
-	 * @param {Object} data - The page data containing nodes, cables, and cableTypes
+	 * @param {Object} data - The page data containing nodes, cables, cableMicropipeConnections, and cableTypes
 	 */
 	initialize(data) {
 		if (!data || this.#initialized) return;
 		this.nodes = this.transformNodesToSvelteFlow(data.nodes);
-		this.edges = this.transformCablesToSvelteFlowEdges(data.cables);
+		this.edges = this.transformCablesToSvelteFlowEdges(data.cables, data.cableMicropipeConnections);
 		this.cableTypes = data.cableTypes;
 		this.#initialized = true;
 	}
@@ -93,9 +93,10 @@ export class NetworkSchemaState {
 	/**
 	 * Transform Cable data to SvelteFlow edges
 	 * @param {Array} cablesData - Array of Cable objects from the API
+	 * @param {Object} micropipeConnections - Map of cable UUID to micropipe connection data
 	 * @returns {Array} SvelteFlow compatible edges
 	 */
-	transformCablesToSvelteFlowEdges(cablesData) {
+	transformCablesToSvelteFlowEdges(cablesData, micropipeConnections = {}) {
 		const cables = Array.isArray(cablesData) ? cablesData : [];
 
 		if (cables.length === 0) {
@@ -104,26 +105,37 @@ export class NetworkSchemaState {
 
 		const edges = cables
 			.filter((cable) => cable.uuid_node_start && cable.uuid_node_end)
-			.map((cable) => ({
-				id: cable.uuid,
-				source: cable.uuid_node_start,
-				target: cable.uuid_node_end,
-				sourceHandle: cable.handle_start
-					? `${cable.uuid_node_start}-${cable.handle_start}-source`
-					: undefined,
-				targetHandle: cable.handle_end
-					? `${cable.uuid_node_end}-${cable.handle_end}-target`
-					: undefined,
-				type: 'cableDiagramEdge',
-				data: {
-					label: cable.labelData?.text || cable.name,
-					cable: cable,
-					labelData: cable.labelData,
-					onEdgeDelete: (edgeId) => this.handleEdgeDelete(edgeId),
-					onEdgeSelect: (edgeId) => this.selectEdge(edgeId),
-					onNameUpdate: (newName) => this.updateEdgeName(cable.uuid, newName)
-				}
-			}));
+			.map((cable) => {
+				// Get micropipe connections for this cable
+				const connections = micropipeConnections[cable.uuid] || [];
+				// Sort by micropipe number and get the lowest one
+				const sortedConnections = [...connections].sort((a, b) => a.number - b.number);
+				const lowestMicropipe = sortedConnections[0] || null;
+
+				return {
+					id: cable.uuid,
+					source: cable.uuid_node_start,
+					target: cable.uuid_node_end,
+					sourceHandle: cable.handle_start
+						? `${cable.uuid_node_start}-${cable.handle_start}-source`
+						: undefined,
+					targetHandle: cable.handle_end
+						? `${cable.uuid_node_end}-${cable.handle_end}-target`
+						: undefined,
+					type: 'cableDiagramEdge',
+					data: {
+						label: cable.labelData?.text || cable.name,
+						cable: cable,
+						labelData: cable.labelData,
+						micropipeConnections: connections,
+						lowestMicropipe: lowestMicropipe,
+						isConnected: connections.length > 0,
+						onEdgeDelete: (edgeId) => this.handleEdgeDelete(edgeId),
+						onEdgeSelect: (edgeId) => this.selectEdge(edgeId),
+						onNameUpdate: (newName) => this.updateEdgeName(cable.uuid, newName)
+					}
+				};
+			});
 
 		return edges;
 	}
@@ -543,6 +555,31 @@ export class NetworkSchemaState {
 						}
 					};
 				}
+			}
+			return edge;
+		});
+	}
+
+	/**
+	 * Update edge micropipe connections for dynamic coloring
+	 * @param {string} cableId - Cable UUID
+	 * @param {Array} connections - Array of micropipe connection objects
+	 */
+	updateEdgeMicropipeConnections(cableId, connections) {
+		const sortedConnections = [...connections].sort((a, b) => a.number - b.number);
+		const lowestMicropipe = sortedConnections[0] || null;
+
+		this.edges = this.edges.map((edge) => {
+			if (edge.id === cableId) {
+				return {
+					...edge,
+					data: {
+						...edge.data,
+						micropipeConnections: connections,
+						lowestMicropipe: lowestMicropipe,
+						isConnected: connections.length > 0
+					}
+				};
 			}
 			return edge;
 		});

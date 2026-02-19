@@ -29,6 +29,10 @@ export const edgeSnappingEnabled = persisted('edgeSnappingEnabled', true);
 export const edgeSnappingGridSize = persisted('edgeSnappingGridSize', 20);
 export const networkSchemaViewport = persisted('networkSchemaViewport', { x: 0, y: 0, zoom: 1 });
 
+// Cable edge color mode for network-schema diagram
+// 'default' = static green, 'linked' = green/blue based on connection, 'micropipe' = use micropipe color
+export const cableEdgeColorMode = persisted('cableEdgeColorMode', 'default');
+
 // Node type styles - stores color, size, and visibility per node type
 // Structure: { [node_type_name]: { color: '#hex', size: number, visible: boolean } }
 export const nodeTypeStyles = persisted('nodeTypeStyles', {});

@@ -15,6 +15,7 @@
 	import {
 		addressStyle,
 		areaTypeStyles,
+		cableEdgeColorMode,
 		nodeTypeStyles,
 		routingTolerance,
 		sidebarExpanded,
@@ -1009,6 +1010,71 @@
 						{/each}
 					</div>
 				{/if}
+			</div>
+
+			<!-- Cable Edge Color Settings -->
+			<div>
+				<h2 class="text-base/7 font-semibold text-primary-900-100">
+					{m.settings_cable_edge_color()}
+				</h2>
+				<p class="text-sm text-surface-500 mt-1">
+					{m.settings_cable_edge_color_description()}
+				</p>
+				<dl class="mt-6 divide-y border-t text-sm/6">
+					<div class="py-6 sm:flex">
+						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
+							{m.settings_cable_edge_color_mode()}
+						</dt>
+						<dd class="mt-1 flex flex-col gap-3 sm:mt-0 sm:flex-auto">
+							<label class="flex items-center gap-2 cursor-pointer">
+								<input
+									type="radio"
+									name="cable-edge-color-mode"
+									value="default"
+									checked={$cableEdgeColorMode === 'default'}
+									onchange={() => ($cableEdgeColorMode = 'default')}
+									class="radio"
+								/>
+								<div class="flex items-center gap-2">
+									<span class="w-4 h-1 rounded" style="background-color: #22c55e;"></span>
+									<span class="text-sm">{m.settings_cable_edge_color_default()}</span>
+								</div>
+							</label>
+							<label class="flex items-center gap-2 cursor-pointer">
+								<input
+									type="radio"
+									name="cable-edge-color-mode"
+									value="linked"
+									checked={$cableEdgeColorMode === 'linked'}
+									onchange={() => ($cableEdgeColorMode = 'linked')}
+									class="radio"
+								/>
+								<div class="flex items-center gap-2">
+									<span class="w-4 h-1 rounded" style="background-color: #22c55e;"></span>
+									<span>/</span>
+									<span class="w-4 h-1 rounded" style="background-color: #3b82f6;"></span>
+									<span class="text-sm">{m.settings_cable_edge_color_linked()}</span>
+								</div>
+							</label>
+							<label class="flex items-center gap-2 cursor-pointer">
+								<input
+									type="radio"
+									name="cable-edge-color-mode"
+									value="micropipe"
+									checked={$cableEdgeColorMode === 'micropipe'}
+									onchange={() => ($cableEdgeColorMode = 'micropipe')}
+									class="radio"
+								/>
+								<div class="flex items-center gap-2">
+									<span
+										class="w-4 h-1 rounded bg-linear-to-r from-red-500 via-yellow-500 to-blue-500"
+									></span>
+									<span class="text-sm">{m.settings_cable_edge_color_micropipe()}</span>
+								</div>
+							</label>
+						</dd>
+					</div>
+				</dl>
 			</div>
 
 			<!-- Conduit Connection Settings -->

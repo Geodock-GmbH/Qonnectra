@@ -4,7 +4,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { edgeSnappingEnabled } from '$lib/stores/store';
+	import { cableEdgeColorMode, edgeSnappingEnabled } from '$lib/stores/store';
 	import {
 		buildEdgePath,
 		getClosestPointOnSegment,
@@ -14,8 +14,42 @@
 
 	import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
 
+	// Color constants for edge styling
+	const DEFAULT_GREEN = '#22c55e';
+	const LINKED_BLUE = '#3b82f6';
+
 	let { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected } =
 		$props();
+
+	/**
+	 * Compute the edge stroke color based on the current color mode setting
+	 */
+	let strokeColor = $derived.by(() => {
+		const mode = $cableEdgeColorMode;
+
+		if (mode === 'default') {
+			return DEFAULT_GREEN;
+		}
+
+		if (mode === 'linked') {
+			// Green when not connected, Blue when connected to at least one micropipe
+			return data?.isConnected ? LINKED_BLUE : DEFAULT_GREEN;
+		}
+
+		if (mode === 'micropipe') {
+			// Use the color from the lowest numbered micropipe
+			const lowestMicropipe = data?.lowestMicropipe;
+			const hexColor = lowestMicropipe?.color_hex;
+			// Validate hex color format before using it
+			if (hexColor && /^#[0-9A-Fa-f]{6}$/.test(hexColor)) {
+				return hexColor;
+			}
+			// Fall back to green if no connection or invalid color
+			return DEFAULT_GREEN;
+		}
+
+		return DEFAULT_GREEN;
+	});
 
 	// Label state - synced reactively via $effect below
 	let currentLabel = $state('');
@@ -363,7 +397,7 @@
 		{id}
 		path={edgePath}
 		interactionWidth={20}
-		style="stroke: var(--color-primary-500); stroke-width: 2;"
+		style="stroke: {strokeColor}; stroke-width: 2;"
 		aria-label={m.tooltip_open_cable_details({ label: data.label })}
 	/>
 </g>
@@ -373,7 +407,7 @@
 	{#each data.cable.diagram_path as vertex, index}
 		{@const isHovered = hoveredVertexIndex === index}
 		{@const isDeleteMode = shiftPressed && isHovered}
-		{@const fillColor = isDeleteMode ? 'var(--color-error-500)' : 'var(--color-primary-500)'}
+		{@const fillColor = isDeleteMode ? 'var(--color-error-500)' : strokeColor}
 		{@const cursorStyle = shiftPressed ? 'cursor: crosshair;' : 'cursor: move;'}
 		<circle
 			class="nopan"

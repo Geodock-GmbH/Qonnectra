@@ -38,6 +38,7 @@ from .views import (
     FlagsViewSet,
     FrontendLogView,
     GeoPackageSchemaView,
+    get_cable_micropipe_summary,
     get_conduits_for_cable,
     get_trenches_for_cable_connections,
     LayerExtentView,
@@ -307,5 +308,10 @@ urlpatterns = [
         "cables/<uuid:cable_id>/conduits/",
         get_conduits_for_cable,
         name="cable-conduits",
+    ),
+    path(
+        "cables/micropipe-summary/<int:project_id>/",
+        get_cable_micropipe_summary,
+        name="cable-micropipe-summary",
     ),
 ]

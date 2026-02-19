@@ -80,11 +80,13 @@
 
 	/**
 	 * Refresh cable data from the server and update drawer props
+	 * Also dispatches an event to update edge micropipe connections for dynamic coloring
 	 */
 	async function refreshCableData() {
 		if (type !== 'edge' || !featureId) return;
 
 		try {
+			// Fetch updated cable data
 			const formData = new FormData();
 			formData.append('uuid', featureId);
 			const response = await fetch('?/getCables', {
@@ -95,6 +97,21 @@
 			if (result.type === 'success' && result.data) {
 				const parsedData = typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
 				drawerStore.updateProps(parsedData);
+			}
+
+			// Fetch updated micropipe connections for this cable
+			const micropipeResponse = await fetch(`?/getMicropipeConnectionsForCable`, {
+				method: 'POST',
+				body: formData
+			});
+			const micropipeResult = deserialize(await micropipeResponse.text());
+			if (micropipeResult.type === 'success' && micropipeResult.data?.connections) {
+				// Dispatch event to update edge colors
+				window.dispatchEvent(
+					new CustomEvent('micropipeLinkageChanged', {
+						detail: { cableId: featureId, connections: micropipeResult.data.connections }
+					})
+				);
 			}
 		} catch (err) {
 			console.error('Error refreshing cable data:', err);
