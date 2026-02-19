@@ -302,23 +302,21 @@
 			<label for="node-start" class="text-sm font-medium"
 				>{m.form_change_node?.() || 'Change Node'}</label
 			>
-			{#if loadingNodes}
-				<p class="text-sm text-surface-500">{m.common_loading()}</p>
-			{:else}
-				<GenericCombobox
-					data={availableNodes}
-					bind:value={selectedNodeStart}
-					defaultValue={selectedNodeStart}
-					placeholder={m.placeholder_select_node?.() || 'Select node...'}
-					onValueChange={(e) => {
-						const newNodeId = e.value?.[0];
-						if (newNodeId && newNodeId !== cable.uuid_node_start) {
-							handleNodeChange('start', newNodeId);
-						}
-					}}
-					renderInPlace={true}
-				/>
-			{/if}
+			<GenericCombobox
+				data={availableNodes}
+				bind:value={selectedNodeStart}
+				defaultValue={selectedNodeStart}
+				placeholder={m.placeholder_select_node?.() || 'Select node...'}
+				onValueChange={(e) => {
+					const newNodeId = e.value?.[0];
+					if (newNodeId && newNodeId !== cable.uuid_node_start) {
+						handleNodeChange('start', newNodeId);
+					}
+				}}
+				renderInPlace={true}
+				loading={loadingNodes}
+				placeholderSize="w-full size-10"
+			/>
 		</div>
 
 		<!-- Handle Position -->
@@ -357,23 +355,21 @@
 			<label for="node-end" class="text-sm font-medium"
 				>{m.form_change_node?.() || 'Change Node'}</label
 			>
-			{#if loadingNodes}
-				<p class="text-sm text-surface-500">{m.common_loading()}</p>
-			{:else}
-				<GenericCombobox
-					data={availableNodes}
-					bind:value={selectedNodeEnd}
-					defaultValue={selectedNodeEnd}
-					placeholder={m.placeholder_select_node?.() || 'Select node...'}
-					onValueChange={(e) => {
-						const newNodeId = e.value?.[0];
-						if (newNodeId && newNodeId !== cable.uuid_node_end) {
-							handleNodeChange('end', newNodeId);
-						}
-					}}
-					renderInPlace={true}
-				/>
-			{/if}
+			<GenericCombobox
+				data={availableNodes}
+				bind:value={selectedNodeEnd}
+				defaultValue={selectedNodeEnd}
+				placeholder={m.placeholder_select_node?.() || 'Select node...'}
+				onValueChange={(e) => {
+					const newNodeId = e.value?.[0];
+					if (newNodeId && newNodeId !== cable.uuid_node_end) {
+						handleNodeChange('end', newNodeId);
+					}
+				}}
+				renderInPlace={true}
+				loading={loadingNodes}
+				placeholderSize="w-full size-10"
+			/>
 		</div>
 
 		<!-- Handle Position -->
