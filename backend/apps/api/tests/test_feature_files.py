@@ -40,7 +40,7 @@ class TestFeatureFilesGetFeatureIdentifier:
         """Verify trench uses id_trench as identifier."""
         project = ProjectFactory()
         flag = FlagFactory()
-        trench = TrenchFactory(project=project, flag=flag, id_trench=12345)
+        trench = TrenchFactory(project=project, flag=flag, id_trench="TR-TEST001")
 
         content_type = ContentType.objects.get_for_model(Trench)
 
@@ -52,7 +52,7 @@ class TestFeatureFilesGetFeatureIdentifier:
         feature_file.feature = trench
 
         identifier = FeatureFiles.get_feature_identifier(feature_file)
-        assert identifier == 12345
+        assert identifier == "TR-TEST001"
 
     def test_identifier_conduit_uses_name(self):
         """Verify conduit uses name as identifier."""
@@ -211,7 +211,7 @@ class TestFeatureFilesGetUploadPath:
         """Verify default upload path for trench."""
         project = ProjectFactory(project="Alpha Project")
         flag = FlagFactory()
-        trench = TrenchFactory(project=project, flag=flag, id_trench=99999)
+        trench = TrenchFactory(project=project, flag=flag, id_trench="TR-TEST002")
 
         content_type = ContentType.objects.get_for_model(Trench)
 
@@ -228,7 +228,7 @@ class TestFeatureFilesGetUploadPath:
         path = FeatureFiles.get_upload_path(feature_file, "document.pdf")
 
         # Without StoragePreferences, uses default structure
-        assert path == "Alpha Project/trenchs/99999/document.pdf"
+        assert path == "Alpha Project/trenchs/TR-TEST002/document.pdf"
 
     def test_upload_path_node_default(self):
         """Verify default upload path for node."""
@@ -361,7 +361,7 @@ class TestFeatureFilesGetUploadPath:
             category="photos",
         )
 
-        trench = TrenchFactory(project=project, flag=flag, id_trench=88888)
+        trench = TrenchFactory(project=project, flag=flag, id_trench="TR-TEST003")
 
         content_type = ContentType.objects.get_for_model(Trench)
 
@@ -374,7 +374,7 @@ class TestFeatureFilesGetUploadPath:
         feature_file.file_path.name = "photo.jpg"
 
         path = FeatureFiles.get_upload_path(feature_file, "photo.jpg")
-        assert path == "Custom Project/trenches/88888/photos/photo.jpg"
+        assert path == "Custom Project/trenches/TR-TEST003/photos/photo.jpg"
 
     def test_upload_path_falls_back_to_defaults(self):
         """Verify upload path falls back to defaults when no StoragePreferences exist."""
@@ -384,7 +384,7 @@ class TestFeatureFilesGetUploadPath:
         # Ensure no StoragePreferences exist
         StoragePreferences.objects.all().delete()
 
-        trench = TrenchFactory(project=project, flag=flag, id_trench=77777)
+        trench = TrenchFactory(project=project, flag=flag, id_trench="TR-TEST004")
 
         content_type = ContentType.objects.get_for_model(Trench)
 
@@ -398,7 +398,7 @@ class TestFeatureFilesGetUploadPath:
 
         path = FeatureFiles.get_upload_path(feature_file, "file.pdf")
         # Default fallback uses model_name + 's'
-        assert path == "Fallback Project/trenchs/77777/file.pdf"
+        assert path == "Fallback Project/trenchs/TR-TEST004/file.pdf"
 
     def test_upload_path_uses_documents_for_unknown_extension(self):
         """Verify upload path uses 'documents' category for unknown file extensions."""

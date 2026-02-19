@@ -1020,7 +1020,7 @@ class Trench(models.Model):
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
-    id_trench = models.IntegerField(_("Trench ID"), null=False, unique=True)
+    id_trench = models.CharField(_("Trench ID"), max_length=10, null=False)
     surface = models.ForeignKey(
         AttributesSurface,
         null=False,
@@ -1162,6 +1162,12 @@ class Trench(models.Model):
             models.Index(fields=["owner"], name="idx_trench_owner"),
             models.Index(fields=["constructor"], name="idx_trench_constructor"),
             gis_models.Index(fields=["geom"], name="idx_trench_geom"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "id_trench"],
+                name="unique_trench_id_per_project",
+            ),
         ]
 
 
@@ -2950,7 +2956,7 @@ def rename_trench_folder_on_id_change(sender, instance, created, **kwargs):
             rename_feature_folder(instance, old_id, new_id)
         except OSError:
             # Rollback: restore old id_trench and re-raise
-            instance.id_trench = int(old_id)
+            instance.id_trench = old_id
             instance.save(update_fields=["id_trench"])
             raise
 

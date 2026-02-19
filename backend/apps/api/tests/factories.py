@@ -184,7 +184,7 @@ class TrenchFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Trench
 
-    id_trench = factory.Sequence(lambda n: n + 1000)
+    id_trench = factory.Sequence(lambda n: f"TR-TEST{n:03d}")
     surface = factory.SubFactory(SurfaceFactory)
     construction_type = factory.SubFactory(ConstructionTypeFactory)
     length = factory.LazyAttribute(lambda o: 100.0)

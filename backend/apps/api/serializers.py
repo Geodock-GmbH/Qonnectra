@@ -282,7 +282,7 @@ class TrenchSerializer(GeoFeatureModelSerializer):
     """
 
     uuid = serializers.UUIDField(read_only=True)
-    id_trench = serializers.IntegerField(read_only=True)
+    id_trench = serializers.CharField(read_only=True)
     house_connection = serializers.BooleanField(read_only=True)
     length = serializers.DecimalField(read_only=True, max_digits=12, decimal_places=4)
 
