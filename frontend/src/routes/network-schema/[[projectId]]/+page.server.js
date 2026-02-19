@@ -1166,6 +1166,40 @@ export const actions = {
 			return fail(500, { error: 'Internal server error' });
 		}
 	},
+	updateContainerName: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const containerUuid = formData.get('containerUuid');
+			const name = formData.get('name');
+
+			if (!containerUuid) {
+				return fail(400, { error: 'Missing required parameter: containerUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}container/${containerUuid}/`, {
+				method: 'PATCH',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ name: name || null })
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to update container name'
+				});
+			}
+
+			const container = await response.json();
+			return { success: true, container };
+		} catch (err) {
+			console.error('Error updating container name:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
 	moveItem: async ({ request, fetch, cookies }) => {
 		try {
 			const formData = await request.formData();

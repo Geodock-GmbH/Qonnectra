@@ -271,7 +271,8 @@
 								type="button"
 								class="w-full h-full bg-transparent border-none font-mono text-center cursor-pointer p-0 transition-colors duration-150 rounded hover:bg-(--color-surface-200-800)"
 								onclick={() => handleStartEditingClip(row.slotNumber, row.clipNumber)}
-								title={m.tooltip_click_to_edit()}
+								aria-label={m.tooltip_click_to_edit()}
+								{@attach tooltip(m.tooltip_click_to_edit())}
 							>
 								{row.clipNumber || row.slotNumber}
 							</button>

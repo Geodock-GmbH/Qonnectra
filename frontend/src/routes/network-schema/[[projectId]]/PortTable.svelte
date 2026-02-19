@@ -5,6 +5,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { NODE_STRUCTURE_CONTEXT_KEY } from '$lib/classes/NodeStructureContext.svelte.js';
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	import FiberCell from './FiberCell.svelte';
 
@@ -185,7 +186,8 @@
 							class="checkbox"
 							checked={allSelected}
 							onchange={toggleSelectAll}
-							title={allSelected ? 'Deselect all' : 'Select all'}
+							aria-label={allSelected ? m.tooltip_deselect_all() : m.tooltip_select_all()}
+							{@attach tooltip(allSelected ? m.tooltip_deselect_all() : m.tooltip_select_all())}
 						/>
 					{/if}
 				</div>
@@ -213,7 +215,8 @@
 							handleToggleMergeMode();
 						}
 					}}
-					title={m.action_merge_ports?.() || 'Merge ports'}
+					aria-label={m.action_merge_ports?.() || 'Merge ports'}
+					{@attach tooltip(m.action_merge_ports?.() || 'Merge ports')}
 				>
 					<IconArrowMerge size={20} />
 				</button>
@@ -238,7 +241,8 @@
 							handleToggleMergeMode();
 						}
 					}}
-					title={m.action_merge_ports?.() || 'Merge ports'}
+					aria-label={m.action_merge_ports?.() || 'Merge ports'}
+					{@attach tooltip(m.action_merge_ports?.() || 'Merge ports')}
 				>
 					<IconArrowMerge size={20} />
 				</button>

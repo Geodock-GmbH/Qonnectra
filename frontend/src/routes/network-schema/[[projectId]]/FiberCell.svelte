@@ -3,6 +3,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { tooltip } from '$lib/utils/tooltip.js';
+
 	let {
 		fiber = null,
 		hasPort = true,
@@ -157,7 +159,8 @@
 							e.stopPropagation();
 							onUnmerge();
 						}}
-						title={m.action_unmerge?.() || 'Unmerge'}
+						aria-label={m.action_unmerge?.() || 'Unmerge'}
+						{@attach tooltip(m.action_unmerge?.() || 'Unmerge')}
 					>
 						<IconArrowsSplit size={16} />
 					</button>
@@ -191,7 +194,8 @@
 							e.stopPropagation();
 							onUnmerge();
 						}}
-						title={m.action_unmerge?.() || 'Unmerge'}
+						aria-label={m.action_unmerge?.() || 'Unmerge'}
+						{@attach tooltip(m.action_unmerge?.() || 'Unmerge')}
 					>
 						<IconArrowsSplit size={14} />
 					</button>

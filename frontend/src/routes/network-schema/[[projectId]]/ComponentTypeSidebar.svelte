@@ -12,6 +12,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { DRAG_DROP_CONTEXT_KEY } from '$lib/classes/DragDropManager.svelte.js';
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	let {
 		onDragStart = () => {},
@@ -214,7 +215,8 @@
 			type="button"
 			class="absolute top-2 -right-3 z-10 w-6 h-6 rounded-full bg-(--color-surface-100-900) border border-(--color-surface-300-700) flex items-center justify-center cursor-pointer transition-colors duration-150 hover:bg-(--color-surface-200-800)"
 			onclick={() => (collapsed = !collapsed)}
-			title={collapsed ? m.action_expand() : m.action_collapse()}
+			aria-label={collapsed ? m.action_expand() : m.action_collapse()}
+			{@attach tooltip(collapsed ? m.action_expand() : m.action_collapse())}
 		>
 			{#if collapsed}
 				<IconChevronRight size={16} />

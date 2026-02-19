@@ -8,6 +8,7 @@
 
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	/**
 	 * @typedef {Object} FileExplorerProps
@@ -358,7 +359,8 @@
 								type="button"
 								onclick={() => saveRename(node.fileData)}
 								class="btn-icon btn-sm preset-filled-primary-500"
-								title={m.action_save()}
+								aria-label={m.action_save()}
+								{@attach tooltip(m.action_save())}
 							>
 								✓
 							</button>
@@ -366,7 +368,8 @@
 								type="button"
 								onclick={cancelEditing}
 								class="btn-icon btn-sm preset-filled-error-500"
-								title={m.common_cancel()}
+								aria-label={m.common_cancel()}
+								{@attach tooltip(m.common_cancel())}
 							>
 								✕
 							</button>
@@ -382,7 +385,8 @@
 										downloadFile(node.fileData);
 									}}
 									class="btn-icon btn-sm preset-filled-primary-500"
-									title={m.action_download()}
+									aria-label={m.action_download()}
+									{@attach tooltip(m.action_download())}
 								>
 									<IconDownload class="size-4" />
 								</button>
@@ -393,7 +397,8 @@
 										startEditing(node.fileData);
 									}}
 									class="btn-icon btn-sm preset-filled-warning-500"
-									title={m.action_rename()}
+									aria-label={m.action_rename()}
+									{@attach tooltip(m.action_rename())}
 								>
 									<IconEdit class="size-4" />
 								</button>
@@ -404,7 +409,8 @@
 										confirmDelete(node.fileData);
 									}}
 									class="btn-icon btn-sm preset-filled-error-500"
-									title={m.action_delete_file()}
+									aria-label={m.action_delete_file()}
+									{@attach tooltip(m.action_delete_file())}
 								>
 									<IconTrash class="size-4" />
 								</button>

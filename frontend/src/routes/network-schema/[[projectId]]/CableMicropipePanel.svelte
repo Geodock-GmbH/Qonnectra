@@ -30,6 +30,7 @@
 		trenchStyleMode,
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	import 'ol/ol.css';
 
@@ -548,9 +549,11 @@
 												{:else}
 													<span
 														class="text-xs text-warning-500"
-														title={m.message_micropipe_not_in_conduit({
-															conduits: mp.missing_in.join(', ')
-														})}
+														{@attach tooltip(
+															m.message_micropipe_not_in_conduit({
+																conduits: mp.missing_in.join(', ')
+															})
+														)}
 													>
 														{mp.available_in.length}/{manager.selectedConduitIds.size}
 													</span>
@@ -568,7 +571,8 @@
 														<button
 															type="button"
 															class="p-1 rounded hover:bg-error-500/20 text-error-500 transition-colors"
-															title={m.action_remove_linkage()}
+															aria-label={m.action_remove_linkage()}
+															{@attach tooltip(m.action_remove_linkage())}
 															onclick={async (e) => {
 																e.stopPropagation();
 																await manager.removeLinkage(mp.number, mp.available_in);

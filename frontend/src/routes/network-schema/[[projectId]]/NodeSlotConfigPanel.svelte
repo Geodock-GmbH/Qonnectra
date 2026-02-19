@@ -205,6 +205,40 @@
 	}
 
 	/**
+	 * Update a container's name
+	 */
+	async function handleUpdateContainerName(uuid, newName) {
+		try {
+			const formData = new FormData();
+			formData.append('containerUuid', uuid);
+			formData.append('name', newName);
+
+			const response = await fetch('?/updateContainerName', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to update container name');
+			}
+
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_success_updating_container?.() || 'Container updated successfully'
+			});
+			await fetchHierarchy();
+		} catch (err) {
+			console.error('Error updating container name:', err);
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_updating_container?.() || 'Failed to update container'
+			});
+		}
+	}
+
+	/**
 	 * Handle drag-and-drop move operations
 	 */
 	async function handleMove(dragData, targetContainerId) {
@@ -614,6 +648,7 @@
 						<ContainerItem
 							{container}
 							onDelete={handleDeleteContainer}
+							onUpdateName={handleUpdateContainerName}
 							onMove={handleMove}
 							onToggleExpand={handleToggleExpand}
 							onEditSlotConfig={startEdit}

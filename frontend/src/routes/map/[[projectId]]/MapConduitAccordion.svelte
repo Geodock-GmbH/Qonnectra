@@ -8,6 +8,7 @@
 
 	import { ConduitDataManager } from '$lib/classes/ConduitDataManager.svelte.js';
 	import MicroductsDisplayTable from '$lib/components/MicroductsDisplayTable.svelte';
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	/**
 	 * @typedef {Object} Props
@@ -89,7 +90,8 @@
 					<button
 						type="button"
 						class="btn btn-sm btn-icon preset-filled-secondary-500 p-1 mr-2"
-						title={m.action_highlight_trenches()}
+						aria-label={m.action_highlight_trenches()}
+						{@attach tooltip(m.action_highlight_trenches())}
 						onclick={(e) => handleHighlightTrenches(e, item.pipeUuid)}
 						disabled={highlightLoading[item.pipeUuid]}
 					>

@@ -2,7 +2,10 @@
 	import { AppBar } from '@skeletonlabs/skeleton-svelte';
 	import { IconLogin, IconLogout } from '@tabler/icons-svelte';
 
+	import { m } from '$lib/paraglide/messages';
+
 	import { userStore } from '$lib/stores/auth';
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	import LightSwitch from './LightSwitch.svelte';
 	import LocaleSwitcher from './LocaleSwitcher.svelte';
@@ -45,10 +48,10 @@
 					<!-- GitHub link - hidden on mobile -->
 					<a
 						href="https://github.com/Geodock-GmbH/Qonnectra"
-						aria-label="GitHub"
+						aria-label={m.tooltip_github()}
 						class="btn-icon hover:preset-tonal size-5 hidden sm:flex"
 						target="_blank"
-						title="GitHub"
+						{@attach tooltip(m.tooltip_github(), { position: 'bottom' })}
 					>
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
@@ -74,15 +77,19 @@
 							<button
 								type="submit"
 								class="btn-icon hover:preset-tonal"
-								aria-label="Logout"
-								title="Logout"
+								aria-label={m.tooltip_logout()}
+								{@attach tooltip(m.tooltip_logout(), { position: 'bottom' })}
 							>
 								<IconLogout class="size-5" />
 							</button>
 						</form>
 					{:else}
 						<a href="/login">
-							<button class="btn-icon hover:preset-tonal" aria-label="Login" title="Login">
+							<button
+								class="btn-icon hover:preset-tonal"
+								aria-label={m.tooltip_login()}
+								{@attach tooltip(m.tooltip_login(), { position: 'bottom' })}
+							>
 								<IconLogin class="size-5" />
 							</button>
 						</a>

@@ -1,13 +1,18 @@
 <script>
 	import { flip } from 'svelte/animate';
 	import {
+		IconCheck,
 		IconChevronDown,
 		IconChevronRight,
 		IconGripVertical,
-		IconTrash
+		IconPencil,
+		IconTrash,
+		IconX
 	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
+
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	import Self from './ContainerItem.svelte';
 	import SlotConfigItem from './SlotConfigItem.svelte';
@@ -16,6 +21,7 @@
 		container,
 		depth = 0,
 		onDelete,
+		onUpdateName,
 		onMove,
 		onToggleExpand,
 		onEditSlotConfig,
@@ -24,6 +30,8 @@
 	} = $props();
 
 	let dragOver = $state(false);
+	let isEditing = $state(false);
+	let editName = $state('');
 
 	function handleDragStart(e) {
 		e.dataTransfer.setData(
@@ -71,6 +79,20 @@
 		onToggleExpand?.(container.uuid);
 	}
 
+	function startEdit() {
+		editName = container.name || '';
+		isEditing = true;
+	}
+
+	function cancelEdit() {
+		isEditing = false;
+	}
+
+	function saveEdit() {
+		onUpdateName?.(container.uuid, editName.trim());
+		isEditing = false;
+	}
+
 	const hasChildren = $derived(
 		container.children?.length > 0 || container.slot_configurations?.length > 0
 	);
@@ -109,18 +131,55 @@
 			<span class="w-5 shrink-0"></span>
 		{/if}
 
-		<span class="flex-1 font-medium text-sm truncate">
-			{container.display_name}
-		</span>
+		{#if isEditing}
+			<input
+				type="text"
+				class="input input-sm flex-1"
+				bind:value={editName}
+				placeholder={container.container_type_name || ''}
+			/>
+			<button
+				type="button"
+				class="btn btn-sm preset-filled-success-500 p-1.5 shrink-0"
+				onclick={saveEdit}
+				aria-label={m.action_save()}
+				{@attach tooltip(m.action_save())}
+			>
+				<IconCheck size={14} />
+			</button>
+			<button
+				type="button"
+				class="btn btn-sm preset-filled-surface-500 p-1.5 shrink-0"
+				onclick={cancelEdit}
+				aria-label={m.common_cancel()}
+				{@attach tooltip(m.common_cancel())}
+			>
+				<IconX size={14} />
+			</button>
+		{:else}
+			<span class="flex-1 font-medium text-sm truncate">
+				{container.display_name}
+			</span>
 
-		<button
-			type="button"
-			class="btn btn-sm preset-filled-error-500 p-1.5 shrink-0"
-			onclick={() => onDelete?.(container.uuid)}
-			title={m.common_delete()}
-		>
-			<IconTrash size={14} />
-		</button>
+			<button
+				type="button"
+				class="btn btn-sm preset-filled-warning-500 p-1.5 shrink-0"
+				onclick={startEdit}
+				aria-label={m.common_edit()}
+				{@attach tooltip(m.common_edit())}
+			>
+				<IconPencil size={14} />
+			</button>
+			<button
+				type="button"
+				class="btn btn-sm preset-filled-error-500 p-1.5 shrink-0"
+				onclick={() => onDelete?.(container.uuid)}
+				aria-label={m.common_delete()}
+				{@attach tooltip(m.common_delete())}
+			>
+				<IconTrash size={14} />
+			</button>
+		{/if}
 	</div>
 
 	{#if container.is_expanded && hasChildren}
@@ -145,6 +204,7 @@
 						container={child}
 						depth={depth + 1}
 						{onDelete}
+						{onUpdateName}
 						{onMove}
 						{onToggleExpand}
 						{onEditSlotConfig}

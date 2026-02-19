@@ -4,6 +4,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { globalToaster } from '$lib/stores/toaster';
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	let { id, sourceX, sourceY, targetX, targetY, data } = $props();
 
@@ -89,14 +90,14 @@
 		<div class="flex items-center gap-2" style="z-index: 100;">
 			<div
 				class="z-10 bg-surface-50-950 border border-surface-200-700 rounded px-2 py-1 text-xs text-center shadow-sm font-medium"
-				title="Connected: {sourceHandleData.conduitName} MD{sourceHandleData.microductNumber} → {targetHandleData.conduitName} MD{targetHandleData.microductNumber}"
 			>
 				{sourceHandleData.microductNumber} ↔ {targetHandleData.microductNumber}
 			</div>
 			<button
 				class="nodrag nopan bg-error-500 hover:bg-error-600 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"
 				onclick={handleDeleteEdge}
-				title="Delete connection"
+				aria-label={m.tooltip_delete_connection()}
+				{@attach tooltip(m.tooltip_delete_connection())}
 			>
 				<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
@@ -128,7 +129,8 @@
 						description: m.message_error_connection_deleted()
 					})
 				})}
-			title="Delete edge"
+			aria-label={m.tooltip_delete_edge()}
+			{@attach tooltip(m.tooltip_delete_edge())}
 		>
 			<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path

@@ -15,6 +15,7 @@
 
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	import ResidentialUnitModal from './ResidentialUnitModal.svelte';
 
@@ -254,7 +255,8 @@
 								<button
 									onclick={(e) => confirmDelete(e, unit.uuid)}
 									class="btn btn-sm preset-filled-error-500"
-									title={m.action_delete()}
+									aria-label={m.action_delete()}
+									{@attach tooltip(m.action_delete())}
 								>
 									<IconTrash class="size-4" />
 								</button>

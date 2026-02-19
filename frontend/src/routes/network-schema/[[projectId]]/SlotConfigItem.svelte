@@ -3,6 +3,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { tooltip } from '$lib/utils/tooltip.js';
+
 	let { config, depth = 0, onEdit, onDelete, onDragStart, onViewStructure } = $props();
 
 	function handleDragStart(e) {
@@ -48,7 +50,8 @@
 				type="button"
 				class="btn btn-sm preset-filled-secondary-500 p-1.5"
 				onclick={() => onViewStructure?.(config.uuid)}
-				title={m.action_view_structure()}
+				aria-label={m.action_view_structure()}
+				{@attach tooltip(m.action_view_structure())}
 			>
 				<IconEye size={14} />
 			</button>
@@ -57,7 +60,8 @@
 				type="button"
 				class="btn btn-sm preset-filled-warning-500 p-1.5"
 				onclick={() => onEdit?.(config)}
-				title={m.common_edit()}
+				aria-label={m.common_edit()}
+				{@attach tooltip(m.common_edit())}
 			>
 				<IconPencil size={14} />
 			</button>
@@ -66,7 +70,8 @@
 				type="button"
 				class="btn btn-sm preset-filled-error-500 p-1.5"
 				onclick={() => onDelete?.(config.uuid)}
-				title={m.common_delete()}
+				aria-label={m.common_delete()}
+				{@attach tooltip(m.common_delete())}
 			>
 				<IconTrash size={14} />
 			</button>

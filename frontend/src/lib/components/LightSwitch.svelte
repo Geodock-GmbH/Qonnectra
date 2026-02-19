@@ -2,7 +2,10 @@
 	import { onMount } from 'svelte';
 	import { IconMoon, IconSun } from '@tabler/icons-svelte';
 
+	import { m } from '$lib/paraglide/messages';
+
 	import { lightSwitchMode } from '$lib/stores/store';
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	let isDark = $state(false);
 
@@ -34,7 +37,8 @@
 <button
 	type="button"
 	class="btn-icon hover:preset-tonal"
-	title="Toggle Light/Dark Mode"
+	aria-label={m.tooltip_toggle_theme()}
+	{@attach tooltip(m.tooltip_toggle_theme(), { position: 'bottom' })}
 	onclick={toggleMode}
 	aria-checked={isDark}
 	role="switch"
