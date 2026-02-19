@@ -1,0 +1,26 @@
+[
+  {
+    "model": "api.containertype",
+    "pk": 1,
+    "fields": {
+      "name": "Rack",
+      "description": "19-Zoll-Rack"
+    }
+  },
+  {
+    "model": "api.containertype",
+    "pk": 2,
+    "fields": {
+      "name": "Shelf",
+      "description": "Rack-Shelf"
+    }
+  },
+  {
+    "model": "api.containertype",
+    "pk": 3,
+    "fields": {
+      "name": "Schrank",
+      "description": "NVt Schrank"
+    }
+  }
+]

@@ -287,6 +287,43 @@ services:
         max-file: "3"
         labels: "service=tileserver"
 
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:latest
+    container_name: qonnectra_wireguard_prod
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin
+      - SERVERURL=${WIREGUARD_SERVERURL:-auto}
+      - SERVERPORT=${WIREGUARD_PORT:-51820}
+      - PEERS=${WIREGUARD_PEERS:-}
+      - PEERDNS=auto
+      - INTERNAL_SUBNET=10.13.13.0
+      - ALLOWEDIPS=10.13.13.0/24
+    volumes:
+      - ./wireguard:/config
+      - /lib/modules:/lib/modules:ro
+    ports:
+      - "${WIREGUARD_PORT:-51820}:51820/udp"
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
+    networks:
+      - qonnectra_network
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=wireguard"
+
   caddy:
     build:
       context: ./caddy

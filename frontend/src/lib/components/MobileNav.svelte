@@ -19,6 +19,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { tooltip } from '$lib/utils/tooltip.js';
+
 	let showMoreMenu = $state(false);
 
 	/**
@@ -83,7 +85,12 @@
 			{#each mainNavItems as item}
 				{@const Icon = item.icon}
 				{@const isSelected = item.pathMatch(page.url.pathname)}
-				<a href={item.href} class={getAnchorClass(isSelected)} title={item.label()}>
+				<a
+					href={item.href}
+					class={getAnchorClass(isSelected)}
+					aria-label={item.label()}
+					{@attach tooltip(item.label())}
+				>
 					<Icon size={24} class="text-surface-700-300" />
 					<span class="text-[10px]">{item.label()}</span>
 				</a>
@@ -93,7 +100,8 @@
 				<button
 					type="button"
 					class={getAnchorClass(showMoreMenu)}
-					title={m.form_more_sites()}
+					aria-label={m.form_more_sites()}
+					{@attach tooltip(m.form_more_sites())}
 					onclick={toggleMoreMenu}
 				>
 					<IconDotsVertical size={24} class="text-surface-700-300" />

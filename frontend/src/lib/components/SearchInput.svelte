@@ -25,6 +25,7 @@
 		autocomplete="off"
 		autocorrect="off"
 		spellcheck="false"
+		data-testid="search-input"
 	/>
 	<button class="search-button" onclick={onSearch} aria-label={m.common_search()}>
 		<IconSearch size={20} strokeWidth={2} />

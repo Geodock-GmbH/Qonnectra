@@ -3,6 +3,10 @@
 	import { fade, fly } from 'svelte/transition';
 	import { IconX } from '@tabler/icons-svelte';
 
+	import { m } from '$lib/paraglide/messages';
+
+	import { tooltip } from '$lib/utils/tooltip.js';
+
 	let { open = $bindable(false), title = '', children } = $props();
 
 	let sheetElement = $state(null);
@@ -99,7 +103,7 @@
 			ontouchend={handleTouchEnd}
 			role="slider"
 			aria-valuenow={sheetHeight}
-			aria-label="Drag to resize"
+			aria-label={m.tooltip_drag_to_resize()}
 			tabindex="0"
 		>
 			<div class="w-12 h-1.5 bg-surface-400 rounded-full"></div>
@@ -112,7 +116,8 @@
 				type="button"
 				class="p-2 -mr-2 rounded-full hover:bg-surface-200-800 transition-colors"
 				onclick={handleClose}
-				aria-label="Close"
+				aria-label={m.tooltip_close()}
+				{@attach tooltip(m.tooltip_close())}
 			>
 				<IconX size={20} />
 			</button>

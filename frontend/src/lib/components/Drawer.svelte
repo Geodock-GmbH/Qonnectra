@@ -5,7 +5,10 @@
 	import { fly } from 'svelte/transition';
 	import { beforeNavigate } from '$app/navigation';
 
+	import { m } from '$lib/paraglide/messages';
+
 	import { drawerStore } from '$lib/stores/drawer';
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	let { children, class: className = '' } = $props();
 
@@ -116,6 +119,7 @@
 		class:ease-in-out={!isResizing}
 		style="width: {drawerWidth}px; max-width: 80vw;"
 		aria-labelledby="drawer-title"
+		data-drawer
 	>
 		<!-- Header -->
 		<div class="flex items-center justify-between p-4 border-b border-surface-200-800 shrink-0">
@@ -128,7 +132,8 @@
 			<button
 				onclick={handleClose}
 				class="p-2 rounded-lg hover:bg-surface-200-800 transition-colors text-surface-600-400 hover:text-surface-900-50"
-				aria-label="Close drawer"
+				aria-label={m.tooltip_close_drawer()}
+				{@attach tooltip(m.tooltip_close_drawer())}
 			>
 				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
@@ -154,7 +159,8 @@
 		<button
 			class="absolute left-0 top-0 h-full w-2 bg-transparent hover:bg-surface-300-700 cursor-col-resize transition-colors duration-200 border-none p-0 z-10"
 			onmousedown={handleResizeStart}
-			aria-label="Resize drawer"
+			aria-label={m.tooltip_resize_drawer()}
+			{@attach tooltip(m.tooltip_resize_drawer())}
 			type="button"
 		></button>
 	</div>

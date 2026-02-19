@@ -182,7 +182,10 @@
 		clearParameters();
 	}}
 >
-	<Dialog.Trigger class="btn preset-filled-primary-500 {isHidden ? 'hidden' : ''}">
+	<Dialog.Trigger
+		class="btn preset-filled-primary-500 {isHidden ? 'hidden' : ''}"
+		data-testid="add-conduit-button"
+	>
 		<IconPlus size={18} />
 		<span class="hidden sm:inline">{m.action_add_conduit()}</span>
 	</Dialog.Trigger>

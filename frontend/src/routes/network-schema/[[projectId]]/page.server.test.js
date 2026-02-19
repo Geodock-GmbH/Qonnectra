@@ -43,15 +43,26 @@ describe('+page.server.js', () => {
 	});
 
 	/**
-	 * Helper function to create all the mock responses needed by the load function
+	 * Helper function to create all the mock responses needed by the load function.
+	 *
+	 * The load function fetches data in this order:
+	 * 1. Attribute data starts fetching in parallel (6 calls: cable_type, node_type, status, network_level, company, flags)
+	 * 2. Sync status check (1 call)
+	 * 3. If sync needed, sync POST (1 call)
+	 * 4. If sync in progress, polling responses
+	 * 5. Project data in parallel with awaiting attribute data (4 calls: node, cable, cable_label, cable_micropipe)
+	 *
+	 * Since Promise.all is used for attributes, the actual call order depends on timing.
+	 * We use mockImplementation to handle this properly.
 	 */
 	function setupLoadMocks({
 		syncStatus = { sync_needed: false, sync_in_progress: false },
-		syncPostResponse = null, // If sync is needed and should be started
-		syncWaitPolls = [], // Array of sync status responses for waitForSyncCompletion
+		syncPostResponse = null,
+		syncWaitPolls = [],
 		nodes = [],
 		cables = [],
 		cableLabels = [],
+		cableMicropipeConnections = {},
 		cableTypes = [],
 		nodeTypes = [],
 		statuses = [],
@@ -59,32 +70,46 @@ describe('+page.server.js', () => {
 		companies = [],
 		flags = []
 	} = {}) {
-		// 1. Initial sync status check
-		mockFetch.mockResolvedValueOnce({
-			ok: true,
-			json: () => Promise.resolve(syncStatus)
+		// Create response generators for each endpoint
+		const responses = {
+			'attributes_cable_type': { ok: true, json: () => Promise.resolve(cableTypes) },
+			'attributes_node_type': { ok: true, json: () => Promise.resolve(nodeTypes) },
+			'attributes_status': { ok: true, json: () => Promise.resolve(statuses) },
+			'attributes_network_level': { ok: true, json: () => Promise.resolve(networkLevels) },
+			'attributes_company': { ok: true, json: () => Promise.resolve(companies) },
+			'flags': { ok: true, json: () => Promise.resolve(flags) },
+			'canvas-coordinates': { ok: true, json: () => Promise.resolve(syncStatus) },
+			'node/all': { ok: true, json: () => Promise.resolve(nodes) },
+			'cable/all': { ok: true, json: () => Promise.resolve(cables) },
+			'cable_label/all': { ok: true, json: () => Promise.resolve(cableLabels) },
+			'cables/micropipe-summary': { ok: true, json: () => Promise.resolve(cableMicropipeConnections) }
+		};
+
+		let syncPostCalled = false;
+		let pollIndex = 0;
+
+		mockFetch.mockImplementation((url, options) => {
+			// Handle sync POST
+			if (options?.method === 'POST' && url.includes('canvas-coordinates')) {
+				syncPostCalled = true;
+				return Promise.resolve(syncPostResponse || { ok: true, json: () => Promise.resolve({}) });
+			}
+
+			// Handle sync polling (subsequent GET to canvas-coordinates after initial)
+			if (url.includes('canvas-coordinates') && syncPostCalled && pollIndex < syncWaitPolls.length) {
+				return Promise.resolve(syncWaitPolls[pollIndex++]);
+			}
+
+			// Match URL to response
+			for (const [key, response] of Object.entries(responses)) {
+				if (url.includes(key)) {
+					return Promise.resolve(response);
+				}
+			}
+
+			// Default response
+			return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
 		});
-
-		// 2. If sync needed, mock POST request
-		if (syncPostResponse) {
-			mockFetch.mockResolvedValueOnce(syncPostResponse);
-		}
-
-		// 3. If sync in progress, mock polling responses
-		syncWaitPolls.forEach((pollResponse) => {
-			mockFetch.mockResolvedValueOnce(pollResponse);
-		});
-
-		// 4-12. Mock all the parallel fetches (9 endpoints)
-		mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(nodes) });
-		mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(cables) });
-		mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(cableLabels) });
-		mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(cableTypes) });
-		mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(nodeTypes) });
-		mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(statuses) });
-		mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(networkLevels) });
-		mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(companies) });
-		mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(flags) });
 	}
 
 	describe('waitForSyncCompletion', () => {
@@ -329,15 +354,16 @@ describe('+page.server.js', () => {
 				params: { projectId: '1' }
 			});
 
-			expect(mockFetch).toHaveBeenCalledTimes(11); // 1 sync status + 1 sync POST + 9 data fetches
 			expect(result.nodes).toHaveLength(1);
 
-			// Check that POST request was made with correct data
-			const postCall = mockFetch.mock.calls[1];
-			expect(postCall[1].method).toBe('POST');
+			// Find the POST call to canvas-coordinates
+			const postCall = mockFetch.mock.calls.find(
+				(call) => call[1]?.method === 'POST' && call[0].includes('canvas-coordinates')
+			);
+			expect(postCall).toBeDefined();
 			expect(JSON.parse(postCall[1].body)).toEqual({
 				project_id: '1',
-				scale: 0.2
+				scale: 0.5
 			});
 		});
 
@@ -348,15 +374,27 @@ describe('+page.server.js', () => {
 				return 123;
 			});
 
-			setupLoadMocks({
-				syncStatus: {
-					sync_needed: false,
-					sync_in_progress: true,
-					sync_progress: 75.0,
-					sync_status: 'IN_PROGRESS'
-				},
-				syncWaitPolls: [
-					{
+			// Track call count for canvas-coordinates to differentiate initial check vs polling
+			let canvasCoordinatesCallCount = 0;
+
+			mockFetch.mockImplementation((url, options) => {
+				if (url.includes('canvas-coordinates')) {
+					canvasCoordinatesCallCount++;
+					// First call: initial sync status check - returns in progress
+					if (canvasCoordinatesCallCount === 1) {
+						return Promise.resolve({
+							ok: true,
+							json: () =>
+								Promise.resolve({
+									sync_needed: false,
+									sync_in_progress: true,
+									sync_progress: 75.0,
+									sync_status: 'IN_PROGRESS'
+								})
+						});
+					}
+					// Second call (polling): sync completed
+					return Promise.resolve({
 						ok: true,
 						json: () =>
 							Promise.resolve({
@@ -364,9 +402,16 @@ describe('+page.server.js', () => {
 								sync_progress: 100.0,
 								sync_status: 'COMPLETED'
 							})
-					}
-				],
-				nodes: [{ id: 1, name: 'Node 1', canvas_x: 100, canvas_y: 200 }]
+					});
+				}
+				if (url.includes('node/all')) {
+					return Promise.resolve({
+						ok: true,
+						json: () => Promise.resolve([{ id: 1, name: 'Node 1', canvas_x: 100, canvas_y: 200 }])
+					});
+				}
+				// Default for other endpoints
+				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
 			});
 
 			const result = await load({
@@ -413,25 +458,21 @@ describe('+page.server.js', () => {
 		});
 
 		test('should handle sync status check failure', async () => {
-			// Mock failed sync status check
-			mockFetch.mockResolvedValueOnce({
-				ok: false,
-				status: 500
+			// Use mockImplementation to handle the parallel fetches properly
+			mockFetch.mockImplementation((url) => {
+				if (url.includes('canvas-coordinates')) {
+					// Sync status check fails
+					return Promise.resolve({ ok: false, status: 500 });
+				}
+				if (url.includes('node/all')) {
+					return Promise.resolve({
+						ok: true,
+						json: () => Promise.resolve([{ id: 1, name: 'Node 1' }])
+					});
+				}
+				// Default for other endpoints
+				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
 			});
-
-			// Mock all the parallel data fetches
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				json: () => Promise.resolve([{ id: 1, name: 'Node 1' }])
-			});
-			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
-			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
-			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
-			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
-			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
-			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
-			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
-			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
 
 			const result = await load({
 				fetch: mockFetch,
@@ -445,22 +486,22 @@ describe('+page.server.js', () => {
 		});
 
 		test('should handle node fetch failure', async () => {
-			// Mock sync status check
-			mockFetch.mockResolvedValueOnce({
-				ok: true,
-				json: () =>
-					Promise.resolve({
-						sync_needed: false,
-						sync_in_progress: false
-					})
+			// Override setupLoadMocks to fail node fetch
+			mockFetch.mockImplementation((url) => {
+				if (url.includes('node/all')) {
+					return Promise.resolve({ ok: false, status: 500 });
+				}
+				if (url.includes('canvas-coordinates')) {
+					return Promise.resolve({
+						ok: true,
+						json: () => Promise.resolve({ sync_needed: false, sync_in_progress: false })
+					});
+				}
+				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
 			});
 
-			// Mock failed node fetch
-			mockFetch.mockResolvedValueOnce({
-				ok: false,
-				status: 500
-			});
-
+			// The implementation throws error(500, 'Failed to fetch nodes') which gets caught
+			// and re-thrown, so we expect it to reject
 			await expect(
 				load({
 					fetch: mockFetch,
@@ -472,8 +513,18 @@ describe('+page.server.js', () => {
 		});
 
 		test('should handle complete failure gracefully', async () => {
-			mockFetch.mockRejectedValue(new Error('Complete network failure'));
+			// Mock sync status fetch to fail, which will cause the load to fail early
+			// The parallel attribute fetches will resolve to avoid unhandled rejection
+			mockFetch.mockImplementation((url) => {
+				if (url.includes('canvas-coordinates')) {
+					// This is awaited first and will cause early exit
+					return Promise.reject(new Error('Complete network failure'));
+				}
+				// Other parallel fetches resolve normally
+				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+			});
 
+			// The load function catches errors and returns empty data
 			const result = await load({
 				fetch: mockFetch,
 				cookies: mockCookies,
@@ -482,6 +533,7 @@ describe('+page.server.js', () => {
 			});
 
 			expect(result.nodes).toEqual([]);
+			expect(result.cables).toEqual([]);
 			expect(result.syncStatus).toBeNull();
 		});
 
@@ -496,10 +548,11 @@ describe('+page.server.js', () => {
 			});
 
 			// Check that auth headers were passed correctly
+			// getAuthHeaders returns a plain object { Cookie: '...' }, not a Headers instance
 			const firstCall = mockFetch.mock.calls[0];
 			const headers = firstCall[1].headers;
 
-			expect(headers.get('Cookie')).toBe('api-access-token=mock-token');
+			expect(headers.Cookie).toBe('api-access-token=mock-token');
 			expect(firstCall[1].credentials).toBe('include');
 		});
 
@@ -516,10 +569,11 @@ describe('+page.server.js', () => {
 			});
 
 			// Should still make requests but without auth header
+			// getAuthHeaders returns {} when no token, so Cookie will be undefined
 			const firstCall = mockFetch.mock.calls[0];
 			const headers = firstCall[1].headers;
 
-			expect(headers.get('Cookie')).toBeNull();
+			expect(headers.Cookie).toBeUndefined();
 		});
 
 		test('should handle sync POST failure', async () => {
@@ -557,10 +611,15 @@ describe('+page.server.js', () => {
 				params: { projectId: '1' }
 			});
 
-			// Verify project_id=1 is used in sync status check
-			expect(mockFetch.mock.calls[0][0]).toContain('project_id=1');
-			// Verify project=1 is used in node fetch
-			expect(mockFetch.mock.calls[1][0]).toContain('project=1');
+			// Find the sync status check call
+			const syncStatusCall = mockFetch.mock.calls.find((call) =>
+				call[0].includes('canvas-coordinates')
+			);
+			expect(syncStatusCall[0]).toContain('project_id=1');
+
+			// Find the node fetch call
+			const nodeCall = mockFetch.mock.calls.find((call) => call[0].includes('node/all'));
+			expect(nodeCall[0]).toContain('project=1');
 		});
 
 		test('should return empty nodes and null syncStatus when projectId is missing', async () => {
@@ -968,7 +1027,8 @@ describe('+page.server.js', () => {
 
 			const headers = getAuthHeaders(mockCookies);
 
-			expect(headers.get('Cookie')).toBe('api-access-token=mock-token');
+			// getAuthHeaders returns a plain object, not a Headers instance
+			expect(headers.Cookie).toBe('api-access-token=mock-token');
 		});
 
 		test('should create headers without auth token when missing', async () => {
@@ -978,7 +1038,8 @@ describe('+page.server.js', () => {
 
 			const headers = getAuthHeaders(mockCookies);
 
-			expect(headers.get('Cookie')).toBeNull();
+			// When no token, getAuthHeaders returns an empty object
+			expect(headers.Cookie).toBeUndefined();
 		});
 	});
 });

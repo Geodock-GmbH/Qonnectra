@@ -1,20 +1,31 @@
 from datetime import timedelta
 
 import pytest
-from apps.api.models import CanvasSyncStatus
 from django.contrib.auth import get_user_model
+from django.contrib.gis.geos import LineString
 from django.db import IntegrityError
 from django.utils import timezone
 
+from apps.api.models import (
+    Cable,
+    CanvasSyncStatus,
+    Conduit,
+    Microduct,
+    MicroductCableConnection,
+    TrenchConduitConnection,
+)
+
+from .factories import (
+    CableTypeFactory,
+    ConduitTypeFactory,
+    FlagFactory,
+    ProjectFactory,
+    TrenchFactory,
+)
+
 User = get_user_model()
 
-
-@pytest.fixture
-def user(db):
-    """Create a test user."""
-    return User.objects.create_user(
-        username="testuser", email="test@example.com", password="testpass123"
-    )
+# Note: 'user' fixture is defined in conftest.py
 
 
 @pytest.mark.django_db
@@ -251,3 +262,383 @@ class TestCanvasSyncStatusModel:
                 sync_key=f"project_{status}", status=status, started_by=user
             )
             assert sync_status.status == status
+
+
+@pytest.mark.django_db
+class TestCableModel:
+    """Tests for Cable model methods."""
+
+    def test_calculate_length_single_connection(self):
+        """Test length calculation with a single trench connection."""
+        project = ProjectFactory()
+        flag = FlagFactory()
+
+        trench = TrenchFactory(
+            project=project,
+            flag=flag,
+            length=150.0,
+            geom=LineString((0, 0), (150, 0), srid=25832),
+        )
+
+        conduit_type = ConduitTypeFactory()
+        conduit = Conduit.objects.create(
+            name="Single Trench Conduit",
+            conduit_type=conduit_type,
+            project=project,
+            flag=flag,
+        )
+
+        TrenchConduitConnection.objects.create(
+            uuid_trench=trench,
+            uuid_conduit=conduit,
+        )
+
+        microduct = Microduct.objects.create(
+            uuid_conduit=conduit,
+            number=1,
+            color="rot",
+        )
+
+        cable_type = CableTypeFactory()
+        cable = Cable.objects.create(
+            name="Single Connection Cable",
+            cable_type=cable_type,
+            project=project,
+            flag=flag,
+        )
+
+        MicroductCableConnection.objects.create(
+            uuid_microduct=microduct,
+            uuid_cable=cable,
+        )
+
+        length = cable.calculate_length_from_connections()
+        assert length == 150.0
+
+    def test_calculate_length_multiple_connections(self):
+        """Test length calculation with multiple trench connections."""
+        project = ProjectFactory()
+        flag = FlagFactory()
+
+        # Create multiple trenches with different lengths
+        trench_lengths = [25.5, 50.0, 75.25, 100.0]
+        total_expected = sum(trench_lengths)
+
+        trenches = []
+        for i, length in enumerate(trench_lengths):
+            trench = TrenchFactory(
+                project=project,
+                flag=flag,
+                length=length,
+                geom=LineString((i * 100, 0), (i * 100 + length, 0), srid=25832),
+            )
+            trenches.append(trench)
+
+        conduit_type = ConduitTypeFactory()
+        conduits = []
+        microducts = []
+
+        for i, trench in enumerate(trenches):
+            conduit = Conduit.objects.create(
+                name=f"Multi Conduit {i}",
+                conduit_type=conduit_type,
+                project=project,
+                flag=flag,
+            )
+            conduits.append(conduit)
+
+            TrenchConduitConnection.objects.create(
+                uuid_trench=trench,
+                uuid_conduit=conduit,
+            )
+
+            microduct = Microduct.objects.create(
+                uuid_conduit=conduit,
+                number=1,
+                color=f"color{i}",
+            )
+            microducts.append(microduct)
+
+        cable_type = CableTypeFactory()
+        cable = Cable.objects.create(
+            name="Multi Connection Cable",
+            cable_type=cable_type,
+            project=project,
+            flag=flag,
+        )
+
+        for microduct in microducts:
+            MicroductCableConnection.objects.create(
+                uuid_microduct=microduct,
+                uuid_cable=cable,
+            )
+
+        length = cable.calculate_length_from_connections()
+        assert length == total_expected
+
+    def test_calculate_length_no_connections(self):
+        """Test length calculation with no connections returns 0."""
+        project = ProjectFactory()
+        flag = FlagFactory()
+        cable_type = CableTypeFactory()
+
+        cable = Cable.objects.create(
+            name="No Connection Cable",
+            cable_type=cable_type,
+            project=project,
+            flag=flag,
+        )
+
+        length = cable.calculate_length_from_connections()
+        assert length == 0.0
+
+    def test_calculate_length_distinct_trenches(self):
+        """Test that duplicate trench connections are counted once."""
+        project = ProjectFactory()
+        flag = FlagFactory()
+
+        # Single trench
+        trench = TrenchFactory(
+            project=project,
+            flag=flag,
+            length=100.0,
+            geom=LineString((0, 0), (100, 0), srid=25832),
+        )
+
+        conduit_type = ConduitTypeFactory()
+        conduit = Conduit.objects.create(
+            name="Single Trench Multiple Microducts",
+            conduit_type=conduit_type,
+            project=project,
+            flag=flag,
+        )
+
+        TrenchConduitConnection.objects.create(
+            uuid_trench=trench,
+            uuid_conduit=conduit,
+        )
+
+        # Create multiple microducts in same conduit
+        microduct1 = Microduct.objects.create(uuid_conduit=conduit, number=1, color="rot")
+        microduct2 = Microduct.objects.create(uuid_conduit=conduit, number=2, color="grün")
+        microduct3 = Microduct.objects.create(uuid_conduit=conduit, number=3, color="blau")
+
+        cable_type = CableTypeFactory()
+        cable = Cable.objects.create(
+            name="Distinct Trench Test Cable",
+            cable_type=cable_type,
+            project=project,
+            flag=flag,
+        )
+
+        # Connect cable to all microducts (same trench)
+        for microduct in [microduct1, microduct2, microduct3]:
+            MicroductCableConnection.objects.create(
+                uuid_microduct=microduct,
+                uuid_cable=cable,
+            )
+
+        # Should only count the trench once (distinct)
+        length = cable.calculate_length_from_connections()
+        assert length == 100.0
+
+    def test_update_length_modifies_cable(self):
+        """Test that update_length_from_connections modifies the cable length field."""
+        project = ProjectFactory()
+        flag = FlagFactory()
+
+        trench = TrenchFactory(
+            project=project,
+            flag=flag,
+            length=200.0,
+            geom=LineString((0, 0), (200, 0), srid=25832),
+        )
+
+        conduit_type = ConduitTypeFactory()
+        conduit = Conduit.objects.create(
+            name="Update Test Conduit",
+            conduit_type=conduit_type,
+            project=project,
+            flag=flag,
+        )
+
+        TrenchConduitConnection.objects.create(
+            uuid_trench=trench,
+            uuid_conduit=conduit,
+        )
+
+        microduct = Microduct.objects.create(
+            uuid_conduit=conduit,
+            number=1,
+            color="rot",
+        )
+
+        cable_type = CableTypeFactory()
+        cable = Cable.objects.create(
+            name="Update Length Cable",
+            cable_type=cable_type,
+            project=project,
+            flag=flag,
+        )
+
+        MicroductCableConnection.objects.create(
+            uuid_microduct=microduct,
+            uuid_cable=cable,
+        )
+
+        # The signal should have already updated it, but let's verify
+        cable.refresh_from_db()
+        assert cable.length == 200.0
+
+    def test_update_length_total_includes_reserves(self):
+        """Test that length_total = length + all reserves."""
+        project = ProjectFactory()
+        flag = FlagFactory()
+
+        trench = TrenchFactory(
+            project=project,
+            flag=flag,
+            length=100.0,
+            geom=LineString((0, 0), (100, 0), srid=25832),
+        )
+
+        conduit_type = ConduitTypeFactory()
+        conduit = Conduit.objects.create(
+            name="Reserve Total Conduit",
+            conduit_type=conduit_type,
+            project=project,
+            flag=flag,
+        )
+
+        TrenchConduitConnection.objects.create(
+            uuid_trench=trench,
+            uuid_conduit=conduit,
+        )
+
+        microduct = Microduct.objects.create(
+            uuid_conduit=conduit,
+            number=1,
+            color="rot",
+        )
+
+        cable_type = CableTypeFactory()
+        cable = Cable.objects.create(
+            name="Reserve Total Cable",
+            cable_type=cable_type,
+            project=project,
+            flag=flag,
+            reserve_at_start=20,
+            reserve_at_end=30,
+            reserve_section=10,
+        )
+
+        MicroductCableConnection.objects.create(
+            uuid_microduct=microduct,
+            uuid_cable=cable,
+        )
+
+        cable.refresh_from_db()
+        assert cable.length == 100.0
+        assert cable.length_total == 160.0  # 100 + 20 + 30 + 10
+
+    def test_update_length_total_with_none_reserves(self):
+        """Test length_total handles None reserve values."""
+        project = ProjectFactory()
+        flag = FlagFactory()
+
+        trench = TrenchFactory(
+            project=project,
+            flag=flag,
+            length=50.0,
+            geom=LineString((0, 0), (50, 0), srid=25832),
+        )
+
+        conduit_type = ConduitTypeFactory()
+        conduit = Conduit.objects.create(
+            name="None Reserve Conduit",
+            conduit_type=conduit_type,
+            project=project,
+            flag=flag,
+        )
+
+        TrenchConduitConnection.objects.create(
+            uuid_trench=trench,
+            uuid_conduit=conduit,
+        )
+
+        microduct = Microduct.objects.create(
+            uuid_conduit=conduit,
+            number=1,
+            color="rot",
+        )
+
+        cable_type = CableTypeFactory()
+        cable = Cable.objects.create(
+            name="None Reserve Cable",
+            cable_type=cable_type,
+            project=project,
+            flag=flag,
+            reserve_at_start=None,
+            reserve_at_end=None,
+            reserve_section=None,
+        )
+
+        MicroductCableConnection.objects.create(
+            uuid_microduct=microduct,
+            uuid_cable=cable,
+        )
+
+        cable.refresh_from_db()
+        assert cable.length == 50.0
+        assert cable.length_total == 50.0  # 50 + 0 + 0 + 0
+
+    def test_update_length_partial_reserves(self):
+        """Test length_total with some reserves set and others None."""
+        project = ProjectFactory()
+        flag = FlagFactory()
+
+        trench = TrenchFactory(
+            project=project,
+            flag=flag,
+            length=75.0,
+            geom=LineString((0, 0), (75, 0), srid=25832),
+        )
+
+        conduit_type = ConduitTypeFactory()
+        conduit = Conduit.objects.create(
+            name="Partial Reserve Conduit",
+            conduit_type=conduit_type,
+            project=project,
+            flag=flag,
+        )
+
+        TrenchConduitConnection.objects.create(
+            uuid_trench=trench,
+            uuid_conduit=conduit,
+        )
+
+        microduct = Microduct.objects.create(
+            uuid_conduit=conduit,
+            number=1,
+            color="rot",
+        )
+
+        cable_type = CableTypeFactory()
+        cable = Cable.objects.create(
+            name="Partial Reserve Cable",
+            cable_type=cable_type,
+            project=project,
+            flag=flag,
+            reserve_at_start=15,
+            reserve_at_end=None,
+            reserve_section=10,
+        )
+
+        MicroductCableConnection.objects.create(
+            uuid_microduct=microduct,
+            uuid_cable=cable,
+        )
+
+        cable.refresh_from_db()
+        assert cable.length == 75.0
+        assert cable.length_total == 100.0  # 75 + 15 + 0 + 10

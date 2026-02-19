@@ -32,6 +32,7 @@
 		trenchStyleMode,
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	let {
 		layers = [],
@@ -557,7 +558,8 @@
 		<button
 			class="fixed inset-0 bg-black/40 z-30 animate-in fade-in duration-200"
 			onclick={closeMobileSheet}
-			aria-label="Close layers"
+			aria-label={m.tooltip_close_layers()}
+			{@attach tooltip(m.tooltip_close_layers())}
 		></button>
 
 		<!-- Sheet -->
@@ -575,7 +577,7 @@
 				ontouchend={handleTouchEnd}
 				role="slider"
 				aria-valuenow={currentTranslate}
-				aria-label="Drag to close"
+				aria-label={m.tooltip_drag_to_close()}
 				tabindex="0"
 			>
 				<div class="w-12 h-1.5 bg-surface-300-600 rounded-full"></div>
@@ -587,7 +589,8 @@
 				<button
 					onclick={closeMobileSheet}
 					class="p-2 rounded-full hover:bg-surface-200-800 transition-colors"
-					aria-label="Close"
+					aria-label={m.tooltip_close()}
+					{@attach tooltip(m.tooltip_close())}
 				>
 					<IconX size={20} class="text-surface-500" />
 				</button>
@@ -605,7 +608,10 @@
 									<button
 										class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-200-800 transition-colors shrink-0"
 										onclick={toggleNodeSubtypes}
-										aria-label={isNodeSubtypesExpanded ? 'Collapse' : 'Expand'}
+										aria-label={isNodeSubtypesExpanded ? m.tooltip_collapse() : m.tooltip_expand()}
+										{@attach tooltip(
+											isNodeSubtypesExpanded ? m.tooltip_collapse() : m.tooltip_expand()
+										)}
 									>
 										{#if isNodeSubtypesExpanded}
 											<IconChevronDown size="18" class="text-surface-900-100" />
@@ -617,7 +623,12 @@
 									<button
 										class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-200-800 transition-colors shrink-0"
 										onclick={toggleTrenchSubtypes}
-										aria-label={isTrenchSubtypesExpanded ? 'Collapse' : 'Expand'}
+										aria-label={isTrenchSubtypesExpanded
+											? m.tooltip_collapse()
+											: m.tooltip_expand()}
+										{@attach tooltip(
+											isTrenchSubtypesExpanded ? m.tooltip_collapse() : m.tooltip_expand()
+										)}
 									>
 										{#if isTrenchSubtypesExpanded}
 											<IconChevronDown size="18" class="text-surface-900-100" />
@@ -629,7 +640,10 @@
 									<button
 										class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-200-800 transition-colors shrink-0"
 										onclick={toggleAreaSubtypes}
-										aria-label={isAreaSubtypesExpanded ? 'Collapse' : 'Expand'}
+										aria-label={isAreaSubtypesExpanded ? m.tooltip_collapse() : m.tooltip_expand()}
+										{@attach tooltip(
+											isAreaSubtypesExpanded ? m.tooltip_collapse() : m.tooltip_expand()
+										)}
 									>
 										{#if isAreaSubtypesExpanded}
 											<IconChevronDown size="18" class="text-surface-900-100" />
@@ -652,7 +666,8 @@
 										class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all"
 										onclick={() =>
 											onZoomToExtent({ layerId, layerType: getExtentLayerType(layerId) })}
-										aria-label="Zoom to extent"
+										aria-label={m.tooltip_zoom_to_extent()}
+										{@attach tooltip(m.tooltip_zoom_to_extent())}
 									>
 										<IconZoomScan size="22" class="text-surface-900-100" />
 									</button>
@@ -662,7 +677,12 @@
 									<button
 										class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all"
 										onclick={() => toggleLabelVisibility(layerId)}
-										aria-label={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
+										aria-label={isLabelEnabled(layerId)
+											? m.tooltip_hide_labels()
+											: m.tooltip_show_labels()}
+										{@attach tooltip(
+											isLabelEnabled(layerId) ? m.tooltip_hide_labels() : m.tooltip_show_labels()
+										)}
 									>
 										{#if isLabelEnabled(layerId)}
 											<IconLabelFilled size="22" class="text-primary-500" />
@@ -678,8 +698,13 @@
 										class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all"
 										onclick={toggleBasemapTheme}
 										aria-label={$basemapTheme === 'light'
-											? 'Switch to dark theme'
-											: 'Switch to light theme'}
+											? m.tooltip_switch_to_dark_theme()
+											: m.tooltip_switch_to_light_theme()}
+										{@attach tooltip(
+											$basemapTheme === 'light'
+												? m.tooltip_switch_to_dark_theme()
+												: m.tooltip_switch_to_light_theme()
+										)}
 									>
 										{#if $basemapTheme === 'light'}
 											<IconMoon size="22" class="text-surface-900-100" />
@@ -692,7 +717,10 @@
 								<button
 									class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all"
 									onclick={() => toggleLayerVisibility(layerId)}
-									aria-label={layerInfo.visible ? 'Hide layer' : 'Show layer'}
+									aria-label={layerInfo.visible ? m.tooltip_hide_layer() : m.tooltip_show_layer()}
+									{@attach tooltip(
+										layerInfo.visible ? m.tooltip_hide_layer() : m.tooltip_show_layer()
+									)}
 								>
 									{#if layerInfo.visible}
 										<IconEye size="22" class="text-primary-500" />
@@ -724,7 +752,8 @@
 										<button
 											class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all shrink-0"
 											onclick={() => toggleNodeTypeVisibility(nodeType.node_type)}
-											aria-label={visible ? 'Hide' : 'Show'}
+											aria-label={visible ? m.tooltip_hide() : m.tooltip_show()}
+											{@attach tooltip(visible ? m.tooltip_hide() : m.tooltip_show())}
 										>
 											{#if visible}
 												<IconEye size="20" class="text-primary-500" />
@@ -758,7 +787,8 @@
 										<button
 											class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all shrink-0"
 											onclick={() => toggleTrenchTypeVisibility(typeName)}
-											aria-label={visible ? 'Hide' : 'Show'}
+											aria-label={visible ? m.tooltip_hide() : m.tooltip_show()}
+											{@attach tooltip(visible ? m.tooltip_hide() : m.tooltip_show())}
 										>
 											{#if visible}
 												<IconEye size="20" class="text-primary-500" />
@@ -791,7 +821,8 @@
 										<button
 											class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all shrink-0"
 											onclick={() => toggleAreaTypeVisibility(areaType.area_type)}
-											aria-label={visible ? 'Hide' : 'Show'}
+											aria-label={visible ? m.tooltip_hide() : m.tooltip_show()}
+											{@attach tooltip(visible ? m.tooltip_hide() : m.tooltip_show())}
 										>
 											{#if visible}
 												<IconEye size="20" class="text-primary-500" />
@@ -820,8 +851,13 @@
 										class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all shrink-0"
 										onclick={toggleConduitLabelVisibility}
 										aria-label={isConduitLabelEnabled()
-											? 'Hide conduit labels'
-											: 'Show conduit labels'}
+											? m.tooltip_hide_conduit_labels()
+											: m.tooltip_show_conduit_labels()}
+										{@attach tooltip(
+											isConduitLabelEnabled()
+												? m.tooltip_hide_conduit_labels()
+												: m.tooltip_show_conduit_labels()
+										)}
 									>
 										{#if isConduitLabelEnabled()}
 											<IconLabelFilled size="22" class="text-primary-500" />
@@ -855,7 +891,12 @@
 		<button
 			class="flex items-center gap-1.5 hover:bg-surface-100-800 rounded px-1 py-0.5 transition-colors"
 			onclick={toggleLayerTreeExpanded}
-			aria-label={$layerTreeExpanded ? 'Collapse layer tree' : 'Expand layer tree'}
+			aria-label={$layerTreeExpanded
+				? m.tooltip_collapse_layer_tree()
+				: m.tooltip_expand_layer_tree()}
+			{@attach tooltip(
+				$layerTreeExpanded ? m.tooltip_collapse_layer_tree() : m.tooltip_expand_layer_tree()
+			)}
 		>
 			{#if $layerTreeExpanded}
 				<IconChevronDown size="16" class="text-surface-900-100" />
@@ -881,7 +922,10 @@
 							<button
 								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors shrink-0"
 								onclick={toggleNodeSubtypes}
-								aria-label={isNodeSubtypesExpanded ? 'Collapse' : 'Expand'}
+								aria-label={isNodeSubtypesExpanded ? m.tooltip_collapse() : m.tooltip_expand()}
+								{@attach tooltip(
+									isNodeSubtypesExpanded ? m.tooltip_collapse() : m.tooltip_expand()
+								)}
 							>
 								{#if isNodeSubtypesExpanded}
 									<IconChevronDown size="14" class="text-surface-900-100" />
@@ -893,7 +937,10 @@
 							<button
 								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors shrink-0"
 								onclick={toggleTrenchSubtypes}
-								aria-label={isTrenchSubtypesExpanded ? 'Collapse' : 'Expand'}
+								aria-label={isTrenchSubtypesExpanded ? m.tooltip_collapse() : m.tooltip_expand()}
+								{@attach tooltip(
+									isTrenchSubtypesExpanded ? m.tooltip_collapse() : m.tooltip_expand()
+								)}
 							>
 								{#if isTrenchSubtypesExpanded}
 									<IconChevronDown size="14" class="text-surface-900-100" />
@@ -905,7 +952,10 @@
 							<button
 								class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors shrink-0"
 								onclick={toggleAreaSubtypes}
-								aria-label={isAreaSubtypesExpanded ? 'Collapse' : 'Expand'}
+								aria-label={isAreaSubtypesExpanded ? m.tooltip_collapse() : m.tooltip_expand()}
+								{@attach tooltip(
+									isAreaSubtypesExpanded ? m.tooltip_collapse() : m.tooltip_expand()
+								)}
 							>
 								{#if isAreaSubtypesExpanded}
 									<IconChevronDown size="14" class="text-surface-900-100" />
@@ -927,8 +977,8 @@
 							<button
 								class="w-6 flex items-center justify-center shrink-0 rounded hover:bg-surface-200-700 transition-colors"
 								onclick={() => onZoomToExtent({ layerId, layerType: getExtentLayerType(layerId) })}
-								aria-label="Zoom to extent"
-								title="Zoom to extent"
+								aria-label={m.tooltip_zoom_to_extent()}
+								{@attach tooltip(m.tooltip_zoom_to_extent())}
 							>
 								<IconZoomScan size={24} class="text-surface-900-100" />
 							</button>
@@ -941,8 +991,12 @@
 							<button
 								class="w-6 flex items-center justify-center shrink-0 rounded hover:bg-surface-200-700 transition-colors"
 								onclick={() => toggleLabelVisibility(layerId)}
-								aria-label={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
-								title={isLabelEnabled(layerId) ? 'Hide labels' : 'Show labels'}
+								aria-label={isLabelEnabled(layerId)
+									? m.tooltip_hide_labels()
+									: m.tooltip_show_labels()}
+								{@attach tooltip(
+									isLabelEnabled(layerId) ? m.tooltip_hide_labels() : m.tooltip_show_labels()
+								)}
 							>
 								{#if isLabelEnabled(layerId)}
 									<IconLabelFilled size={24} class="text-primary-500" />
@@ -960,9 +1014,13 @@
 								class="w-6 flex items-center justify-center shrink-0 rounded hover:bg-surface-200-700 transition-colors"
 								onclick={toggleBasemapTheme}
 								aria-label={$basemapTheme === 'light'
-									? 'Switch to dark theme'
-									: 'Switch to light theme'}
-								title={$basemapTheme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
+									? m.tooltip_switch_to_dark_theme()
+									: m.tooltip_switch_to_light_theme()}
+								{@attach tooltip(
+									$basemapTheme === 'light'
+										? m.tooltip_switch_to_dark_theme()
+										: m.tooltip_switch_to_light_theme()
+								)}
 							>
 								{#if $basemapTheme === 'light'}
 									<IconMoon size={24} class="text-surface-900-100" />
@@ -976,8 +1034,8 @@
 						<button
 							class="w-6 flex items-center justify-center shrink-0 rounded hover:bg-surface-200-700 transition-colors"
 							onclick={() => toggleLayerVisibility(layerId)}
-							aria-label={layerInfo.visible ? 'Hide layer' : 'Show layer'}
-							title={layerInfo.visible ? 'Hide layer' : 'Show layer'}
+							aria-label={layerInfo.visible ? m.tooltip_hide_layer() : m.tooltip_show_layer()}
+							{@attach tooltip(layerInfo.visible ? m.tooltip_hide_layer() : m.tooltip_show_layer())}
 						>
 							{#if layerInfo.visible}
 								<IconEye size={24} class="text-primary-500" />
@@ -1011,7 +1069,8 @@
 									<button
 										class="p-1 rounded hover:bg-surface-200-700 transition-colors shrink-0"
 										onclick={() => toggleNodeTypeVisibility(nodeType.node_type)}
-										aria-label={visible ? 'Hide' : 'Show'}
+										aria-label={visible ? m.tooltip_hide() : m.tooltip_show()}
+										{@attach tooltip(visible ? m.tooltip_hide() : m.tooltip_show())}
 									>
 										{#if visible}
 											<IconEye size={24} class="text-primary-500" />
@@ -1044,7 +1103,8 @@
 									<button
 										class="p-1 rounded hover:bg-surface-200-700 transition-colors shrink-0"
 										onclick={() => toggleTrenchTypeVisibility(typeName)}
-										aria-label={visible ? 'Hide' : 'Show'}
+										aria-label={visible ? m.tooltip_hide() : m.tooltip_show()}
+										{@attach tooltip(visible ? m.tooltip_hide() : m.tooltip_show())}
 									>
 										{#if visible}
 											<IconEye size={24} class="text-primary-500" />
@@ -1081,7 +1141,8 @@
 									<button
 										class="p-1 rounded hover:bg-surface-200-700 transition-colors shrink-0"
 										onclick={() => toggleAreaTypeVisibility(areaType.area_type)}
-										aria-label={visible ? 'Hide' : 'Show'}
+										aria-label={visible ? m.tooltip_hide() : m.tooltip_show()}
+										{@attach tooltip(visible ? m.tooltip_hide() : m.tooltip_show())}
 									>
 										{#if visible}
 											<IconEye size={24} class="text-primary-500" />
@@ -1115,8 +1176,14 @@
 						<button
 							class="w-6 flex items-center justify-center shrink-0 rounded hover:bg-surface-200-700 transition-colors"
 							onclick={toggleConduitLabelVisibility}
-							aria-label={isConduitLabelEnabled() ? 'Hide conduit labels' : 'Show conduit labels'}
-							title={isConduitLabelEnabled() ? 'Hide conduit labels' : 'Show conduit labels'}
+							aria-label={isConduitLabelEnabled()
+								? m.tooltip_hide_conduit_labels()
+								: m.tooltip_show_conduit_labels()}
+							{@attach tooltip(
+								isConduitLabelEnabled()
+									? m.tooltip_hide_conduit_labels()
+									: m.tooltip_show_conduit_labels()
+							)}
 						>
 							{#if isConduitLabelEnabled()}
 								<IconLabelFilled size="24" class="text-primary-500" />

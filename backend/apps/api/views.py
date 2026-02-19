@@ -4632,3 +4632,42 @@ def get_conduits_for_cable(request, cable_id):
         ).distinct().values_list('name', flat=True)
     )
     return Response({'conduit_names': conduit_names})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_cable_micropipe_summary(request, project_id):
+    """
+    Get micropipe connection summary for all cables in a project.
+    Returns a dict mapping cable UUIDs to their connected micropipes with color info.
+    Used for dynamic edge coloring in the network schema diagram.
+    """
+    connections = MicroductCableConnection.objects.filter(
+        uuid_cable__project_id=project_id
+    ).select_related(
+        'uuid_microduct', 'uuid_cable'
+    ).order_by('uuid_cable', 'uuid_microduct__number')
+
+    # Build a lookup for color hex codes
+    color_lookup = {
+        color.name_de.lower(): color.hex_code
+        for color in AttributesMicroductColor.objects.filter(is_active=True)
+    }
+
+    # Group by cable and extract micropipe info
+    result = {}
+    for conn in connections:
+        cable_uuid = str(conn.uuid_cable_id)
+        if cable_uuid not in result:
+            result[cable_uuid] = []
+
+        color_name = conn.uuid_microduct.color.lower() if conn.uuid_microduct.color else None
+        hex_code = color_lookup.get(color_name, '#64748b')
+
+        result[cable_uuid].append({
+            'number': conn.uuid_microduct.number,
+            'color_hex': hex_code,
+            'color_name': conn.uuid_microduct.color
+        })
+
+    return Response(result)

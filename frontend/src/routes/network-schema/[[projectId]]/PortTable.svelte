@@ -5,6 +5,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { NODE_STRUCTURE_CONTEXT_KEY } from '$lib/classes/NodeStructureContext.svelte.js';
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	import FiberCell from './FiberCell.svelte';
 
@@ -12,7 +13,7 @@
 	const context = getContext(NODE_STRUCTURE_CONTEXT_KEY);
 
 	// Only essential props needed for rendering
-	let { structureName = '', portRows = [], loading = false } = $props();
+	let { structureName = '', portRows = [], loading = false, readonly = false } = $props();
 
 	// Derive state from context
 	const fiberColors = $derived(context?.fiberColors ?? []);
@@ -185,7 +186,8 @@
 							class="checkbox"
 							checked={allSelected}
 							onchange={toggleSelectAll}
-							title={allSelected ? 'Deselect all' : 'Select all'}
+							aria-label={allSelected ? m.tooltip_deselect_all() : m.tooltip_select_all()}
+							{@attach tooltip(allSelected ? m.tooltip_deselect_all() : m.tooltip_select_all())}
 						/>
 					{/if}
 				</div>
@@ -197,51 +199,57 @@
 				class="px-3 py-2.5 flex items-center justify-between gap-2 border-l border-surface-200-800"
 			>
 				<span class="text-surface-950-50">{m.form_fiber_a?.() || 'Faser A'}</span>
-				<button
-					type="button"
-					class="p-1.5 rounded-lg transition-colors text-surface-950-50 {mergeSelectionMode &&
-					mergeSide === 'a'
-						? 'preset-filled-primary-500 text-white'
-						: 'hover:bg-surface-300-700'}"
-					onclick={() => {
-						if (mergeSelectionMode && mergeSide === 'a') {
-							handleToggleMergeMode();
-						} else if (mergeSelectionMode) {
-							handleSetMergeSide('a');
-						} else {
-							handleSetMergeSide('a');
-							handleToggleMergeMode();
-						}
-					}}
-					title={m.action_merge_ports?.() || 'Merge ports'}
-				>
-					<IconArrowMerge size={20} />
-				</button>
+				{#if !readonly}
+					<button
+						type="button"
+						class="p-1.5 rounded-lg transition-colors text-surface-950-50 {mergeSelectionMode &&
+						mergeSide === 'a'
+							? 'preset-filled-primary-500 text-white'
+							: 'hover:bg-surface-300-700'}"
+						onclick={() => {
+							if (mergeSelectionMode && mergeSide === 'a') {
+								handleToggleMergeMode();
+							} else if (mergeSelectionMode) {
+								handleSetMergeSide('a');
+							} else {
+								handleSetMergeSide('a');
+								handleToggleMergeMode();
+							}
+						}}
+						aria-label={m.action_merge_ports?.() || 'Merge ports'}
+						{@attach tooltip(m.action_merge_ports?.() || 'Merge ports')}
+					>
+						<IconArrowMerge size={20} />
+					</button>
+				{/if}
 			</div>
 			<div
 				class="px-3 py-2.5 flex items-center justify-between gap-2 border-l border-surface-200-800"
 			>
 				<span class="text-surface-950-50">{m.form_fiber_b?.() || 'Faser B'} </span>
-				<button
-					type="button"
-					class="p-1.5 rounded-lg transition-colors text-surface-950-50 {mergeSelectionMode &&
-					mergeSide === 'b'
-						? 'preset-filled-primary-500 text-white'
-						: 'hover:bg-surface-300-700'}"
-					onclick={() => {
-						if (mergeSelectionMode && mergeSide === 'b') {
-							handleToggleMergeMode();
-						} else if (mergeSelectionMode) {
-							handleSetMergeSide('b');
-						} else {
-							handleSetMergeSide('b');
-							handleToggleMergeMode();
-						}
-					}}
-					title={m.action_merge_ports?.() || 'Merge ports'}
-				>
-					<IconArrowMerge size={20} />
-				</button>
+				{#if !readonly}
+					<button
+						type="button"
+						class="p-1.5 rounded-lg transition-colors text-surface-950-50 {mergeSelectionMode &&
+						mergeSide === 'b'
+							? 'preset-filled-primary-500 text-white'
+							: 'hover:bg-surface-300-700'}"
+						onclick={() => {
+							if (mergeSelectionMode && mergeSide === 'b') {
+								handleToggleMergeMode();
+							} else if (mergeSelectionMode) {
+								handleSetMergeSide('b');
+							} else {
+								handleSetMergeSide('b');
+								handleToggleMergeMode();
+							}
+						}}
+						aria-label={m.action_merge_ports?.() || 'Merge ports'}
+						{@attach tooltip(m.action_merge_ports?.() || 'Merge ports')}
+					>
+						<IconArrowMerge size={20} />
+					</button>
+				{/if}
 			</div>
 		</div>
 
@@ -288,6 +296,7 @@
 								connectedCount={row.mergeInfoA.fiberCount}
 								spanRows={row.mergeInfoA.groupSize}
 								portRange={row.mergeInfoA.portRange}
+								{readonly}
 								onDrop={(data) => handleMergedPortDrop(row.mergeInfoA.groupId, 'a', data)}
 								onClear={() => handleClearPort(row.portNumber, 'a')}
 								onUnmerge={() => handleUnmergePorts(row.mergeInfoA.groupId)}
@@ -301,6 +310,7 @@
 								portNumber={row.portNumber}
 								cableUuid={row.fiberA?.cable_uuid}
 								colorHex={getColorHex(row.fiberA?.fiber_color)}
+								{readonly}
 								onDrop={(data) => handlePortDrop(row.portNumber, 'a', data)}
 								onClear={() => handleClearPort(row.portNumber, 'a')}
 							/>
@@ -323,6 +333,7 @@
 								connectedCount={row.mergeInfoB.fiberCount}
 								spanRows={row.mergeInfoB.groupSize}
 								portRange={row.mergeInfoB.portRange}
+								{readonly}
 								onDrop={(data) => handleMergedPortDrop(row.mergeInfoB.groupId, 'b', data)}
 								onClear={() => handleClearPort(row.portNumber, 'b')}
 								onUnmerge={() => handleUnmergePorts(row.mergeInfoB.groupId)}
@@ -336,6 +347,7 @@
 								portNumber={row.portNumber}
 								cableUuid={row.fiberB?.cable_uuid}
 								colorHex={getColorHex(row.fiberB?.fiber_color)}
+								{readonly}
 								onDrop={(data) => handlePortDrop(row.portNumber, 'b', data)}
 								onClear={() => handleClearPort(row.portNumber, 'b')}
 							/>
@@ -346,7 +358,7 @@
 		</div>
 
 		<!-- Merge Action Bar (when ports selected) -->
-		{#if mergeSelectionMode && selectedForMerge.size >= 2}
+		{#if !readonly && mergeSelectionMode && selectedForMerge.size >= 2}
 			<div
 				class="p-2 border-t border-surface-200-800 bg-surface-200-800 flex justify-between items-center gap-2"
 			>

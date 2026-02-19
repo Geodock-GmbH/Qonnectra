@@ -244,17 +244,61 @@ FEATURE_MODEL_MAP = {
     "area": Area,
 }
 
-admin.site.register(AttributesSurface)
-admin.site.register(AttributesStatusDevelopment)
-admin.site.register(AttributesResidentialUnitType)
-admin.site.register(AttributesResidentialUnitStatus)
-admin.site.register(AttributesConstructionType)
-admin.site.register(AttributesStatus)
-admin.site.register(AttributesPhase)
-admin.site.register(AttributesCompany)
-admin.site.register(AttributesAreaType)
-admin.site.register(AttributesComponentType)
-admin.site.register(AttributesComponentStructure)
+@admin.register(AttributesSurface)
+class AttributesSurfaceAdmin(admin.ModelAdmin):
+    list_display = ("id", "surface", "sealing")
+
+
+@admin.register(AttributesStatusDevelopment)
+class AttributesStatusDevelopmentAdmin(admin.ModelAdmin):
+    list_display = ("id", "status")
+
+
+@admin.register(AttributesResidentialUnitType)
+class AttributesResidentialUnitTypeAdmin(admin.ModelAdmin):
+    list_display = ("id", "residential_unit_type")
+
+
+@admin.register(AttributesResidentialUnitStatus)
+class AttributesResidentialUnitStatusAdmin(admin.ModelAdmin):
+    list_display = ("id", "status")
+
+
+@admin.register(AttributesConstructionType)
+class AttributesConstructionTypeAdmin(admin.ModelAdmin):
+    list_display = ("id", "construction_type")
+
+
+@admin.register(AttributesStatus)
+class AttributesStatusAdmin(admin.ModelAdmin):
+    list_display = ("id", "status")
+
+
+@admin.register(AttributesPhase)
+class AttributesPhaseAdmin(admin.ModelAdmin):
+    list_display = ("id", "phase")
+
+
+@admin.register(AttributesCompany)
+class AttributesCompanyAdmin(admin.ModelAdmin):
+    list_display = ("id", "company", "city", "phone", "email")
+
+
+@admin.register(AttributesAreaType)
+class AttributesAreaTypeAdmin(admin.ModelAdmin):
+    list_display = ("id", "area_type")
+
+
+@admin.register(AttributesComponentType)
+class AttributesComponentTypeAdmin(admin.ModelAdmin):
+    list_display = ("id", "component_type", "occupied_slots", "manufacturer")
+
+
+@admin.register(AttributesComponentStructure)
+class AttributesComponentStructureAdmin(admin.ModelAdmin):
+    list_display = ("id", "component_type", "in_or_out", "port", "port_alias")
+
+
 admin.site.register(FileTypeCategory)
 
 
@@ -421,12 +465,32 @@ class AreaAdmin(admin.ModelAdmin):
     search_fields = ("name", "project__project", "flag__flag", "area_type__area_type")
 
 
-admin.site.register(Flags)
-admin.site.register(AttributesNetworkLevel)
-admin.site.register(AttributesNodeType)
-admin.site.register(AttributesMicroductStatus)
+@admin.register(Flags)
+class FlagsAdmin(admin.ModelAdmin):
+    list_display = ("id", "flag")
+
+
+@admin.register(AttributesNetworkLevel)
+class AttributesNetworkLevelAdmin(admin.ModelAdmin):
+    list_display = ("id", "network_level")
+
+
+@admin.register(AttributesNodeType)
+class AttributesNodeTypeAdmin(admin.ModelAdmin):
+    list_display = ("id", "node_type", "dimension", "group", "company")
+
+
+@admin.register(AttributesMicroductStatus)
+class AttributesMicroductStatusAdmin(admin.ModelAdmin):
+    list_display = ("id", "microduct_status")
+
+
 admin.site.register(Microduct)
-admin.site.register(AttributesFiberStatus)
+
+
+@admin.register(AttributesFiberStatus)
+class AttributesFiberStatusAdmin(admin.ModelAdmin):
+    list_display = ("id", "fiber_status")
 
 
 class NetworkSchemaSettingsInline(admin.StackedInline):
@@ -454,6 +518,7 @@ class ProjectsAdmin(admin.ModelAdmin):
     """Admin interface for Projects with Network Schema and Pipe Branch Settings."""
 
     list_display = (
+        "id",
         "project",
         "description",
         "active",
@@ -615,13 +680,14 @@ class CableTypeColorMappingInline(admin.TabularInline):
 
 @admin.register(AttributesConduitType)
 class AttributesConduitTypeAdmin(admin.ModelAdmin):
-    list_display = ("conduit_type", "conduit_count", "manufacturer")
+    list_display = ("id", "conduit_type", "conduit_count", "manufacturer")
     inlines = [ConduitTypeColorMappingInline]
 
 
 @admin.register(AttributesCableType)
 class AttributesCableTypeAdmin(admin.ModelAdmin):
     list_display = (
+        "id",
         "cable_type",
         "fiber_count",
         "bundle_count",
@@ -634,6 +700,7 @@ class AttributesCableTypeAdmin(admin.ModelAdmin):
 @admin.register(AttributesMicroductColor)
 class AttributesMicroductColorAdmin(admin.ModelAdmin):
     list_display = (
+        "id",
         "name_de",
         "name_en",
         "hex_code",
@@ -657,6 +724,7 @@ class AttributesMicroductColorAdmin(admin.ModelAdmin):
 @admin.register(AttributesFiberColor)
 class AttributesFiberColorAdmin(admin.ModelAdmin):
     list_display = (
+        "id",
         "name_de",
         "name_en",
         "hex_code",

@@ -4,6 +4,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import MicroductsDisplayTable from '$lib/components/MicroductsDisplayTable.svelte';
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	let { microducts = [], loading = false, error = null, onMicroductUpdate = null } = $props();
 
@@ -52,7 +53,8 @@
 				class="btn btn-sm preset-filled-primary-500"
 				onclick={() => handleAssignClick(microduct)}
 				disabled={isAssignMode}
-				aria-label="Assign node to microduct"
+				aria-label={m.tooltip_assign_node_to_microduct()}
+				{@attach tooltip(m.tooltip_assign_node_to_microduct())}
 			>
 				{m.action_assign()}
 			</button>
@@ -61,7 +63,8 @@
 					class="btn btn-sm preset-filled-error-500"
 					onclick={() => handleRemoveClick(microduct)}
 					disabled={isAssignMode}
-					aria-label="Remove node from microduct"
+					aria-label={m.tooltip_remove_node_from_microduct()}
+					{@attach tooltip(m.tooltip_remove_node_from_microduct())}
 				>
 					{m.action_unassign()}
 				</button>

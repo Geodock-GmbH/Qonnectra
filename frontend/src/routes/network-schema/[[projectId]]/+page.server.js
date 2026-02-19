@@ -8,6 +8,21 @@ import {
 	getTrenchUuidsForConduit,
 	searchFeaturesInProject
 } from '$lib/server/featureSearch';
+import {
+	getCablesAtNode,
+	getComponentPorts,
+	getComponentTypes,
+	getContainerHierarchy,
+	getContainerTypes,
+	getFiberColors,
+	getFibersForCable,
+	getFiberSplices,
+	getFiberUsageInNode,
+	getNodeStructures,
+	getSlotClipNumbers,
+	getSlotConfigurationsForNode,
+	getSlotDividers
+} from '$lib/server/nodeData';
 
 /**
  * Poll for sync completion with timeout and progress updates
@@ -161,7 +176,8 @@ export async function load({ fetch, cookies, url, params }) {
 			],
 			nodeResponse,
 			cableResponse,
-			cableLabelResponse
+			cableLabelResponse,
+			cableMicropipeResponse
 		] = await Promise.all([
 			attributesFetchPromise,
 			fetch(`${API_URL}node/all/?project=${projectId}`, {
@@ -173,6 +189,10 @@ export async function load({ fetch, cookies, url, params }) {
 				headers: headers
 			}),
 			fetch(`${API_URL}cable_label/all/?project=${projectId}`, {
+				credentials: 'include',
+				headers: headers
+			}),
+			fetch(`${API_URL}cables/micropipe-summary/${projectId}/`, {
 				credentials: 'include',
 				headers: headers
 			})
@@ -188,6 +208,7 @@ export async function load({ fetch, cookies, url, params }) {
 
 		let cablesData = [];
 		let cableLabelsData = [];
+		let cableMicropipeConnections = {};
 		let cableTypesData = [];
 		let nodeTypesData = [];
 		let statusData = [];
@@ -205,6 +226,12 @@ export async function load({ fetch, cookies, url, params }) {
 			cableLabelsData = await cableLabelResponse.json();
 		} else {
 			console.warn('Failed to fetch cable labels, continuing without them');
+		}
+
+		if (cableMicropipeResponse.ok) {
+			cableMicropipeConnections = await cableMicropipeResponse.json();
+		} else {
+			console.warn('Failed to fetch cable micropipe connections, continuing without them');
 		}
 
 		const cableLabelMap = {};
@@ -288,6 +315,7 @@ export async function load({ fetch, cookies, url, params }) {
 		return {
 			nodes: nodesData,
 			cables: cablesData,
+			cableMicropipeConnections,
 			cableTypes: cableTypesData,
 			nodeTypes: nodeTypesData,
 			statuses: statusData,
@@ -307,6 +335,7 @@ export async function load({ fetch, cookies, url, params }) {
 		return {
 			nodes: [],
 			cables: [],
+			cableMicropipeConnections: {},
 			cableTypes: [],
 			nodeTypes: [],
 			statuses: [],
@@ -1045,52 +1074,12 @@ export const actions = {
 		}
 	},
 	getContainerTypes: async ({ fetch, cookies }) => {
-		try {
-			const headers = getAuthHeaders(cookies);
-			const response = await fetch(`${API_URL}container-type/`, {
-				method: 'GET',
-				headers
-			});
-
-			if (!response.ok) {
-				return fail(response.status, { error: 'Failed to fetch container types' });
-			}
-
-			const containerTypes = await response.json();
-			return { containerTypes };
-		} catch (err) {
-			console.error('Error fetching container types:', err);
-			return fail(500, { error: 'Internal server error' });
-		}
+		return getContainerTypes(fetch, cookies);
 	},
 	getContainerHierarchy: async ({ request, fetch, cookies }) => {
-		try {
-			const formData = await request.formData();
-			const nodeUuid = formData.get('nodeUuid');
-
-			if (!nodeUuid) {
-				return fail(400, { error: 'Missing required parameter: nodeUuid' });
-			}
-
-			const headers = getAuthHeaders(cookies);
-			const response = await fetch(`${API_URL}container/tree/${nodeUuid}/`, {
-				method: 'GET',
-				headers
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				return fail(response.status, {
-					error: errorData.detail || 'Failed to fetch hierarchy'
-				});
-			}
-
-			const hierarchy = await response.json();
-			return { hierarchy };
-		} catch (err) {
-			console.error('Error fetching container hierarchy:', err);
-			return fail(500, { error: 'Internal server error' });
-		}
+		const formData = await request.formData();
+		const nodeUuid = formData.get('nodeUuid');
+		return getContainerHierarchy(fetch, cookies, nodeUuid);
 	},
 	createContainer: async ({ request, fetch, cookies }) => {
 		try {
@@ -1163,6 +1152,40 @@ export const actions = {
 			return { success: true };
 		} catch (err) {
 			console.error('Error deleting container:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	updateContainerName: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const containerUuid = formData.get('containerUuid');
+			const name = formData.get('name');
+
+			if (!containerUuid) {
+				return fail(400, { error: 'Missing required parameter: containerUuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}container/${containerUuid}/`, {
+				method: 'PATCH',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ name: name || null })
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to update container name'
+				});
+			}
+
+			const container = await response.json();
+			return { success: true, container };
+		} catch (err) {
+			console.error('Error updating container name:', err);
 			return fail(500, { error: 'Internal server error' });
 		}
 	},
@@ -1420,84 +1443,17 @@ export const actions = {
 		}
 	},
 	getSlotConfigurationsForNode: async ({ request, fetch, cookies }) => {
-		try {
-			const formData = await request.formData();
-			const nodeUuid = formData.get('nodeUuid');
-
-			if (!nodeUuid) {
-				return fail(400, { error: 'Missing required parameter: nodeUuid' });
-			}
-
-			const headers = getAuthHeaders(cookies);
-			const response = await fetch(`${API_URL}node-slot-configuration/by-node/${nodeUuid}/`, {
-				method: 'GET',
-				headers
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				return fail(response.status, {
-					error: errorData.detail || 'Failed to fetch slot configurations'
-				});
-			}
-
-			const configurations = await response.json();
-			return { configurations };
-		} catch (err) {
-			console.error('Error fetching slot configurations:', err);
-			return fail(500, { error: 'Internal server error' });
-		}
+		const formData = await request.formData();
+		const nodeUuid = formData.get('nodeUuid');
+		return getSlotConfigurationsForNode(fetch, cookies, nodeUuid);
 	},
 	getNodeStructures: async ({ request, fetch, cookies }) => {
-		try {
-			const formData = await request.formData();
-			const slotConfigUuid = formData.get('slotConfigUuid');
-
-			if (!slotConfigUuid) {
-				return fail(400, { error: 'Missing required parameter: slotConfigUuid' });
-			}
-
-			const headers = getAuthHeaders(cookies);
-			const response = await fetch(
-				`${API_URL}node-structure/?slot_configuration=${slotConfigUuid}`,
-				{
-					method: 'GET',
-					headers
-				}
-			);
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				return fail(response.status, {
-					error: errorData.detail || 'Failed to fetch node structures'
-				});
-			}
-
-			const structures = await response.json();
-			return { structures };
-		} catch (err) {
-			console.error('Error fetching node structures:', err);
-			return fail(500, { error: 'Internal server error' });
-		}
+		const formData = await request.formData();
+		const slotConfigUuid = formData.get('slotConfigUuid');
+		return getNodeStructures(fetch, cookies, slotConfigUuid);
 	},
 	getComponentTypes: async ({ fetch, cookies }) => {
-		try {
-			const headers = getAuthHeaders(cookies);
-			const response = await fetch(`${API_URL}attributes_component_type/`, {
-				method: 'GET',
-				headers
-			});
-
-			if (!response.ok) {
-				return fail(response.status, { error: 'Failed to fetch component types' });
-			}
-
-			const componentTypes = await response.json();
-			return { componentTypes };
-		} catch (err) {
-			console.error('Error fetching component types:', err);
-			return fail(500, { error: 'Internal server error' });
-		}
+		return getComponentTypes(fetch, cookies);
 	},
 	createNodeStructure: async ({ request, fetch, cookies }) => {
 		try {
@@ -1628,38 +1584,9 @@ export const actions = {
 		}
 	},
 	getSlotDividers: async ({ request, fetch, cookies }) => {
-		try {
-			const formData = await request.formData();
-			const slotConfigUuid = formData.get('slotConfigUuid');
-
-			if (!slotConfigUuid) {
-				return fail(400, { error: 'Missing required parameter: slotConfigUuid' });
-			}
-
-			const headers = getAuthHeaders(cookies);
-			const response = await fetch(
-				`${API_URL}node-slot-divider/?slot_configuration=${slotConfigUuid}`,
-				{
-					method: 'GET',
-					headers
-				}
-			);
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				return fail(response.status, {
-					error: errorData.detail || 'Failed to fetch dividers'
-				});
-			}
-
-			const data = await response.json();
-			// Handle both paginated and non-paginated responses
-			const dividers = Array.isArray(data) ? data : data.results || [];
-			return { dividers };
-		} catch (err) {
-			console.error('Error fetching slot dividers:', err);
-			return fail(500, { error: 'Internal server error' });
-		}
+		const formData = await request.formData();
+		const slotConfigUuid = formData.get('slotConfigUuid');
+		return getSlotDividers(fetch, cookies, slotConfigUuid);
 	},
 	createSlotDivider: async ({ request, fetch, cookies }) => {
 		try {
@@ -1729,38 +1656,9 @@ export const actions = {
 		}
 	},
 	getSlotClipNumbers: async ({ request, fetch, cookies }) => {
-		try {
-			const formData = await request.formData();
-			const slotConfigUuid = formData.get('slotConfigUuid');
-
-			if (!slotConfigUuid) {
-				return fail(400, { error: 'Missing required parameter: slotConfigUuid' });
-			}
-
-			const headers = getAuthHeaders(cookies);
-			const response = await fetch(
-				`${API_URL}node-slot-clip-number/?slot_configuration=${slotConfigUuid}`,
-				{
-					method: 'GET',
-					headers
-				}
-			);
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				return fail(response.status, {
-					error: errorData.detail || 'Failed to fetch clip numbers'
-				});
-			}
-
-			const data = await response.json();
-			// Handle both paginated and non-paginated responses
-			const clipNumbers = Array.isArray(data) ? data : data.results || [];
-			return { clipNumbers };
-		} catch (err) {
-			console.error('Error fetching slot clip numbers:', err);
-			return fail(500, { error: 'Internal server error' });
-		}
+		const formData = await request.formData();
+		const slotConfigUuid = formData.get('slotConfigUuid');
+		return getSlotClipNumbers(fetch, cookies, slotConfigUuid);
 	},
 	upsertSlotClipNumber: async ({ request, fetch, cookies }) => {
 		try {
@@ -1804,142 +1702,27 @@ export const actions = {
 		}
 	},
 	getCablesAtNode: async ({ request, fetch, cookies }) => {
-		try {
-			const formData = await request.formData();
-			const nodeUuid = formData.get('nodeUuid');
-
-			if (!nodeUuid) {
-				return fail(400, { error: 'Missing required parameter: nodeUuid' });
-			}
-
-			const headers = getAuthHeaders(cookies);
-			const response = await fetch(`${API_URL}cable/at-node/${nodeUuid}/`, {
-				method: 'GET',
-				headers
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				return fail(response.status, {
-					error: errorData.detail || 'Failed to fetch cables at node'
-				});
-			}
-
-			const cables = await response.json();
-			return { cables };
-		} catch (err) {
-			console.error('Error fetching cables at node:', err);
-			return fail(500, { error: 'Internal server error' });
-		}
+		const formData = await request.formData();
+		const nodeUuid = formData.get('nodeUuid');
+		return getCablesAtNode(fetch, cookies, nodeUuid);
 	},
 	getFibersForCable: async ({ request, fetch, cookies }) => {
-		try {
-			const formData = await request.formData();
-			const cableUuid = formData.get('cableUuid');
-
-			if (!cableUuid) {
-				return fail(400, { error: 'Missing required parameter: cableUuid' });
-			}
-
-			const headers = getAuthHeaders(cookies);
-			const response = await fetch(`${API_URL}fiber/by-cable/${cableUuid}/`, {
-				method: 'GET',
-				headers
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				return fail(response.status, {
-					error: errorData.detail || 'Failed to fetch fibers for cable'
-				});
-			}
-
-			const fibers = await response.json();
-			return { fibers };
-		} catch (err) {
-			console.error('Error fetching fibers for cable:', err);
-			return fail(500, { error: 'Internal server error' });
-		}
+		const formData = await request.formData();
+		const cableUuid = formData.get('cableUuid');
+		return getFibersForCable(fetch, cookies, cableUuid);
 	},
 	getFiberColors: async ({ fetch, cookies }) => {
-		try {
-			const headers = getAuthHeaders(cookies);
-			const response = await fetch(`${API_URL}attributes_fiber_color/`, {
-				method: 'GET',
-				headers
-			});
-
-			if (!response.ok) {
-				return fail(response.status, { error: 'Failed to fetch fiber colors' });
-			}
-
-			const fiberColors = await response.json();
-			return { fiberColors };
-		} catch (err) {
-			console.error('Error fetching fiber colors:', err);
-			return fail(500, { error: 'Internal server error' });
-		}
+		return getFiberColors(fetch, cookies);
 	},
 	getComponentPorts: async ({ request, fetch, cookies }) => {
-		try {
-			const formData = await request.formData();
-			const componentTypeId = formData.get('componentTypeId');
-
-			if (!componentTypeId) {
-				return fail(400, { error: 'Missing required parameter: componentTypeId' });
-			}
-
-			const headers = getAuthHeaders(cookies);
-			const response = await fetch(
-				`${API_URL}attributes_component_structure/?component_type=${componentTypeId}`,
-				{
-					method: 'GET',
-					headers
-				}
-			);
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				return fail(response.status, {
-					error: errorData.detail || 'Failed to fetch component ports'
-				});
-			}
-
-			const ports = await response.json();
-			return { ports };
-		} catch (err) {
-			console.error('Error fetching component ports:', err);
-			return fail(500, { error: 'Internal server error' });
-		}
+		const formData = await request.formData();
+		const componentTypeId = formData.get('componentTypeId');
+		return getComponentPorts(fetch, cookies, componentTypeId);
 	},
 	getFiberSplices: async ({ request, fetch, cookies }) => {
-		try {
-			const formData = await request.formData();
-			const nodeStructureUuid = formData.get('nodeStructureUuid');
-
-			if (!nodeStructureUuid) {
-				return fail(400, { error: 'Missing required parameter: nodeStructureUuid' });
-			}
-
-			const headers = getAuthHeaders(cookies);
-			const response = await fetch(`${API_URL}fiber-splice/?node_structure=${nodeStructureUuid}`, {
-				method: 'GET',
-				headers
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				return fail(response.status, {
-					error: errorData.detail || 'Failed to fetch fiber splices'
-				});
-			}
-
-			const splices = await response.json();
-			return { splices };
-		} catch (err) {
-			console.error('Error fetching fiber splices:', err);
-			return fail(500, { error: 'Internal server error' });
-		}
+		const formData = await request.formData();
+		const nodeStructureUuid = formData.get('nodeStructureUuid');
+		return getFiberSplices(fetch, cookies, nodeStructureUuid);
 	},
 	upsertFiberSplice: async ({ request, fetch, cookies }) => {
 		try {
@@ -2363,49 +2146,9 @@ export const actions = {
 		}
 	},
 	getFiberUsageInNode: async ({ request, fetch, cookies }) => {
-		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();
 		const nodeUuid = formData.get('nodeUuid');
-
-		if (!nodeUuid) {
-			return fail(400, { error: 'Node UUID is required' });
-		}
-
-		try {
-			// Fetch all fiber splices for this node (across all structures)
-			const response = await fetch(
-				`${API_URL}fiber-splice/?node_structure__uuid_node=${nodeUuid}`,
-				{
-					method: 'GET',
-					headers
-				}
-			);
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				return fail(response.status, {
-					error: errorData.detail || 'Failed to fetch fiber usage'
-				});
-			}
-
-			const splices = await response.json();
-
-			// Collect all unique fiber UUIDs that are used in this node
-			const usedFiberUuids = new Set();
-			splices.forEach((splice) => {
-				if (splice.fiber_a) usedFiberUuids.add(splice.fiber_a);
-				if (splice.fiber_b) usedFiberUuids.add(splice.fiber_b);
-				if (splice.shared_fiber_a) usedFiberUuids.add(splice.shared_fiber_a);
-				if (splice.shared_fiber_b) usedFiberUuids.add(splice.shared_fiber_b);
-			});
-
-			return {
-				usedFiberUuids: Array.from(usedFiberUuids)
-			};
-		} catch (err) {
-			console.error('Error fetching fiber usage in node:', err);
-			return fail(500, { error: 'Failed to fetch fiber usage' });
-		}
+		return getFiberUsageInNode(fetch, cookies, nodeUuid);
 	},
 	getTrenchesForCable: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
@@ -2701,6 +2444,46 @@ export const actions = {
 		} catch (err) {
 			console.error('Error fetching conduits for cable:', err);
 			return fail(500, { error: 'Failed to fetch conduits' });
+		}
+	},
+	getMicropipeConnectionsForCable: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const cableId = formData.get('uuid');
+
+		if (!cableId) {
+			return fail(400, { error: 'Cable ID is required' });
+		}
+
+		try {
+			const response = await fetch(
+				`${API_URL}microduct_cable_connection/all/?uuid_cable=${cableId}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch micropipe connections'
+				});
+			}
+
+			const connections = await response.json();
+
+			// Transform to the format expected by the edge component
+			const transformed = connections.map((conn) => ({
+				number: conn.uuid_microduct?.number,
+				color_hex: conn.uuid_microduct?.hex_code || '#64748b',
+				color_name: conn.uuid_microduct?.color
+			}));
+
+			return { connections: transformed };
+		} catch (err) {
+			console.error('Error fetching micropipe connections for cable:', err);
+			return fail(500, { error: 'Failed to fetch micropipe connections' });
 		}
 	}
 };

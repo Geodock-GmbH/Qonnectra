@@ -16,6 +16,7 @@
 		loading = false,
 		loadingStructures = false,
 		isMobile = false,
+		readonly = false,
 		// These callbacks need wrappers in parent for UI state management
 		onStructureSelect = () => {},
 		onStructureDelete = () => {}
@@ -52,11 +53,13 @@
 	}
 
 	function handleSlotDragOver(e, slotNumber) {
+		if (readonly) return;
 		e.preventDefault();
 		context?.slotActions?.onDragOver(e, slotNumber);
 	}
 
 	function handleSlotDragLeave(e) {
+		if (readonly) return;
 		// Only clear if leaving the drop zone area entirely
 		const relatedTarget = e.relatedTarget;
 		if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
@@ -65,6 +68,7 @@
 	}
 
 	function handleGridDragLeave(e) {
+		if (readonly) return;
 		if (!e.currentTarget.contains(e.relatedTarget)) {
 			if (context) {
 				context.dropPreviewSlots = [];
@@ -73,6 +77,7 @@
 	}
 
 	function handleSlotDrop(e, slotNumber) {
+		if (readonly) return;
 		e.preventDefault();
 		context?.slotActions?.onDrop(e, slotNumber);
 	}
@@ -88,18 +93,25 @@
 	}
 
 	function handleStructureDragStart(e, structure) {
+		if (readonly) {
+			e.preventDefault();
+			return;
+		}
 		context?.structureActions?.onDragStart(e, structure);
 	}
 
 	function handleStructureDragEnd() {
+		if (readonly) return;
 		context?.structureActions?.onDragEnd();
 	}
 
 	function handleToggleDivider(slotNumber) {
+		if (readonly) return;
 		context?.dividerActions?.onToggle(slotNumber);
 	}
 
 	function handleStartEditingClip(slotNumber, currentValue) {
+		if (readonly) return;
 		context?.clipActions?.onStartEditing(slotNumber, currentValue);
 	}
 
@@ -204,13 +216,13 @@
 									? 'bg-(--color-primary-500) border-(--color-primary-600) text-white shadow-[0_0_0_3px_(--color-primary-500)/30%,0_4px_12px_rgba(0,0,0,0.15)] hover:bg-(--color-primary-400) [&_.text-surface-950-50]:text-white/80! [&_*:global(.text-surface-400)]:text-white/70! dark:bg-(--color-primary-200) dark:border-(--color-primary-300) dark:hover:bg-(--color-primary-300) dark:shadow-[0_0_0_3px_(--color-primary-500)/30%,0_4px_12px_rgba(0,0,0,0.15)] dark:[&_.text-surface-950-50]:text-surface-900! dark:[&_*:global(.text-surface-400)]:text-surface-600!'
 									: ''}"
 								style:--row-height="{row.blockSize * 40}px"
-								draggable={!isMobile}
+								draggable={!isMobile && !readonly}
 								ondragstart={(e) => row.structure && handleStructureDragStart(e, row.structure)}
 								ondragend={handleStructureDragEnd}
 								role="button"
 								tabindex="0"
 							>
-								{#if !isMobile}
+								{#if !isMobile && !readonly}
 									<IconGripVertical size={14} class="cursor-grab text-surface-950-50 shrink-0" />
 								{/if}
 								<div class="flex-1 min-w-0">
@@ -223,17 +235,19 @@
 										</div>
 									{/if}
 								</div>
-								<button
-									type="button"
-									class="btn-sm rounded-md opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 bg-error-500 hover:bg-error-600 text-white transition-all shrink-0"
-									onclick={(e) => {
-										e.stopPropagation();
-										row.structure && onStructureDelete(row.structure.uuid);
-									}}
-									aria-label={m.common_delete?.() || 'Delete'}
-								>
-									<IconTrash size={20} />
-								</button>
+								{#if !readonly}
+									<button
+										type="button"
+										class="btn-sm rounded-md opacity-0 group-hover:opacity-100 md:opacity-0 md:group-hover:opacity-100 bg-error-500 hover:bg-error-600 text-white transition-all shrink-0"
+										onclick={(e) => {
+											e.stopPropagation();
+											row.structure && onStructureDelete(row.structure.uuid);
+										}}
+										aria-label={m.common_delete?.() || 'Delete'}
+									>
+										<IconTrash size={20} />
+									</button>
+								{/if}
 							</div>
 						{:else if !row.isOccupied}
 							<span class="text-surface-950-50 text-sm">
@@ -257,7 +271,7 @@
 							: ''}"
 						role="gridcell"
 					>
-						{#if editingClipSlot === row.slotNumber}
+						{#if editingClipSlot === row.slotNumber && !readonly}
 							<input
 								type="text"
 								class="w-full h-7 bg-(--color-surface-50-950) border-2 border-(--color-primary-500) rounded font-mono text-center text-sm px-1 outline-none focus:shadow-[0_0_0_2px_(--color-primary-500)/20]"
@@ -266,12 +280,17 @@
 								onblur={handleSaveClipNumber}
 								onkeydown={handleClipKeydown}
 							/>
+						{:else if readonly}
+							<span class="font-mono text-center">
+								{row.clipNumber || row.slotNumber}
+							</span>
 						{:else}
 							<button
 								type="button"
 								class="w-full h-full bg-transparent border-none font-mono text-center cursor-pointer p-0 transition-colors duration-150 rounded hover:bg-(--color-surface-200-800)"
 								onclick={() => handleStartEditingClip(row.slotNumber, row.clipNumber)}
-								title={m.tooltip_click_to_edit()}
+								aria-label={m.tooltip_click_to_edit()}
+								{@attach tooltip(m.tooltip_click_to_edit())}
 							>
 								{row.clipNumber || row.slotNumber}
 							</button>

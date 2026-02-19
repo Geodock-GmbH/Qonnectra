@@ -3,9 +3,23 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	let { config, depth = 0, onEdit, onDelete, onDragStart, onViewStructure } = $props();
+	import { tooltip } from '$lib/utils/tooltip.js';
+
+	let {
+		config,
+		depth = 0,
+		readonly = false,
+		onEdit,
+		onDelete,
+		onDragStart,
+		onViewStructure
+	} = $props();
 
 	function handleDragStart(e) {
+		if (readonly) {
+			e.preventDefault();
+			return;
+		}
 		e.dataTransfer.setData(
 			'application/json',
 			JSON.stringify({
@@ -23,7 +37,7 @@
 <div
 	class="slot-config-item"
 	style:padding-left={paddingLeft}
-	draggable="true"
+	draggable={!readonly}
 	ondragstart={handleDragStart}
 	role="treeitem"
 	aria-selected="false"
@@ -32,7 +46,9 @@
 	<div
 		class="flex items-center gap-2 m-1 p-2 bg-surface-50-950 rounded border border-surface-200-800"
 	>
-		<IconGripVertical size={16} class="cursor-grab text-surface-400 shrink-0" />
+		{#if !readonly}
+			<IconGripVertical size={16} class="cursor-grab text-surface-400 shrink-0" />
+		{/if}
 
 		<div class="flex-1 min-w-0">
 			<div class="font-medium text-sm truncate">{config.side}</div>
@@ -48,28 +64,33 @@
 				type="button"
 				class="btn btn-sm preset-filled-secondary-500 p-1.5"
 				onclick={() => onViewStructure?.(config.uuid)}
-				title={m.action_view_structure()}
+				aria-label={m.action_view_structure()}
+				{@attach tooltip(m.action_view_structure())}
 			>
 				<IconEye size={14} />
 			</button>
 
-			<button
-				type="button"
-				class="btn btn-sm preset-filled-warning-500 p-1.5"
-				onclick={() => onEdit?.(config)}
-				title={m.common_edit()}
-			>
-				<IconPencil size={14} />
-			</button>
+			{#if !readonly}
+				<button
+					type="button"
+					class="btn btn-sm preset-filled-warning-500 p-1.5"
+					onclick={() => onEdit?.(config)}
+					aria-label={m.common_edit()}
+					{@attach tooltip(m.common_edit())}
+				>
+					<IconPencil size={14} />
+				</button>
 
-			<button
-				type="button"
-				class="btn btn-sm preset-filled-error-500 p-1.5"
-				onclick={() => onDelete?.(config.uuid)}
-				title={m.common_delete()}
-			>
-				<IconTrash size={14} />
-			</button>
+				<button
+					type="button"
+					class="btn btn-sm preset-filled-error-500 p-1.5"
+					onclick={() => onDelete?.(config.uuid)}
+					aria-label={m.common_delete()}
+					{@attach tooltip(m.common_delete())}
+				>
+					<IconTrash size={14} />
+				</button>
+			{/if}
 		</div>
 	</div>
 </div>

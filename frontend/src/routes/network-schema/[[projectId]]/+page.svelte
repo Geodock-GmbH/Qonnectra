@@ -120,6 +120,21 @@
 	});
 
 	/**
+	 * Listen for micropipe linkage changes to update edge colors
+	 */
+	onMount(() => {
+		function handleMicropipeLinkageChanged(event) {
+			const { cableId, connections } = event.detail;
+			schemaState.updateEdgeMicropipeConnections(cableId, connections);
+		}
+
+		window.addEventListener('micropipeLinkageChanged', handleMicropipeLinkageChanged);
+		return () => {
+			window.removeEventListener('micropipeLinkageChanged', handleMicropipeLinkageChanged);
+		};
+	});
+
+	/**
 	 * Handle cable path update events from CableDiagramEdge
 	 */
 	async function handleCablePathUpdate(event) {

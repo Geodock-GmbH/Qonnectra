@@ -171,7 +171,7 @@
 	<title>{m.nav_conduit_management()}</title>
 </svelte:head>
 
-<div class="relative flex gap-4 h-full overflow-hidden">
+<div class="relative flex gap-4 h-full overflow-hidden" data-testid="conduit-page">
 	<div
 		class="flex-1 flex flex-col overflow-hidden h-full border-2 rounded-lg border-surface-200-800 p-4"
 	>

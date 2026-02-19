@@ -40,8 +40,8 @@ def find_shortest_path(start_trench_id, end_trench_id, project_id, tolerance=1):
     returns the path details.
 
     Args:
-        start_trench_id (int): The id_trench of the starting trench.
-        end_trench_id (int): The id_trench of the ending trench.
+        start_trench_id (str): The id_trench of the starting trench (e.g., 'TR-ABC123X').
+        end_trench_id (str): The id_trench of the ending trench (e.g., 'TR-ABC123X').
         project_id (int): The id_trench of the project.
         tolerance (int): The grid cell size for snapping. If 0, no snapping is performed.
     Returns:
