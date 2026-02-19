@@ -25,7 +25,7 @@ class Projects(models.Model):
     related to :model:`api.Trench`.
     """
 
-    id = models.IntegerField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     project = models.TextField(_("Project"), null=False, db_index=False, unique=True)
     description = models.TextField(_("Description"), null=True, blank=True)
     active = models.BooleanField(_("Active"), null=False, default=True)
@@ -136,7 +136,7 @@ class Flags(models.Model):
     related to :model:`api.Trench`.
     """
 
-    id = models.IntegerField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     flag = models.TextField(_("Flag"), null=False, db_index=False, unique=True)
 
     class Meta:
@@ -153,7 +153,7 @@ class AttributesSurface(models.Model):
     related to :model:`api.Trench`.
     """
 
-    id = models.IntegerField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     surface = models.TextField(_("Surface"), null=False, db_index=False)
     sealing = models.BooleanField(_("Sealing"), null=False)
 
@@ -174,7 +174,7 @@ class AttributesConstructionType(models.Model):
     related to :model:`api.Trench`.
     """
 
-    id = models.IntegerField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     construction_type = models.TextField(
         _("Construction Type"), null=False, db_index=False
     )
@@ -199,7 +199,7 @@ class AttributesStatus(models.Model):
     related to :model:`api.Trench`.
     """
 
-    id = models.IntegerField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     status = models.TextField(_("Status"), null=False, db_index=False, unique=True)
 
     class Meta:
@@ -222,7 +222,7 @@ class AttributesPhase(models.Model):
     related to :model:`api.Trench`.
     """
 
-    id = models.IntegerField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     phase = models.TextField(_("Phase"), null=False, db_index=False)
 
     class Meta:
@@ -245,7 +245,7 @@ class AttributesCompany(models.Model):
     related to :model:`api.Trench`.
     """
 
-    id = models.IntegerField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     company = models.TextField(_("Company"), null=False, db_index=False)
     city = models.TextField(_("City"), null=True, blank=True)
     postal_code = models.TextField(_("Postal Code"), null=True, blank=True)
@@ -274,7 +274,7 @@ class AttributesNodeType(models.Model):
     related to :model:`api.Node`.
     """
 
-    id = models.IntegerField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     node_type = models.TextField(_("Node Type"), null=False, db_index=False)
     dimension = models.TextField(_("Dimension"), null=True, blank=True)
     group = models.TextField(_("Group"), null=True, blank=True)
@@ -300,7 +300,7 @@ class AttributesConduitType(models.Model):
     related to :model:`api.Conduit`.
     """
 
-    id = models.IntegerField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     conduit_type = models.TextField(_("Conduit Type"), null=False, db_index=False)
     conduit_count = models.IntegerField(_("Conduit Count"), null=False)
     manufacturer = models.ForeignKey(
@@ -335,7 +335,7 @@ class AttributesNetworkLevel(models.Model):
     related to :model:`api.Conduit`.
     """
 
-    id = models.IntegerField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     network_level = models.TextField(_("Network Level"), null=False, db_index=False)
 
     class Meta:
@@ -355,7 +355,7 @@ class AttributesStatusDevelopment(models.Model):
     related to :model:`api.Address`.
     """
 
-    id = models.IntegerField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     status = models.TextField(_("Status"), null=False, db_index=False, unique=True)
 
     class Meta:
@@ -375,7 +375,7 @@ class AttributesResidentialUnitType(models.Model):
     related to :model:`api.ResidentialUnit`.
     """
 
-    id = models.IntegerField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     residential_unit_type = models.TextField(
         _("Residential Unit Type"), null=False, db_index=False, unique=True
     )
@@ -400,7 +400,7 @@ class AttributesResidentialUnitStatus(models.Model):
     related to :model:`api.ResidentialUnit`.
     """
 
-    id = models.IntegerField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     status = models.TextField(_("Status"), null=False, db_index=False, unique=True)
 
     class Meta:
