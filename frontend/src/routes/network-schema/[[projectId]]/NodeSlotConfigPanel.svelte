@@ -11,7 +11,13 @@
 	import ContainerItem from './ContainerItem.svelte';
 	import SlotConfigItem from './SlotConfigItem.svelte';
 
-	let { nodeUuid, nodeName = '', onViewStructure, sharedSlotState = $bindable(null) } = $props();
+	let {
+		nodeUuid,
+		nodeName = '',
+		readonly = false,
+		onViewStructure,
+		sharedSlotState = $bindable(null)
+	} = $props();
 
 	// Hierarchy state
 	let hierarchy = $state({ containers: [], root_slot_configurations: [] });
@@ -273,17 +279,20 @@
 	 * Handle root drop zone
 	 */
 	function handleRootDragOver(e) {
+		if (readonly) return;
 		e.preventDefault();
 		rootDragOver = true;
 	}
 
 	function handleRootDragLeave(e) {
+		if (readonly) return;
 		if (!e.currentTarget.contains(e.relatedTarget)) {
 			rootDragOver = false;
 		}
 	}
 
 	function handleRootDrop(e) {
+		if (readonly) return;
 		e.preventDefault();
 		rootDragOver = false;
 
@@ -527,7 +536,7 @@
 		<h3 class="text-sm font-medium text-surface-950-50">
 			{nodeName ? `${m.form_node()}: ${nodeName}` : m.title_slot_configuration()}
 		</h3>
-		{#if !isCreating && !isCreatingContainer && !editingUuid}
+		{#if !readonly && !isCreating && !isCreatingContainer && !editingUuid}
 			<div class="flex gap-2">
 				{#if hasContainerTypes}
 					<button
@@ -548,7 +557,7 @@
 	</div>
 
 	<!-- Container creation form -->
-	{#if isCreatingContainer}
+	{#if isCreatingContainer && !readonly}
 		<div class="card p-4 space-y-3 bg-surface-50-950 border border-surface-200-800">
 			<div class="grid grid-cols-2 gap-3">
 				<label class="label">
@@ -591,7 +600,7 @@
 	{/if}
 
 	<!-- Slot configuration form -->
-	{#if isCreating || editingUuid}
+	{#if (isCreating || editingUuid) && !readonly}
 		<div class="card p-4 space-y-3 bg-surface-50-950 border border-surface-200-800">
 			<div class="grid grid-cols-2 gap-3">
 				<label class="label">
@@ -625,7 +634,7 @@
 	<!-- Hierarchy tree view -->
 	<div
 		class="flex-1 overflow-auto rounded-lg"
-		class:drag-over-root={rootDragOver}
+		class:drag-over-root={rootDragOver && !readonly}
 		ondragover={handleRootDragOver}
 		ondragleave={handleRootDragLeave}
 		ondrop={handleRootDrop}
@@ -647,6 +656,7 @@
 					<div animate:flip={{ duration: 200 }}>
 						<ContainerItem
 							{container}
+							{readonly}
 							onDelete={handleDeleteContainer}
 							onUpdateName={handleUpdateContainerName}
 							onMove={handleMove}
@@ -661,7 +671,13 @@
 				<!-- Root-level slot configurations -->
 				{#each hierarchy.root_slot_configurations as config (config.uuid)}
 					<div animate:flip={{ duration: 200 }}>
-						<SlotConfigItem {config} onEdit={startEdit} onDelete={handleDelete} {onViewStructure} />
+						<SlotConfigItem
+							{config}
+							{readonly}
+							onEdit={startEdit}
+							onDelete={handleDelete}
+							{onViewStructure}
+						/>
 					</div>
 				{/each}
 			</div>

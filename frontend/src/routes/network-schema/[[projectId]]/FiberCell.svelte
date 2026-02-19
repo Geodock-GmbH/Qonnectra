@@ -12,6 +12,7 @@
 		colorHex = '#999999',
 		portNumber = 0,
 		cableUuid = null,
+		readonly = false,
 		onDrop = () => {},
 		onClear = () => {},
 		onUnmerge = () => {},
@@ -45,7 +46,10 @@
 	);
 
 	function handleDragStart(e) {
-		if (!fiber || !hasPort || isMerged) return;
+		if (readonly || !fiber || !hasPort || isMerged) {
+			e.preventDefault();
+			return;
+		}
 
 		isDragging = true;
 
@@ -73,7 +77,7 @@
 	}
 
 	function handleDragOver(e) {
-		if (!hasPort) return;
+		if (readonly || !hasPort) return;
 		e.preventDefault();
 		e.stopPropagation();
 		// Accept both copy (external drops) and move (internal reorder)
@@ -90,7 +94,7 @@
 	}
 
 	function handleDrop(e) {
-		if (!hasPort) return;
+		if (readonly || !hasPort) return;
 		e.preventDefault();
 		e.stopPropagation();
 		isDragOver = false;
@@ -124,10 +128,10 @@
 	{#if fiber}
 		<!-- Connected Fiber Display - draggable for move operations, also accepts drops for override -->
 		<div
-			class="flex items-center gap-2 group w-full {!isMerged
+			class="flex items-center gap-2 group w-full {!isMerged && !readonly
 				? 'cursor-grab active:cursor-grabbing'
 				: ''} {isDragging ? 'opacity-50' : ''}"
-			draggable={!isMerged}
+			draggable={!isMerged && !readonly}
 			ondragstart={handleDragStart}
 			ondragend={handleDragEnd}
 			ondragover={handleDragOver}
@@ -150,33 +154,35 @@
 					{fiber.cable_name}
 				</div>
 			</div>
-			<div class="flex items-center gap-1 ml-auto">
-				{#if spanRows > 1}
+			{#if !readonly}
+				<div class="flex items-center gap-1 ml-auto">
+					{#if spanRows > 1}
+						<button
+							type="button"
+							class="p-1 rounded hover:bg-surface-300-700 transition-colors opacity-0 group-hover:opacity-100"
+							onclick={(e) => {
+								e.stopPropagation();
+								onUnmerge();
+							}}
+							aria-label={m.action_unmerge?.() || 'Unmerge'}
+							{@attach tooltip(m.action_unmerge?.() || 'Unmerge')}
+						>
+							<IconArrowsSplit size={16} />
+						</button>
+					{/if}
 					<button
 						type="button"
-						class="p-1 rounded hover:bg-surface-300-700 transition-colors opacity-0 group-hover:opacity-100"
+						class="btn-sm p-1 rounded-md opacity-0 group-hover:opacity-100 bg-error-500 hover:bg-error-600 text-white transition-all shrink-0"
 						onclick={(e) => {
 							e.stopPropagation();
-							onUnmerge();
+							onClear();
 						}}
-						aria-label={m.action_unmerge?.() || 'Unmerge'}
-						{@attach tooltip(m.action_unmerge?.() || 'Unmerge')}
+						aria-label={m.common_clear?.() || 'Clear'}
 					>
-						<IconArrowsSplit size={16} />
+						<IconTrash size={20} />
 					</button>
-				{/if}
-				<button
-					type="button"
-					class="btn-sm p-1 rounded-md opacity-0 group-hover:opacity-100 bg-error-500 hover:bg-error-600 text-white transition-all shrink-0"
-					onclick={(e) => {
-						e.stopPropagation();
-						onClear();
-					}}
-					aria-label={m.common_clear?.() || 'Clear'}
-				>
-					<IconTrash size={20} />
-				</button>
-			</div>
+				</div>
+			{/if}
 		</div>
 	{:else if hasPort}
 		<!-- Empty Drop Zone -->
@@ -187,23 +193,27 @@
 					class="flex items-center gap-2 text-sm font-medium text-primary-600 dark:text-primary-400 mb-1"
 				>
 					<span class="font-mono">{portRange}</span>
-					<button
-						type="button"
-						class="p-1 rounded hover:bg-surface-300-700 transition-colors opacity-0 group-hover:opacity-100"
-						onclick={(e) => {
-							e.stopPropagation();
-							onUnmerge();
-						}}
-						aria-label={m.action_unmerge?.() || 'Unmerge'}
-						{@attach tooltip(m.action_unmerge?.() || 'Unmerge')}
-					>
-						<IconArrowsSplit size={14} />
-					</button>
+					{#if !readonly}
+						<button
+							type="button"
+							class="p-1 rounded hover:bg-surface-300-700 transition-colors opacity-0 group-hover:opacity-100"
+							onclick={(e) => {
+								e.stopPropagation();
+								onUnmerge();
+							}}
+							aria-label={m.action_unmerge?.() || 'Unmerge'}
+							{@attach tooltip(m.action_unmerge?.() || 'Unmerge')}
+						>
+							<IconArrowsSplit size={14} />
+						</button>
+					{/if}
 				</div>
 			{/if}
-			<div class="flex items-center gap-2 text-xs italic">
-				<span>{m.message_drop_fiber_here()}</span>
-			</div>
+			{#if !readonly}
+				<div class="flex items-center gap-2 text-xs italic">
+					<span>{m.message_drop_fiber_here()}</span>
+				</div>
+			{/if}
 		</div>
 	{:else}
 		<!-- No Port -->

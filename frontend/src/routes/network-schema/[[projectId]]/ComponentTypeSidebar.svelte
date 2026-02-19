@@ -18,8 +18,12 @@
 		onDragStart = () => {},
 		onDragEnd = () => {},
 		isMobile = false,
+		readonly = false,
 		onMobileSelect = () => {}
 	} = $props();
+
+	// In readonly mode, component is not rendered
+	// This is handled by the parent component
 
 	const dragDropManager = getContext(DRAG_DROP_CONTEXT_KEY);
 

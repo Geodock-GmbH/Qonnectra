@@ -15,7 +15,7 @@
 	import { DRAG_DROP_CONTEXT_KEY } from '$lib/classes/DragDropManager.svelte.js';
 	import { tooltip } from '$lib/utils/tooltip.js';
 
-	let { nodeUuid, refreshTrigger = 0, isMobile = false } = $props();
+	let { nodeUuid, refreshTrigger = 0, isMobile = false, readonly = false } = $props();
 
 	const dragDropManager = getContext(DRAG_DROP_CONTEXT_KEY);
 
@@ -64,24 +64,38 @@
 	}
 
 	function handleCableDragStart(e, cable) {
+		if (readonly) {
+			e.preventDefault();
+			return;
+		}
 		// Get cached fibers synchronously - must be sync for drag data transfer
 		const cachedFibers = dataManager.getCachedFibersForCable(cable.uuid);
 		dragDropManager?.startCableDrag(e, cable, cachedFibers);
 	}
 
 	function handleBundleDragStart(e, cable, bundle) {
+		if (readonly) {
+			e.preventDefault();
+			return;
+		}
 		dragDropManager?.startBundleDrag(e, cable, bundle);
 	}
 
 	function handleFiberDragStart(e, cable, bundle, fiber) {
+		if (readonly) {
+			e.preventDefault();
+			return;
+		}
 		dragDropManager?.startFiberDrag(e, cable, bundle, fiber);
 	}
 
 	function handleDragEnd() {
+		if (readonly) return;
 		dragDropManager?.endDrag();
 	}
 
 	function handleMobileFiberClick(cable, bundle, fiber) {
+		if (readonly) return;
 		if (isMobile) {
 			dragDropManager?.selectMobileFiber(cable, bundle, fiber);
 		}
@@ -291,14 +305,18 @@
 								class="bg-(--color-surface-100-900) border border-(--color-surface-200-800) rounded overflow-hidden"
 							>
 								<div
-									class="flex items-center gap-1.5 px-2.5 py-2 cursor-grab transition-colors duration-150 hover:bg-(--color-surface-200-800) active:cursor-grabbing"
-									draggable="true"
+									class="flex items-center gap-1.5 px-2.5 py-2 transition-colors duration-150 hover:bg-(--color-surface-200-800) {readonly
+										? ''
+										: 'cursor-grab active:cursor-grabbing'}"
+									draggable={!readonly}
 									ondragstart={(e) => handleCableDragStart(e, cable)}
 									ondragend={handleDragEnd}
 									role="button"
 									tabindex="0"
 								>
-									<IconGripVertical size={14} class="text-surface-400 shrink-0 cursor-grab" />
+									{#if !readonly}
+										<IconGripVertical size={14} class="text-surface-400 shrink-0 cursor-grab" />
+									{/if}
 									<button
 										type="button"
 										class="p-0.5 bg-transparent border-none cursor-pointer flex items-center justify-center"
@@ -347,19 +365,23 @@
 												<!-- Bundle accordion -->
 												<div class="mb-0.5">
 													<div
-														class="flex items-center gap-1.5 px-2 py-1.5 cursor-grab rounded transition-colors duration-150 active:cursor-grabbing {bundleFullyUsed
+														class="flex items-center gap-1.5 px-2 py-1.5 rounded transition-colors duration-150 {readonly
+															? ''
+															: 'cursor-grab active:cursor-grabbing'} {bundleFullyUsed
 															? 'bg-success-100 dark:bg-success-900/30 hover:bg-success-200 dark:hover:bg-success-900/50'
 															: 'hover:bg-(--color-surface-200-800)'}"
-														draggable="true"
+														draggable={!readonly}
 														ondragstart={(e) => handleBundleDragStart(e, cable, bundle)}
 														ondragend={handleDragEnd}
 														role="button"
 														tabindex="0"
 													>
-														<IconGripVertical
-															size={12}
-															class="text-surface-400 shrink-0 cursor-grab"
-														/>
+														{#if !readonly}
+															<IconGripVertical
+																size={12}
+																class="text-surface-400 shrink-0 cursor-grab"
+															/>
+														{/if}
 														<button
 															type="button"
 															class="p-0.5 bg-transparent border-none cursor-pointer flex items-center justify-center"
@@ -393,18 +415,22 @@
 																{@const fiberUsed = dataManager.isFiberUsed(fiber.uuid)}
 																<!-- Fiber item -->
 																<div
-																	class="flex items-center gap-1.5 px-2 py-1.5 cursor-grab rounded-sm transition-colors duration-150 active:cursor-grabbing {fiberUsed
+																	class="flex items-center gap-1.5 px-2 py-1.5 rounded-sm transition-colors duration-150 {readonly
+																		? ''
+																		: 'cursor-grab active:cursor-grabbing'} {fiberUsed
 																		? 'bg-success-100 dark:bg-success-900/30 hover:bg-success-200 dark:hover:bg-success-900/50'
 																		: 'hover:bg-(--color-surface-200-800)'}"
-																	draggable="true"
+																	draggable={!readonly}
 																	ondragstart={(e) => handleFiberDragStart(e, cable, bundle, fiber)}
 																	ondragend={handleDragEnd}
 																	role="listitem"
 																>
-																	<IconGripVertical
-																		size={12}
-																		class="text-surface-400 shrink-0 cursor-grab"
-																	/>
+																	{#if !readonly}
+																		<IconGripVertical
+																			size={12}
+																			class="text-surface-400 shrink-0 cursor-grab"
+																		/>
+																	{/if}
 																	<span
 																		class="w-2.5 h-2.5 rounded-full shrink-0 border border-black/10"
 																		style:background-color={dataManager.getColorHex(

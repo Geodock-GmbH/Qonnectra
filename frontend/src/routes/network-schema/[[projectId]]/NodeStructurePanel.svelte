@@ -20,6 +20,7 @@
 	let {
 		nodeUuid,
 		nodeName = '',
+		readonly = false,
 		initialSlotConfigUuid = null,
 		sharedSlotState = $bindable(null)
 	} = $props();
@@ -208,49 +209,52 @@
 					loading={context.loading}
 					loadingStructures={context.loadingStructures}
 					{isMobile}
+					{readonly}
 					onStructureSelect={handleStructureSelect}
 					onStructureDelete={handleDeleteStructure}
 				/>
 			</div>
 
 			<!-- Mobile Bottom Tabs -->
-			<div
-				class="fixed bottom-0 left-0 right-0 z-30 bg-surface-100-900 border-t border-surface-200-800"
-			>
-				<div class="grid grid-cols-3 gap-1 p-2">
-					<button
-						type="button"
-						class="btn flex-col gap-1 py-2 text-xs {activeSheet === 'components'
-							? 'preset-filled-primary-500'
-							: 'preset-tonal'}"
-						onclick={() => (activeSheet = activeSheet === 'components' ? null : 'components')}
-					>
-						<IconLayoutList size={20} />
-						<span>{m.form_components()}</span>
-					</button>
-					<button
-						type="button"
-						class="btn flex-col gap-1 py-2 text-xs {activeSheet === 'cables'
-							? 'preset-filled-primary-500'
-							: 'preset-tonal'}"
-						onclick={() => (activeSheet = activeSheet === 'cables' ? null : 'cables')}
-					>
-						<IconTopologyRing2 size={20} />
-						<span>{m.form_cables()}</span>
-					</button>
-					<button
-						type="button"
-						class="btn flex-col gap-1 py-2 text-xs {activeSheet === 'ports'
-							? 'preset-filled-primary-500'
-							: 'preset-tonal'}"
-						onclick={() => (activeSheet = activeSheet === 'ports' ? null : 'ports')}
-						disabled={!context.selectedStructure}
-					>
-						<IconPlug size={20} />
-						<span>{m.form_ports()}</span>
-					</button>
+			{#if !readonly}
+				<div
+					class="fixed bottom-0 left-0 right-0 z-30 bg-surface-100-900 border-t border-surface-200-800"
+				>
+					<div class="grid grid-cols-3 gap-1 p-2">
+						<button
+							type="button"
+							class="btn flex-col gap-1 py-2 text-xs {activeSheet === 'components'
+								? 'preset-filled-primary-500'
+								: 'preset-tonal'}"
+							onclick={() => (activeSheet = activeSheet === 'components' ? null : 'components')}
+						>
+							<IconLayoutList size={20} />
+							<span>{m.form_components()}</span>
+						</button>
+						<button
+							type="button"
+							class="btn flex-col gap-1 py-2 text-xs {activeSheet === 'cables'
+								? 'preset-filled-primary-500'
+								: 'preset-tonal'}"
+							onclick={() => (activeSheet = activeSheet === 'cables' ? null : 'cables')}
+						>
+							<IconTopologyRing2 size={20} />
+							<span>{m.form_cables()}</span>
+						</button>
+						<button
+							type="button"
+							class="btn flex-col gap-1 py-2 text-xs {activeSheet === 'ports'
+								? 'preset-filled-primary-500'
+								: 'preset-tonal'}"
+							onclick={() => (activeSheet = activeSheet === 'ports' ? null : 'ports')}
+							disabled={!context.selectedStructure}
+						>
+							<IconPlug size={20} />
+							<span>{m.form_ports()}</span>
+						</button>
+					</div>
 				</div>
-			</div>
+			{/if}
 
 			<!-- Mobile Bottom Sheets -->
 			<MobileBottomSheet
@@ -264,13 +268,19 @@
 				{#if activeSheet === 'components'}
 					<ComponentTypeSidebar {isMobile} onMobileSelect={handleMobileComponentSelect} />
 				{:else if activeSheet === 'cables'}
-					<CableFiberSidebar {nodeUuid} refreshTrigger={cableRefreshTrigger} {isMobile} />
+					<CableFiberSidebar
+						{nodeUuid}
+						refreshTrigger={cableRefreshTrigger}
+						{isMobile}
+						{readonly}
+					/>
 				{:else if activeSheet === 'ports' && context.selectedStructure}
 					<!-- PortTable now gets most state from context -->
 					<PortTable
 						structureName={context.selectedStructure.component_type?.component_type || '-'}
 						portRows={context.portRowsWithMerge}
 						loading={context.loadingPorts}
+						{readonly}
 					/>
 				{/if}
 			</MobileBottomSheet>
@@ -278,11 +288,13 @@
 	{:else}
 		<!-- ========== DESKTOP LAYOUT ========== -->
 		<div class="flex h-full">
-			<!-- Left Sidebar: Component Types -->
-			<ComponentTypeSidebar
-				onDragStart={context.sidebarActions.onDragStart}
-				onDragEnd={context.sidebarActions.onDragEnd}
-			/>
+			<!-- Left Sidebar: Component Types (hidden in readonly mode) -->
+			{#if !readonly}
+				<ComponentTypeSidebar
+					onDragStart={context.sidebarActions.onDragStart}
+					onDragEnd={context.sidebarActions.onDragEnd}
+				/>
+			{/if}
 
 			<!-- Main Content -->
 			<div class="flex-1 flex flex-col gap-4 p-4 min-w-0 overflow-hidden">
@@ -339,6 +351,7 @@
 								structureName={context.selectedStructure.component_type?.component_type || '-'}
 								portRows={context.portRowsWithMerge}
 								loading={context.loadingPorts}
+								{readonly}
 							/>
 						</div>
 					{:else}
@@ -349,6 +362,7 @@
 								loading={context.loading}
 								loadingStructures={context.loadingStructures}
 								{isMobile}
+								{readonly}
 								onStructureSelect={handleStructureSelect}
 								onStructureDelete={handleDeleteStructure}
 							/>
@@ -358,7 +372,7 @@
 			</div>
 
 			<!-- Right Sidebar: Cables/Fibers -->
-			<CableFiberSidebar {nodeUuid} refreshTrigger={cableRefreshTrigger} />
+			<CableFiberSidebar {nodeUuid} refreshTrigger={cableRefreshTrigger} {readonly} />
 		</div>
 	{/if}
 </div>

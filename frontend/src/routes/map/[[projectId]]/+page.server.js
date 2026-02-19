@@ -11,6 +11,21 @@ import {
 	getTrenchUuidsForConduit,
 	searchFeaturesInProject
 } from '$lib/server/featureSearch';
+import {
+	getCablesAtNode,
+	getComponentPorts,
+	getComponentTypes,
+	getContainerHierarchy,
+	getContainerTypes,
+	getFiberColors,
+	getFibersForCable,
+	getFiberSplices,
+	getFiberUsageInNode,
+	getNodeStructures,
+	getSlotClipNumbers,
+	getSlotConfigurationsForNode,
+	getSlotDividers
+} from '$lib/server/nodeData';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ fetch, cookies }) {
@@ -81,5 +96,78 @@ export const actions = {
 		const projectId = formData.get('projectId');
 
 		return getLayerExtent(fetch, cookies, layerType, projectId);
+	},
+
+	// Node structure panel actions (read-only for map route)
+	getContainerHierarchy: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const nodeUuid = formData.get('nodeUuid');
+		return getContainerHierarchy(fetch, cookies, nodeUuid);
+	},
+
+	getContainerTypes: async ({ fetch, cookies }) => {
+		return getContainerTypes(fetch, cookies);
+	},
+
+	getSlotConfigurationsForNode: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const nodeUuid = formData.get('nodeUuid');
+		return getSlotConfigurationsForNode(fetch, cookies, nodeUuid);
+	},
+
+	getNodeStructures: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const slotConfigUuid = formData.get('slotConfigUuid');
+		return getNodeStructures(fetch, cookies, slotConfigUuid);
+	},
+
+	getComponentTypes: async ({ fetch, cookies }) => {
+		return getComponentTypes(fetch, cookies);
+	},
+
+	getSlotDividers: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const slotConfigUuid = formData.get('slotConfigUuid');
+		return getSlotDividers(fetch, cookies, slotConfigUuid);
+	},
+
+	getSlotClipNumbers: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const slotConfigUuid = formData.get('slotConfigUuid');
+		return getSlotClipNumbers(fetch, cookies, slotConfigUuid);
+	},
+
+	getCablesAtNode: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const nodeUuid = formData.get('nodeUuid');
+		return getCablesAtNode(fetch, cookies, nodeUuid);
+	},
+
+	getFibersForCable: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const cableUuid = formData.get('cableUuid');
+		return getFibersForCable(fetch, cookies, cableUuid);
+	},
+
+	getFiberColors: async ({ fetch, cookies }) => {
+		return getFiberColors(fetch, cookies);
+	},
+
+	getComponentPorts: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const componentTypeId = formData.get('componentTypeId');
+		return getComponentPorts(fetch, cookies, componentTypeId);
+	},
+
+	getFiberSplices: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const nodeStructureUuid = formData.get('nodeStructureUuid');
+		return getFiberSplices(fetch, cookies, nodeStructureUuid);
+	},
+
+	getFiberUsageInNode: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const nodeUuid = formData.get('nodeUuid');
+		return getFiberUsageInNode(fetch, cookies, nodeUuid);
 	}
 };

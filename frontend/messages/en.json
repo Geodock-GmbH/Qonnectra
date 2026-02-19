@@ -43,6 +43,7 @@
 	"action_unassign": "Unassign",
 	"action_unmerge": "Unmerge",
 	"action_upload_files": "Upload",
+	"action_view_slot_configuration": "View Slot Configuration",
 	"action_view_structure": "View Structure",
 	"auth_login": "Login",
 	"auth_password": "Password",
