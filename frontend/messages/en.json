@@ -521,7 +521,6 @@
 	"settings_area_type_styles": "Area Type Styles",
 	"settings_cable_edge_color": "Cable Edge Color",
 	"settings_cable_edge_color_default": "Default (Green)",
-	"settings_cable_edge_color_description": "Configure how cables are colored in the network schema.",
 	"settings_cable_edge_color_linked": "Linked Indicator (Green/Blue)",
 	"settings_cable_edge_color_micropipe": "Micropipe Color",
 	"settings_cable_edge_color_mode": "Color Mode",

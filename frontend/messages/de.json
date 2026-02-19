@@ -522,7 +522,6 @@
 	"settings_area_type_styles": "Gebietstyp-Stile",
 	"settings_cable_edge_color": "Kabelfarbe",
 	"settings_cable_edge_color_default": "Standard (Grün)",
-	"settings_cable_edge_color_description": "Konfigurieren Sie, wie Kabel im Netzwerkschema gefärbt werden.",
 	"settings_cable_edge_color_linked": "Verknüpfungsanzeige (Grün/Blau)",
 	"settings_cable_edge_color_micropipe": "Mikrorohrfarbe",
 	"settings_cable_edge_color_mode": "Farbmodus",

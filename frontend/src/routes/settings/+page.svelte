@@ -1017,9 +1017,6 @@
 				<h2 class="text-base/7 font-semibold text-primary-900-100">
 					{m.settings_cable_edge_color()}
 				</h2>
-				<p class="text-sm text-surface-500 mt-1">
-					{m.settings_cable_edge_color_description()}
-				</p>
 				<dl class="mt-6 divide-y border-t text-sm/6">
 					<div class="py-6 sm:flex">
 						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
