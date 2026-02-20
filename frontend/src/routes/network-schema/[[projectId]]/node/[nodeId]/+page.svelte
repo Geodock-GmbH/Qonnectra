@@ -37,6 +37,8 @@
 
 	$effect(() => {
 		schemaState.initialize(data);
+		// Set parent node context for child view cable creation
+		schemaState.parentNodeContext = data.parentNodeId;
 	});
 
 	const attributeOptions = $derived({

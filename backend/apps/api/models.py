@@ -2077,6 +2077,17 @@ class Cable(models.Model):
         verbose_name=_("Node End"),
         related_name="node_end_cables",
     )
+    parent_node_context = models.ForeignKey(
+        Node,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_column="parent_node_context",
+        db_index=True,
+        verbose_name=_("Parent Node Context"),
+        related_name="context_cables",
+        help_text=_("If set, cable was created in child view of this parent node"),
+    )
     length = models.FloatField(_("Length"), null=True, blank=True)
     length_total = models.FloatField(_("Length Total"), null=True, blank=True)
     reserve_at_start = models.IntegerField(_("Reserve At Start"), null=True, blank=True)

@@ -1237,6 +1237,13 @@ class CableSerializer(serializers.ModelSerializer):
         queryset=Flags.objects.all(),
         source="flag",
     )
+    parent_node_context_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        required=False,
+        allow_null=True,
+        queryset=Node.objects.all(),
+        source="parent_node_context",
+    )
     length = serializers.FloatField(required=False)
     length_total = serializers.FloatField(required=False)
     reserve_at_start = serializers.IntegerField(required=False)
@@ -1295,6 +1302,7 @@ class CableSerializer(serializers.ModelSerializer):
         fields["reserve_section"].label = _("Reserve Section")
         fields["project_id"].label = _("Project")
         fields["flag_id"].label = _("Flag")
+        fields["parent_node_context_id"].label = _("Parent Node Context")
 
         return fields
 

@@ -2853,16 +2853,12 @@ class CableViewSet(viewsets.ModelViewSet):
         if project_id:
             queryset = queryset.filter(project=project_id)
 
-            # Handle child view mode: return cables where both endpoints are in the view
+            # Handle child view mode: return cables created in this parent's child view
             if child_view_for:
-                child_node_ids = list(
-                    Node.objects.filter(parent_node_id=child_view_for).values_list("uuid", flat=True)
-                )
-                all_view_node_ids = [child_view_for] + child_node_ids
-                queryset = queryset.filter(
-                    uuid_node_start__in=all_view_node_ids,
-                    uuid_node_end__in=all_view_node_ids
-                )
+                queryset = queryset.filter(parent_node_context_id=child_view_for)
+            else:
+                # Main schema: only show cables without parent context (created in main schema)
+                queryset = queryset.filter(parent_node_context__isnull=True)
 
         if flag_id:
             queryset = queryset.filter(flag=flag_id)

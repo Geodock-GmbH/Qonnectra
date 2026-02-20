@@ -366,6 +366,7 @@ export const actions = {
 			const uuid_node_end_id = formData.get('uuid_node_end_id');
 			const handle_start = formData.get('handle_start');
 			const handle_end = formData.get('handle_end');
+			const parent_node_context_id = formData.get('parent_node_context_id');
 
 			// Validate required fields
 			if (!name || !cable_type_id || !project_id || !flag_id) {
@@ -412,6 +413,11 @@ export const actions = {
 			}
 			if (handle_end) {
 				requestBody.handle_end = handle_end;
+			}
+
+			// Add optional parent node context (for child view cables)
+			if (parent_node_context_id) {
+				requestBody.parent_node_context_id = parent_node_context_id;
 			}
 
 			const response = await fetch(backendUrl, {
