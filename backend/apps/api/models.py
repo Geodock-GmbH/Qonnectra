@@ -60,6 +60,13 @@ class NetworkSchemaSettings(models.Model):
         verbose_name=_("Excluded Node Types"),
         help_text=_("Select node types to exclude from the network schema view."),
     )
+    child_view_enabled_node_types = models.ManyToManyField(
+        "AttributesNodeType",
+        blank=True,
+        related_name="child_view_enabled_schemas",
+        verbose_name=_("Child View Enabled Node Types"),
+        help_text=_("Node types that show the 'View Building Connections' button."),
+    )
 
     class Meta:
         db_table = "network_schema_settings"
@@ -68,7 +75,8 @@ class NetworkSchemaSettings(models.Model):
 
     def __str__(self):
         excluded_count = self.excluded_node_types.count()
-        return f"{self.project.project} - {excluded_count} excluded"
+        child_view_count = self.child_view_enabled_node_types.count()
+        return f"{self.project.project} - {excluded_count} excluded, {child_view_count} child view"
 
     @classmethod
     def get_settings_for_project(cls, project_id):

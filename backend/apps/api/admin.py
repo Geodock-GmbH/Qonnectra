@@ -500,7 +500,7 @@ class NetworkSchemaSettingsInline(admin.StackedInline):
     can_delete = False
     verbose_name = _("Network Schema Settings")
     verbose_name_plural = _("Network Schema Settings")
-    filter_horizontal = ("excluded_node_types",)
+    filter_horizontal = ("excluded_node_types", "child_view_enabled_node_types")
 
 
 class PipeBranchSettingsInline(admin.StackedInline):
@@ -523,6 +523,7 @@ class ProjectsAdmin(admin.ModelAdmin):
         "description",
         "active",
         "excluded_types_display",
+        "child_view_types_display",
         "allowed_pipe_branch_types_display",
     )
     list_filter = ("active",)
@@ -537,6 +538,24 @@ class ProjectsAdmin(admin.ModelAdmin):
             count = settings.excluded_node_types.count()
             if count > 0:
                 types = settings.excluded_node_types.all()[:3]
+                names = [t.node_type for t in types]
+                suffix = f"... (+{count - 3})" if count > 3 else ""
+                return ", ".join(names) + suffix
+            return _("None")
+        except NetworkSchemaSettings.DoesNotExist:
+            return format_html(
+                '<span style="color: #dc3545;">⚠ {}</span>',
+                _("Not configured"),
+            )
+
+    @admin.display(description=_("Child View Types"))
+    def child_view_types_display(self, obj):
+        """Display child view enabled node types for list view."""
+        try:
+            settings = obj.network_schema_settings
+            count = settings.child_view_enabled_node_types.count()
+            if count > 0:
+                types = settings.child_view_enabled_node_types.all()[:3]
                 names = [t.node_type for t in types]
                 suffix = f"... (+{count - 3})" if count > 3 else ""
                 return ", ".join(names) + suffix
@@ -570,10 +589,10 @@ class ProjectsAdmin(admin.ModelAdmin):
 class NetworkSchemaSettingsAdmin(admin.ModelAdmin):
     """Standalone admin for Network Schema Settings."""
 
-    list_display = ("project", "excluded_count", "excluded_types_preview")
+    list_display = ("project", "excluded_count", "excluded_types_preview", "child_view_count", "child_view_types_preview")
     list_filter = ("project",)
     search_fields = ("project__project",)
-    filter_horizontal = ("excluded_node_types",)
+    filter_horizontal = ("excluded_node_types", "child_view_enabled_node_types")
     autocomplete_fields = ["project"]
 
     @admin.display(description=_("Excluded Count"))
@@ -585,6 +604,17 @@ class NetworkSchemaSettingsAdmin(admin.ModelAdmin):
         types = obj.excluded_node_types.all()[:5]
         names = [t.node_type for t in types]
         suffix = "..." if obj.excluded_node_types.count() > 5 else ""
+        return ", ".join(names) + suffix if names else _("None")
+
+    @admin.display(description=_("Child View Count"))
+    def child_view_count(self, obj):
+        return obj.child_view_enabled_node_types.count()
+
+    @admin.display(description=_("Child View Types"))
+    def child_view_types_preview(self, obj):
+        types = obj.child_view_enabled_node_types.all()[:5]
+        names = [t.node_type for t in types]
+        suffix = "..." if obj.child_view_enabled_node_types.count() > 5 else ""
         return ", ".join(names) + suffix if names else _("None")
 
 
@@ -1011,6 +1041,48 @@ class TrenchAdmin(admin.ModelAdmin):
         "project__project",
         "flag__flag",
     )
+    actions = ["regenerate_trench_ids"]
+
+    @admin.action(description=_("Regenerate IDs for trenches with old format"))
+    def regenerate_trench_ids(self, request, queryset):
+        """
+        Regenerate id_trench for selected trenches that don't match the TR-XXXXXXX format.
+        Uses the same fn_generate_trench_id function as the trigger.
+        """
+        import re
+        from django.db import connection
+
+        id_pattern = re.compile(r"^TR-[ABCDEFGHJKLMNPQRSTUVWXYZ234567]{7}$")
+        regenerated_count = 0
+        skipped_count = 0
+
+        with connection.cursor() as cursor:
+            for trench in queryset:
+                if id_pattern.match(trench.id_trench or ""):
+                    skipped_count += 1
+                    continue
+
+                cursor.execute(
+                    "SELECT fn_generate_trench_id(%s)",
+                    [trench.project_id],
+                )
+                new_id = cursor.fetchone()[0]
+
+                trench.id_trench = new_id
+                trench.save(update_fields=["id_trench"])
+                regenerated_count += 1
+
+        self.message_user(
+            request,
+            _(
+                "Regenerated IDs for %(regenerated)d trench(es). "
+                "Skipped %(skipped)d (already have correct format)."
+            )
+            % {
+                "regenerated": regenerated_count,
+                "skipped": skipped_count,
+            },
+        )
 
 
 class WFSErrorFilter(admin.SimpleListFilter):
