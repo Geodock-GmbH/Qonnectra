@@ -1,4 +1,6 @@
+import TileLayer from 'ol/layer/Tile.js';
 import VectorTileLayer from 'ol/layer/VectorTile.js';
+import TileWMS from 'ol/source/TileWMS.js';
 
 import {
 	createAddressStyleWithLabels,
@@ -193,6 +195,52 @@ export function createSelectionLayer(tileSource, selectedColor, getSelectionStor
 		},
 		properties: {
 			isSelectionLayer: true
+		}
+	});
+}
+
+/**
+ * Creates a TileWMS layer for a WMS source layer.
+ * @param {Object} options - Layer options
+ * @param {string} options.proxyUrl - WMS proxy URL
+ * @param {string} options.layerName - WMS layer name
+ * @param {string} options.layerId - Unique layer ID for the map
+ * @param {string} options.displayName - Display name for the layer tree
+ * @param {string} options.sourceId - WMS source UUID
+ * @param {string} options.sourceName - WMS source display name
+ * @returns {TileLayer}
+ */
+export function createWMSLayer({
+	proxyUrl,
+	layerName,
+	layerId,
+	displayName,
+	sourceId,
+	sourceName
+}) {
+	const source = new TileWMS({
+		url: proxyUrl,
+		params: {
+			LAYERS: layerName,
+			TILED: true,
+			FORMAT: 'image/png',
+			TRANSPARENT: true,
+			VERSION: '1.3.0',
+			CRS: 'EPSG:3857'
+		},
+		projection: 'EPSG:3857',
+		crossOrigin: 'use-credentials'
+	});
+
+	return new TileLayer({
+		source: source,
+		properties: {
+			layerId: layerId,
+			layerName: displayName,
+			layerType: 'wms',
+			wmsSourceId: sourceId,
+			wmsSourceName: sourceName,
+			wmsLayerName: layerName
 		}
 	});
 }

@@ -1,3 +1,5 @@
+import { get } from 'svelte/store';
+
 import { m } from '$lib/paraglide/messages';
 
 import {
@@ -13,13 +15,16 @@ import {
 	createNodeTileSource,
 	createTrenchTileSource
 } from '$lib/map/tileSources';
+import { wmsLayerVisibilityConfig, wmsSourcesData } from '$lib/stores/store';
 import { globalToaster } from '$lib/stores/toaster';
+import { fetchWMSSources, getWMSProxyUrl } from '$lib/utils/wmsApi';
 import {
 	createAddressLayer,
 	createAreaLayer,
 	createNodeLayer,
 	createSelectionLayer,
-	createTrenchLayer
+	createTrenchLayer,
+	createWMSLayer
 } from '$lib/map';
 
 const DEFAULT_TRENCH_COLOR = '#000000';
@@ -42,6 +47,9 @@ export class MapState {
 	addressSelectionLayer = $state(null);
 	nodeSelectionLayer = $state(null);
 	areaSelectionLayer = $state(null);
+
+	// WMS layers
+	wmsLayers = $state([]);
 
 	// Tile sources
 	tileSource = $state(null);
@@ -144,6 +152,9 @@ export class MapState {
 				);
 			}
 
+			// Load WMS layers asynchronously
+			this.loadWMSLayers();
+
 			return true;
 		} catch (error) {
 			globalToaster.error({
@@ -161,6 +172,73 @@ export class MapState {
 			this.areaTileSource = null;
 
 			return false;
+		}
+	}
+
+	/**
+	 * Load WMS layers from the backend.
+	 * Only runs in browser context (not during SSR).
+	 */
+	async loadWMSLayers() {
+		// Guard against SSR - fetch requires browser context with auth cookies
+		if (typeof window === 'undefined') {
+			return;
+		}
+
+		try {
+			const sources = await fetchWMSSources(this.selectedProject);
+			wmsSourcesData.set({ sources, loaded: true });
+
+			const newWmsLayers = [];
+			const validLayerIds = new Set();
+
+			for (const source of sources) {
+				if (!source.is_active) continue;
+
+				for (const layer of source.layers) {
+					if (!layer.is_enabled) continue;
+
+					const layerId = `wms-${source.id}-${layer.name}`;
+					validLayerIds.add(layerId);
+
+					const olLayer = createWMSLayer({
+						proxyUrl: getWMSProxyUrl(source.id),
+						layerName: layer.name,
+						layerId: layerId,
+						displayName: `${source.name}: ${layer.title || layer.name}`,
+						sourceId: source.id,
+						sourceName: source.name
+					});
+
+					// Get visibility from store or default to true
+					const visibilityStore = get(wmsLayerVisibilityConfig);
+					const isVisible = visibilityStore[layerId] ?? true;
+					olLayer.setVisible(isVisible);
+
+					newWmsLayers.push(olLayer);
+				}
+			}
+
+			// Clean up stale visibility config entries for deleted WMS layers
+			const currentVisibilityConfig = get(wmsLayerVisibilityConfig);
+			const cleanedConfig = {};
+			for (const [layerId, visible] of Object.entries(currentVisibilityConfig)) {
+				if (validLayerIds.has(layerId)) {
+					cleanedConfig[layerId] = visible;
+				}
+			}
+			wmsLayerVisibilityConfig.set(cleanedConfig);
+
+			this.wmsLayers = newWmsLayers;
+
+			// Add WMS layers to the map if it's already initialized
+			if (this.olMap) {
+				for (const layer of this.wmsLayers) {
+					this.olMap.getLayers().insertAt(0, layer);
+				}
+			}
+		} catch (error) {
+			console.warn('Failed to load WMS layers:', error);
 		}
 	}
 
@@ -288,11 +366,16 @@ export class MapState {
 
 	/**
 	 * Get all layers as an array for passing to Map component
-	 * Area layer is added first so it renders below other layers
+	 * WMS layers are added first (at bottom), then area, then other layers
 	 * @returns {Array} Array of OpenLayers layers
 	 */
 	getLayers() {
 		const layers = [];
+
+		// WMS layers at the bottom
+		for (const wmsLayer of this.wmsLayers) {
+			layers.push(wmsLayer);
+		}
 
 		if (this.areaLayer) layers.push(this.areaLayer);
 		if (this.vectorTileLayer) layers.push(this.vectorTileLayer);
@@ -492,6 +575,15 @@ export class MapState {
 			this.olMap.removeLayer(this.areaSelectionLayer);
 		}
 
+		// Cleanup WMS layers
+		for (const wmsLayer of this.wmsLayers) {
+			this.olMap.removeLayer(wmsLayer);
+			const source = wmsLayer.getSource();
+			if (source) {
+				source.dispose();
+			}
+		}
+
 		if (this.vectorTileLayer && this.vectorTileLayer.getSource()) {
 			this.vectorTileLayer.getSource().dispose();
 		}
@@ -518,5 +610,6 @@ export class MapState {
 		this.addressTileSource = null;
 		this.nodeTileSource = null;
 		this.areaTileSource = null;
+		this.wmsLayers = [];
 	}
 }

@@ -89,3 +89,11 @@ export const basemapTheme = persisted('basemapTheme', 'light');
 // When false, falls back to standard OSM raster tiles
 // Value: boolean
 export const tileServerAvailable = persisted('tileServerAvailable', true);
+
+// WMS layer visibility configuration - controls whether WMS layers are visible
+// Structure: { [layerId]: boolean }
+export const wmsLayerVisibilityConfig = persisted('wmsLayerVisibilityConfig', {});
+
+// WMS sources data - populated from API
+// Structure: { sources: WMSSource[], loaded: boolean }
+export const wmsSourcesData = writable({ sources: [], loaded: false });

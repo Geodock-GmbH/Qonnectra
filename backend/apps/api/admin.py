@@ -53,6 +53,8 @@ from .models import (
     QGISProject,
     StoragePreferences,
     Trench,
+    WMSLayer,
+    WMSSource,
 )
 from .services import (
     GEOPACKAGE_LAYER_CONFIG,
@@ -60,6 +62,7 @@ from .services import (
     move_file_to_feature,
 )
 from .storage import LocalMediaStorage
+from .wms_service import WMSServiceError, fetch_wms_layers
 
 
 class GeoPackageSchemaConfigForm(forms.ModelForm):
@@ -1597,3 +1600,92 @@ class ContainerTypeAdmin(admin.ModelAdmin):
         return "-"
 
     color_preview.short_description = _("Color")
+
+
+class WMSLayerInline(admin.TabularInline):
+    """Inline admin for WMS layers."""
+
+    model = WMSLayer
+    extra = 0
+    readonly_fields = ["name", "title"]
+    fields = ["name", "title", "is_enabled", "sort_order"]
+    ordering = ["sort_order", "name"]
+
+
+class WMSSourceAdminForm(forms.ModelForm):
+    """Custom form for WMSSource admin with password field."""
+
+    password = forms.CharField(
+        widget=forms.PasswordInput(render_value=True),
+        required=False,
+        label=_("Password"),
+        help_text=_("Password for authenticated WMS services. Leave blank if not required."),
+    )
+
+    class Meta:
+        model = WMSSource
+        fields = ["project", "name", "url", "username", "password", "sort_order", "is_active"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Pre-populate password field placeholder if password exists
+        if self.instance and self.instance.pk and self.instance._password:
+            self.fields["password"].widget.attrs["placeholder"] = "••••••••"
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        password = self.cleaned_data.get("password")
+        if password:
+            instance.password = password
+        if commit:
+            instance.save()
+        return instance
+
+
+@admin.register(WMSSource)
+class WMSSourceAdmin(admin.ModelAdmin):
+    """Admin for WMS sources."""
+
+    form = WMSSourceAdminForm
+    list_display = ["name", "project", "url", "is_active", "layer_count", "sort_order"]
+    list_filter = ["project", "is_active"]
+    search_fields = ["name", "url"]
+    ordering = ["project", "sort_order", "name"]
+    inlines = [WMSLayerInline]
+
+    fieldsets = (
+        (None, {
+            "fields": ("project", "name", "url", "sort_order", "is_active"),
+        }),
+        (_("Authentication"), {
+            "fields": ("username", "password"),
+            "classes": ("collapse",),
+        }),
+    )
+
+    def layer_count(self, obj):
+        return obj.layers.filter(is_enabled=True).count()
+    layer_count.short_description = _("Enabled Layers")
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+
+        if not change or "url" in form.changed_data:
+            try:
+                layers_data = fetch_wms_layers(
+                    obj.url,
+                    username=obj.username or None,
+                    password=obj.password or None,
+                )
+                for i, layer_data in enumerate(layers_data):
+                    WMSLayer.objects.update_or_create(
+                        source=obj,
+                        name=layer_data["name"],
+                        defaults={
+                            "title": layer_data["title"],
+                            "sort_order": i,
+                        },
+                    )
+                messages.success(request, _("Fetched %d layers from WMS.") % len(layers_data))
+            except WMSServiceError as e:
+                messages.error(request, _("Failed to fetch WMS layers: %s") % e)

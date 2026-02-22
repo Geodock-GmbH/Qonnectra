@@ -4,12 +4,13 @@ import os
 import uuid
 from urllib.parse import quote
 
+import requests
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.base import ContentFile
 from django.db import connection, transaction
 from django.db.models import Avg, Count, F, Q, Sum
-from django.http import FileResponse, HttpResponse
+from django.http import FileResponse, HttpResponse, StreamingHttpResponse
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from pathvalidate import sanitize_filename
@@ -67,6 +68,8 @@ from .models import (
     ResidentialUnit,
     Trench,
     TrenchConduitConnection,
+    WMSLayer,
+    WMSSource,
 )
 from .pageination import CustomPagination
 from .routing import find_shortest_path
@@ -122,6 +125,9 @@ from .serializers import (
     ResidentialUnitSerializer,
     TrenchConduitSerializer,
     TrenchSerializer,
+    WMSLayerSerializer,
+    WMSSourceCreateSerializer,
+    WMSSourceSerializer,
 )
 from .services import (
     GEOPACKAGE_LAYER_CONFIG,
@@ -129,6 +135,7 @@ from .services import (
     generate_geopackage_schema,
     import_conduits_from_excel,
 )
+from .wms_service import WMSServiceError, fetch_wms_layers
 
 logger = logging.getLogger(__name__)
 
@@ -4704,3 +4711,260 @@ def get_cable_micropipe_summary(request, project_id):
         })
 
     return Response(result)
+
+
+class WMSSourceViewSet(viewsets.ModelViewSet):
+    """ViewSet for WMS sources.
+
+    Note: Project-level authorization follows existing codebase pattern where
+    authenticated users can access any project's data via query params.
+    To restrict access, implement project-level permissions at the auth layer.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action in ["create", "update", "partial_update"]:
+            return WMSSourceCreateSerializer
+        return WMSSourceSerializer
+
+    def get_queryset(self):
+        queryset = WMSSource.objects.filter(is_active=True)
+        project_id = self.request.query_params.get("project")
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        return queryset.prefetch_related("layers")
+
+    def _is_url_safe(self, url: str) -> tuple[bool, str]:
+        """Check if URL is safe to access (not internal/private).
+
+        Reuses validation logic from WMSProxyView.
+        """
+        import ipaddress
+        import socket
+        from urllib.parse import urlparse
+
+        blocked_networks = [
+            "10.0.0.0/8",
+            "172.16.0.0/12",
+            "192.168.0.0/16",
+            "127.0.0.0/8",
+            "169.254.0.0/16",
+            "::1/128",
+            "fc00::/7",
+            "fe80::/10",
+        ]
+
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+
+        if not hostname:
+            return False, "Invalid URL: no hostname"
+
+        internal_hostnames = ["localhost", "metadata.google.internal"]
+        if hostname.lower() in internal_hostnames:
+            return False, "Access to internal hosts is not allowed"
+
+        try:
+            ip = ipaddress.ip_address(hostname)
+        except ValueError:
+            try:
+                resolved = socket.gethostbyname(hostname)
+                ip = ipaddress.ip_address(resolved)
+            except socket.gaierror:
+                return False, f"Could not resolve hostname: {hostname}"
+
+        for network_str in blocked_networks:
+            try:
+                network = ipaddress.ip_network(network_str)
+                if ip in network:
+                    return False, "Access to private/internal networks is not allowed"
+            except ValueError:
+                continue
+
+        return True, ""
+
+    @action(detail=True, methods=["post"])
+    def refresh_layers(self, request, pk=None):
+        """Refresh layers from WMS GetCapabilities."""
+        source = self.get_object()
+
+        # SSRF protection
+        is_safe, error_msg = self._is_url_safe(source.url)
+        if not is_safe:
+            return Response(
+                {"error": error_msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            layers_data = fetch_wms_layers(
+                source.url,
+                username=source.username or None,
+                password=source.password or None,
+            )
+        except WMSServiceError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        new_names = {layer["name"] for layer in layers_data}
+        source.layers.exclude(name__in=new_names).delete()
+
+        for i, layer_data in enumerate(layers_data):
+            WMSLayer.objects.update_or_create(
+                source=source,
+                name=layer_data["name"],
+                defaults={
+                    "title": layer_data["title"],
+                    "sort_order": i,
+                },
+            )
+
+        return Response(WMSSourceSerializer(source).data)
+
+
+class WMSLayerViewSet(viewsets.ModelViewSet):
+    """ViewSet for WMS layers."""
+
+    serializer_class = WMSLayerSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = WMSLayer.objects.filter(is_enabled=True)
+        project_id = self.request.query_params.get("project")
+        if project_id:
+            queryset = queryset.filter(source__project_id=project_id, source__is_active=True)
+        return queryset.select_related("source")
+
+
+class WMSProxyView(APIView):
+    """Proxy view for WMS requests.
+
+    Includes SSRF protection to prevent access to internal networks,
+    response size limits, and streaming response support.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    MAX_RESPONSE_SIZE = 50 * 1024 * 1024  # 50MB
+
+    BLOCKED_NETWORKS = [
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "127.0.0.0/8",
+        "169.254.0.0/16",  # Link-local / AWS metadata
+        "::1/128",
+        "fc00::/7",
+        "fe80::/10",
+    ]
+
+    def _is_url_safe(self, url: str) -> tuple[bool, str]:
+        """Check if URL is safe to access (not internal/private).
+
+        Returns:
+            Tuple of (is_safe, error_message)
+        """
+        import ipaddress
+        import socket
+        from urllib.parse import urlparse
+
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+
+        if not hostname:
+            return False, "Invalid URL: no hostname"
+
+        # Block common internal hostnames
+        internal_hostnames = ["localhost", "metadata.google.internal"]
+        if hostname.lower() in internal_hostnames:
+            return False, "Access to internal hosts is not allowed"
+
+        try:
+            # Try to parse as IP address first
+            ip = ipaddress.ip_address(hostname)
+        except ValueError:
+            # It's a hostname, resolve it
+            try:
+                resolved = socket.gethostbyname(hostname)
+                ip = ipaddress.ip_address(resolved)
+            except socket.gaierror:
+                return False, f"Could not resolve hostname: {hostname}"
+
+        # Check against blocked networks
+        for network_str in self.BLOCKED_NETWORKS:
+            try:
+                network = ipaddress.ip_network(network_str)
+                if ip in network:
+                    return False, "Access to private/internal networks is not allowed"
+            except ValueError:
+                continue
+
+        return True, ""
+
+    def get(self, request, source_id):
+        """Proxy WMS GET request to upstream server."""
+        try:
+            source = WMSSource.objects.get(id=source_id, is_active=True)
+        except WMSSource.DoesNotExist:
+            return Response(
+                {"error": "WMS source not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # SSRF protection: validate URL is not targeting internal networks
+        is_safe, error_msg = self._is_url_safe(source.url)
+        if not is_safe:
+            return Response(
+                {"error": error_msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        params = request.query_params.dict()
+
+        auth = None
+        if source.username and source.password:
+            auth = (source.username, source.password)
+
+        try:
+            upstream_response = requests.get(
+                source.url,
+                params=params,
+                auth=auth,
+                timeout=30,
+                stream=True,
+            )
+        except requests.RequestException as e:
+            return Response(
+                {"error": f"Upstream request failed: {e}"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        # Check response size limit
+        content_length = upstream_response.headers.get("Content-Length")
+        if content_length and int(content_length) > self.MAX_RESPONSE_SIZE:
+            upstream_response.close()
+            return Response(
+                {"error": "Response too large"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        # Use streaming response for efficiency
+        def iter_content():
+            total_size = 0
+            for chunk in upstream_response.iter_content(chunk_size=8192):
+                total_size += len(chunk)
+                if total_size > self.MAX_RESPONSE_SIZE:
+                    upstream_response.close()
+                    return
+                yield chunk
+
+        return StreamingHttpResponse(
+            iter_content(),
+            status=upstream_response.status_code,
+            content_type=upstream_response.headers.get(
+                "Content-Type", "application/octet-stream"
+            ),
+        )

@@ -139,6 +139,122 @@ class PipeBranchSettings(models.Model):
         return list(settings.allowed_node_types.values_list("id", flat=True))
 
 
+class WMSSource(models.Model):
+    """WMS source configuration for a project.
+
+    Stores WMS endpoint URL with optional credentials for authenticated services.
+    Credentials are encrypted at rest using Fernet symmetric encryption.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project = models.ForeignKey(
+        Projects,
+        on_delete=models.CASCADE,
+        related_name="wms_sources",
+        verbose_name=_("Project"),
+    )
+    name = models.CharField(_("Name"), max_length=255)
+    url = models.URLField(_("WMS URL"), max_length=500)
+    username = models.CharField(_("Username"), max_length=255, blank=True)
+    _password = models.BinaryField(_("Password (encrypted)"), blank=True, null=True)
+    sort_order = models.IntegerField(_("Sort Order"), default=0)
+    is_active = models.BooleanField(_("Active"), default=True)
+    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
+
+    class Meta:
+        db_table = "wms_source"
+        verbose_name = _("WMS Source")
+        verbose_name_plural = _("WMS Sources")
+        ordering = ["sort_order", "name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.project.project})"
+
+    @property
+    def password(self):
+        """Decrypt and return the password.
+
+        Raises:
+            ValueError: If FIELD_ENCRYPTION_KEY is not configured or invalid.
+        """
+        if not self._password:
+            return ""
+
+        if not settings.FIELD_ENCRYPTION_KEY:
+            raise ValueError(
+                "FIELD_ENCRYPTION_KEY must be set to decrypt WMS passwords. "
+                "Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+            )
+
+        from cryptography.fernet import Fernet, InvalidToken
+
+        try:
+            key = settings.FIELD_ENCRYPTION_KEY.encode()
+            f = Fernet(key)
+            return f.decrypt(bytes(self._password)).decode()
+        except InvalidToken as e:
+            raise ValueError(f"Failed to decrypt password - invalid encryption key: {e}")
+        except Exception as e:
+            raise ValueError(f"Failed to decrypt password: {e}")
+
+    @password.setter
+    def password(self, value):
+        """Encrypt and store the password.
+
+        Raises:
+            ValueError: If FIELD_ENCRYPTION_KEY is not configured or invalid.
+        """
+        if not value:
+            self._password = None
+            return
+
+        if not settings.FIELD_ENCRYPTION_KEY:
+            raise ValueError(
+                "FIELD_ENCRYPTION_KEY must be set to encrypt WMS passwords. "
+                "Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+            )
+
+        from cryptography.fernet import Fernet
+
+        try:
+            key = settings.FIELD_ENCRYPTION_KEY.encode()
+            f = Fernet(key)
+            self._password = f.encrypt(value.encode())
+        except Exception as e:
+            raise ValueError(f"Failed to encrypt password: {e}")
+
+
+class WMSLayer(models.Model):
+    """Individual layer from a WMS source.
+
+    Auto-populated from WMS GetCapabilities response.
+    Admin can enable/disable individual layers for users.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    source = models.ForeignKey(
+        WMSSource,
+        on_delete=models.CASCADE,
+        related_name="layers",
+        verbose_name=_("WMS Source"),
+    )
+    name = models.CharField(_("Layer Name"), max_length=255)
+    title = models.CharField(_("Layer Title"), max_length=500, blank=True)
+    is_enabled = models.BooleanField(_("Enabled"), default=True)
+    sort_order = models.IntegerField(_("Sort Order"), default=0)
+
+    class Meta:
+        db_table = "wms_layer"
+        verbose_name = _("WMS Layer")
+        verbose_name_plural = _("WMS Layers")
+        ordering = ["sort_order", "name"]
+        unique_together = [["source", "name"]]
+
+    def __str__(self):
+        return self.title or self.name
+
+
 class Flags(models.Model):
     """Stores all flags,
     related to :model:`api.Trench`.
