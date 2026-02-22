@@ -222,18 +222,20 @@ export function createWMSLayer({
 		url: proxyUrl,
 		params: {
 			LAYERS: layerName,
-			TILED: true,
 			FORMAT: 'image/png',
 			TRANSPARENT: true,
 			VERSION: '1.3.0',
 			CRS: 'EPSG:3857'
 		},
 		projection: 'EPSG:3857',
-		crossOrigin: 'use-credentials'
+		crossOrigin: 'anonymous'
 	});
 
 	return new TileLayer({
 		source: source,
+		// Limit to zoom levels where WMS tiles are reasonable size
+		// This WMS rejects BBOX > ~40km, which occurs at zoom < 8
+		minZoom: 8,
 		properties: {
 			layerId: layerId,
 			layerName: displayName,

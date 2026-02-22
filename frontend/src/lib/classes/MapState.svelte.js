@@ -17,7 +17,7 @@ import {
 } from '$lib/map/tileSources';
 import { wmsLayerVisibilityConfig, wmsSourcesData } from '$lib/stores/store';
 import { globalToaster } from '$lib/stores/toaster';
-import { fetchWMSSources, getWMSProxyUrl } from '$lib/utils/wmsApi';
+import { fetchWMSAccessToken, fetchWMSSources, getWMSProxyUrl } from '$lib/utils/wmsApi';
 import {
 	createAddressLayer,
 	createAreaLayer,
@@ -186,7 +186,11 @@ export class MapState {
 		}
 
 		try {
-			const sources = await fetchWMSSources(this.selectedProject);
+			// Fetch access token and sources in parallel
+			const [accessToken, sources] = await Promise.all([
+				fetchWMSAccessToken(),
+				fetchWMSSources(this.selectedProject)
+			]);
 			wmsSourcesData.set({ sources, loaded: true });
 
 			const newWmsLayers = [];
@@ -202,7 +206,7 @@ export class MapState {
 					validLayerIds.add(layerId);
 
 					const olLayer = createWMSLayer({
-						proxyUrl: getWMSProxyUrl(source.id),
+						proxyUrl: getWMSProxyUrl(source.id, accessToken),
 						layerName: layer.name,
 						layerId: layerId,
 						displayName: `${source.name}: ${layer.title || layer.name}`,
@@ -232,9 +236,19 @@ export class MapState {
 			this.wmsLayers = newWmsLayers;
 
 			// Add WMS layers to the map if it's already initialized
+			// Insert after base layers but before data layers
 			if (this.olMap) {
+				const layers = this.olMap.getLayers();
+				let insertIndex = 0;
+				layers.forEach((layer, index) => {
+					if (layer.get('isBaseLayer')) {
+						insertIndex = index + 1;
+					}
+				});
+
 				for (const layer of this.wmsLayers) {
-					this.olMap.getLayers().insertAt(0, layer);
+					layers.insertAt(insertIndex, layer);
+					insertIndex++;
 				}
 			}
 		} catch (error) {

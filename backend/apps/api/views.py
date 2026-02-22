@@ -6,6 +6,7 @@ from urllib.parse import quote
 
 import requests
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.base import ContentFile
 from django.db import connection, transaction
@@ -15,6 +16,7 @@ from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from pathvalidate import sanitize_filename
 from rest_framework import status, viewsets
+from rest_framework.authentication import BaseAuthentication
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -138,6 +140,8 @@ from .services import (
 from .wms_service import WMSServiceError, fetch_wms_layers
 
 logger = logging.getLogger(__name__)
+
+User = get_user_model()
 
 
 class AttributesCableTypeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -1586,9 +1590,7 @@ class ResidentialUnitViewSet(viewsets.ModelViewSet):
         unit = self.get_object()
         project_id = unit.uuid_address.project_id
         with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT fn_generate_residential_unit_id(%s)", [project_id]
-            )
+            cursor.execute("SELECT fn_generate_residential_unit_id(%s)", [project_id])
             new_id = cursor.fetchone()[0]
         unit.id_residential_unit = new_id
         unit.save(update_fields=["id_residential_unit"])
@@ -1881,7 +1883,9 @@ class NodeViewSet(viewsets.ModelViewSet):
                 settings = NetworkSchemaSettings.get_settings_for_project(project_id)
                 if settings is not None:
                     child_view_enabled_type_ids = list(
-                        settings.child_view_enabled_node_types.values_list("id", flat=True)
+                        settings.child_view_enabled_node_types.values_list(
+                            "id", flat=True
+                        )
                     )
 
             # Apply pipe-branch settings if requested
@@ -1904,7 +1908,9 @@ class NodeViewSet(viewsets.ModelViewSet):
                         settings.excluded_node_types.values_list("id", flat=True)
                     )
                     child_view_enabled_type_ids = list(
-                        settings.child_view_enabled_node_types.values_list("id", flat=True)
+                        settings.child_view_enabled_node_types.values_list(
+                            "id", flat=True
+                        )
                     )
                     if excluded_type_ids:
                         queryset = queryset.exclude(node_type_id__in=excluded_type_ids)
@@ -4559,7 +4565,8 @@ class MicropipesByConduitsView(APIView):
         if cable_id:
             linked_microducts = set(
                 MicroductCableConnection.objects.filter(
-                    uuid_cable_id=cable_id, uuid_microduct__uuid_conduit_id__in=conduit_uuid_list
+                    uuid_cable_id=cable_id,
+                    uuid_microduct__uuid_conduit_id__in=conduit_uuid_list,
                 )
                 .values_list("uuid_microduct_id", flat=True)
                 .distinct()
@@ -4646,7 +4653,7 @@ class CableMicropipeConnectionsView(APIView):
         return Response({"deleted": deleted})
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_trenches_for_cable_connections(request, cable_id):
     """
@@ -4656,25 +4663,29 @@ def get_trenches_for_cable_connections(request, cable_id):
     trench_uuids = list(
         Trench.objects.filter(
             trenchconduitconnection__uuid_conduit__microduct__microductcableconnection__uuid_cable_id=cable_id
-        ).distinct().values_list('uuid', flat=True)
+        )
+        .distinct()
+        .values_list("uuid", flat=True)
     )
 
-    return Response({'trench_uuids': [str(uuid) for uuid in trench_uuids]})
+    return Response({"trench_uuids": [str(uuid) for uuid in trench_uuids]})
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_conduits_for_cable(request, cable_id):
     """Get all conduit names where the cable has micropipe connections."""
     conduit_names = list(
         Conduit.objects.filter(
             microduct__microductcableconnection__uuid_cable_id=cable_id
-        ).distinct().values_list('name', flat=True)
+        )
+        .distinct()
+        .values_list("name", flat=True)
     )
-    return Response({'conduit_names': conduit_names})
+    return Response({"conduit_names": conduit_names})
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_cable_micropipe_summary(request, project_id):
     """
@@ -4682,11 +4693,11 @@ def get_cable_micropipe_summary(request, project_id):
     Returns a dict mapping cable UUIDs to their connected micropipes with color info.
     Used for dynamic edge coloring in the network schema diagram.
     """
-    connections = MicroductCableConnection.objects.filter(
-        uuid_cable__project_id=project_id
-    ).select_related(
-        'uuid_microduct', 'uuid_cable'
-    ).order_by('uuid_cable', 'uuid_microduct__number')
+    connections = (
+        MicroductCableConnection.objects.filter(uuid_cable__project_id=project_id)
+        .select_related("uuid_microduct", "uuid_cable")
+        .order_by("uuid_cable", "uuid_microduct__number")
+    )
 
     # Build a lookup for color hex codes
     color_lookup = {
@@ -4701,14 +4712,18 @@ def get_cable_micropipe_summary(request, project_id):
         if cable_uuid not in result:
             result[cable_uuid] = []
 
-        color_name = conn.uuid_microduct.color.lower() if conn.uuid_microduct.color else None
-        hex_code = color_lookup.get(color_name, '#64748b')
+        color_name = (
+            conn.uuid_microduct.color.lower() if conn.uuid_microduct.color else None
+        )
+        hex_code = color_lookup.get(color_name, "#64748b")
 
-        result[cable_uuid].append({
-            'number': conn.uuid_microduct.number,
-            'color_hex': hex_code,
-            'color_name': conn.uuid_microduct.color
-        })
+        result[cable_uuid].append(
+            {
+                "number": conn.uuid_microduct.number,
+                "color_hex": hex_code,
+                "color_name": conn.uuid_microduct.color,
+            }
+        )
 
     return Response(result)
 
@@ -4824,6 +4839,24 @@ class WMSSourceViewSet(viewsets.ModelViewSet):
 
         return Response(WMSSourceSerializer(source).data)
 
+    @action(detail=False, methods=["get"])
+    def access_token(self, request):
+        """Get a short-lived access token for WMS tile requests.
+
+        This token can be passed as a query parameter to the WMS proxy
+        to authenticate tile requests that can't use cookies (due to
+        SameSite restrictions on cross-origin image requests).
+        """
+        from datetime import timedelta
+
+        from rest_framework_simplejwt.tokens import AccessToken
+
+        # Create a short-lived token (5 minutes) for WMS access
+        token = AccessToken.for_user(request.user)
+        token.set_exp(lifetime=timedelta(minutes=5))
+
+        return Response({"token": str(token)})
+
 
 class WMSLayerViewSet(viewsets.ModelViewSet):
     """ViewSet for WMS layers."""
@@ -4835,8 +4868,34 @@ class WMSLayerViewSet(viewsets.ModelViewSet):
         queryset = WMSLayer.objects.filter(is_enabled=True)
         project_id = self.request.query_params.get("project")
         if project_id:
-            queryset = queryset.filter(source__project_id=project_id, source__is_active=True)
+            queryset = queryset.filter(
+                source__project_id=project_id, source__is_active=True
+            )
         return queryset.select_related("source")
+
+
+class WMSTokenAuthentication(BaseAuthentication):
+    """Custom authentication that accepts JWT token via query parameter.
+
+    This is needed for WMS tile requests where browsers don't send cookies
+    due to SameSite restrictions on cross-origin image requests.
+    """
+
+    def authenticate(self, request):
+        from rest_framework_simplejwt.exceptions import TokenError
+        from rest_framework_simplejwt.tokens import AccessToken
+
+        token = request.query_params.get("token")
+        if not token:
+            return None
+
+        try:
+            validated_token = AccessToken(token)
+            user_id = validated_token.get("user_id")
+            user = User.objects.get(id=user_id)
+            return (user, validated_token)
+        except (TokenError, User.DoesNotExist):
+            return None
 
 
 class WMSProxyView(APIView):
@@ -4844,8 +4903,13 @@ class WMSProxyView(APIView):
 
     Includes SSRF protection to prevent access to internal networks,
     response size limits, and streaming response support.
+
+    Supports authentication via:
+    - Standard cookie-based JWT (for same-origin requests)
+    - Query parameter token (for cross-origin image requests)
     """
 
+    authentication_classes = [WMSTokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     MAX_RESPONSE_SIZE = 50 * 1024 * 1024  # 50MB
@@ -4922,7 +4986,25 @@ class WMSProxyView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Strip any existing query parameters from the WMS URL
+        # (e.g., ?service=wms&request=getCapabilities)
+        from urllib.parse import urlparse, urlunparse
+
+        parsed_url = urlparse(source.url)
+        base_url = urlunparse(
+            (
+                parsed_url.scheme,
+                parsed_url.netloc,
+                parsed_url.path,
+                "",  # params
+                "",  # query - strip existing query params
+                "",  # fragment
+            )
+        )
+
+        # Remove token from params (it's for our auth, not the upstream WMS)
         params = request.query_params.dict()
+        params.pop("token", None)
 
         auth = None
         if source.username and source.password:
@@ -4930,7 +5012,7 @@ class WMSProxyView(APIView):
 
         try:
             upstream_response = requests.get(
-                source.url,
+                base_url,
                 params=params,
                 auth=auth,
                 timeout=30,

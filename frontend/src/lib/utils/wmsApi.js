@@ -66,8 +66,33 @@ export async function refreshWMSLayers(sourceId) {
 /**
  * Get the WMS proxy URL for a source.
  * @param {string} sourceId - The WMS source UUID
+ * @param {string} [token] - Optional access token for authentication
  * @returns {string} The proxy URL
  */
-export function getWMSProxyUrl(sourceId) {
-	return `${PUBLIC_API_URL}wms-proxy/${sourceId}/`;
+export function getWMSProxyUrl(sourceId, token) {
+	const baseUrl = `${PUBLIC_API_URL}wms-proxy/${sourceId}/`;
+	if (token) {
+		return `${baseUrl}?token=${encodeURIComponent(token)}`;
+	}
+	return baseUrl;
+}
+
+/**
+ * Fetch a short-lived access token for WMS tile requests.
+ * This token is needed because browser image requests don't include
+ * cookies due to SameSite restrictions.
+ * @returns {Promise<string>} The access token
+ * @throws {Error} If the request fails
+ */
+export async function fetchWMSAccessToken() {
+	const response = await fetch(`${PUBLIC_API_URL}wms-sources/access_token/`, {
+		credentials: 'include'
+	});
+
+	if (!response.ok) {
+		throw new Error(`Failed to fetch WMS access token: ${response.statusText}`);
+	}
+
+	const data = await response.json();
+	return data.token;
 }
