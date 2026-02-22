@@ -4995,6 +4995,7 @@ class WMSProxyView(APIView):
         "bgcolor",
         "time",
         "elevation",
+        "map",  # QGIS Server project file parameter
     }
 
     ALLOWED_URL_SCHEMES = {"http", "https"}
@@ -5013,7 +5014,10 @@ class WMSProxyView(APIView):
 
         # Validate URL scheme
         if parsed.scheme.lower() not in self.ALLOWED_URL_SCHEMES:
-            return False, f"URL scheme '{parsed.scheme}' not allowed. Only http/https permitted."
+            return (
+                False,
+                f"URL scheme '{parsed.scheme}' not allowed. Only http/https permitted.",
+            )
 
         hostname = parsed.hostname
 
@@ -5065,9 +5069,8 @@ class WMSProxyView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Strip any existing query parameters from the WMS URL
-        # (e.g., ?service=wms&request=getCapabilities)
-        from urllib.parse import urlparse, urlunparse
+        # Parse the WMS URL to extract base URL and preserved params (like MAP)
+        from urllib.parse import parse_qs, urlparse, urlunparse
 
         parsed_url = urlparse(source.url)
         base_url = urlunparse(
@@ -5076,18 +5079,28 @@ class WMSProxyView(APIView):
                 parsed_url.netloc,
                 parsed_url.path,
                 "",  # params
-                "",  # query - strip existing query params
+                "",  # query - will be added via params dict
                 "",  # fragment
             )
         )
 
-        # Filter params to allowed WMS parameters only (security: prevent injection)
+        # Extract allowed params from the original URL (e.g., MAP for QGIS Server)
+        original_params = {
+            k: v[0] if len(v) == 1 else v
+            for k, v in parse_qs(parsed_url.query).items()
+            if k.lower() in self.ALLOWED_WMS_PARAMS
+        }
+
+        # Filter incoming request params to allowed WMS parameters only
         # and remove our auth token
         params = {
             k: v
             for k, v in request.query_params.dict().items()
             if k.lower() in self.ALLOWED_WMS_PARAMS
         }
+
+        # Merge: original URL params first, then request params override
+        params = {**original_params, **params}
 
         auth = None
         if source.username and source.password:

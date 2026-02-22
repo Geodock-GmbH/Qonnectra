@@ -33,14 +33,13 @@ from .models import (
     AttributesStatus,
     AttributesStatusDevelopment,
     AttributesSurface,
-    ResidentialUnit,
     Cable,
     CableTypeColorMapping,
-    Fiber,
     Conduit,
     ConduitTypeColorMapping,
     ContainerType,
     FeatureFiles,
+    Fiber,
     FileTypeCategory,
     Flags,
     GeoPackageSchemaConfig,
@@ -51,6 +50,7 @@ from .models import (
     PipeBranchSettings,
     Projects,
     QGISProject,
+    ResidentialUnit,
     StoragePreferences,
     Trench,
     WMSLayer,
@@ -247,6 +247,7 @@ FEATURE_MODEL_MAP = {
     "area": Area,
 }
 
+
 @admin.register(AttributesSurface)
 class AttributesSurfaceAdmin(admin.ModelAdmin):
     list_display = ("id", "surface", "sealing")
@@ -343,9 +344,7 @@ class CableAdmin(admin.ModelAdmin):
             and fiber_count >= cable_type.bundle_fiber_count
         )
 
-    @admin.action(
-        description=_("Create fibers for selected cables (only if empty)")
-    )
+    @admin.action(description=_("Create fibers for selected cables (only if empty)"))
     def create_fibers_for_empty_cables(self, request, queryset):
         """
         Create fibers for selected cables that don't have any.
@@ -403,9 +402,7 @@ class CableAdmin(admin.ModelAdmin):
             fibers_to_create = []
             fiber_number_absolute = 1
             for bundle_number in range(1, bundle_count + 1):
-                bundle_mapping = bundle_mappings.filter(
-                    position=bundle_number
-                ).first()
+                bundle_mapping = bundle_mappings.filter(position=bundle_number).first()
                 bundle_color = (
                     bundle_mapping.color.name_de
                     if bundle_mapping
@@ -421,9 +418,7 @@ class CableAdmin(admin.ModelAdmin):
                         if fiber_mapping
                         else f"Fiber {fiber_in_bundle}"
                     )
-                    layer = (
-                        fiber_mapping.layer if fiber_mapping else "inner"
-                    )
+                    layer = fiber_mapping.layer if fiber_mapping else "inner"
 
                     fibers_to_create.append(
                         Fiber(
@@ -592,7 +587,13 @@ class ProjectsAdmin(admin.ModelAdmin):
 class NetworkSchemaSettingsAdmin(admin.ModelAdmin):
     """Standalone admin for Network Schema Settings."""
 
-    list_display = ("project", "excluded_count", "excluded_types_preview", "child_view_count", "child_view_types_preview")
+    list_display = (
+        "project",
+        "excluded_count",
+        "excluded_types_preview",
+        "child_view_count",
+        "child_view_types_preview",
+    )
     list_filter = ("project",)
     search_fields = ("project__project",)
     filter_horizontal = ("excluded_node_types", "child_view_enabled_node_types")
@@ -1053,6 +1054,7 @@ class TrenchAdmin(admin.ModelAdmin):
         Uses the same fn_generate_trench_id function as the trigger.
         """
         import re
+
         from django.db import connection
 
         id_pattern = re.compile(r"^TR-[ABCDEFGHJKLMNPQRSTUVWXYZ234567]{7}$")
@@ -1289,10 +1291,10 @@ class FeatureFilesAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Annotate queryset with orphaned status for sorting."""
         queryset = super().get_queryset(request)
-        
+
         # Create subqueries to check if feature exists for each model type
         orphaned_conditions = []
-        
+
         for model_name, model_class in FEATURE_MODEL_MAP.items():
             try:
                 content_type = ContentType.objects.get(
@@ -1300,45 +1302,33 @@ class FeatureFilesAdmin(admin.ModelAdmin):
                 )
             except ContentType.DoesNotExist:
                 continue
-            
+
             # Check if feature exists in this model
             feature_exists = Exists(
-                model_class.objects.filter(
-                    uuid=OuterRef("object_id")
-                )
+                model_class.objects.filter(uuid=OuterRef("object_id"))
             )
-            
+
             # If content_type matches and feature doesn't exist, it's orphaned
             orphaned_conditions.append(
-                When(
-                    Q(content_type=content_type) & ~feature_exists,
-                    then=Value(1)
-                )
+                When(Q(content_type=content_type) & ~feature_exists, then=Value(1))
             )
-        
+
         # Also mark as orphaned if content_type doesn't match any known model
-        unknown_content_types = ContentType.objects.filter(
-            app_label="api"
-        ).exclude(
+        unknown_content_types = ContentType.objects.filter(app_label="api").exclude(
             model__in=FEATURE_MODEL_MAP.keys()
         )
         if unknown_content_types.exists():
             orphaned_conditions.append(
-                When(
-                    content_type__in=unknown_content_types,
-                    then=Value(1)
-                )
+                When(content_type__in=unknown_content_types, then=Value(1))
             )
-        
+
         # Annotate: 1 if orphaned, 0 if valid
         queryset = queryset.annotate(
             _is_orphaned=Case(
-                *orphaned_conditions,
-                default=Value(0),
-                output_field=IntegerField()
+                *orphaned_conditions, default=Value(0), output_field=IntegerField()
             )
         )
-        
+
         return queryset
 
     def get_urls(self):
@@ -1421,7 +1411,7 @@ class FeatureFilesAdmin(admin.ModelAdmin):
         is_orphaned = getattr(obj, "_is_orphaned", None)
         if is_orphaned is None:
             is_orphaned = 1 if self.is_orphaned(obj) else 0
-        
+
         if is_orphaned:
             return format_html(
                 '<span style="color: #dc3545; font-weight: bold;">⚠ {}</span>',
@@ -1608,7 +1598,8 @@ class WMSLayerInline(admin.TabularInline):
     model = WMSLayer
     extra = 0
     readonly_fields = ["name", "title"]
-    fields = ["name", "title", "is_enabled", "sort_order", "min_zoom", "max_zoom", "opacity"]
+    fields = ["name", "title", "is_enabled", "sort_order", "min_zoom", "max_zoom"]
+    # fields = ["name", "title", "is_enabled", "sort_order", "min_zoom", "max_zoom", "opacity"] - opacity does not render on map, reason unknown.
     ordering = ["sort_order", "name"]
 
 
@@ -1619,12 +1610,22 @@ class WMSSourceAdminForm(forms.ModelForm):
         widget=forms.PasswordInput(render_value=True),
         required=False,
         label=_("Password"),
-        help_text=_("Password for authenticated WMS services. Leave blank if not required."),
+        help_text=_(
+            "Password for authenticated WMS services. Leave blank if not required."
+        ),
     )
 
     class Meta:
         model = WMSSource
-        fields = ["project", "name", "url", "username", "password", "sort_order", "is_active"]
+        fields = [
+            "project",
+            "name",
+            "url",
+            "username",
+            "password",
+            "sort_order",
+            "is_active",
+        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1655,17 +1656,24 @@ class WMSSourceAdmin(admin.ModelAdmin):
     actions = ["scan_capabilities"]
 
     fieldsets = (
-        (None, {
-            "fields": ("project", "name", "url", "sort_order", "is_active"),
-        }),
-        (_("Authentication"), {
-            "fields": ("username", "password"),
-            "classes": ("collapse",),
-        }),
+        (
+            None,
+            {
+                "fields": ("project", "name", "url", "sort_order", "is_active"),
+            },
+        ),
+        (
+            _("Authentication"),
+            {
+                "fields": ("username", "password"),
+                "classes": ("collapse",),
+            },
+        ),
     )
 
     def layer_count(self, obj):
         return obj.layers.filter(is_enabled=True).count()
+
     layer_count.short_description = _("Enabled Layers")
 
     def save_model(self, request, obj, form, change):
@@ -1687,7 +1695,9 @@ class WMSSourceAdmin(admin.ModelAdmin):
                             "sort_order": i,
                         },
                     )
-                messages.success(request, _("Fetched %d layers from WMS.") % len(layers_data))
+                messages.success(
+                    request, _("Fetched %d layers from WMS.") % len(layers_data)
+                )
             except WMSServiceError as e:
                 messages.error(request, _("Failed to fetch WMS layers: %s") % e)
 
@@ -1718,26 +1728,31 @@ class WMSSourceAdmin(admin.ModelAdmin):
                 if updated_count > 0:
                     messages.success(
                         request,
-                        _("Updated min_zoom for %(count)d layers in '%(source)s'.") % {
+                        _("Updated min_zoom for %(count)d layers in '%(source)s'.")
+                        % {
                             "count": updated_count,
                             "source": source.name,
-                        }
+                        },
                     )
                 else:
                     messages.info(
                         request,
-                        _("No changes needed for '%(source)s'. All layers already have recommended settings.") % {
+                        _(
+                            "No changes needed for '%(source)s'. All layers already have recommended settings."
+                        )
+                        % {
                             "source": source.name,
-                        }
+                        },
                     )
 
             except WMSServiceError as e:
                 messages.error(
                     request,
-                    _("Failed to scan '%(source)s': %(error)s") % {
+                    _("Failed to scan '%(source)s': %(error)s")
+                    % {
                         "source": source.name,
                         "error": str(e),
-                    }
+                    },
                 )
 
     scan_capabilities.short_description = _("Scan & apply recommended settings")

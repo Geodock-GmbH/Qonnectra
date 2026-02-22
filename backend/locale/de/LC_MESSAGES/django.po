@@ -123,7 +123,7 @@ msgstr "Nicht konfiguriert"
 #: apps/api/admin.py:554 apps/api/admin.py:616
 #| msgid "Cable Types"
 msgid "Child View Types"
-msgstr "Kabeltypen"
+msgstr "Netzknotentypen"
 
 #: apps/api/admin.py:572
 msgid "Pipe Branch Types"
@@ -144,7 +144,7 @@ msgstr "Ausgeschlossene Typen"
 #: apps/api/admin.py:612
 #| msgid "Conduit Count"
 msgid "Child View Count"
-msgstr "Rohrzahl"
+msgstr "Anzahl an Typen"
 
 #: apps/api/admin.py:634
 msgid "Allowed Count"
