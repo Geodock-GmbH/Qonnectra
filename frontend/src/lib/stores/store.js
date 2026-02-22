@@ -94,6 +94,10 @@ export const tileServerAvailable = persisted('tileServerAvailable', true);
 // Structure: { [layerId]: boolean }
 export const wmsLayerVisibilityConfig = persisted('wmsLayerVisibilityConfig', {});
 
+// WMS source expansion state - which sources are expanded in layer tree
+// Structure: { [sourceId]: boolean }
+export const wmsSourceExpansionState = persisted('wmsSourceExpansionState', {});
+
 // WMS sources data - populated from API
 // Structure: { sources: WMSSource[], loaded: boolean }
 export const wmsSourcesData = writable({ sources: [], loaded: false });

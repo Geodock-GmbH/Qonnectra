@@ -137,7 +137,7 @@ from .services import (
     generate_geopackage_schema,
     import_conduits_from_excel,
 )
-from .wms_service import WMSServiceError, fetch_wms_layers
+from .wms_service import WMSServiceError, fetch_wms_layers, scan_wms_capabilities
 
 logger = logging.getLogger(__name__)
 
@@ -4861,6 +4861,41 @@ class WMSSourceViewSet(viewsets.ModelViewSet):
         token["wms_only"] = True
 
         return Response({"token": str(token)})
+
+    @action(detail=True, methods=["post"])
+    def scan_capabilities(self, request, pk=None):
+        """Scan WMS capabilities to recommend configuration settings.
+
+        Analyzes the WMS GetCapabilities response to determine:
+        - Recommended minZoom for each layer based on BBOX constraints
+        - Supported CRS for each layer
+        - Service-level constraints
+
+        Returns detailed information to help configure WMS layers.
+        """
+        source = self.get_object()
+
+        # SSRF protection
+        is_safe, error_msg = self._is_url_safe(source.url)
+        if not is_safe:
+            return Response(
+                {"error": error_msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            result = scan_wms_capabilities(
+                source.url,
+                username=source.username or None,
+                password=source.password or None,
+            )
+        except WMSServiceError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(result)
 
 
 class WMSLayerViewSet(viewsets.ModelViewSet):

@@ -62,7 +62,7 @@ from .services import (
     move_file_to_feature,
 )
 from .storage import LocalMediaStorage
-from .wms_service import WMSServiceError, fetch_wms_layers
+from .wms_service import WMSServiceError, fetch_wms_layers, scan_wms_capabilities
 
 
 class GeoPackageSchemaConfigForm(forms.ModelForm):
@@ -1608,7 +1608,7 @@ class WMSLayerInline(admin.TabularInline):
     model = WMSLayer
     extra = 0
     readonly_fields = ["name", "title"]
-    fields = ["name", "title", "is_enabled", "sort_order"]
+    fields = ["name", "title", "is_enabled", "sort_order", "min_zoom", "max_zoom", "opacity"]
     ordering = ["sort_order", "name"]
 
 
@@ -1652,6 +1652,7 @@ class WMSSourceAdmin(admin.ModelAdmin):
     search_fields = ["name", "url"]
     ordering = ["project", "sort_order", "name"]
     inlines = [WMSLayerInline]
+    actions = ["scan_capabilities"]
 
     fieldsets = (
         (None, {
@@ -1689,3 +1690,54 @@ class WMSSourceAdmin(admin.ModelAdmin):
                 messages.success(request, _("Fetched %d layers from WMS.") % len(layers_data))
             except WMSServiceError as e:
                 messages.error(request, _("Failed to fetch WMS layers: %s") % e)
+
+    def scan_capabilities(self, request, queryset):
+        """Scan WMS sources and show recommended configuration."""
+        for source in queryset:
+            try:
+                result = scan_wms_capabilities(
+                    source.url,
+                    username=source.username or None,
+                    password=source.password or None,
+                )
+                layers_info = result.get("layers", [])
+
+                # Update layers with recommended settings
+                updated_count = 0
+                for layer_info in layers_info:
+                    try:
+                        layer = source.layers.get(name=layer_info["name"])
+                        recommended_zoom = layer_info.get("recommended_min_zoom", 8)
+                        if layer.min_zoom != recommended_zoom:
+                            layer.min_zoom = recommended_zoom
+                            layer.save(update_fields=["min_zoom"])
+                            updated_count += 1
+                    except WMSLayer.DoesNotExist:
+                        continue
+
+                if updated_count > 0:
+                    messages.success(
+                        request,
+                        _("Updated min_zoom for %(count)d layers in '%(source)s'.") % {
+                            "count": updated_count,
+                            "source": source.name,
+                        }
+                    )
+                else:
+                    messages.info(
+                        request,
+                        _("No changes needed for '%(source)s'. All layers already have recommended settings.") % {
+                            "source": source.name,
+                        }
+                    )
+
+            except WMSServiceError as e:
+                messages.error(
+                    request,
+                    _("Failed to scan '%(source)s': %(error)s") % {
+                        "source": source.name,
+                        "error": str(e),
+                    }
+                )
+
+    scan_capabilities.short_description = _("Scan & apply recommended settings")

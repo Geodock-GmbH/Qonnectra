@@ -208,6 +208,9 @@ export function createSelectionLayer(tileSource, selectedColor, getSelectionStor
  * @param {string} options.displayName - Display name for the layer tree
  * @param {string} options.sourceId - WMS source UUID
  * @param {string} options.sourceName - WMS source display name
+ * @param {number} [options.minZoom=8] - Minimum zoom level
+ * @param {number} [options.maxZoom] - Maximum zoom level (undefined = no limit)
+ * @param {number} [options.opacity=1.0] - Layer opacity (0.0 to 1.0)
  * @returns {TileLayer}
  */
 export function createWMSLayer({
@@ -216,7 +219,10 @@ export function createWMSLayer({
 	layerId,
 	displayName,
 	sourceId,
-	sourceName
+	sourceName,
+	minZoom = 8,
+	maxZoom = undefined,
+	opacity = 1.0
 }) {
 	const source = new TileWMS({
 		url: proxyUrl,
@@ -233,9 +239,9 @@ export function createWMSLayer({
 
 	return new TileLayer({
 		source: source,
-		// Limit to zoom levels where WMS tiles are reasonable size
-		// This WMS rejects BBOX > ~40km, which occurs at zoom < 8
-		minZoom: 8,
+		minZoom: minZoom,
+		maxZoom: maxZoom,
+		opacity: opacity,
 		properties: {
 			layerId: layerId,
 			layerName: displayName,

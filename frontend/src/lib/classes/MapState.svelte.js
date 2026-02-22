@@ -211,7 +211,10 @@ export class MapState {
 						layerId: layerId,
 						displayName: `${source.name}: ${layer.title || layer.name}`,
 						sourceId: source.id,
-						sourceName: source.name
+						sourceName: source.name,
+						minZoom: layer.min_zoom ?? 8,
+						maxZoom: layer.max_zoom ?? undefined,
+						opacity: layer.opacity ?? 1.0
 					});
 
 					// Get visibility from store or default to true

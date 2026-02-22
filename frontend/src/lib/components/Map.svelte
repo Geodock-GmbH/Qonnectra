@@ -11,7 +11,8 @@
 		mapCenter,
 		mapZoom,
 		selectedProject,
-		tileServerAvailable
+		tileServerAvailable,
+		wmsSourcesData
 	} from '$lib/stores/store';
 	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 
@@ -306,6 +307,20 @@
 		onTrenchTypeVisibilityChanged(trenchTypeInfo);
 	}
 
+	/**
+	 * Handle WMS layer visibility change
+	 * @param {string} layerId - The WMS layer ID
+	 * @param {boolean} visible - Whether the layer is visible
+	 */
+	function handleWMSLayerVisibilityChange(layerId, visible) {
+		if (!map) return;
+		map.getLayers().forEach((layer) => {
+			if (layer.get('layerId') === layerId) {
+				layer.setVisible(visible);
+			}
+		});
+	}
+
 	function handleLabelVisibilityChange(labelInfo) {
 		onLabelVisibilityChanged(labelInfo);
 	}
@@ -351,11 +366,13 @@
 					{constructionTypes}
 					{areaTypes}
 					{usingFallbackOSM}
+					wmsSources={$wmsSourcesData.sources}
 					onLayerVisibilityChanged={handleLayerVisibilityChange}
 					onNodeTypeVisibilityChanged={handleNodeTypeVisibilityChange}
 					onTrenchTypeVisibilityChanged={handleTrenchTypeVisibilityChange}
 					onLabelVisibilityChanged={handleLabelVisibilityChange}
 					onZoomToExtent={handleZoomToExtent}
+					onWMSLayerVisibilityChanged={handleWMSLayerVisibilityChange}
 				/>
 			{/if}
 			{#if showOpacitySlider && map}
@@ -418,11 +435,13 @@
 					{constructionTypes}
 					{areaTypes}
 					{usingFallbackOSM}
+					wmsSources={$wmsSourcesData.sources}
 					onLayerVisibilityChanged={handleLayerVisibilityChange}
 					onNodeTypeVisibilityChanged={handleNodeTypeVisibilityChange}
 					onTrenchTypeVisibilityChanged={handleTrenchTypeVisibilityChange}
 					onLabelVisibilityChanged={handleLabelVisibilityChange}
 					onZoomToExtent={handleZoomToExtent}
+					onWMSLayerVisibilityChanged={handleWMSLayerVisibilityChange}
 				/>
 			</div>
 		{/if}

@@ -243,6 +243,22 @@ class WMSLayer(models.Model):
     title = models.CharField(_("Layer Title"), max_length=500, blank=True)
     is_enabled = models.BooleanField(_("Enabled"), default=True)
     sort_order = models.IntegerField(_("Sort Order"), default=0)
+    min_zoom = models.IntegerField(
+        _("Minimum Zoom"),
+        default=8,
+        help_text=_("Minimum zoom level (0-22)"),
+    )
+    max_zoom = models.IntegerField(
+        _("Maximum Zoom"),
+        null=True,
+        blank=True,
+        help_text=_("Maximum zoom level (0-22, blank = no limit)"),
+    )
+    opacity = models.FloatField(
+        _("Opacity"),
+        default=1.0,
+        help_text=_("0.0 = transparent, 1.0 = opaque"),
+    )
 
     class Meta:
         db_table = "wms_layer"

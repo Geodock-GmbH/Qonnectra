@@ -2042,7 +2042,7 @@ class WMSLayerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WMSLayer
-        fields = ["id", "name", "title", "is_enabled", "sort_order"]
+        fields = ["id", "name", "title", "is_enabled", "sort_order", "min_zoom", "max_zoom", "opacity"]
         read_only_fields = ["id", "name", "title"]
 
 
