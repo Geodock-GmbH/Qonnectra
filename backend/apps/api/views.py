@@ -4846,6 +4846,9 @@ class WMSSourceViewSet(viewsets.ModelViewSet):
         This token can be passed as a query parameter to the WMS proxy
         to authenticate tile requests that can't use cookies (due to
         SameSite restrictions on cross-origin image requests).
+
+        The token includes a 'wms_only' claim to scope it specifically
+        for WMS proxy requests, preventing misuse on other endpoints.
         """
         from datetime import timedelta
 
@@ -4854,6 +4857,8 @@ class WMSSourceViewSet(viewsets.ModelViewSet):
         # Create a short-lived token (5 minutes) for WMS access
         token = AccessToken.for_user(request.user)
         token.set_exp(lifetime=timedelta(minutes=5))
+        # Scope token to WMS proxy only
+        token["wms_only"] = True
 
         return Response({"token": str(token)})
 
@@ -4879,9 +4884,13 @@ class WMSTokenAuthentication(BaseAuthentication):
 
     This is needed for WMS tile requests where browsers don't send cookies
     due to SameSite restrictions on cross-origin image requests.
+
+    Only accepts tokens with 'wms_only' claim to prevent misuse of
+    general access tokens via URL parameters.
     """
 
     def authenticate(self, request):
+        from rest_framework.exceptions import AuthenticationFailed
         from rest_framework_simplejwt.exceptions import TokenError
         from rest_framework_simplejwt.tokens import AccessToken
 
@@ -4891,11 +4900,18 @@ class WMSTokenAuthentication(BaseAuthentication):
 
         try:
             validated_token = AccessToken(token)
+
+            # Verify token is scoped for WMS access only
+            if not validated_token.get("wms_only"):
+                raise AuthenticationFailed("Token not valid for WMS access")
+
             user_id = validated_token.get("user_id")
             user = User.objects.get(id=user_id)
             return (user, validated_token)
-        except (TokenError, User.DoesNotExist):
-            return None
+        except TokenError as e:
+            raise AuthenticationFailed(f"Invalid token: {e}")
+        except User.DoesNotExist:
+            raise AuthenticationFailed("User not found")
 
 
 class WMSProxyView(APIView):
@@ -4909,12 +4925,15 @@ class WMSProxyView(APIView):
     - Query parameter token (for cross-origin image requests)
     """
 
-    authentication_classes = [WMSTokenAuthentication]
+    from dj_rest_auth.jwt_auth import JWTCookieAuthentication
+
+    authentication_classes = [WMSTokenAuthentication, JWTCookieAuthentication]
     permission_classes = [IsAuthenticated]
 
     MAX_RESPONSE_SIZE = 50 * 1024 * 1024  # 50MB
 
     BLOCKED_NETWORKS = [
+        "0.0.0.0/8",  # "This" network
         "10.0.0.0/8",
         "172.16.0.0/12",
         "192.168.0.0/16",
@@ -4924,6 +4943,26 @@ class WMSProxyView(APIView):
         "fc00::/7",
         "fe80::/10",
     ]
+
+    ALLOWED_WMS_PARAMS = {
+        "service",
+        "request",
+        "version",
+        "layers",
+        "styles",
+        "crs",
+        "srs",
+        "bbox",
+        "width",
+        "height",
+        "format",
+        "transparent",
+        "bgcolor",
+        "time",
+        "elevation",
+    }
+
+    ALLOWED_URL_SCHEMES = {"http", "https"}
 
     def _is_url_safe(self, url: str) -> tuple[bool, str]:
         """Check if URL is safe to access (not internal/private).
@@ -4936,6 +4975,11 @@ class WMSProxyView(APIView):
         from urllib.parse import urlparse
 
         parsed = urlparse(url)
+
+        # Validate URL scheme
+        if parsed.scheme.lower() not in self.ALLOWED_URL_SCHEMES:
+            return False, f"URL scheme '{parsed.scheme}' not allowed. Only http/https permitted."
+
         hostname = parsed.hostname
 
         if not hostname:
@@ -5002,9 +5046,13 @@ class WMSProxyView(APIView):
             )
         )
 
-        # Remove token from params (it's for our auth, not the upstream WMS)
-        params = request.query_params.dict()
-        params.pop("token", None)
+        # Filter params to allowed WMS parameters only (security: prevent injection)
+        # and remove our auth token
+        params = {
+            k: v
+            for k, v in request.query_params.dict().items()
+            if k.lower() in self.ALLOWED_WMS_PARAMS
+        }
 
         auth = None
         if source.username and source.password:
