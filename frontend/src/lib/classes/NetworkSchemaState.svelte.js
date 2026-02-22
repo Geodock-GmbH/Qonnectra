@@ -17,6 +17,9 @@ export class NetworkSchemaState {
 	userCableName = $state('');
 	selectedCableType = $state([]);
 
+	/** @type {string|null} - Parent node context for child view cables */
+	parentNodeContext = $state(null);
+
 	/** @type {boolean} - Track if already initialized to prevent duplicate initialization */
 	#initialized = $state(false);
 
@@ -338,6 +341,9 @@ export class NetworkSchemaState {
 			formData.append('uuid_node_end_id', source);
 			if (handleStart) formData.append('handle_start', handleEnd);
 			if (handleEnd) formData.append('handle_end', handleStart);
+			if (this.parentNodeContext) {
+				formData.append('parent_node_context_id', this.parentNodeContext);
+			}
 
 			const response = await fetch('?/createCable', {
 				method: 'POST',

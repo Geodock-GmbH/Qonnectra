@@ -1,7 +1,9 @@
 <script>
+	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
+	import { IconArrowLeft } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -12,7 +14,6 @@
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { edgeSnappingEnabled, selectedProject } from '$lib/stores/store';
-	import { globalToaster } from '$lib/stores/toaster';
 	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
 	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte.js';
 
@@ -20,29 +21,26 @@
 
 	import { onMount, setContext } from 'svelte';
 
-	import CableDiagramEdge from './CableDiagramEdge.svelte';
-	import CableDiagramNode from './CableDiagramNode.svelte';
-	import NetworkSchemaSearch from './NetworkSchemaSearch.svelte';
-	import ViewportPersistence from './ViewportPersistence.svelte';
+	import CableDiagramEdge from '../../CableDiagramEdge.svelte';
+	import CableDiagramNode from '../../CableDiagramNode.svelte';
+	import NetworkSchemaSearch from '../../NetworkSchemaSearch.svelte';
+	import ViewportPersistence from '../../ViewportPersistence.svelte';
 
 	let { data } = $props();
 
 	const nodeTypes = { cableDiagramNode: CableDiagramNode };
 	const edgeTypes = { cableDiagramEdge: CableDiagramEdge };
 
-	// Create managers - schemaState initialized reactively via $effect
 	const schemaState = new NetworkSchemaState();
 	const cablePathManager = new CablePathManager();
 	const searchManager = new NetworkSchemaSearchManager(schemaState);
 
-	let prevUrl = $state($page.url.href);
-
-	// Initialize schema state when data is available
 	$effect(() => {
 		schemaState.initialize(data);
+		// Set parent node context for child view cable creation
+		schemaState.parentNodeContext = data.parentNodeId;
 	});
 
-	// Context with derived attribute options - stays reactive to data changes
 	const attributeOptions = $derived({
 		nodeTypes: data.nodeTypes,
 		cableTypes: data.cableTypes,
@@ -87,51 +85,15 @@
 		}
 	});
 
-	/**
-	 * Initialize component and check sync status
-	 */
 	onMount(async () => {
 		startHeartbeat();
 		await autoLockSvelteFlow();
-
-		if (!data.networkSchemaSettingsConfigured && $selectedProject) {
-			globalToaster.warning({
-				title: m.common_warning(),
-				description: m.message_network_schema_settings_not_configured()
-			});
-		}
-
-		if (data.syncStatus) {
-			if (data.syncStatus.sync_status === 'FAILED') {
-				globalToaster.error({
-					title: m.title_error_canvas_sync_failed(),
-					description: data.syncStatus.error_message || m.message_error_canvas_sync_failed()
-				});
-			} else if (data.syncStatus.sync_status === 'COMPLETED') {
-				globalToaster.success({
-					title: m.title_success_canvas_sync_complete()
-				});
-			}
-		}
 
 		return () => {
 			stopHeartbeat();
 		};
 	});
 
-	/**
-	 * Reload page when URL changes (project switch)
-	 */
-	$effect(() => {
-		if ($page.url.href !== prevUrl) {
-			prevUrl = $page.url.href;
-			window.location.reload();
-		}
-	});
-
-	/**
-	 * Listen for micropipe linkage changes to update edge colors
-	 */
 	onMount(() => {
 		function handleMicropipeLinkageChanged(event) {
 			const { cableId, connections } = event.detail;
@@ -144,9 +106,6 @@
 		};
 	});
 
-	/**
-	 * Handle cable path update events from CableDiagramEdge
-	 */
 	async function handleCablePathUpdate(event) {
 		const { edgeId, waypoints, temporary, save } = event.detail;
 
@@ -169,9 +128,6 @@
 		});
 	}
 
-	/**
-	 * Handle cable handle updates from CableDiagramEdge
-	 */
 	function handleCableHandleUpdate(event) {
 		const { cableId, handleStart, handleEnd } = event.detail;
 		cablePathManager.updateHandles(
@@ -184,9 +140,6 @@
 		);
 	}
 
-	/**
-	 * Listen for cable path update events
-	 */
 	$effect(() => {
 		window.addEventListener('updateCablePath', handleCablePathUpdate);
 		return () => {
@@ -194,9 +147,6 @@
 		};
 	});
 
-	/**
-	 * Listen for cable handle update events
-	 */
 	$effect(() => {
 		window.addEventListener('updateCableHandles', handleCableHandleUpdate);
 		return () => {
@@ -204,13 +154,9 @@
 		};
 	});
 
-	/**
-	 * Listen for cable connection changed events (from handle config reconnection)
-	 */
 	$effect(() => {
 		function handleCableConnectionChangedEvent(event) {
 			const { cableId, side, newNodeId, handlePosition } = event.detail;
-			// If this is an edge reconnection event (has cableId and side), update the edge
 			if (cableId && side && newNodeId) {
 				schemaState.updateEdgeConnection(cableId, side, newNodeId, handlePosition);
 			}
@@ -222,24 +168,23 @@
 		};
 	});
 
-	/**
-	 * Track drawer state and deselect nodes when drawer closes
-	 */
+	function navigateBack() {
+		const projectId = $page.params.projectId;
+		goto(`/network-schema/${projectId}`);
+	}
+
 	let previousDrawerOpen = $state(false);
 	$effect(() => {
 		const currentDrawerOpen = $drawerStore.open;
-
-		// Detect drawer closing (transition from open to closed)
 		if (previousDrawerOpen && !currentDrawerOpen) {
 			schemaState.deselectAllNodes();
 		}
-
 		previousDrawerOpen = currentDrawerOpen;
 	});
 </script>
 
 <svelte:head>
-	<title>{m.nav_network_schema()}</title>
+	<title>{m.nav_network_schema()} - {m.action_open_child_network()}</title>
 </svelte:head>
 
 <div class="relative flex gap-4 h-full overflow-hidden">
@@ -247,7 +192,7 @@
 		<SvelteFlow
 			bind:nodes={schemaState.nodes}
 			bind:edges={schemaState.edges}
-			fitView={schemaState.initialized && schemaState.nodes.length === 0}
+			fitView
 			{nodeTypes}
 			{edgeTypes}
 			connectionMode="loose"
@@ -259,10 +204,11 @@
 			noPanClass="nopan"
 		>
 			<ViewportPersistence />
-			<Background class="z-0" bgColor="var(--color-surface-100-900) " />
+			<Background class="z-0" bgColor="var(--color-surface-100-900)" />
 			<Controls />
 			<Panel position="top-left">
 				<div class="card bg-surface-50-950 p-2 rounded-lg shadow-lg w-72">
+					<hr class="hr mb-2" />
 					<h1 class="text-lg font-semibold mb-1">{m.common_attributes()}</h1>
 					<div class="flex flex-col gap-2">
 						<label for="cable_name_input" class="text-sm font-medium">
@@ -307,6 +253,14 @@
 					<div class="mt-3">
 						<NetworkSchemaSearch {searchManager} {schemaState} />
 					</div>
+					<button
+						type="button"
+						class="btn preset-filled-surface-200-800 w-full mt-2"
+						onclick={navigateBack}
+					>
+						<IconArrowLeft size={18} />
+						{m.action_back_to_main_schema()}
+					</button>
 				</div>
 			</Panel>
 		</SvelteFlow>

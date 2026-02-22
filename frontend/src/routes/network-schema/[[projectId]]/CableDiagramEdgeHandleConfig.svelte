@@ -1,5 +1,5 @@
 <script>
-	import { onMount } from 'svelte';
+	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
 
 	import { m } from '$lib/paraglide/messages';
@@ -9,6 +9,8 @@
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
 
+	const schemaStateContext = getContext('schemaState');
+
 	let cable = $derived($drawerStore.props);
 	let handleStart = $state('top');
 	let handleEnd = $state('top');
@@ -16,8 +18,14 @@
 	// Node selection state
 	let selectedNodeStart = $state([]);
 	let selectedNodeEnd = $state([]);
-	let availableNodes = $state([]);
-	let loadingNodes = $state(false);
+
+	// Get available nodes from schemaState context (respects child view filtering)
+	const availableNodes = $derived(
+		(schemaStateContext?.nodes || []).map((node) => ({
+			value: node.id,
+			label: node.data?.node?.name || node.id
+		}))
+	);
 
 	// Pending node change for confirmation
 	let pendingNodeChange = $state(null);
@@ -39,30 +47,6 @@
 		{ label: m.form_bottom(), value: 'bottom' },
 		{ label: m.form_left(), value: 'left' }
 	];
-
-	// Fetch available nodes on mount
-	onMount(async () => {
-		await fetchAvailableNodes();
-	});
-
-	async function fetchAvailableNodes() {
-		loadingNodes = true;
-		try {
-			const response = await fetch('?/getAllNodes', {
-				method: 'POST',
-				body: new FormData()
-			});
-
-			const result = deserialize(await response.text());
-			if (result.data?.nodes) {
-				availableNodes = result.data.nodes;
-			}
-		} catch (err) {
-			console.error('Error fetching nodes:', err);
-		} finally {
-			loadingNodes = false;
-		}
-	}
 
 	/**
 	 * Handle node change request - checks for splices first
@@ -302,23 +286,20 @@
 			<label for="node-start" class="text-sm font-medium"
 				>{m.form_change_node?.() || 'Change Node'}</label
 			>
-			{#if loadingNodes}
-				<p class="text-sm text-surface-500">{m.common_loading()}</p>
-			{:else}
-				<GenericCombobox
-					data={availableNodes}
-					bind:value={selectedNodeStart}
-					defaultValue={selectedNodeStart}
-					placeholder={m.placeholder_select_node?.() || 'Select node...'}
-					onValueChange={(e) => {
-						const newNodeId = e.value?.[0];
-						if (newNodeId && newNodeId !== cable.uuid_node_start) {
-							handleNodeChange('start', newNodeId);
-						}
-					}}
-					renderInPlace={true}
-				/>
-			{/if}
+			<GenericCombobox
+				data={availableNodes}
+				bind:value={selectedNodeStart}
+				defaultValue={selectedNodeStart}
+				placeholder={m.placeholder_select_node?.() || 'Select node...'}
+				onValueChange={(e) => {
+					const newNodeId = e.value?.[0];
+					if (newNodeId && newNodeId !== cable.uuid_node_start) {
+						handleNodeChange('start', newNodeId);
+					}
+				}}
+				renderInPlace={true}
+				placeholderSize="w-full size-10"
+			/>
 		</div>
 
 		<!-- Handle Position -->
@@ -357,23 +338,20 @@
 			<label for="node-end" class="text-sm font-medium"
 				>{m.form_change_node?.() || 'Change Node'}</label
 			>
-			{#if loadingNodes}
-				<p class="text-sm text-surface-500">{m.common_loading()}</p>
-			{:else}
-				<GenericCombobox
-					data={availableNodes}
-					bind:value={selectedNodeEnd}
-					defaultValue={selectedNodeEnd}
-					placeholder={m.placeholder_select_node?.() || 'Select node...'}
-					onValueChange={(e) => {
-						const newNodeId = e.value?.[0];
-						if (newNodeId && newNodeId !== cable.uuid_node_end) {
-							handleNodeChange('end', newNodeId);
-						}
-					}}
-					renderInPlace={true}
-				/>
-			{/if}
+			<GenericCombobox
+				data={availableNodes}
+				bind:value={selectedNodeEnd}
+				defaultValue={selectedNodeEnd}
+				placeholder={m.placeholder_select_node?.() || 'Select node...'}
+				onValueChange={(e) => {
+					const newNodeId = e.value?.[0];
+					if (newNodeId && newNodeId !== cable.uuid_node_end) {
+						handleNodeChange('end', newNodeId);
+					}
+				}}
+				renderInPlace={true}
+				placeholderSize="w-full size-10"
+			/>
 		</div>
 
 		<!-- Handle Position -->

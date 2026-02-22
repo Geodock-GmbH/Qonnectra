@@ -205,6 +205,7 @@ export async function load({ fetch, cookies, url, params }) {
 		const nodesData = await nodeResponse.json();
 		const networkSchemaSettingsConfigured = nodesData?.metadata?.settings_configured ?? false;
 		const excludedNodeTypeIds = nodesData?.metadata?.excluded_node_type_ids ?? [];
+		const childViewEnabledNodeTypeIds = nodesData?.metadata?.child_view_enabled_node_type_ids ?? [];
 
 		let cablesData = [];
 		let cableLabelsData = [];
@@ -324,7 +325,8 @@ export async function load({ fetch, cookies, url, params }) {
 			flags: flagsData,
 			syncStatus: syncStatus || null,
 			networkSchemaSettingsConfigured,
-			excludedNodeTypeIds
+			excludedNodeTypeIds,
+			childViewEnabledNodeTypeIds
 		};
 	} catch (err) {
 		if (err.status === 500 && err.message === 'Failed to fetch nodes') {
@@ -344,7 +346,8 @@ export async function load({ fetch, cookies, url, params }) {
 			flags: [],
 			syncStatus: null,
 			networkSchemaSettingsConfigured: false,
-			excludedNodeTypeIds: []
+			excludedNodeTypeIds: [],
+			childViewEnabledNodeTypeIds: []
 		};
 	}
 }
@@ -363,6 +366,7 @@ export const actions = {
 			const uuid_node_end_id = formData.get('uuid_node_end_id');
 			const handle_start = formData.get('handle_start');
 			const handle_end = formData.get('handle_end');
+			const parent_node_context_id = formData.get('parent_node_context_id');
 
 			// Validate required fields
 			if (!name || !cable_type_id || !project_id || !flag_id) {
@@ -409,6 +413,11 @@ export const actions = {
 			}
 			if (handle_end) {
 				requestBody.handle_end = handle_end;
+			}
+
+			// Add optional parent node context (for child view cables)
+			if (parent_node_context_id) {
+				requestBody.parent_node_context_id = parent_node_context_id;
 			}
 
 			const response = await fetch(backendUrl, {
@@ -788,10 +797,11 @@ export const actions = {
 			return fail(500, { message: err.message || 'Failed to delete node' });
 		}
 	},
-	getNodeDependencies: async ({ request, fetch, cookies }) => {
+	getNodeDependencies: async ({ request, fetch, cookies, params }) => {
 		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();
 		const nodeId = formData.get('nodeUuid');
+		const projectId = params.projectId;
 
 		if (!nodeId) {
 			return fail(400, { error: 'Node ID is required' });
@@ -820,9 +830,53 @@ export const actions = {
 				structures = await structuresResponse.json();
 			}
 
+			// Fetch children of this node
+			let children = [];
+			let childrenWithCables = [];
+			if (projectId) {
+				const childrenResponse = await fetch(
+					`${API_URL}node/?parent_node=${nodeId}&project=${projectId}`,
+					{ method: 'GET', headers }
+				);
+
+				if (childrenResponse.ok) {
+					const childrenData = await childrenResponse.json();
+					// Handle paginated GeoJSON response: results.features or features
+					children = childrenData.results?.features ||
+						childrenData.features ||
+						(Array.isArray(childrenData) ? childrenData : []);
+
+					// Check which children have cables connected
+					for (const child of children) {
+						// GeoJSON feature: id is at top level, name is in properties
+						const childId = child.id || child.properties?.uuid || child.uuid;
+						const childName = child.properties?.name || child.name;
+						const childCablesResponse = await fetch(
+							`${API_URL}cable/at-node/${childId}/`,
+							{ method: 'GET', headers }
+						);
+						if (childCablesResponse.ok) {
+							const childCables = await childCablesResponse.json();
+							if (childCables.length > 0) {
+								childrenWithCables.push({
+									nodeId: childId,
+									nodeName: childName,
+									cableCount: childCables.length
+								});
+							}
+						}
+					}
+				}
+			}
+
 			return {
 				cables: cables || [],
-				structures: structures || []
+				structures: structures || [],
+				children: children || [],
+				childrenWithCables: childrenWithCables || [],
+				hasChildren: children.length > 0,
+				hasCables: cables.length > 0,
+				hasChildrenWithCables: childrenWithCables.length > 0
 			};
 		} catch (err) {
 			console.error('Error fetching node dependencies:', err);

@@ -1856,12 +1856,26 @@ class NodeViewSet(viewsets.ModelViewSet):
         search_term = request.query_params.get("search")
         exclude_group = request.query_params.get("exclude_group")
         use_pipe_branch_settings = request.query_params.get("use_pipe_branch_settings")
+        child_view_for = request.query_params.get("child_view_for")
         settings_configured = False
         pipe_branch_configured = False
         excluded_type_ids = []
+        child_view_enabled_type_ids = []
 
         if project_id:
             queryset = queryset.filter(project=project_id)
+
+            # Handle child view mode: return parent node + its direct children
+            if child_view_for:
+                queryset = queryset.filter(
+                    Q(uuid=child_view_for) | Q(parent_node_id=child_view_for)
+                )
+                # Get child view enabled types for this project
+                settings = NetworkSchemaSettings.get_settings_for_project(project_id)
+                if settings is not None:
+                    child_view_enabled_type_ids = list(
+                        settings.child_view_enabled_node_types.values_list("id", flat=True)
+                    )
 
             # Apply pipe-branch settings if requested
             if use_pipe_branch_settings == "true":
@@ -1874,13 +1888,16 @@ class NodeViewSet(viewsets.ModelViewSet):
                         # Empty list means no types allowed, return empty
                         queryset = queryset.none()
             # Apply project-specific exclusions if no explicit exclude_group provided
-            # and not using pipe_branch_settings
-            elif exclude_group is None:
+            # and not using pipe_branch_settings or child_view_for
+            elif exclude_group is None and not child_view_for:
                 settings = NetworkSchemaSettings.get_settings_for_project(project_id)
                 if settings is not None:
                     settings_configured = True
                     excluded_type_ids = list(
                         settings.excluded_node_types.values_list("id", flat=True)
+                    )
+                    child_view_enabled_type_ids = list(
+                        settings.child_view_enabled_node_types.values_list("id", flat=True)
                     )
                     if excluded_type_ids:
                         queryset = queryset.exclude(node_type_id__in=excluded_type_ids)
@@ -1906,6 +1923,7 @@ class NodeViewSet(viewsets.ModelViewSet):
                 "settings_configured": settings_configured,
                 "pipe_branch_configured": pipe_branch_configured,
                 "excluded_node_type_ids": excluded_type_ids,
+                "child_view_enabled_node_type_ids": child_view_enabled_type_ids,
             }
         elif isinstance(data, list):
             # Wrap in FeatureCollection format with metadata
@@ -1916,6 +1934,7 @@ class NodeViewSet(viewsets.ModelViewSet):
                     "settings_configured": settings_configured,
                     "pipe_branch_configured": pipe_branch_configured,
                     "excluded_node_type_ids": excluded_type_ids,
+                    "child_view_enabled_node_type_ids": child_view_enabled_type_ids,
                 },
             }
 
@@ -2830,8 +2849,17 @@ class CableViewSet(viewsets.ModelViewSet):
         flag_id = request.query_params.get("flag")
         name = request.query_params.get("name")
         search_term = request.query_params.get("search")
+        child_view_for = request.query_params.get("child_view_for")
         if project_id:
             queryset = queryset.filter(project=project_id)
+
+            # Handle child view mode: return cables created in this parent's child view
+            if child_view_for:
+                queryset = queryset.filter(parent_node_context_id=child_view_for)
+            else:
+                # Main schema: only show cables without parent context (created in main schema)
+                queryset = queryset.filter(parent_node_context__isnull=True)
+
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
         if name:

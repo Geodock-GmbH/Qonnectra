@@ -72,17 +72,20 @@ describe('+page.server.js', () => {
 	} = {}) {
 		// Create response generators for each endpoint
 		const responses = {
-			'attributes_cable_type': { ok: true, json: () => Promise.resolve(cableTypes) },
-			'attributes_node_type': { ok: true, json: () => Promise.resolve(nodeTypes) },
-			'attributes_status': { ok: true, json: () => Promise.resolve(statuses) },
-			'attributes_network_level': { ok: true, json: () => Promise.resolve(networkLevels) },
-			'attributes_company': { ok: true, json: () => Promise.resolve(companies) },
-			'flags': { ok: true, json: () => Promise.resolve(flags) },
+			attributes_cable_type: { ok: true, json: () => Promise.resolve(cableTypes) },
+			attributes_node_type: { ok: true, json: () => Promise.resolve(nodeTypes) },
+			attributes_status: { ok: true, json: () => Promise.resolve(statuses) },
+			attributes_network_level: { ok: true, json: () => Promise.resolve(networkLevels) },
+			attributes_company: { ok: true, json: () => Promise.resolve(companies) },
+			flags: { ok: true, json: () => Promise.resolve(flags) },
 			'canvas-coordinates': { ok: true, json: () => Promise.resolve(syncStatus) },
 			'node/all': { ok: true, json: () => Promise.resolve(nodes) },
 			'cable/all': { ok: true, json: () => Promise.resolve(cables) },
 			'cable_label/all': { ok: true, json: () => Promise.resolve(cableLabels) },
-			'cables/micropipe-summary': { ok: true, json: () => Promise.resolve(cableMicropipeConnections) }
+			'cables/micropipe-summary': {
+				ok: true,
+				json: () => Promise.resolve(cableMicropipeConnections)
+			}
 		};
 
 		let syncPostCalled = false;
@@ -96,7 +99,11 @@ describe('+page.server.js', () => {
 			}
 
 			// Handle sync polling (subsequent GET to canvas-coordinates after initial)
-			if (url.includes('canvas-coordinates') && syncPostCalled && pollIndex < syncWaitPolls.length) {
+			if (
+				url.includes('canvas-coordinates') &&
+				syncPostCalled &&
+				pollIndex < syncWaitPolls.length
+			) {
 				return Promise.resolve(syncWaitPolls[pollIndex++]);
 			}
 
