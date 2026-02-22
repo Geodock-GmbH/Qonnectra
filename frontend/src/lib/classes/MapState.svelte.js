@@ -18,6 +18,7 @@ import {
 import { wmsLayerVisibilityConfig, wmsSourcesData } from '$lib/stores/store';
 import { globalToaster } from '$lib/stores/toaster';
 import { fetchWMSAccessToken, fetchWMSSources, getWMSProxyUrl } from '$lib/utils/wmsApi';
+import { startWMSHeartbeat, stopWMSHeartbeat } from '$lib/utils/wmsTokenHeartbeat.svelte.js';
 import {
 	createAddressLayer,
 	createAreaLayer,
@@ -237,6 +238,11 @@ export class MapState {
 			wmsLayerVisibilityConfig.set(cleanedConfig);
 
 			this.wmsLayers = newWmsLayers;
+
+			// Start WMS token heartbeat if we have WMS layers
+			if (newWmsLayers.length > 0) {
+				startWMSHeartbeat(this.updateWMSLayerTokens.bind(this), accessToken);
+			}
 
 			// Add WMS layers to the map if it's already initialized
 			// Insert after base layers but before data layers
@@ -574,9 +580,31 @@ export class MapState {
 	}
 
 	/**
+	 * Update WMS layer source URLs with a new token.
+	 * Called by the WMS heartbeat when the token is refreshed.
+	 * @param {string} newToken - The new WMS access token
+	 */
+	updateWMSLayerTokens(newToken) {
+		for (const layer of this.wmsLayers) {
+			const source = layer.getSource();
+			if (!source) continue;
+
+			const urls = source.getUrls();
+			if (!urls || urls.length === 0) continue;
+
+			const currentUrl = urls[0];
+			const newUrl = currentUrl.replace(/token=[^&]+/, `token=${encodeURIComponent(newToken)}`);
+			source.setUrl(newUrl);
+		}
+	}
+
+	/**
 	 * Cleanup method to be called on destroy
 	 */
 	cleanup() {
+		// Stop WMS token heartbeat
+		stopWMSHeartbeat();
+
 		if (!this.olMap) return;
 
 		if (this.selectionLayer) {

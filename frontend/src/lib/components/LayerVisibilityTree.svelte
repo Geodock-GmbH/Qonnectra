@@ -729,7 +729,6 @@
 
 								<span
 									class="text-base font-medium text-surface-contrast-100-900 truncate"
-									title={layerInfo.name}
 								>
 									{layerInfo.name}
 								</span>
@@ -935,7 +934,6 @@
 											</button>
 											<span
 												class="text-base font-medium text-surface-contrast-100-900 truncate"
-												title={source.name}
 											>
 												{source.name}
 											</span>
@@ -951,7 +949,6 @@
 												<div class="flex items-center justify-between py-2">
 													<span
 														class="text-sm text-surface-contrast-100-900 truncate flex-1 min-w-0"
-														title={layer.title || layer.name}
 													>
 														{layer.title || layer.name}
 													</span>
@@ -1112,7 +1109,6 @@
 						<!-- Layer name -->
 						<span
 							class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0"
-							title={layerInfo.name}
 						>
 							{layerInfo.name}
 						</span>
@@ -1206,7 +1202,7 @@
 										></span>
 										<span
 											class="text-xs text-surface-contrast-100-900 truncate"
-											title={nodeType.node_type}
+											{@attach tooltip(nodeType.node_type)}
 										>
 											{nodeType.node_type}
 										</span>
@@ -1241,7 +1237,7 @@
 									<div class="flex items-center gap-2 flex-1 min-w-0">
 										<span class="w-4 h-1 shrink-0 rounded-sm" style="background-color: {color};"
 										></span>
-										<span class="text-xs text-surface-contrast-100-900 truncate" title={typeName}>
+										<span class="text-xs text-surface-contrast-100-900 truncate" {@attach tooltip(typeName)}>
 											{typeName}
 										</span>
 									</div>
@@ -1278,7 +1274,7 @@
 										></span>
 										<span
 											class="text-xs text-surface-contrast-100-900 truncate"
-											title={areaType.area_type}
+											{@attach tooltip(areaType.area_type)}
 										>
 											{areaType.area_type}
 										</span>
@@ -1326,7 +1322,6 @@
 									</button>
 									<span
 										class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0"
-										title={source.name}
 									>
 										{source.name}
 									</span>
@@ -1347,7 +1342,6 @@
 											>
 												<span
 													class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0"
-													title={layer.title || layer.name}
 												>
 													{layer.title || layer.name}
 												</span>
