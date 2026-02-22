@@ -1019,6 +1019,7 @@ class MicroductSerializer(serializers.ModelSerializer):
         queryset=AttributesMicroductStatus.objects.all(),
         source="microduct_status",
         required=False,
+        allow_null=True,
     )
     uuid_node_id = serializers.PrimaryKeyRelatedField(
         write_only=True,

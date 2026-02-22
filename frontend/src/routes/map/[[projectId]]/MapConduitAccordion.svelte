@@ -114,6 +114,7 @@
 							microducts={dataManager.getMicroductsForPipe(item.pipeUuid)}
 							loading={dataManager.isLoadingMicroducts(item.pipeUuid)}
 							error={dataManager.getMicroductsError(item.pipeUuid)}
+							showStatus={true}
 						/>
 					</div>
 				</Accordion.ItemContent>

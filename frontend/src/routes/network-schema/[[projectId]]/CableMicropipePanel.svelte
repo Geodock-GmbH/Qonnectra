@@ -533,8 +533,11 @@
 												}
 											}}
 										>
-											<td class="p-2 font-mono">{mp.number}</td>
-											<td class="p-2">
+											<td
+												class="p-2 font-mono {mp.microduct_status ? 'line-through opacity-60' : ''}"
+												>{mp.number}</td
+											>
+											<td class="p-2 {mp.microduct_status ? 'line-through opacity-60' : ''}">
 												<div class="flex items-center gap-2">
 													<div
 														class="w-4 h-4 rounded border border-surface-300-700"

@@ -75,37 +75,11 @@
 	});
 
 	function handleValueChange(e) {
-		// #region agent log
-		fetch('http://127.0.0.1:7243/ingest/ce537700-dc76-46fa-bb6c-67a77367f431', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				location: 'GenericCombobox.svelte:handleValueChange',
-				message: 'handleValueChange called',
-				data: { newValue: e?.value, dataLength: data?.length },
-				hypothesisId: 'D',
-				timestamp: Date.now()
-			})
-		}).catch(() => {});
-		// #endregion
 		value = e.value;
 		onValueChange(e);
 	}
 
 	function handleOpenChange(e) {
-		// #region agent log
-		fetch('http://127.0.0.1:7243/ingest/ce537700-dc76-46fa-bb6c-67a77367f431', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				location: 'GenericCombobox.svelte:handleOpenChange',
-				message: 'handleOpenChange called',
-				data: { open: e?.open },
-				hypothesisId: 'D',
-				timestamp: Date.now()
-			})
-		}).catch(() => {});
-		// #endregion
 		isOpen = e.open;
 	}
 </script>

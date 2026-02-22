@@ -216,6 +216,7 @@
 	"form_internal_execution": "Eigenleistung",
 	"form_layer": "Layer",
 	"form_layer_visibility": "Sichtbarkeit",
+	"label_healthy": "Intakt",
 	"label_show_cable_route": "Route anzeigen",
 	"form_left": "Links",
 	"form_length_by_construction_type": "Gesamtlänge pro Verlegeart",
@@ -231,6 +232,7 @@
 	"form_manufacturer": "Hersteller",
 	"form_max_file_size": "Maximale Dateigröße",
 	"form_message": "Nachricht",
+	"form_microduct_status": "Mikrorohr-Status",
 	"form_micropipes": "Mikrorohre",
 	"form_microduct": [
 		{
@@ -448,6 +450,8 @@
 	"message_select_at_least_two_ports": "Wählen Sie mindestens 2 Ports zum Zusammenführen aus",
 	"message_select_trenches": "Wählen Sie Gräben auf der Karte aus",
 	"message_shift_drag_select": "Shift + Ziehen für Mehrfachauswahl",
+	"message_status_update_failed": "Status konnte nicht aktualisiert werden",
+	"message_status_updated": "Mikrorohr-Status aktualisiert",
 	"message_success_assigned_node": "Hausanschluss erfolgreich zugeordnet",
 	"message_success_canvas_sync_complete": "Canvas Synchronisierung erfolgreich",
 	"message_success_creating_cable": "Kabel erfolgreich erstellt",

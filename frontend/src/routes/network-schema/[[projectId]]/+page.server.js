@@ -842,7 +842,8 @@ export const actions = {
 				if (childrenResponse.ok) {
 					const childrenData = await childrenResponse.json();
 					// Handle paginated GeoJSON response: results.features or features
-					children = childrenData.results?.features ||
+					children =
+						childrenData.results?.features ||
 						childrenData.features ||
 						(Array.isArray(childrenData) ? childrenData : []);
 
@@ -851,10 +852,10 @@ export const actions = {
 						// GeoJSON feature: id is at top level, name is in properties
 						const childId = child.id || child.properties?.uuid || child.uuid;
 						const childName = child.properties?.name || child.name;
-						const childCablesResponse = await fetch(
-							`${API_URL}cable/at-node/${childId}/`,
-							{ method: 'GET', headers }
-						);
+						const childCablesResponse = await fetch(`${API_URL}cable/at-node/${childId}/`, {
+							method: 'GET',
+							headers
+						});
 						if (childCablesResponse.ok) {
 							const childCables = await childCablesResponse.json();
 							if (childCables.length > 0) {

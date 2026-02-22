@@ -216,6 +216,7 @@
 	"form_internal_execution": "Internal execution",
 	"form_layer": "Layer",
 	"form_layer_visibility": "Layer visibility",
+	"label_healthy": "Healthy",
 	"label_show_cable_route": "Show route",
 	"form_left": "Left",
 	"form_length_by_construction_type": "Length by construction type",
@@ -231,6 +232,7 @@
 	"form_manufacturer": "Manufacturer",
 	"form_max_file_size": "Max file size",
 	"form_message": "Message",
+	"form_microduct_status": "Microduct Status",
 	"form_micropipes": "Micropipes",
 	"form_microduct": [
 		{
@@ -448,6 +450,8 @@
 	"message_select_at_least_two_ports": "Select at least 2 ports to merge",
 	"message_select_trenches": "Select trenches on the map",
 	"message_shift_drag_select": "Shift + drag to select multiple",
+	"message_status_update_failed": "Failed to update status",
+	"message_status_updated": "Microduct status updated",
 	"message_success_assigned_node": "Node assigned successfully",
 	"message_success_creating_cable": "Cable created successfully",
 	"message_success_creating_conduit": "Conduit created successfully",

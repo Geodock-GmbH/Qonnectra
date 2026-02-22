@@ -57,7 +57,9 @@
 	// Node type disabled when node has BOTH children AND cables
 	const nodeTypeDisabled = $derived(isCheckingDependencies || (hasChildren && hasConnectedCables));
 	// Parent node disabled when in child view AND node has cables
-	const parentNodeDisabled = $derived(isCheckingDependencies || (isChildView && hasConnectedCables));
+	const parentNodeDisabled = $derived(
+		isCheckingDependencies || (isChildView && hasConnectedCables)
+	);
 
 	/**
 	 * Check dependencies when node changes (cables, structures, children)
@@ -421,8 +423,7 @@
 	<label
 		class="label"
 		{@attach tooltip(
-			m.message_parent_node_locked_has_cables?.() ||
-				'Parent node cannot be changed (has cables)',
+			m.message_parent_node_locked_has_cables?.() || 'Parent node cannot be changed (has cables)',
 			{ disabled: !parentNodeDisabled || isCheckingDependencies }
 		)}
 	>

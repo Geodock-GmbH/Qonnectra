@@ -4518,7 +4518,7 @@ class MicropipesByConduitsView(APIView):
         # Get all microducts for these conduits
         microducts = Microduct.objects.filter(
             uuid_conduit_id__in=conduit_uuid_list
-        ).select_related("uuid_conduit")
+        ).select_related("uuid_conduit", "microduct_status")
 
         # Get color hex codes
         color_mapping = {
@@ -4537,11 +4537,15 @@ class MicropipesByConduitsView(APIView):
                     "color_hex": color_mapping.get(md.color, "#808080"),
                     "available_in": [],
                     "microduct_uuids": {},
+                    "has_defect": False,
                 }
             micropipe_groups[key]["available_in"].append(str(md.uuid_conduit_id))
             micropipe_groups[key]["microduct_uuids"][str(md.uuid_conduit_id)] = str(
                 md.uuid
             )
+            # Mark as defective if any microduct in the group has a status
+            if md.microduct_status:
+                micropipe_groups[key]["has_defect"] = True
 
         # Check which are linked to this cable
         linked_microducts = set()
@@ -4576,6 +4580,7 @@ class MicropipesByConduitsView(APIView):
                     "available_in_all": len(missing_conduits) == 0,
                     "linked_to_cable": is_linked,
                     "missing_in": [conduit_map.get(c, c) for c in missing_conduits],
+                    "microduct_status": data["has_defect"],
                 }
             )
 

@@ -402,5 +402,85 @@ export const actions = {
 				message: 'Internal server error during file upload'
 			});
 		}
+	},
+
+	getMicroductStatusOptions: async ({ fetch, cookies }) => {
+		try {
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}attributes_microduct_status/`, {
+				credentials: 'include',
+				headers
+			});
+			if (!response.ok) {
+				return fail(response.status, { error: 'Failed to fetch status options' });
+			}
+			const data = await response.json();
+			return data;
+		} catch (error) {
+			console.error('Error fetching status options:', error);
+			return fail(500, { error: 'Failed to fetch status options' });
+		}
+	},
+
+	updateMicroductStatus: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const uuid = formData.get('uuid');
+		const statusId = formData.get('microduct_status_id');
+
+		if (!uuid) {
+			return fail(400, { error: 'Missing microduct UUID' });
+		}
+
+		try {
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}microduct/${uuid}/`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					microduct_status_id: !statusId || statusId === 'null' ? null : parseInt(statusId, 10)
+				})
+			});
+
+			if (!response.ok) {
+				return fail(response.status, { error: 'Failed to update microduct status' });
+			}
+
+			const data = await response.json();
+			return data;
+		} catch (error) {
+			console.error('Error updating microduct status:', error);
+			return fail(500, { error: 'Failed to update microduct status' });
+		}
+	},
+
+	getMicroducts: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const uuid = formData.get('uuid');
+
+			if (!uuid) {
+				return fail(400, { error: 'Missing required parameter: uuid' });
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}microduct/all/?uuid_conduit=${uuid}`, {
+				credentials: 'include',
+				headers
+			});
+
+			if (!response.ok) {
+				return fail(response.status, { error: 'Failed to fetch microducts' });
+			}
+
+			const data = await response.json();
+			return data;
+		} catch (error) {
+			console.error('Error fetching microducts:', error);
+			return fail(500, { error: 'Failed to fetch microducts' });
+		}
 	}
 };
