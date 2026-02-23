@@ -10,6 +10,7 @@ from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from django_json_widget.widgets import JSONEditorWidget
+from simple_history.admin import SimpleHistoryAdmin
 
 from .models import (
     Address,
@@ -307,7 +308,7 @@ admin.site.register(FileTypeCategory)
 
 
 @admin.register(Cable)
-class CableAdmin(admin.ModelAdmin):
+class CableAdmin(SimpleHistoryAdmin):
     """Admin interface for Cable model with action to create missing fibers."""
 
     list_display = (
@@ -457,14 +458,14 @@ class CableAdmin(admin.ModelAdmin):
 
 
 @admin.register(Area)
-class AreaAdmin(admin.ModelAdmin):
+class AreaAdmin(SimpleHistoryAdmin):
     list_display = ("name", "area_type", "project", "flag")
     list_filter = ("area_type", "project", "flag")
     search_fields = ("name", "project__project", "flag__flag", "area_type__area_type")
 
 
 @admin.register(Flags)
-class FlagsAdmin(admin.ModelAdmin):
+class FlagsAdmin(SimpleHistoryAdmin):
     list_display = ("id", "flag")
 
 
@@ -483,7 +484,11 @@ class AttributesMicroductStatusAdmin(admin.ModelAdmin):
     list_display = ("id", "microduct_status")
 
 
-admin.site.register(Microduct)
+@admin.register(Microduct)
+class MicroductAdmin(SimpleHistoryAdmin):
+    list_display = ("uuid", "uuid_conduit", "number", "color")
+    list_filter = ("uuid_conduit", "microduct_status")
+    search_fields = ("uuid_conduit__name", "color")
 
 
 @admin.register(AttributesFiberStatus)
@@ -512,7 +517,7 @@ class PipeBranchSettingsInline(admin.StackedInline):
 
 
 @admin.register(Projects)
-class ProjectsAdmin(admin.ModelAdmin):
+class ProjectsAdmin(SimpleHistoryAdmin):
     """Admin interface for Projects with Network Schema and Pipe Branch Settings."""
 
     list_display = (
@@ -645,7 +650,7 @@ class PipeBranchSettingsAdmin(admin.ModelAdmin):
 
 
 @admin.register(Address)
-class AddressAdmin(admin.ModelAdmin):
+class AddressAdmin(SimpleHistoryAdmin):
     list_display = (
         "street",
         "housenumber",
@@ -681,7 +686,7 @@ class AddressAdmin(admin.ModelAdmin):
 
 
 @admin.register(ResidentialUnit)
-class ResidentialUnitAdmin(admin.ModelAdmin):
+class ResidentialUnitAdmin(SimpleHistoryAdmin):
     list_display = (
         "uuid",
         "uuid_address",
@@ -921,7 +926,7 @@ class QGISProjectAdmin(admin.ModelAdmin):
 
 
 @admin.register(Node)
-class NodeAdmin(admin.ModelAdmin):
+class NodeAdmin(SimpleHistoryAdmin):
     list_display = (
         "name",
         "node_type",
@@ -935,7 +940,7 @@ class NodeAdmin(admin.ModelAdmin):
 
 
 @admin.register(Conduit)
-class ConduitAdmin(admin.ModelAdmin):
+class ConduitAdmin(SimpleHistoryAdmin):
     """Admin interface for Conduit model with action to create missing microducts."""
 
     list_display = ("name", "conduit_type", "microduct_count", "has_color_mappings")
@@ -1016,7 +1021,7 @@ class ConduitAdmin(admin.ModelAdmin):
 
 
 @admin.register(Trench)
-class TrenchAdmin(admin.ModelAdmin):
+class TrenchAdmin(SimpleHistoryAdmin):
     list_display = (
         "id_trench",
         "surface",
@@ -1561,7 +1566,7 @@ class FeatureFilesAdmin(admin.ModelAdmin):
 
 
 @admin.register(ContainerType)
-class ContainerTypeAdmin(admin.ModelAdmin):
+class ContainerTypeAdmin(SimpleHistoryAdmin):
     """Admin interface for managing container types (global definitions)."""
 
     list_display = ("name", "display_order", "is_active")

@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_json_widget",
+    "simple_history",
 ]
 
 MIDDLEWARE = [
@@ -73,6 +74,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "apps.api.middleware.CookieDomainMiddleware",
+    "simple_history.middleware.HistoryRequestMiddleware",
 ]
 
 # Set to True to use the CookieDomainMiddleware

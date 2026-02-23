@@ -14,6 +14,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from pathvalidate import sanitize_filename
+from simple_history.models import HistoricalRecords
 
 from .storage import LocalMediaStorage, QGISProjectStorage
 
@@ -29,6 +30,8 @@ class Projects(models.Model):
     project = models.TextField(_("Project"), null=False, db_index=False, unique=True)
     description = models.TextField(_("Description"), null=True, blank=True)
     active = models.BooleanField(_("Active"), null=False, default=True)
+
+    history = HistoricalRecords()
 
     class Meta:
         db_table = "projects"
@@ -162,6 +165,8 @@ class WMSSource(models.Model):
     created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
     updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
 
+    history = HistoricalRecords()
+
     class Meta:
         db_table = "wms_source"
         verbose_name = _("WMS Source")
@@ -260,6 +265,8 @@ class WMSLayer(models.Model):
         help_text=_("0.0 = transparent, 1.0 = opaque"),
     )
 
+    history = HistoricalRecords()
+
     class Meta:
         db_table = "wms_layer"
         verbose_name = _("WMS Layer")
@@ -278,6 +285,8 @@ class Flags(models.Model):
 
     id = models.AutoField(primary_key=True)
     flag = models.TextField(_("Flag"), null=False, db_index=False, unique=True)
+
+    history = HistoricalRecords()
 
     class Meta:
         db_table = "flags"
@@ -1280,6 +1289,8 @@ class Trench(models.Model):
         verbose_name=_("Flag"),
     )
 
+    history = HistoricalRecords(excluded_fields=["geom_3857"])
+
     def __str__(self):
         """String representation of the trench model."""
         return str(self.id_trench)
@@ -1412,6 +1423,8 @@ class Conduit(models.Model):
         verbose_name=_("Flag"),
     )
 
+    history = HistoricalRecords()
+
     def __str__(self):
         return self.name
 
@@ -1529,6 +1542,8 @@ class Address(models.Model):
         verbose_name=_("Project"),
     )
 
+    history = HistoricalRecords(excluded_fields=["geom_3857"])
+
     class Meta:
         db_table = "address"
         verbose_name = _("Address")
@@ -1612,6 +1627,8 @@ class ResidentialUnit(models.Model):
         _("Resident Recorded Date"), null=True, blank=True
     )
     ready_for_service = models.DateField(_("Ready for Service"), null=True, blank=True)
+
+    history = HistoricalRecords()
 
     class Meta:
         db_table = "residential_unit"
@@ -1756,6 +1773,8 @@ class Node(models.Model):
         verbose_name=_("Project"),
     )
 
+    history = HistoricalRecords(excluded_fields=["geom_3857"])
+
     class Meta:
         db_table = "node"
         verbose_name = _("Node")
@@ -1869,6 +1888,8 @@ class Area(models.Model):
         verbose_name=_("Flag"),
     )
 
+    history = HistoricalRecords(excluded_fields=["geom_3857"])
+
     def __str__(self):
         return self.name
 
@@ -1925,6 +1946,8 @@ class Microduct(models.Model):
         db_index=False,
         verbose_name=_("Node"),
     )
+
+    history = HistoricalRecords()
 
     class Meta:
         db_table = "microduct"
@@ -2271,6 +2294,8 @@ class Cable(models.Model):
         db_index=False,
         verbose_name=_("Flag"),
     )
+
+    history = HistoricalRecords()
 
     class Meta:
         db_table = "cable"
@@ -2690,6 +2715,8 @@ class Fiber(models.Model):
         db_index=False,
         verbose_name=_("Project"),
     )
+
+    history = HistoricalRecords()
 
     class Meta:
         db_table = "fiber"
@@ -3621,6 +3648,8 @@ class FiberSplice(models.Model):
         help_text=_("The cable of shared fiber B (denormalized for CASCADE delete)."),
     )
 
+    history = HistoricalRecords()
+
     class Meta:
         db_table = "fiber_splice"
         verbose_name = _("Fiber Splice")
@@ -3704,6 +3733,8 @@ class ContainerType(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    history = HistoricalRecords()
+
     class Meta:
         db_table = "container_type"
         verbose_name = _("Container Type")
@@ -3769,6 +3800,8 @@ class Container(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    history = HistoricalRecords()
 
     class Meta:
         db_table = "container"
