@@ -2,6 +2,7 @@ import logging
 import mimetypes
 import os
 import uuid
+from collections import defaultdict
 from urllib.parse import quote
 
 import requests
@@ -4560,16 +4561,16 @@ class MicropipesByConduitsView(APIView):
             if md.microduct_status:
                 micropipe_groups[key]["has_defect"] = True
 
-        # Check which are linked to this cable
-        linked_microducts = set()
-        if cable_id:
-            linked_microducts = set(
-                MicroductCableConnection.objects.filter(
-                    uuid_cable_id=cable_id,
-                    uuid_microduct__uuid_conduit_id__in=conduit_uuid_list,
-                )
-                .values_list("uuid_microduct_id", flat=True)
-                .distinct()
+        # Get ALL cable connections for microducts in these conduits
+        all_connections = MicroductCableConnection.objects.filter(
+            uuid_microduct__uuid_conduit_id__in=conduit_uuid_list
+        ).select_related("uuid_cable")
+
+        # Build mapping: microduct_uuid -> list of {uuid, name}
+        microduct_cables = defaultdict(list)
+        for conn in all_connections:
+            microduct_cables[conn.uuid_microduct_id].append(
+                {"uuid": str(conn.uuid_cable_id), "name": conn.uuid_cable.name}
             )
 
         # Build response
@@ -4579,11 +4580,20 @@ class MicropipesByConduitsView(APIView):
             available_set = set(data["available_in"])
             missing_conduits = conduit_set - available_set
 
-            # Check if linked to cable
-            is_linked = any(
-                uuid.UUID(md_uuid) in linked_microducts
-                for md_uuid in data["microduct_uuids"].values()
-            )
+            # Collect all cables linked to any microduct in this group
+            linked_cables_set = {}
+            for md_uuid_str in data["microduct_uuids"].values():
+                md_uuid = uuid.UUID(md_uuid_str)
+                for cable_info in microduct_cables.get(md_uuid, []):
+                    linked_cables_set[cable_info["uuid"]] = cable_info["name"]
+
+            linked_cables = [
+                {"uuid": c_uuid, "name": c_name}
+                for c_uuid, c_name in linked_cables_set.items()
+            ]
+
+            # Check if linked to current cable
+            is_linked = cable_id and cable_id in linked_cables_set
 
             result.append(
                 {
@@ -4593,6 +4603,7 @@ class MicropipesByConduitsView(APIView):
                     "available_in": list(available_set),
                     "available_in_all": len(missing_conduits) == 0,
                     "linked_to_cable": is_linked,
+                    "linked_cables": linked_cables,
                     "missing_in": [conduit_map.get(c, c) for c in missing_conduits],
                     "microduct_status": data["has_defect"],
                 }

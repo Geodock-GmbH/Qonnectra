@@ -563,14 +563,9 @@
 												{/if}
 											</td>
 											<td class="p-2 text-center">
-												{#if mp.linked_to_cable}
-													<div class="flex items-center justify-center gap-1">
-														<span
-															class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success-500/20 text-success-700 dark:text-success-300 text-xs"
-														>
-															<IconLink class="size-3" />
-															{m.message_linked()}
-														</span>
+												<div class="flex items-center justify-center gap-1">
+													{#if mp.linked_to_cable}
+														<!-- Current cable is linked - show delete button -->
 														<button
 															type="button"
 															class="p-1 rounded hover:bg-error-500/20 text-error-500 transition-colors"
@@ -585,12 +580,26 @@
 														>
 															<IconLinkOff class="size-4" />
 														</button>
-													</div>
-												{:else if isSelected}
-													<IconSquareCheck class="size-5 text-primary-500 mx-auto" />
-												{:else}
-													<IconSquare class="size-5 text-surface-400 mx-auto" />
-												{/if}
+													{:else if isSelected}
+														<IconSquareCheck class="size-5 text-primary-500" />
+													{:else}
+														<IconSquare class="size-5 text-surface-400" />
+													{/if}
+													{#if mp.linked_cables && mp.linked_cables.length > 0}
+														<span
+															class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs
+																{mp.linked_to_cable
+																? 'bg-success-500/20 text-success-700 dark:text-success-300'
+																: 'bg-warning-500/20 text-warning-700 dark:text-warning-300'}"
+															{@attach tooltip(mp.linked_cables.map((c) => c.name).join(', '), {
+																position: 'left'
+															})}
+														>
+															<IconLink class="size-3" />
+															{mp.linked_cables.length}
+														</span>
+													{/if}
+												</div>
 											</td>
 										</tr>
 									{/each}
