@@ -544,7 +544,10 @@
 						</div>
 						<div class="flex items-center gap-2">
 							<IconMapPin class="size-3.5 shrink-0" />
-							<span class="font-mono">
+							<span
+								class="font-mono"
+								{@attach tooltip(m.tooltip_coords_4326(), { position: 'bottom' })}
+							>
 								{convert3857To4326()}
 							</span>
 						</div>

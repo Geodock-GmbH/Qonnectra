@@ -644,6 +644,7 @@
 	"tooltip_close_popup": "Close popup",
 	"tooltip_collapse": "Collapse",
 	"tooltip_collapse_layer_tree": "Collapse layer tree",
+	"tooltip_coords_4326": "Coordinates in WGS 84 (EPSG:4326)",
 	"tooltip_delete_connection": "Delete connection",
 	"tooltip_delete_edge": "Delete edge",
 	"tooltip_deselect_all": "Deselect all",
