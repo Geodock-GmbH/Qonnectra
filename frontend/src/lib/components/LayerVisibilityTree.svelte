@@ -727,9 +727,7 @@
 									<span class="w-8 h-8 shrink-0"></span>
 								{/if}
 
-								<span
-									class="text-base font-medium text-surface-contrast-100-900 truncate"
-								>
+								<span class="text-base font-medium text-surface-contrast-100-900 truncate">
 									{layerInfo.name}
 								</span>
 							</div>
@@ -932,9 +930,7 @@
 													<IconChevronRight size="18" class="text-surface-900-100" />
 												{/if}
 											</button>
-											<span
-												class="text-base font-medium text-surface-contrast-100-900 truncate"
-											>
+											<span class="text-base font-medium text-surface-contrast-100-900 truncate">
 												{source.name}
 											</span>
 										</div>
@@ -1107,9 +1103,7 @@
 						{/if}
 
 						<!-- Layer name -->
-						<span
-							class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0"
-						>
+						<span class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0">
 							{layerInfo.name}
 						</span>
 
@@ -1237,7 +1231,10 @@
 									<div class="flex items-center gap-2 flex-1 min-w-0">
 										<span class="w-4 h-1 shrink-0 rounded-sm" style="background-color: {color};"
 										></span>
-										<span class="text-xs text-surface-contrast-100-900 truncate" {@attach tooltip(typeName)}>
+										<span
+											class="text-xs text-surface-contrast-100-900 truncate"
+											{@attach tooltip(typeName)}
+										>
 											{typeName}
 										</span>
 									</div>
@@ -1320,9 +1317,7 @@
 											<IconChevronRight size="14" class="text-surface-900-100" />
 										{/if}
 									</button>
-									<span
-										class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0"
-									>
+									<span class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0">
 										{source.name}
 									</span>
 									<!-- Spacers to align with other layers -->
@@ -1340,9 +1335,7 @@
 											<div
 												class="flex items-center gap-1.5 py-1 rounded hover:bg-surface-100-800 transition-colors"
 											>
-												<span
-													class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0"
-												>
+												<span class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0">
 													{layer.title || layer.name}
 												</span>
 												<button

@@ -153,9 +153,6 @@ export class MapState {
 				);
 			}
 
-			// Load WMS layers asynchronously
-			this.loadWMSLayers();
-
 			return true;
 		} catch (error) {
 			globalToaster.error({
@@ -304,6 +301,9 @@ export class MapState {
 			);
 			this.olMap.addLayer(this.areaSelectionLayer);
 		}
+
+		// Load WMS layers after map is ready (ensures this.olMap is set)
+		this.loadWMSLayers();
 	}
 
 	/**
