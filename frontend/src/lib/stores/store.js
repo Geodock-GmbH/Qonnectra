@@ -29,6 +29,12 @@ export const edgeSnappingEnabled = persisted('edgeSnappingEnabled', true);
 export const edgeSnappingGridSize = persisted('edgeSnappingGridSize', 20);
 export const networkSchemaViewport = persisted('networkSchemaViewport', { x: 0, y: 0, zoom: 1 });
 
+// Global map view - whether to show all projects on map
+export const globalMapView = persisted('globalMapView', false);
+
+// Project to restore when disabling global view
+export const previousProject = persisted('previousProject', null);
+
 // Cable edge color mode for network-schema diagram
 // 'default' = static green, 'linked' = green/blue based on connection, 'micropipe' = use micropipe color
 export const cableEdgeColorMode = persisted('cableEdgeColorMode', 'default');

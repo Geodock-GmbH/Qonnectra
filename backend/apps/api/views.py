@@ -1115,6 +1115,7 @@ class OlTrenchTileViewSet(APIView):
                     ) AS geom,
                     t.uuid,
                     t.id_trench,
+                    t.project,
                     t.construction_depth,
                     t.construction_details,
                     t.internal_execution,
@@ -1143,20 +1144,19 @@ class OlTrenchTileViewSet(APIView):
                 LEFT JOIN trench_conduits tc ON t.uuid = tc.uuid_trench
                 WHERE
                     t.geom_3857 && b.tile_bounds_margin
-                    AND t.project = %(project)s
+                    AND (%(project)s IS NULL OR t.project = %(project)s)
             )
             SELECT ST_AsMVT(mvtgeom, 'ol_trench', 4096, 'geom') AS mvt
             FROM mvtgeom;
         """
         project_id = request.query_params.get("project")
-        if project_id is None:
-            return HttpResponse(status=204)
-        try:
-            project_id = int(project_id)
-        except ValueError:
-            return HttpResponse(
-                "Invalid project ID", status=400, content_type="text/plain"
-            )
+        if project_id is not None:
+            try:
+                project_id = int(project_id)
+            except ValueError:
+                return HttpResponse(
+                    "Invalid project ID", status=400, content_type="text/plain"
+                )
 
         params = {"z": int(z), "x": int(x), "y": int(y), "project": project_id}
 
@@ -1632,6 +1632,7 @@ class OlAddressTileViewSet(APIView):
                     ) AS geom,
                     a.uuid,
                     a.id_address,
+                    a.project,
                     a.zip_code,
                     a.city,
                     a.district,
@@ -1646,22 +1647,19 @@ class OlAddressTileViewSet(APIView):
                 LEFT JOIN public.flags f ON a.flag = f.id
                 WHERE
                     a.geom_3857 && b.tile_bounds_margin
-                    AND a.project = %(project)s
+                    AND (%(project)s IS NULL OR a.project = %(project)s)
             )
             SELECT ST_AsMVT(mvtgeom, 'ol_address', 4096, 'geom') AS mvt
             FROM mvtgeom;
         """
         project_id = request.query_params.get("project")
-        if project_id is None:
-            return HttpResponse(
-                "No project ID provided", status=400, content_type="text/plain"
-            )
-        try:
-            project_id = int(project_id)
-        except ValueError:
-            return HttpResponse(
-                "Invalid project ID", status=400, content_type="text/plain"
-            )
+        if project_id is not None:
+            try:
+                project_id = int(project_id)
+            except ValueError:
+                return HttpResponse(
+                    "Invalid project ID", status=400, content_type="text/plain"
+                )
 
         params = {"z": int(z), "x": int(x), "y": int(y), "project": project_id}
 
@@ -2407,6 +2405,7 @@ class OlNodeTileViewSet(APIView):
                     ) AS geom,
                     n.uuid,
                     n.name,
+                    n.project,
                     n.warranty,
                     n.date,
                     c2.company,
@@ -2432,20 +2431,19 @@ class OlNodeTileViewSet(APIView):
                 LEFT JOIN public.flags f ON n.flag = f.id
                 WHERE
                     n.geom_3857 && b.tile_bounds_margin
-                    AND n.project = %(project)s
+                    AND (%(project)s IS NULL OR n.project = %(project)s)
             )
             SELECT ST_AsMVT(mvtgeom, 'ol_node', 4096, 'geom') AS mvt
             FROM mvtgeom;
         """
         project_id = request.query_params.get("project")
-        if project_id is None:
-            return HttpResponse(status=204)
-        try:
-            project_id = int(project_id)
-        except ValueError:
-            return HttpResponse(
-                "Invalid project ID", status=400, content_type="text/plain"
-            )
+        if project_id is not None:
+            try:
+                project_id = int(project_id)
+            except ValueError:
+                return HttpResponse(
+                    "Invalid project ID", status=400, content_type="text/plain"
+                )
 
         params = {"z": int(z), "x": int(x), "y": int(y), "project": project_id}
 
@@ -3545,6 +3543,7 @@ class OlAreaTileViewSet(APIView):
                     ) AS geom,
                     a.uuid,
                     a.name,
+                    a.project,
                     at.area_type,
                     f.flag
                 FROM bounds b
@@ -3553,22 +3552,19 @@ class OlAreaTileViewSet(APIView):
                 LEFT JOIN public.flags f ON a.flag = f.id
                 WHERE
                     a.geom_3857 && b.tile_bounds_margin
-                    AND a.project = %(project)s
+                    AND (%(project)s IS NULL OR a.project = %(project)s)
             )
             SELECT ST_AsMVT(mvtgeom, 'ol_area', 4096, 'geom') AS mvt
             FROM mvtgeom;
         """
         project_id = request.query_params.get("project")
-        if project_id is None:
-            return HttpResponse(
-                "No project ID provided", status=400, content_type="text/plain"
-            )
-        try:
-            project_id = int(project_id)
-        except ValueError:
-            return HttpResponse(
-                "Invalid project ID", status=400, content_type="text/plain"
-            )
+        if project_id is not None:
+            try:
+                project_id = int(project_id)
+            except ValueError:
+                return HttpResponse(
+                    "Invalid project ID", status=400, content_type="text/plain"
+                )
 
         params = {"z": int(z), "x": int(x), "y": int(y), "project": project_id}
 

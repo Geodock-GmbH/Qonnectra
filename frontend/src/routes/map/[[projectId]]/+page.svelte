@@ -14,6 +14,7 @@
 	import {
 		addressStyle,
 		areaTypeStyles,
+		globalMapView,
 		labelVisibilityConfig,
 		nodeTypeStyles,
 		selectedProject,
@@ -36,7 +37,13 @@
 	let searchPanelRef = $state();
 
 	// Initialize managers
-	const mapState = new MapState($selectedProject, get(trenchColorSelected));
+	const mapState = new MapState(
+		$selectedProject,
+		get(trenchColorSelected),
+		null,
+		null,
+		get(globalMapView)
+	);
 	const selectionManager = new MapSelectionManager();
 	// svelte-ignore state_referenced_locally
 	const popupManager = new MapPopupManager(data.alias);
@@ -67,6 +74,16 @@
 			if (mapState.olMap && currentProject !== mapState.selectedProject) {
 				mapState.reinitializeForProject(currentProject);
 				selectionManager.clearSelection();
+			}
+		});
+	});
+
+	// Reinitialize map layers when global view changes
+	$effect(() => {
+		const isGlobal = $globalMapView;
+		untrack(() => {
+			if (mapState.olMap) {
+				mapState.reinitializeForGlobalView(isGlobal);
 			}
 		});
 	});

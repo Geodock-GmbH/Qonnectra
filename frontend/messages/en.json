@@ -675,5 +675,7 @@
 	"tooltip_switch_to_dark_theme": "Switch to dark theme",
 	"tooltip_switch_to_light_theme": "Switch to light theme",
 	"tooltip_toggle_theme": "Toggle Light/Dark Mode",
+	"tooltip_view_all_projects": "View all projects",
+	"tooltip_view_current_project": "View current project only",
 	"tooltip_zoom_to_extent": "Zoom to extent"
 }

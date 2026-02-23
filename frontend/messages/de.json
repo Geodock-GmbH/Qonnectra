@@ -676,5 +676,7 @@
 	"tooltip_switch_to_dark_theme": "Zum dunklen Modus wechseln",
 	"tooltip_switch_to_light_theme": "Zum hellen Modus wechseln",
 	"tooltip_toggle_theme": "Hell-/Dunkelmodus umschalten",
+	"tooltip_view_all_projects": "Alle Projekte anzeigen",
+	"tooltip_view_current_project": "Nur aktuelles Projekt anzeigen",
 	"tooltip_zoom_to_extent": "Auf Ausdehnung zoomen"
 }

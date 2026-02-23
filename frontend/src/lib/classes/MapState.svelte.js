@@ -63,6 +63,7 @@ export class MapState {
 	selectedColor = $state(DEFAULT_SELECTED_COLOR);
 	addressColor = $state(DEFAULT_ADDRESS_COLOR);
 	addressSize = $state(DEFAULT_ADDRESS_SIZE);
+	isGlobalView = $state(false);
 
 	// Add layer configuration
 	layerConfig = $state({
@@ -85,15 +86,18 @@ export class MapState {
 	 * @param {string} selectedColor - Color for selected features (optional, for selection layers)
 	 * @param {Object} layerConfig - Configuration for which layers to load (optional)
 	 * @param {Object} labelConfig - Configuration for text labels on layers (optional)
+	 * @param {boolean} isGlobalView - Whether global view is active (optional)
 	 */
 	constructor(
 		selectedProject,
 		selectedColor = DEFAULT_SELECTED_COLOR,
 		layerConfig = null,
-		labelConfig = null
+		labelConfig = null,
+		isGlobalView = false
 	) {
 		this.selectedProject = selectedProject;
 		this.selectedColor = selectedColor;
+		this.isGlobalView = isGlobalView;
 
 		if (layerConfig) {
 			this.layerConfig = { ...this.layerConfig, ...layerConfig };
@@ -111,7 +115,11 @@ export class MapState {
 	initializeLayers() {
 		try {
 			if (this.layerConfig.trench) {
-				this.tileSource = createTrenchTileSource(this.selectedProject, this.handleTileError);
+				this.tileSource = createTrenchTileSource(
+					this.selectedProject,
+					this.handleTileError,
+					this.isGlobalView
+				);
 				this.vectorTileLayer = createTrenchLayer(
 					this.selectedProject,
 					m.nav_trench(),
@@ -123,7 +131,8 @@ export class MapState {
 			if (this.layerConfig.address) {
 				this.addressTileSource = createAddressTileSource(
 					this.selectedProject,
-					this.handleTileError
+					this.handleTileError,
+					this.isGlobalView
 				);
 				this.addressLayer = createAddressLayer(
 					this.selectedProject,
@@ -134,7 +143,11 @@ export class MapState {
 			}
 
 			if (this.layerConfig.node) {
-				this.nodeTileSource = createNodeTileSource(this.selectedProject, this.handleTileError);
+				this.nodeTileSource = createNodeTileSource(
+					this.selectedProject,
+					this.handleTileError,
+					this.isGlobalView
+				);
 				this.nodeLayer = createNodeLayer(
 					this.selectedProject,
 					m.form_node(),
@@ -144,7 +157,11 @@ export class MapState {
 			}
 
 			if (this.layerConfig.area) {
-				this.areaTileSource = createAreaTileSource(this.selectedProject, this.handleTileError);
+				this.areaTileSource = createAreaTileSource(
+					this.selectedProject,
+					this.handleTileError,
+					this.isGlobalView
+				);
 				this.areaLayer = createAreaLayer(
 					this.selectedProject,
 					m.form_area(),
@@ -325,66 +342,78 @@ export class MapState {
 	}
 
 	/**
+	 * Recreate all tile sources with current project and global view settings
+	 * @private
+	 */
+	_recreateTileSources() {
+		if (this.vectorTileLayer && this.layerConfig.trench) {
+			const oldSource = this.vectorTileLayer.getSource();
+			if (oldSource) oldSource.clear();
+			this.tileSource = createTrenchTileSource(
+				this.selectedProject,
+				this.handleTileError,
+				this.isGlobalView
+			);
+			this.vectorTileLayer.setSource(this.tileSource);
+			if (this.selectionLayer) this.selectionLayer.setSource(this.tileSource);
+		}
+
+		if (this.addressLayer && this.layerConfig.address) {
+			const oldSource = this.addressLayer.getSource();
+			if (oldSource) oldSource.clear();
+			this.addressTileSource = createAddressTileSource(
+				this.selectedProject,
+				this.handleTileError,
+				this.isGlobalView
+			);
+			this.addressLayer.setSource(this.addressTileSource);
+			if (this.addressSelectionLayer) this.addressSelectionLayer.setSource(this.addressTileSource);
+		}
+
+		if (this.nodeLayer && this.layerConfig.node) {
+			const oldSource = this.nodeLayer.getSource();
+			if (oldSource) oldSource.clear();
+			this.nodeTileSource = createNodeTileSource(
+				this.selectedProject,
+				this.handleTileError,
+				this.isGlobalView
+			);
+			this.nodeLayer.setSource(this.nodeTileSource);
+			if (this.nodeSelectionLayer) this.nodeSelectionLayer.setSource(this.nodeTileSource);
+		}
+
+		if (this.areaLayer && this.layerConfig.area) {
+			const oldSource = this.areaLayer.getSource();
+			if (oldSource) oldSource.clear();
+			this.areaTileSource = createAreaTileSource(
+				this.selectedProject,
+				this.handleTileError,
+				this.isGlobalView
+			);
+			this.areaLayer.setSource(this.areaTileSource);
+			if (this.areaSelectionLayer) this.areaSelectionLayer.setSource(this.areaTileSource);
+		}
+	}
+
+	/**
 	 * Reinitialize tile sources for a new project
 	 * Clears cached tiles and creates new sources with the new project ID
 	 * @param {string} newProjectId - The new project ID
 	 */
 	reinitializeForProject(newProjectId) {
 		if (this.selectedProject === newProjectId) return;
-
 		this.selectedProject = newProjectId;
+		this._recreateTileSources();
+	}
 
-		if (this.vectorTileLayer && this.layerConfig.trench) {
-			const oldSource = this.vectorTileLayer.getSource();
-			if (oldSource) {
-				oldSource.clear();
-			}
-			this.tileSource = createTrenchTileSource(newProjectId, this.handleTileError);
-			this.vectorTileLayer.setSource(this.tileSource);
-
-			if (this.selectionLayer) {
-				this.selectionLayer.setSource(this.tileSource);
-			}
-		}
-
-		if (this.addressLayer && this.layerConfig.address) {
-			const oldSource = this.addressLayer.getSource();
-			if (oldSource) {
-				oldSource.clear();
-			}
-			this.addressTileSource = createAddressTileSource(newProjectId, this.handleTileError);
-			this.addressLayer.setSource(this.addressTileSource);
-
-			if (this.addressSelectionLayer) {
-				this.addressSelectionLayer.setSource(this.addressTileSource);
-			}
-		}
-
-		if (this.nodeLayer && this.layerConfig.node) {
-			const oldSource = this.nodeLayer.getSource();
-			if (oldSource) {
-				oldSource.clear();
-			}
-			this.nodeTileSource = createNodeTileSource(newProjectId, this.handleTileError);
-			this.nodeLayer.setSource(this.nodeTileSource);
-
-			if (this.nodeSelectionLayer) {
-				this.nodeSelectionLayer.setSource(this.nodeTileSource);
-			}
-		}
-
-		if (this.areaLayer && this.layerConfig.area) {
-			const oldSource = this.areaLayer.getSource();
-			if (oldSource) {
-				oldSource.clear();
-			}
-			this.areaTileSource = createAreaTileSource(newProjectId, this.handleTileError);
-			this.areaLayer.setSource(this.areaTileSource);
-
-			if (this.areaSelectionLayer) {
-				this.areaSelectionLayer.setSource(this.areaTileSource);
-			}
-		}
+	/**
+	 * Reinitialize tile sources for global view mode change
+	 * @param {boolean} isGlobal - Whether global view is active
+	 */
+	reinitializeForGlobalView(isGlobal) {
+		if (this.isGlobalView === isGlobal) return;
+		this.isGlobalView = isGlobal;
+		this._recreateTileSources();
 	}
 
 	/**
