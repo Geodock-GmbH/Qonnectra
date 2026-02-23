@@ -3,6 +3,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import { fade, fly } from 'svelte/transition';
 	import { parse } from 'devalue';
+	import Fuse from 'fuse.js';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -40,11 +41,18 @@
 
 	const FILTER_THRESHOLD = 10;
 
-	let filteredResults = $derived(
-		filterQuery.trim()
-			? searchResults.filter((r) => r.label.toLowerCase().includes(filterQuery.toLowerCase()))
-			: searchResults
+	const fuse = $derived(
+		new Fuse(searchResults, {
+			keys: ['label'],
+			threshold: 0.3
+		})
 	);
+
+	let filteredResults = $derived.by(() => {
+		if (!filterQuery.trim()) return searchResults;
+		const results = fuse.search(filterQuery);
+		return results.length > 0 ? results.map((r) => r.item) : searchResults;
+	});
 
 	const TYPE_CONFIG = {
 		address: {

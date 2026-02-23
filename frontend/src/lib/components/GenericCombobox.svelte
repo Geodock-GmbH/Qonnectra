@@ -1,6 +1,7 @@
 <script>
 	import { browser } from '$app/environment';
 	import { Combobox, Portal, useListCollection } from '@skeletonlabs/skeleton-svelte';
+	import Fuse from 'fuse.js';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -42,12 +43,21 @@
 
 	let items = $derived(collection.items);
 
+	const fuse = $derived(
+		new Fuse(data, {
+			keys: ['label', 'value'],
+			threshold: 0.3
+		})
+	);
+
 	const onInputValueChange = (e) => {
-		const filtered = data.filter((item) =>
-			item.label.toLowerCase().includes(e.inputValue.toLowerCase())
-		);
-		if (filtered.length > 0) {
-			items = filtered;
+		if (!e.inputValue) {
+			items = data;
+			return;
+		}
+		const results = fuse.search(e.inputValue);
+		if (results.length > 0) {
+			items = results.map((result) => result.item);
 		} else {
 			items = data;
 		}

@@ -31,7 +31,16 @@ export async function load({ fetch, cookies, params }) {
 			unitsByCity: [],
 			unitsByType: [],
 			totalAddresses: 0,
-			totalUnits: 0
+			totalUnits: 0,
+			conduitLengthByType: [],
+			conduitLengthByStatusType: [],
+			conduitLengthByNetworkLevel: [],
+			conduitAvgLengthByType: [],
+			conduitCountByStatus: [],
+			conduitLengthByOwner: [],
+			conduitLengthByManufacturer: [],
+			conduitsByMonth: [],
+			longestConduits: []
 		};
 	}
 
@@ -73,7 +82,16 @@ export async function load({ fetch, cookies, params }) {
 				unitsByCity: [],
 				unitsByType: [],
 				totalAddresses: 0,
-				totalUnits: 0
+				totalUnits: 0,
+				conduitLengthByType: [],
+				conduitLengthByStatusType: [],
+				conduitLengthByNetworkLevel: [],
+				conduitAvgLengthByType: [],
+				conduitCountByStatus: [],
+				conduitLengthByOwner: [],
+				conduitLengthByManufacturer: [],
+				conduitsByMonth: [],
+				longestConduits: []
 			};
 		}
 
@@ -102,7 +120,16 @@ export async function load({ fetch, cookies, params }) {
 				unitsByCity: [],
 				unitsByType: [],
 				totalAddresses: 0,
-				totalUnits: 0
+				totalUnits: 0,
+				conduitLengthByType: [],
+				conduitLengthByStatusType: [],
+				conduitLengthByNetworkLevel: [],
+				conduitAvgLengthByType: [],
+				conduitCountByStatus: [],
+				conduitLengthByOwner: [],
+				conduitLengthByManufacturer: [],
+				conduitsByMonth: [],
+				longestConduits: []
 			};
 		}
 
@@ -111,7 +138,7 @@ export async function load({ fetch, cookies, params }) {
 			projectsResponse.json()
 		]);
 
-		const { trench, node, address } = statsData;
+		const { trench, node, address, conduit } = statsData;
 
 		return {
 			totalLength: trench.total_length,
@@ -147,7 +174,16 @@ export async function load({ fetch, cookies, params }) {
 			unitsByCity: address?.units_by_city || [],
 			unitsByType: address?.units_by_type || [],
 			totalAddresses: address?.total_addresses || 0,
-			totalUnits: address?.total_units || 0
+			totalUnits: address?.total_units || 0,
+			conduitLengthByType: conduit?.length_by_type || [],
+			conduitLengthByStatusType: conduit?.length_by_status_type || [],
+			conduitLengthByNetworkLevel: conduit?.length_by_network_level || [],
+			conduitAvgLengthByType: conduit?.avg_length_by_type || [],
+			conduitCountByStatus: conduit?.count_by_status || [],
+			conduitLengthByOwner: conduit?.length_by_owner || [],
+			conduitLengthByManufacturer: conduit?.length_by_manufacturer || [],
+			conduitsByMonth: conduit?.conduits_by_month || [],
+			longestConduits: conduit?.longest_conduits || []
 		};
 	} catch (error) {
 		console.error('Error fetching data:', error);
@@ -174,7 +210,16 @@ export async function load({ fetch, cookies, params }) {
 			unitsByCity: [],
 			unitsByType: [],
 			totalAddresses: 0,
-			totalUnits: 0
+			totalUnits: 0,
+			conduitLengthByType: [],
+			conduitLengthByStatusType: [],
+			conduitLengthByNetworkLevel: [],
+			conduitAvgLengthByType: [],
+			conduitCountByStatus: [],
+			conduitLengthByOwner: [],
+			conduitLengthByManufacturer: [],
+			conduitsByMonth: [],
+			longestConduits: []
 		};
 	}
 }

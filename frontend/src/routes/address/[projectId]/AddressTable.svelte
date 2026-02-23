@@ -9,6 +9,7 @@
 		IconChevronUp,
 		IconSelector
 	} from '@tabler/icons-svelte';
+	import Fuse from 'fuse.js';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -57,6 +58,8 @@
 	// Mobile global filter
 	let mobileSearchTerm = $state('');
 
+	const fuseKeys = columnConfig.map((col) => col.key);
+
 	function toggleSort(columnKey) {
 		if (sortColumn === columnKey) {
 			if (sortDirection === 'asc') {
@@ -89,11 +92,17 @@
 	}
 
 	const filteredAddresses = $derived.by(() => {
+		const activeFilters = Object.entries(filters).filter(([, value]) => value.trim());
+		if (activeFilters.length === 0) return addresses;
+
 		return addresses.filter((address) => {
-			return Object.entries(filters).every(([key, filterValue]) => {
-				if (!filterValue) return true;
-				const cellValue = String(address[key] || '').toLowerCase();
-				return cellValue.includes(filterValue.toLowerCase());
+			return activeFilters.every(([key, filterValue]) => {
+				const cellValue = String(address[key] || '');
+				const columnFuse = new Fuse([{ value: cellValue }], {
+					keys: ['value'],
+					threshold: 0.3
+				});
+				return columnFuse.search(filterValue).length > 0;
 			});
 		});
 	});
@@ -119,17 +128,17 @@
 		});
 	});
 
-	const mobileFilteredAddresses = $derived.by(() => {
-		if (!mobileSearchTerm) return sortedAddresses;
+	const mobileFuse = $derived(
+		new Fuse(sortedAddresses, {
+			keys: fuseKeys,
+			threshold: 0.3
+		})
+	);
 
-		const term = mobileSearchTerm.toLowerCase();
-		return sortedAddresses.filter((address) => {
-			return Object.values(address).some((value) =>
-				String(value || '')
-					.toLowerCase()
-					.includes(term)
-			);
-		});
+	const mobileFilteredAddresses = $derived.by(() => {
+		if (!mobileSearchTerm.trim()) return sortedAddresses;
+		const results = mobileFuse.search(mobileSearchTerm);
+		return results.length > 0 ? results.map((r) => r.item) : sortedAddresses;
 	});
 
 	function handleRowClick(address) {

@@ -5,6 +5,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import AddressStatistics from '$lib/components/AddressStatistics.svelte';
+	import ConduitStatistics from '$lib/components/ConduitStatistics.svelte';
 	import NodeStatistics from '$lib/components/NodeStatistics.svelte';
 	import TrenchStatistics from '$lib/components/TrenchStatistics.svelte';
 
@@ -23,6 +24,7 @@
 	<Tabs.List>
 		<Tabs.Trigger value="stats">{m.common_overview()}</Tabs.Trigger>
 		<Tabs.Trigger value="trench">{m.nav_trench()}</Tabs.Trigger>
+		<Tabs.Trigger value="conduit">{m.nav_conduit()}</Tabs.Trigger>
 		<Tabs.Trigger value="node">{m.nav_node()}</Tabs.Trigger>
 		<Tabs.Trigger value="address">{m.nav_address()}</Tabs.Trigger>
 		<Tabs.Trigger value="projects">{m.form_project({ count: data.projects.length })}</Tabs.Trigger>
@@ -149,6 +151,19 @@
 			lengthByStatus={data.lengthByStatus}
 			lengthByNetworkLevel={data.lengthByNetworkLevel}
 			longestRoutes={data.longestRoutes}
+		/>
+	</Tabs.Content>
+	<Tabs.Content value="conduit">
+		<ConduitStatistics
+			lengthByType={data.conduitLengthByType}
+			lengthByStatusType={data.conduitLengthByStatusType}
+			lengthByNetworkLevel={data.conduitLengthByNetworkLevel}
+			avgLengthByType={data.conduitAvgLengthByType}
+			countByStatus={data.conduitCountByStatus}
+			lengthByOwner={data.conduitLengthByOwner}
+			lengthByManufacturer={data.conduitLengthByManufacturer}
+			conduitsByMonth={data.conduitsByMonth}
+			longestConduits={data.longestConduits}
 		/>
 	</Tabs.Content>
 	<Tabs.Content value="node">

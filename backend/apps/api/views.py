@@ -14,6 +14,7 @@ from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.db import connection, transaction
 from django.db.models import Avg, Count, F, Q, Sum
+from django.db.models.functions import TruncMonth
 from django.http import FileResponse, HttpResponse, StreamingHttpResponse
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
@@ -5359,6 +5360,7 @@ class DashboardStatisticsView(APIView):
             "trench": self._get_trench_statistics(project_id, flag_id),
             "node": self._get_node_statistics(project_id, flag_id),
             "address": self._get_address_statistics(project_id, flag_id),
+            "conduit": self._get_conduit_statistics(project_id, flag_id),
         }
 
         # Cache the result
@@ -5627,4 +5629,170 @@ class DashboardStatisticsView(APIView):
             "units_by_type": units_by_type,
             "total_addresses": base_queryset.count(),
             "total_units": unit_queryset.count(),
+        }
+
+    def _get_conduit_statistics(self, project_id, flag_id):
+        """Gather all conduit-related statistics."""
+        base_queryset = Conduit.objects.all()
+        if project_id:
+            base_queryset = base_queryset.filter(project=project_id)
+        if flag_id:
+            base_queryset = base_queryset.filter(flag=flag_id)
+
+        # Path to trench length via TrenchConduitConnection
+        trench_length_path = "trenchconduitconnection__uuid_trench__length"
+
+        # Total length and count
+        totals = base_queryset.aggregate(
+            total_length=Sum(trench_length_path),
+            count=Count("uuid", distinct=True),
+        )
+
+        # Length by type
+        length_by_type = list(
+            base_queryset.values(type_name=F("conduit_type__conduit_type"))
+            .annotate(total=Sum(trench_length_path))
+            .order_by("-total")
+        )
+        length_by_type = [
+            {"type_name": row["type_name"], "total": row["total"] or 0}
+            for row in length_by_type
+            if row["type_name"]
+        ]
+
+        # Length by status with type breakdown (for stacked bar)
+        length_by_status_type = list(
+            base_queryset.values(
+                status_name=F("status__status"),
+                type_name=F("conduit_type__conduit_type"),
+            )
+            .annotate(total=Sum(trench_length_path))
+            .order_by("status_name", "type_name")
+        )
+        length_by_status_type = [
+            {
+                "status_name": row["status_name"],
+                "type_name": row["type_name"],
+                "total": row["total"] or 0,
+            }
+            for row in length_by_status_type
+            if row["status_name"] and row["type_name"]
+        ]
+
+        # Length by network level
+        length_by_network_level = list(
+            base_queryset.values(network_level_name=F("network_level__network_level"))
+            .annotate(total=Sum(trench_length_path))
+            .order_by("-total")
+        )
+        length_by_network_level = [
+            {"network_level": row["network_level_name"], "total": row["total"] or 0}
+            for row in length_by_network_level
+            if row["network_level_name"]
+        ]
+
+        # Average length per type
+        # First get total length and count per type, then calculate average
+        type_stats = list(
+            base_queryset.values(type_name=F("conduit_type__conduit_type"))
+            .annotate(
+                total_length=Sum(trench_length_path),
+                conduit_count=Count("uuid", distinct=True),
+            )
+            .order_by("-total_length")
+        )
+        avg_length_by_type = [
+            {
+                "type_name": row["type_name"],
+                "avg_length": (row["total_length"] / row["conduit_count"]) if row["conduit_count"] else 0,
+            }
+            for row in type_stats
+            if row["type_name"] and row["total_length"]
+        ]
+        avg_length_by_type.sort(key=lambda x: x["avg_length"], reverse=True)
+
+        # Count by status
+        count_by_status = list(
+            base_queryset.values(status_name=F("status__status"))
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+        count_by_status = [
+            {"status_name": row["status_name"], "count": row["count"]}
+            for row in count_by_status
+            if row["status_name"]
+        ]
+
+        # Length by owner
+        length_by_owner = list(
+            base_queryset.filter(owner__isnull=False)
+            .values(owner_name=F("owner__company"))
+            .annotate(total=Sum(trench_length_path))
+            .order_by("-total")
+        )
+        length_by_owner = [
+            {"owner_name": row["owner_name"], "total": row["total"] or 0}
+            for row in length_by_owner
+            if row["owner_name"]
+        ]
+
+        # Length by manufacturer
+        length_by_manufacturer = list(
+            base_queryset.filter(manufacturer__isnull=False)
+            .values(manufacturer_name=F("manufacturer__company"))
+            .annotate(total=Sum(trench_length_path))
+            .order_by("-total")
+        )
+        length_by_manufacturer = [
+            {"manufacturer_name": row["manufacturer_name"], "total": row["total"] or 0}
+            for row in length_by_manufacturer
+            if row["manufacturer_name"]
+        ]
+
+        # Conduits by date (monthly)
+        conduits_by_month = list(
+            base_queryset.filter(date__isnull=False)
+            .annotate(month=TruncMonth("date"))
+            .values("month")
+            .annotate(count=Count("uuid"))
+            .order_by("month")
+        )
+        conduits_by_month = [
+            {"month": row["month"].strftime("%Y-%m") if row["month"] else None, "count": row["count"]}
+            for row in conduits_by_month
+            if row["month"]
+        ]
+
+        # Top 5 longest conduits
+        longest_conduits = list(
+            base_queryset.annotate(
+                total_length=Sum(trench_length_path),
+                type_name=F("conduit_type__conduit_type"),
+            )
+            .filter(total_length__isnull=False)
+            .values("name", "type_name", "total_length")
+            .order_by("-total_length")[:5]
+        )
+        longest_conduits = [
+            {
+                "name": row["name"],
+                "type_name": row["type_name"],
+                "total_length": row["total_length"] or 0,
+            }
+            for row in longest_conduits
+            if row["total_length"]
+        ]
+
+        return {
+            "total_length": totals["total_length"] or 0,
+            "count": totals["count"] or 0,
+            "length_by_type": length_by_type,
+            "length_by_status_type": length_by_status_type,
+            "length_by_network_level": length_by_network_level,
+            "avg_length_by_type": avg_length_by_type,
+            "count_by_status": count_by_status,
+            "length_by_owner": length_by_owner,
+            "length_by_manufacturer": length_by_manufacturer,
+            "conduits_by_month": conduits_by_month,
+            "longest_conduits": longest_conduits,
         }
