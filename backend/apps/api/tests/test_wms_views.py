@@ -93,7 +93,7 @@ class TestWMSProxyView:
         url = reverse("wms-proxy", args=[wms_source.id])
         response = client.get(url)
 
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_proxy_invalid_source(self, api_client):
         """Should return 404 for invalid source ID."""

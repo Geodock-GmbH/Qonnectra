@@ -45,7 +45,7 @@ class TestFetchWMSLayers:
         """Should raise WMSServiceError on connection failure."""
         with patch("apps.api.wms_service.WebMapService", side_effect=Exception("Connection failed")):
             with pytest.raises(WMSServiceError) as exc_info:
-                fetch_wms_layers("https://example.com/wms")
+                fetch_wms_layers("https://example.com/wms", use_cache=False)
 
         assert "Connection failed" in str(exc_info.value)
 

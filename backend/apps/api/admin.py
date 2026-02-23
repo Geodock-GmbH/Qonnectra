@@ -1598,8 +1598,15 @@ class WMSLayerInline(admin.TabularInline):
     model = WMSLayer
     extra = 0
     readonly_fields = ["name", "title"]
-    fields = ["name", "title", "is_enabled", "sort_order", "min_zoom", "max_zoom"]
-    # fields = ["name", "title", "is_enabled", "sort_order", "min_zoom", "max_zoom", "opacity"] - opacity does not render on map, reason unknown.
+    fields = [
+        "name",
+        "title",
+        "is_enabled",
+        "sort_order",
+        "min_zoom",
+        "max_zoom",
+        "opacity",
+    ]
     ordering = ["sort_order", "name"]
 
 

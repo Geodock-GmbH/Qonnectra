@@ -5085,16 +5085,17 @@ class WMSProxyView(APIView):
         )
 
         # Extract allowed params from the original URL (e.g., MAP for QGIS Server)
+        # Normalize keys to uppercase for case-insensitive merging
         original_params = {
-            k: v[0] if len(v) == 1 else v
+            k.upper(): v[0] if len(v) == 1 else v
             for k, v in parse_qs(parsed_url.query).items()
             if k.lower() in self.ALLOWED_WMS_PARAMS
         }
 
         # Filter incoming request params to allowed WMS parameters only
-        # and remove our auth token
+        # and remove our auth token. Normalize keys to uppercase.
         params = {
-            k: v
+            k.upper(): v
             for k, v in request.query_params.dict().items()
             if k.lower() in self.ALLOWED_WMS_PARAMS
         }
@@ -5115,9 +5116,29 @@ class WMSProxyView(APIView):
                 stream=True,
             )
         except requests.RequestException as e:
+            logger.error(
+                f"WMS proxy upstream request failed for source {source_id}: {e}",
+                extra={
+                    "wms_source_id": str(source_id),
+                    "upstream_url": base_url,
+                    "params": params,
+                },
+            )
             return Response(
                 {"error": f"Upstream request failed: {e}"},
                 status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        # Log non-2xx responses from upstream
+        if not upstream_response.ok:
+            logger.warning(
+                f"WMS proxy received non-2xx from upstream: {upstream_response.status_code}",
+                extra={
+                    "wms_source_id": str(source_id),
+                    "upstream_url": base_url,
+                    "upstream_status": upstream_response.status_code,
+                    "params": params,
+                },
             )
 
         # Check response size limit
