@@ -303,7 +303,7 @@ export class MapState {
 		}
 
 		// Load WMS layers after map is ready (ensures this.olMap is set)
-		this.loadWMSLayers();
+		// this.loadWMSLayers();
 	}
 
 	/**
