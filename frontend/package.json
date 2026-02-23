@@ -16,12 +16,12 @@
 	"devDependencies": {
 		"@ianvs/prettier-plugin-sort-imports": "^4.7.0",
 		"@playwright/test": "^1.58.2",
-		"@skeletonlabs/skeleton": "^4.11.0",
-		"@skeletonlabs/skeleton-svelte": "^4.11.0",
-		"@sveltejs/adapter-auto": "^6.0.0",
-		"@sveltejs/adapter-node": "^5.5.2",
-		"@sveltejs/kit": "^2.50.1",
-		"@sveltejs/vite-plugin-svelte": "^5.0.0",
+		"@skeletonlabs/skeleton": "^4.12.0",
+		"@skeletonlabs/skeleton-svelte": "^4.12.0",
+		"@sveltejs/adapter-auto": "^7.0.1",
+		"@sveltejs/adapter-node": "^5.5.3",
+		"@sveltejs/kit": "^2.53.0",
+		"@sveltejs/vite-plugin-svelte": "^6.2.4",
 		"@tailwindcss/forms": "^0.5.10",
 		"@tailwindcss/vite": "^4.0.0",
 		"@testing-library/jest-dom": "^6.6.3",
@@ -35,18 +35,19 @@
 		"prettier-plugin-svelte": "^3.3.3",
 		"svelte": "^5.48.2",
 		"tailwindcss": "^4.0.0",
-		"vite": "^6.2.5",
+		"vite": "npm:rolldown-vite@^7.3.1",
 		"vitest": "^3.0.0"
 	},
 	"dependencies": {
-		"@inlang/paraglide-js": "^2.0.0",
-		"@tabler/icons-svelte": "^3.31.0",
+		"@inlang/paraglide-js": "^2.12.0",
+		"@tabler/icons-svelte": "^3.37.1",
 		"@xyflow/svelte": "^1.2.4",
 		"chart.js": "^4.5.1",
 		"ol": "^10.5.0",
 		"ol-mapbox-style": "^13.2.0",
 		"perfect-freehand": "^1.2.2",
 		"proj4": "^2.20.2",
+		"rolldown-vite": "^7.3.1",
 		"set-cookie-parser": "^2.7.1"
 	}
 }
