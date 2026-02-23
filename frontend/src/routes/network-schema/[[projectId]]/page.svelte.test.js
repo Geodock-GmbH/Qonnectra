@@ -112,37 +112,32 @@ vi.mock('$lib/components/Drawer.svelte', async () => {
 });
 
 vi.mock('$lib/components/GenericCombobox.svelte', async () => {
-	const { default: MockGenericCombobox } = await import(
-		'$lib/test-utils/mocks/MockGenericCombobox.svelte'
-	);
+	const { default: MockGenericCombobox } =
+		await import('$lib/test-utils/mocks/MockGenericCombobox.svelte');
 	return { default: MockGenericCombobox };
 });
 
 vi.mock('./CableDiagramNode.svelte', async () => {
-	const { default: MockCableDiagramNode } = await import(
-		'$lib/test-utils/mocks/MockCableDiagramNode.svelte'
-	);
+	const { default: MockCableDiagramNode } =
+		await import('$lib/test-utils/mocks/MockCableDiagramNode.svelte');
 	return { default: MockCableDiagramNode };
 });
 
 vi.mock('./CableDiagramEdge.svelte', async () => {
-	const { default: MockCableDiagramEdge } = await import(
-		'$lib/test-utils/mocks/MockCableDiagramEdge.svelte'
-	);
+	const { default: MockCableDiagramEdge } =
+		await import('$lib/test-utils/mocks/MockCableDiagramEdge.svelte');
 	return { default: MockCableDiagramEdge };
 });
 
 vi.mock('./NetworkSchemaSearch.svelte', async () => {
-	const { default: MockNetworkSchemaSearch } = await import(
-		'$lib/test-utils/mocks/MockNetworkSchemaSearch.svelte'
-	);
+	const { default: MockNetworkSchemaSearch } =
+		await import('$lib/test-utils/mocks/MockNetworkSchemaSearch.svelte');
 	return { default: MockNetworkSchemaSearch };
 });
 
 vi.mock('./ViewportPersistence.svelte', async () => {
-	const { default: MockViewportPersistence } = await import(
-		'$lib/test-utils/mocks/MockViewportPersistence.svelte'
-	);
+	const { default: MockViewportPersistence } =
+		await import('$lib/test-utils/mocks/MockViewportPersistence.svelte');
 	return { default: MockViewportPersistence };
 });
 

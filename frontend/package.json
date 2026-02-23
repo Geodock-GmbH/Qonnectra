@@ -41,7 +41,7 @@
 	"dependencies": {
 		"@inlang/paraglide-js": "^2.12.0",
 		"@tabler/icons-svelte": "^3.37.1",
-		"@xyflow/svelte": "^1.2.4",
+		"@xyflow/svelte": "^1.5.1",
 		"chart.js": "^4.5.1",
 		"ol": "^10.5.0",
 		"ol-mapbox-style": "^13.2.0",
