@@ -19,10 +19,19 @@
 	 * @property {string} featureType - Type of feature ('trench', 'address', 'node')
 	 * @property {string} featureId - UUID of the feature
 	 * @property {Object} alias - Field name alias mapping (English -> Localized)
+	 * @property {string|null} featureProjectId - Project ID of the feature (used in global view)
+	 * @property {Array<{label: string, value: string}>} projects - List of projects for name lookup
 	 */
 
 	/** @type {Props} */
-	let { featureData = {}, featureType = 'trench', featureId = '', alias = {} } = $props();
+	let {
+		featureData = {},
+		featureType = 'trench',
+		featureId = '',
+		alias = {},
+		featureProjectId = null,
+		projects = []
+	} = $props();
 
 	let activeTab = $state('attributes');
 
@@ -60,7 +69,7 @@
 
 <Tabs tabs={tabItems} bind:value={activeTab}>
 	{#if activeTab === 'attributes'}
-		<FeatureAttributeCard properties={featureData} {featureType} {alias} />
+		<FeatureAttributeCard properties={featureData} {featureType} {alias} {projects} />
 	{/if}
 
 	{#if activeTab === 'conduits' && featureType === 'trench'}

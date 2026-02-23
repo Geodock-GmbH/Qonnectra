@@ -32,9 +32,6 @@ export const networkSchemaViewport = persisted('networkSchemaViewport', { x: 0, 
 // Global map view - whether to show all projects on map
 export const globalMapView = persisted('globalMapView', false);
 
-// Project to restore when disabling global view
-export const previousProject = persisted('previousProject', null);
-
 // Cable edge color mode for network-schema diagram
 // 'default' = static green, 'linked' = green/blue based on connection, 'micropipe' = use micropipe color
 export const cableEdgeColorMode = persisted('cableEdgeColorMode', 'default');

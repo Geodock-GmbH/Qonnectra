@@ -1,6 +1,3 @@
-import { get } from 'svelte/store';
-
-import { globalMapView, selectedProject } from '$lib/stores/store';
 import {
 	detectFeatureType,
 	formatFeatureProperties,
@@ -182,14 +179,6 @@ export class MapInteractionManager {
 			const featureType = detectFeatureType(feature, layer);
 			const rawProperties = feature.getProperties();
 
-			// In global view, switch to the feature's project for drawer context
-			if (get(globalMapView)) {
-				const featureProject = rawProperties.project;
-				if (featureProject != null) {
-					selectedProject.set(String(featureProject));
-				}
-			}
-
 			if (featureType && this.drawerStore && this.drawerComponent) {
 				const properties = formatFeatureProperties(rawProperties, featureType);
 
@@ -203,6 +192,7 @@ export class MapInteractionManager {
 						featureType,
 						featureId,
 						alias: this.alias,
+						featureProjectId: rawProperties.project ? String(rawProperties.project) : null,
 						...this.additionalDrawerProps
 					}
 				});

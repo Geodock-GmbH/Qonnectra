@@ -16,7 +16,7 @@
 		zoomToFeature,
 		zoomToMultipleFeatures
 	} from '$lib/map/searchUtils';
-	import { selectedProject } from '$lib/stores/store';
+	import { globalMapView, selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
 	import SearchInput from './SearchInput.svelte';
@@ -112,7 +112,8 @@
 		try {
 			const formData = new FormData();
 			formData.append('searchQuery', query);
-			formData.append('projectId', $selectedProject);
+			const projectId = $globalMapView ? '' : $selectedProject;
+			formData.append('projectId', projectId);
 
 			const response = await fetch('?/searchFeatures', {
 				method: 'POST',
@@ -165,7 +166,8 @@
 			const formData = new FormData();
 			formData.append('featureType', type);
 			formData.append('featureUuid', value);
-			formData.append('projectId', $selectedProject);
+			const projectId = $globalMapView ? '' : $selectedProject;
+			formData.append('projectId', projectId);
 
 			const response = await fetch('?/getFeatureDetails', {
 				method: 'POST',

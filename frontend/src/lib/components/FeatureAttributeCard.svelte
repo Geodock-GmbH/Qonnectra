@@ -8,10 +8,11 @@
 	 * @property {Object} properties - Feature properties from MVT
 	 * @property {string} featureType - Type of feature ('trench', 'address', 'node')
 	 * @property {Object} alias - Field name alias mapping (English -> Localized)
+	 * @property {Array<{label: string, value: string}>} projects - List of projects for name lookup
 	 */
 
 	/** @type {Props} */
-	let { properties = {}, featureType = 'trench', alias = {} } = $props();
+	let { properties = {}, featureType = 'trench', alias = {}, projects = [] } = $props();
 
 	/**
 	 * Get display name for a field key using alias or fallback
@@ -25,13 +26,21 @@
 
 	/**
 	 * Format value for display
+	 * @param {string} key - Property key
 	 * @param {any} value
 	 * @returns {string}
 	 */
-	function formatValue(value) {
+	function formatValue(key, value) {
 		if (value === null || value === undefined) return '-';
 		if (typeof value === 'boolean') return value ? m.common_yes() : m.common_no();
 		if (value instanceof Date) return value.toLocaleDateString();
+
+		// Look up project name if this is the project field
+		if (key === 'project' && projects.length > 0) {
+			const project = projects.find((p) => p.value === String(value));
+			if (project) return project.label;
+		}
+
 		return String(value);
 	}
 
@@ -64,7 +73,7 @@
 			{#each propertyEntries as [key, value] (key)}
 				<div class="flex flex-col gap-1">
 					<span class="label-text">{getDisplayLabel(key)}</span>
-					<input type="text" class="input" readonly value={formatValue(value)} />
+					<input type="text" class="input" readonly value={formatValue(key, value)} />
 				</div>
 			{/each}
 		</div>

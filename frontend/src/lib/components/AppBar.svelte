@@ -1,5 +1,5 @@
 <script>
-	import { get } from 'svelte/store';
+	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
 	import { AppBar } from '@skeletonlabs/skeleton-svelte';
 	import { IconLogin, IconLogout, IconWorld } from '@tabler/icons-svelte';
@@ -7,7 +7,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { userStore } from '$lib/stores/auth';
-	import { globalMapView, previousProject, selectedProject } from '$lib/stores/store';
+	import { globalMapView, selectedProject } from '$lib/stores/store';
 	import { tooltip } from '$lib/utils/tooltip.js';
 
 	import LightSwitch from './LightSwitch.svelte';
@@ -18,15 +18,19 @@
 
 	function toggleGlobalMapView() {
 		if ($globalMapView) {
-			// Disable: restore previous project
-			const prev = get(previousProject);
-			if (prev !== null) {
-				selectedProject.set(prev);
+			// Disable: restore from cookie (SSOT)
+			if (browser) {
+				const cookieProject = document.cookie
+					.split('; ')
+					.find((row) => row.startsWith('selected-project='))
+					?.split('=')[1];
+				if (cookieProject) {
+					selectedProject.set(cookieProject);
+				}
 			}
 			globalMapView.set(false);
 		} else {
-			// Enable: save current project
-			previousProject.set(get(selectedProject));
+			// Enable: just turn on global view
 			globalMapView.set(true);
 		}
 	}

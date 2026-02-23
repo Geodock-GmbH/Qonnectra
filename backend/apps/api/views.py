@@ -1225,7 +1225,7 @@ class ConduitViewSet(viewsets.ModelViewSet):
         Returns conduits with server-side pagination.
 
         Query params:
-        - project: Filter by project ID (required)
+        - project: Filter by project ID (optional)
         - flag: Filter by flag ID
         - search: Search term
         - page: Page number (default: 1)
@@ -1245,13 +1245,8 @@ class ConduitViewSet(viewsets.ModelViewSet):
         flag_id = request.query_params.get("flag")
         search_term = request.query_params.get("search")
 
-        if not project_id:
-            return Response(
-                {"error": "project parameter required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        queryset = queryset.filter(project=project_id)
+        if project_id:
+            queryset = queryset.filter(project=project_id)
 
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
@@ -1472,7 +1467,7 @@ class AddressViewSet(viewsets.ModelViewSet):
         Returns addresses with server-side pagination.
 
         Query params:
-        - project: Filter by project ID (required)
+        - project: Filter by project ID (optional)
         - flag: Filter by flag ID
         - search: Search term (searches street, housenumber, etc.)
         - page: Page number (default: 1)
@@ -1487,13 +1482,8 @@ class AddressViewSet(viewsets.ModelViewSet):
         flag_id = request.query_params.get("flag")
         search_term = request.query_params.get("search")
 
-        if not project_id:
-            return Response(
-                {"error": "project parameter required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        queryset = queryset.filter(project=project_id)
+        if project_id:
+            queryset = queryset.filter(project=project_id)
 
         if flag_id:
             queryset = queryset.filter(flag=flag_id)

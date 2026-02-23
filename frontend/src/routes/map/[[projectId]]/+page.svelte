@@ -56,6 +56,10 @@
 		data.alias
 	);
 
+	// Pass projects to drawer for project name lookup
+	// svelte-ignore state_referenced_locally
+	interactionManager.setAdditionalDrawerProps({ projects: data.projects });
+
 	setContext('mapManagers', {
 		mapState,
 		selectionManager,

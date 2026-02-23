@@ -14,48 +14,35 @@ import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
  * @returns {Promise<Array>} Array of search results
  */
 export async function searchFeaturesInProject(fetch, cookies, searchQuery, projectId) {
-	if (!searchQuery || !projectId) {
-		throw error(400, 'Search query and project ID are required');
+	if (!searchQuery) {
+		throw error(400, 'Search query is required');
 	}
+
+	const projectParam = projectId ? `&project=${projectId}` : '';
 
 	try {
 		const [addAddressResponse, nodeResponse, trenchResponse, conduitResponse, areaResponse] =
 			await Promise.all([
-				fetch(
-					`${API_URL}address/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
-					{
-						credentials: 'include',
-						headers: getAuthHeaders(cookies)
-					}
-				),
-				fetch(
-					`${API_URL}node/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
-					{
-						credentials: 'include',
-						headers: getAuthHeaders(cookies)
-					}
-				),
-				fetch(
-					`${API_URL}trench/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
-					{
-						credentials: 'include',
-						headers: getAuthHeaders(cookies)
-					}
-				),
-				fetch(
-					`${API_URL}conduit/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
-					{
-						credentials: 'include',
-						headers: getAuthHeaders(cookies)
-					}
-				),
-				fetch(
-					`${API_URL}area/all/?search=${encodeURIComponent(searchQuery)}&project=${projectId}`,
-					{
-						credentials: 'include',
-						headers: getAuthHeaders(cookies)
-					}
-				)
+				fetch(`${API_URL}address/all/?search=${encodeURIComponent(searchQuery)}${projectParam}`, {
+					credentials: 'include',
+					headers: getAuthHeaders(cookies)
+				}),
+				fetch(`${API_URL}node/all/?search=${encodeURIComponent(searchQuery)}${projectParam}`, {
+					credentials: 'include',
+					headers: getAuthHeaders(cookies)
+				}),
+				fetch(`${API_URL}trench/all/?search=${encodeURIComponent(searchQuery)}${projectParam}`, {
+					credentials: 'include',
+					headers: getAuthHeaders(cookies)
+				}),
+				fetch(`${API_URL}conduit/all/?search=${encodeURIComponent(searchQuery)}${projectParam}`, {
+					credentials: 'include',
+					headers: getAuthHeaders(cookies)
+				}),
+				fetch(`${API_URL}area/all/?search=${encodeURIComponent(searchQuery)}${projectParam}`, {
+					credentials: 'include',
+					headers: getAuthHeaders(cookies)
+				})
 			]);
 
 		if (
