@@ -1,8 +1,9 @@
 import '@testing-library/jest-dom/vitest';
-import { describe, expect, test, vi, beforeEach } from 'vitest';
+
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import Fuse from 'fuse.js';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 // Test Fuse.js fuzzy search behavior directly
 describe('GenericCombobox Fuzzy Search', () => {

@@ -5,6 +5,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import AddressStatistics from '$lib/components/AddressStatistics.svelte';
+	import AreaStatistics from '$lib/components/AreaStatistics.svelte';
 	import ConduitStatistics from '$lib/components/ConduitStatistics.svelte';
 	import NodeStatistics from '$lib/components/NodeStatistics.svelte';
 	import TrenchStatistics from '$lib/components/TrenchStatistics.svelte';
@@ -27,6 +28,7 @@
 		<Tabs.Trigger value="conduit">{m.nav_conduit()}</Tabs.Trigger>
 		<Tabs.Trigger value="node">{m.nav_node()}</Tabs.Trigger>
 		<Tabs.Trigger value="address">{m.nav_address()}</Tabs.Trigger>
+		<Tabs.Trigger value="area">{m.nav_area()}</Tabs.Trigger>
 		<Tabs.Trigger value="projects">{m.form_project({ count: data.projects.length })}</Tabs.Trigger>
 		<Tabs.Indicator />
 	</Tabs.List>
@@ -182,6 +184,25 @@
 			addressesByStatus={data.addressesByStatus}
 			unitsByCity={data.unitsByCity}
 			unitsByType={data.unitsByType}
+		/>
+	</Tabs.Content>
+	<Tabs.Content value="area">
+		<AreaStatistics
+			areaCount={data.areaCount}
+			totalCoverageKm2={data.totalCoverageKm2}
+			areasByType={data.areasByType}
+			totalAddresses={data.totalAddresses}
+			addressesInAreas={data.addressesInAreas}
+			totalNodes={data.totalNodes}
+			nodesInAreas={data.nodesInAreas}
+			totalResidentialUnits={data.totalResidentialUnits}
+			residentialUnitsInAreas={data.residentialUnitsInAreas}
+			addressesPerArea={data.addressesPerArea}
+			addressesByAreaType={data.addressesByAreaType}
+			nodesPerArea={data.nodesPerArea}
+			nodesByAreaType={data.nodesByAreaType}
+			trenchLengthPerArea={data.trenchLengthPerArea}
+			residentialByAreaType={data.residentialByAreaType}
 		/>
 	</Tabs.Content>
 	<Tabs.Content value="projects">

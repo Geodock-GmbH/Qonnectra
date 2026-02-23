@@ -43,30 +43,26 @@ vi.mock('$app/stores', () => ({
 
 // Mock child components that may have complex dependencies
 vi.mock('$lib/components/AddressStatistics.svelte', async () => {
-	const { default: MockAddressStatistics } = await import(
-		'$lib/test-utils/mocks/MockAddressStatistics.svelte'
-	);
+	const { default: MockAddressStatistics } =
+		await import('$lib/test-utils/mocks/MockAddressStatistics.svelte');
 	return { default: MockAddressStatistics };
 });
 
 vi.mock('$lib/components/ConduitStatistics.svelte', async () => {
-	const { default: MockConduitStatistics } = await import(
-		'$lib/test-utils/mocks/MockConduitStatistics.svelte'
-	);
+	const { default: MockConduitStatistics } =
+		await import('$lib/test-utils/mocks/MockConduitStatistics.svelte');
 	return { default: MockConduitStatistics };
 });
 
 vi.mock('$lib/components/NodeStatistics.svelte', async () => {
-	const { default: MockNodeStatistics } = await import(
-		'$lib/test-utils/mocks/MockNodeStatistics.svelte'
-	);
+	const { default: MockNodeStatistics } =
+		await import('$lib/test-utils/mocks/MockNodeStatistics.svelte');
 	return { default: MockNodeStatistics };
 });
 
 vi.mock('$lib/components/TrenchStatistics.svelte', async () => {
-	const { default: MockTrenchStatistics } = await import(
-		'$lib/test-utils/mocks/MockTrenchStatistics.svelte'
-	);
+	const { default: MockTrenchStatistics } =
+		await import('$lib/test-utils/mocks/MockTrenchStatistics.svelte');
 	return { default: MockTrenchStatistics };
 });
 

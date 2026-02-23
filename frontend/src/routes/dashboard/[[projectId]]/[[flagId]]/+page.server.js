@@ -40,7 +40,19 @@ export async function load({ fetch, cookies, params }) {
 			conduitLengthByOwner: [],
 			conduitLengthByManufacturer: [],
 			conduitsByMonth: [],
-			longestConduits: []
+			longestConduits: [],
+			areaCount: 0,
+			totalCoverageKm2: 0,
+			areasByType: [],
+			addressesInAreas: 0,
+			nodesInAreas: 0,
+			residentialUnitsInAreas: 0,
+			addressesPerArea: [],
+			addressesByAreaType: [],
+			nodesPerArea: [],
+			nodesByAreaType: [],
+			trenchLengthPerArea: [],
+			residentialByAreaType: []
 		};
 	}
 
@@ -138,7 +150,7 @@ export async function load({ fetch, cookies, params }) {
 			projectsResponse.json()
 		]);
 
-		const { trench, node, address, conduit } = statsData;
+		const { trench, node, address, conduit, area } = statsData;
 
 		return {
 			totalLength: trench.total_length,
@@ -183,7 +195,23 @@ export async function load({ fetch, cookies, params }) {
 			conduitLengthByOwner: conduit?.length_by_owner || [],
 			conduitLengthByManufacturer: conduit?.length_by_manufacturer || [],
 			conduitsByMonth: conduit?.conduits_by_month || [],
-			longestConduits: conduit?.longest_conduits || []
+			longestConduits: conduit?.longest_conduits || [],
+			// Area statistics
+			areaCount: area?.area_count || 0,
+			totalCoverageKm2: area?.total_coverage_km2 || 0,
+			areasByType: area?.areas_by_type || [],
+			totalAddresses: area?.total_addresses || 0,
+			addressesInAreas: area?.addresses_in_areas || 0,
+			totalNodes: area?.total_nodes || 0,
+			nodesInAreas: area?.nodes_in_areas || 0,
+			totalResidentialUnits: area?.total_residential_units || 0,
+			residentialUnitsInAreas: area?.residential_units_in_areas || 0,
+			addressesPerArea: area?.addresses_per_area || [],
+			addressesByAreaType: area?.addresses_by_area_type || [],
+			nodesPerArea: area?.nodes_per_area || [],
+			nodesByAreaType: area?.nodes_by_area_type || [],
+			trenchLengthPerArea: area?.trench_length_per_area || [],
+			residentialByAreaType: area?.residential_by_area_type || []
 		};
 	} catch (error) {
 		console.error('Error fetching data:', error);
@@ -219,7 +247,19 @@ export async function load({ fetch, cookies, params }) {
 			conduitLengthByOwner: [],
 			conduitLengthByManufacturer: [],
 			conduitsByMonth: [],
-			longestConduits: []
+			longestConduits: [],
+			areaCount: 0,
+			totalCoverageKm2: 0,
+			areasByType: [],
+			addressesInAreas: 0,
+			nodesInAreas: 0,
+			residentialUnitsInAreas: 0,
+			addressesPerArea: [],
+			addressesByAreaType: [],
+			nodesPerArea: [],
+			nodesByAreaType: [],
+			trenchLengthPerArea: [],
+			residentialByAreaType: []
 		};
 	}
 }

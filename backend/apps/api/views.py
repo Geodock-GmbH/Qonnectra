@@ -5361,6 +5361,7 @@ class DashboardStatisticsView(APIView):
             "node": self._get_node_statistics(project_id, flag_id),
             "address": self._get_address_statistics(project_id, flag_id),
             "conduit": self._get_conduit_statistics(project_id, flag_id),
+            "area": self._get_area_statistics(project_id, flag_id),
         }
 
         # Cache the result
@@ -5795,4 +5796,166 @@ class DashboardStatisticsView(APIView):
             "length_by_manufacturer": length_by_manufacturer,
             "conduits_by_month": conduits_by_month,
             "longest_conduits": longest_conduits,
+        }
+
+    def _get_area_statistics(self, project_id, flag_id):
+        """Gather all area-related statistics with spatial analysis."""
+        from django.contrib.gis.db.models.functions import Area as GISArea, Intersection, Length
+        from django.contrib.gis.db.models.aggregates import Collect
+
+        base_queryset = Area.objects.filter(project_id=project_id)
+        if flag_id:
+            base_queryset = base_queryset.filter(flag_id=flag_id)
+
+        # 1. Basic area statistics
+        area_count = base_queryset.count()
+
+        # Total coverage in km²
+        total_coverage = base_queryset.annotate(area_m2=GISArea("geom")).aggregate(
+            total=Sum("area_m2")
+        )["total"]
+
+        # Areas by type
+        areas_by_type = list(
+            base_queryset.values(type_name=F("area_type__area_type"))
+            .annotate(count=Count("uuid"), total_area=Sum(GISArea("geom")))
+            .order_by("-count")
+        )
+        areas_by_type = [
+            {
+                "type_name": row["type_name"],
+                "count": row["count"],
+                "total_area_km2": row["total_area"].sq_km if row["total_area"] else 0,
+            }
+            for row in areas_by_type
+        ]
+
+        # 2. Coverage gap metrics - addresses/nodes NOT in any area
+        address_qs = Address.objects.filter(project_id=project_id)
+        node_qs = Node.objects.filter(project_id=project_id)
+        if flag_id:
+            address_qs = address_qs.filter(flag_id=flag_id)
+            node_qs = node_qs.filter(flag_id=flag_id)
+
+        total_addresses = address_qs.count()
+        total_nodes = node_qs.count()
+        total_residential_units = ResidentialUnit.objects.filter(
+            uuid_address__project_id=project_id
+        ).count()
+
+        # Collect all area geometries into union
+        all_areas_geom = base_queryset.aggregate(union=Collect("geom"))["union"]
+
+        addresses_in_areas = 0
+        nodes_in_areas = 0
+        residential_units_in_areas = 0
+        if all_areas_geom:
+            addresses_in_areas = address_qs.filter(geom__within=all_areas_geom).count()
+            nodes_in_areas = node_qs.filter(geom__within=all_areas_geom).count()
+            address_ids_in_areas = list(
+                address_qs.filter(geom__within=all_areas_geom).values_list("uuid", flat=True)
+            )
+            residential_units_in_areas = ResidentialUnit.objects.filter(
+                uuid_address_id__in=address_ids_in_areas
+            ).count()
+
+        # 3. Addresses per area (exclude empty)
+        addresses_per_area = []
+        for area in base_queryset.annotate(area_m2=GISArea("geom")).select_related("area_type"):
+            addr_count = address_qs.filter(geom__within=area.geom).count()
+            if addr_count > 0:
+                addresses_per_area.append(
+                    {
+                        "name": area.name,
+                        "type": area.area_type.area_type if area.area_type else None,
+                        "count": addr_count,
+                        "area_km2": area.area_m2.sq_km if area.area_m2 else 0,
+                    }
+                )
+
+        # Addresses by area type
+        addresses_by_area_type = []
+        for area_type in AttributesAreaType.objects.all():
+            areas_of_type = base_queryset.filter(area_type=area_type)
+            combined_geom = areas_of_type.aggregate(union=Collect("geom"))["union"]
+            if combined_geom:
+                count = address_qs.filter(geom__within=combined_geom).count()
+                if count > 0:
+                    addresses_by_area_type.append({"type": area_type.area_type, "count": count})
+
+        # 4. Nodes per area (exclude empty)
+        nodes_per_area = []
+        for area in base_queryset.select_related("area_type"):
+            node_count = node_qs.filter(geom__within=area.geom).count()
+            if node_count > 0:
+                nodes_per_area.append({"name": area.name, "count": node_count})
+
+        # Nodes by area type
+        nodes_by_area_type = []
+        for area_type in AttributesAreaType.objects.all():
+            areas_of_type = base_queryset.filter(area_type=area_type)
+            combined_geom = areas_of_type.aggregate(union=Collect("geom"))["union"]
+            if combined_geom:
+                count = node_qs.filter(geom__within=combined_geom).count()
+                if count > 0:
+                    nodes_by_area_type.append({"type": area_type.area_type, "count": count})
+
+        # 5. Trench length per area (clipped to boundary, exclude empty)
+        trench_qs = Trench.objects.filter(project_id=project_id)
+        if flag_id:
+            trench_qs = trench_qs.filter(flag_id=flag_id)
+
+        trench_length_per_area = []
+        for area in base_queryset.annotate(area_m2=GISArea("geom")):
+            intersecting = trench_qs.filter(geom__intersects=area.geom)
+            total_length = intersecting.annotate(
+                clipped_length=Length(Intersection("geom", area.geom))
+            ).aggregate(total=Sum("clipped_length"))["total"]
+
+            if total_length and total_length.m > 0:
+                area_km2 = area.area_m2.sq_km if area.area_m2 else 0
+                trench_length_per_area.append(
+                    {
+                        "name": area.name,
+                        "length_m": total_length.m,
+                        "area_km2": area_km2,
+                        "density": (total_length.m / 1000) / area_km2 if area_km2 > 0 else 0,
+                    }
+                )
+
+        # 6. Residential units by area type
+        residential_by_area_type = []
+        for area_type in AttributesAreaType.objects.all():
+            areas_of_type = base_queryset.filter(area_type=area_type)
+            combined_geom = areas_of_type.aggregate(union=Collect("geom"))["union"]
+            if combined_geom:
+                addr_ids = list(
+                    address_qs.filter(geom__within=combined_geom).values_list("uuid", flat=True)
+                )
+                count = ResidentialUnit.objects.filter(uuid_address_id__in=addr_ids).count()
+                if count > 0:
+                    residential_by_area_type.append({"type": area_type.area_type, "count": count})
+
+        return {
+            "area_count": area_count,
+            "total_coverage_km2": total_coverage.sq_km if total_coverage else 0,
+            "areas_by_type": areas_by_type,
+            # Coverage gap
+            "total_addresses": total_addresses,
+            "addresses_in_areas": addresses_in_areas,
+            "total_nodes": total_nodes,
+            "nodes_in_areas": nodes_in_areas,
+            "total_residential_units": total_residential_units,
+            "residential_units_in_areas": residential_units_in_areas,
+            # Per-area stats (top 10, empty excluded)
+            "addresses_per_area": sorted(
+                addresses_per_area, key=lambda x: x["count"], reverse=True
+            )[:10],
+            "addresses_by_area_type": addresses_by_area_type,
+            "nodes_per_area": sorted(nodes_per_area, key=lambda x: x["count"], reverse=True)[:10],
+            "nodes_by_area_type": nodes_by_area_type,
+            "trench_length_per_area": sorted(
+                trench_length_per_area, key=lambda x: x["length_m"], reverse=True
+            )[:10],
+            "residential_by_area_type": residential_by_area_type,
         }
