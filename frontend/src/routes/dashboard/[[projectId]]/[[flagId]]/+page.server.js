@@ -25,7 +25,13 @@ export async function load({ fetch, cookies, params }) {
 			nodesByType: [],
 			nodesByOwner: [],
 			newestNodes: [],
-			projects: []
+			projects: [],
+			addressesByCity: [],
+			addressesByStatus: [],
+			unitsByCity: [],
+			unitsByType: [],
+			totalAddresses: 0,
+			totalUnits: 0
 		};
 	}
 
@@ -61,7 +67,13 @@ export async function load({ fetch, cookies, params }) {
 				nodesByStatus: [],
 				nodesByNetworkLevel: [],
 				nodesByOwner: [],
-				newestNodes: []
+				newestNodes: [],
+				addressesByCity: [],
+				addressesByStatus: [],
+				unitsByCity: [],
+				unitsByType: [],
+				totalAddresses: 0,
+				totalUnits: 0
 			};
 		}
 
@@ -84,7 +96,13 @@ export async function load({ fetch, cookies, params }) {
 				nodesByStatus: [],
 				nodesByNetworkLevel: [],
 				nodesByOwner: [],
-				newestNodes: []
+				newestNodes: [],
+				addressesByCity: [],
+				addressesByStatus: [],
+				unitsByCity: [],
+				unitsByType: [],
+				totalAddresses: 0,
+				totalUnits: 0
 			};
 		}
 
@@ -93,7 +111,7 @@ export async function load({ fetch, cookies, params }) {
 			projectsResponse.json()
 		]);
 
-		const { trench, node } = statsData;
+		const { trench, node, address } = statsData;
 
 		return {
 			totalLength: trench.total_length,
@@ -123,7 +141,13 @@ export async function load({ fetch, cookies, params }) {
 			nodesByStatus: node.count_by_status || [],
 			nodesByNetworkLevel: node.count_by_network_level || [],
 			nodesByOwner: node.count_by_owner || [],
-			newestNodes: node.newest_nodes || []
+			newestNodes: node.newest_nodes || [],
+			addressesByCity: address?.count_by_city || [],
+			addressesByStatus: address?.count_by_status || [],
+			unitsByCity: address?.units_by_city || [],
+			unitsByType: address?.units_by_type || [],
+			totalAddresses: address?.total_addresses || 0,
+			totalUnits: address?.total_units || 0
 		};
 	} catch (error) {
 		console.error('Error fetching data:', error);
@@ -144,7 +168,13 @@ export async function load({ fetch, cookies, params }) {
 			nodesByNetworkLevel: [],
 			nodesByOwner: [],
 			newestNodes: [],
-			projects: []
+			projects: [],
+			addressesByCity: [],
+			addressesByStatus: [],
+			unitsByCity: [],
+			unitsByType: [],
+			totalAddresses: 0,
+			totalUnits: 0
 		};
 	}
 }

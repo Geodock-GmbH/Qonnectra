@@ -5358,6 +5358,7 @@ class DashboardStatisticsView(APIView):
         result = {
             "trench": self._get_trench_statistics(project_id, flag_id),
             "node": self._get_node_statistics(project_id, flag_id),
+            "address": self._get_address_statistics(project_id, flag_id),
         }
 
         # Cache the result
@@ -5558,4 +5559,72 @@ class DashboardStatisticsView(APIView):
             "expiring_warranties": expiring_warranties,
             "newest_nodes": [node_to_dict(n) for n in newest],
             "oldest_nodes": [node_to_dict(n) for n in oldest],
+        }
+
+    def _get_address_statistics(self, project_id, flag_id):
+        """Gather all address and residential unit statistics."""
+        base_queryset = Address.objects.all()
+        if project_id:
+            base_queryset = base_queryset.filter(project=project_id)
+        if flag_id:
+            base_queryset = base_queryset.filter(flag=flag_id)
+
+        # Count addresses by city
+        count_by_city = list(
+            base_queryset.values("city")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+        count_by_city = [
+            {"city": row["city"], "count": row["count"]}
+            for row in count_by_city
+            if row["city"]
+        ]
+
+        # Count by development status (Ausbaustatus)
+        count_by_status = list(
+            base_queryset.values("status_development__status")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+        count_by_status = [
+            {"status": row["status_development__status"], "count": row["count"]}
+            for row in count_by_status
+            if row["status_development__status"]
+        ]
+
+        # Residential unit statistics
+        unit_queryset = ResidentialUnit.objects.filter(uuid_address__in=base_queryset)
+
+        # Count residential units by city (through address)
+        units_by_city = list(
+            unit_queryset.values("uuid_address__city")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+        units_by_city = [
+            {"city": row["uuid_address__city"], "count": row["count"]}
+            for row in units_by_city
+            if row["uuid_address__city"]
+        ]
+
+        # Count residential units by type
+        units_by_type = list(
+            unit_queryset.values("residential_unit_type__residential_unit_type")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+        units_by_type = [
+            {"type": row["residential_unit_type__residential_unit_type"], "count": row["count"]}
+            for row in units_by_type
+            if row["residential_unit_type__residential_unit_type"]
+        ]
+
+        return {
+            "count_by_city": count_by_city,
+            "count_by_status": count_by_status,
+            "units_by_city": units_by_city,
+            "units_by_type": units_by_type,
+            "total_addresses": base_queryset.count(),
+            "total_units": unit_queryset.count(),
         }
