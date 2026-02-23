@@ -48,6 +48,8 @@ from .models import (
     Projects,
     ResidentialUnit,
     Trench,
+    WMSLayer,
+    WMSSource,
     TrenchConduitConnection,
 )
 
@@ -2033,3 +2035,74 @@ class MicropipeAvailabilitySerializer(serializers.Serializer):
     available_in_all = serializers.BooleanField()
     linked_to_cable = serializers.BooleanField()
     missing_in = serializers.ListField(child=serializers.CharField())
+
+
+class WMSLayerSerializer(serializers.ModelSerializer):
+    """Serializer for WMSLayer model."""
+
+    class Meta:
+        model = WMSLayer
+        fields = ["id", "name", "title", "is_enabled", "sort_order", "min_zoom", "max_zoom", "opacity"]
+        read_only_fields = ["id", "name", "title"]
+
+
+class WMSSourceSerializer(serializers.ModelSerializer):
+    """Serializer for WMSSource model (list view)."""
+
+    layers = WMSLayerSerializer(many=True, read_only=True)
+    layer_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WMSSource
+        fields = [
+            "id",
+            "name",
+            "url",
+            "sort_order",
+            "is_active",
+            "layer_count",
+            "layers",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def get_layer_count(self, obj):
+        return obj.layers.filter(is_enabled=True).count()
+
+
+class WMSSourceCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating/updating WMSSource with password handling."""
+
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
+    class Meta:
+        model = WMSSource
+        fields = [
+            "id",
+            "project",
+            "name",
+            "url",
+            "username",
+            "password",
+            "sort_order",
+            "is_active",
+        ]
+        read_only_fields = ["id"]
+
+    def create(self, validated_data):
+        password = validated_data.pop("password", None)
+        instance = WMSSource(**validated_data)
+        if password:
+            instance.password = password
+        instance.save()
+        return instance
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop("password", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.password = password
+        instance.save()
+        return instance

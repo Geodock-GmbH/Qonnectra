@@ -30,9 +30,30 @@
 		nodeTypeStyles,
 		trenchConstructionTypeStyles,
 		trenchStyleMode,
-		trenchSurfaceStyles
+		trenchSurfaceStyles,
+		wmsLayerVisibilityConfig,
+		wmsSourceExpansionState
 	} from '$lib/stores/store';
 	import { tooltip } from '$lib/utils/tooltip.js';
+
+	/**
+	 * @typedef {Object} WMSLayer
+	 * @property {string} id
+	 * @property {string} name
+	 * @property {string} title
+	 * @property {boolean} is_enabled
+	 * @property {number} sort_order
+	 * @property {number} min_zoom
+	 * @property {number|null} max_zoom
+	 * @property {number} opacity
+	 */
+
+	/**
+	 * @typedef {Object} WMSSource
+	 * @property {string} id
+	 * @property {string} name
+	 * @property {WMSLayer[]} layers
+	 */
 
 	let {
 		layers = [],
@@ -42,12 +63,15 @@
 		constructionTypes = [],
 		areaTypes = [],
 		usingFallbackOSM = false,
+		/** @type {WMSSource[]} */
+		wmsSources = [],
 		onLayerVisibilityChanged = () => {},
 		onNodeTypeVisibilityChanged = () => {},
 		onTrenchTypeVisibilityChanged = () => {},
 		onAreaTypeVisibilityChanged = () => {},
 		onLabelVisibilityChanged = () => {},
-		onZoomToExtent = () => {}
+		onZoomToExtent = () => {},
+		onWMSLayerVisibilityChanged = () => {}
 	} = $props();
 
 	/**
@@ -143,6 +167,12 @@
 		for (const layer of sortedLayers) {
 			const layerId = layer.get('layerId');
 			const layerName = layer.get('layerName');
+			const layerType = layer.get('layerType');
+
+			// Skip WMS layers - they are handled separately in the grouped section
+			if (layerType === 'wms') {
+				continue;
+			}
 
 			if (layerId && layerName) {
 				const persistedVisible = $layerVisibilityConfig[layerId] ?? true;
@@ -479,6 +509,48 @@
 			labelType: 'conduit',
 			enabled: newEnabled
 		});
+	}
+
+	/**
+	 * Toggle the expansion state of a WMS source
+	 * @param {string} sourceId - The ID of the WMS source
+	 */
+	function toggleWMSSourceExpansion(sourceId) {
+		$wmsSourceExpansionState = {
+			...$wmsSourceExpansionState,
+			[sourceId]: !$wmsSourceExpansionState[sourceId]
+		};
+	}
+
+	/**
+	 * Check if a WMS source is expanded
+	 * @param {string} sourceId - The ID of the WMS source
+	 * @returns {boolean} True if the source is expanded
+	 */
+	function isWMSSourceExpanded(sourceId) {
+		return $wmsSourceExpansionState[sourceId] ?? false;
+	}
+
+	/**
+	 * Check if a WMS layer is visible
+	 * @param {string} layerId - The layer ID
+	 * @returns {boolean} True if the layer is visible
+	 */
+	function isWMSLayerVisible(layerId) {
+		return $wmsLayerVisibilityConfig[layerId] ?? true;
+	}
+
+	/**
+	 * Toggle the visibility of a WMS layer
+	 * @param {string} layerId - The layer ID
+	 */
+	function toggleWMSLayerVisibility(layerId) {
+		const current = $wmsLayerVisibilityConfig[layerId] ?? true;
+		$wmsLayerVisibilityConfig = {
+			...$wmsLayerVisibilityConfig,
+			[layerId]: !current
+		};
+		onWMSLayerVisibilityChanged(layerId, !current);
 	}
 
 	/**
@@ -836,6 +908,69 @@
 						{/if}
 					</div>
 
+					<!-- WMS Sources - separate entries after area layer (Mobile) -->
+					{#if layerId === 'area-layer' && wmsSources.length > 0}
+						{#each wmsSources as source (source.id)}
+							{@const enabledLayers = source.layers.filter((l) => l.is_enabled)}
+							{#if enabledLayers.length > 0}
+								{@const isExpanded = isWMSSourceExpanded(source.id)}
+								<div class="bg-surface-100-900 rounded-xl overflow-hidden">
+									<!-- Source Header -->
+									<div class="flex items-center justify-between p-3">
+										<div class="flex items-center gap-3 flex-1 min-w-0">
+											<button
+												class="w-8 h-8 flex items-center justify-center rounded-lg bg-surface-200-800 transition-colors shrink-0"
+												onclick={() => toggleWMSSourceExpansion(source.id)}
+												aria-label={isExpanded ? m.tooltip_collapse() : m.tooltip_expand()}
+												{@attach tooltip(isExpanded ? m.tooltip_collapse() : m.tooltip_expand())}
+											>
+												{#if isExpanded}
+													<IconChevronDown size="18" class="text-surface-900-100" />
+												{:else}
+													<IconChevronRight size="18" class="text-surface-900-100" />
+												{/if}
+											</button>
+											<span class="text-base font-medium text-surface-contrast-100-900 truncate">
+												{source.name}
+											</span>
+										</div>
+									</div>
+
+									<!-- Nested Layers -->
+									{#if isExpanded}
+										<div class="px-3 pb-3 space-y-2 ml-11 border-l-2 border-surface-200-700">
+											{#each enabledLayers as layer (layer.id)}
+												{@const wmsLayerId = `wms-${source.id}-${layer.name}`}
+												{@const visible = isWMSLayerVisible(wmsLayerId)}
+												<div class="flex items-center justify-between py-2">
+													<span
+														class="text-sm text-surface-contrast-100-900 truncate flex-1 min-w-0"
+													>
+														{layer.title || layer.name}
+													</span>
+													<button
+														class="p-2 rounded-lg hover:bg-surface-200-700 active:scale-95 transition-all shrink-0"
+														onclick={() => toggleWMSLayerVisibility(wmsLayerId)}
+														aria-label={visible ? m.tooltip_hide_layer() : m.tooltip_show_layer()}
+														{@attach tooltip(
+															visible ? m.tooltip_hide_layer() : m.tooltip_show_layer()
+														)}
+													>
+														{#if visible}
+															<IconEye size="22" class="text-primary-500" />
+														{:else}
+															<IconEyeOff size="22" class="text-surface-900-100" />
+														{/if}
+													</button>
+												</div>
+											{/each}
+										</div>
+									{/if}
+								</div>
+							{/if}
+						{/each}
+					{/if}
+
 					<!-- Conduit Labels - after trench layer -->
 					{#if layerId === 'trench-layer'}
 						<div class="bg-surface-100-900 rounded-xl overflow-hidden">
@@ -871,7 +1006,7 @@
 					{/if}
 				{/each}
 
-				{#if layerVisibility.size === 0}
+				{#if layerVisibility.size === 0 && wmsSources.length === 0}
 					<p class="text-sm text-surface-400 italic text-center py-6">
 						{m.form_no_layers_available()}
 					</p>
@@ -1061,7 +1196,7 @@
 										></span>
 										<span
 											class="text-xs text-surface-contrast-100-900 truncate"
-											title={nodeType.node_type}
+											{@attach tooltip(nodeType.node_type)}
 										>
 											{nodeType.node_type}
 										</span>
@@ -1096,7 +1231,10 @@
 									<div class="flex items-center gap-2 flex-1 min-w-0">
 										<span class="w-4 h-1 shrink-0 rounded-sm" style="background-color: {color};"
 										></span>
-										<span class="text-xs text-surface-contrast-100-900 truncate" title={typeName}>
+										<span
+											class="text-xs text-surface-contrast-100-900 truncate"
+											{@attach tooltip(typeName)}
+										>
 											{typeName}
 										</span>
 									</div>
@@ -1133,7 +1271,7 @@
 										></span>
 										<span
 											class="text-xs text-surface-contrast-100-900 truncate"
-											title={areaType.area_type}
+											{@attach tooltip(areaType.area_type)}
 										>
 											{areaType.area_type}
 										</span>
@@ -1155,6 +1293,73 @@
 						</div>
 					{/if}
 				</div>
+
+				<!-- WMS Sources - separate entries after area layer -->
+				{#if layerId === 'area-layer' && wmsSources.length > 0}
+					{#each wmsSources as source (source.id)}
+						{@const enabledLayers = source.layers.filter((l) => l.is_enabled)}
+						{#if enabledLayers.length > 0}
+							{@const isExpanded = isWMSSourceExpanded(source.id)}
+							<div>
+								<!-- Source Header -->
+								<div
+									class="flex items-center gap-1.5 py-1 rounded hover:bg-surface-100-800 transition-colors"
+								>
+									<button
+										class="w-5 h-5 flex items-center justify-center rounded hover:bg-surface-200-700 transition-colors shrink-0"
+										onclick={() => toggleWMSSourceExpansion(source.id)}
+										aria-label={isExpanded ? m.tooltip_collapse() : m.tooltip_expand()}
+										{@attach tooltip(isExpanded ? m.tooltip_collapse() : m.tooltip_expand())}
+									>
+										{#if isExpanded}
+											<IconChevronDown size="14" class="text-surface-900-100" />
+										{:else}
+											<IconChevronRight size="14" class="text-surface-900-100" />
+										{/if}
+									</button>
+									<span class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0">
+										{source.name}
+									</span>
+									<!-- Spacers to align with other layers -->
+									<span class="w-6 shrink-0"></span>
+									<span class="w-6 shrink-0"></span>
+									<span class="w-6 shrink-0"></span>
+								</div>
+
+								<!-- Nested Layers -->
+								{#if isExpanded}
+									<div class="ml-5 mt-1 space-y-0.5 border-l-2 border-surface-200-700 pl-2">
+										{#each enabledLayers as layer (layer.id)}
+											{@const wmsLayerId = `wms-${source.id}-${layer.name}`}
+											{@const visible = isWMSLayerVisible(wmsLayerId)}
+											<div
+												class="flex items-center gap-1.5 py-1 rounded hover:bg-surface-100-800 transition-colors"
+											>
+												<span class="text-xs text-surface-contrast-100-900 truncate flex-1 min-w-0">
+													{layer.title || layer.name}
+												</span>
+												<button
+													class="w-6 flex items-center justify-center shrink-0 rounded hover:bg-surface-200-700 transition-colors"
+													onclick={() => toggleWMSLayerVisibility(wmsLayerId)}
+													aria-label={visible ? m.tooltip_hide_layer() : m.tooltip_show_layer()}
+													{@attach tooltip(
+														visible ? m.tooltip_hide_layer() : m.tooltip_show_layer()
+													)}
+												>
+													{#if visible}
+														<IconEye size={24} class="text-primary-500" />
+													{:else}
+														<IconEyeOff size={24} class="text-surface-900-100" />
+													{/if}
+												</button>
+											</div>
+										{/each}
+									</div>
+								{/if}
+							</div>
+						{/if}
+					{/each}
+				{/if}
 
 				<!-- Conduit Labels - separate entry after trench layer -->
 				{#if layerId === 'trench-layer'}
@@ -1198,7 +1403,7 @@
 				{/if}
 			{/each}
 
-			{#if layerVisibility.size === 0}
+			{#if layerVisibility.size === 0 && wmsSources.length === 0}
 				<p class="text-xs text-surface-400 italic text-center py-3">
 					{m.form_no_layers_available()}
 				</p>

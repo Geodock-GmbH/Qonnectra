@@ -66,6 +66,9 @@ from .views import (
     TrenchesNearNodeView,
     TrenchViewSet,
     WebDAVAuthView,
+    WMSLayerViewSet,
+    WMSProxyView,
+    WMSSourceViewSet,
 )
 
 router = DefaultRouter()
@@ -223,6 +226,8 @@ router.register(
     ContainerViewSet,
     basename="container",
 )
+router.register(r"wms-sources", WMSSourceViewSet, basename="wms-sources")
+router.register(r"wms-layers", WMSLayerViewSet, basename="wms-layers")
 
 urlpatterns = [
     path("logs/frontend/", FrontendLogView.as_view(), name="frontend-logs"),
@@ -313,5 +318,10 @@ urlpatterns = [
         "cables/micropipe-summary/<int:project_id>/",
         get_cable_micropipe_summary,
         name="cable-micropipe-summary",
+    ),
+    path(
+        "wms-proxy/<uuid:source_id>/",
+        WMSProxyView.as_view(),
+        name="wms-proxy",
     ),
 ]

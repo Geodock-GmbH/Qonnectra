@@ -4,16 +4,19 @@ import os
 import uuid
 from urllib.parse import quote
 
+import requests
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.core.files.base import ContentFile
 from django.db import connection, transaction
 from django.db.models import Avg, Count, F, Q, Sum
-from django.http import FileResponse, HttpResponse
+from django.http import FileResponse, HttpResponse, StreamingHttpResponse
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from pathvalidate import sanitize_filename
 from rest_framework import status, viewsets
+from rest_framework.authentication import BaseAuthentication
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -67,6 +70,8 @@ from .models import (
     ResidentialUnit,
     Trench,
     TrenchConduitConnection,
+    WMSLayer,
+    WMSSource,
 )
 from .pageination import CustomPagination
 from .routing import find_shortest_path
@@ -122,6 +127,9 @@ from .serializers import (
     ResidentialUnitSerializer,
     TrenchConduitSerializer,
     TrenchSerializer,
+    WMSLayerSerializer,
+    WMSSourceCreateSerializer,
+    WMSSourceSerializer,
 )
 from .services import (
     GEOPACKAGE_LAYER_CONFIG,
@@ -129,8 +137,11 @@ from .services import (
     generate_geopackage_schema,
     import_conduits_from_excel,
 )
+from .wms_service import WMSServiceError, fetch_wms_layers, scan_wms_capabilities
 
 logger = logging.getLogger(__name__)
+
+User = get_user_model()
 
 
 class AttributesCableTypeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -1579,9 +1590,7 @@ class ResidentialUnitViewSet(viewsets.ModelViewSet):
         unit = self.get_object()
         project_id = unit.uuid_address.project_id
         with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT fn_generate_residential_unit_id(%s)", [project_id]
-            )
+            cursor.execute("SELECT fn_generate_residential_unit_id(%s)", [project_id])
             new_id = cursor.fetchone()[0]
         unit.id_residential_unit = new_id
         unit.save(update_fields=["id_residential_unit"])
@@ -1874,7 +1883,9 @@ class NodeViewSet(viewsets.ModelViewSet):
                 settings = NetworkSchemaSettings.get_settings_for_project(project_id)
                 if settings is not None:
                     child_view_enabled_type_ids = list(
-                        settings.child_view_enabled_node_types.values_list("id", flat=True)
+                        settings.child_view_enabled_node_types.values_list(
+                            "id", flat=True
+                        )
                     )
 
             # Apply pipe-branch settings if requested
@@ -1897,7 +1908,9 @@ class NodeViewSet(viewsets.ModelViewSet):
                         settings.excluded_node_types.values_list("id", flat=True)
                     )
                     child_view_enabled_type_ids = list(
-                        settings.child_view_enabled_node_types.values_list("id", flat=True)
+                        settings.child_view_enabled_node_types.values_list(
+                            "id", flat=True
+                        )
                     )
                     if excluded_type_ids:
                         queryset = queryset.exclude(node_type_id__in=excluded_type_ids)
@@ -4552,7 +4565,8 @@ class MicropipesByConduitsView(APIView):
         if cable_id:
             linked_microducts = set(
                 MicroductCableConnection.objects.filter(
-                    uuid_cable_id=cable_id, uuid_microduct__uuid_conduit_id__in=conduit_uuid_list
+                    uuid_cable_id=cable_id,
+                    uuid_microduct__uuid_conduit_id__in=conduit_uuid_list,
                 )
                 .values_list("uuid_microduct_id", flat=True)
                 .distinct()
@@ -4639,7 +4653,7 @@ class CableMicropipeConnectionsView(APIView):
         return Response({"deleted": deleted})
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_trenches_for_cable_connections(request, cable_id):
     """
@@ -4649,25 +4663,29 @@ def get_trenches_for_cable_connections(request, cable_id):
     trench_uuids = list(
         Trench.objects.filter(
             trenchconduitconnection__uuid_conduit__microduct__microductcableconnection__uuid_cable_id=cable_id
-        ).distinct().values_list('uuid', flat=True)
+        )
+        .distinct()
+        .values_list("uuid", flat=True)
     )
 
-    return Response({'trench_uuids': [str(uuid) for uuid in trench_uuids]})
+    return Response({"trench_uuids": [str(uuid) for uuid in trench_uuids]})
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_conduits_for_cable(request, cable_id):
     """Get all conduit names where the cable has micropipe connections."""
     conduit_names = list(
         Conduit.objects.filter(
             microduct__microductcableconnection__uuid_cable_id=cable_id
-        ).distinct().values_list('name', flat=True)
+        )
+        .distinct()
+        .values_list("name", flat=True)
     )
-    return Response({'conduit_names': conduit_names})
+    return Response({"conduit_names": conduit_names})
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_cable_micropipe_summary(request, project_id):
     """
@@ -4675,11 +4693,11 @@ def get_cable_micropipe_summary(request, project_id):
     Returns a dict mapping cable UUIDs to their connected micropipes with color info.
     Used for dynamic edge coloring in the network schema diagram.
     """
-    connections = MicroductCableConnection.objects.filter(
-        uuid_cable__project_id=project_id
-    ).select_related(
-        'uuid_microduct', 'uuid_cable'
-    ).order_by('uuid_cable', 'uuid_microduct__number')
+    connections = (
+        MicroductCableConnection.objects.filter(uuid_cable__project_id=project_id)
+        .select_related("uuid_microduct", "uuid_cable")
+        .order_by("uuid_cable", "uuid_microduct__number")
+    )
 
     # Build a lookup for color hex codes
     color_lookup = {
@@ -4694,13 +4712,458 @@ def get_cable_micropipe_summary(request, project_id):
         if cable_uuid not in result:
             result[cable_uuid] = []
 
-        color_name = conn.uuid_microduct.color.lower() if conn.uuid_microduct.color else None
-        hex_code = color_lookup.get(color_name, '#64748b')
+        color_name = (
+            conn.uuid_microduct.color.lower() if conn.uuid_microduct.color else None
+        )
+        hex_code = color_lookup.get(color_name, "#64748b")
 
-        result[cable_uuid].append({
-            'number': conn.uuid_microduct.number,
-            'color_hex': hex_code,
-            'color_name': conn.uuid_microduct.color
-        })
+        result[cable_uuid].append(
+            {
+                "number": conn.uuid_microduct.number,
+                "color_hex": hex_code,
+                "color_name": conn.uuid_microduct.color,
+            }
+        )
 
     return Response(result)
+
+
+class WMSSourceViewSet(viewsets.ModelViewSet):
+    """ViewSet for WMS sources.
+
+    Note: Project-level authorization follows existing codebase pattern where
+    authenticated users can access any project's data via query params.
+    To restrict access, implement project-level permissions at the auth layer.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action in ["create", "update", "partial_update"]:
+            return WMSSourceCreateSerializer
+        return WMSSourceSerializer
+
+    def get_queryset(self):
+        queryset = WMSSource.objects.filter(is_active=True)
+        project_id = self.request.query_params.get("project")
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        return queryset.prefetch_related("layers")
+
+    def _is_url_safe(self, url: str) -> tuple[bool, str]:
+        """Check if URL is safe to access (not internal/private).
+
+        Reuses validation logic from WMSProxyView.
+        """
+        import ipaddress
+        import socket
+        from urllib.parse import urlparse
+
+        blocked_networks = [
+            "10.0.0.0/8",
+            "172.16.0.0/12",
+            "192.168.0.0/16",
+            "127.0.0.0/8",
+            "169.254.0.0/16",
+            "::1/128",
+            "fc00::/7",
+            "fe80::/10",
+        ]
+
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+
+        if not hostname:
+            return False, "Invalid URL: no hostname"
+
+        internal_hostnames = ["localhost", "metadata.google.internal"]
+        if hostname.lower() in internal_hostnames:
+            return False, "Access to internal hosts is not allowed"
+
+        try:
+            ip = ipaddress.ip_address(hostname)
+        except ValueError:
+            try:
+                resolved = socket.gethostbyname(hostname)
+                ip = ipaddress.ip_address(resolved)
+            except socket.gaierror:
+                return False, f"Could not resolve hostname: {hostname}"
+
+        for network_str in blocked_networks:
+            try:
+                network = ipaddress.ip_network(network_str)
+                if ip in network:
+                    return False, "Access to private/internal networks is not allowed"
+            except ValueError:
+                continue
+
+        return True, ""
+
+    @action(detail=True, methods=["post"])
+    def refresh_layers(self, request, pk=None):
+        """Refresh layers from WMS GetCapabilities."""
+        source = self.get_object()
+
+        # SSRF protection
+        is_safe, error_msg = self._is_url_safe(source.url)
+        if not is_safe:
+            return Response(
+                {"error": error_msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            layers_data = fetch_wms_layers(
+                source.url,
+                username=source.username or None,
+                password=source.password or None,
+            )
+        except WMSServiceError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        new_names = {layer["name"] for layer in layers_data}
+        source.layers.exclude(name__in=new_names).delete()
+
+        for i, layer_data in enumerate(layers_data):
+            WMSLayer.objects.update_or_create(
+                source=source,
+                name=layer_data["name"],
+                defaults={
+                    "title": layer_data["title"],
+                    "sort_order": i,
+                },
+            )
+
+        return Response(WMSSourceSerializer(source).data)
+
+    @action(detail=False, methods=["get"])
+    def access_token(self, request):
+        """Get a short-lived access token for WMS tile requests.
+
+        This token can be passed as a query parameter to the WMS proxy
+        to authenticate tile requests that can't use cookies (due to
+        SameSite restrictions on cross-origin image requests).
+
+        The token includes a 'wms_only' claim to scope it specifically
+        for WMS proxy requests, preventing misuse on other endpoints.
+        """
+        from datetime import timedelta
+
+        from rest_framework_simplejwt.tokens import AccessToken
+
+        # Create a short-lived token (5 minutes) for WMS access
+        token = AccessToken.for_user(request.user)
+        token.set_exp(lifetime=timedelta(minutes=5))
+        # Scope token to WMS proxy only
+        token["wms_only"] = True
+
+        return Response({"token": str(token)})
+
+    @action(detail=True, methods=["post"])
+    def scan_capabilities(self, request, pk=None):
+        """Scan WMS capabilities to recommend configuration settings.
+
+        Analyzes the WMS GetCapabilities response to determine:
+        - Recommended minZoom for each layer based on BBOX constraints
+        - Supported CRS for each layer
+        - Service-level constraints
+
+        Returns detailed information to help configure WMS layers.
+        """
+        source = self.get_object()
+
+        # SSRF protection
+        is_safe, error_msg = self._is_url_safe(source.url)
+        if not is_safe:
+            return Response(
+                {"error": error_msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            result = scan_wms_capabilities(
+                source.url,
+                username=source.username or None,
+                password=source.password or None,
+            )
+        except WMSServiceError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(result)
+
+
+class WMSLayerViewSet(viewsets.ModelViewSet):
+    """ViewSet for WMS layers."""
+
+    serializer_class = WMSLayerSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = WMSLayer.objects.filter(is_enabled=True)
+        project_id = self.request.query_params.get("project")
+        if project_id:
+            queryset = queryset.filter(
+                source__project_id=project_id, source__is_active=True
+            )
+        return queryset.select_related("source")
+
+
+class WMSTokenAuthentication(BaseAuthentication):
+    """Custom authentication that accepts JWT token via query parameter.
+
+    This is needed for WMS tile requests where browsers don't send cookies
+    due to SameSite restrictions on cross-origin image requests.
+
+    Only accepts tokens with 'wms_only' claim to prevent misuse of
+    general access tokens via URL parameters.
+    """
+
+    def authenticate(self, request):
+        from rest_framework.exceptions import AuthenticationFailed
+        from rest_framework_simplejwt.exceptions import TokenError
+        from rest_framework_simplejwt.tokens import AccessToken
+
+        token = request.query_params.get("token")
+        if not token:
+            return None
+
+        try:
+            validated_token = AccessToken(token)
+
+            # Verify token is scoped for WMS access only
+            if not validated_token.get("wms_only"):
+                raise AuthenticationFailed("Token not valid for WMS access")
+
+            user_id = validated_token.get("user_id")
+            user = User.objects.get(id=user_id)
+            return (user, validated_token)
+        except TokenError as e:
+            raise AuthenticationFailed(f"Invalid token: {e}")
+        except User.DoesNotExist:
+            raise AuthenticationFailed("User not found")
+
+
+class WMSProxyView(APIView):
+    """Proxy view for WMS requests.
+
+    Includes SSRF protection to prevent access to internal networks,
+    response size limits, and streaming response support.
+
+    Supports authentication via:
+    - Standard cookie-based JWT (for same-origin requests)
+    - Query parameter token (for cross-origin image requests)
+    """
+
+    from dj_rest_auth.jwt_auth import JWTCookieAuthentication
+
+    authentication_classes = [WMSTokenAuthentication, JWTCookieAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    MAX_RESPONSE_SIZE = 50 * 1024 * 1024  # 50MB
+
+    BLOCKED_NETWORKS = [
+        "0.0.0.0/8",  # "This" network
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "127.0.0.0/8",
+        "169.254.0.0/16",  # Link-local / AWS metadata
+        "::1/128",
+        "fc00::/7",
+        "fe80::/10",
+    ]
+
+    ALLOWED_WMS_PARAMS = {
+        "service",
+        "request",
+        "version",
+        "layers",
+        "styles",
+        "crs",
+        "srs",
+        "bbox",
+        "width",
+        "height",
+        "format",
+        "transparent",
+        "bgcolor",
+        "time",
+        "elevation",
+        "map",  # QGIS Server project file parameter
+    }
+
+    ALLOWED_URL_SCHEMES = {"http", "https"}
+
+    def _is_url_safe(self, url: str) -> tuple[bool, str]:
+        """Check if URL is safe to access (not internal/private).
+
+        Returns:
+            Tuple of (is_safe, error_message)
+        """
+        import ipaddress
+        import socket
+        from urllib.parse import urlparse
+
+        parsed = urlparse(url)
+
+        # Validate URL scheme
+        if parsed.scheme.lower() not in self.ALLOWED_URL_SCHEMES:
+            return (
+                False,
+                f"URL scheme '{parsed.scheme}' not allowed. Only http/https permitted.",
+            )
+
+        hostname = parsed.hostname
+
+        if not hostname:
+            return False, "Invalid URL: no hostname"
+
+        # Block common internal hostnames
+        internal_hostnames = ["localhost", "metadata.google.internal"]
+        if hostname.lower() in internal_hostnames:
+            return False, "Access to internal hosts is not allowed"
+
+        try:
+            # Try to parse as IP address first
+            ip = ipaddress.ip_address(hostname)
+        except ValueError:
+            # It's a hostname, resolve it
+            try:
+                resolved = socket.gethostbyname(hostname)
+                ip = ipaddress.ip_address(resolved)
+            except socket.gaierror:
+                return False, f"Could not resolve hostname: {hostname}"
+
+        # Check against blocked networks
+        for network_str in self.BLOCKED_NETWORKS:
+            try:
+                network = ipaddress.ip_network(network_str)
+                if ip in network:
+                    return False, "Access to private/internal networks is not allowed"
+            except ValueError:
+                continue
+
+        return True, ""
+
+    def get(self, request, source_id):
+        """Proxy WMS GET request to upstream server."""
+        try:
+            source = WMSSource.objects.get(id=source_id, is_active=True)
+        except WMSSource.DoesNotExist:
+            return Response(
+                {"error": "WMS source not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # SSRF protection: validate URL is not targeting internal networks
+        is_safe, error_msg = self._is_url_safe(source.url)
+        if not is_safe:
+            return Response(
+                {"error": error_msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Parse the WMS URL to extract base URL and preserved params (like MAP)
+        from urllib.parse import parse_qs, urlparse, urlunparse
+
+        parsed_url = urlparse(source.url)
+        base_url = urlunparse(
+            (
+                parsed_url.scheme,
+                parsed_url.netloc,
+                parsed_url.path,
+                "",  # params
+                "",  # query - will be added via params dict
+                "",  # fragment
+            )
+        )
+
+        # Extract allowed params from the original URL (e.g., MAP for QGIS Server)
+        # Normalize keys to uppercase for case-insensitive merging
+        original_params = {
+            k.upper(): v[0] if len(v) == 1 else v
+            for k, v in parse_qs(parsed_url.query).items()
+            if k.lower() in self.ALLOWED_WMS_PARAMS
+        }
+
+        # Filter incoming request params to allowed WMS parameters only
+        # and remove our auth token. Normalize keys to uppercase.
+        params = {
+            k.upper(): v
+            for k, v in request.query_params.dict().items()
+            if k.lower() in self.ALLOWED_WMS_PARAMS
+        }
+
+        # Merge: original URL params first, then request params override
+        params = {**original_params, **params}
+
+        auth = None
+        if source.username and source.password:
+            auth = (source.username, source.password)
+
+        try:
+            upstream_response = requests.get(
+                base_url,
+                params=params,
+                auth=auth,
+                timeout=30,
+                stream=True,
+            )
+        except requests.RequestException as e:
+            logger.error(
+                f"WMS proxy upstream request failed for source {source_id}: {e}",
+                extra={
+                    "wms_source_id": str(source_id),
+                    "upstream_url": base_url,
+                    "params": params,
+                },
+            )
+            return Response(
+                {"error": f"Upstream request failed: {e}"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        # Log non-2xx responses from upstream
+        if not upstream_response.ok:
+            logger.warning(
+                f"WMS proxy received non-2xx from upstream: {upstream_response.status_code}",
+                extra={
+                    "wms_source_id": str(source_id),
+                    "upstream_url": base_url,
+                    "upstream_status": upstream_response.status_code,
+                    "params": params,
+                },
+            )
+
+        # Check response size limit
+        content_length = upstream_response.headers.get("Content-Length")
+        if content_length and int(content_length) > self.MAX_RESPONSE_SIZE:
+            upstream_response.close()
+            return Response(
+                {"error": "Response too large"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        # Use streaming response for efficiency
+        def iter_content():
+            total_size = 0
+            for chunk in upstream_response.iter_content(chunk_size=8192):
+                total_size += len(chunk)
+                if total_size > self.MAX_RESPONSE_SIZE:
+                    upstream_response.close()
+                    return
+                yield chunk
+
+        return StreamingHttpResponse(
+            iter_content(),
+            status=upstream_response.status_code,
+            content_type=upstream_response.headers.get(
+                "Content-Type", "application/octet-stream"
+            ),
+        )
