@@ -6,7 +6,8 @@
 
 	Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip);
 
-	let { data = [], title = '', color = '#0ea5e9', unit = 'km' } = $props();
+	/** Optional x-axis label; if not set, uses Length (unit) for length data. */
+	let { data = [], title = '', color = '#0ea5e9', unit = 'km', axisLabel } = $props();
 
 	let canvas = $state();
 	let chart;
@@ -108,7 +109,7 @@
 						beginAtZero: true,
 						title: {
 							display: true,
-							text: m.common_length() + ' (' + unit + ')',
+							text: axisLabel ?? m.common_length() + ' (' + unit + ')',
 							font: {
 								size: 12,
 								weight: 'bold'

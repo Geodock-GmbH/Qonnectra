@@ -4,6 +4,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import NodeStatistics from '$lib/components/NodeStatistics.svelte';
 	import TrenchStatistics from '$lib/components/TrenchStatistics.svelte';
 
 	import DashboardCard from './DashboardCard.svelte';
@@ -21,6 +22,7 @@
 	<Tabs.List>
 		<Tabs.Trigger value="stats">{m.common_overview()}</Tabs.Trigger>
 		<Tabs.Trigger value="trench">{m.nav_trench()}</Tabs.Trigger>
+		<Tabs.Trigger value="node">{m.nav_node()}</Tabs.Trigger>
 		<Tabs.Trigger value="projects">{m.form_project({ count: data.projects.length })}</Tabs.Trigger>
 		<Tabs.Indicator />
 	</Tabs.List>
@@ -145,6 +147,16 @@
 			lengthByStatus={data.lengthByStatus}
 			lengthByNetworkLevel={data.lengthByNetworkLevel}
 			longestRoutes={data.longestRoutes}
+		/>
+	</Tabs.Content>
+	<Tabs.Content value="node">
+		<NodeStatistics
+			nodesByCity={data.nodesByCity}
+			nodesByStatus={data.nodesByStatus}
+			nodesByNetworkLevel={data.nodesByNetworkLevel}
+			nodesByType={data.nodesByType}
+			nodesByOwner={data.nodesByOwner}
+			newestNodes={data.newestNodes}
 		/>
 	</Tabs.Content>
 	<Tabs.Content value="projects">

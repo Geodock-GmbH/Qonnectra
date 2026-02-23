@@ -1302,6 +1302,9 @@ class Trench(models.Model):
             models.Index(fields=["owner"], name="idx_trench_owner"),
             models.Index(fields=["constructor"], name="idx_trench_constructor"),
             gis_models.Index(fields=["geom"], name="idx_trench_geom"),
+            models.Index(fields=["project"], name="idx_trench_project"),
+            models.Index(fields=["flag"], name="idx_trench_flag"),
+            models.Index(fields=["project", "flag"], name="idx_trench_project_flag"),
         ]
         constraints = [
             models.UniqueConstraint(
@@ -1773,6 +1776,7 @@ class Node(models.Model):
             models.Index(fields=["canvas_y"], name="idx_node_canvas_y"),
             gis_models.Index(fields=["geom"], name="idx_node_geom"),
             models.Index(fields=["flag"], name="idx_node_flag"),
+            models.Index(fields=["project"], name="idx_node_project"),
             models.Index(fields=["project", "flag"], name="idx_node_project_flag"),
         ]
         constraints = [
@@ -1875,6 +1879,9 @@ class Area(models.Model):
         ordering = ["name"]
         indexes = [
             models.Index(fields=["area_type"], name="idx_area_area_type"),
+            models.Index(fields=["project"], name="idx_area_project"),
+            models.Index(fields=["flag"], name="idx_area_flag"),
+            models.Index(fields=["project", "flag"], name="idx_area_project_flag"),
         ]
         constraints = [
             models.UniqueConstraint(

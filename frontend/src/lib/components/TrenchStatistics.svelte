@@ -1,7 +1,7 @@
 <script>
 	import { m } from '$lib/paraglide/messages';
 
-	import TrenchChart from './TrenchChart.svelte';
+	import TrenchChart from './Chart.svelte';
 
 	let {
 		lengthByTypes,

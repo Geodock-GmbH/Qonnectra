@@ -3,12 +3,14 @@ import mimetypes
 import os
 import uuid
 from collections import defaultdict
+from datetime import date
 from urllib.parse import quote
 
 import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
+from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.db import connection, transaction
 from django.db.models import Avg, Count, F, Q, Sum
@@ -1800,7 +1802,7 @@ class NodeViewSet(viewsets.ModelViewSet):
 
         queryset = Node.objects.filter(
             warranty__isnull=False, warranty__gte=date.today()
-        )
+        ).select_related("node_type")
 
         if project_id:
             try:
@@ -1831,6 +1833,150 @@ class NodeViewSet(viewsets.ModelViewSet):
             )
 
         return Response({"results": result, "count": len(result)})
+
+    @action(detail=False, methods=["get"])
+    def count_by_city(self, request):
+        """
+        Returns the count of nodes grouped by city (from linked address).
+        """
+        project_id = request.query_params.get("project")
+        flag = request.query_params.get("flag")
+
+        queryset = Node.objects.filter(uuid_address__isnull=False)
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        queryset = (
+            queryset.values("uuid_address__city")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+
+        result = [
+            {"city": row["uuid_address__city"], "count": row["count"]}
+            for row in queryset
+            if row["uuid_address__city"]
+        ]
+
+        return Response({"results": result, "count": len(result)})
+
+    @action(detail=False, methods=["get"])
+    def count_by_status(self, request):
+        """
+        Returns the count of nodes grouped by status.
+        """
+        project_id = request.query_params.get("project")
+        flag = request.query_params.get("flag")
+
+        queryset = Node.objects.all()
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        queryset = (
+            queryset.values("status__status")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+
+        result = [
+            {"status": row["status__status"], "count": row["count"]}
+            for row in queryset
+            if row["status__status"]
+        ]
+
+        return Response({"results": result, "count": len(result)})
+
+    @action(detail=False, methods=["get"])
+    def count_by_network_level(self, request):
+        """
+        Returns the count of nodes grouped by network level.
+        """
+        project_id = request.query_params.get("project")
+        flag = request.query_params.get("flag")
+
+        queryset = Node.objects.all()
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        queryset = (
+            queryset.values("network_level__network_level")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+
+        result = [
+            {"network_level": row["network_level__network_level"], "count": row["count"]}
+            for row in queryset
+            if row["network_level__network_level"]
+        ]
+
+        return Response({"results": result, "count": len(result)})
+
+    @action(detail=False, methods=["get"])
+    def count_by_owner(self, request):
+        """
+        Returns the count of nodes grouped by owner company.
+        """
+        project_id = request.query_params.get("project")
+        flag = request.query_params.get("flag")
+
+        queryset = Node.objects.filter(owner__isnull=False)
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        queryset = (
+            queryset.values("owner__company")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+
+        result = [
+            {"owner": row["owner__company"], "count": row["count"]}
+            for row in queryset
+            if row["owner__company"]
+        ]
+
+        return Response({"results": result, "count": len(result)})
+
+    @action(detail=False, methods=["get"])
+    def newest_oldest_nodes(self, request):
+        """
+        Returns the 5 newest and 5 oldest nodes by date field.
+        """
+        project_id = request.query_params.get("project")
+        flag = request.query_params.get("flag")
+
+        queryset = Node.objects.filter(date__isnull=False).select_related("node_type")
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        newest = list(queryset.order_by("-date")[:5])
+        oldest = list(queryset.order_by("date")[:5])
+
+        def node_to_dict(node):
+            return {
+                "id": node.uuid,
+                "name": node.name,
+                "date": node.date.strftime("%Y-%m-%d") if node.date else None,
+                "node_type": node.node_type.node_type if node.node_type else None,
+            }
+
+        return Response(
+            {
+                "newest": [node_to_dict(n) for n in newest],
+                "oldest": [node_to_dict(n) for n in oldest],
+            }
+        )
 
     @action(detail=False, methods=["get"], url_path="all")
     def all_nodes(self, request):
@@ -5178,3 +5324,238 @@ class WMSProxyView(APIView):
                 "Content-Type", "application/octet-stream"
             ),
         )
+
+
+class DashboardStatisticsView(APIView):
+    """Consolidated endpoint for all dashboard statistics.
+
+    Returns all dashboard data in a single request, reducing HTTP overhead
+    from 16 separate API calls to 1. Includes caching for improved performance.
+    """
+
+    permission_classes = [IsAuthenticated]
+    CACHE_TIMEOUT = 300  # 5 minutes
+
+    def get(self, request):
+        project_id = request.query_params.get("project")
+        flag_id = request.query_params.get("flag")
+
+        if not project_id:
+            return Response(
+                {"error": "project parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Build cache key
+        cache_key = f"dashboard_stats_{project_id}_{flag_id or 'all'}"
+
+        # Try to get from cache
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            return Response(cached_data)
+
+        # Compute all statistics
+        result = {
+            "trench": self._get_trench_statistics(project_id, flag_id),
+            "node": self._get_node_statistics(project_id, flag_id),
+        }
+
+        # Cache the result
+        cache.set(cache_key, result, self.CACHE_TIMEOUT)
+
+        return Response(result)
+
+    def _get_trench_statistics(self, project_id, flag_id):
+        """Gather all trench-related statistics."""
+        base_queryset = Trench.objects.all()
+        if project_id:
+            base_queryset = base_queryset.filter(project=project_id)
+        if flag_id:
+            base_queryset = base_queryset.filter(flag=flag_id)
+
+        # Total length and count
+        totals = base_queryset.aggregate(
+            total_length=Sum("length"),
+            count=Count("uuid"),
+        )
+
+        # Average house connection length
+        house_connection_qs = base_queryset.filter(house_connection=True)
+        avg_house_connection = house_connection_qs.aggregate(
+            average_length=Avg("length"),
+            count=Count("uuid"),
+        )
+
+        # Length with funding
+        funding_qs = base_queryset.filter(funding_status=True)
+        length_with_funding = funding_qs.aggregate(
+            total_length=Sum("length"),
+            count=Count("uuid"),
+        )
+
+        # Length with internal execution
+        internal_qs = base_queryset.filter(internal_execution=True)
+        length_with_internal = internal_qs.aggregate(
+            total_length=Sum("length"),
+            count=Count("uuid"),
+        )
+
+        # Length by types (construction type + surface)
+        length_by_types = list(
+            base_queryset.annotate(
+                bauweise=F("construction_type__construction_type"),
+                oberfläche=F("surface__surface"),
+            )
+            .values("bauweise", "oberfläche")
+            .annotate(gesamt_länge=Sum("length"))
+            .order_by("bauweise", "oberfläche")
+        )
+
+        # Length by status
+        length_by_status = list(
+            base_queryset.annotate(status_name=F("status__status"))
+            .values("status_name")
+            .annotate(gesamt_länge=Sum("length"))
+            .order_by("status_name")
+        )
+
+        # Length by phase (network level)
+        length_by_phase = list(
+            base_queryset.annotate(network_level=F("phase__phase"))
+            .values("network_level")
+            .annotate(gesamt_länge=Sum("length"))
+            .order_by("network_level")
+        )
+
+        # Longest routes
+        longest_routes = list(
+            base_queryset.annotate(
+                construction_type_name=F("construction_type__construction_type"),
+                surface_name=F("surface__surface"),
+            )
+            .values("id_trench", "length", "construction_type_name", "surface_name")
+            .order_by("-length")[:5]
+        )
+
+        return {
+            "total_length": totals["total_length"] or 0,
+            "count": totals["count"] or 0,
+            "average_house_connection_length": avg_house_connection["average_length"] or 0,
+            "house_connection_count": avg_house_connection["count"] or 0,
+            "length_with_funding": length_with_funding["total_length"] or 0,
+            "funding_count": length_with_funding["count"] or 0,
+            "length_with_internal_execution": length_with_internal["total_length"] or 0,
+            "internal_execution_count": length_with_internal["count"] or 0,
+            "length_by_types": length_by_types,
+            "length_by_status": length_by_status,
+            "length_by_phase": length_by_phase,
+            "longest_routes": longest_routes,
+        }
+
+    def _get_node_statistics(self, project_id, flag_id):
+        """Gather all node-related statistics."""
+        base_queryset = Node.objects.all()
+        if project_id:
+            base_queryset = base_queryset.filter(project=project_id)
+        if flag_id:
+            base_queryset = base_queryset.filter(flag=flag_id)
+
+        # Count by type
+        count_by_type = list(
+            base_queryset.values("node_type__node_type")
+            .annotate(count=Count("node_type"))
+            .order_by("node_type__node_type")
+        )
+        count_by_type = [
+            {"node_type": row["node_type__node_type"], "count": row["count"]}
+            for row in count_by_type
+        ]
+
+        # Count by city
+        city_qs = base_queryset.filter(uuid_address__isnull=False)
+        count_by_city = list(
+            city_qs.values("uuid_address__city")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+        count_by_city = [
+            {"city": row["uuid_address__city"], "count": row["count"]}
+            for row in count_by_city
+            if row["uuid_address__city"]
+        ]
+
+        # Count by status
+        count_by_status = list(
+            base_queryset.values("status__status")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+        count_by_status = [
+            {"status": row["status__status"], "count": row["count"]}
+            for row in count_by_status
+            if row["status__status"]
+        ]
+
+        # Count by network level
+        count_by_network_level = list(
+            base_queryset.values("network_level__network_level")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+        count_by_network_level = [
+            {"network_level": row["network_level__network_level"], "count": row["count"]}
+            for row in count_by_network_level
+            if row["network_level__network_level"]
+        ]
+
+        # Count by owner
+        owner_qs = base_queryset.filter(owner__isnull=False)
+        count_by_owner = list(
+            owner_qs.values("owner__company")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+        count_by_owner = [
+            {"owner": row["owner__company"], "count": row["count"]}
+            for row in count_by_owner
+            if row["owner__company"]
+        ]
+
+        # Expiring warranties
+        warranty_qs = base_queryset.filter(
+            warranty__isnull=False, warranty__gte=date.today()
+        ).select_related("node_type").order_by("warranty")[:5]
+        expiring_warranties = []
+        for node in warranty_qs:
+            days_until_expiry = (node.warranty - date.today()).days
+            expiring_warranties.append({
+                "id": node.uuid,
+                "name": node.name,
+                "warranty": node.warranty.strftime("%Y-%m-%d"),
+                "node_type": node.node_type.node_type if node.node_type else None,
+                "days_until_expiry": days_until_expiry,
+            })
+
+        # Newest and oldest nodes
+        date_qs = base_queryset.filter(date__isnull=False).select_related("node_type")
+        newest = list(date_qs.order_by("-date")[:5])
+        oldest = list(date_qs.order_by("date")[:5])
+
+        def node_to_dict(node):
+            return {
+                "id": node.uuid,
+                "name": node.name,
+                "date": node.date.strftime("%Y-%m-%d") if node.date else None,
+                "node_type": node.node_type.node_type if node.node_type else None,
+            }
+
+        return {
+            "count_by_type": count_by_type,
+            "count_by_city": count_by_city,
+            "count_by_status": count_by_status,
+            "count_by_network_level": count_by_network_level,
+            "count_by_owner": count_by_owner,
+            "expiring_warranties": expiring_warranties,
+            "newest_nodes": [node_to_dict(n) for n in newest],
+            "oldest_nodes": [node_to_dict(n) for n in oldest],
+        }

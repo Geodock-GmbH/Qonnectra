@@ -32,6 +32,7 @@ from .views import (
     ContainerTypeViewSet,
     ContainerViewSet,
     ContentTypeViewSet,
+    DashboardStatisticsView,
     FeatureFilesViewSet,
     FiberSpliceViewSet,
     FiberViewSet,
@@ -323,5 +324,10 @@ urlpatterns = [
         "wms-proxy/<uuid:source_id>/",
         WMSProxyView.as_view(),
         name="wms-proxy",
+    ),
+    path(
+        "dashboard/statistics/",
+        DashboardStatisticsView.as_view(),
+        name="dashboard-statistics",
     ),
 ]
