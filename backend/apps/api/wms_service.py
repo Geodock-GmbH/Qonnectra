@@ -2,9 +2,10 @@
 
 import hashlib
 import logging
-import time
+import math
 from typing import Optional
 
+from django.core.cache import cache
 from owslib.wms import WebMapService
 
 logger = logging.getLogger(__name__)
@@ -15,30 +16,24 @@ class WMSServiceError(Exception):
     pass
 
 
-# Simple in-memory cache for WMS capabilities
-_capabilities_cache: dict[str, tuple[list[dict], float]] = {}
 CACHE_TTL_SECONDS = 300  # 5 minutes
+CACHE_KEY_PREFIX = "wms_capabilities:"
 
 
 def _get_cache_key(url: str, username: Optional[str] = None) -> str:
     """Generate a cache key for WMS capabilities."""
     key_data = f"{url}:{username or ''}"
-    return hashlib.md5(key_data.encode()).hexdigest()
+    return f"{CACHE_KEY_PREFIX}{hashlib.md5(key_data.encode()).hexdigest()}"
 
 
 def _get_cached_layers(cache_key: str) -> Optional[list[dict]]:
     """Get cached layers if still valid."""
-    if cache_key in _capabilities_cache:
-        layers, timestamp = _capabilities_cache[cache_key]
-        if time.time() - timestamp < CACHE_TTL_SECONDS:
-            return layers
-        del _capabilities_cache[cache_key]
-    return None
+    return cache.get(cache_key)
 
 
 def _cache_layers(cache_key: str, layers: list[dict]) -> None:
-    """Cache layers with current timestamp."""
-    _capabilities_cache[cache_key] = (layers, time.time())
+    """Cache layers with TTL."""
+    cache.set(cache_key, layers, timeout=CACHE_TTL_SECONDS)
 
 
 def clear_capabilities_cache(url: Optional[str] = None, username: Optional[str] = None) -> None:
@@ -48,14 +43,18 @@ def clear_capabilities_cache(url: Optional[str] = None, username: Optional[str] 
         url: If provided, only clear cache for this URL
         username: Optional username associated with the URL
 
-    If no URL is provided, clears the entire cache.
+    If no URL is provided, clears all WMS capabilities cache keys.
     """
-    global _capabilities_cache
     if url:
         cache_key = _get_cache_key(url, username)
-        _capabilities_cache.pop(cache_key, None)
+        cache.delete(cache_key)
     else:
-        _capabilities_cache = {}
+        # Clear all WMS capabilities cache keys using delete_pattern if available
+        # (Redis/Memcached), otherwise this is a no-op for LocMemCache
+        if hasattr(cache, "delete_pattern"):
+            cache.delete_pattern(f"{CACHE_KEY_PREFIX}*")
+        else:
+            logger.warning("Cache backend does not support delete_pattern, cannot clear all WMS cache")
 
 
 def fetch_wms_layers(
@@ -142,8 +141,6 @@ def calculate_recommended_min_zoom(bbox_width_deg: float) -> int:
     Returns:
         Recommended minimum zoom level (0-22)
     """
-    import math
-
     if bbox_width_deg <= 0:
         return 0
 

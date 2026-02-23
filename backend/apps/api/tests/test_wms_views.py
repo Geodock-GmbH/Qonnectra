@@ -1,12 +1,15 @@
 """Tests for WMS views."""
 
 import uuid as uuid_module
+from datetime import timedelta
 
 import pytest
 from unittest.mock import patch, MagicMock
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import AccessToken
 
 from apps.api.models import WMSSource, WMSLayer
 from apps.api.tests.factories import ProjectFactory
@@ -124,3 +127,124 @@ class TestWMSProxyView:
         assert response.status_code == status.HTTP_200_OK
         assert response["Content-Type"] == "image/png"
         mock_get.assert_called_once()
+
+
+class TestWMSTokenAuthentication:
+    """Tests for WMSTokenAuthentication class."""
+
+    def test_valid_wms_scoped_token_authenticates(self, user, wms_source):
+        """Should authenticate with a valid WMS-scoped token."""
+        token = AccessToken.for_user(user)
+        token["wms_only"] = True
+
+        client = APIClient()
+        mock_response = MagicMock()
+        mock_response.content = b"<image data>"
+        mock_response.headers = {"Content-Type": "image/png"}
+        mock_response.status_code = 200
+
+        with patch("apps.api.views.requests.get", return_value=mock_response):
+            url = reverse("wms-proxy", args=[wms_source.id])
+            response = client.get(
+                url,
+                {
+                    "token": str(token),
+                    "SERVICE": "WMS",
+                    "REQUEST": "GetMap",
+                    "LAYERS": "test",
+                    "BBOX": "0,0,1,1",
+                },
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_token_without_wms_only_claim_rejected(self, user, wms_source):
+        """Should reject tokens without the wms_only claim."""
+        token = AccessToken.for_user(user)
+        # No wms_only claim set
+
+        client = APIClient()
+        url = reverse("wms-proxy", args=[wms_source.id])
+        response = client.get(
+            url,
+            {
+                "token": str(token),
+                "SERVICE": "WMS",
+                "REQUEST": "GetMap",
+            },
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_expired_token_rejected(self, user, wms_source):
+        """Should reject expired tokens."""
+        token = AccessToken.for_user(user)
+        token["wms_only"] = True
+        # Set token to be already expired
+        token.set_exp(lifetime=-timedelta(minutes=5))
+
+        client = APIClient()
+        url = reverse("wms-proxy", args=[wms_source.id])
+        response = client.get(
+            url,
+            {
+                "token": str(token),
+                "SERVICE": "WMS",
+                "REQUEST": "GetMap",
+            },
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_invalid_token_format_rejected(self, wms_source):
+        """Should reject malformed tokens."""
+        client = APIClient()
+        url = reverse("wms-proxy", args=[wms_source.id])
+        response = client.get(
+            url,
+            {
+                "token": "invalid.token.format",
+                "SERVICE": "WMS",
+                "REQUEST": "GetMap",
+            },
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_token_for_nonexistent_user_rejected(self, user, wms_source):
+        """Should reject tokens for users that no longer exist."""
+        token = AccessToken.for_user(user)
+        token["wms_only"] = True
+        token_str = str(token)
+
+        # Delete the user
+        user_id = user.id
+        user.delete()
+
+        client = APIClient()
+        url = reverse("wms-proxy", args=[wms_source.id])
+        response = client.get(
+            url,
+            {
+                "token": token_str,
+                "SERVICE": "WMS",
+                "REQUEST": "GetMap",
+            },
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_no_token_falls_through_to_other_auth(self, wms_source):
+        """Should return 403 when no token and no other auth."""
+        client = APIClient()
+        url = reverse("wms-proxy", args=[wms_source.id])
+        response = client.get(
+            url,
+            {
+                "SERVICE": "WMS",
+                "REQUEST": "GetMap",
+            },
+        )
+
+        # No token, no cookie auth = 403 Forbidden
+        assert response.status_code == status.HTTP_403_FORBIDDEN

@@ -148,34 +148,37 @@ vi.mock('@skeletonlabs/skeleton-svelte', async () => {
 	};
 });
 
-// Mock the classes
+// Mock the classes - must use actual class syntax for Svelte 5 runes compatibility
 vi.mock('$lib/classes/NetworkSchemaState.svelte.js', () => ({
-	NetworkSchemaState: vi.fn().mockImplementation(() => ({
-		nodes: [],
-		edges: [],
-		cableTypes: [],
-		selectedCableType: null,
-		userCableName: '',
-		initialized: true,
-		initialize: vi.fn(),
-		handleNodeDragStop: vi.fn(),
-		handleConnect: vi.fn(),
-		updateEdgeMicropipeConnections: vi.fn(),
-		updateCableHandles: vi.fn(),
-		updateEdgeConnection: vi.fn(),
-		deselectAllNodes: vi.fn()
-	}))
+	NetworkSchemaState: class MockNetworkSchemaState {
+		nodes = [];
+		edges = [];
+		cableTypes = [];
+		selectedCableType = null;
+		userCableName = '';
+		initialized = true;
+		parentNodeContext = null;
+		initialize = vi.fn();
+		handleNodeDragStop = vi.fn();
+		handleConnect = vi.fn();
+		updateEdgeMicropipeConnections = vi.fn();
+		updateCableHandles = vi.fn();
+		updateEdgeConnection = vi.fn();
+		deselectAllNodes = vi.fn();
+		transformNodesToSvelteFlow = vi.fn().mockReturnValue([]);
+		transformCablesToSvelteFlowEdges = vi.fn().mockReturnValue([]);
+	}
 }));
 
 vi.mock('$lib/classes/CablePathManager.svelte.js', () => ({
-	CablePathManager: vi.fn().mockImplementation(() => ({
-		updatePath: vi.fn(),
-		updateHandles: vi.fn()
-	}))
+	CablePathManager: class MockCablePathManager {
+		updatePath = vi.fn();
+		updateHandles = vi.fn();
+	}
 }));
 
 vi.mock('$lib/classes/NetworkSchemaSearchManager.svelte.js', () => ({
-	NetworkSchemaSearchManager: vi.fn().mockImplementation(() => ({}))
+	NetworkSchemaSearchManager: class MockNetworkSchemaSearchManager {}
 }));
 
 describe('/network-schema/+page.svelte', () => {
