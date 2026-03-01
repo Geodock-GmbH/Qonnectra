@@ -1597,174 +1597,174 @@ class ContainerTypeAdmin(SimpleHistoryAdmin):
     color_preview.short_description = _("Color")
 
 
-# class WMSLayerInline(admin.TabularInline):
-#     """Inline admin for WMS layers."""
+class WMSLayerInline(admin.TabularInline):
+    """Inline admin for WMS layers."""
 
-#     model = WMSLayer
-#     extra = 0
-#     readonly_fields = ["name", "title"]
-#     fields = [
-#         "name",
-#         "title",
-#         "is_enabled",
-#         "sort_order",
-#         "min_zoom",
-#         "max_zoom",
-#         "opacity",
-#     ]
-#     ordering = ["sort_order", "name"]
-
-
-# class WMSSourceAdminForm(forms.ModelForm):
-#     """Custom form for WMSSource admin with password field."""
-
-#     password = forms.CharField(
-#         widget=forms.PasswordInput(render_value=True),
-#         required=False,
-#         label=_("Password"),
-#         help_text=_(
-#             "Password for authenticated WMS services. Leave blank if not required."
-#         ),
-#     )
-
-#     class Meta:
-#         model = WMSSource
-#         fields = [
-#             "project",
-#             "name",
-#             "url",
-#             "username",
-#             "password",
-#             "sort_order",
-#             "is_active",
-#         ]
-
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         # Pre-populate password field placeholder if password exists
-#         if self.instance and self.instance.pk and self.instance._password:
-#             self.fields["password"].widget.attrs["placeholder"] = "••••••••"
-
-#     def save(self, commit=True):
-#         instance = super().save(commit=False)
-#         password = self.cleaned_data.get("password")
-#         if password:
-#             instance.password = password
-#         if commit:
-#             instance.save()
-#         return instance
+    model = WMSLayer
+    extra = 0
+    readonly_fields = ["name", "title"]
+    fields = [
+        "name",
+        "title",
+        "is_enabled",
+        "sort_order",
+        "min_zoom",
+        "max_zoom",
+        "opacity",
+    ]
+    ordering = ["sort_order", "name"]
 
 
-# @admin.register(WMSSource)
-# class WMSSourceAdmin(admin.ModelAdmin):
-#     """Admin for WMS sources."""
+class WMSSourceAdminForm(forms.ModelForm):
+    """Custom form for WMSSource admin with password field."""
 
-#     form = WMSSourceAdminForm
-#     list_display = ["name", "project", "url", "is_active", "layer_count", "sort_order"]
-#     list_filter = ["project", "is_active"]
-#     search_fields = ["name", "url"]
-#     ordering = ["project", "sort_order", "name"]
-#     inlines = [WMSLayerInline]
-#     actions = ["scan_capabilities"]
+    password = forms.CharField(
+        widget=forms.PasswordInput(render_value=True),
+        required=False,
+        label=_("Password"),
+        help_text=_(
+            "Password for authenticated WMS services. Leave blank if not required."
+        ),
+    )
 
-#     fieldsets = (
-#         (
-#             None,
-#             {
-#                 "fields": ("project", "name", "url", "sort_order", "is_active"),
-#             },
-#         ),
-#         (
-#             _("Authentication"),
-#             {
-#                 "fields": ("username", "password"),
-#                 "classes": ("collapse",),
-#             },
-#         ),
-#     )
+    class Meta:
+        model = WMSSource
+        fields = [
+            "project",
+            "name",
+            "url",
+            "username",
+            "password",
+            "sort_order",
+            "is_active",
+        ]
 
-#     def layer_count(self, obj):
-#         return obj.layers.filter(is_enabled=True).count()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Pre-populate password field placeholder if password exists
+        if self.instance and self.instance.pk and self.instance._password:
+            self.fields["password"].widget.attrs["placeholder"] = "••••••••"
 
-#     layer_count.short_description = _("Enabled Layers")
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        password = self.cleaned_data.get("password")
+        if password:
+            instance.password = password
+        if commit:
+            instance.save()
+        return instance
 
-#     def save_model(self, request, obj, form, change):
-#         super().save_model(request, obj, form, change)
 
-#         if not change or "url" in form.changed_data:
-#             try:
-#                 layers_data = fetch_wms_layers(
-#                     obj.url,
-#                     username=obj.username or None,
-#                     password=obj.password or None,
-#                 )
-#                 for i, layer_data in enumerate(layers_data):
-#                     WMSLayer.objects.update_or_create(
-#                         source=obj,
-#                         name=layer_data["name"],
-#                         defaults={
-#                             "title": layer_data["title"],
-#                             "sort_order": i,
-#                         },
-#                     )
-#                 messages.success(
-#                     request, _("Fetched %d layers from WMS.") % len(layers_data)
-#                 )
-#             except WMSServiceError as e:
-#                 messages.error(request, _("Failed to fetch WMS layers: %s") % e)
+@admin.register(WMSSource)
+class WMSSourceAdmin(admin.ModelAdmin):
+    """Admin for WMS sources."""
 
-#     def scan_capabilities(self, request, queryset):
-#         """Scan WMS sources and show recommended configuration."""
-#         for source in queryset:
-#             try:
-#                 result = scan_wms_capabilities(
-#                     source.url,
-#                     username=source.username or None,
-#                     password=source.password or None,
-#                 )
-#                 layers_info = result.get("layers", [])
+    form = WMSSourceAdminForm
+    list_display = ["name", "project", "url", "is_active", "layer_count", "sort_order"]
+    list_filter = ["project", "is_active"]
+    search_fields = ["name", "url"]
+    ordering = ["project", "sort_order", "name"]
+    inlines = [WMSLayerInline]
+    actions = ["scan_capabilities"]
 
-#                 # Update layers with recommended settings
-#                 updated_count = 0
-#                 for layer_info in layers_info:
-#                     try:
-#                         layer = source.layers.get(name=layer_info["name"])
-#                         recommended_zoom = layer_info.get("recommended_min_zoom", 8)
-#                         if layer.min_zoom != recommended_zoom:
-#                             layer.min_zoom = recommended_zoom
-#                             layer.save(update_fields=["min_zoom"])
-#                             updated_count += 1
-#                     except WMSLayer.DoesNotExist:
-#                         continue
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": ("project", "name", "url", "sort_order", "is_active"),
+            },
+        ),
+        (
+            _("Authentication"),
+            {
+                "fields": ("username", "password"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
 
-#                 if updated_count > 0:
-#                     messages.success(
-#                         request,
-#                         _("Updated min_zoom for %(count)d layers in '%(source)s'.")
-#                         % {
-#                             "count": updated_count,
-#                             "source": source.name,
-#                         },
-#                     )
-#                 else:
-#                     messages.info(
-#                         request,
-#                         _(
-#                             "No changes needed for '%(source)s'. All layers already have recommended settings."
-#                         )
-#                         % {
-#                             "source": source.name,
-#                         },
-#                     )
+    def layer_count(self, obj):
+        return obj.layers.filter(is_enabled=True).count()
 
-#             except WMSServiceError as e:
-#                 messages.error(
-#                     request,
-#                     _("Failed to scan '%(source)s': %(error)s")
-#                     % {
-#                         "source": source.name,
-#                         "error": str(e),
-#                     },
-#                 )
+    layer_count.short_description = _("Enabled Layers")
 
-#     scan_capabilities.short_description = _("Scan & apply recommended settings")
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+
+        if not change or "url" in form.changed_data:
+            try:
+                layers_data = fetch_wms_layers(
+                    obj.url,
+                    username=obj.username or None,
+                    password=obj.password or None,
+                )
+                for i, layer_data in enumerate(layers_data):
+                    WMSLayer.objects.update_or_create(
+                        source=obj,
+                        name=layer_data["name"],
+                        defaults={
+                            "title": layer_data["title"],
+                            "sort_order": i,
+                        },
+                    )
+                messages.success(
+                    request, _("Fetched %d layers from WMS.") % len(layers_data)
+                )
+            except WMSServiceError as e:
+                messages.error(request, _("Failed to fetch WMS layers: %s") % e)
+
+    def scan_capabilities(self, request, queryset):
+        """Scan WMS sources and show recommended configuration."""
+        for source in queryset:
+            try:
+                result = scan_wms_capabilities(
+                    source.url,
+                    username=source.username or None,
+                    password=source.password or None,
+                )
+                layers_info = result.get("layers", [])
+
+                # Update layers with recommended settings
+                updated_count = 0
+                for layer_info in layers_info:
+                    try:
+                        layer = source.layers.get(name=layer_info["name"])
+                        recommended_zoom = layer_info.get("recommended_min_zoom", 8)
+                        if layer.min_zoom != recommended_zoom:
+                            layer.min_zoom = recommended_zoom
+                            layer.save(update_fields=["min_zoom"])
+                            updated_count += 1
+                    except WMSLayer.DoesNotExist:
+                        continue
+
+                if updated_count > 0:
+                    messages.success(
+                        request,
+                        _("Updated min_zoom for %(count)d layers in '%(source)s'.")
+                        % {
+                            "count": updated_count,
+                            "source": source.name,
+                        },
+                    )
+                else:
+                    messages.info(
+                        request,
+                        _(
+                            "No changes needed for '%(source)s'. All layers already have recommended settings."
+                        )
+                        % {
+                            "source": source.name,
+                        },
+                    )
+
+            except WMSServiceError as e:
+                messages.error(
+                    request,
+                    _("Failed to scan '%(source)s': %(error)s")
+                    % {
+                        "source": source.name,
+                        "error": str(e),
+                    },
+                )
+
+    scan_capabilities.short_description = _("Scan & apply recommended settings")
