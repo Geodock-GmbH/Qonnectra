@@ -15,7 +15,12 @@ import {
 	createNodeTileSource,
 	createTrenchTileSource
 } from '$lib/map/tileSources';
-import { wmsLayerVisibilityConfig, wmsSourcesData } from '$lib/stores/store';
+import {
+	getWMSLayerVisibility,
+	setWMSLayerVisibility,
+	wmsLayerVisibilityConfig,
+	wmsSourcesData
+} from '$lib/stores/store';
 import { globalToaster } from '$lib/stores/toaster';
 import { fetchWMSAccessToken, fetchWMSSources, getWMSProxyUrl } from '$lib/utils/wmsApi';
 import { startWMSHeartbeat, stopWMSHeartbeat } from '$lib/utils/wmsTokenHeartbeat.svelte.js';
@@ -232,24 +237,33 @@ export class MapState {
 						opacity: layer.opacity ?? 1.0
 					});
 
-					// Get visibility from store or default to true
+					// Get visibility from project-scoped store or default to true
 					const visibilityStore = get(wmsLayerVisibilityConfig);
-					const isVisible = visibilityStore[layerId] ?? true;
+					const isVisible = getWMSLayerVisibility(
+						visibilityStore,
+						this.selectedProject,
+						layerId,
+						true
+					);
 					olLayer.setVisible(isVisible);
 
 					newWmsLayers.push(olLayer);
 				}
 			}
 
-			// Clean up stale visibility config entries for deleted WMS layers
+			// Clean up stale visibility config entries for this project only
 			const currentVisibilityConfig = get(wmsLayerVisibilityConfig);
-			const cleanedConfig = {};
-			for (const [layerId, visible] of Object.entries(currentVisibilityConfig)) {
+			const projectConfig = currentVisibilityConfig[this.selectedProject] || {};
+			const cleanedProjectConfig = {};
+			for (const [layerId, visible] of Object.entries(projectConfig)) {
 				if (validLayerIds.has(layerId)) {
-					cleanedConfig[layerId] = visible;
+					cleanedProjectConfig[layerId] = visible;
 				}
 			}
-			wmsLayerVisibilityConfig.set(cleanedConfig);
+			wmsLayerVisibilityConfig.set({
+				...currentVisibilityConfig,
+				[this.selectedProject]: cleanedProjectConfig
+			});
 
 			this.wmsLayers = newWmsLayers;
 
@@ -404,6 +418,27 @@ export class MapState {
 		if (this.selectedProject === newProjectId) return;
 		this.selectedProject = newProjectId;
 		this._recreateTileSources();
+		this._reloadWMSLayers();
+	}
+
+	/**
+	 * Remove existing WMS layers and reload for current project
+	 */
+	async _reloadWMSLayers() {
+		if (!this.olMap) return;
+
+		// Remove existing WMS layers from map
+		for (const wmsLayer of this.wmsLayers) {
+			this.olMap.removeLayer(wmsLayer);
+			const source = wmsLayer.getSource();
+			if (source && typeof source.dispose === 'function') {
+				source.dispose();
+			}
+		}
+		this.wmsLayers = [];
+
+		// Load WMS layers for the new project
+		await this.loadWMSLayers();
 	}
 
 	/**

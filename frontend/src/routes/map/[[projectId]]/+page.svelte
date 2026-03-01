@@ -243,6 +243,7 @@
 					surfaces={data.surfaces ?? []}
 					constructionTypes={data.constructionTypes ?? []}
 					areaTypes={data.areaTypes ?? []}
+					projectId={$selectedProject}
 					on:ready={handleMapReady}
 					searchPanelProps={{
 						trenchColorSelected: $trenchColorSelected,

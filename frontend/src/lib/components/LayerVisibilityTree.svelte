@@ -24,10 +24,14 @@
 	import {
 		areaTypeStyles,
 		basemapTheme,
+		getWMSLayerVisibility,
+		getWMSSourceExpanded,
 		labelVisibilityConfig,
 		layerTreeExpanded,
 		layerVisibilityConfig,
 		nodeTypeStyles,
+		setWMSLayerVisibility,
+		setWMSSourceExpanded,
 		trenchConstructionTypeStyles,
 		trenchStyleMode,
 		trenchSurfaceStyles,
@@ -65,6 +69,7 @@
 		usingFallbackOSM = false,
 		/** @type {WMSSource[]} */
 		wmsSources = [],
+		projectId = '',
 		onLayerVisibilityChanged = () => {},
 		onNodeTypeVisibilityChanged = () => {},
 		onTrenchTypeVisibilityChanged = () => {},
@@ -516,10 +521,13 @@
 	 * @param {string} sourceId - The ID of the WMS source
 	 */
 	function toggleWMSSourceExpansion(sourceId) {
-		$wmsSourceExpansionState = {
-			...$wmsSourceExpansionState,
-			[sourceId]: !$wmsSourceExpansionState[sourceId]
-		};
+		const current = getWMSSourceExpanded($wmsSourceExpansionState, projectId, sourceId);
+		$wmsSourceExpansionState = setWMSSourceExpanded(
+			$wmsSourceExpansionState,
+			projectId,
+			sourceId,
+			!current
+		);
 	}
 
 	/**
@@ -528,7 +536,7 @@
 	 * @returns {boolean} True if the source is expanded
 	 */
 	function isWMSSourceExpanded(sourceId) {
-		return $wmsSourceExpansionState[sourceId] ?? false;
+		return getWMSSourceExpanded($wmsSourceExpansionState, projectId, sourceId);
 	}
 
 	/**
@@ -537,7 +545,7 @@
 	 * @returns {boolean} True if the layer is visible
 	 */
 	function isWMSLayerVisible(layerId) {
-		return $wmsLayerVisibilityConfig[layerId] ?? true;
+		return getWMSLayerVisibility($wmsLayerVisibilityConfig, projectId, layerId, true);
 	}
 
 	/**
@@ -545,11 +553,13 @@
 	 * @param {string} layerId - The layer ID
 	 */
 	function toggleWMSLayerVisibility(layerId) {
-		const current = $wmsLayerVisibilityConfig[layerId] ?? true;
-		$wmsLayerVisibilityConfig = {
-			...$wmsLayerVisibilityConfig,
-			[layerId]: !current
-		};
+		const current = isWMSLayerVisible(layerId);
+		$wmsLayerVisibilityConfig = setWMSLayerVisibility(
+			$wmsLayerVisibilityConfig,
+			projectId,
+			layerId,
+			!current
+		);
 		onWMSLayerVisibilityChanged(layerId, !current);
 	}
 

@@ -41,6 +41,7 @@
 		surfaces = [],
 		constructionTypes = [],
 		areaTypes = [],
+		projectId = '',
 		variant = 'fullscreen' // 'fullscreen' | 'compact'
 	} = $props();
 
@@ -366,6 +367,7 @@
 					{constructionTypes}
 					{areaTypes}
 					{usingFallbackOSM}
+					{projectId}
 					wmsSources={$wmsSourcesData.sources}
 					onLayerVisibilityChanged={handleLayerVisibilityChange}
 					onNodeTypeVisibilityChanged={handleNodeTypeVisibilityChange}
@@ -435,6 +437,7 @@
 					{constructionTypes}
 					{areaTypes}
 					{usingFallbackOSM}
+					{projectId}
 					wmsSources={$wmsSourcesData.sources}
 					onLayerVisibilityChanged={handleLayerVisibilityChange}
 					onNodeTypeVisibilityChanged={handleNodeTypeVisibilityChange}

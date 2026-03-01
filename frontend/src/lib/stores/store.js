@@ -94,13 +94,66 @@ export const basemapTheme = persisted('basemapTheme', 'light');
 export const tileServerAvailable = persisted('tileServerAvailable', true);
 
 // WMS layer visibility configuration - controls whether WMS layers are visible
-// Structure: { [layerId]: boolean }
+// Structure: { [projectId]: { [layerId]: boolean } }
 export const wmsLayerVisibilityConfig = persisted('wmsLayerVisibilityConfig', {});
 
 // WMS source expansion state - which sources are expanded in layer tree
-// Structure: { [sourceId]: boolean }
+// Structure: { [projectId]: { [sourceId]: boolean } }
 export const wmsSourceExpansionState = persisted('wmsSourceExpansionState', {});
 
 // WMS sources data - populated from API
 // Structure: { sources: WMSSource[], loaded: boolean }
 export const wmsSourcesData = writable({ sources: [], loaded: false });
+
+/**
+ * Get WMS layer visibility for a specific project and layer
+ * @param {object} config - The full visibility config store value
+ * @param {string} projectId - The project ID
+ * @param {string} layerId - The WMS layer ID
+ * @param {boolean} [defaultValue=true] - Default visibility if not set
+ * @returns {boolean}
+ */
+export function getWMSLayerVisibility(config, projectId, layerId, defaultValue = true) {
+	return config[projectId]?.[layerId] ?? defaultValue;
+}
+
+/**
+ * Set WMS layer visibility for a specific project and layer
+ * @param {object} config - The current visibility config
+ * @param {string} projectId - The project ID
+ * @param {string} layerId - The WMS layer ID
+ * @param {boolean} visible - The visibility state
+ * @returns {object} Updated config
+ */
+export function setWMSLayerVisibility(config, projectId, layerId, visible) {
+	return {
+		...config,
+		[projectId]: { ...config[projectId], [layerId]: visible }
+	};
+}
+
+/**
+ * Get WMS source expansion state for a specific project
+ * @param {object} state - The full expansion state store value
+ * @param {string} projectId - The project ID
+ * @param {string} sourceId - The WMS source ID
+ * @returns {boolean}
+ */
+export function getWMSSourceExpanded(state, projectId, sourceId) {
+	return state[projectId]?.[sourceId] ?? false;
+}
+
+/**
+ * Set WMS source expansion state for a specific project
+ * @param {object} state - The current expansion state
+ * @param {string} projectId - The project ID
+ * @param {string} sourceId - The WMS source ID
+ * @param {boolean} expanded - The expansion state
+ * @returns {object} Updated state
+ */
+export function setWMSSourceExpanded(state, projectId, sourceId, expanded) {
+	return {
+		...state,
+		[projectId]: { ...state[projectId], [sourceId]: expanded }
+	};
+}
