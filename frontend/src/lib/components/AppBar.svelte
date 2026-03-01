@@ -6,6 +6,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { m } from '$lib/paraglide/messages';
+
 	import { userStore } from '$lib/stores/auth';
 	import { globalMapView, selectedProject } from '$lib/stores/store';
 	import { tooltip } from '$lib/utils/tooltip.js';

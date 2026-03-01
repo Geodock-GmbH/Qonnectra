@@ -248,7 +248,6 @@ FEATURE_MODEL_MAP = {
     "area": Area,
 }
 
-
 @admin.register(AttributesSurface)
 class AttributesSurfaceAdmin(admin.ModelAdmin):
     list_display = ("id", "surface", "sealing")

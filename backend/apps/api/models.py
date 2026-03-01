@@ -1323,6 +1323,12 @@ class Trench(models.Model):
                 name="unique_trench_id_per_project",
             ),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "id_trench"],
+                name="unique_trench_id_per_project",
+            ),
+        ]
 
 
 class Conduit(models.Model):
