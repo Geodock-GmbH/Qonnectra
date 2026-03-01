@@ -14,6 +14,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from pathvalidate import sanitize_filename
+from simple_history.models import HistoricalRecords
 
 from .storage import LocalMediaStorage, QGISProjectStorage
 
@@ -29,6 +30,8 @@ class Projects(models.Model):
     project = models.TextField(_("Project"), null=False, db_index=False, unique=True)
     description = models.TextField(_("Description"), null=True, blank=True)
     active = models.BooleanField(_("Active"), null=False, default=True)
+
+    history = HistoricalRecords()
 
     class Meta:
         db_table = "projects"
@@ -60,6 +63,13 @@ class NetworkSchemaSettings(models.Model):
         verbose_name=_("Excluded Node Types"),
         help_text=_("Select node types to exclude from the network schema view."),
     )
+    child_view_enabled_node_types = models.ManyToManyField(
+        "AttributesNodeType",
+        blank=True,
+        related_name="child_view_enabled_schemas",
+        verbose_name=_("Child View Enabled Node Types"),
+        help_text=_("Node types that show the 'View Building Connections' button."),
+    )
 
     class Meta:
         db_table = "network_schema_settings"
@@ -68,7 +78,8 @@ class NetworkSchemaSettings(models.Model):
 
     def __str__(self):
         excluded_count = self.excluded_node_types.count()
-        return f"{self.project.project} - {excluded_count} excluded"
+        child_view_count = self.child_view_enabled_node_types.count()
+        return f"{self.project.project} - {excluded_count} excluded, {child_view_count} child view"
 
     @classmethod
     def get_settings_for_project(cls, project_id):
@@ -131,6 +142,142 @@ class PipeBranchSettings(models.Model):
         return list(settings.allowed_node_types.values_list("id", flat=True))
 
 
+class WMSSource(models.Model):
+    """WMS source configuration for a project.
+
+    Stores WMS endpoint URL with optional credentials for authenticated services.
+    Credentials are encrypted at rest using Fernet symmetric encryption.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project = models.ForeignKey(
+        Projects,
+        on_delete=models.CASCADE,
+        related_name="wms_sources",
+        verbose_name=_("Project"),
+    )
+    name = models.CharField(_("Name"), max_length=255)
+    url = models.URLField(_("WMS URL"), max_length=500)
+    username = models.CharField(_("Username"), max_length=255, blank=True)
+    _password = models.BinaryField(_("Password (encrypted)"), blank=True, null=True)
+    sort_order = models.IntegerField(_("Sort Order"), default=0)
+    is_active = models.BooleanField(_("Active"), default=True)
+    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("Updated At"), auto_now=True)
+
+    history = HistoricalRecords()
+
+    class Meta:
+        db_table = "wms_source"
+        verbose_name = _("WMS Source")
+        verbose_name_plural = _("WMS Sources")
+        ordering = ["sort_order", "name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.project.project})"
+
+    @property
+    def password(self):
+        """Decrypt and return the password.
+
+        Raises:
+            ValueError: If FIELD_ENCRYPTION_KEY is not configured or invalid.
+        """
+        if not self._password:
+            return ""
+
+        if not settings.FIELD_ENCRYPTION_KEY:
+            raise ValueError(
+                "FIELD_ENCRYPTION_KEY must be set to decrypt WMS passwords. "
+                "Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+            )
+
+        from cryptography.fernet import Fernet, InvalidToken
+
+        try:
+            key = settings.FIELD_ENCRYPTION_KEY.encode()
+            f = Fernet(key)
+            return f.decrypt(bytes(self._password)).decode()
+        except InvalidToken as e:
+            raise ValueError(f"Failed to decrypt password - invalid encryption key: {e}")
+        except Exception as e:
+            raise ValueError(f"Failed to decrypt password: {e}")
+
+    @password.setter
+    def password(self, value):
+        """Encrypt and store the password.
+
+        Raises:
+            ValueError: If FIELD_ENCRYPTION_KEY is not configured or invalid.
+        """
+        if not value:
+            self._password = None
+            return
+
+        if not settings.FIELD_ENCRYPTION_KEY:
+            raise ValueError(
+                "FIELD_ENCRYPTION_KEY must be set to encrypt WMS passwords. "
+                "Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+            )
+
+        from cryptography.fernet import Fernet
+
+        try:
+            key = settings.FIELD_ENCRYPTION_KEY.encode()
+            f = Fernet(key)
+            self._password = f.encrypt(value.encode())
+        except Exception as e:
+            raise ValueError(f"Failed to encrypt password: {e}")
+
+
+class WMSLayer(models.Model):
+    """Individual layer from a WMS source.
+
+    Auto-populated from WMS GetCapabilities response.
+    Admin can enable/disable individual layers for users.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    source = models.ForeignKey(
+        WMSSource,
+        on_delete=models.CASCADE,
+        related_name="layers",
+        verbose_name=_("WMS Source"),
+    )
+    name = models.CharField(_("Layer Name"), max_length=255)
+    title = models.CharField(_("Layer Title"), max_length=500, blank=True)
+    is_enabled = models.BooleanField(_("Enabled"), default=True)
+    sort_order = models.IntegerField(_("Sort Order"), default=0)
+    min_zoom = models.IntegerField(
+        _("Minimum Zoom"),
+        default=8,
+        help_text=_("Minimum zoom level (0-22)"),
+    )
+    max_zoom = models.IntegerField(
+        _("Maximum Zoom"),
+        null=True,
+        blank=True,
+        help_text=_("Maximum zoom level (0-22, blank = no limit)"),
+    )
+    opacity = models.FloatField(
+        _("Opacity"),
+        default=1.0,
+        help_text=_("0.0 = transparent, 1.0 = opaque"),
+    )
+
+    history = HistoricalRecords()
+
+    class Meta:
+        db_table = "wms_layer"
+        verbose_name = _("WMS Layer")
+        verbose_name_plural = _("WMS Layers")
+        ordering = ["sort_order", "name"]
+        unique_together = [["source", "name"]]
+
+    def __str__(self):
+        return self.title or self.name
+
+
 class Flags(models.Model):
     """Stores all flags,
     related to :model:`api.Trench`.
@@ -138,6 +285,8 @@ class Flags(models.Model):
 
     id = models.AutoField(primary_key=True)
     flag = models.TextField(_("Flag"), null=False, db_index=False, unique=True)
+
+    history = HistoricalRecords()
 
     class Meta:
         db_table = "flags"
@@ -1140,6 +1289,8 @@ class Trench(models.Model):
         verbose_name=_("Flag"),
     )
 
+    history = HistoricalRecords(excluded_fields=["geom_3857"])
+
     def __str__(self):
         """String representation of the trench model."""
         return str(self.id_trench)
@@ -1162,6 +1313,15 @@ class Trench(models.Model):
             models.Index(fields=["owner"], name="idx_trench_owner"),
             models.Index(fields=["constructor"], name="idx_trench_constructor"),
             gis_models.Index(fields=["geom"], name="idx_trench_geom"),
+            models.Index(fields=["project"], name="idx_trench_project"),
+            models.Index(fields=["flag"], name="idx_trench_flag"),
+            models.Index(fields=["project", "flag"], name="idx_trench_project_flag"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "id_trench"],
+                name="unique_trench_id_per_project",
+            ),
         ]
         constraints = [
             models.UniqueConstraint(
@@ -1268,6 +1428,8 @@ class Conduit(models.Model):
         db_index=False,
         verbose_name=_("Flag"),
     )
+
+    history = HistoricalRecords()
 
     def __str__(self):
         return self.name
@@ -1386,6 +1548,8 @@ class Address(models.Model):
         verbose_name=_("Project"),
     )
 
+    history = HistoricalRecords(excluded_fields=["geom_3857"])
+
     class Meta:
         db_table = "address"
         verbose_name = _("Address")
@@ -1469,6 +1633,8 @@ class ResidentialUnit(models.Model):
         _("Resident Recorded Date"), null=True, blank=True
     )
     ready_for_service = models.DateField(_("Ready for Service"), null=True, blank=True)
+
+    history = HistoricalRecords()
 
     class Meta:
         db_table = "residential_unit"
@@ -1613,6 +1779,8 @@ class Node(models.Model):
         verbose_name=_("Project"),
     )
 
+    history = HistoricalRecords(excluded_fields=["geom_3857"])
+
     class Meta:
         db_table = "node"
         verbose_name = _("Node")
@@ -1633,6 +1801,7 @@ class Node(models.Model):
             models.Index(fields=["canvas_y"], name="idx_node_canvas_y"),
             gis_models.Index(fields=["geom"], name="idx_node_geom"),
             models.Index(fields=["flag"], name="idx_node_flag"),
+            models.Index(fields=["project"], name="idx_node_project"),
             models.Index(fields=["project", "flag"], name="idx_node_project_flag"),
         ]
         constraints = [
@@ -1725,6 +1894,8 @@ class Area(models.Model):
         verbose_name=_("Flag"),
     )
 
+    history = HistoricalRecords(excluded_fields=["geom_3857"])
+
     def __str__(self):
         return self.name
 
@@ -1735,6 +1906,9 @@ class Area(models.Model):
         ordering = ["name"]
         indexes = [
             models.Index(fields=["area_type"], name="idx_area_area_type"),
+            models.Index(fields=["project"], name="idx_area_project"),
+            models.Index(fields=["flag"], name="idx_area_flag"),
+            models.Index(fields=["project", "flag"], name="idx_area_project_flag"),
         ]
         constraints = [
             models.UniqueConstraint(
@@ -1778,6 +1952,8 @@ class Microduct(models.Model):
         db_index=False,
         verbose_name=_("Node"),
     )
+
+    history = HistoricalRecords()
 
     class Meta:
         db_table = "microduct"
@@ -2069,6 +2245,17 @@ class Cable(models.Model):
         verbose_name=_("Node End"),
         related_name="node_end_cables",
     )
+    parent_node_context = models.ForeignKey(
+        Node,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_column="parent_node_context",
+        db_index=True,
+        verbose_name=_("Parent Node Context"),
+        related_name="context_cables",
+        help_text=_("If set, cable was created in child view of this parent node"),
+    )
     length = models.FloatField(_("Length"), null=True, blank=True)
     length_total = models.FloatField(_("Length Total"), null=True, blank=True)
     reserve_at_start = models.IntegerField(_("Reserve At Start"), null=True, blank=True)
@@ -2113,6 +2300,8 @@ class Cable(models.Model):
         db_index=False,
         verbose_name=_("Flag"),
     )
+
+    history = HistoricalRecords()
 
     class Meta:
         db_table = "cable"
@@ -2532,6 +2721,8 @@ class Fiber(models.Model):
         db_index=False,
         verbose_name=_("Project"),
     )
+
+    history = HistoricalRecords()
 
     class Meta:
         db_table = "fiber"
@@ -3463,6 +3654,8 @@ class FiberSplice(models.Model):
         help_text=_("The cable of shared fiber B (denormalized for CASCADE delete)."),
     )
 
+    history = HistoricalRecords()
+
     class Meta:
         db_table = "fiber_splice"
         verbose_name = _("Fiber Splice")
@@ -3546,6 +3739,8 @@ class ContainerType(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    history = HistoricalRecords()
+
     class Meta:
         db_table = "container_type"
         verbose_name = _("Container Type")
@@ -3611,6 +3806,8 @@ class Container(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    history = HistoricalRecords()
 
     class Meta:
         db_table = "container"

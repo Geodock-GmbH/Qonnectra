@@ -22,8 +22,10 @@ from .models import (
     AttributesNetworkLevel,
     AttributesStatus,
     Conduit,
+    ConduitTypeColorMapping,
     FeatureFiles,
     Flags,
+    Microduct,
     Projects,
     StoragePreferences,
 )
@@ -263,7 +265,24 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
 
     try:
         with transaction.atomic():
-            Conduit.objects.bulk_create(conduits_to_create)
+            created_conduits = Conduit.objects.bulk_create(conduits_to_create)
+
+            # Manually create microducts since bulk_create bypasses post_save signals
+            for conduit in created_conduits:
+                if conduit.conduit_type:
+                    color_mappings = (
+                        ConduitTypeColorMapping.objects.filter(
+                            conduit_type=conduit.conduit_type
+                        )
+                        .select_related("color")
+                        .order_by("position")
+                    )
+                    for mapping in color_mappings:
+                        Microduct.objects.create(
+                            uuid_conduit=conduit,
+                            number=mapping.position,
+                            color=mapping.color.name_de,
+                        )
     except Exception as e:
         logger.error(f"Failed to bulk create conduits: {e}")
         return {

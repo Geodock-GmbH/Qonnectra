@@ -1,10 +1,15 @@
 <script>
+	import { browser } from '$app/environment';
+	import { page } from '$app/stores';
 	import { AppBar } from '@skeletonlabs/skeleton-svelte';
-	import { IconLogin, IconLogout } from '@tabler/icons-svelte';
+	import { IconLogin, IconLogout, IconWorld } from '@tabler/icons-svelte';
+
+	import { m } from '$lib/paraglide/messages';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import { userStore } from '$lib/stores/auth';
+	import { globalMapView, selectedProject } from '$lib/stores/store';
 	import { tooltip } from '$lib/utils/tooltip.js';
 
 	import LightSwitch from './LightSwitch.svelte';
@@ -12,6 +17,27 @@
 	import ProjectCombobox from './ProjectCombobox.svelte';
 
 	let { data } = $props();
+
+	function toggleGlobalMapView() {
+		if ($globalMapView) {
+			// Disable: restore from cookie (SSOT)
+			if (browser) {
+				const cookieProject = document.cookie
+					.split('; ')
+					.find((row) => row.startsWith('selected-project='))
+					?.split('=')[1];
+				if (cookieProject) {
+					selectedProject.set(cookieProject);
+				}
+			}
+			globalMapView.set(false);
+		} else {
+			// Enable: just turn on global view
+			globalMapView.set(true);
+		}
+	}
+
+	let isMapRoute = $derived($page.url.pathname.startsWith('/map'));
 </script>
 
 <!-- AppBar -->
@@ -20,11 +46,28 @@
 		<AppBar.Toolbar
 			class="grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[auto_1fr_auto] gap-2 sm:gap-4 px-2 sm:px-4"
 		>
-			<AppBar.Lead class="min-w-0 flex items-center">
+			<AppBar.Lead class="min-w-0 flex items-center gap-2">
 				{#if $userStore.isAuthenticated}
-					<div class="w-full min-w-0">
+					<div class="flex-1 min-w-0">
 						<ProjectCombobox projects={data.projects} projectsError={data.projectsError} />
 					</div>
+					{#if isMapRoute}
+						<button
+							type="button"
+							class="btn-icon hover:preset-tonal shrink-0"
+							class:preset-filled-primary-500={$globalMapView}
+							aria-label={$globalMapView
+								? m.tooltip_view_current_project()
+								: m.tooltip_view_all_projects()}
+							onclick={toggleGlobalMapView}
+							{@attach tooltip(
+								$globalMapView ? m.tooltip_view_current_project() : m.tooltip_view_all_projects(),
+								{ position: 'bottom' }
+							)}
+						>
+							<IconWorld class="size-5" />
+						</button>
+					{/if}
 				{/if}
 			</AppBar.Lead>
 			<AppBar.Headline class="hidden sm:block">

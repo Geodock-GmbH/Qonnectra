@@ -33,6 +33,8 @@ from apps.api.models import (
     StoragePreferences,
     Trench,
     TrenchConduitConnection,
+    WMSLayer,
+    WMSSource,
 )
 from django.contrib.gis.geos import LineString, Point
 
@@ -366,3 +368,29 @@ class FileTypeCategoryFactory(factory.django.DjangoModelFactory):
 
     extension = factory.Sequence(lambda n: f"ext{n}")
     category = "documents"
+
+
+class WMSSourceFactory(factory.django.DjangoModelFactory):
+    """Factory for WMSSource model."""
+
+    class Meta:
+        model = WMSSource
+
+    project = factory.SubFactory(ProjectFactory)
+    name = factory.Sequence(lambda n: f"WMS Source {n}")
+    url = factory.Sequence(lambda n: f"https://wms{n}.example.com/wms")
+    is_active = True
+    sort_order = factory.Sequence(lambda n: n)
+
+
+class WMSLayerFactory(factory.django.DjangoModelFactory):
+    """Factory for WMSLayer model."""
+
+    class Meta:
+        model = WMSLayer
+
+    source = factory.SubFactory(WMSSourceFactory)
+    name = factory.Sequence(lambda n: f"layer_{n}")
+    title = factory.Sequence(lambda n: f"Layer {n}")
+    is_enabled = True
+    sort_order = factory.Sequence(lambda n: n)

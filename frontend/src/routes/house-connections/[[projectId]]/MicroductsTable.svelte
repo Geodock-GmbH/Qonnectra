@@ -46,7 +46,7 @@
 	}
 </script>
 
-<MicroductsDisplayTable {microducts} {loading} {error}>
+<MicroductsDisplayTable {microducts} {loading} {error} showStatus={true}>
 	{#snippet actions(microduct)}
 		<div class="flex gap-2">
 			<button

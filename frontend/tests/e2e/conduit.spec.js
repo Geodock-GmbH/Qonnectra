@@ -741,7 +741,10 @@ test.describe('Conduit Route Tests', () => {
 			await expect(page.locator('[data-drawer]')).toBeVisible();
 
 			// Click close button (aria-label depends on locale)
-			await page.locator('[data-drawer]').getByLabel(/Close drawer|Seitenleiste schließen/i).click();
+			await page
+				.locator('[data-drawer]')
+				.getByLabel(/Close drawer|Seitenleiste schließen/i)
+				.click();
 
 			// Drawer should be closed
 			await expect(page.locator('[data-drawer]')).not.toBeVisible();

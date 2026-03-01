@@ -39,6 +39,7 @@ export function getFieldAliases() {
 		house_connection: m.form_house_connection(),
 		area_type: m.form_area_type(),
 		conduit_names: m.form_conduit({ count: 2 }),
-		parent_node_name: m.form_parent_node_name()
+		parent_node_name: m.form_parent_node_name(),
+		project: m.form_project({ count: 1 })
 	};
 }

@@ -50,7 +50,8 @@
 		networkLevels: data.networkLevels,
 		companies: data.companies,
 		flags: data.flags,
-		excludedNodeTypeIds: data.excludedNodeTypeIds
+		excludedNodeTypeIds: data.excludedNodeTypeIds,
+		childViewEnabledNodeTypeIds: data.childViewEnabledNodeTypeIds
 	});
 
 	setContext('attributeOptions', {
@@ -74,6 +75,15 @@
 		},
 		get excludedNodeTypeIds() {
 			return attributeOptions.excludedNodeTypeIds;
+		},
+		get childViewEnabledNodeTypeIds() {
+			return attributeOptions.childViewEnabledNodeTypeIds;
+		}
+	});
+
+	setContext('schemaState', {
+		get nodes() {
+			return schemaState.nodes;
 		}
 	});
 

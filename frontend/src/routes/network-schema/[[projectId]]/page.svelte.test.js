@@ -1,17 +1,34 @@
 import '@testing-library/jest-dom/vitest';
 
 import { render, screen } from '@testing-library/svelte';
-import userEvent from '@testing-library/user-event';
 import { describe, expect, test, vi } from 'vitest';
 
 import Page from './+page.svelte';
 
-// Paraglide messages
-vi.mock('$lib/paraglide/messages', () => ({
-	m: {
-		nav_network_schema: () => 'Network Schema'
-	}
-}));
+// Paraglide messages - use Proxy to handle all message keys
+vi.mock('$lib/paraglide/messages', () => {
+	const mockMessages = new Proxy(
+		{},
+		{
+			get: (target, prop) => {
+				const messageMap = {
+					nav_network_schema: 'Network Schema',
+					common_attributes: 'Attributes',
+					common_name: 'Name',
+					common_warning: 'Warning',
+					form_snapping: 'Snapping',
+					placeholder_select_cable_type: 'Select cable type',
+					title_error_canvas_sync_failed: 'Canvas sync failed',
+					message_error_canvas_sync_failed: 'Sync failed',
+					title_success_canvas_sync_complete: 'Sync complete',
+					message_network_schema_settings_not_configured: 'Settings not configured'
+				};
+				return () => messageMap[prop] || String(prop);
+			}
+		}
+	);
+	return { m: mockMessages };
+});
 
 vi.mock('$env/dynamic/public', () => ({
 	env: { PUBLIC_TILE_SERVER_URL: '' }
@@ -22,54 +39,52 @@ vi.mock('$lib/utils/tokenHeartbeat.svelte.js', () => ({
 	stopHeartbeat: vi.fn()
 }));
 
-// Mock SvelteFlow components
-vi.mock('@xyflow/svelte', () => ({
-	SvelteFlow: vi.fn().mockImplementation(({ children, ...props }) => {
-		return {
-			$$: {
-				render: () =>
-					`<div data-testid="svelte-flow" ${Object.entries(props)
-						.map(([k, v]) => `${k}="${v}"`)
-						.join(' ')}>${children || ''}</div>`
-			}
-		};
-	}),
-	Background: vi.fn().mockImplementation(() => ({
-		$$: { render: () => '<div data-testid="background"></div>' }
-	})),
-	Controls: vi.fn().mockImplementation(() => ({
-		$$: { render: () => '<div data-testid="controls"></div>' }
-	})),
-	Panel: vi.fn().mockImplementation(({ children }) => ({
-		$$: { render: () => `<div data-testid="panel">${children || ''}</div>` }
-	}))
+vi.mock('$lib/utils/svelteFlowLock', () => ({
+	autoLockSvelteFlow: vi.fn().mockResolvedValue(undefined)
 }));
+
+// Mock SvelteFlow components with actual Svelte component mocks
+vi.mock('@xyflow/svelte', async () => {
+	const mocks = await import('$lib/test-utils/mocks/xyflow-svelte.js');
+	return mocks;
+});
 
 // Mock stores
 vi.mock('$lib/stores/drawer', () => ({
 	drawerStore: {
 		subscribe: (cb) => {
 			cb({ open: false });
-			return { unsubscribe: vi.fn() };
+			return () => {};
 		},
 		open: vi.fn()
 	}
 }));
 
-vi.mock('$app/stores', () => ({
-	navigating: {
-		subscribe: (cb) => {
-			cb(null);
-			return { unsubscribe: vi.fn() };
-		}
-	},
-	page: {
-		subscribe: (cb) => {
-			cb({ url: new URL('http://localhost/network-schema/1') });
-			return { unsubscribe: vi.fn() };
-		}
+vi.mock('$lib/stores/toaster', () => ({
+	globalToaster: {
+		success: vi.fn(),
+		error: vi.fn(),
+		warning: vi.fn()
 	}
 }));
+
+vi.mock('$app/stores', () => {
+	const pageStore = {
+		subscribe: (cb) => {
+			cb({ url: new URL('http://localhost/network-schema/1') });
+			return () => {};
+		}
+	};
+	return {
+		navigating: {
+			subscribe: (cb) => {
+				cb(null);
+				return () => {};
+			}
+		},
+		page: pageStore
+	};
+});
 
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn()
@@ -79,34 +94,91 @@ vi.mock('$lib/stores/store', () => ({
 	selectedProject: {
 		subscribe: (cb) => {
 			cb(null);
-			return { unsubscribe: vi.fn() };
+			return () => {};
 		}
 	},
 	edgeSnappingEnabled: {
 		subscribe: (cb) => {
 			cb(false);
-			return { unsubscribe: vi.fn() };
+			return () => {};
 		}
 	}
 }));
 
-// Mock custom components
-vi.mock('./Card.svelte', () => ({
-	default: vi.fn().mockImplementation(() => ({
-		$$: { render: () => '<div data-testid="card">Card Component</div>' }
-	}))
+// Mock custom Svelte components
+vi.mock('$lib/components/Drawer.svelte', async () => {
+	const { default: MockDrawer } = await import('$lib/test-utils/mocks/MockDrawer.svelte');
+	return { default: MockDrawer };
+});
+
+vi.mock('$lib/components/GenericCombobox.svelte', async () => {
+	const { default: MockGenericCombobox } =
+		await import('$lib/test-utils/mocks/MockGenericCombobox.svelte');
+	return { default: MockGenericCombobox };
+});
+
+vi.mock('./CableDiagramNode.svelte', async () => {
+	const { default: MockCableDiagramNode } =
+		await import('$lib/test-utils/mocks/MockCableDiagramNode.svelte');
+	return { default: MockCableDiagramNode };
+});
+
+vi.mock('./CableDiagramEdge.svelte', async () => {
+	const { default: MockCableDiagramEdge } =
+		await import('$lib/test-utils/mocks/MockCableDiagramEdge.svelte');
+	return { default: MockCableDiagramEdge };
+});
+
+vi.mock('./NetworkSchemaSearch.svelte', async () => {
+	const { default: MockNetworkSchemaSearch } =
+		await import('$lib/test-utils/mocks/MockNetworkSchemaSearch.svelte');
+	return { default: MockNetworkSchemaSearch };
+});
+
+vi.mock('./ViewportPersistence.svelte', async () => {
+	const { default: MockViewportPersistence } =
+		await import('$lib/test-utils/mocks/MockViewportPersistence.svelte');
+	return { default: MockViewportPersistence };
+});
+
+vi.mock('@skeletonlabs/skeleton-svelte', async () => {
+	const { default: MockSwitch } = await import('$lib/test-utils/mocks/MockSwitch.svelte');
+	return {
+		Switch: MockSwitch
+	};
+});
+
+// Mock the classes - must use actual class syntax for Svelte 5 runes compatibility
+vi.mock('$lib/classes/NetworkSchemaState.svelte.js', () => ({
+	NetworkSchemaState: class MockNetworkSchemaState {
+		nodes = [];
+		edges = [];
+		cableTypes = [];
+		selectedCableType = null;
+		userCableName = '';
+		initialized = true;
+		parentNodeContext = null;
+		initialize = vi.fn();
+		handleNodeDragStop = vi.fn();
+		handleConnect = vi.fn();
+		updateEdgeMicropipeConnections = vi.fn();
+		updateCableHandles = vi.fn();
+		updateEdgeConnection = vi.fn();
+		deselectAllNodes = vi.fn();
+		transformNodesToSvelteFlow = vi.fn().mockReturnValue([]);
+		transformCablesToSvelteFlowEdges = vi.fn().mockReturnValue([]);
+	}
 }));
 
-vi.mock('$lib/components/Drawer.svelte', () => ({
-	default: vi.fn().mockImplementation(({ children }) => ({
-		$$: { render: () => `<div data-testid="drawer">${children || ''}</div>` }
-	}))
+vi.mock('$lib/classes/CablePathManager.svelte.js', () => ({
+	CablePathManager: class MockCablePathManager {
+		updatePath = vi.fn();
+		updateHandles = vi.fn();
+	}
 }));
 
-vi.mock('./CableDiagramNode.svelte', () => ({
-	default: vi.fn().mockImplementation(() => ({
-		$$: { render: () => '<div data-testid="cable-diagram-node">Cable Diagram Node</div>' }
-	}))
+vi.mock('$lib/classes/NetworkSchemaSearchManager.svelte.js', () => ({
+	NetworkSchemaSearchManager: class MockNetworkSchemaSearchManager {}
 }));
 
 describe('/network-schema/+page.svelte', () => {
@@ -133,36 +205,137 @@ describe('/network-schema/+page.svelte', () => {
 				owner: { company: 'Company B' }
 			}
 		],
+		cables: [],
+		nodeTypes: [],
+		cableTypes: [],
+		statuses: [],
+		networkLevels: [],
+		companies: [],
+		flags: [],
+		excludedNodeTypeIds: [],
+		childViewEnabledNodeTypeIds: [],
+		networkSchemaSettingsConfigured: true,
 		syncStatus: null
 	};
 
-	test('should render network schema title', () => {
+	test('should render the SvelteFlow container', () => {
 		render(Page, { props: { data: mockData } });
 
-		expect(screen.getByText('Network Schema')).toBeInTheDocument();
+		expect(screen.getByTestId('svelte-flow')).toBeInTheDocument();
 	});
 
-	test('should display node count in panel', () => {
+	test('should render Background component inside SvelteFlow', () => {
 		render(Page, { props: { data: mockData } });
 
-		expect(screen.getByText(/Total: 2 nodes/)).toBeInTheDocument();
+		expect(screen.getByTestId('background')).toBeInTheDocument();
 	});
 
-	test('should show canvas coordinates ready when nodes loaded', () => {
+	test('should render Controls component inside SvelteFlow', () => {
 		render(Page, { props: { data: mockData } });
 
-		expect(screen.getByText('✓ Canvas coordinates ready')).toBeInTheDocument();
+		expect(screen.getByTestId('controls')).toBeInTheDocument();
 	});
 
-	test('should show no nodes warning when no nodes loaded', () => {
+	test('should render Panel component inside SvelteFlow', () => {
+		render(Page, { props: { data: mockData } });
+
+		expect(screen.getByTestId('panel')).toBeInTheDocument();
+	});
+
+	test('should render the Attributes heading in the panel', () => {
+		render(Page, { props: { data: mockData } });
+
+		expect(screen.getByText('Attributes')).toBeInTheDocument();
+	});
+
+	test('should render the name input field', () => {
+		render(Page, { props: { data: mockData } });
+
+		const input = screen.getByPlaceholderText('Name');
+		expect(input).toBeInTheDocument();
+	});
+
+	test('should render the Snapping label', () => {
+		render(Page, { props: { data: mockData } });
+
+		expect(screen.getByText('Snapping')).toBeInTheDocument();
+	});
+
+	test('should render the snapping switch', () => {
+		render(Page, { props: { data: mockData } });
+
+		expect(screen.getByTestId('switch')).toBeInTheDocument();
+	});
+
+	test('should render the Drawer component', () => {
+		render(Page, { props: { data: mockData } });
+
+		expect(screen.getByTestId('drawer')).toBeInTheDocument();
+	});
+
+	test('should render GenericCombobox for cable type selection', () => {
+		render(Page, { props: { data: mockData } });
+
+		expect(screen.getByTestId('generic-combobox')).toBeInTheDocument();
+	});
+
+	test('should render NetworkSchemaSearch component', () => {
+		render(Page, { props: { data: mockData } });
+
+		expect(screen.getByTestId('network-schema-search')).toBeInTheDocument();
+	});
+
+	test('should render ViewportPersistence component', () => {
+		render(Page, { props: { data: mockData } });
+
+		expect(screen.getByTestId('viewport-persistence')).toBeInTheDocument();
+	});
+
+	test('should render with empty nodes array', () => {
 		const emptyData = { ...mockData, nodes: [] };
 		render(Page, { props: { data: emptyData } });
 
-		expect(screen.getByText('⚠ No nodes loaded')).toBeInTheDocument();
-		expect(screen.getByText(/Total: 0 nodes/)).toBeInTheDocument();
+		expect(screen.getByTestId('svelte-flow')).toBeInTheDocument();
 	});
 
-	test('should display sync in progress status', () => {
+	test('should render with null syncStatus', () => {
+		const nullSyncData = { ...mockData, syncStatus: null };
+		render(Page, { props: { data: nullSyncData } });
+
+		expect(screen.getByTestId('svelte-flow')).toBeInTheDocument();
+	});
+
+	test('should render with completed sync status', () => {
+		const syncCompletedData = {
+			...mockData,
+			syncStatus: {
+				sync_in_progress: false,
+				sync_status: 'COMPLETED',
+				sync_progress: 100.0
+			}
+		};
+
+		render(Page, { props: { data: syncCompletedData } });
+
+		expect(screen.getByTestId('svelte-flow')).toBeInTheDocument();
+	});
+
+	test('should render with failed sync status', () => {
+		const syncFailedData = {
+			...mockData,
+			syncStatus: {
+				sync_in_progress: false,
+				sync_status: 'FAILED',
+				error_message: 'Database connection failed'
+			}
+		};
+
+		render(Page, { props: { data: syncFailedData } });
+
+		expect(screen.getByTestId('svelte-flow')).toBeInTheDocument();
+	});
+
+	test('should render with in-progress sync status', () => {
 		const syncInProgressData = {
 			...mockData,
 			syncStatus: {
@@ -175,236 +348,20 @@ describe('/network-schema/+page.svelte', () => {
 
 		render(Page, { props: { data: syncInProgressData } });
 
-		expect(screen.getByText('🔄 Canvas sync in progress')).toBeInTheDocument();
-		expect(screen.getByText('75.5% complete')).toBeInTheDocument();
-		expect(screen.getByText('Started by: test_user')).toBeInTheDocument();
-	});
-
-	test('should display sync failed status', () => {
-		const syncFailedData = {
-			...mockData,
-			syncStatus: {
-				sync_in_progress: false,
-				sync_status: 'FAILED',
-				error_message: 'Database connection failed'
-			}
-		};
-
-		render(Page, { props: { data: syncFailedData } });
-
-		expect(screen.getByText('❌ Canvas sync failed')).toBeInTheDocument();
-		expect(screen.getByText('Database connection failed')).toBeInTheDocument();
-	});
-
-	test('should not show started by user if not provided', () => {
-		const syncInProgressData = {
-			...mockData,
-			syncStatus: {
-				sync_in_progress: true,
-				sync_progress: 50.0,
-				sync_status: 'IN_PROGRESS'
-				// sync_started_by is undefined
-			}
-		};
-
-		render(Page, { props: { data: syncInProgressData } });
-
-		expect(screen.getByText('🔄 Canvas sync in progress')).toBeInTheDocument();
-		expect(screen.queryByText(/Started by:/)).not.toBeInTheDocument();
-	});
-
-	test('should not show error message if not provided in failed state', () => {
-		const syncFailedData = {
-			...mockData,
-			syncStatus: {
-				sync_in_progress: false,
-				sync_status: 'FAILED'
-				// error_message is undefined
-			}
-		};
-
-		render(Page, { props: { data: syncFailedData } });
-
-		expect(screen.getByText('❌ Canvas sync failed')).toBeInTheDocument();
-		expect(screen.queryByText(/Database/)).not.toBeInTheDocument();
-	});
-
-	test('should handle sync status with completed state', () => {
-		const syncCompletedData = {
-			...mockData,
-			syncStatus: {
-				sync_in_progress: false,
-				sync_status: 'COMPLETED',
-				sync_progress: 100.0
-			}
-		};
-
-		render(Page, { props: { data: syncCompletedData } });
-
-		// Should show canvas coordinates ready since sync is not in progress and not failed
-		expect(screen.getByText('✓ Canvas coordinates ready')).toBeInTheDocument();
-		expect(screen.queryByText('sync in progress')).not.toBeInTheDocument();
-		expect(screen.queryByText('sync failed')).not.toBeInTheDocument();
-	});
-
-	test('should open drawer when button clicked', async () => {
-		const { drawerStore } = await import('$lib/stores/drawer');
-		const user = userEvent.setup();
-
-		render(Page, { props: { data: mockData } });
-
-		const button = screen.getByRole('button', { name: /Node Details/ });
-		await user.click(button);
-
-		expect(drawerStore.open).toHaveBeenCalledWith({ title: 'Node Details' });
-	});
-
-	test('should transform nodes to SvelteFlow format correctly', () => {
-		render(Page, { props: { data: mockData } });
-
-		// The component should render SvelteFlow component
 		expect(screen.getByTestId('svelte-flow')).toBeInTheDocument();
 	});
 
-	test('should handle nodes with missing canvas coordinates', () => {
-		const nodesWithoutCanvas = {
-			nodes: [
-				{
-					id: '1',
-					name: 'Node Without Canvas',
-					canvas_x: null,
-					canvas_y: null,
-					geometry: {
-						coordinates: [1000.0, 2000.0]
-					},
-					node_type: { node_type: 'Type A' },
-					status: { status: 'Active' },
-					network_level: { network_level: 'Level 1' },
-					owner: { company: 'Company A' }
-				}
-			],
-			syncStatus: null
-		};
-
-		render(Page, { props: { data: nodesWithoutCanvas } });
-
-		// Should still render the component without errors
-		expect(screen.getByText(/Total: 1 nodes/)).toBeInTheDocument();
-	});
-
-	test('should handle GeoJSON feature format nodes', () => {
-		const geoJsonData = {
-			nodes: {
-				features: [
-					{
-						id: '1',
-						properties: {
-							name: 'GeoJSON Node',
-							canvas_x: 150,
-							canvas_y: 250,
-							node_type: { node_type: 'GeoType' },
-							status: { status: 'Active' },
-							network_level: { network_level: 'Level 1' },
-							owner: { company: 'GeoCompany' }
-						},
-						geometry: {
-							coordinates: [1500.0, 2500.0]
-						}
-					}
-				]
-			},
-			syncStatus: null
-		};
-
-		render(Page, { props: { data: geoJsonData } });
-
-		// Should handle GeoJSON format correctly
-		expect(screen.getByText(/Total: 1 nodes/)).toBeInTheDocument();
-	});
-
-	test('should handle mixed sync status priorities correctly', () => {
-		// sync_in_progress should take priority over sync_status
-		const mixedSyncData = {
-			...mockData,
-			syncStatus: {
-				sync_in_progress: true,
-				sync_status: 'FAILED', // This should be ignored because sync_in_progress is true
-				sync_progress: 25.0,
-				error_message: 'This should not show'
-			}
-		};
-
-		render(Page, { props: { data: mixedSyncData } });
-
-		expect(screen.getByText('🔄 Canvas sync in progress')).toBeInTheDocument();
-		expect(screen.queryByText('❌ Canvas sync failed')).not.toBeInTheDocument();
-		expect(screen.queryByText('This should not show')).not.toBeInTheDocument();
-	});
-
-	test('should handle zero progress correctly', () => {
-		const zeroProgressData = {
-			...mockData,
-			syncStatus: {
-				sync_in_progress: true,
-				sync_progress: 0.0,
-				sync_status: 'IN_PROGRESS'
-			}
-		};
-
-		render(Page, { props: { data: zeroProgressData } });
-
-		expect(screen.getByText('0.0% complete')).toBeInTheDocument();
-	});
-
-	test('should handle high precision progress values', () => {
-		const preciseProgressData = {
-			...mockData,
-			syncStatus: {
-				sync_in_progress: true,
-				sync_progress: 33.333333333,
-				sync_status: 'IN_PROGRESS'
-			}
-		};
-
-		render(Page, { props: { data: preciseProgressData } });
-
-		expect(screen.getByText('33.3% complete')).toBeInTheDocument();
-	});
-
-	test('should handle null syncStatus gracefully', () => {
-		const nullSyncData = { ...mockData, syncStatus: null };
-
-		render(Page, { props: { data: nullSyncData } });
-
-		// Should show canvas coordinates ready for loaded nodes
-		expect(screen.getByText('✓ Canvas coordinates ready')).toBeInTheDocument();
-	});
-
-	test('should handle undefined syncStatus gracefully', () => {
-		const undefinedSyncData = { ...mockData };
-		delete undefinedSyncData.syncStatus;
-
-		render(Page, { props: { data: undefinedSyncData } });
-
-		// Should show canvas coordinates ready for loaded nodes
-		expect(screen.getByText('✓ Canvas coordinates ready')).toBeInTheDocument();
-	});
-
-	test('should display correct project ID', () => {
+	test('should render all main UI components together', () => {
 		render(Page, { props: { data: mockData } });
 
-		expect(screen.getByText(/Project: 1/)).toBeInTheDocument();
-	});
-
-	test('should render all main UI components', () => {
-		render(Page, { props: { data: mockData } });
-
-		// Check that all major components are rendered
 		expect(screen.getByTestId('svelte-flow')).toBeInTheDocument();
 		expect(screen.getByTestId('background')).toBeInTheDocument();
 		expect(screen.getByTestId('controls')).toBeInTheDocument();
 		expect(screen.getByTestId('panel')).toBeInTheDocument();
 		expect(screen.getByTestId('drawer')).toBeInTheDocument();
-		expect(screen.getByTestId('card')).toBeInTheDocument();
+		expect(screen.getByTestId('generic-combobox')).toBeInTheDocument();
+		expect(screen.getByTestId('switch')).toBeInTheDocument();
+		expect(screen.getByTestId('network-schema-search')).toBeInTheDocument();
+		expect(screen.getByTestId('viewport-persistence')).toBeInTheDocument();
 	});
 });

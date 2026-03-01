@@ -40,20 +40,6 @@
 	// Sync form fields when conduit changes
 	$effect(() => {
 		if (conduit) {
-			// #region agent log
-			fetch('http://127.0.0.1:7243/ingest/ce537700-dc76-46fa-bb6c-67a77367f431', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					location: 'ConduitAttributeCard.svelte:sync',
-					message: 'ConduitAttributeCard sync from conduit (post-fix)',
-					data: { conduitUuid: conduit?.uuid, conduitTypeId: conduit?.conduit_type?.id },
-					hypothesisId: 'post-fix',
-					runId: 'post-fix',
-					timestamp: Date.now()
-				})
-			}).catch(() => {});
-			// #endregion
 			conduitName = conduit.name || '';
 			conduitOuterConduit = conduit.outer_conduit || '';
 			conduitType = conduit.conduit_type?.id != null ? [conduit.conduit_type.id] : [];

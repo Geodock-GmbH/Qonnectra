@@ -1,6 +1,9 @@
 <script>
+	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
-	import { IconLayoutList, IconLink, IconSettings } from '@tabler/icons-svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { IconLayoutList, IconLink, IconNetwork, IconSettings } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -16,6 +19,8 @@
 	import CableMicropipePanel from './CableMicropipePanel.svelte';
 	import NodeSlotConfigPanel from './NodeSlotConfigPanel.svelte';
 	import NodeStructurePanel from './NodeStructurePanel.svelte';
+
+	const attributeOptions = getContext('attributeOptions');
 
 	let allProps = $props();
 
@@ -37,6 +42,18 @@
 		const { type, onLabelUpdate, onEdgeDelete, onNodeDelete, ...rest } = allProps;
 		return rest;
 	});
+
+	const isChildView = $derived($page.url.pathname.includes('/node/'));
+	const childViewEnabledTypeIds = $derived(attributeOptions?.childViewEnabledNodeTypeIds ?? []);
+	const nodeTypeId = $derived(data?.node_type?.id ?? data?.node_type);
+	const showChildViewButton = $derived(
+		!isChildView && nodeTypeId != null && childViewEnabledTypeIds.includes(nodeTypeId)
+	);
+	function navigateToChildView() {
+		const projectId = $page.params.projectId;
+		const nodeId = data.uuid || data.id;
+		goto(`/network-schema/${projectId}/node/${nodeId}`);
+	}
 
 	const type = $derived(allProps.type);
 	const onLabelUpdate = $derived(allProps.onLabelUpdate);
@@ -156,6 +173,16 @@
 					<IconLayoutList size={18} />
 					{m.action_configure_structure()}
 				</button>
+				{#if showChildViewButton}
+					<button
+						type="button"
+						class="btn preset-filled-tertiary-500 w-full"
+						onclick={navigateToChildView}
+					>
+						<IconNetwork size={18} />
+						{m.action_open_child_network()}
+					</button>
+				{/if}
 			</div>
 		{:else if type === 'edge'}
 			<div class="space-y-4">

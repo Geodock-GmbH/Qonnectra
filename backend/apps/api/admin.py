@@ -10,6 +10,7 @@ from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from django_json_widget.widgets import JSONEditorWidget
+from simple_history.admin import SimpleHistoryAdmin
 
 from .models import (
     Address,
@@ -33,14 +34,13 @@ from .models import (
     AttributesStatus,
     AttributesStatusDevelopment,
     AttributesSurface,
-    ResidentialUnit,
     Cable,
     CableTypeColorMapping,
-    Fiber,
     Conduit,
     ConduitTypeColorMapping,
     ContainerType,
     FeatureFiles,
+    Fiber,
     FileTypeCategory,
     Flags,
     GeoPackageSchemaConfig,
@@ -51,8 +51,11 @@ from .models import (
     PipeBranchSettings,
     Projects,
     QGISProject,
+    ResidentialUnit,
     StoragePreferences,
     Trench,
+    WMSLayer,
+    WMSSource,
 )
 from .services import (
     GEOPACKAGE_LAYER_CONFIG,
@@ -60,6 +63,7 @@ from .services import (
     move_file_to_feature,
 )
 from .storage import LocalMediaStorage
+from .wms_service import WMSServiceError, fetch_wms_layers, scan_wms_capabilities
 
 
 class GeoPackageSchemaConfigForm(forms.ModelForm):
@@ -303,7 +307,7 @@ admin.site.register(FileTypeCategory)
 
 
 @admin.register(Cable)
-class CableAdmin(admin.ModelAdmin):
+class CableAdmin(SimpleHistoryAdmin):
     """Admin interface for Cable model with action to create missing fibers."""
 
     list_display = (
@@ -340,9 +344,7 @@ class CableAdmin(admin.ModelAdmin):
             and fiber_count >= cable_type.bundle_fiber_count
         )
 
-    @admin.action(
-        description=_("Create fibers for selected cables (only if empty)")
-    )
+    @admin.action(description=_("Create fibers for selected cables (only if empty)"))
     def create_fibers_for_empty_cables(self, request, queryset):
         """
         Create fibers for selected cables that don't have any.
@@ -400,9 +402,7 @@ class CableAdmin(admin.ModelAdmin):
             fibers_to_create = []
             fiber_number_absolute = 1
             for bundle_number in range(1, bundle_count + 1):
-                bundle_mapping = bundle_mappings.filter(
-                    position=bundle_number
-                ).first()
+                bundle_mapping = bundle_mappings.filter(position=bundle_number).first()
                 bundle_color = (
                     bundle_mapping.color.name_de
                     if bundle_mapping
@@ -418,9 +418,7 @@ class CableAdmin(admin.ModelAdmin):
                         if fiber_mapping
                         else f"Fiber {fiber_in_bundle}"
                     )
-                    layer = (
-                        fiber_mapping.layer if fiber_mapping else "inner"
-                    )
+                    layer = fiber_mapping.layer if fiber_mapping else "inner"
 
                     fibers_to_create.append(
                         Fiber(
@@ -459,14 +457,14 @@ class CableAdmin(admin.ModelAdmin):
 
 
 @admin.register(Area)
-class AreaAdmin(admin.ModelAdmin):
+class AreaAdmin(SimpleHistoryAdmin):
     list_display = ("name", "area_type", "project", "flag")
     list_filter = ("area_type", "project", "flag")
     search_fields = ("name", "project__project", "flag__flag", "area_type__area_type")
 
 
 @admin.register(Flags)
-class FlagsAdmin(admin.ModelAdmin):
+class FlagsAdmin(SimpleHistoryAdmin):
     list_display = ("id", "flag")
 
 
@@ -485,7 +483,11 @@ class AttributesMicroductStatusAdmin(admin.ModelAdmin):
     list_display = ("id", "microduct_status")
 
 
-admin.site.register(Microduct)
+@admin.register(Microduct)
+class MicroductAdmin(SimpleHistoryAdmin):
+    list_display = ("uuid", "uuid_conduit", "number", "color")
+    list_filter = ("uuid_conduit", "microduct_status")
+    search_fields = ("uuid_conduit__name", "color")
 
 
 @admin.register(AttributesFiberStatus)
@@ -500,7 +502,7 @@ class NetworkSchemaSettingsInline(admin.StackedInline):
     can_delete = False
     verbose_name = _("Network Schema Settings")
     verbose_name_plural = _("Network Schema Settings")
-    filter_horizontal = ("excluded_node_types",)
+    filter_horizontal = ("excluded_node_types", "child_view_enabled_node_types")
 
 
 class PipeBranchSettingsInline(admin.StackedInline):
@@ -514,7 +516,7 @@ class PipeBranchSettingsInline(admin.StackedInline):
 
 
 @admin.register(Projects)
-class ProjectsAdmin(admin.ModelAdmin):
+class ProjectsAdmin(SimpleHistoryAdmin):
     """Admin interface for Projects with Network Schema and Pipe Branch Settings."""
 
     list_display = (
@@ -523,6 +525,7 @@ class ProjectsAdmin(admin.ModelAdmin):
         "description",
         "active",
         "excluded_types_display",
+        "child_view_types_display",
         "allowed_pipe_branch_types_display",
     )
     list_filter = ("active",)
@@ -537,6 +540,24 @@ class ProjectsAdmin(admin.ModelAdmin):
             count = settings.excluded_node_types.count()
             if count > 0:
                 types = settings.excluded_node_types.all()[:3]
+                names = [t.node_type for t in types]
+                suffix = f"... (+{count - 3})" if count > 3 else ""
+                return ", ".join(names) + suffix
+            return _("None")
+        except NetworkSchemaSettings.DoesNotExist:
+            return format_html(
+                '<span style="color: #dc3545;">⚠ {}</span>',
+                _("Not configured"),
+            )
+
+    @admin.display(description=_("Child View Types"))
+    def child_view_types_display(self, obj):
+        """Display child view enabled node types for list view."""
+        try:
+            settings = obj.network_schema_settings
+            count = settings.child_view_enabled_node_types.count()
+            if count > 0:
+                types = settings.child_view_enabled_node_types.all()[:3]
                 names = [t.node_type for t in types]
                 suffix = f"... (+{count - 3})" if count > 3 else ""
                 return ", ".join(names) + suffix
@@ -570,10 +591,16 @@ class ProjectsAdmin(admin.ModelAdmin):
 class NetworkSchemaSettingsAdmin(admin.ModelAdmin):
     """Standalone admin for Network Schema Settings."""
 
-    list_display = ("project", "excluded_count", "excluded_types_preview")
+    list_display = (
+        "project",
+        "excluded_count",
+        "excluded_types_preview",
+        "child_view_count",
+        "child_view_types_preview",
+    )
     list_filter = ("project",)
     search_fields = ("project__project",)
-    filter_horizontal = ("excluded_node_types",)
+    filter_horizontal = ("excluded_node_types", "child_view_enabled_node_types")
     autocomplete_fields = ["project"]
 
     @admin.display(description=_("Excluded Count"))
@@ -585,6 +612,17 @@ class NetworkSchemaSettingsAdmin(admin.ModelAdmin):
         types = obj.excluded_node_types.all()[:5]
         names = [t.node_type for t in types]
         suffix = "..." if obj.excluded_node_types.count() > 5 else ""
+        return ", ".join(names) + suffix if names else _("None")
+
+    @admin.display(description=_("Child View Count"))
+    def child_view_count(self, obj):
+        return obj.child_view_enabled_node_types.count()
+
+    @admin.display(description=_("Child View Types"))
+    def child_view_types_preview(self, obj):
+        types = obj.child_view_enabled_node_types.all()[:5]
+        names = [t.node_type for t in types]
+        suffix = "..." if obj.child_view_enabled_node_types.count() > 5 else ""
         return ", ".join(names) + suffix if names else _("None")
 
 
@@ -611,7 +649,7 @@ class PipeBranchSettingsAdmin(admin.ModelAdmin):
 
 
 @admin.register(Address)
-class AddressAdmin(admin.ModelAdmin):
+class AddressAdmin(SimpleHistoryAdmin):
     list_display = (
         "street",
         "housenumber",
@@ -647,7 +685,7 @@ class AddressAdmin(admin.ModelAdmin):
 
 
 @admin.register(ResidentialUnit)
-class ResidentialUnitAdmin(admin.ModelAdmin):
+class ResidentialUnitAdmin(SimpleHistoryAdmin):
     list_display = (
         "uuid",
         "uuid_address",
@@ -887,7 +925,7 @@ class QGISProjectAdmin(admin.ModelAdmin):
 
 
 @admin.register(Node)
-class NodeAdmin(admin.ModelAdmin):
+class NodeAdmin(SimpleHistoryAdmin):
     list_display = (
         "name",
         "node_type",
@@ -901,7 +939,7 @@ class NodeAdmin(admin.ModelAdmin):
 
 
 @admin.register(Conduit)
-class ConduitAdmin(admin.ModelAdmin):
+class ConduitAdmin(SimpleHistoryAdmin):
     """Admin interface for Conduit model with action to create missing microducts."""
 
     list_display = ("name", "conduit_type", "microduct_count", "has_color_mappings")
@@ -982,7 +1020,7 @@ class ConduitAdmin(admin.ModelAdmin):
 
 
 @admin.register(Trench)
-class TrenchAdmin(admin.ModelAdmin):
+class TrenchAdmin(SimpleHistoryAdmin):
     list_display = (
         "id_trench",
         "surface",
@@ -1011,6 +1049,49 @@ class TrenchAdmin(admin.ModelAdmin):
         "project__project",
         "flag__flag",
     )
+    actions = ["regenerate_trench_ids"]
+
+    @admin.action(description=_("Regenerate IDs for trenches with old format"))
+    def regenerate_trench_ids(self, request, queryset):
+        """
+        Regenerate id_trench for selected trenches that don't match the TR-XXXXXXX format.
+        Uses the same fn_generate_trench_id function as the trigger.
+        """
+        import re
+
+        from django.db import connection
+
+        id_pattern = re.compile(r"^TR-[ABCDEFGHJKLMNPQRSTUVWXYZ234567]{7}$")
+        regenerated_count = 0
+        skipped_count = 0
+
+        with connection.cursor() as cursor:
+            for trench in queryset:
+                if id_pattern.match(trench.id_trench or ""):
+                    skipped_count += 1
+                    continue
+
+                cursor.execute(
+                    "SELECT fn_generate_trench_id(%s)",
+                    [trench.project_id],
+                )
+                new_id = cursor.fetchone()[0]
+
+                trench.id_trench = new_id
+                trench.save(update_fields=["id_trench"])
+                regenerated_count += 1
+
+        self.message_user(
+            request,
+            _(
+                "Regenerated IDs for %(regenerated)d trench(es). "
+                "Skipped %(skipped)d (already have correct format)."
+            )
+            % {
+                "regenerated": regenerated_count,
+                "skipped": skipped_count,
+            },
+        )
 
 
 class WFSErrorFilter(admin.SimpleListFilter):
@@ -1214,10 +1295,10 @@ class FeatureFilesAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Annotate queryset with orphaned status for sorting."""
         queryset = super().get_queryset(request)
-        
+
         # Create subqueries to check if feature exists for each model type
         orphaned_conditions = []
-        
+
         for model_name, model_class in FEATURE_MODEL_MAP.items():
             try:
                 content_type = ContentType.objects.get(
@@ -1225,45 +1306,33 @@ class FeatureFilesAdmin(admin.ModelAdmin):
                 )
             except ContentType.DoesNotExist:
                 continue
-            
+
             # Check if feature exists in this model
             feature_exists = Exists(
-                model_class.objects.filter(
-                    uuid=OuterRef("object_id")
-                )
+                model_class.objects.filter(uuid=OuterRef("object_id"))
             )
-            
+
             # If content_type matches and feature doesn't exist, it's orphaned
             orphaned_conditions.append(
-                When(
-                    Q(content_type=content_type) & ~feature_exists,
-                    then=Value(1)
-                )
+                When(Q(content_type=content_type) & ~feature_exists, then=Value(1))
             )
-        
+
         # Also mark as orphaned if content_type doesn't match any known model
-        unknown_content_types = ContentType.objects.filter(
-            app_label="api"
-        ).exclude(
+        unknown_content_types = ContentType.objects.filter(app_label="api").exclude(
             model__in=FEATURE_MODEL_MAP.keys()
         )
         if unknown_content_types.exists():
             orphaned_conditions.append(
-                When(
-                    content_type__in=unknown_content_types,
-                    then=Value(1)
-                )
+                When(content_type__in=unknown_content_types, then=Value(1))
             )
-        
+
         # Annotate: 1 if orphaned, 0 if valid
         queryset = queryset.annotate(
             _is_orphaned=Case(
-                *orphaned_conditions,
-                default=Value(0),
-                output_field=IntegerField()
+                *orphaned_conditions, default=Value(0), output_field=IntegerField()
             )
         )
-        
+
         return queryset
 
     def get_urls(self):
@@ -1346,7 +1415,7 @@ class FeatureFilesAdmin(admin.ModelAdmin):
         is_orphaned = getattr(obj, "_is_orphaned", None)
         if is_orphaned is None:
             is_orphaned = 1 if self.is_orphaned(obj) else 0
-        
+
         if is_orphaned:
             return format_html(
                 '<span style="color: #dc3545; font-weight: bold;">⚠ {}</span>',
@@ -1496,7 +1565,7 @@ class FeatureFilesAdmin(admin.ModelAdmin):
 
 
 @admin.register(ContainerType)
-class ContainerTypeAdmin(admin.ModelAdmin):
+class ContainerTypeAdmin(SimpleHistoryAdmin):
     """Admin interface for managing container types (global definitions)."""
 
     list_display = ("name", "display_order", "is_active")
@@ -1525,3 +1594,176 @@ class ContainerTypeAdmin(admin.ModelAdmin):
         return "-"
 
     color_preview.short_description = _("Color")
+
+
+class WMSLayerInline(admin.TabularInline):
+    """Inline admin for WMS layers."""
+
+    model = WMSLayer
+    extra = 0
+    readonly_fields = ["name", "title"]
+    fields = [
+        "name",
+        "title",
+        "is_enabled",
+        "sort_order",
+        "min_zoom",
+        "max_zoom",
+        "opacity",
+    ]
+    ordering = ["sort_order", "name"]
+
+
+class WMSSourceAdminForm(forms.ModelForm):
+    """Custom form for WMSSource admin with password field."""
+
+    password = forms.CharField(
+        widget=forms.PasswordInput(render_value=True),
+        required=False,
+        label=_("Password"),
+        help_text=_(
+            "Password for authenticated WMS services. Leave blank if not required."
+        ),
+    )
+
+    class Meta:
+        model = WMSSource
+        fields = [
+            "project",
+            "name",
+            "url",
+            "username",
+            "password",
+            "sort_order",
+            "is_active",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Pre-populate password field placeholder if password exists
+        if self.instance and self.instance.pk and self.instance._password:
+            self.fields["password"].widget.attrs["placeholder"] = "••••••••"
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        password = self.cleaned_data.get("password")
+        if password:
+            instance.password = password
+        if commit:
+            instance.save()
+        return instance
+
+
+@admin.register(WMSSource)
+class WMSSourceAdmin(admin.ModelAdmin):
+    """Admin for WMS sources."""
+
+    form = WMSSourceAdminForm
+    list_display = ["name", "project", "url", "is_active", "layer_count", "sort_order"]
+    list_filter = ["project", "is_active"]
+    search_fields = ["name", "url"]
+    ordering = ["project", "sort_order", "name"]
+    inlines = [WMSLayerInline]
+    actions = ["scan_capabilities"]
+
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": ("project", "name", "url", "sort_order", "is_active"),
+            },
+        ),
+        (
+            _("Authentication"),
+            {
+                "fields": ("username", "password"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+
+    def layer_count(self, obj):
+        return obj.layers.filter(is_enabled=True).count()
+
+    layer_count.short_description = _("Enabled Layers")
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+
+        if not change or "url" in form.changed_data:
+            try:
+                layers_data = fetch_wms_layers(
+                    obj.url,
+                    username=obj.username or None,
+                    password=obj.password or None,
+                )
+                for i, layer_data in enumerate(layers_data):
+                    WMSLayer.objects.update_or_create(
+                        source=obj,
+                        name=layer_data["name"],
+                        defaults={
+                            "title": layer_data["title"],
+                            "sort_order": i,
+                        },
+                    )
+                messages.success(
+                    request, _("Fetched %d layers from WMS.") % len(layers_data)
+                )
+            except WMSServiceError as e:
+                messages.error(request, _("Failed to fetch WMS layers: %s") % e)
+
+    def scan_capabilities(self, request, queryset):
+        """Scan WMS sources and show recommended configuration."""
+        for source in queryset:
+            try:
+                result = scan_wms_capabilities(
+                    source.url,
+                    username=source.username or None,
+                    password=source.password or None,
+                )
+                layers_info = result.get("layers", [])
+
+                # Update layers with recommended settings
+                updated_count = 0
+                for layer_info in layers_info:
+                    try:
+                        layer = source.layers.get(name=layer_info["name"])
+                        recommended_zoom = layer_info.get("recommended_min_zoom", 8)
+                        if layer.min_zoom != recommended_zoom:
+                            layer.min_zoom = recommended_zoom
+                            layer.save(update_fields=["min_zoom"])
+                            updated_count += 1
+                    except WMSLayer.DoesNotExist:
+                        continue
+
+                if updated_count > 0:
+                    messages.success(
+                        request,
+                        _("Updated min_zoom for %(count)d layers in '%(source)s'.")
+                        % {
+                            "count": updated_count,
+                            "source": source.name,
+                        },
+                    )
+                else:
+                    messages.info(
+                        request,
+                        _(
+                            "No changes needed for '%(source)s'. All layers already have recommended settings."
+                        )
+                        % {
+                            "source": source.name,
+                        },
+                    )
+
+            except WMSServiceError as e:
+                messages.error(
+                    request,
+                    _("Failed to scan '%(source)s': %(error)s")
+                    % {
+                        "source": source.name,
+                        "error": str(e),
+                    },
+                )
+
+    scan_capabilities.short_description = _("Scan & apply recommended settings")

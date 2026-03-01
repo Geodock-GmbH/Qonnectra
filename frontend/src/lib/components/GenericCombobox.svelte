@@ -1,6 +1,7 @@
 <script>
 	import { browser } from '$app/environment';
 	import { Combobox, Portal, useListCollection } from '@skeletonlabs/skeleton-svelte';
+	import Fuse from 'fuse.js';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -42,12 +43,21 @@
 
 	let items = $derived(collection.items);
 
+	const fuse = $derived(
+		new Fuse(data, {
+			keys: ['label', 'value'],
+			threshold: 0.3
+		})
+	);
+
 	const onInputValueChange = (e) => {
-		const filtered = data.filter((item) =>
-			item.label.toLowerCase().includes(e.inputValue.toLowerCase())
-		);
-		if (filtered.length > 0) {
-			items = filtered;
+		if (!e.inputValue) {
+			items = data;
+			return;
+		}
+		const results = fuse.search(e.inputValue);
+		if (results.length > 0) {
+			items = results.map((result) => result.item);
 		} else {
 			items = data;
 		}
@@ -75,37 +85,11 @@
 	});
 
 	function handleValueChange(e) {
-		// #region agent log
-		fetch('http://127.0.0.1:7243/ingest/ce537700-dc76-46fa-bb6c-67a77367f431', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				location: 'GenericCombobox.svelte:handleValueChange',
-				message: 'handleValueChange called',
-				data: { newValue: e?.value, dataLength: data?.length },
-				hypothesisId: 'D',
-				timestamp: Date.now()
-			})
-		}).catch(() => {});
-		// #endregion
 		value = e.value;
 		onValueChange(e);
 	}
 
 	function handleOpenChange(e) {
-		// #region agent log
-		fetch('http://127.0.0.1:7243/ingest/ce537700-dc76-46fa-bb6c-67a77367f431', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				location: 'GenericCombobox.svelte:handleOpenChange',
-				message: 'handleOpenChange called',
-				data: { open: e?.open },
-				hypothesisId: 'D',
-				timestamp: Date.now()
-			})
-		}).catch(() => {});
-		// #endregion
 		isOpen = e.open;
 	}
 </script>

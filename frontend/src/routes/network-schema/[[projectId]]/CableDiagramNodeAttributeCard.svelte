@@ -1,6 +1,7 @@
 <script>
 	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
+	import { page } from '$app/stores';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -19,6 +20,9 @@
 		excludedNodeTypeIds: []
 	};
 
+	// Detect if we're in child view
+	const isChildView = $derived($page.url.pathname.includes('/node/'));
+
 	let node = $derived($drawerStore.props);
 	let id = $derived(node?.id || '');
 	let nodeName = $state('');
@@ -33,6 +37,7 @@
 	let nodeFlag = $state([]);
 	let nodeParentNode = $state([]);
 	let availableNodes = $state([]);
+	let isLoadingParentNodes = $state(false);
 
 	let { onLabelUpdate, onNodeDelete } = $props();
 
@@ -42,12 +47,23 @@
 	let pendingDeleteCableCount = $state(0);
 	let pendingDeleteStructureCount = $state(0);
 	let hasConnectedCables = $state(false);
+	let hasChildren = $state(false);
+	let hasChildrenWithCables = $state(false);
 	let isCheckingDependencies = $state(false);
 
 	// Track the last checked node to avoid race conditions
 	let lastCheckedNodeId = $state('');
 
-	// Check dependencies when node changes
+	// Node type disabled when node has BOTH children AND cables
+	const nodeTypeDisabled = $derived(isCheckingDependencies || (hasChildren && hasConnectedCables));
+	// Parent node disabled when in child view AND node has cables
+	const parentNodeDisabled = $derived(
+		isCheckingDependencies || (isChildView && hasConnectedCables)
+	);
+
+	/**
+	 * Check dependencies when node changes (cables, structures, children)
+	 */
 	async function checkNodeDependencies(nodeId) {
 		if (!nodeId) return;
 
@@ -66,17 +82,23 @@
 			const result = deserialize(await response.text());
 			const cables = result.data?.cables || [];
 			const structures = result.data?.structures || [];
+			const children = result.data?.children || [];
+			const childrenWithCables = result.data?.childrenWithCables || [];
 
 			// Only update state if this is still the current node
 			if (lastCheckedNodeId === nodeId) {
 				pendingDeleteCableCount = cables.length;
 				pendingDeleteStructureCount = structures.length;
 				hasConnectedCables = cables.length > 0;
+				hasChildren = children.length > 0;
+				hasChildrenWithCables = childrenWithCables.length > 0;
 			}
 		} catch (err) {
 			console.error('Error checking dependencies:', err);
 			if (lastCheckedNodeId === nodeId) {
 				hasConnectedCables = false;
+				hasChildren = false;
+				hasChildrenWithCables = false;
 			}
 		} finally {
 			if (lastCheckedNodeId === nodeId) {
@@ -92,6 +114,8 @@
 			pendingDeleteCableCount = 0;
 			pendingDeleteStructureCount = 0;
 			hasConnectedCables = false;
+			hasChildren = false;
+			hasChildrenWithCables = false;
 			// Fetch new dependencies
 			checkNodeDependencies(id);
 		}
@@ -117,6 +141,7 @@
 	 * Fetch available nodes for parent node selection
 	 */
 	async function fetchAvailableNodes() {
+		isLoadingParentNodes = true;
 		try {
 			const response = await fetch('?/getAllNodes', {
 				method: 'POST',
@@ -129,6 +154,8 @@
 			}
 		} catch (err) {
 			console.error('Error fetching available nodes:', err);
+		} finally {
+			isLoadingParentNodes = false;
 		}
 	}
 
@@ -294,7 +321,14 @@
 			oninput={(e) => (nodeName = e.target.value)}
 		/>
 	</label>
-	<label class="label">
+	<label
+		class="label"
+		{@attach tooltip(
+			m.message_node_type_locked_has_children_and_cables?.() ||
+				'Node type cannot be changed (has children and cables)',
+			{ disabled: !nodeTypeDisabled || isCheckingDependencies }
+		)}
+	>
 		<span class="text-sm">{m.form_node_type()}</span>
 		<GenericCombobox
 			data={attributes.nodeTypes}
@@ -302,6 +336,7 @@
 			defaultValue={nodeType}
 			onValueChange={(e) => (nodeType = e.value)}
 			disabledValues={attributes.excludedNodeTypeIds}
+			disabled={nodeTypeDisabled}
 			renderInPlace={true}
 		/>
 	</label>
@@ -385,14 +420,23 @@
 			renderInPlace={true}
 		/>
 	</label>
-	<label class="label">
+	<label
+		class="label"
+		{@attach tooltip(
+			m.message_parent_node_locked_has_cables?.() || 'Parent node cannot be changed (has cables)',
+			{ disabled: !parentNodeDisabled || isCheckingDependencies }
+		)}
+	>
 		<span class="text-sm">{m.form_parent_node_name()}</span>
 		<GenericCombobox
 			data={availableNodes}
 			bind:value={nodeParentNode}
 			defaultValue={nodeParentNode}
 			onValueChange={(e) => (nodeParentNode = e.value)}
+			disabled={parentNodeDisabled}
 			renderInPlace={true}
+			loading={isLoadingParentNodes}
+			placeholderSize="w-full size-10"
 		/>
 	</label>
 </form>
@@ -405,8 +449,14 @@
 	<button
 		type="button"
 		onclick={confirmDelete}
-		disabled={isCheckingDependencies || hasConnectedCables}
-		{@attach tooltip(m.message_cannot_delete_node_has_cables(), { disabled: !hasConnectedCables })}
+		disabled={isCheckingDependencies || hasConnectedCables || hasChildrenWithCables}
+		{@attach tooltip(
+			hasChildrenWithCables
+				? m.message_cannot_delete_node_children_have_cables?.() ||
+						'Cannot delete: child nodes have cables'
+				: m.message_cannot_delete_node_has_cables(),
+			{ disabled: !hasConnectedCables && !hasChildrenWithCables }
+		)}
 		class="btn preset-filled-error-500 w-full disabled:opacity-50 disabled:cursor-not-allowed"
 	>
 		{m.action_delete_node?.() || 'Delete Node'}

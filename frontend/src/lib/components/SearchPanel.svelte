@@ -3,6 +3,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import { fade, fly } from 'svelte/transition';
 	import { parse } from 'devalue';
+	import Fuse from 'fuse.js';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -15,7 +16,7 @@
 		zoomToFeature,
 		zoomToMultipleFeatures
 	} from '$lib/map/searchUtils';
-	import { selectedProject } from '$lib/stores/store';
+	import { globalMapView, selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
 	import SearchInput from './SearchInput.svelte';
@@ -40,11 +41,18 @@
 
 	const FILTER_THRESHOLD = 10;
 
-	let filteredResults = $derived(
-		filterQuery.trim()
-			? searchResults.filter((r) => r.label.toLowerCase().includes(filterQuery.toLowerCase()))
-			: searchResults
+	const fuse = $derived(
+		new Fuse(searchResults, {
+			keys: ['label'],
+			threshold: 0.3
+		})
 	);
+
+	let filteredResults = $derived.by(() => {
+		if (!filterQuery.trim()) return searchResults;
+		const results = fuse.search(filterQuery);
+		return results.length > 0 ? results.map((r) => r.item) : searchResults;
+	});
 
 	const TYPE_CONFIG = {
 		address: {
@@ -104,7 +112,8 @@
 		try {
 			const formData = new FormData();
 			formData.append('searchQuery', query);
-			formData.append('projectId', $selectedProject);
+			const projectId = $globalMapView ? '' : $selectedProject;
+			formData.append('projectId', projectId);
 
 			const response = await fetch('?/searchFeatures', {
 				method: 'POST',
@@ -157,7 +166,8 @@
 			const formData = new FormData();
 			formData.append('featureType', type);
 			formData.append('featureUuid', value);
-			formData.append('projectId', $selectedProject);
+			const projectId = $globalMapView ? '' : $selectedProject;
+			formData.append('projectId', projectId);
 
 			const response = await fetch('?/getFeatureDetails', {
 				method: 'POST',

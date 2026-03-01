@@ -2,18 +2,25 @@ import logging
 import mimetypes
 import os
 import uuid
+from collections import defaultdict
+from datetime import date
 from urllib.parse import quote
 
+import requests
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
+from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.db import connection, transaction
 from django.db.models import Avg, Count, F, Q, Sum
-from django.http import FileResponse, HttpResponse
+from django.db.models.functions import TruncMonth
+from django.http import FileResponse, HttpResponse, StreamingHttpResponse
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from pathvalidate import sanitize_filename
 from rest_framework import status, viewsets
+from rest_framework.authentication import BaseAuthentication
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -67,6 +74,8 @@ from .models import (
     ResidentialUnit,
     Trench,
     TrenchConduitConnection,
+    WMSLayer,
+    WMSSource,
 )
 from .pageination import CustomPagination
 from .routing import find_shortest_path
@@ -122,6 +131,9 @@ from .serializers import (
     ResidentialUnitSerializer,
     TrenchConduitSerializer,
     TrenchSerializer,
+    WMSLayerSerializer,
+    WMSSourceCreateSerializer,
+    WMSSourceSerializer,
 )
 from .services import (
     GEOPACKAGE_LAYER_CONFIG,
@@ -129,8 +141,11 @@ from .services import (
     generate_geopackage_schema,
     import_conduits_from_excel,
 )
+from .wms_service import WMSServiceError, fetch_wms_layers, scan_wms_capabilities
 
 logger = logging.getLogger(__name__)
+
+User = get_user_model()
 
 
 class AttributesCableTypeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -1100,6 +1115,7 @@ class OlTrenchTileViewSet(APIView):
                     ) AS geom,
                     t.uuid,
                     t.id_trench,
+                    t.project,
                     t.construction_depth,
                     t.construction_details,
                     t.internal_execution,
@@ -1128,20 +1144,19 @@ class OlTrenchTileViewSet(APIView):
                 LEFT JOIN trench_conduits tc ON t.uuid = tc.uuid_trench
                 WHERE
                     t.geom_3857 && b.tile_bounds_margin
-                    AND t.project = %(project)s
+                    AND (%(project)s IS NULL OR t.project = %(project)s)
             )
             SELECT ST_AsMVT(mvtgeom, 'ol_trench', 4096, 'geom') AS mvt
             FROM mvtgeom;
         """
         project_id = request.query_params.get("project")
-        if project_id is None:
-            return HttpResponse(status=204)
-        try:
-            project_id = int(project_id)
-        except ValueError:
-            return HttpResponse(
-                "Invalid project ID", status=400, content_type="text/plain"
-            )
+        if project_id is not None:
+            try:
+                project_id = int(project_id)
+            except ValueError:
+                return HttpResponse(
+                    "Invalid project ID", status=400, content_type="text/plain"
+                )
 
         params = {"z": int(z), "x": int(x), "y": int(y), "project": project_id}
 
@@ -1210,7 +1225,7 @@ class ConduitViewSet(viewsets.ModelViewSet):
         Returns conduits with server-side pagination.
 
         Query params:
-        - project: Filter by project ID (required)
+        - project: Filter by project ID (optional)
         - flag: Filter by flag ID
         - search: Search term
         - page: Page number (default: 1)
@@ -1230,13 +1245,8 @@ class ConduitViewSet(viewsets.ModelViewSet):
         flag_id = request.query_params.get("flag")
         search_term = request.query_params.get("search")
 
-        if not project_id:
-            return Response(
-                {"error": "project parameter required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        queryset = queryset.filter(project=project_id)
+        if project_id:
+            queryset = queryset.filter(project=project_id)
 
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
@@ -1457,7 +1467,7 @@ class AddressViewSet(viewsets.ModelViewSet):
         Returns addresses with server-side pagination.
 
         Query params:
-        - project: Filter by project ID (required)
+        - project: Filter by project ID (optional)
         - flag: Filter by flag ID
         - search: Search term (searches street, housenumber, etc.)
         - page: Page number (default: 1)
@@ -1472,13 +1482,8 @@ class AddressViewSet(viewsets.ModelViewSet):
         flag_id = request.query_params.get("flag")
         search_term = request.query_params.get("search")
 
-        if not project_id:
-            return Response(
-                {"error": "project parameter required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        queryset = queryset.filter(project=project_id)
+        if project_id:
+            queryset = queryset.filter(project=project_id)
 
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
@@ -1579,9 +1584,7 @@ class ResidentialUnitViewSet(viewsets.ModelViewSet):
         unit = self.get_object()
         project_id = unit.uuid_address.project_id
         with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT fn_generate_residential_unit_id(%s)", [project_id]
-            )
+            cursor.execute("SELECT fn_generate_residential_unit_id(%s)", [project_id])
             new_id = cursor.fetchone()[0]
         unit.id_residential_unit = new_id
         unit.save(update_fields=["id_residential_unit"])
@@ -1619,6 +1622,7 @@ class OlAddressTileViewSet(APIView):
                     ) AS geom,
                     a.uuid,
                     a.id_address,
+                    a.project,
                     a.zip_code,
                     a.city,
                     a.district,
@@ -1633,22 +1637,19 @@ class OlAddressTileViewSet(APIView):
                 LEFT JOIN public.flags f ON a.flag = f.id
                 WHERE
                     a.geom_3857 && b.tile_bounds_margin
-                    AND a.project = %(project)s
+                    AND (%(project)s IS NULL OR a.project = %(project)s)
             )
             SELECT ST_AsMVT(mvtgeom, 'ol_address', 4096, 'geom') AS mvt
             FROM mvtgeom;
         """
         project_id = request.query_params.get("project")
-        if project_id is None:
-            return HttpResponse(
-                "No project ID provided", status=400, content_type="text/plain"
-            )
-        try:
-            project_id = int(project_id)
-        except ValueError:
-            return HttpResponse(
-                "Invalid project ID", status=400, content_type="text/plain"
-            )
+        if project_id is not None:
+            try:
+                project_id = int(project_id)
+            except ValueError:
+                return HttpResponse(
+                    "Invalid project ID", status=400, content_type="text/plain"
+                )
 
         params = {"z": int(z), "x": int(x), "y": int(y), "project": project_id}
 
@@ -1790,7 +1791,7 @@ class NodeViewSet(viewsets.ModelViewSet):
 
         queryset = Node.objects.filter(
             warranty__isnull=False, warranty__gte=date.today()
-        )
+        ).select_related("node_type")
 
         if project_id:
             try:
@@ -1821,6 +1822,150 @@ class NodeViewSet(viewsets.ModelViewSet):
             )
 
         return Response({"results": result, "count": len(result)})
+
+    @action(detail=False, methods=["get"])
+    def count_by_city(self, request):
+        """
+        Returns the count of nodes grouped by city (from linked address).
+        """
+        project_id = request.query_params.get("project")
+        flag = request.query_params.get("flag")
+
+        queryset = Node.objects.filter(uuid_address__isnull=False)
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        queryset = (
+            queryset.values("uuid_address__city")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+
+        result = [
+            {"city": row["uuid_address__city"], "count": row["count"]}
+            for row in queryset
+            if row["uuid_address__city"]
+        ]
+
+        return Response({"results": result, "count": len(result)})
+
+    @action(detail=False, methods=["get"])
+    def count_by_status(self, request):
+        """
+        Returns the count of nodes grouped by status.
+        """
+        project_id = request.query_params.get("project")
+        flag = request.query_params.get("flag")
+
+        queryset = Node.objects.all()
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        queryset = (
+            queryset.values("status__status")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+
+        result = [
+            {"status": row["status__status"], "count": row["count"]}
+            for row in queryset
+            if row["status__status"]
+        ]
+
+        return Response({"results": result, "count": len(result)})
+
+    @action(detail=False, methods=["get"])
+    def count_by_network_level(self, request):
+        """
+        Returns the count of nodes grouped by network level.
+        """
+        project_id = request.query_params.get("project")
+        flag = request.query_params.get("flag")
+
+        queryset = Node.objects.all()
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        queryset = (
+            queryset.values("network_level__network_level")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+
+        result = [
+            {"network_level": row["network_level__network_level"], "count": row["count"]}
+            for row in queryset
+            if row["network_level__network_level"]
+        ]
+
+        return Response({"results": result, "count": len(result)})
+
+    @action(detail=False, methods=["get"])
+    def count_by_owner(self, request):
+        """
+        Returns the count of nodes grouped by owner company.
+        """
+        project_id = request.query_params.get("project")
+        flag = request.query_params.get("flag")
+
+        queryset = Node.objects.filter(owner__isnull=False)
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        queryset = (
+            queryset.values("owner__company")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+
+        result = [
+            {"owner": row["owner__company"], "count": row["count"]}
+            for row in queryset
+            if row["owner__company"]
+        ]
+
+        return Response({"results": result, "count": len(result)})
+
+    @action(detail=False, methods=["get"])
+    def newest_oldest_nodes(self, request):
+        """
+        Returns the 5 newest and 5 oldest nodes by date field.
+        """
+        project_id = request.query_params.get("project")
+        flag = request.query_params.get("flag")
+
+        queryset = Node.objects.filter(date__isnull=False).select_related("node_type")
+        if project_id:
+            queryset = queryset.filter(project=project_id)
+        if flag:
+            queryset = queryset.filter(flag=flag)
+
+        newest = list(queryset.order_by("-date")[:5])
+        oldest = list(queryset.order_by("date")[:5])
+
+        def node_to_dict(node):
+            return {
+                "id": node.uuid,
+                "name": node.name,
+                "date": node.date.strftime("%Y-%m-%d") if node.date else None,
+                "node_type": node.node_type.node_type if node.node_type else None,
+            }
+
+        return Response(
+            {
+                "newest": [node_to_dict(n) for n in newest],
+                "oldest": [node_to_dict(n) for n in oldest],
+            }
+        )
 
     @action(detail=False, methods=["get"], url_path="all")
     def all_nodes(self, request):
@@ -1856,12 +2001,28 @@ class NodeViewSet(viewsets.ModelViewSet):
         search_term = request.query_params.get("search")
         exclude_group = request.query_params.get("exclude_group")
         use_pipe_branch_settings = request.query_params.get("use_pipe_branch_settings")
+        child_view_for = request.query_params.get("child_view_for")
         settings_configured = False
         pipe_branch_configured = False
         excluded_type_ids = []
+        child_view_enabled_type_ids = []
 
         if project_id:
             queryset = queryset.filter(project=project_id)
+
+            # Handle child view mode: return parent node + its direct children
+            if child_view_for:
+                queryset = queryset.filter(
+                    Q(uuid=child_view_for) | Q(parent_node_id=child_view_for)
+                )
+                # Get child view enabled types for this project
+                settings = NetworkSchemaSettings.get_settings_for_project(project_id)
+                if settings is not None:
+                    child_view_enabled_type_ids = list(
+                        settings.child_view_enabled_node_types.values_list(
+                            "id", flat=True
+                        )
+                    )
 
             # Apply pipe-branch settings if requested
             if use_pipe_branch_settings == "true":
@@ -1874,13 +2035,18 @@ class NodeViewSet(viewsets.ModelViewSet):
                         # Empty list means no types allowed, return empty
                         queryset = queryset.none()
             # Apply project-specific exclusions if no explicit exclude_group provided
-            # and not using pipe_branch_settings
-            elif exclude_group is None:
+            # and not using pipe_branch_settings or child_view_for
+            elif exclude_group is None and not child_view_for:
                 settings = NetworkSchemaSettings.get_settings_for_project(project_id)
                 if settings is not None:
                     settings_configured = True
                     excluded_type_ids = list(
                         settings.excluded_node_types.values_list("id", flat=True)
+                    )
+                    child_view_enabled_type_ids = list(
+                        settings.child_view_enabled_node_types.values_list(
+                            "id", flat=True
+                        )
                     )
                     if excluded_type_ids:
                         queryset = queryset.exclude(node_type_id__in=excluded_type_ids)
@@ -1906,6 +2072,7 @@ class NodeViewSet(viewsets.ModelViewSet):
                 "settings_configured": settings_configured,
                 "pipe_branch_configured": pipe_branch_configured,
                 "excluded_node_type_ids": excluded_type_ids,
+                "child_view_enabled_node_type_ids": child_view_enabled_type_ids,
             }
         elif isinstance(data, list):
             # Wrap in FeatureCollection format with metadata
@@ -1916,6 +2083,7 @@ class NodeViewSet(viewsets.ModelViewSet):
                     "settings_configured": settings_configured,
                     "pipe_branch_configured": pipe_branch_configured,
                     "excluded_node_type_ids": excluded_type_ids,
+                    "child_view_enabled_node_type_ids": child_view_enabled_type_ids,
                 },
             }
 
@@ -2227,6 +2395,7 @@ class OlNodeTileViewSet(APIView):
                     ) AS geom,
                     n.uuid,
                     n.name,
+                    n.project,
                     n.warranty,
                     n.date,
                     c2.company,
@@ -2252,20 +2421,19 @@ class OlNodeTileViewSet(APIView):
                 LEFT JOIN public.flags f ON n.flag = f.id
                 WHERE
                     n.geom_3857 && b.tile_bounds_margin
-                    AND n.project = %(project)s
+                    AND (%(project)s IS NULL OR n.project = %(project)s)
             )
             SELECT ST_AsMVT(mvtgeom, 'ol_node', 4096, 'geom') AS mvt
             FROM mvtgeom;
         """
         project_id = request.query_params.get("project")
-        if project_id is None:
-            return HttpResponse(status=204)
-        try:
-            project_id = int(project_id)
-        except ValueError:
-            return HttpResponse(
-                "Invalid project ID", status=400, content_type="text/plain"
-            )
+        if project_id is not None:
+            try:
+                project_id = int(project_id)
+            except ValueError:
+                return HttpResponse(
+                    "Invalid project ID", status=400, content_type="text/plain"
+                )
 
         params = {"z": int(z), "x": int(x), "y": int(y), "project": project_id}
 
@@ -2830,8 +2998,17 @@ class CableViewSet(viewsets.ModelViewSet):
         flag_id = request.query_params.get("flag")
         name = request.query_params.get("name")
         search_term = request.query_params.get("search")
+        child_view_for = request.query_params.get("child_view_for")
         if project_id:
             queryset = queryset.filter(project=project_id)
+
+            # Handle child view mode: return cables created in this parent's child view
+            if child_view_for:
+                queryset = queryset.filter(parent_node_context_id=child_view_for)
+            else:
+                # Main schema: only show cables without parent context (created in main schema)
+                queryset = queryset.filter(parent_node_context__isnull=True)
+
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
         if name:
@@ -3356,6 +3533,7 @@ class OlAreaTileViewSet(APIView):
                     ) AS geom,
                     a.uuid,
                     a.name,
+                    a.project,
                     at.area_type,
                     f.flag
                 FROM bounds b
@@ -3364,22 +3542,19 @@ class OlAreaTileViewSet(APIView):
                 LEFT JOIN public.flags f ON a.flag = f.id
                 WHERE
                     a.geom_3857 && b.tile_bounds_margin
-                    AND a.project = %(project)s
+                    AND (%(project)s IS NULL OR a.project = %(project)s)
             )
             SELECT ST_AsMVT(mvtgeom, 'ol_area', 4096, 'geom') AS mvt
             FROM mvtgeom;
         """
         project_id = request.query_params.get("project")
-        if project_id is None:
-            return HttpResponse(
-                "No project ID provided", status=400, content_type="text/plain"
-            )
-        try:
-            project_id = int(project_id)
-        except ValueError:
-            return HttpResponse(
-                "Invalid project ID", status=400, content_type="text/plain"
-            )
+        if project_id is not None:
+            try:
+                project_id = int(project_id)
+            except ValueError:
+                return HttpResponse(
+                    "Invalid project ID", status=400, content_type="text/plain"
+                )
 
         params = {"z": int(z), "x": int(x), "y": int(y), "project": project_id}
 
@@ -4490,7 +4665,7 @@ class MicropipesByConduitsView(APIView):
         # Get all microducts for these conduits
         microducts = Microduct.objects.filter(
             uuid_conduit_id__in=conduit_uuid_list
-        ).select_related("uuid_conduit")
+        ).select_related("uuid_conduit", "microduct_status")
 
         # Get color hex codes
         color_mapping = {
@@ -4509,21 +4684,26 @@ class MicropipesByConduitsView(APIView):
                     "color_hex": color_mapping.get(md.color, "#808080"),
                     "available_in": [],
                     "microduct_uuids": {},
+                    "has_defect": False,
                 }
             micropipe_groups[key]["available_in"].append(str(md.uuid_conduit_id))
             micropipe_groups[key]["microduct_uuids"][str(md.uuid_conduit_id)] = str(
                 md.uuid
             )
+            # Mark as defective if any microduct in the group has a status
+            if md.microduct_status:
+                micropipe_groups[key]["has_defect"] = True
 
-        # Check which are linked to this cable
-        linked_microducts = set()
-        if cable_id:
-            linked_microducts = set(
-                MicroductCableConnection.objects.filter(
-                    uuid_cable_id=cable_id, uuid_microduct__uuid_conduit_id__in=conduit_uuid_list
-                )
-                .values_list("uuid_microduct_id", flat=True)
-                .distinct()
+        # Get ALL cable connections for microducts in these conduits
+        all_connections = MicroductCableConnection.objects.filter(
+            uuid_microduct__uuid_conduit_id__in=conduit_uuid_list
+        ).select_related("uuid_cable")
+
+        # Build mapping: microduct_uuid -> list of {uuid, name}
+        microduct_cables = defaultdict(list)
+        for conn in all_connections:
+            microduct_cables[conn.uuid_microduct_id].append(
+                {"uuid": str(conn.uuid_cable_id), "name": conn.uuid_cable.name}
             )
 
         # Build response
@@ -4533,11 +4713,20 @@ class MicropipesByConduitsView(APIView):
             available_set = set(data["available_in"])
             missing_conduits = conduit_set - available_set
 
-            # Check if linked to cable
-            is_linked = any(
-                uuid.UUID(md_uuid) in linked_microducts
-                for md_uuid in data["microduct_uuids"].values()
-            )
+            # Collect all cables linked to any microduct in this group
+            linked_cables_set = {}
+            for md_uuid_str in data["microduct_uuids"].values():
+                md_uuid = uuid.UUID(md_uuid_str)
+                for cable_info in microduct_cables.get(md_uuid, []):
+                    linked_cables_set[cable_info["uuid"]] = cable_info["name"]
+
+            linked_cables = [
+                {"uuid": c_uuid, "name": c_name}
+                for c_uuid, c_name in linked_cables_set.items()
+            ]
+
+            # Check if linked to current cable
+            is_linked = cable_id and cable_id in linked_cables_set
 
             result.append(
                 {
@@ -4547,7 +4736,9 @@ class MicropipesByConduitsView(APIView):
                     "available_in": list(available_set),
                     "available_in_all": len(missing_conduits) == 0,
                     "linked_to_cable": is_linked,
+                    "linked_cables": linked_cables,
                     "missing_in": [conduit_map.get(c, c) for c in missing_conduits],
+                    "microduct_status": data["has_defect"],
                 }
             )
 
@@ -4606,7 +4797,7 @@ class CableMicropipeConnectionsView(APIView):
         return Response({"deleted": deleted})
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_trenches_for_cable_connections(request, cable_id):
     """
@@ -4616,25 +4807,29 @@ def get_trenches_for_cable_connections(request, cable_id):
     trench_uuids = list(
         Trench.objects.filter(
             trenchconduitconnection__uuid_conduit__microduct__microductcableconnection__uuid_cable_id=cable_id
-        ).distinct().values_list('uuid', flat=True)
+        )
+        .distinct()
+        .values_list("uuid", flat=True)
     )
 
-    return Response({'trench_uuids': [str(uuid) for uuid in trench_uuids]})
+    return Response({"trench_uuids": [str(uuid) for uuid in trench_uuids]})
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_conduits_for_cable(request, cable_id):
     """Get all conduit names where the cable has micropipe connections."""
     conduit_names = list(
         Conduit.objects.filter(
             microduct__microductcableconnection__uuid_cable_id=cable_id
-        ).distinct().values_list('name', flat=True)
+        )
+        .distinct()
+        .values_list("name", flat=True)
     )
-    return Response({'conduit_names': conduit_names})
+    return Response({"conduit_names": conduit_names})
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_cable_micropipe_summary(request, project_id):
     """
@@ -4642,11 +4837,11 @@ def get_cable_micropipe_summary(request, project_id):
     Returns a dict mapping cable UUIDs to their connected micropipes with color info.
     Used for dynamic edge coloring in the network schema diagram.
     """
-    connections = MicroductCableConnection.objects.filter(
-        uuid_cable__project_id=project_id
-    ).select_related(
-        'uuid_microduct', 'uuid_cable'
-    ).order_by('uuid_cable', 'uuid_microduct__number')
+    connections = (
+        MicroductCableConnection.objects.filter(uuid_cable__project_id=project_id)
+        .select_related("uuid_microduct", "uuid_cable")
+        .order_by("uuid_cable", "uuid_microduct__number")
+    )
 
     # Build a lookup for color hex codes
     color_lookup = {
@@ -4661,13 +4856,1092 @@ def get_cable_micropipe_summary(request, project_id):
         if cable_uuid not in result:
             result[cable_uuid] = []
 
-        color_name = conn.uuid_microduct.color.lower() if conn.uuid_microduct.color else None
-        hex_code = color_lookup.get(color_name, '#64748b')
+        color_name = (
+            conn.uuid_microduct.color.lower() if conn.uuid_microduct.color else None
+        )
+        hex_code = color_lookup.get(color_name, "#64748b")
 
-        result[cable_uuid].append({
-            'number': conn.uuid_microduct.number,
-            'color_hex': hex_code,
-            'color_name': conn.uuid_microduct.color
-        })
+        result[cable_uuid].append(
+            {
+                "number": conn.uuid_microduct.number,
+                "color_hex": hex_code,
+                "color_name": conn.uuid_microduct.color,
+            }
+        )
 
     return Response(result)
+
+
+class WMSSourceViewSet(viewsets.ModelViewSet):
+    """ViewSet for WMS sources.
+
+    Note: Project-level authorization follows existing codebase pattern where
+    authenticated users can access any project's data via query params.
+    To restrict access, implement project-level permissions at the auth layer.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action in ["create", "update", "partial_update"]:
+            return WMSSourceCreateSerializer
+        return WMSSourceSerializer
+
+    def get_queryset(self):
+        queryset = WMSSource.objects.filter(is_active=True)
+        project_id = self.request.query_params.get("project")
+        if project_id:
+            queryset = queryset.filter(project_id=project_id)
+        return queryset.prefetch_related("layers")
+
+    def _is_url_safe(self, url: str) -> tuple[bool, str]:
+        """Check if URL is safe to access (not internal/private).
+
+        Reuses validation logic from WMSProxyView.
+        """
+        import ipaddress
+        import socket
+        from urllib.parse import urlparse
+
+        blocked_networks = [
+            "10.0.0.0/8",
+            "172.16.0.0/12",
+            "192.168.0.0/16",
+            "127.0.0.0/8",
+            "169.254.0.0/16",
+            "::1/128",
+            "fc00::/7",
+            "fe80::/10",
+        ]
+
+        parsed = urlparse(url)
+        hostname = parsed.hostname
+
+        if not hostname:
+            return False, "Invalid URL: no hostname"
+
+        internal_hostnames = ["localhost", "metadata.google.internal"]
+        if hostname.lower() in internal_hostnames:
+            return False, "Access to internal hosts is not allowed"
+
+        try:
+            ip = ipaddress.ip_address(hostname)
+        except ValueError:
+            try:
+                resolved = socket.gethostbyname(hostname)
+                ip = ipaddress.ip_address(resolved)
+            except socket.gaierror:
+                return False, f"Could not resolve hostname: {hostname}"
+
+        for network_str in blocked_networks:
+            try:
+                network = ipaddress.ip_network(network_str)
+                if ip in network:
+                    return False, "Access to private/internal networks is not allowed"
+            except ValueError:
+                continue
+
+        return True, ""
+
+    @action(detail=True, methods=["post"])
+    def refresh_layers(self, request, pk=None):
+        """Refresh layers from WMS GetCapabilities."""
+        source = self.get_object()
+
+        # SSRF protection
+        is_safe, error_msg = self._is_url_safe(source.url)
+        if not is_safe:
+            return Response(
+                {"error": error_msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            layers_data = fetch_wms_layers(
+                source.url,
+                username=source.username or None,
+                password=source.password or None,
+            )
+        except WMSServiceError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        new_names = {layer["name"] for layer in layers_data}
+        source.layers.exclude(name__in=new_names).delete()
+
+        for i, layer_data in enumerate(layers_data):
+            WMSLayer.objects.update_or_create(
+                source=source,
+                name=layer_data["name"],
+                defaults={
+                    "title": layer_data["title"],
+                    "sort_order": i,
+                },
+            )
+
+        return Response(WMSSourceSerializer(source).data)
+
+    @action(detail=False, methods=["get"])
+    def access_token(self, request):
+        """Get a short-lived access token for WMS tile requests.
+
+        This token can be passed as a query parameter to the WMS proxy
+        to authenticate tile requests that can't use cookies (due to
+        SameSite restrictions on cross-origin image requests).
+
+        The token includes a 'wms_only' claim to scope it specifically
+        for WMS proxy requests, preventing misuse on other endpoints.
+        """
+        from datetime import timedelta
+
+        from rest_framework_simplejwt.tokens import AccessToken
+
+        # Create a short-lived token (5 minutes) for WMS access
+        token = AccessToken.for_user(request.user)
+        token.set_exp(lifetime=timedelta(minutes=5))
+        # Scope token to WMS proxy only
+        token["wms_only"] = True
+
+        return Response({"token": str(token)})
+
+    @action(detail=True, methods=["post"])
+    def scan_capabilities(self, request, pk=None):
+        """Scan WMS capabilities to recommend configuration settings.
+
+        Analyzes the WMS GetCapabilities response to determine:
+        - Recommended minZoom for each layer based on BBOX constraints
+        - Supported CRS for each layer
+        - Service-level constraints
+
+        Returns detailed information to help configure WMS layers.
+        """
+        source = self.get_object()
+
+        # SSRF protection
+        is_safe, error_msg = self._is_url_safe(source.url)
+        if not is_safe:
+            return Response(
+                {"error": error_msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            result = scan_wms_capabilities(
+                source.url,
+                username=source.username or None,
+                password=source.password or None,
+            )
+        except WMSServiceError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(result)
+
+
+class WMSLayerViewSet(viewsets.ModelViewSet):
+    """ViewSet for WMS layers."""
+
+    serializer_class = WMSLayerSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = WMSLayer.objects.filter(is_enabled=True)
+        project_id = self.request.query_params.get("project")
+        if project_id:
+            queryset = queryset.filter(
+                source__project_id=project_id, source__is_active=True
+            )
+        return queryset.select_related("source")
+
+
+class WMSTokenAuthentication(BaseAuthentication):
+    """Custom authentication that accepts JWT token via query parameter.
+
+    This is needed for WMS tile requests where browsers don't send cookies
+    due to SameSite restrictions on cross-origin image requests.
+
+    Only accepts tokens with 'wms_only' claim to prevent misuse of
+    general access tokens via URL parameters.
+    """
+
+    def authenticate(self, request):
+        from rest_framework.exceptions import AuthenticationFailed
+        from rest_framework_simplejwt.exceptions import TokenError
+        from rest_framework_simplejwt.tokens import AccessToken
+
+        token = request.query_params.get("token")
+        if not token:
+            return None
+
+        try:
+            validated_token = AccessToken(token)
+
+            # Verify token is scoped for WMS access only
+            if not validated_token.get("wms_only"):
+                raise AuthenticationFailed("Token not valid for WMS access")
+
+            user_id = validated_token.get("user_id")
+            user = User.objects.get(id=user_id)
+            return (user, validated_token)
+        except TokenError as e:
+            raise AuthenticationFailed(f"Invalid token: {e}")
+        except User.DoesNotExist:
+            raise AuthenticationFailed("User not found")
+
+
+class WMSProxyView(APIView):
+    """Proxy view for WMS requests.
+
+    Includes SSRF protection to prevent access to internal networks,
+    response size limits, and streaming response support.
+
+    Supports authentication via:
+    - Standard cookie-based JWT (for same-origin requests)
+    - Query parameter token (for cross-origin image requests)
+    """
+
+    from dj_rest_auth.jwt_auth import JWTCookieAuthentication
+
+    authentication_classes = [WMSTokenAuthentication, JWTCookieAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    MAX_RESPONSE_SIZE = 50 * 1024 * 1024  # 50MB
+
+    BLOCKED_NETWORKS = [
+        "0.0.0.0/8",  # "This" network
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "127.0.0.0/8",
+        "169.254.0.0/16",  # Link-local / AWS metadata
+        "::1/128",
+        "fc00::/7",
+        "fe80::/10",
+    ]
+
+    ALLOWED_WMS_PARAMS = {
+        "service",
+        "request",
+        "version",
+        "layers",
+        "styles",
+        "crs",
+        "srs",
+        "bbox",
+        "width",
+        "height",
+        "format",
+        "transparent",
+        "bgcolor",
+        "time",
+        "elevation",
+        "map",  # QGIS Server project file parameter
+    }
+
+    ALLOWED_URL_SCHEMES = {"http", "https"}
+
+    def _is_url_safe(self, url: str) -> tuple[bool, str]:
+        """Check if URL is safe to access (not internal/private).
+
+        Returns:
+            Tuple of (is_safe, error_message)
+        """
+        import ipaddress
+        import socket
+        from urllib.parse import urlparse
+
+        parsed = urlparse(url)
+
+        # Validate URL scheme
+        if parsed.scheme.lower() not in self.ALLOWED_URL_SCHEMES:
+            return (
+                False,
+                f"URL scheme '{parsed.scheme}' not allowed. Only http/https permitted.",
+            )
+
+        hostname = parsed.hostname
+
+        if not hostname:
+            return False, "Invalid URL: no hostname"
+
+        # Block common internal hostnames
+        internal_hostnames = ["localhost", "metadata.google.internal"]
+        if hostname.lower() in internal_hostnames:
+            return False, "Access to internal hosts is not allowed"
+
+        try:
+            # Try to parse as IP address first
+            ip = ipaddress.ip_address(hostname)
+        except ValueError:
+            # It's a hostname, resolve it
+            try:
+                resolved = socket.gethostbyname(hostname)
+                ip = ipaddress.ip_address(resolved)
+            except socket.gaierror:
+                return False, f"Could not resolve hostname: {hostname}"
+
+        # Check against blocked networks
+        for network_str in self.BLOCKED_NETWORKS:
+            try:
+                network = ipaddress.ip_network(network_str)
+                if ip in network:
+                    return False, "Access to private/internal networks is not allowed"
+            except ValueError:
+                continue
+
+        return True, ""
+
+    def get(self, request, source_id):
+        """Proxy WMS GET request to upstream server."""
+        try:
+            source = WMSSource.objects.get(id=source_id, is_active=True)
+        except WMSSource.DoesNotExist:
+            return Response(
+                {"error": "WMS source not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # SSRF protection: validate URL is not targeting internal networks
+        is_safe, error_msg = self._is_url_safe(source.url)
+        if not is_safe:
+            return Response(
+                {"error": error_msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Parse the WMS URL to extract base URL and preserved params (like MAP)
+        from urllib.parse import parse_qs, urlparse, urlunparse
+
+        parsed_url = urlparse(source.url)
+        base_url = urlunparse(
+            (
+                parsed_url.scheme,
+                parsed_url.netloc,
+                parsed_url.path,
+                "",  # params
+                "",  # query - will be added via params dict
+                "",  # fragment
+            )
+        )
+
+        # Extract allowed params from the original URL (e.g., MAP for QGIS Server)
+        # Normalize keys to uppercase for case-insensitive merging
+        original_params = {
+            k.upper(): v[0] if len(v) == 1 else v
+            for k, v in parse_qs(parsed_url.query).items()
+            if k.lower() in self.ALLOWED_WMS_PARAMS
+        }
+
+        # Filter incoming request params to allowed WMS parameters only
+        # and remove our auth token. Normalize keys to uppercase.
+        params = {
+            k.upper(): v
+            for k, v in request.query_params.dict().items()
+            if k.lower() in self.ALLOWED_WMS_PARAMS
+        }
+
+        # Merge: original URL params first, then request params override
+        params = {**original_params, **params}
+
+        auth = None
+        if source.username and source.password:
+            auth = (source.username, source.password)
+
+        try:
+            upstream_response = requests.get(
+                base_url,
+                params=params,
+                auth=auth,
+                timeout=30,
+                stream=True,
+            )
+        except requests.RequestException as e:
+            logger.error(
+                f"WMS proxy upstream request failed for source {source_id}: {e}",
+                extra={
+                    "wms_source_id": str(source_id),
+                    "upstream_url": base_url,
+                    "params": params,
+                },
+            )
+            return Response(
+                {"error": f"Upstream request failed: {e}"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        # Log non-2xx responses from upstream
+        if not upstream_response.ok:
+            logger.warning(
+                f"WMS proxy received non-2xx from upstream: {upstream_response.status_code}",
+                extra={
+                    "wms_source_id": str(source_id),
+                    "upstream_url": base_url,
+                    "upstream_status": upstream_response.status_code,
+                    "params": params,
+                },
+            )
+
+        # Check response size limit
+        content_length = upstream_response.headers.get("Content-Length")
+        if content_length and int(content_length) > self.MAX_RESPONSE_SIZE:
+            upstream_response.close()
+            return Response(
+                {"error": "Response too large"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        # Use streaming response for efficiency
+        def iter_content():
+            total_size = 0
+            for chunk in upstream_response.iter_content(chunk_size=8192):
+                total_size += len(chunk)
+                if total_size > self.MAX_RESPONSE_SIZE:
+                    upstream_response.close()
+                    return
+                yield chunk
+
+        return StreamingHttpResponse(
+            iter_content(),
+            status=upstream_response.status_code,
+            content_type=upstream_response.headers.get(
+                "Content-Type", "application/octet-stream"
+            ),
+        )
+
+
+class DashboardStatisticsView(APIView):
+    """Consolidated endpoint for all dashboard statistics.
+
+    Returns all dashboard data in a single request, reducing HTTP overhead
+    from 16 separate API calls to 1. Includes caching for improved performance.
+    """
+
+    permission_classes = [IsAuthenticated]
+    CACHE_TIMEOUT = 300  # 5 minutes
+
+    def get(self, request):
+        project_id = request.query_params.get("project")
+        flag_id = request.query_params.get("flag")
+
+        if not project_id:
+            return Response(
+                {"error": "project parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Build cache key
+        cache_key = f"dashboard_stats_{project_id}_{flag_id or 'all'}"
+
+        # Try to get from cache
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            return Response(cached_data)
+
+        # Compute all statistics
+        result = {
+            "trench": self._get_trench_statistics(project_id, flag_id),
+            "node": self._get_node_statistics(project_id, flag_id),
+            "address": self._get_address_statistics(project_id, flag_id),
+            "conduit": self._get_conduit_statistics(project_id, flag_id),
+            "area": self._get_area_statistics(project_id, flag_id),
+        }
+
+        # Cache the result
+        cache.set(cache_key, result, self.CACHE_TIMEOUT)
+
+        return Response(result)
+
+    def _get_trench_statistics(self, project_id, flag_id):
+        """Gather all trench-related statistics."""
+        base_queryset = Trench.objects.all()
+        if project_id:
+            base_queryset = base_queryset.filter(project=project_id)
+        if flag_id:
+            base_queryset = base_queryset.filter(flag=flag_id)
+
+        # Total length and count
+        totals = base_queryset.aggregate(
+            total_length=Sum("length"),
+            count=Count("uuid"),
+        )
+
+        # Average house connection length
+        house_connection_qs = base_queryset.filter(house_connection=True)
+        avg_house_connection = house_connection_qs.aggregate(
+            average_length=Avg("length"),
+            count=Count("uuid"),
+        )
+
+        # Length with funding
+        funding_qs = base_queryset.filter(funding_status=True)
+        length_with_funding = funding_qs.aggregate(
+            total_length=Sum("length"),
+            count=Count("uuid"),
+        )
+
+        # Length with internal execution
+        internal_qs = base_queryset.filter(internal_execution=True)
+        length_with_internal = internal_qs.aggregate(
+            total_length=Sum("length"),
+            count=Count("uuid"),
+        )
+
+        # Length by types (construction type + surface)
+        length_by_types = list(
+            base_queryset.annotate(
+                bauweise=F("construction_type__construction_type"),
+                oberfläche=F("surface__surface"),
+            )
+            .values("bauweise", "oberfläche")
+            .annotate(gesamt_länge=Sum("length"))
+            .order_by("bauweise", "oberfläche")
+        )
+
+        # Length by status
+        length_by_status = list(
+            base_queryset.annotate(status_name=F("status__status"))
+            .values("status_name")
+            .annotate(gesamt_länge=Sum("length"))
+            .order_by("status_name")
+        )
+
+        # Length by phase (network level)
+        length_by_phase = list(
+            base_queryset.annotate(network_level=F("phase__phase"))
+            .values("network_level")
+            .annotate(gesamt_länge=Sum("length"))
+            .order_by("network_level")
+        )
+
+        # Longest routes
+        longest_routes = list(
+            base_queryset.annotate(
+                construction_type_name=F("construction_type__construction_type"),
+                surface_name=F("surface__surface"),
+            )
+            .values("id_trench", "length", "construction_type_name", "surface_name")
+            .order_by("-length")[:5]
+        )
+
+        return {
+            "total_length": totals["total_length"] or 0,
+            "count": totals["count"] or 0,
+            "average_house_connection_length": avg_house_connection["average_length"] or 0,
+            "house_connection_count": avg_house_connection["count"] or 0,
+            "length_with_funding": length_with_funding["total_length"] or 0,
+            "funding_count": length_with_funding["count"] or 0,
+            "length_with_internal_execution": length_with_internal["total_length"] or 0,
+            "internal_execution_count": length_with_internal["count"] or 0,
+            "length_by_types": length_by_types,
+            "length_by_status": length_by_status,
+            "length_by_phase": length_by_phase,
+            "longest_routes": longest_routes,
+        }
+
+    def _get_node_statistics(self, project_id, flag_id):
+        """Gather all node-related statistics."""
+        base_queryset = Node.objects.all()
+        if project_id:
+            base_queryset = base_queryset.filter(project=project_id)
+        if flag_id:
+            base_queryset = base_queryset.filter(flag=flag_id)
+
+        # Count by type
+        count_by_type = list(
+            base_queryset.values("node_type__node_type")
+            .annotate(count=Count("node_type"))
+            .order_by("node_type__node_type")
+        )
+        count_by_type = [
+            {"node_type": row["node_type__node_type"], "count": row["count"]}
+            for row in count_by_type
+        ]
+
+        # Count by city
+        city_qs = base_queryset.filter(uuid_address__isnull=False)
+        count_by_city = list(
+            city_qs.values("uuid_address__city")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+        count_by_city = [
+            {"city": row["uuid_address__city"], "count": row["count"]}
+            for row in count_by_city
+            if row["uuid_address__city"]
+        ]
+
+        # Count by status
+        count_by_status = list(
+            base_queryset.values("status__status")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+        count_by_status = [
+            {"status": row["status__status"], "count": row["count"]}
+            for row in count_by_status
+            if row["status__status"]
+        ]
+
+        # Count by network level
+        count_by_network_level = list(
+            base_queryset.values("network_level__network_level")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+        count_by_network_level = [
+            {"network_level": row["network_level__network_level"], "count": row["count"]}
+            for row in count_by_network_level
+            if row["network_level__network_level"]
+        ]
+
+        # Count by owner
+        owner_qs = base_queryset.filter(owner__isnull=False)
+        count_by_owner = list(
+            owner_qs.values("owner__company")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+        count_by_owner = [
+            {"owner": row["owner__company"], "count": row["count"]}
+            for row in count_by_owner
+            if row["owner__company"]
+        ]
+
+        # Expiring warranties
+        warranty_qs = base_queryset.filter(
+            warranty__isnull=False, warranty__gte=date.today()
+        ).select_related("node_type").order_by("warranty")[:5]
+        expiring_warranties = []
+        for node in warranty_qs:
+            days_until_expiry = (node.warranty - date.today()).days
+            expiring_warranties.append({
+                "id": node.uuid,
+                "name": node.name,
+                "warranty": node.warranty.strftime("%Y-%m-%d"),
+                "node_type": node.node_type.node_type if node.node_type else None,
+                "days_until_expiry": days_until_expiry,
+            })
+
+        # Newest and oldest nodes
+        date_qs = base_queryset.filter(date__isnull=False).select_related("node_type")
+        newest = list(date_qs.order_by("-date")[:5])
+        oldest = list(date_qs.order_by("date")[:5])
+
+        def node_to_dict(node):
+            return {
+                "id": node.uuid,
+                "name": node.name,
+                "date": node.date.strftime("%Y-%m-%d") if node.date else None,
+                "node_type": node.node_type.node_type if node.node_type else None,
+            }
+
+        return {
+            "count_by_type": count_by_type,
+            "count_by_city": count_by_city,
+            "count_by_status": count_by_status,
+            "count_by_network_level": count_by_network_level,
+            "count_by_owner": count_by_owner,
+            "expiring_warranties": expiring_warranties,
+            "newest_nodes": [node_to_dict(n) for n in newest],
+            "oldest_nodes": [node_to_dict(n) for n in oldest],
+        }
+
+    def _get_address_statistics(self, project_id, flag_id):
+        """Gather all address and residential unit statistics."""
+        base_queryset = Address.objects.all()
+        if project_id:
+            base_queryset = base_queryset.filter(project=project_id)
+        if flag_id:
+            base_queryset = base_queryset.filter(flag=flag_id)
+
+        # Count addresses by city
+        count_by_city = list(
+            base_queryset.values("city")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+        count_by_city = [
+            {"city": row["city"], "count": row["count"]}
+            for row in count_by_city
+            if row["city"]
+        ]
+
+        # Count by development status (Ausbaustatus)
+        count_by_status = list(
+            base_queryset.values("status_development__status")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+        count_by_status = [
+            {"status": row["status_development__status"], "count": row["count"]}
+            for row in count_by_status
+            if row["status_development__status"]
+        ]
+
+        # Residential unit statistics
+        unit_queryset = ResidentialUnit.objects.filter(uuid_address__in=base_queryset)
+
+        # Count residential units by city (through address)
+        units_by_city = list(
+            unit_queryset.values("uuid_address__city")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+        units_by_city = [
+            {"city": row["uuid_address__city"], "count": row["count"]}
+            for row in units_by_city
+            if row["uuid_address__city"]
+        ]
+
+        # Count residential units by type
+        units_by_type = list(
+            unit_queryset.values("residential_unit_type__residential_unit_type")
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+        units_by_type = [
+            {"type": row["residential_unit_type__residential_unit_type"], "count": row["count"]}
+            for row in units_by_type
+            if row["residential_unit_type__residential_unit_type"]
+        ]
+
+        return {
+            "count_by_city": count_by_city,
+            "count_by_status": count_by_status,
+            "units_by_city": units_by_city,
+            "units_by_type": units_by_type,
+            "total_addresses": base_queryset.count(),
+            "total_units": unit_queryset.count(),
+        }
+
+    def _get_conduit_statistics(self, project_id, flag_id):
+        """Gather all conduit-related statistics."""
+        base_queryset = Conduit.objects.all()
+        if project_id:
+            base_queryset = base_queryset.filter(project=project_id)
+        if flag_id:
+            base_queryset = base_queryset.filter(flag=flag_id)
+
+        # Path to trench length via TrenchConduitConnection
+        trench_length_path = "trenchconduitconnection__uuid_trench__length"
+
+        # Total length and count
+        totals = base_queryset.aggregate(
+            total_length=Sum(trench_length_path),
+            count=Count("uuid", distinct=True),
+        )
+
+        # Length by type
+        length_by_type = list(
+            base_queryset.values(type_name=F("conduit_type__conduit_type"))
+            .annotate(total=Sum(trench_length_path))
+            .order_by("-total")
+        )
+        length_by_type = [
+            {"type_name": row["type_name"], "total": row["total"] or 0}
+            for row in length_by_type
+            if row["type_name"]
+        ]
+
+        # Length by status with type breakdown (for stacked bar)
+        length_by_status_type = list(
+            base_queryset.values(
+                status_name=F("status__status"),
+                type_name=F("conduit_type__conduit_type"),
+            )
+            .annotate(total=Sum(trench_length_path))
+            .order_by("status_name", "type_name")
+        )
+        length_by_status_type = [
+            {
+                "status_name": row["status_name"],
+                "type_name": row["type_name"],
+                "total": row["total"] or 0,
+            }
+            for row in length_by_status_type
+            if row["status_name"] and row["type_name"]
+        ]
+
+        # Length by network level
+        length_by_network_level = list(
+            base_queryset.values(network_level_name=F("network_level__network_level"))
+            .annotate(total=Sum(trench_length_path))
+            .order_by("-total")
+        )
+        length_by_network_level = [
+            {"network_level": row["network_level_name"], "total": row["total"] or 0}
+            for row in length_by_network_level
+            if row["network_level_name"]
+        ]
+
+        # Average length per type
+        # First get total length and count per type, then calculate average
+        type_stats = list(
+            base_queryset.values(type_name=F("conduit_type__conduit_type"))
+            .annotate(
+                total_length=Sum(trench_length_path),
+                conduit_count=Count("uuid", distinct=True),
+            )
+            .order_by("-total_length")
+        )
+        avg_length_by_type = [
+            {
+                "type_name": row["type_name"],
+                "avg_length": (row["total_length"] / row["conduit_count"]) if row["conduit_count"] else 0,
+            }
+            for row in type_stats
+            if row["type_name"] and row["total_length"]
+        ]
+        avg_length_by_type.sort(key=lambda x: x["avg_length"], reverse=True)
+
+        # Count by status
+        count_by_status = list(
+            base_queryset.values(status_name=F("status__status"))
+            .annotate(count=Count("uuid"))
+            .order_by("-count")
+        )
+        count_by_status = [
+            {"status_name": row["status_name"], "count": row["count"]}
+            for row in count_by_status
+            if row["status_name"]
+        ]
+
+        # Length by owner
+        length_by_owner = list(
+            base_queryset.filter(owner__isnull=False)
+            .values(owner_name=F("owner__company"))
+            .annotate(total=Sum(trench_length_path))
+            .order_by("-total")
+        )
+        length_by_owner = [
+            {"owner_name": row["owner_name"], "total": row["total"] or 0}
+            for row in length_by_owner
+            if row["owner_name"]
+        ]
+
+        # Length by manufacturer
+        length_by_manufacturer = list(
+            base_queryset.filter(manufacturer__isnull=False)
+            .values(manufacturer_name=F("manufacturer__company"))
+            .annotate(total=Sum(trench_length_path))
+            .order_by("-total")
+        )
+        length_by_manufacturer = [
+            {"manufacturer_name": row["manufacturer_name"], "total": row["total"] or 0}
+            for row in length_by_manufacturer
+            if row["manufacturer_name"]
+        ]
+
+        # Conduits by date (monthly)
+        conduits_by_month = list(
+            base_queryset.filter(date__isnull=False)
+            .annotate(month=TruncMonth("date"))
+            .values("month")
+            .annotate(count=Count("uuid"))
+            .order_by("month")
+        )
+        conduits_by_month = [
+            {"month": row["month"].strftime("%Y-%m") if row["month"] else None, "count": row["count"]}
+            for row in conduits_by_month
+            if row["month"]
+        ]
+
+        # Top 5 longest conduits
+        longest_conduits = list(
+            base_queryset.annotate(
+                total_length=Sum(trench_length_path),
+                type_name=F("conduit_type__conduit_type"),
+            )
+            .filter(total_length__isnull=False)
+            .values("name", "type_name", "total_length")
+            .order_by("-total_length")[:5]
+        )
+        longest_conduits = [
+            {
+                "name": row["name"],
+                "type_name": row["type_name"],
+                "total_length": row["total_length"] or 0,
+            }
+            for row in longest_conduits
+            if row["total_length"]
+        ]
+
+        return {
+            "total_length": totals["total_length"] or 0,
+            "count": totals["count"] or 0,
+            "length_by_type": length_by_type,
+            "length_by_status_type": length_by_status_type,
+            "length_by_network_level": length_by_network_level,
+            "avg_length_by_type": avg_length_by_type,
+            "count_by_status": count_by_status,
+            "length_by_owner": length_by_owner,
+            "length_by_manufacturer": length_by_manufacturer,
+            "conduits_by_month": conduits_by_month,
+            "longest_conduits": longest_conduits,
+        }
+
+    def _get_area_statistics(self, project_id, flag_id):
+        """Gather all area-related statistics with spatial analysis."""
+        from django.contrib.gis.db.models.functions import Area as GISArea, Intersection, Length
+        from django.contrib.gis.db.models.aggregates import Collect
+
+        base_queryset = Area.objects.filter(project_id=project_id)
+        if flag_id:
+            base_queryset = base_queryset.filter(flag_id=flag_id)
+
+        # 1. Basic area statistics
+        area_count = base_queryset.count()
+
+        # Total coverage in km²
+        total_coverage = base_queryset.annotate(area_m2=GISArea("geom")).aggregate(
+            total=Sum("area_m2")
+        )["total"]
+
+        # Areas by type
+        areas_by_type = list(
+            base_queryset.values(type_name=F("area_type__area_type"))
+            .annotate(count=Count("uuid"), total_area=Sum(GISArea("geom")))
+            .order_by("-count")
+        )
+        areas_by_type = [
+            {
+                "type_name": row["type_name"],
+                "count": row["count"],
+                "total_area_km2": row["total_area"].sq_km if row["total_area"] else 0,
+            }
+            for row in areas_by_type
+        ]
+
+        # 2. Coverage gap metrics - addresses/nodes NOT in any area
+        address_qs = Address.objects.filter(project_id=project_id)
+        node_qs = Node.objects.filter(project_id=project_id)
+        if flag_id:
+            address_qs = address_qs.filter(flag_id=flag_id)
+            node_qs = node_qs.filter(flag_id=flag_id)
+
+        total_addresses = address_qs.count()
+        total_nodes = node_qs.count()
+        total_residential_units = ResidentialUnit.objects.filter(
+            uuid_address__project_id=project_id
+        ).count()
+
+        # Collect all area geometries into union
+        all_areas_geom = base_queryset.aggregate(union=Collect("geom"))["union"]
+
+        addresses_in_areas = 0
+        nodes_in_areas = 0
+        residential_units_in_areas = 0
+        if all_areas_geom:
+            addresses_in_areas = address_qs.filter(geom__within=all_areas_geom).count()
+            nodes_in_areas = node_qs.filter(geom__within=all_areas_geom).count()
+            address_ids_in_areas = list(
+                address_qs.filter(geom__within=all_areas_geom).values_list("uuid", flat=True)
+            )
+            residential_units_in_areas = ResidentialUnit.objects.filter(
+                uuid_address_id__in=address_ids_in_areas
+            ).count()
+
+        # 3. Addresses per area (exclude empty)
+        addresses_per_area = []
+        for area in base_queryset.annotate(area_m2=GISArea("geom")).select_related("area_type"):
+            addr_count = address_qs.filter(geom__within=area.geom).count()
+            if addr_count > 0:
+                addresses_per_area.append(
+                    {
+                        "name": area.name,
+                        "type": area.area_type.area_type if area.area_type else None,
+                        "count": addr_count,
+                        "area_km2": area.area_m2.sq_km if area.area_m2 else 0,
+                    }
+                )
+
+        # Addresses by area type
+        addresses_by_area_type = []
+        for area_type in AttributesAreaType.objects.all():
+            areas_of_type = base_queryset.filter(area_type=area_type)
+            combined_geom = areas_of_type.aggregate(union=Collect("geom"))["union"]
+            if combined_geom:
+                count = address_qs.filter(geom__within=combined_geom).count()
+                if count > 0:
+                    addresses_by_area_type.append({"type": area_type.area_type, "count": count})
+
+        # 4. Nodes per area (exclude empty)
+        nodes_per_area = []
+        for area in base_queryset.select_related("area_type"):
+            node_count = node_qs.filter(geom__within=area.geom).count()
+            if node_count > 0:
+                nodes_per_area.append({"name": area.name, "count": node_count})
+
+        # Nodes by area type
+        nodes_by_area_type = []
+        for area_type in AttributesAreaType.objects.all():
+            areas_of_type = base_queryset.filter(area_type=area_type)
+            combined_geom = areas_of_type.aggregate(union=Collect("geom"))["union"]
+            if combined_geom:
+                count = node_qs.filter(geom__within=combined_geom).count()
+                if count > 0:
+                    nodes_by_area_type.append({"type": area_type.area_type, "count": count})
+
+        # 5. Trench length per area (clipped to boundary, exclude empty)
+        trench_qs = Trench.objects.filter(project_id=project_id)
+        if flag_id:
+            trench_qs = trench_qs.filter(flag_id=flag_id)
+
+        trench_length_per_area = []
+        for area in base_queryset.annotate(area_m2=GISArea("geom")):
+            intersecting = trench_qs.filter(geom__intersects=area.geom)
+            total_length = intersecting.annotate(
+                clipped_length=Length(Intersection("geom", area.geom))
+            ).aggregate(total=Sum("clipped_length"))["total"]
+
+            if total_length and total_length.m > 0:
+                area_km2 = area.area_m2.sq_km if area.area_m2 else 0
+                trench_length_per_area.append(
+                    {
+                        "name": area.name,
+                        "length_m": total_length.m,
+                        "area_km2": area_km2,
+                        "density": (total_length.m / 1000) / area_km2 if area_km2 > 0 else 0,
+                    }
+                )
+
+        # 6. Residential units by area type
+        residential_by_area_type = []
+        for area_type in AttributesAreaType.objects.all():
+            areas_of_type = base_queryset.filter(area_type=area_type)
+            combined_geom = areas_of_type.aggregate(union=Collect("geom"))["union"]
+            if combined_geom:
+                addr_ids = list(
+                    address_qs.filter(geom__within=combined_geom).values_list("uuid", flat=True)
+                )
+                count = ResidentialUnit.objects.filter(uuid_address_id__in=addr_ids).count()
+                if count > 0:
+                    residential_by_area_type.append({"type": area_type.area_type, "count": count})
+
+        return {
+            "area_count": area_count,
+            "total_coverage_km2": total_coverage.sq_km if total_coverage else 0,
+            "areas_by_type": areas_by_type,
+            # Coverage gap
+            "total_addresses": total_addresses,
+            "addresses_in_areas": addresses_in_areas,
+            "total_nodes": total_nodes,
+            "nodes_in_areas": nodes_in_areas,
+            "total_residential_units": total_residential_units,
+            "residential_units_in_areas": residential_units_in_areas,
+            # Per-area stats (top 10, empty excluded)
+            "addresses_per_area": sorted(
+                addresses_per_area, key=lambda x: x["count"], reverse=True
+            )[:10],
+            "addresses_by_area_type": addresses_by_area_type,
+            "nodes_per_area": sorted(nodes_per_area, key=lambda x: x["count"], reverse=True)[:10],
+            "nodes_by_area_type": nodes_by_area_type,
+            "trench_length_per_area": sorted(
+                trench_length_per_area, key=lambda x: x["length_m"], reverse=True
+            )[:10],
+            "residential_by_area_type": residential_by_area_type,
+        }

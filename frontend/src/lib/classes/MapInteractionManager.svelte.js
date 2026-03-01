@@ -177,9 +177,9 @@ export class MapInteractionManager {
 			this.selectionManager.selectFeature(featureId, feature);
 
 			const featureType = detectFeatureType(feature, layer);
+			const rawProperties = feature.getProperties();
 
 			if (featureType && this.drawerStore && this.drawerComponent) {
-				const rawProperties = feature.getProperties();
 				const properties = formatFeatureProperties(rawProperties, featureType);
 
 				const title = getFeatureTitle(feature, featureType);
@@ -192,6 +192,7 @@ export class MapInteractionManager {
 						featureType,
 						featureId,
 						alias: this.alias,
+						featureProjectId: rawProperties.project ? String(rawProperties.project) : null,
 						...this.additionalDrawerProps
 					}
 				});

@@ -29,6 +29,9 @@ export const edgeSnappingEnabled = persisted('edgeSnappingEnabled', true);
 export const edgeSnappingGridSize = persisted('edgeSnappingGridSize', 20);
 export const networkSchemaViewport = persisted('networkSchemaViewport', { x: 0, y: 0, zoom: 1 });
 
+// Global map view - whether to show all projects on map
+export const globalMapView = persisted('globalMapView', false);
+
 // Cable edge color mode for network-schema diagram
 // 'default' = static green, 'linked' = green/blue based on connection, 'micropipe' = use micropipe color
 export const cableEdgeColorMode = persisted('cableEdgeColorMode', 'default');
@@ -89,3 +92,15 @@ export const basemapTheme = persisted('basemapTheme', 'light');
 // When false, falls back to standard OSM raster tiles
 // Value: boolean
 export const tileServerAvailable = persisted('tileServerAvailable', true);
+
+// WMS layer visibility configuration - controls whether WMS layers are visible
+// Structure: { [layerId]: boolean }
+export const wmsLayerVisibilityConfig = persisted('wmsLayerVisibilityConfig', {});
+
+// WMS source expansion state - which sources are expanded in layer tree
+// Structure: { [sourceId]: boolean }
+export const wmsSourceExpansionState = persisted('wmsSourceExpansionState', {});
+
+// WMS sources data - populated from API
+// Structure: { sources: WMSSource[], loaded: boolean }
+export const wmsSourcesData = writable({ sources: [], loaded: false });

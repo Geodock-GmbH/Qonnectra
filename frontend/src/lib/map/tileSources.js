@@ -4,17 +4,21 @@ import VectorTileSource from 'ol/source/VectorTile.js';
 
 /**
  * Creates a vector tile source for trenches
- * @param {import('svelte/store').Readable<string>} selectedProject - Store containing the selected project ID
+ * @param {string} selectedProject - The selected project ID
  * @param {Function} onError - Error callback function
+ * @param {boolean} isGlobalView - Whether global view is active
  * @returns {VectorTileSource}
  */
-export function createTrenchTileSource(selectedProject, onError) {
+export function createTrenchTileSource(selectedProject, onError, isGlobalView = false) {
 	return new VectorTileSource({
 		format: new MVT({
 			idProperty: 'uuid'
 		}),
 		tileUrlFunction: (tileCoord) => {
 			const [z, x, y] = tileCoord;
+			if (isGlobalView) {
+				return `${PUBLIC_API_URL}ol_trench_tiles/${z}/${x}/${y}.mvt`;
+			}
 			const projectId = parseInt(selectedProject, 10);
 			if (isNaN(projectId)) {
 				return undefined;
@@ -58,17 +62,21 @@ export function createTrenchTileSource(selectedProject, onError) {
 
 /**
  * Creates a vector tile source for addresses
- * @param {import('svelte/store').Readable<string>} selectedProject - Store containing the selected project ID
+ * @param {string} selectedProject - The selected project ID
  * @param {Function} onError - Error callback function
+ * @param {boolean} isGlobalView - Whether global view is active
  * @returns {VectorTileSource}
  */
-export function createAddressTileSource(selectedProject, onError) {
+export function createAddressTileSource(selectedProject, onError, isGlobalView = false) {
 	return new VectorTileSource({
 		format: new MVT({
 			idProperty: 'uuid'
 		}),
 		tileUrlFunction: (tileCoord) => {
 			const [z, x, y] = tileCoord;
+			if (isGlobalView) {
+				return `${PUBLIC_API_URL}ol_address_tiles/${z}/${x}/${y}.mvt`;
+			}
 			const projectId = parseInt(selectedProject, 10);
 			if (isNaN(projectId)) {
 				return undefined;
@@ -115,17 +123,21 @@ export function createAddressTileSource(selectedProject, onError) {
 
 /**
  * Creates a vector tile source for nodes
- * @param {import('svelte/store').Readable<string>} selectedProject - Store containing the selected project ID
+ * @param {string} selectedProject - The selected project ID
  * @param {Function} onError - Error callback function
+ * @param {boolean} isGlobalView - Whether global view is active
  * @returns {VectorTileSource}
  */
-export function createNodeTileSource(selectedProject, onError) {
+export function createNodeTileSource(selectedProject, onError, isGlobalView = false) {
 	return new VectorTileSource({
 		format: new MVT({
 			idProperty: 'uuid'
 		}),
 		tileUrlFunction: (tileCoord) => {
 			const [z, x, y] = tileCoord;
+			if (isGlobalView) {
+				return `${PUBLIC_API_URL}ol_node_tiles/${z}/${x}/${y}.mvt`;
+			}
 			const projectId = parseInt(selectedProject, 10);
 			if (isNaN(projectId)) {
 				return undefined;
@@ -172,17 +184,21 @@ export function createNodeTileSource(selectedProject, onError) {
 
 /**
  * Creates a vector tile source for areas
- * @param {import('svelte/store').Readable<string>} selectedProject - Store containing the selected project ID
+ * @param {string} selectedProject - The selected project ID
  * @param {Function} onError - Error callback function
+ * @param {boolean} isGlobalView - Whether global view is active
  * @returns {VectorTileSource}
  */
-export function createAreaTileSource(selectedProject, onError) {
+export function createAreaTileSource(selectedProject, onError, isGlobalView = false) {
 	return new VectorTileSource({
 		format: new MVT({
 			idProperty: 'uuid'
 		}),
 		tileUrlFunction: (tileCoord) => {
 			const [z, x, y] = tileCoord;
+			if (isGlobalView) {
+				return `${PUBLIC_API_URL}ol_area_tiles/${z}/${x}/${y}.mvt`;
+			}
 			const projectId = parseInt(selectedProject, 10);
 			if (isNaN(projectId)) {
 				return undefined;

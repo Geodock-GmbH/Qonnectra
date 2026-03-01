@@ -29,6 +29,8 @@ from .factories import (
     StoragePreferencesFactory,
     TrenchConduitConnectionFactory,
     TrenchFactory,
+    WMSLayerFactory,
+    WMSSourceFactory,
 )
 
 
@@ -369,3 +371,15 @@ def cable_with_connections(db, project, flag, cable_type):
         "microducts": [microduct1, microduct2],
         "expected_length": 125.5,  # 50.0 + 75.5
     }
+
+
+@pytest.fixture
+def wms_source(db, project):
+    """Create a test WMS source."""
+    return WMSSourceFactory(project=project)
+
+
+@pytest.fixture
+def wms_layer(db, wms_source):
+    """Create a test WMS layer."""
+    return WMSLayerFactory(source=wms_source)

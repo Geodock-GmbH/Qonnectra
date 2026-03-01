@@ -24,7 +24,7 @@ export class CableMicropipeManager {
 	/** @type {SvelteSet<string>} */
 	selectedConduitIds = $state(new SvelteSet());
 
-	/** @type {Array<{number: number, color_name: string, color_hex: string, available_in: string[], available_in_all: boolean, linked_to_cable: boolean, missing_in: string[]}>} */
+	/** @type {Array<{number: number, color_name: string, color_hex: string, available_in: string[], available_in_all: boolean, linked_to_cable: boolean, linked_cables: Array<{uuid: string, name: string}>, missing_in: string[], microduct_status: boolean}>} */
 	micropipes = $state([]);
 
 	/** @type {{number: number, color_name: string}|null} */

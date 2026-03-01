@@ -22,6 +22,12 @@ export class ConduitDataManager {
 	/** @type {Record<string, string[]>} */
 	trenchUuidsByConduit = $state({});
 
+	// State for microduct status options
+	/** @type {Array<{id: number, microduct_status: string}>} */
+	statusOptions = $state([]);
+	/** @type {boolean} */
+	loadingStatusOptions = $state(false);
+
 	/**
 	 * Fetch all conduits/pipes in a trench
 	 * @param {string} featureId - UUID of the trench
@@ -244,6 +250,65 @@ export class ConduitDataManager {
 	}
 
 	/**
+	 * Fetch available microduct status options
+	 * @returns {Promise<void>}
+	 */
+	async fetchStatusOptions() {
+		if (this.statusOptions.length > 0 || this.loadingStatusOptions) return;
+
+		this.loadingStatusOptions = true;
+
+		try {
+			const formData = new FormData();
+
+			const response = await fetch('?/getMicroductStatusOptions', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'success' && result.data) {
+				this.statusOptions = result.data;
+			}
+		} catch (err) {
+			console.error('Error fetching status options:', err);
+		} finally {
+			this.loadingStatusOptions = false;
+		}
+	}
+
+	/**
+	 * Update a microduct's status
+	 * @param {string} microductUuid - UUID of the microduct
+	 * @param {number|null} statusId - ID of the status or null for healthy
+	 * @returns {Promise<Object|null>} Updated microduct or null on error
+	 */
+	async updateMicroductStatus(microductUuid, statusId) {
+		try {
+			const formData = new FormData();
+			formData.append('uuid', microductUuid);
+			formData.append('microduct_status_id', statusId == null ? '' : String(statusId));
+
+			const response = await fetch('?/updateMicroductStatus', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'success' && result.data) {
+				return result.data;
+			}
+
+			return null;
+		} catch (err) {
+			console.error('Error updating microduct status:', err);
+			return null;
+		}
+	}
+
+	/**
 	 * Reset all state
 	 */
 	reset() {
@@ -254,6 +319,8 @@ export class ConduitDataManager {
 		this.loadingMicroducts = {};
 		this.errorMicroducts = {};
 		this.trenchUuidsByConduit = {};
+		this.statusOptions = [];
+		this.loadingStatusOptions = false;
 	}
 
 	/**

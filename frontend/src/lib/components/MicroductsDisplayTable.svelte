@@ -1,16 +1,63 @@
 <script>
 	import { m } from '$lib/paraglide/messages';
 
+	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
+
 	/**
 	 * @typedef {Object} Props
 	 * @property {Array<Object>} microducts - Array of microduct objects
 	 * @property {boolean} loading - Loading state
 	 * @property {string|null} error - Error message
 	 * @property {import('svelte').Snippet<[Object]>} [actions] - Optional snippet for action buttons per microduct
+	 * @property {boolean} [showStatus] - Whether to show the status column
+	 * @property {boolean} [editableStatus] - Whether status is editable (dropdown)
+	 * @property {Array<{id: number, microduct_status: string}>} [statusOptions] - Available status options
+	 * @property {(microduct: Object, statusId: number|null) => void} [onStatusChange] - Callback when status changes
 	 */
 
 	/** @type {Props} */
-	let { microducts = [], loading = false, error = null, actions } = $props();
+	let {
+		microducts = [],
+		loading = false,
+		error = null,
+		actions,
+		showStatus = false,
+		editableStatus = false,
+		statusOptions = [],
+		onStatusChange = null
+	} = $props();
+
+	const HEALTHY_VALUE = 'healthy';
+
+	/** @type {Record<string, Array<string|number>>} */
+	let statusValues = $state({});
+
+	$effect(() => {
+		const newValues = {};
+		for (const md of microducts) {
+			newValues[md.uuid] =
+				md.microduct_status?.id != null ? [md.microduct_status.id] : [HEALTHY_VALUE];
+		}
+		statusValues = newValues;
+	});
+
+	const statusComboboxData = $derived([
+		{ value: HEALTHY_VALUE, label: m.label_healthy() },
+		...statusOptions.map((s) => ({ value: s.id, label: s.microduct_status }))
+	]);
+
+	/**
+	 * Handle combobox value change
+	 * @param {Object} microduct
+	 * @param {{ value: Array<string|number> }} e
+	 */
+	function handleComboboxChange(microduct, e) {
+		const selectedValue = e.value[0];
+		const newValue = selectedValue === HEALTHY_VALUE ? null : selectedValue;
+		if (onStatusChange) {
+			onStatusChange(microduct, newValue);
+		}
+	}
 </script>
 
 {#if loading}
@@ -34,6 +81,9 @@
 					<th>{m.form_color()}</th>
 					<th>{m.form_address({ count: 1 })}</th>
 					<th>{m.form_cables()}</th>
+					{#if showStatus}
+						<th>{m.form_status()}</th>
+					{/if}
 					{#if actions}
 						<th></th>
 					{/if}
@@ -42,8 +92,10 @@
 			<tbody class="[&>tr]:hover:preset-tonal-primary">
 				{#each microducts as microduct (microduct.uuid)}
 					<tr>
-						<td>{microduct.number}</td>
-						<td>
+						<td class={microduct.microduct_status ? 'line-through opacity-60' : ''}
+							>{microduct.number}</td
+						>
+						<td class={microduct.microduct_status ? 'line-through opacity-60' : ''}>
 							<div class="flex items-center gap-2">
 								<div
 									class="w-4 h-4 rounded-full border border-surface-300"
@@ -71,6 +123,25 @@
 								{/if}
 							{/if}
 						</td>
+						{#if showStatus}
+							<td class="min-w-32">
+								{#if editableStatus && onStatusChange}
+									<GenericCombobox
+										data={statusComboboxData}
+										bind:value={statusValues[microduct.uuid]}
+										onValueChange={(e) => handleComboboxChange(microduct, e)}
+										placeholder={m.form_status()}
+										classes="w-full"
+										placeholderSize="size-8"
+										renderInPlace={true}
+									/>
+								{:else}
+									<span class={microduct.microduct_status ? 'text-error-500' : 'text-success-500'}>
+										{microduct.microduct_status?.microduct_status ?? m.label_healthy()}
+									</span>
+								{/if}
+							</td>
+						{/if}
 						{#if actions}
 							<td>
 								{@render actions(microduct)}

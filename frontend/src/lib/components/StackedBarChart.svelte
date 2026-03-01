@@ -1,19 +1,40 @@
 <script>
 	import { onMount } from 'svelte';
-	import { BarController, BarElement, CategoryScale, Chart, LinearScale, Tooltip } from 'chart.js';
+	import {
+		BarController,
+		BarElement,
+		CategoryScale,
+		Chart,
+		Legend,
+		LinearScale,
+		Tooltip
+	} from 'chart.js';
 
 	import { m } from '$lib/paraglide/messages';
 
-	Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip);
+	Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
-	let { data = [], title = '', color = '#0ea5e9', unit = 'km' } = $props();
+	/**
+	 * @typedef {Object} Dataset
+	 * @property {string} label - The label for this dataset
+	 * @property {number[]} data - The data values
+	 * @property {string} backgroundColor - The background color
+	 */
+
+	/**
+	 * @typedef {Object} ChartData
+	 * @property {string[]} labels - The x-axis labels
+	 * @property {Dataset[]} datasets - The datasets to display
+	 */
+
+	/** @type {ChartData} */
+	let { data = { labels: [], datasets: [] }, title = '', unit = 'km' } = $props();
 
 	let canvas = $state();
 	let chart;
 	let themeMode = $state('');
 
 	onMount(() => {
-		// Watch for theme changes by observing data-mode attribute
 		const observer = new MutationObserver(() => {
 			themeMode = document.documentElement.getAttribute('data-mode') || '';
 		});
@@ -23,7 +44,6 @@
 			attributeFilter: ['data-mode']
 		});
 
-		// Set initial theme mode
 		themeMode = document.documentElement.getAttribute('data-mode') || '';
 
 		return () => {
@@ -35,9 +55,8 @@
 	});
 
 	$effect(() => {
-		if (!canvas || !data || data.length === 0 || data.every((item) => !item.value)) return;
+		if (!canvas || !data || !data.labels || data.labels.length === 0) return;
 
-		// Re-render chart when theme changes (themeMode is a dependency)
 		themeMode;
 
 		if (chart) {
@@ -47,18 +66,15 @@
 		const ctx = canvas.getContext('2d');
 		if (!ctx) return;
 
-		// Resolve CSS variables for axis colors using the canvas parent for proper context
 		const parentEl = canvas.parentElement;
 		if (!parentEl) return;
 
-		// Resolve border color
 		const tempElBorder = document.createElement('div');
 		tempElBorder.style.borderColor = 'var(--preset-filled-surface-200-800)';
 		parentEl.appendChild(tempElBorder);
 		const axisBorderColor = getComputedStyle(tempElBorder).borderColor || '#9ca3af';
 		parentEl.removeChild(tempElBorder);
 
-		// Resolve tick/label text color
 		const tempElText = document.createElement('div');
 		tempElText.style.color = 'var(--preset-filled-surface-900-100)';
 		parentEl.appendChild(tempElText);
@@ -68,16 +84,14 @@
 		chart = new Chart(ctx, {
 			type: 'bar',
 			data: {
-				labels: data.map((item) => item.label),
-				datasets: [
-					{
-						data: data.map((item) => item.value),
-						backgroundColor: color,
-						borderColor: color,
-						borderWidth: 0,
-						borderRadius: 4
-					}
-				]
+				labels: data.labels,
+				datasets: data.datasets.map((ds) => ({
+					label: ds.label,
+					data: ds.data,
+					backgroundColor: ds.backgroundColor,
+					borderWidth: 0,
+					borderRadius: 2
+				}))
 			},
 			options: {
 				indexAxis: 'y',
@@ -86,12 +100,22 @@
 				aspectRatio: 1.8,
 				plugins: {
 					legend: {
-						display: false
+						display: true,
+						position: 'top',
+						labels: {
+							color: axisTextColor,
+							usePointStyle: true,
+							font: {
+								size: 11
+							}
+						}
 					},
 					tooltip: {
 						callbacks: {
 							label: function (context) {
 								return (
+									context.dataset.label +
+									': ' +
 									context.parsed.x.toLocaleString('de-DE', {
 										minimumFractionDigits: 2,
 										maximumFractionDigits: 2
@@ -105,6 +129,7 @@
 				},
 				scales: {
 					x: {
+						stacked: true,
 						beginAtZero: true,
 						title: {
 							display: true,
@@ -119,8 +144,7 @@
 							color: axisBorderColor
 						},
 						grid: {
-							display: false,
-							color: 'var(--preset-filled-surface-100-900)'
+							display: false
 						},
 						ticks: {
 							color: axisTextColor,
@@ -130,12 +154,12 @@
 						}
 					},
 					y: {
+						stacked: true,
 						border: {
 							color: axisBorderColor
 						},
 						grid: {
-							display: false,
-							color: 'var(--preset-filled-surface-900-100)'
+							display: false
 						},
 						ticks: {
 							color: axisTextColor,
@@ -151,7 +175,6 @@
 </script>
 
 <div class="card border-2 border-surface-200-800 shadow-lg overflow-hidden">
-	<!-- Title Bar -->
 	<div class="border-b-2 border-surface-200-800 p-4">
 		<h3 class="h4 font-bold text-primary-500 flex items-center">
 			<span>{title}</span>
@@ -159,10 +182,9 @@
 		</h3>
 	</div>
 
-	<!-- Chart Container -->
 	<div class="p-6">
 		<div class="relative" style="height: 300px;">
-			{#if !data || data.length === 0 || data.every((item) => !item.value)}
+			{#if !data || !data.labels || data.labels.length === 0}
 				<div class="flex items-center justify-center h-full text-surface-500">
 					{m.form_no_data_available()}
 				</div>

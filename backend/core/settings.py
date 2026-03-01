@@ -27,6 +27,10 @@ load_dotenv(dotenv_path=env_path)
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
+# Field encryption key for sensitive data (WMS passwords)
+# Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+FIELD_ENCRYPTION_KEY = os.getenv("FIELD_ENCRYPTION_KEY", "")
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "0").lower() in ("1", "true", "yes")
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
@@ -56,6 +60,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_json_widget",
+    "simple_history",
 ]
 
 MIDDLEWARE = [
@@ -69,6 +74,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "apps.api.middleware.CookieDomainMiddleware",
+    "simple_history.middleware.HistoryRequestMiddleware",
 ]
 
 # Set to True to use the CookieDomainMiddleware

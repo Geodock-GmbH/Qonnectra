@@ -25,27 +25,6 @@
 		flags: []
 	};
 
-	// #region agent log
-	$effect(() => {
-		if (openPipeModal) {
-			fetch('http://127.0.0.1:7243/ingest/ce537700-dc76-46fa-bb6c-67a77367f431', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					location: 'PipeModal.svelte',
-					message: 'PipeModal open - attributeOptions check',
-					data: {
-						conduitTypesLength: attributes?.conduitTypes?.length ?? 'missing',
-						statusesLength: attributes?.statuses?.length ?? 'missing'
-					},
-					hypothesisId: 'B',
-					timestamp: Date.now()
-				})
-			}).catch(() => {});
-		}
-	});
-	// #endregion
-
 	// Get conduit state for form defaults persistence
 	const conduitState = getContext('conduitState');
 

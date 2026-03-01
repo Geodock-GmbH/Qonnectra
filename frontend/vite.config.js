@@ -18,9 +18,9 @@ export default defineConfig({
 		exclude: ['ol']
 	},
 	test: {
-		workspace: [
+		projects: [
 			{
-				extends: './vite.config.js',
+				extends: true,
 				plugins: [svelteTesting()],
 				test: {
 					name: 'client',
@@ -32,7 +32,7 @@ export default defineConfig({
 				}
 			},
 			{
-				extends: './vite.config.js',
+				extends: true,
 				test: {
 					name: 'server',
 					environment: 'node',
