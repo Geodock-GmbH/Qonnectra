@@ -148,8 +148,8 @@ export const actions = {
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					start_trench_id: parseInt(startTrenchId, 10),
-					end_trench_id: parseInt(endTrenchId, 10),
+					start_trench_id: startTrenchId,
+					end_trench_id: endTrenchId,
 					project_id: [parseInt(projectId, 10)],
 					tolerance: [parseFloat(tolerance)]
 				})

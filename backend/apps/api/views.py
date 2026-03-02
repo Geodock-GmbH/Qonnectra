@@ -2473,16 +2473,13 @@ class RoutingView(APIView):
         project_id = request.data.get("project_id")[0]
         tolerance = request.data.get("tolerance", 1)[0]
 
-        try:
-            start_id = int(start_trench_id)
-            end_id = int(end_trench_id)
-        except (ValueError, TypeError):
+        if not start_trench_id or not end_trench_id:
             return Response(
-                {"error": "Trench IDs must be integers."},
+                {"error": "start_trench_id and end_trench_id are required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        result = find_shortest_path(start_id, end_id, project_id, tolerance)
+        result = find_shortest_path(start_trench_id, end_trench_id, project_id, tolerance)
 
         if "error" in result:
             # Check for not found vs. other errors
