@@ -54,10 +54,13 @@ export class TileLoadingManager {
 	}
 
 	/**
-	 * Cancel all pending requests and pause new ones
+	 * Cancel all pending requests
+	 * @param {boolean} [andPause=false] - Also pause new requests
 	 */
-	cancelAllRequests() {
-		this.isPaused = true;
+	cancelAllRequests(andPause = false) {
+		if (andPause) {
+			this.isPaused = true;
+		}
 		for (const controller of this.abortControllers.values()) {
 			controller.abort();
 		}
