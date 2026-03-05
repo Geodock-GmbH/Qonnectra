@@ -4,6 +4,8 @@
 	import { browser } from '$app/environment';
 	import { env } from '$env/dynamic/public';
 
+	import { tileLoadingManager } from '$lib/map/tileLoadingManager.js';
+	import { getWorkerPool } from '$lib/map/workerPool.js';
 	import {
 		basemapTheme,
 		layerOpacity,
@@ -253,6 +255,10 @@
 	 * Cleanup when the component is destroyed
 	 */
 	onDestroy(() => {
+		// Cancel any pending tile requests when map unmounts
+		tileLoadingManager.cancelAllRequests();
+		getWorkerPool().cancelAllRequests();
+
 		const currentMap = map;
 		if (currentMap) {
 			currentMap.setTarget(undefined);

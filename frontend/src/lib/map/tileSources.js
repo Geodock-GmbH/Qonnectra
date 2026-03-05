@@ -1,6 +1,109 @@
+// frontend/src/lib/map/tileSources.js
 import { PUBLIC_API_URL } from '$env/static/public';
 import MVT from 'ol/format/MVT.js';
 import VectorTileSource from 'ol/source/VectorTile.js';
+
+import { reconstructFeatures } from './featureReconstructor.js';
+import { tileLoadingManager } from './tileLoadingManager.js';
+import { getWorkerPool } from './workerPool.js';
+
+let requestCounter = 0;
+
+/**
+ * Generate unique request ID
+ * @returns {string}
+ */
+function generateRequestId() {
+	return `tile-${Date.now()}-${requestCounter++}`;
+}
+
+/**
+ * Create tile load function with AbortController and worker parsing
+ * @param {string} layerType - Type of layer for error messages
+ * @param {Function} onError - Error callback
+ * @returns {Function}
+ */
+function createTileLoadFunction(layerType, onError) {
+	return (tile, url) => {
+		if (!url) {
+			tile.setState(4); // EMPTY
+			return;
+		}
+
+		tile.setLoader((extent, resolution, projection) => {
+			const requestId = generateRequestId();
+			const controller = tileLoadingManager.createAbortController(requestId);
+
+			fetch(url, {
+				credentials: 'include',
+				signal: controller.signal
+			})
+				.then((response) => {
+					if (!response.ok) {
+						throw new Error(`Failed to load ${layerType} tile: ${response.statusText}`);
+					}
+					return response.arrayBuffer();
+				})
+				.then(async (data) => {
+					// Try worker parsing first
+					const workerPool = getWorkerPool();
+					if (workerPool.workers.length > 0) {
+						const result = await workerPool.parse(
+							requestId,
+							data,
+							extent,
+							typeof projection === 'string' ? projection : projection.getCode()
+						);
+
+						if (result.success && result.features) {
+							const features = reconstructFeatures(result.features);
+							tile.setFeatures(features);
+						} else if (result.error !== 'Cancelled') {
+							// Fallback to main thread parsing on worker error
+							fallbackParse(tile, data, extent, projection);
+						}
+					} else {
+						// No workers available, parse on main thread
+						fallbackParse(tile, data, extent, projection);
+					}
+				})
+				.catch((error) => {
+					if (error.name === 'AbortError') {
+						// Request was cancelled, don't treat as error
+						tile.setState(4); // EMPTY
+						return;
+					}
+					console.error(`Error loading ${layerType} vector tile:`, error);
+					tile.setState(3); // ERROR
+					if (onError) {
+						onError(
+							`Error loading ${layerType} tile`,
+							error.message || 'Could not fetch tile data.'
+						);
+					}
+				})
+				.finally(() => {
+					tileLoadingManager.removeAbortController(requestId);
+				});
+		});
+	};
+}
+
+/**
+ * Fallback to main thread parsing when workers unavailable
+ * @param {import('ol/VectorTile').default} tile
+ * @param {ArrayBuffer} data
+ * @param {number[]} extent
+ * @param {import('ol/proj/Projection').default|string} projection
+ */
+function fallbackParse(tile, data, extent, projection) {
+	const format = tile.getFormat();
+	const features = format.readFeatures(data, {
+		extent: extent,
+		featureProjection: projection
+	});
+	tile.setFeatures(features);
+}
 
 /**
  * Creates a vector tile source for trenches
@@ -25,38 +128,7 @@ export function createTrenchTileSource(selectedProject, onError, isGlobalView = 
 			}
 			return `${PUBLIC_API_URL}ol_trench_tiles/${z}/${x}/${y}.mvt?project=${projectId}`;
 		},
-		tileLoadFunction: (tile, url) => {
-			if (!url) {
-				tile.setState(4); // EMPTY
-				return;
-			}
-			tile.setLoader((extent, resolution, projection) => {
-				fetch(url, {
-					credentials: 'include'
-				})
-					.then((response) => {
-						if (!response.ok) {
-							throw new Error(`Failed to load tile: ${response.statusText}`);
-						}
-						return response.arrayBuffer();
-					})
-					.then((data) => {
-						const format = tile.getFormat();
-						const features = format.readFeatures(data, {
-							extent: extent,
-							featureProjection: projection
-						});
-						tile.setFeatures(features);
-					})
-					.catch((error) => {
-						console.error('Error loading vector tile:', error);
-						tile.setState(3); // ERROR
-						if (onError) {
-							onError('Error loading a map tile', error.message || 'Could not fetch tile data.');
-						}
-					});
-			});
-		}
+		tileLoadFunction: createTileLoadFunction('trench', onError)
 	});
 }
 
@@ -83,41 +155,7 @@ export function createAddressTileSource(selectedProject, onError, isGlobalView =
 			}
 			return `${PUBLIC_API_URL}ol_address_tiles/${z}/${x}/${y}.mvt?project=${projectId}`;
 		},
-		tileLoadFunction: (tile, url) => {
-			if (!url) {
-				tile.setState(4); // EMPTY
-				return;
-			}
-			tile.setLoader((extent, resolution, projection) => {
-				fetch(url, {
-					credentials: 'include'
-				})
-					.then((response) => {
-						if (!response.ok) {
-							throw new Error(`Failed to load address tile: ${response.statusText}`);
-						}
-						return response.arrayBuffer();
-					})
-					.then((data) => {
-						const format = tile.getFormat();
-						const features = format.readFeatures(data, {
-							extent: extent,
-							featureProjection: projection
-						});
-						tile.setFeatures(features);
-					})
-					.catch((error) => {
-						console.error('Error loading address vector tile:', error);
-						tile.setState(3); // ERROR
-						if (onError) {
-							onError(
-								'Error loading address tile',
-								error.message || 'Could not fetch address tile data.'
-							);
-						}
-					});
-			});
-		}
+		tileLoadFunction: createTileLoadFunction('address', onError)
 	});
 }
 
@@ -144,41 +182,7 @@ export function createNodeTileSource(selectedProject, onError, isGlobalView = fa
 			}
 			return `${PUBLIC_API_URL}ol_node_tiles/${z}/${x}/${y}.mvt?project=${projectId}`;
 		},
-		tileLoadFunction: (tile, url) => {
-			if (!url) {
-				tile.setState(4); // EMPTY
-				return;
-			}
-			tile.setLoader((extent, resolution, projection) => {
-				fetch(url, {
-					credentials: 'include'
-				})
-					.then((response) => {
-						if (!response.ok) {
-							throw new Error(`Failed to load node tile: ${response.statusText}`);
-						}
-						return response.arrayBuffer();
-					})
-					.then((data) => {
-						const format = tile.getFormat();
-						const features = format.readFeatures(data, {
-							extent: extent,
-							featureProjection: projection
-						});
-						tile.setFeatures(features);
-					})
-					.catch((error) => {
-						console.error('Error loading node vector tile:', error);
-						tile.setState(3); // ERROR
-						if (onError) {
-							onError(
-								'Error loading node tile',
-								error.message || 'Could not fetch node tile data.'
-							);
-						}
-					});
-			});
-		}
+		tileLoadFunction: createTileLoadFunction('node', onError)
 	});
 }
 
@@ -205,40 +209,6 @@ export function createAreaTileSource(selectedProject, onError, isGlobalView = fa
 			}
 			return `${PUBLIC_API_URL}ol_area_tiles/${z}/${x}/${y}.mvt?project=${projectId}`;
 		},
-		tileLoadFunction: (tile, url) => {
-			if (!url) {
-				tile.setState(4); // EMPTY
-				return;
-			}
-			tile.setLoader((extent, resolution, projection) => {
-				fetch(url, {
-					credentials: 'include'
-				})
-					.then((response) => {
-						if (!response.ok) {
-							throw new Error(`Failed to load area tile: ${response.statusText}`);
-						}
-						return response.arrayBuffer();
-					})
-					.then((data) => {
-						const format = tile.getFormat();
-						const features = format.readFeatures(data, {
-							extent: extent,
-							featureProjection: projection
-						});
-						tile.setFeatures(features);
-					})
-					.catch((error) => {
-						console.error('Error loading area vector tile:', error);
-						tile.setState(3); // ERROR
-						if (onError) {
-							onError(
-								'Error loading area tile',
-								error.message || 'Could not fetch area tile data.'
-							);
-						}
-					});
-			});
-		}
+		tileLoadFunction: createTileLoadFunction('area', onError)
 	});
 }

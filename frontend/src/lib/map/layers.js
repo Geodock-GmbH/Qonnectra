@@ -14,6 +14,7 @@ import {
 	createTrenchStyleWithLabels,
 	DEFAULT_AREA_COLOR
 } from './styles.js';
+import { tileLoadingManager } from './tileLoadingManager.js';
 import {
 	createAddressTileSource,
 	createAreaTileSource,
@@ -200,7 +201,7 @@ export function createSelectionLayer(tileSource, selectedColor, getSelectionStor
 }
 
 /**
- * Creates a TileWMS layer for a WMS source layer.
+ * Creates a TileWMS layer for a WMS source layer with AbortController support.
  * @param {Object} options - Layer options
  * @param {string} options.proxyUrl - WMS proxy URL
  * @param {string} options.layerName - WMS layer name
@@ -224,6 +225,8 @@ export function createWMSLayer({
 	maxZoom = undefined,
 	opacity = 1.0
 }) {
+	let requestCounter = 0;
+
 	const source = new TileWMS({
 		url: proxyUrl,
 		params: {
@@ -234,7 +237,41 @@ export function createWMSLayer({
 			CRS: 'EPSG:3857'
 		},
 		projection: 'EPSG:3857',
-		crossOrigin: 'anonymous'
+		crossOrigin: 'anonymous',
+		tileLoadFunction: (tile, src) => {
+			const requestId = `wms-${layerId}-${Date.now()}-${requestCounter++}`;
+			const controller = tileLoadingManager.createAbortController(requestId);
+			const image = tile.getImage();
+
+			fetch(src, {
+				signal: controller.signal,
+				credentials: 'include'
+			})
+				.then((response) => {
+					if (!response.ok) {
+						throw new Error(`WMS request failed: ${response.statusText}`);
+					}
+					return response.blob();
+				})
+				.then((blob) => {
+					const objectUrl = URL.createObjectURL(blob);
+					image.src = objectUrl;
+					image.onload = () => {
+						URL.revokeObjectURL(objectUrl);
+					};
+				})
+				.catch((error) => {
+					if (error.name === 'AbortError') {
+						tile.setState(4); // EMPTY
+						return;
+					}
+					console.error(`WMS tile load error for ${layerId}:`, error);
+					tile.setState(3); // ERROR
+				})
+				.finally(() => {
+					tileLoadingManager.removeAbortController(requestId);
+				});
+		}
 	});
 
 	return new TileLayer({
