@@ -5,6 +5,7 @@
 	import LoadingOverlay from '$lib/components/LoadingOverlay.svelte';
 	import MobileNav from '$lib/components/MobileNav.svelte';
 	import Sidebar from '$lib/components/SideBar.svelte';
+	import { setupNavigationCancellation } from '$lib/map/navigationCancellation.js';
 	import { updateUserStore } from '$lib/stores/auth';
 	import { theme } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
@@ -12,6 +13,9 @@
 	import '../app.css';
 
 	let { children, data } = $props();
+
+	// Set up tile loading cancellation on navigation
+	setupNavigationCancellation();
 
 	$effect(() => updateUserStore(data.user));
 	$effect(() => {
