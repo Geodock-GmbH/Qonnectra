@@ -179,6 +179,9 @@
 	}
 
 	onMount(async () => {
+		// Resume tile loading (may have been paused during navigation)
+		tileLoadingManager.resume();
+
 		const [
 			{ default: OlMap },
 			{ default: OlView },

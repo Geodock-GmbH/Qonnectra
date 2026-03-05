@@ -239,6 +239,12 @@ export function createWMSLayer({
 		projection: 'EPSG:3857',
 		crossOrigin: 'anonymous',
 		tileLoadFunction: (tile, src) => {
+			// Skip loading if navigation is in progress
+			if (tileLoadingManager.isLoadingPaused()) {
+				tile.setState(4); // EMPTY
+				return;
+			}
+
 			const requestId = `wms-${layerId}-${Date.now()}-${requestCounter++}`;
 			const controller = tileLoadingManager.createAbortController(requestId);
 			const image = tile.getImage();

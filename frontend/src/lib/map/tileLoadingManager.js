@@ -8,6 +8,30 @@ export class TileLoadingManager {
 	constructor() {
 		/** @type {Map<string, AbortController>} */
 		this.abortControllers = new Map();
+		/** @type {boolean} */
+		this.isPaused = false;
+	}
+
+	/**
+	 * Check if tile loading is paused (during navigation)
+	 * @returns {boolean}
+	 */
+	isLoadingPaused() {
+		return this.isPaused;
+	}
+
+	/**
+	 * Pause tile loading (call on navigation start)
+	 */
+	pause() {
+		this.isPaused = true;
+	}
+
+	/**
+	 * Resume tile loading (call when map remounts)
+	 */
+	resume() {
+		this.isPaused = false;
 	}
 
 	/**
@@ -30,9 +54,10 @@ export class TileLoadingManager {
 	}
 
 	/**
-	 * Cancel all pending requests
+	 * Cancel all pending requests and pause new ones
 	 */
 	cancelAllRequests() {
+		this.isPaused = true;
 		for (const controller of this.abortControllers.values()) {
 			controller.abort();
 		}

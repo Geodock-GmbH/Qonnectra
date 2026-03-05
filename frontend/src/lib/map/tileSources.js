@@ -30,7 +30,19 @@ function createTileLoadFunction(layerType, onError) {
 			return;
 		}
 
+		// Skip loading if navigation is in progress
+		if (tileLoadingManager.isLoadingPaused()) {
+			tile.setState(4); // EMPTY
+			return;
+		}
+
 		tile.setLoader((extent, resolution, projection) => {
+			// Double-check pause state when loader executes
+			if (tileLoadingManager.isLoadingPaused()) {
+				tile.setState(4); // EMPTY
+				return;
+			}
+
 			const requestId = generateRequestId();
 			const controller = tileLoadingManager.createAbortController(requestId);
 
