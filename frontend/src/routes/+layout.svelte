@@ -1,4 +1,5 @@
 <script>
+	import { browser } from '$app/environment';
 	import { Toast } from '@skeletonlabs/skeleton-svelte';
 
 	import AppBar from '$lib/components/AppBar.svelte';
@@ -14,8 +15,10 @@
 
 	let { children, data } = $props();
 
-	// Set up tile loading cancellation on navigation
-	setupNavigationCancellation();
+	// Set up tile loading cancellation on navigation (browser only)
+	if (browser) {
+		setupNavigationCancellation();
+	}
 
 	$effect(() => updateUserStore(data.user));
 	$effect(() => {
