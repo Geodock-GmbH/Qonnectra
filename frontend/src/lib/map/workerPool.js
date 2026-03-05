@@ -109,9 +109,11 @@ let workerPoolInstance = null;
  */
 export function getWorkerPool() {
 	if (!workerPoolInstance) {
-		workerPoolInstance = new WorkerPool(
-			navigator?.hardwareConcurrency ? Math.min(navigator.hardwareConcurrency, 4) : 2
-		);
+		const poolSize =
+			typeof navigator !== 'undefined' && navigator.hardwareConcurrency
+				? Math.min(navigator.hardwareConcurrency, 4)
+				: 2;
+		workerPoolInstance = new WorkerPool(poolSize);
 	}
 	return workerPoolInstance;
 }
