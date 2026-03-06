@@ -5620,6 +5620,7 @@ class WFS3ProxyView(APIView):
 
             data = self._rewrite_urls(data, qgis_base, proxy_base)
             data = self._fix_collection_extents(data)
+            data = self._reproject_geojson(data)
 
             return Response(
                 data,
@@ -5741,6 +5742,44 @@ class WFS3ProxyView(APIView):
             spatial = col.get("extent", {}).get("spatial", {})
             if "CRS84" in spatial.get("crs", "") and "bbox" in spatial:
                 spatial["bbox"] = [fix_bbox(b) for b in spatial["bbox"]]
+        return data
+
+    def _reproject_geojson(self, data):
+        """Reproject GeoJSON feature coordinates from EPSG:25832 to WGS84.
+
+        QGIS Server returns coordinates in EPSG:25832 but GeoJSON spec
+        requires WGS84 (OGC:CRS84) lon/lat order.
+        """
+        from pyproj import Transformer
+
+        transformer = Transformer.from_crs("EPSG:25832", "EPSG:4326", always_xy=True)
+
+        def reproject_coords(coords):
+            if not coords:
+                return coords
+            if isinstance(coords[0], (int, float)):
+                lon, lat = transformer.transform(coords[0], coords[1])
+                return [lon, lat] + list(coords[2:])
+            return [reproject_coords(c) for c in coords]
+
+        def fix_bbox(bbox):
+            if not bbox or abs(bbox[0]) > 1e20:
+                return bbox
+            lon_min, lat_min = transformer.transform(bbox[0], bbox[1])
+            lon_max, lat_max = transformer.transform(bbox[2], bbox[3])
+            return [lon_min, lat_min, lon_max, lat_max]
+
+        features = data.get("features")
+        if features is not None:
+            for feature in features:
+                geom = feature.get("geometry")
+                if geom and geom.get("coordinates"):
+                    geom["coordinates"] = reproject_coords(geom["coordinates"])
+                if feature.get("bbox"):
+                    feature["bbox"] = fix_bbox(feature["bbox"])
+            if data.get("bbox"):
+                data["bbox"] = fix_bbox(data["bbox"])
+
         return data
 
     def get(self, request, project_name, wfs3_path=""):
