@@ -5619,6 +5619,7 @@ class WFS3ProxyView(APIView):
             qgis_base = f"{self.QGIS_SERVER_URL}/wfs3"
 
             data = self._rewrite_urls(data, qgis_base, proxy_base)
+            data = self._fix_collection_extents(data)
 
             return Response(
                 data,
@@ -5716,6 +5717,31 @@ class WFS3ProxyView(APIView):
             status=upstream_response.status_code,
             content_type=content_type or "application/octet-stream",
         )
+
+    def _fix_collection_extents(self, data):
+        """Reproject bbox from EPSG:25832 to WGS84.
+
+        QGIS Server incorrectly reports bbox coordinates in EPSG:25832
+        while declaring the CRS as OGC:CRS84 (WGS84 lon/lat).
+        """
+        from pyproj import Transformer
+
+        transformer = Transformer.from_crs("EPSG:25832", "EPSG:4326", always_xy=True)
+
+        def fix_bbox(bbox):
+            minx, miny, maxx, maxy = bbox
+            if abs(minx) > 1e20 or abs(miny) > 1e20:  # skip invalid/empty extents
+                return bbox
+            lon_min, lat_min = transformer.transform(minx, miny)
+            lon_max, lat_max = transformer.transform(maxx, maxy)
+            return [lon_min, lat_min, lon_max, lat_max]
+
+        collections = data.get("collections", [data] if "extent" in data else [])
+        for col in collections:
+            spatial = col.get("extent", {}).get("spatial", {})
+            if "CRS84" in spatial.get("crs", "") and "bbox" in spatial:
+                spatial["bbox"] = [fix_bbox(b) for b in spatial["bbox"]]
+        return data
 
     def get(self, request, project_name, wfs3_path=""):
         """Handle GET requests to WFS3 endpoints."""
