@@ -52,10 +52,13 @@ Qonnectra is a full-stack web application designed for managing and visualizing 
 ### Deployment
 
 - **Docker Compose**: Container orchestration
+- **Frontend**: SvelteKit application
+- **Backend**: Django REST API
+- **PostgreSQL**: Database with PostGIS extension
 - **Caddy**: Reverse proxy with automatic HTTPS
 - **Nginx**: Web server and reverse proxy
 - **QGIS Server**: OGC web services (WMS, WFS with MAP parameter support)
-- **TileServer-GL**: Vector tile server with mbtiles support
+- **TileServer-GL**: Vector tile server with mbtiles support for high-performance base map rendering (light/dark themes)
 - **Wireguard**: VPN for secure access to the database from QGIS Desktop
 
 ## Project Structure
