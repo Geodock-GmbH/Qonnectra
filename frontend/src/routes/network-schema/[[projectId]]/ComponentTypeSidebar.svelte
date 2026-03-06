@@ -217,8 +217,8 @@
 	<!-- Desktop: Original sidebar -->
 	<div
 		class="relative border-r border-(--color-surface-200-800) bg-(--color-surface-100-900) transition-all duration-200 ease-in-out flex flex-col"
-		style:width={collapsed ? '40px' : '200px'}
-		style:min-width={collapsed ? '40px' : '200px'}
+		style:width={collapsed ? '40px' : '260px'}
+		style:min-width={collapsed ? '40px' : '260px'}
 	>
 		<button
 			type="button"
@@ -256,7 +256,7 @@
 								role="listitem"
 							>
 								<IconGripVertical size={14} class="text-surface-400 shrink-0" />
-								<div class="flex-1 min-w-0">
+								<div class="flex-1 min-w-0" {@attach tooltip(ct.component_type)}>
 									<div class="text-sm font-medium truncate">{ct.component_type}</div>
 									<div class="text-xs text-surface-950-50">
 										{ct.occupied_slots * qty}

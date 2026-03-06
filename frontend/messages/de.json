@@ -491,6 +491,7 @@
 	"message_ports_unmerged": "Ports getrennt",
 	"message_select_at_least_two_ports": "Wählen Sie mindestens 2 Ports zum Zusammenführen aus",
 	"message_select_trenches": "Wählen Sie Gräben auf der Karte aus",
+	"message_shared_fiber_connected": "Geteilte Faser erfolgreich verbunden",
 	"message_shift_drag_select": "Shift + Ziehen für Mehrfachauswahl",
 	"message_status_update_failed": "Status konnte nicht aktualisiert werden",
 	"message_status_updated": "Mikrorohr-Status aktualisiert",

@@ -493,6 +493,7 @@
 	"message_select_trenches": "Select trenches on the map",
 	"message_shift_drag_select": "Shift + drag to select multiple",
 	"message_status_update_failed": "Failed to update status",
+	"message_shared_fiber_connected": "Shared fiber connected successfully",
 	"message_status_updated": "Microduct status updated",
 	"message_success_assigned_node": "Node assigned successfully",
 	"message_success_creating_cable": "Cable created successfully",

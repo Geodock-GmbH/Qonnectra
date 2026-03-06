@@ -490,6 +490,7 @@ export class NodeStructureContext {
 		const deleted = await this.#structureManager.deleteStructure(structureUuid);
 		if (deleted) {
 			this.#spliceManager.onStructureDeleted(structureUuid);
+			window.dispatchEvent(new CustomEvent('fiberSpliceChanged'));
 		}
 	}
 
