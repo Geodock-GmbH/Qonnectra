@@ -2,25 +2,51 @@ from datetime import timedelta
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.contrib.gis.geos import LineString
+from django.contrib.gis.geos import LineString, Point, Polygon
 from django.db import IntegrityError
 from django.utils import timezone
 
 from apps.api.models import (
+    Address,
+    Area,
+    AttributesCompany,
+    AttributesConduitType,
+    AttributesNodeType,
+    AttributesStatus,
     Cable,
     CanvasSyncStatus,
     Conduit,
+    Flags,
     Microduct,
     MicroductCableConnection,
+    NetworkSchemaSettings,
+    Node,
+    PipeBranchSettings,
+    Projects,
+    Trench,
     TrenchConduitConnection,
+    WMSLayer,
+    WMSSource,
 )
 
 from .factories import (
+    AddressFactory,
+    AreaFactory,
+    AreaTypeFactory,
     CableTypeFactory,
+    CompanyFactory,
     ConduitTypeFactory,
+    ConstructionTypeFactory,
     FlagFactory,
+    NetworkLevelFactory,
+    NodeFactory,
+    NodeTypeFactory,
     ProjectFactory,
+    StatusFactory,
+    SurfaceFactory,
     TrenchFactory,
+    WMSLayerFactory,
+    WMSSourceFactory,
 )
 
 User = get_user_model()
@@ -642,3 +668,463 @@ class TestCableModel:
         cable.refresh_from_db()
         assert cable.length == 75.0
         assert cable.length_total == 100.0  # 75 + 15 + 0 + 10
+
+
+@pytest.mark.django_db
+class TestProjectsModel:
+    """Tests for the Projects model."""
+
+    def test_project_creation(self):
+        """Test creating a project."""
+        project = Projects.objects.create(
+            project="Test Project",
+            description="A test project description",
+            active=True,
+        )
+        assert project.project == "Test Project"
+        assert project.description == "A test project description"
+        assert project.active is True
+
+    def test_project_str_representation(self):
+        """Test project string representation."""
+        project = ProjectFactory(project="My Project")
+        assert str(project) == "My Project"
+
+    def test_project_name_unique(self):
+        """Test that project name must be unique."""
+        Projects.objects.create(project="Unique Project", active=True)
+        with pytest.raises(IntegrityError):
+            Projects.objects.create(project="Unique Project", active=True)
+
+    def test_project_default_active(self):
+        """Test that projects are active by default."""
+        project = Projects.objects.create(project="Default Active")
+        assert project.active is True
+
+
+@pytest.mark.django_db
+class TestFlagsModel:
+    """Tests for the Flags model."""
+
+    def test_flag_creation(self):
+        """Test creating a flag."""
+        flag = Flags.objects.create(flag="Test Flag")
+        assert flag.flag == "Test Flag"
+
+    def test_flag_str_representation(self):
+        """Test flag string representation."""
+        flag = FlagFactory(flag="My Flag")
+        assert str(flag) == "My Flag"
+
+    def test_flag_name_unique(self):
+        """Test that flag name must be unique."""
+        Flags.objects.create(flag="Unique Flag")
+        with pytest.raises(IntegrityError):
+            Flags.objects.create(flag="Unique Flag")
+
+
+@pytest.mark.django_db
+class TestTrenchModel:
+    """Tests for the Trench model."""
+
+    def test_trench_creation_with_factory(self):
+        """Test creating a trench using factory."""
+        trench = TrenchFactory()
+
+        assert trench.uuid is not None
+        assert trench.project is not None
+        assert trench.flag is not None
+        assert trench.length is not None
+
+    def test_trench_length_from_factory(self):
+        """Test that trench from factory has length."""
+        trench = TrenchFactory(
+            geom=LineString((0, 0), (100, 0), srid=25832),
+            length=100.0,
+        )
+        trench.refresh_from_db()
+
+        assert trench.length is not None
+        assert float(trench.length) == pytest.approx(100.0, rel=0.01)
+
+    def test_trench_id_trench_set_by_factory(self):
+        """Test that id_trench is set by factory."""
+        trench = TrenchFactory()
+
+        assert trench.id_trench is not None
+        assert len(trench.id_trench) > 0
+
+
+@pytest.mark.django_db
+class TestNodeModel:
+    """Tests for the Node model."""
+
+    def test_node_creation(self):
+        """Test creating a node with geometry."""
+        project = ProjectFactory()
+        flag = FlagFactory()
+        node_type = NodeTypeFactory()
+
+        node = Node.objects.create(
+            name="Test Node",
+            node_type=node_type,
+            geom=Point(9.45, 54.78, srid=25832),
+            project=project,
+            flag=flag,
+        )
+
+        assert node.uuid is not None
+        assert node.name == "Test Node"
+        assert node.project == project
+
+    def test_node_str_representation(self):
+        """Test node string representation."""
+        node = NodeFactory(name="My Node")
+        assert str(node) == "My Node"
+
+    def test_node_parent_node_relationship(self):
+        """Test parent-child node relationship."""
+        project = ProjectFactory()
+        flag = FlagFactory()
+        node_type = NodeTypeFactory()
+
+        parent = Node.objects.create(
+            name="Parent Node",
+            node_type=node_type,
+            geom=Point(0, 0, srid=25832),
+            project=project,
+            flag=flag,
+        )
+
+        child = Node.objects.create(
+            name="Child Node",
+            node_type=node_type,
+            geom=Point(10, 10, srid=25832),
+            project=project,
+            flag=flag,
+            parent_node=parent,
+        )
+
+        assert child.parent_node == parent
+        # Verify we can find children through reverse lookup
+        children = Node.objects.filter(parent_node=parent)
+        assert child in children
+
+    def test_node_canvas_coordinates(self):
+        """Test setting canvas coordinates on a node."""
+        node = NodeFactory()
+        node.canvas_x = 100.5
+        node.canvas_y = 200.75
+        node.save()
+
+        node.refresh_from_db()
+        assert node.canvas_x == 100.5
+        assert node.canvas_y == 200.75
+
+
+@pytest.mark.django_db
+class TestAddressModel:
+    """Tests for the Address model."""
+
+    def test_address_creation(self):
+        """Test creating an address."""
+        project = ProjectFactory()
+        flag = FlagFactory()
+
+        address = Address.objects.create(
+            zip_code="24941",
+            city="Flensburg",
+            street="Teststraße",
+            housenumber=42,
+            geom=Point(9.45, 54.78, srid=25832),
+            project=project,
+            flag=flag,
+        )
+
+        assert address.uuid is not None
+        assert address.city == "Flensburg"
+        assert address.housenumber == 42
+
+    def test_address_with_suffix(self):
+        """Test address with house number suffix."""
+        address = AddressFactory(
+            housenumber=10,
+            house_number_suffix="a",
+        )
+
+        assert address.housenumber == 10
+        assert address.house_number_suffix == "a"
+
+
+@pytest.mark.django_db
+class TestAreaModel:
+    """Tests for the Area model."""
+
+    def test_area_creation(self):
+        """Test creating an area with polygon geometry."""
+        project = ProjectFactory()
+        flag = FlagFactory()
+        area_type = AreaTypeFactory()
+
+        polygon = Polygon(((0, 0), (100, 0), (100, 100), (0, 100), (0, 0)), srid=25832)
+
+        area = Area.objects.create(
+            name="Test Area",
+            area_type=area_type,
+            geom=polygon,
+            project=project,
+            flag=flag,
+        )
+
+        assert area.uuid is not None
+        assert area.name == "Test Area"
+        assert area.area_type == area_type
+
+
+@pytest.mark.django_db
+class TestConduitModel:
+    """Tests for the Conduit model."""
+
+    def test_conduit_creation(self):
+        """Test creating a conduit."""
+        project = ProjectFactory()
+        flag = FlagFactory()
+        conduit_type = ConduitTypeFactory()
+
+        conduit = Conduit.objects.create(
+            name="Test Conduit",
+            conduit_type=conduit_type,
+            project=project,
+            flag=flag,
+        )
+
+        assert conduit.uuid is not None
+        assert conduit.name == "Test Conduit"
+
+    def test_conduit_str_representation(self):
+        """Test conduit string representation."""
+        project = ProjectFactory()
+        flag = FlagFactory()
+        conduit_type = ConduitTypeFactory()
+
+        conduit = Conduit.objects.create(
+            name="My Conduit",
+            conduit_type=conduit_type,
+            project=project,
+            flag=flag,
+        )
+
+        assert str(conduit) == "My Conduit"
+
+
+@pytest.mark.django_db
+class TestAttributeModels:
+    """Tests for various attribute models."""
+
+    def test_status_creation(self):
+        """Test creating an AttributesStatus."""
+        status = AttributesStatus.objects.create(status="In Progress")
+        assert str(status) == "In Progress"
+
+    def test_status_unique(self):
+        """Test that status must be unique."""
+        AttributesStatus.objects.create(status="Unique Status")
+        with pytest.raises(IntegrityError):
+            AttributesStatus.objects.create(status="Unique Status")
+
+    def test_company_creation(self):
+        """Test creating an AttributesCompany."""
+        company = AttributesCompany.objects.create(
+            company="Test Company",
+            city="Hamburg",
+            postal_code="20095",
+            street="Hauptstraße",
+            housenumber="1",
+        )
+        assert str(company) == "Test Company"
+        assert company.city == "Hamburg"
+
+    def test_node_type_creation(self):
+        """Test creating an AttributesNodeType."""
+        node_type = AttributesNodeType.objects.create(
+            node_type="Muffe",
+            dimension="100x50",
+            group="Verbinder",
+        )
+        assert str(node_type) == "Muffe"
+        assert node_type.dimension == "100x50"
+
+    def test_conduit_type_creation(self):
+        """Test creating an AttributesConduitType."""
+        conduit_type = AttributesConduitType.objects.create(
+            conduit_type="12x10/6",
+            conduit_count=12,
+        )
+        assert str(conduit_type) == "12x10/6"
+        assert conduit_type.conduit_count == 12
+
+
+@pytest.mark.django_db
+class TestNetworkSchemaSettings:
+    """Tests for the NetworkSchemaSettings model."""
+
+    def test_creation(self):
+        """Test creating network schema settings."""
+        project = ProjectFactory()
+        settings = NetworkSchemaSettings.objects.create(project=project)
+
+        assert settings.project == project
+
+    def test_excluded_node_types(self):
+        """Test adding excluded node types."""
+        project = ProjectFactory()
+        node_type1 = NodeTypeFactory()
+        node_type2 = NodeTypeFactory()
+
+        settings = NetworkSchemaSettings.objects.create(project=project)
+        settings.excluded_node_types.add(node_type1, node_type2)
+
+        assert settings.excluded_node_types.count() == 2
+
+    def test_get_settings_for_project(self):
+        """Test retrieving settings for a project."""
+        project = ProjectFactory()
+        NetworkSchemaSettings.objects.create(project=project)
+
+        settings = NetworkSchemaSettings.get_settings_for_project(project.id)
+        assert settings is not None
+        assert settings.project == project
+
+    def test_get_settings_for_nonexistent_project(self):
+        """Test retrieving settings for non-existent project returns None."""
+        settings = NetworkSchemaSettings.get_settings_for_project(99999)
+        assert settings is None
+
+
+@pytest.mark.django_db
+class TestPipeBranchSettings:
+    """Tests for the PipeBranchSettings model."""
+
+    def test_creation(self):
+        """Test creating pipe branch settings."""
+        project = ProjectFactory()
+        settings = PipeBranchSettings.objects.create(project=project)
+
+        assert settings.project == project
+
+    def test_allowed_node_types(self):
+        """Test adding allowed node types."""
+        project = ProjectFactory()
+        node_type = NodeTypeFactory()
+
+        settings = PipeBranchSettings.objects.create(project=project)
+        settings.allowed_node_types.add(node_type)
+
+        assert settings.allowed_node_types.count() == 1
+
+    def test_get_allowed_type_ids(self):
+        """Test getting allowed type IDs."""
+        project = ProjectFactory()
+        node_type1 = NodeTypeFactory()
+        node_type2 = NodeTypeFactory()
+
+        settings = PipeBranchSettings.objects.create(project=project)
+        settings.allowed_node_types.add(node_type1, node_type2)
+
+        type_ids = PipeBranchSettings.get_allowed_type_ids(project.id)
+        assert type_ids is not None
+        assert len(type_ids) == 2
+        assert node_type1.id in type_ids
+        assert node_type2.id in type_ids
+
+    def test_get_allowed_type_ids_no_settings(self):
+        """Test that None is returned when no settings exist."""
+        type_ids = PipeBranchSettings.get_allowed_type_ids(99999)
+        assert type_ids is None
+
+
+@pytest.mark.django_db
+class TestWMSSourceModel:
+    """Tests for the WMSSource model."""
+
+    def test_creation(self):
+        """Test creating a WMS source."""
+        project = ProjectFactory()
+        source = WMSSource.objects.create(
+            project=project,
+            name="Test WMS",
+            url="https://wms.example.com/wms",
+            is_active=True,
+        )
+
+        assert source.id is not None
+        assert source.name == "Test WMS"
+
+    def test_str_representation(self):
+        """Test WMS source string representation."""
+        source = WMSSourceFactory(name="My WMS Source")
+        assert "My WMS Source" in str(source)
+
+    def test_ordering(self):
+        """Test WMS sources are ordered by sort_order and name."""
+        project = ProjectFactory()
+        source2 = WMSSource.objects.create(
+            project=project, name="B Source", url="https://b.com", sort_order=2
+        )
+        source1 = WMSSource.objects.create(
+            project=project, name="A Source", url="https://a.com", sort_order=1
+        )
+        source3 = WMSSource.objects.create(
+            project=project, name="C Source", url="https://c.com", sort_order=1
+        )
+
+        sources = list(WMSSource.objects.filter(project=project))
+        assert sources[0].name == "A Source"
+        assert sources[1].name == "C Source"
+        assert sources[2].name == "B Source"
+
+
+@pytest.mark.django_db
+class TestWMSLayerModel:
+    """Tests for the WMSLayer model."""
+
+    def test_creation(self):
+        """Test creating a WMS layer."""
+        source = WMSSourceFactory()
+        layer = WMSLayer.objects.create(
+            source=source,
+            name="test_layer",
+            title="Test Layer",
+            is_enabled=True,
+        )
+
+        assert layer.id is not None
+        assert layer.name == "test_layer"
+
+    def test_str_representation_with_title(self):
+        """Test WMS layer string representation uses title."""
+        layer = WMSLayerFactory(name="layer_name", title="Layer Title")
+        assert str(layer) == "Layer Title"
+
+    def test_str_representation_without_title(self):
+        """Test WMS layer string representation falls back to name."""
+        layer = WMSLayerFactory(name="layer_name", title="")
+        assert str(layer) == "layer_name"
+
+    def test_unique_together_constraint(self):
+        """Test that source + name must be unique."""
+        source = WMSSourceFactory()
+        WMSLayer.objects.create(source=source, name="unique_layer", title="First")
+
+        with pytest.raises(IntegrityError):
+            WMSLayer.objects.create(source=source, name="unique_layer", title="Second")
+
+    def test_default_values(self):
+        """Test default values for WMS layer."""
+        source = WMSSourceFactory()
+        layer = WMSLayer.objects.create(source=source, name="test_layer")
+
+        assert layer.is_enabled is True
+        assert layer.min_zoom == 8
+        assert layer.max_zoom is None
+        assert layer.opacity == 1.0
