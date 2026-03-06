@@ -1,5 +1,4 @@
 <script>
-	import { onMount } from 'svelte';
 	import { Tabs as SkeletonTabs } from '@skeletonlabs/skeleton-svelte';
 
 	/**
@@ -14,59 +13,80 @@
 	 *   value?: string,
 	 *   onValueChange?: (value: string) => void,
 	 *   children?: import('svelte').Snippet,
-	 *   class?: string,
-	 *   verticalBreakpoint?: number
+	 *   class?: string
 	 * }}
 	 */
 	let {
 		tabs,
 		value = $bindable(tabs[0]?.value || ''),
 		onValueChange = () => {},
-		children,
-		class: className = '',
-		verticalBreakpoint = 300
+		children: contentSnippet,
+		class: className = ''
 	} = $props();
-
-	let containerRef = $state(null);
-	let isVertical = $state(false);
 
 	function handleValueChange(e) {
 		value = e.value;
 		onValueChange(e.value);
 	}
-
-	onMount(() => {
-		if (!containerRef) return;
-
-		const resizeObserver = new ResizeObserver((entries) => {
-			for (const entry of entries) {
-				isVertical = entry.contentRect.width < verticalBreakpoint;
-			}
-		});
-
-		resizeObserver.observe(containerRef);
-
-		return () => resizeObserver.disconnect();
-	});
 </script>
 
-<div class="tabs-wrapper {className}" bind:this={containerRef}>
-	<SkeletonTabs
-		{value}
-		onValueChange={handleValueChange}
-		orientation={isVertical ? 'vertical' : 'horizontal'}
-	>
+<SkeletonTabs {value} onValueChange={handleValueChange} orientation="vertical">
+	<div class="tabs-wrapper {className}">
 		<SkeletonTabs.List>
 			{#each tabs as tab (tab.value)}
-				<SkeletonTabs.Trigger
-					class={isVertical ? 'justify-start' : 'flex-1 min-w-0 truncate'}
-					value={tab.value}
-				>
+				<SkeletonTabs.Trigger class="justify-start" value={tab.value}>
 					{tab.label}
 				</SkeletonTabs.Trigger>
 			{/each}
 			<SkeletonTabs.Indicator />
 		</SkeletonTabs.List>
-		{@render children?.()}
-	</SkeletonTabs>
-</div>
+		<div class="tab-content">
+			{@render contentSnippet?.()}
+		</div>
+	</div>
+</SkeletonTabs>
+
+<style>
+	:global([data-scope='tabs'][data-orientation='vertical']) {
+		flex: 1;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.tabs-wrapper {
+		flex: 1;
+		min-height: 0;
+		display: grid;
+		grid-template-columns: auto 1fr;
+		gap: 1rem;
+	}
+
+	.tabs-wrapper :global([data-part='list']) {
+		align-self: start;
+		position: relative;
+		padding-right: 0.5rem;
+	}
+
+	.tabs-wrapper :global([data-part='list'])::after {
+		content: '';
+		position: absolute;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		width: 1px;
+		height: 100vh;
+		background-color: var(--color-surface-200-800);
+	}
+
+	.tabs-wrapper :global([data-part='indicator']) {
+		right: 0 !important;
+		left: auto !important;
+		width: 3px !important;
+	}
+
+	.tab-content {
+		min-width: 0;
+		overflow-y: auto;
+	}
+</style>
