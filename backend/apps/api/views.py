@@ -5621,6 +5621,7 @@ class WFS3ProxyView(APIView):
             data = self._rewrite_urls(data, qgis_base, proxy_base)
             data = self._fix_collection_extents(data)
             data = self._reproject_geojson(data)
+            data = self._fix_pagination_links(data)
 
             return Response(
                 data,
@@ -5642,6 +5643,7 @@ class WFS3ProxyView(APIView):
         params = {
             k: v for k, v in request.query_params.dict().items() if k.lower() != "token"
         }
+        params = self._reproject_bbox_param(params)
 
         try:
             if request.method == "GET":
@@ -5781,6 +5783,44 @@ class WFS3ProxyView(APIView):
                 data["bbox"] = fix_bbox(data["bbox"])
 
         return data
+
+    def _fix_pagination_links(self, data):
+        """Fix malformed pagination URLs from QGIS Server.
+
+        QGIS Server generates 'items&offset=X' instead of 'items?offset=X'.
+        """
+        import re
+
+        def fix_href(href):
+            # Fix pattern: 'items&param' → 'items?param' and 'items.ext&param' → 'items.ext?param'
+            return re.sub(r"(items(?:\.\w+)?)&", r"\1?", href)
+
+        for link in data.get("links", []):
+            if "href" in link:
+                link["href"] = fix_href(link["href"])
+        return data
+
+    def _reproject_bbox_param(self, params):
+        """Reproject bbox query param from WGS84 to EPSG:25832 for QGIS Server."""
+        from pyproj import Transformer
+
+        bbox = params.get("bbox")
+        if not bbox:
+            return params
+
+        try:
+            parts = [float(x) for x in bbox.split(",")]
+            if len(parts) != 4:
+                return params
+            lon_min, lat_min, lon_max, lat_max = parts
+            transformer = Transformer.from_crs("EPSG:4326", "EPSG:25832", always_xy=True)
+            x_min, y_min = transformer.transform(lon_min, lat_min)
+            x_max, y_max = transformer.transform(lon_max, lat_max)
+            params = dict(params)
+            params["bbox"] = f"{x_min},{y_min},{x_max},{y_max}"
+        except Exception:
+            pass
+        return params
 
     def get(self, request, project_name, wfs3_path=""):
         """Handle GET requests to WFS3 endpoints."""
