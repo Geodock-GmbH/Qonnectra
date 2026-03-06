@@ -15,6 +15,7 @@ Qonnectra is a full-stack web application designed for managing and visualizing 
 - **Spatial Data Management**: Full PostGIS integration for handling geographic data with support for ETRS89 UTM Zone 32N or 33N (SRID 25832 or 25833)
 - **Interactive Mapping**: OpenLayers-based map interface with layer management, opacity controls, search functionality, and vector tile support
 - **Vector Tile Server**: TileServer-GL with mbtiles support for high-performance base map rendering (light/dark themes)
+- **Wireguard VPN**: VPN for secure access to the database from QGIS Desktop
 - **Network Schema Visualization**: Visual network schema editor using Svelte Flow with fiber splice management
 - **Node Structure Management**: Advanced node configuration with slot management, dividers, and clip numbering
 - **Fiber Splice Tracking**: Comprehensive fiber splice management with visual editor
@@ -55,6 +56,7 @@ Qonnectra is a full-stack web application designed for managing and visualizing 
 - **Nginx**: Web server and reverse proxy
 - **QGIS Server**: OGC web services (WMS, WFS with MAP parameter support)
 - **TileServer-GL**: Vector tile server with mbtiles support
+- **Wireguard**: VPN for secure access to the database from QGIS Desktop
 
 ## Project Structure
 
@@ -73,7 +75,8 @@ qonnectra/
     ├── qgis/         # QGIS Server configuration and projects
     ├── tiles/        # TileServer-GL configuration and mbtiles
     ├── caddy/        # Caddy reverse proxy
-    └── nginx/        # Nginx configuration
+    ├── nginx/        # Nginx configuration
+    └── wireguard/   # Wireguard VPN configuration
 ```
 
 ## Quick Start
