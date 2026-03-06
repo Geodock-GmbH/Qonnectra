@@ -2910,6 +2910,16 @@ class QGISProject(models.Model):
         """Get WFS access URL for this project."""
         return f"?SERVICE=WFS&MAP=/projects/{self.name}{os.path.splitext(self.project_file.name)[1]}"
 
+    def get_wfs3_url(self):
+        """Get WFS3 (OGC API Features) access URL for this project."""
+        return f"/api/v1/wfs3/{self.name}/"
+
+    @property
+    def map_path(self):
+        """Get the MAP parameter path for QGIS Server."""
+        ext = os.path.splitext(self.project_file.name)[1]
+        return f"/projects/{self.name}{ext}"
+
 
 @receiver(post_delete, sender=QGISProject)
 def qgis_project_deleted(sender, instance, **kwargs):

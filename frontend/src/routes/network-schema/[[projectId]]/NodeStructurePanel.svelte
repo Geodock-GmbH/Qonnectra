@@ -266,7 +266,11 @@
 						: m.form_ports()}
 			>
 				{#if activeSheet === 'components'}
-					<ComponentTypeSidebar {isMobile} onMobileSelect={handleMobileComponentSelect} />
+					<ComponentTypeSidebar
+						{isMobile}
+						onMobileSelect={handleMobileComponentSelect}
+						disabled={context.creatingMultiple}
+					/>
 				{:else if activeSheet === 'cables'}
 					<CableFiberSidebar
 						{nodeUuid}
@@ -293,6 +297,7 @@
 				<ComponentTypeSidebar
 					onDragStart={context.sidebarActions.onDragStart}
 					onDragEnd={context.sidebarActions.onDragEnd}
+					disabled={context.creatingMultiple}
 				/>
 			{/if}
 

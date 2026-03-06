@@ -491,6 +491,7 @@ export class FiberSpliceManager {
 
 	/**
 	 * Handle dropping a bundle onto a port - fills sequential ports with fibers
+	 * Uses bulk API to create all splices in one request.
 	 * @param {number} startPort - Starting port number
 	 * @param {'a'|'b'} side
 	 * @param {Object} bundleData - Bundle data including fibers array
@@ -506,12 +507,10 @@ export class FiberSpliceManager {
 			return false;
 		}
 
-		// Sort fibers by absolute fiber number
 		const sortedFibers = [...fibers].sort(
 			(a, b) => a.fiber_number_absolute - b.fiber_number_absolute
 		);
 
-		// Get available ports starting from drop location
 		const availablePorts = this.getAvailablePorts(side, startPort);
 
 		if (availablePorts.length === 0) {
@@ -524,25 +523,23 @@ export class FiberSpliceManager {
 
 		this.bulkOperationInProgress = true;
 		const previousSplices = [...this.fiberSplices];
-		let successCount = 0;
-		let errorOccurred = false;
 
-		// Connect fibers sequentially to available ports
+		// Build splice data for all fiber-port pairs
+		const spliceData = [];
+		const optimisticUpdates = [];
+
 		for (let i = 0; i < Math.min(sortedFibers.length, availablePorts.length); i++) {
 			const fiber = sortedFibers[i];
 			const portNumber = availablePorts[i];
 
-			const fiberData = {
-				type: 'fiber',
-				uuid: fiber.uuid,
-				cable_uuid: bundleData.cable_uuid,
-				cable_name: bundleData.cable_name,
-				bundle_number: fiber.bundle_number,
-				fiber_number: fiber.fiber_number_absolute,
-				fiber_color: fiber.fiber_color
-			};
+			spliceData.push({
+				node_structure_uuid: this.selectedStructure.uuid,
+				port_number: portNumber,
+				side: side,
+				fiber_uuid: fiber.uuid,
+				cable_uuid: bundleData.cable_uuid
+			});
 
-			// Optimistically update UI
 			const fiberDetails = {
 				uuid: fiber.uuid,
 				fiber_number: fiber.fiber_number_absolute,
@@ -550,7 +547,11 @@ export class FiberSpliceManager {
 				bundle_number: fiber.bundle_number,
 				cable_name: bundleData.cable_name
 			};
+			optimisticUpdates.push({ portNumber, fiberDetails });
+		}
 
+		// Apply optimistic updates
+		for (const { portNumber, fiberDetails } of optimisticUpdates) {
 			const existingSplice = this.fiberSplices.find((s) => s.port_number === portNumber);
 			if (existingSplice) {
 				this.fiberSplices = this.fiberSplices.map((s) => {
@@ -560,82 +561,77 @@ export class FiberSpliceManager {
 					return s;
 				});
 			} else {
-				const newSplice = {
-					uuid: `temp-${Date.now()}-${i}`,
-					port_number: portNumber,
-					fiber_a_details: side === 'a' ? fiberDetails : null,
-					fiber_b_details: side === 'b' ? fiberDetails : null
-				};
-				this.fiberSplices = [...this.fiberSplices, newSplice];
-			}
-
-			// Make server call
-			try {
-				const formData = new FormData();
-				formData.append('nodeStructureUuid', this.selectedStructure.uuid);
-				formData.append('portNumber', portNumber.toString());
-				formData.append('side', side);
-				formData.append('fiberUuid', fiberData.uuid);
-				formData.append('cableUuid', fiberData.cable_uuid);
-
-				const response = await fetch('?/upsertFiberSplice', {
-					method: 'POST',
-					body: formData
-				});
-
-				const result = deserialize(await response.text());
-
-				if (result.type === 'failure' || result.type === 'error') {
-					throw new Error(result.data?.error || 'Failed to save fiber splice');
-				}
-
-				const serverSplice = result.data.splice;
-				this.fiberSplices = this.fiberSplices.map((s) =>
-					s.port_number === portNumber ? serverSplice : s
-				);
-
-				successCount++;
-			} catch (err) {
-				console.error('Error saving fiber splice:', err);
-				errorOccurred = true;
-				break; // Stop on first error
+				this.fiberSplices = [
+					...this.fiberSplices,
+					{
+						uuid: `temp-${Date.now()}-${portNumber}`,
+						port_number: portNumber,
+						fiber_a_details: side === 'a' ? fiberDetails : null,
+						fiber_b_details: side === 'b' ? fiberDetails : null
+					}
+				];
 			}
 		}
 
-		this.bulkOperationInProgress = false;
+		try {
+			const formData = new FormData();
+			formData.append('splices', JSON.stringify(spliceData));
 
-		// Show result toast
-		if (errorOccurred && successCount === 0) {
+			const response = await fetch('?/bulkUpsertFiberSplices', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to save fiber splices');
+			}
+
+			const created = result.data?.created || [];
+			const failed = result.data?.failed || [];
+
+			// Replace temp splices with server responses
+			this.fiberSplices = this.fiberSplices
+				.filter((s) => !s.uuid?.toString().startsWith('temp-'))
+				.concat(created);
+
+			this.bulkOperationInProgress = false;
+
+			// Show result
+			if (failed.length === 0) {
+				globalToaster.success({
+					title: m.title_success(),
+					description: m.message_bundle_connected({ count: created.length })
+				});
+			} else if (created.length > 0) {
+				globalToaster.warning({
+					title: m.common_warning(),
+					description: m.message_partial_bundle_connected({
+						connected: created.length,
+						total: spliceData.length
+					})
+				});
+			} else {
+				throw new Error('All placements failed');
+			}
+
+			if (created.length > 0) {
+				this.#dispatchFiberSpliceChanged();
+			}
+
+			return created.length > 0;
+		} catch (err) {
+			console.error('Error saving fiber splices:', err);
 			this.fiberSplices = previousSplices;
+			this.bulkOperationInProgress = false;
 			globalToaster.error({
 				title: m.common_error(),
-				description: m.message_error_connecting_fiber?.() || 'Failed to connect fibers'
+				description:
+					err.message || m.message_error_connecting_fiber?.() || 'Failed to connect fibers'
 			});
 			return false;
 		}
-
-		const totalFibers = sortedFibers.length;
-		if (successCount === totalFibers) {
-			globalToaster.success({
-				title: m.title_success(),
-				description: m.message_bundle_connected({ count: successCount })
-			});
-		} else {
-			globalToaster.warning({
-				title: m.common_warning(),
-				description: m.message_partial_bundle_connected({
-					connected: successCount,
-					total: totalFibers
-				})
-			});
-		}
-
-		// Dispatch event for fiber usage tracking
-		if (successCount > 0) {
-			this.#dispatchFiberSpliceChanged();
-		}
-
-		return successCount > 0;
 	}
 
 	/**
@@ -668,7 +664,8 @@ export class FiberSpliceManager {
 
 	/**
 	 * Handle dropping a cable onto a port - fills sequential ports with all fibers
-	 * Continues to subsequent components in slot order if fibers remain
+	 * Continues to subsequent components in slot order if fibers remain.
+	 * Uses bulk API to create splices per structure.
 	 * @param {number} startPort - Starting port number
 	 * @param {'a'|'b'} side
 	 * @param {Object} cableData - Cable data including fibers array
@@ -729,7 +726,7 @@ export class FiberSpliceManager {
 		let errorOccurred = false;
 		const componentsUsed = [];
 
-		// Iterate through structures
+		// Iterate through structures - one bulk call per structure
 		for (const structure of structuresToFill) {
 			if (fiberIndex >= sortedFibers.length) break; // All fibers placed
 
@@ -738,11 +735,9 @@ export class FiberSpliceManager {
 			let splices = [];
 
 			if (structure.uuid === this.selectedStructure?.uuid) {
-				// Use current loaded data
 				ports = this.componentPorts;
 				splices = this.fiberSplices;
 			} else {
-				// Fetch ports and splices for this structure
 				try {
 					const portsResult = await this.#fetchPortsForStructure(structure.component_type.id);
 					const splicesResult = await this.#fetchSplicessForStructure(structure.uuid);
@@ -764,10 +759,10 @@ export class FiberSpliceManager {
 
 			if (availablePorts.length === 0) continue;
 
-			let structureSuccessCount = 0;
-			const processedMergeGroups = new Set(); // Track merge groups we've already handled
+			// Build splice data for this structure (skip merge groups)
+			const spliceData = [];
+			const processedMergeGroups = new Set();
 
-			// Fill available ports with fibers
 			for (const portNumber of availablePorts) {
 				if (fiberIndex >= sortedFibers.length) break;
 
@@ -783,61 +778,74 @@ export class FiberSpliceManager {
 
 				const fiber = sortedFibers[fiberIndex];
 
-				try {
-					const formData = new FormData();
-					formData.append('nodeStructureUuid', structure.uuid);
-					formData.append('portNumber', portNumber.toString());
-					formData.append('side', side);
-					formData.append('fiberUuid', fiber.uuid);
-					formData.append('cableUuid', cableData.uuid);
+				spliceData.push({
+					node_structure_uuid: structure.uuid,
+					port_number: portNumber,
+					side: side,
+					fiber_uuid: fiber.uuid,
+					cable_uuid: cableData.uuid
+				});
 
-					const response = await fetch('?/upsertFiberSplice', {
-						method: 'POST',
-						body: formData
-					});
+				if (mergeGroupId) {
+					processedMergeGroups.add(mergeGroupId);
+				}
 
-					const result = deserialize(await response.text());
+				fiberIndex++;
+			}
 
-					if (result.type === 'failure' || result.type === 'error') {
-						throw new Error(result.data?.error || 'Failed to save fiber splice');
-					}
+			if (spliceData.length === 0) continue;
 
-					// Update local state if this is the current structure
-					if (structure.uuid === this.selectedStructure?.uuid) {
-						const serverSplice = result.data.splice;
-						const existingSpliceIndex = this.fiberSplices.findIndex(
-							(s) => s.port_number === portNumber
+			// Make bulk API call for this structure
+			try {
+				const formData = new FormData();
+				formData.append('splices', JSON.stringify(spliceData));
+
+				const response = await fetch('?/bulkUpsertFiberSplices', {
+					method: 'POST',
+					body: formData
+				});
+
+				const result = deserialize(await response.text());
+
+				if (result.type === 'failure' || result.type === 'error') {
+					throw new Error(result.data?.error || 'Failed to save fiber splices');
+				}
+
+				const created = result.data?.created || [];
+				const failed = result.data?.failed || [];
+
+				// Update local state if this is the current structure
+				if (structure.uuid === this.selectedStructure?.uuid) {
+					const createdByPort = new Map(created.map((s) => [s.port_number, s]));
+					for (const serverSplice of created) {
+						const existingIndex = this.fiberSplices.findIndex(
+							(s) => s.port_number === serverSplice.port_number
 						);
-
-						if (existingSpliceIndex >= 0) {
+						if (existingIndex >= 0) {
 							this.fiberSplices = this.fiberSplices.map((s) =>
-								s.port_number === portNumber ? serverSplice : s
+								s.port_number === serverSplice.port_number ? serverSplice : s
 							);
 						} else {
 							this.fiberSplices = [...this.fiberSplices, serverSplice];
 						}
 					}
-
-					// Mark this merge group as processed so we skip other ports in it
-					if (mergeGroupId) {
-						processedMergeGroups.add(mergeGroupId);
-					}
-
-					totalSuccessCount++;
-					structureSuccessCount++;
-					fiberIndex++;
-				} catch (err) {
-					console.error('Error saving fiber splice:', err);
-					errorOccurred = true;
-					break;
 				}
-			}
 
-			if (structureSuccessCount > 0) {
-				componentsUsed.push(structure.component_type?.component_type || structure.label || '-');
-			}
+				totalSuccessCount += created.length;
 
-			if (errorOccurred) break;
+				if (created.length > 0) {
+					componentsUsed.push(
+						structure.component_type?.component_type || structure.label || '-'
+					);
+				}
+
+				// If any failed in this structure, we continue to next structure
+				// (partial success per structure is allowed)
+			} catch (err) {
+				console.error('Error saving fiber splices for structure:', err);
+				errorOccurred = true;
+				break;
+			}
 		}
 
 		// Show result toast

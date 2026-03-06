@@ -1445,6 +1445,17 @@ class NodeTrenchSelectionBulkSerializer(serializers.Serializer):
     )
 
 
+class NodeStructureBulkCreateSerializer(serializers.Serializer):
+    """Serializer for bulk creating node structures."""
+
+    node_uuid = serializers.UUIDField()
+    slot_configuration_uuid = serializers.UUIDField()
+    component_type_id = serializers.IntegerField()
+    slot_start = serializers.IntegerField(min_value=1)
+    count = serializers.IntegerField(min_value=1, max_value=99)
+    occupied_slots_per_component = serializers.IntegerField(min_value=1)
+
+
 class NodeSlotConfigurationSerializer(serializers.ModelSerializer):
     """Serializer for the NodeSlotConfiguration model."""
 
@@ -1779,6 +1790,22 @@ class PortUnmergeSerializer(serializers.Serializer):
         min_length=1,
         help_text="List of port numbers to unmerge from the group",
     )
+
+
+class FiberSpliceBulkUpsertItemSerializer(serializers.Serializer):
+    """Single item in bulk fiber splice upsert."""
+
+    node_structure_uuid = serializers.UUIDField()
+    port_number = serializers.IntegerField(min_value=1)
+    side = serializers.ChoiceField(choices=["a", "b"])
+    fiber_uuid = serializers.UUIDField()
+    cable_uuid = serializers.UUIDField()
+
+
+class FiberSpliceBulkUpsertSerializer(serializers.Serializer):
+    """Serializer for bulk upserting fiber splices."""
+
+    splices = FiberSpliceBulkUpsertItemSerializer(many=True)
 
 
 class ContainerTypeSerializer(serializers.ModelSerializer):

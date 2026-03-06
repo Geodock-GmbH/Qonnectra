@@ -110,6 +110,10 @@ export class NodeStructureContext {
 		return this.#structureManager.loadingStructures;
 	}
 
+	get creatingMultiple() {
+		return this.#structureManager.creatingMultiple;
+	}
+
 	// --- Splice Manager State ---
 	get selectedStructure() {
 		return this.#spliceManager.selectedStructure;

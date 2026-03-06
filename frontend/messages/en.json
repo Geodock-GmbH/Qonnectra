@@ -477,6 +477,7 @@
 	"message_no_trenches_near_node": "No trenches found near this node",
 	"message_node_type_locked_has_children_and_cables": "Node type cannot be changed because this node has both child nodes and connected cables.",
 	"message_only_fibers_allowed": "Only individual fibers can be connected to ports",
+	"message_operation_in_progress": "Please wait for the current operation to complete",
 	"message_partial_bundle_connected": "Connected {connected} of {total} fibers",
 	"message_partial_cable_connected": "Connected {connected} of {total} fibers",
 	"message_parent_node_locked_has_cables": "Parent node cannot be changed because this node has connected cables.",

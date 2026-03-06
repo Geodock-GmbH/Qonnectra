@@ -803,6 +803,7 @@ class QGISProjectAdmin(admin.ModelAdmin):
         "created_by",
         "get_wms_url",
         "get_wfs_url",
+        "get_wfs3_url",
     )
     fieldsets = (
         (
@@ -819,9 +820,9 @@ class QGISProjectAdmin(admin.ModelAdmin):
         (
             "Access URLs",
             {
-                "fields": ("get_wms_url", "get_wfs_url"),
+                "fields": ("get_wms_url", "get_wfs_url", "get_wfs3_url"),
                 "description": _(
-                    "Use these URLs to access the QGIS project via WMS/WFS services"
+                    "Use these URLs to access the QGIS project via WMS/WFS/WFS3 services"
                 ),
             },
         ),
@@ -865,6 +866,14 @@ class QGISProjectAdmin(admin.ModelAdmin):
         return "-"
 
     get_wfs_url.short_description = "WFS URL"
+
+    def get_wfs3_url(self, obj):
+        """Display WFS3 (OGC API Features) access URL in admin."""
+        if obj.project_file:
+            return obj.get_wfs3_url()
+        return "-"
+
+    get_wfs3_url.short_description = "WFS3 URL (OGC API Features)"
 
     def download_with_postgres_datasources(self, request, queryset):
         """

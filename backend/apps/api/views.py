@@ -71,6 +71,7 @@ from .models import (
     NodeTrenchSelection,
     PipeBranchSettings,
     Projects,
+    QGISProject,
     ResidentialUnit,
     Trench,
     TrenchConduitConnection,
@@ -124,6 +125,7 @@ from .serializers import (
     NodeSlotConfigurationListSerializer,
     NodeSlotConfigurationSerializer,
     NodeSlotDividerSerializer,
+    NodeStructureBulkCreateSerializer,
     NodeStructureSerializer,
     NodeTrenchSelectionBulkSerializer,
     NodeTrenchSelectionSerializer,
@@ -3834,6 +3836,120 @@ class NodeStructureViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(structure)
         return Response(serializer.data)
 
+    @action(detail=False, methods=["post"], url_path="bulk-create")
+    def bulk_create(self, request):
+        """Bulk create multiple node structures at consecutive slots.
+
+        Creates structures for valid slots and reports failures for occupied slots.
+        Partial success is allowed - some structures can be created even if others fail.
+
+        Expects: {
+            "node_uuid": "...",
+            "slot_configuration_uuid": "...",
+            "component_type_id": 7,
+            "slot_start": 5,
+            "count": 3,
+            "occupied_slots_per_component": 2
+        }
+
+        Returns: {
+            "created": [...],
+            "failed": [{"slot_start": 9, "slot_end": 10, "error": "..."}]
+        }
+        """
+        serializer = NodeStructureBulkCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        node_uuid = serializer.validated_data["node_uuid"]
+        slot_config_uuid = serializer.validated_data["slot_configuration_uuid"]
+        component_type_id = serializer.validated_data["component_type_id"]
+        slot_start = serializer.validated_data["slot_start"]
+        count = serializer.validated_data["count"]
+        slots_per_component = serializer.validated_data["occupied_slots_per_component"]
+
+        # Validate node exists
+        try:
+            node = Node.objects.get(uuid=node_uuid)
+        except Node.DoesNotExist:
+            return Response(
+                {"error": f"Node with uuid {node_uuid} not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Validate slot configuration exists
+        try:
+            slot_config = NodeSlotConfiguration.objects.get(uuid=slot_config_uuid)
+        except NodeSlotConfiguration.DoesNotExist:
+            return Response(
+                {"error": f"Slot configuration with uuid {slot_config_uuid} not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Validate component type exists
+        try:
+            component_type = AttributesComponentType.objects.get(id=component_type_id)
+        except AttributesComponentType.DoesNotExist:
+            return Response(
+                {"error": f"Component type with id {component_type_id} not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Get currently occupied slots for this slot configuration
+        existing_structures = NodeStructure.objects.filter(
+            slot_configuration=slot_config
+        )
+        occupied_slots = set()
+        for structure in existing_structures:
+            for slot in range(structure.slot_start, structure.slot_end + 1):
+                occupied_slots.add(slot)
+
+        created = []
+        failed = []
+
+        for i in range(count):
+            comp_slot_start = slot_start + i * slots_per_component
+            comp_slot_end = comp_slot_start + slots_per_component - 1
+
+            # Check if exceeds total slots
+            if comp_slot_end > slot_config.total_slots:
+                failed.append({
+                    "slot_start": comp_slot_start,
+                    "slot_end": comp_slot_end,
+                    "error": f"Exceeds total slots ({slot_config.total_slots})",
+                })
+                continue
+
+            # Check if any slot is occupied
+            slots_needed = set(range(comp_slot_start, comp_slot_end + 1))
+            conflicting_slots = slots_needed & occupied_slots
+            if conflicting_slots:
+                failed.append({
+                    "slot_start": comp_slot_start,
+                    "slot_end": comp_slot_end,
+                    "error": f"Slots {sorted(conflicting_slots)} already occupied",
+                })
+                continue
+
+            # Create the structure
+            structure = NodeStructure.objects.create(
+                uuid_node=node,
+                slot_configuration=slot_config,
+                component_type=component_type,
+                slot_start=comp_slot_start,
+                slot_end=comp_slot_end,
+                purpose=NodeStructure.Purpose.COMPONENT,
+            )
+
+            # Mark these slots as occupied for subsequent iterations
+            occupied_slots.update(slots_needed)
+
+            created.append(NodeStructureSerializer(structure).data)
+
+        return Response({
+            "created": created,
+            "failed": failed,
+        }, status=status.HTTP_200_OK)
+
 
 class NodeSlotDividerViewSet(viewsets.ModelViewSet):
     """
@@ -4049,6 +4165,97 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
         return Response(
             serializer.data,
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+    @action(detail=False, methods=["post"], url_path="bulk-upsert")
+    def bulk_upsert(self, request):
+        """Bulk upsert multiple fiber splices in one request.
+
+        Creates or updates fiber splices for multiple port-fiber pairs at once.
+        Partial success is supported - some splices can be created even if others fail.
+
+        Expects: {
+            "splices": [
+                {"node_structure_uuid": "...", "port_number": 1, "side": "a",
+                 "fiber_uuid": "...", "cable_uuid": "..."},
+                ...
+            ]
+        }
+
+        Returns: {
+            "created": [...],  # Successfully created/updated splices
+            "failed": [{"port_number": 5, "error": "..."}]  # Failed splices
+        }
+        """
+        from .serializers import FiberSpliceBulkUpsertSerializer
+
+        serializer = FiberSpliceBulkUpsertSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        created = []
+        failed = []
+
+        for item in serializer.validated_data["splices"]:
+            try:
+                node_structure = NodeStructure.objects.get(
+                    uuid=item["node_structure_uuid"]
+                )
+                fiber = Fiber.objects.get(uuid=item["fiber_uuid"])
+                cable = Cable.objects.get(uuid=item["cable_uuid"])
+
+                splice, _ = FiberSplice.objects.get_or_create(
+                    node_structure=node_structure,
+                    port_number=item["port_number"],
+                )
+
+                if item["side"] == "a":
+                    splice.fiber_a = fiber
+                    splice.cable_a = cable
+                else:
+                    splice.fiber_b = fiber
+                    splice.cable_b = cable
+
+                splice.save()
+                created.append(FiberSpliceSerializer(splice).data)
+
+            except NodeStructure.DoesNotExist:
+                failed.append(
+                    {
+                        "port_number": item["port_number"],
+                        "node_structure_uuid": str(item["node_structure_uuid"]),
+                        "error": "Node structure not found",
+                    }
+                )
+            except Fiber.DoesNotExist:
+                failed.append(
+                    {
+                        "port_number": item["port_number"],
+                        "fiber_uuid": str(item["fiber_uuid"]),
+                        "error": "Fiber not found",
+                    }
+                )
+            except Cable.DoesNotExist:
+                failed.append(
+                    {
+                        "port_number": item["port_number"],
+                        "cable_uuid": str(item["cable_uuid"]),
+                        "error": "Cable not found",
+                    }
+                )
+            except Exception as e:
+                failed.append(
+                    {
+                        "port_number": item["port_number"],
+                        "error": str(e),
+                    }
+                )
+
+        return Response(
+            {
+                "created": created,
+                "failed": failed,
+            },
+            status=status.HTTP_200_OK,
         )
 
     @action(detail=False, methods=["post"], url_path="clear-port")
@@ -5310,6 +5517,204 @@ class WMSProxyView(APIView):
                 "Content-Type", "application/octet-stream"
             ),
         )
+
+
+class WFS3ProxyView(APIView):
+    """Proxy view for OGC API Features (WFS3) requests to QGIS Server.
+
+    Handles URL path rewriting from RESTful WFS3 paths to QGIS Server
+    with the MAP parameter injected.
+
+    Supports authentication via:
+    - Standard cookie-based JWT (for web browsers)
+    - Query parameter token (for programmatic access)
+    """
+
+    from dj_rest_auth.jwt_auth import JWTCookieAuthentication
+
+    authentication_classes = [WMSTokenAuthentication, JWTCookieAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    MAX_RESPONSE_SIZE = 100 * 1024 * 1024  # 100MB for large GeoJSON responses
+    QGIS_SERVER_URL = "http://qgis-server:80"
+
+    def _get_qgis_project(self, project_name: str) -> QGISProject:
+        """Get active QGIS project by name (slug)."""
+        try:
+            return QGISProject.objects.get(name=project_name)
+        except QGISProject.DoesNotExist:
+            return None
+
+    def _build_upstream_url(self, qgis_project: QGISProject, wfs3_path: str) -> str:
+        """Build the upstream QGIS Server URL with MAP parameter.
+
+        Args:
+            qgis_project: The QGISProject instance
+            wfs3_path: The WFS3 path after the project name (e.g., 'collections/')
+
+        Returns:
+            Full URL to QGIS Server with MAP parameter
+        """
+        if not wfs3_path:
+            wfs3_path = ""
+        if wfs3_path and not wfs3_path.startswith("/"):
+            wfs3_path = f"/{wfs3_path}"
+
+        base_path = f"/wfs3{wfs3_path}"
+        return f"{self.QGIS_SERVER_URL}{base_path}?MAP={qgis_project.map_path}"
+
+    def _rewrite_urls(self, obj, old_base: str, new_base: str):
+        """Recursively rewrite URLs in a dict/list structure.
+
+        Replaces QGIS Server internal URLs with proxy URLs.
+        """
+        import re
+
+        if isinstance(obj, dict):
+            return {k: self._rewrite_urls(v, old_base, new_base) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._rewrite_urls(item, old_base, new_base) for item in obj]
+        elif isinstance(obj, str):
+            if old_base in obj:
+                new_url = obj.replace(old_base, new_base)
+                # Remove ?MAP=... or &MAP=... from the URL
+                new_url = re.sub(r"[?&]MAP=[^&]*", "", new_url)
+                # Clean up any resulting double question marks or trailing ?/&
+                new_url = re.sub(r"\?&", "?", new_url)
+                new_url = re.sub(r"[?&]$", "", new_url)
+                return new_url
+            return obj
+        return obj
+
+    def _handle_json_response(self, request, qgis_project, upstream_response):
+        """Handle JSON responses, rewriting internal URLs."""
+        try:
+            data = upstream_response.json()
+
+            # Rewrite links to point to our proxy
+            proxy_base = request.build_absolute_uri(f"/api/v1/wfs3/{qgis_project.name}")
+            qgis_base = f"{self.QGIS_SERVER_URL}/wfs3"
+
+            data = self._rewrite_urls(data, qgis_base, proxy_base)
+
+            return Response(
+                data,
+                status=upstream_response.status_code,
+                content_type=upstream_response.headers.get("Content-Type"),
+            )
+        except ValueError:
+            return Response(
+                upstream_response.content,
+                status=upstream_response.status_code,
+                content_type=upstream_response.headers.get("Content-Type"),
+            )
+
+    def _proxy_request(self, request, qgis_project: QGISProject, wfs3_path: str):
+        """Proxy the request to QGIS Server."""
+        upstream_url = self._build_upstream_url(qgis_project, wfs3_path)
+
+        # Forward query params (except our token)
+        params = {
+            k: v
+            for k, v in request.query_params.dict().items()
+            if k.lower() != "token"
+        }
+
+        try:
+            if request.method == "GET":
+                upstream_response = requests.get(
+                    upstream_url,
+                    params=params,
+                    timeout=60,
+                    stream=True,
+                )
+            elif request.method == "POST":
+                upstream_response = requests.post(
+                    upstream_url,
+                    params=params,
+                    data=request.body,
+                    headers={"Content-Type": request.content_type},
+                    timeout=60,
+                    stream=True,
+                )
+            else:
+                return Response(
+                    {"error": f"Method {request.method} not supported"},
+                    status=status.HTTP_405_METHOD_NOT_ALLOWED,
+                )
+        except requests.RequestException as e:
+            logger.error(
+                f"WFS3 proxy upstream request failed: {e}",
+                extra={
+                    "qgis_project_name": qgis_project.name,
+                    "upstream_url": upstream_url,
+                },
+            )
+            return Response(
+                {"error": f"Upstream request failed: {e}"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        # Log non-2xx responses
+        if not upstream_response.ok:
+            logger.warning(
+                f"WFS3 proxy received non-2xx from upstream: {upstream_response.status_code}",
+                extra={
+                    "qgis_project_name": qgis_project.name,
+                    "upstream_url": upstream_url,
+                    "upstream_status": upstream_response.status_code,
+                },
+            )
+
+        # Check response size limit
+        content_length = upstream_response.headers.get("Content-Length")
+        if content_length and int(content_length) > self.MAX_RESPONSE_SIZE:
+            upstream_response.close()
+            return Response(
+                {"error": "Response too large"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        # Handle JSON responses (rewrite URLs)
+        content_type = upstream_response.headers.get("Content-Type", "")
+        if "application/json" in content_type or "application/geo+json" in content_type:
+            return self._handle_json_response(request, qgis_project, upstream_response)
+
+        # Stream non-JSON responses directly
+        def iter_content():
+            total_size = 0
+            for chunk in upstream_response.iter_content(chunk_size=8192):
+                total_size += len(chunk)
+                if total_size > self.MAX_RESPONSE_SIZE:
+                    upstream_response.close()
+                    return
+                yield chunk
+
+        return StreamingHttpResponse(
+            iter_content(),
+            status=upstream_response.status_code,
+            content_type=content_type or "application/octet-stream",
+        )
+
+    def get(self, request, project_name, wfs3_path=""):
+        """Handle GET requests to WFS3 endpoints."""
+        qgis_project = self._get_qgis_project(project_name)
+        if not qgis_project:
+            return Response(
+                {"error": "QGIS project not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return self._proxy_request(request, qgis_project, wfs3_path)
+
+    def post(self, request, project_name, wfs3_path=""):
+        """Handle POST requests to WFS3 endpoints (for complex queries)."""
+        qgis_project = self._get_qgis_project(project_name)
+        if not qgis_project:
+            return Response(
+                {"error": "QGIS project not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return self._proxy_request(request, qgis_project, wfs3_path)
 
 
 class DashboardStatisticsView(APIView):

@@ -33,6 +33,9 @@ export class NodeStructureManager {
 	/** @type {boolean} */
 	loadingStructures = $state(false);
 
+	/** @type {boolean} */
+	creatingMultiple = $state(false);
+
 	/** @type {Object|null} - Shared state from parent for slot configurations */
 	#sharedSlotState = null;
 
@@ -408,55 +411,56 @@ export class NodeStructureManager {
 			});
 		}
 		this.structures = [...this.structures, ...tempStructures];
+		this.creatingMultiple = true;
 
-		// Create structures sequentially
-		const createdStructures = [];
 		try {
-			for (let c = 0; c < count; c++) {
-				const compSlotStart = slotStart + c * singleSlots;
-				const compSlotEnd = compSlotStart + singleSlots - 1;
+			const formData = new FormData();
+			formData.append('nodeUuid', this.nodeUuid);
+			formData.append('slotConfigUuid', this.selectedSlotConfigUuid);
+			formData.append('componentTypeId', componentData.id.toString());
+			formData.append('slotStart', slotStart.toString());
+			formData.append('count', count.toString());
+			formData.append('occupiedSlotsPerComponent', singleSlots.toString());
 
-				const formData = new FormData();
-				formData.append('nodeUuid', this.nodeUuid);
-				formData.append('slotConfigUuid', this.selectedSlotConfigUuid);
-				formData.append('componentTypeId', componentData.id.toString());
-				formData.append('slotStart', compSlotStart.toString());
-				formData.append('slotEnd', compSlotEnd.toString());
-				formData.append('purpose', 'component');
+			const response = await fetch('?/bulkCreateNodeStructures', {
+				method: 'POST',
+				body: formData
+			});
 
-				const response = await fetch('?/createNodeStructure', {
-					method: 'POST',
-					body: formData
-				});
+			const result = deserialize(await response.text());
 
-				const result = deserialize(await response.text());
-
-				if (result.type === 'failure' || result.type === 'error') {
-					throw new Error(result.data?.error || `Failed to create structure ${c + 1}`);
-				}
-
-				createdStructures.push(result.data.structure);
-
-				// Update the temp structure with the real one
-				const tempUuid = tempStructures[c].uuid;
-				this.structures = this.structures.map((s) =>
-					s.uuid === tempUuid ? result.data.structure : s
-				);
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to create structures');
 			}
 
-			globalToaster.success({
-				title: m.title_success(),
-				description:
-					m.message_success_placing_components?.({ count }) ||
-					`Successfully placed ${count} components`
-			});
+			const created = result.data?.created || [];
+			const failed = result.data?.failed || [];
+
+			// Replace temp structures with real ones
+			this.structures = this.structures.filter((s) => !s.uuid.startsWith('temp-')).concat(created);
+
+			// Show appropriate toast
+			if (failed.length === 0) {
+				globalToaster.success({
+					title: m.title_success(),
+					description: m.message_success_placing_components({ count: created.length })
+				});
+			} else if (created.length > 0) {
+				const failedSlots = failed.map((f) => `${f.slot_start}-${f.slot_end}`).join(', ');
+				globalToaster.warning({
+					title: m.title_success(),
+					description: `${m.message_success_placing_components({ count: created.length })}. Failed: ${failedSlots}`
+				});
+			} else {
+				const failedSlots = failed.map((f) => `${f.slot_start}-${f.slot_end}`).join(', ');
+				throw new Error(`All placements failed: ${failedSlots}`);
+			}
 		} catch (err) {
-			// Remove all temp structures that weren't replaced
-			const createdUuids = new Set(createdStructures.map((s) => s.uuid));
-			this.structures = this.structures.filter(
-				(s) => !s.uuid.startsWith('temp-') || createdUuids.has(s.uuid)
-			);
+			// Remove all temp structures on error
+			this.structures = this.structures.filter((s) => !s.uuid.startsWith('temp-'));
 			throw err;
+		} finally {
+			this.creatingMultiple = false;
 		}
 	}
 

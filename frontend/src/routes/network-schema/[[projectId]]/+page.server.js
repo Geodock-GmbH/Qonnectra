@@ -1576,6 +1576,58 @@ export const actions = {
 			return fail(500, { error: 'Internal server error' });
 		}
 	},
+	bulkCreateNodeStructures: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const nodeUuid = formData.get('nodeUuid');
+			const slotConfigUuid = formData.get('slotConfigUuid');
+			const componentTypeId = formData.get('componentTypeId');
+			const slotStart = formData.get('slotStart');
+			const count = formData.get('count');
+			const occupiedSlotsPerComponent = formData.get('occupiedSlotsPerComponent');
+
+			if (
+				!nodeUuid ||
+				!slotConfigUuid ||
+				!componentTypeId ||
+				!slotStart ||
+				!count ||
+				!occupiedSlotsPerComponent
+			) {
+				return fail(400, {
+					error: 'Missing required fields'
+				});
+			}
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}node-structure/bulk-create/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					node_uuid: nodeUuid,
+					slot_configuration_uuid: slotConfigUuid,
+					component_type_id: parseInt(componentTypeId),
+					slot_start: parseInt(slotStart),
+					count: parseInt(count),
+					occupied_slots_per_component: parseInt(occupiedSlotsPerComponent)
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, { error: errorData.error || 'Failed to create structures' });
+			}
+
+			const result = await response.json();
+			return { success: true, created: result.created, failed: result.failed };
+		} catch (err) {
+			console.error('Error bulk creating node structures:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
 	moveNodeStructure: async ({ request, fetch, cookies }) => {
 		try {
 			const formData = await request.formData();
@@ -1822,6 +1874,41 @@ export const actions = {
 			return { success: true, splice };
 		} catch (err) {
 			console.error('Error upserting fiber splice:', err);
+			return fail(500, { error: 'Internal server error' });
+		}
+	},
+	bulkUpsertFiberSplices: async ({ request, fetch, cookies }) => {
+		try {
+			const formData = await request.formData();
+			const splicesJson = formData.get('splices');
+
+			if (!splicesJson) {
+				return fail(400, { error: 'Missing splices data' });
+			}
+
+			const splices = JSON.parse(splicesJson);
+
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}fiber-splice/bulk-upsert/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ splices })
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to create splices'
+				});
+			}
+
+			const result = await response.json();
+			return { success: true, created: result.created, failed: result.failed };
+		} catch (err) {
+			console.error('Error bulk upserting fiber splices:', err);
 			return fail(500, { error: 'Internal server error' });
 		}
 	},

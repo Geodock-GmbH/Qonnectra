@@ -1,4 +1,4 @@
-from django.urls import include, path
+from django.urls import include, path, re_path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
@@ -67,6 +67,7 @@ from .views import (
     TrenchesNearNodeView,
     TrenchViewSet,
     WebDAVAuthView,
+    WFS3ProxyView,
     WMSLayerViewSet,
     WMSProxyView,
     WMSSourceViewSet,
@@ -324,6 +325,16 @@ urlpatterns = [
         "wms-proxy/<uuid:source_id>/",
         WMSProxyView.as_view(),
         name="wms-proxy",
+    ),
+    re_path(
+        r"^wfs3/(?P<project_name>[\w-]+)/(?P<wfs3_path>.*)$",
+        WFS3ProxyView.as_view(),
+        name="wfs3-proxy",
+    ),
+    re_path(
+        r"^wfs3/(?P<project_name>[\w-]+)/?$",
+        WFS3ProxyView.as_view(),
+        name="wfs3-proxy-root",
     ),
     path(
         "dashboard/statistics/",

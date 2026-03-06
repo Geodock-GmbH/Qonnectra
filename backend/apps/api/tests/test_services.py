@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, patch
 
 import openpyxl
 import pytest
-from apps.api.models import Conduit, Microduct
+from apps.api.models import Conduit, FeatureFiles, Microduct, Node
 from apps.api.services import (
     _build_postgres_datasource,
     _extract_layer_name_from_gpkg_source,
@@ -25,6 +25,8 @@ from apps.api.services import (
     generate_conduit_import_template,
     handle_qgis_file,
     import_conduits_from_excel,
+    move_file_to_feature,
+    rename_feature_folder,
     repackage_qgz,
 )
 from django.utils.translation import activate
@@ -36,8 +38,11 @@ from .factories import (
     FlagFactory,
     MicroductColorFactory,
     NetworkLevelFactory,
+    NodeFactory,
     ProjectFactory,
     StatusFactory,
+    StoragePreferencesFactory,
+    TrenchFactory,
 )
 
 
@@ -588,3 +593,311 @@ class TestPostgresTypeToPandas:
     def test_returns_object_for_unknown_type(self):
         """Test returns object for unknown types."""
         assert _postgres_type_to_pandas("unknown_type", "unknown") == "object"
+
+
+@pytest.mark.django_db
+class TestRenameFeatureFolder:
+    """Tests for the rename_feature_folder service function."""
+
+    @patch("apps.api.services.LocalMediaStorage")
+    def test_rename_folder_success(self, mock_storage_class):
+        """Test successful folder rename when folder exists."""
+        project = ProjectFactory(project="TestProject")
+        StoragePreferencesFactory(
+            folder_structure={"node": {"default": "nodes"}}
+        )
+        node = NodeFactory(name="OldNodeName", project=project)
+
+        mock_storage = MagicMock()
+        mock_storage.rename_folder.return_value = True
+        mock_storage_class.return_value = mock_storage
+
+        rename_feature_folder(node, "OldNodeName", "NewNodeName")
+
+        mock_storage.rename_folder.assert_called_once()
+        call_args = mock_storage.rename_folder.call_args[0]
+        assert "OldNodeName" in call_args[0]
+        assert "NewNodeName" in call_args[1]
+
+    @patch("apps.api.services.LocalMediaStorage")
+    def test_rename_folder_not_found(self, mock_storage_class):
+        """Test rename when source folder doesn't exist (no files uploaded yet)."""
+        project = ProjectFactory(project="TestProject")
+        StoragePreferencesFactory(
+            folder_structure={"node": {"default": "nodes"}}
+        )
+        node = NodeFactory(name="NodeWithoutFiles", project=project)
+
+        mock_storage = MagicMock()
+        mock_storage.rename_folder.return_value = False
+        mock_storage_class.return_value = mock_storage
+
+        rename_feature_folder(node, "NodeWithoutFiles", "NewNodeName")
+
+        mock_storage.rename_folder.assert_called_once()
+
+    @patch("apps.api.services.LocalMediaStorage")
+    def test_rename_folder_updates_file_paths(self, mock_storage_class):
+        """Test that file paths are updated in database when folder is renamed."""
+        from apps.api.models import FeatureFiles, Node
+        from django.contrib.contenttypes.models import ContentType
+
+        project = ProjectFactory(project="TestProject")
+        StoragePreferencesFactory(
+            folder_structure={"node": {"default": "nodes"}}
+        )
+        node = NodeFactory(name="OldNodeName", project=project)
+        content_type = ContentType.objects.get_for_model(Node)
+
+        file_record = FeatureFiles.objects.create(
+            content_type=content_type,
+            object_id=node.pk,
+            file_name="test_file",
+            file_type="pdf",
+        )
+        file_record.file_path.name = "TestProject/nodes/OldNodeName/test_file.pdf"
+        file_record.save()
+
+        mock_storage = MagicMock()
+        mock_storage.rename_folder.return_value = True
+        mock_storage_class.return_value = mock_storage
+
+        rename_feature_folder(node, "OldNodeName", "NewNodeName")
+
+        file_record.refresh_from_db()
+        assert "NewNodeName" in file_record.file_path.name
+        assert "OldNodeName" not in file_record.file_path.name
+
+    @patch("apps.api.services.LocalMediaStorage")
+    def test_rename_folder_without_preferences(self, mock_storage_class):
+        """Test folder rename when no storage preferences exist."""
+        project = ProjectFactory(project="TestProject")
+        node = NodeFactory(name="OldNodeName", project=project)
+
+        mock_storage = MagicMock()
+        mock_storage.rename_folder.return_value = True
+        mock_storage_class.return_value = mock_storage
+
+        rename_feature_folder(node, "OldNodeName", "NewNodeName")
+
+        mock_storage.rename_folder.assert_called_once()
+        call_args = mock_storage.rename_folder.call_args[0]
+        assert "nodes" in call_args[0]
+
+    @patch("apps.api.services.LocalMediaStorage")
+    def test_rename_folder_for_trench(self, mock_storage_class):
+        """Test folder rename for Trench model uses id_trench path."""
+        project = ProjectFactory(project="TestProject")
+        StoragePreferencesFactory(
+            folder_structure={"trench": {"default": "trenches"}}
+        )
+        trench = TrenchFactory(id_trench="TR-001", project=project)
+
+        mock_storage = MagicMock()
+        mock_storage.rename_folder.return_value = True
+        mock_storage_class.return_value = mock_storage
+
+        rename_feature_folder(trench, "TR-001", "TR-002")
+
+        mock_storage.rename_folder.assert_called_once()
+        call_args = mock_storage.rename_folder.call_args[0]
+        assert "TR-001" in call_args[0]
+        assert "TR-002" in call_args[1]
+
+
+@pytest.mark.django_db
+class TestMoveFileToFeature:
+    """Tests for the move_file_to_feature service function."""
+
+    @patch("apps.api.services.LocalMediaStorage")
+    def test_move_file_success(self, mock_storage_class):
+        """Test successful file move to another feature."""
+        from django.contrib.contenttypes.models import ContentType
+
+        project = ProjectFactory(project="TestProject")
+        StoragePreferencesFactory(
+            folder_structure={"node": {"default": "nodes"}}
+        )
+
+        source_node = NodeFactory(name="SourceNode", project=project)
+        target_node = NodeFactory(name="TargetNode", project=project)
+        content_type = ContentType.objects.get_for_model(Node)
+
+        file_record = FeatureFiles.objects.create(
+            content_type=content_type,
+            object_id=source_node.pk,
+            file_name="test_file",
+            file_type="pdf",
+        )
+        file_record.file_path.name = "TestProject/nodes/SourceNode/test_file.pdf"
+        file_record.save()
+
+        mock_file = MagicMock()
+        mock_file.read.return_value = b"file content"
+
+        mock_storage = MagicMock()
+        mock_storage.exists.side_effect = lambda path: path == "TestProject/nodes/SourceNode/test_file.pdf"
+        mock_storage.open.return_value = mock_file
+        mock_storage.save.return_value = "TestProject/nodes/TargetNode/test_file.pdf"
+        mock_storage.delete.return_value = None
+        mock_storage_class.return_value = mock_storage
+
+        success, new_path, error = move_file_to_feature(
+            file_record, target_node, content_type
+        )
+
+        assert success is True
+        assert new_path is not None
+        assert "TargetNode" in new_path
+        assert error is None
+
+    @patch("apps.api.services.LocalMediaStorage")
+    def test_move_file_source_not_found(self, mock_storage_class):
+        """Test move when source file doesn't exist on disk."""
+        from django.contrib.contenttypes.models import ContentType
+
+        project = ProjectFactory(project="TestProject")
+        StoragePreferencesFactory(
+            folder_structure={"node": {"default": "nodes"}}
+        )
+
+        source_node = NodeFactory(name="SourceNode", project=project)
+        target_node = NodeFactory(name="TargetNode", project=project)
+        content_type = ContentType.objects.get_for_model(Node)
+
+        file_record = FeatureFiles.objects.create(
+            content_type=content_type,
+            object_id=source_node.pk,
+            file_name="nonexistent_file",
+            file_type="pdf",
+        )
+        file_record.file_path.name = "TestProject/nodes/SourceNode/nonexistent_file.pdf"
+        file_record.save()
+
+        mock_storage = MagicMock()
+        mock_storage.exists.return_value = False
+        mock_storage_class.return_value = mock_storage
+
+        success, new_path, error = move_file_to_feature(
+            file_record, target_node, content_type
+        )
+
+        assert success is True
+        assert new_path is not None
+        mock_storage.save.assert_not_called()
+        mock_storage.delete.assert_not_called()
+
+    @patch("apps.api.services.LocalMediaStorage")
+    def test_move_file_target_exists(self, mock_storage_class):
+        """Test move fails when file already exists at target path."""
+        from django.contrib.contenttypes.models import ContentType
+
+        project = ProjectFactory(project="TestProject")
+        StoragePreferencesFactory(
+            folder_structure={"node": {"default": "nodes"}}
+        )
+
+        source_node = NodeFactory(name="SourceNode", project=project)
+        target_node = NodeFactory(name="TargetNode", project=project)
+        content_type = ContentType.objects.get_for_model(Node)
+
+        file_record = FeatureFiles.objects.create(
+            content_type=content_type,
+            object_id=source_node.pk,
+            file_name="test_file",
+            file_type="pdf",
+        )
+        file_record.file_path.name = "TestProject/nodes/SourceNode/test_file.pdf"
+        file_record.save()
+
+        mock_storage = MagicMock()
+        mock_storage.exists.return_value = True
+        mock_storage_class.return_value = mock_storage
+
+        success, new_path, error = move_file_to_feature(
+            file_record, target_node, content_type
+        )
+
+        assert success is False
+        assert new_path is None
+        assert "already exists" in error
+
+    @patch("apps.api.services.LocalMediaStorage")
+    def test_move_file_storage_error(self, mock_storage_class):
+        """Test move handles storage errors gracefully."""
+        from django.contrib.contenttypes.models import ContentType
+
+        project = ProjectFactory(project="TestProject")
+        StoragePreferencesFactory(
+            folder_structure={"node": {"default": "nodes"}}
+        )
+
+        source_node = NodeFactory(name="SourceNode", project=project)
+        target_node = NodeFactory(name="TargetNode", project=project)
+        content_type = ContentType.objects.get_for_model(Node)
+
+        file_record = FeatureFiles.objects.create(
+            content_type=content_type,
+            object_id=source_node.pk,
+            file_name="test_file",
+            file_type="pdf",
+        )
+        file_record.file_path.name = "TestProject/nodes/SourceNode/test_file.pdf"
+        file_record.save()
+
+        mock_storage = MagicMock()
+        mock_storage.exists.side_effect = [False, True]
+        mock_storage.open.side_effect = Exception("Storage error")
+        mock_storage_class.return_value = mock_storage
+
+        success, new_path, error = move_file_to_feature(
+            file_record, target_node, content_type
+        )
+
+        assert success is False
+        assert new_path is None
+        assert "Storage error" in error
+
+    @patch("apps.api.services.LocalMediaStorage")
+    def test_move_file_to_trench(self, mock_storage_class):
+        """Test move file to a trench feature uses id_trench."""
+        from django.contrib.contenttypes.models import ContentType
+        from apps.api.models import Trench
+
+        project = ProjectFactory(project="TestProject")
+        StoragePreferencesFactory(
+            folder_structure={"trench": {"default": "trenches"}}
+        )
+
+        source_node = NodeFactory(name="SourceNode", project=project)
+        target_trench = TrenchFactory(id_trench="TR-001", project=project)
+        node_content_type = ContentType.objects.get_for_model(Node)
+        trench_content_type = ContentType.objects.get_for_model(Trench)
+
+        file_record = FeatureFiles.objects.create(
+            content_type=node_content_type,
+            object_id=source_node.pk,
+            file_name="test_file",
+            file_type="pdf",
+        )
+        file_record.file_path.name = "TestProject/nodes/SourceNode/test_file.pdf"
+        file_record.save()
+
+        mock_file = MagicMock()
+        mock_file.read.return_value = b"file content"
+
+        mock_storage = MagicMock()
+        mock_storage.exists.side_effect = lambda path: path == "TestProject/nodes/SourceNode/test_file.pdf"
+        mock_storage.open.return_value = mock_file
+        mock_storage.save.return_value = "TestProject/trenches/TR-001/test_file.pdf"
+        mock_storage.delete.return_value = None
+        mock_storage_class.return_value = mock_storage
+
+        success, new_path, error = move_file_to_feature(
+            file_record, target_trench, trench_content_type
+        )
+
+        assert success is True
+        assert new_path is not None
+        assert "TR-001" in new_path
+        assert error is None

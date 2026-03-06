@@ -19,7 +19,8 @@
 		onDragEnd = () => {},
 		isMobile = false,
 		readonly = false,
-		onMobileSelect = () => {}
+		onMobileSelect = () => {},
+		disabled = false
 	} = $props();
 
 	// In readonly mode, component is not rendered
@@ -88,6 +89,10 @@
 	}
 
 	function handleDragStart(e, componentType) {
+		if (disabled) {
+			e.preventDefault();
+			return;
+		}
 		const count = getQuantity(componentType.id);
 		const isMulti = count > 1;
 
@@ -242,8 +247,10 @@
 						{#each componentTypes as ct (ct.id)}
 							{@const qty = getQuantity(ct.id)}
 							<div
-								class="flex items-center gap-1.5 px-2 py-1.5 mx-1 rounded bg-(--color-surface-100-900) border border-(--color-surface-200-800) cursor-grab transition-colors duration-150 hover:bg-(--color-surface-200-800) hover:border-(--color-primary-500) active:cursor-grabbing"
-								draggable="true"
+								class="flex items-center gap-1.5 px-2 py-1.5 mx-1 rounded bg-(--color-surface-100-900) border border-(--color-surface-200-800) transition-colors duration-150 {disabled
+									? 'opacity-50 cursor-not-allowed'
+									: 'cursor-grab hover:bg-(--color-surface-200-800) hover:border-(--color-primary-500) active:cursor-grabbing'}"
+								draggable={!disabled}
 								ondragstart={(e) => handleDragStart(e, ct)}
 								ondragend={handleDragEnd}
 								role="listitem"

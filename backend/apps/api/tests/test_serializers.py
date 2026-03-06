@@ -16,7 +16,10 @@ from apps.api.serializers import (
     AddressSerializer,
     AreaSerializer,
     ConduitSerializer,
+    FiberSerializer,
+    MicroductSerializer,
     NodeSerializer,
+    ResidentialUnitSerializer,
     TrenchSerializer,
 )
 from django.conf import settings
@@ -24,9 +27,13 @@ from django.contrib.gis.geos import LineString, Point, Polygon
 from rest_framework.exceptions import ValidationError
 
 from .factories import (
+    AddressFactory,
     AreaTypeFactory,
+    CableFactory,
+    ConduitFactory,
     ConduitTypeFactory,
     ConstructionTypeFactory,
+    FiberFactory,
     FlagFactory,
     NodeTypeFactory,
     ProjectFactory,
@@ -453,3 +460,153 @@ class TestConduitSerializer:
 
         serializer = ConduitSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
+
+
+@pytest.mark.django_db
+class TestResidentialUnitSerializer:
+    """Tests for the ResidentialUnitSerializer."""
+
+    def test_valid_residential_unit_data(self):
+        """Test that valid residential unit data is accepted."""
+        address = AddressFactory()
+
+        data = {
+            "uuid_address_id": address.uuid,
+            "floor": 2,
+            "side": "left",
+        }
+
+        serializer = ResidentialUnitSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+
+    def test_address_required(self):
+        """Test that address is required."""
+        data = {
+            "floor": 2,
+            "side": "left",
+        }
+
+        serializer = ResidentialUnitSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "uuid_address_id" in serializer.errors
+
+    def test_optional_fields(self):
+        """Test that floor and side are optional."""
+        address = AddressFactory()
+
+        data = {
+            "uuid_address_id": address.uuid,
+        }
+
+        serializer = ResidentialUnitSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+
+
+@pytest.mark.django_db
+class TestMicroductSerializer:
+    """Tests for the MicroductSerializer."""
+
+    def test_valid_microduct_data(self):
+        """Test that valid microduct data is accepted."""
+        conduit = ConduitFactory()
+
+        data = {
+            "uuid_conduit_id": conduit.uuid,
+            "number": 1,
+            "color": "rot",
+        }
+
+        serializer = MicroductSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+
+    def test_conduit_required(self):
+        """Test that conduit is required."""
+        data = {
+            "number": 1,
+            "color": "rot",
+        }
+
+        serializer = MicroductSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "uuid_conduit_id" in serializer.errors
+
+    def test_number_required(self):
+        """Test that number field is required."""
+        conduit = ConduitFactory()
+
+        data = {
+            "uuid_conduit_id": conduit.uuid,
+            "color": "rot",
+        }
+
+        serializer = MicroductSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "number" in serializer.errors
+
+    def test_color_required(self):
+        """Test that color field is required."""
+        conduit = ConduitFactory()
+
+        data = {
+            "uuid_conduit_id": conduit.uuid,
+            "number": 1,
+        }
+
+        serializer = MicroductSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "color" in serializer.errors
+
+    def test_optional_status_and_node(self):
+        """Test that microduct_status_id and uuid_node_id are optional."""
+        conduit = ConduitFactory()
+
+        data = {
+            "uuid_conduit_id": conduit.uuid,
+            "number": 1,
+            "color": "rot",
+            "microduct_status_id": None,
+            "uuid_node_id": None,
+        }
+
+        serializer = MicroductSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+
+
+@pytest.mark.django_db
+class TestFiberSerializer:
+    """Tests for the FiberSerializer."""
+
+    def test_fiber_serialization(self):
+        """Test that fiber is serialized correctly."""
+        fiber = FiberFactory()
+
+        serializer = FiberSerializer(fiber)
+        assert "uuid" in serializer.data
+        assert serializer.data["fiber_number_absolute"] == fiber.fiber_number_absolute
+        assert serializer.data["bundle_number"] == fiber.bundle_number
+        assert serializer.data["fiber_color"] == fiber.fiber_color
+
+    def test_fiber_list_by_cable(self):
+        """Test listing fibers filtered by cable."""
+        from apps.api.models import Fiber
+
+        cable = CableFactory()
+        FiberFactory(uuid_cable=cable, fiber_number_absolute=1)
+        FiberFactory(uuid_cable=cable, fiber_number_absolute=2)
+
+        fibers = Fiber.objects.filter(uuid_cable=cable)
+        serializer = FiberSerializer(fibers, many=True)
+        assert len(serializer.data) == 2
+
+    def test_fiber_includes_cable_name(self):
+        """Test that serialized fiber includes the cable name."""
+        cable = CableFactory(name="Test-Cable-001")
+        fiber = FiberFactory(uuid_cable=cable)
+
+        serializer = FiberSerializer(fiber)
+        assert serializer.data["cable_name"] == "Test-Cable-001"
+
+    def test_fiber_uuid_is_readonly(self):
+        """Test that uuid field is read-only."""
+        serializer = FiberSerializer()
+        assert serializer.fields["uuid"].read_only is True

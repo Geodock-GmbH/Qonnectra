@@ -477,6 +477,7 @@
 	"message_no_trenches_near_node": "Keine Trassen in der Nähe dieses Netzknotens gefunden",
 	"message_node_type_locked_has_children_and_cables": "Der Netzknotentyp kann nicht geändert werden, da dieser Netzknoten sowohl untergeordnete Netzknoten als auch verbundene Kabel hat.",
 	"message_only_fibers_allowed": "Nur einzelne Fasern können mit Ports verbunden werden",
+	"message_operation_in_progress": "Bitte warten Sie, bis der aktuelle Vorgang abgeschlossen ist",
 	"message_partial_bundle_connected": "{connected} von {total} Fasern verbunden",
 	"message_partial_cable_connected": "{connected} von {total} Fasern verbunden",
 	"message_parent_node_locked_has_cables": "Der übergeordnete Netzknoten kann nicht geändert werden, da dieser Netzknoten verbundene Kabel hat.",

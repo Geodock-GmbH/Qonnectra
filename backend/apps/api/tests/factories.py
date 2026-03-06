@@ -23,11 +23,14 @@ from apps.api.models import (
     CableTypeColorMapping,
     Conduit,
     ConduitTypeColorMapping,
+    Container,
+    ContainerType,
     Fiber,
     FileTypeCategory,
     Flags,
     Microduct,
     MicroductCableConnection,
+    MicroductConnection,
     Node,
     Projects,
     StoragePreferences,
@@ -394,3 +397,37 @@ class WMSLayerFactory(factory.django.DjangoModelFactory):
     title = factory.Sequence(lambda n: f"Layer {n}")
     is_enabled = True
     sort_order = factory.Sequence(lambda n: n)
+
+
+class ContainerTypeFactory(factory.django.DjangoModelFactory):
+    """Factory for ContainerType model."""
+
+    class Meta:
+        model = ContainerType
+
+    name = factory.Sequence(lambda n: f"Container Type {n}")
+
+
+class ContainerFactory(factory.django.DjangoModelFactory):
+    """Factory for Container model."""
+
+    class Meta:
+        model = Container
+
+    uuid_node = factory.SubFactory(NodeFactory)
+    container_type = factory.SubFactory(ContainerTypeFactory)
+    name = factory.Sequence(lambda n: f"Container-{n}")
+    sort_order = factory.Sequence(lambda n: n)
+
+
+class MicroductConnectionFactory(factory.django.DjangoModelFactory):
+    """Factory for MicroductConnection model."""
+
+    class Meta:
+        model = MicroductConnection
+
+    uuid_microduct_from = factory.SubFactory(MicroductFactory)
+    uuid_trench_from = factory.SubFactory(TrenchFactory)
+    uuid_microduct_to = factory.SubFactory(MicroductFactory)
+    uuid_trench_to = factory.SubFactory(TrenchFactory)
+    uuid_node = factory.SubFactory(NodeFactory)
