@@ -5547,8 +5547,13 @@ class WFS3ProxyView(APIView):
     """
 
     from dj_rest_auth.jwt_auth import JWTCookieAuthentication
+    from rest_framework.authentication import BasicAuthentication
 
-    authentication_classes = [WMSTokenAuthentication, JWTCookieAuthentication]
+    authentication_classes = [
+        WMSTokenAuthentication,
+        JWTCookieAuthentication,
+        BasicAuthentication,
+    ]
     permission_classes = [IsAuthenticated]
 
     MAX_RESPONSE_SIZE = 100 * 1024 * 1024  # 100MB for large GeoJSON responses
