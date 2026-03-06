@@ -27,10 +27,13 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 					credentials: 'include',
 					headers: getAuthHeaders(cookies)
 				}),
-				fetch(`${API_URL}node/all/?search=${encodeURIComponent(searchQuery)}${projectParam}`, {
-					credentials: 'include',
-					headers: getAuthHeaders(cookies)
-				}),
+				fetch(
+					`${API_URL}node/all/?search=${encodeURIComponent(searchQuery)}${projectParam}&include_excluded=true`,
+					{
+						credentials: 'include',
+						headers: getAuthHeaders(cookies)
+					}
+				),
 				fetch(`${API_URL}trench/all/?search=${encodeURIComponent(searchQuery)}${projectParam}`, {
 					credentials: 'include',
 					headers: getAuthHeaders(cookies)

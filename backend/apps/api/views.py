@@ -1980,9 +1980,10 @@ class NodeViewSet(viewsets.ModelViewSet):
         - `exclude_group`: Exclude nodes by node type group
         - `search`: Search term for name/type
         - `use_pipe_branch_settings`: If 'true', apply project's pipe-branch allowed types
+        - `include_excluded`: If 'true', bypass NetworkSchemaSettings exclusions (for search)
 
         If project settings are configured, excluded node types are automatically
-        filtered out unless an explicit exclude_group parameter is provided.
+        filtered out unless an explicit exclude_group or include_excluded parameter is provided.
         """
         queryset = Node.objects.select_related(
             "node_type",
@@ -2002,6 +2003,7 @@ class NodeViewSet(viewsets.ModelViewSet):
         exclude_group = request.query_params.get("exclude_group")
         use_pipe_branch_settings = request.query_params.get("use_pipe_branch_settings")
         child_view_for = request.query_params.get("child_view_for")
+        include_excluded = request.query_params.get("include_excluded")
         settings_configured = False
         pipe_branch_configured = False
         excluded_type_ids = []
@@ -2035,8 +2037,8 @@ class NodeViewSet(viewsets.ModelViewSet):
                         # Empty list means no types allowed, return empty
                         queryset = queryset.none()
             # Apply project-specific exclusions if no explicit exclude_group provided
-            # and not using pipe_branch_settings or child_view_for
-            elif exclude_group is None and not child_view_for:
+            # and not using pipe_branch_settings, child_view_for, or include_excluded
+            elif exclude_group is None and not child_view_for and include_excluded != "true":
                 settings = NetworkSchemaSettings.get_settings_for_project(project_id)
                 if settings is not None:
                     settings_configured = True
