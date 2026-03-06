@@ -5552,7 +5552,7 @@ class WFS3ProxyView(APIView):
     permission_classes = [IsAuthenticated]
 
     MAX_RESPONSE_SIZE = 100 * 1024 * 1024  # 100MB for large GeoJSON responses
-    QGIS_SERVER_URL = "http://qgis-server:80"
+    QGIS_SERVER_URL = "http://qgis-server"
 
     def _get_qgis_project(self, project_name: str) -> QGISProject:
         """Get active QGIS project by name (slug)."""
