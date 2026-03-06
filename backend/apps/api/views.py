@@ -1902,7 +1902,10 @@ class NodeViewSet(viewsets.ModelViewSet):
         )
 
         result = [
-            {"network_level": row["network_level__network_level"], "count": row["count"]}
+            {
+                "network_level": row["network_level__network_level"],
+                "count": row["count"],
+            }
             for row in queryset
             if row["network_level__network_level"]
         ]
@@ -2040,7 +2043,11 @@ class NodeViewSet(viewsets.ModelViewSet):
                         queryset = queryset.none()
             # Apply project-specific exclusions if no explicit exclude_group provided
             # and not using pipe_branch_settings, child_view_for, or include_excluded
-            elif exclude_group is None and not child_view_for and include_excluded != "true":
+            elif (
+                exclude_group is None
+                and not child_view_for
+                and include_excluded != "true"
+            ):
                 settings = NetworkSchemaSettings.get_settings_for_project(project_id)
                 if settings is not None:
                     settings_configured = True
@@ -2483,7 +2490,9 @@ class RoutingView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        result = find_shortest_path(start_trench_id, end_trench_id, project_id, tolerance)
+        result = find_shortest_path(
+            start_trench_id, end_trench_id, project_id, tolerance
+        )
 
         if "error" in result:
             # Check for not found vs. other errors
@@ -3912,22 +3921,26 @@ class NodeStructureViewSet(viewsets.ModelViewSet):
 
             # Check if exceeds total slots
             if comp_slot_end > slot_config.total_slots:
-                failed.append({
-                    "slot_start": comp_slot_start,
-                    "slot_end": comp_slot_end,
-                    "error": f"Exceeds total slots ({slot_config.total_slots})",
-                })
+                failed.append(
+                    {
+                        "slot_start": comp_slot_start,
+                        "slot_end": comp_slot_end,
+                        "error": f"Exceeds total slots ({slot_config.total_slots})",
+                    }
+                )
                 continue
 
             # Check if any slot is occupied
             slots_needed = set(range(comp_slot_start, comp_slot_end + 1))
             conflicting_slots = slots_needed & occupied_slots
             if conflicting_slots:
-                failed.append({
-                    "slot_start": comp_slot_start,
-                    "slot_end": comp_slot_end,
-                    "error": f"Slots {sorted(conflicting_slots)} already occupied",
-                })
+                failed.append(
+                    {
+                        "slot_start": comp_slot_start,
+                        "slot_end": comp_slot_end,
+                        "error": f"Slots {sorted(conflicting_slots)} already occupied",
+                    }
+                )
                 continue
 
             # Create the structure
@@ -3945,10 +3958,13 @@ class NodeStructureViewSet(viewsets.ModelViewSet):
 
             created.append(NodeStructureSerializer(structure).data)
 
-        return Response({
-            "created": created,
-            "failed": failed,
-        }, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "created": created,
+                "failed": failed,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class NodeSlotDividerViewSet(viewsets.ModelViewSet):
@@ -5560,7 +5576,7 @@ class WFS3ProxyView(APIView):
         if wfs3_path and not wfs3_path.startswith("/"):
             wfs3_path = f"/{wfs3_path}"
 
-        base_path = f"/wfs3{wfs3_path}"
+        base_path = f"/wfs3{wfs3_path}" if wfs3_path else "/wfs3/"
         return f"{self.QGIS_SERVER_URL}{base_path}?MAP={qgis_project.map_path}"
 
     def _rewrite_urls(self, obj, old_base: str, new_base: str):
@@ -5571,7 +5587,9 @@ class WFS3ProxyView(APIView):
         import re
 
         if isinstance(obj, dict):
-            return {k: self._rewrite_urls(v, old_base, new_base) for k, v in obj.items()}
+            return {
+                k: self._rewrite_urls(v, old_base, new_base) for k, v in obj.items()
+            }
         elif isinstance(obj, list):
             return [self._rewrite_urls(item, old_base, new_base) for item in obj]
         elif isinstance(obj, str):
@@ -5615,9 +5633,7 @@ class WFS3ProxyView(APIView):
 
         # Forward query params (except our token)
         params = {
-            k: v
-            for k, v in request.query_params.dict().items()
-            if k.lower() != "token"
+            k: v for k, v in request.query_params.dict().items() if k.lower() != "token"
         }
 
         try:
@@ -5834,7 +5850,8 @@ class DashboardStatisticsView(APIView):
         return {
             "total_length": totals["total_length"] or 0,
             "count": totals["count"] or 0,
-            "average_house_connection_length": avg_house_connection["average_length"] or 0,
+            "average_house_connection_length": avg_house_connection["average_length"]
+            or 0,
             "house_connection_count": avg_house_connection["count"] or 0,
             "length_with_funding": length_with_funding["total_length"] or 0,
             "funding_count": length_with_funding["count"] or 0,
@@ -5897,7 +5914,10 @@ class DashboardStatisticsView(APIView):
             .order_by("-count")
         )
         count_by_network_level = [
-            {"network_level": row["network_level__network_level"], "count": row["count"]}
+            {
+                "network_level": row["network_level__network_level"],
+                "count": row["count"],
+            }
             for row in count_by_network_level
             if row["network_level__network_level"]
         ]
@@ -5916,19 +5936,23 @@ class DashboardStatisticsView(APIView):
         ]
 
         # Expiring warranties
-        warranty_qs = base_queryset.filter(
-            warranty__isnull=False, warranty__gte=date.today()
-        ).select_related("node_type").order_by("warranty")[:5]
+        warranty_qs = (
+            base_queryset.filter(warranty__isnull=False, warranty__gte=date.today())
+            .select_related("node_type")
+            .order_by("warranty")[:5]
+        )
         expiring_warranties = []
         for node in warranty_qs:
             days_until_expiry = (node.warranty - date.today()).days
-            expiring_warranties.append({
-                "id": node.uuid,
-                "name": node.name,
-                "warranty": node.warranty.strftime("%Y-%m-%d"),
-                "node_type": node.node_type.node_type if node.node_type else None,
-                "days_until_expiry": days_until_expiry,
-            })
+            expiring_warranties.append(
+                {
+                    "id": node.uuid,
+                    "name": node.name,
+                    "warranty": node.warranty.strftime("%Y-%m-%d"),
+                    "node_type": node.node_type.node_type if node.node_type else None,
+                    "days_until_expiry": days_until_expiry,
+                }
+            )
 
         # Newest and oldest nodes
         date_qs = base_queryset.filter(date__isnull=False).select_related("node_type")
@@ -6008,7 +6032,10 @@ class DashboardStatisticsView(APIView):
             .order_by("-count")
         )
         units_by_type = [
-            {"type": row["residential_unit_type__residential_unit_type"], "count": row["count"]}
+            {
+                "type": row["residential_unit_type__residential_unit_type"],
+                "count": row["count"],
+            }
             for row in units_by_type
             if row["residential_unit_type__residential_unit_type"]
         ]
@@ -6095,7 +6122,9 @@ class DashboardStatisticsView(APIView):
         avg_length_by_type = [
             {
                 "type_name": row["type_name"],
-                "avg_length": (row["total_length"] / row["conduit_count"]) if row["conduit_count"] else 0,
+                "avg_length": (row["total_length"] / row["conduit_count"])
+                if row["conduit_count"]
+                else 0,
             }
             for row in type_stats
             if row["type_name"] and row["total_length"]
@@ -6149,7 +6178,10 @@ class DashboardStatisticsView(APIView):
             .order_by("month")
         )
         conduits_by_month = [
-            {"month": row["month"].strftime("%Y-%m") if row["month"] else None, "count": row["count"]}
+            {
+                "month": row["month"].strftime("%Y-%m") if row["month"] else None,
+                "count": row["count"],
+            }
             for row in conduits_by_month
             if row["month"]
         ]
@@ -6190,8 +6222,9 @@ class DashboardStatisticsView(APIView):
 
     def _get_area_statistics(self, project_id, flag_id):
         """Gather all area-related statistics with spatial analysis."""
-        from django.contrib.gis.db.models.functions import Area as GISArea, Intersection, Length
         from django.contrib.gis.db.models.aggregates import Collect
+        from django.contrib.gis.db.models.functions import Area as GISArea
+        from django.contrib.gis.db.models.functions import Intersection, Length
 
         base_queryset = Area.objects.filter(project_id=project_id)
         if flag_id:
@@ -6243,7 +6276,9 @@ class DashboardStatisticsView(APIView):
             addresses_in_areas = address_qs.filter(geom__within=all_areas_geom).count()
             nodes_in_areas = node_qs.filter(geom__within=all_areas_geom).count()
             address_ids_in_areas = list(
-                address_qs.filter(geom__within=all_areas_geom).values_list("uuid", flat=True)
+                address_qs.filter(geom__within=all_areas_geom).values_list(
+                    "uuid", flat=True
+                )
             )
             residential_units_in_areas = ResidentialUnit.objects.filter(
                 uuid_address_id__in=address_ids_in_areas
@@ -6251,7 +6286,9 @@ class DashboardStatisticsView(APIView):
 
         # 3. Addresses per area (exclude empty)
         addresses_per_area = []
-        for area in base_queryset.annotate(area_m2=GISArea("geom")).select_related("area_type"):
+        for area in base_queryset.annotate(area_m2=GISArea("geom")).select_related(
+            "area_type"
+        ):
             addr_count = address_qs.filter(geom__within=area.geom).count()
             if addr_count > 0:
                 addresses_per_area.append(
@@ -6271,7 +6308,9 @@ class DashboardStatisticsView(APIView):
             if combined_geom:
                 count = address_qs.filter(geom__within=combined_geom).count()
                 if count > 0:
-                    addresses_by_area_type.append({"type": area_type.area_type, "count": count})
+                    addresses_by_area_type.append(
+                        {"type": area_type.area_type, "count": count}
+                    )
 
         # 4. Nodes per area (exclude empty)
         nodes_per_area = []
@@ -6288,7 +6327,9 @@ class DashboardStatisticsView(APIView):
             if combined_geom:
                 count = node_qs.filter(geom__within=combined_geom).count()
                 if count > 0:
-                    nodes_by_area_type.append({"type": area_type.area_type, "count": count})
+                    nodes_by_area_type.append(
+                        {"type": area_type.area_type, "count": count}
+                    )
 
         # 5. Trench length per area (clipped to boundary, exclude empty)
         trench_qs = Trench.objects.filter(project_id=project_id)
@@ -6309,7 +6350,9 @@ class DashboardStatisticsView(APIView):
                         "name": area.name,
                         "length_m": total_length.m,
                         "area_km2": area_km2,
-                        "density": (total_length.m / 1000) / area_km2 if area_km2 > 0 else 0,
+                        "density": (total_length.m / 1000) / area_km2
+                        if area_km2 > 0
+                        else 0,
                     }
                 )
 
@@ -6320,11 +6363,17 @@ class DashboardStatisticsView(APIView):
             combined_geom = areas_of_type.aggregate(union=Collect("geom"))["union"]
             if combined_geom:
                 addr_ids = list(
-                    address_qs.filter(geom__within=combined_geom).values_list("uuid", flat=True)
+                    address_qs.filter(geom__within=combined_geom).values_list(
+                        "uuid", flat=True
+                    )
                 )
-                count = ResidentialUnit.objects.filter(uuid_address_id__in=addr_ids).count()
+                count = ResidentialUnit.objects.filter(
+                    uuid_address_id__in=addr_ids
+                ).count()
                 if count > 0:
-                    residential_by_area_type.append({"type": area_type.area_type, "count": count})
+                    residential_by_area_type.append(
+                        {"type": area_type.area_type, "count": count}
+                    )
 
         return {
             "area_count": area_count,
@@ -6342,7 +6391,9 @@ class DashboardStatisticsView(APIView):
                 addresses_per_area, key=lambda x: x["count"], reverse=True
             )[:10],
             "addresses_by_area_type": addresses_by_area_type,
-            "nodes_per_area": sorted(nodes_per_area, key=lambda x: x["count"], reverse=True)[:10],
+            "nodes_per_area": sorted(
+                nodes_per_area, key=lambda x: x["count"], reverse=True
+            )[:10],
             "nodes_by_area_type": nodes_by_area_type,
             "trench_length_per_area": sorted(
                 trench_length_per_area, key=lambda x: x["length_m"], reverse=True
