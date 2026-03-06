@@ -2,13 +2,18 @@
 	import { onMount } from 'svelte';
 	import { useSvelteFlow } from '@xyflow/svelte';
 
-	import { networkSchemaViewport } from '$lib/stores/store';
+	import { networkSchemaViewport, networkSchemaChildViewport } from '$lib/stores/store';
+
+	/** @type {boolean} */
+	let { isChildView = false } = $props();
+
+	const viewportStore = $derived(isChildView ? networkSchemaChildViewport : networkSchemaViewport);
 
 	const { getViewport, setViewport } = useSvelteFlow();
 
 	onMount(() => {
-		if ($networkSchemaViewport && $networkSchemaViewport.x !== undefined) {
-			setViewport($networkSchemaViewport, { duration: 0 });
+		if ($viewportStore && $viewportStore.x !== undefined) {
+			setViewport($viewportStore, { duration: 0 });
 		}
 	});
 
@@ -19,9 +24,9 @@
 		if (currentViewport) {
 			clearTimeout(saveTimeout);
 			saveTimeout = setTimeout(() => {
-				$networkSchemaViewport.x = currentViewport.x;
-				$networkSchemaViewport.y = currentViewport.y;
-				$networkSchemaViewport.zoom = currentViewport.zoom;
+				$viewportStore.x = currentViewport.x;
+				$viewportStore.y = currentViewport.y;
+				$viewportStore.zoom = currentViewport.zoom;
 			}, 300);
 		}
 	});

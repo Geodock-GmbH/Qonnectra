@@ -36,6 +36,7 @@
 	const searchManager = new NetworkSchemaSearchManager(schemaState);
 
 	$effect(() => {
+		schemaState.isChildView = true;
 		schemaState.initialize(data);
 		// Set parent node context for child view cable creation
 		schemaState.parentNodeContext = data.parentNodeId;
@@ -203,7 +204,7 @@
 			connectionRadius={100}
 			noPanClass="nopan"
 		>
-			<ViewportPersistence />
+			<ViewportPersistence isChildView={true} />
 			<Background class="z-0" bgColor="var(--color-surface-100-900)" />
 			<Controls />
 			<Panel position="top-left">

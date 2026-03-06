@@ -716,6 +716,76 @@ describe('+page.server.js', () => {
 			expect(mockFetch).not.toHaveBeenCalled();
 		});
 
+		test('should successfully save child canvas coordinates', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						uuid: 'test-node-123',
+						child_canvas_x: 150.5,
+						child_canvas_y: 200.3
+					})
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['nodeId', 'test-node-123'],
+							['child_canvas_x', '150.5'],
+							['child_canvas_y', '200.3']
+						])
+					)
+			};
+
+			const result = await actions.saveNodeGeometry({
+				request: mockRequest,
+				fetch: mockFetch,
+				cookies: mockCookies
+			});
+
+			expect(result.type).toBe('success');
+			expect(result.message).toBe('Node position saved successfully');
+			expect(result.node.child_canvas_x).toBe(150.5);
+			expect(result.node.child_canvas_y).toBe(200.3);
+
+			// Verify the API call
+			const patchCall = mockFetch.mock.calls[0];
+			expect(patchCall[0]).toBe('http://localhost:8000/node/test-node-123/');
+			expect(patchCall[1].method).toBe('PATCH');
+			expect(JSON.parse(patchCall[1].body)).toEqual({
+				child_canvas_x: 150.5,
+				child_canvas_y: 200.3
+			});
+		});
+
+		test('should return error when child canvas coordinates are invalid', async () => {
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['nodeId', 'test-node-123'],
+							['child_canvas_x', 'invalid'],
+							['child_canvas_y', '200.3']
+						])
+					)
+			};
+
+			const result = await actions.saveNodeGeometry({
+				request: mockRequest,
+				fetch: mockFetch,
+				cookies: mockCookies
+			});
+
+			expect(result.type).toBe('error');
+			expect(result.message).toBe('Invalid child canvas coordinates');
+			expect(mockFetch).not.toHaveBeenCalled();
+		});
+
 		test('should return error when canvas coordinates are invalid', async () => {
 			const { actions } = await import('./+page.server.js');
 

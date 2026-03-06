@@ -85,6 +85,17 @@ class TestNodeModel:
         assert node.canvas_x == 100.5
         assert node.canvas_y == 200.75
 
+    def test_node_child_canvas_coordinates(self):
+        """Test setting child canvas coordinates on a node."""
+        node = NodeFactory()
+        node.child_canvas_x = 150.0
+        node.child_canvas_y = 250.0
+        node.save()
+
+        node.refresh_from_db()
+        assert node.child_canvas_x == 150.0
+        assert node.child_canvas_y == 250.0
+
 
 @pytest.mark.django_db
 class TestContainerTypeModel:

@@ -938,8 +938,12 @@ export const actions = {
 		const formData = await request.formData();
 
 		const nodeId = formData.get('nodeId');
-		const canvas_x = parseFloat(formData.get('canvas_x'));
-		const canvas_y = parseFloat(formData.get('canvas_y'));
+
+		// Check which coordinate set is being updated
+		const canvas_x_raw = formData.get('canvas_x');
+		const canvas_y_raw = formData.get('canvas_y');
+		const child_canvas_x_raw = formData.get('child_canvas_x');
+		const child_canvas_y_raw = formData.get('child_canvas_y');
 
 		if (!nodeId) {
 			return {
@@ -948,10 +952,41 @@ export const actions = {
 			};
 		}
 
-		if (isNaN(canvas_x) || isNaN(canvas_y)) {
+		// Build update payload based on which coordinates were provided
+		const updatePayload = {};
+
+		// Check if main canvas coordinates are provided (not null and not undefined)
+		if (canvas_x_raw != null && canvas_y_raw != null) {
+			const canvas_x = parseFloat(canvas_x_raw);
+			const canvas_y = parseFloat(canvas_y_raw);
+			if (isNaN(canvas_x) || isNaN(canvas_y)) {
+				return {
+					type: 'error',
+					message: 'Invalid canvas coordinates'
+				};
+			}
+			updatePayload.canvas_x = canvas_x;
+			updatePayload.canvas_y = canvas_y;
+		}
+
+		// Check if child canvas coordinates are provided (not null and not undefined)
+		if (child_canvas_x_raw != null && child_canvas_y_raw != null) {
+			const child_canvas_x = parseFloat(child_canvas_x_raw);
+			const child_canvas_y = parseFloat(child_canvas_y_raw);
+			if (isNaN(child_canvas_x) || isNaN(child_canvas_y)) {
+				return {
+					type: 'error',
+					message: 'Invalid child canvas coordinates'
+				};
+			}
+			updatePayload.child_canvas_x = child_canvas_x;
+			updatePayload.child_canvas_y = child_canvas_y;
+		}
+
+		if (Object.keys(updatePayload).length === 0) {
 			return {
 				type: 'error',
-				message: 'Invalid canvas coordinates'
+				message: 'No valid coordinates provided'
 			};
 		}
 
@@ -963,10 +998,7 @@ export const actions = {
 					...headers,
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({
-					canvas_x,
-					canvas_y
-				})
+				body: JSON.stringify(updatePayload)
 			});
 
 			if (!response.ok) {

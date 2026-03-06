@@ -1755,6 +1755,8 @@ class Node(models.Model):
     )
     canvas_x = models.FloatField(_("Canvas X"), null=True, blank=True)
     canvas_y = models.FloatField(_("Canvas Y"), null=True, blank=True)
+    child_canvas_x = models.FloatField(_("Child Canvas X"), null=True, blank=True)
+    child_canvas_y = models.FloatField(_("Child Canvas Y"), null=True, blank=True)
 
     flag = models.ForeignKey(
         Flags,
@@ -1793,6 +1795,8 @@ class Node(models.Model):
             models.Index(fields=["date"], name="idx_node_date"),
             models.Index(fields=["canvas_x"], name="idx_node_canvas_x"),
             models.Index(fields=["canvas_y"], name="idx_node_canvas_y"),
+            models.Index(fields=["child_canvas_x"], name="idx_node_child_canvas_x"),
+            models.Index(fields=["child_canvas_y"], name="idx_node_child_canvas_y"),
             gis_models.Index(fields=["geom"], name="idx_node_geom"),
             models.Index(fields=["flag"], name="idx_node_flag"),
             models.Index(fields=["project"], name="idx_node_project"),

@@ -20,6 +20,9 @@ export class NetworkSchemaState {
 	/** @type {string|null} - Parent node context for child view cables */
 	parentNodeContext = $state(null);
 
+	/** @type {boolean} - Whether currently in child view mode */
+	isChildView = $state(false);
+
 	/** @type {boolean} - Track if already initialized to prevent duplicate initialization */
 	#initialized = $state(false);
 
@@ -65,9 +68,18 @@ export class NetworkSchemaState {
 
 		return nodes.map((nodeOrFeature) => {
 			const node = nodeOrFeature.properties || nodeOrFeature;
-			let x = node.canvas_x;
-			let y = node.canvas_y;
 
+			// Select coordinates based on view mode
+			let x, y;
+			if (this.isChildView) {
+				x = node.child_canvas_x;
+				y = node.child_canvas_y;
+			} else {
+				x = node.canvas_x;
+				y = node.canvas_y;
+			}
+
+			// Fallback to geometry calculation if coordinates are null
 			if (x === null || y === null || x === undefined || y === undefined) {
 				const geometry = nodeOrFeature.geometry || node.geometry;
 				const [geoX, geoY] = geometry?.coordinates || [0, 0];
@@ -231,8 +243,13 @@ export class NetworkSchemaState {
 		try {
 			const formData = new FormData();
 			formData.append('nodeId', nodeId);
-			formData.append('canvas_x', newPosition.x.toString());
-			formData.append('canvas_y', newPosition.y.toString());
+			if (this.isChildView) {
+				formData.append('child_canvas_x', newPosition.x.toString());
+				formData.append('child_canvas_y', newPosition.y.toString());
+			} else {
+				formData.append('canvas_x', newPosition.x.toString());
+				formData.append('canvas_y', newPosition.y.toString());
+			}
 
 			const response = await fetch('?/saveNodeGeometry', {
 				method: 'POST',

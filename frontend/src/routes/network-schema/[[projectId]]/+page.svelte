@@ -39,6 +39,7 @@
 
 	// Initialize schema state when data is available
 	$effect(() => {
+		schemaState.isChildView = false;
 		schemaState.initialize(data);
 	});
 
