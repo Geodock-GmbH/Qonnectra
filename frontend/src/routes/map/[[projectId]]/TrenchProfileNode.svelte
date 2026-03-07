@@ -170,7 +170,7 @@
 		font-size: 9px;
 		font-weight: 500;
 		text-align: center;
-		color: var(--color-surface-900);
+		color: var(--color-primary-500);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;

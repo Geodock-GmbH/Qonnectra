@@ -127,9 +127,9 @@
 	<FloatingPanel
 		bind:open={trenchProfilePanelOpen}
 		title={m.title_trench_profile()}
-		width={800}
+		width={900}
 		height={600}
-		minWidth={500}
+		minWidth={600}
 		minHeight={400}
 		maxWidth={1920}
 		maxHeight={1080}
