@@ -5,7 +5,6 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { selectedFlag } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
 	let { projectId, conduitId, onTrenchClick, onTrenchesChange } = $props();
@@ -175,7 +174,7 @@
 	$effect(() => {
 		if (conduitId) {
 			fetchTrenches();
-		} else if (selectedFlag) {
+		} else {
 			emptyTable();
 		}
 	});

@@ -83,6 +83,11 @@ vi.mock('$env/static/public', () => ({
 	PUBLIC_API_URL: 'http://mock-api.test/'
 }));
 
+// Mock browser environment
+vi.mock('$app/environment', () => ({
+	browser: true
+}));
+
 // Mock the navigation
 vi.mock('$app/navigation', () => ({
 	goto: vi.fn()
@@ -92,7 +97,7 @@ vi.mock('$app/navigation', () => ({
 vi.mock('$app/stores', () => ({
 	page: {
 		subscribe: (callback) => {
-			callback({ url: { pathname: '/trench/1/1' } });
+			callback({ url: { pathname: '/trench/1/1' }, params: { projectId: '1', flagId: '1' } });
 			return { unsubscribe: vi.fn() };
 		}
 	},
@@ -274,9 +279,9 @@ vi.mock('$lib/components/ConduitCombobox.svelte', () => ({
 	}))
 }));
 
-vi.mock('$lib/components/FlagCombobox.svelte', () => ({
+vi.mock('$lib/components/GenericCombobox.svelte', () => ({
 	default: vi.fn().mockImplementation(() => ({
-		$$: { render: () => '<div data-testid="mock-flag-combobox"></div>' }
+		$$: { render: () => '<div data-testid="mock-generic-combobox"></div>' }
 	}))
 }));
 

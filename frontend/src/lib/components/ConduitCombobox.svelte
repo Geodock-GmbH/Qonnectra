@@ -41,6 +41,17 @@
 		}
 	});
 
+	// Clear selected conduit if it doesn't exist in the current conduit list
+	$effect(() => {
+		if (browser && conduits.length > 0 && $selectedConduit) {
+			const currentValue = Array.isArray($selectedConduit) ? $selectedConduit[0] : $selectedConduit;
+			const exists = conduits.some((c) => c.value === currentValue);
+			if (!exists) {
+				$selectedConduit = undefined;
+			}
+		}
+	});
+
 	function handleValueChange(e) {
 		$selectedConduit = e.value;
 	}

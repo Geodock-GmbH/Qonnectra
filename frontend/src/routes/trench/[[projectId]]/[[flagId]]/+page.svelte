@@ -1,6 +1,7 @@
 <script>
 	import { onMount, setContext, untrack } from 'svelte';
 	import { get } from 'svelte/store';
+	import { browser } from '$app/environment';
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
@@ -13,7 +14,7 @@
 	import { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte.js';
 	import { MapState } from '$lib/classes/MapState.svelte.js';
 	import ConduitCombobox from '$lib/components/ConduitCombobox.svelte';
-	import FlagCombobox from '$lib/components/FlagCombobox.svelte';
+	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import { zoomToFeature } from '$lib/map/searchUtils.js';
 	import {
@@ -49,6 +50,18 @@
 	import { createLinkedTrenchStyle } from '$lib/map/styles.js';
 
 	let { data } = $props();
+
+	// Sync stores from URL params on initial load to prevent navigation effect from redirecting
+	const urlProjectId = $page.params.projectId;
+	const urlFlagId = $page.params.flagId;
+	if (browser && urlProjectId && urlProjectId !== get(selectedProject)) {
+		selectedProject.set(urlProjectId);
+		// Clear conduit when project changed while away from this route
+		selectedConduit.set(undefined);
+	}
+	if (browser && urlFlagId && urlFlagId !== get(selectedFlag)?.[0]) {
+		selectedFlag.set([urlFlagId]);
+	}
 
 	const mapState = new MapState($selectedProject, get(trenchColorSelected), {
 		trench: true,
@@ -200,7 +213,7 @@
 		}
 	});
 
-	// Reinitialize map layers when project changes
+	// Reinitialize map layers and clear conduit when project changes
 	$effect(() => {
 		const currentProject = $selectedProject;
 		// Only reinitialize if project actually changed and map is ready
@@ -208,6 +221,7 @@
 			if (mapState.olMap && currentProject !== mapState.selectedProject) {
 				mapState.reinitializeForProject(currentProject);
 				selectionManager.clearSelection();
+				$selectedConduit = undefined;
 			}
 		});
 	});
@@ -583,10 +597,14 @@
 				<!-- Flag Selection -->
 				<div class="space-y-2">
 					<h3 class="text-sm font-medium">{m.form_flag()}</h3>
-					<FlagCombobox
-						flags={data.flags}
-						flagsError={data.flagsError}
-						onchange={handleFlagChange}
+					<GenericCombobox
+						data={data.flags}
+						error={data.flagsError}
+						errorMessage={data.flagsError}
+						bind:value={$selectedFlag}
+						defaultValue={$selectedFlag}
+						onValueChange={handleFlagChange}
+						placeholder={m.placeholder_select_flag()}
 					/>
 				</div>
 
