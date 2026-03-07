@@ -66,13 +66,13 @@
 			fill="var(--color-surface-400)"
 		/>
 
-		<!-- Main trench excavation area -->
+		<!-- Main trench excavation area (earth/brown tone) -->
 		<rect
 			x={WALL_WIDTH}
 			y={SURFACE_HEIGHT + GROUND_THICKNESS}
 			width={width - 2 * WALL_WIDTH}
 			height={height - SURFACE_HEIGHT - GROUND_THICKNESS - SAND_HEIGHT}
-			fill="var(--color-surface-500)"
+			fill="#78716c"
 		/>
 
 		<!-- Sand bed - full width of trench floor -->
