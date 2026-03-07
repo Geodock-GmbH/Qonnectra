@@ -4,7 +4,13 @@ import {
 	getNodeTypes,
 	getSurfaces
 } from '$lib/server/attributes';
-import { getMicroducts, getPipesInTrench, getTrenchesForConduit } from '$lib/server/conduitData';
+import {
+	getMicroducts,
+	getPipesInTrench,
+	getTrenchesForConduit,
+	getTrenchProfile,
+	saveTrenchProfilePosition
+} from '$lib/server/conduitData';
 import {
 	getFeatureDetailsByType,
 	getLayerExtent,
@@ -169,5 +175,33 @@ export const actions = {
 		const formData = await request.formData();
 		const nodeUuid = formData.get('nodeUuid');
 		return getFiberUsageInNode(fetch, cookies, nodeUuid);
+	},
+
+	getTrenchProfile: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const trenchUuid = formData.get('trenchUuid');
+
+		return getTrenchProfile(fetch, cookies, trenchUuid);
+	},
+
+	saveTrenchProfilePosition: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const trenchUuid = formData.get('trenchUuid');
+		const conduitUuid = formData.get('conduitUuid');
+		const canvasX = parseFloat(formData.get('canvasX'));
+		const canvasY = parseFloat(formData.get('canvasY'));
+		const canvasWidth = parseFloat(formData.get('canvasWidth') || '80');
+		const canvasHeight = parseFloat(formData.get('canvasHeight') || '80');
+
+		return saveTrenchProfilePosition(
+			fetch,
+			cookies,
+			trenchUuid,
+			conduitUuid,
+			canvasX,
+			canvasY,
+			canvasWidth,
+			canvasHeight
+		);
 	}
 };

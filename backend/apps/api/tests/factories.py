@@ -35,6 +35,7 @@ from apps.api.models import (
     Projects,
     StoragePreferences,
     Trench,
+    TrenchConduitCanvas,
     TrenchConduitConnection,
     WMSLayer,
     WMSSource,
@@ -431,3 +432,17 @@ class MicroductConnectionFactory(factory.django.DjangoModelFactory):
     uuid_microduct_to = factory.SubFactory(MicroductFactory)
     uuid_trench_to = factory.SubFactory(TrenchFactory)
     uuid_node = factory.SubFactory(NodeFactory)
+
+
+class TrenchConduitCanvasFactory(factory.django.DjangoModelFactory):
+    """Factory for TrenchConduitCanvas model."""
+
+    class Meta:
+        model = TrenchConduitCanvas
+
+    trench = factory.SubFactory(TrenchFactory)
+    conduit = factory.SubFactory(ConduitFactory)
+    canvas_x = factory.Faker("pyfloat", min_value=0, max_value=500)
+    canvas_y = factory.Faker("pyfloat", min_value=0, max_value=500)
+    canvas_width = 80.0
+    canvas_height = 80.0

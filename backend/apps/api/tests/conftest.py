@@ -27,6 +27,7 @@ from .factories import (
     ProjectFactory,
     StatusFactory,
     StoragePreferencesFactory,
+    TrenchConduitCanvasFactory,
     TrenchConduitConnectionFactory,
     TrenchFactory,
     WMSLayerFactory,
@@ -383,3 +384,9 @@ def wms_source(db, project):
 def wms_layer(db, wms_source):
     """Create a test WMS layer."""
     return WMSLayerFactory(source=wms_source)
+
+
+@pytest.fixture
+def trench_conduit_canvas(db):
+    """Create a test trench conduit canvas position."""
+    return TrenchConduitCanvasFactory()

@@ -258,6 +258,7 @@
 			onconnect={(conn) => schemaState.handleConnect(conn, $selectedProject)}
 			connectionRadius={100}
 			noPanClass="nopan"
+			minZoom={0.01}
 		>
 			<ViewportPersistence />
 			<Background class="z-0" bgColor="var(--color-surface-100-900) " />
