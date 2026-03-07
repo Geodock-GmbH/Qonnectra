@@ -467,6 +467,7 @@
 	"message_no_microducts_linked": "No microducts linked to this address",
 	"message_no_conduits_in_trenches": "No conduits in the selected trenches",
 	"message_no_component_types": "No component types available",
+	"message_no_conduits_found_in_trench": "No conduits found in this trench",
 	"message_no_conduit_selected_description": "Please select a conduit to calculate a route",
 	"message_no_conduits_found": "No conduits found",
 	"message_no_fiber_connections": "No fiber connections linked to this residential unit",

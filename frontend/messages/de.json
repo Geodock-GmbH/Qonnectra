@@ -465,6 +465,7 @@
 	"message_network_schema_settings_not_configured": "Die Netzschema-Einstellungen sind für dieses Projekt nicht konfiguriert. Bitte konfigurieren Sie diese im Admin-Bereich.",
 	"message_no_cables": "Keine Kabel an diesem Netzknoten",
 	"message_no_microducts_linked": "Keine Mikrorohre mit dieser Adresse verknüpft",
+	"message_no_conduits_found_in_trench": "Keine Leerrohre in diesem Graben gefunden",
 	"message_no_conduits_in_trenches": "Keine Leerrohre in den ausgewählten Gräben",
 	"message_no_component_types": "Keine Komponententypen verfügbar",
 	"message_no_conduit_selected_description": "Bitte wählen Sie ein Rohr aus, um eine Route zu berechnen",

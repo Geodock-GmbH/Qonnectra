@@ -1,6 +1,8 @@
 <script>
 	import { Controls, SvelteFlow, ViewportPortal } from '@xyflow/svelte';
 
+	import { m } from '$lib/paraglide/messages';
+
 	import { TrenchProfileState } from '$lib/classes/TrenchProfileState.svelte.js';
 
 	import TrenchProfileBackground from './TrenchProfileBackground.svelte';
@@ -65,7 +67,7 @@
 		</div>
 	{:else if profileState.nodes.length === 0}
 		<div class="empty-state">
-			<p>No conduits found in this trench.</p>
+			<p>{m.message_no_conduits_found_in_trench?.()}</p>
 		</div>
 	{:else}
 		<div class="flow-wrapper">
@@ -134,6 +136,6 @@
 		width: 100%;
 		height: 100%;
 		min-height: 400px;
-		color: var(--color-surface-500);
+		color: var(--color-surface-900-100);
 	}
 </style>
