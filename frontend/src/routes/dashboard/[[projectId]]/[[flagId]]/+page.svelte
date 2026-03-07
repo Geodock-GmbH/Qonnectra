@@ -149,10 +149,8 @@
 							{:else}
 								<div class="text-3xl font-extrabold text-surface-900-100">
 									{(
-										data.conduitLengthByType?.reduce(
-											(sum, item) => sum + (item.total || 0),
-											0
-										) / 1000
+										data.conduitLengthByType?.reduce((sum, item) => sum + (item.total || 0), 0) /
+										1000
 									).toLocaleString('de-DE', {
 										minimumFractionDigits: 2,
 										maximumFractionDigits: 2

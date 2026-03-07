@@ -9,13 +9,13 @@ import {
 	createTrenchStyle,
 	createTrenchStyleByAttribute
 } from '$lib/map/styles';
+import { tileLoadingManager } from '$lib/map/tileLoadingManager.js';
 import {
 	createAddressTileSource,
 	createAreaTileSource,
 	createNodeTileSource,
 	createTrenchTileSource
 } from '$lib/map/tileSources';
-import { tileLoadingManager } from '$lib/map/tileLoadingManager.js';
 import { getWorkerPool } from '$lib/map/workerPool.js';
 import {
 	getWMSLayerVisibility,
@@ -207,12 +207,21 @@ export class MapState {
 			return;
 		}
 
+		// Capture project at start of async operation
+		const projectAtStart = this.selectedProject;
+
 		try {
 			// Fetch access token and sources in parallel
 			const [accessToken, sources] = await Promise.all([
 				fetchWMSAccessToken(),
-				fetchWMSSources(this.selectedProject)
+				fetchWMSSources(projectAtStart)
 			]);
+
+			// Abort if project changed during fetch
+			if (this.selectedProject !== projectAtStart) {
+				return;
+			}
+
 			wmsSourcesData.set({ sources, loaded: true });
 
 			const newWmsLayers = [];
@@ -243,7 +252,7 @@ export class MapState {
 					const visibilityStore = get(wmsLayerVisibilityConfig);
 					const isVisible = getWMSLayerVisibility(
 						visibilityStore,
-						this.selectedProject,
+						projectAtStart,
 						layerId,
 						true
 					);
@@ -253,9 +262,14 @@ export class MapState {
 				}
 			}
 
+			// Final check before modifying state
+			if (this.selectedProject !== projectAtStart) {
+				return;
+			}
+
 			// Clean up stale visibility config entries for this project only
 			const currentVisibilityConfig = get(wmsLayerVisibilityConfig);
-			const projectConfig = currentVisibilityConfig[this.selectedProject] || {};
+			const projectConfig = currentVisibilityConfig[projectAtStart] || {};
 			const cleanedProjectConfig = {};
 			for (const [layerId, visible] of Object.entries(projectConfig)) {
 				if (validLayerIds.has(layerId)) {
@@ -264,7 +278,7 @@ export class MapState {
 			}
 			wmsLayerVisibilityConfig.set({
 				...currentVisibilityConfig,
-				[this.selectedProject]: cleanedProjectConfig
+				[projectAtStart]: cleanedProjectConfig
 			});
 
 			this.wmsLayers = newWmsLayers;
