@@ -101,7 +101,8 @@ export class TrenchProfileState {
 						conduit: {
 							uuid: conduit.conduit_uuid,
 							conduit_name: conduit.conduit_name,
-							conduit_type: conduit.conduit_type
+							conduit_type: conduit.conduit_type,
+							microducts: conduit.microducts || []
 						}
 					}
 				};

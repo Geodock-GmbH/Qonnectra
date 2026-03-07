@@ -1,9 +1,10 @@
 <script>
 	import { onMount } from 'svelte';
-	import { Background, Controls, SvelteFlow } from '@xyflow/svelte';
+	import { Controls, SvelteFlow } from '@xyflow/svelte';
 
 	import { TrenchProfileState } from '$lib/classes/TrenchProfileState.svelte.js';
 
+	import TrenchProfileBackground from './TrenchProfileBackground.svelte';
 	import TrenchProfileFitView from './TrenchProfileFitView.svelte';
 	import TrenchProfileNode from './TrenchProfileNode.svelte';
 
@@ -69,19 +70,21 @@
 			<p>No conduits found in this trench.</p>
 		</div>
 	{:else}
-		<SvelteFlow
-			bind:nodes={profileState.nodes}
-			edges={[]}
-			{nodeTypes}
-			onnodedragstop={handleNodeDragStop}
-			onnodeschange={handleNodesChange}
-			minZoom={0.1}
-			maxZoom={2}
-		>
-			<Background bgColor="var(--color-surface-100-900)" />
-			<Controls />
-			<TrenchProfileFitView />
-		</SvelteFlow>
+		<div class="flow-wrapper">
+			<TrenchProfileBackground />
+			<SvelteFlow
+				bind:nodes={profileState.nodes}
+				edges={[]}
+				{nodeTypes}
+				onnodedragstop={handleNodeDragStop}
+				onnodeschange={handleNodesChange}
+				minZoom={0.1}
+				maxZoom={2}
+			>
+				<Controls />
+				<TrenchProfileFitView />
+			</SvelteFlow>
+		</div>
 	{/if}
 </div>
 
@@ -90,6 +93,14 @@
 		width: 100%;
 		height: 100%;
 		min-height: 400px;
+	}
+
+	.flow-wrapper {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		min-height: 400px;
+		background: var(--color-surface-200);
 	}
 
 	.loading-overlay {
