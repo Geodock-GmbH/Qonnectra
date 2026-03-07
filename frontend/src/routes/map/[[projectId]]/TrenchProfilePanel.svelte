@@ -1,6 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
-	import { Controls, SvelteFlow } from '@xyflow/svelte';
+	import { Controls, SvelteFlow, ViewportPortal } from '@xyflow/svelte';
 
 	import { TrenchProfileState } from '$lib/classes/TrenchProfileState.svelte.js';
 
@@ -71,7 +71,6 @@
 		</div>
 	{:else}
 		<div class="flow-wrapper">
-			<TrenchProfileBackground />
 			<SvelteFlow
 				bind:nodes={profileState.nodes}
 				edges={[]}
@@ -81,6 +80,9 @@
 				minZoom={0.1}
 				maxZoom={2}
 			>
+				<ViewportPortal>
+					<TrenchProfileBackground />
+				</ViewportPortal>
 				<Controls />
 				<TrenchProfileFitView />
 			</SvelteFlow>
