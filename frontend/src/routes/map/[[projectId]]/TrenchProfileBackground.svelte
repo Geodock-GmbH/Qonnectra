@@ -105,25 +105,25 @@
 			/>
 		{/each}
 
-		<!-- Left wall hatching -->
-		{#each Array(Math.floor((height - SURFACE_HEIGHT - GROUND_THICKNESS) / 35)) as _, i}
+		<!-- Left wall hatching - diagonal lines filling the wall -->
+		{#each Array(Math.floor((height - SURFACE_HEIGHT - GROUND_THICKNESS + WALL_WIDTH) / 20) + 1) as _, i}
 			<line
-				x1={WALL_WIDTH - 30}
-				y1={SURFACE_HEIGHT + GROUND_THICKNESS + 20 + i * 35}
-				x2={WALL_WIDTH - 18}
-				y2={SURFACE_HEIGHT + GROUND_THICKNESS + 32 + i * 35}
+				x1={0}
+				y1={SURFACE_HEIGHT + GROUND_THICKNESS + i * 20}
+				x2={WALL_WIDTH}
+				y2={SURFACE_HEIGHT + GROUND_THICKNESS + i * 20 + WALL_WIDTH}
 				stroke="var(--color-surface-500)"
 				stroke-width="1.5"
 			/>
 		{/each}
 
-		<!-- Right wall hatching -->
-		{#each Array(Math.floor((height - SURFACE_HEIGHT - GROUND_THICKNESS) / 35)) as _, i}
+		<!-- Right wall hatching - diagonal lines filling the wall -->
+		{#each Array(Math.floor((height - SURFACE_HEIGHT - GROUND_THICKNESS + WALL_WIDTH) / 20) + 1) as _, i}
 			<line
-				x1={width - WALL_WIDTH + 30}
-				y1={SURFACE_HEIGHT + GROUND_THICKNESS + 20 + i * 35}
-				x2={width - WALL_WIDTH + 18}
-				y2={SURFACE_HEIGHT + GROUND_THICKNESS + 32 + i * 35}
+				x1={width - WALL_WIDTH}
+				y1={SURFACE_HEIGHT + GROUND_THICKNESS + i * 20}
+				x2={width}
+				y2={SURFACE_HEIGHT + GROUND_THICKNESS + i * 20 + WALL_WIDTH}
 				stroke="var(--color-surface-500)"
 				stroke-width="1.5"
 			/>
