@@ -330,7 +330,7 @@
 				<span class="results-label"
 					>{searchResults.length > filteredResults.length
 						? `/ ${searchResults.length}`
-						: 'results'}</span
+						: `${m.common_results({ count: searchResults.length })}`}</span
 				>
 				{#if searchResults.length >= FILTER_THRESHOLD}
 					<input

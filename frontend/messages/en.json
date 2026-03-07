@@ -85,7 +85,16 @@
 	"common_osm": "OpenStreetMap",
 	"common_overview": "Overview",
 	"common_reset": "Reset",
-	"common_results": "Results",
+	"common_results": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Result",
+				"countPlural=other": "Results"
+			}
+		}
+	],
 	"common_randomize_all": "Randomize All",
 	"common_reset_all": "Reset All",
 	"common_save": "Save",

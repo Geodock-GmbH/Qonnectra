@@ -340,7 +340,7 @@
 		<div class="flex items-center justify-between gap-4">
 			<span class="text-sm text-surface-600-400" data-testid="pagination-count">
 				{pagination.totalCount}
-				{m.common_results()}
+				{m.common_results({ count: pagination.totalCount })}
 			</span>
 			<Pagination
 				count={pagination.totalCount}
