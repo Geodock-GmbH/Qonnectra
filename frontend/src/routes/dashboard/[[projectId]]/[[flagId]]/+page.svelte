@@ -34,7 +34,7 @@
 	</Tabs.List>
 	<Tabs.Content value="stats">
 		<div class="space-y-6 max-w-6xl mx-auto">
-			<!-- Summary Cards Row -->
+			<!-- Summary Cards Grid -->
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 				<!-- Trench Statistics Card -->
 				<DashboardCard title={m.form_trench_statistics()}>
@@ -124,6 +124,182 @@
 									<div class="flex-1">
 										<div class="font-medium text-surface-900-100">
 											{item.node_type}
+										</div>
+									</div>
+									<div class="text-right">
+										<div class="font-bold text-lg text-surface-900-100">
+											{item.count}x
+										</div>
+									</div>
+								</div>
+							{/each}
+						{/if}
+					</div>
+				</DashboardCard>
+
+				<!-- Conduit Statistics Card -->
+				<DashboardCard title={m.form_conduit_statistics()}>
+					<div class="flex items-center gap-4 mb-6">
+						<div>
+							<h3 class="h4 font-semibold text-surface-900-100 mb-1">
+								{m.form_total_conduit_length()}
+							</h3>
+							{#if $navigating}
+								<div class="h-6 bg-surface-500 rounded animate-pulse w-20"></div>
+							{:else}
+								<div class="text-3xl font-extrabold text-surface-900-100">
+									{(
+										data.conduitLengthByType?.reduce(
+											(sum, item) => sum + (item.total || 0),
+											0
+										) / 1000
+									).toLocaleString('de-DE', {
+										minimumFractionDigits: 2,
+										maximumFractionDigits: 2
+									})} km
+								</div>
+							{/if}
+						</div>
+					</div>
+
+					<h4 class="h5 font-semibold text-surface-900-100 mb-4">
+						{m.form_breakdown_by_type()}
+					</h4>
+					<div class="space-y-3 overflow-auto max-h-[400px] pr-2">
+						{#if $navigating}
+							{#each Array(3) as _, i (i)}
+								<div class="h-16 bg-surface-500 rounded animate-pulse"></div>
+							{/each}
+						{:else}
+							{#each data.conduitLengthByType as item (item.type_name)}
+								<div
+									class="flex justify-between items-center p-3 rounded-lg border border-surface-200-800 hover:border-surface-200-800 hover:preset-filled-primary-500 transition-colors"
+								>
+									<div class="flex-1">
+										<div class="font-medium text-surface-900-100">
+											{item.type_name}
+										</div>
+									</div>
+									<div class="text-right">
+										<div class="font-bold text-lg text-surface-900-100">
+											{((item.total || 0) / 1000).toLocaleString('de-DE', {
+												minimumFractionDigits: 2,
+												maximumFractionDigits: 2
+											})} km
+										</div>
+									</div>
+								</div>
+							{/each}
+						{/if}
+					</div>
+				</DashboardCard>
+
+				<!-- Address Statistics Card -->
+				<DashboardCard title={m.form_address_statistics()}>
+					<div class="flex items-center gap-4 mb-6">
+						<div>
+							<h3 class="h4 font-semibold text-surface-900-100 mb-1">
+								{m.form_total_addresses()}
+							</h3>
+							{#if $navigating}
+								<div class="h-6 bg-surface-500 rounded animate-pulse w-16"></div>
+							{:else}
+								<div class="text-3xl font-extrabold text-surface-900-100">
+									{data.totalAddresses || 0}x
+								</div>
+							{/if}
+						</div>
+						<div>
+							<h3 class="h4 font-semibold text-surface-900-100 mb-1">
+								{m.form_total_units()}
+							</h3>
+							{#if $navigating}
+								<div class="h-6 bg-surface-500 rounded animate-pulse w-16"></div>
+							{:else}
+								<div class="text-3xl font-extrabold text-surface-900-100">
+									{data.totalUnits || 0}x
+								</div>
+							{/if}
+						</div>
+					</div>
+
+					<h4 class="h5 font-semibold text-surface-900-100 mb-4">
+						{m.form_breakdown_by_city()}
+					</h4>
+					<div class="space-y-3 overflow-auto max-h-[400px] pr-2">
+						{#if $navigating}
+							{#each Array(3) as _, i (i)}
+								<div class="h-16 bg-surface-500 rounded animate-pulse"></div>
+							{/each}
+						{:else}
+							{#each data.addressesByCity as item (item.city)}
+								<div
+									class="flex justify-between items-center p-3 rounded-lg border border-surface-200-800 hover:border-surface-200-800 hover:preset-filled-primary-500 transition-colors"
+								>
+									<div class="flex-1">
+										<div class="font-medium text-surface-900-100">
+											{item.city || m.common_unknown()}
+										</div>
+									</div>
+									<div class="text-right">
+										<div class="font-bold text-lg text-surface-900-100">
+											{item.count}x
+										</div>
+									</div>
+								</div>
+							{/each}
+						{/if}
+					</div>
+				</DashboardCard>
+
+				<!-- Area Statistics Card -->
+				<DashboardCard title={m.form_area_statistics()}>
+					<div class="flex items-center gap-4 mb-6">
+						<div>
+							<h3 class="h4 font-semibold text-surface-900-100 mb-1">
+								{m.form_area_total_count()}
+							</h3>
+							{#if $navigating}
+								<div class="h-6 bg-surface-500 rounded animate-pulse w-16"></div>
+							{:else}
+								<div class="text-3xl font-extrabold text-surface-900-100">
+									{data.areaCount || 0}x
+								</div>
+							{/if}
+						</div>
+						<div>
+							<h3 class="h4 font-semibold text-surface-900-100 mb-1">
+								{m.form_area_total_coverage()}
+							</h3>
+							{#if $navigating}
+								<div class="h-6 bg-surface-500 rounded animate-pulse w-20"></div>
+							{:else}
+								<div class="text-3xl font-extrabold text-surface-900-100">
+									{(data.totalCoverageKm2 || 0).toLocaleString('de-DE', {
+										minimumFractionDigits: 2,
+										maximumFractionDigits: 2
+									})} km²
+								</div>
+							{/if}
+						</div>
+					</div>
+
+					<h4 class="h5 font-semibold text-surface-900-100 mb-4">
+						{m.form_breakdown_by_type()}
+					</h4>
+					<div class="space-y-3 overflow-auto max-h-[400px] pr-2">
+						{#if $navigating}
+							{#each Array(3) as _, i (i)}
+								<div class="h-16 bg-surface-500 rounded animate-pulse"></div>
+							{/each}
+						{:else}
+							{#each data.areasByType as item (item.type_name)}
+								<div
+									class="flex justify-between items-center p-3 rounded-lg border border-surface-200-800 hover:border-surface-200-800 hover:preset-filled-primary-500 transition-colors"
+								>
+									<div class="flex-1">
+										<div class="font-medium text-surface-900-100">
+											{item.type_name || m.common_unknown()}
 										</div>
 									</div>
 									<div class="text-right">

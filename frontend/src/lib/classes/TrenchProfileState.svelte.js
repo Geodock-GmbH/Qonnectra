@@ -1,7 +1,8 @@
 import { deserialize } from '$app/forms';
 
-import { globalToaster } from '$lib/stores/toaster';
 import { m } from '$lib/paraglide/messages';
+
+import { globalToaster } from '$lib/stores/toaster';
 
 /**
  * State manager for the trench profile canvas

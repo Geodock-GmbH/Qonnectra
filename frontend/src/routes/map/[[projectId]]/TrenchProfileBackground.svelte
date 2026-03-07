@@ -15,7 +15,6 @@
 	const trenchLeft = WALL_WIDTH;
 	const trenchRight = $derived(width - WALL_WIDTH);
 	const trenchWidth = $derived(width - 2 * WALL_WIDTH);
-
 </script>
 
 <div
@@ -62,11 +61,10 @@
 				<stop offset="0%" stop-color="#6b5d4d" />
 				<stop offset="100%" stop-color="#5a4f42" />
 			</linearGradient>
-
 		</defs>
 
 		<!-- Sky with subtle gradient -->
-		<rect x="0" y="0" width={width} height={SURFACE_HEIGHT} fill="url(#skyGradient)" />
+		<rect x="0" y="0" {width} height={SURFACE_HEIGHT} fill="url(#skyGradient)" />
 
 		<!-- Horizon haze line -->
 		<line
@@ -80,19 +78,13 @@
 		/>
 
 		<!-- Topsoil layer (dark organic soil) -->
-		<rect
-			x="0"
-			y={GROUND_TOP}
-			width={width}
-			height={TOPSOIL_THICKNESS}
-			fill="url(#topsoilGradient)"
-		/>
+		<rect x="0" y={GROUND_TOP} {width} height={TOPSOIL_THICKNESS} fill="url(#topsoilGradient)" />
 
 		<!-- Subsoil layer (clay/mineral layer) -->
 		<rect
 			x="0"
 			y={TOPSOIL_BOTTOM}
-			width={width}
+			{width}
 			height={SUBSOIL_THICKNESS}
 			fill="url(#subsoilGradient)"
 		/>
@@ -194,7 +186,13 @@
 		/>
 
 		<!-- Sand bed with gradient -->
-		<rect x={trenchLeft} y={sandTop} width={trenchWidth} height={SAND_HEIGHT} fill="url(#sandGradient)" />
+		<rect
+			x={trenchLeft}
+			y={sandTop}
+			width={trenchWidth}
+			height={SAND_HEIGHT}
+			fill="url(#sandGradient)"
+		/>
 
 		<!-- Sand bed top border line -->
 		<line

@@ -146,7 +146,6 @@
 		loading = false;
 	}
 
-
 	/**
 	 * Adds routed trenches to the table, creating connections for new trenches
 	 * @param {Array<{value: string, label: string}>} routedTrenches - Array of trench objects to add
@@ -198,74 +197,118 @@
 	});
 </script>
 
-<div class="table-wrap">
-	<div class="mb-3">
-		<input
-			type="text"
-			class="input w-full"
-			placeholder={m.common_search()}
-			bind:value={searchTerm}
-		/>
-	</div>
-	<div class="overflow-x-auto">
-		<table class="table table-fixed caption-bottom w-full">
-			<thead>
-				<tr>
-					<th class="text-left">{m.form_trench_id()}</th>
-				</tr>
-			</thead>
-			<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">
-				{#each slicedSource as row}
-					<tr onclick={() => onTrenchClick?.(row.value, row.label)} class="touch-manipulation">
-						<td class="py-3 px-2">{row.label}</td>
-						<td class="text-right py-3 px-2">
-							<button
-								class="btn btn-sm touch-manipulation"
-								disabled={deletingIds.has(row.value)}
-								onclick={(e) => {
-									e.stopPropagation();
-									handleDelete(row.value);
-								}}
-							>
-								<IconTrash />
-							</button>
-						</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
+<div class="flex flex-col h-full">
+	<!-- Header with title and search -->
+	<div class="flex items-center gap-3 mb-3">
+		<h3 class="text-xs font-semibold text-surface-600-400 uppercase tracking-wide shrink-0">
+			{m.form_trench_id()}
+		</h3>
+		<div class="flex-1 relative">
+			<input
+				type="text"
+				class="input w-full text-sm pl-3 pr-8 py-1.5"
+				placeholder={m.common_search()}
+				bind:value={searchTerm}
+			/>
+			{#if searchTerm}
+				<button
+					type="button"
+					class="absolute right-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600 transition-colors"
+					onclick={() => (searchTerm = '')}
+					aria-label={m.common_search()}
+				>
+					<svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M6 18L18 6M6 6l12 12"
+						/>
+					</svg>
+				</button>
+			{/if}
+		</div>
 	</div>
 
-	<div class="mt-4">
-		<Pagination
-			data={trenches}
-			{page}
-			onPageChange={(e) => (page = e.page)}
-			pageSize={size}
-			onPageSizeChange={(e) => (size = e.pageSize)}
-			siblingCount={2}
-			alternative
-			{count}
-		>
-			<Pagination.PrevTrigger>
-				<IconArrowLeft class="size-4" />
-			</Pagination.PrevTrigger>
-			<Pagination.Context>
-				{#snippet children(pagination)}
-					{#each pagination().pages as pageItem, index (pageItem)}
-						{#if pageItem.type === 'page'}
-							<Pagination.Item {...pageItem}>
-								{pageItem.value}
-							</Pagination.Item>
-						{:else}
-							<Pagination.Ellipsis {index}>&#8230;</Pagination.Ellipsis>
-						{/if}
+	<!-- Table -->
+	<div class="flex-1 min-h-0 overflow-auto rounded-md border border-surface-200-800">
+		{#if loading}
+			<div class="flex items-center justify-center h-32">
+				<div class="animate-pulse text-surface-400 text-sm">{m.common_loading()}</div>
+			</div>
+		{:else if trenchesError}
+			<div class="flex items-center justify-center h-32 text-error-500 text-sm">
+				{trenchesError}
+			</div>
+		{:else if slicedSource.length === 0}
+			<div class="flex items-center justify-center h-32 text-surface-400 text-sm">
+				{searchTerm ? m.common_no_results() : m.message_no_trenches()}
+			</div>
+		{:else}
+			<table class="table table-fixed w-full">
+				<tbody class="divide-y divide-surface-200-800">
+					{#each slicedSource as row}
+						<tr
+							onclick={() => onTrenchClick?.(row.trench, row.label)}
+							class="group cursor-pointer hover:bg-surface-100-900 transition-colors touch-manipulation"
+						>
+							<td class="py-2.5 px-3 text-sm">{row.label}</td>
+							<td class="py-2.5 px-3 text-right w-12">
+								<button
+									class="btn btn-sm p-1.5 opacity-40 group-hover:opacity-100 transition-opacity hover:text-error-500"
+									disabled={deletingIds.has(row.value)}
+									onclick={(e) => {
+										e.stopPropagation();
+										handleDelete(row.value);
+									}}
+								>
+									<IconTrash class="size-4" />
+								</button>
+							</td>
+						</tr>
 					{/each}
-				{/snippet}
-			</Pagination.Context>
-			<Pagination.NextTrigger>
-				<IconArrowRight class="size-4" />
-			</Pagination.NextTrigger>
-		</Pagination>
+				</tbody>
+			</table>
+		{/if}
 	</div>
+
+	<!-- Pagination -->
+	{#if count > 0}
+		<div class="mt-3 flex items-center justify-between text-xs text-surface-500">
+			<span>{count} {m.common_items()}</span>
+			<Pagination
+				data={trenches}
+				{page}
+				onPageChange={(e) => (page = e.page)}
+				pageSize={size}
+				onPageSizeChange={(e) => (size = e.pageSize)}
+				siblingCount={1}
+				alternative
+				{count}
+			>
+				<Pagination.PrevTrigger class="p-1.5 hover:bg-surface-200-800 rounded transition-colors">
+					<IconArrowLeft class="size-4" />
+				</Pagination.PrevTrigger>
+				<Pagination.Context>
+					{#snippet children(pagination)}
+						{#each pagination().pages as pageItem, index (pageItem)}
+							{#if pageItem.type === 'page'}
+								<Pagination.Item
+									{...pageItem}
+									class="px-2 py-1 hover:bg-surface-200-800 rounded transition-colors data-selected:bg-primary-500 data-selected:text-white"
+								>
+									{pageItem.value}
+								</Pagination.Item>
+							{:else}
+								<Pagination.Ellipsis {index}>&#8230;</Pagination.Ellipsis>
+							{/if}
+						{/each}
+					{/snippet}
+				</Pagination.Context>
+				<Pagination.NextTrigger class="p-1.5 hover:bg-surface-200-800 rounded transition-colors">
+					<IconArrowRight class="size-4" />
+				</Pagination.NextTrigger>
+			</Pagination>
+		</div>
+	{/if}
 </div>

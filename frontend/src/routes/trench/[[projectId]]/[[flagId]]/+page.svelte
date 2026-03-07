@@ -572,75 +572,86 @@
 		{/if}
 	</div>
 	<div class="lg:col-span-4 border-2 rounded-lg border-surface-200-800 overflow-auto">
-		<div class="card p-4 flex flex-col gap-3">
-			<div class="space-y-4">
-				<!-- Routing Mode Toggle -->
-				<div
-					class="flex items-center border border-surface-200-800 p-4 justify-between bg-surface-50-900 rounded-lg"
-				>
-					<h3 class="text-sm font-medium">{m.form_routing_mode()}</h3>
-					<Switch
-						name="routing-mode"
-						checked={$routingMode}
-						onCheckedChange={() => {
-							$routingMode = !$routingMode;
-						}}
+		<div class="flex flex-col h-full">
+			<!-- Controls Section -->
+			<div class="p-4 space-y-5 border-b border-surface-200-800">
+				<!-- Mode Toggles - Compact row -->
+				<div class="grid grid-cols-2 gap-3">
+					<label
+						class="flex items-center gap-3 px-3 py-2.5 rounded-md bg-surface-100-900 cursor-pointer transition-colors hover:bg-surface-200-800"
 					>
-						<Switch.Control>
-							<Switch.Thumb />
-						</Switch.Control>
-						<Switch.HiddenInput />
-					</Switch>
-				</div>
+						<Switch
+							name="routing-mode"
+							checked={$routingMode}
+							onCheckedChange={() => {
+								$routingMode = !$routingMode;
+							}}
+						>
+							<Switch.Control class="scale-90">
+								<Switch.Thumb />
+							</Switch.Control>
+							<Switch.HiddenInput />
+						</Switch>
+						<span class=" font-medium leading-tight text-surface-900-100"
+							>{m.form_routing_mode()}</span
+						>
+					</label>
 
-				<!-- Show Linked Trenches Toggle -->
-				<div
-					class="flex items-center border border-surface-200-800 p-4 justify-between bg-surface-50-900 rounded-lg"
-				>
-					<h3 class="text-sm font-medium">{m.form_show_linked_trenches()}</h3>
-					<Switch
-						name="show-linked-trenches"
-						checked={$showLinkedTrenches}
-						onCheckedChange={() => {
-							$showLinkedTrenches = !$showLinkedTrenches;
-						}}
+					<label
+						class="flex items-center gap-3 px-3 py-2.5 rounded-md bg-surface-100-900 cursor-pointer transition-colors hover:bg-surface-200-800"
 					>
-						<Switch.Control>
-							<Switch.Thumb />
-						</Switch.Control>
-						<Switch.HiddenInput />
-					</Switch>
+						<Switch
+							name="show-linked-trenches"
+							checked={$showLinkedTrenches}
+							onCheckedChange={() => {
+								$showLinkedTrenches = !$showLinkedTrenches;
+							}}
+						>
+							<Switch.Control class="scale-90">
+								<Switch.Thumb />
+							</Switch.Control>
+							<Switch.HiddenInput />
+						</Switch>
+						<span class=" font-medium leading-tight text-surface-900-100"
+							>{m.form_show_linked_trenches()}</span
+						>
+					</label>
 				</div>
 
-				<!-- Flag Selection -->
-				<div class="space-y-2">
-					<h3 class="text-sm font-medium">{m.form_flag()}</h3>
-					<GenericCombobox
-						data={data.flags}
-						error={data.flagsError}
-						errorMessage={data.flagsError}
-						bind:value={$selectedFlag}
-						defaultValue={$selectedFlag}
-						onValueChange={handleFlagChange}
-						placeholder={m.placeholder_select_flag()}
-					/>
-				</div>
+				<!-- Selectors - Two column grid -->
+				<div class="grid grid-cols-2 gap-3">
+					<div class="space-y-1.5">
+						<span class="text-xs font-semibold text-surface-600-400 uppercase tracking-wide block"
+							>{m.form_flag()}</span
+						>
+						<GenericCombobox
+							data={data.flags}
+							error={data.flagsError}
+							errorMessage={data.flagsError}
+							bind:value={$selectedFlag}
+							defaultValue={$selectedFlag}
+							onValueChange={handleFlagChange}
+							placeholder={m.placeholder_select_flag()}
+						/>
+					</div>
 
-				<!-- Conduit Selection -->
-				<div class="space-y-2">
-					<h3 class="text-sm font-medium">{m.form_conduit({ count: 1 })}</h3>
-					<ConduitCombobox
-						loading={$navigating !== null}
-						conduits={data.conduits ?? []}
-						conduitsError={data.conduitsError}
-						projectId={$selectedProject}
-						flagId={$selectedFlag}
-					/>
+					<div class="space-y-1.5">
+						<span class="text-xs font-semibold text-surface-600-400 uppercase tracking-wide block"
+							>{m.form_conduit({ count: 1 })}</span
+						>
+						<ConduitCombobox
+							loading={$navigating !== null}
+							conduits={data.conduits ?? []}
+							conduitsError={data.conduitsError}
+							projectId={$selectedProject}
+							flagId={$selectedFlag}
+						/>
+					</div>
 				</div>
 			</div>
 
-			<!-- Trench Table -->
-			<div class="mt-4">
+			<!-- Trench Table Section -->
+			<div class="flex-1 min-h-0 p-4 overflow-auto">
 				<TrenchTable
 					projectId={$selectedProject}
 					conduitId={$selectedConduit}
