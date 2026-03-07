@@ -14,9 +14,17 @@
 	let loading = $state(false);
 	let page = $state(1);
 	let size = $state(10);
-	let count = $derived(size);
 	let deletingIds = $state(new Set());
-	const slicedSource = $derived(trenches.slice((page - 1) * size, page * size));
+	let searchTerm = $state('');
+
+	const filteredTrenches = $derived.by(() => {
+		if (!searchTerm.trim()) return trenches;
+		const term = searchTerm.toLowerCase();
+		return trenches.filter((trench) => trench.label?.toLowerCase().includes(term));
+	});
+
+	let count = $derived(filteredTrenches.length);
+	const slicedSource = $derived(filteredTrenches.slice((page - 1) * size, page * size));
 
 	/**
 	 * Fetches trench connections for the selected conduit
@@ -50,7 +58,6 @@
 			console.error('Error fetching trenches:', error);
 		} finally {
 			loading = false;
-			updateCount();
 			// Notify parent of trenches change for linked trenches highlight
 			onTrenchesChange?.(trenches);
 		}
@@ -139,12 +146,6 @@
 		loading = false;
 	}
 
-	/**
-	 * Updates the count derived value based on current trenches
-	 */
-	function updateCount() {
-		count = trenches.length;
-	}
 
 	/**
 	 * Adds routed trenches to the table, creating connections for new trenches
@@ -190,9 +191,22 @@
 			page = 1;
 		}
 	});
+
+	$effect(() => {
+		searchTerm;
+		page = 1;
+	});
 </script>
 
 <div class="table-wrap">
+	<div class="mb-3">
+		<input
+			type="text"
+			class="input w-full"
+			placeholder={m.common_search()}
+			bind:value={searchTerm}
+		/>
+	</div>
 	<div class="overflow-x-auto">
 		<table class="table table-fixed caption-bottom w-full">
 			<thead>
