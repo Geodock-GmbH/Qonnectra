@@ -1,5 +1,4 @@
 <script>
-	import { onMount } from 'svelte';
 	import { Controls, SvelteFlow, ViewportPortal } from '@xyflow/svelte';
 
 	import { TrenchProfileState } from '$lib/classes/TrenchProfileState.svelte.js';
@@ -16,21 +15,20 @@
 
 	const profileState = new TrenchProfileState();
 
-	onMount(() => {
-		if (trenchUuid) {
+	let previousTrenchUuid = $state(null);
+
+	$effect(() => {
+		if (trenchUuid && trenchUuid !== previousTrenchUuid) {
+			previousTrenchUuid = trenchUuid;
+			profileState.reset();
 			profileState.initialize(trenchUuid);
 		}
-
-		return () => {
-			profileState.reset();
-		};
 	});
 
 	$effect(() => {
-		if (trenchUuid && !profileState.initialized) {
+		return () => {
 			profileState.reset();
-			profileState.initialize(trenchUuid);
-		}
+		};
 	});
 
 	/**

@@ -19,9 +19,9 @@
 		const centerX = 50;
 		const centerY = 50;
 
-		if (microductCount <= 8) {
+		if (microductCount <= 6) {
 			// Circular layout for small counts
-			const radius = microductCount <= 4 ? 18 : 24;
+			const radius = microductCount <= 3 ? 15 : 20;
 			for (let i = 0; i < microductCount; i++) {
 				const angle = (i / microductCount) * 2 * Math.PI - Math.PI / 2;
 				const x = centerX + radius * Math.cos(angle);
@@ -32,16 +32,25 @@
 			// Grid layout for larger counts
 			const cols = Math.ceil(Math.sqrt(microductCount));
 			const rows = Math.ceil(microductCount / cols);
-			const spacing = 60 / Math.max(cols, rows);
-			const startX = centerX - ((cols - 1) * spacing) / 2;
-			const startY = centerY - ((rows - 1) * spacing) / 2;
+
+			// Calculate radius based on count
+			const radius = microductCount <= 12 ? 5 : microductCount <= 20 ? 4 : 3;
+
+			// Available space inside the pipe - inner radius is 38, need margin for microduct radius
+			const innerRadius = 38 - radius - 4;
+			const gridSize = innerRadius * 1.4; // Use ~70% of diameter for square grid in circle
+
+			const spacingX = cols > 1 ? gridSize / (cols - 1) : 0;
+			const spacingY = rows > 1 ? gridSize / (rows - 1) : 0;
+			const startX = centerX - gridSize / 2;
+			const startY = centerY - gridSize / 2;
 
 			for (let i = 0; i < microductCount; i++) {
 				const row = Math.floor(i / cols);
 				const col = i % cols;
 				positions.push({
-					x: startX + col * spacing,
-					y: startY + row * spacing,
+					x: cols === 1 ? centerX : startX + col * spacingX,
+					y: rows === 1 ? centerY : startY + row * spacingY,
 					mic: microducts[i]
 				});
 			}
@@ -50,7 +59,9 @@
 		return positions;
 	});
 
-	const microductRadius = $derived(microductCount <= 4 ? 7 : microductCount <= 12 ? 5 : 4);
+	const microductRadius = $derived(
+		microductCount <= 6 ? 6 : microductCount <= 12 ? 5 : microductCount <= 20 ? 4 : 3
+	);
 
 	const tooltipContent = $derived(
 		`${data?.conduit?.conduit_name || 'Unknown'} - ${data?.conduit?.conduit_type || 'No type'}`
