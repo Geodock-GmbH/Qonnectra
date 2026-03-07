@@ -376,6 +376,7 @@
 	"message_bundle_connected": "Connected {count} fibers",
 	"message_cable_connected": "Connected {count} fibers",
 	"message_cable_no_fibers": "Cable has no fibers",
+	"message_calculating_route": "Calculating route...",
 	"message_cannot_delete_node_children_have_cables": "This node cannot be deleted because its child nodes have connected cables. Please remove the cables from children first.",
 	"message_cannot_delete_node_has_cables": "This node cannot be deleted because it has connected cables. Please remove the cables first.",
 	"message_cannot_merge_different_sides": "Cannot merge ports from different sides",

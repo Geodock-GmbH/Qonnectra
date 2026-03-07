@@ -4,7 +4,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	const skipOverlayRoutes = ['/dashboard', '/map', '/trench', '/pipe-branch', '/house-connections'];
+	const skipOverlayRoutes = []; // '/dashboard', '/map', '/trench',
 
 	let isNavigating = $derived($navigating !== null);
 	let targetPath = $derived($navigating?.to?.route?.id || '');

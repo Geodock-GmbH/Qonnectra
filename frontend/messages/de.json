@@ -376,6 +376,7 @@
 	"message_bundle_connected": "{count} Fasern verbunden",
 	"message_cable_connected": "{count} Fasern verbunden",
 	"message_cable_no_fibers": "Kabel hat keine Fasern",
+	"message_calculating_route": "Route wird berechnet...",
 	"message_cannot_delete_node_children_have_cables": "Dieser Netzknoten kann nicht gelöscht werden, da untergeordnete Netzknoten verbundene Kabel haben. Bitte entferne zuerst die Kabel von den untergeordneten Netzknoten.",
 	"message_cannot_delete_node_has_cables": "Dieser Netzknoten kann nicht gelöscht werden, da Kabel verbunden sind. Bitte entferne zuerst die Kabel.",
 	"message_cannot_merge_different_sides": "Ports von verschiedenen Seiten können nicht zusammengeführt werden",

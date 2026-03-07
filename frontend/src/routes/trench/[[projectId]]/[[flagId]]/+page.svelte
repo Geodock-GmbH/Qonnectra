@@ -6,6 +6,7 @@
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
+	import { IconLoader2 } from '@tabler/icons-svelte';
 	import WKT from 'ol/format/WKT.js';
 	import VectorLayer from 'ol/layer/Vector.js';
 
@@ -83,6 +84,7 @@
 	let startTrenchId = $state(null);
 	let endTrenchId = $state(null);
 	let trenchTableInstance;
+	let isCalculatingRoute = $state(false);
 
 	/**
 	 * Handles flag change by clearing the selected conduit
@@ -357,6 +359,7 @@
 				endTrenchId = trenchId;
 				selectionManager.selectFeature(featureId, feature);
 
+				isCalculatingRoute = true;
 				try {
 					const formData = new FormData();
 					formData.append('startTrenchId', startTrenchId);
@@ -415,6 +418,8 @@
 					startTrenchId = null;
 					endTrenchId = null;
 					selectionManager.clearSelection();
+				} finally {
+					isCalculatingRoute = false;
 				}
 			}
 		} else {
@@ -528,7 +533,7 @@
 
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
 	<div
-		class="lg:col-span-8 border-2 rounded-lg border-surface-200-800 overflow-hidden min-h-[400px]"
+		class="lg:col-span-8 border-2 rounded-lg border-surface-200-800 overflow-hidden min-h-[400px] relative"
 	>
 		{#if layersInitialized}
 			<Map
@@ -550,6 +555,19 @@
 		{:else}
 			<div class="p-4 text-yellow-700 bg-yellow-100 border border-yellow-400 rounded">
 				<p>{m.message_error_could_not_load_map_tiles()}</p>
+			</div>
+		{/if}
+
+		{#if isCalculatingRoute}
+			<div class="absolute inset-0 bg-black/60 flex items-center justify-center z-50 rounded-lg">
+				<div
+					class="bg-white dark:bg-surface-800 p-6 rounded-xl flex items-center gap-4 shadow-2xl border border-surface-300 dark:border-surface-600"
+				>
+					<IconLoader2 class="size-8 animate-spin text-primary-500" />
+					<span class="font-semibold text-lg text-surface-900 dark:text-white"
+						>{m.message_calculating_route()}</span
+					>
+				</div>
 			</div>
 		{/if}
 	</div>
