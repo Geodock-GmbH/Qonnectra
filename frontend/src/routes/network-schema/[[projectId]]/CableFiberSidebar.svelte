@@ -3,12 +3,10 @@
 	import {
 		IconArrowLeft,
 		IconArrowRight,
-		IconBuilding,
 		IconChevronDown,
 		IconChevronLeft,
 		IconChevronRight,
-		IconGripVertical,
-		IconHome
+		IconGripVertical
 	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -329,7 +327,6 @@
 			{#if dataManager.addresses.length > 0}
 				<div class="mt-4 pt-4 border-t border-surface-300-700">
 					<h4 class="text-sm font-semibold mb-2 px-1 flex items-center gap-2">
-						<IconBuilding size={16} />
 						{m.form_addresses?.() || 'Addresses'}
 					</h4>
 					{#each dataManager.addresses as address (address.uuid)}
@@ -369,7 +366,6 @@
 												: 'hover:bg-primary-100 dark:hover:bg-primary-900/30'}"
 											onclick={() => handleMobileResidentialUnitClick(address, unit)}
 										>
-											<IconHome size={14} class="shrink-0 text-surface-500" />
 											<span class="text-sm">
 												{dataManager.getResidentialUnitDisplayName(unit)}
 											</span>
@@ -577,7 +573,6 @@
 				{#if dataManager.addresses.length > 0}
 					<div class="mt-4 pt-4 border-t border-(--color-surface-200-800)">
 						<h3 class="text-sm font-semibold mb-2 px-2 flex items-center gap-2">
-							<IconBuilding size={14} />
 							{m.form_addresses?.() || 'Addresses'}
 						</h3>
 
@@ -648,7 +643,6 @@
 															class="text-surface-400 shrink-0 cursor-grab"
 														/>
 													{/if}
-													<IconHome size={12} class="shrink-0 text-surface-500" />
 													<span class="text-[0.8125rem]">
 														{dataManager.getResidentialUnitDisplayName(unit)}
 													</span>
