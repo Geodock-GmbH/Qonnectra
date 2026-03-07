@@ -10,17 +10,20 @@ import { getWorkerPool } from './workerPool.js';
  */
 export function setupNavigationCancellation() {
 	beforeNavigate(({ from, to }) => {
-		// Only pause if navigating to a different page (not same page with different params)
 		const fromPath = from?.route?.id;
 		const toPath = to?.route?.id;
 		const isDifferentPage = fromPath !== toPath;
 
-		// Cancel all pending fetch requests (pause only if leaving the page)
-		tileLoadingManager.cancelAllRequests(isDifferentPage);
+		// Only cancel requests when actually leaving the page.
+		// Same-page navigations (e.g. project switch on /map) should NOT cancel
+		// tile requests — reinitializeForProject() replaces the sources and
+		// old requests are harmless.
+		if (isDifferentPage) {
+			tileLoadingManager.cancelAllRequests(true);
 
-		// Cancel all pending worker parse requests
-		const workerPool = getWorkerPool();
-		workerPool.cancelAllRequests();
+			const workerPool = getWorkerPool();
+			workerPool.cancelAllRequests();
+		}
 	});
 
 	afterNavigate(() => {
