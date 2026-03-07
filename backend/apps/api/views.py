@@ -74,6 +74,7 @@ from .models import (
     QGISProject,
     ResidentialUnit,
     Trench,
+    TrenchConduitCanvas,
     TrenchConduitConnection,
     WMSLayer,
     WMSSource,
@@ -131,6 +132,7 @@ from .serializers import (
     NodeTrenchSelectionSerializer,
     ProjectsSerializer,
     ResidentialUnitSerializer,
+    TrenchConduitCanvasSerializer,
     TrenchConduitSerializer,
     TrenchSerializer,
     WMSLayerSerializer,
@@ -1405,6 +1407,92 @@ class TrenchConduitConnectionViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(uuid_conduit__name__icontains=name)
 
         return queryset
+
+
+class TrenchConduitCanvasViewSet(viewsets.ModelViewSet):
+    """ViewSet for TrenchConduitCanvas model.
+
+    Manages canvas positions for conduits in trench profile view.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = TrenchConduitCanvas.objects.all()
+    serializer_class = TrenchConduitCanvasSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        """Filter by trench UUID if provided."""
+        queryset = TrenchConduitCanvas.objects.select_related(
+            "conduit", "conduit__conduit_type"
+        )
+        trench_uuid = self.request.query_params.get("trench")
+        if trench_uuid:
+            queryset = queryset.filter(trench__uuid=trench_uuid)
+        return queryset
+
+    @action(detail=False, methods=["post"], url_path="bulk-save")
+    def bulk_save(self, request):
+        """Save multiple canvas positions at once."""
+        positions = request.data.get("positions", [])
+        trench_uuid = request.data.get("trench")
+
+        if not trench_uuid:
+            return Response(
+                {"error": "trench UUID is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        results = []
+        for pos in positions:
+            obj, created = TrenchConduitCanvas.objects.update_or_create(
+                trench_id=trench_uuid,
+                conduit_id=pos.get("conduit"),
+                defaults={
+                    "canvas_x": pos.get("canvas_x"),
+                    "canvas_y": pos.get("canvas_y"),
+                    "canvas_width": pos.get("canvas_width", 80),
+                    "canvas_height": pos.get("canvas_height", 80),
+                },
+            )
+            results.append(TrenchConduitCanvasSerializer(obj).data)
+
+        return Response(results, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["get"], url_path="profile/(?P<trench_uuid>[^/.]+)")
+    def profile(self, request, trench_uuid=None):
+        """Get all conduits for a trench with their canvas positions."""
+        connections = TrenchConduitConnection.objects.filter(
+            uuid_trench__uuid=trench_uuid
+        ).select_related("uuid_conduit", "uuid_conduit__conduit_type")
+
+        canvas_positions = {
+            pos.conduit_id: pos
+            for pos in TrenchConduitCanvas.objects.filter(trench__uuid=trench_uuid)
+        }
+
+        result = []
+        for conn in connections:
+            conduit = conn.uuid_conduit
+            canvas_pos = canvas_positions.get(conduit.uuid)
+
+            result.append(
+                {
+                    "conduit_uuid": str(conduit.uuid),
+                    "conduit_name": conduit.name,
+                    "conduit_type": (
+                        conduit.conduit_type.conduit_type
+                        if conduit.conduit_type
+                        else None
+                    ),
+                    "canvas_x": canvas_pos.canvas_x if canvas_pos else None,
+                    "canvas_y": canvas_pos.canvas_y if canvas_pos else None,
+                    "canvas_width": canvas_pos.canvas_width if canvas_pos else 80,
+                    "canvas_height": canvas_pos.canvas_height if canvas_pos else 80,
+                    "has_saved_position": canvas_pos is not None,
+                }
+            )
+
+        return Response(result)
 
 
 class AddressViewSet(viewsets.ModelViewSet):

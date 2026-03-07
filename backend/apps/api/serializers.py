@@ -48,9 +48,10 @@ from .models import (
     Projects,
     ResidentialUnit,
     Trench,
+    TrenchConduitCanvas,
+    TrenchConduitConnection,
     WMSLayer,
     WMSSource,
-    TrenchConduitConnection,
 )
 
 
@@ -611,6 +612,30 @@ class TrenchConduitSerializer(serializers.ModelSerializer):
         fields["conduit"].label = _("Conduit")
 
         return fields
+
+
+class TrenchConduitCanvasSerializer(serializers.ModelSerializer):
+    """Serializer for TrenchConduitCanvas model."""
+
+    conduit_name = serializers.CharField(source="conduit.name", read_only=True)
+    conduit_type_name = serializers.CharField(
+        source="conduit.conduit_type.conduit_type", read_only=True
+    )
+
+    class Meta:
+        model = TrenchConduitCanvas
+        fields = [
+            "uuid",
+            "trench",
+            "conduit",
+            "canvas_x",
+            "canvas_y",
+            "canvas_width",
+            "canvas_height",
+            "conduit_name",
+            "conduit_type_name",
+        ]
+        read_only_fields = ["uuid", "conduit_name", "conduit_type_name"]
 
 
 class AddressSerializer(GeoFeatureModelSerializer):

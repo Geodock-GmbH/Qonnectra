@@ -101,3 +101,93 @@ export async function getTrenchesForConduit(fetch, cookies, conduitId) {
 		return fail(500, { error: 'Internal server error' });
 	}
 }
+
+/**
+ * Fetch trench profile data (conduits with canvas positions)
+ * @param {typeof fetch} fetch - SvelteKit fetch
+ * @param {import('@sveltejs/kit').Cookies} cookies - SvelteKit cookies
+ * @param {string} trenchUuid - UUID of the trench
+ * @returns {Promise<Object>} The profile data or failure response
+ */
+export async function getTrenchProfile(fetch, cookies, trenchUuid) {
+	if (!trenchUuid) {
+		return fail(400, { error: 'Trench UUID is required' });
+	}
+
+	try {
+		const headers = getAuthHeaders(cookies);
+		const backendUrl = `${API_URL}trench-conduit-canvas/profile/${trenchUuid}/`;
+
+		const response = await fetch(backendUrl, {
+			method: 'GET',
+			headers
+		});
+
+		if (!response.ok) {
+			return fail(response.status, { error: 'Failed to get trench profile' });
+		}
+
+		const data = await response.json();
+		return data;
+	} catch (error) {
+		console.error('Error getting trench profile:', error);
+		return fail(500, { error: 'Internal server error' });
+	}
+}
+
+/**
+ * Save canvas position for a conduit in trench profile
+ * @param {typeof fetch} fetch - SvelteKit fetch
+ * @param {import('@sveltejs/kit').Cookies} cookies - SvelteKit cookies
+ * @param {string} trenchUuid - UUID of the trench
+ * @param {string} conduitUuid - UUID of the conduit
+ * @param {number} canvasX - X position
+ * @param {number} canvasY - Y position
+ * @param {number} canvasWidth - Width
+ * @param {number} canvasHeight - Height
+ * @returns {Promise<Object>} The saved data or failure response
+ */
+export async function saveTrenchProfilePosition(
+	fetch,
+	cookies,
+	trenchUuid,
+	conduitUuid,
+	canvasX,
+	canvasY,
+	canvasWidth,
+	canvasHeight
+) {
+	try {
+		const headers = getAuthHeaders(cookies);
+		headers['Content-Type'] = 'application/json';
+
+		const backendUrl = `${API_URL}trench-conduit-canvas/bulk-save/`;
+
+		const response = await fetch(backendUrl, {
+			method: 'POST',
+			headers,
+			body: JSON.stringify({
+				trench: trenchUuid,
+				positions: [
+					{
+						conduit: conduitUuid,
+						canvas_x: canvasX,
+						canvas_y: canvasY,
+						canvas_width: canvasWidth,
+						canvas_height: canvasHeight
+					}
+				]
+			})
+		});
+
+		if (!response.ok) {
+			return fail(response.status, { error: 'Failed to save position' });
+		}
+
+		const data = await response.json();
+		return data;
+	} catch (error) {
+		console.error('Error saving trench profile position:', error);
+		return fail(500, { error: 'Internal server error' });
+	}
+}

@@ -63,6 +63,7 @@ from .views import (
     QGISAuthView,
     ResidentialUnitViewSet,
     RoutingView,
+    TrenchConduitCanvasViewSet,
     TrenchConduitConnectionViewSet,
     TrenchesNearNodeView,
     TrenchViewSet,
@@ -191,6 +192,11 @@ router.register(
     r"trench_conduit_connection",
     TrenchConduitConnectionViewSet,
     basename="trench_conduit_connection",
+)
+router.register(
+    r"trench-conduit-canvas",
+    TrenchConduitCanvasViewSet,
+    basename="trench-conduit-canvas",
 )
 router.register(r"logs", LogEntryViewSet, basename="logs")
 router.register(

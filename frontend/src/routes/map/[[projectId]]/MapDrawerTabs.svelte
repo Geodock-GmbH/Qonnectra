@@ -1,5 +1,5 @@
 <script>
-	import { IconLayoutList, IconSettings } from '@tabler/icons-svelte';
+	import { IconLayoutGrid, IconLayoutList, IconSettings } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -12,6 +12,7 @@
 	import NodeSlotConfigPanel from '../../network-schema/[[projectId]]/NodeSlotConfigPanel.svelte';
 	import NodeStructurePanel from '../../network-schema/[[projectId]]/NodeStructurePanel.svelte';
 	import MapConduitAccordion from './MapConduitAccordion.svelte';
+	import TrenchProfilePanel from './TrenchProfilePanel.svelte';
 
 	/**
 	 * @typedef {Object} Props
@@ -40,6 +41,9 @@
 	let structurePanelOpen = $state(false);
 	let structurePanelSlotConfigUuid = $state(null);
 
+	// Panel state for trench profile
+	let trenchProfilePanelOpen = $state(false);
+
 	// Shared state for slot configurations - allows both panels to stay in sync
 	let sharedSlotState = $state({
 		slotConfigurations: [],
@@ -49,6 +53,7 @@
 	const tabItems = $derived([
 		{ value: 'attributes', label: m.common_attributes() },
 		...(featureType === 'trench' ? [{ value: 'conduits', label: m.form_conduit_overview() }] : []),
+		...(featureType === 'trench' ? [{ value: 'actions', label: m.form_actions() }] : []),
 		...(featureType === 'node' ? [{ value: 'actions', label: m.form_actions() }] : []),
 		{ value: 'files', label: m.form_attachments() }
 	]);
@@ -74,6 +79,19 @@
 
 	{#if activeTab === 'conduits' && featureType === 'trench'}
 		<MapConduitAccordion {featureId} />
+	{/if}
+
+	{#if activeTab === 'actions' && featureType === 'trench'}
+		<div class="space-y-4">
+			<button
+				type="button"
+				class="btn preset-filled-primary-500 w-full"
+				onclick={() => (trenchProfilePanelOpen = true)}
+			>
+				<IconLayoutGrid size={18} />
+				{m.action_view_trench_profile()}
+			</button>
+		</div>
 	{/if}
 
 	{#if activeTab === 'actions' && featureType === 'node'}
@@ -104,6 +122,21 @@
 		</div>
 	{/if}
 </Tabs>
+
+{#if featureType === 'trench'}
+	<FloatingPanel
+		bind:open={trenchProfilePanelOpen}
+		title={m.title_trench_profile()}
+		width={800}
+		height={600}
+		minWidth={500}
+		minHeight={400}
+		maxWidth={1920}
+		maxHeight={1080}
+	>
+		<TrenchProfilePanel trenchUuid={featureId} />
+	</FloatingPanel>
+{/if}
 
 {#if featureType === 'node'}
 	<FloatingPanel

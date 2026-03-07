@@ -1489,6 +1489,46 @@ class TrenchConduitConnection(models.Model):
         ]
 
 
+class TrenchConduitCanvas(models.Model):
+    """Stores canvas position and size for conduits in trench profile view."""
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    trench = models.ForeignKey(
+        Trench,
+        on_delete=models.CASCADE,
+        related_name="canvas_conduits",
+        verbose_name=_("Trench"),
+    )
+    conduit = models.ForeignKey(
+        Conduit,
+        on_delete=models.CASCADE,
+        related_name="canvas_positions",
+        verbose_name=_("Conduit"),
+    )
+    canvas_x = models.FloatField(_("Canvas X"), null=True, blank=True)
+    canvas_y = models.FloatField(_("Canvas Y"), null=True, blank=True)
+    canvas_width = models.FloatField(_("Canvas Width"), default=80)
+    canvas_height = models.FloatField(_("Canvas Height"), default=80)
+
+    class Meta:
+        db_table = "trench_conduit_canvas"
+        verbose_name = _("Trench Conduit Canvas Position")
+        verbose_name_plural = _("Trench Conduit Canvas Positions")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["trench", "conduit"],
+                name="unique_trench_conduit_canvas",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["trench"], name="idx_trench_canvas_trench"),
+            models.Index(fields=["conduit"], name="idx_trench_canvas_conduit"),
+        ]
+
+    def __str__(self):
+        return f"{self.trench} - {self.conduit}"
+
+
 class Address(models.Model):
     """Stores all addresses,
     related to :model:`api.Nodes`,
