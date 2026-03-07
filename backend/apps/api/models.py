@@ -3662,6 +3662,25 @@ class FiberSplice(models.Model):
         help_text=_("The cable of shared fiber B (denormalized for CASCADE delete)."),
     )
 
+    residential_unit_a = models.ForeignKey(
+        "ResidentialUnit",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="splices_as_a",
+        verbose_name=_("Residential Unit A"),
+        help_text=_("Residential unit connected on side A (endpoint)."),
+    )
+    residential_unit_b = models.ForeignKey(
+        "ResidentialUnit",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="splices_as_b",
+        verbose_name=_("Residential Unit B"),
+        help_text=_("Residential unit connected on side B (endpoint)."),
+    )
+
     history = HistoricalRecords()
 
     class Meta:

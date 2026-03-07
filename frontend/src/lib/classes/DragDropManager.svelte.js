@@ -169,6 +169,88 @@ export class DragDropManager {
 	}
 
 	/**
+	 * Start dragging an address (with all its residential units for bulk drop)
+	 * @param {Event} e - Drag event
+	 * @param {Object} address
+	 * @param {Array<Object>} residentialUnits
+	 */
+	startAddressDrag(e, address, residentialUnits) {
+		const dragData = {
+			type: 'address',
+			uuid: address.uuid,
+			display: this.#getAddressDisplay(address),
+			unit_count: residentialUnits.length,
+			residential_units: residentialUnits.map((ru) => ({
+				uuid: ru.uuid,
+				id_residential_unit: ru.id_residential_unit,
+				external_id_1: ru.external_id_1,
+				external_id_2: ru.external_id_2,
+				floor: ru.floor,
+				side: ru.side,
+				resident_name: ru.resident_name
+			}))
+		};
+		e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+		e.dataTransfer.effectAllowed = 'copy';
+		this.startDrag(dragData);
+	}
+
+	/**
+	 * Start dragging a single residential unit
+	 * @param {Event} e - Drag event
+	 * @param {Object} address
+	 * @param {Object} residentialUnit
+	 */
+	startResidentialUnitDrag(e, address, residentialUnit) {
+		e.stopPropagation();
+		const dragData = {
+			type: 'residential_unit',
+			uuid: residentialUnit.uuid,
+			address_uuid: address.uuid,
+			address_display: this.#getAddressDisplay(address),
+			id_residential_unit: residentialUnit.id_residential_unit,
+			display_name: this.#getResidentialUnitDisplayName(residentialUnit),
+			resident_name: residentialUnit.resident_name
+		};
+		e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+		e.dataTransfer.effectAllowed = 'copy';
+		this.startDrag(dragData);
+	}
+
+	/**
+	 * Get address display string (private helper)
+	 * @param {Object} address
+	 * @returns {string}
+	 */
+	#getAddressDisplay(address) {
+		let display = address.street + ' ' + address.housenumber;
+		if (address.house_number_suffix) {
+			display += address.house_number_suffix;
+		}
+		return display;
+	}
+
+	/**
+	 * Get residential unit display name (private helper)
+	 * @param {Object} ru
+	 * @returns {string}
+	 */
+	#getResidentialUnitDisplayName(ru) {
+		let main = ru.id_residential_unit || 'Unit';
+		if (ru.external_id_1) {
+			main += ` (${ru.external_id_1})`;
+		} else if (ru.external_id_2) {
+			main += ` (${ru.external_id_2})`;
+		} else if (ru.floor || ru.side) {
+			const parts = [];
+			if (ru.floor) parts.push(`${ru.floor}. OG`);
+			if (ru.side) parts.push(ru.side);
+			if (parts.length) main += ` (${parts.join(' ')})`;
+		}
+		return main;
+	}
+
+	/**
 	 * Update drop preview for slot grid
 	 * @param {number} slotNumber - Target slot number
 	 * @param {number} totalSlots - Total slots in config
@@ -320,6 +402,24 @@ export class DragDropManager {
 			fiber_number: fiber.fiber_number_absolute,
 			fiber_color: fiber.fiber_color,
 			name: `${cable.name} - ${m.form_fiber()} ${fiber.fiber_number_absolute}`
+		};
+	}
+
+	/**
+	 * Select a residential unit for mobile placement
+	 * @param {Object} address
+	 * @param {Object} residentialUnit
+	 */
+	selectMobileResidentialUnit(address, residentialUnit) {
+		this.mobileSelectedItem = {
+			type: 'residential_unit',
+			uuid: residentialUnit.uuid,
+			address_uuid: address.uuid,
+			address_display: this.#getAddressDisplay(address),
+			id_residential_unit: residentialUnit.id_residential_unit,
+			display_name: this.#getResidentialUnitDisplayName(residentialUnit),
+			resident_name: residentialUnit.resident_name,
+			name: this.#getResidentialUnitDisplayName(residentialUnit)
 		};
 	}
 

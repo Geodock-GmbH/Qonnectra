@@ -1593,6 +1593,74 @@ class ResidentialUnitViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(unit)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["get"], url_path="fiber-connections")
+    def fiber_connections(self, request, pk=None):
+        """
+        Get all fiber connections for this residential unit.
+        Returns fiber details from fiber splices where this unit is connected.
+        """
+        unit = self.get_object()
+        connections = []
+
+        color_map = {}
+        for color in AttributesFiberColor.objects.filter(is_active=True):
+            color_map[color.name_de] = color.hex_code
+            color_map[color.name_en] = color.hex_code
+
+        splices = FiberSplice.objects.filter(
+            Q(residential_unit_a=unit) | Q(residential_unit_b=unit)
+        ).select_related(
+            "node_structure__uuid_node",
+            "fiber_a",
+            "cable_a",
+            "fiber_b",
+            "cable_b",
+            "shared_fiber_a",
+            "shared_cable_a",
+            "shared_fiber_b",
+            "shared_cable_b",
+        )
+
+        for splice in splices:
+            fiber = None
+            cable = None
+
+            if splice.residential_unit_b == unit:
+                if splice.merge_group_a and splice.shared_fiber_a:
+                    fiber = splice.shared_fiber_a
+                    cable = splice.shared_cable_a
+                else:
+                    fiber = splice.fiber_a
+                    cable = splice.cable_a
+            elif splice.residential_unit_a == unit:
+                if splice.merge_group_b and splice.shared_fiber_b:
+                    fiber = splice.shared_fiber_b
+                    cable = splice.shared_cable_b
+                else:
+                    fiber = splice.fiber_b
+                    cable = splice.cable_b
+
+            if fiber and cable:
+                node_name = ""
+                if splice.node_structure and splice.node_structure.uuid_node:
+                    node_name = splice.node_structure.uuid_node.name or ""
+
+                connections.append(
+                    {
+                        "node_name": node_name,
+                        "cable_name": cable.name,
+                        "fiber_number_absolute": fiber.fiber_number_absolute,
+                        "bundle_number": fiber.bundle_number,
+                        "bundle_color": fiber.bundle_color,
+                        "bundle_color_hex": color_map.get(fiber.bundle_color, "#999999"),
+                        "fiber_number": fiber.fiber_number_in_bundle,
+                        "fiber_color": fiber.fiber_color,
+                        "fiber_color_hex": color_map.get(fiber.fiber_color, "#999999"),
+                    }
+                )
+
+        return Response(connections)
+
 
 class OlAddressTileViewSet(APIView):
     """ViewSet for the OlAddress model :model:`api.OlAddress`.
@@ -2099,6 +2167,63 @@ class NodeViewSet(viewsets.ModelViewSet):
             }
 
         return Response(data)
+
+    @action(detail=True, methods=["get"])
+    def addresses(self, request, pk=None):
+        """Get addresses linked to this node with their residential units."""
+        node = self.get_object()
+        if not node.uuid_address:
+            return Response({"addresses": []})
+
+        address = node.uuid_address
+        residential_units = address.residential_units.all().order_by("id_residential_unit")
+
+        return Response(
+            {
+                "addresses": [
+                    {
+                        "uuid": str(address.uuid),
+                        "street": address.street,
+                        "housenumber": address.housenumber,
+                        "house_number_suffix": address.house_number_suffix or "",
+                        "residential_units": [
+                            {
+                                "uuid": str(ru.uuid),
+                                "id_residential_unit": ru.id_residential_unit,
+                                "external_id_1": ru.external_id_1,
+                                "external_id_2": ru.external_id_2,
+                                "floor": ru.floor,
+                                "side": ru.side,
+                                "resident_name": ru.resident_name,
+                            }
+                            for ru in residential_units
+                        ],
+                    }
+                ]
+            }
+        )
+
+    @action(detail=True, methods=["get"], url_path="used-residential-units")
+    def used_residential_units(self, request, pk=None):
+        """Get residential unit UUIDs that are connected in splices at this node."""
+        node = self.get_object()
+
+        # Get all structures for this node
+        structures = NodeStructure.objects.filter(
+            slot_configuration__uuid_node=node
+        ).values_list("uuid", flat=True)
+
+        # Get used residential units from splices
+        splices = FiberSplice.objects.filter(node_structure__in=structures)
+
+        used_uuids = set()
+        for splice in splices:
+            if splice.residential_unit_a:
+                used_uuids.add(str(splice.residential_unit_a.uuid))
+            if splice.residential_unit_b:
+                used_uuids.add(str(splice.residential_unit_b.uuid))
+
+        return Response({"used_uuids": list(used_uuids)})
 
 
 class NodeCanvasCoordinatesView(APIView):
@@ -4119,17 +4244,30 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
 
         If the port is part of a merge group on this side,
         the fiber becomes a SHARED fiber for all ports in the group.
+
+        Can also connect a residential unit instead of a fiber/cable pair.
         """
         node_structure_uuid = request.data.get("node_structure")
         port_number = request.data.get("port_number")
         side = request.data.get("side")  # 'a' or 'b'
         fiber_uuid = request.data.get("fiber_uuid")
         cable_uuid = request.data.get("cable_uuid")
+        residential_unit_uuid = request.data.get("residential_unit_uuid")
 
-        if not all([node_structure_uuid, port_number, side, fiber_uuid, cable_uuid]):
+        # Must have node_structure, port_number, side, and either fiber/cable OR residential_unit
+        if not all([node_structure_uuid, port_number, side]):
+            return Response(
+                {"error": "node_structure, port_number, and side are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        has_fiber = fiber_uuid and cable_uuid
+        has_residential_unit = residential_unit_uuid
+
+        if not has_fiber and not has_residential_unit:
             return Response(
                 {
-                    "error": "node_structure, port_number, side, fiber_uuid, and cable_uuid are required"
+                    "error": "Either fiber_uuid/cable_uuid or residential_unit_uuid is required"
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -4146,36 +4284,57 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
                 {"error": "Node structure not found"}, status=status.HTTP_404_NOT_FOUND
             )
 
+        # Validate residential unit if provided
+        residential_unit = None
+        if residential_unit_uuid:
+            try:
+                residential_unit = ResidentialUnit.objects.get(uuid=residential_unit_uuid)
+            except ResidentialUnit.DoesNotExist:
+                return Response(
+                    {"error": "Residential unit not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
         # Get or create the splice record for this port
         splice, created = FiberSplice.objects.get_or_create(
             node_structure=node_structure,
             port_number=port_number,
         )
 
-        # Check if this port is merged on this side (using side-specific merge group)
-        merge_group_field = f"merge_group_{side}"
-        merge_group_value = getattr(splice, merge_group_field)
-        is_merged_on_this_side = merge_group_value is not None
-
-        if is_merged_on_this_side:
-            # Set SHARED fiber for ALL ports in the merge group
-            FiberSplice.objects.filter(**{merge_group_field: merge_group_value}).update(
-                **{
-                    f"shared_fiber_{side}_id": fiber_uuid,
-                    f"shared_cable_{side}_id": cable_uuid,
-                }
-            )
-            # Re-fetch the splice to get updated data
-            splice.refresh_from_db()
-        else:
-            # Set individual fiber (not in a merge group on this side)
+        if has_residential_unit:
+            # Connect residential unit to this side
             if side == "a":
-                splice.fiber_a_id = fiber_uuid
-                splice.cable_a_id = cable_uuid
+                splice.residential_unit_a = residential_unit
             else:
-                splice.fiber_b_id = fiber_uuid
-                splice.cable_b_id = cable_uuid
+                splice.residential_unit_b = residential_unit
             splice.save()
+        else:
+            # Check if this port is merged on this side (using side-specific merge group)
+            merge_group_field = f"merge_group_{side}"
+            merge_group_value = getattr(splice, merge_group_field)
+            is_merged_on_this_side = merge_group_value is not None
+
+            if is_merged_on_this_side:
+                # Set SHARED fiber for ALL ports in the merge group
+                FiberSplice.objects.filter(
+                    **{merge_group_field: merge_group_value}
+                ).update(
+                    **{
+                        f"shared_fiber_{side}_id": fiber_uuid,
+                        f"shared_cable_{side}_id": cable_uuid,
+                    }
+                )
+                # Re-fetch the splice to get updated data
+                splice.refresh_from_db()
+            else:
+                # Set individual fiber (not in a merge group on this side)
+                if side == "a":
+                    splice.fiber_a_id = fiber_uuid
+                    splice.cable_a_id = cable_uuid
+                else:
+                    splice.fiber_b_id = fiber_uuid
+                    splice.cable_b_id = cable_uuid
+                splice.save()
 
         serializer = self.get_serializer(splice)
         return Response(
@@ -4194,6 +4353,8 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
             "splices": [
                 {"node_structure_uuid": "...", "port_number": 1, "side": "a",
                  "fiber_uuid": "...", "cable_uuid": "..."},
+                {"node_structure_uuid": "...", "port_number": 2, "side": "b",
+                 "residential_unit_uuid": "..."},
                 ...
             ]
         }
@@ -4216,20 +4377,32 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
                 node_structure = NodeStructure.objects.get(
                     uuid=item["node_structure_uuid"]
                 )
-                fiber = Fiber.objects.get(uuid=item["fiber_uuid"])
-                cable = Cable.objects.get(uuid=item["cable_uuid"])
 
                 splice, _ = FiberSplice.objects.get_or_create(
                     node_structure=node_structure,
                     port_number=item["port_number"],
                 )
 
-                if item["side"] == "a":
-                    splice.fiber_a = fiber
-                    splice.cable_a = cable
+                residential_unit_uuid = item.get("residential_unit_uuid")
+                if residential_unit_uuid:
+                    # Residential unit connection
+                    residential_unit = ResidentialUnit.objects.get(
+                        uuid=residential_unit_uuid
+                    )
+                    if item["side"] == "a":
+                        splice.residential_unit_a = residential_unit
+                    else:
+                        splice.residential_unit_b = residential_unit
                 else:
-                    splice.fiber_b = fiber
-                    splice.cable_b = cable
+                    # Fiber/cable connection
+                    fiber = Fiber.objects.get(uuid=item["fiber_uuid"])
+                    cable = Cable.objects.get(uuid=item["cable_uuid"])
+                    if item["side"] == "a":
+                        splice.fiber_a = fiber
+                        splice.cable_a = cable
+                    else:
+                        splice.fiber_b = fiber
+                        splice.cable_b = cable
 
                 splice.save()
                 created.append(FiberSpliceSerializer(splice).data)
@@ -4246,7 +4419,7 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
                 failed.append(
                     {
                         "port_number": item["port_number"],
-                        "fiber_uuid": str(item["fiber_uuid"]),
+                        "fiber_uuid": str(item.get("fiber_uuid")),
                         "error": "Fiber not found",
                     }
                 )
@@ -4254,8 +4427,16 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
                 failed.append(
                     {
                         "port_number": item["port_number"],
-                        "cable_uuid": str(item["cable_uuid"]),
+                        "cable_uuid": str(item.get("cable_uuid")),
                         "error": "Cable not found",
+                    }
+                )
+            except ResidentialUnit.DoesNotExist:
+                failed.append(
+                    {
+                        "port_number": item["port_number"],
+                        "residential_unit_uuid": str(item.get("residential_unit_uuid")),
+                        "error": "Residential unit not found",
                     }
                 )
             except Exception as e:

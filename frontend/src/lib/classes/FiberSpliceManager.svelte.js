@@ -63,6 +63,9 @@ export class FiberSpliceManager {
 				splice,
 				fiberA: splice?.fiber_a_details || null,
 				fiberB: splice?.fiber_b_details || null,
+				// Residential unit connections
+				residentialUnitA: splice?.residential_unit_a_details || null,
+				residentialUnitB: splice?.residential_unit_b_details || null,
 				// Side-specific merge groups (independent merging per side)
 				mergeGroupA: splice?.merge_group_a || null,
 				mergeGroupB: splice?.merge_group_b || null,
@@ -312,6 +315,10 @@ export class FiberSpliceManager {
 			return this.handleBundleDrop(portNumber, side, dropData);
 		} else if (dropData.type === 'cable') {
 			return this.handleCableDrop(portNumber, side, dropData, allStructures);
+		} else if (dropData.type === 'residential_unit') {
+			return this.handleResidentialUnitDrop(portNumber, side, dropData);
+		} else if (dropData.type === 'address') {
+			return this.handleAddressDrop(portNumber, side, dropData);
 		}
 
 		globalToaster.warning({
@@ -834,9 +841,7 @@ export class FiberSpliceManager {
 				totalSuccessCount += created.length;
 
 				if (created.length > 0) {
-					componentsUsed.push(
-						structure.component_type?.component_type || structure.label || '-'
-					);
+					componentsUsed.push(structure.component_type?.component_type || structure.label || '-');
 				}
 
 				// If any failed in this structure, we continue to next structure
@@ -886,6 +891,208 @@ export class FiberSpliceManager {
 
 		this.bulkOperationInProgress = false;
 		return totalSuccessCount > 0;
+	}
+
+	/**
+	 * Handle dropping a single residential unit onto a port
+	 * @param {number} portNumber
+	 * @param {'a'|'b'} side
+	 * @param {Object} unitData
+	 * @returns {Promise<boolean>} - True if successful
+	 */
+	async handleResidentialUnitDrop(portNumber, side, unitData) {
+		const previousSplices = [...this.fiberSplices];
+		const existingSplice = this.fiberSplices.find((s) => s.port_number === portNumber);
+
+		const unitDetails = {
+			uuid: unitData.uuid,
+			id_residential_unit: unitData.id_residential_unit,
+			display_name: unitData.display_name
+		};
+
+		// Optimistic update
+		if (existingSplice) {
+			this.fiberSplices = this.fiberSplices.map((s) => {
+				if (s.port_number === portNumber) {
+					return {
+						...s,
+						[`residential_unit_${side}_details`]: unitDetails
+					};
+				}
+				return s;
+			});
+		} else {
+			const newSplice = {
+				uuid: `temp-${Date.now()}`,
+				port_number: portNumber,
+				residential_unit_a_details: side === 'a' ? unitDetails : null,
+				residential_unit_b_details: side === 'b' ? unitDetails : null
+			};
+			this.fiberSplices = [...this.fiberSplices, newSplice];
+		}
+
+		try {
+			const formData = new FormData();
+			formData.append('nodeStructureUuid', this.selectedStructure.uuid);
+			formData.append('portNumber', portNumber.toString());
+			formData.append('side', side);
+			formData.append('residentialUnitUuid', unitData.uuid);
+
+			const response = await fetch('?/upsertFiberSplice', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to save connection');
+			}
+
+			const serverSplice = result.data.splice;
+			this.fiberSplices = this.fiberSplices.map((s) =>
+				s.port_number === portNumber ? serverSplice : s
+			);
+
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_residential_unit_connected?.() || 'Residential unit connected'
+			});
+
+			this.#dispatchResidentialUnitSpliceChanged();
+			return true;
+		} catch (err) {
+			console.error('Error saving residential unit connection:', err);
+			this.fiberSplices = previousSplices;
+			globalToaster.error({
+				title: m.common_error(),
+				description: err.message || 'Failed to connect residential unit'
+			});
+			return false;
+		}
+	}
+
+	/**
+	 * Handle dropping an address (with all residential units) onto a port
+	 * Fills sequential ports with residential units (bulk drop)
+	 * @param {number} startPort - Starting port number
+	 * @param {'a'|'b'} side
+	 * @param {Object} addressData - Address data including residential_units array
+	 * @returns {Promise<boolean>} - True if any units were connected
+	 */
+	async handleAddressDrop(startPort, side, addressData) {
+		const units = addressData.residential_units || [];
+		if (units.length === 0) {
+			globalToaster.warning({
+				title: m.common_warning?.() || 'Warning',
+				description: m.message_address_no_units?.() || 'Address has no residential units'
+			});
+			return false;
+		}
+
+		// Sort by id_residential_unit
+		const sortedUnits = [...units].sort(
+			(a, b) => (a.id_residential_unit || 0) - (b.id_residential_unit || 0)
+		);
+
+		const availablePorts = this.getAvailablePorts(side, startPort);
+
+		if (availablePorts.length === 0) {
+			globalToaster.warning({
+				title: m.common_warning?.() || 'Warning',
+				description: m.message_no_available_ports?.() || 'No available ports'
+			});
+			return false;
+		}
+
+		this.bulkOperationInProgress = true;
+		const previousSplices = [...this.fiberSplices];
+
+		// Build splice data for all unit-port pairs
+		const spliceData = [];
+
+		for (let i = 0; i < Math.min(sortedUnits.length, availablePorts.length); i++) {
+			const unit = sortedUnits[i];
+			const portNumber = availablePorts[i];
+
+			spliceData.push({
+				node_structure_uuid: this.selectedStructure.uuid,
+				port_number: portNumber,
+				side: side,
+				residential_unit_uuid: unit.uuid
+			});
+		}
+
+		try {
+			const formData = new FormData();
+			formData.append('splices', JSON.stringify(spliceData));
+
+			const response = await fetch('?/bulkUpsertFiberSplices', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Failed to save connections');
+			}
+
+			const created = result.data?.created || [];
+			const failed = result.data?.failed || [];
+
+			// Replace temp splices with server responses
+			this.fiberSplices = this.fiberSplices
+				.filter((s) => !s.uuid?.toString().startsWith('temp-'))
+				.concat(created);
+
+			this.bulkOperationInProgress = false;
+
+			// Show result
+			if (failed.length === 0) {
+				globalToaster.success({
+					title: m.title_success(),
+					description:
+						m.message_address_connected?.({ count: created.length }) ||
+						`Connected ${created.length} residential units`
+				});
+			} else if (created.length > 0) {
+				globalToaster.warning({
+					title: m.common_warning(),
+					description:
+						m.message_partial_address_connected?.({
+							connected: created.length,
+							total: spliceData.length
+						}) || `Connected ${created.length} of ${spliceData.length} residential units`
+				});
+			} else {
+				throw new Error('All placements failed');
+			}
+
+			if (created.length > 0) {
+				this.#dispatchResidentialUnitSpliceChanged();
+			}
+
+			return created.length > 0;
+		} catch (err) {
+			console.error('Error saving residential unit connections:', err);
+			this.fiberSplices = previousSplices;
+			this.bulkOperationInProgress = false;
+			globalToaster.error({
+				title: m.common_error(),
+				description: err.message || 'Failed to connect residential units'
+			});
+			return false;
+		}
+	}
+
+	/**
+	 * Dispatch a custom event when residential unit splices change
+	 */
+	#dispatchResidentialUnitSpliceChanged() {
+		if (typeof window !== 'undefined') {
+			window.dispatchEvent(new CustomEvent('residentialUnitSpliceChanged'));
+		}
 	}
 
 	/**

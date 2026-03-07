@@ -1,5 +1,5 @@
 <script>
-	import { IconArrowsSplit, IconTrash } from '@tabler/icons-svelte';
+	import { IconArrowsSplit, IconHome, IconTrash } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -7,6 +7,7 @@
 
 	let {
 		fiber = null,
+		residentialUnit = null,
 		hasPort = true,
 		side = 'a',
 		colorHex = '#999999',
@@ -24,6 +25,28 @@
 		spanRows = 1,
 		portRange = ''
 	} = $props();
+
+	/**
+	 * Get display name for a residential unit
+	 */
+	function getResidentialUnitDisplayName(ru) {
+		if (!ru) return '';
+		let main = ru.id_residential_unit || 'Unit';
+		if (ru.external_id_1) {
+			main += ` (${ru.external_id_1})`;
+		} else if (ru.external_id_2) {
+			main += ` (${ru.external_id_2})`;
+		} else if (ru.floor || ru.side) {
+			const parts = [];
+			if (ru.floor) parts.push(`${ru.floor}. OG`);
+			if (ru.side) parts.push(ru.side);
+			if (parts.length) main += ` (${parts.join(' ')})`;
+		}
+		return main;
+	}
+
+	// Whether anything is connected (fiber or residential unit)
+	const hasConnection = $derived(fiber || residentialUnit);
 
 	let isDragOver = $state(false);
 	let isDragging = $state(false);
@@ -116,7 +139,7 @@
 		? 'bg-surface-200-800 cursor-not-allowed'
 		: ''} {isDragOver && hasPort
 		? `${accentClasses.bgHover} outline outline-dashed ${accentClasses.outline}`
-		: ''} {fiber && spanRows <= 1 ? accentClasses.bg : ''} {spanRows > 1
+		: ''} {hasConnection && spanRows <= 1 ? accentClasses.bg : ''} {spanRows > 1
 		? 'bg-surface-50 dark:bg-surface-900  border-primary-500 '
 		: ''} flex items-center"
 	style={spanRows > 1 ? `grid-row: span ${spanRows}` : ''}
@@ -170,6 +193,36 @@
 							<IconArrowsSplit size={16} />
 						</button>
 					{/if}
+					<button
+						type="button"
+						class="btn-sm p-1 rounded-md opacity-0 group-hover:opacity-100 bg-error-500 hover:bg-error-600 text-white transition-all shrink-0"
+						onclick={(e) => {
+							e.stopPropagation();
+							onClear();
+						}}
+						aria-label={m.common_clear?.() || 'Clear'}
+					>
+						<IconTrash size={20} />
+					</button>
+				</div>
+			{/if}
+		</div>
+	{:else if residentialUnit}
+		<!-- Connected Residential Unit Display -->
+		<div class="flex items-center gap-2 group w-full">
+			<IconHome size={16} class="shrink-0 text-primary-500" />
+			<div class="flex-1 min-w-0">
+				<div class="text-sm font-medium truncate">
+					{getResidentialUnitDisplayName(residentialUnit)}
+				</div>
+				{#if residentialUnit.resident_name}
+					<div class="text-xs text-surface-400 truncate">
+						{residentialUnit.resident_name}
+					</div>
+				{/if}
+			</div>
+			{#if !readonly}
+				<div class="flex items-center gap-1 ml-auto">
 					<button
 						type="button"
 						class="btn-sm p-1 rounded-md opacity-0 group-hover:opacity-100 bg-error-500 hover:bg-error-600 text-white transition-all shrink-0"

@@ -606,7 +606,7 @@
 										<span class="inline-flex items-center gap-2">
 											<span
 												class="size-3 rounded-full border border-surface-300-700"
-												style="background-color: {md.color?.toLowerCase() || 'transparent'}"
+												style="background-color: {md.colorHex || '#64748b'}"
 											></span>
 											{md.color}
 										</span>

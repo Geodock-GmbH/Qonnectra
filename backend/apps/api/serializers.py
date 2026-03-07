@@ -1678,6 +1678,8 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
     fiber_b_details = serializers.SerializerMethodField()
     merge_group_a_info = serializers.SerializerMethodField()
     merge_group_b_info = serializers.SerializerMethodField()
+    residential_unit_a_details = serializers.SerializerMethodField()
+    residential_unit_b_details = serializers.SerializerMethodField()
 
     class Meta:
         model = FiberSplice
@@ -1701,6 +1703,11 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
             "shared_cable_a",
             "shared_fiber_b",
             "shared_cable_b",
+            # Residential unit connections (endpoints)
+            "residential_unit_a",
+            "residential_unit_b",
+            "residential_unit_a_details",
+            "residential_unit_b_details",
         ]
 
     def _get_fiber_details(self, fiber, cable):
@@ -1769,6 +1776,36 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
         """Get info about the merge group on side B."""
         return self._get_merge_group_info(obj, "b")
 
+    def get_residential_unit_a_details(self, obj):
+        """Get residential unit A details for endpoint connections."""
+        if not obj.residential_unit_a:
+            return None
+        ru = obj.residential_unit_a
+        return {
+            "uuid": str(ru.uuid),
+            "id_residential_unit": ru.id_residential_unit,
+            "external_id_1": ru.external_id_1,
+            "external_id_2": ru.external_id_2,
+            "floor": ru.floor,
+            "side": ru.side,
+            "resident_name": ru.resident_name,
+        }
+
+    def get_residential_unit_b_details(self, obj):
+        """Get residential unit B details for endpoint connections."""
+        if not obj.residential_unit_b:
+            return None
+        ru = obj.residential_unit_b
+        return {
+            "uuid": str(ru.uuid),
+            "id_residential_unit": ru.id_residential_unit,
+            "external_id_1": ru.external_id_1,
+            "external_id_2": ru.external_id_2,
+            "floor": ru.floor,
+            "side": ru.side,
+            "resident_name": ru.resident_name,
+        }
+
 
 class PortMergeSerializer(serializers.Serializer):
     """Serializer for port merge operations."""
@@ -1802,8 +1839,20 @@ class FiberSpliceBulkUpsertItemSerializer(serializers.Serializer):
     node_structure_uuid = serializers.UUIDField()
     port_number = serializers.IntegerField(min_value=1)
     side = serializers.ChoiceField(choices=["a", "b"])
-    fiber_uuid = serializers.UUIDField()
-    cable_uuid = serializers.UUIDField()
+    fiber_uuid = serializers.UUIDField(required=False, allow_null=True)
+    cable_uuid = serializers.UUIDField(required=False, allow_null=True)
+    residential_unit_uuid = serializers.UUIDField(required=False, allow_null=True)
+
+    def validate(self, data):
+        """Ensure either fiber/cable or residential_unit is provided."""
+        has_fiber = data.get("fiber_uuid") and data.get("cable_uuid")
+        has_residential_unit = data.get("residential_unit_uuid")
+
+        if not has_fiber and not has_residential_unit:
+            raise serializers.ValidationError(
+                "Either fiber_uuid/cable_uuid or residential_unit_uuid is required"
+            )
+        return data
 
 
 class FiberSpliceBulkUpsertSerializer(serializers.Serializer):

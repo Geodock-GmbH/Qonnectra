@@ -3,10 +3,12 @@
 	import {
 		IconArrowLeft,
 		IconArrowRight,
+		IconBuilding,
 		IconChevronDown,
 		IconChevronLeft,
 		IconChevronRight,
-		IconGripVertical
+		IconGripVertical,
+		IconHome
 	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -26,6 +28,7 @@
 	let lastRefreshTrigger = $state(0);
 	let expandedCables = $state(new Set());
 	let expandedBundles = $state(new Map());
+	let expandedAddresses = $state(new Set());
 
 	/**
 	 * Toggle cable accordion
@@ -101,13 +104,51 @@
 		}
 	}
 
+	/**
+	 * Toggle address accordion
+	 */
+	function toggleAddress(addressUuid) {
+		if (expandedAddresses.has(addressUuid)) {
+			expandedAddresses.delete(addressUuid);
+		} else {
+			expandedAddresses.add(addressUuid);
+		}
+		expandedAddresses = new Set(expandedAddresses);
+	}
+
+	function handleAddressDragStart(e, address) {
+		if (readonly) {
+			e.preventDefault();
+			return;
+		}
+		dragDropManager?.startAddressDrag(e, address, address.residential_units || []);
+	}
+
+	function handleResidentialUnitDragStart(e, address, unit) {
+		if (readonly) {
+			e.preventDefault();
+			return;
+		}
+		dragDropManager?.startResidentialUnitDrag(e, address, unit);
+	}
+
+	function handleMobileResidentialUnitClick(address, unit) {
+		if (readonly) return;
+		if (isMobile) {
+			dragDropManager?.selectMobileResidentialUnit(address, unit);
+		}
+	}
+
 	$effect(() => {
 		if (nodeUuid) {
 			dataManager.setNodeUuid(nodeUuid);
 			expandedCables = new Set();
 			expandedBundles = new Map();
+			expandedAddresses = new Set();
 			dataManager.fetchCables();
 			dataManager.fetchFiberUsage();
+			dataManager.fetchAddresses();
+			dataManager.fetchResidentialUnitUsage();
 		}
 	});
 
@@ -117,6 +158,8 @@
 			dataManager.clearFibersCache();
 			dataManager.fetchCables();
 			dataManager.fetchFiberUsage();
+			dataManager.fetchAddresses();
+			dataManager.fetchResidentialUnitUsage();
 		}
 	});
 
@@ -151,11 +194,30 @@
 		};
 	});
 
+	// Listen for residential unit splice changes to refresh usage indicators
+	$effect(() => {
+		function handleResidentialUnitSpliceChanged() {
+			if (nodeUuid) {
+				dataManager.fetchResidentialUnitUsage();
+			}
+		}
+
+		window.addEventListener('residentialUnitSpliceChanged', handleResidentialUnitSpliceChanged);
+		return () => {
+			window.removeEventListener(
+				'residentialUnitSpliceChanged',
+				handleResidentialUnitSpliceChanged
+			);
+		};
+	});
+
 	onMount(() => {
 		dataManager.fetchFiberColors();
 		if (nodeUuid) {
 			dataManager.fetchCables();
 			dataManager.fetchFiberUsage();
+			dataManager.fetchAddresses();
+			dataManager.fetchResidentialUnitUsage();
 		}
 	});
 </script>
@@ -165,7 +227,7 @@
 	<div class="space-y-2">
 		{#if dataManager.loading}
 			<div class="text-center py-4 text-surface-500">{m.common_loading()}</div>
-		{:else if dataManager.cables.length === 0}
+		{:else if dataManager.cables.length === 0 && dataManager.addresses.length === 0}
 			<div class="text-center py-4 text-surface-500 text-sm">{m.message_no_cables()}</div>
 		{:else}
 			{#each dataManager.cables as cable (cable.uuid)}
@@ -262,6 +324,63 @@
 					{/if}
 				</div>
 			{/each}
+
+			<!-- Addresses Section (Mobile) -->
+			{#if dataManager.addresses.length > 0}
+				<div class="mt-4 pt-4 border-t border-surface-300-700">
+					<h4 class="text-sm font-semibold mb-2 px-1 flex items-center gap-2">
+						<IconBuilding size={16} />
+						{m.form_addresses?.() || 'Addresses'}
+					</h4>
+					{#each dataManager.addresses as address (address.uuid)}
+						{@const isExpanded = expandedAddresses.has(address.uuid)}
+						{@const units = address.residential_units || []}
+
+						<div
+							class="rounded-lg border border-surface-300-700 bg-surface-200-800 overflow-hidden mb-2"
+						>
+							<!-- Address Header -->
+							<button
+								type="button"
+								class="w-full flex items-center gap-3 p-3 text-left hover:bg-surface-300-700 transition-colors"
+								onclick={() => toggleAddress(address.uuid)}
+							>
+								<IconChevronDown
+									size={18}
+									class="transition-transform shrink-0 {isExpanded ? 'rotate-0' : '-rotate-90'}"
+								/>
+								<div class="flex-1 min-w-0">
+									<div class="font-medium">{dataManager.getAddressDisplay(address)}</div>
+									<div class="text-sm text-surface-500">
+										{units.length}
+										{m.form_residential_units?.() || 'Units'}
+									</div>
+								</div>
+							</button>
+
+							{#if isExpanded}
+								<div class="border-t border-surface-300-700 bg-surface-100-900 p-2">
+									{#each units as unit (unit.uuid)}
+										{@const unitUsed = dataManager.isResidentialUnitUsed(unit.uuid)}
+										<button
+											type="button"
+											class="w-full flex items-center gap-2 px-3 py-2 text-left rounded-md transition-colors {unitUsed
+												? 'bg-success-100 dark:bg-success-900/30 hover:bg-success-200 dark:hover:bg-success-900/50'
+												: 'hover:bg-primary-100 dark:hover:bg-primary-900/30'}"
+											onclick={() => handleMobileResidentialUnitClick(address, unit)}
+										>
+											<IconHome size={14} class="shrink-0 text-surface-500" />
+											<span class="text-sm">
+												{dataManager.getResidentialUnitDisplayName(unit)}
+											</span>
+										</button>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			{/if}
 		{/if}
 	</div>
 {:else}
@@ -451,6 +570,95 @@
 								{/if}
 							</div>
 						{/each}
+					</div>
+				{/if}
+
+				<!-- Addresses Section (Desktop) -->
+				{#if dataManager.addresses.length > 0}
+					<div class="mt-4 pt-4 border-t border-(--color-surface-200-800)">
+						<h3 class="text-sm font-semibold mb-2 px-2 flex items-center gap-2">
+							<IconBuilding size={14} />
+							{m.form_addresses?.() || 'Addresses'}
+						</h3>
+
+						<div class="flex flex-col gap-1">
+							{#each dataManager.addresses as address (address.uuid)}
+								{@const isExpanded = expandedAddresses.has(address.uuid)}
+								{@const units = address.residential_units || []}
+
+								<div
+									class="bg-(--color-surface-100-900) border border-(--color-surface-200-800) rounded overflow-hidden"
+								>
+									<div
+										class="flex items-center gap-1.5 px-2.5 py-2 transition-colors duration-150 hover:bg-(--color-surface-200-800) {readonly
+											? ''
+											: 'cursor-grab active:cursor-grabbing'}"
+										draggable={!readonly}
+										ondragstart={(e) => handleAddressDragStart(e, address)}
+										ondragend={handleDragEnd}
+										role="button"
+										tabindex="0"
+									>
+										{#if !readonly}
+											<IconGripVertical size={14} class="text-surface-400 shrink-0 cursor-grab" />
+										{/if}
+										<button
+											type="button"
+											class="p-0.5 bg-transparent border-none cursor-pointer flex items-center justify-center"
+											onclick={() => toggleAddress(address.uuid)}
+										>
+											<IconChevronDown
+												size={14}
+												class="transition-transform {isExpanded ? 'rotate-0' : '-rotate-90'}"
+											/>
+										</button>
+										<div class="flex-1 min-w-0">
+											<div
+												class="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis"
+											>
+												{dataManager.getAddressDisplay(address)}
+											</div>
+											<div class="text-xs text-(--color-surface-950-50)">
+												{units.length}
+												{m.form_residential_units?.() || 'Units'}
+											</div>
+										</div>
+									</div>
+
+									{#if isExpanded}
+										<div
+											class="border-t border-(--color-surface-200-800) p-1 bg-(--color-surface-100-900)"
+										>
+											{#each units as unit (unit.uuid)}
+												{@const unitUsed = dataManager.isResidentialUnitUsed(unit.uuid)}
+												<div
+													class="flex items-center gap-1.5 px-2 py-1.5 rounded-sm transition-colors duration-150 {readonly
+														? ''
+														: 'cursor-grab active:cursor-grabbing'} {unitUsed
+														? 'bg-success-100 dark:bg-success-900/30 hover:bg-success-200 dark:hover:bg-success-900/50'
+														: 'hover:bg-(--color-surface-200-800)'}"
+													draggable={!readonly}
+													ondragstart={(e) => handleResidentialUnitDragStart(e, address, unit)}
+													ondragend={handleDragEnd}
+													role="listitem"
+												>
+													{#if !readonly}
+														<IconGripVertical
+															size={12}
+															class="text-surface-400 shrink-0 cursor-grab"
+														/>
+													{/if}
+													<IconHome size={12} class="shrink-0 text-surface-500" />
+													<span class="text-[0.8125rem]">
+														{dataManager.getResidentialUnitDisplayName(unit)}
+													</span>
+												</div>
+											{/each}
+										</div>
+									{/if}
+								</div>
+							{/each}
+						</div>
 					</div>
 				{/if}
 			</div>

@@ -9,20 +9,25 @@ export async function load({ fetch, cookies, params }) {
 	const { projectId, uuid: addressUuid, unitUuid } = params;
 
 	try {
-		const [unitResponse, typesResponse, statusesResponse] = await Promise.all([
-			fetch(`${API_URL}residential-unit/${unitUuid}/`, {
-				credentials: 'include',
-				headers
-			}),
-			fetch(`${API_URL}attributes_residential_unit_type/`, {
-				credentials: 'include',
-				headers
-			}),
-			fetch(`${API_URL}attributes_residential_unit_status/`, {
-				credentials: 'include',
-				headers
-			})
-		]);
+		const [unitResponse, typesResponse, statusesResponse, fiberConnectionsResponse] =
+			await Promise.all([
+				fetch(`${API_URL}residential-unit/${unitUuid}/`, {
+					credentials: 'include',
+					headers
+				}),
+				fetch(`${API_URL}attributes_residential_unit_type/`, {
+					credentials: 'include',
+					headers
+				}),
+				fetch(`${API_URL}attributes_residential_unit_status/`, {
+					credentials: 'include',
+					headers
+				}),
+				fetch(`${API_URL}residential-unit/${unitUuid}/fiber-connections/`, {
+					credentials: 'include',
+					headers
+				})
+			]);
 
 		if (!unitResponse.ok) {
 			console.error(`Failed to fetch residential unit: ${unitResponse.status}`);
@@ -32,15 +37,17 @@ export async function load({ fetch, cookies, params }) {
 				projectId,
 				addressUuid,
 				residentialUnitTypes: [],
-				residentialUnitStatuses: []
+				residentialUnitStatuses: [],
+				fiberConnections: []
 			};
 		}
 
 		const unit = await unitResponse.json();
 
-		const [typesData, statusesData] = await Promise.all([
+		const [typesData, statusesData, fiberConnectionsData] = await Promise.all([
 			typesResponse.ok ? typesResponse.json() : [],
-			statusesResponse.ok ? statusesResponse.json() : []
+			statusesResponse.ok ? statusesResponse.json() : [],
+			fiberConnectionsResponse.ok ? fiberConnectionsResponse.json() : []
 		]);
 
 		const residentialUnitTypes = typesData.map((item) => ({
@@ -59,7 +66,8 @@ export async function load({ fetch, cookies, params }) {
 			projectId,
 			addressUuid,
 			residentialUnitTypes,
-			residentialUnitStatuses
+			residentialUnitStatuses,
+			fiberConnections: fiberConnectionsData
 		};
 	} catch (err) {
 		console.error('Error fetching residential unit:', err);
@@ -69,7 +77,8 @@ export async function load({ fetch, cookies, params }) {
 			projectId,
 			addressUuid,
 			residentialUnitTypes: [],
-			residentialUnitStatuses: []
+			residentialUnitStatuses: [],
+			fiberConnections: []
 		};
 	}
 }

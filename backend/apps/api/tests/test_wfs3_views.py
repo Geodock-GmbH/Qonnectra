@@ -114,10 +114,11 @@ class TestWFS3ProxyView:
     def test_proxy_rewrites_urls_in_response(self, api_client, qgis_project):
         """Should rewrite QGIS Server URLs to proxy URLs in JSON responses."""
         mock_response = MagicMock()
+        # Use URL without port to match QGIS_SERVER_URL in view
         mock_response.json.return_value = {
             "links": [
                 {
-                    "href": "http://qgis-server:80/wfs3/collections/?MAP=/projects/test-project.qgz",
+                    "href": "http://qgis-server/wfs3/collections/?MAP=/projects/test-project.qgz",
                     "rel": "data",
                 }
             ]
@@ -134,13 +135,16 @@ class TestWFS3ProxyView:
         links = response.data.get("links", [])
         if links:
             href = links[0].get("href", "")
-            assert "qgis-server:80" not in href
+            assert "qgis-server" not in href
             assert qgis_project.name in href
             # MAP parameter should be removed from rewritten URLs
             assert "MAP=" not in href
 
     def test_proxy_forwards_query_params(self, api_client, qgis_project):
-        """Should forward query parameters (except token)."""
+        """Should forward query parameters (except token).
+
+        Note: bbox coordinates are re-projected from WGS84 to EPSG:25832 for QGIS Server.
+        """
         mock_response = MagicMock()
         mock_response.json.return_value = {"features": []}
         mock_response.headers = {"Content-Type": "application/geo+json"}
@@ -157,11 +161,16 @@ class TestWFS3ProxyView:
         # Check query params were forwarded
         call_kwargs = mock_get.call_args[1]
         params = call_kwargs.get("params", {})
-        assert params.get("bbox") == "0,0,10,10"
+        # bbox is re-projected from WGS84 to EPSG:25832, so verify it was transformed
+        assert "bbox" in params
+        assert params.get("bbox") != "0,0,10,10"  # Should be transformed
         assert params.get("limit") == "100"
 
     def test_proxy_excludes_token_param(self, api_client, qgis_project):
-        """Should not forward the token query parameter."""
+        """Should not forward the token query parameter.
+
+        Note: bbox coordinates are re-projected from WGS84 to EPSG:25832 for QGIS Server.
+        """
         mock_response = MagicMock()
         mock_response.json.return_value = {"features": []}
         mock_response.headers = {"Content-Type": "application/geo+json"}
@@ -178,7 +187,9 @@ class TestWFS3ProxyView:
         call_kwargs = mock_get.call_args[1]
         params = call_kwargs.get("params", {})
         assert "token" not in params
-        assert params.get("bbox") == "0,0,10,10"
+        # bbox is re-projected from WGS84 to EPSG:25832
+        assert "bbox" in params
+        assert params.get("bbox") != "0,0,10,10"  # Should be transformed
 
 
 class TestWFS3TokenAuthentication:

@@ -85,11 +85,7 @@
 >
 	<Portal>
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div
-			class="floating-panel-wrapper"
-			style:--fp-z-index={zIndex}
-			onmousedown={bringToFront}
-		>
+		<div class="floating-panel-wrapper" style:--fp-z-index={zIndex} onmousedown={bringToFront}>
 			<SkeletonFloatingPanel.Positioner>
 				<SkeletonFloatingPanel.Content
 					class="card bg-surface-100-900 shadow-xl border border-surface-200-800 flex flex-col"

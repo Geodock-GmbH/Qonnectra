@@ -29,6 +29,18 @@ export class CableFiberDataManager {
 	/** @type {boolean} */
 	loadingFiberUsage = $state(false);
 
+	/** @type {Array<Object>} - Addresses with residential units linked to the node */
+	addresses = $state([]);
+
+	/** @type {boolean} */
+	loadingAddresses = $state(false);
+
+	/** @type {Set<string>} - UUIDs of residential units that are connected in the current node */
+	usedResidentialUnitUuids = $state(new Set());
+
+	/** @type {boolean} */
+	loadingResidentialUnitUsage = $state(false);
+
 	/**
 	 * @param {string|null} nodeUuid - Initial node UUID
 	 */
@@ -58,6 +70,8 @@ export class CableFiberDataManager {
 		this.cables = [];
 		this.fibersCache = new Map();
 		this.usedFiberUuids = new Set();
+		this.addresses = [];
+		this.usedResidentialUnitUuids = new Set();
 	}
 
 	/**
@@ -134,6 +148,104 @@ export class CableFiberDataManager {
 	isBundleFullyUsed(bundleFibers) {
 		if (!bundleFibers || bundleFibers.length === 0) return false;
 		return bundleFibers.every((fiber) => this.usedFiberUuids.has(fiber.uuid));
+	}
+
+	/**
+	 * Fetch addresses with residential units for the current node
+	 */
+	async fetchAddresses() {
+		if (!this.nodeUuid) return;
+
+		this.loadingAddresses = true;
+		try {
+			const formData = new FormData();
+			formData.append('nodeUuid', this.nodeUuid);
+
+			const response = await fetch('?/getAddressesForNode', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+			if (result.type === 'success') {
+				this.addresses = result.data?.addresses || [];
+			}
+		} catch (err) {
+			console.error('Error fetching addresses:', err);
+		} finally {
+			this.loadingAddresses = false;
+		}
+	}
+
+	/**
+	 * Fetch residential unit usage for the current node
+	 */
+	async fetchResidentialUnitUsage() {
+		if (!this.nodeUuid) return;
+
+		this.loadingResidentialUnitUsage = true;
+		try {
+			const formData = new FormData();
+			formData.append('nodeUuid', this.nodeUuid);
+
+			const response = await fetch('?/getUsedResidentialUnits', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+			if (result.type === 'success') {
+				this.usedResidentialUnitUuids = new Set(result.data?.used_uuids || []);
+			}
+		} catch (err) {
+			console.error('Error fetching residential unit usage:', err);
+		} finally {
+			this.loadingResidentialUnitUsage = false;
+		}
+	}
+
+	/**
+	 * Check if a residential unit is used (connected) in this node
+	 * @param {string} uuid
+	 * @returns {boolean}
+	 */
+	isResidentialUnitUsed(uuid) {
+		return this.usedResidentialUnitUuids.has(uuid);
+	}
+
+	/**
+	 * Get display name for a residential unit
+	 * @param {Object} ru - Residential unit object
+	 * @returns {string}
+	 */
+	getResidentialUnitDisplayName(ru) {
+		let main = ru.id_residential_unit || 'Unit';
+
+		if (ru.external_id_1) {
+			main += ` (${ru.external_id_1})`;
+		} else if (ru.external_id_2) {
+			main += ` (${ru.external_id_2})`;
+		} else if (ru.floor || ru.side) {
+			const parts = [];
+			if (ru.floor) parts.push(`${ru.floor}. OG`);
+			if (ru.side) parts.push(ru.side);
+			if (parts.length) main += ` (${parts.join(' ')})`;
+		}
+
+		return main;
+	}
+
+	/**
+	 * Get display string for an address
+	 * @param {Object} address
+	 * @returns {string}
+	 */
+	getAddressDisplay(address) {
+		let display = address.street + ' ' + address.housenumber;
+		if (address.house_number_suffix) {
+			display += address.house_number_suffix;
+		}
+		return display;
 	}
 
 	/**
@@ -282,5 +394,9 @@ export class CableFiberDataManager {
 		this.loading = false;
 		this.usedFiberUuids = new Set();
 		this.loadingFiberUsage = false;
+		this.addresses = [];
+		this.loadingAddresses = false;
+		this.usedResidentialUnitUuids = new Set();
+		this.loadingResidentialUnitUsage = false;
 	}
 }

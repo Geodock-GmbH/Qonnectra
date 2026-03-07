@@ -111,6 +111,7 @@ export async function load({ fetch, cookies, params }) {
 									uuid: md.uuid,
 									number: md.number,
 									color: md.color,
+									colorHex: md.hex_code || '#64748b',
 									conduitName: md.uuid_conduit?.name || '',
 									conduitType: md.uuid_conduit?.conduit_type?.conduit_type || '',
 									nodeName: linkedNodes[i].name,

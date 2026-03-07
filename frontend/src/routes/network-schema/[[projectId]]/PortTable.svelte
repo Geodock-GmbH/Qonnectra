@@ -286,6 +286,7 @@
 							<!-- Merged cell spanning multiple rows -->
 							<FiberCell
 								fiber={row.mergeInfoA.fibers?.[0] || null}
+								residentialUnit={row.residentialUnitA}
 								hasPort={row.hasInPort}
 								side="a"
 								portNumber={row.portNumber}
@@ -305,6 +306,7 @@
 							<!-- Normal unmerged cell -->
 							<FiberCell
 								fiber={row.fiberA}
+								residentialUnit={row.residentialUnitA}
 								hasPort={row.hasInPort}
 								side="a"
 								portNumber={row.portNumber}
@@ -323,6 +325,7 @@
 							<!-- Merged cell spanning multiple rows -->
 							<FiberCell
 								fiber={row.mergeInfoB.fibers?.[0] || null}
+								residentialUnit={row.residentialUnitB}
 								hasPort={row.hasOutPort}
 								side="b"
 								portNumber={row.portNumber}
@@ -342,6 +345,7 @@
 							<!-- Normal unmerged cell -->
 							<FiberCell
 								fiber={row.fiberB}
+								residentialUnit={row.residentialUnitB}
 								hasPort={row.hasOutPort}
 								side="b"
 								portNumber={row.portNumber}

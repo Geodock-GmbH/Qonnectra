@@ -1871,28 +1871,44 @@ export const actions = {
 			const side = formData.get('side');
 			const fiberUuid = formData.get('fiberUuid');
 			const cableUuid = formData.get('cableUuid');
+			const residentialUnitUuid = formData.get('residentialUnitUuid');
 
-			if (!nodeStructureUuid || !portNumber || !side || !fiberUuid || !cableUuid) {
+			if (!nodeStructureUuid || !portNumber || !side) {
 				return fail(400, {
-					error:
-						'Missing required fields: nodeStructureUuid, portNumber, side, fiberUuid, cableUuid'
+					error: 'Missing required fields: nodeStructureUuid, portNumber, side'
+				});
+			}
+
+			// Must have either fiber/cable OR residential unit
+			const hasFiber = fiberUuid && cableUuid;
+			const hasResidentialUnit = residentialUnitUuid;
+			if (!hasFiber && !hasResidentialUnit) {
+				return fail(400, {
+					error: 'Either fiberUuid/cableUuid or residentialUnitUuid is required'
 				});
 			}
 
 			const headers = getAuthHeaders(cookies);
+			const requestBody = {
+				node_structure: nodeStructureUuid,
+				port_number: parseInt(portNumber),
+				side: side
+			};
+
+			if (hasFiber) {
+				requestBody.fiber_uuid = fiberUuid;
+				requestBody.cable_uuid = cableUuid;
+			} else {
+				requestBody.residential_unit_uuid = residentialUnitUuid;
+			}
+
 			const response = await fetch(`${API_URL}fiber-splice/upsert/`, {
 				method: 'POST',
 				headers: {
 					...headers,
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({
-					node_structure: nodeStructureUuid,
-					port_number: parseInt(portNumber),
-					side: side,
-					fiber_uuid: fiberUuid,
-					cable_uuid: cableUuid
-				})
+				body: JSON.stringify(requestBody)
 			});
 
 			if (!response.ok) {
@@ -2658,6 +2674,64 @@ export const actions = {
 		} catch (err) {
 			console.error('Error fetching micropipe connections for cable:', err);
 			return fail(500, { error: 'Failed to fetch micropipe connections' });
+		}
+	},
+	getAddressesForNode: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const nodeUuid = formData.get('nodeUuid');
+
+		if (!nodeUuid) {
+			return fail(400, { error: 'Node UUID is required' });
+		}
+
+		try {
+			const response = await fetch(`${API_URL}node/${nodeUuid}/addresses/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch addresses'
+				});
+			}
+
+			const data = await response.json();
+			return { addresses: data.addresses || [] };
+		} catch (err) {
+			console.error('Error fetching addresses for node:', err);
+			return fail(500, { error: 'Failed to fetch addresses' });
+		}
+	},
+	getUsedResidentialUnits: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const nodeUuid = formData.get('nodeUuid');
+
+		if (!nodeUuid) {
+			return fail(400, { error: 'Node UUID is required' });
+		}
+
+		try {
+			const response = await fetch(`${API_URL}node/${nodeUuid}/used-residential-units/`, {
+				method: 'GET',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to fetch used residential units'
+				});
+			}
+
+			const data = await response.json();
+			return { used_uuids: data.used_uuids || [] };
+		} catch (err) {
+			console.error('Error fetching used residential units:', err);
+			return fail(500, { error: 'Failed to fetch used residential units' });
 		}
 	}
 };

@@ -7,6 +7,7 @@
 		IconDoor,
 		IconFolder,
 		IconHash,
+		IconLink,
 		IconRefresh,
 		IconTag,
 		IconTrash,
@@ -32,6 +33,7 @@
 	const addressUuid = $derived(data.addressUuid);
 	const residentialUnitTypes = $derived(data.residentialUnitTypes || []);
 	const residentialUnitStatuses = $derived(data.residentialUnitStatuses || []);
+	const fiberConnections = $derived(data.fiberConnections || []);
 
 	// Initialize form state from unit data
 	function getInitialUnit() {
@@ -417,6 +419,94 @@
 					</label>
 				</div>
 			</div>
+		</div>
+
+		<!-- Fiber Connections -->
+		<div class="card p-6 space-y-4">
+			<div class="flex items-center gap-3">
+				<div class="w-1 h-6 rounded-full bg-warning-500"></div>
+				<IconLink class="size-5 text-warning-500" />
+				<h2 class="text-lg font-semibold">{m.section_fiber_connections()}</h2>
+				{#if fiberConnections.length > 0}
+					<span class="badge preset-tonal-primary text-xs ml-auto">{fiberConnections.length}</span>
+				{/if}
+			</div>
+
+			{#if fiberConnections.length > 0}
+				<div class="overflow-x-auto">
+					<table class="table">
+						<thead>
+							<tr>
+								<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider"
+									>{m.table_node()}</th
+								>
+								<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider"
+									>{m.table_cable_name()}</th
+								>
+								<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider"
+									>{m.table_fiber_absolute()}</th
+								>
+								<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider"
+									>{m.table_bundle()}</th
+								>
+								<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider"
+									>{m.table_fiber()}</th
+								>
+							</tr>
+						</thead>
+						<tbody>
+							{#each fiberConnections as fc, i (i)}
+								<tr class="hover:preset-tonal-primary transition-colors">
+									<td class="font-medium">{fc.node_name}</td>
+									<td>{fc.cable_name}</td>
+									<td>
+										<span
+											class="inline-flex items-center justify-center size-7 rounded-md bg-surface-200-800 text-xs font-mono font-medium"
+										>
+											{fc.fiber_number_absolute}
+										</span>
+									</td>
+									<td>
+										<span class="inline-flex items-center gap-2">
+											<span
+												class="inline-flex items-center justify-center size-7 rounded-md bg-surface-200-800 text-xs font-mono font-medium"
+											>
+												{fc.bundle_number}
+											</span>
+											<span
+												class="size-3 rounded-full border border-surface-300-700"
+												style="background-color: {fc.bundle_color_hex || '#999999'}"
+											></span>
+											{fc.bundle_color}
+										</span>
+									</td>
+									<td>
+										<span class="inline-flex items-center gap-2">
+											<span
+												class="inline-flex items-center justify-center size-7 rounded-md bg-surface-200-800 text-xs font-mono font-medium"
+											>
+												{fc.fiber_number}
+											</span>
+											<span
+												class="size-3 rounded-full border border-surface-300-700"
+												style="background-color: {fc.fiber_color_hex || '#999999'}"
+											></span>
+											{fc.fiber_color}
+										</span>
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{:else}
+				<div class="rounded-lg border border-dashed border-surface-300-700 p-8 text-center">
+					<IconLink class="size-10 mx-auto mb-3 text-warning-500 opacity-40" />
+					<p class="text-sm font-medium text-surface-900-100">
+						{m.message_no_fiber_connections()}
+					</p>
+				</div>
+			{/if}
 		</div>
 
 		<!-- Files - Full Width -->

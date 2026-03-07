@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { useSvelteFlow } from '@xyflow/svelte';
 
-	import { networkSchemaViewport, networkSchemaChildViewport } from '$lib/stores/store';
+	import { networkSchemaChildViewport, networkSchemaViewport } from '$lib/stores/store';
 
 	/** @type {boolean} */
 	let { isChildView = false } = $props();
