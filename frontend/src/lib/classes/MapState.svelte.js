@@ -15,6 +15,8 @@ import {
 	createNodeTileSource,
 	createTrenchTileSource
 } from '$lib/map/tileSources';
+import { tileLoadingManager } from '$lib/map/tileLoadingManager.js';
+import { getWorkerPool } from '$lib/map/workerPool.js';
 import {
 	getWMSLayerVisibility,
 	setWMSLayerVisibility,
@@ -417,6 +419,12 @@ export class MapState {
 	reinitializeForProject(newProjectId) {
 		if (this.selectedProject === newProjectId) return;
 		this.selectedProject = newProjectId;
+
+		// Cancel old tile requests RIGHT BEFORE creating new sources.
+		// This ensures old requests are aborted while new sources get fresh AbortControllers.
+		tileLoadingManager.cancelAllRequests();
+		getWorkerPool().cancelAllRequests();
+
 		this._recreateTileSources();
 		this._reloadWMSLayers();
 	}
