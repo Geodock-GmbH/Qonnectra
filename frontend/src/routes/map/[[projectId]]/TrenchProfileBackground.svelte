@@ -1,5 +1,10 @@
 <script>
 	let { width = 1200, height = 800 } = $props();
+
+	const SURFACE_HEIGHT = 80;
+	const GROUND_THICKNESS = 40;
+	const SAND_HEIGHT = 50;
+	const WALL_WIDTH = 60;
 </script>
 
 <div
@@ -10,120 +15,136 @@
 >
 	<svg viewBox="0 0 {width} {height}" preserveAspectRatio="xMidYMid meet">
 		<!-- Sky/air above ground -->
-		<rect x="0" y="0" width={width} height="80" fill="var(--color-surface-100)" />
+		<rect x="0" y="0" width={width} height={SURFACE_HEIGHT} fill="var(--color-surface-100)" />
 
 		<!-- Ground surface layer -->
-		<rect x="0" y="80" width={width} height="40" fill="var(--color-surface-400)" />
+		<rect
+			x="0"
+			y={SURFACE_HEIGHT}
+			width={width}
+			height={GROUND_THICKNESS}
+			fill="var(--color-surface-400)"
+		/>
 
 		<!-- Surface line -->
-		<line x1="0" y1="78" x2={width} y2="78" stroke="var(--color-surface-500)" stroke-width="2" />
+		<line
+			x1="0"
+			y1={SURFACE_HEIGHT - 2}
+			x2={width}
+			y2={SURFACE_HEIGHT - 2}
+			stroke="var(--color-surface-500)"
+			stroke-width="2"
+		/>
 
 		<!-- Grass texture -->
 		{#each Array(Math.floor(width / 30)) as _, i}
 			<line
 				x1={15 + i * 30}
-				y1="80"
+				y1={SURFACE_HEIGHT}
 				x2={15 + i * 30}
-				y2="75"
+				y2={SURFACE_HEIGHT - 5}
 				stroke="var(--color-success-600)"
 				stroke-width="2"
 			/>
 		{/each}
 
-		<!-- Trench excavation (trapezoidal) -->
-		<path
-			d="M 80 120 L 140 {height - 100} L {width - 140} {height - 100} L {width - 80} 120 Z"
+		<!-- Left soil wall -->
+		<rect
+			x="0"
+			y={SURFACE_HEIGHT + GROUND_THICKNESS}
+			width={WALL_WIDTH}
+			height={height - SURFACE_HEIGHT - GROUND_THICKNESS}
+			fill="var(--color-surface-400)"
+		/>
+
+		<!-- Right soil wall -->
+		<rect
+			x={width - WALL_WIDTH}
+			y={SURFACE_HEIGHT + GROUND_THICKNESS}
+			width={WALL_WIDTH}
+			height={height - SURFACE_HEIGHT - GROUND_THICKNESS}
+			fill="var(--color-surface-400)"
+		/>
+
+		<!-- Main trench excavation area -->
+		<rect
+			x={WALL_WIDTH}
+			y={SURFACE_HEIGHT + GROUND_THICKNESS}
+			width={width - 2 * WALL_WIDTH}
+			height={height - SURFACE_HEIGHT - GROUND_THICKNESS - SAND_HEIGHT}
 			fill="var(--color-surface-500)"
-			stroke="var(--color-surface-600)"
+		/>
+
+		<!-- Sand bed - full width of trench floor -->
+		<rect
+			x={WALL_WIDTH}
+			y={height - SAND_HEIGHT}
+			width={width - 2 * WALL_WIDTH}
+			height={SAND_HEIGHT}
+			fill="#d4b896"
+		/>
+
+		<!-- Sand bed top border -->
+		<line
+			x1={WALL_WIDTH}
+			y1={height - SAND_HEIGHT}
+			x2={width - WALL_WIDTH}
+			y2={height - SAND_HEIGHT}
+			stroke="#b8a07a"
 			stroke-width="2"
 		/>
 
-		<!-- Soil layers within trench walls -->
-		<rect x="0" y="120" width="80" height={height - 220} fill="var(--color-surface-400)" />
-		<rect
-			x={width - 80}
-			y="120"
-			width="80"
-			height={height - 220}
-			fill="var(--color-surface-400)"
-		/>
-
-		<!-- Left trench wall hatching -->
-		{#each Array(Math.floor((height - 220) / 25)) as _, i}
-			<line
-				x1="82"
-				y1={130 + i * 25}
-				x2="92"
-				y2={140 + i * 25}
-				stroke="var(--color-surface-600)"
-				stroke-width="1.5"
-			/>
-		{/each}
-
-		<!-- Right trench wall hatching -->
-		{#each Array(Math.floor((height - 220) / 25)) as _, i}
-			<line
-				x1={width - 82}
-				y1={130 + i * 25}
-				x2={width - 92}
-				y2={140 + i * 25}
-				stroke="var(--color-surface-600)"
-				stroke-width="1.5"
-			/>
-		{/each}
-
-		<!-- Sand bed at bottom -->
-		<rect
-			x="140"
-			y={height - 100}
-			width={width - 280}
-			height="50"
-			fill="#d4b896"
-			stroke="#b8a07a"
-			stroke-width="1"
-		/>
-
 		<!-- Sand texture pattern -->
-		{#each Array(Math.floor((width - 280) / 20)) as _, i}
+		{#each Array(Math.floor((width - 2 * WALL_WIDTH) / 25)) as _, i}
 			<circle
-				cx={160 + i * 20}
-				cy={height - 75}
+				cx={WALL_WIDTH + 12 + i * 25}
+				cy={height - SAND_HEIGHT / 2}
 				r="2"
 				fill="var(--color-surface-500)"
-				opacity="0.4"
+				opacity="0.3"
 			/>
 		{/each}
 
-		<!-- Trench floor dashed line -->
-		<line
-			x1="140"
-			y1={height - 50}
-			x2={width - 140}
-			y2={height - 50}
-			stroke="var(--color-surface-700)"
-			stroke-width="1"
-			stroke-dasharray="10,5"
-		/>
+		<!-- Left wall hatching -->
+		{#each Array(Math.floor((height - SURFACE_HEIGHT - GROUND_THICKNESS) / 35)) as _, i}
+			<line
+				x1={WALL_WIDTH - 30}
+				y1={SURFACE_HEIGHT + GROUND_THICKNESS + 20 + i * 35}
+				x2={WALL_WIDTH - 18}
+				y2={SURFACE_HEIGHT + GROUND_THICKNESS + 32 + i * 35}
+				stroke="var(--color-surface-500)"
+				stroke-width="1.5"
+			/>
+		{/each}
 
-		<!-- Dimension indicator left -->
-		<line
-			x1="50"
-			y1="120"
-			x2="50"
-			y2={height - 50}
-			stroke="var(--color-surface-400)"
-			stroke-width="1"
-			stroke-dasharray="4,4"
-		/>
+		<!-- Right wall hatching -->
+		{#each Array(Math.floor((height - SURFACE_HEIGHT - GROUND_THICKNESS) / 35)) as _, i}
+			<line
+				x1={width - WALL_WIDTH + 30}
+				y1={SURFACE_HEIGHT + GROUND_THICKNESS + 20 + i * 35}
+				x2={width - WALL_WIDTH + 18}
+				y2={SURFACE_HEIGHT + GROUND_THICKNESS + 32 + i * 35}
+				stroke="var(--color-surface-500)"
+				stroke-width="1.5"
+			/>
+		{/each}
 
-		<!-- Bottom soil layer -->
-		<rect x="0" y={height - 100} width="140" height="100" fill="var(--color-surface-400)" />
-		<rect
-			x={width - 140}
-			y={height - 100}
-			width="140"
-			height="100"
-			fill="var(--color-surface-400)"
+		<!-- Vertical wall edge lines -->
+		<line
+			x1={WALL_WIDTH}
+			y1={SURFACE_HEIGHT + GROUND_THICKNESS}
+			x2={WALL_WIDTH}
+			y2={height}
+			stroke="var(--color-surface-600)"
+			stroke-width="2"
+		/>
+		<line
+			x1={width - WALL_WIDTH}
+			y1={SURFACE_HEIGHT + GROUND_THICKNESS}
+			x2={width - WALL_WIDTH}
+			y2={height}
+			stroke="var(--color-surface-600)"
+			stroke-width="2"
 		/>
 	</svg>
 </div>
