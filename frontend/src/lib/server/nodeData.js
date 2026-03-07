@@ -442,3 +442,71 @@ export async function getFiberUsageInNode(fetch, cookies, nodeUuid) {
 		return fail(500, { error: 'Failed to fetch fiber usage' });
 	}
 }
+
+/**
+ * Get addresses with residential units for a node
+ * @param {Function} fetch - SvelteKit fetch function
+ * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
+ * @param {string} nodeUuid - UUID of the node
+ * @returns {Promise<{addresses: Array}>} Addresses with residential units
+ */
+export async function getAddressesForNode(fetch, cookies, nodeUuid) {
+	if (!nodeUuid) {
+		return fail(400, { error: 'Node UUID is required' });
+	}
+
+	try {
+		const headers = getAuthHeaders(cookies);
+		const response = await fetch(`${API_URL}node/${nodeUuid}/addresses/`, {
+			method: 'GET',
+			headers
+		});
+
+		if (!response.ok) {
+			const errorData = await response.json().catch(() => ({}));
+			return fail(response.status, {
+				error: errorData.detail || 'Failed to fetch addresses'
+			});
+		}
+
+		const data = await response.json();
+		return { addresses: data.addresses || [] };
+	} catch (err) {
+		console.error('Error fetching addresses for node:', err);
+		return fail(500, { error: 'Failed to fetch addresses' });
+	}
+}
+
+/**
+ * Get used residential units in a node (connected to fibers)
+ * @param {Function} fetch - SvelteKit fetch function
+ * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
+ * @param {string} nodeUuid - UUID of the node
+ * @returns {Promise<{used_uuids: Array}>} Used residential unit UUIDs
+ */
+export async function getUsedResidentialUnits(fetch, cookies, nodeUuid) {
+	if (!nodeUuid) {
+		return fail(400, { error: 'Node UUID is required' });
+	}
+
+	try {
+		const headers = getAuthHeaders(cookies);
+		const response = await fetch(`${API_URL}node/${nodeUuid}/used-residential-units/`, {
+			method: 'GET',
+			headers
+		});
+
+		if (!response.ok) {
+			const errorData = await response.json().catch(() => ({}));
+			return fail(response.status, {
+				error: errorData.detail || 'Failed to fetch used residential units'
+			});
+		}
+
+		const data = await response.json();
+		return { used_uuids: data.used_uuids || [] };
+	} catch (err) {
+		console.error('Error fetching used residential units:', err);
+		return fail(500, { error: 'Failed to fetch used residential units' });
+	}
+}

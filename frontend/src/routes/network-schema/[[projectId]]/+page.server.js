@@ -9,6 +9,7 @@ import {
 	searchFeaturesInProject
 } from '$lib/server/featureSearch';
 import {
+	getAddressesForNode,
 	getCablesAtNode,
 	getComponentPorts,
 	getComponentTypes,
@@ -21,7 +22,8 @@ import {
 	getNodeStructures,
 	getSlotClipNumbers,
 	getSlotConfigurationsForNode,
-	getSlotDividers
+	getSlotDividers,
+	getUsedResidentialUnits
 } from '$lib/server/nodeData';
 
 /**
@@ -2677,61 +2679,14 @@ export const actions = {
 		}
 	},
 	getAddressesForNode: async ({ request, fetch, cookies }) => {
-		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();
 		const nodeUuid = formData.get('nodeUuid');
-
-		if (!nodeUuid) {
-			return fail(400, { error: 'Node UUID is required' });
-		}
-
-		try {
-			const response = await fetch(`${API_URL}node/${nodeUuid}/addresses/`, {
-				method: 'GET',
-				headers
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				return fail(response.status, {
-					error: errorData.detail || 'Failed to fetch addresses'
-				});
-			}
-
-			const data = await response.json();
-			return { addresses: data.addresses || [] };
-		} catch (err) {
-			console.error('Error fetching addresses for node:', err);
-			return fail(500, { error: 'Failed to fetch addresses' });
-		}
+		return getAddressesForNode(fetch, cookies, nodeUuid);
 	},
+
 	getUsedResidentialUnits: async ({ request, fetch, cookies }) => {
-		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();
 		const nodeUuid = formData.get('nodeUuid');
-
-		if (!nodeUuid) {
-			return fail(400, { error: 'Node UUID is required' });
-		}
-
-		try {
-			const response = await fetch(`${API_URL}node/${nodeUuid}/used-residential-units/`, {
-				method: 'GET',
-				headers
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				return fail(response.status, {
-					error: errorData.detail || 'Failed to fetch used residential units'
-				});
-			}
-
-			const data = await response.json();
-			return { used_uuids: data.used_uuids || [] };
-		} catch (err) {
-			console.error('Error fetching used residential units:', err);
-			return fail(500, { error: 'Failed to fetch used residential units' });
-		}
+		return getUsedResidentialUnits(fetch, cookies, nodeUuid);
 	}
 };

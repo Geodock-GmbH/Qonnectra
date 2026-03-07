@@ -18,6 +18,7 @@ import {
 	searchFeaturesInProject
 } from '$lib/server/featureSearch';
 import {
+	getAddressesForNode,
 	getCablesAtNode,
 	getComponentPorts,
 	getComponentTypes,
@@ -30,7 +31,8 @@ import {
 	getNodeStructures,
 	getSlotClipNumbers,
 	getSlotConfigurationsForNode,
-	getSlotDividers
+	getSlotDividers,
+	getUsedResidentialUnits
 } from '$lib/server/nodeData';
 
 /** @type {import('./$types').PageServerLoad} */
@@ -203,5 +205,17 @@ export const actions = {
 			canvasWidth,
 			canvasHeight
 		);
+	},
+
+	getAddressesForNode: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const nodeUuid = formData.get('nodeUuid');
+		return getAddressesForNode(fetch, cookies, nodeUuid);
+	},
+
+	getUsedResidentialUnits: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const nodeUuid = formData.get('nodeUuid');
+		return getUsedResidentialUnits(fetch, cookies, nodeUuid);
 	}
 };
