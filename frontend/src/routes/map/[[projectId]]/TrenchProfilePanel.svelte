@@ -1,11 +1,9 @@
 <script>
-	import { onMount } from 'svelte';
 	import { Controls, SvelteFlow, ViewportPortal } from '@xyflow/svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import { TrenchProfileState } from '$lib/classes/TrenchProfileState.svelte.js';
-	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock.js';
 
 	import '@xyflow/svelte/dist/style.css';
 
@@ -20,10 +18,7 @@
 	const profileState = new TrenchProfileState();
 
 	let previousTrenchUuid = $state(null);
-
-	onMount(async () => {
-		await autoLockSvelteFlow();
-	});
+	let locked = $state(true);
 
 	$effect(() => {
 		if (trenchUuid && trenchUuid !== previousTrenchUuid) {
@@ -85,6 +80,9 @@
 				onnodeschange={handleNodesChange}
 				minZoom={0.1}
 				maxZoom={2}
+				nodesDraggable={!locked}
+				nodesConnectable={!locked}
+				elementsSelectable={!locked}
 			>
 				<ViewportPortal>
 					<TrenchProfileBackground />
