@@ -1,15 +1,17 @@
 <script>
+	import { onMount } from 'svelte';
 	import { Controls, SvelteFlow, ViewportPortal } from '@xyflow/svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import { TrenchProfileState } from '$lib/classes/TrenchProfileState.svelte.js';
+	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock.js';
+
+	import '@xyflow/svelte/dist/style.css';
 
 	import TrenchProfileBackground from './TrenchProfileBackground.svelte';
 	import TrenchProfileFitView from './TrenchProfileFitView.svelte';
 	import TrenchProfileNode from './TrenchProfileNode.svelte';
-
-	import '@xyflow/svelte/dist/style.css';
 
 	let { trenchUuid } = $props();
 
@@ -18,6 +20,10 @@
 	const profileState = new TrenchProfileState();
 
 	let previousTrenchUuid = $state(null);
+
+	onMount(async () => {
+		await autoLockSvelteFlow();
+	});
 
 	$effect(() => {
 		if (trenchUuid && trenchUuid !== previousTrenchUuid) {
