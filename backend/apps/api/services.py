@@ -1420,15 +1420,38 @@ def trace_node(
 ) -> dict:
     """
     Trace all fibers passing through a node.
+    Includes fibers from:
+    1. Splices at this node (via node_structure)
+    2. Cables that start or end at this node (uuid_node_start/uuid_node_end)
     """
     sql = """
-    SELECT DISTINCT
-        COALESCE(fs.fiber_a, fs.shared_fiber_a, fs.fiber_b, fs.shared_fiber_b) as fiber_id
-    FROM fiber_splice fs
-    JOIN node_structure ns ON ns.uuid = fs.node_structure
-    WHERE ns.uuid_node = %(node_id)s
-      AND (fs.fiber_a IS NOT NULL OR fs.shared_fiber_a IS NOT NULL
-           OR fs.fiber_b IS NOT NULL OR fs.shared_fiber_b IS NOT NULL)
+    SELECT DISTINCT fiber_id FROM (
+        -- Fibers through splices at this node
+        SELECT DISTINCT
+            COALESCE(fs.fiber_a, fs.shared_fiber_a, fs.fiber_b, fs.shared_fiber_b) as fiber_id
+        FROM fiber_splice fs
+        JOIN node_structure ns ON ns.uuid = fs.node_structure
+        WHERE ns.uuid_node = %(node_id)s
+          AND (fs.fiber_a IS NOT NULL OR fs.shared_fiber_a IS NOT NULL
+               OR fs.fiber_b IS NOT NULL OR fs.shared_fiber_b IS NOT NULL)
+
+        UNION
+
+        -- Fibers from cables that start at this node
+        SELECT f.uuid as fiber_id
+        FROM cable c
+        JOIN fiber f ON f.uuid_cable = c.uuid
+        WHERE c.uuid_node_start = %(node_id)s
+
+        UNION
+
+        -- Fibers from cables that end at this node
+        SELECT f.uuid as fiber_id
+        FROM cable c
+        JOIN fiber f ON f.uuid_cable = c.uuid
+        WHERE c.uuid_node_end = %(node_id)s
+    ) combined
+    WHERE fiber_id IS NOT NULL
     """
 
     with connection.cursor() as cursor:
