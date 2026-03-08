@@ -8,6 +8,7 @@ export const actions = {
 		const formData = await request.formData();
 		const traceType = formData.get('traceType');
 		const traceId = formData.get('traceId');
+		const includeGeometry = formData.get('includeGeometry') === 'on';
 
 		if (!traceId) {
 			return fail(400, { error: 'ID is required' });
@@ -17,10 +18,13 @@ export const actions = {
 		const paramName = `${traceType}_id`;
 
 		try {
-			const response = await fetch(`${API_URL}fiber-trace/?${paramName}=${traceId}`, {
-				method: 'GET',
-				headers
-			});
+			const response = await fetch(
+				`${API_URL}fiber-trace/?${paramName}=${traceId}&include_geometry=${includeGeometry}`,
+				{
+					method: 'GET',
+					headers
+				}
+			);
 
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));

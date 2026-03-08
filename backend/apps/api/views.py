@@ -6892,6 +6892,7 @@ class FiberTraceView(APIView):
         node_id = request.query_params.get("node_id")
         address_id = request.query_params.get("address_id")
         residential_unit_id = request.query_params.get("residential_unit_id")
+        include_geometry = request.query_params.get("include_geometry", "").lower() == "true"
 
         params = [fiber_id, cable_id, node_id, address_id, residential_unit_id]
         param_count = sum(1 for p in params if p)
@@ -6926,15 +6927,15 @@ class FiberTraceView(APIView):
 
         try:
             if fiber_id:
-                result = trace_fiber(fiber_id)
+                result = trace_fiber(fiber_id, include_geometry)
             elif cable_id:
-                result = trace_cable(cable_id)
+                result = trace_cable(cable_id, include_geometry)
             elif node_id:
-                result = trace_node(node_id)
+                result = trace_node(node_id, include_geometry)
             elif address_id:
-                result = trace_address(address_id)
+                result = trace_address(address_id, include_geometry)
             else:
-                result = trace_residential_unit(residential_unit_id)
+                result = trace_residential_unit(residential_unit_id, include_geometry)
 
             if "_raw_segments" in result:
                 del result["_raw_segments"]

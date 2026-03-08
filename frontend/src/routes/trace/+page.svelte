@@ -3,6 +3,7 @@
 
 	let traceType = $state('fiber');
 	let traceId = $state('');
+	let includeGeometry = $state(false);
 	let result = $state(null);
 	let error = $state(null);
 	let loading = $state(false);
@@ -32,7 +33,12 @@
 <div class="mx-auto max-w-6xl p-4">
 	<h1 class="mb-4 text-2xl font-bold">Fiber Trace (Debug)</h1>
 
-	<form method="POST" action="?/trace" use:enhance={handleSubmit} class="mb-6 flex items-end gap-4">
+	<form
+		method="POST"
+		action="?/trace"
+		use:enhance={handleSubmit}
+		class="mb-6 flex flex-wrap items-end gap-4"
+	>
 		<div>
 			<label for="traceType" class="mb-1 block text-sm font-medium">Trace Type</label>
 			<select
@@ -61,6 +67,17 @@
 			/>
 		</div>
 
+		<div class="flex items-center gap-2">
+			<input
+				type="checkbox"
+				id="includeGeometry"
+				name="includeGeometry"
+				bind:checked={includeGeometry}
+				class="h-4 w-4"
+			/>
+			<label for="includeGeometry" class="text-sm">Include Geometry</label>
+		</div>
+
 		<button
 			type="submit"
 			disabled={loading || !traceId}
@@ -79,7 +96,7 @@
 	{#if result}
 		<div class="mb-4 rounded bg-gray-100 p-4">
 			<h2 class="mb-2 font-bold">Statistics</h2>
-			<div class="grid grid-cols-3 gap-4 text-sm md:grid-cols-6">
+			<div class="grid grid-cols-4 gap-4 text-sm md:grid-cols-8">
 				<div>
 					<span class="text-gray-600">Fibers:</span>
 					<span class="font-mono">{result.statistics.total_fibers}</span>
@@ -91,6 +108,14 @@
 				<div>
 					<span class="text-gray-600">Splices:</span>
 					<span class="font-mono">{result.statistics.total_splices}</span>
+				</div>
+				<div>
+					<span class="text-gray-600">Cables:</span>
+					<span class="font-mono">{result.statistics.total_cables ?? '-'}</span>
+				</div>
+				<div>
+					<span class="text-gray-600">Trenches:</span>
+					<span class="font-mono">{result.statistics.total_trenches ?? '-'}</span>
 				</div>
 				<div>
 					<span class="text-gray-600">Addresses:</span>
@@ -115,6 +140,82 @@
 					2
 				)}</pre>
 		</div>
+
+		<!-- Cable Infrastructure Section -->
+		{#if result.cable_infrastructure && Object.keys(result.cable_infrastructure).length > 0}
+			<div class="mb-4">
+				<h2 class="mb-2 font-bold">Cable Infrastructure</h2>
+				<div class="space-y-2">
+					{#each Object.entries(result.cable_infrastructure) as [cableId, infra]}
+						<details class="rounded border bg-white p-2">
+							<summary class="cursor-pointer font-medium">
+								Cable {cableId.slice(0, 8)}...
+								{#if infra.conduit}
+									<span class="ml-2 text-sm text-gray-500">→ {infra.conduit.name}</span>
+								{/if}
+							</summary>
+							<div class="mt-2 space-y-2 pl-4 text-sm">
+								{#if infra.microduct}
+									<div class="rounded bg-pink-50 p-2">
+										<span class="font-medium text-pink-700">Microduct:</span>
+										<span class="ml-2">#{infra.microduct.number}</span>
+										<span
+											class="ml-2 rounded px-1"
+											style="background-color: {infra.microduct.color_hex || '#fbcfe8'}"
+										>
+											{infra.microduct.color}
+										</span>
+										{#if infra.microduct.status}
+											<span class="ml-2 text-gray-500">({infra.microduct.status})</span>
+										{/if}
+									</div>
+								{/if}
+								{#if infra.conduit}
+									<div class="rounded bg-indigo-50 p-2">
+										<span class="font-medium text-indigo-700">Conduit:</span>
+										<span class="ml-2">{infra.conduit.name}</span>
+										{#if infra.conduit.type}
+											<span class="ml-2 rounded bg-indigo-200 px-1">{infra.conduit.type}</span>
+										{/if}
+									</div>
+								{/if}
+								{#if infra.trenches && infra.trenches.length > 0}
+									<div class="rounded bg-amber-50 p-2">
+										<span class="font-medium text-amber-700"
+											>Trenches ({infra.trenches.length}):</span
+										>
+										<div class="mt-1 space-y-1">
+											{#each infra.trenches as trench}
+												<div
+													class="flex flex-wrap items-center gap-2 rounded bg-amber-100 px-2 py-1 text-xs"
+												>
+													<span class="font-mono">{trench.id_trench}</span>
+													{#if trench.construction_type}
+														<span class="rounded bg-amber-200 px-1">{trench.construction_type}</span
+														>
+													{/if}
+													{#if trench.surface}
+														<span class="text-gray-500">{trench.surface}</span>
+													{/if}
+													{#if trench.length}
+														<span class="text-gray-500">{trench.length.toFixed(1)}m</span>
+													{/if}
+													{#if trench.geometry}
+														<span class="rounded bg-green-200 px-1 text-green-700"
+															>Has Geometry</span
+														>
+													{/if}
+												</div>
+											{/each}
+										</div>
+									</div>
+								{/if}
+							</div>
+						</details>
+					{/each}
+				</div>
+			</div>
+		{/if}
 
 		<div>
 			<h2 class="mb-2 font-bold">Trace Tree</h2>
@@ -148,6 +249,7 @@
 
 {#snippet traceNode(node, depth)}
 	<div class="border-l-2 border-gray-300 py-2 pl-4" style="margin-left: {depth * 20}px">
+		<!-- Fiber Info Row -->
 		<div class="flex flex-wrap items-center gap-2 text-sm">
 			<button
 				type="button"
@@ -155,7 +257,7 @@
 				onclick={() => traceFrom('fiber', node.fiber.id)}
 				title="Trace this fiber"
 			>
-				F{node.fiber.fiber_number}
+				F{node.fiber.fiber_number_absolute}
 			</button>
 			<span class="text-gray-600">in</span>
 			<button
@@ -166,6 +268,10 @@
 			>
 				{node.fiber.cable_name}
 			</button>
+			{#if node.fiber.cable_type}
+				<span class="rounded bg-green-200 px-1 text-xs text-green-700">{node.fiber.cable_type}</span
+				>
+			{/if}
 			{#if node.node}
 				<span class="text-gray-400">&rarr;</span>
 				<button
@@ -179,6 +285,14 @@
 				<span class="text-xs text-gray-400">({node.direction})</span>
 			{/if}
 		</div>
+
+		<!-- Enhanced Fiber Details -->
+		{@render fiberDetails(node.fiber)}
+
+		<!-- Splice Component Info -->
+		{#if node.splice}
+			{@render spliceDetails(node.splice)}
+		{/if}
 
 		<!-- Cable endpoints (start/end nodes) -->
 		{#if node.cable_endpoints && (node.cable_endpoints.start_node || node.cable_endpoints.end_node)}
@@ -199,6 +313,74 @@
 			{#each node.children as child (child.fiber.id)}
 				{@render traceNode(child, depth + 1)}
 			{/each}
+		{/if}
+	</div>
+{/snippet}
+
+{#snippet fiberDetails(fiber)}
+	<div class="ml-4 mt-1 flex flex-wrap gap-2 text-xs text-gray-600">
+		{#if fiber.bundle_number !== null && fiber.bundle_number !== undefined}
+			<span>Bundle: <span class="font-mono">{fiber.bundle_number}</span></span>
+		{/if}
+		{#if fiber.fiber_number_in_bundle}
+			<span>In Bundle: <span class="font-mono">{fiber.fiber_number_in_bundle}</span></span>
+		{/if}
+		{#if fiber.fiber_color}
+			<span class="rounded px-1" style="background-color: {fiber.fiber_color_hex || '#e5e7eb'}">
+				{fiber.fiber_color}
+			</span>
+		{/if}
+		{#if fiber.bundle_color}
+			<span class="rounded px-1" style="background-color: {fiber.bundle_color_hex || '#e5e7eb'}">
+				Bundle: {fiber.bundle_color}
+			</span>
+		{/if}
+		{#if fiber.layer}
+			<span>Layer: <span class="font-mono">{fiber.layer}</span></span>
+		{/if}
+		{#if fiber.status}
+			<span class="rounded bg-gray-200 px-1">{fiber.status}</span>
+		{/if}
+	</div>
+{/snippet}
+
+{#snippet spliceDetails(splice)}
+	<div class="ml-4 mt-2 rounded border border-rose-200 bg-rose-50 p-2 text-xs">
+		<div class="mb-1 flex items-center gap-2">
+			<span class="font-semibold text-rose-700">Splice</span>
+			<span class="font-mono text-gray-600">Port {splice.port_number}</span>
+		</div>
+		{#if splice.component}
+			<div class="flex flex-wrap gap-2 text-gray-600">
+				{#if splice.component.type}
+					<span class="rounded bg-rose-200 px-1">{splice.component.type}</span>
+				{/if}
+				{#if splice.component.slot_start !== null && splice.component.slot_end !== null}
+					<span>Slots: {splice.component.slot_start}-{splice.component.slot_end}</span>
+				{/if}
+				{#if splice.component.slot_side}
+					<span>Side: {splice.component.slot_side}</span>
+				{/if}
+				{#if splice.component.in_or_out}
+					<span class="rounded bg-gray-200 px-1">{splice.component.in_or_out}</span>
+				{/if}
+				{#if splice.component.structure_port}
+					<span>Port: {splice.component.structure_port}</span>
+				{/if}
+			</div>
+		{/if}
+		{#if splice.container_path && splice.container_path.length > 0}
+			<div class="mt-1 border-t border-rose-200 pt-1">
+				<span class="text-gray-500">Container Path:</span>
+				<span class="ml-1">
+					{#each splice.container_path as container, i}
+						{#if i > 0}<span class="mx-1 text-gray-400">&rarr;</span>{/if}
+						<span class="rounded bg-rose-100 px-1">
+							{container.type}{#if container.name}: {container.name}{/if}
+						</span>
+					{/each}
+				</span>
+			</div>
 		{/if}
 	</div>
 {/snippet}
@@ -300,7 +482,8 @@
 				onclick={() => traceFrom('address', address.id)}
 				title="Trace this address"
 			>
-				{address.street} {address.housenumber}{address.suffix || ''}, {address.zip_code}
+				{address.street}
+				{address.housenumber}{address.suffix || ''}, {address.zip_code}
 				{address.city}
 			</button>
 		</div>
@@ -375,8 +558,8 @@
 					class="hover:text-purple-700 hover:underline"
 					onclick={() => traceFrom('address', ru.address.id)}
 				>
-					{ru.address.street} {ru.address.housenumber}{ru.address.suffix || ''}, {ru.address
-						.zip_code}
+					{ru.address.street}
+					{ru.address.housenumber}{ru.address.suffix || ''}, {ru.address.zip_code}
 					{ru.address.city}
 				</button>
 			</div>

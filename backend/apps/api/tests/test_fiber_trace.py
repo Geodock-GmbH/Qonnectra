@@ -565,3 +565,151 @@ class TestTraceResidentialUnit:
         assert response.data["entry_point"]["type"] == "residential_unit"
         assert "trace_trees" in response.data
         assert "statistics" in response.data
+
+
+@pytest.mark.django_db
+class TestEnhancedFiberData:
+    """Tests for enhanced fiber data in trace results."""
+
+    def test_trace_includes_fiber_number_in_bundle(self, simple_fiber_chain):
+        """Test that fiber_number_in_bundle is included in trace."""
+        fiber = simple_fiber_chain["fibers"][0]
+        result = trace_fiber(fiber.uuid)
+
+        fiber_data = result["trace_tree"]["fiber"]
+        assert "fiber_number_in_bundle" in fiber_data
+
+    def test_trace_includes_bundle_color(self, simple_fiber_chain):
+        """Test that bundle_color is included in trace."""
+        fiber = simple_fiber_chain["fibers"][0]
+        result = trace_fiber(fiber.uuid)
+
+        fiber_data = result["trace_tree"]["fiber"]
+        assert "bundle_color" in fiber_data
+
+    def test_trace_includes_layer(self, simple_fiber_chain):
+        """Test that layer is included in trace."""
+        fiber = simple_fiber_chain["fibers"][0]
+        result = trace_fiber(fiber.uuid)
+
+        fiber_data = result["trace_tree"]["fiber"]
+        assert "layer" in fiber_data
+
+    def test_trace_includes_fiber_status(self, simple_fiber_chain):
+        """Test that fiber status is included in trace."""
+        fiber = simple_fiber_chain["fibers"][0]
+        result = trace_fiber(fiber.uuid)
+
+        fiber_data = result["trace_tree"]["fiber"]
+        assert "status" in fiber_data
+
+    def test_trace_includes_cable_type(self, simple_fiber_chain):
+        """Test that cable_type name is included in trace."""
+        fiber = simple_fiber_chain["fibers"][0]
+        result = trace_fiber(fiber.uuid)
+
+        fiber_data = result["trace_tree"]["fiber"]
+        assert "cable_type" in fiber_data
+
+
+@pytest.mark.django_db
+class TestSpliceComponentHierarchy:
+    """Tests for splice component hierarchy in trace results."""
+
+    def test_trace_includes_splice_for_connected_fibers(self, simple_fiber_chain):
+        """Test that splice info is included for connected fibers."""
+        fiber = simple_fiber_chain["fibers"][0]
+        result = trace_fiber(fiber.uuid)
+
+        # Root fiber should have no splice (it's the starting point)
+        assert result["trace_tree"]["splice"] is None
+
+        # First child should have splice info
+        if result["trace_tree"]["children"]:
+            child = result["trace_tree"]["children"][0]
+            assert child["splice"] is not None
+            assert "id" in child["splice"]
+            assert "port_number" in child["splice"]
+            assert "component" in child["splice"]
+
+    def test_splice_component_has_required_fields(self, simple_fiber_chain):
+        """Test that splice component has all required fields."""
+        fiber = simple_fiber_chain["fibers"][0]
+        result = trace_fiber(fiber.uuid)
+
+        if result["trace_tree"]["children"]:
+            splice = result["trace_tree"]["children"][0]["splice"]
+            component = splice["component"]
+            assert "type" in component
+            assert "slot_start" in component
+            assert "slot_end" in component
+            assert "slot_side" in component
+
+    def test_splice_includes_container_path(self, simple_fiber_chain):
+        """Test that splice includes container_path field."""
+        fiber = simple_fiber_chain["fibers"][0]
+        result = trace_fiber(fiber.uuid)
+
+        if result["trace_tree"]["children"]:
+            splice = result["trace_tree"]["children"][0]["splice"]
+            assert "container_path" in splice
+            # Container path is a list (may be empty if no containers)
+            assert isinstance(splice["container_path"], list)
+
+
+@pytest.mark.django_db
+class TestCableInfrastructure:
+    """Tests for cable infrastructure in trace results."""
+
+    def test_trace_includes_cable_infrastructure(self, simple_fiber_chain):
+        """Test that cable_infrastructure is included in trace."""
+        fiber = simple_fiber_chain["fibers"][0]
+        result = trace_fiber(fiber.uuid)
+
+        assert "cable_infrastructure" in result
+        assert isinstance(result["cable_infrastructure"], dict)
+
+    def test_trace_includes_total_cables_statistic(self, simple_fiber_chain):
+        """Test that total_cables is in statistics."""
+        fiber = simple_fiber_chain["fibers"][0]
+        result = trace_fiber(fiber.uuid)
+
+        assert "total_cables" in result["statistics"]
+
+    def test_trace_includes_total_trenches_statistic(self, simple_fiber_chain):
+        """Test that total_trenches is in statistics."""
+        fiber = simple_fiber_chain["fibers"][0]
+        result = trace_fiber(fiber.uuid)
+
+        assert "total_trenches" in result["statistics"]
+
+
+@pytest.mark.django_db
+class TestIncludeGeometry:
+    """Tests for include_geometry parameter."""
+
+    def test_trace_fiber_accepts_include_geometry(self, isolated_fiber):
+        """Test that trace_fiber accepts include_geometry parameter."""
+        fiber, _ = isolated_fiber
+        # Should not raise
+        result = trace_fiber(fiber.uuid, include_geometry=False)
+        assert result is not None
+
+        result = trace_fiber(fiber.uuid, include_geometry=True)
+        assert result is not None
+
+    def test_api_accepts_include_geometry_param(
+        self, authenticated_client, simple_fiber_chain
+    ):
+        """Test that API endpoint accepts include_geometry query param."""
+        fiber = simple_fiber_chain["fibers"][0]
+
+        response = authenticated_client.get(
+            f"/api/v1/fiber-trace/?fiber_id={fiber.uuid}&include_geometry=true"
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        response = authenticated_client.get(
+            f"/api/v1/fiber-trace/?fiber_id={fiber.uuid}&include_geometry=false"
+        )
+        assert response.status_code == status.HTTP_200_OK
