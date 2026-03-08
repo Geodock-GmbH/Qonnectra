@@ -1231,26 +1231,8 @@ def trace_fiber(
         addr_status.status as address_status_development,
         addr_project.project as address_project,
         addr_flag.flag as address_flag,
-        -- Residential units connected to THIS fiber (on either side of any splice)
-        fiber_ru.uuid as connected_ru_id,
-        fiber_ru.id_residential_unit as ru_id_residential_unit,
-        fiber_ru.floor as ru_floor,
-        fiber_ru.side as ru_side,
-        fiber_ru.building_section as ru_building_section,
-        fiber_ru_type.residential_unit_type as ru_type,
-        fiber_ru_status.status as ru_status,
-        fiber_ru.external_id_1 as ru_external_id_1,
-        fiber_ru.external_id_2 as ru_external_id_2,
-        fiber_ru.resident_name as ru_resident_name,
-        fiber_ru.resident_recorded_date as ru_resident_recorded_date,
-        fiber_ru.ready_for_service as ru_ready_for_service,
-        -- RU's parent address info
-        fiber_ru_addr.uuid as ru_address_id,
-        fiber_ru_addr.street as ru_address_street,
-        fiber_ru_addr.housenumber as ru_address_housenumber,
-        fiber_ru_addr.house_number_suffix as ru_address_suffix,
-        fiber_ru_addr.zip_code as ru_address_zip_code,
-        fiber_ru_addr.city as ru_address_city,
+        -- Residential units connected to THIS fiber (aggregated as JSON array)
+        fiber_ru_lookup.residential_units as connected_residential_units,
         -- Cable endpoint nodes (for full path visibility)
         cable.uuid_node_start as cable_node_start_id,
         cable.uuid_node_end as cable_node_end_id,
@@ -1294,26 +1276,42 @@ def trace_fiber(
     LEFT JOIN flags addr_flag ON addr_flag.id = addr.flag
     -- Find RU connected to THIS fiber via any splice
     LEFT JOIN LATERAL (
-        SELECT
-            CASE
-                WHEN fs2.fiber_a = ft.fiber_id OR fs2.shared_fiber_a = ft.fiber_id
-                THEN fs2.residential_unit_b_id
-                WHEN fs2.fiber_b = ft.fiber_id OR fs2.shared_fiber_b = ft.fiber_id
-                THEN fs2.residential_unit_a_id
-            END as ru_id
+        SELECT jsonb_agg(
+            jsonb_build_object(
+                'id', ru.uuid,
+                'id_residential_unit', ru.id_residential_unit,
+                'floor', ru.floor,
+                'side', ru.side,
+                'building_section', ru.building_section,
+                'type', ru_type.residential_unit_type,
+                'status', ru_status.status,
+                'external_id_1', ru.external_id_1,
+                'external_id_2', ru.external_id_2,
+                'resident_name', ru.resident_name,
+                'resident_recorded_date', ru.resident_recorded_date,
+                'ready_for_service', ru.ready_for_service,
+                'address_id', ru_addr.uuid,
+                'address_street', ru_addr.street,
+                'address_housenumber', ru_addr.housenumber,
+                'address_suffix', ru_addr.house_number_suffix,
+                'address_zip_code', ru_addr.zip_code,
+                'address_city', ru_addr.city
+            )
+        ) as residential_units
         FROM fiber_splice fs2
+        LEFT JOIN residential_unit ru ON ru.uuid = CASE
+            WHEN fs2.fiber_a = ft.fiber_id OR fs2.shared_fiber_a = ft.fiber_id
+            THEN fs2.residential_unit_b_id
+            WHEN fs2.fiber_b = ft.fiber_id OR fs2.shared_fiber_b = ft.fiber_id
+            THEN fs2.residential_unit_a_id
+        END
+        LEFT JOIN attributes_residential_unit_type ru_type ON ru_type.id = ru.residential_unit_type
+        LEFT JOIN attributes_residential_unit_status ru_status ON ru_status.id = ru.status
+        LEFT JOIN address ru_addr ON ru_addr.uuid = ru.uuid_address
         WHERE (fs2.fiber_a = ft.fiber_id OR fs2.fiber_b = ft.fiber_id
                OR fs2.shared_fiber_a = ft.fiber_id OR fs2.shared_fiber_b = ft.fiber_id)
-          AND (fs2.residential_unit_a_id IS NOT NULL
-               OR fs2.residential_unit_b_id IS NOT NULL)
-        LIMIT 1
+          AND ru.uuid IS NOT NULL
     ) fiber_ru_lookup ON true
-    LEFT JOIN residential_unit fiber_ru ON fiber_ru.uuid = fiber_ru_lookup.ru_id
-    LEFT JOIN attributes_residential_unit_type fiber_ru_type
-        ON fiber_ru_type.id = fiber_ru.residential_unit_type
-    LEFT JOIN attributes_residential_unit_status fiber_ru_status
-        ON fiber_ru_status.id = fiber_ru.status
-    LEFT JOIN address fiber_ru_addr ON fiber_ru_addr.uuid = fiber_ru.uuid_address
     -- Join cable endpoint nodes
     LEFT JOIN cable ON cable.uuid = ft.cable_id
     LEFT JOIN node node_start ON node_start.uuid = cable.uuid_node_start
@@ -1735,10 +1733,14 @@ def _build_trace_result(
             splices_seen.add(row["from_splice_id"])
         if row.get("address_id"):
             addresses_seen.add(row["address_id"])
-        if row.get("connected_ru_id"):
-            residential_units_seen.add(row["connected_ru_id"])
-        if row.get("ru_address_id"):
-            addresses_seen.add(row["ru_address_id"])
+        connected_rus = row.get("connected_residential_units") or []
+        if isinstance(connected_rus, str):
+            connected_rus = json.loads(connected_rus)
+        for ru in connected_rus:
+            if ru and isinstance(ru, dict) and ru.get("id"):
+                residential_units_seen.add(ru["id"])
+            if ru and isinstance(ru, dict) and ru.get("address_id"):
+                addresses_seen.add(ru["address_id"])
         # Track cable endpoint nodes
         cable_id = row["cable_id"]
         if cable_id not in cable_endpoints_seen:
@@ -1810,46 +1812,47 @@ def _build_trace_result(
 
         return node_data
 
-    def build_residential_unit(row):
-        """Build residential unit dict with full details if connected."""
-        if not row.get("connected_ru_id"):
+    def build_residential_units(row):
+        """Build list of residential unit dicts for all connected units."""
+        connected_rus = row.get("connected_residential_units") or []
+        if isinstance(connected_rus, str):
+            connected_rus = json.loads(connected_rus)
+        if not connected_rus:
             return None
 
-        ru_data = {
-            "id": str(row["connected_ru_id"]),
-            "id_residential_unit": row.get("ru_id_residential_unit"),
-            "floor": row.get("ru_floor"),
-            "side": row.get("ru_side"),
-            "building_section": row.get("ru_building_section"),
-            "type": row.get("ru_type"),
-            "status": row.get("ru_status"),
-            "external_id_1": row.get("ru_external_id_1"),
-            "external_id_2": row.get("ru_external_id_2"),
-            "resident_name": row.get("ru_resident_name"),
-            "resident_recorded_date": (
-                row["ru_resident_recorded_date"].isoformat()
-                if row.get("ru_resident_recorded_date")
-                else None
-            ),
-            "ready_for_service": (
-                row["ru_ready_for_service"].isoformat()
-                if row.get("ru_ready_for_service")
-                else None
-            ),
-        }
+        result = []
+        for ru in connected_rus:
+            if not ru or not isinstance(ru, dict) or not ru.get("id"):
+                continue
 
-        # Include parent address info for RU
-        if row.get("ru_address_id"):
-            ru_data["address"] = {
-                "id": str(row["ru_address_id"]),
-                "street": row.get("ru_address_street"),
-                "housenumber": row.get("ru_address_housenumber"),
-                "suffix": row.get("ru_address_suffix") or "",
-                "zip_code": row.get("ru_address_zip_code"),
-                "city": row.get("ru_address_city"),
+            ru_data = {
+                "id": str(ru["id"]),
+                "id_residential_unit": ru.get("id_residential_unit"),
+                "floor": ru.get("floor"),
+                "side": ru.get("side"),
+                "building_section": ru.get("building_section"),
+                "type": ru.get("type"),
+                "status": ru.get("status"),
+                "external_id_1": ru.get("external_id_1"),
+                "external_id_2": ru.get("external_id_2"),
+                "resident_name": ru.get("resident_name"),
+                "resident_recorded_date": ru.get("resident_recorded_date"),
+                "ready_for_service": ru.get("ready_for_service"),
             }
 
-        return ru_data
+            if ru.get("address_id"):
+                ru_data["address"] = {
+                    "id": str(ru["address_id"]),
+                    "street": ru.get("address_street"),
+                    "housenumber": ru.get("address_housenumber"),
+                    "suffix": ru.get("address_suffix") or "",
+                    "zip_code": ru.get("address_zip_code"),
+                    "city": ru.get("address_city"),
+                }
+
+            result.append(ru_data)
+
+        return result if result else None
 
     def build_cable_endpoints(row):
         """Build cable endpoint info from row data."""
@@ -1909,7 +1912,7 @@ def _build_trace_result(
         "cable_endpoints": build_cable_endpoints(root),
         "splice": build_splice(root),
         "node": build_node_with_address(root),
-        "residential_unit": build_residential_unit(root),
+        "residential_units": build_residential_units(root),
         "direction": root.get("direction"),
         "children": [],
     }
@@ -1946,7 +1949,7 @@ def _build_trace_result(
                 "cable_endpoints": build_cable_endpoints(row),
                 "splice": build_splice(row),
                 "node": build_node_with_address(row),
-                "residential_unit": build_residential_unit(row),
+                "residential_units": build_residential_units(row),
                 "direction": row["direction"],
                 "children": build_children(row["fiber_id"], current_depth + 1),
             }

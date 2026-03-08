@@ -463,8 +463,10 @@
 		{/if}
 
 		<!-- Residential Unit details -->
-		{#if node.residential_unit}
-			{@render residentialUnitDetails(node.residential_unit)}
+		{#if node.residential_units && node.residential_units.length > 0}
+			{#each node.residential_units as ru (ru.id)}
+				{@render residentialUnitDetails(ru)}
+			{/each}
 		{/if}
 
 		{#if node.children && node.children.length > 0}
