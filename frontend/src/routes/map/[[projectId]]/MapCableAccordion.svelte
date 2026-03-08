@@ -49,7 +49,7 @@
 		highlightLoading = { ...highlightLoading, [cableUuid]: true };
 
 		try {
-			const response = await fetch(`${PUBLIC_API_URL}cable/${cableUuid}/linked-trenches/`, {
+			const response = await fetch(`${PUBLIC_API_URL}cables/${cableUuid}/linked-trenches/`, {
 				credentials: 'include'
 			});
 
