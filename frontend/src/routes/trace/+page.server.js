@@ -9,6 +9,8 @@ export const actions = {
 		const traceType = formData.get('traceType');
 		const traceId = formData.get('traceId');
 		const includeGeometry = formData.get('includeGeometry') === 'on';
+		const geometryMode = formData.get('geometryMode') || 'segments';
+		const orientGeometry = formData.get('orientGeometry') === 'on';
 
 		if (!traceId) {
 			return fail(400, { error: 'ID is required' });
@@ -17,14 +19,17 @@ export const actions = {
 		const headers = getAuthHeaders(cookies);
 		const paramName = `${traceType}_id`;
 
+		// Build URL with geometry parameters
+		let url = `${API_URL}fiber-trace/?${paramName}=${traceId}&include_geometry=${includeGeometry}`;
+		if (includeGeometry) {
+			url += `&geometry_mode=${geometryMode}&orient_geometry=${orientGeometry}`;
+		}
+
 		try {
-			const response = await fetch(
-				`${API_URL}fiber-trace/?${paramName}=${traceId}&include_geometry=${includeGeometry}`,
-				{
-					method: 'GET',
-					headers
-				}
-			);
+			const response = await fetch(url, {
+				method: 'GET',
+				headers
+			});
 
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));

@@ -4,6 +4,8 @@
 	let traceType = $state('fiber');
 	let traceId = $state('');
 	let includeGeometry = $state(false);
+	let geometryMode = $state('segments');
+	let orientGeometry = $state(false);
 	let result = $state(null);
 	let error = $state(null);
 	let loading = $state(false);
@@ -27,6 +29,108 @@
 	function traceFrom(type, id) {
 		traceType = type;
 		traceId = id;
+	}
+
+	/**
+	 * Check if result has any geometries for download
+	 */
+	function hasGeometries(traceResult) {
+		if (!traceResult?.cable_infrastructure) return false;
+
+		for (const infra of Object.values(traceResult.cable_infrastructure)) {
+			if (infra.merged_geometry) return true;
+			if (infra.trenches?.some((t) => t.geometry)) return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Build GeoJSON FeatureCollection from trace result infrastructure
+	 */
+	function buildGeoJSON(traceResult) {
+		const features = [];
+		const cableInfra = traceResult.cable_infrastructure || {};
+
+		for (const [cableId, infra] of Object.entries(cableInfra)) {
+			// Check for merged geometry first
+			if (infra.merged_geometry) {
+				features.push({
+					type: 'Feature',
+					properties: {
+						cable_id: cableId,
+						conduit_name: infra.conduit?.name || null,
+						conduit_type: infra.conduit?.type || null,
+						microduct_number: infra.microduct?.number || null,
+						microduct_color: infra.microduct?.color || null,
+						total_length: infra.total_length || null,
+						trench_count: infra.trenches?.length || 0,
+						geometry_mode: 'merged'
+					},
+					geometry: infra.merged_geometry
+				});
+			} else if (infra.trenches) {
+				// Individual trench geometries (segments mode)
+				for (const trench of infra.trenches) {
+					if (trench.geometry) {
+						features.push({
+							type: 'Feature',
+							properties: {
+								cable_id: cableId,
+								trench_id: trench.id,
+								id_trench: trench.id_trench,
+								construction_type: trench.construction_type,
+								surface: trench.surface,
+								length: trench.length,
+								conduit_name: infra.conduit?.name || null,
+								conduit_type: infra.conduit?.type || null,
+								microduct_number: infra.microduct?.number || null,
+								microduct_color: infra.microduct?.color || null,
+								geometry_mode: 'segments'
+							},
+							geometry: trench.geometry
+						});
+					}
+				}
+			}
+		}
+
+		return {
+			type: 'FeatureCollection',
+			name: 'fiber_trace_infrastructure',
+			crs: {
+				type: 'name',
+				properties: {
+					name: 'urn:ogc:def:crs:EPSG::25832'
+				}
+			},
+			features
+		};
+	}
+
+	/**
+	 * Download GeoJSON file
+	 */
+	function downloadGeoJSON() {
+		if (!result) return;
+
+		const geojson = buildGeoJSON(result);
+		const blob = new Blob([JSON.stringify(geojson, null, 2)], {
+			type: 'application/geo+json'
+		});
+
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+
+		// Generate filename from entry point
+		const entryType = result.entry_point?.type || 'trace';
+		const entryId = result.entry_point?.id?.slice(0, 8) || 'unknown';
+		a.download = `fiber-trace-${entryType}-${entryId}.geojson`;
+
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
 	}
 </script>
 
@@ -77,6 +181,32 @@
 			/>
 			<label for="includeGeometry" class="text-sm">Include Geometry</label>
 		</div>
+
+		{#if includeGeometry}
+			<div class="flex items-center gap-2">
+				<label for="geometryMode" class="text-sm">Mode:</label>
+				<select
+					id="geometryMode"
+					name="geometryMode"
+					bind:value={geometryMode}
+					class="input rounded border px-2 py-1 text-sm"
+				>
+					<option value="segments">Segments</option>
+					<option value="merged">Merged</option>
+				</select>
+			</div>
+
+			<div class="flex items-center gap-2">
+				<input
+					type="checkbox"
+					id="orientGeometry"
+					name="orientGeometry"
+					bind:checked={orientGeometry}
+					class="h-4 w-4"
+				/>
+				<label for="orientGeometry" class="text-sm">Orient by Cable</label>
+			</div>
+		{/if}
 
 		<button
 			type="submit"
@@ -132,6 +262,21 @@
 			</div>
 		</div>
 
+		{#if includeGeometry && hasGeometries(result)}
+			<div class="mb-4">
+				<button
+					type="button"
+					onclick={downloadGeoJSON}
+					class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+				>
+					Download GeoJSON
+				</button>
+				<span class="ml-2 text-sm text-gray-500">
+					({result.statistics.total_trenches} trenches, EPSG:25832)
+				</span>
+			</div>
+		{/if}
+
 		<div class="mb-4">
 			<h2 class="mb-2 font-bold">Entry Point</h2>
 			<pre class="overflow-x-auto rounded bg-gray-800 p-3 text-sm text-green-400">{JSON.stringify(
@@ -176,6 +321,19 @@
 										<span class="ml-2">{infra.conduit.name}</span>
 										{#if infra.conduit.type}
 											<span class="ml-2 rounded bg-indigo-200 px-1">{infra.conduit.type}</span>
+										{/if}
+									</div>
+								{/if}
+								{#if infra.merged_geometry}
+									<div class="rounded bg-green-50 p-2">
+										<span class="font-medium text-green-700">Merged Geometry</span>
+										<span class="ml-2 text-sm text-gray-500">
+											({infra.merged_geometry.type})
+										</span>
+										{#if infra.total_length}
+											<span class="ml-2 text-sm text-gray-500">
+												{infra.total_length.toFixed(1)}m total
+											</span>
 										{/if}
 									</div>
 								{/if}

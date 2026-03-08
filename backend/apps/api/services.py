@@ -15,7 +15,9 @@ from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from openpyxl import load_workbook
 from pathvalidate import sanitize_filename
-from shapely.geometry import LineString, Point, Polygon
+from shapely import is_valid, make_valid
+from shapely.geometry import LineString, MultiLineString, Point, Polygon, shape, mapping
+from shapely.ops import linemerge
 
 from .models import (
     AttributesCompany,
@@ -1056,7 +1058,12 @@ def repackage_qgz(
 # =============================================================================
 
 
-def trace_fiber(fiber_id, include_geometry: bool = False) -> dict:
+def trace_fiber(
+    fiber_id,
+    include_geometry: bool = False,
+    geometry_mode: str = "segments",
+    orient_geometry: bool = False,
+) -> dict:
     """
     Trace a single fiber through all its splice connections bidirectionally.
     Uses PostgreSQL recursive CTE for performance at scale (1M+ splices).
@@ -1065,6 +1072,12 @@ def trace_fiber(fiber_id, include_geometry: bool = False) -> dict:
     - Address info for nodes
     - Residential unit info for connected endpoints
     - Cable endpoint nodes (uuid_node_start/uuid_node_end) for full path visibility
+
+    Args:
+        fiber_id: UUID of the fiber to trace
+        include_geometry: If True, include trench geometry
+        geometry_mode: "segments" for individual trenches, "merged" for combined
+        orient_geometry: If True, orient geometries from cable start to end
     """
     sql = """
     WITH RECURSIVE container_hierarchy AS (
@@ -1324,10 +1337,17 @@ def trace_fiber(fiber_id, include_geometry: bool = False) -> dict:
         columns = [col[0] for col in cursor.description]
         rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
-    return _build_trace_result(rows, "fiber", fiber_id, include_geometry)
+    return _build_trace_result(
+        rows, "fiber", fiber_id, include_geometry, geometry_mode, orient_geometry
+    )
 
 
-def trace_cable(cable_id, include_geometry: bool = False) -> dict:
+def trace_cable(
+    cable_id,
+    include_geometry: bool = False,
+    geometry_mode: str = "segments",
+    orient_geometry: bool = False,
+) -> dict:
     """
     Trace all fibers in a cable through their splice connections.
     """
@@ -1358,7 +1378,7 @@ def trace_cable(cable_id, include_geometry: bool = False) -> dict:
 
     all_traces = []
     for fiber_id in fiber_ids:
-        trace = trace_fiber(fiber_id, include_geometry)
+        trace = trace_fiber(fiber_id, include_geometry, geometry_mode, orient_geometry)
         all_traces.append(trace)
 
     total_fibers = sum(t["statistics"]["total_fibers"] for t in all_traces)
@@ -1394,7 +1414,12 @@ def trace_cable(cable_id, include_geometry: bool = False) -> dict:
     }
 
 
-def trace_node(node_id, include_geometry: bool = False) -> dict:
+def trace_node(
+    node_id,
+    include_geometry: bool = False,
+    geometry_mode: str = "segments",
+    orient_geometry: bool = False,
+) -> dict:
     """
     Trace all fibers passing through a node.
     """
@@ -1435,7 +1460,7 @@ def trace_node(node_id, include_geometry: bool = False) -> dict:
     for fiber_id in fiber_ids:
         if fiber_id in seen_fibers:
             continue
-        trace = trace_fiber(fiber_id, include_geometry)
+        trace = trace_fiber(fiber_id, include_geometry, geometry_mode, orient_geometry)
         for segment in trace.get("_raw_segments", []):
             seen_fibers.add(segment["fiber_id"])
         all_traces.append(trace)
@@ -1473,7 +1498,12 @@ def trace_node(node_id, include_geometry: bool = False) -> dict:
     }
 
 
-def trace_address(address_id, include_geometry: bool = False) -> dict:
+def trace_address(
+    address_id,
+    include_geometry: bool = False,
+    geometry_mode: str = "segments",
+    orient_geometry: bool = False,
+) -> dict:
     """
     Trace all fibers connected to an address via:
     1. Nodes linked to this address (node.uuid_address)
@@ -1534,7 +1564,7 @@ def trace_address(address_id, include_geometry: bool = False) -> dict:
     for fiber_id in fiber_ids:
         if fiber_id in seen_fibers:
             continue
-        trace = trace_fiber(fiber_id, include_geometry)
+        trace = trace_fiber(fiber_id, include_geometry, geometry_mode, orient_geometry)
         for segment in trace.get("_raw_segments", []):
             seen_fibers.add(segment["fiber_id"])
         all_traces.append(trace)
@@ -1572,7 +1602,12 @@ def trace_address(address_id, include_geometry: bool = False) -> dict:
     }
 
 
-def trace_residential_unit(residential_unit_id, include_geometry: bool = False) -> dict:
+def trace_residential_unit(
+    residential_unit_id,
+    include_geometry: bool = False,
+    geometry_mode: str = "segments",
+    orient_geometry: bool = False,
+) -> dict:
     """
     Trace all fibers connected to a residential unit via fiber_splice.
     """
@@ -1612,7 +1647,7 @@ def trace_residential_unit(residential_unit_id, include_geometry: bool = False) 
     for fiber_id in fiber_ids:
         if fiber_id in seen_fibers:
             continue
-        trace = trace_fiber(fiber_id, include_geometry)
+        trace = trace_fiber(fiber_id, include_geometry, geometry_mode, orient_geometry)
         for segment in trace.get("_raw_segments", []):
             seen_fibers.add(segment["fiber_id"])
         all_traces.append(trace)
@@ -1650,10 +1685,25 @@ def trace_residential_unit(residential_unit_id, include_geometry: bool = False) 
     }
 
 
-def _build_trace_result(rows: list, entry_type: str, entry_id, include_geometry: bool = False) -> dict:
+def _build_trace_result(
+    rows: list,
+    entry_type: str,
+    entry_id,
+    include_geometry: bool = False,
+    geometry_mode: str = "segments",
+    orient_geometry: bool = False,
+) -> dict:
     """
     Build the trace result structure from flat database rows.
     Includes address, residential unit, and cable endpoint information.
+
+    Args:
+        rows: Flat database rows from trace query
+        entry_type: Type of entry point (fiber, cable, node, etc.)
+        entry_id: UUID of entry point
+        include_geometry: If True, include trench geometry
+        geometry_mode: "segments" for individual trenches, "merged" for combined
+        orient_geometry: If True, orient geometries from cable start to end
     """
     if not rows:
         return {
@@ -1913,8 +1963,52 @@ def _build_trace_result(rows: list, entry_type: str, entry_id, include_geometry:
     for row in rows:
         cables_seen.add(row["cable_id"])
 
+    # Build cable endpoints with geometry for orientation
+    cable_endpoints_for_geometry = {}
+    if orient_geometry and include_geometry:
+        # Fetch node geometries for cable endpoints
+        cable_node_ids = set()
+        for cable_id, endpoints in cable_endpoints_seen.items():
+            if endpoints.get("start_node") and endpoints["start_node"].get("id"):
+                cable_node_ids.add(endpoints["start_node"]["id"])
+            if endpoints.get("end_node") and endpoints["end_node"].get("id"):
+                cable_node_ids.add(endpoints["end_node"]["id"])
+
+        # Query node geometries
+        node_geoms = {}
+        if cable_node_ids:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT uuid, ST_X(geom) as x, ST_Y(geom) as y
+                    FROM node
+                    WHERE uuid = ANY(%(node_ids)s)
+                    """,
+                    {"node_ids": [str(nid) for nid in cable_node_ids]},
+                )
+                for row in cursor.fetchall():
+                    if row[1] is not None and row[2] is not None:
+                        node_geoms[str(row[0])] = Point(row[1], row[2])
+
+        # Map cable endpoints to geometry
+        for cable_id, endpoints in cable_endpoints_seen.items():
+            cable_endpoints_for_geometry[str(cable_id)] = {
+                "start_geom": node_geoms.get(endpoints["start_node"]["id"])
+                if endpoints.get("start_node")
+                else None,
+                "end_geom": node_geoms.get(endpoints["end_node"]["id"])
+                if endpoints.get("end_node")
+                else None,
+            }
+
     # Get infrastructure for all cables
-    cable_infrastructure = _get_cable_infrastructure(list(cables_seen), include_geometry)
+    cable_infrastructure = _get_cable_infrastructure(
+        list(cables_seen),
+        include_geometry,
+        geometry_mode,
+        orient_geometry,
+        cable_endpoints_for_geometry,
+    )
 
     return {
         "entry_point": {"type": entry_type, "id": str(entry_id)},
@@ -1934,19 +2028,154 @@ def _build_trace_result(rows: list, entry_type: str, entry_id, include_geometry:
     }
 
 
-def _get_cable_infrastructure(cable_ids: list, include_geometry: bool = False) -> dict:
+# =============================================================================
+# Geometry Processing Helpers
+# =============================================================================
+
+
+def _validate_and_clean_geometry(geojson_dict: dict) -> dict | None:
+    """
+    Validate and clean a GeoJSON geometry.
+
+    Args:
+        geojson_dict: GeoJSON geometry dict
+
+    Returns:
+        Cleaned GeoJSON dict or None if invalid/empty
+    """
+    if not geojson_dict:
+        return None
+
+    try:
+        geom = shape(geojson_dict)
+        if geom.is_empty:
+            return None
+        if not is_valid(geom):
+            geom = make_valid(geom)
+        return mapping(geom)
+    except Exception:
+        return None
+
+
+def _merge_trench_geometries(trenches: list[dict]) -> dict | None:
+    """
+    Merge multiple trench geometries into a single geometry.
+
+    Args:
+        trenches: List of trench dicts with 'geometry' field containing GeoJSON
+
+    Returns:
+        GeoJSON dict (LineString or MultiLineString depending on connectivity)
+        or None if no valid geometries
+    """
+    if not trenches:
+        return None
+
+    shapely_geoms = []
+    for trench in trenches:
+        geom_json = trench.get("geometry")
+        if not geom_json:
+            continue
+
+        cleaned = _validate_and_clean_geometry(geom_json)
+        if cleaned:
+            try:
+                shapely_geoms.append(shape(cleaned))
+            except Exception:
+                continue
+
+    if not shapely_geoms:
+        return None
+
+    if len(shapely_geoms) == 1:
+        return mapping(shapely_geoms[0])
+
+    # linemerge returns LineString if connected, MultiLineString if disconnected
+    merged = linemerge(shapely_geoms)
+    return mapping(merged)
+
+
+def _orient_geometry(
+    geom_dict: dict, cable_start_geom: Point | None, cable_end_geom: Point | None
+) -> dict:
+    """
+    Orient a LineString/MultiLineString so it flows from cable start to end.
+    Compares first/last points of geometry to cable endpoint nodes.
+
+    Args:
+        geom_dict: GeoJSON geometry dict
+        cable_start_geom: Shapely Point of cable start node
+        cable_end_geom: Shapely Point of cable end node
+
+    Returns:
+        Oriented GeoJSON geometry dict
+    """
+    if not geom_dict or not cable_start_geom:
+        return geom_dict
+
+    try:
+        geom = shape(geom_dict)
+    except Exception:
+        return geom_dict
+
+    if geom.is_empty:
+        return geom_dict
+
+    if geom.geom_type == "LineString":
+        first_pt = Point(geom.coords[0])
+        last_pt = Point(geom.coords[-1])
+
+        # If last point is closer to cable start than first point, reverse
+        dist_first_to_start = first_pt.distance(cable_start_geom)
+        dist_last_to_start = last_pt.distance(cable_start_geom)
+        if dist_last_to_start < dist_first_to_start:
+            return mapping(geom.reverse())
+        return geom_dict
+
+    elif geom.geom_type == "MultiLineString":
+        # Orient each component LineString
+        oriented_lines = []
+        for line in geom.geoms:
+            first_pt = Point(line.coords[0])
+            last_pt = Point(line.coords[-1])
+
+            dist_first_to_start = first_pt.distance(cable_start_geom)
+            dist_last_to_start = last_pt.distance(cable_start_geom)
+            if dist_last_to_start < dist_first_to_start:
+                oriented_lines.append(line.reverse())
+            else:
+                oriented_lines.append(line)
+
+        return mapping(MultiLineString(oriented_lines))
+
+    return geom_dict
+
+
+def _get_cable_infrastructure(
+    cable_ids: list,
+    include_geometry: bool = False,
+    geometry_mode: str = "segments",
+    orient_geometry: bool = False,
+    cable_endpoints: dict | None = None,
+) -> dict:
     """
     Get infrastructure path for cables: microduct → conduit → trenches.
 
     Args:
         cable_ids: List of cable UUIDs to fetch infrastructure for
         include_geometry: If True, include trench geometry as GeoJSON
+        geometry_mode: "segments" for individual trenches, "merged" for combined geometry
+        orient_geometry: If True, orient geometries from cable start to end
+        cable_endpoints: Dict mapping cable_id to {start_geom, end_geom} Point objects
 
     Returns:
         Dict mapping cable_id to infrastructure data
     """
     if not cable_ids:
         return {}
+
+    if cable_endpoints is None:
+        cable_endpoints = {}
 
     geometry_select = "ST_AsGeoJSON(t.geom)::jsonb" if include_geometry else "NULL"
 
@@ -2021,13 +2250,58 @@ def _get_cable_infrastructure(cable_ids: list, include_geometry: bool = False) -
             trench_id = str(row["trench_id"])
             existing_ids = [t["id"] for t in infrastructure[cable_id]["trenches"]]
             if trench_id not in existing_ids:
+                # Parse geometry if it's a string
+                trench_geom = row.get("trench_geometry")
+                if isinstance(trench_geom, str):
+                    try:
+                        trench_geom = json.loads(trench_geom)
+                    except (json.JSONDecodeError, TypeError):
+                        trench_geom = None
+
                 infrastructure[cable_id]["trenches"].append({
                     "id": trench_id,
                     "id_trench": row["id_trench"],
                     "construction_type": row.get("construction_type"),
                     "surface": row.get("surface"),
                     "length": float(row["trench_length"]) if row.get("trench_length") else None,
-                    "geometry": row.get("trench_geometry"),
+                    "geometry": trench_geom,
                 })
+
+    # Process geometries based on mode
+    if include_geometry:
+        for cable_id, infra in infrastructure.items():
+            trenches = infra.get("trenches", [])
+            endpoints = cable_endpoints.get(cable_id, {})
+            start_geom = endpoints.get("start_geom")
+            end_geom = endpoints.get("end_geom")
+
+            if geometry_mode == "merged":
+                # Merge all trench geometries into one
+                merged = _merge_trench_geometries(trenches)
+                if merged and orient_geometry:
+                    merged = _orient_geometry(merged, start_geom, end_geom)
+                infra["merged_geometry"] = merged
+
+                # Calculate total length from merged geometry
+                if merged:
+                    try:
+                        merged_geom = shape(merged)
+                        infra["total_length"] = merged_geom.length
+                    except Exception:
+                        infra["total_length"] = sum(
+                            t.get("length") or 0 for t in trenches
+                        )
+
+                # Remove individual geometries to reduce payload
+                for trench in trenches:
+                    trench.pop("geometry", None)
+
+            elif orient_geometry:
+                # Segments mode with orientation - orient each trench geometry
+                for trench in trenches:
+                    if trench.get("geometry"):
+                        trench["geometry"] = _orient_geometry(
+                            trench["geometry"], start_geom, end_geom
+                        )
 
     return infrastructure

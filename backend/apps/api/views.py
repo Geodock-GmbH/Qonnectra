@@ -6872,6 +6872,11 @@ class FiberTraceView(APIView):
         node_id: UUID of a node (traces all fibers passing through)
         address_id: UUID of an address (traces fibers via linked nodes/RUs)
         residential_unit_id: UUID of a residential unit (traces connected fibers)
+
+    Geometry Parameters (optional):
+        include_geometry: "true" to include trench geometry (default: "false")
+        geometry_mode: "segments" for individual trenches, "merged" for combined
+        orient_geometry: "true" to orient lines from cable start to end
     """
 
     permission_classes = [IsAuthenticated]
@@ -6892,7 +6897,20 @@ class FiberTraceView(APIView):
         node_id = request.query_params.get("node_id")
         address_id = request.query_params.get("address_id")
         residential_unit_id = request.query_params.get("residential_unit_id")
-        include_geometry = request.query_params.get("include_geometry", "").lower() == "true"
+        include_geometry = (
+            request.query_params.get("include_geometry", "").lower() == "true"
+        )
+        geometry_mode = request.query_params.get("geometry_mode", "segments")
+        orient_geometry = (
+            request.query_params.get("orient_geometry", "").lower() == "true"
+        )
+
+        # Validate geometry_mode
+        if geometry_mode not in ("segments", "merged"):
+            return Response(
+                {"error": "geometry_mode must be 'segments' or 'merged'"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         params = [fiber_id, cable_id, node_id, address_id, residential_unit_id]
         param_count = sum(1 for p in params if p)
@@ -6927,15 +6945,25 @@ class FiberTraceView(APIView):
 
         try:
             if fiber_id:
-                result = trace_fiber(fiber_id, include_geometry)
+                result = trace_fiber(
+                    fiber_id, include_geometry, geometry_mode, orient_geometry
+                )
             elif cable_id:
-                result = trace_cable(cable_id, include_geometry)
+                result = trace_cable(
+                    cable_id, include_geometry, geometry_mode, orient_geometry
+                )
             elif node_id:
-                result = trace_node(node_id, include_geometry)
+                result = trace_node(
+                    node_id, include_geometry, geometry_mode, orient_geometry
+                )
             elif address_id:
-                result = trace_address(address_id, include_geometry)
+                result = trace_address(
+                    address_id, include_geometry, geometry_mode, orient_geometry
+                )
             else:
-                result = trace_residential_unit(residential_unit_id, include_geometry)
+                result = trace_residential_unit(
+                    residential_unit_id, include_geometry, geometry_mode, orient_geometry
+                )
 
             if "_raw_segments" in result:
                 del result["_raw_segments"]
