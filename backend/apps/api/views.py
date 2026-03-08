@@ -6885,6 +6885,8 @@ class FiberTraceView(APIView):
             trace_residential_unit,
         )
 
+        from uuid import UUID as UUIDType
+
         fiber_id = request.query_params.get("fiber_id")
         cable_id = request.query_params.get("cable_id")
         node_id = request.query_params.get("node_id")
@@ -6912,6 +6914,16 @@ class FiberTraceView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Validate UUID format
+        provided_id = fiber_id or cable_id or node_id or address_id or residential_unit_id
+        try:
+            UUIDType(provided_id)
+        except ValueError:
+            return Response(
+                {"error": "Invalid UUID format"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         try:
             if fiber_id:
                 result = trace_fiber(fiber_id)
@@ -6929,9 +6941,9 @@ class FiberTraceView(APIView):
 
             return Response(result)
 
-        except Exception as e:
+        except Exception:
             logger.exception("Fiber trace error")
             return Response(
-                {"error": str(e)},
+                {"error": "An error occurred while tracing the fiber path"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

@@ -5,6 +5,8 @@ Tests cover:
 - trace_fiber: Tracing a single fiber through splice connections
 - trace_cable: Tracing all fibers in a cable
 - trace_node: Tracing all fibers passing through a node
+- trace_address: Tracing all fibers connected to an address
+- trace_residential_unit: Tracing all fibers connected to a residential unit
 - FiberTraceView: API endpoint for fiber tracing
 """
 
@@ -14,13 +16,20 @@ from apps.api.models import (
     FiberSplice,
     NodeSlotConfiguration,
     NodeStructure,
+    ResidentialUnit,
 )
-from apps.api.services import trace_cable, trace_fiber, trace_node
+from apps.api.services import (
+    trace_address,
+    trace_cable,
+    trace_fiber,
+    trace_node,
+    trace_residential_unit,
+)
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from .factories import CableFactory, FiberFactory, NodeFactory
+from .factories import AddressFactory, CableFactory, FiberFactory, NodeFactory
 
 User = get_user_model()
 
@@ -369,3 +378,190 @@ class TestFiberTraceView:
         )
         assert response.status_code == status.HTTP_200_OK
         assert "_raw_segments" not in response.data
+
+    def test_trace_rejects_invalid_uuid(self, authenticated_client):
+        """Test that invalid UUID format returns 400 error."""
+        response = authenticated_client.get("/api/v1/fiber-trace/?fiber_id=not-a-uuid")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "invalid uuid" in response.data["error"].lower()
+
+
+@pytest.fixture
+def address_with_node_fibers(db):
+    """
+    Create an address linked to a node that has fiber splices.
+    Address -> Node -> Fiber1 <-> Fiber2
+    """
+    address = AddressFactory(street="Test Street", housenumber=1)
+    node = NodeFactory(name="Address-Node", uuid_address=address)
+
+    slot_config = NodeSlotConfiguration.objects.create(
+        uuid_node=node, side="A", total_slots=12
+    )
+    component_type = AttributesComponentType.objects.create(
+        component_type="Splice Cassette", occupied_slots=2
+    )
+    structure = NodeStructure.objects.create(
+        uuid_node=node,
+        slot_configuration=slot_config,
+        component_type=component_type,
+        slot_start=1,
+        slot_end=2,
+    )
+
+    cable1 = CableFactory(name="Address-Cable-1")
+    cable2 = CableFactory(name="Address-Cable-2")
+    fiber1 = FiberFactory(uuid_cable=cable1, fiber_number_absolute=1)
+    fiber2 = FiberFactory(uuid_cable=cable2, fiber_number_absolute=1)
+
+    FiberSplice.objects.create(
+        node_structure=structure,
+        port_number=1,
+        fiber_a=fiber1,
+        cable_a=cable1,
+        fiber_b=fiber2,
+        cable_b=cable2,
+    )
+
+    return {
+        "address": address,
+        "node": node,
+        "fibers": [fiber1, fiber2],
+        "cables": [cable1, cable2],
+        "structure": structure,
+    }
+
+
+@pytest.fixture
+def residential_unit_with_fibers(db):
+    """
+    Create a residential unit with fiber splices connected to it.
+    ResidentialUnit -> FiberSplice -> Fiber1 <-> Fiber2
+    """
+    address = AddressFactory(street="RU Street", housenumber=42)
+    residential_unit = ResidentialUnit.objects.create(
+        uuid_address=address,
+        id_residential_unit="RU-001",
+        floor=1,
+        side="Left",
+    )
+
+    # Create a node with structure for the splice
+    node = NodeFactory(name="RU-Node")
+    slot_config = NodeSlotConfiguration.objects.create(
+        uuid_node=node, side="A", total_slots=12
+    )
+    component_type = AttributesComponentType.objects.create(
+        component_type="ONT Box", occupied_slots=1
+    )
+    structure = NodeStructure.objects.create(
+        uuid_node=node,
+        slot_configuration=slot_config,
+        component_type=component_type,
+        slot_start=1,
+        slot_end=1,
+    )
+
+    cable1 = CableFactory(name="RU-Cable-1")
+    cable2 = CableFactory(name="RU-Cable-2")
+    fiber1 = FiberFactory(uuid_cable=cable1, fiber_number_absolute=1)
+    fiber2 = FiberFactory(uuid_cable=cable2, fiber_number_absolute=1)
+
+    # Create splice with residential unit connection
+    FiberSplice.objects.create(
+        node_structure=structure,
+        port_number=1,
+        fiber_a=fiber1,
+        cable_a=cable1,
+        fiber_b=fiber2,
+        cable_b=cable2,
+        residential_unit_a=residential_unit,
+    )
+
+    return {
+        "address": address,
+        "residential_unit": residential_unit,
+        "node": node,
+        "fibers": [fiber1, fiber2],
+        "cables": [cable1, cable2],
+        "structure": structure,
+    }
+
+
+@pytest.mark.django_db
+class TestTraceAddress:
+    """Tests for the trace_address service function."""
+
+    def test_trace_address_with_node_fibers(self, address_with_node_fibers):
+        """Test tracing fibers connected via a node linked to an address."""
+        address = address_with_node_fibers["address"]
+        result = trace_address(address.uuid)
+
+        assert result["entry_point"]["type"] == "address"
+        assert result["entry_point"]["id"] == str(address.uuid)
+        assert result["statistics"]["total_fibers"] == 2
+        assert len(result["trace_trees"]) >= 1
+
+    def test_trace_address_without_connections(self, db):
+        """Test tracing an address with no fiber connections."""
+        address = AddressFactory(street="Empty Street", housenumber=999)
+        result = trace_address(address.uuid)
+
+        assert result["entry_point"]["type"] == "address"
+        assert result["trace_trees"] == []
+        assert result["statistics"]["total_fibers"] == 0
+
+    def test_trace_address_via_api(self, authenticated_client, address_with_node_fibers):
+        """Test tracing an address via the API endpoint."""
+        address = address_with_node_fibers["address"]
+
+        response = authenticated_client.get(
+            f"/api/v1/fiber-trace/?address_id={address.uuid}"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["entry_point"]["type"] == "address"
+        assert "trace_trees" in response.data
+        assert "statistics" in response.data
+
+
+@pytest.mark.django_db
+class TestTraceResidentialUnit:
+    """Tests for the trace_residential_unit service function."""
+
+    def test_trace_residential_unit_with_fibers(self, residential_unit_with_fibers):
+        """Test tracing fibers connected to a residential unit."""
+        ru = residential_unit_with_fibers["residential_unit"]
+        result = trace_residential_unit(ru.uuid)
+
+        assert result["entry_point"]["type"] == "residential_unit"
+        assert result["entry_point"]["id"] == str(ru.uuid)
+        assert result["statistics"]["total_fibers"] == 2
+        assert len(result["trace_trees"]) >= 1
+
+    def test_trace_residential_unit_without_connections(self, db):
+        """Test tracing a residential unit with no fiber connections."""
+        address = AddressFactory(street="No Fiber Street", housenumber=1)
+        ru = ResidentialUnit.objects.create(
+            uuid_address=address,
+            id_residential_unit="RU-EMPTY",
+            floor=0,
+        )
+        result = trace_residential_unit(ru.uuid)
+
+        assert result["entry_point"]["type"] == "residential_unit"
+        assert result["trace_trees"] == []
+        assert result["statistics"]["total_fibers"] == 0
+
+    def test_trace_residential_unit_via_api(
+        self, authenticated_client, residential_unit_with_fibers
+    ):
+        """Test tracing a residential unit via the API endpoint."""
+        ru = residential_unit_with_fibers["residential_unit"]
+
+        response = authenticated_client.get(
+            f"/api/v1/fiber-trace/?residential_unit_id={ru.uuid}"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["entry_point"]["type"] == "residential_unit"
+        assert "trace_trees" in response.data
+        assert "statistics" in response.data
