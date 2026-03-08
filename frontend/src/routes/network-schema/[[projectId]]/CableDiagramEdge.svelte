@@ -109,6 +109,12 @@
 			if (result.type === 'success' || response.ok) {
 				// Clear labelData so label uses default position
 				labelData = null;
+				// Dispatch event to update parent state
+				window.dispatchEvent(
+					new CustomEvent('updateCableLabelData', {
+						detail: { edgeId: id, labelData: null }
+					})
+				);
 			} else {
 				console.error('Failed to reset label:', result.message);
 			}
@@ -149,6 +155,12 @@
 
 			if (actionResult?.type === 'success' && actionResult.label) {
 				labelData = actionResult.label;
+				// Dispatch event to update parent state so position persists across re-renders
+				window.dispatchEvent(
+					new CustomEvent('updateCableLabelData', {
+						detail: { edgeId: id, labelData: actionResult.label }
+					})
+				);
 			} else if (actionResult?.type === 'error') {
 				console.error('Failed to save label position:', actionResult.message);
 			}

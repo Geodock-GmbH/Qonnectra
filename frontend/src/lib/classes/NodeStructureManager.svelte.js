@@ -39,6 +39,9 @@ export class NodeStructureManager {
 	/** @type {Object|null} - Shared state from parent for slot configurations */
 	#sharedSlotState = null;
 
+	/** @type {number} - Version counter to track node changes and invalidate stale fetches */
+	#fetchVersion = 0;
+
 	/**
 	 * @param {string|null} nodeUuid - Node UUID
 	 * @param {string|null} initialSlotConfigUuid - Initial slot config selection
@@ -116,6 +119,8 @@ export class NodeStructureManager {
 	setNodeUuid(uuid, sharedSlotState = null) {
 		this.nodeUuid = uuid;
 		this.#sharedSlotState = sharedSlotState;
+		// Increment version to invalidate any in-flight fetch requests
+		this.#fetchVersion++;
 		this.localSlotConfigurations = [];
 		this.selectedSlotConfigUuid = null;
 		this.structures = [];
@@ -130,6 +135,10 @@ export class NodeStructureManager {
 	 * @param {string} uuid
 	 */
 	selectSlotConfig(uuid) {
+		if (this.selectedSlotConfigUuid !== uuid) {
+			// Increment version to invalidate in-flight fetches for previous config
+			this.#fetchVersion++;
+		}
 		this.selectedSlotConfigUuid = uuid;
 	}
 
@@ -147,6 +156,9 @@ export class NodeStructureManager {
 			return;
 		}
 
+		// Capture current version to detect stale responses
+		const requestVersion = this.#fetchVersion;
+
 		this.loading = true;
 		try {
 			const formData = new FormData();
@@ -156,6 +168,9 @@ export class NodeStructureManager {
 				method: 'POST',
 				body: formData
 			});
+
+			// Check if node changed while fetching - discard stale results
+			if (this.#fetchVersion !== requestVersion) return;
 
 			const result = deserialize(await response.text());
 
@@ -169,6 +184,8 @@ export class NodeStructureManager {
 				this.selectedSlotConfigUuid = this.localSlotConfigurations[0].uuid;
 			}
 		} catch (err) {
+			// Discard errors from stale requests
+			if (this.#fetchVersion !== requestVersion) return;
 			console.error('Error fetching slot configurations:', err);
 			globalToaster.error({
 				title: m.common_error(),
@@ -176,7 +193,10 @@ export class NodeStructureManager {
 			});
 			this.localSlotConfigurations = [];
 		} finally {
-			this.loading = false;
+			// Only update loading state if request is still current
+			if (this.#fetchVersion === requestVersion) {
+				this.loading = false;
+			}
 		}
 	}
 
@@ -189,6 +209,9 @@ export class NodeStructureManager {
 			return;
 		}
 
+		// Capture current version to detect stale responses
+		const requestVersion = this.#fetchVersion;
+
 		this.loadingStructures = true;
 		try {
 			const formData = new FormData();
@@ -199,6 +222,9 @@ export class NodeStructureManager {
 				body: formData
 			});
 
+			// Check if node changed while fetching - discard stale results
+			if (this.#fetchVersion !== requestVersion) return;
+
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
@@ -207,6 +233,8 @@ export class NodeStructureManager {
 
 			this.structures = result.data?.structures || [];
 		} catch (err) {
+			// Discard errors from stale requests
+			if (this.#fetchVersion !== requestVersion) return;
 			console.error('Error fetching structures:', err);
 			globalToaster.error({
 				title: m.common_error(),
@@ -214,7 +242,10 @@ export class NodeStructureManager {
 			});
 			this.structures = [];
 		} finally {
-			this.loadingStructures = false;
+			// Only update loading state if request is still current
+			if (this.#fetchVersion === requestVersion) {
+				this.loadingStructures = false;
+			}
 		}
 	}
 
@@ -227,6 +258,9 @@ export class NodeStructureManager {
 			return;
 		}
 
+		// Capture current version to detect stale responses
+		const requestVersion = this.#fetchVersion;
+
 		try {
 			const formData = new FormData();
 			formData.append('slotConfigUuid', this.selectedSlotConfigUuid);
@@ -236,6 +270,9 @@ export class NodeStructureManager {
 				body: formData
 			});
 
+			// Check if node changed while fetching - discard stale results
+			if (this.#fetchVersion !== requestVersion) return;
+
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
@@ -244,6 +281,8 @@ export class NodeStructureManager {
 
 			this.dividers = result.data?.dividers || [];
 		} catch (err) {
+			// Discard errors from stale requests
+			if (this.#fetchVersion !== requestVersion) return;
 			console.error('Error fetching dividers:', err);
 			this.dividers = [];
 		}
@@ -258,6 +297,9 @@ export class NodeStructureManager {
 			return;
 		}
 
+		// Capture current version to detect stale responses
+		const requestVersion = this.#fetchVersion;
+
 		try {
 			const formData = new FormData();
 			formData.append('slotConfigUuid', this.selectedSlotConfigUuid);
@@ -266,6 +308,9 @@ export class NodeStructureManager {
 				method: 'POST',
 				body: formData
 			});
+
+			// Check if node changed while fetching - discard stale results
+			if (this.#fetchVersion !== requestVersion) return;
 
 			const result = deserialize(await response.text());
 
@@ -280,6 +325,8 @@ export class NodeStructureManager {
 			}
 			this.clipNumbers = newMap;
 		} catch (err) {
+			// Discard errors from stale requests
+			if (this.#fetchVersion !== requestVersion) return;
 			console.error('Error fetching clip numbers:', err);
 			this.clipNumbers = new Map();
 		}

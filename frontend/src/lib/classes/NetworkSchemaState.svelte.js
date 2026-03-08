@@ -531,7 +531,8 @@ export class NetworkSchemaState {
 						cable: {
 							...edge.data.cable,
 							name: newName
-						}
+						},
+						labelData: edge.data.labelData ? { ...edge.data.labelData, text: newName } : null
 					}
 				};
 			}
@@ -578,6 +579,26 @@ export class NetworkSchemaState {
 						}
 					};
 				}
+			}
+			return edge;
+		});
+	}
+
+	/**
+	 * Update edge label data (position and text) in local state
+	 * @param {string} edgeId - Edge UUID
+	 * @param {Object} labelData - Label data with position_x, position_y, text, uuid
+	 */
+	updateEdgeLabelData(edgeId, labelData) {
+		this.edges = this.edges.map((edge) => {
+			if (edge.id === edgeId) {
+				return {
+					...edge,
+					data: {
+						...edge.data,
+						labelData: labelData
+					}
+				};
 			}
 			return edge;
 		});

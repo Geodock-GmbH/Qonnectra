@@ -206,6 +206,24 @@
 	});
 
 	/**
+	 * Handle cable label data update events from CableDiagramEdge
+	 */
+	function handleCableLabelDataUpdate(event) {
+		const { edgeId, labelData } = event.detail;
+		schemaState.updateEdgeLabelData(edgeId, labelData);
+	}
+
+	/**
+	 * Listen for cable label data update events
+	 */
+	$effect(() => {
+		window.addEventListener('updateCableLabelData', handleCableLabelDataUpdate);
+		return () => {
+			window.removeEventListener('updateCableLabelData', handleCableLabelDataUpdate);
+		};
+	});
+
+	/**
 	 * Listen for cable connection changed events (from handle config reconnection)
 	 */
 	$effect(() => {

@@ -250,12 +250,7 @@ export class MapState {
 
 					// Get visibility from project-scoped store or default to true
 					const visibilityStore = get(wmsLayerVisibilityConfig);
-					const isVisible = getWMSLayerVisibility(
-						visibilityStore,
-						projectAtStart,
-						layerId,
-						true
-					);
+					const isVisible = getWMSLayerVisibility(visibilityStore, projectAtStart, layerId, true);
 					olLayer.setVisible(isVisible);
 
 					newWmsLayers.push(olLayer);
