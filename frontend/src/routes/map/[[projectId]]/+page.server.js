@@ -4,6 +4,7 @@ import {
 	getNodeTypes,
 	getSurfaces
 } from '$lib/server/attributes';
+import { getCablesInTrench } from '$lib/server/cableData';
 import {
 	getMicroducts,
 	getPipesInTrench,
@@ -83,6 +84,13 @@ export const actions = {
 		const pipeId = formData.get('uuid');
 
 		return getMicroducts(fetch, cookies, pipeId);
+	},
+
+	getCablesInTrench: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const trenchUuid = formData.get('trenchUuid');
+
+		return getCablesInTrench(fetch, cookies, trenchUuid);
 	},
 
 	getTrenchesForConduit: async ({ request, fetch, cookies }) => {

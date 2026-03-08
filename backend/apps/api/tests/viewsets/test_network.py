@@ -160,6 +160,70 @@ class TestCableViewSet:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         assert Cable.objects.count() == 0
 
+    def test_cables_in_trench(self, authenticated_client):
+        """Test getting cables that pass through a trench."""
+        # Create the full relationship chain:
+        # Trench -> TrenchConduitConnection -> Conduit -> Microduct -> MicroductCableConnection -> Cable
+        trench = TrenchFactory()
+        conduit = ConduitFactory()
+        TrenchConduitConnectionFactory(uuid_trench=trench, uuid_conduit=conduit)
+        microduct = MicroductFactory(uuid_conduit=conduit)
+        cable = CableFactory(name="Cable In Trench")
+        MicroductCableConnectionFactory(uuid_microduct=microduct, uuid_cable=cable)
+
+        response = authenticated_client.get(f"/api/v1/cable/in-trench/{trench.uuid}/")
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Cable In Trench"
+        assert response.data[0]["uuid"] == str(cable.uuid)
+
+    def test_cables_in_trench_empty(self, authenticated_client):
+        """Test getting cables for a trench with no cables."""
+        trench = TrenchFactory()
+
+        response = authenticated_client.get(f"/api/v1/cable/in-trench/{trench.uuid}/")
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 0
+
+    def test_cables_in_trench_multiple_cables(self, authenticated_client):
+        """Test getting multiple cables that pass through a trench."""
+        trench = TrenchFactory()
+        conduit = ConduitFactory()
+        TrenchConduitConnectionFactory(uuid_trench=trench, uuid_conduit=conduit)
+
+        # Create two microducts with different cables
+        microduct1 = MicroductFactory(uuid_conduit=conduit, number=1)
+        microduct2 = MicroductFactory(uuid_conduit=conduit, number=2)
+        cable1 = CableFactory(name="Cable A")
+        cable2 = CableFactory(name="Cable B")
+        MicroductCableConnectionFactory(uuid_microduct=microduct1, uuid_cable=cable1)
+        MicroductCableConnectionFactory(uuid_microduct=microduct2, uuid_cable=cable2)
+
+        response = authenticated_client.get(f"/api/v1/cable/in-trench/{trench.uuid}/")
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 2
+        cable_names = [c["name"] for c in response.data]
+        assert "Cable A" in cable_names
+        assert "Cable B" in cable_names
+
+    def test_cables_in_trench_returns_distinct(self, authenticated_client):
+        """Test that cables are returned distinctly even if in multiple microducts."""
+        trench = TrenchFactory()
+        conduit = ConduitFactory()
+        TrenchConduitConnectionFactory(uuid_trench=trench, uuid_conduit=conduit)
+
+        # Same cable in two microducts
+        microduct1 = MicroductFactory(uuid_conduit=conduit, number=1)
+        microduct2 = MicroductFactory(uuid_conduit=conduit, number=2)
+        cable = CableFactory(name="Single Cable")
+        MicroductCableConnectionFactory(uuid_microduct=microduct1, uuid_cable=cable)
+        MicroductCableConnectionFactory(uuid_microduct=microduct2, uuid_cable=cable)
+
+        response = authenticated_client.get(f"/api/v1/cable/in-trench/{trench.uuid}/")
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Single Cable"
+
 
 @pytest.mark.django_db
 class TestMicroductViewSet:

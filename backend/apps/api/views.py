@@ -105,6 +105,7 @@ from .serializers import (
     AttributesStatusSerializer,
     AttributesSurfaceSerializer,
     CableAtNodeSerializer,
+    CableInTrenchSerializer,
     CableLabelSerializer,
     CableSerializer,
     CableTypeColorMappingSerializer,
@@ -3347,6 +3348,32 @@ class CableViewSet(viewsets.ModelViewSet):
         serializer = CableAtNodeSerializer(
             queryset, many=True, context={"node_uuid": node_uuid}
         )
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="in-trench/(?P<trench_uuid>[^/.]+)")
+    def cables_in_trench(self, request, trench_uuid=None):
+        """
+        Returns all cables that pass through microducts in the specified trench.
+
+        Relationship path:
+        Trench -> TrenchConduitConnection -> Conduit -> Microduct -> MicroductCableConnection -> Cable
+        """
+        if not trench_uuid:
+            return Response(
+                {"error": "trench_uuid is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        queryset = (
+            Cable.objects.filter(
+                microductcableconnection__uuid_microduct__uuid_conduit__trenchconduitconnection__uuid_trench=trench_uuid
+            )
+            .select_related("cable_type")
+            .distinct()
+            .order_by("name")
+        )
+
+        serializer = CableInTrenchSerializer(queryset, many=True)
         return Response(serializer.data)
 
 

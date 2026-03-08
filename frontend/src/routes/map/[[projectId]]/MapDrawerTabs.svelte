@@ -11,6 +11,7 @@
 
 	import NodeSlotConfigPanel from '../../network-schema/[[projectId]]/NodeSlotConfigPanel.svelte';
 	import NodeStructurePanel from '../../network-schema/[[projectId]]/NodeStructurePanel.svelte';
+	import MapCableAccordion from './MapCableAccordion.svelte';
 	import MapConduitAccordion from './MapConduitAccordion.svelte';
 	import TrenchProfilePanel from './TrenchProfilePanel.svelte';
 
@@ -53,6 +54,7 @@
 	const tabItems = $derived([
 		{ value: 'attributes', label: m.common_attributes() },
 		...(featureType === 'trench' ? [{ value: 'conduits', label: m.form_conduit_overview() }] : []),
+		...(featureType === 'trench' ? [{ value: 'cables', label: m.form_cable_overview() }] : []),
 		...(featureType === 'trench' ? [{ value: 'actions', label: m.form_actions() }] : []),
 		...(featureType === 'node' ? [{ value: 'actions', label: m.form_actions() }] : []),
 		{ value: 'files', label: m.form_attachments() }
@@ -79,6 +81,10 @@
 
 	{#if activeTab === 'conduits' && featureType === 'trench'}
 		<MapConduitAccordion {featureId} />
+	{/if}
+
+	{#if activeTab === 'cables' && featureType === 'trench'}
+		<MapCableAccordion {featureId} />
 	{/if}
 
 	{#if activeTab === 'actions' && featureType === 'trench'}

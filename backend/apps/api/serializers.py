@@ -2118,6 +2118,29 @@ class CableAtNodeSerializer(serializers.ModelSerializer):
         return None
 
 
+class CableInTrenchSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for cables passing through a trench."""
+
+    uuid = serializers.UUIDField(read_only=True)
+    cable_type = AttributesCableTypeSerializer(read_only=True)
+    fiber_count = serializers.IntegerField(
+        source="cable_type.fiber_count", read_only=True
+    )
+    bundle_count = serializers.IntegerField(
+        source="cable_type.bundle_count", read_only=True
+    )
+
+    class Meta:
+        model = Cable
+        fields = [
+            "uuid",
+            "name",
+            "cable_type",
+            "fiber_count",
+            "bundle_count",
+        ]
+
+
 class ConduitForTrenchSelectionSerializer(serializers.ModelSerializer):
     """Serializer for conduits returned when selecting by trenches."""
 
