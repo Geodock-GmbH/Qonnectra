@@ -178,45 +178,116 @@
 				</button>
 				<span class="text-xs text-gray-400">({node.direction})</span>
 			{/if}
-			{#if node.residential_unit}
-				<span class="rounded bg-purple-100 px-2 py-0.5 font-mono text-xs">
-					<button
-						type="button"
-						class="hover:underline"
-						onclick={() => traceFrom('residential_unit', node.residential_unit.id)}
-						title="Trace this residential unit"
-					>
-						RU: {node.residential_unit.id_residential_unit || node.residential_unit.id}
-					</button>
-					{#if node.residential_unit.floor}
-						<span class="text-gray-500">(Floor {node.residential_unit.floor})</span>
-					{/if}
-					{#if node.residential_unit.side}
-						<span class="text-gray-500">{node.residential_unit.side}</span>
-					{/if}
-				</span>
-			{/if}
 		</div>
 
+		<!-- Address details (from node) -->
 		{#if node.node?.address}
-			<div class="ml-1 mt-1 flex items-center gap-2 text-xs text-gray-500">
-				<span class="text-gray-400">@</span>
-				<button
-					type="button"
-					class="hover:text-gray-700 hover:underline"
-					onclick={() => traceFrom('address', node.node.address.id)}
-					title="Trace this address"
-				>
-					{node.node.address.street} {node.node.address.housenumber}{node.node.address.suffix || ''},
-					{node.node.address.zip_code} {node.node.address.city}
-				</button>
-			</div>
+			{@render addressDetails(node.node.address)}
+		{/if}
+
+		<!-- Residential Unit details -->
+		{#if node.residential_unit}
+			{@render residentialUnitDetails(node.residential_unit)}
 		{/if}
 
 		{#if node.children && node.children.length > 0}
 			{#each node.children as child (child.fiber.id)}
 				{@render traceNode(child, depth + 1)}
 			{/each}
+		{/if}
+	</div>
+{/snippet}
+
+{#snippet addressDetails(address)}
+	<div class="ml-4 mt-2 rounded border border-orange-200 bg-orange-50 p-2 text-xs">
+		<div class="mb-1 flex items-center gap-2">
+			<span class="font-semibold text-orange-700">Address</span>
+			<button
+				type="button"
+				class="text-orange-600 hover:text-orange-800 hover:underline"
+				onclick={() => traceFrom('address', address.id)}
+				title="Trace this address"
+			>
+				{address.street} {address.housenumber}{address.suffix || ''}, {address.zip_code}
+				{address.city}
+			</button>
+		</div>
+		<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-gray-600 md:grid-cols-4">
+			{#if address.id_address}
+				<div><span class="text-gray-400">ID:</span> {address.id_address}</div>
+			{/if}
+			{#if address.district}
+				<div><span class="text-gray-400">District:</span> {address.district}</div>
+			{/if}
+			{#if address.status_development}
+				<div><span class="text-gray-400">Status:</span> {address.status_development}</div>
+			{/if}
+			{#if address.project}
+				<div><span class="text-gray-400">Project:</span> {address.project}</div>
+			{/if}
+			{#if address.flag}
+				<div><span class="text-gray-400">Flag:</span> {address.flag}</div>
+			{/if}
+		</div>
+	</div>
+{/snippet}
+
+{#snippet residentialUnitDetails(ru)}
+	<div class="ml-4 mt-2 rounded border border-purple-200 bg-purple-50 p-2 text-xs">
+		<div class="mb-1 flex items-center gap-2">
+			<span class="font-semibold text-purple-700">Residential Unit</span>
+			<button
+				type="button"
+				class="text-purple-600 hover:text-purple-800 hover:underline"
+				onclick={() => traceFrom('residential_unit', ru.id)}
+				title="Trace this residential unit"
+			>
+				{ru.id_residential_unit || ru.id}
+			</button>
+		</div>
+		<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-gray-600 md:grid-cols-4">
+			{#if ru.floor !== null && ru.floor !== undefined}
+				<div><span class="text-gray-400">Floor:</span> {ru.floor}</div>
+			{/if}
+			{#if ru.side}
+				<div><span class="text-gray-400">Side:</span> {ru.side}</div>
+			{/if}
+			{#if ru.building_section}
+				<div><span class="text-gray-400">Section:</span> {ru.building_section}</div>
+			{/if}
+			{#if ru.type}
+				<div><span class="text-gray-400">Type:</span> {ru.type}</div>
+			{/if}
+			{#if ru.status}
+				<div><span class="text-gray-400">Status:</span> {ru.status}</div>
+			{/if}
+			{#if ru.resident_name}
+				<div><span class="text-gray-400">Resident:</span> {ru.resident_name}</div>
+			{/if}
+			{#if ru.ready_for_service}
+				<div><span class="text-gray-400">Ready:</span> {ru.ready_for_service}</div>
+			{/if}
+			{#if ru.external_id_1}
+				<div><span class="text-gray-400">Ext ID 1:</span> {ru.external_id_1}</div>
+			{/if}
+			{#if ru.external_id_2}
+				<div><span class="text-gray-400">Ext ID 2:</span> {ru.external_id_2}</div>
+			{/if}
+		</div>
+		<!-- RU's parent address -->
+		{#if ru.address}
+			<div class="mt-2 border-t border-purple-200 pt-1 text-gray-500">
+				<span class="text-gray-400">@ Address:</span>
+				<button
+					type="button"
+					class="hover:text-purple-700 hover:underline"
+					onclick={() => traceFrom('address', ru.address.id)}
+				>
+					{ru.address.street} {ru.address.housenumber}{ru.address.suffix || ''}, {ru.address
+						.zip_code}
+					{ru.address.city}
+				</button>
+			</div>
 		{/if}
 	</div>
 {/snippet}
