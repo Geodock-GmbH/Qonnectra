@@ -13,6 +13,7 @@ from apps.api.models import (
     AttributesConduitType,
     AttributesConstructionType,
     AttributesFiberColor,
+    AttributesFiberStatus,
     AttributesMicroductColor,
     AttributesNetworkLevel,
     AttributesNodeType,
@@ -173,6 +174,15 @@ class FiberColorFactory(factory.django.DjangoModelFactory):
     name_de = factory.Sequence(lambda n: f"Faserfarbe {n}")
     name_en = factory.Sequence(lambda n: f"Fiber Color {n}")
     hex_code = factory.Sequence(lambda n: f"#{n:06d}")
+
+
+class FiberStatusFactory(factory.django.DjangoModelFactory):
+    """Factory for AttributesFiberStatus model."""
+
+    class Meta:
+        model = AttributesFiberStatus
+
+    fiber_status = factory.Sequence(lambda n: f"Fiber Status {n}")
 
 
 class AreaTypeFactory(factory.django.DjangoModelFactory):

@@ -246,7 +246,7 @@
 							class="transition-transform shrink-0 {isExpanded ? 'rotate-0' : '-rotate-90'}"
 						/>
 						<div class="flex-1 min-w-0">
-							<div class="font-medium flex items-center gap-2">
+							<div class="font-medium flex items-center gap-2" {@attach tooltip(cable.name)}>
 								{cable.name}
 								{#if cable.direction === 'start'}
 									<IconArrowRight size={14} class="text-surface-500" />
@@ -299,18 +299,28 @@
 											<div class="pl-8 pb-2">
 												{#each bundle.fibers as fiber (fiber.uuid)}
 													{@const fiberUsed = dataManager.isFiberUsed(fiber.uuid)}
+													{@const isDefective = fiber.fiber_status != null}
 													<button
 														type="button"
 														class="w-full flex items-center gap-2 px-3 py-2 text-left rounded-md transition-colors {fiberUsed
 															? 'bg-success-100 dark:bg-success-900/30 hover:bg-success-200 dark:hover:bg-success-900/50'
 															: 'hover:bg-primary-100 dark:hover:bg-primary-900/30'}"
 														onclick={() => handleMobileFiberClick(cable, bundle, fiber)}
+														{@attach isDefective
+															? tooltip(fiber.fiber_status?.fiber_status)
+															: undefined}
 													>
 														<span
-															class="w-3 h-3 rounded-full shrink-0 border border-white/20"
+															class="w-3 h-3 rounded-full shrink-0 border border-white/20 {isDefective
+																? 'opacity-50'
+																: ''}"
 															style:background-color={dataManager.getColorHex(fiber.fiber_color)}
 														></span>
-														<span class="text-sm font-mono">{fiber.fiber_number_absolute}</span>
+														<span
+															class="text-sm font-mono {isDefective
+																? 'line-through text-error-500 opacity-60'
+																: ''}">{fiber.fiber_number_absolute}</span
+														>
 													</button>
 												{/each}
 											</div>
@@ -445,6 +455,7 @@
 									<div class="flex-1 min-w-0">
 										<div
 											class="text-sm font-medium flex items-center gap-1 whitespace-nowrap overflow-hidden text-ellipsis"
+											{@attach tooltip(cable.name)}
 										>
 											{cable.name}
 											{#if cable.direction === 'start'}
@@ -528,6 +539,7 @@
 														<div class="pl-5 pt-1">
 															{#each bundle.fibers as fiber (fiber.uuid)}
 																{@const fiberUsed = dataManager.isFiberUsed(fiber.uuid)}
+																{@const isDefective = fiber.fiber_status != null}
 																<!-- Fiber item -->
 																<div
 																	class="flex items-center gap-1.5 px-2 py-1.5 rounded-sm transition-colors duration-150 {readonly
@@ -539,6 +551,9 @@
 																	ondragstart={(e) => handleFiberDragStart(e, cable, bundle, fiber)}
 																	ondragend={handleDragEnd}
 																	role="listitem"
+																	{@attach isDefective
+																		? tooltip(fiber.fiber_status?.fiber_status)
+																		: undefined}
 																>
 																	{#if !readonly}
 																		<IconGripVertical
@@ -547,12 +562,18 @@
 																		/>
 																	{/if}
 																	<span
-																		class="w-2.5 h-2.5 rounded-full shrink-0 border border-black/10"
+																		class="w-2.5 h-2.5 rounded-full shrink-0 border border-black/10 {isDefective
+																			? 'opacity-50'
+																			: ''}"
 																		style:background-color={dataManager.getColorHex(
 																			fiber.fiber_color
 																		)}
 																	></span>
-																	<span class="text-[0.8125rem] font-mono">
+																	<span
+																		class="text-[0.8125rem] font-mono {isDefective
+																			? 'line-through text-error-500 opacity-60'
+																			: ''}"
+																	>
 																		{fiber.fiber_number_absolute}
 																	</span>
 																</div>

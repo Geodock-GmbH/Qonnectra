@@ -41,6 +41,12 @@ export class CableFiberDataManager {
 	/** @type {boolean} */
 	loadingResidentialUnitUsage = $state(false);
 
+	/** @type {Array<Object>} - Fiber status options */
+	fiberStatusOptions = $state([]);
+
+	/** @type {boolean} */
+	loadingFiberStatusOptions = $state(false);
+
 	/**
 	 * @param {string|null} nodeUuid - Initial node UUID
 	 */
@@ -383,6 +389,79 @@ export class CableFiberDataManager {
 	}
 
 	/**
+	 * Fetch fiber status options (singleton - only fetches once)
+	 */
+	async fetchFiberStatusOptions() {
+		if (this.fiberStatusOptions.length > 0 || this.loadingFiberStatusOptions) return;
+
+		this.loadingFiberStatusOptions = true;
+		try {
+			const response = await fetch('?/getFiberStatusOptions', {
+				method: 'POST',
+				body: new FormData()
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'success' && Array.isArray(result.data)) {
+				this.fiberStatusOptions = result.data;
+			}
+		} catch (err) {
+			console.error('Error fetching fiber status options:', err);
+		} finally {
+			this.loadingFiberStatusOptions = false;
+		}
+	}
+
+	/**
+	 * Update fiber status
+	 * @param {string} fiberUuid
+	 * @param {number|null} statusId
+	 * @returns {Promise<Object|null>} Updated fiber or null on error
+	 */
+	async updateFiberStatus(fiberUuid, statusId) {
+		try {
+			const formData = new FormData();
+			formData.append('uuid', fiberUuid);
+			formData.append('fiber_status_id', statusId === null ? 'null' : String(statusId));
+
+			const response = await fetch('?/updateFiberStatus', {
+				method: 'POST',
+				body: formData
+			});
+
+			const result = deserialize(await response.text());
+
+			if (result.type === 'success') {
+				return result.data;
+			}
+			return null;
+		} catch (err) {
+			console.error('Error updating fiber status:', err);
+			return null;
+		}
+	}
+
+	/**
+	 * Update a fiber in the cache after status change
+	 * @param {string} cableUuid
+	 * @param {Object} updatedFiber
+	 */
+	updateFiberInCache(cableUuid, updatedFiber) {
+		const fibers = this.fibersCache.get(cableUuid);
+		if (!fibers) return;
+
+		const index = fibers.findIndex((f) => f.uuid === updatedFiber.uuid);
+		if (index !== -1) {
+			const newFibers = [...fibers];
+			newFibers[index] = updatedFiber;
+			const newCache = new Map(this.fibersCache);
+			newCache.set(cableUuid, newFibers);
+			this.fibersCache = newCache;
+		}
+	}
+
+	/**
 	 * Cleanup manager state
 	 */
 	cleanup() {
@@ -398,5 +477,7 @@ export class CableFiberDataManager {
 		this.loadingAddresses = false;
 		this.usedResidentialUnitUuids = new Set();
 		this.loadingResidentialUnitUsage = false;
+		this.fiberStatusOptions = [];
+		this.loadingFiberStatusOptions = false;
 	}
 }

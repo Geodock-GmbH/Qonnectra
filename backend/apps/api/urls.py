@@ -12,6 +12,7 @@ from .views import (
     AttributesConduitTypeViewSet,
     AttributesConstructionTypeViewSet,
     AttributesFiberColorViewSet,
+    AttributesFiberStatusViewSet,
     AttributesMicroductColorViewSet,
     AttributesMicroductStatusViewSet,
     AttributesNetworkLevelViewSet,
@@ -114,6 +115,11 @@ router.register(
     r"attributes_microduct_status",
     AttributesMicroductStatusViewSet,
     basename="attributes_microduct_status",
+)
+router.register(
+    r"attributes_fiber_status",
+    AttributesFiberStatusViewSet,
+    basename="attributes_fiber_status",
 )
 router.register(
     r"attributes_network_level",

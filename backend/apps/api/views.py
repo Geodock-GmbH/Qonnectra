@@ -38,6 +38,7 @@ from .models import (
     AttributesConduitType,
     AttributesConstructionType,
     AttributesFiberColor,
+    AttributesFiberStatus,
     AttributesMicroductColor,
     AttributesMicroductStatus,
     AttributesNetworkLevel,
@@ -93,6 +94,7 @@ from .serializers import (
     AttributesConduitTypeSerializer,
     AttributesConstructionTypeSerializer,
     AttributesFiberColorSerializer,
+    AttributesFiberStatusSerializer,
     AttributesMicroductColorSerializer,
     AttributesMicroductStatusSerializer,
     AttributesNetworkLevelSerializer,
@@ -2867,6 +2869,19 @@ class AttributesMicroductStatusViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_url_kwarg = "pk"
 
 
+class AttributesFiberStatusViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for the AttributesFiberStatus model :model:`api.AttributesFiberStatus`.
+
+    An instance of :model:`api.AttributesFiberStatus`.
+    """
+
+    permission_classes = [IsAuthenticated]
+    queryset = AttributesFiberStatus.objects.all().order_by("fiber_status")
+    serializer_class = AttributesFiberStatusSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
 class AttributesMicroductColorViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for the AttributesMicroductColor model :model:`api.AttributesMicroductColor`.
 
@@ -3418,11 +3433,12 @@ class MicroductCableConnectionViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class FiberViewSet(viewsets.ReadOnlyModelViewSet):
+class FiberViewSet(viewsets.ModelViewSet):
     """ViewSet for the Fiber model :model:`api.Fiber`.
 
-    Read-only access to fiber data with filtering by cable.
+    Supports read and update operations for fiber data with filtering by cable.
     """
+    http_method_names = ["get", "patch", "head", "options"]
 
     permission_classes = [IsAuthenticated]
     queryset = Fiber.objects.all().order_by(

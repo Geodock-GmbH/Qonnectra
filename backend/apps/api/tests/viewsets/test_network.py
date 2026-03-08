@@ -12,6 +12,7 @@ from ..factories import (
     ConduitTypeFactory,
     ContainerFactory,
     FiberFactory,
+    FiberStatusFactory,
     FlagFactory,
     MicroductCableConnectionFactory,
     MicroductConnectionFactory,
@@ -219,6 +220,64 @@ class TestFiberViewSet:
 
         response = authenticated_client.get(f"/api/v1/fiber/?cable={cable1.uuid}")
         assert response.status_code == status.HTTP_200_OK
+
+    def test_patch_fiber_status(self, authenticated_client):
+        """Test updating fiber status via PATCH."""
+        cable = CableFactory()
+        fiber = FiberFactory(
+            uuid_cable=cable, fiber_number_absolute=1, fiber_number_in_bundle=1
+        )
+        fiber_status = FiberStatusFactory(fiber_status="Defekt")
+
+        response = authenticated_client.patch(
+            f"/api/v1/fiber/{fiber.uuid}/",
+            data={"fiber_status_id": fiber_status.id},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        fiber.refresh_from_db()
+        assert fiber.fiber_status == fiber_status
+
+    def test_patch_fiber_status_to_null(self, authenticated_client):
+        """Test clearing fiber status via PATCH."""
+        fiber_status = FiberStatusFactory(fiber_status="Defekt")
+        cable = CableFactory()
+        fiber = FiberFactory(
+            uuid_cable=cable,
+            fiber_number_absolute=1,
+            fiber_number_in_bundle=1,
+            fiber_status=fiber_status,
+        )
+
+        response = authenticated_client.patch(
+            f"/api/v1/fiber/{fiber.uuid}/",
+            data={"fiber_status_id": None},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        fiber.refresh_from_db()
+        assert fiber.fiber_status is None
+
+
+@pytest.mark.django_db
+class TestAttributesFiberStatusViewSet:
+    """Tests for the AttributesFiberStatusViewSet."""
+
+    def test_list_fiber_statuses_requires_authentication(self, api_client):
+        """Test that listing fiber statuses requires authentication."""
+        response = api_client.get("/api/v1/attributes_fiber_status/")
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_list_fiber_statuses(self, authenticated_client):
+        """Test listing fiber statuses."""
+        FiberStatusFactory(fiber_status="Defekt")
+        FiberStatusFactory(fiber_status="Beschädigt")
+
+        response = authenticated_client.get("/api/v1/attributes_fiber_status/")
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 2
 
 
 @pytest.mark.django_db

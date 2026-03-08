@@ -15,6 +15,7 @@ from .models import (
     AttributesConduitType,
     AttributesConstructionType,
     AttributesFiberColor,
+    AttributesFiberStatus,
     AttributesMicroductColor,
     AttributesMicroductStatus,
     AttributesNetworkLevel,
@@ -190,6 +191,14 @@ class AttributesMicroductStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = AttributesMicroductStatus
         fields = ["id", "microduct_status"]
+
+
+class AttributesFiberStatusSerializer(serializers.ModelSerializer):
+    """Serializer for the AttributesFiberStatus model."""
+
+    class Meta:
+        model = AttributesFiberStatus
+        fields = ["id", "fiber_status"]
 
 
 class AttributesMicroductColorSerializer(serializers.ModelSerializer):
@@ -2031,6 +2040,15 @@ class FiberSerializer(serializers.ModelSerializer):
         source="uuid_cable",
     )
 
+    fiber_status = AttributesFiberStatusSerializer(read_only=True)
+    fiber_status_id = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=AttributesFiberStatus.objects.all(),
+        source="fiber_status",
+        required=False,
+        allow_null=True,
+    )
+
     class Meta:
         model = Fiber
         fields = [
@@ -2046,6 +2064,7 @@ class FiberSerializer(serializers.ModelSerializer):
             "active",
             "layer",
             "fiber_status",
+            "fiber_status_id",
             "flag",
             "project",
         ]

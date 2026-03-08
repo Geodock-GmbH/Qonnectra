@@ -1,5 +1,5 @@
 <script>
-	import { getContext } from 'svelte';
+	import { getContext, onMount } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -7,11 +7,14 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { CableFiberDataManager } from '$lib/classes/CableFiberDataManager.svelte.js';
+	import FibersStatusTable from '$lib/components/FibersStatusTable.svelte';
 	import FileExplorer from '$lib/components/FileExplorer.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import FloatingPanel from '$lib/components/FloatingPanel.svelte';
 	import Tabs from '$lib/components/Tabs.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
+	import { globalToaster } from '$lib/stores/toaster';
 
 	import CableDiagramEdgeAttributeCard from './CableDiagramEdgeAttributeCard.svelte';
 	import CableDiagramEdgeHandleConfig from './CableDiagramEdgeHandleConfig.svelte';
@@ -21,6 +24,8 @@
 	import NodeStructurePanel from './NodeStructurePanel.svelte';
 
 	const attributeOptions = getContext('attributeOptions');
+
+	const fiberDataManager = new CableFiberDataManager();
 
 	let allProps = $props();
 
@@ -63,6 +68,7 @@
 	const tabItems = $derived.by(() => {
 		const baseTabs = [{ value: 'attributes', label: m.common_attributes() }];
 		if (type === 'edge') {
+			baseTabs.push({ value: 'status', label: m.form_status() });
 			baseTabs.push({ value: 'handles', label: m.form_handles() });
 			baseTabs.push({ value: 'actions', label: m.form_actions() });
 		}
@@ -71,6 +77,49 @@
 		}
 		baseTabs.push({ value: 'files', label: m.form_attachments() });
 		return baseTabs;
+	});
+
+	let lastFetchedFeatureId = $state(null);
+
+	/**
+	 * Handle tab change - lazy load fibers for status tab
+	 * @param {string} newValue
+	 */
+	function handleTabChange(newValue) {
+		if (newValue === 'status' && featureId && type === 'edge') {
+			if (featureId !== lastFetchedFeatureId) {
+				lastFetchedFeatureId = featureId;
+				fiberDataManager.fetchFibersForCable(featureId);
+				fiberDataManager.fetchFiberColors();
+			}
+			fiberDataManager.fetchFiberStatusOptions();
+		}
+	}
+
+	/**
+	 * Handle fiber status change
+	 * @param {Object} fiber
+	 * @param {number|null} statusId
+	 */
+	async function handleFiberStatusChange(fiber, statusId) {
+		const updated = await fiberDataManager.updateFiberStatus(fiber.uuid, statusId);
+
+		if (updated) {
+			fiberDataManager.updateFiberInCache(featureId, updated);
+			globalToaster.success({
+				title: m.message_status_updated(),
+				duration: 3000
+			});
+		} else {
+			globalToaster.error({
+				title: m.message_status_update_failed(),
+				duration: 5000
+			});
+		}
+	}
+
+	onMount(() => {
+		return () => fiberDataManager.cleanup();
 	});
 
 	$effect(() => {
@@ -136,7 +185,7 @@
 	}
 </script>
 
-<Tabs tabs={tabItems} bind:value={group}>
+<Tabs tabs={tabItems} bind:value={group} onValueChange={handleTabChange}>
 	{#if group === 'attributes'}
 		{#if type === 'edge'}
 			<CableDiagramEdgeAttributeCard
@@ -148,6 +197,19 @@
 		{:else if type === 'node'}
 			<CableDiagramNodeAttributeCard {...data} {onLabelUpdate} {onNodeDelete} />
 		{/if}
+	{/if}
+
+	{#if group === 'status'}
+		<div class="p-4">
+			<FibersStatusTable
+				fibers={fiberDataManager.getFibersForCable(featureId)}
+				loading={fiberDataManager.isLoadingFibers(featureId)}
+				error={null}
+				statusOptions={fiberDataManager.fiberStatusOptions}
+				onStatusChange={handleFiberStatusChange}
+				getColorHex={(name) => fiberDataManager.getColorHex(name)}
+			/>
+		</div>
 	{/if}
 
 	{#if group === 'handles'}

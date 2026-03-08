@@ -2688,5 +2688,58 @@ export const actions = {
 		const formData = await request.formData();
 		const nodeUuid = formData.get('nodeUuid');
 		return getUsedResidentialUnits(fetch, cookies, nodeUuid);
+	},
+
+	getFiberStatusOptions: async ({ fetch, cookies }) => {
+		try {
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}attributes_fiber_status/`, {
+				credentials: 'include',
+				headers
+			});
+			if (!response.ok) {
+				return fail(response.status, { error: 'Failed to fetch fiber status options' });
+			}
+			const data = await response.json();
+			return data;
+		} catch (err) {
+			console.error('Error fetching fiber status options:', err);
+			return fail(500, { error: 'Failed to fetch fiber status options' });
+		}
+	},
+
+	updateFiberStatus: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const uuid = formData.get('uuid');
+		const statusId = formData.get('fiber_status_id');
+
+		if (!uuid) {
+			return fail(400, { error: 'Missing fiber UUID' });
+		}
+
+		try {
+			const headers = getAuthHeaders(cookies);
+			const response = await fetch(`${API_URL}fiber/${uuid}/`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					fiber_status_id: !statusId || statusId === 'null' ? null : parseInt(statusId, 10)
+				})
+			});
+
+			if (!response.ok) {
+				return fail(response.status, { error: 'Failed to update fiber status' });
+			}
+
+			const data = await response.json();
+			return data;
+		} catch (err) {
+			console.error('Error updating fiber status:', err);
+			return fail(500, { error: 'Failed to update fiber status' });
+		}
 	}
 };
