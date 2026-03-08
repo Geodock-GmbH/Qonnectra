@@ -97,7 +97,8 @@
 					<div class="flex-1 text-left">
 						<span class="font-medium">{item.title}</span>
 						<span class="text-surface-500 text-sm ml-2">
-							{item.fiberCount} {m.form_fibers()}
+							{item.fiberCount}
+							{m.form_fibers()}
 						</span>
 					</div>
 					<button

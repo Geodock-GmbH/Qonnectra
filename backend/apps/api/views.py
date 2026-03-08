@@ -6859,3 +6859,58 @@ class DashboardStatisticsView(APIView):
             )[:10],
             "residential_by_area_type": residential_by_area_type,
         }
+
+
+class FiberTraceView(APIView):
+    """
+    API endpoint for tracing fibers through the network.
+    Follows splice connections to build a complete path tree.
+
+    Query Parameters (mutually exclusive):
+        fiber_id: UUID of a single fiber to trace
+        cable_id: UUID of a cable (traces all fibers)
+        node_id: UUID of a node (traces all fibers passing through)
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .services import trace_cable, trace_fiber, trace_node
+
+        fiber_id = request.query_params.get("fiber_id")
+        cable_id = request.query_params.get("cable_id")
+        node_id = request.query_params.get("node_id")
+
+        param_count = sum(1 for p in [fiber_id, cable_id, node_id] if p)
+
+        if param_count == 0:
+            return Response(
+                {"error": "One of fiber_id, cable_id, or node_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if param_count > 1:
+            return Response(
+                {"error": "Only one of fiber_id, cable_id, or node_id allowed"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            if fiber_id:
+                result = trace_fiber(fiber_id)
+            elif cable_id:
+                result = trace_cable(cable_id)
+            else:
+                result = trace_node(node_id)
+
+            if "_raw_segments" in result:
+                del result["_raw_segments"]
+
+            return Response(result)
+
+        except Exception as e:
+            logger.exception("Fiber trace error")
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

@@ -154,7 +154,11 @@
 													class="w-4 h-4 rounded-full border border-surface-300"
 													style="background-color: {getColorHex(fiber.fiber_color)}"
 												></div>
-												<span>{getColorName ? getColorName(fiber.fiber_color) : fiber.fiber_color}</span>
+												<span
+													>{getColorName
+														? getColorName(fiber.fiber_color)
+														: fiber.fiber_color}</span
+												>
 											</div>
 										</td>
 										<td>

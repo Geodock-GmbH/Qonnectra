@@ -1048,3 +1048,298 @@ def repackage_qgz(
                     new_zip.writestr(item, original_zip.read(item))
 
     return output.getvalue()
+
+
+# =============================================================================
+# Fiber Trace Service
+# =============================================================================
+
+
+def trace_fiber(fiber_id) -> dict:
+    """
+    Trace a single fiber through all its splice connections.
+    Uses PostgreSQL recursive CTE for performance at scale (1M+ splices).
+    Returns a flat list of trace segments that can be assembled into a tree.
+    """
+    sql = """
+    WITH RECURSIVE fiber_trace AS (
+        -- Base case: starting fiber
+        SELECT
+            f.uuid as fiber_id,
+            f.uuid_cable as cable_id,
+            f.fiber_number_absolute,
+            f.bundle_number,
+            f.fiber_color,
+            c.name as cable_name,
+            NULL::uuid as from_splice_id,
+            NULL::uuid as from_node_id,
+            NULL::text as from_node_name,
+            NULL::text as direction,
+            0 as depth,
+            ARRAY[f.uuid] as visited
+        FROM fiber f
+        JOIN cable c ON c.uuid = f.uuid_cable
+        WHERE f.uuid = %(fiber_id)s
+
+        UNION ALL
+
+        -- Recursive case: follow splices
+        SELECT
+            next_fiber.uuid as fiber_id,
+            next_fiber.uuid_cable as cable_id,
+            next_fiber.fiber_number_absolute,
+            next_fiber.bundle_number,
+            next_fiber.fiber_color,
+            next_cable.name as cable_name,
+            fs.uuid as from_splice_id,
+            n.uuid as from_node_id,
+            n.name as from_node_name,
+            CASE
+                WHEN fs.fiber_a = ft.fiber_id OR fs.shared_fiber_a = ft.fiber_id THEN 'a_to_b'
+                ELSE 'b_to_a'
+            END as direction,
+            ft.depth + 1,
+            ft.visited || next_fiber.uuid
+        FROM fiber_trace ft
+        JOIN fiber_splice fs ON (
+            fs.fiber_a = ft.fiber_id OR
+            fs.fiber_b = ft.fiber_id OR
+            fs.shared_fiber_a = ft.fiber_id OR
+            fs.shared_fiber_b = ft.fiber_id
+        )
+        JOIN node_structure ns ON ns.uuid = fs.node_structure
+        JOIN node n ON n.uuid = ns.uuid_node
+        LEFT JOIN fiber next_fiber ON next_fiber.uuid = (
+            CASE
+                WHEN fs.fiber_a = ft.fiber_id THEN COALESCE(fs.fiber_b, fs.shared_fiber_b)
+                WHEN fs.fiber_b = ft.fiber_id THEN COALESCE(fs.fiber_a, fs.shared_fiber_a)
+                WHEN fs.shared_fiber_a = ft.fiber_id THEN COALESCE(fs.fiber_b, fs.shared_fiber_b)
+                WHEN fs.shared_fiber_b = ft.fiber_id THEN COALESCE(fs.fiber_a, fs.shared_fiber_a)
+            END
+        )
+        LEFT JOIN cable next_cable ON next_cable.uuid = next_fiber.uuid_cable
+        WHERE next_fiber.uuid IS NOT NULL
+          AND NOT (next_fiber.uuid = ANY(ft.visited))
+          AND ft.depth < 100
+    )
+    SELECT
+        fiber_id,
+        cable_id,
+        fiber_number_absolute,
+        bundle_number,
+        fiber_color,
+        cable_name,
+        from_splice_id,
+        from_node_id,
+        from_node_name,
+        direction,
+        depth
+    FROM fiber_trace
+    ORDER BY depth;
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, {"fiber_id": str(fiber_id)})
+        columns = [col[0] for col in cursor.description]
+        rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    return _build_trace_result(rows, "fiber", fiber_id)
+
+
+def trace_cable(cable_id) -> dict:
+    """
+    Trace all fibers in a cable through their splice connections.
+    """
+    sql = """
+    SELECT uuid FROM fiber WHERE uuid_cable = %(cable_id)s
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, {"cable_id": str(cable_id)})
+        fiber_ids = [row[0] for row in cursor.fetchall()]
+
+    if not fiber_ids:
+        return {
+            "entry_point": {"type": "cable", "id": str(cable_id)},
+            "trace_trees": [],
+            "statistics": {
+                "total_fibers": 0,
+                "total_nodes": 0,
+                "total_splices": 0,
+                "has_branches": False,
+            },
+        }
+
+    all_traces = []
+    for fiber_id in fiber_ids:
+        trace = trace_fiber(fiber_id)
+        all_traces.append(trace)
+
+    total_fibers = sum(t["statistics"]["total_fibers"] for t in all_traces)
+    total_nodes = sum(t["statistics"]["total_nodes"] for t in all_traces)
+    total_splices = sum(t["statistics"]["total_splices"] for t in all_traces)
+    has_branches = any(t["statistics"]["has_branches"] for t in all_traces)
+
+    return {
+        "entry_point": {"type": "cable", "id": str(cable_id)},
+        "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
+        "statistics": {
+            "total_fibers": total_fibers,
+            "total_nodes": total_nodes,
+            "total_splices": total_splices,
+            "has_branches": has_branches,
+        },
+    }
+
+
+def trace_node(node_id) -> dict:
+    """
+    Trace all fibers passing through a node.
+    """
+    sql = """
+    SELECT DISTINCT
+        COALESCE(fs.fiber_a, fs.shared_fiber_a, fs.fiber_b, fs.shared_fiber_b) as fiber_id
+    FROM fiber_splice fs
+    JOIN node_structure ns ON ns.uuid = fs.node_structure
+    WHERE ns.uuid_node = %(node_id)s
+      AND (fs.fiber_a IS NOT NULL OR fs.shared_fiber_a IS NOT NULL
+           OR fs.fiber_b IS NOT NULL OR fs.shared_fiber_b IS NOT NULL)
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, {"node_id": str(node_id)})
+        fiber_ids = [row[0] for row in cursor.fetchall() if row[0]]
+
+    if not fiber_ids:
+        return {
+            "entry_point": {"type": "node", "id": str(node_id)},
+            "trace_trees": [],
+            "statistics": {
+                "total_fibers": 0,
+                "total_nodes": 0,
+                "total_splices": 0,
+                "has_branches": False,
+            },
+        }
+
+    all_traces = []
+    seen_fibers = set()
+
+    for fiber_id in fiber_ids:
+        if fiber_id in seen_fibers:
+            continue
+        trace = trace_fiber(fiber_id)
+        for segment in trace.get("_raw_segments", []):
+            seen_fibers.add(segment["fiber_id"])
+        all_traces.append(trace)
+
+    total_fibers = sum(t["statistics"]["total_fibers"] for t in all_traces)
+    total_nodes = sum(t["statistics"]["total_nodes"] for t in all_traces)
+    total_splices = sum(t["statistics"]["total_splices"] for t in all_traces)
+    has_branches = any(t["statistics"]["has_branches"] for t in all_traces)
+
+    return {
+        "entry_point": {"type": "node", "id": str(node_id)},
+        "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
+        "statistics": {
+            "total_fibers": total_fibers,
+            "total_nodes": total_nodes,
+            "total_splices": total_splices,
+            "has_branches": has_branches,
+        },
+    }
+
+
+def _build_trace_result(rows: list, entry_type: str, entry_id) -> dict:
+    """
+    Build the trace result structure from flat database rows.
+    """
+    if not rows:
+        return {
+            "entry_point": {"type": entry_type, "id": str(entry_id)},
+            "trace_tree": None,
+            "statistics": {
+                "total_fibers": 0,
+                "total_nodes": 0,
+                "total_splices": 0,
+                "has_branches": False,
+            },
+            "_raw_segments": [],
+        }
+
+    nodes_seen = set()
+    splices_seen = set()
+    fibers_seen = set()
+
+    for row in rows:
+        fibers_seen.add(row["fiber_id"])
+        if row["from_node_id"]:
+            nodes_seen.add(row["from_node_id"])
+        if row["from_splice_id"]:
+            splices_seen.add(row["from_splice_id"])
+
+    root = rows[0]
+    trace_tree = {
+        "fiber": {
+            "id": str(root["fiber_id"]),
+            "fiber_number": root["fiber_number_absolute"],
+            "bundle_number": root["bundle_number"],
+            "fiber_color": root["fiber_color"],
+            "cable_id": str(root["cable_id"]),
+            "cable_name": root["cable_name"],
+        },
+        "node": None,
+        "direction": None,
+        "children": [],
+    }
+
+    nodes_by_depth = {}
+    for row in rows[1:]:
+        depth = row["depth"]
+        if depth not in nodes_by_depth:
+            nodes_by_depth[depth] = []
+        nodes_by_depth[depth].append(row)
+
+    def build_children(parent_fiber_id, current_depth):
+        children = []
+        if current_depth not in nodes_by_depth:
+            return children
+
+        for row in nodes_by_depth[current_depth]:
+            child = {
+                "fiber": {
+                    "id": str(row["fiber_id"]),
+                    "fiber_number": row["fiber_number_absolute"],
+                    "bundle_number": row["bundle_number"],
+                    "fiber_color": row["fiber_color"],
+                    "cable_id": str(row["cable_id"]),
+                    "cable_name": row["cable_name"],
+                },
+                "node": {
+                    "id": str(row["from_node_id"]),
+                    "name": row["from_node_name"],
+                }
+                if row["from_node_id"]
+                else None,
+                "direction": row["direction"],
+                "children": build_children(row["fiber_id"], current_depth + 1),
+            }
+            children.append(child)
+
+        return children
+
+    trace_tree["children"] = build_children(root["fiber_id"], 1)
+
+    has_branches = any(len(nodes_by_depth.get(d, [])) > 1 for d in nodes_by_depth)
+
+    return {
+        "entry_point": {"type": entry_type, "id": str(entry_id)},
+        "trace_tree": trace_tree,
+        "statistics": {
+            "total_fibers": len(fibers_seen),
+            "total_nodes": len(nodes_seen),
+            "total_splices": len(splices_seen),
+            "has_branches": has_branches,
+        },
+        "_raw_segments": rows,
+    }
