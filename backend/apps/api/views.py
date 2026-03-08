@@ -6870,28 +6870,45 @@ class FiberTraceView(APIView):
         fiber_id: UUID of a single fiber to trace
         cable_id: UUID of a cable (traces all fibers)
         node_id: UUID of a node (traces all fibers passing through)
+        address_id: UUID of an address (traces fibers via linked nodes/RUs)
+        residential_unit_id: UUID of a residential unit (traces connected fibers)
     """
 
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        from .services import trace_cable, trace_fiber, trace_node
+        from .services import (
+            trace_address,
+            trace_cable,
+            trace_fiber,
+            trace_node,
+            trace_residential_unit,
+        )
 
         fiber_id = request.query_params.get("fiber_id")
         cable_id = request.query_params.get("cable_id")
         node_id = request.query_params.get("node_id")
+        address_id = request.query_params.get("address_id")
+        residential_unit_id = request.query_params.get("residential_unit_id")
 
-        param_count = sum(1 for p in [fiber_id, cable_id, node_id] if p)
+        params = [fiber_id, cable_id, node_id, address_id, residential_unit_id]
+        param_count = sum(1 for p in params if p)
 
         if param_count == 0:
             return Response(
-                {"error": "One of fiber_id, cable_id, or node_id is required"},
+                {
+                    "error": "One of fiber_id, cable_id, node_id, "
+                    "address_id, or residential_unit_id is required"
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if param_count > 1:
             return Response(
-                {"error": "Only one of fiber_id, cable_id, or node_id allowed"},
+                {
+                    "error": "Only one of fiber_id, cable_id, node_id, "
+                    "address_id, or residential_unit_id allowed"
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -6900,8 +6917,12 @@ class FiberTraceView(APIView):
                 result = trace_fiber(fiber_id)
             elif cable_id:
                 result = trace_cable(cable_id)
-            else:
+            elif node_id:
                 result = trace_node(node_id)
+            elif address_id:
+                result = trace_address(address_id)
+            else:
+                result = trace_residential_unit(residential_unit_id)
 
             if "_raw_segments" in result:
                 del result["_raw_segments"]

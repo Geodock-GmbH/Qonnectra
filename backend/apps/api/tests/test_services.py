@@ -156,8 +156,8 @@ class TestImportConduitsFromExcel:
     ):
         """Test that microducts are created when conduit type has color mappings."""
         activate("en")
-        project = ProjectFactory(project="TestProject2")
-        flag = FlagFactory(flag="TestFlag2")
+        ProjectFactory(project="TestProject2")
+        FlagFactory(flag="TestFlag2")
 
         workbook = openpyxl.Workbook()
         sheet = workbook.active
@@ -243,7 +243,6 @@ class TestImportConduitsFromExcel:
         """Test rejection when no headers found."""
         activate("en")
         workbook = openpyxl.Workbook()
-        sheet = workbook.active
 
         file_buffer = io.BytesIO()
         workbook.save(file_buffer)

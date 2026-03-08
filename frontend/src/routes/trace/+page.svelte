@@ -22,6 +22,11 @@
 			await update();
 		};
 	}
+
+	function traceFrom(type, id) {
+		traceType = type;
+		traceId = id;
+	}
 </script>
 
 <div class="mx-auto max-w-6xl p-4">
@@ -29,17 +34,25 @@
 
 	<form method="POST" action="?/trace" use:enhance={handleSubmit} class="mb-6 flex items-end gap-4">
 		<div>
-			<label class="mb-1 block text-sm font-medium">Trace Type</label>
-			<select bind:value={traceType} name="traceType" class="input rounded border px-3 py-2">
+			<label for="traceType" class="mb-1 block text-sm font-medium">Trace Type</label>
+			<select
+				id="traceType"
+				bind:value={traceType}
+				name="traceType"
+				class="input rounded border px-3 py-2"
+			>
 				<option value="fiber">Fiber</option>
 				<option value="cable">Cable</option>
 				<option value="node">Node</option>
+				<option value="address">Address</option>
+				<option value="residential_unit">Residential Unit</option>
 			</select>
 		</div>
 
 		<div class="flex-1">
-			<label class="mb-1 block text-sm font-medium">UUID</label>
+			<label for="traceId" class="mb-1 block text-sm font-medium">UUID</label>
 			<input
+				id="traceId"
 				type="text"
 				bind:value={traceId}
 				name="traceId"
@@ -66,7 +79,7 @@
 	{#if result}
 		<div class="mb-4 rounded bg-gray-100 p-4">
 			<h2 class="mb-2 font-bold">Statistics</h2>
-			<div class="grid grid-cols-4 gap-4 text-sm">
+			<div class="grid grid-cols-3 gap-4 text-sm md:grid-cols-6">
 				<div>
 					<span class="text-gray-600">Fibers:</span>
 					<span class="font-mono">{result.statistics.total_fibers}</span>
@@ -80,7 +93,15 @@
 					<span class="font-mono">{result.statistics.total_splices}</span>
 				</div>
 				<div>
-					<span class="text-gray-600">Has Branches:</span>
+					<span class="text-gray-600">Addresses:</span>
+					<span class="font-mono">{result.statistics.total_addresses}</span>
+				</div>
+				<div>
+					<span class="text-gray-600">Res. Units:</span>
+					<span class="font-mono">{result.statistics.total_residential_units}</span>
+				</div>
+				<div>
+					<span class="text-gray-600">Branches:</span>
 					<span class="font-mono">{result.statistics.has_branches ? 'Yes' : 'No'}</span>
 				</div>
 			</div>
@@ -100,7 +121,7 @@
 			{#if result.trace_tree}
 				{@render traceNode(result.trace_tree, 0)}
 			{:else if result.trace_trees}
-				{#each result.trace_trees as tree, i}
+				{#each result.trace_trees as tree, i (tree.fiber?.id ?? i)}
 					<details class="mb-2" open={i === 0}>
 						<summary class="cursor-pointer font-medium">Fiber {i + 1}</summary>
 						<div class="ml-4">
@@ -127,25 +148,73 @@
 
 {#snippet traceNode(node, depth)}
 	<div class="border-l-2 border-gray-300 py-2 pl-4" style="margin-left: {depth * 20}px">
-		<div class="flex items-center gap-2 text-sm">
-			<span class="rounded bg-blue-100 px-2 py-0.5 font-mono">
+		<div class="flex flex-wrap items-center gap-2 text-sm">
+			<button
+				type="button"
+				class="rounded bg-blue-100 px-2 py-0.5 font-mono hover:bg-blue-200"
+				onclick={() => traceFrom('fiber', node.fiber.id)}
+				title="Trace this fiber"
+			>
 				F{node.fiber.fiber_number}
-			</span>
+			</button>
 			<span class="text-gray-600">in</span>
-			<span class="rounded bg-green-100 px-2 py-0.5 font-mono">
+			<button
+				type="button"
+				class="rounded bg-green-100 px-2 py-0.5 font-mono hover:bg-green-200"
+				onclick={() => traceFrom('cable', node.fiber.cable_id)}
+				title="Trace this cable"
+			>
 				{node.fiber.cable_name}
-			</span>
+			</button>
 			{#if node.node}
 				<span class="text-gray-400">&rarr;</span>
-				<span class="rounded bg-yellow-100 px-2 py-0.5 font-mono">
+				<button
+					type="button"
+					class="rounded bg-yellow-100 px-2 py-0.5 font-mono hover:bg-yellow-200"
+					onclick={() => traceFrom('node', node.node.id)}
+					title="Trace this node"
+				>
 					{node.node.name}
-				</span>
+				</button>
 				<span class="text-xs text-gray-400">({node.direction})</span>
+			{/if}
+			{#if node.residential_unit}
+				<span class="rounded bg-purple-100 px-2 py-0.5 font-mono text-xs">
+					<button
+						type="button"
+						class="hover:underline"
+						onclick={() => traceFrom('residential_unit', node.residential_unit.id)}
+						title="Trace this residential unit"
+					>
+						RU: {node.residential_unit.id_residential_unit || node.residential_unit.id}
+					</button>
+					{#if node.residential_unit.floor}
+						<span class="text-gray-500">(Floor {node.residential_unit.floor})</span>
+					{/if}
+					{#if node.residential_unit.side}
+						<span class="text-gray-500">{node.residential_unit.side}</span>
+					{/if}
+				</span>
 			{/if}
 		</div>
 
+		{#if node.node?.address}
+			<div class="ml-1 mt-1 flex items-center gap-2 text-xs text-gray-500">
+				<span class="text-gray-400">@</span>
+				<button
+					type="button"
+					class="hover:text-gray-700 hover:underline"
+					onclick={() => traceFrom('address', node.node.address.id)}
+					title="Trace this address"
+				>
+					{node.node.address.street} {node.node.address.housenumber}{node.node.address.suffix || ''},
+					{node.node.address.zip_code} {node.node.address.city}
+				</button>
+			</div>
+		{/if}
+
 		{#if node.children && node.children.length > 0}
-			{#each node.children as child}
+			{#each node.children as child (child.fiber.id)}
 				{@render traceNode(child, depth + 1)}
 			{/each}
 		{/if}

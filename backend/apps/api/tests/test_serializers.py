@@ -24,7 +24,6 @@ from apps.api.serializers import (
 )
 from django.conf import settings
 from django.contrib.gis.geos import LineString, Point, Polygon
-from rest_framework.exceptions import ValidationError
 
 from .factories import (
     AddressFactory,

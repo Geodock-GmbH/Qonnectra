@@ -264,8 +264,8 @@ class TestTraceCable:
     def test_trace_cable_aggregates_statistics(self, db):
         """Test that cable trace aggregates statistics from all fibers."""
         cable = CableFactory(name="Multi-Fiber-Cable")
-        fiber1 = FiberFactory(uuid_cable=cable, fiber_number_absolute=1)
-        fiber2 = FiberFactory(uuid_cable=cable, fiber_number_absolute=2)
+        FiberFactory(uuid_cable=cable, fiber_number_absolute=1)
+        FiberFactory(uuid_cable=cable, fiber_number_absolute=2)
 
         result = trace_cable(cable.uuid)
 

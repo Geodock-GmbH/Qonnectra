@@ -37,13 +37,13 @@ class TestWMSSourceModel:
     def test_ordering(self):
         """Test WMS sources are ordered by sort_order and name."""
         project = ProjectFactory()
-        source2 = WMSSource.objects.create(
+        WMSSource.objects.create(
             project=project, name="B Source", url="https://b.com", sort_order=2
         )
-        source1 = WMSSource.objects.create(
+        WMSSource.objects.create(
             project=project, name="A Source", url="https://a.com", sort_order=1
         )
-        source3 = WMSSource.objects.create(
+        WMSSource.objects.create(
             project=project, name="C Source", url="https://c.com", sort_order=1
         )
 

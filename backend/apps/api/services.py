@@ -1060,6 +1060,7 @@ def trace_fiber(fiber_id) -> dict:
     Trace a single fiber through all its splice connections.
     Uses PostgreSQL recursive CTE for performance at scale (1M+ splices).
     Returns a flat list of trace segments that can be assembled into a tree.
+    Includes address info for nodes and residential unit info for connected endpoints.
     """
     sql = """
     WITH RECURSIVE fiber_trace AS (
@@ -1075,6 +1076,7 @@ def trace_fiber(fiber_id) -> dict:
             NULL::uuid as from_node_id,
             NULL::text as from_node_name,
             NULL::text as direction,
+            NULL::uuid as prev_fiber_id,
             0 as depth,
             ARRAY[f.uuid] as visited
         FROM fiber f
@@ -1098,6 +1100,7 @@ def trace_fiber(fiber_id) -> dict:
                 WHEN fs.fiber_a = ft.fiber_id OR fs.shared_fiber_a = ft.fiber_id THEN 'a_to_b'
                 ELSE 'b_to_a'
             END as direction,
+            ft.fiber_id as prev_fiber_id,
             ft.depth + 1,
             ft.visited || next_fiber.uuid
         FROM fiber_trace ft
@@ -1123,19 +1126,46 @@ def trace_fiber(fiber_id) -> dict:
           AND ft.depth < 100
     )
     SELECT
-        fiber_id,
-        cable_id,
-        fiber_number_absolute,
-        bundle_number,
-        fiber_color,
-        cable_name,
-        from_splice_id,
-        from_node_id,
-        from_node_name,
-        direction,
-        depth
-    FROM fiber_trace
-    ORDER BY depth;
+        ft.fiber_id,
+        ft.cable_id,
+        ft.fiber_number_absolute,
+        ft.bundle_number,
+        ft.fiber_color,
+        ft.cable_name,
+        ft.from_splice_id,
+        ft.from_node_id,
+        ft.from_node_name,
+        ft.direction,
+        ft.depth,
+        -- Address fields from node
+        addr.uuid as address_id,
+        addr.street as address_street,
+        addr.housenumber as address_housenumber,
+        addr.house_number_suffix as address_suffix,
+        addr.zip_code as address_zip_code,
+        addr.city as address_city,
+        -- Residential unit connected via splice (based on direction)
+        CASE
+            WHEN ft.direction = 'a_to_b' THEN fs.residential_unit_b_id
+            WHEN ft.direction = 'b_to_a' THEN fs.residential_unit_a_id
+            ELSE NULL
+        END as connected_ru_id,
+        ru.id_residential_unit as ru_id_residential_unit,
+        ru.floor as ru_floor,
+        ru.side as ru_side,
+        ru.building_section as ru_building_section
+    FROM fiber_trace ft
+    LEFT JOIN node n ON n.uuid = ft.from_node_id
+    LEFT JOIN address addr ON addr.uuid = n.uuid_address
+    LEFT JOIN fiber_splice fs ON fs.uuid = ft.from_splice_id
+    LEFT JOIN residential_unit ru ON ru.uuid = (
+        CASE
+            WHEN ft.direction = 'a_to_b' THEN fs.residential_unit_b_id
+            WHEN ft.direction = 'b_to_a' THEN fs.residential_unit_a_id
+            ELSE NULL
+        END
+    )
+    ORDER BY ft.depth;
     """
 
     with connection.cursor() as cursor:
@@ -1166,6 +1196,8 @@ def trace_cable(cable_id) -> dict:
                 "total_fibers": 0,
                 "total_nodes": 0,
                 "total_splices": 0,
+                "total_addresses": 0,
+                "total_residential_units": 0,
                 "has_branches": False,
             },
         }
@@ -1178,6 +1210,8 @@ def trace_cable(cable_id) -> dict:
     total_fibers = sum(t["statistics"]["total_fibers"] for t in all_traces)
     total_nodes = sum(t["statistics"]["total_nodes"] for t in all_traces)
     total_splices = sum(t["statistics"]["total_splices"] for t in all_traces)
+    total_addresses = sum(t["statistics"]["total_addresses"] for t in all_traces)
+    total_rus = sum(t["statistics"]["total_residential_units"] for t in all_traces)
     has_branches = any(t["statistics"]["has_branches"] for t in all_traces)
 
     return {
@@ -1187,6 +1221,8 @@ def trace_cable(cable_id) -> dict:
             "total_fibers": total_fibers,
             "total_nodes": total_nodes,
             "total_splices": total_splices,
+            "total_addresses": total_addresses,
+            "total_residential_units": total_rus,
             "has_branches": has_branches,
         },
     }
@@ -1218,6 +1254,8 @@ def trace_node(node_id) -> dict:
                 "total_fibers": 0,
                 "total_nodes": 0,
                 "total_splices": 0,
+                "total_addresses": 0,
+                "total_residential_units": 0,
                 "has_branches": False,
             },
         }
@@ -1236,6 +1274,8 @@ def trace_node(node_id) -> dict:
     total_fibers = sum(t["statistics"]["total_fibers"] for t in all_traces)
     total_nodes = sum(t["statistics"]["total_nodes"] for t in all_traces)
     total_splices = sum(t["statistics"]["total_splices"] for t in all_traces)
+    total_addresses = sum(t["statistics"]["total_addresses"] for t in all_traces)
+    total_rus = sum(t["statistics"]["total_residential_units"] for t in all_traces)
     has_branches = any(t["statistics"]["has_branches"] for t in all_traces)
 
     return {
@@ -1245,6 +1285,155 @@ def trace_node(node_id) -> dict:
             "total_fibers": total_fibers,
             "total_nodes": total_nodes,
             "total_splices": total_splices,
+            "total_addresses": total_addresses,
+            "total_residential_units": total_rus,
+            "has_branches": has_branches,
+        },
+    }
+
+
+def trace_address(address_id) -> dict:
+    """
+    Trace all fibers connected to an address via:
+    1. Nodes linked to this address (node.uuid_address)
+    2. Residential units under this address that have fiber splices
+    """
+    sql = """
+    SELECT DISTINCT fiber_id FROM (
+        -- Fibers through nodes linked to this address
+        SELECT DISTINCT
+            COALESCE(fs.fiber_a, fs.shared_fiber_a, fs.fiber_b, fs.shared_fiber_b) as fiber_id
+        FROM node n
+        JOIN node_structure ns ON ns.uuid_node = n.uuid
+        JOIN fiber_splice fs ON fs.node_structure = ns.uuid
+        WHERE n.uuid_address = %(address_id)s
+          AND (fs.fiber_a IS NOT NULL OR fs.shared_fiber_a IS NOT NULL
+               OR fs.fiber_b IS NOT NULL OR fs.shared_fiber_b IS NOT NULL)
+
+        UNION
+
+        -- Fibers connected to residential units under this address
+        SELECT DISTINCT
+            COALESCE(fs.fiber_a, fs.shared_fiber_a, fs.fiber_b, fs.shared_fiber_b) as fiber_id
+        FROM residential_unit ru
+        JOIN fiber_splice fs ON (
+            fs.residential_unit_a_id = ru.uuid OR fs.residential_unit_b_id = ru.uuid
+        )
+        WHERE ru.uuid_address = %(address_id)s
+          AND (fs.fiber_a IS NOT NULL OR fs.shared_fiber_a IS NOT NULL
+               OR fs.fiber_b IS NOT NULL OR fs.shared_fiber_b IS NOT NULL)
+    ) combined
+    WHERE fiber_id IS NOT NULL
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, {"address_id": str(address_id)})
+        fiber_ids = [row[0] for row in cursor.fetchall()]
+
+    if not fiber_ids:
+        return {
+            "entry_point": {"type": "address", "id": str(address_id)},
+            "trace_trees": [],
+            "statistics": {
+                "total_fibers": 0,
+                "total_nodes": 0,
+                "total_splices": 0,
+                "total_addresses": 0,
+                "total_residential_units": 0,
+                "has_branches": False,
+            },
+        }
+
+    all_traces = []
+    seen_fibers = set()
+
+    for fiber_id in fiber_ids:
+        if fiber_id in seen_fibers:
+            continue
+        trace = trace_fiber(fiber_id)
+        for segment in trace.get("_raw_segments", []):
+            seen_fibers.add(segment["fiber_id"])
+        all_traces.append(trace)
+
+    total_fibers = sum(t["statistics"]["total_fibers"] for t in all_traces)
+    total_nodes = sum(t["statistics"]["total_nodes"] for t in all_traces)
+    total_splices = sum(t["statistics"]["total_splices"] for t in all_traces)
+    total_addresses = sum(t["statistics"]["total_addresses"] for t in all_traces)
+    total_rus = sum(t["statistics"]["total_residential_units"] for t in all_traces)
+    has_branches = any(t["statistics"]["has_branches"] for t in all_traces)
+
+    return {
+        "entry_point": {"type": "address", "id": str(address_id)},
+        "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
+        "statistics": {
+            "total_fibers": total_fibers,
+            "total_nodes": total_nodes,
+            "total_splices": total_splices,
+            "total_addresses": total_addresses,
+            "total_residential_units": total_rus,
+            "has_branches": has_branches,
+        },
+    }
+
+
+def trace_residential_unit(residential_unit_id) -> dict:
+    """
+    Trace all fibers connected to a residential unit via fiber_splice.
+    """
+    sql = """
+    SELECT DISTINCT
+        COALESCE(fs.fiber_a, fs.shared_fiber_a, fs.fiber_b, fs.shared_fiber_b) as fiber_id
+    FROM fiber_splice fs
+    WHERE (fs.residential_unit_a_id = %(ru_id)s OR fs.residential_unit_b_id = %(ru_id)s)
+      AND (fs.fiber_a IS NOT NULL OR fs.shared_fiber_a IS NOT NULL
+           OR fs.fiber_b IS NOT NULL OR fs.shared_fiber_b IS NOT NULL)
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, {"ru_id": str(residential_unit_id)})
+        fiber_ids = [row[0] for row in cursor.fetchall() if row[0]]
+
+    if not fiber_ids:
+        return {
+            "entry_point": {"type": "residential_unit", "id": str(residential_unit_id)},
+            "trace_trees": [],
+            "statistics": {
+                "total_fibers": 0,
+                "total_nodes": 0,
+                "total_splices": 0,
+                "total_addresses": 0,
+                "total_residential_units": 0,
+                "has_branches": False,
+            },
+        }
+
+    all_traces = []
+    seen_fibers = set()
+
+    for fiber_id in fiber_ids:
+        if fiber_id in seen_fibers:
+            continue
+        trace = trace_fiber(fiber_id)
+        for segment in trace.get("_raw_segments", []):
+            seen_fibers.add(segment["fiber_id"])
+        all_traces.append(trace)
+
+    total_fibers = sum(t["statistics"]["total_fibers"] for t in all_traces)
+    total_nodes = sum(t["statistics"]["total_nodes"] for t in all_traces)
+    total_splices = sum(t["statistics"]["total_splices"] for t in all_traces)
+    total_addresses = sum(t["statistics"]["total_addresses"] for t in all_traces)
+    total_rus = sum(t["statistics"]["total_residential_units"] for t in all_traces)
+    has_branches = any(t["statistics"]["has_branches"] for t in all_traces)
+
+    return {
+        "entry_point": {"type": "residential_unit", "id": str(residential_unit_id)},
+        "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
+        "statistics": {
+            "total_fibers": total_fibers,
+            "total_nodes": total_nodes,
+            "total_splices": total_splices,
+            "total_addresses": total_addresses,
+            "total_residential_units": total_rus,
             "has_branches": has_branches,
         },
     }
@@ -1253,6 +1442,7 @@ def trace_node(node_id) -> dict:
 def _build_trace_result(rows: list, entry_type: str, entry_id) -> dict:
     """
     Build the trace result structure from flat database rows.
+    Includes address and residential unit information.
     """
     if not rows:
         return {
@@ -1262,6 +1452,8 @@ def _build_trace_result(rows: list, entry_type: str, entry_id) -> dict:
                 "total_fibers": 0,
                 "total_nodes": 0,
                 "total_splices": 0,
+                "total_addresses": 0,
+                "total_residential_units": 0,
                 "has_branches": False,
             },
             "_raw_segments": [],
@@ -1270,6 +1462,8 @@ def _build_trace_result(rows: list, entry_type: str, entry_id) -> dict:
     nodes_seen = set()
     splices_seen = set()
     fibers_seen = set()
+    addresses_seen = set()
+    residential_units_seen = set()
 
     for row in rows:
         fibers_seen.add(row["fiber_id"])
@@ -1277,6 +1471,46 @@ def _build_trace_result(rows: list, entry_type: str, entry_id) -> dict:
             nodes_seen.add(row["from_node_id"])
         if row["from_splice_id"]:
             splices_seen.add(row["from_splice_id"])
+        if row.get("address_id"):
+            addresses_seen.add(row["address_id"])
+        if row.get("connected_ru_id"):
+            residential_units_seen.add(row["connected_ru_id"])
+
+    def build_node_with_address(row):
+        """Build node dict including address if available."""
+        if not row["from_node_id"]:
+            return None
+
+        node_data = {
+            "id": str(row["from_node_id"]),
+            "name": row["from_node_name"],
+        }
+
+        if row.get("address_id"):
+            suffix = row.get("address_suffix") or ""
+            node_data["address"] = {
+                "id": str(row["address_id"]),
+                "street": row["address_street"],
+                "housenumber": row["address_housenumber"],
+                "suffix": suffix,
+                "zip_code": row["address_zip_code"],
+                "city": row["address_city"],
+            }
+
+        return node_data
+
+    def build_residential_unit(row):
+        """Build residential unit dict if connected."""
+        if not row.get("connected_ru_id"):
+            return None
+
+        return {
+            "id": str(row["connected_ru_id"]),
+            "id_residential_unit": row.get("ru_id_residential_unit"),
+            "floor": row.get("ru_floor"),
+            "side": row.get("ru_side"),
+            "building_section": row.get("ru_building_section"),
+        }
 
     root = rows[0]
     trace_tree = {
@@ -1289,6 +1523,7 @@ def _build_trace_result(rows: list, entry_type: str, entry_id) -> dict:
             "cable_name": root["cable_name"],
         },
         "node": None,
+        "residential_unit": None,
         "direction": None,
         "children": [],
     }
@@ -1315,12 +1550,8 @@ def _build_trace_result(rows: list, entry_type: str, entry_id) -> dict:
                     "cable_id": str(row["cable_id"]),
                     "cable_name": row["cable_name"],
                 },
-                "node": {
-                    "id": str(row["from_node_id"]),
-                    "name": row["from_node_name"],
-                }
-                if row["from_node_id"]
-                else None,
+                "node": build_node_with_address(row),
+                "residential_unit": build_residential_unit(row),
                 "direction": row["direction"],
                 "children": build_children(row["fiber_id"], current_depth + 1),
             }
@@ -1339,6 +1570,8 @@ def _build_trace_result(rows: list, entry_type: str, entry_id) -> dict:
             "total_fibers": len(fibers_seen),
             "total_nodes": len(nodes_seen),
             "total_splices": len(splices_seen),
+            "total_addresses": len(addresses_seen),
+            "total_residential_units": len(residential_units_seen),
             "has_branches": has_branches,
         },
         "_raw_segments": rows,
