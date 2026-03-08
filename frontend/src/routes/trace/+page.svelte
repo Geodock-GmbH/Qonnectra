@@ -180,6 +180,11 @@
 			{/if}
 		</div>
 
+		<!-- Cable endpoints (start/end nodes) -->
+		{#if node.cable_endpoints && (node.cable_endpoints.start_node || node.cable_endpoints.end_node)}
+			{@render cableEndpointsDetails(node.cable_endpoints, node.node?.id)}
+		{/if}
+
 		<!-- Address details (from node) -->
 		{#if node.node?.address}
 			{@render addressDetails(node.node.address)}
@@ -194,6 +199,93 @@
 			{#each node.children as child (child.fiber.id)}
 				{@render traceNode(child, depth + 1)}
 			{/each}
+		{/if}
+	</div>
+{/snippet}
+
+{#snippet cableEndpointsDetails(endpoints, currentNodeId)}
+	<div class="ml-4 mt-2 rounded border border-cyan-200 bg-cyan-50 p-2 text-xs">
+		<div class="mb-1 font-semibold text-cyan-700">Cable Path: {endpoints.cable_name}</div>
+		<div class="flex flex-wrap items-center gap-2">
+			{#if endpoints.start_node}
+				<div class="flex items-center gap-1">
+					<span class="text-gray-500">Start:</span>
+					<button
+						type="button"
+						class="rounded px-1.5 py-0.5 font-mono hover:bg-cyan-200"
+						class:bg-cyan-200={endpoints.start_node.id === currentNodeId}
+						class:bg-cyan-100={endpoints.start_node.id !== currentNodeId}
+						onclick={() => traceFrom('node', endpoints.start_node.id)}
+						title="Trace from start node"
+					>
+						{endpoints.start_node.name || 'Unknown'}
+					</button>
+					{#if endpoints.start_node.type}
+						<span class="rounded bg-gray-200 px-1 text-gray-600">{endpoints.start_node.type}</span>
+					{/if}
+				</div>
+			{:else}
+				<span class="text-gray-400">Start: Not set</span>
+			{/if}
+
+			<span class="text-gray-400">&harr;</span>
+
+			{#if endpoints.end_node}
+				<div class="flex items-center gap-1">
+					<span class="text-gray-500">End:</span>
+					<button
+						type="button"
+						class="rounded px-1.5 py-0.5 font-mono hover:bg-cyan-200"
+						class:bg-cyan-200={endpoints.end_node.id === currentNodeId}
+						class:bg-cyan-100={endpoints.end_node.id !== currentNodeId}
+						onclick={() => traceFrom('node', endpoints.end_node.id)}
+						title="Trace from end node"
+					>
+						{endpoints.end_node.name || 'Unknown'}
+					</button>
+					{#if endpoints.end_node.type}
+						<span class="rounded bg-gray-200 px-1 text-gray-600">{endpoints.end_node.type}</span>
+					{/if}
+				</div>
+			{:else}
+				<span class="text-gray-400">End: Not set</span>
+			{/if}
+		</div>
+
+		<!-- Endpoint addresses -->
+		{#if endpoints.start_node?.address || endpoints.end_node?.address}
+			<div class="mt-1 border-t border-cyan-200 pt-1 text-gray-500">
+				{#if endpoints.start_node?.address}
+					<div>
+						<span class="text-gray-400">Start @:</span>
+						<button
+							type="button"
+							class="hover:text-cyan-700 hover:underline"
+							onclick={() => traceFrom('address', endpoints.start_node.address.id)}
+						>
+							{endpoints.start_node.address.street}
+							{endpoints.start_node.address.housenumber}{endpoints.start_node.address.suffix || ''},
+							{endpoints.start_node.address.zip_code}
+							{endpoints.start_node.address.city}
+						</button>
+					</div>
+				{/if}
+				{#if endpoints.end_node?.address}
+					<div>
+						<span class="text-gray-400">End @:</span>
+						<button
+							type="button"
+							class="hover:text-cyan-700 hover:underline"
+							onclick={() => traceFrom('address', endpoints.end_node.address.id)}
+						>
+							{endpoints.end_node.address.street}
+							{endpoints.end_node.address.housenumber}{endpoints.end_node.address.suffix || ''},
+							{endpoints.end_node.address.zip_code}
+							{endpoints.end_node.address.city}
+						</button>
+					</div>
+				{/if}
+			</div>
 		{/if}
 	</div>
 {/snippet}

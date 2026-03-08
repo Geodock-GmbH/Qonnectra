@@ -1057,10 +1057,13 @@ def repackage_qgz(
 
 def trace_fiber(fiber_id) -> dict:
     """
-    Trace a single fiber through all its splice connections.
+    Trace a single fiber through all its splice connections bidirectionally.
     Uses PostgreSQL recursive CTE for performance at scale (1M+ splices).
     Returns a flat list of trace segments that can be assembled into a tree.
-    Includes address info for nodes and residential unit info for connected endpoints.
+    Includes:
+    - Address info for nodes
+    - Residential unit info for connected endpoints
+    - Cable endpoint nodes (uuid_node_start/uuid_node_end) for full path visibility
     """
     sql = """
     WITH RECURSIVE fiber_trace AS (
@@ -1168,7 +1171,28 @@ def trace_fiber(fiber_id) -> dict:
         fiber_ru_addr.housenumber as ru_address_housenumber,
         fiber_ru_addr.house_number_suffix as ru_address_suffix,
         fiber_ru_addr.zip_code as ru_address_zip_code,
-        fiber_ru_addr.city as ru_address_city
+        fiber_ru_addr.city as ru_address_city,
+        -- Cable endpoint nodes (for full path visibility)
+        cable.uuid_node_start as cable_node_start_id,
+        cable.uuid_node_end as cable_node_end_id,
+        node_start.name as cable_node_start_name,
+        node_end.name as cable_node_end_name,
+        node_start_type.node_type as cable_node_start_type,
+        node_end_type.node_type as cable_node_end_type,
+        -- Start node address
+        start_addr.uuid as cable_start_address_id,
+        start_addr.street as cable_start_address_street,
+        start_addr.housenumber as cable_start_address_housenumber,
+        start_addr.house_number_suffix as cable_start_address_suffix,
+        start_addr.zip_code as cable_start_address_zip_code,
+        start_addr.city as cable_start_address_city,
+        -- End node address
+        end_addr.uuid as cable_end_address_id,
+        end_addr.street as cable_end_address_street,
+        end_addr.housenumber as cable_end_address_housenumber,
+        end_addr.house_number_suffix as cable_end_address_suffix,
+        end_addr.zip_code as cable_end_address_zip_code,
+        end_addr.city as cable_end_address_city
     FROM fiber_trace ft
     LEFT JOIN node n ON n.uuid = ft.from_node_id
     LEFT JOIN address addr ON addr.uuid = n.uuid_address
@@ -1177,8 +1201,6 @@ def trace_fiber(fiber_id) -> dict:
     LEFT JOIN projects addr_project ON addr_project.id = addr.project
     LEFT JOIN flags addr_flag ON addr_flag.id = addr.flag
     -- Find RU connected to THIS fiber via any splice
-    -- If fiber is on side A, get RU from side B (the endpoint it connects to)
-    -- If fiber is on side B, get RU from side A (the endpoint it connects to)
     LEFT JOIN LATERAL (
         SELECT
             CASE
@@ -1200,6 +1222,14 @@ def trace_fiber(fiber_id) -> dict:
     LEFT JOIN attributes_residential_unit_status fiber_ru_status
         ON fiber_ru_status.id = fiber_ru.status
     LEFT JOIN address fiber_ru_addr ON fiber_ru_addr.uuid = fiber_ru.uuid_address
+    -- Join cable endpoint nodes
+    LEFT JOIN cable ON cable.uuid = ft.cable_id
+    LEFT JOIN node node_start ON node_start.uuid = cable.uuid_node_start
+    LEFT JOIN node node_end ON node_end.uuid = cable.uuid_node_end
+    LEFT JOIN attributes_node_type node_start_type ON node_start_type.id = node_start.node_type
+    LEFT JOIN attributes_node_type node_end_type ON node_end_type.id = node_end.node_type
+    LEFT JOIN address start_addr ON start_addr.uuid = node_start.uuid_address
+    LEFT JOIN address end_addr ON end_addr.uuid = node_end.uuid_address
     ORDER BY ft.depth;
     """
 
@@ -1477,7 +1507,7 @@ def trace_residential_unit(residential_unit_id) -> dict:
 def _build_trace_result(rows: list, entry_type: str, entry_id) -> dict:
     """
     Build the trace result structure from flat database rows.
-    Includes address and residential unit information.
+    Includes address, residential unit, and cable endpoint information.
     """
     if not rows:
         return {
@@ -1499,6 +1529,7 @@ def _build_trace_result(rows: list, entry_type: str, entry_id) -> dict:
     fibers_seen = set()
     addresses_seen = set()
     residential_units_seen = set()
+    cable_endpoints_seen = {}
 
     for row in rows:
         fibers_seen.add(row["fiber_id"])
@@ -1510,9 +1541,51 @@ def _build_trace_result(rows: list, entry_type: str, entry_id) -> dict:
             addresses_seen.add(row["address_id"])
         if row.get("connected_ru_id"):
             residential_units_seen.add(row["connected_ru_id"])
-        # Also count the RU's parent address
         if row.get("ru_address_id"):
             addresses_seen.add(row["ru_address_id"])
+        # Track cable endpoint nodes
+        cable_id = row["cable_id"]
+        if cable_id not in cable_endpoints_seen:
+            cable_endpoints_seen[cable_id] = {
+                "cable_id": str(cable_id),
+                "cable_name": row["cable_name"],
+                "start_node": None,
+                "end_node": None,
+            }
+            if row.get("cable_node_start_id"):
+                nodes_seen.add(row["cable_node_start_id"])
+                cable_endpoints_seen[cable_id]["start_node"] = {
+                    "id": str(row["cable_node_start_id"]),
+                    "name": row.get("cable_node_start_name"),
+                    "type": row.get("cable_node_start_type"),
+                }
+                if row.get("cable_start_address_id"):
+                    addresses_seen.add(row["cable_start_address_id"])
+                    cable_endpoints_seen[cable_id]["start_node"]["address"] = {
+                        "id": str(row["cable_start_address_id"]),
+                        "street": row.get("cable_start_address_street"),
+                        "housenumber": row.get("cable_start_address_housenumber"),
+                        "suffix": row.get("cable_start_address_suffix") or "",
+                        "zip_code": row.get("cable_start_address_zip_code"),
+                        "city": row.get("cable_start_address_city"),
+                    }
+            if row.get("cable_node_end_id"):
+                nodes_seen.add(row["cable_node_end_id"])
+                cable_endpoints_seen[cable_id]["end_node"] = {
+                    "id": str(row["cable_node_end_id"]),
+                    "name": row.get("cable_node_end_name"),
+                    "type": row.get("cable_node_end_type"),
+                }
+                if row.get("cable_end_address_id"):
+                    addresses_seen.add(row["cable_end_address_id"])
+                    cable_endpoints_seen[cable_id]["end_node"]["address"] = {
+                        "id": str(row["cable_end_address_id"]),
+                        "street": row.get("cable_end_address_street"),
+                        "housenumber": row.get("cable_end_address_housenumber"),
+                        "suffix": row.get("cable_end_address_suffix") or "",
+                        "zip_code": row.get("cable_end_address_zip_code"),
+                        "city": row.get("cable_end_address_city"),
+                    }
 
     def build_node_with_address(row):
         """Build node dict including full address details if available."""
@@ -1582,6 +1655,14 @@ def _build_trace_result(rows: list, entry_type: str, entry_id) -> dict:
 
         return ru_data
 
+    def build_cable_endpoints(row):
+        """Build cable endpoint info from row data."""
+        cable_id = row["cable_id"]
+        endpoints = cable_endpoints_seen.get(cable_id)
+        if endpoints and (endpoints["start_node"] or endpoints["end_node"]):
+            return endpoints
+        return None
+
     root = rows[0]
     trace_tree = {
         "fiber": {
@@ -1592,6 +1673,7 @@ def _build_trace_result(rows: list, entry_type: str, entry_id) -> dict:
             "cable_id": str(root["cable_id"]),
             "cable_name": root["cable_name"],
         },
+        "cable_endpoints": build_cable_endpoints(root),
         "node": build_node_with_address(root),
         "residential_unit": build_residential_unit(root),
         "direction": root.get("direction"),
@@ -1620,6 +1702,7 @@ def _build_trace_result(rows: list, entry_type: str, entry_id) -> dict:
                     "cable_id": str(row["cable_id"]),
                     "cable_name": row["cable_name"],
                 },
+                "cable_endpoints": build_cable_endpoints(row),
                 "node": build_node_with_address(row),
                 "residential_unit": build_residential_unit(row),
                 "direction": row["direction"],
