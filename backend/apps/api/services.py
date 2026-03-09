@@ -1058,6 +1058,64 @@ def repackage_qgz(
 # =============================================================================
 
 
+def _get_entry_point_info(entry_type: str, entry_id) -> dict:
+    """
+    Get friendly name and info for an entry point based on its type.
+
+    Args:
+        entry_type: One of 'fiber', 'cable', 'node', 'address', 'residential_unit'
+        entry_id: UUID of the entry point
+
+    Returns:
+        Dict with 'type', 'id', and 'name' keys
+    """
+    entry_id_str = str(entry_id)
+    result = {"type": entry_type, "id": entry_id_str, "name": None}
+
+    sql_map = {
+        "fiber": """
+            SELECT f.fiber_number_absolute, c.name as cable_name
+            FROM fiber f
+            JOIN cable c ON c.uuid = f.uuid_cable
+            WHERE f.uuid = %(entry_id)s
+        """,
+        "cable": "SELECT name FROM cable WHERE uuid = %(entry_id)s",
+        "node": "SELECT name FROM node WHERE uuid = %(entry_id)s",
+        "address": """
+            SELECT
+                street || ' ' || housenumber ||
+                COALESCE(house_number_suffix, '') || ', ' ||
+                zip_code || ' ' || city as name
+            FROM address WHERE uuid = %(entry_id)s
+        """,
+        "residential_unit": """
+            SELECT
+                COALESCE(id_residential_unit, '') ||
+                CASE WHEN floor IS NOT NULL THEN ' (Floor ' || floor || ')' ELSE '' END as name
+            FROM residential_unit WHERE uuid = %(entry_id)s
+        """,
+    }
+
+    if entry_type not in sql_map:
+        return result
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(sql_map[entry_type], {"entry_id": entry_id_str})
+            row = cursor.fetchone()
+            if row:
+                if entry_type == "fiber":
+                    # For fiber, combine fiber number with cable name
+                    fiber_num, cable_name = row
+                    result["name"] = f"F{fiber_num} in {cable_name}" if fiber_num else None
+                else:
+                    result["name"] = row[0]
+    except Exception:
+        pass
+
+    return result
+
+
 def trace_fiber(
     fiber_id,
     include_geometry: bool = False,
@@ -1349,6 +1407,8 @@ def trace_cable(
     """
     Trace all fibers in a cable through their splice connections.
     """
+    entry_point = _get_entry_point_info("cable", cable_id)
+
     sql = """
     SELECT uuid FROM fiber WHERE uuid_cable = %(cable_id)s
     """
@@ -1359,7 +1419,7 @@ def trace_cable(
 
     if not fiber_ids:
         return {
-            "entry_point": {"type": "cable", "id": str(cable_id)},
+            "entry_point": entry_point,
             "trace_trees": [],
             "cable_infrastructure": {},
             "statistics": {
@@ -1396,7 +1456,7 @@ def trace_cable(
                 merged_infrastructure[cable_id_str] = infra
 
     return {
-        "entry_point": {"type": "cable", "id": str(cable_id)},
+        "entry_point": entry_point,
         "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
         "cable_infrastructure": merged_infrastructure,
         "statistics": {
@@ -1454,13 +1514,15 @@ def trace_node(
     WHERE fiber_id IS NOT NULL
     """
 
+    entry_point = _get_entry_point_info("node", node_id)
+
     with connection.cursor() as cursor:
         cursor.execute(sql, {"node_id": str(node_id)})
         fiber_ids = [row[0] for row in cursor.fetchall() if row[0]]
 
     if not fiber_ids:
         return {
-            "entry_point": {"type": "node", "id": str(node_id)},
+            "entry_point": entry_point,
             "trace_trees": [],
             "cable_infrastructure": {},
             "statistics": {
@@ -1503,7 +1565,7 @@ def trace_node(
                 merged_infrastructure[cable_id_str] = infra
 
     return {
-        "entry_point": {"type": "node", "id": str(node_id)},
+        "entry_point": entry_point,
         "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
         "cable_infrastructure": merged_infrastructure,
         "statistics": {
@@ -1558,13 +1620,15 @@ def trace_address(
     WHERE fiber_id IS NOT NULL
     """
 
+    entry_point = _get_entry_point_info("address", address_id)
+
     with connection.cursor() as cursor:
         cursor.execute(sql, {"address_id": str(address_id)})
         fiber_ids = [row[0] for row in cursor.fetchall()]
 
     if not fiber_ids:
         return {
-            "entry_point": {"type": "address", "id": str(address_id)},
+            "entry_point": entry_point,
             "trace_trees": [],
             "cable_infrastructure": {},
             "statistics": {
@@ -1607,7 +1671,7 @@ def trace_address(
                 merged_infrastructure[cable_id_str] = infra
 
     return {
-        "entry_point": {"type": "address", "id": str(address_id)},
+        "entry_point": entry_point,
         "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
         "cable_infrastructure": merged_infrastructure,
         "statistics": {
@@ -1641,13 +1705,15 @@ def trace_residential_unit(
            OR fs.fiber_b IS NOT NULL OR fs.shared_fiber_b IS NOT NULL)
     """
 
+    entry_point = _get_entry_point_info("residential_unit", residential_unit_id)
+
     with connection.cursor() as cursor:
         cursor.execute(sql, {"ru_id": str(residential_unit_id)})
         fiber_ids = [row[0] for row in cursor.fetchall() if row[0]]
 
     if not fiber_ids:
         return {
-            "entry_point": {"type": "residential_unit", "id": str(residential_unit_id)},
+            "entry_point": entry_point,
             "trace_trees": [],
             "cable_infrastructure": {},
             "statistics": {
@@ -1690,7 +1756,7 @@ def trace_residential_unit(
                 merged_infrastructure[cable_id_str] = infra
 
     return {
-        "entry_point": {"type": "residential_unit", "id": str(residential_unit_id)},
+        "entry_point": entry_point,
         "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
         "cable_infrastructure": merged_infrastructure,
         "statistics": {
@@ -1726,9 +1792,11 @@ def _build_trace_result(
         geometry_mode: "segments" for individual trenches, "merged" for combined
         orient_geometry: If True, orient geometries from cable start to end
     """
+    entry_point = _get_entry_point_info(entry_type, entry_id)
+
     if not rows:
         return {
-            "entry_point": {"type": entry_type, "id": str(entry_id)},
+            "entry_point": entry_point,
             "trace_tree": None,
             "statistics": {
                 "total_fibers": 0,
@@ -2037,7 +2105,7 @@ def _build_trace_result(
     )
 
     return {
-        "entry_point": {"type": entry_type, "id": str(entry_id)},
+        "entry_point": entry_point,
         "trace_tree": trace_tree,
         "cable_infrastructure": cable_infrastructure,
         "statistics": {
@@ -2208,6 +2276,7 @@ def _get_cable_infrastructure(
     sql = f"""
     SELECT
         c.uuid as cable_id,
+        c.name as cable_name,
         md.uuid as microduct_id,
         md.number as microduct_number,
         md.color as microduct_color,
@@ -2248,6 +2317,7 @@ def _get_cable_infrastructure(
         cable_id = str(row["cable_id"])
         if cable_id not in infrastructure:
             infrastructure[cable_id] = {
+                "cable_name": row.get("cable_name"),
                 "microduct": None,
                 "conduit": None,
                 "trenches": [],
