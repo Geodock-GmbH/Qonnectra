@@ -2331,3 +2331,100 @@ def _get_cable_infrastructure(
                         )
 
     return infrastructure
+
+
+def trace_fiber_summary(fiber_id) -> dict:
+    """
+    Get a compact trace summary for a fiber.
+    Returns start/end endpoints and key statistics.
+    Reuses trace_fiber() and extracts summary data.
+
+    Finds the true terminal nodes by collecting all cable endpoints
+    and excluding nodes that appear as splice points (middle of the path).
+    """
+    full_trace = trace_fiber(fiber_id, include_geometry=False)
+
+    # Remove internal data
+    if "_raw_segments" in full_trace:
+        del full_trace["_raw_segments"]
+
+    tree = full_trace.get("trace_tree")
+    stats = full_trace.get("statistics", {})
+
+    # Collect all endpoint nodes and splice nodes to find terminals
+    all_endpoint_nodes = {}  # node_id -> node_data
+    splice_node_ids = set()
+
+    def collect_nodes(node):
+        """Recursively collect endpoint nodes and splice nodes from trace tree."""
+        if not node:
+            return
+
+        # Collect cable endpoint nodes
+        endpoints = node.get("cable_endpoints", {})
+        for key in ["start_node", "end_node"]:
+            n = endpoints.get(key)
+            if n and n.get("id"):
+                all_endpoint_nodes[n["id"]] = n
+
+        # Collect splice nodes (nodes where splices occur - these are in the middle)
+        splice_node = node.get("node")
+        if splice_node and splice_node.get("id"):
+            splice_node_ids.add(splice_node["id"])
+
+        for child in node.get("children", []):
+            collect_nodes(child)
+
+    collect_nodes(tree)
+
+    # Terminal nodes are endpoint nodes that are NOT splice nodes
+    terminal_node_ids = set(all_endpoint_nodes.keys()) - splice_node_ids
+    terminal_nodes = [all_endpoint_nodes[nid] for nid in terminal_node_ids]
+
+    # Sort by name for consistent ordering
+    terminal_nodes.sort(key=lambda n: n.get("name") or "")
+
+    start_node = None
+    end_node = None
+
+    if len(terminal_nodes) >= 2:
+        start_node = {
+            "id": terminal_nodes[0].get("id"),
+            "name": terminal_nodes[0].get("name"),
+            "address": terminal_nodes[0].get("address"),
+        }
+        end_node = {
+            "id": terminal_nodes[-1].get("id"),
+            "name": terminal_nodes[-1].get("name"),
+            "address": terminal_nodes[-1].get("address"),
+        }
+    elif len(terminal_nodes) == 1:
+        # Single terminal (dead end or loop)
+        start_node = {
+            "id": terminal_nodes[0].get("id"),
+            "name": terminal_nodes[0].get("name"),
+            "address": terminal_nodes[0].get("address"),
+        }
+        end_node = start_node
+    elif tree and tree.get("cable_endpoints"):
+        # Fallback to root cable endpoints
+        endpoints = tree["cable_endpoints"]
+        if endpoints.get("start_node"):
+            sn = endpoints["start_node"]
+            start_node = {"id": sn.get("id"), "name": sn.get("name"), "address": sn.get("address")}
+        if endpoints.get("end_node"):
+            en = endpoints["end_node"]
+            end_node = {"id": en.get("id"), "name": en.get("name"), "address": en.get("address")}
+
+    return {
+        "fiber_id": str(fiber_id),
+        "start_node": start_node,
+        "end_node": end_node,
+        "statistics": {
+            "total_fibers": stats.get("total_fibers", 0),
+            "total_splices": stats.get("total_splices", 0),
+            "total_nodes": stats.get("total_nodes", 0),
+            "total_addresses": stats.get("total_addresses", 0),
+            "total_residential_units": stats.get("total_residential_units", 0),
+        },
+    }

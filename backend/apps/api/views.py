@@ -6976,3 +6976,47 @@ class FiberTraceView(APIView):
                 {"error": "An error occurred while tracing the fiber path"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class FiberTraceSummaryView(APIView):
+    """
+    API endpoint for getting a compact trace summary for a single fiber.
+    Returns start/end nodes with addresses and statistics.
+    Optimized for inline display in UI components.
+
+    Query Parameters:
+        fiber_id: UUID of the fiber to trace (required)
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from uuid import UUID as UUIDType
+
+        from .services import trace_fiber_summary
+
+        fiber_id = request.query_params.get("fiber_id")
+
+        if not fiber_id:
+            return Response(
+                {"error": "fiber_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            UUIDType(fiber_id)
+        except ValueError:
+            return Response(
+                {"error": "Invalid UUID format"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            result = trace_fiber_summary(fiber_id)
+            return Response(result)
+        except Exception:
+            logger.exception("Fiber trace summary error")
+            return Response(
+                {"error": "An error occurred while tracing the fiber"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
