@@ -1090,8 +1090,8 @@ def _get_entry_point_info(entry_type: str, entry_id) -> dict:
         """,
         "residential_unit": """
             SELECT
-                COALESCE(id_residential_unit, '') ||
-                CASE WHEN floor IS NOT NULL THEN ' (Floor ' || floor || ')' ELSE '' END as name
+                id_residential_unit,
+                floor
             FROM residential_unit WHERE uuid = %(entry_id)s
         """,
     }
@@ -1108,6 +1108,11 @@ def _get_entry_point_info(entry_type: str, entry_id) -> dict:
                     # For fiber, combine fiber number with cable name
                     fiber_num, cable_name = row
                     result["name"] = f"F{fiber_num} in {cable_name}" if fiber_num else None
+                elif entry_type == "residential_unit":
+                    # Return separate fields for frontend to format with i18n
+                    id_ru, floor = row
+                    result["name"] = id_ru or None
+                    result["floor"] = floor
                 else:
                     result["name"] = row[0]
     except Exception:

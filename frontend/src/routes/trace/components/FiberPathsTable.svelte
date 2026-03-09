@@ -435,7 +435,7 @@
 		<div class="mb-2 flex items-center gap-2 text-secondary-500">
 			<IconArrowsSplit size={14} />
 			<span class="font-semibold">{m.trace_splice()}</span>
-			<code class="text-xs text-surface-600-400">Port {splice.port_number}</code>
+			<code class="text-xs text-surface-600-400">{m.form_port()} {splice.port_number}</code>
 		</div>
 		{#if splice.component}
 			<div class="flex flex-wrap gap-2">
@@ -446,12 +446,12 @@
 				{/if}
 				{#if splice.component.slot_start !== null && splice.component.slot_end !== null}
 					<span class="rounded bg-surface-200-800 px-2 py-0.5 text-xs text-surface-600-400">
-						Slots {splice.component.slot_start}-{splice.component.slot_end}
+						{m.form_slot({ count: 2 })} {splice.component.slot_start}-{splice.component.slot_end}
 					</span>
 				{/if}
 				{#if splice.component.slot_side}
 					<span class="rounded bg-surface-200-800 px-2 py-0.5 text-xs text-surface-600-400">
-						Side: {splice.component.slot_side}
+						{m.form_side()}: {splice.component.slot_side}
 					</span>
 				{/if}
 				{#if splice.component.in_or_out}
@@ -493,7 +493,7 @@
 							: 'text-surface-900-100'} hover:bg-surface-300-700"
 						onclick={() => traceFrom('node', endpoints.start_node.id)}
 					>
-						{endpoints.start_node.name || 'Unknown'}
+						{endpoints.start_node.name || m.common_unknown()}
 					</button>
 					{#if endpoints.start_node.type}
 						<span class="text-xs text-surface-600-400">{endpoints.start_node.type}</span>
@@ -516,7 +516,7 @@
 							: 'text-surface-900-100'} hover:bg-surface-300-700"
 						onclick={() => traceFrom('node', endpoints.end_node.id)}
 					>
-						{endpoints.end_node.name || 'Unknown'}
+						{endpoints.end_node.name || m.common_unknown()}
 					</button>
 					{#if endpoints.end_node.type}
 						<span class="text-xs text-surface-600-400">{endpoints.end_node.type}</span>

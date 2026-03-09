@@ -262,7 +262,8 @@
 	function formatRuResult(result) {
 		const parts = [];
 		if (result.id_residential_unit) parts.push(result.id_residential_unit);
-		if (result.floor !== null && result.floor !== undefined) parts.push(`Floor ${result.floor}`);
+		if (result.floor !== null && result.floor !== undefined)
+			parts.push(`${m.form_floor()} ${result.floor}`);
 		if (result.side) parts.push(result.side);
 		return parts.join(' - ') || result.uuid?.slice(0, 8);
 	}
