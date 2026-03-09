@@ -678,9 +678,37 @@
 	"title_trench_located": "Trasse gefunden!",
 	"title_trench_profile": "Grabenprofil",
 	"title_trench_not_visible": "Trasse nicht sichtbar!",
-	"trace_addresses": "Adressen",
+	"trace_addresses": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Adresse",
+				"countPlural=other": "Adressen"
+			}
+		}
+	],
 	"trace_error": "Fehler beim Verfolgen",
-	"trace_splices": "Spleisse",
+	"trace_splices": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Spleiss",
+				"countPlural=other": "Spleisse"
+			}
+		}
+	],
+	"trace_residential_units": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "WE",
+				"countPlural=other": "WEs"
+			}
+		}
+	],
 	"tooltip_assign_node_to_microduct": "Netzknoten zu Mikrorohr zuweisen",
 	"tooltip_click_to_delete_vertex": "Klicken zum Löschen des Scheitelpunkts",
 	"tooltip_click_to_edit": "Klicken zum Bearbeiten",

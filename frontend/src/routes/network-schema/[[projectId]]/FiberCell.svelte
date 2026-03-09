@@ -227,11 +227,14 @@
 					</div>
 					<div class="text-xs text-surface-400">
 						{traceResult.statistics.total_splices}
-						{m.trace_splices?.() || 'splices'} ·
+						{m.trace_splices({ count: traceResult.statistics.total_splices }) || 'splices'} ·
 						{traceResult.statistics.total_addresses}
-						{m.trace_addresses?.() || 'addresses'}
+						{m.trace_addresses({ count: traceResult.statistics.total_addresses }) || 'addresses'}
 						{#if traceResult.statistics.total_residential_units > 0}
-							· {traceResult.statistics.total_residential_units} RU
+							· {traceResult.statistics.total_residential_units}
+							{m.trace_residential_units({
+								count: traceResult.statistics.total_residential_units
+							}) || 'RU'}
 						{/if}
 					</div>
 				{:else if traceError}
