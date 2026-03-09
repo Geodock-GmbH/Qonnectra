@@ -31,7 +31,7 @@
 	"action_merge": "Merge",
 	"action_next": "Next",
 	"action_merge_ports": "Merge ports",
-	"action_open_child_network": "Open building connection schema",
+	"action_open_child_network": "Open child network",
 	"action_refresh": "Refresh",
 	"action_regenerate_id": "Regenerate ID",
 	"action_remove_linkage": "Remove linkage",
@@ -42,6 +42,7 @@
 	"action_select_all": "Select All",
 	"action_select_none": "Select None",
 	"action_tap_to_place": "Tap to place",
+	"action_trace": "Trace",
 	"action_unassign": "Unassign",
 	"action_unmerge": "Unmerge",
 	"action_upload_files": "Upload",
@@ -606,7 +607,10 @@
 	],
 	"settings_address_style": "Address Styles",
 	"settings_area_type_styles": "Area Type Styles",
+	"settings_cable_direction_animation": "Cable Direction Animation",
+	"settings_cable_direction_animation_description": "Shows an animation on cables that visualizes the direction from start to end node.",
 	"settings_cable_edge_color": "Cable Edge Color",
+	"settings_display_options": "Display Options",
 	"settings_cable_edge_color_default": "Default (Green)",
 	"settings_cable_edge_color_linked": "Linked Indicator (Green/Blue)",
 	"settings_cable_edge_color_micropipe": "Micropipe Color",
@@ -673,6 +677,37 @@
 	"title_trench_located": "Trench located!",
 	"title_trench_profile": "Trench Profile",
 	"title_trench_not_visible": "Trench not visible!",
+	"trace_addresses": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "address",
+				"countPlural=other": "addresses"
+			}
+		}
+	],
+	"trace_error": "Trace failed",
+	"trace_splices": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "splice",
+				"countPlural=other": "splices"
+			}
+		}
+	],
+	"trace_residential_units": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "RU",
+				"countPlural=other": "RUs"
+			}
+		}
+	],
 	"tooltip_assign_node_to_microduct": "Assign node to microduct",
 	"tooltip_click_to_delete_vertex": "Click to delete vertex",
 	"tooltip_click_to_edit": "Click to edit",

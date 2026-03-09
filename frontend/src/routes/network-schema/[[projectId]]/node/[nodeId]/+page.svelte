@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
-	import { IconArrowLeft } from '@tabler/icons-svelte';
+	import { IconArrowLeft, IconChevronDown, IconChevronRight } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -13,7 +13,13 @@
 	import Drawer from '$lib/components/Drawer.svelte';
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
-	import { edgeSnappingEnabled, selectedProject } from '$lib/stores/store';
+	import {
+		cableDirectionAnimationEnabled,
+		edgeSnappingEnabled,
+		networkSchemaDisplayOptionsExpanded,
+		networkSchemaPanelExpanded,
+		selectedProject
+	} from '$lib/stores/store';
 	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
 	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte.js';
 
@@ -210,59 +216,110 @@
 			<Controls />
 			<Panel position="top-left">
 				<div class="card bg-surface-50-950 p-2 rounded-lg shadow-lg w-72">
-					<hr class="hr mb-2" />
-					<h1 class="text-lg font-semibold mb-1">{m.common_attributes()}</h1>
-					<div class="flex flex-col gap-2">
-						<label for="cable_name_input" class="text-sm font-medium">
-							<input
-								class="input"
-								type="text"
-								placeholder={m.common_name()}
-								bind:value={schemaState.userCableName}
-							/>
-						</label>
-
-						<GenericCombobox
-							data={schemaState.cableTypes}
-							bind:value={schemaState.selectedCableType}
-							defaultValue={schemaState.selectedCableType}
-							placeholder={m.placeholder_select_cable_type()}
-							onValueChange={(e) => {
-								schemaState.selectedCableType = e.value;
-							}}
-							contentBase="preset-filled-surface-50-950 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 shadow-lg"
-						/>
-					</div>
-
-					<div
-						class="gap-2 flex items-center justify-between bg-surface-50-900 rounded-lg p-2 mt-2"
-					>
-						<h3 class="text-sm font-medium">{m.form_snapping()}</h3>
-						<Switch
-							name="edge-snapping-switch"
-							checked={$edgeSnappingEnabled}
-							onCheckedChange={(e) => {
-								$edgeSnappingEnabled = e.checked;
-							}}
-						>
-							<Switch.Control>
-								<Switch.Thumb />
-							</Switch.Control>
-							<Switch.HiddenInput />
-						</Switch>
-					</div>
-					<hr class="hr" />
-					<div class="mt-3">
-						<NetworkSchemaSearch {searchManager} {schemaState} />
-					</div>
+					<!-- Collapsible Panel Header -->
 					<button
-						type="button"
-						class="btn preset-filled-surface-200-800 w-full mt-2"
-						onclick={navigateBack}
+						class="flex items-center gap-1.5 w-full hover:bg-surface-100-800 rounded px-1 py-0.5 transition-colors"
+						onclick={() => ($networkSchemaPanelExpanded = !$networkSchemaPanelExpanded)}
 					>
-						<IconArrowLeft size={18} />
-						{m.action_back_to_main_schema()}
+						{#if $networkSchemaPanelExpanded}
+							<IconChevronDown size={16} class="text-surface-900-100 shrink-0" />
+						{:else}
+							<IconChevronRight size={16} class="text-surface-900-100 shrink-0" />
+						{/if}
+						<h1 class="text-lg font-semibold">{m.common_attributes()}</h1>
 					</button>
+
+					{#if $networkSchemaPanelExpanded}
+						<div class="flex flex-col gap-2 mt-2 pt-2 border-t border-surface-200-800">
+							<label for="cable_name_input" class="text-sm font-medium">
+								<input
+									class="input"
+									type="text"
+									placeholder={m.common_name()}
+									bind:value={schemaState.userCableName}
+								/>
+							</label>
+
+							<GenericCombobox
+								data={schemaState.cableTypes}
+								bind:value={schemaState.selectedCableType}
+								defaultValue={schemaState.selectedCableType}
+								placeholder={m.placeholder_select_cable_type()}
+								onValueChange={(e) => {
+									schemaState.selectedCableType = e.value;
+								}}
+								contentBase="preset-filled-surface-50-950 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 shadow-lg"
+							/>
+						</div>
+
+						<!-- Collapsible Display Options Section -->
+						<div class="mt-3">
+							<button
+								class="flex items-center gap-1.5 w-full hover:bg-surface-100-800 rounded px-1 py-0.5 transition-colors"
+								onclick={() =>
+									($networkSchemaDisplayOptionsExpanded = !$networkSchemaDisplayOptionsExpanded)}
+							>
+								{#if $networkSchemaDisplayOptionsExpanded}
+									<IconChevronDown size={14} class="text-surface-900-100 shrink-0" />
+								{:else}
+									<IconChevronRight size={14} class="text-surface-900-100 shrink-0" />
+								{/if}
+								<h3 class="text-sm font-medium">{m.settings_display_options()}</h3>
+							</button>
+
+							{#if $networkSchemaDisplayOptionsExpanded}
+								<div class="mt-2 space-y-2">
+									<div
+										class="gap-2 flex items-center justify-between bg-surface-50-900 rounded-lg p-2"
+									>
+										<span class="text-sm">{m.form_snapping()}</span>
+										<Switch
+											name="edge-snapping-switch"
+											checked={$edgeSnappingEnabled}
+											onCheckedChange={() => {
+												$edgeSnappingEnabled = !$edgeSnappingEnabled;
+											}}
+										>
+											<Switch.Control>
+												<Switch.Thumb />
+											</Switch.Control>
+											<Switch.HiddenInput />
+										</Switch>
+									</div>
+									<div
+										class="gap-2 flex items-center justify-between bg-surface-50-900 rounded-lg p-2"
+									>
+										<span class="text-sm">{m.settings_cable_direction_animation()}</span>
+										<Switch
+											name="cable-direction-animation"
+											checked={$cableDirectionAnimationEnabled}
+											onCheckedChange={() => {
+												$cableDirectionAnimationEnabled = !$cableDirectionAnimationEnabled;
+											}}
+										>
+											<Switch.Control>
+												<Switch.Thumb />
+											</Switch.Control>
+											<Switch.HiddenInput />
+										</Switch>
+									</div>
+								</div>
+							{/if}
+						</div>
+
+						<hr class="hr mt-3" />
+						<div class="mt-3">
+							<NetworkSchemaSearch {searchManager} {schemaState} />
+						</div>
+						<button
+							type="button"
+							class="btn preset-filled-surface-200-800 w-full mt-2"
+							onclick={navigateBack}
+						>
+							<IconArrowLeft size={18} />
+							{m.action_back_to_main_schema()}
+						</button>
+					{/if}
 				</div>
 			</Panel>
 		</SvelteFlow>

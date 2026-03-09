@@ -36,6 +36,8 @@ from .views import (
     DashboardStatisticsView,
     FeatureFilesViewSet,
     FiberSpliceViewSet,
+    FiberTraceSummaryView,
+    FiberTraceView,
     FiberViewSet,
     FlagsViewSet,
     FrontendLogView,
@@ -352,5 +354,15 @@ urlpatterns = [
         "dashboard/statistics/",
         DashboardStatisticsView.as_view(),
         name="dashboard-statistics",
+    ),
+    path(
+        "fiber-trace/",
+        FiberTraceView.as_view(),
+        name="fiber-trace",
+    ),
+    path(
+        "fiber-trace/summary/",
+        FiberTraceSummaryView.as_view(),
+        name="fiber-trace-summary",
     ),
 ]

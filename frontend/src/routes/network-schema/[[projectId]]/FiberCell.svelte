@@ -1,5 +1,12 @@
 <script>
-	import { IconArrowsSplit, IconHome, IconTrash } from '@tabler/icons-svelte';
+	import {
+		IconArrowsSplit,
+		IconHome,
+		IconLoader2,
+		IconRoute,
+		IconTrash
+	} from '@tabler/icons-svelte';
+	import { PUBLIC_API_URL } from '$env/static/public';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -50,6 +57,37 @@
 
 	let isDragOver = $state(false);
 	let isDragging = $state(false);
+
+	// Trace state
+	let traceLoading = $state(false);
+	let traceResult = $state(null);
+	let traceError = $state(null);
+
+	/**
+	 * Fetch trace summary for this fiber
+	 */
+	async function handleTrace(e) {
+		e.stopPropagation();
+		if (traceResult) {
+			traceResult = null;
+			return;
+		}
+		if (!fiber?.uuid) return;
+
+		traceLoading = true;
+		traceError = null;
+		try {
+			const response = await fetch(`${PUBLIC_API_URL}fiber-trace/summary/?fiber_id=${fiber.uuid}`, {
+				credentials: 'include'
+			});
+			if (!response.ok) throw new Error('Trace failed');
+			traceResult = await response.json();
+		} catch (err) {
+			traceError = err.message;
+		} finally {
+			traceLoading = false;
+		}
+	}
 
 	// Color accent based on side
 	const accentClasses = $derived(
@@ -176,6 +214,34 @@
 				<div class="text-xs text-surface-400 truncate">
 					{fiber.cable_name}
 				</div>
+				{#if traceResult}
+					<div class="text-xs text-surface-500 mt-1 flex items-center gap-1">
+						<span class="text-surface-400">↳</span>
+						{#if traceResult.start_node?.name}
+							<span class="font-medium">{traceResult.start_node.name}</span>
+							<span class="text-surface-400">→</span>
+						{/if}
+						{#if traceResult.end_node?.name}
+							<span class="font-medium">{traceResult.end_node.name}</span>
+						{/if}
+					</div>
+					<div class="text-xs text-surface-400">
+						{traceResult.statistics.total_splices}
+						{m.trace_splices({ count: traceResult.statistics.total_splices }) || 'splices'} ·
+						{traceResult.statistics.total_addresses}
+						{m.trace_addresses({ count: traceResult.statistics.total_addresses }) || 'addresses'}
+						{#if traceResult.statistics.total_residential_units > 0}
+							· {traceResult.statistics.total_residential_units}
+							{m.trace_residential_units({
+								count: traceResult.statistics.total_residential_units
+							}) || 'RU'}
+						{/if}
+					</div>
+				{:else if traceError}
+					<div class="text-xs text-error-500 mt-1">
+						{m.trace_error?.() || 'Trace failed'}
+					</div>
+				{/if}
 			</div>
 			{#if !readonly}
 				<div class="flex items-center gap-1 ml-auto">
@@ -193,6 +259,22 @@
 							<IconArrowsSplit size={16} />
 						</button>
 					{/if}
+					<button
+						type="button"
+						class="p-1 rounded hover:bg-surface-300-700 transition-colors opacity-0 group-hover:opacity-100 {traceResult
+							? 'opacity-100 text-primary-500'
+							: ''}"
+						onclick={handleTrace}
+						disabled={traceLoading}
+						aria-label={m.action_trace?.() || 'Trace'}
+						{@attach tooltip(m.action_trace?.() || 'Trace')}
+					>
+						{#if traceLoading}
+							<IconLoader2 size={16} class="animate-spin" />
+						{:else}
+							<IconRoute size={16} />
+						{/if}
+					</button>
 					<button
 						type="button"
 						class="btn-sm p-1 rounded-md opacity-0 group-hover:opacity-100 bg-error-500 hover:bg-error-600 text-white transition-all shrink-0"

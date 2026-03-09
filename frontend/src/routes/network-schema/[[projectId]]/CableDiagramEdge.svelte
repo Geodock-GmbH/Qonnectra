@@ -4,7 +4,11 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { cableEdgeColorMode, edgeSnappingEnabled } from '$lib/stores/store';
+	import {
+		cableDirectionAnimationEnabled,
+		cableEdgeColorMode,
+		edgeSnappingEnabled
+	} from '$lib/stores/store';
 	import {
 		buildEdgePath,
 		getClosestPointOnSegment,
@@ -414,6 +418,20 @@
 	/>
 </g>
 
+<!-- Direction animation overlay -->
+{#if $cableDirectionAnimationEnabled}
+	<path
+		d={edgePath}
+		fill="none"
+		stroke="white"
+		stroke-width="2"
+		stroke-dasharray="8,12"
+		stroke-linecap="round"
+		style="pointer-events: none;"
+		class="animate-flow"
+	/>
+{/if}
+
 <!-- Vertex handles -->
 {#if data?.cable?.diagram_path && Array.isArray(data.cable.diagram_path)}
 	{#each data.cable.diagram_path as vertex, index}
@@ -475,3 +493,18 @@
 		style="pointer-events: none; z-index: 15;"
 	/>
 {/if}
+
+<style>
+	.animate-flow {
+		animation: flow 1s linear infinite;
+	}
+
+	@keyframes flow {
+		from {
+			stroke-dashoffset: 20;
+		}
+		to {
+			stroke-dashoffset: 0;
+		}
+	}
+</style>

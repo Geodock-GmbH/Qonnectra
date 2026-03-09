@@ -1,3 +1,4 @@
+import json
 import logging
 import tempfile
 import xml.etree.ElementTree as ET
@@ -14,7 +15,9 @@ from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from openpyxl import load_workbook
 from pathvalidate import sanitize_filename
-from shapely.geometry import LineString, Point, Polygon
+from shapely import is_valid, make_valid
+from shapely.geometry import LineString, MultiLineString, Point, Polygon, shape, mapping
+from shapely.ops import linemerge
 
 from .models import (
     AttributesCompany,
@@ -1048,3 +1051,1380 @@ def repackage_qgz(
                     new_zip.writestr(item, original_zip.read(item))
 
     return output.getvalue()
+
+
+# =============================================================================
+# Fiber Trace Service
+# =============================================================================
+
+
+def trace_fiber(
+    fiber_id,
+    include_geometry: bool = False,
+    geometry_mode: str = "segments",
+    orient_geometry: bool = False,
+) -> dict:
+    """
+    Trace a single fiber through all its splice connections bidirectionally.
+    Uses PostgreSQL recursive CTE for performance at scale (1M+ splices).
+    Returns a flat list of trace segments that can be assembled into a tree.
+    Includes:
+    - Address info for nodes
+    - Residential unit info for connected endpoints
+    - Cable endpoint nodes (uuid_node_start/uuid_node_end) for full path visibility
+
+    Args:
+        fiber_id: UUID of the fiber to trace
+        include_geometry: If True, include trench geometry
+        geometry_mode: "segments" for individual trenches, "merged" for combined
+        orient_geometry: If True, orient geometries from cable start to end
+    """
+    sql = """
+    WITH RECURSIVE container_hierarchy AS (
+        -- Base case: top-level containers (no parent)
+        SELECT
+            c.uuid as container_id,
+            c.uuid_node,
+            c.parent_container,
+            c.name as container_name,
+            ct.name as container_type_name,
+            ARRAY[jsonb_build_object(
+                'type', ct.name,
+                'name', c.name
+            )] as path,
+            1 as depth
+        FROM container c
+        JOIN container_type ct ON ct.id = c.container_type
+        WHERE c.parent_container IS NULL
+
+        UNION ALL
+
+        -- Recursive case: children containers
+        SELECT
+            c.uuid as container_id,
+            c.uuid_node,
+            c.parent_container,
+            c.name as container_name,
+            ct.name as container_type_name,
+            ch.path || jsonb_build_object(
+                'type', ct.name,
+                'name', c.name
+            ),
+            ch.depth + 1
+        FROM container c
+        JOIN container_type ct ON ct.id = c.container_type
+        JOIN container_hierarchy ch ON ch.container_id = c.parent_container
+        WHERE ch.depth < 10
+    ),
+    fiber_trace AS (
+        -- Base case: starting fiber
+        SELECT
+            f.uuid as fiber_id,
+            f.uuid_cable as cable_id,
+            f.fiber_number_absolute,
+            f.bundle_number,
+            f.fiber_color,
+            afc_fiber.hex_code as fiber_color_hex,
+            f.fiber_number_in_bundle,
+            f.bundle_color,
+            afc_bundle.hex_code as bundle_color_hex,
+            f.layer,
+            fs_status.fiber_status as fiber_status,
+            ct.cable_type as cable_type_name,
+            c.name as cable_name,
+            NULL::uuid as from_splice_id,
+            NULL::uuid as from_node_id,
+            NULL::text as from_node_name,
+            NULL::text as direction,
+            NULL::uuid as prev_fiber_id,
+            0 as depth,
+            ARRAY[f.uuid] as visited
+        FROM fiber f
+        JOIN cable c ON c.uuid = f.uuid_cable
+        LEFT JOIN attributes_fiber_status fs_status ON fs_status.id = f.fiber_status
+        LEFT JOIN attributes_cable_type ct ON ct.id = c.cable_type
+        LEFT JOIN attributes_fiber_color afc_fiber ON LOWER(afc_fiber.name_de) = LOWER(f.fiber_color)
+        LEFT JOIN attributes_fiber_color afc_bundle ON LOWER(afc_bundle.name_de) = LOWER(f.bundle_color)
+        WHERE f.uuid = %(fiber_id)s
+
+        UNION ALL
+
+        -- Recursive case: follow splices
+        SELECT
+            next_fiber.uuid as fiber_id,
+            next_fiber.uuid_cable as cable_id,
+            next_fiber.fiber_number_absolute,
+            next_fiber.bundle_number,
+            next_fiber.fiber_color,
+            next_afc_fiber.hex_code as fiber_color_hex,
+            next_fiber.fiber_number_in_bundle,
+            next_fiber.bundle_color,
+            next_afc_bundle.hex_code as bundle_color_hex,
+            next_fiber.layer,
+            next_fs_status.fiber_status as fiber_status,
+            next_ct.cable_type as cable_type_name,
+            next_cable.name as cable_name,
+            fs.uuid as from_splice_id,
+            n.uuid as from_node_id,
+            n.name as from_node_name,
+            CASE
+                WHEN fs.fiber_a = ft.fiber_id OR fs.shared_fiber_a = ft.fiber_id THEN 'a_to_b'
+                ELSE 'b_to_a'
+            END as direction,
+            ft.fiber_id as prev_fiber_id,
+            ft.depth + 1,
+            ft.visited || next_fiber.uuid
+        FROM fiber_trace ft
+        JOIN fiber_splice fs ON (
+            fs.fiber_a = ft.fiber_id OR
+            fs.fiber_b = ft.fiber_id OR
+            fs.shared_fiber_a = ft.fiber_id OR
+            fs.shared_fiber_b = ft.fiber_id
+        )
+        JOIN node_structure ns ON ns.uuid = fs.node_structure
+        JOIN node n ON n.uuid = ns.uuid_node
+        LEFT JOIN fiber next_fiber ON next_fiber.uuid = (
+            CASE
+                WHEN fs.fiber_a = ft.fiber_id THEN COALESCE(fs.fiber_b, fs.shared_fiber_b)
+                WHEN fs.fiber_b = ft.fiber_id THEN COALESCE(fs.fiber_a, fs.shared_fiber_a)
+                WHEN fs.shared_fiber_a = ft.fiber_id THEN COALESCE(fs.fiber_b, fs.shared_fiber_b)
+                WHEN fs.shared_fiber_b = ft.fiber_id THEN COALESCE(fs.fiber_a, fs.shared_fiber_a)
+            END
+        )
+        LEFT JOIN cable next_cable ON next_cable.uuid = next_fiber.uuid_cable
+        LEFT JOIN attributes_fiber_status next_fs_status ON next_fs_status.id = next_fiber.fiber_status
+        LEFT JOIN attributes_cable_type next_ct ON next_ct.id = next_cable.cable_type
+        LEFT JOIN attributes_fiber_color next_afc_fiber ON LOWER(next_afc_fiber.name_de) = LOWER(next_fiber.fiber_color)
+        LEFT JOIN attributes_fiber_color next_afc_bundle ON LOWER(next_afc_bundle.name_de) = LOWER(next_fiber.bundle_color)
+        WHERE next_fiber.uuid IS NOT NULL
+          AND NOT (next_fiber.uuid = ANY(ft.visited))
+          AND ft.depth < 100
+    )
+    SELECT
+        ft.fiber_id,
+        ft.cable_id,
+        ft.fiber_number_absolute,
+        ft.bundle_number,
+        ft.fiber_color,
+        ft.fiber_color_hex,
+        ft.fiber_number_in_bundle,
+        ft.bundle_color,
+        ft.bundle_color_hex,
+        ft.layer,
+        ft.fiber_status,
+        ft.cable_type_name,
+        ft.cable_name,
+        ft.from_splice_id,
+        ft.from_node_id,
+        ft.from_node_name,
+        ft.direction,
+        ft.depth,
+        -- Full address fields from node
+        addr.uuid as address_id,
+        addr.id_address as address_id_address,
+        addr.street as address_street,
+        addr.housenumber as address_housenumber,
+        addr.house_number_suffix as address_suffix,
+        addr.zip_code as address_zip_code,
+        addr.city as address_city,
+        addr.district as address_district,
+        addr_status.status as address_status_development,
+        addr_project.project as address_project,
+        addr_flag.flag as address_flag,
+        -- Residential units connected to THIS fiber (aggregated as JSON array)
+        fiber_ru_lookup.residential_units as connected_residential_units,
+        -- Cable endpoint nodes (for full path visibility)
+        cable.uuid_node_start as cable_node_start_id,
+        cable.uuid_node_end as cable_node_end_id,
+        node_start.name as cable_node_start_name,
+        node_end.name as cable_node_end_name,
+        node_start_type.node_type as cable_node_start_type,
+        node_end_type.node_type as cable_node_end_type,
+        -- Start node address
+        start_addr.uuid as cable_start_address_id,
+        start_addr.street as cable_start_address_street,
+        start_addr.housenumber as cable_start_address_housenumber,
+        start_addr.house_number_suffix as cable_start_address_suffix,
+        start_addr.zip_code as cable_start_address_zip_code,
+        start_addr.city as cable_start_address_city,
+        -- End node address
+        end_addr.uuid as cable_end_address_id,
+        end_addr.street as cable_end_address_street,
+        end_addr.housenumber as cable_end_address_housenumber,
+        end_addr.house_number_suffix as cable_end_address_suffix,
+        end_addr.zip_code as cable_end_address_zip_code,
+        end_addr.city as cable_end_address_city,
+        -- Splice component info
+        ft.from_splice_id as splice_id,
+        fs_splice.port_number as splice_port_number,
+        comp_type.component_type as component_type_name,
+        comp_struct.in_or_out as component_in_or_out,
+        comp_struct.port as component_structure_port,
+        comp_struct.port_alias as component_structure_port_alias,
+        ns.slot_start as component_slot_start,
+        ns.slot_end as component_slot_end,
+        nsc.side as component_slot_side,
+        nsc.container as component_container_id,
+        -- Container path (from slot configuration's container)
+        ch.path as container_path
+    FROM fiber_trace ft
+    LEFT JOIN node n ON n.uuid = ft.from_node_id
+    LEFT JOIN address addr ON addr.uuid = n.uuid_address
+    LEFT JOIN attributes_status_development addr_status
+        ON addr_status.id = addr.status_development
+    LEFT JOIN projects addr_project ON addr_project.id = addr.project
+    LEFT JOIN flags addr_flag ON addr_flag.id = addr.flag
+    -- Find RU connected to THIS fiber via any splice
+    LEFT JOIN LATERAL (
+        SELECT jsonb_agg(
+            jsonb_build_object(
+                'id', ru.uuid,
+                'id_residential_unit', ru.id_residential_unit,
+                'floor', ru.floor,
+                'side', ru.side,
+                'building_section', ru.building_section,
+                'type', ru_type.residential_unit_type,
+                'status', ru_status.status,
+                'external_id_1', ru.external_id_1,
+                'external_id_2', ru.external_id_2,
+                'resident_name', ru.resident_name,
+                'resident_recorded_date', ru.resident_recorded_date,
+                'ready_for_service', ru.ready_for_service,
+                'address_id', ru_addr.uuid,
+                'address_street', ru_addr.street,
+                'address_housenumber', ru_addr.housenumber,
+                'address_suffix', ru_addr.house_number_suffix,
+                'address_zip_code', ru_addr.zip_code,
+                'address_city', ru_addr.city
+            )
+        ) as residential_units
+        FROM fiber_splice fs2
+        LEFT JOIN residential_unit ru ON ru.uuid = CASE
+            WHEN fs2.fiber_a = ft.fiber_id OR fs2.shared_fiber_a = ft.fiber_id
+            THEN fs2.residential_unit_b_id
+            WHEN fs2.fiber_b = ft.fiber_id OR fs2.shared_fiber_b = ft.fiber_id
+            THEN fs2.residential_unit_a_id
+        END
+        LEFT JOIN attributes_residential_unit_type ru_type ON ru_type.id = ru.residential_unit_type
+        LEFT JOIN attributes_residential_unit_status ru_status ON ru_status.id = ru.status
+        LEFT JOIN address ru_addr ON ru_addr.uuid = ru.uuid_address
+        WHERE (fs2.fiber_a = ft.fiber_id OR fs2.fiber_b = ft.fiber_id
+               OR fs2.shared_fiber_a = ft.fiber_id OR fs2.shared_fiber_b = ft.fiber_id)
+          AND ru.uuid IS NOT NULL
+    ) fiber_ru_lookup ON true
+    -- Join cable endpoint nodes
+    LEFT JOIN cable ON cable.uuid = ft.cable_id
+    LEFT JOIN node node_start ON node_start.uuid = cable.uuid_node_start
+    LEFT JOIN node node_end ON node_end.uuid = cable.uuid_node_end
+    LEFT JOIN attributes_node_type node_start_type ON node_start_type.id = node_start.node_type
+    LEFT JOIN attributes_node_type node_end_type ON node_end_type.id = node_end.node_type
+    LEFT JOIN address start_addr ON start_addr.uuid = node_start.uuid_address
+    LEFT JOIN address end_addr ON end_addr.uuid = node_end.uuid_address
+    -- Component info from splice
+    LEFT JOIN fiber_splice fs_splice ON fs_splice.uuid = ft.from_splice_id
+    LEFT JOIN node_structure ns ON ns.uuid = fs_splice.node_structure
+    LEFT JOIN attributes_component_type comp_type ON comp_type.id = ns.component_type
+    LEFT JOIN attributes_component_structure comp_struct ON comp_struct.id = ns.component_structure
+    LEFT JOIN node_slot_configuration nsc ON nsc.uuid = ns.slot_configuration
+    LEFT JOIN container_hierarchy ch ON ch.container_id = nsc.container
+    ORDER BY ft.depth;
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, {"fiber_id": str(fiber_id)})
+        columns = [col[0] for col in cursor.description]
+        rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    return _build_trace_result(
+        rows, "fiber", fiber_id, include_geometry, geometry_mode, orient_geometry
+    )
+
+
+def trace_cable(
+    cable_id,
+    include_geometry: bool = False,
+    geometry_mode: str = "segments",
+    orient_geometry: bool = False,
+) -> dict:
+    """
+    Trace all fibers in a cable through their splice connections.
+    """
+    sql = """
+    SELECT uuid FROM fiber WHERE uuid_cable = %(cable_id)s
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, {"cable_id": str(cable_id)})
+        fiber_ids = [row[0] for row in cursor.fetchall()]
+
+    if not fiber_ids:
+        return {
+            "entry_point": {"type": "cable", "id": str(cable_id)},
+            "trace_trees": [],
+            "cable_infrastructure": {},
+            "statistics": {
+                "total_fibers": 0,
+                "total_nodes": 0,
+                "total_splices": 0,
+                "total_addresses": 0,
+                "total_residential_units": 0,
+                "total_cables": 0,
+                "total_trenches": 0,
+                "has_branches": False,
+            },
+        }
+
+    all_traces = []
+    for fiber_id in fiber_ids:
+        trace = trace_fiber(fiber_id, include_geometry, geometry_mode, orient_geometry)
+        all_traces.append(trace)
+
+    total_fibers = sum(t["statistics"]["total_fibers"] for t in all_traces)
+    total_nodes = sum(t["statistics"]["total_nodes"] for t in all_traces)
+    total_splices = sum(t["statistics"]["total_splices"] for t in all_traces)
+    total_addresses = sum(t["statistics"]["total_addresses"] for t in all_traces)
+    total_rus = sum(t["statistics"]["total_residential_units"] for t in all_traces)
+    total_cables = sum(t["statistics"]["total_cables"] for t in all_traces)
+    total_trenches = sum(t["statistics"]["total_trenches"] for t in all_traces)
+    has_branches = any(t["statistics"]["has_branches"] for t in all_traces)
+
+    # Merge cable_infrastructure from all traces
+    merged_infrastructure = {}
+    for trace in all_traces:
+        for cable_id_str, infra in trace.get("cable_infrastructure", {}).items():
+            if cable_id_str not in merged_infrastructure:
+                merged_infrastructure[cable_id_str] = infra
+
+    return {
+        "entry_point": {"type": "cable", "id": str(cable_id)},
+        "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
+        "cable_infrastructure": merged_infrastructure,
+        "statistics": {
+            "total_fibers": total_fibers,
+            "total_nodes": total_nodes,
+            "total_splices": total_splices,
+            "total_addresses": total_addresses,
+            "total_residential_units": total_rus,
+            "total_cables": total_cables,
+            "total_trenches": total_trenches,
+            "has_branches": has_branches,
+        },
+    }
+
+
+def trace_node(
+    node_id,
+    include_geometry: bool = False,
+    geometry_mode: str = "segments",
+    orient_geometry: bool = False,
+) -> dict:
+    """
+    Trace all fibers passing through a node.
+    Includes fibers from:
+    1. Splices at this node (via node_structure)
+    2. Cables that start or end at this node (uuid_node_start/uuid_node_end)
+    """
+    sql = """
+    SELECT DISTINCT fiber_id FROM (
+        -- Fibers through splices at this node
+        SELECT DISTINCT
+            COALESCE(fs.fiber_a, fs.shared_fiber_a, fs.fiber_b, fs.shared_fiber_b) as fiber_id
+        FROM fiber_splice fs
+        JOIN node_structure ns ON ns.uuid = fs.node_structure
+        WHERE ns.uuid_node = %(node_id)s
+          AND (fs.fiber_a IS NOT NULL OR fs.shared_fiber_a IS NOT NULL
+               OR fs.fiber_b IS NOT NULL OR fs.shared_fiber_b IS NOT NULL)
+
+        UNION
+
+        -- Fibers from cables that start at this node
+        SELECT f.uuid as fiber_id
+        FROM cable c
+        JOIN fiber f ON f.uuid_cable = c.uuid
+        WHERE c.uuid_node_start = %(node_id)s
+
+        UNION
+
+        -- Fibers from cables that end at this node
+        SELECT f.uuid as fiber_id
+        FROM cable c
+        JOIN fiber f ON f.uuid_cable = c.uuid
+        WHERE c.uuid_node_end = %(node_id)s
+    ) combined
+    WHERE fiber_id IS NOT NULL
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, {"node_id": str(node_id)})
+        fiber_ids = [row[0] for row in cursor.fetchall() if row[0]]
+
+    if not fiber_ids:
+        return {
+            "entry_point": {"type": "node", "id": str(node_id)},
+            "trace_trees": [],
+            "cable_infrastructure": {},
+            "statistics": {
+                "total_fibers": 0,
+                "total_nodes": 0,
+                "total_splices": 0,
+                "total_addresses": 0,
+                "total_residential_units": 0,
+                "total_cables": 0,
+                "total_trenches": 0,
+                "has_branches": False,
+            },
+        }
+
+    all_traces = []
+    seen_fibers = set()
+
+    for fiber_id in fiber_ids:
+        if fiber_id in seen_fibers:
+            continue
+        trace = trace_fiber(fiber_id, include_geometry, geometry_mode, orient_geometry)
+        for segment in trace.get("_raw_segments", []):
+            seen_fibers.add(segment["fiber_id"])
+        all_traces.append(trace)
+
+    total_fibers = sum(t["statistics"]["total_fibers"] for t in all_traces)
+    total_nodes = sum(t["statistics"]["total_nodes"] for t in all_traces)
+    total_splices = sum(t["statistics"]["total_splices"] for t in all_traces)
+    total_addresses = sum(t["statistics"]["total_addresses"] for t in all_traces)
+    total_rus = sum(t["statistics"]["total_residential_units"] for t in all_traces)
+    total_cables = sum(t["statistics"]["total_cables"] for t in all_traces)
+    total_trenches = sum(t["statistics"]["total_trenches"] for t in all_traces)
+    has_branches = any(t["statistics"]["has_branches"] for t in all_traces)
+
+    # Merge cable_infrastructure from all traces
+    merged_infrastructure = {}
+    for trace in all_traces:
+        for cable_id_str, infra in trace.get("cable_infrastructure", {}).items():
+            if cable_id_str not in merged_infrastructure:
+                merged_infrastructure[cable_id_str] = infra
+
+    return {
+        "entry_point": {"type": "node", "id": str(node_id)},
+        "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
+        "cable_infrastructure": merged_infrastructure,
+        "statistics": {
+            "total_fibers": total_fibers,
+            "total_nodes": total_nodes,
+            "total_splices": total_splices,
+            "total_addresses": total_addresses,
+            "total_residential_units": total_rus,
+            "total_cables": total_cables,
+            "total_trenches": total_trenches,
+            "has_branches": has_branches,
+        },
+    }
+
+
+def trace_address(
+    address_id,
+    include_geometry: bool = False,
+    geometry_mode: str = "segments",
+    orient_geometry: bool = False,
+) -> dict:
+    """
+    Trace all fibers connected to an address via:
+    1. Nodes linked to this address (node.uuid_address)
+    2. Residential units under this address that have fiber splices
+    """
+    sql = """
+    SELECT DISTINCT fiber_id FROM (
+        -- Fibers through nodes linked to this address
+        SELECT DISTINCT
+            COALESCE(fs.fiber_a, fs.shared_fiber_a, fs.fiber_b, fs.shared_fiber_b) as fiber_id
+        FROM node n
+        JOIN node_structure ns ON ns.uuid_node = n.uuid
+        JOIN fiber_splice fs ON fs.node_structure = ns.uuid
+        WHERE n.uuid_address = %(address_id)s
+          AND (fs.fiber_a IS NOT NULL OR fs.shared_fiber_a IS NOT NULL
+               OR fs.fiber_b IS NOT NULL OR fs.shared_fiber_b IS NOT NULL)
+
+        UNION
+
+        -- Fibers connected to residential units under this address
+        SELECT DISTINCT
+            COALESCE(fs.fiber_a, fs.shared_fiber_a, fs.fiber_b, fs.shared_fiber_b) as fiber_id
+        FROM residential_unit ru
+        JOIN fiber_splice fs ON (
+            fs.residential_unit_a_id = ru.uuid OR fs.residential_unit_b_id = ru.uuid
+        )
+        WHERE ru.uuid_address = %(address_id)s
+          AND (fs.fiber_a IS NOT NULL OR fs.shared_fiber_a IS NOT NULL
+               OR fs.fiber_b IS NOT NULL OR fs.shared_fiber_b IS NOT NULL)
+    ) combined
+    WHERE fiber_id IS NOT NULL
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, {"address_id": str(address_id)})
+        fiber_ids = [row[0] for row in cursor.fetchall()]
+
+    if not fiber_ids:
+        return {
+            "entry_point": {"type": "address", "id": str(address_id)},
+            "trace_trees": [],
+            "cable_infrastructure": {},
+            "statistics": {
+                "total_fibers": 0,
+                "total_nodes": 0,
+                "total_splices": 0,
+                "total_addresses": 0,
+                "total_residential_units": 0,
+                "total_cables": 0,
+                "total_trenches": 0,
+                "has_branches": False,
+            },
+        }
+
+    all_traces = []
+    seen_fibers = set()
+
+    for fiber_id in fiber_ids:
+        if fiber_id in seen_fibers:
+            continue
+        trace = trace_fiber(fiber_id, include_geometry, geometry_mode, orient_geometry)
+        for segment in trace.get("_raw_segments", []):
+            seen_fibers.add(segment["fiber_id"])
+        all_traces.append(trace)
+
+    total_fibers = sum(t["statistics"]["total_fibers"] for t in all_traces)
+    total_nodes = sum(t["statistics"]["total_nodes"] for t in all_traces)
+    total_splices = sum(t["statistics"]["total_splices"] for t in all_traces)
+    total_addresses = sum(t["statistics"]["total_addresses"] for t in all_traces)
+    total_rus = sum(t["statistics"]["total_residential_units"] for t in all_traces)
+    total_cables = sum(t["statistics"]["total_cables"] for t in all_traces)
+    total_trenches = sum(t["statistics"]["total_trenches"] for t in all_traces)
+    has_branches = any(t["statistics"]["has_branches"] for t in all_traces)
+
+    # Merge cable_infrastructure from all traces
+    merged_infrastructure = {}
+    for trace in all_traces:
+        for cable_id_str, infra in trace.get("cable_infrastructure", {}).items():
+            if cable_id_str not in merged_infrastructure:
+                merged_infrastructure[cable_id_str] = infra
+
+    return {
+        "entry_point": {"type": "address", "id": str(address_id)},
+        "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
+        "cable_infrastructure": merged_infrastructure,
+        "statistics": {
+            "total_fibers": total_fibers,
+            "total_nodes": total_nodes,
+            "total_splices": total_splices,
+            "total_addresses": total_addresses,
+            "total_residential_units": total_rus,
+            "total_cables": total_cables,
+            "total_trenches": total_trenches,
+            "has_branches": has_branches,
+        },
+    }
+
+
+def trace_residential_unit(
+    residential_unit_id,
+    include_geometry: bool = False,
+    geometry_mode: str = "segments",
+    orient_geometry: bool = False,
+) -> dict:
+    """
+    Trace all fibers connected to a residential unit via fiber_splice.
+    """
+    sql = """
+    SELECT DISTINCT
+        COALESCE(fs.fiber_a, fs.shared_fiber_a, fs.fiber_b, fs.shared_fiber_b) as fiber_id
+    FROM fiber_splice fs
+    WHERE (fs.residential_unit_a_id = %(ru_id)s OR fs.residential_unit_b_id = %(ru_id)s)
+      AND (fs.fiber_a IS NOT NULL OR fs.shared_fiber_a IS NOT NULL
+           OR fs.fiber_b IS NOT NULL OR fs.shared_fiber_b IS NOT NULL)
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, {"ru_id": str(residential_unit_id)})
+        fiber_ids = [row[0] for row in cursor.fetchall() if row[0]]
+
+    if not fiber_ids:
+        return {
+            "entry_point": {"type": "residential_unit", "id": str(residential_unit_id)},
+            "trace_trees": [],
+            "cable_infrastructure": {},
+            "statistics": {
+                "total_fibers": 0,
+                "total_nodes": 0,
+                "total_splices": 0,
+                "total_addresses": 0,
+                "total_residential_units": 0,
+                "total_cables": 0,
+                "total_trenches": 0,
+                "has_branches": False,
+            },
+        }
+
+    all_traces = []
+    seen_fibers = set()
+
+    for fiber_id in fiber_ids:
+        if fiber_id in seen_fibers:
+            continue
+        trace = trace_fiber(fiber_id, include_geometry, geometry_mode, orient_geometry)
+        for segment in trace.get("_raw_segments", []):
+            seen_fibers.add(segment["fiber_id"])
+        all_traces.append(trace)
+
+    total_fibers = sum(t["statistics"]["total_fibers"] for t in all_traces)
+    total_nodes = sum(t["statistics"]["total_nodes"] for t in all_traces)
+    total_splices = sum(t["statistics"]["total_splices"] for t in all_traces)
+    total_addresses = sum(t["statistics"]["total_addresses"] for t in all_traces)
+    total_rus = sum(t["statistics"]["total_residential_units"] for t in all_traces)
+    total_cables = sum(t["statistics"]["total_cables"] for t in all_traces)
+    total_trenches = sum(t["statistics"]["total_trenches"] for t in all_traces)
+    has_branches = any(t["statistics"]["has_branches"] for t in all_traces)
+
+    # Merge cable_infrastructure from all traces
+    merged_infrastructure = {}
+    for trace in all_traces:
+        for cable_id_str, infra in trace.get("cable_infrastructure", {}).items():
+            if cable_id_str not in merged_infrastructure:
+                merged_infrastructure[cable_id_str] = infra
+
+    return {
+        "entry_point": {"type": "residential_unit", "id": str(residential_unit_id)},
+        "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
+        "cable_infrastructure": merged_infrastructure,
+        "statistics": {
+            "total_fibers": total_fibers,
+            "total_nodes": total_nodes,
+            "total_splices": total_splices,
+            "total_addresses": total_addresses,
+            "total_residential_units": total_rus,
+            "total_cables": total_cables,
+            "total_trenches": total_trenches,
+            "has_branches": has_branches,
+        },
+    }
+
+
+def _build_trace_result(
+    rows: list,
+    entry_type: str,
+    entry_id,
+    include_geometry: bool = False,
+    geometry_mode: str = "segments",
+    orient_geometry: bool = False,
+) -> dict:
+    """
+    Build the trace result structure from flat database rows.
+    Includes address, residential unit, and cable endpoint information.
+
+    Args:
+        rows: Flat database rows from trace query
+        entry_type: Type of entry point (fiber, cable, node, etc.)
+        entry_id: UUID of entry point
+        include_geometry: If True, include trench geometry
+        geometry_mode: "segments" for individual trenches, "merged" for combined
+        orient_geometry: If True, orient geometries from cable start to end
+    """
+    if not rows:
+        return {
+            "entry_point": {"type": entry_type, "id": str(entry_id)},
+            "trace_tree": None,
+            "statistics": {
+                "total_fibers": 0,
+                "total_nodes": 0,
+                "total_splices": 0,
+                "total_addresses": 0,
+                "total_residential_units": 0,
+                "has_branches": False,
+            },
+            "_raw_segments": [],
+        }
+
+    nodes_seen = set()
+    splices_seen = set()
+    fibers_seen = set()
+    addresses_seen = set()
+    residential_units_seen = set()
+    cable_endpoints_seen = {}
+
+    for row in rows:
+        fibers_seen.add(row["fiber_id"])
+        if row["from_node_id"]:
+            nodes_seen.add(row["from_node_id"])
+        if row["from_splice_id"]:
+            splices_seen.add(row["from_splice_id"])
+        if row.get("address_id"):
+            addresses_seen.add(row["address_id"])
+        connected_rus = row.get("connected_residential_units") or []
+        if isinstance(connected_rus, str):
+            connected_rus = json.loads(connected_rus)
+        for ru in connected_rus:
+            if ru and isinstance(ru, dict) and ru.get("id"):
+                residential_units_seen.add(ru["id"])
+            if ru and isinstance(ru, dict) and ru.get("address_id"):
+                addresses_seen.add(ru["address_id"])
+        # Track cable endpoint nodes
+        cable_id = row["cable_id"]
+        if cable_id not in cable_endpoints_seen:
+            cable_endpoints_seen[cable_id] = {
+                "cable_id": str(cable_id),
+                "cable_name": row["cable_name"],
+                "start_node": None,
+                "end_node": None,
+            }
+            if row.get("cable_node_start_id"):
+                nodes_seen.add(row["cable_node_start_id"])
+                cable_endpoints_seen[cable_id]["start_node"] = {
+                    "id": str(row["cable_node_start_id"]),
+                    "name": row.get("cable_node_start_name"),
+                    "type": row.get("cable_node_start_type"),
+                }
+                if row.get("cable_start_address_id"):
+                    addresses_seen.add(row["cable_start_address_id"])
+                    cable_endpoints_seen[cable_id]["start_node"]["address"] = {
+                        "id": str(row["cable_start_address_id"]),
+                        "street": row.get("cable_start_address_street"),
+                        "housenumber": row.get("cable_start_address_housenumber"),
+                        "suffix": row.get("cable_start_address_suffix") or "",
+                        "zip_code": row.get("cable_start_address_zip_code"),
+                        "city": row.get("cable_start_address_city"),
+                    }
+            if row.get("cable_node_end_id"):
+                nodes_seen.add(row["cable_node_end_id"])
+                cable_endpoints_seen[cable_id]["end_node"] = {
+                    "id": str(row["cable_node_end_id"]),
+                    "name": row.get("cable_node_end_name"),
+                    "type": row.get("cable_node_end_type"),
+                }
+                if row.get("cable_end_address_id"):
+                    addresses_seen.add(row["cable_end_address_id"])
+                    cable_endpoints_seen[cable_id]["end_node"]["address"] = {
+                        "id": str(row["cable_end_address_id"]),
+                        "street": row.get("cable_end_address_street"),
+                        "housenumber": row.get("cable_end_address_housenumber"),
+                        "suffix": row.get("cable_end_address_suffix") or "",
+                        "zip_code": row.get("cable_end_address_zip_code"),
+                        "city": row.get("cable_end_address_city"),
+                    }
+
+    def build_node_with_address(row):
+        """Build node dict including full address details if available."""
+        if not row["from_node_id"]:
+            return None
+
+        node_data = {
+            "id": str(row["from_node_id"]),
+            "name": row["from_node_name"],
+        }
+
+        if row.get("address_id"):
+            node_data["address"] = {
+                "id": str(row["address_id"]),
+                "id_address": row.get("address_id_address"),
+                "street": row["address_street"],
+                "housenumber": row["address_housenumber"],
+                "suffix": row.get("address_suffix") or "",
+                "zip_code": row["address_zip_code"],
+                "city": row["address_city"],
+                "district": row.get("address_district"),
+                "status_development": row.get("address_status_development"),
+                "project": row.get("address_project"),
+                "flag": row.get("address_flag"),
+            }
+
+        return node_data
+
+    def build_residential_units(row):
+        """Build list of residential unit dicts for all connected units."""
+        connected_rus = row.get("connected_residential_units") or []
+        if isinstance(connected_rus, str):
+            connected_rus = json.loads(connected_rus)
+        if not connected_rus:
+            return None
+
+        result = []
+        for ru in connected_rus:
+            if not ru or not isinstance(ru, dict) or not ru.get("id"):
+                continue
+
+            ru_data = {
+                "id": str(ru["id"]),
+                "id_residential_unit": ru.get("id_residential_unit"),
+                "floor": ru.get("floor"),
+                "side": ru.get("side"),
+                "building_section": ru.get("building_section"),
+                "type": ru.get("type"),
+                "status": ru.get("status"),
+                "external_id_1": ru.get("external_id_1"),
+                "external_id_2": ru.get("external_id_2"),
+                "resident_name": ru.get("resident_name"),
+                "resident_recorded_date": ru.get("resident_recorded_date"),
+                "ready_for_service": ru.get("ready_for_service"),
+            }
+
+            if ru.get("address_id"):
+                ru_data["address"] = {
+                    "id": str(ru["address_id"]),
+                    "street": ru.get("address_street"),
+                    "housenumber": ru.get("address_housenumber"),
+                    "suffix": ru.get("address_suffix") or "",
+                    "zip_code": ru.get("address_zip_code"),
+                    "city": ru.get("address_city"),
+                }
+
+            result.append(ru_data)
+
+        return result if result else None
+
+    def build_cable_endpoints(row):
+        """Build cable endpoint info from row data."""
+        cable_id = row["cable_id"]
+        endpoints = cable_endpoints_seen.get(cable_id)
+        if endpoints and (endpoints["start_node"] or endpoints["end_node"]):
+            return endpoints
+        return None
+
+    def build_splice(row):
+        """Build splice dict with component hierarchy."""
+        if not row.get("splice_id"):
+            return None
+
+        # Parse container path - each element may be a JSON string or already a dict
+        container_path = row.get("container_path") or []
+        parsed_path = []
+        for item in container_path:
+            if isinstance(item, str):
+                parsed_path.append(json.loads(item))
+            else:
+                parsed_path.append(item)
+
+        splice_data = {
+            "id": str(row["splice_id"]),
+            "port_number": row.get("splice_port_number"),
+            "component": {
+                "type": row.get("component_type_name"),
+                "in_or_out": row.get("component_in_or_out"),
+                "structure_port": row.get("component_structure_port"),
+                "structure_port_alias": row.get("component_structure_port_alias"),
+                "slot_start": row.get("component_slot_start"),
+                "slot_end": row.get("component_slot_end"),
+                "slot_side": row.get("component_slot_side"),
+            },
+            "container_path": parsed_path,
+        }
+        return splice_data
+
+    root = rows[0]
+    trace_tree = {
+        "fiber": {
+            "id": str(root["fiber_id"]),
+            "fiber_number_absolute": root["fiber_number_absolute"],
+            "fiber_number_in_bundle": root.get("fiber_number_in_bundle"),
+            "bundle_number": root["bundle_number"],
+            "bundle_color": root.get("bundle_color"),
+            "bundle_color_hex": root.get("bundle_color_hex"),
+            "fiber_color": root["fiber_color"],
+            "fiber_color_hex": root.get("fiber_color_hex"),
+            "layer": root.get("layer"),
+            "status": root.get("fiber_status"),
+            "cable_id": str(root["cable_id"]),
+            "cable_name": root["cable_name"],
+            "cable_type": root.get("cable_type_name"),
+        },
+        "cable_endpoints": build_cable_endpoints(root),
+        "splice": build_splice(root),
+        "node": build_node_with_address(root),
+        "residential_units": build_residential_units(root),
+        "direction": root.get("direction"),
+        "children": [],
+    }
+
+    nodes_by_depth = {}
+    for row in rows[1:]:
+        depth = row["depth"]
+        if depth not in nodes_by_depth:
+            nodes_by_depth[depth] = []
+        nodes_by_depth[depth].append(row)
+
+    def build_children(parent_fiber_id, current_depth):
+        children = []
+        if current_depth not in nodes_by_depth:
+            return children
+
+        for row in nodes_by_depth[current_depth]:
+            child = {
+                "fiber": {
+                    "id": str(row["fiber_id"]),
+                    "fiber_number_absolute": row["fiber_number_absolute"],
+                    "fiber_number_in_bundle": row.get("fiber_number_in_bundle"),
+                    "bundle_number": row["bundle_number"],
+                    "bundle_color": row.get("bundle_color"),
+                    "bundle_color_hex": row.get("bundle_color_hex"),
+                    "fiber_color": row["fiber_color"],
+                    "fiber_color_hex": row.get("fiber_color_hex"),
+                    "layer": row.get("layer"),
+                    "status": row.get("fiber_status"),
+                    "cable_id": str(row["cable_id"]),
+                    "cable_name": row["cable_name"],
+                    "cable_type": row.get("cable_type_name"),
+                },
+                "cable_endpoints": build_cable_endpoints(row),
+                "splice": build_splice(row),
+                "node": build_node_with_address(row),
+                "residential_units": build_residential_units(row),
+                "direction": row["direction"],
+                "children": build_children(row["fiber_id"], current_depth + 1),
+            }
+            children.append(child)
+
+        return children
+
+    trace_tree["children"] = build_children(root["fiber_id"], 1)
+
+    has_branches = any(len(nodes_by_depth.get(d, [])) > 1 for d in nodes_by_depth)
+
+    # Collect unique cable IDs
+    cables_seen = set()
+    for row in rows:
+        cables_seen.add(row["cable_id"])
+
+    # Build cable endpoints with geometry for orientation
+    cable_endpoints_for_geometry = {}
+    if orient_geometry and include_geometry:
+        # Fetch node geometries for cable endpoints
+        cable_node_ids = set()
+        for cable_id, endpoints in cable_endpoints_seen.items():
+            if endpoints.get("start_node") and endpoints["start_node"].get("id"):
+                cable_node_ids.add(endpoints["start_node"]["id"])
+            if endpoints.get("end_node") and endpoints["end_node"].get("id"):
+                cable_node_ids.add(endpoints["end_node"]["id"])
+
+        # Query node geometries
+        node_geoms = {}
+        if cable_node_ids:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT uuid, ST_X(geom) as x, ST_Y(geom) as y
+                    FROM node
+                    WHERE uuid = ANY(%(node_ids)s)
+                    """,
+                    {"node_ids": [str(nid) for nid in cable_node_ids]},
+                )
+                for row in cursor.fetchall():
+                    if row[1] is not None and row[2] is not None:
+                        node_geoms[str(row[0])] = Point(row[1], row[2])
+
+        # Map cable endpoints to geometry
+        for cable_id, endpoints in cable_endpoints_seen.items():
+            cable_endpoints_for_geometry[str(cable_id)] = {
+                "start_geom": node_geoms.get(endpoints["start_node"]["id"])
+                if endpoints.get("start_node")
+                else None,
+                "end_geom": node_geoms.get(endpoints["end_node"]["id"])
+                if endpoints.get("end_node")
+                else None,
+            }
+
+    # Get infrastructure for all cables
+    cable_infrastructure = _get_cable_infrastructure(
+        list(cables_seen),
+        include_geometry,
+        geometry_mode,
+        orient_geometry,
+        cable_endpoints_for_geometry,
+    )
+
+    return {
+        "entry_point": {"type": entry_type, "id": str(entry_id)},
+        "trace_tree": trace_tree,
+        "cable_infrastructure": cable_infrastructure,
+        "statistics": {
+            "total_fibers": len(fibers_seen),
+            "total_nodes": len(nodes_seen),
+            "total_splices": len(splices_seen),
+            "total_addresses": len(addresses_seen),
+            "total_residential_units": len(residential_units_seen),
+            "total_cables": len(cables_seen),
+            "total_trenches": sum(len(inf["trenches"]) for inf in cable_infrastructure.values()),
+            "has_branches": has_branches,
+        },
+        "_raw_segments": rows,
+    }
+
+
+# =============================================================================
+# Geometry Processing Helpers
+# =============================================================================
+
+
+def _validate_and_clean_geometry(geojson_dict: dict) -> dict | None:
+    """
+    Validate and clean a GeoJSON geometry.
+
+    Args:
+        geojson_dict: GeoJSON geometry dict
+
+    Returns:
+        Cleaned GeoJSON dict or None if invalid/empty
+    """
+    if not geojson_dict:
+        return None
+
+    try:
+        geom = shape(geojson_dict)
+        if geom.is_empty:
+            return None
+        if not is_valid(geom):
+            geom = make_valid(geom)
+        return mapping(geom)
+    except Exception:
+        return None
+
+
+def _merge_trench_geometries(trenches: list[dict]) -> dict | None:
+    """
+    Merge multiple trench geometries into a single geometry.
+
+    Args:
+        trenches: List of trench dicts with 'geometry' field containing GeoJSON
+
+    Returns:
+        GeoJSON dict (LineString or MultiLineString depending on connectivity)
+        or None if no valid geometries
+    """
+    if not trenches:
+        return None
+
+    shapely_geoms = []
+    for trench in trenches:
+        geom_json = trench.get("geometry")
+        if not geom_json:
+            continue
+
+        cleaned = _validate_and_clean_geometry(geom_json)
+        if cleaned:
+            try:
+                shapely_geoms.append(shape(cleaned))
+            except Exception:
+                continue
+
+    if not shapely_geoms:
+        return None
+
+    if len(shapely_geoms) == 1:
+        return mapping(shapely_geoms[0])
+
+    # linemerge returns LineString if connected, MultiLineString if disconnected
+    merged = linemerge(shapely_geoms)
+    return mapping(merged)
+
+
+def _orient_geometry(
+    geom_dict: dict, cable_start_geom: Point | None, cable_end_geom: Point | None
+) -> dict:
+    """
+    Orient a LineString/MultiLineString so it flows from cable start to end.
+    Compares first/last points of geometry to cable endpoint nodes.
+
+    Args:
+        geom_dict: GeoJSON geometry dict
+        cable_start_geom: Shapely Point of cable start node
+        cable_end_geom: Shapely Point of cable end node
+
+    Returns:
+        Oriented GeoJSON geometry dict
+    """
+    if not geom_dict or not cable_start_geom:
+        return geom_dict
+
+    try:
+        geom = shape(geom_dict)
+    except Exception:
+        return geom_dict
+
+    if geom.is_empty:
+        return geom_dict
+
+    if geom.geom_type == "LineString":
+        first_pt = Point(geom.coords[0])
+        last_pt = Point(geom.coords[-1])
+
+        # If last point is closer to cable start than first point, reverse
+        dist_first_to_start = first_pt.distance(cable_start_geom)
+        dist_last_to_start = last_pt.distance(cable_start_geom)
+        if dist_last_to_start < dist_first_to_start:
+            return mapping(geom.reverse())
+        return geom_dict
+
+    elif geom.geom_type == "MultiLineString":
+        # Orient each component LineString
+        oriented_lines = []
+        for line in geom.geoms:
+            first_pt = Point(line.coords[0])
+            last_pt = Point(line.coords[-1])
+
+            dist_first_to_start = first_pt.distance(cable_start_geom)
+            dist_last_to_start = last_pt.distance(cable_start_geom)
+            if dist_last_to_start < dist_first_to_start:
+                oriented_lines.append(line.reverse())
+            else:
+                oriented_lines.append(line)
+
+        return mapping(MultiLineString(oriented_lines))
+
+    return geom_dict
+
+
+def _get_cable_infrastructure(
+    cable_ids: list,
+    include_geometry: bool = False,
+    geometry_mode: str = "segments",
+    orient_geometry: bool = False,
+    cable_endpoints: dict | None = None,
+) -> dict:
+    """
+    Get infrastructure path for cables: microduct → conduit → trenches.
+
+    Args:
+        cable_ids: List of cable UUIDs to fetch infrastructure for
+        include_geometry: If True, include trench geometry as GeoJSON
+        geometry_mode: "segments" for individual trenches, "merged" for combined geometry
+        orient_geometry: If True, orient geometries from cable start to end
+        cable_endpoints: Dict mapping cable_id to {start_geom, end_geom} Point objects
+
+    Returns:
+        Dict mapping cable_id to infrastructure data
+    """
+    if not cable_ids:
+        return {}
+
+    if cable_endpoints is None:
+        cable_endpoints = {}
+
+    geometry_select = "ST_AsGeoJSON(t.geom)::jsonb" if include_geometry else "NULL"
+
+    sql = f"""
+    SELECT
+        c.uuid as cable_id,
+        md.uuid as microduct_id,
+        md.number as microduct_number,
+        md.color as microduct_color,
+        amc.hex_code as microduct_color_hex,
+        md_status.microduct_status as microduct_status,
+        cond.uuid as conduit_id,
+        cond.name as conduit_name,
+        cond_type.conduit_type as conduit_type,
+        t.uuid as trench_id,
+        t.id_trench,
+        const_type.construction_type,
+        surf.surface,
+        t.length as trench_length,
+        {geometry_select} as trench_geometry
+    FROM cable c
+    LEFT JOIN microduct_cable_connection mcc ON mcc.uuid_cable = c.uuid
+    LEFT JOIN microduct md ON md.uuid = mcc.uuid_microduct
+    LEFT JOIN attributes_microduct_status md_status ON md_status.id = md.microduct_status
+    LEFT JOIN attributes_microduct_color amc ON LOWER(amc.name_de) = LOWER(md.color)
+    LEFT JOIN conduit cond ON cond.uuid = md.uuid_conduit
+    LEFT JOIN attributes_conduit_type cond_type ON cond_type.id = cond.conduit_type
+    LEFT JOIN trench_conduit_connect tcc ON tcc.uuid_conduit = cond.uuid
+    LEFT JOIN trench t ON t.uuid = tcc.uuid_trench
+    LEFT JOIN attributes_construction_type const_type ON const_type.id = t.construction_type
+    LEFT JOIN attributes_surface surf ON surf.id = t.surface
+    WHERE c.uuid = ANY(%(cable_ids)s)
+    ORDER BY c.uuid, md.number, t.id_trench
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, {"cable_ids": [str(cid) for cid in cable_ids]})
+        columns = [col[0] for col in cursor.description]
+        rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    # Group by cable
+    infrastructure = {}
+    for row in rows:
+        cable_id = str(row["cable_id"])
+        if cable_id not in infrastructure:
+            infrastructure[cable_id] = {
+                "microduct": None,
+                "conduit": None,
+                "trenches": [],
+            }
+
+        # Set microduct (first one wins, should be same for all rows of a cable)
+        if row.get("microduct_id") and not infrastructure[cable_id]["microduct"]:
+            infrastructure[cable_id]["microduct"] = {
+                "id": str(row["microduct_id"]),
+                "number": row["microduct_number"],
+                "color": row["microduct_color"],
+                "color_hex": row.get("microduct_color_hex"),
+                "status": row.get("microduct_status"),
+            }
+
+        # Set conduit
+        if row.get("conduit_id") and not infrastructure[cable_id]["conduit"]:
+            infrastructure[cable_id]["conduit"] = {
+                "id": str(row["conduit_id"]),
+                "name": row["conduit_name"],
+                "type": row.get("conduit_type"),
+            }
+
+        # Add trench (dedupe by checking if already added)
+        if row.get("trench_id"):
+            trench_id = str(row["trench_id"])
+            existing_ids = [t["id"] for t in infrastructure[cable_id]["trenches"]]
+            if trench_id not in existing_ids:
+                # Parse geometry if it's a string
+                trench_geom = row.get("trench_geometry")
+                if isinstance(trench_geom, str):
+                    try:
+                        trench_geom = json.loads(trench_geom)
+                    except (json.JSONDecodeError, TypeError):
+                        trench_geom = None
+
+                infrastructure[cable_id]["trenches"].append({
+                    "id": trench_id,
+                    "id_trench": row["id_trench"],
+                    "construction_type": row.get("construction_type"),
+                    "surface": row.get("surface"),
+                    "length": float(row["trench_length"]) if row.get("trench_length") else None,
+                    "geometry": trench_geom,
+                })
+
+    # Process geometries based on mode
+    if include_geometry:
+        for cable_id, infra in infrastructure.items():
+            trenches = infra.get("trenches", [])
+            endpoints = cable_endpoints.get(cable_id, {})
+            start_geom = endpoints.get("start_geom")
+            end_geom = endpoints.get("end_geom")
+
+            if geometry_mode == "merged":
+                # Merge all trench geometries into one
+                merged = _merge_trench_geometries(trenches)
+                if merged and orient_geometry:
+                    merged = _orient_geometry(merged, start_geom, end_geom)
+                infra["merged_geometry"] = merged
+
+                # Calculate total length from merged geometry
+                if merged:
+                    try:
+                        merged_geom = shape(merged)
+                        infra["total_length"] = merged_geom.length
+                    except Exception:
+                        infra["total_length"] = sum(
+                            t.get("length") or 0 for t in trenches
+                        )
+
+                # Remove individual geometries to reduce payload
+                for trench in trenches:
+                    trench.pop("geometry", None)
+
+            elif orient_geometry:
+                # Segments mode with orientation - orient each trench geometry
+                for trench in trenches:
+                    if trench.get("geometry"):
+                        trench["geometry"] = _orient_geometry(
+                            trench["geometry"], start_geom, end_geom
+                        )
+
+    return infrastructure
+
+
+def trace_fiber_summary(fiber_id) -> dict:
+    """
+    Get a compact trace summary for a fiber.
+    Returns start/end endpoints and key statistics.
+    Reuses trace_fiber() and extracts summary data.
+
+    Finds the true terminal nodes by collecting all cable endpoints
+    and excluding nodes that appear as splice points (middle of the path).
+    """
+    full_trace = trace_fiber(fiber_id, include_geometry=False)
+
+    # Remove internal data
+    if "_raw_segments" in full_trace:
+        del full_trace["_raw_segments"]
+
+    tree = full_trace.get("trace_tree")
+    stats = full_trace.get("statistics", {})
+
+    # Collect all endpoint nodes and splice nodes to find terminals
+    all_endpoint_nodes = {}  # node_id -> node_data
+    splice_node_ids = set()
+
+    def collect_nodes(node):
+        """Recursively collect endpoint nodes and splice nodes from trace tree."""
+        if not node:
+            return
+
+        # Collect cable endpoint nodes
+        endpoints = node.get("cable_endpoints", {})
+        for key in ["start_node", "end_node"]:
+            n = endpoints.get(key)
+            if n and n.get("id"):
+                all_endpoint_nodes[n["id"]] = n
+
+        # Collect splice nodes (nodes where splices occur - these are in the middle)
+        splice_node = node.get("node")
+        if splice_node and splice_node.get("id"):
+            splice_node_ids.add(splice_node["id"])
+
+        for child in node.get("children", []):
+            collect_nodes(child)
+
+    collect_nodes(tree)
+
+    # Terminal nodes are endpoint nodes that are NOT splice nodes
+    terminal_node_ids = set(all_endpoint_nodes.keys()) - splice_node_ids
+    terminal_nodes = [all_endpoint_nodes[nid] for nid in terminal_node_ids]
+
+    # Sort by name for consistent ordering
+    terminal_nodes.sort(key=lambda n: n.get("name") or "")
+
+    start_node = None
+    end_node = None
+
+    if len(terminal_nodes) >= 2:
+        start_node = {
+            "id": terminal_nodes[0].get("id"),
+            "name": terminal_nodes[0].get("name"),
+            "address": terminal_nodes[0].get("address"),
+        }
+        end_node = {
+            "id": terminal_nodes[-1].get("id"),
+            "name": terminal_nodes[-1].get("name"),
+            "address": terminal_nodes[-1].get("address"),
+        }
+    elif len(terminal_nodes) == 1:
+        # Single terminal (dead end or loop)
+        start_node = {
+            "id": terminal_nodes[0].get("id"),
+            "name": terminal_nodes[0].get("name"),
+            "address": terminal_nodes[0].get("address"),
+        }
+        end_node = start_node
+    elif tree and tree.get("cable_endpoints"):
+        # Fallback to root cable endpoints
+        endpoints = tree["cable_endpoints"]
+        if endpoints.get("start_node"):
+            sn = endpoints["start_node"]
+            start_node = {"id": sn.get("id"), "name": sn.get("name"), "address": sn.get("address")}
+        if endpoints.get("end_node"):
+            en = endpoints["end_node"]
+            end_node = {"id": en.get("id"), "name": en.get("name"), "address": en.get("address")}
+
+    return {
+        "fiber_id": str(fiber_id),
+        "start_node": start_node,
+        "end_node": end_node,
+        "statistics": {
+            "total_fibers": stats.get("total_fibers", 0),
+            "total_splices": stats.get("total_splices", 0),
+            "total_nodes": stats.get("total_nodes", 0),
+            "total_addresses": stats.get("total_addresses", 0),
+            "total_residential_units": stats.get("total_residential_units", 0),
+        },
+    }

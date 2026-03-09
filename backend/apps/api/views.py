@@ -6859,3 +6859,164 @@ class DashboardStatisticsView(APIView):
             )[:10],
             "residential_by_area_type": residential_by_area_type,
         }
+
+
+class FiberTraceView(APIView):
+    """
+    API endpoint for tracing fibers through the network.
+    Follows splice connections to build a complete path tree.
+
+    Query Parameters (mutually exclusive):
+        fiber_id: UUID of a single fiber to trace
+        cable_id: UUID of a cable (traces all fibers)
+        node_id: UUID of a node (traces all fibers passing through)
+        address_id: UUID of an address (traces fibers via linked nodes/RUs)
+        residential_unit_id: UUID of a residential unit (traces connected fibers)
+
+    Geometry Parameters (optional):
+        include_geometry: "true" to include trench geometry (default: "false")
+        geometry_mode: "segments" for individual trenches, "merged" for combined
+        orient_geometry: "true" to orient lines from cable start to end
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .services import (
+            trace_address,
+            trace_cable,
+            trace_fiber,
+            trace_node,
+            trace_residential_unit,
+        )
+
+        from uuid import UUID as UUIDType
+
+        fiber_id = request.query_params.get("fiber_id")
+        cable_id = request.query_params.get("cable_id")
+        node_id = request.query_params.get("node_id")
+        address_id = request.query_params.get("address_id")
+        residential_unit_id = request.query_params.get("residential_unit_id")
+        include_geometry = (
+            request.query_params.get("include_geometry", "").lower() == "true"
+        )
+        geometry_mode = request.query_params.get("geometry_mode", "segments")
+        orient_geometry = (
+            request.query_params.get("orient_geometry", "").lower() == "true"
+        )
+
+        # Validate geometry_mode
+        if geometry_mode not in ("segments", "merged"):
+            return Response(
+                {"error": "geometry_mode must be 'segments' or 'merged'"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        params = [fiber_id, cable_id, node_id, address_id, residential_unit_id]
+        param_count = sum(1 for p in params if p)
+
+        if param_count == 0:
+            return Response(
+                {
+                    "error": "One of fiber_id, cable_id, node_id, "
+                    "address_id, or residential_unit_id is required"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if param_count > 1:
+            return Response(
+                {
+                    "error": "Only one of fiber_id, cable_id, node_id, "
+                    "address_id, or residential_unit_id allowed"
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate UUID format
+        provided_id = fiber_id or cable_id or node_id or address_id or residential_unit_id
+        try:
+            UUIDType(provided_id)
+        except ValueError:
+            return Response(
+                {"error": "Invalid UUID format"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            if fiber_id:
+                result = trace_fiber(
+                    fiber_id, include_geometry, geometry_mode, orient_geometry
+                )
+            elif cable_id:
+                result = trace_cable(
+                    cable_id, include_geometry, geometry_mode, orient_geometry
+                )
+            elif node_id:
+                result = trace_node(
+                    node_id, include_geometry, geometry_mode, orient_geometry
+                )
+            elif address_id:
+                result = trace_address(
+                    address_id, include_geometry, geometry_mode, orient_geometry
+                )
+            else:
+                result = trace_residential_unit(
+                    residential_unit_id, include_geometry, geometry_mode, orient_geometry
+                )
+
+            if "_raw_segments" in result:
+                del result["_raw_segments"]
+
+            return Response(result)
+
+        except Exception:
+            logger.exception("Fiber trace error")
+            return Response(
+                {"error": "An error occurred while tracing the fiber path"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class FiberTraceSummaryView(APIView):
+    """
+    API endpoint for getting a compact trace summary for a single fiber.
+    Returns start/end nodes with addresses and statistics.
+    Optimized for inline display in UI components.
+
+    Query Parameters:
+        fiber_id: UUID of the fiber to trace (required)
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from uuid import UUID as UUIDType
+
+        from .services import trace_fiber_summary
+
+        fiber_id = request.query_params.get("fiber_id")
+
+        if not fiber_id:
+            return Response(
+                {"error": "fiber_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            UUIDType(fiber_id)
+        except ValueError:
+            return Response(
+                {"error": "Invalid UUID format"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            result = trace_fiber_summary(fiber_id)
+            return Response(result)
+        except Exception:
+            logger.exception("Fiber trace summary error")
+            return Response(
+                {"error": "An error occurred while tracing the fiber"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

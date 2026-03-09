@@ -31,7 +31,7 @@
 	"action_merge": "Zusammenführen",
 	"action_next": "Weiter",
 	"action_merge_ports": "Ports zusammenführen",
-	"action_open_child_network": "Hausanschlusskabel-Schema öffnen",
+	"action_open_child_network": "Subnetz öffnen",
 	"action_refresh": "Aktualisieren",
 	"action_regenerate_id": "ID neu generieren",
 	"action_remove_linkage": "Verknüpfung entfernen",
@@ -42,6 +42,7 @@
 	"action_select_all": "Alle auswählen",
 	"action_select_none": "Keine auswählen",
 	"action_tap_to_place": "Tippen zum Platzieren",
+	"action_trace": "Verfolgen",
 	"action_unassign": "Aufheben",
 	"action_unmerge": "Trennen",
 	"action_upload_files": "Upload",
@@ -607,7 +608,10 @@
 	],
 	"settings_address_style": "Adressen-Stil",
 	"settings_area_type_styles": "Gebietstyp-Stile",
+	"settings_cable_direction_animation": "Kabelrichtungs-Animation",
+	"settings_cable_direction_animation_description": "Zeigt eine Animation auf Kabeln an, die die Richtung vom Start- zum Endknoten visualisiert.",
 	"settings_cable_edge_color": "Kabelfarbe",
+	"settings_display_options": "Anzeigeoptionen",
 	"settings_cable_edge_color_default": "Standard (Grün)",
 	"settings_cable_edge_color_linked": "Verknüpfungsanzeige (Grün/Blau)",
 	"settings_cable_edge_color_micropipe": "Mikrorohrfarbe",
@@ -674,6 +678,37 @@
 	"title_trench_located": "Trasse gefunden!",
 	"title_trench_profile": "Grabenprofil",
 	"title_trench_not_visible": "Trasse nicht sichtbar!",
+	"trace_addresses": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Adresse",
+				"countPlural=other": "Adressen"
+			}
+		}
+	],
+	"trace_error": "Fehler beim Verfolgen",
+	"trace_splices": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Spleiss",
+				"countPlural=other": "Spleisse"
+			}
+		}
+	],
+	"trace_residential_units": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "WE",
+				"countPlural=other": "WEs"
+			}
+		}
+	],
 	"tooltip_assign_node_to_microduct": "Netzknoten zu Mikrorohr zuweisen",
 	"tooltip_click_to_delete_vertex": "Klicken zum Löschen des Scheitelpunkts",
 	"tooltip_click_to_edit": "Klicken zum Bearbeiten",

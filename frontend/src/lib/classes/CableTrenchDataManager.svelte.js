@@ -210,8 +210,7 @@ export class CableTrenchDataManager {
 		const targetField = locale === 'en' ? 'name_en' : 'name_de';
 
 		const color = this.fiberColors.find(
-			(c) =>
-				c.name_de?.toLowerCase() === lowerName || c.name_en?.toLowerCase() === lowerName
+			(c) => c.name_de?.toLowerCase() === lowerName || c.name_en?.toLowerCase() === lowerName
 		);
 
 		return color?.[targetField] || colorName;

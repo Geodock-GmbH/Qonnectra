@@ -41,6 +41,16 @@ export const globalMapView = persisted('globalMapView', false);
 // 'default' = static green, 'linked' = green/blue based on connection, 'micropipe' = use micropipe color
 export const cableEdgeColorMode = persisted('cableEdgeColorMode', 'default');
 
+// Cable direction animation - shows animated flow from start to end node
+export const cableDirectionAnimationEnabled = persisted('cableDirectionAnimationEnabled', false);
+
+// Network schema panel expansion states
+export const networkSchemaPanelExpanded = persisted('networkSchemaPanelExpanded', true);
+export const networkSchemaDisplayOptionsExpanded = persisted(
+	'networkSchemaDisplayOptionsExpanded',
+	true
+);
+
 // Node type styles - stores color, size, and visibility per node type
 // Structure: { [node_type_name]: { color: '#hex', size: number, visible: boolean } }
 export const nodeTypeStyles = persisted('nodeTypeStyles', {});

@@ -19,7 +19,6 @@ from apps.api.models import (
 from ..factories import (
     CableFactory,
     CableTypeFactory,
-    ConduitFactory,
     ConduitTypeFactory,
     FiberColorFactory,
     FiberFactory,
