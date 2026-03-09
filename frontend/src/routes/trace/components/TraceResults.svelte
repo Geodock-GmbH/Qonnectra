@@ -249,7 +249,7 @@
 		<span
 			class="font-mono text-2xl font-bold {value ? 'text-success-500' : 'text-surface-600-400'}"
 		>
-			{value ? 'Yes' : 'No'}
+			{value ? m.common_yes() : m.common_no()}
 		</span>
 		<span class="mt-1 text-xs font-medium uppercase tracking-wide text-surface-600-400"
 			>{label}</span

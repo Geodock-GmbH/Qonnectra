@@ -299,7 +299,7 @@
 	<!-- Results Summary -->
 	<div class="text-center text-xs text-surface-500-400">
 		{filteredRows.length}
-		{m.form_fibers()}
+		{filteredRows.length === 1 ? m.form_fiber() : m.form_fibers()}
 	</div>
 </div>
 
