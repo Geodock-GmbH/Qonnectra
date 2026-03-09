@@ -361,7 +361,9 @@
 
 		{#if includeGeometry}
 			<div class="flex items-center gap-2" transition:slide={{ duration: 150, axis: 'x' }}>
-				<label for="geometryMode" class="text-sm text-surface-600-400">{m.trace_geometry_mode()}:</label>
+				<label for="geometryMode" class="text-sm text-surface-600-400"
+					>{m.trace_geometry_mode()}:</label
+				>
 				<select
 					id="geometryMode"
 					bind:value={geometryMode}
@@ -372,7 +374,10 @@
 				</select>
 			</div>
 
-			<label class="flex cursor-pointer items-center gap-2" transition:slide={{ duration: 150, axis: 'x' }}>
+			<label
+				class="flex cursor-pointer items-center gap-2"
+				transition:slide={{ duration: 150, axis: 'x' }}
+			>
 				<input
 					type="checkbox"
 					bind:checked={orientGeometry}
@@ -413,7 +418,11 @@
 				<!-- Fiber Selection by Bundle -->
 				{#if loadingFibers}
 					<div class="flex items-center justify-center py-8">
-						<IconLoader2 size={24} class="text-primary-500" style="animation: spin 1s linear infinite" />
+						<IconLoader2
+							size={24}
+							class="text-primary-500"
+							style="animation: spin 1s linear infinite"
+						/>
 					</div>
 				{:else if fibersByBundle.length > 0}
 					<div class="space-y-2">
@@ -427,17 +436,23 @@
 								>
 									<IconChevronDown
 										size={18}
-										class="text-surface-500-400 transition-transform {expandedBundles.has(bundle.bundleNumber) ? '' : '-rotate-90'}"
+										class="text-surface-500-400 transition-transform {expandedBundles.has(
+											bundle.bundleNumber
+										)
+											? ''
+											: '-rotate-90'}"
 									/>
 									<span
 										class="h-4 w-4 rounded-full border border-surface-300"
 										style="background-color: {getColorHex(bundle.bundleColor)}"
 									></span>
 									<span class="font-medium text-surface-900-100">
-										{m.form_bundle()} {bundle.bundleNumber}
+										{m.form_bundle()}
+										{bundle.bundleNumber}
 									</span>
 									<span class="text-sm text-surface-600-400">
-										({bundle.fibers.length} {m.form_fibers()})
+										({bundle.fibers.length}
+										{m.form_fibers()})
 									</span>
 								</button>
 
@@ -446,7 +461,9 @@
 									<div class="border-t border-surface-200-800" transition:slide={{ duration: 150 }}>
 										<table class="w-full text-sm">
 											<thead>
-												<tr class="border-b border-surface-100-900 text-left text-xs text-surface-600-400">
+												<tr
+													class="border-b border-surface-100-900 text-left text-xs text-surface-600-400"
+												>
 													<th class="px-4 py-2 font-medium">#</th>
 													<th class="px-4 py-2 font-medium">{m.form_color()}</th>
 													<th class="px-4 py-2 font-medium"></th>
@@ -496,7 +513,10 @@
 				<!-- Cable Search for Fiber Selection -->
 				<div class="mb-2 text-sm text-surface-600-400">{m.trace_select_cable_first()}</div>
 				<div class="relative">
-					<IconSearch size={20} class="absolute left-4 top-1/2 -translate-y-1/2 text-surface-500-400" />
+					<IconSearch
+						size={20}
+						class="absolute left-4 top-1/2 -translate-y-1/2 text-surface-500-400"
+					/>
 					<input
 						type="text"
 						value={searchQuery}
@@ -545,7 +565,10 @@
 
 				<!-- No results / hint -->
 				{#if searchQuery.length >= 2 && !searching && searchResults.length === 0}
-					<div class="mt-4 py-4 text-center text-surface-600-400" transition:slide={{ duration: 200 }}>
+					<div
+						class="mt-4 py-4 text-center text-surface-600-400"
+						transition:slide={{ duration: 200 }}
+					>
 						{m.common_no_results()}
 					</div>
 				{:else if searchQuery.length < 2 && !searching}
@@ -558,7 +581,10 @@
 			<!-- Other Tabs: Standard Search -->
 			<div class="relative">
 				<div class="relative">
-					<IconSearch size={20} class="absolute left-4 top-1/2 -translate-y-1/2 text-surface-500-400" />
+					<IconSearch
+						size={20}
+						class="absolute left-4 top-1/2 -translate-y-1/2 text-surface-500-400"
+					/>
 					<input
 						type="text"
 						value={searchQuery}
@@ -608,7 +634,10 @@
 
 				<!-- No results message -->
 				{#if activeType.searchable && searchQuery.length >= 2 && !searching && searchResults.length === 0}
-					<div class="mt-4 py-4 text-center text-surface-600-400" transition:slide={{ duration: 200 }}>
+					<div
+						class="mt-4 py-4 text-center text-surface-600-400"
+						transition:slide={{ duration: 200 }}
+					>
 						{m.common_no_results()}
 					</div>
 				{/if}

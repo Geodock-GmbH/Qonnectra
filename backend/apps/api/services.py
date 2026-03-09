@@ -1398,6 +1398,19 @@ def trace_fiber(
     )
 
 
+def _sort_trace_trees(trace_trees: list) -> list:
+    """
+    Sort trace trees by cable name (ASC), then fiber number absolute (ASC).
+    """
+    return sorted(
+        trace_trees,
+        key=lambda t: (
+            (t.get("fiber", {}).get("cable_name") or ""),
+            t.get("fiber", {}).get("fiber_number_absolute") or 0,
+        ),
+    )
+
+
 def trace_cable(
     cable_id,
     include_geometry: bool = False,
@@ -1455,9 +1468,11 @@ def trace_cable(
             if cable_id_str not in merged_infrastructure:
                 merged_infrastructure[cable_id_str] = infra
 
+    trace_trees = [t["trace_tree"] for t in all_traces if t["trace_tree"]]
+
     return {
         "entry_point": entry_point,
-        "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
+        "trace_trees": _sort_trace_trees(trace_trees),
         "cable_infrastructure": merged_infrastructure,
         "statistics": {
             "total_fibers": total_fibers,
@@ -1564,9 +1579,11 @@ def trace_node(
             if cable_id_str not in merged_infrastructure:
                 merged_infrastructure[cable_id_str] = infra
 
+    trace_trees = [t["trace_tree"] for t in all_traces if t["trace_tree"]]
+
     return {
         "entry_point": entry_point,
-        "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
+        "trace_trees": _sort_trace_trees(trace_trees),
         "cable_infrastructure": merged_infrastructure,
         "statistics": {
             "total_fibers": total_fibers,
@@ -1670,9 +1687,11 @@ def trace_address(
             if cable_id_str not in merged_infrastructure:
                 merged_infrastructure[cable_id_str] = infra
 
+    trace_trees = [t["trace_tree"] for t in all_traces if t["trace_tree"]]
+
     return {
         "entry_point": entry_point,
-        "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
+        "trace_trees": _sort_trace_trees(trace_trees),
         "cable_infrastructure": merged_infrastructure,
         "statistics": {
             "total_fibers": total_fibers,
@@ -1755,9 +1774,11 @@ def trace_residential_unit(
             if cable_id_str not in merged_infrastructure:
                 merged_infrastructure[cable_id_str] = infra
 
+    trace_trees = [t["trace_tree"] for t in all_traces if t["trace_tree"]]
+
     return {
         "entry_point": entry_point,
-        "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
+        "trace_trees": _sort_trace_trees(trace_trees),
         "cable_infrastructure": merged_infrastructure,
         "statistics": {
             "total_fibers": total_fibers,

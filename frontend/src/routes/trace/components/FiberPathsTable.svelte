@@ -1,372 +1,309 @@
 <script>
-	import { cubicOut } from 'svelte/easing';
-	import { fly, slide } from 'svelte/transition';
+	import { SvelteSet } from 'svelte/reactivity';
+	import { slide } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import {
 		IconArrowsSplit,
+		IconChevronDown,
 		IconChevronRight,
-		IconDownload,
 		IconHome,
 		IconMapPin,
-		IconNetwork
+		IconSearch
 	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
-	import FiberPathsTable from './FiberPathsTable.svelte';
-
 	/**
 	 * @typedef {Object} Props
-	 * @property {Object} result - The trace result data
-	 * @property {string} entryType - The entry type (fiber, cable, node, address, residential_unit)
-	 * @property {string} entryId - The entry UUID
-	 * @property {boolean} [includeGeometry] - Whether geometry was included
+	 * @property {Array<Object>} traceTrees - Array of fiber path tree objects
 	 */
 
 	/** @type {Props} */
-	let { result, entryType, entryId, includeGeometry = false } = $props();
+	let { traceTrees } = $props();
+
+	let searchQuery = $state('');
+	let expandedRows = new SvelteSet();
+	let containerEl = $state(null);
+	let scrollTop = $state(0);
+
+	const ROW_HEIGHT = 52;
+	const BUFFER_SIZE = 10;
+	const CONTAINER_HEIGHT = 600;
 
 	/**
-	 * Navigate to trace a different entity
-	 * @param {string} type - Entity type
-	 * @param {string} id - Entity UUID
+	 * Extract destinations from a tree (recursive)
+	 * @param {Object} tree
+	 * @returns {string[]}
 	 */
-	function traceFrom(type, id) {
-		const typeSlug = type === 'residential_unit' ? 'residential-unit' : type;
-		goto(`/trace/${typeSlug}/${id}`);
-	}
+	function collectDestinations(tree) {
+		const destinations = new Set();
 
-	/**
-	 * Get translated entry type label
-	 * @param {string} type - Entry type from backend
-	 */
-	function getEntryTypeLabel(type) {
-		const typeMap = {
-			fiber: m.form_fiber(),
-			cable: m.form_cables(),
-			node: m.form_node(),
-			address: m.form_address({ count: 1 }),
-			residential_unit: m.section_residential_units({ count: 1 })
-		};
-		return typeMap[type] || type || m.common_unknown();
-	}
-
-	function hasGeometries(traceResult) {
-		if (!traceResult?.cable_infrastructure) return false;
-		for (const infra of Object.values(traceResult.cable_infrastructure)) {
-			if (infra.merged_geometry) return true;
-			if (infra.trenches?.some((t) => t.geometry)) return true;
-		}
-		return false;
-	}
-
-	function buildGeoJSON(traceResult) {
-		const features = [];
-		const cableInfra = traceResult.cable_infrastructure || {};
-
-		for (const [cableId, infra] of Object.entries(cableInfra)) {
-			if (infra.merged_geometry) {
-				features.push({
-					type: 'Feature',
-					properties: {
-						cable_id: cableId,
-						conduit_name: infra.conduit?.name || null,
-						conduit_type: infra.conduit?.type || null,
-						microduct_number: infra.microduct?.number || null,
-						microduct_color: infra.microduct?.color || null,
-						total_length: infra.total_length || null,
-						trench_count: infra.trenches?.length || 0,
-						geometry_mode: 'merged'
-					},
-					geometry: infra.merged_geometry
-				});
-			} else if (infra.trenches) {
-				for (const trench of infra.trenches) {
-					if (trench.geometry) {
-						features.push({
-							type: 'Feature',
-							properties: {
-								cable_id: cableId,
-								trench_id: trench.id,
-								id_trench: trench.id_trench,
-								construction_type: trench.construction_type,
-								surface: trench.surface,
-								length: trench.length,
-								conduit_name: infra.conduit?.name || null,
-								conduit_type: infra.conduit?.type || null,
-								microduct_number: infra.microduct?.number || null,
-								microduct_color: infra.microduct?.color || null,
-								geometry_mode: 'segments'
-							},
-							geometry: trench.geometry
-						});
-					}
+		function traverse(node) {
+			if (node.node?.name) {
+				destinations.add(node.node.name);
+			}
+			if (node.cable_endpoints?.end_node?.name) {
+				destinations.add(node.cable_endpoints.end_node.name);
+			}
+			if (node.children) {
+				for (const child of node.children) {
+					traverse(child);
 				}
 			}
 		}
 
+		traverse(tree);
+		return Array.from(destinations);
+	}
+
+	/**
+	 * Count residential units in a tree (recursive)
+	 * @param {Object} tree
+	 * @returns {number}
+	 */
+	function countResidentialUnits(tree) {
+		let count = 0;
+
+		function traverse(node) {
+			if (node.residential_units?.length) {
+				count += node.residential_units.length;
+			}
+			if (node.children) {
+				for (const child of node.children) {
+					traverse(child);
+				}
+			}
+		}
+
+		traverse(tree);
+		return count;
+	}
+
+	/**
+	 * Extract row data from a trace tree
+	 * @param {Object} tree
+	 * @param {number} index
+	 */
+	function extractRowData(tree, index) {
+		const fiber = tree.fiber;
+		const destinations = collectDestinations(tree);
 		return {
-			type: 'FeatureCollection',
-			name: 'fiber_trace_infrastructure',
-			crs: {
-				type: 'name',
-				properties: { name: 'urn:ogc:def:crs:EPSG::25832' }
-			},
-			features
+			index,
+			fiberNumber: fiber?.fiber_number_absolute ?? 0,
+			fiberId: fiber?.id,
+			cableId: fiber?.cable_id,
+			cableName: fiber?.cable_name ?? '',
+			cableType: fiber?.cable_type,
+			bundleColor: fiber?.bundle_color,
+			bundleColorHex: fiber?.bundle_color_hex,
+			fiberColor: fiber?.fiber_color,
+			fiberColorHex: fiber?.fiber_color_hex,
+			destinations,
+			residentialUnitCount: countResidentialUnits(tree),
+			tree
 		};
 	}
 
-	function downloadGeoJSON() {
-		if (!result) return;
-		const geojson = buildGeoJSON(result);
-		const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		const entryTypeLabel = result.entry_point?.type || 'trace';
-		const entryIdShort = result.entry_point?.id?.slice(0, 8) || 'unknown';
-		a.download = `fiber-trace-${entryTypeLabel}-${entryIdShort}.geojson`;
-		document.body.appendChild(a);
-		a.click();
-		document.body.removeChild(a);
-		URL.revokeObjectURL(url);
+	let rowsData = $derived(traceTrees.map((tree, i) => extractRowData(tree, i)));
+
+	let filteredRows = $derived.by(() => {
+		if (!searchQuery.trim()) return rowsData;
+
+		const query = searchQuery.toLowerCase().trim();
+		return rowsData.filter((row) => {
+			const fiberMatch =
+				`f${row.fiberNumber}`.includes(query) || `${row.fiberNumber}`.includes(query);
+			const cableMatch = row.cableName.toLowerCase().includes(query);
+			const destinationMatch = row.destinations.some((d) => d.toLowerCase().includes(query));
+			return fiberMatch || cableMatch || destinationMatch;
+		});
+	});
+
+	let visibleRange = $derived.by(() => {
+		const start = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER_SIZE);
+		const visibleCount = Math.ceil(CONTAINER_HEIGHT / ROW_HEIGHT);
+		const end = Math.min(filteredRows.length, start + visibleCount + BUFFER_SIZE * 2);
+		return { start, end };
+	});
+
+	let visibleRows = $derived(filteredRows.slice(visibleRange.start, visibleRange.end));
+
+	let totalHeight = $derived(filteredRows.length * ROW_HEIGHT);
+
+	let offsetY = $derived(visibleRange.start * ROW_HEIGHT);
+
+	function toggleRow(index) {
+		if (expandedRows.has(index)) {
+			expandedRows.delete(index);
+		} else {
+			expandedRows.add(index);
+		}
+	}
+
+	function handleScroll(e) {
+		scrollTop = e.target.scrollTop;
+	}
+
+	function traceFrom(type, id) {
+		const typeSlug = type === 'residential_unit' ? 'residential-unit' : type;
+		goto(`/trace/${typeSlug}/${id}`);
 	}
 </script>
 
-{#if result}
-	<div class="space-y-8" transition:fly={{ y: 30, duration: 400, easing: cubicOut }}>
-		<!-- Statistics Cards -->
-		<section>
-			<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
-				<span class="h-5 w-1 rounded bg-primary-500"></span>
-				{m.trace_statistics()}
-			</h2>
-			<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-				{@render statCard(m.form_fibers(), result.statistics.total_fibers, 'text-primary-500')}
-				{@render statCard(m.nav_node(), result.statistics.total_nodes, 'text-success-500')}
-				{@render statCard(m.trace_splice(), result.statistics.total_splices, 'text-secondary-500')}
-				{@render statCard(m.form_cables(), result.statistics.total_cables ?? 0, 'text-warning-500')}
-				{@render statCard(
-					m.form_selected_trenches(),
-					result.statistics.total_trenches ?? 0,
-					'text-tertiary-500'
-				)}
-				{@render statCard(m.form_addresses(), result.statistics.total_addresses, 'text-error-500')}
-				{@render statCard(
-					m.form_residential_units(),
-					result.statistics.total_residential_units,
-					'text-primary-400'
-				)}
-				{@render statBadge(m.trace_branches(), result.statistics.has_branches)}
-			</div>
-		</section>
-
-		<!-- Download Button -->
-		{#if includeGeometry && hasGeometries(result)}
-			<div class="flex justify-center">
-				<button
-					type="button"
-					onclick={downloadGeoJSON}
-					class="flex items-center gap-3 rounded-lg border border-success-500 px-5 py-2.5 font-medium text-success-500 transition-colors hover:bg-success-500/10"
-				>
-					<IconDownload size={20} />
-					<span>{m.trace_download_geojson()}</span>
-					<span class="border-l border-surface-200-800 pl-3 text-xs text-surface-600-400">
-						{result.statistics.total_trenches}
-						{m.form_selected_trenches().toLowerCase()} · EPSG:25832
-					</span>
-				</button>
-			</div>
-		{/if}
-
-		<!-- Entry Point -->
-		<section>
-			<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
-				<span class="h-5 w-1 rounded bg-primary-500"></span>
-				{m.trace_entry_point()}
-			</h2>
-			<div class="flex items-center gap-4 rounded-lg border border-surface-200-800 px-4 py-3">
-				<span
-					class="rounded border border-primary-500 bg-primary-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary-500"
-				>
-					{getEntryTypeLabel(result.entry_point?.type || entryType)}
-				</span>
-				<span class="font-medium text-surface-900-100">
-					{result.entry_point?.name || result.entry_point?.id || entryId || '-'}
-				</span>
-			</div>
-		</section>
-
-		<!-- Cable Infrastructure -->
-		{#if result.cable_infrastructure && Object.keys(result.cable_infrastructure).length > 0}
-			<section>
-				<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
-					<span class="h-5 w-1 rounded bg-primary-500"></span>
-					{m.trace_cable_infrastructure()}
-				</h2>
-				<div class="space-y-3">
-					{#each Object.entries(result.cable_infrastructure) as [cableId, infra] (cableId)}
-						{@render infrastructureCard(cableId, infra)}
-					{/each}
-				</div>
-			</section>
-		{/if}
-
-		<!-- Trace Tree -->
-		<section>
-			<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
-				<span class="h-5 w-1 rounded bg-primary-500"></span>
-				{m.trace_trace_tree()}
-			</h2>
-			{#if result.trace_tree}
-				<div class="rounded-xl border border-surface-200-800 p-6">
-					{@render traceNode(result.trace_tree, 0)}
-				</div>
-			{:else if result.trace_trees && result.trace_trees.length > 0}
-				<FiberPathsTable traceTrees={result.trace_trees} />
-			{:else}
-				<div class="rounded-xl border border-surface-200-800 p-6">
-					<div class="py-8 text-center text-surface-600-400">{m.trace_no_trace_data()}</div>
-				</div>
-			{/if}
-		</section>
-	</div>
-{/if}
-
-<!-- Stat Card Snippet -->
-{#snippet statCard(label, value, colorClass)}
-	<div class="flex flex-col items-center rounded-lg border border-surface-200-800 p-4">
-		<span class="font-mono text-2xl font-bold {colorClass}">{value}</span>
-		<span class="mt-1 text-xs font-medium uppercase tracking-wide text-surface-600-400"
-			>{label}</span
-		>
-	</div>
-{/snippet}
-
-<!-- Stat Badge Snippet -->
-{#snippet statBadge(label, value)}
-	<div class="flex flex-col items-center rounded-lg border border-surface-200-800 p-4">
-		<span
-			class="font-mono text-2xl font-bold {value ? 'text-success-500' : 'text-surface-600-400'}"
-		>
-			{value ? 'Yes' : 'No'}
-		</span>
-		<span class="mt-1 text-xs font-medium uppercase tracking-wide text-surface-600-400"
-			>{label}</span
-		>
-	</div>
-{/snippet}
-
-<!-- Infrastructure Card Snippet -->
-{#snippet infrastructureCard(cableId, infra)}
-	<details class="group rounded-lg border border-surface-200-800">
-		<summary class="flex cursor-pointer items-center gap-4 px-4 py-3 hover:bg-surface-100-900">
-			<span class="font-mono text-sm font-semibold text-warning-500">
-				{infra.cable_name || cableId.slice(0, 8) + '...'}
+<div class="space-y-4">
+	<!-- Search Input -->
+	<div class="relative">
+		<IconSearch size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-surface-500-400" />
+		<input
+			type="text"
+			bind:value={searchQuery}
+			placeholder={m.trace_filter_placeholder()}
+			class="w-full rounded-lg border border-surface-200-800 bg-surface-100-900 py-2.5 pl-10 pr-4 text-sm text-surface-900-100 placeholder:text-surface-500-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+		/>
+		{#if searchQuery}
+			<span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-surface-500-400">
+				{filteredRows.length} / {rowsData.length}
 			</span>
-			{#if infra.conduit}
-				<span class="rounded bg-surface-100-900 px-2 py-0.5 text-xs text-surface-600-400">
-					{infra.conduit.name}
-				</span>
-			{/if}
-			<IconChevronRight
-				size={16}
-				class="ml-auto text-surface-500-400 transition-transform group-open:rotate-90"
-			/>
-		</summary>
-		<div class="space-y-3 border-t border-surface-200-800 p-4">
-			{#if infra.microduct}
-				<div class="rounded-lg bg-surface-100-900 p-3">
-					<span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-secondary-500"
-						>{m.form_microduct({ count: 1 })}</span
+		{/if}
+	</div>
+
+	<!-- Table Header -->
+	<div
+		class="grid grid-cols-[60px_1fr_120px_1fr_80px_40px] gap-2 rounded-t-lg border border-b-0 border-surface-200-800 bg-surface-100-900 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-surface-600-400"
+	>
+		<span>{m.form_fiber()}</span>
+		<span>{m.form_cables()}</span>
+		<span>{m.form_colors()}</span>
+		<span>{m.trace_end()}</span>
+		<span>{m.form_residential_units()}</span>
+		<span></span>
+	</div>
+
+	<!-- Virtual Scrolling Container -->
+	<div
+		bind:this={containerEl}
+		onscroll={handleScroll}
+		class="relative overflow-auto rounded-b-lg border border-surface-200-800"
+		style="height: {CONTAINER_HEIGHT}px"
+	>
+		<div style="height: {totalHeight}px; position: relative;">
+			<div style="transform: translateY({offsetY}px);">
+				{#each visibleRows as row (row.fiberId ?? row.index)}
+					<!-- Table Row -->
+					<div
+						class="grid grid-cols-[60px_1fr_120px_1fr_80px_40px] items-center gap-2 border-b border-surface-200-800 px-4 py-3 transition-colors hover:bg-surface-100-900"
 					>
-					<div class="flex flex-wrap items-center gap-2">
-						<span class="font-mono font-semibold text-surface-900-100"
-							>#{infra.microduct.number}</span
+						<!-- Fiber Number -->
+						<button
+							type="button"
+							class="rounded bg-primary-500/15 px-2 py-1 font-mono text-sm font-medium text-primary-500 hover:bg-primary-500/25"
+							onclick={() => traceFrom('fiber', row.fiberId)}
+							title="Trace this fiber"
 						>
-						<span
-							class="rounded px-2 py-0.5 text-xs font-medium text-white"
-							style="background: {infra.microduct.color_hex || '#ec4899'}"
-						>
-							{infra.microduct.color}
-						</span>
-						{#if infra.microduct.status}
-							<span class="text-xs text-surface-600-400">{infra.microduct.status}</span>
-						{/if}
-					</div>
-				</div>
-			{/if}
+							F{row.fiberNumber}
+						</button>
 
-			{#if infra.conduit}
-				<div class="rounded-lg bg-surface-100-900 p-3">
-					<span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-tertiary-500"
-						>{m.form_conduit({ count: 1 })}</span
-					>
-					<div class="flex flex-wrap items-center gap-2">
-						<span class="text-sm text-surface-900-100">{infra.conduit.name}</span>
-						{#if infra.conduit.type}
-							<span class="rounded bg-surface-200-800 px-2 py-0.5 text-xs text-surface-600-400">
-								{infra.conduit.type}
-							</span>
-						{/if}
-					</div>
-				</div>
-			{/if}
-
-			{#if infra.merged_geometry}
-				<div class="rounded-lg bg-surface-100-900 p-3">
-					<span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-success-500"
-						>{m.trace_geometry()}</span
-					>
-					<div class="flex flex-wrap items-center gap-2">
-						<span class="rounded bg-surface-200-800 px-2 py-0.5 text-xs text-surface-600-400">
-							{infra.merged_geometry.type}
-						</span>
-						{#if infra.total_length}
-							<span class="text-sm text-surface-600-400">{infra.total_length.toFixed(1)}m</span>
-						{/if}
-					</div>
-				</div>
-			{/if}
-
-			{#if infra.trenches && infra.trenches.length > 0}
-				<div class="rounded-lg bg-surface-100-900 p-3">
-					<span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-warning-500">
-						{m.form_selected_trenches()} ({infra.trenches.length})
-					</span>
-					<div class="space-y-1.5">
-						{#each infra.trenches as trench (trench.id)}
-							<div
-								class="flex flex-wrap items-center gap-2 rounded bg-surface-200-800 px-3 py-2 text-sm"
+						<!-- Cable Name -->
+						<div class="flex items-center gap-2 truncate">
+							<button
+								type="button"
+								class="truncate rounded bg-success-500/15 px-2 py-1 font-mono text-sm font-medium text-success-500 hover:bg-success-500/25"
+								onclick={() => traceFrom('cable', row.cableId)}
+								title="Trace this cable"
 							>
-								<span class="font-mono font-medium text-surface-900-100">{trench.id_trench}</span>
-								{#if trench.construction_type}
-									<span
-										class="rounded bg-surface-300-700 px-1.5 py-0.5 text-xs text-surface-600-400"
-									>
-										{trench.construction_type}
-									</span>
-								{/if}
-								{#if trench.length}
-									<span class="text-xs text-surface-600-400">{trench.length.toFixed(1)}m</span>
-								{/if}
-								{#if trench.geometry}
-									<span
-										class="rounded bg-success-500/20 px-1.5 py-0.5 text-[10px] font-bold uppercase text-success-500"
-									>
-										GEO
-									</span>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/if}
-		</div>
-	</details>
-{/snippet}
+								{row.cableName}
+							</button>
+							{#if row.cableType}
+								<span
+									class="hidden truncate rounded bg-surface-100-900 px-2 py-0.5 text-xs text-surface-600-400 sm:inline"
+								>
+									{row.cableType}
+								</span>
+							{/if}
+						</div>
 
-<!-- Trace Node Snippet -->
+						<!-- Colors -->
+						<div class="flex items-center gap-1">
+							{#if row.fiberColor}
+								<span
+									class="rounded px-2 py-0.5 text-[10px] font-medium text-white"
+									style="background: {row.fiberColorHex || '#64748b'}"
+								>
+									{row.fiberColor}
+								</span>
+							{/if}
+							{#if row.bundleColor}
+								<span
+									class="rounded px-2 py-0.5 text-[10px] font-medium text-white opacity-80"
+									style="background: {row.bundleColorHex || '#64748b'}"
+								>
+									B
+								</span>
+							{/if}
+						</div>
+
+						<!-- Destination -->
+						<div class="truncate text-sm text-surface-700-300">
+							{#if row.destinations.length === 0}
+								<span class="text-surface-500-400">-</span>
+							{:else if row.destinations.length === 1}
+								{row.destinations[0]}
+							{:else}
+								<span title={row.destinations.join(', ')}>
+									{m.trace_multiple_destinations()} ({row.destinations.length})
+								</span>
+							{/if}
+						</div>
+
+						<!-- Address Count -->
+						<div class="text-center">
+							{#if row.residentialUnitCount > 0}
+								<span
+									class="rounded bg-error-500/15 px-2 py-0.5 text-xs font-medium text-error-500"
+								>
+									{row.residentialUnitCount}
+								</span>
+							{:else}
+								<span class="text-surface-500-400">-</span>
+							{/if}
+						</div>
+
+						<!-- Expand Button -->
+						<button
+							type="button"
+							class="flex items-center justify-center rounded p-1 text-surface-500-400 hover:bg-surface-200-800 hover:text-surface-900-100"
+							onclick={() => toggleRow(row.index)}
+						>
+							{#if expandedRows.has(row.index)}
+								<IconChevronDown size={18} />
+							{:else}
+								<IconChevronRight size={18} />
+							{/if}
+						</button>
+					</div>
+
+					<!-- Expanded Detail Row -->
+					{#if expandedRows.has(row.index)}
+						<div
+							transition:slide={{ duration: 200 }}
+							class="border-b border-surface-200-800 bg-surface-50-950 px-4 py-4"
+						>
+							{@render traceNode(row.tree, 0)}
+						</div>
+					{/if}
+				{/each}
+			</div>
+		</div>
+	</div>
+
+	<!-- Results Summary -->
+	<div class="text-center text-xs text-surface-500-400">
+		{filteredRows.length}
+		{m.form_fibers()}
+	</div>
+</div>
+
+<!-- Trace Node Snippet (recursive tree rendering) -->
 {#snippet traceNode(node, depth)}
 	<div class="relative" style="padding-left: {depth * 1.5}rem">
 		{#if depth > 0}
