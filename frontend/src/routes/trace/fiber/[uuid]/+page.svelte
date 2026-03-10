@@ -2,8 +2,16 @@
 	import { fly } from 'svelte/transition';
 
 	import TraceResults from '../../components/TraceResults.svelte';
+	import { getTraceMapContext } from '../../traceMapContext.svelte.js';
 
 	let { data } = $props();
+
+	const traceMapContext = getTraceMapContext();
+
+	$effect(() => {
+		traceMapContext.traceResult = data.result;
+		traceMapContext.includeGeometry = data.options?.includeGeometry ?? false;
+	});
 </script>
 
 {#if data.error}
@@ -27,5 +35,7 @@
 		entryType={data.entryType}
 		entryId={data.entryId}
 		includeGeometry={data.options?.includeGeometry}
+		selectedItemId={traceMapContext.selectedFeatureId}
+		onItemSelect={(type, id) => traceMapContext.setSelectedFeature(`${type}:${id}`)}
 	/>
 {/if}

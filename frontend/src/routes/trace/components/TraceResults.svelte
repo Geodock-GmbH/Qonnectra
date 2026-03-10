@@ -1,14 +1,13 @@
 <script>
 	import { cubicOut } from 'svelte/easing';
-	import { fly, slide } from 'svelte/transition';
+	import { fly } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import {
 		IconArrowsSplit,
 		IconChevronRight,
 		IconDownload,
 		IconHome,
-		IconMapPin,
-		IconNetwork
+		IconMapPin
 	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -21,10 +20,27 @@
 	 * @property {string} entryType - The entry type (fiber, cable, node, address, residential_unit)
 	 * @property {string} entryId - The entry UUID
 	 * @property {boolean} [includeGeometry] - Whether geometry was included
+	 * @property {string|null} [selectedItemId] - Currently selected item ID
+	 * @property {(type: string, id: string) => void} [onItemSelect] - Selection callback
 	 */
 
 	/** @type {Props} */
-	let { result, entryType, entryId, includeGeometry = false } = $props();
+	let {
+		result,
+		entryType,
+		entryId,
+		includeGeometry = false,
+		selectedItemId = null,
+		onItemSelect = () => {}
+	} = $props();
+
+	function isSelected(type, id) {
+		return selectedItemId === `${type}:${id}`;
+	}
+
+	function handleItemClick(type, id) {
+		onItemSelect(type, id);
+	}
 
 	/**
 	 * Navigate to trace a different entity
@@ -192,7 +208,11 @@
 					{getEntryTypeLabel(result.entry_point?.type || entryType)}
 				</span>
 				<span class="font-medium text-surface-900-100">
-					{result.entry_point?.name || result.entry_point?.id || entryId || '-'}{#if result.entry_point?.floor !== null && result.entry_point?.floor !== undefined}&nbsp;({m.form_floor()} {result.entry_point.floor}){/if}
+					{result.entry_point?.name ||
+						result.entry_point?.id ||
+						entryId ||
+						'-'}{#if result.entry_point?.floor !== null && result.entry_point?.floor !== undefined}&nbsp;({m.form_floor()}
+						{result.entry_point.floor}){/if}
 				</span>
 			</div>
 		</section>
@@ -371,7 +391,7 @@
 	<div class="relative" style="padding-left: {depth * 1.5}rem">
 		{#if depth > 0}
 			<div
-				class="absolute top-0 h-full w-0.5 bg-gradient-to-b from-primary-500/40 to-surface-200-800"
+				class="absolute top-0 h-full w-0.5 bg-linear-to-b from-primary-500/40 to-surface-200-800"
 				style="left: {(depth - 1) * 1.5 + 0.25}rem"
 			></div>
 		{/if}
@@ -381,18 +401,32 @@
 			<div class="flex flex-wrap items-center gap-2 py-2">
 				<button
 					type="button"
-					class="rounded bg-primary-500/15 px-2.5 py-1 font-mono text-sm font-medium text-primary-500 hover:bg-primary-500/25"
-					onclick={() => traceFrom('fiber', node.fiber.id)}
-					title="Trace this fiber"
+					class="rounded px-2.5 py-1 font-mono text-sm font-medium transition-colors {isSelected(
+						'fiber',
+						node.fiber.id
+					)
+						? 'bg-primary-500 text-white'
+						: 'bg-primary-500/15 text-primary-500 hover:bg-primary-500/25'}"
+					onclick={() => {
+						handleItemClick('fiber', node.fiber.id);
+					}}
+					title="Select this fiber"
 				>
 					F{node.fiber.fiber_number_absolute}
 				</button>
 				<span class="text-xs text-surface-600-400">in</span>
 				<button
 					type="button"
-					class="rounded bg-success-500/15 px-2.5 py-1 font-mono text-sm font-medium text-success-500 hover:bg-success-500/25"
-					onclick={() => traceFrom('cable', node.fiber.cable_id)}
-					title="Trace this cable"
+					class="rounded px-2.5 py-1 font-mono text-sm font-medium transition-colors {isSelected(
+						'cable',
+						node.fiber.cable_id
+					)
+						? 'bg-success-500 text-white'
+						: 'bg-success-500/15 text-success-500 hover:bg-success-500/25'}"
+					onclick={() => {
+						handleItemClick('cable', node.fiber.cable_id);
+					}}
+					title="Select this cable"
 				>
 					{node.fiber.cable_name}
 				</button>
@@ -405,9 +439,16 @@
 					<span class="text-surface-500-400">→</span>
 					<button
 						type="button"
-						class="rounded bg-warning-500/15 px-2.5 py-1 font-mono text-sm font-medium text-warning-500 hover:bg-warning-500/25"
-						onclick={() => traceFrom('node', node.node.id)}
-						title="Trace this node"
+						class="rounded px-2.5 py-1 font-mono text-sm font-medium transition-colors {isSelected(
+							'node',
+							node.node.id
+						)
+							? 'bg-warning-500 text-white'
+							: 'bg-warning-500/15 text-warning-500 hover:bg-warning-500/25'}"
+						onclick={() => {
+							handleItemClick('node', node.node.id);
+						}}
+						title="Select this node"
 					>
 						{node.node.name}
 					</button>
@@ -509,7 +550,8 @@
 				{/if}
 				{#if splice.component.slot_start !== null && splice.component.slot_end !== null}
 					<span class="rounded bg-surface-200-800 px-2 py-0.5 text-xs text-surface-600-400">
-						{m.form_slot({ count: 2 })} {splice.component.slot_start}-{splice.component.slot_end}
+						{m.form_slot({ count: 2 })}
+						{splice.component.slot_start}-{splice.component.slot_end}
 					</span>
 				{/if}
 				{#if splice.component.slot_side}
@@ -635,8 +677,10 @@
 			<span class="font-semibold">{m.form_address({ count: 1 })}</span>
 			<button
 				type="button"
-				class="text-error-500 hover:text-error-400"
-				onclick={() => traceFrom('address', address.id)}
+				class="transition-colors {isSelected('address', address.id)
+					? 'text-white'
+					: 'text-error-500 hover:text-error-400'}"
+				onclick={() => handleItemClick('address', address.id)}
 			>
 				{address.street}
 				{address.housenumber}{address.suffix || ''}, {address.zip_code}
@@ -684,8 +728,10 @@
 			<span class="font-semibold">{m.section_residential_units({ count: 1 })}</span>
 			<button
 				type="button"
-				class="text-tertiary-500 hover:text-tertiary-400"
-				onclick={() => traceFrom('residential_unit', ru.id)}
+				class="transition-colors {isSelected('residential_unit', ru.id)
+					? 'text-white'
+					: 'text-tertiary-500 hover:text-tertiary-400'}"
+				onclick={() => handleItemClick('residential_unit', ru.id)}
 			>
 				{ru.id_residential_unit || ru.id}
 			</button>

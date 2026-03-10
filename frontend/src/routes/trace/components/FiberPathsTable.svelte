@@ -308,7 +308,7 @@
 	<div class="relative" style="padding-left: {depth * 1.5}rem">
 		{#if depth > 0}
 			<div
-				class="absolute top-0 h-full w-0.5 bg-gradient-to-b from-primary-500/40 to-surface-200-800"
+				class="absolute top-0 h-full w-0.5 bg-linear-to-b from-primary-500/40 to-surface-200-800"
 				style="left: {(depth - 1) * 1.5 + 0.25}rem"
 			></div>
 		{/if}
@@ -446,7 +446,8 @@
 				{/if}
 				{#if splice.component.slot_start !== null && splice.component.slot_end !== null}
 					<span class="rounded bg-surface-200-800 px-2 py-0.5 text-xs text-surface-600-400">
-						{m.form_slot({ count: 2 })} {splice.component.slot_start}-{splice.component.slot_end}
+						{m.form_slot({ count: 2 })}
+						{splice.component.slot_start}-{splice.component.slot_end}
 					</span>
 				{/if}
 				{#if splice.component.slot_side}
