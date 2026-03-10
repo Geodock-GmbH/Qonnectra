@@ -5,7 +5,7 @@
 		IconAddressBook,
 		IconAffiliate,
 		IconArrowBarToRight,
-		IconDashboard,
+		IconChartArcs,
 		IconFileText,
 		IconHome2,
 		IconMap2,
@@ -27,7 +27,7 @@
 		{
 			href: '/dashboard',
 			label: () => m.nav_dashboard(),
-			icon: IconDashboard,
+			icon: IconChartArcs,
 			pathMatch: (path) => path.startsWith('/dashboard')
 		},
 		{
