@@ -147,7 +147,8 @@
 				<!-- Expanded: Show grouped navigation with labels -->
 				{#if mainLinks.length > 0}
 					<Navigation.Group>
-						<Navigation.Label class="text-surface-900-100">{m.nav_category_main()}</Navigation.Label>
+						<Navigation.Label class="text-surface-900-100">{m.nav_category_main()}</Navigation.Label
+						>
 						<Navigation.Menu>
 							{#each mainLinks as link}
 								{@const Icon = link.icon}
