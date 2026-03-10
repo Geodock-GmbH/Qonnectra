@@ -29,27 +29,34 @@
 </script>
 
 <div class="flex h-full bg-surface-50-950">
-	<!-- Left Panel - Decorative (desktop only) -->
+	<!-- Left Panel - Topographic Map Design (desktop only) -->
 	<div
 		class="login-hero relative hidden flex-1 items-center justify-center overflow-hidden lg:flex"
 	>
-		<div class="hero-pattern absolute inset-0 bg-primary-500-950"></div>
+		<!-- Subtle grid -->
+		<div class="topo-grid absolute inset-0"></div>
+
+		<!-- Flowing contour lines -->
+		<svg class="topo-flow absolute inset-0 h-full w-full" viewBox="0 0 800 800" preserveAspectRatio="xMidYMid slice">
+			<path class="contour" d="M-50,150 Q150,80 350,180 Q550,280 750,150 L850,150" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+			<path class="contour" d="M-50,220 Q180,140 380,240 Q580,340 780,200 L850,200" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>
+			<path class="contour" d="M-50,290 Q200,200 400,300 Q600,400 800,260 L850,260" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+			<path class="contour" d="M-50,380 Q180,300 400,400 Q620,500 820,360 L850,360" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+			<path class="contour" d="M-50,460 Q200,380 420,480 Q640,580 840,440 L850,440" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+			<path class="contour" d="M-50,540 Q220,460 440,560 Q660,660 850,520 L850,520" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+			<path class="contour" d="M-50,620 Q240,540 460,640 Q680,740 850,600 L850,600" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="1"/>
+			<path class="contour" d="M-50,700 Q260,620 480,720 Q700,820 850,680 L850,680" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+		</svg>
+
+		<!-- Content -->
 		<div class="relative z-10 flex flex-col items-center p-8 text-center text-white">
-			<div class="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/95 shadow-lg">
+			<div class="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/95 shadow-lg backdrop-blur-sm">
 				<AppIcon size="3rem" color="var(--color-primary-600)" />
 			</div>
 			<h1 class="mt-4 text-4xl font-bold tracking-tight">Qonnectra</h1>
 			<p class="mt-3 text-lg opacity-85">
 				{m.login_tagline?.()}
 			</p>
-		</div>
-		<div class="pointer-events-none absolute inset-0 bg-primary-500-950">
-			<div class="node node-1"></div>
-			<div class="node node-2"></div>
-			<div class="node node-3"></div>
-			<div class="node node-4"></div>
-			<div class="node node-5"></div>
-			<div class="node node-6"></div>
 		</div>
 	</div>
 
@@ -153,100 +160,22 @@
 <style>
 	.login-hero {
 		background: linear-gradient(
-			135deg,
-			var(--color-primary-600) 0%,
-			var(--color-primary-700) 50%,
-			var(--color-primary-800) 100%
+			160deg,
+			var(--color-primary-700) 0%,
+			var(--color-primary-600) 50%,
+			var(--color-primary-500) 100%
 		);
 	}
 
-	.hero-pattern {
+	.topo-grid {
 		background-image:
-			radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
-			radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-		background-size: 50px 50px;
-		animation: patternShift 20s linear infinite;
+			linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+			linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+		background-size: 40px 40px;
 	}
 
-	@keyframes patternShift {
-		0% {
-			transform: translateY(0);
-		}
-		100% {
-			transform: translateY(50px);
-		}
-	}
-
-	.node {
-		position: absolute;
-		width: 8px;
-		height: 8px;
-		background: rgba(255, 255, 255, 0.4);
-		border-radius: 50%;
-		animation: nodePulse 3s ease-in-out infinite;
-	}
-
-	.node::after {
-		content: '';
-		position: absolute;
-		width: 100%;
-		height: 100%;
-		background: inherit;
-		border-radius: 50%;
-		animation: nodeRing 3s ease-out infinite;
-	}
-
-	@keyframes nodePulse {
-		0%,
-		100% {
-			opacity: 0.4;
-			transform: scale(1);
-		}
-		50% {
-			opacity: 0.8;
-			transform: scale(1.2);
-		}
-	}
-
-	@keyframes nodeRing {
-		0% {
-			transform: scale(1);
-			opacity: 0.4;
-		}
-		100% {
-			transform: scale(4);
-			opacity: 0;
-		}
-	}
-
-	.node-1 {
-		top: 15%;
-		left: 20%;
-	}
-	.node-2 {
-		top: 30%;
-		right: 25%;
-		animation-delay: 0.5s;
-	}
-	.node-3 {
-		bottom: 35%;
-		left: 15%;
-		animation-delay: 1s;
-	}
-	.node-4 {
-		bottom: 20%;
-		right: 20%;
-		animation-delay: 1.5s;
-	}
-	.node-5 {
-		top: 50%;
-		left: 35%;
-		animation-delay: 2s;
-	}
-	.node-6 {
-		top: 70%;
-		right: 35%;
-		animation-delay: 2.5s;
+	.contour {
+		opacity: 0.8;
 	}
 
 	.spinner {
