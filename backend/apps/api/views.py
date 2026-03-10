@@ -1494,9 +1494,11 @@ class TrenchConduitCanvasViewSet(viewsets.ModelViewSet):
         color_cache.update({c.name_en.lower(): c for c in colors})
 
         # Fetch microducts for all conduits
-        microducts = Microduct.objects.filter(
-            uuid_conduit__in=conduit_uuids
-        ).select_related("microduct_status").order_by("number")
+        microducts = (
+            Microduct.objects.filter(uuid_conduit__in=conduit_uuids)
+            .select_related("microduct_status")
+            .order_by("number")
+        )
 
         for mic in microducts:
             color_attr = color_cache.get(mic.color.lower()) if mic.color else None
@@ -1509,9 +1511,7 @@ class TrenchConduitCanvasViewSet(viewsets.ModelViewSet):
                     "hex_code_secondary": (
                         color_attr.hex_code_secondary if color_attr else None
                     ),
-                    "is_two_layer": bool(
-                        color_attr and color_attr.hex_code_secondary
-                    ),
+                    "is_two_layer": bool(color_attr and color_attr.hex_code_secondary),
                     "status": (
                         mic.microduct_status.microduct_status
                         if mic.microduct_status
@@ -1794,7 +1794,9 @@ class ResidentialUnitViewSet(viewsets.ModelViewSet):
                         "fiber_number_absolute": fiber.fiber_number_absolute,
                         "bundle_number": fiber.bundle_number,
                         "bundle_color": fiber.bundle_color,
-                        "bundle_color_hex": color_map.get(fiber.bundle_color, "#999999"),
+                        "bundle_color_hex": color_map.get(
+                            fiber.bundle_color, "#999999"
+                        ),
                         "fiber_number": fiber.fiber_number_in_bundle,
                         "fiber_color": fiber.fiber_color,
                         "fiber_color_hex": color_map.get(fiber.fiber_color, "#999999"),
@@ -2318,7 +2320,9 @@ class NodeViewSet(viewsets.ModelViewSet):
             return Response({"addresses": []})
 
         address = node.uuid_address
-        residential_units = address.residential_units.all().order_by("id_residential_unit")
+        residential_units = address.residential_units.all().order_by(
+            "id_residential_unit"
+        )
 
         return Response(
             {
@@ -3479,6 +3483,7 @@ class FiberViewSet(viewsets.ModelViewSet):
 
     Supports read and update operations for fiber data with filtering by cable.
     """
+
     http_method_names = ["get", "patch", "head", "options"]
 
     permission_classes = [IsAuthenticated, RoleBasedPermission]
@@ -4470,7 +4475,9 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
         residential_unit = None
         if residential_unit_uuid:
             try:
-                residential_unit = ResidentialUnit.objects.get(uuid=residential_unit_uuid)
+                residential_unit = ResidentialUnit.objects.get(
+                    uuid=residential_unit_uuid
+                )
             except ResidentialUnit.DoesNotExist:
                 return Response(
                     {"error": "Residential unit not found"},
@@ -5889,13 +5896,28 @@ class WMSProxyView(APIView):
                     return
                 yield chunk
 
-        return StreamingHttpResponse(
+        response = StreamingHttpResponse(
             iter_content(),
             status=upstream_response.status_code,
             content_type=upstream_response.headers.get(
                 "Content-Type", "application/octet-stream"
             ),
         )
+
+        upstream_cache_control = upstream_response.headers.get("Cache-Control")
+        if upstream_cache_control:
+            response["Cache-Control"] = upstream_cache_control
+        else:
+            # 1 day
+            response["Cache-Control"] = "public, max-age=86400"
+
+        if etag := upstream_response.headers.get("ETag"):
+            response["ETag"] = etag
+
+        if last_modified := upstream_response.headers.get("Last-Modified"):
+            response["Last-Modified"] = last_modified
+
+        return response
 
 
 class WFS3ProxyView(APIView):
@@ -6176,7 +6198,9 @@ class WFS3ProxyView(APIView):
             if len(parts) != 4:
                 return params
             lon_min, lat_min, lon_max, lat_max = parts
-            transformer = Transformer.from_crs("EPSG:4326", "EPSG:25832", always_xy=True)
+            transformer = Transformer.from_crs(
+                "EPSG:4326", "EPSG:25832", always_xy=True
+            )
             x_min, y_min = transformer.transform(lon_min, lat_min)
             x_max, y_max = transformer.transform(lon_max, lat_max)
             params = dict(params)
@@ -6896,6 +6920,8 @@ class FiberTraceView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        from uuid import UUID as UUIDType
+
         from .services import (
             trace_address,
             trace_cable,
@@ -6903,8 +6929,6 @@ class FiberTraceView(APIView):
             trace_node,
             trace_residential_unit,
         )
-
-        from uuid import UUID as UUIDType
 
         fiber_id = request.query_params.get("fiber_id")
         cable_id = request.query_params.get("cable_id")
@@ -6948,7 +6972,9 @@ class FiberTraceView(APIView):
             )
 
         # Validate UUID format
-        provided_id = fiber_id or cable_id or node_id or address_id or residential_unit_id
+        provided_id = (
+            fiber_id or cable_id or node_id or address_id or residential_unit_id
+        )
         try:
             UUIDType(provided_id)
         except ValueError:
@@ -6976,7 +7002,10 @@ class FiberTraceView(APIView):
                 )
             else:
                 result = trace_residential_unit(
-                    residential_unit_id, include_geometry, geometry_mode, orient_geometry
+                    residential_unit_id,
+                    include_geometry,
+                    geometry_mode,
+                    orient_geometry,
                 )
 
             if "_raw_segments" in result:
