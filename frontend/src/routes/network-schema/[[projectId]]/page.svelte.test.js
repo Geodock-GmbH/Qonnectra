@@ -101,7 +101,29 @@ vi.mock('$lib/stores/store', () => ({
 		subscribe: (cb) => {
 			cb(false);
 			return () => {};
-		}
+		},
+		set: vi.fn()
+	},
+	networkSchemaPanelExpanded: {
+		subscribe: (cb) => {
+			cb(true);
+			return () => {};
+		},
+		set: vi.fn()
+	},
+	networkSchemaDisplayOptionsExpanded: {
+		subscribe: (cb) => {
+			cb(true);
+			return () => {};
+		},
+		set: vi.fn()
+	},
+	cableDirectionAnimationEnabled: {
+		subscribe: (cb) => {
+			cb(false);
+			return () => {};
+		},
+		set: vi.fn()
 	}
 }));
 
@@ -264,7 +286,8 @@ describe('/network-schema/+page.svelte', () => {
 	test('should render the snapping switch', () => {
 		render(Page, { props: { data: mockData } });
 
-		expect(screen.getByTestId('switch')).toBeInTheDocument();
+		const switches = screen.getAllByTestId('switch');
+		expect(switches.length).toBeGreaterThanOrEqual(1);
 	});
 
 	test('should render the Drawer component', () => {
@@ -360,7 +383,7 @@ describe('/network-schema/+page.svelte', () => {
 		expect(screen.getByTestId('panel')).toBeInTheDocument();
 		expect(screen.getByTestId('drawer')).toBeInTheDocument();
 		expect(screen.getByTestId('generic-combobox')).toBeInTheDocument();
-		expect(screen.getByTestId('switch')).toBeInTheDocument();
+		expect(screen.getAllByTestId('switch').length).toBeGreaterThanOrEqual(1);
 		expect(screen.getByTestId('network-schema-search')).toBeInTheDocument();
 		expect(screen.getByTestId('viewport-persistence')).toBeInTheDocument();
 	});

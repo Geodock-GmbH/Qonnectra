@@ -81,6 +81,7 @@ from .models import (
     WMSSource,
 )
 from .pageination import CustomPagination
+from .permissions import RoleBasedPermission, get_user_permissions
 from .routing import find_shortest_path
 from .serializers import (
     AddressListSerializer,
@@ -356,7 +357,7 @@ class TrenchViewSet(viewsets.ModelViewSet):
     An instance of :model: `api.Trench`.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = Trench.objects.all().order_by("id_trench")
     serializer_class = TrenchSerializer
     lookup_field = "id_trench"
@@ -604,7 +605,7 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
     secure and efficient file serving.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = FeatureFiles.objects.all().order_by("object_id")
     serializer_class = FeatureFilesSerializer
     lookup_field = "uuid"
@@ -1084,6 +1085,16 @@ class QGISAuthView(APIView):
         return Response(data, status=status_code)
 
 
+class UserPermissionsView(APIView):
+    """Return current user's effective permissions."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        permissions = get_user_permissions(request.user)
+        return Response(permissions)
+
+
 class OlTrenchTileViewSet(APIView):
     """ViewSet for the OlTrench model :model:`api.OlTrench`.
 
@@ -1220,7 +1231,7 @@ class ConduitViewSet(viewsets.ModelViewSet):
     An instance of :model:`api.Conduit`.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     serializer_class = ConduitSerializer
     pagination_class = CustomPagination
     lookup_field = "uuid"
@@ -1351,7 +1362,7 @@ class TrenchConduitConnectionViewSet(viewsets.ModelViewSet):
     An instance of :model:`api.TrenchConduitConnection`.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = TrenchConduitConnection.objects.all()
     serializer_class = TrenchConduitSerializer
     pagination_class = CustomPagination
@@ -1418,7 +1429,7 @@ class TrenchConduitCanvasViewSet(viewsets.ModelViewSet):
     Manages canvas positions for conduits in trench profile view.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = TrenchConduitCanvas.objects.all()
     serializer_class = TrenchConduitCanvasSerializer
     pagination_class = None
@@ -1541,7 +1552,7 @@ class AddressViewSet(viewsets.ModelViewSet):
     An instance of :model:`api.Address`.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = Address.objects.all().order_by(
         "street", "housenumber", "house_number_suffix"
     )
@@ -1671,7 +1682,7 @@ class AddressViewSet(viewsets.ModelViewSet):
 class ResidentialUnitViewSet(viewsets.ModelViewSet):
     """ViewSet for the ResidentialUnit model."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = ResidentialUnit.objects.all().order_by("uuid_address", "floor", "side")
     serializer_class = ResidentialUnitSerializer
     lookup_field = "uuid"
@@ -1872,7 +1883,7 @@ class NodeViewSet(viewsets.ModelViewSet):
     An instance of :model:`api.Node`.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = Node.objects.all().order_by("name")
     serializer_class = NodeSerializer
     lookup_field = "uuid"
@@ -2937,7 +2948,7 @@ class MicroductViewSet(viewsets.ModelViewSet):
     An instance of :model:`api.Microduct`.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = Microduct.objects.all().order_by("number")
     serializer_class = MicroductSerializer
     lookup_field = "uuid"
@@ -2997,7 +3008,7 @@ class MicroductConnectionViewSet(viewsets.ModelViewSet):
     An instance of :model:`api.MicroductConnection`.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = MicroductConnection.objects.all()
     serializer_class = MicroductConnectionSerializer
     lookup_field = "uuid"
@@ -3218,7 +3229,7 @@ class CableViewSet(viewsets.ModelViewSet):
     An instance of :model:`api.Cable`.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = Cable.objects.all().order_by("name")
     serializer_class = CableSerializer
     lookup_field = "uuid"
@@ -3386,7 +3397,7 @@ class CableLabelViewSet(viewsets.ModelViewSet):
     An instance of :model:`api.CableLabel`.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = CableLabel.objects.all().order_by("cable", "order")
     serializer_class = CableLabelSerializer
     lookup_field = "uuid"
@@ -3424,7 +3435,7 @@ class MicroductCableConnectionViewSet(viewsets.ModelViewSet):
     An instance of :model:`api.MicroductCableConnection`.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = MicroductCableConnection.objects.all()
     serializer_class = MicroductCableConnectionSerializer
     lookup_field = "uuid"
@@ -3470,7 +3481,7 @@ class FiberViewSet(viewsets.ModelViewSet):
     """
     http_method_names = ["get", "patch", "head", "options"]
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = Fiber.objects.all().order_by(
         "uuid_cable", "bundle_number", "fiber_number_in_bundle"
     )
@@ -3748,7 +3759,7 @@ class AreaViewSet(viewsets.ModelViewSet):
     An instance of :model:`api.Area`.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = Area.objects.all().order_by("name")
     serializer_class = AreaSerializer
     lookup_field = "uuid"
@@ -3884,7 +3895,7 @@ class NodeTrenchSelectionViewSet(viewsets.ModelViewSet):
     the user returns to the same node.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = NodeTrenchSelection.objects.all()
     serializer_class = NodeTrenchSelectionSerializer
     lookup_field = "uuid"
@@ -3954,7 +3965,7 @@ class NodeSlotConfigurationViewSet(viewsets.ModelViewSet):
     the total number of slots available on each side of a node.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = NodeSlotConfiguration.objects.all().order_by("uuid_node", "side")
     serializer_class = NodeSlotConfigurationSerializer
     lookup_field = "uuid"
@@ -4021,7 +4032,7 @@ class NodeStructureViewSet(viewsets.ModelViewSet):
     component types, structures, and their slot positions.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = NodeStructure.objects.all().order_by(
         "uuid_node", "slot_configuration", "slot_start"
     )
@@ -4269,7 +4280,7 @@ class NodeSlotDividerViewSet(viewsets.ModelViewSet):
     Manages horizontal divider lines between TPU slots for visual grouping.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = NodeSlotDivider.objects.all().order_by(
         "slot_configuration", "after_slot"
     )
@@ -4293,7 +4304,7 @@ class NodeSlotClipNumberViewSet(viewsets.ModelViewSet):
     Manages custom clip numbers for individual slots.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = NodeSlotClipNumber.objects.all().order_by(
         "slot_configuration", "slot_number"
     )
@@ -4374,7 +4385,7 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
     Each splice connects fiber_a to fiber_b at a specific port number.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = FiberSplice.objects.all()
     serializer_class = FiberSpliceSerializer
     lookup_field = "uuid"
@@ -5027,7 +5038,7 @@ class ContainerViewSet(viewsets.ModelViewSet):
     Supports CRUD operations and hierarchy manipulation.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = Container.objects.all().select_related(
         "container_type", "parent_container", "uuid_node"
     )
@@ -5454,7 +5465,7 @@ class WMSSourceViewSet(viewsets.ModelViewSet):
     To restrict access, implement project-level permissions at the auth layer.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
 
     def get_serializer_class(self):
         if self.action in ["create", "update", "partial_update"]:
@@ -5620,7 +5631,7 @@ class WMSLayerViewSet(viewsets.ModelViewSet):
     """ViewSet for WMS layers."""
 
     serializer_class = WMSLayerSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
 
     def get_queryset(self):
         queryset = WMSLayer.objects.filter(is_enabled=True)

@@ -59,6 +59,10 @@ if [ -n "$QGIS_DB_USER" ] && [ -n "$QGIS_DB_PASSWORD" ]; then
             GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO "$QGIS_DB_USER";
         ALTER DEFAULT PRIVILEGES FOR ROLE "$POSTGRES_USER" IN SCHEMA public
             GRANT USAGE, SELECT ON SEQUENCES TO "$QGIS_DB_USER";
+        
+        -- Revoke access on model and route permissions
+        REVOKE ALL ON model_permission FROM "$QGIS_DB_USER";
+        REVOKE ALL ON route_permission FROM "$QGIS_DB_USER";
 EOSQL
     echo "QGIS user created successfully"
 else

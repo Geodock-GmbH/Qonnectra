@@ -19,11 +19,12 @@
 
 	import { userStore } from '$lib/stores/auth';
 	import { sidebarExpanded } from '$lib/stores/store';
+	import { canAccessRoute } from '$lib/utils/permissions.js';
 	import { tooltip } from '$lib/utils/tooltip.js';
 
 	import AppIcon from './AppIcon.svelte';
 
-	const mainLinks = [
+	const allMainLinks = [
 		{
 			href: '/dashboard',
 			label: () => m.nav_dashboard(),
@@ -38,7 +39,7 @@
 		}
 	];
 
-	const infrastructureLinks = [
+	const allInfrastructureLinks = [
 		{
 			href: '/conduit',
 			label: () => m.nav_conduit_management(),
@@ -77,7 +78,7 @@
 		}
 	];
 
-	const addressLinks = [
+	const allAddressLinks = [
 		{
 			href: '/address',
 			label: () => m.nav_address(),
@@ -86,24 +87,33 @@
 		}
 	];
 
-	const footerLinks = $derived([
-		...($userStore.isAdmin
-			? [
-					{
-						href: '/admin/logs',
-						label: () => m.nav_logs(),
-						icon: IconFileText,
-						pathMatch: (path) => path === '/admin/logs'
-					}
-				]
-			: []),
+	const allFooterLinks = [
+		{
+			href: '/admin/logs',
+			label: () => m.nav_logs(),
+			icon: IconFileText,
+			pathMatch: (path) => path === '/admin/logs'
+		},
 		{
 			href: '/settings',
 			label: () => m.nav_settings(),
 			icon: IconSettings,
 			pathMatch: (path) => path.startsWith('/settings')
 		}
-	]);
+	];
+
+	/**
+	 * Filters links based on user route permissions.
+	 * @param {Array} links
+	 */
+	function filterByPermission(links) {
+		return links.filter((link) => canAccessRoute($userStore.permissions, link.href));
+	}
+
+	const mainLinks = $derived(filterByPermission(allMainLinks));
+	const infrastructureLinks = $derived(filterByPermission(allInfrastructureLinks));
+	const addressLinks = $derived(filterByPermission(allAddressLinks));
+	const footerLinks = $derived(filterByPermission(allFooterLinks));
 
 	const allContentLinks = $derived([...mainLinks, ...infrastructureLinks, ...addressLinks]);
 
@@ -135,64 +145,70 @@
 		<Navigation.Content>
 			{#if $sidebarExpanded}
 				<!-- Expanded: Show grouped navigation with labels -->
-				<Navigation.Group>
-					<Navigation.Label class="text-surface-900-100">{m.nav_category_main()}</Navigation.Label>
-					<Navigation.Menu>
-						{#each mainLinks as link}
-							{@const Icon = link.icon}
-							{@const isSelected = link.pathMatch(page.url.pathname)}
-							<a
-								href={link.href}
-								class={getAnchorClass(isSelected)}
-								aria-label={link.label()}
-								{@attach tooltip(link.label())}
-							>
-								<Icon size={28} class="text-surface-700-300" />
-								<span>{link.label()}</span>
-							</a>
-						{/each}
-					</Navigation.Menu>
-				</Navigation.Group>
+				{#if mainLinks.length > 0}
+					<Navigation.Group>
+						<Navigation.Label class="text-surface-900-100">{m.nav_category_main()}</Navigation.Label>
+						<Navigation.Menu>
+							{#each mainLinks as link}
+								{@const Icon = link.icon}
+								{@const isSelected = link.pathMatch(page.url.pathname)}
+								<a
+									href={link.href}
+									class={getAnchorClass(isSelected)}
+									aria-label={link.label()}
+									{@attach tooltip(link.label())}
+								>
+									<Icon size={28} class="text-surface-700-300" />
+									<span>{link.label()}</span>
+								</a>
+							{/each}
+						</Navigation.Menu>
+					</Navigation.Group>
+				{/if}
 
-				<Navigation.Group>
-					<Navigation.Label class="text-surface-900-100"
-						>{m.nav_category_infrastructure()}</Navigation.Label
-					>
-					<Navigation.Menu>
-						{#each infrastructureLinks as link}
-							{@const Icon = link.icon}
-							{@const isSelected = link.pathMatch(page.url.pathname)}
-							<a
-								href={link.href}
-								class={getAnchorClass(isSelected)}
-								aria-label={link.label()}
-								{@attach tooltip(link.label())}
-							>
-								<Icon size={28} class="text-surface-700-300" />
-								<span>{link.label()}</span>
-							</a>
-						{/each}
-					</Navigation.Menu>
-				</Navigation.Group>
+				{#if infrastructureLinks.length > 0}
+					<Navigation.Group>
+						<Navigation.Label class="text-surface-900-100"
+							>{m.nav_category_infrastructure()}</Navigation.Label
+						>
+						<Navigation.Menu>
+							{#each infrastructureLinks as link}
+								{@const Icon = link.icon}
+								{@const isSelected = link.pathMatch(page.url.pathname)}
+								<a
+									href={link.href}
+									class={getAnchorClass(isSelected)}
+									aria-label={link.label()}
+									{@attach tooltip(link.label())}
+								>
+									<Icon size={28} class="text-surface-700-300" />
+									<span>{link.label()}</span>
+								</a>
+							{/each}
+						</Navigation.Menu>
+					</Navigation.Group>
+				{/if}
 
-				<Navigation.Group>
-					<Navigation.Label>{m.form_building({ count: 2 })}</Navigation.Label>
-					<Navigation.Menu>
-						{#each addressLinks as link}
-							{@const Icon = link.icon}
-							{@const isSelected = link.pathMatch(page.url.pathname)}
-							<a
-								href={link.href}
-								class={getAnchorClass(isSelected)}
-								aria-label={link.label()}
-								{@attach tooltip(link.label())}
-							>
-								<Icon size={28} class="text-surface-700-300" />
-								<span>{link.label()}</span>
-							</a>
-						{/each}
-					</Navigation.Menu>
-				</Navigation.Group>
+				{#if addressLinks.length > 0}
+					<Navigation.Group>
+						<Navigation.Label>{m.form_building({ count: 2 })}</Navigation.Label>
+						<Navigation.Menu>
+							{#each addressLinks as link}
+								{@const Icon = link.icon}
+								{@const isSelected = link.pathMatch(page.url.pathname)}
+								<a
+									href={link.href}
+									class={getAnchorClass(isSelected)}
+									aria-label={link.label()}
+									{@attach tooltip(link.label())}
+								>
+									<Icon size={28} class="text-surface-700-300" />
+									<span>{link.label()}</span>
+								</a>
+							{/each}
+						</Navigation.Menu>
+					</Navigation.Group>
+				{/if}
 			{:else}
 				<!-- Collapsed: Single flat list of icons -->
 				<Navigation.Group>
@@ -213,29 +229,31 @@
 				</Navigation.Group>
 			{/if}
 		</Navigation.Content>
-		<Navigation.Footer>
-			<Navigation.Group>
-				{#if $sidebarExpanded}
-					<Navigation.Label>{m.nav_category_system()}</Navigation.Label>
-				{/if}
-				<Navigation.Menu>
-					{#each footerLinks as link}
-						{@const Icon = link.icon}
-						{@const isSelected = link.pathMatch(page.url.pathname)}
-						<a
-							href={link.href}
-							class={getAnchorClass(isSelected)}
-							aria-label={link.label()}
-							{@attach tooltip(link.label())}
-						>
-							<Icon size={28} class="text-surface-700-300" />
-							{#if $sidebarExpanded}
-								<span>{link.label()}</span>
-							{/if}
-						</a>
-					{/each}
-				</Navigation.Menu>
-			</Navigation.Group>
-		</Navigation.Footer>
+		{#if footerLinks.length > 0}
+			<Navigation.Footer>
+				<Navigation.Group>
+					{#if $sidebarExpanded}
+						<Navigation.Label>{m.nav_category_system()}</Navigation.Label>
+					{/if}
+					<Navigation.Menu>
+						{#each footerLinks as link}
+							{@const Icon = link.icon}
+							{@const isSelected = link.pathMatch(page.url.pathname)}
+							<a
+								href={link.href}
+								class={getAnchorClass(isSelected)}
+								aria-label={link.label()}
+								{@attach tooltip(link.label())}
+							>
+								<Icon size={28} class="text-surface-700-300" />
+								{#if $sidebarExpanded}
+									<span>{link.label()}</span>
+								{/if}
+							</a>
+						{/each}
+					</Navigation.Menu>
+				</Navigation.Group>
+			</Navigation.Footer>
+		{/if}
 	</Navigation>
 </div>

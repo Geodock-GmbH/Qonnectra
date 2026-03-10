@@ -12,6 +12,7 @@
 		IconFileText,
 		IconHome2,
 		IconMap2,
+		IconNetwork,
 		IconSettings,
 		IconTextPlus,
 		IconTopologyRing2
@@ -19,6 +20,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { userStore } from '$lib/stores/auth';
+	import { canAccessRoute } from '$lib/utils/permissions.js';
 	import { tooltip } from '$lib/utils/tooltip.js';
 
 	let showMoreMenu = $state(false);
@@ -37,7 +40,7 @@
 		showMoreMenu = !showMoreMenu;
 	}
 
-	const mainNavItems = [
+	const allMainNavItems = [
 		{
 			href: '/map',
 			label: () => m.nav_map(),
@@ -52,16 +55,28 @@
 		}
 	];
 
-	const additionalNavItems = [
-		{ href: '/conduit', label: m.nav_conduit_management(), icon: IconTextPlus },
-		{ href: '/trench', label: m.nav_conduit_connection(), icon: IconArrowBarToRight },
-		{ href: '/pipe-branch', label: m.nav_pipe_branch(), icon: IconAffiliate },
-		{ href: '/house-connections', label: m.nav_house_connections(), icon: IconHome2 },
-		{ href: '/network-schema', label: m.nav_network_schema(), icon: IconTopologyRing2 },
-		{ href: '/address', label: m.nav_address(), icon: IconAddressBook },
-		{ href: '/admin/logs', label: m.nav_logs(), icon: IconFileText },
-		{ href: '/settings', label: m.nav_settings(), icon: IconSettings }
+	const allAdditionalNavItems = [
+		{ href: '/conduit', label: () => m.nav_conduit_management(), icon: IconTextPlus },
+		{ href: '/trench', label: () => m.nav_conduit_connection(), icon: IconArrowBarToRight },
+		{ href: '/pipe-branch', label: () => m.nav_pipe_branch(), icon: IconAffiliate },
+		{ href: '/house-connections', label: () => m.nav_house_connections(), icon: IconHome2 },
+		{ href: '/network-schema', label: () => m.nav_network_schema(), icon: IconTopologyRing2 },
+		{ href: '/trace', label: () => m.nav_fiber_trace(), icon: IconNetwork },
+		{ href: '/address', label: () => m.nav_address(), icon: IconAddressBook },
+		{ href: '/admin/logs', label: () => m.nav_logs(), icon: IconFileText },
+		{ href: '/settings', label: () => m.nav_settings(), icon: IconSettings }
 	];
+
+	/**
+	 * Filters links based on user route permissions.
+	 * @param {Array} links
+	 */
+	function filterByPermission(links) {
+		return links.filter((link) => canAccessRoute($userStore.permissions, link.href));
+	}
+
+	const mainNavItems = $derived(filterByPermission(allMainNavItems));
+	const additionalNavItems = $derived(filterByPermission(allAdditionalNavItems));
 
 	let totalTiles = $derived(mainNavItems.length + (additionalNavItems.length > 0 ? 1 : 0));
 
@@ -143,7 +158,7 @@
 							onclick={closeMoreMenu}
 						>
 							<item.icon size={20} class="text-surface-700-300" />
-							<span class="text-surface-900-100">{item.label}</span>
+							<span class="text-surface-900-100">{item.label()}</span>
 						</a>
 					{/each}
 				</div>
