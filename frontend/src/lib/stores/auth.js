@@ -1,6 +1,17 @@
 import { writable } from 'svelte/store';
 
 /**
+ * @typedef {'none' | 'view' | 'edit' | 'full'} AccessLevel
+ */
+
+/**
+ * @typedef {Object} Permissions
+ * @property {Record<string, AccessLevel>} models
+ * @property {Record<string, boolean>} routes
+ * @property {boolean} is_superuser
+ */
+
+/**
  * @typedef {object} UserData
  * @property {boolean} isAuthenticated
  * @property {number} [pk]
@@ -9,6 +20,7 @@ import { writable } from 'svelte/store';
  * @property {boolean} [is_staff]
  * @property {boolean} [is_superuser]
  * @property {boolean} [isAdmin]
+ * @property {Permissions} [permissions]
  */
 
 /**

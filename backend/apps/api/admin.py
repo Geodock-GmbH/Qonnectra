@@ -46,12 +46,14 @@ from .models import (
     GeoPackageSchemaConfig,
     LogEntry,
     Microduct,
+    ModelPermission,
     NetworkSchemaSettings,
     Node,
     PipeBranchSettings,
     Projects,
     QGISProject,
     ResidentialUnit,
+    RoutePermission,
     StoragePreferences,
     Trench,
     WMSLayer,
@@ -1777,3 +1779,22 @@ class WMSSourceAdmin(admin.ModelAdmin):
                 )
 
     scan_capabilities.short_description = _("Scan & apply recommended settings")
+
+
+@admin.register(ModelPermission)
+class ModelPermissionAdmin(admin.ModelAdmin):
+    list_display = ['group', 'model_name', 'access_level']
+    list_filter = ['group', 'access_level', 'model_name']
+    list_editable = ['access_level']
+    search_fields = ['model_name', 'group__name']
+    ordering = ['group__name', 'model_name']
+    list_per_page = 50
+
+
+@admin.register(RoutePermission)
+class RoutePermissionAdmin(admin.ModelAdmin):
+    list_display = ['group', 'route_pattern', 'allowed']
+    list_filter = ['group', 'allowed']
+    list_editable = ['allowed']
+    search_fields = ['route_pattern', 'group__name']
+    ordering = ['group__name', 'route_pattern']

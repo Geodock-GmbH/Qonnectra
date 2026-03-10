@@ -3895,3 +3895,77 @@ class Container(models.Model):
     def get_display_name(self):
         """Return display name (custom name or type name)."""
         return self.name or self.container_type.name
+
+
+class ModelPermission(models.Model):
+    """Controls API access per model per group."""
+
+    ACCESS_LEVEL_CHOICES = [
+        ('none', _('No Access')),
+        ('view', _('View Only')),
+        ('edit', _('View and Edit')),
+        ('full', _('Full Access')),
+    ]
+
+    group = models.ForeignKey(
+        'auth.Group',
+        on_delete=models.CASCADE,
+        related_name='model_permissions',
+        verbose_name=_('Group'),
+    )
+    model_name = models.CharField(
+        _('Model Name'),
+        max_length=100,
+        help_text=_('Lowercase model name, e.g., "trench", "cable"'),
+    )
+    access_level = models.CharField(
+        _('Access Level'),
+        max_length=10,
+        choices=ACCESS_LEVEL_CHOICES,
+        default='none',
+    )
+
+    class Meta:
+        db_table = 'model_permission'
+        verbose_name = _('Model Permission')
+        verbose_name_plural = _('Model Permissions')
+        unique_together = [['group', 'model_name']]
+        indexes = [
+            models.Index(fields=['group']),
+        ]
+
+    def __str__(self):
+        return f"{self.group.name} - {self.model_name}: {self.access_level}"
+
+
+class RoutePermission(models.Model):
+    """Controls frontend route access per group."""
+
+    group = models.ForeignKey(
+        'auth.Group',
+        on_delete=models.CASCADE,
+        related_name='route_permissions',
+        verbose_name=_('Group'),
+    )
+    route_pattern = models.CharField(
+        _('Route Pattern'),
+        max_length=200,
+        help_text=_('Route path with optional wildcard, e.g., "/admin/*"'),
+    )
+    allowed = models.BooleanField(
+        _('Allowed'),
+        default=True,
+    )
+
+    class Meta:
+        db_table = 'route_permission'
+        verbose_name = _('Route Permission')
+        verbose_name_plural = _('Route Permissions')
+        unique_together = [['group', 'route_pattern']]
+        indexes = [
+            models.Index(fields=['group']),
+        ]
+
+    def __str__(self):
+        status = "✓" if self.allowed else "✗"
+        return f"{self.group.name} - {self.route_pattern}: {status}"

@@ -71,6 +71,7 @@ from .views import (
     TrenchConduitConnectionViewSet,
     TrenchesNearNodeView,
     TrenchViewSet,
+    UserPermissionsView,
     WebDAVAuthView,
     WFS3ProxyView,
     WMSLayerViewSet,
@@ -248,6 +249,7 @@ router.register(r"wms-layers", WMSLayerViewSet, basename="wms-layers")
 
 urlpatterns = [
     path("logs/frontend/", FrontendLogView.as_view(), name="frontend-logs"),
+    path("auth/permissions/", UserPermissionsView.as_view(), name="user-permissions"),
     path("", include(router.urls)),
     path(
         "template/conduit/",

@@ -92,6 +92,35 @@ function clearAuthCookies(event) {
 	event.cookies.delete('api-refresh-token', { path: '/' });
 }
 
+/**
+ * Check if user can access a route based on their permissions.
+ * @param {object} permissions
+ * @param {string} route
+ * @returns {boolean}
+ */
+function canAccessRoute(permissions, route) {
+	if (!permissions) return true;
+	if (permissions.is_superuser) return true;
+	if (permissions.routes?.['*'] === true) return true;
+
+	// Check for exact match
+	if (route in (permissions.routes || {})) {
+		return permissions.routes[route];
+	}
+
+	// Check for wildcard patterns
+	for (const [pattern, allowed] of Object.entries(permissions.routes || {})) {
+		if (pattern.endsWith('/*')) {
+			const prefix = pattern.slice(0, -1);
+			if (route.startsWith(prefix)) {
+				return allowed;
+			}
+		}
+	}
+
+	return true;
+}
+
 /** @type {import('@sveltejs/kit').Handle} */
 export async function handleAuth({ event, resolve }) {
 	const accessToken = event.cookies.get('api-access-token');
@@ -125,10 +154,30 @@ export async function handleAuth({ event, resolve }) {
 
 		if (response.ok) {
 			const userDetails = await response.json();
+
+			// Fetch user permissions
+			let permissions = null;
+			const currentAccessToken = event.cookies.get('api-access-token');
+			if (currentAccessToken) {
+				const permHeaders = new Headers();
+				permHeaders.append('Cookie', `api-access-token=${currentAccessToken}`);
+				try {
+					const permResponse = await event.fetch(`${API_URL}auth/permissions/`, {
+						headers: permHeaders
+					});
+					if (permResponse.ok) {
+						permissions = await permResponse.json();
+					}
+				} catch (permError) {
+					console.error('Error fetching permissions:', permError);
+				}
+			}
+
 			event.locals.user = {
 				isAuthenticated: true,
 				...userDetails,
-				isAdmin: userDetails.is_staff || false
+				isAdmin: userDetails.is_staff || false,
+				permissions
 			};
 		} else {
 			if (response.status !== 401 && response.status !== 403) {
@@ -154,6 +203,13 @@ export async function handleAuth({ event, resolve }) {
 	if (!isUserAuthenticated && !isPublicRoute) {
 		const redirectToUrl = `/login?redirectTo=${encodeURIComponent(requestedPath + event.url.search)}`;
 		throw redirect(303, redirectToUrl);
+	}
+
+	// Check route-level permissions
+	if (isUserAuthenticated && event.locals.user?.permissions) {
+		if (!canAccessRoute(event.locals.user.permissions, requestedPath)) {
+			throw redirect(303, '/map');
+		}
 	}
 
 	return resolve(event);
