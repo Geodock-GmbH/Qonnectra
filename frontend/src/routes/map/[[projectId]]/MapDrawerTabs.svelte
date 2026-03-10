@@ -47,6 +47,7 @@
 
 	// Shared state for slot configurations - allows both panels to stay in sync
 	let sharedSlotState = $state({
+		nodeUuid: null,
 		slotConfigurations: [],
 		lastUpdated: 0
 	});
