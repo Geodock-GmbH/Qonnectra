@@ -37,6 +37,7 @@ from .views import (
     FeatureFilesViewSet,
     FiberSpliceViewSet,
     FiberTraceSummaryView,
+    SignalAnalysisView,
     FiberTraceView,
     FiberViewSet,
     FlagsViewSet,
@@ -364,5 +365,10 @@ urlpatterns = [
         "fiber-trace/summary/",
         FiberTraceSummaryView.as_view(),
         name="fiber-trace-summary",
+    ),
+    path(
+        "signal-analysis/",
+        SignalAnalysisView.as_view(),
+        name="signal-analysis",
     ),
 ]

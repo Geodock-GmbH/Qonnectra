@@ -7023,3 +7023,80 @@ class FiberTraceSummaryView(APIView):
                 {"error": "An error occurred while tracing the fiber"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class SignalAnalysisView(APIView):
+    """
+    API endpoint for analyzing signal flow through fiber networks.
+    Identifies breaks and shows lit/dark portions of the trace.
+
+    Query Parameters:
+        fiber_id: UUID of the fiber to analyze (required)
+        signal_source_node_id: UUID of node where signal originates (optional)
+            If not provided, defaults to the root cable's start node.
+        include_geometry: "true" to include trench geometry (default: "false")
+        geometry_mode: "segments" for individual trenches, "merged" for combined
+        orient_geometry: "true" to orient lines from cable start to end
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from uuid import UUID as UUIDType
+
+        from .services import analyze_signal_flow
+
+        fiber_id = request.query_params.get("fiber_id")
+        signal_source_node_id = request.query_params.get("signal_source_node_id")
+        include_geometry = (
+            request.query_params.get("include_geometry", "").lower() == "true"
+        )
+        geometry_mode = request.query_params.get("geometry_mode", "segments")
+        orient_geometry = (
+            request.query_params.get("orient_geometry", "").lower() == "true"
+        )
+
+        if not fiber_id:
+            return Response(
+                {"error": "fiber_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if geometry_mode not in ("segments", "merged"):
+            return Response(
+                {"error": "geometry_mode must be 'segments' or 'merged'"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            UUIDType(fiber_id)
+        except ValueError:
+            return Response(
+                {"error": "Invalid fiber_id UUID format"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if signal_source_node_id:
+            try:
+                UUIDType(signal_source_node_id)
+            except ValueError:
+                return Response(
+                    {"error": "Invalid signal_source_node_id UUID format"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        try:
+            result = analyze_signal_flow(
+                fiber_id,
+                signal_source_node_id=signal_source_node_id,
+                include_geometry=include_geometry,
+                geometry_mode=geometry_mode,
+                orient_geometry=orient_geometry,
+            )
+            return Response(result)
+        except Exception:
+            logger.exception("Signal analysis error")
+            return Response(
+                {"error": "An error occurred while analyzing signal flow"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

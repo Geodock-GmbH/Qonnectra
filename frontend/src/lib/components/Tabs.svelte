@@ -13,7 +13,8 @@
 	 *   value?: string,
 	 *   onValueChange?: (value: string) => void,
 	 *   children?: import('svelte').Snippet,
-	 *   class?: string
+	 *   class?: string,
+	 *   orientation?: 'vertical' | 'horizontal'
 	 * }}
 	 */
 	let {
@@ -21,7 +22,8 @@
 		value = $bindable(tabs[0]?.value || ''),
 		onValueChange = () => {},
 		children: contentSnippet,
-		class: className = ''
+		class: className = '',
+		orientation = 'vertical'
 	} = $props();
 
 	function handleValueChange(e) {
@@ -30,7 +32,7 @@
 	}
 </script>
 
-<SkeletonTabs {value} onValueChange={handleValueChange} orientation="vertical">
+<SkeletonTabs {value} onValueChange={handleValueChange} {orientation}>
 	<div class="tabs-wrapper {className}">
 		<SkeletonTabs.List>
 			{#each tabs as tab (tab.value)}

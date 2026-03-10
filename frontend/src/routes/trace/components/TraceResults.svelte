@@ -452,7 +452,6 @@
 					>
 						{node.node.name}
 					</button>
-					<span class="text-xs text-surface-600-400">{node.direction}</span>
 				{/if}
 			</div>
 
@@ -462,6 +461,13 @@
 			<!-- Splice Info -->
 			{#if node.splice}
 				{@render spliceDetails(node.splice)}
+			{/if}
+
+			<!-- Endpoint Splices (fiber placed but not connected) -->
+			{#if node.endpoint_splices && node.endpoint_splices.length > 0}
+				{#each node.endpoint_splices as endpointSplice (endpointSplice.id)}
+					{@render endpointSpliceDetails(endpointSplice)}
+				{/each}
 			{/if}
 
 			<!-- Cable Endpoints -->
@@ -541,6 +547,69 @@
 			<span class="font-semibold">{m.trace_splice()}</span>
 			<code class="text-xs text-surface-600-400">{m.form_port()} {splice.port_number}</code>
 		</div>
+		{#if splice.component}
+			<div class="flex flex-wrap gap-2">
+				{#if splice.component.type}
+					<span class="rounded bg-surface-200-800 px-2 py-0.5 text-xs text-surface-600-400">
+						{splice.component.type}
+					</span>
+				{/if}
+				{#if splice.component.slot_start !== null && splice.component.slot_end !== null}
+					<span class="rounded bg-surface-200-800 px-2 py-0.5 text-xs text-surface-600-400">
+						{m.form_slot({ count: 2 })}
+						{splice.component.slot_start}-{splice.component.slot_end}
+					</span>
+				{/if}
+				{#if splice.component.slot_side}
+					<span class="rounded bg-surface-200-800 px-2 py-0.5 text-xs text-surface-600-400">
+						{m.form_side()}: {splice.component.slot_side}
+					</span>
+				{/if}
+				{#if splice.component.in_or_out}
+					<span class="rounded bg-surface-200-800 px-2 py-0.5 text-xs text-surface-600-400">
+						{splice.component.in_or_out}
+					</span>
+				{/if}
+			</div>
+		{/if}
+		{#if splice.container_path && splice.container_path.length > 0}
+			<div class="mt-2 border-t border-surface-200-800 pt-2 text-xs">
+				<span class="text-surface-600-400">{m.trace_container_path()}:</span>
+				{#each splice.container_path as container, i (i)}
+					{#if i > 0}<span class="mx-1 text-surface-500-400">→</span>{/if}
+					<span class="rounded bg-surface-200-800 px-1.5 py-0.5 text-surface-600-400">
+						{container.type}{container.name ? `: ${container.name}` : ''}
+					</span>
+				{/each}
+			</div>
+		{/if}
+	</div>
+{/snippet}
+
+<!-- Endpoint Splice Details Snippet (for fibers placed in splices but not connected) -->
+{#snippet endpointSpliceDetails(splice)}
+	<div
+		class="mb-2 ml-1 rounded-lg border-l-2 border-dashed border-tertiary-500 bg-surface-100-900 p-3 text-sm"
+	>
+		<div class="mb-2 flex items-center gap-2 text-tertiary-500">
+			<IconArrowsSplit size={14} />
+			<span class="font-semibold">{m.trace_endpoint_splice()}</span>
+			{#if splice.port_number}
+				<code class="text-xs text-surface-600-400">{m.form_port()} {splice.port_number}</code>
+			{/if}
+		</div>
+		{#if splice.node}
+			<div class="mb-2 flex items-center gap-2">
+				<span class="text-xs uppercase text-surface-600-400">{m.form_node()}</span>
+				<button
+					type="button"
+					class="rounded bg-warning-500/15 px-2.5 py-1 font-mono text-sm font-medium text-warning-500 transition-colors hover:bg-warning-500/25"
+					onclick={() => traceFrom('node', splice.node.id)}
+				>
+					{splice.node.name || m.common_unknown()}
+				</button>
+			</div>
+		{/if}
 		{#if splice.component}
 			<div class="flex flex-wrap gap-2">
 				{#if splice.component.type}

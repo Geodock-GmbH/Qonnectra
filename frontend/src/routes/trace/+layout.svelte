@@ -22,7 +22,7 @@
 	<title>{m.nav_fiber_trace()}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-surface-50-950">
+<div class="min-h-screen">
 	{#if isLandingPage}
 		<!-- Landing page: Original centered layout -->
 		<div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">

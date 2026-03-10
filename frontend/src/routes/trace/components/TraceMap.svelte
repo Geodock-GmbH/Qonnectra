@@ -2,6 +2,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { env } from '$env/dynamic/public';
+
 	import 'ol/ol.css';
 
 	import { basemapTheme, tileServerAvailable } from '$lib/stores/store';
@@ -243,12 +244,22 @@
 		const featureId = feature.get('featureId') || '';
 		const isSelected = featureId === selectedFeatureId;
 		const cableId = feature.get('cableId') || '';
-		const color = getCableColor(cableId);
+		const signalState = feature.get('signalState');
+		let color = getCableColor(cableId);
+		let lineDash = null;
+
+		if (signalState === 'dark') {
+			color = '#9ca3af';
+			lineDash = [10, 5];
+		} else if (signalState === 'break_point') {
+			color = '#ef4444';
+		}
 
 		return new Style({
 			stroke: new Stroke({
 				color: isSelected ? '#3b82f6' : color,
-				width: isSelected ? 5 : 3
+				width: isSelected ? 5 : 3,
+				lineDash: lineDash
 			})
 		});
 	}
@@ -257,6 +268,7 @@
 		const featureType = feature.get('featureType') || '';
 		const featureId = feature.get('featureId') || '';
 		const isSelected = featureId === selectedFeatureId;
+		const signalState = feature.get('signalState');
 
 		const colors = {
 			entry_point: '#6366f1',
@@ -265,8 +277,14 @@
 			residential_unit: '#8b5cf6'
 		};
 
-		const color = colors[featureType] || '#6b7280';
+		let color = colors[featureType] || '#6b7280';
 		const radius = featureType === 'entry_point' ? 10 : 7;
+
+		if (signalState === 'dark') {
+			color = '#9ca3af';
+		} else if (signalState === 'break_point') {
+			color = '#ef4444';
+		}
 
 		return new Style({
 			image: new CircleStyle({
@@ -385,6 +403,8 @@
 		const { default: GeoJSON } = await import('ol/format/GeoJSON');
 		const format = new GeoJSON();
 
+		const signalState = node.signal_state || null;
+
 		// Node marker
 		if (node.node?.geometry) {
 			const feature = format.readFeature(
@@ -393,7 +413,8 @@
 					properties: {
 						featureId: `node:${node.node.id}`,
 						featureType: 'node',
-						name: node.node.name
+						name: node.node.name,
+						signalState
 					},
 					geometry: node.node.geometry
 				},
@@ -414,7 +435,8 @@
 					properties: {
 						featureId: `address:${addr.id}`,
 						featureType: 'address',
-						name: `${addr.street} ${addr.housenumber}`
+						name: `${addr.street} ${addr.housenumber}`,
+						signalState
 					},
 					geometry: addr.geometry
 				},
@@ -436,7 +458,8 @@
 							properties: {
 								featureId: `residential_unit:${ru.id}`,
 								featureType: 'residential_unit',
-								name: ru.id_residential_unit
+								name: ru.id_residential_unit,
+								signalState
 							},
 							geometry: ru.geometry
 						},
