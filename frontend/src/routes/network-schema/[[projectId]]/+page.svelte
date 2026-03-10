@@ -15,8 +15,8 @@
 	import {
 		cableDirectionAnimationEnabled,
 		edgeSnappingEnabled,
-		networkSchemaPanelExpanded,
 		networkSchemaDisplayOptionsExpanded,
+		networkSchemaPanelExpanded,
 		selectedProject
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';

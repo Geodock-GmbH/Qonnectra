@@ -1,728 +1,655 @@
 <script>
-	import { enhance } from '$app/forms';
+	import { slide } from 'svelte/transition';
+	import { goto } from '$app/navigation';
+	import {
+		IconBuildingSkyscraper,
+		IconChevronDown,
+		IconLoader2,
+		IconMapPin,
+		IconNetwork,
+		IconPlug,
+		IconRouter,
+		IconSearch,
+		IconX
+	} from '@tabler/icons-svelte';
+	import { PUBLIC_API_URL } from '$env/static/public';
 
-	let traceType = $state('fiber');
-	let traceId = $state('');
+	import { m } from '$lib/paraglide/messages';
+
+	const traceTypes = [
+		{
+			value: 'address',
+			label: () => m.form_address({ count: 1 }),
+			icon: IconMapPin,
+			color: 'text-error-500',
+			searchable: true,
+			searchPlaceholder: () => m.trace_search_address_placeholder()
+		},
+		{
+			value: 'node',
+			label: () => m.form_node(),
+			icon: IconRouter,
+			color: 'text-success-500',
+			searchable: true,
+			searchPlaceholder: () => m.trace_search_node_placeholder()
+		},
+		{
+			value: 'cable',
+			label: () => m.form_cables(),
+			icon: IconPlug,
+			color: 'text-warning-500',
+			searchable: true,
+			searchPlaceholder: () => m.trace_search_cable_placeholder()
+		},
+		{
+			value: 'residential_unit',
+			label: () => m.form_residential_units(),
+			icon: IconBuildingSkyscraper,
+			color: 'text-secondary-500',
+			searchable: true,
+			searchPlaceholder: () => m.trace_search_ru_placeholder()
+		},
+		{
+			value: 'fiber',
+			label: () => m.form_fiber(),
+			icon: IconNetwork,
+			color: 'text-primary-500',
+			searchable: true,
+			searchPlaceholder: () => m.trace_search_cable_placeholder()
+		}
+	];
+
+	let activeTab = $state('address');
+	let searchQuery = $state('');
+	let searchResults = $state([]);
+	let searching = $state(false);
+	let searchTimeout = $state(null);
+
+	// Geometry options
 	let includeGeometry = $state(false);
 	let geometryMode = $state('segments');
 	let orientGeometry = $state(false);
-	let result = $state(null);
-	let error = $state(null);
-	let loading = $state(false);
 
-	function handleSubmit() {
-		loading = true;
-		error = null;
-		result = null;
+	// Fiber selection state
+	let selectedCable = $state(null);
+	let fibers = $state([]);
+	let loadingFibers = $state(false);
+	let expandedBundles = $state(new Set());
+	let fiberColors = $state(new Map());
 
-		return async ({ result: formResult, update }) => {
-			loading = false;
-			if (formResult.type === 'success' && formResult.data?.success) {
-				result = formResult.data.result;
-			} else if (formResult.type === 'failure') {
-				error = formResult.data?.error || 'Unknown error';
-			}
-			await update();
-		};
-	}
-
-	function traceFrom(type, id) {
-		traceType = type;
-		traceId = id;
-	}
-
-	/**
-	 * Check if result has any geometries for download
-	 */
-	function hasGeometries(traceResult) {
-		if (!traceResult?.cable_infrastructure) return false;
-
-		for (const infra of Object.values(traceResult.cable_infrastructure)) {
-			if (infra.merged_geometry) return true;
-			if (infra.trenches?.some((t) => t.geometry)) return true;
-		}
-		return false;
-	}
-
-	/**
-	 * Build GeoJSON FeatureCollection from trace result infrastructure
-	 */
-	function buildGeoJSON(traceResult) {
-		const features = [];
-		const cableInfra = traceResult.cable_infrastructure || {};
-
-		for (const [cableId, infra] of Object.entries(cableInfra)) {
-			// Check for merged geometry first
-			if (infra.merged_geometry) {
-				features.push({
-					type: 'Feature',
-					properties: {
-						cable_id: cableId,
-						conduit_name: infra.conduit?.name || null,
-						conduit_type: infra.conduit?.type || null,
-						microduct_number: infra.microduct?.number || null,
-						microduct_color: infra.microduct?.color || null,
-						total_length: infra.total_length || null,
-						trench_count: infra.trenches?.length || 0,
-						geometry_mode: 'merged'
-					},
-					geometry: infra.merged_geometry
+	// Group fibers by bundle number
+	const fibersByBundle = $derived.by(() => {
+		const grouped = new Map();
+		for (const fiber of fibers) {
+			const bundleNum = fiber.bundle_number ?? 0;
+			if (!grouped.has(bundleNum)) {
+				grouped.set(bundleNum, {
+					bundleNumber: bundleNum,
+					bundleColor: fiber.bundle_color,
+					fibers: []
 				});
-			} else if (infra.trenches) {
-				// Individual trench geometries (segments mode)
-				for (const trench of infra.trenches) {
-					if (trench.geometry) {
-						features.push({
-							type: 'Feature',
-							properties: {
-								cable_id: cableId,
-								trench_id: trench.id,
-								id_trench: trench.id_trench,
-								construction_type: trench.construction_type,
-								surface: trench.surface,
-								length: trench.length,
-								conduit_name: infra.conduit?.name || null,
-								conduit_type: infra.conduit?.type || null,
-								microduct_number: infra.microduct?.number || null,
-								microduct_color: infra.microduct?.color || null,
-								geometry_mode: 'segments'
-							},
-							geometry: trench.geometry
-						});
-					}
-				}
+			}
+			grouped.get(bundleNum).fibers.push(fiber);
+		}
+		// Sort bundles by number
+		return Array.from(grouped.values()).sort((a, b) => a.bundleNumber - b.bundleNumber);
+	});
+
+	const activeType = $derived(traceTypes.find((t) => t.value === activeTab));
+
+	function handleTabChange(tab) {
+		activeTab = tab;
+		searchQuery = '';
+		searchResults = [];
+		// Reset fiber selection when changing tabs
+		selectedCable = null;
+		fibers = [];
+		expandedBundles = new Set();
+	}
+
+	async function performSearch(query) {
+		if (!query || query.length < 2) {
+			searchResults = [];
+			return;
+		}
+
+		searching = true;
+		try {
+			let endpoint = '';
+			switch (activeTab) {
+				case 'address':
+					endpoint = `${PUBLIC_API_URL}address/all/?search=${encodeURIComponent(query)}&page_size=20`;
+					break;
+				case 'node':
+					endpoint = `${PUBLIC_API_URL}node/all/?search=${encodeURIComponent(query)}&include_excluded=true`;
+					break;
+				case 'cable':
+				case 'fiber':
+					endpoint = `${PUBLIC_API_URL}cable/all/?search=${encodeURIComponent(query)}&page_size=20`;
+					break;
+				case 'residential_unit':
+					endpoint = `${PUBLIC_API_URL}residential-unit/all/?search=${encodeURIComponent(query)}`;
+					break;
+				default:
+					searchResults = [];
+					return;
+			}
+
+			const response = await fetch(endpoint, { credentials: 'include' });
+			if (!response.ok) throw new Error('Search failed');
+
+			const data = await response.json();
+
+			// Handle different response formats
+			if (activeTab === 'node') {
+				// Node endpoint returns GeoJSON FeatureCollection - uuid is in 'id' field
+				const features = data.features || [];
+				searchResults = features.slice(0, 20).map((f) => ({
+					uuid: f.id,
+					name: f.properties?.name,
+					node_type: f.properties?.node_type?.node_type
+				}));
+			} else {
+				searchResults = data.results || data || [];
+			}
+		} catch (err) {
+			console.error('Search error:', err);
+			searchResults = [];
+		} finally {
+			searching = false;
+		}
+	}
+
+	function handleSearchInput(e) {
+		const query = e.target.value;
+		searchQuery = query;
+
+		if (searchTimeout) clearTimeout(searchTimeout);
+
+		searchTimeout = setTimeout(() => {
+			performSearch(query);
+		}, 300);
+	}
+
+	function buildTraceUrl(typeSlug, uuid) {
+		let url = `/trace/${typeSlug}/${uuid}`;
+		const params = new URLSearchParams();
+
+		if (includeGeometry) {
+			params.set('include_geometry', 'true');
+			params.set('geometry_mode', geometryMode);
+			if (orientGeometry) {
+				params.set('orient_geometry', 'true');
 			}
 		}
 
-		return {
-			type: 'FeatureCollection',
-			name: 'fiber_trace_infrastructure',
-			crs: {
-				type: 'name',
-				properties: {
-					name: 'urn:ogc:def:crs:EPSG::25832'
-				}
-			},
-			features
-		};
+		const queryString = params.toString();
+		return queryString ? `${url}?${queryString}` : url;
 	}
 
-	/**
-	 * Download GeoJSON file
-	 */
-	function downloadGeoJSON() {
-		if (!result) return;
+	function selectResult(result) {
+		const uuid = result.uuid;
+		const typeSlug = activeTab === 'residential_unit' ? 'residential-unit' : activeTab;
+		goto(buildTraceUrl(typeSlug, uuid));
+	}
 
-		const geojson = buildGeoJSON(result);
-		const blob = new Blob([JSON.stringify(geojson, null, 2)], {
-			type: 'application/geo+json'
-		});
+	async function selectCableForFiber(cable) {
+		selectedCable = cable;
+		searchQuery = '';
+		searchResults = [];
+		expandedBundles = new Set();
 
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
+		// Fetch fibers and colors in parallel
+		loadingFibers = true;
+		try {
+			const [fibersResponse] = await Promise.all([
+				fetch(`${PUBLIC_API_URL}fiber/by-cable/${cable.uuid}/`, { credentials: 'include' }),
+				fetchFiberColors()
+			]);
+			if (!fibersResponse.ok) throw new Error('Failed to fetch fibers');
+			fibers = await fibersResponse.json();
 
-		// Generate filename from entry point
-		const entryType = result.entry_point?.type || 'trace';
-		const entryId = result.entry_point?.id?.slice(0, 8) || 'unknown';
-		a.download = `fiber-trace-${entryType}-${entryId}.geojson`;
+			// Auto-expand all bundles if there's only one
+			if (fibersByBundle.length === 1) {
+				expandedBundles = new Set([fibersByBundle[0].bundleNumber]);
+			}
+		} catch (err) {
+			console.error('Failed to fetch fibers:', err);
+			fibers = [];
+		} finally {
+			loadingFibers = false;
+		}
+	}
 
-		document.body.appendChild(a);
-		a.click();
-		document.body.removeChild(a);
-		URL.revokeObjectURL(url);
+	function clearCableSelection() {
+		selectedCable = null;
+		fibers = [];
+		expandedBundles = new Set();
+	}
+
+	function toggleBundle(bundleNumber) {
+		const newSet = new Set(expandedBundles);
+		if (newSet.has(bundleNumber)) {
+			newSet.delete(bundleNumber);
+		} else {
+			newSet.add(bundleNumber);
+		}
+		expandedBundles = newSet;
+	}
+
+	function traceFiber(fiber) {
+		goto(buildTraceUrl('fiber', fiber.uuid));
+	}
+
+	function formatAddressResult(result) {
+		const parts = [];
+		if (result.street) parts.push(result.street);
+		if (result.housenumber) parts.push(result.housenumber + (result.house_number_suffix || ''));
+		if (result.zip_code || result.city) {
+			parts.push(`${result.zip_code || ''} ${result.city || ''}`.trim());
+		}
+		return parts.join(', ') || result.uuid?.slice(0, 8);
+	}
+
+	function formatNodeResult(result) {
+		return result.name || result.uuid?.slice(0, 8);
+	}
+
+	function formatCableResult(result) {
+		return result.name || result.uuid?.slice(0, 8);
+	}
+
+	function formatRuResult(result) {
+		const parts = [];
+		if (result.id_residential_unit) parts.push(result.id_residential_unit);
+		if (result.floor !== null && result.floor !== undefined)
+			parts.push(`${m.form_floor()} ${result.floor}`);
+		if (result.side) parts.push(result.side);
+		return parts.join(' - ') || result.uuid?.slice(0, 8);
+	}
+
+	function formatResult(result) {
+		switch (activeTab) {
+			case 'address':
+				return formatAddressResult(result);
+			case 'node':
+				return formatNodeResult(result);
+			case 'cable':
+			case 'fiber':
+				return formatCableResult(result);
+			case 'residential_unit':
+				return formatRuResult(result);
+			default:
+				return result.uuid?.slice(0, 8);
+		}
+	}
+
+	function getResultSubtitle(result) {
+		switch (activeTab) {
+			case 'address':
+				return result.id_address || null;
+			case 'node':
+				return result.node_type || null;
+			case 'cable':
+			case 'fiber':
+				return result.cable_type?.cable_type || result.cable_type || null;
+			case 'residential_unit':
+				return result.address_street
+					? `${result.address_street} ${result.address_housenumber || ''}`
+					: null;
+			default:
+				return null;
+		}
+	}
+
+	async function fetchFiberColors() {
+		if (fiberColors.size > 0) return;
+		try {
+			const response = await fetch(`${PUBLIC_API_URL}attributes_fiber_color/`, {
+				credentials: 'include'
+			});
+			if (!response.ok) return;
+			const data = await response.json();
+			const colors = data.results || data || [];
+			const colorMap = new Map();
+			for (const color of colors) {
+				if (color.name_de) colorMap.set(color.name_de.toLowerCase(), color.hex_code);
+				if (color.name_en) colorMap.set(color.name_en.toLowerCase(), color.hex_code);
+			}
+			fiberColors = colorMap;
+		} catch (err) {
+			console.error('Failed to fetch fiber colors:', err);
+		}
+	}
+
+	function getColorHex(colorName) {
+		if (!colorName) return '#6b7280';
+		return fiberColors.get(colorName.toLowerCase()) || '#6b7280';
 	}
 </script>
 
-<div class="mx-auto max-w-6xl p-4">
-	<h1 class="mb-4 text-2xl font-bold">Fiber Trace (Debug)</h1>
-
-	<form
-		method="POST"
-		action="?/trace"
-		use:enhance={handleSubmit}
-		class="mb-6 flex flex-wrap items-end gap-4"
-	>
-		<div>
-			<label for="traceType" class="mb-1 block text-sm font-medium">Trace Type</label>
-			<select
-				id="traceType"
-				bind:value={traceType}
-				name="traceType"
-				class="input rounded border px-3 py-2"
+<!-- Tab Selector -->
+<div class="mb-6 rounded-xl border border-surface-200-800 p-2">
+	<div class="flex flex-wrap gap-2">
+		{#each traceTypes as type (type.value)}
+			{@const Icon = type.icon}
+			<button
+				type="button"
+				onclick={() => handleTabChange(type.value)}
+				class="flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-3 transition-colors {activeTab ===
+				type.value
+					? 'bg-primary-500 text-white'
+					: 'hover:bg-surface-100-900'}"
 			>
-				<option value="fiber">Fiber</option>
-				<option value="cable">Cable</option>
-				<option value="node">Node</option>
-				<option value="address">Address</option>
-				<option value="residential_unit">Residential Unit</option>
-			</select>
-		</div>
+				<Icon size={20} class={activeTab === type.value ? 'text-white' : type.color} />
+				<span class="text-sm font-medium">{type.label()}</span>
+			</button>
+		{/each}
+	</div>
+</div>
 
-		<div class="flex-1">
-			<label for="traceId" class="mb-1 block text-sm font-medium">UUID</label>
-			<input
-				id="traceId"
-				type="text"
-				bind:value={traceId}
-				name="traceId"
-				placeholder="Enter UUID..."
-				class="input w-full rounded border px-3 py-2"
-			/>
-		</div>
-
-		<div class="flex items-center gap-2">
+<!-- Geometry Options -->
+<div class="mb-6 rounded-xl border border-surface-200-800 p-4">
+	<div class="flex flex-wrap items-center gap-6">
+		<label class="flex cursor-pointer items-center gap-2">
 			<input
 				type="checkbox"
-				id="includeGeometry"
-				name="includeGeometry"
 				bind:checked={includeGeometry}
-				class="h-4 w-4"
+				class="h-4 w-4 rounded border-surface-300 text-primary-500 focus:ring-primary-500"
 			/>
-			<label for="includeGeometry" class="text-sm">Include Geometry</label>
-		</div>
+			<span class="text-sm font-medium text-surface-900-100">{m.trace_include_geometry()}</span>
+		</label>
 
 		{#if includeGeometry}
-			<div class="flex items-center gap-2">
-				<label for="geometryMode" class="text-sm">Mode:</label>
+			<div class="flex items-center gap-2" transition:slide={{ duration: 150, axis: 'x' }}>
+				<label for="geometryMode" class="text-sm text-surface-600-400"
+					>{m.trace_geometry_mode()}:</label
+				>
 				<select
 					id="geometryMode"
-					name="geometryMode"
 					bind:value={geometryMode}
-					class="input rounded border px-2 py-1 text-sm"
+					class="rounded-lg border border-surface-200-800 bg-transparent px-3 py-1.5 text-sm text-surface-900-100 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
 				>
-					<option value="segments">Segments</option>
-					<option value="merged">Merged</option>
+					<option value="segments">{m.trace_geometry_segments()}</option>
+					<option value="merged">{m.trace_geometry_merged()}</option>
 				</select>
 			</div>
 
-			<div class="flex items-center gap-2">
+			<label
+				class="flex cursor-pointer items-center gap-2"
+				transition:slide={{ duration: 150, axis: 'x' }}
+			>
 				<input
 					type="checkbox"
-					id="orientGeometry"
-					name="orientGeometry"
 					bind:checked={orientGeometry}
-					class="h-4 w-4"
+					class="h-4 w-4 rounded border-surface-300 text-primary-500 focus:ring-primary-500"
 				/>
-				<label for="orientGeometry" class="text-sm">Orient by Cable</label>
-			</div>
+				<span class="text-sm text-surface-900-100">{m.trace_orient_geometry()}</span>
+			</label>
 		{/if}
+	</div>
+</div>
 
-		<button
-			type="submit"
-			disabled={loading || !traceId}
-			class="btn variant-filled-primary rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
-		>
-			{loading ? 'Tracing...' : 'Trace'}
-		</button>
-	</form>
+<!-- Search Section -->
+<div class="rounded-xl border border-surface-200-800 p-6">
+	{#if activeType}
+		<!-- Fiber Tab: Show cable selection then fiber picker -->
+		{#if activeTab === 'fiber'}
+			{#if selectedCable}
+				<!-- Selected Cable Header -->
+				<div class="mb-4 flex items-center gap-3 rounded-lg bg-surface-100-900 px-4 py-3">
+					<IconPlug size={20} class="text-warning-500" />
+					<div class="min-w-0 flex-1">
+						<div class="font-medium text-surface-900-100">{selectedCable.name}</div>
+						{#if selectedCable.cable_type?.cable_type}
+							<div class="text-xs text-surface-600-400">{selectedCable.cable_type.cable_type}</div>
+						{/if}
+					</div>
+					<span class="text-sm text-surface-600-400">{fibers.length} {m.form_fibers()}</span>
+					<button
+						type="button"
+						onclick={clearCableSelection}
+						class="rounded-full p-1 text-surface-500-400 hover:bg-surface-200-800 hover:text-surface-700-300"
+						title={m.action_change()}
+					>
+						<IconX size={18} />
+					</button>
+				</div>
 
-	{#if error}
-		<div class="mb-4 rounded border border-red-400 bg-red-100 p-4 text-red-700">
-			{error}
-		</div>
-	{/if}
+				<!-- Fiber Selection by Bundle -->
+				{#if loadingFibers}
+					<div class="flex items-center justify-center py-8">
+						<IconLoader2
+							size={24}
+							class="text-primary-500"
+							style="animation: spin 1s linear infinite"
+						/>
+					</div>
+				{:else if fibersByBundle.length > 0}
+					<div class="space-y-2">
+						{#each fibersByBundle as bundle (bundle.bundleNumber)}
+							<div class="rounded-lg border border-surface-200-800">
+								<!-- Bundle Header -->
+								<button
+									type="button"
+									onclick={() => toggleBundle(bundle.bundleNumber)}
+									class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-surface-50-950"
+								>
+									<IconChevronDown
+										size={18}
+										class="text-surface-500-400 transition-transform {expandedBundles.has(
+											bundle.bundleNumber
+										)
+											? ''
+											: '-rotate-90'}"
+									/>
+									<span
+										class="h-4 w-4 rounded-full border border-surface-300"
+										style="background-color: {getColorHex(bundle.bundleColor)}"
+									></span>
+									<span class="font-medium text-surface-900-100">
+										{m.form_bundle()}
+										{bundle.bundleNumber}
+									</span>
+									<span class="text-sm text-surface-600-400">
+										({bundle.fibers.length}
+										{m.form_fibers()})
+									</span>
+								</button>
 
-	{#if result}
-		<div class="mb-4 rounded bg-gray-100 p-4">
-			<h2 class="mb-2 font-bold">Statistics</h2>
-			<div class="grid grid-cols-4 gap-4 text-sm md:grid-cols-8">
-				<div>
-					<span class="text-gray-600">Fibers:</span>
-					<span class="font-mono">{result.statistics.total_fibers}</span>
-				</div>
-				<div>
-					<span class="text-gray-600">Nodes:</span>
-					<span class="font-mono">{result.statistics.total_nodes}</span>
-				</div>
-				<div>
-					<span class="text-gray-600">Splices:</span>
-					<span class="font-mono">{result.statistics.total_splices}</span>
-				</div>
-				<div>
-					<span class="text-gray-600">Cables:</span>
-					<span class="font-mono">{result.statistics.total_cables ?? '-'}</span>
-				</div>
-				<div>
-					<span class="text-gray-600">Trenches:</span>
-					<span class="font-mono">{result.statistics.total_trenches ?? '-'}</span>
-				</div>
-				<div>
-					<span class="text-gray-600">Addresses:</span>
-					<span class="font-mono">{result.statistics.total_addresses}</span>
-				</div>
-				<div>
-					<span class="text-gray-600">Res. Units:</span>
-					<span class="font-mono">{result.statistics.total_residential_units}</span>
-				</div>
-				<div>
-					<span class="text-gray-600">Branches:</span>
-					<span class="font-mono">{result.statistics.has_branches ? 'Yes' : 'No'}</span>
-				</div>
-			</div>
-		</div>
-
-		{#if includeGeometry && hasGeometries(result)}
-			<div class="mb-4">
-				<button
-					type="button"
-					onclick={downloadGeoJSON}
-					class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"
-				>
-					Download GeoJSON
-				</button>
-				<span class="ml-2 text-sm text-gray-500">
-					({result.statistics.total_trenches} trenches, EPSG:25832)
-				</span>
-			</div>
-		{/if}
-
-		<div class="mb-4">
-			<h2 class="mb-2 font-bold">Entry Point</h2>
-			<pre class="overflow-x-auto rounded bg-gray-800 p-3 text-sm text-green-400">{JSON.stringify(
-					result.entry_point,
-					null,
-					2
-				)}</pre>
-		</div>
-
-		<!-- Cable Infrastructure Section -->
-		{#if result.cable_infrastructure && Object.keys(result.cable_infrastructure).length > 0}
-			<div class="mb-4">
-				<h2 class="mb-2 font-bold">Cable Infrastructure</h2>
-				<div class="space-y-2">
-					{#each Object.entries(result.cable_infrastructure) as [cableId, infra]}
-						<details class="rounded border bg-white p-2">
-							<summary class="cursor-pointer font-medium">
-								Cable {cableId.slice(0, 8)}...
-								{#if infra.conduit}
-									<span class="ml-2 text-sm text-gray-500">→ {infra.conduit.name}</span>
-								{/if}
-							</summary>
-							<div class="mt-2 space-y-2 pl-4 text-sm">
-								{#if infra.microduct}
-									<div class="rounded bg-pink-50 p-2">
-										<span class="font-medium text-pink-700">Microduct:</span>
-										<span class="ml-2">#{infra.microduct.number}</span>
-										<span
-											class="ml-2 rounded px-1"
-											style="background-color: {infra.microduct.color_hex || '#fbcfe8'}"
-										>
-											{infra.microduct.color}
-										</span>
-										{#if infra.microduct.status}
-											<span class="ml-2 text-gray-500">({infra.microduct.status})</span>
-										{/if}
-									</div>
-								{/if}
-								{#if infra.conduit}
-									<div class="rounded bg-indigo-50 p-2">
-										<span class="font-medium text-indigo-700">Conduit:</span>
-										<span class="ml-2">{infra.conduit.name}</span>
-										{#if infra.conduit.type}
-											<span class="ml-2 rounded bg-indigo-200 px-1">{infra.conduit.type}</span>
-										{/if}
-									</div>
-								{/if}
-								{#if infra.merged_geometry}
-									<div class="rounded bg-green-50 p-2">
-										<span class="font-medium text-green-700">Merged Geometry</span>
-										<span class="ml-2 text-sm text-gray-500">
-											({infra.merged_geometry.type})
-										</span>
-										{#if infra.total_length}
-											<span class="ml-2 text-sm text-gray-500">
-												{infra.total_length.toFixed(1)}m total
-											</span>
-										{/if}
-									</div>
-								{/if}
-								{#if infra.trenches && infra.trenches.length > 0}
-									<div class="rounded bg-amber-50 p-2">
-										<span class="font-medium text-amber-700"
-											>Trenches ({infra.trenches.length}):</span
-										>
-										<div class="mt-1 space-y-1">
-											{#each infra.trenches as trench}
-												<div
-													class="flex flex-wrap items-center gap-2 rounded bg-amber-100 px-2 py-1 text-xs"
+								<!-- Fiber List -->
+								{#if expandedBundles.has(bundle.bundleNumber)}
+									<div class="border-t border-surface-200-800" transition:slide={{ duration: 150 }}>
+										<table class="w-full text-sm">
+											<thead>
+												<tr
+													class="border-b border-surface-100-900 text-left text-xs text-surface-600-400"
 												>
-													<span class="font-mono">{trench.id_trench}</span>
-													{#if trench.construction_type}
-														<span class="rounded bg-amber-200 px-1">{trench.construction_type}</span
-														>
-													{/if}
-													{#if trench.surface}
-														<span class="text-gray-500">{trench.surface}</span>
-													{/if}
-													{#if trench.length}
-														<span class="text-gray-500">{trench.length.toFixed(1)}m</span>
-													{/if}
-													{#if trench.geometry}
-														<span class="rounded bg-green-200 px-1 text-green-700"
-															>Has Geometry</span
-														>
-													{/if}
-												</div>
-											{/each}
-										</div>
+													<th class="px-4 py-2 font-medium">#</th>
+													<th class="px-4 py-2 font-medium">{m.form_color()}</th>
+													<th class="px-4 py-2 font-medium"></th>
+												</tr>
+											</thead>
+											<tbody>
+												{#each bundle.fibers as fiber (fiber.uuid)}
+													<tr
+														class="cursor-pointer border-b border-surface-100-900 last:border-b-0 hover:bg-surface-50-950"
+														onclick={() => traceFiber(fiber)}
+													>
+														<td class="px-4 py-2 font-mono text-surface-900-100">
+															{fiber.fiber_number_in_bundle}
+														</td>
+														<td class="px-4 py-2">
+															<div class="flex items-center gap-2">
+																<span
+																	class="h-3.5 w-3.5 rounded-full border border-surface-300"
+																	style="background-color: {getColorHex(fiber.fiber_color)}"
+																></span>
+																<span class="text-surface-700-300">{fiber.fiber_color || '-'}</span>
+															</div>
+														</td>
+														<td class="px-4 py-2 text-right">
+															<button
+																type="button"
+																class="rounded bg-primary-500/10 px-3 py-1 text-xs font-medium text-primary-500 hover:bg-primary-500/20"
+															>
+																{m.action_trace()}
+															</button>
+														</td>
+													</tr>
+												{/each}
+											</tbody>
+										</table>
 									</div>
 								{/if}
 							</div>
-						</details>
-					{/each}
+						{/each}
+					</div>
+				{:else}
+					<div class="py-8 text-center text-surface-600-400">
+						{m.trace_no_fibers_in_cable()}
+					</div>
+				{/if}
+			{:else}
+				<!-- Cable Search for Fiber Selection -->
+				<div class="mb-2 text-sm text-surface-600-400">{m.trace_select_cable_first()}</div>
+				<div class="relative">
+					<IconSearch
+						size={20}
+						class="absolute left-4 top-1/2 -translate-y-1/2 text-surface-500-400"
+					/>
+					<input
+						type="text"
+						value={searchQuery}
+						oninput={handleSearchInput}
+						placeholder={activeType.searchPlaceholder()}
+						autocomplete="off"
+						spellcheck="false"
+						class="w-full rounded-lg border border-surface-200-800 bg-transparent py-3 pl-12 pr-4 text-surface-900-100 placeholder:text-surface-500-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+					/>
+					{#if searching}
+						<IconLoader2
+							size={20}
+							class="absolute right-4 top-1/2 -translate-y-1/2 text-primary-500"
+							style="animation: spin 1s linear infinite"
+						/>
+					{/if}
 				</div>
+
+				<!-- Cable Search Results -->
+				{#if searchResults.length > 0}
+					<div
+						class="mt-2 max-h-80 overflow-y-auto rounded-lg border border-surface-200-800"
+						transition:slide={{ duration: 200 }}
+					>
+						{#each searchResults as result (result.uuid)}
+							<button
+								type="button"
+								onclick={() => selectCableForFiber(result)}
+								class="flex w-full items-center gap-3 border-b border-surface-100-900 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-surface-100-900"
+							>
+								<IconPlug size={18} class="text-warning-500" />
+								<div class="min-w-0 flex-1">
+									<div class="truncate font-medium text-surface-900-100">
+										{formatResult(result)}
+									</div>
+									{#if getResultSubtitle(result)}
+										<div class="truncate text-xs text-surface-600-400">
+											{getResultSubtitle(result)}
+										</div>
+									{/if}
+								</div>
+							</button>
+						{/each}
+					</div>
+				{/if}
+
+				<!-- No results / hint -->
+				{#if searchQuery.length >= 2 && !searching && searchResults.length === 0}
+					<div
+						class="mt-4 py-4 text-center text-surface-600-400"
+						transition:slide={{ duration: 200 }}
+					>
+						{m.common_no_results()}
+					</div>
+				{:else if searchQuery.length < 2 && !searching}
+					<div class="mt-4 py-4 text-center text-sm text-surface-600-400">
+						{m.trace_search_hint()}
+					</div>
+				{/if}
+			{/if}
+		{:else}
+			<!-- Other Tabs: Standard Search -->
+			<div class="relative">
+				<div class="relative">
+					<IconSearch
+						size={20}
+						class="absolute left-4 top-1/2 -translate-y-1/2 text-surface-500-400"
+					/>
+					<input
+						type="text"
+						value={searchQuery}
+						oninput={handleSearchInput}
+						placeholder={activeType.searchPlaceholder()}
+						autocomplete="off"
+						spellcheck="false"
+						class="w-full rounded-lg border border-surface-200-800 bg-transparent py-3 pl-12 pr-4 text-surface-900-100 placeholder:text-surface-500-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+					/>
+					{#if searching}
+						<IconLoader2
+							size={20}
+							class="absolute right-4 top-1/2 -translate-y-1/2 text-primary-500"
+							style="animation: spin 1s linear infinite"
+						/>
+					{/if}
+				</div>
+
+				<!-- Search Results -->
+				{#if activeType.searchable && searchResults.length > 0}
+					<div
+						class="mt-2 max-h-80 overflow-y-auto rounded-lg border border-surface-200-800"
+						transition:slide={{ duration: 200 }}
+					>
+						{#each searchResults as result (result.uuid)}
+							{@const Icon = activeType.icon}
+							<button
+								type="button"
+								onclick={() => selectResult(result)}
+								class="flex w-full items-center gap-3 border-b border-surface-100-900 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-surface-100-900"
+							>
+								<Icon size={18} class={activeType.color} />
+								<div class="min-w-0 flex-1">
+									<div class="truncate font-medium text-surface-900-100">
+										{formatResult(result)}
+									</div>
+									{#if getResultSubtitle(result)}
+										<div class="truncate text-xs text-surface-600-400">
+											{getResultSubtitle(result)}
+										</div>
+									{/if}
+								</div>
+							</button>
+						{/each}
+					</div>
+				{/if}
+
+				<!-- No results message -->
+				{#if activeType.searchable && searchQuery.length >= 2 && !searching && searchResults.length === 0}
+					<div
+						class="mt-4 py-4 text-center text-surface-600-400"
+						transition:slide={{ duration: 200 }}
+					>
+						{m.common_no_results()}
+					</div>
+				{/if}
+
+				<!-- Search hint -->
+				{#if activeType.searchable && searchQuery.length < 2 && !searching}
+					<div class="mt-4 py-4 text-center text-sm text-surface-600-400">
+						{m.trace_search_hint()}
+					</div>
+				{/if}
 			</div>
 		{/if}
-
-		<div>
-			<h2 class="mb-2 font-bold">Trace Tree</h2>
-			{#if result.trace_tree}
-				{@render traceNode(result.trace_tree, 0)}
-			{:else if result.trace_trees}
-				{#each result.trace_trees as tree, i (tree.fiber?.id ?? i)}
-					<details class="mb-2" open={i === 0}>
-						<summary class="cursor-pointer font-medium">Fiber {i + 1}</summary>
-						<div class="ml-4">
-							{@render traceNode(tree, 0)}
-						</div>
-					</details>
-				{/each}
-			{:else}
-				<p class="text-gray-500">No trace data</p>
-			{/if}
-		</div>
-
-		<details class="mt-6">
-			<summary class="cursor-pointer text-gray-600">Raw JSON</summary>
-			<pre
-				class="mt-2 overflow-x-auto rounded bg-gray-800 p-3 text-sm text-green-400">{JSON.stringify(
-					result,
-					null,
-					2
-				)}</pre>
-		</details>
 	{/if}
 </div>
-
-{#snippet traceNode(node, depth)}
-	<div class="border-l-2 border-gray-300 py-2 pl-4" style="margin-left: {depth * 20}px">
-		<!-- Fiber Info Row -->
-		<div class="flex flex-wrap items-center gap-2 text-sm">
-			<button
-				type="button"
-				class="rounded bg-blue-100 px-2 py-0.5 font-mono hover:bg-blue-200"
-				onclick={() => traceFrom('fiber', node.fiber.id)}
-				title="Trace this fiber"
-			>
-				F{node.fiber.fiber_number_absolute}
-			</button>
-			<span class="text-gray-600">in</span>
-			<button
-				type="button"
-				class="rounded bg-green-100 px-2 py-0.5 font-mono hover:bg-green-200"
-				onclick={() => traceFrom('cable', node.fiber.cable_id)}
-				title="Trace this cable"
-			>
-				{node.fiber.cable_name}
-			</button>
-			{#if node.fiber.cable_type}
-				<span class="rounded bg-green-200 px-1 text-xs text-green-700">{node.fiber.cable_type}</span
-				>
-			{/if}
-			{#if node.node}
-				<span class="text-gray-400">&rarr;</span>
-				<button
-					type="button"
-					class="rounded bg-yellow-100 px-2 py-0.5 font-mono hover:bg-yellow-200"
-					onclick={() => traceFrom('node', node.node.id)}
-					title="Trace this node"
-				>
-					{node.node.name}
-				</button>
-				<span class="text-xs text-gray-400">({node.direction})</span>
-			{/if}
-		</div>
-
-		<!-- Enhanced Fiber Details -->
-		{@render fiberDetails(node.fiber)}
-
-		<!-- Splice Component Info -->
-		{#if node.splice}
-			{@render spliceDetails(node.splice)}
-		{/if}
-
-		<!-- Cable endpoints (start/end nodes) -->
-		{#if node.cable_endpoints && (node.cable_endpoints.start_node || node.cable_endpoints.end_node)}
-			{@render cableEndpointsDetails(node.cable_endpoints, node.node?.id)}
-		{/if}
-
-		<!-- Address details (from node) -->
-		{#if node.node?.address}
-			{@render addressDetails(node.node.address)}
-		{/if}
-
-		<!-- Residential Unit details -->
-		{#if node.residential_units && node.residential_units.length > 0}
-			{#each node.residential_units as ru (ru.id)}
-				{@render residentialUnitDetails(ru)}
-			{/each}
-		{/if}
-
-		{#if node.children && node.children.length > 0}
-			{#each node.children as child (child.fiber.id)}
-				{@render traceNode(child, depth + 1)}
-			{/each}
-		{/if}
-	</div>
-{/snippet}
-
-{#snippet fiberDetails(fiber)}
-	<div class="ml-4 mt-1 flex flex-wrap gap-2 text-xs text-gray-600">
-		{#if fiber.bundle_number !== null && fiber.bundle_number !== undefined}
-			<span>Bundle: <span class="font-mono">{fiber.bundle_number}</span></span>
-		{/if}
-		{#if fiber.fiber_number_in_bundle}
-			<span>In Bundle: <span class="font-mono">{fiber.fiber_number_in_bundle}</span></span>
-		{/if}
-		{#if fiber.fiber_color}
-			<span class="rounded px-1" style="background-color: {fiber.fiber_color_hex || '#e5e7eb'}">
-				{fiber.fiber_color}
-			</span>
-		{/if}
-		{#if fiber.bundle_color}
-			<span class="rounded px-1" style="background-color: {fiber.bundle_color_hex || '#e5e7eb'}">
-				Bundle: {fiber.bundle_color}
-			</span>
-		{/if}
-		{#if fiber.layer}
-			<span>Layer: <span class="font-mono">{fiber.layer}</span></span>
-		{/if}
-		{#if fiber.status}
-			<span class="rounded bg-gray-200 px-1">{fiber.status}</span>
-		{/if}
-	</div>
-{/snippet}
-
-{#snippet spliceDetails(splice)}
-	<div class="ml-4 mt-2 rounded border border-rose-200 bg-rose-50 p-2 text-xs">
-		<div class="mb-1 flex items-center gap-2">
-			<span class="font-semibold text-rose-700">Splice</span>
-			<span class="font-mono text-gray-600">Port {splice.port_number}</span>
-		</div>
-		{#if splice.component}
-			<div class="flex flex-wrap gap-2 text-gray-600">
-				{#if splice.component.type}
-					<span class="rounded bg-rose-200 px-1">{splice.component.type}</span>
-				{/if}
-				{#if splice.component.slot_start !== null && splice.component.slot_end !== null}
-					<span>Slots: {splice.component.slot_start}-{splice.component.slot_end}</span>
-				{/if}
-				{#if splice.component.slot_side}
-					<span>Side: {splice.component.slot_side}</span>
-				{/if}
-				{#if splice.component.in_or_out}
-					<span class="rounded bg-gray-200 px-1">{splice.component.in_or_out}</span>
-				{/if}
-				{#if splice.component.structure_port}
-					<span>Port: {splice.component.structure_port}</span>
-				{/if}
-			</div>
-		{/if}
-		{#if splice.container_path && splice.container_path.length > 0}
-			<div class="mt-1 border-t border-rose-200 pt-1">
-				<span class="text-gray-500">Container Path:</span>
-				<span class="ml-1">
-					{#each splice.container_path as container, i}
-						{#if i > 0}<span class="mx-1 text-gray-400">&rarr;</span>{/if}
-						<span class="rounded bg-rose-100 px-1">
-							{container.type}{#if container.name}: {container.name}{/if}
-						</span>
-					{/each}
-				</span>
-			</div>
-		{/if}
-	</div>
-{/snippet}
-
-{#snippet cableEndpointsDetails(endpoints, currentNodeId)}
-	<div class="ml-4 mt-2 rounded border border-cyan-200 bg-cyan-50 p-2 text-xs">
-		<div class="mb-1 font-semibold text-cyan-700">Cable Path: {endpoints.cable_name}</div>
-		<div class="flex flex-wrap items-center gap-2">
-			{#if endpoints.start_node}
-				<div class="flex items-center gap-1">
-					<span class="text-gray-500">Start:</span>
-					<button
-						type="button"
-						class="rounded px-1.5 py-0.5 font-mono hover:bg-cyan-200"
-						class:bg-cyan-200={endpoints.start_node.id === currentNodeId}
-						class:bg-cyan-100={endpoints.start_node.id !== currentNodeId}
-						onclick={() => traceFrom('node', endpoints.start_node.id)}
-						title="Trace from start node"
-					>
-						{endpoints.start_node.name || 'Unknown'}
-					</button>
-					{#if endpoints.start_node.type}
-						<span class="rounded bg-gray-200 px-1 text-gray-600">{endpoints.start_node.type}</span>
-					{/if}
-				</div>
-			{:else}
-				<span class="text-gray-400">Start: Not set</span>
-			{/if}
-
-			<span class="text-gray-400">&harr;</span>
-
-			{#if endpoints.end_node}
-				<div class="flex items-center gap-1">
-					<span class="text-gray-500">End:</span>
-					<button
-						type="button"
-						class="rounded px-1.5 py-0.5 font-mono hover:bg-cyan-200"
-						class:bg-cyan-200={endpoints.end_node.id === currentNodeId}
-						class:bg-cyan-100={endpoints.end_node.id !== currentNodeId}
-						onclick={() => traceFrom('node', endpoints.end_node.id)}
-						title="Trace from end node"
-					>
-						{endpoints.end_node.name || 'Unknown'}
-					</button>
-					{#if endpoints.end_node.type}
-						<span class="rounded bg-gray-200 px-1 text-gray-600">{endpoints.end_node.type}</span>
-					{/if}
-				</div>
-			{:else}
-				<span class="text-gray-400">End: Not set</span>
-			{/if}
-		</div>
-
-		<!-- Endpoint addresses -->
-		{#if endpoints.start_node?.address || endpoints.end_node?.address}
-			<div class="mt-1 border-t border-cyan-200 pt-1 text-gray-500">
-				{#if endpoints.start_node?.address}
-					<div>
-						<span class="text-gray-400">Start @:</span>
-						<button
-							type="button"
-							class="hover:text-cyan-700 hover:underline"
-							onclick={() => traceFrom('address', endpoints.start_node.address.id)}
-						>
-							{endpoints.start_node.address.street}
-							{endpoints.start_node.address.housenumber}{endpoints.start_node.address.suffix || ''},
-							{endpoints.start_node.address.zip_code}
-							{endpoints.start_node.address.city}
-						</button>
-					</div>
-				{/if}
-				{#if endpoints.end_node?.address}
-					<div>
-						<span class="text-gray-400">End @:</span>
-						<button
-							type="button"
-							class="hover:text-cyan-700 hover:underline"
-							onclick={() => traceFrom('address', endpoints.end_node.address.id)}
-						>
-							{endpoints.end_node.address.street}
-							{endpoints.end_node.address.housenumber}{endpoints.end_node.address.suffix || ''},
-							{endpoints.end_node.address.zip_code}
-							{endpoints.end_node.address.city}
-						</button>
-					</div>
-				{/if}
-			</div>
-		{/if}
-	</div>
-{/snippet}
-
-{#snippet addressDetails(address)}
-	<div class="ml-4 mt-2 rounded border border-orange-200 bg-orange-50 p-2 text-xs">
-		<div class="mb-1 flex items-center gap-2">
-			<span class="font-semibold text-orange-700">Address</span>
-			<button
-				type="button"
-				class="text-orange-600 hover:text-orange-800 hover:underline"
-				onclick={() => traceFrom('address', address.id)}
-				title="Trace this address"
-			>
-				{address.street}
-				{address.housenumber}{address.suffix || ''}, {address.zip_code}
-				{address.city}
-			</button>
-		</div>
-		<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-gray-600 md:grid-cols-4">
-			{#if address.id_address}
-				<div><span class="text-gray-400">ID:</span> {address.id_address}</div>
-			{/if}
-			{#if address.district}
-				<div><span class="text-gray-400">District:</span> {address.district}</div>
-			{/if}
-			{#if address.status_development}
-				<div><span class="text-gray-400">Status:</span> {address.status_development}</div>
-			{/if}
-			{#if address.project}
-				<div><span class="text-gray-400">Project:</span> {address.project}</div>
-			{/if}
-			{#if address.flag}
-				<div><span class="text-gray-400">Flag:</span> {address.flag}</div>
-			{/if}
-		</div>
-	</div>
-{/snippet}
-
-{#snippet residentialUnitDetails(ru)}
-	<div class="ml-4 mt-2 rounded border border-purple-200 bg-purple-50 p-2 text-xs">
-		<div class="mb-1 flex items-center gap-2">
-			<span class="font-semibold text-purple-700">Residential Unit</span>
-			<button
-				type="button"
-				class="text-purple-600 hover:text-purple-800 hover:underline"
-				onclick={() => traceFrom('residential_unit', ru.id)}
-				title="Trace this residential unit"
-			>
-				{ru.id_residential_unit || ru.id}
-			</button>
-		</div>
-		<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-gray-600 md:grid-cols-4">
-			{#if ru.floor !== null && ru.floor !== undefined}
-				<div><span class="text-gray-400">Floor:</span> {ru.floor}</div>
-			{/if}
-			{#if ru.side}
-				<div><span class="text-gray-400">Side:</span> {ru.side}</div>
-			{/if}
-			{#if ru.building_section}
-				<div><span class="text-gray-400">Section:</span> {ru.building_section}</div>
-			{/if}
-			{#if ru.type}
-				<div><span class="text-gray-400">Type:</span> {ru.type}</div>
-			{/if}
-			{#if ru.status}
-				<div><span class="text-gray-400">Status:</span> {ru.status}</div>
-			{/if}
-			{#if ru.resident_name}
-				<div><span class="text-gray-400">Resident:</span> {ru.resident_name}</div>
-			{/if}
-			{#if ru.ready_for_service}
-				<div><span class="text-gray-400">Ready:</span> {ru.ready_for_service}</div>
-			{/if}
-			{#if ru.external_id_1}
-				<div><span class="text-gray-400">Ext ID 1:</span> {ru.external_id_1}</div>
-			{/if}
-			{#if ru.external_id_2}
-				<div><span class="text-gray-400">Ext ID 2:</span> {ru.external_id_2}</div>
-			{/if}
-		</div>
-		<!-- RU's parent address -->
-		{#if ru.address}
-			<div class="mt-2 border-t border-purple-200 pt-1 text-gray-500">
-				<span class="text-gray-400">@ Address:</span>
-				<button
-					type="button"
-					class="hover:text-purple-700 hover:underline"
-					onclick={() => traceFrom('address', ru.address.id)}
-				>
-					{ru.address.street}
-					{ru.address.housenumber}{ru.address.suffix || ''}, {ru.address.zip_code}
-					{ru.address.city}
-				</button>
-			</div>
-		{/if}
-	</div>
-{/snippet}

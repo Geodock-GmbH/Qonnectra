@@ -37,6 +37,7 @@
 	// Shared state for slot configurations - allows both panels to stay in sync
 	// Using a reactive object that both panels can read and update
 	let sharedSlotState = $state({
+		nodeUuid: null,
 		slotConfigurations: [],
 		lastUpdated: 0
 	});
@@ -130,6 +131,17 @@
 	});
 
 	const featureId = $derived(data?.uuid || data?.id);
+
+	// Re-fetch fibers when featureId changes while on status tab
+	$effect(() => {
+		if (group === 'status' && featureId && type === 'edge') {
+			if (featureId !== lastFetchedFeatureId) {
+				lastFetchedFeatureId = featureId;
+				fiberDataManager.fetchFibersForCable(featureId);
+				fiberDataManager.fetchFiberColors();
+			}
+		}
+	});
 
 	let fileExplorer = $state(null);
 

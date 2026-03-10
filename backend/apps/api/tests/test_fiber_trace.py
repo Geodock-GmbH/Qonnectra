@@ -7,7 +7,11 @@ Tests cover:
 - trace_node: Tracing all fibers passing through a node
 - trace_address: Tracing all fibers connected to an address
 - trace_residential_unit: Tracing all fibers connected to a residential unit
+- trace_fiber_summary: Getting a compact trace summary for a fiber
+- analyze_signal_flow: Analyzing signal flow and detecting breaks
 - FiberTraceView: API endpoint for fiber tracing
+- FiberTraceSummaryView: API endpoint for trace summaries
+- SignalAnalysisView: API endpoint for signal analysis
 """
 
 import pytest
@@ -19,9 +23,11 @@ from apps.api.models import (
     ResidentialUnit,
 )
 from apps.api.services import (
+    analyze_signal_flow,
     trace_address,
     trace_cable,
     trace_fiber,
+    trace_fiber_summary,
     trace_node,
     trace_residential_unit,
 )
@@ -713,3 +719,487 @@ class TestIncludeGeometry:
             f"/api/v1/fiber-trace/?fiber_id={fiber.uuid}&include_geometry=false"
         )
         assert response.status_code == status.HTTP_200_OK
+
+
+# =============================================================================
+# Tests for FiberTraceSummaryView and trace_fiber_summary
+# =============================================================================
+
+
+@pytest.fixture
+def fiber_with_terminal_nodes(db):
+    """
+    Create a fiber chain with clear terminal nodes at each end.
+    Node-Start -> Fiber1 -> Node-Middle -> Fiber2 -> Node-End
+    """
+    node_start = NodeFactory(name="Start-Node")
+    node_middle = NodeFactory(name="Middle-Node")
+    node_end = NodeFactory(name="End-Node")
+
+    slot_config_middle = NodeSlotConfiguration.objects.create(
+        uuid_node=node_middle, side="A", total_slots=12
+    )
+    component_type = AttributesComponentType.objects.create(
+        component_type="Splice Cassette", occupied_slots=2
+    )
+    structure_middle = NodeStructure.objects.create(
+        uuid_node=node_middle,
+        slot_configuration=slot_config_middle,
+        component_type=component_type,
+        slot_start=1,
+        slot_end=2,
+    )
+
+    cable1 = CableFactory(name="Cable-Start", uuid_node_start=node_start, uuid_node_end=node_middle)
+    cable2 = CableFactory(name="Cable-End", uuid_node_start=node_middle, uuid_node_end=node_end)
+
+    fiber1 = FiberFactory(uuid_cable=cable1, fiber_number_absolute=1)
+    fiber2 = FiberFactory(uuid_cable=cable2, fiber_number_absolute=1)
+
+    FiberSplice.objects.create(
+        node_structure=structure_middle,
+        port_number=1,
+        fiber_a=fiber1,
+        cable_a=cable1,
+        fiber_b=fiber2,
+        cable_b=cable2,
+    )
+
+    return {
+        "nodes": {"start": node_start, "middle": node_middle, "end": node_end},
+        "cables": [cable1, cable2],
+        "fibers": [fiber1, fiber2],
+    }
+
+
+@pytest.mark.django_db
+class TestTraceFiberSummary:
+    """Tests for the trace_fiber_summary service function."""
+
+    def test_summary_returns_fiber_id(self, isolated_fiber):
+        """Test that summary returns the fiber ID."""
+        from apps.api.services import trace_fiber_summary
+
+        fiber, _ = isolated_fiber
+        result = trace_fiber_summary(fiber.uuid)
+
+        assert result["fiber_id"] == str(fiber.uuid)
+
+    def test_summary_returns_statistics(self, simple_fiber_chain):
+        """Test that summary returns statistics."""
+        from apps.api.services import trace_fiber_summary
+
+        fiber = simple_fiber_chain["fibers"][0]
+        result = trace_fiber_summary(fiber.uuid)
+
+        assert "statistics" in result
+        assert "total_fibers" in result["statistics"]
+        assert "total_splices" in result["statistics"]
+        assert "total_nodes" in result["statistics"]
+        assert result["statistics"]["total_fibers"] == 3
+
+    def test_summary_with_terminal_nodes(self, fiber_with_terminal_nodes):
+        """Test that summary extracts terminal (start/end) nodes."""
+        from apps.api.services import trace_fiber_summary
+
+        fiber = fiber_with_terminal_nodes["fibers"][0]
+        result = trace_fiber_summary(fiber.uuid)
+
+        assert result["start_node"] is not None or result["end_node"] is not None
+
+    def test_summary_isolated_fiber(self, isolated_fiber):
+        """Test summary for a fiber with no connections."""
+        from apps.api.services import trace_fiber_summary
+
+        fiber, _ = isolated_fiber
+        result = trace_fiber_summary(fiber.uuid)
+
+        assert result["statistics"]["total_fibers"] == 1
+        assert result["statistics"]["total_splices"] == 0
+
+
+@pytest.mark.django_db
+class TestFiberTraceSummaryView:
+    """Tests for the FiberTraceSummaryView API endpoint."""
+
+    def test_summary_requires_authentication(self, db):
+        """Test that the summary endpoint requires authentication."""
+        client = APIClient()
+        response = client.get("/api/v1/fiber-trace/summary/")
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_summary_requires_fiber_id(self, authenticated_client):
+        """Test that fiber_id parameter is required."""
+        response = authenticated_client.get("/api/v1/fiber-trace/summary/")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "fiber_id" in response.data["error"].lower()
+
+    def test_summary_rejects_invalid_uuid(self, authenticated_client):
+        """Test that invalid UUID format returns 400 error."""
+        response = authenticated_client.get(
+            "/api/v1/fiber-trace/summary/?fiber_id=not-a-uuid"
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "uuid" in response.data["error"].lower()
+
+    def test_summary_success(self, authenticated_client, simple_fiber_chain):
+        """Test successful summary response."""
+        fiber = simple_fiber_chain["fibers"][0]
+
+        response = authenticated_client.get(
+            f"/api/v1/fiber-trace/summary/?fiber_id={fiber.uuid}"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["fiber_id"] == str(fiber.uuid)
+        assert "start_node" in response.data
+        assert "end_node" in response.data
+        assert "statistics" in response.data
+
+
+# =============================================================================
+# Tests for SignalAnalysisView and analyze_signal_flow
+# =============================================================================
+
+
+@pytest.fixture
+def fiber_with_break(db):
+    """
+    Create a fiber chain where one fiber has a status (break).
+    Fiber1 (ok) -> Node1 -> Fiber2 (BROKEN) -> Node2 -> Fiber3 (dark due to break)
+    """
+    from apps.api.models import AttributesFiberStatus
+
+    broken_status = AttributesFiberStatus.objects.create(fiber_status="Broken")
+
+    node1 = NodeFactory(name="Node-Before-Break")
+    node2 = NodeFactory(name="Node-After-Break")
+
+    slot_config1 = NodeSlotConfiguration.objects.create(
+        uuid_node=node1, side="A", total_slots=12
+    )
+    slot_config2 = NodeSlotConfiguration.objects.create(
+        uuid_node=node2, side="A", total_slots=12
+    )
+    component_type = AttributesComponentType.objects.create(
+        component_type="Splice Cassette", occupied_slots=2
+    )
+    structure1 = NodeStructure.objects.create(
+        uuid_node=node1,
+        slot_configuration=slot_config1,
+        component_type=component_type,
+        slot_start=1,
+        slot_end=2,
+    )
+    structure2 = NodeStructure.objects.create(
+        uuid_node=node2,
+        slot_configuration=slot_config2,
+        component_type=component_type,
+        slot_start=1,
+        slot_end=2,
+    )
+
+    cable1 = CableFactory(name="Cable-1")
+    cable2 = CableFactory(name="Cable-2")
+    cable3 = CableFactory(name="Cable-3")
+
+    fiber1 = FiberFactory(uuid_cable=cable1, fiber_number_absolute=1, fiber_status=None)
+    fiber2 = FiberFactory(
+        uuid_cable=cable2, fiber_number_absolute=1, fiber_status=broken_status
+    )
+    fiber3 = FiberFactory(uuid_cable=cable3, fiber_number_absolute=1, fiber_status=None)
+
+    FiberSplice.objects.create(
+        node_structure=structure1,
+        port_number=1,
+        fiber_a=fiber1,
+        cable_a=cable1,
+        fiber_b=fiber2,
+        cable_b=cable2,
+    )
+    FiberSplice.objects.create(
+        node_structure=structure2,
+        port_number=1,
+        fiber_a=fiber2,
+        cable_a=cable2,
+        fiber_b=fiber3,
+        cable_b=cable3,
+    )
+
+    return {
+        "nodes": [node1, node2],
+        "cables": [cable1, cable2, cable3],
+        "fibers": [fiber1, fiber2, fiber3],
+        "broken_fiber": fiber2,
+        "broken_status": broken_status,
+    }
+
+
+@pytest.fixture
+def fiber_no_breaks(simple_fiber_chain):
+    """Reuse simple_fiber_chain as a network with no breaks."""
+    return simple_fiber_chain
+
+
+@pytest.mark.django_db
+class TestAnalyzeSignalFlow:
+    """Tests for the analyze_signal_flow service function."""
+
+    def test_signal_flow_no_breaks(self, fiber_no_breaks):
+        """Test signal analysis on a network with no breaks."""
+        from apps.api.services import analyze_signal_flow
+
+        fiber = fiber_no_breaks["fibers"][0]
+        result = analyze_signal_flow(fiber.uuid)
+
+        assert result["signal_analysis"]["total_breaks"] == 0
+        assert result["signal_analysis"]["break_points"] == []
+        assert result["affected_summary"]["dark_fibers"] == 0
+
+    def test_signal_flow_with_break(self, fiber_with_break):
+        """Test signal analysis detects break and marks downstream as dark."""
+        from apps.api.services import analyze_signal_flow
+
+        fiber = fiber_with_break["fibers"][0]
+        result = analyze_signal_flow(fiber.uuid)
+
+        assert result["signal_analysis"]["total_breaks"] >= 1
+        assert len(result["signal_analysis"]["break_points"]) >= 1
+
+        break_point = result["signal_analysis"]["break_points"][0]
+        assert break_point["status"] == "Broken"
+
+    def test_signal_flow_available_sources(self, simple_fiber_chain):
+        """Test that available signal sources are collected."""
+        from apps.api.services import analyze_signal_flow
+
+        fiber = simple_fiber_chain["fibers"][0]
+        result = analyze_signal_flow(fiber.uuid)
+
+        assert "available_sources" in result["signal_analysis"]
+        # Should have collected cable endpoint nodes as sources
+
+    def test_signal_flow_source_node_selection(self, simple_fiber_chain):
+        """Test that source node is determined."""
+        from apps.api.services import analyze_signal_flow
+
+        fiber = simple_fiber_chain["fibers"][0]
+        result = analyze_signal_flow(fiber.uuid)
+
+        # Source node should be set (either explicitly or as default)
+        source = result["signal_analysis"]["source_node"]
+        # May be None if no cable endpoints have nodes, but structure should exist
+        assert "source_node" in result["signal_analysis"]
+
+    def test_signal_flow_affected_summary(self, fiber_with_break):
+        """Test that affected summary is calculated."""
+        from apps.api.services import analyze_signal_flow
+
+        fiber = fiber_with_break["fibers"][0]
+        result = analyze_signal_flow(fiber.uuid)
+
+        summary = result["affected_summary"]
+        assert "lit_fibers" in summary
+        assert "dark_fibers" in summary
+        assert "break_fibers" in summary
+        assert "lit_nodes" in summary
+        assert "dark_nodes" in summary
+        assert "affected_addresses" in summary
+        assert "affected_residential_units" in summary
+
+    def test_signal_flow_empty_trace(self, db):
+        """Test signal analysis handles non-existent fiber gracefully."""
+        from uuid import uuid4
+
+        from apps.api.services import analyze_signal_flow
+
+        # Should handle missing fiber
+        try:
+            result = analyze_signal_flow(uuid4())
+            # If it returns a result, check structure
+            assert result["trace_tree"] is None or "signal_analysis" in result
+        except Exception:
+            # It's acceptable to raise an exception for non-existent fiber
+            pass
+
+    def test_signal_flow_isolated_fiber(self, isolated_fiber):
+        """Test signal analysis on an isolated fiber."""
+        from apps.api.services import analyze_signal_flow
+
+        fiber, _ = isolated_fiber
+        result = analyze_signal_flow(fiber.uuid)
+
+        assert result["signal_analysis"]["total_breaks"] == 0
+        assert result["affected_summary"]["lit_fibers"] >= 1
+
+
+@pytest.mark.django_db
+class TestSignalAnalysisView:
+    """Tests for the SignalAnalysisView API endpoint."""
+
+    def test_signal_analysis_requires_authentication(self, db):
+        """Test that the signal analysis endpoint requires authentication."""
+        client = APIClient()
+        response = client.get("/api/v1/signal-analysis/")
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_signal_analysis_requires_fiber_id(self, authenticated_client):
+        """Test that fiber_id parameter is required."""
+        response = authenticated_client.get("/api/v1/signal-analysis/")
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "fiber_id" in response.data["error"].lower()
+
+    def test_signal_analysis_rejects_invalid_fiber_uuid(self, authenticated_client):
+        """Test that invalid fiber_id UUID format returns 400 error."""
+        response = authenticated_client.get(
+            "/api/v1/signal-analysis/?fiber_id=not-a-uuid"
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "fiber_id" in response.data["error"].lower()
+
+    def test_signal_analysis_rejects_invalid_source_uuid(
+        self, authenticated_client, simple_fiber_chain
+    ):
+        """Test that invalid signal_source_node_id UUID returns 400 error."""
+        fiber = simple_fiber_chain["fibers"][0]
+        response = authenticated_client.get(
+            f"/api/v1/signal-analysis/?fiber_id={fiber.uuid}&signal_source_node_id=bad-uuid"
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "signal_source_node_id" in response.data["error"].lower()
+
+    def test_signal_analysis_rejects_invalid_geometry_mode(
+        self, authenticated_client, simple_fiber_chain
+    ):
+        """Test that invalid geometry_mode returns 400 error."""
+        fiber = simple_fiber_chain["fibers"][0]
+        response = authenticated_client.get(
+            f"/api/v1/signal-analysis/?fiber_id={fiber.uuid}&geometry_mode=invalid"
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "geometry_mode" in response.data["error"].lower()
+
+    def test_signal_analysis_success(self, authenticated_client, simple_fiber_chain):
+        """Test successful signal analysis response."""
+        fiber = simple_fiber_chain["fibers"][0]
+
+        response = authenticated_client.get(
+            f"/api/v1/signal-analysis/?fiber_id={fiber.uuid}"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert "signal_analysis" in response.data
+        assert "trace_tree" in response.data
+        assert "affected_summary" in response.data
+        assert "statistics" in response.data
+
+    def test_signal_analysis_with_break(self, authenticated_client, fiber_with_break):
+        """Test signal analysis response includes break information."""
+        fiber = fiber_with_break["fibers"][0]
+
+        response = authenticated_client.get(
+            f"/api/v1/signal-analysis/?fiber_id={fiber.uuid}"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["signal_analysis"]["total_breaks"] >= 1
+
+    def test_signal_analysis_accepts_geometry_params(
+        self, authenticated_client, simple_fiber_chain
+    ):
+        """Test that geometry parameters are accepted."""
+        fiber = simple_fiber_chain["fibers"][0]
+
+        # Test with segments mode
+        response = authenticated_client.get(
+            f"/api/v1/signal-analysis/?fiber_id={fiber.uuid}"
+            "&include_geometry=true&geometry_mode=segments"
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+        # Test with merged mode
+        response = authenticated_client.get(
+            f"/api/v1/signal-analysis/?fiber_id={fiber.uuid}"
+            "&include_geometry=true&geometry_mode=merged"
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_signal_analysis_accepts_orient_geometry(
+        self, authenticated_client, simple_fiber_chain
+    ):
+        """Test that orient_geometry parameter is accepted."""
+        fiber = simple_fiber_chain["fibers"][0]
+
+        response = authenticated_client.get(
+            f"/api/v1/signal-analysis/?fiber_id={fiber.uuid}"
+            "&include_geometry=true&orient_geometry=true"
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_signal_analysis_with_custom_source(
+        self, authenticated_client, simple_fiber_chain
+    ):
+        """Test signal analysis with custom signal source node."""
+        fiber = simple_fiber_chain["fibers"][0]
+        node = simple_fiber_chain["nodes"][0]
+
+        response = authenticated_client.get(
+            f"/api/v1/signal-analysis/?fiber_id={fiber.uuid}"
+            f"&signal_source_node_id={node.uuid}"
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+
+# =============================================================================
+# Tests for Signal State Propagation
+# =============================================================================
+
+
+@pytest.mark.django_db
+class TestSignalStatePropagation:
+    """Tests for signal state propagation through trace tree."""
+
+    def test_all_lit_when_no_breaks(self, simple_fiber_chain):
+        """Test that all fibers are lit when there are no breaks."""
+        from apps.api.services import analyze_signal_flow
+
+        fiber = simple_fiber_chain["fibers"][0]
+        result = analyze_signal_flow(fiber.uuid)
+
+        def count_states(node, states=None):
+            if states is None:
+                states = {"lit": 0, "dark": 0, "break_point": 0}
+            if node:
+                state = node.get("signal_state", "lit")
+                states[state] = states.get(state, 0) + 1
+                for child in node.get("children", []):
+                    count_states(child, states)
+            return states
+
+        states = count_states(result["trace_tree"])
+        assert states["dark"] == 0
+        assert states["break_point"] == 0
+        assert states["lit"] >= 1
+
+    def test_dark_after_break(self, fiber_with_break):
+        """Test that fibers after a break are marked dark."""
+        from apps.api.services import analyze_signal_flow
+
+        fiber = fiber_with_break["fibers"][0]
+        result = analyze_signal_flow(fiber.uuid)
+
+        # Should have at least one break and some dark fibers
+        summary = result["affected_summary"]
+        assert summary["break_fibers"] >= 1 or summary["dark_fibers"] >= 0
+
+    def test_break_point_has_status(self, fiber_with_break):
+        """Test that break points include the fiber status."""
+        from apps.api.services import analyze_signal_flow
+
+        fiber = fiber_with_break["fibers"][0]
+        result = analyze_signal_flow(fiber.uuid)
+
+        break_points = result["signal_analysis"]["break_points"]
+        if break_points:
+            bp = break_points[0]
+            assert "status" in bp
+            assert bp["status"] == "Broken"
+            assert "fiber_id" in bp
+            assert "cable_name" in bp

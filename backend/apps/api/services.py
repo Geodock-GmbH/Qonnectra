@@ -1058,6 +1058,69 @@ def repackage_qgz(
 # =============================================================================
 
 
+def _get_entry_point_info(entry_type: str, entry_id) -> dict:
+    """
+    Get friendly name and info for an entry point based on its type.
+
+    Args:
+        entry_type: One of 'fiber', 'cable', 'node', 'address', 'residential_unit'
+        entry_id: UUID of the entry point
+
+    Returns:
+        Dict with 'type', 'id', and 'name' keys
+    """
+    entry_id_str = str(entry_id)
+    result = {"type": entry_type, "id": entry_id_str, "name": None}
+
+    sql_map = {
+        "fiber": """
+            SELECT f.fiber_number_absolute, c.name as cable_name
+            FROM fiber f
+            JOIN cable c ON c.uuid = f.uuid_cable
+            WHERE f.uuid = %(entry_id)s
+        """,
+        "cable": "SELECT name FROM cable WHERE uuid = %(entry_id)s",
+        "node": "SELECT name FROM node WHERE uuid = %(entry_id)s",
+        "address": """
+            SELECT
+                street || ' ' || housenumber ||
+                COALESCE(house_number_suffix, '') || ', ' ||
+                zip_code || ' ' || city as name
+            FROM address WHERE uuid = %(entry_id)s
+        """,
+        "residential_unit": """
+            SELECT
+                id_residential_unit,
+                floor
+            FROM residential_unit WHERE uuid = %(entry_id)s
+        """,
+    }
+
+    if entry_type not in sql_map:
+        return result
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(sql_map[entry_type], {"entry_id": entry_id_str})
+            row = cursor.fetchone()
+            if row:
+                if entry_type == "fiber":
+                    # For fiber, combine fiber number with cable name
+                    fiber_num, cable_name = row
+                    result["name"] = f"F{fiber_num} in {cable_name}" if fiber_num else None
+                elif entry_type == "residential_unit":
+                    # Return separate fields for frontend to format with i18n
+                    id_ru, floor = row
+                    result["name"] = id_ru or None
+                    result["floor"] = floor
+                else:
+                    result["name"] = row[0]
+    except Exception:
+        pass
+
+    return result
+
+
 def trace_fiber(
     fiber_id,
     include_geometry: bool = False,
@@ -1340,6 +1403,19 @@ def trace_fiber(
     )
 
 
+def _sort_trace_trees(trace_trees: list) -> list:
+    """
+    Sort trace trees by cable name (ASC), then fiber number absolute (ASC).
+    """
+    return sorted(
+        trace_trees,
+        key=lambda t: (
+            (t.get("fiber", {}).get("cable_name") or ""),
+            t.get("fiber", {}).get("fiber_number_absolute") or 0,
+        ),
+    )
+
+
 def trace_cable(
     cable_id,
     include_geometry: bool = False,
@@ -1349,6 +1425,8 @@ def trace_cable(
     """
     Trace all fibers in a cable through their splice connections.
     """
+    entry_point = _get_entry_point_info("cable", cable_id)
+
     sql = """
     SELECT uuid FROM fiber WHERE uuid_cable = %(cable_id)s
     """
@@ -1359,7 +1437,7 @@ def trace_cable(
 
     if not fiber_ids:
         return {
-            "entry_point": {"type": "cable", "id": str(cable_id)},
+            "entry_point": entry_point,
             "trace_trees": [],
             "cable_infrastructure": {},
             "statistics": {
@@ -1395,9 +1473,11 @@ def trace_cable(
             if cable_id_str not in merged_infrastructure:
                 merged_infrastructure[cable_id_str] = infra
 
+    trace_trees = [t["trace_tree"] for t in all_traces if t["trace_tree"]]
+
     return {
-        "entry_point": {"type": "cable", "id": str(cable_id)},
-        "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
+        "entry_point": entry_point,
+        "trace_trees": _sort_trace_trees(trace_trees),
         "cable_infrastructure": merged_infrastructure,
         "statistics": {
             "total_fibers": total_fibers,
@@ -1454,13 +1534,15 @@ def trace_node(
     WHERE fiber_id IS NOT NULL
     """
 
+    entry_point = _get_entry_point_info("node", node_id)
+
     with connection.cursor() as cursor:
         cursor.execute(sql, {"node_id": str(node_id)})
         fiber_ids = [row[0] for row in cursor.fetchall() if row[0]]
 
     if not fiber_ids:
         return {
-            "entry_point": {"type": "node", "id": str(node_id)},
+            "entry_point": entry_point,
             "trace_trees": [],
             "cable_infrastructure": {},
             "statistics": {
@@ -1502,9 +1584,11 @@ def trace_node(
             if cable_id_str not in merged_infrastructure:
                 merged_infrastructure[cable_id_str] = infra
 
+    trace_trees = [t["trace_tree"] for t in all_traces if t["trace_tree"]]
+
     return {
-        "entry_point": {"type": "node", "id": str(node_id)},
-        "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
+        "entry_point": entry_point,
+        "trace_trees": _sort_trace_trees(trace_trees),
         "cable_infrastructure": merged_infrastructure,
         "statistics": {
             "total_fibers": total_fibers,
@@ -1558,13 +1642,15 @@ def trace_address(
     WHERE fiber_id IS NOT NULL
     """
 
+    entry_point = _get_entry_point_info("address", address_id)
+
     with connection.cursor() as cursor:
         cursor.execute(sql, {"address_id": str(address_id)})
         fiber_ids = [row[0] for row in cursor.fetchall()]
 
     if not fiber_ids:
         return {
-            "entry_point": {"type": "address", "id": str(address_id)},
+            "entry_point": entry_point,
             "trace_trees": [],
             "cable_infrastructure": {},
             "statistics": {
@@ -1606,9 +1692,11 @@ def trace_address(
             if cable_id_str not in merged_infrastructure:
                 merged_infrastructure[cable_id_str] = infra
 
+    trace_trees = [t["trace_tree"] for t in all_traces if t["trace_tree"]]
+
     return {
-        "entry_point": {"type": "address", "id": str(address_id)},
-        "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
+        "entry_point": entry_point,
+        "trace_trees": _sort_trace_trees(trace_trees),
         "cable_infrastructure": merged_infrastructure,
         "statistics": {
             "total_fibers": total_fibers,
@@ -1641,13 +1729,15 @@ def trace_residential_unit(
            OR fs.fiber_b IS NOT NULL OR fs.shared_fiber_b IS NOT NULL)
     """
 
+    entry_point = _get_entry_point_info("residential_unit", residential_unit_id)
+
     with connection.cursor() as cursor:
         cursor.execute(sql, {"ru_id": str(residential_unit_id)})
         fiber_ids = [row[0] for row in cursor.fetchall() if row[0]]
 
     if not fiber_ids:
         return {
-            "entry_point": {"type": "residential_unit", "id": str(residential_unit_id)},
+            "entry_point": entry_point,
             "trace_trees": [],
             "cable_infrastructure": {},
             "statistics": {
@@ -1689,9 +1779,11 @@ def trace_residential_unit(
             if cable_id_str not in merged_infrastructure:
                 merged_infrastructure[cable_id_str] = infra
 
+    trace_trees = [t["trace_tree"] for t in all_traces if t["trace_tree"]]
+
     return {
-        "entry_point": {"type": "residential_unit", "id": str(residential_unit_id)},
-        "trace_trees": [t["trace_tree"] for t in all_traces if t["trace_tree"]],
+        "entry_point": entry_point,
+        "trace_trees": _sort_trace_trees(trace_trees),
         "cable_infrastructure": merged_infrastructure,
         "statistics": {
             "total_fibers": total_fibers,
@@ -1704,6 +1796,123 @@ def trace_residential_unit(
             "has_branches": has_branches,
         },
     }
+
+
+def _get_starting_fiber_splices(fiber_id) -> list[dict]:
+    """
+    Get splice info for a fiber where it sits in a splice (as fiber_a or fiber_b)
+    without necessarily having a connected fiber on the other side.
+
+    This captures endpoints where a fiber is placed in a slot but not yet connected
+    to another fiber.
+
+    Returns:
+        List of splice info dicts with component and container path data.
+    """
+    sql = """
+    WITH RECURSIVE container_hierarchy AS (
+        SELECT
+            c.uuid as container_id,
+            c.parent_container,
+            c.name as container_name,
+            ct.name as container_type_name,
+            ARRAY[jsonb_build_object(
+                'type', ct.name,
+                'name', c.name
+            )] as path,
+            1 as depth
+        FROM container c
+        JOIN container_type ct ON ct.id = c.container_type
+        WHERE c.parent_container IS NULL
+
+        UNION ALL
+
+        SELECT
+            c.uuid as container_id,
+            c.parent_container,
+            c.name as container_name,
+            ct.name as container_type_name,
+            ch.path || jsonb_build_object(
+                'type', ct.name,
+                'name', c.name
+            ),
+            ch.depth + 1
+        FROM container c
+        JOIN container_type ct ON ct.id = c.container_type
+        JOIN container_hierarchy ch ON ch.container_id = c.parent_container
+        WHERE ch.depth < 10
+    )
+    SELECT
+        fs.uuid as splice_id,
+        fs.port_number,
+        n.uuid as node_id,
+        n.name as node_name,
+        comp_type.component_type as component_type_name,
+        comp_struct.in_or_out as component_in_or_out,
+        comp_struct.port as component_structure_port,
+        comp_struct.port_alias as component_structure_port_alias,
+        ns.slot_start as component_slot_start,
+        ns.slot_end as component_slot_end,
+        nsc.side as component_slot_side,
+        nsc.container as component_container_id,
+        ch.path as container_path,
+        CASE
+            WHEN fs.fiber_a = %(fiber_id)s AND fs.fiber_b IS NULL THEN true
+            WHEN fs.fiber_b = %(fiber_id)s AND fs.fiber_a IS NULL THEN true
+            ELSE false
+        END as is_endpoint
+    FROM fiber_splice fs
+    JOIN node_structure ns ON ns.uuid = fs.node_structure
+    JOIN node n ON n.uuid = ns.uuid_node
+    LEFT JOIN attributes_component_type comp_type ON comp_type.id = ns.component_type
+    LEFT JOIN attributes_component_structure comp_struct ON comp_struct.id = ns.component_structure
+    LEFT JOIN node_slot_configuration nsc ON nsc.uuid = ns.slot_configuration
+    LEFT JOIN container_hierarchy ch ON ch.container_id = nsc.container
+    WHERE (fs.fiber_a = %(fiber_id)s OR fs.fiber_b = %(fiber_id)s
+           OR fs.shared_fiber_a = %(fiber_id)s OR fs.shared_fiber_b = %(fiber_id)s)
+      AND (
+          (fs.fiber_a = %(fiber_id)s AND fs.fiber_b IS NULL)
+          OR (fs.fiber_b = %(fiber_id)s AND fs.fiber_a IS NULL)
+      )
+    """
+
+    result = []
+    with connection.cursor() as cursor:
+        cursor.execute(sql, {"fiber_id": str(fiber_id)})
+        columns = [col[0] for col in cursor.description]
+        for row in cursor.fetchall():
+            row_dict = dict(zip(columns, row))
+
+            container_path = row_dict.get("container_path") or []
+            parsed_path = []
+            for item in container_path:
+                if isinstance(item, str):
+                    parsed_path.append(json.loads(item))
+                else:
+                    parsed_path.append(item)
+
+            splice_info = {
+                "id": str(row_dict["splice_id"]),
+                "port_number": row_dict.get("port_number"),
+                "node": {
+                    "id": str(row_dict["node_id"]) if row_dict.get("node_id") else None,
+                    "name": row_dict.get("node_name"),
+                },
+                "component": {
+                    "type": row_dict.get("component_type_name"),
+                    "in_or_out": row_dict.get("component_in_or_out"),
+                    "structure_port": row_dict.get("component_structure_port"),
+                    "structure_port_alias": row_dict.get("component_structure_port_alias"),
+                    "slot_start": row_dict.get("component_slot_start"),
+                    "slot_end": row_dict.get("component_slot_end"),
+                    "slot_side": row_dict.get("component_slot_side"),
+                },
+                "container_path": parsed_path,
+                "is_endpoint": row_dict.get("is_endpoint", False),
+            }
+            result.append(splice_info)
+
+    return result
 
 
 def _build_trace_result(
@@ -1726,9 +1935,11 @@ def _build_trace_result(
         geometry_mode: "segments" for individual trenches, "merged" for combined
         orient_geometry: If True, orient geometries from cable start to end
     """
+    entry_point = _get_entry_point_info(entry_type, entry_id)
+
     if not rows:
         return {
-            "entry_point": {"type": entry_type, "id": str(entry_id)},
+            "entry_point": entry_point,
             "trace_tree": None,
             "statistics": {
                 "total_fibers": 0,
@@ -1916,6 +2127,11 @@ def _build_trace_result(
         return splice_data
 
     root = rows[0]
+
+    # Get endpoint splices for the starting fiber (where it sits but has no connection)
+    starting_fiber_id = root["fiber_id"]
+    endpoint_splices = _get_starting_fiber_splices(starting_fiber_id)
+
     trace_tree = {
         "fiber": {
             "id": str(root["fiber_id"]),
@@ -1937,6 +2153,7 @@ def _build_trace_result(
         "node": build_node_with_address(root),
         "residential_units": build_residential_units(root),
         "direction": root.get("direction"),
+        "endpoint_splices": endpoint_splices if endpoint_splices else None,
         "children": [],
     }
 
@@ -2037,7 +2254,7 @@ def _build_trace_result(
     )
 
     return {
-        "entry_point": {"type": entry_type, "id": str(entry_id)},
+        "entry_point": entry_point,
         "trace_tree": trace_tree,
         "cable_infrastructure": cable_infrastructure,
         "statistics": {
@@ -2208,6 +2425,7 @@ def _get_cable_infrastructure(
     sql = f"""
     SELECT
         c.uuid as cable_id,
+        c.name as cable_name,
         md.uuid as microduct_id,
         md.number as microduct_number,
         md.color as microduct_color,
@@ -2248,6 +2466,7 @@ def _get_cable_infrastructure(
         cable_id = str(row["cable_id"])
         if cable_id not in infrastructure:
             infrastructure[cable_id] = {
+                "cable_name": row.get("cable_name"),
                 "microduct": None,
                 "conduit": None,
                 "trenches": [],
@@ -2361,7 +2580,7 @@ def trace_fiber_summary(fiber_id) -> dict:
             return
 
         # Collect cable endpoint nodes
-        endpoints = node.get("cable_endpoints", {})
+        endpoints = node.get("cable_endpoints") or {}
         for key in ["start_node", "end_node"]:
             n = endpoints.get(key)
             if n and n.get("id"):
@@ -2427,4 +2646,322 @@ def trace_fiber_summary(fiber_id) -> dict:
             "total_addresses": stats.get("total_addresses", 0),
             "total_residential_units": stats.get("total_residential_units", 0),
         },
+    }
+
+
+# =============================================================================
+# Signal Analysis Functions
+# =============================================================================
+
+
+def _collect_available_signal_sources(trace_tree: dict) -> list[dict]:
+    """
+    Collect all available signal source nodes from the trace tree.
+    These are the cable start/end nodes encountered in the trace.
+
+    Returns:
+        List of source node options with id, name, direction, and is_default flag.
+    """
+    sources = {}
+
+    def collect_from_node(node):
+        if not node:
+            return
+
+        cable_endpoints = node.get("cable_endpoints")
+        if cable_endpoints:
+            start = cable_endpoints.get("start_node")
+            if start and start.get("id"):
+                node_id = start["id"]
+                if node_id not in sources:
+                    sources[node_id] = {
+                        "id": node_id,
+                        "name": start.get("name"),
+                        "type": start.get("type"),
+                        "direction": "start",
+                        "address": start.get("address"),
+                    }
+
+            end = cable_endpoints.get("end_node")
+            if end and end.get("id"):
+                node_id = end["id"]
+                if node_id not in sources:
+                    sources[node_id] = {
+                        "id": node_id,
+                        "name": end.get("name"),
+                        "type": end.get("type"),
+                        "direction": "end",
+                        "address": end.get("address"),
+                    }
+
+        for child in node.get("children", []):
+            collect_from_node(child)
+
+    collect_from_node(trace_tree)
+    return list(sources.values())
+
+
+def _determine_signal_source(
+    trace_tree: dict,
+    available_sources: list[dict],
+    requested_source_id: str | None = None,
+) -> dict | None:
+    """
+    Determine which node is the signal source.
+
+    Args:
+        trace_tree: The trace tree structure
+        available_sources: List of available source nodes
+        requested_source_id: User-requested source node ID (optional)
+
+    Returns:
+        The selected source node info, or None if no valid sources.
+    """
+    if not available_sources:
+        return None
+
+    if requested_source_id:
+        for source in available_sources:
+            if source["id"] == requested_source_id:
+                return source
+
+    # Default: use first cable's start node
+    cable_endpoints = trace_tree.get("cable_endpoints")
+    if cable_endpoints:
+        start = cable_endpoints.get("start_node")
+        if start and start.get("id"):
+            for source in available_sources:
+                if source["id"] == start["id"]:
+                    return source
+
+    return available_sources[0] if available_sources else None
+
+
+def _propagate_signal_state(
+    node: dict,
+    source_node_id: str,
+    current_state: str = "lit",
+    break_points: list | None = None,
+) -> str:
+    """
+    Recursively propagate signal state through trace tree.
+    Mutates nodes in place by adding 'signal_state' field.
+
+    Signal propagation rules:
+    - Start from source node as "lit"
+    - If a fiber has status (non-null), mark it as "break_point"
+    - All children of a break_point become "dark"
+
+    Args:
+        node: Current trace tree node to process
+        source_node_id: ID of the signal source node
+        current_state: Current signal state ("lit" or "dark")
+        break_points: List to collect break point info (mutated)
+
+    Returns:
+        The signal state after processing this node.
+    """
+    if break_points is None:
+        break_points = []
+
+    if not node:
+        return current_state
+
+    fiber = node.get("fiber", {})
+    fiber_status = fiber.get("status")
+
+    if current_state == "dark":
+        node["signal_state"] = "dark"
+        propagate_state = "dark"
+    elif fiber_status:
+        node["signal_state"] = "break_point"
+        propagate_state = "dark"
+
+        splice_node = node.get("node")
+        break_points.append({
+            "fiber_id": fiber.get("id"),
+            "fiber_number_absolute": fiber.get("fiber_number_absolute"),
+            "cable_id": fiber.get("cable_id"),
+            "cable_name": fiber.get("cable_name"),
+            "status": fiber_status,
+            "at_node": {
+                "id": splice_node.get("id") if splice_node else None,
+                "name": splice_node.get("name") if splice_node else None,
+            } if splice_node else None,
+        })
+    else:
+        node["signal_state"] = "lit"
+        propagate_state = "lit"
+
+    for child in node.get("children", []):
+        _propagate_signal_state(child, source_node_id, propagate_state, break_points)
+
+    return node["signal_state"]
+
+
+def _collect_affected_summary(trace_tree: dict) -> dict:
+    """
+    Collect statistics about lit/dark components in the trace tree.
+
+    Returns:
+        Dict with counts of lit/dark fibers, nodes, addresses, and RUs.
+    """
+    summary = {
+        "lit_fibers": 0,
+        "dark_fibers": 0,
+        "break_fibers": 0,
+        "lit_nodes": 0,
+        "dark_nodes": 0,
+        "affected_addresses": set(),
+        "affected_residential_units": set(),
+    }
+
+    def collect_from_node(node):
+        if not node:
+            return
+
+        signal_state = node.get("signal_state", "lit")
+
+        if signal_state == "lit":
+            summary["lit_fibers"] += 1
+        elif signal_state == "dark":
+            summary["dark_fibers"] += 1
+        elif signal_state == "break_point":
+            summary["break_fibers"] += 1
+
+        splice_node = node.get("node")
+        if splice_node and splice_node.get("id"):
+            if signal_state == "dark":
+                summary["dark_nodes"] += 1
+            else:
+                summary["lit_nodes"] += 1
+
+            address = splice_node.get("address")
+            if address and address.get("id") and signal_state == "dark":
+                summary["affected_addresses"].add(address["id"])
+
+        rus = node.get("residential_units") or []
+        for ru in rus:
+            if ru and ru.get("id") and signal_state == "dark":
+                summary["affected_residential_units"].add(ru["id"])
+
+        for child in node.get("children", []):
+            collect_from_node(child)
+
+    collect_from_node(trace_tree)
+
+    return {
+        "lit_fibers": summary["lit_fibers"],
+        "dark_fibers": summary["dark_fibers"],
+        "break_fibers": summary["break_fibers"],
+        "lit_nodes": summary["lit_nodes"],
+        "dark_nodes": summary["dark_nodes"],
+        "affected_addresses": len(summary["affected_addresses"]),
+        "affected_residential_units": len(summary["affected_residential_units"]),
+    }
+
+
+def analyze_signal_flow(
+    fiber_id,
+    signal_source_node_id: str = None,
+    include_geometry: bool = False,
+    geometry_mode: str = "segments",
+    orient_geometry: bool = False,
+) -> dict:
+    """
+    Analyze signal flow through a fiber trace, marking lit/dark portions.
+
+    Uses the existing trace_fiber() function to get the complete trace,
+    then overlays signal flow analysis based on:
+    - Selected signal source node (defaults to cable start node)
+    - Fiber status (non-null status indicates a break)
+
+    Signal states:
+    - "lit": Fiber is receiving signal from source
+    - "break_point": Fiber has a status (broken/defective)
+    - "dark": Fiber is downstream of a break, no signal
+
+    Args:
+        fiber_id: UUID of the fiber to trace and analyze
+        signal_source_node_id: Node UUID where signal originates (optional).
+            If not provided, defaults to the root cable's start node.
+        include_geometry: If True, include trench geometry
+        geometry_mode: "segments" for individual trenches, "merged" for combined
+        orient_geometry: If True, orient geometries from cable start to end
+
+    Returns:
+        dict containing:
+        - entry_point: Entry point information
+        - signal_analysis: Signal source and break point details
+        - trace_tree: Trace tree with signal_state on each node
+        - affected_summary: Statistics about affected components
+        - statistics: Standard trace statistics
+        - cable_infrastructure: Infrastructure details (same as trace_fiber)
+    """
+    trace_result = trace_fiber(
+        fiber_id,
+        include_geometry=include_geometry,
+        geometry_mode=geometry_mode,
+        orient_geometry=orient_geometry,
+    )
+
+    if "_raw_segments" in trace_result:
+        del trace_result["_raw_segments"]
+
+    trace_tree = trace_result.get("trace_tree")
+    if not trace_tree:
+        return {
+            "entry_point": trace_result.get("entry_point"),
+            "signal_analysis": {
+                "source_node": None,
+                "available_sources": [],
+                "break_points": [],
+                "total_breaks": 0,
+            },
+            "trace_tree": None,
+            "affected_summary": {
+                "lit_fibers": 0,
+                "dark_fibers": 0,
+                "break_fibers": 0,
+                "lit_nodes": 0,
+                "dark_nodes": 0,
+                "affected_addresses": 0,
+                "affected_residential_units": 0,
+            },
+            "statistics": trace_result.get("statistics", {}),
+            "cable_infrastructure": trace_result.get("cable_infrastructure", {}),
+        }
+
+    available_sources = _collect_available_signal_sources(trace_tree)
+    source_node = _determine_signal_source(
+        trace_tree, available_sources, signal_source_node_id
+    )
+
+    for src in available_sources:
+        src["is_default"] = (
+            source_node is not None and src["id"] == source_node.get("id")
+        )
+
+    break_points = []
+    _propagate_signal_state(
+        trace_tree,
+        source_node["id"] if source_node else None,
+        current_state="lit",
+        break_points=break_points,
+    )
+
+    affected_summary = _collect_affected_summary(trace_tree)
+
+    return {
+        "entry_point": trace_result.get("entry_point"),
+        "signal_analysis": {
+            "source_node": source_node,
+            "available_sources": available_sources,
+            "break_points": break_points,
+            "total_breaks": len(break_points),
+        },
+        "trace_tree": trace_tree,
+        "affected_summary": affected_summary,
+        "statistics": trace_result.get("statistics", {}),
+        "cable_infrastructure": trace_result.get("cable_infrastructure", {}),
     }

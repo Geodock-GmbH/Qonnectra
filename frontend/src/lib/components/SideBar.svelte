@@ -9,6 +9,7 @@
 		IconFileText,
 		IconHome2,
 		IconMap2,
+		IconNetwork,
 		IconSettings,
 		IconTextPlus,
 		IconTopologyRing2
@@ -67,6 +68,12 @@
 			label: () => m.nav_network_schema(),
 			icon: IconTopologyRing2,
 			pathMatch: (path) => path.startsWith('/network-schema')
+		},
+		{
+			href: '/trace',
+			label: () => m.nav_fiber_trace(),
+			icon: IconNetwork,
+			pathMatch: (path) => path.startsWith('/trace')
 		}
 	];
 

@@ -54,11 +54,14 @@ export class NodeStructureManager {
 	}
 
 	/**
-	 * Get slot configurations (from shared state if available, otherwise local)
+	 * Get slot configurations (from shared state if available and for current node, otherwise local)
 	 * @returns {Array<Object>}
 	 */
 	get slotConfigurations() {
-		if (this.#sharedSlotState?.slotConfigurations?.length > 0) {
+		if (
+			this.#sharedSlotState?.slotConfigurations?.length > 0 &&
+			this.#sharedSlotState?.nodeUuid === this.nodeUuid
+		) {
 			return this.#sharedSlotState.slotConfigurations;
 		}
 		return this.localSlotConfigurations;
@@ -148,7 +151,11 @@ export class NodeStructureManager {
 	async fetchSlotConfigurations() {
 		if (!this.nodeUuid) return;
 
-		if (this.#sharedSlotState?.slotConfigurations?.length > 0) {
+		// Only use shared state if it's for the current node
+		if (
+			this.#sharedSlotState?.slotConfigurations?.length > 0 &&
+			this.#sharedSlotState?.nodeUuid === this.nodeUuid
+		) {
 			this.loading = false;
 			if (!this.selectedSlotConfigUuid && this.slotConfigurations.length > 0) {
 				this.selectedSlotConfigUuid = this.slotConfigurations[0].uuid;
@@ -754,6 +761,9 @@ export class NodeStructureManager {
 	 */
 	syncWithSharedState(sharedState) {
 		if (!sharedState) return;
+
+		// Only sync if shared state is for the current node
+		if (sharedState.nodeUuid !== this.nodeUuid) return;
 
 		this.#sharedSlotState = sharedState;
 		this.loading = false;

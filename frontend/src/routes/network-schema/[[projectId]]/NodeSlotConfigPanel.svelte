@@ -92,6 +92,7 @@
 			if (sharedSlotState) {
 				// Flatten all slot configurations from hierarchy (root + nested in containers)
 				const allSlotConfigs = extractAllSlotConfigurations(hierarchy);
+				sharedSlotState.nodeUuid = nodeUuid;
 				sharedSlotState.slotConfigurations = allSlotConfigs;
 				sharedSlotState.lastUpdated = Date.now();
 			}
