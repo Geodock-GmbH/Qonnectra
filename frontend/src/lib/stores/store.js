@@ -125,10 +125,10 @@ export const wmsSourcesData = writable({ sources: [], loaded: false });
  * @param {object} config - The full visibility config store value
  * @param {string} projectId - The project ID
  * @param {string} layerId - The WMS layer ID
- * @param {boolean} [defaultValue=true] - Default visibility if not set
+ * @param {boolean} [defaultValue=false] - Default visibility if not set
  * @returns {boolean}
  */
-export function getWMSLayerVisibility(config, projectId, layerId, defaultValue = true) {
+export function getWMSLayerVisibility(config, projectId, layerId, defaultValue = false) {
 	return config[projectId]?.[layerId] ?? defaultValue;
 }
 
