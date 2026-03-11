@@ -5,6 +5,7 @@
 		IconArrowLeft,
 		IconBuilding,
 		IconDeviceFloppy,
+		IconDownload,
 		IconFolder,
 		IconHome,
 		IconLink,
@@ -25,6 +26,7 @@
 	import Map from '$lib/components/Map.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { generateAddressPdf } from '$lib/utils/addressPdf.js';
 	import { tooltip } from '$lib/utils/tooltip.js';
 
 	import ResidentialUnitsSection from './ResidentialUnitsSection.svelte';
@@ -34,6 +36,8 @@
 	let isSaving = $state(false);
 	let isDeleting = $state(false);
 	let isRegenerating = $state(false);
+	let isDownloading = $state(false);
+	let includeResidentialUnits = $state(false);
 
 	const address = $derived(data.address);
 	const projectId = $derived(data.projectId);
@@ -75,6 +79,7 @@
 	let addressMarkerLayer = $state(null);
 	let mapCenter = $state(null);
 	let mapReady = $state(false);
+	let mapContainerEl = $state(null);
 
 	let derivedIdAddress = $derived(id_address);
 
@@ -282,6 +287,77 @@
 	function handleUploadComplete() {
 		if (fileExplorer) {
 			fileExplorer.refresh();
+		}
+	}
+
+	/**
+	 * Handle the PDF download action
+	 */
+	async function handleDownloadPdf() {
+		isDownloading = true;
+		try {
+			let mapImage = null;
+			if (mapContainerEl) {
+				const canvas = mapContainerEl.querySelector('canvas');
+				if (canvas) {
+					mapImage = canvas.toDataURL('image/png');
+				}
+			}
+
+			const addressData = {
+				...address,
+				coords25832: convert3857ToDefault(),
+				coords4326: convert3857To4326()
+			};
+
+			generateAddressPdf({
+				address: addressData,
+				residentialUnits,
+				mapImage,
+				includeResidentialUnits,
+				labels: {
+					sectionAddressInformation: m.section_address_information(),
+					sectionClassification: m.section_classification(),
+					sectionLocation: m.section_location(),
+					idAddress: m.form_id_address({ count: 1 }),
+					street: m.form_street(),
+					housenumber: m.form_housenumber(),
+					zipCode: m.form_zip_code(),
+					city: m.form_city(),
+					district: m.form_district(),
+					statusDevelopment: m.form_status_development(),
+					flag: m.form_flag(),
+					project: m.form_project({ count: 1 }),
+					residentialUnit: m.section_residential_units(),
+					sectionIdentification: m.form_id_residential_unit(),
+					sectionUnitLocation: m.section_location(),
+					sectionResident: m.from_resident(),
+					unitId: m.table_residential_unit_id(),
+					unitType: m.table_residential_unit_type(),
+					unitStatus: m.table_residential_unit_status(),
+					floor: m.table_floor(),
+					side: m.table_side(),
+					buildingSection: m.form_building_section(),
+					externalId1: m.form_external_id_1(),
+					externalId2: m.form_external_id_2(),
+					residentName: m.form_resident_name(),
+					residentRecordedDate: m.form_resident_recorded_date(),
+					readyForService: m.form_ready_for_service()
+				}
+			});
+
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_success_downloading_pdf()
+			});
+		} catch (error) {
+			console.error('Error generating PDF:', error);
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_downloading_pdf()
+			});
+		} finally {
+			isDownloading = false;
 		}
 	}
 
@@ -499,7 +575,10 @@
 				</div>
 
 				{#if geom3857?.coordinates && mapReady && addressMarkerLayer}
-					<div class="h-64 md:h-80 rounded-lg overflow-hidden border border-surface-200-800">
+					<div
+						bind:this={mapContainerEl}
+						class="h-64 md:h-80 rounded-lg overflow-hidden border border-surface-200-800"
+					>
 						<Map
 							variant="compact"
 							layers={[addressMarkerLayer]}
@@ -553,6 +632,26 @@
 						</div>
 					</div>
 				{/if}
+
+				<!-- PDF Download -->
+				<div class="border-t border-surface-200-800 pt-4 flex items-center gap-4">
+					<button
+						onclick={handleDownloadPdf}
+						class="btn preset-tonal-primary inline-flex items-center gap-2"
+						disabled={isDownloading}
+					>
+						{#if isDownloading}
+							<span>{m.common_loading()}</span>
+						{:else}
+							<IconDownload class="size-4 shrink-0" />
+							<span>{m.action_download_pdf()}</span>
+						{/if}
+					</button>
+					<label class="flex items-center gap-2 text-sm cursor-pointer select-none">
+						<input type="checkbox" class="checkbox" bind:checked={includeResidentialUnits} />
+						<span class="text-surface-900-100">{m.pdf_include_residential_units()}</span>
+					</label>
+				</div>
 			</div>
 		</div>
 
