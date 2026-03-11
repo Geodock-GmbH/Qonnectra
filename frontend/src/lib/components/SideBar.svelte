@@ -2,17 +2,17 @@
 	import { page } from '$app/state';
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 	import {
-		IconAddressBook,
-		IconAffiliate,
-		IconArrowBarToRight,
+		IconAiGateway,
+		IconArrowRightToArc,
+		IconBuildings,
 		IconChartArcs,
 		IconFileText,
-		IconHome2,
-		IconMap2,
-		IconNetwork,
+		IconMapPin,
 		IconSettings,
-		IconTextPlus,
-		IconTopologyRing2
+		IconSTurnRight,
+		IconTable,
+		IconTopologyBus,
+		IconTopologyRing3
 	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -34,7 +34,7 @@
 		{
 			href: '/map',
 			label: () => m.nav_map(),
-			icon: IconMap2,
+			icon: IconMapPin,
 			pathMatch: (path) => path.startsWith('/map')
 		}
 	];
@@ -43,37 +43,40 @@
 		{
 			href: '/conduit',
 			label: () => m.nav_conduit_management(),
-			icon: IconTextPlus,
+			icon: IconTable,
 			pathMatch: (path) => path.startsWith('/conduit')
 		},
 		{
 			href: '/trench',
 			label: () => m.nav_conduit_connection(),
-			icon: IconArrowBarToRight,
+			icon: IconArrowRightToArc,
 			pathMatch: (path) => path.startsWith('/trench')
 		},
 		{
 			href: '/pipe-branch',
 			label: () => m.nav_pipe_branch(),
-			icon: IconAffiliate,
+			icon: IconAiGateway,
 			pathMatch: (path) => path.startsWith('/pipe-branch')
 		},
 		{
 			href: '/house-connections',
 			label: () => m.nav_house_connections(),
-			icon: IconHome2,
+			icon: IconTopologyBus,
 			pathMatch: (path) => path.startsWith('/house-connections')
-		},
+		}
+	];
+
+	const allCableLinks = [
 		{
 			href: '/network-schema',
 			label: () => m.nav_network_schema(),
-			icon: IconTopologyRing2,
+			icon: IconTopologyRing3,
 			pathMatch: (path) => path.startsWith('/network-schema')
 		},
 		{
 			href: '/trace',
 			label: () => m.nav_fiber_trace(),
-			icon: IconNetwork,
+			icon: IconSTurnRight,
 			pathMatch: (path) => path.startsWith('/trace')
 		}
 	];
@@ -82,7 +85,7 @@
 		{
 			href: '/address',
 			label: () => m.nav_address(),
-			icon: IconAddressBook,
+			icon: IconBuildings,
 			pathMatch: (path) => path.startsWith('/address')
 		}
 	];
@@ -112,10 +115,16 @@
 
 	const mainLinks = $derived(filterByPermission(allMainLinks));
 	const infrastructureLinks = $derived(filterByPermission(allInfrastructureLinks));
+	const cableLinks = $derived(filterByPermission(allCableLinks));
 	const addressLinks = $derived(filterByPermission(allAddressLinks));
 	const footerLinks = $derived(filterByPermission(allFooterLinks));
 
-	const allContentLinks = $derived([...mainLinks, ...infrastructureLinks, ...addressLinks]);
+	const allContentLinks = $derived([
+		...mainLinks,
+		...infrastructureLinks,
+		...cableLinks,
+		...addressLinks
+	]);
 
 	function getAnchorClass(isSelected) {
 		const justifyClass = $sidebarExpanded ? 'justify-start' : 'justify-center';
@@ -170,10 +179,31 @@
 				{#if infrastructureLinks.length > 0}
 					<Navigation.Group>
 						<Navigation.Label class="text-surface-900-100"
-							>{m.nav_category_infrastructure()}</Navigation.Label
+							>{m.nav_category_conduit()}</Navigation.Label
 						>
 						<Navigation.Menu>
 							{#each infrastructureLinks as link}
+								{@const Icon = link.icon}
+								{@const isSelected = link.pathMatch(page.url.pathname)}
+								<a
+									href={link.href}
+									class={getAnchorClass(isSelected)}
+									aria-label={link.label()}
+									{@attach tooltip(link.label())}
+								>
+									<Icon size={28} class="text-surface-700-300" />
+									<span>{link.label()}</span>
+								</a>
+							{/each}
+						</Navigation.Menu>
+					</Navigation.Group>
+				{/if}
+
+				{#if cableLinks.length > 0}
+					<Navigation.Group>
+						<Navigation.Label>{m.nav_category_cable()}</Navigation.Label>
+						<Navigation.Menu>
+							{#each cableLinks as link}
 								{@const Icon = link.icon}
 								{@const isSelected = link.pathMatch(page.url.pathname)}
 								<a

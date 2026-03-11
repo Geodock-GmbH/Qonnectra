@@ -4,18 +4,18 @@
 	import { page } from '$app/state';
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 	import {
-		IconAddressBook,
-		IconAffiliate,
-		IconArrowBarToRight,
+		IconAiGateway,
+		IconArrowRightToArc,
+		IconBuildings,
 		IconChartArcs,
 		IconDotsVertical,
 		IconFileText,
-		IconHome2,
-		IconMap2,
-		IconNetwork,
+		IconMapPin,
 		IconSettings,
-		IconTextPlus,
-		IconTopologyRing2
+		IconSTurnRight,
+		IconTable,
+		IconTopologyBus,
+		IconTopologyRing3
 	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -40,31 +40,85 @@
 		showMoreMenu = !showMoreMenu;
 	}
 
-	const allMainNavItems = [
-		{
-			href: '/map',
-			label: () => m.nav_map(),
-			icon: IconMap2,
-			pathMatch: (path) => path.startsWith('/map')
-		},
+	const allMainLinks = [
 		{
 			href: '/dashboard',
 			label: () => m.nav_dashboard(),
 			icon: IconChartArcs,
 			pathMatch: (path) => path.startsWith('/dashboard')
+		},
+		{
+			href: '/map',
+			label: () => m.nav_map(),
+			icon: IconMapPin,
+			pathMatch: (path) => path.startsWith('/map')
 		}
 	];
 
-	const allAdditionalNavItems = [
-		{ href: '/conduit', label: () => m.nav_conduit_management(), icon: IconTextPlus },
-		{ href: '/trench', label: () => m.nav_conduit_connection(), icon: IconArrowBarToRight },
-		{ href: '/pipe-branch', label: () => m.nav_pipe_branch(), icon: IconAffiliate },
-		{ href: '/house-connections', label: () => m.nav_house_connections(), icon: IconHome2 },
-		{ href: '/network-schema', label: () => m.nav_network_schema(), icon: IconTopologyRing2 },
-		{ href: '/trace', label: () => m.nav_fiber_trace(), icon: IconNetwork },
-		{ href: '/address', label: () => m.nav_address(), icon: IconAddressBook },
-		{ href: '/admin/logs', label: () => m.nav_logs(), icon: IconFileText },
-		{ href: '/settings', label: () => m.nav_settings(), icon: IconSettings }
+	const allInfrastructureLinks = [
+		{
+			href: '/conduit',
+			label: () => m.nav_conduit_management(),
+			icon: IconTable,
+			pathMatch: (path) => path.startsWith('/conduit')
+		},
+		{
+			href: '/trench',
+			label: () => m.nav_conduit_connection(),
+			icon: IconArrowRightToArc,
+			pathMatch: (path) => path.startsWith('/trench')
+		},
+		{
+			href: '/pipe-branch',
+			label: () => m.nav_pipe_branch(),
+			icon: IconAiGateway,
+			pathMatch: (path) => path.startsWith('/pipe-branch')
+		},
+		{
+			href: '/house-connections',
+			label: () => m.nav_house_connections(),
+			icon: IconTopologyBus,
+			pathMatch: (path) => path.startsWith('/house-connections')
+		}
+	];
+
+	const allCableLinks = [
+		{
+			href: '/network-schema',
+			label: () => m.nav_network_schema(),
+			icon: IconTopologyRing3,
+			pathMatch: (path) => path.startsWith('/network-schema')
+		},
+		{
+			href: '/trace',
+			label: () => m.nav_fiber_trace(),
+			icon: IconSTurnRight,
+			pathMatch: (path) => path.startsWith('/trace')
+		}
+	];
+
+	const allAddressLinks = [
+		{
+			href: '/address',
+			label: () => m.nav_address(),
+			icon: IconBuildings,
+			pathMatch: (path) => path.startsWith('/address')
+		}
+	];
+
+	const allFooterLinks = [
+		{
+			href: '/admin/logs',
+			label: () => m.nav_logs(),
+			icon: IconFileText,
+			pathMatch: (path) => path === '/admin/logs'
+		},
+		{
+			href: '/settings',
+			label: () => m.nav_settings(),
+			icon: IconSettings,
+			pathMatch: (path) => path.startsWith('/settings')
+		}
 	];
 
 	/**
@@ -75,10 +129,20 @@
 		return links.filter((link) => canAccessRoute($userStore.permissions, link.href));
 	}
 
-	const mainNavItems = $derived(filterByPermission(allMainNavItems));
-	const additionalNavItems = $derived(filterByPermission(allAdditionalNavItems));
+	const mainLinks = $derived(filterByPermission(allMainLinks));
+	const infrastructureLinks = $derived(filterByPermission(allInfrastructureLinks));
+	const cableLinks = $derived(filterByPermission(allCableLinks));
+	const addressLinks = $derived(filterByPermission(allAddressLinks));
+	const footerLinks = $derived(filterByPermission(allFooterLinks));
 
-	let totalTiles = $derived(mainNavItems.length + (additionalNavItems.length > 0 ? 1 : 0));
+	const hasMoreContent = $derived(
+		infrastructureLinks.length > 0 ||
+			cableLinks.length > 0 ||
+			addressLinks.length > 0 ||
+			footerLinks.length > 0
+	);
+
+	let totalTiles = $derived(mainLinks.length + (hasMoreContent ? 1 : 0));
 
 	/**
 	 * Get anchor class based on selection
@@ -97,21 +161,21 @@
 >
 	<Navigation layout="bar">
 		<Navigation.Menu class="grid gap-2" style="grid-template-columns: repeat({totalTiles}, 1fr);">
-			{#each mainNavItems as item}
-				{@const Icon = item.icon}
-				{@const isSelected = item.pathMatch(page.url.pathname)}
+			{#each mainLinks as link (link.href)}
+				{@const Icon = link.icon}
+				{@const isSelected = link.pathMatch(page.url.pathname)}
 				<a
-					href={item.href}
+					href={link.href}
 					class={getAnchorClass(isSelected)}
-					aria-label={item.label()}
-					{@attach tooltip(item.label())}
+					aria-label={link.label()}
+					{@attach tooltip(link.label())}
 				>
 					<Icon size={24} class="text-surface-700-300" />
-					<span class="text-[10px]">{item.label()}</span>
+					<span class="text-[10px]">{link.label()}</span>
 				</a>
 			{/each}
-			<!-- More button -->
-			{#if additionalNavItems.length > 0}
+
+			{#if hasMoreContent}
 				<button
 					type="button"
 					class={getAnchorClass(showMoreMenu)}
@@ -147,23 +211,91 @@
 		class="fixed bottom-20 left-4 right-4 z-50 bg-surface-200-800 rounded-t-lg border-2 border-surface-200-800 shadow-lg md:hidden"
 		in:slide={{ duration: 200, easing: quintOut }}
 	>
-		<div class="p-4">
-			<h3 class="text-lg font-semibold mb-3 text-surface-900-100">{m.form_more_sites()}</h3>
-			{#if additionalNavItems.length > 0}
-				<div class="space-y-2">
-					{#each additionalNavItems as item}
-						<a
-							href={item.href}
-							class="flex items-center gap-3 p-3 rounded-lg hover:bg-surface-100-800 transition-colors"
-							onclick={closeMoreMenu}
-						>
-							<item.icon size={20} class="text-surface-700-300" />
-							<span class="text-surface-900-100">{item.label()}</span>
-						</a>
-					{/each}
-				</div>
-			{:else}
-				<p class="text-surface-600-400 text-sm">No additional options available</p>
+		<div class="p-4 space-y-4">
+			<h3 class="text-lg font-semibold text-surface-900-100">{m.form_more_sites()}</h3>
+
+			{#if infrastructureLinks.length > 0}
+				<section>
+					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-700-300 mb-2">
+						{m.nav_category_conduit()}
+					</h4>
+					<div class="space-y-1">
+						{#each infrastructureLinks as link (link.href)}
+							{@const Icon = link.icon}
+							<a
+								href={link.href}
+								class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-100-800 transition-colors"
+								onclick={closeMoreMenu}
+							>
+								<Icon size={20} class="text-surface-700-300" />
+								<span class="text-surface-900-100">{link.label()}</span>
+							</a>
+						{/each}
+					</div>
+				</section>
+			{/if}
+
+			{#if cableLinks.length > 0}
+				<section>
+					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-700-300 mb-2">
+						{m.nav_category_cable()}
+					</h4>
+					<div class="space-y-1">
+						{#each cableLinks as link (link.href)}
+							{@const Icon = link.icon}
+							<a
+								href={link.href}
+								class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-100-800 transition-colors"
+								onclick={closeMoreMenu}
+							>
+								<Icon size={20} class="text-surface-700-300" />
+								<span class="text-surface-900-100">{link.label()}</span>
+							</a>
+						{/each}
+					</div>
+				</section>
+			{/if}
+
+			{#if addressLinks.length > 0}
+				<section>
+					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-700-300 mb-2">
+						{m.form_building({ count: 2 })}
+					</h4>
+					<div class="space-y-1">
+						{#each addressLinks as link (link.href)}
+							{@const Icon = link.icon}
+							<a
+								href={link.href}
+								class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-100-800 transition-colors"
+								onclick={closeMoreMenu}
+							>
+								<Icon size={20} class="text-surface-700-300" />
+								<span class="text-surface-900-100">{link.label()}</span>
+							</a>
+						{/each}
+					</div>
+				</section>
+			{/if}
+
+			{#if footerLinks.length > 0}
+				<section>
+					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-700-300 mb-2">
+						{m.nav_category_system()}
+					</h4>
+					<div class="space-y-1">
+						{#each footerLinks as link (link.href)}
+							{@const Icon = link.icon}
+							<a
+								href={link.href}
+								class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-100-800 transition-colors"
+								onclick={closeMoreMenu}
+							>
+								<Icon size={20} class="text-surface-700-300" />
+								<span class="text-surface-900-100">{link.label()}</span>
+							</a>
+						{/each}
+					</div>
+				</section>
 			{/if}
 		</div>
 	</div>
