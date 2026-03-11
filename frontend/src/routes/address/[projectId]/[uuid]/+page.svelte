@@ -679,7 +679,7 @@
 							onclick={handleDownloadPdf}
 							class="btn preset-tonal-primary rounded-none inline-flex items-center gap-2"
 							disabled={isDownloading}
-							{@attach tooltip(m.tooltip_download_address_pdf())}
+							{@attach tooltip(m.tooltip_download_address_pdf(), { delay: 1000 })}
 						>
 							{#if isDownloading}
 								<span>{m.common_loading()}</span>
