@@ -148,6 +148,7 @@ from .services import (
     GEOPACKAGE_LAYER_CONFIG,
     generate_conduit_import_template,
     generate_geopackage_schema,
+    generate_node_structure_excel,
     import_conduits_from_excel,
 )
 from .wms_service import WMSServiceError, fetch_wms_layers, scan_wms_capabilities
@@ -2918,6 +2919,21 @@ class ConduitImportView(APIView):
             if result.get("warnings"):
                 response_data["warnings"] = result["warnings"]
             return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+
+class NodeStructureExportView(APIView):
+    """Export a node's structure data as an Excel file."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, node_uuid):
+        response = generate_node_structure_excel(node_uuid)
+        if response is None:
+            return Response(
+                {"error": "Node not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        return response
 
 
 class GeoPackageSchemaView(APIView):

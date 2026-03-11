@@ -2741,5 +2741,35 @@ export const actions = {
 			console.error('Error updating fiber status:', err);
 			return fail(500, { error: 'Failed to update fiber status' });
 		}
+	},
+
+	exportExcel: async ({ request, cookies, fetch }) => {
+		const formData = await request.formData();
+		const nodeUuid = formData.get('nodeUuid');
+
+		if (!nodeUuid) {
+			return fail(400, { error: 'Missing nodeUuid' });
+		}
+
+		try {
+			const response = await fetch(`${API_URL}node-export/excel/${nodeUuid}/`, {
+				headers: getAuthHeaders(cookies)
+			});
+
+			if (!response.ok) {
+				return fail(response.status, { error: 'Export failed' });
+			}
+
+			const arrayBuffer = await response.arrayBuffer();
+			const base64 = Buffer.from(arrayBuffer).toString('base64');
+			const contentDisposition = response.headers.get('Content-Disposition') || '';
+			const fileNameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+			const fileName = fileNameMatch ? fileNameMatch[1] : 'structure.xlsx';
+
+			return { fileData: base64, fileName };
+		} catch (err) {
+			console.error('Export error:', err);
+			return fail(500, { error: 'Export failed' });
+		}
 	}
 };

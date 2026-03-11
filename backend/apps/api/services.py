@@ -14,6 +14,9 @@ from django.db import connection, transaction
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from openpyxl import load_workbook
+from openpyxl.styles import Alignment, Border, Font, PatternFill
+from openpyxl.styles import Side as BorderSide
+from openpyxl.utils import get_column_letter
 from pathvalidate import sanitize_filename
 from shapely import is_valid, make_valid
 from shapely.geometry import LineString, MultiLineString, Point, Polygon, shape, mapping
@@ -21,14 +24,19 @@ from shapely.ops import linemerge
 
 from .models import (
     AttributesCompany,
+    AttributesComponentStructure,
     AttributesConduitType,
     AttributesNetworkLevel,
     AttributesStatus,
     Conduit,
     ConduitTypeColorMapping,
     FeatureFiles,
+    FiberSplice,
     Flags,
     Microduct,
+    Node,
+    NodeSlotConfiguration,
+    NodeStructure,
     Projects,
     StoragePreferences,
 )
@@ -358,6 +366,380 @@ def generate_conduit_import_template():
     # Save the workbook to the response
     workbook.save(response)
 
+    return response
+
+
+def generate_node_structure_excel(node_uuid):
+    """
+    Generate an Excel workbook with the full node structure data.
+    Each SlotConfiguration (side) becomes a separate sheet.
+    Returns an HttpResponse with the .xlsx file, or None if node not found.
+    """
+    try:
+        node = Node.objects.get(uuid=node_uuid)
+    except Node.DoesNotExist:
+        return None
+
+    slot_configs = (
+        NodeSlotConfiguration.objects.filter(uuid_node=node_uuid)
+        .select_related(
+            "container",
+            "container__container_type",
+            "container__parent_container",
+            "container__parent_container__container_type",
+        )
+        .order_by("sort_order", "side")
+    )
+
+    if not slot_configs.exists():
+        workbook = openpyxl.Workbook()
+        ws = workbook.active
+        ws.title = "No Data"
+        ws["A1"] = "No slot configurations found for this node."
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        safe_name = sanitize_filename(f"{node.name}_structure")
+        response["Content-Disposition"] = f'attachment; filename="{safe_name}.xlsx"'
+        workbook.save(response)
+        return response
+
+    structures = (
+        NodeStructure.objects.filter(slot_configuration__in=slot_configs)
+        .select_related("component_type", "slot_configuration")
+        .order_by("slot_configuration", "slot_start")
+    )
+
+    component_type_ids = list(
+        structures.values_list("component_type_id", flat=True).distinct()
+    )
+    component_ports = (
+        AttributesComponentStructure.objects.filter(
+            component_type__in=component_type_ids
+        ).order_by("component_type", "in_or_out", "port")
+    )
+    ports_by_type = {}
+    for cp in component_ports:
+        ports_by_type.setdefault(cp.component_type_id, []).append(cp)
+
+    splices = (
+        FiberSplice.objects.filter(node_structure__in=structures)
+        .select_related(
+            "fiber_a",
+            "cable_a",
+            "fiber_b",
+            "cable_b",
+            "shared_fiber_a",
+            "shared_cable_a",
+            "shared_fiber_b",
+            "shared_cable_b",
+            "residential_unit_a",
+            "residential_unit_b",
+        )
+        .order_by("node_structure", "port_number")
+    )
+    splices_by_structure = {}
+    for splice in splices:
+        splices_by_structure.setdefault(splice.node_structure_id, []).append(splice)
+
+    structures_by_config = {}
+    for structure in structures:
+        structures_by_config.setdefault(
+            structure.slot_configuration_id, []
+        ).append(structure)
+
+    header_font = Font(bold=True, size=12)
+    table_header_font = Font(bold=True, size=10, color="FFFFFF")
+    table_header_fill = PatternFill(
+        start_color="4472C4", end_color="4472C4", fill_type="solid"
+    )
+    thin_border = Border(
+        left=BorderSide(style="thin"),
+        right=BorderSide(style="thin"),
+        top=BorderSide(style="thin"),
+        bottom=BorderSide(style="thin"),
+    )
+    center_align = Alignment(
+        horizontal="center", vertical="center", wrap_text=True
+    )
+    left_align = Alignment(vertical="center", wrap_text=True)
+
+    columns = [
+        "Container",
+        "Slot",
+        "Komponente",
+        "Clip",
+        "Port",
+        "Faser A",
+        "Kabel A",
+        "Faser B / WE",
+        "Kabel B",
+    ]
+
+    workbook = openpyxl.Workbook()
+    workbook.remove(workbook.active)
+
+    used_sheet_names = set()
+
+    for config in slot_configs:
+        sheet_name = config.side[:31]
+        if sheet_name in used_sheet_names:
+            container_suffix = ""
+            if config.container and config.container.name:
+                container_suffix = f" ({config.container.name})"
+            sheet_name = f"{config.side}{container_suffix}"[:31]
+        base_name = sheet_name
+        counter = 1
+        while sheet_name in used_sheet_names:
+            suffix = f" ({counter})"
+            sheet_name = f"{base_name[:31 - len(suffix)]}{suffix}"
+            counter += 1
+        used_sheet_names.add(sheet_name)
+
+        ws = workbook.create_sheet(title=sheet_name)
+
+        ws["A1"] = f"{node.name} — {config.side}"
+        ws["A1"].font = header_font
+        ws["D1"] = f"Gesamtslots: {config.total_slots}"
+
+        if config.container:
+            path_parts = []
+            container = config.container
+            while container:
+                name = container.name or (
+                    container.container_type.name
+                    if container.container_type
+                    else "Container"
+                )
+                path_parts.append(name)
+                container = container.parent_container
+            path_parts.reverse()
+            ws["A2"] = " > ".join(path_parts)
+
+        for col_idx, col_name in enumerate(columns, start=1):
+            cell = ws.cell(row=4, column=col_idx, value=col_name)
+            cell.font = table_header_font
+            cell.fill = table_header_fill
+            cell.border = thin_border
+            cell.alignment = center_align
+
+        current_row = 5
+        config_structures = structures_by_config.get(config.uuid, [])
+
+        for structure in config_structures:
+            if (
+                structure.purpose != NodeStructure.Purpose.COMPONENT
+                or not structure.component_type
+            ):
+                slot_display = str(structure.slot_start)
+                if structure.slot_start != structure.slot_end:
+                    slot_display = f"{structure.slot_start}-{structure.slot_end}"
+                ws.cell(
+                    row=current_row, column=1, value=""
+                ).border = thin_border
+                ws.cell(
+                    row=current_row, column=2, value=slot_display
+                ).border = thin_border
+                ws.cell(
+                    row=current_row,
+                    column=3,
+                    value=structure.get_purpose_display(),
+                ).border = thin_border
+                ws.cell(
+                    row=current_row,
+                    column=4,
+                    value=structure.clip_number or "",
+                ).border = thin_border
+                for col in range(5, 10):
+                    ws.cell(
+                        row=current_row, column=col, value="-"
+                    ).border = thin_border
+                current_row += 1
+                continue
+
+            type_ports = ports_by_type.get(structure.component_type_id, [])
+            in_ports = [p for p in type_ports if p.in_or_out == "in"]
+            out_ports = [p for p in type_ports if p.in_or_out == "out"]
+            max_in = max((p.port for p in in_ports), default=0)
+            max_out = max((p.port for p in out_ports), default=0)
+            max_port = max(max_in, max_out)
+
+            if max_port == 0:
+                max_port = structure.component_type.occupied_slots or 1
+
+            structure_splices = splices_by_structure.get(structure.uuid, [])
+            splice_by_port = {s.port_number: s for s in structure_splices}
+
+            start_row = current_row
+            num_rows = max_port
+
+            container_name = ""
+            if config.container:
+                container_name = config.container.name or (
+                    config.container.container_type.name
+                    if config.container.container_type
+                    else ""
+                )
+
+            slot_display = str(structure.slot_start)
+            if structure.slot_start != structure.slot_end:
+                slot_display = f"{structure.slot_start}-{structure.slot_end}"
+
+            component_name = structure.component_type.component_type
+            clip = structure.clip_number or ""
+
+            merge_groups_a = {}
+            merge_groups_b = {}
+
+            for port_num in range(1, max_port + 1):
+                row = current_row
+                splice = splice_by_port.get(port_num)
+
+                ws.cell(row=row, column=5, value=port_num).border = thin_border
+                ws.cell(row=row, column=5).alignment = center_align
+
+                faser_a = ""
+                kabel_a = ""
+                if splice:
+                    if splice.merge_group_a and splice.shared_fiber_a:
+                        fiber = splice.shared_fiber_a
+                        faser_a = f"{fiber.fiber_number_in_bundle} | B{fiber.bundle_number}"
+                        kabel_a = (
+                            splice.shared_cable_a.name
+                            if splice.shared_cable_a
+                            else ""
+                        )
+                        merge_groups_a.setdefault(
+                            splice.merge_group_a, []
+                        ).append(row)
+                    elif splice.fiber_a:
+                        fiber = splice.fiber_a
+                        faser_a = f"{fiber.fiber_number_in_bundle} | B{fiber.bundle_number}"
+                        kabel_a = splice.cable_a.name if splice.cable_a else ""
+
+                ws.cell(
+                    row=row, column=6, value=faser_a
+                ).border = thin_border
+                ws.cell(
+                    row=row, column=7, value=kabel_a
+                ).border = thin_border
+
+                faser_b = ""
+                kabel_b = ""
+                if splice:
+                    if splice.residential_unit_b:
+                        ru = splice.residential_unit_b
+                        faser_b = ru.id_residential_unit
+                        if ru.resident_name:
+                            faser_b += f" ({ru.resident_name})"
+                    elif splice.merge_group_b and splice.shared_fiber_b:
+                        fiber = splice.shared_fiber_b
+                        faser_b = f"{fiber.fiber_number_in_bundle} | B{fiber.bundle_number}"
+                        kabel_b = (
+                            splice.shared_cable_b.name
+                            if splice.shared_cable_b
+                            else ""
+                        )
+                        merge_groups_b.setdefault(
+                            splice.merge_group_b, []
+                        ).append(row)
+                    elif splice.fiber_b:
+                        fiber = splice.fiber_b
+                        faser_b = f"{fiber.fiber_number_in_bundle} | B{fiber.bundle_number}"
+                        kabel_b = splice.cable_b.name if splice.cable_b else ""
+                    elif splice.residential_unit_a:
+                        ru = splice.residential_unit_a
+                        faser_b = ru.id_residential_unit
+                        if ru.resident_name:
+                            faser_b += f" ({ru.resident_name})"
+
+                ws.cell(
+                    row=row, column=8, value=faser_b
+                ).border = thin_border
+                ws.cell(
+                    row=row, column=9, value=kabel_b
+                ).border = thin_border
+
+                current_row += 1
+
+            end_row = start_row + num_rows - 1
+
+            ws.cell(
+                row=start_row, column=1, value=container_name
+            ).border = thin_border
+            ws.cell(row=start_row, column=1).alignment = center_align
+            ws.cell(
+                row=start_row, column=2, value=slot_display
+            ).border = thin_border
+            ws.cell(row=start_row, column=2).alignment = center_align
+            ws.cell(
+                row=start_row, column=3, value=component_name
+            ).border = thin_border
+            ws.cell(row=start_row, column=3).alignment = center_align
+            ws.cell(
+                row=start_row, column=4, value=clip
+            ).border = thin_border
+            ws.cell(row=start_row, column=4).alignment = center_align
+
+            if num_rows > 1:
+                for col in range(1, 5):
+                    ws.merge_cells(
+                        start_row=start_row,
+                        start_column=col,
+                        end_row=end_row,
+                        end_column=col,
+                    )
+
+            for group_id, rows in merge_groups_a.items():
+                if len(rows) > 1:
+                    ws.merge_cells(
+                        start_row=rows[0],
+                        start_column=6,
+                        end_row=rows[-1],
+                        end_column=6,
+                    )
+                    ws.merge_cells(
+                        start_row=rows[0],
+                        start_column=7,
+                        end_row=rows[-1],
+                        end_column=7,
+                    )
+
+            for group_id, rows in merge_groups_b.items():
+                if len(rows) > 1:
+                    ws.merge_cells(
+                        start_row=rows[0],
+                        start_column=8,
+                        end_row=rows[-1],
+                        end_column=8,
+                    )
+                    ws.merge_cells(
+                        start_row=rows[0],
+                        start_column=9,
+                        end_row=rows[-1],
+                        end_column=9,
+                    )
+
+        for col_idx in range(1, len(columns) + 1):
+            max_length = len(columns[col_idx - 1])
+            col_letter = get_column_letter(col_idx)
+            for row in ws.iter_rows(
+                min_row=5,
+                max_row=ws.max_row,
+                min_col=col_idx,
+                max_col=col_idx,
+            ):
+                for cell in row:
+                    if cell.value:
+                        max_length = max(max_length, len(str(cell.value)))
+            ws.column_dimensions[col_letter].width = min(max_length + 4, 40)
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    safe_name = sanitize_filename(f"{node.name}_structure")
+    response["Content-Disposition"] = f'attachment; filename="{safe_name}.xlsx"'
+    workbook.save(response)
     return response
 
 

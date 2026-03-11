@@ -1,7 +1,7 @@
 <script>
 	import { flip } from 'svelte/animate';
 	import { deserialize } from '$app/forms';
-	import { IconCheck, IconFolder, IconPlus, IconX } from '@tabler/icons-svelte';
+	import { IconCheck, IconDownload, IconFolder, IconPlus, IconX } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -37,6 +37,7 @@
 
 	// Drag state for root drop zone
 	let rootDragOver = $state(false);
+	let exporting = $state(false);
 
 	// Delete confirmation state
 	let deleteSlotConfigMessageBox = $state(null);
@@ -515,6 +516,48 @@
 		containerName = '';
 	}
 
+	/**
+	 * Export node structure data as Excel file
+	 */
+	async function handleExportExcel() {
+		if (exporting || !nodeUuid) return;
+		exporting = true;
+		try {
+			const formData = new FormData();
+			formData.append('nodeUuid', nodeUuid);
+			const response = await fetch('?/exportExcel', {
+				method: 'POST',
+				body: formData
+			});
+			const result = deserialize(await response.text());
+			if (result.type === 'failure' || result.type === 'error') {
+				throw new Error(result.data?.error || 'Export failed');
+			}
+			if (result.data?.fileData) {
+				const bytes = Uint8Array.from(atob(result.data.fileData), (c) => c.charCodeAt(0));
+				const blob = new Blob([bytes], {
+					type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+				});
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = result.data.fileName || 'structure.xlsx';
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+				URL.revokeObjectURL(url);
+			}
+		} catch (err) {
+			console.error('Error exporting Excel:', err);
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_exporting_excel()
+			});
+		} finally {
+			exporting = false;
+		}
+	}
+
 	function handleSubmit() {
 		if (isCreating) {
 			handleCreate();
@@ -537,8 +580,19 @@
 		<h3 class="text-sm font-medium text-surface-950-50">
 			{nodeName ? `${m.form_node()}: ${nodeName}` : m.title_slot_configuration()}
 		</h3>
-		{#if !readonly && !isCreating && !isCreatingContainer && !editingUuid}
-			<div class="flex gap-2">
+		<div class="flex gap-2">
+			{#if nodeUuid}
+				<button
+					type="button"
+					class="btn btn-sm preset-outlined"
+					onclick={handleExportExcel}
+					disabled={exporting}
+					title={m.action_export_excel?.() || 'Export Excel'}
+				>
+					<IconDownload size={16} />
+				</button>
+			{/if}
+			{#if !readonly && !isCreating && !isCreatingContainer && !editingUuid}
 				{#if hasContainerTypes}
 					<button
 						type="button"
@@ -553,8 +607,8 @@
 					<IconPlus size={16} />
 					{m.action_add()}
 				</button>
-			</div>
-		{/if}
+			{/if}
+		</div>
 	</div>
 
 	<!-- Container creation form -->
