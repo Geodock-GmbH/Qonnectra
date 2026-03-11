@@ -1,6 +1,7 @@
 import logging
 import mimetypes
 import os
+import threading
 import uuid
 from collections import defaultdict
 from datetime import date
@@ -5685,11 +5686,15 @@ class WMSTokenAuthentication(BaseAuthentication):
             raise AuthenticationFailed("User not found")
 
 
+_wms_upstream_semaphore = threading.Semaphore(8)
+
+
 class WMSProxyView(APIView):
     """Proxy view for WMS requests.
 
     Includes SSRF protection to prevent access to internal networks,
-    response size limits, and streaming response support.
+    response size limits, streaming response support, and rate limiting
+    via semaphore to prevent worker exhaustion from slow upstream WMS.
 
     Supports authentication via:
     - Standard cookie-based JWT (for same-origin requests)
@@ -5702,6 +5707,7 @@ class WMSProxyView(APIView):
     permission_classes = [IsAuthenticated]
 
     MAX_RESPONSE_SIZE = 50 * 1024 * 1024  # 50MB
+    UPSTREAM_SEMAPHORE_TIMEOUT = 30  # seconds to wait for semaphore
 
     BLOCKED_NETWORKS = [
         "0.0.0.0/8",  # "This" network
@@ -5789,6 +5795,20 @@ class WMSProxyView(APIView):
 
     def get(self, request, source_id):
         """Proxy WMS GET request to upstream server."""
+        acquired = _wms_upstream_semaphore.acquire(timeout=self.UPSTREAM_SEMAPHORE_TIMEOUT)
+        if not acquired:
+            return Response(
+                {"error": "WMS service busy, please retry"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        try:
+            return self._proxy_request(request, source_id)
+        finally:
+            _wms_upstream_semaphore.release()
+
+    def _proxy_request(self, request, source_id):
+        """Internal method to proxy WMS request to upstream server."""
         try:
             source = WMSSource.objects.get(id=source_id, is_active=True)
         except WMSSource.DoesNotExist:
