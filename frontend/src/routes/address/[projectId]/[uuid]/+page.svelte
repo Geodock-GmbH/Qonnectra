@@ -1,10 +1,13 @@
 <script>
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
+	import { Menu, Portal } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconArrowLeft,
 		IconBuilding,
+		IconChevronDown,
 		IconDeviceFloppy,
+		IconDownload,
 		IconFolder,
 		IconHome,
 		IconLink,
@@ -25,6 +28,7 @@
 	import Map from '$lib/components/Map.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { generateAddressPdf } from '$lib/utils/addressPdf.js';
 	import { tooltip } from '$lib/utils/tooltip.js';
 
 	import ResidentialUnitsSection from './ResidentialUnitsSection.svelte';
@@ -34,6 +38,8 @@
 	let isSaving = $state(false);
 	let isDeleting = $state(false);
 	let isRegenerating = $state(false);
+	let isDownloading = $state(false);
+	let includeResidentialUnits = $state(false);
 
 	const address = $derived(data.address);
 	const projectId = $derived(data.projectId);
@@ -75,6 +81,7 @@
 	let addressMarkerLayer = $state(null);
 	let mapCenter = $state(null);
 	let mapReady = $state(false);
+	let mapContainerEl = $state(null);
 
 	let derivedIdAddress = $derived(id_address);
 
@@ -282,6 +289,114 @@
 	function handleUploadComplete() {
 		if (fileExplorer) {
 			fileExplorer.refresh();
+		}
+	}
+
+	/**
+	 * Fetch all fiber connections for all residential units of the address in one call.
+	 * @returns {Promise<Object>} Dict mapping unit UUID to fiber connections array
+	 */
+	async function fetchAllFiberConnections() {
+		try {
+			const response = await fetch(`/api/address/${address.uuid}/fiber-connections`);
+			if (response.ok) {
+				return await response.json();
+			}
+		} catch (error) {
+			console.error('Error fetching fiber connections:', error);
+		}
+		return {};
+	}
+
+	/**
+	 * Handle the PDF download action
+	 */
+	async function handleDownloadPdf() {
+		isDownloading = true;
+		try {
+			let mapImage = null;
+			if (mapContainerEl) {
+				const canvas = mapContainerEl.querySelector('canvas');
+				if (canvas) {
+					mapImage = canvas.toDataURL('image/png');
+				}
+			}
+
+			const addressData = {
+				...address,
+				coords25832: convert3857ToDefault(),
+				coords4326: convert3857To4326()
+			};
+
+			let unitsWithFibers = residentialUnits;
+			if (includeResidentialUnits && residentialUnits?.length > 0) {
+				const fiberConnectionsMap = await fetchAllFiberConnections();
+				unitsWithFibers = residentialUnits.map((unit) => ({
+					...unit,
+					fiberConnections: fiberConnectionsMap[unit.uuid] || []
+				}));
+			}
+
+			generateAddressPdf({
+				address: addressData,
+				residentialUnits: unitsWithFibers,
+				mapImage,
+				includeResidentialUnits,
+				linkedMicroducts,
+				labels: {
+					sectionAddressInformation: m.section_address_information(),
+					sectionClassification: m.section_classification(),
+					sectionLocation: m.section_location(),
+					idAddress: m.form_id_address({ count: 1 }),
+					street: m.form_street(),
+					housenumber: m.form_housenumber(),
+					zipCode: m.form_zip_code(),
+					city: m.form_city(),
+					district: m.form_district(),
+					statusDevelopment: m.form_status_development(),
+					flag: m.form_flag(),
+					project: m.form_project({ count: 1 }),
+					residentialUnit: m.section_residential_units(),
+					sectionIdentification: m.form_id_residential_unit(),
+					sectionUnitLocation: m.section_location(),
+					sectionResident: m.from_resident(),
+					unitId: m.table_residential_unit_id(),
+					unitType: m.table_residential_unit_type(),
+					unitStatus: m.table_residential_unit_status(),
+					floor: m.table_floor(),
+					side: m.table_side(),
+					buildingSection: m.form_building_section(),
+					externalId1: m.form_external_id_1(),
+					externalId2: m.form_external_id_2(),
+					residentName: m.form_resident_name(),
+					residentRecordedDate: m.form_resident_recorded_date(),
+					readyForService: m.form_ready_for_service(),
+					sectionMicroductConnections: m.section_microduct_connections(),
+					tableNode: m.table_node(),
+					tableConduitName: m.table_conduit_name(),
+					tableConduitType: m.table_conduit_type(),
+					tableNumber: m.table_microduct_number(),
+					tableColor: m.table_color(),
+					sectionFiberConnections: m.section_fiber_connections(),
+					tableCableName: m.table_cable_name(),
+					tableFiberAbsolute: m.table_fiber_absolute(),
+					tableBundle: m.table_bundle(),
+					tableFiber: m.table_fiber()
+				}
+			});
+
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_success_downloading_pdf()
+			});
+		} catch (error) {
+			console.error('Error generating PDF:', error);
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_downloading_pdf()
+			});
+		} finally {
+			isDownloading = false;
 		}
 	}
 
@@ -499,7 +614,10 @@
 				</div>
 
 				{#if geom3857?.coordinates && mapReady && addressMarkerLayer}
-					<div class="h-64 md:h-80 rounded-lg overflow-hidden border border-surface-200-800">
+					<div
+						bind:this={mapContainerEl}
+						class="h-64 md:h-80 rounded-lg overflow-hidden border border-surface-200-800"
+					>
 						<Map
 							variant="compact"
 							layers={[addressMarkerLayer]}
@@ -553,6 +671,50 @@
 						</div>
 					</div>
 				{/if}
+
+				<!-- PDF Download -->
+				<div class="border-t border-surface-200-800 pt-4">
+					<div class="inline-flex rounded-lg overflow-hidden">
+						<button
+							onclick={handleDownloadPdf}
+							class="btn preset-tonal-primary rounded-none inline-flex items-center gap-2"
+							disabled={isDownloading}
+							{@attach tooltip(m.tooltip_download_address_pdf(), { delay: 1000 })}
+						>
+							{#if isDownloading}
+								<span>{m.common_loading()}</span>
+							{:else}
+								<IconDownload class="size-4 shrink-0" />
+								<span>{m.action_download_pdf()}</span>
+							{/if}
+						</button>
+						<Menu>
+							<Menu.Trigger
+								class="btn preset-tonal-primary rounded-none border-l border-primary-500/30 px-2"
+								disabled={isDownloading}
+							>
+								<IconChevronDown class="size-4" />
+							</Menu.Trigger>
+							<Portal>
+								<Menu.Positioner>
+									<Menu.Content class="card p-2 shadow-xl space-y-1 min-w-48">
+										<label
+											class="flex items-center gap-3 px-3 py-2 rounded-md hover:preset-tonal-primary cursor-pointer select-none transition-colors"
+										>
+											<input
+												type="checkbox"
+												class="checkbox"
+												checked={includeResidentialUnits}
+												onchange={() => (includeResidentialUnits = !includeResidentialUnits)}
+											/>
+											<span class="text-sm">{m.pdf_include_residential_units()}</span>
+										</label>
+									</Menu.Content>
+								</Menu.Positioner>
+							</Portal>
+						</Menu>
+					</div>
+				</div>
 			</div>
 		</div>
 

@@ -2,14 +2,14 @@
 	import { slide } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import {
-		IconBuildingSkyscraper,
+		IconBuildings,
 		IconChevronDown,
 		IconLoader2,
 		IconMapPin,
-		IconNetwork,
 		IconPlug,
 		IconRouter,
 		IconSearch,
+		IconSTurnRight,
 		IconX
 	} from '@tabler/icons-svelte';
 	import { PUBLIC_API_URL } from '$env/static/public';
@@ -44,7 +44,7 @@
 		{
 			value: 'residential_unit',
 			label: () => m.form_residential_units(),
-			icon: IconBuildingSkyscraper,
+			icon: IconBuildings,
 			color: 'text-secondary-500',
 			searchable: true,
 			searchPlaceholder: () => m.trace_search_ru_placeholder()
@@ -52,7 +52,7 @@
 		{
 			value: 'fiber',
 			label: () => m.form_fiber(),
-			icon: IconNetwork,
+			icon: IconSTurnRight,
 			color: 'text-primary-500',
 			searchable: true,
 			searchPlaceholder: () => m.trace_search_cable_placeholder()

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-10 20:05+0100\n"
+"POT-Creation-Date: 2026-03-11 22:32+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,78 +17,78 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: apps/api/admin.py:75 apps/api/admin.py:203 apps/api/models.py:3283
+#: apps/api/admin.py:78 apps/api/admin.py:206 apps/api/models.py:3283
 msgid "Selected Layers"
 msgstr "Ausgewählte Layer"
 
-#: apps/api/admin.py:78 apps/api/admin.py:199
+#: apps/api/admin.py:81 apps/api/admin.py:202
 msgid "Layers"
 msgstr "Layer"
 
-#: apps/api/admin.py:81
+#: apps/api/admin.py:84
 msgid "Select layers to include in the GeoPackage schema download."
 msgstr ""
 "Wählen Sie Layer aus, die im GeoPackage-Schema-Download enthalten sein "
 "sollen."
 
-#: apps/api/admin.py:111 apps/api/models.py:2914
+#: apps/api/admin.py:114 apps/api/models.py:2914
 msgid "QGIS Project File"
 msgstr "QGIS Projektdatei"
 
-#: apps/api/admin.py:113
+#: apps/api/admin.py:116
 msgid ""
 "Upload a QGS or QGZ file to convert OGR/GeoPackage datasources to PostgreSQL."
 msgstr ""
 "Laden Sie eine QGS- oder QGZ-Datei hoch, um OGR/GeoPackage-Datenquellen in "
 "PostgreSQL zu konvertieren."
 
-#: apps/api/admin.py:122 apps/api/models.py:2946
+#: apps/api/admin.py:125 apps/api/models.py:2946
 msgid "Only .qgs and .qgz files are allowed."
 msgstr "Nur .qgs und .qgz Dateien sind erlaubt."
 
-#: apps/api/admin.py:184
+#: apps/api/admin.py:187
 #, python-format
 msgid "Error converting file: %(error)s"
 msgstr "Fehler beim Konvertieren der Datei: %(error)s"
 
-#: apps/api/admin.py:191
+#: apps/api/admin.py:194
 msgid "Convert QGIS Project to PostgreSQL Datasources"
 msgstr "QGIS-Projekt in PostgreSQL-Datenquellen konvertieren"
 
-#: apps/api/admin.py:207
+#: apps/api/admin.py:210
 msgid "None selected"
 msgstr "Keine ausgewählt"
 
-#: apps/api/admin.py:210
+#: apps/api/admin.py:213
 msgid "Download GeoPackage schema for selected configuration"
 msgstr "GeoPackage-Schema für ausgewählte Konfiguration herunterladen"
 
-#: apps/api/admin.py:217
+#: apps/api/admin.py:220
 msgid "Please select exactly one configuration to download."
 msgstr "Bitte wählen Sie genau eine Konfiguration zum Herunterladen aus."
 
-#: apps/api/admin.py:228
+#: apps/api/admin.py:231
 msgid "No layers selected. Please select at least one layer."
 msgstr "Keine Layer ausgewählt. Bitte wählen Sie mindestens einen Layer aus."
 
-#: apps/api/admin.py:238
+#: apps/api/admin.py:241
 #, python-format
 msgid "Error generating GeoPackage: %(error)s"
 msgstr "Fehler beim Generieren des GeoPackages: %(error)s"
 
-#: apps/api/admin.py:328 apps/api/models.py:2768
+#: apps/api/admin.py:331 apps/api/models.py:2768
 msgid "Fibers"
 msgstr "Fasern"
 
-#: apps/api/admin.py:333 apps/api/admin.py:967
+#: apps/api/admin.py:336 apps/api/admin.py:970
 msgid "Type Has Mappings"
 msgstr "Typ hat Zuordnungen"
 
-#: apps/api/admin.py:350
+#: apps/api/admin.py:353
 msgid "Create fibers for selected cables (only if empty)"
 msgstr "Fasern für ausgewählte Kabel erstellen (nur wenn keine vorhanden sind)"
 
-#: apps/api/admin.py:450
+#: apps/api/admin.py:453
 #, python-format
 msgid ""
 "Created fibers for %(created)d cable(s). Skipped %(has_fibers)d (already "
@@ -97,67 +97,68 @@ msgstr ""
 "Fasern für %(created)d Kabel(e) erstellt. Übersprungen %(has_fibers)d (haben "
 "bereits Fasern), %(no_mappings)d (kein Typ oder keine Farbzuordnungen)."
 
-#: apps/api/admin.py:506 apps/api/admin.py:507 apps/api/models.py:76
+#: apps/api/admin.py:509 apps/api/admin.py:510 apps/api/models.py:76
 #: apps/api/models.py:77
 msgid "Network Schema Settings"
 msgstr "Netzwerkschema"
 
-#: apps/api/admin.py:516 apps/api/admin.py:517 apps/api/models.py:117
+#: apps/api/admin.py:519 apps/api/admin.py:520 apps/api/models.py:117
 #: apps/api/models.py:118
 msgid "Pipe Branch Settings"
 msgstr "Rohrverzweigung"
 
-#: apps/api/admin.py:538 apps/api/models.py:63
+#: apps/api/admin.py:541 apps/api/models.py:63
 msgid "Excluded Node Types"
 msgstr "Ausgeschlossene Netzknotentypen"
 
-#: apps/api/admin.py:549 apps/api/admin.py:567 apps/api/admin.py:618
-#: apps/api/admin.py:629 apps/api/admin.py:651
+#: apps/api/admin.py:552 apps/api/admin.py:570 apps/api/admin.py:621
+#: apps/api/admin.py:632 apps/api/admin.py:654
 msgid "None"
 msgstr "Keine"
 
-#: apps/api/admin.py:553 apps/api/admin.py:571 apps/api/admin.py:589
+#: apps/api/admin.py:556 apps/api/admin.py:574 apps/api/admin.py:592
 msgid "Not configured"
 msgstr "Nicht konfiguriert"
 
-#: apps/api/admin.py:556 apps/api/admin.py:624
+#: apps/api/admin.py:559 apps/api/admin.py:627
 msgid "Child View Types"
 msgstr "Netzknotentypen"
 
-#: apps/api/admin.py:574
+#: apps/api/admin.py:577
 msgid "Pipe Branch Types"
 msgstr "Rohrverzweigungs-Typen"
 
-#: apps/api/admin.py:585
+#: apps/api/admin.py:588
 msgid "None configured"
 msgstr "Keine konfiguriert"
 
-#: apps/api/admin.py:609
+#: apps/api/admin.py:612
 msgid "Excluded Count"
 msgstr "Ausgeschlossene Anzahl"
 
-#: apps/api/admin.py:613
+#: apps/api/admin.py:616
 msgid "Excluded Types"
 msgstr "Ausgeschlossene Typen"
 
-#: apps/api/admin.py:620
+#: apps/api/admin.py:623
 msgid "Child View Count"
 msgstr "Anzahl an Typen"
 
-#: apps/api/admin.py:642
+#: apps/api/admin.py:645
 msgid "Allowed Count"
 msgstr "Erlaubte Anzahl"
 
-#: apps/api/admin.py:646
+#: apps/api/admin.py:649
 msgid "Allowed Types"
 msgstr "Erlaubte Typen"
 
-#: apps/api/admin.py:827
+#: apps/api/admin.py:830
 msgid "Use these URLs to access the QGIS project via WMS/WFS/WFS3 services"
-msgstr "Verwenden Sie diese URLs, um auf das QGIS-Projekt über WMS/WFS/WFS3-Dienste "
+msgstr ""
+"Verwenden Sie diese URLs, um auf das QGIS-Projekt über WMS/WFS/WFS3-Dienste "
 "zuzugreifen"
 
-#: apps/api/admin.py:852
+#: apps/api/admin.py:855
 msgid ""
 "QGIS project saved successfully. Please restart QGIS Server manually using "
 "docker-compose."
@@ -165,33 +166,33 @@ msgstr ""
 "QGIS Projekt erfolgreich gespeichert. Bitte starten Sie den QGIS Server "
 "manuell mit docker-compose neu."
 
-#: apps/api/admin.py:893
+#: apps/api/admin.py:896
 msgid "Please select exactly one project to convert."
 msgstr "Bitte wählen Sie genau ein Projekt zum Konvertieren aus."
 
-#: apps/api/admin.py:903
+#: apps/api/admin.py:906
 msgid "Selected project has no file attached."
 msgstr "Das ausgewählte Projekt hat keine angehängte Datei."
 
-#: apps/api/admin.py:929
+#: apps/api/admin.py:932
 #, python-format
 msgid "Error converting project: %(error)s"
 msgstr "Fehler beim Konvertieren des Projekts: %(error)s"
 
-#: apps/api/admin.py:935
+#: apps/api/admin.py:938
 msgid "Download with PostgreSQL datasources"
 msgstr "Mit PostgreSQL-Datenquellen herunterladen"
 
-#: apps/api/admin.py:962 apps/api/models.py:1999
+#: apps/api/admin.py:965 apps/api/models.py:1999
 msgid "Microducts"
 msgstr "Mikrorohre"
 
-#: apps/api/admin.py:975
+#: apps/api/admin.py:978
 msgid "Create microducts for selected conduits (only if empty)"
 msgstr ""
 "Mikrorohre für ausgewählte Rohre erstellen (nur wenn keine vorhanden sind)"
 
-#: apps/api/admin.py:1022
+#: apps/api/admin.py:1025
 #, python-format
 msgid ""
 "Created microducts for %(created)d conduit(s). Skipped %(has_microducts)d "
@@ -201,11 +202,11 @@ msgstr ""
 "(haben bereits Mikrorohre), %(no_mappings)d (kein Typ oder keine "
 "Farbzuordnungen)."
 
-#: apps/api/admin.py:1066
+#: apps/api/admin.py:1069
 msgid "Regenerate IDs for trenches with old format"
 msgstr "Erstelle neue IDs für Trassen mit alten Formaten"
 
-#: apps/api/admin.py:1099
+#: apps/api/admin.py:1102
 #, python-format
 msgid ""
 "Regenerated IDs for %(regenerated)d trench(es). Skipped %(skipped)d (already "
@@ -214,88 +215,88 @@ msgstr ""
 "Neue IDs für %(regenerated)d Trassen(en) erstellt. Übersprungen %(skipped)d "
 "(haben bereits das richtige Format)."
 
-#: apps/api/admin.py:1112
+#: apps/api/admin.py:1115
 msgid "WFS Errors"
 msgstr "WFS-Fehler"
 
-#: apps/api/admin.py:1117
+#: apps/api/admin.py:1120
 msgid "All WFS logs"
 msgstr "Alle WFS-Logs"
 
-#: apps/api/admin.py:1118
+#: apps/api/admin.py:1121
 msgid "WFS errors only"
 msgstr "Nur WFS-Fehler"
 
-#: apps/api/admin.py:1119
+#: apps/api/admin.py:1122
 msgid "Node errors"
 msgstr "Fehler bei den Netzknoten"
 
-#: apps/api/admin.py:1120
+#: apps/api/admin.py:1123
 msgid "Address errors"
 msgstr "Fehler bei den Adressen"
 
-#: apps/api/admin.py:1121
+#: apps/api/admin.py:1124
 msgid "Trench errors"
 msgstr "Fehler bei den Trassen"
 
-#: apps/api/admin.py:1178
+#: apps/api/admin.py:1181
 msgid "Log Information"
 msgstr "Log-Information"
 
-#: apps/api/admin.py:1181 apps/api/admin.py:1208 apps/api/models.py:3021
+#: apps/api/admin.py:1184 apps/api/admin.py:1211 apps/api/models.py:3021
 msgid "Message"
 msgstr "Nachricht"
 
-#: apps/api/admin.py:1182
+#: apps/api/admin.py:1185
 msgid "User & Context"
 msgstr "Benutzer & Kontext"
 
-#: apps/api/admin.py:1183 apps/api/models.py:3050
+#: apps/api/admin.py:1186 apps/api/models.py:3050
 msgid "Extra Data"
 msgstr "Extra-Daten"
 
-#: apps/api/admin.py:1202 apps/api/models.py:3029
+#: apps/api/admin.py:1205 apps/api/models.py:3029
 msgid "User"
 msgstr "Benutzer"
 
-#: apps/api/admin.py:1218
+#: apps/api/admin.py:1221
 msgid "Error Type"
 msgstr "Fehlertyp"
 
-#: apps/api/admin.py:1224
+#: apps/api/admin.py:1227
 msgid "Orphan Status"
 msgstr "Verwaist-Status"
 
-#: apps/api/admin.py:1230
+#: apps/api/admin.py:1233
 msgid "Orphaned files only"
 msgstr "Nur verwaiste Dateien"
 
-#: apps/api/admin.py:1231
+#: apps/api/admin.py:1234
 msgid "Valid files only"
 msgstr "Nur gültige Dateien"
 
-#: apps/api/admin.py:1249
+#: apps/api/admin.py:1252
 msgid "Target Feature Type"
 msgstr "Feature-Typ"
 
-#: apps/api/admin.py:1251 apps/api/models.py:1302 apps/api/models.py:1468
+#: apps/api/admin.py:1254 apps/api/models.py:1302 apps/api/models.py:1468
 #: apps/api/models.py:1500 apps/api/models.py:1875 apps/api/serializers.py:620
 msgid "Trench"
 msgstr "Graben"
 
-#: apps/api/admin.py:1252 apps/api/models.py:1433 apps/api/models.py:1476
+#: apps/api/admin.py:1255 apps/api/models.py:1433 apps/api/models.py:1476
 #: apps/api/models.py:1506 apps/api/models.py:1971 apps/api/serializers.py:621
 #: apps/api/serializers.py:1140
 msgid "Conduit"
 msgstr "Rohr"
 
-#: apps/api/admin.py:1253 apps/api/models.py:2346 apps/api/models.py:2422
+#: apps/api/admin.py:1256 apps/api/models.py:2346 apps/api/models.py:2422
 #: apps/api/models.py:2486 apps/api/models.py:2695 apps/api/serializers.py:1370
 #: apps/api/serializers.py:1407
 msgid "Cable"
 msgstr "Kabel"
 
-#: apps/api/admin.py:1254 apps/api/models.py:1822 apps/api/models.py:1869
+#: apps/api/admin.py:1257 apps/api/models.py:1822 apps/api/models.py:1869
 #: apps/api/models.py:1991 apps/api/models.py:2087 apps/api/models.py:3310
 #: apps/api/models.py:3374 apps/api/models.py:3834 apps/api/serializers.py:1142
 #: apps/api/serializers.py:1197 apps/api/serializers.py:1533
@@ -303,153 +304,153 @@ msgstr "Kabel"
 msgid "Node"
 msgstr "Netzknoten"
 
-#: apps/api/admin.py:1255 apps/api/models.py:1589 apps/api/models.py:1639
+#: apps/api/admin.py:1258 apps/api/models.py:1589 apps/api/models.py:1639
 #: apps/api/models.py:1729 apps/api/serializers.py:821
 #: apps/api/serializers.py:956
 msgid "Address"
 msgstr "Adresse"
 
-#: apps/api/admin.py:1256 apps/api/models.py:1675
+#: apps/api/admin.py:1259 apps/api/models.py:1675
 msgid "Residential Unit"
 msgstr "Wohnungseinheit"
 
-#: apps/api/admin.py:1257 apps/api/models.py:1942
+#: apps/api/admin.py:1260 apps/api/models.py:1942
 msgid "Area"
 msgstr "Gebiet"
 
-#: apps/api/admin.py:1261
+#: apps/api/admin.py:1264
 msgid "Target Feature UUID"
 msgstr "Feature-UUID"
 
-#: apps/api/admin.py:1262
+#: apps/api/admin.py:1265
 msgid "Enter the UUID of the feature to move the files to."
 msgstr ""
 "Geben Sie die UUID des Features ein, zu dem die Dateien verschoben werden "
 "sollen."
 
-#: apps/api/admin.py:1407 apps/api/models.py:895 apps/api/serializers.py:440
+#: apps/api/admin.py:1410 apps/api/models.py:895 apps/api/serializers.py:440
 msgid "Feature Type"
 msgstr "Feature-Typ"
 
-#: apps/api/admin.py:1412
+#: apps/api/admin.py:1415
 msgid "Feature Identifier"
 msgstr "Feature-Identifier"
 
-#: apps/api/admin.py:1418
+#: apps/api/admin.py:1421
 msgid "Feature deleted"
 msgstr "Feature gelöscht"
 
-#: apps/api/admin.py:1423 apps/api/models.py:352 apps/api/models.py:362
+#: apps/api/admin.py:1426 apps/api/models.py:352 apps/api/models.py:362
 #: apps/api/models.py:508 apps/api/models.py:553 apps/api/models.py:1206
 #: apps/api/models.py:1365 apps/api/models.py:1661 apps/api/models.py:1747
 #: apps/api/models.py:2224 apps/api/serializers.py:397
 #: apps/api/serializers.py:536 apps/api/serializers.py:823
 #: apps/api/serializers.py:958 apps/api/serializers.py:1331
-#: apps/api/services.py:89 apps/api/services.py:319
+#: apps/api/services.py:98 apps/api/services.py:328
 msgid "Status"
 msgstr "Status"
 
-#: apps/api/admin.py:1434
+#: apps/api/admin.py:1437
 msgid "Orphaned"
 msgstr "Verwaist"
 
-#: apps/api/admin.py:1438
+#: apps/api/admin.py:1441
 msgid "Valid"
 msgstr "Gültig"
 
-#: apps/api/admin.py:1441
+#: apps/api/admin.py:1444
 msgid "Delete selected orphaned files and their data"
 msgstr "Ausgewählte verwaiste Dateien und ihre Daten löschen"
 
-#: apps/api/admin.py:1464
+#: apps/api/admin.py:1467
 #, python-format
 msgid "Could not delete file %(path)s: %(error)s"
 msgstr "Datei %(path)s konnte nicht gelöscht werden: %(error)s"
 
-#: apps/api/admin.py:1474
+#: apps/api/admin.py:1477
 #, python-format
 msgid "Successfully deleted %(count)d orphaned file(s)."
 msgstr "Erfolgreich %(count)d verwaiste Datei(en) gelöscht."
 
-#: apps/api/admin.py:1480
+#: apps/api/admin.py:1483
 #, python-format
 msgid "Skipped %(count)d file(s) that are not orphaned."
 msgstr "Übersprungen %(count)d Datei(en), die nicht verwaist sind."
 
-#: apps/api/admin.py:1484
+#: apps/api/admin.py:1487
 msgid "Move selected files to another feature"
 msgstr "Ausgewählte Dateien zu einem anderen Feature verschieben"
 
-#: apps/api/admin.py:1495
+#: apps/api/admin.py:1498
 msgid "No files selected."
 msgstr "Keine Dateien ausgewählt."
 
-#: apps/api/admin.py:1509
+#: apps/api/admin.py:1512
 msgid "Invalid target feature type."
 msgstr "Ungültiger Ziel-Feature-Typ."
 
-#: apps/api/admin.py:1515
+#: apps/api/admin.py:1518
 #, python-format
 msgid "Target feature with UUID %(uuid)s does not exist."
 msgstr "Ziel-Feature mit UUID %(uuid)s existiert nicht."
 
-#: apps/api/admin.py:1549
+#: apps/api/admin.py:1552
 #, python-format
 msgid "Successfully moved %(count)d file(s) to %(type)s %(uuid)s."
 msgstr "Erfolgreich %(count)d Datei(en) zu %(type)s %(uuid)s verschoben."
 
-#: apps/api/admin.py:1561
+#: apps/api/admin.py:1564
 #, python-format
 msgid "Failed to move %(file)s: %(error)s"
 msgstr "Fehler beim Verschieben von %(file)s: %(error)s"
 
-#: apps/api/admin.py:1571
+#: apps/api/admin.py:1574
 msgid "Move Files to Another Feature"
 msgstr "Dateien zu einem anderen Feature verschieben"
 
-#: apps/api/admin.py:1592
+#: apps/api/admin.py:1595
 msgid "Display Settings"
 msgstr "Rohrverzweigung"
 
-#: apps/api/admin.py:1608 apps/api/models.py:1974 apps/api/models.py:2603
+#: apps/api/admin.py:1611 apps/api/models.py:1974 apps/api/models.py:2603
 #: apps/api/models.py:2655 apps/api/models.py:3790 apps/api/serializers.py:1139
 msgid "Color"
 msgstr "Farbe"
 
-#: apps/api/admin.py:1635
+#: apps/api/admin.py:1638
 msgid "Password"
 msgstr "Passwort"
 
-#: apps/api/admin.py:1637
+#: apps/api/admin.py:1640
 msgid "Password for authenticated WMS services. Leave blank if not required."
 msgstr ""
 "Passwort für authentifizierte WMS-Dienste. Leer lassen, wenn nicht "
 "erforderlich."
 
-#: apps/api/admin.py:1689
+#: apps/api/admin.py:1692
 msgid "Authentication"
 msgstr "Authentifizierung"
 
-#: apps/api/admin.py:1700
+#: apps/api/admin.py:1703
 msgid "Enabled Layers"
 msgstr "Aktivierte Layer"
 
-#: apps/api/admin.py:1722
+#: apps/api/admin.py:1725
 #, python-format
 msgid "Fetched %d layers from WMS."
 msgstr "%d Layer aus WMS geladen."
 
-#: apps/api/admin.py:1725
+#: apps/api/admin.py:1728
 #, python-format
 msgid "Failed to fetch WMS layers: %s"
 msgstr "Fehler beim Laden der WMS-Layer: %s"
 
-#: apps/api/admin.py:1754
+#: apps/api/admin.py:1757
 #, python-format
 msgid "Updated min_zoom for %(count)d layers in '%(source)s'."
 msgstr "Min_zoom für %(count)d Layer in '%(source)s' aktualisiert."
 
-#: apps/api/admin.py:1764
+#: apps/api/admin.py:1767
 #, python-format
 msgid ""
 "No changes needed for '%(source)s'. All layers already have recommended "
@@ -458,12 +459,12 @@ msgstr ""
 "Keine Änderungen erforderlich für '%(source)s'. Alle Layer haben bereits "
 "empfohlene Einstellungen."
 
-#: apps/api/admin.py:1774
+#: apps/api/admin.py:1777
 #, python-format
 msgid "Failed to scan '%(source)s': %(error)s"
 msgstr "Fehler beim Scannen von '%(source)s': %(error)s"
 
-#: apps/api/admin.py:1781
+#: apps/api/admin.py:1784
 msgid "Scan & apply recommended settings"
 msgstr "Empfohlene Einstellungen scannen und anwenden"
 
@@ -474,8 +475,8 @@ msgstr "Empfohlene Einstellungen scannen und anwenden"
 #: apps/api/models.py:3059 apps/api/serializers.py:409
 #: apps/api/serializers.py:541 apps/api/serializers.py:703
 #: apps/api/serializers.py:970 apps/api/serializers.py:1012
-#: apps/api/serializers.py:1344 apps/api/services.py:95
-#: apps/api/services.py:325
+#: apps/api/serializers.py:1344 apps/api/services.py:104
+#: apps/api/services.py:334
 msgid "Project"
 msgstr "Projekt"
 
@@ -522,7 +523,7 @@ msgstr ""
 "enthalten sein sollen."
 
 #: apps/api/models.py:159 apps/api/models.py:3767 apps/api/models.py:3858
-#: apps/api/services.py:86 apps/api/services.py:316
+#: apps/api/services.py:95 apps/api/services.py:325
 msgid "Name"
 msgstr "Name"
 
@@ -610,7 +611,7 @@ msgstr "WMS-Layer"
 #: apps/api/serializers.py:410 apps/api/serializers.py:542
 #: apps/api/serializers.py:702 apps/api/serializers.py:971
 #: apps/api/serializers.py:1011 apps/api/serializers.py:1345
-#: apps/api/services.py:96 apps/api/services.py:326
+#: apps/api/services.py:105 apps/api/services.py:335
 msgid "Flag"
 msgstr "Kennzeichen"
 
@@ -715,8 +716,8 @@ msgstr "Rohrzahl"
 #: apps/api/models.py:460 apps/api/models.py:605 apps/api/models.py:821
 #: apps/api/models.py:1403 apps/api/models.py:1785 apps/api/models.py:2262
 #: apps/api/serializers.py:540 apps/api/serializers.py:962
-#: apps/api/serializers.py:1335 apps/api/services.py:93
-#: apps/api/services.py:323
+#: apps/api/serializers.py:1335 apps/api/services.py:102
+#: apps/api/services.py:332
 msgid "Manufacturer"
 msgstr "Hersteller"
 
@@ -735,7 +736,7 @@ msgstr "Rohrtypen"
 #: apps/api/models.py:488 apps/api/models.py:495 apps/api/models.py:1374
 #: apps/api/models.py:1756 apps/api/models.py:2233 apps/api/serializers.py:537
 #: apps/api/serializers.py:959 apps/api/serializers.py:1332
-#: apps/api/services.py:90 apps/api/services.py:320
+#: apps/api/services.py:99 apps/api/services.py:329
 msgid "Network Level"
 msgstr "Netzebene"
 
@@ -917,7 +918,7 @@ msgstr "Out"
 msgid "In or Out"
 msgstr "In oder Out"
 
-#: apps/api/models.py:860
+#: apps/api/models.py:860 apps/api/services.py:475
 msgid "Port"
 msgstr "Port"
 
@@ -1027,23 +1028,23 @@ msgstr "Förderstatus"
 #: apps/api/models.py:1234 apps/api/models.py:1383 apps/api/models.py:1765
 #: apps/api/models.py:2242 apps/api/serializers.py:399
 #: apps/api/serializers.py:538 apps/api/serializers.py:960
-#: apps/api/serializers.py:1333 apps/api/services.py:91
-#: apps/api/services.py:321
+#: apps/api/serializers.py:1333 apps/api/services.py:100
+#: apps/api/services.py:330
 msgid "Owner"
 msgstr "Eigentümer"
 
 #: apps/api/models.py:1244 apps/api/models.py:1393 apps/api/models.py:1775
 #: apps/api/models.py:2252 apps/api/serializers.py:401
 #: apps/api/serializers.py:539 apps/api/serializers.py:961
-#: apps/api/serializers.py:1334 apps/api/services.py:92
-#: apps/api/services.py:322
+#: apps/api/serializers.py:1334 apps/api/services.py:101
+#: apps/api/services.py:331
 msgid "Constructor"
 msgstr "Baufirma"
 
 #: apps/api/models.py:1246 apps/api/models.py:1406 apps/api/models.py:1789
 #: apps/api/models.py:2265 apps/api/serializers.py:406
 #: apps/api/serializers.py:964 apps/api/serializers.py:1336
-#: apps/api/services.py:94 apps/api/services.py:324
+#: apps/api/services.py:103 apps/api/services.py:333
 msgid "Date"
 msgstr "Datum"
 
@@ -1095,7 +1096,6 @@ msgid "Canvas Y"
 msgstr "Canvas Y"
 
 #: apps/api/models.py:1510
-#| msgid "Canvas X"
 msgid "Canvas Width"
 msgstr "Canvas Breite"
 
@@ -1104,12 +1104,10 @@ msgid "Canvas Height"
 msgstr "Canvas Höhe"
 
 #: apps/api/models.py:1515
-#| msgid "Trench Conduit Connection"
 msgid "Trench Conduit Canvas Position"
 msgstr "Graben-Rohr-Canvas-Position"
 
 #: apps/api/models.py:1516
-#| msgid "Trench Conduit Connections"
 msgid "Trench Conduit Canvas Positions"
 msgstr "Graben-Rohr-Canvas-Positionen"
 
@@ -1188,7 +1186,6 @@ msgid "Warranty"
 msgstr "Gewährleistung"
 
 #: apps/api/models.py:1798 apps/api/serializers.py:968
-#| msgid "Canvas X"
 msgid "Child Canvas X"
 msgstr "Kind-Canvas Breite"
 
@@ -1596,7 +1593,7 @@ msgstr "GeoPackage-Schema-Konfiguration"
 msgid "GeoPackage Schema Configurations"
 msgstr "GeoPackage-Schema-Konfigurationen"
 
-#: apps/api/models.py:3320 apps/api/models.py:3881
+#: apps/api/models.py:3320 apps/api/models.py:3881 apps/api/services.py:471
 msgid "Container"
 msgstr "Container"
 
@@ -1628,7 +1625,7 @@ msgstr "Netzknoten-Steckplatz-Konfiguration"
 msgid "Node Slot Configurations"
 msgstr "Netzknoten-Steckplatz-Konfigurationen"
 
-#: apps/api/models.py:3366
+#: apps/api/models.py:3366 apps/api/services.py:473
 msgid "Component"
 msgstr "Komponente"
 
@@ -1761,7 +1758,7 @@ msgid "The port number on the component (e.g., 1-12 for a splice cassette)"
 msgstr ""
 "Die Port-Nummer auf der Komponente (z.B., 1-12 für einen Splice-Cassette)"
 
-#: apps/api/models.py:3593
+#: apps/api/models.py:3593 apps/api/services.py:476
 msgid "Fiber A"
 msgstr "Faser A"
 
@@ -1769,7 +1766,7 @@ msgstr "Faser A"
 msgid "First fiber in this splice connection"
 msgstr "Die erste Faser in dieser Splice-Verbindung"
 
-#: apps/api/models.py:3604
+#: apps/api/models.py:3604 apps/api/services.py:477
 msgid "Cable A"
 msgstr "Kabel A"
 
@@ -1777,7 +1774,7 @@ msgstr "Kabel A"
 msgid "The cable of fiber A (denormalized for CASCADE delete)"
 msgstr "Das Kabel der Faser A (denormalisiert für CASCADE-Löschen)"
 
-#: apps/api/models.py:3616
+#: apps/api/models.py:3616 apps/api/services.py:478
 msgid "Fiber B"
 msgstr "Faser B"
 
@@ -1785,7 +1782,7 @@ msgstr "Faser B"
 msgid "Second fiber in this splice connection"
 msgstr "Die zweite Faser in dieser Splice-Verbindung"
 
-#: apps/api/models.py:3627
+#: apps/api/models.py:3627 apps/api/services.py:479
 msgid "Cable B"
 msgstr "Kabel B"
 
@@ -2026,7 +2023,7 @@ msgstr "Die Koordinaten konnten nicht in EPSG transformiert werden:"
 msgid "A conduit with that name already exists."
 msgstr "Ein Rohr mit diesem Namen existiert bereits."
 
-#: apps/api/serializers.py:543 apps/api/services.py:88 apps/api/services.py:318
+#: apps/api/serializers.py:543 apps/api/services.py:97 apps/api/services.py:327
 msgid "Outer Conduit"
 msgstr "Schutzrohr"
 
@@ -2066,51 +2063,67 @@ msgstr "Faser-Nummer absolut"
 msgid "Fiber Number (In Bundle)"
 msgstr "Faser-Nummer im Bündel"
 
-#: apps/api/services.py:61
+#: apps/api/services.py:70
 #, python-format
 msgid "File too large. Maximum size is %(size)dMB."
 msgstr "Datei zu groß. Maximale Größe ist %(size)dMB."
 
-#: apps/api/services.py:73
+#: apps/api/services.py:82
 msgid "Invalid Excel file. Could not read workbook."
 msgstr "Ungültige Excel-Datei. Arbeitsmappe konnte nicht gelesen werden."
 
-#: apps/api/services.py:87 apps/api/services.py:317
+#: apps/api/services.py:96 apps/api/services.py:326
 msgid "Type"
 msgstr "Typ"
 
-#: apps/api/services.py:109
+#: apps/api/services.py:118
 msgid "No headers found in Excel file. First row must contain column headers."
 msgstr ""
 "Keine Überschriften in Excel-Datei gefunden. Die erste Zeile muss "
 "Spaltenüberschriften enthalten."
 
-#: apps/api/services.py:136
+#: apps/api/services.py:145
 #, python-format
 msgid "Required 'Name' column not found. Expected header: '%(header)s'"
 msgstr ""
 "Erforderliche 'Name'-Spalte nicht gefunden. Erwartete Überschrift: "
 "'%(header)s'"
 
-#: apps/api/services.py:147
+#: apps/api/services.py:156
 #, python-format
 msgid "Unrecognized columns will be ignored: %(columns)s"
 msgstr "Nicht erkannte Spalten werden ignoriert: %(columns)s"
 
-#: apps/api/services.py:161
+#: apps/api/services.py:170
 #, python-format
 msgid "Row %(row)d: Name is required."
 msgstr "Zeile %(row)d: Name ist erforderlich."
 
-#: apps/api/services.py:166
+#: apps/api/services.py:175
 #, python-format
 msgid "Row %(row)d: Conduit with name '%(name)s' already exists."
 msgstr "Zeile %(row)d: Rohr mit Namen '%(name)s' existiert bereits."
 
-#: apps/api/services.py:294
+#: apps/api/services.py:303
 #, python-format
 msgid "Failed to save to database: %(error)s"
 msgstr "Fehler beim Speichern in die Datenbank: %(error)s"
+
+#: apps/api/services.py:398
+msgid "No Data"
+msgstr "Keine Daten"
+
+#: apps/api/services.py:399
+msgid "No slot configurations found for this node."
+msgstr "Keine Steckplatz-Konfigurationen für diesen Knoten gefunden."
+
+#: apps/api/services.py:472
+msgid "Slot"
+msgstr "Steckplatz"
+
+#: apps/api/services.py:474
+msgid "Clip"
+msgstr "Clip"
 
 #: apps/api/validators.py:51
 #, python-format

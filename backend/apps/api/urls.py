@@ -56,6 +56,7 @@ from .views import (
     NodeSlotClipNumberViewSet,
     NodeSlotConfigurationViewSet,
     NodeSlotDividerViewSet,
+    NodeStructureExportView,
     NodeStructureViewSet,
     NodeTrenchSelectionViewSet,
     NodeViewSet,
@@ -257,6 +258,11 @@ urlpatterns = [
         name="conduit-import-template",
     ),
     path("import/conduit/", ConduitImportView.as_view(), name="conduit-import"),
+    path(
+        "node-export/excel/<uuid:node_uuid>/",
+        NodeStructureExportView.as_view(),
+        name="node-structure-export",
+    ),
     path("schema.gpkg", GeoPackageSchemaView.as_view(), name="geopackage-schema"),
     path(
         "ol_address_tiles/<int:z>/<int:x>/<int:y>.mvt",

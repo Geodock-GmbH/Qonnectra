@@ -98,3 +98,14 @@ body {
 .svelte-flow__panel.svelte-flow__attribution {
 	color: var(--color-surface-950-50, #e5e7eb);
 }
+
+/**
+ * Skeleton - Windows Bugfix in v4.x (Will be fixed in v5.x)
+ */
+.select,
+.input,
+.textarea,
+.input-group {
+	background-color: var(--color-surface-50-950);
+	color: var(--color-surface-950-50);
+}
