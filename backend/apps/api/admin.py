@@ -1674,7 +1674,7 @@ class WMSSourceAdmin(admin.ModelAdmin):
     """Admin for WMS sources."""
 
     form = WMSSourceAdminForm
-    list_display = ["name", "project", "url", "is_active", "layer_count", "sort_order"]
+    list_display = ["id", "name", "project", "url", "is_active", "layer_count", "sort_order"]
     list_filter = ["project", "is_active"]
     search_fields = ["name", "url"]
     ordering = ["project", "sort_order", "name"]
