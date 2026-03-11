@@ -28,6 +28,7 @@ const COLORS = {
  * @param {Array} params.residentialUnits - Array of residential unit objects
  * @param {string|null} params.mapImage - Base64 data URL of the map canvas
  * @param {boolean} params.includeResidentialUnits - Whether to include RU pages
+ * @param {Array} params.linkedMicroducts - Array of microduct connection objects
  * @param {Object} params.labels - Translation labels
  */
 export function generateAddressPdf({
@@ -35,11 +36,12 @@ export function generateAddressPdf({
 	residentialUnits,
 	mapImage,
 	includeResidentialUnits,
+	linkedMicroducts = [],
 	labels
 }) {
 	const doc = new jsPDF('p', 'mm', 'a4');
 
-	buildAddressPage(doc, { address, mapImage, labels });
+	buildAddressPage(doc, { address, mapImage, linkedMicroducts, labels });
 
 	if (includeResidentialUnits && residentialUnits?.length > 0) {
 		for (const unit of residentialUnits) {
@@ -57,7 +59,7 @@ export function generateAddressPdf({
 /**
  * Build the address overview page with editorial cartographic design.
  */
-function buildAddressPage(doc, { address, mapImage, labels }) {
+function buildAddressPage(doc, { address, mapImage, linkedMicroducts, labels }) {
 	drawPageBackground(doc);
 
 	let y = drawDocumentHeader(doc, {
@@ -124,12 +126,22 @@ function buildAddressPage(doc, { address, mapImage, labels }) {
 	}
 
 	if (address.coords25832 || address.coords4326) {
-		drawCoordinateCard(doc, {
+		mapY = drawCoordinateCard(doc, {
 			coords25832: address.coords25832,
 			coords4326: address.coords4326,
 			x: mapX,
 			y: mapY,
 			width: mapColWidth
+		});
+	}
+
+	const bottomY = Math.max(dataY, mapY) + 10;
+
+	if (linkedMicroducts?.length > 0) {
+		drawMicroductTable(doc, {
+			microducts: linkedMicroducts,
+			y: bottomY,
+			labels
 		});
 	}
 }
@@ -169,7 +181,7 @@ function buildResidentialUnitPage(doc, { unit, address, labels }) {
 
 	leftY += 10;
 
-	drawSectionBlock(doc, {
+	leftY = drawSectionBlock(doc, {
 		title: labels.sectionClassification,
 		icon: 'tag',
 		y: leftY,
@@ -202,7 +214,7 @@ function buildResidentialUnitPage(doc, { unit, address, labels }) {
 
 	rightY += 10;
 
-	drawSectionBlock(doc, {
+	rightY = drawSectionBlock(doc, {
 		title: labels.sectionResident,
 		icon: 'user',
 		y: rightY,
@@ -214,6 +226,16 @@ function buildResidentialUnitPage(doc, { unit, address, labels }) {
 			{ label: labels.readyForService, value: unit.ready_for_service || '–', badge: true }
 		]
 	});
+
+	const bottomY = Math.max(leftY, rightY) + 10;
+
+	if (unit.fiberConnections?.length > 0) {
+		drawFiberTable(doc, {
+			fibers: unit.fiberConnections,
+			y: bottomY,
+			labels
+		});
+	}
 }
 
 /**
@@ -414,6 +436,251 @@ function drawCoordinateCard(doc, { coords25832, coords4326, x, y, width }) {
 	}
 
 	return y + cardHeight;
+}
+
+/**
+ * Draw microduct connections table.
+ */
+function drawMicroductTable(doc, { microducts, y, labels }) {
+	doc.setFillColor(...COLORS.white);
+	doc.roundedRect(MARGIN, y, CONTENT_WIDTH, 12, 2, 2, 'F');
+
+	doc.setFillColor(...COLORS.emerald500);
+	doc.rect(MARGIN, y + 4, 3, 8, 'F');
+
+	doc.setFont('helvetica', 'bold');
+	doc.setFontSize(9);
+	doc.setTextColor(...COLORS.slate700);
+	doc.text(labels.sectionMicroductConnections.toUpperCase(), MARGIN + 8, y + 10);
+
+	const countBadgeWidth = 12;
+	const countBadgeHeight = 6;
+	const countBadgeX = CONTENT_WIDTH + MARGIN - countBadgeWidth - 4;
+	const countBadgeY = y + 4;
+	doc.setFillColor(...COLORS.emerald100);
+	doc.roundedRect(countBadgeX, countBadgeY, countBadgeWidth, countBadgeHeight, 1.5, 1.5, 'F');
+	doc.setFont('helvetica', 'bold');
+	doc.setFontSize(7);
+	doc.setTextColor(...COLORS.emerald600);
+	const countText = String(microducts.length);
+	doc.text(countText, countBadgeX + countBadgeWidth / 2, countBadgeY + 4.3, { align: 'center' });
+
+	y += 16;
+
+	const headers = [
+		labels.tableNode,
+		labels.tableConduitName,
+		labels.tableConduitType,
+		labels.tableNumber,
+		labels.tableColor
+	];
+
+	const colWidths = [45, 40, 35, 25, 25];
+	const rowHeight = 7;
+
+	doc.setFillColor(...COLORS.slate100);
+	doc.rect(MARGIN, y, CONTENT_WIDTH, rowHeight, 'F');
+
+	doc.setFont('helvetica', 'bold');
+	doc.setFontSize(6.5);
+	doc.setTextColor(...COLORS.slate500);
+
+	let colX = MARGIN + 4;
+	headers.forEach((header, i) => {
+		doc.text(header.toUpperCase(), colX, y + 5);
+		colX += colWidths[i];
+	});
+
+	y += rowHeight;
+
+	doc.setFont('helvetica', 'normal');
+	doc.setFontSize(7.5);
+
+	microducts.forEach((md, index) => {
+		if (index % 2 === 1) {
+			doc.setFillColor(...COLORS.slate50);
+			doc.rect(MARGIN, y, CONTENT_WIDTH, rowHeight, 'F');
+		}
+
+		colX = MARGIN + 4;
+
+		doc.setTextColor(...COLORS.slate900);
+		doc.setFont('helvetica', 'bold');
+		doc.text(truncateText(doc, md.nodeName || '–', colWidths[0] - 6), colX, y + 5);
+		colX += colWidths[0];
+
+		doc.setFont('helvetica', 'normal');
+		doc.text(truncateText(doc, md.conduitName || '–', colWidths[1] - 6), colX, y + 5);
+		colX += colWidths[1];
+
+		doc.text(truncateText(doc, md.conduitType || '–', colWidths[2] - 6), colX, y + 5);
+		colX += colWidths[2];
+
+		doc.setFont('helvetica', 'normal');
+		doc.setTextColor(...COLORS.slate900);
+		doc.text(String(md.number || '–'), colX, y + 5);
+		colX += colWidths[3];
+
+		const colorHex = md.colorHex || '#64748b';
+		const rgb = hexToRgb(colorHex);
+		doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+		const circleY = y + rowHeight / 2;
+		doc.circle(colX + 2, circleY, 1.5, 'F');
+		doc.setTextColor(...COLORS.slate900);
+		doc.text(md.color || '–', colX + 6, circleY + 1);
+
+		y += rowHeight;
+	});
+
+	doc.setDrawColor(...COLORS.slate200);
+	doc.setLineWidth(0.2);
+	doc.roundedRect(
+		MARGIN,
+		y - microducts.length * rowHeight - rowHeight,
+		CONTENT_WIDTH,
+		(microducts.length + 1) * rowHeight,
+		2,
+		2,
+		'S'
+	);
+
+	return y;
+}
+
+/**
+ * Draw fiber connections table for residential units.
+ */
+function drawFiberTable(doc, { fibers, y, labels }) {
+	doc.setFillColor(...COLORS.white);
+	doc.roundedRect(MARGIN, y, CONTENT_WIDTH, 12, 2, 2, 'F');
+
+	doc.setFillColor(...COLORS.emerald500);
+	doc.rect(MARGIN, y + 4, 3, 8, 'F');
+
+	doc.setFont('helvetica', 'bold');
+	doc.setFontSize(9);
+	doc.setTextColor(...COLORS.slate700);
+	doc.text(labels.sectionFiberConnections.toUpperCase(), MARGIN + 8, y + 10);
+
+	const countBadgeWidth = 12;
+	const countBadgeHeight = 6;
+	const countBadgeX = CONTENT_WIDTH + MARGIN - countBadgeWidth - 4;
+	const countBadgeY = y + 4;
+	doc.setFillColor(...COLORS.emerald100);
+	doc.roundedRect(countBadgeX, countBadgeY, countBadgeWidth, countBadgeHeight, 1.5, 1.5, 'F');
+	doc.setFont('helvetica', 'bold');
+	doc.setFontSize(7);
+	doc.setTextColor(...COLORS.emerald600);
+	const countText = String(fibers.length);
+	doc.text(countText, countBadgeX + countBadgeWidth / 2, countBadgeY + 4.3, { align: 'center' });
+
+	y += 16;
+
+	const headers = [
+		labels.tableNode,
+		labels.tableCableName,
+		labels.tableFiberAbsolute,
+		labels.tableBundle,
+		labels.tableFiber
+	];
+
+	const colWidths = [40, 40, 30, 30, 30];
+	const rowHeight = 7;
+
+	doc.setFillColor(...COLORS.slate100);
+	doc.rect(MARGIN, y, CONTENT_WIDTH, rowHeight, 'F');
+
+	doc.setFont('helvetica', 'bold');
+	doc.setFontSize(6.5);
+	doc.setTextColor(...COLORS.slate500);
+
+	let colX = MARGIN + 4;
+	headers.forEach((header, i) => {
+		doc.text(header.toUpperCase(), colX, y + 5);
+		colX += colWidths[i];
+	});
+
+	y += rowHeight;
+
+	doc.setFont('helvetica', 'normal');
+	doc.setFontSize(7.5);
+
+	fibers.forEach((fc, index) => {
+		if (index % 2 === 1) {
+			doc.setFillColor(...COLORS.slate50);
+			doc.rect(MARGIN, y, CONTENT_WIDTH, rowHeight, 'F');
+		}
+
+		colX = MARGIN + 4;
+
+		doc.setTextColor(...COLORS.slate900);
+		doc.setFont('helvetica', 'bold');
+		doc.text(truncateText(doc, fc.node_name || '–', colWidths[0] - 6), colX, y + 5);
+		colX += colWidths[0];
+
+		doc.setFont('helvetica', 'normal');
+		doc.text(truncateText(doc, fc.cable_name || '–', colWidths[1] - 6), colX, y + 5);
+		colX += colWidths[1];
+
+		doc.setTextColor(...COLORS.slate900);
+		doc.text(String(fc.fiber_number_absolute || '–'), colX, y + 5);
+		colX += colWidths[2];
+
+		const circleY = y + rowHeight / 2;
+
+		const bundleColorHex = fc.bundle_color_hex || '#999999';
+		const bundleRgb = hexToRgb(bundleColorHex);
+		doc.setFillColor(bundleRgb[0], bundleRgb[1], bundleRgb[2]);
+		doc.circle(colX + 2, circleY, 1.5, 'F');
+		doc.setTextColor(...COLORS.slate900);
+		doc.text(`${fc.bundle_number || '–'}`, colX + 6, circleY + 1);
+		colX += colWidths[3];
+
+		const fiberColorHex = fc.fiber_color_hex || '#999999';
+		const fiberRgb = hexToRgb(fiberColorHex);
+		doc.setFillColor(fiberRgb[0], fiberRgb[1], fiberRgb[2]);
+		doc.circle(colX + 2, circleY, 1.5, 'F');
+		doc.setTextColor(...COLORS.slate900);
+		doc.text(`${fc.fiber_number || '–'}`, colX + 6, circleY + 1);
+
+		y += rowHeight;
+	});
+
+	doc.setDrawColor(...COLORS.slate200);
+	doc.setLineWidth(0.2);
+	doc.roundedRect(
+		MARGIN,
+		y - fibers.length * rowHeight - rowHeight,
+		CONTENT_WIDTH,
+		(fibers.length + 1) * rowHeight,
+		2,
+		2,
+		'S'
+	);
+
+	return y;
+}
+
+/**
+ * Truncate text to fit within a given width.
+ */
+function truncateText(doc, text, maxWidth) {
+	if (doc.getTextWidth(text) <= maxWidth) return text;
+	let truncated = text;
+	while (doc.getTextWidth(truncated + '…') > maxWidth && truncated.length > 0) {
+		truncated = truncated.slice(0, -1);
+	}
+	return truncated + '…';
+}
+
+/**
+ * Convert hex color to RGB array.
+ */
+function hexToRgb(hex) {
+	const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+	return result
+		? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)]
+		: [100, 116, 139];
 }
 
 /**

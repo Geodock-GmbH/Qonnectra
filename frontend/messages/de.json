@@ -780,6 +780,7 @@
 		}
 	],
 	"tooltip_assign_node_to_microduct": "Netzknoten zu Mikrorohr zuweisen",
+	"tooltip_download_address_pdf": "Erstellt ein PDF mit der Adressinformationen und optional den Wohneinheiten.",
 	"tooltip_click_to_delete_vertex": "Klicken zum Löschen des Scheitelpunkts",
 	"tooltip_click_to_edit": "Klicken zum Bearbeiten",
 	"tooltip_click_to_reset_label_position": "Klicken zum Zurücksetzen der Label-Position",

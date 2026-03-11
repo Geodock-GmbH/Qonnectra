@@ -779,6 +779,7 @@
 		}
 	],
 	"tooltip_assign_node_to_microduct": "Assign node to microduct",
+	"tooltip_download_address_pdf": "Creates a PDF with the address information and optionally the residential units.",
 	"tooltip_click_to_delete_vertex": "Click to delete vertex",
 	"tooltip_click_to_edit": "Click to edit",
 	"tooltip_click_to_reset_label_position": "Click to reset label position",

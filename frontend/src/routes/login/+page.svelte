@@ -37,20 +37,74 @@
 		<div class="topo-grid absolute inset-0"></div>
 
 		<!-- Flowing contour lines -->
-		<svg class="topo-flow absolute inset-0 h-full w-full" viewBox="0 0 800 800" preserveAspectRatio="xMidYMid slice">
-			<path class="contour" d="M-50,150 Q150,80 350,180 Q550,280 750,150 L850,150" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
-			<path class="contour" d="M-50,220 Q180,140 380,240 Q580,340 780,200 L850,200" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="1"/>
-			<path class="contour" d="M-50,290 Q200,200 400,300 Q600,400 800,260 L850,260" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-			<path class="contour" d="M-50,380 Q180,300 400,400 Q620,500 820,360 L850,360" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
-			<path class="contour" d="M-50,460 Q200,380 420,480 Q640,580 840,440 L850,440" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-			<path class="contour" d="M-50,540 Q220,460 440,560 Q660,660 850,520 L850,520" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
-			<path class="contour" d="M-50,620 Q240,540 460,640 Q680,740 850,600 L850,600" fill="none" stroke="rgba(255,255,255,0.16)" stroke-width="1"/>
-			<path class="contour" d="M-50,700 Q260,620 480,720 Q700,820 850,680 L850,680" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+		<svg
+			class="topo-flow absolute inset-0 h-full w-full"
+			viewBox="0 0 800 800"
+			preserveAspectRatio="xMidYMid slice"
+		>
+			<path
+				class="contour"
+				d="M-50,150 Q150,80 350,180 Q550,280 750,150 L850,150"
+				fill="none"
+				stroke="rgba(255,255,255,0.12)"
+				stroke-width="1"
+			/>
+			<path
+				class="contour"
+				d="M-50,220 Q180,140 380,240 Q580,340 780,200 L850,200"
+				fill="none"
+				stroke="rgba(255,255,255,0.18)"
+				stroke-width="1"
+			/>
+			<path
+				class="contour"
+				d="M-50,290 Q200,200 400,300 Q600,400 800,260 L850,260"
+				fill="none"
+				stroke="rgba(255,255,255,0.1)"
+				stroke-width="1"
+			/>
+			<path
+				class="contour"
+				d="M-50,380 Q180,300 400,400 Q620,500 820,360 L850,360"
+				fill="none"
+				stroke="rgba(255,255,255,0.15)"
+				stroke-width="1"
+			/>
+			<path
+				class="contour"
+				d="M-50,460 Q200,380 420,480 Q640,580 840,440 L850,440"
+				fill="none"
+				stroke="rgba(255,255,255,0.2)"
+				stroke-width="1"
+			/>
+			<path
+				class="contour"
+				d="M-50,540 Q220,460 440,560 Q660,660 850,520 L850,520"
+				fill="none"
+				stroke="rgba(255,255,255,0.12)"
+				stroke-width="1"
+			/>
+			<path
+				class="contour"
+				d="M-50,620 Q240,540 460,640 Q680,740 850,600 L850,600"
+				fill="none"
+				stroke="rgba(255,255,255,0.16)"
+				stroke-width="1"
+			/>
+			<path
+				class="contour"
+				d="M-50,700 Q260,620 480,720 Q700,820 850,680 L850,680"
+				fill="none"
+				stroke="rgba(255,255,255,0.1)"
+				stroke-width="1"
+			/>
 		</svg>
 
 		<!-- Content -->
 		<div class="relative z-10 flex flex-col items-center p-8 text-center text-white">
-			<div class="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/95 shadow-lg backdrop-blur-sm">
+			<div
+				class="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/95 shadow-lg backdrop-blur-sm"
+			>
 				<AppIcon size="3rem" color="var(--color-primary-600)" />
 			</div>
 			<h1 class="mt-4 text-4xl font-bold tracking-tight">Qonnectra</h1>

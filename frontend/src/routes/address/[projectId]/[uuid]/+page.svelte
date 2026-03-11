@@ -1,9 +1,11 @@
 <script>
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
+	import { Menu, Portal } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconArrowLeft,
 		IconBuilding,
+		IconChevronDown,
 		IconDeviceFloppy,
 		IconDownload,
 		IconFolder,
@@ -291,6 +293,22 @@
 	}
 
 	/**
+	 * Fetch all fiber connections for all residential units of the address in one call.
+	 * @returns {Promise<Object>} Dict mapping unit UUID to fiber connections array
+	 */
+	async function fetchAllFiberConnections() {
+		try {
+			const response = await fetch(`/api/address/${address.uuid}/fiber-connections`);
+			if (response.ok) {
+				return await response.json();
+			}
+		} catch (error) {
+			console.error('Error fetching fiber connections:', error);
+		}
+		return {};
+	}
+
+	/**
 	 * Handle the PDF download action
 	 */
 	async function handleDownloadPdf() {
@@ -310,11 +328,21 @@
 				coords4326: convert3857To4326()
 			};
 
+			let unitsWithFibers = residentialUnits;
+			if (includeResidentialUnits && residentialUnits?.length > 0) {
+				const fiberConnectionsMap = await fetchAllFiberConnections();
+				unitsWithFibers = residentialUnits.map((unit) => ({
+					...unit,
+					fiberConnections: fiberConnectionsMap[unit.uuid] || []
+				}));
+			}
+
 			generateAddressPdf({
 				address: addressData,
-				residentialUnits,
+				residentialUnits: unitsWithFibers,
 				mapImage,
 				includeResidentialUnits,
+				linkedMicroducts,
 				labels: {
 					sectionAddressInformation: m.section_address_information(),
 					sectionClassification: m.section_classification(),
@@ -342,7 +370,18 @@
 					externalId2: m.form_external_id_2(),
 					residentName: m.form_resident_name(),
 					residentRecordedDate: m.form_resident_recorded_date(),
-					readyForService: m.form_ready_for_service()
+					readyForService: m.form_ready_for_service(),
+					sectionMicroductConnections: m.section_microduct_connections(),
+					tableNode: m.table_node(),
+					tableConduitName: m.table_conduit_name(),
+					tableConduitType: m.table_conduit_type(),
+					tableNumber: m.table_microduct_number(),
+					tableColor: m.table_color(),
+					sectionFiberConnections: m.section_fiber_connections(),
+					tableCableName: m.table_cable_name(),
+					tableFiberAbsolute: m.table_fiber_absolute(),
+					tableBundle: m.table_bundle(),
+					tableFiber: m.table_fiber()
 				}
 			});
 
@@ -634,23 +673,47 @@
 				{/if}
 
 				<!-- PDF Download -->
-				<div class="border-t border-surface-200-800 pt-4 flex items-center gap-4">
-					<button
-						onclick={handleDownloadPdf}
-						class="btn preset-tonal-primary inline-flex items-center gap-2"
-						disabled={isDownloading}
-					>
-						{#if isDownloading}
-							<span>{m.common_loading()}</span>
-						{:else}
-							<IconDownload class="size-4 shrink-0" />
-							<span>{m.action_download_pdf()}</span>
-						{/if}
-					</button>
-					<label class="flex items-center gap-2 text-sm cursor-pointer select-none">
-						<input type="checkbox" class="checkbox" bind:checked={includeResidentialUnits} />
-						<span class="text-surface-900-100">{m.pdf_include_residential_units()}</span>
-					</label>
+				<div class="border-t border-surface-200-800 pt-4">
+					<div class="inline-flex rounded-lg overflow-hidden">
+						<button
+							onclick={handleDownloadPdf}
+							class="btn preset-tonal-primary rounded-none inline-flex items-center gap-2"
+							disabled={isDownloading}
+							{@attach tooltip(m.tooltip_download_address_pdf())}
+						>
+							{#if isDownloading}
+								<span>{m.common_loading()}</span>
+							{:else}
+								<IconDownload class="size-4 shrink-0" />
+								<span>{m.action_download_pdf()}</span>
+							{/if}
+						</button>
+						<Menu>
+							<Menu.Trigger
+								class="btn preset-tonal-primary rounded-none border-l border-primary-500/30 px-2"
+								disabled={isDownloading}
+							>
+								<IconChevronDown class="size-4" />
+							</Menu.Trigger>
+							<Portal>
+								<Menu.Positioner>
+									<Menu.Content class="card p-2 shadow-xl space-y-1 min-w-48">
+										<label
+											class="flex items-center gap-3 px-3 py-2 rounded-md hover:preset-tonal-primary cursor-pointer select-none transition-colors"
+										>
+											<input
+												type="checkbox"
+												class="checkbox"
+												checked={includeResidentialUnits}
+												onchange={() => (includeResidentialUnits = !includeResidentialUnits)}
+											/>
+											<span class="text-sm">{m.pdf_include_residential_units()}</span>
+										</label>
+									</Menu.Content>
+								</Menu.Positioner>
+							</Portal>
+						</Menu>
+					</div>
 				</div>
 			</div>
 		</div>

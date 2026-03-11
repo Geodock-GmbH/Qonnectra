@@ -1667,6 +1667,89 @@ class AddressViewSet(viewsets.ModelViewSet):
             }
         )
 
+    @action(detail=True, methods=["get"], url_path="fiber-connections")
+    def fiber_connections(self, request, pk=None):
+        """
+        Get all fiber connections for all residential units of this address.
+        Returns a dict mapping unit UUID to its fiber connections.
+        """
+        address = self.get_object()
+        units = ResidentialUnit.objects.filter(uuid_address=address)
+
+        color_map = {}
+        for color in AttributesFiberColor.objects.filter(is_active=True):
+            color_map[color.name_de] = color.hex_code
+            color_map[color.name_en] = color.hex_code
+
+        splices = FiberSplice.objects.filter(
+            Q(residential_unit_a__in=units) | Q(residential_unit_b__in=units)
+        ).select_related(
+            "node_structure__uuid_node",
+            "residential_unit_a",
+            "residential_unit_b",
+            "fiber_a",
+            "cable_a",
+            "fiber_b",
+            "cable_b",
+            "shared_fiber_a",
+            "shared_cable_a",
+            "shared_fiber_b",
+            "shared_cable_b",
+        )
+
+        result = {str(unit.uuid): [] for unit in units}
+
+        for splice in splices:
+            for unit, is_b_side in [
+                (splice.residential_unit_a, False),
+                (splice.residential_unit_b, True),
+            ]:
+                if unit is None or str(unit.uuid) not in result:
+                    continue
+
+                fiber = None
+                cable = None
+
+                if is_b_side:
+                    if splice.merge_group_a and splice.shared_fiber_a:
+                        fiber = splice.shared_fiber_a
+                        cable = splice.shared_cable_a
+                    else:
+                        fiber = splice.fiber_a
+                        cable = splice.cable_a
+                else:
+                    if splice.merge_group_b and splice.shared_fiber_b:
+                        fiber = splice.shared_fiber_b
+                        cable = splice.shared_cable_b
+                    else:
+                        fiber = splice.fiber_b
+                        cable = splice.cable_b
+
+                if fiber and cable:
+                    node_name = ""
+                    if splice.node_structure and splice.node_structure.uuid_node:
+                        node_name = splice.node_structure.uuid_node.name or ""
+
+                    result[str(unit.uuid)].append(
+                        {
+                            "node_name": node_name,
+                            "cable_name": cable.name or "",
+                            "fiber_number_absolute": fiber.fiber_number_absolute,
+                            "bundle_number": fiber.bundle_number,
+                            "bundle_color": fiber.bundle_color,
+                            "bundle_color_hex": color_map.get(
+                                fiber.bundle_color, "#999999"
+                            ),
+                            "fiber_number": fiber.fiber_number_in_bundle,
+                            "fiber_color": fiber.fiber_color,
+                            "fiber_color_hex": color_map.get(
+                                fiber.fiber_color, "#999999"
+                            ),
+                        }
+                    )
+
+        return Response(result)
+
     @action(detail=True, methods=["post"], url_path="regenerate-id")
     def regenerate_id(self, request, pk=None):
         """Regenerate the Base32 address ID for this address."""
