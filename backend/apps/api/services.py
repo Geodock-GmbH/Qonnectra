@@ -19,7 +19,7 @@ from openpyxl.styles import Side as BorderSide
 from openpyxl.utils import get_column_letter
 from pathvalidate import sanitize_filename
 from shapely import is_valid, make_valid
-from shapely.geometry import LineString, MultiLineString, Point, Polygon, shape, mapping
+from shapely.geometry import LineString, MultiLineString, Point, Polygon, mapping, shape
 from shapely.ops import linemerge
 
 from .models import (
@@ -35,6 +35,7 @@ from .models import (
     Flags,
     Microduct,
     Node,
+    NodeSlotClipNumber,
     NodeSlotConfiguration,
     NodeStructure,
     Projects,
@@ -394,8 +395,8 @@ def generate_node_structure_excel(node_uuid):
     if not slot_configs.exists():
         workbook = openpyxl.Workbook()
         ws = workbook.active
-        ws.title = "No Data"
-        ws["A1"] = "No slot configurations found for this node."
+        ws.title = str(_("No Data"))
+        ws["A1"] = str(_("No slot configurations found for this node."))
         response = HttpResponse(
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
@@ -413,11 +414,9 @@ def generate_node_structure_excel(node_uuid):
     component_type_ids = list(
         structures.values_list("component_type_id", flat=True).distinct()
     )
-    component_ports = (
-        AttributesComponentStructure.objects.filter(
-            component_type__in=component_type_ids
-        ).order_by("component_type", "in_or_out", "port")
-    )
+    component_ports = AttributesComponentStructure.objects.filter(
+        component_type__in=component_type_ids
+    ).order_by("component_type", "in_or_out", "port")
     ports_by_type = {}
     for cp in component_ports:
         ports_by_type.setdefault(cp.component_type_id, []).append(cp)
@@ -444,14 +443,21 @@ def generate_node_structure_excel(node_uuid):
 
     structures_by_config = {}
     for structure in structures:
-        structures_by_config.setdefault(
-            structure.slot_configuration_id, []
-        ).append(structure)
+        structures_by_config.setdefault(structure.slot_configuration_id, []).append(
+            structure
+        )
+
+    clip_numbers = NodeSlotClipNumber.objects.filter(
+        slot_configuration__in=slot_configs
+    )
+    clip_numbers_map = {}
+    for cn in clip_numbers:
+        clip_numbers_map[(cn.slot_configuration_id, cn.slot_number)] = cn.clip_number
 
     header_font = Font(bold=True, size=12)
     table_header_font = Font(bold=True, size=10, color="FFFFFF")
     table_header_fill = PatternFill(
-        start_color="4472C4", end_color="4472C4", fill_type="solid"
+        start_color="04ad77", end_color="04ad77", fill_type="solid"
     )
     thin_border = Border(
         left=BorderSide(style="thin"),
@@ -459,21 +465,18 @@ def generate_node_structure_excel(node_uuid):
         top=BorderSide(style="thin"),
         bottom=BorderSide(style="thin"),
     )
-    center_align = Alignment(
-        horizontal="center", vertical="center", wrap_text=True
-    )
-    left_align = Alignment(vertical="center", wrap_text=True)
+    center_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
     columns = [
-        "Container",
-        "Slot",
-        "Komponente",
-        "Clip",
-        "Port",
-        "Faser A",
-        "Kabel A",
-        "Faser B / WE",
-        "Kabel B",
+        str(_("Container")),
+        str(_("Slot")),
+        str(_("Component")),
+        str(_("Clip")),
+        str(_("Port")),
+        str(_("Fiber A")),
+        str(_("Cable A")),
+        str(_("Fiber B")),
+        str(_("Cable B")),
     ]
 
     workbook = openpyxl.Workbook()
@@ -492,7 +495,7 @@ def generate_node_structure_excel(node_uuid):
         counter = 1
         while sheet_name in used_sheet_names:
             suffix = f" ({counter})"
-            sheet_name = f"{base_name[:31 - len(suffix)]}{suffix}"
+            sheet_name = f"{base_name[: 31 - len(suffix)]}{suffix}"
             counter += 1
         used_sheet_names.add(sheet_name)
 
@@ -526,7 +529,45 @@ def generate_node_structure_excel(node_uuid):
         current_row = 5
         config_structures = structures_by_config.get(config.uuid, [])
 
+        structures_by_slot = {}
         for structure in config_structures:
+            for slot in range(structure.slot_start, structure.slot_end + 1):
+                structures_by_slot[slot] = structure
+
+        container_name = ""
+        if config.container:
+            container_name = config.container.name or (
+                config.container.container_type.name
+                if config.container.container_type
+                else ""
+            )
+
+        clip_counter = 1
+        slot_num = 1
+        while slot_num <= config.total_slots:
+            custom_clip = clip_numbers_map.get((config.uuid, slot_num))
+            clip_display = custom_clip if custom_clip else str(clip_counter)
+            clip_counter += 1
+
+            structure = structures_by_slot.get(slot_num)
+
+            if structure is None:
+                if container_name:
+                    ws.cell(row=current_row, column=1, value="").border = thin_border
+                cell = ws.cell(row=current_row, column=2, value=str(slot_num))
+                cell.border = thin_border
+                cell.alignment = center_align
+                ws.cell(row=current_row, column=3, value="").border = thin_border
+                ws.cell(
+                    row=current_row, column=4, value=clip_display
+                ).border = thin_border
+                ws.cell(row=current_row, column=4).alignment = center_align
+                for col in range(5, 10):
+                    ws.cell(row=current_row, column=col, value="").border = thin_border
+                current_row += 1
+                slot_num += 1
+                continue
+
             if (
                 structure.purpose != NodeStructure.Purpose.COMPONENT
                 or not structure.component_type
@@ -534,12 +575,11 @@ def generate_node_structure_excel(node_uuid):
                 slot_display = str(structure.slot_start)
                 if structure.slot_start != structure.slot_end:
                     slot_display = f"{structure.slot_start}-{structure.slot_end}"
-                ws.cell(
-                    row=current_row, column=1, value=""
-                ).border = thin_border
-                ws.cell(
-                    row=current_row, column=2, value=slot_display
-                ).border = thin_border
+                if container_name:
+                    ws.cell(row=current_row, column=1, value="").border = thin_border
+                cell = ws.cell(row=current_row, column=2, value=slot_display)
+                cell.border = thin_border
+                cell.alignment = center_align
                 ws.cell(
                     row=current_row,
                     column=3,
@@ -548,13 +588,13 @@ def generate_node_structure_excel(node_uuid):
                 ws.cell(
                     row=current_row,
                     column=4,
-                    value=structure.clip_number or "",
+                    value=clip_display,
                 ).border = thin_border
+                ws.cell(row=current_row, column=4).alignment = center_align
                 for col in range(5, 10):
-                    ws.cell(
-                        row=current_row, column=col, value="-"
-                    ).border = thin_border
+                    ws.cell(row=current_row, column=col, value="-").border = thin_border
                 current_row += 1
+                slot_num = structure.slot_end + 1
                 continue
 
             type_ports = ports_by_type.get(structure.component_type_id, [])
@@ -573,20 +613,11 @@ def generate_node_structure_excel(node_uuid):
             start_row = current_row
             num_rows = max_port
 
-            container_name = ""
-            if config.container:
-                container_name = config.container.name or (
-                    config.container.container_type.name
-                    if config.container.container_type
-                    else ""
-                )
-
             slot_display = str(structure.slot_start)
             if structure.slot_start != structure.slot_end:
                 slot_display = f"{structure.slot_start}-{structure.slot_end}"
 
             component_name = structure.component_type.component_type
-            clip = structure.clip_number or ""
 
             merge_groups_a = {}
             merge_groups_b = {}
@@ -603,26 +634,26 @@ def generate_node_structure_excel(node_uuid):
                 if splice:
                     if splice.merge_group_a and splice.shared_fiber_a:
                         fiber = splice.shared_fiber_a
-                        faser_a = f"{fiber.fiber_number_in_bundle} | B{fiber.bundle_number}"
-                        kabel_a = (
-                            splice.shared_cable_a.name
-                            if splice.shared_cable_a
-                            else ""
+                        faser_a = (
+                            f"{fiber.fiber_number_in_bundle} | B{fiber.bundle_number}"
                         )
-                        merge_groups_a.setdefault(
-                            splice.merge_group_a, []
-                        ).append(row)
+                        kabel_a = (
+                            splice.shared_cable_a.name if splice.shared_cable_a else ""
+                        )
+                        merge_groups_a.setdefault(splice.merge_group_a, []).append(row)
                     elif splice.fiber_a:
                         fiber = splice.fiber_a
-                        faser_a = f"{fiber.fiber_number_in_bundle} | B{fiber.bundle_number}"
+                        faser_a = (
+                            f"{fiber.fiber_number_in_bundle} | B{fiber.bundle_number}"
+                        )
                         kabel_a = splice.cable_a.name if splice.cable_a else ""
 
-                ws.cell(
-                    row=row, column=6, value=faser_a
-                ).border = thin_border
-                ws.cell(
-                    row=row, column=7, value=kabel_a
-                ).border = thin_border
+                cell = ws.cell(row=row, column=6, value=faser_a)
+                cell.border = thin_border
+                cell.alignment = center_align
+                cell = ws.cell(row=row, column=7, value=kabel_a)
+                cell.border = thin_border
+                cell.alignment = center_align
 
                 faser_b = ""
                 kabel_b = ""
@@ -634,18 +665,18 @@ def generate_node_structure_excel(node_uuid):
                             faser_b += f" ({ru.resident_name})"
                     elif splice.merge_group_b and splice.shared_fiber_b:
                         fiber = splice.shared_fiber_b
-                        faser_b = f"{fiber.fiber_number_in_bundle} | B{fiber.bundle_number}"
-                        kabel_b = (
-                            splice.shared_cable_b.name
-                            if splice.shared_cable_b
-                            else ""
+                        faser_b = (
+                            f"{fiber.fiber_number_in_bundle} | B{fiber.bundle_number}"
                         )
-                        merge_groups_b.setdefault(
-                            splice.merge_group_b, []
-                        ).append(row)
+                        kabel_b = (
+                            splice.shared_cable_b.name if splice.shared_cable_b else ""
+                        )
+                        merge_groups_b.setdefault(splice.merge_group_b, []).append(row)
                     elif splice.fiber_b:
                         fiber = splice.fiber_b
-                        faser_b = f"{fiber.fiber_number_in_bundle} | B{fiber.bundle_number}"
+                        faser_b = (
+                            f"{fiber.fiber_number_in_bundle} | B{fiber.bundle_number}"
+                        )
                         kabel_b = splice.cable_b.name if splice.cable_b else ""
                     elif splice.residential_unit_a:
                         ru = splice.residential_unit_a
@@ -653,36 +684,28 @@ def generate_node_structure_excel(node_uuid):
                         if ru.resident_name:
                             faser_b += f" ({ru.resident_name})"
 
-                ws.cell(
-                    row=row, column=8, value=faser_b
-                ).border = thin_border
-                ws.cell(
-                    row=row, column=9, value=kabel_b
-                ).border = thin_border
+                cell = ws.cell(row=row, column=8, value=faser_b)
+                cell.border = thin_border
+                cell.alignment = center_align
+                cell = ws.cell(row=row, column=9, value=kabel_b)
+                cell.border = thin_border
+                cell.alignment = center_align
 
                 current_row += 1
 
             end_row = start_row + num_rows - 1
 
-            ws.cell(
-                row=start_row, column=1, value=container_name
-            ).border = thin_border
-            ws.cell(row=start_row, column=1).alignment = center_align
-            ws.cell(
-                row=start_row, column=2, value=slot_display
-            ).border = thin_border
+            if container_name:
+                ws.cell(row=start_row, column=1, value="").border = thin_border
+            ws.cell(row=start_row, column=2, value=slot_display).border = thin_border
             ws.cell(row=start_row, column=2).alignment = center_align
-            ws.cell(
-                row=start_row, column=3, value=component_name
-            ).border = thin_border
+            ws.cell(row=start_row, column=3, value=component_name).border = thin_border
             ws.cell(row=start_row, column=3).alignment = center_align
-            ws.cell(
-                row=start_row, column=4, value=clip
-            ).border = thin_border
+            ws.cell(row=start_row, column=4, value=clip_display).border = thin_border
             ws.cell(row=start_row, column=4).alignment = center_align
 
             if num_rows > 1:
-                for col in range(1, 5):
+                for col in range(2, 5):
                     ws.merge_cells(
                         start_row=start_row,
                         start_column=col,
@@ -719,6 +742,20 @@ def generate_node_structure_excel(node_uuid):
                         end_row=rows[-1],
                         end_column=9,
                     )
+
+            slot_num = structure.slot_end + 1
+
+        if current_row > 5 and container_name:
+            cell = ws.cell(row=5, column=1, value=container_name)
+            cell.alignment = center_align
+            cell.border = thin_border
+            if current_row > 6:
+                ws.merge_cells(
+                    start_row=5,
+                    start_column=1,
+                    end_row=current_row - 1,
+                    end_column=1,
+                )
 
         for col_idx in range(1, len(columns) + 1):
             max_length = len(columns[col_idx - 1])
@@ -1489,7 +1526,9 @@ def _get_entry_point_info(entry_type: str, entry_id) -> dict:
                 if entry_type == "fiber":
                     # For fiber, combine fiber number with cable name
                     fiber_num, cable_name = row
-                    result["name"] = f"F{fiber_num} in {cable_name}" if fiber_num else None
+                    result["name"] = (
+                        f"F{fiber_num} in {cable_name}" if fiber_num else None
+                    )
                 elif entry_type == "residential_unit":
                     # Return separate fields for frontend to format with i18n
                     id_ru, floor = row
@@ -2284,7 +2323,9 @@ def _get_starting_fiber_splices(fiber_id) -> list[dict]:
                     "type": row_dict.get("component_type_name"),
                     "in_or_out": row_dict.get("component_in_or_out"),
                     "structure_port": row_dict.get("component_structure_port"),
-                    "structure_port_alias": row_dict.get("component_structure_port_alias"),
+                    "structure_port_alias": row_dict.get(
+                        "component_structure_port_alias"
+                    ),
                     "slot_start": row_dict.get("component_slot_start"),
                     "slot_end": row_dict.get("component_slot_end"),
                     "slot_side": row_dict.get("component_slot_side"),
@@ -2646,7 +2687,9 @@ def _build_trace_result(
             "total_addresses": len(addresses_seen),
             "total_residential_units": len(residential_units_seen),
             "total_cables": len(cables_seen),
-            "total_trenches": sum(len(inf["trenches"]) for inf in cable_infrastructure.values()),
+            "total_trenches": sum(
+                len(inf["trenches"]) for inf in cable_infrastructure.values()
+            ),
             "has_branches": has_branches,
         },
         "_raw_segments": rows,
@@ -2885,14 +2928,18 @@ def _get_cable_infrastructure(
                     except (json.JSONDecodeError, TypeError):
                         trench_geom = None
 
-                infrastructure[cable_id]["trenches"].append({
-                    "id": trench_id,
-                    "id_trench": row["id_trench"],
-                    "construction_type": row.get("construction_type"),
-                    "surface": row.get("surface"),
-                    "length": float(row["trench_length"]) if row.get("trench_length") else None,
-                    "geometry": trench_geom,
-                })
+                infrastructure[cable_id]["trenches"].append(
+                    {
+                        "id": trench_id,
+                        "id_trench": row["id_trench"],
+                        "construction_type": row.get("construction_type"),
+                        "surface": row.get("surface"),
+                        "length": float(row["trench_length"])
+                        if row.get("trench_length")
+                        else None,
+                        "geometry": trench_geom,
+                    }
+                )
 
     # Process geometries based on mode
     if include_geometry:
@@ -3012,10 +3059,18 @@ def trace_fiber_summary(fiber_id) -> dict:
         endpoints = tree["cable_endpoints"]
         if endpoints.get("start_node"):
             sn = endpoints["start_node"]
-            start_node = {"id": sn.get("id"), "name": sn.get("name"), "address": sn.get("address")}
+            start_node = {
+                "id": sn.get("id"),
+                "name": sn.get("name"),
+                "address": sn.get("address"),
+            }
         if endpoints.get("end_node"):
             en = endpoints["end_node"]
-            end_node = {"id": en.get("id"), "name": en.get("name"), "address": en.get("address")}
+            end_node = {
+                "id": en.get("id"),
+                "name": en.get("name"),
+                "address": en.get("address"),
+            }
 
     return {
         "fiber_id": str(fiber_id),
@@ -3160,17 +3215,21 @@ def _propagate_signal_state(
         propagate_state = "dark"
 
         splice_node = node.get("node")
-        break_points.append({
-            "fiber_id": fiber.get("id"),
-            "fiber_number_absolute": fiber.get("fiber_number_absolute"),
-            "cable_id": fiber.get("cable_id"),
-            "cable_name": fiber.get("cable_name"),
-            "status": fiber_status,
-            "at_node": {
-                "id": splice_node.get("id") if splice_node else None,
-                "name": splice_node.get("name") if splice_node else None,
-            } if splice_node else None,
-        })
+        break_points.append(
+            {
+                "fiber_id": fiber.get("id"),
+                "fiber_number_absolute": fiber.get("fiber_number_absolute"),
+                "cable_id": fiber.get("cable_id"),
+                "cable_name": fiber.get("cable_name"),
+                "status": fiber_status,
+                "at_node": {
+                    "id": splice_node.get("id") if splice_node else None,
+                    "name": splice_node.get("name") if splice_node else None,
+                }
+                if splice_node
+                else None,
+            }
+        )
     else:
         node["signal_state"] = "lit"
         propagate_state = "lit"
@@ -3320,8 +3379,8 @@ def analyze_signal_flow(
     )
 
     for src in available_sources:
-        src["is_default"] = (
-            source_node is not None and src["id"] == source_node.get("id")
+        src["is_default"] = source_node is not None and src["id"] == source_node.get(
+            "id"
         )
 
     break_points = []

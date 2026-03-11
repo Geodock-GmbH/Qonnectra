@@ -7,6 +7,7 @@
 
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	import ContainerItem from './ContainerItem.svelte';
 	import SlotConfigItem from './SlotConfigItem.svelte';
@@ -587,7 +588,7 @@
 					class="btn btn-sm preset-outlined"
 					onclick={handleExportExcel}
 					disabled={exporting}
-					title={m.action_export_excel?.() || 'Export Excel'}
+					{@attach tooltip(m.action_export_excel?.() || 'Export Excel')}
 				>
 					<IconDownload size={16} />
 				</button>
