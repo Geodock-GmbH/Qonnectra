@@ -1,3 +1,4 @@
+import logging
 import os
 
 from django import forms
@@ -66,6 +67,8 @@ from .services import (
 )
 from .storage import LocalMediaStorage
 from .wms_service import WMSServiceError, fetch_wms_layers, scan_wms_capabilities
+
+logger = logging.getLogger(__name__)
 
 
 class GeoPackageSchemaConfigForm(forms.ModelForm):
@@ -1783,18 +1786,18 @@ class WMSSourceAdmin(admin.ModelAdmin):
 
 @admin.register(ModelPermission)
 class ModelPermissionAdmin(admin.ModelAdmin):
-    list_display = ['group', 'model_name', 'access_level']
-    list_filter = ['group', 'access_level', 'model_name']
-    list_editable = ['access_level']
-    search_fields = ['model_name', 'group__name']
-    ordering = ['group__name', 'model_name']
+    list_display = ["group", "model_name", "access_level"]
+    list_filter = ["group", "access_level", "model_name"]
+    list_editable = ["access_level"]
+    search_fields = ["model_name", "group__name"]
+    ordering = ["group__name", "model_name"]
     list_per_page = 50
 
 
 @admin.register(RoutePermission)
 class RoutePermissionAdmin(admin.ModelAdmin):
-    list_display = ['group', 'route_pattern', 'allowed']
-    list_filter = ['group', 'allowed']
-    list_editable = ['allowed']
-    search_fields = ['route_pattern', 'group__name']
-    ordering = ['group__name', 'route_pattern']
+    list_display = ["group", "route_pattern", "allowed"]
+    list_filter = ["group", "allowed"]
+    list_editable = ["allowed"]
+    search_fields = ["route_pattern", "group__name"]
+    ordering = ["group__name", "route_pattern"]
