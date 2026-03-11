@@ -1,25 +1,24 @@
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
-const MARGIN = 18;
+import { m } from '$lib/paraglide/messages';
+
 const PAGE_WIDTH = 210;
 const PAGE_HEIGHT = 297;
+const MARGIN = 20;
 const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN;
 
-const COL_GAP = 6;
-const LEFT_COL_WIDTH = 100;
-const RIGHT_COL_WIDTH = CONTENT_WIDTH - LEFT_COL_WIDTH - COL_GAP;
-const RIGHT_COL_X = MARGIN + LEFT_COL_WIDTH + COL_GAP;
-
 const COLORS = {
-	green: [46, 170, 110],
-	greenLight: [235, 250, 243],
-	dark: [24, 32, 44],
-	text: [33, 37, 41],
-	textMuted: [108, 117, 125],
-	border: [206, 212, 218],
-	white: [255, 255, 255],
-	rowAlt: [245, 248, 251]
+	slate900: [15, 23, 42],
+	slate700: [51, 65, 85],
+	slate500: [100, 116, 139],
+	slate400: [148, 163, 184],
+	slate200: [226, 232, 240],
+	slate100: [241, 245, 249],
+	slate50: [248, 250, 252],
+	emerald600: [5, 150, 105],
+	emerald500: [16, 185, 129],
+	emerald100: [209, 250, 229],
+	white: [255, 255, 255]
 };
 
 /**
@@ -56,66 +55,82 @@ export function generateAddressPdf({
 }
 
 /**
- * Build the address overview page.
+ * Build the address overview page with editorial cartographic design.
  */
 function buildAddressPage(doc, { address, mapImage, labels }) {
-	let y = 0;
+	drawPageBackground(doc);
 
-	y = drawHeaderBand(doc, {
+	let y = drawDocumentHeader(doc, {
 		title: `${address.street} ${address.housenumber}${address.house_number_suffix || ''}`,
-		subtitle: `${address.zip_code} ${address.city}${address.district ? `  ·  ${address.district}` : ''}`
+		subtitle: `${address.zip_code} ${address.city}${address.district ? ` · ${address.district}` : ''}`
 	});
 
-	y += 2;
+	y += 8;
 
-	const gridTop = y;
+	const mapColWidth = 78;
+	const dataColWidth = CONTENT_WIDTH - mapColWidth - 12;
+	const mapX = MARGIN + dataColWidth + 12;
 
-	// --- Left column: Address info + Classification ---
-	let leftY = gridTop;
+	let dataY = y;
 
-	leftY = drawSectionHeader(doc, labels.sectionAddressInformation, leftY, MARGIN);
-
-	const addressRows = [
-		[labels.idAddress, address.id_address || '–'],
-		[labels.street, address.street || '–'],
-		[
-			labels.housenumber,
-			`${address.housenumber ?? '–'}${address.house_number_suffix ? ` ${address.house_number_suffix}` : ''}`
-		],
-		[labels.zipCode, address.zip_code || '–'],
-		[labels.city, address.city || '–'],
-		[labels.district, address.district || '–']
-	];
-
-	leftY = drawDataTable(doc, addressRows, leftY, {
-		marginLeft: MARGIN,
-		tableWidth: LEFT_COL_WIDTH
-	});
-	leftY += 8;
-
-	leftY = drawSectionHeader(doc, labels.sectionClassification, leftY, MARGIN);
-
-	const classificationRows = [
-		[labels.statusDevelopment, address.status_development?.status || '–'],
-		[labels.flag, address.flag?.flag || '–'],
-		[labels.project, address.project?.project || '–']
-	];
-
-	leftY = drawDataTable(doc, classificationRows, leftY, {
-		marginLeft: MARGIN,
-		tableWidth: LEFT_COL_WIDTH
+	dataY = drawSectionBlock(doc, {
+		title: labels.sectionAddressInformation,
+		icon: 'pin',
+		y: dataY,
+		x: MARGIN,
+		width: dataColWidth,
+		rows: [
+			{ label: labels.idAddress, value: address.id_address || '–', mono: true },
+			{ label: labels.street, value: address.street || '–' },
+			{
+				label: labels.housenumber,
+				value: `${address.housenumber ?? '–'}${address.house_number_suffix ? ` ${address.house_number_suffix}` : ''}`
+			},
+			{ label: labels.zipCode, value: address.zip_code || '–' },
+			{ label: labels.city, value: address.city || '–' },
+			{ label: labels.district, value: address.district || '–' }
+		]
 	});
 
-	// --- Right column: Map + Coordinates ---
-	let rightY = gridTop;
+	dataY += 10;
+
+	dataY = drawSectionBlock(doc, {
+		title: labels.sectionClassification,
+		icon: 'tag',
+		y: dataY,
+		x: MARGIN,
+		width: dataColWidth,
+		rows: [
+			{
+				label: labels.statusDevelopment,
+				value: address.status_development?.status || '–',
+				badge: true
+			},
+			{ label: labels.flag, value: address.flag?.flag || '–' },
+			{ label: labels.project, value: address.project?.project || '–' }
+		]
+	});
+
+	let mapY = y;
 
 	if (mapImage) {
-		rightY = drawMapImage(doc, mapImage, rightY);
-		rightY += 3;
+		mapY = drawMapSection(doc, {
+			image: mapImage,
+			x: mapX,
+			y: mapY,
+			width: mapColWidth
+		});
+		mapY += 6;
 	}
 
 	if (address.coords25832 || address.coords4326) {
-		rightY = drawCoordinateBlock(doc, address, rightY);
+		drawCoordinateCard(doc, {
+			coords25832: address.coords25832,
+			coords4326: address.coords4326,
+			x: mapX,
+			y: mapY,
+			width: mapColWidth
+		});
 	}
 }
 
@@ -123,239 +138,286 @@ function buildAddressPage(doc, { address, mapImage, labels }) {
  * Build a residential unit page.
  */
 function buildResidentialUnitPage(doc, { unit, address, labels }) {
-	let y = 0;
+	drawPageBackground(doc);
 
 	const addressLine = `${address.street} ${address.housenumber}${address.house_number_suffix || ''}, ${address.zip_code} ${address.city}`;
 
-	y = drawHeaderBand(doc, {
+	let y = drawDocumentHeader(doc, {
 		title: labels.residentialUnit,
 		subtitle: addressLine
 	});
 
-	y += 2;
+	y += 8;
 
-	const gridTop = y;
+	const colWidth = (CONTENT_WIDTH - 12) / 2;
 
-	// --- Left column: Identification + Classification ---
-	let leftY = gridTop;
+	let leftY = y;
+	let rightY = y;
 
-	leftY = drawSectionHeader(doc, labels.sectionIdentification, leftY, MARGIN);
-
-	const idRows = [
-		[labels.unitId, unit.id_residential_unit || '–'],
-		[labels.externalId1, unit.external_id_1 || '–'],
-		[labels.externalId2, unit.external_id_2 || '–']
-	];
-	leftY = drawDataTable(doc, idRows, leftY, {
-		marginLeft: MARGIN,
-		tableWidth: LEFT_COL_WIDTH
-	});
-	leftY += 8;
-
-	leftY = drawSectionHeader(doc, labels.sectionClassification, leftY, MARGIN);
-
-	const classRows = [
-		[labels.unitType, unit.residential_unit_type?.residential_unit_type || '–'],
-		[labels.unitStatus, unit.status?.status || '–']
-	];
-	leftY = drawDataTable(doc, classRows, leftY, {
-		marginLeft: MARGIN,
-		tableWidth: LEFT_COL_WIDTH
+	leftY = drawSectionBlock(doc, {
+		title: labels.sectionIdentification,
+		icon: 'id',
+		y: leftY,
+		x: MARGIN,
+		width: colWidth,
+		rows: [
+			{ label: labels.unitId, value: unit.id_residential_unit || '–', mono: true },
+			{ label: labels.externalId1, value: unit.external_id_1 || '–' },
+			{ label: labels.externalId2, value: unit.external_id_2 || '–' }
+		]
 	});
 
-	// --- Right column: Location + Resident ---
-	let rightY = gridTop;
+	leftY += 10;
 
-	rightY = drawSectionHeader(doc, labels.sectionUnitLocation, rightY, RIGHT_COL_X);
-
-	const locationRows = [
-		[labels.floor, unit.floor ?? '–'],
-		[labels.side, unit.side || '–'],
-		[labels.buildingSection, unit.building_section || '–']
-	];
-	rightY = drawDataTable(doc, locationRows, rightY, {
-		marginLeft: RIGHT_COL_X,
-		tableWidth: RIGHT_COL_WIDTH
+	drawSectionBlock(doc, {
+		title: labels.sectionClassification,
+		icon: 'tag',
+		y: leftY,
+		x: MARGIN,
+		width: colWidth,
+		rows: [
+			{
+				label: labels.unitType,
+				value: unit.residential_unit_type?.residential_unit_type || '–',
+				badge: true
+			},
+			{ label: labels.unitStatus, value: unit.status?.status || '–', badge: true }
+		]
 	});
-	rightY += 8;
 
-	rightY = drawSectionHeader(doc, labels.sectionResident, rightY, RIGHT_COL_X);
+	const rightX = MARGIN + colWidth + 12;
 
-	const residentRows = [
-		[labels.residentName, unit.resident_name || '–'],
-		[labels.residentRecordedDate, unit.resident_recorded_date || '–'],
-		[labels.readyForService, unit.ready_for_service || '–']
-	];
-	drawDataTable(doc, residentRows, rightY, {
-		marginLeft: RIGHT_COL_X,
-		tableWidth: RIGHT_COL_WIDTH
+	rightY = drawSectionBlock(doc, {
+		title: labels.sectionUnitLocation,
+		icon: 'location',
+		y: rightY,
+		x: rightX,
+		width: colWidth,
+		rows: [
+			{ label: labels.floor, value: String(unit.floor ?? '–') },
+			{ label: labels.side, value: unit.side || '–' },
+			{ label: labels.buildingSection, value: unit.building_section || '–' }
+		]
+	});
+
+	rightY += 10;
+
+	drawSectionBlock(doc, {
+		title: labels.sectionResident,
+		icon: 'user',
+		y: rightY,
+		x: rightX,
+		width: colWidth,
+		rows: [
+			{ label: labels.residentName, value: unit.resident_name || '–' },
+			{ label: labels.residentRecordedDate, value: unit.resident_recorded_date || '–' },
+			{ label: labels.readyForService, value: unit.ready_for_service || '–', badge: true }
+		]
 	});
 }
 
 /**
- * Draw the header band with Qonnectra green accent stripe.
- * @returns {number} The y position after the header
+ * Draw page background with emerald side stripe.
  */
-function drawHeaderBand(doc, { title, subtitle }) {
-	const stripeHeight = 3;
-	const bandHeight = 26;
+function drawPageBackground(doc) {
+	doc.setFillColor(...COLORS.white);
+	doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, 'F');
 
-	doc.setFillColor(...COLORS.green);
-	doc.rect(0, 0, PAGE_WIDTH, stripeHeight, 'F');
+	doc.setFillColor(...COLORS.emerald500);
+	doc.rect(0, 0, 4, PAGE_HEIGHT, 'F');
 
-	doc.setFillColor(...COLORS.dark);
-	doc.rect(0, stripeHeight, PAGE_WIDTH, bandHeight, 'F');
+	doc.setFillColor(...COLORS.emerald600);
+	doc.rect(0, 0, 1.5, PAGE_HEIGHT, 'F');
+}
 
-	doc.setFontSize(15);
-	doc.setFont('helvetica', 'bold');
-	doc.setTextColor(...COLORS.white);
-	doc.text(title, MARGIN, stripeHeight + 11);
+/**
+ * Draw the document header with typographic hierarchy.
+ */
+function drawDocumentHeader(doc, { title, subtitle }) {
+	doc.setFillColor(...COLORS.white);
+	doc.rect(0, 0, PAGE_WIDTH, 42, 'F');
 
-	doc.setFontSize(9);
+	doc.setDrawColor(...COLORS.emerald500);
+	doc.setLineWidth(2);
+	doc.line(MARGIN, 6, MARGIN + 24, 6);
+
 	doc.setFont('helvetica', 'normal');
-	doc.setTextColor(160, 175, 190);
-	doc.text(subtitle, MARGIN, stripeHeight + 19);
+	doc.setFontSize(8);
+	doc.setTextColor(...COLORS.slate500);
 
 	const dateStr = new Date().toLocaleDateString('de-DE', {
 		day: '2-digit',
 		month: '2-digit',
 		year: 'numeric'
 	});
-	doc.setFontSize(8);
-	doc.setTextColor(...COLORS.green);
-	doc.text(dateStr, PAGE_WIDTH - MARGIN, stripeHeight + 11, { align: 'right' });
+	doc.text(dateStr, PAGE_WIDTH - MARGIN, 8, { align: 'right' });
 
-	doc.setTextColor(...COLORS.text);
+	doc.setFontSize(7);
+	doc.setTextColor(...COLORS.emerald600);
+	doc.text(m.Qonnectra(), MARGIN, 13);
 
-	return stripeHeight + bandHeight + 6;
-}
-
-/**
- * Draw the map image in the right column, preserving aspect ratio.
- * @returns {number} The y position after the map
- */
-function drawMapImage(doc, mapImage, y) {
-	const mapWidth = RIGHT_COL_WIDTH;
-	const mapHeight = mapWidth * 0.75;
-
-	doc.setFillColor(...COLORS.greenLight);
-	doc.rect(RIGHT_COL_X - 1, y - 1, mapWidth + 2, mapHeight + 2, 'F');
-
-	doc.setDrawColor(...COLORS.green);
-	doc.setLineWidth(0.4);
-	doc.rect(RIGHT_COL_X - 0.5, y - 0.5, mapWidth + 1, mapHeight + 1, 'S');
-
-	doc.addImage(mapImage, 'PNG', RIGHT_COL_X, y, mapWidth, mapHeight);
-
-	return y + mapHeight + 2;
-}
-
-/**
- * Draw compact coordinate labels under the map.
- * @returns {number} The y position after the block
- */
-function drawCoordinateBlock(doc, address, y) {
-	doc.setFillColor(...COLORS.rowAlt);
-	const blockHeight = address.coords25832 && address.coords4326 ? 14 : 8;
-	doc.roundedRect(RIGHT_COL_X, y, RIGHT_COL_WIDTH, blockHeight, 1.5, 1.5, 'F');
-
-	doc.setFontSize(6.5);
-	let lineY = y + 4.5;
-
-	if (address.coords25832) {
-		doc.setFont('helvetica', 'bold');
-		doc.setTextColor(...COLORS.textMuted);
-		doc.text('EPSG:25832', RIGHT_COL_X + 3, lineY);
-		const labelW = doc.getTextWidth('EPSG:25832');
-		doc.setFont('helvetica', 'normal');
-		doc.setTextColor(...COLORS.text);
-		doc.text(address.coords25832, RIGHT_COL_X + 3 + labelW + 2, lineY);
-		lineY += 5.5;
-	}
-
-	if (address.coords4326) {
-		doc.setFont('helvetica', 'bold');
-		doc.setTextColor(...COLORS.textMuted);
-		doc.text('EPSG:4326', RIGHT_COL_X + 3, lineY);
-		const labelW = doc.getTextWidth('EPSG:4326');
-		doc.setFont('helvetica', 'normal');
-		doc.setTextColor(...COLORS.text);
-		doc.text(address.coords4326, RIGHT_COL_X + 3 + labelW + 2, lineY);
-	}
-
-	doc.setTextColor(...COLORS.text);
-	return y + blockHeight + 2;
-}
-
-/**
- * Draw a section header with a green accent bar.
- * @returns {number} The y position after the header
- */
-function drawSectionHeader(doc, text, y, x = MARGIN) {
-	doc.setFillColor(...COLORS.green);
-	doc.rect(x, y, 2.5, 5, 'F');
-
-	doc.setFontSize(10);
 	doc.setFont('helvetica', 'bold');
-	doc.setTextColor(...COLORS.dark);
-	doc.text(text, x + 5.5, y + 3.8);
+	doc.setFontSize(22);
+	doc.setTextColor(...COLORS.slate900);
+	doc.text(title, MARGIN, 26);
 
-	doc.setTextColor(...COLORS.text);
+	doc.setFont('helvetica', 'normal');
+	doc.setFontSize(10);
+	doc.setTextColor(...COLORS.slate500);
+	doc.text(subtitle, MARGIN, 34);
 
-	return y + 8;
+	doc.setDrawColor(...COLORS.slate200);
+	doc.setLineWidth(0.3);
+	doc.line(MARGIN, 40, PAGE_WIDTH - MARGIN, 40);
+
+	return 48;
 }
 
 /**
- * Draw a styled key-value data table.
- * @returns {number} The y position after the table
+ * Draw a section block with icon, title, and data rows.
  */
-function drawDataTable(
-	doc,
-	rows,
-	startY,
-	{ marginLeft = MARGIN, tableWidth = CONTENT_WIDTH } = {}
-) {
-	const labelColWidth = Math.min(tableWidth * 0.42, 55);
+function drawSectionBlock(doc, { title, y, x, width, rows }) {
+	doc.setFillColor(...COLORS.white);
+	const blockHeight = 12 + rows.length * 10 + 4;
+	doc.roundedRect(x, y, width, blockHeight, 2, 2, 'F');
 
-	autoTable(doc, {
-		startY,
-		margin: { left: marginLeft, right: PAGE_WIDTH - marginLeft - tableWidth },
-		theme: 'plain',
-		tableWidth,
-		columnStyles: {
-			0: {
-				fontStyle: 'bold',
-				cellWidth: labelColWidth,
-				textColor: COLORS.textMuted,
-				fontSize: 8.5
-			},
-			1: {
-				cellWidth: tableWidth - labelColWidth,
-				textColor: COLORS.text,
-				fontSize: 9
-			}
-		},
-		body: rows,
-		styles: {
-			cellPadding: { top: 2, bottom: 2, left: 3, right: 3 },
-			lineWidth: 0,
-			minCellHeight: 6.5
-		},
-		alternateRowStyles: {
-			fillColor: COLORS.rowAlt
+	doc.setDrawColor(...COLORS.slate200);
+	doc.setLineWidth(0.2);
+	doc.roundedRect(x, y, width, blockHeight, 2, 2, 'S');
+
+	doc.setFillColor(...COLORS.emerald500);
+	doc.rect(x, y + 4, 3, 8, 'F');
+
+	doc.setFont('helvetica', 'bold');
+	doc.setFontSize(9);
+	doc.setTextColor(...COLORS.slate700);
+	doc.text(title.toUpperCase(), x + 8, y + 10);
+
+	doc.setDrawColor(...COLORS.slate100);
+	doc.setLineWidth(0.2);
+	doc.line(x + 4, y + 14, x + width - 4, y + 14);
+
+	let rowY = y + 22;
+	const labelWidth = 38;
+
+	rows.forEach((row, index) => {
+		if (index > 0 && index < rows.length) {
+			doc.setDrawColor(...COLORS.slate100);
+			doc.setLineWidth(0.1);
+			doc.line(x + 4, rowY - 5, x + width - 4, rowY - 5);
 		}
+
+		doc.setFont('helvetica', 'normal');
+		doc.setFontSize(7.5);
+		doc.setTextColor(...COLORS.slate500);
+		doc.text(row.label, x + 6, rowY);
+
+		if (row.badge) {
+			const badgeX = x + 6 + labelWidth;
+			const textWidth = doc.getTextWidth(row.value);
+			doc.setFillColor(...COLORS.emerald100);
+			doc.roundedRect(badgeX - 1, rowY - 3.5, textWidth + 4, 5, 1, 1, 'F');
+			doc.setFont('helvetica', 'bold');
+			doc.setFontSize(7);
+			doc.setTextColor(...COLORS.emerald600);
+			doc.text(row.value, badgeX + 1, rowY);
+		} else if (row.mono) {
+			doc.setFont('courier', 'bold');
+			doc.setFontSize(8);
+			doc.setTextColor(...COLORS.slate900);
+			doc.text(row.value, x + 6 + labelWidth, rowY);
+		} else {
+			doc.setFont('helvetica', 'normal');
+			doc.setFontSize(8);
+			doc.setTextColor(...COLORS.slate900);
+			doc.text(row.value, x + 6 + labelWidth, rowY);
+		}
+
+		rowY += 10;
 	});
 
-	const tableEndY = doc.lastAutoTable.finalY;
-	doc.setDrawColor(...COLORS.border);
-	doc.setLineWidth(0.15);
-	doc.line(marginLeft, tableEndY, marginLeft + tableWidth, tableEndY);
-
-	return tableEndY;
+	return y + blockHeight;
 }
 
 /**
- * Add page numbers and footer to all pages.
+ * Draw the map section with frame and shadow effect.
+ */
+function drawMapSection(doc, { image, x, y, width }) {
+	const aspectRatio = 0.85;
+	const height = width * aspectRatio;
+
+	doc.setFillColor(...COLORS.slate200);
+	doc.roundedRect(x + 1.5, y + 1.5, width, height, 2, 2, 'F');
+
+	doc.setFillColor(...COLORS.white);
+	doc.roundedRect(x, y, width, height, 2, 2, 'F');
+
+	doc.addImage(image, 'PNG', x + 2, y + 2, width - 4, height - 4);
+
+	doc.setDrawColor(...COLORS.emerald500);
+	doc.setLineWidth(0.8);
+	doc.roundedRect(x, y, width, height, 2, 2, 'S');
+
+	doc.setDrawColor(...COLORS.emerald500);
+	doc.setLineWidth(1.5);
+	doc.line(x, y, x + 6, y);
+	doc.line(x, y, x, y + 6);
+	doc.line(x + width, y, x + width - 6, y);
+	doc.line(x + width, y, x + width, y + 6);
+	doc.line(x, y + height, x + 6, y + height);
+	doc.line(x, y + height, x, y + height - 6);
+	doc.line(x + width, y + height, x + width - 6, y + height);
+	doc.line(x + width, y + height, x + width, y + height - 6);
+
+	return y + height;
+}
+
+/**
+ * Draw coordinate card below the map.
+ */
+function drawCoordinateCard(doc, { coords25832, coords4326, x, y, width }) {
+	const cardHeight = coords25832 && coords4326 ? 20 : 12;
+
+	doc.setFillColor(...COLORS.white);
+	doc.roundedRect(x, y, width, cardHeight, 2, 2, 'F');
+
+	doc.setDrawColor(...COLORS.slate200);
+	doc.setLineWidth(0.2);
+	doc.roundedRect(x, y, width, cardHeight, 2, 2, 'S');
+
+	let lineY = y + 7;
+
+	if (coords25832) {
+		doc.setFont('courier', 'bold');
+		doc.setFontSize(6);
+		doc.setTextColor(...COLORS.emerald600);
+		doc.text('EPSG:25832', x + 4, lineY);
+
+		doc.setFont('courier', 'normal');
+		doc.setFontSize(6.5);
+		doc.setTextColor(...COLORS.slate700);
+		doc.text(coords25832, x + 26, lineY);
+
+		lineY += 7;
+	}
+
+	if (coords4326) {
+		doc.setFont('courier', 'bold');
+		doc.setFontSize(6);
+		doc.setTextColor(...COLORS.emerald600);
+		doc.text('EPSG:4326', x + 4, lineY);
+
+		doc.setFont('courier', 'normal');
+		doc.setFontSize(6.5);
+		doc.setTextColor(...COLORS.slate700);
+		doc.text(coords4326, x + 26, lineY);
+	}
+
+	return y + cardHeight;
+}
+
+/**
+ * Add page numbers and footer with refined styling.
  */
 function addPageNumbers(doc) {
 	const totalPages = doc.getNumberOfPages();
@@ -363,24 +425,31 @@ function addPageNumbers(doc) {
 	for (let i = 1; i <= totalPages; i++) {
 		doc.setPage(i);
 
-		doc.setDrawColor(...COLORS.green);
-		doc.setLineWidth(0.4);
-		doc.line(MARGIN, PAGE_HEIGHT - 14, MARGIN + CONTENT_WIDTH, PAGE_HEIGHT - 14);
+		doc.setFillColor(...COLORS.white);
+		doc.rect(0, PAGE_HEIGHT - 16, PAGE_WIDTH, 16, 'F');
 
-		doc.setFontSize(7.5);
-		doc.setFont('helvetica', 'normal');
-		doc.setTextColor(...COLORS.textMuted);
-		doc.text(`${i} / ${totalPages}`, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 9, {
-			align: 'right'
-		});
+		doc.setDrawColor(...COLORS.slate200);
+		doc.setLineWidth(0.3);
+		doc.line(MARGIN, PAGE_HEIGHT - 16, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 16);
 
-		doc.setTextColor(...COLORS.green);
 		doc.setFont('helvetica', 'bold');
-		doc.text('Qonnectra', MARGIN, PAGE_HEIGHT - 9);
+		doc.setFontSize(7);
+		doc.setTextColor(...COLORS.emerald600);
+		doc.text(m.Qonnectra(), MARGIN, PAGE_HEIGHT - 8);
 
-		const qWidth = doc.getTextWidth('Qonnectra');
-		doc.setTextColor(...COLORS.textMuted);
+		const qWidth = doc.getTextWidth(m.Qonnectra());
 		doc.setFont('helvetica', 'normal');
-		doc.text(' GIS', MARGIN + qWidth, PAGE_HEIGHT - 9);
+		doc.setTextColor(...COLORS.slate400);
+
+		doc.setFont('helvetica', 'normal');
+		doc.setFontSize(7);
+		doc.setTextColor(...COLORS.slate400);
+
+		const pageText = `${i} / ${totalPages}`;
+		doc.text(pageText, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 8, { align: 'right' });
+
+		const centerText = m.common_documentation();
+		doc.setTextColor(...COLORS.slate400);
+		doc.text(centerText, PAGE_WIDTH / 2, PAGE_HEIGHT - 8, { align: 'center' });
 	}
 }

@@ -1,5 +1,6 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"Qonnectra": "Qonnectra",
 	"action_add": "Hinzufügen",
 	"action_add_residential_unit": "Wohneinheit hinzufügen",
 	"action_back": "Zurück",
@@ -76,6 +77,7 @@
 	"common_default": "Standard",
 	"common_delete": "Löschen",
 	"common_description": "Beschreibung",
+	"common_documentation": "Dokumentation",
 	"common_edit": "Bearbeiten",
 	"common_error": "Fehler",
 	"common_import": "Import",
