@@ -46,7 +46,7 @@
 	"action_select_all": "Alle auswählen",
 	"action_select_none": "Keine auswählen",
 	"action_tap_to_place": "Tippen zum Platzieren",
-	"action_trace": "Verfolgen",
+	"action_trace": "Folgen",
 	"action_unassign": "Aufheben",
 	"action_unmerge": "Trennen",
 	"action_upload_files": "Upload",
@@ -706,7 +706,7 @@
 	"trace_start_address": "Start @:",
 	"trace_start_not_set": "Start: Nicht gesetzt",
 	"trace_statistics": "Statistiken",
-	"trace_trace_tree": "Verfolgungsbaum",
+	"trace_trace_tree": "Faserwege",
 	"trace_addresses": [
 		{
 			"declarations": ["input count", "local countPlural = count: plural"],
@@ -728,7 +728,7 @@
 	"trace_end_address": "Ende @:",
 	"trace_end_not_set": "Ende: Nicht gesetzt",
 	"trace_endpoint_splice": "Endpunkt (keine Verbindung)",
-	"trace_error": "Fehler beim Verfolgen",
+	"trace_error": "Fehler beim Folgen",
 	"trace_geometry": "Geometrie",
 	"trace_geometry_merged": "Zusammengeführt",
 	"trace_geometry_mode": "Modus",
@@ -740,8 +740,8 @@
 	"trace_in_bundle": "Faser im Bündel",
 	"trace_multiple_destinations": "Mehrere Ziele",
 	"trace_no_fibers_in_cable": "Keine Fasern in diesem Kabel",
-	"trace_no_geometry_available": "Keine Geometriedaten für diese Verfolgung verfügbar",
-	"trace_no_trace_data": "Keine Verfolgungsdaten verfügbar",
+	"trace_no_geometry_available": "Keine Geometriedaten für diesen Weg verfügbar",
+	"trace_no_trace_data": "Keine Wegdaten verfügbar",
 	"trace_orient_geometry": "Nach Kabelrichtung ausrichten",
 	"trace_raw_json": "JSON-Rohdaten",
 	"signal_affected_addresses": "Betroffene Adressen",
@@ -759,7 +759,7 @@
 	"signal_source_cable_start": "Kabelanfang",
 	"trace_cable_endpoints": "Kabelendpunkte",
 	"trace_mode_signal_analysis": "Signalanalyse",
-	"trace_mode_standard": "Verfolgung",
+	"trace_mode_standard": "Weg",
 	"trace_splice": "Spleiss",
 	"trace_splices": [
 		{
