@@ -1,19 +1,37 @@
 import { deserialize } from '$app/forms';
 
 /**
+ * @typedef {{
+ *   id: string,
+ *   title: string,
+ *   fiberCount: number,
+ *   data: Object,
+ *   cableUuid: string
+ * }} CableTrenchItem
+ *
+ * @typedef {{
+ *   id: number,
+ *   fiber_color: string,
+ *   hex_code: string,
+ *   name_de?: string,
+ *   name_en?: string
+ * }} FiberColor
+ */
+
+/**
  * Manages cable and fiber data fetching for trench features in map view
  * Displays cables that pass through a trench with lazy-loaded fiber details
  */
 export class CableTrenchDataManager {
 	// State for cables in trench
-	/** @type {Array<{id: string, title: string, description: string, data: Object, cableUuid: string}>} */
+	/** @type {CableTrenchItem[]} */
 	cablesInTrench = $state([]);
 	loading = $state(false);
 	/** @type {string|null} */
 	error = $state(null);
 
 	// State for fibers (keyed by cableUuid)
-	/** @type {Record<string, Array<Object>>} */
+	/** @type {Record<string, Object[]>} */
 	fibers = $state({});
 	/** @type {Record<string, boolean>} */
 	loadingFibers = $state({});
@@ -21,7 +39,7 @@ export class CableTrenchDataManager {
 	errorFibers = $state({});
 
 	// State for fiber colors
-	/** @type {Array<{id: number, fiber_color: string, hex_code: string}>} */
+	/** @type {FiberColor[]} */
 	fiberColors = $state([]);
 	loadingFiberColors = $state(false);
 
@@ -48,7 +66,7 @@ export class CableTrenchDataManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure') {
-				this.error = result.data?.error || 'Failed to fetch cables';
+				this.error = /** @type {any} */ (result.data)?.error || 'Failed to fetch cables';
 				this.cablesInTrench = [];
 				return;
 			}
@@ -60,7 +78,8 @@ export class CableTrenchDataManager {
 			}
 
 			if (result.type === 'success' && result.data) {
-				this.cablesInTrench = result.data.map((cable) => ({
+				const data = /** @type {any[]} */ (/** @type {unknown} */ (result.data));
+				this.cablesInTrench = data.map((/** @type {any} */ cable) => ({
 					id: cable.uuid,
 					title: cable.name
 						? `${cable.name}${cable.cable_type?.cable_type ? ` (${cable.cable_type.cable_type})` : ''}`
@@ -92,7 +111,7 @@ export class CableTrenchDataManager {
 		if (this.fibers[cableUuid] && !forceRefresh) return;
 
 		// Set loading state for this cable - create new object to trigger reactivity
-		this.loadingFibers = { ...this.loadingFibers, [cableUuid]: true };
+		this.loadingFibers = /** @type {Record<string, boolean>} */ ({ ...this.loadingFibers, [cableUuid]: true });
 
 		try {
 			const formData = new FormData();
@@ -106,34 +125,35 @@ export class CableTrenchDataManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure') {
-				this.errorFibers = {
+				this.errorFibers = /** @type {Record<string, string|null>} */ ({
 					...this.errorFibers,
-					[cableUuid]: result.data?.error || 'Failed to fetch fibers'
-				};
-				this.fibers = { ...this.fibers, [cableUuid]: [] };
+					[cableUuid]: /** @type {any} */ (result.data)?.error || 'Failed to fetch fibers'
+				});
+				this.fibers = /** @type {Record<string, Object[]>} */ ({ ...this.fibers, [cableUuid]: [] });
 				return;
 			}
 
 			if (result.type === 'error') {
-				this.errorFibers = {
+				this.errorFibers = /** @type {Record<string, string|null>} */ ({
 					...this.errorFibers,
 					[cableUuid]: result.error?.message || 'An error occurred'
-				};
-				this.fibers = { ...this.fibers, [cableUuid]: [] };
+				});
+				this.fibers = /** @type {Record<string, Object[]>} */ ({ ...this.fibers, [cableUuid]: [] });
 				return;
 			}
 
 			if (result.type === 'success' && result.data) {
-				this.fibers = { ...this.fibers, [cableUuid]: result.data.fibers || [] };
+				const data = /** @type {any} */ (result.data);
+				this.fibers = /** @type {Record<string, Object[]>} */ ({ ...this.fibers, [cableUuid]: data.fibers || [] });
 				// Clear any previous error
-				this.errorFibers = { ...this.errorFibers, [cableUuid]: null };
+				this.errorFibers = /** @type {Record<string, string|null>} */ ({ ...this.errorFibers, [cableUuid]: null });
 			}
 		} catch (err) {
 			console.error('Error fetching fibers:', err);
-			this.errorFibers = { ...this.errorFibers, [cableUuid]: 'Failed to load fibers' };
-			this.fibers = { ...this.fibers, [cableUuid]: [] };
+			this.errorFibers = /** @type {Record<string, string|null>} */ ({ ...this.errorFibers, [cableUuid]: 'Failed to load fibers' });
+			this.fibers = /** @type {Record<string, Object[]>} */ ({ ...this.fibers, [cableUuid]: [] });
 		} finally {
-			this.loadingFibers = { ...this.loadingFibers, [cableUuid]: false };
+			this.loadingFibers = /** @type {Record<string, boolean>} */ ({ ...this.loadingFibers, [cableUuid]: false });
 		}
 	}
 
@@ -157,7 +177,8 @@ export class CableTrenchDataManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success' && result.data) {
-				this.fiberColors = result.data.fiberColors || [];
+				const data = /** @type {any} */ (result.data);
+				this.fiberColors = data.fiberColors || [];
 			}
 		} catch (err) {
 			console.error('Error fetching fiber colors:', err);
@@ -185,7 +206,9 @@ export class CableTrenchDataManager {
 
 		const lowerName = colorName.toLowerCase();
 		const locale = this.#getLocale();
+		/** @type {'name_en' | 'name_de'} */
 		const primaryField = locale === 'en' ? 'name_en' : 'name_de';
+		/** @type {'name_en' | 'name_de'} */
 		const fallbackField = locale === 'en' ? 'name_de' : 'name_en';
 
 		const color = this.fiberColors.find(
@@ -207,6 +230,7 @@ export class CableTrenchDataManager {
 
 		const lowerName = colorName.toLowerCase();
 		const locale = this.#getLocale();
+		/** @type {'name_en' | 'name_de'} */
 		const targetField = locale === 'en' ? 'name_en' : 'name_de';
 
 		const color = this.fiberColors.find(

@@ -5,6 +5,65 @@ import { m } from '$lib/paraglide/messages';
 import { globalToaster } from '$lib/stores/toaster';
 
 /**
+ * @typedef {{
+ *   uuid: string,
+ *   total_slots: number,
+ *   container?: { display_name?: string } | null
+ * }} SlotConfiguration
+ *
+ * @typedef {{
+ *   uuid: string,
+ *   slot_start: number,
+ *   slot_end: number,
+ *   component_type: { id: number, component_type: string } | null,
+ *   component_structure: unknown,
+ *   purpose: string,
+ *   label: string | null
+ * }} NodeStructure
+ *
+ * @typedef {{
+ *   uuid: string,
+ *   slot_configuration: string | null,
+ *   after_slot: number
+ * }} SlotDivider
+ *
+ * @typedef {{
+ *   slot_number: number,
+ *   clip_number: string
+ * }} ClipNumberEntry
+ *
+ * @typedef {{
+ *   id: number,
+ *   name: string,
+ *   occupied_slots: number,
+ *   count?: number,
+ *   total_slots?: number
+ * }} ComponentData
+ *
+ * @typedef {{
+ *   uuid: string,
+ *   occupied_slots: number
+ * }} StructureMoveData
+ *
+ * @typedef {{
+ *   slotConfigurations?: SlotConfiguration[],
+ *   nodeUuid?: string
+ * }} SharedSlotState
+ *
+ * @typedef {{
+ *   slotNumber: number,
+ *   structure: NodeStructure | undefined,
+ *   isBlockStart: boolean,
+ *   blockSize: number,
+ *   isOccupied: boolean,
+ *   hasDividerAfter: boolean,
+ *   clipNumber: string | null
+ * }} SlotRow
+ *
+ * @typedef {{ slot_start: number, slot_end: number }} FailedPlacement
+ */
+
+/**
  * Manager for node structure CRUD operations, dividers, and clip numbers.
  * Handles slot configuration selection and structure placement.
  */
@@ -12,16 +71,16 @@ export class NodeStructureManager {
 	/** @type {string|null} */
 	nodeUuid = $state(null);
 
-	/** @type {Array<Object>} */
+	/** @type {SlotConfiguration[]} */
 	localSlotConfigurations = $state([]);
 
 	/** @type {string|null} */
 	selectedSlotConfigUuid = $state(null);
 
-	/** @type {Array<Object>} */
+	/** @type {NodeStructure[]} */
 	structures = $state([]);
 
-	/** @type {Array<Object>} */
+	/** @type {SlotDivider[]} */
 	dividers = $state([]);
 
 	/** @type {Map<number, string>} */
@@ -36,16 +95,16 @@ export class NodeStructureManager {
 	/** @type {boolean} */
 	creatingMultiple = $state(false);
 
-	/** @type {Object|null} - Shared state from parent for slot configurations */
+	/** @type {SharedSlotState|null} */
 	#sharedSlotState = null;
 
-	/** @type {number} - Version counter to track node changes and invalidate stale fetches */
+	/** @type {number} */
 	#fetchVersion = 0;
 
 	/**
-	 * @param {string|null} nodeUuid - Node UUID
-	 * @param {string|null} initialSlotConfigUuid - Initial slot config selection
-	 * @param {Object|null} sharedSlotState - Optional shared state from parent
+	 * @param {string|null} nodeUuid
+	 * @param {string|null} initialSlotConfigUuid
+	 * @param {SharedSlotState|null} sharedSlotState
 	 */
 	constructor(nodeUuid = null, initialSlotConfigUuid = null, sharedSlotState = null) {
 		this.nodeUuid = nodeUuid;
@@ -55,21 +114,21 @@ export class NodeStructureManager {
 
 	/**
 	 * Get slot configurations (from shared state if available and for current node, otherwise local)
-	 * @returns {Array<Object>}
+	 * @returns {SlotConfiguration[]}
 	 */
 	get slotConfigurations() {
 		if (
-			this.#sharedSlotState?.slotConfigurations?.length > 0 &&
+			(this.#sharedSlotState?.slotConfigurations?.length ?? 0) > 0 &&
 			this.#sharedSlotState?.nodeUuid === this.nodeUuid
 		) {
-			return this.#sharedSlotState.slotConfigurations;
+			return /** @type {SlotConfiguration[]} */ (this.#sharedSlotState.slotConfigurations);
 		}
 		return this.localSlotConfigurations;
 	}
 
 	/**
 	 * Get the currently selected slot configuration
-	 * @returns {Object|undefined}
+	 * @returns {SlotConfiguration|undefined}
 	 */
 	get selectedConfig() {
 		return this.slotConfigurations.find((c) => c.uuid === this.selectedSlotConfigUuid);
@@ -108,7 +167,7 @@ export class NodeStructureManager {
 
 	/**
 	 * Update the shared slot state reference
-	 * @param {Object|null} state
+	 * @param {SharedSlotState|null} state
 	 */
 	setSharedSlotState(state) {
 		this.#sharedSlotState = state;
@@ -116,13 +175,12 @@ export class NodeStructureManager {
 
 	/**
 	 * Reset manager for a new node (when user clicks a different node)
-	 * @param {string} uuid - New node UUID
-	 * @param {Object|null} sharedSlotState - Optional shared state from parent
+	 * @param {string} uuid
+	 * @param {SharedSlotState|null} sharedSlotState
 	 */
 	setNodeUuid(uuid, sharedSlotState = null) {
 		this.nodeUuid = uuid;
 		this.#sharedSlotState = sharedSlotState;
-		// Increment version to invalidate any in-flight fetch requests
 		this.#fetchVersion++;
 		this.localSlotConfigurations = [];
 		this.selectedSlotConfigUuid = null;
@@ -139,7 +197,6 @@ export class NodeStructureManager {
 	 */
 	selectSlotConfig(uuid) {
 		if (this.selectedSlotConfigUuid !== uuid) {
-			// Increment version to invalidate in-flight fetches for previous config
 			this.#fetchVersion++;
 		}
 		this.selectedSlotConfigUuid = uuid;
@@ -151,9 +208,8 @@ export class NodeStructureManager {
 	async fetchSlotConfigurations() {
 		if (!this.nodeUuid) return;
 
-		// Only use shared state if it's for the current node
 		if (
-			this.#sharedSlotState?.slotConfigurations?.length > 0 &&
+			(this.#sharedSlotState?.slotConfigurations?.length ?? 0) > 0 &&
 			this.#sharedSlotState?.nodeUuid === this.nodeUuid
 		) {
 			this.loading = false;
@@ -163,7 +219,6 @@ export class NodeStructureManager {
 			return;
 		}
 
-		// Capture current version to detect stale responses
 		const requestVersion = this.#fetchVersion;
 
 		this.loading = true;
@@ -176,22 +231,22 @@ export class NodeStructureManager {
 				body: formData
 			});
 
-			// Check if node changed while fetching - discard stale results
 			if (this.#fetchVersion !== requestVersion) return;
 
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to fetch slot configurations');
+				const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+				throw new Error(/** @type {string} */ (data?.error) || 'Failed to fetch slot configurations');
 			}
 
-			this.localSlotConfigurations = result.data?.configurations || [];
+			const data = /** @type {Record<string, unknown>} */ (/** @type {any} */ (result).data);
+			this.localSlotConfigurations = /** @type {SlotConfiguration[]} */ (data?.configurations) || [];
 
 			if (!this.selectedSlotConfigUuid && this.localSlotConfigurations.length > 0) {
 				this.selectedSlotConfigUuid = this.localSlotConfigurations[0].uuid;
 			}
 		} catch (err) {
-			// Discard errors from stale requests
 			if (this.#fetchVersion !== requestVersion) return;
 			console.error('Error fetching slot configurations:', err);
 			globalToaster.error({
@@ -200,7 +255,6 @@ export class NodeStructureManager {
 			});
 			this.localSlotConfigurations = [];
 		} finally {
-			// Only update loading state if request is still current
 			if (this.#fetchVersion === requestVersion) {
 				this.loading = false;
 			}
@@ -216,7 +270,6 @@ export class NodeStructureManager {
 			return;
 		}
 
-		// Capture current version to detect stale responses
 		const requestVersion = this.#fetchVersion;
 
 		this.loadingStructures = true;
@@ -229,18 +282,18 @@ export class NodeStructureManager {
 				body: formData
 			});
 
-			// Check if node changed while fetching - discard stale results
 			if (this.#fetchVersion !== requestVersion) return;
 
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to fetch structures');
+				const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+				throw new Error(/** @type {string} */ (data?.error) || 'Failed to fetch structures');
 			}
 
-			this.structures = result.data?.structures || [];
+			const data = /** @type {Record<string, unknown>} */ (/** @type {any} */ (result).data);
+			this.structures = /** @type {NodeStructure[]} */ (data?.structures) || [];
 		} catch (err) {
-			// Discard errors from stale requests
 			if (this.#fetchVersion !== requestVersion) return;
 			console.error('Error fetching structures:', err);
 			globalToaster.error({
@@ -249,7 +302,6 @@ export class NodeStructureManager {
 			});
 			this.structures = [];
 		} finally {
-			// Only update loading state if request is still current
 			if (this.#fetchVersion === requestVersion) {
 				this.loadingStructures = false;
 			}
@@ -265,7 +317,6 @@ export class NodeStructureManager {
 			return;
 		}
 
-		// Capture current version to detect stale responses
 		const requestVersion = this.#fetchVersion;
 
 		try {
@@ -277,18 +328,18 @@ export class NodeStructureManager {
 				body: formData
 			});
 
-			// Check if node changed while fetching - discard stale results
 			if (this.#fetchVersion !== requestVersion) return;
 
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to fetch dividers');
+				const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+				throw new Error(/** @type {string} */ (data?.error) || 'Failed to fetch dividers');
 			}
 
-			this.dividers = result.data?.dividers || [];
+			const data = /** @type {Record<string, unknown>} */ (/** @type {any} */ (result).data);
+			this.dividers = /** @type {SlotDivider[]} */ (data?.dividers) || [];
 		} catch (err) {
-			// Discard errors from stale requests
 			if (this.#fetchVersion !== requestVersion) return;
 			console.error('Error fetching dividers:', err);
 			this.dividers = [];
@@ -304,7 +355,6 @@ export class NodeStructureManager {
 			return;
 		}
 
-		// Capture current version to detect stale responses
 		const requestVersion = this.#fetchVersion;
 
 		try {
@@ -316,23 +366,23 @@ export class NodeStructureManager {
 				body: formData
 			});
 
-			// Check if node changed while fetching - discard stale results
 			if (this.#fetchVersion !== requestVersion) return;
 
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to fetch clip numbers');
+				const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+				throw new Error(/** @type {string} */ (data?.error) || 'Failed to fetch clip numbers');
 			}
 
-			const clips = result.data?.clipNumbers || [];
+			const data = /** @type {Record<string, unknown>} */ (/** @type {any} */ (result).data);
+			const clips = /** @type {ClipNumberEntry[]} */ (data?.clipNumbers) || [];
 			const newMap = new Map();
 			for (const clip of clips) {
 				newMap.set(clip.slot_number, clip.clip_number);
 			}
 			this.clipNumbers = newMap;
 		} catch (err) {
-			// Discard errors from stale requests
 			if (this.#fetchVersion !== requestVersion) return;
 			console.error('Error fetching clip numbers:', err);
 			this.clipNumbers = new Map();
@@ -348,13 +398,13 @@ export class NodeStructureManager {
 
 	/**
 	 * Create a new structure
-	 * @param {Object} componentData - Component type data
-	 * @param {number} slotStart - Starting slot number
+	 * @param {ComponentData} componentData
+	 * @param {number} slotStart
 	 */
 	async createStructure(componentData, slotStart) {
 		const slotEnd = slotStart + componentData.occupied_slots - 1;
 
-		if (slotEnd > this.selectedConfig.total_slots) {
+		if (!this.selectedConfig || slotEnd > this.selectedConfig.total_slots) {
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_not_enough_slots()
@@ -373,6 +423,7 @@ export class NodeStructureManager {
 		}
 
 		const tempUuid = `temp-${Date.now()}`;
+		/** @type {NodeStructure} */
 		const optimisticStructure = {
 			uuid: tempUuid,
 			slot_start: slotStart,
@@ -386,8 +437,8 @@ export class NodeStructureManager {
 
 		try {
 			const formData = new FormData();
-			formData.append('nodeUuid', this.nodeUuid);
-			formData.append('slotConfigUuid', this.selectedSlotConfigUuid);
+			formData.append('nodeUuid', /** @type {string} */ (this.nodeUuid));
+			formData.append('slotConfigUuid', /** @type {string} */ (this.selectedSlotConfigUuid));
 			formData.append('componentTypeId', componentData.id.toString());
 			formData.append('slotStart', slotStart.toString());
 			formData.append('slotEnd', slotEnd.toString());
@@ -401,11 +452,13 @@ export class NodeStructureManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to create structure');
+				const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+				throw new Error(/** @type {string} */ (data?.error) || 'Failed to create structure');
 			}
 
+			const data = /** @type {{ structure: NodeStructure }} */ (/** @type {any} */ (result).data);
 			this.structures = this.structures.map((s) =>
-				s.uuid === tempUuid ? result.data.structure : s
+				s.uuid === tempUuid ? data.structure : s
 			);
 
 			globalToaster.success({
@@ -420,8 +473,8 @@ export class NodeStructureManager {
 
 	/**
 	 * Create multiple structures at consecutive slots
-	 * @param {Object} componentData - Component type data with id, name, occupied_slots, count, total_slots
-	 * @param {number} slotStart - Starting slot number
+	 * @param {ComponentData} componentData
+	 * @param {number} slotStart
 	 */
 	async createMultipleStructures(componentData, slotStart) {
 		const singleSlots = componentData.occupied_slots;
@@ -429,8 +482,7 @@ export class NodeStructureManager {
 		const totalSlotsNeeded = componentData.total_slots || singleSlots * count;
 		const slotEnd = slotStart + totalSlotsNeeded - 1;
 
-		// Validate all slots are available
-		if (slotEnd > this.selectedConfig.total_slots) {
+		if (!this.selectedConfig || slotEnd > this.selectedConfig.total_slots) {
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_not_enough_slots()
@@ -448,7 +500,7 @@ export class NodeStructureManager {
 			}
 		}
 
-		// Create optimistic structures
+		/** @type {NodeStructure[]} */
 		const tempStructures = [];
 		for (let c = 0; c < count; c++) {
 			const compSlotStart = slotStart + c * singleSlots;
@@ -469,8 +521,8 @@ export class NodeStructureManager {
 
 		try {
 			const formData = new FormData();
-			formData.append('nodeUuid', this.nodeUuid);
-			formData.append('slotConfigUuid', this.selectedSlotConfigUuid);
+			formData.append('nodeUuid', /** @type {string} */ (this.nodeUuid));
+			formData.append('slotConfigUuid', /** @type {string} */ (this.selectedSlotConfigUuid));
 			formData.append('componentTypeId', componentData.id.toString());
 			formData.append('slotStart', slotStart.toString());
 			formData.append('count', count.toString());
@@ -484,16 +536,16 @@ export class NodeStructureManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to create structures');
+				const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+				throw new Error(/** @type {string} */ (data?.error) || 'Failed to create structures');
 			}
 
-			const created = result.data?.created || [];
-			const failed = result.data?.failed || [];
+			const data = /** @type {{ created?: NodeStructure[], failed?: FailedPlacement[] }} */ (/** @type {any} */ (result).data);
+			const created = data?.created || [];
+			const failed = data?.failed || [];
 
-			// Replace temp structures with real ones
 			this.structures = this.structures.filter((s) => !s.uuid.startsWith('temp-')).concat(created);
 
-			// Show appropriate toast
 			if (failed.length === 0) {
 				globalToaster.success({
 					title: m.title_success(),
@@ -510,7 +562,6 @@ export class NodeStructureManager {
 				throw new Error(`All placements failed: ${failedSlots}`);
 			}
 		} catch (err) {
-			// Remove all temp structures on error
 			this.structures = this.structures.filter((s) => !s.uuid.startsWith('temp-'));
 			throw err;
 		} finally {
@@ -520,14 +571,14 @@ export class NodeStructureManager {
 
 	/**
 	 * Move an existing structure to a new slot
-	 * @param {Object} structureData - Structure data with uuid and occupied_slots
-	 * @param {number} newSlotStart - New starting slot number
+	 * @param {StructureMoveData} structureData
+	 * @param {number} newSlotStart
 	 */
 	async moveStructure(structureData, newSlotStart) {
 		const slotCount = structureData.occupied_slots;
 		const newSlotEnd = newSlotStart + slotCount - 1;
 
-		if (newSlotEnd > this.selectedConfig.total_slots) {
+		if (!this.selectedConfig || newSlotEnd > this.selectedConfig.total_slots) {
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_not_enough_slots()
@@ -567,11 +618,13 @@ export class NodeStructureManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to move structure');
+				const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+				throw new Error(/** @type {string} */ (data?.error) || 'Failed to move structure');
 			}
 
+			const data = /** @type {{ structure: NodeStructure }} */ (/** @type {any} */ (result).data);
 			this.structures = this.structures.map((s) =>
-				s.uuid === structureData.uuid ? result.data.structure : s
+				s.uuid === structureData.uuid ? data.structure : s
 			);
 
 			globalToaster.success({
@@ -587,7 +640,7 @@ export class NodeStructureManager {
 	/**
 	 * Delete a structure
 	 * @param {string} structureUuid
-	 * @returns {boolean} - True if deletion was successful
+	 * @returns {Promise<boolean>}
 	 */
 	async deleteStructure(structureUuid) {
 		const previousStructures = [...this.structures];
@@ -605,7 +658,8 @@ export class NodeStructureManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to delete structure');
+				const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+				throw new Error(/** @type {string} */ (data?.error) || 'Failed to delete structure');
 			}
 
 			globalToaster.success({
@@ -646,7 +700,8 @@ export class NodeStructureManager {
 				const result = deserialize(await response.text());
 
 				if (result.type === 'failure' || result.type === 'error') {
-					throw new Error(result.data?.error || 'Failed to delete divider');
+					const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+					throw new Error(/** @type {string} */ (data?.error) || 'Failed to delete divider');
 				}
 			} catch (err) {
 				console.error('Error deleting divider:', err);
@@ -658,6 +713,7 @@ export class NodeStructureManager {
 			}
 		} else {
 			const tempUuid = `temp-${Date.now()}`;
+			/** @type {SlotDivider} */
 			const optimisticDivider = {
 				uuid: tempUuid,
 				slot_configuration: this.selectedSlotConfigUuid,
@@ -667,7 +723,7 @@ export class NodeStructureManager {
 
 			try {
 				const formData = new FormData();
-				formData.append('slotConfigUuid', this.selectedSlotConfigUuid);
+				formData.append('slotConfigUuid', /** @type {string} */ (this.selectedSlotConfigUuid));
 				formData.append('afterSlot', slotNumber.toString());
 
 				const response = await fetch('?/createSlotDivider', {
@@ -678,10 +734,12 @@ export class NodeStructureManager {
 				const result = deserialize(await response.text());
 
 				if (result.type === 'failure' || result.type === 'error') {
-					throw new Error(result.data?.error || 'Failed to create divider');
+					const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+					throw new Error(/** @type {string} */ (data?.error) || 'Failed to create divider');
 				}
 
-				this.dividers = this.dividers.map((d) => (d.uuid === tempUuid ? result.data.divider : d));
+				const data = /** @type {{ divider: SlotDivider }} */ (/** @type {any} */ (result).data);
+				this.dividers = this.dividers.map((d) => (d.uuid === tempUuid ? data.divider : d));
 			} catch (err) {
 				console.error('Error creating divider:', err);
 				this.dividers = this.dividers.filter((d) => d.uuid !== tempUuid);
@@ -708,7 +766,7 @@ export class NodeStructureManager {
 
 		try {
 			const formData = new FormData();
-			formData.append('slotConfigUuid', this.selectedSlotConfigUuid);
+			formData.append('slotConfigUuid', /** @type {string} */ (this.selectedSlotConfigUuid));
 			formData.append('slotNumber', slotNumber.toString());
 			formData.append('clipNumber', newClipNumber);
 
@@ -720,7 +778,8 @@ export class NodeStructureManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to save clip number');
+				const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+				throw new Error(/** @type {string} */ (data?.error) || 'Failed to save clip number');
 			}
 		} catch (err) {
 			console.error('Error saving clip number:', err);
@@ -734,11 +793,12 @@ export class NodeStructureManager {
 
 	/**
 	 * Compute slot rows for rendering
-	 * @returns {Array<Object>}
+	 * @returns {SlotRow[]}
 	 */
 	computeSlotRows() {
 		if (!this.selectedConfig) return [];
 
+		/** @type {SlotRow[]} */
 		const rows = [];
 		for (let slot = 1; slot <= this.selectedConfig.total_slots; slot++) {
 			const structure = this.structures.find((s) => s.slot_start <= slot && s.slot_end >= slot);
@@ -757,12 +817,11 @@ export class NodeStructureManager {
 
 	/**
 	 * Handle shared slot state updates
-	 * @param {Object|null} sharedState
+	 * @param {SharedSlotState|null} sharedState
 	 */
 	syncWithSharedState(sharedState) {
 		if (!sharedState) return;
 
-		// Only sync if shared state is for the current node
 		if (sharedState.nodeUuid !== this.nodeUuid) return;
 
 		this.#sharedSlotState = sharedState;
@@ -772,10 +831,10 @@ export class NodeStructureManager {
 			(c) => c.uuid === this.selectedSlotConfigUuid
 		);
 
-		if (!currentConfigStillExists && sharedState.slotConfigurations?.length > 0) {
-			this.selectedSlotConfigUuid = sharedState.slotConfigurations[0].uuid;
-		} else if (!this.selectedSlotConfigUuid && sharedState.slotConfigurations?.length > 0) {
-			this.selectedSlotConfigUuid = sharedState.slotConfigurations[0].uuid;
+		if (!currentConfigStillExists && (sharedState.slotConfigurations?.length ?? 0) > 0) {
+			this.selectedSlotConfigUuid = /** @type {SlotConfiguration[]} */ (sharedState.slotConfigurations)[0].uuid;
+		} else if (!this.selectedSlotConfigUuid && (sharedState.slotConfigurations?.length ?? 0) > 0) {
+			this.selectedSlotConfigUuid = /** @type {SlotConfiguration[]} */ (sharedState.slotConfigurations)[0].uuid;
 		}
 	}
 

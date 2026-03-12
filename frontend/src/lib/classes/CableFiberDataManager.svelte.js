@@ -1,6 +1,62 @@
 import { deserialize } from '$app/forms';
 
 /**
+ * @typedef {Object} Cable
+ * @property {string} uuid
+ * @property {string} [name]
+ * @property {number} [capacity]
+ */
+
+/**
+ * @typedef {Object} FiberColor
+ * @property {string} name_de
+ * @property {string} name_en
+ * @property {string} hex_code
+ */
+
+/**
+ * @typedef {Object} Fiber
+ * @property {string} uuid
+ * @property {number} bundle_number
+ * @property {string} bundle_color
+ * @property {string} [color]
+ * @property {number|null} [fiber_status_id]
+ * @property {FiberStatusOption|null} [fiber_status]
+ */
+
+/**
+ * @typedef {Object} FiberBundle
+ * @property {number} bundleNumber
+ * @property {string} bundleColor
+ * @property {Fiber[]} fibers
+ */
+
+/**
+ * @typedef {Object} ResidentialUnit
+ * @property {string} uuid
+ * @property {string} [id_residential_unit]
+ * @property {string} [external_id_1]
+ * @property {string} [external_id_2]
+ * @property {string} [floor]
+ * @property {string} [side]
+ */
+
+/**
+ * @typedef {Object} NodeAddress
+ * @property {string} uuid
+ * @property {string} street
+ * @property {string|number} housenumber
+ * @property {string} [house_number_suffix]
+ * @property {ResidentialUnit[]} [residential_units]
+ */
+
+/**
+ * @typedef {Object} FiberStatusOption
+ * @property {number} id
+ * @property {string} name
+ */
+
+/**
  * Manager for cable and fiber data fetching and caching.
  * Handles lazy loading of fibers per cable and fiber color lookup.
  */
@@ -8,13 +64,13 @@ export class CableFiberDataManager {
 	/** @type {string|null} */
 	nodeUuid = $state(null);
 
-	/** @type {Array<Object>} */
+	/** @type {Cable[]} */
 	cables = $state([]);
 
-	/** @type {Array<Object>} */
+	/** @type {FiberColor[]} */
 	fiberColors = $state([]);
 
-	/** @type {Map<string, Array<Object>>} */
+	/** @type {Map<string, Fiber[]>} */
 	fibersCache = $state(new Map());
 
 	/** @type {Set<string>} */
@@ -29,7 +85,7 @@ export class CableFiberDataManager {
 	/** @type {boolean} */
 	loadingFiberUsage = $state(false);
 
-	/** @type {Array<Object>} - Addresses with residential units linked to the node */
+	/** @type {NodeAddress[]} - Addresses with residential units linked to the node */
 	addresses = $state([]);
 
 	/** @type {boolean} */
@@ -41,7 +97,7 @@ export class CableFiberDataManager {
 	/** @type {boolean} */
 	loadingResidentialUnitUsage = $state(false);
 
-	/** @type {Array<Object>} - Fiber status options */
+	/** @type {FiberStatusOption[]} - Fiber status options */
 	fiberStatusOptions = $state([]);
 
 	/** @type {boolean} */
@@ -99,7 +155,7 @@ export class CableFiberDataManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				this.cables = result.data?.cables || [];
+				this.cables = /** @type {Cable[]} */ (result.data?.cables) || [];
 			}
 		} catch (err) {
 			console.error('Error fetching cables:', err);
@@ -128,7 +184,7 @@ export class CableFiberDataManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				this.usedFiberUuids = new Set(result.data?.usedFiberUuids || []);
+				this.usedFiberUuids = new Set(/** @type {any} */ (result.data)?.usedFiberUuids || []);
 			}
 		} catch (err) {
 			console.error('Error fetching fiber usage:', err);
@@ -148,7 +204,7 @@ export class CableFiberDataManager {
 
 	/**
 	 * Check if all fibers in a bundle are used in this node
-	 * @param {Array<Object>} bundleFibers - Array of fiber objects
+	 * @param {Fiber[]} bundleFibers - Array of fiber objects
 	 * @returns {boolean}
 	 */
 	isBundleFullyUsed(bundleFibers) {
@@ -174,7 +230,7 @@ export class CableFiberDataManager {
 
 			const result = deserialize(await response.text());
 			if (result.type === 'success') {
-				this.addresses = result.data?.addresses || [];
+				this.addresses = /** @type {NodeAddress[]} */ (result.data?.addresses) || [];
 			}
 		} catch (err) {
 			console.error('Error fetching addresses:', err);
@@ -201,7 +257,7 @@ export class CableFiberDataManager {
 
 			const result = deserialize(await response.text());
 			if (result.type === 'success') {
-				this.usedResidentialUnitUuids = new Set(result.data?.used_uuids || []);
+				this.usedResidentialUnitUuids = new Set(/** @type {any} */ (result.data)?.used_uuids || []);
 			}
 		} catch (err) {
 			console.error('Error fetching residential unit usage:', err);
@@ -221,7 +277,7 @@ export class CableFiberDataManager {
 
 	/**
 	 * Get display name for a residential unit
-	 * @param {Object} ru - Residential unit object
+	 * @param {ResidentialUnit} ru - Residential unit object
 	 * @returns {string}
 	 */
 	getResidentialUnitDisplayName(ru) {
@@ -243,7 +299,7 @@ export class CableFiberDataManager {
 
 	/**
 	 * Get display string for an address
-	 * @param {Object} address
+	 * @param {NodeAddress} address
 	 * @returns {string}
 	 */
 	getAddressDisplay(address) {
@@ -269,7 +325,7 @@ export class CableFiberDataManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				this.fiberColors = result.data?.fiberColors || [];
+				this.fiberColors = /** @type {FiberColor[]} */ (result.data?.fiberColors) || [];
 			}
 		} catch (err) {
 			console.error('Error fetching fiber colors:', err);
@@ -298,7 +354,7 @@ export class CableFiberDataManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				this.fibersCache.set(cableUuid, result.data?.fibers || []);
+				this.fibersCache.set(cableUuid, /** @type {Fiber[]} */ (result.data?.fibers) || []);
 				this.fibersCache = new Map(this.fibersCache);
 			}
 		} catch (err) {
@@ -312,7 +368,7 @@ export class CableFiberDataManager {
 	/**
 	 * Get fibers for a cable from cache
 	 * @param {string} cableUuid
-	 * @returns {Array<Object>}
+	 * @returns {Fiber[]}
 	 */
 	getFibersForCable(cableUuid) {
 		return this.fibersCache.get(cableUuid) || [];
@@ -322,7 +378,7 @@ export class CableFiberDataManager {
 	 * Get cached fibers for a cable, or null if not cached
 	 * Used for synchronous operations like drag start
 	 * @param {string} cableUuid
-	 * @returns {Array<Object>|null}
+	 * @returns {Fiber[]|null}
 	 */
 	getCachedFibersForCable(cableUuid) {
 		return this.fibersCache.get(cableUuid) || null;
@@ -339,8 +395,8 @@ export class CableFiberDataManager {
 
 	/**
 	 * Group fibers by bundle number
-	 * @param {Array<Object>} fibers
-	 * @returns {Array<{bundleNumber: number, bundleColor: string, fibers: Array<Object>}>}
+	 * @param {Fiber[]} fibers
+	 * @returns {FiberBundle[]}
 	 */
 	groupFibersByBundle(fibers) {
 		const groups = new Map();
@@ -377,11 +433,11 @@ export class CableFiberDataManager {
 	/**
 	 * Get all fibers for a cable, fetching if necessary
 	 * @param {string} cableUuid
-	 * @returns {Promise<Array<Object>>}
+	 * @returns {Promise<Fiber[]>}
 	 */
 	async getAllFibersForCable(cableUuid) {
 		if (this.fibersCache.has(cableUuid)) {
-			return this.fibersCache.get(cableUuid);
+			return /** @type {Fiber[]} */ (this.fibersCache.get(cableUuid));
 		}
 
 		await this.fetchFibersForCable(cableUuid);
@@ -417,7 +473,7 @@ export class CableFiberDataManager {
 	 * Update fiber status
 	 * @param {string} fiberUuid
 	 * @param {number|null} statusId
-	 * @returns {Promise<Object|null>} Updated fiber or null on error
+	 * @returns {Promise<Fiber|null>} Updated fiber or null on error
 	 */
 	async updateFiberStatus(fiberUuid, statusId) {
 		try {
@@ -433,7 +489,7 @@ export class CableFiberDataManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				return result.data;
+				return /** @type {Fiber|null} */ (result.data) ?? null;
 			}
 			return null;
 		} catch (err) {
@@ -445,7 +501,7 @@ export class CableFiberDataManager {
 	/**
 	 * Update a fiber in the cache after status change
 	 * @param {string} cableUuid
-	 * @param {Object} updatedFiber
+	 * @param {Fiber} updatedFiber
 	 */
 	updateFiberInCache(cableUuid, updatedFiber) {
 		const fibers = this.fibersCache.get(cableUuid);

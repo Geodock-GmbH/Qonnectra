@@ -7,14 +7,120 @@ import { globalToaster } from '$lib/stores/toaster';
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 /**
+ * @typedef {{
+ *   uuid: string,
+ *   name: string,
+ *   canvas_x: number | null,
+ *   canvas_y: number | null,
+ *   child_canvas_x: number | null,
+ *   child_canvas_y: number | null,
+ *   geometry?: { coordinates: [number, number] }
+ * }} NodeProperties
+ *
+ * @typedef {{
+ *   id: string,
+ *   properties?: NodeProperties,
+ *   geometry?: { coordinates: [number, number] }
+ * } & Partial<NodeProperties>} NodeFeature
+ *
+ * @typedef {{ features?: NodeFeature[] }} NodeFeatureCollection
+ *
+ * @typedef {{
+ *   uuid: string,
+ *   name: string,
+ *   uuid_node_start: string,
+ *   uuid_node_end: string,
+ *   handle_start?: string,
+ *   handle_end?: string,
+ *   labelData?: EdgeLabelData | null,
+ *   warning?: string
+ * }} CableData
+ *
+ * @typedef {{
+ *   uuid: string,
+ *   number: number,
+ *   color?: string
+ * }} MicropipeConnection
+ *
+ * @typedef {{ [cableUuid: string]: MicropipeConnection[] }} MicropipeConnectionMap
+ *
+ * @typedef {{
+ *   position_x: number,
+ *   position_y: number,
+ *   text: string,
+ *   uuid: string
+ * }} EdgeLabelData
+ *
+ * @typedef {{
+ *   id: string,
+ *   position: { x: number, y: number },
+ *   type: string,
+ *   selected: boolean,
+ *   data: {
+ *     label: string,
+ *     node: NodeProperties | NodeFeature,
+ *     onNodeSelect: (nodeId: string) => void,
+ *     onNodeDelete: (nodeId: string) => void,
+ *     onNameUpdate: (newName: string) => void
+ *   }
+ * }} SvelteFlowNode
+ *
+ * @typedef {{
+ *   id: string,
+ *   source: string,
+ *   target: string,
+ *   sourceHandle?: string,
+ *   targetHandle?: string,
+ *   type: string,
+ *   selected?: boolean,
+ *   data: {
+ *     label: string,
+ *     cable: CableData,
+ *     labelData?: EdgeLabelData | null,
+ *     micropipeConnections?: MicropipeConnection[],
+ *     lowestMicropipe?: MicropipeConnection | null,
+ *     isConnected?: boolean,
+ *     onEdgeDelete: (edgeId: string) => void,
+ *     onEdgeSelect: (edgeId: string) => void,
+ *     onNameUpdate: (newName: string) => void
+ *   }
+ * }} SvelteFlowEdge
+ *
+ * @typedef {{ id: string, name: string }} CableType
+ *
+ * @typedef {{
+ *   nodes: NodeFeatureCollection | NodeFeature[],
+ *   cables: CableData[],
+ *   cableMicropipeConnections: MicropipeConnectionMap,
+ *   cableTypes: CableType[]
+ * }} NetworkSchemaInitData
+ *
+ * @typedef {{
+ *   source: string,
+ *   target: string,
+ *   sourceHandle?: string,
+ *   targetHandle?: string
+ * }} SvelteFlowConnection
+ *
+ * @typedef {{
+ *   targetNode: { id: string, position: { x: number, y: number } }
+ * }} NodeDragStopEvent
+ */
+
+/**
  * Main state manager for the network schema diagram
  * Manages nodes, edges, cable types, and diagram interactions
  */
 export class NetworkSchemaState {
+	/** @type {SvelteFlowNode[]} */
 	nodes = $state.raw([]);
+	/** @type {SvelteFlowEdge[]} */
 	edges = $state.raw([]);
+	/** @type {CableType[]} */
 	cableTypes = $state([]);
+	/** @type {string} */
 	userCableName = $state('');
+	/** @type {string[]} */
 	selectedCableType = $state([]);
 
 	/** @type {string|null} - Parent node context for child view cables */
@@ -27,7 +133,7 @@ export class NetworkSchemaState {
 	#initialized = $state(false);
 
 	/**
-	 * @param {Object} [initialData] - Optional initial data (can be initialized later via initialize())
+	 * @param {NetworkSchemaInitData | null} [initialData] - Optional initial data (can be initialized later via initialize())
 	 */
 	constructor(initialData = null) {
 		if (initialData) {
@@ -45,7 +151,7 @@ export class NetworkSchemaState {
 
 	/**
 	 * Initialize or re-initialize the state with data
-	 * @param {Object} data - The page data containing nodes, cables, cableMicropipeConnections, and cableTypes
+	 * @param {NetworkSchemaInitData} data - The page data containing nodes, cables, cableMicropipeConnections, and cableTypes
 	 */
 	initialize(data) {
 		if (!data || this.#initialized) return;
@@ -57,11 +163,11 @@ export class NetworkSchemaState {
 
 	/**
 	 * Transform Node data to SvelteFlow nodes using backend canvas coordinates
-	 * @param {Object|Array} nodeData - GeoJSON FeatureCollection or array of Node objects from the API
-	 * @returns {Array} SvelteFlow compatible nodes
+	 * @param {NodeFeatureCollection | NodeFeature[]} nodeData - GeoJSON FeatureCollection or array of Node objects from the API
+	 * @returns {SvelteFlowNode[]} SvelteFlow compatible nodes
 	 */
 	transformNodesToSvelteFlow(nodeData) {
-		const nodes = nodeData?.features || nodeData || [];
+		const nodes = /** @type {NodeFeature[]} */ ('features' in nodeData ? nodeData.features : nodeData) || [];
 		if (!nodes || nodes.length === 0) {
 			return [];
 		}
@@ -87,7 +193,7 @@ export class NetworkSchemaState {
 				y = -geoY * 0.0001;
 			}
 
-			const nodeId = nodeOrFeature.id || node.uuid;
+			const nodeId = nodeOrFeature.id || node.uuid || '';
 
 			return {
 				id: nodeId,
@@ -97,9 +203,9 @@ export class NetworkSchemaState {
 				data: {
 					label: node.name || m.form_unnamed_node(),
 					node: node,
-					onNodeSelect: (nodeId) => this.selectNode(nodeId),
-					onNodeDelete: (nodeId) => this.handleNodeDelete(nodeId),
-					onNameUpdate: (newName) => this.updateNodeName(nodeId, newName)
+					onNodeSelect: (/** @type {string} */ nId) => this.selectNode(nId),
+					onNodeDelete: (/** @type {string} */ nId) => this.handleNodeDelete(nId),
+					onNameUpdate: (/** @type {string} */ newName) => this.updateNodeName(nodeId, newName)
 				}
 			};
 		});
@@ -107,9 +213,9 @@ export class NetworkSchemaState {
 
 	/**
 	 * Transform Cable data to SvelteFlow edges
-	 * @param {Array} cablesData - Array of Cable objects from the API
-	 * @param {Object} micropipeConnections - Map of cable UUID to micropipe connection data
-	 * @returns {Array} SvelteFlow compatible edges
+	 * @param {CableData[]} cablesData - Array of Cable objects from the API
+	 * @param {MicropipeConnectionMap} micropipeConnections - Map of cable UUID to micropipe connection data
+	 * @returns {SvelteFlowEdge[]} SvelteFlow compatible edges
 	 */
 	transformCablesToSvelteFlowEdges(cablesData, micropipeConnections = {}) {
 		const cables = Array.isArray(cablesData) ? cablesData : [];
@@ -145,9 +251,9 @@ export class NetworkSchemaState {
 						micropipeConnections: connections,
 						lowestMicropipe: lowestMicropipe,
 						isConnected: connections.length > 0,
-						onEdgeDelete: (edgeId) => this.handleEdgeDelete(edgeId),
-						onEdgeSelect: (edgeId) => this.selectEdge(edgeId),
-						onNameUpdate: (newName) => this.updateEdgeName(cable.uuid, newName)
+						onEdgeDelete: (/** @type {string} */ edgeId) => this.handleEdgeDelete(edgeId),
+						onEdgeSelect: (/** @type {string} */ edgeId) => this.selectEdge(edgeId),
+						onNameUpdate: (/** @type {string} */ newName) => this.updateEdgeName(cable.uuid, newName)
 					}
 				};
 			});
@@ -230,7 +336,7 @@ export class NetworkSchemaState {
 
 	/**
 	 * Handle node drag stop - saves position via form action
-	 * @param {Object} event - Event object from SvelteFlow
+	 * @param {NodeDragStopEvent} event - Event object from SvelteFlow
 	 */
 	async handleNodeDragStop(event) {
 		const node = event.targetNode;
@@ -238,6 +344,7 @@ export class NetworkSchemaState {
 		const newPosition = node.position;
 
 		const originalNode = this.nodes.find((n) => n.id === nodeId);
+		if (!originalNode) return;
 		const originalPosition = { ...originalNode.position };
 
 		try {
@@ -266,7 +373,7 @@ export class NetworkSchemaState {
 				title: m.title_success(),
 				description: m.message_success_updating_position()
 			});
-		} catch (error) {
+		} catch (/** @type {any} */ error) {
 			console.error('Error saving node position:', error);
 
 			const nodeIndex = this.nodes.findIndex((n) => n.id === nodeId);
@@ -298,8 +405,8 @@ export class NetworkSchemaState {
 
 	/**
 	 * Parse handle ID to extract position
-	 * @param {string} handleId - Handle ID format: {nodeUuid}-{position}-{type}
-	 * @returns {string} 'top', 'right', 'bottom', or 'left'
+	 * @param {string | undefined} handleId - Handle ID format: {nodeUuid}-{position}-{type}
+	 * @returns {string | null} 'top', 'right', 'bottom', or 'left'
 	 */
 	parseHandlePosition(handleId) {
 		if (!handleId) return null;
@@ -309,7 +416,7 @@ export class NetworkSchemaState {
 
 	/**
 	 * Handle new edge connection - creates a Cable record via form action
-	 * @param {Object} connection - Connection object from SvelteFlow
+	 * @param {SvelteFlowConnection} connection - Connection object from SvelteFlow
 	 * @param {string} selectedProject - Current project ID
 	 */
 	async handleConnect(connection, selectedProject) {
@@ -356,8 +463,8 @@ export class NetworkSchemaState {
 			formData.append('flag_id', '1');
 			formData.append('uuid_node_start_id', target);
 			formData.append('uuid_node_end_id', source);
-			if (handleStart) formData.append('handle_start', handleEnd);
-			if (handleEnd) formData.append('handle_end', handleStart);
+			if (handleEnd) formData.append('handle_start', handleEnd);
+			if (handleStart) formData.append('handle_end', handleStart);
 			if (this.parentNodeContext) {
 				formData.append('parent_node_context_id', this.parentNodeContext);
 			}
@@ -370,10 +477,12 @@ export class NetworkSchemaState {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to create cable');
+				const errorData = result.type === 'failure' ? result.data : undefined;
+				throw new Error(/** @type {string} */ (errorData?.error) || 'Failed to create cable');
 			}
 
-			const cableData = result.data?.data;
+			const successData = result.type === 'success' ? result.data : undefined;
+			const cableData = /** @type {any} */ (successData?.data);
 
 			if (cableData.uuid !== cableUuid) {
 				console.warn(
@@ -393,9 +502,9 @@ export class NetworkSchemaState {
 					data: {
 						label: cableName,
 						cable: { ...cableData, uuid: cableUuid },
-						onEdgeDelete: (edgeId) => this.handleEdgeDelete(edgeId),
-						onEdgeSelect: (edgeId) => this.selectEdge(edgeId),
-						onNameUpdate: (newName) => this.updateEdgeName(cableUuid, newName)
+						onEdgeDelete: (/** @type {string} */ edgeId) => this.handleEdgeDelete(edgeId),
+						onEdgeSelect: (/** @type {string} */ edgeId) => this.selectEdge(edgeId),
+						onNameUpdate: (/** @type {string} */ newName) => this.updateEdgeName(cableUuid, newName)
 					}
 				}
 			];
@@ -444,7 +553,7 @@ export class NetworkSchemaState {
 	/**
 	 * Update edge data in local state
 	 * @param {string} edgeId - Edge UUID
-	 * @param {Object} updates - Updates to apply to edge data
+	 * @param {Partial<SvelteFlowEdge>} updates - Updates to apply to edge data
 	 */
 	updateEdge(edgeId, updates) {
 		this.edges = this.edges.map((edge) => {
@@ -543,7 +652,7 @@ export class NetworkSchemaState {
 	/**
 	 * Update edge connection to a different node
 	 * @param {string} edgeId - Edge UUID
-	 * @param {string} side - 'start' or 'end'
+	 * @param {'start' | 'end'} side - 'start' or 'end'
 	 * @param {string} newNodeId - New node UUID
 	 * @param {string} handlePosition - Handle position at new node
 	 */
@@ -587,7 +696,7 @@ export class NetworkSchemaState {
 	/**
 	 * Update edge label data (position and text) in local state
 	 * @param {string} edgeId - Edge UUID
-	 * @param {Object} labelData - Label data with position_x, position_y, text, uuid
+	 * @param {EdgeLabelData} labelData - Label data with position_x, position_y, text, uuid
 	 */
 	updateEdgeLabelData(edgeId, labelData) {
 		this.edges = this.edges.map((edge) => {
@@ -607,7 +716,7 @@ export class NetworkSchemaState {
 	/**
 	 * Update edge micropipe connections for dynamic coloring
 	 * @param {string} cableId - Cable UUID
-	 * @param {Array} connections - Array of micropipe connection objects
+	 * @param {MicropipeConnection[]} connections - Array of micropipe connection objects
 	 */
 	updateEdgeMicropipeConnections(cableId, connections) {
 		const sortedConnections = [...connections].sort((a, b) => a.number - b.number);

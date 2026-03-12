@@ -35,6 +35,52 @@ import {
 	createWMSLayer
 } from '$lib/map';
 
+/**
+ * @typedef {Object} LayerConfig
+ * @property {boolean} trench
+ * @property {boolean} address
+ * @property {boolean} node
+ * @property {boolean} area
+ */
+
+/**
+ * @typedef {Object} LabelOptions
+ * @property {boolean} enabled
+ * @property {string} field
+ * @property {number} minResolution
+ */
+
+/**
+ * @typedef {Object} LabelConfig
+ * @property {LabelOptions} trench
+ * @property {LabelOptions} conduit
+ * @property {LabelOptions} address
+ * @property {LabelOptions} node
+ * @property {LabelOptions} area
+ */
+
+/**
+ * @typedef {Record<string, {color: string, visible?: boolean}>} TypeStyleMap
+ */
+
+/**
+ * @typedef {Object} LabelUpdateStyles
+ * @property {string} [mode]
+ * @property {TypeStyleMap} [surfaceStyles]
+ * @property {TypeStyleMap} [constructionTypeStyles]
+ * @property {string} [color]
+ * @property {TypeStyleMap} [nodeTypeStyles]
+ * @property {TypeStyleMap} [areaTypeStyles]
+ */
+
+/**
+ * @typedef {Object} LayerReferences
+ * @property {import('ol/layer/VectorTile').default | null} vectorTileLayer
+ * @property {import('ol/layer/VectorTile').default | null} addressLayer
+ * @property {import('ol/layer/VectorTile').default | null} nodeLayer
+ * @property {import('ol/layer/VectorTile').default | null} areaLayer
+ */
+
 const DEFAULT_TRENCH_COLOR = '#000000';
 const DEFAULT_SELECTED_COLOR = '#000000';
 const DEFAULT_ADDRESS_COLOR = '#2563eb';
@@ -45,34 +91,49 @@ const DEFAULT_ADDRESS_SIZE = 4;
  * Manages layers, tile sources, and map instance
  */
 export class MapState {
-	// OpenLayers objects
+	/** @type {import('ol').Map | null} */
 	olMap = $state(null);
+	/** @type {import('ol/layer/VectorTile').default | null} */
 	vectorTileLayer = $state(null);
+	/** @type {import('ol/layer/VectorTile').default | null} */
 	addressLayer = $state(null);
+	/** @type {import('ol/layer/VectorTile').default | null} */
 	nodeLayer = $state(null);
+	/** @type {import('ol/layer/VectorTile').default | null} */
 	areaLayer = $state(null);
+	/** @type {import('ol/layer/VectorTile').default | null} */
 	selectionLayer = $state(null);
+	/** @type {import('ol/layer/VectorTile').default | null} */
 	addressSelectionLayer = $state(null);
+	/** @type {import('ol/layer/VectorTile').default | null} */
 	nodeSelectionLayer = $state(null);
+	/** @type {import('ol/layer/VectorTile').default | null} */
 	areaSelectionLayer = $state(null);
 
-	// WMS layers
+	/** @type {import('ol/layer/Tile').default[]} */
 	wmsLayers = $state([]);
 
-	// Tile sources
+	/** @type {import('ol/source/VectorTile').default | null} */
 	tileSource = $state(null);
+	/** @type {import('ol/source/VectorTile').default | null} */
 	addressTileSource = $state(null);
+	/** @type {import('ol/source/VectorTile').default | null} */
 	nodeTileSource = $state(null);
+	/** @type {import('ol/source/VectorTile').default | null} */
 	areaTileSource = $state(null);
 
-	// Configuration
-	selectedProject = $state(null);
+	/** @type {string} */
+	selectedProject = $state('');
+	/** @type {string} */
 	selectedColor = $state(DEFAULT_SELECTED_COLOR);
+	/** @type {string} */
 	addressColor = $state(DEFAULT_ADDRESS_COLOR);
+	/** @type {number} */
 	addressSize = $state(DEFAULT_ADDRESS_SIZE);
+	/** @type {boolean} */
 	isGlobalView = $state(false);
 
-	// Add layer configuration
+	/** @type {LayerConfig} */
 	layerConfig = $state({
 		trench: true,
 		address: true,
@@ -80,6 +141,7 @@ export class MapState {
 		area: true
 	});
 
+	/** @type {LabelConfig} */
 	labelConfig = $state({
 		trench: { enabled: false, field: 'id_trench', minResolution: 1.5 },
 		conduit: { enabled: false, field: 'conduit_names', minResolution: 1.5 },
@@ -91,8 +153,8 @@ export class MapState {
 	/**
 	 * @param {string} selectedProject - Current project ID
 	 * @param {string} selectedColor - Color for selected features (optional, for selection layers)
-	 * @param {Object} layerConfig - Configuration for which layers to load (optional)
-	 * @param {Object} labelConfig - Configuration for text labels on layers (optional)
+	 * @param {LayerConfig | null} layerConfig - Configuration for which layers to load (optional)
+	 * @param {LabelConfig | null} labelConfig - Configuration for text labels on layers (optional)
 	 * @param {boolean} isGlobalView - Whether global view is active (optional)
 	 */
 	constructor(
@@ -128,7 +190,7 @@ export class MapState {
 					this.isGlobalView
 				);
 				this.vectorTileLayer = createTrenchLayer(
-					this.selectedProject,
+					/** @type {any} */ (this.selectedProject),
 					m.nav_trench(),
 					this.handleTileError,
 					this.labelConfig.trench
@@ -142,7 +204,7 @@ export class MapState {
 					this.isGlobalView
 				);
 				this.addressLayer = createAddressLayer(
-					this.selectedProject,
+					/** @type {any} */ (this.selectedProject),
 					m.form_address({ count: 1 }),
 					this.handleTileError,
 					this.labelConfig.address
@@ -156,7 +218,7 @@ export class MapState {
 					this.isGlobalView
 				);
 				this.nodeLayer = createNodeLayer(
-					this.selectedProject,
+					/** @type {any} */ (this.selectedProject),
 					m.form_node(),
 					this.handleTileError,
 					this.labelConfig.node
@@ -170,7 +232,7 @@ export class MapState {
 					this.isGlobalView
 				);
 				this.areaLayer = createAreaLayer(
-					this.selectedProject,
+					/** @type {any} */ (this.selectedProject),
 					m.form_area(),
 					this.handleTileError,
 					this.labelConfig.area
@@ -181,7 +243,7 @@ export class MapState {
 		} catch (error) {
 			globalToaster.error({
 				title: m.title_error_initializing_map_tiles(),
-				description: error.message || 'Could not set up the tile layer.'
+				description: /** @type {Error} */ (error).message || 'Could not set up the tile layer.'
 			});
 
 			this.vectorTileLayer = null;
@@ -265,6 +327,7 @@ export class MapState {
 			// Clean up stale visibility config entries for this project only
 			const currentVisibilityConfig = get(wmsLayerVisibilityConfig);
 			const projectConfig = currentVisibilityConfig[projectAtStart] || {};
+			/** @type {Record<string, boolean>} */
 			const cleanedProjectConfig = {};
 			for (const [layerId, visible] of Object.entries(projectConfig)) {
 				if (validLayerIds.has(layerId)) {
@@ -306,8 +369,8 @@ export class MapState {
 
 	/**
 	 * Initialize selection layers after map is ready
-	 * @param {Object} olMap - OpenLayers map instance
-	 * @param {Function} getSelectionStore - Function to get current selection store
+	 * @param {import('ol').Map} olMap - OpenLayers map instance
+	 * @param {() => Record<string, boolean>} getSelectionStore - Function to get current selection store
 	 */
 	initializeSelectionLayers(olMap, getSelectionStore) {
 		if (!olMap || !this.tileSource) return;
@@ -471,9 +534,10 @@ export class MapState {
 	/**
 	 * Get all layers as an array for passing to Map component
 	 * WMS layers are added first (at bottom), then area, then other layers
-	 * @returns {Array} Array of OpenLayers layers
+	 * @returns {import('ol/layer/Base').default[]}
 	 */
 	getLayers() {
+		/** @type {import('ol/layer/Base').default[]} */
 		const layers = [];
 
 		// WMS layers at the bottom
@@ -491,7 +555,7 @@ export class MapState {
 
 	/**
 	 * Get all selection layers for registration with SelectionManager
-	 * @returns {Array} Array of selection layers
+	 * @returns {import('ol/layer/VectorTile').default[]}
 	 */
 	getSelectionLayers() {
 		return [
@@ -499,12 +563,12 @@ export class MapState {
 			this.addressSelectionLayer,
 			this.nodeSelectionLayer,
 			this.areaSelectionLayer
-		].filter(Boolean);
+		].filter(/** @returns {layer is import('ol/layer/VectorTile').default} */ (layer) => Boolean(layer));
 	}
 
 	/**
 	 * Get layer references for interaction manager
-	 * @returns {Object} Object with layer references
+	 * @returns {LayerReferences}
 	 */
 	getLayerReferences() {
 		return {
@@ -529,13 +593,13 @@ export class MapState {
 
 	/**
 	 * Update the node layer style based on node type styles
-	 * @param {Object} nodeTypeStyles - Object mapping node type names to style config
+	 * @param {TypeStyleMap} nodeTypeStyles - Mapping of node type names to style config
 	 */
 	updateNodeLayerStyle(nodeTypeStyles) {
 		if (!this.nodeLayer) return;
 
 		const newStyle = createNodeStyleByType(nodeTypeStyles, this.labelConfig.node);
-		this.nodeLayer.setStyle(newStyle);
+		this.nodeLayer.setStyle(/** @type {import('ol/style/Style').StyleLike} */ (newStyle));
 
 		if (this.nodeTileSource) {
 			this.nodeTileSource.refresh();
@@ -545,8 +609,8 @@ export class MapState {
 	/**
 	 * Update the trench layer style based on style mode and attribute styles
 	 * @param {string} styleMode - 'none' | 'surface' | 'construction_type'
-	 * @param {Object} surfaceStyles - Object mapping surface names to style config
-	 * @param {Object} constructionTypeStyles - Object mapping construction type names to style config
+	 * @param {TypeStyleMap} surfaceStyles - Mapping of surface names to style config
+	 * @param {TypeStyleMap} constructionTypeStyles - Mapping of construction type names to style config
 	 * @param {string} fallbackColor - Color to use when styleMode is 'none'
 	 */
 	updateTrenchLayerStyle(styleMode, surfaceStyles, constructionTypeStyles, fallbackColor) {
@@ -570,7 +634,7 @@ export class MapState {
 			);
 		}
 
-		this.vectorTileLayer.setStyle(newStyle);
+		this.vectorTileLayer.setStyle(/** @type {import('ol/style/Style').StyleLike} */ (newStyle));
 
 		if (this.tileSource) {
 			this.tileSource.refresh();
@@ -582,13 +646,13 @@ export class MapState {
 	 * @param {string} [color] - Optional color to update
 	 * @param {number} [size] - Optional size to update
 	 */
-	updateAddressLayerStyle(color = null, size = null) {
+	updateAddressLayerStyle(color = undefined, size = undefined) {
 		if (!this.addressLayer) return;
 
-		if (color !== null) {
+		if (color !== undefined) {
 			this.addressColor = color;
 		}
-		if (size !== null) {
+		if (size !== undefined) {
 			this.addressSize = size;
 		}
 
@@ -597,7 +661,7 @@ export class MapState {
 			this.addressSize,
 			this.labelConfig.address
 		);
-		this.addressLayer.setStyle(newStyle);
+		this.addressLayer.setStyle(/** @type {import('ol/style/Style').StyleLike} */ (newStyle));
 
 		if (this.addressTileSource) {
 			this.addressTileSource.refresh();
@@ -606,13 +670,13 @@ export class MapState {
 
 	/**
 	 * Update the area layer style based on area type styles
-	 * @param {Object} areaTypeStyles - Object mapping area type names to style config
+	 * @param {TypeStyleMap} areaTypeStyles - Mapping of area type names to style config
 	 */
 	updateAreaLayerStyle(areaTypeStyles) {
 		if (!this.areaLayer) return;
 
 		const newStyle = createAreaStyleByType(areaTypeStyles, this.labelConfig.area);
-		this.areaLayer.setStyle(newStyle);
+		this.areaLayer.setStyle(/** @type {import('ol/style/Style').StyleLike} */ (newStyle));
 
 		if (this.areaTileSource) {
 			this.areaTileSource.refresh();
@@ -621,9 +685,9 @@ export class MapState {
 
 	/**
 	 * Update label visibility for a specific layer type
-	 * @param {string} layerType - 'trench' | 'address' | 'node' | 'area' | 'conduit'
+	 * @param {keyof LabelConfig} layerType - 'trench' | 'address' | 'node' | 'area' | 'conduit'
 	 * @param {boolean} enabled - Whether labels should be shown
-	 * @param {Object} currentStyles - Current style settings (for trench/conduit: { mode, surfaceStyles, constructionTypeStyles, color }, for node: nodeTypeStyles, for area: areaTypeStyles)
+	 * @param {LabelUpdateStyles} currentStyles - Current style settings
 	 */
 	updateLabelVisibility(layerType, enabled, currentStyles = {}) {
 		const currentLabelConfig = this.labelConfig[layerType];
@@ -640,7 +704,7 @@ export class MapState {
 						currentStyles.mode,
 						currentStyles.surfaceStyles || {},
 						currentStyles.constructionTypeStyles || {},
-						currentStyles.color || this.trenchColor
+						currentStyles.color || DEFAULT_TRENCH_COLOR
 					);
 				}
 				break;
@@ -667,7 +731,7 @@ export class MapState {
 	 */
 	updateWMSLayerTokens(newToken) {
 		for (const layer of this.wmsLayers) {
-			const source = layer.getSource();
+			const source = /** @type {import('ol/source/TileWMS').default} */ (layer.getSource());
 			if (!source) continue;
 
 			const urls = source.getUrls();
@@ -710,18 +774,17 @@ export class MapState {
 			}
 		}
 
-		if (this.vectorTileLayer && this.vectorTileLayer.getSource()) {
-			this.vectorTileLayer.getSource().dispose();
-		}
-		if (this.addressLayer && this.addressLayer.getSource()) {
-			this.addressLayer.getSource().dispose();
-		}
-		if (this.nodeLayer && this.nodeLayer.getSource()) {
-			this.nodeLayer.getSource().dispose();
-		}
-		if (this.areaLayer && this.areaLayer.getSource()) {
-			this.areaLayer.getSource().dispose();
-		}
+		const trenchSource = this.vectorTileLayer?.getSource();
+		if (trenchSource) trenchSource.dispose();
+
+		const addressSource = this.addressLayer?.getSource();
+		if (addressSource) addressSource.dispose();
+
+		const nodeSource = this.nodeLayer?.getSource();
+		if (nodeSource) nodeSource.dispose();
+
+		const areaSource = this.areaLayer?.getSource();
+		if (areaSource) areaSource.dispose();
 
 		this.olMap = null;
 		this.vectorTileLayer = null;

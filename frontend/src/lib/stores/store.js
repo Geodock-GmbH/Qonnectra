@@ -117,7 +117,7 @@ export const wmsLayerVisibilityConfig = persisted('wmsLayerVisibilityConfig', {}
 export const wmsSourceExpansionState = persisted('wmsSourceExpansionState', {});
 
 // WMS sources data - populated from API
-// Structure: { sources: WMSSource[], loaded: boolean }
+/** @type {import('svelte/store').Writable<{ sources: import('$lib/utils/wmsApi').WMSSource[], loaded: boolean }>} */
 export const wmsSourcesData = writable({ sources: [], loaded: false });
 
 /**

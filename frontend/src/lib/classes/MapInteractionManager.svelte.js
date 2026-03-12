@@ -5,34 +5,83 @@ import {
 } from '$lib/utils/featureUtils';
 
 /**
+ * @typedef {import('ol/Map').default} OlMap
+ * @typedef {import('ol/Feature').default} OlFeature
+ * @typedef {import('ol/layer/Layer').default} OlLayer
+ */
+
+/**
+ * @typedef {Object} SelectableLayersConfig
+ * @property {boolean} trench
+ * @property {boolean} address
+ * @property {boolean} node
+ * @property {boolean} area
+ */
+
+/**
+ * @typedef {Object} MapLayers
+ * @property {OlLayer | null} [vectorTileLayer]
+ * @property {OlLayer | null} [addressLayer]
+ * @property {OlLayer | null} [nodeLayer]
+ * @property {OlLayer | null} [areaLayer]
+ */
+
+/**
+ * @typedef {Object} ClickedFeature
+ * @property {OlFeature} feature
+ * @property {OlLayer} layer
+ */
+
+/**
+ * @typedef {Object} DrawerStore
+ * @property {(options: {title?: string, component?: import('svelte').Component | null, props?: Record<string, any>, width?: number | null}) => void} open
+ * @property {() => void} close
+ */
+
+/**
+ * @typedef {Object} SearchPanelRef
+ * @property {() => OlLayer} [getHighlightLayer]
+ */
+
+/**
  * Manages user interactions with the map
  * Handles click events, feature selection, and coordinates with other managers
  */
 export class MapInteractionManager {
+	/** @type {OlMap | null} */
 	olMap = $state(null);
+	/** @type {MapLayers} */
 	layers = $state({});
+	/** @type {import('./MapSelectionManager.svelte.js').MapSelectionManager | null} */
 	selectionManager = $state(null);
+	/** @type {import('./MapPopupManager.svelte.js').MapPopupManager | null} */
 	popupManager = $state(null);
+	/** @type {DrawerStore | null} */
 	drawerStore = $state(null);
+	/** @type {import('svelte').Component | null} */
 	drawerComponent = $state(null);
+	/** @type {Record<string, string>} */
 	alias = $state({});
+	/** @type {SearchPanelRef | null} */
 	searchPanelRef = $state(null);
+	/** @type {SelectableLayersConfig} */
 	selectableLayersConfig = $state({
 		trench: true,
 		address: true,
 		node: true,
 		area: true
 	});
+	/** @type {Record<string, any>} */
 	additionalDrawerProps = $state({});
 
 	/**
-	 * @param {Object} selectionManager - MapSelectionManager instance
-	 * @param {Object} popupManager - MapPopupManager instance
-	 * @param {Object} drawerStore - Drawer store instance
-	 * @param {Object} drawerComponent - MapDrawerTabs component
-	 * @param {Object} alias - Field name alias mapping (English -> Localized)
-	 * @param {Object} selectableLayersConfig - Configuration for which layers should open drawer on click (optional)
-	 * @param {Object} additionalDrawerProps - Additional props to pass to drawer component (optional)
+	 * @param {import('./MapSelectionManager.svelte.js').MapSelectionManager} selectionManager - MapSelectionManager instance
+	 * @param {import('./MapPopupManager.svelte.js').MapPopupManager} popupManager - MapPopupManager instance
+	 * @param {DrawerStore} drawerStore - Drawer store instance
+	 * @param {import('svelte').Component} drawerComponent - MapDrawerTabs component
+	 * @param {Record<string, string>} alias - Field name alias mapping (English -> Localized)
+	 * @param {Partial<SelectableLayersConfig> | null} selectableLayersConfig - Configuration for which layers should open drawer on click (optional)
+	 * @param {Record<string, any>} additionalDrawerProps - Additional props to pass to drawer component (optional)
 	 */
 	constructor(
 		selectionManager,
@@ -57,7 +106,7 @@ export class MapInteractionManager {
 
 	/**
 	 * Set additional props to pass to drawer component
-	 * @param {Object} props - Additional props object
+	 * @param {Record<string, any>} props - Additional props object
 	 */
 	setAdditionalDrawerProps(props) {
 		this.additionalDrawerProps = props;
@@ -65,9 +114,10 @@ export class MapInteractionManager {
 
 	/**
 	 * Initialize interaction handlers on the map
-	 * @param {Object} olMap - OpenLayers map instance
-	 * @param {Object} layers - Object containing layer references
-	 * @param {Object} searchPanelRef - Reference to search panel component
+	 * @param {OlMap} olMap - OpenLayers map instance
+	 * @param {MapLayers} layers - Object containing layer references
+	 * @param {SearchPanelRef | null} searchPanelRef - Reference to search panel component
+	 * @returns {boolean} True if initialization succeeded
 	 */
 	initialize(olMap, layers, searchPanelRef = null) {
 		if (!olMap) {
@@ -87,7 +137,7 @@ export class MapInteractionManager {
 
 	/**
 	 * Handle map click events
-	 * @param {Object} event - OpenLayers map click event
+	 * @param {import('ol/MapBrowserEvent').default} event - OpenLayers map click event
 	 */
 	handleMapClick(event) {
 		if (!this.olMap) return;
@@ -106,13 +156,15 @@ export class MapInteractionManager {
 
 	/**
 	 * Get features at a given pixel
-	 * @param {Array} pixel - [x, y] pixel coordinates
-	 * @returns {Array} Array of {feature, layer} objects at that pixel
+	 * @param {number[]} pixel - [x, y] pixel coordinates
+	 * @returns {ClickedFeature[]} Array of {feature, layer} objects at that pixel
 	 */
 	getClickedFeatures(pixel) {
+		/** @type {ClickedFeature[]} */
 		const clickedFeatures = [];
 		const { vectorTileLayer, addressLayer, nodeLayer, areaLayer } = this.layers;
 
+		/** @type {OlLayer[]} */
 		const layersToCheck = [];
 		if (vectorTileLayer && this.selectableLayersConfig.trench) {
 			layersToCheck.push(vectorTileLayer);
@@ -127,12 +179,15 @@ export class MapInteractionManager {
 			layersToCheck.push(areaLayer);
 		}
 
-		if (layersToCheck.length === 0) return clickedFeatures;
+		if (layersToCheck.length === 0 || !this.olMap) return clickedFeatures;
 
 		this.olMap.forEachFeatureAtPixel(
 			pixel,
 			(feature, layer) => {
-				clickedFeatures.push({ feature, layer });
+				clickedFeatures.push({
+					feature: /** @type {OlFeature} */ (feature),
+					layer: /** @type {OlLayer} */ (layer)
+				});
 			},
 			{
 				hitTolerance: 10,
@@ -145,7 +200,7 @@ export class MapInteractionManager {
 
 	/**
 	 * Check if a layer is selectable based on configuration
-	 * @param {Object} layer - OpenLayers layer
+	 * @param {OlLayer} layer - OpenLayers layer
 	 * @returns {boolean} True if layer is selectable
 	 */
 	isLayerSelectable(layer) {
@@ -161,9 +216,9 @@ export class MapInteractionManager {
 
 	/**
 	 * Handle click on a feature
-	 * @param {Object} feature - OpenLayers feature
-	 * @param {Array} coordinate - Map coordinates [x, y]
-	 * @param {Object} layer - OpenLayers layer (optional)
+	 * @param {OlFeature} feature - OpenLayers feature
+	 * @param {number[]} coordinate - Map coordinates [x, y]
+	 * @param {OlLayer | null} layer - OpenLayers layer (optional)
 	 */
 	handleFeatureClick(feature, coordinate, layer = null) {
 		const featureId = feature.getId();
@@ -174,9 +229,9 @@ export class MapInteractionManager {
 				return;
 			}
 
-			this.selectionManager.selectFeature(featureId, feature);
+			this.selectionManager?.selectFeature(String(featureId), feature);
 
-			const featureType = detectFeatureType(feature, layer);
+			const featureType = detectFeatureType(feature, /** @type {Object} */ (layer));
 			const rawProperties = feature.getProperties();
 
 			if (featureType && this.drawerStore && this.drawerComponent) {
@@ -197,7 +252,7 @@ export class MapInteractionManager {
 					}
 				});
 			} else {
-				this.popupManager.show(coordinate, feature);
+				this.popupManager?.show(coordinate, feature);
 			}
 		} else {
 			this.handleEmptyClick();
@@ -208,8 +263,8 @@ export class MapInteractionManager {
 	 * Handle click on empty area
 	 */
 	handleEmptyClick() {
-		this.selectionManager.clearSelection();
-		this.popupManager.hide();
+		this.selectionManager?.clearSelection();
+		this.popupManager?.hide();
 
 		if (this.drawerStore) {
 			this.drawerStore.close();
@@ -225,14 +280,14 @@ export class MapInteractionManager {
 		if (this.searchPanelRef.getHighlightLayer) {
 			const highlightLayer = this.searchPanelRef.getHighlightLayer();
 			if (highlightLayer && highlightLayer.getSource()) {
-				highlightLayer.getSource().clear();
+				/** @type {any} */ (highlightLayer.getSource()).clear();
 			}
 		}
 	}
 
 	/**
 	 * Update search panel reference
-	 * @param {Object} ref - Search panel component reference
+	 * @param {SearchPanelRef} ref - Search panel component reference
 	 */
 	setSearchPanelRef(ref) {
 		this.searchPanelRef = ref;

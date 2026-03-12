@@ -1,27 +1,114 @@
 const STORAGE_KEY = 'conduit-form-defaults';
 
 /**
+ * @typedef {{
+ *   conduit_type?: string,
+ *   [key: string]: any
+ * }} ConduitTypeRef
+ *
+ * @typedef {{
+ *   status?: string,
+ *   [key: string]: any
+ * }} StatusRef
+ *
+ * @typedef {{
+ *   network_level?: string,
+ *   [key: string]: any
+ * }} NetworkLevelRef
+ *
+ * @typedef {{
+ *   company?: string,
+ *   [key: string]: any
+ * }} CompanyRef
+ *
+ * @typedef {{
+ *   flag?: string,
+ *   [key: string]: any
+ * }} FlagRef
+ *
+ * @typedef {{
+ *   uuid: string,
+ *   name: string,
+ *   conduit_type?: ConduitTypeRef | null,
+ *   outer_conduit?: string | null,
+ *   status?: StatusRef | null,
+ *   network_level?: NetworkLevelRef | null,
+ *   owner?: CompanyRef | null,
+ *   constructor?: CompanyRef | null,
+ *   manufacturer?: CompanyRef | null,
+ *   date?: string | null,
+ *   flag?: FlagRef | null,
+ *   [key: string]: any
+ * }} RawConduit
+ *
+ * @typedef {{
+ *   value: string,
+ *   name: string,
+ *   conduit_type: string,
+ *   outer_conduit: string | null | undefined,
+ *   status: string,
+ *   network_level: string,
+ *   owner: string,
+ *   constructor: string,
+ *   manufacturer: string,
+ *   date: string | null | undefined,
+ *   flag: string
+ * }} FormattedConduit
+ *
+ * @typedef {{
+ *   pipes?: FormattedConduit[],
+ *   [key: string]: any
+ * }} ConduitInitialData
+ *
+ * @typedef {{ value: string | number, label: string }} SelectOption
+ *
+ * @typedef {{
+ *   conduitName?: string,
+ *   outerConduit?: string,
+ *   conduitType?: SelectOption[],
+ *   status?: SelectOption[],
+ *   networkLevel?: SelectOption[],
+ *   owner?: SelectOption[],
+ *   constructor?: SelectOption[],
+ *   manufacturer?: SelectOption[],
+ *   date?: string,
+ *   flag?: SelectOption[]
+ * }} ConduitFormDefaults
+ */
+
+/**
  * State manager for the conduit route
  * Manages conduits array and provides methods for CRUD operations
  */
 export class ConduitState {
+	/** @type {FormattedConduit[]} */
 	conduits = $state.raw([]);
 
 	// Form defaults (persisted to localStorage)
+	/** @type {string} */
 	defaultConduitName = $state('');
+	/** @type {string} */
 	defaultOuterConduit = $state('');
+	/** @type {SelectOption[]} */
 	defaultConduitType = $state([]);
+	/** @type {SelectOption[]} */
 	defaultStatus = $state([]);
+	/** @type {SelectOption[]} */
 	defaultNetworkLevel = $state([]);
+	/** @type {SelectOption[]} */
 	defaultOwner = $state([]);
+	/** @type {SelectOption[]} */
 	defaultConstructor = $state([]);
+	/** @type {SelectOption[]} */
 	defaultManufacturer = $state([]);
+	/** @type {string} */
 	defaultDate = $state('');
+	/** @type {SelectOption[]} */
 	defaultFlag = $state([]);
 
 	/**
 	 * Initialize state with conduits from load function
-	 * @param {Object} initialData - Data from +page.server.js load function
+	 * @param {ConduitInitialData} initialData - Data from +page.server.js load function
 	 */
 	constructor(initialData) {
 		this.conduits = initialData.pipes || [];
@@ -37,6 +124,7 @@ export class ConduitState {
 		try {
 			const stored = localStorage.getItem(STORAGE_KEY);
 			if (stored) {
+				/** @type {ConduitFormDefaults} */
 				const defaults = JSON.parse(stored);
 				this.defaultConduitName = defaults.conduitName || '';
 				this.defaultOuterConduit = defaults.outerConduit || '';
@@ -61,6 +149,7 @@ export class ConduitState {
 		if (typeof window === 'undefined') return;
 
 		try {
+			/** @type {ConduitFormDefaults} */
 			const defaults = {
 				conduitName: this.defaultConduitName,
 				outerConduit: this.defaultOuterConduit,
@@ -81,8 +170,8 @@ export class ConduitState {
 
 	/**
 	 * Format conduit data from API response to table display format
-	 * @param {Object} conduit - Raw conduit data from API
-	 * @returns {Object} Formatted conduit for table display
+	 * @param {RawConduit} conduit - Raw conduit data from API
+	 * @returns {FormattedConduit} Formatted conduit for table display
 	 */
 	formatConduit(conduit) {
 		return {
@@ -102,7 +191,7 @@ export class ConduitState {
 
 	/**
 	 * Update a conduit in local state
-	 * @param {Object} updatedConduit - Updated conduit data from API
+	 * @param {RawConduit} updatedConduit - Updated conduit data from API
 	 */
 	updateConduit(updatedConduit) {
 		const index = this.conduits.findIndex((c) => c.value === updatedConduit.uuid);
@@ -126,7 +215,7 @@ export class ConduitState {
 
 	/**
 	 * Add a new conduit to local state (prepends to array)
-	 * @param {Object} newConduit - New conduit data from API
+	 * @param {RawConduit} newConduit - New conduit data from API
 	 */
 	addConduit(newConduit) {
 		const formattedConduit = this.formatConduit(newConduit);
@@ -135,7 +224,7 @@ export class ConduitState {
 
 	/**
 	 * Set conduits array (used when data is reloaded, e.g., after search)
-	 * @param {Array} pipes - Array of formatted pipes from load function
+	 * @param {FormattedConduit[]} pipes - Array of formatted pipes from load function
 	 */
 	setConduits(pipes) {
 		this.conduits = pipes || [];
@@ -143,7 +232,7 @@ export class ConduitState {
 
 	/**
 	 * Save form defaults for next conduit creation
-	 * @param {Object} values - Form values to save as defaults
+	 * @param {ConduitFormDefaults} values - Form values to save as defaults
 	 */
 	setDefaults(values) {
 		this.defaultConduitName = values.conduitName || '';
@@ -161,7 +250,7 @@ export class ConduitState {
 
 	/**
 	 * Get form defaults for conduit creation
-	 * @returns {Object} Default values for form fields
+	 * @returns {ConduitFormDefaults} Default values for form fields
 	 */
 	getDefaults() {
 		return {

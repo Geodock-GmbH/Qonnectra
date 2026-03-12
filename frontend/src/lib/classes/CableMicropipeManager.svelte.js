@@ -6,6 +6,14 @@ import { m } from '$lib/paraglide/messages';
 import { globalToaster } from '$lib/stores/toaster';
 
 /**
+ * @typedef {{uuid: string, name: string, conduit_type_name: string, has_cable_linkage: boolean}} Conduit
+ */
+
+/**
+ * @typedef {{number: number, color_name: string, color_hex: string, available_in: string[], available_in_all: boolean, linked_to_cable: boolean, linked_cables: {uuid: string, name: string}[], missing_in: string[], microduct_status: boolean}} Micropipe
+ */
+
+/**
  * Manages state for the cable-micropipe linking panel.
  */
 export class CableMicropipeManager {
@@ -18,13 +26,13 @@ export class CableMicropipeManager {
 	/** @type {SvelteSet<string>} */
 	selectedTrenchIds = $state(new SvelteSet());
 
-	/** @type {Array<{uuid: string, name: string, conduit_type_name: string, has_cable_linkage: boolean}>} */
+	/** @type {Conduit[]} */
 	conduits = $state([]);
 
 	/** @type {SvelteSet<string>} */
 	selectedConduitIds = $state(new SvelteSet());
 
-	/** @type {Array<{number: number, color_name: string, color_hex: string, available_in: string[], available_in_all: boolean, linked_to_cable: boolean, linked_cables: Array<{uuid: string, name: string}>, missing_in: string[], microduct_status: boolean}>} */
+	/** @type {Micropipe[]} */
 	micropipes = $state([]);
 
 	/** @type {{number: number, color_name: string}|null} */
@@ -88,13 +96,14 @@ export class CableMicropipeManager {
 			const textResponse = await response.text();
 			const result = deserialize(textResponse);
 
-			if (result.type === 'failure') {
-				console.error('Failed to fetch linked trenches:', result.data?.error);
+			if (result.type !== 'success') {
+				console.error('Failed to fetch linked trenches:', result.type === 'failure' ? result.data?.error : result.type);
 				this.linkedTrenchIds = new SvelteSet();
 				return;
 			}
 
-			this.linkedTrenchIds = new SvelteSet(result.data?.trench_uuids || []);
+			const data = /** @type {{ trench_uuids?: string[] }} */ (result.data);
+			this.linkedTrenchIds = new SvelteSet(data?.trench_uuids || []);
 		} catch (error) {
 			console.error('Error fetching linked trenches:', error);
 			this.linkedTrenchIds = new SvelteSet();
@@ -135,16 +144,18 @@ export class CableMicropipeManager {
 			const textResponse = await response.text();
 			const result = deserialize(textResponse);
 
-			if (result.type === 'failure') {
-				throw new Error(result.data?.error || 'Failed to fetch conduits');
+			if (result.type !== 'success') {
+				const msg = result.type === 'failure' ? /** @type {string|undefined} */ (result.data?.error) : undefined;
+				throw new Error(msg || 'Failed to fetch conduits');
 			}
 
-			this.conduits = result.data?.conduits || [];
+			const data = /** @type {{ conduits?: Conduit[] }} */ (result.data);
+			this.conduits = data?.conduits || [];
 		} catch (error) {
 			console.error('Error fetching conduits:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: error.message
+				description: /** @type {Error} */ (error).message
 			});
 		} finally {
 			this.loading = false;
@@ -194,17 +205,19 @@ export class CableMicropipeManager {
 			const textResponse = await response.text();
 			const result = deserialize(textResponse);
 
-			if (result.type === 'failure') {
-				throw new Error(result.data?.error || 'Failed to fetch micropipes');
+			if (result.type !== 'success') {
+				const msg = result.type === 'failure' ? /** @type {string|undefined} */ (result.data?.error) : undefined;
+				throw new Error(msg || 'Failed to fetch micropipes');
 			}
 
-			this.micropipes = result.data?.micropipes || [];
+			const data = /** @type {{ micropipes?: Micropipe[] }} */ (result.data);
+			this.micropipes = data?.micropipes || [];
 			this.step = 2;
 		} catch (error) {
 			console.error('Error fetching micropipes:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: error.message
+				description: /** @type {Error} */ (error).message
 			});
 		} finally {
 			this.loading = false;
@@ -248,7 +261,7 @@ export class CableMicropipeManager {
 		this.saving = true;
 		try {
 			const formData = new FormData();
-			formData.append('cableId', this.cableId);
+			formData.append('cableId', /** @type {string} */ (this.cableId));
 			formData.append('micropipeNumber', this.selectedMicropipe.number.toString());
 			formData.append('color', this.selectedMicropipe.color_name);
 			formData.append('conduitIds', JSON.stringify(Array.from(this.selectedConduitIds)));
@@ -261,8 +274,9 @@ export class CableMicropipeManager {
 			const textResponse = await response.text();
 			const result = deserialize(textResponse);
 
-			if (result.type === 'failure') {
-				throw new Error(result.data?.error || 'Failed to save linkage');
+			if (result.type !== 'success') {
+				const msg = result.type === 'failure' ? /** @type {string|undefined} */ (result.data?.error) : undefined;
+				throw new Error(msg || 'Failed to save linkage');
 			}
 
 			globalToaster.success({
@@ -278,7 +292,7 @@ export class CableMicropipeManager {
 			console.error('Error saving linkage:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: error.message
+				description: /** @type {Error} */ (error).message
 			});
 		} finally {
 			this.saving = false;
@@ -294,7 +308,7 @@ export class CableMicropipeManager {
 		this.saving = true;
 		try {
 			const formData = new FormData();
-			formData.append('cableId', this.cableId);
+			formData.append('cableId', /** @type {string} */ (this.cableId));
 			formData.append('micropipeNumber', micropipeNumber.toString());
 			formData.append('conduitIds', JSON.stringify(conduitIds));
 
@@ -306,8 +320,9 @@ export class CableMicropipeManager {
 			const textResponse = await response.text();
 			const result = deserialize(textResponse);
 
-			if (result.type === 'failure') {
-				throw new Error(result.data?.error || 'Failed to remove linkage');
+			if (result.type !== 'success') {
+				const msg = result.type === 'failure' ? /** @type {string|undefined} */ (result.data?.error) : undefined;
+				throw new Error(msg || 'Failed to remove linkage');
 			}
 
 			globalToaster.success({
@@ -321,7 +336,7 @@ export class CableMicropipeManager {
 			console.error('Error removing linkage:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: error.message
+				description: /** @type {Error} */ (error).message
 			});
 		} finally {
 			this.saving = false;

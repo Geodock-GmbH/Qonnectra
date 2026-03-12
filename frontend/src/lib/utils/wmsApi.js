@@ -11,6 +11,9 @@ import { PUBLIC_API_URL } from '$env/static/public';
  * @property {string} title - Human-readable layer title
  * @property {boolean} is_enabled - Whether the layer is enabled for display
  * @property {number} sort_order - Display order
+ * @property {number} [min_zoom] - Minimum zoom level
+ * @property {number} [max_zoom] - Maximum zoom level
+ * @property {number} [opacity] - Layer opacity (0-1)
  */
 
 /**

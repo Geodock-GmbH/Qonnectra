@@ -1,18 +1,33 @@
 import Overlay from 'ol/Overlay';
+import OlMap from 'ol/Map';
+import Feature from 'ol/Feature';
+
+/**
+ * @typedef {Record<string, string>} AliasMapping
+ */
+
+/**
+ * @typedef {Record<string, unknown>} FeatureProperties
+ */
 
 /**
  * Manages popup overlays on the map
  * Handles creation, positioning, content generation, and lifecycle
  */
 export class MapPopupManager {
+	/** @type {Overlay | null} */
 	overlay = $state(null);
+	/** @type {HTMLElement | null} */
 	popupContainer = $state(null);
+	/** @type {HTMLElement | null} */
 	contentElement = $state(null);
+	/** @type {HTMLElement | null} */
 	closerElement = $state(null);
+	/** @type {AliasMapping} */
 	alias = $state({});
 
 	/**
-	 * @param {Object} alias - Field alias mapping for display names
+	 * @param {AliasMapping} alias - Field alias mapping for display names
 	 */
 	constructor(alias = {}) {
 		this.alias = alias;
@@ -20,7 +35,7 @@ export class MapPopupManager {
 
 	/**
 	 * Initialize the popup overlay with DOM elements
-	 * @param {Object} olMap - OpenLayers map instance
+	 * @param {OlMap} olMap - OpenLayers map instance
 	 * @returns {boolean} True if initialization succeeded
 	 */
 	initialize(olMap) {
@@ -62,8 +77,8 @@ export class MapPopupManager {
 
 	/**
 	 * Show popup at coordinates with feature properties
-	 * @param {Array} coordinate - Map coordinates [x, y]
-	 * @param {Object} feature - OpenLayers feature
+	 * @param {number[]} coordinate - Map coordinates [x, y]
+	 * @param {Feature} feature - OpenLayers feature
 	 */
 	show(coordinate, feature) {
 		if (!this.overlay || !this.contentElement) {
@@ -92,7 +107,7 @@ export class MapPopupManager {
 
 	/**
 	 * Generate HTML content for popup from feature properties
-	 * @param {Object} properties - Feature properties
+	 * @param {FeatureProperties} properties - Feature properties
 	 * @returns {string} HTML string
 	 */
 	generatePopupContent(properties) {
@@ -112,7 +127,7 @@ export class MapPopupManager {
 
 	/**
 	 * Update alias mapping
-	 * @param {Object} newAlias - New alias mapping
+	 * @param {AliasMapping} newAlias - New alias mapping
 	 */
 	updateAlias(newAlias) {
 		this.alias = newAlias || {};
@@ -120,7 +135,7 @@ export class MapPopupManager {
 
 	/**
 	 * Cleanup method to be called on destroy
-	 * @param {Object} olMap - OpenLayers map instance
+	 * @param {OlMap} olMap - OpenLayers map instance
 	 */
 	cleanup(olMap) {
 		if (olMap && this.overlay) {
