@@ -35,6 +35,8 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	import { generateAddressPdf } from '$lib/utils/addressPdf.js';
 	import { tooltip } from '$lib/utils/tooltip.js';
+	import { fetchWMSAccessToken, fetchWMSSources, getWMSProxyUrl } from '$lib/utils/wmsApi';
+	import { createWMSLayer } from '$lib/map';
 
 	import ResidentialUnitsSection from './ResidentialUnitsSection.svelte';
 
@@ -84,11 +86,58 @@
 	let fileExplorer = $state(null);
 
 	let addressMarkerLayer = $state(null);
+	let wmsLayers = $state([]);
 	let mapCenter = $state(null);
 	let mapReady = $state(false);
 	let mapContainerEl = $state(null);
 
 	let derivedIdAddress = $derived(id_address);
+
+	/**
+	 * Load WMS layers for the compact map.
+	 */
+	async function loadWMSLayers() {
+		try {
+			const [accessToken, sources] = await Promise.all([
+				fetchWMSAccessToken(),
+				fetchWMSSources(projectId)
+			]);
+
+			wmsSourcesData.set({ sources, loaded: true });
+
+			const visibilityConfig = $wmsLayerVisibilityConfig;
+			const loadedLayers = [];
+
+			for (const source of sources) {
+				if (!source.is_active) continue;
+
+				for (const layer of source.layers) {
+					if (!layer.is_enabled) continue;
+
+					const layerId = `wms-${source.id}-${layer.name}`;
+					const isVisible = getWMSLayerVisibility(visibilityConfig, projectId, layerId, true);
+
+					const olLayer = createWMSLayer({
+						proxyUrl: getWMSProxyUrl(source.id, accessToken),
+						layerName: layer.name,
+						layerId: layerId,
+						displayName: `${source.name}: ${layer.title || layer.name}`,
+						sourceId: source.id,
+						sourceName: source.name,
+						minZoom: layer.min_zoom ?? 8,
+						maxZoom: layer.max_zoom ?? undefined,
+						opacity: layer.opacity ?? 1.0
+					});
+					olLayer.setVisible(isVisible);
+					loadedLayers.push(olLayer);
+				}
+			}
+
+			wmsLayers = loadedLayers;
+		} catch (error) {
+			console.warn('Failed to load WMS layers for address detail map:', error);
+		}
+	}
 
 	onMount(async () => {
 		if (!geom3857 || !geom3857.coordinates) return;
@@ -134,6 +183,8 @@
 			style: markerStyle,
 			zIndex: 100
 		});
+
+		await loadWMSLayers();
 
 		mapReady = true;
 	});
@@ -675,7 +726,7 @@
 					>
 						<Map
 							variant="compact"
-							layers={[addressMarkerLayer]}
+							layers={[...wmsLayers, addressMarkerLayer]}
 							viewOptions={{
 								center: mapCenter,
 								zoom: 18
