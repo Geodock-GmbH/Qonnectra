@@ -391,7 +391,14 @@ function drawMapSection(doc, { image, x, y, width }) {
 	doc.line(x + width, y + height, x + width - 6, y + height);
 	doc.line(x + width, y + height, x + width, y + height - 6);
 
-	return y + height;
+	doc.setFont('helvetica', 'normal');
+	doc.setFontSize(5);
+	doc.setTextColor(...COLORS.slate400);
+	doc.text('© OpenMapTiles © OpenStreetMap contributors', x + width / 2, y + height + 4, {
+		align: 'center'
+	});
+
+	return y + height + 6;
 }
 
 /**

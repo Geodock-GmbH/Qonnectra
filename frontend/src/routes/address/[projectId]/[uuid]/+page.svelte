@@ -309,6 +309,27 @@
 	}
 
 	/**
+	 * Merge all OpenLayers canvases into a single image.
+	 * OpenLayers uses separate canvases for different layers.
+	 */
+	function captureMapCanvases(container) {
+		const canvases = container.querySelectorAll('canvas');
+		if (canvases.length === 0) return null;
+
+		const firstCanvas = canvases[0];
+		const mergedCanvas = document.createElement('canvas');
+		mergedCanvas.width = firstCanvas.width;
+		mergedCanvas.height = firstCanvas.height;
+		const ctx = mergedCanvas.getContext('2d');
+
+		for (const canvas of canvases) {
+			ctx.drawImage(canvas, 0, 0);
+		}
+
+		return mergedCanvas.toDataURL('image/png');
+	}
+
+	/**
 	 * Handle the PDF download action
 	 */
 	async function handleDownloadPdf() {
@@ -316,10 +337,7 @@
 		try {
 			let mapImage = null;
 			if (mapContainerEl) {
-				const canvas = mapContainerEl.querySelector('canvas');
-				if (canvas) {
-					mapImage = canvas.toDataURL('image/png');
-				}
+				mapImage = captureMapCanvases(mapContainerEl);
 			}
 
 			const addressData = {
