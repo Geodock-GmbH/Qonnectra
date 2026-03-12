@@ -40,90 +40,103 @@
 		showMoreMenu = !showMoreMenu;
 	}
 
+	/**
+	 * @typedef {Object} NavLink
+	 * @property {string} href
+	 * @property {() => string} label
+	 * @property {any} icon
+	 * @property {(path: string) => boolean} pathMatch
+	 */
+
+	/** @type {NavLink[]} */
 	const allMainLinks = [
 		{
 			href: '/dashboard',
 			label: () => m.nav_dashboard(),
 			icon: IconChartArcs,
-			pathMatch: (path) => path.startsWith('/dashboard')
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/dashboard')
 		},
 		{
 			href: '/map',
 			label: () => m.nav_map(),
 			icon: IconMapPin,
-			pathMatch: (path) => path.startsWith('/map')
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/map')
 		}
 	];
 
+	/** @type {NavLink[]} */
 	const allInfrastructureLinks = [
 		{
 			href: '/conduit',
 			label: () => m.nav_conduit_management(),
 			icon: IconTable,
-			pathMatch: (path) => path.startsWith('/conduit')
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/conduit')
 		},
 		{
 			href: '/trench',
 			label: () => m.nav_conduit_connection(),
 			icon: IconArrowRightToArc,
-			pathMatch: (path) => path.startsWith('/trench')
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/trench')
 		},
 		{
 			href: '/pipe-branch',
 			label: () => m.nav_pipe_branch(),
 			icon: IconAiGateway,
-			pathMatch: (path) => path.startsWith('/pipe-branch')
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/pipe-branch')
 		},
 		{
 			href: '/house-connections',
 			label: () => m.nav_house_connections(),
 			icon: IconTopologyBus,
-			pathMatch: (path) => path.startsWith('/house-connections')
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/house-connections')
 		}
 	];
 
+	/** @type {NavLink[]} */
 	const allCableLinks = [
 		{
 			href: '/network-schema',
 			label: () => m.nav_network_schema(),
 			icon: IconTopologyRing3,
-			pathMatch: (path) => path.startsWith('/network-schema')
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/network-schema')
 		},
 		{
 			href: '/trace',
 			label: () => m.nav_fiber_trace(),
 			icon: IconSTurnRight,
-			pathMatch: (path) => path.startsWith('/trace')
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/trace')
 		}
 	];
 
+	/** @type {NavLink[]} */
 	const allAddressLinks = [
 		{
 			href: '/address',
 			label: () => m.nav_address(),
 			icon: IconBuildings,
-			pathMatch: (path) => path.startsWith('/address')
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/address')
 		}
 	];
 
+	/** @type {NavLink[]} */
 	const allFooterLinks = [
 		{
 			href: '/admin/logs',
 			label: () => m.nav_logs(),
 			icon: IconFileText,
-			pathMatch: (path) => path === '/admin/logs'
+			pathMatch: (/** @type {string} */ path) => path === '/admin/logs'
 		},
 		{
 			href: '/settings',
 			label: () => m.nav_settings(),
 			icon: IconSettings,
-			pathMatch: (path) => path.startsWith('/settings')
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/settings')
 		}
 	];
 
 	/**
 	 * Filters links based on user route permissions.
-	 * @param {Array} links
+	 * @param {NavLink[]} links
 	 */
 	function filterByPermission(links) {
 		return links.filter((link) => canAccessRoute($userStore.permissions, link.href));

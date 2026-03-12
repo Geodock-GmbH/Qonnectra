@@ -128,12 +128,12 @@
 		}
 	});
 
-	const LAYER_ORDER = {
+	const LAYER_ORDER = /** @type {Record<string, number>} */ ({
 		'address-layer': 1,
 		'node-layer': 2,
 		'trench-layer': 3,
 		'area-layer': 4
-	};
+	});
 
 	// Initialize area type styles for any new types when area types change
 	$effect(() => {
@@ -305,11 +305,11 @@
 
 	/**
 	 * Get the name key for a trench type based on current style mode
-	 * @param {Object} trenchType - The trench type object
+	 * @param {{ surface?: string, construction_type?: string }} trenchType - The trench type object
 	 * @returns {string} The name of the trench type
 	 */
 	function getTrenchTypeName(trenchType) {
-		return $trenchStyleMode === 'surface' ? trenchType.surface : trenchType.construction_type;
+		return ($trenchStyleMode === 'surface' ? trenchType.surface : trenchType.construction_type) ?? '';
 	}
 
 	/**
@@ -436,6 +436,7 @@
 	 * @returns {string|null} The label config key or null if not supported
 	 */
 	function getLabelConfigKey(layerId) {
+		/** @type {Record<string, string>} */
 		const mapping = {
 			'trench-layer': 'trench',
 			'address-layer': 'address',
@@ -451,6 +452,7 @@
 	 * @returns {string|null} The API layer type or null if not supported
 	 */
 	function getExtentLayerType(layerId) {
+		/** @type {Record<string, string>} */
 		const mapping = {
 			'trench-layer': 'trench',
 			'address-layer': 'address',
@@ -921,7 +923,7 @@
 					<!-- WMS Sources - separate entries after area layer (Mobile) -->
 					{#if layerId === 'area-layer' && wmsSources.length > 0}
 						{#each wmsSources as source (source.id)}
-							{@const enabledLayers = source.layers.filter((l) => l.is_enabled)}
+							{@const enabledLayers = source.layers.filter((/** @type {WMSLayer} */ l) => l.is_enabled)}
 							{#if enabledLayers.length > 0}
 								{@const isExpanded = isWMSSourceExpanded(source.id)}
 								<div class="bg-surface-100-900 rounded-xl overflow-hidden">
@@ -1307,7 +1309,7 @@
 				<!-- WMS Sources - separate entries after area layer -->
 				{#if layerId === 'area-layer' && wmsSources.length > 0}
 					{#each wmsSources as source (source.id)}
-						{@const enabledLayers = source.layers.filter((l) => l.is_enabled)}
+						{@const enabledLayers = source.layers.filter((/** @type {WMSLayer} */ l) => l.is_enabled)}
 						{#if enabledLayers.length > 0}
 							{@const isExpanded = isWMSSourceExpanded(source.id)}
 							<div>

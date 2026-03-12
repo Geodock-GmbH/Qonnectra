@@ -52,15 +52,15 @@
 		}
 	});
 
-	function handleValueChange(e) {
+	function handleValueChange(/** @type {{ value: string[] }} */ e) {
 		$selectedConduit = e.value;
 	}
 
-	function handleOpenChange(e) {
+	function handleOpenChange(/** @type {{ open: boolean }} */ e) {
 		isOpen = e.open;
 	}
 
-	const onInputValueChange = (e) => {
+	const onInputValueChange = (/** @type {{ inputValue: string }} */ e) => {
 		const filtered = conduits.filter((item) =>
 			item.label.toLowerCase().includes(e.inputValue.toLowerCase())
 		);

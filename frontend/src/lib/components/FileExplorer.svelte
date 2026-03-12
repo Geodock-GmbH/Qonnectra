@@ -11,6 +11,14 @@
 	import { tooltip } from '$lib/utils/tooltip.js';
 
 	/**
+	 * @typedef {Object} FeatureFile
+	 * @property {string} uuid
+	 * @property {string} file_name
+	 * @property {string} file_type
+	 * @property {string} file_path
+	 */
+
+	/**
 	 * @typedef {Object} FileExplorerProps
 	 * @property {string} featureType - The type of feature (e.g., 'cable', 'node', 'trench')
 	 * @property {string} featureId - The UUID of the feature
@@ -19,19 +27,24 @@
 	/** @type {FileExplorerProps} */
 	let { featureType, featureId } = $props();
 
+	/** @type {FeatureFile[]} */
 	let files = $state([]);
 	let isLoading = $state(false);
+	/** @type {string|null} */
 	let error = $state(null);
+	/** @type {FeatureFile|null} */
 	let editingFile = $state(null);
 	let editValue = $state('');
+	/** @type {FeatureFile|null} */
 	let deletingFile = $state(null);
+	/** @type {MessageBox} */
 	let deleteMessageBox;
 
 	/**
 	 * Transform flat file list into tree structure
 	 * Files are grouped by category (photos, documents, etc.)
 	 */
-	function buildTreeFromFiles(fileList) {
+	function buildTreeFromFiles(/** @type {FeatureFile[]} */ fileList) {
 		const categoryMap = new SvelteMap();
 
 		// Group files by category
@@ -57,7 +70,7 @@
 				id: `category-${category}`,
 				name: `${category} (${categoryFiles.length})`,
 				type: 'category',
-				children: categoryFiles.map((file) => ({
+				children: categoryFiles.map((/** @type {FeatureFile} */ file) => ({
 					id: file.uuid,
 					name: file.file_name + (file.file_type ? `.${file.file_type}` : ''),
 					type: 'file',
@@ -104,7 +117,7 @@
 			files = Array.isArray(data) ? data : data.results || [];
 		} catch (err) {
 			console.error('Error loading files:', err);
-			error = err.message;
+			error = err instanceof Error ? err.message : String(err);
 			globalToaster.error({
 				title: m.common_error(),
 				description: 'Failed to load files'
@@ -117,7 +130,7 @@
 	/**
 	 * Handle file double-click to preview
 	 */
-	function handleFileDoubleClick(file) {
+	function handleFileDoubleClick(/** @type {FeatureFile} */ file) {
 		const url = `${PUBLIC_API_URL}feature-files/${file.uuid}/preview/`;
 		window.open(url, '_blank');
 	}
@@ -125,7 +138,7 @@
 	/**
 	 * Download file (triggered by download button)
 	 */
-	function downloadFile(file) {
+	function downloadFile(/** @type {FeatureFile} */ file) {
 		const url = `${PUBLIC_API_URL}feature-files/${file.uuid}/download/`;
 		window.open(url, '_blank');
 	}
@@ -133,7 +146,7 @@
 	/**
 	 * Show delete confirmation dialog
 	 */
-	function confirmDelete(file) {
+	function confirmDelete(/** @type {FeatureFile} */ file) {
 		deletingFile = file;
 		deleteMessageBox.open();
 	}
@@ -176,7 +189,7 @@
 	/**
 	 * Start editing a file name
 	 */
-	function startEditing(file) {
+	function startEditing(/** @type {FeatureFile} */ file) {
 		editingFile = file;
 		editValue = file.file_name;
 	}
@@ -192,7 +205,7 @@
 	/**
 	 * Save file rename
 	 */
-	async function saveRename(file) {
+	async function saveRename(/** @type {FeatureFile} */ file) {
 		if (!editValue.trim()) {
 			globalToaster.warning({
 				title: m.common_error(),
@@ -299,7 +312,7 @@
 	onAccept={deleteFile}
 />
 
-{#snippet treeNode(node, indexPath)}
+{#snippet treeNode(/** @type {any} */ node, /** @type {number[]} */ indexPath)}
 	<TreeView.NodeProvider value={{ node, indexPath }}>
 		{#if node.type === 'category'}
 			<TreeView.Branch>

@@ -32,7 +32,7 @@
 
 <!-- MessageBox -->
 <Dialog
-	bind:open={openState}
+	open={openState}
 	onOpenChange={(e) => (openState = e.open)}
 	closeOnInteractOutside={true}
 	closeOnEscape={true}

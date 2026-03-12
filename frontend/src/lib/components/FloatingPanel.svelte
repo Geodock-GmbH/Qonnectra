@@ -32,17 +32,16 @@
 	 */
 	function bringToFront() {
 		if (typeof window === 'undefined') return;
-		// Get current max z-index from global counter, increment it
-		const currentMax = window.__floatingPanelZIndex ?? 50;
+		const win = /** @type {Window & { __floatingPanelZIndex?: number }} */ (window);
+		const currentMax = win.__floatingPanelZIndex ?? 50;
 		const newZIndex = currentMax + 1;
-		window.__floatingPanelZIndex = newZIndex;
+		win.__floatingPanelZIndex = newZIndex;
 		zIndex = newZIndex;
 	}
 
 	/**
 	 * Handles the open change event.
-	 * @param {Object} details - The details of the open change event.
-	 * @returns {void}
+	 * @param {{ open: boolean }} details
 	 */
 	function handleOpenChange(details) {
 		open = details.open;
@@ -50,8 +49,7 @@
 
 	/**
 	 * Handles the size change event.
-	 * @param {Object} details - The details of the size change event.
-	 * @returns {void}
+	 * @param {{ size: { width: number, height: number } }} details
 	 */
 	function handleSizeChange(details) {
 		size = details.size;
@@ -59,7 +57,7 @@
 
 	/**
 	 * Gets the center position of the floating panel.
-	 * @returns {Object} The center position of the floating panel.
+	 * @returns {{ x: number, y: number }}
 	 */
 	function getCenterPosition() {
 		if (typeof window === 'undefined') return { x: 100, y: 100 };

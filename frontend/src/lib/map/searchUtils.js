@@ -228,11 +228,11 @@ export function zoomToExtent(map, extent, options = {}) {
  * @param {import('ol/Map').default} map - OpenLayers map instance
  * @param {import('ol/geom/Geometry').default[]} geometries - Array of geometries to zoom to
  * @param {import('ol/layer/Vector').default} highlightLayer - Layer for highlighting
- * @param {Object} options - Zoom options
- * @param {number[]} options.padding - Padding around the features [top, right, bottom, left]
- * @param {number} options.duration - Animation duration in ms
- * @param {number} options.maxZoom - Maximum zoom level
- * @param {number} options.blinkCount - Number of blinks for highlight
+ * @param {Object} [options] - Zoom options
+ * @param {number[]} [options.padding] - Padding around the features [top, right, bottom, left]
+ * @param {number} [options.duration] - Animation duration in ms
+ * @param {number} [options.maxZoom] - Maximum zoom level
+ * @param {number} [options.blinkCount] - Number of blinks for highlight
  */
 export async function zoomToMultipleFeatures(map, geometries, highlightLayer, options = {}) {
 	const { padding = [50, 50, 50, 50], duration = 1000, maxZoom = 17, blinkCount = 6 } = options;

@@ -26,7 +26,7 @@
 		orientation = 'vertical'
 	} = $props();
 
-	function handleValueChange(e) {
+	function handleValueChange(/** @type {{ value: string }} */ e) {
 		value = e.value;
 		onValueChange(e.value);
 	}

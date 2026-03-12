@@ -10,7 +10,8 @@
 	let { data = [], title = '', color = '#0ea5e9', unit = 'km', axisLabel } = $props();
 
 	let canvas = $state();
-	let chart;
+	/** @type {import('chart.js').Chart | null} */
+	let chart = null;
 	let themeMode = $state('');
 
 	onMount(() => {
@@ -93,7 +94,7 @@
 						callbacks: {
 							label: function (context) {
 								return (
-									context.parsed.x.toLocaleString('de-DE', {
+									(context.parsed.x ?? 0).toLocaleString('de-DE', {
 										minimumFractionDigits: 2,
 										maximumFractionDigits: 2
 									}) +

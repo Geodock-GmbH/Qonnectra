@@ -27,11 +27,11 @@
 	 * @property {Dataset[]} datasets - The datasets to display
 	 */
 
-	/** @type {ChartData} */
-	let { data = { labels: [], datasets: [] }, title = '', unit = 'km' } = $props();
+	let { data = /** @type {ChartData} */ ({ labels: [], datasets: [] }), title = '', unit = 'km' } = $props();
 
 	let canvas = $state();
-	let chart;
+	/** @type {import('chart.js').Chart | null} */
+	let chart = null;
 	let themeMode = $state('');
 
 	onMount(() => {
@@ -85,7 +85,7 @@
 			type: 'bar',
 			data: {
 				labels: data.labels,
-				datasets: data.datasets.map((ds) => ({
+				datasets: data.datasets.map((/** @type {Dataset} */ ds) => ({
 					label: ds.label,
 					data: ds.data,
 					backgroundColor: ds.backgroundColor,
@@ -116,7 +116,7 @@
 								return (
 									context.dataset.label +
 									': ' +
-									context.parsed.x.toLocaleString('de-DE', {
+									(context.parsed.x ?? 0).toLocaleString('de-DE', {
 										minimumFractionDigits: 2,
 										maximumFractionDigits: 2
 									}) +

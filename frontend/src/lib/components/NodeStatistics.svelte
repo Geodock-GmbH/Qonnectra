@@ -12,11 +12,11 @@
 	 */
 	const cityData = $derived.by(() => {
 		return nodesByCity
-			?.map((item) => ({
+			?.map((/** @type {{ city: string, count: number }} */ item) => ({
 				label: item.city || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a, b) => b.value - a.value);
+			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
 	});
 
 	/**
@@ -25,11 +25,11 @@
 	 */
 	const statusData = $derived.by(() => {
 		return nodesByStatus
-			?.map((item) => ({
+			?.map((/** @type {{ status: string, count: number }} */ item) => ({
 				label: item.status || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a, b) => b.value - a.value);
+			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
 	});
 
 	/**
@@ -38,11 +38,11 @@
 	 */
 	const networkLevelData = $derived.by(() => {
 		return nodesByNetworkLevel
-			?.map((item) => ({
+			?.map((/** @type {{ network_level: string, count: number }} */ item) => ({
 				label: item.network_level || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a, b) => b.value - a.value);
+			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
 	});
 
 	/**
@@ -51,11 +51,11 @@
 	 */
 	const typeData = $derived.by(() => {
 		return nodesByType
-			?.map((item) => ({
+			?.map((/** @type {{ node_type: string, count: number }} */ item) => ({
 				label: item.node_type || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a, b) => b.value - a.value);
+			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
 	});
 
 	/**
@@ -64,11 +64,11 @@
 	 */
 	const ownerData = $derived.by(() => {
 		return nodesByOwner
-			?.map((item) => ({
+			?.map((/** @type {{ owner: string, count: number }} */ item) => ({
 				label: item.owner || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a, b) => b.value - a.value);
+			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
 	});
 
 	/**
@@ -76,7 +76,7 @@
 	 * @returns {Array}
 	 */
 	const newestNodesData = $derived.by(() => {
-		return newestNodes?.map((item) => ({
+		return newestNodes?.map((/** @type {{ name: string, node_type: string }} */ item) => ({
 			label: `${item.name} (${item.node_type || m.common_unknown()})`,
 			value: 1
 		}));

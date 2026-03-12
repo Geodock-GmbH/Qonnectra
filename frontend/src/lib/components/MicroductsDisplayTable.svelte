@@ -4,15 +4,26 @@
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 
 	/**
+	 * @typedef {Object} Microduct
+	 * @property {string} uuid
+	 * @property {number} number
+	 * @property {string} color
+	 * @property {string} hex_code
+	 * @property {{id: number, microduct_status: string}|null} [microduct_status]
+	 * @property {{ properties?: { uuid_address?: { properties?: { street?: string, housenumber?: string, house_number_suffix?: string, zip_code?: string, city?: string } } } }} [uuid_node]
+	 * @property {{ name?: string, type?: string }} [cable_connection]
+	 */
+
+	/**
 	 * @typedef {Object} Props
-	 * @property {Array<Object>} microducts - Array of microduct objects
+	 * @property {Array<Microduct>} microducts - Array of microduct objects
 	 * @property {boolean} loading - Loading state
 	 * @property {string|null} error - Error message
-	 * @property {import('svelte').Snippet<[Object]>} [actions] - Optional snippet for action buttons per microduct
+	 * @property {import('svelte').Snippet<[Microduct]>} [actions] - Optional snippet for action buttons per microduct
 	 * @property {boolean} [showStatus] - Whether to show the status column
 	 * @property {boolean} [editableStatus] - Whether status is editable (dropdown)
 	 * @property {Array<{id: number, microduct_status: string}>} [statusOptions] - Available status options
-	 * @property {(microduct: Object, statusId: number|null) => void} [onStatusChange] - Callback when status changes
+	 * @property {((microduct: Microduct, statusId: number|null) => void)|null} [onStatusChange] - Callback when status changes
 	 */
 
 	/** @type {Props} */
@@ -33,6 +44,7 @@
 	let statusValues = $state({});
 
 	$effect(() => {
+		/** @type {Record<string, Array<string|number>>} */
 		const newValues = {};
 		for (const md of microducts) {
 			newValues[md.uuid] =
@@ -48,12 +60,13 @@
 
 	/**
 	 * Handle combobox value change
-	 * @param {Object} microduct
+	 * @param {Microduct} microduct
 	 * @param {{ value: Array<string|number> }} e
 	 */
 	function handleComboboxChange(microduct, e) {
 		const selectedValue = e.value[0];
-		const newValue = selectedValue === HEALTHY_VALUE ? null : selectedValue;
+		/** @type {number|null} */
+		const newValue = selectedValue === HEALTHY_VALUE ? null : /** @type {number} */ (selectedValue);
 		if (onStatusChange) {
 			onStatusChange(microduct, newValue);
 		}
@@ -129,7 +142,7 @@
 									<GenericCombobox
 										data={statusComboboxData}
 										bind:value={statusValues[microduct.uuid]}
-										onValueChange={(e) => handleComboboxChange(microduct, e)}
+										onValueChange={(/** @type {{ value: Array<string|number> }} */ e) => handleComboboxChange(microduct, e)}
 										placeholder={m.form_status()}
 										classes="w-full"
 										placeholderSize="size-8"

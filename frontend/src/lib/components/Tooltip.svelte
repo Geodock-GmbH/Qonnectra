@@ -13,14 +13,14 @@
 	let { children, content, position = 'top', delay = 200 } = $props();
 </script>
 
-<Tooltip openDelay={delay} closeDelay={150}>
+<Tooltip openDelay={delay} closeDelay={150} positioning={{ placement: position }}>
 	<Tooltip.Trigger>
 		{@render children?.()}
 	</Tooltip.Trigger>
 	<Portal>
-		<Tooltip.Positioner placement={position}>
+		<Tooltip.Positioner>
 			<Tooltip.Content
-				class="bg-surface-100-900 text-surface-900-100 px-3 py-2 rounded text-sm whitespace-nowrap shadow-lg z-[1000]"
+				class="bg-surface-100-900 text-surface-900-100 px-3 py-2 rounded text-sm whitespace-nowrap shadow-lg z-1000"
 			>
 				{content}
 			</Tooltip.Content>

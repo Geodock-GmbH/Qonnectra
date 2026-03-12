@@ -3,9 +3,18 @@ import { get, writable } from 'svelte/store';
 import { drawerWidth } from '$lib/stores/store';
 
 /**
+ * @typedef {Object} DrawerState
+ * @property {boolean} open
+ * @property {string} title
+ * @property {any} component
+ * @property {Record<string, any>} props
+ * @property {number} width
+ */
+
+/**
  * Creates a Svelte store for managing drawer state
  * Provides methods to control drawer visibility, content, and dimensions
- * @returns {Object} Drawer store with subscribe and control methods
+ * @returns {import('svelte/store').Readable<DrawerState> & {open: (options?: {title?: string, component?: any, props?: Record<string, any>, width?: number|null}) => void, close: () => void, setTitle: (title: string) => void, setComponent: (component: any, props?: Record<string, any>) => void, setWidth: (width: number) => void, updateProps: (newProps: Record<string, any>) => void}}
  */
 function createDrawerStore() {
 	const { subscribe, set, update } = writable({

@@ -9,7 +9,8 @@
 	let { data = [], title = '' } = $props();
 
 	let canvas = $state();
-	let chart;
+	/** @type {import('chart.js').Chart | null} */
+	let chart = null;
 	let themeMode = $state('');
 
 	const colors = [

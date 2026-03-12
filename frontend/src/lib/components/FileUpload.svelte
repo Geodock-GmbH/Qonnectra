@@ -18,9 +18,11 @@
 	/** @type {FileUploadProps} */
 	let { featureType, featureId, onUploadComplete } = $props();
 
+	/** @type {any[]} */
 	let uploadedFiles = $state([]);
 	let isUploading = $state(false);
 	let isLoadingFiles = $state(false);
+	/** @type {string|null} */
 	let contentTypeError = $state(null);
 
 	let contentTypesLoaded = $state(false);
@@ -92,7 +94,7 @@
 	/**
 	 * Upload files from Skeleton FileUpload component
 	 */
-	async function uploadFilesFromPicker(fileUploadApi) {
+	async function uploadFilesFromPicker(/** @type {{ acceptedFiles: File[], clearFiles: () => void }} */ fileUploadApi) {
 		const selectedFiles = fileUploadApi.acceptedFiles;
 
 		if (selectedFiles.length === 0) {
@@ -119,7 +121,7 @@
 				const formData = new FormData();
 				formData.append('file_path', file);
 				formData.append('object_id', featureId);
-				formData.append('content_type', contentTypeId);
+				formData.append('content_type', String(contentTypeId));
 				formData.append('description', '');
 
 				const response = await fetch(`${PUBLIC_API_URL}feature-files/`, {
@@ -151,7 +153,7 @@
 			console.error('Error uploading files:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: error.message || 'Failed to upload files'
+				description: error instanceof Error ? error.message : 'Failed to upload files'
 			});
 		} finally {
 			isUploading = false;

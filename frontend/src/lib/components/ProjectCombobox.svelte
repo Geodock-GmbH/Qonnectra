@@ -62,7 +62,7 @@
 	// Wrap string store value in array for Skeleton Combobox (expects string[])
 	let comboboxValue = $derived($selectedProject ? [$selectedProject] : []);
 
-	function handleOpenChange(e) {
+	function handleOpenChange(/** @type {{ open: boolean }} */ e) {
 		isOpen = e.open;
 	}
 
@@ -77,7 +77,7 @@
 		'/trench'
 	];
 
-	function handleProjectChange(newProject) {
+	function handleProjectChange(/** @type {string} */ newProject) {
 		if (!browser) return;
 
 		document.cookie = `selected-project=${newProject}; path=/; max-age=31536000`;
@@ -100,14 +100,14 @@
 		onChange({ value: newProject });
 	}
 
-	function handleValueChange(e) {
+	function handleValueChange(/** @type {{ value: string[] }} */ e) {
 		const newValue = e.value;
 		if (newValue && newValue.length > 0) {
 			handleProjectChange(newValue[0]);
 		}
 	}
 
-	const onInputValueChange = (e) => {
+	const onInputValueChange = (/** @type {{ inputValue: string }} */ e) => {
 		const filtered = projects.filter((item) =>
 			item.label.toLowerCase().includes(e.inputValue.toLowerCase())
 		);

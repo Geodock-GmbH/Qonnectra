@@ -12,11 +12,11 @@
 	 */
 	const cityData = $derived.by(() => {
 		return addressesByCity
-			?.map((item) => ({
+			?.map((/** @type {{ city: string, count: number }} */ item) => ({
 				label: item.city || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a, b) => b.value - a.value);
+			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
 	});
 
 	/**
@@ -25,11 +25,11 @@
 	 */
 	const statusData = $derived.by(() => {
 		return addressesByStatus
-			?.map((item) => ({
+			?.map((/** @type {{ status: string, count: number }} */ item) => ({
 				label: item.status || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a, b) => b.value - a.value);
+			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
 	});
 
 	/**
@@ -38,11 +38,11 @@
 	 */
 	const unitsCityData = $derived.by(() => {
 		return unitsByCity
-			?.map((item) => ({
+			?.map((/** @type {{ city: string, count: number }} */ item) => ({
 				label: item.city || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a, b) => b.value - a.value);
+			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
 	});
 
 	/**
@@ -51,11 +51,11 @@
 	 */
 	const unitsTypeData = $derived.by(() => {
 		return unitsByType
-			?.map((item) => ({
+			?.map((/** @type {{ type: string, count: number }} */ item) => ({
 				label: item.type || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a, b) => b.value - a.value);
+			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
 	});
 </script>
 

@@ -15,7 +15,7 @@
 
 	let sliderValue = $state(/** @type {number[]} */ ([1]));
 
-	function handleSkeletonSliderChange(detail) {
+	function handleSkeletonSliderChange(/** @type {{ value: number[] }} */ detail) {
 		const newOpacityValue = detail.value[0];
 		sliderValue = [newOpacityValue];
 		onChange(newOpacityValue);

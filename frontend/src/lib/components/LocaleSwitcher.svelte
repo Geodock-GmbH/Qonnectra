@@ -13,10 +13,11 @@
 
 	let currentLocale = $state([getLocale()]);
 
-	function handleLocaleChange(e) {
-		if (browser && e.value !== currentLocale) {
-			setLocale([e.value]);
-			currentLocale = [e.value];
+	function handleLocaleChange(/** @type {{ value: string[] }} */ e) {
+		const newLocale = e.value[0];
+		if (browser && newLocale && newLocale !== currentLocale[0]) {
+			setLocale(/** @type {"de" | "en"} */ (newLocale));
+			currentLocale = [/** @type {"de" | "en"} */ (newLocale)];
 		}
 	}
 </script>

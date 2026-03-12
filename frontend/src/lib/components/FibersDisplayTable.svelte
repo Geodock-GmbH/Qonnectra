@@ -4,8 +4,18 @@
 	import { m } from '$lib/paraglide/messages';
 
 	/**
+	 * @typedef {Object} Fiber
+	 * @property {string} uuid
+	 * @property {number} bundle_number
+	 * @property {string} bundle_color
+	 * @property {number} fiber_number_in_bundle
+	 * @property {string} fiber_color
+	 * @property {{id: number, fiber_status: string}|null} [fiber_status]
+	 */
+
+	/**
 	 * @typedef {Object} Props
-	 * @property {Array<Object>} fibers - Array of fiber objects
+	 * @property {Array<Fiber>} fibers - Array of fiber objects
 	 * @property {boolean} loading - Loading state
 	 * @property {string|null} error - Error message
 	 * @property {(colorName: string) => string} getColorHex - Function to get hex color from name
@@ -55,7 +65,7 @@
 	 * Check if a fiber has a defective status.
 	 * Fibers without an assigned status are considered healthy by default.
 	 * Any assigned fiber_status indicates a non-healthy state.
-	 * @param {Object} fiber
+	 * @param {Fiber} fiber
 	 * @returns {boolean}
 	 */
 	function isDefective(fiber) {
@@ -64,7 +74,7 @@
 
 	/**
 	 * Count defective fibers in a bundle
-	 * @param {Array<Object>} bundleFibers
+	 * @param {Array<Fiber>} bundleFibers
 	 * @returns {number}
 	 */
 	function countDefective(bundleFibers) {
@@ -73,7 +83,7 @@
 
 	/**
 	 * Get status display text
-	 * @param {Object} fiber
+	 * @param {Fiber} fiber
 	 * @returns {string}
 	 */
 	function getStatusDisplay(fiber) {

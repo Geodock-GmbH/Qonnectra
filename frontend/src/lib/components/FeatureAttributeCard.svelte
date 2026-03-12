@@ -5,9 +5,9 @@
 
 	/**
 	 * @typedef {Object} Props
-	 * @property {Object} properties - Feature properties from MVT
+	 * @property {Record<string, any>} properties - Feature properties from MVT
 	 * @property {string} featureType - Type of feature ('trench', 'address', 'node')
-	 * @property {Object} alias - Field name alias mapping (English -> Localized)
+	 * @property {Record<string, string>} alias - Field name alias mapping (English -> Localized)
 	 * @property {Array<{label: string, value: string}>} projects - List of projects for name lookup
 	 */
 

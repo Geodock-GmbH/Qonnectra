@@ -49,8 +49,11 @@
 
 	let searchPanelRef = $state();
 
+	/** @type {HTMLDivElement | undefined} */
 	let container = $state();
+	/** @type {import('ol/Map').default | undefined} */
 	let map = $state();
+	/** @type {any} */
 	let osmLayer = $state();
 	let baseLayerGroup = $state();
 	let usingFallbackOSM = $state(false);
@@ -90,7 +93,7 @@
 
 	/**
 	 * Apply the vector tile style to the map
-	 * @param {object} mapInstance - The OpenLayers map instance
+	 * @param {import('ol/Map').default} mapInstance - The OpenLayers map instance
 	 * @param {string} theme - The theme to apply ('light' or 'dark')
 	 */
 	async function applyVectorTileStyle(mapInstance, theme) {
@@ -103,19 +106,22 @@
 			const { apply } = await import('ol-mapbox-style');
 			const styleUrl = `${TILE_SERVER_URL}/styles/${theme}/style.json`;
 
+			/** @type {import('ol/layer/Base').default[]} */
 			const layersToRemove = [];
-			mapInstance.getLayers().forEach((layer) => {
+			mapInstance.getLayers().forEach((/** @type {any} */ layer) => {
 				if (layer.get('isBaseLayer')) {
 					layersToRemove.push(layer);
 				}
 			});
 			layersToRemove.forEach((layer) => mapInstance.removeLayer(layer));
 
-			await apply(mapInstance, styleUrl);
+			await apply(/** @type {any} */ (mapInstance), styleUrl);
 
+			/** @type {any[]} */
 			const baseLayers = [];
+			/** @type {any[]} */
 			const otherLayers = [];
-			mapInstance.getLayers().forEach((layer) => {
+			mapInstance.getLayers().forEach((/** @type {any} */ layer) => {
 				if (layer.get('isSelectionLayer') || layer.get('isHighlightLayer')) {
 					otherLayers.push(layer);
 				} else if (!layer.get('layerId') && !layer.get('isBaseLayer')) {
@@ -149,7 +155,7 @@
 
 	/**
 	 * Setup fallback OSM raster tiles
-	 * @param {object} mapInstance - The OpenLayers map instance
+	 * @param {import('ol/Map').default} mapInstance - The OpenLayers map instance
 	 */
 	async function setupFallbackOSM(mapInstance) {
 		const [{ default: TileLayer }, { default: OSMSource }] = await Promise.all([
@@ -157,8 +163,9 @@
 			import('ol/source/OSM')
 		]);
 
+		/** @type {import('ol/layer/Base').default[]} */
 		const layersToRemove = [];
-		mapInstance.getLayers().forEach((layer) => {
+		mapInstance.getLayers().forEach((/** @type {any} */ layer) => {
 			if (layer.get('isBaseLayer')) {
 				layersToRemove.push(layer);
 			}
@@ -179,7 +186,6 @@
 	}
 
 	onMount(async () => {
-		// Resume tile loading (may have been paused during navigation)
 		tileLoadingManager.resume();
 
 		const [
@@ -225,6 +231,7 @@
 		dispatch('ready', { map, usingFallbackOSM });
 
 		map.on('moveend', () => {
+			if (!map) return;
 			const v = map.getView();
 			const newCenter = v.getCenter();
 			const newZoom = v.getZoom() ?? 2;
@@ -236,17 +243,9 @@
 
 			dispatch('moveend', { center: newCenter, zoom: newZoom });
 		});
-		map.on('click', (e) => dispatch('click', e));
-
-		return () => {
-			if (map) {
-				map.setTarget(undefined);
-				map = undefined;
-			}
-		};
+		map.on('click', (/** @type {any} */ e) => dispatch('click', e));
 	});
 
-	// Watch for theme changes and apply new style
 	$effect(() => {
 		if (map && browser && !usingFallbackOSM && TILE_SERVER_URL) {
 			const theme = $basemapTheme;
@@ -258,7 +257,6 @@
 	 * Cleanup when the component is destroyed
 	 */
 	onDestroy(() => {
-		// Cancel any pending tile requests when map unmounts
 		tileLoadingManager.cancelAllRequests();
 		getWorkerPool().cancelAllRequests();
 
@@ -280,7 +278,7 @@
 		}
 
 		if (map) {
-			map.getLayers().forEach((layer) => {
+			map.getLayers().forEach((/** @type {any} */ layer) => {
 				if (layer.get('isBaseLayer')) {
 					layer.setOpacity(newOpacity);
 				}
@@ -294,13 +292,11 @@
 
 	/**
 	 * Handle layer visibility change
-	 * @param {Object} layerInfo - The layer information
-	 * @param {string} layerInfo.layerId - The layer ID
-	 * @param {boolean} layerInfo.visible - Whether the layer is visible
+	 * @param {{ layerId: string; visible: boolean; layer?: any }} layerInfo
 	 */
 	function handleLayerVisibilityChange(layerInfo) {
 		if (layerInfo.layerId === 'osm-base-layer' && !layerInfo.layer && map) {
-			map.getLayers().forEach((layer) => {
+			map.getLayers().forEach((/** @type {any} */ layer) => {
 				if (layer.get('isBaseLayer')) {
 					layer.setVisible(layerInfo.visible);
 				}
@@ -309,10 +305,16 @@
 		onLayerVisibilityChanged(layerInfo);
 	}
 
+	/**
+	 * @param {any} nodeTypeInfo
+	 */
 	function handleNodeTypeVisibilityChange(nodeTypeInfo) {
 		onNodeTypeVisibilityChanged(nodeTypeInfo);
 	}
 
+	/**
+	 * @param {any} trenchTypeInfo
+	 */
 	function handleTrenchTypeVisibilityChange(trenchTypeInfo) {
 		onTrenchTypeVisibilityChanged(trenchTypeInfo);
 	}
@@ -324,21 +326,30 @@
 	 */
 	function handleWMSLayerVisibilityChange(layerId, visible) {
 		if (!map) return;
-		map.getLayers().forEach((layer) => {
+		map.getLayers().forEach((/** @type {any} */ layer) => {
 			if (layer.get('layerId') === layerId) {
 				layer.setVisible(visible);
 			}
 		});
 	}
 
+	/**
+	 * @param {any} labelInfo
+	 */
 	function handleLabelVisibilityChange(labelInfo) {
 		onLabelVisibilityChanged(labelInfo);
 	}
 
+	/**
+	 * @param {any} feature
+	 */
 	function handleFeatureSelect(feature) {
 		onFeatureSelect(feature);
 	}
 
+	/**
+	 * @param {any} error
+	 */
 	function handleSearchError(error) {
 		onSearchError(error);
 	}
