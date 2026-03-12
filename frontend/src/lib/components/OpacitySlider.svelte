@@ -21,12 +21,10 @@
 		onChange(newOpacityValue);
 	}
 
-	// Sync slider value with opacity prop changes
 	$effect(() => {
 		sliderValue = [opacity];
 	});
 
-	// Calculate percentage for display
 	let displayPercentage = $derived(Math.round(sliderValue[0] * 100));
 </script>
 

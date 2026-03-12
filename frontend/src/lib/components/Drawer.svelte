@@ -99,7 +99,6 @@
 	 * Ensures drawer never exceeds 80% of viewport width
 	 */
 	$effect(() => {
-		// innerWidth.current is reactive - this effect re-runs when viewport changes
 		const maxWidth = Math.floor((innerWidth.current ?? 0) * 0.8);
 		if (drawerWidth > maxWidth) {
 			drawerStore.setWidth(maxWidth);

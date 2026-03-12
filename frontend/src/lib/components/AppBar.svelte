@@ -36,7 +36,6 @@
 	let isMapRoute = $derived($page.url.pathname.startsWith('/map'));
 </script>
 
-<!-- AppBar -->
 <div>
 	<AppBar class="bg-transparent border-b-2 border-surface-200-800">
 		<AppBar.Toolbar

@@ -84,7 +84,6 @@ export class ConduitState {
 	/** @type {FormattedConduit[]} */
 	conduits = $state.raw([]);
 
-	// Form defaults (persisted to localStorage)
 	/** @type {string} */
 	defaultConduitName = $state('');
 	/** @type {string} */

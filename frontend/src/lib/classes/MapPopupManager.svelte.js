@@ -34,7 +34,7 @@ export class MapPopupManager {
 	}
 
 	/**
-	 * Initialize the popup overlay with DOM elements
+	 * Initializes the popup overlay by locating DOM elements and attaching to the map.
 	 * @param {OlMap} olMap - OpenLayers map instance
 	 * @returns {boolean} True if initialization succeeded
 	 */
@@ -44,7 +44,6 @@ export class MapPopupManager {
 			return false;
 		}
 
-		// Get DOM elements
 		this.popupContainer = document.getElementById('popup');
 		this.contentElement = document.getElementById('popup-content');
 		this.closerElement = document.getElementById('popup-closer');
@@ -54,7 +53,6 @@ export class MapPopupManager {
 			return false;
 		}
 
-		// Create overlay
 		this.overlay = new Overlay({
 			element: this.popupContainer,
 			autoPan: {
@@ -64,7 +62,6 @@ export class MapPopupManager {
 
 		olMap.addOverlay(this.overlay);
 
-		// Setup closer button
 		if (this.closerElement) {
 			this.closerElement.onclick = () => {
 				this.hide();
@@ -76,9 +73,10 @@ export class MapPopupManager {
 	}
 
 	/**
-	 * Show popup at coordinates with feature properties
+	 * Displays the popup at the given coordinates with the feature's properties.
 	 * @param {number[]} coordinate - Map coordinates [x, y]
 	 * @param {Feature | import('ol/render/Feature').default} feature - OpenLayers feature
+	 * @returns {void}
 	 */
 	show(coordinate, feature) {
 		if (!this.overlay || !this.contentElement) {
@@ -94,7 +92,8 @@ export class MapPopupManager {
 	}
 
 	/**
-	 * Hide the popup
+	 * Hides the popup and removes focus from the closer button.
+	 * @returns {void}
 	 */
 	hide() {
 		if (this.overlay) {
@@ -106,7 +105,7 @@ export class MapPopupManager {
 	}
 
 	/**
-	 * Generate HTML content for popup from feature properties
+	 * Generates an HTML list of feature properties, skipping geometry and metadata fields.
 	 * @param {FeatureProperties} properties - Feature properties
 	 * @returns {string} HTML string
 	 */
@@ -114,7 +113,6 @@ export class MapPopupManager {
 		let html = '<ul>';
 
 		for (const [key, value] of Object.entries(properties)) {
-			// Skip geometry and metadata fields
 			if (typeof value !== 'object' && key !== 'layer' && key !== 'source') {
 				const displayKey = this.alias[key] || key;
 				html += `<li><strong>${displayKey}:</strong> ${value}</li>`;
@@ -126,16 +124,18 @@ export class MapPopupManager {
 	}
 
 	/**
-	 * Update alias mapping
+	 * Replaces the field name alias mapping used for display names.
 	 * @param {AliasMapping} newAlias - New alias mapping
+	 * @returns {void}
 	 */
 	updateAlias(newAlias) {
 		this.alias = newAlias || {};
 	}
 
 	/**
-	 * Cleanup method to be called on destroy
+	 * Removes the overlay from the map and clears all DOM references.
 	 * @param {OlMap} olMap - OpenLayers map instance
+	 * @returns {void}
 	 */
 	cleanup(olMap) {
 		if (olMap && this.overlay) {

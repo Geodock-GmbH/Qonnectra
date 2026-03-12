@@ -94,6 +94,7 @@
 	}
 </script>
 
+<!-- Loading / Error / Empty States -->
 {#if loading || isHydrating}
 	<div class="placeholder animate-pulse {placeholderSize}"></div>
 {:else if error}
@@ -103,6 +104,7 @@
 		{noDataMessage || m.form_no_data_available()}
 	</div>
 {:else}
+	<!-- Combobox -->
 	<div class={renderInPlace ? (isOpen ? 'relative z-9999' : 'relative') : ''}>
 		<Combobox
 			class={classes}

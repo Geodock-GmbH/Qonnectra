@@ -41,7 +41,7 @@ export class MapInteractionManager {
 	popupManager = $state(null);
 	/** @type {{ open: Function; close: Function } | null} */
 	drawerStore = $state(null);
-	/** @type {import('svelte').ComponentType | null} */
+	/** @type {import('svelte').Component | null} */
 	drawerComponent = $state(null);
 	/** @type {Record<string, string>} */
 	alias = $state({});
@@ -62,7 +62,7 @@ export class MapInteractionManager {
 	 * @param {import('./MapSelectionManager.svelte.js').MapSelectionManager} selectionManager - Manages feature selection state
 	 * @param {import('./MapPopupManager.svelte.js').MapPopupManager} popupManager - Manages map popups
 	 * @param {{ open: Function; close: Function } | null} drawerStore - Drawer store for opening feature details
-	 * @param {import('svelte').ComponentType | null} drawerComponent - Component to render in drawer
+	 * @param {import('svelte').Component | null} drawerComponent - Component to render in drawer
 	 * @param {Record<string, string>} [alias={}] - Field name alias mapping (English -> Localized)
 	 * @param {SelectableLayersConfig | null} [selectableLayersConfig=null] - Layer click behavior configuration
 	 * @param {Record<string, unknown>} [additionalDrawerProps={}] - Additional props passed to drawer component
@@ -91,6 +91,7 @@ export class MapInteractionManager {
 	/**
 	 * Sets additional props to pass to the drawer component.
 	 * @param {Record<string, unknown>} props - Props object to merge with drawer props
+	 * @returns {void}
 	 */
 	setAdditionalDrawerProps(props) {
 		this.additionalDrawerProps = props;
@@ -113,7 +114,6 @@ export class MapInteractionManager {
 		this.layers = layers;
 		this.searchPanelRef = searchPanelRef;
 
-		// Register click handler
 		this.olMap.on('click', (event) => this.handleMapClick(event));
 
 		return true;
@@ -122,6 +122,7 @@ export class MapInteractionManager {
 	/**
 	 * Handles map click events by detecting features and triggering appropriate actions.
 	 * @param {import('ol/MapBrowserEvent').default} event - OpenLayers map click event
+	 * @returns {void}
 	 */
 	handleMapClick(event) {
 		if (!this.olMap) return;
@@ -200,6 +201,7 @@ export class MapInteractionManager {
 	 * @param {import('ol/Feature').default | import('ol/render/Feature').default} feature - Clicked feature
 	 * @param {import('ol/coordinate').Coordinate} coordinate - Map coordinates [x, y]
 	 * @param {import('ol/layer/Layer').default | null} [layer=null] - Layer containing the feature
+	 * @returns {void}
 	 */
 	handleFeatureClick(feature, coordinate, layer = null) {
 		const featureId = feature.getId();
@@ -242,6 +244,7 @@ export class MapInteractionManager {
 
 	/**
 	 * Handles click on empty map area by clearing selection and closing drawer/popup.
+	 * @returns {void}
 	 */
 	handleEmptyClick() {
 		this.selectionManager?.clearSelection();
@@ -254,6 +257,7 @@ export class MapInteractionManager {
 
 	/**
 	 * Clears the search highlight layer when present.
+	 * @returns {void}
 	 */
 	clearSearchHighlight() {
 		if (!this.searchPanelRef) return;
@@ -269,6 +273,7 @@ export class MapInteractionManager {
 	/**
 	 * Updates the search panel component reference.
 	 * @param {{ getHighlightLayer?: () => import('ol/layer/Vector').default } | null} ref - Search panel component reference
+	 * @returns {void}
 	 */
 	setSearchPanelRef(ref) {
 		this.searchPanelRef = ref;
@@ -276,6 +281,7 @@ export class MapInteractionManager {
 
 	/**
 	 * Cleans up resources when the manager is destroyed.
+	 * @returns {void}
 	 */
 	cleanup() {
 		this.olMap = null;

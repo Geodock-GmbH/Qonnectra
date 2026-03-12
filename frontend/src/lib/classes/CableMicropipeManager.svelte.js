@@ -51,9 +51,10 @@ export class CableMicropipeManager {
 	saving = $state(false);
 
 	/**
-	 * Initialize with cable data
+	 * Initialize with cable data and fetch linked trenches
 	 * @param {string} cableId
 	 * @param {string} cableName
+	 * @returns {void}
 	 */
 	initialize(cableId, cableName) {
 		this.cableId = cableId;
@@ -63,7 +64,8 @@ export class CableMicropipeManager {
 	}
 
 	/**
-	 * Reset state
+	 * Reset all selection and micropipe state back to initial values
+	 * @returns {void}
 	 */
 	reset() {
 		this.selectedTrenchIds = new SvelteSet();
@@ -77,6 +79,7 @@ export class CableMicropipeManager {
 
 	/**
 	 * Fetch trench IDs where this cable has micropipe connections
+	 * @returns {Promise<void>}
 	 */
 	async fetchLinkedTrenches() {
 		if (!this.cableId) {
@@ -116,6 +119,7 @@ export class CableMicropipeManager {
 	/**
 	 * Handle trench selection from map
 	 * @param {string[]} trenchIds
+	 * @returns {Promise<void>}
 	 */
 	async handleTrenchSelection(trenchIds) {
 		this.selectedTrenchIds = new SvelteSet(trenchIds);
@@ -124,6 +128,7 @@ export class CableMicropipeManager {
 
 	/**
 	 * Fetch conduits for selected trenches
+	 * @returns {Promise<void>}
 	 */
 	async fetchConduitsForTrenches() {
 		if (this.selectedTrenchIds.size === 0) {
@@ -171,6 +176,7 @@ export class CableMicropipeManager {
 	/**
 	 * Toggle conduit selection
 	 * @param {string} conduitId
+	 * @returns {void}
 	 */
 	toggleConduit(conduitId) {
 		const newSet = new SvelteSet(this.selectedConduitIds);
@@ -184,13 +190,15 @@ export class CableMicropipeManager {
 
 	/**
 	 * Clear conduit selection
+	 * @returns {void}
 	 */
 	clearConduitSelection() {
 		this.selectedConduitIds = new SvelteSet();
 	}
 
 	/**
-	 * Move to step 2 (micropipe selection)
+	 * Move to step 2 (micropipe selection) by fetching micropipes for selected conduits
+	 * @returns {Promise<void>}
 	 */
 	async goToStep2() {
 		if (this.selectedConduitIds.size === 0) return;
@@ -234,7 +242,8 @@ export class CableMicropipeManager {
 	}
 
 	/**
-	 * Go back to step 1
+	 * Go back to step 1 (conduit selection)
+	 * @returns {void}
 	 */
 	goToStep1() {
 		this.step = 1;
@@ -242,8 +251,9 @@ export class CableMicropipeManager {
 	}
 
 	/**
-	 * Select a micropipe
+	 * Select a micropipe, or deselect if already selected
 	 * @param {{number: number, color_name: string, available_in_all: boolean}} micropipe
+	 * @returns {void}
 	 */
 	selectMicropipe(micropipe) {
 		if (!micropipe.available_in_all) return;
@@ -262,7 +272,8 @@ export class CableMicropipeManager {
 	}
 
 	/**
-	 * Save the current micropipe linkage
+	 * Save the current micropipe linkage and refresh state
+	 * @returns {Promise<void>}
 	 */
 	async saveLinkage() {
 		if (!this.selectedMicropipe || this.selectedConduitIds.size === 0) return;
@@ -312,9 +323,10 @@ export class CableMicropipeManager {
 	}
 
 	/**
-	 * Remove linkage for a micropipe
+	 * Remove linkage for a micropipe and refresh state
 	 * @param {number} micropipeNumber
 	 * @param {string[]} conduitIds
+	 * @returns {Promise<void>}
 	 */
 	async removeLinkage(micropipeNumber, conduitIds) {
 		this.saving = true;
@@ -360,6 +372,7 @@ export class CableMicropipeManager {
 
 	/**
 	 * Clear trench selection and reset conduits
+	 * @returns {void}
 	 */
 	clearTrenchSelection() {
 		this.selectedTrenchIds = new SvelteSet();

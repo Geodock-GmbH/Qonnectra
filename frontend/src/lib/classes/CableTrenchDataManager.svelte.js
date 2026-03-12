@@ -23,14 +23,12 @@ import { deserialize } from '$app/forms';
  * Displays cables that pass through a trench with lazy-loaded fiber details
  */
 export class CableTrenchDataManager {
-	// State for cables in trench
 	/** @type {CableTrenchItem[]} */
 	cablesInTrench = $state([]);
 	loading = $state(false);
 	/** @type {string|null} */
 	error = $state(null);
 
-	// State for fibers (keyed by cableUuid)
 	/** @type {Record<string, Object[]>} */
 	fibers = $state({});
 	/** @type {Record<string, boolean>} */
@@ -38,7 +36,6 @@ export class CableTrenchDataManager {
 	/** @type {Record<string, string|null>} */
 	errorFibers = $state({});
 
-	// State for fiber colors
 	/** @type {FiberColor[]} */
 	fiberColors = $state([]);
 	loadingFiberColors = $state(false);
@@ -107,10 +104,8 @@ export class CableTrenchDataManager {
 	async fetchFibersForCable(cableUuid, forceRefresh = false) {
 		if (!cableUuid) return;
 
-		// If already loaded and not forcing refresh, don't fetch again
 		if (this.fibers[cableUuid] && !forceRefresh) return;
 
-		// Set loading state for this cable - create new object to trigger reactivity
 		this.loadingFibers = /** @type {Record<string, boolean>} */ ({
 			...this.loadingFibers,
 			[cableUuid]: true
@@ -151,7 +146,7 @@ export class CableTrenchDataManager {
 					...this.fibers,
 					[cableUuid]: data.fibers || []
 				});
-				// Clear any previous error
+
 				this.errorFibers = /** @type {Record<string, string|null>} */ ({
 					...this.errorFibers,
 					[cableUuid]: null

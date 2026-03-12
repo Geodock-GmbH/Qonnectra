@@ -123,6 +123,7 @@
 	}
 </script>
 
+<!-- Loading / Error / Empty States -->
 {#if loading}
 	<div class="p-4">
 		<div class="placeholder animate-pulse min-h-6"></div>
@@ -136,6 +137,7 @@
 		<p>{m.form_no_fibers_available()}</p>
 	</div>
 {:else}
+	<!-- Bundle Groups -->
 	<div class="space-y-2">
 		{#each bundleGroups as bundle (bundle.bundleNumber)}
 			{@const defectiveCount = countDefective(bundle.fibers)}

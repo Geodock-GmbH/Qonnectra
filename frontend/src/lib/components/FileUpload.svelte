@@ -26,7 +26,7 @@
 	let contentTypeError = $state(null);
 
 	let contentTypesLoaded = $state(false);
-	let maxFileSize = $state(50 * 1024 * 1024); // 50MB
+	let maxFileSize = $state(50 * 1024 * 1024);
 
 	const contentTypeId = $derived(contentTypesLoaded ? getContentTypeId(featureType) : null);
 
@@ -51,7 +51,6 @@
 			console.warn(`No ContentType ID found for feature type: ${featureType}`);
 			contentTypeError = `Invalid feature type: ${featureType}`;
 		} else if (contentTypesLoaded && contentTypeId) {
-			// Clear error when valid
 			contentTypeError = null;
 		}
 	});
@@ -84,7 +83,6 @@
 		}
 	}
 
-	// Retry loading content types
 	function retryLoadContentTypes() {
 		contentTypeError = null;
 		contentTypesLoaded = false;
@@ -118,7 +116,6 @@
 		isUploading = true;
 
 		try {
-			// Upload each file separately
 			for (const file of selectedFiles) {
 				const formData = new FormData();
 				formData.append('file_path', file);
@@ -143,11 +140,9 @@
 				description: m.message_success_uploading_files()
 			});
 
-			// Clear the file picker and reload the list
 			fileUploadApi.clearFiles();
 			await loadFiles();
 
-			// Notify parent component
 			if (onUploadComplete) {
 				onUploadComplete();
 			}

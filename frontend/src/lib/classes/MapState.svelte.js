@@ -178,7 +178,7 @@ export class MapState {
 	}
 
 	/**
-	 * Initialize layers and tile sources
+	 * Creates all configured vector tile layers and their tile sources.
 	 * @returns {boolean} True if initialization succeeded
 	 */
 	initializeLayers() {
@@ -260,26 +260,23 @@ export class MapState {
 	}
 
 	/**
-	 * Load WMS layers from the backend.
+	 * Loads WMS layers from the backend and adds them to the map.
 	 * Only runs in browser context (not during SSR).
+	 * @returns {Promise<void>}
 	 */
 	async loadWMSLayers() {
-		// Guard against SSR - fetch requires browser context with auth cookies
 		if (typeof window === 'undefined') {
 			return;
 		}
 
-		// Capture project at start of async operation
 		const projectAtStart = this.selectedProject;
 
 		try {
-			// Fetch access token and sources in parallel
 			const [accessToken, sources] = await Promise.all([
 				fetchWMSAccessToken(),
 				fetchWMSSources(projectAtStart)
 			]);
 
-			// Abort if project changed during fetch
 			if (this.selectedProject !== projectAtStart) {
 				return;
 			}
@@ -310,7 +307,6 @@ export class MapState {
 						opacity: layer.opacity ?? 1.0
 					});
 
-					// Get visibility from project-scoped store or default to true
 					const visibilityStore = get(wmsLayerVisibilityConfig);
 					const isVisible = getWMSLayerVisibility(visibilityStore, projectAtStart, layerId, true);
 					olLayer.setVisible(isVisible);
@@ -319,12 +315,10 @@ export class MapState {
 				}
 			}
 
-			// Final check before modifying state
 			if (this.selectedProject !== projectAtStart) {
 				return;
 			}
 
-			// Clean up stale visibility config entries for this project only
 			const currentVisibilityConfig = get(wmsLayerVisibilityConfig);
 			const projectConfig = currentVisibilityConfig[projectAtStart] || {};
 			/** @type {Record<string, boolean>} */
@@ -341,13 +335,11 @@ export class MapState {
 
 			this.wmsLayers = newWmsLayers;
 
-			// Start WMS token heartbeat if we have WMS layers
 			if (newWmsLayers.length > 0) {
 				startWMSHeartbeat(this.updateWMSLayerTokens.bind(this), accessToken);
 			}
 
-			// Add WMS layers to the map if it's already initialized
-			// Insert after base layers but before data layers
+			// Insert WMS layers after base layers but before data layers
 			if (this.olMap) {
 				const layers = this.olMap.getLayers();
 				let insertIndex = 0;
@@ -368,9 +360,11 @@ export class MapState {
 	}
 
 	/**
-	 * Initialize selection layers after map is ready
+	 * Creates and adds selection highlight layers after the map is initialized.
+	 * Also triggers WMS layer loading.
 	 * @param {import('ol').Map} olMap - OpenLayers map instance
 	 * @param {() => Record<string, boolean>} getSelectionStore - Function to get current selection store
+	 * @returns {void}
 	 */
 	initializeSelectionLayers(olMap, getSelectionStore) {
 		if (!olMap || !this.tileSource) return;
@@ -411,12 +405,12 @@ export class MapState {
 			this.olMap.addLayer(this.areaSelectionLayer);
 		}
 
-		// Load WMS layers after map is ready (ensures this.olMap is set)
 		this.loadWMSLayers();
 	}
 
 	/**
-	 * Refresh all tile sources
+	 * Refreshes all active tile sources to reload their data.
+	 * @returns {void}
 	 */
 	refreshTileSources() {
 		if (this.tileSource && this.layerConfig.trench) {
@@ -434,8 +428,10 @@ export class MapState {
 	}
 
 	/**
-	 * Recreate all tile sources with current project and global view settings
+	 * Recreates all tile sources with current project and global view settings,
+	 * clearing cached tiles and updating selection layers.
 	 * @private
+	 * @returns {void}
 	 */
 	_recreateTileSources() {
 		if (this.vectorTileLayer && this.layerConfig.trench) {
@@ -488,16 +484,16 @@ export class MapState {
 	}
 
 	/**
-	 * Reinitialize tile sources for a new project
-	 * Clears cached tiles and creates new sources with the new project ID
+	 * Reinitializes tile sources for a new project, cancelling in-flight requests
+	 * and reloading WMS layers.
 	 * @param {string} newProjectId - The new project ID
+	 * @returns {void}
 	 */
 	reinitializeForProject(newProjectId) {
 		if (this.selectedProject === newProjectId) return;
 		this.selectedProject = newProjectId;
 
-		// Cancel old tile requests RIGHT BEFORE creating new sources.
-		// This ensures old requests are aborted while new sources get fresh AbortControllers.
+		// Cancel old requests before creating new sources so new sources get fresh AbortControllers
 		tileLoadingManager.cancelAllRequests();
 		getWorkerPool().cancelAllRequests();
 
@@ -506,12 +502,12 @@ export class MapState {
 	}
 
 	/**
-	 * Remove existing WMS layers and reload for current project
+	 * Removes existing WMS layers from the map and reloads them for the current project.
+	 * @returns {Promise<void>}
 	 */
 	async _reloadWMSLayers() {
 		if (!this.olMap) return;
 
-		// Remove existing WMS layers from map
 		for (const wmsLayer of this.wmsLayers) {
 			this.olMap.removeLayer(wmsLayer);
 			const source = wmsLayer.getSource();
@@ -521,13 +517,13 @@ export class MapState {
 		}
 		this.wmsLayers = [];
 
-		// Load WMS layers for the new project
 		await this.loadWMSLayers();
 	}
 
 	/**
-	 * Reinitialize tile sources for global view mode change
+	 * Reinitializes tile sources when the global view mode changes.
 	 * @param {boolean} isGlobal - Whether global view is active
+	 * @returns {void}
 	 */
 	reinitializeForGlobalView(isGlobal) {
 		if (this.isGlobalView === isGlobal) return;
@@ -536,15 +532,13 @@ export class MapState {
 	}
 
 	/**
-	 * Get all layers as an array for passing to Map component
-	 * WMS layers are added first (at bottom), then area, then other layers
+	 * Returns all layers in draw order: WMS at bottom, then area, trench, address, node.
 	 * @returns {import('ol/layer/Base').default[]}
 	 */
 	getLayers() {
 		/** @type {import('ol/layer/Base').default[]} */
 		const layers = [];
 
-		// WMS layers at the bottom
 		for (const wmsLayer of this.wmsLayers) {
 			layers.push(wmsLayer);
 		}
@@ -558,7 +552,7 @@ export class MapState {
 	}
 
 	/**
-	 * Get all selection layers for registration with SelectionManager
+	 * Returns all non-null selection layers for registration with MapSelectionManager.
 	 * @returns {import('ol/layer/VectorTile').default[]}
 	 */
 	getSelectionLayers() {
@@ -573,7 +567,7 @@ export class MapState {
 	}
 
 	/**
-	 * Get layer references for interaction manager
+	 * Returns layer references for use by MapInteractionManager.
 	 * @returns {LayerReferences}
 	 */
 	getLayerReferences() {
@@ -586,9 +580,10 @@ export class MapState {
 	}
 
 	/**
-	 * Error handler for tile loading
+	 * Displays a toast notification for tile loading errors.
 	 * @param {string} message - Error title
 	 * @param {string} description - Error description
+	 * @returns {void}
 	 */
 	handleTileError = (message, description) => {
 		globalToaster.error({
@@ -598,8 +593,9 @@ export class MapState {
 	};
 
 	/**
-	 * Update the node layer style based on node type styles
+	 * Updates the node layer style based on node type style mapping and refreshes tiles.
 	 * @param {TypeStyleMap} nodeTypeStyles - Mapping of node type names to style config
+	 * @returns {void}
 	 */
 	updateNodeLayerStyle(nodeTypeStyles) {
 		if (!this.nodeLayer) return;
@@ -613,11 +609,12 @@ export class MapState {
 	}
 
 	/**
-	 * Update the trench layer style based on style mode and attribute styles
+	 * Updates the trench layer style based on the selected style mode and refreshes tiles.
 	 * @param {string} styleMode - 'none' | 'surface' | 'construction_type'
 	 * @param {TypeStyleMap} surfaceStyles - Mapping of surface names to style config
 	 * @param {TypeStyleMap} constructionTypeStyles - Mapping of construction type names to style config
 	 * @param {string} fallbackColor - Color to use when styleMode is 'none'
+	 * @returns {void}
 	 */
 	updateTrenchLayerStyle(styleMode, surfaceStyles, constructionTypeStyles, fallbackColor) {
 		if (!this.vectorTileLayer) return;
@@ -648,9 +645,10 @@ export class MapState {
 	}
 
 	/**
-	 * Update the address layer style with current label config and style settings
-	 * @param {string} [color] - Optional color to update
-	 * @param {number} [size] - Optional size to update
+	 * Updates the address layer style with optional color/size overrides and refreshes tiles.
+	 * @param {string} [color] - New address point color
+	 * @param {number} [size] - New address point size
+	 * @returns {void}
 	 */
 	updateAddressLayerStyle(color = undefined, size = undefined) {
 		if (!this.addressLayer) return;
@@ -675,8 +673,9 @@ export class MapState {
 	}
 
 	/**
-	 * Update the area layer style based on area type styles
+	 * Updates the area layer style based on area type style mapping and refreshes tiles.
 	 * @param {TypeStyleMap} areaTypeStyles - Mapping of area type names to style config
+	 * @returns {void}
 	 */
 	updateAreaLayerStyle(areaTypeStyles) {
 		if (!this.areaLayer) return;
@@ -690,10 +689,11 @@ export class MapState {
 	}
 
 	/**
-	 * Update label visibility for a specific layer type
+	 * Toggles label visibility for a specific layer type and re-applies the layer style.
 	 * @param {keyof LabelConfig} layerType - 'trench' | 'address' | 'node' | 'area' | 'conduit'
 	 * @param {boolean} enabled - Whether labels should be shown
-	 * @param {LabelUpdateStyles} currentStyles - Current style settings
+	 * @param {LabelUpdateStyles} currentStyles - Current style settings needed for re-styling
+	 * @returns {void}
 	 */
 	updateLabelVisibility(layerType, enabled, currentStyles = {}) {
 		const currentLabelConfig = this.labelConfig[layerType];
@@ -731,9 +731,10 @@ export class MapState {
 	}
 
 	/**
-	 * Update WMS layer source URLs with a new token.
+	 * Replaces the access token in all WMS layer source URLs.
 	 * Called by the WMS heartbeat when the token is refreshed.
 	 * @param {string} newToken - The new WMS access token
+	 * @returns {void}
 	 */
 	updateWMSLayerTokens(newToken) {
 		for (const layer of this.wmsLayers) {
@@ -750,10 +751,10 @@ export class MapState {
 	}
 
 	/**
-	 * Cleanup method to be called on destroy
+	 * Removes all layers from the map, disposes tile sources, and stops the WMS heartbeat.
+	 * @returns {void}
 	 */
 	cleanup() {
-		// Stop WMS token heartbeat
 		stopWMSHeartbeat();
 
 		if (!this.olMap) return;
@@ -771,7 +772,6 @@ export class MapState {
 			this.olMap.removeLayer(this.areaSelectionLayer);
 		}
 
-		// Cleanup WMS layers
 		for (const wmsLayer of this.wmsLayers) {
 			this.olMap.removeLayer(wmsLayer);
 			const source = wmsLayer.getSource();

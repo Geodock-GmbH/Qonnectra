@@ -274,7 +274,9 @@
 
 			dispatch('moveend', { center: newCenter, zoom: newZoom });
 		});
-		map.on('click', (/** @type {import('ol/MapBrowserEvent').default} */ e) => dispatch('click', e));
+		map.on('click', (/** @type {import('ol/MapBrowserEvent').default} */ e) =>
+			dispatch('click', e)
+		);
 	});
 
 	$effect(() => {

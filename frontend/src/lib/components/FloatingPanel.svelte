@@ -88,6 +88,7 @@
 				<SkeletonFloatingPanel.Content
 					class="card bg-surface-100-900 shadow-xl border border-surface-200-800 flex flex-col"
 				>
+					<!-- Panel Header -->
 					<SkeletonFloatingPanel.DragTrigger class="cursor-move">
 						<SkeletonFloatingPanel.Header
 							class="flex items-center justify-between p-3 border-b border-surface-200-800"
@@ -114,6 +115,7 @@
 							</SkeletonFloatingPanel.Control>
 						</SkeletonFloatingPanel.Header>
 					</SkeletonFloatingPanel.DragTrigger>
+					<!-- Panel Body -->
 					<SkeletonFloatingPanel.Body class="flex-1 overflow-auto p-4">
 						{@render children?.()}
 					</SkeletonFloatingPanel.Body>

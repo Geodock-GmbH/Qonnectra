@@ -344,6 +344,7 @@
 <div class="search-panel">
 	<SearchInput bind:value={searchQuery} onSearch={handleSearch} />
 
+	<!-- Search Results -->
 	{#if showSearchResults && searchResults && searchResults.length > 0 && !isSearching}
 		<div class="results-container" transition:fly={{ y: -8, duration: 200, easing: cubicOut }}>
 			<div class="results-header">
@@ -387,6 +388,7 @@
 		</div>
 	{/if}
 
+	<!-- Loading Indicator -->
 	{#if isSearching}
 		<div class="loading-container" transition:fade={{ duration: 150 }}>
 			<div class="loading-dots">

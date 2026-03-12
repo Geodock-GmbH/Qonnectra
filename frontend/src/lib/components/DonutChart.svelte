@@ -112,6 +112,7 @@
 </script>
 
 <div class="card border-2 border-surface-200-800 shadow-lg overflow-hidden">
+	<!-- Title Bar -->
 	<div class="border-b-2 border-surface-200-800 p-4">
 		<h3 class="h4 font-bold text-primary-500 flex items-center">
 			<span>{title}</span>
@@ -119,6 +120,7 @@
 		</h3>
 	</div>
 
+	<!-- Chart Container -->
 	<div class="p-6">
 		<div class="relative" style="height: 300px;">
 			{#if !data || data.length === 0 || data.every((item) => !item.value)}

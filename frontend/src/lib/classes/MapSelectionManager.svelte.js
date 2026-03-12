@@ -21,6 +21,7 @@ export class MapSelectionManager {
 	 * Selects a single feature, clearing any previous selection.
 	 * @param {string | number} featureId - The ID of the feature to select
 	 * @param {import('ol/Feature').default | import('ol/render/Feature').default} feature - The feature object
+	 * @returns {void}
 	 */
 	selectFeature(featureId, feature) {
 		this.selectionStore = { [featureId]: feature };
@@ -30,6 +31,7 @@ export class MapSelectionManager {
 	/**
 	 * Selects multiple features by their IDs, clearing any previous selection.
 	 * @param {(string | number)[]} featureIds - Array of feature IDs to select
+	 * @returns {void}
 	 */
 	selectMultipleFeatures(featureIds) {
 		/** @type {SelectionStore} */
@@ -43,6 +45,7 @@ export class MapSelectionManager {
 
 	/**
 	 * Clears all feature selections.
+	 * @returns {void}
 	 */
 	clearSelection() {
 		this.selectionStore = {};
@@ -70,6 +73,7 @@ export class MapSelectionManager {
 	/**
 	 * Registers a layer to be updated when selection changes.
 	 * @param {import('ol/layer/VectorTile').default} layer - OpenLayers layer that displays selection highlights
+	 * @returns {void}
 	 */
 	registerSelectionLayer(layer) {
 		if (layer && !this.selectionLayers.includes(layer)) {
@@ -79,6 +83,7 @@ export class MapSelectionManager {
 
 	/**
 	 * Triggers re-render of all registered selection layers.
+	 * @returns {void}
 	 */
 	updateSelectionLayers() {
 		this.selectionLayers.forEach((layer) => {
@@ -98,6 +103,7 @@ export class MapSelectionManager {
 
 	/**
 	 * Cleans up resources when the manager is destroyed.
+	 * @returns {void}
 	 */
 	cleanup() {
 		this.selectionStore = {};

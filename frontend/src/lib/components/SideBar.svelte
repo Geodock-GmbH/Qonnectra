@@ -149,7 +149,6 @@
 
 <!-- SideBar -->
 <div class="hidden md:block border-r-2 border-surface-200-800">
-	<!-- Component -->
 	<Navigation
 		layout={$sidebarExpanded ? 'sidebar' : 'rail'}
 		class="grid grid-rows-[auto_1fr_auto] gap-4"
@@ -273,6 +272,7 @@
 				</Navigation.Group>
 			{/if}
 		</Navigation.Content>
+		<!-- Footer Navigation -->
 		{#if footerLinks.length > 0}
 			<Navigation.Footer>
 				<Navigation.Group>

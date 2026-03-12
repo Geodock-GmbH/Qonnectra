@@ -72,6 +72,7 @@
 </script>
 
 <div class="space-y-6 max-w-6xl mx-auto">
+	<!-- Chart Grid -->
 	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 		<Chart
 			data={cityData}

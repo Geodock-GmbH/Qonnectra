@@ -51,7 +51,6 @@
 		}
 	});
 
-	// Sync store from URL parameter (source of truth after server-side redirects)
 	$effect(() => {
 		const urlProjectId = $page.params.projectId;
 		if (browser && urlProjectId && urlProjectId !== $selectedProject) {
@@ -59,7 +58,7 @@
 		}
 	});
 
-	// Wrap string store value in array for Skeleton Combobox (expects string[])
+	/** Skeleton Combobox expects string[] */
 	let comboboxValue = $derived($selectedProject ? [$selectedProject] : []);
 
 	function handleOpenChange(/** @type {{ open: boolean }} */ e) {
@@ -119,6 +118,7 @@
 	};
 </script>
 
+<!-- Loading/Error States -->
 {#if loading || isHydrating}
 	<div class="placeholder animate-pulse {placeholderSize}"></div>
 {:else if projectsError}

@@ -123,8 +123,9 @@ export class DragDropManager {
 	componentRanges = $state([]);
 
 	/**
-	 * Start a drag operation
+	 * Begins a drag operation and sets the dragged item.
 	 * @param {DragItem} item - The item being dragged
+	 * @returns {void}
 	 */
 	startDrag(item) {
 		this.isDragging = true;
@@ -132,7 +133,8 @@ export class DragDropManager {
 	}
 
 	/**
-	 * End a drag operation
+	 * Ends the current drag operation and resets all drag state.
+	 * @returns {void}
 	 */
 	endDrag() {
 		this.isDragging = false;
@@ -142,8 +144,9 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Start dragging a component type from sidebar
+	 * Initiates a drag for a single component type from the sidebar.
 	 * @param {ComponentType} componentType
+	 * @returns {void}
 	 */
 	startComponentDrag(componentType) {
 		this.startDrag({
@@ -155,9 +158,10 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Start dragging multiple components of the same type
+	 * Initiates a drag for placing multiple components of the same type.
 	 * @param {ComponentType} componentType
 	 * @param {number} count - Number of components to place
+	 * @returns {void}
 	 */
 	startMultiComponentDrag(componentType, count) {
 		this.startDrag({
@@ -171,9 +175,10 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Start dragging an existing structure
-	 * @param {DragEvent} e - Drag event
+	 * Initiates a drag for an existing structure already placed in the slot grid.
+	 * @param {DragEvent} e - The native drag event
 	 * @param {Structure} structure
+	 * @returns {void}
 	 */
 	startStructureDrag(e, structure) {
 		const dragData = {
@@ -189,10 +194,11 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Start dragging a cable
-	 * @param {DragEvent} e - Drag event
+	 * Initiates a drag for a cable, optionally including pre-loaded fiber data.
+	 * @param {DragEvent} e - The native drag event
 	 * @param {Cable} cable
-	 * @param {Fiber[]|null} fibers - Optional pre-loaded fibers array
+	 * @param {Fiber[]|null} fibers - Pre-loaded fibers, or null to defer loading
+	 * @returns {void}
 	 */
 	startCableDrag(e, cable, fibers = null) {
 		const dragData = {
@@ -218,10 +224,11 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Start dragging a bundle
-	 * @param {DragEvent} e - Drag event
+	 * Initiates a drag for a fiber bundle within a cable.
+	 * @param {DragEvent} e - The native drag event
 	 * @param {Cable} cable
 	 * @param {Bundle} bundle
+	 * @returns {void}
 	 */
 	startBundleDrag(e, cable, bundle) {
 		e.stopPropagation();
@@ -247,11 +254,12 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Start dragging a fiber
-	 * @param {DragEvent} e - Drag event
+	 * Initiates a drag for a single fiber within a bundle.
+	 * @param {DragEvent} e - The native drag event
 	 * @param {Cable} cable
 	 * @param {Bundle} bundle
 	 * @param {Fiber} fiber
+	 * @returns {void}
 	 */
 	startFiberDrag(e, cable, bundle, fiber) {
 		e.stopPropagation();
@@ -270,10 +278,11 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Start dragging an address (with all its residential units for bulk drop)
-	 * @param {DragEvent} e - Drag event
+	 * Initiates a drag for an address including all its residential units for bulk placement.
+	 * @param {DragEvent} e - The native drag event
 	 * @param {Address} address
 	 * @param {ResidentialUnit[]} residentialUnits
+	 * @returns {void}
 	 */
 	startAddressDrag(e, address, residentialUnits) {
 		const dragData = {
@@ -297,10 +306,11 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Start dragging a single residential unit
-	 * @param {DragEvent} e - Drag event
+	 * Initiates a drag for a single residential unit.
+	 * @param {DragEvent} e - The native drag event
 	 * @param {Address} address
 	 * @param {ResidentialUnit} residentialUnit
+	 * @returns {void}
 	 */
 	startResidentialUnitDrag(e, address, residentialUnit) {
 		e.stopPropagation();
@@ -319,7 +329,7 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Get address display string (private helper)
+	 * Formats an address into a human-readable display string (street + housenumber + suffix).
 	 * @param {Address} address
 	 * @returns {string}
 	 */
@@ -332,7 +342,8 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Get residential unit display name (private helper)
+	 * Builds a display name for a residential unit using available identifiers,
+	 * falling back to external IDs, floor, or side info.
 	 * @param {ResidentialUnit} ru
 	 * @returns {string}
 	 */
@@ -405,7 +416,8 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Clear drop preview
+	 * Resets the drop preview slots and component ranges.
+	 * @returns {void}
 	 */
 	clearDropPreview() {
 		this.dropPreviewSlots = [];
@@ -413,10 +425,11 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Validate if a drop is allowed at a slot
+	 * Validates whether a drop is allowed at a given slot.
+	 * Allows drops on unoccupied slots or slots occupied by the item being moved.
 	 * @param {number} slotNumber
-	 * @param {Map<number, string>} occupiedSlots
-	 * @returns {boolean}
+	 * @param {Map<number, string>} occupiedSlots - Map of slot number to occupying structure UUID
+	 * @returns {boolean} True if the drop is permitted
 	 */
 	validateDropTarget(slotNumber, occupiedSlots) {
 		const occupyingUuid = occupiedSlots.get(slotNumber);
@@ -431,8 +444,9 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Get drop effect based on drag type
-	 * @param {boolean} canDrop
+	 * Determines the drop effect based on the drag type and drop validity.
+	 * Existing structures use 'move'; new items use 'copy'.
+	 * @param {boolean} canDrop - Whether the current drop target is valid
 	 * @returns {'copy'|'move'|'none'}
 	 */
 	getDropEffect(canDrop) {
@@ -441,9 +455,9 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Parse drop data from a drop event
+	 * Extracts and parses the drag item payload from a drop event's dataTransfer.
 	 * @param {DragEvent} e
-	 * @returns {DragItem|null}
+	 * @returns {DragItem|null} The parsed drag item, or null if missing or malformed
 	 */
 	parseDropData(e) {
 		const jsonData = e.dataTransfer?.getData('application/json');
@@ -456,17 +470,19 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Select an item for mobile (tap-to-place mode)
+	 * Selects an item for mobile tap-to-place mode.
 	 * @param {DragItem} item
+	 * @returns {void}
 	 */
 	selectMobileItem(item) {
 		this.mobileSelectedItem = item;
 	}
 
 	/**
-	 * Select a component for mobile placement
+	 * Selects a component type for mobile tap-to-place mode, supporting single or multi placement.
 	 * @param {ComponentType} componentType
-	 * @param {number} count - Number of components (default 1)
+	 * @param {number} count - Number of components to place (default 1)
+	 * @returns {void}
 	 */
 	selectMobileComponent(componentType, count = 1) {
 		if (count > 1) {
@@ -489,10 +505,11 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Select a fiber for mobile placement
+	 * Selects a fiber for mobile tap-to-place mode.
 	 * @param {Cable} cable
 	 * @param {Bundle} bundle
 	 * @param {Fiber} fiber
+	 * @returns {void}
 	 */
 	selectMobileFiber(cable, bundle, fiber) {
 		this.mobileSelectedItem = {
@@ -508,9 +525,10 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Select a residential unit for mobile placement
+	 * Selects a residential unit for mobile tap-to-place mode.
 	 * @param {Address} address
 	 * @param {ResidentialUnit} residentialUnit
+	 * @returns {void}
 	 */
 	selectMobileResidentialUnit(address, residentialUnit) {
 		this.mobileSelectedItem = {
@@ -526,15 +544,17 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Clear mobile selection
+	 * Clears the current mobile tap-to-place selection.
+	 * @returns {void}
 	 */
 	clearMobileSelection() {
 		this.mobileSelectedItem = null;
 	}
 
 	/**
-	 * Clear mobile selection when switching to desktop
-	 * @param {boolean} isMobile
+	 * Clears mobile selection when the viewport switches to desktop mode.
+	 * @param {boolean} isMobile - Whether the current viewport is mobile
+	 * @returns {void}
 	 */
 	handleResponsiveChange(isMobile) {
 		if (!isMobile) {
@@ -543,7 +563,8 @@ export class DragDropManager {
 	}
 
 	/**
-	 * Cleanup manager state
+	 * Resets all manager state to initial values.
+	 * @returns {void}
 	 */
 	cleanup() {
 		this.isDragging = false;

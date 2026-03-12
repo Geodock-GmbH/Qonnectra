@@ -96,7 +96,6 @@
 	let startY = $state(0);
 	let currentTranslate = $state(0);
 
-	// Derive which trench types to show based on mode
 	let trenchTypes = $derived(
 		$trenchStyleMode === 'surface'
 			? surfaces
@@ -105,7 +104,6 @@
 				: []
 	);
 
-	// Initialize node type styles for any new types when node types change
 	$effect(() => {
 		if (nodeTypes.length > 0) {
 			const currentStyles = $nodeTypeStyles;
@@ -135,7 +133,6 @@
 		'area-layer': 4
 	});
 
-	// Initialize area type styles for any new types when area types change
 	$effect(() => {
 		if (areaTypes.length > 0) {
 			const currentStyles = $areaTypeStyles;
@@ -157,7 +154,6 @@
 		}
 	});
 
-	// Update layer visibility when layers change
 	$effect(() => {
 		const newVisibility = new Map();
 

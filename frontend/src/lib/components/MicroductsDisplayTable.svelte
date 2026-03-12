@@ -73,6 +73,7 @@
 	}
 </script>
 
+<!-- Loading / Error / Empty States -->
 {#if loading}
 	<div class="p-4">
 		<div class="placeholder animate-pulse min-h-6"></div>
@@ -86,6 +87,7 @@
 		<p>{m.form_no_microducts_available()}</p>
 	</div>
 {:else}
+	<!-- Microducts Table -->
 	<div class="table-container">
 		<table class="table table-hover">
 			<thead>

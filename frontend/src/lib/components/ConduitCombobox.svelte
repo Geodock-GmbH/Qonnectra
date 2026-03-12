@@ -41,7 +41,6 @@
 		}
 	});
 
-	// Clear selected conduit if it doesn't exist in the current conduit list
 	$effect(() => {
 		if (browser && conduits.length > 0 && $selectedConduit) {
 			const currentValue = Array.isArray($selectedConduit) ? $selectedConduit[0] : $selectedConduit;
@@ -72,6 +71,7 @@
 	};
 </script>
 
+<!-- Conduit Selection -->
 <div>
 	{#if loading}
 		<div class="placeholder animate-pulse"></div>

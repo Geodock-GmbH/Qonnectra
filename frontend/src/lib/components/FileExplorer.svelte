@@ -47,9 +47,7 @@
 	function buildTreeFromFiles(/** @type {FeatureFile[]} */ fileList) {
 		const categoryMap = new SvelteMap();
 
-		// Group files by category
 		for (const file of fileList) {
-			// Extract category from file path (e.g., "trenches/123/photos/image.jpg" -> "photos")
 			const pathParts = decodeURIComponent(file.file_path).split('/');
 			const category = pathParts.length >= 3 ? pathParts[pathParts.length - 2] : 'uncategorized';
 
@@ -59,7 +57,6 @@
 			categoryMap.get(category).push(file);
 		}
 
-		// Build tree structure - sort categories alphabetically
 		const children = [];
 		const sortedCategories = Array.from(categoryMap.entries()).sort((a, b) =>
 			a[0].localeCompare(b[0])
@@ -173,7 +170,6 @@
 				description: 'File deleted successfully'
 			});
 
-			// Reload files
 			await loadFiles();
 		} catch (err) {
 			console.error('Error deleting file:', err);
@@ -237,7 +233,6 @@
 				description: 'File renamed successfully'
 			});
 
-			// Reload files
 			await loadFiles();
 			cancelEditing();
 		} catch (err) {
@@ -256,7 +251,6 @@
 		loadFiles();
 	}
 
-	// Load files when component mounts or featureId changes
 	$effect(() => {
 		if (featureId && featureType) {
 			loadFiles();
@@ -264,6 +258,7 @@
 	});
 </script>
 
+<!-- File Tree View -->
 <div class="flex flex-col gap-4 p-4">
 	{#if isLoading}
 		<div class="text-center py-8 text-surface-950-50">
