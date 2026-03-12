@@ -33,7 +33,8 @@ import {
 	getSlotClipNumbers,
 	getSlotConfigurationsForNode,
 	getSlotDividers,
-	getUsedResidentialUnits
+	getUsedResidentialUnits,
+	exportNodeExcel
 } from '$lib/server/nodeData';
 
 /** @type {import('./$types').PageServerLoad} */
@@ -225,5 +226,11 @@ export const actions = {
 		const formData = await request.formData();
 		const nodeUuid = formData.get('nodeUuid');
 		return getUsedResidentialUnits(fetch, cookies, nodeUuid);
+	},
+
+	exportExcel: async ({ request, fetch, cookies }) => {
+		const formData = await request.formData();
+		const nodeUuid = formData.get('nodeUuid');
+		return exportNodeExcel(fetch, cookies, nodeUuid);
 	}
 };

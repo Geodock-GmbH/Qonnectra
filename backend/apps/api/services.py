@@ -774,7 +774,7 @@ def generate_node_structure_excel(node_uuid):
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-    safe_name = sanitize_filename(f"{node.name}_structure")
+    safe_name = sanitize_filename(f"{node.name}")
     response["Content-Disposition"] = f'attachment; filename="{safe_name}.xlsx"'
     workbook.save(response)
     return response
