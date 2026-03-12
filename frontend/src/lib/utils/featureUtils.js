@@ -5,11 +5,11 @@
 /**
  * Detects the feature type from its layer metadata or property keys.
  * Checks layer ID first, then layer name, then falls back to property-based heuristics.
- * @param {import('ol/Feature').default} feature - OpenLayers feature.
- * @param {import('ol/layer/Layer').default | null} [layer=null] - OpenLayers layer the feature belongs to.
+ * @param {import('ol/Feature').FeatureLike} feature - OpenLayers feature or render feature.
+ * @param {import('ol/layer/Layer').default} [layer] - OpenLayers layer the feature belongs to.
  * @returns {FeatureType | null} The detected feature type, or null if unknown.
  */
-export function detectFeatureType(feature, layer = null) {
+export function detectFeatureType(feature, layer) {
 	if (!feature) return null;
 
 	if (layer) {
@@ -73,7 +73,7 @@ export function formatFeatureProperties(properties, type) {
 
 /**
  * Builds a human-readable display title for a feature based on its type and properties.
- * @param {import('ol/Feature').default} feature - OpenLayers feature.
+ * @param {import('ol/Feature').FeatureLike} feature - OpenLayers feature or render feature.
  * @param {FeatureType} type - The feature type.
  * @returns {string} A display title derived from feature properties, or a generic fallback.
  */

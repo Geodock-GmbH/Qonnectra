@@ -3,16 +3,7 @@
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 
-	/**
-	 * @typedef {Object} Microduct
-	 * @property {string} uuid
-	 * @property {number} number
-	 * @property {string} color
-	 * @property {string} hex_code
-	 * @property {{id: number, microduct_status: string}|null} [microduct_status]
-	 * @property {{ properties?: { uuid_address?: { properties?: { street?: string, housenumber?: string, house_number_suffix?: string, zip_code?: string, city?: string } } } }} [uuid_node]
-	 * @property {{ name?: string, type?: string }} [cable_connection]
-	 */
+	/** @typedef {import('$lib/classes/ConduitDataManager.svelte.js').Microduct} Microduct */
 
 	/**
 	 * @typedef {Object} Props

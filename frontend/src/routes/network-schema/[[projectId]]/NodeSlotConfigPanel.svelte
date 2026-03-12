@@ -235,14 +235,14 @@
 
 			globalToaster.success({
 				title: m.title_success(),
-				description: m.message_success_updating_container?.() || 'Container updated successfully'
+				description: m.message_success_updating_container()
 			});
 			await fetchHierarchy();
 		} catch (err) {
 			console.error('Error updating container name:', err);
 			globalToaster.error({
 				title: m.common_error(),
-				description: m.message_error_updating_container?.() || 'Failed to update container'
+				description: m.message_error_updating_container()
 			});
 		}
 	}

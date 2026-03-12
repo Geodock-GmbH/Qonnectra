@@ -8,7 +8,8 @@ import MVT from 'ol/format/MVT.js';
  * @property {string} geometryName - Name of the geometry property
  * @property {number[] | undefined} flatCoordinates - Flat coordinate array
  * @property {import('ol/geom/Geometry').GeometryLayout | undefined} geometryLayout - Coordinate layout (XY, XYZ, etc.)
- * @property {import('ol/geom/Geometry').Type | undefined} geometryType - Geometry type name
+ * @property {import('ol/render/Feature').Type | undefined} geometryType - Geometry type name
+ * @property {number[] | null} [ends] - Ring/part end indices
  */
 
 /**
@@ -54,8 +55,10 @@ self.onmessage = function (e) {
 		const serializedFeatures = features.map((feature) => ({
 			id: feature.getId(),
 			properties: feature.getProperties(),
+			// @ts-ignore - RenderFeature lacks getGeometryName but it exists at runtime
 			geometryName: feature.getGeometryName(),
 			flatCoordinates: feature.getGeometry()?.getFlatCoordinates(),
+			// @ts-ignore - RenderFeature lacks getLayout but it exists at runtime
 			geometryLayout: feature.getGeometry()?.getLayout(),
 			geometryType: feature.getGeometry()?.getType()
 		}));

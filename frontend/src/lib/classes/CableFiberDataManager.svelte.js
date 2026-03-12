@@ -19,6 +19,8 @@ import { deserialize } from '$app/forms';
  * @property {string} uuid
  * @property {number} bundle_number
  * @property {string} bundle_color
+ * @property {number} [fiber_number_in_bundle]
+ * @property {string} [fiber_color]
  * @property {string} [color]
  * @property {number|null} [fiber_status_id]
  * @property {FiberStatusOption|null} [fiber_status]
@@ -53,7 +55,8 @@ import { deserialize } from '$app/forms';
 /**
  * @typedef {Object} FiberStatusOption
  * @property {number} id
- * @property {string} name
+ * @property {string} fiber_status
+ * @property {string} [name]
  */
 
 /**

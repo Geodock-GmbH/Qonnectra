@@ -35,7 +35,7 @@ import {
  */
 
 /**
- * @typedef {Record<string, { fillColor: string; strokeColor?: string }>} AreaTypeStyles
+ * @typedef {Record<string, { color?: string; visible?: boolean }>} AreaTypeStyles
  */
 
 /**
@@ -209,7 +209,8 @@ export function createSelectionLayer(tileSource, selectedColor, getSelectionStor
 		source: tileSource,
 		style: function (feature) {
 			const selectionStore = getSelectionStore();
-			if (feature.getId() && selectionStore[feature.getId()]) {
+			const featureId = feature.getId();
+			if (featureId !== undefined && selectionStore[featureId]) {
 				return selectedStyle;
 			}
 			return undefined; // Don't render if not selected
@@ -250,7 +251,8 @@ export function createWMSLayer({
 		},
 		projection: 'EPSG:3857',
 		crossOrigin: 'anonymous',
-		tileLoadFunction: (tile, src) => {
+		tileLoadFunction: (baseTile, src) => {
+			const tile = /** @type {import('ol/ImageTile').default} */ (baseTile);
 			// Skip loading if navigation is in progress
 			if (tileLoadingManager.isLoadingPaused()) {
 				tile.setState(4); // EMPTY
@@ -259,7 +261,7 @@ export function createWMSLayer({
 
 			const requestId = `wms-${layerId}-${Date.now()}-${requestCounter++}`;
 			const controller = tileLoadingManager.createAbortController(requestId);
-			const image = tile.getImage();
+			const image = /** @type {HTMLImageElement} */ (tile.getImage());
 
 			fetch(src, {
 				signal: controller.signal,

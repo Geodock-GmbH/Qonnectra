@@ -282,7 +282,7 @@
 							e.stopPropagation();
 							onClear();
 						}}
-						aria-label={m.common_clear?.() || 'Clear'}
+						aria-label={m.common_clear()}
 					>
 						<IconTrash size={20} />
 					</button>
@@ -312,7 +312,7 @@
 							e.stopPropagation();
 							onClear();
 						}}
-						aria-label={m.common_clear?.() || 'Clear'}
+						aria-label={m.common_clear()}
 					>
 						<IconTrash size={20} />
 					</button>

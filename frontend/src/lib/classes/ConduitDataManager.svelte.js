@@ -32,7 +32,12 @@ import { deserialize } from '$app/forms';
  * @typedef {Object} Microduct
  * @property {string} uuid
  * @property {string} [name]
- * @property {number|null} [microduct_status]
+ * @property {number} [number]
+ * @property {string} [color]
+ * @property {string} [hex_code]
+ * @property {{id: number, microduct_status: string}|null} [microduct_status]
+ * @property {{ properties?: { uuid_address?: { properties?: { street?: string, housenumber?: string, house_number_suffix?: string, zip_code?: string, city?: string } } } }} [uuid_node]
+ * @property {{ name?: string, type?: string }} [cable_connection]
  * @property {Record<string, unknown>} [props]
  */
 

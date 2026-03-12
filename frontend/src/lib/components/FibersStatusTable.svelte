@@ -5,15 +5,7 @@
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 
-	/**
-	 * @typedef {Object} Fiber
-	 * @property {string} uuid
-	 * @property {number} bundle_number
-	 * @property {string} bundle_color
-	 * @property {number} fiber_number_in_bundle
-	 * @property {string} fiber_color
-	 * @property {{id: number, fiber_status: string}|null} [fiber_status]
-	 */
+	/** @typedef {import('$lib/classes/CableFiberDataManager.svelte.js').Fiber} Fiber */
 
 	/**
 	 * @typedef {Object} Props

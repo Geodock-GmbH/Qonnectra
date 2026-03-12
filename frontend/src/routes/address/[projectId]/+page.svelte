@@ -30,6 +30,9 @@
 		}
 	});
 
+	/**
+	 * Navigates to page 1 with the current search input as a query parameter.
+	 */
 	function performSearch() {
 		const url = new URL($page.url);
 		if (searchInput !== '') {

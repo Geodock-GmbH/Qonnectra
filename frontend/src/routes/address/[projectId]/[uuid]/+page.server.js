@@ -3,7 +3,10 @@ import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
-/** @type {import('./$types').PageServerLoad} */
+/**
+ * Loads a single address with related data (status options, flags, linked nodes/microducts, residential units).
+ * @type {import('./$types').PageServerLoad}
+ */
 export async function load({ fetch, cookies, params }) {
 	const headers = getAuthHeaders(cookies);
 	const { projectId, uuid } = params;
@@ -57,27 +60,26 @@ export async function load({ fetch, cookies, params }) {
 			residentialUnitStatusesData
 		] = await Promise.all(selectResponses.map((res) => (res.ok ? res.json() : [])));
 
-		const statusDevelopments = statusDevelopmentsData.map((item) => ({
+		const statusDevelopments = statusDevelopmentsData.map((/** @type {any} */ item) => ({
 			value: item.id,
 			label: item.status
 		}));
 
-		const flags = flagsData.map((item) => ({
+		const flags = flagsData.map((/** @type {any} */ item) => ({
 			value: item.id,
 			label: item.flag
 		}));
 
-		const residentialUnitTypes = residentialUnitTypesData.map((item) => ({
+		const residentialUnitTypes = residentialUnitTypesData.map((/** @type {any} */ item) => ({
 			value: item.id,
 			label: item.residential_unit_type
 		}));
 
-		const residentialUnitStatuses = residentialUnitStatusesData.map((item) => ({
+		const residentialUnitStatuses = residentialUnitStatusesData.map((/** @type {any} */ item) => ({
 			value: item.id,
 			label: item.status
 		}));
 
-		// Fetch nodes linked to this address
 		let linkedNodes = [];
 		let linkedMicroducts = [];
 		try {
@@ -88,15 +90,14 @@ export async function load({ fetch, cookies, params }) {
 			if (nodesResponse.ok) {
 				const nodesData = await nodesResponse.json();
 				const features = nodesData.features || nodesData.results?.features || [];
-				linkedNodes = features.map((f) => ({
+				linkedNodes = features.map((/** @type {any} */ f) => ({
 					uuid: f.id || f.properties?.uuid,
 					name: f.properties?.name || ''
 				}));
 
-				// Fetch microducts for each linked node
 				if (linkedNodes.length > 0) {
 					const microductResponses = await Promise.all(
-						linkedNodes.map((node) =>
+						linkedNodes.map((/** @type {any} */ node) =>
 							fetch(`${API_URL}microduct/all/?uuid_node=${node.uuid}`, {
 								credentials: 'include',
 								headers
@@ -126,7 +127,6 @@ export async function load({ fetch, cookies, params }) {
 			console.error('Error fetching linked nodes/microducts:', err);
 		}
 
-		// Fetch residential units for this address
 		let residentialUnits = [];
 		try {
 			const residentialUnitsResponse = await fetch(
@@ -174,6 +174,7 @@ export async function load({ fetch, cookies, params }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+	/** PATCHes address fields from form data. */
 	updateAddress: async ({ request, fetch, cookies, params }) => {
 		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();
@@ -190,9 +191,9 @@ export const actions = {
 		const id_address = formData.get('id_address');
 
 		try {
-			const requestBody = {};
+			/** @type {Record<string, any>} */ const requestBody = {};
 			if (street) requestBody.street = street;
-			if (housenumber) requestBody.housenumber = parseInt(housenumber);
+			if (housenumber) requestBody.housenumber = parseInt(String(housenumber));
 			if (zip_code) requestBody.zip_code = zip_code;
 			if (city) requestBody.city = city;
 
@@ -200,9 +201,9 @@ export const actions = {
 			if (district) requestBody.district = district;
 
 			if (status_development_id)
-				requestBody.status_development_id = parseInt(status_development_id);
-			if (flag_id) requestBody.flag_id = parseInt(flag_id);
-			if (id_address) requestBody.id_address = id_address.toUpperCase();
+				requestBody.status_development_id = parseInt(String(status_development_id));
+			if (flag_id) requestBody.flag_id = parseInt(String(flag_id));
+			if (id_address) requestBody.id_address = String(id_address).toUpperCase();
 
 			const response = await fetch(`${API_URL}address/${uuid}/`, {
 				method: 'PATCH',
@@ -238,11 +239,12 @@ export const actions = {
 				message: 'Address updated successfully',
 				address: updatedAddress
 			};
-		} catch (err) {
+		} catch (/** @type {any} */ err) {
 			console.error('Error updating address:', err);
 			return fail(500, { message: err.message || 'Failed to update address' });
 		}
 	},
+	/** Triggers backend ID regeneration for the address. */
 	regenerateId: async ({ fetch, cookies, params }) => {
 		const headers = getAuthHeaders(cookies);
 		const { uuid } = params;
@@ -267,11 +269,12 @@ export const actions = {
 			const updatedData = await response.json();
 			const id_address = updatedData.properties?.id_address || updatedData.id_address;
 			return { success: true, id_address };
-		} catch (err) {
+		} catch (/** @type {any} */ err) {
 			console.error('Error regenerating address ID:', err);
 			return fail(500, { message: err.message || 'Failed to regenerate address ID' });
 		}
 	},
+	/** Deletes the address and redirects to the project address list. */
 	deleteAddress: async ({ request, fetch, cookies, params }) => {
 		const headers = getAuthHeaders(cookies);
 		const { projectId, uuid } = params;
@@ -289,19 +292,20 @@ export const actions = {
 			}
 
 			redirect(303, `/address/${projectId}`);
-		} catch (err) {
+		} catch (/** @type {any} */ err) {
 			if (err.status === 303) throw err;
 			console.error('Error deleting address:', err);
 			return fail(500, { message: err.message || 'Failed to delete address' });
 		}
 	},
+	/** Creates a new residential unit linked to this address. */
 	createResidentialUnit: async ({ request, fetch, cookies, params }) => {
 		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();
 		const { uuid } = params;
 
 		try {
-			const requestBody = {
+			/** @type {Record<string, any>} */ const requestBody = {
 				uuid_address_id: uuid
 			};
 
@@ -318,12 +322,12 @@ export const actions = {
 			const ready_for_service = formData.get('ready_for_service');
 
 			if (id_residential_unit) requestBody.id_residential_unit = id_residential_unit;
-			if (floor) requestBody.floor = parseInt(floor);
+			if (floor) requestBody.floor = parseInt(String(floor));
 			if (side) requestBody.side = side;
 			if (building_section) requestBody.building_section = building_section;
 			if (residential_unit_type_id)
-				requestBody.residential_unit_type_id = parseInt(residential_unit_type_id);
-			if (status_id) requestBody.status_id = parseInt(status_id);
+				requestBody.residential_unit_type_id = parseInt(String(residential_unit_type_id));
+			if (status_id) requestBody.status_id = parseInt(String(status_id));
 			if (external_id_1) requestBody.external_id_1 = external_id_1;
 			if (external_id_2) requestBody.external_id_2 = external_id_2;
 			if (resident_name) requestBody.resident_name = resident_name;
@@ -354,18 +358,19 @@ export const actions = {
 
 			const newUnit = await response.json();
 			return { success: true, residentialUnit: newUnit };
-		} catch (err) {
+		} catch (/** @type {any} */ err) {
 			console.error('Error creating residential unit:', err);
 			return fail(500, { message: err.message || 'Failed to create residential unit' });
 		}
 	},
+	/** PATCHes residential unit fields from form data. */
 	updateResidentialUnit: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();
 		const unitUuid = formData.get('unit_uuid');
 
 		try {
-			const requestBody = {};
+			/** @type {Record<string, any>} */ const requestBody = {};
 
 			const floor = formData.get('floor');
 			const side = formData.get('side');
@@ -378,12 +383,12 @@ export const actions = {
 			const resident_recorded_date = formData.get('resident_recorded_date');
 			const ready_for_service = formData.get('ready_for_service');
 
-			if (floor !== null) requestBody.floor = floor ? parseInt(floor) : null;
+			if (floor !== null) requestBody.floor = floor ? parseInt(String(floor)) : null;
 			if (side !== null) requestBody.side = side || null;
 			if (building_section !== null) requestBody.building_section = building_section || null;
 			if (residential_unit_type_id)
-				requestBody.residential_unit_type_id = parseInt(residential_unit_type_id);
-			if (status_id) requestBody.status_id = parseInt(status_id);
+				requestBody.residential_unit_type_id = parseInt(String(residential_unit_type_id));
+			if (status_id) requestBody.status_id = parseInt(String(status_id));
 			if (external_id_1 !== null) requestBody.external_id_1 = external_id_1 || null;
 			if (external_id_2 !== null) requestBody.external_id_2 = external_id_2 || null;
 			if (resident_name !== null) requestBody.resident_name = resident_name || null;
@@ -410,11 +415,12 @@ export const actions = {
 
 			const updatedUnit = await response.json();
 			return { success: true, residentialUnit: updatedUnit };
-		} catch (err) {
+		} catch (/** @type {any} */ err) {
 			console.error('Error updating residential unit:', err);
 			return fail(500, { message: err.message || 'Failed to update residential unit' });
 		}
 	},
+	/** Deletes a residential unit by UUID from form data. */
 	deleteResidentialUnit: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();
@@ -435,7 +441,7 @@ export const actions = {
 			}
 
 			return { success: true };
-		} catch (err) {
+		} catch (/** @type {any} */ err) {
 			console.error('Error deleting residential unit:', err);
 			return fail(500, { message: err.message || 'Failed to delete residential unit' });
 		}

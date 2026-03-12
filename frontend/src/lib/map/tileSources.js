@@ -29,7 +29,8 @@ function generateRequestId() {
  * @returns {import('ol/Tile').LoadFunction} Tile load function for VectorTileSource
  */
 function createTileLoadFunction(layerType, onError) {
-	return (tile, url) => {
+	return (baseTile, url) => {
+		const tile = /** @type {import('ol/VectorTile').default<import('ol/Feature').default>} */ (baseTile);
 		if (!url) {
 			tile.setState(4);
 			return;
@@ -40,7 +41,13 @@ function createTileLoadFunction(layerType, onError) {
 			return;
 		}
 
-		tile.setLoader((extent, resolution, projection) => {
+		tile.setLoader(
+			/**
+			 * @param {import('ol/extent').Extent} extent
+			 * @param {number} resolution
+			 * @param {import('ol/proj/Projection').default} projection
+			 */
+			(extent, resolution, projection) => {
 			if (tileLoadingManager.isLoadingPaused()) {
 				tile.setState(4);
 				return;
@@ -102,7 +109,7 @@ function createTileLoadFunction(layerType, onError) {
 
 /**
  * Parses MVT data on the main thread when worker pool is unavailable.
- * @param {import('ol/VectorTile').default} tile - Vector tile to populate
+ * @param {import('ol/VectorTile').default<import('ol/Feature').default>} tile - Vector tile to populate
  * @param {ArrayBuffer} data - Raw MVT tile data
  * @param {import('ol/extent').Extent} extent - Tile extent in target projection
  * @param {import('ol/proj/Projection').default | string} projection - Target projection

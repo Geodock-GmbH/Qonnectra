@@ -3,9 +3,12 @@ import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
-/** @type {import('./$types').PageServerLoad} */
+/**
+ * Loads paginated, filterable application logs. Requires admin access.
+ * @type {import('./$types').PageServerLoad}
+ */
 export async function load({ fetch, cookies, url, locals }) {
-	if (!locals.user?.isAdmin) {
+	if (!(/** @type {any} */ (locals).user)?.isAdmin) {
 		throw redirect(303, '/map');
 	}
 

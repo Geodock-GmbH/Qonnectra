@@ -2,7 +2,12 @@ import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
-/** @type {import('./$types').PageServerLoad} */
+/**
+ * Loads paginated addresses with status development and flag options for a project.
+ * @type {import('./$types').PageServerLoad}
+ * @param {import('./$types').PageServerLoadEvent} event
+ * @returns {Promise<{addresses: Array<Object>, pagination: Object, addressesError: string | null, searchTerm: string, projectId: string, statusDevelopments: Array<{value: number, label: string}>, flags: Array<{value: number, label: string}>}>}
+ */
 export async function load({ fetch, url, depends, cookies, params }) {
 	depends('app:addresses');
 	const headers = getAuthHeaders(cookies);
@@ -54,7 +59,7 @@ export async function load({ fetch, url, depends, cookies, params }) {
 
 		const addressesData = await addressesResponse.json();
 
-		const addresses = (addressesData.results || []).map((item) => ({
+		const addresses = (addressesData.results || []).map((/** @type {any} */ item) => ({
 			value: item.uuid,
 			id_address: item.id_address || '',
 			street: item.street || '',
@@ -71,12 +76,12 @@ export async function load({ fetch, url, depends, cookies, params }) {
 			selectResponses.map((res) => (res.ok ? res.json() : []))
 		);
 
-		const statusDevelopments = statusDevelopmentsData.map((item) => ({
+		const statusDevelopments = statusDevelopmentsData.map((/** @type {any} */ item) => ({
 			value: item.id,
 			label: item.status_development
 		}));
 
-		const flags = flagsData.map((item) => ({
+		const flags = flagsData.map((/** @type {any} */ item) => ({
 			value: item.id,
 			label: item.flag
 		}));
