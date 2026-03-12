@@ -27,6 +27,11 @@
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
+	import {
+		getWMSLayerVisibility,
+		wmsLayerVisibilityConfig,
+		wmsSourcesData
+	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { generateAddressPdf } from '$lib/utils/addressPdf.js';
 	import { tooltip } from '$lib/utils/tooltip.js';
@@ -330,6 +335,35 @@
 	}
 
 	/**
+	 * Get attributions for visible WMS layers that have attribution configured.
+	 */
+	function getVisibleWMSAttributions() {
+		const { sources, loaded } = $wmsSourcesData;
+		if (!loaded || !sources) return [];
+
+		const visibilityConfig = $wmsLayerVisibilityConfig;
+		const attributions = new Set();
+
+		for (const source of sources) {
+			if (!source.is_active || !source.attribution) continue;
+
+			for (const layer of source.layers) {
+				if (!layer.is_enabled) continue;
+
+				const layerId = `wms-${source.id}-${layer.name}`;
+				const isVisible = getWMSLayerVisibility(visibilityConfig, projectId, layerId, true);
+
+				if (isVisible) {
+					attributions.add(source.attribution);
+					break;
+				}
+			}
+		}
+
+		return [...attributions];
+	}
+
+	/**
 	 * Handle the PDF download action
 	 */
 	async function handleDownloadPdf() {
@@ -355,12 +389,15 @@
 				}));
 			}
 
+			const wmsAttributions = getVisibleWMSAttributions();
+
 			generateAddressPdf({
 				address: addressData,
 				residentialUnits: unitsWithFibers,
 				mapImage,
 				includeResidentialUnits,
 				linkedMicroducts,
+				wmsAttributions,
 				labels: {
 					sectionAddressInformation: m.section_address_information(),
 					sectionClassification: m.section_classification(),

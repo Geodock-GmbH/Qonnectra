@@ -160,6 +160,12 @@ class WMSSource(models.Model):
     url = models.URLField(_("WMS URL"), max_length=500)
     username = models.CharField(_("Username"), max_length=255, blank=True)
     _password = models.BinaryField(_("Password (encrypted)"), blank=True, null=True)
+    attribution = models.CharField(
+        _("Attribution"),
+        max_length=500,
+        blank=True,
+        help_text=_("Attribution text for PDF export. Leave empty to exclude from exports."),
+    )
     sort_order = models.IntegerField(_("Sort Order"), default=0)
     is_active = models.BooleanField(_("Active"), default=True)
     created_at = models.DateTimeField(_("Created At"), auto_now_add=True)

@@ -1695,6 +1695,16 @@ class WMSSourceAdmin(admin.ModelAdmin):
                 "classes": ("collapse",),
             },
         ),
+        (
+            _("PDF Export"),
+            {
+                "fields": ("attribution",),
+                "description": _(
+                    "Attribution text is required for including this WMS in PDF exports. "
+                    "Check the WMS provider's license for required attribution."
+                ),
+            },
+        ),
     )
 
     def layer_count(self, obj):

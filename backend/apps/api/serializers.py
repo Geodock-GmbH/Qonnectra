@@ -2205,6 +2205,7 @@ class WMSSourceSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "url",
+            "attribution",
             "sort_order",
             "is_active",
             "layer_count",
@@ -2232,6 +2233,7 @@ class WMSSourceCreateSerializer(serializers.ModelSerializer):
             "url",
             "username",
             "password",
+            "attribution",
             "sort_order",
             "is_active",
         ]

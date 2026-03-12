@@ -29,6 +29,7 @@ const COLORS = {
  * @param {string|null} params.mapImage - Base64 data URL of the map canvas
  * @param {boolean} params.includeResidentialUnits - Whether to include RU pages
  * @param {Array} params.linkedMicroducts - Array of microduct connection objects
+ * @param {Array} params.wmsAttributions - Array of WMS attribution strings for visible layers
  * @param {Object} params.labels - Translation labels
  */
 export function generateAddressPdf({
@@ -37,11 +38,12 @@ export function generateAddressPdf({
 	mapImage,
 	includeResidentialUnits,
 	linkedMicroducts = [],
+	wmsAttributions = [],
 	labels
 }) {
 	const doc = new jsPDF('p', 'mm', 'a4');
 
-	buildAddressPage(doc, { address, mapImage, linkedMicroducts, labels });
+	buildAddressPage(doc, { address, mapImage, linkedMicroducts, wmsAttributions, labels });
 
 	if (includeResidentialUnits && residentialUnits?.length > 0) {
 		for (const unit of residentialUnits) {
@@ -59,7 +61,10 @@ export function generateAddressPdf({
 /**
  * Build the address overview page with editorial cartographic design.
  */
-function buildAddressPage(doc, { address, mapImage, linkedMicroducts, labels }) {
+function buildAddressPage(
+	doc,
+	{ address, mapImage, linkedMicroducts, wmsAttributions = [], labels }
+) {
 	drawPageBackground(doc);
 
 	let y = drawDocumentHeader(doc, {
@@ -120,7 +125,8 @@ function buildAddressPage(doc, { address, mapImage, linkedMicroducts, labels }) 
 			image: mapImage,
 			x: mapX,
 			y: mapY,
-			width: mapColWidth
+			width: mapColWidth,
+			wmsAttributions
 		});
 		mapY += 6;
 	}
@@ -364,7 +370,7 @@ function drawSectionBlock(doc, { title, y, x, width, rows }) {
 /**
  * Draw the map section with frame and shadow effect.
  */
-function drawMapSection(doc, { image, x, y, width }) {
+function drawMapSection(doc, { image, x, y, width, wmsAttributions = [] }) {
 	const aspectRatio = 0.85;
 	const height = width * aspectRatio;
 
@@ -394,11 +400,20 @@ function drawMapSection(doc, { image, x, y, width }) {
 	doc.setFont('helvetica', 'normal');
 	doc.setFontSize(5);
 	doc.setTextColor(...COLORS.slate400);
-	doc.text('© OpenMapTiles © OpenStreetMap contributors', x + width / 2, y + height + 4, {
-		align: 'center'
-	});
 
-	return y + height + 6;
+	const attributions = ['© OpenMapTiles © OpenStreetMap contributors', ...wmsAttributions];
+	const attributionText = attributions.join(' | ');
+
+	const maxWidth = width - 4;
+	const lines = doc.splitTextToSize(attributionText, maxWidth);
+
+	let attributionY = y + height + 4;
+	for (const line of lines) {
+		doc.text(line, x + width / 2, attributionY, { align: 'center' });
+		attributionY += 3;
+	}
+
+	return y + height + 2 + lines.length * 3;
 }
 
 /**
