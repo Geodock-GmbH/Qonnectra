@@ -273,9 +273,14 @@
 				}
 
 				highlightLayer.getSource().clear();
-				await zoomToMultipleFeatures(olMapInstance, geometries, highlightLayer, /** @type {any} */ ({
-					maxZoom: 17
-				}));
+				await zoomToMultipleFeatures(
+					olMapInstance,
+					geometries,
+					highlightLayer,
+					/** @type {any} */ ({
+						maxZoom: 17
+					})
+				);
 
 				searchQuery = '';
 				searchResults = [];

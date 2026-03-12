@@ -200,7 +200,8 @@
 											<GenericCombobox
 												data={statusComboboxData}
 												bind:value={statusValues[fiber.uuid]}
-												onValueChange={(/** @type {{ value: Array<string|number> }} */ e) => handleComboboxChange(fiber, e)}
+												onValueChange={(/** @type {{ value: Array<string|number> }} */ e) =>
+													handleComboboxChange(fiber, e)}
 												placeholder={m.form_status()}
 												classes="w-full"
 												placeholderSize="size-8"

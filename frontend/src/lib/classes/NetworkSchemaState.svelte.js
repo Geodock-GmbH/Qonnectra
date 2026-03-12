@@ -167,7 +167,8 @@ export class NetworkSchemaState {
 	 * @returns {SvelteFlowNode[]} SvelteFlow compatible nodes
 	 */
 	transformNodesToSvelteFlow(nodeData) {
-		const nodes = /** @type {NodeFeature[]} */ ('features' in nodeData ? nodeData.features : nodeData) || [];
+		const nodes =
+			/** @type {NodeFeature[]} */ ('features' in nodeData ? nodeData.features : nodeData) || [];
 		if (!nodes || nodes.length === 0) {
 			return [];
 		}
@@ -253,7 +254,8 @@ export class NetworkSchemaState {
 						isConnected: connections.length > 0,
 						onEdgeDelete: (/** @type {string} */ edgeId) => this.handleEdgeDelete(edgeId),
 						onEdgeSelect: (/** @type {string} */ edgeId) => this.selectEdge(edgeId),
-						onNameUpdate: (/** @type {string} */ newName) => this.updateEdgeName(cable.uuid, newName)
+						onNameUpdate: (/** @type {string} */ newName) =>
+							this.updateEdgeName(cable.uuid, newName)
 					}
 				};
 			});

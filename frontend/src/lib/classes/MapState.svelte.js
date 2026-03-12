@@ -563,7 +563,9 @@ export class MapState {
 			this.addressSelectionLayer,
 			this.nodeSelectionLayer,
 			this.areaSelectionLayer
-		].filter(/** @returns {layer is import('ol/layer/VectorTile').default} */ (layer) => Boolean(layer));
+		].filter(
+			/** @returns {layer is import('ol/layer/VectorTile').default} */ (layer) => Boolean(layer)
+		);
 	}
 
 	/**

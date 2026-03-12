@@ -111,7 +111,10 @@ export class CableTrenchDataManager {
 		if (this.fibers[cableUuid] && !forceRefresh) return;
 
 		// Set loading state for this cable - create new object to trigger reactivity
-		this.loadingFibers = /** @type {Record<string, boolean>} */ ({ ...this.loadingFibers, [cableUuid]: true });
+		this.loadingFibers = /** @type {Record<string, boolean>} */ ({
+			...this.loadingFibers,
+			[cableUuid]: true
+		});
 
 		try {
 			const formData = new FormData();
@@ -144,16 +147,28 @@ export class CableTrenchDataManager {
 
 			if (result.type === 'success' && result.data) {
 				const data = /** @type {any} */ (result.data);
-				this.fibers = /** @type {Record<string, Object[]>} */ ({ ...this.fibers, [cableUuid]: data.fibers || [] });
+				this.fibers = /** @type {Record<string, Object[]>} */ ({
+					...this.fibers,
+					[cableUuid]: data.fibers || []
+				});
 				// Clear any previous error
-				this.errorFibers = /** @type {Record<string, string|null>} */ ({ ...this.errorFibers, [cableUuid]: null });
+				this.errorFibers = /** @type {Record<string, string|null>} */ ({
+					...this.errorFibers,
+					[cableUuid]: null
+				});
 			}
 		} catch (err) {
 			console.error('Error fetching fibers:', err);
-			this.errorFibers = /** @type {Record<string, string|null>} */ ({ ...this.errorFibers, [cableUuid]: 'Failed to load fibers' });
+			this.errorFibers = /** @type {Record<string, string|null>} */ ({
+				...this.errorFibers,
+				[cableUuid]: 'Failed to load fibers'
+			});
 			this.fibers = /** @type {Record<string, Object[]>} */ ({ ...this.fibers, [cableUuid]: [] });
 		} finally {
-			this.loadingFibers = /** @type {Record<string, boolean>} */ ({ ...this.loadingFibers, [cableUuid]: false });
+			this.loadingFibers = /** @type {Record<string, boolean>} */ ({
+				...this.loadingFibers,
+				[cableUuid]: false
+			});
 		}
 	}
 

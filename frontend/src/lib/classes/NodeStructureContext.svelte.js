@@ -257,8 +257,10 @@ export class NodeStructureContext {
 	 */
 	get slotActions() {
 		return {
-			onDragOver: (/** @type {DragEvent} */ e, /** @type {number} */ slotNumber) => this.#handleSlotDragOver(e, slotNumber),
-			onDrop: (/** @type {DragEvent} */ e, /** @type {number} */ slotNumber) => this.#handleSlotDrop(e, slotNumber),
+			onDragOver: (/** @type {DragEvent} */ e, /** @type {number} */ slotNumber) =>
+				this.#handleSlotDragOver(e, slotNumber),
+			onDrop: (/** @type {DragEvent} */ e, /** @type {number} */ slotNumber) =>
+				this.#handleSlotDrop(e, slotNumber),
 			onTap: (/** @type {number} */ slotNumber) => this.#handleMobileSlotTap(slotNumber)
 		};
 	}
@@ -270,7 +272,8 @@ export class NodeStructureContext {
 		return {
 			onSelect: (/** @type {NodeStructure} */ structure) => this.#handleStructureSelect(structure),
 			onDelete: (/** @type {string} */ uuid) => this.#handleDeleteStructure(uuid),
-			onDragStart: (/** @type {DragEvent} */ e, /** @type {any} */ structure) => this.#dragDropManager.startStructureDrag(e, structure),
+			onDragStart: (/** @type {DragEvent} */ e, /** @type {any} */ structure) =>
+				this.#dragDropManager.startStructureDrag(e, structure),
 			onDragEnd: () => this.#dragDropManager.endDrag()
 		};
 	}
@@ -280,7 +283,10 @@ export class NodeStructureContext {
 	 */
 	get clipActions() {
 		return {
-			onStartEditing: (/** @type {number} */ slotNumber, /** @type {string|null} */ currentValue) => {
+			onStartEditing: (
+				/** @type {number} */ slotNumber,
+				/** @type {string|null} */ currentValue
+			) => {
 				this.editingClipSlot = slotNumber;
 				this.editingClipValue = currentValue || String(slotNumber);
 			},
@@ -294,7 +300,8 @@ export class NodeStructureContext {
 	 */
 	get dividerActions() {
 		return {
-			onToggle: (/** @type {number} */ slotNumber) => this.#structureManager.toggleDivider(slotNumber)
+			onToggle: (/** @type {number} */ slotNumber) =>
+				this.#structureManager.toggleDivider(slotNumber)
 		};
 	}
 
@@ -303,16 +310,25 @@ export class NodeStructureContext {
 	 */
 	get portActions() {
 		return {
-			onDrop: (/** @type {number} */ portNumber, /** @type {'a'|'b'} */ side, /** @type {any} */ dropData) => this.#handlePortDrop(portNumber, side, dropData),
-			onClear: (/** @type {number} */ portNumber, /** @type {'a'|'b'} */ side) => this.#spliceManager.handleClearPort(portNumber, side),
+			onDrop: (
+				/** @type {number} */ portNumber,
+				/** @type {'a'|'b'} */ side,
+				/** @type {any} */ dropData
+			) => this.#handlePortDrop(portNumber, side, dropData),
+			onClear: (/** @type {number} */ portNumber, /** @type {'a'|'b'} */ side) =>
+				this.#spliceManager.handleClearPort(portNumber, side),
 			onClose: () => this.#spliceManager.closePortTable(),
 			onToggleMergeMode: () => this.#spliceManager.toggleMergeSelectionMode(),
 			onTogglePortSelection: (/** @type {number} */ portNumber, /** @type {'a'|'b'} */ side) =>
 				this.#spliceManager.togglePortSelection(portNumber, side),
 			onMergePorts: () => this.#spliceManager.mergeSelectedPorts(),
-			onUnmergePorts: (/** @type {string} */ mergeGroupId) => this.#spliceManager.unmergePorts(mergeGroupId),
-			onMergedPortDrop: (/** @type {string} */ mergeGroupId, /** @type {'a'|'b'} */ side, /** @type {any} */ data) =>
-				this.#spliceManager.handleMergedPortDrop(mergeGroupId, side, data),
+			onUnmergePorts: (/** @type {string} */ mergeGroupId) =>
+				this.#spliceManager.unmergePorts(mergeGroupId),
+			onMergedPortDrop: (
+				/** @type {string} */ mergeGroupId,
+				/** @type {'a'|'b'} */ side,
+				/** @type {any} */ data
+			) => this.#spliceManager.handleMergedPortDrop(mergeGroupId, side, data),
 			onSetMergeSide: (/** @type {'a'|'b'} */ side) => this.#spliceManager.setMergeSide(side)
 		};
 	}
@@ -322,7 +338,8 @@ export class NodeStructureContext {
 	 */
 	get sidebarActions() {
 		return {
-			onDragStart: (/** @type {any} */ componentType) => this.#dragDropManager.startComponentDrag(componentType),
+			onDragStart: (/** @type {any} */ componentType) =>
+				this.#dragDropManager.startComponentDrag(componentType),
 			onDragEnd: () => this.#dragDropManager.endDrag(),
 			onMobileSelect: (/** @type {any} */ componentType) => {
 				this.#dragDropManager.selectMobileComponent(componentType);
@@ -460,7 +477,10 @@ export class NodeStructureContext {
 			if (data.type === 'component_type') {
 				await this.#structureManager.createStructure(/** @type {any} */ (data), slotNumber);
 			} else if (data.type === 'multi_component_type') {
-				await this.#structureManager.createMultipleStructures(/** @type {any} */ (data), slotNumber);
+				await this.#structureManager.createMultipleStructures(
+					/** @type {any} */ (data),
+					slotNumber
+				);
 			} else if (data.type === 'existing_structure') {
 				if (data.slot_start === slotNumber) {
 					this.#dragDropManager.endDrag();
@@ -489,7 +509,10 @@ export class NodeStructureContext {
 		try {
 			const item = this.#dragDropManager.mobileSelectedItem;
 			if (item.type === 'multi_component_type') {
-				await this.#structureManager.createMultipleStructures(/** @type {any} */ (item), slotNumber);
+				await this.#structureManager.createMultipleStructures(
+					/** @type {any} */ (item),
+					slotNumber
+				);
 			} else {
 				await this.#structureManager.createStructure(/** @type {any} */ (item), slotNumber);
 			}
@@ -509,7 +532,10 @@ export class NodeStructureContext {
 	 * @returns {Promise<boolean>} - True if structure was selected
 	 */
 	async #handleStructureSelect(structure) {
-		const wasSelected = await this.#spliceManager.selectStructure(/** @type {any} */ (structure), this.isMobile);
+		const wasSelected = await this.#spliceManager.selectStructure(
+			/** @type {any} */ (structure),
+			this.isMobile
+		);
 		return wasSelected;
 	}
 

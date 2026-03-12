@@ -142,7 +142,8 @@
 									<GenericCombobox
 										data={statusComboboxData}
 										bind:value={statusValues[microduct.uuid]}
-										onValueChange={(/** @type {{ value: Array<string|number> }} */ e) => handleComboboxChange(microduct, e)}
+										onValueChange={(/** @type {{ value: Array<string|number> }} */ e) =>
+											handleComboboxChange(microduct, e)}
 										placeholder={m.form_status()}
 										classes="w-full"
 										placeholderSize="size-8"

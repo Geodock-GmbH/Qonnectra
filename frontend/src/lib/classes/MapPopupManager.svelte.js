@@ -1,6 +1,6 @@
-import Overlay from 'ol/Overlay';
-import OlMap from 'ol/Map';
 import Feature from 'ol/Feature';
+import OlMap from 'ol/Map';
+import Overlay from 'ol/Overlay';
 
 /**
  * @typedef {Record<string, string>} AliasMapping

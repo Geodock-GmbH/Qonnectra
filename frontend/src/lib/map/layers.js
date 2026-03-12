@@ -22,21 +22,53 @@ import {
 	createTrenchTileSource
 } from './tileSources.js';
 
+/**
+ * @typedef {Object} LabelOptions
+ * @property {boolean} [enabled=false] - Whether to show labels
+ * @property {string} [field] - Feature property to use for label text
+ * @property {number} [minResolution] - Minimum map resolution to display labels
+ * @property {Object} [textStyle] - Custom OpenLayers text style options
+ */
+
+/**
+ * @typedef {Record<string, { color: string; size?: number }>} NodeTypeStyles
+ */
+
+/**
+ * @typedef {Record<string, { fillColor: string; strokeColor?: string }>} AreaTypeStyles
+ */
+
+/**
+ * @typedef {(title: string, message: string) => void} LayerErrorCallback
+ */
+
+/**
+ * @typedef {Object} WMSLayerOptions
+ * @property {string} proxyUrl - WMS proxy URL endpoint
+ * @property {string} layerName - WMS layer name for LAYERS parameter
+ * @property {string} layerId - Unique layer ID for map identification
+ * @property {string} displayName - Human-readable layer name
+ * @property {string} sourceId - WMS source UUID
+ * @property {string} sourceName - WMS source display name
+ * @property {number} [minZoom=8] - Minimum zoom level for visibility
+ * @property {number} [maxZoom] - Maximum zoom level (undefined = no limit)
+ * @property {number} [opacity=1.0] - Layer opacity (0.0 to 1.0)
+ */
+
+/** @type {string} */
 const DEFAULT_TRENCH_COLOR = '#000000';
+/** @type {string} */
 const DEFAULT_ADDRESS_COLOR = '#2563eb';
+/** @type {number} */
 const DEFAULT_ADDRESS_SIZE = 4;
 
 /**
- * Creates a vector tile layer for trenches
- * @param {string} selectedProject - The selected project ID
- * @param {string} layerName - Display name for the layer
- * @param {(title: string, message: string) => void} onError - Error callback function
- * @param {Object} [labelOptions] - Optional label configuration
- * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
- * @param {string} [labelOptions.field='id_trench'] - Feature property to use for label
- * @param {number} [labelOptions.minResolution=1.5] - Minimum resolution to show labels
- * @param {Object} [labelOptions.textStyle] - Custom text style options
- * @returns {VectorTileLayer}
+ * Creates a vector tile layer for trench features with optional labeling.
+ * @param {string} selectedProject - Project ID to filter features by
+ * @param {string} layerName - Display name for the layer tree
+ * @param {LayerErrorCallback | undefined} onError - Optional callback for tile load errors
+ * @param {LabelOptions} [labelOptions={}] - Label display configuration
+ * @returns {VectorTileLayer} Configured vector tile layer for trenches
  */
 export function createTrenchLayer(selectedProject, layerName, onError, labelOptions = {}) {
 	const tileSource = createTrenchTileSource(selectedProject, onError);
@@ -47,9 +79,9 @@ export function createTrenchLayer(selectedProject, layerName, onError, labelOpti
 
 	return new VectorTileLayer({
 		source: tileSource,
-		style: /** @type {import('ol/style/Style').StyleLike} */ (style),
+		style: style,
 		renderMode: 'vector',
-		declutter: labelOptions.enabled,
+		declutter: labelOptions.enabled, // Enable decluttering when labels are shown
 		properties: {
 			layerId: 'trench-layer',
 			layerName: layerName
@@ -58,15 +90,12 @@ export function createTrenchLayer(selectedProject, layerName, onError, labelOpti
 }
 
 /**
- * Creates a vector tile layer for addresses
- * @param {string} selectedProject - The selected project ID
- * @param {string} layerName - Display name for the layer
- * @param {(title: string, message: string) => void} onError - Error callback function
- * @param {Object} [labelOptions] - Optional label configuration
- * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
- * @param {number} [labelOptions.minResolution=1.0] - Minimum resolution to show labels
- * @param {Object} [labelOptions.textStyle] - Custom text style options
- * @returns {VectorTileLayer}
+ * Creates a vector tile layer for address features with optional labeling.
+ * @param {string} selectedProject - Project ID to filter features by
+ * @param {string} layerName - Display name for the layer tree
+ * @param {LayerErrorCallback | undefined} onError - Optional callback for tile load errors
+ * @param {LabelOptions} [labelOptions={}] - Label display configuration
+ * @returns {VectorTileLayer} Configured vector tile layer for addresses
  */
 export function createAddressLayer(selectedProject, layerName, onError, labelOptions = {}) {
 	const tileSource = createAddressTileSource(selectedProject, onError);
@@ -79,9 +108,9 @@ export function createAddressLayer(selectedProject, layerName, onError, labelOpt
 
 	return new VectorTileLayer({
 		source: tileSource,
-		style: /** @type {import('ol/style/Style').StyleLike} */ (style),
+		style: style,
 		renderMode: 'vector',
-		declutter: labelOptions.enabled,
+		declutter: labelOptions.enabled, // Enable decluttering when labels are shown
 		properties: {
 			layerId: 'address-layer',
 			layerName: layerName
@@ -90,30 +119,26 @@ export function createAddressLayer(selectedProject, layerName, onError, labelOpt
 }
 
 /**
- * Creates a vector tile layer for nodes
- * @param {string} selectedProject - The selected project ID
- * @param {string} layerName - Display name for the layer
- * @param {(title: string, message: string) => void} onError - Error callback function
- * @param {Object} [labelOptions] - Optional label configuration
- * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
- * @param {string} [labelOptions.field='name'] - Feature property to use for label
- * @param {number} [labelOptions.minResolution=1.0] - Minimum resolution to show labels
- * @param {Object} [labelOptions.textStyle] - Custom text style options
- * @param {Record<string, {color?: string, size?: number, visible?: boolean}> | undefined} [nodeTypeStyles] - Optional per-type style configuration
- * @returns {VectorTileLayer}
+ * Creates a vector tile layer for node features with optional per-type styling and labels.
+ * @param {string} selectedProject - Project ID to filter features by
+ * @param {string} layerName - Display name for the layer tree
+ * @param {LayerErrorCallback | undefined} onError - Optional callback for tile load errors
+ * @param {LabelOptions} [labelOptions={}] - Label display configuration
+ * @param {NodeTypeStyles | null} [nodeTypeStyles=null] - Per-type style mapping; when null uses default style
+ * @returns {VectorTileLayer} Configured vector tile layer for nodes
  */
 export function createNodeLayer(
 	selectedProject,
 	layerName,
 	onError,
 	labelOptions = {},
-	nodeTypeStyles = undefined
+	nodeTypeStyles = null
 ) {
 	const tileSource = createNodeTileSource(selectedProject, onError);
 
 	let style;
-	if (nodeTypeStyles !== undefined) {
-		style = createNodeStyleByType(/** @type {Record<string, {color?: string, size?: number, visible?: boolean}>} */ (nodeTypeStyles), labelOptions);
+	if (nodeTypeStyles !== null) {
+		style = createNodeStyleByType(nodeTypeStyles, labelOptions);
 	} else if (labelOptions.enabled) {
 		style = createNodeStyleWithLabels(labelOptions);
 	} else {
@@ -122,9 +147,9 @@ export function createNodeLayer(
 
 	return new VectorTileLayer({
 		source: tileSource,
-		style: /** @type {import('ol/style/Style').StyleLike} */ (style),
+		style: style,
 		renderMode: 'vector',
-		declutter: labelOptions.enabled,
+		declutter: labelOptions.enabled, // Enable decluttering when labels are shown
 		properties: {
 			layerId: 'node-layer',
 			layerName: layerName
@@ -133,39 +158,35 @@ export function createNodeLayer(
 }
 
 /**
- * Creates a vector tile layer for areas (polygons)
- * @param {string} selectedProject - The selected project ID
- * @param {string} layerName - Display name for the layer
- * @param {(title: string, message: string) => void} onError - Error callback function
- * @param {Object} [labelOptions] - Optional label configuration
- * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
- * @param {string} [labelOptions.field='name'] - Feature property to use for label
- * @param {number} [labelOptions.minResolution=5.0] - Minimum resolution to show labels
- * @param {Object} [labelOptions.textStyle] - Custom text style options
- * @param {Record<string, {color?: string, visible?: boolean}> | undefined} [areaTypeStyles] - Optional per-type style configuration
- * @returns {VectorTileLayer}
+ * Creates a vector tile layer for area (polygon) features with optional per-type styling and labels.
+ * @param {string} selectedProject - Project ID to filter features by
+ * @param {string} layerName - Display name for the layer tree
+ * @param {LayerErrorCallback | undefined} onError - Optional callback for tile load errors
+ * @param {LabelOptions} [labelOptions={}] - Label display configuration
+ * @param {AreaTypeStyles | null} [areaTypeStyles=null] - Per-type style mapping; when null uses default style
+ * @returns {VectorTileLayer} Configured vector tile layer for areas
  */
 export function createAreaLayer(
 	selectedProject,
 	layerName,
 	onError,
 	labelOptions = {},
-	areaTypeStyles = undefined
+	areaTypeStyles = null
 ) {
 	const tileSource = createAreaTileSource(selectedProject, onError);
 
 	let style;
-	if (areaTypeStyles !== undefined) {
-		style = createAreaStyleByType(/** @type {Record<string, {color?: string, visible?: boolean}>} */ (areaTypeStyles), labelOptions);
+	if (areaTypeStyles !== null) {
+		style = createAreaStyleByType(areaTypeStyles, labelOptions);
 	} else {
 		style = createAreaStyleWithLabels(DEFAULT_AREA_COLOR, 0.3, labelOptions);
 	}
 
 	return new VectorTileLayer({
 		source: tileSource,
-		style: /** @type {import('ol/style/Style').StyleLike} */ (style),
+		style: style,
 		renderMode: 'vector',
-		declutter: labelOptions.enabled,
+		declutter: labelOptions.enabled, // Enable decluttering when labels are shown
 		properties: {
 			layerId: 'area-layer',
 			layerName: layerName
@@ -174,11 +195,11 @@ export function createAreaLayer(
 }
 
 /**
- * Creates a selection layer for any vector tile source
- * @param {import('ol/source/VectorTile').default} tileSource - The tile source to use
- * @param {string} selectedColor - Color for selected features
- * @param {Function} getSelectionStore - Function that returns the current selection store
- * @returns {VectorTileLayer}
+ * Creates a selection overlay layer that highlights selected features.
+ * @param {import('ol/source/VectorTile').default} tileSource - Vector tile source to overlay
+ * @param {string} selectedColor - CSS color for selected feature highlighting
+ * @param {() => Record<string, unknown>} getSelectionStore - Returns current selection state keyed by feature ID
+ * @returns {VectorTileLayer} Selection overlay layer
  */
 export function createSelectionLayer(tileSource, selectedColor, getSelectionStore) {
 	const selectedStyle = createSelectedStyle(selectedColor);
@@ -188,11 +209,10 @@ export function createSelectionLayer(tileSource, selectedColor, getSelectionStor
 		source: tileSource,
 		style: function (feature) {
 			const selectionStore = getSelectionStore();
-			const featureId = feature.getId();
-			if (featureId !== undefined && selectionStore[featureId]) {
+			if (feature.getId() && selectionStore[feature.getId()]) {
 				return selectedStyle;
 			}
-			return undefined;
+			return undefined; // Don't render if not selected
 		},
 		properties: {
 			isSelectionLayer: true
@@ -201,18 +221,9 @@ export function createSelectionLayer(tileSource, selectedColor, getSelectionStor
 }
 
 /**
- * Creates a TileWMS layer for a WMS source layer with AbortController support.
- * @param {Object} options - Layer options
- * @param {string} options.proxyUrl - WMS proxy URL
- * @param {string} options.layerName - WMS layer name
- * @param {string} options.layerId - Unique layer ID for the map
- * @param {string} options.displayName - Display name for the layer tree
- * @param {string} options.sourceId - WMS source UUID
- * @param {string} options.sourceName - WMS source display name
- * @param {number} [options.minZoom=8] - Minimum zoom level
- * @param {number} [options.maxZoom] - Maximum zoom level (undefined = no limit)
- * @param {number} [options.opacity=1.0] - Layer opacity (0.0 to 1.0)
- * @returns {TileLayer}
+ * Creates a TileWMS layer with AbortController support for request cancellation.
+ * @param {WMSLayerOptions} options - WMS layer configuration
+ * @returns {TileLayer<TileWMS>} Configured WMS tile layer
  */
 export function createWMSLayer({
 	proxyUrl,
@@ -225,6 +236,7 @@ export function createWMSLayer({
 	maxZoom = undefined,
 	opacity = 1.0
 }) {
+	/** @type {number} */
 	let requestCounter = 0;
 
 	const source = new TileWMS({
@@ -239,16 +251,15 @@ export function createWMSLayer({
 		projection: 'EPSG:3857',
 		crossOrigin: 'anonymous',
 		tileLoadFunction: (tile, src) => {
+			// Skip loading if navigation is in progress
 			if (tileLoadingManager.isLoadingPaused()) {
-				tile.setState(4);
+				tile.setState(4); // EMPTY
 				return;
 			}
 
 			const requestId = `wms-${layerId}-${Date.now()}-${requestCounter++}`;
 			const controller = tileLoadingManager.createAbortController(requestId);
-			const image = /** @type {HTMLImageElement} */ (
-				/** @type {import('ol/ImageTile').default} */ (tile).getImage()
-			);
+			const image = tile.getImage();
 
 			fetch(src, {
 				signal: controller.signal,

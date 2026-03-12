@@ -44,7 +44,10 @@
 				label: item.type_name || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 
 	/**
@@ -57,7 +60,10 @@
 				label: item.name || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 
 	/**
@@ -70,7 +76,10 @@
 				label: item.type || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 
 	/**
@@ -83,7 +92,10 @@
 				label: item.name || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 
 	/**
@@ -96,7 +108,10 @@
 				label: item.type || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 
 	/**
@@ -109,7 +124,10 @@
 				label: item.name || m.common_unknown(),
 				value: item.length_m / 1000
 			}))
-			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 
 	/**
@@ -122,7 +140,10 @@
 				label: item.type || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 </script>
 

@@ -97,7 +97,10 @@ export class CableMicropipeManager {
 			const result = deserialize(textResponse);
 
 			if (result.type !== 'success') {
-				console.error('Failed to fetch linked trenches:', result.type === 'failure' ? result.data?.error : result.type);
+				console.error(
+					'Failed to fetch linked trenches:',
+					result.type === 'failure' ? result.data?.error : result.type
+				);
 				this.linkedTrenchIds = new SvelteSet();
 				return;
 			}
@@ -145,7 +148,10 @@ export class CableMicropipeManager {
 			const result = deserialize(textResponse);
 
 			if (result.type !== 'success') {
-				const msg = result.type === 'failure' ? /** @type {string|undefined} */ (result.data?.error) : undefined;
+				const msg =
+					result.type === 'failure'
+						? /** @type {string|undefined} */ (result.data?.error)
+						: undefined;
 				throw new Error(msg || 'Failed to fetch conduits');
 			}
 
@@ -206,7 +212,10 @@ export class CableMicropipeManager {
 			const result = deserialize(textResponse);
 
 			if (result.type !== 'success') {
-				const msg = result.type === 'failure' ? /** @type {string|undefined} */ (result.data?.error) : undefined;
+				const msg =
+					result.type === 'failure'
+						? /** @type {string|undefined} */ (result.data?.error)
+						: undefined;
 				throw new Error(msg || 'Failed to fetch micropipes');
 			}
 
@@ -275,7 +284,10 @@ export class CableMicropipeManager {
 			const result = deserialize(textResponse);
 
 			if (result.type !== 'success') {
-				const msg = result.type === 'failure' ? /** @type {string|undefined} */ (result.data?.error) : undefined;
+				const msg =
+					result.type === 'failure'
+						? /** @type {string|undefined} */ (result.data?.error)
+						: undefined;
 				throw new Error(msg || 'Failed to save linkage');
 			}
 
@@ -321,7 +333,10 @@ export class CableMicropipeManager {
 			const result = deserialize(textResponse);
 
 			if (result.type !== 'success') {
-				const msg = result.type === 'failure' ? /** @type {string|undefined} */ (result.data?.error) : undefined;
+				const msg =
+					result.type === 'failure'
+						? /** @type {string|undefined} */ (result.data?.error)
+						: undefined;
 				throw new Error(msg || 'Failed to remove linkage');
 			}
 

@@ -16,7 +16,10 @@
 				label: item.city || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 
 	/**
@@ -29,7 +32,10 @@
 				label: item.status || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 
 	/**
@@ -42,7 +48,10 @@
 				label: item.city || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 
 	/**
@@ -55,7 +64,10 @@
 				label: item.type || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 </script>
 

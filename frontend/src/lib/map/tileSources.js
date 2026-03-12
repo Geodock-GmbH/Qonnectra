@@ -7,120 +7,105 @@ import { reconstructFeatures } from './featureReconstructor.js';
 import { tileLoadingManager } from './tileLoadingManager.js';
 import { getWorkerPool } from './workerPool.js';
 
+/**
+ * @typedef {(title: string, message: string) => void} ErrorCallback
+ */
+
+/** @type {number} */
 let requestCounter = 0;
 
 /**
- * Generate unique request ID
- * @returns {string}
+ * Generates a unique request ID for tile loading operations.
+ * @returns {string} Unique request identifier combining timestamp and counter
  */
 function generateRequestId() {
 	return `tile-${Date.now()}-${requestCounter++}`;
 }
 
 /**
- * Create tile load function with AbortController and worker parsing
- * @param {string} layerType - Type of layer for error messages
- * @param {(title: string, message: string) => void} onError - Error callback
- * @returns {import('ol/Tile').LoadFunction}
+ * Creates a tile load function with AbortController support and worker-based parsing.
+ * @param {string} layerType - Layer type identifier for error messages (e.g., 'trench', 'node')
+ * @param {ErrorCallback | undefined} onError - Optional callback invoked on load errors
+ * @returns {import('ol/Tile').LoadFunction} Tile load function for VectorTileSource
  */
 function createTileLoadFunction(layerType, onError) {
-	/** @type {import('ol/Tile').LoadFunction} */
-	const loadFunction = (tile, url) => {
-		const vectorTile = /** @type {import('ol/VectorTile').default<import('ol/render/Feature').default>} */ (tile);
+	return (tile, url) => {
 		if (!url) {
-			vectorTile.setState(4); // EMPTY
+			tile.setState(4);
 			return;
 		}
 
-		// Skip loading if navigation is in progress
 		if (tileLoadingManager.isLoadingPaused()) {
-			vectorTile.setState(4); // EMPTY
+			tile.setState(4);
 			return;
 		}
 
-		vectorTile.setLoader(
-			/**
-			 * @param {import('ol/extent').Extent} extent
-			 * @param {number} resolution
-			 * @param {import('ol/proj/Projection').default} projection
-			 */
-			(extent, resolution, projection) => {
-				// Double-check pause state when loader executes
-				if (tileLoadingManager.isLoadingPaused()) {
-					vectorTile.setState(4); // EMPTY
-					return;
-				}
-
-				const requestId = generateRequestId();
-				const controller = tileLoadingManager.createAbortController(requestId);
-
-				fetch(url, {
-					credentials: 'include',
-					signal: controller.signal
-				})
-					.then((response) => {
-						if (!response.ok) {
-							throw new Error(`Failed to load ${layerType} tile: ${response.statusText}`);
-						}
-						return response.arrayBuffer();
-					})
-					.then(async (data) => {
-						// Try worker parsing first
-						const workerPool = getWorkerPool();
-						if (workerPool.workers.length > 0) {
-							const result = await workerPool.parse(
-								requestId,
-								data,
-								extent,
-								typeof projection === 'string' ? projection : projection.getCode()
-							);
-
-							if (result.success && result.features) {
-								const features = reconstructFeatures(
-									/** @type {import('./featureReconstructor.js').SerializedFeature[]} */ (result.features)
-								);
-								vectorTile.setFeatures(
-									/** @type {import('ol/render/Feature').default[]} */ (/** @type {unknown} */ (features))
-								);
-							} else if (result.error !== 'Cancelled') {
-								// Fallback to main thread parsing on worker error
-								fallbackParse(vectorTile, data, extent, projection);
-							}
-						} else {
-							// No workers available, parse on main thread
-							fallbackParse(vectorTile, data, extent, projection);
-						}
-					})
-					.catch((error) => {
-						if (error.name === 'AbortError') {
-							// Request was cancelled, don't treat as error
-							vectorTile.setState(4); // EMPTY
-							return;
-						}
-						console.error(`Error loading ${layerType} vector tile:`, error);
-						vectorTile.setState(3); // ERROR
-						if (onError) {
-							onError(
-								`Error loading ${layerType} tile`,
-								error.message || 'Could not fetch tile data.'
-							);
-						}
-					})
-					.finally(() => {
-						tileLoadingManager.removeAbortController(requestId);
-					});
+		tile.setLoader((extent, resolution, projection) => {
+			if (tileLoadingManager.isLoadingPaused()) {
+				tile.setState(4);
+				return;
 			}
-		);
+
+			const requestId = generateRequestId();
+			const controller = tileLoadingManager.createAbortController(requestId);
+
+			fetch(url, {
+				credentials: 'include',
+				signal: controller.signal
+			})
+				.then((response) => {
+					if (!response.ok) {
+						throw new Error(`Failed to load ${layerType} tile: ${response.statusText}`);
+					}
+					return response.arrayBuffer();
+				})
+				.then(async (data) => {
+					const workerPool = getWorkerPool();
+					if (workerPool.workers.length > 0) {
+						const result = await workerPool.parse(
+							requestId,
+							data,
+							extent,
+							typeof projection === 'string' ? projection : projection.getCode()
+						);
+
+						if (result.success && result.features) {
+							const features = reconstructFeatures(result.features);
+							tile.setFeatures(features);
+						} else if (result.error !== 'Cancelled') {
+							fallbackParse(tile, data, extent, projection);
+						}
+					} else {
+						fallbackParse(tile, data, extent, projection);
+					}
+				})
+				.catch((error) => {
+					if (error.name === 'AbortError') {
+						tile.setState(4);
+						return;
+					}
+					console.error(`Error loading ${layerType} vector tile:`, error);
+					tile.setState(3);
+					if (onError) {
+						onError(
+							`Error loading ${layerType} tile`,
+							error.message || 'Could not fetch tile data.'
+						);
+					}
+				})
+				.finally(() => {
+					tileLoadingManager.removeAbortController(requestId);
+				});
+		});
 	};
-	return loadFunction;
 }
 
 /**
- * Fallback to main thread parsing when workers unavailable
- * @param {import('ol/VectorTile').default<import('ol/render/Feature').default>} tile
- * @param {ArrayBuffer} data
- * @param {import('ol/extent').Extent} extent
- * @param {import('ol/proj/Projection').default|string} projection
+ * Parses MVT data on the main thread when worker pool is unavailable.
+ * @param {import('ol/VectorTile').default} tile - Vector tile to populate
+ * @param {ArrayBuffer} data - Raw MVT tile data
+ * @param {import('ol/extent').Extent} extent - Tile extent in target projection
+ * @param {import('ol/proj/Projection').default | string} projection - Target projection
  */
 function fallbackParse(tile, data, extent, projection) {
 	const format = tile.getFormat();
@@ -132,11 +117,11 @@ function fallbackParse(tile, data, extent, projection) {
 }
 
 /**
- * Creates a vector tile source for trenches
- * @param {string} selectedProject - The selected project ID
- * @param {(title: string, message: string) => void} onError - Error callback function
- * @param {boolean} isGlobalView - Whether global view is active
- * @returns {import('ol/source/VectorTile').default<import('ol/render/Feature').default>}
+ * Creates a vector tile source for trench features.
+ * @param {string} selectedProject - Project ID to filter tiles by
+ * @param {ErrorCallback | undefined} onError - Optional callback for load errors
+ * @param {boolean} [isGlobalView=false] - When true, loads tiles without project filter
+ * @returns {VectorTileSource} Configured vector tile source for trenches
  */
 export function createTrenchTileSource(selectedProject, onError, isGlobalView = false) {
 	return new VectorTileSource({
@@ -159,11 +144,11 @@ export function createTrenchTileSource(selectedProject, onError, isGlobalView = 
 }
 
 /**
- * Creates a vector tile source for addresses
- * @param {string} selectedProject - The selected project ID
- * @param {(title: string, message: string) => void} onError - Error callback function
- * @param {boolean} isGlobalView - Whether global view is active
- * @returns {import('ol/source/VectorTile').default<import('ol/render/Feature').default>}
+ * Creates a vector tile source for address features.
+ * @param {string} selectedProject - Project ID to filter tiles by
+ * @param {ErrorCallback | undefined} onError - Optional callback for load errors
+ * @param {boolean} [isGlobalView=false] - When true, loads tiles without project filter
+ * @returns {VectorTileSource} Configured vector tile source for addresses
  */
 export function createAddressTileSource(selectedProject, onError, isGlobalView = false) {
 	return new VectorTileSource({
@@ -186,11 +171,11 @@ export function createAddressTileSource(selectedProject, onError, isGlobalView =
 }
 
 /**
- * Creates a vector tile source for nodes
- * @param {string} selectedProject - The selected project ID
- * @param {(title: string, message: string) => void} onError - Error callback function
- * @param {boolean} isGlobalView - Whether global view is active
- * @returns {import('ol/source/VectorTile').default<import('ol/render/Feature').default>}
+ * Creates a vector tile source for node features.
+ * @param {string} selectedProject - Project ID to filter tiles by
+ * @param {ErrorCallback | undefined} onError - Optional callback for load errors
+ * @param {boolean} [isGlobalView=false] - When true, loads tiles without project filter
+ * @returns {VectorTileSource} Configured vector tile source for nodes
  */
 export function createNodeTileSource(selectedProject, onError, isGlobalView = false) {
 	return new VectorTileSource({
@@ -213,11 +198,11 @@ export function createNodeTileSource(selectedProject, onError, isGlobalView = fa
 }
 
 /**
- * Creates a vector tile source for areas
- * @param {string} selectedProject - The selected project ID
- * @param {(title: string, message: string) => void} onError - Error callback function
- * @param {boolean} isGlobalView - Whether global view is active
- * @returns {import('ol/source/VectorTile').default<import('ol/render/Feature').default>}
+ * Creates a vector tile source for area (polygon) features.
+ * @param {string} selectedProject - Project ID to filter tiles by
+ * @param {ErrorCallback | undefined} onError - Optional callback for load errors
+ * @param {boolean} [isGlobalView=false] - When true, loads tiles without project filter
+ * @returns {VectorTileSource} Configured vector tile source for areas
  */
 export function createAreaTileSource(selectedProject, onError, isGlobalView = false) {
 	return new VectorTileSource({

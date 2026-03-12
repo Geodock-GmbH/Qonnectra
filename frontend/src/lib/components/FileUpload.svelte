@@ -94,7 +94,9 @@
 	/**
 	 * Upload files from Skeleton FileUpload component
 	 */
-	async function uploadFilesFromPicker(/** @type {{ acceptedFiles: File[], clearFiles: () => void }} */ fileUploadApi) {
+	async function uploadFilesFromPicker(
+		/** @type {{ acceptedFiles: File[], clearFiles: () => void }} */ fileUploadApi
+	) {
 		const selectedFiles = fileUploadApi.acceptedFiles;
 
 		if (selectedFiles.length === 0) {

@@ -104,12 +104,18 @@
 	 */
 	const statusData = $derived.by(() => {
 		return lengthByStatus
-			?.filter((/** @type {{ status_name: string | null, gesamt_länge: number }} */ item) => item.status_name !== null)
+			?.filter(
+				(/** @type {{ status_name: string | null, gesamt_länge: number }} */ item) =>
+					item.status_name !== null
+			)
 			.map((/** @type {{ status_name: string, gesamt_länge: number }} */ item) => ({
 				label: item.status_name || m.common_unknown(),
 				value: (item.gesamt_länge || 0) / 1000
 			}))
-			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 
 	/**
@@ -118,12 +124,18 @@
 	 */
 	const networkLevelData = $derived.by(() => {
 		return lengthByNetworkLevel
-			?.filter((/** @type {{ network_level: string | null, gesamt_länge: number }} */ item) => item.network_level !== null)
+			?.filter(
+				(/** @type {{ network_level: string | null, gesamt_länge: number }} */ item) =>
+					item.network_level !== null
+			)
 			.map((/** @type {{ network_level: string, gesamt_länge: number }} */ item) => ({
 				label: item.network_level || m.common_unknown(),
 				value: (item.gesamt_länge || 0) / 1000
 			}))
-			.sort((/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 
 	/**
@@ -131,17 +143,27 @@
 	 * @returns {Array}
 	 */
 	const longestRoutesData = $derived.by(() => {
-		return longestRoutes?.map((/** @type {{ construction_type_name: string, surface_name: string, length: number }} */ item) => ({
-			label: `${item.construction_type_name || m.common_unknown()} - ${item.surface_name || m.common_unknown()}`,
-			value: (item.length || 0) / 1000
-		}));
+		return longestRoutes?.map(
+			(
+				/** @type {{ construction_type_name: string, surface_name: string, length: number }} */ item
+			) => ({
+				label: `${item.construction_type_name || m.common_unknown()} - ${item.surface_name || m.common_unknown()}`,
+				value: (item.length || 0) / 1000
+			})
+		);
 	});
 </script>
 
 <div class="space-y-6 max-w-6xl mx-auto">
 	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 		<!-- Surface Type Chart -->
-		<TrenchChart data={surfaceData} title={m.form_length_by_surface()} color="#0ea5e9" unit="km" axisLabel={`${m.common_length()} (km)`} />
+		<TrenchChart
+			data={surfaceData}
+			title={m.form_length_by_surface()}
+			color="#0ea5e9"
+			unit="km"
+			axisLabel={`${m.common_length()} (km)`}
+		/>
 
 		<!-- Construction Type Chart -->
 		<TrenchChart
@@ -162,7 +184,13 @@
 		/>
 
 		<!-- Length with Funding -->
-		<TrenchChart data={lengthWithFundingData} title={m.form_length_funded()} color="#8b5cf6" unit="km" axisLabel={`${m.common_length()} (km)`} />
+		<TrenchChart
+			data={lengthWithFundingData}
+			title={m.form_length_funded()}
+			color="#8b5cf6"
+			unit="km"
+			axisLabel={`${m.common_length()} (km)`}
+		/>
 
 		<!-- Length with Internal Execution -->
 		<TrenchChart
@@ -174,12 +202,30 @@
 		/>
 
 		<!-- Length by Status -->
-		<TrenchChart data={statusData} title={m.form_length_by_status()} color="#06b6d4" unit="km" axisLabel={`${m.common_length()} (km)`} />
+		<TrenchChart
+			data={statusData}
+			title={m.form_length_by_status()}
+			color="#06b6d4"
+			unit="km"
+			axisLabel={`${m.common_length()} (km)`}
+		/>
 
 		<!-- Length by Network Level -->
-		<TrenchChart data={networkLevelData} title={m.form_length_by_network_level()} color="#14b8a6" unit="km" axisLabel={`${m.common_length()} (km)`} />
+		<TrenchChart
+			data={networkLevelData}
+			title={m.form_length_by_network_level()}
+			color="#14b8a6"
+			unit="km"
+			axisLabel={`${m.common_length()} (km)`}
+		/>
 
 		<!-- Longest 5 Routes -->
-		<TrenchChart data={longestRoutesData} title={m.form_longest_5_routes()} color="#f97316" unit="km" axisLabel={`${m.common_length()} (km)`} />
+		<TrenchChart
+			data={longestRoutesData}
+			title={m.form_longest_5_routes()}
+			color="#f97316"
+			unit="km"
+			axisLabel={`${m.common_length()} (km)`}
+		/>
 	</div>
 </div>

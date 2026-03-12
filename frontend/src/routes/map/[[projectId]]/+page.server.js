@@ -19,6 +19,7 @@ import {
 	searchFeaturesInProject
 } from '$lib/server/featureSearch';
 import {
+	exportNodeExcel,
 	getAddressesForNode,
 	getCablesAtNode,
 	getComponentPorts,
@@ -33,8 +34,7 @@ import {
 	getSlotClipNumbers,
 	getSlotConfigurationsForNode,
 	getSlotDividers,
-	getUsedResidentialUnits,
-	exportNodeExcel
+	getUsedResidentialUnits
 } from '$lib/server/nodeData';
 
 /** @type {import('./$types').PageServerLoad} */

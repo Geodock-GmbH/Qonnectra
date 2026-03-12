@@ -236,12 +236,17 @@ export class NodeStructureManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
-				throw new Error(/** @type {string} */ (data?.error) || 'Failed to fetch slot configurations');
+				const data = /** @type {Record<string, unknown>|undefined} */ (
+					/** @type {any} */ (result).data
+				);
+				throw new Error(
+					/** @type {string} */ (data?.error) || 'Failed to fetch slot configurations'
+				);
 			}
 
 			const data = /** @type {Record<string, unknown>} */ (/** @type {any} */ (result).data);
-			this.localSlotConfigurations = /** @type {SlotConfiguration[]} */ (data?.configurations) || [];
+			this.localSlotConfigurations =
+				/** @type {SlotConfiguration[]} */ (data?.configurations) || [];
 
 			if (!this.selectedSlotConfigUuid && this.localSlotConfigurations.length > 0) {
 				this.selectedSlotConfigUuid = this.localSlotConfigurations[0].uuid;
@@ -287,7 +292,9 @@ export class NodeStructureManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+				const data = /** @type {Record<string, unknown>|undefined} */ (
+					/** @type {any} */ (result).data
+				);
 				throw new Error(/** @type {string} */ (data?.error) || 'Failed to fetch structures');
 			}
 
@@ -333,7 +340,9 @@ export class NodeStructureManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+				const data = /** @type {Record<string, unknown>|undefined} */ (
+					/** @type {any} */ (result).data
+				);
 				throw new Error(/** @type {string} */ (data?.error) || 'Failed to fetch dividers');
 			}
 
@@ -371,7 +380,9 @@ export class NodeStructureManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+				const data = /** @type {Record<string, unknown>|undefined} */ (
+					/** @type {any} */ (result).data
+				);
 				throw new Error(/** @type {string} */ (data?.error) || 'Failed to fetch clip numbers');
 			}
 
@@ -452,14 +463,14 @@ export class NodeStructureManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+				const data = /** @type {Record<string, unknown>|undefined} */ (
+					/** @type {any} */ (result).data
+				);
 				throw new Error(/** @type {string} */ (data?.error) || 'Failed to create structure');
 			}
 
 			const data = /** @type {{ structure: NodeStructure }} */ (/** @type {any} */ (result).data);
-			this.structures = this.structures.map((s) =>
-				s.uuid === tempUuid ? data.structure : s
-			);
+			this.structures = this.structures.map((s) => (s.uuid === tempUuid ? data.structure : s));
 
 			globalToaster.success({
 				title: m.title_success(),
@@ -536,11 +547,15 @@ export class NodeStructureManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+				const data = /** @type {Record<string, unknown>|undefined} */ (
+					/** @type {any} */ (result).data
+				);
 				throw new Error(/** @type {string} */ (data?.error) || 'Failed to create structures');
 			}
 
-			const data = /** @type {{ created?: NodeStructure[], failed?: FailedPlacement[] }} */ (/** @type {any} */ (result).data);
+			const data = /** @type {{ created?: NodeStructure[], failed?: FailedPlacement[] }} */ (
+				/** @type {any} */ (result).data
+			);
 			const created = data?.created || [];
 			const failed = data?.failed || [];
 
@@ -618,7 +633,9 @@ export class NodeStructureManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+				const data = /** @type {Record<string, unknown>|undefined} */ (
+					/** @type {any} */ (result).data
+				);
 				throw new Error(/** @type {string} */ (data?.error) || 'Failed to move structure');
 			}
 
@@ -658,7 +675,9 @@ export class NodeStructureManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+				const data = /** @type {Record<string, unknown>|undefined} */ (
+					/** @type {any} */ (result).data
+				);
 				throw new Error(/** @type {string} */ (data?.error) || 'Failed to delete structure');
 			}
 
@@ -700,7 +719,9 @@ export class NodeStructureManager {
 				const result = deserialize(await response.text());
 
 				if (result.type === 'failure' || result.type === 'error') {
-					const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+					const data = /** @type {Record<string, unknown>|undefined} */ (
+						/** @type {any} */ (result).data
+					);
 					throw new Error(/** @type {string} */ (data?.error) || 'Failed to delete divider');
 				}
 			} catch (err) {
@@ -734,7 +755,9 @@ export class NodeStructureManager {
 				const result = deserialize(await response.text());
 
 				if (result.type === 'failure' || result.type === 'error') {
-					const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+					const data = /** @type {Record<string, unknown>|undefined} */ (
+						/** @type {any} */ (result).data
+					);
 					throw new Error(/** @type {string} */ (data?.error) || 'Failed to create divider');
 				}
 
@@ -778,7 +801,9 @@ export class NodeStructureManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				const data = /** @type {Record<string, unknown>|undefined} */ (/** @type {any} */ (result).data);
+				const data = /** @type {Record<string, unknown>|undefined} */ (
+					/** @type {any} */ (result).data
+				);
 				throw new Error(/** @type {string} */ (data?.error) || 'Failed to save clip number');
 			}
 		} catch (err) {
@@ -832,9 +857,13 @@ export class NodeStructureManager {
 		);
 
 		if (!currentConfigStillExists && (sharedState.slotConfigurations?.length ?? 0) > 0) {
-			this.selectedSlotConfigUuid = /** @type {SlotConfiguration[]} */ (sharedState.slotConfigurations)[0].uuid;
+			this.selectedSlotConfigUuid = /** @type {SlotConfiguration[]} */ (
+				sharedState.slotConfigurations
+			)[0].uuid;
 		} else if (!this.selectedSlotConfigUuid && (sharedState.slotConfigurations?.length ?? 0) > 0) {
-			this.selectedSlotConfigUuid = /** @type {SlotConfiguration[]} */ (sharedState.slotConfigurations)[0].uuid;
+			this.selectedSlotConfigUuid = /** @type {SlotConfiguration[]} */ (
+				sharedState.slotConfigurations
+			)[0].uuid;
 		}
 	}
 

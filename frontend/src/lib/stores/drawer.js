@@ -12,9 +12,20 @@ import { drawerWidth } from '$lib/stores/store';
  */
 
 /**
- * Creates a Svelte store for managing drawer state
- * Provides methods to control drawer visibility, content, and dimensions
- * @returns {import('svelte/store').Readable<DrawerState> & {open: (options?: {title?: string, component?: any, props?: Record<string, any>, width?: number|null}) => void, close: () => void, setTitle: (title: string) => void, setComponent: (component: any, props?: Record<string, any>) => void, setWidth: (width: number) => void, updateProps: (newProps: Record<string, any>) => void}}
+ * @typedef {Object} DrawerStore
+ * @property {(cb: (value: DrawerState) => void) => import('svelte/store').Unsubscriber} subscribe - Subscribe to state changes
+ * @property {(options?: {title?: string, component?: any, props?: Record<string, any>, width?: number | null}) => void} open - Opens the drawer with configuration
+ * @property {() => void} close - Closes the drawer
+ * @property {(title: string) => void} setTitle - Updates the drawer title
+ * @property {(component: any, props?: Record<string, any>) => void} setComponent - Updates the drawer component
+ * @property {(width: number) => void} setWidth - Sets the drawer width with clamping
+ * @property {(newProps: Record<string, any>) => void} updateProps - Merges new props with existing
+ */
+
+/**
+ * Creates a Svelte store for managing drawer state.
+ * Provides methods to control drawer visibility, content, and dimensions.
+ * @returns {DrawerStore} Drawer store with state management methods
  */
 function createDrawerStore() {
 	const { subscribe, set, update } = writable({
@@ -31,7 +42,7 @@ function createDrawerStore() {
 		 * Opens the drawer with specified configuration
 		 * @param {Object} options - Drawer configuration options
 		 * @param {string} [options.title=''] - Drawer title text
-		 * @param {Component} [options.component=null] - Svelte component to render in drawer
+		 * @param {any} [options.component=null] - Svelte component to render in drawer
 		 * @param {Object} [options.props={}] - Props to pass to the component
 		 * @param {number|null} [options.width=null] - Drawer width in pixels (uses persisted width if null)
 		 */
@@ -66,7 +77,7 @@ function createDrawerStore() {
 		},
 		/**
 		 * Updates the drawer component and its props
-		 * @param {Component} component - Svelte component to render
+		 * @param {any} component - Svelte component to render
 		 * @param {Object} [props={}] - Props to pass to the component
 		 */
 		setComponent: (component, props = {}) => {

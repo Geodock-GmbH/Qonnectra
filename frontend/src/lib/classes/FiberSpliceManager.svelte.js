@@ -363,7 +363,9 @@ export class FiberSpliceManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(/** @type {any} */ (result).data?.error || 'Failed to fetch component ports');
+				throw new Error(
+					/** @type {any} */ (result).data?.error || 'Failed to fetch component ports'
+				);
 			}
 
 			this.componentPorts = /** @type {any} */ (result).data?.ports || [];
@@ -457,7 +459,8 @@ export class FiberSpliceManager {
 
 		globalToaster.warning({
 			title: m.common_warning?.() || 'Warning',
-			description: /** @type {any} */ (m).message_unsupported_drop_type?.() || 'Unsupported drop type'
+			description:
+				/** @type {any} */ (m).message_unsupported_drop_type?.() || 'Unsupported drop type'
 		});
 		return false;
 	}
@@ -580,7 +583,10 @@ export class FiberSpliceManager {
 
 		try {
 			const formData = new FormData();
-			formData.append('nodeStructureUuid', /** @type {NodeStructure} */ (this.selectedStructure).uuid);
+			formData.append(
+				'nodeStructureUuid',
+				/** @type {NodeStructure} */ (this.selectedStructure).uuid
+			);
 			formData.append('portNumber', portNumber.toString());
 			formData.append('side', side);
 			formData.append('fiberUuid', fiberData.uuid);
@@ -625,7 +631,9 @@ export class FiberSpliceManager {
 			globalToaster.error({
 				title: m.common_error(),
 				description:
-					/** @type {any} */ (err).message || m.message_error_connecting_fiber?.() || 'Failed to connect fiber'
+					/** @type {any} */ (err).message ||
+					m.message_error_connecting_fiber?.() ||
+					'Failed to connect fiber'
 			});
 			return false;
 		}
@@ -772,7 +780,9 @@ export class FiberSpliceManager {
 			globalToaster.error({
 				title: m.common_error(),
 				description:
-					/** @type {any} */ (err).message || m.message_error_connecting_fiber?.() || 'Failed to connect fibers'
+					/** @type {any} */ (err).message ||
+					m.message_error_connecting_fiber?.() ||
+					'Failed to connect fibers'
 			});
 			return false;
 		}
@@ -886,7 +896,10 @@ export class FiberSpliceManager {
 				splices = this.fiberSplices;
 			} else {
 				try {
-					const portsResult = await this.#fetchPortsForStructure(/** @type {NonNullable<NodeStructure['component_type']>} */ (structure.component_type).id);
+					const portsResult = await this.#fetchPortsForStructure(
+						/** @type {NonNullable<NodeStructure['component_type']>} */ (structure.component_type)
+							.id
+					);
 					const splicesResult = await this.#fetchSplicessForStructure(structure.uuid);
 					ports = portsResult;
 					splices = splicesResult;
@@ -957,7 +970,9 @@ export class FiberSpliceManager {
 				const result = deserialize(await response.text());
 
 				if (result.type === 'failure' || result.type === 'error') {
-					throw new Error(/** @type {any} */ (result).data?.error || 'Failed to save fiber splices');
+					throw new Error(
+						/** @type {any} */ (result).data?.error || 'Failed to save fiber splices'
+					);
 				}
 
 				const created = /** @type {any} */ (result).data?.created || [];
@@ -965,7 +980,9 @@ export class FiberSpliceManager {
 
 				// Update local state if this is the current structure
 				if (structure.uuid === this.selectedStructure?.uuid) {
-					const createdByPort = new Map(created.map((/** @type {FiberSplice} */ s) => [s.port_number, s]));
+					const createdByPort = new Map(
+						created.map((/** @type {FiberSplice} */ s) => [s.port_number, s])
+					);
 					for (const serverSplice of created) {
 						const existingIndex = this.fiberSplices.findIndex(
 							(s) => s.port_number === serverSplice.port_number
@@ -1075,7 +1092,10 @@ export class FiberSpliceManager {
 
 		try {
 			const formData = new FormData();
-			formData.append('nodeStructureUuid', /** @type {NodeStructure} */ (this.selectedStructure).uuid);
+			formData.append(
+				'nodeStructureUuid',
+				/** @type {NodeStructure} */ (this.selectedStructure).uuid
+			);
 			formData.append('portNumber', portNumber.toString());
 			formData.append('side', side);
 			formData.append('residentialUnitUuid', unitData.uuid);
@@ -1369,7 +1389,10 @@ export class FiberSpliceManager {
 
 		try {
 			const formData = new FormData();
-			formData.append('nodeStructureUuid', /** @type {NodeStructure} */ (this.selectedStructure).uuid);
+			formData.append(
+				'nodeStructureUuid',
+				/** @type {NodeStructure} */ (this.selectedStructure).uuid
+			);
 			formData.append('portNumber', portNumber.toString());
 			formData.append('side', side);
 
@@ -1515,7 +1538,10 @@ export class FiberSpliceManager {
 
 		try {
 			const formData = new FormData();
-			formData.append('nodeStructureUuid', /** @type {NodeStructure} */ (this.selectedStructure).uuid);
+			formData.append(
+				'nodeStructureUuid',
+				/** @type {NodeStructure} */ (this.selectedStructure).uuid
+			);
 			formData.append('portNumbers', JSON.stringify(portNumbers));
 			formData.append('side', /** @type {string} */ (side));
 

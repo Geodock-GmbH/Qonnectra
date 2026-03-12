@@ -309,7 +309,9 @@
 	 * @returns {string} The name of the trench type
 	 */
 	function getTrenchTypeName(trenchType) {
-		return ($trenchStyleMode === 'surface' ? trenchType.surface : trenchType.construction_type) ?? '';
+		return (
+			($trenchStyleMode === 'surface' ? trenchType.surface : trenchType.construction_type) ?? ''
+		);
 	}
 
 	/**
@@ -923,7 +925,9 @@
 					<!-- WMS Sources - separate entries after area layer (Mobile) -->
 					{#if layerId === 'area-layer' && wmsSources.length > 0}
 						{#each wmsSources as source (source.id)}
-							{@const enabledLayers = source.layers.filter((/** @type {WMSLayer} */ l) => l.is_enabled)}
+							{@const enabledLayers = source.layers.filter(
+								(/** @type {WMSLayer} */ l) => l.is_enabled
+							)}
 							{#if enabledLayers.length > 0}
 								{@const isExpanded = isWMSSourceExpanded(source.id)}
 								<div class="bg-surface-100-900 rounded-xl overflow-hidden">
@@ -1309,7 +1313,9 @@
 				<!-- WMS Sources - separate entries after area layer -->
 				{#if layerId === 'area-layer' && wmsSources.length > 0}
 					{#each wmsSources as source (source.id)}
-						{@const enabledLayers = source.layers.filter((/** @type {WMSLayer} */ l) => l.is_enabled)}
+						{@const enabledLayers = source.layers.filter(
+							(/** @type {WMSLayer} */ l) => l.is_enabled
+						)}
 						{#if enabledLayers.length > 0}
 							{@const isExpanded = isWMSSourceExpanded(source.id)}
 							<div>

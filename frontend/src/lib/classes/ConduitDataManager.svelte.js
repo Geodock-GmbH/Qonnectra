@@ -264,7 +264,10 @@ export class ConduitDataManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure') {
-				console.error('Failed to fetch trench UUIDs:', /** @type {Record<string, unknown>} */ (result.data)?.error);
+				console.error(
+					'Failed to fetch trench UUIDs:',
+					/** @type {Record<string, unknown>} */ (result.data)?.error
+				);
 				return [];
 			}
 

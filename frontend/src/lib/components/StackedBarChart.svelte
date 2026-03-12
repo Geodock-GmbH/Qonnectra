@@ -27,7 +27,11 @@
 	 * @property {Dataset[]} datasets - The datasets to display
 	 */
 
-	let { data = /** @type {ChartData} */ ({ labels: [], datasets: [] }), title = '', unit = 'km' } = $props();
+	let {
+		data = /** @type {ChartData} */ ({ labels: [], datasets: [] }),
+		title = '',
+		unit = 'km'
+	} = $props();
 
 	let canvas = $state();
 	/** @type {import('chart.js').Chart | null} */

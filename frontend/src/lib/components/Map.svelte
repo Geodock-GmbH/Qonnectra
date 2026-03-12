@@ -1,4 +1,33 @@
 <script>
+	/**
+	 * @typedef {Object} LayerVisibilityInfo
+	 * @property {string} layerId - The layer identifier
+	 * @property {boolean} visible - Whether the layer is visible
+	 * @property {import('ol/layer/Layer').default} [layer] - Optional layer reference
+	 */
+
+	/**
+	 * @typedef {Object} NodeTypeInfo
+	 * @property {string} nodeType - The node type identifier
+	 * @property {boolean} visible - Whether the node type is visible
+	 */
+
+	/**
+	 * @typedef {Object} TrenchTypeInfo
+	 * @property {string} trenchType - The trench type identifier
+	 * @property {boolean} visible - Whether the trench type is visible
+	 */
+
+	/**
+	 * @typedef {Object} LabelInfo
+	 * @property {string} layerId - The layer identifier
+	 * @property {boolean} labelsVisible - Whether labels are visible
+	 */
+
+	/**
+	 * @typedef {'fullscreen' | 'compact'} MapVariant
+	 */
+
 	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import { browser } from '$app/environment';
@@ -22,6 +51,7 @@
 	import OpacitySlider from './OpacitySlider.svelte';
 	import SearchPanel from './SearchPanel.svelte';
 
+	/** @type {string} */
 	const TILE_SERVER_URL = env.PUBLIC_TILE_SERVER_URL || '';
 
 	let {
@@ -49,11 +79,8 @@
 
 	let searchPanelRef = $state();
 
-	/** @type {HTMLDivElement | undefined} */
 	let container = $state();
-	/** @type {import('ol/Map').default | undefined} */
 	let map = $state();
-	/** @type {any} */
 	let osmLayer = $state();
 	let baseLayerGroup = $state();
 	let usingFallbackOSM = $state(false);
@@ -71,8 +98,8 @@
 	};
 
 	/**
-	 * Check if the tile server is available
-	 * @returns {Promise<boolean>} True if the tile server responds
+	 * Checks if the tile server is available by sending a health check request.
+	 * @returns {Promise<boolean>} True if the tile server responds successfully within timeout
 	 */
 	async function checkTileServerHealth() {
 		try {
@@ -92,9 +119,10 @@
 	}
 
 	/**
-	 * Apply the vector tile style to the map
+	 * Applies a vector tile style from the tile server to the map.
+	 * Falls back to OSM raster tiles if the style cannot be applied.
 	 * @param {import('ol/Map').default} mapInstance - The OpenLayers map instance
-	 * @param {string} theme - The theme to apply ('light' or 'dark')
+	 * @param {'light' | 'dark'} theme - The basemap theme to apply
 	 */
 	async function applyVectorTileStyle(mapInstance, theme) {
 		if (!TILE_SERVER_URL) {
@@ -106,22 +134,19 @@
 			const { apply } = await import('ol-mapbox-style');
 			const styleUrl = `${TILE_SERVER_URL}/styles/${theme}/style.json`;
 
-			/** @type {import('ol/layer/Base').default[]} */
 			const layersToRemove = [];
-			mapInstance.getLayers().forEach((/** @type {any} */ layer) => {
+			mapInstance.getLayers().forEach((layer) => {
 				if (layer.get('isBaseLayer')) {
 					layersToRemove.push(layer);
 				}
 			});
 			layersToRemove.forEach((layer) => mapInstance.removeLayer(layer));
 
-			await apply(/** @type {any} */ (mapInstance), styleUrl);
+			await apply(mapInstance, styleUrl);
 
-			/** @type {any[]} */
 			const baseLayers = [];
-			/** @type {any[]} */
 			const otherLayers = [];
-			mapInstance.getLayers().forEach((/** @type {any} */ layer) => {
+			mapInstance.getLayers().forEach((layer) => {
 				if (layer.get('isSelectionLayer') || layer.get('isHighlightLayer')) {
 					otherLayers.push(layer);
 				} else if (!layer.get('layerId') && !layer.get('isBaseLayer')) {
@@ -154,7 +179,7 @@
 	}
 
 	/**
-	 * Setup fallback OSM raster tiles
+	 * Sets up fallback OpenStreetMap raster tiles when vector tile server is unavailable.
 	 * @param {import('ol/Map').default} mapInstance - The OpenLayers map instance
 	 */
 	async function setupFallbackOSM(mapInstance) {
@@ -163,9 +188,8 @@
 			import('ol/source/OSM')
 		]);
 
-		/** @type {import('ol/layer/Base').default[]} */
 		const layersToRemove = [];
-		mapInstance.getLayers().forEach((/** @type {any} */ layer) => {
+		mapInstance.getLayers().forEach((layer) => {
 			if (layer.get('isBaseLayer')) {
 				layersToRemove.push(layer);
 			}
@@ -231,7 +255,6 @@
 		dispatch('ready', { map, usingFallbackOSM });
 
 		map.on('moveend', () => {
-			if (!map) return;
 			const v = map.getView();
 			const newCenter = v.getCenter();
 			const newZoom = v.getZoom() ?? 2;
@@ -243,7 +266,14 @@
 
 			dispatch('moveend', { center: newCenter, zoom: newZoom });
 		});
-		map.on('click', (/** @type {any} */ e) => dispatch('click', e));
+		map.on('click', (e) => dispatch('click', e));
+
+		return () => {
+			if (map) {
+				map.setTarget(undefined);
+				map = undefined;
+			}
+		};
 	});
 
 	$effect(() => {
@@ -253,9 +283,6 @@
 		}
 	});
 
-	/**
-	 * Cleanup when the component is destroyed
-	 */
 	onDestroy(() => {
 		tileLoadingManager.cancelAllRequests();
 		getWorkerPool().cancelAllRequests();
@@ -268,8 +295,8 @@
 	});
 
 	/**
-	 * Handle opacity slider change
-	 * @param {number} newOpacity - The new opacity value
+	 * Handles base layer opacity changes from the slider.
+	 * @param {number} newOpacity - Opacity value between 0 and 1
 	 */
 	function handleOpacitySliderChange(newOpacity) {
 		currentLayerOpacity = newOpacity;
@@ -278,7 +305,7 @@
 		}
 
 		if (map) {
-			map.getLayers().forEach((/** @type {any} */ layer) => {
+			map.getLayers().forEach((layer) => {
 				if (layer.get('isBaseLayer')) {
 					layer.setOpacity(newOpacity);
 				}
@@ -291,12 +318,12 @@
 	}
 
 	/**
-	 * Handle layer visibility change
-	 * @param {{ layerId: string; visible: boolean; layer?: any }} layerInfo
+	 * Handles layer visibility toggle from the layer tree.
+	 * @param {LayerVisibilityInfo} layerInfo - Layer visibility change info
 	 */
 	function handleLayerVisibilityChange(layerInfo) {
 		if (layerInfo.layerId === 'osm-base-layer' && !layerInfo.layer && map) {
-			map.getLayers().forEach((/** @type {any} */ layer) => {
+			map.getLayers().forEach((layer) => {
 				if (layer.get('isBaseLayer')) {
 					layer.setVisible(layerInfo.visible);
 				}
@@ -306,27 +333,29 @@
 	}
 
 	/**
-	 * @param {any} nodeTypeInfo
+	 * Handles node type visibility toggle from the layer tree.
+	 * @param {NodeTypeInfo} nodeTypeInfo - Node type visibility change info
 	 */
 	function handleNodeTypeVisibilityChange(nodeTypeInfo) {
 		onNodeTypeVisibilityChanged(nodeTypeInfo);
 	}
 
 	/**
-	 * @param {any} trenchTypeInfo
+	 * Handles trench type visibility toggle from the layer tree.
+	 * @param {TrenchTypeInfo} trenchTypeInfo - Trench type visibility change info
 	 */
 	function handleTrenchTypeVisibilityChange(trenchTypeInfo) {
 		onTrenchTypeVisibilityChanged(trenchTypeInfo);
 	}
 
 	/**
-	 * Handle WMS layer visibility change
-	 * @param {string} layerId - The WMS layer ID
-	 * @param {boolean} visible - Whether the layer is visible
+	 * Handles WMS layer visibility toggle from the layer tree.
+	 * @param {string} layerId - The WMS layer identifier
+	 * @param {boolean} visible - Whether the layer should be visible
 	 */
 	function handleWMSLayerVisibilityChange(layerId, visible) {
 		if (!map) return;
-		map.getLayers().forEach((/** @type {any} */ layer) => {
+		map.getLayers().forEach((layer) => {
 			if (layer.get('layerId') === layerId) {
 				layer.setVisible(visible);
 			}
@@ -334,21 +363,24 @@
 	}
 
 	/**
-	 * @param {any} labelInfo
+	 * Handles label visibility toggle from the layer tree.
+	 * @param {LabelInfo} labelInfo - Label visibility change info
 	 */
 	function handleLabelVisibilityChange(labelInfo) {
 		onLabelVisibilityChanged(labelInfo);
 	}
 
 	/**
-	 * @param {any} feature
+	 * Handles feature selection from the search panel.
+	 * @param {import('ol/Feature').default} feature - The selected feature
 	 */
 	function handleFeatureSelect(feature) {
 		onFeatureSelect(feature);
 	}
 
 	/**
-	 * @param {any} error
+	 * Handles search errors from the search panel.
+	 * @param {Error | string} error - The error that occurred
 	 */
 	function handleSearchError(error) {
 		onSearchError(error);
@@ -359,6 +391,10 @@
 		() => $selectedProject
 	);
 
+	/**
+	 * Gets the reference to the search panel component.
+	 * @returns {typeof SearchPanel | undefined} The search panel component instance
+	 */
 	export function getSearchPanelRef() {
 		return searchPanelRef;
 	}
