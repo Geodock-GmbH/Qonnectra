@@ -384,19 +384,23 @@ export class MapState {
 		);
 		this.olMap.addLayer(this.selectionLayer);
 
-		this.addressSelectionLayer = createSelectionLayer(
-			this.addressTileSource,
-			this.selectedColor,
-			getSelectionStore
-		);
-		this.olMap.addLayer(this.addressSelectionLayer);
+		if (this.addressTileSource) {
+			this.addressSelectionLayer = createSelectionLayer(
+				this.addressTileSource,
+				this.selectedColor,
+				getSelectionStore
+			);
+			this.olMap.addLayer(this.addressSelectionLayer);
+		}
 
-		this.nodeSelectionLayer = createSelectionLayer(
-			this.nodeTileSource,
-			this.selectedColor,
-			getSelectionStore
-		);
-		this.olMap.addLayer(this.nodeSelectionLayer);
+		if (this.nodeTileSource) {
+			this.nodeSelectionLayer = createSelectionLayer(
+				this.nodeTileSource,
+				this.selectedColor,
+				getSelectionStore
+			);
+			this.olMap.addLayer(this.nodeSelectionLayer);
+		}
 
 		if (this.areaTileSource) {
 			this.areaSelectionLayer = createSelectionLayer(

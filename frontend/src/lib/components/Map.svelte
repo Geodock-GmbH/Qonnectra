@@ -79,8 +79,11 @@
 
 	let searchPanelRef = $state();
 
+	/** @type {HTMLDivElement | undefined} */
 	let container = $state();
+	/** @type {import('ol/Map').default | undefined} */
 	let map = $state();
+	/** @type {import('ol/layer/Tile').default | undefined} */
 	let osmLayer = $state();
 	let baseLayerGroup = $state();
 	let usingFallbackOSM = $state(false);
@@ -134,6 +137,7 @@
 			const { apply } = await import('ol-mapbox-style');
 			const styleUrl = `${TILE_SERVER_URL}/styles/${theme}/style.json`;
 
+			/** @type {import('ol/layer/Base').default[]} */
 			const layersToRemove = [];
 			mapInstance.getLayers().forEach((layer) => {
 				if (layer.get('isBaseLayer')) {
@@ -144,7 +148,9 @@
 
 			await apply(mapInstance, styleUrl);
 
+			/** @type {import('ol/layer/Base').default[]} */
 			const baseLayers = [];
+			/** @type {import('ol/layer/Base').default[]} */
 			const otherLayers = [];
 			mapInstance.getLayers().forEach((layer) => {
 				if (layer.get('isSelectionLayer') || layer.get('isHighlightLayer')) {
@@ -188,6 +194,7 @@
 			import('ol/source/OSM')
 		]);
 
+		/** @type {import('ol/layer/Base').default[]} */
 		const layersToRemove = [];
 		mapInstance.getLayers().forEach((layer) => {
 			if (layer.get('isBaseLayer')) {
@@ -255,25 +262,19 @@
 		dispatch('ready', { map, usingFallbackOSM });
 
 		map.on('moveend', () => {
+			if (!map) return;
 			const v = map.getView();
 			const newCenter = v.getCenter();
 			const newZoom = v.getZoom() ?? 2;
 
-			if (browser) {
+			if (browser && newCenter) {
 				$mapCenter = newCenter;
 				$mapZoom = newZoom;
 			}
 
 			dispatch('moveend', { center: newCenter, zoom: newZoom });
 		});
-		map.on('click', (e) => dispatch('click', e));
-
-		return () => {
-			if (map) {
-				map.setTarget(undefined);
-				map = undefined;
-			}
-		};
+		map.on('click', (/** @type {import('ol/MapBrowserEvent').default} */ e) => dispatch('click', e));
 	});
 
 	$effect(() => {

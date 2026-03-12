@@ -78,7 +78,7 @@ export class MapPopupManager {
 	/**
 	 * Show popup at coordinates with feature properties
 	 * @param {number[]} coordinate - Map coordinates [x, y]
-	 * @param {Feature} feature - OpenLayers feature
+	 * @param {Feature | import('ol/render/Feature').default} feature - OpenLayers feature
 	 */
 	show(coordinate, feature) {
 		if (!this.overlay || !this.contentElement) {

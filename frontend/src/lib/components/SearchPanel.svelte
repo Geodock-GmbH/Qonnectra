@@ -194,6 +194,15 @@
 					olMapInstance.getView().getProjection()
 				);
 
+				if (!geometry) {
+					console.error('Failed to parse feature geometry');
+					globalToaster.error({
+						title: m.title_feature_found(),
+						description: m.message_error_search_failed()
+					});
+					return;
+				}
+
 				if (!highlightLayer) {
 					const highlightStyle = await createHighlightStyle(trenchColorSelected);
 					highlightLayer = await createHighlightLayer(highlightStyle);
@@ -260,10 +269,14 @@
 					return;
 				}
 
-				const geometries = await parseMultipleFeatureGeometries(
+				const rawGeometries = await parseMultipleFeatureGeometries(
 					parsedData.trenches,
 					'EPSG:25832',
 					olMapInstance.getView().getProjection()
+				);
+				const geometries = rawGeometries.filter(
+					/** @returns {g is import('ol/geom/Geometry').default} */
+					(g) => g !== undefined
 				);
 
 				if (!highlightLayer) {

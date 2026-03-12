@@ -435,10 +435,10 @@
 	/**
 	 * Map layer ID to label config key
 	 * @param {string} layerId - The layer ID
-	 * @returns {string|null} The label config key or null if not supported
+	 * @returns {'trench' | 'address' | 'node' | 'area' | 'conduit' | null} The label config key or null if not supported
 	 */
 	function getLabelConfigKey(layerId) {
-		/** @type {Record<string, string>} */
+		/** @type {Record<string, 'trench' | 'address' | 'node' | 'area' | 'conduit'>} */
 		const mapping = {
 			'trench-layer': 'trench',
 			'address-layer': 'address',

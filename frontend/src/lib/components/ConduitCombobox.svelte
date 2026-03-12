@@ -53,7 +53,7 @@
 	});
 
 	function handleValueChange(/** @type {{ value: string[] }} */ e) {
-		$selectedConduit = e.value;
+		$selectedConduit = e.value[0];
 	}
 
 	function handleOpenChange(/** @type {{ open: boolean }} */ e) {
@@ -86,7 +86,7 @@
 			class="touch-manipulation w-full"
 			placeholder={m.placeholder_select_conduit()}
 			{collection}
-			defaultValue={$selectedConduit}
+			defaultValue={$selectedConduit ? [$selectedConduit] : undefined}
 			onValueChange={handleValueChange}
 			onOpenChange={handleOpenChange}
 			{onInputValueChange}
