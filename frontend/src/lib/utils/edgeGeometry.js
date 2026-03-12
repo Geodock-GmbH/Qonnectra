@@ -1,16 +1,15 @@
 /**
- * Pure utility functions for edge geometry calculations
- * No Svelte dependencies - fully testable
+ * @typedef {{ x: number, y: number }} Point2D
  */
 
 /**
- * Calculate the midpoint position along the entire path length
- * @param {number} srcX - Source X coordinate
- * @param {number} srcY - Source Y coordinate
- * @param {number} tgtX - Target X coordinate
- * @param {number} tgtY - Target Y coordinate
- * @param {Array} waypoints - Array of vertex points
- * @returns {Object} Object with x and y coordinates of the midpoint
+ * Calculates the midpoint position along the entire path length (source -> waypoints -> target).
+ * @param {number} srcX - Source X coordinate.
+ * @param {number} srcY - Source Y coordinate.
+ * @param {number} tgtX - Target X coordinate.
+ * @param {number} tgtY - Target Y coordinate.
+ * @param {Point2D[]} [waypoints] - Intermediate vertex points along the path.
+ * @returns {Point2D} The midpoint coordinates along the path.
  */
 export function getPathMidpoint(srcX, srcY, tgtX, tgtY, waypoints) {
 	const allPoints = [{ x: srcX, y: srcY }, ...(waypoints || []), { x: tgtX, y: tgtY }];
@@ -53,11 +52,11 @@ export function getPathMidpoint(srcX, srcY, tgtX, tgtY, waypoints) {
 }
 
 /**
- * Calculate the closest point on a line segment to a given point
- * @param {Object} p - The point to find the closest point on the segment to
- * @param {Object} a - The start point of the segment
- * @param {Object} b - The end point of the segment
- * @returns {Object} The closest point on the segment
+ * Finds the closest point on a line segment to a given point using perpendicular projection.
+ * @param {Point2D} p - The reference point.
+ * @param {Point2D} a - Start point of the segment.
+ * @param {Point2D} b - End point of the segment.
+ * @returns {Point2D & { t: number }} Closest point on the segment, with `t` as the interpolation parameter (0–1).
  */
 export function getClosestPointOnSegment(p, a, b) {
 	const dx = b.x - a.x;
@@ -77,12 +76,12 @@ export function getClosestPointOnSegment(p, a, b) {
 }
 
 /**
- * Snap coordinates to the nearest grid point
- * @param {number} x - X coordinate
- * @param {number} y - Y coordinate
- * @param {number} gridSize - Grid size for snapping
- * @param {boolean} enabled - Whether snapping is enabled
- * @returns {Object} Snapped coordinates
+ * Snaps coordinates to the nearest grid point when snapping is enabled.
+ * @param {number} x - X coordinate.
+ * @param {number} y - Y coordinate.
+ * @param {number} gridSize - Grid cell size for snapping.
+ * @param {boolean} enabled - Whether grid snapping is active.
+ * @returns {Point2D} The (possibly snapped) coordinates.
  */
 export function snapToGrid(x, y, gridSize, enabled) {
 	if (!enabled) {
@@ -96,13 +95,13 @@ export function snapToGrid(x, y, gridSize, enabled) {
 }
 
 /**
- * Build SVG path string from waypoints
- * @param {number} sourceX - Source X coordinate
- * @param {number} sourceY - Source Y coordinate
- * @param {number} targetX - Target X coordinate
- * @param {number} targetY - Target Y coordinate
- * @param {Array|null} waypoints - Array of waypoint objects with x, y properties
- * @returns {string} SVG path string
+ * Builds an SVG path string from source, waypoints, and target coordinates.
+ * @param {number} sourceX - Source X coordinate.
+ * @param {number} sourceY - Source Y coordinate.
+ * @param {number} targetX - Target X coordinate.
+ * @param {number} targetY - Target Y coordinate.
+ * @param {Point2D[] | null} [waypoints] - Intermediate waypoints.
+ * @returns {string | null} SVG path string, or null if no waypoints are provided.
  */
 export function buildEdgePath(sourceX, sourceY, targetX, targetY, waypoints) {
 	if (waypoints && Array.isArray(waypoints) && waypoints.length > 0) {

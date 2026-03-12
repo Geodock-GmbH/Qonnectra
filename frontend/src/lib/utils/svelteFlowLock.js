@@ -1,13 +1,9 @@
 /**
- * Utility function to automatically click the SvelteFlow lock button to start with locked interactivity
- * This function should be called after the SvelteFlow component is fully mounted
- */
-
-/**
- * Auto-clicks the SvelteFlow interactivity lock button to start with locked canvas
- * @param {number} maxAttempts - Maximum number of attempts to find and click the button (default: 10)
- * @param {number} intervalMs - Interval between attempts in milliseconds (default: 100)
- * @returns {Promise<boolean>} - Returns true if button was found and clicked, false otherwise
+ * Auto-clicks the SvelteFlow interactivity lock button to start with a locked canvas.
+ * Polls the DOM until the button appears or the maximum number of attempts is reached.
+ * @param {number} [maxAttempts=10] - Maximum number of polling attempts.
+ * @param {number} [intervalMs=100] - Interval between attempts in milliseconds.
+ * @returns {Promise<boolean>} Whether the button was found and clicked.
  */
 export async function autoLockSvelteFlow(maxAttempts = 10, intervalMs = 100) {
 	return new Promise((resolve) => {
@@ -16,8 +12,10 @@ export async function autoLockSvelteFlow(maxAttempts = 10, intervalMs = 100) {
 		const tryClickLockButton = () => {
 			attempts++;
 
-			const lockButton = document.querySelector(
-				'button.svelte-flow__controls-button.svelte-flow__controls-interactive[title="Toggle Interactivity"]'
+			const lockButton = /** @type {HTMLButtonElement | null} */ (
+				document.querySelector(
+					'button.svelte-flow__controls-button.svelte-flow__controls-interactive[title="Toggle Interactivity"]'
+				)
 			);
 
 			if (lockButton) {
@@ -39,12 +37,14 @@ export async function autoLockSvelteFlow(maxAttempts = 10, intervalMs = 100) {
 }
 
 /**
- * Checks if the SvelteFlow canvas is currently locked
- * @returns {boolean} - Returns true if canvas is locked, false if unlocked or button not found
+ * Checks whether the SvelteFlow canvas is currently in a locked (non-interactive) state.
+ * @returns {boolean} Whether the canvas is locked, or false if the button is not found.
  */
 export function isSvelteFlowLocked() {
-	const lockButton = document.querySelector(
-		'button.svelte-flow__controls-button.svelte-flow__controls-interactive[title="Toggle Interactivity"]'
+	const lockButton = /** @type {HTMLButtonElement | null} */ (
+		document.querySelector(
+			'button.svelte-flow__controls-button.svelte-flow__controls-interactive[title="Toggle Interactivity"]'
+		)
 	);
 
 	if (!lockButton) {
@@ -57,12 +57,14 @@ export function isSvelteFlowLocked() {
 }
 
 /**
- * Manually toggles the SvelteFlow lock state
- * @returns {boolean} - Returns true if button was found and clicked, false otherwise
+ * Toggles the SvelteFlow canvas interactivity lock state.
+ * @returns {boolean} Whether the button was found and clicked.
  */
 export function toggleSvelteFlowLock() {
-	const lockButton = document.querySelector(
-		'button.svelte-flow__controls-button.svelte-flow__controls-interactive[title="Toggle Interactivity"]'
+	const lockButton = /** @type {HTMLButtonElement | null} */ (
+		document.querySelector(
+			'button.svelte-flow__controls-button.svelte-flow__controls-interactive[title="Toggle Interactivity"]'
+		)
 	);
 
 	if (lockButton) {

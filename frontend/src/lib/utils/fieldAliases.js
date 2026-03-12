@@ -1,8 +1,9 @@
 import { m } from '$lib/paraglide/messages';
 
 /**
- * Generates field aliases for map popups and interactions
- * @returns {Object} Mapping of field names to their localized display names
+ * Returns a mapping of feature property keys to their localized display names.
+ * Used for map popups, tooltips, and detail panels.
+ * @returns {Record<string, string>} Property key to localized label mapping.
  */
 export function getFieldAliases() {
 	return {
