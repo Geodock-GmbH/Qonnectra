@@ -8,8 +8,18 @@ import Point from 'ol/geom/Point.js';
 import Polygon from 'ol/geom/Polygon.js';
 
 /**
+ * @typedef {Object} SerializedFeature
+ * @property {string|number} [id]
+ * @property {Record<string, unknown>} [properties]
+ * @property {number[]} [flatCoordinates]
+ * @property {string} [geometryType]
+ * @property {import('ol/geom/Geometry').GeometryLayout} [geometryLayout]
+ * @property {number[]} [ends]
+ */
+
+/**
  * Reconstruct OpenLayers Features from serialized worker data
- * @param {Array<Object>} serializedFeatures - Features serialized from worker
+ * @param {SerializedFeature[]} serializedFeatures - Features serialized from worker
  * @returns {Feature[]}
  */
 export function reconstructFeatures(serializedFeatures) {
@@ -20,11 +30,9 @@ export function reconstructFeatures(serializedFeatures) {
 			feature.setId(data.id);
 		}
 
-		// Set properties (excluding geometry)
 		const { geometry, ...properties } = data.properties || {};
 		feature.setProperties(properties);
 
-		// Reconstruct geometry if present
 		if (data.flatCoordinates && data.geometryType) {
 			const geom = createGeometry(
 				data.geometryType,
@@ -45,36 +53,37 @@ export function reconstructFeatures(serializedFeatures) {
  * Create geometry from flat coordinates
  * @param {string} type - Geometry type
  * @param {number[]} flatCoordinates - Flat coordinate array
- * @param {string} layout - Coordinate layout (XY, XYZ, etc.)
+ * @param {import('ol/geom/Geometry').GeometryLayout | undefined} layout - Coordinate layout (XY, XYZ, etc.)
  * @param {number[]} [ends] - Ring/part end indices for polygons/multi-geometries
  * @returns {import('ol/geom/Geometry').default|null}
  */
 function createGeometry(type, flatCoordinates, layout, ends) {
-	const stride = getStride(layout);
+	const actualLayout = layout || 'XY';
+	const stride = getStride(actualLayout);
 
 	switch (type) {
 		case 'Point':
-			return new Point(flatCoordinates, layout);
+			return new Point(flatCoordinates, actualLayout);
 
 		case 'LineString':
-			return new LineString(unflattenCoordinates(flatCoordinates, stride), layout);
+			return new LineString(unflattenCoordinates(flatCoordinates, stride), actualLayout);
 
 		case 'Polygon': {
 			const coords = unflattenPolygonCoordinates(flatCoordinates, stride, ends);
-			return new Polygon(coords, layout);
+			return new Polygon(coords, actualLayout);
 		}
 
 		case 'MultiPoint':
-			return new MultiPoint(unflattenCoordinates(flatCoordinates, stride), layout);
+			return new MultiPoint(unflattenCoordinates(flatCoordinates, stride), actualLayout);
 
 		case 'MultiLineString': {
 			const lineCoords = unflattenMultiLineCoordinates(flatCoordinates, stride, ends);
-			return new MultiLineString(lineCoords, layout);
+			return new MultiLineString(lineCoords, actualLayout);
 		}
 
 		case 'MultiPolygon': {
 			const polyCoords = unflattenMultiPolygonCoordinates(flatCoordinates, stride, ends);
-			return new MultiPolygon(polyCoords, layout);
+			return new MultiPolygon(polyCoords, actualLayout);
 		}
 
 		default:
@@ -85,7 +94,7 @@ function createGeometry(type, flatCoordinates, layout, ends) {
 
 /**
  * Get coordinate stride from layout
- * @param {string} layout
+ * @param {import('ol/geom/Geometry').GeometryLayout} layout
  * @returns {number}
  */
 function getStride(layout) {
@@ -167,7 +176,5 @@ function unflattenMultiLineCoordinates(flat, stride, ends) {
  * @returns {number[][][][]}
  */
 function unflattenMultiPolygonCoordinates(flat, stride, ends) {
-	// Simplified: treat as single polygon with multiple rings
-	// Full implementation would need endss (array of arrays)
 	return [unflattenPolygonCoordinates(flat, stride, ends)];
 }

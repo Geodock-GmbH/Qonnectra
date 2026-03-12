@@ -22,17 +22,16 @@ import {
 	createTrenchTileSource
 } from './tileSources.js';
 
-// Default style values (match store defaults)
 const DEFAULT_TRENCH_COLOR = '#000000';
 const DEFAULT_ADDRESS_COLOR = '#2563eb';
 const DEFAULT_ADDRESS_SIZE = 4;
 
 /**
  * Creates a vector tile layer for trenches
- * @param {import('svelte/store').Readable<string>} selectedProject - Store containing the selected project ID
+ * @param {string} selectedProject - The selected project ID
  * @param {string} layerName - Display name for the layer
- * @param {Function} onError - Error callback function
- * @param {Object} labelOptions - Optional label configuration
+ * @param {(title: string, message: string) => void} onError - Error callback function
+ * @param {Object} [labelOptions] - Optional label configuration
  * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
  * @param {string} [labelOptions.field='id_trench'] - Feature property to use for label
  * @param {number} [labelOptions.minResolution=1.5] - Minimum resolution to show labels
@@ -48,9 +47,9 @@ export function createTrenchLayer(selectedProject, layerName, onError, labelOpti
 
 	return new VectorTileLayer({
 		source: tileSource,
-		style: style,
+		style: /** @type {import('ol/style/Style').StyleLike} */ (style),
 		renderMode: 'vector',
-		declutter: labelOptions.enabled, // Enable decluttering when labels are shown
+		declutter: labelOptions.enabled,
 		properties: {
 			layerId: 'trench-layer',
 			layerName: layerName
@@ -60,10 +59,10 @@ export function createTrenchLayer(selectedProject, layerName, onError, labelOpti
 
 /**
  * Creates a vector tile layer for addresses
- * @param {import('svelte/store').Readable<string>} selectedProject - Store containing the selected project ID
+ * @param {string} selectedProject - The selected project ID
  * @param {string} layerName - Display name for the layer
- * @param {Function} onError - Error callback function
- * @param {Object} labelOptions - Optional label configuration
+ * @param {(title: string, message: string) => void} onError - Error callback function
+ * @param {Object} [labelOptions] - Optional label configuration
  * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
  * @param {number} [labelOptions.minResolution=1.0] - Minimum resolution to show labels
  * @param {Object} [labelOptions.textStyle] - Custom text style options
@@ -80,9 +79,9 @@ export function createAddressLayer(selectedProject, layerName, onError, labelOpt
 
 	return new VectorTileLayer({
 		source: tileSource,
-		style: style,
+		style: /** @type {import('ol/style/Style').StyleLike} */ (style),
 		renderMode: 'vector',
-		declutter: labelOptions.enabled, // Enable decluttering when labels are shown
+		declutter: labelOptions.enabled,
 		properties: {
 			layerId: 'address-layer',
 			layerName: layerName
@@ -92,15 +91,15 @@ export function createAddressLayer(selectedProject, layerName, onError, labelOpt
 
 /**
  * Creates a vector tile layer for nodes
- * @param {import('svelte/store').Readable<string>} selectedProject - Store containing the selected project ID
+ * @param {string} selectedProject - The selected project ID
  * @param {string} layerName - Display name for the layer
- * @param {Function} onError - Error callback function
- * @param {Object} labelOptions - Optional label configuration
+ * @param {(title: string, message: string) => void} onError - Error callback function
+ * @param {Object} [labelOptions] - Optional label configuration
  * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
  * @param {string} [labelOptions.field='name'] - Feature property to use for label
  * @param {number} [labelOptions.minResolution=1.0] - Minimum resolution to show labels
  * @param {Object} [labelOptions.textStyle] - Custom text style options
- * @param {Object} [nodeTypeStyles={}] - Optional per-type style configuration
+ * @param {Record<string, {color?: string, size?: number, visible?: boolean}> | undefined} [nodeTypeStyles] - Optional per-type style configuration
  * @returns {VectorTileLayer}
  */
 export function createNodeLayer(
@@ -108,13 +107,13 @@ export function createNodeLayer(
 	layerName,
 	onError,
 	labelOptions = {},
-	nodeTypeStyles = null
+	nodeTypeStyles = undefined
 ) {
 	const tileSource = createNodeTileSource(selectedProject, onError);
 
 	let style;
-	if (nodeTypeStyles !== null) {
-		style = createNodeStyleByType(nodeTypeStyles, labelOptions);
+	if (nodeTypeStyles !== undefined) {
+		style = createNodeStyleByType(/** @type {Record<string, {color?: string, size?: number, visible?: boolean}>} */ (nodeTypeStyles), labelOptions);
 	} else if (labelOptions.enabled) {
 		style = createNodeStyleWithLabels(labelOptions);
 	} else {
@@ -123,9 +122,9 @@ export function createNodeLayer(
 
 	return new VectorTileLayer({
 		source: tileSource,
-		style: style,
+		style: /** @type {import('ol/style/Style').StyleLike} */ (style),
 		renderMode: 'vector',
-		declutter: labelOptions.enabled, // Enable decluttering when labels are shown
+		declutter: labelOptions.enabled,
 		properties: {
 			layerId: 'node-layer',
 			layerName: layerName
@@ -135,15 +134,15 @@ export function createNodeLayer(
 
 /**
  * Creates a vector tile layer for areas (polygons)
- * @param {import('svelte/store').Readable<string>} selectedProject - Store containing the selected project ID
+ * @param {string} selectedProject - The selected project ID
  * @param {string} layerName - Display name for the layer
- * @param {Function} onError - Error callback function
- * @param {Object} labelOptions - Optional label configuration
+ * @param {(title: string, message: string) => void} onError - Error callback function
+ * @param {Object} [labelOptions] - Optional label configuration
  * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
  * @param {string} [labelOptions.field='name'] - Feature property to use for label
  * @param {number} [labelOptions.minResolution=5.0] - Minimum resolution to show labels
  * @param {Object} [labelOptions.textStyle] - Custom text style options
- * @param {Object} [areaTypeStyles=null] - Optional per-type style configuration
+ * @param {Record<string, {color?: string, visible?: boolean}> | undefined} [areaTypeStyles] - Optional per-type style configuration
  * @returns {VectorTileLayer}
  */
 export function createAreaLayer(
@@ -151,22 +150,22 @@ export function createAreaLayer(
 	layerName,
 	onError,
 	labelOptions = {},
-	areaTypeStyles = null
+	areaTypeStyles = undefined
 ) {
 	const tileSource = createAreaTileSource(selectedProject, onError);
 
 	let style;
-	if (areaTypeStyles !== null) {
-		style = createAreaStyleByType(areaTypeStyles, labelOptions);
+	if (areaTypeStyles !== undefined) {
+		style = createAreaStyleByType(/** @type {Record<string, {color?: string, visible?: boolean}>} */ (areaTypeStyles), labelOptions);
 	} else {
 		style = createAreaStyleWithLabels(DEFAULT_AREA_COLOR, 0.3, labelOptions);
 	}
 
 	return new VectorTileLayer({
 		source: tileSource,
-		style: style,
+		style: /** @type {import('ol/style/Style').StyleLike} */ (style),
 		renderMode: 'vector',
-		declutter: labelOptions.enabled, // Enable decluttering when labels are shown
+		declutter: labelOptions.enabled,
 		properties: {
 			layerId: 'area-layer',
 			layerName: layerName
@@ -176,7 +175,7 @@ export function createAreaLayer(
 
 /**
  * Creates a selection layer for any vector tile source
- * @param {VectorTileSource} tileSource - The tile source to use
+ * @param {import('ol/source/VectorTile').default} tileSource - The tile source to use
  * @param {string} selectedColor - Color for selected features
  * @param {Function} getSelectionStore - Function that returns the current selection store
  * @returns {VectorTileLayer}
@@ -189,10 +188,11 @@ export function createSelectionLayer(tileSource, selectedColor, getSelectionStor
 		source: tileSource,
 		style: function (feature) {
 			const selectionStore = getSelectionStore();
-			if (feature.getId() && selectionStore[feature.getId()]) {
+			const featureId = feature.getId();
+			if (featureId !== undefined && selectionStore[featureId]) {
 				return selectedStyle;
 			}
-			return undefined; // Don't render if not selected
+			return undefined;
 		},
 		properties: {
 			isSelectionLayer: true
@@ -239,15 +239,16 @@ export function createWMSLayer({
 		projection: 'EPSG:3857',
 		crossOrigin: 'anonymous',
 		tileLoadFunction: (tile, src) => {
-			// Skip loading if navigation is in progress
 			if (tileLoadingManager.isLoadingPaused()) {
-				tile.setState(4); // EMPTY
+				tile.setState(4);
 				return;
 			}
 
 			const requestId = `wms-${layerId}-${Date.now()}-${requestCounter++}`;
 			const controller = tileLoadingManager.createAbortController(requestId);
-			const image = tile.getImage();
+			const image = /** @type {HTMLImageElement} */ (
+				/** @type {import('ol/ImageTile').default} */ (tile).getImage()
+			);
 
 			fetch(src, {
 				signal: controller.signal,

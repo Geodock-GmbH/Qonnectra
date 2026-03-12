@@ -5,12 +5,12 @@ import { WorkerPool } from './workerPool.js';
 
 // Mock Worker since it's not available in Node
 class MockWorker {
-	constructor() {
-		this.onmessage = null;
-		this.postMessage = vi.fn();
-		this.terminate = vi.fn();
-	}
+	/** @type {((event: {data: unknown}) => void) | null} */
+	onmessage = null;
+	postMessage = vi.fn();
+	terminate = vi.fn();
 
+	/** @param {unknown} data */
 	simulateResponse(data) {
 		if (this.onmessage) {
 			this.onmessage({ data });
@@ -21,6 +21,7 @@ class MockWorker {
 vi.stubGlobal('Worker', MockWorker);
 
 describe('WorkerPool', () => {
+	/** @type {WorkerPool} */
 	let pool;
 
 	beforeEach(() => {
@@ -43,7 +44,7 @@ describe('WorkerPool', () => {
 		const parsePromise = pool.parse('req-1', mockData, extent, projection);
 
 		// Simulate worker response
-		const worker = pool.workers[0];
+		const worker = /** @type {MockWorker} */ (/** @type {unknown} */ (pool.workers[0]));
 		worker.simulateResponse({
 			requestId: 'req-1',
 			success: true,
@@ -60,7 +61,7 @@ describe('WorkerPool', () => {
 
 		const parsePromise = pool.parse('req-1', mockData, [0, 0, 100, 100], 'EPSG:3857');
 
-		const worker = pool.workers[0];
+		const worker = /** @type {MockWorker} */ (/** @type {unknown} */ (pool.workers[0]));
 		worker.simulateResponse({
 			requestId: 'req-1',
 			success: false,
