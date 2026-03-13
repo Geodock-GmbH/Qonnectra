@@ -102,8 +102,12 @@ class TestMicroductConnectionModel:
         """Test creating a microduct connection."""
         conduit1 = ConduitFactory()
         conduit2 = ConduitFactory()
-        microduct1 = Microduct.objects.create(uuid_conduit=conduit1, number=1, color="rot")
-        microduct2 = Microduct.objects.create(uuid_conduit=conduit2, number=1, color="rot")
+        microduct1 = Microduct.objects.create(
+            uuid_conduit=conduit1, number=1, color="rot"
+        )
+        microduct2 = Microduct.objects.create(
+            uuid_conduit=conduit2, number=1, color="rot"
+        )
         node = NodeFactory()
         trench1 = TrenchFactory()
         trench2 = TrenchFactory()
@@ -122,8 +126,12 @@ class TestMicroductConnectionModel:
     def test_microduct_connection_at_node(self):
         """Test that microduct connections are associated with nodes."""
         conduit = ConduitFactory()
-        microduct1 = Microduct.objects.create(uuid_conduit=conduit, number=1, color="rot")
-        microduct2 = Microduct.objects.create(uuid_conduit=conduit, number=2, color="grün")
+        microduct1 = Microduct.objects.create(
+            uuid_conduit=conduit, number=1, color="rot"
+        )
+        microduct2 = Microduct.objects.create(
+            uuid_conduit=conduit, number=2, color="grün"
+        )
         node = NodeFactory()
         trench1 = TrenchFactory()
         trench2 = TrenchFactory()
@@ -163,8 +171,12 @@ class TestTrenchConduitConnectionModel:
         conduit1 = ConduitFactory()
         conduit2 = ConduitFactory()
 
-        TrenchConduitConnection.objects.create(uuid_trench=trench, uuid_conduit=conduit1)
-        TrenchConduitConnection.objects.create(uuid_trench=trench, uuid_conduit=conduit2)
+        TrenchConduitConnection.objects.create(
+            uuid_trench=trench, uuid_conduit=conduit1
+        )
+        TrenchConduitConnection.objects.create(
+            uuid_trench=trench, uuid_conduit=conduit2
+        )
 
         connections = TrenchConduitConnection.objects.filter(uuid_trench=trench)
         assert connections.count() == 2
@@ -175,8 +187,12 @@ class TestTrenchConduitConnectionModel:
         trench2 = TrenchFactory()
         conduit = ConduitFactory()
 
-        TrenchConduitConnection.objects.create(uuid_trench=trench1, uuid_conduit=conduit)
-        TrenchConduitConnection.objects.create(uuid_trench=trench2, uuid_conduit=conduit)
+        TrenchConduitConnection.objects.create(
+            uuid_trench=trench1, uuid_conduit=conduit
+        )
+        TrenchConduitConnection.objects.create(
+            uuid_trench=trench2, uuid_conduit=conduit
+        )
 
         connections = TrenchConduitConnection.objects.filter(uuid_conduit=conduit)
         assert connections.count() == 2

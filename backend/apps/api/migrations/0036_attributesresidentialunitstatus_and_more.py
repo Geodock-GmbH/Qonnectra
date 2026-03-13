@@ -6,116 +6,193 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0035_base32_address_id'),
+        ("api", "0035_base32_address_id"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='AttributesResidentialUnitStatus',
+            name="AttributesResidentialUnitStatus",
             fields=[
-                ('id', models.IntegerField(primary_key=True, serialize=False)),
-                ('status', models.TextField(unique=True, verbose_name='Status')),
+                ("id", models.IntegerField(primary_key=True, serialize=False)),
+                ("status", models.TextField(unique=True, verbose_name="Status")),
             ],
             options={
-                'verbose_name': 'Residential Unit Status',
-                'verbose_name_plural': 'Residential Unit Statuses',
-                'db_table': 'attributes_residential_unit_status',
+                "verbose_name": "Residential Unit Status",
+                "verbose_name_plural": "Residential Unit Statuses",
+                "db_table": "attributes_residential_unit_status",
             },
         ),
         migrations.CreateModel(
-            name='AttributesResidentialUnitType',
+            name="AttributesResidentialUnitType",
             fields=[
-                ('id', models.IntegerField(primary_key=True, serialize=False)),
-                ('residential_unit_type', models.TextField(unique=True, verbose_name='Residential Unit Type')),
+                ("id", models.IntegerField(primary_key=True, serialize=False)),
+                (
+                    "residential_unit_type",
+                    models.TextField(unique=True, verbose_name="Residential Unit Type"),
+                ),
             ],
             options={
-                'verbose_name': 'Residential Unit Type',
-                'verbose_name_plural': 'Residential Unit Types',
-                'db_table': 'attributes_residential_unit_type',
+                "verbose_name": "Residential Unit Type",
+                "verbose_name_plural": "Residential Unit Types",
+                "db_table": "attributes_residential_unit_type",
             },
         ),
         migrations.CreateModel(
-            name='ResidentialUnit',
+            name="ResidentialUnit",
             fields=[
-                ('uuid', models.UUIDField(default=uuid.uuid4, primary_key=True, serialize=False)),
-                ('id_residential_unit', models.TextField(blank=True, null=True, unique=True, verbose_name='Residential Unit ID')),
-                ('floor', models.IntegerField(blank=True, null=True, verbose_name='Floor')),
-                ('side', models.TextField(blank=True, null=True, verbose_name='Side')),
-                ('suffix', models.TextField(blank=True, null=True, verbose_name='Suffix')),
-                ('building_section', models.TextField(blank=True, null=True, verbose_name='Building Section')),
-                ('external_id_1', models.TextField(blank=True, null=True, verbose_name='External ID 1')),
-                ('external_id_2', models.TextField(blank=True, null=True, verbose_name='External ID 2')),
-                ('resident_name', models.TextField(blank=True, null=True, verbose_name='Resident Name')),
-                ('resident_recorded_date', models.DateField(blank=True, null=True, verbose_name='Resident Recorded Date')),
-                ('ready_for_service', models.DateField(blank=True, null=True, verbose_name='Ready for Service')),
+                (
+                    "uuid",
+                    models.UUIDField(
+                        default=uuid.uuid4, primary_key=True, serialize=False
+                    ),
+                ),
+                (
+                    "id_residential_unit",
+                    models.TextField(
+                        blank=True,
+                        null=True,
+                        unique=True,
+                        verbose_name="Residential Unit ID",
+                    ),
+                ),
+                (
+                    "floor",
+                    models.IntegerField(blank=True, null=True, verbose_name="Floor"),
+                ),
+                ("side", models.TextField(blank=True, null=True, verbose_name="Side")),
+                (
+                    "suffix",
+                    models.TextField(blank=True, null=True, verbose_name="Suffix"),
+                ),
+                (
+                    "building_section",
+                    models.TextField(
+                        blank=True, null=True, verbose_name="Building Section"
+                    ),
+                ),
+                (
+                    "external_id_1",
+                    models.TextField(
+                        blank=True, null=True, verbose_name="External ID 1"
+                    ),
+                ),
+                (
+                    "external_id_2",
+                    models.TextField(
+                        blank=True, null=True, verbose_name="External ID 2"
+                    ),
+                ),
+                (
+                    "resident_name",
+                    models.TextField(
+                        blank=True, null=True, verbose_name="Resident Name"
+                    ),
+                ),
+                (
+                    "resident_recorded_date",
+                    models.DateField(
+                        blank=True, null=True, verbose_name="Resident Recorded Date"
+                    ),
+                ),
+                (
+                    "ready_for_service",
+                    models.DateField(
+                        blank=True, null=True, verbose_name="Ready for Service"
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Residential Unit',
-                'verbose_name_plural': 'Residential Units',
-                'db_table': 'residential_unit',
-                'ordering': ['uuid_address', 'floor', 'side'],
+                "verbose_name": "Residential Unit",
+                "verbose_name_plural": "Residential Units",
+                "db_table": "residential_unit",
+                "ordering": ["uuid_address", "floor", "side"],
             },
         ),
         migrations.DeleteModel(
-            name='OlAddress',
+            name="OlAddress",
         ),
         migrations.DeleteModel(
-            name='OlArea',
+            name="OlArea",
         ),
         migrations.DeleteModel(
-            name='OlNode',
+            name="OlNode",
         ),
         migrations.DeleteModel(
-            name='OlTrench',
+            name="OlTrench",
         ),
         migrations.AlterField(
-            model_name='address',
-            name='id_address',
-            field=models.CharField(blank=True, max_length=7, null=True, verbose_name='Address ID'),
+            model_name="address",
+            name="id_address",
+            field=models.CharField(
+                blank=True, max_length=7, null=True, verbose_name="Address ID"
+            ),
         ),
         migrations.AddIndex(
-            model_name='attributesresidentialunitstatus',
-            index=models.Index(fields=['status'], name='idx_res_unit_status'),
+            model_name="attributesresidentialunitstatus",
+            index=models.Index(fields=["status"], name="idx_res_unit_status"),
         ),
         migrations.AddIndex(
-            model_name='attributesresidentialunittype',
-            index=models.Index(fields=['residential_unit_type'], name='idx_res_unit_type'),
+            model_name="attributesresidentialunittype",
+            index=models.Index(
+                fields=["residential_unit_type"], name="idx_res_unit_type"
+            ),
         ),
         migrations.AddField(
-            model_name='residentialunit',
-            name='residential_unit_type',
-            field=models.ForeignKey(blank=True, db_column='residential_unit_type', null=True, on_delete=django.db.models.deletion.RESTRICT, to='api.attributesresidentialunittype', verbose_name='Residential Unit Type'),
+            model_name="residentialunit",
+            name="residential_unit_type",
+            field=models.ForeignKey(
+                blank=True,
+                db_column="residential_unit_type",
+                null=True,
+                on_delete=django.db.models.deletion.RESTRICT,
+                to="api.attributesresidentialunittype",
+                verbose_name="Residential Unit Type",
+            ),
         ),
         migrations.AddField(
-            model_name='residentialunit',
-            name='status',
-            field=models.ForeignKey(blank=True, db_column='status', null=True, on_delete=django.db.models.deletion.RESTRICT, to='api.attributesresidentialunitstatus', verbose_name='Status'),
+            model_name="residentialunit",
+            name="status",
+            field=models.ForeignKey(
+                blank=True,
+                db_column="status",
+                null=True,
+                on_delete=django.db.models.deletion.RESTRICT,
+                to="api.attributesresidentialunitstatus",
+                verbose_name="Status",
+            ),
         ),
         migrations.AddField(
-            model_name='residentialunit',
-            name='uuid_address',
-            field=models.ForeignKey(db_column='uuid_address', on_delete=django.db.models.deletion.CASCADE, related_name='residential_units', to='api.address', verbose_name='Address'),
+            model_name="residentialunit",
+            name="uuid_address",
+            field=models.ForeignKey(
+                db_column="uuid_address",
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="residential_units",
+                to="api.address",
+                verbose_name="Address",
+            ),
         ),
         migrations.AddIndex(
-            model_name='residentialunit',
-            index=models.Index(fields=['id_residential_unit'], name='idx_res_unit_id'),
+            model_name="residentialunit",
+            index=models.Index(fields=["id_residential_unit"], name="idx_res_unit_id"),
         ),
         migrations.AddIndex(
-            model_name='residentialunit',
-            index=models.Index(fields=['uuid_address'], name='idx_res_unit_address'),
+            model_name="residentialunit",
+            index=models.Index(fields=["uuid_address"], name="idx_res_unit_address"),
         ),
         migrations.AddIndex(
-            model_name='residentialunit',
-            index=models.Index(fields=['floor'], name='idx_res_unit_floor'),
+            model_name="residentialunit",
+            index=models.Index(fields=["floor"], name="idx_res_unit_floor"),
         ),
         migrations.AddIndex(
-            model_name='residentialunit',
-            index=models.Index(fields=['status'], name='idx_res_unit_status_fk'),
+            model_name="residentialunit",
+            index=models.Index(fields=["status"], name="idx_res_unit_status_fk"),
         ),
         migrations.AddIndex(
-            model_name='residentialunit',
-            index=models.Index(fields=['residential_unit_type'], name='idx_res_unit_type_fk'),
+            model_name="residentialunit",
+            index=models.Index(
+                fields=["residential_unit_type"], name="idx_res_unit_type_fk"
+            ),
         ),
     ]

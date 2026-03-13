@@ -602,9 +602,7 @@ class TestRenameFeatureFolder:
     def test_rename_folder_success(self, mock_storage_class):
         """Test successful folder rename when folder exists."""
         project = ProjectFactory(project="TestProject")
-        StoragePreferencesFactory(
-            folder_structure={"node": {"default": "nodes"}}
-        )
+        StoragePreferencesFactory(folder_structure={"node": {"default": "nodes"}})
         node = NodeFactory(name="OldNodeName", project=project)
 
         mock_storage = MagicMock()
@@ -622,9 +620,7 @@ class TestRenameFeatureFolder:
     def test_rename_folder_not_found(self, mock_storage_class):
         """Test rename when source folder doesn't exist (no files uploaded yet)."""
         project = ProjectFactory(project="TestProject")
-        StoragePreferencesFactory(
-            folder_structure={"node": {"default": "nodes"}}
-        )
+        StoragePreferencesFactory(folder_structure={"node": {"default": "nodes"}})
         node = NodeFactory(name="NodeWithoutFiles", project=project)
 
         mock_storage = MagicMock()
@@ -642,9 +638,7 @@ class TestRenameFeatureFolder:
         from django.contrib.contenttypes.models import ContentType
 
         project = ProjectFactory(project="TestProject")
-        StoragePreferencesFactory(
-            folder_structure={"node": {"default": "nodes"}}
-        )
+        StoragePreferencesFactory(folder_structure={"node": {"default": "nodes"}})
         node = NodeFactory(name="OldNodeName", project=project)
         content_type = ContentType.objects.get_for_model(Node)
 
@@ -687,9 +681,7 @@ class TestRenameFeatureFolder:
     def test_rename_folder_for_trench(self, mock_storage_class):
         """Test folder rename for Trench model uses id_trench path."""
         project = ProjectFactory(project="TestProject")
-        StoragePreferencesFactory(
-            folder_structure={"trench": {"default": "trenches"}}
-        )
+        StoragePreferencesFactory(folder_structure={"trench": {"default": "trenches"}})
         trench = TrenchFactory(id_trench="TR-001", project=project)
 
         mock_storage = MagicMock()
@@ -714,9 +706,7 @@ class TestMoveFileToFeature:
         from django.contrib.contenttypes.models import ContentType
 
         project = ProjectFactory(project="TestProject")
-        StoragePreferencesFactory(
-            folder_structure={"node": {"default": "nodes"}}
-        )
+        StoragePreferencesFactory(folder_structure={"node": {"default": "nodes"}})
 
         source_node = NodeFactory(name="SourceNode", project=project)
         target_node = NodeFactory(name="TargetNode", project=project)
@@ -735,7 +725,9 @@ class TestMoveFileToFeature:
         mock_file.read.return_value = b"file content"
 
         mock_storage = MagicMock()
-        mock_storage.exists.side_effect = lambda path: path == "TestProject/nodes/SourceNode/test_file.pdf"
+        mock_storage.exists.side_effect = (
+            lambda path: path == "TestProject/nodes/SourceNode/test_file.pdf"
+        )
         mock_storage.open.return_value = mock_file
         mock_storage.save.return_value = "TestProject/nodes/TargetNode/test_file.pdf"
         mock_storage.delete.return_value = None
@@ -756,9 +748,7 @@ class TestMoveFileToFeature:
         from django.contrib.contenttypes.models import ContentType
 
         project = ProjectFactory(project="TestProject")
-        StoragePreferencesFactory(
-            folder_structure={"node": {"default": "nodes"}}
-        )
+        StoragePreferencesFactory(folder_structure={"node": {"default": "nodes"}})
 
         source_node = NodeFactory(name="SourceNode", project=project)
         target_node = NodeFactory(name="TargetNode", project=project)
@@ -792,9 +782,7 @@ class TestMoveFileToFeature:
         from django.contrib.contenttypes.models import ContentType
 
         project = ProjectFactory(project="TestProject")
-        StoragePreferencesFactory(
-            folder_structure={"node": {"default": "nodes"}}
-        )
+        StoragePreferencesFactory(folder_structure={"node": {"default": "nodes"}})
 
         source_node = NodeFactory(name="SourceNode", project=project)
         target_node = NodeFactory(name="TargetNode", project=project)
@@ -827,9 +815,7 @@ class TestMoveFileToFeature:
         from django.contrib.contenttypes.models import ContentType
 
         project = ProjectFactory(project="TestProject")
-        StoragePreferencesFactory(
-            folder_structure={"node": {"default": "nodes"}}
-        )
+        StoragePreferencesFactory(folder_structure={"node": {"default": "nodes"}})
 
         source_node = NodeFactory(name="SourceNode", project=project)
         target_node = NodeFactory(name="TargetNode", project=project)
@@ -864,9 +850,7 @@ class TestMoveFileToFeature:
         from apps.api.models import Trench
 
         project = ProjectFactory(project="TestProject")
-        StoragePreferencesFactory(
-            folder_structure={"trench": {"default": "trenches"}}
-        )
+        StoragePreferencesFactory(folder_structure={"trench": {"default": "trenches"}})
 
         source_node = NodeFactory(name="SourceNode", project=project)
         target_trench = TrenchFactory(id_trench="TR-001", project=project)
@@ -886,7 +870,9 @@ class TestMoveFileToFeature:
         mock_file.read.return_value = b"file content"
 
         mock_storage = MagicMock()
-        mock_storage.exists.side_effect = lambda path: path == "TestProject/nodes/SourceNode/test_file.pdf"
+        mock_storage.exists.side_effect = (
+            lambda path: path == "TestProject/nodes/SourceNode/test_file.pdf"
+        )
         mock_storage.open.return_value = mock_file
         mock_storage.save.return_value = "TestProject/trenches/TR-001/test_file.pdf"
         mock_storage.delete.return_value = None

@@ -4,14 +4,13 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0036_attributesresidentialunitstatus_and_more'),
+        ("api", "0036_attributesresidentialunitstatus_and_more"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='residentialunit',
-            name='suffix',
+            model_name="residentialunit",
+            name="suffix",
         ),
     ]

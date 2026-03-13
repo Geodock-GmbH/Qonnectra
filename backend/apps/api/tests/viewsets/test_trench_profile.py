@@ -87,7 +87,9 @@ class TestTrenchConduitCanvasViewSet:
         trench = TrenchFactory()
         conduit = ConduitFactory()
         TrenchConduitConnectionFactory(uuid_trench=trench, uuid_conduit=conduit)
-        TrenchConduitCanvasFactory(trench=trench, conduit=conduit, canvas_x=50, canvas_y=100)
+        TrenchConduitCanvasFactory(
+            trench=trench, conduit=conduit, canvas_x=50, canvas_y=100
+        )
 
         response = authenticated_client.get(
             f"/api/v1/trench-conduit-canvas/profile/{trench.uuid}/"
@@ -154,4 +156,6 @@ class TestTrenchConduitCanvasViewSet:
 
         canvas.conduit.delete()
 
-        assert not TrenchConduitCanvas.objects.filter(conduit__uuid=conduit_uuid).exists()
+        assert not TrenchConduitCanvas.objects.filter(
+            conduit__uuid=conduit_uuid
+        ).exists()

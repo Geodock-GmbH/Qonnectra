@@ -4,38 +4,49 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0053_historicaladdress_historicalarea_historicalcable_and_more'),
+        ("api", "0053_historicaladdress_historicalarea_historicalcable_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='historicalnode',
-            name='child_canvas_x',
-            field=models.FloatField(blank=True, null=True, verbose_name='Child Canvas X'),
+            model_name="historicalnode",
+            name="child_canvas_x",
+            field=models.FloatField(
+                blank=True, null=True, verbose_name="Child Canvas X"
+            ),
         ),
         migrations.AddField(
-            model_name='historicalnode',
-            name='child_canvas_y',
-            field=models.FloatField(blank=True, null=True, verbose_name='Child Canvas Y'),
+            model_name="historicalnode",
+            name="child_canvas_y",
+            field=models.FloatField(
+                blank=True, null=True, verbose_name="Child Canvas Y"
+            ),
         ),
         migrations.AddField(
-            model_name='node',
-            name='child_canvas_x',
-            field=models.FloatField(blank=True, null=True, verbose_name='Child Canvas X'),
+            model_name="node",
+            name="child_canvas_x",
+            field=models.FloatField(
+                blank=True, null=True, verbose_name="Child Canvas X"
+            ),
         ),
         migrations.AddField(
-            model_name='node',
-            name='child_canvas_y',
-            field=models.FloatField(blank=True, null=True, verbose_name='Child Canvas Y'),
+            model_name="node",
+            name="child_canvas_y",
+            field=models.FloatField(
+                blank=True, null=True, verbose_name="Child Canvas Y"
+            ),
         ),
         migrations.AddIndex(
-            model_name='node',
-            index=models.Index(fields=['child_canvas_x'], name='idx_node_child_canvas_x'),
+            model_name="node",
+            index=models.Index(
+                fields=["child_canvas_x"], name="idx_node_child_canvas_x"
+            ),
         ),
         migrations.AddIndex(
-            model_name='node',
-            index=models.Index(fields=['child_canvas_y'], name='idx_node_child_canvas_y'),
+            model_name="node",
+            index=models.Index(
+                fields=["child_canvas_y"], name="idx_node_child_canvas_y"
+            ),
         ),
     ]

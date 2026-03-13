@@ -4,20 +4,29 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0058_seed_permission_data'),
+        ("api", "0058_seed_permission_data"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='historicalwmssource',
-            name='attribution',
-            field=models.CharField(blank=True, help_text='Attribution text for PDF export. Leave empty to exclude from exports.', max_length=500, verbose_name='Attribution'),
+            model_name="historicalwmssource",
+            name="attribution",
+            field=models.CharField(
+                blank=True,
+                help_text="Attribution text for PDF export. Leave empty to exclude from exports.",
+                max_length=500,
+                verbose_name="Attribution",
+            ),
         ),
         migrations.AddField(
-            model_name='wmssource',
-            name='attribution',
-            field=models.CharField(blank=True, help_text='Attribution text for PDF export. Leave empty to exclude from exports.', max_length=500, verbose_name='Attribution'),
+            model_name="wmssource",
+            name="attribution",
+            field=models.CharField(
+                blank=True,
+                help_text="Attribution text for PDF export. Leave empty to exclude from exports.",
+                max_length=500,
+                verbose_name="Attribution",
+            ),
         ),
     ]

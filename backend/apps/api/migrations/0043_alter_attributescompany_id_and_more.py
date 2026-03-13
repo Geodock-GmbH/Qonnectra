@@ -4,75 +4,74 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0042_cable_length_trigger'),
+        ("api", "0042_cable_length_trigger"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='attributescompany',
-            name='id',
+            model_name="attributescompany",
+            name="id",
             field=models.AutoField(primary_key=True, serialize=False),
         ),
         migrations.AlterField(
-            model_name='attributesconduittype',
-            name='id',
+            model_name="attributesconduittype",
+            name="id",
             field=models.AutoField(primary_key=True, serialize=False),
         ),
         migrations.AlterField(
-            model_name='attributesconstructiontype',
-            name='id',
+            model_name="attributesconstructiontype",
+            name="id",
             field=models.AutoField(primary_key=True, serialize=False),
         ),
         migrations.AlterField(
-            model_name='attributesnetworklevel',
-            name='id',
+            model_name="attributesnetworklevel",
+            name="id",
             field=models.AutoField(primary_key=True, serialize=False),
         ),
         migrations.AlterField(
-            model_name='attributesnodetype',
-            name='id',
+            model_name="attributesnodetype",
+            name="id",
             field=models.AutoField(primary_key=True, serialize=False),
         ),
         migrations.AlterField(
-            model_name='attributesphase',
-            name='id',
+            model_name="attributesphase",
+            name="id",
             field=models.AutoField(primary_key=True, serialize=False),
         ),
         migrations.AlterField(
-            model_name='attributesresidentialunitstatus',
-            name='id',
+            model_name="attributesresidentialunitstatus",
+            name="id",
             field=models.AutoField(primary_key=True, serialize=False),
         ),
         migrations.AlterField(
-            model_name='attributesresidentialunittype',
-            name='id',
+            model_name="attributesresidentialunittype",
+            name="id",
             field=models.AutoField(primary_key=True, serialize=False),
         ),
         migrations.AlterField(
-            model_name='attributesstatus',
-            name='id',
+            model_name="attributesstatus",
+            name="id",
             field=models.AutoField(primary_key=True, serialize=False),
         ),
         migrations.AlterField(
-            model_name='attributesstatusdevelopment',
-            name='id',
+            model_name="attributesstatusdevelopment",
+            name="id",
             field=models.AutoField(primary_key=True, serialize=False),
         ),
         migrations.AlterField(
-            model_name='attributessurface',
-            name='id',
+            model_name="attributessurface",
+            name="id",
             field=models.AutoField(primary_key=True, serialize=False),
         ),
         migrations.AlterField(
-            model_name='flags',
-            name='id',
+            model_name="flags",
+            name="id",
             field=models.AutoField(primary_key=True, serialize=False),
         ),
         migrations.AlterField(
-            model_name='projects',
-            name='id',
+            model_name="projects",
+            name="id",
             field=models.AutoField(primary_key=True, serialize=False),
         ),
     ]

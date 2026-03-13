@@ -5,7 +5,6 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("api", "0027_add_merge_side_to_fibersplice"),
     ]

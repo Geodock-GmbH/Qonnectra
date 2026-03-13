@@ -5,43 +5,109 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0056_add_trench_conduit_canvas'),
-        ('auth', '0012_alter_user_first_name_max_length'),
+        ("api", "0056_add_trench_conduit_canvas"),
+        ("auth", "0012_alter_user_first_name_max_length"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ModelPermission',
+            name="ModelPermission",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('model_name', models.CharField(help_text='Lowercase model name, e.g., "trench", "cable"', max_length=100, verbose_name='Model Name')),
-                ('access_level', models.CharField(choices=[('none', 'No Access'), ('view', 'View Only'), ('edit', 'View and Edit'), ('full', 'Full Access')], default='none', max_length=10, verbose_name='Access Level')),
-                ('group', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='model_permissions', to='auth.group', verbose_name='Group')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "model_name",
+                    models.CharField(
+                        help_text='Lowercase model name, e.g., "trench", "cable"',
+                        max_length=100,
+                        verbose_name="Model Name",
+                    ),
+                ),
+                (
+                    "access_level",
+                    models.CharField(
+                        choices=[
+                            ("none", "No Access"),
+                            ("view", "View Only"),
+                            ("edit", "View and Edit"),
+                            ("full", "Full Access"),
+                        ],
+                        default="none",
+                        max_length=10,
+                        verbose_name="Access Level",
+                    ),
+                ),
+                (
+                    "group",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="model_permissions",
+                        to="auth.group",
+                        verbose_name="Group",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Model Permission',
-                'verbose_name_plural': 'Model Permissions',
-                'db_table': 'model_permission',
-                'indexes': [models.Index(fields=['group'], name='model_permi_group_i_30678c_idx')],
-                'unique_together': {('group', 'model_name')},
+                "verbose_name": "Model Permission",
+                "verbose_name_plural": "Model Permissions",
+                "db_table": "model_permission",
+                "indexes": [
+                    models.Index(
+                        fields=["group"], name="model_permi_group_i_30678c_idx"
+                    )
+                ],
+                "unique_together": {("group", "model_name")},
             },
         ),
         migrations.CreateModel(
-            name='RoutePermission',
+            name="RoutePermission",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('route_pattern', models.CharField(help_text='Route path with optional wildcard, e.g., "/admin/*"', max_length=200, verbose_name='Route Pattern')),
-                ('allowed', models.BooleanField(default=True, verbose_name='Allowed')),
-                ('group', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='route_permissions', to='auth.group', verbose_name='Group')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "route_pattern",
+                    models.CharField(
+                        help_text='Route path with optional wildcard, e.g., "/admin/*"',
+                        max_length=200,
+                        verbose_name="Route Pattern",
+                    ),
+                ),
+                ("allowed", models.BooleanField(default=True, verbose_name="Allowed")),
+                (
+                    "group",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="route_permissions",
+                        to="auth.group",
+                        verbose_name="Group",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Route Permission',
-                'verbose_name_plural': 'Route Permissions',
-                'db_table': 'route_permission',
-                'indexes': [models.Index(fields=['group'], name='route_permi_group_i_aface4_idx')],
-                'unique_together': {('group', 'route_pattern')},
+                "verbose_name": "Route Permission",
+                "verbose_name_plural": "Route Permissions",
+                "db_table": "route_permission",
+                "indexes": [
+                    models.Index(
+                        fields=["group"], name="route_permi_group_i_aface4_idx"
+                    )
+                ],
+                "unique_together": {("group", "route_pattern")},
             },
         ),
     ]

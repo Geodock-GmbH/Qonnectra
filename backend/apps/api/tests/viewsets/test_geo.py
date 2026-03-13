@@ -58,7 +58,9 @@ class TestTrenchViewSet:
         """Test retrieving trenches by project filter."""
         trench = TrenchFactory()
 
-        response = authenticated_client.get(f"/api/v1/trench/?project={trench.project.id}")
+        response = authenticated_client.get(
+            f"/api/v1/trench/?project={trench.project.id}"
+        )
         assert response.status_code == status.HTTP_200_OK
         assert "results" in response.data
         assert "features" in response.data["results"]

@@ -146,9 +146,7 @@ class TestFiberSpliceBulkUpsert:
         assert len(data["failed"]) == 0
 
         # Verify splice is on side B
-        splice = FiberSplice.objects.get(
-            node_structure=node_structure, port_number=1
-        )
+        splice = FiberSplice.objects.get(node_structure=node_structure, port_number=1)
         assert splice.fiber_b == fibers[0]
         assert splice.cable_b == cable
         assert splice.fiber_a is None
@@ -253,9 +251,7 @@ class TestFiberSpliceBulkUpsert:
         assert len(data["failed"]) == 0
 
         # Verify the splice was updated
-        splice = FiberSplice.objects.get(
-            node_structure=node_structure, port_number=1
-        )
+        splice = FiberSplice.objects.get(node_structure=node_structure, port_number=1)
         assert splice.fiber_a == fibers[1]  # Updated to new fiber
 
     def test_bulk_upsert_empty_splices(self, authenticated_client):

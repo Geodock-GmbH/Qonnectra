@@ -62,7 +62,9 @@ class TestWFS3ProxyView:
         mock_response.status_code = 200
         mock_response.ok = True
 
-        with patch("apps.api.views.requests.get", return_value=mock_response) as mock_get:
+        with patch(
+            "apps.api.views.requests.get", return_value=mock_response
+        ) as mock_get:
             response = api_client.get(f"/api/v1/wfs3/{qgis_project.name}/")
 
         assert response.status_code == 200
@@ -151,7 +153,9 @@ class TestWFS3ProxyView:
         mock_response.status_code = 200
         mock_response.ok = True
 
-        with patch("apps.api.views.requests.get", return_value=mock_response) as mock_get:
+        with patch(
+            "apps.api.views.requests.get", return_value=mock_response
+        ) as mock_get:
             response = api_client.get(
                 f"/api/v1/wfs3/{qgis_project.name}/collections/layer/items",
                 {"bbox": "0,0,10,10", "limit": "100"},
@@ -177,7 +181,9 @@ class TestWFS3ProxyView:
         mock_response.status_code = 200
         mock_response.ok = True
 
-        with patch("apps.api.views.requests.get", return_value=mock_response) as mock_get:
+        with patch(
+            "apps.api.views.requests.get", return_value=mock_response
+        ) as mock_get:
             response = api_client.get(
                 f"/api/v1/wfs3/{qgis_project.name}/collections/layer/items",
                 {"token": "secret-token", "bbox": "0,0,10,10"},

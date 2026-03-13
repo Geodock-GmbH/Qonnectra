@@ -6,29 +6,69 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0055_add_residential_unit_to_fiber_splice'),
+        ("api", "0055_add_residential_unit_to_fiber_splice"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='TrenchConduitCanvas',
+            name="TrenchConduitCanvas",
             fields=[
-                ('uuid', models.UUIDField(default=uuid.uuid4, primary_key=True, serialize=False)),
-                ('canvas_x', models.FloatField(blank=True, null=True, verbose_name='Canvas X')),
-                ('canvas_y', models.FloatField(blank=True, null=True, verbose_name='Canvas Y')),
-                ('canvas_width', models.FloatField(default=80, verbose_name='Canvas Width')),
-                ('canvas_height', models.FloatField(default=80, verbose_name='Canvas Height')),
-                ('conduit', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='canvas_positions', to='api.conduit', verbose_name='Conduit')),
-                ('trench', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='canvas_conduits', to='api.trench', verbose_name='Trench')),
+                (
+                    "uuid",
+                    models.UUIDField(
+                        default=uuid.uuid4, primary_key=True, serialize=False
+                    ),
+                ),
+                (
+                    "canvas_x",
+                    models.FloatField(blank=True, null=True, verbose_name="Canvas X"),
+                ),
+                (
+                    "canvas_y",
+                    models.FloatField(blank=True, null=True, verbose_name="Canvas Y"),
+                ),
+                (
+                    "canvas_width",
+                    models.FloatField(default=80, verbose_name="Canvas Width"),
+                ),
+                (
+                    "canvas_height",
+                    models.FloatField(default=80, verbose_name="Canvas Height"),
+                ),
+                (
+                    "conduit",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="canvas_positions",
+                        to="api.conduit",
+                        verbose_name="Conduit",
+                    ),
+                ),
+                (
+                    "trench",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="canvas_conduits",
+                        to="api.trench",
+                        verbose_name="Trench",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Trench Conduit Canvas Position',
-                'verbose_name_plural': 'Trench Conduit Canvas Positions',
-                'db_table': 'trench_conduit_canvas',
-                'indexes': [models.Index(fields=['trench'], name='idx_trench_canvas_trench'), models.Index(fields=['conduit'], name='idx_trench_canvas_conduit')],
-                'constraints': [models.UniqueConstraint(fields=('trench', 'conduit'), name='unique_trench_conduit_canvas')],
+                "verbose_name": "Trench Conduit Canvas Position",
+                "verbose_name_plural": "Trench Conduit Canvas Positions",
+                "db_table": "trench_conduit_canvas",
+                "indexes": [
+                    models.Index(fields=["trench"], name="idx_trench_canvas_trench"),
+                    models.Index(fields=["conduit"], name="idx_trench_canvas_conduit"),
+                ],
+                "constraints": [
+                    models.UniqueConstraint(
+                        fields=("trench", "conduit"),
+                        name="unique_trench_conduit_canvas",
+                    )
+                ],
             },
         ),
     ]

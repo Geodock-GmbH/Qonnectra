@@ -4,67 +4,78 @@ from django.db import migrations
 
 
 def create_groups_and_permissions(apps, schema_editor):
-    Group = apps.get_model('auth', 'Group')
-    ModelPermission = apps.get_model('api', 'ModelPermission')
-    RoutePermission = apps.get_model('api', 'RoutePermission')
-    User = apps.get_model('auth', 'User')
+    Group = apps.get_model("auth", "Group")
+    ModelPermission = apps.get_model("api", "ModelPermission")
+    RoutePermission = apps.get_model("api", "RoutePermission")
+    User = apps.get_model("auth", "User")
 
     # Create groups
-    admin_group, _ = Group.objects.get_or_create(name='Admin')
-    editor_group, _ = Group.objects.get_or_create(name='Editor')
-    viewer_group, _ = Group.objects.get_or_create(name='Viewer')
+    admin_group, _ = Group.objects.get_or_create(name="Admin")
+    editor_group, _ = Group.objects.get_or_create(name="Editor")
+    viewer_group, _ = Group.objects.get_or_create(name="Viewer")
 
     # Model names that need permissions
     model_names = [
-        'trench', 'conduit', 'microduct', 'node', 'address', 'cable', 'fiber',
-        'fibersplice', 'container', 'area', 'residentialunit', 'featurefiles',
-        'projects', 'flags', 'wmslayer', 'qgisproject', 'logentry',
-        'trenchconduitconnection', 'trenchconduitcanvas', 'microductconnection',
-        'microductcableconnection', 'nodestructure', 'nodeslotconfiguration',
-        'cablelabel', 'containertype',
+        "trench",
+        "conduit",
+        "microduct",
+        "node",
+        "address",
+        "cable",
+        "fiber",
+        "fibersplice",
+        "container",
+        "area",
+        "residentialunit",
+        "featurefiles",
+        "projects",
+        "flags",
+        "wmslayer",
+        "qgisproject",
+        "logentry",
+        "trenchconduitconnection",
+        "trenchconduitcanvas",
+        "microductconnection",
+        "microductcableconnection",
+        "nodestructure",
+        "nodeslotconfiguration",
+        "cablelabel",
+        "containertype",
     ]
 
     # Create model permissions
     for model_name in model_names:
         # Admin: full access
         ModelPermission.objects.get_or_create(
-            group=admin_group,
-            model_name=model_name,
-            defaults={'access_level': 'full'}
+            group=admin_group, model_name=model_name, defaults={"access_level": "full"}
         )
         # Editor: edit access (except logentry)
-        editor_level = 'none' if model_name == 'logentry' else 'edit'
+        editor_level = "none" if model_name == "logentry" else "edit"
         ModelPermission.objects.get_or_create(
             group=editor_group,
             model_name=model_name,
-            defaults={'access_level': editor_level}
+            defaults={"access_level": editor_level},
         )
         # Viewer: view access (except logentry)
-        viewer_level = 'none' if model_name == 'logentry' else 'view'
+        viewer_level = "none" if model_name == "logentry" else "view"
         ModelPermission.objects.get_or_create(
             group=viewer_group,
             model_name=model_name,
-            defaults={'access_level': viewer_level}
+            defaults={"access_level": viewer_level},
         )
 
     # Create route permissions
     # Admin: access to /admin/*
     RoutePermission.objects.get_or_create(
-        group=admin_group,
-        route_pattern='/admin/*',
-        defaults={'allowed': True}
+        group=admin_group, route_pattern="/admin/*", defaults={"allowed": True}
     )
     # Editor: no access to /admin/*
     RoutePermission.objects.get_or_create(
-        group=editor_group,
-        route_pattern='/admin/*',
-        defaults={'allowed': False}
+        group=editor_group, route_pattern="/admin/*", defaults={"allowed": False}
     )
     # Viewer: no access to /admin/*
     RoutePermission.objects.get_or_create(
-        group=viewer_group,
-        route_pattern='/admin/*',
-        defaults={'allowed': False}
+        group=viewer_group, route_pattern="/admin/*", defaults={"allowed": False}
     )
 
     # Migrate existing users
@@ -76,14 +87,13 @@ def create_groups_and_permissions(apps, schema_editor):
 
 
 def reverse_migration(apps, schema_editor):
-    Group = apps.get_model('auth', 'Group')
-    Group.objects.filter(name__in=['Admin', 'Editor', 'Viewer']).delete()
+    Group = apps.get_model("auth", "Group")
+    Group.objects.filter(name__in=["Admin", "Editor", "Viewer"]).delete()
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0057_add_permission_models'),
+        ("api", "0057_add_permission_models"),
     ]
 
     operations = [

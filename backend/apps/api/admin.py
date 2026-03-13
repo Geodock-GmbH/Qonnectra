@@ -1366,6 +1366,7 @@ class FeatureFilesAdmin(admin.ModelAdmin):
     list_display = (
         "file_name",
         "file_type",
+        "preview_link",
         "feature_type_display",
         "feature_identifier_display",
         "orphan_status_display",
@@ -1379,6 +1380,7 @@ class FeatureFilesAdmin(admin.ModelAdmin):
         "file_type",
         "created_at",
         "file_path",
+        "preview_link",
         "content_type",
         "object_id",
     )
@@ -1480,6 +1482,12 @@ class FeatureFilesAdmin(admin.ModelAdmin):
         if not model_class:
             return True
         return not model_class.objects.filter(uuid=obj.object_id).exists()
+
+    @admin.display(description=_("Preview"))
+    def preview_link(self, obj):
+        """Return a clickable link to the file preview endpoint."""
+        url = reverse("feature-files-preview", kwargs={"pk": obj.uuid})
+        return format_html('<a href="{}" target="_blank">Preview</a>', url)
 
     @admin.display(description=_("Feature Type"))
     def feature_type_display(self, obj):

@@ -5,15 +5,22 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0029_add_merge_group_per_side'),
+        ("api", "0029_add_merge_group_per_side"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='node',
-            name='parent_node',
-            field=models.ForeignKey(blank=True, db_column='parent_node', db_index=False, null=True, on_delete=django.db.models.deletion.SET_NULL, to='api.node', verbose_name='Parent Node'),
+            model_name="node",
+            name="parent_node",
+            field=models.ForeignKey(
+                blank=True,
+                db_column="parent_node",
+                db_index=False,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="api.node",
+                verbose_name="Parent Node",
+            ),
         ),
     ]

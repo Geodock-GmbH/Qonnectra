@@ -5,30 +5,63 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0054_add_child_canvas_coordinates'),
+        ("api", "0054_add_child_canvas_coordinates"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='fibersplice',
-            name='residential_unit_a',
-            field=models.ForeignKey(blank=True, help_text='Residential unit connected on side A (endpoint).', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='splices_as_a', to='api.residentialunit', verbose_name='Residential Unit A'),
+            model_name="fibersplice",
+            name="residential_unit_a",
+            field=models.ForeignKey(
+                blank=True,
+                help_text="Residential unit connected on side A (endpoint).",
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="splices_as_a",
+                to="api.residentialunit",
+                verbose_name="Residential Unit A",
+            ),
         ),
         migrations.AddField(
-            model_name='fibersplice',
-            name='residential_unit_b',
-            field=models.ForeignKey(blank=True, help_text='Residential unit connected on side B (endpoint).', null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='splices_as_b', to='api.residentialunit', verbose_name='Residential Unit B'),
+            model_name="fibersplice",
+            name="residential_unit_b",
+            field=models.ForeignKey(
+                blank=True,
+                help_text="Residential unit connected on side B (endpoint).",
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="splices_as_b",
+                to="api.residentialunit",
+                verbose_name="Residential Unit B",
+            ),
         ),
         migrations.AddField(
-            model_name='historicalfibersplice',
-            name='residential_unit_a',
-            field=models.ForeignKey(blank=True, db_constraint=False, help_text='Residential unit connected on side A (endpoint).', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to='api.residentialunit', verbose_name='Residential Unit A'),
+            model_name="historicalfibersplice",
+            name="residential_unit_a",
+            field=models.ForeignKey(
+                blank=True,
+                db_constraint=False,
+                help_text="Residential unit connected on side A (endpoint).",
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                to="api.residentialunit",
+                verbose_name="Residential Unit A",
+            ),
         ),
         migrations.AddField(
-            model_name='historicalfibersplice',
-            name='residential_unit_b',
-            field=models.ForeignKey(blank=True, db_constraint=False, help_text='Residential unit connected on side B (endpoint).', null=True, on_delete=django.db.models.deletion.DO_NOTHING, related_name='+', to='api.residentialunit', verbose_name='Residential Unit B'),
+            model_name="historicalfibersplice",
+            name="residential_unit_b",
+            field=models.ForeignKey(
+                blank=True,
+                db_constraint=False,
+                help_text="Residential unit connected on side B (endpoint).",
+                null=True,
+                on_delete=django.db.models.deletion.DO_NOTHING,
+                related_name="+",
+                to="api.residentialunit",
+                verbose_name="Residential Unit B",
+            ),
         ),
     ]

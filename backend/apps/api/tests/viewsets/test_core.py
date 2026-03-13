@@ -118,11 +118,15 @@ class TestFeatureFilesViewSet:
         from django.contrib.contenttypes.models import ContentType
 
         ct = ContentType.objects.get(app_label="api", model="trench")
-        response = authenticated_client.get(f"/api/v1/feature-files/?content_type={ct.id}")
+        response = authenticated_client.get(
+            f"/api/v1/feature-files/?content_type={ct.id}"
+        )
         assert response.status_code == status.HTTP_200_OK
 
     def test_filter_by_object_id(self, authenticated_client):
         """Test filtering feature files by object ID."""
         trench = TrenchFactory()
-        response = authenticated_client.get(f"/api/v1/feature-files/?object_id={trench.uuid}")
+        response = authenticated_client.get(
+            f"/api/v1/feature-files/?object_id={trench.uuid}"
+        )
         assert response.status_code == status.HTTP_200_OK

@@ -1,15 +1,11 @@
 """Tests for role-based permission system."""
 
 import pytest
+from apps.api.models import ModelPermission, RoutePermission
+from apps.api.permissions import get_user_permissions
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from rest_framework.test import APIClient
-
-from apps.api.models import ModelPermission, RoutePermission, Trench
-from apps.api.permissions import RoleBasedPermission, get_user_permissions
-
-from .factories import ProjectFactory, FlagFactory, TrenchFactory
-
 
 User = get_user_model()
 
@@ -17,28 +13,28 @@ User = get_user_model()
 @pytest.fixture
 def admin_group(db):
     """Get the Admin group created by migration."""
-    return Group.objects.get(name='Admin')
+    return Group.objects.get(name="Admin")
 
 
 @pytest.fixture
 def editor_group(db):
     """Get the Editor group created by migration."""
-    return Group.objects.get(name='Editor')
+    return Group.objects.get(name="Editor")
 
 
 @pytest.fixture
 def viewer_group(db):
     """Get the Viewer group created by migration."""
-    return Group.objects.get(name='Viewer')
+    return Group.objects.get(name="Viewer")
 
 
 @pytest.fixture
 def admin_user(db, admin_group):
     """Create a user in the Admin group."""
     user = User.objects.create_user(
-        username='adminuser',
-        email='admin@example.com',
-        password='adminpass123',
+        username="adminuser",
+        email="admin@example.com",
+        password="adminpass123",
     )
     user.groups.add(admin_group)
     return user
@@ -48,9 +44,9 @@ def admin_user(db, admin_group):
 def editor_user(db, editor_group):
     """Create a user in the Editor group."""
     user = User.objects.create_user(
-        username='editoruser',
-        email='editor@example.com',
-        password='editorpass123',
+        username="editoruser",
+        email="editor@example.com",
+        password="editorpass123",
     )
     user.groups.add(editor_group)
     return user
@@ -60,9 +56,9 @@ def editor_user(db, editor_group):
 def viewer_user(db, viewer_group):
     """Create a user in the Viewer group."""
     user = User.objects.create_user(
-        username='vieweruser',
-        email='viewer@example.com',
-        password='viewerpass123',
+        username="vieweruser",
+        email="viewer@example.com",
+        password="viewerpass123",
     )
     user.groups.add(viewer_group)
     return user
@@ -72,9 +68,9 @@ def viewer_user(db, viewer_group):
 def superuser(db):
     """Create a superuser."""
     return User.objects.create_superuser(
-        username='superuser',
-        email='super@example.com',
-        password='superpass123',
+        username="superuser",
+        email="super@example.com",
+        password="superpass123",
     )
 
 
@@ -92,23 +88,23 @@ class TestModelPermission:
         assert ModelPermission.objects.filter(group=admin_group).exists()
 
         trench_perm = ModelPermission.objects.get(
-            group=admin_group, model_name='trench'
+            group=admin_group, model_name="trench"
         )
-        assert trench_perm.access_level == 'full'
+        assert trench_perm.access_level == "full"
 
     def test_editor_has_edit_access(self, db, editor_group):
         """Test that Editor group has edit access to models."""
         trench_perm = ModelPermission.objects.get(
-            group=editor_group, model_name='trench'
+            group=editor_group, model_name="trench"
         )
-        assert trench_perm.access_level == 'edit'
+        assert trench_perm.access_level == "edit"
 
     def test_viewer_has_view_access(self, db, viewer_group):
         """Test that Viewer group has view access to models."""
         trench_perm = ModelPermission.objects.get(
-            group=viewer_group, model_name='trench'
+            group=viewer_group, model_name="trench"
         )
-        assert trench_perm.access_level == 'view'
+        assert trench_perm.access_level == "view"
 
 
 class TestRoutePermission:
@@ -116,16 +112,12 @@ class TestRoutePermission:
 
     def test_admin_route_permission(self, db, admin_group):
         """Test that Admin group has access to /admin/* routes."""
-        perm = RoutePermission.objects.get(
-            group=admin_group, route_pattern='/admin/*'
-        )
+        perm = RoutePermission.objects.get(group=admin_group, route_pattern="/admin/*")
         assert perm.allowed is True
 
     def test_editor_route_permission(self, db, editor_group):
         """Test that Editor group does not have access to /admin/* routes."""
-        perm = RoutePermission.objects.get(
-            group=editor_group, route_pattern='/admin/*'
-        )
+        perm = RoutePermission.objects.get(group=editor_group, route_pattern="/admin/*")
         assert perm.allowed is False
 
 
@@ -135,29 +127,29 @@ class TestGetUserPermissions:
     def test_superuser_gets_full_access(self, superuser):
         """Test that superusers get full access to everything."""
         permissions = get_user_permissions(superuser)
-        assert permissions['is_superuser'] is True
-        assert permissions['models']['*'] == 'full'
-        assert permissions['routes']['*'] is True
+        assert permissions["is_superuser"] is True
+        assert permissions["models"]["*"] == "full"
+        assert permissions["routes"]["*"] is True
 
     def test_admin_user_permissions(self, admin_user):
         """Test that admin users get their group's permissions."""
         permissions = get_user_permissions(admin_user)
-        assert permissions['is_superuser'] is False
-        assert permissions['models']['trench'] == 'full'
-        assert permissions['routes']['/admin/*'] is True
+        assert permissions["is_superuser"] is False
+        assert permissions["models"]["trench"] == "full"
+        assert permissions["routes"]["/admin/*"] is True
 
     def test_editor_user_permissions(self, editor_user):
         """Test that editor users get their group's permissions."""
         permissions = get_user_permissions(editor_user)
-        assert permissions['is_superuser'] is False
-        assert permissions['models']['trench'] == 'edit'
-        assert permissions['routes']['/admin/*'] is False
+        assert permissions["is_superuser"] is False
+        assert permissions["models"]["trench"] == "edit"
+        assert permissions["routes"]["/admin/*"] is False
 
     def test_viewer_user_permissions(self, viewer_user):
         """Test that viewer users get their group's permissions."""
         permissions = get_user_permissions(viewer_user)
-        assert permissions['is_superuser'] is False
-        assert permissions['models']['trench'] == 'view'
+        assert permissions["is_superuser"] is False
+        assert permissions["models"]["trench"] == "view"
 
 
 class TestRoleBasedPermissionClass:
@@ -166,40 +158,42 @@ class TestRoleBasedPermissionClass:
     def test_superuser_can_list(self, api_client, superuser):
         """Test that superuser can list resources."""
         api_client.force_authenticate(user=superuser)
-        response = api_client.get('/api/v1/trench/')
+        response = api_client.get("/api/v1/trench/")
         assert response.status_code == 200
 
     def test_viewer_can_list(self, api_client, viewer_user):
         """Test that viewer can list resources."""
         api_client.force_authenticate(user=viewer_user)
-        response = api_client.get('/api/v1/trench/')
+        response = api_client.get("/api/v1/trench/")
         assert response.status_code == 200
 
     def test_viewer_cannot_create(self, api_client, viewer_user, project, flag):
         """Test that viewer cannot create resources."""
         api_client.force_authenticate(user=viewer_user)
         response = api_client.post(
-            '/api/v1/trench/',
+            "/api/v1/trench/",
             {
-                'id_trench': 'TEST-001',
-                'project': project.id,
-                'flag': flag.id,
+                "id_trench": "TEST-001",
+                "project": project.id,
+                "flag": flag.id,
             },
-            format='json'
+            format="json",
         )
         assert response.status_code == 403
 
-    def test_editor_can_access_post_method(self, api_client, editor_user, project, flag):
+    def test_editor_can_access_post_method(
+        self, api_client, editor_user, project, flag
+    ):
         """Test that editor has permission to POST (even if data is invalid)."""
         api_client.force_authenticate(user=editor_user)
         response = api_client.post(
-            '/api/v1/trench/',
+            "/api/v1/trench/",
             {
-                'id_trench': 'TEST-002',
-                'project': project.id,
-                'flag': flag.id,
+                "id_trench": "TEST-002",
+                "project": project.id,
+                "flag": flag.id,
             },
-            format='json'
+            format="json",
         )
         # 400 (Bad Request) means permissions passed but data validation failed
         # 403 would mean permission denied
@@ -209,13 +203,13 @@ class TestRoleBasedPermissionClass:
         """Test that admin has permission to POST (even if data is invalid)."""
         api_client.force_authenticate(user=admin_user)
         response = api_client.post(
-            '/api/v1/trench/',
+            "/api/v1/trench/",
             {
-                'id_trench': 'TEST-003',
-                'project': project.id,
-                'flag': flag.id,
+                "id_trench": "TEST-003",
+                "project": project.id,
+                "flag": flag.id,
             },
-            format='json'
+            format="json",
         )
         # 400 (Bad Request) means permissions passed but data validation failed
         # 403 would mean permission denied
@@ -227,18 +221,18 @@ class TestPermissionsEndpoint:
 
     def test_unauthenticated_user_cannot_access(self, api_client):
         """Test that unauthenticated users cannot access permissions endpoint."""
-        response = api_client.get('/api/v1/auth/permissions/')
+        response = api_client.get("/api/v1/auth/permissions/")
         assert response.status_code == 401
 
     def test_returns_user_permissions(self, api_client, editor_user):
         """Test that endpoint returns user's permissions."""
         api_client.force_authenticate(user=editor_user)
-        response = api_client.get('/api/v1/auth/permissions/')
+        response = api_client.get("/api/v1/auth/permissions/")
 
         assert response.status_code == 200
         data = response.json()
-        assert 'models' in data
-        assert 'routes' in data
-        assert 'is_superuser' in data
-        assert data['is_superuser'] is False
-        assert data['models']['trench'] == 'edit'
+        assert "models" in data
+        assert "routes" in data
+        assert "is_superuser" in data
+        assert data["is_superuser"] is False
+        assert data["models"]["trench"] == "edit"

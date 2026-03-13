@@ -155,7 +155,12 @@ class TestRoutingViewStringIds:
         assert "path_length" in data
 
     def test_routing_with_alphanumeric_trench_ids(
-        self, authenticated_client, routing_project, routing_flag, surface, construction_type
+        self,
+        authenticated_client,
+        routing_project,
+        routing_flag,
+        surface,
+        construction_type,
     ):
         """Test routing works with auto-generated alphanumeric id_trench values."""
         trench1 = Trench.objects.create(
@@ -265,9 +270,7 @@ class TestRoutingViewValidation:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "error" in response.json()
 
-    def test_empty_trench_ids_returns_400(
-        self, authenticated_client, routing_project
-    ):
+    def test_empty_trench_ids_returns_400(self, authenticated_client, routing_project):
         """Test that empty trench IDs return 400 error."""
         response = authenticated_client.post(
             self.url,
@@ -329,7 +332,11 @@ class TestRoutingViewErrors:
         assert "not found" in response.json()["error"].lower()
 
     def test_no_path_between_disconnected_trenches_returns_400(
-        self, authenticated_client, connected_trenches, disconnected_trench, routing_project
+        self,
+        authenticated_client,
+        connected_trenches,
+        disconnected_trench,
+        routing_project,
     ):
         """Test that routing between disconnected trenches returns appropriate error."""
         start_trench = connected_trenches[0]
@@ -348,9 +355,7 @@ class TestRoutingViewErrors:
         assert "error" in response.json()
         assert "no path" in response.json()["error"].lower()
 
-    def test_no_trenches_in_project_returns_400(
-        self, authenticated_client
-    ):
+    def test_no_trenches_in_project_returns_400(self, authenticated_client):
         """Test that routing in a project with no trenches returns error."""
         empty_project = ProjectFactory()
 
@@ -485,7 +490,12 @@ class TestRoutingViewTolerance:
     url = "/api/v1/routing/"
 
     def test_routing_with_custom_tolerance(
-        self, authenticated_client, routing_project, routing_flag, surface, construction_type
+        self,
+        authenticated_client,
+        routing_project,
+        routing_flag,
+        surface,
+        construction_type,
     ):
         """Test routing with custom tolerance for snapping."""
         # Create trenches with a small gap that requires tolerance

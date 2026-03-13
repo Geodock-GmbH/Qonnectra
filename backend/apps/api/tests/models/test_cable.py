@@ -181,9 +181,15 @@ class TestCableModel:
             uuid_conduit=conduit,
         )
 
-        microduct1 = Microduct.objects.create(uuid_conduit=conduit, number=1, color="rot")
-        microduct2 = Microduct.objects.create(uuid_conduit=conduit, number=2, color="grün")
-        microduct3 = Microduct.objects.create(uuid_conduit=conduit, number=3, color="blau")
+        microduct1 = Microduct.objects.create(
+            uuid_conduit=conduit, number=1, color="rot"
+        )
+        microduct2 = Microduct.objects.create(
+            uuid_conduit=conduit, number=2, color="grün"
+        )
+        microduct3 = Microduct.objects.create(
+            uuid_conduit=conduit, number=3, color="blau"
+        )
 
         cable_type = CableTypeFactory()
         cable = Cable.objects.create(

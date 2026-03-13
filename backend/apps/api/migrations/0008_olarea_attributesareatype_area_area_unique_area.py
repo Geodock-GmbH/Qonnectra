@@ -7,59 +7,104 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('api', '0007_networkschema_settings'),
+        ("api", "0007_networkschema_settings"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='OlArea',
+            name="OlArea",
             fields=[
-                ('uuid', models.UUIDField(primary_key=True, serialize=False)),
-                ('geom', django.contrib.gis.db.models.fields.PolygonField(srid=25832, verbose_name='Geometry')),
+                ("uuid", models.UUIDField(primary_key=True, serialize=False)),
+                (
+                    "geom",
+                    django.contrib.gis.db.models.fields.PolygonField(
+                        srid=25832, verbose_name="Geometry"
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'OL Area',
-                'verbose_name_plural': 'OL Areas',
-                'db_table': 'ol_area',
-                'ordering': ['area_type'],
-                'managed': False,
+                "verbose_name": "OL Area",
+                "verbose_name_plural": "OL Areas",
+                "db_table": "ol_area",
+                "ordering": ["area_type"],
+                "managed": False,
             },
         ),
         migrations.CreateModel(
-            name='AttributesAreaType',
+            name="AttributesAreaType",
             fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('area_type', models.TextField(unique=True, verbose_name='Area Type')),
+                ("id", models.AutoField(primary_key=True, serialize=False)),
+                ("area_type", models.TextField(unique=True, verbose_name="Area Type")),
             ],
             options={
-                'verbose_name': 'Area Type',
-                'verbose_name_plural': 'Area Types',
-                'db_table': 'attributes_area_type',
-                'indexes': [models.Index(fields=['area_type'], name='idx_area_type_area_type')],
+                "verbose_name": "Area Type",
+                "verbose_name_plural": "Area Types",
+                "db_table": "attributes_area_type",
+                "indexes": [
+                    models.Index(fields=["area_type"], name="idx_area_type_area_type")
+                ],
             },
         ),
         migrations.CreateModel(
-            name='Area',
+            name="Area",
             fields=[
-                ('uuid', models.UUIDField(default=uuid.uuid4, primary_key=True, serialize=False)),
-                ('name', models.TextField(unique=True, verbose_name='Area Name')),
-                ('geom', django.contrib.gis.db.models.fields.PolygonField(srid=25832, verbose_name='Geometry')),
-                ('area_type', models.ForeignKey(db_column='area_type', on_delete=django.db.models.deletion.DO_NOTHING, to='api.attributesareatype')),
-                ('flag', models.ForeignKey(db_column='flag', db_index=False, on_delete=django.db.models.deletion.DO_NOTHING, to='api.flags', verbose_name='Flag')),
-                ('project', models.ForeignKey(db_column='project', db_index=False, on_delete=django.db.models.deletion.DO_NOTHING, to='api.projects', verbose_name='Project')),
+                (
+                    "uuid",
+                    models.UUIDField(
+                        default=uuid.uuid4, primary_key=True, serialize=False
+                    ),
+                ),
+                ("name", models.TextField(unique=True, verbose_name="Area Name")),
+                (
+                    "geom",
+                    django.contrib.gis.db.models.fields.PolygonField(
+                        srid=25832, verbose_name="Geometry"
+                    ),
+                ),
+                (
+                    "area_type",
+                    models.ForeignKey(
+                        db_column="area_type",
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        to="api.attributesareatype",
+                    ),
+                ),
+                (
+                    "flag",
+                    models.ForeignKey(
+                        db_column="flag",
+                        db_index=False,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        to="api.flags",
+                        verbose_name="Flag",
+                    ),
+                ),
+                (
+                    "project",
+                    models.ForeignKey(
+                        db_column="project",
+                        db_index=False,
+                        on_delete=django.db.models.deletion.DO_NOTHING,
+                        to="api.projects",
+                        verbose_name="Project",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Area',
-                'verbose_name_plural': 'Areas',
-                'db_table': 'area',
-                'ordering': ['name'],
-                'indexes': [models.Index(fields=['area_type'], name='idx_area_area_type')],
+                "verbose_name": "Area",
+                "verbose_name_plural": "Areas",
+                "db_table": "area",
+                "ordering": ["name"],
+                "indexes": [
+                    models.Index(fields=["area_type"], name="idx_area_area_type")
+                ],
             },
         ),
         migrations.AddConstraint(
-            model_name='area',
-            constraint=models.UniqueConstraint(fields=('project', 'name'), name='unique_area'),
+            model_name="area",
+            constraint=models.UniqueConstraint(
+                fields=("project", "name"), name="unique_area"
+            ),
         ),
     ]

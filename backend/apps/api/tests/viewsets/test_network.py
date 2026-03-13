@@ -269,8 +269,12 @@ class TestFiberViewSet:
     def test_list_fibers(self, authenticated_client):
         """Test listing fibers."""
         cable = CableFactory()
-        FiberFactory(uuid_cable=cable, fiber_number_absolute=1, fiber_number_in_bundle=1)
-        FiberFactory(uuid_cable=cable, fiber_number_absolute=2, fiber_number_in_bundle=2)
+        FiberFactory(
+            uuid_cable=cable, fiber_number_absolute=1, fiber_number_in_bundle=1
+        )
+        FiberFactory(
+            uuid_cable=cable, fiber_number_absolute=2, fiber_number_in_bundle=2
+        )
 
         response = authenticated_client.get("/api/v1/fiber/")
         assert response.status_code == status.HTTP_200_OK
@@ -279,8 +283,12 @@ class TestFiberViewSet:
         """Test filtering fibers by cable."""
         cable1 = CableFactory()
         cable2 = CableFactory()
-        FiberFactory(uuid_cable=cable1, fiber_number_absolute=1, fiber_number_in_bundle=1)
-        FiberFactory(uuid_cable=cable2, fiber_number_absolute=1, fiber_number_in_bundle=1)
+        FiberFactory(
+            uuid_cable=cable1, fiber_number_absolute=1, fiber_number_in_bundle=1
+        )
+        FiberFactory(
+            uuid_cable=cable2, fiber_number_absolute=1, fiber_number_in_bundle=1
+        )
 
         response = authenticated_client.get(f"/api/v1/fiber/?cable={cable1.uuid}")
         assert response.status_code == status.HTTP_200_OK
@@ -501,7 +509,9 @@ class TestNodeTrenchSelectionViewSet:
     def test_filter_by_node(self, authenticated_client):
         """Test filtering selections by node."""
         node = NodeFactory()
-        response = authenticated_client.get(f"/api/v1/node-trench-selection/?node={node.uuid}")
+        response = authenticated_client.get(
+            f"/api/v1/node-trench-selection/?node={node.uuid}"
+        )
         assert response.status_code == status.HTTP_200_OK
 
 

@@ -48,9 +48,16 @@ class TestValidateFolderPath:
     def test_windows_reserved_names_rejected(self):
         """Test that Windows reserved names are rejected."""
         reserved_names = [
-            "CON", "PRN", "AUX", "NUL",
-            "COM1", "COM2", "COM9",
-            "LPT1", "LPT5", "LPT9"
+            "CON",
+            "PRN",
+            "AUX",
+            "NUL",
+            "COM1",
+            "COM2",
+            "COM9",
+            "LPT1",
+            "LPT5",
+            "LPT9",
         ]
 
         for name in reserved_names:
@@ -108,7 +115,7 @@ class TestValidateFolderPath:
 
     def test_invalid_characters_rejected(self):
         """Test that paths with invalid characters are rejected."""
-        invalid_chars = ['<', '>', ':', '"', '|', '?', '*']
+        invalid_chars = ["<", ">", ":", '"', "|", "?", "*"]
 
         for char in invalid_chars:
             with pytest.raises(ValidationError, match="invalid characters"):
@@ -214,64 +221,40 @@ class TestValidateStoragePreferencesStructure:
     def test_non_string_feature_type_rejected(self):
         """Test that non-string feature type keys are rejected."""
         with pytest.raises(ValidationError, match="Feature type keys must be strings"):
-            validate_storage_preferences_structure({
-                123: {"default": "folders"}
-            })
+            validate_storage_preferences_structure({123: {"default": "folders"}})
 
     def test_non_dict_categories_rejected(self):
         """Test that non-dictionary category values are rejected."""
         with pytest.raises(ValidationError, match="must map to a dictionary"):
-            validate_storage_preferences_structure({
-                "node": "folders"
-            })
+            validate_storage_preferences_structure({"node": "folders"})
 
         with pytest.raises(ValidationError, match="must map to a dictionary"):
-            validate_storage_preferences_structure({
-                "node": ["folders"]
-            })
+            validate_storage_preferences_structure({"node": ["folders"]})
 
     def test_non_string_category_key_rejected(self):
         """Test that non-string category keys are rejected."""
         with pytest.raises(ValidationError, match="Category keys must be strings"):
-            validate_storage_preferences_structure({
-                "node": {
-                    123: "folders"
-                }
-            })
+            validate_storage_preferences_structure({"node": {123: "folders"}})
 
     def test_invalid_path_in_structure_rejected(self):
         """Test that invalid paths in the structure are rejected."""
         # Reserved name
         with pytest.raises(ValidationError, match="reserved system name"):
-            validate_storage_preferences_structure({
-                "node": {
-                    "default": "CON"
-                }
-            })
+            validate_storage_preferences_structure({"node": {"default": "CON"}})
 
         # Path traversal
         with pytest.raises(ValidationError, match="reserved system name"):
-            validate_storage_preferences_structure({
-                "node": {
-                    "default": "../etc"
-                }
-            })
+            validate_storage_preferences_structure({"node": {"default": "../etc"}})
 
         # Absolute path
         with pytest.raises(ValidationError, match="cannot be an absolute path"):
-            validate_storage_preferences_structure({
-                "node": {
-                    "default": "/tmp"
-                }
-            })
+            validate_storage_preferences_structure({"node": {"default": "/tmp"}})
 
         # Invalid characters
         with pytest.raises(ValidationError, match="invalid characters"):
-            validate_storage_preferences_structure({
-                "node": {
-                    "default": "folder<name>"
-                }
-            })
+            validate_storage_preferences_structure(
+                {"node": {"default": "folder<name>"}}
+            )
 
     def test_complex_valid_structure(self):
         """Test a complex but valid structure."""
@@ -314,7 +297,7 @@ class TestStoragePreferencesModelValidation:
                     "default": "nodes",
                     "photos": "nodes/photos",
                 }
-            }
+            },
         )
         prefs.clean()  # Should not raise
 
@@ -328,7 +311,7 @@ class TestStoragePreferencesModelValidation:
                 "node": {
                     "default": "CON"  # Reserved name
                 }
-            }
+            },
         )
         with pytest.raises(ValidationError):
             prefs.clean()
@@ -338,12 +321,7 @@ class TestStoragePreferencesModelValidation:
         from apps.api.models import StoragePreferences
 
         prefs = StoragePreferences(
-            mode="AUTO",
-            folder_structure={
-                "node": {
-                    "default": "../../../etc/passwd"
-                }
-            }
+            mode="AUTO", folder_structure={"node": {"default": "../../../etc/passwd"}}
         )
         with pytest.raises(ValidationError):
             prefs.clean()
