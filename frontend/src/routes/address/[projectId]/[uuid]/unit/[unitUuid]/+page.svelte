@@ -113,7 +113,8 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: /** @type {any} */ (result).data?.message || m.message_error_updating_residential_unit()
+					description:
+						/** @type {any} */ (result).data?.message || m.message_error_updating_residential_unit()
 				});
 			}
 		} catch (error) {
@@ -151,7 +152,8 @@
 			} else if (result.type === 'failure') {
 				globalToaster.error({
 					title: m.common_error(),
-					description: /** @type {any} */ (result).data?.message || m.message_error_deleting_residential_unit()
+					description:
+						/** @type {any} */ (result).data?.message || m.message_error_deleting_residential_unit()
 				});
 			}
 		} catch (error) {
@@ -189,7 +191,9 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: /** @type {any} */ (result).data?.message || m.message_error_regenerating_residential_unit_id()
+					description:
+						/** @type {any} */ (result).data?.message ||
+						m.message_error_regenerating_residential_unit_id()
 				});
 			}
 		} catch (error) {

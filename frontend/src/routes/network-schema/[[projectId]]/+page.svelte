@@ -37,20 +37,17 @@
 	const nodeTypes = { cableDiagramNode: CableDiagramNode };
 	const edgeTypes = { cableDiagramEdge: CableDiagramEdge };
 
-	// Create managers - schemaState initialized reactively via $effect
 	const schemaState = new NetworkSchemaState();
 	const cablePathManager = new CablePathManager();
 	const searchManager = new NetworkSchemaSearchManager(schemaState);
 
 	let prevUrl = $state($page.url.href);
 
-	// Initialize schema state when data is available
 	$effect(() => {
 		schemaState.isChildView = false;
 		schemaState.initialize(data);
 	});
 
-	// Context with derived attribute options - stays reactive to data changes
 	const attributeOptions = $derived({
 		nodeTypes: data.nodeTypes,
 		cableTypes: data.cableTypes,
@@ -95,9 +92,6 @@
 		}
 	});
 
-	/**
-	 * Initialize component and check sync status
-	 */
 	onMount(async () => {
 		startHeartbeat();
 		await autoLockSvelteFlow();
@@ -127,9 +121,7 @@
 		};
 	});
 
-	/**
-	 * Reload page when URL changes (project switch)
-	 */
+	/** Force a full reload when the project changes via URL, since the schema is not designed for partial re-initialization. */
 	$effect(() => {
 		if ($page.url.href !== prevUrl) {
 			prevUrl = $page.url.href;
@@ -137,9 +129,6 @@
 		}
 	});
 
-	/**
-	 * Listen for micropipe linkage changes to update edge colors
-	 */
 	onMount(() => {
 		function handleMicropipeLinkageChanged(event) {
 			const { cableId, connections } = event.detail;
@@ -153,7 +142,9 @@
 	});
 
 	/**
-	 * Handle cable path update events from CableDiagramEdge
+	 * Applies a waypoint update from a CableDiagramEdge drag to both the path manager and local edge state.
+	 * @param {CustomEvent<{edgeId: string, waypoints: unknown[], temporary: boolean, save: boolean}>} event
+	 * @returns {Promise<void>}
 	 */
 	async function handleCablePathUpdate(event) {
 		const { edgeId, waypoints, temporary, save } = event.detail;
@@ -178,7 +169,8 @@
 	}
 
 	/**
-	 * Handle cable handle updates from CableDiagramEdge
+	 * Applies handle position updates from a CableDiagramEdge to both the path manager and schema state.
+	 * @param {CustomEvent<{cableId: string, handleStart: unknown, handleEnd: unknown}>} event
 	 */
 	function handleCableHandleUpdate(event) {
 		const { cableId, handleStart, handleEnd } = event.detail;
@@ -192,9 +184,6 @@
 		);
 	}
 
-	/**
-	 * Listen for cable path update events
-	 */
 	$effect(() => {
 		window.addEventListener('updateCablePath', handleCablePathUpdate);
 		return () => {
@@ -202,9 +191,6 @@
 		};
 	});
 
-	/**
-	 * Listen for cable handle update events
-	 */
 	$effect(() => {
 		window.addEventListener('updateCableHandles', handleCableHandleUpdate);
 		return () => {
@@ -213,16 +199,14 @@
 	});
 
 	/**
-	 * Handle cable label data update events from CableDiagramEdge
+	 * Propagates label data changes from a CableDiagramEdge into schema state.
+	 * @param {CustomEvent<{edgeId: string, labelData: unknown}>} event
 	 */
 	function handleCableLabelDataUpdate(event) {
 		const { edgeId, labelData } = event.detail;
 		schemaState.updateEdgeLabelData(edgeId, labelData);
 	}
 
-	/**
-	 * Listen for cable label data update events
-	 */
 	$effect(() => {
 		window.addEventListener('updateCableLabelData', handleCableLabelDataUpdate);
 		return () => {
@@ -230,9 +214,6 @@
 		};
 	});
 
-	/**
-	 * Listen for cable connection changed events (from handle config reconnection)
-	 */
 	$effect(() => {
 		function handleCableConnectionChangedEvent(event) {
 			const { cableId, side, newNodeId, handlePosition } = event.detail;
@@ -248,9 +229,6 @@
 		};
 	});
 
-	/**
-	 * Track drawer state and deselect nodes when drawer closes
-	 */
 	let previousDrawerOpen = $state(false);
 	$effect(() => {
 		const currentDrawerOpen = $drawerStore.open;

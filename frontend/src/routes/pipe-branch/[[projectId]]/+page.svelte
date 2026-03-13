@@ -413,12 +413,16 @@
 							const sourceNode = nodes.find(
 								(n) =>
 									n.data?.trench?.uuid === conn.uuid_trench_from.id &&
-									n.data?.conduit?.microducts?.some((/** @type {any} */ m) => m.uuid === conn.uuid_microduct_from.uuid)
+									n.data?.conduit?.microducts?.some(
+										(/** @type {any} */ m) => m.uuid === conn.uuid_microduct_from.uuid
+									)
 							);
 							const targetNode = nodes.find(
 								(n) =>
 									n.data?.trench?.uuid === conn.uuid_trench_to.id &&
-									n.data?.conduit?.microducts?.some((/** @type {any} */ m) => m.uuid === conn.uuid_microduct_to.uuid)
+									n.data?.conduit?.microducts?.some(
+										(/** @type {any} */ m) => m.uuid === conn.uuid_microduct_to.uuid
+									)
 							);
 
 							if (!sourceNode || !targetNode) return null;
@@ -707,7 +711,9 @@
 
 		const connections = [];
 		for (const sourceMd of sourceMicroducts) {
-			const targetMd = targetMicroducts.find((/** @type {any} */ t) => t.number === sourceMd.number);
+			const targetMd = targetMicroducts.find(
+				(/** @type {any} */ t) => t.number === sourceMd.number
+			);
 			if (targetMd) {
 				if (!edgeExists(sourceMd.uuid, targetMd.uuid)) {
 					connections.push({

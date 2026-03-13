@@ -33,7 +33,7 @@ export async function POST({ cookies, fetch, url }) {
 
 		const setCookieHeader = response.headers.get('set-cookie');
 		if (setCookieHeader) {
-			const parsedCookies = setCookieParser.parse(response);
+			const parsedCookies = setCookieParser.parse(setCookieHeader);
 			parsedCookies.forEach((/** @type {Record<string, any>} */ cookie) => {
 				const { name, value, ...options } = cookie;
 
@@ -43,7 +43,14 @@ export async function POST({ cookies, fetch, url }) {
 
 				options.secure = options.secure || url.protocol === 'https:';
 
-				cookies.set(name, value, /** @type {import('cookie').CookieSerializeOptions & { path: string }} */ ({ ...options, path: options.path || '/' }));
+				cookies.set(
+					name,
+					value,
+					/** @type {import('cookie').CookieSerializeOptions & { path: string }} */ ({
+						...options,
+						path: options.path || '/'
+					})
+				);
 			});
 		}
 

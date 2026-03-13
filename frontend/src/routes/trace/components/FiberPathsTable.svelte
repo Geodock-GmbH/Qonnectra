@@ -118,7 +118,9 @@
 			const fiberMatch =
 				`f${row.fiberNumber}`.includes(query) || `${row.fiberNumber}`.includes(query);
 			const cableMatch = row.cableName.toLowerCase().includes(query);
-			const destinationMatch = row.destinations.some((/** @type {string} */ d) => d.toLowerCase().includes(query));
+			const destinationMatch = row.destinations.some((/** @type {string} */ d) =>
+				d.toLowerCase().includes(query)
+			);
 			return fiberMatch || cableMatch || destinationMatch;
 		});
 	});
@@ -475,7 +477,10 @@
 	</div>
 {/snippet}
 
-{#snippet cableEndpointsDetails(/** @type {Record<string, any>} */ endpoints, /** @type {string|undefined} */ currentNodeId)}
+{#snippet cableEndpointsDetails(
+	/** @type {Record<string, any>} */ endpoints,
+	/** @type {string|undefined} */ currentNodeId
+)}
 	<div class="mb-2 ml-1 rounded-lg border-l-2 border-primary-500 bg-surface-100-900 p-3 text-sm">
 		<div class="mb-2 font-semibold text-primary-500">
 			{m.trace_cable_path()}: {endpoints.cable_name}

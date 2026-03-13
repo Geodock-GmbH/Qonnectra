@@ -44,7 +44,6 @@
 	$effect(() => {
 		schemaState.isChildView = true;
 		schemaState.initialize(data);
-		// Set parent node context for child view cable creation
 		schemaState.parentNodeContext = data.parentNodeId;
 	});
 
@@ -216,7 +215,6 @@
 			<Controls />
 			<Panel position="top-left">
 				<div class="card bg-surface-50-950 p-2 rounded-lg shadow-lg w-72">
-					<!-- Collapsible Panel Header -->
 					<button
 						class="flex items-center gap-1.5 w-full hover:bg-surface-100-800 rounded px-1 py-0.5 transition-colors"
 						onclick={() => ($networkSchemaPanelExpanded = !$networkSchemaPanelExpanded)}
@@ -252,7 +250,6 @@
 							/>
 						</div>
 
-						<!-- Collapsible Display Options Section -->
 						<div class="mt-3">
 							<button
 								class="flex items-center gap-1.5 w-full hover:bg-surface-100-800 rounded px-1 py-0.5 transition-colors"

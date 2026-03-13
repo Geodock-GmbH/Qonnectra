@@ -99,7 +99,11 @@
 								<div class="h-6 bg-surface-500 rounded animate-pulse w-16"></div>
 							{:else}
 								<div class="text-3xl font-extrabold text-surface-900-100">
-									{data.nodesByType?.reduce((/** @type {number} */ sum, /** @type {{ count: number }} */ item) => sum + item.count, 0) || 0}x
+									{data.nodesByType?.reduce(
+										(/** @type {number} */ sum, /** @type {{ count: number }} */ item) =>
+											sum + item.count,
+										0
+									) || 0}x
 								</div>
 							{/if}
 						</div>
@@ -145,8 +149,11 @@
 							{:else}
 								<div class="text-3xl font-extrabold text-surface-900-100">
 									{(
-										data.conduitLengthByType?.reduce((/** @type {number} */ sum, /** @type {{ total: number }} */ item) => sum + (item.total || 0), 0) /
-										1000
+										data.conduitLengthByType?.reduce(
+											(/** @type {number} */ sum, /** @type {{ total: number }} */ item) =>
+												sum + (item.total || 0),
+											0
+										) / 1000
 									).toLocaleString('de-DE', {
 										minimumFractionDigits: 2,
 										maximumFractionDigits: 2

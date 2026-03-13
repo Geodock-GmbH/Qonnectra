@@ -154,7 +154,10 @@
 
 		mapState.initializeSelectionLayers(
 			olMapInstance,
-			() => /** @type {Record<string, boolean>} */ (/** @type {unknown} */ (selectionManager.getSelectionStore()))
+			() =>
+				/** @type {Record<string, boolean>} */ (
+					/** @type {unknown} */ (selectionManager.getSelectionStore())
+				)
 		);
 
 		const selectionLayers = mapState.getSelectionLayers();

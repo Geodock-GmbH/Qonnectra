@@ -23,9 +23,6 @@
 		disabled = false
 	} = $props();
 
-	// In readonly mode, component is not rendered
-	// This is handled by the parent component
-
 	const dragDropManager = getContext(DRAG_DROP_CONTEXT_KEY);
 
 	let componentTypes = $state([]);
@@ -141,7 +138,6 @@
 </script>
 
 {#if isMobile}
-	<!-- Mobile: Simple list without sidebar wrapper -->
 	<div class="space-y-2">
 		{#if loading}
 			<div class="text-center py-4 text-surface-500">{m.common_loading()}</div>
@@ -174,7 +170,6 @@
 							</div>
 						</div>
 					</button>
-					<!-- Quantity controls -->
 					<div class="flex items-center gap-1 shrink-0">
 						<button
 							type="button"
@@ -214,7 +209,6 @@
 		{/if}
 	</div>
 {:else}
-	<!-- Desktop: Original sidebar -->
 	<div
 		class="relative border-r border-(--color-surface-200-800) bg-(--color-surface-100-900) transition-all duration-200 ease-in-out flex flex-col"
 		style:width={collapsed ? '40px' : '260px'}
@@ -266,7 +260,6 @@
 										{/if}
 									</div>
 								</div>
-								<!-- Quantity controls -->
 								<div class="flex items-center gap-0.5 shrink-0">
 									<button
 										type="button"

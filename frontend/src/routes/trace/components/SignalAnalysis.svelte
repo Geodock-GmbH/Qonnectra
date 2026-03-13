@@ -185,7 +185,11 @@
 	const hasBreaks = $derived(breakPoints.length > 0);
 </script>
 
-{#snippet statCard(/** @type {string} */ label, /** @type {number} */ value, /** @type {string} */ colorClass)}
+{#snippet statCard(
+	/** @type {string} */ label,
+	/** @type {number} */ value,
+	/** @type {string} */ colorClass
+)}
 	<div
 		class="rounded-xl border border-surface-200-800 bg-surface-50-950 p-4 text-center shadow-sm transition-all hover:shadow-md"
 	>
@@ -194,7 +198,11 @@
 	</div>
 {/snippet}
 
-{#snippet signalStatCard(/** @type {string} */ label, /** @type {number} */ litValue, /** @type {number} */ darkValue)}
+{#snippet signalStatCard(
+	/** @type {string} */ label,
+	/** @type {number} */ litValue,
+	/** @type {number} */ darkValue
+)}
 	<div
 		class="rounded-xl border border-surface-200-800 bg-surface-50-950 p-4 text-center shadow-sm transition-all hover:shadow-md"
 	>
@@ -454,7 +462,10 @@
 	</div>
 {/snippet}
 
-{#snippet cableEndpointsDetails(/** @type {Record<string, any>} */ endpoints, /** @type {string|undefined} */ currentNodeId)}
+{#snippet cableEndpointsDetails(
+	/** @type {Record<string, any>} */ endpoints,
+	/** @type {string|undefined} */ currentNodeId
+)}
 	<details class="group ml-1 mb-2">
 		<summary
 			class="flex cursor-pointer items-center gap-2 rounded-lg bg-surface-100-900 px-3 py-2 text-sm hover:bg-surface-200-800"
@@ -504,7 +515,10 @@
 	</details>
 {/snippet}
 
-{#snippet addressDetails(/** @type {Record<string, any>} */ address, /** @type {boolean} */ isDark = false)}
+{#snippet addressDetails(
+	/** @type {Record<string, any>} */ address,
+	/** @type {boolean} */ isDark = false
+)}
 	<div
 		class="mb-2 ml-1 rounded-lg border-l-2 {isDark
 			? 'border-surface-400 bg-surface-200-800'
@@ -527,7 +541,10 @@
 	</div>
 {/snippet}
 
-{#snippet residentialUnitDetails(/** @type {Record<string, any>} */ ru, /** @type {boolean} */ isDark = false)}
+{#snippet residentialUnitDetails(
+	/** @type {Record<string, any>} */ ru,
+	/** @type {boolean} */ isDark = false
+)}
 	<div
 		class="mb-2 ml-1 rounded-lg border-l-2 {isDark
 			? 'border-surface-400 bg-surface-200-800'

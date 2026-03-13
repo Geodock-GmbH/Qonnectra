@@ -56,7 +56,10 @@
 				throw new Error(errorData?.error || 'Failed to fetch trenches');
 			}
 
-			const successData = /** @type {{ trenches?: Array<{value: string, label: string, trench: string}> }} */ (/** @type {any} */ (result).data);
+			const successData =
+				/** @type {{ trenches?: Array<{value: string, label: string, trench: string}> }} */ (
+					/** @type {any} */ (result).data
+				);
 			trenches = successData?.trenches || [];
 		} catch (error) {
 			trenchesError = m.message_error_fetching_trenches();

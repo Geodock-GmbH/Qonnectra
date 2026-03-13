@@ -96,7 +96,6 @@ export async function load({ fetch, cookies, url, params }) {
 	}
 
 	try {
-		// Start fetching attribute data immediately (these don't depend on sync)
 		const attributesFetchPromise = Promise.all([
 			fetch(`${API_URL}attributes_cable_type/`, {
 				credentials: 'include',
@@ -124,7 +123,6 @@ export async function load({ fetch, cookies, url, params }) {
 			})
 		]);
 
-		// Handle sync status check and potential sync operation
 		let syncStatus = null;
 
 		const syncStatusResponse = await fetch(
@@ -166,8 +164,6 @@ export async function load({ fetch, cookies, url, params }) {
 			}
 		}
 
-		// Fetch project-specific data (nodes, cables, labels) after sync completes
-		// and await the already-started attributes fetch
 		const [
 			[
 				cableTypeResponse,
@@ -357,6 +353,10 @@ export async function load({ fetch, cookies, url, params }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+	/**
+	 * @param {import('./$types').RequestEvent} event
+	 * @returns {Promise<{type: string, data: Object} | import('@sveltejs/kit').ActionFailure>}
+	 */
 	createCable: async ({ request, cookies }) => {
 		try {
 			const formData = await request.formData();
@@ -371,7 +371,6 @@ export const actions = {
 			const handle_end = formData.get('handle_end');
 			const parent_node_context_id = formData.get('parent_node_context_id');
 
-			// Validate required fields
 			if (!name || !cable_type_id || !project_id || !flag_id) {
 				return fail(400, {
 					error:
@@ -405,23 +404,10 @@ export const actions = {
 				uuid_node_end_id: uuid_node_end_id
 			};
 
-			// Add optional UUID field
-			if (uuid) {
-				requestBody.uuid = uuid;
-			}
-
-			// Add optional handle fields
-			if (handle_start) {
-				requestBody.handle_start = handle_start;
-			}
-			if (handle_end) {
-				requestBody.handle_end = handle_end;
-			}
-
-			// Add optional parent node context (for child view cables)
-			if (parent_node_context_id) {
-				requestBody.parent_node_context_id = parent_node_context_id;
-			}
+			if (uuid) requestBody.uuid = uuid;
+			if (handle_start) requestBody.handle_start = handle_start;
+			if (handle_end) requestBody.handle_end = handle_end;
+			if (parent_node_context_id) requestBody.parent_node_context_id = parent_node_context_id;
 
 			const response = await fetch(backendUrl, {
 				method: 'POST',
@@ -811,7 +797,6 @@ export const actions = {
 		}
 
 		try {
-			// Fetch cables connected to this node (start or end) using the dedicated endpoint
 			const cablesResponse = await fetch(`${API_URL}cable/at-node/${nodeId}/`, {
 				method: 'GET',
 				headers
@@ -822,7 +807,6 @@ export const actions = {
 				cables = await cablesResponse.json();
 			}
 
-			// Fetch structures placed in this node
 			const structuresResponse = await fetch(`${API_URL}node-structure/?node=${nodeId}`, {
 				method: 'GET',
 				headers
@@ -833,7 +817,6 @@ export const actions = {
 				structures = await structuresResponse.json();
 			}
 
-			// Fetch children of this node
 			let children = [];
 			let childrenWithCables = [];
 			if (projectId) {
@@ -844,15 +827,12 @@ export const actions = {
 
 				if (childrenResponse.ok) {
 					const childrenData = await childrenResponse.json();
-					// Handle paginated GeoJSON response: results.features or features
 					children =
 						childrenData.results?.features ||
 						childrenData.features ||
 						(Array.isArray(childrenData) ? childrenData : []);
 
-					// Check which children have cables connected
 					for (const child of children) {
-						// GeoJSON feature: id is at top level, name is in properties
 						const childId = child.id || child.properties?.uuid || child.uuid;
 						const childName = child.properties?.name || child.name;
 						const childCablesResponse = await fetch(`${API_URL}cable/at-node/${childId}/`, {
@@ -897,13 +877,11 @@ export const actions = {
 		}
 
 		try {
-			// Fetch fiber splices where this cable is cable_a
 			const splicesAResponse = await fetch(`${API_URL}fiber-splice/?cable_a=${cableUuid}`, {
 				method: 'GET',
 				headers
 			});
 
-			// Fetch fiber splices where this cable is cable_b
 			const splicesBResponse = await fetch(`${API_URL}fiber-splice/?cable_b=${cableUuid}`, {
 				method: 'GET',
 				headers
@@ -918,7 +896,6 @@ export const actions = {
 				splicesB = await splicesBResponse.json();
 			}
 
-			// Combine and deduplicate splices
 			const spliceMap = new Map();
 			[...splicesA, ...splicesB].forEach((splice) => {
 				if (splice.uuid) {
@@ -941,8 +918,6 @@ export const actions = {
 		const formData = await request.formData();
 
 		const nodeId = formData.get('nodeId');
-
-		// Check which coordinate set is being updated
 		const canvas_x_raw = formData.get('canvas_x');
 		const canvas_y_raw = formData.get('canvas_y');
 		const child_canvas_x_raw = formData.get('child_canvas_x');
@@ -955,10 +930,8 @@ export const actions = {
 			};
 		}
 
-		// Build update payload based on which coordinates were provided
 		const updatePayload = {};
 
-		// Check if main canvas coordinates are provided (not null and not undefined)
 		if (canvas_x_raw != null && canvas_y_raw != null) {
 			const canvas_x = parseFloat(canvas_x_raw);
 			const canvas_y = parseFloat(canvas_y_raw);
@@ -972,7 +945,6 @@ export const actions = {
 			updatePayload.canvas_y = canvas_y;
 		}
 
-		// Check if child canvas coordinates are provided (not null and not undefined)
 		if (child_canvas_x_raw != null && child_canvas_y_raw != null) {
 			const child_canvas_x = parseFloat(child_canvas_x_raw);
 			const child_canvas_y = parseFloat(child_canvas_y_raw);
@@ -1337,7 +1309,6 @@ export const actions = {
 
 			const headers = getAuthHeaders(cookies);
 
-			// First get current state
 			const getResponse = await fetch(`${API_URL}container/${containerUuid}/`, {
 				method: 'GET',
 				headers
@@ -1349,7 +1320,6 @@ export const actions = {
 
 			const container = await getResponse.json();
 
-			// Toggle the state
 			const response = await fetch(`${API_URL}container/${containerUuid}/`, {
 				method: 'PATCH',
 				headers: {
@@ -1586,14 +1556,12 @@ export const actions = {
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));
 				console.error('Error creating node structure:', response.status, errorData);
-				// Build error message from all fields
 				let errorMessage = 'Failed to create structure';
 				if (errorData.detail) {
 					errorMessage = errorData.detail;
 				} else if (errorData.error) {
 					errorMessage = errorData.error;
 				} else if (typeof errorData === 'object') {
-					// DRF returns field errors as object
 					const fieldErrors = Object.entries(errorData)
 						.map(
 							([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`
@@ -1882,7 +1850,6 @@ export const actions = {
 				});
 			}
 
-			// Must have either fiber/cable OR residential unit
 			const hasFiber = fiberUuid && cableUuid;
 			const hasResidentialUnit = residentialUnitUuid;
 			if (!hasFiber && !hasResidentialUnit) {
@@ -2182,8 +2149,7 @@ export const actions = {
 		}
 
 		try {
-			// Fetch fiber splices where this cable's fibers are connected at this node
-			// We need to check both cable_a and cable_b, and also check node_structure.uuid_node
+			// Queries both cable_a and cable_b because a cable can appear on either side of a splice
 			const splicesAResponse = await fetch(
 				`${API_URL}fiber-splice/?cable_a=${cableUuid}&node_structure__uuid_node=${nodeUuid}`,
 				{
@@ -2209,7 +2175,6 @@ export const actions = {
 				splicesB = await splicesBResponse.json();
 			}
 
-			// Combine and deduplicate splices
 			const spliceMap = new Map();
 			[...splicesA, ...splicesB].forEach((splice) => {
 				if (splice.uuid) {
@@ -2239,7 +2204,6 @@ export const actions = {
 		}
 
 		try {
-			// First fetch all splices for this cable at this node (both as cable_a and cable_b)
 			const splicesAResponse = await fetch(
 				`${API_URL}fiber-splice/?cable_a=${cableUuid}&node_structure__uuid_node=${nodeUuid}`,
 				{
@@ -2265,7 +2229,6 @@ export const actions = {
 				splicesB = await splicesBResponse.json();
 			}
 
-			// Combine and deduplicate splices
 			const spliceMap = new Map();
 			[...splicesA, ...splicesB].forEach((splice) => {
 				if (splice.uuid) {
@@ -2274,7 +2237,6 @@ export const actions = {
 			});
 			const splicesToDelete = Array.from(spliceMap.values());
 
-			// Delete each splice
 			const deleteResults = await Promise.all(
 				splicesToDelete.map(async (splice) => {
 					const deleteResponse = await fetch(`${API_URL}fiber-splice/${splice.uuid}/`, {
@@ -2322,7 +2284,6 @@ export const actions = {
 			}
 
 			const nodesData = await response.json();
-			// Extract nodes from GeoJSON FeatureCollection if needed
 			const nodes = nodesData?.features || nodesData || [];
 			return {
 				nodes: nodes.map((nodeOrFeature) => {
@@ -2353,7 +2314,6 @@ export const actions = {
 		}
 
 		try {
-			// Get the cable to find its start and end nodes
 			const cableResponse = await fetch(`${API_URL}cable/${cableId}/`, {
 				method: 'GET',
 				headers
@@ -2370,7 +2330,6 @@ export const actions = {
 				return { trenches: [] };
 			}
 
-			// Fetch trench selections for both nodes
 			const allTrenches = [];
 			for (const nodeId of nodeIds) {
 				const selectionsResponse = await fetch(
@@ -2666,7 +2625,6 @@ export const actions = {
 
 			const connections = await response.json();
 
-			// Transform to the format expected by the edge component
 			const transformed = connections.map((conn) => ({
 				number: conn.uuid_microduct?.number,
 				color_hex: conn.uuid_microduct?.hex_code || '#64748b',

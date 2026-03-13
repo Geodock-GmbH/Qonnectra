@@ -34,8 +34,6 @@
 	let structurePanelSlotConfigUuid = $state(null);
 	let micropipePanelOpen = $state(false);
 
-	// Shared state for slot configurations - allows both panels to stay in sync
-	// Using a reactive object that both panels can read and update
 	let sharedSlotState = $state({
 		nodeUuid: null,
 		slotConfigurations: [],
@@ -132,7 +130,6 @@
 
 	const featureId = $derived(data?.uuid || data?.id);
 
-	// Re-fetch fibers when featureId changes while on status tab
 	$effect(() => {
 		if (group === 'status' && featureId && type === 'edge') {
 			if (featureId !== lastFetchedFeatureId) {
@@ -164,7 +161,6 @@
 		if (type !== 'edge' || !featureId) return;
 
 		try {
-			// Fetch updated cable data
 			const formData = new FormData();
 			formData.append('uuid', featureId);
 			const response = await fetch('?/getCables', {
@@ -177,14 +173,12 @@
 				drawerStore.updateProps(parsedData);
 			}
 
-			// Fetch updated micropipe connections for this cable
 			const micropipeResponse = await fetch(`?/getMicropipeConnectionsForCable`, {
 				method: 'POST',
 				body: formData
 			});
 			const micropipeResult = deserialize(await micropipeResponse.text());
 			if (micropipeResult.type === 'success' && micropipeResult.data?.connections) {
-				// Dispatch event to update edge colors
 				window.dispatchEvent(
 					new CustomEvent('micropipeLinkageChanged', {
 						detail: { cableId: featureId, connections: micropipeResult.data.connections }

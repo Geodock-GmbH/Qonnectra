@@ -15,11 +15,10 @@
 	let handleStart = $state('top');
 	let handleEnd = $state('top');
 
-	// Node selection state
 	let selectedNodeStart = $state([]);
 	let selectedNodeEnd = $state([]);
 
-	// Get available nodes from schemaState context (respects child view filtering)
+	// Nodes are sourced from schemaState context so child-view filtering is respected
 	const availableNodes = $derived(
 		(schemaStateContext?.nodes || []).map((node) => ({
 			value: node.id,
@@ -27,11 +26,9 @@
 		}))
 	);
 
-	// Pending node change for confirmation
 	let pendingNodeChange = $state(null);
 	let confirmMessageBox;
 
-	// Initialize state from cable data
 	$effect(() => {
 		if (cable) {
 			handleStart = cable.handle_start || 'top';
@@ -49,7 +46,8 @@
 	];
 
 	/**
-	 * Handle node change request - checks for splices first
+	 * Checks for existing fiber splices at the current node before switching the connection.
+	 * Opens a confirmation dialog if splices would be lost.
 	 */
 	async function handleNodeChange(side, newNodeId) {
 		const currentNodeId = side === 'start' ? cable.uuid_node_start : cable.uuid_node_end;
@@ -58,7 +56,6 @@
 			return;
 		}
 
-		// Check for splices at old node
 		const formData = new FormData();
 		formData.append('cableUuid', cable.uuid);
 		formData.append('nodeUuid', currentNodeId);
@@ -79,7 +76,6 @@
 			}
 		} catch (err) {
 			console.error('Error checking splices:', err);
-			// Proceed without warning if check fails
 			await executeNodeChange(side, newNodeId);
 		}
 	}
@@ -112,7 +108,6 @@
 					title: m.common_error(),
 					description: m.message_error_updating_cable()
 				});
-				// Reset selection to original value
 				if (side === 'start') {
 					selectedNodeStart = cable.uuid_node_start ? [cable.uuid_node_start] : [];
 				} else {
@@ -126,7 +121,6 @@
 				description: m.message_success_updating_cable()
 			});
 
-			// Dispatch event to update diagram
 			const oldNodeId = side === 'start' ? cable.uuid_node_start : cable.uuid_node_end;
 			window.dispatchEvent(
 				new CustomEvent('cableConnectionChanged', {
@@ -222,7 +216,6 @@
 
 	async function handleConfirmNodeChange() {
 		if (pendingNodeChange) {
-			// First delete the splices at the old node
 			const oldNodeId =
 				pendingNodeChange.side === 'start' ? cable.uuid_node_start : cable.uuid_node_end;
 
@@ -257,13 +250,11 @@
 				return;
 			}
 
-			// Now execute the node change
 			await executeNodeChange(pendingNodeChange.side, pendingNodeChange.newNodeId);
 		}
 	}
 
 	function handleCancelNodeChange() {
-		// Reset selection to original value
 		if (pendingNodeChange?.side === 'start') {
 			selectedNodeStart = cable.uuid_node_start ? [cable.uuid_node_start] : [];
 		} else if (pendingNodeChange?.side === 'end') {
@@ -273,15 +264,12 @@
 	}
 </script>
 
-<!-- Handle configuration form -->
 <form id="handle-config-form" class="flex flex-col gap-6" onsubmit={handleSubmit}>
-	<!-- Start Node Section -->
 	<div class="space-y-3">
 		<h3 class="text-lg font-semibold">
 			{cable?.uuid_node_start_name || cable?.uuid_node_start || m.common_unknown()}
 		</h3>
 
-		<!-- Node Selection -->
 		<div class="space-y-2">
 			<label for="node-start" class="text-sm font-medium"
 				>{m.form_change_node?.() || 'Change Node'}</label
@@ -302,7 +290,6 @@
 			/>
 		</div>
 
-		<!-- Handle Position -->
 		<div class="space-y-2">
 			<label for="handle-start" class="text-sm font-medium"
 				>{m.form_handle_position?.() || 'Handle Position'}</label
@@ -327,13 +314,11 @@
 
 	<hr class="border-surface-300-700" />
 
-	<!-- End Node Section -->
 	<div class="space-y-3">
 		<h3 class="text-lg font-semibold">
 			{cable?.uuid_node_end_name || cable?.uuid_node_end || m.common_unknown()}
 		</h3>
 
-		<!-- Node Selection -->
 		<div class="space-y-2">
 			<label for="node-end" class="text-sm font-medium"
 				>{m.form_change_node?.() || 'Change Node'}</label
@@ -354,7 +339,6 @@
 			/>
 		</div>
 
-		<!-- Handle Position -->
 		<div class="space-y-2">
 			<label for="handle-end" class="text-sm font-medium"
 				>{m.form_handle_position?.() || 'Handle Position'}</label
@@ -378,14 +362,12 @@
 	</div>
 </form>
 
-<!-- Save button for handle positions -->
 <div class="mt-6 flex flex-col items-end justify-end gap-3">
 	<button type="submit" form="handle-config-form" class="btn preset-filled-primary-500 w-full">
 		{m.action_save()}
 	</button>
 </div>
 
-<!-- Confirmation MessageBox for splice warning -->
 <MessageBox
 	bind:this={confirmMessageBox}
 	heading={m.common_warning()}

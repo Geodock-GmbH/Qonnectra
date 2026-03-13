@@ -7,22 +7,18 @@
 	import { NODE_STRUCTURE_CONTEXT_KEY } from '$lib/classes/NodeStructureContext.svelte.js';
 	import { tooltip } from '$lib/utils/tooltip.js';
 
-	// Get context - most state comes from here
 	const context = getContext(NODE_STRUCTURE_CONTEXT_KEY);
 
-	// Only essential props that vary between usages or need binding
 	let {
 		slotRows = [],
 		loading = false,
 		loadingStructures = false,
 		isMobile = false,
 		readonly = false,
-		// These callbacks need wrappers in parent for UI state management
 		onStructureSelect = () => {},
 		onStructureDelete = () => {}
 	} = $props();
 
-	// Derive state from context
 	const structures = $derived(context?.structures ?? []);
 	const selectedStructure = $derived(context?.selectedStructure ?? null);
 	const isDragging = $derived(context?.isDragging ?? false);
@@ -84,10 +80,8 @@
 
 	function handleSlotClick(row) {
 		if (isMobile && mobileSelectedItem) {
-			// Mobile: tap to place
 			context?.slotActions?.onTap(row.slotNumber);
 		} else if (row.structure) {
-			// Desktop: select structure
 			onStructureSelect(row.structure);
 		}
 	}
@@ -123,7 +117,6 @@
 		context?.clipActions?.onKeydown(e);
 	}
 
-	// For binding the editing value
 	function handleClipInput(e) {
 		if (context) {
 			context.editingClipValue = e.target.value;
@@ -134,14 +127,12 @@
 <div
 	class="h-full flex flex-col border border-surface-200-800 rounded-xl overflow-hidden bg-surface-100-900 shadow-sm"
 >
-	<!-- Header row (outside scrollable area) -->
 	<div class="slot-grid-header grid grid-cols-[60px_1fr_80px] bg-surface-200-800 shrink-0">
 		<div class="px-3 py-2.5 text-center font-semibold text-sm">{m.form_tpu()}</div>
 		<div class="px-3 py-2.5 font-semibold text-sm">{m.form_component()}</div>
 		<div class="px-3 py-2.5 text-center font-semibold text-sm">{m.form_clip_number()}</div>
 	</div>
 
-	<!-- Scrollable content -->
 	<div
 		class="flex-1 overflow-auto"
 		ondragleave={handleGridDragLeave}
@@ -163,7 +154,6 @@
 					: ''} {mobileSelectedItem ? '[&_.slot-content:not(.mobile-tap-target)]:opacity-50' : ''}"
 			>
 				{#each slotRows as row (row.slotNumber)}
-					<!-- TPU number cell -->
 					<div
 						class="px-3 py-2 font-mono text-center bg-(--color-surface-200-800) border-b border-(--color-surface-200-800) transition-colors duration-150 h-10 flex items-center justify-center {row.isDropTarget
 							? 'bg-[rgba(34,197,94,0.15)]'
@@ -180,7 +170,6 @@
 						{row.slotNumber}
 					</div>
 
-					<!-- Component cell -->
 					<div
 						class="slot-content px-2 py-0.5 min-h-10 bg-(--color-surface-50-950) border-b border-(--color-surface-200-800) flex items-center transition-[background-color,outline] duration-150 relative {row.isDropTarget &&
 						(!row.isOccupied ||
@@ -260,7 +249,6 @@
 						{/if}
 					</div>
 
-					<!-- Clip number cell (editable) -->
 					<div
 						class="px-3 py-2 font-mono text-center bg-(--color-surface-200-800) border-b border-(--color-surface-200-800) transition-colors duration-150 h-10 flex items-center justify-center {row.isDropTarget
 							? 'bg-[rgba(34,197,94,0.15)]'

@@ -21,17 +21,13 @@
 		selected = false
 	} = $props();
 
-	// Shift key tracking for label reset
 	let shiftPressed = $state(false);
 	let labelHovered = $state(false);
 
-	// Coordinate transformation
 	const { screenToFlowPosition } = useSvelteFlow();
 
-	// Position state - initialized with defaults, synced reactively via $effect below
 	let position = $state({ x: 0, y: 0 });
 
-	// Dragging state
 	let isDragging = $state(false);
 	let isMoveLabelMode = $state(false);
 	let justFinishedDragging = $state(false);
@@ -42,14 +38,12 @@
 	let labelWidth = $state(0);
 	let labelHeight = $state(0);
 
-	// Progress ring state for visual feedback
 	let progressValue = $state(0);
 	let progressPosition = $state({ x: 0, y: 0 });
 	let progressFrame = $state(null);
 	let showProgressCircle = $state(false);
 	let progressDelayTimer = $state(null);
 
-	// Local reactive state for the label text - synced reactively via $effect below
 	let currentLabel = $state('');
 
 	/**
@@ -84,7 +78,6 @@
 	 * @param {MouseEvent} event - The mouse event
 	 */
 	function handleLongPressStart(event) {
-		// Clear any existing timers/intervals
 		if (longPressTimer) {
 			clearTimeout(longPressTimer);
 		}
@@ -355,7 +348,6 @@
 		}
 	}
 
-	// Attach global keyboard listeners
 	$effect(() => {
 		window.addEventListener('keydown', handleGlobalKeyDown);
 		window.addEventListener('keyup', handleGlobalKeyUp);

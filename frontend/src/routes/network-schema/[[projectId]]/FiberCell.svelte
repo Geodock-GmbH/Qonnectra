@@ -52,13 +52,11 @@
 		return main;
 	}
 
-	// Whether anything is connected (fiber or residential unit)
 	const hasConnection = $derived(fiber || residentialUnit);
 
 	let isDragOver = $state(false);
 	let isDragging = $state(false);
 
-	// Trace state
 	let traceLoading = $state(false);
 	let traceResult = $state(null);
 	let traceError = $state(null);
@@ -89,7 +87,6 @@
 		}
 	}
 
-	// Color accent based on side
 	const accentClasses = $derived(
 		side === 'a'
 			? {
@@ -114,7 +111,6 @@
 
 		isDragging = true;
 
-		// Create drag data with fiber info and source location
 		const dragData = {
 			type: 'fiber',
 			uuid: fiber.uuid,
@@ -123,7 +119,6 @@
 			fiber_number: fiber.fiber_number,
 			fiber_color: fiber.fiber_color,
 			bundle_number: fiber.bundle_number,
-			// Source info for move operation
 			sourcePortNumber: portNumber,
 			sourceSide: side,
 			isMove: true
@@ -141,7 +136,6 @@
 		if (readonly || !hasPort) return;
 		e.preventDefault();
 		e.stopPropagation();
-		// Accept both copy (external drops) and move (internal reorder)
 		if (e.dataTransfer.effectAllowed === 'move') {
 			e.dataTransfer.dropEffect = 'move';
 		} else {
@@ -187,7 +181,6 @@
 	role={hasPort ? 'button' : 'presentation'}
 >
 	{#if fiber}
-		<!-- Connected Fiber Display - draggable for move operations, also accepts drops for override -->
 		<div
 			class="flex items-center gap-2 group w-full {!isMerged && !readonly
 				? 'cursor-grab active:cursor-grabbing'
@@ -290,7 +283,6 @@
 			{/if}
 		</div>
 	{:else if residentialUnit}
-		<!-- Connected Residential Unit Display -->
 		<div class="flex items-center gap-2 group w-full">
 			<IconHome size={16} class="shrink-0 text-primary-500" />
 			<div class="flex-1 min-w-0">
@@ -320,10 +312,8 @@
 			{/if}
 		</div>
 	{:else if hasPort}
-		<!-- Empty Drop Zone -->
 		<div class="flex flex-col items-center justify-center w-full h-full text-surface-400 group">
 			{#if spanRows > 1}
-				<!-- Merged empty state with port range -->
 				<div
 					class="flex items-center gap-2 text-sm font-medium text-primary-600 dark:text-primary-400 mb-1"
 				>

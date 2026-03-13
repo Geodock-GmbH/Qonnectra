@@ -178,7 +178,8 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: /** @type {any} */ (result).data?.message || m.message_error_deleting_residential_unit()
+					description:
+						/** @type {any} */ (result).data?.message || m.message_error_deleting_residential_unit()
 				});
 			}
 		} catch (error) {
@@ -246,7 +247,8 @@
 										class="input text-sm py-1 px-2 w-full"
 										placeholder={m.common_search()}
 										value={filters[column.key]}
-										oninput={(e) => updateFilter(column.key, /** @type {HTMLInputElement} */ (e.target).value)}
+										oninput={(e) =>
+											updateFilter(column.key, /** @type {HTMLInputElement} */ (e.target).value)}
 									/>
 								{/if}
 							</th>

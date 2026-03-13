@@ -618,7 +618,11 @@
 												<input
 													type="color"
 													value={style.color}
-													onchange={(e) => updateSurfaceColor(surface.surface, /** @type {HTMLInputElement} */ (e.target).value)}
+													onchange={(e) =>
+														updateSurfaceColor(
+															surface.surface,
+															/** @type {HTMLInputElement} */ (e.target).value
+														)}
 													class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
 												/>
 												<span
@@ -786,7 +790,11 @@
 											<input
 												type="color"
 												value={style.color}
-												onchange={(e) => updateNodeTypeColor(nodeType.node_type, /** @type {HTMLInputElement} */ (e.target).value)}
+												onchange={(e) =>
+													updateNodeTypeColor(
+														nodeType.node_type,
+														/** @type {HTMLInputElement} */ (e.target).value
+													)}
 												class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
 											/>
 											<span
@@ -878,7 +886,8 @@
 									<input
 										type="color"
 										value={$addressStyle.color}
-										onchange={(e) => updateAddressColor(/** @type {HTMLInputElement} */ (e.target).value)}
+										onchange={(e) =>
+											updateAddressColor(/** @type {HTMLInputElement} */ (e.target).value)}
 										class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
 									/>
 									<span
@@ -976,7 +985,11 @@
 											<input
 												type="color"
 												value={style.color}
-												onchange={(e) => updateAreaTypeColor(areaType.area_type, /** @type {HTMLInputElement} */ (e.target).value)}
+												onchange={(e) =>
+													updateAreaTypeColor(
+														areaType.area_type,
+														/** @type {HTMLInputElement} */ (e.target).value
+													)}
 												class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
 											/>
 											<span

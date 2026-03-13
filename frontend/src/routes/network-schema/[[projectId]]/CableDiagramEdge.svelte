@@ -18,7 +18,6 @@
 
 	import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
 
-	// Color constants for edge styling
 	const DEFAULT_GREEN = '#22c55e';
 	const LINKED_BLUE = '#3b82f6';
 
@@ -55,10 +54,7 @@
 		return DEFAULT_GREEN;
 	});
 
-	// Label state - synced reactively via $effect below
 	let currentLabel = $state('');
-
-	// Label data for positioning - synced reactively via $effect below
 	let labelData = $state(/** @type {Object|null} */ (null));
 
 	let edgePath = $derived.by(() => {
@@ -173,14 +169,12 @@
 		}
 	}
 
-	// Vertex editing state
 	let draggingVertexIndex = $state(null);
 	let edgeHovered = $state(false);
 	let svgElement = $state(null);
 	let shiftPressed = $state(false);
 	let hoveredVertexIndex = $state(null);
 
-	// Edge snapping
 	const SNAP_GRID_SIZE = 20;
 	let showSnapFeedback = $state(false);
 	let snapFeedbackPosition = $state({ x: 0, y: 0 });
@@ -270,7 +264,6 @@
 		}
 	}
 
-	// Attach keyboard listeners on mount
 	$effect(() => {
 		window.addEventListener('keydown', handleKeyDown);
 		window.addEventListener('keyup', handleKeyUp);
@@ -290,19 +283,14 @@
 		event.stopPropagation();
 		event.preventDefault();
 
-		// If Shift is pressed, delete the vertex
 		if (shiftPressed) {
 			deleteVertex(index);
 			return;
 		}
 
-		// Otherwise, start dragging
 		draggingVertexIndex = index;
-
-		// Store SVG element for coordinate conversion
 		svgElement = event.currentTarget.closest('svg');
 
-		// Add window listeners for smooth dragging
 		window.addEventListener('mousemove', handleWindowMouseMove);
 		window.addEventListener('mouseup', handleWindowMouseUp);
 	}
@@ -368,7 +356,6 @@
 	 */
 	function handleWindowMouseUp() {
 		if (draggingVertexIndex !== null) {
-			// Final update
 			window.dispatchEvent(
 				new CustomEvent('updateCablePath', {
 					detail: { edgeId: id, waypoints: data?.cable?.diagram_path, save: true }
@@ -378,7 +365,6 @@
 		draggingVertexIndex = null;
 		svgElement = null;
 
-		// Remove window listeners
 		window.removeEventListener('mousemove', handleWindowMouseMove);
 		window.removeEventListener('mouseup', handleWindowMouseUp);
 	}

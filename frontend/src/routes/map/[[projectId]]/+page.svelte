@@ -161,7 +161,10 @@
 	function handleMapReady(event) {
 		const olMapInstance = event.detail.map;
 
-		mapState.initializeSelectionLayers(olMapInstance, () => /** @type {Record<string, boolean>} */ (selectionManager.getSelectionStore()));
+		mapState.initializeSelectionLayers(
+			olMapInstance,
+			() => /** @type {Record<string, boolean>} */ (selectionManager.getSelectionStore())
+		);
 
 		const selectionLayers = mapState.getSelectionLayers();
 		selectionLayers.forEach((layer) => selectionManager.registerSelectionLayer(layer));

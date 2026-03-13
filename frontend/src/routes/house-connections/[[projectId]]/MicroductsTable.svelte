@@ -21,11 +21,14 @@
 			return;
 		}
 
-		nodeAssignmentManager.activateAssignMode(microduct.uuid, (/** @type {{ microduct?: unknown }} */ updatedData) => {
-			if (onMicroductUpdate && updatedData?.microduct) {
-				onMicroductUpdate(updatedData.microduct);
+		nodeAssignmentManager.activateAssignMode(
+			microduct.uuid,
+			(/** @type {{ microduct?: unknown }} */ updatedData) => {
+				if (onMicroductUpdate && updatedData?.microduct) {
+					onMicroductUpdate(updatedData.microduct);
+				}
 			}
-		});
+		);
 	}
 
 	/**
@@ -38,11 +41,14 @@
 			return;
 		}
 
-		nodeAssignmentManager.removeNodeFromMicroduct(microduct.uuid, (/** @type {{ microduct?: unknown }} */ updatedData) => {
-			if (onMicroductUpdate && updatedData?.microduct) {
-				onMicroductUpdate(updatedData.microduct);
+		nodeAssignmentManager.removeNodeFromMicroduct(
+			microduct.uuid,
+			(/** @type {{ microduct?: unknown }} */ updatedData) => {
+				if (onMicroductUpdate && updatedData?.microduct) {
+					onMicroductUpdate(updatedData.microduct);
+				}
 			}
-		});
+		);
 	}
 </script>
 

@@ -142,8 +142,7 @@
 			console.error('Error deleting conduit:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description:
-					error instanceof Error ? error.message : m.message_error_deleting_conduit()
+				description: error instanceof Error ? error.message : m.message_error_deleting_conduit()
 			});
 		}
 	}

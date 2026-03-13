@@ -14,7 +14,6 @@ export async function load({ fetch, cookies, params }) {
 	}
 
 	try {
-		// Fetch nodes with child_view_for filter
 		const [
 			nodeResponse,
 			cableResponse,
@@ -53,7 +52,6 @@ export async function load({ fetch, cookies, params }) {
 		const nodesData = await nodeResponse.json();
 		const childViewEnabledNodeTypeIds = nodesData?.metadata?.child_view_enabled_node_type_ids ?? [];
 
-		// Check if parent node exists in response
 		const nodes = nodesData?.features || nodesData || [];
 		const parentNode = nodes.find((n) => (n.id || n.properties?.uuid) === nodeId);
 		if (!parentNode && nodes.length === 0) {
@@ -70,7 +68,6 @@ export async function load({ fetch, cookies, params }) {
 			cableMicropipeConnections = await cableMicropipeResponse.json();
 		}
 
-		// Process attribute data
 		let cableTypesData = [];
 		let nodeTypesData = [];
 		let statusData = [];

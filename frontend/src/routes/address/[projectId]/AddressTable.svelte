@@ -215,7 +215,8 @@
 											class="input text-sm py-1 px-2 w-full text-surface-contrast-100-900"
 											placeholder={m.common_search()}
 											value={filters[column.key]}
-											oninput={(e) => updateFilter(column.key, /** @type {HTMLInputElement} */ (e.target).value)}
+											oninput={(e) =>
+												updateFilter(column.key, /** @type {HTMLInputElement} */ (e.target).value)}
 										/>
 									{/if}
 								</th>

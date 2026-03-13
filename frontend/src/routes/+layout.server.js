@@ -64,7 +64,10 @@ export async function load({ locals, url, fetch, cookies }) {
 			try {
 				const projectsData = await projectsResponse.value.json();
 				const projectData = projectsData.results || projectsData;
-				projects = projectData.map((/** @type {any} */ p) => ({ label: p.project, value: p.id.toString() }));
+				projects = projectData.map((/** @type {any} */ p) => ({
+					label: p.project,
+					value: p.id.toString()
+				}));
 			} catch (e) {
 				projectsError = 'Error parsing projects data';
 				console.error('Failed to parse projects data:', e);

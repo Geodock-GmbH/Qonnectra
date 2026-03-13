@@ -215,7 +215,8 @@
 							name="pipe_name"
 							required
 							value={selectedConduitName}
-							oninput={(e) => (selectedConduitName = /** @type {HTMLInputElement} */ (e.target).value)}
+							oninput={(e) =>
+								(selectedConduitName = /** @type {HTMLInputElement} */ (e.target).value)}
 						/>
 					</label>
 					<label for="pipe_type" class="label">
@@ -237,7 +238,8 @@
 							class="textarea"
 							placeholder=""
 							value={selectedOuterConduit}
-							oninput={(e) => (selectedOuterConduit = /** @type {HTMLTextAreaElement} */ (e.target).value)}
+							oninput={(e) =>
+								(selectedOuterConduit = /** @type {HTMLTextAreaElement} */ (e.target).value)}
 						></textarea>
 					</label>
 					<label for="status" class="label">

@@ -10,14 +10,12 @@
 
 	let { id, data, selected } = $props();
 
-	// Label state - synced reactively via $effect
 	let currentLabel = $state('');
 
 	$effect(() => {
 		currentLabel = data?.label || data?.node?.name || '';
 	});
 
-	// Handle configuration - derived to stay reactive with id changes
 	const handleInit = $derived({
 		top: {
 			source: {
@@ -95,10 +93,6 @@
 		}
 	}
 </script>
-
-<!-- Handles: top, right, bottom, left -->
-<!-- Each position has overlapping source + target handles for bidirectional connections -->
-<!-- Handle IDs format: {nodeUuid}-{position}-{type} -->
 
 {#each Object.entries(handleInit) as [position, handleConfig]}
 	<Handle

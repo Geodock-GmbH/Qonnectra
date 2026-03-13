@@ -248,7 +248,9 @@ export const actions = {
 			};
 		} catch (err) {
 			console.error('Error updating conduit:', err);
-			return fail(500, { message: err instanceof Error ? err.message : 'Failed to update conduit' });
+			return fail(500, {
+				message: err instanceof Error ? err.message : 'Failed to update conduit'
+			});
 		}
 	},
 
@@ -288,7 +290,9 @@ export const actions = {
 			};
 		} catch (err) {
 			console.error('Error deleting conduit:', err);
-			return fail(500, { message: err instanceof Error ? err.message : 'Failed to delete conduit' });
+			return fail(500, {
+				message: err instanceof Error ? err.message : 'Failed to delete conduit'
+			});
 		}
 	},
 
@@ -357,7 +361,9 @@ export const actions = {
 			};
 		} catch (err) {
 			console.error('Error creating conduit:', err);
-			return fail(500, { message: err instanceof Error ? err.message : 'Failed to create conduit' });
+			return fail(500, {
+				message: err instanceof Error ? err.message : 'Failed to create conduit'
+			});
 		}
 	},
 
@@ -487,7 +493,8 @@ export const actions = {
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					microduct_status_id: !statusId || statusId === 'null' ? null : parseInt(String(statusId), 10)
+					microduct_status_id:
+						!statusId || statusId === 'null' ? null : parseInt(String(statusId), 10)
 				})
 			});
 

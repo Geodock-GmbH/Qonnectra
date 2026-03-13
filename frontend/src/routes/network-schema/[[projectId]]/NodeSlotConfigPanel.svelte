@@ -20,34 +20,26 @@
 		sharedSlotState = $bindable(null)
 	} = $props();
 
-	// Hierarchy state
 	let hierarchy = $state({ containers: [], root_slot_configurations: [] });
 	let containerTypes = $state([]);
 	let loading = $state(true);
 
-	// Form state for slot configuration
 	let editingUuid = $state(null);
 	let isCreating = $state(false);
 	let formSide = $state('');
 	let formTotalSlots = $state(1);
 
-	// Form state for container creation
 	let isCreatingContainer = $state(false);
 	let selectedContainerTypeId = $state(null);
 	let containerName = $state('');
 
-	// Drag state for root drop zone
 	let rootDragOver = $state(false);
 	let exporting = $state(false);
 
-	// Delete confirmation state
 	let deleteSlotConfigMessageBox = $state(null);
 	let pendingDeleteConfigUuid = $state(null);
 	let pendingDeleteStructureCount = $state(0);
 
-	/**
-	 * Fetch container types (global)
-	 */
 	async function fetchContainerTypes() {
 		try {
 			const formData = new FormData();
@@ -65,7 +57,7 @@
 	}
 
 	/**
-	 * Fetch the full hierarchy tree for the node
+	 * Fetches the full container/slot hierarchy for the node and syncs shared slot state.
 	 */
 	async function fetchHierarchy() {
 		if (!nodeUuid) return;
@@ -90,9 +82,7 @@
 
 			hierarchy = result.data?.hierarchy || { containers: [], root_slot_configurations: [] };
 
-			// Update shared state so NodeStructurePanel gets the latest slot configurations
 			if (sharedSlotState) {
-				// Flatten all slot configurations from hierarchy (root + nested in containers)
 				const allSlotConfigs = extractAllSlotConfigurations(hierarchy);
 				sharedSlotState.nodeUuid = nodeUuid;
 				sharedSlotState.slotConfigurations = allSlotConfigs;
@@ -110,9 +100,6 @@
 		}
 	}
 
-	/**
-	 * Extract all slot configurations from hierarchy (root level + nested in containers)
-	 */
 	function extractAllSlotConfigurations(h) {
 		const configs = [...(h.root_slot_configurations || [])];
 
@@ -131,18 +118,12 @@
 		return configs;
 	}
 
-	/**
-	 * Re-fetch when nodeUuid changes
-	 */
 	$effect(() => {
 		const currentNodeUuid = nodeUuid;
 		fetchContainerTypes();
 		fetchHierarchy();
 	});
 
-	/**
-	 * Create a new container
-	 */
 	async function handleCreateContainer() {
 		if (!selectedContainerTypeId) return;
 
@@ -180,9 +161,6 @@
 		}
 	}
 
-	/**
-	 * Delete a container
-	 */
 	async function handleDeleteContainer(uuid) {
 		try {
 			const formData = new FormData();
@@ -213,9 +191,6 @@
 		}
 	}
 
-	/**
-	 * Update a container's name
-	 */
 	async function handleUpdateContainerName(uuid, newName) {
 		try {
 			const formData = new FormData();
@@ -247,9 +222,6 @@
 		}
 	}
 
-	/**
-	 * Handle drag-and-drop move operations
-	 */
 	async function handleMove(dragData, targetContainerId) {
 		try {
 			const formData = new FormData();
@@ -278,9 +250,6 @@
 		}
 	}
 
-	/**
-	 * Handle root drop zone
-	 */
 	function handleRootDragOver(e) {
 		if (readonly) return;
 		e.preventDefault();
@@ -307,14 +276,10 @@
 		}
 	}
 
-	/**
-	 * Toggle container expand state
-	 */
 	async function handleToggleExpand(uuid) {
-		// Update locally for immediate feedback
 		hierarchy = updateContainerExpanded(hierarchy, uuid);
 
-		// Persist to server (fire and forget)
+		// Fire-and-forget: persist expand state without blocking
 		const formData = new FormData();
 		formData.append('containerUuid', uuid);
 		fetch('?/toggleContainerExpanded', {
@@ -343,7 +308,6 @@
 		return container;
 	}
 
-	// Slot configuration CRUD handlers (existing functionality)
 	async function handleCreate() {
 		if (!formSide.trim() || formTotalSlots < 1) return;
 
@@ -414,8 +378,11 @@
 		}
 	}
 
+	/**
+	 * Guards deletion: fetches associated structures first and prompts for
+	 * confirmation if any exist, since they will be cascade-deleted.
+	 */
 	async function handleDelete(uuid) {
-		// Check if the slot configuration has structures before deleting
 		try {
 			const formData = new FormData();
 			formData.append('slotConfigUuid', uuid);
@@ -429,18 +396,15 @@
 			const structures = result.data?.structures || [];
 
 			if (structures.length > 0) {
-				// Show confirmation dialog
 				pendingDeleteConfigUuid = uuid;
 				pendingDeleteStructureCount = structures.length;
 				deleteSlotConfigMessageBox.open();
 				return;
 			}
 
-			// No structures, delete directly
 			await executeDeleteSlotConfig(uuid);
 		} catch (err) {
 			console.error('Error checking structures before delete:', err);
-			// On error, proceed with delete (backend will handle cascading)
 			await executeDeleteSlotConfig(uuid);
 		}
 	}
@@ -574,9 +538,7 @@
 	const hasContainerTypes = $derived(containerTypes.length > 0);
 </script>
 
-<!-- Main container -->
 <div class="flex flex-col gap-4 h-full">
-	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<h3 class="text-sm font-medium text-surface-950-50">
 			{nodeName ? `${m.form_node()}: ${nodeName}` : m.title_slot_configuration()}
@@ -612,7 +574,6 @@
 		</div>
 	</div>
 
-	<!-- Container creation form -->
 	{#if isCreatingContainer && !readonly}
 		<div class="card p-4 space-y-3 bg-surface-50-950 border border-surface-200-800">
 			<div class="grid grid-cols-2 gap-3">
@@ -655,7 +616,6 @@
 		</div>
 	{/if}
 
-	<!-- Slot configuration form -->
 	{#if (isCreating || editingUuid) && !readonly}
 		<div class="card p-4 space-y-3 bg-surface-50-950 border border-surface-200-800">
 			<div class="grid grid-cols-2 gap-3">
@@ -687,7 +647,6 @@
 		</div>
 	{/if}
 
-	<!-- Hierarchy tree view -->
 	<div
 		class="flex-1 overflow-auto rounded-lg"
 		class:drag-over-root={rootDragOver && !readonly}
@@ -707,7 +666,6 @@
 			</div>
 		{:else}
 			<div class="space-y-1">
-				<!-- Root-level containers -->
 				{#each hierarchy.containers as container (container.uuid)}
 					<div animate:flip={{ duration: 200 }}>
 						<ContainerItem
@@ -724,7 +682,6 @@
 					</div>
 				{/each}
 
-				<!-- Root-level slot configurations -->
 				{#each hierarchy.root_slot_configurations as config (config.uuid)}
 					<div animate:flip={{ duration: 200 }}>
 						<SlotConfigItem
@@ -741,7 +698,6 @@
 	</div>
 </div>
 
-<!-- Delete confirmation modal for slot configs with structures -->
 <MessageBox
 	bind:this={deleteSlotConfigMessageBox}
 	heading={m.common_confirm()}

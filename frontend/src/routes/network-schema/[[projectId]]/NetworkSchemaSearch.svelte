@@ -64,15 +64,12 @@
 		isDropdownOpen = false;
 		selectedIndex = -1;
 
-		// Get position to pan to
 		const position = searchManager.getResultPosition(result);
 
-		// Pan to the result
 		if (searchManager.panToResult && position) {
 			setCenter(position.x, position.y, { duration: 500, zoom: 1 });
 		}
 
-		// Select the node/edge to show green highlight border
 		if (searchManager.highlightResult) {
 			if (result.type === 'node') {
 				schemaState.selectNode(result.id);
@@ -81,7 +78,6 @@
 			}
 		}
 
-		// Open drawer with item details
 		if (searchManager.openDrawer) {
 			if (result.type === 'node') {
 				await openNodeDrawer(result.id);
@@ -90,7 +86,6 @@
 			}
 		}
 
-		// Clear search after selection
 		searchManager.searchTerm = '';
 	}
 
@@ -153,7 +148,7 @@
 	}
 
 	function handleBlur() {
-		// Delay closing to allow click on dropdown items
+		// Defer closing so a mousedown on a dropdown item fires before the dropdown disappears
 		setTimeout(() => {
 			isDropdownOpen = false;
 		}, 200);

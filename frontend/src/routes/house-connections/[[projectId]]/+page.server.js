@@ -165,7 +165,13 @@ export const actions = {
 		const featureType = /** @type {'trench' | 'node' | 'address'} */ (data.get('featureType'));
 		const featureUuid = /** @type {string} */ (data.get('featureUuid'));
 
-		return getFeatureDetailsByType(fetch, cookies, featureType, featureUuid, params.projectId ?? '');
+		return getFeatureDetailsByType(
+			fetch,
+			cookies,
+			featureType,
+			featureUuid,
+			params.projectId ?? ''
+		);
 	},
 
 	/**

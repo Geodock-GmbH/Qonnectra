@@ -23,7 +23,6 @@
 	let connectedSpliceCount = $state(0);
 	let connectedConduits = $state('');
 
-	// Reset connected splice count and fetch conduits when cable changes
 	$effect(() => {
 		if (cable?.uuid) {
 			connectedSpliceCount = 0;
@@ -126,7 +125,6 @@
 			if (onLabelUpdate && cableName) {
 				onLabelUpdate(cableName);
 			}
-			// Refresh cable data to update length/length_total
 			await onSaveComplete();
 		} catch (error) {
 			console.error('Error updating cable:', error);
@@ -139,7 +137,6 @@
 	async function confirmDelete() {
 		if (!cable?.uuid) return;
 
-		// Check for connected fiber splices before showing delete dialog
 		try {
 			const formData = new FormData();
 			formData.append('cableUuid', cable.uuid);

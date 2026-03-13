@@ -45,16 +45,12 @@
 		const viewportHeight = window.innerHeight;
 		const deltaPercent = (deltaY / viewportHeight) * 100;
 
-		// Snap to closest point or dismiss
 		if (deltaPercent > 30) {
-			// Dragged down significantly - dismiss
 			open = false;
 			sheetHeight = 50;
 		} else if (deltaPercent < -20) {
-			// Dragged up - expand to 90%
 			sheetHeight = 90;
 		} else {
-			// Snap back to 50%
 			sheetHeight = 50;
 		}
 

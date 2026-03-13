@@ -259,7 +259,13 @@
 	function handleMapReady(event) {
 		const olMapInstance = event.detail.map;
 
-		mapState.initializeSelectionLayers(olMapInstance, () => /** @type {Record<string, boolean>} */ (/** @type {any} */ (selectionManager.getSelectionStore())));
+		mapState.initializeSelectionLayers(
+			olMapInstance,
+			() =>
+				/** @type {Record<string, boolean>} */ (
+					/** @type {any} */ (selectionManager.getSelectionStore())
+				)
+		);
 
 		const selectionLayers = mapState.getSelectionLayers();
 		selectionLayers.forEach((layer) => selectionManager.registerSelectionLayer(layer));
@@ -379,7 +385,9 @@
 					const result = deserialize(await response.text());
 
 					if (result.type === 'failure' || result.type === 'error') {
-						const errorData = /** @type {{ error?: string, detail?: string }} */ (/** @type {any} */ (result).data);
+						const errorData = /** @type {{ error?: string, detail?: string }} */ (
+							/** @type {any} */ (result).data
+						);
 						throw new Error(errorData?.error || errorData?.detail || 'Routing failed');
 					}
 

@@ -196,7 +196,6 @@
 
 	{#if container.is_expanded && hasChildren}
 		<div class="children mt-1 space-y-1">
-			<!-- Slot configurations first -->
 			{#each container.slot_configurations || [] as config (config.uuid)}
 				<div animate:flip={{ duration: 200 }}>
 					<SlotConfigItem
@@ -210,7 +209,6 @@
 				</div>
 			{/each}
 
-			<!-- Child containers after slot configs -->
 			{#each container.children || [] as child (child.uuid)}
 				<div animate:flip={{ duration: 200 }}>
 					<Self

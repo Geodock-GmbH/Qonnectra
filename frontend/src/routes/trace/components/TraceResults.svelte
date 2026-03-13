@@ -271,7 +271,11 @@
 	</div>
 {/if}
 
-{#snippet statCard(/** @type {string} */ label, /** @type {number} */ value, /** @type {string} */ colorClass)}
+{#snippet statCard(
+	/** @type {string} */ label,
+	/** @type {number} */ value,
+	/** @type {string} */ colorClass
+)}
 	<div class="flex flex-col items-center rounded-lg border border-surface-200-800 p-4">
 		<span class="font-mono text-2xl font-bold {colorClass}">{value}</span>
 		<span class="mt-1 text-xs font-medium uppercase tracking-wide text-surface-600-400"
@@ -293,7 +297,10 @@
 	</div>
 {/snippet}
 
-{#snippet infrastructureCard(/** @type {string} */ cableId, /** @type {Record<string, any>} */ infra)}
+{#snippet infrastructureCard(
+	/** @type {string} */ cableId,
+	/** @type {Record<string, any>} */ infra
+)}
 	<details class="group rounded-lg border border-surface-200-800">
 		<summary class="flex cursor-pointer items-center gap-4 px-4 py-3 hover:bg-surface-100-900">
 			<span class="font-mono text-sm font-semibold text-warning-500">
@@ -653,7 +660,10 @@
 	</div>
 {/snippet}
 
-{#snippet cableEndpointsDetails(/** @type {Record<string, any>} */ endpoints, /** @type {string|undefined} */ currentNodeId)}
+{#snippet cableEndpointsDetails(
+	/** @type {Record<string, any>} */ endpoints,
+	/** @type {string|undefined} */ currentNodeId
+)}
 	<div class="mb-2 ml-1 rounded-lg border-l-2 border-primary-500 bg-surface-100-900 p-3 text-sm">
 		<div class="mb-2 font-semibold text-primary-500">
 			{m.trace_cable_path()}: {endpoints.cable_name}

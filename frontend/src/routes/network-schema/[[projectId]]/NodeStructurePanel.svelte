@@ -25,35 +25,28 @@
 		sharedSlotState = $bindable(null)
 	} = $props();
 
-	// ========== Responsive State ==========
 	let innerWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1024);
 	const isMobile = $derived(innerWidth < 768);
 
-	// ========== UI State (local to this component) ==========
 	let activeSheet = $state(null);
 	let cableRefreshTrigger = $state(0);
 	let showPortTableFullScreen = $state(false);
 
-	// Delete confirmation state
 	let deleteMessageBox = $state(null);
 	let pendingDeleteUuid = $state(null);
 	let pendingDeleteSpliceCount = $state(0);
 
-	// ========== Context Creation ==========
-	// Note: Context is created with initial prop values and updated reactively via $effect below
+	// Context is created with initial prop values and updated reactively via $effect below
 	const context = new NodeStructureContext();
 
-	// Share context with children
 	setContext(NODE_STRUCTURE_CONTEXT_KEY, context);
 	setContext(DRAG_DROP_CONTEXT_KEY, context.getDragDropManager());
 
-	// ========== Derived State from Context ==========
 	const slotConfigurations = $derived(context.slotConfigurations);
 	const selectedConfig = $derived(context.selectedConfig);
 	const containerPath = $derived(context.containerPath);
 	const slotRows = $derived(context.computeSlotRows());
 
-	// ========== Effects ==========
 	function handleResize() {
 		innerWidth = window.innerWidth;
 	}
@@ -69,7 +62,6 @@
 		}
 	});
 
-	// Handle initialSlotConfigUuid changes reactively
 	$effect(() => {
 		if (initialSlotConfigUuid) {
 			context.setInitialSlotConfigUuid(initialSlotConfigUuid);
@@ -95,12 +87,10 @@
 		}
 	});
 
-	// ========== Event Handlers ==========
 	function handleSideChange(e) {
 		context.selectSlotConfig(e.target.value);
 	}
 
-	// Wrapper for structure select to handle mobile sheet and desktop full-screen
 	async function handleStructureSelect(structure) {
 		const wasSelected = await context.structureActions.onSelect(structure);
 		if (wasSelected) {
@@ -112,13 +102,15 @@
 		}
 	}
 
-	// Handler for back button from PortTable full-screen view
 	function handleBackToGrid() {
 		showPortTableFullScreen = false;
 		context.portActions.onClose();
 	}
 
-	// Wrapper for structure delete to handle confirmation dialog
+	/**
+	 * Checks for fiber splices before deleting a structure. Opens a confirmation
+	 * dialog if splices exist, since they will be cascade-deleted.
+	 */
 	async function handleDeleteStructure(structureUuid) {
 		const result = await context.structureActions.onDelete(structureUuid);
 		if (result?.needsConfirmation) {
@@ -136,7 +128,6 @@
 		}
 	}
 
-	// Mobile-specific handlers
 	function handleMobileComponentSelect(componentType) {
 		context.sidebarActions.onMobileSelect(componentType);
 		activeSheet = null;
@@ -160,9 +151,7 @@
 
 <div class="flex flex-col h-full">
 	{#if isMobile}
-		<!-- ========== MOBILE LAYOUT ========== -->
 		<div class="flex flex-col h-full pb-16">
-			<!-- Header -->
 			<div class="shrink-0 p-3 border-b border-surface-200-800 bg-surface-100-900">
 				{#if containerPath}
 					<div class="text-xs text-surface-950-50 mb-1">
@@ -202,7 +191,6 @@
 				{/if}
 			</div>
 
-			<!-- Slot Grid (now with minimal props - gets state from context) -->
 			<div class="flex-1 overflow-hidden p-3">
 				<SlotGrid
 					{slotRows}
@@ -215,7 +203,6 @@
 				/>
 			</div>
 
-			<!-- Mobile Bottom Tabs -->
 			{#if !readonly}
 				<div
 					class="fixed bottom-0 left-0 right-0 z-30 bg-surface-100-900 border-t border-surface-200-800"
@@ -256,7 +243,6 @@
 				</div>
 			{/if}
 
-			<!-- Mobile Bottom Sheets -->
 			<MobileBottomSheet
 				bind:open={activeSheet}
 				title={activeSheet === 'components'
@@ -279,7 +265,6 @@
 						{readonly}
 					/>
 				{:else if activeSheet === 'ports' && context.selectedStructure}
-					<!-- PortTable now gets most state from context -->
 					<PortTable
 						structureName={context.selectedStructure.component_type?.component_type || '-'}
 						portRows={context.portRowsWithMerge}
@@ -290,9 +275,7 @@
 			</MobileBottomSheet>
 		</div>
 	{:else}
-		<!-- ========== DESKTOP LAYOUT ========== -->
 		<div class="flex h-full">
-			<!-- Left Sidebar: Component Types (hidden in readonly mode) -->
 			{#if !readonly}
 				<ComponentTypeSidebar
 					onDragStart={context.sidebarActions.onDragStart}
@@ -301,9 +284,7 @@
 				/>
 			{/if}
 
-			<!-- Main Content -->
 			<div class="flex-1 flex flex-col gap-4 p-4 min-w-0 overflow-hidden">
-				<!-- Header -->
 				<div class="shrink-0 space-y-3">
 					{#if containerPath}
 						<div class="text-sm text-surface-950-50">
@@ -334,10 +315,8 @@
 					</div>
 				</div>
 
-				<!-- Slot Grid OR Port Table (full-screen when structure selected) -->
 				<div class="flex-1 flex flex-col min-h-0 overflow-hidden">
 					{#if showPortTableFullScreen && context.selectedStructure}
-						<!-- Port Table Full Screen View -->
 						<div class="flex items-center gap-3 mb-3">
 							<button
 								type="button"
@@ -360,7 +339,6 @@
 							/>
 						</div>
 					{:else}
-						<!-- Slot Grid View -->
 						<div class="flex-1 min-h-0 overflow-hidden">
 							<SlotGrid
 								{slotRows}
@@ -376,7 +354,6 @@
 				</div>
 			</div>
 
-			<!-- Right Sidebar: Cables/Fibers -->
 			<CableFiberSidebar {nodeUuid} refreshTrigger={cableRefreshTrigger} {readonly} />
 		</div>
 	{/if}

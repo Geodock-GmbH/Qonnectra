@@ -68,7 +68,12 @@ export const actions = {
 		const searchQuery = data.get('searchQuery');
 		const projectId = data.get('projectId');
 
-		return searchFeaturesInProject(fetch, cookies, /** @type {string} */ (searchQuery), /** @type {string} */ (projectId));
+		return searchFeaturesInProject(
+			fetch,
+			cookies,
+			/** @type {string} */ (searchQuery),
+			/** @type {string} */ (projectId)
+		);
 	},
 
 	getFeatureDetails: async ({ request, fetch, cookies }) => {
@@ -77,7 +82,13 @@ export const actions = {
 		const featureUuid = data.get('featureUuid');
 		const projectId = data.get('projectId');
 
-		return getFeatureDetailsByType(fetch, cookies, /** @type {"trench" | "node" | "address" | "area"} */ (featureType), /** @type {string} */ (featureUuid), /** @type {string} */ (projectId));
+		return getFeatureDetailsByType(
+			fetch,
+			cookies,
+			/** @type {"trench" | "node" | "address" | "area"} */ (featureType),
+			/** @type {string} */ (featureUuid),
+			/** @type {string} */ (projectId)
+		);
 	},
 
 	getPipesInTrench: async ({ request, fetch, cookies }) => {
@@ -119,7 +130,12 @@ export const actions = {
 		const layerType = formData.get('layerType');
 		const projectId = formData.get('projectId');
 
-		return getLayerExtent(fetch, cookies, /** @type {"trench" | "node" | "address"} */ (layerType), /** @type {string} */ (projectId));
+		return getLayerExtent(
+			fetch,
+			cookies,
+			/** @type {"trench" | "node" | "address"} */ (layerType),
+			/** @type {string} */ (projectId)
+		);
 	},
 
 	getContainerHierarchy: async ({ request, fetch, cookies }) => {

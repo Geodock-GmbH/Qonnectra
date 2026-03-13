@@ -72,7 +72,8 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: /** @type {any} */ (result).data?.message || m.message_error_creating_residential_unit()
+					description:
+						/** @type {any} */ (result).data?.message || m.message_error_creating_residential_unit()
 				});
 			}
 		} catch (error) {

@@ -38,22 +38,28 @@ export const actions = {
 
 			if (setCookieHeader) {
 				const cookies = setCookieParser.parse(/** @type {*} */ (response));
-				cookies.forEach((/** @type {{ name: string, value: string, path?: string, domain?: string, httpOnly?: boolean, secure?: boolean, sameSite?: string }} */ cookie) => {
-					/** @type {Record<string, unknown>} */
-					const options = {
-						path: cookie.path || '/',
-						domain: cookie.domain,
-						httpOnly: cookie.httpOnly,
-						secure: cookie.secure || event.url.protocol === 'https:',
-						sameSite: /** @type {'lax' | 'strict' | 'none'} */ (
-							(cookie.sameSite || 'lax').toLowerCase()
-						)
-					};
+				cookies.forEach(
+					(
+						/** @type {{ name: string, value: string, path?: string, domain?: string, httpOnly?: boolean, secure?: boolean, sameSite?: string }} */ cookie
+					) => {
+						/** @type {Record<string, unknown>} */
+						const options = {
+							path: cookie.path || '/',
+							domain: cookie.domain,
+							httpOnly: cookie.httpOnly,
+							secure: cookie.secure || event.url.protocol === 'https:',
+							sameSite: /** @type {'lax' | 'strict' | 'none'} */ (
+								(cookie.sameSite || 'lax').toLowerCase()
+							)
+						};
 
-					Object.keys(options).forEach((key) => options[key] === undefined && delete options[key]);
+						Object.keys(options).forEach(
+							(key) => options[key] === undefined && delete options[key]
+						);
 
-					event.cookies.set(cookie.name, cookie.value, /** @type {*} */ (options));
-				});
+						event.cookies.set(cookie.name, cookie.value, /** @type {*} */ (options));
+					}
+				);
 			} else {
 				console.warn('Login API response missing Set-Cookie header');
 				return fail(500, { error: 'Authentication response missing required tokens.' });

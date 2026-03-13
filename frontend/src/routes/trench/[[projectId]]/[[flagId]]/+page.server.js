@@ -327,7 +327,13 @@ export const actions = {
 		const featureUuid = String(data.get('featureUuid'));
 		const projectId = String(data.get('projectId'));
 
-		return getFeatureDetailsByType(fetch, cookies, /** @type {'trench' | 'node' | 'address' | 'area'} */ (featureType), featureUuid, projectId);
+		return getFeatureDetailsByType(
+			fetch,
+			cookies,
+			/** @type {'trench' | 'node' | 'address' | 'area'} */ (featureType),
+			featureUuid,
+			projectId
+		);
 	},
 
 	/**
@@ -373,6 +379,11 @@ export const actions = {
 		const layerType = String(formData.get('layerType'));
 		const projectId = String(formData.get('projectId'));
 
-		return getLayerExtent(fetch, cookies, /** @type {'trench' | 'address' | 'node'} */ (layerType), projectId);
+		return getLayerExtent(
+			fetch,
+			cookies,
+			/** @type {'trench' | 'address' | 'node'} */ (layerType),
+			projectId
+		);
 	}
 };

@@ -20,7 +20,6 @@
 		excludedNodeTypeIds: []
 	};
 
-	// Detect if we're in child view
 	const isChildView = $derived($page.url.pathname.includes('/node/'));
 
 	let node = $derived($drawerStore.props);
@@ -41,7 +40,6 @@
 
 	let { onLabelUpdate, onNodeDelete } = $props();
 
-	// Delete confirmation state
 	let deleteMessageBox = $state(null);
 	let cableBlockedMessageBox = $state(null);
 	let pendingDeleteCableCount = $state(0);
@@ -51,12 +49,11 @@
 	let hasChildrenWithCables = $state(false);
 	let isCheckingDependencies = $state(false);
 
-	// Track the last checked node to avoid race conditions
 	let lastCheckedNodeId = $state('');
 
-	// Node type disabled when node has BOTH children AND cables
+	/** Disabled when node has both children and cables, as changing type would break the hierarchy. */
 	const nodeTypeDisabled = $derived(isCheckingDependencies || (hasChildren && hasConnectedCables));
-	// Parent node disabled when in child view AND node has cables
+	/** Disabled when in child view and node already has cables, to prevent re-parenting a wired node. */
 	const parentNodeDisabled = $derived(
 		isCheckingDependencies || (isChildView && hasConnectedCables)
 	);
@@ -107,16 +104,13 @@
 		}
 	}
 
-	// Reset and fetch dependencies when node changes
 	$effect(() => {
 		if (id) {
-			// Reset state immediately
 			pendingDeleteCableCount = 0;
 			pendingDeleteStructureCount = 0;
 			hasConnectedCables = false;
 			hasChildren = false;
 			hasChildrenWithCables = false;
-			// Fetch new dependencies
 			checkNodeDependencies(id);
 		}
 	});
@@ -221,7 +215,6 @@
 	async function confirmDelete() {
 		if (!id) return;
 
-		// Check for dependencies before showing delete dialog
 		try {
 			const formData = new FormData();
 			formData.append('nodeUuid', id);
@@ -238,17 +231,14 @@
 			pendingDeleteCableCount = cables.length;
 			pendingDeleteStructureCount = structures.length;
 
-			// If cables are connected, block deletion and show info message
 			if (cables.length > 0) {
 				cableBlockedMessageBox.open();
 				return;
 			}
 
-			// No cables connected, show confirmation for node deletion
 			deleteMessageBox.open();
 		} catch (err) {
 			console.error('Error checking dependencies:', err);
-			// Still allow delete on error
 			pendingDeleteCableCount = 0;
 			pendingDeleteStructureCount = 0;
 			deleteMessageBox.open();
@@ -290,7 +280,6 @@
 		}
 	}
 
-	// Build dynamic delete message based on dependencies
 	let deleteMessage = $derived.by(() => {
 		const parts = [];
 		if (pendingDeleteCableCount > 0) {

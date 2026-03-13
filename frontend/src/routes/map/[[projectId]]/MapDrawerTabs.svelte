@@ -165,7 +165,8 @@
 			nodeUuid={featureId}
 			nodeName={featureData?.name || ''}
 			readonly={true}
-			onViewStructure={(/** @type {string} */ slotConfigUuid) => handleOpenStructurePanel(slotConfigUuid)}
+			onViewStructure={(/** @type {string} */ slotConfigUuid) =>
+				handleOpenStructurePanel(slotConfigUuid)}
 			bind:sharedSlotState
 		/>
 	</FloatingPanel>

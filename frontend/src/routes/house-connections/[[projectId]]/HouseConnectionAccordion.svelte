@@ -105,14 +105,17 @@
 				<Accordion.ItemContent>
 					<div class="space-y-2">
 						{#if item.pipeUuid}
-						<MicroductsTable
-							microducts={dataManager.getMicroductsForPipe(item.pipeUuid)}
-							loading={dataManager.isLoadingMicroducts(item.pipeUuid)}
-							error={dataManager.getMicroductsError(item.pipeUuid)}
-							onMicroductUpdate={(/** @type {*} */ updatedMicroduct) =>
-								dataManager.updateMicroductInState(/** @type {string} */ (item.pipeUuid), updatedMicroduct)}
-						/>
-					{/if}
+							<MicroductsTable
+								microducts={dataManager.getMicroductsForPipe(item.pipeUuid)}
+								loading={dataManager.isLoadingMicroducts(item.pipeUuid)}
+								error={dataManager.getMicroductsError(item.pipeUuid)}
+								onMicroductUpdate={(/** @type {*} */ updatedMicroduct) =>
+									dataManager.updateMicroductInState(
+										/** @type {string} */ (item.pipeUuid),
+										updatedMicroduct
+									)}
+							/>
+						{/if}
 					</div>
 				</Accordion.ItemContent>
 				<hr class="hr" />

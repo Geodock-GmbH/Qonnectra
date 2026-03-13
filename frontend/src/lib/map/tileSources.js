@@ -30,7 +30,9 @@ function generateRequestId() {
  */
 function createTileLoadFunction(layerType, onError) {
 	return (baseTile, url) => {
-		const tile = /** @type {import('ol/VectorTile').default<import('ol/Feature').default>} */ (baseTile);
+		const tile = /** @type {import('ol/VectorTile').default<import('ol/Feature').default>} */ (
+			baseTile
+		);
 		if (!url) {
 			tile.setState(4);
 			return;
@@ -48,62 +50,63 @@ function createTileLoadFunction(layerType, onError) {
 			 * @param {import('ol/proj/Projection').default} projection
 			 */
 			(extent, resolution, projection) => {
-			if (tileLoadingManager.isLoadingPaused()) {
-				tile.setState(4);
-				return;
-			}
+				if (tileLoadingManager.isLoadingPaused()) {
+					tile.setState(4);
+					return;
+				}
 
-			const requestId = generateRequestId();
-			const controller = tileLoadingManager.createAbortController(requestId);
+				const requestId = generateRequestId();
+				const controller = tileLoadingManager.createAbortController(requestId);
 
-			fetch(url, {
-				credentials: 'include',
-				signal: controller.signal
-			})
-				.then((response) => {
-					if (!response.ok) {
-						throw new Error(`Failed to load ${layerType} tile: ${response.statusText}`);
-					}
-					return response.arrayBuffer();
+				fetch(url, {
+					credentials: 'include',
+					signal: controller.signal
 				})
-				.then(async (data) => {
-					const workerPool = getWorkerPool();
-					if (workerPool.workers.length > 0) {
-						const result = await workerPool.parse(
-							requestId,
-							data,
-							extent,
-							typeof projection === 'string' ? projection : projection.getCode()
-						);
+					.then((response) => {
+						if (!response.ok) {
+							throw new Error(`Failed to load ${layerType} tile: ${response.statusText}`);
+						}
+						return response.arrayBuffer();
+					})
+					.then(async (data) => {
+						const workerPool = getWorkerPool();
+						if (workerPool.workers.length > 0) {
+							const result = await workerPool.parse(
+								requestId,
+								data,
+								extent,
+								typeof projection === 'string' ? projection : projection.getCode()
+							);
 
-						if (result.success && result.features) {
-							const features = reconstructFeatures(result.features);
-							tile.setFeatures(features);
-						} else if (result.error !== 'Cancelled') {
+							if (result.success && result.features) {
+								const features = reconstructFeatures(result.features);
+								tile.setFeatures(features);
+							} else if (result.error !== 'Cancelled') {
+								fallbackParse(tile, data, extent, projection);
+							}
+						} else {
 							fallbackParse(tile, data, extent, projection);
 						}
-					} else {
-						fallbackParse(tile, data, extent, projection);
-					}
-				})
-				.catch((error) => {
-					if (error.name === 'AbortError') {
-						tile.setState(4);
-						return;
-					}
-					console.error(`Error loading ${layerType} vector tile:`, error);
-					tile.setState(3);
-					if (onError) {
-						onError(
-							`Error loading ${layerType} tile`,
-							error.message || 'Could not fetch tile data.'
-						);
-					}
-				})
-				.finally(() => {
-					tileLoadingManager.removeAbortController(requestId);
-				});
-		});
+					})
+					.catch((error) => {
+						if (error.name === 'AbortError') {
+							tile.setState(4);
+							return;
+						}
+						console.error(`Error loading ${layerType} vector tile:`, error);
+						tile.setState(3);
+						if (onError) {
+							onError(
+								`Error loading ${layerType} tile`,
+								error.message || 'Could not fetch tile data.'
+							);
+						}
+					})
+					.finally(() => {
+						tileLoadingManager.removeAbortController(requestId);
+					});
+			}
+		);
 	};
 }
 
