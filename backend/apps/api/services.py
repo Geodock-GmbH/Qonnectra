@@ -47,20 +47,24 @@ logger = logging.getLogger(__name__)
 
 
 def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
-    """
-    Imports conduits from an Excel file, validates data, and creates new records.
+    """Import conduits from an Excel file, validate data, and create records.
+
+    Parse the uploaded workbook, resolve foreign-key references
+    (project, flag, conduit type, status, etc.), and bulk-create
+    :model:`api.Conduit` rows with auto-generated :model:`api.Microduct`
+    children.
 
     Args:
-        file: The uploaded Excel file object
-        max_file_size: Maximum allowed file size in bytes (default 10MB)
+        file (InMemoryUploadedFile): Uploaded Excel file object.
+        max_file_size (int): Maximum allowed file size in bytes. Defaults to 10 MB.
 
     Returns:
-        dict: Contains 'success' boolean and either 'created_count' or 'errors' list
+        dict: Contains 'success' (bool) and either 'created_count' (int)
+            or 'errors' (list[str]). May also include 'warnings' (list[str]).
     """
-    # File size validation
-    file.seek(0, 2)  # Seek to end
+    file.seek(0, 2)
     file_size = file.tell()
-    file.seek(0)  # Seek back to start
+    file.seek(0)
 
     if file_size > max_file_size:
         return {
@@ -88,7 +92,6 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
     warnings = []
     conduits_to_create = []
 
-    # Get translated headers to match the file
     headers_translated = [
         str(h)
         for h in [
@@ -108,7 +111,6 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
 
     header_from_file = [cell.value for cell in sheet[1]]
 
-    # Validate headers exist
     if not header_from_file or all(h is None for h in header_from_file):
         return {
             "success": False,
@@ -121,7 +123,6 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
             ],
         }
 
-    # Map file headers to a more usable format
     header_map = {
         headers_translated[0]: "name",
         headers_translated[1]: "conduit_type",
@@ -136,7 +137,6 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
         headers_translated[10]: "flag",
     }
 
-    # Check for required 'Name' header
     if headers_translated[0] not in header_from_file:
         return {
             "success": False,
@@ -148,7 +148,6 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
             ],
         }
 
-    # Check for unrecognized columns (warning, not error)
     unmapped_headers = [h for h in header_from_file if h and h not in header_map]
     if unmapped_headers:
         warnings.append(
@@ -203,7 +202,6 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
                 else None
             )
 
-            # Handle company lookups individually for better error reporting
             owner_val = row_data.get("owner")
             owner = None
             if owner_val:
@@ -311,10 +309,12 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
 
 
 def generate_conduit_import_template():
+    """Generate an Excel template for conduit bulk import.
+
+    Returns:
+        HttpResponse: Excel file download response with headers and one
+            example row pre-filled.
     """
-    Creates a basic Excel workbook and returns it as an HTTP response.
-    """
-    # Create a workbook and select the active worksheet
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
     worksheet.title = "Conduit Import Template"
@@ -338,7 +338,6 @@ def generate_conduit_import_template():
     for col, header in enumerate(headers, start=1):
         worksheet.cell(row=1, column=col, value=header)
 
-    # Add one example at row 2
     example_row = [
         "RV1.1.1",
         "12x10/6",
@@ -356,7 +355,6 @@ def generate_conduit_import_template():
     for col, value in enumerate(example_row, start=1):
         worksheet.cell(row=2, column=col, value=value)
 
-    # Prepare the response for Excel format
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
@@ -364,17 +362,23 @@ def generate_conduit_import_template():
         'attachment; filename="conduit_import_template.xlsx"'
     )
 
-    # Save the workbook to the response
     workbook.save(response)
 
     return response
 
 
 def generate_node_structure_excel(node_uuid):
-    """
-    Generate an Excel workbook with the full node structure data.
-    Each SlotConfiguration (side) becomes a separate sheet.
-    Returns an HttpResponse with the .xlsx file, or None if node not found.
+    """Generate an Excel workbook with the full :model:`api.Node` structure.
+
+    Each :model:`api.NodeSlotConfiguration` (side) becomes a separate sheet
+    containing slot/component/splice details.
+
+    Args:
+        node_uuid (str | uuid.UUID): UUID of the node to export.
+
+    Returns:
+        HttpResponse | None: Excel file download response, or ``None`` if
+            the node does not exist.
     """
     try:
         node = Node.objects.get(uuid=node_uuid)
@@ -798,7 +802,6 @@ def rename_feature_folder(instance, old_identifier, new_identifier):
     prefs = StoragePreferences.objects.first()
     model_name = instance._meta.model_name
 
-    # ResidentialUnit derives project from parent address
     if model_name == "residentialunit":
         address = instance.uuid_address
         project_name = (
@@ -817,7 +820,6 @@ def rename_feature_folder(instance, old_identifier, new_identifier):
     old_feature_folder = sanitize_filename(str(old_identifier))
     new_feature_folder = sanitize_filename(str(new_identifier))
 
-    # ResidentialUnit folders are nested under the parent address folder
     if model_name == "residentialunit":
         suffix = address.house_number_suffix or ""
         address_id = sanitize_filename(
@@ -929,7 +931,6 @@ def move_file_to_feature(file_obj, target_feature, target_content_type):
 
     feature_id = sanitize_filename(str(feature_id))
 
-    # ResidentialUnit derives project from parent address
     if model_name == "residentialunit":
         address = target_feature.uuid_address
         project_name = (
@@ -962,7 +963,6 @@ def move_file_to_feature(file_obj, target_feature, target_content_type):
         and prefs.mode == "AUTO"
         and prefs.folder_structure
     ):
-        # ResidentialUnit uses nested path under parent address folder
         address = target_feature.uuid_address
         suffix = address.house_number_suffix or ""
         address_id = sanitize_filename(
@@ -989,7 +989,6 @@ def move_file_to_feature(file_obj, target_feature, target_content_type):
                 f"{file_obj.file_name}.{file_obj.file_type}"
             )
     elif model_name == "residentialunit":
-        # Fallback without preferences
         address = target_feature.uuid_address
         suffix = address.house_number_suffix or ""
         address_id = sanitize_filename(
@@ -1183,10 +1182,14 @@ GEOPACKAGE_LAYER_CONFIG = {
 
 
 def _get_table_columns(table_name: str) -> list[dict]:
-    """
-    Get column information for a database table.
+    """Retrieve column metadata for a PostgreSQL table.
 
-    Returns list of dicts with 'name', 'type', 'nullable' keys.
+    Args:
+        table_name: Name of the table in the ``public`` schema.
+
+    Returns:
+        list[dict]: Each dict has 'name', 'type', 'nullable' (bool),
+            and 'udt_name' keys.
     """
     with connection.cursor() as cursor:
         cursor.execute(
@@ -1212,7 +1215,15 @@ def _get_table_columns(table_name: str) -> list[dict]:
 
 
 def _postgres_type_to_pandas(pg_type: str, udt_name: str) -> str:
-    """Map PostgreSQL data type to pandas dtype string."""
+    """Map a PostgreSQL data type to a pandas dtype string.
+
+    Args:
+        pg_type: PostgreSQL ``data_type`` value (e.g. 'integer', 'text').
+        udt_name: PostgreSQL ``udt_name`` value (e.g. 'geometry').
+
+    Returns:
+        str: Pandas dtype string such as 'Int64', 'float64', or 'object'.
+    """
     type_mapping = {
         "uuid": "object",
         "character varying": "object",
@@ -1247,7 +1258,6 @@ def generate_geopackage_schema(layers: list[str] | None = None) -> HttpResponse:
     if layers is None:
         layers = list(GEOPACKAGE_LAYER_CONFIG.keys())
     else:
-        # Validate layer names
         invalid = [layer for layer in layers if layer not in GEOPACKAGE_LAYER_CONFIG]
         if invalid:
             raise ValueError(f"Invalid layer names: {invalid}")
@@ -1319,10 +1329,16 @@ def generate_geopackage_schema(layers: list[str] | None = None) -> HttpResponse:
 def _build_postgres_datasource(
     layer_name: str, pg_service: str, srid: int
 ) -> str | None:
-    """
-    Build PostgreSQL datasource string for a layer.
+    """Build a PostgreSQL datasource connection string for a QGIS layer.
 
-    Returns None if layer is not in configuration.
+    Args:
+        layer_name: Key in ``GEOPACKAGE_LAYER_CONFIG``.
+        pg_service: PostgreSQL service name (from pg_service.conf).
+        srid: Spatial reference ID (e.g. 25832).
+
+    Returns:
+        str | None: Datasource string, or ``None`` if the layer is not
+            in the configuration registry.
     """
     config = GEOPACKAGE_LAYER_CONFIG.get(layer_name)
     if not config:
@@ -1346,10 +1362,13 @@ def _build_postgres_datasource(
 
 
 def _extract_layer_name_from_gpkg_source(source: str) -> str | None:
-    """
-    Extract layer name from GeoPackage datasource string.
+    """Extract the layer name from a GeoPackage datasource string.
 
-    Example: "./schema.gpkg|layername=address" -> "address"
+    Args:
+        source: QGIS datasource string (e.g. ``"./schema.gpkg|layername=address"``).
+
+    Returns:
+        str | None: Layer name portion, or ``None`` if no ``|layername=`` is present.
     """
     if "|layername=" in source:
         return source.split("|layername=")[-1]
@@ -1357,14 +1376,17 @@ def _extract_layer_name_from_gpkg_source(source: str) -> str | None:
 
 
 def convert_qgs_to_postgres(qgs_content: bytes) -> bytes:
-    """
-    Transform QGS XML datasources from GeoPackage to PostgreSQL pg_service.
+    """Transform QGS XML datasources from GeoPackage to PostgreSQL pg_service.
+
+    Rewrites ``<datasource>`` elements and ``layer-tree-layer`` attributes
+    so that OGR/GeoPackage references become PostgreSQL connections via the
+    configured ``pg_service`` name.
 
     Args:
-        qgs_content: Raw bytes of QGS XML file.
+        qgs_content (bytes): Raw bytes of the QGS XML file.
 
     Returns:
-        Transformed QGS XML content as bytes.
+        bytes: Transformed QGS XML content.
     """
     pg_service = getattr(settings, "QGIS_PG_SERVICE_NAME", "qonnectra")
     srid = getattr(settings, "DEFAULT_SRID", 25832)
@@ -1422,15 +1444,18 @@ def convert_qgs_to_postgres(qgs_content: bytes) -> bytes:
 
 
 def handle_qgis_file(file_content: bytes, filename: str) -> tuple[bytes, bool]:
-    """
-    Extract QGS content from QGS or QGZ file.
+    """Extract QGS XML content from a QGS or QGZ file.
 
     Args:
-        file_content: Raw file bytes
-        filename: Original filename to determine format
+        file_content (bytes): Raw file bytes.
+        filename (str): Original filename used to determine the format.
 
     Returns:
-        Tuple of (qgs_content_bytes, is_qgz)
+        tuple[bytes, bool]: ``(qgs_content, is_qgz)`` — the extracted XML
+            bytes and whether the source was a QGZ archive.
+
+    Raises:
+        ValueError: If a QGZ archive contains no ``.qgs`` file.
     """
     if filename.lower().endswith(".qgz"):
         with zipfile.ZipFile(BytesIO(file_content), "r") as zf:
@@ -1446,16 +1471,19 @@ def handle_qgis_file(file_content: bytes, filename: str) -> tuple[bytes, bool]:
 def repackage_qgz(
     qgs_content: bytes, original_qgz: bytes, qgs_filename: str = None
 ) -> bytes:
-    """
-    Repackage modified QGS content back into QGZ format.
+    """Repackage modified QGS content back into QGZ format.
+
+    Preserve all non-QGS entries from the original archive while replacing
+    the QGS file with the new content.
 
     Args:
-        qgs_content: Modified QGS XML bytes
-        original_qgz: Original QGZ file bytes (to preserve other files)
-        qgs_filename: Optional QGS filename to use inside the archive
+        qgs_content (bytes): Modified QGS XML bytes.
+        original_qgz (bytes): Original QGZ file bytes (other entries are preserved).
+        qgs_filename (str | None): QGS filename inside the archive. If ``None``,
+            the original name is reused.
 
     Returns:
-        New QGZ file bytes
+        bytes: New QGZ archive bytes.
     """
     output = BytesIO()
 
@@ -1478,15 +1506,16 @@ def repackage_qgz(
 
 
 def _get_entry_point_info(entry_type: str, entry_id) -> dict:
-    """
-    Get friendly name and info for an entry point based on its type.
+    """Look up a human-readable name for a trace entry point.
 
     Args:
-        entry_type: One of 'fiber', 'cable', 'node', 'address', 'residential_unit'
-        entry_id: UUID of the entry point
+        entry_type (str): One of ``'fiber'``, ``'cable'``, ``'node'``,
+            ``'address'``, or ``'residential_unit'``.
+        entry_id: UUID of the entry point.
 
     Returns:
-        Dict with 'type', 'id', and 'name' keys
+        dict: Contains ``'type'``, ``'id'``, and ``'name'`` keys.
+            For ``'residential_unit'`` an additional ``'floor'`` key is included.
     """
     entry_id_str = str(entry_id)
     result = {"type": entry_type, "id": entry_id_str, "name": None}
@@ -1524,13 +1553,11 @@ def _get_entry_point_info(entry_type: str, entry_id) -> dict:
             row = cursor.fetchone()
             if row:
                 if entry_type == "fiber":
-                    # For fiber, combine fiber number with cable name
                     fiber_num, cable_name = row
                     result["name"] = (
                         f"F{fiber_num} in {cable_name}" if fiber_num else None
                     )
                 elif entry_type == "residential_unit":
-                    # Return separate fields for frontend to format with i18n
                     id_ru, floor = row
                     result["name"] = id_ru or None
                     result["floor"] = floor
@@ -1548,20 +1575,24 @@ def trace_fiber(
     geometry_mode: str = "segments",
     orient_geometry: bool = False,
 ) -> dict:
-    """
-    Trace a single fiber through all its splice connections bidirectionally.
-    Uses PostgreSQL recursive CTE for performance at scale (1M+ splices).
-    Returns a flat list of trace segments that can be assembled into a tree.
-    Includes:
-    - Address info for nodes
-    - Residential unit info for connected endpoints
-    - Cable endpoint nodes (uuid_node_start/uuid_node_end) for full path visibility
+    """Trace a single fiber through all splice connections bidirectionally.
+
+    Use a PostgreSQL recursive CTE (scalable to 1 M+ splices) to walk
+    the splice graph, then assemble the result into a tree structure with
+    address, residential-unit, and cable-endpoint details.
 
     Args:
-        fiber_id: UUID of the fiber to trace
-        include_geometry: If True, include trench geometry
-        geometry_mode: "segments" for individual trenches, "merged" for combined
-        orient_geometry: If True, orient geometries from cable start to end
+        fiber_id: UUID of the :model:`api.Fiber` to trace.
+        include_geometry (bool): If ``True``, include trench geometry as GeoJSON.
+        geometry_mode (str): ``"segments"`` for individual trenches,
+            ``"merged"`` for a single combined geometry.
+        orient_geometry (bool): If ``True``, orient geometries from cable
+            start node to end node.
+
+    Returns:
+        dict: Contains ``'entry_point'``, ``'trace_tree'``,
+            ``'cable_infrastructure'``, ``'statistics'``, and
+            ``'_raw_segments'`` (internal, removed before external return).
     """
     sql = """
     WITH RECURSIVE container_hierarchy AS (
@@ -1825,8 +1856,13 @@ def trace_fiber(
 
 
 def _sort_trace_trees(trace_trees: list) -> list:
-    """
-    Sort trace trees by cable name (ASC), then fiber number absolute (ASC).
+    """Sort trace trees by cable name then fiber number (both ascending).
+
+    Args:
+        trace_trees (list[dict]): Trace tree dicts with ``'fiber'`` sub-dicts.
+
+    Returns:
+        list[dict]: Sorted copy of the input list.
     """
     return sorted(
         trace_trees,
@@ -1843,8 +1879,17 @@ def trace_cable(
     geometry_mode: str = "segments",
     orient_geometry: bool = False,
 ) -> dict:
-    """
-    Trace all fibers in a cable through their splice connections.
+    """Trace all fibers in a :model:`api.Cable` through their splice connections.
+
+    Args:
+        cable_id: UUID of the cable to trace.
+        include_geometry (bool): If ``True``, include trench geometry.
+        geometry_mode (str): ``"segments"`` or ``"merged"``.
+        orient_geometry (bool): If ``True``, orient geometries start→end.
+
+    Returns:
+        dict: Contains ``'entry_point'``, ``'trace_trees'``,
+            ``'cable_infrastructure'``, and ``'statistics'``.
     """
     entry_point = _get_entry_point_info("cable", cable_id)
 
@@ -1887,7 +1932,6 @@ def trace_cable(
     total_trenches = sum(t["statistics"]["total_trenches"] for t in all_traces)
     has_branches = any(t["statistics"]["has_branches"] for t in all_traces)
 
-    # Merge cable_infrastructure from all traces
     merged_infrastructure = {}
     for trace in all_traces:
         for cable_id_str, infra in trace.get("cable_infrastructure", {}).items():
@@ -1919,11 +1963,20 @@ def trace_node(
     geometry_mode: str = "segments",
     orient_geometry: bool = False,
 ) -> dict:
-    """
-    Trace all fibers passing through a node.
-    Includes fibers from:
-    1. Splices at this node (via node_structure)
-    2. Cables that start or end at this node (uuid_node_start/uuid_node_end)
+    """Trace all fibers passing through a :model:`api.Node`.
+
+    Collect fibers from splices at this node and from cables whose
+    start or end node matches, then trace each unique fiber.
+
+    Args:
+        node_id: UUID of the node.
+        include_geometry (bool): If ``True``, include trench geometry.
+        geometry_mode (str): ``"segments"`` or ``"merged"``.
+        orient_geometry (bool): If ``True``, orient geometries start→end.
+
+    Returns:
+        dict: Contains ``'entry_point'``, ``'trace_trees'``,
+            ``'cable_infrastructure'``, and ``'statistics'``.
     """
     sql = """
     SELECT DISTINCT fiber_id FROM (
@@ -1998,7 +2051,6 @@ def trace_node(
     total_trenches = sum(t["statistics"]["total_trenches"] for t in all_traces)
     has_branches = any(t["statistics"]["has_branches"] for t in all_traces)
 
-    # Merge cable_infrastructure from all traces
     merged_infrastructure = {}
     for trace in all_traces:
         for cable_id_str, infra in trace.get("cable_infrastructure", {}).items():
@@ -2030,10 +2082,20 @@ def trace_address(
     geometry_mode: str = "segments",
     orient_geometry: bool = False,
 ) -> dict:
-    """
-    Trace all fibers connected to an address via:
-    1. Nodes linked to this address (node.uuid_address)
-    2. Residential units under this address that have fiber splices
+    """Trace all fibers connected to an :model:`api.Address`.
+
+    Collect fibers via nodes linked to this address and via residential
+    units under this address that participate in fiber splices.
+
+    Args:
+        address_id: UUID of the address.
+        include_geometry (bool): If ``True``, include trench geometry.
+        geometry_mode (str): ``"segments"`` or ``"merged"``.
+        orient_geometry (bool): If ``True``, orient geometries start→end.
+
+    Returns:
+        dict: Contains ``'entry_point'``, ``'trace_trees'``,
+            ``'cable_infrastructure'``, and ``'statistics'``.
     """
     sql = """
     SELECT DISTINCT fiber_id FROM (
@@ -2106,7 +2168,6 @@ def trace_address(
     total_trenches = sum(t["statistics"]["total_trenches"] for t in all_traces)
     has_branches = any(t["statistics"]["has_branches"] for t in all_traces)
 
-    # Merge cable_infrastructure from all traces
     merged_infrastructure = {}
     for trace in all_traces:
         for cable_id_str, infra in trace.get("cable_infrastructure", {}).items():
@@ -2138,8 +2199,17 @@ def trace_residential_unit(
     geometry_mode: str = "segments",
     orient_geometry: bool = False,
 ) -> dict:
-    """
-    Trace all fibers connected to a residential unit via fiber_splice.
+    """Trace all fibers connected to a :model:`api.ResidentialUnit` via fiber splices.
+
+    Args:
+        residential_unit_id: UUID of the residential unit.
+        include_geometry (bool): If ``True``, include trench geometry.
+        geometry_mode (str): ``"segments"`` or ``"merged"``.
+        orient_geometry (bool): If ``True``, orient geometries start→end.
+
+    Returns:
+        dict: Contains ``'entry_point'``, ``'trace_trees'``,
+            ``'cable_infrastructure'``, and ``'statistics'``.
     """
     sql = """
     SELECT DISTINCT
@@ -2193,7 +2263,6 @@ def trace_residential_unit(
     total_trenches = sum(t["statistics"]["total_trenches"] for t in all_traces)
     has_branches = any(t["statistics"]["has_branches"] for t in all_traces)
 
-    # Merge cable_infrastructure from all traces
     merged_infrastructure = {}
     for trace in all_traces:
         for cable_id_str, infra in trace.get("cable_infrastructure", {}).items():
@@ -2346,17 +2415,20 @@ def _build_trace_result(
     geometry_mode: str = "segments",
     orient_geometry: bool = False,
 ) -> dict:
-    """
-    Build the trace result structure from flat database rows.
-    Includes address, residential unit, and cable endpoint information.
+    """Assemble the trace result tree from flat database rows.
 
     Args:
-        rows: Flat database rows from trace query
-        entry_type: Type of entry point (fiber, cable, node, etc.)
-        entry_id: UUID of entry point
-        include_geometry: If True, include trench geometry
-        geometry_mode: "segments" for individual trenches, "merged" for combined
-        orient_geometry: If True, orient geometries from cable start to end
+        rows (list[dict]): Flat rows returned by the recursive CTE trace query.
+        entry_type (str): Entry point type (``'fiber'``, ``'cable'``, etc.).
+        entry_id: UUID of the entry point.
+        include_geometry (bool): If ``True``, include trench geometry as GeoJSON.
+        geometry_mode (str): ``"segments"`` or ``"merged"``.
+        orient_geometry (bool): If ``True``, orient geometries start→end.
+
+    Returns:
+        dict: Contains ``'entry_point'``, ``'trace_tree'``,
+            ``'cable_infrastructure'``, ``'statistics'``, and
+            ``'_raw_segments'``.
     """
     entry_point = _get_entry_point_info(entry_type, entry_id)
 
@@ -2398,7 +2470,6 @@ def _build_trace_result(
                 residential_units_seen.add(ru["id"])
             if ru and isinstance(ru, dict) and ru.get("address_id"):
                 addresses_seen.add(ru["address_id"])
-        # Track cable endpoint nodes
         cable_id = row["cable_id"]
         if cable_id not in cable_endpoints_seen:
             cable_endpoints_seen[cable_id] = {
@@ -2524,7 +2595,6 @@ def _build_trace_result(
         if not row.get("splice_id"):
             return None
 
-        # Parse container path - each element may be a JSON string or already a dict
         container_path = row.get("container_path") or []
         parsed_path = []
         for item in container_path:
@@ -2551,7 +2621,6 @@ def _build_trace_result(
 
     root = rows[0]
 
-    # Get endpoint splices for the starting fiber (where it sits but has no connection)
     starting_fiber_id = root["fiber_id"]
     endpoint_splices = _get_starting_fiber_splices(starting_fiber_id)
 
@@ -2624,15 +2693,12 @@ def _build_trace_result(
 
     has_branches = any(len(nodes_by_depth.get(d, [])) > 1 for d in nodes_by_depth)
 
-    # Collect unique cable IDs
     cables_seen = set()
     for row in rows:
         cables_seen.add(row["cable_id"])
 
-    # Build cable endpoints with geometry for orientation
     cable_endpoints_for_geometry = {}
     if orient_geometry and include_geometry:
-        # Fetch node geometries for cable endpoints
         cable_node_ids = set()
         for cable_id, endpoints in cable_endpoints_seen.items():
             if endpoints.get("start_node") and endpoints["start_node"].get("id"):
@@ -2640,7 +2706,6 @@ def _build_trace_result(
             if endpoints.get("end_node") and endpoints["end_node"].get("id"):
                 cable_node_ids.add(endpoints["end_node"]["id"])
 
-        # Query node geometries
         node_geoms = {}
         if cable_node_ids:
             with connection.cursor() as cursor:
@@ -2656,7 +2721,6 @@ def _build_trace_result(
                     if row[1] is not None and row[2] is not None:
                         node_geoms[str(row[0])] = Point(row[1], row[2])
 
-        # Map cable endpoints to geometry
         for cable_id, endpoints in cable_endpoints_seen.items():
             cable_endpoints_for_geometry[str(cable_id)] = {
                 "start_geom": node_geoms.get(endpoints["start_node"]["id"])
@@ -2667,7 +2731,6 @@ def _build_trace_result(
                 else None,
             }
 
-    # Get infrastructure for all cables
     cable_infrastructure = _get_cable_infrastructure(
         list(cables_seen),
         include_geometry,
@@ -2885,7 +2948,6 @@ def _get_cable_infrastructure(
         columns = [col[0] for col in cursor.description]
         rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
-    # Group by cable
     infrastructure = {}
     for row in rows:
         cable_id = str(row["cable_id"])
@@ -2897,7 +2959,6 @@ def _get_cable_infrastructure(
                 "trenches": [],
             }
 
-        # Set microduct (first one wins, should be same for all rows of a cable)
         if row.get("microduct_id") and not infrastructure[cable_id]["microduct"]:
             infrastructure[cable_id]["microduct"] = {
                 "id": str(row["microduct_id"]),
@@ -2907,7 +2968,6 @@ def _get_cable_infrastructure(
                 "status": row.get("microduct_status"),
             }
 
-        # Set conduit
         if row.get("conduit_id") and not infrastructure[cable_id]["conduit"]:
             infrastructure[cable_id]["conduit"] = {
                 "id": str(row["conduit_id"]),
@@ -2915,12 +2975,10 @@ def _get_cable_infrastructure(
                 "type": row.get("conduit_type"),
             }
 
-        # Add trench (dedupe by checking if already added)
         if row.get("trench_id"):
             trench_id = str(row["trench_id"])
             existing_ids = [t["id"] for t in infrastructure[cable_id]["trenches"]]
             if trench_id not in existing_ids:
-                # Parse geometry if it's a string
                 trench_geom = row.get("trench_geometry")
                 if isinstance(trench_geom, str):
                     try:
@@ -2941,7 +2999,6 @@ def _get_cable_infrastructure(
                     }
                 )
 
-    # Process geometries based on mode
     if include_geometry:
         for cable_id, infra in infrastructure.items():
             trenches = infra.get("trenches", [])
@@ -2950,13 +3007,11 @@ def _get_cable_infrastructure(
             end_geom = endpoints.get("end_geom")
 
             if geometry_mode == "merged":
-                # Merge all trench geometries into one
                 merged = _merge_trench_geometries(trenches)
                 if merged and orient_geometry:
                     merged = _orient_geometry(merged, start_geom, end_geom)
                 infra["merged_geometry"] = merged
 
-                # Calculate total length from merged geometry
                 if merged:
                     try:
                         merged_geom = shape(merged)
@@ -2966,12 +3021,10 @@ def _get_cable_infrastructure(
                             t.get("length") or 0 for t in trenches
                         )
 
-                # Remove individual geometries to reduce payload
                 for trench in trenches:
                     trench.pop("geometry", None)
 
             elif orient_geometry:
-                # Segments mode with orientation - orient each trench geometry
                 for trench in trenches:
                     if trench.get("geometry"):
                         trench["geometry"] = _orient_geometry(
@@ -2982,40 +3035,40 @@ def _get_cable_infrastructure(
 
 
 def trace_fiber_summary(fiber_id) -> dict:
-    """
-    Get a compact trace summary for a fiber.
-    Returns start/end endpoints and key statistics.
-    Reuses trace_fiber() and extracts summary data.
+    """Return a compact trace summary for a fiber.
 
-    Finds the true terminal nodes by collecting all cable endpoints
-    and excluding nodes that appear as splice points (middle of the path).
+    Determine the true terminal nodes by collecting all cable endpoints
+    and excluding nodes that appear as splice points in the middle of
+    the path.
+
+    Args:
+        fiber_id: UUID of the :model:`api.Fiber` to summarise.
+
+    Returns:
+        dict: Contains ``'fiber_id'``, ``'start_node'``, ``'end_node'``,
+            and ``'statistics'``.
     """
     full_trace = trace_fiber(fiber_id, include_geometry=False)
 
-    # Remove internal data
     if "_raw_segments" in full_trace:
         del full_trace["_raw_segments"]
 
     tree = full_trace.get("trace_tree")
     stats = full_trace.get("statistics", {})
 
-    # Collect all endpoint nodes and splice nodes to find terminals
-    all_endpoint_nodes = {}  # node_id -> node_data
+    all_endpoint_nodes = {}
     splice_node_ids = set()
 
     def collect_nodes(node):
-        """Recursively collect endpoint nodes and splice nodes from trace tree."""
         if not node:
             return
 
-        # Collect cable endpoint nodes
         endpoints = node.get("cable_endpoints") or {}
         for key in ["start_node", "end_node"]:
             n = endpoints.get(key)
             if n and n.get("id"):
                 all_endpoint_nodes[n["id"]] = n
 
-        # Collect splice nodes (nodes where splices occur - these are in the middle)
         splice_node = node.get("node")
         if splice_node and splice_node.get("id"):
             splice_node_ids.add(splice_node["id"])
@@ -3025,11 +3078,8 @@ def trace_fiber_summary(fiber_id) -> dict:
 
     collect_nodes(tree)
 
-    # Terminal nodes are endpoint nodes that are NOT splice nodes
     terminal_node_ids = set(all_endpoint_nodes.keys()) - splice_node_ids
     terminal_nodes = [all_endpoint_nodes[nid] for nid in terminal_node_ids]
-
-    # Sort by name for consistent ordering
     terminal_nodes.sort(key=lambda n: n.get("name") or "")
 
     start_node = None
@@ -3047,7 +3097,6 @@ def trace_fiber_summary(fiber_id) -> dict:
             "address": terminal_nodes[-1].get("address"),
         }
     elif len(terminal_nodes) == 1:
-        # Single terminal (dead end or loop)
         start_node = {
             "id": terminal_nodes[0].get("id"),
             "name": terminal_nodes[0].get("name"),
@@ -3055,7 +3104,6 @@ def trace_fiber_summary(fiber_id) -> dict:
         }
         end_node = start_node
     elif tree and tree.get("cable_endpoints"):
-        # Fallback to root cable endpoints
         endpoints = tree["cable_endpoints"]
         if endpoints.get("start_node"):
             sn = endpoints["start_node"]
@@ -3092,12 +3140,14 @@ def trace_fiber_summary(fiber_id) -> dict:
 
 
 def _collect_available_signal_sources(trace_tree: dict) -> list[dict]:
-    """
-    Collect all available signal source nodes from the trace tree.
-    These are the cable start/end nodes encountered in the trace.
+    """Collect all cable start/end nodes from the trace tree as signal source options.
+
+    Args:
+        trace_tree (dict): Root trace tree node.
 
     Returns:
-        List of source node options with id, name, direction, and is_default flag.
+        list[dict]: Each dict contains ``'id'``, ``'name'``, ``'type'``,
+            ``'direction'`` (``'start'`` or ``'end'``), and ``'address'``.
     """
     sources = {}
 
@@ -3162,7 +3212,6 @@ def _determine_signal_source(
             if source["id"] == requested_source_id:
                 return source
 
-    # Default: use first cable's start node
     cable_endpoints = trace_tree.get("cable_endpoints")
     if cable_endpoints:
         start = cable_endpoints.get("start_node")
@@ -3241,11 +3290,15 @@ def _propagate_signal_state(
 
 
 def _collect_affected_summary(trace_tree: dict) -> dict:
-    """
-    Collect statistics about lit/dark components in the trace tree.
+    """Collect statistics about lit/dark components in the trace tree.
+
+    Args:
+        trace_tree (dict): Trace tree with ``signal_state`` already propagated.
 
     Returns:
-        Dict with counts of lit/dark fibers, nodes, addresses, and RUs.
+        dict: Counts keyed by ``'lit_fibers'``, ``'dark_fibers'``,
+            ``'break_fibers'``, ``'lit_nodes'``, ``'dark_nodes'``,
+            ``'affected_addresses'``, and ``'affected_residential_units'``.
     """
     summary = {
         "lit_fibers": 0,
