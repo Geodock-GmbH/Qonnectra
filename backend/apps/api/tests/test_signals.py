@@ -1,6 +1,8 @@
-"""
-These tests verify the automatic behavior triggered by model saves and deletes,
-including microduct creation, fiber creation, cable length updates, and folder renaming.
+"""Tests for Django signal handlers.
+
+Verify automatic behavior triggered by model saves and deletes,
+including microduct creation, fiber creation, cable length updates,
+and folder renaming.
 """
 
 from unittest.mock import patch
@@ -13,9 +15,14 @@ from apps.api.models import (
     Fiber,
     Microduct,
     MicroductCableConnection,
+    ModelPermission,
+    RoutePermission,
     TrenchConduitConnection,
 )
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.contrib.gis.geos import LineString
+from django.core.cache import cache
 
 from .factories import (
     CableTypeColorMappingFactory,
@@ -28,6 +35,8 @@ from .factories import (
     ProjectFactory,
     TrenchFactory,
 )
+
+User = get_user_model()
 
 
 @pytest.mark.django_db
@@ -620,9 +629,8 @@ class TestCableLengthUpdateSignal:
             flag=flag,
         )
 
-        assert cable.length is None  # Initially None
+        assert cable.length is None
 
-        # Manually trigger length calculation
         cable.update_length_from_connections()
         cable.refresh_from_db()
 
@@ -751,3 +759,83 @@ class TestCableNameChangeSignal:
         )
 
         assert Cable.objects.filter(pk=cable.pk).exists()
+
+
+@pytest.mark.django_db
+class TestPermissionCacheInvalidation:
+    """Tests for permission cache invalidation signal handlers."""
+
+    @pytest.fixture(autouse=True)
+    def clear_cache(self):
+        """Clear the cache before each test."""
+        cache.clear()
+        yield
+        cache.clear()
+
+    @pytest.fixture
+    def test_user(self, db):
+        """Create a test user for permission cache tests."""
+        return User.objects.create_user(
+            username="perm_test_user",
+            email="permtest@example.com",
+            password="testpass",
+        )
+
+    @pytest.fixture
+    def admin_group(self, db):
+        """Get the Admin group."""
+        return Group.objects.get(name="Admin")
+
+    def test_model_permission_save_invalidates_cache(self, test_user, admin_group):
+        """Verify saving a ModelPermission clears all user permission caches."""
+        cache_key = f"user_permissions:{test_user.pk}"
+        cache.set(cache_key, {"trench": "view"})
+        assert cache.get(cache_key) is not None
+
+        perm = ModelPermission.objects.filter(group=admin_group).first()
+        perm.save()
+
+        assert cache.get(cache_key) is None
+
+    def test_model_permission_delete_invalidates_cache(self, test_user, admin_group):
+        """Verify deleting a ModelPermission clears all user permission caches."""
+        cache_key = f"user_permissions:{test_user.pk}"
+        cache.set(cache_key, {"trench": "view"})
+
+        perm = ModelPermission.objects.filter(group=admin_group).first()
+        perm.delete()
+
+        assert cache.get(cache_key) is None
+
+    def test_route_permission_save_invalidates_cache(self, test_user, admin_group):
+        """Verify saving a RoutePermission clears all user permission caches."""
+        cache_key = f"user_permissions:{test_user.pk}"
+        cache.set(cache_key, {"trench": "view"})
+
+        perm = RoutePermission.objects.filter(group=admin_group).first()
+        perm.save()
+
+        assert cache.get(cache_key) is None
+
+    def test_user_group_change_invalidates_user_cache(self, test_user, admin_group):
+        """Verify changing user groups clears that user's permission cache."""
+        cache_key = f"user_permissions:{test_user.pk}"
+        cache.set(cache_key, {"trench": "view"})
+
+        test_user.groups.add(admin_group)
+
+        assert cache.get(cache_key) is None
+
+    def test_other_user_cache_survives_group_change(self, test_user, admin_group):
+        """Verify other users' caches are not affected by one user's group change."""
+        other_user = User.objects.create_user(
+            username="other_user",
+            email="other@example.com",
+            password="pass",
+        )
+        other_key = f"user_permissions:{other_user.pk}"
+        cache.set(other_key, {"trench": "full"})
+
+        test_user.groups.add(admin_group)
+
+        assert cache.get(other_key) is not None

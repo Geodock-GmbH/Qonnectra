@@ -181,10 +181,10 @@ def calculate_recommended_min_zoom(bbox_width_deg: float) -> int:
     if bbox_width_deg <= max_tile_width_deg:
         return 0
 
-    # Calculate zoom where tile width ≤ max_tile_width_deg
+    # Calculate zoom where tile width ≤ bbox_width_deg
     # tile_width = 360 / 2^z
-    # z = log2(360 / tile_width)
-    recommended_zoom = math.ceil(math.log2(360 / max_tile_width_deg))
+    # z = log2(360 / bbox_width_deg)
+    recommended_zoom = math.ceil(math.log2(360 / bbox_width_deg))
 
     return min(recommended_zoom, 22)
 
@@ -271,9 +271,7 @@ def scan_wms_capabilities(
 
                 try:
                     if hasattr(layer, "crsOptions"):
-                        layer_info["supported_crs"] = list(layer.crsOptions)[
-                            :20
-                        ]  # Limit to 20
+                        layer_info["supported_crs"] = list(layer.crsOptions)[:20]
                 except Exception:
                     pass
 

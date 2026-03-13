@@ -2,9 +2,10 @@
 
 import pytest
 from apps.api.models import ModelPermission, RoutePermission
-from apps.api.permissions import get_user_permissions
+from apps.api.permissions import RoleBasedPermission, get_user_permissions
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
+from django.core.cache import cache
 from rest_framework.test import APIClient
 
 User = get_user_model()
@@ -236,3 +237,70 @@ class TestPermissionsEndpoint:
         assert "is_superuser" in data
         assert data["is_superuser"] is False
         assert data["models"]["trench"] == "edit"
+
+
+class TestMultiGroupPermissions:
+    """Tests for permission aggregation across multiple groups."""
+
+    @pytest.fixture(autouse=True)
+    def clear_perm_cache(self):
+        """Clear the permission cache before each test."""
+        cache.clear()
+        yield
+        cache.clear()
+
+    def test_viewer_and_editor_gets_edit(self, db, viewer_group, editor_group):
+        """Verify user in Viewer + Editor groups gets 'edit' (highest wins)."""
+        user = User.objects.create_user(
+            username="multi_ve",
+            email="ve@example.com",
+            password="pass",
+        )
+        user.groups.add(viewer_group, editor_group)
+
+        permissions = get_user_permissions(user)
+        assert permissions["models"]["trench"] == "edit"
+
+    def test_viewer_and_admin_gets_full(self, db, viewer_group, admin_group):
+        """Verify user in Viewer + Admin groups gets 'full' (highest wins)."""
+        user = User.objects.create_user(
+            username="multi_va",
+            email="va@example.com",
+            password="pass",
+        )
+        user.groups.add(viewer_group, admin_group)
+
+        permissions = get_user_permissions(user)
+        assert permissions["models"]["trench"] == "full"
+
+    def test_route_true_wins_over_false(self, db, viewer_group, admin_group):
+        """Verify True wins for route permissions across groups."""
+        user = User.objects.create_user(
+            username="multi_route",
+            email="route@example.com",
+            password="pass",
+        )
+        user.groups.add(viewer_group, admin_group)
+
+        permissions = get_user_permissions(user)
+        assert permissions["routes"]["/admin/*"] is True
+
+    def test_permission_cache_populated_and_reused(self, db, editor_group):
+        """Verify permissions are cached after first access."""
+        user = User.objects.create_user(
+            username="cache_test",
+            email="cache@example.com",
+            password="pass",
+        )
+        user.groups.add(editor_group)
+
+        cache_key = f"user_permissions:{user.pk}"
+        assert cache.get(cache_key) is None
+
+        perm = RoleBasedPermission()
+        level = perm._get_access_level(user, "trench")
+        assert level == "edit"
+
+        cached = cache.get(cache_key)
+        assert cached is not None
+        assert cached["trench"] == "edit"
