@@ -11,12 +11,12 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 /**
  * Creates a mock conduit object
- * @param {Object} overrides - Properties to override in the default conduit
- * @returns {Object} Mock conduit object
+ * @param {Record<string, any>} [overrides]
+ * @returns {Record<string, any>}
  */
 function createMockConduit(overrides = {}) {
 	const uuid = overrides.uuid || `uuid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-	return {
+	return /** @type {Record<string, any>} */ ({
 		uuid,
 		name: `Conduit-${uuid.substr(0, 8)}`,
 		conduit_type: { id: 1, conduit_type: '4-tube' },
@@ -30,17 +30,17 @@ function createMockConduit(overrides = {}) {
 		flag: { id: 1, flag: 'Standard' },
 		project: { id: 1, name: 'Test Project' },
 		...overrides
-	};
+	});
 }
 
 /**
  * Creates a mock conduit for list view (flattened format)
- * @param {Object} overrides - Properties to override
- * @returns {Object} Mock conduit for list
+ * @param {Record<string, any>} [overrides]
+ * @returns {Record<string, any>}
  */
 function createMockConduitForList(overrides = {}) {
 	const uuid = overrides.uuid || `uuid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-	return {
+	return /** @type {Record<string, any>} */ ({
 		uuid,
 		name: overrides.name || `Conduit-${uuid.substr(0, 8)}`,
 		conduit_type: overrides.conduit_type || '4-tube',
@@ -53,16 +53,16 @@ function createMockConduitForList(overrides = {}) {
 		date: overrides.date || '2024-01-15',
 		flag: overrides.flag || 'Standard',
 		...overrides
-	};
+	});
 }
 
 /**
  * Creates a mock paginated response for conduit list
- * @param {number} count - Total number of conduits
- * @param {number} page - Current page number
- * @param {number} pageSize - Items per page
- * @param {Array} customResults - Optional custom results array
- * @returns {Object} Mock paginated response
+ * @param {number} [count]
+ * @param {number} [page]
+ * @param {number} [pageSize]
+ * @param {any[] | null} [customResults]
+ * @returns {Record<string, any>}
  */
 function createMockPaginatedResponse(count = 10, page = 1, pageSize = 50, customResults = null) {
 	const results =
@@ -85,7 +85,7 @@ function createMockPaginatedResponse(count = 10, page = 1, pageSize = 50, custom
 
 /**
  * Creates mock attribute options for dropdowns
- * @returns {Object} Mock attribute options
+ * @returns {Record<string, any>}
  */
 function createMockAttributeOptions() {
 	return {
@@ -123,8 +123,8 @@ function createMockAttributeOptions() {
 
 /**
  * Sets up API mocks for conduit tests
- * @param {Page} page - Playwright page object
- * @param {Object} options - Configuration options
+ * @param {import('@playwright/test').Page} page
+ * @param {Record<string, any>} [options]
  */
 async function setupConduitMocks(page, options = {}) {
 	const {
@@ -342,9 +342,8 @@ const TEST_PASSWORD = process.env.E2E_TEST_PASSWORD;
 
 /**
  * Performs real login to get valid auth cookies
- * This is required because SvelteKit server-side auth validates against the real backend
- * @param {Page} page - Playwright page object
- * @returns {Promise<boolean>} - True if login succeeded, false otherwise
+ * @param {import('@playwright/test').Page} page
+ * @returns {Promise<boolean>}
  */
 async function performLogin(page) {
 	// Skip if credentials not configured
@@ -382,13 +381,15 @@ test.describe('Conduit Route Tests', () => {
 	let loginSucceeded = false;
 
 	test.beforeEach(async ({ page }) => {
-		// Perform real login to get valid auth cookies
-		// This is required because SvelteKit server-side auth validates against the real backend
+		test.skip(
+			!TEST_USERNAME || !TEST_PASSWORD,
+			'E2E_TEST_USERNAME and E2E_TEST_PASSWORD must be set in .env'
+		);
+
 		loginSucceeded = await performLogin(page);
 
-		// Skip test if login failed
 		if (!loginSucceeded) {
-			test.skip();
+			test.skip(true, 'Login failed - test credentials may be invalid');
 		}
 
 		// Navigate to conduit page and wait for it to fully load

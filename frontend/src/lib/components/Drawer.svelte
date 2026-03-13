@@ -24,7 +24,7 @@
 	/** @type {DrawerStoreType} */
 	const drawerStore = /** @type {any} */ (rawDrawerStore);
 
-	let { children, class: className = '' } = $props();
+	let { children = undefined, class: className = '' } = $props();
 
 	/** @type {HTMLDivElement | undefined} */
 	let drawerElement = $state();

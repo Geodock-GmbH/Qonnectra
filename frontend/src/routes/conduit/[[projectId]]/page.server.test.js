@@ -9,13 +9,15 @@ vi.mock('$env/static/private', () => ({
 
 // Mock SvelteKit fail helper
 vi.mock('@sveltejs/kit', () => ({
-	fail: (status, data) => {
+	fail: (/** @type {number} */ status, /** @type {any} */ data) => {
 		return { status, data };
 	}
 }));
 
 describe('+page.server.js', () => {
+	/** @type {any} */
 	let mockFetch;
+	/** @type {any} */
 	let mockCookies;
 
 	beforeEach(() => {
@@ -37,27 +39,30 @@ describe('+page.server.js', () => {
 		vi.resetAllMocks();
 	});
 
-	/**
-	 * Helper to create a mock FormData from an object
-	 */
+	/** @param {Record<string, any>} data */
 	function createMockFormData(data) {
 		const map = new Map(Object.entries(data));
 		return {
-			get: (key) => map.get(key) ?? null
+			get: (/** @type {string} */ key) => map.get(key) ?? null
 		};
 	}
 
-	/**
-	 * Helper to create mock request with formData
-	 */
+	/** @param {Record<string, any>} formDataObj */
 	function createMockRequest(formDataObj) {
-		return {
+		return /** @type {any} */ ({
 			formData: () => Promise.resolve(createMockFormData(formDataObj))
-		};
+		});
 	}
 
 	/**
-	 * Helper to setup all load function mock responses
+	 * @param {object} [options]
+	 * @param {any} [options.pipesResponse]
+	 * @param {any[]} [options.conduitTypes]
+	 * @param {any[]} [options.statuses]
+	 * @param {any[]} [options.networkLevels]
+	 * @param {any[]} [options.companies]
+	 * @param {any[]} [options.flags]
+	 * @param {boolean} [options.pipesOk]
 	 */
 	function setupLoadMocks({
 		pipesResponse = { results: [], page: 1, page_size: 50, count: 0, total_pages: 0 },
@@ -108,13 +113,13 @@ describe('+page.server.js', () => {
 
 	describe('load function', () => {
 		test('should return empty data when projectId is missing', async () => {
-			const result = await load({
+			const result = /** @type {any} */ (await load(/** @type {any} */ ({
 				fetch: mockFetch,
 				url: new URL('http://localhost/conduit'),
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: {}
-			});
+			})));
 
 			expect(result.pipes).toEqual([]);
 			expect(result.pagination).toEqual({ page: 1, pageSize: 50, totalCount: 0, totalPages: 0 });
@@ -155,13 +160,13 @@ describe('+page.server.js', () => {
 				flags: [{ id: 1, flag: 'Flag 1' }]
 			});
 
-			const result = await load({
+			const result = /** @type {any} */ (await load(/** @type {any} */ ({
 				fetch: mockFetch,
 				url: new URL('http://localhost/conduit/1'),
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			});
+			})));
 
 			expect(result.pipes).toHaveLength(1);
 			expect(result.pipes[0].value).toBe('uuid-1');
@@ -175,13 +180,13 @@ describe('+page.server.js', () => {
 		test('should handle search parameter', async () => {
 			setupLoadMocks();
 
-			await load({
+			await load(/** @type {any} */ ({
 				fetch: mockFetch,
 				url: new URL('http://localhost/conduit/1?search=test'),
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			});
+			}));
 
 			const firstCall = mockFetch.mock.calls[0][0];
 			expect(firstCall).toContain('search=test');
@@ -190,13 +195,13 @@ describe('+page.server.js', () => {
 		test('should handle pagination parameters', async () => {
 			setupLoadMocks();
 
-			await load({
+			await load(/** @type {any} */ ({
 				fetch: mockFetch,
 				url: new URL('http://localhost/conduit/1?page=2&page_size=25'),
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			});
+			}));
 
 			const firstCall = mockFetch.mock.calls[0][0];
 			expect(firstCall).toContain('page=2');
@@ -206,13 +211,13 @@ describe('+page.server.js', () => {
 		test('should handle pipes fetch failure', async () => {
 			setupLoadMocks({ pipesOk: false });
 
-			const result = await load({
+			const result = /** @type {any} */ (await load(/** @type {any} */ ({
 				fetch: mockFetch,
 				url: new URL('http://localhost/conduit/1'),
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			});
+			})));
 
 			expect(result.pipes).toEqual([]);
 			expect(result.pipesError).toBe('Failed to fetch conduits');
@@ -221,13 +226,13 @@ describe('+page.server.js', () => {
 		test('should handle network error', async () => {
 			mockFetch.mockRejectedValue(new Error('Network error'));
 
-			const result = await load({
+			const result = /** @type {any} */ (await load(/** @type {any} */ ({
 				fetch: mockFetch,
 				url: new URL('http://localhost/conduit/1'),
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			});
+			})));
 
 			expect(result.pipes).toEqual([]);
 			expect(result.pipesError).toBe('Error occurred while fetching data');
@@ -236,13 +241,13 @@ describe('+page.server.js', () => {
 		test('should pass correct auth headers', async () => {
 			setupLoadMocks();
 
-			await load({
+			await load(/** @type {any} */ ({
 				fetch: mockFetch,
 				url: new URL('http://localhost/conduit/1'),
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			});
+			}));
 
 			const firstCallHeaders = mockFetch.mock.calls[0][1].headers;
 			expect(firstCallHeaders.Cookie).toBe('api-access-token=mock-token');
@@ -262,11 +267,11 @@ describe('+page.server.js', () => {
 				json: () => Promise.resolve(mockConduit)
 			});
 
-			const result = await actions.getConduit({
+			const result = /** @type {any} */ (await actions.getConduit(/** @type {any} */ ({
 				request: createMockRequest({ uuid: 'test-uuid' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.conduit).toEqual(mockConduit);
 			expect(mockFetch).toHaveBeenCalledWith(
@@ -279,11 +284,11 @@ describe('+page.server.js', () => {
 		});
 
 		test('should return error when uuid is missing', async () => {
-			const result = await actions.getConduit({
+			const result = /** @type {any} */ (await actions.getConduit(/** @type {any} */ ({
 				request: createMockRequest({}),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(400);
 			expect(result.data.error).toBe('Missing required parameter: uuid');
@@ -297,11 +302,11 @@ describe('+page.server.js', () => {
 				text: () => Promise.resolve('Conduit not found')
 			});
 
-			const result = await actions.getConduit({
+			const result = /** @type {any} */ (await actions.getConduit(/** @type {any} */ ({
 				request: createMockRequest({ uuid: 'nonexistent-uuid' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(404);
 			expect(result.data.error).toBe('Conduit not found');
@@ -310,11 +315,11 @@ describe('+page.server.js', () => {
 		test('should handle network error', async () => {
 			mockFetch.mockRejectedValueOnce(new Error('Network failure'));
 
-			const result = await actions.getConduit({
+			const result = /** @type {any} */ (await actions.getConduit(/** @type {any} */ ({
 				request: createMockRequest({ uuid: 'test-uuid' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(500);
 			expect(result.data.error).toBe('Internal server error');
@@ -334,7 +339,7 @@ describe('+page.server.js', () => {
 				json: () => Promise.resolve(updatedConduit)
 			});
 
-			const result = await actions.updateConduit({
+			const result = /** @type {any} */ (await actions.updateConduit(/** @type {any} */ ({
 				request: createMockRequest({
 					uuid: 'test-uuid',
 					conduit_name: 'Updated Conduit',
@@ -343,7 +348,7 @@ describe('+page.server.js', () => {
 				}),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.success).toBe(true);
 			expect(result.message).toBe('Conduit updated successfully');
@@ -356,11 +361,11 @@ describe('+page.server.js', () => {
 		});
 
 		test('should return error when uuid is missing', async () => {
-			const result = await actions.updateConduit({
+			const result = /** @type {any} */ (await actions.updateConduit(/** @type {any} */ ({
 				request: createMockRequest({ conduit_name: 'Test' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(400);
 			expect(result.data.message).toBe('Conduit ID is required');
@@ -374,11 +379,11 @@ describe('+page.server.js', () => {
 				json: () => Promise.resolve({ detail: 'Invalid conduit type' })
 			});
 
-			const result = await actions.updateConduit({
+			const result = /** @type {any} */ (await actions.updateConduit(/** @type {any} */ ({
 				request: createMockRequest({ uuid: 'test-uuid', conduit_name: 'Test' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(400);
 			expect(result.data.message).toBe('Invalid conduit type');
@@ -391,11 +396,11 @@ describe('+page.server.js', () => {
 				json: () => Promise.resolve({})
 			});
 
-			const result = await actions.updateConduit({
+			const result = /** @type {any} */ (await actions.updateConduit(/** @type {any} */ ({
 				request: createMockRequest({ uuid: 'test-uuid', conduit_name: 'Test' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(500);
 			expect(result.data.message).toBe('Failed to update conduit');
@@ -404,11 +409,11 @@ describe('+page.server.js', () => {
 		test('should handle network error', async () => {
 			mockFetch.mockRejectedValueOnce(new Error('Connection failed'));
 
-			const result = await actions.updateConduit({
+			const result = /** @type {any} */ (await actions.updateConduit(/** @type {any} */ ({
 				request: createMockRequest({ uuid: 'test-uuid', conduit_name: 'Test' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(500);
 			expect(result.data.message).toBe('Connection failed');
@@ -420,7 +425,7 @@ describe('+page.server.js', () => {
 				json: () => Promise.resolve({ uuid: 'test-uuid' })
 			});
 
-			await actions.updateConduit({
+			await actions.updateConduit(/** @type {any} */ ({
 				request: createMockRequest({
 					uuid: 'test-uuid',
 					conduit_name: 'Test',
@@ -436,7 +441,7 @@ describe('+page.server.js', () => {
 				}),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			}));
 
 			const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
 			expect(requestBody).toEqual({
@@ -460,11 +465,11 @@ describe('+page.server.js', () => {
 				ok: true
 			});
 
-			const result = await actions.deleteConduit({
+			const result = /** @type {any} */ (await actions.deleteConduit(/** @type {any} */ ({
 				request: createMockRequest({ uuid: 'test-uuid' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.success).toBe(true);
 			expect(result.message).toBe('Conduit deleted successfully');
@@ -478,11 +483,11 @@ describe('+page.server.js', () => {
 		});
 
 		test('should return error when uuid is missing', async () => {
-			const result = await actions.deleteConduit({
+			const result = /** @type {any} */ (await actions.deleteConduit(/** @type {any} */ ({
 				request: createMockRequest({}),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(400);
 			expect(result.data.message).toBe('Conduit ID is required');
@@ -496,11 +501,11 @@ describe('+page.server.js', () => {
 				json: () => Promise.resolve({ detail: 'Conduit not found' })
 			});
 
-			const result = await actions.deleteConduit({
+			const result = /** @type {any} */ (await actions.deleteConduit(/** @type {any} */ ({
 				request: createMockRequest({ uuid: 'nonexistent-uuid' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(404);
 			expect(result.data.message).toBe('Conduit not found');
@@ -513,11 +518,11 @@ describe('+page.server.js', () => {
 				json: () => Promise.resolve({})
 			});
 
-			const result = await actions.deleteConduit({
+			const result = /** @type {any} */ (await actions.deleteConduit(/** @type {any} */ ({
 				request: createMockRequest({ uuid: 'test-uuid' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(500);
 			expect(result.data.message).toBe('Failed to delete conduit');
@@ -526,11 +531,11 @@ describe('+page.server.js', () => {
 		test('should handle network error', async () => {
 			mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-			const result = await actions.deleteConduit({
+			const result = /** @type {any} */ (await actions.deleteConduit(/** @type {any} */ ({
 				request: createMockRequest({ uuid: 'test-uuid' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(500);
 			expect(result.data.message).toBe('Network error');
@@ -549,7 +554,7 @@ describe('+page.server.js', () => {
 				json: () => Promise.resolve(newConduit)
 			});
 
-			const result = await actions.createConduit({
+			const result = /** @type {any} */ (await actions.createConduit(/** @type {any} */ ({
 				request: createMockRequest({
 					name: 'New Conduit',
 					project_id: '1',
@@ -557,7 +562,7 @@ describe('+page.server.js', () => {
 				}),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.success).toBe(true);
 			expect(result.message).toBe('Conduit created successfully');
@@ -565,11 +570,11 @@ describe('+page.server.js', () => {
 		});
 
 		test('should return error when name is missing', async () => {
-			const result = await actions.createConduit({
+			const result = /** @type {any} */ (await actions.createConduit(/** @type {any} */ ({
 				request: createMockRequest({ project_id: '1' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(400);
 			expect(result.data.message).toBe('Conduit name is required');
@@ -582,7 +587,7 @@ describe('+page.server.js', () => {
 				json: () => Promise.resolve({ uuid: 'new-uuid' })
 			});
 
-			await actions.createConduit({
+			await actions.createConduit(/** @type {any} */ ({
 				request: createMockRequest({
 					name: 'Test',
 					project_id: '1',
@@ -598,7 +603,7 @@ describe('+page.server.js', () => {
 				}),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			}));
 
 			const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
 			expect(requestBody).toEqual({
@@ -623,11 +628,11 @@ describe('+page.server.js', () => {
 				json: () => Promise.resolve({ detail: 'Invalid data' })
 			});
 
-			const result = await actions.createConduit({
+			const result = /** @type {any} */ (await actions.createConduit(/** @type {any} */ ({
 				request: createMockRequest({ name: 'Test' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(400);
 			expect(result.data.message).toBe('Invalid data');
@@ -636,11 +641,11 @@ describe('+page.server.js', () => {
 		test('should handle network error', async () => {
 			mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-			const result = await actions.createConduit({
+			const result = /** @type {any} */ (await actions.createConduit(/** @type {any} */ ({
 				request: createMockRequest({ name: 'Test' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(500);
 			expect(result.data.message).toBe('Network error');
@@ -654,7 +659,7 @@ describe('+page.server.js', () => {
 			});
 
 			const formData = {
-				get: (key) => {
+				get: (/** @type {string} */ key) => {
 					if (key === 'file') return mockFile;
 					return null;
 				}
@@ -670,11 +675,11 @@ describe('+page.server.js', () => {
 					})
 			});
 
-			const result = await actions.uploadConduits({
+			const result = /** @type {any} */ (await actions.uploadConduits(/** @type {any} */ ({
 				request: { formData: () => Promise.resolve(formData) },
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.uploadSuccess).toBe(true);
 			expect(result.createdCount).toBe(5);
@@ -686,11 +691,11 @@ describe('+page.server.js', () => {
 				get: () => null
 			};
 
-			const result = await actions.uploadConduits({
+			const result = /** @type {any} */ (await actions.uploadConduits(/** @type {any} */ ({
 				request: { formData: () => Promise.resolve(formData) },
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(400);
 			expect(result.data.uploadError).toBe(true);
@@ -703,17 +708,17 @@ describe('+page.server.js', () => {
 			});
 
 			const formData = {
-				get: (key) => {
+				get: (/** @type {string} */ key) => {
 					if (key === 'file') return mockFile;
 					return null;
 				}
 			};
 
-			const result = await actions.uploadConduits({
+			const result = /** @type {any} */ (await actions.uploadConduits(/** @type {any} */ ({
 				request: { formData: () => Promise.resolve(formData) },
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(400);
 			expect(result.data.uploadError).toBe(true);
@@ -727,17 +732,17 @@ describe('+page.server.js', () => {
 			});
 
 			const formData = {
-				get: (key) => {
+				get: (/** @type {string} */ key) => {
 					if (key === 'file') return mockFile;
 					return null;
 				}
 			};
 
-			const result = await actions.uploadConduits({
+			const result = /** @type {any} */ (await actions.uploadConduits(/** @type {any} */ ({
 				request: { formData: () => Promise.resolve(formData) },
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(400);
 			expect(result.data.uploadError).toBe(true);
@@ -750,7 +755,7 @@ describe('+page.server.js', () => {
 			});
 
 			const formData = {
-				get: (key) => {
+				get: (/** @type {string} */ key) => {
 					if (key === 'file') return mockFile;
 					return null;
 				}
@@ -767,11 +772,11 @@ describe('+page.server.js', () => {
 					})
 			});
 
-			const result = await actions.uploadConduits({
+			const result = /** @type {any} */ (await actions.uploadConduits(/** @type {any} */ ({
 				request: { formData: () => Promise.resolve(formData) },
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(400);
 			expect(result.data.uploadError).toBe(true);
@@ -786,7 +791,7 @@ describe('+page.server.js', () => {
 			});
 
 			const formData = {
-				get: (key) => {
+				get: (/** @type {string} */ key) => {
 					if (key === 'file') return mockFile;
 					return null;
 				}
@@ -794,11 +799,11 @@ describe('+page.server.js', () => {
 
 			mockFetch.mockRejectedValueOnce(new Error('Network failure'));
 
-			const result = await actions.uploadConduits({
+			const result = /** @type {any} */ (await actions.uploadConduits(/** @type {any} */ ({
 				request: { formData: () => Promise.resolve(formData) },
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.status).toBe(500);
 			expect(result.data.uploadError).toBe(true);
@@ -811,7 +816,7 @@ describe('+page.server.js', () => {
 			});
 
 			const formData = {
-				get: (key) => {
+				get: (/** @type {string} */ key) => {
 					if (key === 'file') return mockFile;
 					return null;
 				}
@@ -822,11 +827,11 @@ describe('+page.server.js', () => {
 				json: () => Promise.resolve({ created_count: 1, message: 'OK', warnings: [] })
 			});
 
-			const result = await actions.uploadConduits({
+			const result = /** @type {any} */ (await actions.uploadConduits(/** @type {any} */ ({
 				request: { formData: () => Promise.resolve(formData) },
 				fetch: mockFetch,
 				cookies: mockCookies
-			});
+			})));
 
 			expect(result.uploadSuccess).toBe(true);
 		});
@@ -836,16 +841,16 @@ describe('+page.server.js', () => {
 		test('should include auth headers in all API calls', async () => {
 			setupLoadMocks();
 
-			await load({
+			await load(/** @type {any} */ ({
 				fetch: mockFetch,
 				url: new URL('http://localhost/conduit/1'),
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			});
+			}));
 
 			// All calls should include auth headers
-			mockFetch.mock.calls.forEach((call) => {
+			mockFetch.mock.calls.forEach((/** @type {any} */ call) => {
 				expect(call[1].headers.Cookie).toBe('api-access-token=mock-token');
 			});
 		});
@@ -854,16 +859,16 @@ describe('+page.server.js', () => {
 			mockCookies.get.mockReturnValue(null);
 			setupLoadMocks();
 
-			await load({
+			await load(/** @type {any} */ ({
 				fetch: mockFetch,
 				url: new URL('http://localhost/conduit/1'),
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			});
+			}));
 
 			// Should not have Cookie header when token is missing
-			mockFetch.mock.calls.forEach((call) => {
+			mockFetch.mock.calls.forEach((/** @type {any} */ call) => {
 				expect(call[1].headers.Cookie).toBeUndefined();
 			});
 		});

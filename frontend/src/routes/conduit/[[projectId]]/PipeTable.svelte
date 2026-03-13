@@ -34,10 +34,12 @@
 	];
 
 	// Sort state
+	/** @type {string | null} */
 	let sortColumn = $state(null);
 	let sortDirection = $state('asc');
 
 	// Filter state - object with column keys
+	/** @type {Record<string, string>} */
 	let filters = $state({
 		name: '',
 		conduit_type: '',
@@ -54,6 +56,7 @@
 	// Mobile global filter
 	let mobileSearchTerm = $state('');
 
+	/** @param {string} columnKey */
 	function toggleSort(columnKey) {
 		if (sortColumn === columnKey) {
 			if (sortDirection === 'asc') {
@@ -68,16 +71,22 @@
 		}
 	}
 
+	/**
+	 * @param {string} columnKey
+	 * @param {string} value
+	 */
 	function updateFilter(columnKey, value) {
 		filters[columnKey] = value;
 	}
 
+	/** @param {number} newPage */
 	function goToPage(newPage) {
 		const url = new URL(window.location.href);
 		url.searchParams.set('page', String(newPage));
 		goto(url.pathname + url.search);
 	}
 
+	/** @param {number} newSize */
 	function changePageSize(newSize) {
 		const url = new URL(window.location.href);
 		url.searchParams.set('page_size', String(newSize));
@@ -87,7 +96,7 @@
 
 	// Apply filters to pipes
 	const filteredPipes = $derived.by(() => {
-		return pipes.filter((pipe) => {
+		return pipes.filter((/** @type {Record<string, any>} */ pipe) => {
 			return Object.entries(filters).every(([key, filterValue]) => {
 				if (!filterValue) return true;
 				const cellValue = String(pipe[key] || '').toLowerCase();
@@ -99,11 +108,12 @@
 	const sortedPipes = $derived.by(() => {
 		if (!sortColumn) return filteredPipes;
 
-		const column = columnConfig.find((c) => c.key === sortColumn);
+		const currentSortColumn = sortColumn;
+		const column = columnConfig.find((c) => c.key === currentSortColumn);
 
 		return [...filteredPipes].sort((a, b) => {
-			let aVal = a[sortColumn] ?? '';
-			let bVal = b[sortColumn] ?? '';
+			let aVal = a[currentSortColumn] ?? '';
+			let bVal = b[currentSortColumn] ?? '';
 
 			if (column?.sortType === 'date') {
 				aVal = aVal ? new Date(aVal).getTime() : 0;
@@ -123,7 +133,7 @@
 		if (!mobileSearchTerm) return sortedPipes;
 
 		const term = mobileSearchTerm.toLowerCase();
-		return sortedPipes.filter((pipe) => {
+		return sortedPipes.filter((/** @type {Record<string, any>} */ pipe) => {
 			return Object.values(pipe).some((value) =>
 				String(value || '')
 					.toLowerCase()
@@ -132,6 +142,7 @@
 		});
 	});
 
+	/** @param {Record<string, any>} pipe */
 	async function handleRowClick(pipe) {
 		// Fetch full conduit details via server action
 		const formData = new FormData();
@@ -153,7 +164,7 @@
 				return;
 			}
 
-			const conduitData = result.data?.conduit;
+			const conduitData = /** @type {any} */ (result).data?.conduit;
 
 			// Open drawer with conduit details
 			drawerStore.open({
@@ -161,11 +172,11 @@
 				component: ConduitDrawerTabs,
 				props: {
 					...conduitData,
-					onConduitUpdate: (updatedConduit) => {
+					onConduitUpdate: (/** @type {any} */ updatedConduit) => {
 						onConduitUpdate(updatedConduit);
 						drawerStore.setTitle(updatedConduit.name);
 					},
-					onConduitDelete: (conduitId) => {
+					onConduitDelete: (/** @type {string} */ conduitId) => {
 						onConduitDelete(conduitId);
 					}
 				}
@@ -230,7 +241,7 @@
 											class="input text-sm py-1 px-2 w-full text-surface-contrast-100-900"
 											placeholder={m.common_search()}
 											value={filters[column.key]}
-											oninput={(e) => updateFilter(column.key, e.target.value)}
+											oninput={(e) => updateFilter(column.key, /** @type {HTMLInputElement} */ (e.target).value)}
 										/>
 									{/if}
 								</th>

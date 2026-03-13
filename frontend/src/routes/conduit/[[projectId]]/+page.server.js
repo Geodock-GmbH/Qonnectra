@@ -3,9 +3,14 @@ import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+/** @type {number} Maximum upload file size in bytes (10MB). */
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-/** @type {import('./$types').PageServerLoad} */
+/**
+ * Loads conduit list data with pagination, search, and attribute options for select inputs.
+ * Returns empty defaults when no projectId is provided.
+ * @type {import('./$types').PageServerLoad}
+ */
 export async function load({ fetch, url, depends, cookies, params }) {
 	depends('app:conduits');
 	const headers = getAuthHeaders(cookies);
@@ -63,7 +68,7 @@ export async function load({ fetch, url, depends, cookies, params }) {
 
 		const pipesData = await pipesResponse.json();
 
-		const pipes = (pipesData.results || []).map((item) => ({
+		const pipes = (pipesData.results || []).map((/** @type {any} */ item) => ({
 			value: item.uuid,
 			name: item.name || '',
 			conduit_type: item.conduit_type || '',
@@ -80,27 +85,27 @@ export async function load({ fetch, url, depends, cookies, params }) {
 		const [conduitTypesData, statusesData, networkLevelsData, companiesData, flagsData] =
 			await Promise.all(selectResponses.map((res) => (res.ok ? res.json() : [])));
 
-		const conduitTypes = conduitTypesData.map((item) => ({
+		const conduitTypes = conduitTypesData.map((/** @type {any} */ item) => ({
 			value: item.id,
 			label: item.conduit_type
 		}));
 
-		const statuses = statusesData.map((item) => ({
+		const statuses = statusesData.map((/** @type {any} */ item) => ({
 			value: item.id,
 			label: item.status
 		}));
 
-		const networkLevels = networkLevelsData.map((item) => ({
+		const networkLevels = networkLevelsData.map((/** @type {any} */ item) => ({
 			value: item.id,
 			label: item.network_level
 		}));
 
-		const companies = companiesData.map((item) => ({
+		const companies = companiesData.map((/** @type {any} */ item) => ({
 			value: item.id,
 			label: item.company
 		}));
 
-		const flags = flagsData.map((item) => ({
+		const flags = flagsData.map((/** @type {any} */ item) => ({
 			value: item.id,
 			label: item.flag
 		}));
@@ -142,7 +147,12 @@ export async function load({ fetch, url, depends, cookies, params }) {
 /** @type {import('./$types').Actions} */
 export const actions = {
 	/**
-	 * Get a single conduit by UUID
+	 * Fetches a single conduit by UUID from the backend API.
+	 * @param {object} event - SvelteKit action event.
+	 * @param {Request} event.request - Form request containing `uuid`.
+	 * @param {typeof globalThis.fetch} event.fetch - SvelteKit fetch function.
+	 * @param {import('@sveltejs/kit').Cookies} event.cookies - Request cookies for auth.
+	 * @returns {Promise<any>}
 	 */
 	getConduit: async ({ request, fetch, cookies }) => {
 		try {
@@ -174,7 +184,12 @@ export const actions = {
 	},
 
 	/**
-	 * Update an existing conduit
+	 * Updates an existing conduit via PATCH. Only non-empty fields are sent.
+	 * @param {object} event - SvelteKit action event.
+	 * @param {Request} event.request - Form request containing conduit fields.
+	 * @param {typeof globalThis.fetch} event.fetch - SvelteKit fetch function.
+	 * @param {import('@sveltejs/kit').Cookies} event.cookies - Request cookies for auth.
+	 * @returns {Promise<any>}
 	 */
 	updateConduit: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
@@ -197,16 +212,17 @@ export const actions = {
 		}
 
 		try {
+			/** @type {Record<string, any>} */
 			const requestBody = {};
 			if (name) requestBody.name = name;
-			if (conduit_type_id) requestBody.conduit_type_id = parseInt(conduit_type_id);
+			if (conduit_type_id) requestBody.conduit_type_id = parseInt(String(conduit_type_id));
 			if (outer_conduit !== null) requestBody.outer_conduit = outer_conduit;
-			if (status_id) requestBody.status_id = parseInt(status_id);
-			if (network_level_id) requestBody.network_level_id = parseInt(network_level_id);
-			if (owner_id) requestBody.owner_id = parseInt(owner_id);
-			if (constructor_id) requestBody.constructor_id = parseInt(constructor_id);
-			if (manufacturer_id) requestBody.manufacturer_id = parseInt(manufacturer_id);
-			if (flag_id) requestBody.flag_id = parseInt(flag_id);
+			if (status_id) requestBody.status_id = parseInt(String(status_id));
+			if (network_level_id) requestBody.network_level_id = parseInt(String(network_level_id));
+			if (owner_id) requestBody.owner_id = parseInt(String(owner_id));
+			if (constructor_id) requestBody.constructor_id = parseInt(String(constructor_id));
+			if (manufacturer_id) requestBody.manufacturer_id = parseInt(String(manufacturer_id));
+			if (flag_id) requestBody.flag_id = parseInt(String(flag_id));
 			if (date) requestBody.date = date;
 
 			const response = await fetch(`${API_URL}conduit/${conduitId}/`, {
@@ -232,12 +248,17 @@ export const actions = {
 			};
 		} catch (err) {
 			console.error('Error updating conduit:', err);
-			return fail(500, { message: err.message || 'Failed to update conduit' });
+			return fail(500, { message: err instanceof Error ? err.message : 'Failed to update conduit' });
 		}
 	},
 
 	/**
-	 * Delete a conduit
+	 * Deletes a conduit by UUID.
+	 * @param {object} event - SvelteKit action event.
+	 * @param {Request} event.request - Form request containing `uuid`.
+	 * @param {typeof globalThis.fetch} event.fetch - SvelteKit fetch function.
+	 * @param {import('@sveltejs/kit').Cookies} event.cookies - Request cookies for auth.
+	 * @returns {Promise<any>}
 	 */
 	deleteConduit: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
@@ -267,12 +288,17 @@ export const actions = {
 			};
 		} catch (err) {
 			console.error('Error deleting conduit:', err);
-			return fail(500, { message: err.message || 'Failed to delete conduit' });
+			return fail(500, { message: err instanceof Error ? err.message : 'Failed to delete conduit' });
 		}
 	},
 
 	/**
-	 * Create a new conduit
+	 * Creates a new conduit. Name is required; all other fields are optional.
+	 * @param {object} event - SvelteKit action event.
+	 * @param {Request} event.request - Form request containing conduit fields.
+	 * @param {typeof globalThis.fetch} event.fetch - SvelteKit fetch function.
+	 * @param {import('@sveltejs/kit').Cookies} event.cookies - Request cookies for auth.
+	 * @returns {Promise<any>}
 	 */
 	createConduit: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
@@ -295,16 +321,17 @@ export const actions = {
 		}
 
 		try {
+			/** @type {Record<string, any>} */
 			const requestBody = { name };
-			if (project_id) requestBody.project_id = parseInt(project_id);
-			if (conduit_type_id) requestBody.conduit_type_id = parseInt(conduit_type_id);
+			if (project_id) requestBody.project_id = parseInt(String(project_id));
+			if (conduit_type_id) requestBody.conduit_type_id = parseInt(String(conduit_type_id));
 			if (outer_conduit) requestBody.outer_conduit = outer_conduit;
-			if (status_id) requestBody.status_id = parseInt(status_id);
-			if (network_level_id) requestBody.network_level_id = parseInt(network_level_id);
-			if (owner_id) requestBody.owner_id = parseInt(owner_id);
-			if (constructor_id) requestBody.constructor_id = parseInt(constructor_id);
-			if (manufacturer_id) requestBody.manufacturer_id = parseInt(manufacturer_id);
-			if (flag_id) requestBody.flag_id = parseInt(flag_id);
+			if (status_id) requestBody.status_id = parseInt(String(status_id));
+			if (network_level_id) requestBody.network_level_id = parseInt(String(network_level_id));
+			if (owner_id) requestBody.owner_id = parseInt(String(owner_id));
+			if (constructor_id) requestBody.constructor_id = parseInt(String(constructor_id));
+			if (manufacturer_id) requestBody.manufacturer_id = parseInt(String(manufacturer_id));
+			if (flag_id) requestBody.flag_id = parseInt(String(flag_id));
 			if (date) requestBody.date = date;
 
 			const response = await fetch(`${API_URL}conduit/`, {
@@ -330,12 +357,17 @@ export const actions = {
 			};
 		} catch (err) {
 			console.error('Error creating conduit:', err);
-			return fail(500, { message: err.message || 'Failed to create conduit' });
+			return fail(500, { message: err instanceof Error ? err.message : 'Failed to create conduit' });
 		}
 	},
 
 	/**
-	 * Upload conduits from Excel file
+	 * Imports conduits from an uploaded Excel (.xlsx) file. Validates format and size before forwarding to the backend.
+	 * @param {object} event - SvelteKit action event.
+	 * @param {Request} event.request - Form request containing the `file` field.
+	 * @param {typeof globalThis.fetch} event.fetch - SvelteKit fetch function.
+	 * @param {import('@sveltejs/kit').Cookies} event.cookies - Request cookies for auth.
+	 * @returns {Promise<any>}
 	 */
 	uploadConduits: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
@@ -344,7 +376,6 @@ export const actions = {
 			const formData = await request.formData();
 			const file = formData.get('file');
 
-			// Validate file exists and is a File object
 			if (!file || !(file instanceof File)) {
 				return fail(400, {
 					uploadError: true,
@@ -404,6 +435,13 @@ export const actions = {
 		}
 	},
 
+	/**
+	 * Fetches available microduct status options for select inputs.
+	 * @param {object} event - SvelteKit action event.
+	 * @param {typeof globalThis.fetch} event.fetch - SvelteKit fetch function.
+	 * @param {import('@sveltejs/kit').Cookies} event.cookies - Request cookies for auth.
+	 * @returns {Promise<any>}
+	 */
 	getMicroductStatusOptions: async ({ fetch, cookies }) => {
 		try {
 			const headers = getAuthHeaders(cookies);
@@ -422,6 +460,14 @@ export const actions = {
 		}
 	},
 
+	/**
+	 * Updates the status of a microduct. Sends null when statusId is empty or "null".
+	 * @param {object} event - SvelteKit action event.
+	 * @param {Request} event.request - Form request containing `uuid` and `microduct_status_id`.
+	 * @param {typeof globalThis.fetch} event.fetch - SvelteKit fetch function.
+	 * @param {import('@sveltejs/kit').Cookies} event.cookies - Request cookies for auth.
+	 * @returns {Promise<any>}
+	 */
 	updateMicroductStatus: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const uuid = formData.get('uuid');
@@ -441,7 +487,7 @@ export const actions = {
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					microduct_status_id: !statusId || statusId === 'null' ? null : parseInt(statusId, 10)
+					microduct_status_id: !statusId || statusId === 'null' ? null : parseInt(String(statusId), 10)
 				})
 			});
 
@@ -457,6 +503,14 @@ export const actions = {
 		}
 	},
 
+	/**
+	 * Fetches all microducts belonging to a specific conduit.
+	 * @param {object} event - SvelteKit action event.
+	 * @param {Request} event.request - Form request containing `uuid` of the parent conduit.
+	 * @param {typeof globalThis.fetch} event.fetch - SvelteKit fetch function.
+	 * @param {import('@sveltejs/kit').Cookies} event.cookies - Request cookies for auth.
+	 * @returns {Promise<any>}
+	 */
 	getMicroducts: async ({ request, fetch, cookies }) => {
 		try {
 			const formData = await request.formData();

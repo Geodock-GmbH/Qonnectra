@@ -21,6 +21,7 @@
 	let searchInput = $state('');
 	let openPipeModal = $state(false);
 	let isUploading = $state(false);
+	/** @type {HTMLFormElement | null} */
 	let uploadFormRef = $state(null);
 
 	// Initialize state manager (pipes are synced from data in $effect below)
@@ -69,16 +70,19 @@
 	}
 
 	// Handler for conduit update from drawer
+	/** @param {any} updatedConduit */
 	function handleConduitUpdate(updatedConduit) {
 		conduitState.updateConduit(updatedConduit);
 	}
 
 	// Handler for conduit delete from drawer
+	/** @param {string} conduitId */
 	function handleConduitDelete(conduitId) {
 		conduitState.deleteConduit(conduitId);
 	}
 
 	// Handler for new conduit from modal
+	/** @param {any} newConduit */
 	function handleConduitCreate(newConduit) {
 		if (newConduit) {
 			conduitState.addConduit(newConduit);
@@ -88,6 +92,7 @@
 	/**
 	 * Handle file selection - auto-submit the form when a file is selected
 	 */
+	/** @param {File[]} files */
 	function handleFileSelect(files) {
 		if (files.length > 0 && uploadFormRef) {
 			uploadFormRef.requestSubmit();
@@ -98,7 +103,7 @@
 	 * Enhance callback for upload form - handles success/failure responses
 	 */
 	function handleUploadSubmit() {
-		return async ({ result }) => {
+		return async (/** @type {{ result: any }} */ { result }) => {
 			isUploading = false;
 
 			if (result.type === 'success' && result.data?.uploadSuccess) {

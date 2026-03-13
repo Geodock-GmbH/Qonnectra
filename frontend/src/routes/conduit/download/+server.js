@@ -3,6 +3,13 @@ import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
+/**
+ * Proxies the conduit Excel template download from the backend API.
+ * @param {object} event - SvelteKit request event.
+ * @param {import('@sveltejs/kit').Cookies} event.cookies - Request cookies for auth.
+ * @param {typeof globalThis.fetch} event.fetch - SvelteKit fetch function.
+ * @returns {Promise<Response>} The Excel template file as a download response.
+ */
 export async function GET({ cookies, fetch }) {
 	const headers = getAuthHeaders(cookies);
 
@@ -35,8 +42,7 @@ export async function GET({ cookies, fetch }) {
 		});
 	} catch (err) {
 		console.error('Download error:', err);
-		// Re-throw SvelteKit errors
-		if (err.status) {
+		if (/** @type {any} */ (err).status) {
 			throw err;
 		}
 		throw error(500, 'Failed to download template');

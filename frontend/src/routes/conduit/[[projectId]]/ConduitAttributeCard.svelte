@@ -18,6 +18,7 @@
 		flags: []
 	};
 
+	/** @type {any} */
 	let messageBoxConfirm = $state(null);
 
 	// Get conduit data from drawer store props
@@ -26,13 +27,20 @@
 	// Mutable state for form fields - required for bind:value to work with GenericCombobox
 	let conduitName = $state('');
 	let conduitOuterConduit = $state('');
+	/** @type {any[]} */
 	let conduitType = $state([]);
+	/** @type {any[]} */
 	let conduitStatus = $state([]);
+	/** @type {any[]} */
 	let conduitNetworkLevel = $state([]);
+	/** @type {any[]} */
 	let conduitOwner = $state([]);
+	/** @type {any[]} */
 	let conduitConstructor = $state([]);
+	/** @type {any[]} */
 	let conduitManufacturer = $state([]);
 	let conduitDate = $state('');
+	/** @type {any[]} */
 	let conduitFlag = $state([]);
 
 	let { onConduitUpdate, onConduitDelete } = $props();
@@ -46,16 +54,19 @@
 			conduitStatus = conduit.status?.id != null ? [conduit.status.id] : [];
 			conduitNetworkLevel = conduit.network_level?.id != null ? [conduit.network_level.id] : [];
 			conduitOwner = conduit.owner?.id != null ? [conduit.owner.id] : [];
-			conduitConstructor = conduit.constructor?.id != null ? [conduit.constructor.id] : [];
+			conduitConstructor =
+				/** @type {{ id?: any }} */ (/** @type {unknown} */ (conduit.constructor))?.id != null
+					? [/** @type {{ id: any }} */ (/** @type {unknown} */ (conduit.constructor)).id]
+					: [];
 			conduitManufacturer = conduit.manufacturer?.id != null ? [conduit.manufacturer.id] : [];
 			conduitDate = conduit.date || '';
 			conduitFlag = conduit.flag?.id != null ? [conduit.flag.id] : [];
 		}
 	});
 
-	async function handleSubmit(event) {
+	async function handleSubmit(/** @type {SubmitEvent} */ event) {
 		event.preventDefault();
-		const formData = new FormData(event.target);
+		const formData = new FormData(/** @type {HTMLFormElement} */ (event.target));
 		formData.append('uuid', conduit.uuid);
 		formData.append('conduit_type_id', conduitType?.[0] || '');
 		formData.append('status_id', conduitStatus?.[0] || '');
@@ -87,7 +98,7 @@
 			});
 
 			// Update drawer title and notify parent
-			if (onConduitUpdate && result.data?.conduit) {
+			if (onConduitUpdate && result.type === 'success' && result.data?.conduit) {
 				drawerStore.setTitle(conduitName);
 				onConduitUpdate(result.data.conduit);
 			}
@@ -101,7 +112,7 @@
 	}
 
 	async function confirmDelete() {
-		messageBoxConfirm.open();
+		messageBoxConfirm?.open();
 	}
 
 	async function handleDelete() {
@@ -131,7 +142,8 @@
 			console.error('Error deleting conduit:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: error.message || m.message_error_deleting_conduit()
+				description:
+					error instanceof Error ? error.message : m.message_error_deleting_conduit()
 			});
 		}
 	}
@@ -148,7 +160,7 @@
 			name="conduit_name"
 			required
 			value={conduitName}
-			oninput={(e) => (conduitName = e.target.value)}
+			oninput={(e) => (conduitName = /** @type {HTMLInputElement} */ (e.target).value)}
 		/>
 	</label>
 	<label class="label">
@@ -157,7 +169,7 @@
 			data={attributes.conduitTypes}
 			bind:value={conduitType}
 			defaultValue={conduitType}
-			onValueChange={(e) => (conduitType = e.value)}
+			onValueChange={(/** @type {{ value: any[] }} */ e) => (conduitType = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -168,7 +180,7 @@
 			class="textarea"
 			placeholder=""
 			value={conduitOuterConduit}
-			oninput={(e) => (conduitOuterConduit = e.target.value)}
+			oninput={(e) => (conduitOuterConduit = /** @type {HTMLTextAreaElement} */ (e.target).value)}
 		></textarea>
 	</label>
 	<label class="label">
@@ -177,7 +189,7 @@
 			data={attributes.statuses}
 			bind:value={conduitStatus}
 			defaultValue={conduitStatus}
-			onValueChange={(e) => (conduitStatus = e.value)}
+			onValueChange={(/** @type {{ value: any[] }} */ e) => (conduitStatus = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -187,7 +199,7 @@
 			data={attributes.networkLevels}
 			bind:value={conduitNetworkLevel}
 			defaultValue={conduitNetworkLevel}
-			onValueChange={(e) => (conduitNetworkLevel = e.value)}
+			onValueChange={(/** @type {{ value: any[] }} */ e) => (conduitNetworkLevel = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -197,7 +209,7 @@
 			data={attributes.companies}
 			bind:value={conduitOwner}
 			defaultValue={conduitOwner}
-			onValueChange={(e) => (conduitOwner = e.value)}
+			onValueChange={(/** @type {{ value: any[] }} */ e) => (conduitOwner = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -207,7 +219,7 @@
 			data={attributes.companies}
 			bind:value={conduitConstructor}
 			defaultValue={conduitConstructor}
-			onValueChange={(e) => (conduitConstructor = e.value)}
+			onValueChange={(/** @type {{ value: any[] }} */ e) => (conduitConstructor = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -217,7 +229,7 @@
 			data={attributes.companies}
 			bind:value={conduitManufacturer}
 			defaultValue={conduitManufacturer}
-			onValueChange={(e) => (conduitManufacturer = e.value)}
+			onValueChange={(/** @type {{ value: any[] }} */ e) => (conduitManufacturer = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -228,7 +240,7 @@
 			class="input"
 			name="date"
 			value={conduitDate}
-			oninput={(e) => (conduitDate = e.target.value)}
+			oninput={(e) => (conduitDate = /** @type {HTMLInputElement} */ (e.target).value)}
 		/>
 	</label>
 	<label class="label">
@@ -237,7 +249,7 @@
 			data={attributes.flags}
 			bind:value={conduitFlag}
 			defaultValue={conduitFlag}
-			onValueChange={(e) => (conduitFlag = e.value)}
+			onValueChange={(/** @type {{ value: any[] }} */ e) => (conduitFlag = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
