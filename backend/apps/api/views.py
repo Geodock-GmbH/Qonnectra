@@ -1,3 +1,9 @@
+"""DRF views for the Qonnectra GIS API.
+
+Provide CRUD ViewSets for telco infrastructure models, MVT tile endpoints,
+WMS/WFS proxy views, dashboard statistics, and fiber trace analysis.
+"""
+
 import logging
 import mimetypes
 import os
@@ -159,10 +165,7 @@ User = get_user_model()
 
 
 class AttributesCableTypeViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the AttributesCableType model :model:`api.AttributesCableType`.
-
-    An instance of :model:`api.AttributesCableType`.
-    """
+    """Read-only ViewSet for :model:`api.AttributesCableType`."""
 
     permission_classes = [IsAuthenticated]
     queryset = AttributesCableType.objects.all().order_by("cable_type")
@@ -172,10 +175,7 @@ class AttributesCableTypeViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AttributesConduitTypeViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the AttributesConduitType model :model:`api.AttributesConduitType`.
-
-    An instance of :model:`api.AttributesConduitType`.
-    """
+    """Read-only ViewSet for :model:`api.AttributesConduitType`."""
 
     permission_classes = [IsAuthenticated]
 
@@ -186,10 +186,7 @@ class AttributesConduitTypeViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AttributesNodeTypeViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the AttributesNodeType model :model:`api.AttributesNodeType`.
-
-    An instance of :model:`api.AttributesNodeType`.
-    """
+    """Read-only ViewSet for :model:`api.AttributesNodeType`."""
 
     permission_classes = [IsAuthenticated]
     queryset = AttributesNodeType.objects.all().order_by("node_type")
@@ -198,6 +195,11 @@ class AttributesNodeTypeViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_url_kwarg = "pk"
 
     def get_queryset(self):
+        """Filter node types, optionally excluding a group via ?exclude_group.
+
+        Returns:
+            QuerySet[AttributesNodeType]: Filtered and ordered node types.
+        """
         queryset = AttributesNodeType.objects.all().order_by("node_type")
         exclude_group = self.request.query_params.get("exclude_group")
         if exclude_group:
@@ -206,10 +208,7 @@ class AttributesNodeTypeViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AttributesStatusViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the AttributesStatus model :model:`api.AttributesStatus`.
-
-    An instance of :model:`api.AttributesStatus`.
-    """
+    """Read-only ViewSet for :model:`api.AttributesStatus`."""
 
     permission_classes = [IsAuthenticated]
 
@@ -220,10 +219,7 @@ class AttributesStatusViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AttributesNetworkLevelViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the AttributesNetworkLevel model :model:`api.AttributesNetworkLevel`.
-
-    An instance of :model:`api.AttributesNetworkLevel`.
-    """
+    """Read-only ViewSet for :model:`api.AttributesNetworkLevel`."""
 
     permission_classes = [IsAuthenticated]
 
@@ -234,10 +230,7 @@ class AttributesNetworkLevelViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AttributesCompanyViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the AttributesCompany model :model:`api.AttributesCompany`.
-
-    An instance of :model:`api.AttributesCompany`.
-    """
+    """Read-only ViewSet for :model:`api.AttributesCompany`."""
 
     permission_classes = [IsAuthenticated]
 
@@ -272,10 +265,7 @@ class ContentTypeViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AttributesConstructionTypeViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the AttributesConstructionType model :model:`api.AttributesConstructionType`.
-
-    An instance of :model:`api.AttributesConstructionType`.
-    """
+    """Read-only ViewSet for :model:`api.AttributesConstructionType`."""
 
     permission_classes = [IsAuthenticated]
     queryset = AttributesConstructionType.objects.all().order_by("construction_type")
@@ -285,10 +275,7 @@ class AttributesConstructionTypeViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AttributesSurfaceViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the AttributesSurface model :model:`api.AttributesSurface`.
-
-    An instance of :model:`api.AttributesSurface`.
-    """
+    """Read-only ViewSet for :model:`api.AttributesSurface`."""
 
     permission_classes = [IsAuthenticated]
     queryset = AttributesSurface.objects.all().order_by("surface")
@@ -298,10 +285,7 @@ class AttributesSurfaceViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AttributesAreaTypeViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the AttributesAreaType model :model:`api.AttributesAreaType`.
-
-    An instance of :model:`api.AttributesAreaType`.
-    """
+    """Read-only ViewSet for :model:`api.AttributesAreaType`."""
 
     permission_classes = [IsAuthenticated]
     queryset = AttributesAreaType.objects.all().order_by("area_type")
@@ -311,6 +295,8 @@ class AttributesAreaTypeViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AttributesComponentTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for :model:`api.AttributesComponentType`."""
+
     permission_classes = [IsAuthenticated]
     queryset = AttributesComponentType.objects.all().order_by("component_type")
     serializer_class = AttributesComponentTypeSerializer
@@ -319,10 +305,7 @@ class AttributesComponentTypeViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AttributesStatusDevelopmentViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the AttributesStatusDevelopment model :model:`api.AttributesStatusDevelopment`.
-
-    An instance of :model:`api.AttributesStatusDevelopment`.
-    """
+    """Read-only ViewSet for :model:`api.AttributesStatusDevelopment`."""
 
     permission_classes = [IsAuthenticated]
     queryset = AttributesStatusDevelopment.objects.all().order_by("status")
@@ -354,9 +337,10 @@ class AttributesResidentialUnitStatusViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class TrenchViewSet(viewsets.ModelViewSet):
-    """ViewSet for the Trench model :model:`api.Trench`.
+    """CRUD operations for :model:`api.Trench`.
 
-    An instance of :model: `api.Trench`.
+    Supports spatial queries, filtering by project and flag,
+    and aggregation endpoints for dashboard statistics.
     """
 
     permission_classes = [IsAuthenticated, RoleBasedPermission]
@@ -367,6 +351,11 @@ class TrenchViewSet(viewsets.ModelViewSet):
     pagination_class = CustomPagination
 
     def get_queryset(self):
+        """Filter trenches by id_trench or uuid query parameters.
+
+        Returns:
+            QuerySet[Trench]: Filtered trench queryset.
+        """
         queryset = Trench.objects.all()
         id_trench = self.request.query_params.get("id_trench")
         uuid = self.request.query_params.get("uuid")
@@ -409,6 +398,7 @@ class TrenchViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def total_length(self, request):
+        """Return total trench length and count, filterable by status, project, flag, surface, and construction type."""
         status = self.request.query_params.get("status")
         project = self.request.query_params.get("project")
         flag = self.request.query_params.get("flag")
@@ -435,6 +425,7 @@ class TrenchViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def average_house_connection_length(self, request):
+        """Return average length of house-connection trenches, filterable by project and flag."""
         project = self.request.query_params.get("project")
         flag = self.request.query_params.get("flag")
 
@@ -451,6 +442,7 @@ class TrenchViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def length_with_funding(self, request):
+        """Return total length and count of funded trenches, filterable by project and flag."""
         project = self.request.query_params.get("project")
         flag = self.request.query_params.get("flag")
 
@@ -469,6 +461,7 @@ class TrenchViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def length_with_internal_execution(self, request):
+        """Return total length and count of internally-executed trenches, filterable by project and flag."""
         project = self.request.query_params.get("project")
         flag = self.request.query_params.get("flag")
 
@@ -487,6 +480,7 @@ class TrenchViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def length_by_status(self, request):
+        """Return trench lengths grouped by status, filterable by project and flag."""
         project = self.request.query_params.get("project")
         flag = self.request.query_params.get("flag")
 
@@ -510,6 +504,7 @@ class TrenchViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def length_by_phase(self, request):
+        """Return trench lengths grouped by network level (phase), filterable by project and flag."""
         project = self.request.query_params.get("project")
         flag = self.request.query_params.get("flag")
 
@@ -533,6 +528,7 @@ class TrenchViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def longest_routes(self, request):
+        """Return the N longest trenches (default 5), filterable by project and flag."""
         project = self.request.query_params.get("project")
         flag = self.request.query_params.get("flag")
         limit = int(self.request.query_params.get("limit", 5))
@@ -599,11 +595,9 @@ class TrenchViewSet(viewsets.ModelViewSet):
 
 
 class FeatureFilesViewSet(viewsets.ModelViewSet):
-    """ViewSet for the FeatureFiles model :model:`api.FeatureFiles`.
+    """CRUD operations for :model:`api.FeatureFiles`.
 
-    An instance of :model:`api.FeatureFiles`.
-
-    Provides authenticated file downloads using Nginx X-Accel-Redirect for
+    Provide authenticated file downloads using Nginx X-Accel-Redirect for
     secure and efficient file serving.
     """
 
@@ -1093,15 +1087,13 @@ class UserPermissionsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """Return the authenticated user's role-based permission set."""
         permissions = get_user_permissions(request.user)
         return Response(permissions)
 
 
 class OlTrenchTileViewSet(APIView):
-    """ViewSet for the OlTrench model :model:`api.OlTrench`.
-
-    An instance of :model:`api.OlTrench`.
-    """
+    """Serve MVT vector tiles for :model:`api.OlTrench`."""
 
     permission_classes = [IsAuthenticated]
 
@@ -1193,10 +1185,7 @@ class OlTrenchTileViewSet(APIView):
 
 
 class ProjectsViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the Projects model :model:`api.Projects`.
-
-    An instance of :model:`api.Projects`.
-    """
+    """Read-only ViewSet for :model:`api.Projects`."""
 
     permission_classes = [IsAuthenticated]
     queryset = Projects.objects.all().order_by("project")
@@ -1205,20 +1194,21 @@ class ProjectsViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_url_kwarg = "pk"
 
     def get_queryset(self):
+        """Filter projects by active status via ?active query parameter.
+
+        Returns:
+            QuerySet[Projects]: Filtered and ordered projects.
+        """
         queryset = Projects.objects.all().order_by("project")
         active = self.request.query_params.get("active")
         if active is not None:
-            # Convert string 'true'/'false' to boolean
             active_bool = active.lower() in ("true", "1", "yes")
             queryset = queryset.filter(active=active_bool)
         return queryset
 
 
 class FlagsViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the Flags model :model:`api.Flags`.
-
-    An instance of :model:`api.Flags`.
-    """
+    """Read-only ViewSet for :model:`api.Flags`."""
 
     permission_classes = [IsAuthenticated]
     queryset = Flags.objects.all().order_by("flag")
@@ -1228,9 +1218,9 @@ class FlagsViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class ConduitViewSet(viewsets.ModelViewSet):
-    """ViewSet for the Conduit model :model:`api.Conduit`.
+    """CRUD operations for :model:`api.Conduit`.
 
-    An instance of :model:`api.Conduit`.
+    Support filtering by trench, project, and flag with pagination.
     """
 
     permission_classes = [IsAuthenticated, RoleBasedPermission]
@@ -1359,9 +1349,9 @@ class ConduitViewSet(viewsets.ModelViewSet):
 
 
 class TrenchConduitConnectionViewSet(viewsets.ModelViewSet):
-    """ViewSet for the TrenchConduitConnection model :model:`api.TrenchConduitConnection`.
+    """CRUD operations for :model:`api.TrenchConduitConnection`.
 
-    An instance of :model:`api.TrenchConduitConnection`.
+    Manage conduit-to-trench associations with project and flag filtering.
     """
 
     permission_classes = [IsAuthenticated, RoleBasedPermission]
@@ -1549,9 +1539,9 @@ class TrenchConduitCanvasViewSet(viewsets.ModelViewSet):
 
 
 class AddressViewSet(viewsets.ModelViewSet):
-    """ViewSet for the Address model :model:`api.Address`.
+    """CRUD operations for :model:`api.Address`.
 
-    An instance of :model:`api.Address`.
+    Support filtering by project, flag, city, and spatial queries.
     """
 
     permission_classes = [IsAuthenticated, RoleBasedPermission]
@@ -1892,10 +1882,7 @@ class ResidentialUnitViewSet(viewsets.ModelViewSet):
 
 
 class OlAddressTileViewSet(APIView):
-    """ViewSet for the OlAddress model :model:`api.OlAddress`.
-
-    An instance of :model:`api.OlAddress`.
-    """
+    """Serve MVT vector tiles for :model:`api.OlAddress`."""
 
     permission_classes = [IsAuthenticated]
 
@@ -1965,9 +1952,10 @@ class OlAddressTileViewSet(APIView):
 
 
 class NodeViewSet(viewsets.ModelViewSet):
-    """ViewSet for the Node model :model:`api.Node`.
+    """CRUD operations for :model:`api.Node`.
 
-    An instance of :model:`api.Node`.
+    Support spatial queries, filtering by project, flag, and node type,
+    with pipe-branch and child-view modes for canvas rendering.
     """
 
     permission_classes = [IsAuthenticated, RoleBasedPermission]
@@ -2733,10 +2721,7 @@ class NodeCanvasCoordinatesView(APIView):
 
 
 class OlNodeTileViewSet(APIView):
-    """ViewSet for the OlNode model :model:`api.OlNode`.
-
-    An instance of :model:`api.OlNode`.
-    """
+    """Serve MVT vector tiles for :model:`api.OlNode`."""
 
     permission_classes = [IsAuthenticated]
 
@@ -2860,12 +2845,7 @@ class RoutingView(APIView):
 
 
 class ConduitImportTemplateView(APIView):
-    """ViewSet for the Conduit model :model:`api.Conduit`.
-
-    An instance of :model:`api.Conduit`.
-
-    Returns a template for importing conduits.
-    """
+    """Return an Excel template for importing conduits."""
 
     permission_classes = [IsAuthenticated]
 
@@ -2884,6 +2864,7 @@ class ConduitImportView(APIView):
     MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
     def post(self, request, *args, **kwargs):
+        """Import conduits from an uploaded .xlsx file (max 10 MB)."""
         file_obj = request.FILES.get("file")
         if not file_obj:
             return Response(
@@ -2927,6 +2908,7 @@ class NodeStructureExportView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, node_uuid):
+        """Generate and return an Excel file for the given node's structure."""
         response = generate_node_structure_excel(node_uuid)
         if response is None:
             return Response(
@@ -2950,6 +2932,7 @@ class GeoPackageSchemaView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """Generate and return a GeoPackage schema, optionally filtered by ?layers."""
         layers_param = request.query_params.get("layers")
         layers = None
         if layers_param:
@@ -2976,10 +2959,7 @@ class GeoPackageSchemaView(APIView):
 
 
 class AttributesMicroductStatusViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the AttributesMicroductStatus model :model:`api.AttributesMicroductStatus`.
-
-    An instance of :model:`api.AttributesMicroductStatus`.
-    """
+    """Read-only ViewSet for :model:`api.AttributesMicroductStatus`."""
 
     permission_classes = [IsAuthenticated]
     queryset = AttributesMicroductStatus.objects.all().order_by("microduct_status")
@@ -2989,10 +2969,7 @@ class AttributesMicroductStatusViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AttributesFiberStatusViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the AttributesFiberStatus model :model:`api.AttributesFiberStatus`.
-
-    An instance of :model:`api.AttributesFiberStatus`.
-    """
+    """Read-only ViewSet for :model:`api.AttributesFiberStatus`."""
 
     permission_classes = [IsAuthenticated]
     queryset = AttributesFiberStatus.objects.all().order_by("fiber_status")
@@ -3002,10 +2979,7 @@ class AttributesFiberStatusViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AttributesMicroductColorViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the AttributesMicroductColor model :model:`api.AttributesMicroductColor`.
-
-    An instance of :model:`api.AttributesMicroductColor`.
-    """
+    """Read-only ViewSet for active :model:`api.AttributesMicroductColor` entries."""
 
     permission_classes = [IsAuthenticated]
     queryset = AttributesMicroductColor.objects.filter(is_active=True).order_by(
@@ -3017,10 +2991,7 @@ class AttributesMicroductColorViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AttributesFiberColorViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the AttributesFiberColor model :model:`api.AttributesFiberColor`.
-
-    An instance of :model:`api.AttributesFiberColor`.
-    """
+    """Read-only ViewSet for active :model:`api.AttributesFiberColor` entries."""
 
     permission_classes = [IsAuthenticated]
     queryset = AttributesFiberColor.objects.filter(is_active=True).order_by(
@@ -3032,10 +3003,7 @@ class AttributesFiberColorViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class CableTypeColorMappingViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for the CableTypeColorMapping model :model:`api.CableTypeColorMapping`.
-
-    An instance of :model:`api.CableTypeColorMapping`.
-    """
+    """Read-only ViewSet for :model:`api.CableTypeColorMapping`."""
 
     permission_classes = [IsAuthenticated]
     queryset = CableTypeColorMapping.objects.all().order_by(
@@ -3047,9 +3015,9 @@ class CableTypeColorMappingViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class MicroductViewSet(viewsets.ModelViewSet):
-    """ViewSet for the Microduct model :model:`api.Microduct`.
+    """CRUD operations for :model:`api.Microduct`.
 
-    An instance of :model:`api.Microduct`.
+    Support filtering by conduit, number, color, and node.
     """
 
     permission_classes = [IsAuthenticated, RoleBasedPermission]
@@ -3107,10 +3075,7 @@ class MicroductViewSet(viewsets.ModelViewSet):
 
 
 class MicroductConnectionViewSet(viewsets.ModelViewSet):
-    """ViewSet for the MicroductConnection model :model:`api.MicroductConnection`.
-
-    An instance of :model:`api.MicroductConnection`.
-    """
+    """CRUD operations for :model:`api.MicroductConnection`."""
 
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = MicroductConnection.objects.all()
@@ -3328,9 +3293,9 @@ class TrenchesNearNodeView(APIView):
 
 
 class CableViewSet(viewsets.ModelViewSet):
-    """ViewSet for the Cable model :model:`api.Cable`.
+    """CRUD operations for :model:`api.Cable`.
 
-    An instance of :model:`api.Cable`.
+    Support filtering by project, flag, and node with cable-at-node serialization.
     """
 
     permission_classes = [IsAuthenticated, RoleBasedPermission]
@@ -3496,10 +3461,7 @@ class CableViewSet(viewsets.ModelViewSet):
 
 
 class CableLabelViewSet(viewsets.ModelViewSet):
-    """ViewSet for the CableLabel model :model:`api.CableLabel`.
-
-    An instance of :model:`api.CableLabel`.
-    """
+    """CRUD operations for :model:`api.CableLabel`."""
 
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = CableLabel.objects.all().order_by("cable", "order")
@@ -3534,10 +3496,7 @@ class CableLabelViewSet(viewsets.ModelViewSet):
 
 
 class MicroductCableConnectionViewSet(viewsets.ModelViewSet):
-    """ViewSet for the MicroductCableConnection model :model:`api.MicroductCableConnection`.
-
-    An instance of :model:`api.MicroductCableConnection`.
-    """
+    """CRUD operations for :model:`api.MicroductCableConnection`."""
 
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = MicroductCableConnection.objects.all()
@@ -3663,34 +3622,28 @@ class LogEntryViewSet(viewsets.ReadOnlyModelViewSet):
         if not self.request.user.is_staff:
             return LogEntry.objects.none()
 
-        # Filter by log level
         level = self.request.query_params.get("level")
         if level:
             queryset = queryset.filter(level=level.upper())
 
-        # Filter by source
         source = self.request.query_params.get("source")
         if source:
             queryset = queryset.filter(source=source)
 
-        # Filter by user
         user_id = self.request.query_params.get("user")
         if user_id:
             queryset = queryset.filter(user_id=user_id)
 
-        # Filter by project
         project_id = self.request.query_params.get("project")
         if project_id:
             queryset = queryset.filter(project_id=project_id)
 
-        # Search in message and logger_name
         search = self.request.query_params.get("search")
         if search:
             queryset = queryset.filter(
                 Q(message__icontains=search) | Q(logger_name__icontains=search)
             )
 
-        # Filter by date range
         date_from = self.request.query_params.get("date_from")
         if date_from:
             queryset = queryset.filter(timestamp__gte=date_from)
@@ -3729,7 +3682,6 @@ class FrontendLogView(APIView):
             extra_data = request.data.get("extra_data", {})
             project_id = request.data.get("project", None)
 
-            # Validate level
             valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
             if level not in valid_levels:
                 level = "INFO"
@@ -3744,11 +3696,10 @@ class FrontendLogView(APIView):
                 except (ValueError, Projects.DoesNotExist, TypeError):
                     project_instance = None
 
-            # Create log entry
             LogEntry.objects.create(
                 level=level,
                 logger_name="frontend",
-                message=message[:10000],  # Limit message length
+                message=message[:10000],
                 user=request.user,
                 source="frontend",
                 path=path[:500] if path else None,
@@ -3859,9 +3810,9 @@ class LayerExtentView(APIView):
 
 
 class AreaViewSet(viewsets.ModelViewSet):
-    """ViewSet for the Area model :model:`api.Area`.
+    """CRUD operations for :model:`api.Area`.
 
-    An instance of :model:`api.Area`.
+    Support filtering by project, flag, and name.
     """
 
     permission_classes = [IsAuthenticated, RoleBasedPermission]
@@ -3926,10 +3877,7 @@ class AreaViewSet(viewsets.ModelViewSet):
 
 
 class OlAreaTileViewSet(APIView):
-    """ViewSet for the OlArea model :model:`api.OlArea`.
-
-    An instance of :model:`api.OlArea`.
-    """
+    """Serve MVT vector tiles for :model:`api.OlArea`."""
 
     permission_classes = [IsAuthenticated]
 
@@ -5257,10 +5205,9 @@ class ConduitsByTrenchesView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """Return deduplicated conduits across the given trench UUIDs."""
         trench_ids = request.query_params.get("trench_ids", "")
         cable_id = request.query_params.get("cable_id")
-
-        # Validate cable_id UUID format if provided
         if cable_id:
             try:
                 uuid.UUID(cable_id)
@@ -5322,10 +5269,9 @@ class MicropipesByConduitsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """Return micropipes with availability and cable connection info across conduits."""
         conduit_ids = request.query_params.get("conduit_ids", "")
         cable_id = request.query_params.get("cable_id")
-
-        # Validate cable_id UUID format if provided
         if cable_id:
             try:
                 uuid.UUID(cable_id)
@@ -5535,13 +5481,11 @@ def get_cable_micropipe_summary(request, project_id):
         .order_by("uuid_cable", "uuid_microduct__number")
     )
 
-    # Build a lookup for color hex codes
     color_lookup = {
         color.name_de.lower(): color.hex_code
         for color in AttributesMicroductColor.objects.filter(is_active=True)
     }
 
-    # Group by cable and extract micropipe info
     result = {}
     for conn in connections:
         cable_uuid = str(conn.uuid_cable_id)
@@ -5690,10 +5634,8 @@ class WMSSourceViewSet(viewsets.ModelViewSet):
 
         from rest_framework_simplejwt.tokens import AccessToken
 
-        # Create a short-lived token (5 minutes) for WMS access
         token = AccessToken.for_user(request.user)
         token.set_exp(lifetime=timedelta(minutes=5))
-        # Scope token to WMS proxy only
         token["wms_only"] = True
 
         return Response({"token": str(token)})
@@ -5853,7 +5795,6 @@ class WMSProxyView(APIView):
 
         parsed = urlparse(url)
 
-        # Validate URL scheme
         if parsed.scheme.lower() not in self.ALLOWED_URL_SCHEMES:
             return (
                 False,
@@ -5865,23 +5806,19 @@ class WMSProxyView(APIView):
         if not hostname:
             return False, "Invalid URL: no hostname"
 
-        # Block common internal hostnames
         internal_hostnames = ["localhost", "metadata.google.internal"]
         if hostname.lower() in internal_hostnames:
             return False, "Access to internal hosts is not allowed"
 
         try:
-            # Try to parse as IP address first
             ip = ipaddress.ip_address(hostname)
         except ValueError:
-            # It's a hostname, resolve it
             try:
                 resolved = socket.gethostbyname(hostname)
                 ip = ipaddress.ip_address(resolved)
             except socket.gaierror:
                 return False, f"Could not resolve hostname: {hostname}"
 
-        # Check against blocked networks
         for network_str in self.BLOCKED_NETWORKS:
             try:
                 network = ipaddress.ip_network(network_str)
@@ -5894,7 +5831,9 @@ class WMSProxyView(APIView):
 
     def get(self, request, source_id):
         """Proxy WMS GET request to upstream server."""
-        acquired = _wms_upstream_semaphore.acquire(timeout=self.UPSTREAM_SEMAPHORE_TIMEOUT)
+        acquired = _wms_upstream_semaphore.acquire(
+            timeout=self.UPSTREAM_SEMAPHORE_TIMEOUT
+        )
         if not acquired:
             return Response(
                 {"error": "WMS service busy, please retry"},
@@ -5924,7 +5863,6 @@ class WMSProxyView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Parse the WMS URL to extract base URL and preserved params (like MAP)
         from urllib.parse import parse_qs, urlparse, urlunparse
 
         parsed_url = urlparse(source.url)
@@ -5933,29 +5871,26 @@ class WMSProxyView(APIView):
                 parsed_url.scheme,
                 parsed_url.netloc,
                 parsed_url.path,
-                "",  # params
-                "",  # query - will be added via params dict
-                "",  # fragment
+                "",
+                "",
+                "",
             )
         )
 
-        # Extract allowed params from the original URL (e.g., MAP for QGIS Server)
-        # Normalize keys to uppercase for case-insensitive merging
+        # Preserve allowed params from the source URL (e.g., MAP for QGIS Server)
         original_params = {
             k.upper(): v[0] if len(v) == 1 else v
             for k, v in parse_qs(parsed_url.query).items()
             if k.lower() in self.ALLOWED_WMS_PARAMS
         }
 
-        # Filter incoming request params to allowed WMS parameters only
-        # and remove our auth token. Normalize keys to uppercase.
+        # Only forward allowed WMS parameters, stripping auth tokens
         params = {
             k.upper(): v
             for k, v in request.query_params.dict().items()
             if k.lower() in self.ALLOWED_WMS_PARAMS
         }
 
-        # Merge: original URL params first, then request params override
         params = {**original_params, **params}
 
         auth = None
@@ -5984,7 +5919,6 @@ class WMSProxyView(APIView):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
-        # Log non-2xx responses from upstream
         if not upstream_response.ok:
             logger.warning(
                 f"WMS proxy received non-2xx from upstream: {upstream_response.status_code}",
@@ -5996,7 +5930,6 @@ class WMSProxyView(APIView):
                 },
             )
 
-        # Check response size limit
         content_length = upstream_response.headers.get("Content-Length")
         if content_length and int(content_length) > self.MAX_RESPONSE_SIZE:
             upstream_response.close()
@@ -6005,7 +5938,6 @@ class WMSProxyView(APIView):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
-        # Use streaming response for efficiency
         def iter_content():
             total_size = 0
             for chunk in upstream_response.iter_content(chunk_size=8192):
@@ -6027,7 +5959,6 @@ class WMSProxyView(APIView):
         if upstream_cache_control:
             response["Cache-Control"] = upstream_cache_control
         else:
-            # 1 day
             response["Cache-Control"] = "public, max-age=86400"
 
         if etag := upstream_response.headers.get("ETag"):
@@ -6143,7 +6074,6 @@ class WFS3ProxyView(APIView):
         """Proxy the request to QGIS Server."""
         upstream_url = self._build_upstream_url(qgis_project, wfs3_path)
 
-        # Forward query params (except our token)
         params = {
             k: v for k, v in request.query_params.dict().items() if k.lower() != "token"
         }
@@ -6184,7 +6114,6 @@ class WFS3ProxyView(APIView):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
-        # Log non-2xx responses
         if not upstream_response.ok:
             logger.warning(
                 f"WFS3 proxy received non-2xx from upstream: {upstream_response.status_code}",
@@ -6195,7 +6124,6 @@ class WFS3ProxyView(APIView):
                 },
             )
 
-        # Check response size limit
         content_length = upstream_response.headers.get("Content-Length")
         if content_length and int(content_length) > self.MAX_RESPONSE_SIZE:
             upstream_response.close()
@@ -6204,12 +6132,10 @@ class WFS3ProxyView(APIView):
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
-        # Handle JSON responses (rewrite URLs)
         content_type = upstream_response.headers.get("Content-Type", "")
         if "application/json" in content_type or "application/geo+json" in content_type:
             return self._handle_json_response(request, qgis_project, upstream_response)
 
-        # Stream non-JSON responses directly
         def iter_content():
             total_size = 0
             for chunk in upstream_response.iter_content(chunk_size=8192):
@@ -6360,6 +6286,14 @@ class DashboardStatisticsView(APIView):
     CACHE_TIMEOUT = 300  # 5 minutes
 
     def get(self, request):
+        """Return all dashboard statistics in a single cached response.
+
+        Args:
+            request: HTTP request with required ?project and optional ?flag params.
+
+        Returns:
+            Response: Aggregated statistics for trench, node, address, conduit, and area.
+        """
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
 
@@ -6369,15 +6303,11 @@ class DashboardStatisticsView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Build cache key
         cache_key = f"dashboard_stats_{project_id}_{flag_id or 'all'}"
-
-        # Try to get from cache
         cached_data = cache.get(cache_key)
         if cached_data is not None:
             return Response(cached_data)
 
-        # Compute all statistics
         result = {
             "trench": self._get_trench_statistics(project_id, flag_id),
             "node": self._get_node_statistics(project_id, flag_id),
@@ -6386,7 +6316,6 @@ class DashboardStatisticsView(APIView):
             "area": self._get_area_statistics(project_id, flag_id),
         }
 
-        # Cache the result
         cache.set(cache_key, result, self.CACHE_TIMEOUT)
 
         return Response(result)
@@ -6399,34 +6328,29 @@ class DashboardStatisticsView(APIView):
         if flag_id:
             base_queryset = base_queryset.filter(flag=flag_id)
 
-        # Total length and count
         totals = base_queryset.aggregate(
             total_length=Sum("length"),
             count=Count("uuid"),
         )
 
-        # Average house connection length
         house_connection_qs = base_queryset.filter(house_connection=True)
         avg_house_connection = house_connection_qs.aggregate(
             average_length=Avg("length"),
             count=Count("uuid"),
         )
 
-        # Length with funding
         funding_qs = base_queryset.filter(funding_status=True)
         length_with_funding = funding_qs.aggregate(
             total_length=Sum("length"),
             count=Count("uuid"),
         )
 
-        # Length with internal execution
         internal_qs = base_queryset.filter(internal_execution=True)
         length_with_internal = internal_qs.aggregate(
             total_length=Sum("length"),
             count=Count("uuid"),
         )
 
-        # Length by types (construction type + surface)
         length_by_types = list(
             base_queryset.annotate(
                 bauweise=F("construction_type__construction_type"),
@@ -6437,7 +6361,6 @@ class DashboardStatisticsView(APIView):
             .order_by("bauweise", "oberfläche")
         )
 
-        # Length by status
         length_by_status = list(
             base_queryset.annotate(status_name=F("status__status"))
             .values("status_name")
@@ -6445,7 +6368,6 @@ class DashboardStatisticsView(APIView):
             .order_by("status_name")
         )
 
-        # Length by phase (network level)
         length_by_phase = list(
             base_queryset.annotate(network_level=F("phase__phase"))
             .values("network_level")
@@ -6453,7 +6375,6 @@ class DashboardStatisticsView(APIView):
             .order_by("network_level")
         )
 
-        # Longest routes
         longest_routes = list(
             base_queryset.annotate(
                 construction_type_name=F("construction_type__construction_type"),
@@ -6487,7 +6408,6 @@ class DashboardStatisticsView(APIView):
         if flag_id:
             base_queryset = base_queryset.filter(flag=flag_id)
 
-        # Count by type
         count_by_type = list(
             base_queryset.values("node_type__node_type")
             .annotate(count=Count("node_type"))
@@ -6498,7 +6418,6 @@ class DashboardStatisticsView(APIView):
             for row in count_by_type
         ]
 
-        # Count by city
         city_qs = base_queryset.filter(uuid_address__isnull=False)
         count_by_city = list(
             city_qs.values("uuid_address__city")
@@ -6511,7 +6430,6 @@ class DashboardStatisticsView(APIView):
             if row["uuid_address__city"]
         ]
 
-        # Count by status
         count_by_status = list(
             base_queryset.values("status__status")
             .annotate(count=Count("uuid"))
@@ -6523,7 +6441,6 @@ class DashboardStatisticsView(APIView):
             if row["status__status"]
         ]
 
-        # Count by network level
         count_by_network_level = list(
             base_queryset.values("network_level__network_level")
             .annotate(count=Count("uuid"))
@@ -6538,7 +6455,6 @@ class DashboardStatisticsView(APIView):
             if row["network_level__network_level"]
         ]
 
-        # Count by owner
         owner_qs = base_queryset.filter(owner__isnull=False)
         count_by_owner = list(
             owner_qs.values("owner__company")
@@ -6551,7 +6467,6 @@ class DashboardStatisticsView(APIView):
             if row["owner__company"]
         ]
 
-        # Expiring warranties
         warranty_qs = (
             base_queryset.filter(warranty__isnull=False, warranty__gte=date.today())
             .select_related("node_type")
@@ -6570,7 +6485,6 @@ class DashboardStatisticsView(APIView):
                 }
             )
 
-        # Newest and oldest nodes
         date_qs = base_queryset.filter(date__isnull=False).select_related("node_type")
         newest = list(date_qs.order_by("-date")[:5])
         oldest = list(date_qs.order_by("date")[:5])
@@ -6602,7 +6516,6 @@ class DashboardStatisticsView(APIView):
         if flag_id:
             base_queryset = base_queryset.filter(flag=flag_id)
 
-        # Count addresses by city
         count_by_city = list(
             base_queryset.values("city")
             .annotate(count=Count("uuid"))
@@ -6614,7 +6527,6 @@ class DashboardStatisticsView(APIView):
             if row["city"]
         ]
 
-        # Count by development status (Ausbaustatus)
         count_by_status = list(
             base_queryset.values("status_development__status")
             .annotate(count=Count("uuid"))
@@ -6626,10 +6538,8 @@ class DashboardStatisticsView(APIView):
             if row["status_development__status"]
         ]
 
-        # Residential unit statistics
         unit_queryset = ResidentialUnit.objects.filter(uuid_address__in=base_queryset)
 
-        # Count residential units by city (through address)
         units_by_city = list(
             unit_queryset.values("uuid_address__city")
             .annotate(count=Count("uuid"))
@@ -6641,7 +6551,6 @@ class DashboardStatisticsView(APIView):
             if row["uuid_address__city"]
         ]
 
-        # Count residential units by type
         units_by_type = list(
             unit_queryset.values("residential_unit_type__residential_unit_type")
             .annotate(count=Count("uuid"))
@@ -6673,16 +6582,14 @@ class DashboardStatisticsView(APIView):
         if flag_id:
             base_queryset = base_queryset.filter(flag=flag_id)
 
-        # Path to trench length via TrenchConduitConnection
+        # Conduit length is derived via TrenchConduitConnection -> Trench
         trench_length_path = "trenchconduitconnection__uuid_trench__length"
 
-        # Total length and count
         totals = base_queryset.aggregate(
             total_length=Sum(trench_length_path),
             count=Count("uuid", distinct=True),
         )
 
-        # Length by type
         length_by_type = list(
             base_queryset.values(type_name=F("conduit_type__conduit_type"))
             .annotate(total=Sum(trench_length_path))
@@ -6694,7 +6601,6 @@ class DashboardStatisticsView(APIView):
             if row["type_name"]
         ]
 
-        # Length by status with type breakdown (for stacked bar)
         length_by_status_type = list(
             base_queryset.values(
                 status_name=F("status__status"),
@@ -6713,7 +6619,6 @@ class DashboardStatisticsView(APIView):
             if row["status_name"] and row["type_name"]
         ]
 
-        # Length by network level
         length_by_network_level = list(
             base_queryset.values(network_level_name=F("network_level__network_level"))
             .annotate(total=Sum(trench_length_path))
@@ -6725,8 +6630,6 @@ class DashboardStatisticsView(APIView):
             if row["network_level_name"]
         ]
 
-        # Average length per type
-        # First get total length and count per type, then calculate average
         type_stats = list(
             base_queryset.values(type_name=F("conduit_type__conduit_type"))
             .annotate(
@@ -6747,7 +6650,6 @@ class DashboardStatisticsView(APIView):
         ]
         avg_length_by_type.sort(key=lambda x: x["avg_length"], reverse=True)
 
-        # Count by status
         count_by_status = list(
             base_queryset.values(status_name=F("status__status"))
             .annotate(count=Count("uuid"))
@@ -6759,7 +6661,6 @@ class DashboardStatisticsView(APIView):
             if row["status_name"]
         ]
 
-        # Length by owner
         length_by_owner = list(
             base_queryset.filter(owner__isnull=False)
             .values(owner_name=F("owner__company"))
@@ -6772,7 +6673,6 @@ class DashboardStatisticsView(APIView):
             if row["owner_name"]
         ]
 
-        # Length by manufacturer
         length_by_manufacturer = list(
             base_queryset.filter(manufacturer__isnull=False)
             .values(manufacturer_name=F("manufacturer__company"))
@@ -6785,7 +6685,6 @@ class DashboardStatisticsView(APIView):
             if row["manufacturer_name"]
         ]
 
-        # Conduits by date (monthly)
         conduits_by_month = list(
             base_queryset.filter(date__isnull=False)
             .annotate(month=TruncMonth("date"))
@@ -6802,7 +6701,6 @@ class DashboardStatisticsView(APIView):
             if row["month"]
         ]
 
-        # Top 5 longest conduits
         longest_conduits = list(
             base_queryset.annotate(
                 total_length=Sum(trench_length_path),
@@ -6846,15 +6744,12 @@ class DashboardStatisticsView(APIView):
         if flag_id:
             base_queryset = base_queryset.filter(flag_id=flag_id)
 
-        # 1. Basic area statistics
         area_count = base_queryset.count()
 
-        # Total coverage in km²
         total_coverage = base_queryset.annotate(area_m2=GISArea("geom")).aggregate(
             total=Sum("area_m2")
         )["total"]
 
-        # Areas by type
         areas_by_type = list(
             base_queryset.values(type_name=F("area_type__area_type"))
             .annotate(count=Count("uuid"), total_area=Sum(GISArea("geom")))
@@ -6869,7 +6764,7 @@ class DashboardStatisticsView(APIView):
             for row in areas_by_type
         ]
 
-        # 2. Coverage gap metrics - addresses/nodes NOT in any area
+        # Coverage gap metrics — addresses/nodes NOT contained within any area polygon
         address_qs = Address.objects.filter(project_id=project_id)
         node_qs = Node.objects.filter(project_id=project_id)
         if flag_id:
@@ -6882,7 +6777,7 @@ class DashboardStatisticsView(APIView):
             uuid_address__project_id=project_id
         ).count()
 
-        # Collect all area geometries into union
+        # Union all area polygons for containment checks
         all_areas_geom = base_queryset.aggregate(union=Collect("geom"))["union"]
 
         addresses_in_areas = 0
@@ -6900,7 +6795,6 @@ class DashboardStatisticsView(APIView):
                 uuid_address_id__in=address_ids_in_areas
             ).count()
 
-        # 3. Addresses per area (exclude empty)
         addresses_per_area = []
         for area in base_queryset.annotate(area_m2=GISArea("geom")).select_related(
             "area_type"
@@ -6916,7 +6810,6 @@ class DashboardStatisticsView(APIView):
                     }
                 )
 
-        # Addresses by area type
         addresses_by_area_type = []
         for area_type in AttributesAreaType.objects.all():
             areas_of_type = base_queryset.filter(area_type=area_type)
@@ -6928,14 +6821,12 @@ class DashboardStatisticsView(APIView):
                         {"type": area_type.area_type, "count": count}
                     )
 
-        # 4. Nodes per area (exclude empty)
         nodes_per_area = []
         for area in base_queryset.select_related("area_type"):
             node_count = node_qs.filter(geom__within=area.geom).count()
             if node_count > 0:
                 nodes_per_area.append({"name": area.name, "count": node_count})
 
-        # Nodes by area type
         nodes_by_area_type = []
         for area_type in AttributesAreaType.objects.all():
             areas_of_type = base_queryset.filter(area_type=area_type)
@@ -6947,7 +6838,7 @@ class DashboardStatisticsView(APIView):
                         {"type": area_type.area_type, "count": count}
                     )
 
-        # 5. Trench length per area (clipped to boundary, exclude empty)
+        # Trench length clipped to each area boundary via ST_Intersection
         trench_qs = Trench.objects.filter(project_id=project_id)
         if flag_id:
             trench_qs = trench_qs.filter(flag_id=flag_id)
@@ -6972,7 +6863,6 @@ class DashboardStatisticsView(APIView):
                     }
                 )
 
-        # 6. Residential units by area type
         residential_by_area_type = []
         for area_type in AttributesAreaType.objects.all():
             areas_of_type = base_queryset.filter(area_type=area_type)
@@ -7039,6 +6929,7 @@ class FiberTraceView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """Trace fiber paths through the network and return a path tree."""
         from uuid import UUID as UUIDType
 
         from .services import (
@@ -7153,6 +7044,7 @@ class FiberTraceSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """Return a compact trace summary with start/end nodes and statistics."""
         from uuid import UUID as UUIDType
 
         from .services import trace_fiber_summary
@@ -7201,6 +7093,7 @@ class SignalAnalysisView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """Analyze signal flow through a fiber, identifying breaks and lit/dark portions."""
         from uuid import UUID as UUIDType
 
         from .services import analyze_signal_flow
