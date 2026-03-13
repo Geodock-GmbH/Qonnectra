@@ -21,13 +21,11 @@
 	function getContrastColor(hexColor) {
 		if (!hexColor) return 'white';
 
-		// Convert hex to RGB
 		const hex = hexColor.replace('#', '');
 		const r = parseInt(hex.substr(0, 2), 16);
 		const g = parseInt(hex.substr(2, 2), 16);
 		const b = parseInt(hex.substr(4, 2), 16);
 
-		// Calculate luminance
 		const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
 		return luminance > 0.5 ? 'black' : 'white';
@@ -36,8 +34,9 @@
 	const handleData = $derived(() => {
 		if (!conduit || !conduit.microducts) return [];
 
+		/** @type {Array<{id: string, microductUuid: string, microductNumber: number, conduitName: string, conduitUuid: string, status: any, color: string, cssColor: string, borderColor: string, isTwoLayer: boolean, contrastColor: string}>} */
 		const handles = [];
-		conduit.microducts.forEach((microduct, micIndex) => {
+		conduit.microducts.forEach((/** @type {any} */ microduct, /** @type {number} */ micIndex) => {
 			const hexCode = microduct.hex_code || '#64748b'; // Default gray
 			const hexCodeSecondary = microduct.hex_code_secondary;
 			const isTwoLayer = microduct.is_two_layer || false;
@@ -73,7 +72,6 @@
 	);
 </script>
 
-<!-- PipeBranchNode: Node label and info box -->
 <div
 	class="absolute top-0 left-0 bg-surface-50-950 border border-surface-200-700 rounded-lg shadow-md p-2 min-w-[120px] max-w-[250px]"
 	style="transform: translate(-100%, -100%);"
@@ -105,7 +103,6 @@
 	</div>
 </div>
 
-<!-- PipeBranchNode: Node handles container -->
 <div
 	class="relative rounded-full border-2 border-surface-200-700 shadow-lg flex items-center justify-center"
 	style="width: {diameter}px; height: {diameter}px;"

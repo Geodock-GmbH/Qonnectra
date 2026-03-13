@@ -1,5 +1,6 @@
 import getStroke from 'perfect-freehand';
 
+/** @type {import('perfect-freehand').StrokeOptions} */
 export const pathOptions = {
 	size: 7,
 	thinning: 0.5,
@@ -18,6 +19,11 @@ export const pathOptions = {
 	}
 };
 
+/**
+ * Converts an array of stroke points into a closed SVG path string using quadratic curves.
+ * @param {number[][]} stroke - Array of [x, y] points from perfect-freehand
+ * @returns {string} SVG path data string, or empty string if no points.
+ */
 export function getSvgPathFromStroke(stroke) {
 	if (!stroke.length) return '';
 
@@ -34,10 +40,16 @@ export function getSvgPathFromStroke(stroke) {
 	return d.join(' ');
 }
 
+/**
+ * Generates an SVG path from raw pointer points, applying stroke smoothing scaled by zoom level.
+ * @param {number[][]} points - Array of [x, y] raw pointer coordinates
+ * @param {number} [zoom=1] - Current viewport zoom level
+ * @returns {string} SVG path data string.
+ */
 export function pointsToPath(points, zoom = 1) {
 	const stroke = getStroke(points, {
 		...pathOptions,
-		size: pathOptions.size * zoom
+		size: (pathOptions.size ?? 7) * zoom
 	});
 	return getSvgPathFromStroke(stroke);
 }

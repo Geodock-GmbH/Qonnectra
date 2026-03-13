@@ -1,29 +1,26 @@
 <script>
-	// Skeleton
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
 
-	// Paraglide
 	import { m } from '$lib/paraglide/messages';
-
-	// Icons
 
 	let { checked = false, onCheckedChange, partial = false, onPartialChange } = $props();
 
+	/** @param {{checked: boolean}} event */
 	function handleModeChange(event) {
 		if (onCheckedChange) {
 			onCheckedChange(event);
 		}
 	}
 
+	/** @param {Event} event */
 	function handlePartialChange(event) {
 		if (onPartialChange) {
-			onPartialChange(event.target.checked);
+			onPartialChange(/** @type {HTMLInputElement} */ (event.target).checked);
 		}
 	}
 </script>
 
 <div class="flex flex-col gap-2">
-	<!-- Lasso Mode Switch -->
 	<div class="flex items-center gap-2">
 		<span class="text-sm font-medium">{m.form_auto_connect()}:</span>
 		<Switch name="lasso-mode-switch" {checked} onCheckedChange={handleModeChange}>
