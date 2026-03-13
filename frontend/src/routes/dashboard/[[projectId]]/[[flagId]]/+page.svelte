@@ -34,9 +34,7 @@
 	</Tabs.List>
 	<Tabs.Content value="stats">
 		<div class="space-y-6 max-w-6xl mx-auto">
-			<!-- Summary Cards Grid -->
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-				<!-- Trench Statistics Card -->
 				<DashboardCard title={m.form_trench_statistics()}>
 					<div class="flex items-center gap-4 mb-6">
 						<div>
@@ -91,7 +89,6 @@
 					</div>
 				</DashboardCard>
 
-				<!-- Node Statistics Card -->
 				<DashboardCard title={m.form_node_statistics()}>
 					<div class="flex items-center gap-4 mb-6">
 						<div>
@@ -102,7 +99,7 @@
 								<div class="h-6 bg-surface-500 rounded animate-pulse w-16"></div>
 							{:else}
 								<div class="text-3xl font-extrabold text-surface-900-100">
-									{data.nodesByType?.reduce((sum, item) => sum + item.count, 0) || 0}x
+									{data.nodesByType?.reduce((/** @type {number} */ sum, /** @type {{ count: number }} */ item) => sum + item.count, 0) || 0}x
 								</div>
 							{/if}
 						</div>
@@ -137,7 +134,6 @@
 					</div>
 				</DashboardCard>
 
-				<!-- Conduit Statistics Card -->
 				<DashboardCard title={m.form_conduit_statistics()}>
 					<div class="flex items-center gap-4 mb-6">
 						<div>
@@ -149,7 +145,7 @@
 							{:else}
 								<div class="text-3xl font-extrabold text-surface-900-100">
 									{(
-										data.conduitLengthByType?.reduce((sum, item) => sum + (item.total || 0), 0) /
+										data.conduitLengthByType?.reduce((/** @type {number} */ sum, /** @type {{ total: number }} */ item) => sum + (item.total || 0), 0) /
 										1000
 									).toLocaleString('de-DE', {
 										minimumFractionDigits: 2,
@@ -192,7 +188,6 @@
 					</div>
 				</DashboardCard>
 
-				<!-- Address Statistics Card -->
 				<DashboardCard title={m.form_address_statistics()}>
 					<div class="flex items-center gap-4 mb-6">
 						<div>
@@ -250,7 +245,6 @@
 					</div>
 				</DashboardCard>
 
-				<!-- Area Statistics Card -->
 				<DashboardCard title={m.form_area_statistics()}>
 					<div class="flex items-center gap-4 mb-6">
 						<div>
@@ -312,7 +306,6 @@
 				</DashboardCard>
 			</div>
 
-			<!-- Warranty Expiration Card -->
 			<div class="grid grid-cols-1 gap-6">
 				<WarrantyExpirationCard warranties={data.expiringWarranties} />
 			</div>
@@ -365,7 +358,7 @@
 			areaCount={data.areaCount}
 			totalCoverageKm2={data.totalCoverageKm2}
 			areasByType={data.areasByType}
-			totalAddresses={data.totalAddresses}
+			totalAddresses={data.areaTotalAddresses}
 			addressesInAreas={data.addressesInAreas}
 			totalNodes={data.totalNodes}
 			nodesInAreas={data.nodesInAreas}
