@@ -34,13 +34,14 @@
 
 	import 'ol/ol.css';
 
+	/** @type {{cableId: any, cableName: any, onClose?: () => void, onLinkageChange?: () => void}} */
 	let { cableId, cableName, onClose = () => {}, onLinkageChange = () => {} } = $props();
 
 	const manager = new CableMicropipeManager();
 
-	/** @type {import('ol').Map|undefined} */
+	/** @type {any} */
 	let olMap = $state();
-	/** @type {import('ol/interaction/DragBox').default|undefined} */
+	/** @type {any} */
 	let dragBoxInteraction = $state();
 	/** @type {VectorTileLayer|undefined} */
 	let selectionLayer = $state();
@@ -49,7 +50,7 @@
 	/** @type {VectorTileLayer|undefined} */
 	let cableRouteLayer = $state();
 
-	const projectId = $page.params.projectId;
+	const projectId = /** @type {string} */ ($page.params.projectId);
 	const mapState = new MapState(projectId);
 	const layersInitialized = mapState.initializeLayers();
 
@@ -145,14 +146,15 @@
 		}
 	});
 
-	async function handleMapReady(event) {
-		olMap = event.detail.map;
+	/** @param {{map: any}} param0 */
+	async function handleMapReady({ map }) {
+		olMap = map;
 		mapState.olMap = olMap;
 
 		const selectedStyle = createSelectedStyle('#ff6600');
 		selectionLayer = new VectorTileLayer({
 			renderMode: 'vector',
-			source: mapState.vectorTileLayer.getSource(),
+			source: /** @type {any} */ (mapState.vectorTileLayer)?.getSource(),
 			style: function (feature) {
 				const featureId = String(feature.getId() || feature.get('uuid'));
 				if (featureId && selectedFeatureIds.has(featureId)) {
@@ -170,7 +172,7 @@
 		const linkedTrenchStyle = createLinkedTrenchStyle('#06b6d4');
 		cableRouteLayer = new VectorTileLayer({
 			renderMode: 'vector',
-			source: mapState.vectorTileLayer.getSource(),
+			source: /** @type {any} */ (mapState.vectorTileLayer)?.getSource(),
 			style: function (feature) {
 				const featureId = String(feature.getId() || feature.get('uuid'));
 				if (featureId && manager.linkedTrenchIds.has(featureId)) {
@@ -196,10 +198,10 @@
 			import('ol/events/condition')
 		]);
 
-		olMap.on('click', (evt) => {
+		olMap.on('click', (/** @type {any} */ evt) => {
 			const features = olMap.getFeaturesAtPixel(evt.pixel, {
 				hitTolerance: 10,
-				layerFilter: (layer) => layer === mapState.vectorTileLayer
+				layerFilter: (/** @type {any} */ layer) => layer === mapState.vectorTileLayer
 			});
 
 			if (features && features.length > 0) {
@@ -239,10 +241,10 @@
 				for (let y = boxPixelMax[1]; y <= boxPixelMin[1]; y += stepY) {
 					const features = olMap.getFeaturesAtPixel([x, y], {
 						hitTolerance: 10,
-						layerFilter: (layer) => layer === mapState.vectorTileLayer
+						layerFilter: (/** @type {any} */ layer) => layer === mapState.vectorTileLayer
 					});
 					if (features) {
-						features.forEach((feature) => {
+						features.forEach((/** @type {any} */ feature) => {
 							const featureId = String(feature.getId() || feature.get('uuid'));
 							if (featureId) {
 								newSet.add(featureId);
@@ -302,7 +304,7 @@
 	}
 
 	/**
-	 * @param {Object} micropipe
+	 * @param {any} micropipe
 	 * @returns {boolean}
 	 */
 	function isMicropipeSelected(micropipe) {
@@ -324,7 +326,7 @@
 				showSearchPanel={true}
 				showLayerVisibilityTree={true}
 				showOpacitySlider={true}
-				on:ready={handleMapReady}
+				onready={handleMapReady}
 			/>
 		{:else}
 			<div class="flex items-center justify-center h-full bg-surface-100-900">

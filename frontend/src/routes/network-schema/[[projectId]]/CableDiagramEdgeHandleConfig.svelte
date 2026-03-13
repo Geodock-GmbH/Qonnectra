@@ -15,18 +15,22 @@
 	let handleStart = $state('top');
 	let handleEnd = $state('top');
 
+	/** @type {any[]} */
 	let selectedNodeStart = $state([]);
+	/** @type {any[]} */
 	let selectedNodeEnd = $state([]);
 
 	// Nodes are sourced from schemaState context so child-view filtering is respected
 	const availableNodes = $derived(
-		(schemaStateContext?.nodes || []).map((node) => ({
+		(schemaStateContext?.nodes || []).map((/** @type {any} */ node) => ({
 			value: node.id,
 			label: node.data?.node?.name || node.id
 		}))
 	);
 
+	/** @type {any} */
 	let pendingNodeChange = $state(null);
+	/** @type {any} */
 	let confirmMessageBox;
 
 	$effect(() => {
@@ -49,7 +53,7 @@
 	 * Checks for existing fiber splices at the current node before switching the connection.
 	 * Opens a confirmation dialog if splices would be lost.
 	 */
-	async function handleNodeChange(side, newNodeId) {
+	async function handleNodeChange(/** @type {any} */ side, /** @type {any} */ newNodeId) {
 		const currentNodeId = side === 'start' ? cable.uuid_node_start : cable.uuid_node_end;
 
 		if (!newNodeId || newNodeId === currentNodeId) {
@@ -66,7 +70,7 @@
 				body: formData
 			});
 			const result = deserialize(await response.text());
-			const spliceCount = result.data?.splices?.length || 0;
+			const spliceCount = /** @type {any} */ (result).data?.splices?.length || 0;
 
 			if (spliceCount > 0) {
 				pendingNodeChange = { side, newNodeId, spliceCount };
@@ -83,7 +87,7 @@
 	/**
 	 * Execute the node connection change
 	 */
-	async function executeNodeChange(side, newNodeId) {
+	async function executeNodeChange(/** @type {any} */ side, /** @type {any} */ newNodeId) {
 		const formData = new FormData();
 		formData.append('uuid', cable.uuid);
 
@@ -135,7 +139,8 @@
 			);
 
 			// Update drawer props so subsequent saves use correct IDs
-			const newNodeName = availableNodes.find((n) => n.value === newNodeId)?.label || newNodeId;
+			const newNodeName =
+				availableNodes.find((/** @type {any} */ n) => n.value === newNodeId)?.label || newNodeId;
 			if (side === 'start') {
 				drawerStore.updateProps({
 					uuid_node_start: newNodeId,
@@ -161,7 +166,7 @@
 	/**
 	 * Handle handle position form submission
 	 */
-	async function handleSubmit(event) {
+	async function handleSubmit(/** @type {any} */ event) {
 		event.preventDefault();
 		const formData = new FormData();
 		formData.append('uuid', cable.uuid);
@@ -279,7 +284,7 @@
 				bind:value={selectedNodeStart}
 				defaultValue={selectedNodeStart}
 				placeholder={m.placeholder_select_node?.() || 'Select node...'}
-				onValueChange={(e) => {
+				onValueChange={(/** @type {any} */ e) => {
 					const newNodeId = e.value?.[0];
 					if (newNodeId && newNodeId !== cable.uuid_node_start) {
 						handleNodeChange('start', newNodeId);
@@ -328,7 +333,7 @@
 				bind:value={selectedNodeEnd}
 				defaultValue={selectedNodeEnd}
 				placeholder={m.placeholder_select_node?.() || 'Select node...'}
-				onValueChange={(e) => {
+				onValueChange={(/** @type {any} */ e) => {
 					const newNodeId = e.value?.[0];
 					if (newNodeId && newNodeId !== cable.uuid_node_end) {
 						handleNodeChange('end', newNodeId);

@@ -15,7 +15,7 @@ describe('getPathMidpoint', () => {
 	});
 
 	test('calculates midpoint for straight line with null waypoints', () => {
-		const result = getPathMidpoint(0, 0, 100, 0, null);
+		const result = getPathMidpoint(0, 0, 100, 0, /** @type {any} */ (null));
 		expect(result.x).toBeCloseTo(50);
 		expect(result.y).toBeCloseTo(0);
 	});

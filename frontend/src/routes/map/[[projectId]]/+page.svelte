@@ -156,11 +156,9 @@
 
 	/**
 	 * Initializes selection layers, popup overlay, and interaction handlers when the map is ready.
-	 * @param {CustomEvent<{ map: import('ol').Map }>} event - Map ready event containing the OL map instance
+	 * @param {{ map: import('ol').Map, usingFallbackOSM: boolean }} detail
 	 */
-	function handleMapReady(event) {
-		const olMapInstance = event.detail.map;
-
+	function handleMapReady({ map: olMapInstance }) {
 		mapState.initializeSelectionLayers(
 			olMapInstance,
 			() => /** @type {Record<string, boolean>} */ (selectionManager.getSelectionStore())
@@ -225,7 +223,7 @@
 					constructionTypes={data.constructionTypes ?? []}
 					areaTypes={data.areaTypes ?? []}
 					projectId={$selectedProject}
-					on:ready={handleMapReady}
+					onready={handleMapReady}
 					searchPanelProps={{
 						trenchColorSelected: $trenchColorSelected,
 						alias: data.alias

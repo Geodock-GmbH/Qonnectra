@@ -25,6 +25,7 @@
 
 	const dragDropManager = getContext(DRAG_DROP_CONTEXT_KEY);
 
+	/** @type {any[]} */
 	let componentTypes = $state([]);
 	let loading = $state(true);
 	let collapsed = $state(false);
@@ -40,7 +41,7 @@
 				method: 'POST',
 				body: formData
 			});
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 			if (result.type === 'success') {
 				componentTypes = result.data?.componentTypes || [];
 			}
@@ -78,13 +79,14 @@
 	 * @param {string|number} value
 	 */
 	function setQuantity(ctId, value) {
-		const numValue = parseInt(value, 10);
+		const numValue = parseInt(String(value), 10);
 		if (isNaN(numValue)) return;
 		const clampedValue = Math.max(1, Math.min(99, numValue));
 		quantities.set(ctId, clampedValue);
 		quantities = new Map(quantities);
 	}
 
+	/** @param {any} e @param {any} componentType */
 	function handleDragStart(e, componentType) {
 		if (disabled) {
 			e.preventDefault();
@@ -122,6 +124,7 @@
 		onDragEnd();
 	}
 
+	/** @param {any} componentType */
 	function handleItemClick(componentType) {
 		if (isMobile) {
 			const count = getQuantity(componentType.id);
@@ -189,8 +192,8 @@
 							class="w-10 h-8 text-center text-sm font-mono bg-surface-300-700 rounded border-none focus:ring-1 focus:ring-primary-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
 							value={qty}
 							onclick={(e) => e.stopPropagation()}
-							oninput={(e) => setQuantity(ct.id, e.target.value)}
-							onblur={(e) => setQuantity(ct.id, e.target.value)}
+							oninput={(e) => setQuantity(ct.id, /** @type {any} */ (e.target).value)}
+							onblur={(e) => setQuantity(ct.id, /** @type {any} */ (e.target).value)}
 						/>
 						<button
 							type="button"
@@ -282,8 +285,8 @@
 										value={qty}
 										onclick={(e) => e.stopPropagation()}
 										onmousedown={(e) => e.stopPropagation()}
-										oninput={(e) => setQuantity(ct.id, e.target.value)}
-										onblur={(e) => setQuantity(ct.id, e.target.value)}
+										oninput={(e) => setQuantity(ct.id, /** @type {any} */ (e.target).value)}
+										onblur={(e) => setQuantity(ct.id, /** @type {any} */ (e.target).value)}
 										draggable="false"
 									/>
 									<button

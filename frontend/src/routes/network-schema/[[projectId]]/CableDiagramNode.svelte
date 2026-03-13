@@ -76,7 +76,7 @@
 				id: id,
 				...parsedData.properties,
 				type: 'node',
-				onLabelUpdate: (newLabel) => {
+				onLabelUpdate: (/** @type {any} */ newLabel) => {
 					currentLabel = newLabel;
 					drawerStore.setTitle(newLabel);
 					data?.onNameUpdate?.(newLabel);
@@ -86,7 +86,7 @@
 		});
 	}
 
-	function handleKeydown(event) {
+	function handleKeydown(/** @type {any} */ event) {
 		if (event.key === 'Enter' || event.key === ' ') {
 			event.preventDefault();
 			handleNodeClick();
@@ -95,16 +95,18 @@
 </script>
 
 {#each Object.entries(handleInit) as [position, handleConfig]}
+	{@const positionEnum = /** @type {Record<string, any>} */ (Position)}
+	{@const posKey = position.charAt(0).toUpperCase() + position.slice(1)}
 	<Handle
 		type="source"
-		position={Position[position.charAt(0).toUpperCase() + position.slice(1)]}
+		position={positionEnum[posKey]}
 		id="{id}-{position}-source"
 		style="background: var(--color-primary-500); border: 2px solid var(--color-surface-950-50); width: 12px; height: 12px;"
 		isConnectable={true}
 	/>
 	<Handle
 		type="target"
-		position={Position[position.charAt(0).toUpperCase() + position.slice(1)]}
+		position={positionEnum[posKey]}
 		id="{id}-{position}-target"
 		style="background: var(--color-primary-500); border: 2px solid var(--color-surface-950-50); width: 12px; height: 12px;"
 		isConnectable={true}

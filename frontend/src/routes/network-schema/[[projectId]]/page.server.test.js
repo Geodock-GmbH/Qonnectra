@@ -9,15 +9,17 @@ vi.mock('$env/static/private', () => ({
 
 // Mock SvelteKit error helper
 vi.mock('@sveltejs/kit', () => ({
-	error: (status, message) => {
-		const err = new Error(message);
+	error: (/** @type {number} */ status, /** @type {string} */ message) => {
+		const err = /** @type {any} */ (new Error(message));
 		err.status = status;
 		return err;
 	}
 }));
 
 describe('+page.server.js', () => {
+	/** @type {any} */
 	let mockFetch;
+	/** @type {any} */
 	let mockCookies;
 
 	beforeEach(() => {
@@ -55,21 +57,23 @@ describe('+page.server.js', () => {
 	 * Since Promise.all is used for attributes, the actual call order depends on timing.
 	 * We use mockImplementation to handle this properly.
 	 */
-	function setupLoadMocks({
-		syncStatus = { sync_needed: false, sync_in_progress: false },
-		syncPostResponse = null,
-		syncWaitPolls = [],
-		nodes = [],
-		cables = [],
-		cableLabels = [],
-		cableMicropipeConnections = {},
-		cableTypes = [],
-		nodeTypes = [],
-		statuses = [],
-		networkLevels = [],
-		companies = [],
-		flags = []
-	} = {}) {
+	function setupLoadMocks(
+		/** @type {any} */ {
+			syncStatus = { sync_needed: false, sync_in_progress: false },
+			syncPostResponse = null,
+			syncWaitPolls = [],
+			nodes = [],
+			cables = [],
+			cableLabels = [],
+			cableMicropipeConnections = {},
+			cableTypes = [],
+			nodeTypes = [],
+			statuses = [],
+			networkLevels = [],
+			companies = [],
+			flags = []
+		} = {}
+	) {
 		// Create response generators for each endpoint
 		const responses = {
 			attributes_cable_type: { ok: true, json: () => Promise.resolve(cableTypes) },
@@ -91,7 +95,7 @@ describe('+page.server.js', () => {
 		let syncPostCalled = false;
 		let pollIndex = 0;
 
-		mockFetch.mockImplementation((url, options) => {
+		mockFetch.mockImplementation((/** @type {any} */ url, /** @type {any} */ options) => {
 			// Handle sync POST
 			if (options?.method === 'POST' && url.includes('canvas-coordinates')) {
 				syncPostCalled = true;
@@ -154,10 +158,14 @@ describe('+page.server.js', () => {
 				});
 
 			// Mock setTimeout to resolve immediately for testing
-			vi.spyOn(global, 'setTimeout').mockImplementation((callback) => {
-				callback();
-				return 123; // Mock timer ID
-			});
+			vi.spyOn(global, 'setTimeout').mockImplementation(
+				/** @type {any} */ (
+					(/** @type {Function} */ callback) => {
+						callback();
+						return 123;
+					}
+				)
+			);
 
 			const initialStatus = {
 				sync_in_progress: true,
@@ -201,11 +209,15 @@ describe('+page.server.js', () => {
 			vi.spyOn(Date, 'now').mockImplementation(() => currentTime);
 
 			// Mock setTimeout to simulate time passing
-			vi.spyOn(global, 'setTimeout').mockImplementation((callback, delay) => {
-				currentTime += delay;
-				callback();
-				return 123;
-			});
+			vi.spyOn(global, 'setTimeout').mockImplementation(
+				/** @type {any} */ (
+					(/** @type {Function} */ callback, /** @type {number} */ delay) => {
+						currentTime += delay;
+						callback();
+						return 123;
+					}
+				)
+			);
 
 			const initialStatus = {
 				sync_in_progress: true,
@@ -251,10 +263,14 @@ describe('+page.server.js', () => {
 						})
 				});
 
-			vi.spyOn(global, 'setTimeout').mockImplementation((callback) => {
-				callback();
-				return 123;
-			});
+			vi.spyOn(global, 'setTimeout').mockImplementation(
+				/** @type {any} */ (
+					(/** @type {Function} */ callback) => {
+						callback();
+						return 123;
+					}
+				)
+			);
 
 			const initialStatus = {
 				sync_in_progress: true,
@@ -283,10 +299,14 @@ describe('+page.server.js', () => {
 				status: 500
 			});
 
-			vi.spyOn(global, 'setTimeout').mockImplementation((callback) => {
-				callback();
-				return 123;
-			});
+			vi.spyOn(global, 'setTimeout').mockImplementation(
+				/** @type {any} */ (
+					(/** @type {Function} */ callback) => {
+						callback();
+						return 123;
+					}
+				)
+			);
 
 			const initialStatus = {
 				sync_in_progress: true,
@@ -324,12 +344,16 @@ describe('+page.server.js', () => {
 				nodes: [{ id: 1, name: 'Node 1', canvas_x: 100, canvas_y: 200 }]
 			});
 
-			const result = await load({
-				fetch: mockFetch,
-				cookies: mockCookies,
-				url: new URL('http://localhost'),
-				params: { projectId: '1' }
-			});
+			const result = /** @type {any} */ (
+				await load(
+					/** @type {any} */ ({
+						fetch: mockFetch,
+						cookies: mockCookies,
+						url: new URL('http://localhost'),
+						params: { projectId: '1' }
+					})
+				)
+			);
 
 			expect(result.nodes).toHaveLength(1);
 			expect(result.syncStatus).toBeDefined();
@@ -354,18 +378,23 @@ describe('+page.server.js', () => {
 				nodes: [{ id: 1, name: 'Node 1', canvas_x: 100, canvas_y: 200 }]
 			});
 
-			const result = await load({
-				fetch: mockFetch,
-				cookies: mockCookies,
-				url: new URL('http://localhost'),
-				params: { projectId: '1' }
-			});
+			const result = /** @type {any} */ (
+				await load(
+					/** @type {any} */ ({
+						fetch: mockFetch,
+						cookies: mockCookies,
+						url: new URL('http://localhost'),
+						params: { projectId: '1' }
+					})
+				)
+			);
 
 			expect(result.nodes).toHaveLength(1);
 
 			// Find the POST call to canvas-coordinates
 			const postCall = mockFetch.mock.calls.find(
-				(call) => call[1]?.method === 'POST' && call[0].includes('canvas-coordinates')
+				(/** @type {any} */ call) =>
+					call[1]?.method === 'POST' && call[0].includes('canvas-coordinates')
 			);
 			expect(postCall).toBeDefined();
 			expect(JSON.parse(postCall[1].body)).toEqual({
@@ -376,15 +405,19 @@ describe('+page.server.js', () => {
 
 		test('should handle sync in progress and wait for completion', async () => {
 			// Mock setTimeout for waitForSyncCompletion
-			vi.spyOn(global, 'setTimeout').mockImplementation((callback) => {
-				callback();
-				return 123;
-			});
+			vi.spyOn(global, 'setTimeout').mockImplementation(
+				/** @type {any} */ (
+					(/** @type {Function} */ callback) => {
+						callback();
+						return 123;
+					}
+				)
+			);
 
 			// Track call count for canvas-coordinates to differentiate initial check vs polling
 			let canvasCoordinatesCallCount = 0;
 
-			mockFetch.mockImplementation((url, options) => {
+			mockFetch.mockImplementation((/** @type {any} */ url, /** @type {any} */ options) => {
 				if (url.includes('canvas-coordinates')) {
 					canvasCoordinatesCallCount++;
 					// First call: initial sync status check - returns in progress
@@ -421,12 +454,16 @@ describe('+page.server.js', () => {
 				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
 			});
 
-			const result = await load({
-				fetch: mockFetch,
-				cookies: mockCookies,
-				url: new URL('http://localhost'),
-				params: { projectId: '1' }
-			});
+			const result = /** @type {any} */ (
+				await load(
+					/** @type {any} */ ({
+						fetch: mockFetch,
+						cookies: mockCookies,
+						url: new URL('http://localhost'),
+						params: { projectId: '1' }
+					})
+				)
+			);
 
 			expect(result.nodes).toHaveLength(1);
 			expect(result.syncStatus.sync_status).toBe('COMPLETED');
@@ -453,12 +490,16 @@ describe('+page.server.js', () => {
 				nodes: [{ id: 1, name: 'Node 1' }]
 			});
 
-			const result = await load({
-				fetch: mockFetch,
-				cookies: mockCookies,
-				url: new URL('http://localhost'),
-				params: { projectId: '1' }
-			});
+			const result = /** @type {any} */ (
+				await load(
+					/** @type {any} */ ({
+						fetch: mockFetch,
+						cookies: mockCookies,
+						url: new URL('http://localhost'),
+						params: { projectId: '1' }
+					})
+				)
+			);
 
 			expect(result.nodes).toHaveLength(1);
 			// Should not fail despite the conflict
@@ -466,7 +507,7 @@ describe('+page.server.js', () => {
 
 		test('should handle sync status check failure', async () => {
 			// Use mockImplementation to handle the parallel fetches properly
-			mockFetch.mockImplementation((url) => {
+			mockFetch.mockImplementation((/** @type {any} */ url) => {
 				if (url.includes('canvas-coordinates')) {
 					// Sync status check fails
 					return Promise.resolve({ ok: false, status: 500 });
@@ -481,12 +522,16 @@ describe('+page.server.js', () => {
 				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
 			});
 
-			const result = await load({
-				fetch: mockFetch,
-				cookies: mockCookies,
-				url: new URL('http://localhost'),
-				params: { projectId: '1' }
-			});
+			const result = /** @type {any} */ (
+				await load(
+					/** @type {any} */ ({
+						fetch: mockFetch,
+						cookies: mockCookies,
+						url: new URL('http://localhost'),
+						params: { projectId: '1' }
+					})
+				)
+			);
 
 			expect(result.nodes).toHaveLength(1);
 			expect(result.syncStatus).toBeNull();
@@ -494,7 +539,7 @@ describe('+page.server.js', () => {
 
 		test('should handle node fetch failure', async () => {
 			// Override setupLoadMocks to fail node fetch
-			mockFetch.mockImplementation((url) => {
+			mockFetch.mockImplementation((/** @type {any} */ url) => {
 				if (url.includes('node/all')) {
 					return Promise.resolve({ ok: false, status: 500 });
 				}
@@ -510,19 +555,21 @@ describe('+page.server.js', () => {
 			// The implementation throws error(500, 'Failed to fetch nodes') which gets caught
 			// and re-thrown, so we expect it to reject
 			await expect(
-				load({
-					fetch: mockFetch,
-					cookies: mockCookies,
-					url: new URL('http://localhost'),
-					params: { projectId: '1' }
-				})
+				load(
+					/** @type {any} */ ({
+						fetch: mockFetch,
+						cookies: mockCookies,
+						url: new URL('http://localhost'),
+						params: { projectId: '1' }
+					})
+				)
 			).rejects.toThrow();
 		});
 
 		test('should handle complete failure gracefully', async () => {
 			// Mock sync status fetch to fail, which will cause the load to fail early
 			// The parallel attribute fetches will resolve to avoid unhandled rejection
-			mockFetch.mockImplementation((url) => {
+			mockFetch.mockImplementation((/** @type {any} */ url) => {
 				if (url.includes('canvas-coordinates')) {
 					// This is awaited first and will cause early exit
 					return Promise.reject(new Error('Complete network failure'));
@@ -532,12 +579,16 @@ describe('+page.server.js', () => {
 			});
 
 			// The load function catches errors and returns empty data
-			const result = await load({
-				fetch: mockFetch,
-				cookies: mockCookies,
-				url: new URL('http://localhost'),
-				params: { projectId: '1' }
-			});
+			const result = /** @type {any} */ (
+				await load(
+					/** @type {any} */ ({
+						fetch: mockFetch,
+						cookies: mockCookies,
+						url: new URL('http://localhost'),
+						params: { projectId: '1' }
+					})
+				)
+			);
 
 			expect(result.nodes).toEqual([]);
 			expect(result.cables).toEqual([]);
@@ -547,12 +598,14 @@ describe('+page.server.js', () => {
 		test('should pass correct auth headers', async () => {
 			setupLoadMocks();
 
-			await load({
-				fetch: mockFetch,
-				cookies: mockCookies,
-				url: new URL('http://localhost'),
-				params: { projectId: '1' }
-			});
+			await load(
+				/** @type {any} */ ({
+					fetch: mockFetch,
+					cookies: mockCookies,
+					url: new URL('http://localhost'),
+					params: { projectId: '1' }
+				})
+			);
 
 			// Check that auth headers were passed correctly
 			// getAuthHeaders returns a plain object { Cookie: '...' }, not a Headers instance
@@ -568,12 +621,14 @@ describe('+page.server.js', () => {
 
 			setupLoadMocks();
 
-			await load({
-				fetch: mockFetch,
-				cookies: mockCookies,
-				url: new URL('http://localhost'),
-				params: { projectId: '1' }
-			});
+			await load(
+				/** @type {any} */ ({
+					fetch: mockFetch,
+					cookies: mockCookies,
+					url: new URL('http://localhost'),
+					params: { projectId: '1' }
+				})
+			);
 
 			// Should still make requests but without auth header
 			// getAuthHeaders returns {} when no token, so Cookie will be undefined
@@ -596,12 +651,16 @@ describe('+page.server.js', () => {
 				}
 			});
 
-			const result = await load({
-				fetch: mockFetch,
-				cookies: mockCookies,
-				url: new URL('http://localhost'),
-				params: { projectId: '1' }
-			});
+			const result = /** @type {any} */ (
+				await load(
+					/** @type {any} */ ({
+						fetch: mockFetch,
+						cookies: mockCookies,
+						url: new URL('http://localhost'),
+						params: { projectId: '1' }
+					})
+				)
+			);
 
 			// Should continue and fetch nodes despite sync failure
 			expect(result.nodes).toEqual([]);
@@ -611,31 +670,39 @@ describe('+page.server.js', () => {
 			// This test verifies that the dynamic projectId parameter is used correctly
 			setupLoadMocks();
 
-			await load({
-				fetch: mockFetch,
-				cookies: mockCookies,
-				url: new URL('http://localhost'),
-				params: { projectId: '1' }
-			});
+			await load(
+				/** @type {any} */ ({
+					fetch: mockFetch,
+					cookies: mockCookies,
+					url: new URL('http://localhost'),
+					params: { projectId: '1' }
+				})
+			);
 
 			// Find the sync status check call
-			const syncStatusCall = mockFetch.mock.calls.find((call) =>
+			const syncStatusCall = mockFetch.mock.calls.find((/** @type {any} */ call) =>
 				call[0].includes('canvas-coordinates')
 			);
 			expect(syncStatusCall[0]).toContain('project_id=1');
 
 			// Find the node fetch call
-			const nodeCall = mockFetch.mock.calls.find((call) => call[0].includes('node/all'));
+			const nodeCall = mockFetch.mock.calls.find((/** @type {any} */ call) =>
+				call[0].includes('node/all')
+			);
 			expect(nodeCall[0]).toContain('project=1');
 		});
 
 		test('should return empty nodes and null syncStatus when projectId is missing', async () => {
-			const result = await load({
-				fetch: mockFetch,
-				cookies: mockCookies,
-				url: new URL('http://localhost'),
-				params: {}
-			});
+			const result = /** @type {any} */ (
+				await load(
+					/** @type {any} */ ({
+						fetch: mockFetch,
+						cookies: mockCookies,
+						url: new URL('http://localhost'),
+						params: {}
+					})
+				)
+			);
 
 			expect(result.nodes).toEqual([]);
 			expect(result.syncStatus).toBeNull();
@@ -669,11 +736,15 @@ describe('+page.server.js', () => {
 					)
 			};
 
-			const result = await actions.saveNodeGeometry({
-				request: mockRequest,
-				fetch: mockFetch,
-				cookies: mockCookies
-			});
+			const result = /** @type {any} */ (
+				await actions.saveNodeGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
 
 			expect(result.type).toBe('success');
 			expect(result.message).toBe('Node position saved successfully');
@@ -705,11 +776,15 @@ describe('+page.server.js', () => {
 					)
 			};
 
-			const result = await actions.saveNodeGeometry({
-				request: mockRequest,
-				fetch: mockFetch,
-				cookies: mockCookies
-			});
+			const result = /** @type {any} */ (
+				await actions.saveNodeGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Node ID is required');
@@ -740,11 +815,15 @@ describe('+page.server.js', () => {
 					)
 			};
 
-			const result = await actions.saveNodeGeometry({
-				request: mockRequest,
-				fetch: mockFetch,
-				cookies: mockCookies
-			});
+			const result = /** @type {any} */ (
+				await actions.saveNodeGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
 
 			expect(result.type).toBe('success');
 			expect(result.message).toBe('Node position saved successfully');
@@ -775,11 +854,15 @@ describe('+page.server.js', () => {
 					)
 			};
 
-			const result = await actions.saveNodeGeometry({
-				request: mockRequest,
-				fetch: mockFetch,
-				cookies: mockCookies
-			});
+			const result = /** @type {any} */ (
+				await actions.saveNodeGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Invalid child canvas coordinates');
@@ -800,11 +883,15 @@ describe('+page.server.js', () => {
 					)
 			};
 
-			const result = await actions.saveNodeGeometry({
-				request: mockRequest,
-				fetch: mockFetch,
-				cookies: mockCookies
-			});
+			const result = /** @type {any} */ (
+				await actions.saveNodeGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Invalid canvas coordinates');
@@ -825,11 +912,15 @@ describe('+page.server.js', () => {
 					)
 			};
 
-			const result = await actions.saveNodeGeometry({
-				request: mockRequest,
-				fetch: mockFetch,
-				cookies: mockCookies
-			});
+			const result = /** @type {any} */ (
+				await actions.saveNodeGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Invalid canvas coordinates');
@@ -859,11 +950,15 @@ describe('+page.server.js', () => {
 					)
 			};
 
-			const result = await actions.saveNodeGeometry({
-				request: mockRequest,
-				fetch: mockFetch,
-				cookies: mockCookies
-			});
+			const result = /** @type {any} */ (
+				await actions.saveNodeGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Node not found');
@@ -889,11 +984,15 @@ describe('+page.server.js', () => {
 					)
 			};
 
-			const result = await actions.saveNodeGeometry({
-				request: mockRequest,
-				fetch: mockFetch,
-				cookies: mockCookies
-			});
+			const result = /** @type {any} */ (
+				await actions.saveNodeGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('HTTP 500: Failed to update node position');
@@ -919,11 +1018,15 @@ describe('+page.server.js', () => {
 					)
 			};
 
-			const result = await actions.saveNodeGeometry({
-				request: mockRequest,
-				fetch: mockFetch,
-				cookies: mockCookies
-			});
+			const result = /** @type {any} */ (
+				await actions.saveNodeGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('HTTP 500: Failed to update node position');
@@ -945,11 +1048,15 @@ describe('+page.server.js', () => {
 					)
 			};
 
-			const result = await actions.saveNodeGeometry({
-				request: mockRequest,
-				fetch: mockFetch,
-				cookies: mockCookies
-			});
+			const result = /** @type {any} */ (
+				await actions.saveNodeGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Network connection failed');
@@ -971,11 +1078,15 @@ describe('+page.server.js', () => {
 					)
 			};
 
-			const result = await actions.saveNodeGeometry({
-				request: mockRequest,
-				fetch: mockFetch,
-				cookies: mockCookies
-			});
+			const result = /** @type {any} */ (
+				await actions.saveNodeGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Failed to save node position');
@@ -1005,11 +1116,13 @@ describe('+page.server.js', () => {
 					)
 			};
 
-			await actions.saveNodeGeometry({
-				request: mockRequest,
-				fetch: mockFetch,
-				cookies: mockCookies
-			});
+			await actions.saveNodeGeometry(
+				/** @type {any} */ ({
+					request: mockRequest,
+					fetch: mockFetch,
+					cookies: mockCookies
+				})
+			);
 
 			const patchCall = mockFetch.mock.calls[0];
 
@@ -1047,11 +1160,15 @@ describe('+page.server.js', () => {
 					)
 			};
 
-			const result = await actions.saveNodeGeometry({
-				request: mockRequest,
-				fetch: mockFetch,
-				cookies: mockCookies
-			});
+			const result = /** @type {any} */ (
+				await actions.saveNodeGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
 
 			expect(result.type).toBe('success');
 			expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({
@@ -1084,11 +1201,15 @@ describe('+page.server.js', () => {
 					)
 			};
 
-			const result = await actions.saveNodeGeometry({
-				request: mockRequest,
-				fetch: mockFetch,
-				cookies: mockCookies
-			});
+			const result = /** @type {any} */ (
+				await actions.saveNodeGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
 
 			expect(result.type).toBe('success');
 			expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({

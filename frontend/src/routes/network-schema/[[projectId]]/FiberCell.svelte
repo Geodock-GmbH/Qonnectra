@@ -21,6 +21,7 @@
 		portNumber = 0,
 		cableUuid = null,
 		readonly = false,
+		/** @type {(data: any) => void} */
 		onDrop = () => {},
 		onClear = () => {},
 		onUnmerge = () => {},
@@ -36,7 +37,7 @@
 	/**
 	 * Get display name for a residential unit
 	 */
-	function getResidentialUnitDisplayName(ru) {
+	function getResidentialUnitDisplayName(/** @type {any} */ ru) {
 		if (!ru) return '';
 		let main = ru.id_residential_unit || 'Unit';
 		if (ru.external_id_1) {
@@ -58,13 +59,15 @@
 	let isDragging = $state(false);
 
 	let traceLoading = $state(false);
+	/** @type {any} */
 	let traceResult = $state(null);
+	/** @type {any} */
 	let traceError = $state(null);
 
 	/**
 	 * Fetch trace summary for this fiber
 	 */
-	async function handleTrace(e) {
+	async function handleTrace(/** @type {any} */ e) {
 		e.stopPropagation();
 		if (traceResult) {
 			traceResult = null;
@@ -81,7 +84,7 @@
 			if (!response.ok) throw new Error('Trace failed');
 			traceResult = await response.json();
 		} catch (err) {
-			traceError = err.message;
+			traceError = /** @type {any} */ (err).message;
 		} finally {
 			traceLoading = false;
 		}
@@ -103,7 +106,7 @@
 				}
 	);
 
-	function handleDragStart(e) {
+	function handleDragStart(/** @type {any} */ e) {
 		if (readonly || !fiber || !hasPort || isMerged) {
 			e.preventDefault();
 			return;
@@ -132,7 +135,7 @@
 		isDragging = false;
 	}
 
-	function handleDragOver(e) {
+	function handleDragOver(/** @type {any} */ e) {
 		if (readonly || !hasPort) return;
 		e.preventDefault();
 		e.stopPropagation();
@@ -148,7 +151,7 @@
 		isDragOver = false;
 	}
 
-	function handleDrop(e) {
+	function handleDrop(/** @type {any} */ e) {
 		if (readonly || !hasPort) return;
 		e.preventDefault();
 		e.stopPropagation();

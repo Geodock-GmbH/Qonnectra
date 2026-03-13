@@ -35,7 +35,17 @@
 	let { data } = $props();
 
 	const nodeTypes = { cableDiagramNode: CableDiagramNode };
-	const edgeTypes = { cableDiagramEdge: CableDiagramEdge };
+	const edgeTypes = /** @type {any} */ ({ cableDiagramEdge: CableDiagramEdge });
+	/** @type {any} */
+	const connectionMode = 'loose';
+	/** @type {any} */
+	const svelteFlowExtraProps = {
+		snapToGrid: true,
+		snapGrid: [120, 120],
+		connectionRadius: 100,
+		noPanClass: 'nopan',
+		minZoom: 0.01
+	};
 
 	const schemaState = new NetworkSchemaState();
 	const cablePathManager = new CablePathManager();
@@ -45,7 +55,7 @@
 
 	$effect(() => {
 		schemaState.isChildView = false;
-		schemaState.initialize(data);
+		schemaState.initialize(/** @type {any} */ (data));
 	});
 
 	const attributeOptions = $derived({
@@ -92,9 +102,9 @@
 		}
 	});
 
-	onMount(async () => {
+	onMount(() => {
 		startHeartbeat();
-		await autoLockSvelteFlow();
+		autoLockSvelteFlow();
 
 		if (!data.networkSchemaSettingsConfigured && $selectedProject) {
 			globalToaster.warning({
@@ -130,14 +140,20 @@
 	});
 
 	onMount(() => {
-		function handleMicropipeLinkageChanged(event) {
+		function handleMicropipeLinkageChanged(/** @type {any} */ event) {
 			const { cableId, connections } = event.detail;
 			schemaState.updateEdgeMicropipeConnections(cableId, connections);
 		}
 
-		window.addEventListener('micropipeLinkageChanged', handleMicropipeLinkageChanged);
+		/** @type {any} */ (window).addEventListener(
+			'micropipeLinkageChanged',
+			handleMicropipeLinkageChanged
+		);
 		return () => {
-			window.removeEventListener('micropipeLinkageChanged', handleMicropipeLinkageChanged);
+			/** @type {any} */ (window).removeEventListener(
+				'micropipeLinkageChanged',
+				handleMicropipeLinkageChanged
+			);
 		};
 	});
 
@@ -149,23 +165,29 @@
 	async function handleCablePathUpdate(event) {
 		const { edgeId, waypoints, temporary, save } = event.detail;
 
-		await cablePathManager.updatePath(edgeId, waypoints, temporary, save, (edgeId, updates) => {
-			schemaState.edges = schemaState.edges.map((edge) => {
-				if (edge.id === edgeId) {
-					return {
-						...edge,
-						data: {
-							...edge.data,
-							cable: {
-								...edge.data.cable,
-								...updates.data.cable
+		await cablePathManager.updatePath(
+			edgeId,
+			/** @type {any} */ (waypoints),
+			temporary,
+			save,
+			(/** @type {any} */ edgeId, /** @type {any} */ updates) => {
+				schemaState.edges = schemaState.edges.map((edge) => {
+					if (edge.id === edgeId) {
+						return {
+							...edge,
+							data: {
+								...edge.data,
+								cable: {
+									...edge.data.cable,
+									...updates.data.cable
+								}
 							}
-						}
-					};
-				}
-				return edge;
-			});
-		});
+						};
+					}
+					return edge;
+				});
+			}
+		);
 	}
 
 	/**
@@ -175,26 +197,33 @@
 	function handleCableHandleUpdate(event) {
 		const { cableId, handleStart, handleEnd } = event.detail;
 		cablePathManager.updateHandles(
-			cableId,
-			handleStart,
-			handleEnd,
-			(cableId, handleStart, handleEnd) => {
+			/** @type {any} */ (cableId),
+			/** @type {any} */ (handleStart),
+			/** @type {any} */ (handleEnd),
+			(
+				/** @type {any} */ cableId,
+				/** @type {any} */ handleStart,
+				/** @type {any} */ handleEnd
+			) => {
 				schemaState.updateCableHandles(cableId, handleStart, handleEnd);
 			}
 		);
 	}
 
 	$effect(() => {
-		window.addEventListener('updateCablePath', handleCablePathUpdate);
+		/** @type {any} */ (window).addEventListener('updateCablePath', handleCablePathUpdate);
 		return () => {
-			window.removeEventListener('updateCablePath', handleCablePathUpdate);
+			/** @type {any} */ (window).removeEventListener('updateCablePath', handleCablePathUpdate);
 		};
 	});
 
 	$effect(() => {
-		window.addEventListener('updateCableHandles', handleCableHandleUpdate);
+		/** @type {any} */ (window).addEventListener('updateCableHandles', handleCableHandleUpdate);
 		return () => {
-			window.removeEventListener('updateCableHandles', handleCableHandleUpdate);
+			/** @type {any} */ (window).removeEventListener(
+				'updateCableHandles',
+				handleCableHandleUpdate
+			);
 		};
 	});
 
@@ -204,18 +233,24 @@
 	 */
 	function handleCableLabelDataUpdate(event) {
 		const { edgeId, labelData } = event.detail;
-		schemaState.updateEdgeLabelData(edgeId, labelData);
+		schemaState.updateEdgeLabelData(edgeId, /** @type {any} */ (labelData));
 	}
 
 	$effect(() => {
-		window.addEventListener('updateCableLabelData', handleCableLabelDataUpdate);
+		/** @type {any} */ (window).addEventListener(
+			'updateCableLabelData',
+			handleCableLabelDataUpdate
+		);
 		return () => {
-			window.removeEventListener('updateCableLabelData', handleCableLabelDataUpdate);
+			/** @type {any} */ (window).removeEventListener(
+				'updateCableLabelData',
+				handleCableLabelDataUpdate
+			);
 		};
 	});
 
 	$effect(() => {
-		function handleCableConnectionChangedEvent(event) {
+		function handleCableConnectionChangedEvent(/** @type {any} */ event) {
 			const { cableId, side, newNodeId, handlePosition } = event.detail;
 			// If this is an edge reconnection event (has cableId and side), update the edge
 			if (cableId && side && newNodeId) {
@@ -223,9 +258,15 @@
 			}
 		}
 
-		window.addEventListener('cableConnectionChanged', handleCableConnectionChangedEvent);
+		/** @type {any} */ (window).addEventListener(
+			'cableConnectionChanged',
+			handleCableConnectionChangedEvent
+		);
 		return () => {
-			window.removeEventListener('cableConnectionChanged', handleCableConnectionChangedEvent);
+			/** @type {any} */ (window).removeEventListener(
+				'cableConnectionChanged',
+				handleCableConnectionChangedEvent
+			);
 		};
 	});
 
@@ -254,14 +295,10 @@
 			fitView={schemaState.initialized && schemaState.nodes.length === 0}
 			{nodeTypes}
 			{edgeTypes}
-			connectionMode="loose"
-			snapToGrid={true}
-			snapGrid={[120, 120]}
-			onnodedragstop={(e) => schemaState.handleNodeDragStop(e)}
-			onconnect={(conn) => schemaState.handleConnect(conn, $selectedProject)}
-			connectionRadius={100}
-			noPanClass="nopan"
-			minZoom={0.01}
+			{connectionMode}
+			{...svelteFlowExtraProps}
+			onnodedragstop={(/** @type {any} */ e) => schemaState.handleNodeDragStop(e)}
+			onconnect={(/** @type {any} */ conn) => schemaState.handleConnect(conn, $selectedProject)}
 		>
 			<ViewportPersistence />
 			<Background class="z-0" bgColor="var(--color-surface-100-900) " />
@@ -297,7 +334,7 @@
 								bind:value={schemaState.selectedCableType}
 								defaultValue={schemaState.selectedCableType}
 								placeholder={m.placeholder_select_cable_type()}
-								onValueChange={(e) => {
+								onValueChange={(/** @type {{ value: any }} */ e) => {
 									schemaState.selectedCableType = e.value;
 								}}
 								contentBase="preset-filled-surface-50-950 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 shadow-lg"

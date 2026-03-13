@@ -31,18 +31,18 @@
 	let isDragging = $state(false);
 	let isMoveLabelMode = $state(false);
 	let justFinishedDragging = $state(false);
-	let longPressTimer = $state(null);
-	let longPressEvent = $state(null);
+	let longPressTimer = $state(/** @type {ReturnType<typeof setTimeout>|null} */ (null));
+	let longPressEvent = $state(/** @type {MouseEvent|null} */ (null));
 	let dragStartPos = $state({ x: 0, y: 0 });
-	let labelElement = $state(null);
+	let labelElement = $state(/** @type {HTMLDivElement|null} */ (null));
 	let labelWidth = $state(0);
 	let labelHeight = $state(0);
 
 	let progressValue = $state(0);
 	let progressPosition = $state({ x: 0, y: 0 });
-	let progressFrame = $state(null);
+	let progressFrame = $state(/** @type {number|null} */ (null));
 	let showProgressCircle = $state(false);
-	let progressDelayTimer = $state(null);
+	let progressDelayTimer = $state(/** @type {ReturnType<typeof setTimeout>|null} */ (null));
 
 	let currentLabel = $state('');
 
@@ -158,7 +158,6 @@
 
 	/**
 	 * Handle long press cancel - cancels move mode activation
-	 * @param {MouseEvent} event - The mouse event
 	 */
 	function handleLongPressCancel() {
 		if (longPressTimer) {
@@ -227,7 +226,7 @@
 			props: {
 				...parsedData,
 				type: 'edge',
-				onLabelUpdate: (newLabel) => {
+				onLabelUpdate: (/** @type {any} */ newLabel) => {
 					currentLabel = newLabel;
 					drawerStore.setTitle(newLabel);
 					cableData?.onNameUpdate?.(newLabel);
@@ -292,7 +291,6 @@
 
 	/**
 	 * Handle mouse up - ends dragging and saves position
-	 * @param {MouseEvent} event - The mouse event
 	 */
 	function handleMouseUp() {
 		if (isDragging) {
@@ -326,7 +324,7 @@
 	function handleKeydown(event) {
 		if (event.key === 'Enter' || event.key === ' ') {
 			event.preventDefault();
-			handleLabelClick(event);
+			handleLabelClick(/** @type {any} */ (event));
 		}
 		if (event.key === 'Escape' && isMoveLabelMode) {
 			isMoveLabelMode = false;
@@ -336,13 +334,13 @@
 	/**
 	 * Handle global keyboard events for Shift key tracking
 	 */
-	function handleGlobalKeyDown(event) {
+	function handleGlobalKeyDown(/** @type {any} */ event) {
 		if (event.key === 'Shift') {
 			shiftPressed = true;
 		}
 	}
 
-	function handleGlobalKeyUp(event) {
+	function handleGlobalKeyUp(/** @type {any} */ event) {
 		if (event.key === 'Shift') {
 			shiftPressed = false;
 		}

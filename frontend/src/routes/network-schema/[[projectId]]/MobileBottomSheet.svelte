@@ -9,19 +9,20 @@
 
 	let { open = $bindable(false), title = '', children } = $props();
 
+	/** @type {HTMLDivElement | null} */
 	let sheetElement = $state(null);
 	let startY = $state(0);
 	let currentY = $state(0);
 	let isDragging = $state(false);
 	let sheetHeight = $state(50); // percentage of viewport height
 
-	function handleTouchStart(e) {
+	function handleTouchStart(/** @type {any} */ e) {
 		startY = e.touches[0].clientY;
 		currentY = startY;
 		isDragging = true;
 	}
 
-	function handleTouchMove(e) {
+	function handleTouchMove(/** @type {any} */ e) {
 		if (!isDragging) return;
 		currentY = e.touches[0].clientY;
 

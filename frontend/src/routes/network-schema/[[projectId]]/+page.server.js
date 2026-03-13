@@ -30,9 +30,11 @@ import {
 /**
  * Poll for sync completion with timeout and progress updates
  * @param {Function} fetch - SvelteKit fetch function
- * @param {Headers} headers - Auth headers
- * @param {Object} initialStatus - Initial sync status
- * @returns {Promise<Object>} Final sync status
+ * @param {Record<string, string> | Headers} headers - Auth headers
+ * @param {Record<string, any> & {sync_in_progress: boolean}} initialStatus - Initial sync status
+ * @param {number} maxWaitTimeMs - Maximum wait time in milliseconds
+ * @param {string} projectId - Project ID
+ * @returns {Promise<Record<string, any> & {sync_in_progress: boolean}>} Final sync status
  */
 export async function _waitForSyncCompletion(
 	fetch,
@@ -139,7 +141,7 @@ export async function load({ fetch, cookies, url, params }) {
 			syncStatus = await syncStatusResponse.json();
 
 			if (syncStatus.sync_in_progress) {
-				syncStatus = await _waitForSyncCompletion(fetch, headers, syncStatus, projectId);
+				syncStatus = await _waitForSyncCompletion(fetch, headers, syncStatus, 30000, projectId);
 			} else if (syncStatus.sync_needed) {
 				const syncResponse = await fetch(`${API_URL}canvas-coordinates/`, {
 					method: 'POST',
@@ -234,8 +236,9 @@ export async function load({ fetch, cookies, url, params }) {
 			console.warn('Failed to fetch cable micropipe connections, continuing without them');
 		}
 
+		/** @type {Record<string, any[]>} */
 		const cableLabelMap = {};
-		cableLabelsData.forEach((label) => {
+		cableLabelsData.forEach((/** @type {any} */ label) => {
 			const cableUuid = label.cable?.uuid || label.cable;
 			if (!cableLabelMap[cableUuid]) {
 				cableLabelMap[cableUuid] = [];
@@ -243,7 +246,7 @@ export async function load({ fetch, cookies, url, params }) {
 			cableLabelMap[cableUuid].push(label);
 		});
 
-		cablesData = cablesData.map((cable) => {
+		cablesData = cablesData.map((/** @type {any} */ cable) => {
 			const cableUuid = cable.uuid || (cable.cable && cable.cable.uuid) || cable.cable;
 			return {
 				...cable,
@@ -254,7 +257,7 @@ export async function load({ fetch, cookies, url, params }) {
 
 		if (cableTypeResponse.ok) {
 			cableTypesData = await cableTypeResponse.json();
-			cableTypesData = cableTypesData.map((item) => ({
+			cableTypesData = cableTypesData.map((/** @type {any} */ item) => ({
 				value: item.id,
 				label: item.cable_type
 			}));
@@ -264,7 +267,7 @@ export async function load({ fetch, cookies, url, params }) {
 
 		if (nodeTypeResponse.ok) {
 			nodeTypesData = await nodeTypeResponse.json();
-			nodeTypesData = nodeTypesData.map((item) => ({
+			nodeTypesData = nodeTypesData.map((/** @type {any} */ item) => ({
 				value: item.id,
 				label: item.node_type
 			}));
@@ -274,7 +277,7 @@ export async function load({ fetch, cookies, url, params }) {
 
 		if (statusResponse.ok) {
 			statusData = await statusResponse.json();
-			statusData = statusData.map((item) => ({
+			statusData = statusData.map((/** @type {any} */ item) => ({
 				value: item.id,
 				label: item.status
 			}));
@@ -284,7 +287,7 @@ export async function load({ fetch, cookies, url, params }) {
 
 		if (networkLevelResponse.ok) {
 			networkLevelData = await networkLevelResponse.json();
-			networkLevelData = networkLevelData.map((item) => ({
+			networkLevelData = networkLevelData.map((/** @type {any} */ item) => ({
 				value: item.id,
 				label: item.network_level
 			}));
@@ -294,7 +297,7 @@ export async function load({ fetch, cookies, url, params }) {
 
 		if (companyResponse.ok) {
 			companyData = await companyResponse.json();
-			companyData = companyData.map((item) => ({
+			companyData = companyData.map((/** @type {any} */ item) => ({
 				value: item.id,
 				label: item.company
 			}));
@@ -304,7 +307,7 @@ export async function load({ fetch, cookies, url, params }) {
 
 		if (flagsResponse.ok) {
 			flagsData = await flagsResponse.json();
-			flagsData = flagsData.map((item) => ({
+			flagsData = flagsData.map((/** @type {any} */ item) => ({
 				value: item.id,
 				label: item.flag
 			}));
@@ -328,7 +331,8 @@ export async function load({ fetch, cookies, url, params }) {
 			childViewEnabledNodeTypeIds
 		};
 	} catch (err) {
-		if (err.status === 500 && err.message === 'Failed to fetch nodes') {
+		const typedErr = /** @type {any} */ (err);
+		if (typedErr.status === 500 && typedErr.message === 'Failed to fetch nodes') {
 			throw err;
 		}
 
@@ -355,7 +359,7 @@ export async function load({ fetch, cookies, url, params }) {
 export const actions = {
 	/**
 	 * @param {import('./$types').RequestEvent} event
-	 * @returns {Promise<{type: string, data: Object} | import('@sveltejs/kit').ActionFailure>}
+	 * @returns {Promise<any>}
 	 */
 	createCable: async ({ request, cookies }) => {
 		try {
@@ -395,11 +399,12 @@ export const actions = {
 
 			const backendUrl = `${API_URL}cable/`;
 
+			/** @type {Record<string, any>} */
 			const requestBody = {
 				name,
-				cable_type_id: parseInt(cable_type_id),
-				project_id: parseInt(project_id),
-				flag_id: parseInt(flag_id),
+				cable_type_id: parseInt(String(cable_type_id)),
+				project_id: parseInt(String(project_id)),
+				flag_id: parseInt(String(flag_id)),
 				uuid_node_start_id: uuid_node_start_id,
 				uuid_node_end_id: uuid_node_end_id
 			};
@@ -502,20 +507,21 @@ export const actions = {
 		}
 
 		try {
+			/** @type {Record<string, any>} */
 			const requestBody = {};
 
 			if (name) requestBody.name = name;
-			if (cable_type_id) requestBody.cable_type_id = parseInt(cable_type_id);
-			if (status_id) requestBody.status_id = parseInt(status_id);
-			if (network_level_id) requestBody.network_level_id = parseInt(network_level_id);
-			if (owner_id) requestBody.owner_id = parseInt(owner_id);
-			if (constructor_id) requestBody.constructor_id = parseInt(constructor_id);
-			if (manufacturer_id) requestBody.manufacturer_id = parseInt(manufacturer_id);
-			if (flag_id) requestBody.flag_id = parseInt(flag_id);
+			if (cable_type_id) requestBody.cable_type_id = parseInt(String(cable_type_id));
+			if (status_id) requestBody.status_id = parseInt(String(status_id));
+			if (network_level_id) requestBody.network_level_id = parseInt(String(network_level_id));
+			if (owner_id) requestBody.owner_id = parseInt(String(owner_id));
+			if (constructor_id) requestBody.constructor_id = parseInt(String(constructor_id));
+			if (manufacturer_id) requestBody.manufacturer_id = parseInt(String(manufacturer_id));
+			if (flag_id) requestBody.flag_id = parseInt(String(flag_id));
 			if (date) requestBody.date = date;
-			if (reserve_at_start) requestBody.reserve_at_start = parseInt(reserve_at_start);
-			if (reserve_at_end) requestBody.reserve_at_end = parseInt(reserve_at_end);
-			if (reserve_section) requestBody.reserve_section = parseInt(reserve_section);
+			if (reserve_at_start) requestBody.reserve_at_start = parseInt(String(reserve_at_start));
+			if (reserve_at_end) requestBody.reserve_at_end = parseInt(String(reserve_at_end));
+			if (reserve_section) requestBody.reserve_section = parseInt(String(reserve_section));
 			if (handle_start) requestBody.handle_start = handle_start;
 			if (handle_end) requestBody.handle_end = handle_end;
 
@@ -545,7 +551,7 @@ export const actions = {
 			};
 		} catch (err) {
 			console.error('Error updating cable:', err);
-			return fail(500, { message: err.message || 'Failed to update cable' });
+			return fail(500, { message: /** @type {Error} */ (err).message || 'Failed to update cable' });
 		}
 	},
 	deleteCable: async ({ request, fetch, cookies }) => {
@@ -578,7 +584,7 @@ export const actions = {
 			};
 		} catch (err) {
 			console.error('Error deleting cable:', err);
-			return fail(500, { message: err.message || 'Failed to delete cable' });
+			return fail(500, { message: /** @type {Error} */ (err).message || 'Failed to delete cable' });
 		}
 	},
 	saveCableGeometry: async ({ request, fetch, cookies }) => {
@@ -598,7 +604,7 @@ export const actions = {
 		let diagram_path = null;
 		if (diagramPathJson) {
 			try {
-				diagram_path = JSON.parse(diagramPathJson);
+				diagram_path = JSON.parse(String(diagramPathJson));
 			} catch (e) {
 				return {
 					type: 'error',
@@ -636,7 +642,7 @@ export const actions = {
 			console.error('Error saving cable geometry:', err);
 			return {
 				type: 'error',
-				message: err.message || 'Failed to save cable path'
+				message: /** @type {Error} */ (err).message || 'Failed to save cable path'
 			};
 		}
 	},
@@ -704,16 +710,17 @@ export const actions = {
 		}
 
 		try {
+			/** @type {Record<string, any>} */
 			const requestBody = {};
 
 			if (name) requestBody.name = name;
-			if (node_type_id) requestBody.node_type_id = parseInt(node_type_id);
-			if (status_id) requestBody.status_id = parseInt(status_id);
-			if (network_level_id) requestBody.network_level_id = parseInt(network_level_id);
-			if (owner_id) requestBody.owner_id = parseInt(owner_id);
-			if (constructor_id) requestBody.constructor_id = parseInt(constructor_id);
-			if (manufacturer_id) requestBody.manufacturer_id = parseInt(manufacturer_id);
-			if (flag_id) requestBody.flag_id = parseInt(flag_id);
+			if (node_type_id) requestBody.node_type_id = parseInt(String(node_type_id));
+			if (status_id) requestBody.status_id = parseInt(String(status_id));
+			if (network_level_id) requestBody.network_level_id = parseInt(String(network_level_id));
+			if (owner_id) requestBody.owner_id = parseInt(String(owner_id));
+			if (constructor_id) requestBody.constructor_id = parseInt(String(constructor_id));
+			if (manufacturer_id) requestBody.manufacturer_id = parseInt(String(manufacturer_id));
+			if (flag_id) requestBody.flag_id = parseInt(String(flag_id));
 			if (date) requestBody.date = date;
 			if (warranty) requestBody.warranty = warranty;
 			if (parent_node_id) {
@@ -748,7 +755,7 @@ export const actions = {
 			};
 		} catch (err) {
 			console.error('Error updating node:', err);
-			return fail(500, { message: err.message || 'Failed to update node' });
+			return fail(500, { message: /** @type {Error} */ (err).message || 'Failed to update node' });
 		}
 	},
 	deleteNode: async ({ request, fetch, cookies }) => {
@@ -783,7 +790,7 @@ export const actions = {
 			};
 		} catch (err) {
 			console.error('Error deleting node:', err);
-			return fail(500, { message: err.message || 'Failed to delete node' });
+			return fail(500, { message: /** @type {Error} */ (err).message || 'Failed to delete node' });
 		}
 	},
 	getNodeDependencies: async ({ request, fetch, cookies, params }) => {
@@ -930,11 +937,12 @@ export const actions = {
 			};
 		}
 
+		/** @type {Record<string, any>} */
 		const updatePayload = {};
 
 		if (canvas_x_raw != null && canvas_y_raw != null) {
-			const canvas_x = parseFloat(canvas_x_raw);
-			const canvas_y = parseFloat(canvas_y_raw);
+			const canvas_x = parseFloat(String(canvas_x_raw));
+			const canvas_y = parseFloat(String(canvas_y_raw));
 			if (isNaN(canvas_x) || isNaN(canvas_y)) {
 				return {
 					type: 'error',
@@ -946,8 +954,8 @@ export const actions = {
 		}
 
 		if (child_canvas_x_raw != null && child_canvas_y_raw != null) {
-			const child_canvas_x = parseFloat(child_canvas_x_raw);
-			const child_canvas_y = parseFloat(child_canvas_y_raw);
+			const child_canvas_x = parseFloat(String(child_canvas_x_raw));
+			const child_canvas_y = parseFloat(String(child_canvas_y_raw));
 			if (isNaN(child_canvas_x) || isNaN(child_canvas_y)) {
 				return {
 					type: 'error',
@@ -994,7 +1002,7 @@ export const actions = {
 			console.error('Error saving node geometry:', err);
 			return {
 				type: 'error',
-				message: err.message || 'Failed to save node position'
+				message: /** @type {Error} */ (err).message || 'Failed to save node position'
 			};
 		}
 	},
@@ -1050,7 +1058,7 @@ export const actions = {
 				body: JSON.stringify({
 					uuid_node_id: nodeUuid,
 					side: side,
-					total_slots: parseInt(totalSlots)
+					total_slots: parseInt(String(totalSlots))
 				})
 			});
 
@@ -1080,9 +1088,10 @@ export const actions = {
 			}
 
 			const headers = getAuthHeaders(cookies);
+			/** @type {Record<string, any>} */
 			const requestBody = {};
 			if (side) requestBody.side = side;
-			if (totalSlots) requestBody.total_slots = parseInt(totalSlots);
+			if (totalSlots) requestBody.total_slots = parseInt(String(totalSlots));
 
 			const response = await fetch(`${API_URL}node-slot-configuration/${configUuid}/`, {
 				method: 'PATCH',
@@ -1141,7 +1150,7 @@ export const actions = {
 	getContainerHierarchy: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const nodeUuid = formData.get('nodeUuid');
-		return getContainerHierarchy(fetch, cookies, nodeUuid);
+		return getContainerHierarchy(fetch, cookies, String(nodeUuid));
 	},
 	createContainer: async ({ request, fetch, cookies }) => {
 		try {
@@ -1158,9 +1167,10 @@ export const actions = {
 			}
 
 			const headers = getAuthHeaders(cookies);
+			/** @type {Record<string, any>} */
 			const requestBody = {
 				uuid_node_id: nodeUuid,
-				container_type_id: parseInt(containerTypeId)
+				container_type_id: parseInt(String(containerTypeId))
 			};
 
 			if (name) requestBody.name = name;
@@ -1379,8 +1389,8 @@ export const actions = {
 					},
 					body: JSON.stringify({
 						text: text,
-						position_x: parseFloat(position_x),
-						position_y: parseFloat(position_y)
+						position_x: parseFloat(String(position_x)),
+						position_y: parseFloat(String(position_y))
 					})
 				});
 			} else {
@@ -1404,17 +1414,17 @@ export const actions = {
 							},
 							body: JSON.stringify({
 								text: text,
-								position_x: parseFloat(position_x),
-								position_y: parseFloat(position_y)
+								position_x: parseFloat(String(position_x)),
+								position_y: parseFloat(String(position_y))
 							})
 						});
 					} else {
 						const requestBody = {
 							cable_id: cableId,
 							text: text || 'Label',
-							position_x: parseFloat(position_x),
-							position_y: parseFloat(position_y),
-							order: order ? parseInt(order) : 0
+							position_x: parseFloat(String(position_x)),
+							position_y: parseFloat(String(position_y)),
+							order: order ? parseInt(String(order)) : 0
 						};
 
 						response = await fetch(`${API_URL}cable_label/`, {
@@ -1431,9 +1441,9 @@ export const actions = {
 					const requestBody = {
 						cable_id: cableId,
 						text: text || 'Label',
-						position_x: parseFloat(position_x),
-						position_y: parseFloat(position_y),
-						order: order ? parseInt(order) : 0
+						position_x: parseFloat(String(position_x)),
+						position_y: parseFloat(String(position_y)),
+						order: order ? parseInt(String(order)) : 0
 					};
 
 					response = await fetch(`${API_URL}cable_label/`, {
@@ -1464,7 +1474,9 @@ export const actions = {
 			};
 		} catch (err) {
 			console.error('Error saving cable label:', err);
-			return fail(500, { message: err.message || 'Failed to save cable label' });
+			return fail(500, {
+				message: /** @type {Error} */ (err).message || 'Failed to save cable label'
+			});
 		}
 	},
 	deleteCableLabel: async ({ request, fetch, cookies }) => {
@@ -1499,18 +1511,20 @@ export const actions = {
 			};
 		} catch (err) {
 			console.error('Error deleting cable label:', err);
-			return fail(500, { message: err.message || 'Failed to delete cable label' });
+			return fail(500, {
+				message: /** @type {Error} */ (err).message || 'Failed to delete cable label'
+			});
 		}
 	},
 	getSlotConfigurationsForNode: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const nodeUuid = formData.get('nodeUuid');
-		return getSlotConfigurationsForNode(fetch, cookies, nodeUuid);
+		return getSlotConfigurationsForNode(fetch, cookies, String(nodeUuid));
 	},
 	getNodeStructures: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const slotConfigUuid = formData.get('slotConfigUuid');
-		return getNodeStructures(fetch, cookies, slotConfigUuid);
+		return getNodeStructures(fetch, cookies, String(slotConfigUuid));
 	},
 	getComponentTypes: async ({ fetch, cookies }) => {
 		return getComponentTypes(fetch, cookies);
@@ -1533,15 +1547,16 @@ export const actions = {
 			}
 
 			const headers = getAuthHeaders(cookies);
+			/** @type {Record<string, any>} */
 			const requestBody = {
 				uuid_node_id: nodeUuid,
 				slot_configuration_id: slotConfigUuid,
-				slot_start: parseInt(slotStart),
-				slot_end: parseInt(slotEnd),
+				slot_start: parseInt(String(slotStart)),
+				slot_end: parseInt(String(slotEnd)),
 				purpose
 			};
 
-			if (componentTypeId) requestBody.component_type_id = parseInt(componentTypeId);
+			if (componentTypeId) requestBody.component_type_id = parseInt(String(componentTypeId));
 			if (label) requestBody.label = label;
 
 			const response = await fetch(`${API_URL}node-structure/`, {
@@ -1612,10 +1627,10 @@ export const actions = {
 				body: JSON.stringify({
 					node_uuid: nodeUuid,
 					slot_configuration_uuid: slotConfigUuid,
-					component_type_id: parseInt(componentTypeId),
-					slot_start: parseInt(slotStart),
-					count: parseInt(count),
-					occupied_slots_per_component: parseInt(occupiedSlotsPerComponent)
+					component_type_id: parseInt(String(componentTypeId)),
+					slot_start: parseInt(String(slotStart)),
+					count: parseInt(String(count)),
+					occupied_slots_per_component: parseInt(String(occupiedSlotsPerComponent))
 				})
 			});
 
@@ -1648,7 +1663,7 @@ export const actions = {
 					...headers,
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({ slot_start: parseInt(slotStart) })
+				body: JSON.stringify({ slot_start: parseInt(String(slotStart)) })
 			});
 
 			if (!response.ok) {
@@ -1696,7 +1711,7 @@ export const actions = {
 	getSlotDividers: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const slotConfigUuid = formData.get('slotConfigUuid');
-		return getSlotDividers(fetch, cookies, slotConfigUuid);
+		return getSlotDividers(fetch, cookies, String(slotConfigUuid));
 	},
 	createSlotDivider: async ({ request, fetch, cookies }) => {
 		try {
@@ -1719,7 +1734,7 @@ export const actions = {
 				},
 				body: JSON.stringify({
 					slot_configuration_id: slotConfigUuid,
-					after_slot: parseInt(afterSlot)
+					after_slot: parseInt(String(afterSlot))
 				})
 			});
 
@@ -1768,7 +1783,7 @@ export const actions = {
 	getSlotClipNumbers: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const slotConfigUuid = formData.get('slotConfigUuid');
-		return getSlotClipNumbers(fetch, cookies, slotConfigUuid);
+		return getSlotClipNumbers(fetch, cookies, String(slotConfigUuid));
 	},
 	upsertSlotClipNumber: async ({ request, fetch, cookies }) => {
 		try {
@@ -1792,7 +1807,7 @@ export const actions = {
 				},
 				body: JSON.stringify({
 					slot_configuration_id: slotConfigUuid,
-					slot_number: parseInt(slotNumber),
+					slot_number: parseInt(String(slotNumber)),
 					clip_number: clipNumber
 				})
 			});
@@ -1814,12 +1829,12 @@ export const actions = {
 	getCablesAtNode: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const nodeUuid = formData.get('nodeUuid');
-		return getCablesAtNode(fetch, cookies, nodeUuid);
+		return getCablesAtNode(fetch, cookies, String(nodeUuid));
 	},
 	getFibersForCable: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const cableUuid = formData.get('cableUuid');
-		return getFibersForCable(fetch, cookies, cableUuid);
+		return getFibersForCable(fetch, cookies, String(cableUuid));
 	},
 	getFiberColors: async ({ fetch, cookies }) => {
 		return getFiberColors(fetch, cookies);
@@ -1827,12 +1842,12 @@ export const actions = {
 	getComponentPorts: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const componentTypeId = formData.get('componentTypeId');
-		return getComponentPorts(fetch, cookies, componentTypeId);
+		return getComponentPorts(fetch, cookies, String(componentTypeId));
 	},
 	getFiberSplices: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const nodeStructureUuid = formData.get('nodeStructureUuid');
-		return getFiberSplices(fetch, cookies, nodeStructureUuid);
+		return getFiberSplices(fetch, cookies, String(nodeStructureUuid));
 	},
 	upsertFiberSplice: async ({ request, fetch, cookies }) => {
 		try {
@@ -1859,9 +1874,10 @@ export const actions = {
 			}
 
 			const headers = getAuthHeaders(cookies);
+			/** @type {Record<string, any>} */
 			const requestBody = {
 				node_structure: nodeStructureUuid,
-				port_number: parseInt(portNumber),
+				port_number: parseInt(String(portNumber)),
 				side: side
 			};
 
@@ -1904,7 +1920,7 @@ export const actions = {
 				return fail(400, { error: 'Missing splices data' });
 			}
 
-			const splices = JSON.parse(splicesJson);
+			const splices = JSON.parse(String(splicesJson));
 
 			const headers = getAuthHeaders(cookies);
 			const response = await fetch(`${API_URL}fiber-splice/bulk-upsert/`, {
@@ -1952,7 +1968,7 @@ export const actions = {
 				},
 				body: JSON.stringify({
 					node_structure: nodeStructureUuid,
-					port_number: parseInt(portNumber),
+					port_number: parseInt(String(portNumber)),
 					side: side
 				})
 			});
@@ -1975,7 +1991,7 @@ export const actions = {
 		try {
 			const formData = await request.formData();
 			const nodeStructureUuid = formData.get('nodeStructureUuid');
-			const portNumbers = JSON.parse(formData.get('portNumbers') || '[]');
+			const portNumbers = JSON.parse(String(formData.get('portNumbers') || '[]'));
 			const side = formData.get('side') || 'both';
 
 			if (!nodeStructureUuid || portNumbers.length < 2) {
@@ -2016,7 +2032,7 @@ export const actions = {
 		try {
 			const formData = await request.formData();
 			const mergeGroup = formData.get('mergeGroup');
-			const portNumbers = JSON.parse(formData.get('portNumbers') || '[]');
+			const portNumbers = JSON.parse(String(formData.get('portNumbers') || '[]'));
 
 			if (!mergeGroup || portNumbers.length < 1) {
 				return fail(400, {
@@ -2056,7 +2072,7 @@ export const actions = {
 			const formData = await request.formData();
 			const mergeGroup = formData.get('mergeGroup');
 			const side = formData.get('side');
-			const fibers = JSON.parse(formData.get('fibers') || '[]');
+			const fibers = JSON.parse(String(formData.get('fibers') || '[]'));
 
 			if (!mergeGroup || !side || fibers.length === 0) {
 				return fail(400, {
@@ -2107,6 +2123,7 @@ export const actions = {
 		}
 
 		try {
+			/** @type {Record<string, any>} */
 			const requestBody = {};
 			if (uuid_node_start_id) requestBody.uuid_node_start_id = uuid_node_start_id;
 			if (uuid_node_end_id) requestBody.uuid_node_end_id = uuid_node_end_id;
@@ -2134,7 +2151,9 @@ export const actions = {
 			return { success: true, cable: updatedCable };
 		} catch (err) {
 			console.error('Error updating cable connection:', err);
-			return fail(500, { message: err.message || 'Failed to update cable connection' });
+			return fail(500, {
+				message: /** @type {Error} */ (err).message || 'Failed to update cable connection'
+			});
 		}
 	},
 	getCableSplicesAtNode: async ({ request, fetch, cookies }) => {
@@ -2286,7 +2305,7 @@ export const actions = {
 			const nodesData = await response.json();
 			const nodes = nodesData?.features || nodesData || [];
 			return {
-				nodes: nodes.map((nodeOrFeature) => {
+				nodes: nodes.map((/** @type {any} */ nodeOrFeature) => {
 					const node = nodeOrFeature.properties || nodeOrFeature;
 					return {
 						value: nodeOrFeature.id || node.uuid,
@@ -2302,7 +2321,7 @@ export const actions = {
 	getFiberUsageInNode: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const nodeUuid = formData.get('nodeUuid');
-		return getFiberUsageInNode(fetch, cookies, nodeUuid);
+		return getFiberUsageInNode(fetch, cookies, String(nodeUuid));
 	},
 	getTrenchesForCable: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
@@ -2330,6 +2349,7 @@ export const actions = {
 				return { trenches: [] };
 			}
 
+			/** @type {any[]} */
 			const allTrenches = [];
 			for (const nodeId of nodeIds) {
 				const selectionsResponse = await fetch(
@@ -2367,9 +2387,9 @@ export const actions = {
 		}
 
 		try {
-			let url = `${API_URL}conduits/by-trenches/?trench_ids=${encodeURIComponent(trenchIds)}`;
+			let url = `${API_URL}conduits/by-trenches/?trench_ids=${encodeURIComponent(String(trenchIds))}`;
 			if (cableId) {
-				url += `&cable_id=${encodeURIComponent(cableId)}`;
+				url += `&cable_id=${encodeURIComponent(String(cableId))}`;
 			}
 
 			const response = await fetch(url, {
@@ -2402,9 +2422,9 @@ export const actions = {
 		}
 
 		try {
-			let url = `${API_URL}micropipes/by-conduits/?conduit_ids=${encodeURIComponent(conduitIds)}`;
+			let url = `${API_URL}micropipes/by-conduits/?conduit_ids=${encodeURIComponent(String(conduitIds))}`;
 			if (cableId) {
-				url += `&cable_id=${encodeURIComponent(cableId)}`;
+				url += `&cable_id=${encodeURIComponent(String(cableId))}`;
 			}
 
 			const response = await fetch(url, {
@@ -2441,7 +2461,7 @@ export const actions = {
 		}
 
 		try {
-			const conduitIds = JSON.parse(conduitIdsJson);
+			const conduitIds = JSON.parse(String(conduitIdsJson));
 
 			const response = await fetch(`${API_URL}cables/${cableId}/micropipe-connections/`, {
 				method: 'POST',
@@ -2450,7 +2470,7 @@ export const actions = {
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					micropipe_number: parseInt(micropipeNumber),
+					micropipe_number: parseInt(String(micropipeNumber)),
 					color: color,
 					conduit_ids: conduitIds
 				})
@@ -2484,7 +2504,7 @@ export const actions = {
 		}
 
 		try {
-			const conduitIds = JSON.parse(conduitIdsJson);
+			const conduitIds = JSON.parse(String(conduitIdsJson));
 
 			const response = await fetch(`${API_URL}cables/${cableId}/micropipe-connections/`, {
 				method: 'DELETE',
@@ -2493,7 +2513,7 @@ export const actions = {
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					micropipe_number: parseInt(micropipeNumber),
+					micropipe_number: parseInt(String(micropipeNumber)),
 					conduit_ids: conduitIds
 				})
 			});
@@ -2517,14 +2537,19 @@ export const actions = {
 		const layerType = formData.get('layerType');
 		const projectId = formData.get('projectId');
 
-		return getLayerExtent(fetch, cookies, layerType, projectId);
+		return getLayerExtent(
+			fetch,
+			cookies,
+			/** @type {"node" | "trench" | "address"} */ (String(layerType)),
+			String(projectId)
+		);
 	},
 	searchFeatures: async ({ request, fetch, cookies }) => {
 		const data = await request.formData();
 		const searchQuery = data.get('searchQuery');
 		const projectId = data.get('projectId');
 
-		return searchFeaturesInProject(fetch, cookies, searchQuery, projectId);
+		return searchFeaturesInProject(fetch, cookies, String(searchQuery), String(projectId));
 	},
 	getFeatureDetails: async ({ request, fetch, cookies }) => {
 		const data = await request.formData();
@@ -2532,13 +2557,19 @@ export const actions = {
 		const featureUuid = data.get('featureUuid');
 		const projectId = data.get('projectId');
 
-		return getFeatureDetailsByType(fetch, cookies, featureType, featureUuid, projectId);
+		return getFeatureDetailsByType(
+			fetch,
+			cookies,
+			/** @type {"node" | "trench" | "address" | "area"} */ (String(featureType)),
+			String(featureUuid),
+			String(projectId)
+		);
 	},
 	getConduitTrenches: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const conduitUuid = formData.get('conduitUuid');
 
-		return getTrenchUuidsForConduit(fetch, cookies, conduitUuid);
+		return getTrenchUuidsForConduit(fetch, cookies, String(conduitUuid));
 	},
 	getLinkedTrenchesForCable: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
@@ -2625,7 +2656,7 @@ export const actions = {
 
 			const connections = await response.json();
 
-			const transformed = connections.map((conn) => ({
+			const transformed = connections.map((/** @type {any} */ conn) => ({
 				number: conn.uuid_microduct?.number,
 				color_hex: conn.uuid_microduct?.hex_code || '#64748b',
 				color_name: conn.uuid_microduct?.color
@@ -2640,13 +2671,13 @@ export const actions = {
 	getAddressesForNode: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const nodeUuid = formData.get('nodeUuid');
-		return getAddressesForNode(fetch, cookies, nodeUuid);
+		return getAddressesForNode(fetch, cookies, String(nodeUuid));
 	},
 
 	getUsedResidentialUnits: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const nodeUuid = formData.get('nodeUuid');
-		return getUsedResidentialUnits(fetch, cookies, nodeUuid);
+		return getUsedResidentialUnits(fetch, cookies, String(nodeUuid));
 	},
 
 	getFiberStatusOptions: async ({ fetch, cookies }) => {
@@ -2686,7 +2717,7 @@ export const actions = {
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					fiber_status_id: !statusId || statusId === 'null' ? null : parseInt(statusId, 10)
+					fiber_status_id: !statusId || statusId === 'null' ? null : parseInt(String(statusId), 10)
 				})
 			});
 
@@ -2705,6 +2736,6 @@ export const actions = {
 	exportExcel: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const nodeUuid = formData.get('nodeUuid');
-		return exportNodeExcel(fetch, cookies, nodeUuid);
+		return exportNodeExcel(fetch, cookies, String(nodeUuid));
 	}
 };

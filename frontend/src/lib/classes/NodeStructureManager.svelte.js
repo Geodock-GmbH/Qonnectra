@@ -7,6 +7,7 @@ import { globalToaster } from '$lib/stores/toaster';
 /**
  * @typedef {{
  *   uuid: string,
+ *   side?: string,
  *   total_slots: number,
  *   container?: { display_name?: string } | null
  * }} SlotConfiguration

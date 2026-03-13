@@ -28,7 +28,7 @@
 	 * @typedef {'fullscreen' | 'compact'} MapVariant
 	 */
 
-	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import { browser } from '$app/environment';
 	import { env } from '$env/dynamic/public';
@@ -74,7 +74,10 @@
 		constructionTypes = [],
 		areaTypes = [],
 		projectId = '',
-		variant = 'fullscreen' // 'fullscreen' | 'compact'
+		variant = 'fullscreen', // 'fullscreen' | 'compact'
+		onready = () => {},
+		onmoveend = () => {},
+		onclick = () => {}
 	} = $props();
 
 	let searchPanelRef = $state();
@@ -87,7 +90,6 @@
 	let osmLayer = $state();
 	let baseLayerGroup = $state();
 	let usingFallbackOSM = $state(false);
-	const dispatch = createEventDispatcher();
 
 	let initialCenter = $state(browser ? $mapCenter : [0, 0]);
 	let initialZoom = $state(browser ? $mapZoom : 2);
@@ -259,7 +261,7 @@
 			await setupFallbackOSM(map);
 		}
 
-		dispatch('ready', { map, usingFallbackOSM });
+		onready({ map, usingFallbackOSM });
 
 		map.on('moveend', () => {
 			if (!map) return;
@@ -272,11 +274,9 @@
 				$mapZoom = newZoom;
 			}
 
-			dispatch('moveend', { center: newCenter, zoom: newZoom });
+			onmoveend({ center: newCenter, zoom: newZoom });
 		});
-		map.on('click', (/** @type {import('ol/MapBrowserEvent').default} */ e) =>
-			dispatch('click', e)
-		);
+		map.on('click', (/** @type {import('ol/MapBrowserEvent').default} */ e) => onclick(e));
 	});
 
 	$effect(() => {

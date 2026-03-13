@@ -31,16 +31,20 @@
 		mergeSelectionMode ? 'grid-cols-[40px_60px_1fr_1fr]' : 'grid-cols-[60px_1fr_1fr]'
 	);
 
-	function getColorHex(fiberColorName) {
+	function getColorHex(/** @type {any} */ fiberColorName) {
 		if (!fiberColorName) return '#999999';
 		return colorMap.get(fiberColorName) || '#999999';
 	}
 
-	function handlePortDrop(portNumber, side, fiberData) {
+	function handlePortDrop(
+		/** @type {any} */ portNumber,
+		/** @type {any} */ side,
+		/** @type {any} */ fiberData
+	) {
 		context?.portActions?.onDrop(portNumber, side, fiberData);
 	}
 
-	function handleClearPort(portNumber, side) {
+	function handleClearPort(/** @type {any} */ portNumber, /** @type {any} */ side) {
 		context?.portActions?.onClear(portNumber, side);
 	}
 
@@ -52,7 +56,7 @@
 		context?.portActions?.onToggleMergeMode();
 	}
 
-	function handleTogglePortSelection(portNumber, side) {
+	function handleTogglePortSelection(/** @type {any} */ portNumber, /** @type {any} */ side) {
 		context?.portActions?.onTogglePortSelection(portNumber, side);
 	}
 
@@ -60,30 +64,34 @@
 		context?.portActions?.onMergePorts();
 	}
 
-	function handleUnmergePorts(mergeGroupId) {
+	function handleUnmergePorts(/** @type {any} */ mergeGroupId) {
 		context?.portActions?.onUnmergePorts(mergeGroupId);
 	}
 
-	function handleMergedPortDrop(mergeGroupId, side, data) {
+	function handleMergedPortDrop(
+		/** @type {any} */ mergeGroupId,
+		/** @type {any} */ side,
+		/** @type {any} */ data
+	) {
 		context?.portActions?.onMergedPortDrop(mergeGroupId, side, data);
 	}
 
-	function handleSetMergeSide(side) {
+	function handleSetMergeSide(/** @type {any} */ side) {
 		context?.portActions?.onSetMergeSide(side);
 	}
 
-	function isPortSelected(portNumber) {
+	function isPortSelected(/** @type {any} */ portNumber) {
 		return selectedForMerge.has(`${portNumber}-${mergeSide}`);
 	}
 
 	/** Returns true when this row is the first in a merge group on the A side, or is unmerged. */
-	function shouldRenderCellA(row) {
+	function shouldRenderCellA(/** @type {any} */ row) {
 		if (!row.mergeInfoA) return true;
 		return row.mergeInfoA.isFirstInGroup;
 	}
 
 	/** Returns true when this row is the first in a merge group on the B side, or is unmerged. */
-	function shouldRenderCellB(row) {
+	function shouldRenderCellB(/** @type {any} */ row) {
 		if (!row.mergeInfoB) return true;
 		return row.mergeInfoB.isFirstInGroup;
 	}
@@ -92,7 +100,7 @@
 	 * A port can only be selected for merging if it has a physical port on the
 	 * target side and is not already part of an existing merge group.
 	 */
-	function canSelectForMerge(row) {
+	function canSelectForMerge(/** @type {any} */ row) {
 		if (mergeSide === 'a') {
 			return row.hasInPort && !row.mergeInfoA;
 		} else {
@@ -282,7 +290,8 @@
 								spanRows={row.mergeInfoA.groupSize}
 								portRange={row.mergeInfoA.portRange}
 								{readonly}
-								onDrop={(data) => handleMergedPortDrop(row.mergeInfoA.groupId, 'a', data)}
+								onDrop={(/** @type {any} */ data) =>
+									handleMergedPortDrop(row.mergeInfoA.groupId, 'a', data)}
 								onClear={() => handleClearPort(row.portNumber, 'a')}
 								onUnmerge={() => handleUnmergePorts(row.mergeInfoA.groupId)}
 							/>
@@ -296,7 +305,7 @@
 								cableUuid={row.fiberA?.cable_uuid}
 								colorHex={getColorHex(row.fiberA?.fiber_color)}
 								{readonly}
-								onDrop={(data) => handlePortDrop(row.portNumber, 'a', data)}
+								onDrop={(/** @type {any} */ data) => handlePortDrop(row.portNumber, 'a', data)}
 								onClear={() => handleClearPort(row.portNumber, 'a')}
 							/>
 						{/if}
@@ -318,7 +327,8 @@
 								spanRows={row.mergeInfoB.groupSize}
 								portRange={row.mergeInfoB.portRange}
 								{readonly}
-								onDrop={(data) => handleMergedPortDrop(row.mergeInfoB.groupId, 'b', data)}
+								onDrop={(/** @type {any} */ data) =>
+									handleMergedPortDrop(row.mergeInfoB.groupId, 'b', data)}
 								onClear={() => handleClearPort(row.portNumber, 'b')}
 								onUnmerge={() => handleUnmergePorts(row.mergeInfoB.groupId)}
 							/>
@@ -332,7 +342,7 @@
 								cableUuid={row.fiberB?.cable_uuid}
 								colorHex={getColorHex(row.fiberB?.fiber_color)}
 								{readonly}
-								onDrop={(data) => handlePortDrop(row.portNumber, 'b', data)}
+								onDrop={(/** @type {any} */ data) => handlePortDrop(row.portNumber, 'b', data)}
 								onClear={() => handleClearPort(row.portNumber, 'b')}
 							/>
 						{/if}

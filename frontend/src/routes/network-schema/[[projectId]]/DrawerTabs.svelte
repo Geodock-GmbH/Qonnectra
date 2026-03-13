@@ -97,7 +97,7 @@
 
 	/**
 	 * Handle fiber status change
-	 * @param {Object} fiber
+	 * @param {any} fiber
 	 * @param {number|null} statusId
 	 */
 	async function handleFiberStatusChange(fiber, statusId) {
@@ -140,6 +140,7 @@
 		}
 	});
 
+	/** @type {any} */
 	let fileExplorer = $state(null);
 
 	function handleUploadComplete() {
@@ -148,7 +149,7 @@
 		}
 	}
 
-	function handleOpenStructurePanel(slotConfigUuid = null) {
+	function handleOpenStructurePanel(/** @type {any} */ slotConfigUuid = null) {
 		structurePanelSlotConfigUuid = slotConfigUuid;
 		structurePanelOpen = true;
 	}
@@ -294,7 +295,8 @@
 		<NodeSlotConfigPanel
 			nodeUuid={data.uuid || data.id}
 			nodeName={data.name}
-			onViewStructure={(slotConfigUuid) => handleOpenStructurePanel(slotConfigUuid)}
+			onViewStructure={(/** @type {any} */ slotConfigUuid) =>
+				handleOpenStructurePanel(slotConfigUuid)}
 			bind:sharedSlotState
 		/>
 	</FloatingPanel>

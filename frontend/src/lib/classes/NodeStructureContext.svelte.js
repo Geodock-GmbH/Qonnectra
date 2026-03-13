@@ -25,6 +25,7 @@ export { DRAG_DROP_CONTEXT_KEY };
 /**
  * @typedef {Object} SlotConfiguration
  * @property {string} uuid
+ * @property {string} [side]
  * @property {number} total_slots
  * @property {{display_name?: string}|null} [container]
  */

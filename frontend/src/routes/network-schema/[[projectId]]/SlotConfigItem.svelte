@@ -11,10 +11,11 @@
 		readonly = false,
 		onEdit,
 		onDelete,
-		onDragStart,
+		onDragStart = () => {},
 		onViewStructure
 	} = $props();
 
+	/** @param {any} e */
 	function handleDragStart(e) {
 		if (readonly) {
 			e.preventDefault();

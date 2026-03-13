@@ -28,11 +28,14 @@
 	let innerWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1024);
 	const isMobile = $derived(innerWidth < 768);
 
+	/** @type {any} */
 	let activeSheet = $state(null);
 	let cableRefreshTrigger = $state(0);
 	let showPortTableFullScreen = $state(false);
 
+	/** @type {any} */
 	let deleteMessageBox = $state(null);
+	/** @type {any} */
 	let pendingDeleteUuid = $state(null);
 	let pendingDeleteSpliceCount = $state(0);
 
@@ -87,10 +90,12 @@
 		}
 	});
 
+	/** @param {any} e */
 	function handleSideChange(e) {
 		context.selectSlotConfig(e.target.value);
 	}
 
+	/** @param {any} structure */
 	async function handleStructureSelect(structure) {
 		const wasSelected = await context.structureActions.onSelect(structure);
 		if (wasSelected) {
@@ -111,6 +116,7 @@
 	 * Checks for fiber splices before deleting a structure. Opens a confirmation
 	 * dialog if splices exist, since they will be cascade-deleted.
 	 */
+	/** @param {any} structureUuid */
 	async function handleDeleteStructure(structureUuid) {
 		const result = await context.structureActions.onDelete(structureUuid);
 		if (result?.needsConfirmation) {
@@ -128,11 +134,13 @@
 		}
 	}
 
+	/** @param {any} componentType */
 	function handleMobileComponentSelect(componentType) {
 		context.sidebarActions.onMobileSelect(componentType);
 		activeSheet = null;
 	}
 
+	/** @param {any} fiberData */
 	function handleMobileFiberSelect(fiberData) {
 		context.mobileActions.onFiberSelect(fiberData);
 		activeSheet = 'ports';

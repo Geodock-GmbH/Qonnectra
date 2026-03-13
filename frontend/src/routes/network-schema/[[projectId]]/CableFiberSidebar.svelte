@@ -29,6 +29,7 @@
 
 	/**
 	 * Toggle cable accordion
+	 * @param {any} cableUuid
 	 */
 	function toggleCable(cableUuid) {
 		if (expandedCables.has(cableUuid)) {
@@ -42,6 +43,8 @@
 
 	/**
 	 * Toggle bundle accordion
+	 * @param {any} cableUuid
+	 * @param {any} bundleNumber
 	 */
 	function toggleBundle(cableUuid, bundleNumber) {
 		if (!expandedBundles.has(cableUuid)) {
@@ -58,11 +61,14 @@
 
 	/**
 	 * Check if bundle is expanded
+	 * @param {any} cableUuid
+	 * @param {any} bundleNumber
 	 */
 	function isBundleExpanded(cableUuid, bundleNumber) {
 		return expandedBundles.get(cableUuid)?.has(bundleNumber) ?? false;
 	}
 
+	/** @param {any} e @param {any} cable */
 	function handleCableDragStart(e, cable) {
 		if (readonly) {
 			e.preventDefault();
@@ -73,6 +79,7 @@
 		dragDropManager?.startCableDrag(e, cable, cachedFibers);
 	}
 
+	/** @param {any} e @param {any} cable @param {any} bundle */
 	function handleBundleDragStart(e, cable, bundle) {
 		if (readonly) {
 			e.preventDefault();
@@ -81,6 +88,7 @@
 		dragDropManager?.startBundleDrag(e, cable, bundle);
 	}
 
+	/** @param {any} e @param {any} cable @param {any} bundle @param {any} fiber */
 	function handleFiberDragStart(e, cable, bundle, fiber) {
 		if (readonly) {
 			e.preventDefault();
@@ -94,6 +102,7 @@
 		dragDropManager?.endDrag();
 	}
 
+	/** @param {any} cable @param {any} bundle @param {any} fiber */
 	function handleMobileFiberClick(cable, bundle, fiber) {
 		if (readonly) return;
 		if (isMobile) {
@@ -103,6 +112,7 @@
 
 	/**
 	 * Toggle address accordion
+	 * @param {any} addressUuid
 	 */
 	function toggleAddress(addressUuid) {
 		if (expandedAddresses.has(addressUuid)) {
@@ -113,6 +123,7 @@
 		expandedAddresses = new Set(expandedAddresses);
 	}
 
+	/** @param {any} e @param {any} address */
 	function handleAddressDragStart(e, address) {
 		if (readonly) {
 			e.preventDefault();
@@ -121,6 +132,7 @@
 		dragDropManager?.startAddressDrag(e, address, address.residential_units || []);
 	}
 
+	/** @param {any} e @param {any} address @param {any} unit */
 	function handleResidentialUnitDragStart(e, address, unit) {
 		if (readonly) {
 			e.preventDefault();
@@ -129,6 +141,7 @@
 		dragDropManager?.startResidentialUnitDrag(e, address, unit);
 	}
 
+	/** @param {any} address @param {any} unit */
 	function handleMobileResidentialUnitClick(address, unit) {
 		if (readonly) return;
 		if (isMobile) {
@@ -162,6 +175,7 @@
 
 	// Listen for cable connection changes from the diagram
 	$effect(() => {
+		/** @param {any} event */
 		function handleCableConnectionChanged(event) {
 			const { nodeIds } = event.detail;
 			if (nodeIds && nodeIds.includes(nodeUuid)) {

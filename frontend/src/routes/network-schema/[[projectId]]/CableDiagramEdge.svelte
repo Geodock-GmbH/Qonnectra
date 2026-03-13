@@ -125,7 +125,7 @@
 
 	/**
 	 * Handle label position update - saves to backend via server action
-	 * @param {Object} positionData - Object with labelId, x, y, and text coordinates
+	 * @param {{ x: number, y: number, text?: string, labelId?: string }} positionData
 	 */
 	async function handleLabelPositionUpdate(positionData) {
 		const cableUuid = data?.cable?.uuid;
@@ -169,11 +169,11 @@
 		}
 	}
 
-	let draggingVertexIndex = $state(null);
+	let draggingVertexIndex = $state(/** @type {number|null} */ (null));
 	let edgeHovered = $state(false);
-	let svgElement = $state(null);
+	let svgElement = $state(/** @type {SVGSVGElement|null} */ (null));
 	let shiftPressed = $state(false);
-	let hoveredVertexIndex = $state(null);
+	let hoveredVertexIndex = $state(/** @type {number|null} */ (null));
 
 	const SNAP_GRID_SIZE = 20;
 	let showSnapFeedback = $state(false);
@@ -198,14 +198,16 @@
 
 	/**
 	 * Handle click on edge to add a new vertex
-	 * @param {Object} event - The click event
+	 * @param {MouseEvent} event
 	 */
 	function handleEdgeClick(event) {
-		const svg = event.currentTarget.closest('svg');
+		const svg = /** @type {SVGSVGElement} */ (
+			/** @type {any} */ (event.currentTarget).closest('svg')
+		);
 		const pt = svg.createSVGPoint();
 		pt.x = event.clientX;
 		pt.y = event.clientY;
-		const svgCoords = pt.matrixTransform(svg.getScreenCTM().inverse());
+		const svgCoords = pt.matrixTransform(/** @type {DOMMatrix} */ (svg.getScreenCTM()).inverse());
 		const waypoints = data?.cable?.diagram_path || [];
 
 		const allPoints = [{ x: sourceX, y: sourceY }, ...waypoints, { x: targetX, y: targetY }];
@@ -228,8 +230,8 @@
 		}
 
 		const snappedPosition = snapToGrid(
-			closestPointOnSegment.x,
-			closestPointOnSegment.y,
+			/** @type {{x: number, y: number}} */ (closestPointOnSegment).x,
+			/** @type {{x: number, y: number}} */ (closestPointOnSegment).y,
 			SNAP_GRID_SIZE,
 			$edgeSnappingEnabled
 		);
@@ -246,7 +248,7 @@
 
 	/**
 	 * Handle keyboard events for Shift key tracking
-	 * @param {Object} event - The keyboard event
+	 * @param {KeyboardEvent} event
 	 */
 	function handleKeyDown(event) {
 		if (event.key === 'Shift') {
@@ -256,7 +258,7 @@
 
 	/**
 	 * Handle keyup event for Shift key tracking
-	 * @param {Object} event - The keyboard event
+	 * @param {KeyboardEvent} event
 	 */
 	function handleKeyUp(event) {
 		if (event.key === 'Shift') {
@@ -276,8 +278,8 @@
 
 	/**
 	 * Handle vertex click - delete if Shift is pressed, otherwise start drag
-	 * @param {Object} event - The click event
-	 * @param {number} index - The index of the vertex
+	 * @param {MouseEvent} event
+	 * @param {number} index
 	 */
 	function handleVertexMouseDown(event, index) {
 		event.stopPropagation();
@@ -289,7 +291,7 @@
 		}
 
 		draggingVertexIndex = index;
-		svgElement = event.currentTarget.closest('svg');
+		svgElement = /** @type {any} */ (event.currentTarget).closest('svg');
 
 		window.addEventListener('mousemove', handleWindowMouseMove);
 		window.addEventListener('mouseup', handleWindowMouseUp);
@@ -312,7 +314,7 @@
 
 	/**
 	 * Handle vertex drag on window (so it works even when mouse leaves SVG)
-	 * @param {Object} event - The mouse move event
+	 * @param {MouseEvent} event
 	 */
 	function handleWindowMouseMove(event) {
 		if (draggingVertexIndex === null || !svgElement) return;
@@ -320,7 +322,9 @@
 		const pt = svgElement.createSVGPoint();
 		pt.x = event.clientX;
 		pt.y = event.clientY;
-		const svgCoords = pt.matrixTransform(svgElement.getScreenCTM().inverse());
+		const svgCoords = pt.matrixTransform(
+			/** @type {DOMMatrix} */ (svgElement.getScreenCTM()).inverse()
+		);
 
 		const snappedPosition = snapToGrid(
 			svgCoords.x,
@@ -352,7 +356,6 @@
 
 	/**
 	 * Handle vertex drag end on window
-	 * @param {Object} event - The mouse up event
 	 */
 	function handleWindowMouseUp() {
 		if (draggingVertexIndex !== null) {
@@ -371,8 +374,8 @@
 
 	/**
 	 * Handle vertex right-click to delete
-	 * @param {Object} event - The right-click event
-	 * @param {number} index - The index of the vertex
+	 * @param {MouseEvent} event
+	 * @param {number} index
 	 */
 	function handleVertexContextMenu(event, index) {
 		event.preventDefault();
@@ -386,7 +389,7 @@
 	onkeydown={(e) => {
 		if (e.key === 'Enter' || e.key === ' ') {
 			e.preventDefault();
-			handleEdgeClick(e);
+			handleEdgeClick(/** @type {any} */ (e));
 		}
 	}}
 	onmouseenter={() => (edgeHovered = true)}

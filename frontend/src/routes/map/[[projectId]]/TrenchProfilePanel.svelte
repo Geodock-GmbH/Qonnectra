@@ -77,7 +77,7 @@
 				edges={[]}
 				{nodeTypes}
 				onnodedragstop={handleNodeDragStop}
-				{.../** @type {any} */ ({ onnodeschange: handleNodesChange }}
+				{.../** @type {any} */ ({ onnodeschange: handleNodesChange })}
 				minZoom={0.1}
 				maxZoom={2}
 				nodesDraggable={!locked}

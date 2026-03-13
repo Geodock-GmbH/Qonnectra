@@ -2,7 +2,7 @@
  * Creates a tooltip attachment for use with the Svelte 5 `{@attach}` directive.
  * Manages tooltip lifecycle (show/hide/position) via mouse events.
  *
- * @param {string} content - The tooltip text content.
+ * @param {string|undefined} content - The tooltip text content.
  * @param {Object} [options] - Tooltip configuration.
  * @param {'top' | 'bottom' | 'left' | 'right'} [options.position='top'] - Position relative to the target.
  * @param {number} [options.delay=200] - Delay in ms before showing the tooltip.

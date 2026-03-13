@@ -36,7 +36,7 @@
 	 * @returns {boolean}
 	 */
 	function isComponentRangeStart(slotNumber) {
-		return componentRanges.some((r) => r.start === slotNumber);
+		return componentRanges.some((/** @type {any} */ r) => r.start === slotNumber);
 	}
 
 	/**
@@ -45,16 +45,16 @@
 	 * @returns {boolean}
 	 */
 	function isComponentRangeEnd(slotNumber) {
-		return componentRanges.some((r) => r.end === slotNumber);
+		return componentRanges.some((/** @type {any} */ r) => r.end === slotNumber);
 	}
 
-	function handleSlotDragOver(e, slotNumber) {
+	function handleSlotDragOver(/** @type {any} */ e, /** @type {any} */ slotNumber) {
 		if (readonly) return;
 		e.preventDefault();
 		context?.slotActions?.onDragOver(e, slotNumber);
 	}
 
-	function handleSlotDragLeave(e) {
+	function handleSlotDragLeave(/** @type {any} */ e) {
 		if (readonly) return;
 		// Only clear if leaving the drop zone area entirely
 		const relatedTarget = e.relatedTarget;
@@ -63,7 +63,7 @@
 		}
 	}
 
-	function handleGridDragLeave(e) {
+	function handleGridDragLeave(/** @type {any} */ e) {
 		if (readonly) return;
 		if (!e.currentTarget.contains(e.relatedTarget)) {
 			if (context) {
@@ -72,13 +72,13 @@
 		}
 	}
 
-	function handleSlotDrop(e, slotNumber) {
+	function handleSlotDrop(/** @type {any} */ e, /** @type {any} */ slotNumber) {
 		if (readonly) return;
 		e.preventDefault();
 		context?.slotActions?.onDrop(e, slotNumber);
 	}
 
-	function handleSlotClick(row) {
+	function handleSlotClick(/** @type {any} */ row) {
 		if (isMobile && mobileSelectedItem) {
 			context?.slotActions?.onTap(row.slotNumber);
 		} else if (row.structure) {
@@ -86,7 +86,7 @@
 		}
 	}
 
-	function handleStructureDragStart(e, structure) {
+	function handleStructureDragStart(/** @type {any} */ e, /** @type {any} */ structure) {
 		if (readonly) {
 			e.preventDefault();
 			return;
@@ -99,12 +99,12 @@
 		context?.structureActions?.onDragEnd();
 	}
 
-	function handleToggleDivider(slotNumber) {
+	function handleToggleDivider(/** @type {any} */ slotNumber) {
 		if (readonly) return;
 		context?.dividerActions?.onToggle(slotNumber);
 	}
 
-	function handleStartEditingClip(slotNumber, currentValue) {
+	function handleStartEditingClip(/** @type {any} */ slotNumber, /** @type {any} */ currentValue) {
 		if (readonly) return;
 		context?.clipActions?.onStartEditing(slotNumber, currentValue);
 	}
@@ -113,13 +113,13 @@
 		context?.clipActions?.onSave();
 	}
 
-	function handleClipKeydown(e) {
+	function handleClipKeydown(/** @type {any} */ e) {
 		context?.clipActions?.onKeydown(e);
 	}
 
-	function handleClipInput(e) {
+	function handleClipInput(/** @type {any} */ e) {
 		if (context) {
-			context.editingClipValue = e.target.value;
+			context.editingClipValue = /** @type {any} */ (e.target).value;
 		}
 	}
 </script>

@@ -147,11 +147,9 @@
 
 	/**
 	 * Initializes map interactions, selection layers, and overlays when the OL map is ready.
-	 * @param {{ detail: { map: import('ol/Map').default } }} event - Map ready event from Map component.
+	 * @param {{ map: import('ol/Map').default, usingFallbackOSM: boolean }} detail
 	 */
-	function handleMapReady(event) {
-		const olMapInstance = event.detail.map;
-
+	function handleMapReady({ map: olMapInstance }) {
 		mapState.initializeSelectionLayers(
 			olMapInstance,
 			() =>
@@ -287,7 +285,7 @@
 					surfaces={data.surfaces ?? []}
 					constructionTypes={data.constructionTypes ?? []}
 					areaTypes={data.areaTypes ?? []}
-					on:ready={handleMapReady}
+					onready={handleMapReady}
 					searchPanelProps={{
 						trenchColorSelected: $trenchColorSelected,
 						alias: data.alias

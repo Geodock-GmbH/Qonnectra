@@ -20,7 +20,9 @@
 		sharedSlotState = $bindable(null)
 	} = $props();
 
+	/** @type {{containers: any[], root_slot_configurations: any[]}} */
 	let hierarchy = $state({ containers: [], root_slot_configurations: [] });
+	/** @type {any[]} */
 	let containerTypes = $state([]);
 	let loading = $state(true);
 
@@ -30,12 +32,14 @@
 	let formTotalSlots = $state(1);
 
 	let isCreatingContainer = $state(false);
+	/** @type {any} */
 	let selectedContainerTypeId = $state(null);
 	let containerName = $state('');
 
 	let rootDragOver = $state(false);
 	let exporting = $state(false);
 
+	/** @type {any} */
 	let deleteSlotConfigMessageBox = $state(null);
 	let pendingDeleteConfigUuid = $state(null);
 	let pendingDeleteStructureCount = $state(0);
@@ -47,7 +51,7 @@
 				method: 'POST',
 				body: formData
 			});
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 			if (result.type === 'success') {
 				containerTypes = result.data?.containerTypes || [];
 			}
@@ -74,7 +78,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to fetch hierarchy');
@@ -100,9 +104,11 @@
 		}
 	}
 
+	/** @param {any} h */
 	function extractAllSlotConfigurations(h) {
 		const configs = [...(h.root_slot_configurations || [])];
 
+		/** @param {any} containers */
 		function extractFromContainers(containers) {
 			for (const container of containers || []) {
 				if (container.slot_configurations) {
@@ -140,7 +146,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to create container');
@@ -161,6 +167,7 @@
 		}
 	}
 
+	/** @param {any} uuid */
 	async function handleDeleteContainer(uuid) {
 		try {
 			const formData = new FormData();
@@ -171,7 +178,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to delete container');
@@ -191,6 +198,7 @@
 		}
 	}
 
+	/** @param {any} uuid @param {any} newName */
 	async function handleUpdateContainerName(uuid, newName) {
 		try {
 			const formData = new FormData();
@@ -202,7 +210,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to update container name');
@@ -222,6 +230,7 @@
 		}
 	}
 
+	/** @param {any} dragData @param {any} targetContainerId */
 	async function handleMove(dragData, targetContainerId) {
 		try {
 			const formData = new FormData();
@@ -234,7 +243,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to move item');
@@ -250,12 +259,14 @@
 		}
 	}
 
+	/** @param {any} e */
 	function handleRootDragOver(e) {
 		if (readonly) return;
 		e.preventDefault();
 		rootDragOver = true;
 	}
 
+	/** @param {any} e */
 	function handleRootDragLeave(e) {
 		if (readonly) return;
 		if (!e.currentTarget.contains(e.relatedTarget)) {
@@ -263,6 +274,7 @@
 		}
 	}
 
+	/** @param {any} e */
 	function handleRootDrop(e) {
 		if (readonly) return;
 		e.preventDefault();
@@ -276,6 +288,7 @@
 		}
 	}
 
+	/** @param {any} uuid */
 	async function handleToggleExpand(uuid) {
 		hierarchy = updateContainerExpanded(hierarchy, uuid);
 
@@ -288,13 +301,17 @@
 		});
 	}
 
+	/** @param {any} h @param {any} uuid */
 	function updateContainerExpanded(h, uuid) {
 		return {
 			...h,
-			containers: h.containers.map((c) => updateContainerExpandedRecursive(c, uuid))
+			containers: h.containers.map((/** @type {any} */ c) =>
+				updateContainerExpandedRecursive(c, uuid)
+			)
 		};
 	}
 
+	/** @param {any} container @param {any} uuid */
 	function updateContainerExpandedRecursive(container, uuid) {
 		if (container.uuid === uuid) {
 			return { ...container, is_expanded: !container.is_expanded };
@@ -302,7 +319,9 @@
 		if (container.children) {
 			return {
 				...container,
-				children: container.children.map((c) => updateContainerExpandedRecursive(c, uuid))
+				children: container.children.map((/** @type {any} */ c) =>
+					updateContainerExpandedRecursive(c, uuid)
+				)
 			};
 		}
 		return container;
@@ -322,7 +341,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to create configuration');
@@ -343,6 +362,7 @@
 		}
 	}
 
+	/** @param {any} uuid */
 	async function handleUpdate(uuid) {
 		if (!formSide.trim() || formTotalSlots < 1) return;
 
@@ -357,7 +377,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to update configuration');
@@ -382,6 +402,7 @@
 	 * Guards deletion: fetches associated structures first and prompts for
 	 * confirmation if any exist, since they will be cascade-deleted.
 	 */
+	/** @param {any} uuid */
 	async function handleDelete(uuid) {
 		try {
 			const formData = new FormData();
@@ -392,7 +413,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 			const structures = result.data?.structures || [];
 
 			if (structures.length > 0) {
@@ -409,6 +430,7 @@
 		}
 	}
 
+	/** @param {any} uuid */
 	async function executeDeleteSlotConfig(uuid) {
 		try {
 			const formData = new FormData();
@@ -419,7 +441,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to delete configuration');
@@ -447,6 +469,7 @@
 		}
 	}
 
+	/** @param {any} config */
 	function startEdit(config) {
 		editingUuid = config.uuid;
 		formSide = config.side;
@@ -494,7 +517,7 @@
 				method: 'POST',
 				body: formData
 			});
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Export failed');
 			}

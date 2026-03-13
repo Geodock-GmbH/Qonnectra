@@ -5,6 +5,8 @@ import { deserialize } from '$app/forms';
  * @property {string} uuid
  * @property {string} [name]
  * @property {number} [capacity]
+ * @property {string} [direction]
+ * @property {number} [fiber_count]
  */
 
 /**
@@ -20,6 +22,7 @@ import { deserialize } from '$app/forms';
  * @property {number} bundle_number
  * @property {string} bundle_color
  * @property {number} [fiber_number_in_bundle]
+ * @property {number} [fiber_number_absolute]
  * @property {string} [fiber_color]
  * @property {string} [color]
  * @property {number|null} [fiber_status_id]
@@ -419,7 +422,7 @@ export class CableFiberDataManager {
 
 	/**
 	 * Get color hex code from color name
-	 * @param {string} colorName
+	 * @param {string|undefined} colorName
 	 * @returns {string}
 	 */
 	getColorHex(colorName) {

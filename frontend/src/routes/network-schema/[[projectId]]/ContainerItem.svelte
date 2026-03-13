@@ -34,7 +34,7 @@
 	let isEditing = $state(false);
 	let editName = $state('');
 
-	function handleDragStart(e) {
+	function handleDragStart(/** @type {any} */ e) {
 		if (readonly) {
 			e.preventDefault();
 			return;
@@ -49,7 +49,7 @@
 		e.dataTransfer.effectAllowed = 'move';
 	}
 
-	function handleDragOver(e) {
+	function handleDragOver(/** @type {any} */ e) {
 		if (readonly) return;
 		e.preventDefault();
 		const hasData = e.dataTransfer.types.includes('application/json');
@@ -59,14 +59,14 @@
 		}
 	}
 
-	function handleDragLeave(e) {
+	function handleDragLeave(/** @type {any} */ e) {
 		if (readonly) return;
 		if (!e.currentTarget.contains(e.relatedTarget)) {
 			dragOver = false;
 		}
 	}
 
-	function handleDrop(e) {
+	function handleDrop(/** @type {any} */ e) {
 		if (readonly) return;
 		e.preventDefault();
 		e.stopPropagation();

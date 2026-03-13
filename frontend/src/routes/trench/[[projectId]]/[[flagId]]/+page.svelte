@@ -254,11 +254,9 @@
 	/**
 	 * Handler for the map ready event
 	 * Initializes all map interactions and layers
-	 * @param {CustomEvent} event - Map ready event containing the OpenLayers map instance
+	 * @param {{ map: import('ol/Map').default, usingFallbackOSM: boolean }} detail
 	 */
-	function handleMapReady(event) {
-		const olMapInstance = event.detail.map;
-
+	function handleMapReady({ map: olMapInstance }) {
 		mapState.initializeSelectionLayers(
 			olMapInstance,
 			() =>
@@ -556,7 +554,7 @@
 				layers={mapState.getLayers()}
 				showLayerVisibilityTree={true}
 				showSearchPanel={true}
-				on:ready={handleMapReady}
+				onready={handleMapReady}
 				{nodeTypes}
 				{surfaces}
 				{constructionTypes}
