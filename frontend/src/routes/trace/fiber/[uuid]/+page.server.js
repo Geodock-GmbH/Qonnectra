@@ -2,6 +2,12 @@ import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
+/**
+ * Loads fiber trace or signal analysis data for a given fiber.
+ * Supports both standard trace and signal analysis modes via the `mode` query param.
+ * @param {import('./$types').PageServerLoadEvent} event
+ * @returns {Promise<{result?: Object, error?: string, entryType: string, entryId: string, mode: string, options?: {includeGeometry: boolean, geometryMode: string, orientGeometry: boolean, signalSource: string | null}}>}
+ */
 export async function load({ fetch, cookies, params, url }) {
 	const { uuid } = params;
 	const mode = url.searchParams.get('mode') || 'trace';

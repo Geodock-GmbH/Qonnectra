@@ -15,10 +15,14 @@
 	const mode = $derived(data.mode || 'trace');
 
 	$effect(() => {
-		traceMapContext.traceResult = data.result;
+		traceMapContext.traceResult = data.result ?? null;
 		traceMapContext.includeGeometry = data.options?.includeGeometry ?? false;
 	});
 
+	/**
+	 * Switches between standard trace and signal analysis mode.
+	 * @param {'trace' | 'signal'} newMode - The mode to switch to.
+	 */
 	function switchMode(newMode) {
 		const url = new URL(page.url);
 		if (newMode === 'signal') {

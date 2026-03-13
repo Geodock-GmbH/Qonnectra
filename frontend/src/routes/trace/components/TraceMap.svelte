@@ -9,7 +9,7 @@
 
 	/**
 	 * @typedef {Object} Props
-	 * @property {Object} traceResult - The trace result data with geometry
+	 * @property {Record<string, any>|null} traceResult - The trace result data with geometry
 	 * @property {string|null} [selectedFeatureId] - Currently selected feature ID
 	 * @property {(featureId: string|null) => void} [onFeatureSelect] - Selection callback
 	 */
@@ -19,18 +19,30 @@
 
 	const TILE_SERVER_URL = env.PUBLIC_TILE_SERVER_URL || '';
 
+	/** @type {any} */
 	let container = $state(null);
+	/** @type {any} */
 	let map = $state(null);
+	/** @type {any} */
 	let vectorSource = $state(null);
+	/** @type {any} */
 	let markerSource = $state(null);
 
 	const SOURCE_PROJECTION = 'EPSG:25832';
 	const TARGET_PROJECTION = 'EPSG:3857';
 
-	let Style, Stroke, Fill, CircleStyle;
+	/** @type {any} */
+	let Style;
+	/** @type {any} */
+	let Stroke;
+	/** @type {any} */
+	let Fill;
+	/** @type {any} */
+	let CircleStyle;
 
 	/**
-	 * Check if the tile server is available
+	 * Check if the tile server is available.
+	 * @returns {Promise<boolean>} Whether the tile server responded successfully
 	 */
 	async function checkTileServerHealth() {
 		if (!TILE_SERVER_URL) return false;
@@ -49,28 +61,32 @@
 	}
 
 	/**
-	 * Apply vector tile basemap style
+	 * Apply vector tile basemap style, replacing any existing base layers.
+	 * @param {import('ol/Map').default} mapInstance - The OpenLayers map instance
+	 * @param {string} theme - The basemap theme name (e.g. 'light', 'dark')
+	 * @returns {Promise<void>}
 	 */
 	async function applyVectorTileStyle(mapInstance, theme) {
 		try {
 			const { apply } = await import('ol-mapbox-style');
 			const styleUrl = `${TILE_SERVER_URL}/styles/${theme}/style.json`;
 
-			// Remove existing base layers
+			/** @type {any[]} */
 			const layersToRemove = [];
-			mapInstance.getLayers().forEach((layer) => {
+			mapInstance.getLayers().forEach((/** @type {any} */ layer) => {
 				if (layer.get('isBaseLayer')) {
 					layersToRemove.push(layer);
 				}
 			});
-			layersToRemove.forEach((layer) => mapInstance.removeLayer(layer));
+			layersToRemove.forEach((/** @type {any} */ layer) => mapInstance.removeLayer(layer));
 
 			await apply(mapInstance, styleUrl);
 
-			// Mark new layers as base layers and reorder
+			/** @type {any[]} */
 			const baseLayers = [];
+			/** @type {any[]} */
 			const otherLayers = [];
-			mapInstance.getLayers().forEach((layer) => {
+			mapInstance.getLayers().forEach((/** @type {any} */ layer) => {
 				if (layer.get('isTraceLayer')) {
 					otherLayers.push(layer);
 				} else if (!layer.get('isBaseLayer')) {
@@ -83,8 +99,8 @@
 
 			const layerCollection = mapInstance.getLayers();
 			layerCollection.clear();
-			baseLayers.forEach((layer) => layerCollection.push(layer));
-			otherLayers.forEach((layer) => layerCollection.push(layer));
+			baseLayers.forEach((/** @type {any} */ layer) => layerCollection.push(layer));
+			otherLayers.forEach((/** @type {any} */ layer) => layerCollection.push(layer));
 
 			$tileServerAvailable = true;
 		} catch (error) {
@@ -94,7 +110,9 @@
 	}
 
 	/**
-	 * Setup fallback OSM raster tiles
+	 * Setup fallback OSM raster tiles when the vector tile server is unavailable.
+	 * @param {import('ol/Map').default} mapInstance - The OpenLayers map instance
+	 * @returns {Promise<void>}
 	 */
 	async function setupFallbackOSM(mapInstance) {
 		const [{ default: TileLayer }, { default: OSMSource }] = await Promise.all([
@@ -142,7 +160,6 @@
 		Fill = FillModule.default;
 		CircleStyle = CircleModule.default;
 
-		// Register EPSG:25832
 		proj4.default.defs(
 			'EPSG:25832',
 			'+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs'
@@ -154,13 +171,13 @@
 
 		const vectorLayer = new VectorLayer({
 			source: vectorSource,
-			style: createLineStyle
+			style: /** @type {any} */ (createLineStyle)
 		});
 		vectorLayer.set('isTraceLayer', true);
 
 		const markerLayer = new VectorLayer({
 			source: markerSource,
-			style: createMarkerStyle
+			style: /** @type {any} */ (createMarkerStyle)
 		});
 		markerLayer.set('isTraceLayer', true);
 
@@ -183,9 +200,8 @@
 			await setupFallbackOSM(map);
 		}
 
-		// Click interaction
-		map.on('click', (evt) => {
-			const feature = map.forEachFeatureAtPixel(evt.pixel, (f) => f);
+		map.on('click', (/** @type {any} */ evt) => {
+			const feature = map.forEachFeatureAtPixel(evt.pixel, (/** @type {any} */ f) => f);
 			if (feature) {
 				const featureId = feature.get('featureId');
 				onFeatureSelect(featureId);
@@ -194,14 +210,12 @@
 			}
 		});
 
-		// Pointer cursor on hover
-		map.on('pointermove', (evt) => {
+		map.on('pointermove', (/** @type {any} */ evt) => {
 			const hit = map.hasFeatureAtPixel(evt.pixel);
 			map.getTargetElement().style.cursor = hit ? 'pointer' : '';
 		});
 
-		// Load features from trace result
-		loadFeatures(traceResult);
+		if (traceResult) loadFeatures(traceResult);
 	});
 
 	onDestroy(() => {
@@ -214,19 +228,19 @@
 	$effect(() => {
 		if (!map || !selectedFeatureId) return;
 
-		// Find the feature
+		/** @type {any} */
 		let targetFeature = null;
-		vectorSource?.forEachFeature((f) => {
+		vectorSource?.forEachFeature((/** @type {any} */ f) => {
 			if (f.get('featureId') === selectedFeatureId) targetFeature = f;
 		});
 		if (!targetFeature) {
-			markerSource?.forEachFeature((f) => {
+			markerSource?.forEachFeature((/** @type {any} */ f) => {
 				if (f.get('featureId') === selectedFeatureId) targetFeature = f;
 			});
 		}
 
 		if (targetFeature) {
-			const geometry = targetFeature.getGeometry();
+			const geometry = /** @type {any} */ (targetFeature.getGeometry());
 			const extent = geometry.getExtent();
 			map.getView().fit(extent, {
 				padding: [100, 100, 100, 100],
@@ -235,11 +249,15 @@
 			});
 		}
 
-		// Refresh styles
 		vectorSource?.changed();
 		markerSource?.changed();
 	});
 
+	/**
+	 * Style function for cable/trench line features, with selection and signal state styling.
+	 * @param {any} feature - The OpenLayers feature to style
+	 * @returns {any} The computed line style
+	 */
 	function createLineStyle(feature) {
 		const featureId = feature.get('featureId') || '';
 		const isSelected = featureId === selectedFeatureId;
@@ -264,12 +282,18 @@
 		});
 	}
 
+	/**
+	 * Style function for point marker features (nodes, addresses, entry points, residential units).
+	 * @param {import('ol/Feature').default} feature - The OpenLayers feature to style
+	 * @returns {import('ol/style/Style').default} The computed marker style
+	 */
 	function createMarkerStyle(feature) {
 		const featureType = feature.get('featureType') || '';
 		const featureId = feature.get('featureId') || '';
 		const isSelected = featureId === selectedFeatureId;
 		const signalState = feature.get('signalState');
 
+		/** @type {Record<string, string>} */
 		const colors = {
 			entry_point: '#6366f1',
 			node: '#22c55e',
@@ -298,6 +322,11 @@
 		});
 	}
 
+	/**
+	 * Derive a deterministic color from a cable ID using a hash-based hue.
+	 * @param {string} cableId - The cable identifier
+	 * @returns {string} A CSS color string (HSL or hex fallback)
+	 */
 	function getCableColor(cableId) {
 		if (!cableId) return '#f59e0b';
 		let hash = 0;
@@ -308,6 +337,11 @@
 		return `hsl(${hue}, 70%, 50%)`;
 	}
 
+	/**
+	 * Parse trace result data into OpenLayers features and add them to the map sources.
+	 * @param {Record<string, any>} result - The trace result containing cable_infrastructure, trace_tree, and entry_point
+	 * @returns {Promise<void>}
+	 */
 	async function loadFeatures(result) {
 		if (!result || !vectorSource || !markerSource) return;
 
@@ -316,7 +350,7 @@
 		const format = new GeoJSON();
 		const allFeatures = [];
 
-		// Extract cable geometry
+		/** @type {Record<string, any>} */
 		const cableInfra = result.cable_infrastructure || {};
 		for (const [cableId, infra] of Object.entries(cableInfra)) {
 			if (infra.merged_geometry) {
@@ -354,7 +388,7 @@
 
 		vectorSource.addFeatures(allFeatures);
 
-		// Extract markers from trace tree
+		/** @type {any[]} */
 		const markers = [];
 		await extractMarkersFromTree(result.trace_tree, markers);
 		if (result.trace_trees) {
@@ -363,7 +397,6 @@
 			}
 		}
 
-		// Add entry point marker
 		if (result.entry_point?.geometry) {
 			const entryFeature = format.readFeature(
 				{
@@ -385,7 +418,6 @@
 
 		markerSource.addFeatures(markers);
 
-		// Fit view to all features
 		const allExtent = vectorSource.getExtent();
 		const markerExtent = markerSource.getExtent();
 		if (allExtent && allExtent[0] !== Infinity) {
@@ -397,6 +429,12 @@
 		}
 	}
 
+	/**
+	 * Recursively walk the trace tree and create point features for nodes, addresses, and residential units.
+	 * @param {Record<string, any>} node - A trace tree node containing node/address/residential_unit data and children
+	 * @param {any[]} markers - Accumulator array for created marker features
+	 * @returns {Promise<void>}
+	 */
 	async function extractMarkersFromTree(node, markers) {
 		if (!node) return;
 
@@ -405,7 +443,6 @@
 
 		const signalState = node.signal_state || null;
 
-		// Node marker
 		if (node.node?.geometry) {
 			const feature = format.readFeature(
 				{
@@ -426,7 +463,6 @@
 			markers.push(feature);
 		}
 
-		// Address marker
 		if (node.node?.address?.geometry) {
 			const addr = node.node.address;
 			const feature = format.readFeature(
@@ -448,7 +484,6 @@
 			markers.push(feature);
 		}
 
-		// Residential unit markers
 		if (node.residential_units) {
 			for (const ru of node.residential_units) {
 				if (ru.geometry) {
@@ -473,7 +508,6 @@
 			}
 		}
 
-		// Recurse into children
 		if (node.children) {
 			for (const child of node.children) {
 				await extractMarkersFromTree(child, markers);

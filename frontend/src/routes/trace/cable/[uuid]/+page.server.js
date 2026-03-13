@@ -2,6 +2,11 @@ import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
+/**
+ * Loads fiber trace data for a given cable.
+ * @param {import('./$types').PageServerLoadEvent} event
+ * @returns {Promise<{result?: Object, error?: string, entryType: string, entryId: string, options?: {includeGeometry: boolean, geometryMode: string, orientGeometry: boolean}}>}
+ */
 export async function load({ fetch, cookies, params, url }) {
 	const { uuid } = params;
 	const includeGeometry = url.searchParams.get('include_geometry') === 'true';

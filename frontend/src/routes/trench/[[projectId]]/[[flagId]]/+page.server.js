@@ -18,12 +18,15 @@ import {
 	searchFeaturesInProject
 } from '$lib/server/featureSearch';
 
-/** @type {import('./$types').PageServerLoad} */
+/**
+ * Loads conduit options and attribute types for the trench route.
+ * @param {import('./$types').PageServerLoadEvent} event
+ * @returns {Promise<{conduits: Array<{value: string, label: string}>, conduitsError: string | null} & Record<string, unknown>>}
+ */
 export async function load({ fetch, params, depends, cookies }) {
 	depends('app:conduits');
 	const { projectId, flagId } = params;
 
-	// Fetch attribute types for layer styling
 	const [nodeTypesData, surfacesData, constructionTypesData, areaTypesData] = await Promise.all([
 		getNodeTypes(fetch, cookies),
 		getSurfaces(fetch, cookies),
@@ -63,7 +66,7 @@ export async function load({ fetch, params, depends, cookies }) {
 
 		const data = await response.json();
 		const conduitList = data.results || data;
-		const conduits = conduitList.map((item) => ({
+		const conduits = conduitList.map((/** @type {any} */ item) => ({
 			value: item.uuid,
 			label: item.name + ' (' + item.conduit_type + ')'
 		}));
@@ -91,8 +94,10 @@ export async function load({ fetch, params, depends, cookies }) {
 /** @type {import('./$types').Actions} */
 export const actions = {
 	/**
-	 * Fetches trench geometry data by label
+	 * Fetches trench geometry data by label.
 	 * @type {import('./$types').Action}
+	 * @param {import('./$types').RequestEvent} event
+	 * @returns {Promise<{success: true, trenchData: Object} | never>}
 	 */
 	getTrenchData: async ({ request, fetch, cookies }) => {
 		const data = await request.formData();
@@ -121,8 +126,10 @@ export const actions = {
 	},
 
 	/**
-	 * Calculates a route between two trenches
+	 * Calculates a route between two trenches.
 	 * @type {import('./$types').Action}
+	 * @param {import('./$types').RequestEvent} event
+	 * @returns {Promise<{success: true, routeData: Object} | import('@sveltejs/kit').ActionFailure<{error: string}>>}
 	 */
 	calculateRoute: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
@@ -150,8 +157,8 @@ export const actions = {
 				body: JSON.stringify({
 					start_trench_id: startTrenchId,
 					end_trench_id: endTrenchId,
-					project_id: [parseInt(projectId, 10)],
-					tolerance: [parseFloat(tolerance)]
+					project_id: [parseInt(String(projectId), 10)],
+					tolerance: [parseFloat(String(tolerance))]
 				})
 			});
 
@@ -180,8 +187,10 @@ export const actions = {
 	},
 
 	/**
-	 * Fetches all trench connections for a conduit
+	 * Fetches all trench connections for a conduit.
 	 * @type {import('./$types').Action}
+	 * @param {import('./$types').RequestEvent} event
+	 * @returns {Promise<{success: true, trenches: Array<{value: string, label: string, trench: string}>} | import('@sveltejs/kit').ActionFailure<{error: string}>>}
 	 */
 	getTrenchConnections: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
@@ -206,7 +215,7 @@ export const actions = {
 			}
 
 			const data = await response.json();
-			const trenches = data.map((item) => ({
+			const trenches = data.map((/** @type {any} */ item) => ({
 				value: item.uuid,
 				label: item.trench.properties.id_trench,
 				trench: item.trench.id
@@ -220,8 +229,10 @@ export const actions = {
 	},
 
 	/**
-	 * Deletes a trench connection by UUID
+	 * Deletes a trench connection by UUID.
 	 * @type {import('./$types').Action}
+	 * @param {import('./$types').RequestEvent} event
+	 * @returns {Promise<{success: true} | import('@sveltejs/kit').ActionFailure<{error: string}>>}
 	 */
 	deleteTrenchConnection: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
@@ -252,8 +263,10 @@ export const actions = {
 	},
 
 	/**
-	 * Creates a new trench connection between a conduit and trench
+	 * Creates a new trench connection between a conduit and trench.
 	 * @type {import('./$types').Action}
+	 * @param {import('./$types').RequestEvent} event
+	 * @returns {Promise<{success: true, connection: Object} | import('@sveltejs/kit').ActionFailure<{error: string}>>}
 	 */
 	createTrenchConnection: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
@@ -298,8 +311,8 @@ export const actions = {
 	 */
 	searchFeatures: async ({ request, fetch, cookies }) => {
 		const data = await request.formData();
-		const searchQuery = data.get('searchQuery');
-		const projectId = data.get('projectId');
+		const searchQuery = String(data.get('searchQuery'));
+		const projectId = String(data.get('projectId'));
 
 		return searchFeaturesInProject(fetch, cookies, searchQuery, projectId);
 	},
@@ -310,10 +323,11 @@ export const actions = {
 	 */
 	getFeatureDetails: async ({ request, fetch, cookies }) => {
 		const data = await request.formData();
-		const featureType = data.get('featureType');
-		const featureUuid = data.get('featureUuid');
+		const featureType = String(data.get('featureType'));
+		const featureUuid = String(data.get('featureUuid'));
+		const projectId = String(data.get('projectId'));
 
-		return getFeatureDetailsByType(fetch, cookies, featureType, featureUuid);
+		return getFeatureDetailsByType(fetch, cookies, /** @type {'trench' | 'node' | 'address' | 'area'} */ (featureType), featureUuid, projectId);
 	},
 
 	/**
@@ -322,7 +336,7 @@ export const actions = {
 	 */
 	getPipesInTrench: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
-		const trenchId = formData.get('uuid');
+		const trenchId = String(formData.get('uuid'));
 
 		return getPipesInTrench(fetch, cookies, trenchId);
 	},
@@ -333,7 +347,7 @@ export const actions = {
 	 */
 	getTrenchesForConduit: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
-		const conduitId = formData.get('uuid');
+		const conduitId = String(formData.get('uuid'));
 
 		return getTrenchesForConduit(fetch, cookies, conduitId);
 	},
@@ -344,15 +358,21 @@ export const actions = {
 	 */
 	getConduitTrenches: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
-		const conduitUuid = formData.get('conduitUuid');
+		const conduitUuid = String(formData.get('conduitUuid'));
 
 		return getTrenchUuidsForConduit(fetch, cookies, conduitUuid);
 	},
+	/**
+	 * Gets the bounding box extent for a layer type within a project.
+	 * @type {import('./$types').Action}
+	 * @param {import('./$types').RequestEvent} event
+	 * @returns {Promise<{extent: [number, number, number, number] | null, layer: string}>}
+	 */
 	getLayerExtent: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
-		const layerType = formData.get('layerType');
-		const projectId = formData.get('projectId');
+		const layerType = String(formData.get('layerType'));
+		const projectId = String(formData.get('projectId'));
 
-		return getLayerExtent(fetch, cookies, layerType, projectId);
+		return getLayerExtent(fetch, cookies, /** @type {'trench' | 'address' | 'node'} */ (layerType), projectId);
 	}
 };
