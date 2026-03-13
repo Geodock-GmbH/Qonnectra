@@ -30,7 +30,7 @@ export async function POST({ cookies, fetch, url }) {
 
 		const setCookieHeader = response.headers.get('set-cookie');
 		if (setCookieHeader) {
-			const parsedCookies = setCookieParser.parse(response);
+			const parsedCookies = setCookieParser.parse(setCookieHeader);
 			parsedCookies.forEach(
 				(
 					/** @type {{ name: string, value: string, path?: string, domain?: string, httpOnly?: boolean, secure?: boolean, sameSite?: string }} */ cookie
