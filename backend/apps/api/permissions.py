@@ -179,17 +179,3 @@ def get_user_permissions(user):
         "routes": routes,
         "is_superuser": False,
     }
-
-
-def invalidate_user_permission_cache(user_id=None):
-    """Invalidate permission cache for a specific user or prepare for bulk invalidation.
-
-    Args:
-        user_id: User primary key to clear cache for. If None, no-op
-            (bulk invalidation is handled by signals clearing specific caches).
-    """
-    if user_id:
-        cache.delete(f"user_permissions:{user_id}")
-    else:
-        # Bulk invalidation is handled by signals clearing specific user caches
-        pass
