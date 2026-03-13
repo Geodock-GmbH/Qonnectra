@@ -109,7 +109,7 @@ describe('admin logs +page.server.js', () => {
 				projectsResponse: [{ id: 1, project: 'Project A' }]
 			});
 
-			const result = await load(createLoadArgs());
+			const result = /** @type {any} */ (await load(createLoadArgs()));
 
 			expect(result.logs).toHaveLength(1);
 			expect(result.logs[0].level).toBe('ERROR');
@@ -123,7 +123,7 @@ describe('admin logs +page.server.js', () => {
 		test('should pass default filters when no query params', async () => {
 			setupMocks();
 
-			const result = await load(createLoadArgs());
+			const result = /** @type {any} */ (await load(createLoadArgs()));
 
 			expect(result.filters).toEqual({
 				level: '',
@@ -148,7 +148,7 @@ describe('admin logs +page.server.js', () => {
 				json: () => Promise.resolve({ results: [], count: 0, next: null, previous: null })
 			});
 
-			const result = await load(createLoadArgs());
+			const result = /** @type {any} */ (await load(createLoadArgs()));
 
 			expect(result.logs).toEqual([]);
 			expect(result.projects).toEqual([]);
@@ -178,11 +178,11 @@ describe('admin logs +page.server.js', () => {
 		test('should return filters in response', async () => {
 			setupMocks();
 
-			const result = await load(
+			const result = /** @type {any} */ (await load(
 				createLoadArgs(
 					'http://localhost/admin/logs?level=WARNING&source=frontend&search=timeout&page=3'
 				)
-			);
+			));
 
 			expect(result.filters).toEqual({
 				level: 'WARNING',
@@ -211,7 +211,7 @@ describe('admin logs +page.server.js', () => {
 		test('should return empty data when logs fetch fails', async () => {
 			setupMocks({ logsOk: false });
 
-			const result = await load(createLoadArgs());
+			const result = /** @type {any} */ (await load(createLoadArgs()));
 
 			expect(result.logs).toEqual([]);
 			expect(result.count).toBe(0);
@@ -223,7 +223,7 @@ describe('admin logs +page.server.js', () => {
 		test('should return empty data on network error', async () => {
 			mockFetch.mockRejectedValue(new Error('Network error'));
 
-			const result = await load(createLoadArgs());
+			const result = /** @type {any} */ (await load(createLoadArgs()));
 
 			expect(result.logs).toEqual([]);
 			expect(result.count).toBe(0);
