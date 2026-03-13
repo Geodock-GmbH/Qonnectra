@@ -26,7 +26,7 @@ import { globalToaster } from '$lib/stores/toaster';
  */
 
 /**
- * @typedef {{ x: number | null, y: number | null }} Position
+ * @typedef {{ x: number, y: number }} Position
  */
 
 /**

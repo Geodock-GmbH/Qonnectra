@@ -253,7 +253,7 @@ export class CableTrenchDataManager {
 	/**
 	 * Get fibers for a specific cable
 	 * @param {string} cableUuid - UUID of the cable
-	 * @returns {Array<Object>}
+	 * @returns {any[]}
 	 */
 	getFibersForCable(cableUuid) {
 		return this.fibers[cableUuid] || [];

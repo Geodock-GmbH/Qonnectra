@@ -17,12 +17,12 @@
 
 	/**
 	 * @typedef {Object} Props
-	 * @property {Object} featureData - Feature properties from MVT
+	 * @property {Record<string, any>} featureData - Feature properties from MVT
 	 * @property {string} featureType - Type of feature ('trench', 'address', 'node')
 	 * @property {string} featureId - UUID of the feature
-	 * @property {Object} alias - Field name alias mapping (English -> Localized)
+	 * @property {Record<string, string>} alias - Field name alias mapping (English -> Localized)
 	 * @property {string|null} featureProjectId - Project ID of the feature (used in global view)
-	 * @property {Array<{label: string, value: string}>} projects - List of projects for name lookup
+	 * @property {Array<{label: string, value: string, name?: string}>} projects - List of projects for name lookup
 	 */
 
 	/** @type {Props} */
@@ -37,15 +37,14 @@
 
 	let activeTab = $state('attributes');
 
-	// Panel state for node structure panels
 	let slotConfigPanelOpen = $state(false);
 	let structurePanelOpen = $state(false);
+	/** @type {string | null} */
 	let structurePanelSlotConfigUuid = $state(null);
 
-	// Panel state for trench profile
 	let trenchProfilePanelOpen = $state(false);
 
-	// Shared state for slot configurations - allows both panels to stay in sync
+	/** Shared state for slot configurations - keeps both panels in sync */
 	let sharedSlotState = $state({
 		nodeUuid: null,
 		slotConfigurations: [],
@@ -61,14 +60,20 @@
 		{ value: 'files', label: m.form_attachments() }
 	]);
 
+	/** @type {{ refresh: () => void } | null} */
 	let fileExplorer = $state(null);
 
+	/** Refreshes the file explorer after a successful upload. */
 	function handleUploadComplete() {
 		if (fileExplorer) {
 			fileExplorer.refresh();
 		}
 	}
 
+	/**
+	 * Opens the node structure panel, optionally pre-selecting a slot configuration.
+	 * @param {string | null} [slotConfigUuid=null] - UUID of the slot configuration to display
+	 */
 	function handleOpenStructurePanel(slotConfigUuid = null) {
 		structurePanelSlotConfigUuid = slotConfigUuid;
 		structurePanelOpen = true;
@@ -160,7 +165,7 @@
 			nodeUuid={featureId}
 			nodeName={featureData?.name || ''}
 			readonly={true}
-			onViewStructure={(slotConfigUuid) => handleOpenStructurePanel(slotConfigUuid)}
+			onViewStructure={(/** @type {string} */ slotConfigUuid) => handleOpenStructurePanel(slotConfigUuid)}
 			bind:sharedSlotState
 		/>
 	</FloatingPanel>

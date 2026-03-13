@@ -35,16 +35,16 @@
 	});
 
 	/**
-	 * Handle node drag stop
-	 * @param {Object} event - Drag event
+	 * Persists conduit position after the user finishes dragging a node.
+	 * @param {{ targetNode: import('@xyflow/svelte').Node | null, nodes: import('@xyflow/svelte').Node[], event: MouseEvent | TouchEvent }} event
 	 */
 	function handleNodeDragStop(event) {
 		profileState.handleNodeDragStop(event);
 	}
 
 	/**
-	 * Handle node changes including resize
-	 * @param {Array} changes - Array of node changes
+	 * Saves node dimensions when a resize operation completes.
+	 * @param {any[]} changes
 	 */
 	function handleNodesChange(changes) {
 		for (const change of changes) {
@@ -77,14 +77,14 @@
 				edges={[]}
 				{nodeTypes}
 				onnodedragstop={handleNodeDragStop}
-				onnodeschange={handleNodesChange}
+				{.../** @type {any} */ ({ onnodeschange: handleNodesChange })}
 				minZoom={0.1}
 				maxZoom={2}
 				nodesDraggable={!locked}
 				nodesConnectable={!locked}
 				elementsSelectable={!locked}
 			>
-				<ViewportPortal>
+				<ViewportPortal target="back">
 					<TrenchProfileBackground />
 				</ViewportPortal>
 				<Controls />

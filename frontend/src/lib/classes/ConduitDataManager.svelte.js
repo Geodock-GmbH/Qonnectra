@@ -25,7 +25,7 @@ import { deserialize } from '$app/forms';
  * @property {string} title
  * @property {string} description
  * @property {PipeItem} data
- * @property {string|null} pipeUuid
+ * @property {string} pipeUuid
  */
 
 /**
@@ -117,7 +117,7 @@ export class ConduitDataManager {
 						: `Conduit ${item.uuid?.slice(0, 8)}`,
 					description: '',
 					data: item,
-					pipeUuid: item.conduit?.uuid || null
+					pipeUuid: item.conduit?.uuid || ''
 				}));
 			}
 		} catch (err) {

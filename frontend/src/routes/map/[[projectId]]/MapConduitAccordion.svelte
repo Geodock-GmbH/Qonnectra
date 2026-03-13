@@ -56,7 +56,7 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success' && result.data?.trench_uuids) {
-				selectionManager.selectMultipleFeatures(result.data.trench_uuids);
+				selectionManager.selectMultipleFeatures(/** @type {(string | number)[]} */ (result.data.trench_uuids));
 			}
 		} catch (err) {
 			console.error('Error highlighting trenches:', err);

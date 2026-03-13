@@ -3,15 +3,18 @@
 
 	import { tooltip } from '$lib/utils/tooltip.js';
 
+	/**
+	 * @type {{
+	 *   data: { conduit?: { conduit_name?: string, conduit_type?: string, microducts?: Array<Record<string, any>> } },
+	 *   selected?: boolean
+	 * }}
+	 */
 	let { data, selected } = $props();
 
 	const microducts = $derived(data?.conduit?.microducts || []);
 	const microductCount = $derived(microducts.length);
 
-	/**
-	 * Calculate microduct positions in a circular or grid layout
-	 * @returns {Array} Array of position objects with x, y, and mic data
-	 */
+	/** @type {Array<{ x: number, y: number, mic: Record<string, any> }>} */
 	const microductPositions = $derived.by(() => {
 		if (microductCount === 0) return [];
 

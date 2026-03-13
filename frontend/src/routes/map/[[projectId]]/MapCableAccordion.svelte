@@ -60,13 +60,13 @@
 				}
 			} else {
 				globalToaster.error({
-					message: m.message_error_highlighting_trenches()
+					description: m.message_error_highlighting_trenches()
 				});
 			}
 		} catch (err) {
 			console.error('Error highlighting trenches for cable:', err);
 			globalToaster.error({
-				message: m.message_error_highlighting_trenches()
+				description: m.message_error_highlighting_trenches()
 			});
 		} finally {
 			highlightLoading = { ...highlightLoading, [cableUuid]: false };

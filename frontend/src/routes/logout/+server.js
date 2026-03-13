@@ -2,14 +2,17 @@ import { redirect } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 import setCookieParser from 'set-cookie-parser';
 
-/** @type {import('./$types').RequestHandler} */
+/**
+ * Handles user logout by calling the backend API and clearing auth cookies.
+ * @param {import('./$types').RequestEvent} event - SvelteKit request event
+ * @returns {Promise<never>} Redirects to /login
+ */
 export async function POST({ cookies, fetch, url }) {
-	// Retrieve necessary cookies to forward/clear
 	const refreshToken = cookies.get('api-refresh-token');
 	const csrfToken = cookies.get('csrftoken');
 	const accessToken = cookies.get('api-access-token');
 
-	// Prepare headers for the API request
+	/** @type {Record<string, string>} */
 	const headers = {
 		'Content-Type': 'application/json'
 	};
@@ -31,32 +34,28 @@ export async function POST({ cookies, fetch, url }) {
 		const setCookieHeader = response.headers.get('set-cookie');
 		if (setCookieHeader) {
 			const parsedCookies = setCookieParser.parse(response);
-			parsedCookies.forEach((cookie) => {
+			parsedCookies.forEach((/** @type {Record<string, any>} */ cookie) => {
 				const { name, value, ...options } = cookie;
 
-				// SvelteKit's cookies.set` needs `expires` as a Date object
 				if (options.expires) {
 					options.expires = new Date(options.expires);
 				}
 
 				options.secure = options.secure || url.protocol === 'https:';
 
-				cookies.set(name, value, options);
+				cookies.set(name, value, /** @type {import('cookie').CookieSerializeOptions & { path: string }} */ ({ ...options, path: options.path || '/' }));
 			});
 		}
 
 		if (!response.ok && response.status !== 401) {
-			// Ignore 401 Unauthorized, as it might mean the tokens were already invalid
 			console.error('Backend logout failed:', response.status, await response.text());
 		}
 	} catch (error) {
 		console.error('Error during logout API call:', error);
 	}
 
-	// Ensure both auth cookies are removed
 	cookies.delete('api-access-token', { path: '/' });
 	cookies.delete('api-refresh-token', { path: '/' });
 
-	// Redirect to the login page
 	throw redirect(303, '/login');
 }
