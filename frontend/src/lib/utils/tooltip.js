@@ -31,7 +31,7 @@ export function tooltip(content, options = {}) {
 		function showTooltip() {
 			tooltipElement = document.createElement('span');
 			tooltipElement.className = `tooltip tooltip-${position} bg-surface-100-900 text-surface-900-100 px-3 py-2 rounded text-sm whitespace-nowrap shadow-lg z-[1000] pointer-events-none`;
-			tooltipElement.textContent = content;
+			tooltipElement.textContent = content ?? null;
 			tooltipElement.setAttribute('role', 'tooltip');
 
 			Object.assign(tooltipElement.style, {

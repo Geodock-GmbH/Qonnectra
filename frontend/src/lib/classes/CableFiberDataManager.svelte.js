@@ -422,11 +422,11 @@ export class CableFiberDataManager {
 
 	/**
 	 * Get color hex code from color name
-	 * @param {string|undefined} colorName
+	 * @param {string} [colorName]
 	 * @returns {string}
 	 */
 	getColorHex(colorName) {
-		return this.colorMap.get(colorName) || '#999999';
+		return (colorName && this.colorMap.get(colorName)) || '#999999';
 	}
 
 	/**

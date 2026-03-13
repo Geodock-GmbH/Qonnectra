@@ -20,6 +20,10 @@
 	let previousTrenchUuid = $state(null);
 	let locked = $state(true);
 
+	// @ts-ignore - onnodeschange exists but is missing from SvelteFlow types
+	/** @type {any} */
+	const nodesChangeProps = { onnodeschange: handleNodesChange };
+
 	$effect(() => {
 		if (trenchUuid && trenchUuid !== previousTrenchUuid) {
 			previousTrenchUuid = trenchUuid;
@@ -77,7 +81,7 @@
 				edges={[]}
 				{nodeTypes}
 				onnodedragstop={handleNodeDragStop}
-				{.../** @type {any} */ ({ onnodeschange: handleNodesChange })}
+				{...nodesChangeProps}
 				minZoom={0.1}
 				maxZoom={2}
 				nodesDraggable={!locked}
