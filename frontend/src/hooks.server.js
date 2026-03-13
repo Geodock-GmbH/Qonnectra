@@ -5,10 +5,13 @@ import setCookieParser from 'set-cookie-parser';
 
 import { paraglideMiddleware } from '$lib/paraglide/server';
 
-// Define routes that should be accessible even without authentication
+/** Routes accessible without authentication. */
 export const PUBLIC_ROUTES = ['/login'];
 
-/** @type {import('@sveltejs/kit').Handle} */
+/**
+ * SvelteKit handle hook that applies Paraglide i18n middleware and injects the locale into HTML.
+ * @type {import('@sveltejs/kit').Handle}
+ */
 const paraglideHandle = ({ event, resolve }) =>
 	paraglideMiddleware(event.request, ({ request: localizedRequest, locale }) => {
 		event.request = localizedRequest;
@@ -19,12 +22,14 @@ const paraglideHandle = ({ event, resolve }) =>
 		});
 	});
 
-/** @type {import('@sveltejs/kit').Handle} */
+/**
+ * Redirects bare project routes (e.g. `/dashboard`) to include the selected project slug.
+ * @type {import('@sveltejs/kit').Handle}
+ */
 export async function handleProjectRedirect({ event, resolve }) {
 	const url = event.url;
 	const selectedProject = event.cookies.get('selected-project');
 
-	// Define routes that need project slug parameters
 	const PROJECT_ROUTES = [
 		'/dashboard',
 		'/map',
@@ -46,8 +51,10 @@ export async function handleProjectRedirect({ event, resolve }) {
 }
 
 /**
- * Attempt to refresh the access token using the refresh token cookie.
- * Returns true if refresh succeeded and new cookies were set.
+ * Attempts to refresh the access token using the refresh token cookie.
+ * On success, sets new auth cookies on the event.
+ * @param {import('@sveltejs/kit').RequestEvent} event
+ * @returns {Promise<boolean>} Whether the refresh succeeded and new cookies were set.
  */
 async function attemptTokenRefresh(event) {
 	const refreshToken = event.cookies.get('api-refresh-token');
@@ -66,8 +73,9 @@ async function attemptTokenRefresh(event) {
 
 		const setCookieHeader = response.headers.get('set-cookie');
 		if (setCookieHeader) {
-			const cookies = setCookieParser.parse(response);
-			cookies.forEach((cookie) => {
+			const cookies = setCookieParser.parse(setCookieHeader);
+			cookies.forEach((/** @type {any} */ cookie) => {
+				/** @type {Record<string, any>} */
 				const options = {
 					path: cookie.path || '/',
 					domain: cookie.domain,
@@ -76,7 +84,7 @@ async function attemptTokenRefresh(event) {
 					sameSite: cookie.sameSite || 'Lax'
 				};
 				Object.keys(options).forEach((key) => options[key] === undefined && delete options[key]);
-				event.cookies.set(cookie.name, cookie.value, options);
+				event.cookies.set(cookie.name, cookie.value, /** @type {any} */ (options));
 			});
 		}
 
@@ -87,28 +95,31 @@ async function attemptTokenRefresh(event) {
 	}
 }
 
+/**
+ * Deletes the access and refresh token cookies.
+ * @param {import('@sveltejs/kit').RequestEvent} event
+ */
 function clearAuthCookies(event) {
 	event.cookies.delete('api-access-token', { path: '/' });
 	event.cookies.delete('api-refresh-token', { path: '/' });
 }
 
 /**
- * Check if user can access a route based on their permissions.
- * @param {object} permissions
- * @param {string} route
- * @returns {boolean}
+ * Checks if a user can access a route based on their permissions.
+ * Supports exact matches and wildcard patterns (e.g. `/admin/*`).
+ * @param {{ is_superuser?: boolean, routes?: Record<string, boolean> } | null} permissions
+ * @param {string} route - The requested pathname.
+ * @returns {boolean} Whether access is allowed (defaults to true when no rule matches).
  */
 function canAccessRoute(permissions, route) {
 	if (!permissions) return true;
 	if (permissions.is_superuser) return true;
 	if (permissions.routes?.['*'] === true) return true;
 
-	// Check for exact match
-	if (route in (permissions.routes || {})) {
+	if (permissions.routes && route in permissions.routes) {
 		return permissions.routes[route];
 	}
 
-	// Check for wildcard patterns
 	for (const [pattern, allowed] of Object.entries(permissions.routes || {})) {
 		if (pattern.endsWith('/*')) {
 			const prefix = pattern.slice(0, -1);
@@ -121,7 +132,11 @@ function canAccessRoute(permissions, route) {
 	return true;
 }
 
-/** @type {import('@sveltejs/kit').Handle} */
+/**
+ * Authenticates the user by validating auth cookies against the API.
+ * Populates `event.locals.user` and enforces route-level access control.
+ * @type {import('@sveltejs/kit').Handle}
+ */
 export async function handleAuth({ event, resolve }) {
 	const accessToken = event.cookies.get('api-access-token');
 	const headers = new Headers();
@@ -135,12 +150,10 @@ export async function handleAuth({ event, resolve }) {
 			headers: headers
 		});
 
-		// If access token expired, attempt silent refresh
 		if (response.status === 401 || response.status === 403) {
 			const refreshed = await attemptTokenRefresh(event);
 
 			if (refreshed) {
-				// Retry with new access token
 				const newAccessToken = event.cookies.get('api-access-token');
 				const newHeaders = new Headers();
 				if (newAccessToken) {
@@ -155,7 +168,6 @@ export async function handleAuth({ event, resolve }) {
 		if (response.ok) {
 			const userDetails = await response.json();
 
-			// Fetch user permissions
 			let permissions = null;
 			const currentAccessToken = event.cookies.get('api-access-token');
 			if (currentAccessToken) {
@@ -205,7 +217,6 @@ export async function handleAuth({ event, resolve }) {
 		throw redirect(303, redirectToUrl);
 	}
 
-	// Check route-level permissions
 	if (isUserAuthenticated && event.locals.user?.permissions) {
 		if (!canAccessRoute(event.locals.user.permissions, requestedPath)) {
 			throw redirect(303, '/map');

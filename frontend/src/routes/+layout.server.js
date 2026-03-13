@@ -4,14 +4,17 @@ import { API_URL } from '$env/static/private';
 import packageJson from '../../package.json';
 import { PUBLIC_ROUTES } from '../hooks.server.js';
 
-/** @type {import('./$types').LayoutServerLoad} */
+/**
+ * Root layout server load function.
+ * Redirects unauthenticated users to login and loads flags, projects, and app version
+ * for authenticated users.
+ * @type {import('./$types').LayoutServerLoad}
+ */
 export async function load({ locals, url, fetch, cookies }) {
 	const isUserAuthenticated = locals.user?.isAuthenticated ?? false;
 	const requestedPath = url.pathname;
 	const isPublicRoute = PUBLIC_ROUTES.some((route) => requestedPath.startsWith(route));
 
-	// If user is not authenticated and trying to access a protected route,
-	// redirect them to login from the layout load function itself.
 	if (!isUserAuthenticated && !isPublicRoute) {
 		const redirectToUrl = `/login?redirectTo=${encodeURIComponent(requestedPath + url.search)}`;
 		throw redirect(303, redirectToUrl);
@@ -19,14 +22,12 @@ export async function load({ locals, url, fetch, cookies }) {
 
 	let selectedProject = cookies.get('selected-project') || null;
 
-	// Load common data for all authenticated pages
 	let flags = [];
 	let flagsError = null;
 	let projects = [];
 	let projectsError = null;
 	let appVersion = null;
 
-	// Get app version from package.json
 	if (packageJson) {
 		appVersion = packageJson.version;
 	}
@@ -38,18 +39,16 @@ export async function load({ locals, url, fetch, cookies }) {
 			headers.append('Cookie', `api-access-token=${accessToken}`);
 		}
 
-		// Load flags and projects in parallel
 		const [flagsResponse, projectsResponse] = await Promise.allSettled([
 			fetch(`${API_URL}flags/`, { headers }),
 			fetch(`${API_URL}projects/?active=1`, { headers })
 		]);
 
-		// Handle flags response
 		if (flagsResponse.status === 'fulfilled' && flagsResponse.value.ok) {
 			try {
 				const flagsData = await flagsResponse.value.json();
 				const flagData = flagsData.results || flagsData;
-				flags = flagData.map((f) => ({ label: f.flag, value: f.id.toString() }));
+				flags = flagData.map((/** @type {any} */ f) => ({ label: f.flag, value: f.id.toString() }));
 			} catch (e) {
 				flagsError = 'Error parsing flags data';
 				console.error('Failed to parse flags data:', e);
@@ -61,12 +60,11 @@ export async function load({ locals, url, fetch, cookies }) {
 			}
 		}
 
-		// Handle projects response
 		if (projectsResponse.status === 'fulfilled' && projectsResponse.value.ok) {
 			try {
 				const projectsData = await projectsResponse.value.json();
 				const projectData = projectsData.results || projectsData;
-				projects = projectData.map((p) => ({ label: p.project, value: p.id.toString() }));
+				projects = projectData.map((/** @type {any} */ p) => ({ label: p.project, value: p.id.toString() }));
 			} catch (e) {
 				projectsError = 'Error parsing projects data';
 				console.error('Failed to parse projects data:', e);
@@ -79,7 +77,6 @@ export async function load({ locals, url, fetch, cookies }) {
 		}
 	}
 
-	// If no project cookie, use first available project or fallback to '1'
 	if (!selectedProject && projects.length > 0) {
 		selectedProject = projects[0].value;
 	}
@@ -87,7 +84,6 @@ export async function load({ locals, url, fetch, cookies }) {
 		selectedProject = '1';
 	}
 
-	// locals.user is populated by the hooks.server.js handle function
 	return {
 		user: locals.user,
 		flags,
