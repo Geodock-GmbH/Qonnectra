@@ -40,11 +40,14 @@
 	 */
 	const areaTypeData = $derived.by(() => {
 		return areasByType
-			?.map((item) => ({
+			?.map((/** @type {{ type_name: string, count: number }} */ item) => ({
 				label: item.type_name || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a, b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 
 	/**
@@ -53,11 +56,14 @@
 	 */
 	const addressesPerAreaData = $derived.by(() => {
 		return addressesPerArea
-			?.map((item) => ({
+			?.map((/** @type {{ name: string, count: number }} */ item) => ({
 				label: item.name || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a, b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 
 	/**
@@ -66,11 +72,14 @@
 	 */
 	const addressesByTypeData = $derived.by(() => {
 		return addressesByAreaType
-			?.map((item) => ({
+			?.map((/** @type {{ type: string, count: number }} */ item) => ({
 				label: item.type || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a, b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 
 	/**
@@ -79,11 +88,14 @@
 	 */
 	const nodesPerAreaData = $derived.by(() => {
 		return nodesPerArea
-			?.map((item) => ({
+			?.map((/** @type {{ name: string, count: number }} */ item) => ({
 				label: item.name || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a, b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 
 	/**
@@ -92,11 +104,14 @@
 	 */
 	const nodesByTypeData = $derived.by(() => {
 		return nodesByAreaType
-			?.map((item) => ({
+			?.map((/** @type {{ type: string, count: number }} */ item) => ({
 				label: item.type || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a, b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 
 	/**
@@ -105,11 +120,14 @@
 	 */
 	const trenchLengthData = $derived.by(() => {
 		return trenchLengthPerArea
-			?.map((item) => ({
+			?.map((/** @type {{ name: string, length_m: number }} */ item) => ({
 				label: item.name || m.common_unknown(),
 				value: item.length_m / 1000
 			}))
-			.sort((a, b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 
 	/**
@@ -118,11 +136,14 @@
 	 */
 	const residentialByTypeData = $derived.by(() => {
 		return residentialByAreaType
-			?.map((item) => ({
+			?.map((/** @type {{ type: string, count: number }} */ item) => ({
 				label: item.type || m.common_unknown(),
 				value: item.count
 			}))
-			.sort((a, b) => b.value - a.value);
+			.sort(
+				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
+					b.value - a.value
+			);
 	});
 </script>
 

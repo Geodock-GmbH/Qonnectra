@@ -27,13 +27,13 @@
 		addressUuid = ''
 	} = $props();
 
-	let deletingUnitUuid = $state(null);
+	let deletingUnitUuid = $state(/** @type {string | null} */ (null));
+	/** @type {any} */
 	let deleteMessageBox = $state(null);
 	let openModal = $state(false);
 	let page = $state(1);
 	let size = $state(10);
 
-	// Column configuration
 	const columnConfig = [
 		{
 			key: 'id_residential_unit',
@@ -52,7 +52,7 @@
 		{ key: 'status', label: m.table_residential_unit_status(), sortable: true, filterable: true }
 	];
 
-	// Filter state
+	/** @type {Record<string, string>} */
 	let filters = $state({
 		id_residential_unit: '',
 		floor: '',
@@ -61,15 +61,23 @@
 		status: ''
 	});
 
-	// Sort state
-	let sortColumn = $state(null);
+	let sortColumn = $state(/** @type {string | null} */ (null));
 	let sortDirection = $state('asc');
 
+	/**
+	 * Updates a column filter value and resets to page 1.
+	 * @param {string} columnKey
+	 * @param {string} value
+	 */
 	function updateFilter(columnKey, value) {
 		filters[columnKey] = value;
 		page = 1;
 	}
 
+	/**
+	 * Cycles sort state for a column: asc → desc → unsorted.
+	 * @param {string} columnKey
+	 */
 	function toggleSort(columnKey) {
 		if (sortColumn === columnKey) {
 			if (sortDirection === 'asc') {
@@ -86,10 +94,10 @@
 	}
 
 	/**
-	 * Get the display value for a unit's column
-	 * @param {Object} unit
-	 * @param {string} key
-	 * @returns {string}
+	 * Resolves the display value for a residential unit column, handling nested objects.
+	 * @param {any} unit - The residential unit record.
+	 * @param {string} key - The column key.
+	 * @returns {string} The display value.
 	 */
 	function getCellValue(unit, key) {
 		if (key === 'residential_unit_type')
@@ -111,9 +119,10 @@
 
 	const sortedUnits = $derived.by(() => {
 		if (!sortColumn) return filteredUnits;
+		const col = /** @type {string} */ (sortColumn);
 		return [...filteredUnits].sort((a, b) => {
-			const aVal = String(getCellValue(a, sortColumn)).toLowerCase();
-			const bVal = String(getCellValue(b, sortColumn)).toLowerCase();
+			const aVal = String(getCellValue(a, col)).toLowerCase();
+			const bVal = String(getCellValue(b, col)).toLowerCase();
 			if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
 			if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
 			return 0;
@@ -125,16 +134,28 @@
 	const paginatedUnits = $derived(sortedUnits.slice(start, end));
 	const totalPages = $derived(Math.ceil(sortedUnits.length / size) || 1);
 
+	/**
+	 * Navigates to the detail page for a residential unit.
+	 * @param {string} unitUuid
+	 */
 	function navigateToUnit(unitUuid) {
 		goto(`/address/${projectId}/${addressUuid}/unit/${unitUuid}`);
 	}
 
+	/**
+	 * Opens the delete confirmation dialog for a residential unit.
+	 * @param {MouseEvent} event
+	 * @param {string} unitUuid
+	 */
 	function confirmDelete(event, unitUuid) {
 		event.stopPropagation();
 		deletingUnitUuid = unitUuid;
-		deleteMessageBox.open();
+		deleteMessageBox?.open();
 	}
 
+	/**
+	 * Submits the deleteResidentialUnit action and invalidates page data on success.
+	 */
 	async function handleDelete() {
 		if (!deletingUnitUuid) return;
 
@@ -157,7 +178,8 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: result.data?.message || m.message_error_deleting_residential_unit()
+					description:
+						/** @type {any} */ (result).data?.message || m.message_error_deleting_residential_unit()
 				});
 			}
 		} catch (error) {
@@ -175,7 +197,7 @@
 	<div class="flex items-center gap-3">
 		<div class="w-1 h-6 rounded-full bg-primary-500"></div>
 		<IconUsers class="size-5 text-primary-500" />
-		<h2 class="text-lg font-semibold">{m.section_residential_units()}</h2>
+		<h2 class="text-lg font-semibold">{m.section_residential_units({ count: 2 })}</h2>
 		{#if residentialUnits.length > 0}
 			<span class="badge preset-tonal-primary text-xs ml-auto">
 				{sortedUnits.length === residentialUnits.length
@@ -216,7 +238,6 @@
 							{m.form_actions()}
 						</th>
 					</tr>
-					<!-- Filter Row -->
 					<tr class="bg-surface-50-900">
 						{#each columnConfig as column (column.key)}
 							<th class="p-1">
@@ -226,7 +247,8 @@
 										class="input text-sm py-1 px-2 w-full"
 										placeholder={m.common_search()}
 										value={filters[column.key]}
-										oninput={(e) => updateFilter(column.key, e.target.value)}
+										oninput={(e) =>
+											updateFilter(column.key, /** @type {HTMLInputElement} */ (e.target).value)}
 									/>
 								{/if}
 							</th>

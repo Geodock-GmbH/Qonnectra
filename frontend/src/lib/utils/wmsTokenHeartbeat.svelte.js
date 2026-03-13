@@ -5,14 +5,20 @@
 
 import { fetchWMSAccessToken } from './wmsApi.js';
 
-const WMS_TOKEN_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes (token expires in 5)
+const WMS_TOKEN_INTERVAL_MS = 3 * 60 * 1000;
 
+/** @type {ReturnType<typeof setInterval> | null} */
 let heartbeatInterval = $state(null);
+
+/** @type {string | null} */
 let currentToken = $state(null);
+
+/** @type {((token: string) => void) | null} */
 let onTokenRefresh = null;
 
 /**
- * Fetches a new WMS token and notifies the callback.
+ * Fetches a new WMS token and notifies the registered callback.
+ * @returns {Promise<void>}
  */
 async function refreshWMSToken() {
 	try {
@@ -25,9 +31,11 @@ async function refreshWMSToken() {
 }
 
 /**
- * Starts the WMS token refresh heartbeat.
- * @param {Function} updateLayersCallback - Called with the new token when refreshed
- * @param {string} [initialToken] - Initial token to store (optional)
+ * Starts the WMS token refresh heartbeat interval.
+ * Safe to call multiple times — will not create duplicate intervals.
+ * @param {(token: string) => void} updateLayersCallback - Called with the new token on each refresh.
+ * @param {string} [initialToken] - Initial token to store without triggering a refresh.
+ * @returns {void}
  */
 export function startWMSHeartbeat(updateLayersCallback, initialToken) {
 	if (heartbeatInterval) return;
@@ -41,7 +49,8 @@ export function startWMSHeartbeat(updateLayersCallback, initialToken) {
 }
 
 /**
- * Stops the WMS token refresh heartbeat.
+ * Stops the WMS token refresh heartbeat and clears the callback.
+ * @returns {void}
  */
 export function stopWMSHeartbeat() {
 	if (heartbeatInterval) {
@@ -52,8 +61,8 @@ export function stopWMSHeartbeat() {
 }
 
 /**
- * Returns the current WMS token.
- * @returns {string|null}
+ * Returns the current WMS access token.
+ * @returns {string | null} The token, or null if not yet fetched.
  */
 export function getCurrentWMSToken() {
 	return currentToken;

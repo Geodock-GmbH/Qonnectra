@@ -9,11 +9,14 @@
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 
+	/** @param {any} data */
+	const noop = (data) => {};
+
 	let {
 		projectId,
 		openPipeModal = $bindable(false),
 		isHidden = false,
-		onPipeCreate = (data) => {}
+		onPipeCreate = noop
 	} = $props();
 
 	// Get attribute options from context (no more prop drilling)
@@ -30,13 +33,20 @@
 
 	let selectedConduitName = $state('');
 	let selectedOuterConduit = $state('');
+	/** @type {any[]} */
 	let selectedConduitType = $state([]);
+	/** @type {any[]} */
 	let selectedStatus = $state([]);
+	/** @type {any[]} */
 	let selectedNetworkLevel = $state([]);
+	/** @type {any[]} */
 	let selectedOwner = $state([]);
+	/** @type {any[]} */
 	let selectedConstructor = $state([]);
+	/** @type {any[]} */
 	let selectedManufacturer = $state([]);
 	let selectedDate = $state('');
+	/** @type {any[]} */
 	let selectedFlag = $state([]);
 
 	// Track if we've initialized defaults for this modal open
@@ -63,9 +73,10 @@
 		}
 	});
 
+	/** @param {SubmitEvent} event */
 	async function handleSubmit(event) {
 		event.preventDefault();
-		const formData = new FormData(event.target);
+		const formData = new FormData(/** @type {HTMLFormElement} */ (event.target));
 		const formProps = Object.fromEntries(formData.entries());
 
 		// Build form data for server action
@@ -92,10 +103,18 @@
 
 			const result = deserialize(await response.text());
 
-			if (result.type === 'failure' || result.type === 'error') {
+			if (result.type === 'failure') {
 				globalToaster.error({
 					title: m.common_error(),
 					description: result.data?.message || m.message_error_creating_conduit()
+				});
+				return;
+			}
+
+			if (result.type === 'error') {
+				globalToaster.error({
+					title: m.common_error(),
+					description: m.message_error_creating_conduit()
 				});
 				return;
 			}
@@ -120,7 +139,9 @@
 			});
 
 			// Keep modal open, keep all values - just notify parent of new conduit
-			onPipeCreate(result.data?.conduit);
+			if (result.type === 'success' && result.data) {
+				onPipeCreate(result.data.conduit);
+			}
 		} catch (error) {
 			console.error('Error creating conduit:', error);
 			globalToaster.error({
@@ -150,7 +171,7 @@
 </script>
 
 <Dialog
-	bind:open={openPipeModal}
+	open={openPipeModal}
 	onOpenChange={(e) => (openPipeModal = e.open)}
 	closeOnInteractOutside={true}
 	closeOnEscape={true}
@@ -194,7 +215,8 @@
 							name="pipe_name"
 							required
 							value={selectedConduitName}
-							oninput={(e) => (selectedConduitName = e.target.value)}
+							oninput={(e) =>
+								(selectedConduitName = /** @type {HTMLInputElement} */ (e.target).value)}
 						/>
 					</label>
 					<label for="pipe_type" class="label">
@@ -203,7 +225,7 @@
 							data={attributes.conduitTypes}
 							bind:value={selectedConduitType}
 							defaultValue={selectedConduitType}
-							onValueChange={(e) => (selectedConduitType = e.value)}
+							onValueChange={(/** @type {any} */ e) => (selectedConduitType = e.value)}
 							renderInPlace={true}
 							required={true}
 						/>
@@ -216,7 +238,8 @@
 							class="textarea"
 							placeholder=""
 							value={selectedOuterConduit}
-							oninput={(e) => (selectedOuterConduit = e.target.value)}
+							oninput={(e) =>
+								(selectedOuterConduit = /** @type {HTMLTextAreaElement} */ (e.target).value)}
 						></textarea>
 					</label>
 					<label for="status" class="label">
@@ -225,7 +248,7 @@
 							data={attributes.statuses}
 							bind:value={selectedStatus}
 							defaultValue={selectedStatus}
-							onValueChange={(e) => (selectedStatus = e.value)}
+							onValueChange={(/** @type {any} */ e) => (selectedStatus = e.value)}
 							renderInPlace={true}
 						/>
 					</label>
@@ -235,7 +258,7 @@
 							data={attributes.networkLevels}
 							bind:value={selectedNetworkLevel}
 							defaultValue={selectedNetworkLevel}
-							onValueChange={(e) => (selectedNetworkLevel = e.value)}
+							onValueChange={(/** @type {any} */ e) => (selectedNetworkLevel = e.value)}
 							renderInPlace={true}
 						/>
 					</label>
@@ -245,7 +268,7 @@
 							data={attributes.companies}
 							bind:value={selectedOwner}
 							defaultValue={selectedOwner}
-							onValueChange={(e) => (selectedOwner = e.value)}
+							onValueChange={(/** @type {any} */ e) => (selectedOwner = e.value)}
 							renderInPlace={true}
 						/>
 					</label>
@@ -255,7 +278,7 @@
 							data={attributes.companies}
 							bind:value={selectedConstructor}
 							defaultValue={selectedConstructor}
-							onValueChange={(e) => (selectedConstructor = e.value)}
+							onValueChange={(/** @type {any} */ e) => (selectedConstructor = e.value)}
 							renderInPlace={true}
 						/>
 					</label>
@@ -265,7 +288,7 @@
 							data={attributes.companies}
 							bind:value={selectedManufacturer}
 							defaultValue={selectedManufacturer}
-							onValueChange={(e) => (selectedManufacturer = e.value)}
+							onValueChange={(/** @type {any} */ e) => (selectedManufacturer = e.value)}
 							renderInPlace={true}
 						/>
 					</label>
@@ -277,7 +300,7 @@
 							id="date"
 							class="input"
 							value={selectedDate}
-							oninput={(e) => (selectedDate = e.target.value)}
+							oninput={(e) => (selectedDate = /** @type {HTMLInputElement} */ (e.target).value)}
 						/>
 					</label>
 					<label for="flag" class="label">
@@ -286,7 +309,7 @@
 							data={attributes.flags}
 							bind:value={selectedFlag}
 							defaultValue={selectedFlag}
-							onValueChange={(e) => (selectedFlag = e.value)}
+							onValueChange={(/** @type {any} */ e) => (selectedFlag = e.value)}
 							renderInPlace={true}
 							required={true}
 						/>

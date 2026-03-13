@@ -9,19 +9,15 @@
 
 	import FiberCell from './FiberCell.svelte';
 
-	// Get context - most state comes from here
 	const context = getContext(NODE_STRUCTURE_CONTEXT_KEY);
 
-	// Only essential props needed for rendering
 	let { structureName = '', portRows = [], loading = false, readonly = false } = $props();
 
-	// Derive state from context
 	const fiberColors = $derived(context?.fiberColors ?? []);
 	const mergeSelectionMode = $derived(context?.mergeSelectionMode ?? false);
 	const selectedForMerge = $derived(context?.selectedForMerge ?? new Set());
 	const mergeSide = $derived(context?.mergeSide ?? 'a');
 
-	// Color lookup map
 	const colorMap = $derived.by(() => {
 		const map = new Map();
 		for (const color of fiberColors) {
@@ -31,21 +27,24 @@
 		return map;
 	});
 
-	// Compute grid columns based on merge mode
 	const gridCols = $derived(
 		mergeSelectionMode ? 'grid-cols-[40px_60px_1fr_1fr]' : 'grid-cols-[60px_1fr_1fr]'
 	);
 
-	function getColorHex(fiberColorName) {
+	function getColorHex(/** @type {any} */ fiberColorName) {
 		if (!fiberColorName) return '#999999';
 		return colorMap.get(fiberColorName) || '#999999';
 	}
 
-	function handlePortDrop(portNumber, side, fiberData) {
+	function handlePortDrop(
+		/** @type {any} */ portNumber,
+		/** @type {any} */ side,
+		/** @type {any} */ fiberData
+	) {
 		context?.portActions?.onDrop(portNumber, side, fiberData);
 	}
 
-	function handleClearPort(portNumber, side) {
+	function handleClearPort(/** @type {any} */ portNumber, /** @type {any} */ side) {
 		context?.portActions?.onClear(portNumber, side);
 	}
 
@@ -57,7 +56,7 @@
 		context?.portActions?.onToggleMergeMode();
 	}
 
-	function handleTogglePortSelection(portNumber, side) {
+	function handleTogglePortSelection(/** @type {any} */ portNumber, /** @type {any} */ side) {
 		context?.portActions?.onTogglePortSelection(portNumber, side);
 	}
 
@@ -65,67 +64,67 @@
 		context?.portActions?.onMergePorts();
 	}
 
-	function handleUnmergePorts(mergeGroupId) {
+	function handleUnmergePorts(/** @type {any} */ mergeGroupId) {
 		context?.portActions?.onUnmergePorts(mergeGroupId);
 	}
 
-	function handleMergedPortDrop(mergeGroupId, side, data) {
+	function handleMergedPortDrop(
+		/** @type {any} */ mergeGroupId,
+		/** @type {any} */ side,
+		/** @type {any} */ data
+	) {
 		context?.portActions?.onMergedPortDrop(mergeGroupId, side, data);
 	}
 
-	function handleSetMergeSide(side) {
+	function handleSetMergeSide(/** @type {any} */ side) {
 		context?.portActions?.onSetMergeSide(side);
 	}
 
-	function isPortSelected(portNumber) {
+	function isPortSelected(/** @type {any} */ portNumber) {
 		return selectedForMerge.has(`${portNumber}-${mergeSide}`);
 	}
 
-	// Check if this row should render the A cell (not spanned by previous row)
-	function shouldRenderCellA(row) {
+	/** Returns true when this row is the first in a merge group on the A side, or is unmerged. */
+	function shouldRenderCellA(/** @type {any} */ row) {
 		if (!row.mergeInfoA) return true;
 		return row.mergeInfoA.isFirstInGroup;
 	}
 
-	// Check if this row should render the B cell (not spanned by previous row)
-	function shouldRenderCellB(row) {
+	/** Returns true when this row is the first in a merge group on the B side, or is unmerged. */
+	function shouldRenderCellB(/** @type {any} */ row) {
 		if (!row.mergeInfoB) return true;
 		return row.mergeInfoB.isFirstInGroup;
 	}
 
-	// Check if a port can be selected for merging on the current side
-	function canSelectForMerge(row) {
+	/**
+	 * A port can only be selected for merging if it has a physical port on the
+	 * target side and is not already part of an existing merge group.
+	 */
+	function canSelectForMerge(/** @type {any} */ row) {
 		if (mergeSide === 'a') {
-			// Can select if: has IN port AND not already merged on A side
 			return row.hasInPort && !row.mergeInfoA;
 		} else {
-			// Can select if: has OUT port AND not already merged on B side
 			return row.hasOutPort && !row.mergeInfoB;
 		}
 	}
 
-	// Get all selectable port numbers for the current side
 	const selectablePortNumbers = $derived(
 		portRows.filter((row) => canSelectForMerge(row)).map((row) => row.portNumber)
 	);
 
-	// Check if all selectable ports are selected
 	const allSelected = $derived(
 		selectablePortNumbers.length > 0 &&
 			selectablePortNumbers.every((portNum) => selectedForMerge.has(`${portNum}-${mergeSide}`))
 	);
 
-	// Toggle all selectable ports
 	function toggleSelectAll() {
 		if (allSelected) {
-			// Deselect all
 			for (const portNum of selectablePortNumbers) {
 				if (selectedForMerge.has(`${portNum}-${mergeSide}`)) {
 					handleTogglePortSelection(portNum, mergeSide);
 				}
 			}
 		} else {
-			// Select all that aren't already selected
 			for (const portNum of selectablePortNumbers) {
 				if (!selectedForMerge.has(`${portNum}-${mergeSide}`)) {
 					handleTogglePortSelection(portNum, mergeSide);
@@ -138,7 +137,6 @@
 <div
 	class="port-table-container h-full flex flex-col rounded-xl border border-surface-200-800 bg-surface-100-900 overflow-hidden"
 >
-	<!-- Header -->
 	<div
 		class="flex items-center justify-between px-3 py-2 bg-surface-200-800 border-b border-surface-200-800"
 	>
@@ -174,7 +172,6 @@
 			</span>
 		</div>
 	{:else}
-		<!-- Column Headers -->
 		<div
 			class="grid {gridCols} bg-surface-200-800 border-b border-surface-200-800 text-xs font-semibold uppercase tracking-wide text-surface-950-50"
 		>
@@ -253,11 +250,9 @@
 			</div>
 		</div>
 
-		<!-- Scrollable table body using single grid -->
 		<div class="flex-1 overflow-y-auto min-h-0">
 			<div class="grid {gridCols}" style="grid-auto-rows: minmax(44px, auto);">
 				{#each portRows as row (row.portNumber)}
-					<!-- Checkbox column (merge mode only) -->
 					{#if mergeSelectionMode}
 						<div
 							class="px-2 py-2.5 flex items-center justify-center border-b border-surface-200-800"
@@ -273,17 +268,14 @@
 						</div>
 					{/if}
 
-					<!-- Port Number -->
 					<div
 						class="px-3 py-2.5 text-center font-mono text-sm bg-surface-200-800 border-r border-b border-surface-200-800 flex items-center justify-center"
 					>
 						{row.portNumber}
 					</div>
 
-					<!-- Fiber A Cell (IN) -->
 					{#if shouldRenderCellA(row)}
 						{#if row.mergeInfoA}
-							<!-- Merged cell spanning multiple rows -->
 							<FiberCell
 								fiber={row.mergeInfoA.fibers?.[0] || null}
 								residentialUnit={row.residentialUnitA}
@@ -298,12 +290,12 @@
 								spanRows={row.mergeInfoA.groupSize}
 								portRange={row.mergeInfoA.portRange}
 								{readonly}
-								onDrop={(data) => handleMergedPortDrop(row.mergeInfoA.groupId, 'a', data)}
+								onDrop={(/** @type {any} */ data) =>
+									handleMergedPortDrop(row.mergeInfoA.groupId, 'a', data)}
 								onClear={() => handleClearPort(row.portNumber, 'a')}
 								onUnmerge={() => handleUnmergePorts(row.mergeInfoA.groupId)}
 							/>
 						{:else}
-							<!-- Normal unmerged cell -->
 							<FiberCell
 								fiber={row.fiberA}
 								residentialUnit={row.residentialUnitA}
@@ -313,16 +305,14 @@
 								cableUuid={row.fiberA?.cable_uuid}
 								colorHex={getColorHex(row.fiberA?.fiber_color)}
 								{readonly}
-								onDrop={(data) => handlePortDrop(row.portNumber, 'a', data)}
+								onDrop={(/** @type {any} */ data) => handlePortDrop(row.portNumber, 'a', data)}
 								onClear={() => handleClearPort(row.portNumber, 'a')}
 							/>
 						{/if}
 					{/if}
 
-					<!-- Fiber B Cell (OUT) -->
 					{#if shouldRenderCellB(row)}
 						{#if row.mergeInfoB}
-							<!-- Merged cell spanning multiple rows -->
 							<FiberCell
 								fiber={row.mergeInfoB.fibers?.[0] || null}
 								residentialUnit={row.residentialUnitB}
@@ -337,12 +327,12 @@
 								spanRows={row.mergeInfoB.groupSize}
 								portRange={row.mergeInfoB.portRange}
 								{readonly}
-								onDrop={(data) => handleMergedPortDrop(row.mergeInfoB.groupId, 'b', data)}
+								onDrop={(/** @type {any} */ data) =>
+									handleMergedPortDrop(row.mergeInfoB.groupId, 'b', data)}
 								onClear={() => handleClearPort(row.portNumber, 'b')}
 								onUnmerge={() => handleUnmergePorts(row.mergeInfoB.groupId)}
 							/>
 						{:else}
-							<!-- Normal unmerged cell -->
 							<FiberCell
 								fiber={row.fiberB}
 								residentialUnit={row.residentialUnitB}
@@ -352,7 +342,7 @@
 								cableUuid={row.fiberB?.cable_uuid}
 								colorHex={getColorHex(row.fiberB?.fiber_color)}
 								{readonly}
-								onDrop={(data) => handlePortDrop(row.portNumber, 'b', data)}
+								onDrop={(/** @type {any} */ data) => handlePortDrop(row.portNumber, 'b', data)}
 								onClear={() => handleClearPort(row.portNumber, 'b')}
 							/>
 						{/if}
@@ -361,7 +351,6 @@
 			</div>
 		</div>
 
-		<!-- Merge Action Bar (when ports selected) -->
 		{#if !readonly && mergeSelectionMode && selectedForMerge.size >= 2}
 			<div
 				class="p-2 border-t border-surface-200-800 bg-surface-200-800 flex justify-between items-center gap-2"

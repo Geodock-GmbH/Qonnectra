@@ -1,3 +1,5 @@
+"""Integration tests for canvas sync with concurrent access and performance."""
+
 import threading
 import time
 
@@ -102,7 +104,17 @@ def integration_url():
 
 
 def _make_api_request(url, user, method="GET", data=None):
-    """Helper method to make authenticated API requests."""
+    """Make an authenticated API request for integration testing.
+
+    Args:
+        url: API endpoint URL.
+        user: User instance to authenticate as.
+        method: HTTP method ('GET' or 'POST').
+        data: Request payload for POST requests.
+
+    Returns:
+        Response: DRF response object.
+    """
     client = APIClient()
     client.force_authenticate(user=user)
 
@@ -121,11 +133,9 @@ def test_sync_completion_detection_by_waiting_user(
     user1 = integration_users["user1"]
     user2 = integration_users["user2"]
 
-    # User 1 starts sync
     response1 = _make_api_request(integration_url, user1, "POST")
     assert response1.status_code == 200
 
-    # User 2 checks status and should see completed sync
     response2 = _make_api_request(integration_url, user2, "GET")
     assert response2.status_code == 200
 
@@ -144,7 +154,6 @@ def test_multiple_concurrent_status_checks(
     user2 = integration_users["user2"]
     user3 = integration_users["user3"]
 
-    # Start a sync operation
     CanvasSyncStatus.objects.create(
         sync_key="project_1",
         status="IN_PROGRESS",
@@ -167,18 +176,15 @@ def test_multiple_concurrent_status_checks(
         except Exception as e:
             results[user_id] = {"status_code": 500, "error": str(e)}
 
-    # Multiple users check status concurrently
     threads = []
     for i, user in enumerate([user1, user2, user3]):
         thread = threading.Thread(target=check_status, args=(user, f"user{i + 1}"))
         threads.append(thread)
         thread.start()
 
-    # Wait for all threads to complete
     for thread in threads:
         thread.join()
 
-    # All should succeed and get consistent results
     for user_id, result in results.items():
         assert result["status_code"] == 200, f"User {user_id} failed"
 
@@ -196,16 +202,13 @@ def test_database_consistency_under_concurrent_access(
     user1 = integration_users["user1"]
     project = integration_project
 
-    # Complete a sync operation
     response = _make_api_request(integration_url, user1, "POST")
     assert response.status_code == 200
 
-    # Get the canvas coordinates that were set
     original_coordinates = {}
     for node in Node.objects.filter(project=project):
         original_coordinates[node.uuid] = (node.canvas_x, node.canvas_y)
 
-    # Multiple users check coordinates simultaneously
     results = {}
 
     def get_node_coordinates(user_id):
@@ -220,7 +223,6 @@ def test_database_consistency_under_concurrent_access(
         except Exception as e:
             results[user_id] = {"error": str(e)}
 
-    # Run concurrent coordinate checks
     threads = []
     for i in range(5):  # 5 concurrent readers
         thread = threading.Thread(target=get_node_coordinates, args=(f"reader{i + 1}",))
@@ -230,7 +232,6 @@ def test_database_consistency_under_concurrent_access(
     for thread in threads:
         thread.join()
 
-    # All readers should get identical coordinates
     for reader_id, coordinates in results.items():
         if "error" not in coordinates:
             assert coordinates == original_coordinates, (
@@ -253,7 +254,6 @@ def test_qgis_concurrent_node_creation_during_sync(
     flag = integration_flag
     node_attrs = integration_node_attributes
 
-    # Start sync but don't let it complete immediately
     sync_status = CanvasSyncStatus.objects.create(
         sync_key="project_1",
         status="IN_PROGRESS",
@@ -262,7 +262,6 @@ def test_qgis_concurrent_node_creation_during_sync(
         last_heartbeat=timezone.now(),
     )
 
-    # Simulate QGIS creating new nodes during sync
     new_nodes = []
     for i in range(5):
         node = Node.objects.create(
@@ -277,16 +276,13 @@ def test_qgis_concurrent_node_creation_during_sync(
         )
         new_nodes.append(node)
 
-    # Complete the sync
     sync_status.status = "COMPLETED"
     sync_status.completed_at = timezone.now()
     sync_status.save()
 
-    # Verify that new nodes were created successfully
     total_nodes = Node.objects.filter(project=project).count()
     assert total_nodes == 55  # Original 50 + 5 new ones
 
-    # New nodes should not have canvas coordinates (they were added after sync started)
     new_nodes_without_coords = Node.objects.filter(
         name__startswith="QGIS Node", canvas_x__isnull=True, canvas_y__isnull=True
     ).count()
@@ -308,7 +304,6 @@ def test_performance_with_large_node_set(
     flag = integration_flag
     node_attrs = integration_node_attributes
 
-    # Create additional nodes for performance testing
     additional_nodes = []
     for i in range(200):  # Add 200 more nodes (250 total)
         x = 20000.0 + (i * 50.0)
@@ -326,24 +321,20 @@ def test_performance_with_large_node_set(
         )
         additional_nodes.append(node)
 
-    # Measure sync time
     start_time = time.time()
     response = _make_api_request(integration_url, user1, "POST")
     end_time = time.time()
 
     sync_duration = end_time - start_time
 
-    # Verify sync succeeded
     assert response.status_code == 200
     data = response.json()
     assert data["updated_count"] == 250  # 50 + 200
 
-    # Sync should complete in reasonable time (less than 30 seconds)
     assert sync_duration < 30.0, (
         f"Sync took {sync_duration:.2f} seconds, which is too long"
     )
 
-    # Verify all nodes have coordinates
     nodes_with_coords = Node.objects.filter(
         project=project, canvas_x__isnull=False, canvas_y__isnull=False
     ).count()
@@ -364,14 +355,12 @@ def test_concurrent_sync_attempts_across_projects(
     user2 = integration_users["user2"]
     node_attrs = integration_node_attributes
 
-    # Create second project
     project2 = Projects.objects.create(
         id=2,
         project="Second Project",
         description="Second project for concurrent testing",
     )
 
-    # Create nodes in second project
     for i in range(10):
         Node.objects.create(
             name=f"Project 2 Node {i + 1}",
@@ -401,7 +390,6 @@ def test_concurrent_sync_attempts_across_projects(
         except Exception as e:
             results[user_id] = {"status_code": 500, "error": str(e)}
 
-    # Start syncs for both projects simultaneously
     thread1 = threading.Thread(target=sync_project, args=(user1, 1, "project1"))
     thread2 = threading.Thread(target=sync_project, args=(user2, 2, "project2"))
 
@@ -411,17 +399,14 @@ def test_concurrent_sync_attempts_across_projects(
     thread1.join()
     thread2.join()
 
-    # Both should succeed since they're different projects
     assert results["project1"]["status_code"] == 200
     assert results["project2"]["status_code"] == 200
 
-    # Verify both sync statuses exist
     sync1 = CanvasSyncStatus.objects.get(sync_key="project_1")
     sync2 = CanvasSyncStatus.objects.get(sync_key="project_2")
 
     assert sync1.status == "COMPLETED"
     assert sync2.status == "COMPLETED"
 
-    # Verify node counts
     assert results["project1"]["data"]["updated_count"] == 50
     assert results["project2"]["data"]["updated_count"] == 10

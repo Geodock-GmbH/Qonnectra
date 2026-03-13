@@ -178,7 +178,6 @@ def cable_type_with_colors(db, fiber_colors):
         bundle_count=2,
         bundle_fiber_count=6,
     )
-    # Create bundle color mappings
     for i in range(1, 3):
         CableTypeColorMappingFactory(
             cable_type=cable_type,
@@ -186,7 +185,6 @@ def cable_type_with_colors(db, fiber_colors):
             position=i,
             color=fiber_colors[i - 1],
         )
-    # Create fiber color mappings
     for i in range(1, 7):
         CableTypeColorMappingFactory(
             cable_type=cable_type,
@@ -205,14 +203,16 @@ def trench(db, project, flag):
 
 @pytest.fixture
 def conduit(db, project, flag, conduit_type):
-    """Create a test conduit (without auto-creating microducts)."""
-    # Create conduit without triggering signal by using update_or_create pattern
+    """Create a test conduit without auto-creating microducts.
+
+    Use Conduit.objects.create directly to bypass the post_save signal
+    that would auto-create microducts.
+    """
     conduit = ConduitFactory.build(
         project=project,
         flag=flag,
         conduit_type=conduit_type,
     )
-    # Save without triggering post_save signal (for tests that want manual control)
     from apps.api.models import Conduit
 
     return Conduit.objects.create(
@@ -303,7 +303,15 @@ def storage_preferences(db):
 
 @pytest.fixture
 def cable_with_connections(db, project, flag, cable_type):
-    """Create a cable with microduct connections for length calculation tests."""
+    """Create a cable with microduct connections for length calculation tests.
+
+    Build two trenches (50m + 75.5m), each with a conduit and microduct,
+    connected to a single cable. The cable length is updated via signal.
+
+    Returns:
+        dict: Contains 'cable', 'trenches', 'conduits', 'microducts',
+            and 'expected_length' (125.5).
+    """
     from apps.api.models import (
         Cable,
         Microduct,
@@ -311,7 +319,6 @@ def cable_with_connections(db, project, flag, cable_type):
     )
     from django.contrib.gis.geos import LineString
 
-    # Create trenches with known lengths
     trench1 = TrenchFactory(
         project=project,
         flag=flag,
@@ -325,14 +332,12 @@ def cable_with_connections(db, project, flag, cable_type):
         geom=LineString((50, 0), (125.5, 0), srid=25832),
     )
 
-    # Create conduits and connect to trenches
     conduit1 = ConduitFactory(project=project, flag=flag)
     conduit2 = ConduitFactory(project=project, flag=flag)
 
     TrenchConduitConnectionFactory(uuid_trench=trench1, uuid_conduit=conduit1)
     TrenchConduitConnectionFactory(uuid_trench=trench2, uuid_conduit=conduit2)
 
-    # Create microducts manually (bypassing signal)
     microduct1 = Microduct.objects.create(
         uuid_conduit=conduit1,
         number=1,
@@ -344,7 +349,6 @@ def cable_with_connections(db, project, flag, cable_type):
         color="grün",
     )
 
-    # Create cable without triggering fiber creation signal
     cable = Cable.objects.create(
         name="Test Cable with Connections",
         cable_type=cable_type,
@@ -352,7 +356,6 @@ def cable_with_connections(db, project, flag, cable_type):
         flag=flag,
     )
 
-    # Create connections (this will trigger length update signal)
     MicroductCableConnection.objects.create(
         uuid_microduct=microduct1,
         uuid_cable=cable,
@@ -362,7 +365,6 @@ def cable_with_connections(db, project, flag, cable_type):
         uuid_cable=cable,
     )
 
-    # Refresh to get updated values
     cable.refresh_from_db()
 
     return {

@@ -4,6 +4,11 @@ import setCookieParser from 'set-cookie-parser';
 
 /** @satisfies {import('./$types').Actions} */
 export const actions = {
+	/**
+	 * Authenticates the user against the backend API, sets session cookies,
+	 * and redirects to the target page on success.
+	 * @param {import('./$types').RequestEvent} event
+	 */
 	login: async (event) => {
 		const formData = await event.request.formData();
 		const username = formData.get('username');
@@ -29,32 +34,34 @@ export const actions = {
 				return fail(response.status < 500 ? 400 : 500, { error: errorMessage });
 			}
 
-			// Process and set cookies from Set-Cookie header
 			const setCookieHeader = response.headers.get('set-cookie');
 
 			if (setCookieHeader) {
-				// Use set-cookie-parser to properly parse the cookies
-				const cookies = setCookieParser.parse(response);
-				cookies.forEach((cookie) => {
-					const options = {
-						path: cookie.path || '/',
-						domain: cookie.domain,
-						httpOnly: cookie.httpOnly,
-						secure: cookie.secure || event.url.protocol === 'https:',
-						sameSite: cookie.sameSite || 'Lax'
-					};
+				const cookies = setCookieParser.parse(/** @type {*} */ (response));
+				cookies.forEach(
+					(
+						/** @type {{ name: string, value: string, path?: string, domain?: string, httpOnly?: boolean, secure?: boolean, sameSite?: string }} */ cookie
+					) => {
+						/** @type {Record<string, unknown>} */
+						const options = {
+							path: cookie.path || '/',
+							domain: cookie.domain,
+							httpOnly: cookie.httpOnly,
+							secure: cookie.secure || event.url.protocol === 'https:',
+							sameSite: /** @type {'lax' | 'strict' | 'none'} */ (
+								(cookie.sameSite || 'lax').toLowerCase()
+							)
+						};
 
-					// Remove undefined options
-					Object.keys(options).forEach((key) => options[key] === undefined && delete options[key]);
+						Object.keys(options).forEach(
+							(key) => options[key] === undefined && delete options[key]
+						);
 
-					// Set the cookie on the browser's response
-					event.cookies.set(cookie.name, cookie.value, options);
-				});
-			} else {
-				console.warn(
-					'Login API response did not contain a Set-Cookie header (expected for auth tokens).'
+						event.cookies.set(cookie.name, cookie.value, /** @type {*} */ (options));
+					}
 				);
-				// This might be a failure condition if cookies are the only auth method
+			} else {
+				console.warn('Login API response missing Set-Cookie header');
 				return fail(500, { error: 'Authentication response missing required tokens.' });
 			}
 		} catch (error) {
@@ -62,17 +69,16 @@ export const actions = {
 			return fail(500, { error: 'An internal error occurred during login.' });
 		}
 
-		// Preserve existing project cookie, or set default if none exists
 		if (!event.cookies.get('selected-project')) {
 			event.cookies.set('selected-project', '1', {
 				path: '/',
 				maxAge: 60 * 60 * 24 * 365, // 1 year
 				httpOnly: false,
 				secure: event.url.protocol === 'https:',
-				sameSite: 'Lax'
+				sameSite: 'lax'
 			});
 		}
 
-		throw redirect(303, redirectTo);
+		throw redirect(303, /** @type {string} */ (redirectTo));
 	}
 };

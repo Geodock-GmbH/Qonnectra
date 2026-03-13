@@ -50,7 +50,7 @@
 		})
 	);
 
-	const onInputValueChange = (e) => {
+	const onInputValueChange = (/** @type {{ inputValue: string }} */ e) => {
 		if (!e.inputValue) {
 			items = data;
 			return;
@@ -84,16 +84,17 @@
 		}
 	});
 
-	function handleValueChange(e) {
+	function handleValueChange(/** @type {{ value: string[] }} */ e) {
 		value = e.value;
 		onValueChange(e);
 	}
 
-	function handleOpenChange(e) {
+	function handleOpenChange(/** @type {{ open: boolean }} */ e) {
 		isOpen = e.open;
 	}
 </script>
 
+<!-- Loading / Error / Empty States -->
 {#if loading || isHydrating}
 	<div class="placeholder animate-pulse {placeholderSize}"></div>
 {:else if error}
@@ -103,6 +104,7 @@
 		{noDataMessage || m.form_no_data_available()}
 	</div>
 {:else}
+	<!-- Combobox -->
 	<div class={renderInPlace ? (isOpen ? 'relative z-9999' : 'relative') : ''}>
 		<Combobox
 			class={classes}
@@ -110,7 +112,7 @@
 			{required}
 			{collection}
 			{defaultValue}
-			bind:value
+			{value}
 			{disabled}
 			onOpenChange={handleOpenChange}
 			onValueChange={handleValueChange}

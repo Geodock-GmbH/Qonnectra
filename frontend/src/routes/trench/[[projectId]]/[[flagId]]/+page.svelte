@@ -52,12 +52,24 @@
 
 	let { data } = $props();
 
+	/** @type {any[]} */
+	const nodeTypes = $derived(/** @type {any[]} */ (data.nodeTypes ?? []));
+	/** @type {any[]} */
+	const surfaces = $derived(/** @type {any[]} */ (data.surfaces ?? []));
+	/** @type {any[]} */
+	const constructionTypes = $derived(/** @type {any[]} */ (data.constructionTypes ?? []));
+	/** @type {any[]} */
+	const areaTypes = $derived(/** @type {any[]} */ (data.areaTypes ?? []));
+	/** @type {any[]} */
+	const flags = $derived(/** @type {any[]} */ (data.flags ?? []));
+	/** @type {string | undefined} */
+	const flagsError = $derived(/** @type {string | undefined} */ (data.flagsError ?? undefined));
+
 	// Sync stores from URL params on initial load to prevent navigation effect from redirecting
 	const urlProjectId = $page.params.projectId;
 	const urlFlagId = $page.params.flagId;
 	if (browser && urlProjectId && urlProjectId !== get(selectedProject)) {
 		selectedProject.set(urlProjectId);
-		// Clear conduit when project changed while away from this route
 		selectedConduit.set(undefined);
 	}
 	if (browser && urlFlagId && urlFlagId !== get(selectedFlag)?.[0]) {
@@ -83,6 +95,7 @@
 	let linkedTrenchUuids = $state(new Set());
 	let startTrenchId = $state(null);
 	let endTrenchId = $state(null);
+	/** @type {TrenchTable | undefined} */
 	let trenchTableInstance;
 	let isCalculatingRoute = $state(false);
 
@@ -96,7 +109,7 @@
 	/**
 	 * Handles changes to the trench connections list
 	 * Updates the linked trenches UUIDs for highlighting
-	 * @param {Array} trenches - Array of trench connection objects
+	 * @param {Array<{trench: string, value: string, label: string}>} trenches - Array of trench connection objects
 	 */
 	function handleTrenchesChange(trenches) {
 		linkedTrenchUuids = new Set(trenches.map((t) => t.trench));
@@ -191,7 +204,6 @@
 		}
 	}
 
-	// Navigate to trench page when project or flag changes
 	$effect(() => {
 		const projectId = $selectedProject;
 		const flagId = $selectedFlag;
@@ -205,7 +217,6 @@
 		}
 	});
 
-	// Clear routing state when routing mode changes
 	$effect(() => {
 		if (!$routingMode || $routingMode) {
 			startTrenchId = null;
@@ -215,7 +226,6 @@
 		}
 	});
 
-	// Reinitialize map layers and clear conduit when project changes
 	$effect(() => {
 		const currentProject = $selectedProject;
 		// Only reinitialize if project actually changed and map is ready
@@ -244,25 +254,24 @@
 	/**
 	 * Handler for the map ready event
 	 * Initializes all map interactions and layers
+	 * @param {{ map: import('ol/Map').default, usingFallbackOSM: boolean }} detail
 	 */
-	/**
-	 * Handler for the map ready event
-	 * Initializes all map interactions and layers
-	 * @param {CustomEvent} event - Map ready event containing the OpenLayers map instance
-	 */
-	function handleMapReady(event) {
-		const olMapInstance = event.detail.map;
-
-		mapState.initializeSelectionLayers(olMapInstance, () => selectionManager.getSelectionStore());
+	function handleMapReady({ map: olMapInstance }) {
+		mapState.initializeSelectionLayers(
+			olMapInstance,
+			() =>
+				/** @type {Record<string, boolean>} */ (
+					/** @type {any} */ (selectionManager.getSelectionStore())
+				)
+		);
 
 		const selectionLayers = mapState.getSelectionLayers();
 		selectionLayers.forEach((layer) => selectionManager.registerSelectionLayer(layer));
 
-		// Create linked trenches highlight layer
 		const linkedTrenchStyle = createLinkedTrenchStyle();
 		linkedTrenchesLayer = new VectorTileLayer({
 			renderMode: 'vector',
-			source: mapState.vectorTileLayer.getSource(),
+			source: mapState.vectorTileLayer?.getSource() ?? undefined,
 			style: function (feature) {
 				if (feature.getId() && linkedTrenchUuids.has(feature.getId())) {
 					return linkedTrenchStyle;
@@ -274,7 +283,7 @@
 				isHighlightLayer: true
 			}
 		});
-		mapState.olMap.addLayer(linkedTrenchesLayer);
+		if (mapState.olMap) mapState.olMap.addLayer(linkedTrenchesLayer);
 
 		routeLayer = new VectorLayer({
 			source: new VectorSource(),
@@ -283,7 +292,7 @@
 				isHighlightLayer: true
 			}
 		});
-		mapState.olMap.addLayer(routeLayer);
+		if (mapState.olMap) mapState.olMap.addLayer(routeLayer);
 
 		highlightLayer = new VectorLayer({
 			source: new VectorSource(),
@@ -304,20 +313,19 @@
 				isHighlightLayer: true
 			}
 		});
-		mapState.olMap.addLayer(highlightLayer);
+		if (mapState.olMap) mapState.olMap.addLayer(highlightLayer);
 
-		mapState.olMap.on('click', handleMapClick);
+		if (mapState.olMap) /** @type {any} */ (mapState.olMap).on('click', handleMapClick);
 	}
 
-	// Create zoom to layer extent handler using utility function
 	const handleZoomToExtent = createZoomToLayerExtentHandler(
-		() => mapState.olMap,
+		() => mapState.olMap ?? undefined,
 		() => $selectedProject
 	);
 
 	/**
 	 * Handle map click events for routing and trench selection
-	 * @param {Object} event - OpenLayers map click event
+	 * @param {import('ol/MapBrowserEvent').default<PointerEvent>} event - OpenLayers map click event
 	 */
 	async function handleMapClick(event) {
 		if (!mapState.olMap) return;
@@ -362,10 +370,10 @@
 				isCalculatingRoute = true;
 				try {
 					const formData = new FormData();
-					formData.append('startTrenchId', startTrenchId);
-					formData.append('endTrenchId', endTrenchId);
-					formData.append('projectId', $selectedProject);
-					formData.append('tolerance', $routingTolerance);
+					formData.append('startTrenchId', String(startTrenchId));
+					formData.append('endTrenchId', String(endTrenchId));
+					formData.append('projectId', String($selectedProject));
+					formData.append('tolerance', String($routingTolerance));
 
 					const response = await fetch('?/calculateRoute', {
 						method: 'POST',
@@ -375,10 +383,14 @@
 					const result = deserialize(await response.text());
 
 					if (result.type === 'failure' || result.type === 'error') {
-						throw new Error(result.data?.error || result.data?.detail || 'Routing failed');
+						const errorData = /** @type {{ error?: string, detail?: string }} */ (
+							/** @type {any} */ (result).data
+						);
+						throw new Error(errorData?.error || errorData?.detail || 'Routing failed');
 					}
 
-					const routeData = result.data?.routeData;
+					const successData = /** @type {{ routeData: any }} */ (/** @type {any} */ (result).data);
+					const routeData = successData?.routeData;
 
 					if (routeData.path_geometry_wkt && routeData.traversed_trench_uuids) {
 						const wktFormat = new WKT();
@@ -388,17 +400,20 @@
 						});
 						if (routeLayer) routeLayer.getSource().addFeature(routeFeature);
 
+						/** @type {Record<string, boolean>} */
 						const newSelection = {};
 						for (const uuid of routeData.traversed_trench_uuids) {
 							newSelection[uuid] = true;
 						}
-						selectionManager.selectionStore = newSelection;
+						/** @type {any} */ (selectionManager).selectionStore = newSelection;
 						selectionManager.updateSelectionLayers();
 
-						const newSelectionForTrenchTable = routeData.traversed_trench_ids.map((id, index) => ({
-							value: routeData.traversed_trench_uuids[index],
-							label: id
-						}));
+						const newSelectionForTrenchTable = routeData.traversed_trench_ids.map(
+							(/** @type {string} */ id, /** @type {number} */ index) => ({
+								value: routeData.traversed_trench_uuids[index],
+								label: id
+							})
+						);
 						if (trenchTableInstance && $selectedConduit !== undefined) {
 							await trenchTableInstance.addRoutedTrenches(newSelectionForTrenchTable);
 						}
@@ -409,7 +424,7 @@
 						});
 						throw new Error('No route geometry or traversed trench UUIDs found in response.');
 					}
-				} catch (error) {
+				} catch (/** @type {any} */ error) {
 					console.error('Routing error:', error);
 					globalToaster.error({
 						title: m.title_error_calculating_route(),
@@ -425,7 +440,7 @@
 		} else {
 			selectionManager.selectFeature(featureId, feature);
 
-			const trenchToAdd = [{ value: featureId, label: trenchId }];
+			const trenchToAdd = [{ value: /** @type {string} */ (featureId), label: trenchId }];
 			if (trenchTableInstance) {
 				await trenchTableInstance.addRoutedTrenches(trenchToAdd);
 			}
@@ -453,7 +468,6 @@
 		mapState.updateAddressLayerStyle(color, size);
 	});
 
-	// Update area layer style when areaTypeStyles changes
 	$effect(() => {
 		const styles = $areaTypeStyles;
 		if (Object.keys(styles).length > 0) {
@@ -497,7 +511,6 @@
 		}
 	});
 
-	// Toggle linked trenches layer visibility
 	$effect(() => {
 		if (linkedTrenchesLayer) {
 			linkedTrenchesLayer.setVisible($showLinkedTrenches);
@@ -541,16 +554,15 @@
 				layers={mapState.getLayers()}
 				showLayerVisibilityTree={true}
 				showSearchPanel={true}
-				on:ready={handleMapReady}
-				nodeTypes={data.nodeTypes ?? []}
-				surfaces={data.surfaces ?? []}
-				constructionTypes={data.constructionTypes ?? []}
-				areaTypes={data.areaTypes ?? []}
+				onready={handleMapReady}
+				{nodeTypes}
+				{surfaces}
+				{constructionTypes}
+				{areaTypes}
 				searchPanelProps={{
 					trenchColorSelected: $trenchColorSelected,
 					alias: data.alias
 				}}
-				onZoomToExtent={handleZoomToExtent}
 			/>
 		{:else}
 			<div class="p-4 text-yellow-700 bg-yellow-100 border border-yellow-400 rounded">
@@ -625,9 +637,9 @@
 							>{m.form_flag()}</span
 						>
 						<GenericCombobox
-							data={data.flags}
-							error={data.flagsError}
-							errorMessage={data.flagsError}
+							data={flags}
+							error={flagsError}
+							errorMessage={flagsError}
 							bind:value={$selectedFlag}
 							defaultValue={$selectedFlag}
 							onValueChange={handleFlagChange}

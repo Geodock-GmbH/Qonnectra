@@ -3,14 +3,18 @@ import { API_URL } from '$env/static/private';
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
 /**
- * Log a message to the backend from the frontend
- * @param {string} level - Log level: 'DEBUG', 'INFO', 'WARNING', 'ERROR', or 'CRITICAL'
- * @param {string} message - The log message
- * @param {string} path - The frontend path where the log originated
- * @param {object} extraData - Additional data to include in the log
- * @param {string} project - The project ID
- * @param {Cookies} cookies - The cookies object (required for server-side logging)
- * @returns {Promise<{success: boolean, error?: string}>}
+ * @typedef {'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL'} LogLevel
+ */
+
+/**
+ * Sends a log entry to the backend using server-side auth headers.
+ * @param {LogLevel} level - Log severity level.
+ * @param {string} message - The log message.
+ * @param {string} path - The frontend path where the log originated.
+ * @param {Record<string, unknown>} [extraData={}] - Additional data to include.
+ * @param {string | null} [project=null] - The project ID.
+ * @param {import('@sveltejs/kit').Cookies | null} [cookies=null] - SvelteKit cookies for auth.
+ * @returns {Promise<{ success: boolean, error?: string }>} Result indicating success or failure.
  */
 export async function logToBackend(
 	level,
@@ -21,7 +25,7 @@ export async function logToBackend(
 	cookies = null
 ) {
 	try {
-		const headers = getAuthHeaders(cookies);
+		const headers = /** @type {any} */ (getAuthHeaders(cookies));
 		headers.append('Content-Type', 'application/json');
 
 		const response = await fetch(`${API_URL}logs/`, {
@@ -46,51 +50,33 @@ export async function logToBackend(
 		return { success: true };
 	} catch (error) {
 		console.error('Error logging:', error);
-		return { success: false, error: error.message };
+		return { success: false, error: /** @type {Error} */ (error).message };
 	}
 }
 
 /**
- * Server-side function to post a log entry to the backend
- * Use this in page.server.js files to log from server-side code
+ * Sends a log entry to the backend from a SvelteKit server load/action function.
+ * Wraps {@link logToBackend} with a destructured options object for ergonomic use.
  *
- * @param {Object} options - The log options
- * @param {string} options.level - Log level: 'DEBUG', 'INFO', 'WARNING', 'ERROR', or 'CRITICAL'
- * @param {string} options.message - The log message
- * @param {string} options.path - The frontend path where the log originated
- * @param {object} [options.extraData={}] - Additional data to include in the log
- * @param {string} [options.project=null] - The project ID (optional)
- * @param {Cookies} options.cookies - The cookies object from the server load function
- * @returns {Promise<{success: boolean, error?: string}>}
+ * @param {Object} options - The log options.
+ * @param {LogLevel} options.level - Log severity level.
+ * @param {string} options.message - The log message.
+ * @param {string} options.path - The frontend path where the log originated.
+ * @param {Record<string, unknown>} [options.extraData={}] - Additional data to include.
+ * @param {string | null} [options.project=null] - The project ID.
+ * @param {import('@sveltejs/kit').Cookies} options.cookies - SvelteKit cookies for auth.
+ * @returns {Promise<{ success: boolean, error?: string }>} Result indicating success or failure.
  *
  * @example
- * // In a page.server.js file
  * import { logToBackendServer } from '$lib/utils/logToBackendServer';
  *
  * export async function load({ cookies, url }) {
- *   try {
- *     // Your logic here
- *     const result = await someOperation();
- *
- *     // Log success
- *     await logToBackendServer({
- *       level: 'INFO',
- *       message: 'Operation completed successfully',
- *       path: url.pathname,
- *       extraData: { result },
- *       project: 'project-id', // optional
- *       cookies
- *     });
- *   } catch (error) {
- *     // Log error
- *     await logToBackendServer({
- *       level: 'ERROR',
- *       message: `Operation failed: ${error.message}`,
- *       path: url.pathname,
- *       extraData: { error: error.stack },
- *       cookies
- *     });
- *   }
+ *   await logToBackendServer({
+ *     level: 'INFO',
+ *     message: 'Page loaded',
+ *     path: url.pathname,
+ *     cookies
+ *   });
  * }
  */
 export async function logToBackendServer({

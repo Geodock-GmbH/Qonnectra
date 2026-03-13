@@ -17,13 +17,13 @@
 		flags: []
 	};
 
+	/** @type {any} */
 	let messageBoxConfirm = $state(null);
 	let cable = $derived($drawerStore.props);
 	let fiberCount = $derived(cable?.cable_type?.fiber_count || cable?.fiber_count || 0);
 	let connectedSpliceCount = $state(0);
 	let connectedConduits = $state('');
 
-	// Reset connected splice count and fetch conduits when cable changes
 	$effect(() => {
 		if (cable?.uuid) {
 			connectedSpliceCount = 0;
@@ -31,7 +31,7 @@
 		}
 	});
 
-	async function fetchConnectedConduits(cableId) {
+	async function fetchConnectedConduits(/** @type {any} */ cableId) {
 		try {
 			const formData = new FormData();
 			formData.append('cableId', cableId);
@@ -41,7 +41,7 @@
 			});
 			const result = deserialize(await response.text());
 			if (result.type === 'success') {
-				connectedConduits = result.data?.conduit_names?.join(', ') || '';
+				connectedConduits = /** @type {any} */ (result).data?.conduit_names?.join(', ') || '';
 			}
 		} catch (err) {
 			console.error('Error fetching connected conduits:', err);
@@ -49,11 +49,17 @@
 		}
 	}
 	let cableName = $state('');
+	/** @type {any[]} */
 	let cableType = $state([]);
+	/** @type {any[]} */
 	let cableStatus = $state([]);
+	/** @type {any[]} */
 	let cableNetworkLevel = $state([]);
+	/** @type {any[]} */
 	let cableOwner = $state([]);
+	/** @type {any[]} */
 	let cableConstructor = $state([]);
+	/** @type {any[]} */
 	let cableManufacturer = $state([]);
 	let cableDate = $state('');
 	let cableLength = $derived(cable?.length || '');
@@ -61,6 +67,7 @@
 	let cableReserveAtStart = $state('');
 	let cableReserveAtEnd = $state('');
 	let cableReserveSection = $state('');
+	/** @type {any[]} */
 	let cableFlag = $state([]);
 
 	let { onLabelUpdate, onEdgeDelete, onSaveComplete = () => {} } = $props();
@@ -72,7 +79,10 @@
 			cableStatus = cable.status?.id != null ? [cable.status.id] : [];
 			cableNetworkLevel = cable.network_level?.id != null ? [cable.network_level.id] : [];
 			cableOwner = cable.owner?.id != null ? [cable.owner.id] : [];
-			cableConstructor = cable.constructor?.id != null ? [cable.constructor.id] : [];
+			cableConstructor =
+				/** @type {any} */ (cable.constructor)?.id != null
+					? [/** @type {any} */ (cable.constructor).id]
+					: [];
 			cableManufacturer = cable.manufacturer?.id != null ? [cable.manufacturer.id] : [];
 			cableDate = cable.date || '';
 			cableReserveAtStart = cable.reserve_at_start || '';
@@ -82,7 +92,7 @@
 		}
 	});
 
-	async function handleSubmit(event) {
+	async function handleSubmit(/** @type {any} */ event) {
 		event.preventDefault();
 		const formData = new FormData(event.target);
 		formData.append('uuid', cable.uuid);
@@ -126,7 +136,6 @@
 			if (onLabelUpdate && cableName) {
 				onLabelUpdate(cableName);
 			}
-			// Refresh cable data to update length/length_total
 			await onSaveComplete();
 		} catch (error) {
 			console.error('Error updating cable:', error);
@@ -139,7 +148,6 @@
 	async function confirmDelete() {
 		if (!cable?.uuid) return;
 
-		// Check for connected fiber splices before showing delete dialog
 		try {
 			const formData = new FormData();
 			formData.append('cableUuid', cable.uuid);
@@ -150,7 +158,7 @@
 			});
 
 			const result = deserialize(await response.text());
-			const splices = result.data?.splices || [];
+			const splices = /** @type {any} */ (result).data?.splices || [];
 			connectedSpliceCount = splices.length;
 		} catch (err) {
 			console.error('Error checking cable splices:', err);
@@ -187,7 +195,7 @@
 			console.error('Error deleting cable:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: error.message || m.message_error_deleting_cable()
+				description: /** @type {any} */ (error).message || m.message_error_deleting_cable()
 			});
 		}
 	}
@@ -204,7 +212,7 @@
 			name="cable_name"
 			required
 			value={cableName}
-			oninput={(e) => (cableName = e.target.value)}
+			oninput={(e) => (cableName = /** @type {any} */ (e.target).value)}
 		/>
 	</label>
 	<label class="label">
@@ -213,7 +221,7 @@
 			data={attributes.cableTypes}
 			bind:value={cableType}
 			defaultValue={cableType}
-			onValueChange={(e) => (cableType = e.value)}
+			onValueChange={(/** @type {any} */ e) => (cableType = e.value)}
 			disabled={true}
 			renderInPlace={true}
 		/>
@@ -228,7 +236,7 @@
 			data={attributes.statuses}
 			bind:value={cableStatus}
 			defaultValue={cableStatus}
-			onValueChange={(e) => (cableStatus = e.value)}
+			onValueChange={(/** @type {any} */ e) => (cableStatus = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -238,7 +246,7 @@
 			data={attributes.networkLevels}
 			bind:value={cableNetworkLevel}
 			defaultValue={cableNetworkLevel}
-			onValueChange={(e) => (cableNetworkLevel = e.value)}
+			onValueChange={(/** @type {any} */ e) => (cableNetworkLevel = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -248,7 +256,7 @@
 			data={attributes.companies}
 			bind:value={cableOwner}
 			defaultValue={cableOwner}
-			onValueChange={(e) => (cableOwner = e.value)}
+			onValueChange={(/** @type {any} */ e) => (cableOwner = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -258,7 +266,7 @@
 			data={attributes.companies}
 			bind:value={cableConstructor}
 			defaultValue={cableConstructor}
-			onValueChange={(e) => (cableConstructor = e.value)}
+			onValueChange={(/** @type {any} */ e) => (cableConstructor = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -268,7 +276,7 @@
 			data={attributes.companies}
 			bind:value={cableManufacturer}
 			defaultValue={cableManufacturer}
-			onValueChange={(e) => (cableManufacturer = e.value)}
+			onValueChange={(/** @type {any} */ e) => (cableManufacturer = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -280,7 +288,7 @@
 			name="date"
 			value={cableDate}
 			defaultValue={cableDate}
-			oninput={(e) => (cableDate = e.target.value)}
+			oninput={(e) => (cableDate = /** @type {any} */ (e.target).value)}
 		/>
 	</label>
 	<label class="label">
@@ -289,7 +297,7 @@
 			data={attributes.flags}
 			bind:value={cableFlag}
 			defaultValue={cableFlag}
-			onValueChange={(e) => (cableFlag = e.value)}
+			onValueChange={(/** @type {any} */ e) => (cableFlag = e.value)}
 			renderInPlace={true}
 		/>
 	</label>

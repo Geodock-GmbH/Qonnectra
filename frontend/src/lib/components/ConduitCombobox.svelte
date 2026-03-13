@@ -41,7 +41,6 @@
 		}
 	});
 
-	// Clear selected conduit if it doesn't exist in the current conduit list
 	$effect(() => {
 		if (browser && conduits.length > 0 && $selectedConduit) {
 			const currentValue = Array.isArray($selectedConduit) ? $selectedConduit[0] : $selectedConduit;
@@ -52,15 +51,15 @@
 		}
 	});
 
-	function handleValueChange(e) {
-		$selectedConduit = e.value;
+	function handleValueChange(/** @type {{ value: string[] }} */ e) {
+		$selectedConduit = e.value[0];
 	}
 
-	function handleOpenChange(e) {
+	function handleOpenChange(/** @type {{ open: boolean }} */ e) {
 		isOpen = e.open;
 	}
 
-	const onInputValueChange = (e) => {
+	const onInputValueChange = (/** @type {{ inputValue: string }} */ e) => {
 		const filtered = conduits.filter((item) =>
 			item.label.toLowerCase().includes(e.inputValue.toLowerCase())
 		);
@@ -72,6 +71,7 @@
 	};
 </script>
 
+<!-- Conduit Selection -->
 <div>
 	{#if loading}
 		<div class="placeholder animate-pulse"></div>
@@ -86,7 +86,7 @@
 			class="touch-manipulation w-full"
 			placeholder={m.placeholder_select_conduit()}
 			{collection}
-			defaultValue={$selectedConduit}
+			defaultValue={$selectedConduit ? [$selectedConduit] : undefined}
 			onValueChange={handleValueChange}
 			onOpenChange={handleOpenChange}
 			{onInputValueChange}

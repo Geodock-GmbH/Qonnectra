@@ -15,18 +15,16 @@
 
 	let sliderValue = $state(/** @type {number[]} */ ([1]));
 
-	function handleSkeletonSliderChange(detail) {
+	function handleSkeletonSliderChange(/** @type {{ value: number[] }} */ detail) {
 		const newOpacityValue = detail.value[0];
 		sliderValue = [newOpacityValue];
 		onChange(newOpacityValue);
 	}
 
-	// Sync slider value with opacity prop changes
 	$effect(() => {
 		sliderValue = [opacity];
 	});
 
-	// Calculate percentage for display
 	let displayPercentage = $derived(Math.round(sliderValue[0] * 100));
 </script>
 

@@ -13,19 +13,20 @@
 
 	const { setCenter } = useSvelteFlow();
 
+	/** @type {HTMLInputElement | null} */
 	let inputElement = $state(null);
 	let isDropdownOpen = $state(false);
 	let selectedIndex = $state(-1);
 
 	let results = $derived(searchManager.searchResults);
 
-	function handleInput(e) {
-		searchManager.searchTerm = e.target.value;
+	function handleInput(/** @type {any} */ e) {
+		searchManager.searchTerm = /** @type {any} */ (e.target).value;
 		isDropdownOpen = searchManager.searchTerm.length > 0;
 		selectedIndex = -1;
 	}
 
-	function handleKeyDown(e) {
+	function handleKeyDown(/** @type {any} */ e) {
 		if (!isDropdownOpen || results.length === 0) return;
 
 		switch (e.key) {
@@ -58,21 +59,18 @@
 
 	/**
 	 * Handle result selection - pans to item, highlights it, and optionally opens drawer
-	 * @param {Object} result - The search result object
+	 * @param {any} result - The search result object
 	 */
 	async function selectResult(result) {
 		isDropdownOpen = false;
 		selectedIndex = -1;
 
-		// Get position to pan to
 		const position = searchManager.getResultPosition(result);
 
-		// Pan to the result
 		if (searchManager.panToResult && position) {
 			setCenter(position.x, position.y, { duration: 500, zoom: 1 });
 		}
 
-		// Select the node/edge to show green highlight border
 		if (searchManager.highlightResult) {
 			if (result.type === 'node') {
 				schemaState.selectNode(result.id);
@@ -81,7 +79,6 @@
 			}
 		}
 
-		// Open drawer with item details
 		if (searchManager.openDrawer) {
 			if (result.type === 'node') {
 				await openNodeDrawer(result.id);
@@ -90,7 +87,6 @@
 			}
 		}
 
-		// Clear search after selection
 		searchManager.searchTerm = '';
 	}
 
@@ -115,7 +111,7 @@
 				id: nodeId,
 				...parsedData.properties,
 				type: 'node',
-				onLabelUpdate: (newLabel) => {
+				onLabelUpdate: (/** @type {any} */ newLabel) => {
 					drawerStore.setTitle(newLabel);
 					schemaState.updateNodeName(nodeId, newLabel);
 				},
@@ -144,7 +140,7 @@
 			props: {
 				...parsedData,
 				type: 'edge',
-				onLabelUpdate: (newLabel) => {
+				onLabelUpdate: (/** @type {any} */ newLabel) => {
 					drawerStore.setTitle(newLabel);
 					schemaState.updateEdgeName(cableId, newLabel);
 				}
@@ -153,7 +149,7 @@
 	}
 
 	function handleBlur() {
-		// Delay closing to allow click on dropdown items
+		// Defer closing so a mousedown on a dropdown item fires before the dropdown disappears
 		setTimeout(() => {
 			isDropdownOpen = false;
 		}, 200);

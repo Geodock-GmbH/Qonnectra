@@ -16,7 +16,7 @@ import Text from 'ol/style/Text.js';
  * @param {string} [conduitLabelOptions.field='conduit_names'] - Feature property to use for conduit label
  * @param {number} [conduitLabelOptions.minResolution=1.5] - Minimum resolution to show conduit labels
  * @param {Object} [conduitLabelOptions.textStyle] - Custom text style options for conduit labels
- * @returns {Style|Function} Style or style function that accepts (feature, resolution)
+ * @returns {import('ol/style/Style').StyleLike} Style or style function that accepts (feature, resolution)
  */
 export function createTrenchStyle(color, labelOptions = {}, conduitLabelOptions = {}) {
 	const geometryStyle = new Style({
@@ -32,6 +32,7 @@ export function createTrenchStyle(color, labelOptions = {}, conduitLabelOptions 
 			fill: new Fill({ color: color }),
 			stroke: new Stroke({ color: color, width: 2 })
 		}),
+		// @ts-ignore
 		declutterMode: 'none'
 	});
 
@@ -51,6 +52,10 @@ export function createTrenchStyle(color, labelOptions = {}, conduitLabelOptions 
 	const conduitMinRes = conduitLabelOptions.minResolution || 1.5;
 	const conduitTextStyle = conduitLabelOptions.textStyle || {};
 
+	/**
+	 * @param {import('ol/Feature').FeatureLike} feature
+	 * @param {number} resolution
+	 */
 	return function (feature, resolution) {
 		const styles = [geometryStyle];
 
@@ -60,6 +65,7 @@ export function createTrenchStyle(color, labelOptions = {}, conduitLabelOptions 
 				styles.push(
 					new Style({
 						text: createTextStyle({ text: labelText, ...trenchTextStyle }),
+						// @ts-ignore
 						declutterMode: 'declutter'
 					})
 				);
@@ -76,6 +82,7 @@ export function createTrenchStyle(color, labelOptions = {}, conduitLabelOptions 
 							offsetY: 30,
 							...conduitTextStyle
 						}),
+						// @ts-ignore
 						declutterMode: 'declutter'
 					})
 				);
@@ -118,7 +125,7 @@ export function createTextStyle(options) {
 		stroke: new Stroke({ color: strokeColor, width: strokeWidth }),
 		offsetX,
 		offsetY,
-		textAlign
+		textAlign: /** @type {CanvasTextAlign} */ (textAlign)
 	});
 }
 
@@ -130,7 +137,7 @@ export function createTextStyle(options) {
  * @param {string} [labelOptions.field='id_trench'] - Feature property to use for label
  * @param {number} [labelOptions.minResolution=1.5] - Minimum resolution to show labels (more zoomed in)
  * @param {Object} [labelOptions.textStyle] - Custom text style options
- * @returns {Function} Style function that accepts (feature, resolution)
+ * @returns {import('ol/style/Style').StyleFunction} Style function that accepts (feature, resolution)
  */
 export function createTrenchStyleWithLabels(color, labelOptions = {}) {
 	const {
@@ -153,14 +160,20 @@ export function createTrenchStyleWithLabels(color, labelOptions = {}) {
 			fill: new Fill({ color: color }),
 			stroke: new Stroke({ color: color, width: 2 })
 		}),
+		// @ts-ignore
 		declutterMode: 'none'
 	});
 
+	/**
+	 * @param {import('ol/Feature').FeatureLike} feature
+	 * @param {number} resolution
+	 */
 	return function (feature, resolution) {
 		if (enabled && resolution < minResolution) {
 			const labelText = (feature.get(field) || '').toString();
 			const labelStyle = new Style({
 				text: createTextStyle({ text: labelText, ...textStyle }),
+				// @ts-ignore
 				declutterMode: 'declutter'
 			});
 			return [geometryStyle, labelStyle];
@@ -215,7 +228,7 @@ export function createAddressStyle() {
  * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
  * @param {number} [labelOptions.minResolution=1.0] - Minimum resolution to show labels (more zoomed in)
  * @param {Object} [labelOptions.textStyle] - Custom text style options
- * @returns {Function} Style function that accepts (feature, resolution)
+ * @returns {import('ol/style/Style').StyleFunction} Style function that accepts (feature, resolution)
  */
 export function createAddressStyleWithLabels(
 	color = DEFAULT_ADDRESS_COLOR,
@@ -230,9 +243,14 @@ export function createAddressStyleWithLabels(
 			fill: new Fill({ color: color }),
 			stroke: new Stroke({ color: '#000000', width: 1 })
 		}),
+		// @ts-ignore
 		declutterMode: 'none'
 	});
 
+	/**
+	 * @param {import('ol/Feature').FeatureLike} feature
+	 * @param {number} resolution
+	 */
 	return function (feature, resolution) {
 		if (enabled && resolution < minResolution) {
 			const street = feature.get('street') || '';
@@ -243,6 +261,7 @@ export function createAddressStyleWithLabels(
 			const labelText = `${street} ${houseNumber}${suffix || ''}, ${postalCode} ${city}`.trim();
 			const labelStyle = new Style({
 				text: createTextStyle({ text: labelText, ...textStyle }),
+				// @ts-ignore
 				declutterMode: 'declutter'
 			});
 			return [geometryStyle, labelStyle];
@@ -273,7 +292,7 @@ export function createNodeStyle() {
  * @param {string} [labelOptions.field='name'] - Feature property to use for label
  * @param {number} [labelOptions.minResolution=1.0] - Minimum resolution to show labels (more zoomed in)
  * @param {Object} [labelOptions.textStyle] - Custom text style options
- * @returns {Function} Style function that accepts (feature, resolution)
+ * @returns {import('ol/style/Style').StyleFunction} Style function that accepts (feature, resolution)
  */
 export function createNodeStyleWithLabels(labelOptions = {}) {
 	const { enabled = false, field = 'name', minResolution = 1.0, textStyle = {} } = labelOptions;
@@ -284,14 +303,20 @@ export function createNodeStyleWithLabels(labelOptions = {}) {
 			fill: new Fill({ color: '#ff6b35' }),
 			stroke: new Stroke({ color: '#000000', width: 1 })
 		}),
+		// @ts-ignore
 		declutterMode: 'none'
 	});
 
+	/**
+	 * @param {import('ol/Feature').FeatureLike} feature
+	 * @param {number} resolution
+	 */
 	return function (feature, resolution) {
 		if (enabled && resolution < minResolution) {
 			const labelText = (feature.get(field) || '').toString();
 			const labelStyle = new Style({
 				text: createTextStyle({ text: labelText, ...textStyle }),
+				// @ts-ignore
 				declutterMode: 'declutter'
 			});
 			return [geometryStyle, labelStyle];
@@ -327,22 +352,26 @@ export const DEFAULT_AREA_OPACITY = 0.3;
 
 /**
  * Creates a style function for node points with per-type styling
- * @param {Object} nodeTypeStyles - Object mapping node type names to style config
- *   { [node_type]: { color: '#hex', size: number, visible: boolean } }
+ * @param {Record<string, {color?: string, size?: number, visible?: boolean}>} nodeTypeStyles - Object mapping node type names to style config
  * @param {Object} labelOptions - Label configuration options
  * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
  * @param {string} [labelOptions.field='name'] - Feature property to use for label
  * @param {number} [labelOptions.minResolution=1.0] - Minimum resolution to show labels
  * @param {Object} [labelOptions.textStyle] - Custom text style options
- * @returns {Function} Style function that accepts (feature, resolution)
+ * @returns {import('ol/style/Style').StyleFunction} Style function that accepts (feature, resolution)
  */
 export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
 	const { enabled = false, field = 'name', minResolution = 1.0, textStyle = {} } = labelOptions;
 
+	/** @type {Map<string, Style>} */
 	const geometryStyleCache = new Map();
 
+	/**
+	 * @param {import('ol/Feature').FeatureLike} feature
+	 * @param {number} resolution
+	 */
 	return function (feature, resolution) {
-		const nodeType = feature.get('node_type');
+		const nodeType = /** @type {string} */ (feature.get('node_type'));
 		const typeConfig = nodeTypeStyles[nodeType] || {
 			color: DEFAULT_NODE_COLOR,
 			size: DEFAULT_NODE_SIZE,
@@ -350,7 +379,7 @@ export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
 		};
 
 		if (!typeConfig.visible) {
-			return null;
+			return undefined;
 		}
 
 		const geometryCacheKey = `${nodeType || 'default'}_${typeConfig.color}_${typeConfig.size}`;
@@ -363,6 +392,7 @@ export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
 					fill: new Fill({ color: typeConfig.color || DEFAULT_NODE_COLOR }),
 					stroke: new Stroke({ color: '#000000', width: 1 })
 				}),
+				// @ts-ignore
 				declutterMode: 'none'
 			});
 			geometryStyleCache.set(geometryCacheKey, geometryStyle);
@@ -374,6 +404,7 @@ export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
 			const labelText = (feature.get(field) || '').toString();
 			const labelStyle = new Style({
 				text: createTextStyle({ text: labelText, ...textStyle }),
+				// @ts-ignore
 				declutterMode: 'declutter'
 			});
 			return [geometryStyle, labelStyle];
@@ -401,8 +432,7 @@ export function createLinkedTrenchStyle(color = '#06b6d4') {
 
 /**
  * Creates a style function for trench features with per-attribute styling
- * @param {Object} attributeStyles - Object mapping attribute values to style config
- *   { [attribute_value]: { color: '#hex', visible: boolean } }
+ * @param {Record<string, {color?: string, visible?: boolean}>} attributeStyles - Object mapping attribute values to style config
  * @param {string} styleMode - 'surface' | 'construction_type' | 'none'
  * @param {string} fallbackColor - Color to use when styleMode is 'none' or attribute not found
  * @param {Object} labelOptions - Trench label configuration options
@@ -415,7 +445,7 @@ export function createLinkedTrenchStyle(color = '#06b6d4') {
  * @param {string} [conduitLabelOptions.field='conduit_names'] - Feature property to use for conduit label
  * @param {number} [conduitLabelOptions.minResolution=1.5] - Minimum resolution to show conduit labels
  * @param {Object} [conduitLabelOptions.textStyle] - Custom text style options for conduit labels
- * @returns {Function} Style function that accepts (feature, resolution)
+ * @returns {import('ol/style/Style').StyleFunction} Style function that accepts (feature, resolution)
  */
 export function createTrenchStyleByAttribute(
 	attributeStyles = {},
@@ -434,21 +464,26 @@ export function createTrenchStyleByAttribute(
 	const conduitMinRes = conduitLabelOptions.minResolution || 1.5;
 	const conduitTextStyle = conduitLabelOptions.textStyle || {};
 
+	/** @type {Map<string, Style>} */
 	const geometryStyleCache = new Map();
 
+	/**
+	 * @param {import('ol/Feature').FeatureLike} feature
+	 * @param {number} resolution
+	 */
 	return function (feature, resolution) {
 		let color = fallbackColor;
 		let visible = true;
 
 		if (styleMode === 'surface') {
-			const surfaceValue = feature.get('surface');
+			const surfaceValue = /** @type {string} */ (feature.get('surface'));
 			const config = attributeStyles[surfaceValue];
 			if (config) {
 				color = config.color || fallbackColor;
 				visible = config.visible !== false;
 			}
 		} else if (styleMode === 'construction_type') {
-			const constructionTypeValue = feature.get('construction_type');
+			const constructionTypeValue = /** @type {string} */ (feature.get('construction_type'));
 			const config = attributeStyles[constructionTypeValue];
 			if (config) {
 				color = config.color || fallbackColor;
@@ -457,7 +492,7 @@ export function createTrenchStyleByAttribute(
 		}
 
 		if (!visible) {
-			return null;
+			return undefined;
 		}
 
 		const geometryCacheKey = `${styleMode}_${color}`;
@@ -477,6 +512,7 @@ export function createTrenchStyleByAttribute(
 					fill: new Fill({ color: color }),
 					stroke: new Stroke({ color: color, width: 2 })
 				}),
+				// @ts-ignore
 				declutterMode: 'none'
 			});
 			geometryStyleCache.set(geometryCacheKey, geometryStyle);
@@ -490,6 +526,7 @@ export function createTrenchStyleByAttribute(
 				styles.push(
 					new Style({
 						text: createTextStyle({ text: labelText, ...trenchTextStyle }),
+						// @ts-ignore
 						declutterMode: 'declutter'
 					})
 				);
@@ -503,9 +540,10 @@ export function createTrenchStyleByAttribute(
 					new Style({
 						text: createTextStyle({
 							text: conduitText,
-							offsetY: 30, // Offset below trench label
+							offsetY: 30,
 							...conduitTextStyle
 						}),
+						// @ts-ignore
 						declutterMode: 'declutter'
 					})
 				);
@@ -545,7 +583,7 @@ export function createAreaStyle(color, opacity = DEFAULT_AREA_OPACITY) {
  * @param {string} [labelOptions.field='name'] - Feature property to use for label
  * @param {number} [labelOptions.minResolution=5.0] - Minimum resolution to show labels
  * @param {Object} [labelOptions.textStyle] - Custom text style options
- * @returns {Function} Style function that accepts (feature, resolution)
+ * @returns {import('ol/style/Style').StyleFunction} Style function that accepts (feature, resolution)
  */
 export function createAreaStyleWithLabels(
 	color = DEFAULT_AREA_COLOR,
@@ -564,14 +602,20 @@ export function createAreaStyleWithLabels(
 			color: color,
 			width: 2
 		}),
+		// @ts-ignore
 		declutterMode: 'none'
 	});
 
+	/**
+	 * @param {import('ol/Feature').FeatureLike} feature
+	 * @param {number} resolution
+	 */
 	return function (feature, resolution) {
 		if (enabled && resolution < minResolution) {
 			const labelText = (feature.get(field) || '').toString();
 			const labelStyle = new Style({
 				text: createTextStyle({ text: labelText, offsetX: 0, offsetY: 0, ...textStyle }),
+				// @ts-ignore
 				declutterMode: 'declutter'
 			});
 			return [geometryStyle, labelStyle];
@@ -583,29 +627,33 @@ export function createAreaStyleWithLabels(
 
 /**
  * Creates a style function for area polygons with per-type styling
- * @param {Object} areaTypeStyles - Object mapping area type IDs to style config
- *   { [area_type_id]: { color: '#hex', visible: boolean } }
+ * @param {Record<string, {color?: string, visible?: boolean}>} areaTypeStyles - Object mapping area type IDs to style config
  * @param {Object} labelOptions - Label configuration options
  * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
  * @param {string} [labelOptions.field='name'] - Feature property to use for label
  * @param {number} [labelOptions.minResolution=5.0] - Minimum resolution to show labels
  * @param {Object} [labelOptions.textStyle] - Custom text style options
- * @returns {Function} Style function that accepts (feature, resolution)
+ * @returns {import('ol/style/Style').StyleFunction} Style function that accepts (feature, resolution)
  */
 export function createAreaStyleByType(areaTypeStyles = {}, labelOptions = {}) {
 	const { enabled = false, field = 'name', minResolution = 5.0, textStyle = {} } = labelOptions;
 
+	/** @type {Map<string, Style>} */
 	const geometryStyleCache = new Map();
 
+	/**
+	 * @param {import('ol/Feature').FeatureLike} feature
+	 * @param {number} resolution
+	 */
 	return function (feature, resolution) {
-		const areaType = feature.get('area_type');
+		const areaType = /** @type {string} */ (feature.get('area_type'));
 		const typeConfig = areaTypeStyles[areaType] || {
 			color: DEFAULT_AREA_COLOR,
 			visible: true
 		};
 
 		if (!typeConfig.visible) {
-			return null;
+			return undefined;
 		}
 
 		const geometryCacheKey = `${areaType || 'default'}_${typeConfig.color}`;
@@ -621,6 +669,7 @@ export function createAreaStyleByType(areaTypeStyles = {}, labelOptions = {}) {
 					color: typeConfig.color || DEFAULT_AREA_COLOR,
 					width: 2
 				}),
+				// @ts-ignore
 				declutterMode: 'none'
 			});
 			geometryStyleCache.set(geometryCacheKey, geometryStyle);
@@ -632,6 +681,7 @@ export function createAreaStyleByType(areaTypeStyles = {}, labelOptions = {}) {
 			const labelText = (feature.get(field) || '').toString();
 			const labelStyle = new Style({
 				text: createTextStyle({ text: labelText, offsetX: 0, offsetY: 0, ...textStyle }),
+				// @ts-ignore
 				declutterMode: 'declutter'
 			});
 			return [geometryStyle, labelStyle];

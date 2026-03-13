@@ -15,7 +15,6 @@
 
 	let { addresses, pagination } = $props();
 
-	// Column configuration with sortable/filterable flags
 	const columnConfig = [
 		{ key: 'id_address', label: m.form_id_address(), sortable: true, filterable: true },
 		{ key: 'street', label: m.form_street(), sortable: true, filterable: true },
@@ -38,11 +37,10 @@
 		{ key: 'flag', label: m.form_flag(), sortable: true, filterable: true }
 	];
 
-	// Sort state
-	let sortColumn = $state(null);
+	let sortColumn = $state(/** @type {string | null} */ (null));
 	let sortDirection = $state('asc');
 
-	// Filter state - object with column keys
+	/** @type {Record<string, string>} */
 	let filters = $state({
 		id_address: '',
 		street: '',
@@ -55,11 +53,14 @@
 		flag: ''
 	});
 
-	// Mobile global filter
 	let mobileSearchTerm = $state('');
 
 	const fuseKeys = columnConfig.map((col) => col.key);
 
+	/**
+	 * Cycles sort state for a column: asc → desc → unsorted.
+	 * @param {string} columnKey - The column key to sort by.
+	 */
 	function toggleSort(columnKey) {
 		if (sortColumn === columnKey) {
 			if (sortDirection === 'asc') {
@@ -74,16 +75,29 @@
 		}
 	}
 
+	/**
+	 * Updates the filter value for a specific column.
+	 * @param {string} columnKey - The column key to filter.
+	 * @param {string} value - The filter value.
+	 */
 	function updateFilter(columnKey, value) {
 		filters[columnKey] = value;
 	}
 
+	/**
+	 * Navigates to a specific page by updating the URL search params.
+	 * @param {number} newPage - The page number to navigate to.
+	 */
 	function goToPage(newPage) {
 		const url = new URL(window.location.href);
 		url.searchParams.set('page', String(newPage));
 		goto(url.pathname + url.search);
 	}
 
+	/**
+	 * Changes the page size and resets to page 1.
+	 * @param {number} newSize - The new page size.
+	 */
 	function changePageSize(newSize) {
 		const url = new URL(window.location.href);
 		url.searchParams.set('page_size', String(newSize));
@@ -95,7 +109,7 @@
 		const activeFilters = Object.entries(filters).filter(([, value]) => value.trim());
 		if (activeFilters.length === 0) return addresses;
 
-		return addresses.filter((address) => {
+		return addresses.filter((/** @type {any} */ address) => {
 			return activeFilters.every(([key, filterValue]) => {
 				const cellValue = String(address[key] || '');
 				const columnFuse = new Fuse([{ value: cellValue }], {
@@ -109,12 +123,13 @@
 
 	const sortedAddresses = $derived.by(() => {
 		if (!sortColumn) return filteredAddresses;
+		const col = sortColumn;
 
 		return [...filteredAddresses].sort((a, b) => {
-			let aVal = a[sortColumn] ?? '';
-			let bVal = b[sortColumn] ?? '';
+			let aVal = a[col] ?? '';
+			let bVal = b[col] ?? '';
 
-			if (sortColumn === 'housenumber') {
+			if (col === 'housenumber') {
 				aVal = aVal !== '' ? Number(aVal) : 0;
 				bVal = bVal !== '' ? Number(bVal) : 0;
 			} else {
@@ -141,6 +156,10 @@
 		return results.length > 0 ? results.map((r) => r.item) : sortedAddresses;
 	});
 
+	/**
+	 * Navigates to the detail page for the clicked address.
+	 * @param {any} address - The address row object.
+	 */
 	function handleRowClick(address) {
 		const projectId = page.params.projectId;
 		goto(`/address/${projectId}/${address.value}`);
@@ -148,14 +167,12 @@
 </script>
 
 <div class="flex flex-col h-full min-h-0">
-	<!-- Scrollable content area -->
 	<div class="flex-1 min-h-0 overflow-y-auto">
-		<!-- Desktop Table View -->
+		<!-- Desktop table -->
 		<div class="hidden md:block">
 			<div class="table-wrap overflow-x-auto">
 				<table class="table table-card caption-bottom w-full overflow-scroll">
 					<thead>
-						<!-- Header Row with Sort Indicators -->
 						<tr>
 							{#each columnConfig as column (column.key)}
 								<th
@@ -187,7 +204,6 @@
 							{/each}
 						</tr>
 
-						<!-- Filter Row -->
 						<tr class="bg-surface-50-900">
 							{#each columnConfig as column (column.key)}
 								<th class="p-1">
@@ -199,7 +215,8 @@
 											class="input text-sm py-1 px-2 w-full text-surface-contrast-100-900"
 											placeholder={m.common_search()}
 											value={filters[column.key]}
-											oninput={(e) => updateFilter(column.key, e.target.value)}
+											oninput={(e) =>
+												updateFilter(column.key, /** @type {HTMLInputElement} */ (e.target).value)}
 										/>
 									{/if}
 								</th>
@@ -225,9 +242,8 @@
 			</div>
 		</div>
 
-		<!-- Mobile Card View -->
+		<!-- Mobile cards -->
 		<div class="md:hidden">
-			<!-- Mobile Filter Input -->
 			<div class="mb-3">
 				<input
 					id="mobile-search"
@@ -252,7 +268,6 @@
 						role="button"
 						tabindex="0"
 					>
-						<!-- Primary Info Row -->
 						<div class="flex items-center justify-between border-b border-surface-200-800 pb-2">
 							<div class="flex-1 min-w-0">
 								<h3 class="font-semibold text-lg truncate">
@@ -266,7 +281,6 @@
 							{/if}
 						</div>
 
-						<!-- Details Grid -->
 						<div class="grid grid-cols-2 gap-3 text-sm">
 							<div>
 								<span class="font-medium text-surface-600-400">{m.form_district()}:</span>
@@ -291,7 +305,7 @@
 		</div>
 	</div>
 
-	<!-- Fixed pagination at bottom -->
+	<!-- Pagination -->
 	<div class="shrink-0 pt-4">
 		<div class="flex items-center justify-between gap-4">
 			<span class="text-sm text-surface-600-400">

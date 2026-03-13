@@ -35,6 +35,7 @@
 
 	const featureId = $derived(data?.uuid);
 
+	/** @type {any} */
 	let fileExplorer = $state(null);
 
 	function handleUploadComplete() {
@@ -64,8 +65,7 @@
 	}
 
 	/**
-	 * Handle status change for a microduct
-	 * @param {Object} microduct
+	 * @param {{ uuid: string }} microduct
 	 * @param {number|null} statusId
 	 */
 	async function handleStatusChange(microduct, statusId) {

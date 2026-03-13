@@ -3,13 +3,16 @@ import { describe, expect, test } from 'vitest';
 
 import { reconstructFeatures } from './featureReconstructor.js';
 
+/** @typedef {import('ol/geom/Point').default} Point */
+/** @typedef {import('ol/geom/LineString').default} LineString */
+
 describe('reconstructFeatures', () => {
 	test('should reconstruct point features', () => {
+		/** @type {import('./featureReconstructor.js').SerializedFeature[]} */
 		const serialized = [
 			{
 				id: 'node-1',
 				properties: { name: 'Test Node', uuid: 'abc-123' },
-				geometryName: 'geometry',
 				flatCoordinates: [100, 200],
 				geometryLayout: 'XY',
 				geometryType: 'Point'
@@ -21,16 +24,17 @@ describe('reconstructFeatures', () => {
 		expect(features).toHaveLength(1);
 		expect(features[0].getId()).toBe('node-1');
 		expect(features[0].get('name')).toBe('Test Node');
-		expect(features[0].getGeometry().getType()).toBe('Point');
-		expect(features[0].getGeometry().getCoordinates()).toEqual([100, 200]);
+		const pointGeom = /** @type {Point} */ (features[0].getGeometry());
+		expect(pointGeom.getType()).toBe('Point');
+		expect(pointGeom.getCoordinates()).toEqual([100, 200]);
 	});
 
 	test('should reconstruct linestring features', () => {
+		/** @type {import('./featureReconstructor.js').SerializedFeature[]} */
 		const serialized = [
 			{
 				id: 'trench-1',
 				properties: { length: 100 },
-				geometryName: 'geometry',
 				flatCoordinates: [0, 0, 100, 100, 200, 200],
 				geometryLayout: 'XY',
 				geometryType: 'LineString'
@@ -40,8 +44,9 @@ describe('reconstructFeatures', () => {
 		const features = reconstructFeatures(serialized);
 
 		expect(features).toHaveLength(1);
-		expect(features[0].getGeometry().getType()).toBe('LineString');
-		expect(features[0].getGeometry().getCoordinates()).toEqual([
+		const lineGeom = /** @type {LineString} */ (features[0].getGeometry());
+		expect(lineGeom.getType()).toBe('LineString');
+		expect(lineGeom.getCoordinates()).toEqual([
 			[0, 0],
 			[100, 100],
 			[200, 200]
@@ -49,11 +54,11 @@ describe('reconstructFeatures', () => {
 	});
 
 	test('should reconstruct polygon features', () => {
+		/** @type {import('./featureReconstructor.js').SerializedFeature[]} */
 		const serialized = [
 			{
 				id: 'area-1',
 				properties: { area_type: 'zone' },
-				geometryName: 'geometry',
 				flatCoordinates: [0, 0, 100, 0, 100, 100, 0, 100, 0, 0],
 				geometryLayout: 'XY',
 				geometryType: 'Polygon',
@@ -64,7 +69,8 @@ describe('reconstructFeatures', () => {
 		const features = reconstructFeatures(serialized);
 
 		expect(features).toHaveLength(1);
-		expect(features[0].getGeometry().getType()).toBe('Polygon');
+		const polygonGeom = features[0].getGeometry();
+		expect(polygonGeom?.getType()).toBe('Polygon');
 	});
 
 	test('should handle empty array', () => {
@@ -73,14 +79,14 @@ describe('reconstructFeatures', () => {
 	});
 
 	test('should handle features without geometry', () => {
+		/** @type {import('./featureReconstructor.js').SerializedFeature[]} */
 		const serialized = [
 			{
 				id: 'feature-1',
 				properties: { name: 'No Geometry' },
-				geometryName: 'geometry',
-				flatCoordinates: null,
-				geometryLayout: null,
-				geometryType: null
+				flatCoordinates: undefined,
+				geometryLayout: undefined,
+				geometryType: undefined
 			}
 		];
 

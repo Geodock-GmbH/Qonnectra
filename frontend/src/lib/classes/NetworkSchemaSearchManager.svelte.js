@@ -1,6 +1,70 @@
 import { m } from '$lib/paraglide/messages';
 
 /**
+ * @typedef {{
+ *   id: string,
+ *   position: {x: number, y: number},
+ *   type: string,
+ *   selected: boolean,
+ *   data: {
+ *     label: string,
+ *     node: Record<string, any>,
+ *     onNodeSelect: (nodeId: string) => void,
+ *     onNodeDelete: (nodeId: string) => void,
+ *     onNameUpdate: (newName: string) => void
+ *   }
+ * }} SchemaNode
+ */
+
+/**
+ * @typedef {{
+ *   id: string,
+ *   source: string,
+ *   target: string,
+ *   sourceHandle?: string,
+ *   targetHandle?: string,
+ *   type: string,
+ *   selected?: boolean,
+ *   data: {
+ *     label: string,
+ *     cable: Record<string, any>,
+ *     labelData?: Record<string, any> | null,
+ *     micropipeConnections?: Record<string, any>[],
+ *     lowestMicropipe?: Record<string, any> | null,
+ *     isConnected?: boolean,
+ *     onEdgeDelete: (edgeId: string) => void,
+ *     onEdgeSelect: (edgeId: string) => void,
+ *     onNameUpdate: (newName: string) => void
+ *   }
+ * }} SchemaEdge
+ */
+
+/**
+ * @typedef {{
+ *   type: 'node',
+ *   id: string,
+ *   name: string,
+ *   position: {x: number, y: number},
+ *   data: SchemaNode['data']
+ * }} NodeSearchResult
+ */
+
+/**
+ * @typedef {{
+ *   type: 'cable',
+ *   id: string,
+ *   name: string,
+ *   source: string,
+ *   target: string,
+ *   data: SchemaEdge['data']
+ * }} EdgeSearchResult
+ */
+
+/**
+ * @typedef {NodeSearchResult | EdgeSearchResult} SearchResult
+ */
+
+/**
  * Search manager for the network schema diagram
  * Handles searching nodes and cables by name with configurable result behavior
  */
@@ -8,16 +72,16 @@ export class NetworkSchemaSearchManager {
 	/** @type {string} */
 	searchTerm = $state('');
 
-	/** @type {boolean} - Whether to pan viewport to the selected result */
+	/** @type {boolean} */
 	panToResult = $state(true);
 
-	/** @type {boolean} - Whether to highlight the selected result */
+	/** @type {boolean} */
 	highlightResult = $state(true);
 
-	/** @type {boolean} - Whether to open the drawer for the selected result */
+	/** @type {boolean} */
 	openDrawer = $state(false);
 
-	/** @type {string|null} - UUID of the currently highlighted item */
+	/** @type {string|null} */
 	highlightedItemId = $state(null);
 
 	/** @type {import('./NetworkSchemaState.svelte.js').NetworkSchemaState} */
@@ -32,7 +96,7 @@ export class NetworkSchemaSearchManager {
 
 	/**
 	 * Get combined search results from nodes and edges
-	 * @returns {Array<{type: 'node'|'cable', id: string, name: string, data: Object}>}
+	 * @returns {SearchResult[]}
 	 */
 	get searchResults() {
 		const term = this.searchTerm.toLowerCase().trim();
@@ -75,7 +139,7 @@ export class NetworkSchemaSearchManager {
 	 * Get the position to center on for a search result
 	 * For nodes, returns the node position
 	 * For cables, returns the midpoint between source and target nodes
-	 * @param {Object} result - Search result object
+	 * @param {SearchResult} result
 	 * @returns {{x: number, y: number}|null}
 	 */
 	getResultPosition(result) {
@@ -126,7 +190,7 @@ export class NetworkSchemaSearchManager {
 	/**
 	 * Get a node by ID
 	 * @param {string} nodeId
-	 * @returns {Object|undefined}
+	 * @returns {SchemaNode|undefined}
 	 */
 	getNodeById(nodeId) {
 		return this.#schemaState.nodes.find((n) => n.id === nodeId);
@@ -135,7 +199,7 @@ export class NetworkSchemaSearchManager {
 	/**
 	 * Get an edge by ID
 	 * @param {string} edgeId
-	 * @returns {Object|undefined}
+	 * @returns {SchemaEdge|undefined}
 	 */
 	getEdgeById(edgeId) {
 		return this.#schemaState.edges.find((e) => e.id === edgeId);

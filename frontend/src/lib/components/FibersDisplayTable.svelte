@@ -3,9 +3,11 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	/** @typedef {import('$lib/classes/CableFiberDataManager.svelte.js').Fiber} Fiber */
+
 	/**
 	 * @typedef {Object} Props
-	 * @property {Array<Object>} fibers - Array of fiber objects
+	 * @property {Array<Fiber>} fibers - Array of fiber objects
 	 * @property {boolean} loading - Loading state
 	 * @property {string|null} error - Error message
 	 * @property {(colorName: string) => string} getColorHex - Function to get hex color from name
@@ -55,7 +57,7 @@
 	 * Check if a fiber has a defective status.
 	 * Fibers without an assigned status are considered healthy by default.
 	 * Any assigned fiber_status indicates a non-healthy state.
-	 * @param {Object} fiber
+	 * @param {Fiber} fiber
 	 * @returns {boolean}
 	 */
 	function isDefective(fiber) {
@@ -64,7 +66,7 @@
 
 	/**
 	 * Count defective fibers in a bundle
-	 * @param {Array<Object>} bundleFibers
+	 * @param {Array<Fiber>} bundleFibers
 	 * @returns {number}
 	 */
 	function countDefective(bundleFibers) {
@@ -73,7 +75,7 @@
 
 	/**
 	 * Get status display text
-	 * @param {Object} fiber
+	 * @param {Fiber} fiber
 	 * @returns {string}
 	 */
 	function getStatusDisplay(fiber) {
@@ -84,6 +86,7 @@
 	}
 </script>
 
+<!-- Loading / Error / Empty States -->
 {#if loading}
 	<div class="p-4">
 		<div class="placeholder animate-pulse min-h-6"></div>
@@ -97,6 +100,7 @@
 		<p>{m.form_no_fibers_available()}</p>
 	</div>
 {:else}
+	<!-- Bundle Groups -->
 	<div class="space-y-2">
 		{#each bundleGroups as bundle (bundle.bundleNumber)}
 			{@const defectiveCount = countDefective(bundle.fibers)}

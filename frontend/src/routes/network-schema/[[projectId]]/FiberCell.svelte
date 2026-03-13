@@ -21,6 +21,7 @@
 		portNumber = 0,
 		cableUuid = null,
 		readonly = false,
+		/** @type {(data: any) => void} */
 		onDrop = () => {},
 		onClear = () => {},
 		onUnmerge = () => {},
@@ -36,7 +37,7 @@
 	/**
 	 * Get display name for a residential unit
 	 */
-	function getResidentialUnitDisplayName(ru) {
+	function getResidentialUnitDisplayName(/** @type {any} */ ru) {
 		if (!ru) return '';
 		let main = ru.id_residential_unit || 'Unit';
 		if (ru.external_id_1) {
@@ -52,21 +53,21 @@
 		return main;
 	}
 
-	// Whether anything is connected (fiber or residential unit)
 	const hasConnection = $derived(fiber || residentialUnit);
 
 	let isDragOver = $state(false);
 	let isDragging = $state(false);
 
-	// Trace state
 	let traceLoading = $state(false);
+	/** @type {any} */
 	let traceResult = $state(null);
+	/** @type {any} */
 	let traceError = $state(null);
 
 	/**
 	 * Fetch trace summary for this fiber
 	 */
-	async function handleTrace(e) {
+	async function handleTrace(/** @type {any} */ e) {
 		e.stopPropagation();
 		if (traceResult) {
 			traceResult = null;
@@ -83,13 +84,12 @@
 			if (!response.ok) throw new Error('Trace failed');
 			traceResult = await response.json();
 		} catch (err) {
-			traceError = err.message;
+			traceError = /** @type {any} */ (err).message;
 		} finally {
 			traceLoading = false;
 		}
 	}
 
-	// Color accent based on side
 	const accentClasses = $derived(
 		side === 'a'
 			? {
@@ -106,7 +106,7 @@
 				}
 	);
 
-	function handleDragStart(e) {
+	function handleDragStart(/** @type {any} */ e) {
 		if (readonly || !fiber || !hasPort || isMerged) {
 			e.preventDefault();
 			return;
@@ -114,7 +114,6 @@
 
 		isDragging = true;
 
-		// Create drag data with fiber info and source location
 		const dragData = {
 			type: 'fiber',
 			uuid: fiber.uuid,
@@ -123,7 +122,6 @@
 			fiber_number: fiber.fiber_number,
 			fiber_color: fiber.fiber_color,
 			bundle_number: fiber.bundle_number,
-			// Source info for move operation
 			sourcePortNumber: portNumber,
 			sourceSide: side,
 			isMove: true
@@ -137,11 +135,10 @@
 		isDragging = false;
 	}
 
-	function handleDragOver(e) {
+	function handleDragOver(/** @type {any} */ e) {
 		if (readonly || !hasPort) return;
 		e.preventDefault();
 		e.stopPropagation();
-		// Accept both copy (external drops) and move (internal reorder)
 		if (e.dataTransfer.effectAllowed === 'move') {
 			e.dataTransfer.dropEffect = 'move';
 		} else {
@@ -154,7 +151,7 @@
 		isDragOver = false;
 	}
 
-	function handleDrop(e) {
+	function handleDrop(/** @type {any} */ e) {
 		if (readonly || !hasPort) return;
 		e.preventDefault();
 		e.stopPropagation();
@@ -187,7 +184,6 @@
 	role={hasPort ? 'button' : 'presentation'}
 >
 	{#if fiber}
-		<!-- Connected Fiber Display - draggable for move operations, also accepts drops for override -->
 		<div
 			class="flex items-center gap-2 group w-full {!isMerged && !readonly
 				? 'cursor-grab active:cursor-grabbing'
@@ -282,7 +278,7 @@
 							e.stopPropagation();
 							onClear();
 						}}
-						aria-label={m.common_clear?.() || 'Clear'}
+						aria-label={m.common_clear()}
 					>
 						<IconTrash size={20} />
 					</button>
@@ -290,7 +286,6 @@
 			{/if}
 		</div>
 	{:else if residentialUnit}
-		<!-- Connected Residential Unit Display -->
 		<div class="flex items-center gap-2 group w-full">
 			<IconHome size={16} class="shrink-0 text-primary-500" />
 			<div class="flex-1 min-w-0">
@@ -312,7 +307,7 @@
 							e.stopPropagation();
 							onClear();
 						}}
-						aria-label={m.common_clear?.() || 'Clear'}
+						aria-label={m.common_clear()}
 					>
 						<IconTrash size={20} />
 					</button>
@@ -320,10 +315,8 @@
 			{/if}
 		</div>
 	{:else if hasPort}
-		<!-- Empty Drop Zone -->
 		<div class="flex flex-col items-center justify-center w-full h-full text-surface-400 group">
 			{#if spanRows > 1}
-				<!-- Merged empty state with port range -->
 				<div
 					class="flex items-center gap-2 text-sm font-medium text-primary-600 dark:text-primary-400 mb-1"
 				>

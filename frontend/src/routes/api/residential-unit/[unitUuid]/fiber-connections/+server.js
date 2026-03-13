@@ -4,8 +4,9 @@ import { API_URL } from '$env/static/private';
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
 /**
- * GET /api/residential-unit/[unitUuid]/fiber-connections
- * Fetch fiber connections for a residential unit.
+ * Fetches fiber connections for a single residential unit.
+ * @param {import('@sveltejs/kit').RequestEvent} event
+ * @returns {Promise<Response>} JSON array of fiber connections.
  */
 export async function GET({ cookies, fetch, params }) {
 	const headers = getAuthHeaders(cookies);

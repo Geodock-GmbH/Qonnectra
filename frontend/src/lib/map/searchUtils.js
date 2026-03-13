@@ -16,7 +16,7 @@ register(proj4);
 /**
  * Creates a highlight layer for temporarily highlighting features
  * @param {import('ol/style/Style').default} highlightStyle - Style for the highlight
- * @returns {import('ol/layer/Vector').default} Vector layer for highlighting
+ * @returns {Promise<import('ol/layer/Vector').default>} Vector layer for highlighting
  */
 export async function createHighlightLayer(highlightStyle) {
 	const [{ default: VectorLayer }, { default: VectorSource }] = await Promise.all([
@@ -74,8 +74,8 @@ export async function createHighlightStyle(color = '#ff0000') {
  * Parses geometry from GeoJSON feature and converts to OL geometry
  * @param {Object} feature - GeoJSON feature from API
  * @param {string} fromProjection - Source projection (default: 'EPSG:25832')
- * @param {string} toProjection - Target projection (default: map projection)
- * @returns {Promise<import('ol/geom/Geometry').default>} OpenLayers geometry
+ * @param {string | null} toProjection - Target projection (default: map projection)
+ * @returns {Promise<import('ol/geom/Geometry').default | undefined>} OpenLayers geometry
  */
 export async function parseFeatureGeometry(
 	feature,
@@ -86,11 +86,14 @@ export async function parseFeatureGeometry(
 
 	const geoJsonFormat = new GeoJSON();
 
-	// Parse the geometry from GeoJSON
 	const olFeature = geoJsonFormat.readFeature(feature, {
 		dataProjection: fromProjection,
 		featureProjection: toProjection || fromProjection
 	});
+
+	if (Array.isArray(olFeature)) {
+		return olFeature[0]?.getGeometry();
+	}
 
 	return olFeature.getGeometry();
 }
@@ -100,11 +103,11 @@ export async function parseFeatureGeometry(
  * @param {import('ol/Map').default} map - OpenLayers map instance
  * @param {import('ol/geom/Geometry').default} geometry - Geometry to zoom to
  * @param {import('ol/layer/Vector').default} highlightLayer - Layer for highlighting
- * @param {Object} options - Zoom options
- * @param {number[]} options.padding - Padding around the feature [top, right, bottom, left]
- * @param {number} options.duration - Animation duration in ms
- * @param {number} options.maxZoom - Maximum zoom level
- * @param {number} options.blinkCount - Number of blinks for highlight
+ * @param {Object} [options] - Zoom options
+ * @param {number[]} [options.padding] - Padding around the feature [top, right, bottom, left]
+ * @param {number} [options.duration] - Animation duration in ms
+ * @param {number} [options.maxZoom] - Maximum zoom level
+ * @param {number} [options.blinkCount] - Number of blinks for highlight
  */
 export async function zoomToFeature(map, geometry, highlightLayer, options = {}) {
 	const { padding = [50, 50, 50, 50], duration = 1000, maxZoom = 20, blinkCount = 6 } = options;
@@ -114,16 +117,15 @@ export async function zoomToFeature(map, geometry, highlightLayer, options = {})
 	const view = map.getView();
 	const extent = geometry.getExtent();
 
-	// Zoom to the feature
 	view.fit(extent, {
 		duration: duration,
 		padding: padding,
 		maxZoom: maxZoom,
 		callback: () => {
-			// Start blinking animation
 			if (highlightLayer) {
 				const highlightFeature = new Feature(geometry);
 				const source = highlightLayer.getSource();
+				if (!source) return;
 				let currentBlinkCount = 0;
 
 				const blinkInterval = setInterval(() => {
@@ -151,8 +153,9 @@ export async function zoomToFeature(map, geometry, highlightLayer, options = {})
  * @returns {Function} Debounced function
  */
 export function debounce(func, wait) {
+	/** @type {ReturnType<typeof setTimeout> | undefined} */
 	let timeout;
-	return function executedFunction(...args) {
+	return function executedFunction(/** @type {unknown[]} */ ...args) {
 		const later = () => {
 			clearTimeout(timeout);
 			func(...args);
@@ -164,14 +167,13 @@ export function debounce(func, wait) {
 
 /**
  * Formats search results for combobox display
- * @param {Array} results - Raw search results from API
+ * @param {{label: string, [key: string]: unknown}[]} results - Raw search results from API
  * @param {string} searchTerm - Original search term
- * @returns {Array} Formatted results for combobox
+ * @returns {{label: string, displayLabel: string, [key: string]: unknown}[]} Formatted results for combobox
  */
 export function formatSearchResults(results, searchTerm) {
 	return results.map((result) => ({
 		...result,
-		// Highlight matching text in label
 		displayLabel: highlightSearchTerm(result.label, searchTerm)
 	}));
 }
@@ -193,8 +195,8 @@ function highlightSearchTerm(text, searchTerm) {
  * Parse multiple GeoJSON features to OpenLayers geometries
  * @param {Object[]} features - Array of GeoJSON features from API
  * @param {string} fromProjection - Source projection (default: 'EPSG:25832')
- * @param {string} toProjection - Target projection (default: map projection)
- * @returns {Promise<import('ol/geom/Geometry').default[]>} Array of OpenLayers geometries
+ * @param {string | null} toProjection - Target projection (default: map projection)
+ * @returns {Promise<(import('ol/geom/Geometry').default | undefined)[]>} Array of OpenLayers geometries
  */
 export async function parseMultipleFeatureGeometries(
 	features,
@@ -211,10 +213,10 @@ export async function parseMultipleFeatureGeometries(
  * Zooms the map to a bounding box extent with animation
  * @param {import('ol/Map').default} map - OpenLayers map instance
  * @param {number[]} extent - Bounding box [xmin, ymin, xmax, ymax] in EPSG:3857
- * @param {Object} options - Zoom options
- * @param {number[]} options.padding - Padding around the extent [top, right, bottom, left]
- * @param {number} options.duration - Animation duration in ms
- * @param {number} options.maxZoom - Maximum zoom level
+ * @param {Object} [options] - Zoom options
+ * @param {number[]} [options.padding] - Padding around the extent [top, right, bottom, left]
+ * @param {number} [options.duration] - Animation duration in ms
+ * @param {number} [options.maxZoom] - Maximum zoom level
  */
 export function zoomToExtent(map, extent, options = {}) {
 	const { padding = [50, 50, 50, 50], duration = 800, maxZoom = 18 } = options;
@@ -228,11 +230,11 @@ export function zoomToExtent(map, extent, options = {}) {
  * @param {import('ol/Map').default} map - OpenLayers map instance
  * @param {import('ol/geom/Geometry').default[]} geometries - Array of geometries to zoom to
  * @param {import('ol/layer/Vector').default} highlightLayer - Layer for highlighting
- * @param {Object} options - Zoom options
- * @param {number[]} options.padding - Padding around the features [top, right, bottom, left]
- * @param {number} options.duration - Animation duration in ms
- * @param {number} options.maxZoom - Maximum zoom level
- * @param {number} options.blinkCount - Number of blinks for highlight
+ * @param {Object} [options] - Zoom options
+ * @param {number[]} [options.padding] - Padding around the features [top, right, bottom, left]
+ * @param {number} [options.duration] - Animation duration in ms
+ * @param {number} [options.maxZoom] - Maximum zoom level
+ * @param {number} [options.blinkCount] - Number of blinks for highlight
  */
 export async function zoomToMultipleFeatures(map, geometries, highlightLayer, options = {}) {
 	const { padding = [50, 50, 50, 50], duration = 1000, maxZoom = 17, blinkCount = 6 } = options;
@@ -257,6 +259,7 @@ export async function zoomToMultipleFeatures(map, geometries, highlightLayer, op
 			if (highlightLayer) {
 				const highlightFeatures = geometries.map((g) => new Feature(g));
 				const source = highlightLayer.getSource();
+				if (!source) return;
 				let currentBlinkCount = 0;
 
 				const blinkInterval = setInterval(() => {

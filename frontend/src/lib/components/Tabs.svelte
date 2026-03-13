@@ -26,7 +26,7 @@
 		orientation = 'vertical'
 	} = $props();
 
-	function handleValueChange(e) {
+	function handleValueChange(/** @type {{ value: string }} */ e) {
 		value = e.value;
 		onValueChange(e.value);
 	}
@@ -34,6 +34,7 @@
 
 <SkeletonTabs {value} onValueChange={handleValueChange} {orientation}>
 	<div class="tabs-wrapper {className}">
+		<!-- Tab List -->
 		<SkeletonTabs.List>
 			{#each tabs as tab (tab.value)}
 				<SkeletonTabs.Trigger class="justify-start" value={tab.value}>
@@ -42,6 +43,7 @@
 			{/each}
 			<SkeletonTabs.Indicator />
 		</SkeletonTabs.List>
+		<!-- Tab Content -->
 		<div class="tab-content">
 			{@render contentSnippet?.()}
 		</div>

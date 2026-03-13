@@ -57,7 +57,7 @@ from .models import (
 
 
 class ProjectsSerializer(serializers.ModelSerializer):
-    """Serializer for the Projects model."""
+    """Serialize :model:`api.Projects` instances."""
 
     class Meta:
         model = Projects
@@ -65,7 +65,7 @@ class ProjectsSerializer(serializers.ModelSerializer):
 
 
 class ContentTypeSerializer(serializers.ModelSerializer):
-    """Serializer for Django ContentType model."""
+    """Serialize Django ContentType for feature file associations."""
 
     class Meta:
         model = ContentType
@@ -74,7 +74,7 @@ class ContentTypeSerializer(serializers.ModelSerializer):
 
 
 class FlagsSerializer(serializers.ModelSerializer):
-    """Serializer for the Flags model."""
+    """Serialize :model:`api.Flags` instances."""
 
     class Meta:
         model = Flags
@@ -82,7 +82,7 @@ class FlagsSerializer(serializers.ModelSerializer):
 
 
 class AttributesSurfaceSerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesSurface model."""
+    """Serialize :model:`api.AttributesSurface` instances."""
 
     class Meta:
         model = AttributesSurface
@@ -90,7 +90,7 @@ class AttributesSurfaceSerializer(serializers.ModelSerializer):
 
 
 class AttributesConstructionTypeSerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesConstructionType model."""
+    """Serialize :model:`api.AttributesConstructionType` instances."""
 
     class Meta:
         model = AttributesConstructionType
@@ -98,7 +98,7 @@ class AttributesConstructionTypeSerializer(serializers.ModelSerializer):
 
 
 class AttributesStatusSerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesStatus model."""
+    """Serialize :model:`api.AttributesStatus` instances."""
 
     class Meta:
         model = AttributesStatus
@@ -106,7 +106,7 @@ class AttributesStatusSerializer(serializers.ModelSerializer):
 
 
 class AttributesPhaseSerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesPhase model."""
+    """Serialize :model:`api.AttributesPhase` instances."""
 
     class Meta:
         model = AttributesPhase
@@ -114,7 +114,7 @@ class AttributesPhaseSerializer(serializers.ModelSerializer):
 
 
 class AttributesCompanySerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesCompany model."""
+    """Serialize :model:`api.AttributesCompany` instances."""
 
     class Meta:
         model = AttributesCompany
@@ -131,7 +131,7 @@ class AttributesCompanySerializer(serializers.ModelSerializer):
 
 
 class AttributesNodeTypeSerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesNodeType model."""
+    """Serialize :model:`api.AttributesNodeType` instances."""
 
     class Meta:
         model = AttributesNodeType
@@ -140,7 +140,7 @@ class AttributesNodeTypeSerializer(serializers.ModelSerializer):
 
 
 class AttributesConduitTypeSerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesConduitType model."""
+    """Serialize :model:`api.AttributesConduitType` instances."""
 
     class Meta:
         model = AttributesConduitType
@@ -154,7 +154,7 @@ class AttributesConduitTypeSerializer(serializers.ModelSerializer):
 
 
 class AttributesNetworkLevelSerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesNetworkLevel model."""
+    """Serialize :model:`api.AttributesNetworkLevel` instances."""
 
     class Meta:
         model = AttributesNetworkLevel
@@ -162,7 +162,7 @@ class AttributesNetworkLevelSerializer(serializers.ModelSerializer):
 
 
 class AttributesStatusDevelopmentSerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesStatusDevelopment model."""
+    """Serialize :model:`api.AttributesStatusDevelopment` instances."""
 
     class Meta:
         model = AttributesStatusDevelopment
@@ -170,7 +170,7 @@ class AttributesStatusDevelopmentSerializer(serializers.ModelSerializer):
 
 
 class AttributesResidentialUnitTypeSerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesResidentialUnitType model."""
+    """Serialize :model:`api.AttributesResidentialUnitType` instances."""
 
     class Meta:
         model = AttributesResidentialUnitType
@@ -178,7 +178,7 @@ class AttributesResidentialUnitTypeSerializer(serializers.ModelSerializer):
 
 
 class AttributesResidentialUnitStatusSerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesResidentialUnitStatus model."""
+    """Serialize :model:`api.AttributesResidentialUnitStatus` instances."""
 
     class Meta:
         model = AttributesResidentialUnitStatus
@@ -186,7 +186,7 @@ class AttributesResidentialUnitStatusSerializer(serializers.ModelSerializer):
 
 
 class AttributesMicroductStatusSerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesMicroductStatus model."""
+    """Serialize :model:`api.AttributesMicroductStatus` instances."""
 
     class Meta:
         model = AttributesMicroductStatus
@@ -194,7 +194,7 @@ class AttributesMicroductStatusSerializer(serializers.ModelSerializer):
 
 
 class AttributesFiberStatusSerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesFiberStatus model."""
+    """Serialize :model:`api.AttributesFiberStatus` instances."""
 
     class Meta:
         model = AttributesFiberStatus
@@ -202,7 +202,7 @@ class AttributesFiberStatusSerializer(serializers.ModelSerializer):
 
 
 class AttributesMicroductColorSerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesMicroductColor model."""
+    """Serialize :model:`api.AttributesMicroductColor` with hex codes and layer info."""
 
     class Meta:
         model = AttributesMicroductColor
@@ -221,7 +221,7 @@ class AttributesMicroductColorSerializer(serializers.ModelSerializer):
 
 
 class AttributesFiberColorSerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesFiberColor model."""
+    """Serialize :model:`api.AttributesFiberColor` with hex codes."""
 
     class Meta:
         model = AttributesFiberColor
@@ -238,7 +238,7 @@ class AttributesFiberColorSerializer(serializers.ModelSerializer):
 
 
 class CableTypeColorMappingSerializer(serializers.ModelSerializer):
-    """Serializer for the CableTypeColorMapping model."""
+    """Serialize :model:`api.CableTypeColorMapping` with nested color data."""
 
     color = AttributesFiberColorSerializer(read_only=True)
 
@@ -248,7 +248,7 @@ class CableTypeColorMappingSerializer(serializers.ModelSerializer):
 
 
 class AttributesCableTypeSerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesCableType model."""
+    """Serialize :model:`api.AttributesCableType` instances."""
 
     class Meta:
         model = AttributesCableType
@@ -256,7 +256,7 @@ class AttributesCableTypeSerializer(serializers.ModelSerializer):
 
 
 class AttributesAreaTypeSerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesAreaType model."""
+    """Serialize :model:`api.AttributesAreaType` instances."""
 
     class Meta:
         model = AttributesAreaType
@@ -264,7 +264,7 @@ class AttributesAreaTypeSerializer(serializers.ModelSerializer):
 
 
 class AttributesComponentTypeSerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesComponentType model."""
+    """Serialize :model:`api.AttributesComponentType` instances."""
 
     class Meta:
         model = AttributesComponentType
@@ -272,7 +272,7 @@ class AttributesComponentTypeSerializer(serializers.ModelSerializer):
 
 
 class AttributesComponentStructureSerializer(serializers.ModelSerializer):
-    """Serializer for the AttributesComponentStructure model."""
+    """Serialize :model:`api.AttributesComponentStructure` port definitions."""
 
     class Meta:
         model = AttributesComponentStructure
@@ -280,17 +280,11 @@ class AttributesComponentStructureSerializer(serializers.ModelSerializer):
 
 
 class TrenchSerializer(GeoFeatureModelSerializer):
-    """Serializer for the Trench model.
+    """Serialize :model:`api.Trench` as GeoJSON with nested attribute objects.
 
-    Args:
-        GeoFeatureModelSerializer (GeoFeatureModelSerializer): The base serializer class.
-
-    Raises:
-        serializers.ValidationError: If the geometry is not a LineString.
-        serializers.ValidationError: If the geometry cannot be transformed to the default SRID.
-
-    Returns:
-        dict: The serialized trench.
+    Read operations return nested serializers for FK fields (surface,
+    construction_type, status, etc.). Write operations accept PK references
+    via write-only fields. Geometry is validated as LineString in EPSG:25832.
     """
 
     uuid = serializers.UUIDField(read_only=True)
@@ -372,7 +366,18 @@ class TrenchSerializer(GeoFeatureModelSerializer):
         ordering = ["id"]
 
     def validate_geom(self, value):
-        """Validate geometry before saving"""
+        """Validate and transform geometry to LineString in the project SRID.
+
+        Args:
+            value: GEOSGeometry instance from the request payload.
+
+        Returns:
+            GEOSGeometry: Validated LineString in EPSG:25832.
+
+        Raises:
+            serializers.ValidationError: If geometry is not a LineString
+                or SRID transformation fails.
+        """
         if value.geom_type != "LineString":
             raise serializers.ValidationError(
                 f"{_('Geometry type must be LineString, not')} {value.geom_type}"
@@ -413,7 +418,7 @@ class TrenchSerializer(GeoFeatureModelSerializer):
 
 
 class FeatureFilesSerializer(serializers.ModelSerializer):
-    """Serializer for the FeatureFiles model."""
+    """Serialize :model:`api.FeatureFiles` with Nextcloud storage metadata."""
 
     uuid = serializers.UUIDField(read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
@@ -449,7 +454,12 @@ class FeatureFilesSerializer(serializers.ModelSerializer):
 
 
 class ConduitSerializer(serializers.ModelSerializer):
-    """Serializer for the Conduit model."""
+    """Serialize :model:`api.Conduit` with nested attribute objects.
+
+    Read operations return nested serializers for FK fields.
+    Write operations accept PK references via write-only fields.
+    Enforces unique conduit name per project.
+    """
 
     uuid = serializers.UUIDField(read_only=True)
 
@@ -602,7 +612,7 @@ class ConduitListSerializer(serializers.ModelSerializer):
 
 
 class TrenchConduitSerializer(serializers.ModelSerializer):
-    """Serializer for the TrenchConduit model."""
+    """Serialize :model:`api.TrenchConduitConnection` with nested trench and conduit."""
 
     uuid = serializers.UUIDField(read_only=True)
 
@@ -624,7 +634,7 @@ class TrenchConduitSerializer(serializers.ModelSerializer):
 
 
 class TrenchConduitCanvasSerializer(serializers.ModelSerializer):
-    """Serializer for TrenchConduitCanvas model."""
+    """Serialize :model:`api.TrenchConduitCanvas` diagram positions."""
 
     conduit_name = serializers.CharField(source="conduit.name", read_only=True)
     conduit_type_name = serializers.CharField(
@@ -648,7 +658,11 @@ class TrenchConduitCanvasSerializer(serializers.ModelSerializer):
 
 
 class AddressSerializer(GeoFeatureModelSerializer):
-    """Serializer for the Address model."""
+    """Serialize :model:`api.Address` as GeoJSON with nested attribute objects.
+
+    Geometry is validated as Point in EPSG:25832. Includes a read-only
+    geom_3857 field for web map display.
+    """
 
     uuid = serializers.UUIDField(read_only=True)
 
@@ -706,7 +720,18 @@ class AddressSerializer(GeoFeatureModelSerializer):
         return fields
 
     def validate_geom(self, value):
-        """Validate geometry before saving"""
+        """Validate and transform geometry to Point in the project SRID.
+
+        Args:
+            value: GEOSGeometry instance from the request payload.
+
+        Returns:
+            GEOSGeometry: Validated Point in EPSG:25832.
+
+        Raises:
+            serializers.ValidationError: If geometry is not a Point
+                or SRID transformation fails.
+        """
         if value.geom_type != "Point":
             raise serializers.ValidationError(
                 f"{_('Geometry type must be Point, not')} {value.geom_type}"
@@ -750,7 +775,7 @@ class AddressListSerializer(serializers.ModelSerializer):
 
 
 class ResidentialUnitSerializer(serializers.ModelSerializer):
-    """Serializer for the ResidentialUnit model."""
+    """Serialize :model:`api.ResidentialUnit` linked to :model:`api.Address`."""
 
     uuid = serializers.UUIDField(read_only=True)
 
@@ -843,7 +868,11 @@ class ParentNodeSerializer(serializers.ModelSerializer):
 
 
 class NodeSerializer(GeoFeatureModelSerializer):
-    """Serializer for the Node model."""
+    """Serialize :model:`api.Node` as GeoJSON with nested attribute objects.
+
+    Includes canvas position fields for diagram rendering and an
+    optional parent node reference for hierarchical node structures.
+    """
 
     uuid = serializers.UUIDField(read_only=True)
 
@@ -974,7 +1003,7 @@ class NodeSerializer(GeoFeatureModelSerializer):
 
 
 class AreaSerializer(GeoFeatureModelSerializer):
-    """Serializer for the Area model."""
+    """Serialize :model:`api.Area` as GeoJSON with Polygon geometry validation."""
 
     uuid = serializers.UUIDField(read_only=True)
     area_type = AttributesAreaTypeSerializer(read_only=True)
@@ -1015,7 +1044,18 @@ class AreaSerializer(GeoFeatureModelSerializer):
         return fields
 
     def validate_geom(self, value):
-        """Validate geometry before saving"""
+        """Validate and transform geometry to Polygon in the project SRID.
+
+        Args:
+            value: GEOSGeometry instance from the request payload.
+
+        Returns:
+            GEOSGeometry: Validated Polygon in EPSG:25832.
+
+        Raises:
+            serializers.ValidationError: If geometry is not a Polygon
+                or SRID transformation fails.
+        """
         if value.geom_type != "Polygon":
             raise serializers.ValidationError(
                 f"{_('Geometry type must be Polygon, not')} {value.geom_type}"
@@ -1033,7 +1073,12 @@ class AreaSerializer(GeoFeatureModelSerializer):
 
 
 class MicroductSerializer(serializers.ModelSerializer):
-    """Serializer for the Microduct model."""
+    """Serialize :model:`api.Microduct` with color hex codes and cable connection info.
+
+    Resolves microduct color names to hex codes via
+    :model:`api.AttributesMicroductColor` lookups. Supports two-layer
+    (striped) colors using dash-separated color names.
+    """
 
     uuid = serializers.UUIDField(read_only=True)
 
@@ -1075,7 +1120,14 @@ class MicroductSerializer(serializers.ModelSerializer):
         ordering = ["number"]
 
     def get_hex_code(self, obj):
-        """Get primary hex code from AttributesMicroductColor."""
+        """Return primary hex code from :model:`api.AttributesMicroductColor`.
+
+        Args:
+            obj: Microduct instance.
+
+        Returns:
+            str: Hex color code, or '#64748b' (slate) as fallback.
+        """
         if not obj.color:
             return "#64748b"
 
@@ -1092,7 +1144,15 @@ class MicroductSerializer(serializers.ModelSerializer):
             return "#64748b"
 
     def get_hex_code_secondary(self, obj):
-        """Get secondary hex code for two-layer colors."""
+        """Return secondary hex code for two-layer (striped) colors.
+
+        Args:
+            obj: Microduct instance.
+
+        Returns:
+            str | None: Hex color code of the secondary layer, or None
+                if the microduct is not two-layer.
+        """
         if not obj.color or "-" not in obj.color.lower():
             return None
 
@@ -1107,11 +1167,25 @@ class MicroductSerializer(serializers.ModelSerializer):
             return None
 
     def get_is_two_layer(self, obj):
-        """Check if this is a two-layer/striped color."""
+        """Check if the microduct has a two-layer/striped color (dash-separated name).
+
+        Args:
+            obj: Microduct instance.
+
+        Returns:
+            bool: True if the color name contains a dash separator.
+        """
         return "-" in obj.color.lower() if obj.color else False
 
     def get_cable_connection(self, obj):
-        """Get connected cable info if any."""
+        """Return connected cable info via :model:`api.MicroductCableConnection`.
+
+        Args:
+            obj: Microduct instance.
+
+        Returns:
+            dict | None: Cable name and type, or None if no connection exists.
+        """
         connection = (
             MicroductCableConnection.objects.filter(uuid_microduct=obj)
             .select_related("uuid_cable__cable_type")
@@ -1126,7 +1200,17 @@ class MicroductSerializer(serializers.ModelSerializer):
         }
 
     def validate_uuid_node_id(self, value):
-        """Validate that the node has an address assigned."""
+        """Validate that the referenced node has an address assigned.
+
+        Args:
+            value: Node instance from PrimaryKeyRelatedField.
+
+        Returns:
+            Node: The validated node instance.
+
+        Raises:
+            serializers.ValidationError: If the node has no address.
+        """
         if value and not value.uuid_address:
             raise serializers.ValidationError(_("This node has no address assigned"))
         return value
@@ -1145,7 +1229,7 @@ class MicroductSerializer(serializers.ModelSerializer):
 
 
 class MicroductConnectionSerializer(serializers.ModelSerializer):
-    """Serializer for the MicroductConnection model."""
+    """Serialize :model:`api.MicroductConnection` between two microducts at a node."""
 
     uuid = serializers.UUIDField(read_only=True)
 
@@ -1200,7 +1284,11 @@ class MicroductConnectionSerializer(serializers.ModelSerializer):
 
 
 class CableSerializer(serializers.ModelSerializer):
-    """Serializer for the Cable model."""
+    """Serialize :model:`api.Cable` with start/end node references.
+
+    Enforces unique cable name per project. Includes computed fields
+    for start and end node names and diagram path data.
+    """
 
     uuid = serializers.UUIDField(required=False)
     cable_type = AttributesCableTypeSerializer(read_only=True)
@@ -1300,11 +1388,25 @@ class CableSerializer(serializers.ModelSerializer):
     uuid_node_end_name = serializers.SerializerMethodField()
 
     def get_uuid_node_start_name(self, obj):
-        """Get the name of the start node."""
+        """Return the name of the cable's start :model:`api.Node`.
+
+        Args:
+            obj: Cable instance.
+
+        Returns:
+            str | None: Node name, or None if no start node is set.
+        """
         return obj.uuid_node_start.name if obj.uuid_node_start else None
 
     def get_uuid_node_end_name(self, obj):
-        """Get the name of the end node."""
+        """Return the name of the cable's end :model:`api.Node`.
+
+        Args:
+            obj: Cable instance.
+
+        Returns:
+            str | None: Node name, or None if no end node is set.
+        """
         return obj.uuid_node_end.name if obj.uuid_node_end else None
 
     class Meta:
@@ -1349,7 +1451,7 @@ class CableSerializer(serializers.ModelSerializer):
 
 
 class CableLabelSerializer(serializers.ModelSerializer):
-    """Serializer for the CableLabel model."""
+    """Serialize :model:`api.CableLabel` positioned text labels for cables."""
 
     uuid = serializers.UUIDField(required=False)
     cable_id = serializers.PrimaryKeyRelatedField(
@@ -1376,7 +1478,7 @@ class CableLabelSerializer(serializers.ModelSerializer):
 
 
 class MicroductCableConnectionSerializer(serializers.ModelSerializer):
-    """Serializer for the MicroductCableConnection model."""
+    """Serialize :model:`api.MicroductCableConnection` linking cables to microducts."""
 
     uuid = serializers.UUIDField(read_only=True)
 
@@ -1410,7 +1512,7 @@ class MicroductCableConnectionSerializer(serializers.ModelSerializer):
 
 
 class LogEntrySerializer(serializers.ModelSerializer):
-    """Serializer for the LogEntry model."""
+    """Serialize :model:`api.LogEntry` with user details and project info."""
 
     username = serializers.CharField(
         source="user.username", read_only=True, allow_null=True
@@ -1440,9 +1542,10 @@ class LogEntrySerializer(serializers.ModelSerializer):
 
 
 class CustomUserDetailsSerializer(serializers.Serializer):
-    """
-    Custom serializer for user details that includes the is_staff flag.
-    This overrides the default dj-rest-auth user serializer.
+    """Serialize user details including staff/superuser flags.
+
+    Override the default dj-rest-auth user serializer to expose
+    is_staff and is_superuser for frontend permission checks.
     """
 
     pk = serializers.IntegerField(read_only=True)
@@ -1455,7 +1558,7 @@ class CustomUserDetailsSerializer(serializers.Serializer):
 
 
 class NodeTrenchSelectionSerializer(serializers.ModelSerializer):
-    """Serializer for the NodeTrenchSelection model."""
+    """Serialize :model:`api.NodeTrenchSelection` with denormalized display names."""
 
     trench_id_trench = serializers.CharField(source="trench.id_trench", read_only=True)
     node_name = serializers.CharField(source="node.name", read_only=True)
@@ -1474,7 +1577,7 @@ class NodeTrenchSelectionSerializer(serializers.ModelSerializer):
 
 
 class NodeTrenchSelectionBulkSerializer(serializers.Serializer):
-    """Serializer for bulk updating trench selections for a node."""
+    """Validate bulk trench selection updates for a :model:`api.Node`."""
 
     node_uuid = serializers.UUIDField()
     trench_uuids = serializers.ListField(
@@ -1484,7 +1587,7 @@ class NodeTrenchSelectionBulkSerializer(serializers.Serializer):
 
 
 class NodeStructureBulkCreateSerializer(serializers.Serializer):
-    """Serializer for bulk creating node structures."""
+    """Validate bulk creation of :model:`api.NodeStructure` entries in a slot range."""
 
     node_uuid = serializers.UUIDField()
     slot_configuration_uuid = serializers.UUIDField()
@@ -1495,7 +1598,7 @@ class NodeStructureBulkCreateSerializer(serializers.Serializer):
 
 
 class NodeSlotConfigurationSerializer(serializers.ModelSerializer):
-    """Serializer for the NodeSlotConfiguration model."""
+    """Serialize :model:`api.NodeSlotConfiguration` with computed slot usage."""
 
     uuid = serializers.UUIDField(read_only=True)
 
@@ -1518,12 +1621,26 @@ class NodeSlotConfigurationSerializer(serializers.ModelSerializer):
         ordering = ["uuid_node", "side"]
 
     def get_used_slots(self, obj):
-        """Calculate total used slots from NodeStructure entries."""
+        """Calculate total occupied slots from :model:`api.NodeStructure` entries.
+
+        Args:
+            obj: NodeSlotConfiguration instance.
+
+        Returns:
+            int: Sum of slot ranges occupied by structures.
+        """
         structures = obj.structures.all()
         return sum(s.slot_end - s.slot_start + 1 for s in structures)
 
     def get_free_slots(self, obj):
-        """Calculate remaining free slots."""
+        """Calculate remaining available slots.
+
+        Args:
+            obj: NodeSlotConfiguration instance.
+
+        Returns:
+            int: Total slots minus used slots.
+        """
         return obj.total_slots - self.get_used_slots(obj)
 
     def get_fields(self):
@@ -1538,7 +1655,11 @@ class NodeSlotConfigurationSerializer(serializers.ModelSerializer):
 
 
 class NodeStructureSerializer(serializers.ModelSerializer):
-    """Serializer for the NodeStructure model."""
+    """Serialize :model:`api.NodeStructure` with component and slot configuration.
+
+    Supports both component entries and reserved/empty slot entries
+    distinguished by the purpose field.
+    """
 
     uuid = serializers.UUIDField(read_only=True)
 
@@ -1589,17 +1710,40 @@ class NodeStructureSerializer(serializers.ModelSerializer):
         ordering = ["uuid_node", "slot_configuration", "slot_start"]
 
     def get_slot_count(self, obj):
-        """Calculate the number of slots used by this structure."""
+        """Calculate the number of slots occupied by this structure entry.
+
+        Args:
+            obj: NodeStructure instance.
+
+        Returns:
+            int: Number of slots in the range [slot_start, slot_end].
+        """
         return obj.slot_end - obj.slot_start + 1
 
     def get_side_name(self, obj):
-        """Get the side name from the slot configuration."""
+        """Return the side label from the associated slot configuration.
+
+        Args:
+            obj: NodeStructure instance.
+
+        Returns:
+            str | None: Side name, or None if no slot configuration is set.
+        """
         return obj.slot_configuration.side if obj.slot_configuration else None
 
     def validate(self, data):
-        """Validate that component_type is provided when purpose is 'component'.
+        """Validate that component_type is required when purpose is 'component'.
 
-        Note: component_structure is optional - it can be configured later.
+        Args:
+            data: Validated field data dict.
+
+        Returns:
+            dict: The validated data.
+
+        Raises:
+            serializers.ValidationError: If purpose is 'component' but
+                no component_type is provided. Note: component_structure
+                is optional and can be configured later.
         """
         purpose = data.get("purpose", NodeStructure.Purpose.COMPONENT)
         if purpose == NodeStructure.Purpose.COMPONENT:
@@ -1631,7 +1775,7 @@ class NodeStructureSerializer(serializers.ModelSerializer):
 
 
 class NodeSlotDividerSerializer(serializers.ModelSerializer):
-    """Serializer for the NodeSlotDivider model."""
+    """Serialize :model:`api.NodeSlotDivider` visual dividers between slots."""
 
     uuid = serializers.UUIDField(read_only=True)
     slot_configuration_id = serializers.PrimaryKeyRelatedField(
@@ -1646,7 +1790,17 @@ class NodeSlotDividerSerializer(serializers.ModelSerializer):
         read_only_fields = ["uuid", "slot_configuration"]
 
     def validate(self, data):
-        """Validate that after_slot is within valid range."""
+        """Validate that after_slot is between 1 and total_slots - 1.
+
+        Args:
+            data: Validated field data dict.
+
+        Returns:
+            dict: The validated data.
+
+        Raises:
+            serializers.ValidationError: If after_slot is out of range.
+        """
         slot_config = data.get("slot_configuration")
         after_slot = data.get("after_slot")
 
@@ -1663,7 +1817,7 @@ class NodeSlotDividerSerializer(serializers.ModelSerializer):
 
 
 class NodeSlotClipNumberSerializer(serializers.ModelSerializer):
-    """Serializer for the NodeSlotClipNumber model."""
+    """Serialize :model:`api.NodeSlotClipNumber` clip number assignments."""
 
     uuid = serializers.UUIDField(read_only=True)
     slot_configuration_id = serializers.PrimaryKeyRelatedField(
@@ -1684,7 +1838,17 @@ class NodeSlotClipNumberSerializer(serializers.ModelSerializer):
         read_only_fields = ["uuid", "slot_configuration"]
 
     def validate(self, data):
-        """Validate that slot_number is within valid range."""
+        """Validate that slot_number is between 1 and total_slots.
+
+        Args:
+            data: Validated field data dict.
+
+        Returns:
+            dict: The validated data.
+
+        Raises:
+            serializers.ValidationError: If slot_number is out of range.
+        """
         slot_config = data.get("slot_configuration")
         slot_number = data.get("slot_number")
 
@@ -1705,9 +1869,13 @@ class AttributesComponentStructureSerializer(serializers.ModelSerializer):
 
 
 class FiberSpliceSerializer(serializers.ModelSerializer):
-    """Serializer for FiberSplice model."""
+    """Serialize :model:`api.FiberSplice` with fiber details and merge group info.
 
-    # Include nested info for display
+    Handle side-independent merge groups (A and B sides can be merged
+    independently) and shared fiber references for merged port groups.
+    Include residential unit endpoint details for connection tracking.
+    """
+
     fiber_a_details = serializers.SerializerMethodField()
     fiber_b_details = serializers.SerializerMethodField()
     merge_group_a_info = serializers.SerializerMethodField()
@@ -1727,17 +1895,14 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
             "cable_b",
             "fiber_a_details",
             "fiber_b_details",
-            # Side-specific merge groups (independent merging per side)
             "merge_group_a",
             "merge_group_b",
             "merge_group_a_info",
             "merge_group_b_info",
-            # Shared fiber fields (for merged port groups)
             "shared_fiber_a",
             "shared_cable_a",
             "shared_fiber_b",
             "shared_cable_b",
-            # Residential unit connections (endpoints)
             "residential_unit_a",
             "residential_unit_b",
             "residential_unit_a_details",
@@ -1745,7 +1910,15 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
         ]
 
     def _get_fiber_details(self, fiber, cable):
-        """Helper to get fiber details dict."""
+        """Build a fiber details dict for serialized output.
+
+        Args:
+            fiber: Fiber instance or None.
+            cable: Cable instance or None.
+
+        Returns:
+            dict | None: Fiber attributes with cable info, or None if no fiber.
+        """
         if not fiber:
             return None
         return {
@@ -1759,30 +1932,46 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
         }
 
     def get_fiber_a_details(self, obj):
-        """
-        Get fiber A details.
-        If port is merged on side A (has merge_group_a), use shared_fiber_a.
+        """Return fiber A details, using shared fiber if port is merged on side A.
+
+        Args:
+            obj: FiberSplice instance.
+
+        Returns:
+            dict | None: Fiber details dict.
         """
         if obj.merge_group_a and obj.shared_fiber_a:
             return self._get_fiber_details(obj.shared_fiber_a, obj.shared_cable_a)
         return self._get_fiber_details(obj.fiber_a, obj.cable_a)
 
     def get_fiber_b_details(self, obj):
-        """
-        Get fiber B details.
-        If port is merged on side B (has merge_group_b), use shared_fiber_b.
+        """Return fiber B details, using shared fiber if port is merged on side B.
+
+        Args:
+            obj: FiberSplice instance.
+
+        Returns:
+            dict | None: Fiber details dict.
         """
         if obj.merge_group_b and obj.shared_fiber_b:
             return self._get_fiber_details(obj.shared_fiber_b, obj.shared_cable_b)
         return self._get_fiber_details(obj.fiber_b, obj.cable_b)
 
     def _get_merge_group_info(self, obj, side):
-        """Get info about a merge group on a specific side."""
+        """Build merge group metadata for a specific side.
+
+        Args:
+            obj: FiberSplice instance.
+            side: 'a' or 'b' indicating which side to query.
+
+        Returns:
+            dict | None: Merge group ID, port numbers, count, and range,
+                or None if no merge group is set on the given side.
+        """
         merge_group = getattr(obj, f"merge_group_{side}")
         if not merge_group:
             return None
 
-        # Get all port numbers in the same merge group
         siblings = list(
             FiberSplice.objects.filter(**{f"merge_group_{side}": merge_group})
             .values_list("port_number", flat=True)
@@ -1803,15 +1992,36 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
         }
 
     def get_merge_group_a_info(self, obj):
-        """Get info about the merge group on side A."""
+        """Return merge group metadata for side A.
+
+        Args:
+            obj: FiberSplice instance.
+
+        Returns:
+            dict | None: Merge group info or None.
+        """
         return self._get_merge_group_info(obj, "a")
 
     def get_merge_group_b_info(self, obj):
-        """Get info about the merge group on side B."""
+        """Return merge group metadata for side B.
+
+        Args:
+            obj: FiberSplice instance.
+
+        Returns:
+            dict | None: Merge group info or None.
+        """
         return self._get_merge_group_info(obj, "b")
 
     def get_residential_unit_a_details(self, obj):
-        """Get residential unit A details for endpoint connections."""
+        """Return :model:`api.ResidentialUnit` details for side A endpoint.
+
+        Args:
+            obj: FiberSplice instance.
+
+        Returns:
+            dict | None: Residential unit attributes or None.
+        """
         if not obj.residential_unit_a:
             return None
         ru = obj.residential_unit_a
@@ -1826,7 +2036,14 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
         }
 
     def get_residential_unit_b_details(self, obj):
-        """Get residential unit B details for endpoint connections."""
+        """Return :model:`api.ResidentialUnit` details for side B endpoint.
+
+        Args:
+            obj: FiberSplice instance.
+
+        Returns:
+            dict | None: Residential unit attributes or None.
+        """
         if not obj.residential_unit_b:
             return None
         ru = obj.residential_unit_b
@@ -1842,7 +2059,7 @@ class FiberSpliceSerializer(serializers.ModelSerializer):
 
 
 class PortMergeSerializer(serializers.Serializer):
-    """Serializer for port merge operations."""
+    """Validate port merge requests for :model:`api.FiberSplice` groups."""
 
     node_structure = serializers.UUIDField()
     port_numbers = serializers.ListField(
@@ -1857,7 +2074,7 @@ class PortMergeSerializer(serializers.Serializer):
 
 
 class PortUnmergeSerializer(serializers.Serializer):
-    """Serializer for unmerging specific ports from a group."""
+    """Validate port unmerge requests to remove ports from a merge group."""
 
     merge_group = serializers.UUIDField()
     port_numbers = serializers.ListField(
@@ -1868,7 +2085,7 @@ class PortUnmergeSerializer(serializers.Serializer):
 
 
 class FiberSpliceBulkUpsertItemSerializer(serializers.Serializer):
-    """Single item in bulk fiber splice upsert."""
+    """Validate a single item in a bulk :model:`api.FiberSplice` upsert request."""
 
     node_structure_uuid = serializers.UUIDField()
     port_number = serializers.IntegerField(min_value=1)
@@ -1878,7 +2095,18 @@ class FiberSpliceBulkUpsertItemSerializer(serializers.Serializer):
     residential_unit_uuid = serializers.UUIDField(required=False, allow_null=True)
 
     def validate(self, data):
-        """Ensure either fiber/cable or residential_unit is provided."""
+        """Ensure either fiber/cable pair or residential_unit is provided.
+
+        Args:
+            data: Validated field data dict.
+
+        Returns:
+            dict: The validated data.
+
+        Raises:
+            serializers.ValidationError: If neither fiber/cable nor
+                residential_unit is provided.
+        """
         has_fiber = data.get("fiber_uuid") and data.get("cable_uuid")
         has_residential_unit = data.get("residential_unit_uuid")
 
@@ -1890,13 +2118,13 @@ class FiberSpliceBulkUpsertItemSerializer(serializers.Serializer):
 
 
 class FiberSpliceBulkUpsertSerializer(serializers.Serializer):
-    """Serializer for bulk upserting fiber splices."""
+    """Validate a batch of :model:`api.FiberSplice` upsert items."""
 
     splices = FiberSpliceBulkUpsertItemSerializer(many=True)
 
 
 class ContainerTypeSerializer(serializers.ModelSerializer):
-    """Serializer for the ContainerType model (admin-defined types)."""
+    """Serialize :model:`api.ContainerType` admin-defined container categories."""
 
     class Meta:
         model = ContainerType
@@ -1912,7 +2140,7 @@ class ContainerTypeSerializer(serializers.ModelSerializer):
 
 
 class ContainerSerializer(serializers.ModelSerializer):
-    """Serializer for Container instances."""
+    """Serialize :model:`api.Container` instances with nested type and display name."""
 
     uuid = serializers.UUIDField(read_only=True)
     container_type = ContainerTypeSerializer(read_only=True)
@@ -1953,13 +2181,22 @@ class ContainerSerializer(serializers.ModelSerializer):
         ]
 
     def get_display_name(self, obj):
+        """Return the computed display name for the container.
+
+        Args:
+            obj: Container instance.
+
+        Returns:
+            str: Display name from the model method.
+        """
         return obj.get_display_name()
 
 
 class ContainerTreeSerializer(serializers.ModelSerializer):
-    """
-    Recursive serializer for building the full container tree with nested items.
-    Returns containers with their children and slot configurations.
+    """Recursively serialize :model:`api.Container` tree with children and slots.
+
+    Build the full container hierarchy including nested child containers
+    and their associated :model:`api.NodeSlotConfiguration` entries.
     """
 
     uuid = serializers.UUIDField(read_only=True)
@@ -1982,15 +2219,37 @@ class ContainerTreeSerializer(serializers.ModelSerializer):
         ]
 
     def get_display_name(self, obj):
+        """Return the computed display name for the container.
+
+        Args:
+            obj: Container instance.
+
+        Returns:
+            str: Display name from the model method.
+        """
         return obj.get_display_name()
 
     def get_children(self, obj):
-        """Recursively serialize child containers."""
+        """Recursively serialize child containers ordered by sort_order.
+
+        Args:
+            obj: Container instance.
+
+        Returns:
+            list[dict]: Serialized child containers.
+        """
         children = obj.children.all().order_by("sort_order")
         return ContainerTreeSerializer(children, many=True, context=self.context).data
 
     def get_slot_configurations(self, obj):
-        """Serialize slot configurations in this container."""
+        """Serialize :model:`api.NodeSlotConfiguration` entries in this container.
+
+        Args:
+            obj: Container instance.
+
+        Returns:
+            list[dict]: Serialized slot configurations.
+        """
         configs = obj.slot_configurations.all().order_by("sort_order", "side")
         return NodeSlotConfigurationListSerializer(
             configs, many=True, context=self.context
@@ -1998,9 +2257,10 @@ class ContainerTreeSerializer(serializers.ModelSerializer):
 
 
 class NodeSlotConfigurationListSerializer(serializers.ModelSerializer):
-    """
-    Lightweight serializer for slot configurations in container tree.
-    Does not include nested node data to avoid circular references.
+    """Lightweight :model:`api.NodeSlotConfiguration` serializer for container trees.
+
+    Exclude nested node data to avoid circular references. Include
+    computed used/free slot counts.
     """
 
     uuid = serializers.UUIDField(read_only=True)
@@ -2019,17 +2279,31 @@ class NodeSlotConfigurationListSerializer(serializers.ModelSerializer):
         ]
 
     def get_used_slots(self, obj):
-        """Calculate total used slots from NodeStructure entries."""
+        """Calculate total occupied slots from :model:`api.NodeStructure` entries.
+
+        Args:
+            obj: NodeSlotConfiguration instance.
+
+        Returns:
+            int: Sum of slot ranges occupied by structures.
+        """
         structures = obj.structures.all()
         return sum(s.slot_end - s.slot_start + 1 for s in structures)
 
     def get_free_slots(self, obj):
-        """Calculate remaining free slots."""
+        """Calculate remaining available slots.
+
+        Args:
+            obj: NodeSlotConfiguration instance.
+
+        Returns:
+            int: Total slots minus used slots.
+        """
         return obj.total_slots - self.get_used_slots(obj)
 
 
 class FiberSerializer(serializers.ModelSerializer):
-    """Serializer for the Fiber model."""
+    """Serialize :model:`api.Fiber` with cable name and fiber status."""
 
     uuid = serializers.UUIDField(read_only=True)
     cable_name = serializers.CharField(source="uuid_cable.name", read_only=True)
@@ -2108,7 +2382,14 @@ class CableAtNodeSerializer(serializers.ModelSerializer):
         ]
 
     def get_direction(self, obj):
-        """Determine if cable starts or ends at the node."""
+        """Determine if the cable starts or ends at the context node.
+
+        Args:
+            obj: Cable instance.
+
+        Returns:
+            str | None: 'start', 'end', or None if node_uuid is not in context.
+        """
         node_uuid = self.context.get("node_uuid")
         if node_uuid:
             if str(obj.uuid_node_start_id) == str(node_uuid):
@@ -2159,7 +2440,14 @@ class ConduitForTrenchSelectionSerializer(serializers.ModelSerializer):
         ]
 
     def get_has_cable_linkage(self, obj):
-        """Check if this conduit has any micropipes linked to the current cable."""
+        """Check if any microducts in this conduit are linked to the context cable.
+
+        Args:
+            obj: Conduit instance.
+
+        Returns:
+            bool: True if a :model:`api.MicroductCableConnection` exists.
+        """
         linked_conduit_ids = self.context.get("linked_conduit_ids")
         if linked_conduit_ids is not None:
             return obj.uuid in linked_conduit_ids
@@ -2185,16 +2473,25 @@ class MicropipeAvailabilitySerializer(serializers.Serializer):
 
 
 class WMSLayerSerializer(serializers.ModelSerializer):
-    """Serializer for WMSLayer model."""
+    """Serialize :model:`api.WMSLayer` display settings."""
 
     class Meta:
         model = WMSLayer
-        fields = ["id", "name", "title", "is_enabled", "sort_order", "min_zoom", "max_zoom", "opacity"]
+        fields = [
+            "id",
+            "name",
+            "title",
+            "is_enabled",
+            "sort_order",
+            "min_zoom",
+            "max_zoom",
+            "opacity",
+        ]
         read_only_fields = ["id", "name", "title"]
 
 
 class WMSSourceSerializer(serializers.ModelSerializer):
-    """Serializer for WMSSource model (list view)."""
+    """Serialize :model:`api.WMSSource` with nested layers for list views."""
 
     layers = WMSLayerSerializer(many=True, read_only=True)
     layer_count = serializers.SerializerMethodField()
@@ -2216,11 +2513,19 @@ class WMSSourceSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at", "updated_at"]
 
     def get_layer_count(self, obj):
+        """Return the number of enabled layers in this WMS source.
+
+        Args:
+            obj: WMSSource instance.
+
+        Returns:
+            int: Count of enabled layers.
+        """
         return obj.layers.filter(is_enabled=True).count()
 
 
 class WMSSourceCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating/updating WMSSource with password handling."""
+    """Serialize :model:`api.WMSSource` for create/update with encrypted password handling."""
 
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
@@ -2240,6 +2545,14 @@ class WMSSourceCreateSerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
 
     def create(self, validated_data):
+        """Create a WMSSource, setting the password separately if provided.
+
+        Args:
+            validated_data: Validated serializer data.
+
+        Returns:
+            WMSSource: The created instance.
+        """
         password = validated_data.pop("password", None)
         instance = WMSSource(**validated_data)
         if password:
@@ -2248,6 +2561,15 @@ class WMSSourceCreateSerializer(serializers.ModelSerializer):
         return instance
 
     def update(self, instance, validated_data):
+        """Update a WMSSource, only changing the password if a new one is provided.
+
+        Args:
+            instance: Existing WMSSource instance.
+            validated_data: Validated serializer data.
+
+        Returns:
+            WMSSource: The updated instance.
+        """
         password = validated_data.pop("password", None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)

@@ -19,7 +19,6 @@
 
 	const dragDropManager = getContext(DRAG_DROP_CONTEXT_KEY);
 
-	// Create manager without initial nodeUuid - will be set reactively via $effect
 	const dataManager = new CableFiberDataManager();
 
 	let collapsed = $state(false);
@@ -30,6 +29,7 @@
 
 	/**
 	 * Toggle cable accordion
+	 * @param {any} cableUuid
 	 */
 	function toggleCable(cableUuid) {
 		if (expandedCables.has(cableUuid)) {
@@ -43,6 +43,8 @@
 
 	/**
 	 * Toggle bundle accordion
+	 * @param {any} cableUuid
+	 * @param {any} bundleNumber
 	 */
 	function toggleBundle(cableUuid, bundleNumber) {
 		if (!expandedBundles.has(cableUuid)) {
@@ -59,11 +61,14 @@
 
 	/**
 	 * Check if bundle is expanded
+	 * @param {any} cableUuid
+	 * @param {any} bundleNumber
 	 */
 	function isBundleExpanded(cableUuid, bundleNumber) {
 		return expandedBundles.get(cableUuid)?.has(bundleNumber) ?? false;
 	}
 
+	/** @param {any} e @param {any} cable */
 	function handleCableDragStart(e, cable) {
 		if (readonly) {
 			e.preventDefault();
@@ -74,6 +79,7 @@
 		dragDropManager?.startCableDrag(e, cable, cachedFibers);
 	}
 
+	/** @param {any} e @param {any} cable @param {any} bundle */
 	function handleBundleDragStart(e, cable, bundle) {
 		if (readonly) {
 			e.preventDefault();
@@ -82,6 +88,7 @@
 		dragDropManager?.startBundleDrag(e, cable, bundle);
 	}
 
+	/** @param {any} e @param {any} cable @param {any} bundle @param {any} fiber */
 	function handleFiberDragStart(e, cable, bundle, fiber) {
 		if (readonly) {
 			e.preventDefault();
@@ -95,6 +102,7 @@
 		dragDropManager?.endDrag();
 	}
 
+	/** @param {any} cable @param {any} bundle @param {any} fiber */
 	function handleMobileFiberClick(cable, bundle, fiber) {
 		if (readonly) return;
 		if (isMobile) {
@@ -104,6 +112,7 @@
 
 	/**
 	 * Toggle address accordion
+	 * @param {any} addressUuid
 	 */
 	function toggleAddress(addressUuid) {
 		if (expandedAddresses.has(addressUuid)) {
@@ -114,6 +123,7 @@
 		expandedAddresses = new Set(expandedAddresses);
 	}
 
+	/** @param {any} e @param {any} address */
 	function handleAddressDragStart(e, address) {
 		if (readonly) {
 			e.preventDefault();
@@ -122,6 +132,7 @@
 		dragDropManager?.startAddressDrag(e, address, address.residential_units || []);
 	}
 
+	/** @param {any} e @param {any} address @param {any} unit */
 	function handleResidentialUnitDragStart(e, address, unit) {
 		if (readonly) {
 			e.preventDefault();
@@ -130,6 +141,7 @@
 		dragDropManager?.startResidentialUnitDrag(e, address, unit);
 	}
 
+	/** @param {any} address @param {any} unit */
 	function handleMobileResidentialUnitClick(address, unit) {
 		if (readonly) return;
 		if (isMobile) {
@@ -163,6 +175,7 @@
 
 	// Listen for cable connection changes from the diagram
 	$effect(() => {
+		/** @param {any} event */
 		function handleCableConnectionChanged(event) {
 			const { nodeIds } = event.detail;
 			if (nodeIds && nodeIds.includes(nodeUuid)) {
@@ -221,7 +234,6 @@
 </script>
 
 {#if isMobile}
-	<!-- Mobile: Simplified accordion without sidebar wrapper -->
 	<div class="space-y-2">
 		{#if dataManager.loading}
 			<div class="text-center py-4 text-surface-500">{m.common_loading()}</div>
@@ -235,7 +247,6 @@
 				{@const isLoadingFibers = dataManager.isLoadingFibers(cable.uuid)}
 
 				<div class="rounded-lg border border-surface-300-700 bg-surface-200-800 overflow-hidden">
-					<!-- Cable Header -->
 					<button
 						type="button"
 						class="w-full flex items-center gap-3 p-3 text-left hover:bg-surface-300-700 transition-colors"
@@ -270,7 +281,6 @@
 									{@const bundleFullyUsed = dataManager.isBundleFullyUsed(bundle.fibers)}
 
 									<div class="border-b border-surface-200-800 last:border-b-0">
-										<!-- Bundle Header -->
 										<button
 											type="button"
 											class="w-full flex items-center gap-2 px-4 py-2 text-left transition-colors {bundleFullyUsed
@@ -333,7 +343,6 @@
 				</div>
 			{/each}
 
-			<!-- Addresses Section (Mobile) -->
 			{#if dataManager.addresses.length > 0}
 				<div class="mt-4 pt-4 border-t border-surface-300-700">
 					<h4 class="text-sm font-semibold mb-2 px-1 flex items-center gap-2">
@@ -346,7 +355,6 @@
 						<div
 							class="rounded-lg border border-surface-300-700 bg-surface-200-800 overflow-hidden mb-2"
 						>
-							<!-- Address Header -->
 							<button
 								type="button"
 								class="w-full flex items-center gap-3 p-3 text-left hover:bg-surface-300-700 transition-colors"
@@ -390,7 +398,6 @@
 		{/if}
 	</div>
 {:else}
-	<!-- Desktop: Original sidebar -->
 	<div
 		class="relative border-l border-(--color-surface-200-800) bg-(--color-surface-100-900) transition-all duration-200 ease-in-out flex flex-col"
 		style:width={collapsed ? '40px' : '240px'}
@@ -488,7 +495,6 @@
 												{@const isBundleOpen = isBundleExpanded(cable.uuid, bundle.bundleNumber)}
 												{@const bundleFullyUsed = dataManager.isBundleFullyUsed(bundle.fibers)}
 
-												<!-- Bundle accordion -->
 												<div class="mb-0.5">
 													<div
 														class="flex items-center gap-1.5 px-2 py-1.5 rounded transition-colors duration-150 {readonly
@@ -540,7 +546,6 @@
 															{#each bundle.fibers as fiber (fiber.uuid)}
 																{@const fiberUsed = dataManager.isFiberUsed(fiber.uuid)}
 																{@const isDefective = fiber.fiber_status != null}
-																<!-- Fiber item -->
 																<div
 																	class="flex items-center gap-1.5 px-2 py-1.5 rounded-sm transition-colors duration-150 {readonly
 																		? ''
@@ -590,7 +595,6 @@
 					</div>
 				{/if}
 
-				<!-- Addresses Section (Desktop) -->
 				{#if dataManager.addresses.length > 0}
 					<div class="mt-4 pt-4 border-t border-(--color-surface-200-800)">
 						<h3 class="text-sm font-semibold mb-2 px-2 flex items-center gap-2">

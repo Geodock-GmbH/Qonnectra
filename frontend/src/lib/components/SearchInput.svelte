@@ -5,7 +5,7 @@
 
 	let { value = $bindable(''), onSearch = () => {} } = $props();
 
-	function handleKeydown(event) {
+	function handleKeydown(/** @type {KeyboardEvent} */ event) {
 		if (event.key === 'Enter') {
 			onSearch();
 		}
@@ -14,7 +14,7 @@
 
 <div class="search-container group">
 	<div class="search-icon">
-		<IconSearch size={18} strokeWidth={2.5} />
+		<IconSearch size={18} stroke={2.5} />
 	</div>
 	<input
 		class="search-input"
@@ -27,8 +27,8 @@
 		spellcheck="false"
 		data-testid="search-input"
 	/>
-	<button class="search-button" onclick={onSearch} aria-label={m.common_search()}>
-		<IconSearch size={20} strokeWidth={2} />
+	<button class="search-button" onclick={() => onSearch()} aria-label={m.common_search()}>
+		<IconSearch size={20} stroke={2} />
 	</button>
 </div>
 

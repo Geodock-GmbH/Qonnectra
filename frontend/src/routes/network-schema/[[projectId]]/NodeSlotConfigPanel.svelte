@@ -20,34 +20,30 @@
 		sharedSlotState = $bindable(null)
 	} = $props();
 
-	// Hierarchy state
+	/** @type {{containers: any[], root_slot_configurations: any[]}} */
 	let hierarchy = $state({ containers: [], root_slot_configurations: [] });
+	/** @type {any[]} */
 	let containerTypes = $state([]);
 	let loading = $state(true);
 
-	// Form state for slot configuration
 	let editingUuid = $state(null);
 	let isCreating = $state(false);
 	let formSide = $state('');
 	let formTotalSlots = $state(1);
 
-	// Form state for container creation
 	let isCreatingContainer = $state(false);
+	/** @type {any} */
 	let selectedContainerTypeId = $state(null);
 	let containerName = $state('');
 
-	// Drag state for root drop zone
 	let rootDragOver = $state(false);
 	let exporting = $state(false);
 
-	// Delete confirmation state
+	/** @type {any} */
 	let deleteSlotConfigMessageBox = $state(null);
 	let pendingDeleteConfigUuid = $state(null);
 	let pendingDeleteStructureCount = $state(0);
 
-	/**
-	 * Fetch container types (global)
-	 */
 	async function fetchContainerTypes() {
 		try {
 			const formData = new FormData();
@@ -55,7 +51,7 @@
 				method: 'POST',
 				body: formData
 			});
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 			if (result.type === 'success') {
 				containerTypes = result.data?.containerTypes || [];
 			}
@@ -65,7 +61,7 @@
 	}
 
 	/**
-	 * Fetch the full hierarchy tree for the node
+	 * Fetches the full container/slot hierarchy for the node and syncs shared slot state.
 	 */
 	async function fetchHierarchy() {
 		if (!nodeUuid) return;
@@ -82,7 +78,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to fetch hierarchy');
@@ -90,9 +86,7 @@
 
 			hierarchy = result.data?.hierarchy || { containers: [], root_slot_configurations: [] };
 
-			// Update shared state so NodeStructurePanel gets the latest slot configurations
 			if (sharedSlotState) {
-				// Flatten all slot configurations from hierarchy (root + nested in containers)
 				const allSlotConfigs = extractAllSlotConfigurations(hierarchy);
 				sharedSlotState.nodeUuid = nodeUuid;
 				sharedSlotState.slotConfigurations = allSlotConfigs;
@@ -110,12 +104,11 @@
 		}
 	}
 
-	/**
-	 * Extract all slot configurations from hierarchy (root level + nested in containers)
-	 */
+	/** @param {any} h */
 	function extractAllSlotConfigurations(h) {
 		const configs = [...(h.root_slot_configurations || [])];
 
+		/** @param {any} containers */
 		function extractFromContainers(containers) {
 			for (const container of containers || []) {
 				if (container.slot_configurations) {
@@ -131,18 +124,12 @@
 		return configs;
 	}
 
-	/**
-	 * Re-fetch when nodeUuid changes
-	 */
 	$effect(() => {
 		const currentNodeUuid = nodeUuid;
 		fetchContainerTypes();
 		fetchHierarchy();
 	});
 
-	/**
-	 * Create a new container
-	 */
 	async function handleCreateContainer() {
 		if (!selectedContainerTypeId) return;
 
@@ -159,7 +146,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to create container');
@@ -180,9 +167,7 @@
 		}
 	}
 
-	/**
-	 * Delete a container
-	 */
+	/** @param {any} uuid */
 	async function handleDeleteContainer(uuid) {
 		try {
 			const formData = new FormData();
@@ -193,7 +178,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to delete container');
@@ -213,9 +198,7 @@
 		}
 	}
 
-	/**
-	 * Update a container's name
-	 */
+	/** @param {any} uuid @param {any} newName */
 	async function handleUpdateContainerName(uuid, newName) {
 		try {
 			const formData = new FormData();
@@ -227,7 +210,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to update container name');
@@ -235,21 +218,19 @@
 
 			globalToaster.success({
 				title: m.title_success(),
-				description: m.message_success_updating_container?.() || 'Container updated successfully'
+				description: m.message_success_updating_container()
 			});
 			await fetchHierarchy();
 		} catch (err) {
 			console.error('Error updating container name:', err);
 			globalToaster.error({
 				title: m.common_error(),
-				description: m.message_error_updating_container?.() || 'Failed to update container'
+				description: m.message_error_updating_container()
 			});
 		}
 	}
 
-	/**
-	 * Handle drag-and-drop move operations
-	 */
+	/** @param {any} dragData @param {any} targetContainerId */
 	async function handleMove(dragData, targetContainerId) {
 		try {
 			const formData = new FormData();
@@ -262,7 +243,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to move item');
@@ -278,15 +259,14 @@
 		}
 	}
 
-	/**
-	 * Handle root drop zone
-	 */
+	/** @param {any} e */
 	function handleRootDragOver(e) {
 		if (readonly) return;
 		e.preventDefault();
 		rootDragOver = true;
 	}
 
+	/** @param {any} e */
 	function handleRootDragLeave(e) {
 		if (readonly) return;
 		if (!e.currentTarget.contains(e.relatedTarget)) {
@@ -294,6 +274,7 @@
 		}
 	}
 
+	/** @param {any} e */
 	function handleRootDrop(e) {
 		if (readonly) return;
 		e.preventDefault();
@@ -307,14 +288,11 @@
 		}
 	}
 
-	/**
-	 * Toggle container expand state
-	 */
+	/** @param {any} uuid */
 	async function handleToggleExpand(uuid) {
-		// Update locally for immediate feedback
 		hierarchy = updateContainerExpanded(hierarchy, uuid);
 
-		// Persist to server (fire and forget)
+		// Fire-and-forget: persist expand state without blocking
 		const formData = new FormData();
 		formData.append('containerUuid', uuid);
 		fetch('?/toggleContainerExpanded', {
@@ -323,13 +301,17 @@
 		});
 	}
 
+	/** @param {any} h @param {any} uuid */
 	function updateContainerExpanded(h, uuid) {
 		return {
 			...h,
-			containers: h.containers.map((c) => updateContainerExpandedRecursive(c, uuid))
+			containers: h.containers.map((/** @type {any} */ c) =>
+				updateContainerExpandedRecursive(c, uuid)
+			)
 		};
 	}
 
+	/** @param {any} container @param {any} uuid */
 	function updateContainerExpandedRecursive(container, uuid) {
 		if (container.uuid === uuid) {
 			return { ...container, is_expanded: !container.is_expanded };
@@ -337,13 +319,14 @@
 		if (container.children) {
 			return {
 				...container,
-				children: container.children.map((c) => updateContainerExpandedRecursive(c, uuid))
+				children: container.children.map((/** @type {any} */ c) =>
+					updateContainerExpandedRecursive(c, uuid)
+				)
 			};
 		}
 		return container;
 	}
 
-	// Slot configuration CRUD handlers (existing functionality)
 	async function handleCreate() {
 		if (!formSide.trim() || formTotalSlots < 1) return;
 
@@ -358,7 +341,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to create configuration');
@@ -379,6 +362,7 @@
 		}
 	}
 
+	/** @param {any} uuid */
 	async function handleUpdate(uuid) {
 		if (!formSide.trim() || formTotalSlots < 1) return;
 
@@ -393,7 +377,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to update configuration');
@@ -414,8 +398,12 @@
 		}
 	}
 
+	/**
+	 * Guards deletion: fetches associated structures first and prompts for
+	 * confirmation if any exist, since they will be cascade-deleted.
+	 */
+	/** @param {any} uuid */
 	async function handleDelete(uuid) {
-		// Check if the slot configuration has structures before deleting
 		try {
 			const formData = new FormData();
 			formData.append('slotConfigUuid', uuid);
@@ -425,26 +413,24 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 			const structures = result.data?.structures || [];
 
 			if (structures.length > 0) {
-				// Show confirmation dialog
 				pendingDeleteConfigUuid = uuid;
 				pendingDeleteStructureCount = structures.length;
 				deleteSlotConfigMessageBox.open();
 				return;
 			}
 
-			// No structures, delete directly
 			await executeDeleteSlotConfig(uuid);
 		} catch (err) {
 			console.error('Error checking structures before delete:', err);
-			// On error, proceed with delete (backend will handle cascading)
 			await executeDeleteSlotConfig(uuid);
 		}
 	}
 
+	/** @param {any} uuid */
 	async function executeDeleteSlotConfig(uuid) {
 		try {
 			const formData = new FormData();
@@ -455,7 +441,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to delete configuration');
@@ -483,6 +469,7 @@
 		}
 	}
 
+	/** @param {any} config */
 	function startEdit(config) {
 		editingUuid = config.uuid;
 		formSide = config.side;
@@ -530,7 +517,7 @@
 				method: 'POST',
 				body: formData
 			});
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Export failed');
 			}
@@ -574,9 +561,7 @@
 	const hasContainerTypes = $derived(containerTypes.length > 0);
 </script>
 
-<!-- Main container -->
 <div class="flex flex-col gap-4 h-full">
-	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<h3 class="text-sm font-medium text-surface-950-50">
 			{nodeName ? `${m.form_node()}: ${nodeName}` : m.title_slot_configuration()}
@@ -612,7 +597,6 @@
 		</div>
 	</div>
 
-	<!-- Container creation form -->
 	{#if isCreatingContainer && !readonly}
 		<div class="card p-4 space-y-3 bg-surface-50-950 border border-surface-200-800">
 			<div class="grid grid-cols-2 gap-3">
@@ -655,7 +639,6 @@
 		</div>
 	{/if}
 
-	<!-- Slot configuration form -->
 	{#if (isCreating || editingUuid) && !readonly}
 		<div class="card p-4 space-y-3 bg-surface-50-950 border border-surface-200-800">
 			<div class="grid grid-cols-2 gap-3">
@@ -687,7 +670,6 @@
 		</div>
 	{/if}
 
-	<!-- Hierarchy tree view -->
 	<div
 		class="flex-1 overflow-auto rounded-lg"
 		class:drag-over-root={rootDragOver && !readonly}
@@ -707,7 +689,6 @@
 			</div>
 		{:else}
 			<div class="space-y-1">
-				<!-- Root-level containers -->
 				{#each hierarchy.containers as container (container.uuid)}
 					<div animate:flip={{ duration: 200 }}>
 						<ContainerItem
@@ -724,7 +705,6 @@
 					</div>
 				{/each}
 
-				<!-- Root-level slot configurations -->
 				{#each hierarchy.root_slot_configurations as config (config.uuid)}
 					<div animate:flip={{ duration: 200 }}>
 						<SlotConfigItem
@@ -741,7 +721,6 @@
 	</div>
 </div>
 
-<!-- Delete confirmation modal for slot configs with structures -->
 <MessageBox
 	bind:this={deleteSlotConfigMessageBox}
 	heading={m.common_confirm()}

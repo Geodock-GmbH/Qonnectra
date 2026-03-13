@@ -5,9 +5,9 @@
 
 	/**
 	 * @typedef {Object} Props
-	 * @property {Object} properties - Feature properties from MVT
+	 * @property {Record<string, any>} properties - Feature properties from MVT
 	 * @property {string} featureType - Type of feature ('trench', 'address', 'node')
-	 * @property {Object} alias - Field name alias mapping (English -> Localized)
+	 * @property {Record<string, string>} alias - Field name alias mapping (English -> Localized)
 	 * @property {Array<{label: string, value: string}>} projects - List of projects for name lookup
 	 */
 
@@ -20,7 +20,6 @@
 	 * @returns {string} - Display label
 	 */
 	function getDisplayLabel(key) {
-		// Use alias if available, otherwise fall back to formatted label
 		return alias[key] || getFieldLabel(key);
 	}
 
@@ -35,7 +34,6 @@
 		if (typeof value === 'boolean') return value ? m.common_yes() : m.common_no();
 		if (value instanceof Date) return value.toLocaleDateString();
 
-		// Look up project name if this is the project field
 		if (key === 'project' && projects.length > 0) {
 			const project = projects.find((p) => p.value === String(value));
 			if (project) return project.label;
@@ -51,7 +49,6 @@
 	const propertyEntries = $derived(
 		Object.entries(properties)
 			.filter(([key, value]) => {
-				// Skip null/undefined values
 				return value !== null && value !== undefined;
 			})
 			.sort(([keyA], [keyB]) => {

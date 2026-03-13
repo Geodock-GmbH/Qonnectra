@@ -5,13 +5,15 @@
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 
+	/** @typedef {import('$lib/classes/CableFiberDataManager.svelte.js').Fiber} Fiber */
+
 	/**
 	 * @typedef {Object} Props
-	 * @property {Array<Object>} fibers - Array of fiber objects
+	 * @property {Array<Fiber>} fibers - Array of fiber objects
 	 * @property {boolean} loading - Loading state
 	 * @property {string|null} error - Error message
 	 * @property {Array<{id: number, fiber_status: string}>} statusOptions - Available status options
-	 * @property {(fiber: Object, statusId: number|null) => void} onStatusChange - Callback when status changes
+	 * @property {(fiber: Fiber, statusId: number|null) => void} onStatusChange - Callback when status changes
 	 * @property {(colorName: string) => string} getColorHex - Function to get hex color from name
 	 */
 
@@ -34,6 +36,7 @@
 	let expandedBundles = $state(new Set());
 
 	$effect(() => {
+		/** @type {Record<string, Array<string|number>>} */
 		const newValues = {};
 		for (const fiber of fibers) {
 			newValues[fiber.uuid] =
@@ -81,12 +84,13 @@
 
 	/**
 	 * Handle combobox value change
-	 * @param {Object} fiber
+	 * @param {Fiber} fiber
 	 * @param {{ value: Array<string|number> }} e
 	 */
 	function handleComboboxChange(fiber, e) {
 		const selectedValue = e.value[0];
-		const newValue = selectedValue === HEALTHY_VALUE ? null : selectedValue;
+		/** @type {number|null} */
+		const newValue = selectedValue === HEALTHY_VALUE ? null : /** @type {number} */ (selectedValue);
 		if (onStatusChange) {
 			onStatusChange(fiber, newValue);
 		}
@@ -94,7 +98,7 @@
 
 	/**
 	 * Check if a fiber has a defective status
-	 * @param {Object} fiber
+	 * @param {Fiber} fiber
 	 * @returns {boolean}
 	 */
 	function isDefective(fiber) {
@@ -103,7 +107,7 @@
 
 	/**
 	 * Count defective fibers in a bundle
-	 * @param {Array<Object>} bundleFibers
+	 * @param {Array<Fiber>} bundleFibers
 	 * @returns {number}
 	 */
 	function countDefective(bundleFibers) {
@@ -111,6 +115,7 @@
 	}
 </script>
 
+<!-- Loading / Error / Empty States -->
 {#if loading}
 	<div class="p-4">
 		<div class="placeholder animate-pulse min-h-6"></div>
@@ -124,6 +129,7 @@
 		<p>{m.form_no_fibers_available()}</p>
 	</div>
 {:else}
+	<!-- Bundle Groups -->
 	<div class="space-y-2">
 		{#each bundleGroups as bundle (bundle.bundleNumber)}
 			{@const defectiveCount = countDefective(bundle.fibers)}
@@ -188,7 +194,8 @@
 											<GenericCombobox
 												data={statusComboboxData}
 												bind:value={statusValues[fiber.uuid]}
-												onValueChange={(e) => handleComboboxChange(fiber, e)}
+												onValueChange={(/** @type {{ value: Array<string|number> }} */ e) =>
+													handleComboboxChange(fiber, e)}
 												placeholder={m.form_status()}
 												classes="w-full"
 												placeholderSize="size-8"

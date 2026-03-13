@@ -1,13 +1,13 @@
 /**
- * Creates a tooltip attachment that can be used with {@attach} directive
- * Based on Svelte 5 {@attach} pattern
+ * Creates a tooltip attachment for use with the Svelte 5 `{@attach}` directive.
+ * Manages tooltip lifecycle (show/hide/position) via mouse events.
  *
- * @param {string} content - The tooltip text content
- * @param {Object} [options] - Tooltip options
- * @param {'top' | 'bottom' | 'left' | 'right'} [options.position='top'] - Position of the tooltip
- * @param {number} [options.delay=200] - Delay in milliseconds before showing tooltip
- * @param {boolean} [options.disabled=false] - Whether to disable the tooltip
- * @returns {import('svelte/attachments').Attachment}
+ * @param {string|undefined} content - The tooltip text content.
+ * @param {Object} [options] - Tooltip configuration.
+ * @param {'top' | 'bottom' | 'left' | 'right'} [options.position='top'] - Position relative to the target.
+ * @param {number} [options.delay=200] - Delay in ms before showing the tooltip.
+ * @param {boolean} [options.disabled=false] - Whether to disable the tooltip entirely.
+ * @returns {(element: HTMLElement) => () => void} Svelte attachment function.
  *
  * @example
  * ```svelte
@@ -23,38 +23,27 @@ export function tooltip(content, options = {}) {
 			return () => {};
 		}
 
+		/** @type {HTMLSpanElement | null} */
 		let tooltipElement = null;
+		/** @type {ReturnType<typeof setTimeout> | null} */
 		let timeoutId = null;
 
-		/**
-		 * Creates and shows the tooltip
-		 */
 		function showTooltip() {
-			// Create tooltip element
 			tooltipElement = document.createElement('span');
 			tooltipElement.className = `tooltip tooltip-${position} bg-surface-100-900 text-surface-900-100 px-3 py-2 rounded text-sm whitespace-nowrap shadow-lg z-[1000] pointer-events-none`;
-			tooltipElement.textContent = content;
+			tooltipElement.textContent = content ?? null;
 			tooltipElement.setAttribute('role', 'tooltip');
 
-			// Add minimal required styles for positioning
 			Object.assign(tooltipElement.style, {
 				position: 'absolute',
-				visibility: 'hidden' // Hide initially to get accurate dimensions
+				visibility: 'hidden'
 			});
 
-			// Add to DOM first to get accurate dimensions
 			document.body.appendChild(tooltipElement);
-
-			// Position the tooltip after it's in the DOM
 			positionTooltip(tooltipElement, element, position);
-
-			// Make visible after positioning
 			tooltipElement.style.visibility = 'visible';
 		}
 
-		/**
-		 * Removes the tooltip from DOM
-		 */
 		function hideTooltip() {
 			if (timeoutId) {
 				clearTimeout(timeoutId);
@@ -66,31 +55,22 @@ export function tooltip(content, options = {}) {
 			}
 		}
 
-		/**
-		 * Mouse enter handler
-		 */
 		function handleMouseEnter() {
 			timeoutId = setTimeout(showTooltip, delay);
 		}
 
-		/**
-		 * Mouse leave handler
-		 */
 		function handleMouseLeave() {
 			hideTooltip();
 		}
 
-		// Add event listeners
 		element.addEventListener('mouseenter', handleMouseEnter);
 		element.addEventListener('mouseleave', handleMouseLeave);
 
-		// Ensure element has relative positioning context
 		const originalPosition = window.getComputedStyle(element).position;
 		if (originalPosition === 'static') {
 			element.style.position = 'relative';
 		}
 
-		// Cleanup function
 		return () => {
 			hideTooltip();
 			element.removeEventListener('mouseenter', handleMouseEnter);
@@ -103,35 +83,35 @@ export function tooltip(content, options = {}) {
 }
 
 /**
- * Positions the tooltip element relative to the target element
- * @param {HTMLElement} tooltipElement
- * @param {HTMLElement} targetElement
- * @param {'top' | 'bottom' | 'left' | 'right'} position
+ * Positions the tooltip element relative to the target, clamping to viewport edges.
+ * @param {HTMLElement} tooltipElement - The tooltip DOM element.
+ * @param {HTMLElement} targetElement - The element the tooltip is attached to.
+ * @param {'top' | 'bottom' | 'left' | 'right'} position - Desired tooltip position.
  */
 function positionTooltip(tooltipElement, targetElement, position) {
 	const rect = targetElement.getBoundingClientRect();
 	const tooltipRect = tooltipElement.getBoundingClientRect();
 	const offset = 12;
 	const arrowSize = 4;
-	const viewportMargin = 8; // Minimum distance from viewport edge
+	const viewportMargin = 8;
 
 	let top, left;
-	let arrowOffset = null; // Track if arrow needs repositioning
+	/** @type {number | null} */
+	let arrowOffset = null;
 
 	switch (position) {
 		case 'top':
 			top = rect.top - tooltipRect.height - offset + window.scrollY;
 			left = rect.left + rect.width / 2 - tooltipRect.width / 2 + window.scrollX;
 
-			// Ensure tooltip doesn't go off-screen horizontally
 			const maxLeft = window.innerWidth - tooltipRect.width - viewportMargin + window.scrollX;
 			const minLeft = viewportMargin + window.scrollX;
 
 			if (left < minLeft) {
-				arrowOffset = left - minLeft; // Track how much we shifted
+				arrowOffset = left - minLeft;
 				left = minLeft;
 			} else if (left > maxLeft) {
-				arrowOffset = left - maxLeft; // Track how much we shifted
+				arrowOffset = left - maxLeft;
 				left = maxLeft;
 			}
 
@@ -142,15 +122,14 @@ function positionTooltip(tooltipElement, targetElement, position) {
 			top = rect.bottom + offset + window.scrollY;
 			left = rect.left + rect.width / 2 - tooltipRect.width / 2 + window.scrollX;
 
-			// Ensure tooltip doesn't go off-screen horizontally
 			const maxLeftBottom = window.innerWidth - tooltipRect.width - viewportMargin + window.scrollX;
 			const minLeftBottom = viewportMargin + window.scrollX;
 
 			if (left < minLeftBottom) {
-				arrowOffset = left - minLeftBottom; // Track how much we shifted
+				arrowOffset = left - minLeftBottom;
 				left = minLeftBottom;
 			} else if (left > maxLeftBottom) {
-				arrowOffset = left - maxLeftBottom; // Track how much we shifted
+				arrowOffset = left - maxLeftBottom;
 				left = maxLeftBottom;
 			}
 
@@ -161,12 +140,10 @@ function positionTooltip(tooltipElement, targetElement, position) {
 			top = rect.top + rect.height / 2 - tooltipRect.height / 2 + window.scrollY;
 			left = rect.left - tooltipRect.width - offset + window.scrollX;
 
-			// Ensure tooltip doesn't go off-screen horizontally
 			if (left < viewportMargin) {
 				left = viewportMargin;
 			}
 
-			// Ensure tooltip doesn't go off-screen vertically
 			const maxTop = window.innerHeight - tooltipRect.height - viewportMargin;
 			if (top < viewportMargin) {
 				arrowOffset = top - viewportMargin;
@@ -183,13 +160,11 @@ function positionTooltip(tooltipElement, targetElement, position) {
 			top = rect.top + rect.height / 2 - tooltipRect.height / 2 + window.scrollY;
 			left = rect.right + offset + window.scrollX;
 
-			// Ensure tooltip doesn't go off-screen horizontally
 			const maxLeftRight = window.innerWidth - tooltipRect.width - viewportMargin;
 			if (left > maxLeftRight) {
 				left = maxLeftRight;
 			}
 
-			// Ensure tooltip doesn't go off-screen vertically
 			const maxTopRight = window.innerHeight - tooltipRect.height - viewportMargin;
 			if (top < viewportMargin) {
 				arrowOffset = top - viewportMargin;
@@ -208,11 +183,11 @@ function positionTooltip(tooltipElement, targetElement, position) {
 }
 
 /**
- * Adds an arrow to the tooltip
- * @param {HTMLElement} tooltipElement
- * @param {'top' | 'bottom' | 'left' | 'right'} side
- * @param {number} size
- * @param {number|null} offset - Offset in pixels to shift the arrow (used when tooltip is repositioned to stay in viewport)
+ * Appends a CSS-border-based arrow to the tooltip pointing toward the target element.
+ * @param {HTMLElement} tooltipElement - The tooltip DOM element.
+ * @param {'top' | 'bottom' | 'left' | 'right'} side - Which side of the tooltip the arrow appears on.
+ * @param {number} size - Arrow size in pixels.
+ * @param {number | null} [offset=null] - Pixel offset to shift the arrow when the tooltip was clamped to viewport.
  */
 function addArrow(tooltipElement, side, size, offset = null) {
 	const arrow = document.createElement('span');
@@ -221,7 +196,6 @@ function addArrow(tooltipElement, side, size, offset = null) {
 	arrow.style.height = '0';
 	arrow.style.border = `${size}px solid transparent`;
 
-	// Get the computed background color from the tooltip to match theme
 	const tooltipBgColor = window.getComputedStyle(tooltipElement).backgroundColor;
 
 	switch (side) {

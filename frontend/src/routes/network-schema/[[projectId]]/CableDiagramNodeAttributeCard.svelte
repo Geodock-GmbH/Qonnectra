@@ -20,29 +20,38 @@
 		excludedNodeTypeIds: []
 	};
 
-	// Detect if we're in child view
 	const isChildView = $derived($page.url.pathname.includes('/node/'));
 
 	let node = $derived($drawerStore.props);
 	let id = $derived(node?.id || '');
 	let nodeName = $state('');
+	/** @type {any[]} */
 	let nodeType = $state([]);
+	/** @type {any[]} */
 	let nodeStatus = $state([]);
+	/** @type {any[]} */
 	let nodeNetworkLevel = $state([]);
+	/** @type {any[]} */
 	let nodeOwner = $state([]);
+	/** @type {any[]} */
 	let nodeConstructor = $state([]);
+	/** @type {any[]} */
 	let nodeManufacturer = $state([]);
 	let nodeWarranty = $state('');
 	let nodeDate = $state('');
+	/** @type {any[]} */
 	let nodeFlag = $state([]);
+	/** @type {any[]} */
 	let nodeParentNode = $state([]);
+	/** @type {any[]} */
 	let availableNodes = $state([]);
 	let isLoadingParentNodes = $state(false);
 
 	let { onLabelUpdate, onNodeDelete } = $props();
 
-	// Delete confirmation state
+	/** @type {any} */
 	let deleteMessageBox = $state(null);
+	/** @type {any} */
 	let cableBlockedMessageBox = $state(null);
 	let pendingDeleteCableCount = $state(0);
 	let pendingDeleteStructureCount = $state(0);
@@ -51,12 +60,11 @@
 	let hasChildrenWithCables = $state(false);
 	let isCheckingDependencies = $state(false);
 
-	// Track the last checked node to avoid race conditions
 	let lastCheckedNodeId = $state('');
 
-	// Node type disabled when node has BOTH children AND cables
+	/** Disabled when node has both children and cables, as changing type would break the hierarchy. */
 	const nodeTypeDisabled = $derived(isCheckingDependencies || (hasChildren && hasConnectedCables));
-	// Parent node disabled when in child view AND node has cables
+	/** Disabled when in child view and node already has cables, to prevent re-parenting a wired node. */
 	const parentNodeDisabled = $derived(
 		isCheckingDependencies || (isChildView && hasConnectedCables)
 	);
@@ -64,7 +72,7 @@
 	/**
 	 * Check dependencies when node changes (cables, structures, children)
 	 */
-	async function checkNodeDependencies(nodeId) {
+	async function checkNodeDependencies(/** @type {any} */ nodeId) {
 		if (!nodeId) return;
 
 		isCheckingDependencies = true;
@@ -79,7 +87,7 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 			const cables = result.data?.cables || [];
 			const structures = result.data?.structures || [];
 			const children = result.data?.children || [];
@@ -107,16 +115,13 @@
 		}
 	}
 
-	// Reset and fetch dependencies when node changes
 	$effect(() => {
 		if (id) {
-			// Reset state immediately
 			pendingDeleteCableCount = 0;
 			pendingDeleteStructureCount = 0;
 			hasConnectedCables = false;
 			hasChildren = false;
 			hasChildrenWithCables = false;
-			// Fetch new dependencies
 			checkNodeDependencies(id);
 		}
 	});
@@ -128,7 +133,10 @@
 			nodeStatus = node.status?.id != null ? [node.status.id] : [];
 			nodeNetworkLevel = node.network_level?.id != null ? [node.network_level.id] : [];
 			nodeOwner = node.owner?.id != null ? [node.owner.id] : [];
-			nodeConstructor = node.constructor?.id != null ? [node.constructor.id] : [];
+			nodeConstructor =
+				/** @type {any} */ (node.constructor)?.id != null
+					? [/** @type {any} */ (node.constructor).id]
+					: [];
 			nodeManufacturer = node.manufacturer?.id != null ? [node.manufacturer.id] : [];
 			nodeWarranty = node.warranty || '';
 			nodeDate = node.date || '';
@@ -148,9 +156,9 @@
 				body: new FormData()
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 			if (result.data?.nodes) {
-				availableNodes = result.data.nodes.filter((n) => n.value !== id);
+				availableNodes = result.data.nodes.filter((/** @type {any} */ n) => n.value !== id);
 			}
 		} catch (err) {
 			console.error('Error fetching available nodes:', err);
@@ -165,7 +173,7 @@
 		}
 	});
 
-	async function handleSubmit(event) {
+	async function handleSubmit(/** @type {any} */ event) {
 		event.preventDefault();
 		const formData = new FormData(event.target);
 		formData.append('uuid', id);
@@ -221,7 +229,6 @@
 	async function confirmDelete() {
 		if (!id) return;
 
-		// Check for dependencies before showing delete dialog
 		try {
 			const formData = new FormData();
 			formData.append('nodeUuid', id);
@@ -231,27 +238,24 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 			const cables = result.data?.cables || [];
 			const structures = result.data?.structures || [];
 
 			pendingDeleteCableCount = cables.length;
 			pendingDeleteStructureCount = structures.length;
 
-			// If cables are connected, block deletion and show info message
 			if (cables.length > 0) {
-				cableBlockedMessageBox.open();
+				cableBlockedMessageBox?.open();
 				return;
 			}
 
-			// No cables connected, show confirmation for node deletion
-			deleteMessageBox.open();
+			deleteMessageBox?.open();
 		} catch (err) {
 			console.error('Error checking dependencies:', err);
-			// Still allow delete on error
 			pendingDeleteCableCount = 0;
 			pendingDeleteStructureCount = 0;
-			deleteMessageBox.open();
+			deleteMessageBox?.open();
 		}
 	}
 
@@ -285,12 +289,14 @@
 			console.error('Error deleting node:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: error.message || m.message_error_deleting_node?.() || 'Failed to delete node'
+				description:
+					/** @type {any} */ (error).message ||
+					m.message_error_deleting_node?.() ||
+					'Failed to delete node'
 			});
 		}
 	}
 
-	// Build dynamic delete message based on dependencies
 	let deleteMessage = $derived.by(() => {
 		const parts = [];
 		if (pendingDeleteCableCount > 0) {
@@ -318,7 +324,7 @@
 			name="node_name"
 			required
 			value={nodeName}
-			oninput={(e) => (nodeName = e.target.value)}
+			oninput={(e) => (nodeName = /** @type {any} */ (e.target).value)}
 		/>
 	</label>
 	<label
@@ -334,7 +340,7 @@
 			data={attributes.nodeTypes}
 			bind:value={nodeType}
 			defaultValue={nodeType}
-			onValueChange={(e) => (nodeType = e.value)}
+			onValueChange={(/** @type {any} */ e) => (nodeType = e.value)}
 			disabledValues={attributes.excludedNodeTypeIds}
 			disabled={nodeTypeDisabled}
 			renderInPlace={true}
@@ -346,7 +352,7 @@
 			data={attributes.statuses}
 			bind:value={nodeStatus}
 			defaultValue={nodeStatus}
-			onValueChange={(e) => (nodeStatus = e.value)}
+			onValueChange={(/** @type {any} */ e) => (nodeStatus = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -356,7 +362,7 @@
 			data={attributes.networkLevels}
 			bind:value={nodeNetworkLevel}
 			defaultValue={nodeNetworkLevel}
-			onValueChange={(e) => (nodeNetworkLevel = e.value)}
+			onValueChange={(/** @type {any} */ e) => (nodeNetworkLevel = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -366,7 +372,7 @@
 			data={attributes.companies}
 			bind:value={nodeOwner}
 			defaultValue={nodeOwner}
-			onValueChange={(e) => (nodeOwner = e.value)}
+			onValueChange={(/** @type {any} */ e) => (nodeOwner = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -376,7 +382,7 @@
 			data={attributes.companies}
 			bind:value={nodeConstructor}
 			defaultValue={nodeConstructor}
-			onValueChange={(e) => (nodeConstructor = e.value)}
+			onValueChange={(/** @type {any} */ e) => (nodeConstructor = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -386,7 +392,7 @@
 			data={attributes.companies}
 			bind:value={nodeManufacturer}
 			defaultValue={nodeManufacturer}
-			onValueChange={(e) => (nodeManufacturer = e.value)}
+			onValueChange={(/** @type {any} */ e) => (nodeManufacturer = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -397,7 +403,7 @@
 			class="input"
 			name="warranty"
 			value={nodeWarranty}
-			oninput={(e) => (nodeWarranty = e.target.value)}
+			oninput={(e) => (nodeWarranty = /** @type {any} */ (e.target).value)}
 		/>
 	</label>
 	<label class="label">
@@ -407,7 +413,7 @@
 			class="input"
 			name="date"
 			value={nodeDate}
-			oninput={(e) => (nodeDate = e.target.value)}
+			oninput={(e) => (nodeDate = /** @type {any} */ (e.target).value)}
 		/>
 	</label>
 	<label class="label">
@@ -416,7 +422,7 @@
 			data={attributes.flags}
 			bind:value={nodeFlag}
 			defaultValue={nodeFlag}
-			onValueChange={(e) => (nodeFlag = e.value)}
+			onValueChange={(/** @type {any} */ e) => (nodeFlag = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -432,7 +438,7 @@
 			data={availableNodes}
 			bind:value={nodeParentNode}
 			defaultValue={nodeParentNode}
-			onValueChange={(e) => (nodeParentNode = e.value)}
+			onValueChange={(/** @type {any} */ e) => (nodeParentNode = e.value)}
 			disabled={parentNodeDisabled}
 			renderInPlace={true}
 			loading={isLoadingParentNodes}

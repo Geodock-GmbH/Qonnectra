@@ -4,10 +4,11 @@
 
 	import { networkSchemaChildViewport, networkSchemaViewport } from '$lib/stores/store';
 
-	/** @type {boolean} */
 	let { isChildView = false } = $props();
 
-	const viewportStore = $derived(isChildView ? networkSchemaChildViewport : networkSchemaViewport);
+	const viewportStore = $derived(
+		/** @type {any} */ (isChildView) ? networkSchemaChildViewport : networkSchemaViewport
+	);
 
 	const { getViewport, setViewport } = useSvelteFlow();
 
@@ -17,6 +18,7 @@
 		}
 	});
 
+	/** @type {any} */
 	let saveTimeout;
 	$effect(() => {
 		const currentViewport = getViewport();

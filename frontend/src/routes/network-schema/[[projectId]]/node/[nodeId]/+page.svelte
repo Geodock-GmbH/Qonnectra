@@ -35,7 +35,20 @@
 	let { data } = $props();
 
 	const nodeTypes = { cableDiagramNode: CableDiagramNode };
+	/** @type {any} */
 	const edgeTypes = { cableDiagramEdge: CableDiagramEdge };
+
+	/** @type {any} */
+	const connectionMode = 'loose';
+
+	/** @type {any} */
+	const svelteFlowExtraProps = {
+		snapToGrid: true,
+		snapGrid: [120, 120],
+		connectionRadius: 100,
+		noPanClass: 'nopan',
+		minZoom: 0.01
+	};
 
 	const schemaState = new NetworkSchemaState();
 	const cablePathManager = new CablePathManager();
@@ -43,8 +56,7 @@
 
 	$effect(() => {
 		schemaState.isChildView = true;
-		schemaState.initialize(data);
-		// Set parent node context for child view cable creation
+		schemaState.initialize(/** @type {any} */ (data));
 		schemaState.parentNodeContext = data.parentNodeId;
 	});
 
@@ -92,9 +104,9 @@
 		}
 	});
 
-	onMount(async () => {
+	onMount(() => {
 		startHeartbeat();
-		await autoLockSvelteFlow();
+		autoLockSvelteFlow();
 
 		return () => {
 			stopHeartbeat();
@@ -102,7 +114,7 @@
 	});
 
 	onMount(() => {
-		function handleMicropipeLinkageChanged(event) {
+		function handleMicropipeLinkageChanged(/** @type {any} */ event) {
 			const { cableId, connections } = event.detail;
 			schemaState.updateEdgeMicropipeConnections(cableId, connections);
 		}
@@ -113,35 +125,45 @@
 		};
 	});
 
-	async function handleCablePathUpdate(event) {
+	async function handleCablePathUpdate(/** @type {any} */ event) {
 		const { edgeId, waypoints, temporary, save } = event.detail;
 
-		await cablePathManager.updatePath(edgeId, waypoints, temporary, save, (edgeId, updates) => {
-			schemaState.edges = schemaState.edges.map((edge) => {
-				if (edge.id === edgeId) {
-					return {
-						...edge,
-						data: {
-							...edge.data,
-							cable: {
-								...edge.data.cable,
-								...updates.data.cable
+		await cablePathManager.updatePath(
+			edgeId,
+			waypoints,
+			temporary,
+			save,
+			(/** @type {any} */ edgeId, /** @type {any} */ updates) => {
+				schemaState.edges = schemaState.edges.map((edge) => {
+					if (edge.id === edgeId) {
+						return {
+							...edge,
+							data: {
+								...edge.data,
+								cable: {
+									...edge.data.cable,
+									...updates.data.cable
+								}
 							}
-						}
-					};
-				}
-				return edge;
-			});
-		});
+						};
+					}
+					return edge;
+				});
+			}
+		);
 	}
 
-	function handleCableHandleUpdate(event) {
+	function handleCableHandleUpdate(/** @type {any} */ event) {
 		const { cableId, handleStart, handleEnd } = event.detail;
 		cablePathManager.updateHandles(
 			cableId,
 			handleStart,
 			handleEnd,
-			(cableId, handleStart, handleEnd) => {
+			(
+				/** @type {any} */ cableId,
+				/** @type {any} */ handleStart,
+				/** @type {any} */ handleEnd
+			) => {
 				schemaState.updateCableHandles(cableId, handleStart, handleEnd);
 			}
 		);
@@ -162,7 +184,7 @@
 	});
 
 	$effect(() => {
-		function handleCableConnectionChangedEvent(event) {
+		function handleCableConnectionChangedEvent(/** @type {any} */ event) {
 			const { cableId, side, newNodeId, handlePosition } = event.detail;
 			if (cableId && side && newNodeId) {
 				schemaState.updateEdgeConnection(cableId, side, newNodeId, handlePosition);
@@ -202,21 +224,16 @@
 			fitView
 			{nodeTypes}
 			{edgeTypes}
-			connectionMode="loose"
-			snapToGrid={true}
-			snapGrid={[120, 120]}
-			onnodedragstop={(e) => schemaState.handleNodeDragStop(e)}
-			onconnect={(conn) => schemaState.handleConnect(conn, $selectedProject)}
-			connectionRadius={100}
-			noPanClass="nopan"
-			minZoom={0.01}
+			{connectionMode}
+			{...svelteFlowExtraProps}
+			onnodedragstop={(/** @type {any} */ e) => schemaState.handleNodeDragStop(e)}
+			onconnect={(/** @type {any} */ conn) => schemaState.handleConnect(conn, $selectedProject)}
 		>
 			<ViewportPersistence isChildView={true} />
 			<Background class="z-0" bgColor="var(--color-surface-100-900)" />
 			<Controls />
 			<Panel position="top-left">
 				<div class="card bg-surface-50-950 p-2 rounded-lg shadow-lg w-72">
-					<!-- Collapsible Panel Header -->
 					<button
 						class="flex items-center gap-1.5 w-full hover:bg-surface-100-800 rounded px-1 py-0.5 transition-colors"
 						onclick={() => ($networkSchemaPanelExpanded = !$networkSchemaPanelExpanded)}
@@ -245,14 +262,13 @@
 								bind:value={schemaState.selectedCableType}
 								defaultValue={schemaState.selectedCableType}
 								placeholder={m.placeholder_select_cable_type()}
-								onValueChange={(e) => {
+								onValueChange={(/** @type {{ value: any }} */ e) => {
 									schemaState.selectedCableType = e.value;
 								}}
 								contentBase="preset-filled-surface-50-950 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 shadow-lg"
 							/>
 						</div>
 
-						<!-- Collapsible Display Options Section -->
 						<div class="mt-3">
 							<button
 								class="flex items-center gap-1.5 w-full hover:bg-surface-100-800 rounded px-1 py-0.5 transition-colors"

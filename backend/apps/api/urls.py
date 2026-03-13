@@ -1,3 +1,9 @@
+"""URL configuration for the Qonnectra API.
+
+Register DRF router endpoints and standalone API views for
+GIS features, file management, WMS/WFS proxying, and dashboard statistics.
+"""
+
 from django.urls import include, path, re_path
 from rest_framework.routers import DefaultRouter
 
@@ -173,7 +179,9 @@ router.register(
 )
 router.register(r"content-types", ContentTypeViewSet, basename="content-types")
 router.register(r"address", AddressViewSet, basename="address")
-router.register(r"residential-unit", ResidentialUnitViewSet, basename="residential-unit")
+router.register(
+    r"residential-unit", ResidentialUnitViewSet, basename="residential-unit"
+)
 router.register(r"area", AreaViewSet, basename="area")
 router.register(r"cable", CableViewSet, basename="cable")
 router.register(r"cable_label", CableLabelViewSet, basename="cable_label")

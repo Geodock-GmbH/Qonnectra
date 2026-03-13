@@ -3,10 +3,38 @@ import { API_URL } from '$env/static/private';
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
 /**
- * Fetch node types for layer styling
- * @param {Function} fetch - SvelteKit fetch function
+ * @typedef {Object} NodeType
+ * @property {string} uuid - Node type UUID
+ * @property {string} name - Node type display name
+ * @property {string} [color] - Optional hex color code
+ */
+
+/**
+ * @typedef {Object} Surface
+ * @property {string} uuid - Surface UUID
+ * @property {string} name - Surface display name
+ * @property {string} [color] - Optional hex color code
+ */
+
+/**
+ * @typedef {Object} ConstructionType
+ * @property {string} uuid - Construction type UUID
+ * @property {string} name - Construction type display name
+ * @property {string} [color] - Optional hex color code
+ */
+
+/**
+ * @typedef {Object} AreaType
+ * @property {string} uuid - Area type UUID
+ * @property {string} name - Area type display name
+ * @property {string} [color] - Optional hex color code
+ */
+
+/**
+ * Fetches node types for layer styling.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @returns {Promise<{nodeTypes: Array, nodeTypesError: string|null}>}
+ * @returns {Promise<{nodeTypes: NodeType[], nodeTypesError: string | null}>} Node types or error message
  */
 export async function getNodeTypes(fetch, cookies) {
 	try {
@@ -24,15 +52,15 @@ export async function getNodeTypes(fetch, cookies) {
 		return { nodeTypes, nodeTypesError: null };
 	} catch (err) {
 		console.error('Error fetching node types:', err);
-		return { nodeTypes: [], nodeTypesError: err.message };
+		return { nodeTypes: [], nodeTypesError: /** @type {Error} */ (err).message };
 	}
 }
 
 /**
- * Fetch surface types for trench styling
- * @param {Function} fetch - SvelteKit fetch function
+ * Fetches surface types for trench styling.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @returns {Promise<{surfaces: Array, surfacesError: string|null}>}
+ * @returns {Promise<{surfaces: Surface[], surfacesError: string | null}>} Surfaces or error message
  */
 export async function getSurfaces(fetch, cookies) {
 	try {
@@ -50,15 +78,15 @@ export async function getSurfaces(fetch, cookies) {
 		return { surfaces, surfacesError: null };
 	} catch (err) {
 		console.error('Error fetching surfaces:', err);
-		return { surfaces: [], surfacesError: err.message };
+		return { surfaces: [], surfacesError: /** @type {Error} */ (err).message };
 	}
 }
 
 /**
- * Fetch construction types for trench styling
- * @param {Function} fetch - SvelteKit fetch function
+ * Fetches construction types for trench styling.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @returns {Promise<{constructionTypes: Array, constructionTypesError: string|null}>}
+ * @returns {Promise<{constructionTypes: ConstructionType[], constructionTypesError: string | null}>} Construction types or error message
  */
 export async function getConstructionTypes(fetch, cookies) {
 	try {
@@ -76,15 +104,15 @@ export async function getConstructionTypes(fetch, cookies) {
 		return { constructionTypes, constructionTypesError: null };
 	} catch (err) {
 		console.error('Error fetching construction types:', err);
-		return { constructionTypes: [], constructionTypesError: err.message };
+		return { constructionTypes: [], constructionTypesError: /** @type {Error} */ (err).message };
 	}
 }
 
 /**
- * Fetch area types for area styling
- * @param {Function} fetch - SvelteKit fetch function
+ * Fetches area types for area styling.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @returns {Promise<{areaTypes: Array, areaTypesError: string|null}>}
+ * @returns {Promise<{areaTypes: AreaType[], areaTypesError: string | null}>} Area types or error message
  */
 export async function getAreaTypes(fetch, cookies) {
 	try {
@@ -102,6 +130,6 @@ export async function getAreaTypes(fetch, cookies) {
 		return { areaTypes, areaTypesError: null };
 	} catch (err) {
 		console.error('Error fetching area types:', err);
-		return { areaTypes: [], areaTypesError: err.message };
+		return { areaTypes: [], areaTypesError: /** @type {Error} */ (err).message };
 	}
 }

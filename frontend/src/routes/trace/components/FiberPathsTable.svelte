@@ -15,7 +15,7 @@
 
 	/**
 	 * @typedef {Object} Props
-	 * @property {Array<Object>} traceTrees - Array of fiber path tree objects
+	 * @property {Array<Record<string, any>>} traceTrees - Array of fiber path tree objects
 	 */
 
 	/** @type {Props} */
@@ -23,6 +23,7 @@
 
 	let searchQuery = $state('');
 	let expandedRows = new SvelteSet();
+	/** @type {HTMLDivElement | null} */
 	let containerEl = $state(null);
 	let scrollTop = $state(0);
 
@@ -32,12 +33,13 @@
 
 	/**
 	 * Extract destinations from a tree (recursive)
-	 * @param {Object} tree
+	 * @param {Record<string, any>} tree
 	 * @returns {string[]}
 	 */
 	function collectDestinations(tree) {
 		const destinations = new Set();
 
+		/** @param {Record<string, any>} node */
 		function traverse(node) {
 			if (node.node?.name) {
 				destinations.add(node.node.name);
@@ -58,12 +60,13 @@
 
 	/**
 	 * Count residential units in a tree (recursive)
-	 * @param {Object} tree
+	 * @param {Record<string, any>} tree
 	 * @returns {number}
 	 */
 	function countResidentialUnits(tree) {
 		let count = 0;
 
+		/** @param {Record<string, any>} node */
 		function traverse(node) {
 			if (node.residential_units?.length) {
 				count += node.residential_units.length;
@@ -81,8 +84,9 @@
 
 	/**
 	 * Extract row data from a trace tree
-	 * @param {Object} tree
+	 * @param {Record<string, any>} tree
 	 * @param {number} index
+	 * @returns {Record<string, any>} Flattened row data including fiber info, colors, destinations, and residential unit count
 	 */
 	function extractRowData(tree, index) {
 		const fiber = tree.fiber;
@@ -114,7 +118,9 @@
 			const fiberMatch =
 				`f${row.fiberNumber}`.includes(query) || `${row.fiberNumber}`.includes(query);
 			const cableMatch = row.cableName.toLowerCase().includes(query);
-			const destinationMatch = row.destinations.some((d) => d.toLowerCase().includes(query));
+			const destinationMatch = row.destinations.some((/** @type {string} */ d) =>
+				d.toLowerCase().includes(query)
+			);
 			return fiberMatch || cableMatch || destinationMatch;
 		});
 	});
@@ -132,6 +138,11 @@
 
 	let offsetY = $derived(visibleRange.start * ROW_HEIGHT);
 
+	/**
+	 * Toggle the expanded/collapsed state of a table row
+	 * @param {number} index - Row index to toggle
+	 * @returns {void}
+	 */
 	function toggleRow(index) {
 		if (expandedRows.has(index)) {
 			expandedRows.delete(index);
@@ -140,18 +151,29 @@
 		}
 	}
 
+	/**
+	 * Update scroll position for virtual scrolling calculations
+	 * @param {Event & { currentTarget: HTMLElement }} e - Scroll event from the container
+	 * @returns {void}
+	 */
 	function handleScroll(e) {
-		scrollTop = e.target.scrollTop;
+		scrollTop = e.currentTarget.scrollTop;
 	}
 
+	/**
+	 * Navigate to the trace page for a given entity
+	 * @param {string} type - Entity type (e.g. 'fiber', 'cable', 'node', 'address', 'residential_unit')
+	 * @param {number|string} id - Entity ID
+	 * @returns {void}
+	 */
 	function traceFrom(type, id) {
+		// residential_unit uses underscore in the API but needs a hyphen in the URL slug
 		const typeSlug = type === 'residential_unit' ? 'residential-unit' : type;
 		goto(`/trace/${typeSlug}/${id}`);
 	}
 </script>
 
 <div class="space-y-4">
-	<!-- Search Input -->
 	<div class="relative">
 		<IconSearch size={18} class="absolute left-3 top-1/2 -translate-y-1/2 text-surface-500-400" />
 		<input
@@ -167,7 +189,6 @@
 		{/if}
 	</div>
 
-	<!-- Table Header -->
 	<div
 		class="grid grid-cols-[60px_1fr_120px_1fr_80px_40px] gap-2 rounded-t-lg border border-b-0 border-surface-200-800 bg-surface-100-900 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-surface-600-400"
 	>
@@ -179,7 +200,6 @@
 		<span></span>
 	</div>
 
-	<!-- Virtual Scrolling Container -->
 	<div
 		bind:this={containerEl}
 		onscroll={handleScroll}
@@ -189,11 +209,9 @@
 		<div style="height: {totalHeight}px; position: relative;">
 			<div style="transform: translateY({offsetY}px);">
 				{#each visibleRows as row (row.fiberId ?? row.index)}
-					<!-- Table Row -->
 					<div
 						class="grid grid-cols-[60px_1fr_120px_1fr_80px_40px] items-center gap-2 border-b border-surface-200-800 px-4 py-3 transition-colors hover:bg-surface-100-900"
 					>
-						<!-- Fiber Number -->
 						<button
 							type="button"
 							class="rounded bg-primary-500/15 px-2 py-1 font-mono text-sm font-medium text-primary-500 hover:bg-primary-500/25"
@@ -203,7 +221,6 @@
 							F{row.fiberNumber}
 						</button>
 
-						<!-- Cable Name -->
 						<div class="flex items-center gap-2 truncate">
 							<button
 								type="button"
@@ -222,7 +239,6 @@
 							{/if}
 						</div>
 
-						<!-- Colors -->
 						<div class="flex items-center gap-1">
 							{#if row.fiberColor}
 								<span
@@ -242,7 +258,6 @@
 							{/if}
 						</div>
 
-						<!-- Destination -->
 						<div class="truncate text-sm text-surface-700-300">
 							{#if row.destinations.length === 0}
 								<span class="text-surface-500-400">-</span>
@@ -255,7 +270,6 @@
 							{/if}
 						</div>
 
-						<!-- Address Count -->
 						<div class="text-center">
 							{#if row.residentialUnitCount > 0}
 								<span
@@ -268,7 +282,6 @@
 							{/if}
 						</div>
 
-						<!-- Expand Button -->
 						<button
 							type="button"
 							class="flex items-center justify-center rounded p-1 text-surface-500-400 hover:bg-surface-200-800 hover:text-surface-900-100"
@@ -282,7 +295,6 @@
 						</button>
 					</div>
 
-					<!-- Expanded Detail Row -->
 					{#if expandedRows.has(row.index)}
 						<div
 							transition:slide={{ duration: 200 }}
@@ -296,15 +308,13 @@
 		</div>
 	</div>
 
-	<!-- Results Summary -->
 	<div class="text-center text-xs text-surface-500-400">
 		{filteredRows.length}
 		{filteredRows.length === 1 ? m.form_fiber() : m.form_fibers()}
 	</div>
 </div>
 
-<!-- Trace Node Snippet (recursive tree rendering) -->
-{#snippet traceNode(node, depth)}
+{#snippet traceNode(/** @type {Record<string, any>} */ node, /** @type {number} */ depth)}
 	<div class="relative" style="padding-left: {depth * 1.5}rem">
 		{#if depth > 0}
 			<div
@@ -314,7 +324,6 @@
 		{/if}
 
 		<div class="mb-3">
-			<!-- Fiber Info -->
 			<div class="flex flex-wrap items-center gap-2 py-2">
 				<button
 					type="button"
@@ -352,25 +361,20 @@
 				{/if}
 			</div>
 
-			<!-- Fiber Details -->
 			{@render fiberDetails(node.fiber)}
 
-			<!-- Splice Info -->
 			{#if node.splice}
 				{@render spliceDetails(node.splice)}
 			{/if}
 
-			<!-- Cable Endpoints -->
 			{#if node.cable_endpoints && (node.cable_endpoints.start_node || node.cable_endpoints.end_node)}
 				{@render cableEndpointsDetails(node.cable_endpoints, node.node?.id)}
 			{/if}
 
-			<!-- Address -->
 			{#if node.node?.address}
 				{@render addressDetails(node.node.address)}
 			{/if}
 
-			<!-- Residential Units -->
 			{#if node.residential_units && node.residential_units.length > 0}
 				{#each node.residential_units as ru (ru.id)}
 					{@render residentialUnitDetails(ru)}
@@ -378,7 +382,6 @@
 			{/if}
 		</div>
 
-		<!-- Children -->
 		{#if node.children && node.children.length > 0}
 			{#each node.children as child (child.fiber.id)}
 				{@render traceNode(child, depth + 1)}
@@ -387,8 +390,7 @@
 	</div>
 {/snippet}
 
-<!-- Fiber Details Snippet -->
-{#snippet fiberDetails(fiber)}
+{#snippet fiberDetails(/** @type {Record<string, any>} */ fiber)}
 	<div class="flex flex-wrap gap-2 pb-2 pl-1 text-xs">
 		{#if fiber.bundle_number !== null && fiber.bundle_number !== undefined}
 			<span class="text-surface-600-400"
@@ -429,8 +431,7 @@
 	</div>
 {/snippet}
 
-<!-- Splice Details Snippet -->
-{#snippet spliceDetails(splice)}
+{#snippet spliceDetails(/** @type {Record<string, any>} */ splice)}
 	<div class="mb-2 ml-1 rounded-lg border-l-2 border-secondary-500 bg-surface-100-900 p-3 text-sm">
 		<div class="mb-2 flex items-center gap-2 text-secondary-500">
 			<IconArrowsSplit size={14} />
@@ -476,8 +477,10 @@
 	</div>
 {/snippet}
 
-<!-- Cable Endpoints Details Snippet -->
-{#snippet cableEndpointsDetails(endpoints, currentNodeId)}
+{#snippet cableEndpointsDetails(
+	/** @type {Record<string, any>} */ endpoints,
+	/** @type {string|undefined} */ currentNodeId
+)}
 	<div class="mb-2 ml-1 rounded-lg border-l-2 border-primary-500 bg-surface-100-900 p-3 text-sm">
 		<div class="mb-2 font-semibold text-primary-500">
 			{m.trace_cable_path()}: {endpoints.cable_name}
@@ -565,8 +568,7 @@
 	</div>
 {/snippet}
 
-<!-- Address Details Snippet -->
-{#snippet addressDetails(address)}
+{#snippet addressDetails(/** @type {Record<string, any>} */ address)}
 	<div class="mb-2 ml-1 rounded-lg border-l-2 border-error-500 bg-surface-100-900 p-3 text-sm">
 		<div class="mb-2 flex items-center gap-2 text-error-500">
 			<IconMapPin size={14} />
@@ -614,8 +616,7 @@
 	</div>
 {/snippet}
 
-<!-- Residential Unit Details Snippet -->
-{#snippet residentialUnitDetails(ru)}
+{#snippet residentialUnitDetails(/** @type {Record<string, any>} */ ru)}
 	<div class="mb-2 ml-1 rounded-lg border-l-2 border-tertiary-500 bg-surface-100-900 p-3 text-sm">
 		<div class="mb-2 flex items-center gap-2 text-tertiary-500">
 			<IconHome size={14} />

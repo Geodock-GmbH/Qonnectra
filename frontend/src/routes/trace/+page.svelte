@@ -61,23 +61,24 @@
 
 	let activeTab = $state('address');
 	let searchQuery = $state('');
+	/** @type {Record<string, any>[]} */
 	let searchResults = $state([]);
 	let searching = $state(false);
+	/** @type {ReturnType<typeof setTimeout> | null} */
 	let searchTimeout = $state(null);
 
-	// Geometry options
 	let includeGeometry = $state(false);
 	let geometryMode = $state('segments');
 	let orientGeometry = $state(false);
 
-	// Fiber selection state
+	/** @type {Record<string, any> | null} */
 	let selectedCable = $state(null);
+	/** @type {Record<string, any>[]} */
 	let fibers = $state([]);
 	let loadingFibers = $state(false);
 	let expandedBundles = $state(new Set());
 	let fiberColors = $state(new Map());
 
-	// Group fibers by bundle number
 	const fibersByBundle = $derived.by(() => {
 		const grouped = new Map();
 		for (const fiber of fibers) {
@@ -91,22 +92,28 @@
 			}
 			grouped.get(bundleNum).fibers.push(fiber);
 		}
-		// Sort bundles by number
 		return Array.from(grouped.values()).sort((a, b) => a.bundleNumber - b.bundleNumber);
 	});
 
 	const activeType = $derived(traceTypes.find((t) => t.value === activeTab));
 
+	/**
+	 * Switches the active trace type tab and resets search/fiber state.
+	 * @param {string} tab - The trace type value to switch to.
+	 */
 	function handleTabChange(tab) {
 		activeTab = tab;
 		searchQuery = '';
 		searchResults = [];
-		// Reset fiber selection when changing tabs
 		selectedCable = null;
 		fibers = [];
 		expandedBundles = new Set();
 	}
 
+	/**
+	 * Searches for entities of the active trace type via the API.
+	 * @param {string} query - Search string (minimum 2 characters).
+	 */
 	async function performSearch(query) {
 		if (!query || query.length < 2) {
 			searchResults = [];
@@ -140,11 +147,10 @@
 
 			const data = await response.json();
 
-			// Handle different response formats
+			// Node endpoint returns GeoJSON FeatureCollection where uuid is in the 'id' field
 			if (activeTab === 'node') {
-				// Node endpoint returns GeoJSON FeatureCollection - uuid is in 'id' field
 				const features = data.features || [];
-				searchResults = features.slice(0, 20).map((f) => ({
+				searchResults = features.slice(0, 20).map((/** @type {any} */ f) => ({
 					uuid: f.id,
 					name: f.properties?.name,
 					node_type: f.properties?.node_type?.node_type
@@ -160,8 +166,12 @@
 		}
 	}
 
+	/**
+	 * Debounces search input and triggers a search after 300ms.
+	 * @param {Event & { currentTarget: HTMLInputElement }} e - Input event from the search field.
+	 */
 	function handleSearchInput(e) {
-		const query = e.target.value;
+		const query = e.currentTarget.value;
 		searchQuery = query;
 
 		if (searchTimeout) clearTimeout(searchTimeout);
@@ -171,6 +181,12 @@
 		}, 300);
 	}
 
+	/**
+	 * Builds a trace URL with optional geometry query parameters.
+	 * @param {string} typeSlug - The entity type slug for the URL path.
+	 * @param {string} uuid - The entity UUID.
+	 * @returns {string} The complete trace URL.
+	 */
 	function buildTraceUrl(typeSlug, uuid) {
 		let url = `/trace/${typeSlug}/${uuid}`;
 		const params = new URLSearchParams();
@@ -187,19 +203,26 @@
 		return queryString ? `${url}?${queryString}` : url;
 	}
 
+	/**
+	 * Navigates to the trace page for a selected search result.
+	 * @param {Record<string, any>} result - The selected search result containing a uuid.
+	 */
 	function selectResult(result) {
 		const uuid = result.uuid;
 		const typeSlug = activeTab === 'residential_unit' ? 'residential-unit' : activeTab;
 		goto(buildTraceUrl(typeSlug, uuid));
 	}
 
+	/**
+	 * Selects a cable and fetches its fibers for the fiber trace picker.
+	 * @param {Record<string, any>} cable - The selected cable object.
+	 */
 	async function selectCableForFiber(cable) {
 		selectedCable = cable;
 		searchQuery = '';
 		searchResults = [];
 		expandedBundles = new Set();
 
-		// Fetch fibers and colors in parallel
 		loadingFibers = true;
 		try {
 			const [fibersResponse] = await Promise.all([
@@ -209,7 +232,6 @@
 			if (!fibersResponse.ok) throw new Error('Failed to fetch fibers');
 			fibers = await fibersResponse.json();
 
-			// Auto-expand all bundles if there's only one
 			if (fibersByBundle.length === 1) {
 				expandedBundles = new Set([fibersByBundle[0].bundleNumber]);
 			}
@@ -221,12 +243,19 @@
 		}
 	}
 
+	/**
+	 * Clears the selected cable and resets fiber state.
+	 */
 	function clearCableSelection() {
 		selectedCable = null;
 		fibers = [];
 		expandedBundles = new Set();
 	}
 
+	/**
+	 * Toggles expansion of a fiber bundle in the picker.
+	 * @param {number} bundleNumber - The bundle number to toggle.
+	 */
 	function toggleBundle(bundleNumber) {
 		const newSet = new Set(expandedBundles);
 		if (newSet.has(bundleNumber)) {
@@ -237,10 +266,19 @@
 		expandedBundles = newSet;
 	}
 
+	/**
+	 * Navigates to the trace page for a specific fiber.
+	 * @param {Record<string, any>} fiber - Fiber object containing uuid.
+	 */
 	function traceFiber(fiber) {
 		goto(buildTraceUrl('fiber', fiber.uuid));
 	}
 
+	/**
+	 * Formats an address search result for display.
+	 * @param {Record<string, any>} result - Address result from the API.
+	 * @returns {string} Formatted address string.
+	 */
 	function formatAddressResult(result) {
 		const parts = [];
 		if (result.street) parts.push(result.street);
@@ -251,14 +289,29 @@
 		return parts.join(', ') || result.uuid?.slice(0, 8);
 	}
 
+	/**
+	 * Formats a node search result for display.
+	 * @param {Record<string, any>} result - Node result from the API.
+	 * @returns {string} Formatted node name or truncated UUID.
+	 */
 	function formatNodeResult(result) {
 		return result.name || result.uuid?.slice(0, 8);
 	}
 
+	/**
+	 * Formats a cable search result for display.
+	 * @param {Record<string, any>} result - Cable result from the API.
+	 * @returns {string} Formatted cable name or truncated UUID.
+	 */
 	function formatCableResult(result) {
 		return result.name || result.uuid?.slice(0, 8);
 	}
 
+	/**
+	 * Formats a residential unit search result for display.
+	 * @param {Record<string, any>} result - Residential unit result from the API.
+	 * @returns {string} Formatted residential unit string.
+	 */
 	function formatRuResult(result) {
 		const parts = [];
 		if (result.id_residential_unit) parts.push(result.id_residential_unit);
@@ -268,6 +321,11 @@
 		return parts.join(' - ') || result.uuid?.slice(0, 8);
 	}
 
+	/**
+	 * Formats a search result based on the active trace type.
+	 * @param {Record<string, any>} result - Search result from the API.
+	 * @returns {string} Formatted display string.
+	 */
 	function formatResult(result) {
 		switch (activeTab) {
 			case 'address':
@@ -284,6 +342,11 @@
 		}
 	}
 
+	/**
+	 * Returns a subtitle string for a search result based on the active trace type.
+	 * @param {Record<string, any>} result - Search result from the API.
+	 * @returns {string | null} Subtitle string, or null if none available.
+	 */
 	function getResultSubtitle(result) {
 		switch (activeTab) {
 			case 'address':
@@ -302,6 +365,9 @@
 		}
 	}
 
+	/**
+	 * Fetches fiber color attribute mappings from the API and caches them.
+	 */
 	async function fetchFiberColors() {
 		if (fiberColors.size > 0) return;
 		try {
@@ -322,6 +388,11 @@
 		}
 	}
 
+	/**
+	 * Resolves a color name to its hex code.
+	 * @param {string | null} colorName - The color name to look up.
+	 * @returns {string} Hex color code, or a default gray.
+	 */
 	function getColorHex(colorName) {
 		if (!colorName) return '#6b7280';
 		return fiberColors.get(colorName.toLowerCase()) || '#6b7280';

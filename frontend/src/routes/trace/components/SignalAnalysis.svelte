@@ -18,7 +18,7 @@
 
 	/**
 	 * @typedef {Object} Props
-	 * @property {Object} result - The signal analysis result data
+	 * @property {Record<string, any>} result - The signal analysis result data
 	 * @property {string} entryId - The entry UUID
 	 * @property {boolean} [includeGeometry] - Whether geometry was included
 	 * @property {string|null} [selectedItemId] - Currently selected item ID
@@ -34,19 +34,41 @@
 		onItemSelect = () => {}
 	} = $props();
 
+	/**
+	 * @param {string} type - The entity type (e.g. 'fiber', 'cable', 'node')
+	 * @param {string} id - The entity UUID
+	 * @returns {boolean} Whether the item matches the current selection
+	 */
 	function isSelected(type, id) {
 		return selectedItemId === `${type}:${id}`;
 	}
 
+	/**
+	 * @param {string} type - The entity type (e.g. 'fiber', 'cable', 'node')
+	 * @param {string} id - The entity UUID
+	 * @returns {void}
+	 */
 	function handleItemClick(type, id) {
 		onItemSelect(type, id);
 	}
 
+	/**
+	 * Navigates to a new trace starting from the given entity.
+	 * @param {string} type - The entity type (e.g. 'node', 'residential_unit')
+	 * @param {string} id - The entity UUID
+	 * @returns {void}
+	 */
 	function traceFrom(type, id) {
+		// URL slugs use hyphens instead of underscores
 		const typeSlug = type === 'residential_unit' ? 'residential-unit' : type;
 		goto(`/trace/${typeSlug}/${id}`);
 	}
 
+	/**
+	 * Updates the signal source node via URL search params and navigates.
+	 * @param {string} nodeId - The source node UUID, or empty string to remove
+	 * @returns {void}
+	 */
 	function changeSignalSource(nodeId) {
 		const url = new URL(page.url);
 		url.searchParams.set('mode', 'signal');
@@ -58,15 +80,26 @@
 		goto(url.toString());
 	}
 
+	/**
+	 * Checks whether any cable infrastructure in the trace result contains geometry data.
+	 * @param {Record<string, any>} traceResult - The trace result containing cable_infrastructure
+	 * @returns {boolean} True if at least one geometry exists
+	 */
 	function hasGeometries(traceResult) {
 		if (!traceResult?.cable_infrastructure) return false;
 		for (const infra of Object.values(traceResult.cable_infrastructure)) {
 			if (infra.merged_geometry) return true;
-			if (infra.trenches?.some((t) => t.geometry)) return true;
+			if (infra.trenches?.some((/** @type {any} */ t) => t.geometry)) return true;
 		}
 		return false;
 	}
 
+	/**
+	 * Builds a GeoJSON FeatureCollection from cable infrastructure geometries.
+	 * Prefers merged geometry per cable; falls back to individual trench segments.
+	 * @param {Record<string, any>} traceResult - The trace result containing cable_infrastructure
+	 * @returns {Record<string, any>} GeoJSON FeatureCollection in EPSG:25832
+	 */
 	function buildGeoJSON(traceResult) {
 		const features = [];
 		const cableInfra = traceResult.cable_infrastructure || {};
@@ -123,6 +156,10 @@
 		};
 	}
 
+	/**
+	 * Triggers a browser download of the trace infrastructure as a GeoJSON file.
+	 * @returns {void}
+	 */
 	function downloadGeoJSON() {
 		if (!result) return;
 		const geojson = buildGeoJSON(result);
@@ -148,7 +185,11 @@
 	const hasBreaks = $derived(breakPoints.length > 0);
 </script>
 
-{#snippet statCard(label, value, colorClass)}
+{#snippet statCard(
+	/** @type {string} */ label,
+	/** @type {number} */ value,
+	/** @type {string} */ colorClass
+)}
 	<div
 		class="rounded-xl border border-surface-200-800 bg-surface-50-950 p-4 text-center shadow-sm transition-all hover:shadow-md"
 	>
@@ -157,7 +198,11 @@
 	</div>
 {/snippet}
 
-{#snippet signalStatCard(label, litValue, darkValue)}
+{#snippet signalStatCard(
+	/** @type {string} */ label,
+	/** @type {number} */ litValue,
+	/** @type {number} */ darkValue
+)}
 	<div
 		class="rounded-xl border border-surface-200-800 bg-surface-50-950 p-4 text-center shadow-sm transition-all hover:shadow-md"
 	>
@@ -176,7 +221,7 @@
 	</div>
 {/snippet}
 
-{#snippet breakPointCard(bp)}
+{#snippet breakPointCard(/** @type {Record<string, any>} */ bp)}
 	<div
 		class="rounded-lg border border-error-500/30 bg-error-500/10 p-3 transition-colors hover:bg-error-500/15"
 	>
@@ -223,7 +268,7 @@
 	</div>
 {/snippet}
 
-{#snippet signalTraceNode(node, depth)}
+{#snippet signalTraceNode(/** @type {Record<string, any>} */ node, /** @type {number} */ depth)}
 	{@const signalState = node.signal_state || 'lit'}
 	{@const isLit = signalState === 'lit'}
 	{@const isDark = signalState === 'dark'}
@@ -242,7 +287,6 @@
 		{/if}
 
 		<div class="mb-3">
-			<!-- Signal State Indicator -->
 			<div class="mb-1 flex items-center gap-2">
 				{#if isBreak}
 					<span
@@ -268,7 +312,6 @@
 				{/if}
 			</div>
 
-			<!-- Fiber Info -->
 			<div class="flex flex-wrap items-center gap-2 py-2">
 				<button
 					type="button"
@@ -320,25 +363,20 @@
 				{/if}
 			</div>
 
-			<!-- Fiber Details -->
 			{@render fiberDetails(node.fiber)}
 
-			<!-- Splice Info -->
 			{#if node.splice}
 				{@render spliceDetails(node.splice)}
 			{/if}
 
-			<!-- Cable Endpoints -->
 			{#if node.cable_endpoints && (node.cable_endpoints.start_node || node.cable_endpoints.end_node)}
 				{@render cableEndpointsDetails(node.cable_endpoints, node.node?.id)}
 			{/if}
 
-			<!-- Address -->
 			{#if node.node?.address}
 				{@render addressDetails(node.node.address, isDark)}
 			{/if}
 
-			<!-- Residential Units -->
 			{#if node.residential_units && node.residential_units.length > 0}
 				{#each node.residential_units as ru (ru.id)}
 					{@render residentialUnitDetails(ru, isDark)}
@@ -346,7 +384,6 @@
 			{/if}
 		</div>
 
-		<!-- Children -->
 		{#if node.children && node.children.length > 0}
 			{#each node.children as child (child.fiber.id)}
 				{@render signalTraceNode(child, depth + 1)}
@@ -355,7 +392,7 @@
 	</div>
 {/snippet}
 
-{#snippet fiberDetails(fiber)}
+{#snippet fiberDetails(/** @type {Record<string, any>} */ fiber)}
 	<div class="flex flex-wrap gap-2 pb-2 pl-1 text-xs">
 		{#if fiber.bundle_number !== null && fiber.bundle_number !== undefined}
 			<span class="text-surface-600-400"
@@ -395,7 +432,7 @@
 	</div>
 {/snippet}
 
-{#snippet spliceDetails(splice)}
+{#snippet spliceDetails(/** @type {Record<string, any>} */ splice)}
 	<div class="mb-2 ml-1 rounded-lg border-l-2 border-secondary-500 bg-surface-100-900 p-3 text-sm">
 		<div class="mb-2 flex items-center gap-2 text-secondary-500">
 			<IconArrowsSplit size={14} />
@@ -425,7 +462,10 @@
 	</div>
 {/snippet}
 
-{#snippet cableEndpointsDetails(endpoints, currentNodeId)}
+{#snippet cableEndpointsDetails(
+	/** @type {Record<string, any>} */ endpoints,
+	/** @type {string|undefined} */ currentNodeId
+)}
 	<details class="group ml-1 mb-2">
 		<summary
 			class="flex cursor-pointer items-center gap-2 rounded-lg bg-surface-100-900 px-3 py-2 text-sm hover:bg-surface-200-800"
@@ -475,7 +515,10 @@
 	</details>
 {/snippet}
 
-{#snippet addressDetails(address, isDark = false)}
+{#snippet addressDetails(
+	/** @type {Record<string, any>} */ address,
+	/** @type {boolean} */ isDark = false
+)}
 	<div
 		class="mb-2 ml-1 rounded-lg border-l-2 {isDark
 			? 'border-surface-400 bg-surface-200-800'
@@ -498,7 +541,10 @@
 	</div>
 {/snippet}
 
-{#snippet residentialUnitDetails(ru, isDark = false)}
+{#snippet residentialUnitDetails(
+	/** @type {Record<string, any>} */ ru,
+	/** @type {boolean} */ isDark = false
+)}
 	<div
 		class="mb-2 ml-1 rounded-lg border-l-2 {isDark
 			? 'border-surface-400 bg-surface-200-800'
@@ -542,7 +588,7 @@
 				<select
 					class="select max-w-md"
 					value={sourceNode?.id || ''}
-					onchange={(e) => changeSignalSource(e.target.value)}
+					onchange={(e) => changeSignalSource(/** @type {HTMLSelectElement} */ (e.target).value)}
 				>
 					{#each availableSources as source (source.id)}
 						<option value={source.id}>

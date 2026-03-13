@@ -34,6 +34,7 @@
 		"prettier": "^3.4.2",
 		"prettier-plugin-svelte": "^3.3.3",
 		"svelte": "^5.48.2",
+		"svelte-check": "^4.4.5",
 		"tailwindcss": "^4.2.0",
 		"vite": "npm:rolldown-vite@^7.3.1",
 		"vitest": "^4.0.18"

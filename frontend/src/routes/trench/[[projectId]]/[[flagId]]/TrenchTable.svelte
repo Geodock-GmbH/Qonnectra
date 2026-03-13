@@ -9,7 +9,9 @@
 
 	let { projectId, conduitId, onTrenchClick, onTrenchesChange } = $props();
 
+	/** @type {Array<{value: string, label: string, trench: string}>} */
 	let trenches = $state([]);
+	/** @type {string | null} */
 	let trenchesError = $state(null);
 	let loading = $state(false);
 	let page = $state(1);
@@ -28,6 +30,7 @@
 
 	/**
 	 * Fetches trench connections for the selected conduit
+	 * @returns {Promise<void>}
 	 */
 	async function fetchTrenches() {
 		if (!conduitId) {
@@ -49,16 +52,20 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to fetch trenches');
+				const errorData = /** @type {{ error?: string }} */ (/** @type {any} */ (result).data);
+				throw new Error(errorData?.error || 'Failed to fetch trenches');
 			}
 
-			trenches = result.data?.trenches || [];
+			const successData =
+				/** @type {{ trenches?: Array<{value: string, label: string, trench: string}> }} */ (
+					/** @type {any} */ (result).data
+				);
+			trenches = successData?.trenches || [];
 		} catch (error) {
 			trenchesError = m.message_error_fetching_trenches();
 			console.error('Error fetching trenches:', error);
 		} finally {
 			loading = false;
-			// Notify parent of trenches change for linked trenches highlight
 			onTrenchesChange?.(trenches);
 		}
 	}
@@ -66,6 +73,7 @@
 	/**
 	 * Deletes a trench connection by ID
 	 * @param {string} connectionId - UUID of the connection to delete
+	 * @returns {Promise<void>}
 	 */
 	async function deleteTrench(connectionId) {
 		const formData = new FormData();
@@ -79,11 +87,12 @@
 		const result = deserialize(await response.text());
 
 		if (result.type === 'failure' || result.type === 'error') {
-			console.error('Failed to delete trench connection:', result.data?.error);
+			const errorData = /** @type {{ error?: string }} */ (/** @type {any} */ (result).data);
+			console.error('Failed to delete trench connection:', errorData?.error);
 			globalToaster.error({
 				description: m.message_error_deleting_trench_connection()
 			});
-			throw new Error(result.data?.error);
+			throw new Error(errorData?.error);
 		}
 
 		await fetchTrenches();
@@ -92,6 +101,7 @@
 	/**
 	 * Handles deletion of a trench connection with loading state management
 	 * @param {string} trenchId - UUID of the trench connection to delete
+	 * @returns {void}
 	 */
 	function handleDelete(trenchId) {
 		if (deletingIds.has(trenchId)) return;
@@ -118,10 +128,11 @@
 	/**
 	 * Saves a new trench connection for the selected conduit
 	 * @param {string} trenchId - UUID of the trench to connect
+	 * @returns {Promise<void>}
 	 */
 	async function saveTrenchConnection(trenchId) {
 		const formData = new FormData();
-		formData.append('conduitId', conduitId[0]);
+		formData.append('conduitId', conduitId);
 		formData.append('trenchId', trenchId);
 
 		const response = await fetch('?/createTrenchConnection', {
@@ -132,13 +143,15 @@
 		const result = deserialize(await response.text());
 
 		if (result.type === 'failure' || result.type === 'error') {
-			console.error('Failed to save trench connection:', result.data?.error);
-			throw new Error(result.data?.error);
+			const errorData = /** @type {{ error?: string }} */ (/** @type {any} */ (result).data);
+			console.error('Failed to save trench connection:', errorData?.error);
+			throw new Error(errorData?.error);
 		}
 	}
 
 	/**
 	 * Clears the trench table data
+	 * @returns {void}
 	 */
 	function emptyTable() {
 		trenches = [];
@@ -149,6 +162,7 @@
 	/**
 	 * Adds routed trenches to the table, creating connections for new trenches
 	 * @param {Array<{value: string, label: string}>} routedTrenches - Array of trench objects to add
+	 * @returns {Promise<void>}
 	 */
 	export async function addRoutedTrenches(routedTrenches) {
 		if (!routedTrenches?.length) return;
@@ -198,7 +212,6 @@
 </script>
 
 <div class="flex flex-col h-full">
-	<!-- Header with title and search -->
 	<div class="flex items-center gap-3 mb-3">
 		<h3 class="text-xs font-semibold text-surface-600-400 uppercase tracking-wide shrink-0">
 			{m.form_trench_id()}
@@ -230,7 +243,6 @@
 		</div>
 	</div>
 
-	<!-- Table -->
 	<div class="flex-1 min-h-0 overflow-auto rounded-md border border-surface-200-800">
 		{#if loading}
 			<div class="flex items-center justify-center h-32">
@@ -272,18 +284,15 @@
 		{/if}
 	</div>
 
-	<!-- Pagination -->
 	{#if count > 0}
 		<div class="mt-3 flex items-center justify-between text-xs text-surface-500">
 			<span>{count} {m.common_items()}</span>
 			<Pagination
-				data={trenches}
 				{page}
 				onPageChange={(e) => (page = e.page)}
 				pageSize={size}
 				onPageSizeChange={(e) => (size = e.pageSize)}
 				siblingCount={1}
-				alternative
 				{count}
 			>
 				<Pagination.PrevTrigger class="p-1.5 hover:bg-surface-200-800 rounded transition-colors">

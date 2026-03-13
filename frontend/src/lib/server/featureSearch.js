@@ -6,12 +6,59 @@ import { m } from '$lib/paraglide/messages';
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
 /**
- * Search for features (addresses, nodes, trenches) within a project
- * @param {Function} fetch - SvelteKit fetch function
+ * @typedef {Object} SearchResult
+ * @property {string} value - The feature UUID as a string
+ * @property {string} label - Display label for the search result
+ * @property {'address' | 'node' | 'trench' | 'conduit' | 'area'} type - Type of the feature
+ * @property {string} uuid - The feature UUID
+ * @property {string} [name] - Optional name (for nodes, conduits, areas)
+ * @property {string} [id_trench] - Optional trench ID number (for trenches)
+ */
+
+/**
+ * @typedef {Object} GeoJSONProperties
+ * @property {string} [name] - Feature name
+ * @property {string} [id_trench] - Trench ID number
+ */
+
+/**
+ * @typedef {Object} GeoJSONFeature
+ * @property {string} id - Feature ID
+ * @property {GeoJSONProperties} properties - Feature properties
+ * @property {Object} [geometry] - Feature geometry
+ */
+
+/**
+ * @typedef {Object} AddressProperties
+ * @property {string} [street] - Street name
+ * @property {string} [housenumber] - House number
+ * @property {string} [house_number_suffix] - House number suffix
+ */
+
+/**
+ * @typedef {Object} AddressFeature
+ * @property {string} [uuid] - Address UUID (non-GeoJSON format)
+ * @property {string} [id] - Address ID (GeoJSON format)
+ * @property {AddressProperties} [properties] - GeoJSON properties
+ * @property {string} [street] - Street name (non-GeoJSON format)
+ * @property {string} [housenumber] - House number (non-GeoJSON format)
+ * @property {string} [house_number_suffix] - House number suffix (non-GeoJSON format)
+ */
+
+/**
+ * @typedef {Object} ConduitFeature
+ * @property {string} uuid - Conduit UUID
+ * @property {string} name - Conduit name
+ * @property {string} [conduit_type] - Conduit type name
+ */
+
+/**
+ * Searches for features (addresses, nodes, trenches, conduits, areas) within a project.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} searchQuery - The search query string
  * @param {string} projectId - The project ID to search within
- * @returns {Promise<Array>} Array of search results
+ * @returns {Promise<SearchResult[]>} Array of matching search results
  */
 export async function searchFeaturesInProject(fetch, cookies, searchQuery, projectId) {
 	if (!searchQuery) {
@@ -66,18 +113,25 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 			areaResponse.json()
 		]);
 
+		/** @type {Array<SearchResult>} */
 		const results = [];
 
+		/** @type {Array<AddressFeature>} */
 		const addressFeatures =
 			addAddressData.results || addAddressData.features || addAddressData || [];
+		/** @type {Array<GeoJSONFeature>} */
 		const nodeFeatures = nodeData.features || nodeData || [];
+		/** @type {Array<GeoJSONFeature>} */
 		const trenchFeatures = trenchData.features || trenchData || [];
+		/** @type {Array<GeoJSONFeature>} */
 		const areaFeatures = areaData.features || areaData || [];
 
 		addressFeatures.forEach((address) => {
 			const isGeoJSON = !!address.properties;
-			const props = isGeoJSON ? address.properties : address;
+			/** @type {AddressProperties} */
+			const props = isGeoJSON ? address.properties || {} : address;
 			const addressId = isGeoJSON ? address.id : address.uuid;
+			if (!addressId) return;
 			const addressName = [props.street, props.housenumber, props.house_number_suffix]
 				.filter(Boolean)
 				.join(' ');
@@ -92,7 +146,7 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 		nodeFeatures.forEach((node) => {
 			const props = node.properties;
 			const nodeId = node.id;
-			const nodeName = props.name;
+			const nodeName = props?.name;
 
 			if (nodeId && nodeName) {
 				results.push({
@@ -108,7 +162,7 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 		trenchFeatures.forEach((trench) => {
 			const props = trench.properties;
 			const trenchId = trench.id;
-			const trenchIdNumber = props.id_trench;
+			const trenchIdNumber = props?.id_trench;
 
 			if (trenchId && trenchIdNumber) {
 				results.push({
@@ -121,6 +175,7 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 			}
 		});
 
+		/** @type {Array<ConduitFeature>} */
 		const conduitFeatures = conduitData.results || conduitData || [];
 		conduitFeatures.forEach((conduit) => {
 			const conduitUuid = conduit.uuid;
@@ -147,7 +202,7 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 		areaFeatures.forEach((area) => {
 			const props = area.properties;
 			const areaId = area.id;
-			const areaName = props.name;
+			const areaName = props?.name;
 
 			if (areaId && areaName) {
 				results.push({
@@ -167,13 +222,13 @@ export async function searchFeaturesInProject(fetch, cookies, searchQuery, proje
 }
 
 /**
- * Get detailed information about a specific feature
- * @param {Function} fetch - SvelteKit fetch function
+ * Gets detailed information about a specific feature.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @param {string} featureType - Type of feature ('node', 'trench', or 'address')
+ * @param {'node' | 'trench' | 'address' | 'area'} featureType - Type of feature
  * @param {string} featureUuid - UUID of the feature
  * @param {string} projectId - The project ID to filter by
- * @returns {Promise<{success: boolean, feature: any}>} Feature details
+ * @returns {Promise<{success: boolean, feature: GeoJSONFeature}>} Feature details with geometry
  */
 export async function getFeatureDetailsByType(fetch, cookies, featureType, featureUuid, projectId) {
 	if (!featureType || !featureUuid) {
@@ -219,11 +274,11 @@ export async function getFeatureDetailsByType(fetch, cookies, featureType, featu
 }
 
 /**
- * Get all trench UUIDs and geometries for a conduit (conduits span multiple trenches)
- * @param {Function} fetch - SvelteKit fetch function
+ * Gets all trench UUIDs and geometries for a conduit (conduits span multiple trenches).
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} conduitUuid - UUID of the conduit
- * @returns {Promise<{success: boolean, trenches: Array, trenchUuids: string[]}>} Trench features and UUIDs
+ * @returns {Promise<{success: boolean, trenches: GeoJSONFeature[], trenchUuids: string[]}>} Trench features and UUIDs
  */
 export async function getTrenchUuidsForConduit(fetch, cookies, conduitUuid) {
 	if (!conduitUuid) {
@@ -241,6 +296,7 @@ export async function getTrenchUuidsForConduit(fetch, cookies, conduitUuid) {
 		}
 
 		const { trench_uuids } = await trenchesResponse.json();
+		/** @type {Array<string>} */
 		const trenchUuids = trench_uuids || [];
 
 		if (trenchUuids.length === 0) {
@@ -255,10 +311,11 @@ export async function getTrenchUuidsForConduit(fetch, cookies, conduitUuid) {
 			fetch(`${API_URL}trench/?uuid=${uuid}`, {
 				credentials: 'include',
 				headers: getAuthHeaders(cookies)
-			}).then((res) => res.json())
+			}).then((/** @type {Response} */ res) => res.json())
 		);
 
 		const trenchResponses = await Promise.all(trenchPromises);
+		/** @type {Array<GeoJSONFeature>} */
 		const trenches = trenchResponses.map((r) => r.results?.features?.[0] || r[0]).filter(Boolean);
 
 		return {
@@ -273,12 +330,12 @@ export async function getTrenchUuidsForConduit(fetch, cookies, conduitUuid) {
 }
 
 /**
- * Get the bounding box extent for a layer type
- * @param {Function} fetch - SvelteKit fetch function
+ * Gets the bounding box extent for a layer type.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @param {string} layerType - Type of layer ('trench', 'address', 'node')
+ * @param {'trench' | 'address' | 'node'} layerType - Type of layer
  * @param {string} projectId - The project ID
- * @returns {Promise<{extent: number[]|null, layer: string}>} Layer extent in EPSG:3857
+ * @returns {Promise<{extent: [number, number, number, number] | null, layer: string}>} Layer extent in EPSG:3857
  */
 export async function getLayerExtent(fetch, cookies, layerType, projectId) {
 	if (!layerType || !projectId) {

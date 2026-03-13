@@ -4,7 +4,7 @@ const TRACE_MAP_CONTEXT_KEY = Symbol('traceMapContext');
 
 /**
  * @typedef {Object} TraceMapContext
- * @property {Object|null} traceResult - The trace result data
+ * @property {Record<string, any>|null} traceResult - The trace result data
  * @property {boolean} includeGeometry - Whether geometry was requested
  * @property {string|null} selectedFeatureId - Currently selected feature ID
  * @property {(id: string|null) => void} setSelectedFeature - Function to select a feature
@@ -17,6 +17,7 @@ const TRACE_MAP_CONTEXT_KEY = Symbol('traceMapContext');
 export function createTraceMapContext() {
 	let traceResult = $state(null);
 	let includeGeometry = $state(false);
+	/** @type {string|null} */
 	let selectedFeatureId = $state(null);
 
 	const context = {
@@ -35,6 +36,7 @@ export function createTraceMapContext() {
 		get selectedFeatureId() {
 			return selectedFeatureId;
 		},
+		/** @param {string|null} id */
 		setSelectedFeature(id) {
 			selectedFeatureId = id;
 		}

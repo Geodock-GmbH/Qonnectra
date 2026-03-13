@@ -39,6 +39,12 @@ class Command(BaseCommand):
     help = "Parse PostgreSQL errors from Docker logs and create LogEntry records"
 
     def __init__(self, *args, **kwargs):
+        """Initialize command state for log parsing.
+
+        Args:
+            *args: Positional arguments passed to BaseCommand.
+            **kwargs: Keyword arguments passed to BaseCommand.
+        """
         super().__init__(*args, **kwargs)
         self.should_stop = False
         self.process = None
@@ -46,6 +52,11 @@ class Command(BaseCommand):
         self.last_timestamp = None
 
     def add_arguments(self, parser):
+        """Define CLI arguments for the command.
+
+        Args:
+            parser: ArgumentParser instance to register arguments on.
+        """
         parser.add_argument(
             "--container",
             type=str,
@@ -60,7 +71,12 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        """Main command handler."""
+        """Run the error parser loop, reconnecting on failure until interrupted.
+
+        Args:
+            *args: Positional arguments (unused).
+            **options: Command options including 'container' and 'reconnect_delay'.
+        """
         container = options["container"]
         reconnect_delay = options["reconnect_delay"]
 
@@ -105,7 +121,12 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("PostgreSQL error parser stopped."))
 
     def _signal_handler(self, signum, frame):
-        """Handle shutdown signals gracefully."""
+        """Handle shutdown signals by stopping the parser loop.
+
+        Args:
+            signum: Signal number received.
+            frame: Current stack frame (unused).
+        """
         self.stdout.write(
             self.style.WARNING(f"\nReceived signal {signum}, shutting down...")
         )
@@ -114,7 +135,12 @@ class Command(BaseCommand):
             self.process.terminate()
 
     def _load_state(self):
-        """Load the last processed timestamp from state file."""
+        """Load the last processed timestamp from the state file.
+
+        Read the JSON state file at ``self.state_file`` and restore
+        ``self.last_timestamp`` so ``docker logs --since`` can skip
+        already-processed entries.
+        """
         try:
             if self.state_file.exists():
                 data = json.loads(self.state_file.read_text())
@@ -125,7 +151,7 @@ class Command(BaseCommand):
             self.last_timestamp = None
 
     def _save_state(self):
-        """Save the last processed timestamp to state file."""
+        """Persist the last processed timestamp to the state file."""
         try:
             data = {"last_timestamp": self.last_timestamp}
             self.state_file.write_text(json.dumps(data))
@@ -134,7 +160,19 @@ class Command(BaseCommand):
             logger.warning(f"Failed to save state file: {e}")
 
     def _tail_logs(self, container: str):
-        """Tail Docker logs and process errors."""
+        """Tail Docker container logs and parse PostgreSQL error blocks.
+
+        Spawn ``docker logs -f`` as a subprocess with non-blocking I/O,
+        accumulate multi-line error blocks (ERROR + DETAIL + STATEMENT),
+        and flush them to :meth:`_process_error_block` on PID change or
+        read timeout.
+
+        Args:
+            container: Name of the Docker container to tail.
+
+        Raises:
+            subprocess.SubprocessError: If the docker logs process fails.
+        """
         cmd = ["docker", "logs", "-f", "--timestamps"]
 
         if self.last_timestamp:
@@ -148,10 +186,9 @@ class Command(BaseCommand):
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            bufsize=0,  # Unbuffered
+            bufsize=0,
         )
 
-        # Set stdout to non-blocking mode
         fd = self.process.stdout.fileno()
         flags = fcntl.fcntl(fd, fcntl.F_GETFL)
         fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
@@ -159,12 +196,11 @@ class Command(BaseCommand):
         error_buffer = []
         current_timestamp = None
         current_pid = None
-        flush_timeout = 0.5  # Flush buffer after 0.5s of no new lines
+        flush_timeout = 0.5
         read_buffer = b""
 
-        # Pattern to match PostgreSQL log lines with timestamp prefix from Docker
-        # Docker adds ISO timestamp, then we have PostgreSQL's log_line_prefix
-        # Format: 2026-01-09T13:58:50.274Z 2026-01-09 13:58:50.274 UTC [20269] user@db ERROR: ...
+        # Docker prepends an ISO timestamp, followed by PostgreSQL's log_line_prefix
+        # e.g. 2026-01-09T13:58:50.274Z 2026-01-09 13:58:50.274 UTC [20269] user@db ERROR: ...
         docker_ts_pattern = re.compile(r"^(\d{4}-\d{2}-\d{2}T[\d:.]+Z)\s+")
         pg_log_pattern = re.compile(
             r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+ \w+) \[(\d+)\] (\w+@\w+)?\s*"
@@ -173,27 +209,23 @@ class Command(BaseCommand):
         try:
             while not self.should_stop:
                 # Use select to wait for data with timeout
-                ready, _, _ = select.select([self.process.stdout], [], [], flush_timeout)
+                ready, _, _ = select.select(
+                    [self.process.stdout], [], [], flush_timeout
+                )
 
                 if not ready:
-                    # Timeout - flush any buffered error
                     if error_buffer:
                         self._process_error_block(error_buffer, current_timestamp)
                         error_buffer = []
                     continue
 
-                # Read all available data
                 try:
                     chunk = os.read(fd, 65536)
                     if not chunk:
-                        # EOF - process ended
                         break
                     read_buffer += chunk
                 except BlockingIOError:
-                    # No more data available right now
                     pass
-
-                # Process complete lines
                 while b"\n" in read_buffer:
                     line_bytes, read_buffer = read_buffer.split(b"\n", 1)
                     line = line_bytes.decode("utf-8", errors="replace").rstrip()
@@ -201,19 +233,17 @@ class Command(BaseCommand):
                     if not line:
                         continue
 
-                    # Extract Docker timestamp if present
                     docker_match = docker_ts_pattern.match(line)
                     if docker_match:
                         self.last_timestamp = docker_match.group(1)
                         line = line[docker_match.end() :]
 
-                    # Try to match PostgreSQL log line prefix
                     pg_match = pg_log_pattern.match(line)
                     if pg_match:
                         new_pid = pg_match.group(2)
                         line_content = line[pg_match.end() :]
 
-                        # If we have a buffered error from a different PID, process it
+                        # Flush buffered error when PID changes (new connection)
                         if error_buffer and current_pid and current_pid != new_pid:
                             self._process_error_block(error_buffer, current_timestamp)
                             error_buffer = []
@@ -221,21 +251,18 @@ class Command(BaseCommand):
                         current_timestamp = pg_match.group(1)
                         current_pid = new_pid
 
-                        # Check if this is an ERROR line
                         if "ERROR:" in line_content:
-                            # Process any previous error first
                             if error_buffer:
-                                self._process_error_block(error_buffer, current_timestamp)
+                                self._process_error_block(
+                                    error_buffer, current_timestamp
+                                )
                             error_buffer = [line_content]
                         elif error_buffer:
-                            # This is a continuation line (DETAIL, HINT, STATEMENT)
                             error_buffer.append(line_content)
 
                     elif error_buffer and line.strip():
-                        # Continuation line without timestamp (multi-line STATEMENT)
                         error_buffer.append(line)
 
-            # Process any remaining buffered error
             if error_buffer:
                 self._process_error_block(error_buffer, current_timestamp)
 
@@ -245,8 +272,16 @@ class Command(BaseCommand):
                 self.process.wait()
                 self.process = None
 
-    def _process_error_block(self, lines: list, timestamp: str):
-        """Process a multi-line error block and create a LogEntry."""
+    def _process_error_block(self, lines: list[str], timestamp: str | None):
+        """Parse a multi-line PostgreSQL error block and persist it as a :model:`api.LogEntry`.
+
+        Extract ERROR, DETAIL, HINT, and STATEMENT parts from the buffered
+        lines and create a single LogEntry with source ``wfs``.
+
+        Args:
+            lines: Accumulated log lines forming one error block.
+            timestamp: PostgreSQL log timestamp string, or None.
+        """
         if not lines:
             return
 
@@ -265,20 +300,17 @@ class Command(BaseCommand):
             elif line.startswith("STATEMENT:"):
                 statement = line[10:].strip()
             elif statement:
-                # Multi-line statement continuation
                 statement += " " + line.strip()
 
         if not error_msg:
             return
 
-        # Build the log message
         message = error_msg
         if detail:
             message += f"\nDetail: {detail}"
         if hint:
             message += f"\nHint: {hint}"
 
-        # Build extra_data
         extra_data = {}
         if statement:
             extra_data["statement"] = statement[:5000]  # Limit statement length
@@ -298,9 +330,7 @@ class Command(BaseCommand):
             )
 
             self.stdout.write(
-                self.style.SUCCESS(
-                    f"[{log_entry.timestamp}] ERROR: {error_msg[:80]}"
-                )
+                self.style.SUCCESS(f"[{log_entry.timestamp}] ERROR: {error_msg[:80]}")
             )
             logger.info(f"Created log entry {log_entry.uuid}: {error_msg}")
             self._save_state()

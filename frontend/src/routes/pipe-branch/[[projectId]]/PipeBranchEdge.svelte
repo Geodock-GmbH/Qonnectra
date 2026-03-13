@@ -8,11 +8,9 @@
 
 	let { id, sourceX, sourceY, targetX, targetY, data } = $props();
 
-	// Use the edges store for deletion
 	const edges = useEdges();
 
-	// Offset to center: handles are 24px, Position.Right adds 12px, Position.Left subtracts 12px
-	// We need to reverse these offsets to connect to the center of the handles
+	// Reverse Position.Right/Left offsets (12px each) to connect at handle centers
 	const centeredSourceX = $derived(sourceX - 12);
 	const centeredTargetX = $derived(targetX + 12);
 
@@ -25,19 +23,18 @@
 		})
 	);
 
-	// Connection details from data
 	const connectionUuid = $derived(data?.uuid || null);
 	const sourceHandleData = $derived(data?.sourceHandleData || {});
 	const targetHandleData = $derived(data?.targetHandleData || {});
 	const isConnected = $derived(!!connectionUuid);
 
-	// Edge label position - use centered coordinates for proper placement
 	const labelX = $derived((centeredSourceX + centeredTargetX) / 2);
 	const labelY = $derived((sourceY + targetY) / 2 - 20);
 
-	// Handle edge deletion
+	/**
+	 * Deletes the edge from the backend (if persisted) and removes it from the canvas.
+	 */
 	async function handleDeleteEdge() {
-		// First delete from backend if it has a UUID
 		if (connectionUuid) {
 			try {
 				const formData = new FormData();
@@ -71,7 +68,6 @@
 			}
 		}
 
-		// Then remove from UI
 		edges.update((eds) => eds.filter((edge) => edge.id !== id));
 	}
 </script>
@@ -84,7 +80,6 @@
 		: 'var(--color-surface-950-50)'}; stroke-width: 2;"
 />
 
-<!-- Connection label -->
 {#if isConnected && (sourceHandleData.microductNumber || targetHandleData.microductNumber)}
 	<foreignObject x={labelX - 60} y={labelY - 0} width="180" height="50" style="z-index: 100;">
 		<div class="flex items-center gap-2" style="z-index: 100;">
@@ -112,7 +107,6 @@
 	</foreignObject>
 {/if}
 
-<!-- Delete button for unconnected edges -->
 {#if !isConnected}
 	<EdgeLabel x={labelX} y={labelY}>
 		<button
@@ -120,6 +114,9 @@
 			style="z-index: 100;"
 			onclick={() =>
 				globalToaster.promise(handleDeleteEdge(), {
+					loading: {
+						description: m.message_please_wait()
+					},
 					success: () => ({
 						title: m.title_success(),
 						description: m.message_connection_deleted_successfully()

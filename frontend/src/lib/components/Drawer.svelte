@@ -7,21 +7,38 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { drawerStore } from '$lib/stores/drawer';
+	import { drawerStore as rawDrawerStore } from '$lib/stores/drawer';
 	import { tooltip } from '$lib/utils/tooltip.js';
 
-	let { children, class: className = '' } = $props();
+	/**
+	 * @typedef {Object} DrawerStoreType
+	 * @property {(fn: (value: any) => void) => () => void} subscribe
+	 * @property {(options?: {title?: string, component?: any, props?: Record<string, any>, width?: number|null}) => void} open
+	 * @property {() => void} close
+	 * @property {(title: string) => void} setTitle
+	 * @property {(component: any, props?: Record<string, any>) => void} setComponent
+	 * @property {(width: number) => void} setWidth
+	 * @property {(newProps: Record<string, any>) => void} updateProps
+	 */
 
+	/** @type {DrawerStoreType} */
+	const drawerStore = /** @type {any} */ (rawDrawerStore);
+
+	let { children = undefined, class: className = '' } = $props();
+
+	/** @type {HTMLDivElement | undefined} */
 	let drawerElement = $state();
 	let isResizing = $state(false);
 	let startX = $state(0);
 	let startWidth = $state(0);
 
-	let drawerOpen = $derived($drawerStore.open);
-	let drawerTitle = $derived($drawerStore.title);
-	let drawerWidth = $derived($drawerStore.width);
-	let DrawerComponent = $derived($drawerStore.component);
-	let drawerProps = $derived($drawerStore.props);
+	/** @type {import('svelte/store').Writable<{open: boolean, title: string, component: any, props: Record<string, any>, width: number}>} */
+	const typedStore = /** @type {any} */ (drawerStore);
+	let drawerOpen = $derived($typedStore.open);
+	let drawerTitle = $derived($typedStore.title);
+	let drawerWidth = $derived($typedStore.width);
+	let DrawerComponent = $derived($typedStore.component);
+	let drawerProps = $derived($typedStore.props);
 
 	/**
 	 * Closes the drawer by updating the drawer store state
@@ -48,7 +65,7 @@
 	function handleResizeStart(event) {
 		isResizing = true;
 		startX = event.clientX;
-		startWidth = $drawerStore.width;
+		startWidth = $typedStore.width;
 		document.body.style.cursor = 'col-resize';
 		document.body.style.userSelect = 'none';
 	}
@@ -82,7 +99,6 @@
 	 * Ensures drawer never exceeds 80% of viewport width
 	 */
 	$effect(() => {
-		// innerWidth.current is reactive - this effect re-runs when viewport changes
 		const maxWidth = Math.floor((innerWidth.current ?? 0) * 0.8);
 		if (drawerWidth > maxWidth) {
 			drawerStore.setWidth(maxWidth);

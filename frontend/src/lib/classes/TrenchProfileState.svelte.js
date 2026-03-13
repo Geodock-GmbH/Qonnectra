@@ -5,12 +5,74 @@ import { m } from '$lib/paraglide/messages';
 import { globalToaster } from '$lib/stores/toaster';
 
 /**
+ * @typedef {{
+ *   conduit_uuid: string,
+ *   conduit_name: string,
+ *   conduit_type: string,
+ *   microducts: Microduct[],
+ *   has_saved_position: boolean,
+ *   canvas_x: number | null,
+ *   canvas_y: number | null,
+ *   canvas_width: number | null,
+ *   canvas_height: number | null
+ * }} ConduitData
+ */
+
+/**
+ * @typedef {{
+ *   uuid: string,
+ *   color: string
+ * }} Microduct
+ */
+
+/**
+ * @typedef {{ x: number, y: number }} Position
+ */
+
+/**
+ * @typedef {{
+ *   id: string,
+ *   type: string,
+ *   position: Position,
+ *   style: string,
+ *   selected: boolean,
+ *   data: {
+ *     conduit: {
+ *       uuid: string,
+ *       conduit_name: string,
+ *       conduit_type: string,
+ *       microducts: Microduct[]
+ *     }
+ *   }
+ * }} TrenchProfileNode
+ */
+
+/**
+ * @typedef {{
+ *   id: string,
+ *   position: Position,
+ *   measured?: { width?: number, height?: number },
+ *   width?: number,
+ *   height?: number
+ * }} FlowNode
+ */
+
+/**
+ * @typedef {{
+ *   targetNode: FlowNode | null
+ * }} NodeDragEvent
+ */
+
+/**
  * State manager for the trench profile canvas
  * Manages nodes (conduits) and their positions/sizes
  */
 export class TrenchProfileState {
+	/** @type {TrenchProfileNode[]} */
 	nodes = $state.raw([]);
+	/** @type {string | null} */
 	trenchUuid = $state(null);
+	/** @type {boolean} */
 	isLoading = $state(false);
 
 	/** @type {boolean} - Track if already initialized */
@@ -54,7 +116,7 @@ export class TrenchProfileState {
 			console.error('Error loading trench profile:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: m.message_error_loading_data?.() || 'Error loading data'
+				description: /** @type {any} */ (m).message_error_loading_data?.() || 'Error loading data'
 			});
 		} finally {
 			this.isLoading = false;
@@ -73,8 +135,8 @@ export class TrenchProfileState {
 
 	/**
 	 * Transform API data to SvelteFlow nodes
-	 * @param {Array} conduits - Array of conduit data from API
-	 * @returns {Array} SvelteFlow compatible nodes
+	 * @param {ConduitData[]} conduits - Array of conduit data from API
+	 * @returns {TrenchProfileNode[]} SvelteFlow compatible nodes
 	 */
 	transformToSvelteFlowNodes(conduits) {
 		if (!conduits || !Array.isArray(conduits) || conduits.length === 0) {
@@ -86,7 +148,7 @@ export class TrenchProfileState {
 			.map((conduit, index) => {
 				const hasPosition = conduit.has_saved_position && conduit.canvas_x !== null;
 				const position = hasPosition
-					? { x: conduit.canvas_x, y: conduit.canvas_y }
+					? { x: /** @type {number} */ (conduit.canvas_x), y: /** @type {number} */ (conduit.canvas_y) }
 					: this.getGridPosition(index, conduits.length);
 
 				const width = conduit.canvas_width || 80;
@@ -114,7 +176,7 @@ export class TrenchProfileState {
 	 * Calculate grid position for a conduit
 	 * @param {number} index - Index of the conduit
 	 * @param {number} total - Total number of conduits
-	 * @returns {Object} Position {x, y}
+	 * @returns {Position} Position {x, y}
 	 */
 	getGridPosition(index, total) {
 		const GRID_SPACING = 120;
@@ -131,13 +193,14 @@ export class TrenchProfileState {
 
 	/**
 	 * Handle node drag stop - save new position
-	 * @param {Object} event - SvelteFlow drag event
+	 * @param {NodeDragEvent} event - SvelteFlow drag event
 	 */
 	async handleNodeDragStop(event) {
 		const node = event.targetNode;
 		if (!node || !this.trenchUuid) return;
 
-		const { x, y } = node.position;
+		const x = node.position?.x ?? 0;
+		const y = node.position?.y ?? 0;
 		const width = node.measured?.width || node.width || 80;
 		const height = node.measured?.height || node.height || 80;
 
@@ -146,7 +209,7 @@ export class TrenchProfileState {
 
 	/**
 	 * Save node after resize (called from onnodeschange)
-	 * @param {Object} node - The resized node
+	 * @param {FlowNode} node - The resized node
 	 */
 	async saveNodeDimensions(node) {
 		if (!node || !this.trenchUuid) return;
@@ -193,7 +256,7 @@ export class TrenchProfileState {
 			console.error('Error saving position:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: m.message_error_saving_data?.() || 'Error saving data'
+				description: /** @type {any} */ (m).message_error_saving_data?.() || 'Error saving data'
 			});
 		}
 	}

@@ -4,11 +4,107 @@ import { API_URL } from '$env/static/private';
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
 /**
- * Get the container hierarchy tree for a node
- * @param {Function} fetch - SvelteKit fetch function
+ * @typedef {Object} ContainerHierarchyNode
+ * @property {string} uuid - Container UUID
+ * @property {string} name - Container name
+ * @property {string} [container_type] - Container type name
+ * @property {ContainerHierarchyNode[]} [children] - Child containers
+ */
+
+/**
+ * @typedef {Object} SlotConfiguration
+ * @property {string} uuid - Slot configuration UUID
+ * @property {string} name - Slot configuration name
+ * @property {number} [position] - Position in slot
+ */
+
+/**
+ * @typedef {Object} NodeStructure
+ * @property {string} uuid - Node structure UUID
+ * @property {string} [component_type] - Component type name
+ * @property {number} [slot_position] - Position in slot
+ */
+
+/**
+ * @typedef {Object} ComponentType
+ * @property {string} uuid - Component type UUID
+ * @property {string} name - Component type name
+ * @property {string} [category] - Component category
+ */
+
+/**
+ * @typedef {Object} Cable
+ * @property {string} uuid - Cable UUID
+ * @property {string} name - Cable name
+ * @property {number} [fiber_count] - Number of fibers
+ */
+
+/**
+ * @typedef {Object} Fiber
+ * @property {string} uuid - Fiber UUID
+ * @property {number} fiber_number - Fiber position number
+ * @property {string} [color] - Fiber color name
+ */
+
+/**
+ * @typedef {Object} FiberColor
+ * @property {string} uuid - Fiber color UUID
+ * @property {string} name - Color name
+ * @property {string} hex_code - Hex color code
+ */
+
+/**
+ * @typedef {Object} ComponentPort
+ * @property {string} uuid - Port UUID
+ * @property {string} name - Port name
+ * @property {number} [position] - Port position
+ */
+
+/**
+ * @typedef {Object} FiberSplice
+ * @property {string} uuid - Splice UUID
+ * @property {string} [fiber_a] - First fiber UUID
+ * @property {string} [fiber_b] - Second fiber UUID
+ */
+
+/**
+ * @typedef {Object} SlotDivider
+ * @property {string} uuid - Divider UUID
+ * @property {number} position - Divider position
+ */
+
+/**
+ * @typedef {Object} SlotClipNumber
+ * @property {string} uuid - Clip number UUID
+ * @property {number} clip_number - Clip number value
+ */
+
+/**
+ * @typedef {Object} ContainerType
+ * @property {string} uuid - Container type UUID
+ * @property {string} name - Container type name
+ */
+
+/**
+ * @typedef {Object} Address
+ * @property {string} uuid - Address UUID
+ * @property {string} [street] - Street name
+ * @property {string} [housenumber] - House number
+ * @property {ResidentialUnit[]} [residential_units] - Units at this address
+ */
+
+/**
+ * @typedef {Object} ResidentialUnit
+ * @property {string} uuid - Residential unit UUID
+ * @property {string} [unit_name] - Unit identifier
+ */
+
+/**
+ * Gets the container hierarchy tree for a node.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} nodeUuid - UUID of the node
- * @returns {Promise<{hierarchy: Object}>} Container hierarchy
+ * @returns {Promise<{hierarchy: ContainerHierarchyNode} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Container hierarchy tree
  */
 export async function getContainerHierarchy(fetch, cookies, nodeUuid) {
 	if (!nodeUuid) {
@@ -16,7 +112,7 @@ export async function getContainerHierarchy(fetch, cookies, nodeUuid) {
 	}
 
 	try {
-		const headers = getAuthHeaders(cookies);
+		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
 		const response = await fetch(`${API_URL}container/tree/${nodeUuid}/`, {
 			method: 'GET',
 			headers
@@ -38,11 +134,11 @@ export async function getContainerHierarchy(fetch, cookies, nodeUuid) {
 }
 
 /**
- * Get slot configurations for a node
- * @param {Function} fetch - SvelteKit fetch function
+ * Gets slot configurations for a node.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} nodeUuid - UUID of the node
- * @returns {Promise<{configurations: Array}>} Slot configurations
+ * @returns {Promise<{configurations: SlotConfiguration[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Slot configurations
  */
 export async function getSlotConfigurationsForNode(fetch, cookies, nodeUuid) {
 	if (!nodeUuid) {
@@ -50,7 +146,7 @@ export async function getSlotConfigurationsForNode(fetch, cookies, nodeUuid) {
 	}
 
 	try {
-		const headers = getAuthHeaders(cookies);
+		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
 		const response = await fetch(`${API_URL}node-slot-configuration/by-node/${nodeUuid}/`, {
 			method: 'GET',
 			headers
@@ -72,11 +168,11 @@ export async function getSlotConfigurationsForNode(fetch, cookies, nodeUuid) {
 }
 
 /**
- * Get node structures for a slot configuration
- * @param {Function} fetch - SvelteKit fetch function
+ * Gets node structures for a slot configuration.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} slotConfigUuid - UUID of the slot configuration
- * @returns {Promise<{structures: Array}>} Node structures
+ * @returns {Promise<{structures: NodeStructure[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Node structures
  */
 export async function getNodeStructures(fetch, cookies, slotConfigUuid) {
 	if (!slotConfigUuid) {
@@ -84,7 +180,7 @@ export async function getNodeStructures(fetch, cookies, slotConfigUuid) {
 	}
 
 	try {
-		const headers = getAuthHeaders(cookies);
+		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
 		const response = await fetch(`${API_URL}node-structure/?slot_configuration=${slotConfigUuid}`, {
 			method: 'GET',
 			headers
@@ -106,14 +202,14 @@ export async function getNodeStructures(fetch, cookies, slotConfigUuid) {
 }
 
 /**
- * Get available component types
- * @param {Function} fetch - SvelteKit fetch function
+ * Gets available component types.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @returns {Promise<{componentTypes: Array}>} Component types
+ * @returns {Promise<{componentTypes: ComponentType[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Component types
  */
 export async function getComponentTypes(fetch, cookies) {
 	try {
-		const headers = getAuthHeaders(cookies);
+		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
 		const response = await fetch(`${API_URL}attributes_component_type/`, {
 			method: 'GET',
 			headers
@@ -132,11 +228,11 @@ export async function getComponentTypes(fetch, cookies) {
 }
 
 /**
- * Get cables connected to a node
- * @param {Function} fetch - SvelteKit fetch function
+ * Gets cables connected to a node.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} nodeUuid - UUID of the node
- * @returns {Promise<{cables: Array}>} Cables at node
+ * @returns {Promise<{cables: Cable[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Cables at node
  */
 export async function getCablesAtNode(fetch, cookies, nodeUuid) {
 	if (!nodeUuid) {
@@ -144,7 +240,7 @@ export async function getCablesAtNode(fetch, cookies, nodeUuid) {
 	}
 
 	try {
-		const headers = getAuthHeaders(cookies);
+		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
 		const response = await fetch(`${API_URL}cable/at-node/${nodeUuid}/`, {
 			method: 'GET',
 			headers
@@ -166,11 +262,11 @@ export async function getCablesAtNode(fetch, cookies, nodeUuid) {
 }
 
 /**
- * Get fibers for a cable
- * @param {Function} fetch - SvelteKit fetch function
+ * Gets fibers for a cable.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} cableUuid - UUID of the cable
- * @returns {Promise<{fibers: Array}>} Fibers for cable
+ * @returns {Promise<{fibers: Fiber[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Fibers for cable
  */
 export async function getFibersForCable(fetch, cookies, cableUuid) {
 	if (!cableUuid) {
@@ -178,7 +274,7 @@ export async function getFibersForCable(fetch, cookies, cableUuid) {
 	}
 
 	try {
-		const headers = getAuthHeaders(cookies);
+		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
 		const response = await fetch(`${API_URL}fiber/by-cable/${cableUuid}/`, {
 			method: 'GET',
 			headers
@@ -200,14 +296,14 @@ export async function getFibersForCable(fetch, cookies, cableUuid) {
 }
 
 /**
- * Get fiber colors
- * @param {Function} fetch - SvelteKit fetch function
+ * Gets fiber colors.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @returns {Promise<{fiberColors: Array}>} Fiber colors
+ * @returns {Promise<{fiberColors: FiberColor[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Fiber colors
  */
 export async function getFiberColors(fetch, cookies) {
 	try {
-		const headers = getAuthHeaders(cookies);
+		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
 		const response = await fetch(`${API_URL}attributes_fiber_color/`, {
 			method: 'GET',
 			headers
@@ -226,11 +322,11 @@ export async function getFiberColors(fetch, cookies) {
 }
 
 /**
- * Get ports for a component type
- * @param {Function} fetch - SvelteKit fetch function
+ * Gets ports for a component type.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} componentTypeId - ID of the component type
- * @returns {Promise<{ports: Array}>} Component ports
+ * @returns {Promise<{ports: ComponentPort[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Component ports
  */
 export async function getComponentPorts(fetch, cookies, componentTypeId) {
 	if (!componentTypeId) {
@@ -238,7 +334,7 @@ export async function getComponentPorts(fetch, cookies, componentTypeId) {
 	}
 
 	try {
-		const headers = getAuthHeaders(cookies);
+		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
 		const response = await fetch(
 			`${API_URL}attributes_component_structure/?component_type=${componentTypeId}`,
 			{
@@ -263,11 +359,11 @@ export async function getComponentPorts(fetch, cookies, componentTypeId) {
 }
 
 /**
- * Get fiber splices for a node structure
- * @param {Function} fetch - SvelteKit fetch function
+ * Gets fiber splices for a node structure.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} nodeStructureUuid - UUID of the node structure
- * @returns {Promise<{splices: Array}>} Fiber splices
+ * @returns {Promise<{splices: FiberSplice[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Fiber splices
  */
 export async function getFiberSplices(fetch, cookies, nodeStructureUuid) {
 	if (!nodeStructureUuid) {
@@ -275,7 +371,7 @@ export async function getFiberSplices(fetch, cookies, nodeStructureUuid) {
 	}
 
 	try {
-		const headers = getAuthHeaders(cookies);
+		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
 		const response = await fetch(`${API_URL}fiber-splice/?node_structure=${nodeStructureUuid}`, {
 			method: 'GET',
 			headers
@@ -297,11 +393,11 @@ export async function getFiberSplices(fetch, cookies, nodeStructureUuid) {
 }
 
 /**
- * Get slot dividers for a slot configuration
- * @param {Function} fetch - SvelteKit fetch function
+ * Gets slot dividers for a slot configuration.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} slotConfigUuid - UUID of the slot configuration
- * @returns {Promise<{dividers: Array}>} Slot dividers
+ * @returns {Promise<{dividers: SlotDivider[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Slot dividers
  */
 export async function getSlotDividers(fetch, cookies, slotConfigUuid) {
 	if (!slotConfigUuid) {
@@ -309,7 +405,7 @@ export async function getSlotDividers(fetch, cookies, slotConfigUuid) {
 	}
 
 	try {
-		const headers = getAuthHeaders(cookies);
+		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
 		const response = await fetch(
 			`${API_URL}node-slot-divider/?slot_configuration=${slotConfigUuid}`,
 			{
@@ -335,11 +431,11 @@ export async function getSlotDividers(fetch, cookies, slotConfigUuid) {
 }
 
 /**
- * Get slot clip numbers for a slot configuration
- * @param {Function} fetch - SvelteKit fetch function
+ * Gets slot clip numbers for a slot configuration.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} slotConfigUuid - UUID of the slot configuration
- * @returns {Promise<{clipNumbers: Array}>} Slot clip numbers
+ * @returns {Promise<{clipNumbers: SlotClipNumber[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Slot clip numbers
  */
 export async function getSlotClipNumbers(fetch, cookies, slotConfigUuid) {
 	if (!slotConfigUuid) {
@@ -347,7 +443,7 @@ export async function getSlotClipNumbers(fetch, cookies, slotConfigUuid) {
 	}
 
 	try {
-		const headers = getAuthHeaders(cookies);
+		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
 		const response = await fetch(
 			`${API_URL}node-slot-clip-number/?slot_configuration=${slotConfigUuid}`,
 			{
@@ -373,14 +469,14 @@ export async function getSlotClipNumbers(fetch, cookies, slotConfigUuid) {
 }
 
 /**
- * Get container types
- * @param {Function} fetch - SvelteKit fetch function
+ * Gets container types.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @returns {Promise<{containerTypes: Array}>} Container types
+ * @returns {Promise<{containerTypes: ContainerType[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Container types
  */
 export async function getContainerTypes(fetch, cookies) {
 	try {
-		const headers = getAuthHeaders(cookies);
+		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
 		const response = await fetch(`${API_URL}container-type/`, {
 			method: 'GET',
 			headers
@@ -399,11 +495,11 @@ export async function getContainerTypes(fetch, cookies) {
 }
 
 /**
- * Get fiber usage in a node (which fibers are already spliced)
- * @param {Function} fetch - SvelteKit fetch function
+ * Gets fiber usage in a node (which fibers are already spliced).
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} nodeUuid - UUID of the node
- * @returns {Promise<{usedFiberUuids: Array}>} Used fiber UUIDs
+ * @returns {Promise<{usedFiberUuids: string[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Used fiber UUIDs
  */
 export async function getFiberUsageInNode(fetch, cookies, nodeUuid) {
 	if (!nodeUuid) {
@@ -411,7 +507,7 @@ export async function getFiberUsageInNode(fetch, cookies, nodeUuid) {
 	}
 
 	try {
-		const headers = getAuthHeaders(cookies);
+		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
 		const response = await fetch(`${API_URL}fiber-splice/?node_structure__uuid_node=${nodeUuid}`, {
 			method: 'GET',
 			headers
@@ -424,8 +520,10 @@ export async function getFiberUsageInNode(fetch, cookies, nodeUuid) {
 			});
 		}
 
+		/** @type {Array<{fiber_a?: string, fiber_b?: string, shared_fiber_a?: string, shared_fiber_b?: string}>} */
 		const splices = await response.json();
 
+		/** @type {Set<string>} */
 		const usedFiberUuids = new Set();
 		splices.forEach((splice) => {
 			if (splice.fiber_a) usedFiberUuids.add(splice.fiber_a);
@@ -444,11 +542,11 @@ export async function getFiberUsageInNode(fetch, cookies, nodeUuid) {
 }
 
 /**
- * Get addresses with residential units for a node
- * @param {Function} fetch - SvelteKit fetch function
+ * Gets addresses with residential units for a node.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} nodeUuid - UUID of the node
- * @returns {Promise<{addresses: Array}>} Addresses with residential units
+ * @returns {Promise<{addresses: Address[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Addresses with residential units
  */
 export async function getAddressesForNode(fetch, cookies, nodeUuid) {
 	if (!nodeUuid) {
@@ -456,7 +554,7 @@ export async function getAddressesForNode(fetch, cookies, nodeUuid) {
 	}
 
 	try {
-		const headers = getAuthHeaders(cookies);
+		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
 		const response = await fetch(`${API_URL}node/${nodeUuid}/addresses/`, {
 			method: 'GET',
 			headers
@@ -478,18 +576,11 @@ export async function getAddressesForNode(fetch, cookies, nodeUuid) {
 }
 
 /**
- * Get used residential units in a node (connected to fibers)
- * @param {Function} fetch - SvelteKit fetch function
+ * Exports node structure data as Excel file.
+ * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} nodeUuid - UUID of the node
- * @returns {Promise<{used_uuids: Array}>} Used residential unit UUIDs
- */
-/**
- * Export node structure data as Excel file
- * @param {Function} fetch - SvelteKit fetch function
- * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @param {string} nodeUuid - UUID of the node
- * @returns {Promise<{fileData: string, fileName: string}>} Base64-encoded file data and filename
+ * @returns {Promise<{fileData: string, fileName: string} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Base64-encoded file data and filename
  */
 export async function exportNodeExcel(fetch, cookies, nodeUuid) {
 	if (!nodeUuid) {
@@ -497,7 +588,7 @@ export async function exportNodeExcel(fetch, cookies, nodeUuid) {
 	}
 
 	try {
-		const headers = getAuthHeaders(cookies);
+		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
 		const response = await fetch(`${API_URL}node-export/excel/${nodeUuid}/`, { headers });
 
 		if (!response.ok) {
@@ -517,13 +608,20 @@ export async function exportNodeExcel(fetch, cookies, nodeUuid) {
 	}
 }
 
+/**
+ * Gets used residential units in a node (connected to fibers).
+ * @param {typeof fetch} fetch - SvelteKit fetch function
+ * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
+ * @param {string} nodeUuid - UUID of the node
+ * @returns {Promise<{used_uuids: string[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Used residential unit UUIDs
+ */
 export async function getUsedResidentialUnits(fetch, cookies, nodeUuid) {
 	if (!nodeUuid) {
 		return fail(400, { error: 'Node UUID is required' });
 	}
 
 	try {
-		const headers = getAuthHeaders(cookies);
+		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
 		const response = await fetch(`${API_URL}node/${nodeUuid}/used-residential-units/`, {
 			method: 'GET',
 			headers

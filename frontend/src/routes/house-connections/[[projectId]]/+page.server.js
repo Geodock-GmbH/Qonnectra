@@ -16,7 +16,10 @@ import {
 	searchFeaturesInProject
 } from '$lib/server/featureSearch';
 
-/** @type {import('./$types').PageServerLoad} */
+/**
+ * Loads attribute data (node types, surfaces, construction types, area types) for the house connections page.
+ * @param {import('./$types').PageServerLoadEvent} event
+ */
 export async function load({ fetch, cookies }) {
 	const [nodeTypesData, surfacesData, constructionTypesData, areaTypesData] = await Promise.all([
 		getNodeTypes(fetch, cookies),
@@ -33,21 +36,33 @@ export async function load({ fetch, cookies }) {
 	};
 }
 
-/** @type {import('./$types').Actions} */
+/** @satisfies {import('./$types').Actions} */
 export const actions = {
+	/**
+	 * Retrieves conduit pipes for a given trench.
+	 * @param {import('./$types').RequestEvent} event
+	 */
 	getPipesInTrench: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
-		const trenchId = formData.get('uuid');
+		const trenchId = /** @type {string} */ (formData.get('uuid'));
 
 		return getPipesInTrench(fetch, cookies, trenchId);
 	},
 
+	/**
+	 * Retrieves microducts for a given conduit pipe.
+	 * @param {import('./$types').RequestEvent} event
+	 */
 	getMicroducts: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
-		const pipeId = formData.get('uuid');
+		const pipeId = /** @type {string} */ (formData.get('uuid'));
 
 		return getMicroducts(fetch, cookies, pipeId);
 	},
+	/**
+	 * Assigns a node to a microduct via PATCH request.
+	 * @param {import('./$types').RequestEvent} event
+	 */
 	assignNodeToMicroduct: async ({ request, fetch, cookies }) => {
 		try {
 			const formData = await request.formData();
@@ -89,6 +104,10 @@ export const actions = {
 			return fail(500, { error: 'Internal server error' });
 		}
 	},
+	/**
+	 * Removes the node assignment from a microduct via PATCH request.
+	 * @param {import('./$types').RequestEvent} event
+	 */
 	removeNodeFromMicroduct: async ({ request, fetch, cookies }) => {
 		try {
 			const formData = await request.formData();
@@ -126,31 +145,53 @@ export const actions = {
 			return fail(500, { error: 'Internal server error' });
 		}
 	},
+	/**
+	 * Searches for features within the current project.
+	 * @param {import('./$types').RequestEvent} event
+	 */
 	searchFeatures: async ({ request, fetch, cookies, params }) => {
 		const data = await request.formData();
-		const searchQuery = data.get('searchQuery');
+		const searchQuery = /** @type {string} */ (data.get('searchQuery'));
 		const projectId = params.projectId;
 
-		return searchFeaturesInProject(fetch, cookies, searchQuery, projectId);
+		return searchFeaturesInProject(fetch, cookies, searchQuery, projectId ?? '');
 	},
-	getFeatureDetails: async ({ request, fetch, cookies }) => {
+	/**
+	 * Retrieves detailed properties for a specific feature by type and UUID.
+	 * @param {import('./$types').RequestEvent} event
+	 */
+	getFeatureDetails: async ({ request, fetch, cookies, params }) => {
 		const data = await request.formData();
-		const featureType = data.get('featureType');
-		const featureUuid = data.get('featureUuid');
+		const featureType = /** @type {'trench' | 'node' | 'address'} */ (data.get('featureType'));
+		const featureUuid = /** @type {string} */ (data.get('featureUuid'));
 
-		return getFeatureDetailsByType(fetch, cookies, featureType, featureUuid);
+		return getFeatureDetailsByType(
+			fetch,
+			cookies,
+			featureType,
+			featureUuid,
+			params.projectId ?? ''
+		);
 	},
 
+	/**
+	 * Retrieves trench UUIDs associated with a conduit.
+	 * @param {import('./$types').RequestEvent} event
+	 */
 	getConduitTrenches: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
-		const conduitUuid = formData.get('conduitUuid');
+		const conduitUuid = /** @type {string} */ (formData.get('conduitUuid'));
 
 		return getTrenchUuidsForConduit(fetch, cookies, conduitUuid);
 	},
+	/**
+	 * Retrieves the spatial extent for a layer type within a project.
+	 * @param {import('./$types').RequestEvent} event
+	 */
 	getLayerExtent: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
-		const layerType = formData.get('layerType');
-		const projectId = formData.get('projectId');
+		const layerType = /** @type {'trench' | 'address' | 'node'} */ (formData.get('layerType'));
+		const projectId = /** @type {string} */ (formData.get('projectId'));
 
 		return getLayerExtent(fetch, cookies, layerType, projectId);
 	}

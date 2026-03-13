@@ -34,8 +34,6 @@
 	let structurePanelSlotConfigUuid = $state(null);
 	let micropipePanelOpen = $state(false);
 
-	// Shared state for slot configurations - allows both panels to stay in sync
-	// Using a reactive object that both panels can read and update
 	let sharedSlotState = $state({
 		nodeUuid: null,
 		slotConfigurations: [],
@@ -99,7 +97,7 @@
 
 	/**
 	 * Handle fiber status change
-	 * @param {Object} fiber
+	 * @param {any} fiber
 	 * @param {number|null} statusId
 	 */
 	async function handleFiberStatusChange(fiber, statusId) {
@@ -132,7 +130,6 @@
 
 	const featureId = $derived(data?.uuid || data?.id);
 
-	// Re-fetch fibers when featureId changes while on status tab
 	$effect(() => {
 		if (group === 'status' && featureId && type === 'edge') {
 			if (featureId !== lastFetchedFeatureId) {
@@ -143,6 +140,7 @@
 		}
 	});
 
+	/** @type {any} */
 	let fileExplorer = $state(null);
 
 	function handleUploadComplete() {
@@ -151,7 +149,7 @@
 		}
 	}
 
-	function handleOpenStructurePanel(slotConfigUuid = null) {
+	function handleOpenStructurePanel(/** @type {any} */ slotConfigUuid = null) {
 		structurePanelSlotConfigUuid = slotConfigUuid;
 		structurePanelOpen = true;
 	}
@@ -164,7 +162,6 @@
 		if (type !== 'edge' || !featureId) return;
 
 		try {
-			// Fetch updated cable data
 			const formData = new FormData();
 			formData.append('uuid', featureId);
 			const response = await fetch('?/getCables', {
@@ -177,14 +174,12 @@
 				drawerStore.updateProps(parsedData);
 			}
 
-			// Fetch updated micropipe connections for this cable
 			const micropipeResponse = await fetch(`?/getMicropipeConnectionsForCable`, {
 				method: 'POST',
 				body: formData
 			});
 			const micropipeResult = deserialize(await micropipeResponse.text());
 			if (micropipeResult.type === 'success' && micropipeResult.data?.connections) {
-				// Dispatch event to update edge colors
 				window.dispatchEvent(
 					new CustomEvent('micropipeLinkageChanged', {
 						detail: { cableId: featureId, connections: micropipeResult.data.connections }
@@ -300,7 +295,8 @@
 		<NodeSlotConfigPanel
 			nodeUuid={data.uuid || data.id}
 			nodeName={data.name}
-			onViewStructure={(slotConfigUuid) => handleOpenStructurePanel(slotConfigUuid)}
+			onViewStructure={(/** @type {any} */ slotConfigUuid) =>
+				handleOpenStructurePanel(slotConfigUuid)}
 			bind:sharedSlotState
 		/>
 	</FloatingPanel>

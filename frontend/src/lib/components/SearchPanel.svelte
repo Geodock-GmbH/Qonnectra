@@ -33,6 +33,7 @@
 	const selectionManager = mapManagers?.selectionManager;
 
 	let searchQuery = $state('');
+	/** @type {Array<{label: string, type: string, value: string}> | null} */
 	let searchResults = $state([]);
 	let filterQuery = $state('');
 	let isSearching = $state(false);
@@ -42,18 +43,20 @@
 	const FILTER_THRESHOLD = 10;
 
 	const fuse = $derived(
-		new Fuse(searchResults, {
+		new Fuse(searchResults ?? [], {
 			keys: ['label'],
 			threshold: 0.3
 		})
 	);
 
 	let filteredResults = $derived.by(() => {
+		if (!searchResults) return [];
 		if (!filterQuery.trim()) return searchResults;
 		const results = fuse.search(filterQuery);
 		return results.length > 0 ? results.map((r) => r.item) : searchResults;
 	});
 
+	/** @type {Record<string, {getLabel: () => any, bg: string, text: string, darkBg: string, darkText: string}>} */
 	const TYPE_CONFIG = {
 		address: {
 			getLabel: () => m.form_address({ count: 1 }),
@@ -101,7 +104,7 @@
 		return label.replace(/\s*\([^)]*\)\s*$/, '').trim();
 	}
 
-	const debouncedSearch = debounce(async (query) => {
+	const debouncedSearch = debounce(async (/** @type {string} */ query) => {
 		if (!query.trim()) {
 			searchResults = [];
 			showSearchResults = false;
@@ -150,7 +153,7 @@
 
 	/**
 	 * Handle result item click
-	 * @param {Object} result - Selected result item
+	 * @param {{ type: string, value: string, label: string }} result - Selected result item
 	 */
 	async function handleResultClick(result) {
 		if (!result || !olMapInstance) return;
@@ -190,6 +193,15 @@
 					'EPSG:25832',
 					olMapInstance.getView().getProjection()
 				);
+
+				if (!geometry) {
+					console.error('Failed to parse feature geometry');
+					globalToaster.error({
+						title: m.title_feature_found(),
+						description: m.message_error_search_failed()
+					});
+					return;
+				}
 
 				if (!highlightLayer) {
 					const highlightStyle = await createHighlightStyle(trenchColorSelected);
@@ -257,10 +269,14 @@
 					return;
 				}
 
-				const geometries = await parseMultipleFeatureGeometries(
+				const rawGeometries = await parseMultipleFeatureGeometries(
 					parsedData.trenches,
 					'EPSG:25832',
 					olMapInstance.getView().getProjection()
+				);
+				const geometries = rawGeometries.filter(
+					/** @returns {g is import('ol/geom/Geometry').default} */
+					(g) => g !== undefined
 				);
 
 				if (!highlightLayer) {
@@ -270,9 +286,14 @@
 				}
 
 				highlightLayer.getSource().clear();
-				await zoomToMultipleFeatures(olMapInstance, geometries, highlightLayer, {
-					maxZoom: 17
-				});
+				await zoomToMultipleFeatures(
+					olMapInstance,
+					geometries,
+					highlightLayer,
+					/** @type {any} */ ({
+						maxZoom: 17
+					})
+				);
 
 				searchQuery = '';
 				searchResults = [];
@@ -323,6 +344,7 @@
 <div class="search-panel">
 	<SearchInput bind:value={searchQuery} onSearch={handleSearch} />
 
+	<!-- Search Results -->
 	{#if showSearchResults && searchResults && searchResults.length > 0 && !isSearching}
 		<div class="results-container" transition:fly={{ y: -8, duration: 200, easing: cubicOut }}>
 			<div class="results-header">
@@ -336,7 +358,7 @@
 					<input
 						type="text"
 						class="filter-input"
-						placeholder={m.common_filter ? m.common_filter() : 'Filter...'}
+						placeholder={m.common_filter()}
 						bind:value={filterQuery}
 					/>
 				{/if}
@@ -360,12 +382,13 @@
 			</ul>
 			{#if filteredResults.length === 0 && filterQuery.trim()}
 				<div class="no-results">
-					{m.common_no_results ? m.common_no_results() : 'No matches'}
+					{m.common_no_results()}
 				</div>
 			{/if}
 		</div>
 	{/if}
 
+	<!-- Loading Indicator -->
 	{#if isSearching}
 		<div class="loading-container" transition:fade={{ duration: 150 }}>
 			<div class="loading-dots">

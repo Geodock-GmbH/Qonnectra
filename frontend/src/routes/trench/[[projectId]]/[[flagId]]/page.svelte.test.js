@@ -4,24 +4,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Page from './+page.svelte';
 
-// Create proper store mocks with subscribe returning an unsubscribe function
-// Using a factory pattern to avoid hoisting issues
+/**
+ * @param {any} initialValue
+ * @returns {{ subscribe: (callback: Function) => () => void, set: (newValue: any) => void, update: (fn: Function) => void, getValue: () => any }}
+ */
 const createMockStore = (initialValue = null) => {
 	let value = initialValue;
+	/** @type {Set<Function>} */
 	const subscribers = new Set();
 	return {
-		subscribe: (callback) => {
+		subscribe: (/** @type {Function} */ callback) => {
 			subscribers.add(callback);
 			callback(value);
 			return () => subscribers.delete(callback);
 		},
-		set: (newValue) => {
+		set: (/** @type {any} */ newValue) => {
 			value = newValue;
-			subscribers.forEach((callback) => callback(value));
+			subscribers.forEach((/** @type {Function} */ callback) => callback(value));
 		},
-		update: (fn) => {
+		update: (/** @type {Function} */ fn) => {
 			value = fn(value);
-			subscribers.forEach((callback) => callback(value));
+			subscribers.forEach((/** @type {Function} */ callback) => callback(value));
 		},
 		getValue: () => value
 	};
@@ -38,23 +41,27 @@ let mockTrenchColorSelected;
 
 // Mock the stores module
 vi.mock('$lib/stores/store', () => {
-	// Create store instances inside the factory to avoid hoisting issues
+	/**
+	 * @param {any} initialValue
+	 * @returns {{ subscribe: (callback: Function) => () => void, set: (newValue: any) => void, update: (fn: Function) => void }}
+	 */
 	const createStore = (initialValue = null) => {
 		let value = initialValue;
+		/** @type {Set<Function>} */
 		const subscribers = new Set();
 		return {
-			subscribe: (callback) => {
+			subscribe: (/** @type {Function} */ callback) => {
 				subscribers.add(callback);
 				callback(value);
 				return () => subscribers.delete(callback);
 			},
-			set: (newValue) => {
+			set: (/** @type {any} */ newValue) => {
 				value = newValue;
-				subscribers.forEach((cb) => cb(value));
+				subscribers.forEach((/** @type {Function} */ cb) => cb(value));
 			},
-			update: (fn) => {
+			update: (/** @type {Function} */ fn) => {
 				value = fn(value);
-				subscribers.forEach((cb) => cb(value));
+				subscribers.forEach((/** @type {Function} */ cb) => cb(value));
 			}
 		};
 	};
@@ -96,13 +103,13 @@ vi.mock('$app/navigation', () => ({
 // Mock the page store
 vi.mock('$app/stores', () => ({
 	page: {
-		subscribe: (callback) => {
+		subscribe: (/** @type {Function} */ callback) => {
 			callback({ url: { pathname: '/trench/1/1' }, params: { projectId: '1', flagId: '1' } });
 			return { unsubscribe: vi.fn() };
 		}
 	},
 	navigating: {
-		subscribe: (callback) => {
+		subscribe: (/** @type {Function} */ callback) => {
 			callback(null);
 			return { unsubscribe: vi.fn() };
 		}
@@ -115,7 +122,7 @@ vi.mock('$lib/paraglide/messages', () => {
 	const mockMessages = new Proxy(
 		{},
 		{
-			get: (target, prop) => {
+			get: (/** @type {any} */ target, /** @type {string} */ prop) => {
 				// Return a function that returns the property name as a string
 				return () => String(prop);
 			}
@@ -127,21 +134,26 @@ vi.mock('$lib/paraglide/messages', () => {
 // Mock the OpenLayers components
 vi.mock('ol/Feature.js', () => ({
 	default: class Feature {
+		/** @param {any} geometry */
 		constructor(geometry) {
+			/** @type {any} */
 			this.geometry = geometry;
 		}
+		/** @param {string} key */
 		get(key) {
-			return this[key] || null;
+			return /** @type {any} */ (this)[key] || null;
 		}
 		getId() {
-			return this.id || 'mock-feature-id';
+			return /** @type {any} */ (this).id || 'mock-feature-id';
 		}
 	}
 }));
 
 vi.mock('ol/format/MVT.js', () => ({
 	default: class MVT {
+		/** @param {any} options */
 		constructor(options) {
+			/** @type {any} */
 			this.options = options;
 		}
 		readFeatures() {
@@ -169,8 +181,11 @@ vi.mock('ol/format/WKT.js', () => ({
 
 vi.mock('ol/layer/Vector.js', () => ({
 	default: class VectorLayer {
+		/** @param {any} options */
 		constructor(options) {
+			/** @type {any} */
 			this.options = options;
+			/** @type {any} */
 			this.source = options.source;
 		}
 		getSource() {
@@ -187,9 +202,13 @@ vi.mock('ol/layer/Vector.js', () => ({
 
 vi.mock('ol/layer/VectorTile.js', () => ({
 	default: class VectorTileLayer {
+		/** @param {any} options */
 		constructor(options) {
+			/** @type {any} */
 			this.options = options;
+			/** @type {any} */
 			this.source = options?.source;
+			/** @type {boolean} */
 			this.visible = options?.visible ?? true;
 		}
 		getSource() {
@@ -201,6 +220,7 @@ vi.mock('ol/layer/VectorTile.js', () => ({
 		}
 		changed() {}
 		setStyle() {}
+		/** @param {boolean} visible */
 		setVisible(visible) {
 			this.visible = visible;
 		}
@@ -221,7 +241,9 @@ vi.mock('ol/source/Vector.js', () => ({
 
 vi.mock('ol/source/VectorTile.js', () => ({
 	default: class VectorTileSource {
+		/** @param {any} options */
 		constructor(options) {
+			/** @type {any} */
 			this.options = options;
 		}
 		refresh() {}
@@ -231,12 +253,16 @@ vi.mock('ol/source/VectorTile.js', () => ({
 
 vi.mock('ol/style', () => ({
 	Circle: class CircleStyle {
+		/** @param {any} options */
 		constructor(options) {
+			/** @type {any} */
 			this.options = options;
 		}
 	},
 	Style: class Style {
+		/** @param {any} options */
 		constructor(options) {
+			/** @type {any} */
 			this.options = options;
 		}
 	}
@@ -244,7 +270,9 @@ vi.mock('ol/style', () => ({
 
 vi.mock('ol/style/Fill.js', () => ({
 	default: class Fill {
+		/** @param {any} options */
 		constructor(options) {
+			/** @type {any} */
 			this.options = options;
 		}
 	}
@@ -252,7 +280,9 @@ vi.mock('ol/style/Fill.js', () => ({
 
 vi.mock('ol/style/Stroke.js', () => ({
 	default: class Stroke {
+		/** @param {any} options */
 		constructor(options) {
+			/** @type {any} */
 			this.options = options;
 		}
 	}
@@ -260,7 +290,9 @@ vi.mock('ol/style/Stroke.js', () => ({
 
 vi.mock('ol/style/Text.js', () => ({
 	default: class Text {
+		/** @param {any} options */
 		constructor(options) {
+			/** @type {any} */
 			this.options = options;
 		}
 	}
@@ -308,7 +340,7 @@ vi.mock('@skeletonlabs/skeleton-svelte', () => ({
 const mockMapInstance = {
 	getView: () => ({
 		getProjection: () => 'EPSG:3857',
-		fit: vi.fn((extent, options) => {
+		fit: vi.fn((/** @type {any} */ extent, /** @type {any} */ options) => {
 			if (options && options.callback) {
 				options.callback();
 			}
@@ -322,17 +354,17 @@ const mockMapInstance = {
 };
 
 // Mock fetch for API calls
-global.fetch = vi.fn();
+global.fetch = /** @type {any} */ (vi.fn());
 
 describe('Trench Page Component', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 
 		// Reset fetch mock
-		fetch.mockReset();
+		/** @type {any} */ (fetch).mockReset();
 
 		// Mock successful fetch responses
-		fetch.mockImplementation((url) => {
+		/** @type {any} */ (fetch).mockImplementation((/** @type {string} */ url) => {
 			if (url.includes('trench/?id_trench=')) {
 				return Promise.resolve({
 					ok: true,
@@ -379,7 +411,8 @@ describe('Trench Page Component', () => {
 		const { container } = render(Page, {
 			data: {
 				flags: [],
-				conduits: []
+				conduits: [],
+				conduitsError: null
 			}
 		});
 
@@ -390,7 +423,8 @@ describe('Trench Page Component', () => {
 		const { container } = render(Page, {
 			data: {
 				flags: [{ id: 1, flag: 'Test Flag' }],
-				conduits: []
+				conduits: [],
+				conduitsError: null
 			}
 		});
 
@@ -401,7 +435,8 @@ describe('Trench Page Component', () => {
 		const { container } = render(Page, {
 			data: {
 				flags: [],
-				conduits: [{ id: 1, name: 'Test Conduit' }]
+				conduits: [{ value: '1', label: 'Test Conduit' }],
+				conduitsError: null
 			}
 		});
 
@@ -412,7 +447,8 @@ describe('Trench Page Component', () => {
 		const { container } = render(Page, {
 			data: {
 				flags: [{ id: 1, flag: 'Test Flag' }],
-				conduits: [{ id: 1, name: 'Test Conduit' }]
+				conduits: [{ value: '1', label: 'Test Conduit' }],
+				conduitsError: null
 			}
 		});
 

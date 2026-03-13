@@ -6,7 +6,6 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	/** @type {import('./$types').PageData} */
 	let { data } = $props();
 
 	const logLevels = [
@@ -36,8 +35,7 @@
 	});
 
 	/**
-	 * Apply filters
-	 * @returns {void}
+	 * Navigates to page 1 with all active filter values as query parameters.
 	 */
 	function applyFilters() {
 		const params = new URLSearchParams();
@@ -52,9 +50,8 @@
 	}
 
 	/**
-	 * Go to page
-	 * @param {number} pageNum - Page number
-	 * @returns {void}
+	 * Navigates to a specific log page while preserving current filters.
+	 * @param {number} pageNum - The target page number.
 	 */
 	function goToPage(pageNum) {
 		const params = new URLSearchParams($page.url.searchParams);
@@ -63,9 +60,9 @@
 	}
 
 	/**
-	 * Get log level color using Skeleton colors
-	 * @param {string} level - Log level
-	 * @returns {string} - Skeleton color class
+	 * Maps a log level to its corresponding Skeleton preset class.
+	 * @param {string} level - Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+	 * @returns {string} Skeleton color preset class.
 	 */
 	function getLevelColor(level) {
 		const colors = {
@@ -75,13 +72,13 @@
 			ERROR: 'preset-filled-error-500',
 			CRITICAL: 'preset-filled-error-600'
 		};
-		return colors[level] || colors.INFO;
+		return /** @type {Record<string, string>} */ (colors)[level] || colors.INFO;
 	}
 
 	/**
-	 * Get source color using Skeleton colors
-	 * @param {string} source - Source
-	 * @returns {string} - Skeleton color class
+	 * Maps a log source to its corresponding Skeleton preset class.
+	 * @param {string} source - Log source (backend, frontend, wfs).
+	 * @returns {string} Skeleton color preset class.
 	 */
 	function getSourceColor(source) {
 		const colors = {
@@ -89,13 +86,13 @@
 			frontend: 'preset-filled-warning-500',
 			wfs: 'preset-filled-error-500'
 		};
-		return colors[source] || colors.backend;
+		return /** @type {Record<string, string>} */ (colors)[source] || colors.backend;
 	}
 
 	/**
-	 * Format timestamp
-	 * @param {string} timestamp - Timestamp
-	 * @returns {string} - Formatted timestamp
+	 * Formats an ISO timestamp into a locale-appropriate date/time string.
+	 * @param {string} timestamp - ISO 8601 timestamp.
+	 * @returns {string} Formatted date/time string.
 	 */
 	function formatTimestamp(timestamp) {
 		const date = new Date(timestamp);
@@ -117,7 +114,6 @@
 	<!-- Filters -->
 	<div class="preset-filled-surface-50-950 rounded-lg shadow p-4 mb-6">
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-			<!-- Log Level Filter -->
 			<div>
 				<label for="level" class="block text-sm font-medium mb-1">{m.form_level()}</label>
 				<select id="level" bind:value={filters.level} class="select w-full">
@@ -127,7 +123,6 @@
 				</select>
 			</div>
 
-			<!-- Source Filter -->
 			<div>
 				<label for="source" class="block text-sm font-medium mb-1">{m.form_source()}</label>
 				<select id="source" bind:value={filters.source} class="select w-full">
@@ -137,7 +132,6 @@
 				</select>
 			</div>
 
-			<!-- Project Filter -->
 			<div>
 				<label for="project" class="block text-sm font-medium mb-1"
 					>{m.form_project({ count: 1 })}</label
@@ -150,7 +144,6 @@
 				</select>
 			</div>
 
-			<!-- Search -->
 			<div>
 				<label for="search" class="block text-sm font-medium mb-1">{m.common_search()}</label>
 				<input
@@ -162,7 +155,6 @@
 				/>
 			</div>
 
-			<!-- Date From -->
 			<div>
 				<label for="dateFrom" class="block text-sm font-medium mb-1">{m.form_date_from()}</label>
 				<input
@@ -173,14 +165,12 @@
 				/>
 			</div>
 
-			<!-- Date To -->
 			<div>
 				<label for="dateTo" class="block text-sm font-medium mb-1">{m.form_date_to()}</label>
 				<input id="dateTo" type="datetime-local" bind:value={filters.dateTo} class="input w-full" />
 			</div>
 		</div>
 
-		<!-- Filter Actions -->
 		<div class="mt-4 flex gap-2">
 			<button onclick={applyFilters} class="btn preset-filled-primary-500">
 				{m.action_apply_filters()}

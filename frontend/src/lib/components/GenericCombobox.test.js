@@ -16,6 +16,7 @@ describe('GenericCombobox Fuzzy Search', () => {
 		{ label: 'Elderberry', value: 'elderberry' }
 	];
 
+	/** @type {Fuse<{label: string, value: string}>} */
 	let fuse;
 
 	beforeEach(() => {
@@ -34,7 +35,9 @@ describe('GenericCombobox Fuzzy Search', () => {
 	test('should find partial matches', () => {
 		const results = fuse.search('App');
 		expect(results.length).toBe(2);
-		const labels = results.map((r) => r.item.label);
+		const labels = results.map(
+			(/** @type {{ item: {label: string, value: string} }} */ r) => r.item.label
+		);
 		expect(labels).toContain('Apple');
 		expect(labels).toContain('Application');
 	});
@@ -42,7 +45,9 @@ describe('GenericCombobox Fuzzy Search', () => {
 	test('should find fuzzy matches with typos', () => {
 		const results = fuse.search('Appel'); // typo for Apple
 		expect(results.length).toBeGreaterThan(0);
-		const labels = results.map((r) => r.item.label);
+		const labels = results.map(
+			(/** @type {{ item: {label: string, value: string} }} */ r) => r.item.label
+		);
 		expect(labels).toContain('Apple');
 	});
 
@@ -118,7 +123,7 @@ describe('GenericCombobox Fuzzy Search Integration', () => {
 		});
 
 		// Simulate the onInputValueChange behavior
-		const onInputValueChange = (inputValue) => {
+		const onInputValueChange = (/** @type {string} */ inputValue) => {
 			if (!inputValue) {
 				return data;
 			}

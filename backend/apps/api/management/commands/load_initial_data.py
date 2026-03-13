@@ -11,12 +11,16 @@ from django.apps import apps
 
 
 class Command(BaseCommand):
+    """Load initial fixture data idempotently, skipping groups that already exist.
+
+    Each fixture group is gated by checking whether the sentinel model
+    already has rows.  Use ``--force`` to bypass existence checks (may
+    cause IntegrityError on duplicate data).
+    """
+
     help = "Load initial fixture data (skips if data already exists)"
 
-    # Fixture groups with their fixtures and a model to check for existing data
-    # Format: (check_model_name, [fixture_names])
     FIXTURE_GROUPS = [
-        # Group 1: Basic company and construction attributes
         (
             "AttributesCompany",
             [
@@ -26,7 +30,6 @@ class Command(BaseCommand):
                 "attributes_phase",
             ],
         ),
-        # Group 2: Status, surface, storage, file types, projects, flags
         (
             "AttributesStatus",
             [
@@ -38,7 +41,6 @@ class Command(BaseCommand):
                 "flags",
             ],
         ),
-        # Group 3: Network and node attributes
         (
             "AttributesNetworkLevel",
             [
@@ -48,7 +50,6 @@ class Command(BaseCommand):
                 "attributes_area_types",
             ],
         ),
-        # Group 4: Pipe branch, network schema, fiber/microduct status
         (
             "PipeBranchSettings",
             [
@@ -58,7 +59,7 @@ class Command(BaseCommand):
                 "attributes_microduct_status",
             ],
         ),
-        # Group 5: Color mappings (these have unique constraints!)
+        # Color mappings have unique constraints — loading twice will fail
         (
             "AttributesMicroductColor",
             [
@@ -69,7 +70,6 @@ class Command(BaseCommand):
                 "cable_type_color_mapping",
             ],
         ),
-        # Group 6: Component and residential unit attributes
         (
             "AttributesComponentType",
             [
@@ -82,6 +82,11 @@ class Command(BaseCommand):
     ]
 
     def add_arguments(self, parser):
+        """Define CLI arguments for the command.
+
+        Args:
+            parser: ArgumentParser instance to register arguments on.
+        """
         parser.add_argument(
             "--force",
             action="store_true",
@@ -89,6 +94,15 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        """Iterate over fixture groups and load each if its sentinel model is empty.
+
+        Args:
+            *args: Positional arguments (unused).
+            **options: Command options including 'force'.
+
+        Raises:
+            Exception: Re-raised from ``loaddata`` on fixture load failure.
+        """
         force = options.get("force", False)
 
         for check_model_name, fixtures in self.FIXTURE_GROUPS:
@@ -96,7 +110,9 @@ class Command(BaseCommand):
                 model = apps.get_model("api", check_model_name)
             except LookupError:
                 self.stderr.write(
-                    self.style.WARNING(f"Model {check_model_name} not found, skipping group")
+                    self.style.WARNING(
+                        f"Model {check_model_name} not found, skipping group"
+                    )
                 )
                 continue
 
@@ -111,9 +127,7 @@ class Command(BaseCommand):
             self.stdout.write(f"Loading fixtures: {', '.join(fixtures)}")
             try:
                 call_command("loaddata", *fixtures, verbosity=0)
-                self.stdout.write(
-                    self.style.SUCCESS(f"Loaded: {', '.join(fixtures)}")
-                )
+                self.stdout.write(self.style.SUCCESS(f"Loaded: {', '.join(fixtures)}"))
             except Exception as e:
                 self.stderr.write(
                     self.style.ERROR(f"Failed to load {', '.join(fixtures)}: {e}")

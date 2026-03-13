@@ -7,6 +7,7 @@
 
 	let { warranties } = $props();
 
+	/** @param {number} daysUntilExpiry */
 	function getUrgencyClass(daysUntilExpiry) {
 		if (daysUntilExpiry < 30) {
 			return 'bg-error-200-800 border-error-500';
@@ -16,6 +17,7 @@
 		return 'bg-success-200-800 border-success-500';
 	}
 
+	/** @param {string} dateString */
 	function formatDate(dateString) {
 		const date = new Date(dateString);
 		return date.toLocaleDateString('de-DE', {

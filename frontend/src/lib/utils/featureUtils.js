@@ -1,17 +1,17 @@
 /**
- * Utility functions for working with map features
+ * @typedef {'trench' | 'address' | 'node' | 'area'} FeatureType
  */
 
 /**
- * Detect the type of feature based on layer or properties
- * @param {Object} feature - OpenLayers feature
- * @param {Object} layer - OpenLayers layer (optional)
- * @returns {string|null} - 'trench', 'address', 'node', 'area', or null
+ * Detects the feature type from its layer metadata or property keys.
+ * Checks layer ID first, then layer name, then falls back to property-based heuristics.
+ * @param {import('ol/Feature').FeatureLike} feature - OpenLayers feature or render feature.
+ * @param {import('ol/layer/Layer').default} [layer] - OpenLayers layer the feature belongs to.
+ * @returns {FeatureType | null} The detected feature type, or null if unknown.
  */
-export function detectFeatureType(feature, layer = null) {
+export function detectFeatureType(feature, layer) {
 	if (!feature) return null;
 
-	// Try to detect from layer ID if available
 	if (layer) {
 		const layerId = layer.get('layerId');
 		if (layerId) {
@@ -21,7 +21,6 @@ export function detectFeatureType(feature, layer = null) {
 			if (layerId === 'area-layer') return 'area';
 		}
 
-		// Fallback: try layer name
 		const layerName = layer.get('layerName');
 		if (layerName) {
 			if (layerName.includes('trench') || layerName.includes('Trench')) return 'trench';
@@ -32,7 +31,6 @@ export function detectFeatureType(feature, layer = null) {
 		}
 	}
 
-	// Fallback: detect from feature properties
 	const props = feature.getProperties();
 	if (props.id_trench !== undefined || props.construction_depth !== undefined) {
 		return 'trench';
@@ -51,21 +49,19 @@ export function detectFeatureType(feature, layer = null) {
 }
 
 /**
- * Format feature properties for display (remove internal fields)
- * @param {Object} properties - Raw feature properties from MVT
- * @param {string} type - Feature type ('trench', 'address', 'node')
- * @returns {Object} - Cleaned properties object
+ * Strips internal fields from feature properties for display purposes.
+ * @param {Record<string, unknown>} properties - Raw feature properties from MVT.
+ * @param {FeatureType} type - The feature type (currently unused but reserved for type-specific filtering).
+ * @returns {Record<string, unknown>} Cleaned properties without geometry, layer, uuid, or null values.
  */
 export function formatFeatureProperties(properties, type) {
 	if (!properties) return {};
 
-	// Fields to always exclude
 	const excludeFields = ['geometry', 'layer', 'uuid'];
 
-	// Create a new object with filtered properties
+	/** @type {Record<string, unknown>} */
 	const formatted = {};
 	for (const [key, value] of Object.entries(properties)) {
-		// Skip excluded fields and null/undefined values
 		if (excludeFields.includes(key) || value === null || value === undefined) {
 			continue;
 		}
@@ -76,10 +72,10 @@ export function formatFeatureProperties(properties, type) {
 }
 
 /**
- * Get a display title for a feature
- * @param {Object} feature - OpenLayers feature
- * @param {string} type - Feature type ('trench', 'address', 'node', 'area')
- * @returns {string} - Display title
+ * Builds a human-readable display title for a feature based on its type and properties.
+ * @param {import('ol/Feature').FeatureLike} feature - OpenLayers feature or render feature.
+ * @param {FeatureType} type - The feature type.
+ * @returns {string} A display title derived from feature properties, or a generic fallback.
  */
 export function getFeatureTitle(feature, type) {
 	if (!feature || !type) return 'Feature Details';
@@ -104,12 +100,11 @@ export function getFeatureTitle(feature, type) {
 }
 
 /**
- * Get human-readable field name for property key
- * @param {string} key - Property key
- * @returns {string} - Human-readable label
+ * Converts a snake_case property key to a Title Case label.
+ * @param {string} key - The property key (e.g., 'construction_depth').
+ * @returns {string} Title-cased label (e.g., 'Construction Depth').
  */
 export function getFieldLabel(key) {
-	// Convert snake_case to Title Case
 	return key
 		.split('_')
 		.map((word) => word.charAt(0).toUpperCase() + word.slice(1))

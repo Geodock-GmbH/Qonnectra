@@ -32,7 +32,7 @@
 	 * Length by conduit type for bar chart
 	 */
 	const lengthByTypeData = $derived.by(() => {
-		return lengthByType?.map((item) => ({
+		return lengthByType?.map((/** @type {{ type_name: string, total: number }} */ item) => ({
 			label: item.type_name || m.common_unknown(),
 			value: (item.total || 0) / 1000
 		}));
@@ -46,8 +46,22 @@
 			return { labels: [], datasets: [] };
 		}
 
-		const statuses = [...new Set(lengthByStatusType.map((item) => item.status_name))];
-		const types = [...new Set(lengthByStatusType.map((item) => item.type_name))];
+		const statuses = [
+			...new Set(
+				lengthByStatusType.map(
+					(/** @type {{ status_name: string, type_name: string, total: number }} */ item) =>
+						item.status_name
+				)
+			)
+		];
+		const types = [
+			...new Set(
+				lengthByStatusType.map(
+					(/** @type {{ status_name: string, type_name: string, total: number }} */ item) =>
+						item.type_name
+				)
+			)
+		];
 
 		const datasets = types.map((type, idx) => {
 			const data = statuses.map((status) => {
@@ -74,8 +88,11 @@
 	 */
 	const lengthByNetworkLevelData = $derived.by(() => {
 		return lengthByNetworkLevel
-			?.filter((item) => item.network_level !== null)
-			.map((item) => ({
+			?.filter(
+				(/** @type {{ network_level: string | null, total: number }} */ item) =>
+					item.network_level !== null
+			)
+			.map((/** @type {{ network_level: string, total: number }} */ item) => ({
 				label: item.network_level || m.common_unknown(),
 				value: (item.total || 0) / 1000
 			}));
@@ -85,17 +102,19 @@
 	 * Average length by type for bar chart
 	 */
 	const avgLengthByTypeData = $derived.by(() => {
-		return avgLengthByType?.map((item) => ({
-			label: item.type_name || m.common_unknown(),
-			value: item.avg_length || 0
-		}));
+		return avgLengthByType?.map(
+			(/** @type {{ type_name: string, avg_length: number }} */ item) => ({
+				label: item.type_name || m.common_unknown(),
+				value: item.avg_length || 0
+			})
+		);
 	});
 
 	/**
 	 * Count by status for bar chart
 	 */
 	const countByStatusData = $derived.by(() => {
-		return countByStatus?.map((item) => ({
+		return countByStatus?.map((/** @type {{ status_name: string, count: number }} */ item) => ({
 			label: item.status_name || m.common_unknown(),
 			value: item.count || 0
 		}));
@@ -105,7 +124,7 @@
 	 * Length by owner for bar chart
 	 */
 	const lengthByOwnerData = $derived.by(() => {
-		return lengthByOwner?.map((item) => ({
+		return lengthByOwner?.map((/** @type {{ owner_name: string, total: number }} */ item) => ({
 			label: item.owner_name || m.common_unknown(),
 			value: (item.total || 0) / 1000
 		}));
@@ -115,17 +134,19 @@
 	 * Length by manufacturer for donut chart
 	 */
 	const lengthByManufacturerData = $derived.by(() => {
-		return lengthByManufacturer?.map((item) => ({
-			label: item.manufacturer_name || m.common_unknown(),
-			value: (item.total || 0) / 1000
-		}));
+		return lengthByManufacturer?.map(
+			(/** @type {{ manufacturer_name: string, total: number }} */ item) => ({
+				label: item.manufacturer_name || m.common_unknown(),
+				value: (item.total || 0) / 1000
+			})
+		);
 	});
 
 	/**
 	 * Conduits over time for bar chart
 	 */
 	const conduitsByMonthData = $derived.by(() => {
-		return conduitsByMonth?.map((item) => ({
+		return conduitsByMonth?.map((/** @type {{ month: string, count: number }} */ item) => ({
 			label: item.month || m.common_unknown(),
 			value: item.count || 0
 		}));
@@ -135,10 +156,12 @@
 	 * Longest conduits for bar chart
 	 */
 	const longestConduitsData = $derived.by(() => {
-		return longestConduits?.map((item) => ({
-			label: `${item.name} (${item.type_name || m.common_unknown()})`,
-			value: (item.total_length || 0) / 1000
-		}));
+		return longestConduits?.map(
+			(/** @type {{ name: string, type_name: string, total_length: number }} */ item) => ({
+				label: `${item.name} (${item.type_name || m.common_unknown()})`,
+				value: (item.total_length || 0) / 1000
+			})
+		);
 	});
 </script>
 
@@ -180,7 +203,13 @@
 
 	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 		<!-- Length by Conduit Type -->
-		<Chart data={lengthByTypeData} title={m.form_length_by_conduit_type()} color="#0ea5e9" />
+		<Chart
+			data={lengthByTypeData}
+			title={m.form_length_by_conduit_type()}
+			color="#0ea5e9"
+			unit="km"
+			axisLabel={`${m.common_length()} (km)`}
+		/>
 
 		<!-- Length by Status and Type (Stacked Bar) -->
 		<StackedBarChart data={lengthByStatusTypeData} title={m.form_length_by_status_and_type()} />
@@ -194,6 +223,7 @@
 			title={m.form_avg_length_by_type()}
 			color="#10b981"
 			unit="m"
+			axisLabel={`${m.common_length()} (m)`}
 		/>
 
 		<!-- Count by Status -->
@@ -206,7 +236,13 @@
 		/>
 
 		<!-- Length by Owner -->
-		<Chart data={lengthByOwnerData} title={m.form_length_by_owner()} color="#8b5cf6" />
+		<Chart
+			data={lengthByOwnerData}
+			title={m.form_length_by_owner()}
+			color="#8b5cf6"
+			unit="km"
+			axisLabel={`${m.common_length()} (km)`}
+		/>
 
 		<!-- Length by Manufacturer (Donut) -->
 		<DonutChart data={lengthByManufacturerData} title={m.form_length_by_manufacturer()} />

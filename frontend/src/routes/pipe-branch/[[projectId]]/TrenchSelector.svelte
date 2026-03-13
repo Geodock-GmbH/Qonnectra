@@ -61,8 +61,8 @@
 	}
 
 	/**
-	 * Toggle the selection of all conduits in a trench
-	 * @param {object} trench - The trench object
+	 * Toggles selection of all conduits in a trench. Locked conduits remain selected.
+	 * @param {{uuid: string, conduits?: Array<{uuid: string}>}} trench
 	 */
 	function toggleAllConduitsInTrench(trench) {
 		const trenchKeys = trench.conduits?.map((c) => makeKey(trench.uuid, c.uuid)) || [];
@@ -79,7 +79,7 @@
 	}
 
 	/**
-	 * Select all conduits
+	 * Selects all conduits across all trenches.
 	 */
 	function selectAll() {
 		const allKeys = trenches.flatMap((t) => t.conduits?.map((c) => makeKey(t.uuid, c.uuid)) || []);
@@ -87,7 +87,7 @@
 	}
 
 	/**
-	 * Select none of the conduits
+	 * Deselects all conduits except those that are locked.
 	 */
 	function selectNone() {
 		selectedKeys = lockedKeys.filter((key) =>
@@ -96,9 +96,8 @@
 	}
 
 	/**
-	 * Get the number of selected conduits in a trench
-	 * @param {object} trench - The trench object
-	 * @returns {number} - The number of selected conduits
+	 * @param {{uuid: string, conduits?: Array<{uuid: string}>}} trench
+	 * @returns {number} Count of selected conduits in the trench.
 	 */
 	function getSelectedConduitCount(trench) {
 		return (
@@ -108,9 +107,8 @@
 	}
 
 	/**
-	 * Get the selection state of a trench
-	 * @param {object} trench - The trench object
-	 * @returns {string} - The selection state
+	 * @param {{uuid: string, conduits?: Array<{uuid: string}>}} trench
+	 * @returns {'none' | 'all' | 'partial'} Selection state of the trench.
 	 */
 	function getTrenchSelectionState(trench) {
 		const total = trench.conduits?.length || 0;
@@ -121,44 +119,40 @@
 	}
 
 	/**
-	 * Check if a conduit is locked
-	 * @param {string} trenchUuid - The UUID of the trench
-	 * @param {string} conduitUuid - The UUID of the conduit
-	 * @returns {boolean} - True if the conduit is locked, false otherwise
+	 * @param {string} trenchUuid
+	 * @param {string} conduitUuid
+	 * @returns {boolean} Whether the conduit has existing connections and cannot be deselected.
 	 */
 	function isConduitLocked(trenchUuid, conduitUuid) {
 		return lockedKeys.includes(makeKey(trenchUuid, conduitUuid));
 	}
 
 	/**
-	 * Check if a conduit is selected
-	 * @param {string} trenchUuid - The UUID of the trench
-	 * @param {string} conduitUuid - The UUID of the conduit
-	 * @returns {boolean} - True if the conduit is selected, false otherwise
+	 * @param {string} trenchUuid
+	 * @param {string} conduitUuid
+	 * @returns {boolean}
 	 */
 	function isConduitSelected(trenchUuid, conduitUuid) {
 		return selectedKeys.includes(makeKey(trenchUuid, conduitUuid));
 	}
 
 	/**
-	 * Get the number of microducts in a conduit
-	 * @param {object} conduit - The conduit object
-	 * @returns {number} - The number of microducts
+	 * @param {{microducts?: Array<unknown>}} conduit
+	 * @returns {number}
 	 */
 	function getMicroductCount(conduit) {
 		return conduit.microducts?.length || 0;
 	}
 
 	/**
-	 * Get the total number of selected conduits
-	 * @returns {number} - The total number of selected conduits
+	 * @returns {number} Total count of selected conduit keys.
 	 */
 	function getTotalSelectedConduits() {
 		return selectedKeys.length;
 	}
 
 	/**
-	 * Handle the confirmation of the trench selection
+	 * Builds the filtered trench list from selected keys and invokes the confirm callback.
 	 */
 	function handleConfirm() {
 		const selectedTrenches = trenches

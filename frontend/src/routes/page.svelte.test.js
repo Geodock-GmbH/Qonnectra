@@ -6,12 +6,12 @@ import { render, screen } from '@testing-library/svelte';
 
 import Page from './dashboard/[[projectId]]/[[flagId]]/+page.svelte';
 
-// Mock paraglide messages
 vi.mock('$lib/paraglide/messages', () => {
 	const mockMessages = new Proxy(
 		{},
 		{
 			get: (target, prop) => {
+				/** @type {Record<string, string>} */
 				const messageMap = {
 					nav_dashboard: 'Dashboard',
 					common_overview: 'Overview',
@@ -24,24 +24,22 @@ vi.mock('$lib/paraglide/messages', () => {
 					form_total_length: 'Total Length',
 					form_breakdown_by_type: 'Breakdown by Type'
 				};
-				return () => messageMap[prop] || String(prop);
+				return () => messageMap[/** @type {string} */ (prop)] || String(prop);
 			}
 		}
 	);
 	return { m: mockMessages };
 });
 
-// Mock app stores
 vi.mock('$app/stores', () => ({
 	navigating: {
-		subscribe: (cb) => {
+		subscribe: (/** @type {Function} */ cb) => {
 			cb(null);
 			return () => {};
 		}
 	}
 }));
 
-// Mock child components that may have complex dependencies
 vi.mock('$lib/components/AddressStatistics.svelte', async () => {
 	const { default: MockAddressStatistics } =
 		await import('$lib/test-utils/mocks/MockAddressStatistics.svelte');
@@ -87,7 +85,7 @@ const mockDashboardData = {
 
 describe('/+page.svelte', () => {
 	test('should render dashboard with overview tab', () => {
-		render(Page, { props: { data: mockDashboardData } });
+		render(Page, { props: { data: /** @type {any} */ (mockDashboardData) } });
 		expect(screen.getByText('Trench Statistics')).toBeInTheDocument();
 	});
 });

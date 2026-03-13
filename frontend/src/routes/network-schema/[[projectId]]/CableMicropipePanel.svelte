@@ -34,37 +34,33 @@
 
 	import 'ol/ol.css';
 
+	/** @type {{cableId: any, cableName: any, onClose?: () => void, onLinkageChange?: () => void}} */
 	let { cableId, cableName, onClose = () => {}, onLinkageChange = () => {} } = $props();
 
 	const manager = new CableMicropipeManager();
 
-	/** @type {import('ol').Map|undefined} */
+	/** @type {any} */
 	let olMap = $state();
-	/** @type {import('ol/interaction/DragBox').default|undefined} */
+	/** @type {any} */
 	let dragBoxInteraction = $state();
 	/** @type {VectorTileLayer|undefined} */
 	let selectionLayer = $state();
-	/** @type {SvelteSet<string>} Selected feature IDs for highlighting */
+	/** @type {SvelteSet<string>} */
 	let selectedFeatureIds = $state(new SvelteSet());
 	/** @type {VectorTileLayer|undefined} */
 	let cableRouteLayer = $state();
 
-	// Initialize MapState for this panel
-	const projectId = $page.params.projectId;
+	const projectId = /** @type {string} */ ($page.params.projectId);
 	const mapState = new MapState(projectId);
 	const layersInitialized = mapState.initializeLayers();
 
 	/** @type {string|null} */
 	let previousCableId = $state(null);
 
-	/**
-	 * Reinitialize when cableId changes (like NodeStructurePanel does with nodeUuid)
-	 */
 	$effect(() => {
 		if (cableId && cableId !== previousCableId) {
 			previousCableId = cableId;
 			manager.initialize(cableId, cableName);
-			// Clear map selection when switching cables
 			selectedFeatureIds = new SvelteSet();
 			if (selectionLayer) {
 				selectionLayer.changed();
@@ -75,18 +71,12 @@
 		}
 	});
 
-	/**
-	 * Sync cable route layer visibility with store
-	 */
 	$effect(() => {
 		if (cableRouteLayer) {
 			cableRouteLayer.setVisible($showCableRoute);
 		}
 	});
 
-	/**
-	 * Update cable route layer when linkedTrenchIds changes
-	 */
 	$effect(() => {
 		const _ = manager.linkedTrenchIds.size;
 		if (cableRouteLayer) {
@@ -98,7 +88,6 @@
 		cleanup();
 	});
 
-	// Update node layer style when nodeTypeStyles changes
 	$effect(() => {
 		const styles = $nodeTypeStyles;
 		if (Object.keys(styles).length > 0) {
@@ -106,7 +95,6 @@
 		}
 	});
 
-	// Update trench layer style when trench style settings change
 	$effect(() => {
 		const mode = $trenchStyleMode;
 		const surfaceStyles = $trenchSurfaceStyles;
@@ -115,7 +103,6 @@
 		mapState.updateTrenchLayerStyle(mode, surfaceStyles, constructionTypeStyles, color);
 	});
 
-	// Update area layer style when areaTypeStyles changes
 	$effect(() => {
 		const styles = $areaTypeStyles;
 		if (Object.keys(styles).length > 0) {
@@ -123,7 +110,6 @@
 		}
 	});
 
-	// Update label visibility when labelVisibilityConfig changes
 	$effect(() => {
 		const config = $labelVisibilityConfig;
 		const mode = $trenchStyleMode;
@@ -160,18 +146,15 @@
 		}
 	});
 
-	/**
-	 * Handle map ready event
-	 */
-	async function handleMapReady(event) {
-		olMap = event.detail.map;
+	/** @param {{map: any}} param0 */
+	async function handleMapReady({ map }) {
+		olMap = map;
 		mapState.olMap = olMap;
 
-		// Create selection layer for highlighting selected trenches
 		const selectedStyle = createSelectedStyle('#ff6600');
 		selectionLayer = new VectorTileLayer({
 			renderMode: 'vector',
-			source: mapState.vectorTileLayer.getSource(),
+			source: /** @type {any} */ (mapState.vectorTileLayer)?.getSource(),
 			style: function (feature) {
 				const featureId = String(feature.getId() || feature.get('uuid'));
 				if (featureId && selectedFeatureIds.has(featureId)) {
@@ -186,11 +169,10 @@
 		});
 		olMap.addLayer(selectionLayer);
 
-		// Create cable route layer for highlighting linked trenches
 		const linkedTrenchStyle = createLinkedTrenchStyle('#06b6d4');
 		cableRouteLayer = new VectorTileLayer({
 			renderMode: 'vector',
-			source: mapState.vectorTileLayer.getSource(),
+			source: /** @type {any} */ (mapState.vectorTileLayer)?.getSource(),
 			style: function (feature) {
 				const featureId = String(feature.getId() || feature.get('uuid'));
 				if (featureId && manager.linkedTrenchIds.has(featureId)) {
@@ -208,9 +190,6 @@
 		await setupInteractions();
 	}
 
-	/**
-	 * Setup custom interactions for trench selection
-	 */
 	async function setupInteractions() {
 		if (!olMap || !mapState.vectorTileLayer) return;
 
@@ -219,11 +198,10 @@
 			import('ol/events/condition')
 		]);
 
-		// Handle single click for feature selection
-		olMap.on('click', (evt) => {
+		olMap.on('click', (/** @type {any} */ evt) => {
 			const features = olMap.getFeaturesAtPixel(evt.pixel, {
 				hitTolerance: 10,
-				layerFilter: (layer) => layer === mapState.vectorTileLayer
+				layerFilter: (/** @type {any} */ layer) => layer === mapState.vectorTileLayer
 			});
 
 			if (features && features.length > 0) {
@@ -246,7 +224,6 @@
 			}
 		});
 
-		// DragBox for rectangle selection
 		dragBoxInteraction = new DragBox({
 			condition: shiftKeyOnly
 		});
@@ -264,10 +241,10 @@
 				for (let y = boxPixelMax[1]; y <= boxPixelMin[1]; y += stepY) {
 					const features = olMap.getFeaturesAtPixel([x, y], {
 						hitTolerance: 10,
-						layerFilter: (layer) => layer === mapState.vectorTileLayer
+						layerFilter: (/** @type {any} */ layer) => layer === mapState.vectorTileLayer
 					});
 					if (features) {
-						features.forEach((feature) => {
+						features.forEach((/** @type {any} */ feature) => {
 							const featureId = String(feature.getId() || feature.get('uuid'));
 							if (featureId) {
 								newSet.add(featureId);
@@ -287,17 +264,11 @@
 		olMap.addInteraction(dragBoxInteraction);
 	}
 
-	/**
-	 * Sync map selection to manager
-	 */
 	function syncSelectionToManager() {
 		const ids = Array.from(selectedFeatureIds);
 		manager.handleTrenchSelection(ids);
 	}
 
-	/**
-	 * Clear map selection
-	 */
 	function clearMapSelection() {
 		selectedFeatureIds = new SvelteSet();
 		if (selectionLayer) {
@@ -306,9 +277,6 @@
 		manager.clearTrenchSelection();
 	}
 
-	/**
-	 * Cleanup resources
-	 */
 	function cleanup() {
 		if (olMap && dragBoxInteraction) {
 			olMap.removeInteraction(dragBoxInteraction);
@@ -328,7 +296,6 @@
 	}
 
 	/**
-	 * Check if conduit is selected
 	 * @param {string} conduitId
 	 * @returns {boolean}
 	 */
@@ -337,8 +304,7 @@
 	}
 
 	/**
-	 * Check if micropipe is the selected one
-	 * @param {Object} micropipe
+	 * @param {any} micropipe
 	 * @returns {boolean}
 	 */
 	function isMicropipeSelected(micropipe) {
@@ -360,7 +326,7 @@
 				showSearchPanel={true}
 				showLayerVisibilityTree={true}
 				showOpacitySlider={true}
-				on:ready={handleMapReady}
+				onready={handleMapReady}
 			/>
 		{:else}
 			<div class="flex items-center justify-center h-full bg-surface-100-900">
@@ -565,7 +531,6 @@
 											<td class="p-2 text-center">
 												<div class="flex items-center justify-center gap-1">
 													{#if mp.linked_to_cable}
-														<!-- Current cable is linked - show delete button -->
 														<button
 															type="button"
 															class="p-1 rounded hover:bg-error-500/20 text-error-500 transition-colors"

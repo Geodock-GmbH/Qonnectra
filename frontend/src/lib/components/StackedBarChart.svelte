@@ -27,11 +27,15 @@
 	 * @property {Dataset[]} datasets - The datasets to display
 	 */
 
-	/** @type {ChartData} */
-	let { data = { labels: [], datasets: [] }, title = '', unit = 'km' } = $props();
+	let {
+		data = /** @type {ChartData} */ ({ labels: [], datasets: [] }),
+		title = '',
+		unit = 'km'
+	} = $props();
 
 	let canvas = $state();
-	let chart;
+	/** @type {import('chart.js').Chart | null} */
+	let chart = null;
 	let themeMode = $state('');
 
 	onMount(() => {
@@ -85,7 +89,7 @@
 			type: 'bar',
 			data: {
 				labels: data.labels,
-				datasets: data.datasets.map((ds) => ({
+				datasets: data.datasets.map((/** @type {Dataset} */ ds) => ({
 					label: ds.label,
 					data: ds.data,
 					backgroundColor: ds.backgroundColor,
@@ -116,7 +120,7 @@
 								return (
 									context.dataset.label +
 									': ' +
-									context.parsed.x.toLocaleString('de-DE', {
+									(context.parsed.x ?? 0).toLocaleString('de-DE', {
 										minimumFractionDigits: 2,
 										maximumFractionDigits: 2
 									}) +
@@ -174,7 +178,9 @@
 	});
 </script>
 
+<!-- Chart Card -->
 <div class="card border-2 border-surface-200-800 shadow-lg overflow-hidden">
+	<!-- Chart Header -->
 	<div class="border-b-2 border-surface-200-800 p-4">
 		<h3 class="h4 font-bold text-primary-500 flex items-center">
 			<span>{title}</span>
@@ -182,6 +188,7 @@
 		</h3>
 	</div>
 
+	<!-- Chart Canvas -->
 	<div class="p-6">
 		<div class="relative" style="height: 300px;">
 			{#if !data || !data.labels || data.labels.length === 0}

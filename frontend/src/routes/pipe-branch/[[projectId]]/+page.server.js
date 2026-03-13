@@ -3,7 +3,11 @@ import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
-/** @type {import('./$types').PageServerLoad} */
+/**
+ * Loads pipe branch nodes for the selected project.
+ * @param {import('./$types').PageServerLoadEvent} event
+ * @returns {Promise<{nodes: Array<{label: string, value: string, uuid: string}>, pipeBranchConfigured: boolean}>}
+ */
 export async function load({ fetch, params, cookies }) {
 	const projectId = cookies.get('selected-project');
 
@@ -33,7 +37,7 @@ export async function load({ fetch, params, cookies }) {
 			data.type === 'FeatureCollection' &&
 			Array.isArray(data.features)
 		) {
-			const nodes = data.features.map((feature) => ({
+			const nodes = data.features.map((/** @type {any} */ feature) => ({
 				label: feature.properties.name,
 				value: feature.properties.name,
 				uuid: feature.properties.uuid
@@ -54,10 +58,15 @@ export async function load({ fetch, params, cookies }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+	/**
+	 * Fetches all microduct connections for a given node.
+	 * @param {import('./$types').RequestEvent} event
+	 * @returns {Promise<any>}
+	 */
 	getConnections: async ({ request, cookies }) => {
 		try {
 			const formData = await request.formData();
-			const nodeId = formData.get('node_id');
+			const nodeId = /** @type {string} */ (formData.get('node_id'));
 
 			if (!nodeId) {
 				return fail(400, {
@@ -94,6 +103,11 @@ export const actions = {
 		}
 	},
 
+	/**
+	 * Creates a new microduct connection between two microducts at a node.
+	 * @param {import('./$types').RequestEvent} event
+	 * @returns {Promise<any>}
+	 */
 	createConnection: async ({ request, cookies }) => {
 		try {
 			const formData = await request.formData();
@@ -166,10 +180,15 @@ export const actions = {
 		}
 	},
 
+	/**
+	 * Deletes a microduct connection by UUID.
+	 * @param {import('./$types').RequestEvent} event
+	 * @returns {Promise<any>}
+	 */
 	deleteConnection: async ({ request, cookies }) => {
 		try {
 			const formData = await request.formData();
-			const connectionUuid = formData.get('uuid');
+			const connectionUuid = /** @type {string} */ (formData.get('uuid'));
 
 			if (!connectionUuid) {
 				return fail(400, {
@@ -205,11 +224,16 @@ export const actions = {
 		}
 	},
 
+	/**
+	 * Fetches trenches geographically near a given node.
+	 * @param {import('./$types').RequestEvent} event
+	 * @returns {Promise<any>}
+	 */
 	getTrenchesNearNode: async ({ request, cookies }) => {
 		try {
 			const formData = await request.formData();
-			const nodeName = formData.get('node_name');
-			const project = formData.get('project');
+			const nodeName = /** @type {string} */ (formData.get('node_name'));
+			const project = /** @type {string} */ (formData.get('project'));
 
 			if (!nodeName || !project) {
 				return fail(400, {
@@ -246,10 +270,15 @@ export const actions = {
 		}
 	},
 
+	/**
+	 * Fetches saved trench selections for a node.
+	 * @param {import('./$types').RequestEvent} event
+	 * @returns {Promise<any>}
+	 */
 	getTrenchSelections: async ({ request, cookies }) => {
 		try {
 			const formData = await request.formData();
-			const nodeUuid = formData.get('node_uuid');
+			const nodeUuid = /** @type {string} */ (formData.get('node_uuid'));
 
 			if (!nodeUuid) {
 				return fail(400, {
@@ -286,11 +315,16 @@ export const actions = {
 		}
 	},
 
+	/**
+	 * Bulk-updates trench selections for a node.
+	 * @param {import('./$types').RequestEvent} event
+	 * @returns {Promise<any>}
+	 */
 	saveTrenchSelections: async ({ request, cookies }) => {
 		try {
 			const formData = await request.formData();
-			const nodeUuid = formData.get('node_uuid');
-			const trenchUuidsStr = formData.get('trench_uuids');
+			const nodeUuid = /** @type {string} */ (formData.get('node_uuid'));
+			const trenchUuidsStr = /** @type {string} */ (formData.get('trench_uuids'));
 
 			if (!nodeUuid) {
 				return fail(400, {

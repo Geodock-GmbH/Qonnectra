@@ -18,13 +18,15 @@
 	/** @type {FileUploadProps} */
 	let { featureType, featureId, onUploadComplete } = $props();
 
+	/** @type {any[]} */
 	let uploadedFiles = $state([]);
 	let isUploading = $state(false);
 	let isLoadingFiles = $state(false);
+	/** @type {string|null} */
 	let contentTypeError = $state(null);
 
 	let contentTypesLoaded = $state(false);
-	let maxFileSize = $state(50 * 1024 * 1024); // 50MB
+	let maxFileSize = $state(50 * 1024 * 1024);
 
 	const contentTypeId = $derived(contentTypesLoaded ? getContentTypeId(featureType) : null);
 
@@ -49,7 +51,6 @@
 			console.warn(`No ContentType ID found for feature type: ${featureType}`);
 			contentTypeError = `Invalid feature type: ${featureType}`;
 		} else if (contentTypesLoaded && contentTypeId) {
-			// Clear error when valid
 			contentTypeError = null;
 		}
 	});
@@ -82,7 +83,6 @@
 		}
 	}
 
-	// Retry loading content types
 	function retryLoadContentTypes() {
 		contentTypeError = null;
 		contentTypesLoaded = false;
@@ -92,7 +92,9 @@
 	/**
 	 * Upload files from Skeleton FileUpload component
 	 */
-	async function uploadFilesFromPicker(fileUploadApi) {
+	async function uploadFilesFromPicker(
+		/** @type {{ acceptedFiles: File[], clearFiles: () => void }} */ fileUploadApi
+	) {
 		const selectedFiles = fileUploadApi.acceptedFiles;
 
 		if (selectedFiles.length === 0) {
@@ -114,12 +116,11 @@
 		isUploading = true;
 
 		try {
-			// Upload each file separately
 			for (const file of selectedFiles) {
 				const formData = new FormData();
 				formData.append('file_path', file);
 				formData.append('object_id', featureId);
-				formData.append('content_type', contentTypeId);
+				formData.append('content_type', String(contentTypeId));
 				formData.append('description', '');
 
 				const response = await fetch(`${PUBLIC_API_URL}feature-files/`, {
@@ -139,11 +140,9 @@
 				description: m.message_success_uploading_files()
 			});
 
-			// Clear the file picker and reload the list
 			fileUploadApi.clearFiles();
 			await loadFiles();
 
-			// Notify parent component
 			if (onUploadComplete) {
 				onUploadComplete();
 			}
@@ -151,7 +150,7 @@
 			console.error('Error uploading files:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: error.message || 'Failed to upload files'
+				description: error instanceof Error ? error.message : 'Failed to upload files'
 			});
 		} finally {
 			isUploading = false;

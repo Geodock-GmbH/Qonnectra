@@ -26,18 +26,17 @@
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
 
-	/** @type {import('./$types').PageData} */
+	/** @type {{ data: any }} */
 	let { data } = $props();
 
 	let routingToleranceMarkers = $derived(Array.from({ length: 10 }, (_, i) => i + 1));
 
-	// Initialize styles for any new node types from server data
 	$effect(() => {
 		if (data.nodeTypes && data.nodeTypes.length > 0) {
 			const currentStyles = $nodeTypeStyles;
 			let hasNewTypes = false;
 
-			data.nodeTypes.forEach((nodeType) => {
+			data.nodeTypes.forEach((/** @type {any} */ nodeType) => {
 				if (!currentStyles[nodeType.node_type]) {
 					currentStyles[nodeType.node_type] = {
 						color: DEFAULT_NODE_COLOR,
@@ -54,13 +53,12 @@
 		}
 	});
 
-	// Initialize styles for any new surface types from server data
 	$effect(() => {
 		if (data.surfaces && data.surfaces.length > 0) {
 			const currentStyles = $trenchSurfaceStyles;
 			let hasNewTypes = false;
 
-			data.surfaces.forEach((surface) => {
+			data.surfaces.forEach((/** @type {any} */ surface) => {
 				if (!currentStyles[surface.surface]) {
 					currentStyles[surface.surface] = {
 						color: DEFAULT_TRENCH_COLOR,
@@ -76,13 +74,12 @@
 		}
 	});
 
-	// Initialize styles for any new construction types from server data
 	$effect(() => {
 		if (data.constructionTypes && data.constructionTypes.length > 0) {
 			const currentStyles = $trenchConstructionTypeStyles;
 			let hasNewTypes = false;
 
-			data.constructionTypes.forEach((constructionType) => {
+			data.constructionTypes.forEach((/** @type {any} */ constructionType) => {
 				if (!currentStyles[constructionType.construction_type]) {
 					currentStyles[constructionType.construction_type] = {
 						color: DEFAULT_TRENCH_COLOR,
@@ -98,13 +95,12 @@
 		}
 	});
 
-	// Initialize styles for any new area types from server data
 	$effect(() => {
 		if (data.areaTypes && data.areaTypes.length > 0) {
 			const currentStyles = $areaTypeStyles;
 			let hasNewTypes = false;
 
-			data.areaTypes.forEach((areaType) => {
+			data.areaTypes.forEach((/** @type {any} */ areaType) => {
 				if (!currentStyles[areaType.area_type]) {
 					currentStyles[areaType.area_type] = {
 						color: DEFAULT_AREA_COLOR,
@@ -120,6 +116,7 @@
 		}
 	});
 
+	/** @param {string} nodeTypeName @param {string} color */
 	function updateNodeTypeColor(nodeTypeName, color) {
 		const currentStyles = $nodeTypeStyles;
 		$nodeTypeStyles = {
@@ -131,6 +128,7 @@
 		};
 	}
 
+	/** @param {string} nodeTypeName @param {number[]} size */
 	function updateNodeTypeSize(nodeTypeName, size) {
 		const currentStyles = $nodeTypeStyles;
 		$nodeTypeStyles = {
@@ -142,6 +140,7 @@
 		};
 	}
 
+	/** @param {string} nodeTypeName */
 	function resetNodeTypeStyle(nodeTypeName) {
 		const currentStyles = $nodeTypeStyles;
 		$nodeTypeStyles = {
@@ -155,8 +154,9 @@
 	}
 
 	function resetAllNodeTypeStyles() {
+		/** @type {Record<string, {color: string, size: number, visible: boolean}>} */
 		const newStyles = {};
-		data.nodeTypes.forEach((nodeType) => {
+		data.nodeTypes.forEach((/** @type {any} */ nodeType) => {
 			newStyles[nodeType.node_type] = {
 				color: DEFAULT_NODE_COLOR,
 				size: DEFAULT_NODE_SIZE,
@@ -166,6 +166,7 @@
 		$nodeTypeStyles = newStyles;
 	}
 
+	/** @param {string} nodeTypeName */
 	function getNodeTypeStyle(nodeTypeName) {
 		return (
 			$nodeTypeStyles[nodeTypeName] || {
@@ -176,7 +177,7 @@
 		);
 	}
 
-	// Surface style functions
+	/** @param {string} surfaceName @param {string} color */
 	function updateSurfaceColor(surfaceName, color) {
 		const currentStyles = $trenchSurfaceStyles;
 		$trenchSurfaceStyles = {
@@ -188,6 +189,7 @@
 		};
 	}
 
+	/** @param {string} surfaceName */
 	function resetSurfaceStyle(surfaceName) {
 		const currentStyles = $trenchSurfaceStyles;
 		$trenchSurfaceStyles = {
@@ -200,8 +202,9 @@
 	}
 
 	function resetAllSurfaceStyles() {
+		/** @type {Record<string, {color: string, visible: boolean}>} */
 		const newStyles = {};
-		data.surfaces.forEach((surface) => {
+		data.surfaces.forEach((/** @type {any} */ surface) => {
 			newStyles[surface.surface] = {
 				color: DEFAULT_TRENCH_COLOR,
 				visible: $trenchSurfaceStyles[surface.surface]?.visible ?? true
@@ -210,6 +213,7 @@
 		$trenchSurfaceStyles = newStyles;
 	}
 
+	/** @param {string} surfaceName */
 	function getSurfaceStyle(surfaceName) {
 		return (
 			$trenchSurfaceStyles[surfaceName] || {
@@ -219,7 +223,7 @@
 		);
 	}
 
-	// Construction type style functions
+	/** @param {string} constructionTypeName @param {string} color */
 	function updateConstructionTypeColor(constructionTypeName, color) {
 		const currentStyles = $trenchConstructionTypeStyles;
 		$trenchConstructionTypeStyles = {
@@ -231,6 +235,7 @@
 		};
 	}
 
+	/** @param {string} constructionTypeName */
 	function resetConstructionTypeStyle(constructionTypeName) {
 		const currentStyles = $trenchConstructionTypeStyles;
 		$trenchConstructionTypeStyles = {
@@ -243,8 +248,9 @@
 	}
 
 	function resetAllConstructionTypeStyles() {
+		/** @type {Record<string, {color: string, visible: boolean}>} */
 		const newStyles = {};
-		data.constructionTypes.forEach((constructionType) => {
+		data.constructionTypes.forEach((/** @type {any} */ constructionType) => {
 			newStyles[constructionType.construction_type] = {
 				color: DEFAULT_TRENCH_COLOR,
 				visible: $trenchConstructionTypeStyles[constructionType.construction_type]?.visible ?? true
@@ -253,6 +259,7 @@
 		$trenchConstructionTypeStyles = newStyles;
 	}
 
+	/** @param {string} constructionTypeName */
 	function getConstructionTypeStyle(constructionTypeName) {
 		return (
 			$trenchConstructionTypeStyles[constructionTypeName] || {
@@ -276,8 +283,9 @@
 	}
 
 	function randomizeAllNodeTypeStyles() {
+		/** @type {Record<string, {color: string, size: number, visible: boolean}>} */
 		const newStyles = {};
-		data.nodeTypes.forEach((nodeType) => {
+		data.nodeTypes.forEach((/** @type {any} */ nodeType) => {
 			newStyles[nodeType.node_type] = {
 				color: randomHexColor(),
 				size: randomSize(),
@@ -288,8 +296,9 @@
 	}
 
 	function randomizeAllSurfaceStyles() {
+		/** @type {Record<string, {color: string, visible: boolean}>} */
 		const newStyles = {};
-		data.surfaces.forEach((surface) => {
+		data.surfaces.forEach((/** @type {any} */ surface) => {
 			newStyles[surface.surface] = {
 				color: randomHexColor(),
 				visible: $trenchSurfaceStyles[surface.surface]?.visible ?? true
@@ -299,8 +308,9 @@
 	}
 
 	function randomizeAllConstructionTypeStyles() {
+		/** @type {Record<string, {color: string, visible: boolean}>} */
 		const newStyles = {};
-		data.constructionTypes.forEach((constructionType) => {
+		data.constructionTypes.forEach((/** @type {any} */ constructionType) => {
 			newStyles[constructionType.construction_type] = {
 				color: randomHexColor(),
 				visible: $trenchConstructionTypeStyles[constructionType.construction_type]?.visible ?? true
@@ -317,8 +327,9 @@
 	}
 
 	function randomizeAllAreaTypeStyles() {
+		/** @type {Record<string, {color: string, visible: boolean}>} */
 		const newStyles = {};
-		data.areaTypes.forEach((areaType) => {
+		data.areaTypes.forEach((/** @type {any} */ areaType) => {
 			newStyles[areaType.area_type] = {
 				color: randomHexColor(),
 				visible: $areaTypeStyles[areaType.area_type]?.visible ?? true
@@ -327,7 +338,7 @@
 		$areaTypeStyles = newStyles;
 	}
 
-	// Address style functions
+	/** @param {string} color */
 	function updateAddressColor(color) {
 		$addressStyle = {
 			...$addressStyle,
@@ -335,6 +346,7 @@
 		};
 	}
 
+	/** @param {number[]} size */
 	function updateAddressSize(size) {
 		$addressStyle = {
 			...$addressStyle,
@@ -349,7 +361,7 @@
 		};
 	}
 
-	// Area type style functions
+	/** @param {string} areaTypeName @param {string} color */
 	function updateAreaTypeColor(areaTypeName, color) {
 		const currentStyles = $areaTypeStyles;
 		$areaTypeStyles = {
@@ -361,6 +373,7 @@
 		};
 	}
 
+	/** @param {string} areaTypeName */
 	function resetAreaTypeStyle(areaTypeName) {
 		const currentStyles = $areaTypeStyles;
 		$areaTypeStyles = {
@@ -373,8 +386,9 @@
 	}
 
 	function resetAllAreaTypeStyles() {
+		/** @type {Record<string, {color: string, visible: boolean}>} */
 		const newStyles = {};
-		data.areaTypes.forEach((areaType) => {
+		data.areaTypes.forEach((/** @type {any} */ areaType) => {
 			newStyles[areaType.area_type] = {
 				color: DEFAULT_AREA_COLOR,
 				visible: $areaTypeStyles[areaType.area_type]?.visible ?? true
@@ -383,6 +397,7 @@
 		$areaTypeStyles = newStyles;
 	}
 
+	/** @param {string} areaTypeName */
 	function getAreaTypeStyle(areaTypeName) {
 		return (
 			$areaTypeStyles[areaTypeName] || {
@@ -402,7 +417,6 @@
 
 	<main class="px-4 py-16 sm:px-6 lg:flex-auto lg:px-0 lg:py-20">
 		<div class="mx-auto max-w-2xl lg:mx-0 lg:max-w-none space-y-16 sm:space-y-20 pb-20">
-			<!-- User Settings -->
 			<div>
 				<h2 class="text-base/7 font-semibold text-primary-900-100">
 					{m.settings_user()}
@@ -428,7 +442,6 @@
 				</dl>
 			</div>
 
-			<!-- UI Settings -->
 			<div>
 				<h2 class="text-base/7 font-semibold text-primary-900-100">
 					{m.settings_ui()}
@@ -460,11 +473,9 @@
 				</dl>
 			</div>
 
-			<!-- Map Settings -->
 			<div>
 				<h2 class="text-base/7 font-semibold text-primary-900-100">{m.settings_map()}</h2>
 				<dl class="mt-6 divide-y border-t text-sm/6">
-					<!-- Selected Feature Color -->
 					<div class="py-6 sm:flex">
 						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
 							{m.settings_map_selected_feature_color()}
@@ -483,7 +494,6 @@
 							</button>
 						</dd>
 					</div>
-					<!-- Trench Color -->
 					<div class="py-6 sm:flex">
 						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
 							{m.settings_map_trench_color()}
@@ -502,7 +512,6 @@
 							</button>
 						</dd>
 					</div>
-					<!-- Trench Style Mode -->
 					<div class="py-6 sm:flex">
 						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
 							{m.settings_trench_style_mode()}
@@ -546,7 +555,6 @@
 				</dl>
 			</div>
 
-			<!-- Surface Styles (only show when trenchStyleMode === 'surface') -->
 			{#if $trenchStyleMode === 'surface'}
 				<div>
 					<div class="flex items-center justify-between">
@@ -584,7 +592,6 @@
 								<div
 									class="card preset-filled-surface-100-900 relative group rounded-lg border border-surface-200-800 p-4 hover:border-surface-400-600 transition-colors"
 								>
-									<!-- Header with name and reset -->
 									<div class="flex items-center justify-between mb-4">
 										<h3 class="font-medium text-sm truncate pr-2">{surface.surface}</h3>
 										<button
@@ -596,7 +603,6 @@
 										</button>
 									</div>
 
-									<!-- Visual preview (line style) -->
 									<div
 										class="flex items-center justify-center mb-4 py-3 bg-surface-100-800 rounded"
 									>
@@ -606,15 +612,17 @@
 										></span>
 									</div>
 
-									<!-- Controls -->
 									<div class="space-y-3">
-										<!-- Color -->
 										<div class="flex items-center gap-3">
 											<label class="relative cursor-pointer">
 												<input
 													type="color"
 													value={style.color}
-													onchange={(e) => updateSurfaceColor(surface.surface, e.target.value)}
+													onchange={(e) =>
+														updateSurfaceColor(
+															surface.surface,
+															/** @type {HTMLInputElement} */ (e.target).value
+														)}
 													class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
 												/>
 												<span
@@ -633,7 +641,6 @@
 				</div>
 			{/if}
 
-			<!-- Construction Type Styles (only show when trenchStyleMode === 'construction_type') -->
 			{#if $trenchStyleMode === 'construction_type'}
 				<div>
 					<div class="flex items-center justify-between">
@@ -671,7 +678,6 @@
 								<div
 									class="card preset-filled-surface-100-900 relative group rounded-lg border border-surface-200-800 p-4 hover:border-surface-400-600 transition-colors"
 								>
-									<!-- Header with name and reset -->
 									<div class="flex items-center justify-between mb-4">
 										<h3 class="font-medium text-sm truncate pr-2">
 											{constructionType.construction_type}
@@ -685,7 +691,6 @@
 										</button>
 									</div>
 
-									<!-- Visual preview (line style) -->
 									<div
 										class="flex items-center justify-center mb-4 py-3 bg-surface-100-800 rounded"
 									>
@@ -695,9 +700,7 @@
 										></span>
 									</div>
 
-									<!-- Controls -->
 									<div class="space-y-3">
-										<!-- Color -->
 										<div class="flex items-center gap-3">
 											<label class="relative cursor-pointer">
 												<input
@@ -706,7 +709,7 @@
 													onchange={(e) =>
 														updateConstructionTypeColor(
 															constructionType.construction_type,
-															e.target.value
+															/** @type {HTMLInputElement} */ (e.target).value
 														)}
 													class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
 												/>
@@ -726,7 +729,6 @@
 				</div>
 			{/if}
 
-			<!-- Node Type Styles -->
 			<div>
 				<div class="flex items-center justify-between">
 					<h2 class="text-base/7 font-semibold text-primary-900-100">
@@ -763,7 +765,6 @@
 							<div
 								class="card preset-filled-surface-100-900 relative group rounded-lg border border-surface-200-800 p-4 hover:border-surface-400-600 transition-colors"
 							>
-								<!-- Header with name and reset -->
 								<div class="flex items-center justify-between mb-4">
 									<h3 class="font-medium text-sm truncate pr-2">{nodeType.node_type}</h3>
 									<button
@@ -775,7 +776,6 @@
 									</button>
 								</div>
 
-								<!-- Visual preview -->
 								<div class="flex items-center justify-center mb-4 py-3 bg-surface-100-800 rounded">
 									<span
 										class="rounded-full shadow-sm transition-all"
@@ -784,15 +784,17 @@
 									></span>
 								</div>
 
-								<!-- Controls -->
 								<div class="space-y-3">
-									<!-- Color -->
 									<div class="flex items-center gap-3">
 										<label class="relative cursor-pointer">
 											<input
 												type="color"
 												value={style.color}
-												onchange={(e) => updateNodeTypeColor(nodeType.node_type, e.target.value)}
+												onchange={(e) =>
+													updateNodeTypeColor(
+														nodeType.node_type,
+														/** @type {HTMLInputElement} */ (e.target).value
+													)}
 												class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
 											/>
 											<span
@@ -804,7 +806,6 @@
 										<span class="text-xs font-mono">{style.color}</span>
 									</div>
 
-									<!-- Size -->
 									<div class="flex items-center gap-3">
 										<span class="text-xs w-16">{m.settings_node_type_size()}</span>
 										<div class="flex-1">
@@ -833,7 +834,6 @@
 				{/if}
 			</div>
 
-			<!-- Address Style -->
 			<div>
 				<div class="flex items-center justify-between">
 					<h2 class="text-base/7 font-semibold text-primary-900-100">
@@ -861,7 +861,6 @@
 					<div
 						class="card preset-filled-surface-100-900 relative group rounded-lg border border-surface-200-800 p-4 hover:border-surface-400-600 transition-colors"
 					>
-						<!-- Header with name and reset -->
 						<div class="flex items-center justify-between mb-4">
 							<h3 class="font-medium text-sm truncate pr-2">{m.form_address_points()}</h3>
 							<button
@@ -873,7 +872,6 @@
 							</button>
 						</div>
 
-						<!-- Visual preview -->
 						<div class="flex items-center justify-center mb-4 py-3 bg-surface-100-800 rounded">
 							<span
 								class="rounded-full shadow-sm transition-all"
@@ -882,15 +880,14 @@
 							></span>
 						</div>
 
-						<!-- Controls -->
 						<div class="space-y-3">
-							<!-- Color -->
 							<div class="flex items-center gap-3">
 								<label class="relative cursor-pointer">
 									<input
 										type="color"
 										value={$addressStyle.color}
-										onchange={(e) => updateAddressColor(e.target.value)}
+										onchange={(e) =>
+											updateAddressColor(/** @type {HTMLInputElement} */ (e.target).value)}
 										class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
 									/>
 									<span
@@ -902,7 +899,6 @@
 								<span class="text-xs font-mono">{$addressStyle.color}</span>
 							</div>
 
-							<!-- Size -->
 							<div class="flex items-center gap-3">
 								<span class="text-xs w-16">{m.settings_node_type_size()}</span>
 								<div class="flex-1">
@@ -929,7 +925,6 @@
 				</div>
 			</div>
 
-			<!-- Area Type Styles -->
 			<div>
 				<div class="flex items-center justify-between">
 					<h2 class="text-base/7 font-semibold text-primary-900-100">
@@ -966,7 +961,6 @@
 							<div
 								class="card preset-filled-surface-100-900 relative group rounded-lg border border-surface-200-800 p-4 hover:border-surface-400-600 transition-colors"
 							>
-								<!-- Header with name and reset -->
 								<div class="flex items-center justify-between mb-4">
 									<h3 class="font-medium text-sm truncate pr-2">{areaType.area_type}</h3>
 									<button
@@ -978,7 +972,6 @@
 									</button>
 								</div>
 
-								<!-- Visual preview (polygon style) -->
 								<div class="flex items-center justify-center mb-4 py-3 bg-surface-100-800 rounded">
 									<span
 										class="w-12 h-8 rounded shadow-sm transition-all border-2"
@@ -986,15 +979,17 @@
 									></span>
 								</div>
 
-								<!-- Controls -->
 								<div class="space-y-3">
-									<!-- Color -->
 									<div class="flex items-center gap-3">
 										<label class="relative cursor-pointer">
 											<input
 												type="color"
 												value={style.color}
-												onchange={(e) => updateAreaTypeColor(areaType.area_type, e.target.value)}
+												onchange={(e) =>
+													updateAreaTypeColor(
+														areaType.area_type,
+														/** @type {HTMLInputElement} */ (e.target).value
+													)}
 												class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
 											/>
 											<span
@@ -1012,7 +1007,6 @@
 				{/if}
 			</div>
 
-			<!-- Cable Edge Color Settings -->
 			<div>
 				<h2 class="text-base/7 font-semibold text-primary-900-100">
 					{m.settings_cable_edge_color()}
@@ -1074,7 +1068,6 @@
 				</dl>
 			</div>
 
-			<!-- Conduit Connection Settings -->
 			<div>
 				<h2 class="text-base/7 font-semibold text-primary-900-100">
 					{m.settings_conduit_connection()}

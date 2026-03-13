@@ -12,7 +12,7 @@ export class CablePathManager {
 	/**
 	 * Update cable path geometry
 	 * @param {string} edgeId - Edge UUID
-	 * @param {Array} waypoints - Array of {x, y} waypoint coordinates
+	 * @param {{x: number, y: number}[]} waypoints - Array of {x, y} waypoint coordinates
 	 * @param {boolean} temporary - Whether this is a temporary update (during drag)
 	 * @param {boolean} save - Whether to save to backend
 	 * @param {Function} updateCallback - Callback to update edge in state

@@ -10,9 +10,13 @@
 	const { flowToScreenPosition, getInternalNode, screenToFlowPosition, getViewport, setViewport } =
 		useSvelteFlow();
 
+	/** @type {HTMLCanvasElement | null} */
 	let canvas = $state(null);
+	/** @type {CanvasRenderingContext2D | null} */
 	let ctx = $state(null);
+	/** @type {Record<string, {center: number[], corners: number[][]}>} */
 	let nodePoints = $state({});
+	/** @type {number[][]} */
 	let points = $state([]);
 	let selectedNodeIds = $state(new Set());
 
@@ -20,10 +24,10 @@
 	let panStart = $state({ x: 0, y: 0 });
 	let viewportStart = $state({ x: 0, y: 0, zoom: 1 });
 
+	/** @param {PointerEvent} e */
 	function handlePointerDown(e) {
-		const target = e.target;
+		const target = /** @type {HTMLCanvasElement} */ (e.target);
 
-		// Middle mouse button (button === 1) for panning
 		if (e.button === 1) {
 			e.preventDefault();
 			isPanning = true;
@@ -33,7 +37,6 @@
 			return;
 		}
 
-		// Left click for lasso selection
 		if (e.button !== 0) return;
 
 		target.setPointerCapture(e.pointerId);
@@ -53,7 +56,6 @@
 			const { x, y } = internalNode.internals.positionAbsolute;
 			const { width = 0, height = 0 } = internalNode.measured;
 
-			// Store center point and corners for selection detection
 			nodePoints[node.id] = {
 				center: [x + width / 2, y + height / 2],
 				corners: [
@@ -72,8 +74,8 @@
 		ctx.strokeStyle = 'rgba(0, 89, 220, 0.8)';
 	}
 
+	/** @param {PointerEvent} e */
 	function handlePointerMove(e) {
-		// Handle panning with middle mouse button
 		if (isPanning) {
 			const dx = e.clientX - panStart.x;
 			const dy = e.clientY - panStart.y;
@@ -90,7 +92,8 @@
 
 		if (e.buttons !== 1) return;
 
-		const rect = e.target.getBoundingClientRect();
+		const target = /** @type {HTMLCanvasElement} */ (e.target);
+		const rect = target.getBoundingClientRect();
 		const x = e.clientX - rect.left;
 		const y = e.clientY - rect.top;
 
@@ -108,10 +111,9 @@
 
 		for (const [nodeId, nodeData] of Object.entries(nodePoints)) {
 			if (partial) {
-				// Partial selection: select node if any corner is in the path
 				for (const point of nodeData.corners) {
 					const screenPos = flowToScreenPosition({ x: point[0], y: point[1] });
-					const canvasRect = e.target.getBoundingClientRect();
+					const canvasRect = target.getBoundingClientRect();
 					const canvasX = screenPos.x - canvasRect.left;
 					const canvasY = screenPos.y - canvasRect.top;
 					if (ctx.isPointInPath(path, canvasX, canvasY)) {
@@ -120,10 +122,9 @@
 					}
 				}
 			} else {
-				// Full selection: select node if CENTER is in the path (easier to select)
 				const center = nodeData.center;
 				const screenPos = flowToScreenPosition({ x: center[0], y: center[1] });
-				const canvasRect = e.target.getBoundingClientRect();
+				const canvasRect = target.getBoundingClientRect();
 				const canvasX = screenPos.x - canvasRect.left;
 				const canvasY = screenPos.y - canvasRect.top;
 				if (ctx.isPointInPath(path, canvasX, canvasY)) {
@@ -134,7 +135,6 @@
 
 		selectedNodeIds = nodesToSelect;
 
-		// Update nodes with selection state
 		nodes.update((nodes) =>
 			nodes.map((node) => ({
 				...node,
@@ -143,10 +143,10 @@
 		);
 	}
 
+	/** @param {PointerEvent} e */
 	function handlePointerUp(e) {
-		const target = e.target;
+		const target = /** @type {HTMLCanvasElement} */ (e.target);
 
-		// Handle end of panning
 		if (isPanning) {
 			isPanning = false;
 			target.releasePointerCapture(e.pointerId);
@@ -159,42 +159,40 @@
 			ctx.clearRect(0, 0, store.width, store.height);
 		}
 
-		// Notify parent component of selection change
 		if (onSelectionChange) {
 			onSelectionChange(Array.from(selectedNodeIds));
 		}
 	}
 
 	/**
-	 * Handle mouse wheel for zooming to cursor position
+	 * Zooms the viewport toward the cursor position on mouse wheel.
+	 * @param {WheelEvent} e
 	 */
 	function handleWheel(e) {
 		e.preventDefault();
 
 		const { x: viewportX, y: viewportY, zoom } = getViewport();
 
-		// Smoother zoom: 5% per wheel tick instead of 15%
-		// deltaY > 0 means scroll down = zoom out
 		const zoomFactor = e.deltaY > 0 ? 0.95 : 1.05;
 		const newZoom = Math.max(store.minZoom, Math.min(store.maxZoom, zoom * zoomFactor));
 
 		// Get mouse position relative to the canvas
-		const rect = e.currentTarget.getBoundingClientRect();
+		const rect = /** @type {HTMLCanvasElement} */ (e.currentTarget).getBoundingClientRect();
 		const mouseX = e.clientX - rect.left;
 		const mouseY = e.clientY - rect.top;
 
-		// Calculate the point in flow coordinates under the mouse
 		const flowX = (mouseX - viewportX) / zoom;
 		const flowY = (mouseY - viewportY) / zoom;
 
-		// Calculate new viewport to keep that point under the mouse
 		const newViewportX = mouseX - flowX * newZoom;
 		const newViewportY = mouseY - flowY * newZoom;
 
 		setViewport({ x: newViewportX, y: newViewportY, zoom: newZoom }, { duration: 0 });
 	}
 
-	// Clear selection when component is destroyed or selection is externally cleared
+	/**
+	 * Deselects all nodes and notifies the parent via the onSelectionChange callback.
+	 */
 	export function clearSelection() {
 		selectedNodeIds = new Set();
 		nodes.update((nodes) =>

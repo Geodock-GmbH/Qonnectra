@@ -16,7 +16,7 @@
 
 	/**
 	 * @typedef {Object} Props
-	 * @property {Object} result - The trace result data
+	 * @property {Record<string, any>} result - The trace result data
 	 * @property {string} entryType - The entry type (fiber, cable, node, address, residential_unit)
 	 * @property {string} entryId - The entry UUID
 	 * @property {boolean} [includeGeometry] - Whether geometry was included
@@ -34,18 +34,28 @@
 		onItemSelect = () => {}
 	} = $props();
 
+	/**
+	 * @param {string} type - Entity type (fiber, cable, node, address, residential_unit)
+	 * @param {string} id - Entity UUID
+	 * @returns {boolean} Whether the item is currently selected
+	 */
 	function isSelected(type, id) {
 		return selectedItemId === `${type}:${id}`;
 	}
 
+	/**
+	 * @param {string} type - Entity type
+	 * @param {string} id - Entity UUID
+	 * @returns {void}
+	 */
 	function handleItemClick(type, id) {
 		onItemSelect(type, id);
 	}
 
 	/**
-	 * Navigate to trace a different entity
-	 * @param {string} type - Entity type
-	 * @param {string} id - Entity UUID
+	 * Navigates to the trace page for a different entity.
+	 * @param {string} type - Entity type (e.g. 'fiber', 'cable', 'node', 'address', 'residential_unit').
+	 * @param {string} id - Entity UUID.
 	 */
 	function traceFrom(type, id) {
 		const typeSlug = type === 'residential_unit' ? 'residential-unit' : type;
@@ -55,8 +65,10 @@
 	/**
 	 * Get translated entry type label
 	 * @param {string} type - Entry type from backend
+	 * @returns {string} Translated label for the entry type
 	 */
 	function getEntryTypeLabel(type) {
+		/** @type {Record<string, string>} */
 		const typeMap = {
 			fiber: m.form_fiber(),
 			cable: m.form_cables(),
@@ -67,15 +79,23 @@
 		return typeMap[type] || type || m.common_unknown();
 	}
 
+	/**
+	 * @param {Record<string, any>} traceResult - The trace result data
+	 * @returns {boolean} Whether any cable infrastructure has geometry data
+	 */
 	function hasGeometries(traceResult) {
 		if (!traceResult?.cable_infrastructure) return false;
 		for (const infra of Object.values(traceResult.cable_infrastructure)) {
 			if (infra.merged_geometry) return true;
-			if (infra.trenches?.some((t) => t.geometry)) return true;
+			if (infra.trenches?.some((/** @type {any} */ t) => t.geometry)) return true;
 		}
 		return false;
 	}
 
+	/**
+	 * @param {Record<string, any>} traceResult - The trace result data
+	 * @returns {Record<string, any>} GeoJSON FeatureCollection with cable infrastructure geometries in EPSG:25832
+	 */
 	function buildGeoJSON(traceResult) {
 		const features = [];
 		const cableInfra = traceResult.cable_infrastructure || {};
@@ -132,6 +152,9 @@
 		};
 	}
 
+	/**
+	 * @returns {void}
+	 */
 	function downloadGeoJSON() {
 		if (!result) return;
 		const geojson = buildGeoJSON(result);
@@ -151,7 +174,6 @@
 
 {#if result}
 	<div class="space-y-8" transition:fly={{ y: 30, duration: 400, easing: cubicOut }}>
-		<!-- Statistics Cards -->
 		<section>
 			<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
 				<span class="h-5 w-1 rounded bg-primary-500"></span>
@@ -177,7 +199,6 @@
 			</div>
 		</section>
 
-		<!-- Download Button -->
 		{#if includeGeometry && hasGeometries(result)}
 			<div class="flex justify-center">
 				<button
@@ -195,7 +216,6 @@
 			</div>
 		{/if}
 
-		<!-- Entry Point -->
 		<section>
 			<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
 				<span class="h-5 w-1 rounded bg-primary-500"></span>
@@ -217,7 +237,6 @@
 			</div>
 		</section>
 
-		<!-- Cable Infrastructure -->
 		{#if result.cable_infrastructure && Object.keys(result.cable_infrastructure).length > 0}
 			<section>
 				<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
@@ -232,7 +251,6 @@
 			</section>
 		{/if}
 
-		<!-- Trace Tree -->
 		<section>
 			<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
 				<span class="h-5 w-1 rounded bg-primary-500"></span>
@@ -253,8 +271,11 @@
 	</div>
 {/if}
 
-<!-- Stat Card Snippet -->
-{#snippet statCard(label, value, colorClass)}
+{#snippet statCard(
+	/** @type {string} */ label,
+	/** @type {number} */ value,
+	/** @type {string} */ colorClass
+)}
 	<div class="flex flex-col items-center rounded-lg border border-surface-200-800 p-4">
 		<span class="font-mono text-2xl font-bold {colorClass}">{value}</span>
 		<span class="mt-1 text-xs font-medium uppercase tracking-wide text-surface-600-400"
@@ -263,8 +284,7 @@
 	</div>
 {/snippet}
 
-<!-- Stat Badge Snippet -->
-{#snippet statBadge(label, value)}
+{#snippet statBadge(/** @type {string} */ label, /** @type {boolean} */ value)}
 	<div class="flex flex-col items-center rounded-lg border border-surface-200-800 p-4">
 		<span
 			class="font-mono text-2xl font-bold {value ? 'text-success-500' : 'text-surface-600-400'}"
@@ -277,8 +297,10 @@
 	</div>
 {/snippet}
 
-<!-- Infrastructure Card Snippet -->
-{#snippet infrastructureCard(cableId, infra)}
+{#snippet infrastructureCard(
+	/** @type {string} */ cableId,
+	/** @type {Record<string, any>} */ infra
+)}
 	<details class="group rounded-lg border border-surface-200-800">
 		<summary class="flex cursor-pointer items-center gap-4 px-4 py-3 hover:bg-surface-100-900">
 			<span class="font-mono text-sm font-semibold text-warning-500">
@@ -386,8 +408,7 @@
 	</details>
 {/snippet}
 
-<!-- Trace Node Snippet -->
-{#snippet traceNode(node, depth)}
+{#snippet traceNode(/** @type {Record<string, any>} */ node, /** @type {number} */ depth)}
 	<div class="relative" style="padding-left: {depth * 1.5}rem">
 		{#if depth > 0}
 			<div
@@ -397,7 +418,6 @@
 		{/if}
 
 		<div class="mb-3">
-			<!-- Fiber Info -->
 			<div class="flex flex-wrap items-center gap-2 py-2">
 				<button
 					type="button"
@@ -455,10 +475,8 @@
 				{/if}
 			</div>
 
-			<!-- Fiber Details -->
 			{@render fiberDetails(node.fiber)}
 
-			<!-- Splice Info -->
 			{#if node.splice}
 				{@render spliceDetails(node.splice)}
 			{/if}
@@ -470,17 +488,14 @@
 				{/each}
 			{/if}
 
-			<!-- Cable Endpoints -->
 			{#if node.cable_endpoints && (node.cable_endpoints.start_node || node.cable_endpoints.end_node)}
 				{@render cableEndpointsDetails(node.cable_endpoints, node.node?.id)}
 			{/if}
 
-			<!-- Address -->
 			{#if node.node?.address}
 				{@render addressDetails(node.node.address)}
 			{/if}
 
-			<!-- Residential Units -->
 			{#if node.residential_units && node.residential_units.length > 0}
 				{#each node.residential_units as ru (ru.id)}
 					{@render residentialUnitDetails(ru)}
@@ -488,7 +503,6 @@
 			{/if}
 		</div>
 
-		<!-- Children -->
 		{#if node.children && node.children.length > 0}
 			{#each node.children as child (child.fiber.id)}
 				{@render traceNode(child, depth + 1)}
@@ -497,8 +511,7 @@
 	</div>
 {/snippet}
 
-<!-- Fiber Details Snippet -->
-{#snippet fiberDetails(fiber)}
+{#snippet fiberDetails(/** @type {Record<string, any>} */ fiber)}
 	<div class="flex flex-wrap gap-2 pb-2 pl-1 text-xs">
 		{#if fiber.bundle_number !== null && fiber.bundle_number !== undefined}
 			<span class="text-surface-600-400"
@@ -539,8 +552,7 @@
 	</div>
 {/snippet}
 
-<!-- Splice Details Snippet -->
-{#snippet spliceDetails(splice)}
+{#snippet spliceDetails(/** @type {Record<string, any>} */ splice)}
 	<div class="mb-2 ml-1 rounded-lg border-l-2 border-secondary-500 bg-surface-100-900 p-3 text-sm">
 		<div class="mb-2 flex items-center gap-2 text-secondary-500">
 			<IconArrowsSplit size={14} />
@@ -586,8 +598,7 @@
 	</div>
 {/snippet}
 
-<!-- Endpoint Splice Details Snippet (for fibers placed in splices but not connected) -->
-{#snippet endpointSpliceDetails(splice)}
+{#snippet endpointSpliceDetails(/** @type {Record<string, any>} */ splice)}
 	<div
 		class="mb-2 ml-1 rounded-lg border-l-2 border-dashed border-tertiary-500 bg-surface-100-900 p-3 text-sm"
 	>
@@ -649,8 +660,10 @@
 	</div>
 {/snippet}
 
-<!-- Cable Endpoints Details Snippet -->
-{#snippet cableEndpointsDetails(endpoints, currentNodeId)}
+{#snippet cableEndpointsDetails(
+	/** @type {Record<string, any>} */ endpoints,
+	/** @type {string|undefined} */ currentNodeId
+)}
 	<div class="mb-2 ml-1 rounded-lg border-l-2 border-primary-500 bg-surface-100-900 p-3 text-sm">
 		<div class="mb-2 font-semibold text-primary-500">
 			{m.trace_cable_path()}: {endpoints.cable_name}
@@ -738,8 +751,7 @@
 	</div>
 {/snippet}
 
-<!-- Address Details Snippet -->
-{#snippet addressDetails(address)}
+{#snippet addressDetails(/** @type {Record<string, any>} */ address)}
 	<div class="mb-2 ml-1 rounded-lg border-l-2 border-error-500 bg-surface-100-900 p-3 text-sm">
 		<div class="mb-2 flex items-center gap-2 text-error-500">
 			<IconMapPin size={14} />
@@ -789,8 +801,7 @@
 	</div>
 {/snippet}
 
-<!-- Residential Unit Details Snippet -->
-{#snippet residentialUnitDetails(ru)}
+{#snippet residentialUnitDetails(/** @type {Record<string, any>} */ ru)}
 	<div class="mb-2 ml-1 rounded-lg border-l-2 border-tertiary-500 bg-surface-100-900 p-3 text-sm">
 		<div class="mb-2 flex items-center gap-2 text-tertiary-500">
 			<IconHome size={14} />

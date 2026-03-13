@@ -45,7 +45,7 @@ export class WorkerPool {
 	 * @param {ArrayBuffer} data - MVT binary data
 	 * @param {number[]} extent - Tile extent
 	 * @param {string} projection - Projection code
-	 * @returns {Promise<{success: boolean, features?: Array, error?: string}>}
+	 * @returns {Promise<{success: boolean, features?: import('./featureReconstructor.js').SerializedFeature[], error?: string}>}
 	 */
 	parse(requestId, data, extent, projection) {
 		return new Promise((resolve) => {
@@ -100,7 +100,7 @@ export class WorkerPool {
 	}
 }
 
-/** Singleton instance */
+/** @type {WorkerPool | null} */
 let workerPoolInstance = null;
 
 /**

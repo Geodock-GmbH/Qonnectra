@@ -65,13 +65,13 @@
 	const residentialUnitStatuses = $derived(data.residentialUnitStatuses || []);
 
 	/**
-	 * Get the initial address from the data
-	 * @returns {Object} The initial address
+	 * Snapshots the address from initial page data to avoid reactivity on form fields.
+	 * @returns {Object | null} The address object.
 	 */
 	function getInitialAddress() {
 		return data.address;
 	}
-	const initialAddress = getInitialAddress();
+	const initialAddress = /** @type {any} */ (getInitialAddress());
 	let id_address = $state(initialAddress?.id_address || '');
 	let street = $state(initialAddress?.street || '');
 	let housenumber = $state(initialAddress?.housenumber ?? '');
@@ -82,13 +82,19 @@
 	let status_development_id = $state(initialAddress?.status_development?.id || '');
 	let flag_id = $state(initialAddress?.flag?.id || '');
 	let project = $state(initialAddress?.project?.project || '');
+	/** @type {any} */
 	let deleteMessageBox = $state(null);
+	/** @type {any} */
 	let fileExplorer = $state(null);
 
+	/** @type {any} */
 	let addressMarkerLayer = $state(null);
+	/** @type {any[]} */
 	let wmsLayers = $state([]);
+	/** @type {any} */
 	let mapCenter = $state(null);
 	let mapReady = $state(false);
+	/** @type {HTMLElement | null} */
 	let mapContainerEl = $state(null);
 
 	let derivedIdAddress = $derived(id_address);
@@ -190,8 +196,8 @@
 	});
 
 	/**
-	 * Convert the geometry from 3857 to 4326
-	 * @returns {String} The converted geometry
+	 * Converts the geometry from EPSG:3857 to EPSG:4326 (lat/lon).
+	 * @returns {string | null} Formatted coordinate string or null if no geometry.
 	 */
 	function convert3857To4326() {
 		if (!geom3857 || !geom3857.coordinates) return null;
@@ -199,6 +205,10 @@
 		return `${coords4326[1].toFixed(6)}, ${coords4326[0].toFixed(6)}`;
 	}
 
+	/**
+	 * Converts the geometry from EPSG:3857 to the project default SRID (EPSG:25832).
+	 * @returns {string | null} Formatted coordinate string or null if no geometry.
+	 */
 	function convert3857ToDefault() {
 		if (!geom3857 || !geom3857.coordinates) return null;
 		const coordsDefault = proj4('EPSG:3857', 'EPSG:25832', geom3857.coordinates);
@@ -206,7 +216,7 @@
 	}
 
 	/**
-	 * Handle the save action
+	 * Submits form data to the updateAddress action and shows a toast on result.
 	 */
 	async function handleSave() {
 		isSaving = true;
@@ -231,7 +241,7 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				const updated = result.data?.address;
+				const updated = /** @type {any} */ (result.data)?.address;
 				if (updated?.id_address != null) {
 					id_address = updated.id_address;
 				}
@@ -242,7 +252,8 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: result.data?.message || m.message_error_updating_address()
+					description:
+						/** @type {any} */ (result).data?.message || m.message_error_updating_address()
 				});
 			}
 		} catch (error) {
@@ -257,7 +268,7 @@
 	}
 
 	/**
-	 * Handle the delete action
+	 * Submits the deleteAddress action and redirects on success.
 	 */
 	async function handleDelete() {
 		isDeleting = true;
@@ -280,7 +291,8 @@
 			} else if (result.type === 'failure') {
 				globalToaster.error({
 					title: m.common_error(),
-					description: result.data?.message || m.message_error_deleting_address()
+					description:
+						/** @type {any} */ (result).data?.message || m.message_error_deleting_address()
 				});
 			}
 		} catch (error) {
@@ -295,7 +307,7 @@
 	}
 
 	/**
-	 * Handle the regenerate ID action
+	 * Triggers backend ID regeneration and updates the local id_address state.
 	 */
 	async function handleRegenerateId() {
 		isRegenerating = true;
@@ -310,7 +322,7 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				id_address = result.data.id_address;
+				id_address = /** @type {any} */ (result.data).id_address;
 				globalToaster.success({
 					title: m.title_success(),
 					description: m.message_success_regenerating_id()
@@ -318,7 +330,8 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: result.data?.message || m.message_error_regenerating_id()
+					description:
+						/** @type {any} */ (result).data?.message || m.message_error_regenerating_id()
 				});
 			}
 		} catch (error) {
@@ -332,25 +345,17 @@
 		}
 	}
 
-	/**
-	 * Open the delete confirmation modal
-	 */
 	function openDeleteConfirm() {
-		deleteMessageBox.open();
+		deleteMessageBox?.open();
 	}
 
-	/**
-	 * Handle the upload complete event
-	 */
 	function handleUploadComplete() {
-		if (fileExplorer) {
-			fileExplorer.refresh();
-		}
+		fileExplorer?.refresh();
 	}
 
 	/**
-	 * Fetch all fiber connections for all residential units of the address in one call.
-	 * @returns {Promise<Object>} Dict mapping unit UUID to fiber connections array
+	 * Fetches all fiber connections for all residential units of this address.
+	 * @returns {Promise<Record<string, Array<Object>>>} Map of unit UUID to fiber connections array.
 	 */
 	async function fetchAllFiberConnections() {
 		try {
@@ -365,8 +370,10 @@
 	}
 
 	/**
-	 * Merge all OpenLayers canvases into a single image.
-	 * OpenLayers uses separate canvases for different layers.
+	 * Merges all OpenLayers canvases into a single PNG data URL.
+	 * OpenLayers renders each layer on a separate canvas element.
+	 * @param {HTMLElement} container - The map container element.
+	 * @returns {string | null} Base64 PNG data URL, or null if no canvases found.
 	 */
 	function captureMapCanvases(container) {
 		const canvases = container.querySelectorAll('canvas');
@@ -376,7 +383,7 @@
 		const mergedCanvas = document.createElement('canvas');
 		mergedCanvas.width = firstCanvas.width;
 		mergedCanvas.height = firstCanvas.height;
-		const ctx = mergedCanvas.getContext('2d');
+		const ctx = /** @type {CanvasRenderingContext2D} */ (mergedCanvas.getContext('2d'));
 
 		for (const canvas of canvases) {
 			ctx.drawImage(canvas, 0, 0);
@@ -386,7 +393,8 @@
 	}
 
 	/**
-	 * Get attributions for visible WMS layers that have attribution configured.
+	 * Collects attributions from visible WMS layers for PDF rendering.
+	 * @returns {string[]} Unique attribution strings.
 	 */
 	function getVisibleWMSAttributions() {
 		const { sources, loaded } = $wmsSourcesData;
@@ -395,7 +403,7 @@
 		const visibilityConfig = $wmsLayerVisibilityConfig;
 		const attributions = new Set();
 
-		for (const source of sources) {
+		for (const source of /** @type {any[]} */ (sources)) {
 			if (!source.is_active || !source.attribution) continue;
 
 			for (const layer of source.layers) {
@@ -415,7 +423,7 @@
 	}
 
 	/**
-	 * Handle the PDF download action
+	 * Generates and downloads an address PDF with optional residential unit data.
 	 */
 	async function handleDownloadPdf() {
 		isDownloading = true;
@@ -434,7 +442,7 @@
 			let unitsWithFibers = residentialUnits;
 			if (includeResidentialUnits && residentialUnits?.length > 0) {
 				const fiberConnectionsMap = await fetchAllFiberConnections();
-				unitsWithFibers = residentialUnits.map((unit) => ({
+				unitsWithFibers = residentialUnits.map((/** @type {any} */ unit) => ({
 					...unit,
 					fiberConnections: fiberConnectionsMap[unit.uuid] || []
 				}));
@@ -462,7 +470,7 @@
 					statusDevelopment: m.form_status_development(),
 					flag: m.form_flag(),
 					project: m.form_project({ count: 1 }),
-					residentialUnit: m.section_residential_units(),
+					residentialUnit: m.section_residential_units({ count: 2 }),
 					sectionIdentification: m.form_id_residential_unit(),
 					sectionUnitLocation: m.section_location(),
 					sectionResident: m.from_resident(),
@@ -506,9 +514,6 @@
 		}
 	}
 
-	/**
-	 * Go back to the address list page
-	 */
 	function goBack() {
 		goto(`/address/${projectId}`);
 	}
@@ -519,7 +524,6 @@
 </svelte:head>
 
 <div class="max-w-6xl mx-auto space-y-6">
-	<!-- Header -->
 	<div class="card p-4 flex items-center justify-between gap-4">
 		<div class="flex items-center gap-4 min-w-0">
 			<button
@@ -575,11 +579,8 @@
 			<p>{addressError}</p>
 		</div>
 	{:else if address}
-		<!-- Top Row: Form + Map -->
 		<div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-			<!-- Left: Address Form -->
 			<div class="lg:col-span-3 card p-6 space-y-6">
-				<!-- Section: Address Information -->
 				<div class="flex items-center gap-3">
 					<div class="w-1 h-6 rounded-full bg-primary-500"></div>
 					<IconHome class="size-5 text-primary-500" />
@@ -587,7 +588,6 @@
 				</div>
 
 				<div class="space-y-4">
-					<!-- ID Row -->
 					<div class="flex items-end gap-3">
 						<label class="label flex-1">
 							<span class="label-text text-sm text-surface-900-100"
@@ -662,10 +662,8 @@
 						<input type="text" class="input" name="district" bind:value={district} />
 					</label>
 
-					<!-- Divider -->
 					<div class="border-t border-surface-200-800"></div>
 
-					<!-- Classification Fields -->
 					<div class="flex items-center gap-3 pt-1">
 						<div class="w-1 h-6 rounded-full bg-tertiary-500"></div>
 						<IconBuilding class="size-5 text-tertiary-500" />
@@ -711,7 +709,6 @@
 				</div>
 			</div>
 
-			<!-- Right: Mini Map -->
 			<div class="lg:col-span-2 card p-6 space-y-4">
 				<div class="flex items-center gap-3">
 					<div class="w-1 h-6 rounded-full bg-info-500"></div>
@@ -755,7 +752,6 @@
 					</div>
 				{/if}
 
-				<!-- Coordinates display -->
 				{#if geom3857?.coordinates}
 					<div
 						class="flex items-start gap-2 text-xs text-surface-900-100 bg-surface-50-950 rounded px-3 py-2 flex-col"
@@ -778,7 +774,6 @@
 					</div>
 				{/if}
 
-				<!-- PDF Download -->
 				<div class="border-t border-surface-200-800 pt-4">
 					<div class="inline-flex rounded-lg overflow-hidden">
 						<button
@@ -894,9 +889,7 @@
 			{/if}
 		</div>
 
-		<!-- Bottom Row: Files + Residential Units -->
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-			<!-- Files -->
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center gap-3">
 					<div class="w-1 h-6 rounded-full bg-success-500"></div>
@@ -910,7 +903,6 @@
 				{/if}
 			</div>
 
-			<!-- Residential Units -->
 			<ResidentialUnitsSection
 				{residentialUnits}
 				{residentialUnitTypes}

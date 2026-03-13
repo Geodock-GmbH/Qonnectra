@@ -32,21 +32,23 @@ def snap_point(point, tolerance):
 
 
 def find_shortest_path(start_trench_id, end_trench_id, project_id, tolerance=1):
-    """
-    Finds the shortest path between two trenches using a network graph.
+    """Find the shortest path between two trenches using a network graph.
 
-    This function builds a graph from all trench geometries, finds the
-    shortest path between the specified start and end trenches, and
-    returns the path details.
+    Build a weighted graph from all :model:`api.Trench` geometries in the
+    given project, then compute the shortest path between the specified
+    start and end trenches.
 
     Args:
         start_trench_id (str): The id_trench of the starting trench (e.g., 'TR-ABC123X').
         end_trench_id (str): The id_trench of the ending trench (e.g., 'TR-ABC123X').
-        project_id (int): The id_trench of the project.
-        tolerance (int): The grid cell size for snapping. If 0, no snapping is performed.
+        project_id (int): Primary key of the :model:`api.Projects` to scope the search.
+        tolerance (int): Grid cell size for snapping endpoints. If 0, no snapping
+            is performed. Defaults to 1.
+
     Returns:
-        dict: A dictionary containing the path details (trench IDs, length, WKT geometry)
-            or an error message if a path cannot be found.
+        dict: On success, contains 'start_trench_id', 'end_trench_id',
+            'path_length', 'traversed_trench_ids', 'traversed_trench_uuids',
+            and 'path_geometry_wkt'. On failure, contains a single 'error' key.
     """
 
     trenches = Trench.objects.filter(project=project_id).only(
@@ -57,14 +59,12 @@ def find_shortest_path(start_trench_id, end_trench_id, project_id, tolerance=1):
 
     trench_data = {t.id_trench: t for t in trenches}
 
-    # Build the network graph.
     G = nx.Graph()
     for id_trench, trench in trench_data.items():
         geom = trench.geom
         if geom is None or not isinstance(geom, LineString) or geom.empty:
             continue
 
-        # Snap endpoints to create graph nodes.
         start_point = geom.coords[0]
         end_point = geom.coords[-1]
         start_node = snap_point(start_point, tolerance)
@@ -80,7 +80,6 @@ def find_shortest_path(start_trench_id, end_trench_id, project_id, tolerance=1):
             weight=float(trench.length),
         )
 
-    # Identify start and end nodes for the pathfinding.
     try:
         start_trench = trench_data[start_trench_id]
         end_trench = trench_data[end_trench_id]
@@ -99,7 +98,6 @@ def find_shortest_path(start_trench_id, end_trench_id, project_id, tolerance=1):
         snap_point(end_geom.coords[-1], tolerance),
     ]
 
-    # Find the shortest path among all endpoint combinations.
     shortest_path_nodes = None
     min_path_length = float("inf")
 
@@ -124,24 +122,20 @@ def find_shortest_path(start_trench_id, end_trench_id, project_id, tolerance=1):
             "error": f"No path found between trench {start_trench_id} and {end_trench_id}."
         }
 
-    # Reconstruct the path from the list of nodes.
     path_segment_ids = []
     for i in range(len(shortest_path_nodes) - 1):
         u, v = shortest_path_nodes[i], shortest_path_nodes[i + 1]
         edge_data = G.get_edge_data(u, v)
         path_segment_ids.append(edge_data["id_trench"])
 
-    # Ensure start and end trenches are included and remove duplicates.
     final_path_ids = list(
         OrderedDict.fromkeys([start_trench_id] + path_segment_ids + [end_trench_id])
     )
 
     final_path_uuids = [str(trench_data[id].uuid) for id in final_path_ids]
 
-    # Merge geometries for the final path.
     path_geometries_geos = [trench_data[id].geom for id in final_path_ids]
-
-    # Convert Django GEOS LineStrings to Shapely LineStrings for merging.
+    # Convert GEOS → Shapely for linemerge (GEOS LineStrings lack merge support)
     path_geometries_shapely = [wkt_loads(geom.wkt) for geom in path_geometries_geos]
     merged_line = linemerge(path_geometries_shapely)
 

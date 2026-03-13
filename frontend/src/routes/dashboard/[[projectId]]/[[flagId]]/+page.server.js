@@ -2,7 +2,11 @@ import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
-/** @type {import('./$types').PageServerLoad} */
+/**
+ * Loads dashboard statistics and project list for the selected project.
+ * Returns empty default values when no project is selected or on fetch failure.
+ * @param {import('./$types').PageServerLoadEvent} event
+ */
 export async function load({ fetch, cookies, params }) {
 	const { projectId } = params;
 	const headers = getAuthHeaders(cookies);
@@ -57,7 +61,6 @@ export async function load({ fetch, cookies, params }) {
 	}
 
 	try {
-		// Fetch dashboard statistics and projects in parallel
 		const [statsResponse, projectsResponse] = await Promise.all([
 			fetch(`${API_URL}dashboard/statistics/?project=${projectId}`, {
 				credentials: 'include',
@@ -155,16 +158,16 @@ export async function load({ fetch, cookies, params }) {
 		return {
 			totalLength: trench.total_length,
 			count: trench.count,
-			lengthByTypes: trench.length_by_types.map((item) => ({
+			lengthByTypes: trench.length_by_types.map((/** @type {any} */ item) => ({
 				bauweise: item.bauweise,
 				oberfläche: item.oberfläche,
 				gesamt_länge: item.gesamt_länge
 			})),
-			nodesByType: node.count_by_type.map((item) => ({
+			nodesByType: node.count_by_type.map((/** @type {any} */ item) => ({
 				node_type: item.node_type,
 				count: item.count
 			})),
-			projects: projectsData.map((item) => ({
+			projects: projectsData.map((/** @type {any} */ item) => ({
 				project: item.project,
 				description: item.description,
 				active: item.active
@@ -196,11 +199,10 @@ export async function load({ fetch, cookies, params }) {
 			conduitLengthByManufacturer: conduit?.length_by_manufacturer || [],
 			conduitsByMonth: conduit?.conduits_by_month || [],
 			longestConduits: conduit?.longest_conduits || [],
-			// Area statistics
 			areaCount: area?.area_count || 0,
 			totalCoverageKm2: area?.total_coverage_km2 || 0,
 			areasByType: area?.areas_by_type || [],
-			totalAddresses: area?.total_addresses || 0,
+			areaTotalAddresses: area?.total_addresses || 0,
 			addressesInAreas: area?.addresses_in_areas || 0,
 			totalNodes: area?.total_nodes || 0,
 			nodesInAreas: area?.nodes_in_areas || 0,

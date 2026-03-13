@@ -18,7 +18,6 @@
 
 	import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
 
-	// Color constants for edge styling
 	const DEFAULT_GREEN = '#22c55e';
 	const LINKED_BLUE = '#3b82f6';
 
@@ -55,10 +54,7 @@
 		return DEFAULT_GREEN;
 	});
 
-	// Label state - synced reactively via $effect below
 	let currentLabel = $state('');
-
-	// Label data for positioning - synced reactively via $effect below
 	let labelData = $state(/** @type {Object|null} */ (null));
 
 	let edgePath = $derived.by(() => {
@@ -129,7 +125,7 @@
 
 	/**
 	 * Handle label position update - saves to backend via server action
-	 * @param {Object} positionData - Object with labelId, x, y, and text coordinates
+	 * @param {{ x: number, y: number, text?: string, labelId?: string }} positionData
 	 */
 	async function handleLabelPositionUpdate(positionData) {
 		const cableUuid = data?.cable?.uuid;
@@ -173,14 +169,12 @@
 		}
 	}
 
-	// Vertex editing state
-	let draggingVertexIndex = $state(null);
+	let draggingVertexIndex = $state(/** @type {number|null} */ (null));
 	let edgeHovered = $state(false);
-	let svgElement = $state(null);
+	let svgElement = $state(/** @type {SVGSVGElement|null} */ (null));
 	let shiftPressed = $state(false);
-	let hoveredVertexIndex = $state(null);
+	let hoveredVertexIndex = $state(/** @type {number|null} */ (null));
 
-	// Edge snapping
 	const SNAP_GRID_SIZE = 20;
 	let showSnapFeedback = $state(false);
 	let snapFeedbackPosition = $state({ x: 0, y: 0 });
@@ -204,14 +198,16 @@
 
 	/**
 	 * Handle click on edge to add a new vertex
-	 * @param {Object} event - The click event
+	 * @param {MouseEvent} event
 	 */
 	function handleEdgeClick(event) {
-		const svg = event.currentTarget.closest('svg');
+		const svg = /** @type {SVGSVGElement} */ (
+			/** @type {any} */ (event.currentTarget).closest('svg')
+		);
 		const pt = svg.createSVGPoint();
 		pt.x = event.clientX;
 		pt.y = event.clientY;
-		const svgCoords = pt.matrixTransform(svg.getScreenCTM().inverse());
+		const svgCoords = pt.matrixTransform(/** @type {DOMMatrix} */ (svg.getScreenCTM()).inverse());
 		const waypoints = data?.cable?.diagram_path || [];
 
 		const allPoints = [{ x: sourceX, y: sourceY }, ...waypoints, { x: targetX, y: targetY }];
@@ -234,8 +230,8 @@
 		}
 
 		const snappedPosition = snapToGrid(
-			closestPointOnSegment.x,
-			closestPointOnSegment.y,
+			/** @type {{x: number, y: number}} */ (closestPointOnSegment).x,
+			/** @type {{x: number, y: number}} */ (closestPointOnSegment).y,
 			SNAP_GRID_SIZE,
 			$edgeSnappingEnabled
 		);
@@ -252,7 +248,7 @@
 
 	/**
 	 * Handle keyboard events for Shift key tracking
-	 * @param {Object} event - The keyboard event
+	 * @param {KeyboardEvent} event
 	 */
 	function handleKeyDown(event) {
 		if (event.key === 'Shift') {
@@ -262,7 +258,7 @@
 
 	/**
 	 * Handle keyup event for Shift key tracking
-	 * @param {Object} event - The keyboard event
+	 * @param {KeyboardEvent} event
 	 */
 	function handleKeyUp(event) {
 		if (event.key === 'Shift') {
@@ -270,7 +266,6 @@
 		}
 	}
 
-	// Attach keyboard listeners on mount
 	$effect(() => {
 		window.addEventListener('keydown', handleKeyDown);
 		window.addEventListener('keyup', handleKeyUp);
@@ -283,26 +278,21 @@
 
 	/**
 	 * Handle vertex click - delete if Shift is pressed, otherwise start drag
-	 * @param {Object} event - The click event
-	 * @param {number} index - The index of the vertex
+	 * @param {MouseEvent} event
+	 * @param {number} index
 	 */
 	function handleVertexMouseDown(event, index) {
 		event.stopPropagation();
 		event.preventDefault();
 
-		// If Shift is pressed, delete the vertex
 		if (shiftPressed) {
 			deleteVertex(index);
 			return;
 		}
 
-		// Otherwise, start dragging
 		draggingVertexIndex = index;
+		svgElement = /** @type {any} */ (event.currentTarget).closest('svg');
 
-		// Store SVG element for coordinate conversion
-		svgElement = event.currentTarget.closest('svg');
-
-		// Add window listeners for smooth dragging
 		window.addEventListener('mousemove', handleWindowMouseMove);
 		window.addEventListener('mouseup', handleWindowMouseUp);
 	}
@@ -324,7 +314,7 @@
 
 	/**
 	 * Handle vertex drag on window (so it works even when mouse leaves SVG)
-	 * @param {Object} event - The mouse move event
+	 * @param {MouseEvent} event
 	 */
 	function handleWindowMouseMove(event) {
 		if (draggingVertexIndex === null || !svgElement) return;
@@ -332,7 +322,9 @@
 		const pt = svgElement.createSVGPoint();
 		pt.x = event.clientX;
 		pt.y = event.clientY;
-		const svgCoords = pt.matrixTransform(svgElement.getScreenCTM().inverse());
+		const svgCoords = pt.matrixTransform(
+			/** @type {DOMMatrix} */ (svgElement.getScreenCTM()).inverse()
+		);
 
 		const snappedPosition = snapToGrid(
 			svgCoords.x,
@@ -364,11 +356,9 @@
 
 	/**
 	 * Handle vertex drag end on window
-	 * @param {Object} event - The mouse up event
 	 */
 	function handleWindowMouseUp() {
 		if (draggingVertexIndex !== null) {
-			// Final update
 			window.dispatchEvent(
 				new CustomEvent('updateCablePath', {
 					detail: { edgeId: id, waypoints: data?.cable?.diagram_path, save: true }
@@ -378,15 +368,14 @@
 		draggingVertexIndex = null;
 		svgElement = null;
 
-		// Remove window listeners
 		window.removeEventListener('mousemove', handleWindowMouseMove);
 		window.removeEventListener('mouseup', handleWindowMouseUp);
 	}
 
 	/**
 	 * Handle vertex right-click to delete
-	 * @param {Object} event - The right-click event
-	 * @param {number} index - The index of the vertex
+	 * @param {MouseEvent} event
+	 * @param {number} index
 	 */
 	function handleVertexContextMenu(event, index) {
 		event.preventDefault();
@@ -400,7 +389,7 @@
 	onkeydown={(e) => {
 		if (e.key === 'Enter' || e.key === ' ') {
 			e.preventDefault();
-			handleEdgeClick(e);
+			handleEdgeClick(/** @type {any} */ (e));
 		}
 	}}
 	onmouseenter={() => (edgeHovered = true)}

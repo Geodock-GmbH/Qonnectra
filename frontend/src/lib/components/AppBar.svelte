@@ -18,7 +18,6 @@
 
 	function toggleGlobalMapView() {
 		if ($globalMapView) {
-			// Disable: restore from cookie (SSOT)
 			if (browser) {
 				const cookieProject = document.cookie
 					.split('; ')
@@ -30,7 +29,6 @@
 			}
 			globalMapView.set(false);
 		} else {
-			// Enable: just turn on global view
 			globalMapView.set(true);
 		}
 	}
@@ -38,7 +36,6 @@
 	let isMapRoute = $derived($page.url.pathname.startsWith('/map'));
 </script>
 
-<!-- AppBar -->
 <div>
 	<AppBar class="bg-transparent border-b-2 border-surface-200-800">
 		<AppBar.Toolbar

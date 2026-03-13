@@ -14,7 +14,6 @@
 		openModal = $bindable(false)
 	} = $props();
 
-	// Form state
 	let formIdResidentialUnit = $state('');
 	let formFloor = $state('');
 	let formSide = $state('');
@@ -40,6 +39,10 @@
 		resetForm();
 	}
 
+	/**
+	 * Submits the createResidentialUnit action and invalidates page data on success.
+	 * @param {SubmitEvent} event
+	 */
 	async function handleSubmit(event) {
 		event.preventDefault();
 
@@ -69,7 +72,8 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: result.data?.message || m.message_error_creating_residential_unit()
+					description:
+						/** @type {any} */ (result).data?.message || m.message_error_creating_residential_unit()
 				});
 			}
 		} catch (error) {
@@ -82,7 +86,7 @@
 </script>
 
 <Dialog
-	bind:open={openModal}
+	open={openModal}
 	onOpenChange={(e) => (openModal = e.open)}
 	closeOnInteractOutside={true}
 	closeOnEscape={true}
@@ -104,7 +108,6 @@
 				</Dialog.Title>
 
 				<form id="residential-unit-form" class="space-y-4" onsubmit={handleSubmit}>
-					<!-- ID Field -->
 					<label class="label">
 						<span class="label-text text-sm text-surface-600-400"
 							>{m.form_id_residential_unit()}</span
@@ -118,7 +121,6 @@
 						/>
 					</label>
 
-					<!-- Location Fields - 2x2 Grid -->
 					<div class="grid grid-cols-2 gap-4">
 						<label class="label">
 							<span class="label-text text-sm text-surface-600-400">{m.form_floor()}</span>
@@ -138,7 +140,6 @@
 						</label>
 					</div>
 
-					<!-- External IDs - 2 column -->
 					<div class="grid grid-cols-2 gap-4">
 						<label class="label">
 							<span class="label-text text-sm text-surface-600-400">{m.form_external_id_1()}</span>
@@ -150,7 +151,6 @@
 						</label>
 					</div>
 
-					<!-- Type and Status - 2 column -->
 					<div class="grid grid-cols-2 gap-4">
 						<label class="label">
 							<span class="label-text text-sm text-surface-600-400"

@@ -10,11 +10,11 @@
 	let { data = [], title = '', color = '#0ea5e9', unit = 'km', axisLabel } = $props();
 
 	let canvas = $state();
-	let chart;
+	/** @type {import('chart.js').Chart | null} */
+	let chart = null;
 	let themeMode = $state('');
 
 	onMount(() => {
-		// Watch for theme changes by observing data-mode attribute
 		const observer = new MutationObserver(() => {
 			themeMode = document.documentElement.getAttribute('data-mode') || '';
 		});
@@ -24,7 +24,6 @@
 			attributeFilter: ['data-mode']
 		});
 
-		// Set initial theme mode
 		themeMode = document.documentElement.getAttribute('data-mode') || '';
 
 		return () => {
@@ -38,7 +37,6 @@
 	$effect(() => {
 		if (!canvas || !data || data.length === 0 || data.every((item) => !item.value)) return;
 
-		// Re-render chart when theme changes (themeMode is a dependency)
 		themeMode;
 
 		if (chart) {
@@ -48,18 +46,15 @@
 		const ctx = canvas.getContext('2d');
 		if (!ctx) return;
 
-		// Resolve CSS variables for axis colors using the canvas parent for proper context
 		const parentEl = canvas.parentElement;
 		if (!parentEl) return;
 
-		// Resolve border color
 		const tempElBorder = document.createElement('div');
 		tempElBorder.style.borderColor = 'var(--preset-filled-surface-200-800)';
 		parentEl.appendChild(tempElBorder);
 		const axisBorderColor = getComputedStyle(tempElBorder).borderColor || '#9ca3af';
 		parentEl.removeChild(tempElBorder);
 
-		// Resolve tick/label text color
 		const tempElText = document.createElement('div');
 		tempElText.style.color = 'var(--preset-filled-surface-900-100)';
 		parentEl.appendChild(tempElText);
@@ -93,7 +88,7 @@
 						callbacks: {
 							label: function (context) {
 								return (
-									context.parsed.x.toLocaleString('de-DE', {
+									(context.parsed.x ?? 0).toLocaleString('de-DE', {
 										minimumFractionDigits: 2,
 										maximumFractionDigits: 2
 									}) +

@@ -1,13 +1,40 @@
 /**
+ * @typedef {Object} AddressData
+ * @property {string} uuid
+ * @property {string} [street]
+ * @property {string|number} [housenumber]
+ * @property {string} [house_number_suffix]
+ * @property {string} [zip_code]
+ * @property {string} [city]
+ * @property {string} [district]
+ * @property {{status_development?: string}} [status_development]
+ * @property {{flag?: string}} [flag]
+ */
+
+/**
+ * @typedef {Object} FormattedAddress
+ * @property {string} value
+ * @property {string} street
+ * @property {string|number} housenumber
+ * @property {string} house_number_suffix
+ * @property {string} zip_code
+ * @property {string} city
+ * @property {string} district
+ * @property {string} status_development
+ * @property {string} flag
+ */
+
+/**
  * State manager for the address route
  * Manages addresses array and provides methods for CRUD operations
  */
 export class AddressState {
+	/** @type {FormattedAddress[]} */
 	addresses = $state.raw([]);
 
 	/**
 	 * Initialize state with addresses from load function
-	 * @param {Object} initialData - Data from +page.server.js load function
+	 * @param {{addresses?: FormattedAddress[]}} initialData - Data from +page.server.js load function
 	 */
 	constructor(initialData) {
 		this.addresses = initialData.addresses || [];
@@ -15,8 +42,8 @@ export class AddressState {
 
 	/**
 	 * Format address data from API response to table display format
-	 * @param {Object} address - Raw address data from API
-	 * @returns {Object} Formatted address for table display
+	 * @param {AddressData} address - Raw address data from API
+	 * @returns {FormattedAddress} Formatted address for table display
 	 */
 	formatAddress(address) {
 		return {
@@ -34,7 +61,7 @@ export class AddressState {
 
 	/**
 	 * Update an address in local state
-	 * @param {Object} updatedAddress - Updated address data from API
+	 * @param {AddressData} updatedAddress - Updated address data from API
 	 */
 	updateAddress(updatedAddress) {
 		const index = this.addresses.findIndex((a) => a.value === updatedAddress.uuid);
@@ -58,7 +85,7 @@ export class AddressState {
 
 	/**
 	 * Set addresses array (used when data is reloaded, e.g., after search)
-	 * @param {Array} addresses - Array of formatted addresses from load function
+	 * @param {FormattedAddress[]} addresses - Array of formatted addresses from load function
 	 */
 	setAddresses(addresses) {
 		this.addresses = addresses || [];

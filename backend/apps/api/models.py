@@ -22,8 +22,10 @@ logger = logging.getLogger(__name__)
 
 
 class Projects(models.Model):
-    """Stores all projects,
-    related to :model:`api.Trench`.
+    """Organizational project container for all GIS features.
+
+    Related to :model:`api.Trench`, :model:`api.Conduit`, :model:`api.Node`,
+    :model:`api.Cable`, :model:`api.Address`, :model:`api.Area`.
     """
 
     id = models.AutoField(primary_key=True)
@@ -83,7 +85,14 @@ class NetworkSchemaSettings(models.Model):
 
     @classmethod
     def get_settings_for_project(cls, project_id):
-        """Get settings for a project. Returns None if not configured."""
+        """Retrieve settings for a project.
+
+        Args:
+            project_id: Primary key of the project.
+
+        Returns:
+            NetworkSchemaSettings | None: Settings instance, or None if not configured.
+        """
         try:
             return cls.objects.get(project_id=project_id)
         except cls.DoesNotExist:
@@ -123,7 +132,14 @@ class PipeBranchSettings(models.Model):
 
     @classmethod
     def get_settings_for_project(cls, project_id):
-        """Get settings for a project. Returns None if not configured."""
+        """Retrieve settings for a project.
+
+        Args:
+            project_id: Primary key of the project.
+
+        Returns:
+            PipeBranchSettings | None: Settings instance, or None if not configured.
+        """
         try:
             return cls.objects.get(project_id=project_id)
         except cls.DoesNotExist:
@@ -131,10 +147,15 @@ class PipeBranchSettings(models.Model):
 
     @classmethod
     def get_allowed_type_ids(cls, project_id):
-        """Get list of allowed node type IDs for a project.
+        """Retrieve list of allowed node type IDs for a project.
 
-        Returns None if settings not configured (meaning all types allowed).
-        Returns empty list if configured but no types selected.
+        Args:
+            project_id: Primary key of the project.
+
+        Returns:
+            list[int] | None: List of allowed type IDs, None if settings
+                not configured (all types allowed), or empty list if configured
+                but no types selected.
         """
         settings = cls.get_settings_for_project(project_id)
         if settings is None:
@@ -164,7 +185,9 @@ class WMSSource(models.Model):
         _("Attribution"),
         max_length=500,
         blank=True,
-        help_text=_("Attribution text for PDF export. Leave empty to exclude from exports."),
+        help_text=_(
+            "Attribution text for PDF export. Leave empty to exclude from exports."
+        ),
     )
     sort_order = models.IntegerField(_("Sort Order"), default=0)
     is_active = models.BooleanField(_("Active"), default=True)
@@ -184,7 +207,10 @@ class WMSSource(models.Model):
 
     @property
     def password(self):
-        """Decrypt and return the password.
+        """Decrypt and return the stored password.
+
+        Returns:
+            str: Decrypted password, or empty string if no password is set.
 
         Raises:
             ValueError: If FIELD_ENCRYPTION_KEY is not configured or invalid.
@@ -195,7 +221,7 @@ class WMSSource(models.Model):
         if not settings.FIELD_ENCRYPTION_KEY:
             raise ValueError(
                 "FIELD_ENCRYPTION_KEY must be set to decrypt WMS passwords. "
-                "Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+                'Generate one with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"'
             )
 
         from cryptography.fernet import Fernet, InvalidToken
@@ -205,13 +231,18 @@ class WMSSource(models.Model):
             f = Fernet(key)
             return f.decrypt(bytes(self._password)).decode()
         except InvalidToken as e:
-            raise ValueError(f"Failed to decrypt password - invalid encryption key: {e}")
+            raise ValueError(
+                f"Failed to decrypt password - invalid encryption key: {e}"
+            )
         except Exception as e:
             raise ValueError(f"Failed to decrypt password: {e}")
 
     @password.setter
     def password(self, value):
         """Encrypt and store the password.
+
+        Args:
+            value: Plain-text password to encrypt, or empty/None to clear.
 
         Raises:
             ValueError: If FIELD_ENCRYPTION_KEY is not configured or invalid.
@@ -223,7 +254,7 @@ class WMSSource(models.Model):
         if not settings.FIELD_ENCRYPTION_KEY:
             raise ValueError(
                 "FIELD_ENCRYPTION_KEY must be set to encrypt WMS passwords. "
-                "Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+                'Generate one with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"'
             )
 
         from cryptography.fernet import Fernet
@@ -285,8 +316,10 @@ class WMSLayer(models.Model):
 
 
 class Flags(models.Model):
-    """Stores all flags,
-    related to :model:`api.Trench`.
+    """Categorization flag for filtering and grouping GIS features.
+
+    Related to :model:`api.Trench`, :model:`api.Conduit`, :model:`api.Node`,
+    :model:`api.Cable`, :model:`api.Address`, :model:`api.Area`.
     """
 
     id = models.AutoField(primary_key=True)
@@ -304,8 +337,9 @@ class Flags(models.Model):
 
 
 class AttributesSurface(models.Model):
-    """Stores all surfaces types for trench features,
-    related to :model:`api.Trench`.
+    """Surface type attribute for trench features, related to :model:`api.Trench`.
+
+    Tracks whether the surface is sealing (e.g., asphalt) or non-sealing (e.g., grass).
     """
 
     id = models.AutoField(primary_key=True)
@@ -325,9 +359,7 @@ class AttributesSurface(models.Model):
 
 
 class AttributesConstructionType(models.Model):
-    """Stores all construction types for trench features,
-    related to :model:`api.Trench`.
-    """
+    """Construction method attribute for trench features, related to :model:`api.Trench`."""
 
     id = models.AutoField(primary_key=True)
     construction_type = models.TextField(
@@ -350,8 +382,10 @@ class AttributesConstructionType(models.Model):
 
 
 class AttributesStatus(models.Model):
-    """Stores all statuses for different models,
-    related to :model:`api.Trench`.
+    """Lifecycle status attribute shared across multiple feature models.
+
+    Related to :model:`api.Trench`, :model:`api.Conduit`, :model:`api.Node`,
+    :model:`api.Cable`.
     """
 
     id = models.AutoField(primary_key=True)
@@ -373,9 +407,7 @@ class AttributesStatus(models.Model):
 
 
 class AttributesPhase(models.Model):
-    """Stores all phases for different models,
-    related to :model:`api.Trench`.
-    """
+    """Construction phase attribute for trench features, related to :model:`api.Trench`."""
 
     id = models.AutoField(primary_key=True)
     phase = models.TextField(_("Phase"), null=False, db_index=False)
@@ -396,8 +428,10 @@ class AttributesPhase(models.Model):
 
 
 class AttributesCompany(models.Model):
-    """Stores all companies for different models,
-    related to :model:`api.Trench`.
+    """Company record used as owner, constructor, or manufacturer across features.
+
+    Related to :model:`api.Trench`, :model:`api.Conduit`, :model:`api.Node`,
+    :model:`api.Cable`, :model:`api.AttributesConduitType`, :model:`api.AttributesCableType`.
     """
 
     id = models.AutoField(primary_key=True)
@@ -425,9 +459,7 @@ class AttributesCompany(models.Model):
 
 
 class AttributesNodeType(models.Model):
-    """Stores all node types for node features,
-    related to :model:`api.Node`.
-    """
+    """Node type attribute with dimension and grouping, related to :model:`api.Node`."""
 
     id = models.AutoField(primary_key=True)
     node_type = models.TextField(_("Node Type"), null=False, db_index=False)
@@ -451,8 +483,9 @@ class AttributesNodeType(models.Model):
 
 
 class AttributesConduitType(models.Model):
-    """Stores all conduit types for conduit features,
-    related to :model:`api.Conduit`.
+    """Conduit type definition with microduct count and color mapping.
+
+    Related to :model:`api.Conduit`, :model:`api.ConduitTypeColorMapping`.
     """
 
     id = models.AutoField(primary_key=True)
@@ -486,8 +519,9 @@ class AttributesConduitType(models.Model):
 
 
 class AttributesNetworkLevel(models.Model):
-    """Stores all network levels for conduit features,
-    related to :model:`api.Conduit`.
+    """Network hierarchy level attribute for conduits and nodes.
+
+    Related to :model:`api.Conduit`, :model:`api.Node`, :model:`api.Cable`.
     """
 
     id = models.AutoField(primary_key=True)
@@ -506,9 +540,7 @@ class AttributesNetworkLevel(models.Model):
 
 
 class AttributesStatusDevelopment(models.Model):
-    """Stores all statuses for development,
-    related to :model:`api.Address`.
-    """
+    """Development status attribute for address features, related to :model:`api.Address`."""
 
     id = models.AutoField(primary_key=True)
     status = models.TextField(_("Status"), null=False, db_index=False, unique=True)
@@ -526,9 +558,7 @@ class AttributesStatusDevelopment(models.Model):
 
 
 class AttributesResidentialUnitType(models.Model):
-    """Stores all residential unit types,
-    related to :model:`api.ResidentialUnit`.
-    """
+    """Residential unit type attribute, related to :model:`api.ResidentialUnit`."""
 
     id = models.AutoField(primary_key=True)
     residential_unit_type = models.TextField(
@@ -551,9 +581,7 @@ class AttributesResidentialUnitType(models.Model):
 
 
 class AttributesResidentialUnitStatus(models.Model):
-    """Stores all residential unit statuses,
-    related to :model:`api.ResidentialUnit`.
-    """
+    """Residential unit status attribute, related to :model:`api.ResidentialUnit`."""
 
     id = models.AutoField(primary_key=True)
     status = models.TextField(_("Status"), null=False, db_index=False, unique=True)
@@ -574,9 +602,7 @@ class AttributesResidentialUnitStatus(models.Model):
 
 
 class AttributesMicroductStatus(models.Model):
-    """Stores all microduct statuses,
-    related to :model:`api.Microduct`.
-    """
+    """Microduct occupancy/status attribute, related to :model:`api.Microduct`."""
 
     id = models.IntegerField(primary_key=True)
     microduct_status = models.TextField(
@@ -593,8 +619,10 @@ class AttributesMicroductStatus(models.Model):
 
 
 class AttributesCableType(models.Model):
-    """Stores all cable types,
-    related to :model:`api.Cable`.
+    """Cable type definition with fiber/bundle counts, related to :model:`api.Cable`.
+
+    Defines the physical structure (bundle count, fibers per bundle) used
+    for automatic fiber generation via :model:`api.CableTypeColorMapping`.
     """
 
     id = models.AutoField(primary_key=True)
@@ -686,14 +714,16 @@ class AttributesMicroductColor(models.Model):
 
     @property
     def is_two_layer(self):
-        """Check if this is a two-layer/striped color"""
+        """Check if this is a two-layer/striped color.
+
+        Returns:
+            bool: True if a secondary hex color is defined.
+        """
         return self.hex_code_secondary is not None
 
 
 class AttributesFiberStatus(models.Model):
-    """Stores all fiber statuses,
-    related to :model:`api.Fiber`.
-    """
+    """Fiber status attribute, related to :model:`api.Fiber`."""
 
     id = models.AutoField(primary_key=True)
     fiber_status = models.TextField(
@@ -714,8 +744,9 @@ class AttributesFiberStatus(models.Model):
 
 
 class AttributesFiberColor(models.Model):
-    """Stores all colors for fibers and bundles,
-    related to :model:`api.Fiber`.
+    """Color definition for fibers and bundles, related to :model:`api.Fiber`.
+
+    Used by :model:`api.CableTypeColorMapping` to assign colors to fiber/bundle positions.
     """
 
     id = models.AutoField(primary_key=True)
@@ -778,7 +809,7 @@ class AttributesFiberColor(models.Model):
 
 
 class AttributesAreaType(models.Model):
-    """Stores all area types"""
+    """Area type attribute, related to :model:`api.Area`."""
 
     id = models.AutoField(primary_key=True)
     area_type = models.TextField(
@@ -798,7 +829,10 @@ class AttributesAreaType(models.Model):
 
 
 class AttributesComponentType(models.Model):
-    """Stores all component types"""
+    """Hardware component type definition with slot occupancy.
+
+    Related to :model:`api.AttributesComponentStructure`, :model:`api.NodeStructure`.
+    """
 
     id = models.AutoField(primary_key=True)
     component_type = models.TextField(
@@ -842,7 +876,10 @@ class AttributesComponentType(models.Model):
 
 
 class AttributesComponentStructure(models.Model):
-    """Stores all component structures"""
+    """Port definition for a component type (in/out direction and port number).
+
+    Related to :model:`api.AttributesComponentType`, :model:`api.NodeStructure`.
+    """
 
     class InOrOut(models.TextChoices):
         IN = "in", _("In")
@@ -889,8 +926,11 @@ class AttributesComponentStructure(models.Model):
 
 
 class FeatureFiles(models.Model):
-    """Stores all files for different models,
-    related to :model:`api.Trench`.
+    """File attachment for any GIS feature via generic foreign key.
+
+    Supports :model:`api.Trench`, :model:`api.Conduit`, :model:`api.Cable`,
+    :model:`api.Node`, :model:`api.Address`, :model:`api.ResidentialUnit`,
+    :model:`api.Area`. Upload paths are determined by :model:`api.StoragePreferences`.
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
@@ -916,11 +956,13 @@ class FeatureFiles(models.Model):
     feature = GenericForeignKey("content_type", "object_id")
 
     def get_feature_identifier(instance):
-        """
-        Get the human-readable identifier for a feature based on its model type.
+        """Return a human-readable identifier for the linked feature.
 
-        Returns the appropriate identifier (id_trench, name, address string, etc.)
-        instead of the UUID.
+        Args:
+            instance: FeatureFiles instance with resolved content_type and feature.
+
+        Returns:
+            str: Feature identifier (e.g., id_trench, name, or formatted address).
         """
         model_name = instance.content_type.model
         feature = instance.feature
@@ -944,19 +986,17 @@ class FeatureFiles(models.Model):
             return instance.object_id
 
     def get_upload_path(instance, filename):
-        """
-        Determine the upload path for a file based on project, feature type and file category.
+        """Determine the upload path based on project, feature type, and file category.
 
-        The path structure follows: {project_name}/{feature_type}/{feature_id}/{category}/{filename}
+        Path structure: ``{project}/{feature_type}/{feature_id}/{category}/{filename}``.
+        Residential units are nested inside their parent address folder.
 
-        For example:
-        - Project Alpha/trenches/12345/photos/image.jpg
-        - Project Beta/conduits/K1-HVT-FLS/documents/report.pdf
-        - Project Alpha/cables/C1-Main/photos/image.jpg
-        - Project Beta/nodes/N1-POP/documents/spec.pdf
-        - Project Alpha/addresses/Bahnstraße 20, 24941 Flensburg/documents/contract.pdf
-        - Project Alpha/addresses/Bahnstraße 20, 24941 Flensburg/residential_units/WE-001/documents/lease.pdf
-        - Project Alpha/areas/Projektgebiet/documents/report.pdf
+        Args:
+            instance: FeatureFiles instance being saved.
+            filename: Original uploaded filename.
+
+        Returns:
+            str: Relative storage path for the uploaded file.
         """
 
         prefs = StoragePreferences.objects.first()
@@ -964,7 +1004,6 @@ class FeatureFiles(models.Model):
         feature = instance.feature
         feature_id = FeatureFiles.get_feature_identifier(instance)
 
-        # For residential units, derive project from parent address
         if model_name == "residentialunit":
             address = feature.uuid_address
             project_name = (
@@ -983,9 +1022,7 @@ class FeatureFiles(models.Model):
             )
             project_name = sanitize_filename(project_name)
 
-        # Only support AUTO mode - manual uploads happen via WebDAV
         if not prefs or prefs.mode != "AUTO":
-            # Default fallback if no preferences exist
             if model_name == "residentialunit":
                 return f"{project_name}/addresses/{address_id}/residential_units/{feature_id}/{filename}"
             return f"{project_name}/{model_name}s/{feature_id}/{filename}"
@@ -993,40 +1030,31 @@ class FeatureFiles(models.Model):
         file_extension = instance.get_file_type() or ""
         file_extension = file_extension.lower()
 
-        # Determine file category based on extension
         try:
             category_obj = FileTypeCategory.objects.get(extension=file_extension)
             file_category = category_obj.category
         except FileTypeCategory.DoesNotExist:
             file_category = "documents"
 
-        # For residential units, nest inside the parent address folder
         if model_name == "residentialunit":
-            # Use address folder structure as base, then nest residential unit inside
             address_folder_paths = prefs.folder_structure.get("address", {})
-            address_folder_name = address_folder_paths.get(
-                "default", "addresses"
-            )
+            address_folder_name = address_folder_paths.get("default", "addresses")
             ru_folder_paths = prefs.folder_structure.get(model_name, {})
             ru_folder_name = ru_folder_paths.get(
                 file_category, ru_folder_paths.get("default", "residential_units")
             )
-            # Path: project/addresses/address_id/residential_units/unit_id/category/file
             if "/" in ru_folder_name:
                 base_folder, sub_folder = ru_folder_name.split("/", 1)
                 return f"{project_name}/{address_folder_name}/{address_id}/{base_folder}/{feature_id}/{sub_folder}/{filename}"
             else:
                 return f"{project_name}/{address_folder_name}/{address_id}/{ru_folder_name}/{feature_id}/{filename}"
 
-        # Get folder structure from preferences
         folder_paths = prefs.folder_structure.get(model_name, {})
         folder_name = folder_paths.get(
             file_category, folder_paths.get("default", model_name + "s")
         )
 
-        # Build the path based on folder structure with project name as root
         if "/" in folder_name:
-            # Handle nested folder structure (e.g., "trenches/photos")
             base_folder, sub_folder = folder_name.split("/", 1)
             return f"{project_name}/{base_folder}/{feature_id}/{sub_folder}/{filename}"
         else:
@@ -1046,9 +1074,13 @@ class FeatureFiles(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
     def get_file_name(instance):
+        """Extract the filename without extension from the stored file path.
+
+        Returns:
+            str: Filename stem, or the full path on failure.
+        """
         file_path = instance.file_path.name
         try:
-            # Extract just the filename from the full path
             filename = os.path.basename(file_path)
             parts = filename.split(".")
             return parts[0] if len(parts) > 1 else filename
@@ -1056,9 +1088,13 @@ class FeatureFiles(models.Model):
             return file_path
 
     def get_file_type(instance):
+        """Extract the file extension from the stored file path.
+
+        Returns:
+            str | None: File extension without dot, or None if absent.
+        """
         file_path = instance.file_path.name
         try:
-            # Extract just the filename from the full path
             filename = os.path.basename(file_path)
             parts = filename.split(".")
             return parts[-1] if len(parts) > 1 else None
@@ -1066,6 +1102,7 @@ class FeatureFiles(models.Model):
             return None
 
     def save(self, *args, **kwargs):
+        """Populate file_name and file_type from file_path before saving."""
         self.file_name = self.get_file_name()
         self.file_type = self.get_file_type()
         super().save(*args, **kwargs)
@@ -1089,11 +1126,9 @@ class FeatureFiles(models.Model):
 
 
 class StoragePreferences(models.Model):
-    """Stores all storage preferences for different models,
-    related to :model:`api.FeatureFiles`.
+    """File organization preferences controlling upload paths for :model:`api.FeatureFiles`.
 
-    Note: Manual mode has been removed. Files uploaded via WebDAV are
-    handled outside of Django's automatic organization.
+    Only AUTO mode is supported; WebDAV uploads bypass this configuration.
     """
 
     STORAGE_MODE_CHOICES = [
@@ -1118,7 +1153,7 @@ class StoragePreferences(models.Model):
         return f"Storage Preferences - {self.mode}"
 
     def clean(self):
-        """Validate the folder_structure field."""
+        """Validate the folder_structure JSON against expected schema."""
         from .validators import validate_storage_preferences_structure
 
         super().clean()
@@ -1164,14 +1199,11 @@ class FileTypeCategory(models.Model):
 
 
 class Trench(models.Model):
-    """Stores all trench features,
-    related to :model:`api.AttributesSurface`,
-    :model:`api.AttributesConstructionType`,
-    :model:`api.AttributesStatus`,
-    :model:`api.AttributesPhase`,
-    :model:`api.AttributesCompany`,
-    :model:`api.Projects`,
-    :model:`api.Flags`.
+    """Linear excavation feature with LineString geometry (SRID 25832).
+
+    Related to :model:`api.AttributesSurface`, :model:`api.AttributesConstructionType`,
+    :model:`api.AttributesStatus`, :model:`api.AttributesPhase`,
+    :model:`api.AttributesCompany`, :model:`api.Projects`, :model:`api.Flags`.
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
@@ -1298,12 +1330,9 @@ class Trench(models.Model):
     history = HistoricalRecords(excluded_fields=["geom_3857"])
 
     def __str__(self):
-        """String representation of the trench model."""
         return str(self.id_trench)
 
     class Meta:
-        """Meta class for the trench model."""
-
         db_table = "trench"
         verbose_name = _("Trench")
         verbose_name_plural = _("Trenches")
@@ -1332,14 +1361,12 @@ class Trench(models.Model):
 
 
 class Conduit(models.Model):
-    """Stores all conduits,
-    related to :model:`api.TrenchConduitConnection`,
-    :model:`api.AttributesConduitType`,
-    :model:`api.AttributesStatus`,
-    :model:`api.AttributesNetworkLevel`,
-    :model:`api.AttributesCompany`,
-    :model:`api.Flags`,
-    :model:`api.Projects`.
+    """Cable conduit linked to trenches via :model:`api.TrenchConduitConnection`.
+
+    Microducts are auto-generated on creation based on the conduit type's
+    color mapping configuration. Related to :model:`api.AttributesConduitType`,
+    :model:`api.AttributesStatus`, :model:`api.AttributesNetworkLevel`,
+    :model:`api.AttributesCompany`, :model:`api.Projects`, :model:`api.Flags`.
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
@@ -1459,10 +1486,7 @@ class Conduit(models.Model):
 
 
 class TrenchConduitConnection(models.Model):
-    """Stores all trench conduit connections,
-    related to :model:`api.Trench`,
-    :model:`api.Conduit`.
-    """
+    """Many-to-many link between :model:`api.Trench` and :model:`api.Conduit`."""
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
     uuid_trench = models.ForeignKey(
@@ -1536,11 +1560,10 @@ class TrenchConduitCanvas(models.Model):
 
 
 class Address(models.Model):
-    """Stores all addresses,
-    related to :model:`api.Nodes`,
-    :model:`api.AttributesStatusDevelopment`,
-    :model:`api.Flags`,
-    :model:`api.Projects`.
+    """Postal address with Point geometry (SRID 25832).
+
+    Related to :model:`api.Node`, :model:`api.ResidentialUnit`,
+    :model:`api.AttributesStatusDevelopment`, :model:`api.Projects`, :model:`api.Flags`.
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
@@ -1621,7 +1644,6 @@ class Address(models.Model):
         ]
 
     def __str__(self):
-        """Return the address."""
         return (
             f"{self.street} {self.housenumber} {self.house_number_suffix}, {self.zip_code} {self.city}"
             if self.house_number_suffix
@@ -1630,9 +1652,9 @@ class Address(models.Model):
 
 
 class ResidentialUnit(models.Model):
-    """Stores all residential units,
-    related to :model:`api.Address`,
-    :model:`api.AttributesResidentialUnitType`,
+    """Individual dwelling unit within an :model:`api.Address`.
+
+    Related to :model:`api.AttributesResidentialUnitType`,
     :model:`api.AttributesResidentialUnitStatus`.
     """
 
@@ -1705,14 +1727,13 @@ class ResidentialUnit(models.Model):
 
 
 class Node(models.Model):
-    """Stores all nodes,
-    related to :model:`api.Address`,
-    :model:`api.AttributesNodeType`,
-    :model:`api.AttributesStatus`,
-    :model:`api.AttributesNetworkLevel`,
-    :model:`api.AttributesCompany`,
-    :model:`api.Flags`,
-    :model:`api.Projects`.
+    """Network junction point with Point geometry (SRID 25832).
+
+    Supports self-referencing parent/child hierarchy and canvas positioning
+    for network schema diagrams. Related to :model:`api.Address`,
+    :model:`api.AttributesNodeType`, :model:`api.AttributesStatus`,
+    :model:`api.AttributesNetworkLevel`, :model:`api.AttributesCompany`,
+    :model:`api.Projects`, :model:`api.Flags`.
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
@@ -1856,7 +1877,6 @@ class Node(models.Model):
         ]
 
     def __str__(self):
-        """Return the node name."""
         return self.name
 
 
@@ -1898,10 +1918,9 @@ class NodeTrenchSelection(models.Model):
 
 
 class Area(models.Model):
-    """Stores all polygons,
-    related to :model:`api.Projects`,
-    :model:`api.Flags`,
-    :model:`api.AttributesAreaType`.
+    """Polygon area feature (SRID 25832).
+
+    Related to :model:`api.AttributesAreaType`, :model:`api.Projects`, :model:`api.Flags`.
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
@@ -1963,8 +1982,10 @@ class Area(models.Model):
 
 
 class Microduct(models.Model):
-    """Stores all microducts,
-    related to :model:`api.Conduit`.
+    """Individual cable pathway within a :model:`api.Conduit`.
+
+    Auto-generated from conduit type color mappings when a conduit is created.
+    Related to :model:`api.AttributesMicroductStatus`, :model:`api.Node`.
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
@@ -2018,10 +2039,7 @@ class Microduct(models.Model):
 
 @receiver(post_save, sender=Conduit)
 def create_microducts_for_conduit(sender, instance, created, **kwargs):
-    """
-    Signal to automatically create microducts when a conduit is created.
-    Creates microducts based on the ConduitTypeColorMapping for the conduit's type.
-    """
+    """Create microducts from :model:`api.ConduitTypeColorMapping` when a conduit is created."""
     if created and instance.conduit_type:
         color_mappings = (
             ConduitTypeColorMapping.objects.filter(conduit_type=instance.conduit_type)
@@ -2043,8 +2061,10 @@ def create_microducts_for_conduit(sender, instance, created, **kwargs):
 
 
 class MicroductConnection(models.Model):
-    """Stores all microduct connections,
-    related to :model:`api.Microduct`.
+    """Microduct-to-microduct connection at a :model:`api.Node` junction.
+
+    Tracks which microduct from one trench connects to which microduct
+    in another trench through a shared node.
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
@@ -2146,7 +2166,6 @@ class CanvasSyncStatus(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
     last_heartbeat = models.DateTimeField(null=True, blank=True)
 
-    # Sync metadata
     scale = models.FloatField(null=True, blank=True)
     center_x = models.FloatField(null=True, blank=True)
     center_y = models.FloatField(null=True, blank=True)
@@ -2162,7 +2181,14 @@ class CanvasSyncStatus(models.Model):
         return f"{self.sync_key} - {self.status}"
 
     def is_stale(self, timeout_minutes=10):
-        """Check if sync operation is stale (no heartbeat for timeout_minutes)"""
+        """Check if the sync operation has timed out.
+
+        Args:
+            timeout_minutes: Minutes without heartbeat before considered stale.
+
+        Returns:
+            bool: True if no heartbeat received within the timeout window.
+        """
         if not self.last_heartbeat:
             return True
         return timezone.now() - self.last_heartbeat > timezone.timedelta(
@@ -2170,20 +2196,32 @@ class CanvasSyncStatus(models.Model):
         )
 
     def update_heartbeat(self):
-        """Update heartbeat timestamp to indicate sync is still active"""
+        """Update heartbeat timestamp to indicate the sync is still active."""
         self.last_heartbeat = timezone.now()
         self.save(update_fields=["last_heartbeat"])
 
     @classmethod
     def get_sync_key(cls, project_id, flag_id=None):
-        """Generate consistent sync key for project/flag combination"""
+        """Generate a consistent sync key for a project/flag combination.
+
+        Args:
+            project_id: Primary key of the project.
+            flag_id: Optional flag primary key for flag-specific sync.
+
+        Returns:
+            str: Sync key in the form ``project_{id}`` or ``project_{id}_flag_{id}``.
+        """
         if flag_id:
             return f"project_{project_id}_flag_{flag_id}"
         return f"project_{project_id}"
 
     @classmethod
     def cleanup_stale_syncs(cls, timeout_minutes=10):
-        """Clean up stale sync operations that are stuck in IN_PROGRESS"""
+        """Mark stale IN_PROGRESS sync operations as FAILED.
+
+        Args:
+            timeout_minutes: Minutes without heartbeat before marking as failed.
+        """
         stale_cutoff = timezone.now() - timezone.timedelta(minutes=timeout_minutes)
         cls.objects.filter(
             status="IN_PROGRESS", last_heartbeat__lt=stale_cutoff
@@ -2195,14 +2233,13 @@ class CanvasSyncStatus(models.Model):
 
 
 class Cable(models.Model):
-    """Stores all cables,
-    related to :model:`api.MicroductCableConnection`,
-    :model:`api.AttributesCableType`,
-    :model:`api.AttributesStatus`,
-    :model:`api.AttributesCompany`,
-    :model:`api.Node`,
-    :model:`api.Flags`,
-    :model:`api.Projects`.
+    """Fiber optic cable with start/end node references and length tracking.
+
+    Length is auto-calculated from connected trench segments. Fibers are
+    auto-generated on creation based on :model:`api.CableTypeColorMapping`.
+    Related to :model:`api.MicroductCableConnection`, :model:`api.AttributesCableType`,
+    :model:`api.AttributesStatus`, :model:`api.AttributesCompany`, :model:`api.Node`,
+    :model:`api.Projects`, :model:`api.Flags`.
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
@@ -2385,37 +2422,42 @@ class Cable(models.Model):
         ]
 
     def calculate_length_from_connections(self):
-        """
-        Calculate cable length by summing lengths of all trenches
-        where this cable has micropipe connections.
+        """Calculate cable length by summing trench lengths of all micropipe connections.
+
+        Returns:
+            float: Total length in meters, or 0.0 if no connections exist.
         """
         from django.db.models import Sum
 
-        total = Trench.objects.filter(
-            trenchconduitconnection__uuid_conduit__microduct__microductcableconnection__uuid_cable=self
-        ).distinct().aggregate(total=Sum('length'))['total']
+        total = (
+            Trench.objects.filter(
+                trenchconduitconnection__uuid_conduit__microduct__microductcableconnection__uuid_cable=self
+            )
+            .distinct()
+            .aggregate(total=Sum("length"))["total"]
+        )
 
         return float(total) if total else 0.0
 
     def update_length_from_connections(self):
-        """Update length and length_total based on micropipe connections."""
+        """Recalculate and persist length and length_total from micropipe connections."""
         self.length = self.calculate_length_from_connections()
         self.length_total = (
-            self.length +
-            (self.reserve_at_start or 0) +
-            (self.reserve_at_end or 0) +
-            (self.reserve_section or 0)
+            self.length
+            + (self.reserve_at_start or 0)
+            + (self.reserve_at_end or 0)
+            + (self.reserve_section or 0)
         )
-        self.save(update_fields=['length', 'length_total'])
+        self.save(update_fields=["length", "length_total"])
 
     def __str__(self):
         return self.name
 
 
 class CableLabel(models.Model):
-    """Stores diagram labels for cables,
-    related to :model:`api.Cable`.
-    Allows multiple positionable labels per cable in the network diagram.
+    """Positionable text label for a :model:`api.Cable` in the network diagram.
+
+    Auto-updated when the parent cable name changes.
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
@@ -2469,9 +2511,9 @@ class CableLabel(models.Model):
 
 
 class MicroductCableConnection(models.Model):
-    """Stores all microduct cable connections,
-    related to :model:`api.Microduct`,
-    :model:`api.Cable`.
+    """Link between a :model:`api.Microduct` and a :model:`api.Cable`.
+
+    Creating or deleting connections triggers automatic cable length recalculation.
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
@@ -2540,10 +2582,7 @@ def update_cable_length_on_connection_delete(sender, instance, **kwargs):
 
 @receiver(pre_save, sender=Cable)
 def track_cable_name_change(sender, instance, **kwargs):
-    """
-    Track the old cable name before save to detect if it changed.
-    Stores the old name as a temporary attribute on the instance.
-    """
+    """Store the old cable name as ``_old_name`` to detect renames on post_save."""
     if instance.pk:
         try:
             old_cable = Cable.objects.get(pk=instance.pk)
@@ -2559,20 +2598,16 @@ def update_length_total_on_reserve_change(sender, instance, **kwargs):
     """Recalculate length_total when reserve fields change."""
     if instance.pk and instance.length is not None:
         instance.length_total = (
-            instance.length +
-            (instance.reserve_at_start or 0) +
-            (instance.reserve_at_end or 0) +
-            (instance.reserve_section or 0)
+            instance.length
+            + (instance.reserve_at_start or 0)
+            + (instance.reserve_at_end or 0)
+            + (instance.reserve_section or 0)
         )
 
 
 @receiver(post_save, sender=Cable)
 def update_cable_labels_on_name_change(sender, instance, created, **kwargs):
-    """
-    Automatically update all cable labels when the cable name changes.
-    Updates CableLabel.text to match the new Cable.name.
-    Also renames the file storage folder if the cable name changed.
-    """
+    """Update cable labels and rename the file storage folder when cable name changes."""
     if created:
         return
 
@@ -2580,7 +2615,6 @@ def update_cable_labels_on_name_change(sender, instance, created, **kwargs):
     if old_name is not None and old_name != instance.name:
         instance.labels.update(text=instance.name)
 
-        # Rename the file storage folder
         from apps.api.services import rename_feature_folder
 
         try:
@@ -2685,8 +2719,10 @@ class CableTypeColorMapping(models.Model):
 
 
 class Fiber(models.Model):
-    """Stores all fibers,
-    related to :model:`api.Cable`, :model:`api.Bundle`.
+    """Individual fiber strand within a :model:`api.Cable`.
+
+    Auto-generated from cable type color mappings when a cable is created.
+    Organized by bundle number and absolute/in-bundle fiber number.
     """
 
     uuid = models.UUIDField(
@@ -2803,11 +2839,7 @@ class Fiber(models.Model):
 
 @receiver(post_save, sender=Cable)
 def create_fibers_for_cable(sender, instance, created, **kwargs):
-    """
-    Signal to automatically create fibers when a cable is created.
-    Creates fibers based on the CableTypeColorMapping configurations for the cable's type.
-    Uses cable type's bundle_count and bundle_fiber_count to organize fibers properly.
-    """
+    """Create fibers from :model:`api.CableTypeColorMapping` when a cable is created."""
     if not created:
         return
 
@@ -2909,9 +2941,14 @@ class QGISProject(models.Model):
     )
 
     def get_qgis_upload_path(instance, filename):
-        """
-        Generate upload path for QGIS project files.
-        Files are stored as: {name}.qgs or {name}.qgz
+        """Generate upload path as ``{name}.{ext}`` for QGIS project files.
+
+        Args:
+            instance: QGISProject instance being saved.
+            filename: Original uploaded filename.
+
+        Returns:
+            str: Storage path using the project slug name and original extension.
         """
         ext = os.path.splitext(filename)[1]
         return f"{instance.name}{ext}"
@@ -2942,7 +2979,7 @@ class QGISProject(models.Model):
         return self.display_name
 
     def clean(self):
-        """Validate project file extension."""
+        """Validate that the project file has a .qgs or .qgz extension."""
         from django.core.exceptions import ValidationError
 
         if self.project_file:
@@ -2953,30 +2990,43 @@ class QGISProject(models.Model):
                 )
 
     def get_wms_url(self):
-        """Get WMS access URL for this project."""
+        """Return the WMS access URL query string for this project.
+
+        Returns:
+            str: URL query string with SERVICE=WMS and MAP parameters.
+        """
         return f"?SERVICE=WMS&MAP=/projects/{self.name}{os.path.splitext(self.project_file.name)[1]}"
 
     def get_wfs_url(self):
-        """Get WFS access URL for this project."""
+        """Return the WFS access URL query string for this project.
+
+        Returns:
+            str: URL query string with SERVICE=WFS and MAP parameters.
+        """
         return f"?SERVICE=WFS&MAP=/projects/{self.name}{os.path.splitext(self.project_file.name)[1]}"
 
     def get_wfs3_url(self):
-        """Get WFS3 (OGC API Features) access URL for this project."""
+        """Return the WFS3 (OGC API Features) access URL for this project.
+
+        Returns:
+            str: API endpoint path.
+        """
         return f"/api/v1/wfs3/{self.name}/"
 
     @property
     def map_path(self):
-        """Get the MAP parameter path for QGIS Server."""
+        """Return the MAP parameter path for QGIS Server.
+
+        Returns:
+            str: Absolute path to the project file on the QGIS Server.
+        """
         ext = os.path.splitext(self.project_file.name)[1]
         return f"/projects/{self.name}{ext}"
 
 
 @receiver(post_delete, sender=QGISProject)
 def qgis_project_deleted(sender, instance, **kwargs):
-    """
-    Handle QGIS project deletion.
-    - Delete the physical file from storage
-    """
+    """Delete the physical QGIS project file from storage on model deletion."""
     if instance.project_file:
         try:
             instance.project_file.delete(save=False)
@@ -3085,17 +3135,14 @@ class LogEntry(models.Model):
 
 
 def get_feature_folder_identifier(instance):
-    """
-    Get the folder identifier for a feature.
-
-    This mirrors FeatureFiles.get_feature_identifier() to ensure consistency
-    between upload paths and folder rename operations.
+    """Return the folder identifier for a feature, mirroring FeatureFiles.get_feature_identifier.
 
     Args:
-        instance: A model instance (Node, Cable, Conduit, Trench, Address, ResidentialUnit, or Area)
+        instance: A model instance (Trench, Conduit, Cable, Node, Address,
+            ResidentialUnit, or Area).
 
     Returns:
-        The string identifier used for the feature's folder name
+        str: Identifier used for the feature's storage folder name.
     """
     model_name = instance._meta.model_name
     if model_name == "trench":
@@ -3302,12 +3349,20 @@ class GeoPackageSchemaConfig(models.Model):
         return f"{self.name} - {count} layer(s) selected"
 
     def get_layer_names(self):
-        """Return list of layer names for use with generate_geopackage_schema."""
+        """Return list of selected layer names for GeoPackage schema generation.
+
+        Returns:
+            list[str]: Layer names, or empty list if none selected.
+        """
         return self.selected_layers or []
 
 
 class NodeSlotConfiguration(models.Model):
-    """Stores the slot configuration for a node side."""
+    """Slot configuration for one side of a :model:`api.Node`.
+
+    Defines the total available slots and ordering for a named side
+    (e.g., 'A', 'B'). Optionally scoped to a :model:`api.Container`.
+    """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
     uuid_node = models.ForeignKey(
@@ -3366,7 +3421,11 @@ class NodeSlotConfiguration(models.Model):
 
 
 class NodeStructure(models.Model):
-    """Stores the structure of a node."""
+    """Component placement within a :model:`api.NodeSlotConfiguration`.
+
+    Occupies a range of slots (slot_start to slot_end) with a purpose
+    of component, reserve, or empty.
+    """
 
     class Purpose(models.TextChoices):
         COMPONENT = "component", _("Component")
@@ -3566,15 +3625,15 @@ class NodeSlotClipNumber(models.Model):
 
 
 class FiberSplice(models.Model):
-    """
-    Stores fiber splice connections within a node component.
-    Each record represents a complete splice: connecting fiber_a to fiber_b
-    at a specific port number within a component.
+    """Fiber splice connection at a port within a :model:`api.NodeStructure`.
+
+    Each record connects fiber_a to fiber_b at a specific port. Supports
+    merge groups for asymmetric components (e.g., splitters) where multiple
+    ports share a single fiber on one side.
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
 
-    # Link to the specific component placement in the node
     node_structure = models.ForeignKey(
         NodeStructure,
         on_delete=models.CASCADE,
@@ -3584,7 +3643,6 @@ class FiberSplice(models.Model):
         help_text=_("The component placement this splice belongs to"),
     )
 
-    # The port number (1-12 for a 12-port splice cassette, 1-8 for a 1:8 splitter, etc.)
     port_number = models.PositiveIntegerField(
         _("Port Number"),
         help_text=_(
@@ -3592,7 +3650,6 @@ class FiberSplice(models.Model):
         ),
     )
 
-    # First fiber and cable (nullable for partial connections)
     fiber_a = models.ForeignKey(
         Fiber,
         on_delete=models.CASCADE,
@@ -3615,7 +3672,6 @@ class FiberSplice(models.Model):
         help_text=_("The cable of fiber A (denormalized for CASCADE delete)"),
     )
 
-    # Second fiber and cable (nullable for partial connections)
     fiber_b = models.ForeignKey(
         Fiber,
         on_delete=models.CASCADE,
@@ -3638,8 +3694,6 @@ class FiberSplice(models.Model):
         help_text=_("The cable of fiber B (denormalized for CASCADE delete)"),
     )
 
-    # Merge groups for port linking (e.g., splitter ports)
-    # Each side can have its own independent merge group
     merge_group_a = models.UUIDField(
         _("Merge Group A"),
         null=True,
@@ -3661,8 +3715,6 @@ class FiberSplice(models.Model):
         ),
     )
 
-    # Shared fiber fields for merged port groups
-    # When ports are merged on a side, ONE fiber is shared across all ports in the group
     shared_fiber_a = models.ForeignKey(
         Fiber,
         on_delete=models.CASCADE,
@@ -3748,7 +3800,6 @@ class FiberSplice(models.Model):
             models.Index(fields=["shared_fiber_b"], name="idx_fiber_splice_shrd_fib_b"),
         ]
         constraints = [
-            # Each port in a node structure can only have one splice record
             models.UniqueConstraint(
                 fields=["node_structure", "port_number"],
                 name="unique_fiber_splice_port",
@@ -3762,10 +3813,10 @@ class FiberSplice(models.Model):
 
 
 class ContainerType(models.Model):
-    """
-    Admin-defined container types for organizing NodeSlotConfigurations.
-    These are GLOBAL (not project-specific) and managed via Django Admin only.
-    Examples: "MFG-Door-Left", "MFG-19-inch-Rack", "Node-Cabinet"
+    """Global container type definition managed via Django Admin.
+
+    Used by :model:`api.Container` to categorize hardware enclosures
+    (e.g., "MFG-Door-Left", "19-inch Rack").
     """
 
     id = models.AutoField(primary_key=True)
@@ -3825,12 +3876,10 @@ class ContainerType(models.Model):
 
 
 class Container(models.Model):
-    """
-    User-created container instances that can hold:
-    - Other containers (nested hierarchy)
-    - NodeSlotConfigurations
+    """Node-specific container instance supporting nested hierarchy.
 
-    Containers are node-specific and support arbitrary nesting depth.
+    Hold other containers or :model:`api.NodeSlotConfiguration` entries.
+    Related to :model:`api.ContainerType`, :model:`api.Node`.
     """
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
@@ -3899,7 +3948,11 @@ class Container(models.Model):
         return f"{type_name}{custom_name}"
 
     def get_display_name(self):
-        """Return display name (custom name or type name)."""
+        """Return the custom name if set, otherwise the container type name.
+
+        Returns:
+            str: Display name for this container.
+        """
         return self.name or self.container_type.name
 
 
@@ -3907,37 +3960,37 @@ class ModelPermission(models.Model):
     """Controls API access per model per group."""
 
     ACCESS_LEVEL_CHOICES = [
-        ('none', _('No Access')),
-        ('view', _('View Only')),
-        ('edit', _('View and Edit')),
-        ('full', _('Full Access')),
+        ("none", _("No Access")),
+        ("view", _("View Only")),
+        ("edit", _("View and Edit")),
+        ("full", _("Full Access")),
     ]
 
     group = models.ForeignKey(
-        'auth.Group',
+        "auth.Group",
         on_delete=models.CASCADE,
-        related_name='model_permissions',
-        verbose_name=_('Group'),
+        related_name="model_permissions",
+        verbose_name=_("Group"),
     )
     model_name = models.CharField(
-        _('Model Name'),
+        _("Model Name"),
         max_length=100,
         help_text=_('Lowercase model name, e.g., "trench", "cable"'),
     )
     access_level = models.CharField(
-        _('Access Level'),
+        _("Access Level"),
         max_length=10,
         choices=ACCESS_LEVEL_CHOICES,
-        default='none',
+        default="none",
     )
 
     class Meta:
-        db_table = 'model_permission'
-        verbose_name = _('Model Permission')
-        verbose_name_plural = _('Model Permissions')
-        unique_together = [['group', 'model_name']]
+        db_table = "model_permission"
+        verbose_name = _("Model Permission")
+        verbose_name_plural = _("Model Permissions")
+        unique_together = [["group", "model_name"]]
         indexes = [
-            models.Index(fields=['group']),
+            models.Index(fields=["group"]),
         ]
 
     def __str__(self):
@@ -3948,28 +4001,28 @@ class RoutePermission(models.Model):
     """Controls frontend route access per group."""
 
     group = models.ForeignKey(
-        'auth.Group',
+        "auth.Group",
         on_delete=models.CASCADE,
-        related_name='route_permissions',
-        verbose_name=_('Group'),
+        related_name="route_permissions",
+        verbose_name=_("Group"),
     )
     route_pattern = models.CharField(
-        _('Route Pattern'),
+        _("Route Pattern"),
         max_length=200,
         help_text=_('Route path with optional wildcard, e.g., "/admin/*"'),
     )
     allowed = models.BooleanField(
-        _('Allowed'),
+        _("Allowed"),
         default=True,
     )
 
     class Meta:
-        db_table = 'route_permission'
-        verbose_name = _('Route Permission')
-        verbose_name_plural = _('Route Permissions')
-        unique_together = [['group', 'route_pattern']]
+        db_table = "route_permission"
+        verbose_name = _("Route Permission")
+        verbose_name_plural = _("Route Permissions")
+        unique_together = [["group", "route_pattern"]]
         indexes = [
-            models.Index(fields=['group']),
+            models.Index(fields=["group"]),
         ]
 
     def __str__(self):

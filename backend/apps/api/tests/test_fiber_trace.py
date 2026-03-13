@@ -23,11 +23,9 @@ from apps.api.models import (
     ResidentialUnit,
 )
 from apps.api.services import (
-    analyze_signal_flow,
     trace_address,
     trace_cable,
     trace_fiber,
-    trace_fiber_summary,
     trace_node,
     trace_residential_unit,
 )
@@ -367,9 +365,7 @@ class TestFiberTraceView:
         """Test tracing a node via the API endpoint."""
         node = simple_fiber_chain["nodes"][0]
 
-        response = authenticated_client.get(
-            f"/api/v1/fiber-trace/?node_id={node.uuid}"
-        )
+        response = authenticated_client.get(f"/api/v1/fiber-trace/?node_id={node.uuid}")
         assert response.status_code == status.HTTP_200_OK
         assert response.data["entry_point"]["type"] == "node"
 
@@ -517,7 +513,9 @@ class TestTraceAddress:
         assert result["trace_trees"] == []
         assert result["statistics"]["total_fibers"] == 0
 
-    def test_trace_address_via_api(self, authenticated_client, address_with_node_fibers):
+    def test_trace_address_via_api(
+        self, authenticated_client, address_with_node_fibers
+    ):
         """Test tracing an address via the API endpoint."""
         address = address_with_node_fibers["address"]
 
@@ -750,8 +748,12 @@ def fiber_with_terminal_nodes(db):
         slot_end=2,
     )
 
-    cable1 = CableFactory(name="Cable-Start", uuid_node_start=node_start, uuid_node_end=node_middle)
-    cable2 = CableFactory(name="Cable-End", uuid_node_start=node_middle, uuid_node_end=node_end)
+    cable1 = CableFactory(
+        name="Cable-Start", uuid_node_start=node_start, uuid_node_end=node_middle
+    )
+    cable2 = CableFactory(
+        name="Cable-End", uuid_node_start=node_middle, uuid_node_end=node_end
+    )
 
     fiber1 = FiberFactory(uuid_cable=cable1, fiber_number_absolute=1)
     fiber2 = FiberFactory(uuid_cable=cable2, fiber_number_absolute=1)
@@ -985,8 +987,6 @@ class TestAnalyzeSignalFlow:
         fiber = simple_fiber_chain["fibers"][0]
         result = analyze_signal_flow(fiber.uuid)
 
-        # Source node should be set (either explicitly or as default)
-        source = result["signal_analysis"]["source_node"]
         # May be None if no cable endpoints have nodes, but structure should exist
         assert "source_node" in result["signal_analysis"]
 

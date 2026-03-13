@@ -5,34 +5,67 @@ import {
 } from '$lib/utils/featureUtils';
 
 /**
- * Manages user interactions with the map
- * Handles click events, feature selection, and coordinates with other managers
+ * @typedef {Object} SelectableLayersConfig
+ * @property {boolean} trench - Whether trench layer features open drawer on click
+ * @property {boolean} address - Whether address layer features open drawer on click
+ * @property {boolean} node - Whether node layer features open drawer on click
+ * @property {boolean} area - Whether area layer features open drawer on click
+ */
+
+/**
+ * @typedef {Object} LayerReferences
+ * @property {import('ol/layer/VectorTile').default | null} [vectorTileLayer] - Trench vector tile layer
+ * @property {import('ol/layer/VectorTile').default | null} [addressLayer] - Address vector tile layer
+ * @property {import('ol/layer/VectorTile').default | null} [nodeLayer] - Node vector tile layer
+ * @property {import('ol/layer/VectorTile').default | null} [areaLayer] - Area vector tile layer
+ */
+
+/**
+ * @typedef {Object} ClickedFeature
+ * @property {import('ol/Feature').default | import('ol/render/Feature').default} feature - The clicked feature
+ * @property {import('ol/layer/Layer').default | null} layer - The layer containing the feature
+ */
+
+/**
+ * Manages user interactions with the map including click events, feature selection,
+ * and coordination with selection and popup managers.
  */
 export class MapInteractionManager {
+	/** @type {import('ol/Map').default | null} */
 	olMap = $state(null);
+	/** @type {LayerReferences} */
 	layers = $state({});
+	/** @type {import('./MapSelectionManager.svelte.js').MapSelectionManager | null} */
 	selectionManager = $state(null);
+	/** @type {import('./MapPopupManager.svelte.js').MapPopupManager | null} */
 	popupManager = $state(null);
+	/** @type {{ open: Function; close: Function } | null} */
 	drawerStore = $state(null);
+	/** @type {import('svelte').Component | null} */
 	drawerComponent = $state(null);
+	/** @type {Record<string, string>} */
 	alias = $state({});
+	/** @type {{ getHighlightLayer?: () => import('ol/layer/Vector').default } | null} */
 	searchPanelRef = $state(null);
+	/** @type {SelectableLayersConfig} */
 	selectableLayersConfig = $state({
 		trench: true,
 		address: true,
 		node: true,
 		area: true
 	});
+	/** @type {Record<string, unknown>} */
 	additionalDrawerProps = $state({});
 
 	/**
-	 * @param {Object} selectionManager - MapSelectionManager instance
-	 * @param {Object} popupManager - MapPopupManager instance
-	 * @param {Object} drawerStore - Drawer store instance
-	 * @param {Object} drawerComponent - MapDrawerTabs component
-	 * @param {Object} alias - Field name alias mapping (English -> Localized)
-	 * @param {Object} selectableLayersConfig - Configuration for which layers should open drawer on click (optional)
-	 * @param {Object} additionalDrawerProps - Additional props to pass to drawer component (optional)
+	 * Creates a new MapInteractionManager instance.
+	 * @param {import('./MapSelectionManager.svelte.js').MapSelectionManager} selectionManager - Manages feature selection state
+	 * @param {import('./MapPopupManager.svelte.js').MapPopupManager} popupManager - Manages map popups
+	 * @param {{ open: Function; close: Function } | null} drawerStore - Drawer store for opening feature details
+	 * @param {import('svelte').Component | null} drawerComponent - Component to render in drawer
+	 * @param {Record<string, string>} [alias={}] - Field name alias mapping (English -> Localized)
+	 * @param {SelectableLayersConfig | null} [selectableLayersConfig=null] - Layer click behavior configuration
+	 * @param {Record<string, unknown>} [additionalDrawerProps={}] - Additional props passed to drawer component
 	 */
 	constructor(
 		selectionManager,
@@ -56,18 +89,20 @@ export class MapInteractionManager {
 	}
 
 	/**
-	 * Set additional props to pass to drawer component
-	 * @param {Object} props - Additional props object
+	 * Sets additional props to pass to the drawer component.
+	 * @param {Record<string, unknown>} props - Props object to merge with drawer props
+	 * @returns {void}
 	 */
 	setAdditionalDrawerProps(props) {
 		this.additionalDrawerProps = props;
 	}
 
 	/**
-	 * Initialize interaction handlers on the map
-	 * @param {Object} olMap - OpenLayers map instance
-	 * @param {Object} layers - Object containing layer references
-	 * @param {Object} searchPanelRef - Reference to search panel component
+	 * Initializes interaction handlers on the map instance.
+	 * @param {import('ol/Map').default} olMap - OpenLayers map instance
+	 * @param {LayerReferences} layers - Object containing vector tile layer references
+	 * @param {{ getHighlightLayer?: () => import('ol/layer/Vector').default } | null} [searchPanelRef=null] - Reference to search panel component
+	 * @returns {boolean} True if initialization succeeded, false if map instance missing
 	 */
 	initialize(olMap, layers, searchPanelRef = null) {
 		if (!olMap) {
@@ -79,15 +114,15 @@ export class MapInteractionManager {
 		this.layers = layers;
 		this.searchPanelRef = searchPanelRef;
 
-		// Register click handler
 		this.olMap.on('click', (event) => this.handleMapClick(event));
 
 		return true;
 	}
 
 	/**
-	 * Handle map click events
-	 * @param {Object} event - OpenLayers map click event
+	 * Handles map click events by detecting features and triggering appropriate actions.
+	 * @param {import('ol/MapBrowserEvent').default} event - OpenLayers map click event
+	 * @returns {void}
 	 */
 	handleMapClick(event) {
 		if (!this.olMap) return;
@@ -105,14 +140,16 @@ export class MapInteractionManager {
 	}
 
 	/**
-	 * Get features at a given pixel
-	 * @param {Array} pixel - [x, y] pixel coordinates
-	 * @returns {Array} Array of {feature, layer} objects at that pixel
+	 * Gets all features at a given pixel location from selectable layers.
+	 * @param {import('ol/pixel').Pixel} pixel - Pixel coordinates [x, y]
+	 * @returns {ClickedFeature[]} Array of feature/layer pairs at that pixel
 	 */
 	getClickedFeatures(pixel) {
+		/** @type {ClickedFeature[]} */
 		const clickedFeatures = [];
 		const { vectorTileLayer, addressLayer, nodeLayer, areaLayer } = this.layers;
 
+		/** @type {import('ol/layer/Layer').default[]} */
 		const layersToCheck = [];
 		if (vectorTileLayer && this.selectableLayersConfig.trench) {
 			layersToCheck.push(vectorTileLayer);
@@ -129,7 +166,7 @@ export class MapInteractionManager {
 
 		if (layersToCheck.length === 0) return clickedFeatures;
 
-		this.olMap.forEachFeatureAtPixel(
+		this.olMap?.forEachFeatureAtPixel(
 			pixel,
 			(feature, layer) => {
 				clickedFeatures.push({ feature, layer });
@@ -144,9 +181,9 @@ export class MapInteractionManager {
 	}
 
 	/**
-	 * Check if a layer is selectable based on configuration
-	 * @param {Object} layer - OpenLayers layer
-	 * @returns {boolean} True if layer is selectable
+	 * Checks if a layer is configured to be selectable.
+	 * @param {import('ol/layer/Layer').default} layer - OpenLayers layer to check
+	 * @returns {boolean} True if clicking features on this layer should trigger selection
 	 */
 	isLayerSelectable(layer) {
 		const { vectorTileLayer, addressLayer, nodeLayer, areaLayer } = this.layers;
@@ -160,10 +197,11 @@ export class MapInteractionManager {
 	}
 
 	/**
-	 * Handle click on a feature
-	 * @param {Object} feature - OpenLayers feature
-	 * @param {Array} coordinate - Map coordinates [x, y]
-	 * @param {Object} layer - OpenLayers layer (optional)
+	 * Handles click on a map feature by selecting it and opening drawer or popup.
+	 * @param {import('ol/Feature').default | import('ol/render/Feature').default} feature - Clicked feature
+	 * @param {import('ol/coordinate').Coordinate} coordinate - Map coordinates [x, y]
+	 * @param {import('ol/layer/Layer').default | null} [layer=null] - Layer containing the feature
+	 * @returns {void}
 	 */
 	handleFeatureClick(feature, coordinate, layer = null) {
 		const featureId = feature.getId();
@@ -174,9 +212,9 @@ export class MapInteractionManager {
 				return;
 			}
 
-			this.selectionManager.selectFeature(featureId, feature);
+			this.selectionManager?.selectFeature(featureId, feature);
 
-			const featureType = detectFeatureType(feature, layer);
+			const featureType = detectFeatureType(feature, layer ?? undefined);
 			const rawProperties = feature.getProperties();
 
 			if (featureType && this.drawerStore && this.drawerComponent) {
@@ -197,7 +235,7 @@ export class MapInteractionManager {
 					}
 				});
 			} else {
-				this.popupManager.show(coordinate, feature);
+				this.popupManager?.show(coordinate, feature);
 			}
 		} else {
 			this.handleEmptyClick();
@@ -205,11 +243,12 @@ export class MapInteractionManager {
 	}
 
 	/**
-	 * Handle click on empty area
+	 * Handles click on empty map area by clearing selection and closing drawer/popup.
+	 * @returns {void}
 	 */
 	handleEmptyClick() {
-		this.selectionManager.clearSelection();
-		this.popupManager.hide();
+		this.selectionManager?.clearSelection();
+		this.popupManager?.hide();
 
 		if (this.drawerStore) {
 			this.drawerStore.close();
@@ -217,29 +256,32 @@ export class MapInteractionManager {
 	}
 
 	/**
-	 * Clear highlight from search panel
+	 * Clears the search highlight layer when present.
+	 * @returns {void}
 	 */
 	clearSearchHighlight() {
 		if (!this.searchPanelRef) return;
 
 		if (this.searchPanelRef.getHighlightLayer) {
 			const highlightLayer = this.searchPanelRef.getHighlightLayer();
-			if (highlightLayer && highlightLayer.getSource()) {
-				highlightLayer.getSource().clear();
+			if (highlightLayer) {
+				highlightLayer.getSource()?.clear();
 			}
 		}
 	}
 
 	/**
-	 * Update search panel reference
-	 * @param {Object} ref - Search panel component reference
+	 * Updates the search panel component reference.
+	 * @param {{ getHighlightLayer?: () => import('ol/layer/Vector').default } | null} ref - Search panel component reference
+	 * @returns {void}
 	 */
 	setSearchPanelRef(ref) {
 		this.searchPanelRef = ref;
 	}
 
 	/**
-	 * Cleanup method to be called on destroy
+	 * Cleans up resources when the manager is destroyed.
+	 * @returns {void}
 	 */
 	cleanup() {
 		this.olMap = null;

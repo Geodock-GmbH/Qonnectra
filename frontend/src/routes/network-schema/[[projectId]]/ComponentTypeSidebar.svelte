@@ -23,11 +23,9 @@
 		disabled = false
 	} = $props();
 
-	// In readonly mode, component is not rendered
-	// This is handled by the parent component
-
 	const dragDropManager = getContext(DRAG_DROP_CONTEXT_KEY);
 
+	/** @type {any[]} */
 	let componentTypes = $state([]);
 	let loading = $state(true);
 	let collapsed = $state(false);
@@ -43,7 +41,7 @@
 				method: 'POST',
 				body: formData
 			});
-			const result = deserialize(await response.text());
+			const result = /** @type {any} */ (deserialize(await response.text()));
 			if (result.type === 'success') {
 				componentTypes = result.data?.componentTypes || [];
 			}
@@ -81,13 +79,14 @@
 	 * @param {string|number} value
 	 */
 	function setQuantity(ctId, value) {
-		const numValue = parseInt(value, 10);
+		const numValue = parseInt(String(value), 10);
 		if (isNaN(numValue)) return;
 		const clampedValue = Math.max(1, Math.min(99, numValue));
 		quantities.set(ctId, clampedValue);
 		quantities = new Map(quantities);
 	}
 
+	/** @param {any} e @param {any} componentType */
 	function handleDragStart(e, componentType) {
 		if (disabled) {
 			e.preventDefault();
@@ -125,6 +124,7 @@
 		onDragEnd();
 	}
 
+	/** @param {any} componentType */
 	function handleItemClick(componentType) {
 		if (isMobile) {
 			const count = getQuantity(componentType.id);
@@ -141,7 +141,6 @@
 </script>
 
 {#if isMobile}
-	<!-- Mobile: Simple list without sidebar wrapper -->
 	<div class="space-y-2">
 		{#if loading}
 			<div class="text-center py-4 text-surface-500">{m.common_loading()}</div>
@@ -174,7 +173,6 @@
 							</div>
 						</div>
 					</button>
-					<!-- Quantity controls -->
 					<div class="flex items-center gap-1 shrink-0">
 						<button
 							type="button"
@@ -194,8 +192,8 @@
 							class="w-10 h-8 text-center text-sm font-mono bg-surface-300-700 rounded border-none focus:ring-1 focus:ring-primary-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
 							value={qty}
 							onclick={(e) => e.stopPropagation()}
-							oninput={(e) => setQuantity(ct.id, e.target.value)}
-							onblur={(e) => setQuantity(ct.id, e.target.value)}
+							oninput={(e) => setQuantity(ct.id, /** @type {any} */ (e.target).value)}
+							onblur={(e) => setQuantity(ct.id, /** @type {any} */ (e.target).value)}
 						/>
 						<button
 							type="button"
@@ -214,7 +212,6 @@
 		{/if}
 	</div>
 {:else}
-	<!-- Desktop: Original sidebar -->
 	<div
 		class="relative border-r border-(--color-surface-200-800) bg-(--color-surface-100-900) transition-all duration-200 ease-in-out flex flex-col"
 		style:width={collapsed ? '40px' : '260px'}
@@ -266,7 +263,6 @@
 										{/if}
 									</div>
 								</div>
-								<!-- Quantity controls -->
 								<div class="flex items-center gap-0.5 shrink-0">
 									<button
 										type="button"
@@ -289,8 +285,8 @@
 										value={qty}
 										onclick={(e) => e.stopPropagation()}
 										onmousedown={(e) => e.stopPropagation()}
-										oninput={(e) => setQuantity(ct.id, e.target.value)}
-										onblur={(e) => setQuantity(ct.id, e.target.value)}
+										oninput={(e) => setQuantity(ct.id, /** @type {any} */ (e.target).value)}
+										onblur={(e) => setQuantity(ct.id, /** @type {any} */ (e.target).value)}
 										draggable="false"
 									/>
 									<button

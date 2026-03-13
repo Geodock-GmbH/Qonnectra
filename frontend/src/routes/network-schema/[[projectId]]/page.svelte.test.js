@@ -11,6 +11,7 @@ vi.mock('$lib/paraglide/messages', () => {
 		{},
 		{
 			get: (target, prop) => {
+				/** @type {Record<string, string>} */
 				const messageMap = {
 					nav_network_schema: 'Network Schema',
 					common_attributes: 'Attributes',
@@ -23,7 +24,7 @@ vi.mock('$lib/paraglide/messages', () => {
 					title_success_canvas_sync_complete: 'Sync complete',
 					message_network_schema_settings_not_configured: 'Settings not configured'
 				};
-				return () => messageMap[prop] || String(prop);
+				return () => messageMap[/** @type {string} */ (prop)] || String(prop);
 			}
 		}
 	);
@@ -52,7 +53,7 @@ vi.mock('@xyflow/svelte', async () => {
 // Mock stores
 vi.mock('$lib/stores/drawer', () => ({
 	drawerStore: {
-		subscribe: (cb) => {
+		subscribe: (/** @type {Function} */ cb) => {
 			cb({ open: false });
 			return () => {};
 		},
@@ -70,14 +71,14 @@ vi.mock('$lib/stores/toaster', () => ({
 
 vi.mock('$app/stores', () => {
 	const pageStore = {
-		subscribe: (cb) => {
+		subscribe: (/** @type {Function} */ cb) => {
 			cb({ url: new URL('http://localhost/network-schema/1') });
 			return () => {};
 		}
 	};
 	return {
 		navigating: {
-			subscribe: (cb) => {
+			subscribe: (/** @type {Function} */ cb) => {
 				cb(null);
 				return () => {};
 			}
@@ -92,34 +93,34 @@ vi.mock('$app/navigation', () => ({
 
 vi.mock('$lib/stores/store', () => ({
 	selectedProject: {
-		subscribe: (cb) => {
+		subscribe: (/** @type {Function} */ cb) => {
 			cb(null);
 			return () => {};
 		}
 	},
 	edgeSnappingEnabled: {
-		subscribe: (cb) => {
+		subscribe: (/** @type {Function} */ cb) => {
 			cb(false);
 			return () => {};
 		},
 		set: vi.fn()
 	},
 	networkSchemaPanelExpanded: {
-		subscribe: (cb) => {
+		subscribe: (/** @type {Function} */ cb) => {
 			cb(true);
 			return () => {};
 		},
 		set: vi.fn()
 	},
 	networkSchemaDisplayOptionsExpanded: {
-		subscribe: (cb) => {
+		subscribe: (/** @type {Function} */ cb) => {
 			cb(true);
 			return () => {};
 		},
 		set: vi.fn()
 	},
 	cableDirectionAnimationEnabled: {
-		subscribe: (cb) => {
+		subscribe: (/** @type {Function} */ cb) => {
 			cb(false);
 			return () => {};
 		},
@@ -173,9 +174,9 @@ vi.mock('@skeletonlabs/skeleton-svelte', async () => {
 // Mock the classes - must use actual class syntax for Svelte 5 runes compatibility
 vi.mock('$lib/classes/NetworkSchemaState.svelte.js', () => ({
 	NetworkSchemaState: class MockNetworkSchemaState {
-		nodes = [];
-		edges = [];
-		cableTypes = [];
+		/** @type {any[]} */ nodes = [];
+		/** @type {any[]} */ edges = [];
+		/** @type {any[]} */ cableTypes = [];
 		selectedCableType = null;
 		userCableName = '';
 		initialized = true;
@@ -204,6 +205,7 @@ vi.mock('$lib/classes/NetworkSchemaSearchManager.svelte.js', () => ({
 }));
 
 describe('/network-schema/+page.svelte', () => {
+	/** @type {any} */
 	const mockData = {
 		nodes: [
 			{

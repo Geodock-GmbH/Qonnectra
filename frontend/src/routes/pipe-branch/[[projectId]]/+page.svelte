@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
+	import { Background, ConnectionMode, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { selectedProject } from '$lib/stores/store';
@@ -19,40 +19,47 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	/** @type {import('./$types').PageProps} */
+	/** @type {{ data: import('./$types').PageData }} */
 	let { data } = $props();
+	/** @type {any[]} */
 	let selectedNode = $state([]);
 	let branches = $derived(data?.nodes && Array.isArray(data.nodes) ? data.nodes : []);
 	let pipeBranchConfigured = $derived(data?.pipeBranchConfigured || false);
+	/** @type {any} */
 	let apiResponse = $state(null);
 	let trenches = $derived(apiResponse?.trenches || []);
 
+	/** @type {any[]} */
 	let availableTrenches = $state([]);
 	let showTrenchSelector = $state(false);
+	/** @type {string[]} */
 	let selectedKeys = $state([]);
+	/** @type {string[]} */
 	let lockedKeys = $state([]);
 
 	let isLassoMode = $state(false);
 	let partialSelection = $state(false);
+	/** @type {string[]} */
 	let selectedNodeIds = $state([]);
+	/** @type {PipeBranchLasso | null} */
 	let lassoComponent = $state(null);
 
-	/**
-	 * Auto lock the svelte flow
-	 */
 	onMount(async () => {
 		await autoLockSvelteFlow();
 	});
 
 	const nodeTypes = { pipeBranch: PipeBranchNode };
+	/** @type {any} */
 	const edgeTypes = { pipeBranchEdge: PipeBranchEdge };
+	/** @type {any[]} */
 	let edges = $state.raw([]);
+	/** @type {any[]} */
 	let nodes = $state.raw([]);
 
 	/**
-	 * Parse the handle id
-	 * @param {string} handleId - The handle id
-	 * @returns {object} - The parsed handle id
+	 * Extracts conduit UUID and microduct number from a handle ID string.
+	 * @param {string} handleId - Handle ID in format `conduit-<uuid>-microduct-<number>(-source|-target)`
+	 * @returns {{conduitUuid: string, microductNumber: number} | null} Parsed components, or null if format is invalid.
 	 */
 	function parseHandleId(handleId) {
 		const baseHandleId = handleId.replace(/-(source|target)$/, '');
@@ -65,10 +72,10 @@
 	}
 
 	/**
-	 * Get the microduct uuid
-	 * @param {string} nodeId - The node id
-	 * @param {string} handleId - The handle id
-	 * @returns {string} - The microduct uuid
+	 * Resolves the microduct UUID from a flow node ID and handle ID.
+	 * @param {string} nodeId - SvelteFlow node ID
+	 * @param {string} handleId - Handle ID containing conduit/microduct identifiers
+	 * @returns {string | null} Microduct UUID, or null if not found.
 	 */
 	function getMicroductUuid(nodeId, handleId) {
 		const node = nodes.find((n) => n.id === nodeId);
@@ -78,16 +85,16 @@
 		if (!handleData) return null;
 
 		const microduct = node.data.conduit.microducts.find(
-			(m) => m.number === handleData.microductNumber
+			(/** @type {any} */ m) => m.number === handleData.microductNumber
 		);
 		return microduct?.uuid || null;
 	}
 
 	/**
-	 * Get the handle data
-	 * @param {string} nodeId - The node id
-	 * @param {string} handleId - The handle id
-	 * @returns {object} - The handle data
+	 * Retrieves microduct and conduit metadata for a given handle on a node.
+	 * @param {string} nodeId - SvelteFlow node ID
+	 * @param {string} handleId - Handle ID containing conduit/microduct identifiers
+	 * @returns {{microductUuid?: string, microductNumber?: number, conduitName?: string, conduitUuid?: string}} Handle metadata, or empty object if not found.
 	 */
 	function getHandleData(nodeId, handleId) {
 		const node = nodes.find((n) => n.id === nodeId);
@@ -97,7 +104,7 @@
 		if (!handleData) return {};
 
 		const microduct = node.data.conduit.microducts.find(
-			(m) => m.number === handleData.microductNumber
+			(/** @type {any} */ m) => m.number === handleData.microductNumber
 		);
 
 		return {
@@ -109,18 +116,20 @@
 	}
 
 	/**
-	 * Parse the dehydrated response
-	 * @param {array} response - The response
-	 * @returns {array} - The parsed response
+	 * Resolves a SvelteKit dehydrated response array back into its original data structure.
+	 * @param {Array<unknown>} response - Dehydrated response array from SvelteKit form actions
+	 * @returns {unknown} Resolved data structure, or the original input if not dehydrated.
 	 */
 	function parseDehydratedResponse(response) {
 		if (!Array.isArray(response)) return response;
 
-		function resolveValue(index) {
+		/** @returns {any} */
+		function resolveValue(/** @type {any} */ index) {
 			if (typeof index !== 'number') return index;
 			const value = response[index];
 
 			if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+				/** @type {Record<string, any>} */
 				const resolved = {};
 				for (const [key, valueIndex] of Object.entries(value)) {
 					resolved[key] = resolveValue(valueIndex);
@@ -135,7 +144,7 @@
 			return value;
 		}
 
-		const metadata = response[0];
+		const metadata = /** @type {any} */ (response[0]);
 		if (metadata?.type === 1 && metadata?.data) {
 			return resolveValue(metadata.data);
 		}
@@ -143,20 +152,18 @@
 		return response;
 	}
 
-	/**
-	 * Effect to update the nodes
-	 */
 	$effect(() => {
 		if (!trenches || trenches.length === 0) {
 			nodes = [];
 			return;
 		}
 
+		/** @type {any[]} */
 		const conduitNodes = [];
 		let nodeIndex = 0;
 
 		let totalNodes = 0;
-		trenches.forEach((trench) => {
+		trenches.forEach((/** @type {any} */ trench) => {
 			if (trench.conduits && trench.conduits.length > 0) {
 				totalNodes += trench.conduits.length;
 			}
@@ -166,12 +173,12 @@
 		const centerY = 300;
 		const circleRadius = Math.max(800, totalNodes * 50);
 
-		trenches.forEach((trench) => {
+		trenches.forEach((/** @type {any} */ trench) => {
 			if (!trench.conduits || trench.conduits.length === 0) {
 				return;
 			}
 
-			trench.conduits.forEach((conduit) => {
+			trench.conduits.forEach((/** @type {any} */ conduit) => {
 				const totalMicroducts = conduit.microducts ? conduit.microducts.length : 0;
 
 				const angle = (nodeIndex * 2 * Math.PI) / totalNodes;
@@ -204,9 +211,9 @@
 	});
 
 	/**
-	 * Get the trenches near node
-	 * @param {string} nodeName - The node name
-	 * @param {string} project - The project
+	 * Fetches trenches near a node and initiates the trench selection flow.
+	 * @param {string} nodeName - Name of the node to search near
+	 * @param {string} project - Project ID to scope the query
 	 */
 	async function getTrenchesNearNode(nodeName, project) {
 		if (!nodeName || !project) return;
@@ -255,17 +262,17 @@
 	}
 
 	/**
-	 * Make a key
-	 * @param {string} trenchUuid - The trench uuid
-	 * @param {string} conduitUuid - The conduit uuid
-	 * @returns {string} - The key
+	 * Creates a composite key for trench-conduit pair identification.
+	 * @param {string} trenchUuid - Trench UUID
+	 * @param {string} conduitUuid - Conduit UUID
+	 * @returns {string} Composite key in format `trenchUuid:conduitUuid`.
 	 */
 	function makeKey(trenchUuid, conduitUuid) {
 		return `${trenchUuid}:${conduitUuid}`;
 	}
 
 	/**
-	 * Load the saved selections and connections
+	 * Loads saved trench selections and existing connections to pre-populate and lock the selection UI.
 	 */
 	async function loadSavedSelectionsAndConnections() {
 		if (!apiResponse?.node_uuid) return;
@@ -285,7 +292,7 @@
 				if (Array.isArray(parsedData) && parsedData[0]?.type === 1) {
 					parsedData = parseDehydratedResponse(parsedData);
 				}
-				savedTrenchUuids = (parsedData || []).map((s) => s.trench);
+				savedTrenchUuids = (parsedData || []).map((/** @type {any} */ s) => s.trench);
 			}
 
 			const connectionsFormData = new FormData();
@@ -304,7 +311,7 @@
 				}
 				const connections = parsedData || [];
 				const connectedKeys = new Set();
-				connections.forEach((conn) => {
+				connections.forEach((/** @type {any} */ conn) => {
 					const conduitFromUuid = conn.uuid_microduct_from?.uuid_conduit?.uuid;
 					const trenchFromUuid = conn.uuid_trench_from?.id;
 					if (conduitFromUuid && trenchFromUuid) {
@@ -324,7 +331,7 @@
 
 			const savedKeys = availableTrenches
 				.filter((t) => savedTrenchUuids.includes(t.uuid))
-				.flatMap((t) => t.conduits?.map((c) => makeKey(t.uuid, c.uuid)) || []);
+				.flatMap((t) => t.conduits?.map((/** @type {any} */ c) => makeKey(t.uuid, c.uuid)) || []);
 
 			const allPreselected = new Set([...savedKeys, ...lockedKeysFromConnections]);
 			selectedKeys = Array.from(allPreselected);
@@ -336,8 +343,8 @@
 	}
 
 	/**
-	 * Handle the trench selection confirm
-	 * @param {array} selectedTrenches - The selected trenches
+	 * Persists the trench selection, applies it to the canvas, and loads existing connections.
+	 * @param {Array<{uuid: string, conduits: Array<unknown>}>} selectedTrenches - Trenches with their selected conduits
 	 */
 	async function handleTrenchSelectionConfirm(selectedTrenches) {
 		showTrenchSelector = false;
@@ -368,7 +375,7 @@
 	}
 
 	/**
-	 * Handle the trench selection cancel
+	 * Resets the trench selection UI and clears all related state.
 	 */
 	function handleTrenchSelectionCancel() {
 		showTrenchSelector = false;
@@ -379,7 +386,7 @@
 	}
 
 	/**
-	 * Load the existing connections
+	 * Fetches existing microduct connections and renders them as edges on the SvelteFlow canvas.
 	 */
 	async function loadExistingConnections() {
 		if (!apiResponse?.node_uuid) return;
@@ -402,25 +409,29 @@
 				const connections = parsedData;
 				const connectionEdges =
 					connections
-						?.map((conn) => {
+						?.map((/** @type {any} */ conn) => {
 							const sourceNode = nodes.find(
 								(n) =>
 									n.data?.trench?.uuid === conn.uuid_trench_from.id &&
-									n.data?.conduit?.microducts?.some((m) => m.uuid === conn.uuid_microduct_from.uuid)
+									n.data?.conduit?.microducts?.some(
+										(/** @type {any} */ m) => m.uuid === conn.uuid_microduct_from.uuid
+									)
 							);
 							const targetNode = nodes.find(
 								(n) =>
 									n.data?.trench?.uuid === conn.uuid_trench_to.id &&
-									n.data?.conduit?.microducts?.some((m) => m.uuid === conn.uuid_microduct_to.uuid)
+									n.data?.conduit?.microducts?.some(
+										(/** @type {any} */ m) => m.uuid === conn.uuid_microduct_to.uuid
+									)
 							);
 
 							if (!sourceNode || !targetNode) return null;
 
 							const sourceMicroduct = sourceNode.data.conduit.microducts.find(
-								(m) => m.uuid === conn.uuid_microduct_from.uuid
+								(/** @type {any} */ m) => m.uuid === conn.uuid_microduct_from.uuid
 							);
 							const targetMicroduct = targetNode.data.conduit.microducts.find(
-								(m) => m.uuid === conn.uuid_microduct_to.uuid
+								(/** @type {any} */ m) => m.uuid === conn.uuid_microduct_to.uuid
 							);
 
 							const sourceHandleId = `conduit-${sourceNode.data.conduit.uuid}-microduct-${sourceMicroduct.number}-source`;
@@ -463,13 +474,13 @@
 	}
 
 	/**
-	 * Handle the before connect
-	 * @param {object} connection - The connection
-	 * @returns {object} - The connection
+	 * Validates a connection attempt before it is created in SvelteFlow.
+	 * @param {import('@xyflow/svelte').Connection} connection - Proposed connection
+	 * @returns {import('@xyflow/svelte').Connection | false} The connection if valid, or false to reject.
 	 */
 	function handleBeforeConnect(connection) {
-		const sourceHandleData = getHandleData(connection.source, connection.sourceHandle);
-		const targetHandleData = getHandleData(connection.target, connection.targetHandle);
+		const sourceHandleData = getHandleData(connection.source, connection.sourceHandle ?? '');
+		const targetHandleData = getHandleData(connection.target, connection.targetHandle ?? '');
 
 		if (connection.sourceHandle && connection.sourceHandle.endsWith('-target')) {
 			globalToaster.error({
@@ -490,9 +501,7 @@
 		return connection;
 	}
 
-	/**
-	 * Effect to update the edges
-	 */
+	/** Detects newly created edges from SvelteFlow and persists them to the backend. */
 	$effect(() => {
 		if (!edges || !nodes) return;
 
@@ -539,13 +548,13 @@
 	});
 
 	/**
-	 * Save the connection
-	 * @param {object} edge - The edge
-	 * @param {string} sourceMicroductUuid - The source microduct uuid
-	 * @param {string} targetMicroductUuid - The target microduct uuid
-	 * @param {string} nodeUuid - The node uuid
-	 * @param {string} sourceTrenchUuid - The source trench uuid
-	 * @param {string} targetTrenchUuid - The target trench uuid
+	 * Persists a microduct connection to the backend and updates the edge with the returned UUID.
+	 * @param {import('@xyflow/svelte').Edge} edge - The SvelteFlow edge to persist
+	 * @param {string} sourceMicroductUuid - Source microduct UUID
+	 * @param {string} targetMicroductUuid - Target microduct UUID
+	 * @param {string} nodeUuid - Node UUID where the connection occurs
+	 * @param {string} sourceTrenchUuid - Source trench UUID
+	 * @param {string} targetTrenchUuid - Target trench UUID
 	 */
 	async function saveConnection(
 		edge,
@@ -616,16 +625,14 @@
 	}
 
 	/**
-	 * Handle the lasso selection change
-	 * @param {array} selectedIds - The selected ids
+	 * @param {string[]} selectedIds - Currently lasso-selected node IDs
 	 */
 	function handleLassoSelectionChange(selectedIds) {
 		selectedNodeIds = selectedIds;
 	}
 
 	/**
-	 * Handle the lasso mode change
-	 * @param {object} event - The event
+	 * @param {{checked: boolean}} event - Switch change event
 	 */
 	function handleLassoModeChange(event) {
 		isLassoMode = event.checked;
@@ -638,15 +645,14 @@
 	}
 
 	/**
-	 * Handle the partial selection change
-	 * @param {boolean} partial - The partial
+	 * @param {boolean} partial - Whether partial (corner-based) selection is enabled
 	 */
 	function handlePartialSelectionChange(partial) {
 		partialSelection = partial;
 	}
 
 	/**
-	 * Clear the lasso selection
+	 * Clears the current lasso selection and resets the lasso component.
 	 */
 	function clearLassoSelection() {
 		selectedNodeIds = [];
@@ -656,10 +662,10 @@
 	}
 
 	/**
-	 * Check if the edge exists
-	 * @param {string} sourceMicroductUuid - The source microduct uuid
-	 * @param {string} targetMicroductUuid - The target microduct uuid
-	 * @returns {boolean} - True if the edge exists, false otherwise
+	 * Checks whether an edge already exists between two microducts (in either direction).
+	 * @param {string} sourceMicroductUuid - Source microduct UUID
+	 * @param {string} targetMicroductUuid - Target microduct UUID
+	 * @returns {boolean}
 	 */
 	function edgeExists(sourceMicroductUuid, targetMicroductUuid) {
 		return edges.some((edge) => {
@@ -675,7 +681,7 @@
 	}
 
 	/**
-	 * Auto connect two nodes
+	 * Connects all matching microducts (by number) between two lasso-selected nodes.
 	 */
 	async function autoConnectTwoNodes() {
 		if (selectedNodeIds.length !== 2) {
@@ -705,7 +711,9 @@
 
 		const connections = [];
 		for (const sourceMd of sourceMicroducts) {
-			const targetMd = targetMicroducts.find((t) => t.number === sourceMd.number);
+			const targetMd = targetMicroducts.find(
+				(/** @type {any} */ t) => t.number === sourceMd.number
+			);
 			if (targetMd) {
 				if (!edgeExists(sourceMd.uuid, targetMd.uuid)) {
 					connections.push({
@@ -818,9 +826,6 @@
 		}
 	}
 
-	/**
-	 * Effect to update the project
-	 */
 	$effect(() => {
 		const projectId = $selectedProject;
 		const currentPath = $page.url.pathname;
@@ -850,7 +855,7 @@
 		{edgeTypes}
 		defaultEdgeOptions={{ type: 'pipeBranchEdge' }}
 		onbeforeconnect={handleBeforeConnect}
-		connectionMode="loose"
+		connectionMode={ConnectionMode.Loose}
 		elevateEdgesOnSelect={true}
 		elevateNodesOnSelect={false}
 		connectionRadius={100}
@@ -859,7 +864,7 @@
 		{#if isLassoMode}
 			<PipeBranchLasso
 				bind:this={lassoComponent}
-				{partialSelection}
+				partial={partialSelection}
 				onSelectionChange={handleLassoSelectionChange}
 			/>
 		{/if}
@@ -888,7 +893,7 @@
 						bind:value={selectedNode}
 						defaultValue={selectedNode}
 						placeholder={m.placeholder_select_pipe_branch()}
-						onValueChange={(e) => {
+						onValueChange={(/** @type {any} */ e) => {
 							selectedNode = e.value;
 							clearLassoSelection();
 							if (e.value && e.value.length > 0) {

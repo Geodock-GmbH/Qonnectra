@@ -1,6 +1,4 @@
-"""
-Custom storage backend for local filesystem storage.
-"""
+"""Custom storage backends for local filesystem and QGIS project files."""
 
 import logging
 import os
@@ -15,34 +13,26 @@ logger = logging.getLogger(__name__)
 
 @deconstructible
 class LocalMediaStorage(FileSystemStorage):
-    """
-    Custom storage class for storing files on the local filesystem.
+    """Local filesystem storage with folder organisation by feature type.
 
-    This storage backend provides:
-    - Automatic folder organization based on feature type and file category
-    - Simple, fast local filesystem access
-    - Integration with Django's FileField
+    Organize uploaded files in a structured hierarchy under MEDIA_ROOT::
 
-    Files are organized in a structured hierarchy:
-    media/
-    project_name/
-    ├── trenches/
-    │   ├── [trench_id]/
-    │   │   ├── photos/
-    │   │   ├── documents/
-    │   │   └── drawings/
-    ├── nodes/
-    ├── addresses/
-    └── residentialunits/
+        project_name/
+        ├── trenches/<id>/{photos,documents,drawings}/
+        ├── nodes/
+        ├── addresses/
+        └── residentialunits/
+
+    Overwrite existing files with the same name and preserve Unicode
+    filenames (including umlauts) via NFC normalisation.
     """
 
     def __init__(self, location=None, base_url=None):
-        """
-        Initialize the storage backend.
+        """Initialize the storage backend.
 
         Args:
-            location: Root directory for media files (defaults to settings.MEDIA_ROOT)
-            base_url: Base URL for serving files (defaults to settings.MEDIA_URL)
+            location: Root directory for media files. Defaults to ``MEDIA_ROOT``.
+            base_url: Base URL for serving files. Defaults to ``MEDIA_URL``.
         """
         if location is None:
             location = settings.MEDIA_ROOT
@@ -53,46 +43,43 @@ class LocalMediaStorage(FileSystemStorage):
         logger.info(f"LocalMediaStorage initialized with location: {location}")
 
     def get_valid_name(self, name):
-        """
-        Preserve Unicode characters including umlauts.
+        """Preserve Unicode characters including umlauts.
 
-        Django's default get_valid_name() strips diacritical marks due to
-        Unicode normalization issues (NFD vs NFC). This override normalizes
-        to NFC form to preserve umlauts (ä, ö, ü) and other accented characters
-        while ensuring cross-platform compatibility.
+        Django's default strips diacritical marks via NFD decomposition.
+        NFC normalisation keeps composed characters (ä, ö, ü) intact.
 
         Args:
-            name: The original filename
+            name: The original filename.
 
         Returns:
-            The filename normalized to NFC form
+            str: Filename normalised to NFC form.
         """
-        # Normalize to NFC (composed form) to preserve accented characters
         return unicodedata.normalize("NFC", name)
 
     def get_available_name(self, name, max_length=None):
-        """
-        Return a filename that's available in the storage mechanism.
+        """Return a filename, overwriting any existing file with the same name.
 
-        Overrides the default behavior to allow replacing existing files
-        with the same name, rather than appending random strings.
+        Args:
+            name: Desired filename.
+            max_length: Unused; kept for API compatibility.
+
+        Returns:
+            str: The unchanged filename.
         """
-        # Remove the file if it already exists to allow overwriting
         if self.exists(name):
             logger.info(f"File {name} already exists, will be overwritten")
             os.remove(os.path.join(self.location, name))
         return name
 
     def _save(self, name, content):
-        """
-        Save a file to the storage system.
+        """Save a file, creating intermediate directories as needed.
 
         Args:
-            name: The filename to save
-            content: File content
+            name: Relative path for the file.
+            content: File content (``File`` instance).
 
         Returns:
-            The name of the saved file
+            str: The name of the saved file.
         """
         full_path = self.path(name)
         directory = os.path.dirname(full_path)
@@ -108,11 +95,10 @@ class LocalMediaStorage(FileSystemStorage):
         return super()._save(name, content)
 
     def delete(self, name):
-        """
-        Delete a file from the storage system.
+        """Delete a file from the storage system.
 
         Args:
-            name: The filename to delete
+            name: Relative path of the file to delete.
         """
         try:
             super().delete(name)
@@ -122,16 +108,18 @@ class LocalMediaStorage(FileSystemStorage):
             raise
 
     def url(self, name):
-        """
-        Return the URL for accessing the file.
+        """Return the URL for accessing the file.
 
-        The URL will be served through Nginx with authentication via X-Accel-Redirect.
+        Served through Nginx with authentication via X-Accel-Redirect.
 
         Args:
-            name: The filename
+            name: Relative path of the file.
 
         Returns:
-            The URL to access the file
+            str: URL to access the file.
+
+        Raises:
+            ValueError: If no ``base_url`` is configured.
         """
         if self.base_url is None:
             raise ValueError("This file is not accessible via a URL.")
@@ -141,21 +129,22 @@ class LocalMediaStorage(FileSystemStorage):
         return url
 
     def rename_folder(self, old_folder_path, new_folder_path):
-        """
-        Rename a folder in the storage filesystem.
+        """Rename a folder when a feature's identifier changes.
 
-        Used when a feature's identifier changes (e.g., Node name, Cable name)
-        to keep the folder structure consistent with the feature's current name.
+        Keep the folder structure consistent when e.g. a Node or Cable
+        is renamed.
 
         Args:
-            old_folder_path: Relative path from MEDIA_ROOT (e.g., "Project/nodes/OldName")
-            new_folder_path: New relative path (e.g., "Project/nodes/NewName")
+            old_folder_path: Relative path from MEDIA_ROOT
+                (e.g. ``"Project/nodes/OldName"``).
+            new_folder_path: New relative path
+                (e.g. ``"Project/nodes/NewName"``).
 
         Returns:
-            bool: True if folder was renamed, False if old folder doesn't exist
+            bool: True if the folder was renamed, False if it did not exist.
 
         Raises:
-            OSError: If rename fails (permissions, new path already exists, etc.)
+            OSError: If the target folder already exists or rename fails.
         """
         old_full = os.path.join(self.location, old_folder_path)
         new_full = os.path.join(self.location, new_folder_path)
@@ -174,20 +163,23 @@ class LocalMediaStorage(FileSystemStorage):
 
 @deconstructible
 class QGISProjectStorage(FileSystemStorage):
-    """
-    Custom storage class for QGIS project files.
+    """Storage backend for QGIS project files.
 
-    Stores project files in deployment/qgis/projects/ directory
-    which is mounted as a read-only volume in the QGIS Server container.
+    Store ``.qgs`` files in ``deployment/qgis/projects/``, which is
+    mounted as a read-only volume in the QGIS Server container.
     """
 
     def __init__(self, location=None, base_url=None):
-        """
-        Initialize the storage backend for QGIS projects.
+        """Initialize the QGIS project storage backend.
 
-        Files are stored in:
-        - Docker: /app/qgis/projects (mounted from host ./qgis/projects)
-        - Development: {project_root}/deployment/qgis/projects
+        Auto-detect the environment to choose the storage path:
+
+        - Docker: ``/app/qgis/projects``
+        - Development: ``{project_root}/deployment/qgis/projects``
+
+        Args:
+            location: Override for the storage directory.
+            base_url: Unused — QGIS projects are served via QGIS Server.
         """
         if location is None:
             if os.path.exists("/app") and os.path.isdir("/app"):
@@ -204,21 +196,31 @@ class QGISProjectStorage(FileSystemStorage):
                     "Detected local development environment, using relative path"
                 )
 
-        # QGIS projects don't need a base URL (served via QGIS Server, not Django)
         base_url = None
 
         super().__init__(location=location, base_url=base_url)
         logger.info(f"QGISProjectStorage initialized with location: {location}")
 
     def get_valid_name(self, name):
-        """
-        Preserve the exact filename for QGIS projects.
+        """Preserve the exact filename via NFC normalisation.
+
+        Args:
+            name: The original filename.
+
+        Returns:
+            str: Filename normalised to NFC form.
         """
         return unicodedata.normalize("NFC", name)
 
     def get_available_name(self, name, max_length=None):
-        """
-        Allow overwriting existing project files.
+        """Return the filename, overwriting any existing project file.
+
+        Args:
+            name: Desired filename.
+            max_length: Unused; kept for API compatibility.
+
+        Returns:
+            str: The unchanged filename.
         """
         if self.exists(name):
             logger.info(f"QGIS project {name} already exists, will be overwritten")
@@ -226,8 +228,14 @@ class QGISProjectStorage(FileSystemStorage):
         return name
 
     def _save(self, name, content):
-        """
-        Save QGIS project file to deployment/qgis/projects/.
+        """Save a QGIS project file, creating directories as needed.
+
+        Args:
+            name: Relative path for the project file.
+            content: File content (``File`` instance).
+
+        Returns:
+            str: The name of the saved file.
         """
         full_path = self.path(name)
         directory = os.path.dirname(full_path)
@@ -259,8 +267,10 @@ class QGISProjectStorage(FileSystemStorage):
         return result
 
     def delete(self, name):
-        """
-        Delete QGIS project file.
+        """Delete a QGIS project file.
+
+        Args:
+            name: Relative path of the file to delete.
         """
         try:
             super().delete(name)

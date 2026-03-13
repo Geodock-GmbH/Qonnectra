@@ -31,12 +31,11 @@
 
 	import 'ol/ol.css';
 
-	/** @type {import('./$types').PageData} */
+	/** @type {{ data: Record<string, any> }} */
 	let { data } = $props();
 	let mapRef = $state();
 	let searchPanelRef = $state();
 
-	// Initialize managers
 	const mapState = new MapState(
 		$selectedProject,
 		get(trenchColorSelected),
@@ -56,7 +55,6 @@
 		data.alias
 	);
 
-	// Pass projects to drawer for project name lookup
 	// svelte-ignore state_referenced_locally
 	interactionManager.setAdditionalDrawerProps({ projects: data.projects });
 
@@ -67,13 +65,10 @@
 		interactionManager
 	});
 
-	// Initialize layers
 	const layersInitialized = mapState.initializeLayers();
 
-	// Reinitialize map layers when project changes
 	$effect(() => {
 		const currentProject = $selectedProject;
-		// Only reinitialize if project actually changed and map is ready
 		untrack(() => {
 			if (mapState.olMap && currentProject !== mapState.selectedProject) {
 				mapState.reinitializeForProject(currentProject);
@@ -82,7 +77,6 @@
 		});
 	});
 
-	// Reinitialize map layers when global view changes
 	$effect(() => {
 		const isGlobal = $globalMapView;
 		untrack(() => {
@@ -92,12 +86,10 @@
 		});
 	});
 
-	// Refresh tile sources when they exist
 	$effect(() => {
 		mapState.refreshTileSources();
 	});
 
-	// Update node layer style when nodeTypeStyles changes
 	$effect(() => {
 		const styles = $nodeTypeStyles;
 		if (Object.keys(styles).length > 0) {
@@ -105,7 +97,6 @@
 		}
 	});
 
-	// Update trench layer style when trench style settings change
 	$effect(() => {
 		const mode = $trenchStyleMode;
 		const surfaceStyles = $trenchSurfaceStyles;
@@ -114,14 +105,12 @@
 		mapState.updateTrenchLayerStyle(mode, surfaceStyles, constructionTypeStyles, color);
 	});
 
-	// Update address layer style when address style settings change
 	$effect(() => {
 		const color = $addressStyle.color;
 		const size = $addressStyle.size;
 		mapState.updateAddressLayerStyle(color, size);
 	});
 
-	// Update area layer style when areaTypeStyles changes
 	$effect(() => {
 		const styles = $areaTypeStyles;
 		if (Object.keys(styles).length > 0) {
@@ -129,7 +118,6 @@
 		}
 	});
 
-	// Update label visibility when labelVisibilityConfig changes
 	$effect(() => {
 		const config = $labelVisibilityConfig;
 		const mode = $trenchStyleMode;
@@ -167,30 +155,24 @@
 	});
 
 	/**
-	 * Handler for the map ready event
-	 * Initializes all map interactions and overlays
+	 * Initializes selection layers, popup overlay, and interaction handlers when the map is ready.
+	 * @param {{ map: import('ol').Map, usingFallbackOSM: boolean }} detail
 	 */
-	function handleMapReady(event) {
-		const olMapInstance = event.detail.map;
+	function handleMapReady({ map: olMapInstance }) {
+		mapState.initializeSelectionLayers(
+			olMapInstance,
+			() => /** @type {Record<string, boolean>} */ (selectionManager.getSelectionStore())
+		);
 
-		// Initialize selection layers
-		mapState.initializeSelectionLayers(olMapInstance, () => selectionManager.getSelectionStore());
-
-		// Register selection layers with selection manager
 		const selectionLayers = mapState.getSelectionLayers();
 		selectionLayers.forEach((layer) => selectionManager.registerSelectionLayer(layer));
 
-		// Initialize popup
 		popupManager.initialize(olMapInstance);
 
-		// Initialize interaction handlers
 		const layers = mapState.getLayerReferences();
 		interactionManager.initialize(olMapInstance, layers, searchPanelRef);
 	}
 
-	/**
-	 * Update search panel reference when map component provides it
-	 */
 	$effect(() => {
 		if (mapRef && mapRef.getSearchPanelRef) {
 			searchPanelRef = mapRef.getSearchPanelRef();
@@ -200,9 +182,6 @@
 		}
 	});
 
-	/**
-	 * Cleanup on component destroy
-	 */
 	onMount(() => {
 		startHeartbeat();
 
@@ -210,7 +189,7 @@
 			stopHeartbeat();
 			mapState.cleanup();
 			selectionManager.cleanup();
-			popupManager.cleanup(mapState.olMap);
+			if (mapState.olMap) popupManager.cleanup(mapState.olMap);
 			interactionManager.cleanup();
 		};
 	});
@@ -244,7 +223,7 @@
 					constructionTypes={data.constructionTypes ?? []}
 					areaTypes={data.areaTypes ?? []}
 					projectId={$selectedProject}
-					on:ready={handleMapReady}
+					onready={handleMapReady}
 					searchPanelProps={{
 						trenchColorSelected: $trenchColorSelected,
 						alias: data.alias

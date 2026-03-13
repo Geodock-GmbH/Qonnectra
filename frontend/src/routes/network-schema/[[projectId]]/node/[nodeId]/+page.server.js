@@ -14,7 +14,6 @@ export async function load({ fetch, cookies, params }) {
 	}
 
 	try {
-		// Fetch nodes with child_view_for filter
 		const [
 			nodeResponse,
 			cableResponse,
@@ -53,9 +52,10 @@ export async function load({ fetch, cookies, params }) {
 		const nodesData = await nodeResponse.json();
 		const childViewEnabledNodeTypeIds = nodesData?.metadata?.child_view_enabled_node_type_ids ?? [];
 
-		// Check if parent node exists in response
 		const nodes = nodesData?.features || nodesData || [];
-		const parentNode = nodes.find((n) => (n.id || n.properties?.uuid) === nodeId);
+		const parentNode = nodes.find(
+			(/** @type {any} */ n) => (n.id || n.properties?.uuid) === nodeId
+		);
 		if (!parentNode && nodes.length === 0) {
 			throw redirect(302, `/network-schema/${projectId}`);
 		}
@@ -70,7 +70,6 @@ export async function load({ fetch, cookies, params }) {
 			cableMicropipeConnections = await cableMicropipeResponse.json();
 		}
 
-		// Process attribute data
 		let cableTypesData = [];
 		let nodeTypesData = [];
 		let statusData = [];
@@ -79,42 +78,42 @@ export async function load({ fetch, cookies, params }) {
 		let flagsData = [];
 
 		if (cableTypeResponse.ok) {
-			cableTypesData = (await cableTypeResponse.json()).map((item) => ({
+			cableTypesData = (await cableTypeResponse.json()).map((/** @type {any} */ item) => ({
 				value: item.id,
 				label: item.cable_type
 			}));
 		}
 
 		if (nodeTypeResponse.ok) {
-			nodeTypesData = (await nodeTypeResponse.json()).map((item) => ({
+			nodeTypesData = (await nodeTypeResponse.json()).map((/** @type {any} */ item) => ({
 				value: item.id,
 				label: item.node_type
 			}));
 		}
 
 		if (statusResponse.ok) {
-			statusData = (await statusResponse.json()).map((item) => ({
+			statusData = (await statusResponse.json()).map((/** @type {any} */ item) => ({
 				value: item.id,
 				label: item.status
 			}));
 		}
 
 		if (networkLevelResponse.ok) {
-			networkLevelData = (await networkLevelResponse.json()).map((item) => ({
+			networkLevelData = (await networkLevelResponse.json()).map((/** @type {any} */ item) => ({
 				value: item.id,
 				label: item.network_level
 			}));
 		}
 
 		if (companyResponse.ok) {
-			companyData = (await companyResponse.json()).map((item) => ({
+			companyData = (await companyResponse.json()).map((/** @type {any} */ item) => ({
 				value: item.id,
 				label: item.company
 			}));
 		}
 
 		if (flagsResponse.ok) {
-			flagsData = (await flagsResponse.json()).map((item) => ({
+			flagsData = (await flagsResponse.json()).map((/** @type {any} */ item) => ({
 				value: item.id,
 				label: item.flag
 			}));
@@ -138,7 +137,7 @@ export async function load({ fetch, cookies, params }) {
 			isChildView: true
 		};
 	} catch (err) {
-		if (err.status === 302) throw err;
+		if (/** @type {any} */ (err).status === 302) throw err;
 		console.error('Error loading child network view:', err);
 		throw redirect(302, `/network-schema/${projectId}`);
 	}
