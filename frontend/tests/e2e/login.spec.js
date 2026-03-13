@@ -16,8 +16,8 @@ test('should allow a user to log in', async ({ page }) => {
 	await page.goto('/login');
 
 	// Fill in the username and password
-	await page.locator('input[name="username"]').fill(USERNAME);
-	await page.locator('input[name="password"]').fill(PASSWORD);
+	await page.locator('input[name="username"]').fill(/** @type {string} */ (USERNAME));
+	await page.locator('input[name="password"]').fill(/** @type {string} */ (PASSWORD));
 
 	// Click the login button
 	await page.locator('button[type="submit"]').click();

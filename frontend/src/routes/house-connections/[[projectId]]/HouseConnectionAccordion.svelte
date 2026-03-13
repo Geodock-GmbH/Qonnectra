@@ -22,41 +22,33 @@
 
 	const dataManager = new ConduitDataManager();
 
-	// Track which accordion items are currently open
+	/** @type {string[]} */
 	let openItems = $state([]);
 
 	/**
-	 * Handle accordion value change
-	 * Detects which items were opened/closed and triggers highlight changes
-	 * @param {{ value: string[] }} details - Accordion change details
+	 * Handles accordion open/close changes, fetching microducts for newly opened items
+	 * and notifying the parent about trench highlight changes.
+	 * @param {{ value: string[] }} details - Accordion change event with currently open item IDs.
 	 */
 	async function handleAccordionChange(details) {
 		const newOpenItems = details.value;
 		const previousOpenItems = openItems;
 
-		// Find newly opened items
 		const opened = newOpenItems.filter((id) => !previousOpenItems.includes(id));
-
-		// Find newly closed items
 		const closed = previousOpenItems.filter((id) => !newOpenItems.includes(id));
 
-		// Update state
 		openItems = newOpenItems;
 
-		// Handle opened items - fetch trench UUIDs and notify parent
 		for (const itemId of opened) {
 			const item = dataManager.pipesInTrench.find((p) => p.id === itemId);
 			if (item?.pipeUuid) {
-				// Fetch microducts (existing behavior)
 				dataManager.fetchMicroducts(item.pipeUuid);
 
-				// Fetch trench UUIDs for highlighting
 				const trenchUuids = await dataManager.fetchTrenchUuidsForConduit(item.pipeUuid);
 				onHighlightChange?.(item.pipeUuid, trenchUuids, true);
 			}
 		}
 
-		// Handle closed items - notify parent to remove highlighting
 		for (const itemId of closed) {
 			const item = dataManager.pipesInTrench.find((p) => p.id === itemId);
 			if (item?.pipeUuid) {
@@ -68,7 +60,6 @@
 
 	$effect(() => {
 		if (featureId) {
-			// Reset open items when feature changes
 			openItems = [];
 			dataManager.fetchPipesInTrench(featureId);
 		}
@@ -98,7 +89,7 @@
 							class="btn btn-sm btn-icon preset-filled-secondary-500"
 							onclick={(e) => {
 								e.stopPropagation();
-								dataManager.refreshMicroducts(item.pipeUuid);
+								if (item.pipeUuid) dataManager.refreshMicroducts(item.pipeUuid);
 							}}
 							aria-label={m.tooltip_refresh_microducts()}
 							{@attach tooltip(m.tooltip_refresh_microducts(), { position: 'bottom', delay: 1000 })}
@@ -113,13 +104,15 @@
 				</Accordion.ItemTrigger>
 				<Accordion.ItemContent>
 					<div class="space-y-2">
+						{#if item.pipeUuid}
 						<MicroductsTable
 							microducts={dataManager.getMicroductsForPipe(item.pipeUuid)}
 							loading={dataManager.isLoadingMicroducts(item.pipeUuid)}
 							error={dataManager.getMicroductsError(item.pipeUuid)}
-							onMicroductUpdate={(updatedMicroduct) =>
-								dataManager.updateMicroductInState(item.pipeUuid, updatedMicroduct)}
+							onMicroductUpdate={(/** @type {*} */ updatedMicroduct) =>
+								dataManager.updateMicroductInState(/** @type {string} */ (item.pipeUuid), updatedMicroduct)}
 						/>
+					{/if}
 					</div>
 				</Accordion.ItemContent>
 				<hr class="hr" />

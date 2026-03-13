@@ -1,6 +1,9 @@
 import { getFieldAliases } from '$lib/utils/fieldAliases';
 
-/** @type {import('./$types').PageLoad} */
+/**
+ * Extends server-loaded data with field alias mappings for display labels.
+ * @param {import('./$types').PageLoadEvent} event
+ */
 export async function load({ data }) {
 	return { ...data, alias: getFieldAliases() };
 }

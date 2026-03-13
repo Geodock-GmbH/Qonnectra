@@ -17,7 +17,7 @@
 
 	$effect(() => updateUserStore(data.user));
 	$effect(() => {
-		document.documentElement.setAttribute('data-theme', $theme);
+		document.documentElement.setAttribute('data-theme', /** @type {string} */ (/** @type {unknown} */ ($theme)));
 	});
 </script>
 

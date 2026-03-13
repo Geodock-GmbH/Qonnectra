@@ -14,7 +14,7 @@
 
 	let redirectTo = '/dashboard';
 
-	/** @type {import('./$types').ActionData} */
+	/** @type {{ form: import('./$types').ActionData }} */
 	let { form } = $props();
 
 	$effect(() => {

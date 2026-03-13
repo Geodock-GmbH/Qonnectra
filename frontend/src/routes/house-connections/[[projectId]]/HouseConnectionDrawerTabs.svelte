@@ -10,11 +10,11 @@
 
 	/**
 	 * @typedef {Object} Props
-	 * @property {Object} featureData - Feature properties from MVT
+	 * @property {Record<string, unknown>} featureData - Feature properties from MVT
 	 * @property {string} featureType - Type of feature ('trench', 'address', 'node')
 	 * @property {string} featureId - UUID of the feature
-	 * @property {Object} alias - Field name alias mapping (English -> Localized)
-	 * @property {Object} nodeAssignmentManager - NodeAssignmentManager instance (optional)
+	 * @property {Record<string, string>} alias - Field name alias mapping (English -> Localized)
+	 * @property {import('$lib/classes/NodeAssignmentManager.svelte.js').NodeAssignmentManager | null} [nodeAssignmentManager] - NodeAssignmentManager instance
 	 * @property {(conduitId: string, trenchUuids: string[], isOpen: boolean) => void} [onHighlightChange] - Callback for highlight changes
 	 */
 
@@ -38,7 +38,7 @@
 	const tabItems = $derived([{ value: 'details', label: m.common_overview() }]);
 </script>
 
-<Tabs tabs={tabItems} bind:activeTab>
+<Tabs tabs={tabItems} bind:value={activeTab}>
 	<SkeletonTabs.Content value="details">
 		<div>
 			<HouseConnectionAccordion {onHighlightChange} />

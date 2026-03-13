@@ -13,7 +13,7 @@
 
 	/**
 	 * Handle the assign click event
-	 * @param {Object} microduct - The microduct object
+	 * @param {{ uuid: string, [key: string]: unknown }} microduct - The microduct object
 	 */
 	function handleAssignClick(microduct) {
 		if (!nodeAssignmentManager) {
@@ -21,7 +21,7 @@
 			return;
 		}
 
-		nodeAssignmentManager.activateAssignMode(microduct.uuid, (updatedData) => {
+		nodeAssignmentManager.activateAssignMode(microduct.uuid, (/** @type {{ microduct?: unknown }} */ updatedData) => {
 			if (onMicroductUpdate && updatedData?.microduct) {
 				onMicroductUpdate(updatedData.microduct);
 			}
@@ -30,7 +30,7 @@
 
 	/**
 	 * Handle the remove click event
-	 * @param {Object} microduct - The microduct object
+	 * @param {{ uuid: string, [key: string]: unknown }} microduct - The microduct object
 	 */
 	function handleRemoveClick(microduct) {
 		if (!nodeAssignmentManager) {
@@ -38,7 +38,7 @@
 			return;
 		}
 
-		nodeAssignmentManager.removeNodeFromMicroduct(microduct.uuid, (updatedData) => {
+		nodeAssignmentManager.removeNodeFromMicroduct(microduct.uuid, (/** @type {{ microduct?: unknown }} */ updatedData) => {
 			if (onMicroductUpdate && updatedData?.microduct) {
 				onMicroductUpdate(updatedData.microduct);
 			}
