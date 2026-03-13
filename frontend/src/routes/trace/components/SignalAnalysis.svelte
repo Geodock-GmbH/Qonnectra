@@ -16,6 +16,12 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import {
+		downloadGeoJSON as downloadGeoJSONFile,
+		hasGeometries,
+		traceFrom
+	} from '../traceUtils.js';
+
 	/**
 	 * @typedef {Object} Props
 	 * @property {Record<string, any>} result - The signal analysis result data
@@ -53,18 +59,6 @@
 	}
 
 	/**
-	 * Navigates to a new trace starting from the given entity.
-	 * @param {string} type - The entity type (e.g. 'node', 'residential_unit')
-	 * @param {string} id - The entity UUID
-	 * @returns {void}
-	 */
-	function traceFrom(type, id) {
-		// URL slugs use hyphens instead of underscores
-		const typeSlug = type === 'residential_unit' ? 'residential-unit' : type;
-		goto(`/trace/${typeSlug}/${id}`);
-	}
-
-	/**
 	 * Updates the signal source node via URL search params and navigates.
 	 * @param {string} nodeId - The source node UUID, or empty string to remove
 	 * @returns {void}
@@ -81,98 +75,11 @@
 	}
 
 	/**
-	 * Checks whether any cable infrastructure in the trace result contains geometry data.
-	 * @param {Record<string, any>} traceResult - The trace result containing cable_infrastructure
-	 * @returns {boolean} True if at least one geometry exists
-	 */
-	function hasGeometries(traceResult) {
-		if (!traceResult?.cable_infrastructure) return false;
-		for (const infra of Object.values(traceResult.cable_infrastructure)) {
-			if (infra.merged_geometry) return true;
-			if (infra.trenches?.some((/** @type {any} */ t) => t.geometry)) return true;
-		}
-		return false;
-	}
-
-	/**
-	 * Builds a GeoJSON FeatureCollection from cable infrastructure geometries.
-	 * Prefers merged geometry per cable; falls back to individual trench segments.
-	 * @param {Record<string, any>} traceResult - The trace result containing cable_infrastructure
-	 * @returns {Record<string, any>} GeoJSON FeatureCollection in EPSG:25832
-	 */
-	function buildGeoJSON(traceResult) {
-		const features = [];
-		const cableInfra = traceResult.cable_infrastructure || {};
-
-		for (const [cableId, infra] of Object.entries(cableInfra)) {
-			if (infra.merged_geometry) {
-				features.push({
-					type: 'Feature',
-					properties: {
-						cable_id: cableId,
-						conduit_name: infra.conduit?.name || null,
-						conduit_type: infra.conduit?.type || null,
-						microduct_number: infra.microduct?.number || null,
-						microduct_color: infra.microduct?.color || null,
-						total_length: infra.total_length || null,
-						trench_count: infra.trenches?.length || 0,
-						geometry_mode: 'merged'
-					},
-					geometry: infra.merged_geometry
-				});
-			} else if (infra.trenches) {
-				for (const trench of infra.trenches) {
-					if (trench.geometry) {
-						features.push({
-							type: 'Feature',
-							properties: {
-								cable_id: cableId,
-								trench_id: trench.id,
-								id_trench: trench.id_trench,
-								construction_type: trench.construction_type,
-								surface: trench.surface,
-								length: trench.length,
-								conduit_name: infra.conduit?.name || null,
-								conduit_type: infra.conduit?.type || null,
-								microduct_number: infra.microduct?.number || null,
-								microduct_color: infra.microduct?.color || null,
-								geometry_mode: 'segments'
-							},
-							geometry: trench.geometry
-						});
-					}
-				}
-			}
-		}
-
-		return {
-			type: 'FeatureCollection',
-			name: 'fiber_trace_infrastructure',
-			crs: {
-				type: 'name',
-				properties: { name: 'urn:ogc:def:crs:EPSG::25832' }
-			},
-			features
-		};
-	}
-
-	/**
-	 * Triggers a browser download of the trace infrastructure as a GeoJSON file.
 	 * @returns {void}
 	 */
-	function downloadGeoJSON() {
+	function handleDownloadGeoJSON() {
 		if (!result) return;
-		const geojson = buildGeoJSON(result);
-		const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		const entryIdShort = entryId?.slice(0, 8) || 'unknown';
-		a.download = `signal-analysis-${entryIdShort}.geojson`;
-		document.body.appendChild(a);
-		a.click();
-		document.body.removeChild(a);
-		URL.revokeObjectURL(url);
+		downloadGeoJSONFile(result, 'signal-analysis', entryId);
 	}
 
 	const signalAnalysis = $derived(result?.signal_analysis);
@@ -667,7 +574,7 @@
 			<div class="flex justify-center">
 				<button
 					type="button"
-					onclick={downloadGeoJSON}
+					onclick={handleDownloadGeoJSON}
 					class="flex items-center gap-3 rounded-lg border border-success-500 px-5 py-2.5 font-medium text-success-500 transition-colors hover:bg-success-500/10"
 				>
 					<IconDownload size={20} />

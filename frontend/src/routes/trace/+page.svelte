@@ -400,14 +400,14 @@
 </script>
 
 <!-- Tab Selector -->
-<div class="mb-6 rounded-xl border border-surface-200-800 p-2">
-	<div class="flex flex-wrap gap-2">
+<div class="mb-6 overflow-x-auto rounded-xl border border-surface-200-800 p-2">
+	<div class="flex min-w-max gap-2 sm:min-w-0">
 		{#each traceTypes as type (type.value)}
 			{@const Icon = type.icon}
 			<button
 				type="button"
 				onclick={() => handleTabChange(type.value)}
-				class="flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-3 transition-colors {activeTab ===
+				class="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-3 transition-colors {activeTab ===
 				type.value
 					? 'bg-primary-500 text-white'
 					: 'hover:bg-surface-100-900'}"
@@ -577,7 +577,7 @@
 						{/each}
 					</div>
 				{:else}
-					<div class="py-8 text-center text-surface-600-400">
+					<div class="py-8 text-center text-sm text-surface-500-400">
 						{m.trace_no_fibers_in_cable()}
 					</div>
 				{/if}

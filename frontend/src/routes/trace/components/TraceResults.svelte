@@ -1,7 +1,6 @@
 <script>
 	import { cubicOut } from 'svelte/easing';
 	import { fly } from 'svelte/transition';
-	import { goto } from '$app/navigation';
 	import {
 		IconArrowsSplit,
 		IconChevronRight,
@@ -13,6 +12,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import FiberPathsTable from './FiberPathsTable.svelte';
+	import { buildGeoJSON, downloadGeoJSON, hasGeometries, traceFrom } from '../traceUtils.js';
 
 	/**
 	 * @typedef {Object} Props
@@ -53,16 +53,6 @@
 	}
 
 	/**
-	 * Navigates to the trace page for a different entity.
-	 * @param {string} type - Entity type (e.g. 'fiber', 'cable', 'node', 'address', 'residential_unit').
-	 * @param {string} id - Entity UUID.
-	 */
-	function traceFrom(type, id) {
-		const typeSlug = type === 'residential_unit' ? 'residential-unit' : type;
-		goto(`/trace/${typeSlug}/${id}`);
-	}
-
-	/**
 	 * Get translated entry type label
 	 * @param {string} type - Entry type from backend
 	 * @returns {string} Translated label for the entry type
@@ -80,95 +70,12 @@
 	}
 
 	/**
-	 * @param {Record<string, any>} traceResult - The trace result data
-	 * @returns {boolean} Whether any cable infrastructure has geometry data
-	 */
-	function hasGeometries(traceResult) {
-		if (!traceResult?.cable_infrastructure) return false;
-		for (const infra of Object.values(traceResult.cable_infrastructure)) {
-			if (infra.merged_geometry) return true;
-			if (infra.trenches?.some((/** @type {any} */ t) => t.geometry)) return true;
-		}
-		return false;
-	}
-
-	/**
-	 * @param {Record<string, any>} traceResult - The trace result data
-	 * @returns {Record<string, any>} GeoJSON FeatureCollection with cable infrastructure geometries in EPSG:25832
-	 */
-	function buildGeoJSON(traceResult) {
-		const features = [];
-		const cableInfra = traceResult.cable_infrastructure || {};
-
-		for (const [cableId, infra] of Object.entries(cableInfra)) {
-			if (infra.merged_geometry) {
-				features.push({
-					type: 'Feature',
-					properties: {
-						cable_id: cableId,
-						conduit_name: infra.conduit?.name || null,
-						conduit_type: infra.conduit?.type || null,
-						microduct_number: infra.microduct?.number || null,
-						microduct_color: infra.microduct?.color || null,
-						total_length: infra.total_length || null,
-						trench_count: infra.trenches?.length || 0,
-						geometry_mode: 'merged'
-					},
-					geometry: infra.merged_geometry
-				});
-			} else if (infra.trenches) {
-				for (const trench of infra.trenches) {
-					if (trench.geometry) {
-						features.push({
-							type: 'Feature',
-							properties: {
-								cable_id: cableId,
-								trench_id: trench.id,
-								id_trench: trench.id_trench,
-								construction_type: trench.construction_type,
-								surface: trench.surface,
-								length: trench.length,
-								conduit_name: infra.conduit?.name || null,
-								conduit_type: infra.conduit?.type || null,
-								microduct_number: infra.microduct?.number || null,
-								microduct_color: infra.microduct?.color || null,
-								geometry_mode: 'segments'
-							},
-							geometry: trench.geometry
-						});
-					}
-				}
-			}
-		}
-
-		return {
-			type: 'FeatureCollection',
-			name: 'fiber_trace_infrastructure',
-			crs: {
-				type: 'name',
-				properties: { name: 'urn:ogc:def:crs:EPSG::25832' }
-			},
-			features
-		};
-	}
-
-	/**
 	 * @returns {void}
 	 */
-	function downloadGeoJSON() {
+	function handleDownloadGeoJSON() {
 		if (!result) return;
-		const geojson = buildGeoJSON(result);
-		const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
 		const entryTypeLabel = result.entry_point?.type || 'trace';
-		const entryIdShort = result.entry_point?.id?.slice(0, 8) || 'unknown';
-		a.download = `fiber-trace-${entryTypeLabel}-${entryIdShort}.geojson`;
-		document.body.appendChild(a);
-		a.click();
-		document.body.removeChild(a);
-		URL.revokeObjectURL(url);
+		downloadGeoJSON(result, `fiber-trace-${entryTypeLabel}`, result.entry_point?.id || entryId);
 	}
 </script>
 
@@ -203,7 +110,7 @@
 			<div class="flex justify-center">
 				<button
 					type="button"
-					onclick={downloadGeoJSON}
+					onclick={handleDownloadGeoJSON}
 					class="flex items-center gap-3 rounded-lg border border-success-500 px-5 py-2.5 font-medium text-success-500 transition-colors hover:bg-success-500/10"
 				>
 					<IconDownload size={20} />
@@ -263,8 +170,8 @@
 			{:else if result.trace_trees && result.trace_trees.length > 0}
 				<FiberPathsTable traceTrees={result.trace_trees} />
 			{:else}
-				<div class="rounded-xl border border-surface-200-800 p-6">
-					<div class="py-8 text-center text-surface-600-400">{m.trace_no_trace_data()}</div>
+				<div class="rounded-xl border border-dashed border-surface-300-700 p-6">
+					<div class="py-8 text-center text-sm text-surface-500-400">{m.trace_no_trace_data()}</div>
 				</div>
 			{/if}
 		</section>
@@ -276,7 +183,9 @@
 	/** @type {number} */ value,
 	/** @type {string} */ colorClass
 )}
-	<div class="flex flex-col items-center rounded-lg border border-surface-200-800 p-4">
+	<div
+		class="flex flex-col items-center rounded-lg border border-surface-200-800 bg-surface-50-950 p-4"
+	>
 		<span class="font-mono text-2xl font-bold {colorClass}">{value}</span>
 		<span class="mt-1 text-xs font-medium uppercase tracking-wide text-surface-600-400"
 			>{label}</span
@@ -285,7 +194,9 @@
 {/snippet}
 
 {#snippet statBadge(/** @type {string} */ label, /** @type {boolean} */ value)}
-	<div class="flex flex-col items-center rounded-lg border border-surface-200-800 p-4">
+	<div
+		class="flex flex-col items-center rounded-lg border border-surface-200-800 bg-surface-50-950 p-4"
+	>
 		<span
 			class="font-mono text-2xl font-bold {value ? 'text-success-500' : 'text-surface-600-400'}"
 		>
@@ -721,7 +632,7 @@
 						<span class="text-surface-600-400">{m.trace_start_address()}</span>
 						<button
 							type="button"
-							class="text-surface-600-400 hover:text-primary-500"
+							class="underline decoration-surface-300-700 underline-offset-2 text-surface-600-400 hover:text-primary-500 hover:decoration-primary-500"
 							onclick={() => traceFrom('address', endpoints.start_node.address.id)}
 						>
 							{endpoints.start_node.address.street}
@@ -736,7 +647,7 @@
 						<span class="text-surface-600-400">{m.trace_end_address()}</span>
 						<button
 							type="button"
-							class="text-surface-600-400 hover:text-primary-500"
+							class="underline decoration-surface-300-700 underline-offset-2 text-surface-600-400 hover:text-primary-500 hover:decoration-primary-500"
 							onclick={() => traceFrom('address', endpoints.end_node.address.id)}
 						>
 							{endpoints.end_node.address.street}
@@ -758,9 +669,12 @@
 			<span class="font-semibold">{m.form_address({ count: 1 })}</span>
 			<button
 				type="button"
-				class="transition-colors {isSelected('address', address.id)
-					? 'text-white'
-					: 'text-error-500 hover:text-error-400'}"
+				class="rounded px-2 py-0.5 font-mono text-sm transition-colors {isSelected(
+					'address',
+					address.id
+				)
+					? 'bg-error-500 text-white'
+					: 'bg-error-500/15 text-error-500 hover:bg-error-500/25'}"
 				onclick={() => handleItemClick('address', address.id)}
 			>
 				{address.street}
@@ -808,9 +722,12 @@
 			<span class="font-semibold">{m.section_residential_units({ count: 1 })}</span>
 			<button
 				type="button"
-				class="transition-colors {isSelected('residential_unit', ru.id)
-					? 'text-white'
-					: 'text-tertiary-500 hover:text-tertiary-400'}"
+				class="rounded px-2 py-0.5 font-mono text-sm transition-colors {isSelected(
+					'residential_unit',
+					ru.id
+				)
+					? 'bg-tertiary-500 text-white'
+					: 'bg-tertiary-500/15 text-tertiary-500 hover:bg-tertiary-500/25'}"
 				onclick={() => handleItemClick('residential_unit', ru.id)}
 			>
 				{ru.id_residential_unit || ru.id}
@@ -855,7 +772,7 @@
 				<span class="text-surface-600-400">{m.trace_at_address()}</span>
 				<button
 					type="button"
-					class="text-surface-600-400 hover:text-primary-500"
+					class="underline decoration-surface-300-700 underline-offset-2 text-surface-600-400 hover:text-primary-500 hover:decoration-primary-500"
 					onclick={() => traceFrom('address', ru.address.id)}
 				>
 					{ru.address.street}

@@ -1,7 +1,6 @@
 <script>
 	import { SvelteSet } from 'svelte/reactivity';
 	import { slide } from 'svelte/transition';
-	import { goto } from '$app/navigation';
 	import {
 		IconArrowsSplit,
 		IconChevronDown,
@@ -12,6 +11,8 @@
 	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
+
+	import { traceFrom } from '../traceUtils.js';
 
 	/**
 	 * @typedef {Object} Props
@@ -158,18 +159,6 @@
 	 */
 	function handleScroll(e) {
 		scrollTop = e.currentTarget.scrollTop;
-	}
-
-	/**
-	 * Navigate to the trace page for a given entity
-	 * @param {string} type - Entity type (e.g. 'fiber', 'cable', 'node', 'address', 'residential_unit')
-	 * @param {number|string} id - Entity ID
-	 * @returns {void}
-	 */
-	function traceFrom(type, id) {
-		// residential_unit uses underscore in the API but needs a hyphen in the URL slug
-		const typeSlug = type === 'residential_unit' ? 'residential-unit' : type;
-		goto(`/trace/${typeSlug}/${id}`);
 	}
 </script>
 
@@ -538,7 +527,7 @@
 						<span class="text-surface-600-400">{m.trace_start_address()}</span>
 						<button
 							type="button"
-							class="text-surface-600-400 hover:text-primary-500"
+							class="underline decoration-surface-300-700 underline-offset-2 text-surface-600-400 hover:text-primary-500 hover:decoration-primary-500"
 							onclick={() => traceFrom('address', endpoints.start_node.address.id)}
 						>
 							{endpoints.start_node.address.street}
@@ -553,7 +542,7 @@
 						<span class="text-surface-600-400">{m.trace_end_address()}</span>
 						<button
 							type="button"
-							class="text-surface-600-400 hover:text-primary-500"
+							class="underline decoration-surface-300-700 underline-offset-2 text-surface-600-400 hover:text-primary-500 hover:decoration-primary-500"
 							onclick={() => traceFrom('address', endpoints.end_node.address.id)}
 						>
 							{endpoints.end_node.address.street}
@@ -575,7 +564,7 @@
 			<span class="font-semibold">{m.form_address({ count: 1 })}</span>
 			<button
 				type="button"
-				class="text-error-500 hover:text-error-400"
+				class="rounded px-2 py-0.5 font-mono text-sm bg-error-500/15 text-error-500 transition-colors hover:bg-error-500/25"
 				onclick={() => traceFrom('address', address.id)}
 			>
 				{address.street}
@@ -623,7 +612,7 @@
 			<span class="font-semibold">{m.section_residential_units({ count: 1 })}</span>
 			<button
 				type="button"
-				class="text-tertiary-500 hover:text-tertiary-400"
+				class="rounded px-2 py-0.5 font-mono text-sm bg-tertiary-500/15 text-tertiary-500 transition-colors hover:bg-tertiary-500/25"
 				onclick={() => traceFrom('residential_unit', ru.id)}
 			>
 				{ru.id_residential_unit || ru.id}
@@ -668,7 +657,7 @@
 				<span class="text-surface-600-400">{m.trace_at_address()}</span>
 				<button
 					type="button"
-					class="text-surface-600-400 hover:text-primary-500"
+					class="underline decoration-surface-300-700 underline-offset-2 text-surface-600-400 hover:text-primary-500 hover:decoration-primary-500"
 					onclick={() => traceFrom('address', ru.address.id)}
 				>
 					{ru.address.street}

@@ -40,24 +40,16 @@
 		<div class="flex h-screen flex-col lg:flex-row">
 			<!-- Trace results panel -->
 			<div class="order-2 flex-1 overflow-y-auto lg:order-1 lg:w-1/2">
-				<div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-					<header class="mb-8">
-						<div class="mb-4 flex justify-start">
-							<a
-								href="/trace"
-								class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-600-400 transition-colors hover:bg-surface-100-900 hover:text-surface-900-100"
-							>
-								<IconArrowLeft size={18} />
-								<span>{m.action_back()}</span>
-							</a>
-						</div>
-						<div class="text-center">
-							<div class="mb-4 inline-flex text-primary-500">
-								<IconNetwork size={48} stroke={1.5} />
-							</div>
-							<h1 class="text-3xl font-bold text-surface-900-100">{m.nav_fiber_trace()}</h1>
-							<p class="mt-2 text-surface-600-400">{m.trace_description()}</p>
-						</div>
+				<div class="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
+					<header class="mb-6 flex items-center gap-4">
+						<a
+							href="/trace"
+							class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-600-400 transition-colors hover:bg-surface-100-900 hover:text-surface-900-100"
+						>
+							<IconArrowLeft size={18} />
+							<span>{m.action_back()}</span>
+						</a>
+						<h1 class="text-xl font-bold text-surface-900-100">{m.nav_fiber_trace()}</h1>
 					</header>
 					{@render children()}
 				</div>
@@ -73,25 +65,17 @@
 			</div>
 		</div>
 	{:else}
-		<!-- Result page without map: Original centered layout -->
-		<div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-			<header class="mb-8">
-				<div class="mb-4 flex justify-start">
-					<a
-						href="/trace"
-						class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-600-400 transition-colors hover:bg-surface-100-900 hover:text-surface-900-100"
-					>
-						<IconArrowLeft size={18} />
-						<span>{m.action_back()}</span>
-					</a>
-				</div>
-				<div class="text-center">
-					<div class="mb-4 inline-flex text-primary-500">
-						<IconNetwork size={48} stroke={1.5} />
-					</div>
-					<h1 class="text-3xl font-bold text-surface-900-100">{m.nav_fiber_trace()}</h1>
-					<p class="mt-2 text-surface-600-400">{m.trace_description()}</p>
-				</div>
+		<!-- Result page without map -->
+		<div class="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
+			<header class="mb-6 flex items-center gap-4">
+				<a
+					href="/trace"
+					class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-600-400 transition-colors hover:bg-surface-100-900 hover:text-surface-900-100"
+				>
+					<IconArrowLeft size={18} />
+					<span>{m.action_back()}</span>
+				</a>
+				<h1 class="text-xl font-bold text-surface-900-100">{m.nav_fiber_trace()}</h1>
 			</header>
 			{@render children()}
 		</div>
