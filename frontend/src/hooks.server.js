@@ -212,7 +212,9 @@ export async function handleAuth({ event, resolve }) {
 		throw redirect(303, '/map');
 	}
 
-	if (!isUserAuthenticated && !isPublicRoute) {
+	const isInternalApiRoute = requestedPath.startsWith('/api/');
+
+	if (!isUserAuthenticated && !isPublicRoute && !isInternalApiRoute) {
 		const redirectToUrl = `/login?redirectTo=${encodeURIComponent(requestedPath + event.url.search)}`;
 		throw redirect(303, redirectToUrl);
 	}
