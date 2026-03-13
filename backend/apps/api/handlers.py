@@ -1,18 +1,15 @@
-"""
-Custom logging handlers for the Qonnectra application.
-"""
+"""Custom logging handlers for the Qonnectra application."""
 
 import logging
 import re
 
 
 class DatabaseLogHandler(logging.Handler):
-    """
-    Custom logging handler that writes log records to the database.
+    """Write log records to the database via :model:`api.LogEntry`.
 
-    This handler captures log messages and stores them in the LogEntry model,
-    including context about the user, request, and additional metadata.
-    It also filters out sensitive information like passwords and tokens.
+    Capture log messages and store them with context about the user,
+    request, and additional metadata.  Sensitive information such as
+    passwords, tokens, and API keys is redacted before storage.
     """
 
     SENSITIVE_PATTERNS = [
@@ -43,15 +40,12 @@ class DatabaseLogHandler(logging.Handler):
     ]
 
     def __init__(self, *args, **kwargs):
-        """Initialize the handler and cache the LogEntry model reference."""
+        """Initialize the handler with an empty model cache."""
         super().__init__(*args, **kwargs)
         self._log_entry_model = None
 
     def _get_log_entry_model(self):
-        """
-        Get the LogEntry model, caching it for performance.
-        Returns None if models aren't ready yet.
-        """
+        """Return the cached LogEntry model, or ``None`` if apps aren't ready."""
         if self._log_entry_model is None:
             try:
                 from django.apps import apps
@@ -66,12 +60,12 @@ class DatabaseLogHandler(logging.Handler):
 
         return self._log_entry_model
 
-    def emit(self, record):
-        """
-        Emit a log record to the database.
+    def emit(self, record: logging.LogRecord) -> None:
+        """Persist a log record to the database.
 
         Args:
-            record: A LogRecord instance containing the log information
+            record: Standard library ``LogRecord`` with optional ``user``,
+                ``path``, and ``request`` attributes for context.
         """
         LogEntry = self._get_log_entry_model()
 
@@ -139,15 +133,14 @@ class DatabaseLogHandler(logging.Handler):
             self.handleError(record)
             print(f"Error logging to database: {e}")
 
-    def _filter_sensitive_data(self, message):
-        """
-        Filter sensitive information from log messages.
+    def _filter_sensitive_data(self, message: str) -> str:
+        """Redact sensitive values (passwords, tokens, keys) from a message.
 
         Args:
-            message: The log message to filter
+            message: Raw log message that may contain secrets.
 
         Returns:
-            The filtered message with sensitive data replaced
+            str: Message with sensitive values replaced by ``***REDACTED***``.
         """
         filtered_message = message
         for pattern, replacement in self.SENSITIVE_PATTERNS:
@@ -156,15 +149,14 @@ class DatabaseLogHandler(logging.Handler):
             )
         return filtered_message
 
-    def _get_client_ip(self, request):
-        """
-        Extract client IP address from request.
+    def _get_client_ip(self, request) -> str:
+        """Extract the client IP address from a Django request.
 
         Args:
-            request: Django request object
+            request: Django ``HttpRequest`` (or DRF ``Request``).
 
         Returns:
-            Client IP address as string
+            str: Client IP (max 45 chars), preferring ``X-Forwarded-For``.
         """
         x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
         if x_forwarded_for:

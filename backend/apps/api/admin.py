@@ -1,3 +1,5 @@
+"""Django admin configuration for the Qonnectra API models."""
+
 import logging
 import os
 
@@ -89,6 +91,7 @@ class GeoPackageSchemaConfigForm(forms.ModelForm):
         fields = ["name", "selected_layers"]
 
     def __init__(self, *args, **kwargs):
+        """Populate layer choices from the GeoPackage config registry."""
         super().__init__(*args, **kwargs)
         choices = []
         for layer_name, config in GEOPACKAGE_LAYER_CONFIG.items():
@@ -102,8 +105,8 @@ class GeoPackageSchemaConfigForm(forms.ModelForm):
         if self.instance and self.instance.pk:
             self.fields["selected_layers"].initial = self.instance.selected_layers or []
 
-    def clean_selected_layers(self):
-        """Convert the list back to a format suitable for JSONField."""
+    def clean_selected_layers(self) -> list[str]:
+        """Return the selected layers as a plain list for JSONField storage."""
         return list(self.cleaned_data.get("selected_layers", []))
 
 
@@ -118,6 +121,7 @@ class QGISProjectConvertForm(forms.Form):
     )
 
     def clean_qgis_file(self):
+        """Validate that the uploaded file has a .qgs or .qgz extension."""
         uploaded_file = self.cleaned_data.get("qgis_file")
         if uploaded_file:
             filename = uploaded_file.name.lower()
@@ -140,6 +144,7 @@ class GeoPackageSchemaConfigAdmin(admin.ModelAdmin):
         js = ["admin/js/core.js"]
 
     def get_urls(self):
+        """Register custom URL for the QGIS project conversion view."""
         urls = super().get_urls()
         custom_urls = [
             path(
@@ -151,7 +156,7 @@ class GeoPackageSchemaConfigAdmin(admin.ModelAdmin):
         return custom_urls + urls
 
     def convert_qgis_view(self, request):
-        """View to upload and convert QGIS project file."""
+        """Handle upload and conversion of OGR datasources to PostgreSQL in a QGIS project."""
         from django.http import HttpResponse
 
         from .services import convert_qgs_to_postgres, handle_qgis_file, repackage_qgz
@@ -201,10 +206,12 @@ class GeoPackageSchemaConfigAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Layers"))
     def layer_count(self, obj):
+        """Return the number of selected layers."""
         return len(obj.selected_layers) if obj.selected_layers else 0
 
     @admin.display(description=_("Selected Layers"))
     def layer_preview(self, obj):
+        """Return a comma-separated preview of the first five selected layers."""
         layers = (obj.selected_layers or [])[:5]
         suffix = "..." if len(obj.selected_layers or []) > 5 else ""
         return ", ".join(layers) + suffix if layers else _("None selected")
@@ -243,7 +250,7 @@ class GeoPackageSchemaConfigAdmin(admin.ModelAdmin):
             )
 
 
-FEATURE_MODEL_MAP = {
+FEATURE_MODEL_MAP: dict = {
     "trench": Trench,
     "conduit": Conduit,
     "cable": Cable,
@@ -252,60 +259,83 @@ FEATURE_MODEL_MAP = {
     "residentialunit": ResidentialUnit,
     "area": Area,
 }
+"""Map content-type model names to their Django model classes."""
 
 
 @admin.register(AttributesSurface)
 class AttributesSurfaceAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesSurface` lookup table."""
+
     list_display = ("id", "surface", "sealing")
 
 
 @admin.register(AttributesStatusDevelopment)
 class AttributesStatusDevelopmentAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesStatusDevelopment` lookup table."""
+
     list_display = ("id", "status")
 
 
 @admin.register(AttributesResidentialUnitType)
 class AttributesResidentialUnitTypeAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesResidentialUnitType` lookup table."""
+
     list_display = ("id", "residential_unit_type")
 
 
 @admin.register(AttributesResidentialUnitStatus)
 class AttributesResidentialUnitStatusAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesResidentialUnitStatus` lookup table."""
+
     list_display = ("id", "status")
 
 
 @admin.register(AttributesConstructionType)
 class AttributesConstructionTypeAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesConstructionType` lookup table."""
+
     list_display = ("id", "construction_type")
 
 
 @admin.register(AttributesStatus)
 class AttributesStatusAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesStatus` lookup table."""
+
     list_display = ("id", "status")
 
 
 @admin.register(AttributesPhase)
 class AttributesPhaseAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesPhase` lookup table."""
+
     list_display = ("id", "phase")
 
 
 @admin.register(AttributesCompany)
 class AttributesCompanyAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesCompany` lookup table."""
+
     list_display = ("id", "company", "city", "phone", "email")
 
 
 @admin.register(AttributesAreaType)
 class AttributesAreaTypeAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesAreaType` lookup table."""
+
     list_display = ("id", "area_type")
 
 
 @admin.register(AttributesComponentType)
 class AttributesComponentTypeAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesComponentType` lookup table."""
+
     list_display = ("id", "component_type", "occupied_slots", "manufacturer")
 
 
 @admin.register(AttributesComponentStructure)
 class AttributesComponentStructureAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesComponentStructure` lookup table."""
+
     list_display = ("id", "component_type", "in_or_out", "port", "port_alias")
 
 
@@ -464,6 +494,8 @@ class CableAdmin(SimpleHistoryAdmin):
 
 @admin.register(Area)
 class AreaAdmin(SimpleHistoryAdmin):
+    """Admin for :model:`api.Area` geographic areas."""
+
     list_display = ("name", "area_type", "project", "flag")
     list_filter = ("area_type", "project", "flag")
     search_fields = ("name", "project__project", "flag__flag", "area_type__area_type")
@@ -471,26 +503,36 @@ class AreaAdmin(SimpleHistoryAdmin):
 
 @admin.register(Flags)
 class FlagsAdmin(SimpleHistoryAdmin):
+    """Admin for :model:`api.Flags` project flags."""
+
     list_display = ("id", "flag")
 
 
 @admin.register(AttributesNetworkLevel)
 class AttributesNetworkLevelAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesNetworkLevel` lookup table."""
+
     list_display = ("id", "network_level")
 
 
 @admin.register(AttributesNodeType)
 class AttributesNodeTypeAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesNodeType` lookup table."""
+
     list_display = ("id", "node_type", "dimension", "group", "company")
 
 
 @admin.register(AttributesMicroductStatus)
 class AttributesMicroductStatusAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesMicroductStatus` lookup table."""
+
     list_display = ("id", "microduct_status")
 
 
 @admin.register(Microduct)
 class MicroductAdmin(SimpleHistoryAdmin):
+    """Admin for :model:`api.Microduct` cable pathway records."""
+
     list_display = ("uuid", "uuid_conduit", "number", "color")
     list_filter = ("uuid_conduit", "microduct_status")
     search_fields = ("uuid_conduit__name", "color")
@@ -498,6 +540,8 @@ class MicroductAdmin(SimpleHistoryAdmin):
 
 @admin.register(AttributesFiberStatus)
 class AttributesFiberStatusAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesFiberStatus` lookup table."""
+
     list_display = ("id", "fiber_status")
 
 
@@ -540,7 +584,7 @@ class ProjectsAdmin(SimpleHistoryAdmin):
 
     @admin.display(description=_("Excluded Node Types"))
     def excluded_types_display(self, obj):
-        """Display excluded node types for list view."""
+        """Return a comma-separated preview of excluded node types."""
         try:
             settings = obj.network_schema_settings
             count = settings.excluded_node_types.count()
@@ -558,7 +602,7 @@ class ProjectsAdmin(SimpleHistoryAdmin):
 
     @admin.display(description=_("Child View Types"))
     def child_view_types_display(self, obj):
-        """Display child view enabled node types for list view."""
+        """Return a comma-separated preview of child-view-enabled node types."""
         try:
             settings = obj.network_schema_settings
             count = settings.child_view_enabled_node_types.count()
@@ -576,7 +620,7 @@ class ProjectsAdmin(SimpleHistoryAdmin):
 
     @admin.display(description=_("Pipe Branch Types"))
     def allowed_pipe_branch_types_display(self, obj):
-        """Display allowed node types for pipe-branch in list view."""
+        """Return a comma-separated preview of allowed pipe-branch node types."""
         try:
             settings = obj.pipe_branch_settings
             count = settings.allowed_node_types.count()
@@ -611,10 +655,12 @@ class NetworkSchemaSettingsAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Excluded Count"))
     def excluded_count(self, obj):
+        """Return the total number of excluded node types."""
         return obj.excluded_node_types.count()
 
     @admin.display(description=_("Excluded Types"))
     def excluded_types_preview(self, obj):
+        """Return a comma-separated preview of excluded node types."""
         types = obj.excluded_node_types.all()[:5]
         names = [t.node_type for t in types]
         suffix = "..." if obj.excluded_node_types.count() > 5 else ""
@@ -622,10 +668,12 @@ class NetworkSchemaSettingsAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Child View Count"))
     def child_view_count(self, obj):
+        """Return the total number of child-view-enabled node types."""
         return obj.child_view_enabled_node_types.count()
 
     @admin.display(description=_("Child View Types"))
     def child_view_types_preview(self, obj):
+        """Return a comma-separated preview of child-view-enabled node types."""
         types = obj.child_view_enabled_node_types.all()[:5]
         names = [t.node_type for t in types]
         suffix = "..." if obj.child_view_enabled_node_types.count() > 5 else ""
@@ -644,10 +692,12 @@ class PipeBranchSettingsAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Allowed Count"))
     def allowed_count(self, obj):
+        """Return the total number of allowed node types."""
         return obj.allowed_node_types.count()
 
     @admin.display(description=_("Allowed Types"))
     def allowed_types_preview(self, obj):
+        """Return a comma-separated preview of allowed node types."""
         types = obj.allowed_node_types.all()[:5]
         names = [t.node_type for t in types]
         suffix = "..." if obj.allowed_node_types.count() > 5 else ""
@@ -656,6 +706,8 @@ class PipeBranchSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(Address)
 class AddressAdmin(SimpleHistoryAdmin):
+    """Admin for :model:`api.Address` postal address records."""
+
     list_display = (
         "street",
         "housenumber",
@@ -692,6 +744,8 @@ class AddressAdmin(SimpleHistoryAdmin):
 
 @admin.register(ResidentialUnit)
 class ResidentialUnitAdmin(SimpleHistoryAdmin):
+    """Admin for :model:`api.ResidentialUnit` dwelling unit records."""
+
     list_display = (
         "uuid",
         "uuid_address",
@@ -706,6 +760,8 @@ class ResidentialUnitAdmin(SimpleHistoryAdmin):
 
 
 class ConduitTypeColorMappingInline(admin.TabularInline):
+    """Inline for conduit type color mappings within conduit type admin."""
+
     model = ConduitTypeColorMapping
     extra = 1
     fields = ("uuid", "position", "color")
@@ -713,6 +769,8 @@ class ConduitTypeColorMappingInline(admin.TabularInline):
 
 
 class CableTypeColorMappingInline(admin.TabularInline):
+    """Inline for cable type fiber color mappings within cable type admin."""
+
     model = CableTypeColorMapping
     extra = 1
     fields = ("uuid", "position_type", "position", "color", "layer")
@@ -724,12 +782,16 @@ class CableTypeColorMappingInline(admin.TabularInline):
 
 @admin.register(AttributesConduitType)
 class AttributesConduitTypeAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesConduitType` with color mapping inlines."""
+
     list_display = ("id", "conduit_type", "conduit_count", "manufacturer")
     inlines = [ConduitTypeColorMappingInline]
 
 
 @admin.register(AttributesCableType)
 class AttributesCableTypeAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesCableType` with fiber color mapping inlines."""
+
     list_display = (
         "id",
         "cable_type",
@@ -743,6 +805,8 @@ class AttributesCableTypeAdmin(admin.ModelAdmin):
 
 @admin.register(AttributesMicroductColor)
 class AttributesMicroductColorAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesMicroductColor` color definitions."""
+
     list_display = (
         "id",
         "name_de",
@@ -767,6 +831,8 @@ class AttributesMicroductColorAdmin(admin.ModelAdmin):
 
 @admin.register(AttributesFiberColor)
 class AttributesFiberColorAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.AttributesFiberColor` color definitions."""
+
     list_display = (
         "id",
         "name_de",
@@ -791,6 +857,8 @@ class AttributesFiberColorAdmin(admin.ModelAdmin):
 
 @admin.register(StoragePreferences)
 class StoragePreferencesAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.StoragePreferences` file storage configuration."""
+
     list_display = ("mode", "__str__")
     formfield_overrides = {
         models.JSONField: {"widget": JSONEditorWidget(height="600px", width="90%")},
@@ -799,6 +867,8 @@ class StoragePreferencesAdmin(admin.ModelAdmin):
 
 @admin.register(QGISProject)
 class QGISProjectAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.QGISProject` with WMS/WFS URL display and datasource conversion."""
+
     list_display = ("display_name", "name", "created_at", "created_by")
     list_filter = ("name", "created_at")
     search_fields = ("name", "display_name", "description")
@@ -842,7 +912,7 @@ class QGISProjectAdmin(admin.ModelAdmin):
     actions = ["download_with_postgres_datasources"]
 
     def save_model(self, request, obj, form, change):
-        """Auto-populate created_by field."""
+        """Set ``created_by`` to the current user on first save."""
         if not change:
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
@@ -857,7 +927,7 @@ class QGISProjectAdmin(admin.ModelAdmin):
         )
 
     def get_wms_url(self, obj):
-        """Display WMS access URL in admin."""
+        """Return the WMS access URL for display in admin."""
         if obj.project_file:
             return obj.get_wms_url()
         return "-"
@@ -865,7 +935,7 @@ class QGISProjectAdmin(admin.ModelAdmin):
     get_wms_url.short_description = "WMS URL"
 
     def get_wfs_url(self, obj):
-        """Display WFS access URL in admin."""
+        """Return the WFS access URL for display in admin."""
         if obj.project_file:
             return obj.get_wfs_url()
         return "-"
@@ -873,7 +943,7 @@ class QGISProjectAdmin(admin.ModelAdmin):
     get_wfs_url.short_description = "WFS URL"
 
     def get_wfs3_url(self, obj):
-        """Display WFS3 (OGC API Features) access URL in admin."""
+        """Return the WFS3 (OGC API Features) access URL for display in admin."""
         if obj.project_file:
             return obj.get_wfs3_url()
         return "-"
@@ -941,6 +1011,8 @@ class QGISProjectAdmin(admin.ModelAdmin):
 
 @admin.register(Node)
 class NodeAdmin(SimpleHistoryAdmin):
+    """Admin for :model:`api.Node` network junction points."""
+
     list_display = (
         "name",
         "node_type",
@@ -1036,6 +1108,8 @@ class ConduitAdmin(SimpleHistoryAdmin):
 
 @admin.register(Trench)
 class TrenchAdmin(SimpleHistoryAdmin):
+    """Admin for :model:`api.Trench` linear excavation features."""
+
     list_display = (
         "id_trench",
         "surface",
@@ -1116,6 +1190,7 @@ class WFSErrorFilter(admin.SimpleListFilter):
     parameter_name = "wfs_errors"
 
     def lookups(self, request, model_admin):
+        """Return filter choices for WFS log categories."""
         return (
             ("wfs_all", _("All WFS logs")),
             ("wfs_errors", _("WFS errors only")),
@@ -1125,6 +1200,7 @@ class WFSErrorFilter(admin.SimpleListFilter):
         )
 
     def queryset(self, request, queryset):
+        """Filter the queryset by the selected WFS error category."""
         if self.value() == "wfs_all":
             return queryset.filter(source="wfs")
         elif self.value() == "wfs_errors":
@@ -1228,6 +1304,7 @@ class OrphanedFilesFilter(admin.SimpleListFilter):
     parameter_name = "orphan_status"
 
     def lookups(self, request, model_admin):
+        """Return filter choices for orphaned vs valid files."""
         self._model_admin = model_admin
         return (
             ("orphaned", _("Orphaned files only")),
@@ -1235,6 +1312,7 @@ class OrphanedFilesFilter(admin.SimpleListFilter):
         )
 
     def queryset(self, request, queryset):
+        """Filter the queryset to orphaned or valid files based on selection."""
         if self.value() == "orphaned":
             return self._model_admin.get_orphaned_files(queryset)
         elif self.value() == "valid":
@@ -1308,10 +1386,8 @@ class FeatureFilesAdmin(admin.ModelAdmin):
     actions = ["delete_orphaned_files", "move_to_feature"]
 
     def get_queryset(self, request):
-        """Annotate queryset with orphaned status for sorting."""
+        """Annotate queryset with ``_is_orphaned`` flag for sorting and display."""
         queryset = super().get_queryset(request)
-
-        # Create subqueries to check if feature exists for each model type
         orphaned_conditions = []
 
         for model_name, model_class in FEATURE_MODEL_MAP.items():
@@ -1322,17 +1398,13 @@ class FeatureFilesAdmin(admin.ModelAdmin):
             except ContentType.DoesNotExist:
                 continue
 
-            # Check if feature exists in this model
             feature_exists = Exists(
                 model_class.objects.filter(uuid=OuterRef("object_id"))
             )
-
-            # If content_type matches and feature doesn't exist, it's orphaned
             orphaned_conditions.append(
                 When(Q(content_type=content_type) & ~feature_exists, then=Value(1))
             )
 
-        # Also mark as orphaned if content_type doesn't match any known model
         unknown_content_types = ContentType.objects.filter(app_label="api").exclude(
             model__in=FEATURE_MODEL_MAP.keys()
         )
@@ -1341,7 +1413,6 @@ class FeatureFilesAdmin(admin.ModelAdmin):
                 When(content_type__in=unknown_content_types, then=Value(1))
             )
 
-        # Annotate: 1 if orphaned, 0 if valid
         queryset = queryset.annotate(
             _is_orphaned=Case(
                 *orphaned_conditions, default=Value(0), output_field=IntegerField()
@@ -1351,7 +1422,7 @@ class FeatureFilesAdmin(admin.ModelAdmin):
         return queryset
 
     def get_urls(self):
-        """Add custom URL for move files form."""
+        """Register custom URL for the move-files form view."""
         urls = super().get_urls()
         custom_urls = [
             path(
@@ -1363,10 +1434,13 @@ class FeatureFilesAdmin(admin.ModelAdmin):
         return custom_urls + urls
 
     def get_orphaned_files(self, queryset=None):
-        """
-        Find all FeatureFiles where the linked feature no longer exists.
+        """Return a queryset of FeatureFiles whose linked feature no longer exists.
 
-        Returns a queryset of orphaned FeatureFiles.
+        Args:
+            queryset: Optional base queryset to filter. Defaults to all FeatureFiles.
+
+        Returns:
+            QuerySet[FeatureFiles]: Only the orphaned file records.
         """
         if queryset is None:
             queryset = FeatureFiles.objects.all()
@@ -1400,8 +1474,8 @@ class FeatureFilesAdmin(admin.ModelAdmin):
 
         return queryset.filter(uuid__in=orphaned_uuids)
 
-    def is_orphaned(self, obj):
-        """Check if a single FeatureFiles instance is orphaned."""
+    def is_orphaned(self, obj) -> bool:
+        """Check whether the linked feature for a FeatureFiles instance still exists."""
         model_class = FEATURE_MODEL_MAP.get(obj.content_type.model)
         if not model_class:
             return True
@@ -1409,12 +1483,12 @@ class FeatureFilesAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Feature Type"))
     def feature_type_display(self, obj):
-        """Display the feature type (model name)."""
+        """Return the content type model name in title case."""
         return obj.content_type.model.title()
 
     @admin.display(description=_("Feature Identifier"))
     def feature_identifier_display(self, obj):
-        """Display the feature identifier or indicate if orphaned."""
+        """Return the feature identifier, or a 'deleted' label if orphaned."""
         if self.is_orphaned(obj):
             return format_html(
                 '<span style="color: #999; font-style: italic;">{} ({})</span>',
@@ -1425,8 +1499,7 @@ class FeatureFilesAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Status"), ordering="_is_orphaned")
     def orphan_status_display(self, obj):
-        """Display orphan status with color indicator."""
-        # Use annotation if available, otherwise fall back to method check
+        """Return a color-coded orphan/valid status badge."""
         is_orphaned = getattr(obj, "_is_orphaned", None)
         if is_orphaned is None:
             is_orphaned = 1 if self.is_orphaned(obj) else 0
@@ -1443,10 +1516,9 @@ class FeatureFilesAdmin(admin.ModelAdmin):
 
     @admin.action(description=_("Delete selected orphaned files and their data"))
     def delete_orphaned_files(self, request, queryset):
-        """
-        Delete orphaned files from storage and remove their database entries.
+        """Delete orphaned files from storage and remove their database entries.
 
-        Only processes files that are actually orphaned.
+        Skip files that still have a valid linked feature.
         """
         storage = LocalMediaStorage()
         deleted_count = 0
@@ -1492,7 +1564,7 @@ class FeatureFilesAdmin(admin.ModelAdmin):
         return redirect(f"{reverse('admin:api_featurefiles_move')}?ids={selected_str}")
 
     def move_files_view(self, request):
-        """Handle the move files form submission."""
+        """Render and process the form for moving files to another feature."""
         ids_param = request.GET.get("ids", "")
         if not ids_param:
             messages.error(request, _("No files selected."))
@@ -1654,12 +1726,13 @@ class WMSSourceAdminForm(forms.ModelForm):
         ]
 
     def __init__(self, *args, **kwargs):
+        """Pre-populate the password placeholder when editing an existing source."""
         super().__init__(*args, **kwargs)
-        # Pre-populate password field placeholder if password exists
         if self.instance and self.instance.pk and self.instance._password:
             self.fields["password"].widget.attrs["placeholder"] = "••••••••"
 
     def save(self, commit=True):
+        """Save the form and set the encrypted password if provided."""
         instance = super().save(commit=False)
         password = self.cleaned_data.get("password")
         if password:
@@ -1674,7 +1747,15 @@ class WMSSourceAdmin(admin.ModelAdmin):
     """Admin for WMS sources."""
 
     form = WMSSourceAdminForm
-    list_display = ["id", "name", "project", "url", "is_active", "layer_count", "sort_order"]
+    list_display = [
+        "id",
+        "name",
+        "project",
+        "url",
+        "is_active",
+        "layer_count",
+        "sort_order",
+    ]
     list_filter = ["project", "is_active"]
     search_fields = ["name", "url"]
     ordering = ["project", "sort_order", "name"]
@@ -1708,11 +1789,13 @@ class WMSSourceAdmin(admin.ModelAdmin):
     )
 
     def layer_count(self, obj):
+        """Return the number of enabled WMS layers for this source."""
         return obj.layers.filter(is_enabled=True).count()
 
     layer_count.short_description = _("Enabled Layers")
 
     def save_model(self, request, obj, form, change):
+        """Auto-fetch WMS layers when a new source is created or its URL changes."""
         super().save_model(request, obj, form, change)
 
         if not change or "url" in form.changed_data:
@@ -1738,7 +1821,7 @@ class WMSSourceAdmin(admin.ModelAdmin):
                 messages.error(request, _("Failed to fetch WMS layers: %s") % e)
 
     def scan_capabilities(self, request, queryset):
-        """Scan WMS sources and show recommended configuration."""
+        """Scan WMS capabilities and apply recommended min_zoom settings to layers."""
         for source in queryset:
             try:
                 result = scan_wms_capabilities(
@@ -1747,8 +1830,6 @@ class WMSSourceAdmin(admin.ModelAdmin):
                     password=source.password or None,
                 )
                 layers_info = result.get("layers", [])
-
-                # Update layers with recommended settings
                 updated_count = 0
                 for layer_info in layers_info:
                     try:
@@ -1796,6 +1877,8 @@ class WMSSourceAdmin(admin.ModelAdmin):
 
 @admin.register(ModelPermission)
 class ModelPermissionAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.ModelPermission` group-level model access control."""
+
     list_display = ["group", "model_name", "access_level"]
     list_filter = ["group", "access_level", "model_name"]
     list_editable = ["access_level"]
@@ -1806,6 +1889,8 @@ class ModelPermissionAdmin(admin.ModelAdmin):
 
 @admin.register(RoutePermission)
 class RoutePermissionAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.RoutePermission` group-level route access control."""
+
     list_display = ["group", "route_pattern", "allowed"]
     list_filter = ["group", "allowed"]
     list_editable = ["allowed"]
