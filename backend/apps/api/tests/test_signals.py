@@ -36,7 +36,6 @@ class TestMicroductCreationSignal:
 
     def test_conduit_creates_microducts_from_color_mapping(self):
         """Verify microducts are created when a conduit is saved with color mappings."""
-        # Setup: Create conduit type with color mappings
         conduit_type = ConduitTypeFactory(conduit_count=3)
         colors = [MicroductColorFactory() for _ in range(3)]
         for i, color in enumerate(colors, 1):
@@ -49,7 +48,6 @@ class TestMicroductCreationSignal:
         project = ProjectFactory()
         flag = FlagFactory()
 
-        # Act: Create a conduit (this triggers the signal)
         conduit = Conduit.objects.create(
             name="Test Conduit",
             conduit_type=conduit_type,
@@ -57,7 +55,6 @@ class TestMicroductCreationSignal:
             flag=flag,
         )
 
-        # Assert: Microducts should be created
         microducts = Microduct.objects.filter(uuid_conduit=conduit)
         assert microducts.count() == 3
 
@@ -143,7 +140,6 @@ class TestMicroductCreationSignal:
     def test_conduit_without_mapping_creates_no_microducts(self):
         """Verify no microducts are created when conduit type has no color mappings."""
         conduit_type = ConduitTypeFactory(conduit_count=5)
-        # No color mappings created
 
         project = ProjectFactory()
         flag = FlagFactory()
@@ -181,7 +177,6 @@ class TestMicroductCreationSignal:
 
         initial_count = Microduct.objects.filter(uuid_conduit=conduit).count()
 
-        # Update the conduit
         conduit.name = "Updated Conduit Name"
         conduit.save()
 
@@ -202,7 +197,6 @@ class TestFiberCreationSignal:
         )
         fiber_colors = [FiberColorFactory() for _ in range(6)]
 
-        # Create bundle mappings
         for i in range(1, 3):
             CableTypeColorMappingFactory(
                 cable_type=cable_type,
@@ -211,7 +205,6 @@ class TestFiberCreationSignal:
                 color=fiber_colors[i - 1],
             )
 
-        # Create fiber mappings
         for i in range(1, 7):
             CableTypeColorMappingFactory(
                 cable_type=cable_type,
@@ -367,7 +360,6 @@ class TestFiberCreationSignal:
             bundle_count=2,
             bundle_fiber_count=6,
         )
-        # No color mappings created
 
         project = ProjectFactory()
         flag = FlagFactory()
@@ -419,7 +411,6 @@ class TestFiberCreationSignal:
 
         initial_count = Fiber.objects.filter(uuid_cable=cable).count()
 
-        # Update the cable
         cable.length = 100.0
         cable.save()
 
@@ -470,7 +461,6 @@ class TestCableLengthUpdateSignal:
             flag=flag,
         )
 
-        # Create connection (triggers signal)
         MicroductCableConnection.objects.create(
             uuid_microduct=microduct,
             uuid_cable=cable,
@@ -484,7 +474,6 @@ class TestCableLengthUpdateSignal:
         project = ProjectFactory()
         flag = FlagFactory()
 
-        # Create two trenches with different lengths
         trench1 = TrenchFactory(
             project=project,
             flag=flag,
@@ -546,7 +535,6 @@ class TestCableLengthUpdateSignal:
         cable.refresh_from_db()
         assert cable.length == 125.0  # 50 + 75
 
-        # Delete one connection
         conn1.delete()
 
         cable.refresh_from_db()
@@ -557,7 +545,6 @@ class TestCableLengthUpdateSignal:
         project = ProjectFactory()
         flag = FlagFactory()
 
-        # Create trenches with explicit lengths and matching geometry
         trenches = [
             TrenchFactory(
                 project=project,
@@ -700,11 +687,9 @@ class TestCableNameChangeSignal:
             flag=flag,
         )
 
-        # Create labels with original cable name
         label1 = CableLabel.objects.create(cable=cable, text=cable.name)
         label2 = CableLabel.objects.create(cable=cable, text=cable.name, order=1)
 
-        # Change cable name
         cable.name = "New Cable Name"
         cable.save()
 
@@ -747,7 +732,6 @@ class TestCableNameChangeSignal:
             flag=flag,
         )
 
-        # Update other fields, not name
         cable.length = 500.0
         cable.save()
 
@@ -759,7 +743,6 @@ class TestCableNameChangeSignal:
         flag = FlagFactory()
         cable_type = CableTypeFactory()
 
-        # This should not raise any errors
         cable = Cable.objects.create(
             name="Brand New Cable",
             cable_type=cable_type,
@@ -767,5 +750,4 @@ class TestCableNameChangeSignal:
             flag=flag,
         )
 
-        # Cable should be created successfully
         assert Cable.objects.filter(pk=cable.pk).exists()

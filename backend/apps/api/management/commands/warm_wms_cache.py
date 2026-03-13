@@ -14,10 +14,19 @@ from django.core.management.base import BaseCommand
 from apps.api.models import WMSSource
 
 
-def tile_to_bbox(x, y, z):
-    """Convert Web Mercator tile coordinates to BBOX in EPSG:3857."""
+def tile_to_bbox(x: int, y: int, z: int) -> str:
+    """Convert Web Mercator tile coordinates to a comma-separated BBOX string.
+
+    Args:
+        x: Tile column index.
+        y: Tile row index.
+        z: Zoom level.
+
+    Returns:
+        str: BBOX in EPSG:3857 as ``"min_x,min_y,max_x,max_y"``.
+    """
     n = 2**z
-    tile_size = 40075016.686 / n  # Web Mercator extent / number of tiles
+    tile_size = 40075016.686 / n
 
     min_x = -20037508.343 + x * tile_size
     max_x = min_x + tile_size
@@ -27,8 +36,17 @@ def tile_to_bbox(x, y, z):
     return f"{min_x},{min_y},{max_x},{max_y}"
 
 
-def lat_lon_to_tile(lat, lon, zoom):
-    """Convert lat/lon to tile x,y coordinates."""
+def lat_lon_to_tile(lat: float, lon: float, zoom: int) -> tuple[int, int]:
+    """Convert WGS84 lat/lon to tile x, y coordinates at the given zoom level.
+
+    Args:
+        lat: Latitude in decimal degrees.
+        lon: Longitude in decimal degrees.
+        zoom: Zoom level.
+
+    Returns:
+        tuple[int, int]: Tile (x, y) coordinates.
+    """
     lat_rad = math.radians(lat)
     n = 2**zoom
     x = int((lon + 180) / 360 * n)
@@ -37,9 +55,21 @@ def lat_lon_to_tile(lat, lon, zoom):
 
 
 class Command(BaseCommand):
+    """Pre-warm the Nginx WMS tile cache for active :model:`api.WMSSource` layers.
+
+    Iterate over enabled WMS layers and fetch tiles for the requested
+    zoom range and bounding box via the proxy endpoint, populating the
+    Nginx cache to reduce cold-start latency for end users.
+    """
+
     help = "Pre-warm WMS tile cache for common zoom levels"
 
     def add_arguments(self, parser):
+        """Define CLI arguments for the command.
+
+        Args:
+            parser: ArgumentParser instance to register arguments on.
+        """
         parser.add_argument(
             "--source-id",
             type=str,
@@ -81,6 +111,13 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        """Fetch tiles for each active WMS layer across the configured zoom range.
+
+        Args:
+            *args: Positional arguments (unused).
+            **options: Command options including source_id, zoom range,
+                delay, bbox, dry_run, and proxy_url.
+        """
         source_id = options.get("source_id")
         zoom_min = options["zoom_min"]
         zoom_max = options["zoom_max"]
@@ -98,12 +135,13 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("No active WMS sources found"))
             return
 
-        # Default BBOX: Germany approximate extent in WGS84
         if bbox_str:
             min_lon, min_lat, max_lon, max_lat = map(float, bbox_str.split(","))
         else:
             min_lon, min_lat, max_lon, max_lat = 5.8, 47.2, 15.1, 55.1
-            self.stdout.write(f"Using default BBOX (Germany): {min_lon},{min_lat},{max_lon},{max_lat}")
+            self.stdout.write(
+                f"Using default BBOX (Germany): {min_lon},{min_lat},{max_lon},{max_lat}"
+            )
 
         total_tiles = 0
         cached_tiles = 0
@@ -121,13 +159,17 @@ class Command(BaseCommand):
                 layer_zoom_min = max(zoom_min, layer.min_zoom or 0)
                 layer_zoom_max = min(zoom_max, layer.max_zoom or 22)
 
-                self.stdout.write(f"  Layer: {layer.name} (zoom {layer_zoom_min}-{layer_zoom_max})")
+                self.stdout.write(
+                    f"  Layer: {layer.name} (zoom {layer_zoom_min}-{layer_zoom_max})"
+                )
 
                 for zoom in range(layer_zoom_min, layer_zoom_max + 1):
                     min_tile_x, max_tile_y = lat_lon_to_tile(min_lat, min_lon, zoom)
                     max_tile_x, min_tile_y = lat_lon_to_tile(max_lat, max_lon, zoom)
 
-                    tiles_at_zoom = (max_tile_x - min_tile_x + 1) * (max_tile_y - min_tile_y + 1)
+                    tiles_at_zoom = (max_tile_x - min_tile_x + 1) * (
+                        max_tile_y - min_tile_y + 1
+                    )
                     self.stdout.write(f"    Zoom {zoom}: {tiles_at_zoom} tiles")
 
                     if dry_run:
@@ -156,7 +198,9 @@ class Command(BaseCommand):
                             try:
                                 response = requests.get(url, params=params, timeout=60)
                                 if response.status_code == 200:
-                                    cache_status = response.headers.get("X-Cache-Status", "UNKNOWN")
+                                    cache_status = response.headers.get(
+                                        "X-Cache-Status", "UNKNOWN"
+                                    )
                                     if cache_status == "HIT":
                                         cached_tiles += 1
                                     self.stdout.write(
@@ -178,7 +222,9 @@ class Command(BaseCommand):
 
         self.stdout.write("")
         if dry_run:
-            self.stdout.write(self.style.SUCCESS(f"Dry run: would fetch {total_tiles} tiles"))
+            self.stdout.write(
+                self.style.SUCCESS(f"Dry run: would fetch {total_tiles} tiles")
+            )
         else:
             self.stdout.write(
                 self.style.SUCCESS(

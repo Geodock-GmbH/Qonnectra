@@ -1,3 +1,5 @@
+"""Tests for NodeCanvasCoordinatesView canvas sync functionality."""
+
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
@@ -107,10 +109,8 @@ class TestNodeCanvasCoordinatesView:
         """Set up for each test method."""
         self.url = "/api/v1/canvas-coordinates/"
 
-        # Create API client
         self.client = APIClient()
 
-        # Create test users
         self.user1 = User.objects.create_user(
             username="user1", email="user1@example.com", password="testpass123"
         )
@@ -118,15 +118,12 @@ class TestNodeCanvasCoordinatesView:
             username="user2", email="user2@example.com", password="testpass123"
         )
 
-        # Create test project
         self.project = Projects.objects.create(
             id=1, project="Test Project", description="Test project for canvas sync"
         )
 
-        # Create test flag
         self.flag = Flags.objects.create(id=1, flag="Test Flag")
 
-        # Create node attribute objects
         self.node_type = AttributesNodeType.objects.create(id=1, node_type="Test Type")
 
         self.status_attr = AttributesStatus.objects.create(id=1, status="Active")
@@ -137,7 +134,6 @@ class TestNodeCanvasCoordinatesView:
 
         self.company = AttributesCompany.objects.create(id=1, company="Test Company")
 
-        # Create test nodes with geometry
         self.nodes = []
         coordinates = [
             (1000.0, 2000.0),
@@ -161,7 +157,6 @@ class TestNodeCanvasCoordinatesView:
 
     def test_get_sync_status_no_sync_needed(self):
         """Test GET when all nodes have canvas coordinates."""
-        # Set canvas coordinates for all nodes
         for node in self.nodes:
             node.canvas_x = 100.0
             node.canvas_y = 200.0
@@ -195,7 +190,6 @@ class TestNodeCanvasCoordinatesView:
 
     def test_get_sync_status_in_progress(self):
         """Test GET when sync is in progress."""
-        # Create sync status in progress
         CanvasSyncStatus.objects.create(
             sync_key="project_1",
             status="IN_PROGRESS",
@@ -267,7 +261,6 @@ class TestNodeCanvasCoordinatesView:
         assert "center" in data
         assert "bounds" in data
 
-        # Check that sync status was created
         sync_status = CanvasSyncStatus.objects.get(sync_key="project_1")
         assert sync_status.status == "COMPLETED"
         assert sync_status.started_by == self.user1
@@ -275,7 +268,6 @@ class TestNodeCanvasCoordinatesView:
 
     def test_post_concurrent_sync_conflict(self):
         """Test POST when sync is already in progress (409 conflict)."""
-        # Create sync in progress
         CanvasSyncStatus.objects.create(
             sync_key="project_1",
             status="IN_PROGRESS",
@@ -305,24 +297,20 @@ class TestNodeCanvasCoordinatesView:
 
         assert response.status_code == status.HTTP_200_OK
 
-        # Check calculated coordinates
         data = response.json()
         center = data["center"]
         bounds = data["bounds"]
 
-        # Expected bounds based on test node coordinates
         assert bounds["min_x"] == 1000.0
         assert bounds["max_x"] == 2500.0
         assert bounds["min_y"] == 2000.0
         assert bounds["max_y"] == 3500.0
 
-        # Expected center
         expected_center_x = (1000.0 + 2500.0) / 2  # 1750.0
         expected_center_y = (2000.0 + 3500.0) / 2  # 2750.0
         assert center["x"] == expected_center_x
         assert center["y"] == expected_center_y
 
-        # Check that nodes have canvas coordinates
         for node in self.nodes:
             node.refresh_from_db()
             assert node.canvas_x is not None
@@ -332,7 +320,6 @@ class TestNodeCanvasCoordinatesView:
         """Test POST with different scale factors."""
         self.client.force_authenticate(user=self.user1)
 
-        # Test with scale 0.5
         response = self.client.post(
             self.url, {"project_id": 1, "scale": 0.5}, format="json"
         )
@@ -393,7 +380,6 @@ class TestNodeCanvasCoordinatesView:
         """Test POST error handling and status cleanup."""
         self.client.force_authenticate(user=self.user1)
 
-        # Mock an exception during sync
         with patch(
             "apps.api.views.NodeCanvasCoordinatesView._perform_sync"
         ) as mock_sync:
@@ -405,14 +391,12 @@ class TestNodeCanvasCoordinatesView:
 
             assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-            # Check that sync status was marked as failed
             sync_status = CanvasSyncStatus.objects.get(sync_key="project_1")
             assert sync_status.status == "FAILED"
             assert "Test exception" in sync_status.error_message
 
     def test_post_with_flag_filter(self):
         """Test POST with project and flag filters."""
-        # Create additional flag and nodes
         flag2 = Flags.objects.create(id=2, flag="Flag 2")
         Node.objects.create(
             name="Other Flag Node",
@@ -431,16 +415,13 @@ class TestNodeCanvasCoordinatesView:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
 
-        # Should only process nodes with flag_id=1 (4 nodes)
         assert data["updated_count"] == 4
 
     @patch("apps.api.views.NodeCanvasCoordinatesView._perform_sync")
     def test_heartbeat_updates_during_sync(self, mock_perform_sync):
         """Test that heartbeat is updated during sync operation."""
-        # Import Response here to avoid circular imports
         from rest_framework.response import Response
 
-        # Mock _perform_sync to check sync_status updates
         def mock_sync_with_heartbeat(sync_status, project_id, flag_id, scale):
             sync_status.update_heartbeat()
             return Response({"updated_count": 4, "scale": scale})
@@ -459,19 +440,14 @@ class TestNodeCanvasCoordinatesView:
 
     def test_authentication_required(self):
         """Test that authentication is required for both GET and POST."""
-        # Test GET without authentication
         response = self.client.get(self.url, {"project_id": 1})
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-        # Test POST without authentication
         response = self.client.post(self.url, {"project_id": 1}, format="json")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_sync_status_atomic_lock_acquisition(self):
         """Test atomic lock acquisition using select_for_update."""
-        # This test simulates concurrent access by creating a sync status
-        # and then trying to acquire lock again
-
         sync_status = CanvasSyncStatus.objects.create(
             sync_key="project_1", status="IDLE", started_by=self.user1
         )
@@ -481,7 +457,6 @@ class TestNodeCanvasCoordinatesView:
             self.url, {"project_id": 1, "scale": 0.5}, format="json"
         )
 
-        # Should succeed and update the existing sync status
         assert response.status_code == status.HTTP_200_OK
 
         sync_status.refresh_from_db()
@@ -492,7 +467,6 @@ class TestNodeCanvasCoordinatesView:
         """Test recovery from stale sync operations."""
         old_time = timezone.now() - timedelta(minutes=15)
 
-        # Create stale sync
         CanvasSyncStatus.objects.create(
             sync_key="project_1",
             status="IN_PROGRESS",
@@ -505,7 +479,6 @@ class TestNodeCanvasCoordinatesView:
             self.url, {"project_id": 1, "scale": 0.5}, format="json"
         )
 
-        # Should succeed despite stale sync existing
         assert response.status_code == status.HTTP_200_OK
 
         sync_status = CanvasSyncStatus.objects.get(sync_key="project_1")

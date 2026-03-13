@@ -1,3 +1,5 @@
+"""Tests for node structure Excel export service and API endpoint."""
+
 import io
 import uuid
 
@@ -22,6 +24,7 @@ class TestGenerateNodeStructureExcel:
     """Tests for the node structure Excel export service."""
 
     def setup_method(self):
+        """Create a node with slot configuration for export tests."""
         self.node = NodeFactory(name="Test Node")
         self.slot_config = NodeSlotConfiguration.objects.create(
             uuid_node=self.node,
@@ -124,6 +127,7 @@ class TestNodeStructureExportView:
     """Tests for the export API endpoint."""
 
     def setup_method(self):
+        """Create an authenticated client and test node for export endpoint tests."""
         self.client = APIClient()
         self.user = User.objects.create_user(
             username="testuser", password="testpass123"
@@ -132,6 +136,7 @@ class TestNodeStructureExportView:
         self.node = NodeFactory(name="Test Node")
 
     def test_authenticated_user_can_download(self):
+        """Test that an authenticated user can download an Excel export."""
         NodeSlotConfiguration.objects.create(
             uuid_node=self.node, side="A", total_slots=12
         )
@@ -143,10 +148,12 @@ class TestNodeStructureExportView:
         )
 
     def test_unauthenticated_returns_401(self):
+        """Test that unauthenticated requests return 401."""
         self.client.force_authenticate(user=None)
         response = self.client.get(f"/api/v1/node-export/excel/{self.node.uuid}/")
         assert response.status_code == 401
 
     def test_nonexistent_node_returns_404(self):
+        """Test that a non-existent node returns 404."""
         response = self.client.get(f"/api/v1/node-export/excel/{uuid.uuid4()}/")
         assert response.status_code == 404
