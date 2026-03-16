@@ -28,7 +28,7 @@ def api_client():
 @pytest.fixture
 def authenticated_client(db):
     """Create an authenticated API client."""
-    user = User.objects.create_user(
+    user = User.objects.create_superuser(
         username="testuser",
         email="test@example.com",
         password="testpass123",

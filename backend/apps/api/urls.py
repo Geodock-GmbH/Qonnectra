@@ -32,6 +32,7 @@ from .views import (
     CableMicropipeConnectionsView,
     CableTypeColorMappingViewSet,
     CableViewSet,
+    ConfigView,
     ConduitImportTemplateView,
     ConduitImportView,
     ConduitsByTrenchesView,
@@ -371,6 +372,11 @@ urlpatterns = [
         "dashboard/statistics/",
         DashboardStatisticsView.as_view(),
         name="dashboard-statistics",
+    ),
+    path(
+        "config/",
+        ConfigView.as_view(),
+        name="config",
     ),
     path(
         "fiber-trace/",

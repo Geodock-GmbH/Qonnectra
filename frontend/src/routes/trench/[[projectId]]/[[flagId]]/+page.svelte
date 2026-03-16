@@ -12,6 +12,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 	import { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte.js';
 	import { MapState } from '$lib/classes/MapState.svelte.js';
 	import ConduitCombobox from '$lib/components/ConduitCombobox.svelte';
@@ -179,8 +180,9 @@
 
 					if (geometryWkt) {
 						const view = mapState.olMap.getView();
+						registerStorageProjection($page.data.srid, $page.data.proj4Def);
 						const geometry = wktFormat.readGeometry(geometryWkt, {
-							dataProjection: 'EPSG:25832',
+							dataProjection: storageProjection($page.data.srid),
 							featureProjection: view.getProjection()
 						});
 
@@ -394,8 +396,9 @@
 
 					if (routeData.path_geometry_wkt && routeData.traversed_trench_uuids) {
 						const wktFormat = new WKT();
+						registerStorageProjection($page.data.srid, $page.data.proj4Def);
 						const routeFeature = wktFormat.readFeature(routeData.path_geometry_wkt, {
-							dataProjection: 'EPSG:25832',
+							dataProjection: storageProjection($page.data.srid),
 							featureProjection: mapState.olMap.getView().getProjection()
 						});
 						if (routeLayer) routeLayer.getSource().addFeature(routeFeature);

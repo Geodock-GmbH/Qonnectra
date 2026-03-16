@@ -14,9 +14,10 @@ export function traceFrom(type, id) {
  * Builds a GeoJSON FeatureCollection from trace result geometries.
  * Includes cable/trench LineStrings and node/address Point features.
  * @param {Record<string, any>} traceResult - The trace result containing cable_infrastructure and trace tree(s)
- * @returns {Record<string, any>} GeoJSON FeatureCollection in EPSG:25832
+ * @param {number} srid - The EPSG code for the coordinate reference system (e.g. 25832)
+ * @returns {Record<string, any>} GeoJSON FeatureCollection in the specified SRID
  */
-export function buildGeoJSON(traceResult) {
+export function buildGeoJSON(traceResult, srid) {
 	const features = [];
 	const cableInfra = traceResult.cable_infrastructure || {};
 
@@ -117,7 +118,7 @@ export function buildGeoJSON(traceResult) {
 		name: 'fiber_trace_infrastructure',
 		crs: {
 			type: 'name',
-			properties: { name: 'urn:ogc:def:crs:EPSG::25832' }
+			properties: { name: `urn:ogc:def:crs:EPSG::${srid}` }
 		},
 		features
 	};
@@ -159,10 +160,11 @@ export function hasGeometries(traceResult) {
  * @param {Record<string, any>} result - The trace result data
  * @param {string} filenamePrefix - Prefix for the download filename (e.g. 'fiber-trace' or 'signal-analysis')
  * @param {string} entryId - Entry UUID used in the filename
+ * @param {number} srid - The EPSG code for the coordinate reference system (e.g. 25832)
  * @returns {void}
  */
-export function downloadGeoJSON(result, filenamePrefix, entryId) {
-	const geojson = buildGeoJSON(result);
+export function downloadGeoJSON(result, filenamePrefix, entryId, srid) {
+	const geojson = buildGeoJSON(result, srid);
 	const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json' });
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement('a');

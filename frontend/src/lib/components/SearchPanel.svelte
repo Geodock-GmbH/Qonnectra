@@ -5,8 +5,11 @@
 	import { parse } from 'devalue';
 	import Fuse from 'fuse.js';
 
+	import { page } from '$app/stores';
+
 	import { m } from '$lib/paraglide/messages';
 
+	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 	import {
 		createHighlightLayer,
 		createHighlightStyle,
@@ -159,6 +162,7 @@
 		if (!result || !olMapInstance) return;
 
 		const { type, value } = result;
+		registerStorageProjection($page.data.srid, $page.data.proj4Def);
 
 		try {
 			if (type === 'conduit') {
@@ -190,7 +194,7 @@
 
 				const geometry = await parseFeatureGeometry(
 					feature,
-					'EPSG:25832',
+					storageProjection($page.data.srid),
 					olMapInstance.getView().getProjection()
 				);
 
@@ -248,6 +252,7 @@
 	 * @param {string} conduitUuid - UUID of the selected conduit
 	 */
 	async function handleConduitSelect(conduitUuid) {
+		registerStorageProjection($page.data.srid, $page.data.proj4Def);
 		try {
 			const formData = new FormData();
 			formData.append('conduitUuid', conduitUuid);
@@ -271,7 +276,7 @@
 
 				const rawGeometries = await parseMultipleFeatureGeometries(
 					parsedData.trenches,
-					'EPSG:25832',
+					storageProjection($page.data.srid),
 					olMapInstance.getView().getProjection()
 				);
 				const geometries = rawGeometries.filter(

@@ -2,17 +2,6 @@
  * Search utilities for map features
  */
 
-import { register } from 'ol/proj/proj4';
-import proj4 from 'proj4';
-
-// Register EPSG:25832 (ETRS89 / UTM zone 32N) so OpenLayers can transform
-// coordinates from the backend's native SRID to the map's EPSG:3857.
-proj4.defs(
-	'EPSG:25832',
-	'+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs'
-);
-register(proj4);
-
 /**
  * Creates a highlight layer for temporarily highlighting features
  * @param {import('ol/style/Style').default} highlightStyle - Style for the highlight
@@ -73,13 +62,13 @@ export async function createHighlightStyle(color = '#ff0000') {
 /**
  * Parses geometry from GeoJSON feature and converts to OL geometry
  * @param {Object} feature - GeoJSON feature from API
- * @param {string} fromProjection - Source projection (default: 'EPSG:25832')
+ * @param {string} fromProjection - Source projection (e.g. 'EPSG:25832')
  * @param {string | null} toProjection - Target projection (default: map projection)
  * @returns {Promise<import('ol/geom/Geometry').default | undefined>} OpenLayers geometry
  */
 export async function parseFeatureGeometry(
 	feature,
-	fromProjection = 'EPSG:25832',
+	fromProjection,
 	toProjection = null
 ) {
 	const [{ default: GeoJSON }] = await Promise.all([import('ol/format/GeoJSON')]);
@@ -194,13 +183,13 @@ function highlightSearchTerm(text, searchTerm) {
 /**
  * Parse multiple GeoJSON features to OpenLayers geometries
  * @param {Object[]} features - Array of GeoJSON features from API
- * @param {string} fromProjection - Source projection (default: 'EPSG:25832')
+ * @param {string} fromProjection - Source projection (e.g. 'EPSG:25832')
  * @param {string | null} toProjection - Target projection (default: map projection)
  * @returns {Promise<(import('ol/geom/Geometry').default | undefined)[]>} Array of OpenLayers geometries
  */
 export async function parseMultipleFeatureGeometries(
 	features,
-	fromProjection = 'EPSG:25832',
+	fromProjection,
 	toProjection = null
 ) {
 	const geometries = await Promise.all(

@@ -104,7 +104,7 @@ vi.mock('$app/navigation', () => ({
 vi.mock('$app/stores', () => ({
 	page: {
 		subscribe: (/** @type {Function} */ callback) => {
-			callback({ url: { pathname: '/trench/1/1' }, params: { projectId: '1', flagId: '1' } });
+			callback({ url: { pathname: '/trench/1/1' }, params: { projectId: '1', flagId: '1' }, data: { srid: 25832, proj4Def: '+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs' } });
 			return { unsubscribe: vi.fn() };
 		}
 	},

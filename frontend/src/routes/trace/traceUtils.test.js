@@ -32,7 +32,7 @@ describe('buildGeoJSON', () => {
 				}
 			}
 		};
-		const geojson = buildGeoJSON(result);
+		const geojson = buildGeoJSON(result, 25832);
 		expect(geojson.features).toHaveLength(1);
 		expect(geojson.features[0].properties.feature_type).toBe('trench');
 		expect(geojson.features[0].geometry.type).toBe('LineString');
@@ -44,7 +44,7 @@ describe('buildGeoJSON', () => {
 				'cable-1': { merged_geometry: LINE_GEOM, total_length: 200 }
 			}
 		};
-		const geojson = buildGeoJSON(result);
+		const geojson = buildGeoJSON(result, 25832);
 		expect(geojson.features).toHaveLength(1);
 		expect(geojson.features[0].properties.feature_type).toBe('cable');
 	});
@@ -62,7 +62,7 @@ describe('buildGeoJSON', () => {
 				]
 			})
 		};
-		const geojson = buildGeoJSON(result);
+		const geojson = buildGeoJSON(result, 25832);
 		const nodeFeatures = geojson.features.filter((/** @type {any} */ f) => f.properties.feature_type === 'node');
 		expect(nodeFeatures).toHaveLength(1);
 		expect(nodeFeatures[0].properties.name).toBe('Node-1');
@@ -96,7 +96,7 @@ describe('buildGeoJSON', () => {
 				]
 			})
 		};
-		const geojson = buildGeoJSON(result);
+		const geojson = buildGeoJSON(result, 25832);
 		const addrFeatures = geojson.features.filter(
 			(/** @type {any} */ f) => f.properties.feature_type === 'address'
 		);
@@ -133,7 +133,7 @@ describe('buildGeoJSON', () => {
 				]
 			})
 		};
-		const geojson = buildGeoJSON(result);
+		const geojson = buildGeoJSON(result, 25832);
 		const nodeFeatures = geojson.features.filter((/** @type {any} */ f) => f.properties.feature_type === 'node');
 		expect(nodeFeatures).toHaveLength(1);
 	});
@@ -162,7 +162,7 @@ describe('buildGeoJSON', () => {
 				})
 			]
 		};
-		const geojson = buildGeoJSON(result);
+		const geojson = buildGeoJSON(result, 25832);
 		const nodeFeatures = geojson.features.filter((/** @type {any} */ f) => f.properties.feature_type === 'node');
 		expect(nodeFeatures).toHaveLength(2);
 	});
@@ -190,7 +190,7 @@ describe('buildGeoJSON', () => {
 				}
 			})
 		};
-		const geojson = buildGeoJSON(result);
+		const geojson = buildGeoJSON(result, 25832);
 		const nodeFeatures = geojson.features.filter(
 			(/** @type {any} */ f) => f.properties.feature_type === 'node'
 		);
@@ -218,7 +218,7 @@ describe('buildGeoJSON', () => {
 				]
 			})
 		};
-		const geojson = buildGeoJSON(result);
+		const geojson = buildGeoJSON(result, 25832);
 		const nodeFeatures = geojson.features.filter(
 			(/** @type {any} */ f) => f.properties.feature_type === 'node'
 		);
@@ -238,7 +238,7 @@ describe('buildGeoJSON', () => {
 				]
 			})
 		};
-		const geojson = buildGeoJSON(result);
+		const geojson = buildGeoJSON(result, 25832);
 		const nodeFeatures = geojson.features.filter((/** @type {any} */ f) => f.properties.feature_type === 'node');
 		expect(nodeFeatures).toHaveLength(0);
 	});

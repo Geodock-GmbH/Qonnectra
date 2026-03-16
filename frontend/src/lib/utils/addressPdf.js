@@ -140,10 +140,11 @@ function buildAddressPage(
 		mapY += 6;
 	}
 
-	if (address.coords25832 || address.coords4326) {
+	if (address.coordsDefault || address.coords4326) {
 		mapY = drawCoordinateCard(doc, {
-			coords25832: address.coords25832,
+			coordsDefault: address.coordsDefault,
 			coords4326: address.coords4326,
+			srid: address.srid,
 			x: mapX,
 			y: mapY,
 			width: mapColWidth
@@ -454,18 +455,19 @@ function drawMapSection(doc, { image, x, y, width, wmsAttributions = [] }) {
 }
 
 /**
- * Draws a compact coordinate card showing EPSG:25832 and/or EPSG:4326 coordinates.
+ * Draws a compact coordinate card showing storage SRID and/or EPSG:4326 coordinates.
  * @param {import('jspdf').jsPDF} doc - The jsPDF document instance.
  * @param {Object} options
- * @param {string} [options.coords25832] - Coordinate string in EPSG:25832.
+ * @param {string} [options.coordsDefault] - Coordinate string in the storage SRID.
  * @param {string} [options.coords4326] - Coordinate string in EPSG:4326.
+ * @param {number} [options.srid] - The EPSG code for the storage projection.
  * @param {number} options.x - Left X position in mm.
  * @param {number} options.y - Top Y position in mm.
  * @param {number} options.width - Card width in mm.
  * @returns {number} The Y position below the card.
  */
-function drawCoordinateCard(doc, { coords25832, coords4326, x, y, width }) {
-	const cardHeight = coords25832 && coords4326 ? 20 : 12;
+function drawCoordinateCard(doc, { coordsDefault, coords4326, srid, x, y, width }) {
+	const cardHeight = coordsDefault && coords4326 ? 20 : 12;
 
 	doc.setFillColor(...COLORS.white);
 	doc.roundedRect(x, y, width, cardHeight, 2, 2, 'F');
@@ -476,16 +478,16 @@ function drawCoordinateCard(doc, { coords25832, coords4326, x, y, width }) {
 
 	let lineY = y + 7;
 
-	if (coords25832) {
+	if (coordsDefault) {
 		doc.setFont('courier', 'bold');
 		doc.setFontSize(6);
 		doc.setTextColor(...COLORS.emerald600);
-		doc.text('EPSG:25832', x + 4, lineY);
+		doc.text(`EPSG:${srid}`, x + 4, lineY);
 
 		doc.setFont('courier', 'normal');
 		doc.setFontSize(6.5);
 		doc.setTextColor(...COLORS.slate700);
-		doc.text(coords25832, x + 26, lineY);
+		doc.text(coordsDefault, x + 26, lineY);
 
 		lineY += 7;
 	}

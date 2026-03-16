@@ -6152,14 +6152,23 @@ class WFS3ProxyView(APIView):
         )
 
     def _fix_collection_extents(self, data):
-        """Reproject bbox from EPSG:25832 to WGS84.
+        """Reproject bbox from the configured storage SRID to WGS84.
 
-        QGIS Server incorrectly reports bbox coordinates in EPSG:25832
+        QGIS Server incorrectly reports bbox coordinates in the storage SRID
         while declaring the CRS as OGC:CRS84 (WGS84 lon/lat).
+
+        Args:
+            data: OGC API collections response dict containing ``extent``
+                blocks with spatial bboxes.
+
+        Returns:
+            dict: The input data with bbox arrays reprojected to WGS84.
         """
         from pyproj import Transformer
 
-        transformer = Transformer.from_crs("EPSG:25832", "EPSG:4326", always_xy=True)
+        transformer = Transformer.from_crs(
+            f"EPSG:{settings.DEFAULT_SRID}", "EPSG:4326", always_xy=True
+        )
 
         def fix_bbox(bbox):
             minx, miny, maxx, maxy = bbox
@@ -6177,14 +6186,24 @@ class WFS3ProxyView(APIView):
         return data
 
     def _reproject_geojson(self, data):
-        """Reproject GeoJSON feature coordinates from EPSG:25832 to WGS84.
+        """Reproject GeoJSON feature coordinates from the configured storage SRID to WGS84.
 
-        QGIS Server returns coordinates in EPSG:25832 but GeoJSON spec
+        QGIS Server returns coordinates in the storage SRID but GeoJSON spec
         requires WGS84 (OGC:CRS84) lon/lat order.
+
+        Args:
+            data: GeoJSON response dict (FeatureCollection or single Feature)
+                with coordinates in the storage SRID.
+
+        Returns:
+            dict: The input data with all coordinates and bboxes reprojected
+                to EPSG:4326.
         """
         from pyproj import Transformer
 
-        transformer = Transformer.from_crs("EPSG:25832", "EPSG:4326", always_xy=True)
+        transformer = Transformer.from_crs(
+            f"EPSG:{settings.DEFAULT_SRID}", "EPSG:4326", always_xy=True
+        )
 
         def reproject_coords(coords):
             if not coords:
@@ -6231,7 +6250,16 @@ class WFS3ProxyView(APIView):
         return data
 
     def _reproject_bbox_param(self, params):
-        """Reproject bbox query param from WGS84 to EPSG:25832 for QGIS Server."""
+        """Reproject bbox query param from WGS84 to the configured storage SRID for QGIS Server.
+
+        Args:
+            params: Query parameter dict, potentially containing a ``bbox`` key
+                with comma-separated WGS84 coordinates.
+
+        Returns:
+            dict: Copy of params with the ``bbox`` value reprojected, or the
+                original params if no bbox is present or parsing fails.
+        """
         from pyproj import Transformer
 
         bbox = params.get("bbox")
@@ -6244,7 +6272,7 @@ class WFS3ProxyView(APIView):
                 return params
             lon_min, lat_min, lon_max, lat_max = parts
             transformer = Transformer.from_crs(
-                "EPSG:4326", "EPSG:25832", always_xy=True
+                "EPSG:4326", f"EPSG:{settings.DEFAULT_SRID}", always_xy=True
             )
             x_min, y_min = transformer.transform(lon_min, lat_min)
             x_max, y_max = transformer.transform(lon_max, lat_max)
@@ -7152,3 +7180,43 @@ class SignalAnalysisView(APIView):
                 {"error": "An error occurred while analyzing signal flow"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class ConfigView(APIView):
+    """Return deployment-wide configuration, :model:`api.Project`.
+
+    Expose the configured storage SRID and its proj4 definition string
+    so frontends can register the correct projection at runtime.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Return the storage SRID and its proj4 definition.
+
+        Args:
+            request: DRF request object.
+
+        Returns:
+            Response: JSON with ``srid`` (int) and ``proj4`` (str).
+                Cached for 24 hours via Cache-Control header.
+
+        Raises:
+            Response: 500 with error message if the configured SRID
+                is not a valid EPSG code.
+        """
+        from pyproj import CRS
+        from pyproj.exceptions import CRSError
+
+        srid = settings.DEFAULT_SRID
+        try:
+            proj4_string = CRS.from_epsg(srid).to_proj4()
+        except CRSError:
+            return Response(
+                {"error": f"Invalid EPSG code: {srid}"},
+                status=500,
+            )
+
+        response = Response({"srid": srid, "proj4": proj4_string})
+        response["Cache-Control"] = "public, max-age=86400"
+        return response

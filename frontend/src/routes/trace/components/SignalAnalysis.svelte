@@ -79,7 +79,7 @@
 	 */
 	function handleDownloadGeoJSON() {
 		if (!result) return;
-		downloadGeoJSONFile(result, 'signal-analysis', entryId);
+		downloadGeoJSONFile(result, 'signal-analysis', entryId, page.data.srid);
 	}
 
 	const signalAnalysis = $derived(result?.signal_analysis);

@@ -27,6 +27,8 @@ export async function load({ locals, url, fetch, cookies }) {
 	let projects = [];
 	let projectsError = null;
 	let appVersion = null;
+	let srid = null;
+	let proj4Def = null;
 
 	if (packageJson) {
 		appVersion = packageJson.version;
@@ -39,9 +41,10 @@ export async function load({ locals, url, fetch, cookies }) {
 			headers.append('Cookie', `api-access-token=${accessToken}`);
 		}
 
-		const [flagsResponse, projectsResponse] = await Promise.allSettled([
+		const [flagsResponse, projectsResponse, configResponse] = await Promise.allSettled([
 			fetch(`${API_URL}flags/`, { headers }),
-			fetch(`${API_URL}projects/?active=1`, { headers })
+			fetch(`${API_URL}projects/?active=1`, { headers }),
+			fetch(`${API_URL}config/`, { headers })
 		]);
 
 		if (flagsResponse.status === 'fulfilled' && flagsResponse.value.ok) {
@@ -78,6 +81,17 @@ export async function load({ locals, url, fetch, cookies }) {
 				console.error('Failed to load projects:', projectsResponse.reason);
 			}
 		}
+		if (configResponse.status === 'fulfilled' && configResponse.value.ok) {
+			try {
+				const configData = await configResponse.value.json();
+				srid = configData.srid;
+				proj4Def = configData.proj4;
+			} catch (e) {
+				console.error('Failed to parse config data:', e);
+			}
+		} else if (configResponse.status === 'rejected') {
+			console.error('Failed to load config:', configResponse.reason);
+		}
 	}
 
 	if (!selectedProject && projects.length > 0) {
@@ -94,6 +108,8 @@ export async function load({ locals, url, fetch, cookies }) {
 		projects,
 		projectsError,
 		appVersion,
-		selectedProject
+		selectedProject,
+		srid,
+		proj4Def
 	};
 }

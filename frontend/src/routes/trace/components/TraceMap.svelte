@@ -2,6 +2,8 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { env } from '$env/dynamic/public';
+	import { page } from '$app/state';
+	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 
 	import 'ol/ol.css';
 
@@ -28,7 +30,7 @@
 	/** @type {any} */
 	let markerSource = $state(null);
 
-	const SOURCE_PROJECTION = 'EPSG:25832';
+	const SOURCE_PROJECTION = storageProjection(page.data.srid);
 	const TARGET_PROJECTION = 'EPSG:3857';
 
 	/** @type {any} */
@@ -139,9 +141,7 @@
 			StyleModule,
 			StrokeModule,
 			FillModule,
-			CircleModule,
-			{ register },
-			proj4
+			CircleModule
 		] = await Promise.all([
 			import('ol/Map'),
 			import('ol/View'),
@@ -150,9 +150,7 @@
 			import('ol/style/Style'),
 			import('ol/style/Stroke'),
 			import('ol/style/Fill'),
-			import('ol/style/Circle'),
-			import('ol/proj/proj4'),
-			import('proj4')
+			import('ol/style/Circle')
 		]);
 
 		Style = StyleModule.default;
@@ -160,11 +158,7 @@
 		Fill = FillModule.default;
 		CircleStyle = CircleModule.default;
 
-		proj4.default.defs(
-			'EPSG:25832',
-			'+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs'
-		);
-		register(proj4.default);
+		registerStorageProjection(page.data.srid, page.data.proj4Def);
 
 		vectorSource = new VectorSource();
 		markerSource = new VectorSource();

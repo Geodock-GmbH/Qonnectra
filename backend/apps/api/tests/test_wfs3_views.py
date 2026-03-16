@@ -145,7 +145,7 @@ class TestWFS3ProxyView:
     def test_proxy_forwards_query_params(self, api_client, qgis_project):
         """Should forward query parameters (except token).
 
-        Note: bbox coordinates are re-projected from WGS84 to EPSG:25832 for QGIS Server.
+        Note: bbox coordinates are re-projected from WGS84 to the configured storage SRID for QGIS Server.
         """
         mock_response = MagicMock()
         mock_response.json.return_value = {"features": []}
@@ -165,7 +165,7 @@ class TestWFS3ProxyView:
         # Check query params were forwarded
         call_kwargs = mock_get.call_args[1]
         params = call_kwargs.get("params", {})
-        # bbox is re-projected from WGS84 to EPSG:25832, so verify it was transformed
+        # bbox is re-projected from WGS84 to the configured storage SRID, so verify it was transformed
         assert "bbox" in params
         assert params.get("bbox") != "0,0,10,10"  # Should be transformed
         assert params.get("limit") == "100"
@@ -173,7 +173,7 @@ class TestWFS3ProxyView:
     def test_proxy_excludes_token_param(self, api_client, qgis_project):
         """Should not forward the token query parameter.
 
-        Note: bbox coordinates are re-projected from WGS84 to EPSG:25832 for QGIS Server.
+        Note: bbox coordinates are re-projected from WGS84 to the configured storage SRID for QGIS Server.
         """
         mock_response = MagicMock()
         mock_response.json.return_value = {"features": []}
@@ -193,7 +193,7 @@ class TestWFS3ProxyView:
         call_kwargs = mock_get.call_args[1]
         params = call_kwargs.get("params", {})
         assert "token" not in params
-        # bbox is re-projected from WGS84 to EPSG:25832
+        # bbox is re-projected from WGS84 to the configured storage SRID
         assert "bbox" in params
         assert params.get("bbox") != "0,0,10,10"  # Should be transformed
 

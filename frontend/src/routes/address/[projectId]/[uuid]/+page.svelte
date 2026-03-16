@@ -21,8 +21,11 @@
 	import { onMount } from 'svelte';
 	import proj4 from 'proj4';
 
+	import { page } from '$app/stores';
+
 	import { m } from '$lib/paraglide/messages';
 
+	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 	import FileExplorer from '$lib/components/FileExplorer.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import Map from '$lib/components/Map.svelte';
@@ -206,12 +209,13 @@
 	}
 
 	/**
-	 * Converts the geometry from EPSG:3857 to the project default SRID (EPSG:25832).
+	 * Converts the geometry from EPSG:3857 to the project's storage SRID.
 	 * @returns {string | null} Formatted coordinate string or null if no geometry.
 	 */
 	function convert3857ToDefault() {
 		if (!geom3857 || !geom3857.coordinates) return null;
-		const coordsDefault = proj4('EPSG:3857', 'EPSG:25832', geom3857.coordinates);
+		registerStorageProjection($page.data.srid, $page.data.proj4Def);
+		const coordsDefault = proj4('EPSG:3857', storageProjection($page.data.srid), geom3857.coordinates);
 		return `${coordsDefault[0].toFixed(6)}, ${coordsDefault[1].toFixed(6)}`;
 	}
 
@@ -435,8 +439,9 @@
 
 			const addressData = {
 				...address,
-				coords25832: convert3857ToDefault(),
-				coords4326: convert3857To4326()
+				coordsDefault: convert3857ToDefault(),
+				coords4326: convert3857To4326(),
+				srid: $page.data.srid
 			};
 
 			let unitsWithFibers = residentialUnits;

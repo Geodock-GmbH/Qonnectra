@@ -9,6 +9,7 @@
 		IconMapPin
 	} from '@tabler/icons-svelte';
 
+	import { page } from '$app/state';
 	import { m } from '$lib/paraglide/messages';
 
 	import FiberPathsTable from './FiberPathsTable.svelte';
@@ -75,7 +76,7 @@
 	function handleDownloadGeoJSON() {
 		if (!result) return;
 		const entryTypeLabel = result.entry_point?.type || 'trace';
-		downloadGeoJSON(result, `fiber-trace-${entryTypeLabel}`, result.entry_point?.id || entryId);
+		downloadGeoJSON(result, `fiber-trace-${entryTypeLabel}`, result.entry_point?.id || entryId, page.data.srid);
 	}
 </script>
 
@@ -117,7 +118,7 @@
 					<span>{m.trace_download_geojson()}</span>
 					<span class="border-l border-surface-200-800 pl-3 text-xs text-surface-600-400">
 						{result.statistics.total_trenches}
-						{m.form_selected_trenches().toLowerCase()} · EPSG:25832
+						{m.form_selected_trenches().toLowerCase()} · EPSG:{page.data.srid}
 					</span>
 				</button>
 			</div>
