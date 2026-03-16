@@ -2342,4 +2342,180 @@ describe('+page.server.js', () => {
 			expect(result.data.message).toBe('Server unreachable');
 		});
 	});
+
+	describe('exportExcel action', () => {
+		test('should successfully export Excel with filename from Content-Disposition', async () => {
+			const excelBuffer = new ArrayBuffer(8);
+			const view = new Uint8Array(excelBuffer);
+			view.set([0x50, 0x4b, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00]);
+
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				arrayBuffer: () => Promise.resolve(excelBuffer),
+				headers: new Headers({
+					'Content-Disposition': 'attachment; filename="node_structure.xlsx"'
+				})
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['nodeUuid', 'test-node-uuid']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.exportExcel(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.fileData).toBeDefined();
+			expect(typeof result.fileData).toBe('string');
+			expect(result.fileName).toBe('node_structure.xlsx');
+
+			const apiCall = mockFetch.mock.calls[0];
+			expect(apiCall[0]).toBe('http://localhost:8000/node-export/excel/test-node-uuid/');
+			expect(apiCall[1].headers).toHaveProperty('Cookie');
+		});
+
+		test('should use default filename when Content-Disposition is missing', async () => {
+			const excelBuffer = new ArrayBuffer(4);
+
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				arrayBuffer: () => Promise.resolve(excelBuffer),
+				headers: new Headers()
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['nodeUuid', 'test-node-uuid']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.exportExcel(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.fileName).toBe('structure.xlsx');
+			expect(result.fileData).toBeDefined();
+		});
+
+		test('should return fail(400) when nodeUuid is missing', async () => {
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['nodeUuid', '']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.exportExcel(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(400);
+			expect(result.data.error).toBe('Missing nodeUuid');
+			expect(mockFetch).not.toHaveBeenCalled();
+		});
+
+		test('should return fail with API status when API returns error', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 404
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['nodeUuid', 'nonexistent-uuid']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.exportExcel(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(404);
+			expect(result.data.error).toBe('Export failed');
+		});
+
+		test('should return fail(500) when network error occurs', async () => {
+			mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['nodeUuid', 'test-node-uuid']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.exportExcel(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(500);
+			expect(result.data.error).toBe('Export failed');
+		});
+
+		test('should return correct base64-encoded file data', async () => {
+			const testData = new TextEncoder().encode('test excel content');
+			const excelBuffer = testData.buffer;
+
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				status: 200,
+				arrayBuffer: () => Promise.resolve(excelBuffer),
+				headers: new Headers({
+					'Content-Disposition': 'attachment; filename="export.xlsx"'
+				})
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['nodeUuid', 'test-node-uuid']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.exportExcel(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			const decoded = Buffer.from(result.fileData, 'base64');
+			expect(decoded.toString()).toBe('test excel content');
+			expect(result.fileName).toBe('export.xlsx');
+		});
+	});
 });

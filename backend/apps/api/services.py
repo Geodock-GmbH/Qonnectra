@@ -1505,17 +1505,23 @@ def repackage_qgz(
 # =============================================================================
 
 
-def _get_entry_point_info(entry_type: str, entry_id) -> dict:
+def _get_entry_point_info(
+    entry_type: str, entry_id, include_geometry: bool = False
+) -> dict:
     """Look up a human-readable name for a trace entry point.
 
     Args:
         entry_type (str): One of ``'fiber'``, ``'cable'``, ``'node'``,
             ``'address'``, or ``'residential_unit'``.
         entry_id: UUID of the entry point.
+        include_geometry (bool): If ``True``, include Point geometry for
+            node and address entry types.
 
     Returns:
         dict: Contains ``'type'``, ``'id'``, and ``'name'`` keys.
             For ``'residential_unit'`` an additional ``'floor'`` key is included.
+            When ``include_geometry`` is ``True`` and entry type is ``'node'``
+            or ``'address'``, a ``'geometry'`` key is added.
     """
     entry_id_str = str(entry_id)
     result = {"type": entry_type, "id": entry_id_str, "name": None}
@@ -1544,6 +1550,22 @@ def _get_entry_point_info(entry_type: str, entry_id) -> dict:
         """,
     }
 
+    if include_geometry:
+        if entry_type == "node":
+            sql_map["node"] = """
+                SELECT name, ST_AsGeoJSON(geom)::jsonb as geometry
+                FROM node WHERE uuid = %(entry_id)s
+            """
+        elif entry_type == "address":
+            sql_map["address"] = """
+                SELECT
+                    street || ' ' || housenumber ||
+                    COALESCE(house_number_suffix, '') || ', ' ||
+                    zip_code || ' ' || city as name,
+                    ST_AsGeoJSON(geom)::jsonb as geometry
+                FROM address WHERE uuid = %(entry_id)s
+            """
+
     if entry_type not in sql_map:
         return result
 
@@ -1561,6 +1583,13 @@ def _get_entry_point_info(entry_type: str, entry_id) -> dict:
                     id_ru, floor = row
                     result["name"] = id_ru or None
                     result["floor"] = floor
+                elif include_geometry and entry_type in ("node", "address"):
+                    result["name"] = row[0]
+                    geom = row[1]
+                    if isinstance(geom, str):
+                        geom = json.loads(geom)
+                    if geom:
+                        result["geometry"] = geom
                 else:
                     result["name"] = row[0]
     except Exception:
@@ -1786,7 +1815,9 @@ def trace_fiber(
         ST_AsGeoJSON(n.geom)::jsonb as node_geometry,
         ST_AsGeoJSON(addr.geom)::jsonb as address_geometry,
         ST_AsGeoJSON(node_start.geom)::jsonb as cable_node_start_geometry,
-        ST_AsGeoJSON(node_end.geom)::jsonb as cable_node_end_geometry
+        ST_AsGeoJSON(node_end.geom)::jsonb as cable_node_end_geometry,
+        ST_AsGeoJSON(start_addr.geom)::jsonb as cable_start_address_geometry,
+        ST_AsGeoJSON(end_addr.geom)::jsonb as cable_end_address_geometry
     FROM fiber_trace ft
     LEFT JOIN node n ON n.uuid = ft.from_node_id
     LEFT JOIN address addr ON addr.uuid = n.uuid_address
@@ -1896,7 +1927,7 @@ def trace_cable(
         dict: Contains ``'entry_point'``, ``'trace_trees'``,
             ``'cable_infrastructure'``, and ``'statistics'``.
     """
-    entry_point = _get_entry_point_info("cable", cable_id)
+    entry_point = _get_entry_point_info("cable", cable_id, include_geometry)
 
     sql = """
     SELECT uuid FROM fiber WHERE uuid_cable = %(cable_id)s
@@ -2013,7 +2044,7 @@ def trace_node(
     WHERE fiber_id IS NOT NULL
     """
 
-    entry_point = _get_entry_point_info("node", node_id)
+    entry_point = _get_entry_point_info("node", node_id, include_geometry)
 
     with connection.cursor() as cursor:
         cursor.execute(sql, {"node_id": str(node_id)})
@@ -2130,7 +2161,7 @@ def trace_address(
     WHERE fiber_id IS NOT NULL
     """
 
-    entry_point = _get_entry_point_info("address", address_id)
+    entry_point = _get_entry_point_info("address", address_id, include_geometry)
 
     with connection.cursor() as cursor:
         cursor.execute(sql, {"address_id": str(address_id)})
@@ -2225,7 +2256,9 @@ def trace_residential_unit(
            OR fs.fiber_b IS NOT NULL OR fs.shared_fiber_b IS NOT NULL)
     """
 
-    entry_point = _get_entry_point_info("residential_unit", residential_unit_id)
+    entry_point = _get_entry_point_info(
+        "residential_unit", residential_unit_id, include_geometry
+    )
 
     with connection.cursor() as cursor:
         cursor.execute(sql, {"ru_id": str(residential_unit_id)})
@@ -2435,7 +2468,7 @@ def _build_trace_result(
             ``'cable_infrastructure'``, ``'statistics'``, and
             ``'_raw_segments'``.
     """
-    entry_point = _get_entry_point_info(entry_type, entry_id)
+    entry_point = _get_entry_point_info(entry_type, entry_id, include_geometry)
 
     if not rows:
         return {
@@ -2490,6 +2523,13 @@ def _build_trace_result(
                     "name": row.get("cable_node_start_name"),
                     "type": row.get("cable_node_start_type"),
                 }
+                if include_geometry:
+                    start_geom = row.get("cable_node_start_geometry")
+                    if isinstance(start_geom, str):
+                        start_geom = json.loads(start_geom)
+                    cable_endpoints_seen[cable_id]["start_node"][
+                        "geometry"
+                    ] = start_geom
                 if row.get("cable_start_address_id"):
                     addresses_seen.add(row["cable_start_address_id"])
                     cable_endpoints_seen[cable_id]["start_node"]["address"] = {
@@ -2500,6 +2540,13 @@ def _build_trace_result(
                         "zip_code": row.get("cable_start_address_zip_code"),
                         "city": row.get("cable_start_address_city"),
                     }
+                    if include_geometry:
+                        start_addr_geom = row.get("cable_start_address_geometry")
+                        if isinstance(start_addr_geom, str):
+                            start_addr_geom = json.loads(start_addr_geom)
+                        cable_endpoints_seen[cable_id]["start_node"]["address"][
+                            "geometry"
+                        ] = start_addr_geom
             if row.get("cable_node_end_id"):
                 nodes_seen.add(row["cable_node_end_id"])
                 cable_endpoints_seen[cable_id]["end_node"] = {
@@ -2507,6 +2554,13 @@ def _build_trace_result(
                     "name": row.get("cable_node_end_name"),
                     "type": row.get("cable_node_end_type"),
                 }
+                if include_geometry:
+                    end_geom = row.get("cable_node_end_geometry")
+                    if isinstance(end_geom, str):
+                        end_geom = json.loads(end_geom)
+                    cable_endpoints_seen[cable_id]["end_node"][
+                        "geometry"
+                    ] = end_geom
                 if row.get("cable_end_address_id"):
                     addresses_seen.add(row["cable_end_address_id"])
                     cable_endpoints_seen[cable_id]["end_node"]["address"] = {
@@ -2517,6 +2571,13 @@ def _build_trace_result(
                         "zip_code": row.get("cable_end_address_zip_code"),
                         "city": row.get("cable_end_address_city"),
                     }
+                    if include_geometry:
+                        end_addr_geom = row.get("cable_end_address_geometry")
+                        if isinstance(end_addr_geom, str):
+                            end_addr_geom = json.loads(end_addr_geom)
+                        cable_endpoints_seen[cable_id]["end_node"]["address"][
+                            "geometry"
+                        ] = end_addr_geom
 
     def build_node_with_address(row):
         """Build node dict including full address details if available."""
@@ -2527,6 +2588,12 @@ def _build_trace_result(
             "id": str(row["from_node_id"]),
             "name": row["from_node_name"],
         }
+
+        if include_geometry:
+            geom = row.get("node_geometry")
+            if isinstance(geom, str):
+                geom = json.loads(geom)
+            node_data["geometry"] = geom
 
         if row.get("address_id"):
             node_data["address"] = {
@@ -2542,6 +2609,11 @@ def _build_trace_result(
                 "project": row.get("address_project"),
                 "flag": row.get("address_flag"),
             }
+            if include_geometry:
+                addr_geom = row.get("address_geometry")
+                if isinstance(addr_geom, str):
+                    addr_geom = json.loads(addr_geom)
+                node_data["address"]["geometry"] = addr_geom
 
         return node_data
 

@@ -23,6 +23,7 @@ from apps.api.models import (
     ResidentialUnit,
 )
 from apps.api.services import (
+    _get_entry_point_info,
     trace_address,
     trace_cable,
     trace_fiber,
@@ -30,6 +31,7 @@ from apps.api.services import (
     trace_residential_unit,
 )
 from django.contrib.auth import get_user_model
+from django.contrib.gis.geos import Point
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -194,6 +196,88 @@ def isolated_fiber(db):
     return fiber, cable
 
 
+@pytest.fixture
+def fiber_chain_with_address(db):
+    """Create a fiber chain where Node-1 has an associated address."""
+    node1 = NodeFactory(name="Node-Addr", geom=Point(550000, 6080000, srid=25832))
+    node2 = NodeFactory(name="Node-2")
+
+    address = AddressFactory(
+        street="Teststraße",
+        housenumber=42,
+        zip_code="24941",
+        city="Flensburg",
+        geom=Point(550001, 6080001, srid=25832),
+    )
+    node1.uuid_address = address
+    node1.save()
+
+    slot_config1 = NodeSlotConfiguration.objects.create(
+        uuid_node=node1, side="A", total_slots=12
+    )
+    slot_config2 = NodeSlotConfiguration.objects.create(
+        uuid_node=node2, side="A", total_slots=12
+    )
+    component_type = AttributesComponentType.objects.create(
+        component_type="Splice Cassette Addr", occupied_slots=2
+    )
+    structure1 = NodeStructure.objects.create(
+        uuid_node=node1,
+        slot_configuration=slot_config1,
+        component_type=component_type,
+        slot_start=1,
+        slot_end=2,
+    )
+    structure2 = NodeStructure.objects.create(
+        uuid_node=node2,
+        slot_configuration=slot_config2,
+        component_type=component_type,
+        slot_start=1,
+        slot_end=2,
+    )
+
+    cable1 = CableFactory(name="Cable-A1")
+    cable2 = CableFactory(name="Cable-A2")
+    cable3 = CableFactory(name="Cable-A3")
+
+    fiber1 = FiberFactory(uuid_cable=cable1, fiber_number_absolute=1)
+    fiber2 = FiberFactory(uuid_cable=cable2, fiber_number_absolute=1)
+    fiber3 = FiberFactory(uuid_cable=cable3, fiber_number_absolute=1)
+
+    FiberSplice.objects.create(
+        node_structure=structure1,
+        port_number=1,
+        fiber_a=fiber1,
+        cable_a=cable1,
+        fiber_b=fiber2,
+        cable_b=cable2,
+    )
+    FiberSplice.objects.create(
+        node_structure=structure2,
+        port_number=1,
+        fiber_a=fiber2,
+        cable_a=cable2,
+        fiber_b=fiber3,
+        cable_b=cable3,
+    )
+
+    cable1.uuid_node_start = node1
+    cable1.save()
+    cable2.uuid_node_start = node1
+    cable2.uuid_node_end = node2
+    cable2.save()
+    cable3.uuid_node_end = node2
+    cable3.save()
+
+    return {
+        "node1": node1,
+        "node2": node2,
+        "address": address,
+        "fibers": [fiber1, fiber2, fiber3],
+        "cables": [cable1, cable2, cable3],
+    }
+
+
 @pytest.mark.django_db
 class TestTraceFiber:
     """Tests for the trace_fiber service function."""
@@ -250,6 +334,99 @@ class TestTraceFiber:
         # Should have two children
         tree = result["trace_tree"]
         assert len(tree["children"]) == 2
+
+    def test_trace_fiber_includes_node_geometry(self, simple_fiber_chain):
+        """Test that include_geometry=True adds geometry to trace tree nodes."""
+        fiber1 = simple_fiber_chain["fibers"][0]
+        result = trace_fiber(fiber1.uuid, include_geometry=True)
+
+        tree = result["trace_tree"]
+        node = tree["children"][0]["node"]
+        assert node is not None
+        assert "geometry" in node
+        assert node["geometry"] is not None
+        assert node["geometry"]["type"] == "Point"
+
+    def test_trace_fiber_excludes_geometry_by_default(self, simple_fiber_chain):
+        """Test that include_geometry=False does not add geometry to nodes."""
+        fiber1 = simple_fiber_chain["fibers"][0]
+        result = trace_fiber(fiber1.uuid, include_geometry=False)
+
+        tree = result["trace_tree"]
+        node = tree["children"][0]["node"]
+        assert node is not None
+        assert "geometry" not in node
+
+    def test_trace_fiber_includes_address_geometry(self, fiber_chain_with_address):
+        """Test that address geometry is included when include_geometry=True."""
+        fiber1 = fiber_chain_with_address["fibers"][0]
+        result = trace_fiber(fiber1.uuid, include_geometry=True)
+
+        tree = result["trace_tree"]
+        node = tree["children"][0]["node"]
+        assert "address" in node
+        assert "geometry" in node["address"]
+        assert node["address"]["geometry"] is not None
+        assert node["address"]["geometry"]["type"] == "Point"
+
+    def test_trace_fiber_address_geometry_excluded_by_default(
+        self, fiber_chain_with_address
+    ):
+        """Test that address geometry is not included when include_geometry=False."""
+        fiber1 = fiber_chain_with_address["fibers"][0]
+        result = trace_fiber(fiber1.uuid, include_geometry=False)
+
+        tree = result["trace_tree"]
+        node = tree["children"][0]["node"]
+        assert "address" in node
+        assert "geometry" not in node["address"]
+
+    def test_trace_fiber_cable_endpoints_have_geometry(
+        self, fiber_chain_with_address
+    ):
+        """Test that cable endpoint nodes include geometry when include_geometry=True."""
+        fiber1 = fiber_chain_with_address["fibers"][0]
+        result = trace_fiber(fiber1.uuid, include_geometry=True)
+
+        tree = result["trace_tree"]
+        cable_endpoints = tree["cable_endpoints"]
+        assert cable_endpoints["start_node"] is not None
+        assert "geometry" in cable_endpoints["start_node"]
+        assert cable_endpoints["start_node"]["geometry"] is not None
+        assert cable_endpoints["start_node"]["geometry"]["type"] == "Point"
+
+
+@pytest.mark.django_db
+class TestGetEntryPointInfo:
+    """Tests for _get_entry_point_info geometry support."""
+
+    def test_node_entry_point_includes_geometry(self, simple_fiber_chain):
+        """Test node entry point includes geometry when requested."""
+        node = simple_fiber_chain["nodes"][0]
+        result = _get_entry_point_info("node", node.uuid, include_geometry=True)
+        assert "geometry" in result
+        assert result["geometry"] is not None
+        assert result["geometry"]["type"] == "Point"
+
+    def test_node_entry_point_excludes_geometry_by_default(self, simple_fiber_chain):
+        """Test node entry point excludes geometry by default."""
+        node = simple_fiber_chain["nodes"][0]
+        result = _get_entry_point_info("node", node.uuid)
+        assert "geometry" not in result
+
+    def test_address_entry_point_includes_geometry(self, fiber_chain_with_address):
+        """Test address entry point includes geometry when requested."""
+        address = fiber_chain_with_address["address"]
+        result = _get_entry_point_info("address", address.uuid, include_geometry=True)
+        assert "geometry" in result
+        assert result["geometry"] is not None
+        assert result["geometry"]["type"] == "Point"
+
+    def test_fiber_entry_point_no_geometry(self, simple_fiber_chain):
+        """Test fiber entry point does not include geometry (fibers have no Point geom)."""
+        fiber = simple_fiber_chain["fibers"][0]
+        result = _get_entry_point_info("fiber", fiber.uuid, include_geometry=True)
+        assert "geometry" not in result
 
 
 @pytest.mark.django_db

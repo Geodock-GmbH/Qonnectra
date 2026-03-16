@@ -390,10 +390,11 @@
 
 		/** @type {any[]} */
 		const markers = [];
-		await extractMarkersFromTree(result.trace_tree, markers);
+		const seenIds = new Set();
+		await extractMarkersFromTree(result.trace_tree, markers, seenIds);
 		if (result.trace_trees) {
 			for (const tree of result.trace_trees) {
-				await extractMarkersFromTree(tree, markers);
+				await extractMarkersFromTree(tree, markers, seenIds);
 			}
 		}
 
@@ -430,12 +431,13 @@
 	}
 
 	/**
-	 * Recursively walk the trace tree and create point features for nodes, addresses, and residential units.
+	 * Recursively walk the trace tree and create point features for nodes, addresses, residential units, and cable endpoints.
 	 * @param {Record<string, any>} node - A trace tree node containing node/address/residential_unit data and children
 	 * @param {any[]} markers - Accumulator array for created marker features
+	 * @param {Set<string>} seenIds - Set of already-added feature IDs for deduplication
 	 * @returns {Promise<void>}
 	 */
-	async function extractMarkersFromTree(node, markers) {
+	async function extractMarkersFromTree(node, markers, seenIds) {
 		if (!node) return;
 
 		const { default: GeoJSON } = await import('ol/format/GeoJSON');
@@ -443,74 +445,83 @@
 
 		const signalState = node.signal_state || null;
 
-		if (node.node?.geometry) {
-			const feature = format.readFeature(
-				{
-					type: 'Feature',
-					properties: {
-						featureId: `node:${node.node.id}`,
-						featureType: 'node',
-						name: node.node.name,
-						signalState
+		/**
+		 * Creates and adds a node marker feature if not already seen.
+		 * @param {Record<string, any>} nodeData - Node data with id, name, geometry, and optional address
+		 * @param {string | null} signal - Signal state for styling
+		 */
+		function addNodeMarker(nodeData, signal) {
+			if (!nodeData?.geometry || seenIds.has(nodeData.id)) return;
+			seenIds.add(nodeData.id);
+			markers.push(
+				format.readFeature(
+					{
+						type: 'Feature',
+						properties: {
+							featureId: `node:${nodeData.id}`,
+							featureType: 'node',
+							name: nodeData.name,
+							signalState: signal
+						},
+						geometry: nodeData.geometry
 					},
-					geometry: node.node.geometry
-				},
-				{
-					dataProjection: SOURCE_PROJECTION,
-					featureProjection: TARGET_PROJECTION
-				}
+					{ dataProjection: SOURCE_PROJECTION, featureProjection: TARGET_PROJECTION }
+				)
 			);
-			markers.push(feature);
+			if (nodeData.address?.geometry && !seenIds.has(nodeData.address.id)) {
+				seenIds.add(nodeData.address.id);
+				const addr = nodeData.address;
+				markers.push(
+					format.readFeature(
+						{
+							type: 'Feature',
+							properties: {
+								featureId: `address:${addr.id}`,
+								featureType: 'address',
+								name: `${addr.street} ${addr.housenumber}`,
+								signalState: signal
+							},
+							geometry: addr.geometry
+						},
+						{ dataProjection: SOURCE_PROJECTION, featureProjection: TARGET_PROJECTION }
+					)
+				);
+			}
 		}
 
-		if (node.node?.address?.geometry) {
-			const addr = node.node.address;
-			const feature = format.readFeature(
-				{
-					type: 'Feature',
-					properties: {
-						featureId: `address:${addr.id}`,
-						featureType: 'address',
-						name: `${addr.street} ${addr.housenumber}`,
-						signalState
-					},
-					geometry: addr.geometry
-				},
-				{
-					dataProjection: SOURCE_PROJECTION,
-					featureProjection: TARGET_PROJECTION
-				}
-			);
-			markers.push(feature);
+		addNodeMarker(node.node, signalState);
+
+		if (node.cable_endpoints) {
+			addNodeMarker(node.cable_endpoints.start_node, signalState);
+			addNodeMarker(node.cable_endpoints.end_node, signalState);
 		}
 
 		if (node.residential_units) {
 			for (const ru of node.residential_units) {
-				if (ru.geometry) {
-					const feature = format.readFeature(
-						{
-							type: 'Feature',
-							properties: {
-								featureId: `residential_unit:${ru.id}`,
-								featureType: 'residential_unit',
-								name: ru.id_residential_unit,
-								signalState
+				if (ru.geometry && !seenIds.has(ru.id)) {
+					seenIds.add(ru.id);
+					markers.push(
+						format.readFeature(
+							{
+								type: 'Feature',
+								properties: {
+									featureId: `residential_unit:${ru.id}`,
+									featureType: 'residential_unit',
+									name: ru.id_residential_unit,
+									signalState
+								},
+								geometry: ru.geometry
 							},
-							geometry: ru.geometry
-						},
-						{
-							dataProjection: SOURCE_PROJECTION,
-							featureProjection: TARGET_PROJECTION
-						}
+							{ dataProjection: SOURCE_PROJECTION, featureProjection: TARGET_PROJECTION }
+						)
 					);
-					markers.push(feature);
 				}
 			}
 		}
 
 		if (node.children) {
 			for (const child of node.children) {
-				await extractMarkersFromTree(child, markers);
+				await extractMarkersFromTree(child, markers, seenIds);
 			}
 		}
 	}

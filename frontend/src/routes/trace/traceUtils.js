@@ -11,9 +11,9 @@ export function traceFrom(type, id) {
 }
 
 /**
- * Builds a GeoJSON FeatureCollection from cable infrastructure geometries.
- * Prefers merged geometry per cable; falls back to individual trench segments.
- * @param {Record<string, any>} traceResult - The trace result containing cable_infrastructure
+ * Builds a GeoJSON FeatureCollection from trace result geometries.
+ * Includes cable/trench LineStrings and node/address Point features.
+ * @param {Record<string, any>} traceResult - The trace result containing cable_infrastructure and trace tree(s)
  * @returns {Record<string, any>} GeoJSON FeatureCollection in EPSG:25832
  */
 export function buildGeoJSON(traceResult) {
@@ -25,6 +25,7 @@ export function buildGeoJSON(traceResult) {
 			features.push({
 				type: 'Feature',
 				properties: {
+					feature_type: 'cable',
 					cable_id: cableId,
 					conduit_name: infra.conduit?.name || null,
 					conduit_type: infra.conduit?.type || null,
@@ -42,6 +43,7 @@ export function buildGeoJSON(traceResult) {
 					features.push({
 						type: 'Feature',
 						properties: {
+							feature_type: 'trench',
 							cable_id: cableId,
 							trench_id: trench.id,
 							id_trench: trench.id_trench,
@@ -61,6 +63,55 @@ export function buildGeoJSON(traceResult) {
 		}
 	}
 
+	const seenIds = new Set();
+	const trees =
+		traceResult.trace_trees || (traceResult.trace_tree ? [traceResult.trace_tree] : []);
+
+	/** @param {Record<string, any>} endpointNode */
+	function addNodeFeature(endpointNode) {
+		if (!endpointNode?.geometry || seenIds.has(endpointNode.id)) return;
+		seenIds.add(endpointNode.id);
+		features.push({
+			type: 'Feature',
+			properties: { feature_type: 'node', id: endpointNode.id, name: endpointNode.name },
+			geometry: endpointNode.geometry
+		});
+		if (endpointNode.address?.geometry && !seenIds.has(endpointNode.address.id)) {
+			seenIds.add(endpointNode.address.id);
+			features.push({
+				type: 'Feature',
+				properties: {
+					feature_type: 'address',
+					id: endpointNode.address.id,
+					street: endpointNode.address.street,
+					housenumber: endpointNode.address.housenumber,
+					suffix: endpointNode.address.suffix || '',
+					zip_code: endpointNode.address.zip_code,
+					city: endpointNode.address.city
+				},
+				geometry: endpointNode.address.geometry
+			});
+		}
+	}
+
+	/** @param {Record<string, any>} treeNode */
+	function extractPointFeatures(treeNode) {
+		if (!treeNode) return;
+		addNodeFeature(treeNode.node);
+		const endpoints = treeNode.cable_endpoints;
+		if (endpoints) {
+			addNodeFeature(endpoints.start_node);
+			addNodeFeature(endpoints.end_node);
+		}
+		for (const child of treeNode.children || []) {
+			extractPointFeatures(child);
+		}
+	}
+
+	for (const tree of trees) {
+		extractPointFeatures(tree);
+	}
+
 	return {
 		type: 'FeatureCollection',
 		name: 'fiber_trace_infrastructure',
@@ -73,17 +124,34 @@ export function buildGeoJSON(traceResult) {
 }
 
 /**
- * Checks whether any cable infrastructure in the trace result contains geometry data.
- * @param {Record<string, any>} traceResult - The trace result containing cable_infrastructure
+ * Checks whether the trace result contains any geometry data (trench or point).
+ * @param {Record<string, any>} traceResult - The trace result
  * @returns {boolean} True if at least one geometry exists
  */
 export function hasGeometries(traceResult) {
-	if (!traceResult?.cable_infrastructure) return false;
-	for (const infra of Object.values(traceResult.cable_infrastructure)) {
-		if (infra.merged_geometry) return true;
-		if (infra.trenches?.some((/** @type {any} */ t) => t.geometry)) return true;
+	if (!traceResult) return false;
+
+	if (traceResult.cable_infrastructure) {
+		for (const infra of Object.values(traceResult.cable_infrastructure)) {
+			if (infra.merged_geometry) return true;
+			if (infra.trenches?.some((/** @type {any} */ t) => t.geometry)) return true;
+		}
 	}
-	return false;
+
+	const trees =
+		traceResult.trace_trees || (traceResult.trace_tree ? [traceResult.trace_tree] : []);
+
+	/** @param {Record<string, any>} treeNode */
+	function hasPointGeometry(treeNode) {
+		if (!treeNode) return false;
+		if (treeNode.node?.geometry) return true;
+		if (treeNode.node?.address?.geometry) return true;
+		const ep = treeNode.cable_endpoints;
+		if (ep?.start_node?.geometry || ep?.end_node?.geometry) return true;
+		return (treeNode.children || []).some(hasPointGeometry);
+	}
+
+	return trees.some(hasPointGeometry);
 }
 
 /**
@@ -91,6 +159,7 @@ export function hasGeometries(traceResult) {
  * @param {Record<string, any>} result - The trace result data
  * @param {string} filenamePrefix - Prefix for the download filename (e.g. 'fiber-trace' or 'signal-analysis')
  * @param {string} entryId - Entry UUID used in the filename
+ * @returns {void}
  */
 export function downloadGeoJSON(result, filenamePrefix, entryId) {
 	const geojson = buildGeoJSON(result);
