@@ -1781,7 +1781,12 @@ def trace_fiber(
         nsc.side as component_slot_side,
         nsc.container as component_container_id,
         -- Container path (from slot configuration's container)
-        ch.path as container_path
+        ch.path as container_path,
+        -- Point geometries for nodes and addresses
+        ST_AsGeoJSON(n.geom)::jsonb as node_geometry,
+        ST_AsGeoJSON(addr.geom)::jsonb as address_geometry,
+        ST_AsGeoJSON(node_start.geom)::jsonb as cable_node_start_geometry,
+        ST_AsGeoJSON(node_end.geom)::jsonb as cable_node_end_geometry
     FROM fiber_trace ft
     LEFT JOIN node n ON n.uuid = ft.from_node_id
     LEFT JOIN address addr ON addr.uuid = n.uuid_address
