@@ -1,9 +1,9 @@
 <script>
 	import { browser } from '$app/environment';
-	import { Combobox, Portal, useListCollection } from '@skeletonlabs/skeleton-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
+	import VirtualCombobox from '$lib/components/VirtualCombobox.svelte';
 	import { selectedConduit } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
@@ -15,29 +15,12 @@
 		conduitsError = null
 	} = $props();
 
-	const collection = $derived(
-		useListCollection({
-			items: conduits,
-			itemToString: (item) => item?.label ?? '',
-			itemToValue: (item) => item?.value ?? ''
-		})
-	);
-
-	let items = $derived(collection.items);
-	let isOpen = $state(false);
-
 	$effect(() => {
 		if (conduitsError && browser) {
 			globalToaster.error({
 				title: m.title_error_fetching_conduits(),
 				description: conduitsError
 			});
-		}
-	});
-
-	$effect(() => {
-		if (isOpen) {
-			items = conduits;
 		}
 	});
 
@@ -50,28 +33,8 @@
 			}
 		}
 	});
-
-	function handleValueChange(/** @type {{ value: string[] }} */ e) {
-		$selectedConduit = e.value[0];
-	}
-
-	function handleOpenChange(/** @type {{ open: boolean }} */ e) {
-		isOpen = e.open;
-	}
-
-	const onInputValueChange = (/** @type {{ inputValue: string }} */ e) => {
-		const filtered = conduits.filter((item) =>
-			item.label.toLowerCase().includes(e.inputValue.toLowerCase())
-		);
-		if (filtered.length > 0) {
-			items = filtered;
-		} else {
-			items = conduits;
-		}
-	};
 </script>
 
-<!-- Conduit Selection -->
 <div>
 	{#if loading}
 		<div class="placeholder animate-pulse"></div>
@@ -82,36 +45,11 @@
 			<option value="">{m.message_no_conduits_found()}</option>
 		</select>
 	{:else}
-		<Combobox
-			class="touch-manipulation w-full"
+		<VirtualCombobox
+			data={conduits}
+			value={$selectedConduit ?? ''}
+			onValueChange={(/** @type {{ value: string }} */ e) => ($selectedConduit = e.value)}
 			placeholder={m.placeholder_select_conduit()}
-			{collection}
-			defaultValue={$selectedConduit ? [$selectedConduit] : undefined}
-			onValueChange={handleValueChange}
-			onOpenChange={handleOpenChange}
-			{onInputValueChange}
-		>
-			<Combobox.Control>
-				<Combobox.Input />
-				<Combobox.Trigger />
-			</Combobox.Control>
-			<Portal>
-				<Combobox.Positioner class="z-10">
-					<Combobox.Content
-						class="z-50 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 bg-surface-50-950 shadow-lg"
-					>
-						{#each items as item (item.value)}
-							<Combobox.Item
-								{item}
-								class="cursor-pointer px-3 py-2 rounded-md data-highlighted:not-data-selected:bg-surface-200-800 data-selected:bg-primary-500 data-selected:text-white data-highlighted:data-selected:bg-primary-600"
-							>
-								<Combobox.ItemText>{item.label}</Combobox.ItemText>
-								<Combobox.ItemIndicator />
-							</Combobox.Item>
-						{/each}
-					</Combobox.Content>
-				</Combobox.Positioner>
-			</Portal>
-		</Combobox>
+		/>
 	{/if}
 </div>

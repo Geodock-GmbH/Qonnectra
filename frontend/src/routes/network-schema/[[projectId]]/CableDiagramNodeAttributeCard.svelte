@@ -7,6 +7,7 @@
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
+	import VirtualCombobox from '$lib/components/VirtualCombobox.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { tooltip } from '$lib/utils/tooltip.js';
@@ -41,8 +42,7 @@
 	let nodeDate = $state('');
 	/** @type {any[]} */
 	let nodeFlag = $state([]);
-	/** @type {any[]} */
-	let nodeParentNode = $state([]);
+	let nodeParentNode = $state('');
 	/** @type {any[]} */
 	let availableNodes = $state([]);
 	let isLoadingParentNodes = $state(false);
@@ -141,7 +141,7 @@
 			nodeWarranty = node.warranty || '';
 			nodeDate = node.date || '';
 			nodeFlag = node.flag?.id != null ? [node.flag.id] : [];
-			nodeParentNode = node.parent_node?.uuid != null ? [node.parent_node.uuid] : [];
+			nodeParentNode = node.parent_node?.uuid ?? '';
 		}
 	});
 
@@ -184,7 +184,7 @@
 		formData.append('constructor_id', nodeConstructor?.[0] || '');
 		formData.append('manufacturer_id', nodeManufacturer?.[0] || '');
 		formData.append('flag_id', nodeFlag?.[0] || '');
-		formData.append('parent_node_id', nodeParentNode?.[0] || '');
+		formData.append('parent_node_id', nodeParentNode || '');
 
 		try {
 			const response = await fetch('?/updateNode', {
@@ -434,15 +434,13 @@
 		)}
 	>
 		<span class="text-sm">{m.form_parent_node_name()}</span>
-		<GenericCombobox
+		<VirtualCombobox
 			data={availableNodes}
 			bind:value={nodeParentNode}
-			defaultValue={nodeParentNode}
-			onValueChange={(/** @type {any} */ e) => (nodeParentNode = e.value)}
 			disabled={parentNodeDisabled}
-			renderInPlace={true}
 			loading={isLoadingParentNodes}
-			placeholderSize="w-full size-10"
+			placeholder={m.form_parent_node_name()}
+			renderInPlace={true}
 		/>
 	</label>
 </form>
