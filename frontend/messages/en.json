@@ -2,13 +2,13 @@
 	"$schema": "https://inlang.com/schema/inlang-message-format",
 	"Qonnectra": "Qonnectra",
 	"action_add": "Add",
-	"action_add_residential_unit": "Add Residential Unit",
-	"action_back": "Back",
-	"action_back_to_main_schema": "Back to main schema",
 	"action_add_conduit": "Add conduit",
 	"action_add_container": "Add Container",
+	"action_add_residential_unit": "Add Residential Unit",
 	"action_apply_filters": "Apply filters",
 	"action_assign": "Assign",
+	"action_back": "Back",
+	"action_back_to_main_schema": "Back to main schema",
 	"action_browse_files": "Browse files",
 	"action_change": "Change",
 	"action_clear_filters": "Clear filters",
@@ -33,8 +33,8 @@
 	"action_link_micropipes": "Link to Micropipes",
 	"action_load_to_canvas": "Load to Canvas",
 	"action_merge": "Merge",
-	"action_next": "Next",
 	"action_merge_ports": "Merge ports",
+	"action_next": "Next",
 	"action_open_child_network": "Open child network",
 	"action_refresh": "Refresh",
 	"action_regenerate_id": "Regenerate ID",
@@ -58,12 +58,10 @@
 	"auth_signin": "Sign in to your account",
 	"auth_username": "Username",
 	"auth_username_placeholder": "Enter your username",
-	"login_tagline": "Documentation Platform",
-	"login_welcome": "Welcome back",
 	"common_accept": "Accept",
-	"common_back": "Back",
 	"common_active": "Active",
 	"common_attributes": "Attributes",
+	"common_back": "Back",
 	"common_cancel": "Cancel",
 	"common_clear": "Clear",
 	"common_close": "Close",
@@ -96,19 +94,24 @@
 	"common_opacity": "Opacity",
 	"common_osm": "OpenStreetMap",
 	"common_overview": "Overview",
+	"common_randomize_all": "Randomize All",
 	"common_reset": "Reset",
+	"common_reset_all": "Reset All",
 	"common_results": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Result",
 				"countPlural=other": "Results"
 			}
 		}
 	],
-	"common_randomize_all": "Randomize All",
-	"common_reset_all": "Reset All",
 	"common_save": "Save",
 	"common_search": "Search",
 	"common_searching": "Searching...",
@@ -118,11 +121,15 @@
 	"common_will_be_deleted": "will be deleted",
 	"common_yes": "Yes",
 	"form_actions": "Actions",
-	"form_addresses": "Addresses",
 	"form_address": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Address",
 				"countPlural=other": "Addresses"
@@ -131,8 +138,13 @@
 	],
 	"form_address_id": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Address ID",
 				"countPlural=other": "Address IDs"
@@ -141,6 +153,7 @@
 	],
 	"form_address_points": "Address points",
 	"form_address_statistics": "Address Statistics",
+	"form_addresses": "Addresses",
 	"form_addresses_by_city": "Addresses by City",
 	"form_addresses_by_status": "Addresses by Development Status",
 	"form_area": "Area",
@@ -161,14 +174,23 @@
 	"form_area_type": "Area type",
 	"form_article_number": "Article No.",
 	"form_attachments": "Attachments",
-	"form_available": "Available",
 	"form_auto_connect": "Autoconnect",
+	"form_available": "Available",
 	"form_average_house_connection_length": "Average house connection length",
 	"form_avg_length_by_type": "Average Length by Type",
+	"form_bottom": "Bottom",
+	"form_breakdown_by_city": "Grouped by city",
+	"form_breakdown_by_node_type": "Grouped by node type",
+	"form_breakdown_by_type": "Grouped by type",
 	"form_building": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Building",
 				"countPlural=other": "Buildings"
@@ -176,10 +198,6 @@
 		}
 	],
 	"form_building_section": "Building Section",
-	"form_bottom": "Bottom",
-	"form_breakdown_by_city": "Grouped by city",
-	"form_breakdown_by_node_type": "Grouped by node type",
-	"form_breakdown_by_type": "Grouped by type",
 	"form_bundle": "Bundle",
 	"form_cable_overview": "Cable overview",
 	"form_cable_type": "Cable type",
@@ -194,11 +212,15 @@
 	"form_component_type": "Component Type",
 	"form_component_types": "Component Types",
 	"form_components": "Components",
-	"form_conduits": "Conduits",
 	"form_conduit": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Conduit",
 				"countPlural=other": "Conduits"
@@ -209,11 +231,12 @@
 	"form_conduit_overview": "Conduit overview",
 	"form_conduit_statistics": "Conduit Statistics",
 	"form_conduit_type": "Conduit type",
+	"form_conduits": "Conduits",
 	"form_conduits_over_time": "Conduits Over Time",
+	"form_connected_conduits": "Connected Conduits",
 	"form_construction_depth": "Construction depth",
 	"form_construction_details": "Construction details",
 	"form_construction_type": "Construction type",
-	"form_connected_conduits": "Connected Conduits",
 	"form_constructor": "Constructor",
 	"form_container_name": "Name (optional)",
 	"form_container_path": "Container",
@@ -222,8 +245,13 @@
 	"form_date_to": "To date",
 	"form_days": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "day",
 				"countPlural=other": "days"
@@ -244,8 +272,13 @@
 	"form_fibers": "Fibers",
 	"form_files": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "File",
 				"countPlural=other": "Files"
@@ -254,8 +287,6 @@
 	],
 	"form_flag": "Flag",
 	"form_floor": "Floor",
-	"form_id_address": "Address ID",
-	"form_id_residential_unit": "Residential Unit ID",
 	"form_free_slots": "Free",
 	"form_funding_status": "Funding status",
 	"form_handle_position": "Handle Position",
@@ -263,17 +294,11 @@
 	"form_house_connection": "House connection",
 	"form_house_number_suffix": "Suffix",
 	"form_housenumber": "Housenumber",
+	"form_id_address": "Address ID",
+	"form_id_residential_unit": "Residential Unit ID",
 	"form_internal_execution": "Internal execution",
 	"form_layer": "Layer",
 	"form_layer_visibility": "Layer visibility",
-	"label_cable": "cable",
-	"label_cables": "cables",
-	"label_cables_in_micropipe": "Cables in this micropipe",
-	"label_current": "current",
-	"label_defective": "defective",
-	"label_fiber_healthy": "Healthy",
-	"label_healthy": "Healthy",
-	"label_show_cable_route": "Show route",
 	"form_left": "Left",
 	"form_length_by_conduit_type": "Length by Conduit Type",
 	"form_length_by_construction_type": "Length by construction type",
@@ -293,18 +318,23 @@
 	"form_manufacturer": "Manufacturer",
 	"form_max_file_size": "Max file size",
 	"form_message": "Message",
-	"form_microduct_status": "Microduct Status",
-	"form_micropipes": "Micropipes",
 	"form_microduct": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Microduct",
 				"countPlural=other": "Microducts"
 			}
 		}
 	],
+	"form_microduct_status": "Microduct Status",
+	"form_micropipes": "Micropipes",
 	"form_more_sites": "More sites",
 	"form_network_level": "Network level",
 	"form_newest_nodes": "Newest Nodes",
@@ -315,8 +345,8 @@
 	"form_no_files_uploaded_yet": "No files uploaded yet",
 	"form_no_layers_available": "No layers available",
 	"form_no_microducts_available": "No microducts available",
-	"form_no_warranties_expiring": "No warranties expiring soon",
 	"form_no_node_data_available": "No node data available",
+	"form_no_warranties_expiring": "No warranties expiring soon",
 	"form_node": "Node",
 	"form_node_statistics": "Node statistics",
 	"form_node_type": "Node type",
@@ -333,41 +363,50 @@
 	"form_phase": "Phase",
 	"form_port": "Port",
 	"form_ports": "Ports",
-	"form_ready_for_service": "Ready for Service",
-	"from_resident": "Resident",
-	"form_resident_name": "Resident Name",
-	"form_resident_recorded_date": "Resident Recorded Date",
-	"form_residential_unit_side": "Side",
-	"form_residential_unit_status": "Status",
-	"form_residential_unit_suffix": "Suffix",
-	"form_residential_unit_type": "Type",
 	"form_project": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Project",
 				"countPlural=other": "Projects"
 			}
 		}
 	],
-	"form_residential_units": "Residential Units",
+	"form_ready_for_service": "Ready for Service",
 	"form_reserve_at_end": "Reserve at end",
 	"form_reserve_at_start": "Reserve at start",
 	"form_reserve_section": "Reserve section",
+	"form_resident_name": "Resident Name",
+	"form_resident_recorded_date": "Resident Recorded Date",
+	"form_residential_unit_side": "Side",
+	"form_residential_unit_status": "Status",
+	"form_residential_unit_suffix": "Suffix",
+	"form_residential_unit_type": "Type",
+	"form_residential_units": "Residential Units",
 	"form_right": "Right",
 	"form_routing_mode": "Routing mode",
-	"form_selected_conduits": "Selected Conduits",
-	"form_selected_trenches": "Trenches",
 	"form_select_exactly_2_nodes": "Please select exactly 2 nodes",
 	"form_select_files_or_drag": "Select files or drag here",
 	"form_select_side": "Select Side",
+	"form_selected_conduits": "Selected Conduits",
+	"form_selected_trenches": "Trenches",
 	"form_show_linked_trenches": "Show trench connections",
 	"form_side": "Side",
 	"form_slot": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "slot",
 				"countPlural=other": "slots"
@@ -404,6 +443,20 @@
 	"form_used_slots": "Used",
 	"form_warranty": "Warranty",
 	"form_zip_code": "Zip code",
+	"from_resident": "Resident",
+	"label_cable": "cable",
+	"label_cables": "cables",
+	"label_cables_in_micropipe": "Cables in this micropipe",
+	"label_current": "current",
+	"label_defective": "defective",
+	"label_fiber_healthy": "Healthy",
+	"label_healthy": "Healthy",
+	"label_show_cable_route": "Show route",
+	"login_tagline": "Documentation Platform",
+	"login_welcome": "Welcome back",
+	"message_address_connected": "{count} residential units connected",
+	"message_address_linked_to_node": "This address is linked to a node and cannot be deleted.",
+	"message_address_no_units": "Address has no residential units",
 	"message_bundle_connected": "Connected {count} fibers",
 	"message_cable_connected": "Connected {count} fibers",
 	"message_cable_no_fibers": "Cable has no fibers",
@@ -414,11 +467,11 @@
 	"message_component_count": "({count} components)",
 	"message_confirm_delete_address": "Are you sure you want to delete this address? This action cannot be undone.",
 	"message_confirm_delete_cable": "Are you sure you want to delete this cable?",
-	"message_confirm_delete_residential_unit": "Are you sure you want to delete this residential unit?",
 	"message_confirm_delete_conduit": "Delete conduit?",
 	"message_confirm_delete_conduit_description": "Conduit is in use. Are you sure you want to delete it and the associated trench connections?",
 	"message_confirm_delete_file": "Are you sure you want to delete this file? This action cannot be undone.",
 	"message_confirm_delete_node": "Are you sure you want to delete this node?",
+	"message_confirm_delete_residential_unit": "Are you sure you want to delete this residential unit?",
 	"message_confirm_reconnect_cable": "Changing the node connection will delete",
 	"message_connection_deleted_successfully": "Connection deleted successfully",
 	"message_created_connections": "Created connections",
@@ -435,13 +488,12 @@
 	"message_error_creating_cable": "Error creating cable",
 	"message_error_creating_conduit": "Error creating conduit",
 	"message_error_creating_container": "Failed to create container",
-	"message_error_updating_container": "Failed to update container",
 	"message_error_creating_divider": "Failed to create divider",
 	"message_error_creating_residential_unit": "Failed to create residential unit",
 	"message_error_creating_slot_configuration": "Error creating slot configuration",
 	"message_error_creating_vector_tile_layer": "The vector tile layer could not be created. Please try again.",
-	"message_error_deleting_cable": "Error deleting cable",
 	"message_error_deleting_address": "Error deleting address",
+	"message_error_deleting_cable": "Error deleting cable",
 	"message_error_deleting_conduit": "Error deleting conduit",
 	"message_error_deleting_container": "Failed to delete container",
 	"message_error_deleting_divider": "Failed to delete divider",
@@ -463,6 +515,7 @@
 	"message_error_fetching_structures": "Error fetching structures",
 	"message_error_fetching_trenches": "Error fetching trenches",
 	"message_error_go_back_home": "Go back home",
+	"message_error_highlighting_trenches": "Error highlighting trenches",
 	"message_error_loading_data": "Error loading data",
 	"message_error_moving_item": "Failed to move item",
 	"message_error_no_cable_type_selected": "No cable type selected",
@@ -472,17 +525,18 @@
 	"message_error_placing_component": "Failed to place component",
 	"message_error_regenerating_id": "Error regenerating the address ID.",
 	"message_error_regenerating_residential_unit_id": "Failed to regenerate residential unit ID.",
-	"message_error_saving_data": "Error saving data",
 	"message_error_saving_clip_number": "Failed to save clip number",
+	"message_error_saving_data": "Error saving data",
 	"message_error_search_failed": "Search failed. Please try again.",
 	"message_error_slots_occupied": "Slots are already occupied",
 	"message_error_updating_address": "Error updating address",
 	"message_error_updating_cable": "Error updating cable",
 	"message_error_updating_cable_path": "Error updating cable path",
 	"message_error_updating_conduit": "Error updating conduit",
+	"message_error_updating_container": "Failed to update container",
 	"message_error_updating_node": "Error updating node",
-	"message_error_updating_slot_configuration": "Error updating slot configuration",
 	"message_error_updating_residential_unit": "Failed to update residential unit",
+	"message_error_updating_slot_configuration": "Error updating slot configuration",
 	"message_failed_to_create_connections": "Failed to create connections",
 	"message_fiber_connected": "Fiber connected successfully",
 	"message_fibers_connected_to_merged": "Connected {count} fibers to merged ports",
@@ -490,30 +544,26 @@
 	"message_has_connections": "Has connections",
 	"message_import_conduits_success_description": "Please refresh the page to see the conduits.",
 	"message_importing_conduits_description": "Importing conduits...",
-	"message_address_connected": "{count} residential units connected",
-	"message_address_linked_to_node": "This address is linked to a node and cannot be deleted.",
-	"message_address_no_units": "Address has no residential units",
 	"message_info_node_has_no_address_assigned": "This node has no address assigned.",
 	"message_linked": "Linked",
-	"message_micropipe_not_in_conduit": "Not available in: {conduits}",
 	"message_loading_fibers": "Loading fibers...",
 	"message_loading_network_schema": "Synchronizing Network Schema...",
 	"message_login_error": "Login error. Please try again.",
+	"message_micropipe_not_in_conduit": "Not available in: {conduits}",
 	"message_network_schema_settings_not_configured": "Network schema settings are not configured for this project. Please configure them in the admin panel.",
 	"message_no_cables": "No cables at this node",
 	"message_no_cables_in_trench": "No cables in this trench",
-	"message_error_highlighting_trenches": "Error highlighting trenches",
-	"message_no_microducts_linked": "No microducts linked to this address",
-	"message_no_conduits_in_trenches": "No conduits in the selected trenches",
 	"message_no_component_types": "No component types available",
-	"message_no_conduits_found_in_trench": "No conduits found in this trench",
 	"message_no_conduit_selected_description": "Please select a conduit to calculate a route",
 	"message_no_conduits_found": "No conduits found",
+	"message_no_conduits_found_in_trench": "No conduits found in this trench",
+	"message_no_conduits_in_trenches": "No conduits in the selected trenches",
 	"message_no_fiber_connections": "No fiber connections linked to this residential unit",
 	"message_no_fibers": "No fibers",
 	"message_no_fibers_to_drop": "No fibers to drop",
 	"message_no_location_data": "No location data available",
 	"message_no_logs_found": "No logs found",
+	"message_no_microducts_linked": "No microducts linked to this address",
 	"message_no_new_trench_connections": "No new trench connections",
 	"message_no_ports": "No ports configured for this component",
 	"message_no_residential_units": "No residential units found",
@@ -525,30 +575,30 @@
 	"message_node_type_locked_has_children_and_cables": "Node type cannot be changed because this node has both child nodes and connected cables.",
 	"message_only_fibers_allowed": "Only individual fibers can be connected to ports",
 	"message_operation_in_progress": "Please wait for the current operation to complete",
+	"message_parent_node_locked_has_cables": "Parent node cannot be changed because this node has connected cables.",
 	"message_partial_address_connected": "Connected {connected} of {total} residential units",
 	"message_partial_bundle_connected": "Connected {connected} of {total} fibers",
 	"message_partial_cable_connected": "Connected {connected} of {total} fibers",
-	"message_parent_node_locked_has_cables": "Parent node cannot be changed because this node has connected cables.",
 	"message_pipe_branch_not_configured": "Pipe branch settings not configured for this project.",
 	"message_please_select_exactly_2_nodes": "Please select exactly 2 nodes",
 	"message_please_try_again": "Please try again.",
 	"message_please_wait": "Please wait...",
 	"message_ports_merged": "Merged {count} ports",
+	"message_ports_unmerged": "Ports unmerged",
 	"message_residential_unit_connected": "Residential unit connected successfully",
 	"message_residential_units_coming_soon": "Residential unit management will be available soon",
 	"message_residential_units_description": "Track and manage residential units associated with this address.",
-	"message_ports_unmerged": "Ports unmerged",
 	"message_select_at_least_two_ports": "Select at least 2 ports to merge",
 	"message_select_trenches": "Select trenches on the map",
+	"message_shared_fiber_connected": "Shared fiber connected successfully",
 	"message_shift_drag_select": "Shift + drag to select multiple",
 	"message_status_update_failed": "Failed to update status",
-	"message_shared_fiber_connected": "Shared fiber connected successfully",
 	"message_status_updated": "Microduct status updated",
 	"message_success_assigned_node": "Node assigned successfully",
 	"message_success_creating_cable": "Cable created successfully",
 	"message_success_creating_conduit": "Conduit created successfully",
 	"message_success_creating_container": "Container created successfully",
-	"message_success_updating_container": "Container updated successfully",
+	"message_success_creating_residential_unit": "Residential unit created successfully",
 	"message_success_creating_slot_configuration": "Slot configuration created successfully",
 	"message_success_deleting_address": "Address deleted successfully",
 	"message_success_deleting_cable": "Cable deleted successfully",
@@ -560,20 +610,20 @@
 	"message_success_deleting_structure": "Structure deleted successfully",
 	"message_success_downloading_pdf": "PDF downloaded successfully",
 	"message_success_downloading_template": "Template downloaded successfully",
-	"message_success_regenerating_id": "Address ID successfully regenerated.",
-	"message_success_regenerating_residential_unit_id": "Residential unit ID successfully regenerated.",
 	"message_success_moving_component": "Component moved successfully",
 	"message_success_placing_component": "Component placed successfully",
 	"message_success_placing_components": "Successfully placed {count} components",
-	"message_success_creating_residential_unit": "Residential unit created successfully",
+	"message_success_regenerating_id": "Address ID successfully regenerated.",
+	"message_success_regenerating_residential_unit_id": "Residential unit ID successfully regenerated.",
 	"message_success_unassigned_node": "Node unassigned successfully",
-	"message_success_updating_residential_unit": "Residential unit updated successfully",
 	"message_success_updating_address": "Address updated successfully",
 	"message_success_updating_cable": "Cable updated successfully",
 	"message_success_updating_cable_path": "Cable geometry updated successfully",
 	"message_success_updating_conduit": "Conduit updated successfully",
+	"message_success_updating_container": "Container updated successfully",
 	"message_success_updating_node": "Node updated successfully",
 	"message_success_updating_position": "Position updated successfully",
+	"message_success_updating_residential_unit": "Residential unit updated successfully",
 	"message_success_updating_slot_configuration": "Slot configuration updated successfully",
 	"message_success_uploading_files": "Files uploaded successfully",
 	"message_trench_connection_deleted": "Trench connection deleted",
@@ -585,23 +635,24 @@
 	"message_warning_cable_type_incomplete_color_mappings": "Cable type has incomplete color mappings. Bundle and fiber counts do not match. Fibers were not generated. Please correct the color mappings in the Admin area.",
 	"nav_address": "Addresses",
 	"nav_area": "Areas",
+	"nav_category_cable": "Cable",
 	"nav_category_conduit": "Conduit",
 	"nav_category_main": "Info",
-	"nav_category_cable": "Cable",
 	"nav_category_system": "System",
 	"nav_conduit": "Conduits",
 	"nav_conduit_connection": "Connections",
 	"nav_conduit_management": "Management",
 	"nav_dashboard": "Dashboard",
+	"nav_fiber_trace": "Fiber Path",
 	"nav_house_connections": "Microducts",
 	"nav_logs": "Logs",
 	"nav_map": "Map",
-	"nav_fiber_trace": "Fiber Path",
 	"nav_network_schema": "Network schema",
 	"nav_node": "Nodes",
 	"nav_pipe_branch": "Branch",
 	"nav_settings": "Settings",
 	"nav_trench": "Trench",
+	"pdf_include_residential_units": "Include Residential Units",
 	"placeholder_container_name": "Optional custom name",
 	"placeholder_select_a_feature": "Select a feature",
 	"placeholder_select_cable_type": "Select cable type",
@@ -611,7 +662,6 @@
 	"placeholder_select_node": "Select node...",
 	"placeholder_select_pipe_branch": "Select pipe branch",
 	"placeholder_slot_side": "A, B, etc.",
-	"pdf_include_residential_units": "Include Residential Units",
 	"section_address_information": "Address Information",
 	"section_classification": "Classification",
 	"section_fiber_connections": "Fiber Connections",
@@ -619,8 +669,13 @@
 	"section_microduct_connections": "Microduct Connections",
 	"section_residential_units": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Residential Unit",
 				"countPlural=other": "Residential Units"
@@ -632,13 +687,13 @@
 	"settings_cable_direction_animation": "Cable Direction Animation",
 	"settings_cable_direction_animation_description": "Shows an animation on cables that visualizes the direction from start to end node.",
 	"settings_cable_edge_color": "Cable Edge Color",
-	"settings_display_options": "Display Options",
 	"settings_cable_edge_color_default": "Default (Green)",
 	"settings_cable_edge_color_linked": "Linked Indicator (Green/Blue)",
 	"settings_cable_edge_color_micropipe": "Micropipe Color",
 	"settings_cable_edge_color_mode": "Color Mode",
 	"settings_conduit_connection": "Conduit connection",
 	"settings_construction_type_styles": "Construction Type Styles",
+	"settings_display_options": "Display Options",
 	"settings_map": "Map",
 	"settings_map_selected_feature_color": "Highlight color",
 	"settings_map_trench_color": "Trench color",
@@ -658,6 +713,19 @@
 	"settings_ui_theme": "Theme",
 	"settings_user": "User",
 	"settings_user_email": "Email address",
+	"signal_affected_addresses": "Affected Addresses",
+	"signal_affected_rus": "Affected Residential Units",
+	"signal_affected_summary": "Impact Summary",
+	"signal_analysis": "Signal Analysis",
+	"signal_break_at": "Break at",
+	"signal_break_point": "Break Point",
+	"signal_dark": "Dark",
+	"signal_lit": "Active",
+	"signal_no_breaks": "No breaks detected - all fibers are active",
+	"signal_no_signal": "No Signal",
+	"signal_source": "Signal Source",
+	"signal_source_cable_end": "Cable End",
+	"signal_source_cable_start": "Cable Start",
 	"table_building_section": "Building Section",
 	"table_bundle": "Bundle",
 	"table_cable_name": "Cable Name",
@@ -697,97 +765,9 @@
 	"title_success": "Success",
 	"title_success_canvas_sync_complete": "Canvas sync complete",
 	"title_trench_located": "Trench located!",
-	"title_trench_profile": "Trench Profile",
 	"title_trench_not_visible": "Trench not visible!",
-	"trace_description": "Network path analysis and infrastructure visualization",
-	"trace_search_address_placeholder": "Search by street, city, or address ID...",
-	"trace_search_cable_placeholder": "Search by cable name...",
-	"trace_search_fiber_placeholder": "Enter fiber UUID...",
-	"trace_search_hint": "Type at least 2 characters to search",
-	"trace_search_node_placeholder": "Search by node name...",
-	"trace_search_ru_placeholder": "Search by residential unit ID...",
-	"trace_select_cable_first": "Select a cable to view its fibers",
-	"trace_start": "Start",
-	"trace_start_address": "Start :",
-	"trace_start_not_set": "Start: Not set",
-	"trace_statistics": "Statistics",
-	"trace_trace_tree": "Trace Tree",
-	"trace_addresses": [
-		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
-			"match": {
-				"countPlural=one": "address",
-				"countPlural=other": "addresses"
-			}
-		}
-	],
-	"trace_at_address": "@ Address:",
-	"trace_branches": "Branches",
-	"trace_cable_infrastructure": "Cable Infrastructure",
-	"trace_cable_path": "Cable Path",
-	"trace_container_path": "Container Path",
-	"trace_download_geojson": "Download GeoJSON",
-	"trace_entry_point": "Entry Point",
-	"trace_end": "End",
-	"trace_end_address": "End :",
-	"trace_end_not_set": "End: Not set",
-	"trace_endpoint_splice": "Endpoint (no connection)",
-	"trace_error": "Trace failed",
-	"trace_geometry": "Geometry",
-	"trace_geometry_merged": "Merged",
-	"trace_geometry_mode": "Mode",
-	"trace_geometry_segments": "Segments",
-	"trace_include_geometry": "Include Geometry",
-	"trace_map_loading": "Loading map...",
-	"trace_fiber_path": "Fiber Path {number}",
-	"trace_filter_placeholder": "Filter by fiber number, cable or destination...",
-	"trace_in_bundle": "Fiber in Bundle",
-	"trace_multiple_destinations": "Multiple destinations",
-	"trace_no_fibers_in_cable": "No fibers in this cable",
-	"trace_no_geometry_available": "No geometry data available for this trace",
-	"trace_no_trace_data": "No trace data available",
-	"trace_orient_geometry": "Orient by Cable Direction",
-	"trace_raw_json": "Raw JSON Response",
-	"signal_affected_addresses": "Affected Addresses",
-	"signal_affected_rus": "Affected Residential Units",
-	"signal_affected_summary": "Impact Summary",
-	"signal_analysis": "Signal Analysis",
-	"signal_break_at": "Break at",
-	"signal_break_point": "Break Point",
-	"signal_dark": "Dark",
-	"signal_lit": "Active",
-	"signal_no_breaks": "No breaks detected - all fibers are active",
-	"signal_no_signal": "No Signal",
-	"signal_source": "Signal Source",
-	"signal_source_cable_end": "Cable End",
-	"signal_source_cable_start": "Cable Start",
-	"trace_cable_endpoints": "Cable Endpoints",
-	"trace_mode_signal_analysis": "Signal Analysis",
-	"trace_mode_standard": "Trace",
-	"trace_splice": "Splice",
-	"trace_splices": [
-		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
-			"match": {
-				"countPlural=one": "splice",
-				"countPlural=other": "splices"
-			}
-		}
-	],
-	"trace_residential_units": [
-		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
-			"match": {
-				"countPlural=one": "RU",
-				"countPlural=other": "RUs"
-			}
-		}
-	],
+	"title_trench_profile": "Trench Profile",
 	"tooltip_assign_node_to_microduct": "Assign node to microduct",
-	"tooltip_download_address_pdf": "Creates a PDF with the address information and optionally the residential units.",
 	"tooltip_click_to_delete_vertex": "Click to delete vertex",
 	"tooltip_click_to_edit": "Click to edit",
 	"tooltip_click_to_reset_label_position": "Click to reset label position",
@@ -802,6 +782,7 @@
 	"tooltip_delete_edge": "Delete edge",
 	"tooltip_deselect_all": "Deselect all",
 	"tooltip_double_click_divider": "Double-click to toggle divider line",
+	"tooltip_download_address_pdf": "Creates a PDF with the address information and optionally the residential units.",
 	"tooltip_drag_to_close": "Drag to close",
 	"tooltip_drag_to_move_vertex": "Drag to move vertex, Shift+Click or right-click to delete",
 	"tooltip_drag_to_resize": "Drag to resize",
@@ -831,5 +812,94 @@
 	"tooltip_toggle_theme": "Toggle Light/Dark Mode",
 	"tooltip_view_all_projects": "View all projects",
 	"tooltip_view_current_project": "View current project only",
-	"tooltip_zoom_to_extent": "Zoom to extent"
+	"tooltip_zoom_to_extent": "Zoom to extent",
+	"trace_addresses": [
+		{
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
+			"match": {
+				"countPlural=one": "address",
+				"countPlural=other": "addresses"
+			}
+		}
+	],
+	"trace_at_address": "@ Address:",
+	"trace_branches": "Branches",
+	"trace_cable_endpoints": "Cable Endpoints",
+	"trace_cable_infrastructure": "Cable Infrastructure",
+	"trace_cable_path": "Cable Path",
+	"trace_container_path": "Container Path",
+	"trace_description": "Network path analysis and infrastructure visualization",
+	"trace_download_geojson": "Download GeoJSON",
+	"trace_end": "End",
+	"trace_end_address": "End :",
+	"trace_end_not_set": "End: Not set",
+	"trace_endpoint_splice": "Endpoint (no connection)",
+	"trace_entry_point": "Entry Point",
+	"trace_error": "Trace failed",
+	"trace_fiber_path": "Fiber Path {number}",
+	"trace_filter_placeholder": "Filter by fiber number, cable or destination...",
+	"trace_geometry": "Geometry",
+	"trace_geometry_merged": "Merged",
+	"trace_geometry_mode": "Mode",
+	"trace_geometry_segments": "Segments",
+	"trace_in_bundle": "Fiber in Bundle",
+	"trace_include_geometry": "Include Geometry",
+	"trace_map_loading": "Loading map...",
+	"trace_mode_signal_analysis": "Signal Analysis",
+	"trace_mode_standard": "Trace",
+	"trace_multiple_destinations": "Multiple destinations",
+	"trace_no_fibers_in_cable": "No fibers in this cable",
+	"trace_no_geometry_available": "No geometry data available for this trace",
+	"trace_no_trace_data": "No trace data available",
+	"trace_orient_geometry": "Orient by Cable Direction",
+	"trace_raw_json": "Raw JSON Response",
+	"trace_residential_units": [
+		{
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
+			"match": {
+				"countPlural=one": "RU",
+				"countPlural=other": "RUs"
+			}
+		}
+	],
+	"trace_search_address_placeholder": "Search by street, city, or address ID...",
+	"trace_search_cable_placeholder": "Search by cable name...",
+	"trace_search_fiber_placeholder": "Enter fiber UUID...",
+	"trace_search_hint": "Type at least 2 characters to search",
+	"trace_search_node_placeholder": "Search by node name...",
+	"trace_search_ru_placeholder": "Search by residential unit ID...",
+	"trace_select_cable_first": "Select a cable to view its fibers",
+	"trace_splice": "Splice",
+	"trace_splices": [
+		{
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
+			"match": {
+				"countPlural=one": "splice",
+				"countPlural=other": "splices"
+			}
+		}
+	],
+	"trace_start": "Start",
+	"trace_start_address": "Start :",
+	"trace_start_not_set": "Start: Not set",
+	"trace_statistics": "Statistics",
+	"trace_trace_tree": "Trace Tree"
 }

@@ -199,6 +199,26 @@
       "isBackground": true
     },
     {
+      "label": "Sort i18n JSON Files",
+      "type": "shell",
+      "command": "python3",
+      "args": [
+        "-c",
+        "import json, glob\nfor path in glob.glob('frontend/messages/*.json'):\n    with open(path, 'r', encoding='utf-8') as f:\n        data = json.load(f)\n    sorted_data = dict(sorted(data.items(), key=lambda x: (x[0] != '$schema', x[0])))\n    with open(path, 'w', encoding='utf-8') as f:\n        json.dump(sorted_data, f, ensure_ascii=False, indent='\\t')\n        f.write('\\n')\n    print(f'Sorted {path}')"
+      ],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Mark Untranslated PO Entries",
       "type": "shell",
       "command": "python3",
