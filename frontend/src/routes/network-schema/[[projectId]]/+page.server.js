@@ -58,8 +58,7 @@ export async function _waitForSyncCompletion(
 
 			if (response.ok) {
 				currentStatus = await response.json();
-				if (currentStatus.sync_in_progress) {
-				} else {
+				if (!currentStatus.sync_in_progress) {
 					break;
 				}
 			} else {
@@ -357,10 +356,6 @@ export async function load({ fetch, cookies, url, params }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
-	/**
-	 * @param {import('./$types').RequestEvent} event
-	 * @returns {Promise<any>}
-	 */
 	createCable: async ({ request, cookies }) => {
 		try {
 			const formData = await request.formData();

@@ -7,12 +7,15 @@ vi.mock('$env/static/private', () => ({
 	API_URL: 'http://localhost:8000/'
 }));
 
-// Mock SvelteKit error helper
+// Mock SvelteKit error/fail helpers
 vi.mock('@sveltejs/kit', () => ({
 	error: (/** @type {number} */ status, /** @type {string} */ message) => {
 		const err = /** @type {any} */ (new Error(message));
 		err.status = status;
 		return err;
+	},
+	fail: (/** @type {number} */ status, /** @type {any} */ data) => {
+		return { status, data };
 	}
 }));
 
@@ -1238,6 +1241,1105 @@ describe('+page.server.js', () => {
 
 			// When no token, getAuthHeaders returns an empty object
 			expect(headers.Cookie).toBeUndefined();
+		});
+	});
+
+	describe('saveCableGeometry action', () => {
+		test('should successfully save cable geometry', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						uuid: 'cable-123',
+						diagram_path: [
+							{ x: 10, y: 20 },
+							{ x: 30, y: 40 }
+						]
+					})
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['cableId', 'cable-123'],
+							[
+								'diagram_path',
+								JSON.stringify([
+									{ x: 10, y: 20 },
+									{ x: 30, y: 40 }
+								])
+							]
+						])
+					)
+			};
+
+			const result = /** @type {any} */ (
+				await actions.saveCableGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.type).toBe('success');
+			expect(result.message).toBe('Cable path saved successfully');
+			expect(result.cable.uuid).toBe('cable-123');
+
+			const patchCall = mockFetch.mock.calls[0];
+			expect(patchCall[0]).toBe('http://localhost:8000/cable/cable-123/');
+			expect(patchCall[1].method).toBe('PATCH');
+			expect(JSON.parse(patchCall[1].body)).toEqual({
+				diagram_path: [
+					{ x: 10, y: 20 },
+					{ x: 30, y: 40 }
+				]
+			});
+		});
+
+		test('should return error when cableId is missing', async () => {
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(new Map([['diagram_path', JSON.stringify([{ x: 10, y: 20 }])]]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.saveCableGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.type).toBe('error');
+			expect(result.message).toBe('Cable ID is required');
+			expect(mockFetch).not.toHaveBeenCalled();
+		});
+
+		test('should return error for invalid diagram_path JSON', async () => {
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['cableId', 'cable-123'],
+							['diagram_path', 'not-valid-json']
+						])
+					)
+			};
+
+			const result = /** @type {any} */ (
+				await actions.saveCableGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.type).toBe('error');
+			expect(result.message).toBe('Invalid diagram path format');
+			expect(mockFetch).not.toHaveBeenCalled();
+		});
+
+		test('should send null diagram_path when not provided', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						uuid: 'cable-123',
+						diagram_path: null
+					})
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['cableId', 'cable-123']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.saveCableGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.type).toBe('success');
+			expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({
+				diagram_path: null
+			});
+		});
+
+		test('should handle API error response', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 400,
+				json: () => Promise.resolve({ detail: 'Invalid cable path' })
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['cableId', 'cable-123'],
+							['diagram_path', JSON.stringify([{ x: 10, y: 20 }])]
+						])
+					)
+			};
+
+			const result = /** @type {any} */ (
+				await actions.saveCableGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.type).toBe('error');
+			expect(result.message).toBe('Invalid cable path');
+		});
+
+		test('should handle network errors', async () => {
+			mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['cableId', 'cable-123'],
+							['diagram_path', JSON.stringify([{ x: 10, y: 20 }])]
+						])
+					)
+			};
+
+			const result = /** @type {any} */ (
+				await actions.saveCableGeometry(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.type).toBe('error');
+			expect(result.message).toBe('Network error');
+		});
+	});
+
+	describe('createCable action', () => {
+		/**
+		 * createCable uses global fetch (not from event), so we mock it on globalThis.
+		 * @type {any}
+		 */
+		let originalFetch;
+
+		beforeEach(() => {
+			originalFetch = globalThis.fetch;
+			globalThis.fetch = mockFetch;
+		});
+
+		afterEach(() => {
+			globalThis.fetch = originalFetch;
+		});
+
+		test('should successfully create a cable', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						uuid: 'new-cable-uuid',
+						name: 'Test Cable'
+					})
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['name', 'Test Cable'],
+							['cable_type_id', '1'],
+							['project_id', '5'],
+							['flag_id', '2'],
+							['uuid_node_start_id', 'node-start-uuid'],
+							['uuid_node_end_id', 'node-end-uuid']
+						])
+					)
+			};
+
+			const result = /** @type {any} */ (
+				await actions.createCable(
+					/** @type {any} */ ({
+						request: mockRequest,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.type).toBe('success');
+			expect(result.data.uuid).toBe('new-cable-uuid');
+
+			const postCall = mockFetch.mock.calls[0];
+			expect(postCall[1].method).toBe('POST');
+			const body = JSON.parse(postCall[1].body);
+			expect(body.name).toBe('Test Cable');
+			expect(body.cable_type_id).toBe(1);
+			expect(body.project_id).toBe(5);
+			expect(body.flag_id).toBe(2);
+			expect(body.uuid_node_start_id).toBe('node-start-uuid');
+			expect(body.uuid_node_end_id).toBe('node-end-uuid');
+		});
+
+		test('should return 400 when required fields are missing', async () => {
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['name', 'Test Cable'],
+							['uuid_node_start_id', 'node-start'],
+							['uuid_node_end_id', 'node-end']
+						])
+					)
+			};
+
+			const result = /** @type {any} */ (
+				await actions.createCable(
+					/** @type {any} */ ({
+						request: mockRequest,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(400);
+			expect(result.data.error).toContain('Missing required fields');
+			expect(mockFetch).not.toHaveBeenCalled();
+		});
+
+		test('should return 400 when node IDs are missing', async () => {
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['name', 'Test Cable'],
+							['cable_type_id', '1'],
+							['project_id', '5'],
+							['flag_id', '2']
+						])
+					)
+			};
+
+			const result = /** @type {any} */ (
+				await actions.createCable(
+					/** @type {any} */ ({
+						request: mockRequest,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(400);
+			expect(result.data.error).toContain('uuid_node_start_id');
+			expect(mockFetch).not.toHaveBeenCalled();
+		});
+
+		test('should handle API error response', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 422,
+				text: () => Promise.resolve(JSON.stringify({ error: 'Validation failed' }))
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['name', 'Test Cable'],
+							['cable_type_id', '1'],
+							['project_id', '5'],
+							['flag_id', '2'],
+							['uuid_node_start_id', 'node-start'],
+							['uuid_node_end_id', 'node-end']
+						])
+					)
+			};
+
+			const result = /** @type {any} */ (
+				await actions.createCable(
+					/** @type {any} */ ({
+						request: mockRequest,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(422);
+		});
+
+		test('should include optional fields when provided', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ uuid: 'custom-uuid', name: 'Test Cable' })
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['uuid', 'custom-uuid'],
+							['name', 'Test Cable'],
+							['cable_type_id', '1'],
+							['project_id', '5'],
+							['flag_id', '2'],
+							['uuid_node_start_id', 'node-start'],
+							['uuid_node_end_id', 'node-end'],
+							['handle_start', 'top'],
+							['handle_end', 'bottom'],
+							['parent_node_context_id', 'parent-node-uuid']
+						])
+					)
+			};
+
+			await actions.createCable(
+				/** @type {any} */ ({
+					request: mockRequest,
+					cookies: mockCookies
+				})
+			);
+
+			const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+			expect(body.uuid).toBe('custom-uuid');
+			expect(body.handle_start).toBe('top');
+			expect(body.handle_end).toBe('bottom');
+			expect(body.parent_node_context_id).toBe('parent-node-uuid');
+		});
+	});
+
+	describe('getCables action', () => {
+		/**
+		 * getCables uses global fetch (not from event), so we mock it on globalThis.
+		 * @type {any}
+		 */
+		let originalFetch;
+
+		beforeEach(() => {
+			originalFetch = globalThis.fetch;
+			globalThis.fetch = mockFetch;
+		});
+
+		afterEach(() => {
+			globalThis.fetch = originalFetch;
+		});
+
+		test('should successfully fetch a cable by uuid', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ uuid: 'cable-123', name: 'Cable A' })
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['uuid', 'cable-123']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.getCables(
+					/** @type {any} */ ({
+						request: mockRequest,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.uuid).toBe('cable-123');
+			expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:8000/cable/cable-123');
+		});
+
+		test('should return 400 when uuid is missing', async () => {
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map())
+			};
+
+			const result = /** @type {any} */ (
+				await actions.getCables(
+					/** @type {any} */ ({
+						request: mockRequest,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(400);
+			expect(result.data.error).toContain('uuid is required');
+		});
+
+		test('should handle API errors', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 404,
+				text: () => Promise.resolve(JSON.stringify({ error: 'Cable not found' }))
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['uuid', 'nonexistent']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.getCables(
+					/** @type {any} */ ({
+						request: mockRequest,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(404);
+		});
+	});
+
+	describe('updateCable action', () => {
+		test('should successfully update a cable', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						uuid: 'cable-123',
+						name: 'Updated Cable',
+						cable_type_id: 2
+					})
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['uuid', 'cable-123'],
+							['cable_name', 'Updated Cable'],
+							['cable_type_id', '2'],
+							['status_id', '3']
+						])
+					)
+			};
+
+			const result = /** @type {any} */ (
+				await actions.updateCable(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.success).toBe(true);
+			expect(result.message).toBe('Cable updated successfully');
+			expect(result.cable.uuid).toBe('cable-123');
+
+			const patchCall = mockFetch.mock.calls[0];
+			expect(patchCall[0]).toBe('http://localhost:8000/cable/cable-123/');
+			expect(patchCall[1].method).toBe('PATCH');
+			const body = JSON.parse(patchCall[1].body);
+			expect(body.name).toBe('Updated Cable');
+			expect(body.cable_type_id).toBe(2);
+			expect(body.status_id).toBe(3);
+		});
+
+		test('should return error when cable ID is missing', async () => {
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['cable_name', 'Updated Cable']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.updateCable(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.type).toBe('error');
+			expect(result.message).toBe('Cable ID is required');
+			expect(mockFetch).not.toHaveBeenCalled();
+		});
+
+		test('should handle API error with detail', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 400,
+				json: () => Promise.resolve({ detail: 'Invalid cable type' })
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['uuid', 'cable-123'],
+							['cable_type_id', '999']
+						])
+					)
+			};
+
+			const result = /** @type {any} */ (
+				await actions.updateCable(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(400);
+			expect(result.data.message).toBe('Invalid cable type');
+		});
+
+		test('should handle network errors', async () => {
+			mockFetch.mockRejectedValueOnce(new Error('Connection refused'));
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['uuid', 'cable-123'],
+							['cable_name', 'Test']
+						])
+					)
+			};
+
+			const result = /** @type {any} */ (
+				await actions.updateCable(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(500);
+			expect(result.data.message).toBe('Connection refused');
+		});
+	});
+
+	describe('deleteCable action', () => {
+		test('should successfully delete a cable', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({})
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['uuid', 'cable-123']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.deleteCable(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.success).toBe(true);
+			expect(result.message).toBe('Cable deleted successfully');
+
+			const deleteCall = mockFetch.mock.calls[0];
+			expect(deleteCall[0]).toBe('http://localhost:8000/cable/cable-123/');
+			expect(deleteCall[1].method).toBe('DELETE');
+		});
+
+		test('should return 400 when cable ID is missing', async () => {
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map())
+			};
+
+			const result = /** @type {any} */ (
+				await actions.deleteCable(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(400);
+			expect(result.data.message).toBe('Cable ID is required');
+			expect(mockFetch).not.toHaveBeenCalled();
+		});
+
+		test('should handle API error with detail', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 409,
+				json: () => Promise.resolve({ detail: 'Cable has dependent fibers' })
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['uuid', 'cable-123']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.deleteCable(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(409);
+			expect(result.data.message).toBe('Cable has dependent fibers');
+		});
+
+		test('should handle network errors', async () => {
+			mockFetch.mockRejectedValueOnce(new Error('Network timeout'));
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['uuid', 'cable-123']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.deleteCable(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(500);
+			expect(result.data.message).toBe('Network timeout');
+		});
+	});
+
+	describe('getNodes action', () => {
+		test('should successfully fetch a node by uuid', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						uuid: 'node-123',
+						name: 'Node A',
+						node_type: { node_type: 'Type A' }
+					})
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['uuid', 'node-123']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.getNodes(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.uuid).toBe('node-123');
+			expect(result.name).toBe('Node A');
+			expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:8000/node/node-123');
+		});
+
+		test('should return 400 when uuid is missing', async () => {
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map())
+			};
+
+			const result = /** @type {any} */ (
+				await actions.getNodes(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(400);
+			expect(result.data.error).toContain('uuid is required');
+		});
+
+		test('should handle API errors', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 404,
+				text: () => Promise.resolve(JSON.stringify({ error: 'Node not found' }))
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['uuid', 'nonexistent']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.getNodes(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(404);
+		});
+
+		test('should handle network errors', async () => {
+			mockFetch.mockRejectedValueOnce(new Error('Connection refused'));
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['uuid', 'node-123']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.getNodes(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(500);
+			expect(result.data.error).toBe('Internal server error');
+		});
+	});
+
+	describe('updateNode action', () => {
+		test('should successfully update a node', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						uuid: 'node-123',
+						name: 'Updated Node',
+						node_type_id: 2
+					})
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['uuid', 'node-123'],
+							['node_name', 'Updated Node'],
+							['node_type_id', '2'],
+							['status_id', '3'],
+							['network_level_id', '1']
+						])
+					)
+			};
+
+			const result = /** @type {any} */ (
+				await actions.updateNode(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.success).toBe(true);
+			expect(result.message).toBe('Node updated successfully');
+			expect(result.node.uuid).toBe('node-123');
+
+			const patchCall = mockFetch.mock.calls[0];
+			expect(patchCall[0]).toBe('http://localhost:8000/node/node-123/');
+			expect(patchCall[1].method).toBe('PATCH');
+			const body = JSON.parse(patchCall[1].body);
+			expect(body.name).toBe('Updated Node');
+			expect(body.node_type_id).toBe(2);
+			expect(body.status_id).toBe(3);
+		});
+
+		test('should return error when node ID is missing', async () => {
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['node_name', 'Updated Node']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.updateNode(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.type).toBe('error');
+			expect(result.message).toBe('Node ID is required');
+			expect(mockFetch).not.toHaveBeenCalled();
+		});
+
+		test('should set parent_node_id to null when not provided', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ uuid: 'node-123', name: 'Node' })
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['uuid', 'node-123'],
+							['node_name', 'Node']
+						])
+					)
+			};
+
+			await actions.updateNode(
+				/** @type {any} */ ({
+					request: mockRequest,
+					fetch: mockFetch,
+					cookies: mockCookies
+				})
+			);
+
+			const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+			expect(body.parent_node_id).toBeNull();
+		});
+
+		test('should handle API error with detail', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 400,
+				json: () => Promise.resolve({ detail: 'Invalid node type' })
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['uuid', 'node-123'],
+							['node_type_id', '999']
+						])
+					)
+			};
+
+			const result = /** @type {any} */ (
+				await actions.updateNode(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(400);
+			expect(result.data.message).toBe('Invalid node type');
+		});
+
+		test('should handle network errors', async () => {
+			mockFetch.mockRejectedValueOnce(new Error('Connection failed'));
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () =>
+					Promise.resolve(
+						new Map([
+							['uuid', 'node-123'],
+							['node_name', 'Test']
+						])
+					)
+			};
+
+			const result = /** @type {any} */ (
+				await actions.updateNode(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(500);
+			expect(result.data.message).toBe('Connection failed');
+		});
+	});
+
+	describe('deleteNode action', () => {
+		test('should successfully delete a node', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({})
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['uuid', 'node-123']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.deleteNode(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.type).toBe('success');
+			expect(result.message).toBe('Node deleted successfully');
+
+			const deleteCall = mockFetch.mock.calls[0];
+			expect(deleteCall[0]).toBe('http://localhost:8000/node/node-123/');
+			expect(deleteCall[1].method).toBe('DELETE');
+		});
+
+		test('should return error when node ID is missing', async () => {
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map())
+			};
+
+			const result = /** @type {any} */ (
+				await actions.deleteNode(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.type).toBe('error');
+			expect(result.message).toBe('Node ID is required');
+			expect(mockFetch).not.toHaveBeenCalled();
+		});
+
+		test('should handle API error with detail', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 409,
+				json: () => Promise.resolve({ detail: 'Node has dependent cables' })
+			});
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['uuid', 'node-123']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.deleteNode(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(409);
+			expect(result.data.message).toBe('Node has dependent cables');
+		});
+
+		test('should handle network errors', async () => {
+			mockFetch.mockRejectedValueOnce(new Error('Server unreachable'));
+
+			const { actions } = await import('./+page.server.js');
+
+			const mockRequest = {
+				formData: () => Promise.resolve(new Map([['uuid', 'node-123']]))
+			};
+
+			const result = /** @type {any} */ (
+				await actions.deleteNode(
+					/** @type {any} */ ({
+						request: mockRequest,
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.status).toBe(500);
+			expect(result.data.message).toBe('Server unreachable');
 		});
 	});
 });
