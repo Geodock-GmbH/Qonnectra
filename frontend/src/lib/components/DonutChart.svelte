@@ -111,17 +111,15 @@
 	});
 </script>
 
-<div class="card border-2 border-surface-200-800 shadow-lg overflow-hidden">
-	<!-- Title Bar -->
-	<div class="border-b-2 border-surface-200-800 p-4">
-		<h3 class="h4 font-bold text-primary-500 flex items-center">
+<div class="card border border-surface-200-800 overflow-hidden">
+	<div class="border-b border-surface-200-800 px-4 py-3">
+		<h3 class="font-semibold text-surface-900-100 flex items-center gap-3">
 			<span>{title}</span>
-			<div class="flex-1 h-px bg-primary-500 ml-4"></div>
+			<div class="flex-1 h-px bg-surface-200-800"></div>
 		</h3>
 	</div>
 
-	<!-- Chart Container -->
-	<div class="p-6">
+	<div class="p-4">
 		<div class="relative" style="height: 300px;">
 			{#if !data || data.length === 0 || data.every((item) => !item.value)}
 				<div class="flex items-center justify-center h-full text-surface-500">

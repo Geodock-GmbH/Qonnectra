@@ -15,6 +15,30 @@
 	import WarrantyExpirationCard from './WarrantyExpirationCard.svelte';
 
 	let { data } = $props();
+
+	const totalNodes = $derived(
+		data.nodesByType?.reduce(
+			(/** @type {number} */ sum, /** @type {{ count: number }} */ item) => sum + item.count,
+			0
+		) || 0
+	);
+
+	const totalConduitLength = $derived(
+		(data.conduitLengthByType?.reduce(
+			(/** @type {number} */ sum, /** @type {{ total: number }} */ item) =>
+				sum + (item.total || 0),
+			0
+		) || 0) / 1000
+	);
+
+	/**
+	 * @param {Array<{gesamt_länge?: number, total?: number, count?: number}>} items
+	 * @param {'gesamt_länge' | 'total' | 'count'} key
+	 */
+	function getMaxValue(items, key) {
+		if (!items?.length) return 1;
+		return Math.max(...items.map((item) => Number(item[key]) || 0)) || 1;
+	}
 </script>
 
 <svelte:head>
@@ -34,49 +58,46 @@
 	</Tabs.List>
 	<Tabs.Content value="stats">
 		<div class="space-y-6 max-w-6xl mx-auto">
+			<!-- Breakdown Cards -->
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 				<DashboardCard title={m.form_trench_statistics()}>
-					<div class="flex items-center gap-4 mb-6">
-						<div>
-							<h3 class="h4 font-semibold text-surface-900-100 mb-1">
-								{m.form_total_length()}
-							</h3>
-							{#if $navigating}
-								<div class="h-6 bg-surface-500 rounded animate-pulse w-20"></div>
-							{:else}
-								<div class="text-3xl font-extrabold text-surface-900-100">
-									{(data.totalLength / 1000).toLocaleString('de-DE', {
-										minimumFractionDigits: 2,
-										maximumFractionDigits: 2
-									})} km
-								</div>
-							{/if}
-						</div>
+					<div class="flex items-baseline gap-2 mb-4">
+						{#if $navigating}
+							<div class="h-7 bg-surface-500 rounded animate-pulse w-20"></div>
+						{:else}
+							<span class="text-2xl font-bold text-surface-900-100">
+								{(data.totalLength / 1000).toLocaleString('de-DE', {
+									minimumFractionDigits: 2,
+									maximumFractionDigits: 2
+								})}
+							</span>
+							<span class="text-sm text-surface-600-300">km {m.form_total_length()}</span>
+						{/if}
 					</div>
-
-					<h4 class="h5 font-semibold text-surface-900-100 mb-4">
-						{m.form_breakdown_by_type()}
-					</h4>
-					<div class="space-y-3 overflow-auto max-h-[400px] pr-2">
+					<div class="space-y-2 overflow-auto max-h-[400px] pr-2">
 						{#if $navigating}
 							{#each Array(3) as _, i (i)}
-								<div class="h-16 bg-surface-500 rounded animate-pulse"></div>
+								<div class="h-10 bg-surface-500 rounded animate-pulse"></div>
 							{/each}
 						{:else}
+							{@const max = getMaxValue(data.lengthByTypes, 'gesamt_länge')}
 							{#each data.lengthByTypes as item (`${item.bauweise}-${item.oberfläche}`)}
-								<div
-									class="flex justify-between items-center p-3 rounded-lg border border-surface-200-800 hover:border-surface-200-800 hover:preset-filled-primary-500 transition-colors"
-								>
-									<div class="flex-1">
-										<div class="font-medium text-surface-900-100">
-											{item.bauweise}
+								{@const pct = ((item.gesamt_länge || 0) / max) * 100}
+								<div class="relative rounded-lg overflow-hidden">
+									<div
+										class="absolute inset-y-0 left-0 bg-primary-500/20"
+										style="width: {pct}%"
+									></div>
+									<div class="relative flex justify-between items-center p-3">
+										<div>
+											<div class="font-medium text-surface-900-100 text-sm">
+												{item.bauweise}
+											</div>
+											<div class="text-xs text-surface-600-300">
+												{item.oberfläche}
+											</div>
 										</div>
-										<div class="text-sm text-surface-900-100">
-											{item.oberfläche}
-										</div>
-									</div>
-									<div class="text-right">
-										<div class="font-bold text-lg text-surface-900-100">
+										<div class="font-semibold text-surface-900-100 tabular-nums">
 											{(item.gesamt_länge / 1000).toLocaleString('de-DE', {
 												minimumFractionDigits: 2,
 												maximumFractionDigits: 2
@@ -90,45 +111,35 @@
 				</DashboardCard>
 
 				<DashboardCard title={m.form_node_statistics()}>
-					<div class="flex items-center gap-4 mb-6">
-						<div>
-							<h3 class="h4 font-semibold text-surface-900-100 mb-1">
-								{m.form_total_nodes()}
-							</h3>
-							{#if $navigating}
-								<div class="h-6 bg-surface-500 rounded animate-pulse w-16"></div>
-							{:else}
-								<div class="text-3xl font-extrabold text-surface-900-100">
-									{data.nodesByType?.reduce(
-										(/** @type {number} */ sum, /** @type {{ count: number }} */ item) =>
-											sum + item.count,
-										0
-									) || 0}x
-								</div>
-							{/if}
-						</div>
+					<div class="flex items-baseline gap-2 mb-4">
+						{#if $navigating}
+							<div class="h-7 bg-surface-500 rounded animate-pulse w-16"></div>
+						{:else}
+							<span class="text-2xl font-bold text-surface-900-100">
+								{totalNodes}x
+							</span>
+							<span class="text-sm text-surface-600-300">{m.form_total_nodes()}</span>
+						{/if}
 					</div>
-
-					<h4 class="h5 font-semibold text-surface-900-100 mb-4">
-						{m.form_breakdown_by_node_type()}
-					</h4>
-					<div class="space-y-3 overflow-auto max-h-[400px] pr-2">
+					<div class="space-y-2 overflow-auto max-h-[400px] pr-2">
 						{#if $navigating}
 							{#each Array(3) as _, i (i)}
-								<div class="h-16 bg-surface-500 rounded animate-pulse"></div>
+								<div class="h-10 bg-surface-500 rounded animate-pulse"></div>
 							{/each}
 						{:else}
+							{@const max = getMaxValue(data.nodesByType, 'count')}
 							{#each data.nodesByType as item (item.node_type)}
-								<div
-									class="flex justify-between items-center p-3 rounded-lg border border-surface-200-800 hover:border-surface-200-800 hover:preset-filled-primary-500 transition-colors"
-								>
-									<div class="flex-1">
-										<div class="font-medium text-surface-900-100">
+								{@const pct = ((item.count || 0) / max) * 100}
+								<div class="relative rounded-lg overflow-hidden">
+									<div
+										class="absolute inset-y-0 left-0 bg-primary-500/20"
+										style="width: {pct}%"
+									></div>
+									<div class="relative flex justify-between items-center p-3">
+										<div class="font-medium text-surface-900-100 text-sm">
 											{item.node_type}
 										</div>
-									</div>
-									<div class="text-right">
-										<div class="font-bold text-lg text-surface-900-100">
+										<div class="font-semibold text-surface-900-100 tabular-nums">
 											{item.count}x
 										</div>
 									</div>
@@ -139,50 +150,38 @@
 				</DashboardCard>
 
 				<DashboardCard title={m.form_conduit_statistics()}>
-					<div class="flex items-center gap-4 mb-6">
-						<div>
-							<h3 class="h4 font-semibold text-surface-900-100 mb-1">
-								{m.form_total_conduit_length()}
-							</h3>
-							{#if $navigating}
-								<div class="h-6 bg-surface-500 rounded animate-pulse w-20"></div>
-							{:else}
-								<div class="text-3xl font-extrabold text-surface-900-100">
-									{(
-										data.conduitLengthByType?.reduce(
-											(/** @type {number} */ sum, /** @type {{ total: number }} */ item) =>
-												sum + (item.total || 0),
-											0
-										) / 1000
-									).toLocaleString('de-DE', {
-										minimumFractionDigits: 2,
-										maximumFractionDigits: 2
-									})} km
-								</div>
-							{/if}
-						</div>
+					<div class="flex items-baseline gap-2 mb-4">
+						{#if $navigating}
+							<div class="h-7 bg-surface-500 rounded animate-pulse w-20"></div>
+						{:else}
+							<span class="text-2xl font-bold text-surface-900-100">
+								{totalConduitLength.toLocaleString('de-DE', {
+									minimumFractionDigits: 2,
+									maximumFractionDigits: 2
+								})}
+							</span>
+							<span class="text-sm text-surface-600-300">km {m.form_total_conduit_length()}</span>
+						{/if}
 					</div>
-
-					<h4 class="h5 font-semibold text-surface-900-100 mb-4">
-						{m.form_breakdown_by_type()}
-					</h4>
-					<div class="space-y-3 overflow-auto max-h-[400px] pr-2">
+					<div class="space-y-2 overflow-auto max-h-[400px] pr-2">
 						{#if $navigating}
 							{#each Array(3) as _, i (i)}
-								<div class="h-16 bg-surface-500 rounded animate-pulse"></div>
+								<div class="h-10 bg-surface-500 rounded animate-pulse"></div>
 							{/each}
 						{:else}
+							{@const max = getMaxValue(data.conduitLengthByType, 'total')}
 							{#each data.conduitLengthByType as item (item.type_name)}
-								<div
-									class="flex justify-between items-center p-3 rounded-lg border border-surface-200-800 hover:border-surface-200-800 hover:preset-filled-primary-500 transition-colors"
-								>
-									<div class="flex-1">
-										<div class="font-medium text-surface-900-100">
+								{@const pct = ((item.total || 0) / max) * 100}
+								<div class="relative rounded-lg overflow-hidden">
+									<div
+										class="absolute inset-y-0 left-0 bg-primary-500/20"
+										style="width: {pct}%"
+									></div>
+									<div class="relative flex justify-between items-center p-3">
+										<div class="font-medium text-surface-900-100 text-sm">
 											{item.type_name}
 										</div>
-									</div>
-									<div class="text-right">
-										<div class="font-bold text-lg text-surface-900-100">
+										<div class="font-semibold text-surface-900-100 tabular-nums">
 											{((item.total || 0) / 1000).toLocaleString('de-DE', {
 												minimumFractionDigits: 2,
 												maximumFractionDigits: 2
@@ -196,53 +195,39 @@
 				</DashboardCard>
 
 				<DashboardCard title={m.form_address_statistics()}>
-					<div class="flex items-center gap-4 mb-6">
-						<div>
-							<h3 class="h4 font-semibold text-surface-900-100 mb-1">
-								{m.form_total_addresses()}
-							</h3>
-							{#if $navigating}
-								<div class="h-6 bg-surface-500 rounded animate-pulse w-16"></div>
-							{:else}
-								<div class="text-3xl font-extrabold text-surface-900-100">
-									{data.totalAddresses || 0}x
-								</div>
-							{/if}
-						</div>
-						<div>
-							<h3 class="h4 font-semibold text-surface-900-100 mb-1">
-								{m.form_total_units()}
-							</h3>
-							{#if $navigating}
-								<div class="h-6 bg-surface-500 rounded animate-pulse w-16"></div>
-							{:else}
-								<div class="text-3xl font-extrabold text-surface-900-100">
-									{data.totalUnits || 0}x
-								</div>
-							{/if}
-						</div>
+					<div class="flex items-baseline gap-4 mb-4">
+						{#if $navigating}
+							<div class="h-7 bg-surface-500 rounded animate-pulse w-16"></div>
+						{:else}
+							<div>
+								<span class="text-2xl font-bold text-surface-900-100">{data.totalAddresses || 0}</span>
+								<span class="text-sm text-surface-600-300">{m.form_total_addresses()}</span>
+							</div>
+							<div>
+								<span class="text-2xl font-bold text-surface-900-100">{data.totalUnits || 0}</span>
+								<span class="text-sm text-surface-600-300">{m.form_total_units()}</span>
+							</div>
+						{/if}
 					</div>
-
-					<h4 class="h5 font-semibold text-surface-900-100 mb-4">
-						{m.form_breakdown_by_city()}
-					</h4>
-					<div class="space-y-3 overflow-auto max-h-[400px] pr-2">
+					<div class="space-y-2 overflow-auto max-h-[400px] pr-2">
 						{#if $navigating}
 							{#each Array(3) as _, i (i)}
-								<div class="h-16 bg-surface-500 rounded animate-pulse"></div>
+								<div class="h-10 bg-surface-500 rounded animate-pulse"></div>
 							{/each}
 						{:else}
+							{@const max = getMaxValue(data.addressesByCity, 'count')}
 							{#each data.addressesByCity as item (item.city)}
-								<div
-									class="flex justify-between items-center p-3 rounded-lg border border-surface-200-800 hover:border-surface-200-800 hover:preset-filled-primary-500 transition-colors"
-								>
-									<div class="flex-1">
-										<div class="font-medium text-surface-900-100">
+								{@const pct = ((item.count || 0) / max) * 100}
+								<div class="relative rounded-lg overflow-hidden">
+									<div
+										class="absolute inset-y-0 left-0 bg-primary-500/20"
+										style="width: {pct}%"
+									></div>
+									<div class="relative flex justify-between items-center p-3">
+										<div class="font-medium text-surface-900-100 text-sm">
 											{item.city || m.common_unknown()}
 										</div>
-									</div>
-									<div class="text-right">
-										<div class="font-bold text-lg text-surface-900-100">
+										<div class="font-semibold text-surface-900-100 tabular-nums">
 											{item.count}x
 										</div>
 									</div>
@@ -253,56 +238,44 @@
 				</DashboardCard>
 
 				<DashboardCard title={m.form_area_statistics()}>
-					<div class="flex items-center gap-4 mb-6">
-						<div>
-							<h3 class="h4 font-semibold text-surface-900-100 mb-1">
-								{m.form_area_total_count()}
-							</h3>
-							{#if $navigating}
-								<div class="h-6 bg-surface-500 rounded animate-pulse w-16"></div>
-							{:else}
-								<div class="text-3xl font-extrabold text-surface-900-100">
-									{data.areaCount || 0}x
-								</div>
-							{/if}
-						</div>
-						<div>
-							<h3 class="h4 font-semibold text-surface-900-100 mb-1">
-								{m.form_area_total_coverage()}
-							</h3>
-							{#if $navigating}
-								<div class="h-6 bg-surface-500 rounded animate-pulse w-20"></div>
-							{:else}
-								<div class="text-3xl font-extrabold text-surface-900-100">
+					<div class="flex items-baseline gap-4 mb-4">
+						{#if $navigating}
+							<div class="h-7 bg-surface-500 rounded animate-pulse w-16"></div>
+						{:else}
+							<div>
+								<span class="text-2xl font-bold text-surface-900-100">{data.areaCount || 0}x</span>
+								<span class="text-sm text-surface-600-300">{m.form_area_total_count()}</span>
+							</div>
+							<div>
+								<span class="text-2xl font-bold text-surface-900-100">
 									{(data.totalCoverageKm2 || 0).toLocaleString('de-DE', {
 										minimumFractionDigits: 2,
 										maximumFractionDigits: 2
-									})} km²
-								</div>
-							{/if}
-						</div>
+									})}
+								</span>
+								<span class="text-sm text-surface-600-300">km²</span>
+							</div>
+						{/if}
 					</div>
-
-					<h4 class="h5 font-semibold text-surface-900-100 mb-4">
-						{m.form_breakdown_by_type()}
-					</h4>
-					<div class="space-y-3 overflow-auto max-h-[400px] pr-2">
+					<div class="space-y-2 overflow-auto max-h-[400px] pr-2">
 						{#if $navigating}
 							{#each Array(3) as _, i (i)}
-								<div class="h-16 bg-surface-500 rounded animate-pulse"></div>
+								<div class="h-10 bg-surface-500 rounded animate-pulse"></div>
 							{/each}
 						{:else}
+							{@const max = getMaxValue(data.areasByType, 'count')}
 							{#each data.areasByType as item (item.type_name)}
-								<div
-									class="flex justify-between items-center p-3 rounded-lg border border-surface-200-800 hover:border-surface-200-800 hover:preset-filled-primary-500 transition-colors"
-								>
-									<div class="flex-1">
-										<div class="font-medium text-surface-900-100">
+								{@const pct = ((item.count || 0) / max) * 100}
+								<div class="relative rounded-lg overflow-hidden">
+									<div
+										class="absolute inset-y-0 left-0 bg-primary-500/20"
+										style="width: {pct}%"
+									></div>
+									<div class="relative flex justify-between items-center p-3">
+										<div class="font-medium text-surface-900-100 text-sm">
 											{item.type_name || m.common_unknown()}
 										</div>
-									</div>
-									<div class="text-right">
-										<div class="font-bold text-lg text-surface-900-100">
+										<div class="font-semibold text-surface-900-100 tabular-nums">
 											{item.count}x
 										</div>
 									</div>
@@ -311,9 +284,7 @@
 						{/if}
 					</div>
 				</DashboardCard>
-			</div>
 
-			<div class="grid grid-cols-1 gap-6">
 				<WarrantyExpirationCard warranties={data.expiringWarranties} />
 			</div>
 		</div>

@@ -15,9 +15,8 @@
 
 	function handleLocaleChange(/** @type {{ value: string[] }} */ e) {
 		const newLocale = e.value[0];
-		if (browser && newLocale && newLocale !== currentLocale[0]) {
+		if (browser && newLocale && newLocale !== getLocale()) {
 			setLocale(/** @type {"de" | "en"} */ (newLocale));
-			currentLocale = [/** @type {"de" | "en"} */ (newLocale)];
 		}
 	}
 </script>

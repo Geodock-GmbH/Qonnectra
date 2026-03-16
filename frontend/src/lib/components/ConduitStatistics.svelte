@@ -168,27 +168,25 @@
 <div class="space-y-6 max-w-6xl mx-auto">
 	<!-- Top 5 Longest Conduits Tiles -->
 	{#if longestConduits && longestConduits.length > 0}
-		<div class="card border-2 border-surface-200-800 shadow-lg overflow-hidden">
-			<div class="border-b-2 border-surface-200-800 p-4">
-				<h3 class="h4 font-bold text-primary-500 flex items-center">
+		<div class="card border border-surface-200-800 overflow-hidden">
+			<div class="border-b border-surface-200-800 px-4 py-3">
+				<h3 class="font-semibold text-surface-900-100 flex items-center gap-3">
 					<span>{m.form_longest_5_conduits()}</span>
-					<div class="flex-1 h-px bg-primary-500 ml-4"></div>
+					<div class="flex-1 h-px bg-surface-200-800"></div>
 				</h3>
 			</div>
 			<div class="p-4">
 				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
 					{#each longestConduits as conduit, i (conduit.name)}
-						<div
-							class="p-4 rounded-lg border-2 border-surface-200-800 hover:preset-filled-primary-500 transition-colors"
-						>
+						<div class="p-3 rounded-lg border border-surface-200-800">
 							<div class="text-xs text-surface-500 mb-1">#{i + 1}</div>
-							<div class="font-semibold text-surface-900-100 truncate" title={conduit.name}>
+							<div class="font-medium text-surface-900-100 text-sm truncate" title={conduit.name}>
 								{conduit.name}
 							</div>
-							<div class="text-sm text-surface-600-400">
+							<div class="text-xs text-surface-600-300">
 								{conduit.type_name || m.common_unknown()}
 							</div>
-							<div class="text-lg font-bold text-primary-500 mt-2">
+							<div class="text-lg font-semibold text-surface-900-100 mt-2 tabular-nums">
 								{((conduit.total_length || 0) / 1000).toLocaleString('de-DE', {
 									minimumFractionDigits: 2,
 									maximumFractionDigits: 2
