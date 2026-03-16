@@ -6,6 +6,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
+
 	let { data } = $props();
 
 	const logLevels = [
@@ -99,6 +101,14 @@
 		return date.toLocaleString();
 	}
 
+	const projectOptions = $derived([
+		{ value: '', label: 'All Projects' },
+		...(data.projects || []).map((/** @type {{ id: number, project: string }} */ p) => ({
+			value: String(p.id),
+			label: p.project
+		}))
+	]);
+
 	const currentPage = $derived(Number(data.filters.page) || 1);
 	const pageSize = 10;
 	const totalPages = $derived(Math.ceil(data.count / pageSize));
@@ -115,33 +125,36 @@
 	<div class="preset-filled-surface-50-950 rounded-lg shadow p-4 mb-6">
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 			<div>
-				<label for="level" class="block text-sm font-medium mb-1">{m.form_level()}</label>
-				<select id="level" bind:value={filters.level} class="select w-full">
-					{#each logLevels as option (option.value)}
-						<option value={option.value}>{option.label}</option>
-					{/each}
-				</select>
+				<span class="block text-sm font-medium mb-1">{m.form_level()}</span>
+				<GenericCombobox
+					data={logLevels}
+					value={[filters.level]}
+					onValueChange={(/** @type {{ value: string[] }} */ e) => {
+						filters.level = e.value[0] || '';
+					}}
+				/>
 			</div>
 
 			<div>
-				<label for="source" class="block text-sm font-medium mb-1">{m.form_source()}</label>
-				<select id="source" bind:value={filters.source} class="select w-full">
-					{#each sources as option (option.value)}
-						<option value={option.value}>{option.label}</option>
-					{/each}
-				</select>
+				<span class="block text-sm font-medium mb-1">{m.form_source()}</span>
+				<GenericCombobox
+					data={sources}
+					value={[filters.source]}
+					onValueChange={(/** @type {{ value: string[] }} */ e) => {
+						filters.source = e.value[0] || '';
+					}}
+				/>
 			</div>
 
 			<div>
-				<label for="project" class="block text-sm font-medium mb-1"
-					>{m.form_project({ count: 1 })}</label
-				>
-				<select id="project" bind:value={filters.project} class="select w-full">
-					<option value="">All Projects</option>
-					{#each data.projects || [] as project (project.id)}
-						<option value={project.id}>{project.project}</option>
-					{/each}
-				</select>
+				<span class="block text-sm font-medium mb-1">{m.form_project({ count: 1 })}</span>
+				<GenericCombobox
+					data={projectOptions}
+					value={[String(filters.project)]}
+					onValueChange={(/** @type {{ value: string[] }} */ e) => {
+						filters.project = e.value[0] || '';
+					}}
+				/>
 			</div>
 
 			<div>

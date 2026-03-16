@@ -16,6 +16,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
+
 	import {
 		downloadGeoJSON as downloadGeoJSONFile,
 		hasGeometries,
@@ -87,6 +89,14 @@
 	const traceTree = $derived(result?.trace_tree);
 	const statistics = $derived(result?.statistics);
 	const availableSources = $derived(signalAnalysis?.available_sources || []);
+	const sourceOptions = $derived(
+		availableSources.map(
+			(/** @type {{ id: string, name: string, direction: string, is_default: boolean }} */ s) => ({
+				value: String(s.id),
+				label: `${s.name} (${s.direction === 'start' ? m.signal_source_cable_start() : m.signal_source_cable_end()})${s.is_default ? ` (${m.common_default()})` : ''}`
+			})
+		)
+	);
 	const sourceNode = $derived(signalAnalysis?.source_node);
 	const breakPoints = $derived(signalAnalysis?.break_points || []);
 	const hasBreaks = $derived(breakPoints.length > 0);
@@ -492,21 +502,15 @@
 				{m.signal_source()}
 			</h2>
 			<div class="flex items-center gap-4">
-				<select
-					class="select max-w-md"
-					value={sourceNode?.id || ''}
-					onchange={(e) => changeSignalSource(/** @type {HTMLSelectElement} */ (e.target).value)}
-				>
-					{#each availableSources as source (source.id)}
-						<option value={source.id}>
-							{source.name}
-							({source.direction === 'start'
-								? m.signal_source_cable_start()
-								: m.signal_source_cable_end()})
-							{source.is_default ? `(${m.common_default()})` : ''}
-						</option>
-					{/each}
-				</select>
+				<div class="w-full max-w-2xl">
+					<GenericCombobox
+						data={sourceOptions}
+						value={sourceNode?.id ? [String(sourceNode.id)] : []}
+						onValueChange={(/** @type {{ value: string[] }} */ e) => {
+							changeSignalSource(e.value[0] || '');
+						}}
+					/>
+				</div>
 				{#if sourceNode}
 					<span class="text-sm text-surface-600-400">
 						{sourceNode.type || ''}

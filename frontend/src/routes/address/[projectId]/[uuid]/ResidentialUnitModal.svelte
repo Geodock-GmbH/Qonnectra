@@ -6,6 +6,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 
 	let {
@@ -152,28 +153,34 @@
 					</div>
 
 					<div class="grid grid-cols-2 gap-4">
-						<label class="label">
+						<div class="label">
 							<span class="label-text text-sm text-surface-600-400"
 								>{m.form_residential_unit_type()}</span
 							>
-							<select class="select transition-colors" bind:value={formTypeId}>
-								<option value="">-</option>
-								{#each residentialUnitTypes as type (type.value)}
-									<option value={type.value}>{type.label}</option>
-								{/each}
-							</select>
-						</label>
-						<label class="label">
+							<GenericCombobox
+								data={residentialUnitTypes}
+								value={formTypeId ? [formTypeId] : []}
+								placeholder="-"
+								renderInPlace={true}
+								onValueChange={(/** @type {{ value: string[] }} */ e) => {
+									formTypeId = e.value[0] || '';
+								}}
+							/>
+						</div>
+						<div class="label">
 							<span class="label-text text-sm text-surface-600-400"
 								>{m.form_residential_unit_status()}</span
 							>
-							<select class="select transition-colors" bind:value={formStatusId}>
-								<option value="">-</option>
-								{#each residentialUnitStatuses as status (status.value)}
-									<option value={status.value}>{status.label}</option>
-								{/each}
-							</select>
-						</label>
+							<GenericCombobox
+								data={residentialUnitStatuses}
+								value={formStatusId ? [formStatusId] : []}
+								placeholder="-"
+								renderInPlace={true}
+								onValueChange={(/** @type {{ value: string[] }} */ e) => {
+									formStatusId = e.value[0] || '';
+								}}
+							/>
+						</div>
 					</div>
 				</form>
 

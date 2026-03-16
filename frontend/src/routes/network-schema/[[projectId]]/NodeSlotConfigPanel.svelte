@@ -5,6 +5,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { tooltip } from '$lib/utils/tooltip';
@@ -559,6 +560,12 @@
 	);
 
 	const hasContainerTypes = $derived(containerTypes.length > 0);
+	const containerTypeData = $derived(
+		containerTypes.map((/** @type {{ id: number, name: string }} */ t) => ({
+			value: String(t.id),
+			label: t.name
+		}))
+	);
 </script>
 
 <div class="flex flex-col gap-4 h-full">
@@ -600,17 +607,18 @@
 	{#if isCreatingContainer && !readonly}
 		<div class="card p-4 space-y-3 bg-surface-50-950 border border-surface-200-800">
 			<div class="grid grid-cols-2 gap-3">
-				<label class="label">
+				<div class="label">
 					<span class="text-sm">{m.form_container_type?.() || 'Container Type'}</span>
-					<select class="select" bind:value={selectedContainerTypeId}>
-						<option value={null}
-							>{m.placeholder_select_container_type?.() || 'Select container type...'}</option
-						>
-						{#each containerTypes as type}
-							<option value={type.id}>{type.name}</option>
-						{/each}
-					</select>
-				</label>
+					<GenericCombobox
+						data={containerTypeData}
+						value={selectedContainerTypeId != null ? [String(selectedContainerTypeId)] : []}
+						placeholder={m.placeholder_select_container_type?.() || 'Select container type...'}
+						onValueChange={(/** @type {{ value: string[] }} */ e) => {
+							selectedContainerTypeId = e.value[0] ? Number(e.value[0]) : null;
+						}}
+						renderInPlace={true}
+					/>
+				</div>
 				<label class="label">
 					<span class="text-sm">{m.form_container_name?.() || 'Name (optional)'}</span>
 					<input

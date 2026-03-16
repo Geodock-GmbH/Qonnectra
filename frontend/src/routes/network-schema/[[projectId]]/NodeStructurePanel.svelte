@@ -9,6 +9,7 @@
 		NODE_STRUCTURE_CONTEXT_KEY,
 		NodeStructureContext
 	} from '$lib/classes/NodeStructureContext.svelte.js';
+	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
 
 	import CableFiberSidebar from './CableFiberSidebar.svelte';
@@ -49,6 +50,12 @@
 	const selectedConfig = $derived(context.selectedConfig);
 	const containerPath = $derived(context.containerPath);
 	const slotRows = $derived(context.computeSlotRows());
+	const slotConfigData = $derived(
+		slotConfigurations.map((c) => ({
+			value: c.uuid,
+			label: c.side || ''
+		}))
+	);
 
 	function handleResize() {
 		innerWidth = window.innerWidth;
@@ -167,15 +174,15 @@
 					</div>
 				{/if}
 				<div class="flex items-center gap-2">
-					<select
-						class="select flex-1 text-sm"
-						value={context.selectedSlotConfigUuid}
-						onchange={handleSideChange}
-					>
-						{#each slotConfigurations as config (config.uuid)}
-							<option value={config.uuid}>{config.side}</option>
-						{/each}
-					</select>
+					<GenericCombobox
+						data={slotConfigData}
+						value={context.selectedSlotConfigUuid ? [context.selectedSlotConfigUuid] : []}
+						onValueChange={(/** @type {{ value: string[] }} */ e) => {
+							if (e.value[0]) context.selectSlotConfig(e.value[0]);
+						}}
+						classes="touch-manipulation flex-1"
+						renderInPlace={true}
+					/>
 					{#if selectedConfig}
 						<span class="text-xs text-surface-950-50 whitespace-nowrap">
 							{selectedConfig.total_slots}
@@ -302,18 +309,17 @@
 					{/if}
 
 					<div class="flex items-center gap-3">
-						<label class="label flex-1">
+						<div class="label flex-1">
 							<span class="text-sm font-medium">{m.form_select_side()}</span>
-							<select
-								class="select"
-								value={context.selectedSlotConfigUuid}
-								onchange={handleSideChange}
-							>
-								{#each slotConfigurations as config (config.uuid)}
-									<option value={config.uuid}>{config.side}</option>
-								{/each}
-							</select>
-						</label>
+							<GenericCombobox
+								data={slotConfigData}
+								value={context.selectedSlotConfigUuid ? [context.selectedSlotConfigUuid] : []}
+								onValueChange={(/** @type {{ value: string[] }} */ e) => {
+									if (e.value[0]) context.selectSlotConfig(e.value[0]);
+								}}
+								renderInPlace={true}
+							/>
+						</div>
 
 						{#if selectedConfig}
 							<div class="text-sm text-surface-950-50 pt-5">

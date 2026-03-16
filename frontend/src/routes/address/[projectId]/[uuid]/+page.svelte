@@ -19,17 +19,17 @@
 	import 'ol/ol.css';
 
 	import { onMount } from 'svelte';
-	import proj4 from 'proj4';
-
 	import { page } from '$app/stores';
+	import proj4 from 'proj4';
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 	import FileExplorer from '$lib/components/FileExplorer.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
+	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
+	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 	import {
 		getWMSLayerVisibility,
 		wmsLayerVisibilityConfig,
@@ -215,7 +215,11 @@
 	function convert3857ToDefault() {
 		if (!geom3857 || !geom3857.coordinates) return null;
 		registerStorageProjection($page.data.srid, $page.data.proj4Def);
-		const coordsDefault = proj4('EPSG:3857', storageProjection($page.data.srid), geom3857.coordinates);
+		const coordsDefault = proj4(
+			'EPSG:3857',
+			storageProjection($page.data.srid),
+			geom3857.coordinates
+		);
 		return `${coordsDefault[0].toFixed(6)}, ${coordsDefault[1].toFixed(6)}`;
 	}
 
@@ -675,29 +679,34 @@
 						<h2 class="text-lg font-semibold">{m.section_classification()}</h2>
 					</div>
 
-					<label class="label">
+					<div class="label">
 						<span class="label-text text-sm text-surface-900-100"
 							>{m.form_status_development()}</span
 						>
-						<select class="select" name="status_development_id" bind:value={status_development_id}>
-							<option value="">-</option>
-							{#each statusDevelopments as option (option.value)}
-								<option value={option.value}>{option.label}</option>
-							{/each}
-						</select>
-					</label>
+						<GenericCombobox
+							data={statusDevelopments}
+							value={status_development_id ? [status_development_id] : []}
+							placeholder="-"
+							onValueChange={(/** @type {{ value: string[] }} */ e) => {
+								status_development_id = e.value[0] || '';
+							}}
+						/>
+					</div>
 
-					<label class="label">
+					<div class="label">
 						<span class="label-text text-sm text-surface-900-100"
 							>{m.form_flag()} <span class="text-error-400">*</span></span
 						>
-						<select class="select" name="flag_id" bind:value={flag_id}>
-							<option value="">-</option>
-							{#each flags as option (option.value)}
-								<option value={option.value}>{option.label}</option>
-							{/each}
-						</select>
-					</label>
+						<GenericCombobox
+							data={flags}
+							value={flag_id ? [flag_id] : []}
+							placeholder="-"
+							required={true}
+							onValueChange={(/** @type {{ value: string[] }} */ e) => {
+								flag_id = e.value[0] || '';
+							}}
+						/>
+					</div>
 
 					<label class="label">
 						<span class="label-text text-sm text-surface-900-100"

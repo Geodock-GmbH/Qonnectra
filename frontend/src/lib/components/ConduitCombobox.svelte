@@ -3,6 +3,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import VirtualCombobox from '$lib/components/VirtualCombobox.svelte';
 	import { selectedConduit } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
@@ -41,9 +42,7 @@
 	{:else if conduitsError}
 		<div class="text-error-500 p-2">{conduitsError}</div>
 	{:else if conduits.length === 0 && (projectId || flagId)}
-		<select class="select" disabled>
-			<option value="">{m.message_no_conduits_found()}</option>
-		</select>
+		<GenericCombobox data={[]} value={[]} noDataMessage={m.message_no_conduits_found()} />
 	{:else}
 		<VirtualCombobox
 			data={conduits}

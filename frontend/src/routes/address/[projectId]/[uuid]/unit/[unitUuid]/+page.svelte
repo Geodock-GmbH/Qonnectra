@@ -18,6 +18,7 @@
 
 	import FileExplorer from '$lib/components/FileExplorer.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
+	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 
@@ -334,28 +335,32 @@
 				</div>
 
 				<div class="space-y-4">
-					<label class="label">
+					<div class="label">
 						<span class="label-text text-sm text-surface-900-100"
 							>{m.form_residential_unit_type()}</span
 						>
-						<select class="select" name="residential_unit_type_id" bind:value={formTypeId}>
-							<option value="">-</option>
-							{#each residentialUnitTypes as type (type.value)}
-								<option value={type.value}>{type.label}</option>
-							{/each}
-						</select>
-					</label>
-					<label class="label">
+						<GenericCombobox
+							data={residentialUnitTypes}
+							value={formTypeId ? [formTypeId] : []}
+							placeholder="-"
+							onValueChange={(/** @type {{ value: string[] }} */ e) => {
+								formTypeId = e.value[0] || '';
+							}}
+						/>
+					</div>
+					<div class="label">
 						<span class="label-text text-sm text-surface-900-100"
 							>{m.form_residential_unit_status()}</span
 						>
-						<select class="select" name="status_id" bind:value={formStatusId}>
-							<option value="">-</option>
-							{#each residentialUnitStatuses as status (status.value)}
-								<option value={status.value}>{status.label}</option>
-							{/each}
-						</select>
-					</label>
+						<GenericCombobox
+							data={residentialUnitStatuses}
+							value={formStatusId ? [formStatusId] : []}
+							placeholder="-"
+							onValueChange={(/** @type {{ value: string[] }} */ e) => {
+								formStatusId = e.value[0] || '';
+							}}
+						/>
+					</div>
 				</div>
 			</div>
 		</div>

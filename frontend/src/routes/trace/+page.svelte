@@ -16,6 +16,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
+
 	const traceTypes = [
 		{
 			value: 'address',
@@ -433,17 +435,18 @@
 
 		{#if includeGeometry}
 			<div class="flex items-center gap-2" transition:slide={{ duration: 150, axis: 'x' }}>
-				<label for="geometryMode" class="text-sm text-surface-600-400"
-					>{m.trace_geometry_mode()}:</label
-				>
-				<select
-					id="geometryMode"
-					bind:value={geometryMode}
-					class="rounded-lg border border-surface-200-800 bg-transparent px-3 py-1.5 text-sm text-surface-900-100 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-				>
-					<option value="segments">{m.trace_geometry_segments()}</option>
-					<option value="merged">{m.trace_geometry_merged()}</option>
-				</select>
+				<span class="text-sm text-surface-600-400">{m.trace_geometry_mode()}:</span>
+				<GenericCombobox
+					data={[
+						{ value: 'segments', label: m.trace_geometry_segments() },
+						{ value: 'merged', label: m.trace_geometry_merged() }
+					]}
+					value={[geometryMode]}
+					onValueChange={(/** @type {{ value: string[] }} */ e) => {
+						geometryMode = e.value[0] || 'segments';
+					}}
+					classes="touch-manipulation w-48"
+				/>
 			</div>
 
 			<label
