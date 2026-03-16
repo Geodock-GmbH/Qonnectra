@@ -776,8 +776,8 @@ class CableTypeColorMappingInline(admin.TabularInline):
     fields = ("uuid", "position_type", "position", "color", "layer")
     ordering = ("position_type", "position")
     can_delete = True
-    verbose_name = "Fiber Color Mapping"
-    verbose_name_plural = "Fiber Color Mappings"
+    verbose_name = _("Fiber Color Mapping")
+    verbose_name_plural = _("Fiber Color Mappings")
 
 
 @admin.register(AttributesConduitType)
@@ -893,7 +893,7 @@ class QGISProjectAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Access URLs",
+            _("Access URLs"),
             {
                 "fields": ("get_wms_url", "get_wfs_url", "get_wfs3_url"),
                 "description": _(
@@ -902,7 +902,7 @@ class QGISProjectAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Metadata",
+            _("Metadata"),
             {
                 "fields": ("created_at", "updated_at", "created_by"),
                 "classes": ("collapse",),
@@ -932,7 +932,7 @@ class QGISProjectAdmin(admin.ModelAdmin):
             return obj.get_wms_url()
         return "-"
 
-    get_wms_url.short_description = "WMS URL"
+    get_wms_url.short_description = _("WMS URL")
 
     def get_wfs_url(self, obj):
         """Return the WFS access URL for display in admin."""
@@ -940,7 +940,7 @@ class QGISProjectAdmin(admin.ModelAdmin):
             return obj.get_wfs_url()
         return "-"
 
-    get_wfs_url.short_description = "WFS URL"
+    get_wfs_url.short_description = _("WFS URL")
 
     def get_wfs3_url(self, obj):
         """Return the WFS3 (OGC API Features) access URL for display in admin."""
@@ -948,7 +948,7 @@ class QGISProjectAdmin(admin.ModelAdmin):
             return obj.get_wfs3_url()
         return "-"
 
-    get_wfs3_url.short_description = "WFS3 URL (OGC API Features)"
+    get_wfs3_url.short_description = _("WFS3 URL (OGC API Features)")
 
     def download_with_postgres_datasources(self, request, queryset):
         """
