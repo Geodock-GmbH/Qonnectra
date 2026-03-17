@@ -239,38 +239,38 @@
 					</div>
 				{/if}
 			</div>
-			{#if !readonly}
-				<div class="flex items-center gap-1 ml-auto">
-					{#if spanRows > 1}
-						<button
-							type="button"
-							class="p-1 rounded hover:bg-surface-300-700 transition-colors opacity-0 group-hover:opacity-100"
-							onclick={(e) => {
-								e.stopPropagation();
-								onUnmerge();
-							}}
-							aria-label={m.action_unmerge?.() || 'Unmerge'}
-							{@attach tooltip(m.action_unmerge?.() || 'Unmerge')}
-						>
-							<IconArrowsSplit size={16} />
-						</button>
-					{/if}
+			<div class="flex items-center gap-1 ml-auto">
+				{#if !readonly && spanRows > 1}
 					<button
 						type="button"
-						class="p-1 rounded hover:bg-surface-300-700 transition-colors opacity-0 group-hover:opacity-100 {traceResult
-							? 'opacity-100 text-primary-500'
-							: ''}"
-						onclick={handleTrace}
-						disabled={traceLoading}
-						aria-label={m.action_trace?.() || 'Trace'}
-						{@attach tooltip(m.action_trace?.() || 'Trace')}
+						class="p-1 rounded hover:bg-surface-300-700 transition-colors opacity-0 group-hover:opacity-100"
+						onclick={(e) => {
+							e.stopPropagation();
+							onUnmerge();
+						}}
+						aria-label={m.action_unmerge?.() || 'Unmerge'}
+						{@attach tooltip(m.action_unmerge?.() || 'Unmerge')}
 					>
-						{#if traceLoading}
-							<IconLoader2 size={16} class="animate-spin" />
-						{:else}
-							<IconRoute size={16} />
-						{/if}
+						<IconArrowsSplit size={16} />
 					</button>
+				{/if}
+				<button
+					type="button"
+					class="p-1 rounded hover:bg-surface-300-700 transition-colors opacity-0 group-hover:opacity-100 {traceResult
+						? 'opacity-100 text-primary-500'
+						: ''}"
+					onclick={handleTrace}
+					disabled={traceLoading}
+					aria-label={m.action_trace?.() || 'Trace'}
+					{@attach tooltip(m.action_trace?.() || 'Trace')}
+				>
+					{#if traceLoading}
+						<IconLoader2 size={16} class="animate-spin" />
+					{:else}
+						<IconRoute size={16} />
+					{/if}
+				</button>
+				{#if !readonly}
 					<button
 						type="button"
 						class="btn-sm p-1 rounded-md opacity-0 group-hover:opacity-100 bg-error-500 hover:bg-error-600 text-white transition-all shrink-0"
@@ -282,8 +282,8 @@
 					>
 						<IconTrash size={20} />
 					</button>
-				</div>
-			{/if}
+				{/if}
+			</div>
 		</div>
 	{:else if residentialUnit}
 		<div class="flex items-center gap-2 group w-full">
