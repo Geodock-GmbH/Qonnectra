@@ -167,10 +167,12 @@
 	}
 </script>
 
-<div class="card preset-filled-surface-50-950 p-4 flex flex-col max-h-[80vh] min-h-0">
-	<div class="flex-shrink-0 flex items-center justify-between mb-4">
+<div
+	class="card preset-filled-surface-50-950 p-4 flex flex-col max-h-[80vh] min-h-0 w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[320px]"
+>
+	<div class="flex-shrink-0 flex flex-wrap items-center justify-between gap-2 mb-4">
 		<h2 class="text-lg font-semibold">{m.title_select_trenches()}</h2>
-		<div class="pl-4 flex gap-2">
+		<div class="flex gap-2">
 			<button type="button" class="btn btn-sm preset-outlined-surface-500" onclick={selectAll}>
 				{m.action_select_all()}
 			</button>
@@ -194,7 +196,7 @@
 				{@const totalCount = trench.conduits?.length || 0}
 
 				<Accordion.Item value={trench.uuid}>
-					<Accordion.ItemTrigger class="flex justify-between items-center">
+					<Accordion.ItemTrigger class="flex justify-between items-center min-w-0">
 						<div class="flex items-center gap-3">
 							<button
 								type="button"
@@ -222,8 +224,8 @@
 									<IconSquare class="size-8 text-surface-400" />
 								{/if}
 							</button>
-							<div class="text-left">
-								<div class="font-semibold">
+							<div class="text-left min-w-0 flex-1">
+								<div class="font-semibold truncate">
 									{m.form_trench_id()}: {trench.id_trench}
 								</div>
 								<div class="text-sm text-surface-600-300">

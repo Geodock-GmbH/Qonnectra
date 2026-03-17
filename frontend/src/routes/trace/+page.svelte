@@ -402,28 +402,29 @@
 </script>
 
 <!-- Tab Selector -->
-<div class="mb-6 overflow-x-auto rounded-xl border border-surface-200-800 p-2">
-	<div class="flex min-w-max gap-2 sm:min-w-0">
+<div class="mb-6 rounded-xl border border-surface-200-800 p-1.5 sm:p-2">
+	<div class="flex gap-1 sm:gap-2">
 		{#each traceTypes as type (type.value)}
 			{@const Icon = type.icon}
 			<button
 				type="button"
 				onclick={() => handleTabChange(type.value)}
-				class="flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-3 transition-colors {activeTab ===
+				class="flex flex-1 items-center justify-center gap-2 rounded-lg px-2 py-2.5 transition-colors sm:px-4 sm:py-3 {activeTab ===
 				type.value
 					? 'bg-primary-500 text-white'
 					: 'hover:bg-surface-100-900'}"
+				title={type.label()}
 			>
 				<Icon size={20} class={activeTab === type.value ? 'text-white' : type.color} />
-				<span class="text-sm font-medium">{type.label()}</span>
+				<span class="hidden text-sm font-medium sm:inline">{type.label()}</span>
 			</button>
 		{/each}
 	</div>
 </div>
 
 <!-- Geometry Options -->
-<div class="mb-6 rounded-xl border border-surface-200-800 p-4">
-	<div class="flex flex-wrap items-center gap-6">
+<div class="mb-6 rounded-xl border border-surface-200-800 p-3 sm:p-4">
+	<div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
 		<label class="flex cursor-pointer items-center gap-2">
 			<input
 				type="checkbox"
@@ -434,7 +435,7 @@
 		</label>
 
 		{#if includeGeometry}
-			<div class="flex items-center gap-2" transition:slide={{ duration: 150, axis: 'x' }}>
+			<div class="flex items-center gap-2" transition:slide={{ duration: 150 }}>
 				<span class="text-sm text-surface-600-400">{m.trace_geometry_mode()}:</span>
 				<GenericCombobox
 					data={[
@@ -445,13 +446,13 @@
 					onValueChange={(/** @type {{ value: string[] }} */ e) => {
 						geometryMode = e.value[0] || 'segments';
 					}}
-					classes="touch-manipulation w-48"
+					classes="touch-manipulation w-40 sm:w-48"
 				/>
 			</div>
 
 			<label
 				class="flex cursor-pointer items-center gap-2"
-				transition:slide={{ duration: 150, axis: 'x' }}
+				transition:slide={{ duration: 150 }}
 			>
 				<input
 					type="checkbox"
@@ -465,7 +466,7 @@
 </div>
 
 <!-- Search Section -->
-<div class="rounded-xl border border-surface-200-800 p-6">
+<div class="rounded-xl border border-surface-200-800 p-3 sm:p-6">
 	{#if activeType}
 		<!-- Fiber Tab: Show cable selection then fiber picker -->
 		{#if activeTab === 'fiber'}

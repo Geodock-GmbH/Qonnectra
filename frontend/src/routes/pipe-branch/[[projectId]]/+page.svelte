@@ -879,7 +879,7 @@
 					onCancel={handleTrenchSelectionCancel}
 				/>
 			{:else}
-				<div class="card preset-filled-surface-50-950 p-4 space-y-4 flex flex-col gap-2">
+				<div class="card preset-filled-surface-50-950 p-4 space-y-4 flex flex-col gap-2 w-[calc(100vw-2rem)] sm:w-auto">
 					<h1 class="text-lg font-semibold mb-1">{m.common_attributes()}</h1>
 
 					{#if !pipeBranchConfigured && branches.length > 0}
@@ -902,7 +902,7 @@
 								getTrenchesNearNode(nodeName, project);
 							}
 						}}
-						inputClasses="min-w-[240px]"
+						inputClasses="w-full sm:min-w-[240px]"
 					/>
 
 					{#if selectedNode?.length > 0 && availableTrenches.length > 0}

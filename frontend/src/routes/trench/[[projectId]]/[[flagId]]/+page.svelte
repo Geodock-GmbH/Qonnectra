@@ -6,7 +6,7 @@
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
-	import { IconLoader2 } from '@tabler/icons-svelte';
+	import { IconLink, IconLoader2, IconRoute } from '@tabler/icons-svelte';
 	import WKT from 'ol/format/WKT.js';
 	import VectorLayer from 'ol/layer/Vector.js';
 
@@ -547,9 +547,10 @@
 	<title>{m.nav_conduit_connection()}</title>
 </svelte:head>
 
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
+<div class="flex h-[calc(100vh-4rem)] flex-col lg:flex-row lg:gap-4">
+	<!-- Map Section -->
 	<div
-		class="lg:col-span-8 border-2 rounded-lg border-surface-200-800 overflow-hidden min-h-[400px] relative"
+		class="order-1 h-[40vh] shrink-0 border-2 rounded-lg border-surface-200-800 overflow-hidden relative sm:h-[45vh] lg:order-1 lg:h-auto lg:flex-2"
 	>
 		{#if layersInitialized}
 			<Map
@@ -576,24 +577,28 @@
 		{#if isCalculatingRoute}
 			<div class="absolute inset-0 bg-black/60 flex items-center justify-center z-50 rounded-lg">
 				<div
-					class="bg-white dark:bg-surface-800 p-6 rounded-xl flex items-center gap-4 shadow-2xl border border-surface-300 dark:border-surface-600"
+					class="bg-white dark:bg-surface-800 p-4 sm:p-6 rounded-xl flex items-center gap-3 sm:gap-4 shadow-2xl border border-surface-300 dark:border-surface-600"
 				>
-					<IconLoader2 class="size-8 animate-spin text-primary-500" />
-					<span class="font-semibold text-lg text-surface-900 dark:text-white"
+					<IconLoader2 class="size-6 sm:size-8 animate-spin text-primary-500" />
+					<span class="font-semibold text-base sm:text-lg text-surface-900 dark:text-white"
 						>{m.message_calculating_route()}</span
 					>
 				</div>
 			</div>
 		{/if}
 	</div>
-	<div class="lg:col-span-4 border-2 rounded-lg border-surface-200-800 overflow-auto">
+
+	<!-- Controls Section -->
+	<div
+		class="order-2 flex-1 overflow-auto border-2 rounded-lg border-surface-200-800 pb-16 md:pb-0 lg:order-2 lg:flex-1"
+	>
 		<div class="flex flex-col h-full">
-			<!-- Controls Section -->
-			<div class="p-4 space-y-5 border-b border-surface-200-800">
-				<!-- Mode Toggles - Compact row -->
-				<div class="grid grid-cols-2 gap-3">
+			<div class="p-3 sm:p-4 space-y-3 sm:space-y-5 border-b border-surface-200-800">
+				<!-- Mode Toggles -->
+				<div class="grid grid-cols-2 gap-2 sm:gap-3">
 					<label
-						class="flex items-center gap-3 px-3 py-2.5 rounded-md bg-surface-100-900 cursor-pointer transition-colors hover:bg-surface-200-800"
+						class="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 rounded-md bg-surface-100-900 cursor-pointer transition-colors hover:bg-surface-200-800"
+						title={m.form_routing_mode()}
 					>
 						<Switch
 							name="routing-mode"
@@ -607,13 +612,15 @@
 							</Switch.Control>
 							<Switch.HiddenInput />
 						</Switch>
-						<span class=" font-medium leading-tight text-surface-900-100"
+						<IconRoute class="size-5 text-surface-900-100 sm:hidden" />
+						<span class="hidden sm:inline text-sm sm:text-base font-medium leading-tight text-surface-900-100"
 							>{m.form_routing_mode()}</span
 						>
 					</label>
 
 					<label
-						class="flex items-center gap-3 px-3 py-2.5 rounded-md bg-surface-100-900 cursor-pointer transition-colors hover:bg-surface-200-800"
+						class="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 rounded-md bg-surface-100-900 cursor-pointer transition-colors hover:bg-surface-200-800"
+						title={m.form_show_linked_trenches()}
 					>
 						<Switch
 							name="show-linked-trenches"
@@ -627,15 +634,16 @@
 							</Switch.Control>
 							<Switch.HiddenInput />
 						</Switch>
-						<span class=" font-medium leading-tight text-surface-900-100"
+						<IconLink class="size-5 text-surface-900-100 sm:hidden" />
+						<span class="hidden sm:inline text-sm sm:text-base font-medium leading-tight text-surface-900-100"
 							>{m.form_show_linked_trenches()}</span
 						>
 					</label>
 				</div>
 
-				<!-- Selectors - Two column grid -->
-				<div class="grid grid-cols-2 gap-3">
-					<div class="space-y-1.5">
+				<!-- Selectors -->
+				<div class="grid grid-cols-2 gap-2 sm:gap-3">
+					<div class="space-y-1 sm:space-y-1.5">
 						<span class="text-xs font-semibold text-surface-600-400 uppercase tracking-wide block"
 							>{m.form_flag()}</span
 						>
@@ -650,7 +658,7 @@
 						/>
 					</div>
 
-					<div class="space-y-1.5">
+					<div class="space-y-1 sm:space-y-1.5">
 						<span class="text-xs font-semibold text-surface-600-400 uppercase tracking-wide block"
 							>{m.form_conduit({ count: 1 })}</span
 						>
@@ -666,7 +674,7 @@
 			</div>
 
 			<!-- Trench Table Section -->
-			<div class="flex-1 min-h-0 p-4 overflow-auto">
+			<div class="flex-1 min-h-0 p-3 sm:p-4 overflow-auto">
 				<TrenchTable
 					projectId={$selectedProject}
 					conduitId={$selectedConduit}

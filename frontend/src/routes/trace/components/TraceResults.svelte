@@ -112,11 +112,11 @@
 				<button
 					type="button"
 					onclick={handleDownloadGeoJSON}
-					class="flex items-center gap-3 rounded-lg border border-success-500 px-5 py-2.5 font-medium text-success-500 transition-colors hover:bg-success-500/10"
+					class="flex flex-wrap items-center justify-center gap-2 rounded-lg border border-success-500 px-4 py-2.5 font-medium text-success-500 transition-colors hover:bg-success-500/10 sm:gap-3 sm:px-5"
 				>
 					<IconDownload size={20} />
 					<span>{m.trace_download_geojson()}</span>
-					<span class="border-l border-surface-200-800 pl-3 text-xs text-surface-600-400">
+					<span class="border-l border-surface-200-800 pl-2 text-xs text-surface-600-400 sm:pl-3">
 						{result.statistics.total_trenches}
 						{m.form_selected_trenches().toLowerCase()} · EPSG:{page.data.srid}
 					</span>
@@ -165,7 +165,7 @@
 				{m.trace_trace_tree()}
 			</h2>
 			{#if result.trace_tree}
-				<div class="rounded-xl border border-surface-200-800 p-6">
+				<div class="rounded-xl border border-surface-200-800 p-3 sm:p-6">
 					{@render traceNode(result.trace_tree, 0)}
 				</div>
 			{:else if result.trace_trees && result.trace_trees.length > 0}
