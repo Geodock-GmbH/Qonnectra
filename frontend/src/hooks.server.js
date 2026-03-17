@@ -71,9 +71,9 @@ async function attemptTokenRefresh(event) {
 
 		if (!response.ok) return false;
 
-		const setCookieHeader = response.headers.get('set-cookie');
-		if (setCookieHeader) {
-			const cookies = setCookieParser.parse(setCookieHeader);
+		const setCookieHeaders = response.headers.getSetCookie?.() ?? [];
+		if (setCookieHeaders.length > 0) {
+			const cookies = setCookieParser.parse(setCookieHeaders);
 			cookies.forEach((/** @type {any} */ cookie) => {
 				/** @type {Record<string, any>} */
 				const options = {

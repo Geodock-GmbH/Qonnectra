@@ -37,7 +37,6 @@
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte.js';
 	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 
 	import TrenchTable from './TrenchTable.svelte';
@@ -524,9 +523,7 @@
 	 * Cleanup on component destroy
 	 */
 	onMount(() => {
-		startHeartbeat();
 		return () => {
-			stopHeartbeat();
 			if (mapState.olMap) {
 				if (routeLayer) mapState.olMap.removeLayer(routeLayer);
 				if (highlightLayer) mapState.olMap.removeLayer(highlightLayer);

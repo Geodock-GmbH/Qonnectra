@@ -21,7 +21,6 @@
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
-	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte.js';
 
 	import '@xyflow/svelte/dist/style.css';
 
@@ -103,7 +102,6 @@
 	});
 
 	onMount(() => {
-		startHeartbeat();
 		autoLockSvelteFlow();
 
 		if (!data.networkSchemaSettingsConfigured && $selectedProject) {
@@ -125,10 +123,6 @@
 				});
 			}
 		}
-
-		return () => {
-			stopHeartbeat();
-		};
 	});
 
 	/** Force a full reload when the project changes via URL, since the schema is not designed for partial re-initialization. */

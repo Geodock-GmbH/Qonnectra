@@ -26,8 +26,6 @@
 		trenchStyleMode,
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
-	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte.js';
-
 	import HouseConnectionDrawerTabs from './HouseConnectionDrawerTabs.svelte';
 
 	import 'ol/ol.css';
@@ -252,9 +250,7 @@
 	});
 
 	onMount(() => {
-		startHeartbeat();
 		return () => {
-			stopHeartbeat();
 			if (mapState.olMap && linkedTrenchesLayer) {
 				mapState.olMap.removeLayer(linkedTrenchesLayer);
 			}

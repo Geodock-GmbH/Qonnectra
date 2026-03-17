@@ -21,7 +21,6 @@
 		selectedProject
 	} from '$lib/stores/store';
 	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
-	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte.js';
 
 	import '@xyflow/svelte/dist/style.css';
 
@@ -105,12 +104,7 @@
 	});
 
 	onMount(() => {
-		startHeartbeat();
 		autoLockSvelteFlow();
-
-		return () => {
-			stopHeartbeat();
-		};
 	});
 
 	onMount(() => {

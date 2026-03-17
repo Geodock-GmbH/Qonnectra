@@ -1,4 +1,5 @@
 <script>
+	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { Toast } from '@skeletonlabs/skeleton-svelte';
 
@@ -10,6 +11,7 @@
 	import { updateUserStore } from '$lib/stores/auth';
 	import { theme } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte.js';
 
 	import '../app.css';
 
@@ -18,6 +20,13 @@
 	if (browser) {
 		setupNavigationCancellation();
 	}
+
+	onMount(() => {
+		if (data.user?.isAuthenticated) {
+			startHeartbeat();
+			return () => stopHeartbeat();
+		}
+	});
 
 	$effect(() => updateUserStore(data.user));
 	$effect(() => {
