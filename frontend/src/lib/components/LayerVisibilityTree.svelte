@@ -625,6 +625,19 @@
 	}
 
 	/**
+	 * Action to attach a non-passive touchmove listener
+	 * @param {HTMLElement} node
+	 */
+	function nonPassiveTouchMove(node) {
+		node.addEventListener('touchmove', handleTouchMove, { passive: false });
+		return {
+			destroy() {
+				node.removeEventListener('touchmove', handleTouchMove);
+			}
+		};
+	}
+
+	/**
 	 * Handle touch end for drag gesture
 	 */
 	function handleTouchEnd() {
@@ -668,7 +681,7 @@
 			<div
 				class="flex justify-center py-3 cursor-grab active:cursor-grabbing touch-none"
 				ontouchstart={handleTouchStart}
-				ontouchmove={handleTouchMove}
+				use:nonPassiveTouchMove
 				ontouchend={handleTouchEnd}
 				role="slider"
 				aria-valuenow={currentTranslate}

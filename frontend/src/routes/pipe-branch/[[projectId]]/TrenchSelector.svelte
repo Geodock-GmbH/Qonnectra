@@ -170,7 +170,7 @@
 <div
 	class="card preset-filled-surface-50-950 p-4 flex flex-col max-h-[80vh] min-h-0 w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[320px]"
 >
-	<div class="flex-shrink-0 flex flex-wrap items-center justify-between gap-2 mb-4">
+	<div class="shrink-0 flex flex-wrap items-center justify-between gap-2 mb-4">
 		<h2 class="text-lg font-semibold">{m.title_select_trenches()}</h2>
 		<div class="flex gap-2">
 			<button type="button" class="btn btn-sm preset-outlined-surface-500" onclick={selectAll}>
@@ -182,7 +182,7 @@
 		</div>
 	</div>
 
-	<div class="flex-shrink-0 text-sm text-surface-600-300 mb-4">
+	<div class="shrink-0 text-sm text-surface-600-300 mb-4">
 		{m.message_trenches_found({ count: trenches.length })} | {m.common_selected()}:
 		{getTotalSelectedConduits()}
 		{m.form_conduit({ count: getTotalSelectedConduits() })}
@@ -252,7 +252,7 @@
 										onclick={() => toggleConduit(trench.uuid, conduit.uuid)}
 										disabled={isLocked}
 									>
-										<div class="flex-shrink-0 pl-4">
+										<div class="shrink-0 pl-4">
 											{#if isSelected}
 												{#if isLocked}
 													<IconLock class="size-8 text-primary-500" />
@@ -263,7 +263,7 @@
 												<IconSquare class="size-8 text-surface-400" />
 											{/if}
 										</div>
-										<div class="flex-grow">
+										<div class="grow">
 											<div class="text-sm font-medium flex items-center gap-2">
 												{conduit.name || conduit.uuid.slice(0, 8)}
 												{#if isLocked}
@@ -292,7 +292,7 @@
 		</Accordion>
 	</div>
 
-	<div class="flex-shrink-0 flex gap-2 pt-4 mt-4 border-t border-surface-200-800">
+	<div class="shrink-0 flex gap-2 pt-4 mt-4 border-t border-surface-200-800">
 		<button
 			type="button"
 			class="btn flex-1 preset-filled-primary-500"

@@ -73,6 +73,9 @@ export const theme = persisted('theme', ['legacy']);
 /** Drawer width in pixels */
 export const drawerWidth = persisted('drawerWidth', 400);
 
+/** @type {import('svelte/store').Writable<'half' | 'full'>} */
+export const drawerSnap = persisted('drawerSnap', 'half');
+
 /** Whether edge snapping is enabled for drawing */
 export const edgeSnappingEnabled = persisted('edgeSnappingEnabled', true);
 
