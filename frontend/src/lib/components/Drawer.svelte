@@ -31,6 +31,10 @@
 	let isResizing = $state(false);
 	let startX = $state(0);
 	let startWidth = $state(0);
+	let activePointerId = $state(/** @type {number | null} */ (null));
+
+	/** @type {HTMLButtonElement | undefined} */
+	let resizeHandleElement = $state();
 
 	/** @type {import('svelte/store').Writable<{open: boolean, title: string, component: any, props: Record<string, any>, width: number}>} */
 	const typedStore = /** @type {any} */ (drawerStore);
@@ -60,23 +64,33 @@
 	/**
 	 * Initiates the drawer resize operation
 	 * Sets up initial state and applies cursor styles
-	 * @param {MouseEvent} event - The mouse event from the resize handle
+	 * @param {PointerEvent} event - The pointer event from the resize handle
 	 */
 	function handleResizeStart(event) {
+		if (event.pointerType === 'mouse' && event.button !== 0) return;
+
 		isResizing = true;
+		activePointerId = event.pointerId;
 		startX = event.clientX;
 		startWidth = $typedStore.width;
-		document.body.style.cursor = 'col-resize';
+
+		event.preventDefault();
+		resizeHandleElement?.setPointerCapture?.(event.pointerId);
+
+		if (event.pointerType === 'mouse') {
+			document.body.style.cursor = 'col-resize';
+		}
 		document.body.style.userSelect = 'none';
 	}
 
 	/**
-	 * Handles mouse movement during drawer resize
-	 * Calculates new width based on mouse position delta
-	 * @param {MouseEvent} event - The mouse move event
+	 * Handles pointer movement during drawer resize
+	 * Calculates new width based on pointer position delta
+	 * @param {PointerEvent} event - The pointer move event
 	 */
 	function handleResizeMove(event) {
 		if (!isResizing) return;
+		if (activePointerId !== null && event.pointerId !== activePointerId) return;
 
 		const deltaX = startX - event.clientX;
 		const newWidth = startWidth + deltaX;
@@ -86,9 +100,18 @@
 	/**
 	 * Completes the drawer resize operation
 	 * Resets cursor and selection styles
+	 * @param {PointerEvent} [event]
 	 */
-	function handleResizeEnd() {
+	function handleResizeEnd(event) {
 		isResizing = false;
+		if (event && activePointerId !== null && event.pointerId === activePointerId) {
+			try {
+				resizeHandleElement?.releasePointerCapture?.(activePointerId);
+			} catch {
+				// ignore if capture is already released
+			}
+		}
+		activePointerId = null;
 		document.body.style.cursor = '';
 		document.body.style.userSelect = '';
 	}
@@ -113,13 +136,15 @@
 
 	onMount(() => {
 		document.addEventListener('keydown', handleKeydown);
-		document.addEventListener('mousemove', handleResizeMove);
-		document.addEventListener('mouseup', handleResizeEnd);
+		document.addEventListener('pointermove', handleResizeMove);
+		document.addEventListener('pointerup', handleResizeEnd);
+		document.addEventListener('pointercancel', handleResizeEnd);
 
 		return () => {
 			document.removeEventListener('keydown', handleKeydown);
-			document.removeEventListener('mousemove', handleResizeMove);
-			document.removeEventListener('mouseup', handleResizeEnd);
+			document.removeEventListener('pointermove', handleResizeMove);
+			document.removeEventListener('pointerup', handleResizeEnd);
+			document.removeEventListener('pointercancel', handleResizeEnd);
 		};
 	});
 </script>
@@ -173,8 +198,10 @@
 
 		<!-- Resize Handle -->
 		<button
-			class="absolute left-0 top-0 h-full w-2 bg-transparent hover:bg-surface-300-700 cursor-col-resize transition-colors duration-200 border-none p-0 z-10"
-			onmousedown={handleResizeStart}
+			bind:this={resizeHandleElement}
+			class="touch-manipulation absolute left-0 top-0 h-full w-2 bg-transparent hover:bg-surface-300-700 active:bg-surface-300-700 cursor-col-resize transition-colors duration-200 border-none p-0 z-10"
+			style="touch-action: none;"
+			onpointerdown={handleResizeStart}
 			aria-label={m.tooltip_resize_drawer()}
 			{@attach tooltip(m.tooltip_resize_drawer())}
 			type="button"
