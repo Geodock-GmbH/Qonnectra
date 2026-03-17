@@ -532,45 +532,72 @@
 	<title>{street} {housenumber}{house_number_suffix} - {m.nav_address()}</title>
 </svelte:head>
 
-<div class="max-w-6xl mx-auto space-y-6">
-	<div class="card p-4 flex items-center justify-between gap-4">
-		<div class="flex items-center gap-4 min-w-0">
-			<button
-				onclick={goBack}
-				class="btn preset-tonal-primary inline-flex items-center gap-2 shrink-0"
-			>
-				<IconArrowLeft class="size-4 shrink-0" />
-				<span>{m.common_back()}</span>
-			</button>
-			<div class="flex items-center gap-3 min-w-0">
-				<div class="size-10 rounded-lg bg-primary-500/15 flex items-center justify-center shrink-0">
-					<IconHome class="size-5 text-primary-500" />
-				</div>
-				<div class="min-w-0">
-					<h1 class="text-2xl font-bold truncate">
-						{street}
-						{housenumber}{house_number_suffix}
-					</h1>
-					<p class="text-sm text-surface-900-100">
-						{zip_code}
-						{city}{district ? ` · ${district}` : ''}
-					</p>
+<div class="max-w-6xl mx-auto space-y-4 sm:space-y-6">
+	<div class="card p-3 sm:p-4 space-y-3 sm:space-y-0">
+		<div class="flex items-center justify-between gap-2 sm:gap-4">
+			<div class="flex items-center gap-2 sm:gap-4 min-w-0">
+				<button
+					onclick={goBack}
+					class="btn preset-tonal-primary inline-flex items-center gap-2 shrink-0"
+				>
+					<IconArrowLeft class="size-4 shrink-0" />
+					<span class="hidden sm:inline">{m.common_back()}</span>
+				</button>
+				<div class="flex items-center gap-2 sm:gap-3 min-w-0">
+					<div
+						class="size-8 sm:size-10 rounded-lg bg-primary-500/15 flex items-center justify-center shrink-0"
+					>
+						<IconHome class="size-4 sm:size-5 text-primary-500" />
+					</div>
+					<div class="min-w-0">
+						<h1 class="text-lg sm:text-2xl font-bold truncate">
+							{street}
+							{housenumber}{house_number_suffix}
+						</h1>
+						<p class="text-xs sm:text-sm text-surface-900-100 truncate">
+							{zip_code}
+							{city}{district ? ` · ${district}` : ''}
+						</p>
+					</div>
 				</div>
 			</div>
+			<div class="hidden sm:flex items-center gap-2 shrink-0">
+				<button
+					onclick={openDeleteConfirm}
+					class="btn preset-filled-error-500 inline-flex items-center gap-2"
+					disabled={isDeleting || isLinkedToNode}
+					{@attach tooltip(m.message_address_linked_to_node(), { disabled: !isLinkedToNode })}
+				>
+					<IconTrash class="size-4 shrink-0" />
+					<span class="hidden sm:inline">{m.action_delete()}</span>
+				</button>
+				<button
+					onclick={handleSave}
+					class="btn preset-filled-primary-500 inline-flex items-center gap-2"
+					disabled={isSaving}
+				>
+					{#if isSaving}
+						<span>{m.common_loading()}</span>
+					{:else}
+						<IconDeviceFloppy class="size-4 shrink-0" />
+						<span>{m.common_save()}</span>
+					{/if}
+				</button>
+			</div>
 		</div>
-		<div class="flex items-center gap-2 shrink-0">
+		<!-- Mobile action buttons -->
+		<div class="flex sm:hidden items-center gap-2">
 			<button
 				onclick={openDeleteConfirm}
-				class="btn preset-filled-error-500 inline-flex items-center gap-2"
+				class="btn preset-filled-error-500 inline-flex items-center gap-2 flex-1"
 				disabled={isDeleting || isLinkedToNode}
-				{@attach tooltip(m.message_address_linked_to_node(), { disabled: !isLinkedToNode })}
 			>
 				<IconTrash class="size-4 shrink-0" />
-				<span class="hidden sm:inline">{m.action_delete()}</span>
+				<span>{m.action_delete()}</span>
 			</button>
 			<button
 				onclick={handleSave}
-				class="btn preset-filled-primary-500 inline-flex items-center gap-2"
+				class="btn preset-filled-primary-500 inline-flex items-center gap-2 flex-1"
 				disabled={isSaving}
 			>
 				{#if isSaving}
@@ -588,8 +615,8 @@
 			<p>{addressError}</p>
 		</div>
 	{:else if address}
-		<div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
-			<div class="lg:col-span-3 card p-6 space-y-6">
+		<div class="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
+			<div class="lg:col-span-3 card p-4 sm:p-6 space-y-4 sm:space-y-6">
 				<div class="flex items-center gap-3">
 					<div class="w-1 h-6 rounded-full bg-primary-500"></div>
 					<IconHome class="size-5 text-primary-500" />
@@ -723,7 +750,7 @@
 				</div>
 			</div>
 
-			<div class="lg:col-span-2 card p-6 space-y-4">
+			<div class="lg:col-span-2 card p-4 sm:p-6 space-y-4">
 				<div class="flex items-center gap-3">
 					<div class="w-1 h-6 rounded-full bg-info-500"></div>
 					<IconMapPin class="size-5 text-info-500" />
@@ -834,7 +861,7 @@
 		</div>
 
 		<!-- Microduct Connections -->
-		<div class="card p-6 space-y-4">
+		<div class="card p-4 sm:p-6 space-y-4">
 			<div class="flex items-center gap-3">
 				<div class="w-1 h-6 rounded-full bg-warning-500"></div>
 				<IconLink class="size-5 text-warning-500" />
@@ -845,7 +872,8 @@
 			</div>
 
 			{#if linkedMicroducts.length > 0}
-				<div class="overflow-x-auto">
+				<!-- Desktop table -->
+				<div class="hidden md:block overflow-x-auto">
 					<table class="table">
 						<thead>
 							<tr>
@@ -893,6 +921,32 @@
 						</tbody>
 					</table>
 				</div>
+				<!-- Mobile cards -->
+				<div class="md:hidden space-y-3">
+					{#each linkedMicroducts as md (md.uuid)}
+						<div class="rounded-lg border border-surface-200-800 p-3 space-y-2">
+							<div class="flex items-center justify-between">
+								<span class="font-medium text-sm">{md.nodeName}</span>
+								<span class="inline-flex items-center gap-1.5">
+									<span
+										class="size-3 rounded-full border border-surface-300-700"
+										style="background-color: {md.colorHex || '#64748b'}"
+									></span>
+									<span class="text-xs">{md.color}</span>
+									<span
+										class="inline-flex items-center justify-center size-6 rounded-md bg-surface-200-800 text-xs font-mono font-medium"
+									>
+										{md.number}
+									</span>
+								</span>
+							</div>
+							<div class="grid grid-cols-2 gap-x-4 text-xs text-surface-900-100">
+								<span>{m.table_conduit_name()}: {md.conduitName}</span>
+								<span>{m.table_conduit_type()}: {md.conduitType}</span>
+							</div>
+						</div>
+					{/each}
+				</div>
 			{:else}
 				<div class="rounded-lg border border-dashed border-surface-300-700 p-8 text-center">
 					<IconLink class="size-10 mx-auto mb-3 text-warning-500 opacity-40" />
@@ -903,8 +957,8 @@
 			{/if}
 		</div>
 
-		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-			<div class="card p-6 space-y-4">
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+			<div class="card p-4 sm:p-6 space-y-4">
 				<div class="flex items-center gap-3">
 					<div class="w-1 h-6 rounded-full bg-success-500"></div>
 					<IconFolder class="size-5 text-success-500" />

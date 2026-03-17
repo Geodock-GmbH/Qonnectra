@@ -193,25 +193,28 @@
 	}
 </script>
 
-<div class="card p-6 space-y-4">
-	<div class="flex items-center gap-3">
-		<div class="w-1 h-6 rounded-full bg-primary-500"></div>
-		<IconUsers class="size-5 text-primary-500" />
-		<h2 class="text-lg font-semibold">{m.section_residential_units({ count: 2 })}</h2>
-		{#if residentialUnits.length > 0}
-			<span class="badge preset-tonal-primary text-xs ml-auto">
-				{sortedUnits.length === residentialUnits.length
-					? residentialUnits.length
-					: `${sortedUnits.length} / ${residentialUnits.length}`}
-			</span>
-		{/if}
-		<div class={residentialUnits.length > 0 ? 'ml-2' : 'ml-auto'}>
+<div class="card p-4 sm:p-6 space-y-4">
+	<div class="flex items-center gap-3 flex-wrap">
+		<div class="flex items-center gap-3 min-w-0">
+			<div class="w-1 h-6 rounded-full bg-primary-500 shrink-0"></div>
+			<IconUsers class="size-5 text-primary-500 shrink-0" />
+			<h2 class="text-lg font-semibold truncate">{m.section_residential_units({ count: 2 })}</h2>
+		</div>
+		<div class="flex items-center gap-2 ml-auto">
+			{#if residentialUnits.length > 0}
+				<span class="badge preset-tonal-primary text-xs">
+					{sortedUnits.length === residentialUnits.length
+						? residentialUnits.length
+						: `${sortedUnits.length} / ${residentialUnits.length}`}
+				</span>
+			{/if}
 			<ResidentialUnitModal {residentialUnitTypes} {residentialUnitStatuses} bind:openModal />
 		</div>
 	</div>
 
 	{#if residentialUnits.length > 0}
-		<div class="overflow-x-auto">
+		<!-- Desktop table -->
+		<div class="hidden md:block overflow-x-auto">
 			<table class="table">
 				<thead>
 					<tr>
@@ -287,6 +290,37 @@
 					{/each}
 				</tbody>
 			</table>
+		</div>
+		<!-- Mobile cards -->
+		<div class="md:hidden space-y-3">
+			{#each paginatedUnits as unit (unit.uuid)}
+				<div
+					class="rounded-lg border border-surface-200-800 p-3 space-y-2 cursor-pointer hover:preset-tonal-primary transition-colors active:scale-[0.99] touch-manipulation"
+					onclick={() => navigateToUnit(unit.uuid)}
+					onkeydown={(e) => e.key === 'Enter' && navigateToUnit(unit.uuid)}
+					role="button"
+					tabindex="0"
+				>
+					<div class="flex items-center justify-between">
+						<span class="font-medium font-mono text-sm">
+							{getCellValue(unit, 'id_residential_unit') || '-'}
+						</span>
+						<button
+							onclick={(e) => confirmDelete(e, unit.uuid)}
+							class="btn btn-sm preset-filled-error-500"
+							aria-label={m.action_delete()}
+						>
+							<IconTrash class="size-3.5" />
+						</button>
+					</div>
+					<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-surface-900-100">
+						<span>{m.table_floor()}: {getCellValue(unit, 'floor') || '-'}</span>
+						<span>{m.table_side()}: {getCellValue(unit, 'side') || '-'}</span>
+						<span>{m.table_residential_unit_type()}: {getCellValue(unit, 'residential_unit_type') || '-'}</span>
+						<span>{m.table_residential_unit_status()}: {getCellValue(unit, 'status') || '-'}</span>
+					</div>
+				</div>
+			{/each}
 		</div>
 		{#if totalPages > 1}
 			<div class="mt-4 flex justify-center">
