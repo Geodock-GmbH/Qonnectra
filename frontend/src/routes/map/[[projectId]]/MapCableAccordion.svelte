@@ -1,13 +1,14 @@
 <script>
 	import { getContext, untrack } from 'svelte';
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
-	import { IconHighlight, IconMinus, IconPlus } from '@tabler/icons-svelte';
+	import { IconHighlight, IconMinus, IconPlus, IconRoute } from '@tabler/icons-svelte';
 	import { PUBLIC_API_URL } from '$env/static/public';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import { CableTrenchDataManager } from '$lib/classes/CableTrenchDataManager.svelte.js';
 	import FibersDisplayTable from '$lib/components/FibersDisplayTable.svelte';
+	import { traceFrom } from '../../trace/traceUtils.js';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { tooltip } from '$lib/utils/tooltip.js';
 
@@ -104,6 +105,18 @@
 					<button
 						type="button"
 						class="btn btn-sm btn-icon preset-filled-secondary-500 p-1 mr-2"
+						aria-label={m.action_trace()}
+						{@attach tooltip(m.action_trace())}
+						onclick={(e) => {
+							e.stopPropagation();
+							traceFrom('cable', item.cableUuid);
+						}}
+					>
+						<IconRoute class="size-4" />
+					</button>
+					<button
+						type="button"
+						class="btn btn-sm btn-icon preset-filled-secondary-500 p-1 mr-2"
 						aria-label={m.action_highlight_trenches()}
 						{@attach tooltip(m.action_highlight_trenches())}
 						onclick={(e) => handleHighlightTrenches(e, item.cableUuid)}
@@ -130,6 +143,7 @@
 							error={dataManager.getFibersError(item.cableUuid)}
 							getColorHex={(color) => dataManager.getColorHex(color)}
 							getColorName={(color) => dataManager.getColorName(color)}
+							onTraceFiber={(fiberUuid) => traceFrom('fiber', fiberUuid)}
 						/>
 					</div>
 				</Accordion.ItemContent>

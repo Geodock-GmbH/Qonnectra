@@ -1,5 +1,5 @@
 <script>
-	import { IconChevronDown, IconChevronRight } from '@tabler/icons-svelte';
+	import { IconChevronDown, IconChevronRight, IconRoute } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -12,10 +12,11 @@
 	 * @property {string|null} error - Error message
 	 * @property {(colorName: string) => string} getColorHex - Function to get hex color from name
 	 * @property {(colorName: string) => string} [getColorName] - Function to get translated color name
+	 * @property {(fiberUuid: string) => void} [onTraceFiber] - Optional callback for trace navigation
 	 */
 
 	/** @type {Props} */
-	let { fibers = [], loading = false, error = null, getColorHex, getColorName } = $props();
+	let { fibers = [], loading = false, error = null, getColorHex, getColorName, onTraceFiber } = $props();
 
 	/** @type {Set<number>} - Expanded bundle numbers */
 	let expandedBundles = $state(new Set());
@@ -144,6 +145,9 @@
 									<th class="w-16">#</th>
 									<th>{m.form_color()}</th>
 									<th class="w-32">{m.form_status()}</th>
+									{#if onTraceFiber}
+										<th class="w-12"></th>
+									{/if}
 								</tr>
 							</thead>
 							<tbody class="[&>tr]:hover:preset-tonal-primary">
@@ -174,6 +178,18 @@
 												{getStatusDisplay(fiber)}
 											</span>
 										</td>
+										{#if onTraceFiber}
+											<td>
+												<button
+													type="button"
+													class="p-1 rounded hover:bg-surface-300-700 transition-colors"
+													onclick={() => onTraceFiber(fiber.uuid)}
+													aria-label={m.action_trace()}
+												>
+													<IconRoute size={16} />
+												</button>
+											</td>
+										{/if}
 									</tr>
 								{/each}
 							</tbody>

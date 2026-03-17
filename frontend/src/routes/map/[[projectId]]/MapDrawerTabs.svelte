@@ -1,5 +1,10 @@
 <script>
-	import { IconLayoutGrid, IconLayoutList, IconSettings } from '@tabler/icons-svelte';
+	import {
+		IconLayoutGrid,
+		IconLayoutList,
+		IconSettings,
+		IconSTurnRight
+	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -14,6 +19,7 @@
 	import MapCableAccordion from './MapCableAccordion.svelte';
 	import MapConduitAccordion from './MapConduitAccordion.svelte';
 	import TrenchProfilePanel from './TrenchProfilePanel.svelte';
+	import { traceFrom } from '../../trace/traceUtils.js';
 
 	/**
 	 * @typedef {Object} Props
@@ -57,6 +63,7 @@
 		...(featureType === 'trench' ? [{ value: 'cables', label: m.form_cable_overview() }] : []),
 		...(featureType === 'trench' ? [{ value: 'actions', label: m.form_actions() }] : []),
 		...(featureType === 'node' ? [{ value: 'actions', label: m.form_actions() }] : []),
+		...(featureType === 'address' ? [{ value: 'actions', label: m.form_actions() }] : []),
 		{ value: 'files', label: m.form_attachments() }
 	]);
 
@@ -123,6 +130,27 @@
 			>
 				<IconLayoutList size={18} />
 				{m.action_view_structure()}
+			</button>
+			<button
+				type="button"
+				class="btn preset-filled-tertiary-500 w-full"
+				onclick={() => traceFrom('node', featureId)}
+			>
+				<IconSTurnRight size={18} />
+				{m.action_trace()}
+			</button>
+		</div>
+	{/if}
+
+	{#if activeTab === 'actions' && featureType === 'address'}
+		<div class="space-y-4">
+			<button
+				type="button"
+				class="btn preset-filled-tertiary-500 w-full"
+				onclick={() => traceFrom('address', featureId)}
+			>
+				<IconSTurnRight size={18} />
+				{m.action_trace()}
 			</button>
 		</div>
 	{/if}
