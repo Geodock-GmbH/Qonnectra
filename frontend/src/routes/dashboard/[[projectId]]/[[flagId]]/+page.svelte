@@ -1,8 +1,8 @@
 <script>
 	import { navigating } from '$app/stores';
-	import { Tabs } from '@skeletonlabs/skeleton-svelte';
 
 	import { m } from '$lib/paraglide/messages';
+	import Tabs from '$lib/components/Tabs.svelte';
 
 	import AddressStatistics from '$lib/components/AddressStatistics.svelte';
 	import AreaStatistics from '$lib/components/AreaStatistics.svelte';
@@ -39,24 +39,26 @@
 		if (!items?.length) return 1;
 		return Math.max(...items.map((item) => Number(item[key]) || 0)) || 1;
 	}
+
+	let activeTab = $state('stats');
+
+	const tabItems = $derived([
+		{ value: 'stats', label: m.common_overview() },
+		{ value: 'trench', label: m.nav_trench() },
+		{ value: 'conduit', label: m.nav_conduit() },
+		{ value: 'node', label: m.nav_node() },
+		{ value: 'address', label: m.nav_address() },
+		{ value: 'area', label: m.nav_area() },
+		{ value: 'projects', label: m.form_project({ count: data.projects.length }) }
+	]);
 </script>
 
 <svelte:head>
 	<title>{m.nav_dashboard()}</title>
 </svelte:head>
 
-<Tabs defaultValue="stats">
-	<Tabs.List class="overflow-x-auto">
-		<Tabs.Trigger value="stats" class="whitespace-nowrap">{m.common_overview()}</Tabs.Trigger>
-		<Tabs.Trigger value="trench" class="whitespace-nowrap">{m.nav_trench()}</Tabs.Trigger>
-		<Tabs.Trigger value="conduit" class="whitespace-nowrap">{m.nav_conduit()}</Tabs.Trigger>
-		<Tabs.Trigger value="node" class="whitespace-nowrap">{m.nav_node()}</Tabs.Trigger>
-		<Tabs.Trigger value="address" class="whitespace-nowrap">{m.nav_address()}</Tabs.Trigger>
-		<Tabs.Trigger value="area" class="whitespace-nowrap">{m.nav_area()}</Tabs.Trigger>
-		<Tabs.Trigger value="projects" class="whitespace-nowrap">{m.form_project({ count: data.projects.length })}</Tabs.Trigger>
-		<Tabs.Indicator />
-	</Tabs.List>
-	<Tabs.Content value="stats">
+<Tabs tabs={tabItems} bind:value={activeTab} orientation="horizontal">
+	{#if activeTab === 'stats'}
 		<div class="space-y-6 max-w-6xl mx-auto">
 			<!-- Breakdown Cards -->
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -288,8 +290,8 @@
 				<WarrantyExpirationCard warranties={data.expiringWarranties} />
 			</div>
 		</div>
-	</Tabs.Content>
-	<Tabs.Content value="trench">
+	{/if}
+	{#if activeTab === 'trench'}
 		<TrenchStatistics
 			lengthByTypes={data.lengthByTypes}
 			avgHouseConnectionLength={data.avgHouseConnectionLength}
@@ -299,8 +301,8 @@
 			lengthByNetworkLevel={data.lengthByNetworkLevel}
 			longestRoutes={data.longestRoutes}
 		/>
-	</Tabs.Content>
-	<Tabs.Content value="conduit">
+	{/if}
+	{#if activeTab === 'conduit'}
 		<ConduitStatistics
 			lengthByType={data.conduitLengthByType}
 			lengthByStatusType={data.conduitLengthByStatusType}
@@ -312,8 +314,8 @@
 			conduitsByMonth={data.conduitsByMonth}
 			longestConduits={data.longestConduits}
 		/>
-	</Tabs.Content>
-	<Tabs.Content value="node">
+	{/if}
+	{#if activeTab === 'node'}
 		<NodeStatistics
 			nodesByCity={data.nodesByCity}
 			nodesByStatus={data.nodesByStatus}
@@ -322,16 +324,16 @@
 			nodesByOwner={data.nodesByOwner}
 			newestNodes={data.newestNodes}
 		/>
-	</Tabs.Content>
-	<Tabs.Content value="address">
+	{/if}
+	{#if activeTab === 'address'}
 		<AddressStatistics
 			addressesByCity={data.addressesByCity}
 			addressesByStatus={data.addressesByStatus}
 			unitsByCity={data.unitsByCity}
 			unitsByType={data.unitsByType}
 		/>
-	</Tabs.Content>
-	<Tabs.Content value="area">
+	{/if}
+	{#if activeTab === 'area'}
 		<AreaStatistics
 			areaCount={data.areaCount}
 			totalCoverageKm2={data.totalCoverageKm2}
@@ -349,8 +351,8 @@
 			trenchLengthPerArea={data.trenchLengthPerArea}
 			residentialByAreaType={data.residentialByAreaType}
 		/>
-	</Tabs.Content>
-	<Tabs.Content value="projects">
+	{/if}
+	{#if activeTab === 'projects'}
 		<DashboardProjectTable data={data.projects} />
-	</Tabs.Content>
+	{/if}
 </Tabs>

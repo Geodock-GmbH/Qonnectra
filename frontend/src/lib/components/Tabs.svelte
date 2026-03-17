@@ -36,6 +36,7 @@
 	}
 </script>
 
+<div class="custom-tabs-root">
 <SkeletonTabs {value} onValueChange={handleValueChange} orientation={effectiveOrientation}>
 	<div
 		class="tabs-wrapper {effectiveOrientation === 'horizontal'
@@ -57,16 +58,24 @@
 		</div>
 	</div>
 </SkeletonTabs>
+</div>
 
 <style>
-	:global([data-scope='tabs'][data-orientation='vertical']) {
+	.custom-tabs-root {
 		flex: 1;
 		min-height: 0;
 		display: flex;
 		flex-direction: column;
 	}
 
-	:global([data-scope='tabs'][data-orientation='horizontal']) {
+	.custom-tabs-root :global([data-scope='tabs'][data-orientation='vertical']) {
+		flex: 1;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.custom-tabs-root :global([data-scope='tabs'][data-orientation='horizontal']) {
 		flex: 1;
 		min-height: 0;
 		display: flex;
