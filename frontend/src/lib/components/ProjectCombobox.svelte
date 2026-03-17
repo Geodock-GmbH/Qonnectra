@@ -129,7 +129,7 @@
 	</div>
 {:else}
 	<Combobox
-		class="z-10 w-full min-w-0 max-w-[200px] sm:max-w-none sm:min-w-[180px] md:min-w-[240px]"
+		class="z-10 w-full min-w-[120px] max-w-[200px] sm:max-w-none sm:min-w-[180px] md:min-w-[240px]"
 		placeholder={m.form_project({ count: 1 })}
 		{collection}
 		defaultValue={comboboxValue}

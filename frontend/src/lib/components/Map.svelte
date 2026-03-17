@@ -47,9 +47,13 @@
 	} from '$lib/stores/store';
 	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 
+	import { IconSearch, IconX } from '@tabler/icons-svelte';
+
 	import LayerVisibilityTree from './LayerVisibilityTree.svelte';
 	import OpacitySlider from './OpacitySlider.svelte';
 	import SearchPanel from './SearchPanel.svelte';
+
+	let isMobileSearchOpen = $state(false);
 
 	/** @type {string} */
 	const TILE_SERVER_URL = env.PUBLIC_TILE_SERVER_URL || '';
@@ -457,10 +461,10 @@
 		<!-- Map: Map canvas - fullscreen variant -->
 		<div class="map" bind:this={container}></div>
 
-		<!-- Map: Opacity slider - fullscreen variant -->
+		<!-- Map: Opacity slider - fullscreen variant (desktop only, mobile is in layer sheet) -->
 		{#if showOpacitySlider && map}
 			<div
-				class="absolute top-20 left-3 right-3 sm:top-auto sm:right-auto sm:left-4 sm:bottom-5 z-10 sm:max-w-[280px]"
+				class="hidden sm:block absolute sm:top-auto sm:right-auto sm:left-4 sm:bottom-5 z-10 sm:max-w-[280px]"
 			>
 				<OpacitySlider
 					minOpacity={opacitySliderConfig.minOpacity}
@@ -472,9 +476,9 @@
 			</div>
 		{/if}
 
-		<!-- Map: Search panel - fullscreen variant -->
+		<!-- Map: Search panel - fullscreen variant (desktop) -->
 		{#if showSearchPanel && map}
-			<div class="absolute top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-auto z-10 sm:max-w-md">
+			<div class="hidden sm:block absolute sm:top-4 sm:left-4 sm:right-auto z-10 sm:max-w-md">
 				<SearchPanel
 					olMapInstance={map}
 					onFeatureSelect={handleFeatureSelect}
@@ -482,6 +486,41 @@
 					{...searchPanelProps}
 					bind:this={searchPanelRef}
 				/>
+			</div>
+		{/if}
+
+		<!-- Map: Search panel - fullscreen variant (mobile) -->
+		{#if showSearchPanel && map}
+			<div class="sm:hidden">
+				{#if isMobileSearchOpen}
+					<div class="absolute inset-x-3 top-3 z-20">
+						<div class="relative">
+							<SearchPanel
+								olMapInstance={map}
+								onFeatureSelect={(/** @type {any} */ detail) => {
+									handleFeatureSelect(detail);
+									isMobileSearchOpen = false;
+								}}
+								onSearchError={handleSearchError}
+								{...searchPanelProps}
+								bind:this={searchPanelRef}
+							/>
+							<button
+								class="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-surface-200-800 flex items-center justify-center shadow-md z-30"
+								onclick={() => (isMobileSearchOpen = false)}
+							>
+								<IconX size={16} />
+							</button>
+						</div>
+					</div>
+				{:else}
+					<button
+						class="absolute top-3 left-3 z-10 w-12 h-12 rounded-full bg-surface-50-950 border border-surface-200-800 shadow-md flex items-center justify-center active:scale-95 transition-transform"
+						onclick={() => (isMobileSearchOpen = true)}
+					>
+						<IconSearch size={20} class="text-surface-600-400" />
+					</button>
+				{/if}
 			</div>
 		{/if}
 
@@ -504,6 +543,15 @@
 					onLabelVisibilityChanged={handleLabelVisibilityChange}
 					onZoomToExtent={handleZoomToExtent}
 					onWMSLayerVisibilityChanged={handleWMSLayerVisibilityChange}
+					mobileOpacitySlider={showOpacitySlider
+						? {
+								minOpacity: opacitySliderConfig.minOpacity,
+								maxOpacity: opacitySliderConfig.maxOpacity,
+								stepOpacity: opacitySliderConfig.stepOpacity,
+								opacity: currentLayerOpacity,
+								onChange: handleOpacitySliderChange
+							}
+						: null}
 				/>
 			</div>
 		{/if}

@@ -10,6 +10,7 @@
 		IconChartArcs,
 		IconDotsVertical,
 		IconFileText,
+		IconLanguage,
 		IconMapPin,
 		IconSettings,
 		IconSTurnRight,
@@ -20,9 +21,16 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { getLocale, setLocale } from '$lib/paraglide/runtime';
 	import { userStore } from '$lib/stores/auth';
 	import { canAccessRoute } from '$lib/utils/permissions.js';
 	import { tooltip } from '$lib/utils/tooltip.js';
+
+	let currentLocale = $derived(getLocale());
+
+	function switchLocale(/** @type {"de" | "en"} */ locale) {
+		setLocale(locale);
+	}
 
 	let showMoreMenu = $state(false);
 
@@ -310,6 +318,28 @@
 					</div>
 				</section>
 			{/if}
+
+			<section>
+				<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-700-300 mb-2">
+					{m.common_language()}
+				</h4>
+				<div class="flex gap-2">
+					<button
+						class="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors {currentLocale === 'de' ? 'bg-primary-500 text-white' : 'hover:bg-surface-100-800 text-surface-900-100'}"
+						onclick={() => switchLocale('de')}
+					>
+						<IconLanguage size={20} />
+						<span>DE</span>
+					</button>
+					<button
+						class="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors {currentLocale === 'en' ? 'bg-primary-500 text-white' : 'hover:bg-surface-100-800 text-surface-900-100'}"
+						onclick={() => switchLocale('en')}
+					>
+						<IconLanguage size={20} />
+						<span>EN</span>
+					</button>
+				</div>
+			</section>
 		</div>
 	</div>
 {/if}

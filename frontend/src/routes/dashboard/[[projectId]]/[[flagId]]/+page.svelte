@@ -46,14 +46,14 @@
 </svelte:head>
 
 <Tabs defaultValue="stats">
-	<Tabs.List>
-		<Tabs.Trigger value="stats">{m.common_overview()}</Tabs.Trigger>
-		<Tabs.Trigger value="trench">{m.nav_trench()}</Tabs.Trigger>
-		<Tabs.Trigger value="conduit">{m.nav_conduit()}</Tabs.Trigger>
-		<Tabs.Trigger value="node">{m.nav_node()}</Tabs.Trigger>
-		<Tabs.Trigger value="address">{m.nav_address()}</Tabs.Trigger>
-		<Tabs.Trigger value="area">{m.nav_area()}</Tabs.Trigger>
-		<Tabs.Trigger value="projects">{m.form_project({ count: data.projects.length })}</Tabs.Trigger>
+	<Tabs.List class="overflow-x-auto">
+		<Tabs.Trigger value="stats" class="whitespace-nowrap">{m.common_overview()}</Tabs.Trigger>
+		<Tabs.Trigger value="trench" class="whitespace-nowrap">{m.nav_trench()}</Tabs.Trigger>
+		<Tabs.Trigger value="conduit" class="whitespace-nowrap">{m.nav_conduit()}</Tabs.Trigger>
+		<Tabs.Trigger value="node" class="whitespace-nowrap">{m.nav_node()}</Tabs.Trigger>
+		<Tabs.Trigger value="address" class="whitespace-nowrap">{m.nav_address()}</Tabs.Trigger>
+		<Tabs.Trigger value="area" class="whitespace-nowrap">{m.nav_area()}</Tabs.Trigger>
+		<Tabs.Trigger value="projects" class="whitespace-nowrap">{m.form_project({ count: data.projects.length })}</Tabs.Trigger>
 		<Tabs.Indicator />
 	</Tabs.List>
 	<Tabs.Content value="stats">

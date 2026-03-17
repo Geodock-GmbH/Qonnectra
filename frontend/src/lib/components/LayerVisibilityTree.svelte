@@ -59,6 +59,17 @@
 	 * @property {WMSLayer[]} layers
 	 */
 
+	import OpacitySlider from './OpacitySlider.svelte';
+
+	/**
+	 * @typedef {Object} MobileOpacitySliderConfig
+	 * @property {number} minOpacity
+	 * @property {number} maxOpacity
+	 * @property {number} stepOpacity
+	 * @property {number} opacity
+	 * @property {(value: number) => void} onChange
+	 */
+
 	let {
 		layers = [],
 		osmLayer = null,
@@ -70,6 +81,8 @@
 		/** @type {WMSSource[]} */
 		wmsSources = [],
 		projectId = '',
+		/** @type {MobileOpacitySliderConfig | null} */
+		mobileOpacitySlider = null,
 		onLayerVisibilityChanged = () => {},
 		onNodeTypeVisibilityChanged = () => {},
 		onTrenchTypeVisibilityChanged = () => {},
@@ -647,7 +660,7 @@
 		<!-- Sheet -->
 		<div
 			class="fixed bottom-0 left-0 right-0 z-40 bg-surface-50-950 rounded-t-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom duration-300"
-			style="height: 85vh; max-height: calc(85vh - env(safe-area-inset-bottom)); transform: translateY({currentTranslate}px); transition: {isDragging
+			style="height: 75vh; max-height: calc(75vh - env(safe-area-inset-bottom)); transform: translateY({currentTranslate}px); transition: {isDragging
 				? 'none'
 				: 'transform 0.2s ease-out'};"
 		>
@@ -678,8 +691,22 @@
 				</button>
 			</div>
 
+			<!-- Opacity Slider (mobile only) -->
+			{#if mobileOpacitySlider}
+				<div class="px-4 py-2 border-b border-surface-200-800">
+					<OpacitySlider
+						minOpacity={mobileOpacitySlider.minOpacity}
+						maxOpacity={mobileOpacitySlider.maxOpacity}
+						stepOpacity={mobileOpacitySlider.stepOpacity}
+						opacity={mobileOpacitySlider.opacity}
+						onChange={mobileOpacitySlider.onChange}
+						compact
+					/>
+				</div>
+			{/if}
+
 			<!-- Layer List -->
-			<div class="flex-1 overflow-y-auto overscroll-contain px-4 py-3 space-y-2">
+			<div class="flex-1 overflow-y-auto overscroll-contain px-4 pt-3 pb-20 space-y-2">
 				{#each Array.from(layerVisibility.entries()) as [layerId, layerInfo]}
 					<div class="bg-surface-100-900 rounded-xl overflow-hidden">
 						<!-- Layer Row -->

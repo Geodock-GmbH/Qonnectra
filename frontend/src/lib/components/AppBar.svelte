@@ -79,8 +79,10 @@
 					</p>
 					<span class="border-r h-6 sm:h-8 border-surface-200-800 hidden md:block"></span>
 
-					<!-- Locale Switcher -->
-					<LocaleSwitcher />
+					<!-- Locale Switcher - hidden on mobile -->
+					<div class="hidden sm:block">
+						<LocaleSwitcher />
+					</div>
 					<span class="border-r h-6 sm:h-8 border-surface-200-800 hidden sm:block"></span>
 
 					<!-- GitHub link - hidden on mobile -->

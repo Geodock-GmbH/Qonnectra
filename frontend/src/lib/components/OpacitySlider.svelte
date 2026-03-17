@@ -10,7 +10,8 @@
 		maxOpacity = 1,
 		stepOpacity = 0.01,
 		opacity = 1,
-		onChange = () => {}
+		onChange = () => {},
+		compact = false
 	} = $props();
 
 	let sliderValue = $state(/** @type {number[]} */ ([1]));
@@ -31,7 +32,9 @@
 <!-- OpacitySlider -->
 <div
 	aria-label={m.tooltip_opacity_slider()}
-	class="preset-filled-surface-50-950 rounded-lg border border-surface-200-800 shadow-md p-4 sm:p-3 w-full sm:min-w-[256px] sm:max-w-[280px]"
+	class={compact
+		? 'w-full'
+		: 'preset-filled-surface-50-950 rounded-lg border border-surface-200-800 shadow-md p-4 sm:p-3 w-full sm:min-w-[256px] sm:max-w-[280px]'}
 	{@attach tooltip(m.tooltip_opacity_slider(), { position: 'top', delay: 1000 })}
 >
 	<Slider

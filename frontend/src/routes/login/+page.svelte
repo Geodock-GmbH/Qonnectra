@@ -28,10 +28,10 @@
 	});
 </script>
 
-<div class="flex h-full bg-surface-50-950">
-	<!-- Left Panel - Topographic Map Design (desktop only) -->
+<div class="flex h-full flex-col bg-surface-50-950 lg:flex-row">
+	<!-- Left Panel - Topographic Map Design (desktop: side panel, mobile: top banner) -->
 	<div
-		class="login-hero relative hidden flex-1 items-center justify-center overflow-hidden lg:flex"
+		class="login-hero relative flex h-48 items-center justify-center overflow-hidden lg:h-auto lg:flex-1"
 	>
 		<!-- Subtle grid -->
 		<div class="topo-grid absolute inset-0"></div>
@@ -103,12 +103,12 @@
 		<!-- Content -->
 		<div class="relative z-10 flex flex-col items-center p-8 text-center text-white">
 			<div
-				class="flex h-20 w-20 items-center justify-center rounded-2xl bg-white/95 shadow-lg backdrop-blur-sm"
+				class="login-icon-box flex items-center justify-center rounded-2xl bg-white/95 shadow-lg backdrop-blur-sm"
 			>
-				<AppIcon size="3rem" color="var(--color-primary-600)" />
+				<AppIcon size="2rem" color="var(--color-primary-600)" />
 			</div>
-			<h1 class="mt-4 text-4xl font-bold tracking-tight">Qonnectra</h1>
-			<p class="mt-3 text-lg opacity-85">
+			<h1 class="mt-3 text-2xl font-bold tracking-tight lg:mt-4 lg:text-4xl">Qonnectra</h1>
+			<p class="mt-1 text-sm opacity-85 lg:mt-3 lg:text-lg">
 				{m.login_tagline?.()}
 			</p>
 		</div>
@@ -117,12 +117,6 @@
 	<!-- Right Panel - Form -->
 	<div class="flex flex-1 items-center justify-center p-8 lg:flex-none lg:w-[480px]">
 		<div class="w-full max-w-[360px]">
-			<!-- Mobile logo -->
-			<div class="mb-10 flex items-center justify-center gap-3 lg:hidden">
-				<AppIcon size="3rem" gradient />
-				<span class="text-3xl font-bold text-surface-900-100">Qonnectra</span>
-			</div>
-
 			<div class="mb-8 text-center lg:text-left">
 				<h2 class="mb-2 text-3xl font-bold text-surface-900-100">{m.auth_signin()}</h2>
 				<p class="text-surface-900-100">{m.login_welcome?.() ?? 'Welcome back'}</p>
@@ -228,8 +222,25 @@
 		background-size: 40px 40px;
 	}
 
+	.login-icon-box {
+		width: 3.5rem;
+		height: 3.5rem;
+	}
+
 	.contour {
 		opacity: 0.8;
+	}
+
+	@media (min-width: 1024px) {
+		.login-icon-box {
+			width: 5rem;
+			height: 5rem;
+		}
+
+		.login-icon-box :global(.app-icon) {
+			width: 3rem !important;
+			height: 3rem !important;
+		}
 	}
 
 	.spinner {
