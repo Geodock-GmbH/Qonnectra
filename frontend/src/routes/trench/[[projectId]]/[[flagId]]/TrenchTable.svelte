@@ -1,7 +1,13 @@
 <script>
 	import { deserialize } from '$app/forms';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
-	import { IconArrowLeft, IconArrowRight, IconTrash } from '@tabler/icons-svelte';
+	import {
+		IconArrowLeft,
+		IconArrowRight,
+		IconChevronDown,
+		IconChevronUp,
+		IconTrash
+	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -18,6 +24,8 @@
 	let size = $state(10);
 	let deletingIds = $state(new Set());
 	let searchTerm = $state('');
+	/** @type {'asc' | 'desc'} */
+	let sortDirection = $state('asc');
 
 	const filteredTrenches = $derived.by(() => {
 		if (!searchTerm.trim()) return trenches;
@@ -25,8 +33,18 @@
 		return trenches.filter((trench) => trench.label?.toLowerCase().includes(term));
 	});
 
-	let count = $derived(filteredTrenches.length);
-	const slicedSource = $derived(filteredTrenches.slice((page - 1) * size, page * size));
+	const sortedTrenches = $derived.by(() => {
+		return [...filteredTrenches].sort((a, b) => {
+			const aVal = (a.label ?? '').toLowerCase();
+			const bVal = (b.label ?? '').toLowerCase();
+			if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+			if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+			return 0;
+		});
+	});
+
+	let count = $derived(sortedTrenches.length);
+	const slicedSource = $derived(sortedTrenches.slice((page - 1) * size, page * size));
 
 	/**
 	 * Fetches trench connections for the selected conduit
@@ -258,6 +276,29 @@
 			</div>
 		{:else}
 			<table class="table table-fixed w-full">
+				<thead>
+					<tr>
+						<th
+							class="cursor-pointer select-none hover:bg-surface-100-800 transition-colors py-2 px-3"
+							onclick={() => (sortDirection = sortDirection === 'asc' ? 'desc' : 'asc')}
+							role="button"
+							tabindex={0}
+							onkeydown={(e) =>
+								e.key === 'Enter' &&
+								(sortDirection = sortDirection === 'asc' ? 'desc' : 'asc')}
+						>
+							<div class="flex items-center gap-1 text-xs font-semibold text-surface-600-400 uppercase tracking-wide">
+								<span>{m.form_trench_id()}</span>
+								{#if sortDirection === 'asc'}
+									<IconChevronUp class="size-4" />
+								{:else}
+									<IconChevronDown class="size-4" />
+								{/if}
+							</div>
+						</th>
+						<th class="w-12"></th>
+					</tr>
+				</thead>
 				<tbody class="divide-y divide-surface-200-800">
 					{#each slicedSource as row}
 						<tr
