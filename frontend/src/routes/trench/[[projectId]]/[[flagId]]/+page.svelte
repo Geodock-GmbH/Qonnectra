@@ -235,6 +235,14 @@
 				mapState.reinitializeForProject(currentProject);
 				selectionManager.clearSelection();
 				$selectedConduit = undefined;
+
+				// Clear linked trench highlights and update the layer's source
+				// since reinitializeForProject replaces the vectorTileLayer source
+				linkedTrenchUuids = new Set();
+				if (linkedTrenchesLayer) {
+					const newSource = mapState.vectorTileLayer?.getSource() ?? undefined;
+					linkedTrenchesLayer.setSource(newSource);
+				}
 			}
 		});
 	});
