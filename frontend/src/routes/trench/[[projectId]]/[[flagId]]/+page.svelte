@@ -544,7 +544,7 @@
 	<title>{m.nav_conduit_connection()}</title>
 </svelte:head>
 
-<div class="flex h-[calc(100vh-4rem)] flex-col lg:flex-row lg:gap-4">
+<div class="flex flex-col lg:h-full lg:flex-row lg:gap-4">
 	<!-- Map Section -->
 	<div
 		class="order-1 h-[40vh] shrink-0 border-2 rounded-lg border-surface-200-800 overflow-hidden relative sm:h-[45vh] lg:order-1 lg:h-auto lg:flex-2"
