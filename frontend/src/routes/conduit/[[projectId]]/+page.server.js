@@ -350,7 +350,10 @@ export const actions = {
 
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));
-				return fail(response.status, { message: errorData.detail || 'Failed to create conduit' });
+				const isDuplicate =
+					response.status === 400 &&
+					(!!errorData.non_field_errors?.length || !!errorData.name?.length);
+				return fail(response.status, { isDuplicate });
 			}
 
 			const newConduit = await response.json();

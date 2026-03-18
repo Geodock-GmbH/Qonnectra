@@ -202,7 +202,7 @@
 </script>
 
 <!-- Cable form -->
-<form id="cable-form" class="flex flex-col gap-4" onsubmit={handleSubmit}>
+<form id="cable-form" class="flex flex-col gap-4 mr-4" onsubmit={handleSubmit}>
 	<label class="label">
 		<span class="text-sm">{m.common_name()}</span>
 		<input
@@ -229,7 +229,14 @@
 	</label>
 	<label class="label">
 		<span class="text-sm">{m.form_connected_conduits()}</span>
-		<input id="connected-conduits" name="connected_conduits" type="text" class="input" readonly value={connectedConduits} />
+		<input
+			id="connected-conduits"
+			name="connected_conduits"
+			type="text"
+			class="input"
+			readonly
+			value={connectedConduits}
+		/>
 	</label>
 	<label class="label">
 		<span class="text-sm">{m.form_status()}</span>
@@ -305,28 +312,62 @@
 	</label>
 	<label class="label">
 		<span class="text-sm">{m.form_reserve_at_start()}</span>
-		<input id="reserve-at-start" type="number" class="input" name="reserve_at_start" value={cableReserveAtStart || 0} />
+		<input
+			id="reserve-at-start"
+			type="number"
+			class="input"
+			name="reserve_at_start"
+			value={cableReserveAtStart || 0}
+		/>
 	</label>
 	<label class="label">
 		<span class="text-sm">{m.form_reserve_at_end()}</span>
-		<input id="reserve-at-end" type="number" class="input" name="reserve_at_end" value={cableReserveAtEnd || 0} />
+		<input
+			id="reserve-at-end"
+			type="number"
+			class="input"
+			name="reserve_at_end"
+			value={cableReserveAtEnd || 0}
+		/>
 	</label>
 	<label class="label">
 		<span class="text-sm">{m.form_reserve_section()}</span>
-		<input id="reserve-section" type="number" class="input" name="reserve_section" value={cableReserveSection || 0} />
+		<input
+			id="reserve-section"
+			type="number"
+			class="input"
+			name="reserve_section"
+			value={cableReserveSection || 0}
+		/>
 	</label>
 	<label class="label">
 		<span class="text-sm">{m.common_length()}</span>
-		<input id="cable-length" type="number" class="input" name="length" readonly value={cableLength || 0} />
+		<input
+			id="cable-length"
+			type="number"
+			class="input"
+			name="length"
+			readonly
+			value={cableLength || 0}
+		/>
 	</label>
 	<label class="label">
 		<span class="text-sm">{m.form_length_total()}</span>
-		<input id="cable-length-total" type="number" class="input" name="length_total" readonly value={cableLengthTotal || 0} />
+		<input
+			id="cable-length-total"
+			type="number"
+			class="input"
+			name="length_total"
+			readonly
+			value={cableLengthTotal || 0}
+		/>
 	</label>
 </form>
 
 <!-- Delete and update buttons -->
-<div class="mt-6 flex flex-col items-end justify-end gap-3">
+<div
+	class="sticky bottom-0 mt-6 mr-4 flex flex-col items-end justify-end gap-3 bg-surface-50-950 pb-2 pt-4"
+>
 	<button type="submit" form="cable-form" class="btn preset-filled-primary-500 w-full">
 		{m.action_save()}
 	</button>

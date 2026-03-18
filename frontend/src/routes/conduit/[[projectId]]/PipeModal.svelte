@@ -106,7 +106,9 @@
 			if (result.type === 'failure') {
 				globalToaster.error({
 					title: m.common_error(),
-					description: result.data?.message || m.message_error_creating_conduit()
+					description: result.data?.isDuplicate
+						? m.message_error_duplicate_conduit()
+						: m.message_error_creating_conduit()
 				});
 				return;
 			}

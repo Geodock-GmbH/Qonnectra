@@ -314,7 +314,7 @@
 </script>
 
 <!-- Node form -->
-<form id="node-form" class="flex flex-col gap-4" onsubmit={handleSubmit}>
+<form id="node-form" class="flex flex-col gap-4 mr-4" onsubmit={handleSubmit}>
 	<label class="label">
 		<span class="text-sm">{m.common_name()}</span>
 		<input
@@ -449,7 +449,9 @@
 </form>
 
 <!-- Update buttons -->
-<div class="mt-6 flex flex-col items-end justify-end gap-3">
+<div
+	class="sticky bottom-0 mt-6 mr-4 flex flex-col items-end justify-end gap-3 bg-surface-50-950 pb-2 pt-4"
+>
 	<button type="submit" form="node-form" class="btn preset-filled-primary-500 w-full">
 		{m.action_save()}
 	</button>
