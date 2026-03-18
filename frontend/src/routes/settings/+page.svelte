@@ -481,7 +481,7 @@
 							{m.settings_map_selected_feature_color()}
 						</dt>
 						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
-							<input type="color" bind:value={$trenchColorSelected} />
+							<input type="color" name="trench-color-selected" bind:value={$trenchColorSelected} />
 							<button
 								name="reset-trench-color-selected"
 								type="button"
@@ -499,7 +499,7 @@
 							{m.settings_map_trench_color()}
 						</dt>
 						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
-							<input type="color" bind:value={$trenchColor} />
+							<input type="color" name="trench-color" bind:value={$trenchColor} />
 							<button
 								name="reset-trench-color"
 								type="button"
@@ -617,6 +617,7 @@
 											<label class="relative cursor-pointer">
 												<input
 													type="color"
+													name="color-surface"
 													value={style.color}
 													onchange={(e) =>
 														updateSurfaceColor(
@@ -705,6 +706,7 @@
 											<label class="relative cursor-pointer">
 												<input
 													type="color"
+													name="color-construction-type"
 													value={style.color}
 													onchange={(e) =>
 														updateConstructionTypeColor(
@@ -789,6 +791,7 @@
 										<label class="relative cursor-pointer">
 											<input
 												type="color"
+												name="color-node-type"
 												value={style.color}
 												onchange={(e) =>
 													updateNodeTypeColor(
@@ -885,6 +888,7 @@
 								<label class="relative cursor-pointer">
 									<input
 										type="color"
+										name="color-address"
 										value={$addressStyle.color}
 										onchange={(e) =>
 											updateAddressColor(/** @type {HTMLInputElement} */ (e.target).value)}
@@ -984,6 +988,7 @@
 										<label class="relative cursor-pointer">
 											<input
 												type="color"
+												name="color-area-type"
 												value={style.color}
 												onchange={(e) =>
 													updateAreaTypeColor(

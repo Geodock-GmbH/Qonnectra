@@ -17,6 +17,8 @@
 		<IconSearch size={18} stroke={2.5} />
 	</div>
 	<input
+		id="search-input"
+		name="search"
 		class="search-input"
 		type="search"
 		placeholder={m.common_search()}

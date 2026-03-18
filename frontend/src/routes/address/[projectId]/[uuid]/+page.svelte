@@ -630,6 +630,7 @@
 								>{m.form_id_address({ count: 1 })}</span
 							>
 							<input
+								id="id-address"
 								type="text"
 								class="input"
 								maxlength="7"
@@ -655,7 +656,7 @@
 						<span class="label-text text-sm text-surface-900-100"
 							>{m.form_street()} <span class="text-error-400">*</span></span
 						>
-						<input type="text" class="input" name="street" bind:value={street} />
+						<input id="street" type="text" class="input" name="street" bind:value={street} />
 					</label>
 
 					<div class="grid grid-cols-2 gap-4">
@@ -663,13 +664,14 @@
 							<span class="label-text text-sm text-surface-900-100"
 								>{m.form_housenumber()} <span class="text-error-400">*</span></span
 							>
-							<input type="number" class="input" name="housenumber" bind:value={housenumber} />
+							<input id="housenumber" type="number" class="input" name="housenumber" bind:value={housenumber} />
 						</label>
 						<label class="label">
 							<span class="label-text text-sm text-surface-900-100"
 								>{m.form_house_number_suffix()}</span
 							>
 							<input
+								id="house-number-suffix"
 								type="text"
 								class="input"
 								name="house_number_suffix"
@@ -683,19 +685,19 @@
 							<span class="label-text text-sm text-surface-900-100"
 								>{m.form_zip_code()} <span class="text-error-400">*</span></span
 							>
-							<input type="text" class="input" name="zip_code" bind:value={zip_code} />
+							<input id="zip-code" type="text" class="input" name="zip_code" bind:value={zip_code} />
 						</label>
 						<label class="label">
 							<span class="label-text text-sm text-surface-900-100"
 								>{m.form_city()} <span class="text-error-400">*</span></span
 							>
-							<input type="text" class="input" name="city" bind:value={city} />
+							<input id="city" type="text" class="input" name="city" bind:value={city} />
 						</label>
 					</div>
 
 					<label class="label">
 						<span class="label-text text-sm text-surface-900-100">{m.form_district()}</span>
-						<input type="text" class="input" name="district" bind:value={district} />
+						<input id="district" type="text" class="input" name="district" bind:value={district} />
 					</label>
 
 					<div class="border-t border-surface-200-800"></div>
@@ -740,6 +742,7 @@
 							>{m.form_project({ count: 1 })} <span class="text-error-400">*</span></span
 						>
 						<input
+							id="project"
 							type="text"
 							class="input bg-surface-50-950 cursor-default opacity-60"
 							name="project"
@@ -844,6 +847,8 @@
 											class="flex items-center gap-3 px-3 py-2 rounded-md hover:preset-tonal-primary cursor-pointer select-none transition-colors"
 										>
 											<input
+												id="include-residential-units"
+												name="include_residential_units"
 												type="checkbox"
 												class="checkbox"
 												checked={includeResidentialUnits}

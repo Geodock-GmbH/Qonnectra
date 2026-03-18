@@ -320,6 +320,7 @@
 								>{m.form_id_residential_unit()}</span
 							>
 							<input
+								id="id-residential-unit"
 								type="text"
 								class="input"
 								maxlength="8"
@@ -344,11 +345,11 @@
 					<div class="grid grid-cols-2 gap-4">
 						<label class="label">
 							<span class="label-text text-sm text-surface-900-100">{m.form_external_id_1()}</span>
-							<input type="text" class="input" name="external_id_1" bind:value={formExternalId1} />
+							<input id="external-id-1" type="text" class="input" name="external_id_1" bind:value={formExternalId1} />
 						</label>
 						<label class="label">
 							<span class="label-text text-sm text-surface-900-100">{m.form_external_id_2()}</span>
-							<input type="text" class="input" name="external_id_2" bind:value={formExternalId2} />
+							<input id="external-id-2" type="text" class="input" name="external_id_2" bind:value={formExternalId2} />
 						</label>
 					</div>
 				</div>
@@ -403,17 +404,18 @@
 				<div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
 					<label class="label">
 						<span class="label-text text-sm text-surface-900-100">{m.form_floor()}</span>
-						<input type="number" class="input" name="floor" bind:value={formFloor} />
+						<input id="unit-floor" type="number" class="input" name="floor" bind:value={formFloor} />
 					</label>
 					<label class="label">
 						<span class="label-text text-sm text-surface-900-100"
 							>{m.form_residential_unit_side()}</span
 						>
-						<input type="text" class="input" name="side" bind:value={formSide} />
+						<input id="unit-side" type="text" class="input" name="side" bind:value={formSide} />
 					</label>
 					<label class="label">
 						<span class="label-text text-sm text-surface-900-100">{m.form_building_section()}</span>
 						<input
+							id="unit-building-section"
 							type="text"
 							class="input"
 							name="building_section"
@@ -433,7 +435,7 @@
 				<div class="space-y-4">
 					<label class="label">
 						<span class="label-text text-sm text-surface-900-100">{m.form_resident_name()}</span>
-						<input type="text" class="input" name="resident_name" bind:value={formResidentName} />
+						<input id="resident-name" type="text" class="input" name="resident_name" bind:value={formResidentName} />
 					</label>
 
 					<label class="label">
@@ -441,6 +443,7 @@
 							>{m.form_resident_recorded_date()}</span
 						>
 						<input
+							id="resident-recorded-date"
 							type="date"
 							class="input"
 							name="resident_recorded_date"
@@ -451,6 +454,7 @@
 						<span class="label-text text-sm text-surface-900-100">{m.form_ready_for_service()}</span
 						>
 						<input
+							id="ready-for-service"
 							type="date"
 							class="input"
 							name="ready_for_service"

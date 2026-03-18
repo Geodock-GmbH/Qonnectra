@@ -318,6 +318,7 @@
 	<label class="label">
 		<span class="text-sm">{m.common_name()}</span>
 		<input
+			id="node-name"
 			type="text"
 			class="input"
 			placeholder=""
@@ -399,6 +400,7 @@
 	<label class="label">
 		<span class="text-sm">{m.form_warranty()}</span>
 		<input
+			id="node-warranty"
 			type="date"
 			class="input"
 			name="warranty"
@@ -409,6 +411,7 @@
 	<label class="label">
 		<span class="text-sm">{m.common_date()}</span>
 		<input
+			id="node-date"
 			type="date"
 			class="input"
 			name="date"

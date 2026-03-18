@@ -619,9 +619,11 @@
 						renderInPlace={true}
 					/>
 				</div>
-				<label class="label">
+				<label class="label" for="container-name">
 					<span class="text-sm">{m.form_container_name?.() || 'Name (optional)'}</span>
 					<input
+						id="container-name"
+						name="container_name"
 						type="text"
 						class="input"
 						bind:value={containerName}
@@ -650,9 +652,11 @@
 	{#if (isCreating || editingUuid) && !readonly}
 		<div class="card p-4 space-y-3 bg-surface-50-950 border border-surface-200-800">
 			<div class="grid grid-cols-2 gap-3">
-				<label class="label">
+				<label class="label" for="slot-side">
 					<span class="text-sm">{m.form_side()}</span>
 					<input
+						id="slot-side"
+						name="side"
 						type="text"
 						class="input"
 						bind:value={formSide}
@@ -660,9 +664,9 @@
 						required
 					/>
 				</label>
-				<label class="label">
+				<label class="label" for="total-slots">
 					<span class="text-sm">{m.form_total_slots()}</span>
-					<input type="number" class="input" bind:value={formTotalSlots} min="1" required />
+					<input id="total-slots" name="total_slots" type="number" class="input" bind:value={formTotalSlots} min="1" required />
 				</label>
 			</div>
 			<div class="flex justify-end gap-2">

@@ -35,6 +35,8 @@
 		<div class="hidden">
 			<label class="flex items-center gap-2 text-sm">
 				<input
+					id="lasso-partial"
+					name="lasso_partial"
 					type="checkbox"
 					bind:checked={partial}
 					onchange={handlePartialChange}

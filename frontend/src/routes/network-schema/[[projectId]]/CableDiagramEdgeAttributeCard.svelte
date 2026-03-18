@@ -206,6 +206,7 @@
 	<label class="label">
 		<span class="text-sm">{m.common_name()}</span>
 		<input
+			id="cable-name"
 			type="text"
 			class="input"
 			placeholder=""
@@ -228,7 +229,7 @@
 	</label>
 	<label class="label">
 		<span class="text-sm">{m.form_connected_conduits()}</span>
-		<input type="text" class="input" readonly value={connectedConduits} />
+		<input id="connected-conduits" name="connected_conduits" type="text" class="input" readonly value={connectedConduits} />
 	</label>
 	<label class="label">
 		<span class="text-sm">{m.form_status()}</span>
@@ -283,6 +284,7 @@
 	<label class="label">
 		<span class="text-sm">{m.common_date()}</span>
 		<input
+			id="cable-date"
 			type="date"
 			class="input"
 			name="date"
@@ -303,23 +305,23 @@
 	</label>
 	<label class="label">
 		<span class="text-sm">{m.form_reserve_at_start()}</span>
-		<input type="number" class="input" name="reserve_at_start" value={cableReserveAtStart || 0} />
+		<input id="reserve-at-start" type="number" class="input" name="reserve_at_start" value={cableReserveAtStart || 0} />
 	</label>
 	<label class="label">
 		<span class="text-sm">{m.form_reserve_at_end()}</span>
-		<input type="number" class="input" name="reserve_at_end" value={cableReserveAtEnd || 0} />
+		<input id="reserve-at-end" type="number" class="input" name="reserve_at_end" value={cableReserveAtEnd || 0} />
 	</label>
 	<label class="label">
 		<span class="text-sm">{m.form_reserve_section()}</span>
-		<input type="number" class="input" name="reserve_section" value={cableReserveSection || 0} />
+		<input id="reserve-section" type="number" class="input" name="reserve_section" value={cableReserveSection || 0} />
 	</label>
 	<label class="label">
 		<span class="text-sm">{m.common_length()}</span>
-		<input type="number" class="input" name="length" readonly value={cableLength || 0} />
+		<input id="cable-length" type="number" class="input" name="length" readonly value={cableLength || 0} />
 	</label>
 	<label class="label">
 		<span class="text-sm">{m.form_length_total()}</span>
-		<input type="number" class="input" name="length_total" readonly value={cableLengthTotal || 0} />
+		<input id="cable-length-total" type="number" class="input" name="length_total" readonly value={cableLengthTotal || 0} />
 	</label>
 </form>
 

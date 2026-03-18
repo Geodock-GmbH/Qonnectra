@@ -209,6 +209,7 @@
 					<label class="label">
 						<span class="label-text">{m.common_name()}</span>
 						<input
+							id="pipe-name"
 							type="text"
 							class="input"
 							placeholder=""
@@ -219,7 +220,7 @@
 								(selectedConduitName = /** @type {HTMLInputElement} */ (e.target).value)}
 						/>
 					</label>
-					<label for="pipe_type" class="label">
+					<label class="label">
 						<span class="label-text">{m.form_conduit_type()}</span>
 						<GenericCombobox
 							data={attributes.conduitTypes}
@@ -242,7 +243,7 @@
 								(selectedOuterConduit = /** @type {HTMLTextAreaElement} */ (e.target).value)}
 						></textarea>
 					</label>
-					<label for="status" class="label">
+					<label class="label">
 						<span class="label-text">{m.form_status()}</span>
 						<GenericCombobox
 							data={attributes.statuses}
@@ -252,7 +253,7 @@
 							renderInPlace={true}
 						/>
 					</label>
-					<label for="network_level" class="label">
+					<label class="label">
 						<span class="label-text">{m.form_network_level()}</span>
 						<GenericCombobox
 							data={attributes.networkLevels}
@@ -262,7 +263,7 @@
 							renderInPlace={true}
 						/>
 					</label>
-					<label for="owner" class="label">
+					<label class="label">
 						<span class="label-text">{m.form_owner()}</span>
 						<GenericCombobox
 							data={attributes.companies}
@@ -272,7 +273,7 @@
 							renderInPlace={true}
 						/>
 					</label>
-					<label for="constructor" class="label">
+					<label class="label">
 						<span class="label-text">{m.form_constructor()}</span>
 						<GenericCombobox
 							data={attributes.companies}
@@ -282,7 +283,7 @@
 							renderInPlace={true}
 						/>
 					</label>
-					<label for="manufacturer" class="label">
+					<label class="label">
 						<span class="label-text">{m.form_manufacturer()}</span>
 						<GenericCombobox
 							data={attributes.companies}
@@ -292,7 +293,7 @@
 							renderInPlace={true}
 						/>
 					</label>
-					<label for="date" class="label">
+					<label class="label">
 						<span class="label-text">{m.common_date()}</span>
 						<input
 							type="date"
@@ -303,7 +304,7 @@
 							oninput={(e) => (selectedDate = /** @type {HTMLInputElement} */ (e.target).value)}
 						/>
 					</label>
-					<label for="flag" class="label">
+					<label class="label">
 						<span class="label-text">{m.form_flag()}</span>
 						<GenericCombobox
 							data={attributes.flags}
