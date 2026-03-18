@@ -2,12 +2,12 @@
 	import { navigating } from '$app/stores';
 
 	import { m } from '$lib/paraglide/messages';
-	import Tabs from '$lib/components/Tabs.svelte';
 
 	import AddressStatistics from '$lib/components/AddressStatistics.svelte';
 	import AreaStatistics from '$lib/components/AreaStatistics.svelte';
 	import ConduitStatistics from '$lib/components/ConduitStatistics.svelte';
 	import NodeStatistics from '$lib/components/NodeStatistics.svelte';
+	import Tabs from '$lib/components/Tabs.svelte';
 	import TrenchStatistics from '$lib/components/TrenchStatistics.svelte';
 
 	import DashboardCard from './DashboardCard.svelte';
@@ -25,8 +25,7 @@
 
 	const totalConduitLength = $derived(
 		(data.conduitLengthByType?.reduce(
-			(/** @type {number} */ sum, /** @type {{ total: number }} */ item) =>
-				sum + (item.total || 0),
+			(/** @type {number} */ sum, /** @type {{ total: number }} */ item) => sum + (item.total || 0),
 			0
 		) || 0) / 1000
 	);
@@ -202,11 +201,13 @@
 							<div class="h-7 bg-surface-500 rounded animate-pulse w-16"></div>
 						{:else}
 							<div>
-								<span class="text-2xl font-bold text-surface-900-100">{data.totalAddresses || 0}</span>
+								<span class="text-2xl font-bold text-surface-900-100"
+									>{data.totalAddresses || 0}x</span
+								>
 								<span class="text-sm text-surface-600-300">{m.form_total_addresses()}</span>
 							</div>
 							<div>
-								<span class="text-2xl font-bold text-surface-900-100">{data.totalUnits || 0}</span>
+								<span class="text-2xl font-bold text-surface-900-100">{data.totalUnits || 0}x</span>
 								<span class="text-sm text-surface-600-300">{m.form_total_units()}</span>
 							</div>
 						{/if}
