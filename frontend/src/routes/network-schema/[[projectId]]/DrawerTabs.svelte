@@ -121,13 +121,6 @@
 		return () => fiberDataManager.cleanup();
 	});
 
-	$effect(() => {
-		const availableTabs = tabItems.map((tab) => tab.value);
-		if (!availableTabs.includes(group)) {
-			group = 'attributes';
-		}
-	});
-
 	const featureId = $derived(data?.uuid || data?.id);
 
 	$effect(() => {

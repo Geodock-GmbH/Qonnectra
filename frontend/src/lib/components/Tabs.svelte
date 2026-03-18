@@ -30,6 +30,24 @@
 	let isMobile = $derived((innerWidth.current ?? 0) < 768);
 	let effectiveOrientation = $derived(isMobile ? 'horizontal' : orientation);
 
+	/** Reset to first tab when the tab list composition changes */
+	let prevTabsKey = $state('');
+
+	$effect(() => {
+		const tabValues = tabs.map((t) => t.value);
+		const tabsKey = tabValues.join(',');
+
+		if (tabValues.length === 0) return;
+
+		if (tabsKey !== prevTabsKey) {
+			if (prevTabsKey !== '') {
+				value = tabValues[0];
+				onValueChange(tabValues[0]);
+			}
+			prevTabsKey = tabsKey;
+		}
+	});
+
 	function handleValueChange(/** @type {{ value: string }} */ e) {
 		value = e.value;
 		onValueChange(e.value);
