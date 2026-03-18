@@ -782,9 +782,9 @@ class TestPermissionCacheInvalidation:
         )
 
     @pytest.fixture
-    def admin_group(self, db):
-        """Get the Admin group."""
-        return Group.objects.get(name="Admin")
+    def admin_group(self, seed_permission_data):
+        """Get the Admin group with all permission data seeded."""
+        return seed_permission_data["admin_group"]
 
     def test_model_permission_save_invalidates_cache(self, test_user, admin_group):
         """Verify saving a ModelPermission clears all user permission caches."""

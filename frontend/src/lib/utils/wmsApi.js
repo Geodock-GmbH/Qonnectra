@@ -89,7 +89,9 @@ export async function fetchWMSAccessToken() {
 	});
 
 	if (!response.ok) {
-		throw new Error(`Failed to fetch WMS access token: ${response.statusText}`);
+		const error = new Error(`Failed to fetch WMS access token: ${response.statusText}`);
+		/** @type {any} */ (error).status = response.status;
+		throw error;
 	}
 
 	const data = await response.json();

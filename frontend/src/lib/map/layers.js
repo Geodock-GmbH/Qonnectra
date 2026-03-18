@@ -239,6 +239,10 @@ export function createWMSLayer({
 }) {
 	/** @type {number} */
 	let requestCounter = 0;
+	/** @type {boolean} */
+	let authFailed = false;
+	/** @type {boolean} */
+	let authErrorLogged = false;
 
 	const source = new TileWMS({
 		url: proxyUrl,
@@ -253,8 +257,8 @@ export function createWMSLayer({
 		crossOrigin: 'anonymous',
 		tileLoadFunction: (baseTile, src) => {
 			const tile = /** @type {import('ol/ImageTile').default} */ (baseTile);
-			// Skip loading if navigation is in progress
-			if (tileLoadingManager.isLoadingPaused()) {
+
+			if (tileLoadingManager.isLoadingPaused() || authFailed) {
 				tile.setState(4); // EMPTY
 				return;
 			}
@@ -269,8 +273,11 @@ export function createWMSLayer({
 			})
 				.then((response) => {
 					if (!response.ok) {
-						throw new Error(`WMS request failed: ${response.statusText}`);
+						const error = new Error(`WMS request failed: ${response.statusText}`);
+						/** @type {any} */ (error).status = response.status;
+						throw error;
 					}
+					authErrorLogged = false;
 					return response.blob();
 				})
 				.then((blob) => {
@@ -285,6 +292,20 @@ export function createWMSLayer({
 						tile.setState(4); // EMPTY
 						return;
 					}
+
+					const status = /** @type {any} */ (error)?.status;
+					if (status === 401 || status === 403) {
+						authFailed = true;
+						if (!authErrorLogged) {
+							authErrorLogged = true;
+							console.warn(
+								`WMS layer ${layerId}: auth failed (${status}), pausing tile loads until token refresh`
+							);
+						}
+						tile.setState(4); // EMPTY — don't mark as ERROR to avoid retry storm
+						return;
+					}
+
 					console.error(`WMS tile load error for ${layerId}:`, error);
 					tile.setState(3); // ERROR
 				})
@@ -292,6 +313,21 @@ export function createWMSLayer({
 					tileLoadingManager.removeAbortController(requestId);
 				});
 		}
+	});
+
+	/**
+	 * Resets the auth failure flag so tiles can load again after a token refresh.
+	 */
+	source.set('resetAuthFailure', () => {
+		authFailed = false;
+		authErrorLogged = false;
+	});
+
+	/**
+	 * Sets the auth failure flag to prevent any further tile requests.
+	 */
+	source.set('setAuthFailed', () => {
+		authFailed = true;
 	});
 
 	return new TileLayer({

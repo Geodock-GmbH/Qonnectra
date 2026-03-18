@@ -5,6 +5,7 @@ built on top of Factory Boy factories for consistent test data creation.
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.utils import translation
 
 from .factories import (
@@ -392,3 +393,60 @@ def wms_layer(db, wms_source):
 def trench_conduit_canvas(db):
     """Create a test trench conduit canvas position."""
     return TrenchConduitCanvasFactory()
+
+
+@pytest.fixture
+def seed_permission_data(db):
+    """Seed permission groups and their ModelPermission/RoutePermission records.
+
+    Replicates the data created by migration 0058_seed_permission_data.
+    """
+    from apps.api.models import ModelPermission, RoutePermission
+
+    admin_group, _ = Group.objects.get_or_create(name="Admin")
+    editor_group, _ = Group.objects.get_or_create(name="Editor")
+    viewer_group, _ = Group.objects.get_or_create(name="Viewer")
+
+    model_names = [
+        "trench", "conduit", "microduct", "node", "address", "cable",
+        "fiber", "fibersplice", "container", "area", "residentialunit",
+        "featurefiles", "projects", "flags", "wmslayer", "qgisproject",
+        "logentry", "trenchconduitconnection", "trenchconduitcanvas",
+        "microductconnection", "microductcableconnection", "nodestructure",
+        "nodeslotconfiguration", "cablelabel", "containertype",
+    ]
+
+    for model_name in model_names:
+        ModelPermission.objects.get_or_create(
+            group=admin_group, model_name=model_name,
+            defaults={"access_level": "full"},
+        )
+        editor_level = "none" if model_name == "logentry" else "edit"
+        ModelPermission.objects.get_or_create(
+            group=editor_group, model_name=model_name,
+            defaults={"access_level": editor_level},
+        )
+        viewer_level = "none" if model_name == "logentry" else "view"
+        ModelPermission.objects.get_or_create(
+            group=viewer_group, model_name=model_name,
+            defaults={"access_level": viewer_level},
+        )
+
+    RoutePermission.objects.get_or_create(
+        group=admin_group, route_pattern="/admin/*",
+        defaults={"allowed": True},
+    )
+    RoutePermission.objects.get_or_create(
+        group=editor_group, route_pattern="/admin/*",
+        defaults={"allowed": False},
+    )
+    RoutePermission.objects.get_or_create(
+        group=viewer_group, route_pattern="/admin/*",
+        defaults={"allowed": False},
+    )
+
+    return {
+        "admin_group": admin_group,
+        "editor_group": editor_group,
+        "viewer_group": viewer_group,
+    }

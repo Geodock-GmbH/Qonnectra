@@ -25,7 +25,11 @@ import {
 } from '$lib/stores/store';
 import { globalToaster } from '$lib/stores/toaster';
 import { fetchWMSAccessToken, fetchWMSSources, getWMSProxyUrl } from '$lib/utils/wmsApi';
-import { startWMSHeartbeat, stopWMSHeartbeat } from '$lib/utils/wmsTokenHeartbeat.svelte.js';
+import {
+	isWMSHeartbeatRunning,
+	startWMSHeartbeat,
+	stopWMSHeartbeat
+} from '$lib/utils/wmsTokenHeartbeat.svelte.js';
 import {
 	createAddressLayer,
 	createAreaLayer,
@@ -112,6 +116,9 @@ export class MapState {
 
 	/** @type {import('ol/layer/Tile').default[]} */
 	wmsLayers = $state([]);
+
+	/** @type {(() => void) | null} */
+	_visibilityHandler = null;
 
 	/** @type {import('ol/source/VectorTile').default | null} */
 	tileSource = $state(null);
@@ -336,7 +343,11 @@ export class MapState {
 			this.wmsLayers = newWmsLayers;
 
 			if (newWmsLayers.length > 0) {
-				startWMSHeartbeat(this.updateWMSLayerTokens.bind(this), accessToken);
+				startWMSHeartbeat(
+					this.updateWMSLayerTokens.bind(this),
+					accessToken,
+					this.pauseAllWMSLayers.bind(this)
+				);
 			}
 
 			// Insert WMS layers after base layers but before data layers
@@ -406,6 +417,9 @@ export class MapState {
 		}
 
 		this.loadWMSLayers();
+
+		this._visibilityHandler = this._handleVisibilityChange.bind(this);
+		document.addEventListener('visibilitychange', this._visibilityHandler);
 	}
 
 	/**
@@ -731,6 +745,47 @@ export class MapState {
 	}
 
 	/**
+	 * Sets the auth failure flag on all WMS layers to prevent further tile requests.
+	 * Called by the heartbeat when authentication fails.
+	 * @returns {void}
+	 */
+	pauseAllWMSLayers() {
+		for (const layer of this.wmsLayers) {
+			const source = /** @type {import('ol/source/TileWMS').default} */ (layer.getSource());
+			if (!source) continue;
+
+			const setAuthFailed = source.get('setAuthFailed');
+			if (typeof setAuthFailed === 'function') {
+				setAuthFailed();
+			}
+		}
+	}
+
+	/**
+	 * Attempts to recover WMS layers when the user returns to the tab.
+	 * If the heartbeat was stopped due to auth failure and the session has since
+	 * recovered, restarts the heartbeat and refreshes all layer tokens.
+	 * @returns {Promise<void>}
+	 */
+	async _handleVisibilityChange() {
+		if (document.visibilityState !== 'visible') return;
+		if (isWMSHeartbeatRunning()) return;
+		if (this.wmsLayers.length === 0) return;
+
+		try {
+			const token = await fetchWMSAccessToken();
+			startWMSHeartbeat(
+				this.updateWMSLayerTokens.bind(this),
+				token,
+				this.pauseAllWMSLayers.bind(this)
+			);
+			this.updateWMSLayerTokens(token);
+		} catch {
+			// Session still expired — do nothing
+		}
+	}
+
+	/**
 	 * Replaces the access token in all WMS layer source URLs.
 	 * Called by the WMS heartbeat when the token is refreshed.
 	 * @param {string} newToken - The new WMS access token
@@ -740,6 +795,11 @@ export class MapState {
 		for (const layer of this.wmsLayers) {
 			const source = /** @type {import('ol/source/TileWMS').default} */ (layer.getSource());
 			if (!source) continue;
+
+			const resetAuthFailure = source.get('resetAuthFailure');
+			if (typeof resetAuthFailure === 'function') {
+				resetAuthFailure();
+			}
 
 			const urls = source.getUrls();
 			if (!urls || urls.length === 0) continue;
@@ -756,6 +816,11 @@ export class MapState {
 	 */
 	cleanup() {
 		stopWMSHeartbeat();
+
+		if (this._visibilityHandler) {
+			document.removeEventListener('visibilitychange', this._visibilityHandler);
+			this._visibilityHandler = null;
+		}
 
 		if (!this.olMap) return;
 

@@ -12,21 +12,21 @@ User = get_user_model()
 
 
 @pytest.fixture
-def admin_group(db):
-    """Get the Admin group created by migration."""
-    return Group.objects.get(name="Admin")
+def admin_group(seed_permission_data):
+    """Get the Admin group with all permission data seeded."""
+    return seed_permission_data["admin_group"]
 
 
 @pytest.fixture
-def editor_group(db):
-    """Get the Editor group created by migration."""
-    return Group.objects.get(name="Editor")
+def editor_group(seed_permission_data):
+    """Get the Editor group with all permission data seeded."""
+    return seed_permission_data["editor_group"]
 
 
 @pytest.fixture
-def viewer_group(db):
-    """Get the Viewer group created by migration."""
-    return Group.objects.get(name="Viewer")
+def viewer_group(seed_permission_data):
+    """Get the Viewer group with all permission data seeded."""
+    return seed_permission_data["viewer_group"]
 
 
 @pytest.fixture

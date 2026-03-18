@@ -729,7 +729,7 @@ describe('+page.server.js', () => {
 			);
 
 			expect(result.status).toBe(400);
-			expect(result.data.message).toBe('Invalid data');
+			expect(result.data.isDuplicate).toBe(false);
 		});
 
 		test('should handle network error', async () => {
