@@ -1,7 +1,9 @@
-publiccodeYmlVersion: 0.4.0
+publiccodeYmlVersion: 0.5.0
 name: Qonnectra
 url: https://github.com/Geodock-GmbH/Qonnectra
 landingURL: https://www.qonnectra.de
+releaseDate: 2026-04-01
+logo: logo.png
 platforms:
   - linux
   - windows
@@ -14,16 +16,18 @@ description:
     localisedName: Qonnectra
     shortDescription: Fiber optic documentation of passive networks.
     longDescription: >-
-      Qonnectra is a comprehensive web-based GIS application designed for
-      managing telecommunications network infrastructure. It enables users to
-      plan, document, and visualize fiber optic networks including trenches,
-      conduits, microducts, cables, and connection points.
+      Qonnectra is an open-source, web-based GIS application for documenting and
+      managing municipal utility networks. It enables the documentation and
+      visualization of fiber optic networks across all network levels – from
+      main distribution points to individual building connections.
 
 
-      The application is designed for telecommunications companies, contractors,
-      and municipal utilities who need to manage fiber optic network
-      infrastructure efficiently. It combines the power of professional GIS
-      tools with an intuitive web interface accessible from any modern browser.
+      The software is designed for municipalities, municipal associations, and
+      small to mid-sized network operators such as public utilities that want to
+      manage their network assets professionally and digitally. Qonnectra is
+      browser-based, completely free of charge, and built entirely on
+      open-source components – data sovereignty stays with the municipality.
+    documentation: https://qonnectra.de/manual/
     features:
       - Geographic information system for telecommunications infrastructure
       - Interactive map interface
@@ -39,17 +43,19 @@ description:
     localisedName: Qonnectra
     shortDescription: Glasfaserdokumentation von passiven Netzen
     longDescription: >-
-      Qonnectra ist eine umfassende webbasierte GIS-Anwendung zur Verwaltung von
-      Telekommunikationsnetzinfrastruktur. Sie ermöglicht Benutzern die Planung,
-      Dokumentation und Visualisierung von Glasfasernetzen einschließlich
-      Gräben, Leerrohren, Mikrokanälen, Kabeln und Anschlusspunkten.
+      Qonnectra ist eine open-source, webbasierte GIS-Anwendung zur
+      Dokumentation und Verwaltung kommunaler Versorgungsnetze. Sie ermöglicht
+      die Dokumentation und Visualisierung von Glasfasernetzen über alle
+      Netzebenen hinweg – von der Hauptverteilung bis zum einzelnen
+      Hausanschluss.
 
 
-      Die Anwendung richtet sich an Telekommunikationsunternehmen,
-      Bauunternehmen und kommunale Versorgungsbetriebe, die
-      Glasfaser-Netzinfrastruktur effizient verwalten müssen. Sie kombiniert die
-      Leistungsfähigkeit professioneller GIS-Werkzeuge mit einer intuitiven
-      Weboberfläche, die von jedem modernen Browser aus zugänglich ist.
+      Die Software richtet sich an Kommunen, Zweckverbände und kleine bis
+      mittlere Netzbetreiber wie Stadtwerke, die ihren Netzbestand professionell
+      und digital betreiben wollen. Qonnectra ist browserbasiert, vollständig
+      kostenfrei und setzt ausschließlich auf Open-Source-Komponenten – die
+      Datenhoheit bleibt bei der Kommune.
+    documentation: https://qonnectra.de/manual/
     features:
       - Geoinformationssystem für Telekommunikationsinfrastruktur
       - Interaktive Kartenoberfläche
