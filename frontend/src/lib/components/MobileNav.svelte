@@ -6,6 +6,7 @@
 	import {
 		IconAiGateway,
 		IconArrowRightToArc,
+		IconBook,
 		IconBuildings,
 		IconChartArcs,
 		IconDotsVertical,
@@ -18,10 +19,11 @@
 		IconTopologyBus,
 		IconTopologyRing3
 	} from '@tabler/icons-svelte';
+	import { env } from '$env/dynamic/public';
 
 	import { m } from '$lib/paraglide/messages';
-
 	import { getLocale, setLocale } from '$lib/paraglide/runtime';
+
 	import { userStore } from '$lib/stores/auth';
 	import { canAccessRoute } from '$lib/utils/permissions.js';
 	import { tooltip } from '$lib/utils/tooltip.js';
@@ -298,12 +300,24 @@
 				</section>
 			{/if}
 
-			{#if footerLinks.length > 0}
+			{#if footerLinks.length > 0 || env.PUBLIC_DOCUMENTATION_URL}
 				<section>
 					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-700-300 mb-2">
 						{m.nav_category_system()}
 					</h4>
 					<div class="space-y-1">
+						{#if env.PUBLIC_DOCUMENTATION_URL}
+							<a
+								href={env.PUBLIC_DOCUMENTATION_URL}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-100-800 transition-colors"
+								onclick={closeMoreMenu}
+							>
+								<IconBook size={20} class="text-surface-700-300" />
+								<span class="text-surface-900-100">{m.nav_documentation()}</span>
+							</a>
+						{/if}
 						{#each footerLinks as link (link.href)}
 							{@const Icon = link.icon}
 							<a
@@ -325,14 +339,20 @@
 				</h4>
 				<div class="flex gap-2">
 					<button
-						class="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors {currentLocale === 'de' ? 'bg-primary-500 text-white' : 'hover:bg-surface-100-800 text-surface-900-100'}"
+						class="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors {currentLocale ===
+						'de'
+							? 'bg-primary-500 text-white'
+							: 'hover:bg-surface-100-800 text-surface-900-100'}"
 						onclick={() => switchLocale('de')}
 					>
 						<IconLanguage size={20} />
 						<span>DE</span>
 					</button>
 					<button
-						class="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors {currentLocale === 'en' ? 'bg-primary-500 text-white' : 'hover:bg-surface-100-800 text-surface-900-100'}"
+						class="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors {currentLocale ===
+						'en'
+							? 'bg-primary-500 text-white'
+							: 'hover:bg-surface-100-800 text-surface-900-100'}"
 						onclick={() => switchLocale('en')}
 					>
 						<IconLanguage size={20} />

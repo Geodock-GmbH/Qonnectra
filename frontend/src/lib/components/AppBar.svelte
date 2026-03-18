@@ -2,7 +2,8 @@
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
 	import { AppBar } from '@skeletonlabs/skeleton-svelte';
-	import { IconLogin, IconLogout, IconWorld } from '@tabler/icons-svelte';
+	import { IconBook, IconLogin, IconLogout, IconWorld } from '@tabler/icons-svelte';
+	import { env } from '$env/dynamic/public';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -84,6 +85,20 @@
 						<LocaleSwitcher />
 					</div>
 					<span class="border-r h-6 sm:h-8 border-surface-200-800 hidden sm:block"></span>
+
+					<!-- Documentation link - hidden on mobile -->
+					{#if env.PUBLIC_DOCUMENTATION_URL}
+						<a
+							href={env.PUBLIC_DOCUMENTATION_URL}
+							aria-label={m.tooltip_documentation()}
+							class="btn-icon hover:preset-tonal size-5 hidden sm:flex"
+							target="_blank"
+							rel="noopener noreferrer"
+							{@attach tooltip(m.tooltip_documentation(), { position: 'bottom' })}
+						>
+							<IconBook class="size-5" />
+						</a>
+					{/if}
 
 					<!-- GitHub link - hidden on mobile -->
 					<a

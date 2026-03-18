@@ -35,6 +35,8 @@
 	/** @type {FeatureFile|null} */
 	let editingFile = $state(null);
 	let editValue = $state('');
+	/** @type {string|null} */
+	let expandedFileId = $state(null);
 	/** @type {FeatureFile|null} */
 	let deletingFile = $state(null);
 	/** @type {MessageBox} */
@@ -327,104 +329,163 @@
 			</TreeView.Branch>
 		{:else if node.type === 'file'}
 			<TreeView.Item>
-				<div
-					class="flex items-center justify-between w-full gap-2 group"
-					role="button"
-					tabindex="0"
-					ondblclick={() => {
-						if (editingFile?.uuid !== node.fileData.uuid) {
-							handleFileDoubleClick(node.fileData);
-						}
-					}}
-					onkeydown={(e) => {
-						if (e.key === 'Enter' && editingFile?.uuid !== node.fileData.uuid) {
-							handleFileDoubleClick(node.fileData);
-						}
-					}}
-				>
-					<div class="flex items-center gap-2 flex-1 min-w-0">
-						<IconFile class="size-4 shrink-0" />
-						{#if editingFile?.uuid === node.fileData.uuid}
-							<input
-								type="text"
-								bind:value={editValue}
-								class="input flex-1 min-w-0 py-0 px-1 h-6"
-								onkeydown={(e) => {
-									if (e.key === 'Enter') {
-										e.stopPropagation();
-										e.preventDefault();
-										saveRename(node.fileData);
-									}
-									if (e.key === 'Escape') {
-										e.stopPropagation();
-										cancelEditing();
-									}
-								}}
-								onclick={(e) => e.stopPropagation()}
-								ondblclick={(e) => e.stopPropagation()}
-							/>
-							<button
-								type="button"
-								onclick={() => saveRename(node.fileData)}
-								class="btn-icon btn-sm preset-filled-primary-500"
-								aria-label={m.action_save()}
-								{@attach tooltip(m.action_save())}
-							>
-								✓
-							</button>
-							<button
-								type="button"
-								onclick={cancelEditing}
-								class="btn-icon btn-sm preset-filled-error-500"
-								aria-label={m.common_cancel()}
-								{@attach tooltip(m.common_cancel())}
-							>
-								✕
-							</button>
-						{:else}
-							<span class="truncate">{node.name}</span>
-							<div
-								class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
-							>
+				<div class="flex flex-col w-full group">
+					<div
+						class="flex items-center justify-between w-full gap-2"
+						role="button"
+						tabindex="0"
+						onclick={() => {
+							if (editingFile?.uuid !== node.fileData.uuid) {
+								expandedFileId = expandedFileId === node.fileData.uuid ? null : node.fileData.uuid;
+							}
+						}}
+						ondblclick={() => {
+							if (editingFile?.uuid !== node.fileData.uuid) {
+								handleFileDoubleClick(node.fileData);
+							}
+						}}
+						onkeydown={(e) => {
+							if (e.key === 'Enter' && editingFile?.uuid !== node.fileData.uuid) {
+								handleFileDoubleClick(node.fileData);
+							}
+						}}
+					>
+						<div class="flex items-center gap-2 flex-1 min-w-0">
+							<IconFile class="size-4 shrink-0" />
+							{#if editingFile?.uuid === node.fileData.uuid}
+								<input
+									type="text"
+									bind:value={editValue}
+									class="input flex-1 min-w-0 py-0 px-1 h-6"
+									onkeydown={(e) => {
+										if (e.key === 'Enter') {
+											e.stopPropagation();
+											e.preventDefault();
+											saveRename(node.fileData);
+										}
+										if (e.key === 'Escape') {
+											e.stopPropagation();
+											cancelEditing();
+										}
+									}}
+									onclick={(e) => e.stopPropagation()}
+									ondblclick={(e) => e.stopPropagation()}
+								/>
 								<button
 									type="button"
-									onclick={(e) => {
-										e.stopPropagation();
-										downloadFile(node.fileData);
-									}}
+									onclick={() => saveRename(node.fileData)}
 									class="btn-icon btn-sm preset-filled-primary-500"
-									aria-label={m.action_download()}
-									{@attach tooltip(m.action_download())}
+									aria-label={m.action_save()}
+									{@attach tooltip(m.action_save())}
 								>
-									<IconDownload class="size-4" />
+									✓
 								</button>
 								<button
 									type="button"
-									onclick={(e) => {
-										e.stopPropagation();
-										startEditing(node.fileData);
-									}}
-									class="btn-icon btn-sm preset-filled-warning-500"
-									aria-label={m.action_rename()}
-									{@attach tooltip(m.action_rename())}
-								>
-									<IconEdit class="size-4" />
-								</button>
-								<button
-									type="button"
-									onclick={(e) => {
-										e.stopPropagation();
-										confirmDelete(node.fileData);
-									}}
+									onclick={cancelEditing}
 									class="btn-icon btn-sm preset-filled-error-500"
-									aria-label={m.action_delete_file()}
-									{@attach tooltip(m.action_delete_file())}
+									aria-label={m.common_cancel()}
+									{@attach tooltip(m.common_cancel())}
 								>
-									<IconTrash class="size-4" />
+									✕
 								</button>
-							</div>
-						{/if}
+							{:else}
+								<span class="truncate">{node.name}</span>
+								<!-- Desktop: hover to show buttons -->
+								<div
+									class="hidden sm:flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+								>
+									<button
+										type="button"
+										onclick={(e) => {
+											e.stopPropagation();
+											downloadFile(node.fileData);
+										}}
+										class="btn-icon btn-sm preset-filled-primary-500"
+										aria-label={m.action_download()}
+										{@attach tooltip(m.action_download())}
+									>
+										<IconDownload class="size-4" />
+									</button>
+									<button
+										type="button"
+										onclick={(e) => {
+											e.stopPropagation();
+											startEditing(node.fileData);
+										}}
+										class="btn-icon btn-sm preset-filled-warning-500"
+										aria-label={m.action_rename()}
+										{@attach tooltip(m.action_rename())}
+									>
+										<IconEdit class="size-4" />
+									</button>
+									<button
+										type="button"
+										onclick={(e) => {
+											e.stopPropagation();
+											confirmDelete(node.fileData);
+										}}
+										class="btn-icon btn-sm preset-filled-error-500"
+										aria-label={m.action_delete_file()}
+										{@attach tooltip(m.action_delete_file())}
+									>
+										<IconTrash class="size-4" />
+									</button>
+								</div>
+							{/if}
+						</div>
 					</div>
+					<!-- Mobile: tap to expand action buttons below -->
+					{#if expandedFileId === node.fileData.uuid && editingFile?.uuid !== node.fileData.uuid}
+						<div class="flex items-center gap-2 pl-6 pt-1 pb-1 sm:hidden">
+							<button
+								type="button"
+								onclick={(e) => {
+									e.stopPropagation();
+									handleFileDoubleClick(node.fileData);
+								}}
+								class="btn btn-sm preset-filled-surface-500"
+								aria-label={m.action_open()}
+							>
+								{m.action_open()}
+							</button>
+							<button
+								type="button"
+								onclick={(e) => {
+									e.stopPropagation();
+									downloadFile(node.fileData);
+								}}
+								class="btn-icon btn-sm preset-filled-primary-500"
+								aria-label={m.action_download()}
+							>
+								<IconDownload class="size-4" />
+							</button>
+							<button
+								type="button"
+								onclick={(e) => {
+									e.stopPropagation();
+									startEditing(node.fileData);
+									expandedFileId = null;
+								}}
+								class="btn-icon btn-sm preset-filled-warning-500"
+								aria-label={m.action_rename()}
+							>
+								<IconEdit class="size-4" />
+							</button>
+							<button
+								type="button"
+								onclick={(e) => {
+									e.stopPropagation();
+									confirmDelete(node.fileData);
+									expandedFileId = null;
+								}}
+								class="btn-icon btn-sm preset-filled-error-500"
+								aria-label={m.action_delete_file()}
+							>
+								<IconTrash class="size-4" />
+							</button>
+						</div>
+					{/if}
 				</div>
 			</TreeView.Item>
 		{/if}

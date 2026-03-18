@@ -312,7 +312,7 @@
 			</div>
 
 			<!-- Content -->
-			<div class="flex-1 min-h-0 p-4 flex flex-col overflow-auto">
+			<div class="flex-1 min-h-0 p-4 pb-20 flex flex-col overflow-y-auto">
 				{#if DrawerComponent}
 					<DrawerComponent {...drawerProps} />
 				{:else}

@@ -265,6 +265,7 @@ services:
       - API_URL=${API_URL}
       - PUBLIC_API_URL=${PUBLIC_API_URL}
       - PUBLIC_TILE_SERVER_URL=${PUBLIC_TILE_SERVER_URL}
+      - PUBLIC_DOCUMENTATION_URL=${PUBLIC_DOCUMENTATION_URL}
     networks:
       - qonnectra_network
     depends_on:

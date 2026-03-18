@@ -4,6 +4,7 @@
 	import {
 		IconAiGateway,
 		IconArrowRightToArc,
+		IconBook,
 		IconBuildings,
 		IconChartArcs,
 		IconFileText,
@@ -14,6 +15,7 @@
 		IconTopologyBus,
 		IconTopologyRing3
 	} from '@tabler/icons-svelte';
+	import { env } from '$env/dynamic/public';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -273,7 +275,7 @@
 			{/if}
 		</Navigation.Content>
 		<!-- Footer Navigation -->
-		{#if footerLinks.length > 0}
+		{#if footerLinks.length > 0 || env.PUBLIC_DOCUMENTATION_URL}
 			<Navigation.Footer>
 				<Navigation.Group>
 					{#if $sidebarExpanded}
@@ -295,6 +297,21 @@
 								{/if}
 							</a>
 						{/each}
+						{#if env.PUBLIC_DOCUMENTATION_URL}
+							<a
+								href={env.PUBLIC_DOCUMENTATION_URL}
+								target="_blank"
+								rel="noopener noreferrer"
+								class={getAnchorClass(false)}
+								aria-label={m.nav_documentation()}
+								{@attach tooltip(m.nav_documentation())}
+							>
+								<IconBook size={28} class="text-surface-700-300" />
+								{#if $sidebarExpanded}
+									<span>{m.nav_documentation()}</span>
+								{/if}
+							</a>
+						{/if}
 					</Navigation.Menu>
 				</Navigation.Group>
 			</Navigation.Footer>
