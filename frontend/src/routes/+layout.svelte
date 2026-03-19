@@ -9,7 +9,7 @@
 	import Sidebar from '$lib/components/SideBar.svelte';
 	import { setupNavigationCancellation } from '$lib/map/navigationCancellation.js';
 	import { updateUserStore } from '$lib/stores/auth';
-	import { theme } from '$lib/stores/store';
+	import { selectedProject, theme } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte.js';
 
@@ -29,6 +29,10 @@
 	});
 
 	$effect(() => updateUserStore(data.user));
+	// svelte-ignore state_referenced_locally
+	if (data.selectedProject) {
+		selectedProject.set(data.selectedProject);
+	}
 	$effect(() => {
 		document.documentElement.setAttribute('data-theme', $theme.join(' '));
 	});
