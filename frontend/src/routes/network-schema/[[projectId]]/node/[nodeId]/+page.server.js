@@ -1,4 +1,4 @@
-import { error, redirect } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
@@ -17,6 +17,7 @@ export async function load({ fetch, cookies, params }) {
 		const [
 			nodeResponse,
 			cableResponse,
+			cableLabelResponse,
 			cableMicropipeResponse,
 			cableTypeResponse,
 			nodeTypeResponse,
@@ -30,6 +31,10 @@ export async function load({ fetch, cookies, params }) {
 				headers
 			}),
 			fetch(`${API_URL}cable/all/?project=${projectId}&child_view_for=${nodeId}`, {
+				credentials: 'include',
+				headers
+			}),
+			fetch(`${API_URL}cable_label/all/?project=${projectId}`, {
 				credentials: 'include',
 				headers
 			}),
@@ -64,6 +69,30 @@ export async function load({ fetch, cookies, params }) {
 		if (cableResponse.ok) {
 			cablesData = await cableResponse.json();
 		}
+
+		let cableLabelsData = [];
+		if (cableLabelResponse.ok) {
+			cableLabelsData = await cableLabelResponse.json();
+		}
+
+		/** @type {Record<string, any[]>} */
+		const cableLabelMap = {};
+		cableLabelsData.forEach((/** @type {any} */ label) => {
+			const cableUuid = label.cable?.uuid || label.cable;
+			if (!cableLabelMap[cableUuid]) {
+				cableLabelMap[cableUuid] = [];
+			}
+			cableLabelMap[cableUuid].push(label);
+		});
+
+		cablesData = cablesData.map((/** @type {any} */ cable) => {
+			const cableUuid = cable.uuid || (cable.cable && cable.cable.uuid) || cable.cable;
+			return {
+				...cable,
+				uuid: cableUuid,
+				labelData: cableLabelMap[cableUuid]?.[0] || null
+			};
+		});
 
 		let cableMicropipeConnections = {};
 		if (cableMicropipeResponse.ok) {
