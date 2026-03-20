@@ -224,12 +224,6 @@
 
 	onMount(() => {
 		dataManager.fetchFiberColors();
-		if (nodeUuid) {
-			dataManager.fetchCables();
-			dataManager.fetchFiberUsage();
-			dataManager.fetchAddresses();
-			dataManager.fetchResidentialUnitUsage();
-		}
 	});
 </script>
 

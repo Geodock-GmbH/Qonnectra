@@ -66,9 +66,7 @@
 	/** Disabled when node has both children and cables, as changing type would break the hierarchy. */
 	const nodeTypeDisabled = $derived(isCheckingDependencies || (hasChildren && hasConnectedCables));
 	/** Disabled when in child view and node already has cables, to prevent re-parenting a wired node. */
-	const parentNodeDisabled = $derived(
-		isCheckingDependencies || (isChildView && hasConnectedCables)
-	);
+	const parentNodeDisabled = $derived(isChildView && (isCheckingDependencies || hasConnectedCables));
 
 	/**
 	 * Check dependencies when node changes (cables, structures, children)
