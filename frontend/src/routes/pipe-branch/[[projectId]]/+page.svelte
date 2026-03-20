@@ -4,7 +4,7 @@
 	import { page } from '$app/stores';
 	import { Background, ConnectionMode, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
 
-	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
+	import VirtualCombobox from '$lib/components/VirtualCombobox.svelte';
 	import { selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
@@ -21,8 +21,7 @@
 
 	/** @type {{ data: import('./$types').PageData }} */
 	let { data } = $props();
-	/** @type {any[]} */
-	let selectedNode = $state([]);
+	let selectedNode = $state('');
 	let branches = $derived(data?.nodes && Array.isArray(data.nodes) ? data.nodes : []);
 	let pipeBranchConfigured = $derived(data?.pipeBranchConfigured || false);
 	/** @type {any} */
@@ -836,7 +835,7 @@
 				goto(targetPath, { keepFocus: true, noScroll: true, replaceState: true });
 				nodes = [];
 				edges = [];
-				selectedNode = [];
+				selectedNode = '';
 			}
 		}
 	});
@@ -888,24 +887,19 @@
 						</div>
 					{/if}
 
-					<GenericCombobox
+					<VirtualCombobox
 						data={branches}
 						bind:value={selectedNode}
-						defaultValue={selectedNode}
 						placeholder={m.placeholder_select_pipe_branch()}
-						onValueChange={(/** @type {any} */ e) => {
-							selectedNode = e.value;
+						onValueChange={(/** @type {{ value: string }} */ e) => {
 							clearLassoSelection();
-							if (e.value && e.value.length > 0) {
-								const nodeName = e.value[0]?.name || e.value[0];
-								const project = $selectedProject;
-								getTrenchesNearNode(nodeName, project);
+							if (e.value) {
+								getTrenchesNearNode(e.value, $selectedProject);
 							}
 						}}
-						inputClasses="w-full sm:min-w-[240px]"
 					/>
 
-					{#if selectedNode?.length > 0 && availableTrenches.length > 0}
+					{#if selectedNode && availableTrenches.length > 0}
 						<button
 							type="button"
 							class="btn preset-filled-warning-500 hover:preset-filled-warning-600"

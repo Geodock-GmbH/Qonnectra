@@ -111,7 +111,7 @@ vi.mock('$lib/stores/store', () => ({
 	}
 }));
 
-vi.mock('$lib/components/GenericCombobox.svelte', async () => {
+vi.mock('$lib/components/VirtualCombobox.svelte', async () => {
 	const { default: MockGenericCombobox } =
 		await import('$lib/test-utils/mocks/MockGenericCombobox.svelte');
 	return { default: MockGenericCombobox };
@@ -183,7 +183,7 @@ describe('/pipe-branch/+page.svelte', () => {
 		expect(screen.getByText('Attributes')).toBeInTheDocument();
 	});
 
-	test('should render GenericCombobox for node selection', () => {
+	test('should render VirtualCombobox for node selection', () => {
 		render(Page, { props: { data: mockData } });
 
 		expect(screen.getByTestId('generic-combobox')).toBeInTheDocument();

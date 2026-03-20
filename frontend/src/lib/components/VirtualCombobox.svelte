@@ -33,24 +33,36 @@
 	const instanceId = `vcb-${Math.random().toString(36).slice(2, 9)}`;
 	const listboxId = `${instanceId}-listbox`;
 
-	const fuse = $derived(
-		new Fuse(data, {
-			keys: ['label', 'value'],
-			threshold: 0.3,
-			...fuseOptions
-		})
-	);
+	/** @type {Fuse<{label: string, value: string}>|null} */
+	let cachedFuse = null;
+	/** @type {any} */
+	let cachedFuseData = null;
+
+	/** Returns a cached Fuse instance, rebuilding only when `data` changes. */
+	function getOrCreateFuse() {
+		if (cachedFuseData !== data) {
+			cachedFuse = new Fuse(data, {
+				keys: ['label', 'value'],
+				threshold: 0.3,
+				...fuseOptions
+			});
+			cachedFuseData = data;
+		}
+		return /** @type {Fuse<{label: string, value: string}>} */ (cachedFuse);
+	}
 
 	const filteredItems = $derived.by(() => {
 		if (!searchQuery) return data;
-		const results = fuse.search(searchQuery);
+		const results = getOrCreateFuse().search(searchQuery);
 		return results.length > 0 ? results.map((r) => r.item) : [];
 	});
 
 	const totalItems = $derived(filteredItems.length);
+	const useVirtualScroll = $derived(totalItems > maxVisibleItems);
 
 	/** Label of the currently selected item */
-	const selectedLabel = $derived(data.find((item) => item.value === value)?.label ?? '');
+	const labelMap = $derived(new Map(data.map((item) => [item.value, item.label])));
+	const selectedLabel = $derived(labelMap.get(value) ?? '');
 
 	/* ── Virtual scroll range ── */
 	const visibleStart = $derived(Math.max(0, Math.floor(scrollTop / itemHeight) - OVERSCAN));
@@ -77,15 +89,30 @@
 		};
 	}
 
+	let rafId = 0;
+
+	/** RAF-throttled version of updateFixedPosition to avoid layout thrashing. */
+	function throttledUpdateFixedPosition() {
+		if (rafId) return;
+		rafId = requestAnimationFrame(() => {
+			updateFixedPosition();
+			rafId = 0;
+		});
+	}
+
 	/** Attach/detach scroll and resize listeners when dropdown is open in fixed mode. */
 	$effect(() => {
 		if (isOpen && !renderInPlace) {
 			updateFixedPosition();
-			window.addEventListener('scroll', updateFixedPosition, true);
-			window.addEventListener('resize', updateFixedPosition);
+			window.addEventListener('scroll', throttledUpdateFixedPosition, true);
+			window.addEventListener('resize', throttledUpdateFixedPosition);
 			return () => {
-				window.removeEventListener('scroll', updateFixedPosition, true);
-				window.removeEventListener('resize', updateFixedPosition);
+				window.removeEventListener('scroll', throttledUpdateFixedPosition, true);
+				window.removeEventListener('resize', throttledUpdateFixedPosition);
+				if (rafId) {
+					cancelAnimationFrame(rafId);
+					rafId = 0;
+				}
 			};
 		}
 	});
@@ -293,7 +320,7 @@
 					<div class="px-3 py-2 text-sm text-surface-500">
 						{noDataMessage || 'No results found'}
 					</div>
-				{:else}
+				{:else if useVirtualScroll}
 					<div
 						bind:this={listContainerEl}
 						role="listbox"
@@ -302,7 +329,6 @@
 						style="max-height: {containerMaxHeight}px;"
 						onscroll={handleScroll}
 					>
-						<!-- Top spacer -->
 						<div style="height: {topSpacerHeight}px;" aria-hidden="true"></div>
 
 						{#each visibleItems as item, i (item.value)}
@@ -327,8 +353,35 @@
 							</div>
 						{/each}
 
-						<!-- Bottom spacer -->
 						<div style="height: {bottomSpacerHeight}px;" aria-hidden="true"></div>
+					</div>
+				{:else}
+					<div
+						bind:this={listContainerEl}
+						role="listbox"
+						id={listboxId}
+						class="overflow-y-auto"
+						style="max-height: {containerMaxHeight}px;"
+					>
+						{#each filteredItems as item, i (item.value)}
+							<div
+								id="{instanceId}-item-{i}"
+								role="option"
+								tabindex="-1"
+								aria-selected={item.value === value}
+								class="cursor-pointer rounded-md px-3 py-2"
+								class:bg-primary-500={item.value === value && i !== highlightedIndex}
+								class:bg-surface-200-800={i === highlightedIndex && item.value !== value}
+								class:bg-primary-600={i === highlightedIndex && item.value === value}
+								class:text-white={item.value === value || i === highlightedIndex}
+								style="height: {itemHeight}px; display: flex; align-items: center;"
+								onclick={() => selectItem(item)}
+								onkeydown={(e) => e.key === 'Enter' && selectItem(item)}
+								onmouseenter={() => (highlightedIndex = i)}
+							>
+								{item.label}
+							</div>
+						{/each}
 					</div>
 				{/if}
 			</div>
