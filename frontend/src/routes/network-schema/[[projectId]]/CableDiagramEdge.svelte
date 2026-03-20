@@ -54,6 +54,13 @@
 		return DEFAULT_GREEN;
 	});
 
+	let edgeStyle = $derived.by(() => {
+		if (selected) {
+			return `stroke: ${strokeColor}; stroke-width: 4; filter: drop-shadow(0 0 4px ${strokeColor});`;
+		}
+		return `stroke: ${strokeColor}; stroke-width: 2;`;
+	});
+
 	let currentLabel = $state('');
 	let labelData = $state(/** @type {Object|null} */ (null));
 
@@ -402,7 +409,7 @@
 		{id}
 		path={edgePath}
 		interactionWidth={20}
-		style="stroke: {strokeColor}; stroke-width: 2;"
+		style={edgeStyle}
 		aria-label={m.tooltip_open_cable_details({ label: data.label })}
 	/>
 </g>
