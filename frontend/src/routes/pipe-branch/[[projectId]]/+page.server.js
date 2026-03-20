@@ -17,7 +17,7 @@ export async function load({ fetch, params, cookies }) {
 
 	try {
 		const response = await fetch(
-			`${API_URL}node/all/?project=${projectId}&use_pipe_branch_settings=true`,
+			`${API_URL}node/all/?project=${projectId}&use_pipe_branch_settings=true&minimal=true`,
 			{
 				credentials: 'include',
 				headers: getAuthHeaders(cookies)
@@ -31,23 +31,18 @@ export async function load({ fetch, params, cookies }) {
 
 		const data = await response.json();
 
-		if (
-			typeof data === 'object' &&
-			data !== null &&
-			data.type === 'FeatureCollection' &&
-			Array.isArray(data.features)
-		) {
-			const nodes = data.features.map((/** @type {any} */ feature) => ({
-				label: feature.properties.name,
-				value: feature.properties.name,
-				uuid: feature.properties.uuid
+		if (data?.nodes && Array.isArray(data.nodes)) {
+			const nodes = data.nodes.map((/** @type {any} */ node) => ({
+				label: node.name,
+				value: node.name,
+				uuid: node.uuid
 			}));
 			return {
 				nodes,
 				pipeBranchConfigured: data.metadata?.pipe_branch_configured || false
 			};
 		} else {
-			console.error('Invalid GeoJSON FeatureCollection structure:', data);
+			console.error('Unexpected response structure:', data);
 			return { nodes: [], pipeBranchConfigured: false };
 		}
 	} catch (error) {

@@ -133,6 +133,7 @@ from .serializers import (
     MicroductConnectionSerializer,
     MicroductSerializer,
     NodeSerializer,
+    ParentNodeSerializer,
     NodeSlotClipNumberSerializer,
     NodeSlotConfigurationListSerializer,
     NodeSlotConfigurationSerializer,
@@ -2271,21 +2272,27 @@ class NodeViewSet(viewsets.ModelViewSet):
         - `search`: Search term for name/type
         - `use_pipe_branch_settings`: If 'true', apply project's pipe-branch allowed types
         - `include_excluded`: If 'true', bypass NetworkSchemaSettings exclusions (for search)
+        - `minimal`: If 'true', return only uuid and name (no geometry/relations)
 
         If project settings are configured, excluded node types are automatically
         filtered out unless an explicit exclude_group or include_excluded parameter is provided.
         """
-        queryset = Node.objects.select_related(
-            "node_type",
-            "uuid_address",
-            "status",
-            "network_level",
-            "owner",
-            "constructor",
-            "manufacturer",
-            "project",
-            "flag",
-        ).order_by("name")
+        minimal = request.query_params.get("minimal") == "true"
+
+        if minimal:
+            queryset = Node.objects.only("uuid", "name").order_by("name")
+        else:
+            queryset = Node.objects.select_related(
+                "node_type",
+                "uuid_address",
+                "status",
+                "network_level",
+                "owner",
+                "constructor",
+                "manufacturer",
+                "project",
+                "flag",
+            ).order_by("name")
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
         group = request.query_params.get("group")
@@ -2359,6 +2366,19 @@ class NodeViewSet(viewsets.ModelViewSet):
                 Q(name__icontains=search_term)
                 | Q(node_type__node_type__icontains=search_term)
             )
+
+        if minimal:
+            serializer = ParentNodeSerializer(queryset, many=True)
+            return Response({
+                "nodes": serializer.data,
+                "metadata": {
+                    "settings_configured": settings_configured,
+                    "pipe_branch_configured": pipe_branch_configured,
+                    "excluded_node_type_ids": excluded_type_ids,
+                    "child_view_enabled_node_type_ids": child_view_enabled_type_ids,
+                },
+            })
+
         serializer = NodeSerializer(queryset, many=True)
         data = serializer.data
 

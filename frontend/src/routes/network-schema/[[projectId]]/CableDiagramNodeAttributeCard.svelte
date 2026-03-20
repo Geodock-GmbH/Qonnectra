@@ -18,7 +18,8 @@
 		networkLevels: [],
 		companies: [],
 		flags: [],
-		excludedNodeTypeIds: []
+		excludedNodeTypeIds: [],
+		parentNodeOptions: []
 	};
 
 	const isChildView = $derived($page.url.pathname.includes('/node/'));
@@ -43,10 +44,9 @@
 	/** @type {any[]} */
 	let nodeFlag = $state([]);
 	let nodeParentNode = $state('');
-	/** @type {any[]} */
-	let allNodes = $state([]);
-	let isLoadingParentNodes = $state(false);
-	const availableNodes = $derived(allNodes.filter((n) => n.value !== id));
+	const availableNodes = $derived(
+		(attributes.parentNodeOptions || []).filter((/** @type {any} */ n) => n.value !== id)
+	);
 
 	let { onLabelUpdate, onNodeDelete } = $props();
 
@@ -143,35 +143,6 @@
 			nodeDate = node.date || '';
 			nodeFlag = node.flag?.id != null ? [node.flag.id] : [];
 			nodeParentNode = node.parent_node?.uuid ?? '';
-		}
-	});
-
-	/**
-	 * Fetch all nodes for parent node selection (cached per page load).
-	 */
-	async function fetchAllNodes() {
-		if (allNodes.length > 0) return;
-		isLoadingParentNodes = true;
-		try {
-			const response = await fetch('?/getAllNodes', {
-				method: 'POST',
-				body: new FormData()
-			});
-
-			const result = /** @type {any} */ (deserialize(await response.text()));
-			if (result.data?.nodes) {
-				allNodes = result.data.nodes;
-			}
-		} catch (err) {
-			console.error('Error fetching available nodes:', err);
-		} finally {
-			isLoadingParentNodes = false;
-		}
-	}
-
-	$effect(() => {
-		if (id) {
-			fetchAllNodes();
 		}
 	});
 
@@ -443,7 +414,6 @@
 			data={availableNodes}
 			bind:value={nodeParentNode}
 			disabled={parentNodeDisabled}
-			loading={isLoadingParentNodes}
 			placeholder={m.form_parent_node_name()}
 			renderInPlace={true}
 		/>

@@ -24,7 +24,8 @@ import {
 	getSlotClipNumbers,
 	getSlotConfigurationsForNode,
 	getSlotDividers,
-	getUsedResidentialUnits
+	getUsedResidentialUnits,
+	mapNodesToOptions
 } from '$lib/server/nodeData';
 
 /**
@@ -92,7 +93,8 @@ export async function load({ fetch, cookies, url, params }) {
 			networkLevels: [],
 			companies: [],
 			flags: [],
-			syncStatus: null
+			syncStatus: null,
+			parentNodeOptions: []
 		};
 	}
 
@@ -314,6 +316,8 @@ export async function load({ fetch, cookies, url, params }) {
 			console.warn('Failed to fetch flags data, continuing without it');
 		}
 
+		const parentNodeOptions = mapNodesToOptions(nodesData);
+
 		return {
 			nodes: nodesData,
 			cables: cablesData,
@@ -327,7 +331,8 @@ export async function load({ fetch, cookies, url, params }) {
 			syncStatus: syncStatus || null,
 			networkSchemaSettingsConfigured,
 			excludedNodeTypeIds,
-			childViewEnabledNodeTypeIds
+			childViewEnabledNodeTypeIds,
+			parentNodeOptions
 		};
 	} catch (err) {
 		const typedErr = /** @type {any} */ (err);
@@ -349,7 +354,8 @@ export async function load({ fetch, cookies, url, params }) {
 			syncStatus: null,
 			networkSchemaSettingsConfigured: false,
 			excludedNodeTypeIds: [],
-			childViewEnabledNodeTypeIds: []
+			childViewEnabledNodeTypeIds: [],
+			parentNodeOptions: []
 		};
 	}
 }
@@ -2274,43 +2280,6 @@ export const actions = {
 		} catch (err) {
 			console.error('Error deleting cable splices at node:', err);
 			return fail(500, { error: 'Failed to delete cable splices' });
-		}
-	},
-	getAllNodes: async ({ fetch, cookies, params }) => {
-		const headers = getAuthHeaders(cookies);
-		const projectId = params.projectId;
-
-		if (!projectId) {
-			return fail(400, { error: 'Project ID is required' });
-		}
-
-		try {
-			const response = await fetch(`${API_URL}node/all/?project=${projectId}`, {
-				credentials: 'include',
-				headers
-			});
-
-			if (!response.ok) {
-				const errorData = await response.json().catch(() => ({}));
-				return fail(response.status, {
-					error: errorData.detail || 'Failed to fetch nodes'
-				});
-			}
-
-			const nodesData = await response.json();
-			const nodes = nodesData?.features || nodesData || [];
-			return {
-				nodes: nodes.map((/** @type {any} */ nodeOrFeature) => {
-					const node = nodeOrFeature.properties || nodeOrFeature;
-					return {
-						value: nodeOrFeature.id || node.uuid,
-						label: node.name || 'Unnamed Node'
-					};
-				})
-			};
-		} catch (err) {
-			console.error('Error fetching all nodes:', err);
-			return fail(500, { error: 'Failed to fetch nodes' });
 		}
 	},
 	getFiberUsageInNode: async ({ request, fetch, cookies }) => {

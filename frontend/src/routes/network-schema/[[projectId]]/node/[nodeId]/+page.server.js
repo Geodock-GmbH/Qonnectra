@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
+import { mapNodesToOptions } from '$lib/server/nodeData';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ fetch, cookies, params }) {
@@ -24,7 +25,8 @@ export async function load({ fetch, cookies, params }) {
 			statusResponse,
 			networkLevelResponse,
 			companyResponse,
-			flagsResponse
+			flagsResponse,
+			allNodesResponse
 		] = await Promise.all([
 			fetch(`${API_URL}node/all/?project=${projectId}&child_view_for=${nodeId}`, {
 				credentials: 'include',
@@ -47,7 +49,11 @@ export async function load({ fetch, cookies, params }) {
 			fetch(`${API_URL}attributes_status/`, { credentials: 'include', headers }),
 			fetch(`${API_URL}attributes_network_level/`, { credentials: 'include', headers }),
 			fetch(`${API_URL}attributes_company/`, { credentials: 'include', headers }),
-			fetch(`${API_URL}flags/`, { credentials: 'include', headers })
+			fetch(`${API_URL}flags/`, { credentials: 'include', headers }),
+			fetch(`${API_URL}node/all/?project=${projectId}&minimal=true`, {
+				credentials: 'include',
+				headers
+			})
 		]);
 
 		if (!nodeResponse.ok) {
@@ -148,6 +154,12 @@ export async function load({ fetch, cookies, params }) {
 			}));
 		}
 
+		/** @type {{ value: string, label: string }[]} */
+		let parentNodeOptions = [];
+		if (allNodesResponse.ok) {
+			parentNodeOptions = mapNodesToOptions(await allNodesResponse.json());
+		}
+
 		return {
 			nodes: nodesData,
 			cables: cablesData,
@@ -163,7 +175,8 @@ export async function load({ fetch, cookies, params }) {
 			excludedNodeTypeIds: [],
 			childViewEnabledNodeTypeIds,
 			parentNodeId: nodeId,
-			isChildView: true
+			isChildView: true,
+			parentNodeOptions
 		};
 	} catch (err) {
 		if (/** @type {any} */ (err).status === 302) throw err;

@@ -67,7 +67,8 @@
 		companies: data.companies,
 		flags: data.flags,
 		excludedNodeTypeIds: data.excludedNodeTypeIds,
-		childViewEnabledNodeTypeIds: data.childViewEnabledNodeTypeIds
+		childViewEnabledNodeTypeIds: data.childViewEnabledNodeTypeIds,
+		parentNodeOptions: data.parentNodeOptions ?? []
 	});
 
 	setContext('attributeOptions', {
@@ -94,6 +95,9 @@
 		},
 		get childViewEnabledNodeTypeIds() {
 			return attributeOptions.childViewEnabledNodeTypeIds;
+		},
+		get parentNodeOptions() {
+			return attributeOptions.parentNodeOptions;
 		}
 	});
 

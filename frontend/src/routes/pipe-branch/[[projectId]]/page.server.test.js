@@ -68,19 +68,14 @@ describe('pipe-branch +page.server.js', () => {
 			expect(result).toEqual({ nodes: [], pipeBranchConfigured: false });
 		});
 
-		test('should parse GeoJSON FeatureCollection into node list', async () => {
+		test('should parse minimal node response into node list', async () => {
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: () =>
 					Promise.resolve({
-						type: 'FeatureCollection',
-						features: [
-							{
-								properties: { name: 'Node A', uuid: 'uuid-a' }
-							},
-							{
-								properties: { name: 'Node B', uuid: 'uuid-b' }
-							}
+						nodes: [
+							{ name: 'Node A', uuid: 'uuid-a' },
+							{ name: 'Node B', uuid: 'uuid-b' }
 						],
 						metadata: { pipe_branch_configured: true }
 					})
@@ -99,7 +94,7 @@ describe('pipe-branch +page.server.js', () => {
 			});
 
 			expect(mockFetch).toHaveBeenCalledWith(
-				'http://localhost:8000/node/all/?project=proj-1&use_pipe_branch_settings=true',
+				'http://localhost:8000/node/all/?project=proj-1&use_pipe_branch_settings=true&minimal=true',
 				expect.objectContaining({ credentials: 'include' })
 			);
 		});
@@ -114,7 +109,7 @@ describe('pipe-branch +page.server.js', () => {
 			expect(result).toEqual({ nodes: [], pipeBranchConfigured: false });
 		});
 
-		test('should return empty nodes on invalid GeoJSON structure', async () => {
+		test('should return empty nodes on invalid response structure', async () => {
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: () => Promise.resolve({ invalid: 'data' })
@@ -142,8 +137,7 @@ describe('pipe-branch +page.server.js', () => {
 				ok: true,
 				json: () =>
 					Promise.resolve({
-						type: 'FeatureCollection',
-						features: [{ properties: { name: 'N', uuid: 'u' } }]
+						nodes: [{ name: 'N', uuid: 'u' }]
 					})
 			});
 

@@ -4,6 +4,22 @@ import { API_URL } from '$env/static/private';
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
 /**
+ * Maps node API responses (GeoJSON, minimal, or flat array) to combobox option format.
+ * @param {any} nodesData - Response from node/all endpoint.
+ * @returns {{ value: string, label: string }[]}
+ */
+export function mapNodesToOptions(nodesData) {
+	const items = nodesData?.features || nodesData?.nodes || nodesData || [];
+	return items.map((/** @type {any} */ item) => {
+		const node = item.properties || item;
+		return {
+			value: item.id || node.uuid,
+			label: node.name || 'Unnamed Node'
+		};
+	});
+}
+
+/**
  * @typedef {Object} ContainerHierarchyNode
  * @property {string} uuid - Container UUID
  * @property {string} name - Container name
