@@ -44,8 +44,9 @@
 	let nodeFlag = $state([]);
 	let nodeParentNode = $state('');
 	/** @type {any[]} */
-	let availableNodes = $state([]);
+	let allNodes = $state([]);
 	let isLoadingParentNodes = $state(false);
+	const availableNodes = $derived(allNodes.filter((n) => n.value !== id));
 
 	let { onLabelUpdate, onNodeDelete } = $props();
 
@@ -146,9 +147,10 @@
 	});
 
 	/**
-	 * Fetch available nodes for parent node selection
+	 * Fetch all nodes for parent node selection (cached per page load).
 	 */
-	async function fetchAvailableNodes() {
+	async function fetchAllNodes() {
+		if (allNodes.length > 0) return;
 		isLoadingParentNodes = true;
 		try {
 			const response = await fetch('?/getAllNodes', {
@@ -158,7 +160,7 @@
 
 			const result = /** @type {any} */ (deserialize(await response.text()));
 			if (result.data?.nodes) {
-				availableNodes = result.data.nodes.filter((/** @type {any} */ n) => n.value !== id);
+				allNodes = result.data.nodes;
 			}
 		} catch (err) {
 			console.error('Error fetching available nodes:', err);
@@ -169,7 +171,7 @@
 
 	$effect(() => {
 		if (id) {
-			fetchAvailableNodes();
+			fetchAllNodes();
 		}
 	});
 
