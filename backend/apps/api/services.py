@@ -20,7 +20,7 @@ from openpyxl.utils import get_column_letter
 from pathvalidate import sanitize_filename
 from shapely import is_valid, make_valid
 from shapely.geometry import LineString, MultiLineString, Point, Polygon, mapping, shape
-from shapely.ops import linemerge
+from shapely.ops import linemerge, substring
 
 from .models import (
     AttributesCompany,
@@ -2960,6 +2960,61 @@ def _orient_geometry(
     return geom_dict
 
 
+def _trim_geometry_to_endpoints(geom_dict, start_geom, end_geom):
+    """Trim a line geometry to only the portion between two points.
+
+    Projects the start and end points onto the line and extracts the
+    substring between them. For MultiLineString, merges first and
+    operates on the longest component if merge doesn't produce a
+    single line.
+
+    Args:
+        geom_dict: GeoJSON geometry dict (LineString or MultiLineString)
+        start_geom: Shapely Point of cable start node
+        end_geom: Shapely Point of cable end node
+
+    Returns:
+        GeoJSON geometry dict of the trimmed line, or None on failure.
+    """
+    try:
+        geom = shape(geom_dict)
+    except Exception:
+        return None
+
+    if geom.is_empty:
+        return None
+
+    # Get a single LineString to work with
+    line = None
+    if geom.geom_type == "LineString":
+        line = geom
+    elif geom.geom_type == "MultiLineString":
+        merged = linemerge(geom)
+        if merged.geom_type == "LineString":
+            line = merged
+        else:
+            # Pick the longest component
+            line = max(merged.geoms, key=lambda g: g.length)
+    else:
+        return None
+
+    d_start = line.project(start_geom)
+    d_end = line.project(end_geom)
+
+    if d_start > d_end:
+        d_start, d_end = d_end, d_start
+
+    # Only trim if both points actually project onto the interior
+    if d_start == d_end:
+        return None
+
+    trimmed = substring(line, d_start, d_end)
+    if trimmed.is_empty or trimmed.length == 0:
+        return None
+
+    return mapping(trimmed)
+
+
 def _get_cable_infrastructure(
     cable_ids: list,
     include_geometry: bool = False,
@@ -3120,6 +3175,17 @@ def _get_cable_infrastructure(
                     routed_trenches = trenches
 
                 merged = _merge_trench_geometries(routed_trenches)
+
+                # Trim the merged geometry to only the portion between
+                # cable start and end nodes. Falls back to full merged
+                # geometry if trimming fails.
+                if merged and start_geom and end_geom:
+                    trimmed = _trim_geometry_to_endpoints(
+                        merged, start_geom, end_geom
+                    )
+                    if trimmed:
+                        merged = trimmed
+
                 if merged and orient_geometry:
                     merged = _orient_geometry(merged, start_geom, end_geom)
                 infra["merged_geometry"] = merged
