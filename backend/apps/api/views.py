@@ -26,8 +26,9 @@ from django.http import FileResponse, HttpResponse, StreamingHttpResponse
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from pathvalidate import sanitize_filename
+from dj_rest_auth.jwt_auth import JWTCookieAuthentication
 from rest_framework import status, viewsets
-from rest_framework.authentication import BaseAuthentication
+from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -668,7 +669,12 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
 
         return response
 
-    @action(detail=True, methods=["get"], url_path="preview")
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path="preview",
+        authentication_classes=[JWTCookieAuthentication, SessionAuthentication],
+    )
     def preview(self, request, pk=None):
         """
         Preview a file using X-Accel-Redirect for efficient serving.
