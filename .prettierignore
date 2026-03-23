@@ -4,6 +4,7 @@
 # Backend Django templates
 backend/templates/
 backend/**/*.html
+backend/apps/api/fixtures/**/*.json
 
 # Package lock files
 package-lock.json

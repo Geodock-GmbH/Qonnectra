@@ -16,5 +16,23 @@
             "occupied_slots": 2,
             "manufacturer": null
         }
+    },
+    {
+        "model": "api.attributescomponenttype",
+        "pk": 3,
+        "fields": {
+            "component_type": "GF-GV (4 WE)",
+            "occupied_slots": 1,
+            "manufacturer": null
+        }
+    },
+    {
+        "model": "api.attributescomponenttype",
+        "pk": 4,
+        "fields": {
+            "component_type": "4HE (12xLC-APC)",
+            "occupied_slots": 4,
+            "manufacturer": null
+        }
     }
 ]

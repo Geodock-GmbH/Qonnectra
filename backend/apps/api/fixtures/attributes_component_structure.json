@@ -398,5 +398,325 @@
             "port": 8,
             "port_alias": null
         }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 41,
+        "fields": {
+            "component_type": 3,
+            "in_or_out": "in",
+            "port": 1,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 42,
+        "fields": {
+            "component_type": 3,
+            "in_or_out": "in",
+            "port": 2,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 43,
+        "fields": {
+            "component_type": 3,
+            "in_or_out": "in",
+            "port": 3,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 44,
+        "fields": {
+            "component_type": 3,
+            "in_or_out": "in",
+            "port": 4,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 45,
+        "fields": {
+            "component_type": 3,
+            "in_or_out": "out",
+            "port": 1,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 46,
+        "fields": {
+            "component_type": 3,
+            "in_or_out": "out",
+            "port": 2,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 47,
+        "fields": {
+            "component_type": 3,
+            "in_or_out": "out",
+            "port": 3,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 48,
+        "fields": {
+            "component_type": 3,
+            "in_or_out": "out",
+            "port": 4,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 49,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "in",
+            "port": 1,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 50,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "in",
+            "port": 2,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 51,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "in",
+            "port": 3,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 52,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "in",
+            "port": 4,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 53,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "in",
+            "port": 5,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 54,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "in",
+            "port": 6,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 55,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "in",
+            "port": 7,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 56,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "in",
+            "port": 8,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 57,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "in",
+            "port": 9,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 58,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "in",
+            "port": 10,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 59,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "in",
+            "port": 11,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 60,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "in",
+            "port": 12,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 61,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "out",
+            "port": 1,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 62,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "out",
+            "port": 2,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 63,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "out",
+            "port": 3,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 64,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "out",
+            "port": 4,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 65,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "out",
+            "port": 5,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 66,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "out",
+            "port": 6,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 67,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "out",
+            "port": 7,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 68,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "out",
+            "port": 8,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 69,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "out",
+            "port": 9,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 70,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "out",
+            "port": 10,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 71,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "out",
+            "port": 11,
+            "port_alias": null
+        }
+    },
+    {
+        "model": "api.attributescomponentstructure",
+        "pk": 72,
+        "fields": {
+            "component_type": 4,
+            "in_or_out": "out",
+            "port": 12,
+            "port_alias": null
+        }
     }
 ]
