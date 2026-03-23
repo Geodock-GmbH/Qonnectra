@@ -1251,6 +1251,9 @@ class LogEntryAdmin(admin.ModelAdmin):
     )
     date_hierarchy = "timestamp"
     ordering = ("-timestamp",)
+    list_per_page = 100
+    actions = ["bulk_delete_selected", "delete_all_filtered"]
+    show_full_result_count = False
 
     fieldsets = (
         (
@@ -1266,6 +1269,13 @@ class LogEntryAdmin(admin.ModelAdmin):
         models.JSONField: {"widget": JSONEditorWidget},
     }
 
+    def get_actions(self, request):
+        """Replace default delete with efficient bulk delete."""
+        actions = super().get_actions(request)
+        if "delete_selected" in actions:
+            del actions["delete_selected"]
+        return actions
+
     def has_add_permission(self, request):
         """Disable adding log entries manually."""
         return False
@@ -1273,6 +1283,35 @@ class LogEntryAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         """Disable editing log entries."""
         return False
+
+    @admin.action(description=_("Delete selected log entries"))
+    def bulk_delete_selected(self, request, queryset):
+        """Delete selected log entries using efficient bulk queryset deletion."""
+        count = queryset.count()
+        queryset.delete()
+        messages.success(
+            request,
+            _("Successfully deleted %(count)d log entry/entries.")
+            % {"count": count},
+        )
+
+    @admin.action(description=_("Delete ALL log entries matching current filters"))
+    def delete_all_filtered(self, request, queryset):
+        """Delete all log entries matching the current filter, ignoring selection.
+
+        When triggered, this rebuilds the filtered queryset from the request
+        parameters so it deletes ALL matching entries, not just the selected page.
+        """
+        cl = self.get_changelist_instance(request)
+        full_queryset = cl.queryset
+
+        count = full_queryset.count()
+        full_queryset.delete()
+        messages.success(
+            request,
+            _("Successfully deleted all %(count)d filtered log entry/entries.")
+            % {"count": count},
+        )
 
     def username(self, obj):
         """Display username instead of user object."""
@@ -1321,6 +1360,64 @@ class OrphanedFilesFilter(admin.SimpleListFilter):
             )
             return queryset.exclude(uuid__in=orphaned_ids)
         return queryset
+
+
+FEATURE_PROJECT_FIELD: dict = {
+    "trench": "project",
+    "conduit": "project",
+    "cable": "project",
+    "node": "project",
+    "address": "project",
+    "residentialunit": "uuid_address__project",
+    "area": "project",
+}
+"""Map content-type model names to their project lookup path."""
+
+
+class ProjectFilter(admin.SimpleListFilter):
+    """Filter FeatureFiles by the project of their linked feature."""
+
+    title = _("Project")
+    parameter_name = "project"
+
+    def lookups(self, request, model_admin):
+        """Return all projects as filter choices."""
+        return [
+            (p.id, p.project)
+            for p in Projects.objects.all().order_by("project")
+        ]
+
+    def queryset(self, request, queryset):
+        """Filter files whose linked feature belongs to the selected project."""
+        if self.value() is None:
+            return queryset
+
+        project_id = int(self.value())
+        matching_uuids = []
+
+        for model_name, model_class in FEATURE_MODEL_MAP.items():
+            project_field = FEATURE_PROJECT_FIELD.get(model_name)
+            if not project_field:
+                continue
+
+            try:
+                content_type = ContentType.objects.get(
+                    app_label="api", model=model_name
+                )
+            except ContentType.DoesNotExist:
+                continue
+
+            feature_uuids = set(
+                model_class.objects.filter(
+                    **{project_field: project_id}
+                ).values_list("uuid", flat=True)
+            )
+            file_uuids = queryset.filter(
+                content_type=content_type, object_id__in=feature_uuids
+            ).values_list("uuid", flat=True)
+            matching_uuids.extend(file_uuids)
+
+        return queryset.filter(uuid__in=matching_uuids)
 
 
 class MoveFilesForm(forms.Form):
@@ -1372,7 +1469,7 @@ class FeatureFilesAdmin(admin.ModelAdmin):
         "orphan_status_display",
         "created_at",
     )
-    list_filter = (OrphanedFilesFilter, "content_type", "file_type", "created_at")
+    list_filter = (OrphanedFilesFilter, ProjectFilter, "content_type", "file_type", "created_at")
     search_fields = ("file_name", "file_path", "description")
     readonly_fields = (
         "uuid",
@@ -1485,8 +1582,16 @@ class FeatureFilesAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("Preview"))
     def preview_link(self, obj):
-        """Return a clickable link to the file preview endpoint."""
+        """Return a clickable link or inline image preview via the API endpoint."""
         url = reverse("feature-files-preview", kwargs={"pk": obj.uuid})
+        image_types = ("jpg", "jpeg", "png", "gif", "bmp", "webp", "svg")
+        if obj.file_type and obj.file_type.lower() in image_types:
+            return format_html(
+                '<a href="{url}" target="_blank">'
+                '<img src="{url}" style="max-height:200px; max-width:300px;" />'
+                "</a>",
+                url=url,
+            )
         return format_html('<a href="{}" target="_blank">Preview</a>', url)
 
     @admin.display(description=_("Feature Type"))

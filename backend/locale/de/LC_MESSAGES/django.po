@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-03-16 07:24+0100\n"
+"POT-Creation-Date: 2026-03-23 08:10+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -267,64 +267,94 @@ msgstr "Fehler bei den Adressen"
 msgid "Trench errors"
 msgstr "Fehler bei den Trassen"
 
-#: apps/api/admin.py:1257
+#: apps/api/admin.py:1260
 msgid "Log Information"
 msgstr "Log-Information"
 
-#: apps/api/admin.py:1260 apps/api/admin.py:1287 apps/api/models.py:3077
+#: apps/api/admin.py:1263 apps/api/admin.py:1326 apps/api/models.py:3077
 msgid "Message"
 msgstr "Nachricht"
 
-#: apps/api/admin.py:1261
+#: apps/api/admin.py:1264
 msgid "User & Context"
 msgstr "Benutzer & Kontext"
 
-#: apps/api/admin.py:1262 apps/api/models.py:3106
+#: apps/api/admin.py:1265 apps/api/models.py:3106
 msgid "Extra Data"
 msgstr "Extra-Daten"
 
-#: apps/api/admin.py:1281 apps/api/models.py:3085
+#: apps/api/admin.py:1287
+msgid "Delete selected log entries"
+msgstr "Ausgewählte Log-Einträge löschen"
+
+#: apps/api/admin.py:1294
+#, python-format
+msgid "Successfully deleted %(count)d log entry/entries."
+msgstr "Erfolgreich %(count)d Log-Eintrag(en) gelöscht."
+
+#: apps/api/admin.py:1298
+msgid "Delete ALL log entries matching current filters"
+msgstr "Alle Log-Einträge mit aktuellen Filtern löschen"
+
+#: apps/api/admin.py:1312
+#, python-format
+msgid "Successfully deleted all %(count)d filtered log entry/entries."
+msgstr "Erfolgreich %(count)d Log-Eintrag(en) gelöscht."
+
+#: apps/api/admin.py:1320 apps/api/models.py:3085
 msgid "User"
 msgstr "Benutzer"
 
-#: apps/api/admin.py:1297
+#: apps/api/admin.py:1336
 msgid "Error Type"
 msgstr "Fehlertyp"
 
-#: apps/api/admin.py:1303
+#: apps/api/admin.py:1342
 msgid "Orphan Status"
 msgstr "Verwaist-Status"
 
-#: apps/api/admin.py:1310
+#: apps/api/admin.py:1349
 msgid "Orphaned files only"
 msgstr "Nur verwaiste Dateien"
 
-#: apps/api/admin.py:1311
+#: apps/api/admin.py:1350
 msgid "Valid files only"
 msgstr "Nur gültige Dateien"
 
-#: apps/api/admin.py:1330
+#: apps/api/admin.py:1380 apps/api/models.py:32 apps/api/models.py:40
+#: apps/api/models.py:59 apps/api/models.py:114 apps/api/models.py:178
+#: apps/api/models.py:1317 apps/api/models.py:1447 apps/api/models.py:1611
+#: apps/api/models.py:1842 apps/api/models.py:1948 apps/api/models.py:2374
+#: apps/api/models.py:2802 apps/api/models.py:3115 apps/api/serializers.py:414
+#: apps/api/serializers.py:551 apps/api/serializers.py:717
+#: apps/api/serializers.py:999 apps/api/serializers.py:1041
+#: apps/api/serializers.py:1446 apps/api/services.py:107
+#: apps/api/services.py:334
+msgid "Project"
+msgstr "Projekt"
+
+#: apps/api/admin.py:1427
 msgid "Target Feature Type"
 msgstr "Feature-Typ"
 
-#: apps/api/admin.py:1332 apps/api/models.py:1337 apps/api/models.py:1498
+#: apps/api/admin.py:1429 apps/api/models.py:1337 apps/api/models.py:1498
 #: apps/api/models.py:1530 apps/api/models.py:1901 apps/api/serializers.py:630
 msgid "Trench"
 msgstr "Graben"
 
-#: apps/api/admin.py:1333 apps/api/models.py:1466 apps/api/models.py:1506
+#: apps/api/admin.py:1430 apps/api/models.py:1466 apps/api/models.py:1506
 #: apps/api/models.py:1536 apps/api/models.py:1998 apps/api/serializers.py:631
 #: apps/api/serializers.py:1224
 msgid "Conduit"
 msgstr "Rohr"
 
-#: apps/api/admin.py:1334 apps/api/models.py:2389 apps/api/models.py:2470
+#: apps/api/admin.py:1431 apps/api/models.py:2389 apps/api/models.py:2470
 #: apps/api/models.py:2534 apps/api/models.py:2737 apps/api/serializers.py:1472
 #: apps/api/serializers.py:1509
 msgid "Cable"
 msgstr "Kabel"
 
-#: apps/api/admin.py:1335 apps/api/models.py:1849 apps/api/models.py:1895
+#: apps/api/admin.py:1432 apps/api/models.py:1849 apps/api/models.py:1895
 #: apps/api/models.py:2018 apps/api/models.py:2113 apps/api/models.py:3371
 #: apps/api/models.py:3439 apps/api/models.py:3889 apps/api/serializers.py:1226
 #: apps/api/serializers.py:1281 apps/api/serializers.py:1650
@@ -332,47 +362,47 @@ msgstr "Kabel"
 msgid "Node"
 msgstr "Netzknoten"
 
-#: apps/api/admin.py:1336 apps/api/models.py:1618 apps/api/models.py:1667
+#: apps/api/admin.py:1433 apps/api/models.py:1618 apps/api/models.py:1667
 #: apps/api/models.py:1756 apps/api/serializers.py:846
 #: apps/api/serializers.py:985
 msgid "Address"
 msgstr "Adresse"
 
-#: apps/api/admin.py:1337 apps/api/models.py:1703
+#: apps/api/admin.py:1434 apps/api/models.py:1703
 msgid "Residential Unit"
 msgstr "Wohnungseinheit"
 
-#: apps/api/admin.py:1338 apps/api/models.py:1967
+#: apps/api/admin.py:1435 apps/api/models.py:1967
 msgid "Area"
 msgstr "Gebiet"
 
-#: apps/api/admin.py:1342
+#: apps/api/admin.py:1439
 msgid "Target Feature UUID"
 msgstr "Feature-UUID"
 
-#: apps/api/admin.py:1343
+#: apps/api/admin.py:1440
 msgid "Enter the UUID of the feature to move the files to."
 msgstr ""
 "Geben Sie die UUID des Features ein, zu dem die Dateien verschoben werden "
 "sollen."
 
-#: apps/api/admin.py:1486
+#: apps/api/admin.py:1583
 msgid "Preview"
 msgstr "Vorschau"
 
-#: apps/api/admin.py:1492 apps/api/models.py:941 apps/api/serializers.py:445
+#: apps/api/admin.py:1597 apps/api/models.py:941 apps/api/serializers.py:445
 msgid "Feature Type"
 msgstr "Feature-Typ"
 
-#: apps/api/admin.py:1497
+#: apps/api/admin.py:1602
 msgid "Feature Identifier"
 msgstr "Feature-Identifier"
 
-#: apps/api/admin.py:1503
+#: apps/api/admin.py:1608
 msgid "Feature deleted"
 msgstr "Feature gelöscht"
 
-#: apps/api/admin.py:1508 apps/api/models.py:392 apps/api/models.py:402
+#: apps/api/admin.py:1613 apps/api/models.py:392 apps/api/models.py:402
 #: apps/api/models.py:546 apps/api/models.py:587 apps/api/models.py:1244
 #: apps/api/models.py:1398 apps/api/models.py:1689 apps/api/models.py:1774
 #: apps/api/models.py:2267 apps/api/serializers.py:402
@@ -382,92 +412,92 @@ msgstr "Feature gelöscht"
 msgid "Status"
 msgstr "Status"
 
-#: apps/api/admin.py:1518
+#: apps/api/admin.py:1623
 msgid "Orphaned"
 msgstr "Verwaist"
 
-#: apps/api/admin.py:1522
+#: apps/api/admin.py:1627
 msgid "Valid"
 msgstr "Gültig"
 
-#: apps/api/admin.py:1525
+#: apps/api/admin.py:1630
 msgid "Delete selected orphaned files and their data"
 msgstr "Ausgewählte verwaiste Dateien und ihre Daten löschen"
 
-#: apps/api/admin.py:1547
+#: apps/api/admin.py:1652
 #, python-format
 msgid "Could not delete file %(path)s: %(error)s"
 msgstr "Datei %(path)s konnte nicht gelöscht werden: %(error)s"
 
-#: apps/api/admin.py:1557
+#: apps/api/admin.py:1662
 #, python-format
 msgid "Successfully deleted %(count)d orphaned file(s)."
 msgstr "Erfolgreich %(count)d verwaiste Datei(en) gelöscht."
 
-#: apps/api/admin.py:1563
+#: apps/api/admin.py:1668
 #, python-format
 msgid "Skipped %(count)d file(s) that are not orphaned."
 msgstr "Übersprungen %(count)d Datei(en), die nicht verwaist sind."
 
-#: apps/api/admin.py:1567
+#: apps/api/admin.py:1672
 msgid "Move selected files to another feature"
 msgstr "Ausgewählte Dateien zu einem anderen Feature verschieben"
 
-#: apps/api/admin.py:1578
+#: apps/api/admin.py:1683
 msgid "No files selected."
 msgstr "Keine Dateien ausgewählt."
 
-#: apps/api/admin.py:1592
+#: apps/api/admin.py:1697
 msgid "Invalid target feature type."
 msgstr "Ungültiger Ziel-Feature-Typ."
 
-#: apps/api/admin.py:1598
+#: apps/api/admin.py:1703
 #, python-format
 msgid "Target feature with UUID %(uuid)s does not exist."
 msgstr "Ziel-Feature mit UUID %(uuid)s existiert nicht."
 
-#: apps/api/admin.py:1632
+#: apps/api/admin.py:1737
 #, python-format
 msgid "Successfully moved %(count)d file(s) to %(type)s %(uuid)s."
 msgstr "Erfolgreich %(count)d Datei(en) zu %(type)s %(uuid)s verschoben."
 
-#: apps/api/admin.py:1644
+#: apps/api/admin.py:1749
 #, python-format
 msgid "Failed to move %(file)s: %(error)s"
 msgstr "Fehler beim Verschieben von %(file)s: %(error)s"
 
-#: apps/api/admin.py:1654
+#: apps/api/admin.py:1759
 msgid "Move Files to Another Feature"
 msgstr "Dateien zu einem anderen Feature verschieben"
 
-#: apps/api/admin.py:1675
+#: apps/api/admin.py:1780
 msgid "Display Settings"
 msgstr "Rohrverzweigung"
 
-#: apps/api/admin.py:1691 apps/api/models.py:2001 apps/api/models.py:2643
+#: apps/api/admin.py:1796 apps/api/models.py:2001 apps/api/models.py:2643
 #: apps/api/models.py:2695 apps/api/models.py:3847 apps/api/serializers.py:1223
 msgid "Color"
 msgstr "Farbe"
 
-#: apps/api/admin.py:1718
+#: apps/api/admin.py:1823
 msgid "Password"
 msgstr "Passwort"
 
-#: apps/api/admin.py:1720
+#: apps/api/admin.py:1825
 msgid "Password for authenticated WMS services. Leave blank if not required."
 msgstr ""
 "Passwort für authentifizierte WMS-Dienste. Leer lassen, wenn nicht "
 "erforderlich."
 
-#: apps/api/admin.py:1781
+#: apps/api/admin.py:1886
 msgid "Authentication"
 msgstr "Authentifizierung"
 
-#: apps/api/admin.py:1788
+#: apps/api/admin.py:1893
 msgid "PDF Export"
 msgstr "PDF-Export"
 
-#: apps/api/admin.py:1792
+#: apps/api/admin.py:1897
 msgid ""
 "Attribution text is required for including this WMS in PDF exports. Check "
 "the WMS provider's license for required attribution."
@@ -476,26 +506,26 @@ msgstr ""
 "enthalten. Überprüfen Sie die Lizenz des WMS-Anbieters für erforderliche "
 "Attribution."
 
-#: apps/api/admin.py:1803
+#: apps/api/admin.py:1908
 msgid "Enabled Layers"
 msgstr "Aktivierte Layer"
 
-#: apps/api/admin.py:1826
+#: apps/api/admin.py:1931
 #, python-format
 msgid "Fetched %d layers from WMS."
 msgstr "%d Layer aus WMS geladen."
 
-#: apps/api/admin.py:1829
+#: apps/api/admin.py:1934
 #, python-format
 msgid "Failed to fetch WMS layers: %s"
 msgstr "Fehler beim Laden der WMS-Layer: %s"
 
-#: apps/api/admin.py:1856
+#: apps/api/admin.py:1961
 #, python-format
 msgid "Updated min_zoom for %(count)d layers in '%(source)s'."
 msgstr "Min_zoom für %(count)d Layer in '%(source)s' aktualisiert."
 
-#: apps/api/admin.py:1866
+#: apps/api/admin.py:1971
 #, python-format
 msgid ""
 "No changes needed for '%(source)s'. All layers already have recommended "
@@ -504,26 +534,14 @@ msgstr ""
 "Keine Änderungen erforderlich für '%(source)s'. Alle Layer haben bereits "
 "empfohlene Einstellungen."
 
-#: apps/api/admin.py:1876
+#: apps/api/admin.py:1981
 #, python-format
 msgid "Failed to scan '%(source)s': %(error)s"
 msgstr "Fehler beim Scannen von '%(source)s': %(error)s"
 
-#: apps/api/admin.py:1883
+#: apps/api/admin.py:1988
 msgid "Scan & apply recommended settings"
 msgstr "Empfohlene Einstellungen scannen und anwenden"
-
-#: apps/api/models.py:32 apps/api/models.py:40 apps/api/models.py:59
-#: apps/api/models.py:114 apps/api/models.py:178 apps/api/models.py:1317
-#: apps/api/models.py:1447 apps/api/models.py:1611 apps/api/models.py:1842
-#: apps/api/models.py:1948 apps/api/models.py:2374 apps/api/models.py:2802
-#: apps/api/models.py:3115 apps/api/serializers.py:414
-#: apps/api/serializers.py:551 apps/api/serializers.py:717
-#: apps/api/serializers.py:999 apps/api/serializers.py:1041
-#: apps/api/serializers.py:1446 apps/api/services.py:107
-#: apps/api/services.py:334
-msgid "Project"
-msgstr "Projekt"
 
 #: apps/api/models.py:33 apps/api/models.py:695 apps/api/models.py:788
 #: apps/api/models.py:1073 apps/api/models.py:1187 apps/api/models.py:2938
@@ -581,10 +599,8 @@ msgid "Password (encrypted)"
 msgstr "Passwort (verschlüsselt)"
 
 #: apps/api/models.py:185
-#, fuzzy
-#| msgid "Authentication"
 msgid "Attribution"
-msgstr "Authentifizierung"
+msgstr "Attribution"
 
 #: apps/api/models.py:189
 msgid "Attribution text for PDF export. Leave empty to exclude from exports."
