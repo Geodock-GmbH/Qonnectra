@@ -1798,6 +1798,9 @@ class ResidentialUnitViewSet(viewsets.ModelViewSet):
         uuid_address = request.query_params.get("uuid_address")
         if uuid_address:
             queryset = queryset.filter(uuid_address__uuid=uuid_address)
+        project_id = request.query_params.get("project")
+        if project_id:
+            queryset = queryset.filter(uuid_address__project=project_id)
         search = request.query_params.get("search")
         if search:
             queryset = queryset.filter(id_residential_unit__icontains=search)

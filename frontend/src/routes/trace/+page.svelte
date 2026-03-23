@@ -13,8 +13,10 @@
 		IconX
 	} from '@tabler/icons-svelte';
 	import { PUBLIC_API_URL } from '$env/static/public';
+	import { get } from 'svelte/store';
 
 	import { m } from '$lib/paraglide/messages';
+	import { selectedProject } from '$lib/stores/store';
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 
@@ -69,6 +71,7 @@
 	/** @type {ReturnType<typeof setTimeout> | null} */
 	let searchTimeout = $state(null);
 
+	let globalSearch = $state(false);
 	let includeGeometry = $state(false);
 	let geometryMode = $state('segments');
 	let orientGeometry = $state(false);
@@ -124,20 +127,21 @@
 
 		searching = true;
 		try {
+			const projectParam = globalSearch ? '' : `&project=${get(selectedProject)}`;
 			let endpoint = '';
 			switch (activeTab) {
 				case 'address':
-					endpoint = `${PUBLIC_API_URL}address/all/?search=${encodeURIComponent(query)}&page_size=20`;
+					endpoint = `${PUBLIC_API_URL}address/all/?search=${encodeURIComponent(query)}${projectParam}&page_size=20`;
 					break;
 				case 'node':
-					endpoint = `${PUBLIC_API_URL}node/all/?search=${encodeURIComponent(query)}&include_excluded=true`;
+					endpoint = `${PUBLIC_API_URL}node/all/?search=${encodeURIComponent(query)}${projectParam}&include_excluded=true`;
 					break;
 				case 'cable':
 				case 'fiber':
-					endpoint = `${PUBLIC_API_URL}cable/all/?search=${encodeURIComponent(query)}&page_size=20`;
+					endpoint = `${PUBLIC_API_URL}cable/all/?search=${encodeURIComponent(query)}${projectParam}&page_size=20`;
 					break;
 				case 'residential_unit':
-					endpoint = `${PUBLIC_API_URL}residential-unit/all/?search=${encodeURIComponent(query)}`;
+					endpoint = `${PUBLIC_API_URL}residential-unit/all/?search=${encodeURIComponent(query)}${projectParam}`;
 					break;
 				default:
 					searchResults = [];
@@ -422,9 +426,22 @@
 	</div>
 </div>
 
-<!-- Geometry Options -->
+<!-- Options -->
 <div class="mb-6 rounded-xl border border-surface-200-800 p-3 sm:p-4">
 	<div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
+		<label class="flex cursor-pointer items-center gap-2">
+			<input
+				type="checkbox"
+				bind:checked={globalSearch}
+				onchange={() => {
+					if (searchQuery.length >= 2) performSearch(searchQuery);
+					else searchResults = [];
+				}}
+				class="h-4 w-4 rounded border-surface-300 text-primary-500 focus:ring-primary-500"
+			/>
+			<span class="text-sm font-medium text-surface-900-100">{m.trace_search_global()}</span>
+		</label>
+
 		<label class="flex cursor-pointer items-center gap-2">
 			<input
 				type="checkbox"

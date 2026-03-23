@@ -881,6 +881,7 @@
 	"trace_search_address_placeholder": "Nach Straße, Stadt oder Adress-ID suchen...",
 	"trace_search_cable_placeholder": "Nach Kabelname suchen...",
 	"trace_search_fiber_placeholder": "Faser-UUID eingeben...",
+	"trace_search_global": "Alle Projekte durchsuchen",
 	"trace_search_hint": "Mindestens 2 Zeichen eingeben zum Suchen",
 	"trace_search_node_placeholder": "Nach Netzknotenname suchen...",
 	"trace_search_ru_placeholder": "Nach Wohneinheit-ID suchen...",

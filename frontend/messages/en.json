@@ -880,6 +880,7 @@
 	"trace_search_address_placeholder": "Search by street, city, or address ID...",
 	"trace_search_cable_placeholder": "Search by cable name...",
 	"trace_search_fiber_placeholder": "Enter fiber UUID...",
+	"trace_search_global": "Search all projects",
 	"trace_search_hint": "Type at least 2 characters to search",
 	"trace_search_node_placeholder": "Search by node name...",
 	"trace_search_ru_placeholder": "Search by residential unit ID...",
