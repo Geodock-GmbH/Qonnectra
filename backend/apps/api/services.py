@@ -2528,9 +2528,9 @@ def _build_trace_result(
                     start_geom = row.get("cable_node_start_geometry")
                     if isinstance(start_geom, str):
                         start_geom = json.loads(start_geom)
-                    cable_endpoints_seen[cable_id]["start_node"][
-                        "geometry"
-                    ] = start_geom
+                    cable_endpoints_seen[cable_id]["start_node"]["geometry"] = (
+                        start_geom
+                    )
                 if row.get("cable_start_address_id"):
                     addresses_seen.add(row["cable_start_address_id"])
                     cable_endpoints_seen[cable_id]["start_node"]["address"] = {
@@ -2559,9 +2559,7 @@ def _build_trace_result(
                     end_geom = row.get("cable_node_end_geometry")
                     if isinstance(end_geom, str):
                         end_geom = json.loads(end_geom)
-                    cable_endpoints_seen[cable_id]["end_node"][
-                        "geometry"
-                    ] = end_geom
+                    cable_endpoints_seen[cable_id]["end_node"]["geometry"] = end_geom
                 if row.get("cable_end_address_id"):
                     addresses_seen.add(row["cable_end_address_id"])
                     cable_endpoints_seen[cable_id]["end_node"]["address"] = {
@@ -2960,59 +2958,80 @@ def _orient_geometry(
     return geom_dict
 
 
-def _trim_geometry_to_endpoints(geom_dict, start_geom, end_geom):
-    """Trim a line geometry to only the portion between two points.
+def _trim_trench_geometries(trench_geojsons, start_geom, end_geom, snap_dist=10):
+    """Trim individual trench geometries so they start/end at cable node points.
 
-    Projects the start and end points onto the line and extracts the
-    substring between them. For MultiLineString, merges first and
-    operates on the longest component if merge doesn't produce a
-    single line.
+    For each trench, checks if the cable start or end node projects close to
+    the trench line. If so, trims that trench to begin or end at the projected
+    point. Trenches that don't contain either node are kept as-is.
 
     Args:
-        geom_dict: GeoJSON geometry dict (LineString or MultiLineString)
-        start_geom: Shapely Point of cable start node
-        end_geom: Shapely Point of cable end node
+        trench_geojsons: List of GeoJSON geometry dicts (LineStrings).
+        start_geom: Shapely Point of cable start node.
+        end_geom: Shapely Point of cable end node.
+        snap_dist: Max distance (m) for a node to be considered "on" a trench.
 
     Returns:
-        GeoJSON geometry dict of the trimmed line, or None on failure.
+        List of (possibly trimmed) GeoJSON geometry dicts, or None on failure.
     """
-    try:
-        geom = shape(geom_dict)
-    except Exception:
+    if not trench_geojsons:
         return None
 
-    if geom.is_empty:
-        return None
+    results = []
+    for geom_json in trench_geojsons:
+        if not geom_json:
+            continue
+        try:
+            line = shape(geom_json)
+        except Exception:
+            results.append(geom_json)
+            continue
 
-    # Get a single LineString to work with
-    line = None
-    if geom.geom_type == "LineString":
-        line = geom
-    elif geom.geom_type == "MultiLineString":
-        merged = linemerge(geom)
-        if merged.geom_type == "LineString":
-            line = merged
-        else:
-            # Pick the longest component
-            line = max(merged.geoms, key=lambda g: g.length)
-    else:
-        return None
+        if line.is_empty or line.geom_type != "LineString":
+            results.append(geom_json)
+            continue
 
-    d_start = line.project(start_geom)
-    d_end = line.project(end_geom)
+        d_s = line.project(start_geom)
+        dist_s = line.distance(start_geom)
+        d_e = line.project(end_geom)
+        dist_e = line.distance(end_geom)
 
-    if d_start > d_end:
-        d_start, d_end = d_end, d_start
+        near_start = dist_s <= snap_dist and 0 < d_s < line.length
+        near_end = dist_e <= snap_dist and 0 < d_e < line.length
 
-    # Only trim if both points actually project onto the interior
-    if d_start == d_end:
-        return None
+        if not near_start and not near_end:
+            results.append(geom_json)
+            continue
 
-    trimmed = substring(line, d_start, d_end)
-    if trimmed.is_empty or trimmed.length == 0:
-        return None
+        try:
+            if near_start and near_end:
+                lo, hi = sorted([d_s, d_e])
+                trimmed = substring(line, lo, hi)
+            elif near_start:
+                end_of_line = Point(line.coords[-1])
+                start_of_line = Point(line.coords[0])
+                if end_of_line.distance(end_geom) < start_of_line.distance(end_geom):
+                    trimmed = substring(line, d_s, line.length)
+                else:
+                    trimmed = substring(line, 0, d_s)
+            else:
+                end_of_line = Point(line.coords[-1])
+                start_of_line = Point(line.coords[0])
+                if end_of_line.distance(start_geom) < start_of_line.distance(
+                    start_geom
+                ):
+                    trimmed = substring(line, d_e, line.length)
+                else:
+                    trimmed = substring(line, 0, d_e)
 
-    return mapping(trimmed)
+            if trimmed.is_empty or trimmed.length == 0:
+                results.append(geom_json)
+            else:
+                results.append(mapping(trimmed))
+        except Exception:
+            results.append(geom_json)
+
+    return results if results else None
 
 
 def _get_cable_infrastructure(
@@ -3168,23 +3187,27 @@ def _get_cable_infrastructure(
 
                 if routed_ids:
                     routed_set = set(routed_ids)
-                    routed_trenches = [
-                        t for t in trenches if t["id"] in routed_set
-                    ]
+                    routed_trenches = [t for t in trenches if t["id"] in routed_set]
                 else:
                     routed_trenches = trenches
 
-                merged = _merge_trench_geometries(routed_trenches)
-
-                # Trim the merged geometry to only the portion between
-                # cable start and end nodes. Falls back to full merged
-                # geometry if trimming fails.
-                if merged and start_geom and end_geom:
-                    trimmed = _trim_geometry_to_endpoints(
-                        merged, start_geom, end_geom
+                # Trim individual trench geometries at cable node points
+                # before merging, so only the relevant portion of each
+                # trench is included. Falls back to untrimmed merge.
+                trench_geoms = [t.get("geometry") for t in routed_trenches]
+                if start_geom and end_geom:
+                    trimmed_geoms = _trim_trench_geometries(
+                        trench_geoms, start_geom, end_geom
                     )
-                    if trimmed:
-                        merged = trimmed
+                else:
+                    trimmed_geoms = None
+
+                if trimmed_geoms:
+                    # Build temporary trench dicts for merging
+                    trimmed_trench_dicts = [{"geometry": g} for g in trimmed_geoms]
+                    merged = _merge_trench_geometries(trimmed_trench_dicts)
+                else:
+                    merged = _merge_trench_geometries(routed_trenches)
 
                 if merged and orient_geometry:
                     merged = _orient_geometry(merged, start_geom, end_geom)
