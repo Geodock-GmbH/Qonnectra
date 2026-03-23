@@ -169,11 +169,14 @@ def find_path_through_trenches(trenches, start_point, end_point, tolerance=1, co
             trench endpoint to a nearby segment on another trench. Defaults to 5.
 
     Returns:
-        list[str] | None: Ordered list of trench UUIDs on the path, or None if
-            no path could be found.
+        tuple: ``(path_trench_ids, trench_path_coords)`` where
+            *path_trench_ids* is an ordered list of trench UUIDs and
+            *trench_path_coords* maps each trench UUID to the graph nodes
+            traversed on it (for geometry trimming).  Returns ``(None, None)``
+            if no path could be found.
     """
     if not trenches or not start_point or not end_point:
-        return None
+        return None, None
 
     # Parse geometries and collect per-trench coordinate lists
     trench_coords = {}
@@ -193,7 +196,7 @@ def find_path_through_trenches(trenches, start_point, end_point, tolerance=1, co
         trench_coords[trench["id"]] = [(c[0], c[1]) for c in coords]
 
     if not trench_coords:
-        return None
+        return None, None
 
     G = nx.Graph()
 
@@ -297,17 +300,19 @@ def find_path_through_trenches(trenches, start_point, end_point, tolerance=1, co
     target = nearest_graph_node(snapped_end)
 
     if source is None or target is None or source == target:
-        return None
+        return None, None
 
     try:
         path_nodes = nx.shortest_path(
             G, source=source, target=target, weight="weight"
         )
     except (nx.NetworkXNoPath, nx.NodeNotFound):
-        return None
+        return None, None
 
-    # Collect unique trench IDs in traversal order
+    # Collect unique trench IDs in traversal order, and the path
+    # coordinates that fall on each trench (for geometry trimming).
     path_trench_ids = []
+    trench_path_coords = {}
     seen = set()
     for i in range(len(path_nodes) - 1):
         u, v = path_nodes[i], path_nodes[i + 1]
@@ -315,9 +320,11 @@ def find_path_through_trenches(trenches, start_point, end_point, tolerance=1, co
         tid = edge_data["trench_id"]
         if tid not in seen:
             path_trench_ids.append(tid)
+            trench_path_coords[tid] = [u]
             seen.add(tid)
+        trench_path_coords[tid].append(v)
 
-    return path_trench_ids
+    return path_trench_ids, trench_path_coords
 
 
 def _project_point_onto_segment(point, seg_a, seg_b):

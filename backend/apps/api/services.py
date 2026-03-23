@@ -2958,6 +2958,51 @@ def _orient_geometry(
     return geom_dict
 
 
+def _trim_trench_to_path_coords(geom_json, path_coords, tolerance=1):
+    """Trim a trench LineString to only the portion between path coordinates.
+
+    Given a trench geometry and the graph nodes (snapped coordinates) that the
+    routed path traverses on this trench, finds the corresponding positions
+    along the original LineString and extracts only that substring.
+
+    Args:
+        geom_json: GeoJSON dict of the trench LineString.
+        path_coords: List of (x, y) tuples from the routing graph that lie on
+            this trench, in traversal order.
+        tolerance: Snap tolerance used during routing (for matching vertices).
+
+    Returns:
+        GeoJSON dict of the trimmed LineString, or the original if trimming fails.
+    """
+    try:
+        line = shape(geom_json)
+    except Exception:
+        return geom_json
+
+    if line.is_empty or line.geom_type != "LineString":
+        return geom_json
+
+    first_pt = Point(path_coords[0])
+    last_pt = Point(path_coords[-1])
+
+    d_first = line.project(first_pt)
+    d_last = line.project(last_pt)
+
+    lo = min(d_first, d_last)
+    hi = max(d_first, d_last)
+
+    if lo <= tolerance and hi >= line.length - tolerance:
+        return geom_json
+
+    try:
+        trimmed = substring(line, lo, hi)
+        if trimmed.is_empty or trimmed.length == 0:
+            return geom_json
+        return mapping(trimmed)
+    except Exception:
+        return geom_json
+
+
 def _trim_trench_geometries(trench_geojsons, start_geom, end_geom, snap_dist=10):
     """Trim individual trench geometries so they start/end at cable node points.
 
@@ -3179,8 +3224,9 @@ def _get_cable_infrastructure(
 
             elif geometry_mode == "routed":
                 routed_ids = None
+                trench_path_coords = None
                 if start_geom and end_geom:
-                    routed_ids = find_path_through_trenches(
+                    routed_ids, trench_path_coords = find_path_through_trenches(
                         trenches,
                         (start_geom.x, start_geom.y),
                         (end_geom.x, end_geom.y),
@@ -3192,20 +3238,20 @@ def _get_cable_infrastructure(
                 else:
                     routed_trenches = trenches
 
-                # Trim individual trench geometries at cable node points
-                # before merging, so only the relevant portion of each
-                # trench is included. Falls back to untrimmed merge.
-                trench_geoms = [t.get("geometry") for t in routed_trenches]
-                if start_geom and end_geom:
-                    trimmed_geoms = _trim_trench_geometries(
-                        trench_geoms, start_geom, end_geom
-                    )
-                else:
-                    trimmed_geoms = None
-
-                if trimmed_geoms:
-                    # Build temporary trench dicts for merging
-                    trimmed_trench_dicts = [{"geometry": g} for g in trimmed_geoms]
+                # Trim trench geometries to only the portion traversed
+                # by the routed path, then merge.
+                if trench_path_coords:
+                    trimmed_trench_dicts = []
+                    for t in routed_trenches:
+                        tid = t["id"]
+                        path_coords = trench_path_coords.get(tid)
+                        geom_json = t.get("geometry")
+                        if path_coords and geom_json and len(path_coords) >= 2:
+                            trimmed_trench_dicts.append(
+                                {"geometry": _trim_trench_to_path_coords(geom_json, path_coords)}
+                            )
+                        elif geom_json:
+                            trimmed_trench_dicts.append({"geometry": geom_json})
                     merged = _merge_trench_geometries(trimmed_trench_dicts)
                 else:
                     merged = _merge_trench_geometries(routed_trenches)

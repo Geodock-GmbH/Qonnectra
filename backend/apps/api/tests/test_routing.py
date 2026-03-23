@@ -565,10 +565,12 @@ class TestFindPathThroughTrenches:
                 "length": 100.0,
             },
         ]
-        result = find_path_through_trenches(trenches, (0, 0), (300, 0))
+        result, path_coords = find_path_through_trenches(trenches, (0, 0), (300, 0))
         assert result is not None
         assert len(result) == 3
         assert result == ["aaa", "bbb", "ccc"]
+        assert path_coords is not None
+        assert set(path_coords.keys()) == {"aaa", "bbb", "ccc"}
 
     def test_filters_branches(self):
         """Test that branches not on the shortest path are excluded."""
@@ -598,14 +600,16 @@ class TestFindPathThroughTrenches:
                 "length": 100.0,
             },
         ]
-        result = find_path_through_trenches(trenches, (0, 0), (200, 0))
+        result, path_coords = find_path_through_trenches(trenches, (0, 0), (200, 0))
         assert result is not None
         assert "branch" not in result
         assert result == ["main1", "main2"]
+        assert "branch" not in path_coords
 
     def test_returns_none_for_empty_trenches(self):
-        result = find_path_through_trenches([], (0, 0), (100, 0))
+        result, path_coords = find_path_through_trenches([], (0, 0), (100, 0))
         assert result is None
+        assert path_coords is None
 
     def test_returns_none_for_missing_points(self):
         trenches = [
@@ -618,8 +622,8 @@ class TestFindPathThroughTrenches:
                 "length": 100.0,
             },
         ]
-        assert find_path_through_trenches(trenches, None, (100, 0)) is None
-        assert find_path_through_trenches(trenches, (0, 0), None) is None
+        assert find_path_through_trenches(trenches, None, (100, 0)) == (None, None)
+        assert find_path_through_trenches(trenches, (0, 0), None) == (None, None)
 
     def test_nearest_node_matching(self):
         """Test that start/end points snap to nearest graph nodes."""
@@ -633,7 +637,7 @@ class TestFindPathThroughTrenches:
                 "length": 100.0,
             },
         ]
-        result = find_path_through_trenches(trenches, (0.3, 0.3), (99.7, 0.3))
+        result, path_coords = find_path_through_trenches(trenches, (0.3, 0.3), (99.7, 0.3))
         assert result is not None
         assert result == ["a"]
 
@@ -648,7 +652,7 @@ class TestFindPathThroughTrenches:
                 "length": 100.0,
             },
         ]
-        result = find_path_through_trenches(trenches, (0, 0), (100, 0))
+        result, _ = find_path_through_trenches(trenches, (0, 0), (100, 0))
         assert result == ["only"]
 
     def test_skips_trenches_without_geometry(self):
@@ -663,7 +667,7 @@ class TestFindPathThroughTrenches:
                 "length": 100.0,
             },
         ]
-        result = find_path_through_trenches(trenches, (0, 0), (100, 0))
+        result, _ = find_path_through_trenches(trenches, (0, 0), (100, 0))
         assert result == ["b"]
 
     def test_t_junction_midpoint_connection(self):
@@ -687,7 +691,7 @@ class TestFindPathThroughTrenches:
             },
         ]
         # Route from start of main to end of branch — should use both
-        result = find_path_through_trenches(trenches, (0, 0), (50, 50))
+        result, path_coords = find_path_through_trenches(trenches, (0, 0), (50, 50))
         assert result is not None
         assert "main" in result
         assert "branch" in result
@@ -713,11 +717,11 @@ class TestFindPathThroughTrenches:
             },
         ]
         # Route from (0,0) to end of side trench
-        result = find_path_through_trenches(trenches, (0, 0), (100, 80))
+        result, _ = find_path_through_trenches(trenches, (0, 0), (100, 80))
         assert result == ["main", "side"]
 
         # Route from end of main to end of side — should not include full main
-        result = find_path_through_trenches(trenches, (300, 0), (100, 80))
+        result, _ = find_path_through_trenches(trenches, (300, 0), (100, 80))
         assert result is not None
         assert "main" in result
         assert "side" in result
@@ -743,7 +747,7 @@ class TestFindPathThroughTrenches:
             },
         ]
         # Spur ends 3m from the main trench (within connection_tolerance=5)
-        result = find_path_through_trenches(trenches, (0, 0), (50, 50))
+        result, _ = find_path_through_trenches(trenches, (0, 0), (50, 50))
         assert result is not None
         assert "main" in result
         assert "spur" in result
@@ -769,9 +773,10 @@ class TestFindPathThroughTrenches:
             },
         ]
         # Spur ends 10m from the main trench (beyond connection_tolerance=5)
-        result = find_path_through_trenches(trenches, (0, 0), (50, 50))
+        result, path_coords = find_path_through_trenches(trenches, (0, 0), (50, 50))
         # Should fail because the spur is too far away to connect
         assert result is None
+        assert path_coords is None
 
     def test_t_junction_endpoint_exactly_on_segment(self):
         """Test spur endpoint that projects exactly onto a segment with no matching vertex."""
@@ -796,7 +801,7 @@ class TestFindPathThroughTrenches:
         ]
         # Spur endpoint (50,0) is exactly on the main segment but
         # main has no vertex there — must split the segment
-        result = find_path_through_trenches(trenches, (0, 0), (50, 50))
+        result, _ = find_path_through_trenches(trenches, (0, 0), (50, 50))
         assert result is not None
         assert "main" in result
         assert "spur" in result
