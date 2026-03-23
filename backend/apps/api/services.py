@@ -2980,6 +2980,7 @@ def _trim_trench_geometries(trench_geojsons, start_geom, end_geom, snap_dist=10)
     results = []
     for geom_json in trench_geojsons:
         if not geom_json:
+            results.append(geom_json)
             continue
         try:
             line = shape(geom_json)
@@ -3186,8 +3187,8 @@ def _get_cable_infrastructure(
                     )
 
                 if routed_ids:
-                    routed_set = set(routed_ids)
-                    routed_trenches = [t for t in trenches if t["id"] in routed_set]
+                    routed_map = {t["id"]: t for t in trenches}
+                    routed_trenches = [routed_map[tid] for tid in routed_ids if tid in routed_map]
                 else:
                     routed_trenches = trenches
 

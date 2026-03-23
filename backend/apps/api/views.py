@@ -7057,7 +7057,10 @@ class TraceSearchView(APIView):
             if project_id:
                 queryset = queryset.filter(uuid_address__project=project_id)
             queryset = queryset.filter(
-                id_residential_unit__icontains=search
+                Q(id_residential_unit__icontains=search)
+                | Q(uuid_address__street__icontains=search)
+                | Q(uuid_address__city__icontains=search)
+                | Q(side__icontains=search)
             )[:20]
             results = [
                 {

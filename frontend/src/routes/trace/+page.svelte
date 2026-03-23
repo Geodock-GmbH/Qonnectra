@@ -1,4 +1,5 @@
 <script>
+	import { get } from 'svelte/store';
 	import { slide } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import {
@@ -13,12 +14,11 @@
 		IconX
 	} from '@tabler/icons-svelte';
 	import { PUBLIC_API_URL } from '$env/static/public';
-	import { get } from 'svelte/store';
 
 	import { m } from '$lib/paraglide/messages';
-	import { selectedProject } from '$lib/stores/store';
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
+	import { selectedProject } from '$lib/stores/store';
 
 	const traceTypes = [
 		{
@@ -69,7 +69,7 @@
 	let searchResults = $state([]);
 	let searching = $state(false);
 	/** @type {ReturnType<typeof setTimeout> | null} */
-	let searchTimeout = $state(null);
+	let searchTimeout = null;
 
 	let globalSearch = $state(false);
 	let includeGeometry = $state(false);
@@ -447,10 +447,7 @@
 				/>
 			</div>
 
-			<label
-				class="flex cursor-pointer items-center gap-2"
-				transition:slide={{ duration: 150 }}
-			>
+			<label class="flex cursor-pointer items-center gap-2" transition:slide={{ duration: 150 }}>
 				<input
 					type="checkbox"
 					bind:checked={orientGeometry}

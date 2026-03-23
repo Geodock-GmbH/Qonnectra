@@ -106,10 +106,7 @@ def find_shortest_path(start_trench_id, end_trench_id, project_id, tolerance=1):
         if start_node not in G or end_node not in G:
             continue
         try:
-            path_nodes = nx.shortest_path(
-                G, source=start_node, target=end_node, weight="weight"
-            )
-            path_length = nx.shortest_path_length(
+            path_length, path_nodes = nx.single_source_dijkstra(
                 G, source=start_node, target=end_node, weight="weight"
             )
             if path_length < min_path_length:
@@ -133,9 +130,9 @@ def find_shortest_path(start_trench_id, end_trench_id, project_id, tolerance=1):
         OrderedDict.fromkeys([start_trench_id] + path_segment_ids + [end_trench_id])
     )
 
-    final_path_uuids = [str(trench_data[id].uuid) for id in final_path_ids]
+    final_path_uuids = [str(trench_data[tid].uuid) for tid in final_path_ids]
 
-    path_geometries_geos = [trench_data[id].geom for id in final_path_ids]
+    path_geometries_geos = [trench_data[tid].geom for tid in final_path_ids]
     # Convert GEOS → Shapely for linemerge (GEOS LineStrings lack merge support)
     path_geometries_shapely = [wkt_loads(geom.wkt) for geom in path_geometries_geos]
     merged_line = linemerge(path_geometries_shapely)
@@ -284,6 +281,7 @@ def find_path_through_trenches(trenches, start_point, end_point, tolerance=1, co
     def nearest_graph_node(point):
         if point in G:
             return point
+        max_dist_sq = connection_tolerance * connection_tolerance
         min_dist = float("inf")
         closest = None
         for node in G.nodes:
@@ -291,6 +289,8 @@ def find_path_through_trenches(trenches, start_point, end_point, tolerance=1, co
             if dist < min_dist:
                 min_dist = dist
                 closest = node
+        if min_dist > max_dist_sq:
+            return None
         return closest
 
     source = nearest_graph_node(snapped_start)
