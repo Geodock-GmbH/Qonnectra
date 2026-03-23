@@ -665,3 +665,59 @@ class TestFindPathThroughTrenches:
         ]
         result = find_path_through_trenches(trenches, (0, 0), (100, 0))
         assert result == ["b"]
+
+    def test_t_junction_midpoint_connection(self):
+        """Test that a trench connecting to the middle of another trench is found."""
+        trenches = [
+            {
+                "id": "main",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[0, 0], [50, 0], [100, 0]],
+                },
+                "length": 100.0,
+            },
+            {
+                "id": "branch",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[50, 0], [50, 50]],
+                },
+                "length": 50.0,
+            },
+        ]
+        # Route from start of main to end of branch — should use both
+        result = find_path_through_trenches(trenches, (0, 0), (50, 50))
+        assert result is not None
+        assert "main" in result
+        assert "branch" in result
+
+    def test_t_junction_branch_endpoint_at_interior_vertex(self):
+        """Test routing when branch end touches interior vertex of main trench."""
+        trenches = [
+            {
+                "id": "main",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[0, 0], [100, 0], [200, 0], [300, 0]],
+                },
+                "length": 300.0,
+            },
+            {
+                "id": "side",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[100, 0], [100, 80]],
+                },
+                "length": 80.0,
+            },
+        ]
+        # Route from (0,0) to end of side trench
+        result = find_path_through_trenches(trenches, (0, 0), (100, 80))
+        assert result == ["main", "side"]
+
+        # Route from end of main to end of side — should not include full main
+        result = find_path_through_trenches(trenches, (300, 0), (100, 80))
+        assert result is not None
+        assert "main" in result
+        assert "side" in result

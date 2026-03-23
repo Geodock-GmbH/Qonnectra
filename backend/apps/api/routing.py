@@ -155,16 +155,17 @@ def find_shortest_path(start_trench_id, end_trench_id, project_id, tolerance=1):
 def find_path_through_trenches(trenches, start_point, end_point, tolerance=1):
     """Find the shortest path through a set of trenches between two points.
 
-    Build a graph from the provided trench geometries (no DB query) and find
-    the shortest path between the graph nodes closest to ``start_point`` and
-    ``end_point``.
+    Build a vertex-level graph from trench geometries where every vertex is a
+    node and consecutive vertices along a trench are connected by edges.
+    This handles T-junctions where trenches connect at any vertex along
+    another trench, not just at start/end points.
 
     Args:
         trenches (list[dict]): Trench dicts with 'id' (UUID str) and 'geometry'
             (GeoJSON dict). Typically from ``_get_cable_infrastructure``.
         start_point (tuple): The (x, y) coordinate of the start node.
         end_point (tuple): The (x, y) coordinate of the end node.
-        tolerance (float): Grid cell size for snapping endpoints. Defaults to 1.
+        tolerance (float): Grid cell size for snapping vertices. Defaults to 1.
 
     Returns:
         list[str] | None: Ordered list of trench UUIDs on the path, or None if
@@ -188,19 +189,21 @@ def find_path_through_trenches(trenches, start_point, end_point, tolerance=1):
             continue
 
         coords = list(geom.coords)
-        start_node = snap_point(coords[0], tolerance)
-        end_node = snap_point(coords[-1], tolerance)
-
-        if start_node == end_node:
+        if len(coords) < 2:
             continue
 
-        length = trench.get("length") or geom.length
-        G.add_edge(
-            start_node,
-            end_node,
-            trench_id=trench["id"],
-            weight=float(length),
-        )
+        trench_id = trench["id"]
+
+        # Add an edge between each consecutive pair of vertices
+        for i in range(len(coords) - 1):
+            node_a = snap_point(coords[i][:2], tolerance)
+            node_b = snap_point(coords[i + 1][:2], tolerance)
+            if node_a == node_b:
+                continue
+            dx = coords[i + 1][0] - coords[i][0]
+            dy = coords[i + 1][1] - coords[i][1]
+            seg_length = (dx * dx + dy * dy) ** 0.5
+            G.add_edge(node_a, node_b, trench_id=trench_id, weight=seg_length)
 
     if G.number_of_edges() == 0:
         return None
@@ -208,7 +211,6 @@ def find_path_through_trenches(trenches, start_point, end_point, tolerance=1):
     snapped_start = snap_point(start_point, tolerance)
     snapped_end = snap_point(end_point, tolerance)
 
-    # Find nearest graph nodes to the snapped points
     def nearest_graph_node(point):
         if point in G:
             return point
@@ -232,10 +234,15 @@ def find_path_through_trenches(trenches, start_point, end_point, tolerance=1):
     except (nx.NetworkXNoPath, nx.NodeNotFound):
         return None
 
+    # Collect unique trench IDs in traversal order
     path_trench_ids = []
+    seen = set()
     for i in range(len(path_nodes) - 1):
         u, v = path_nodes[i], path_nodes[i + 1]
         edge_data = G.get_edge_data(u, v)
-        path_trench_ids.append(edge_data["trench_id"])
+        tid = edge_data["trench_id"]
+        if tid not in seen:
+            path_trench_ids.append(tid)
+            seen.add(tid)
 
     return path_trench_ids
