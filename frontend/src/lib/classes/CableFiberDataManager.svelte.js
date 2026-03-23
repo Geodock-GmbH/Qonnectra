@@ -293,9 +293,14 @@ export class CableFiberDataManager {
 			main += ` (${ru.external_id_1})`;
 		} else if (ru.external_id_2) {
 			main += ` (${ru.external_id_2})`;
-		} else if (ru.floor || ru.side) {
+		} else if (ru.floor != null || ru.side) {
 			const parts = [];
-			if (ru.floor) parts.push(`${ru.floor}. OG`);
+			if (ru.floor != null) {
+				const f = Number(ru.floor);
+				if (f === 0) parts.push('EG');
+				else if (f < 0) parts.push(`${Math.abs(f)}. UG`);
+				else parts.push(`${f}. OG`);
+			}
 			if (ru.side) parts.push(ru.side);
 			if (parts.length) main += ` (${parts.join(' ')})`;
 		}

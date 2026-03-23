@@ -101,9 +101,9 @@
 	 */
 	function getCellValue(unit, key) {
 		if (key === 'residential_unit_type')
-			return unit.residential_unit_type?.residential_unit_type ?? '';
-		if (key === 'status') return unit.status?.status ?? '';
-		return unit[key] ?? '';
+			return unit.residential_unit_type?.residential_unit_type ?? null;
+		if (key === 'status') return unit.status?.status ?? null;
+		return unit[key] ?? null;
 	}
 
 	// Filter → Sort → Paginate
@@ -269,10 +269,10 @@
 								<td>
 									{#if column.key === 'id_residential_unit'}
 										<span class="font-medium font-mono text-sm">
-											{getCellValue(unit, column.key) || '-'}
+											{getCellValue(unit, column.key) ?? '-'}
 										</span>
 									{:else}
-										{getCellValue(unit, column.key) || '-'}
+										{getCellValue(unit, column.key) ?? '-'}
 									{/if}
 								</td>
 							{/each}
@@ -303,7 +303,7 @@
 				>
 					<div class="flex items-center justify-between">
 						<span class="font-medium font-mono text-sm">
-							{getCellValue(unit, 'id_residential_unit') || '-'}
+							{getCellValue(unit, 'id_residential_unit') ?? '-'}
 						</span>
 						<button
 							onclick={(e) => confirmDelete(e, unit.uuid)}
@@ -314,10 +314,10 @@
 						</button>
 					</div>
 					<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-surface-900-100">
-						<span>{m.table_floor()}: {getCellValue(unit, 'floor') || '-'}</span>
-						<span>{m.table_side()}: {getCellValue(unit, 'side') || '-'}</span>
-						<span>{m.table_residential_unit_type()}: {getCellValue(unit, 'residential_unit_type') || '-'}</span>
-						<span>{m.table_residential_unit_status()}: {getCellValue(unit, 'status') || '-'}</span>
+						<span>{m.table_floor()}: {getCellValue(unit, 'floor') ?? '-'}</span>
+						<span>{m.table_side()}: {getCellValue(unit, 'side') ?? '-'}</span>
+						<span>{m.table_residential_unit_type()}: {getCellValue(unit, 'residential_unit_type') ?? '-'}</span>
+						<span>{m.table_residential_unit_status()}: {getCellValue(unit, 'status') ?? '-'}</span>
 					</div>
 				</div>
 			{/each}
