@@ -133,7 +133,11 @@
 		return { start, end };
 	});
 
-	let visibleRows = $derived(filteredRows.slice(visibleRange.start, visibleRange.end));
+	let isVirtual = $derived(expandedRows.size === 0);
+
+	let visibleRows = $derived(
+		isVirtual ? filteredRows.slice(visibleRange.start, visibleRange.end) : filteredRows
+	);
 
 	let totalHeight = $derived(filteredRows.length * ROW_HEIGHT);
 
@@ -192,177 +196,23 @@
 
 	<div
 		bind:this={containerEl}
-		onscroll={handleScroll}
+		onscroll={isVirtual ? handleScroll : undefined}
 		class="relative overflow-auto border border-surface-200-800 sm:rounded-b-lg"
-		style="height: {CONTAINER_HEIGHT}px"
+		style="max-height: {CONTAINER_HEIGHT}px"
 	>
-		<div style="height: {totalHeight}px; position: relative;">
-			<div style="transform: translateY({offsetY}px);">
-				{#each visibleRows as row (row.fiberId ?? row.index)}
-					<!-- Mobile card view -->
-					<div class="border-b border-surface-200-800 p-3 sm:hidden">
-						<div class="flex items-center justify-between gap-2">
-							<div class="flex items-center gap-2">
-								<button
-									type="button"
-									class="rounded bg-primary-500/15 px-2 py-1 font-mono text-sm font-medium text-primary-500 hover:bg-primary-500/25"
-									onclick={() => traceFrom('fiber', row.fiberId)}
-								>
-									F{row.fiberNumber}
-								</button>
-								<button
-									type="button"
-									class="truncate rounded bg-success-500/15 px-2 py-1 font-mono text-sm font-medium text-success-500 hover:bg-success-500/25"
-									onclick={() => traceFrom('cable', row.cableId)}
-								>
-									{row.cableName}
-								</button>
-							</div>
-							<button
-								type="button"
-								class="flex items-center justify-center rounded p-1 text-surface-500-400 hover:bg-surface-200-800 hover:text-surface-900-100"
-								onclick={() => toggleRow(row.index)}
-							>
-								{#if expandedRows.has(row.index)}
-									<IconChevronDown size={18} />
-								{:else}
-									<IconChevronRight size={18} />
-								{/if}
-							</button>
-						</div>
-						<div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-							{#if row.fiberColor}
-								<span
-									class="rounded px-2 py-0.5 text-[10px] font-medium text-white"
-									style="background: {row.fiberColorHex || '#64748b'}"
-								>
-									{row.fiberColor}
-								</span>
-							{/if}
-							{#if row.bundleColor}
-								<span
-									class="rounded px-2 py-0.5 text-[10px] font-medium text-white opacity-80"
-									style="background: {row.bundleColorHex || '#64748b'}"
-								>
-									B
-								</span>
-							{/if}
-							<span class="text-surface-500-400">→</span>
-							<span class="truncate text-surface-700-300">
-								{#if row.destinations.length === 0}
-									-
-								{:else if row.destinations.length === 1}
-									{row.destinations[0]}
-								{:else}
-									{m.trace_multiple_destinations()} ({row.destinations.length})
-								{/if}
-							</span>
-							{#if row.residentialUnitCount > 0}
-								<span class="rounded bg-error-500/15 px-1.5 py-0.5 text-xs font-medium text-error-500">
-									{row.residentialUnitCount} {m.form_residential_units()}
-								</span>
-							{/if}
-						</div>
-					</div>
-
-					<!-- Desktop table row -->
-					<div
-						class="hidden grid-cols-[60px_1fr_120px_1fr_80px_40px] items-center gap-2 border-b border-surface-200-800 px-4 py-3 transition-colors hover:bg-surface-100-900 sm:grid"
-					>
-						<button
-							type="button"
-							class="rounded bg-primary-500/15 px-2 py-1 font-mono text-sm font-medium text-primary-500 hover:bg-primary-500/25"
-							onclick={() => traceFrom('fiber', row.fiberId)}
-							title="Trace this fiber"
-						>
-							F{row.fiberNumber}
-						</button>
-
-						<div class="flex items-center gap-2 truncate">
-							<button
-								type="button"
-								class="truncate rounded bg-success-500/15 px-2 py-1 font-mono text-sm font-medium text-success-500 hover:bg-success-500/25"
-								onclick={() => traceFrom('cable', row.cableId)}
-								title="Trace this cable"
-							>
-								{row.cableName}
-							</button>
-							{#if row.cableType}
-								<span
-									class="hidden truncate rounded bg-surface-100-900 px-2 py-0.5 text-xs text-surface-600-400 sm:inline"
-								>
-									{row.cableType}
-								</span>
-							{/if}
-						</div>
-
-						<div class="flex items-center gap-1">
-							{#if row.fiberColor}
-								<span
-									class="rounded px-2 py-0.5 text-[10px] font-medium text-white"
-									style="background: {row.fiberColorHex || '#64748b'}"
-								>
-									{row.fiberColor}
-								</span>
-							{/if}
-							{#if row.bundleColor}
-								<span
-									class="rounded px-2 py-0.5 text-[10px] font-medium text-white opacity-80"
-									style="background: {row.bundleColorHex || '#64748b'}"
-								>
-									B
-								</span>
-							{/if}
-						</div>
-
-						<div class="truncate text-sm text-surface-700-300">
-							{#if row.destinations.length === 0}
-								<span class="text-surface-500-400">-</span>
-							{:else if row.destinations.length === 1}
-								{row.destinations[0]}
-							{:else}
-								<span title={row.destinations.join(', ')}>
-									{m.trace_multiple_destinations()} ({row.destinations.length})
-								</span>
-							{/if}
-						</div>
-
-						<div class="text-center">
-							{#if row.residentialUnitCount > 0}
-								<span
-									class="rounded bg-error-500/15 px-2 py-0.5 text-xs font-medium text-error-500"
-								>
-									{row.residentialUnitCount}
-								</span>
-							{:else}
-								<span class="text-surface-500-400">-</span>
-							{/if}
-						</div>
-
-						<button
-							type="button"
-							class="flex items-center justify-center rounded p-1 text-surface-500-400 hover:bg-surface-200-800 hover:text-surface-900-100"
-							onclick={() => toggleRow(row.index)}
-						>
-							{#if expandedRows.has(row.index)}
-								<IconChevronDown size={18} />
-							{:else}
-								<IconChevronRight size={18} />
-							{/if}
-						</button>
-					</div>
-
-					{#if expandedRows.has(row.index)}
-						<div
-							transition:slide={{ duration: 200 }}
-							class="border-b border-surface-200-800 bg-surface-50-950 px-3 py-3 sm:px-4 sm:py-4"
-						>
-							{@render traceNode(row.tree, 0)}
-						</div>
-					{/if}
-				{/each}
+		{#if isVirtual}
+			<div style="height: {totalHeight}px; position: relative;">
+				<div style="transform: translateY({offsetY}px);">
+					{#each visibleRows as row (row.fiberId ?? row.index)}
+						{@render tableRow(row)}
+					{/each}
+				</div>
 			</div>
-		</div>
+		{:else}
+			{#each visibleRows as row (row.fiberId ?? row.index)}
+				{@render tableRow(row)}
+			{/each}
+		{/if}
 	</div>
 
 	<div class="text-center text-xs text-surface-500-400">
@@ -370,6 +220,169 @@
 		{filteredRows.length === 1 ? m.form_fiber() : m.form_fibers()}
 	</div>
 </div>
+
+{#snippet tableRow(/** @type {Record<string, any>} */ row)}
+	<!-- Mobile card view -->
+	<div class="border-b border-surface-200-800 p-3 sm:hidden">
+		<div class="flex items-center justify-between gap-2">
+			<div class="flex items-center gap-2">
+				<button
+					type="button"
+					class="rounded bg-primary-500/15 px-2 py-1 font-mono text-sm font-medium text-primary-500 hover:bg-primary-500/25"
+					onclick={() => traceFrom('fiber', row.fiberId)}
+				>
+					F{row.fiberNumber}
+				</button>
+				<button
+					type="button"
+					class="truncate rounded bg-success-500/15 px-2 py-1 font-mono text-sm font-medium text-success-500 hover:bg-success-500/25"
+					onclick={() => traceFrom('cable', row.cableId)}
+				>
+					{row.cableName}
+				</button>
+			</div>
+			<button
+				type="button"
+				class="flex items-center justify-center rounded p-1 text-surface-500-400 hover:bg-surface-200-800 hover:text-surface-900-100"
+				onclick={() => toggleRow(row.index)}
+			>
+				{#if expandedRows.has(row.index)}
+					<IconChevronDown size={18} />
+				{:else}
+					<IconChevronRight size={18} />
+				{/if}
+			</button>
+		</div>
+		<div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+			{#if row.fiberColor}
+				<span
+					class="rounded px-2 py-0.5 text-[10px] font-medium text-white"
+					style="background: {row.fiberColorHex || '#64748b'}"
+				>
+					{row.fiberColor}
+				</span>
+			{/if}
+			{#if row.bundleColor}
+				<span
+					class="rounded px-2 py-0.5 text-[10px] font-medium text-white opacity-80"
+					style="background: {row.bundleColorHex || '#64748b'}"
+				>
+					B
+				</span>
+			{/if}
+			<span class="text-surface-500-400">→</span>
+			<span class="truncate text-surface-700-300">
+				{#if row.destinations.length === 0}
+					-
+				{:else if row.destinations.length === 1}
+					{row.destinations[0]}
+				{:else}
+					{m.trace_multiple_destinations()} ({row.destinations.length})
+				{/if}
+			</span>
+			{#if row.residentialUnitCount > 0}
+				<span class="rounded bg-error-500/15 px-1.5 py-0.5 text-xs font-medium text-error-500">
+					{row.residentialUnitCount}
+					{m.form_residential_units()}
+				</span>
+			{/if}
+		</div>
+	</div>
+
+	<!-- Desktop table row -->
+	<div
+		class="hidden grid-cols-[60px_1fr_120px_1fr_80px_40px] items-center gap-2 border-b border-surface-200-800 px-4 py-3 transition-colors hover:bg-surface-100-900 sm:grid"
+	>
+		<button
+			type="button"
+			class="rounded bg-primary-500/15 px-2 py-1 font-mono text-sm font-medium text-primary-500 hover:bg-primary-500/25"
+			onclick={() => traceFrom('fiber', row.fiberId)}
+			title="Trace this fiber"
+		>
+			F{row.fiberNumber}
+		</button>
+
+		<div class="flex items-center gap-2 truncate">
+			<button
+				type="button"
+				class="truncate rounded bg-success-500/15 px-2 py-1 font-mono text-sm font-medium text-success-500 hover:bg-success-500/25"
+				onclick={() => traceFrom('cable', row.cableId)}
+				title="Trace this cable"
+			>
+				{row.cableName}
+			</button>
+			{#if row.cableType}
+				<span
+					class="hidden truncate rounded bg-surface-100-900 px-2 py-0.5 text-xs text-surface-600-400 sm:inline"
+				>
+					{row.cableType}
+				</span>
+			{/if}
+		</div>
+
+		<div class="flex items-center gap-1">
+			{#if row.fiberColor}
+				<span
+					class="rounded px-2 py-0.5 text-[10px] font-medium text-white"
+					style="background: {row.fiberColorHex || '#64748b'}"
+				>
+					{row.fiberColor}
+				</span>
+			{/if}
+			{#if row.bundleColor}
+				<span
+					class="rounded px-2 py-0.5 text-[10px] font-medium text-white opacity-80"
+					style="background: {row.bundleColorHex || '#64748b'}"
+				>
+					B
+				</span>
+			{/if}
+		</div>
+
+		<div class="truncate text-sm text-surface-700-300">
+			{#if row.destinations.length === 0}
+				<span class="text-surface-500-400">-</span>
+			{:else if row.destinations.length === 1}
+				{row.destinations[0]}
+			{:else}
+				<span title={row.destinations.join(', ')}>
+					{m.trace_multiple_destinations()} ({row.destinations.length})
+				</span>
+			{/if}
+		</div>
+
+		<div class="text-center">
+			{#if row.residentialUnitCount > 0}
+				<span class="rounded bg-error-500/15 px-2 py-0.5 text-xs font-medium text-error-500">
+					{row.residentialUnitCount}
+				</span>
+			{:else}
+				<span class="text-surface-500-400">-</span>
+			{/if}
+		</div>
+
+		<button
+			type="button"
+			class="flex items-center justify-center rounded p-1 text-surface-500-400 hover:bg-surface-200-800 hover:text-surface-900-100"
+			onclick={() => toggleRow(row.index)}
+		>
+			{#if expandedRows.has(row.index)}
+				<IconChevronDown size={18} />
+			{:else}
+				<IconChevronRight size={18} />
+			{/if}
+		</button>
+	</div>
+
+	{#if expandedRows.has(row.index)}
+		<div
+			transition:slide={{ duration: 200 }}
+			class="border-b border-surface-200-800 bg-surface-50-950 px-3 py-3 sm:px-4 sm:py-4"
+		>
+			{@render traceNode(row.tree, 0)}
+		</div>
+	{/if}
+{/snippet}
 
 {#snippet traceNode(/** @type {Record<string, any>} */ node, /** @type {number} */ depth)}
 	<div class="relative" style="padding-left: {depth * 1.5}rem">
@@ -414,7 +427,6 @@
 					>
 						{node.node.name}
 					</button>
-					<span class="text-xs text-surface-600-400">{node.direction}</span>
 				{/if}
 			</div>
 
