@@ -1798,9 +1798,6 @@ class ResidentialUnitViewSet(viewsets.ModelViewSet):
         uuid_address = request.query_params.get("uuid_address")
         if uuid_address:
             queryset = queryset.filter(uuid_address__uuid=uuid_address)
-        project_id = request.query_params.get("project")
-        if project_id:
-            queryset = queryset.filter(uuid_address__project=project_id)
         search = request.query_params.get("search")
         if search:
             queryset = queryset.filter(id_residential_unit__icontains=search)
@@ -6963,6 +6960,128 @@ class DashboardStatisticsView(APIView):
             )[:10],
             "residential_by_area_type": residential_by_area_type,
         }
+
+
+class TraceSearchView(APIView):
+    """Search endpoint for the trace landing page.
+
+    Searches across entity types (address, node, cable, residential_unit)
+    with optional project scoping. Returns lightweight results for the
+    search picker.
+
+    Query Parameters:
+        search: Search term (required, minimum 2 characters).
+        type: Entity type to search (address, node, cable, residential_unit).
+        project: Project ID to scope results (optional).
+    """
+
+    authentication_classes = [JWTCookieAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        search = request.query_params.get("search", "").strip()
+        entity_type = request.query_params.get("type", "")
+        project_id = request.query_params.get("project")
+
+        if len(search) < 2:
+            return Response({"results": []})
+
+        if entity_type == "address":
+            queryset = Address.objects.select_related(
+                "status_development", "project"
+            ).order_by("street", "housenumber")
+            if project_id:
+                queryset = queryset.filter(project=project_id)
+            queryset = queryset.filter(
+                Q(street__icontains=search)
+                | Q(city__icontains=search)
+                | Q(id_address__icontains=search)
+                | Q(zip_code__icontains=search)
+            )[:20]
+            results = [
+                {
+                    "uuid": str(a.uuid),
+                    "street": a.street,
+                    "housenumber": a.housenumber,
+                    "house_number_suffix": a.house_number_suffix or "",
+                    "zip_code": a.zip_code,
+                    "city": a.city,
+                    "id_address": a.id_address,
+                }
+                for a in queryset
+            ]
+
+        elif entity_type == "node":
+            queryset = Node.objects.select_related(
+                "node_type", "project"
+            ).order_by("name")
+            if project_id:
+                queryset = queryset.filter(project=project_id)
+            queryset = queryset.filter(name__icontains=search)[:20]
+            results = [
+                {
+                    "uuid": str(n.uuid),
+                    "name": n.name,
+                    "node_type": n.node_type.node_type if n.node_type else None,
+                }
+                for n in queryset
+            ]
+
+        elif entity_type == "cable":
+            queryset = Cable.objects.select_related(
+                "cable_type", "project"
+            ).order_by("name")
+            if project_id:
+                queryset = queryset.filter(project=project_id)
+            queryset = queryset.filter(
+                Q(name__icontains=search)
+                | Q(cable_type__cable_type__icontains=search)
+            )[:20]
+            results = [
+                {
+                    "uuid": str(c.uuid),
+                    "name": c.name,
+                    "cable_type": (
+                        {"cable_type": c.cable_type.cable_type}
+                        if c.cable_type
+                        else None
+                    ),
+                }
+                for c in queryset
+            ]
+
+        elif entity_type == "residential_unit":
+            queryset = ResidentialUnit.objects.select_related(
+                "uuid_address", "residential_unit_type", "status"
+            ).order_by("uuid_address", "floor", "side")
+            if project_id:
+                queryset = queryset.filter(uuid_address__project=project_id)
+            queryset = queryset.filter(
+                id_residential_unit__icontains=search
+            )[:20]
+            results = [
+                {
+                    "uuid": str(ru.uuid),
+                    "id_residential_unit": ru.id_residential_unit,
+                    "floor": ru.floor,
+                    "side": ru.side,
+                    "address_street": (
+                        ru.uuid_address.street if ru.uuid_address else None
+                    ),
+                    "address_housenumber": (
+                        ru.uuid_address.housenumber if ru.uuid_address else None
+                    ),
+                }
+                for ru in queryset
+            ]
+
+        else:
+            return Response(
+                {"error": "Invalid type. Must be one of: address, node, cable, residential_unit"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response({"results": results})
 
 
 class FiberTraceView(APIView):

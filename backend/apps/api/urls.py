@@ -45,6 +45,7 @@ from .views import (
     FiberSpliceViewSet,
     FiberTraceSummaryView,
     SignalAnalysisView,
+    TraceSearchView,
     FiberTraceView,
     FiberViewSet,
     FlagsViewSet,
@@ -377,6 +378,11 @@ urlpatterns = [
         "config/",
         ConfigView.as_view(),
         name="config",
+    ),
+    path(
+        "trace-search/",
+        TraceSearchView.as_view(),
+        name="trace-search",
     ),
     path(
         "fiber-trace/",

@@ -127,43 +127,22 @@
 
 		searching = true;
 		try {
-			const projectParam = globalSearch ? '' : `&project=${get(selectedProject)}`;
-			let endpoint = '';
-			switch (activeTab) {
-				case 'address':
-					endpoint = `${PUBLIC_API_URL}address/all/?search=${encodeURIComponent(query)}${projectParam}&page_size=20`;
-					break;
-				case 'node':
-					endpoint = `${PUBLIC_API_URL}node/all/?search=${encodeURIComponent(query)}${projectParam}&include_excluded=true`;
-					break;
-				case 'cable':
-				case 'fiber':
-					endpoint = `${PUBLIC_API_URL}cable/all/?search=${encodeURIComponent(query)}${projectParam}&page_size=20`;
-					break;
-				case 'residential_unit':
-					endpoint = `${PUBLIC_API_URL}residential-unit/all/?search=${encodeURIComponent(query)}${projectParam}`;
-					break;
-				default:
-					searchResults = [];
-					return;
+			const searchType = activeTab === 'fiber' ? 'cable' : activeTab;
+			const params = new URLSearchParams({
+				search: query,
+				type: searchType
+			});
+			if (!globalSearch) {
+				params.set('project', get(selectedProject));
 			}
 
-			const response = await fetch(endpoint, { credentials: 'include' });
+			const response = await fetch(`${PUBLIC_API_URL}trace-search/?${params}`, {
+				credentials: 'include'
+			});
 			if (!response.ok) throw new Error('Search failed');
 
 			const data = await response.json();
-
-			// Node endpoint returns GeoJSON FeatureCollection where uuid is in the 'id' field
-			if (activeTab === 'node') {
-				const features = data.features || [];
-				searchResults = features.slice(0, 20).map((/** @type {any} */ f) => ({
-					uuid: f.id,
-					name: f.properties?.name,
-					node_type: f.properties?.node_type?.node_type
-				}));
-			} else {
-				searchResults = data.results || data || [];
-			}
+			searchResults = data.results || [];
 		} catch (err) {
 			console.error('Search error:', err);
 			searchResults = [];
