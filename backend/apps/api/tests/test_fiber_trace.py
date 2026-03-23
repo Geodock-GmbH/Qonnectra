@@ -1298,6 +1298,13 @@ class TestSignalAnalysisView:
         )
         assert response.status_code == status.HTTP_200_OK
 
+        # Test with routed mode
+        response = authenticated_client.get(
+            f"/api/v1/signal-analysis/?fiber_id={fiber.uuid}"
+            "&include_geometry=true&geometry_mode=routed"
+        )
+        assert response.status_code == status.HTTP_200_OK
+
     def test_signal_analysis_accepts_orient_geometry(
         self, authenticated_client, simple_fiber_chain
     ):

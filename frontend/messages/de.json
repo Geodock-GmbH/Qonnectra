@@ -851,6 +851,7 @@
 	"trace_geometry": "Geometrie",
 	"trace_geometry_merged": "Zusammengeführt",
 	"trace_geometry_mode": "Modus",
+	"trace_geometry_routed": "Geroutet",
 	"trace_geometry_segments": "Segmente",
 	"trace_in_bundle": "Faser im Bündel",
 	"trace_include_geometry": "Geometrie einbeziehen",

@@ -7130,9 +7130,9 @@ class FiberTraceView(APIView):
         )
 
         # Validate geometry_mode
-        if geometry_mode not in ("segments", "merged"):
+        if geometry_mode not in ("segments", "merged", "routed"):
             return Response(
-                {"error": "geometry_mode must be 'segments' or 'merged'"},
+                {"error": "geometry_mode must be 'segments', 'merged', or 'routed'"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -7290,9 +7290,9 @@ class SignalAnalysisView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if geometry_mode not in ("segments", "merged"):
+        if geometry_mode not in ("segments", "merged", "routed"):
             return Response(
-                {"error": "geometry_mode must be 'segments' or 'merged'"},
+                {"error": "geometry_mode must be 'segments', 'merged', or 'routed'"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

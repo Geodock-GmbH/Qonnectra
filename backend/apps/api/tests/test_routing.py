@@ -15,6 +15,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.api.models import Trench
+from apps.api.routing import find_path_through_trenches
 from .factories import (
     ProjectFactory,
     FlagFactory,
@@ -531,3 +532,136 @@ class TestRoutingViewTolerance:
         )
 
         assert response.status_code == status.HTTP_200_OK
+
+
+class TestFindPathThroughTrenches:
+    """Tests for the find_path_through_trenches utility function."""
+
+    def test_straight_path(self):
+        """Test finding a path through a simple linear trench network."""
+        trenches = [
+            {
+                "id": "aaa",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[0, 0], [100, 0]],
+                },
+                "length": 100.0,
+            },
+            {
+                "id": "bbb",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[100, 0], [200, 0]],
+                },
+                "length": 100.0,
+            },
+            {
+                "id": "ccc",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[200, 0], [300, 0]],
+                },
+                "length": 100.0,
+            },
+        ]
+        result = find_path_through_trenches(trenches, (0, 0), (300, 0))
+        assert result is not None
+        assert len(result) == 3
+        assert result == ["aaa", "bbb", "ccc"]
+
+    def test_filters_branches(self):
+        """Test that branches not on the shortest path are excluded."""
+        trenches = [
+            {
+                "id": "main1",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[0, 0], [100, 0]],
+                },
+                "length": 100.0,
+            },
+            {
+                "id": "main2",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[100, 0], [200, 0]],
+                },
+                "length": 100.0,
+            },
+            {
+                "id": "branch",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[100, 0], [100, 100]],
+                },
+                "length": 100.0,
+            },
+        ]
+        result = find_path_through_trenches(trenches, (0, 0), (200, 0))
+        assert result is not None
+        assert "branch" not in result
+        assert result == ["main1", "main2"]
+
+    def test_returns_none_for_empty_trenches(self):
+        result = find_path_through_trenches([], (0, 0), (100, 0))
+        assert result is None
+
+    def test_returns_none_for_missing_points(self):
+        trenches = [
+            {
+                "id": "a",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[0, 0], [100, 0]],
+                },
+                "length": 100.0,
+            },
+        ]
+        assert find_path_through_trenches(trenches, None, (100, 0)) is None
+        assert find_path_through_trenches(trenches, (0, 0), None) is None
+
+    def test_nearest_node_matching(self):
+        """Test that start/end points snap to nearest graph nodes."""
+        trenches = [
+            {
+                "id": "a",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[0, 0], [100, 0]],
+                },
+                "length": 100.0,
+            },
+        ]
+        result = find_path_through_trenches(trenches, (0.3, 0.3), (99.7, 0.3))
+        assert result is not None
+        assert result == ["a"]
+
+    def test_single_trench(self):
+        trenches = [
+            {
+                "id": "only",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[0, 0], [100, 0]],
+                },
+                "length": 100.0,
+            },
+        ]
+        result = find_path_through_trenches(trenches, (0, 0), (100, 0))
+        assert result == ["only"]
+
+    def test_skips_trenches_without_geometry(self):
+        trenches = [
+            {"id": "a", "geometry": None, "length": 100.0},
+            {
+                "id": "b",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[0, 0], [100, 0]],
+                },
+                "length": 100.0,
+            },
+        ]
+        result = find_path_through_trenches(trenches, (0, 0), (100, 0))
+        assert result == ["b"]

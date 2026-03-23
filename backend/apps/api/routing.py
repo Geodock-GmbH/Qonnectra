@@ -3,6 +3,7 @@ from itertools import product
 
 import networkx as nx
 from django.contrib.gis.geos import LineString
+from shapely.geometry import shape
 from shapely.ops import linemerge
 from shapely.wkt import loads as wkt_loads
 
@@ -149,3 +150,92 @@ def find_shortest_path(start_trench_id, end_trench_id, project_id, tolerance=1):
         "traversed_trench_uuids": final_path_uuids,
         "path_geometry_wkt": merged_line.wkt,
     }
+
+
+def find_path_through_trenches(trenches, start_point, end_point, tolerance=1):
+    """Find the shortest path through a set of trenches between two points.
+
+    Build a graph from the provided trench geometries (no DB query) and find
+    the shortest path between the graph nodes closest to ``start_point`` and
+    ``end_point``.
+
+    Args:
+        trenches (list[dict]): Trench dicts with 'id' (UUID str) and 'geometry'
+            (GeoJSON dict). Typically from ``_get_cable_infrastructure``.
+        start_point (tuple): The (x, y) coordinate of the start node.
+        end_point (tuple): The (x, y) coordinate of the end node.
+        tolerance (float): Grid cell size for snapping endpoints. Defaults to 1.
+
+    Returns:
+        list[str] | None: Ordered list of trench UUIDs on the path, or None if
+            no path could be found.
+    """
+    if not trenches or not start_point or not end_point:
+        return None
+
+    G = nx.Graph()
+    for trench in trenches:
+        geom_json = trench.get("geometry")
+        if not geom_json:
+            continue
+
+        try:
+            geom = shape(geom_json)
+        except Exception:
+            continue
+
+        if geom.is_empty or geom.geom_type != "LineString":
+            continue
+
+        coords = list(geom.coords)
+        start_node = snap_point(coords[0], tolerance)
+        end_node = snap_point(coords[-1], tolerance)
+
+        if start_node == end_node:
+            continue
+
+        length = trench.get("length") or geom.length
+        G.add_edge(
+            start_node,
+            end_node,
+            trench_id=trench["id"],
+            weight=float(length),
+        )
+
+    if G.number_of_edges() == 0:
+        return None
+
+    snapped_start = snap_point(start_point, tolerance)
+    snapped_end = snap_point(end_point, tolerance)
+
+    # Find nearest graph nodes to the snapped points
+    def nearest_graph_node(point):
+        if point in G:
+            return point
+        min_dist = float("inf")
+        closest = None
+        for node in G.nodes:
+            dist = (node[0] - point[0]) ** 2 + (node[1] - point[1]) ** 2
+            if dist < min_dist:
+                min_dist = dist
+                closest = node
+        return closest
+
+    source = nearest_graph_node(snapped_start)
+    target = nearest_graph_node(snapped_end)
+
+    if source is None or target is None or source == target:
+        return None
+
+    try:
+        path_nodes = nx.shortest_path(G, source=source, target=target, weight="weight")
+    except (nx.NetworkXNoPath, nx.NodeNotFound):
+        return None
+
+    path_trench_ids = []
+    for i in range(len(path_nodes) - 1):
+        u, v = path_nodes[i], path_nodes[i + 1]
+        edge_data = G.get_edge_data(u, v)
+        path_trench_ids.append(edge_data["trench_id"])
+
+    return path_trench_ids

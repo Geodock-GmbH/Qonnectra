@@ -850,6 +850,7 @@
 	"trace_geometry": "Geometry",
 	"trace_geometry_merged": "Merged",
 	"trace_geometry_mode": "Mode",
+	"trace_geometry_routed": "Routed",
 	"trace_geometry_segments": "Segments",
 	"trace_in_bundle": "Fiber in Bundle",
 	"trace_include_geometry": "Include Geometry",

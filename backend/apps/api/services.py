@@ -41,6 +41,7 @@ from .models import (
     Projects,
     StoragePreferences,
 )
+from .routing import find_path_through_trenches
 from .storage import LocalMediaStorage
 
 logger = logging.getLogger(__name__)
@@ -2775,7 +2776,7 @@ def _build_trace_result(
         cables_seen.add(row["cable_id"])
 
     cable_endpoints_for_geometry = {}
-    if orient_geometry and include_geometry:
+    if include_geometry and (orient_geometry or geometry_mode == "routed"):
         cable_node_ids = set()
         for cable_id, endpoints in cable_endpoints_seen.items():
             if endpoints.get("start_node") and endpoints["start_node"].get("id"):
@@ -3099,6 +3100,41 @@ def _get_cable_infrastructure(
                         )
 
                 for trench in trenches:
+                    trench.pop("geometry", None)
+
+            elif geometry_mode == "routed":
+                routed_ids = None
+                if start_geom and end_geom:
+                    routed_ids = find_path_through_trenches(
+                        trenches,
+                        (start_geom.x, start_geom.y),
+                        (end_geom.x, end_geom.y),
+                    )
+
+                if routed_ids:
+                    routed_set = set(routed_ids)
+                    routed_trenches = [
+                        t for t in trenches if t["id"] in routed_set
+                    ]
+                else:
+                    routed_trenches = trenches
+
+                merged = _merge_trench_geometries(routed_trenches)
+                if merged and orient_geometry:
+                    merged = _orient_geometry(merged, start_geom, end_geom)
+                infra["merged_geometry"] = merged
+
+                if merged:
+                    try:
+                        merged_geom = shape(merged)
+                        infra["total_length"] = merged_geom.length
+                    except Exception:
+                        infra["total_length"] = sum(
+                            t.get("length") or 0 for t in routed_trenches
+                        )
+
+                infra["trenches"] = routed_trenches
+                for trench in infra["trenches"]:
                     trench.pop("geometry", None)
 
             elif orient_geometry:

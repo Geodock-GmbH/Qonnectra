@@ -436,7 +436,8 @@
 				<GenericCombobox
 					data={[
 						{ value: 'segments', label: m.trace_geometry_segments() },
-						{ value: 'merged', label: m.trace_geometry_merged() }
+						{ value: 'merged', label: m.trace_geometry_merged() },
+						{ value: 'routed', label: m.trace_geometry_routed() }
 					]}
 					value={[geometryMode]}
 					onValueChange={(/** @type {{ value: string[] }} */ e) => {
