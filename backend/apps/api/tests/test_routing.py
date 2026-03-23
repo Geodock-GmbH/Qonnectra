@@ -721,3 +721,82 @@ class TestFindPathThroughTrenches:
         assert result is not None
         assert "main" in result
         assert "side" in result
+
+    def test_t_junction_spur_near_but_not_touching(self):
+        """Test that a spur trench ending near (but not on) another trench is connected."""
+        trenches = [
+            {
+                "id": "main",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[0, 0], [100, 0], [200, 0]],
+                },
+                "length": 200.0,
+            },
+            {
+                "id": "spur",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[50, 50], [50, 3]],
+                },
+                "length": 47.0,
+            },
+        ]
+        # Spur ends 3m from the main trench (within connection_tolerance=5)
+        result = find_path_through_trenches(trenches, (0, 0), (50, 50))
+        assert result is not None
+        assert "main" in result
+        assert "spur" in result
+
+    def test_t_junction_spur_too_far_away(self):
+        """Test that a spur trench too far from another trench is NOT connected."""
+        trenches = [
+            {
+                "id": "main",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[0, 0], [100, 0], [200, 0]],
+                },
+                "length": 200.0,
+            },
+            {
+                "id": "spur",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[50, 50], [50, 10]],
+                },
+                "length": 40.0,
+            },
+        ]
+        # Spur ends 10m from the main trench (beyond connection_tolerance=5)
+        result = find_path_through_trenches(trenches, (0, 0), (50, 50))
+        # Should fail because the spur is too far away to connect
+        assert result is None
+
+    def test_t_junction_endpoint_exactly_on_segment(self):
+        """Test spur endpoint that projects exactly onto a segment with no matching vertex."""
+        trenches = [
+            {
+                "id": "main",
+                "geometry": {
+                    "type": "LineString",
+                    # No vertex at x=50, only at 0 and 100
+                    "coordinates": [[0, 0], [100, 0]],
+                },
+                "length": 100.0,
+            },
+            {
+                "id": "spur",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[50, 50], [50, 0]],
+                },
+                "length": 50.0,
+            },
+        ]
+        # Spur endpoint (50,0) is exactly on the main segment but
+        # main has no vertex there — must split the segment
+        result = find_path_through_trenches(trenches, (0, 0), (50, 50))
+        assert result is not None
+        assert "main" in result
+        assert "spur" in result

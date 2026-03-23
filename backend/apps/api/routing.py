@@ -152,13 +152,15 @@ def find_shortest_path(start_trench_id, end_trench_id, project_id, tolerance=1):
     }
 
 
-def find_path_through_trenches(trenches, start_point, end_point, tolerance=1):
+def find_path_through_trenches(trenches, start_point, end_point, tolerance=1, connection_tolerance=5):
     """Find the shortest path through a set of trenches between two points.
 
     Build a vertex-level graph from trench geometries where every vertex is a
     node and consecutive vertices along a trench are connected by edges.
-    This handles T-junctions where trenches connect at any vertex along
-    another trench, not just at start/end points.
+    Then connect nearby trench endpoints to segments of other trenches by
+    projecting endpoints onto nearby segments (handles T-junctions where
+    a spur trench ends near but not exactly on the main trench, possibly
+    at a mid-segment point with no existing vertex).
 
     Args:
         trenches (list[dict]): Trench dicts with 'id' (UUID str) and 'geometry'
@@ -166,6 +168,8 @@ def find_path_through_trenches(trenches, start_point, end_point, tolerance=1):
         start_point (tuple): The (x, y) coordinate of the start node.
         end_point (tuple): The (x, y) coordinate of the end node.
         tolerance (float): Grid cell size for snapping vertices. Defaults to 1.
+        connection_tolerance (float): Maximum distance (meters) to connect a
+            trench endpoint to a nearby segment on another trench. Defaults to 5.
 
     Returns:
         list[str] | None: Ordered list of trench UUIDs on the path, or None if
@@ -174,30 +178,33 @@ def find_path_through_trenches(trenches, start_point, end_point, tolerance=1):
     if not trenches or not start_point or not end_point:
         return None
 
-    G = nx.Graph()
+    # Parse geometries and collect per-trench coordinate lists
+    trench_coords = {}
     for trench in trenches:
         geom_json = trench.get("geometry")
         if not geom_json:
             continue
-
         try:
             geom = shape(geom_json)
         except Exception:
             continue
-
         if geom.is_empty or geom.geom_type != "LineString":
             continue
-
         coords = list(geom.coords)
         if len(coords) < 2:
             continue
+        trench_coords[trench["id"]] = [(c[0], c[1]) for c in coords]
 
-        trench_id = trench["id"]
+    if not trench_coords:
+        return None
 
-        # Add an edge between each consecutive pair of vertices
+    G = nx.Graph()
+
+    # Step 1: Add edges along each trench (consecutive vertices)
+    for trench_id, coords in trench_coords.items():
         for i in range(len(coords) - 1):
-            node_a = snap_point(coords[i][:2], tolerance)
-            node_b = snap_point(coords[i + 1][:2], tolerance)
+            node_a = snap_point(coords[i], tolerance)
+            node_b = snap_point(coords[i + 1], tolerance)
             if node_a == node_b:
                 continue
             dx = coords[i + 1][0] - coords[i][0]
@@ -208,6 +215,69 @@ def find_path_through_trenches(trenches, start_point, end_point, tolerance=1):
     if G.number_of_edges() == 0:
         return None
 
+    # Step 2: Connect nearby trench endpoints to segments of other trenches.
+    ct_sq = connection_tolerance * connection_tolerance
+
+    for tid_a, coords_a in trench_coords.items():
+        endpoints = [coords_a[0], coords_a[-1]]
+        for ep in endpoints:
+            snapped_ep = snap_point(ep, tolerance)
+            if G.degree(snapped_ep) > 1 if snapped_ep in G else False:
+                continue
+
+            best_dist_sq = ct_sq
+            best_proj = None
+            best_seg_a = None
+            best_seg_b = None
+            best_tid = None
+
+            for tid_b, coords_b in trench_coords.items():
+                if tid_b == tid_a:
+                    continue
+                for i in range(len(coords_b) - 1):
+                    proj, dsq = _project_point_onto_segment(
+                        ep, coords_b[i], coords_b[i + 1]
+                    )
+                    if dsq < best_dist_sq:
+                        best_dist_sq = dsq
+                        best_proj = proj
+                        best_seg_a = snap_point(coords_b[i], tolerance)
+                        best_seg_b = snap_point(coords_b[i + 1], tolerance)
+                        best_tid = tid_b
+
+            if best_proj is not None:
+                snapped_proj = snap_point(best_proj, tolerance)
+
+                # Determine the node to split at: if the projection snaps
+                # to the same point as the endpoint, the endpoint lies
+                # directly on the other trench's segment — split at it.
+                split_node = snapped_proj if snapped_proj != snapped_ep else snapped_ep
+
+                # Insert split_node into the segment (split it)
+                if split_node != best_seg_a and split_node != best_seg_b:
+                    if G.has_edge(best_seg_a, best_seg_b):
+                        old_data = G.get_edge_data(best_seg_a, best_seg_b)
+                        G.remove_edge(best_seg_a, best_seg_b)
+                        d1 = _point_dist(best_seg_a, split_node)
+                        d2 = _point_dist(split_node, best_seg_b)
+                        G.add_edge(
+                            best_seg_a, split_node,
+                            trench_id=old_data["trench_id"], weight=d1,
+                        )
+                        G.add_edge(
+                            split_node, best_seg_b,
+                            trench_id=old_data["trench_id"], weight=d2,
+                        )
+
+                # Add bridging edge if the projection is a different node
+                if snapped_proj != snapped_ep:
+                    bridge_dist = best_dist_sq ** 0.5
+                    G.add_edge(
+                        snapped_ep, snapped_proj,
+                        trench_id=tid_a, weight=bridge_dist,
+                    )
+
+    # Step 3: Find source and target in the graph
     snapped_start = snap_point(start_point, tolerance)
     snapped_end = snap_point(end_point, tolerance)
 
@@ -230,7 +300,9 @@ def find_path_through_trenches(trenches, start_point, end_point, tolerance=1):
         return None
 
     try:
-        path_nodes = nx.shortest_path(G, source=source, target=target, weight="weight")
+        path_nodes = nx.shortest_path(
+            G, source=source, target=target, weight="weight"
+        )
     except (nx.NetworkXNoPath, nx.NodeNotFound):
         return None
 
@@ -246,3 +318,35 @@ def find_path_through_trenches(trenches, start_point, end_point, tolerance=1):
             seen.add(tid)
 
     return path_trench_ids
+
+
+def _project_point_onto_segment(point, seg_a, seg_b):
+    """Project a point onto a line segment, returning the closest point and squared distance.
+
+    Args:
+        point: (x, y) tuple
+        seg_a: (x, y) tuple - segment start
+        seg_b: (x, y) tuple - segment end
+
+    Returns:
+        tuple: ((proj_x, proj_y), squared_distance)
+    """
+    dx = seg_b[0] - seg_a[0]
+    dy = seg_b[1] - seg_a[1]
+    len_sq = dx * dx + dy * dy
+    if len_sq == 0:
+        d = (point[0] - seg_a[0]) ** 2 + (point[1] - seg_a[1]) ** 2
+        return seg_a, d
+
+    t = ((point[0] - seg_a[0]) * dx + (point[1] - seg_a[1]) * dy) / len_sq
+    t = max(0.0, min(1.0, t))
+
+    proj_x = seg_a[0] + t * dx
+    proj_y = seg_a[1] + t * dy
+    dsq = (point[0] - proj_x) ** 2 + (point[1] - proj_y) ** 2
+    return (proj_x, proj_y), dsq
+
+
+def _point_dist(a, b):
+    """Euclidean distance between two (x, y) tuples."""
+    return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
