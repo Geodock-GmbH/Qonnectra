@@ -2982,11 +2982,28 @@ def _trim_trench_to_path_coords(geom_json, path_coords, tolerance=1):
     if line.is_empty or line.geom_type != "LineString":
         return geom_json
 
-    first_pt = Point(path_coords[0])
-    last_pt = Point(path_coords[-1])
+    # Match path coords to original (unsnapped) trench vertices to avoid
+    # gaps from snapping imprecision. For each path coord, find the closest
+    # original vertex and use its exact line distance instead.
+    original_coords = list(line.coords)
+    vertex_dists = [line.project(Point(c)) for c in original_coords]
 
-    d_first = line.project(first_pt)
-    d_last = line.project(last_pt)
+    def _best_vertex_dist(path_pt):
+        """Find the line distance of the original vertex nearest to path_pt."""
+        best_d = float("inf")
+        best_idx = 0
+        for i, vc in enumerate(original_coords):
+            d = (vc[0] - path_pt[0]) ** 2 + (vc[1] - path_pt[1]) ** 2
+            if d < best_d:
+                best_d = d
+                best_idx = i
+        # Only use vertex distance if the path coord is close (within snap tolerance)
+        if best_d <= tolerance * tolerance * 4:
+            return vertex_dists[best_idx]
+        return line.project(Point(path_pt))
+
+    d_first = _best_vertex_dist(path_coords[0])
+    d_last = _best_vertex_dist(path_coords[-1])
 
     lo = min(d_first, d_last)
     hi = max(d_first, d_last)
