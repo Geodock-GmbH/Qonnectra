@@ -251,12 +251,12 @@
 							class="transition-transform shrink-0 {isExpanded ? 'rotate-0' : '-rotate-90'}"
 						/>
 						<div class="flex-1 min-w-0">
-							<div class="font-medium flex items-center gap-2" {@attach tooltip(cable.name)}>
-								{cable.name}
+							<div class="font-medium flex items-center gap-2 min-w-0" {@attach tooltip(cable.name)}>
+								<span class="truncate">{cable.name}</span>
 								{#if cable.direction === 'start'}
-									<IconArrowRight size={14} class="text-surface-500" />
+									<IconArrowRight size={14} class="text-surface-500 shrink-0" />
 								{:else}
-									<IconArrowLeft size={14} class="text-surface-500" />
+									<IconArrowLeft size={14} class="text-surface-500 shrink-0" />
 								{/if}
 							</div>
 							<div class="text-sm text-surface-500">{cable.fiber_count} {m.form_fibers()}</div>
@@ -455,14 +455,14 @@
 									</button>
 									<div class="flex-1 min-w-0">
 										<div
-											class="text-sm font-medium flex items-center gap-1 whitespace-nowrap overflow-hidden text-ellipsis"
+											class="text-sm font-medium flex items-center gap-1 min-w-0"
 											{@attach tooltip(cable.name)}
 										>
-											{cable.name}
+											<span class="truncate">{cable.name}</span>
 											{#if cable.direction === 'start'}
-												<IconArrowRight size={12} />
+												<IconArrowRight size={12} class="shrink-0" />
 											{:else}
-												<IconArrowLeft size={12} />
+												<IconArrowLeft size={12} class="shrink-0" />
 											{/if}
 										</div>
 										<div class="text-xs text-(--color-surface-950-50)">

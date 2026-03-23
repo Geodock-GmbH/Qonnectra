@@ -332,11 +332,112 @@ class AttributesComponentTypeAdmin(admin.ModelAdmin):
     list_display = ("id", "component_type", "occupied_slots", "manufacturer")
 
 
+class BulkCreatePortsForm(forms.Form):
+    """Form for bulk-creating In/Out port pairs for a component type."""
+
+    component_type = forms.ModelChoiceField(
+        queryset=AttributesComponentType.objects.all(),
+        label=_("Component Type"),
+        help_text=_("Select the component type to create ports for."),
+    )
+    number_of_ports = forms.IntegerField(
+        min_value=1,
+        max_value=1000,
+        label=_("Number of Ports"),
+        help_text=_(
+            "Number of In ports and Out ports to create. "
+            "E.g. 4 creates In 1-4 and Out 1-4 (8 entries total)."
+        ),
+    )
+    start_position = forms.IntegerField(
+        min_value=1,
+        initial=1,
+        label=_("Start Position"),
+        help_text=_(
+            "Port numbering starts at this position. "
+            "Useful when adding ports to an existing component."
+        ),
+    )
+
+
 @admin.register(AttributesComponentStructure)
 class AttributesComponentStructureAdmin(admin.ModelAdmin):
     """Admin for :model:`api.AttributesComponentStructure` lookup table."""
 
     list_display = ("id", "component_type", "in_or_out", "port", "port_alias")
+    list_filter = ("component_type", "in_or_out")
+    change_list_template = "admin/api/attributescomponentstructure/change_list.html"
+
+    def get_urls(self):
+        """Register custom URL for bulk port creation."""
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "bulk-create-ports/",
+                self.admin_site.admin_view(self.bulk_create_ports_view),
+                name="api_attributescomponentstructure_bulk_create_ports",
+            ),
+        ]
+        return custom_urls + urls
+
+    def bulk_create_ports_view(self, request):
+        """Handle bulk creation of In/Out port pairs for a component type."""
+        if request.method == "POST":
+            form = BulkCreatePortsForm(request.POST)
+            if form.is_valid():
+                component_type = form.cleaned_data["component_type"]
+                num_ports = form.cleaned_data["number_of_ports"]
+                start = form.cleaned_data["start_position"]
+
+                structures = []
+                for port_num in range(start, start + num_ports):
+                    for direction in ("in", "out"):
+                        structures.append(
+                            AttributesComponentStructure(
+                                component_type=component_type,
+                                in_or_out=direction,
+                                port=port_num,
+                            )
+                        )
+
+                try:
+                    with transaction.atomic():
+                        AttributesComponentStructure.objects.bulk_create(structures)
+                    messages.success(
+                        request,
+                        _(
+                            "Created %(count)d ports (%(num)d In + %(num)d Out) "
+                            "for %(type)s."
+                        )
+                        % {
+                            "count": len(structures),
+                            "num": num_ports,
+                            "type": component_type,
+                        },
+                    )
+                except Exception as e:
+                    messages.error(
+                        request,
+                        _("Error creating ports: %(error)s") % {"error": str(e)},
+                    )
+
+                return redirect(
+                    reverse("admin:api_attributescomponentstructure_changelist")
+                )
+        else:
+            form = BulkCreatePortsForm()
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": _("Bulk Create Ports"),
+            "form": form,
+            "opts": self.model._meta,
+        }
+        return render(
+            request,
+            "admin/api/attributescomponentstructure/bulk_create_ports.html",
+            context,
+        )
 
 
 admin.site.register(FileTypeCategory)

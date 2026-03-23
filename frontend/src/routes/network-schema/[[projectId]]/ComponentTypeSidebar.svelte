@@ -150,30 +150,28 @@
 			{#each componentTypes as ct (ct.id)}
 				{@const qty = getQuantity(ct.id)}
 				<div
-					class="w-full flex items-center gap-3 p-3 rounded-lg bg-surface-200-800 border border-surface-300-700"
+					class="w-full flex items-center gap-3 p-3 rounded-lg bg-surface-200-800 border border-surface-300-700 hover:bg-surface-300-700 transition-colors text-left cursor-pointer"
+					onclick={() => handleItemClick(ct)}
+					onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleItemClick(ct); } }}
+					role="button"
+					tabindex="0"
 				>
-					<button
-						type="button"
-						class="flex-1 flex items-center gap-3 hover:bg-surface-300-700 -m-3 p-3 rounded-lg transition-colors text-left"
-						onclick={() => handleItemClick(ct)}
+					<div
+						class="w-10 h-10 rounded-lg bg-primary-500/20 flex items-center justify-center shrink-0"
 					>
-						<div
-							class="w-10 h-10 rounded-lg bg-primary-500/20 flex items-center justify-center shrink-0"
-						>
-							<IconGripVertical size={20} class="text-primary-500" />
+						<IconGripVertical size={20} class="text-primary-500" />
+					</div>
+					<div class="flex-1 min-w-0">
+						<div class="font-medium truncate">{ct.component_type}</div>
+						<div class="text-sm text-surface-500">
+							{ct.occupied_slots * qty}
+							{m.form_slot({ count: ct.occupied_slots * qty })}
+							{#if qty > 1}
+								<span class="text-primary-500">({qty}x)</span>
+							{/if}
 						</div>
-						<div class="flex-1 min-w-0">
-							<div class="font-medium truncate">{ct.component_type}</div>
-							<div class="text-sm text-surface-500">
-								{ct.occupied_slots * qty}
-								{m.form_slot({ count: ct.occupied_slots * qty })}
-								{#if qty > 1}
-									<span class="text-primary-500">({qty}x)</span>
-								{/if}
-							</div>
-						</div>
-					</button>
-					<div class="flex items-center gap-1 shrink-0">
+					</div>
+							<div class="flex items-center gap-1 shrink-0" role="toolbar" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
 						<button
 							type="button"
 							class="w-8 h-8 flex items-center justify-center rounded bg-surface-300-700 hover:bg-surface-400-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
