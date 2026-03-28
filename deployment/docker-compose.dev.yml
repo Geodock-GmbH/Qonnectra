@@ -50,7 +50,7 @@ services:
             python manage.py migrate &&
             python manage.py shell -c \"from django.contrib.auth import get_user_model; import os; User = get_user_model(); username = os.environ.get('DJANGO_SUPERUSER_USERNAME'); User.objects.filter(username=username).exists() or User.objects.create_superuser(username, os.environ.get('DJANGO_SUPERUSER_EMAIL'), os.environ.get('DJANGO_SUPERUSER_PASSWORD'))\" &&
             python manage.py load_initial_data &&
-            gunicorn --bind 0.0.0.0:8000 core.wsgi:application"
+            gunicorn --bind 0.0.0.0:8000 --workers 4 --timeout 60 core.wsgi:application"
     expose:
       - "8000"
     volumes:
