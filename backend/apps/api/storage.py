@@ -367,6 +367,7 @@ class QGISDataFileStorage(FileSystemStorage):
         result = super()._save(name, content)
 
         if os.path.exists(full_path):
+            os.chmod(full_path, 0o644)
             file_size = os.path.getsize(full_path)
             logger.info(f"Saved data file: {name} ({file_size} bytes)")
         else:
