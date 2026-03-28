@@ -69,6 +69,7 @@ services:
       - static_volume:/app/static
       - media_volume:/app/media
       - ./qgis/projects:/app/qgis/projects
+      - ./qgis/data:/app/qgis/data
     environment:
       - DEBUG=${DEBUG}
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
