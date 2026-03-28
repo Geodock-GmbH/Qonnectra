@@ -3,7 +3,9 @@
 import hashlib
 import logging
 import math
+import os
 from typing import Optional
+from urllib.parse import urlparse, urlunparse
 
 from django.core.cache import cache
 from owslib.wms import WebMapService
@@ -19,6 +21,31 @@ class WMSServiceError(Exception):
 
 CACHE_TTL_SECONDS = 300  # 5 minutes
 CACHE_KEY_PREFIX = "wms_capabilities:"
+QGIS_SERVER_INTERNAL_URL = "http://qgis-server"
+
+
+def _rewrite_to_internal_qgis_url(url: str) -> str:
+    """Rewrite external QGIS domain URLs to the internal Docker container URL.
+
+    When the backend fetches WMS capabilities from its own QGIS server via the
+    external domain, the request goes through Caddy's forward_auth back to
+    Django, causing a deadlock. This rewrites such URLs to hit the QGIS
+    container directly on the internal Docker network.
+    """
+    qgis_domain = os.environ.get("QGIS_DOMAIN", "")
+    if not qgis_domain:
+        return url
+
+    parsed = urlparse(url)
+    if parsed.hostname == qgis_domain:
+        rewritten = urlunparse(parsed._replace(
+            scheme="http",
+            netloc="qgis-server",
+        ))
+        logger.info(f"Rewrote QGIS URL to internal: {url} -> {rewritten}")
+        return rewritten
+
+    return url
 
 
 def _get_cache_key(url: str, username: Optional[str] = None) -> str:
@@ -118,14 +145,15 @@ def fetch_wms_layers(
             logger.debug(f"Using cached WMS capabilities for {url}")
             return cached
 
+    fetch_url = _rewrite_to_internal_qgis_url(url)
     versions_to_try = [version] if version else ["1.3.0", "1.1.1"]
     last_error = None
 
     for wms_version in versions_to_try:
         try:
-            logger.debug(f"Trying WMS version {wms_version} for {url}")
+            logger.debug(f"Trying WMS version {wms_version} for {fetch_url}")
             wms = WebMapService(
-                url,
+                fetch_url,
                 version=wms_version,
                 username=username,
                 password=password,
@@ -213,16 +241,17 @@ def scan_wms_capabilities(
     Raises:
         WMSServiceError: If the WMS request fails after all version attempts.
     """
+    fetch_url = _rewrite_to_internal_qgis_url(url)
     versions_to_try = ["1.3.0", "1.1.1"]
     last_error = None
 
     for wms_version in versions_to_try:
         try:
             logger.debug(
-                f"Scanning WMS capabilities using version {wms_version} for {url}"
+                f"Scanning WMS capabilities using version {wms_version} for {fetch_url}"
             )
             wms = WebMapService(
-                url,
+                fetch_url,
                 version=wms_version,
                 username=username,
                 password=password,

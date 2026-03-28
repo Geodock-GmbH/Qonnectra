@@ -89,6 +89,7 @@ services:
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
       - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
       - FIELD_ENCRYPTION_KEY=${FIELD_ENCRYPTION_KEY}
+      - QGIS_DOMAIN=${QGIS_DOMAIN}
     depends_on:
       db:
         condition: service_healthy
@@ -193,6 +194,7 @@ services:
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
       - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
       - FIELD_ENCRYPTION_KEY=${FIELD_ENCRYPTION_KEY}
+      - QGIS_DOMAIN=${QGIS_DOMAIN}
     depends_on:
       db:
         condition: service_healthy
