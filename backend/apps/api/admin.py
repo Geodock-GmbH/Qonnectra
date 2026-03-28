@@ -55,6 +55,7 @@ from .models import (
     PipeBranchSettings,
     Projects,
     QGISProject,
+    QGISProjectDataFile,
     ResidentialUnit,
     RoutePermission,
     StoragePreferences,
@@ -966,6 +967,21 @@ class StoragePreferencesAdmin(admin.ModelAdmin):
     }
 
 
+class QGISProjectDataFileInline(admin.TabularInline):
+    """Inline for uploading data files alongside a QGIS project."""
+
+    model = QGISProjectDataFile
+    extra = 1
+    readonly_fields = ("original_filename", "uploaded_at")
+    fields = ("data_file", "original_filename", "uploaded_at")
+
+    def get_formset(self, request, obj=None, **kwargs):
+        """Make data_file not required so existing rows can be deleted without re-uploading."""
+        formset = super().get_formset(request, obj, **kwargs)
+        formset.form.base_fields["data_file"].required = False
+        return formset
+
+
 @admin.register(QGISProject)
 class QGISProjectAdmin(admin.ModelAdmin):
     """Admin for :model:`api.QGISProject` with WMS/WFS URL display and datasource conversion."""
@@ -1011,6 +1027,90 @@ class QGISProjectAdmin(admin.ModelAdmin):
         ),
     )
     actions = ["download_with_postgres_datasources"]
+    inlines = [QGISProjectDataFileInline]
+
+    def save_related(self, request, form, formsets, change):
+        """Save inlines then convert datasources with uploaded data filenames.
+
+        After saving related inlines, auto-populate ``original_filename``
+        on newly created :model:`api.QGISProjectDataFile` records and
+        trigger QGS XML datasource conversion with file-path rewriting.
+
+        Args:
+            request: The current HTTP request.
+            form: The parent model form.
+            formsets: List of inline formsets.
+            change: Whether this is a change (True) or add (False).
+        """
+        super().save_related(request, form, formsets, change)
+
+        obj = form.instance
+
+        # Auto-populate original_filename on newly saved data files
+        for data_file in obj.data_files.filter(original_filename=""):
+            if data_file.data_file:
+                data_file.original_filename = os.path.basename(data_file.data_file.name)
+                data_file.save(update_fields=["original_filename"])
+
+        if not obj.project_file:
+            return
+
+        data_filenames = list(
+            obj.data_files.values_list("original_filename", flat=True)
+        )
+
+        try:
+            from .services import (
+                convert_qgs_to_postgres,
+                handle_qgis_file,
+                repackage_qgz,
+            )
+
+            file_content = obj.project_file.read()
+            filename = os.path.basename(obj.project_file.name)
+
+            qgs_content, is_qgz = handle_qgis_file(file_content, filename)
+            converted_content = convert_qgs_to_postgres(
+                qgs_content,
+                data_filenames=data_filenames if data_filenames else None,
+                project_name=obj.name if data_filenames else None,
+            )
+
+            if is_qgz:
+                final_content = repackage_qgz(converted_content, file_content)
+            else:
+                final_content = converted_content
+
+            # Overwrite the stored project file with converted content
+            from django.core.files.base import ContentFile
+
+            obj.project_file.save(
+                os.path.basename(obj.project_file.name),
+                ContentFile(final_content),
+                save=False,
+            )
+            # Use update to avoid re-triggering save_model
+            type(obj).objects.filter(pk=obj.pk).update(
+                project_file=obj.project_file.name
+            )
+
+            from django.contrib import messages
+
+            if data_filenames:
+                messages.info(
+                    request,
+                    _("Datasources converted: %(count)s data file path(s) rewritten.")
+                    % {"count": len(data_filenames)},
+                )
+
+        except Exception as e:
+            from django.contrib import messages
+
+            messages.error(
+                request,
+                _("Error converting project datasources: %(error)s")
+                % {"error": str(e)},
+            )
 
     def save_model(self, request, obj, form, change):
         """Set ``created_by`` to the current user on first save."""
@@ -1392,8 +1492,7 @@ class LogEntryAdmin(admin.ModelAdmin):
         queryset.delete()
         messages.success(
             request,
-            _("Successfully deleted %(count)d log entry/entries.")
-            % {"count": count},
+            _("Successfully deleted %(count)d log entry/entries.") % {"count": count},
         )
 
     @admin.action(description=_("Delete ALL log entries matching current filters"))
@@ -1483,10 +1582,7 @@ class ProjectFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         """Return all projects as filter choices."""
-        return [
-            (p.id, p.project)
-            for p in Projects.objects.all().order_by("project")
-        ]
+        return [(p.id, p.project) for p in Projects.objects.all().order_by("project")]
 
     def queryset(self, request, queryset):
         """Filter files whose linked feature belongs to the selected project."""
@@ -1509,9 +1605,9 @@ class ProjectFilter(admin.SimpleListFilter):
                 continue
 
             feature_uuids = set(
-                model_class.objects.filter(
-                    **{project_field: project_id}
-                ).values_list("uuid", flat=True)
+                model_class.objects.filter(**{project_field: project_id}).values_list(
+                    "uuid", flat=True
+                )
             )
             file_uuids = queryset.filter(
                 content_type=content_type, object_id__in=feature_uuids
@@ -1570,7 +1666,13 @@ class FeatureFilesAdmin(admin.ModelAdmin):
         "orphan_status_display",
         "created_at",
     )
-    list_filter = (OrphanedFilesFilter, ProjectFilter, "content_type", "file_type", "created_at")
+    list_filter = (
+        OrphanedFilesFilter,
+        ProjectFilter,
+        "content_type",
+        "file_type",
+        "created_at",
+    )
     search_fields = ("file_name", "file_path", "description")
     readonly_fields = (
         "uuid",

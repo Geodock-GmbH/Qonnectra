@@ -19,8 +19,10 @@ import pytest
 from apps.api.models import Conduit, FeatureFiles, Microduct, Node
 from apps.api.services import (
     _build_postgres_datasource,
+    _extract_filename_from_ogr_source,
     _extract_layer_name_from_gpkg_source,
     _postgres_type_to_pandas,
+    _rewrite_file_datasources,
     convert_qgs_to_postgres,
     generate_conduit_import_template,
     handle_qgis_file,
@@ -532,6 +534,81 @@ class TestConvertQgsToPostgres:
 
         assert b'providerKey="wms"' in result
 
+    def test_rewrites_local_file_datasources(self):
+        """Test that local file paths are rewritten to container paths."""
+        qgs_content = b"""<?xml version="1.0"?>
+        <qgis>
+            <layer-tree-layer providerKey="ogr" source="/Users/john/data/survey.dxf"/>
+            <maplayer>
+                <provider>ogr</provider>
+                <datasource>/Users/john/data/survey.dxf</datasource>
+            </maplayer>
+        </qgis>
+        """
+
+        with patch("apps.api.services.settings") as mock_settings:
+            mock_settings.QGIS_PG_SERVICE_NAME = "qonnectra"
+            mock_settings.DEFAULT_SRID = 25832
+
+            result = convert_qgs_to_postgres(
+                qgs_content,
+                data_filenames=["survey.dxf"],
+                project_name="my-project",
+            )
+
+        assert b"/data/my-project/survey.dxf" in result
+        assert b'providerKey="ogr"' in result  # stays ogr, not converted to postgres
+
+    def test_mixed_gpkg_and_local_files(self):
+        """Test that GeoPackage layers convert to PostgreSQL while local files get path-rewritten."""
+        qgs_content = b"""<?xml version="1.0"?>
+        <qgis>
+            <layer-tree-layer providerKey="ogr" source="./schema.gpkg|layername=trench"/>
+            <layer-tree-layer providerKey="ogr" source="/Users/john/data/survey.dxf"/>
+            <maplayer>
+                <provider>ogr</provider>
+                <datasource>./schema.gpkg|layername=trench</datasource>
+            </maplayer>
+            <maplayer>
+                <provider>ogr</provider>
+                <datasource>/Users/john/data/survey.dxf</datasource>
+            </maplayer>
+        </qgis>
+        """
+
+        with patch("apps.api.services.settings") as mock_settings:
+            mock_settings.QGIS_PG_SERVICE_NAME = "qonnectra"
+            mock_settings.DEFAULT_SRID = 25832
+
+            result = convert_qgs_to_postgres(
+                qgs_content,
+                data_filenames=["survey.dxf"],
+                project_name="infra",
+            )
+
+        # GeoPackage layer converted to PostgreSQL
+        assert b"service='qonnectra'" in result
+        assert b"postgres" in result
+        # Local file layer path-rewritten
+        assert b"/data/infra/survey.dxf" in result
+
+    def test_no_rewriting_without_filenames(self):
+        """Test backward compatibility — no file rewriting when data_filenames is None."""
+        qgs_content = b"""<?xml version="1.0"?>
+        <qgis>
+            <layer-tree-layer providerKey="ogr" source="/Users/john/data/survey.dxf"/>
+        </qgis>
+        """
+
+        with patch("apps.api.services.settings") as mock_settings:
+            mock_settings.QGIS_PG_SERVICE_NAME = "qonnectra"
+            mock_settings.DEFAULT_SRID = 25832
+
+            result = convert_qgs_to_postgres(qgs_content)
+
+        # Without data_filenames, local file paths are left untouched
+        assert b"/Users/john/data/survey.dxf" in result
+
 
 class TestExtractLayerNameFromGpkgSource:
     """Tests for the _extract_layer_name_from_gpkg_source helper."""
@@ -886,3 +963,186 @@ class TestMoveFileToFeature:
         assert new_path is not None
         assert "TR-001" in new_path
         assert error is None
+
+
+class TestExtractFilenameFromOgrSource:
+    """Tests for cross-platform filename extraction from OGR datasource strings."""
+
+    def test_unix_path(self):
+        """Extract filename from a standard Unix absolute path."""
+        source = "/Users/john/data/survey.dxf"
+        assert _extract_filename_from_ogr_source(source) == "survey.dxf"
+
+    def test_unix_path_with_layername(self):
+        """Extract filename when OGR |layername= parameter is present."""
+        source = "/Users/john/data/buildings.gpkg|layername=floor_plans"
+        assert _extract_filename_from_ogr_source(source) == "buildings.gpkg"
+
+    def test_unix_path_with_layername_and_subset(self):
+        """Extract filename when both |layername= and |subset= are present."""
+        source = "/Users/maltethen/Downloads/170828-Bestand_BA 1.gpkg|layername=polylines|subset=layer IN ('BZV_Blattschnitt_Text') AND space=0 AND block=-1"
+        assert _extract_filename_from_ogr_source(source) == "170828-Bestand_BA 1.gpkg"
+
+    def test_windows_path(self):
+        """Extract filename from a Windows backslash-separated path."""
+        source = r"C:\Projects\old_data.shp"
+        assert _extract_filename_from_ogr_source(source) == "old_data.shp"
+
+    def test_windows_path_with_spaces(self):
+        """Extract filename from a Windows path containing spaces."""
+        source = r"D:\GIS Data\survey files\plan.dxf"
+        assert _extract_filename_from_ogr_source(source) == "plan.dxf"
+
+    def test_relative_path(self):
+        """Extract filename from a relative Unix path."""
+        source = "./data/survey.dxf"
+        assert _extract_filename_from_ogr_source(source) == "survey.dxf"
+
+    def test_filename_only(self):
+        """Return the filename as-is when no directory prefix exists."""
+        source = "survey.dxf"
+        assert _extract_filename_from_ogr_source(source) == "survey.dxf"
+
+
+class TestRewriteFileDatasources:
+    """Tests for rewriting local file paths in QGS XML to container paths."""
+
+    def test_rewrites_local_file_path_in_layer_tree(self):
+        """Test rewriting a layer-tree-layer source attribute."""
+        qgs = b"""<?xml version="1.0"?>
+        <qgis>
+            <layer-tree-layer providerKey="ogr" source="/Users/john/data/survey.dxf"/>
+        </qgis>
+        """
+        import xml.etree.ElementTree as ET
+
+        root = ET.fromstring(qgs)
+        rewritten = _rewrite_file_datasources(root, ["survey.dxf"], "my-project")
+
+        layer = root.find(".//layer-tree-layer")
+        assert layer.get("source") == "/data/my-project/survey.dxf"
+        assert layer.get("providerKey") == "ogr"
+        assert rewritten == ["survey.dxf"]
+
+    def test_rewrites_local_file_path_in_maplayer(self):
+        """Test rewriting a maplayer datasource element."""
+        qgs = b"""<?xml version="1.0"?>
+        <qgis>
+            <maplayer>
+                <provider>ogr</provider>
+                <datasource>/Users/john/data/survey.dxf</datasource>
+            </maplayer>
+        </qgis>
+        """
+        import xml.etree.ElementTree as ET
+
+        root = ET.fromstring(qgs)
+        _rewrite_file_datasources(root, ["survey.dxf"], "my-project")
+
+        ds = root.find(".//datasource")
+        assert ds.text == "/data/my-project/survey.dxf"
+
+    def test_preserves_ogr_parameters(self):
+        """Test that |layername= and |subset= are preserved after rewriting."""
+        qgs = b"""<?xml version="1.0"?>
+        <qgis>
+            <maplayer>
+                <provider>ogr</provider>
+                <datasource>/Users/maltethen/Downloads/file.gpkg|layername=polylines|subset=layer IN ('X')</datasource>
+            </maplayer>
+        </qgis>
+        """
+        import xml.etree.ElementTree as ET
+
+        root = ET.fromstring(qgs)
+        _rewrite_file_datasources(root, ["file.gpkg"], "my-project")
+
+        ds = root.find(".//datasource")
+        assert (
+            ds.text
+            == "/data/my-project/file.gpkg|layername=polylines|subset=layer IN ('X')"
+        )
+
+    def test_skips_non_matching_filenames(self):
+        """Test that layers with non-uploaded files are left unchanged."""
+        qgs = b"""<?xml version="1.0"?>
+        <qgis>
+            <maplayer>
+                <provider>ogr</provider>
+                <datasource>/Users/john/data/not_uploaded.dxf</datasource>
+            </maplayer>
+        </qgis>
+        """
+        import xml.etree.ElementTree as ET
+
+        root = ET.fromstring(qgs)
+        rewritten = _rewrite_file_datasources(root, ["other.dxf"], "my-project")
+
+        ds = root.find(".//datasource")
+        assert ds.text == "/Users/john/data/not_uploaded.dxf"
+        assert rewritten == []
+
+    def test_skips_non_ogr_providers(self):
+        """Test that postgres/wms layers are not touched."""
+        qgs = b"""<?xml version="1.0"?>
+        <qgis>
+            <layer-tree-layer providerKey="postgres" source="service='qonnectra'"/>
+            <layer-tree-layer providerKey="wms" source="https://wms.example.com"/>
+        </qgis>
+        """
+        import xml.etree.ElementTree as ET
+
+        root = ET.fromstring(qgs)
+        rewritten = _rewrite_file_datasources(root, ["survey.dxf"], "my-project")
+
+        layers = root.findall(".//layer-tree-layer")
+        assert layers[0].get("source") == "service='qonnectra'"
+        assert layers[1].get("source") == "https://wms.example.com"
+        assert rewritten == []
+
+    def test_skips_gpkg_schema_sources(self):
+        """Test that ./schema.gpkg sources (handled by GeoPackage conversion) are skipped."""
+        qgs = b"""<?xml version="1.0"?>
+        <qgis>
+            <maplayer>
+                <provider>ogr</provider>
+                <datasource>./schema.gpkg|layername=trench</datasource>
+            </maplayer>
+        </qgis>
+        """
+        import xml.etree.ElementTree as ET
+
+        root = ET.fromstring(qgs)
+        rewritten = _rewrite_file_datasources(root, ["schema.gpkg"], "my-project")
+
+        ds = root.find(".//datasource")
+        assert ds.text == "./schema.gpkg|layername=trench"
+        assert rewritten == []
+
+
+class TestQGISDataFileStorage:
+    """Tests for QGISDataFileStorage backend."""
+
+    def test_local_dev_location(self, monkeypatch):
+        """Test storage uses deployment/qgis/data in local dev."""
+        monkeypatch.setattr("apps.api.storage.os.path.exists", lambda p: p != "/app")
+        monkeypatch.setattr("apps.api.storage.os.path.isdir", lambda p: False)
+
+        from apps.api.storage import QGISDataFileStorage
+
+        storage = QGISDataFileStorage()
+        assert storage.location.endswith("deployment/qgis/data")
+
+    def test_overwrites_existing_file(self, tmp_path):
+        """Test that uploading same filename overwrites."""
+        from apps.api.storage import QGISDataFileStorage
+
+        storage = QGISDataFileStorage(location=str(tmp_path))
+        # Create a subdirectory and file
+        sub = tmp_path / "myproject"
+        sub.mkdir()
+        (sub / "test.dxf").write_text("old content")
+
+        name = storage.get_available_name("myproject/test.dxf")
+        assert name == "myproject/test.dxf"
+        assert not (sub / "test.dxf").exists()

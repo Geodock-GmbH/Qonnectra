@@ -278,3 +278,111 @@ class QGISProjectStorage(FileSystemStorage):
         except Exception as e:
             logger.error(f"Error deleting QGIS project {name}: {e}")
             raise
+
+
+@deconstructible
+class QGISDataFileStorage(FileSystemStorage):
+    """Storage backend for QGIS project data files (DXF, SHP, GeoJSON, etc.).
+
+    Store data files in ``deployment/qgis/data/``, which is mounted as a
+    read-only volume in the QGIS Server container at ``/data``.
+    """
+
+    def __init__(self, location=None, base_url=None):
+        """Initialize the QGIS data file storage backend.
+
+        Auto-detect the environment to choose the storage path:
+
+        - Docker: ``/app/qgis/data``
+        - Development: ``{project_root}/deployment/qgis/data``
+
+        Args:
+            location: Override for the storage directory.
+            base_url: Unused — data files are served via QGIS Server.
+        """
+        if location is None:
+            if os.path.exists("/app") and os.path.isdir("/app"):
+                location = "/app/qgis/data"
+                logger.info("QGISDataFileStorage: Docker environment detected")
+            else:
+                project_root = os.path.dirname(
+                    os.path.dirname(
+                        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    )
+                )
+                location = os.path.join(project_root, "deployment", "qgis", "data")
+                logger.info("QGISDataFileStorage: local dev environment detected")
+
+        base_url = None
+        super().__init__(location=location, base_url=base_url)
+        logger.info(f"QGISDataFileStorage initialized with location: {location}")
+
+    def get_valid_name(self, name):
+        """Preserve the exact filename via NFC normalisation.
+
+        Args:
+            name: The original filename.
+
+        Returns:
+            str: Filename normalised to NFC form.
+        """
+        return unicodedata.normalize("NFC", name)
+
+    def get_available_name(self, name, max_length=None):
+        """Return the filename, overwriting any existing data file.
+
+        Args:
+            name: Desired filename.
+            max_length: Unused; kept for API compatibility.
+
+        Returns:
+            str: The unchanged filename.
+        """
+        if self.exists(name):
+            logger.info(f"Data file {name} already exists, will be overwritten")
+            os.remove(os.path.join(self.location, name))
+        return name
+
+    def _save(self, name, content):
+        """Save a data file, creating directories as needed.
+
+        Args:
+            name: Relative path for the data file.
+            content: File content (``File`` instance).
+
+        Returns:
+            str: The name of the saved file.
+        """
+        full_path = self.path(name)
+        directory = os.path.dirname(full_path)
+
+        if not os.path.exists(directory):
+            try:
+                os.makedirs(directory, exist_ok=True)
+                logger.info(f"Created data file directory: {directory}")
+            except OSError as e:
+                logger.error(f"Error creating data file directory {directory}: {e}")
+                raise
+
+        result = super()._save(name, content)
+
+        if os.path.exists(full_path):
+            file_size = os.path.getsize(full_path)
+            logger.info(f"Saved data file: {name} ({file_size} bytes)")
+        else:
+            logger.error(f"Data file not saved to expected location: {full_path}")
+
+        return result
+
+    def delete(self, name):
+        """Delete a data file from the storage system.
+
+        Args:
+            name: Relative path of the file to delete.
+        """
+        try:
+            super().delete(name)
+            logger.info(f"Deleted data file: {name}")
+        except Exception as e:
+            logger.error(f"Error deleting data file {name}: {e}")
+            raise

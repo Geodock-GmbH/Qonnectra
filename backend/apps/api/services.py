@@ -4,6 +4,7 @@ import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
 from io import BytesIO
+from pathlib import PureWindowsPath
 
 import geopandas as gpd
 import openpyxl
@@ -1376,15 +1377,106 @@ def _extract_layer_name_from_gpkg_source(source: str) -> str | None:
     return None
 
 
-def convert_qgs_to_postgres(qgs_content: bytes) -> bytes:
+def _extract_filename_from_ogr_source(source: str) -> str:
+    """Extract the filename from an OGR datasource string.
+
+    Handles Unix paths, Windows paths, and OGR parameters (|layername=, |subset=).
+    Uses PureWindowsPath which correctly handles both / and \\ separators.
+
+    Args:
+        source: OGR datasource string (e.g. "/Users/john/data/file.dxf|layername=x").
+
+    Returns:
+        str: The filename portion (e.g. "file.dxf").
+    """
+    path_part = source.split("|")[0]
+    return PureWindowsPath(path_part).name
+
+
+def _rewrite_file_datasources(
+    root: ET.Element,
+    data_filenames: list[str],
+    project_name: str,
+) -> list[str]:
+    """Rewrite local file paths in QGIS XML to container data directory paths.
+
+    Scans ``layer-tree-layer`` attributes and ``maplayer/datasource`` elements
+    for OGR datasources referencing local files. If the filename matches an
+    uploaded data file, the path is rewritten to ``/data/{project_name}/{filename}``.
+
+    OGR parameters (``|layername=``, ``|subset=``, etc.) are preserved.
+
+    Args:
+        root: Parsed XML root element of the QGS project.
+        data_filenames: List of uploaded data filenames to match against.
+        project_name: QGIS project slug name for the container path.
+
+    Returns:
+        list[str]: Filenames that were successfully rewritten.
+    """
+    rewritten = []
+    data_filenames_set = set(data_filenames)
+
+    for layer_tree in root.iter("layer-tree-layer"):
+        provider_key = layer_tree.get("providerKey")
+        source = layer_tree.get("source", "")
+
+        if provider_key != "ogr":
+            continue
+        if "schema.gpkg" in source:
+            continue
+
+        filename = _extract_filename_from_ogr_source(source)
+        if filename in data_filenames_set:
+            parts = source.split("|")
+            parts[0] = f"/data/{project_name}/{filename}"
+            layer_tree.set("source", "|".join(parts))
+            if filename not in rewritten:
+                rewritten.append(filename)
+
+    for maplayer in root.iter("maplayer"):
+        provider_elem = maplayer.find("provider")
+        datasource_elem = maplayer.find("datasource")
+
+        if provider_elem is None or datasource_elem is None:
+            continue
+        if provider_elem.text != "ogr" or not datasource_elem.text:
+            continue
+        if "schema.gpkg" in datasource_elem.text:
+            continue
+
+        filename = _extract_filename_from_ogr_source(datasource_elem.text)
+        if filename in data_filenames_set:
+            parts = datasource_elem.text.split("|")
+            parts[0] = f"/data/{project_name}/{filename}"
+            datasource_elem.text = "|".join(parts)
+            if filename not in rewritten:
+                rewritten.append(filename)
+
+    return rewritten
+
+
+def convert_qgs_to_postgres(
+    qgs_content: bytes,
+    data_filenames: list[str] | None = None,
+    project_name: str | None = None,
+) -> bytes:
     """Transform QGS XML datasources from GeoPackage to PostgreSQL pg_service.
 
     Rewrites ``<datasource>`` elements and ``layer-tree-layer`` attributes
     so that OGR/GeoPackage references become PostgreSQL connections via the
     configured ``pg_service`` name.
 
+    When *data_filenames* and *project_name* are provided, file-backed layers
+    whose filename matches an entry in *data_filenames* have their paths
+    rewritten to ``/data/<project_name>/<filename>``.
+
     Args:
         qgs_content (bytes): Raw bytes of the QGS XML file.
+        data_filenames (list[str] | None): Optional list of data filenames to
+            rewrite paths for.
+        project_name (str | None): Optional project name used in the
+            rewritten container path.
 
     Returns:
         bytes: Transformed QGS XML content.
@@ -1438,6 +1530,10 @@ def convert_qgs_to_postgres(qgs_content: bytes) -> bytes:
     logger.info(
         f"Converted {len(converted_layers)} layers to PostgreSQL: {converted_layers}"
     )
+
+    if data_filenames and project_name:
+        rewritten = _rewrite_file_datasources(root, data_filenames, project_name)
+        logger.info(f"Rewrote {len(rewritten)} file-backed layers: {rewritten}")
 
     output = BytesIO()
     tree.write(output, encoding="utf-8", xml_declaration=True)
@@ -3251,7 +3347,9 @@ def _get_cable_infrastructure(
 
                 if routed_ids:
                     routed_map = {t["id"]: t for t in trenches}
-                    routed_trenches = [routed_map[tid] for tid in routed_ids if tid in routed_map]
+                    routed_trenches = [
+                        routed_map[tid] for tid in routed_ids if tid in routed_map
+                    ]
                 else:
                     routed_trenches = trenches
 
@@ -3265,7 +3363,11 @@ def _get_cable_infrastructure(
                         geom_json = t.get("geometry")
                         if path_coords and geom_json and len(path_coords) >= 2:
                             trimmed_trench_dicts.append(
-                                {"geometry": _trim_trench_to_path_coords(geom_json, path_coords)}
+                                {
+                                    "geometry": _trim_trench_to_path_coords(
+                                        geom_json, path_coords
+                                    )
+                                }
                             )
                         elif geom_json:
                             trimmed_trench_dicts.append({"geometry": geom_json})

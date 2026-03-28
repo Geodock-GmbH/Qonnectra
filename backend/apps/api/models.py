@@ -16,7 +16,7 @@ from django.utils.translation import gettext_lazy as _
 from pathvalidate import sanitize_filename
 from simple_history.models import HistoricalRecords
 
-from .storage import LocalMediaStorage, QGISProjectStorage
+from .storage import LocalMediaStorage, QGISDataFileStorage, QGISProjectStorage
 
 logger = logging.getLogger(__name__)
 
@@ -3034,6 +3034,121 @@ def qgis_project_deleted(sender, instance, **kwargs):
         except Exception as e:
             logger.error(
                 f"Error deleting QGIS project file {instance.project_file.name}: {e}"
+            )
+
+
+ALLOWED_DATA_FILE_EXTENSIONS = [
+    ".dxf",
+    ".shp",
+    ".shx",
+    ".dbf",
+    ".prj",
+    ".geojson",
+    ".json",
+    ".gpkg",
+    ".csv",
+    ".kml",
+    ".gml",
+]
+
+
+class QGISProjectDataFile(models.Model):
+    """Data file uploaded alongside a :model:`api.QGISProject`.
+
+    Supports DXF, SHP, GeoJSON, GPKG, CSV, KML, and GML formats.
+    Files are stored in ``deployment/qgis/data/{project_name}/`` and
+    mounted into the QGIS Server container at ``/data/{project_name}/``.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
+    project = models.ForeignKey(
+        QGISProject,
+        on_delete=models.CASCADE,
+        related_name="data_files",
+        verbose_name=_("QGIS Project"),
+    )
+
+    def get_data_file_upload_path(instance, filename):
+        """Generate upload path as ``{project.name}/{filename}``.
+
+        Args:
+            instance: The ``QGISProjectDataFile`` instance being saved.
+            filename: Original filename of the uploaded file.
+
+        Returns:
+            str: Relative upload path.
+        """
+        return f"{instance.project.name}/{filename}"
+
+    data_file = models.FileField(
+        _("Data File"),
+        upload_to=get_data_file_upload_path,
+        storage=QGISDataFileStorage(),
+        help_text=_("GIS data file (DXF, SHP, GeoJSON, GPKG, CSV, KML, GML)"),
+    )
+    original_filename = models.CharField(
+        _("Original Filename"),
+        max_length=255,
+        editable=False,
+        help_text=_("Original filename, used for datasource path matching"),
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "qgis_project_data_files"
+        verbose_name = _("Data File")
+        verbose_name_plural = _("Data Files")
+        unique_together = ("project", "original_filename")
+
+    def __str__(self):
+        return self.original_filename
+
+    def clean(self):
+        """Validate that the file has an allowed extension.
+
+        Raises:
+            ValidationError: If the file extension is not in
+                ``ALLOWED_DATA_FILE_EXTENSIONS``.
+        """
+        from django.core.exceptions import ValidationError
+
+        if self.data_file:
+            ext = os.path.splitext(self.data_file.name)[1].lower()
+            if ext not in ALLOWED_DATA_FILE_EXTENSIONS:
+                raise ValidationError(
+                    {
+                        "data_file": _(
+                            "Unsupported file type '%(ext)s'. Allowed: %(allowed)s"
+                        )
+                        % {
+                            "ext": ext,
+                            "allowed": ", ".join(ALLOWED_DATA_FILE_EXTENSIONS),
+                        }
+                    }
+                )
+
+    def save(self, *args, **kwargs):
+        """Auto-populate ``original_filename`` from the uploaded file.
+
+        Args:
+            *args: Positional arguments forwarded to ``Model.save``.
+            **kwargs: Keyword arguments forwarded to ``Model.save``.
+        """
+        if self.data_file and not self.original_filename:
+            self.original_filename = os.path.basename(self.data_file.name)
+        super().save(*args, **kwargs)
+
+
+@receiver(post_delete, sender=QGISProjectDataFile)
+def qgis_data_file_deleted(sender, instance, **kwargs):
+    """Delete the physical data file from storage on model deletion."""
+    if instance.data_file:
+        try:
+            instance.data_file.delete(save=False)
+            logger.info(f"Deleted QGIS data file: {instance.data_file.name}")
+        except Exception as e:
+            logger.error(
+                f"Error deleting QGIS data file {instance.data_file.name}: {e}"
             )
 
 
