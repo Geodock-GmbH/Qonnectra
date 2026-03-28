@@ -76,6 +76,7 @@ services:
       - QGIS_PG_SERVICE_NAME=${QGIS_PG_SERVICE_NAME:-qonnectra}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://app.localhost}
       - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-https://api.localhost,https://app.localhost}
+      - FIELD_ENCRYPTION_KEY=${FIELD_ENCRYPTION_KEY}
     depends_on:
       db:
         condition: service_healthy
