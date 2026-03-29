@@ -518,7 +518,7 @@
 
 		<!-- Children -->
 		{#if hasChildren}
-			{#each node.children as child, i (child.fiber.id)}
+			{#each node.children as child, i (`${child.fiber.id}-${i}`)}
 				{@render traceNode(child, depth + 1, i === node.children.length - 1)}
 			{/each}
 		{/if}
