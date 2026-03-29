@@ -92,7 +92,8 @@ export async function load({ fetch, cookies, params }) {
 				const features = nodesData.features || nodesData.results?.features || [];
 				linkedNodes = features.map((/** @type {any} */ f) => ({
 					uuid: f.id || f.properties?.uuid,
-					name: f.properties?.name || ''
+					name: f.properties?.name || '',
+					parentNodeName: f.properties?.parent_node?.name || ''
 				}));
 
 				if (linkedNodes.length > 0) {
@@ -116,7 +117,8 @@ export async function load({ fetch, cookies, params }) {
 									conduitName: md.uuid_conduit?.name || '',
 									conduitType: md.uuid_conduit?.conduit_type?.conduit_type || '',
 									nodeName: linkedNodes[i].name,
-									nodeUuid: linkedNodes[i].uuid
+									nodeUuid: linkedNodes[i].uuid,
+									parentNodeName: linkedNodes[i].parentNodeName
 								});
 							}
 						}

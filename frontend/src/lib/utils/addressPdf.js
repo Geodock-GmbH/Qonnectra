@@ -543,6 +543,7 @@ function drawMicroductTable(doc, { microducts, y, labels }) {
 	y += 16;
 
 	const headers = [
+		labels.tableParentNode,
 		labels.tableNode,
 		labels.tableConduitName,
 		labels.tableConduitType,
@@ -550,7 +551,7 @@ function drawMicroductTable(doc, { microducts, y, labels }) {
 		labels.tableColor
 	];
 
-	const colWidths = [45, 40, 35, 25, 25];
+	const colWidths = [35, 35, 30, 30, 20, 20];
 	const rowHeight = 7;
 
 	doc.setFillColor(...COLORS.slate100);
@@ -581,20 +582,23 @@ function drawMicroductTable(doc, { microducts, y, labels }) {
 
 		doc.setTextColor(...COLORS.slate900);
 		doc.setFont('helvetica', 'bold');
-		doc.text(truncateText(doc, md.nodeName || '–', colWidths[0] - 6), colX, y + 5);
+		doc.text(truncateText(doc, md.parentNodeName || '–', colWidths[0] - 6), colX, y + 5);
 		colX += colWidths[0];
 
 		doc.setFont('helvetica', 'normal');
-		doc.text(truncateText(doc, md.conduitName || '–', colWidths[1] - 6), colX, y + 5);
+		doc.text(truncateText(doc, md.nodeName || '–', colWidths[1] - 6), colX, y + 5);
 		colX += colWidths[1];
 
-		doc.text(truncateText(doc, md.conduitType || '–', colWidths[2] - 6), colX, y + 5);
+		doc.text(truncateText(doc, md.conduitName || '–', colWidths[2] - 6), colX, y + 5);
 		colX += colWidths[2];
+
+		doc.text(truncateText(doc, md.conduitType || '–', colWidths[3] - 6), colX, y + 5);
+		colX += colWidths[3];
 
 		doc.setFont('helvetica', 'normal');
 		doc.setTextColor(...COLORS.slate900);
 		doc.text(String(md.number || '–'), colX, y + 5);
-		colX += colWidths[3];
+		colX += colWidths[4];
 
 		const colorHex = md.colorHex || '#64748b';
 		const rgb = hexToRgb(colorHex);
@@ -658,6 +662,7 @@ function drawFiberTable(doc, { fibers, y, labels }) {
 	y += 16;
 
 	const headers = [
+		labels.tableParentNode,
 		labels.tableNode,
 		labels.tableCableName,
 		labels.tableFiberAbsolute,
@@ -665,7 +670,7 @@ function drawFiberTable(doc, { fibers, y, labels }) {
 		labels.tableFiber
 	];
 
-	const colWidths = [40, 40, 30, 30, 30];
+	const colWidths = [30, 30, 30, 25, 27, 28];
 	const rowHeight = 7;
 
 	doc.setFillColor(...COLORS.slate100);
@@ -696,16 +701,19 @@ function drawFiberTable(doc, { fibers, y, labels }) {
 
 		doc.setTextColor(...COLORS.slate900);
 		doc.setFont('helvetica', 'bold');
-		doc.text(truncateText(doc, fc.node_name || '–', colWidths[0] - 6), colX, y + 5);
+		doc.text(truncateText(doc, fc.parent_node_name || '–', colWidths[0] - 6), colX, y + 5);
 		colX += colWidths[0];
 
 		doc.setFont('helvetica', 'normal');
-		doc.text(truncateText(doc, fc.cable_name || '–', colWidths[1] - 6), colX, y + 5);
+		doc.text(truncateText(doc, fc.node_name || '–', colWidths[1] - 6), colX, y + 5);
 		colX += colWidths[1];
+
+		doc.text(truncateText(doc, fc.cable_name || '–', colWidths[2] - 6), colX, y + 5);
+		colX += colWidths[2];
 
 		doc.setTextColor(...COLORS.slate900);
 		doc.text(String(fc.fiber_number_absolute || '–'), colX, y + 5);
-		colX += colWidths[2];
+		colX += colWidths[3];
 
 		const circleY = y + rowHeight / 2;
 
@@ -715,7 +723,7 @@ function drawFiberTable(doc, { fibers, y, labels }) {
 		doc.circle(colX + 2, circleY, 1.5, 'F');
 		doc.setTextColor(...COLORS.slate900);
 		doc.text(`${fc.bundle_number || '–'}`, colX + 6, circleY + 1);
-		colX += colWidths[3];
+		colX += colWidths[4];
 
 		const fiberColorHex = fc.fiber_color_hex || '#999999';
 		const fiberRgb = hexToRgb(fiberColorHex);

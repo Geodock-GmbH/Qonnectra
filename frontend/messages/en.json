@@ -685,6 +685,7 @@
 	"table_floor": "Floor",
 	"table_microduct_number": "Number",
 	"table_node": "Node",
+	"table_parent_node": "Parent Node",
 	"table_residential_unit_id": "ID",
 	"table_residential_unit_status": "Status",
 	"table_residential_unit_type": "Type",

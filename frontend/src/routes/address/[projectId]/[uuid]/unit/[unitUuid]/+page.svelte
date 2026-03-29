@@ -507,6 +507,9 @@
 						<thead>
 							<tr>
 								<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider"
+									>{m.table_parent_node()}</th
+								>
+								<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider"
 									>{m.table_node()}</th
 								>
 								<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider"
@@ -526,7 +529,8 @@
 						<tbody>
 							{#each fiberConnections as fc, i (i)}
 								<tr class="hover:preset-tonal-primary transition-colors">
-									<td class="font-medium">{fc.node_name}</td>
+									<td class="font-medium">{fc.parent_node_name}</td>
+									<td>{fc.node_name}</td>
 									<td>{fc.cable_name}</td>
 									<td>
 										<span
@@ -576,6 +580,11 @@
 								<span class="font-medium text-sm">{fc.node_name}</span>
 								<span class="text-xs text-surface-900-100">{fc.cable_name}</span>
 							</div>
+							{#if fc.parent_node_name}
+								<div class="text-xs text-surface-900-100">
+									{m.table_parent_node()}: {fc.parent_node_name}
+								</div>
+							{/if}
 							<div class="flex items-center gap-3 text-xs">
 								<span class="inline-flex items-center gap-1">
 									{m.table_fiber_absolute()}:

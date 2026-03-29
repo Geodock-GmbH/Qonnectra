@@ -1682,7 +1682,7 @@ class AddressViewSet(viewsets.ModelViewSet):
         splices = FiberSplice.objects.filter(
             Q(residential_unit_a__in=units) | Q(residential_unit_b__in=units)
         ).select_related(
-            "node_structure__uuid_node",
+            "node_structure__uuid_node__parent_node",
             "residential_unit_a",
             "residential_unit_b",
             "fiber_a",
@@ -1725,12 +1725,16 @@ class AddressViewSet(viewsets.ModelViewSet):
 
                 if fiber and cable:
                     node_name = ""
+                    parent_node_name = ""
                     if splice.node_structure and splice.node_structure.uuid_node:
                         node_name = splice.node_structure.uuid_node.name or ""
+                        if splice.node_structure.uuid_node.parent_node:
+                            parent_node_name = splice.node_structure.uuid_node.parent_node.name or ""
 
                     result[str(unit.uuid)].append(
                         {
                             "node_name": node_name,
+                            "parent_node_name": parent_node_name,
                             "cable_name": cable.name or "",
                             "fiber_number_absolute": fiber.fiber_number_absolute,
                             "bundle_number": fiber.bundle_number,
@@ -1834,7 +1838,7 @@ class ResidentialUnitViewSet(viewsets.ModelViewSet):
         splices = FiberSplice.objects.filter(
             Q(residential_unit_a=unit) | Q(residential_unit_b=unit)
         ).select_related(
-            "node_structure__uuid_node",
+            "node_structure__uuid_node__parent_node",
             "fiber_a",
             "cable_a",
             "fiber_b",
@@ -1866,12 +1870,16 @@ class ResidentialUnitViewSet(viewsets.ModelViewSet):
 
             if fiber and cable:
                 node_name = ""
+                parent_node_name = ""
                 if splice.node_structure and splice.node_structure.uuid_node:
                     node_name = splice.node_structure.uuid_node.name or ""
+                    if splice.node_structure.uuid_node.parent_node:
+                        parent_node_name = splice.node_structure.uuid_node.parent_node.name or ""
 
                 connections.append(
                     {
                         "node_name": node_name,
+                        "parent_node_name": parent_node_name,
                         "cable_name": cable.name,
                         "fiber_number_absolute": fiber.fiber_number_absolute,
                         "bundle_number": fiber.bundle_number,

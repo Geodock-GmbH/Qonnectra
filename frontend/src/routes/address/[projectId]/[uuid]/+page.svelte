@@ -495,6 +495,7 @@
 					residentRecordedDate: m.form_resident_recorded_date(),
 					readyForService: m.form_ready_for_service(),
 					sectionMicroductConnections: m.section_microduct_connections(),
+					tableParentNode: m.table_parent_node(),
 					tableNode: m.table_node(),
 					tableConduitName: m.table_conduit_name(),
 					tableConduitType: m.table_conduit_type(),
@@ -895,6 +896,9 @@
 						<thead>
 							<tr>
 								<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider"
+									>{m.table_parent_node()}</th
+								>
+								<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider"
 									>{m.table_node()}</th
 								>
 								<th class="text-xs font-medium text-surface-900-100 uppercase tracking-wider"
@@ -914,7 +918,8 @@
 						<tbody>
 							{#each linkedMicroducts as md (md.uuid)}
 								<tr class="hover:preset-tonal-primary transition-colors">
-									<td class="font-medium">{md.nodeName}</td>
+									<td class="font-medium">{md.parentNodeName}</td>
+									<td>{md.nodeName}</td>
 									<td>{md.conduitName}</td>
 									<td>{md.conduitType}</td>
 									<td>
@@ -958,6 +963,9 @@
 								</span>
 							</div>
 							<div class="grid grid-cols-2 gap-x-4 text-xs text-surface-900-100">
+								{#if md.parentNodeName}
+									<span>{m.table_parent_node()}: {md.parentNodeName}</span>
+								{/if}
 								<span>{m.table_conduit_name()}: {md.conduitName}</span>
 								<span>{m.table_conduit_type()}: {md.conduitType}</span>
 							</div>
