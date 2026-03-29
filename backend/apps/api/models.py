@@ -1329,6 +1329,17 @@ class Trench(models.Model):
 
     history = HistoricalRecords(excluded_fields=["geom_3857"])
 
+    def save(self, *args, **kwargs):
+        """Compute length from geometry before saving.
+
+        Keep the Python instance in sync with the DB trigger value so
+        django-simple-history's post_save signal does not write a stale
+        NULL length to the historical record.
+        """
+        if self.geom:
+            self.length = self.geom.length
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return str(self.id_trench)
 

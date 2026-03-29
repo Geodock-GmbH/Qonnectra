@@ -17,6 +17,7 @@ from apps.api.models import (
     AttributesMicroductColor,
     AttributesNetworkLevel,
     AttributesNodeType,
+    AttributesPhase,
     AttributesStatus,
     AttributesSurface,
     Cable,
@@ -129,6 +130,16 @@ class NetworkLevelFactory(factory.django.DjangoModelFactory):
 
     id = factory.Sequence(lambda n: n + 1)
     network_level = factory.Sequence(lambda n: f"Network Level {n}")
+
+
+class PhaseFactory(factory.django.DjangoModelFactory):
+    """Factory for AttributesPhase model."""
+
+    class Meta:
+        model = AttributesPhase
+
+    id = factory.Sequence(lambda n: n + 1)
+    phase = factory.Sequence(lambda n: f"Phase {n}")
 
 
 class ConduitTypeFactory(factory.django.DjangoModelFactory):
