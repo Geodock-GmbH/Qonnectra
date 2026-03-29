@@ -567,7 +567,7 @@
 {/snippet}
 
 {#snippet spliceDetails(/** @type {Record<string, any>} */ splice)}
-	<div class="border-l-2 border-secondary-500 py-1.5 pl-3 text-xs">
+	<div class="rounded-lg border border-secondary-500/30 bg-secondary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 flex items-center gap-2 text-secondary-500">
 			<IconArrowsSplit size={14} />
 			<span class="font-semibold">{m.trace_splice()}</span>
@@ -613,7 +613,7 @@
 {/snippet}
 
 {#snippet endpointSpliceDetails(/** @type {Record<string, any>} */ splice)}
-	<div class="border-l-2 border-dashed border-tertiary-500 py-1.5 pl-3 text-xs">
+	<div class="rounded-lg border border-dashed border-tertiary-500/30 bg-tertiary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 flex items-center gap-2 text-tertiary-500">
 			<IconArrowsSplit size={14} />
 			<span class="font-semibold">{m.trace_endpoint_splice()}</span>
@@ -676,7 +676,7 @@
 	/** @type {Record<string, any>} */ endpoints,
 	/** @type {string|undefined} */ currentNodeId
 )}
-	<div class="border-l-2 border-primary-500 py-1.5 pl-3 text-xs">
+	<div class="rounded-lg border border-primary-500/30 bg-primary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 font-semibold text-primary-500">
 			{m.trace_cable_path()}: {endpoints.cable_name}
 		</div>
@@ -763,7 +763,7 @@
 {/snippet}
 
 {#snippet addressDetails(/** @type {Record<string, any>} */ address)}
-	<div class="border-l-2 border-error-500 py-1.5 pl-3 text-xs">
+	<div class="rounded-lg border border-error-500/30 bg-error-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 flex items-center gap-2 text-error-500">
 			<IconMapPin size={14} />
 			<span class="font-semibold">{m.form_address({ count: 1 })}</span>
@@ -803,7 +803,7 @@
 {/snippet}
 
 {#snippet residentialUnitDetails(/** @type {Record<string, any>} */ ru)}
-	<div class="border-l-2 border-tertiary-500 py-1.5 pl-3 text-xs">
+	<div class="rounded-lg border border-tertiary-500/30 bg-tertiary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 flex items-center gap-2 text-tertiary-500">
 			<IconHome size={14} />
 			<span class="font-semibold">{m.section_residential_units({ count: 1 })}</span>
