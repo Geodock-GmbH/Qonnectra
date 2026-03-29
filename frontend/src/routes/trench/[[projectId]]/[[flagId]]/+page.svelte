@@ -12,12 +12,12 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 	import { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte.js';
 	import { MapState } from '$lib/classes/MapState.svelte.js';
 	import ConduitCombobox from '$lib/components/ConduitCombobox.svelte';
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import Map from '$lib/components/Map.svelte';
+	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 	import { zoomToFeature } from '$lib/map/searchUtils.js';
 	import {
 		addressStyle,
@@ -595,59 +595,67 @@
 
 	<!-- Controls Section -->
 	<div
-		class="order-2 flex-1 overflow-auto border-2 rounded-lg border-surface-200-800 pb-16 md:pb-0 lg:order-2 lg:flex-1"
+		class="order-2 min-w-0 flex-1 overflow-auto border-2 rounded-lg border-surface-200-800 pb-16 md:pb-0 lg:order-2 lg:flex-1"
 	>
-		<div class="flex flex-col h-full">
-			<div class="p-3 sm:p-4 space-y-3 sm:space-y-5 border-b border-surface-200-800">
+		<div class="flex min-w-0 flex-col h-full">
+			<div
+				class="@container p-3 sm:p-4 space-y-3 sm:space-y-5 border-b border-surface-200-800 min-w-0"
+			>
 				<!-- Mode Toggles -->
-				<div class="grid grid-cols-2 gap-2 sm:gap-3">
+				<div class="grid grid-cols-1 gap-2 sm:gap-3 @min-[36rem]:grid-cols-2">
 					<label
-						class="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 rounded-md bg-surface-100-900 cursor-pointer transition-colors hover:bg-surface-200-800"
+						class="flex min-w-0 items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 rounded-md bg-surface-100-900 cursor-pointer transition-colors hover:bg-surface-200-800"
 						title={m.form_routing_mode()}
 					>
-						<Switch
-							name="routing-mode"
-							checked={$routingMode}
-							onCheckedChange={() => {
-								$routingMode = !$routingMode;
-							}}
-						>
-							<Switch.Control class="scale-90">
-								<Switch.Thumb />
-							</Switch.Control>
-							<Switch.HiddenInput />
-						</Switch>
-						<IconRoute class="size-5 text-surface-900-100 sm:hidden" />
-						<span class="hidden sm:inline text-sm sm:text-base font-medium leading-tight text-surface-900-100"
+						<span class="inline-flex shrink-0">
+							<Switch
+								name="routing-mode"
+								checked={$routingMode}
+								onCheckedChange={() => {
+									$routingMode = !$routingMode;
+								}}
+							>
+								<Switch.Control class="scale-90">
+									<Switch.Thumb />
+								</Switch.Control>
+								<Switch.HiddenInput />
+							</Switch>
+						</span>
+						<IconRoute class="size-5 shrink-0 text-surface-900-100 sm:hidden" />
+						<span
+							class="hidden min-w-0 flex-1 wrap-break-word sm:inline text-sm sm:text-base font-medium leading-tight text-surface-900-100"
 							>{m.form_routing_mode()}</span
 						>
 					</label>
 
 					<label
-						class="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 rounded-md bg-surface-100-900 cursor-pointer transition-colors hover:bg-surface-200-800"
+						class="flex min-w-0 items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 sm:py-2.5 rounded-md bg-surface-100-900 cursor-pointer transition-colors hover:bg-surface-200-800"
 						title={m.form_show_linked_trenches()}
 					>
-						<Switch
-							name="show-linked-trenches"
-							checked={$showLinkedTrenches}
-							onCheckedChange={() => {
-								$showLinkedTrenches = !$showLinkedTrenches;
-							}}
-						>
-							<Switch.Control class="scale-90">
-								<Switch.Thumb />
-							</Switch.Control>
-							<Switch.HiddenInput />
-						</Switch>
-						<IconLink class="size-5 text-surface-900-100 sm:hidden" />
-						<span class="hidden sm:inline text-sm sm:text-base font-medium leading-tight text-surface-900-100"
+						<span class="inline-flex shrink-0">
+							<Switch
+								name="show-linked-trenches"
+								checked={$showLinkedTrenches}
+								onCheckedChange={() => {
+									$showLinkedTrenches = !$showLinkedTrenches;
+								}}
+							>
+								<Switch.Control class="scale-90">
+									<Switch.Thumb />
+								</Switch.Control>
+								<Switch.HiddenInput />
+							</Switch>
+						</span>
+						<IconLink class="size-5 shrink-0 text-surface-900-100 sm:hidden" />
+						<span
+							class="hidden min-w-0 flex-1 wrap-break-word sm:inline text-sm sm:text-base font-medium leading-tight text-surface-900-100"
 							>{m.form_show_linked_trenches()}</span
 						>
 					</label>
 				</div>
 
 				<!-- Selectors -->
-				<div class="grid grid-cols-2 gap-2 sm:gap-3">
+				<div class="grid grid-cols-1 gap-2 sm:gap-3 @min-[36rem]:grid-cols-2">
 					<div class="space-y-1 sm:space-y-1.5">
 						<span class="text-xs font-semibold text-surface-600-400 uppercase tracking-wide block"
 							>{m.form_flag()}</span
