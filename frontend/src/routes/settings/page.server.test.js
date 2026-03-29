@@ -67,10 +67,19 @@ describe('settings +page.server.js', () => {
 		const { getNodeTypes, getSurfaces, getConstructionTypes, getAreaTypes } =
 			await import('$lib/server/attributes');
 
-		/** @type {any} */ (getNodeTypes).mockResolvedValueOnce({ nodeTypes: [], nodeTypesError: null });
+		/** @type {any} */ (getNodeTypes).mockResolvedValueOnce({
+			nodeTypes: [],
+			nodeTypesError: null
+		});
 		/** @type {any} */ (getSurfaces).mockResolvedValueOnce({ surfaces: [], surfacesError: null });
-		/** @type {any} */ (getConstructionTypes).mockResolvedValueOnce({ constructionTypes: [], constructionTypesError: null });
-		/** @type {any} */ (getAreaTypes).mockResolvedValueOnce({ areaTypes: [], areaTypesError: null });
+		/** @type {any} */ (getConstructionTypes).mockResolvedValueOnce({
+			constructionTypes: [],
+			constructionTypesError: null
+		});
+		/** @type {any} */ (getAreaTypes).mockResolvedValueOnce({
+			areaTypes: [],
+			areaTypesError: null
+		});
 
 		await load(/** @type {any} */ ({ fetch: mockFetch, cookies: mockCookies }));
 
@@ -89,8 +98,14 @@ describe('settings +page.server.js', () => {
 			nodeTypesError: 'Failed to load node types'
 		});
 		/** @type {any} */ (getSurfaces).mockResolvedValueOnce({ surfaces: [], surfacesError: null });
-		/** @type {any} */ (getConstructionTypes).mockResolvedValueOnce({ constructionTypes: [], constructionTypesError: null });
-		/** @type {any} */ (getAreaTypes).mockResolvedValueOnce({ areaTypes: [], areaTypesError: null });
+		/** @type {any} */ (getConstructionTypes).mockResolvedValueOnce({
+			constructionTypes: [],
+			constructionTypesError: null
+		});
+		/** @type {any} */ (getAreaTypes).mockResolvedValueOnce({
+			areaTypes: [],
+			areaTypesError: null
+		});
 
 		/** @type {any} */
 		const result = await load(/** @type {any} */ ({ fetch: mockFetch, cookies: mockCookies }));
@@ -103,10 +118,22 @@ describe('settings +page.server.js', () => {
 		const { getNodeTypes, getSurfaces, getConstructionTypes, getAreaTypes } =
 			await import('$lib/server/attributes');
 
-		/** @type {any} */ (getNodeTypes).mockResolvedValueOnce({ nodeTypes: [], nodeTypesError: 'Error 1' });
-		/** @type {any} */ (getSurfaces).mockResolvedValueOnce({ surfaces: [], surfacesError: 'Error 2' });
-		/** @type {any} */ (getConstructionTypes).mockResolvedValueOnce({ constructionTypes: [], constructionTypesError: 'Error 3' });
-		/** @type {any} */ (getAreaTypes).mockResolvedValueOnce({ areaTypes: [], areaTypesError: 'Error 4' });
+		/** @type {any} */ (getNodeTypes).mockResolvedValueOnce({
+			nodeTypes: [],
+			nodeTypesError: 'Error 1'
+		});
+		/** @type {any} */ (getSurfaces).mockResolvedValueOnce({
+			surfaces: [],
+			surfacesError: 'Error 2'
+		});
+		/** @type {any} */ (getConstructionTypes).mockResolvedValueOnce({
+			constructionTypes: [],
+			constructionTypesError: 'Error 3'
+		});
+		/** @type {any} */ (getAreaTypes).mockResolvedValueOnce({
+			areaTypes: [],
+			areaTypesError: 'Error 4'
+		});
 
 		/** @type {any} */
 		const result = await load(/** @type {any} */ ({ fetch: mockFetch, cookies: mockCookies }));
@@ -122,11 +149,17 @@ describe('settings +page.server.js', () => {
 			await import('$lib/server/attributes');
 
 		/** @type {any} */ (getNodeTypes).mockResolvedValueOnce({
-			nodeTypes: [{ uuid: 'nt-1', name: 'MFG' }, { uuid: 'nt-2', name: 'KVZ' }],
+			nodeTypes: [
+				{ uuid: 'nt-1', name: 'MFG' },
+				{ uuid: 'nt-2', name: 'KVZ' }
+			],
 			nodeTypesError: null
 		});
 		/** @type {any} */ (getSurfaces).mockResolvedValueOnce({
-			surfaces: [{ uuid: 's-1', name: 'Asphalt' }, { uuid: 's-2', name: 'Gravel' }],
+			surfaces: [
+				{ uuid: 's-1', name: 'Asphalt' },
+				{ uuid: 's-2', name: 'Gravel' }
+			],
 			surfacesError: null
 		});
 		/** @type {any} */ (getConstructionTypes).mockResolvedValueOnce({

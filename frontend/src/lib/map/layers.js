@@ -1,9 +1,9 @@
+import { getTopLeft, getWidth } from 'ol/extent.js';
 import TileLayer from 'ol/layer/Tile.js';
 import VectorTileLayer from 'ol/layer/VectorTile.js';
+import { get as getProjection } from 'ol/proj.js';
 import TileWMS from 'ol/source/TileWMS.js';
 import TileGrid from 'ol/tilegrid/TileGrid.js';
-import { getTopLeft, getWidth } from 'ol/extent.js';
-import { get as getProjection } from 'ol/proj.js';
 
 import {
 	createAddressStyleWithLabels,
@@ -247,7 +247,9 @@ export function createWMSLayer({
 	/** @type {boolean} */
 	let authErrorLogged = false;
 
-	const projection = /** @type {import('ol/proj/Projection').default} */ (getProjection('EPSG:3857'));
+	const projection = /** @type {import('ol/proj/Projection').default} */ (
+		getProjection('EPSG:3857')
+	);
 	const projectionExtent = projection.getExtent();
 	const size = getWidth(projectionExtent) / 512;
 	const resolutions = Array.from({ length: 23 }, (_, z) => size / Math.pow(2, z));

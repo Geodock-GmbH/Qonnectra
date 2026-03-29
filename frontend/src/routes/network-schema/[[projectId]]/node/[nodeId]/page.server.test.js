@@ -111,9 +111,7 @@ describe('child view +page.server.js', () => {
 		});
 
 		test('should redirect when nodeId is missing', async () => {
-			await expect(callLoad('proj-1', undefined)).rejects.toThrow(
-				'Redirect to /network-schema'
-			);
+			await expect(callLoad('proj-1', undefined)).rejects.toThrow('Redirect to /network-schema');
 		});
 
 		test('should redirect when node fetch fails', async () => {
@@ -286,8 +284,7 @@ describe('child view +page.server.js', () => {
 				if (url.includes('node/all')) {
 					return Promise.resolve({
 						ok: true,
-						json: () =>
-							Promise.resolve([{ id: 'node-1', properties: { uuid: 'node-1' } }])
+						json: () => Promise.resolve([{ id: 'node-1', properties: { uuid: 'node-1' } }])
 					});
 				}
 				if (url.includes('cable/all')) {

@@ -7,10 +7,21 @@ vi.mock('$env/static/private', () => ({
 }));
 
 vi.mock('$lib/server/attributes', () => ({
-	getNodeTypes: vi.fn(() => Promise.resolve({ nodeTypes: [{ uuid: 'nt-1', name: 'Type A' }], nodeTypesError: null })),
-	getSurfaces: vi.fn(() => Promise.resolve({ surfaces: [{ uuid: 's-1', name: 'Asphalt' }], surfacesError: null })),
-	getConstructionTypes: vi.fn(() => Promise.resolve({ constructionTypes: [{ uuid: 'ct-1', name: 'Open' }], constructionTypesError: null })),
-	getAreaTypes: vi.fn(() => Promise.resolve({ areaTypes: [{ uuid: 'at-1', name: 'Residential' }], areaTypesError: null }))
+	getNodeTypes: vi.fn(() =>
+		Promise.resolve({ nodeTypes: [{ uuid: 'nt-1', name: 'Type A' }], nodeTypesError: null })
+	),
+	getSurfaces: vi.fn(() =>
+		Promise.resolve({ surfaces: [{ uuid: 's-1', name: 'Asphalt' }], surfacesError: null })
+	),
+	getConstructionTypes: vi.fn(() =>
+		Promise.resolve({
+			constructionTypes: [{ uuid: 'ct-1', name: 'Open' }],
+			constructionTypesError: null
+		})
+	),
+	getAreaTypes: vi.fn(() =>
+		Promise.resolve({ areaTypes: [{ uuid: 'at-1', name: 'Residential' }], areaTypesError: null })
+	)
 }));
 
 vi.mock('$lib/server/conduitData', () => ({
@@ -130,9 +141,7 @@ describe('house-connections +page.server.js', () => {
 
 		test('should return fail(400) when microductUuid is missing', async () => {
 			/** @type {any} */
-			const result = await actions.assignNodeToMicroduct(
-				createEvent({ nodeUuid: 'node-1' })
-			);
+			const result = await actions.assignNodeToMicroduct(createEvent({ nodeUuid: 'node-1' }));
 
 			expect(result?.status).toBe(400);
 			expect(result?.data?.error).toBe('Microduct UUID is required');
@@ -140,9 +149,7 @@ describe('house-connections +page.server.js', () => {
 
 		test('should return fail(400) when nodeUuid is missing', async () => {
 			/** @type {any} */
-			const result = await actions.assignNodeToMicroduct(
-				createEvent({ microductUuid: 'md-1' })
-			);
+			const result = await actions.assignNodeToMicroduct(createEvent({ microductUuid: 'md-1' }));
 
 			expect(result?.status).toBe(400);
 			expect(result?.data?.error).toBe('Node UUID is required');
@@ -184,9 +191,7 @@ describe('house-connections +page.server.js', () => {
 				json: () => Promise.resolve({ uuid: 'md-1', uuid_node_id: null })
 			});
 
-			const result = await actions.removeNodeFromMicroduct(
-				createEvent({ microductUuid: 'md-1' })
-			);
+			const result = await actions.removeNodeFromMicroduct(createEvent({ microductUuid: 'md-1' }));
 
 			expect(mockFetch).toHaveBeenCalledWith('http://localhost:8000/microduct/md-1/', {
 				method: 'PATCH',
@@ -215,9 +220,7 @@ describe('house-connections +page.server.js', () => {
 			});
 
 			/** @type {any} */
-			const result = await actions.removeNodeFromMicroduct(
-				createEvent({ microductUuid: 'md-1' })
-			);
+			const result = await actions.removeNodeFromMicroduct(createEvent({ microductUuid: 'md-1' }));
 
 			expect(result?.status).toBe(404);
 			expect(result?.data?.error).toBe('Not found');
@@ -227,9 +230,7 @@ describe('house-connections +page.server.js', () => {
 			mockFetch.mockRejectedValueOnce(new Error('Connection refused'));
 
 			/** @type {any} */
-			const result = await actions.removeNodeFromMicroduct(
-				createEvent({ microductUuid: 'md-1' })
-			);
+			const result = await actions.removeNodeFromMicroduct(createEvent({ microductUuid: 'md-1' }));
 
 			expect(result?.status).toBe(500);
 			expect(result?.data?.error).toBe('Internal server error');
@@ -247,7 +248,12 @@ describe('house-connections +page.server.js', () => {
 				createEvent({ searchQuery: 'test' }, { projectId: 'proj-1' })
 			);
 
-			expect(searchFeaturesInProject).toHaveBeenCalledWith(mockFetch, mockCookies, 'test', 'proj-1');
+			expect(searchFeaturesInProject).toHaveBeenCalledWith(
+				mockFetch,
+				mockCookies,
+				'test',
+				'proj-1'
+			);
 			expect(result).toEqual([{ value: 'uuid-1', label: 'Node 1', type: 'node', uuid: 'uuid-1' }]);
 		});
 
@@ -270,14 +276,15 @@ describe('house-connections +page.server.js', () => {
 			});
 
 			const result = await actions.getFeatureDetails(
-				createEvent(
-					{ featureType: 'node', featureUuid: 'uuid-1' },
-					{ projectId: 'proj-1' }
-				)
+				createEvent({ featureType: 'node', featureUuid: 'uuid-1' }, { projectId: 'proj-1' })
 			);
 
 			expect(getFeatureDetailsByType).toHaveBeenCalledWith(
-				mockFetch, mockCookies, 'node', 'uuid-1', 'proj-1'
+				mockFetch,
+				mockCookies,
+				'node',
+				'uuid-1',
+				'proj-1'
 			);
 			expect(result).toEqual({
 				success: true,
@@ -287,14 +294,21 @@ describe('house-connections +page.server.js', () => {
 
 		test('should pass empty string when projectId is undefined', async () => {
 			const { getFeatureDetailsByType } = await import('$lib/server/featureSearch');
-			/** @type {any} */ (getFeatureDetailsByType).mockResolvedValueOnce({ success: true, feature: {} });
+			/** @type {any} */ (getFeatureDetailsByType).mockResolvedValueOnce({
+				success: true,
+				feature: {}
+			});
 
 			await actions.getFeatureDetails(
 				createEvent({ featureType: 'trench', featureUuid: 'uuid-2' }, {})
 			);
 
 			expect(getFeatureDetailsByType).toHaveBeenCalledWith(
-				mockFetch, mockCookies, 'trench', 'uuid-2', ''
+				mockFetch,
+				mockCookies,
+				'trench',
+				'uuid-2',
+				''
 			);
 		});
 	});
@@ -308,9 +322,7 @@ describe('house-connections +page.server.js', () => {
 				trenchUuids: ['t-1', 't-2']
 			});
 
-			const result = await actions.getConduitTrenches(
-				createEvent({ conduitUuid: 'conduit-1' })
-			);
+			const result = await actions.getConduitTrenches(createEvent({ conduitUuid: 'conduit-1' }));
 
 			expect(getTrenchUuidsForConduit).toHaveBeenCalledWith(mockFetch, mockCookies, 'conduit-1');
 			expect(result).toEqual({

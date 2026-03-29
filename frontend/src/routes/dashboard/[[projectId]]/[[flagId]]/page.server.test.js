@@ -88,9 +88,7 @@ describe('dashboard +page.server.js', () => {
 		}
 	};
 
-	const mockProjectsData = [
-		{ project: 'Project A', description: 'Test project', active: true }
-	];
+	const mockProjectsData = [{ project: 'Project A', description: 'Test project', active: true }];
 
 	/**
 	 * @param {object} [options]

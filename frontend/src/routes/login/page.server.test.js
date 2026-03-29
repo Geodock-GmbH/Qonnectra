@@ -240,11 +240,15 @@ describe('login +page.server.js', () => {
 			// redirect throws
 		}
 
-		expect(mockCookies.set).toHaveBeenCalledWith('selected-project', '1', expect.objectContaining({
-			path: '/',
-			httpOnly: false,
-			sameSite: 'lax'
-		}));
+		expect(mockCookies.set).toHaveBeenCalledWith(
+			'selected-project',
+			'1',
+			expect.objectContaining({
+				path: '/',
+				httpOnly: false,
+				sameSite: 'lax'
+			})
+		);
 	});
 
 	test('should not overwrite existing selected-project cookie', async () => {

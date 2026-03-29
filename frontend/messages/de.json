@@ -100,13 +100,8 @@
 	"common_reset_all": "Alle zurücksetzen",
 	"common_results": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Ergebnis",
 				"countPlural=other": "Ergebnisse"
@@ -124,13 +119,8 @@
 	"form_actions": "Aktionen",
 	"form_address": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Adresse",
 				"countPlural=other": "Adressen"
@@ -139,13 +129,8 @@
 	],
 	"form_address_id": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Adress-ID",
 				"countPlural=other": "Adressen-IDs"
@@ -185,13 +170,8 @@
 	"form_breakdown_by_type": "Aufteilung nach Bauart",
 	"form_building": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Gebäude",
 				"countPlural=other": "Gebäude"
@@ -215,13 +195,8 @@
 	"form_components": "Komponenten",
 	"form_conduit": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Rohr",
 				"countPlural=other": "Rohre"
@@ -246,13 +221,8 @@
 	"form_date_to": "Bis Datum",
 	"form_days": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Tag",
 				"countPlural=other": "Tagen"
@@ -273,13 +243,8 @@
 	"form_fibers": "Fasern",
 	"form_files": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Datei",
 				"countPlural=other": "Dateien"
@@ -321,13 +286,8 @@
 	"form_message": "Nachricht",
 	"form_microduct": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Mikrorohr",
 				"countPlural=other": "Mikrorohre"
@@ -366,13 +326,8 @@
 	"form_ports": "Ports",
 	"form_project": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Projekt",
 				"countPlural=other": "Projekte"
@@ -401,13 +356,8 @@
 	"form_side": "Seite",
 	"form_slot": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Slot",
 				"countPlural=other": "Slots"
@@ -672,13 +622,8 @@
 	"section_microduct_connections": "Mikrorohrverbindungen",
 	"section_residential_units": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Wohneinheit",
 				"countPlural=other": "Wohneinheiten"
@@ -819,25 +764,21 @@
 	"tooltip_zoom_to_extent": "Auf Ausdehnung zoomen",
 	"trace_addresses": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Adresse",
 				"countPlural=other": "Adressen"
 			}
 		}
 	],
-	"trace_at_address": "@ Adresse:",
+	"trace_at_address": "Adresse:",
 	"trace_branches": "Verzweigungen",
 	"trace_cable_endpoints": "Kabelendpunkte",
 	"trace_cable_infrastructure": "Kabelinfrastruktur",
 	"trace_cable_path": "Kabelpfad",
 	"trace_container_path": "Containerpfad",
+	"trace_details": "Details",
 	"trace_description": "Netzwerkpfadanalyse und Infrastrukturvisualisierung",
 	"trace_download_geojson": "GeoJSON herunterladen",
 	"trace_end": "Ende",
@@ -866,13 +807,8 @@
 	"trace_raw_json": "JSON-Rohdaten",
 	"trace_residential_units": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "WE",
 				"countPlural=other": "WEs"
@@ -890,13 +826,8 @@
 	"trace_splice": "Spleiss",
 	"trace_splices": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Spleiss",
 				"countPlural=other": "Spleisse"

@@ -1,8 +1,9 @@
 <script>
 	import { onDestroy, onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { env } from '$env/dynamic/public';
 	import { page } from '$app/state';
+	import { env } from '$env/dynamic/public';
+
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 
 	import 'ol/ol.css';

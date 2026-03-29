@@ -275,7 +275,9 @@
 				<p class="text-sm wrap-break-word">{log.message}</p>
 			</div>
 		{:else}
-			<div class="preset-filled-surface-50-950 rounded-lg shadow p-8 text-center text-surface-500-500">
+			<div
+				class="preset-filled-surface-50-950 rounded-lg shadow p-8 text-center text-surface-500-500"
+			>
 				{m.message_no_logs_found()}
 			</div>
 		{/each}

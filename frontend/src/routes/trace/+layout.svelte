@@ -32,7 +32,9 @@
 					<IconNetwork size={48} stroke={1.5} class="hidden sm:block" />
 				</div>
 				<h1 class="text-2xl font-bold text-surface-900-100 sm:text-3xl">{m.nav_fiber_trace()}</h1>
-				<p class="mt-1.5 text-sm text-surface-600-400 sm:mt-2 sm:text-base">{m.trace_description()}</p>
+				<p class="mt-1.5 text-sm text-surface-600-400 sm:mt-2 sm:text-base">
+					{m.trace_description()}
+				</p>
 			</header>
 			{@render children()}
 		</div>

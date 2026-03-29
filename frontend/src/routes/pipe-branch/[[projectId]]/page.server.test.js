@@ -233,9 +233,7 @@ describe('pipe-branch +page.server.js', () => {
 
 		test('should return fail(400) when required fields are missing', async () => {
 			/** @type {any} */
-			const result = await actions.createConnection(
-				createEvent({ uuid_microduct_from: 'md-1' })
-			);
+			const result = await actions.createConnection(createEvent({ uuid_microduct_from: 'md-1' }));
 
 			expect(result.status).toBe(400);
 			expect(result.data.error).toContain('Missing required fields');
@@ -375,9 +373,7 @@ describe('pipe-branch +page.server.js', () => {
 
 		test('should return fail(400) when project is missing', async () => {
 			/** @type {any} */
-			const result = await actions.getTrenchesNearNode(
-				createEvent({ node_name: 'Node A' })
-			);
+			const result = await actions.getTrenchesNearNode(createEvent({ node_name: 'Node A' }));
 
 			expect(result.status).toBe(400);
 			expect(result.data.error).toContain('project');
@@ -418,9 +414,7 @@ describe('pipe-branch +page.server.js', () => {
 				json: () => Promise.resolve([{ trench: 't-1' }])
 			});
 
-			const result = await actions.getTrenchSelections(
-				createEvent({ node_uuid: 'node-1' })
-			);
+			const result = await actions.getTrenchSelections(createEvent({ node_uuid: 'node-1' }));
 
 			expect(mockFetch).toHaveBeenCalledWith(
 				'http://localhost:8000/node-trench-selection/by-node/node-1/',
@@ -441,9 +435,7 @@ describe('pipe-branch +page.server.js', () => {
 			mockFetch.mockRejectedValueOnce(new Error('Connection refused'));
 
 			/** @type {any} */
-			const result = await actions.getTrenchSelections(
-				createEvent({ node_uuid: 'node-1' })
-			);
+			const result = await actions.getTrenchSelections(createEvent({ node_uuid: 'node-1' }));
 
 			expect(result.status).toBe(500);
 			expect(result.data.error).toBe('Internal server error');

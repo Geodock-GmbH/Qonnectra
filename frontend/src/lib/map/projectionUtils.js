@@ -1,5 +1,5 @@
-import proj4 from 'proj4';
 import { register } from 'ol/proj/proj4';
+import proj4 from 'proj4';
 
 /** @type {number | null} */
 let registeredSrid = null;

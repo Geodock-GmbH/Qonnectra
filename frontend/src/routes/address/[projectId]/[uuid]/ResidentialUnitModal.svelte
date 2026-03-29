@@ -127,30 +127,60 @@
 					<div class="grid grid-cols-2 gap-4">
 						<label class="label">
 							<span class="label-text text-sm text-surface-600-400">{m.form_floor()}</span>
-							<input id="modal-floor" name="floor" type="number" class="input transition-colors" bind:value={formFloor} />
+							<input
+								id="modal-floor"
+								name="floor"
+								type="number"
+								class="input transition-colors"
+								bind:value={formFloor}
+							/>
 						</label>
 						<label class="label">
 							<span class="label-text text-sm text-surface-600-400"
 								>{m.form_residential_unit_side()}</span
 							>
-							<input id="modal-side" name="side" type="text" class="input transition-colors" bind:value={formSide} />
+							<input
+								id="modal-side"
+								name="side"
+								type="text"
+								class="input transition-colors"
+								bind:value={formSide}
+							/>
 						</label>
 						<label class="label">
 							<span class="label-text text-sm text-surface-600-400"
 								>{m.form_building_section()}</span
 							>
-							<input id="modal-building-section" name="building_section" type="text" class="input transition-colors" bind:value={formBuildingSection} />
+							<input
+								id="modal-building-section"
+								name="building_section"
+								type="text"
+								class="input transition-colors"
+								bind:value={formBuildingSection}
+							/>
 						</label>
 					</div>
 
 					<div class="grid grid-cols-2 gap-4">
 						<label class="label">
 							<span class="label-text text-sm text-surface-600-400">{m.form_external_id_1()}</span>
-							<input id="modal-external-id-1" name="external_id_1" type="text" class="input transition-colors" bind:value={formExternalId1} />
+							<input
+								id="modal-external-id-1"
+								name="external_id_1"
+								type="text"
+								class="input transition-colors"
+								bind:value={formExternalId1}
+							/>
 						</label>
 						<label class="label">
 							<span class="label-text text-sm text-surface-600-400">{m.form_external_id_2()}</span>
-							<input id="modal-external-id-2" name="external_id_2" type="text" class="input transition-colors" bind:value={formExternalId2} />
+							<input
+								id="modal-external-id-2"
+								name="external_id_2"
+								type="text"
+								class="input transition-colors"
+								bind:value={formExternalId2}
+							/>
 						</label>
 					</div>
 

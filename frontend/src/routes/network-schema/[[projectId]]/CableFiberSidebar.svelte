@@ -251,7 +251,10 @@
 							class="transition-transform shrink-0 {isExpanded ? 'rotate-0' : '-rotate-90'}"
 						/>
 						<div class="flex-1 min-w-0">
-							<div class="font-medium flex items-center gap-2 min-w-0" {@attach tooltip(cable.name)}>
+							<div
+								class="font-medium flex items-center gap-2 min-w-0"
+								{@attach tooltip(cable.name)}
+							>
 								<span class="truncate">{cable.name}</span>
 								{#if cable.direction === 'start'}
 									<IconArrowRight size={14} class="text-surface-500 shrink-0" />

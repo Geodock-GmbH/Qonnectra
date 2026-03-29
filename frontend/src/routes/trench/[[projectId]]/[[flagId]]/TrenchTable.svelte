@@ -284,10 +284,11 @@
 							role="button"
 							tabindex={0}
 							onkeydown={(e) =>
-								e.key === 'Enter' &&
-								(sortDirection = sortDirection === 'asc' ? 'desc' : 'asc')}
+								e.key === 'Enter' && (sortDirection = sortDirection === 'asc' ? 'desc' : 'asc')}
 						>
-							<div class="flex items-center gap-1 text-xs font-semibold text-surface-600-400 uppercase tracking-wide">
+							<div
+								class="flex items-center gap-1 text-xs font-semibold text-surface-600-400 uppercase tracking-wide"
+							>
 								<span>{m.form_trench_id()}</span>
 								{#if sortDirection === 'asc'}
 									<IconChevronUp class="size-4" />

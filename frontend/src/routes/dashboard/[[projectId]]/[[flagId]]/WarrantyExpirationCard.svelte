@@ -60,7 +60,8 @@
 							{#if warranty.days_until_expiry === 0}
 								{m.form_expires_on()} {formatDate(warranty.warranty)}
 							{:else}
-								{warranty.days_until_expiry} {m.form_days({ count: Number(warranty.days_until_expiry) })}
+								{warranty.days_until_expiry}
+								{m.form_days({ count: Number(warranty.days_until_expiry) })}
 							{/if}
 						</div>
 						<div class="text-xs text-surface-600-300 tabular-nums">

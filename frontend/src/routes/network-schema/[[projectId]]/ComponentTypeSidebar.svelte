@@ -152,7 +152,12 @@
 				<div
 					class="w-full flex items-center gap-3 p-3 rounded-lg bg-surface-200-800 border border-surface-300-700 hover:bg-surface-300-700 transition-colors text-left cursor-pointer"
 					onclick={() => handleItemClick(ct)}
-					onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleItemClick(ct); } }}
+					onkeydown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault();
+							handleItemClick(ct);
+						}
+					}}
 					role="button"
 					tabindex="0"
 				>
@@ -171,7 +176,13 @@
 							{/if}
 						</div>
 					</div>
-							<div class="flex items-center gap-1 shrink-0" role="toolbar" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
+					<div
+						class="flex items-center gap-1 shrink-0"
+						role="toolbar"
+						tabindex="-1"
+						onclick={(e) => e.stopPropagation()}
+						onkeydown={(e) => e.stopPropagation()}
+					>
 						<button
 							type="button"
 							class="w-8 h-8 flex items-center justify-center rounded bg-surface-300-700 hover:bg-surface-400-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

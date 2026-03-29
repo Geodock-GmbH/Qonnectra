@@ -26,6 +26,7 @@
 		trenchStyleMode,
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
+
 	import HouseConnectionDrawerTabs from './HouseConnectionDrawerTabs.svelte';
 
 	import 'ol/ol.css';

@@ -178,11 +178,13 @@ describe('admin logs +page.server.js', () => {
 		test('should return filters in response', async () => {
 			setupMocks();
 
-			const result = /** @type {any} */ (await load(
-				createLoadArgs(
-					'http://localhost/admin/logs?level=WARNING&source=frontend&search=timeout&page=3'
+			const result = /** @type {any} */ (
+				await load(
+					createLoadArgs(
+						'http://localhost/admin/logs?level=WARNING&source=frontend&search=timeout&page=3'
+					)
 				)
-			));
+			);
 
 			expect(result.filters).toEqual({
 				level: 'WARNING',

@@ -345,11 +345,23 @@
 					<div class="grid grid-cols-2 gap-4">
 						<label class="label">
 							<span class="label-text text-sm text-surface-900-100">{m.form_external_id_1()}</span>
-							<input id="external-id-1" type="text" class="input" name="external_id_1" bind:value={formExternalId1} />
+							<input
+								id="external-id-1"
+								type="text"
+								class="input"
+								name="external_id_1"
+								bind:value={formExternalId1}
+							/>
 						</label>
 						<label class="label">
 							<span class="label-text text-sm text-surface-900-100">{m.form_external_id_2()}</span>
-							<input id="external-id-2" type="text" class="input" name="external_id_2" bind:value={formExternalId2} />
+							<input
+								id="external-id-2"
+								type="text"
+								class="input"
+								name="external_id_2"
+								bind:value={formExternalId2}
+							/>
 						</label>
 					</div>
 				</div>
@@ -404,7 +416,13 @@
 				<div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
 					<label class="label">
 						<span class="label-text text-sm text-surface-900-100">{m.form_floor()}</span>
-						<input id="unit-floor" type="number" class="input" name="floor" bind:value={formFloor} />
+						<input
+							id="unit-floor"
+							type="number"
+							class="input"
+							name="floor"
+							bind:value={formFloor}
+						/>
 					</label>
 					<label class="label">
 						<span class="label-text text-sm text-surface-900-100"
@@ -435,7 +453,13 @@
 				<div class="space-y-4">
 					<label class="label">
 						<span class="label-text text-sm text-surface-900-100">{m.form_resident_name()}</span>
-						<input id="resident-name" type="text" class="input" name="resident_name" bind:value={formResidentName} />
+						<input
+							id="resident-name"
+							type="text"
+							class="input"
+							name="resident_name"
+							bind:value={formResidentName}
+						/>
 					</label>
 
 					<label class="label">

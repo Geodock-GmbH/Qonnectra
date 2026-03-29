@@ -66,11 +66,7 @@ export async function createHighlightStyle(color = '#ff0000') {
  * @param {string | null} toProjection - Target projection (default: map projection)
  * @returns {Promise<import('ol/geom/Geometry').default | undefined>} OpenLayers geometry
  */
-export async function parseFeatureGeometry(
-	feature,
-	fromProjection,
-	toProjection = null
-) {
+export async function parseFeatureGeometry(feature, fromProjection, toProjection = null) {
 	const [{ default: GeoJSON }] = await Promise.all([import('ol/format/GeoJSON')]);
 
 	const geoJsonFormat = new GeoJSON();

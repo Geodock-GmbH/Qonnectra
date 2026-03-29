@@ -55,27 +55,27 @@
 </script>
 
 <div class="custom-tabs-root">
-<SkeletonTabs {value} onValueChange={handleValueChange} orientation={effectiveOrientation}>
-	<div
-		class="tabs-wrapper {effectiveOrientation === 'horizontal'
-			? 'tabs-horizontal'
-			: ''} {className}"
-	>
-		<!-- Tab List -->
-		<SkeletonTabs.List>
-			{#each tabs as tab (tab.value)}
-				<SkeletonTabs.Trigger class="justify-start" value={tab.value}>
-					{tab.label}
-				</SkeletonTabs.Trigger>
-			{/each}
-			<SkeletonTabs.Indicator />
-		</SkeletonTabs.List>
-		<!-- Tab Content -->
-		<div class="tab-content">
-			{@render contentSnippet?.()}
+	<SkeletonTabs {value} onValueChange={handleValueChange} orientation={effectiveOrientation}>
+		<div
+			class="tabs-wrapper {effectiveOrientation === 'horizontal'
+				? 'tabs-horizontal'
+				: ''} {className}"
+		>
+			<!-- Tab List -->
+			<SkeletonTabs.List>
+				{#each tabs as tab (tab.value)}
+					<SkeletonTabs.Trigger class="justify-start" value={tab.value}>
+						{tab.label}
+					</SkeletonTabs.Trigger>
+				{/each}
+				<SkeletonTabs.Indicator />
+			</SkeletonTabs.List>
+			<!-- Tab Content -->
+			<div class="tab-content">
+				{@render contentSnippet?.()}
+			</div>
 		</div>
-	</div>
-</SkeletonTabs>
+	</SkeletonTabs>
 </div>
 
 <style>

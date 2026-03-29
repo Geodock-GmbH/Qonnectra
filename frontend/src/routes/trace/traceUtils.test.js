@@ -1,8 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { buildGeoJSON, hasGeometries } from './traceUtils.js';
 
 const POINT_GEOM = { type: 'Point', coordinates: [550000, 6080000] };
-const LINE_GEOM = { type: 'LineString', coordinates: [[550000, 6080000], [550100, 6080100]] };
+const LINE_GEOM = {
+	type: 'LineString',
+	coordinates: [
+		[550000, 6080000],
+		[550100, 6080100]
+	]
+};
 
 /**
  * Builds a minimal trace tree node for testing.
@@ -63,7 +70,9 @@ describe('buildGeoJSON', () => {
 			})
 		};
 		const geojson = buildGeoJSON(result, 25832);
-		const nodeFeatures = geojson.features.filter((/** @type {any} */ f) => f.properties.feature_type === 'node');
+		const nodeFeatures = geojson.features.filter(
+			(/** @type {any} */ f) => f.properties.feature_type === 'node'
+		);
 		expect(nodeFeatures).toHaveLength(1);
 		expect(nodeFeatures[0].properties.name).toBe('Node-1');
 		expect(nodeFeatures[0].properties.id).toBe('node-1');
@@ -134,7 +143,9 @@ describe('buildGeoJSON', () => {
 			})
 		};
 		const geojson = buildGeoJSON(result, 25832);
-		const nodeFeatures = geojson.features.filter((/** @type {any} */ f) => f.properties.feature_type === 'node');
+		const nodeFeatures = geojson.features.filter(
+			(/** @type {any} */ f) => f.properties.feature_type === 'node'
+		);
 		expect(nodeFeatures).toHaveLength(1);
 	});
 
@@ -163,7 +174,9 @@ describe('buildGeoJSON', () => {
 			]
 		};
 		const geojson = buildGeoJSON(result, 25832);
-		const nodeFeatures = geojson.features.filter((/** @type {any} */ f) => f.properties.feature_type === 'node');
+		const nodeFeatures = geojson.features.filter(
+			(/** @type {any} */ f) => f.properties.feature_type === 'node'
+		);
 		expect(nodeFeatures).toHaveLength(2);
 	});
 
@@ -239,7 +252,9 @@ describe('buildGeoJSON', () => {
 			})
 		};
 		const geojson = buildGeoJSON(result, 25832);
-		const nodeFeatures = geojson.features.filter((/** @type {any} */ f) => f.properties.feature_type === 'node');
+		const nodeFeatures = geojson.features.filter(
+			(/** @type {any} */ f) => f.properties.feature_type === 'node'
+		);
 		expect(nodeFeatures).toHaveLength(0);
 	});
 });

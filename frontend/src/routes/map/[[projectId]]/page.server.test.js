@@ -218,15 +218,9 @@ describe('map +page.server.js', () => {
 				trenchUuids: ['t-1', 't-2']
 			});
 
-			const result = await actions.getConduitTrenches(
-				createEvent({ conduitUuid: 'conduit-1' })
-			);
+			const result = await actions.getConduitTrenches(createEvent({ conduitUuid: 'conduit-1' }));
 
-			expect(getTrenchUuidsForConduit).toHaveBeenCalledWith(
-				mockFetch,
-				mockCookies,
-				'conduit-1'
-			);
+			expect(getTrenchUuidsForConduit).toHaveBeenCalledWith(mockFetch, mockCookies, 'conduit-1');
 			expect(result).toEqual({ trenchUuids: ['t-1', 't-2'] });
 		});
 	});
@@ -252,9 +246,7 @@ describe('map +page.server.js', () => {
 				containers: [{ uuid: 'c-1' }]
 			});
 
-			const result = await actions.getContainerHierarchy(
-				createEvent({ nodeUuid: 'node-1' })
-			);
+			const result = await actions.getContainerHierarchy(createEvent({ nodeUuid: 'node-1' }));
 
 			expect(getContainerHierarchy).toHaveBeenCalledWith(mockFetch, mockCookies, 'node-1');
 			expect(result).toEqual({ containers: [{ uuid: 'c-1' }] });
@@ -276,19 +268,13 @@ describe('map +page.server.js', () => {
 	describe('getSlotConfigurationsForNode', () => {
 		test('should call getSlotConfigurationsForNode with node UUID', async () => {
 			const { getSlotConfigurationsForNode } = await import('$lib/server/nodeData');
-			/** @type {any} */ (getSlotConfigurationsForNode).mockResolvedValueOnce([
-				{ uuid: 'sc-1' }
-			]);
+			/** @type {any} */ (getSlotConfigurationsForNode).mockResolvedValueOnce([{ uuid: 'sc-1' }]);
 
 			const result = await actions.getSlotConfigurationsForNode(
 				createEvent({ nodeUuid: 'node-1' })
 			);
 
-			expect(getSlotConfigurationsForNode).toHaveBeenCalledWith(
-				mockFetch,
-				mockCookies,
-				'node-1'
-			);
+			expect(getSlotConfigurationsForNode).toHaveBeenCalledWith(mockFetch, mockCookies, 'node-1');
 			expect(result).toEqual([{ uuid: 'sc-1' }]);
 		});
 	});
@@ -298,9 +284,7 @@ describe('map +page.server.js', () => {
 			const { getNodeStructures } = await import('$lib/server/nodeData');
 			/** @type {any} */ (getNodeStructures).mockResolvedValueOnce([{ uuid: 'ns-1' }]);
 
-			const result = await actions.getNodeStructures(
-				createEvent({ slotConfigUuid: 'sc-1' })
-			);
+			const result = await actions.getNodeStructures(createEvent({ slotConfigUuid: 'sc-1' }));
 
 			expect(getNodeStructures).toHaveBeenCalledWith(mockFetch, mockCookies, 'sc-1');
 			expect(result).toEqual([{ uuid: 'ns-1' }]);
@@ -338,9 +322,7 @@ describe('map +page.server.js', () => {
 			const { getSlotClipNumbers } = await import('$lib/server/nodeData');
 			/** @type {any} */ (getSlotClipNumbers).mockResolvedValueOnce([1, 2, 3]);
 
-			const result = await actions.getSlotClipNumbers(
-				createEvent({ slotConfigUuid: 'sc-1' })
-			);
+			const result = await actions.getSlotClipNumbers(createEvent({ slotConfigUuid: 'sc-1' }));
 
 			expect(getSlotClipNumbers).toHaveBeenCalledWith(mockFetch, mockCookies, 'sc-1');
 			expect(result).toEqual([1, 2, 3]);
@@ -374,9 +356,7 @@ describe('map +page.server.js', () => {
 	describe('getFiberColors', () => {
 		test('should call getFiberColors', async () => {
 			const { getFiberColors } = await import('$lib/server/nodeData');
-			/** @type {any} */ (getFiberColors).mockResolvedValueOnce([
-				{ uuid: 'fc-1', color: 'blue' }
-			]);
+			/** @type {any} */ (getFiberColors).mockResolvedValueOnce([{ uuid: 'fc-1', color: 'blue' }]);
 
 			const result = await actions.getFiberColors(createEvent());
 
@@ -390,9 +370,7 @@ describe('map +page.server.js', () => {
 			const { getComponentPorts } = await import('$lib/server/nodeData');
 			/** @type {any} */ (getComponentPorts).mockResolvedValueOnce([{ uuid: 'port-1' }]);
 
-			const result = await actions.getComponentPorts(
-				createEvent({ componentTypeId: 'comp-1' })
-			);
+			const result = await actions.getComponentPorts(createEvent({ componentTypeId: 'comp-1' }));
 
 			expect(getComponentPorts).toHaveBeenCalledWith(mockFetch, mockCookies, 'comp-1');
 			expect(result).toEqual([{ uuid: 'port-1' }]);
@@ -404,9 +382,7 @@ describe('map +page.server.js', () => {
 			const { getFiberSplices } = await import('$lib/server/nodeData');
 			/** @type {any} */ (getFiberSplices).mockResolvedValueOnce([{ uuid: 'splice-1' }]);
 
-			const result = await actions.getFiberSplices(
-				createEvent({ nodeStructureUuid: 'ns-1' })
-			);
+			const result = await actions.getFiberSplices(createEvent({ nodeStructureUuid: 'ns-1' }));
 
 			expect(getFiberSplices).toHaveBeenCalledWith(mockFetch, mockCookies, 'ns-1');
 			expect(result).toEqual([{ uuid: 'splice-1' }]);
@@ -511,9 +487,7 @@ describe('map +page.server.js', () => {
 			const { getUsedResidentialUnits } = await import('$lib/server/nodeData');
 			/** @type {any} */ (getUsedResidentialUnits).mockResolvedValueOnce([{ uuid: 'ru-1' }]);
 
-			const result = await actions.getUsedResidentialUnits(
-				createEvent({ nodeUuid: 'node-1' })
-			);
+			const result = await actions.getUsedResidentialUnits(createEvent({ nodeUuid: 'node-1' }));
 
 			expect(getUsedResidentialUnits).toHaveBeenCalledWith(mockFetch, mockCookies, 'node-1');
 			expect(result).toEqual([{ uuid: 'ru-1' }]);

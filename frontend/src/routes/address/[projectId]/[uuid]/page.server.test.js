@@ -194,8 +194,7 @@ describe('address detail +page.server.js', () => {
 			// address
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
-				json: () =>
-					Promise.resolve({ id: 'addr-uuid', properties: { street: 'Main St' } })
+				json: () => Promise.resolve({ id: 'addr-uuid', properties: { street: 'Main St' } })
 			});
 			// 4 select responses
 			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });

@@ -16,7 +16,14 @@
 	 */
 
 	/** @type {Props} */
-	let { fibers = [], loading = false, error = null, getColorHex, getColorName, onTraceFiber } = $props();
+	let {
+		fibers = [],
+		loading = false,
+		error = null,
+		getColorHex,
+		getColorName,
+		onTraceFiber
+	} = $props();
 
 	/** @type {Set<number>} - Expanded bundle numbers */
 	let expandedBundles = $state(new Set());

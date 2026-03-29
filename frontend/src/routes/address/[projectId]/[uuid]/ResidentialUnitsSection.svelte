@@ -316,7 +316,10 @@
 					<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-surface-900-100">
 						<span>{m.table_floor()}: {getCellValue(unit, 'floor') ?? '-'}</span>
 						<span>{m.table_side()}: {getCellValue(unit, 'side') ?? '-'}</span>
-						<span>{m.table_residential_unit_type()}: {getCellValue(unit, 'residential_unit_type') ?? '-'}</span>
+						<span
+							>{m.table_residential_unit_type()}: {getCellValue(unit, 'residential_unit_type') ??
+								'-'}</span
+						>
 						<span>{m.table_residential_unit_status()}: {getCellValue(unit, 'status') ?? '-'}</span>
 					</div>
 				</div>

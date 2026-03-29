@@ -27,8 +27,7 @@ vi.mock('$lib/paraglide/messages', () => {
 					title_success: 'Success',
 					message_please_select_exactly_2_nodes: 'Please select exactly 2 nodes',
 					message_error_cannot_connect_from_source: 'Cannot connect from source',
-					message_error_cannot_connect_microduct_to_itself:
-						'Cannot connect microduct to itself',
+					message_error_cannot_connect_microduct_to_itself: 'Cannot connect microduct to itself',
 					message_error_could_not_find_selected_nodes: 'Could not find selected nodes',
 					message_error_no_matching_microducts: 'No matching microducts',
 					message_created_connections: 'connections created',

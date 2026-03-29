@@ -70,7 +70,14 @@
 			{#each propertyEntries as [key, value] (key)}
 				<div class="flex flex-col gap-1">
 					<label for="attr-{key}" class="label-text">{getDisplayLabel(key)}</label>
-					<input id="attr-{key}" name="attr-{key}" type="text" class="input" readonly value={formatValue(key, value)} />
+					<input
+						id="attr-{key}"
+						name="attr-{key}"
+						type="text"
+						class="input"
+						readonly
+						value={formatValue(key, value)}
+					/>
 				</div>
 			{/each}
 		</div>

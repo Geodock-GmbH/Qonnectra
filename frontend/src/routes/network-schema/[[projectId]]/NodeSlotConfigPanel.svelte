@@ -666,7 +666,15 @@
 				</label>
 				<label class="label" for="total-slots">
 					<span class="text-sm">{m.form_total_slots()}</span>
-					<input id="total-slots" name="total_slots" type="number" class="input" bind:value={formTotalSlots} min="1" required />
+					<input
+						id="total-slots"
+						name="total_slots"
+						type="number"
+						class="input"
+						bind:value={formTotalSlots}
+						min="1"
+						required
+					/>
 				</label>
 			</div>
 			<div class="flex justify-end gap-2">

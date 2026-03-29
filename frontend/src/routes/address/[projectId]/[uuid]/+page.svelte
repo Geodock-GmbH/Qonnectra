@@ -664,7 +664,13 @@
 							<span class="label-text text-sm text-surface-900-100"
 								>{m.form_housenumber()} <span class="text-error-400">*</span></span
 							>
-							<input id="housenumber" type="number" class="input" name="housenumber" bind:value={housenumber} />
+							<input
+								id="housenumber"
+								type="number"
+								class="input"
+								name="housenumber"
+								bind:value={housenumber}
+							/>
 						</label>
 						<label class="label">
 							<span class="label-text text-sm text-surface-900-100"
@@ -685,7 +691,13 @@
 							<span class="label-text text-sm text-surface-900-100"
 								>{m.form_zip_code()} <span class="text-error-400">*</span></span
 							>
-							<input id="zip-code" type="text" class="input" name="zip_code" bind:value={zip_code} />
+							<input
+								id="zip-code"
+								type="text"
+								class="input"
+								name="zip_code"
+								bind:value={zip_code}
+							/>
 						</label>
 						<label class="label">
 							<span class="label-text text-sm text-surface-900-100"

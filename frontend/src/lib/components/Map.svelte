@@ -31,6 +31,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import { browser } from '$app/environment';
+	import { IconSearch, IconX } from '@tabler/icons-svelte';
 	import { env } from '$env/dynamic/public';
 
 	import { tileLoadingManager } from '$lib/map/tileLoadingManager.js';
@@ -46,8 +47,6 @@
 		wmsSourcesData
 	} from '$lib/stores/store';
 	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
-
-	import { IconSearch, IconX } from '@tabler/icons-svelte';
 
 	import LayerVisibilityTree from './LayerVisibilityTree.svelte';
 	import OpacitySlider from './OpacitySlider.svelte';

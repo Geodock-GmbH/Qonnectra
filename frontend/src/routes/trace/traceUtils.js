@@ -65,8 +65,7 @@ export function buildGeoJSON(traceResult, srid) {
 	}
 
 	const seenIds = new Set();
-	const trees =
-		traceResult.trace_trees || (traceResult.trace_tree ? [traceResult.trace_tree] : []);
+	const trees = traceResult.trace_trees || (traceResult.trace_tree ? [traceResult.trace_tree] : []);
 
 	/** @param {Record<string, any>} endpointNode */
 	function addNodeFeature(endpointNode) {
@@ -139,8 +138,7 @@ export function hasGeometries(traceResult) {
 		}
 	}
 
-	const trees =
-		traceResult.trace_trees || (traceResult.trace_tree ? [traceResult.trace_tree] : []);
+	const trees = traceResult.trace_trees || (traceResult.trace_tree ? [traceResult.trace_tree] : []);
 
 	/** @param {Record<string, any>} treeNode */
 	function hasPointGeometry(treeNode) {

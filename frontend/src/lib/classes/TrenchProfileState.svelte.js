@@ -148,7 +148,10 @@ export class TrenchProfileState {
 			.map((conduit, index) => {
 				const hasPosition = conduit.has_saved_position && conduit.canvas_x !== null;
 				const position = hasPosition
-					? { x: /** @type {number} */ (conduit.canvas_x), y: /** @type {number} */ (conduit.canvas_y) }
+					? {
+							x: /** @type {number} */ (conduit.canvas_x),
+							y: /** @type {number} */ (conduit.canvas_y)
+						}
 					: this.getGridPosition(index, conduits.length);
 
 				const width = conduit.canvas_width || 80;

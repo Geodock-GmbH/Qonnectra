@@ -2,10 +2,9 @@
 	import { getContext } from 'svelte';
 	import { cubicOut } from 'svelte/easing';
 	import { fade, fly } from 'svelte/transition';
+	import { page } from '$app/stores';
 	import { parse } from 'devalue';
 	import Fuse from 'fuse.js';
-
-	import { page } from '$app/stores';
 
 	import { m } from '$lib/paraglide/messages';
 
