@@ -1,3 +1,4 @@
+import { invalidateAll } from '$app/navigation';
 import { PUBLIC_API_URL } from '$env/static/public';
 
 /**
@@ -31,9 +32,17 @@ import { PUBLIC_API_URL } from '$env/static/public';
  * @throws {Error} If the request fails.
  */
 export async function fetchWMSSources(projectId) {
-	const response = await fetch(`${PUBLIC_API_URL}wms-sources/?project=${projectId}`, {
-		credentials: 'include'
-	});
+	const url = `${PUBLIC_API_URL}wms-sources/?project=${projectId}`;
+	const response = await fetch(url, { credentials: 'include' });
+
+	if (response.status === 401) {
+		await invalidateAll();
+		const retry = await fetch(url, { credentials: 'include' });
+		if (!retry.ok) {
+			throw new Error(`Failed to fetch WMS sources: ${retry.statusText}`);
+		}
+		return retry.json();
+	}
 
 	if (!response.ok) {
 		throw new Error(`Failed to fetch WMS sources: ${response.statusText}`);
@@ -80,6 +89,7 @@ export function getWMSProxyUrl(sourceId, token) {
  * Fetches a short-lived access token for WMS tile requests.
  * Browser image requests don't include cookies due to SameSite restrictions,
  * so this token is passed as a query parameter instead.
+ * On 401, triggers a server-side token refresh and retries once.
  * @returns {Promise<string>} The access token string.
  * @throws {Error} If the request fails.
  */
@@ -87,6 +97,20 @@ export async function fetchWMSAccessToken() {
 	const response = await fetch(`${PUBLIC_API_URL}wms-sources/access_token/`, {
 		credentials: 'include'
 	});
+
+	if (response.status === 401) {
+		await invalidateAll();
+		const retry = await fetch(`${PUBLIC_API_URL}wms-sources/access_token/`, {
+			credentials: 'include'
+		});
+		if (!retry.ok) {
+			const error = new Error(`Failed to fetch WMS access token: ${retry.statusText}`);
+			/** @type {any} */ (error).status = retry.status;
+			throw error;
+		}
+		const data = await retry.json();
+		return data.token;
+	}
 
 	if (!response.ok) {
 		const error = new Error(`Failed to fetch WMS access token: ${response.statusText}`);

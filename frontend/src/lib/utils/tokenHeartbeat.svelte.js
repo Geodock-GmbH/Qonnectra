@@ -13,12 +13,15 @@ let heartbeatInterval = $state(null);
 
 /**
  * Starts the token refresh heartbeat interval.
+ * Triggers an immediate refresh on start so tokens are validated right away
+ * (e.g. after a page reload that resets the timer).
  * Safe to call multiple times — will not create duplicate intervals.
  * @returns {void}
  */
 export function startHeartbeat() {
 	if (heartbeatInterval) return;
 
+	invalidateAll();
 	heartbeatInterval = setInterval(() => invalidateAll(), HEARTBEAT_INTERVAL_MS);
 }
 

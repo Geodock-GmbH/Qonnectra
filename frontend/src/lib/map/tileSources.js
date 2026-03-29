@@ -1,4 +1,5 @@
 // frontend/src/lib/map/tileSources.js
+import { invalidateAll } from '$app/navigation';
 import { PUBLIC_API_URL } from '$env/static/public';
 import MVT from 'ol/format/MVT.js';
 import VectorTileSource from 'ol/source/VectorTile.js';
@@ -62,7 +63,18 @@ function createTileLoadFunction(layerType, onError) {
 					credentials: 'include',
 					signal: controller.signal
 				})
-					.then((response) => {
+					.then(async (response) => {
+						if (response.status === 401) {
+							await invalidateAll();
+							const retry = await fetch(url, {
+								credentials: 'include',
+								signal: controller.signal
+							});
+							if (!retry.ok) {
+								throw new Error(`Failed to load ${layerType} tile: ${retry.statusText}`);
+							}
+							return retry.arrayBuffer();
+						}
 						if (!response.ok) {
 							throw new Error(`Failed to load ${layerType} tile: ${response.statusText}`);
 						}
