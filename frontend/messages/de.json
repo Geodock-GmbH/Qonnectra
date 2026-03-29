@@ -671,6 +671,7 @@
 	"signal_lit": "Aktiv",
 	"signal_no_breaks": "Keine Unterbrechungen erkannt - alle Fasern sind aktiv",
 	"signal_no_signal": "Kein Signal",
+	"signal_reach_length": "Signalreichweite",
 	"signal_source": "Signalquelle",
 	"signal_source_cable_end": "Kabelende",
 	"signal_source_cable_start": "Kabelanfang",

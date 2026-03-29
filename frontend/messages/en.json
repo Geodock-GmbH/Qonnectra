@@ -670,6 +670,7 @@
 	"signal_lit": "Active",
 	"signal_no_breaks": "No breaks detected - all fibers are active",
 	"signal_no_signal": "No Signal",
+	"signal_reach_length": "Signal Reach",
 	"signal_source": "Signal Source",
 	"signal_source_cable_end": "Cable End",
 	"signal_source_cable_start": "Cable Start",

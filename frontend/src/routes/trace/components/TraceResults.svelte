@@ -101,13 +101,13 @@
 </script>
 
 {#if result}
-	<div class="space-y-8" transition:fly={{ y: 30, duration: 400, easing: cubicOut }}>
-		<section>
+	<div class="min-w-0 space-y-8" transition:fly={{ y: 30, duration: 400, easing: cubicOut }}>
+		<section class="@container min-w-0">
 			<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
 				<span class="h-5 w-1 rounded bg-primary-500"></span>
 				{m.trace_statistics()}
 			</h2>
-			<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+			<div class="grid grid-cols-1 gap-3 @min-[30rem]:grid-cols-2 @min-[48rem]:grid-cols-4">
 				{@render statCard(m.form_fibers(), result.statistics.total_fibers, 'text-primary-500')}
 				{@render statCard(m.nav_node(), result.statistics.total_nodes, 'text-success-500')}
 				{@render statCard(m.trace_splice(), result.statistics.total_splices, 'text-secondary-500')}
@@ -205,7 +205,7 @@
 	/** @type {string} */ colorClass
 )}
 	<div
-		class="flex flex-col items-center rounded-lg border border-surface-200-800 bg-surface-50-950 p-4"
+		class="flex min-w-0 flex-col items-center rounded-lg border border-surface-200-800 bg-surface-50-950 p-4"
 	>
 		<span class="font-mono text-2xl font-bold {colorClass}">{value}</span>
 		<span class="mt-1 text-xs font-medium uppercase tracking-wide text-surface-600-400"
@@ -216,7 +216,7 @@
 
 {#snippet statBadge(/** @type {string} */ label, /** @type {boolean} */ value)}
 	<div
-		class="flex flex-col items-center rounded-lg border border-surface-200-800 bg-surface-50-950 p-4"
+		class="flex min-w-0 flex-col items-center rounded-lg border border-surface-200-800 bg-surface-50-950 p-4"
 	>
 		<span
 			class="font-mono text-2xl font-bold {value ? 'text-success-500' : 'text-surface-600-400'}"
@@ -382,7 +382,8 @@
 		{#if depth > 0}
 			<div
 				class="absolute h-px bg-surface-300-700"
-				style="left: {parentLineX + circleSize / 2}px; top: {circleTop + circleSize / 2}px; width: {STEP - circleSize / 2}px"
+				style="left: {parentLineX + circleSize / 2}px; top: {circleTop +
+					circleSize / 2}px; width: {STEP - circleSize / 2}px"
 			></div>
 		{/if}
 
@@ -613,7 +614,9 @@
 {/snippet}
 
 {#snippet endpointSpliceDetails(/** @type {Record<string, any>} */ splice)}
-	<div class="rounded-lg border border-dashed border-tertiary-500/30 bg-tertiary-500/5 px-3 py-1.5 text-xs">
+	<div
+		class="rounded-lg border border-dashed border-tertiary-500/30 bg-tertiary-500/5 px-3 py-1.5 text-xs"
+	>
 		<div class="mb-1 flex items-center gap-2 text-tertiary-500">
 			<IconArrowsSplit size={14} />
 			<span class="font-semibold">{m.trace_endpoint_splice()}</span>
@@ -769,10 +772,7 @@
 			<span class="font-semibold">{m.form_address({ count: 1 })}</span>
 			<button
 				type="button"
-				class="rounded px-1.5 py-0.5 font-mono transition-colors {isSelected(
-					'address',
-					address.id
-				)
+				class="rounded px-1.5 py-0.5 font-mono transition-colors {isSelected('address', address.id)
 					? 'bg-error-500 text-white'
 					: 'bg-error-500/15 text-error-500 hover:bg-error-500/25'}"
 				onclick={() => handleItemClick('address', address.id)}

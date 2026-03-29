@@ -12,9 +12,14 @@ export async function load({ fetch, cookies, params, url }) {
 	const { uuid } = params;
 	const mode = url.searchParams.get('mode') || 'trace';
 	const signalSource = url.searchParams.get('source');
-	const includeGeometry = url.searchParams.get('include_geometry') === 'true';
-	const geometryMode = url.searchParams.get('geometry_mode') || 'segments';
+	let includeGeometry = url.searchParams.get('include_geometry') === 'true';
+	let geometryMode = url.searchParams.get('geometry_mode') || 'segments';
 	const orientGeometry = url.searchParams.get('orient_geometry') === 'true';
+
+	if (mode === 'signal') {
+		includeGeometry = true;
+		geometryMode = 'routed';
+	}
 
 	const headers = getAuthHeaders(cookies);
 

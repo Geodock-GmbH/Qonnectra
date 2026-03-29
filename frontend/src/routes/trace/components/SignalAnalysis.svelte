@@ -99,9 +99,56 @@
 			})
 		)
 	);
+	const cableInfrastructure = $derived(result?.cable_infrastructure || {});
 	const sourceNode = $derived(signalAnalysis?.source_node);
 	const breakPoints = $derived(signalAnalysis?.break_points || []);
 	const hasBreaks = $derived(breakPoints.length > 0);
+
+	/**
+	 * Computes total lit and dark cable lengths from the trace tree and cable infrastructure.
+	 * Returns null if no length data is available.
+	 * @type {{ litLength: number, darkLength: number, totalLength: number } | null}
+	 */
+	const signalReachLengths = $derived.by(() => {
+		if (!traceTree || !cableInfrastructure) return null;
+
+		/** @type {Record<string, Set<string>>} */
+		const cableStates = {};
+
+		/** @param {Record<string, any>} node */
+		function collectCableStates(node) {
+			if (!node) return;
+			const cableId = node.fiber?.cable_id;
+			const state = node.signal_state || 'lit';
+			if (cableId) {
+				if (!cableStates[cableId]) cableStates[cableId] = new Set();
+				cableStates[cableId].add(state);
+			}
+			for (const child of node.children || []) {
+				collectCableStates(child);
+			}
+		}
+		collectCableStates(traceTree);
+
+		let litLength = 0;
+		let darkLength = 0;
+
+		for (const [cableId, states] of Object.entries(cableStates)) {
+			const infra = cableInfrastructure[cableId];
+			const length = infra?.total_length;
+			if (length == null) continue;
+
+			if (states.has('dark') || states.has('break_point')) {
+				darkLength += length;
+			} else {
+				litLength += length;
+			}
+		}
+
+		if (litLength === 0 && darkLength === 0) return null;
+
+		return { litLength, darkLength, totalLength: litLength + darkLength };
+	});
 
 	let expandedWaypoints = new SvelteSet();
 
@@ -123,7 +170,7 @@
 	/** @type {string} */ colorClass
 )}
 	<div
-		class="rounded-xl border border-surface-200-800 bg-surface-50-950 p-4 text-center shadow-sm transition-all hover:shadow-md"
+		class="min-w-0 rounded-xl border border-surface-200-800 bg-surface-50-950 p-4 text-center shadow-sm transition-all hover:shadow-md"
 	>
 		<div class="{colorClass} text-2xl font-bold">{value}</div>
 		<div class="mt-1 text-xs font-medium text-surface-600-400">{label}</div>
@@ -136,16 +183,39 @@
 	/** @type {number} */ darkValue
 )}
 	<div
-		class="rounded-xl border border-surface-200-800 bg-surface-50-950 p-4 text-center shadow-sm transition-all hover:shadow-md"
+		class="min-w-0 rounded-xl border border-surface-200-800 bg-surface-50-950 p-4 text-center shadow-sm transition-all hover:shadow-md"
 	>
-		<div class="flex justify-center gap-4">
-			<div class="text-center">
+		<div class="flex flex-wrap justify-center gap-x-4 gap-y-1">
+			<div class="min-w-0 text-center">
 				<div class="text-xl font-bold text-success-500">{litValue}</div>
 				<div class="mt-0.5 text-[10px] text-success-500">{m.signal_lit()}</div>
 			</div>
-			<div class="w-px bg-surface-200-800"></div>
-			<div class="text-center">
+			<div class="hidden h-8 w-px shrink-0 self-center bg-surface-200-800 sm:block"></div>
+			<div class="min-w-0 text-center">
 				<div class="text-xl font-bold text-surface-500">{darkValue}</div>
+				<div class="mt-0.5 text-[10px] text-surface-500">{m.signal_dark()}</div>
+			</div>
+		</div>
+		<div class="mt-2 text-xs font-medium text-surface-600-400">{label}</div>
+	</div>
+{/snippet}
+
+{#snippet signalLengthCard(
+	/** @type {string} */ label,
+	/** @type {number} */ litValue,
+	/** @type {number} */ darkValue
+)}
+	<div
+		class="min-w-0 rounded-xl border border-surface-200-800 bg-surface-50-950 p-4 text-center shadow-sm transition-all hover:shadow-md"
+	>
+		<div class="flex flex-wrap justify-center gap-x-4 gap-y-1">
+			<div class="min-w-0 text-center">
+				<div class="text-lg font-bold tabular-nums text-success-500">{litValue.toFixed(1)}m</div>
+				<div class="mt-0.5 text-[10px] text-success-500">{m.signal_lit()}</div>
+			</div>
+			<div class="hidden h-8 w-px shrink-0 self-center bg-surface-200-800 sm:block"></div>
+			<div class="min-w-0 text-center">
+				<div class="text-lg font-bold tabular-nums text-surface-500">{darkValue.toFixed(1)}m</div>
 				<div class="mt-0.5 text-[10px] text-surface-500">{m.signal_dark()}</div>
 			</div>
 		</div>
@@ -155,11 +225,11 @@
 
 {#snippet breakPointCard(/** @type {Record<string, any>} */ bp)}
 	<div
-		class="rounded-lg border border-error-500/30 bg-error-500/10 p-3 transition-colors hover:bg-error-500/15"
+		class="min-w-0 rounded-lg border border-error-500/30 bg-error-500/10 p-3 transition-colors hover:bg-error-500/15"
 	>
-		<div class="flex items-center gap-2">
-			<IconAlertTriangle size={18} class="text-error-500" />
-			<span class="font-semibold text-error-500">{m.signal_break_point()}</span>
+		<div class="flex flex-wrap items-center gap-2">
+			<IconAlertTriangle size={18} class="shrink-0 text-error-500" />
+			<span class="min-w-0 font-semibold text-error-500">{m.signal_break_point()}</span>
 		</div>
 		<div class="mt-2 flex flex-wrap gap-2 text-xs">
 			<button
@@ -597,7 +667,7 @@
 {/snippet}
 
 {#if result}
-	<div class="space-y-8" transition:fly={{ y: 30, duration: 400, easing: cubicOut }}>
+	<div class="min-w-0 space-y-8" transition:fly={{ y: 30, duration: 400, easing: cubicOut }}>
 		<!-- Signal Source Selector -->
 		<section>
 			<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
@@ -624,12 +694,12 @@
 
 		<!-- Break Points Summary -->
 		{#if hasBreaks}
-			<section>
+			<section class="@container min-w-0">
 				<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-error-500">
 					<span class="h-5 w-1 rounded bg-error-500"></span>
 					{m.signal_break_point()} ({signalAnalysis.total_breaks})
 				</h2>
-				<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+				<div class="grid grid-cols-1 gap-3 @min-[28rem]:grid-cols-2 @min-[42rem]:grid-cols-3">
 					{#each breakPoints as bp (bp.fiber_id)}
 						{@render breakPointCard(bp)}
 					{/each}
@@ -646,12 +716,14 @@
 
 		<!-- Impact Summary Statistics -->
 		{#if affectedSummary}
-			<section>
+			<section class="@container min-w-0">
 				<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
 					<span class="h-5 w-1 rounded bg-tertiary-500"></span>
 					{m.signal_affected_summary()}
 				</h2>
-				<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+				<div
+					class="grid grid-cols-1 gap-3 @min-[30rem]:grid-cols-2 @min-[48rem]:grid-cols-3 @min-[72rem]:grid-cols-5"
+				>
 					{@render signalStatCard(
 						m.form_fibers(),
 						affectedSummary.lit_fibers,
@@ -672,6 +744,13 @@
 						affectedSummary.affected_residential_units,
 						'text-primary-400'
 					)}
+					{#if signalReachLengths}
+						{@render signalLengthCard(
+							m.signal_reach_length(),
+							signalReachLengths.litLength,
+							signalReachLengths.darkLength
+						)}
+					{/if}
 				</div>
 			</section>
 		{/if}
@@ -692,12 +771,14 @@
 
 		<!-- Signal Flow Tree -->
 		{#if traceTree}
-			<section>
+			<section class="min-w-0">
 				<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
 					<span class="h-5 w-1 rounded bg-primary-500"></span>
 					{m.signal_analysis()}
 				</h2>
-				{@render signalTraceNode(traceTree, 0, true)}
+				<div class="-mx-1 min-w-0 overflow-x-auto px-1 pb-1">
+					{@render signalTraceNode(traceTree, 0, true)}
+				</div>
 			</section>
 		{/if}
 	</div>

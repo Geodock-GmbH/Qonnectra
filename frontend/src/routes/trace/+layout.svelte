@@ -40,9 +40,8 @@
 		</div>
 	{:else if showMap}
 		<!-- Result page with map: Split view -->
-		<div class="flex h-[calc(100vh-4rem)] flex-col md:h-screen lg:flex-row">
-			<!-- Trace results panel -->
-			<div class="order-2 flex-1 overflow-y-auto pb-16 md:pb-0 lg:order-1 lg:w-1/2">
+		<div class="flex h-[calc(100vh-4rem)] flex-col md:h-screen xl:flex-row">
+			<div class="order-2 min-w-0 flex-1 overflow-y-auto pb-16 md:pb-0 xl:order-1 xl:w-1/2">
 				<div class="mx-auto max-w-4xl px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
 					<header class="mb-4 flex items-center gap-3 sm:mb-6 sm:gap-4">
 						<a
@@ -59,7 +58,7 @@
 			</div>
 
 			<!-- Map panel -->
-			<div class="order-1 h-[35vh] shrink-0 sm:h-[40vh] lg:order-2 lg:h-auto lg:w-1/2">
+			<div class="order-1 h-[35vh] min-w-0 shrink-0 sm:h-[40vh] xl:order-2 xl:h-auto xl:w-1/2">
 				<TraceMap
 					traceResult={traceMapContext.traceResult}
 					selectedFeatureId={traceMapContext.selectedFeatureId}
