@@ -527,12 +527,12 @@
 {#snippet fiberDetails(/** @type {Record<string, any>} */ fiber)}
 	<div class="flex flex-wrap items-center gap-2 text-xs">
 		{#if fiber.bundle_number !== null && fiber.bundle_number !== undefined}
-			<span class="text-surface-600-400"
+			<span class="text-surface-900-100"
 				>{m.form_bundle()}: <code class="text-surface-700-300">{fiber.bundle_number}</code></span
 			>
 		{/if}
 		{#if fiber.fiber_number_in_bundle}
-			<span class="text-surface-600-400"
+			<span class="text-surface-900-100"
 				>{m.trace_in_bundle()}:
 				<code class="text-surface-700-300">{fiber.fiber_number_in_bundle}</code></span
 			>
@@ -554,12 +554,12 @@
 			</span>
 		{/if}
 		{#if fiber.layer}
-			<span class="text-surface-600-400"
+			<span class="text-surface-900-100"
 				>{m.form_layer()}: <code class="text-surface-700-300">{fiber.layer}</code></span
 			>
 		{/if}
 		{#if fiber.status}
-			<span class="rounded bg-surface-100-900 px-1.5 py-0.5 text-surface-600-400"
+			<span class="rounded bg-surface-100-900 px-1.5 py-0.5 text-surface-900-100"
 				>{fiber.status}</span
 			>
 		{/if}
@@ -732,7 +732,7 @@
 						<span class="text-surface-600-400">{m.trace_start_address()}</span>
 						<button
 							type="button"
-							class="underline decoration-surface-300-700 underline-offset-2 text-surface-600-400 hover:text-primary-500 hover:decoration-primary-500"
+							class="underline decoration-surface-300-700 underline-offset-2 text-surface-900-100 hover:text-primary-500 hover:decoration-primary-500"
 							onclick={() => traceFrom('address', endpoints.start_node.address.id)}
 						>
 							{endpoints.start_node.address.street}
@@ -747,7 +747,7 @@
 						<span class="text-surface-600-400">{m.trace_end_address()}</span>
 						<button
 							type="button"
-							class="underline decoration-surface-300-700 underline-offset-2 text-surface-600-400 hover:text-primary-500 hover:decoration-primary-500"
+							class="underline decoration-surface-300-700 underline-offset-2 text-surface-900-100 hover:text-primary-500 hover:decoration-primary-500"
 							onclick={() => traceFrom('address', endpoints.end_node.address.id)}
 						>
 							{endpoints.end_node.address.street}
@@ -784,19 +784,19 @@
 		</div>
 		<div class="flex flex-wrap gap-1.5 text-xs">
 			{#if address.id_address}
-				<span class="text-surface-600-400">{m.form_id_address()}: {address.id_address}</span>
+				<span class="text-surface-900-100">{m.form_id_address()}: {address.id_address}</span>
 			{/if}
 			{#if address.district}
-				<span class="text-surface-600-400">{m.form_district()}: {address.district}</span>
+				<span class="text-surface-900-100">{m.form_district()}: {address.district}</span>
 			{/if}
 			{#if address.status_development}
-				<span class="text-surface-600-400">{m.form_status()}: {address.status_development}</span>
+				<span class="text-surface-900-100">{m.form_status()}: {address.status_development}</span>
 			{/if}
 			{#if address.project}
-				<span class="text-surface-600-400">{m.form_project({ count: 1 })}: {address.project}</span>
+				<span class="text-surface-900-100">{m.form_project({ count: 1 })}: {address.project}</span>
 			{/if}
 			{#if address.flag}
-				<span class="text-surface-600-400">{m.form_flag()}: {address.flag}</span>
+				<span class="text-surface-900-100">{m.form_flag()}: {address.flag}</span>
 			{/if}
 		</div>
 	</div>
@@ -822,22 +822,22 @@
 		</div>
 		<div class="flex flex-wrap gap-1.5 text-xs">
 			{#if ru.floor !== null && ru.floor !== undefined}
-				<span class="text-surface-600-400">{m.form_floor()}: {ru.floor}</span>
+				<span class="text-surface-900-100">{m.form_floor()}: {ru.floor}</span>
 			{/if}
 			{#if ru.side}
-				<span class="text-surface-600-400">{m.form_side()}: {ru.side}</span>
+				<span class="text-surface-900-100">{m.form_side()}: {ru.side}</span>
 			{/if}
 			{#if ru.building_section}
-				<span class="text-surface-600-400">{m.form_building_section()}: {ru.building_section}</span>
+				<span class="text-surface-900-100">{m.form_building_section()}: {ru.building_section}</span>
 			{/if}
 			{#if ru.type}
-				<span class="text-surface-600-400">{m.form_residential_unit_type()}: {ru.type}</span>
+				<span class="text-surface-900-100">{m.form_residential_unit_type()}: {ru.type}</span>
 			{/if}
 			{#if ru.status}
-				<span class="text-surface-600-400">{m.form_status()}: {ru.status}</span>
+				<span class="text-surface-900-100">{m.form_status()}: {ru.status}</span>
 			{/if}
 			{#if ru.resident_name}
-				<span class="text-surface-600-400">{m.from_resident()}: {ru.resident_name}</span>
+				<span class="text-surface-900-100">{m.from_resident()}: {ru.resident_name}</span>
 			{/if}
 		</div>
 		{#if ru.address}
@@ -845,7 +845,7 @@
 				<span class="text-surface-600-400">{m.trace_at_address()}</span>
 				<button
 					type="button"
-					class="underline decoration-surface-300-700 underline-offset-2 text-surface-600-400 hover:text-primary-500 hover:decoration-primary-500"
+					class="underline decoration-surface-300-700 underline-offset-2 text-surface-900-100 hover:text-primary-500 hover:decoration-primary-500"
 					onclick={() => traceFrom('address', ru.address.id)}
 				>
 					{ru.address.street}
