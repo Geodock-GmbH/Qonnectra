@@ -3,7 +3,14 @@
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { IconLayoutList, IconLink, IconNetwork, IconSettings } from '@tabler/icons-svelte';
+	import {
+		IconLayoutList,
+		IconLink,
+		IconLoader,
+		IconNetwork,
+		IconRefresh,
+		IconSettings
+	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -53,6 +60,9 @@
 	const showChildViewButton = $derived(
 		!isChildView && nodeTypeId != null && childViewEnabledTypeIds.includes(nodeTypeId)
 	);
+	/**
+	 * Navigates to the child network view for the currently selected node.
+	 */
 	function navigateToChildView() {
 		const projectId = $page.params.projectId;
 		const nodeId = data.uuid || data.id;
@@ -81,8 +91,8 @@
 	let lastFetchedFeatureId = $state(null);
 
 	/**
-	 * Handle tab change - lazy load fibers for status tab
-	 * @param {string} newValue
+	 * Handles tab change events, lazily loading fiber data when the status tab is first selected.
+	 * @param {string} newValue - The newly selected tab value.
 	 */
 	function handleTabChange(newValue) {
 		if (newValue === 'status' && featureId && type === 'edge') {
@@ -96,9 +106,9 @@
 	}
 
 	/**
-	 * Handle fiber status change
-	 * @param {any} fiber
-	 * @param {number|null} statusId
+	 * Updates the status of a fiber and shows a success/error toast notification.
+	 * @param {any} fiber - The fiber object to update.
+	 * @param {number | null} statusId - The new status ID, or null to clear the status.
 	 */
 	async function handleFiberStatusChange(fiber, statusId) {
 		const updated = await fiberDataManager.updateFiberStatus(fiber.uuid, statusId);
@@ -133,23 +143,70 @@
 		}
 	});
 
+	let recalculating = $state(false);
+
 	/** @type {any} */
 	let fileExplorer = $state(null);
 
+	/**
+	 * Refreshes the file explorer after a successful file upload.
+	 */
 	function handleUploadComplete() {
 		if (fileExplorer) {
 			fileExplorer.refresh();
 		}
 	}
 
+	/**
+	 * Opens the node structure panel, optionally pre-selecting a slot configuration.
+	 * @param {any} slotConfigUuid - UUID of the slot configuration to display, or null for the default view.
+	 */
 	function handleOpenStructurePanel(/** @type {any} */ slotConfigUuid = null) {
 		structurePanelSlotConfigUuid = slotConfigUuid;
 		structurePanelOpen = true;
 	}
 
 	/**
-	 * Refresh cable data from the server and update drawer props
-	 * Also dispatches an event to update edge micropipe connections for dynamic coloring
+	 * Triggers a server-side recalculation of the cable's routed length and refreshes the cable data on success.
+	 */
+	async function handleRecalculateLength() {
+		if (!featureId || recalculating) return;
+		recalculating = true;
+		try {
+			const formData = new FormData();
+			formData.append('uuid', featureId);
+			const response = await fetch('?/recalculateCableLength', {
+				method: 'POST',
+				body: formData
+			});
+			const result = deserialize(await response.text());
+			if (result.type === 'success') {
+				globalToaster.success({
+					title: m.message_cable_length_recalculated(),
+					duration: 3000
+				});
+				await refreshCableData();
+			} else {
+				globalToaster.error({
+					title: m.message_cable_length_recalculation_failed(),
+					duration: 5000
+				});
+			}
+		} catch (err) {
+			console.error('Error recalculating cable length:', err);
+			globalToaster.error({
+				title: m.message_cable_length_recalculation_failed(),
+				duration: 5000
+			});
+		} finally {
+			recalculating = false;
+		}
+	}
+
+	/**
+	 * Refreshes cable data from the server, updates the drawer props, and dispatches
+	 * a micropipeLinkageChanged event to update edge micropipe connection coloring.
+	 * @returns {Promise<void>}
 	 */
 	async function refreshCableData() {
 		if (type !== 'edge' || !featureId) return;
@@ -255,6 +312,19 @@
 				>
 					<IconLink size={18} />
 					{m.action_link_micropipes()}
+				</button>
+				<button
+					type="button"
+					class="btn preset-filled-secondary-500 w-full"
+					onclick={handleRecalculateLength}
+					disabled={recalculating}
+				>
+					{#if recalculating}
+						<IconLoader size={18} class="animate-spin" />
+					{:else}
+						<IconRefresh size={18} />
+					{/if}
+					{m.action_recalculate_cable_length()}
 				</button>
 			</div>
 		{/if}

@@ -3493,6 +3493,28 @@ class CableViewSet(viewsets.ModelViewSet):
         serializer = CableInTrenchSerializer(queryset, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["post"], url_path="recalculate-length")
+    def recalculate_length(self, request, pk=None):
+        """Recalculate the cable length from its micropipe connections.
+
+        Args:
+            request: The incoming HTTP request.
+            pk: Primary key of the cable to recalculate.
+
+        Returns:
+            Response: JSON with updated ``length`` and ``length_total``.
+        """
+        cable = Cable.objects.select_related(
+            "uuid_node_start", "uuid_node_end"
+        ).get(pk=self.get_object().pk)
+        cable.update_length_from_connections()
+        return Response(
+            {
+                "length": cable.length,
+                "length_total": cable.length_total,
+            }
+        )
+
 
 class CableLabelViewSet(viewsets.ModelViewSet):
     """CRUD operations for :model:`api.CableLabel`."""

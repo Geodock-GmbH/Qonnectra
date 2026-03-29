@@ -1,3 +1,4 @@
+import json
 from collections import OrderedDict
 from itertools import product
 
@@ -149,7 +150,9 @@ def find_shortest_path(start_trench_id, end_trench_id, project_id, tolerance=1):
     }
 
 
-def find_path_through_trenches(trenches, start_point, end_point, tolerance=1, connection_tolerance=5):
+def find_path_through_trenches(
+    trenches, start_point, end_point, tolerance=1, connection_tolerance=5
+):
     """Find the shortest path through a set of trenches between two points.
 
     Build a vertex-level graph from trench geometries where every vertex is a
@@ -229,7 +232,6 @@ def find_path_through_trenches(trenches, start_point, end_point, tolerance=1, co
             best_proj = None
             best_seg_a = None
             best_seg_b = None
-            best_tid = None
 
             for tid_b, coords_b in trench_coords.items():
                 if tid_b == tid_a:
@@ -243,7 +245,6 @@ def find_path_through_trenches(trenches, start_point, end_point, tolerance=1, co
                         best_proj = proj
                         best_seg_a = snap_point(coords_b[i], tolerance)
                         best_seg_b = snap_point(coords_b[i + 1], tolerance)
-                        best_tid = tid_b
 
             if best_proj is not None:
                 snapped_proj = snap_point(best_proj, tolerance)
@@ -261,20 +262,26 @@ def find_path_through_trenches(trenches, start_point, end_point, tolerance=1, co
                         d1 = _point_dist(best_seg_a, split_node)
                         d2 = _point_dist(split_node, best_seg_b)
                         G.add_edge(
-                            best_seg_a, split_node,
-                            trench_id=old_data["trench_id"], weight=d1,
+                            best_seg_a,
+                            split_node,
+                            trench_id=old_data["trench_id"],
+                            weight=d1,
                         )
                         G.add_edge(
-                            split_node, best_seg_b,
-                            trench_id=old_data["trench_id"], weight=d2,
+                            split_node,
+                            best_seg_b,
+                            trench_id=old_data["trench_id"],
+                            weight=d2,
                         )
 
                 # Add bridging edge if the projection is a different node
                 if snapped_proj != snapped_ep:
-                    bridge_dist = best_dist_sq ** 0.5
+                    bridge_dist = best_dist_sq**0.5
                     G.add_edge(
-                        snapped_ep, snapped_proj,
-                        trench_id=tid_a, weight=bridge_dist,
+                        snapped_ep,
+                        snapped_proj,
+                        trench_id=tid_a,
+                        weight=bridge_dist,
                     )
 
     # Step 3: Find source and target in the graph
@@ -303,9 +310,7 @@ def find_path_through_trenches(trenches, start_point, end_point, tolerance=1, co
         return None, None
 
     try:
-        path_nodes = nx.shortest_path(
-            G, source=source, target=target, weight="weight"
-        )
+        path_nodes = nx.shortest_path(G, source=source, target=target, weight="weight")
     except (nx.NetworkXNoPath, nx.NodeNotFound):
         return None, None
 
@@ -355,5 +360,106 @@ def _project_point_onto_segment(point, seg_a, seg_b):
 
 
 def _point_dist(a, b):
-    """Euclidean distance between two (x, y) tuples."""
+    """Compute Euclidean distance between two (x, y) tuples.
+
+    Args:
+        a: First point as (x, y).
+        b: Second point as (x, y).
+
+    Returns:
+        float: Straight-line distance between the two points.
+    """
     return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
+
+
+def get_cable_connected_trenches_with_geometry(cable_pk):
+    """Fetch trenches connected to a cable via micropipe connections, with GeoJSON geometry.
+
+    Traverses Cable -> MicroductCableConnection -> Microduct -> Conduit ->
+    TrenchConduitConnection -> Trench to find all distinct trenches, returning
+    them in the dict format expected by :func:`find_path_through_trenches`.
+
+    Args:
+        cable_pk: Primary key of the :model:`api.Cable`.
+
+    Returns:
+        list[dict]: Each dict has ``'id'`` (str UUID) and ``'geometry'`` (GeoJSON dict).
+    """
+    trenches = (
+        Trench.objects.filter(
+            trenchconduitconnection__uuid_conduit__microduct__microductcableconnection__uuid_cable=cable_pk
+        )
+        .distinct()
+        .only("uuid", "geom")
+    )
+
+    result = []
+    for t in trenches:
+        if t.geom and not t.geom.empty:
+            result.append(
+                {
+                    "id": str(t.uuid),
+                    "geometry": json.loads(t.geom.geojson),
+                }
+            )
+    return result
+
+
+def calculate_cable_length_routed(cable_pk, start_point, end_point):
+    """Calculate accurate cable length using shortest-path routing through connected trenches.
+
+    Finds the shortest path between the cable's start and end nodes through
+    all trenches connected via micropipe connections.  Trims each trench
+    geometry to only the portion actually traversed and merges the result
+    to compute a precise length.
+
+    Args:
+        cable_pk: Primary key of the :model:`api.Cable`.
+        start_point (tuple): ``(x, y)`` coordinate of the cable start node.
+        end_point (tuple): ``(x, y)`` coordinate of the cable end node.
+
+    Returns:
+        float or None: Routed length in meters, or ``None`` if routing fails.
+    """
+    from .services import _merge_trench_geometries, _trim_trench_to_path_coords
+
+    trenches = get_cable_connected_trenches_with_geometry(cable_pk)
+    if not trenches:
+        return None
+
+    result = find_path_through_trenches(trenches, start_point, end_point)
+    if result is None or result == (None, None):
+        return None
+
+    path_trench_ids, trench_path_coords = result
+    if not path_trench_ids:
+        return None
+
+    trench_map = {t["id"]: t for t in trenches}
+    routed_trenches = [trench_map[tid] for tid in path_trench_ids if tid in trench_map]
+
+    if trench_path_coords:
+        trimmed = []
+        for t in routed_trenches:
+            tid = t["id"]
+            path_coords = trench_path_coords.get(tid)
+            geom_json = t.get("geometry")
+            if path_coords and geom_json and len(path_coords) >= 2:
+                trimmed.append(
+                    {"geometry": _trim_trench_to_path_coords(geom_json, path_coords)}
+                )
+            elif geom_json:
+                trimmed.append({"geometry": geom_json})
+        merged = _merge_trench_geometries(trimmed)
+    else:
+        merged = _merge_trench_geometries(routed_trenches)
+
+    if not merged:
+        return None
+
+    try:
+        merged_geom = shape(merged)
+        length = merged_geom.length
+        return length if length > 0 else None
+    except Exception:
+        return None

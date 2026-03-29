@@ -79,7 +79,12 @@ export async function _waitForSyncCompletion(
 	return currentStatus;
 }
 
-/** @type {import('./$types').PageServerLoad} */
+/**
+ * Loads network schema page data including nodes, cables, attribute options, and sync status.
+ * Triggers canvas coordinate sync if needed and waits for completion before returning.
+ * @param {import('./$types').PageServerLoadEvent} event - SvelteKit page server load event.
+ * @returns {Promise<Record<string, any>>} Page data with nodes, cables, attribute lists, and sync status.
+ */
 export async function load({ fetch, cookies, url, params }) {
 	const headers = getAuthHeaders(cookies);
 	const projectId = params.projectId;
@@ -360,7 +365,12 @@ export async function load({ fetch, cookies, url, params }) {
 	}
 }
 
-/** @type {import('./$types').Actions} */
+/**
+ * SvelteKit form actions for the network schema page.
+ * Handles CRUD operations for cables, nodes, slot configurations, containers,
+ * node structures, fiber splices, micropipe connections, and related entities.
+ * @type {import('./$types').Actions}
+ */
 export const actions = {
 	createCable: async ({ request, cookies }) => {
 		try {
@@ -2630,6 +2640,35 @@ export const actions = {
 		} catch (err) {
 			console.error('Error fetching micropipe connections for cable:', err);
 			return fail(500, { error: 'Failed to fetch micropipe connections' });
+		}
+	},
+	recalculateCableLength: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const cableId = formData.get('uuid');
+
+		if (!cableId) {
+			return fail(400, { error: 'Cable ID is required' });
+		}
+
+		try {
+			const response = await fetch(`${API_URL}cable/${cableId}/recalculate-length/`, {
+				method: 'POST',
+				headers
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || 'Failed to recalculate cable length'
+				});
+			}
+
+			const data = await response.json();
+			return { length: data.length, length_total: data.length_total };
+		} catch (err) {
+			console.error('Error recalculating cable length:', err);
+			return fail(500, { error: 'Failed to recalculate cable length' });
 		}
 	},
 	getAddressesForNode: async ({ request, fetch, cookies }) => {

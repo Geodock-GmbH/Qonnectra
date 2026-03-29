@@ -2433,11 +2433,33 @@ class Cable(models.Model):
         ]
 
     def calculate_length_from_connections(self):
-        """Calculate cable length by summing trench lengths of all micropipe connections.
+        """Calculate cable length from micropipe connections.
+
+        Attempt accurate routing-based calculation using the cable's start/end
+        nodes and Dijkstra shortest path.  Fall back to summing all connected
+        trench lengths if routing is unavailable.
 
         Returns:
             float: Total length in meters, or 0.0 if no connections exist.
         """
+        if self.uuid_node_start_id and self.uuid_node_end_id:
+            try:
+                from .routing import calculate_cable_length_routed
+
+                start_node = self.uuid_node_start
+                end_node = self.uuid_node_end
+
+                if start_node.geom and end_node.geom:
+                    routed_length = calculate_cable_length_routed(
+                        self.pk,
+                        (start_node.geom.x, start_node.geom.y),
+                        (end_node.geom.x, end_node.geom.y),
+                    )
+                    if routed_length is not None and routed_length > 0:
+                        return routed_length
+            except Exception:
+                pass
+
         from django.db.models import Sum
 
         total = (
@@ -2451,7 +2473,11 @@ class Cable(models.Model):
         return float(total) if total else 0.0
 
     def update_length_from_connections(self):
-        """Recalculate and persist length and length_total from micropipe connections."""
+        """Recalculate and persist length and length_total from micropipe connections.
+
+        Recompute ``length`` via :meth:`calculate_length_from_connections`, add
+        cable reserves to derive ``length_total``, and save both fields.
+        """
         self.length = self.calculate_length_from_connections()
         self.length_total = (
             self.length
@@ -2576,16 +2602,34 @@ class MicroductCableConnection(models.Model):
 
 @receiver(post_save, sender=MicroductCableConnection)
 def update_cable_length_on_connection_create(sender, instance, created, **kwargs):
-    """Recalculate cable length when a micropipe connection is created."""
+    """Recalculate cable length when a micropipe connection is created.
+
+    Args:
+        sender: The model class (MicroductCableConnection).
+        instance: The saved MicroductCableConnection instance.
+        created: True if a new record was inserted.
+        **kwargs: Additional signal keyword arguments.
+    """
     if created:
-        instance.uuid_cable.update_length_from_connections()
+        cable = Cable.objects.select_related(
+            "uuid_node_start", "uuid_node_end"
+        ).get(pk=instance.uuid_cable_id)
+        cable.update_length_from_connections()
 
 
 @receiver(post_delete, sender=MicroductCableConnection)
 def update_cable_length_on_connection_delete(sender, instance, **kwargs):
-    """Recalculate cable length when a micropipe connection is deleted."""
+    """Recalculate cable length when a micropipe connection is deleted.
+
+    Args:
+        sender: The model class (MicroductCableConnection).
+        instance: The deleted MicroductCableConnection instance.
+        **kwargs: Additional signal keyword arguments.
+    """
     try:
-        cable = Cable.objects.get(pk=instance.uuid_cable_id)
+        cable = Cable.objects.select_related(
+            "uuid_node_start", "uuid_node_end"
+        ).get(pk=instance.uuid_cable_id)
         cable.update_length_from_connections()
     except Cable.DoesNotExist:
         pass
