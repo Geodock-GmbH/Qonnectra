@@ -20,7 +20,6 @@ from apps.api.models import (
     TrenchConduitConnection,
 )
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
 from django.contrib.gis.geos import LineString
 from django.core.cache import cache
 

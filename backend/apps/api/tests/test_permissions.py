@@ -4,7 +4,6 @@ import pytest
 from apps.api.models import ModelPermission, RoutePermission
 from apps.api.permissions import RoleBasedPermission, get_user_permissions
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
 from django.core.cache import cache
 from rest_framework.test import APIClient
 
