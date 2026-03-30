@@ -444,6 +444,33 @@ class AttributesComponentStructureAdmin(admin.ModelAdmin):
 admin.site.register(FileTypeCategory)
 
 
+class FiberInline(admin.TabularInline):
+    """Inline display of fibers belonging to a cable."""
+
+    model = Fiber
+    fk_name = "uuid_cable"
+    extra = 0
+    fields = (
+        "fiber_number_absolute",
+        "bundle_number",
+        "bundle_color",
+        "fiber_number_in_bundle",
+        "fiber_color",
+        "layer",
+        "active",
+        "fiber_status",
+    )
+    readonly_fields = (
+        "fiber_number_absolute",
+        "bundle_number",
+        "bundle_color",
+        "fiber_number_in_bundle",
+        "fiber_color",
+        "layer",
+    )
+    ordering = ("fiber_number_absolute",)
+
+
 @admin.register(Cable)
 class CableAdmin(SimpleHistoryAdmin):
     """Admin interface for Cable model with action to create missing fibers."""
@@ -456,9 +483,14 @@ class CableAdmin(SimpleHistoryAdmin):
         "fiber_count_display",
         "has_color_mappings",
     )
+    inlines = [FiberInline]
     list_filter = ("cable_type", "project", "flag")
     search_fields = ("name",)
-    actions = ["create_fibers_for_empty_cables"]
+    actions = [
+        "create_fibers_for_empty_cables",
+        "recalculate_length_selected",
+        "recalculate_length_filtered",
+    ]
 
     @admin.display(description=_("Fibers"))
     def fiber_count_display(self, obj):
@@ -591,6 +623,38 @@ class CableAdmin(SimpleHistoryAdmin):
                 "has_fibers": skipped_has_fibers,
                 "no_mappings": skipped_no_mappings,
             },
+        )
+
+    @admin.action(description=_("Recalculate length for selected cables"))
+    def recalculate_length_selected(self, request, queryset):
+        """Recalculate cable length from micropipe connections for selected cables."""
+        count = 0
+        for cable in queryset.select_related("uuid_node_start", "uuid_node_end"):
+            cable.update_length_from_connections()
+            count += 1
+        messages.success(
+            request,
+            _("Recalculated length for %(count)d cable(s).") % {"count": count},
+        )
+
+    @admin.action(
+        description=_("Recalculate length for ALL cables matching current filters")
+    )
+    def recalculate_length_filtered(self, request, queryset):
+        """Recalculate cable length for all cables matching the current filter."""
+        cl = self.get_changelist_instance(request)
+        full_queryset = cl.queryset.select_related(
+            "uuid_node_start", "uuid_node_end"
+        )
+
+        count = 0
+        for cable in full_queryset:
+            cable.update_length_from_connections()
+            count += 1
+        messages.success(
+            request,
+            _("Recalculated length for all %(count)d filtered cable(s).")
+            % {"count": count},
         )
 
 
