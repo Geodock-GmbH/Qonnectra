@@ -2,7 +2,7 @@
 
 SvelteKit-based frontend application for the Qonnectra GIS system, providing an interactive map interface and infrastructure management tools.
 
-**Version**: 0.7.0 (from `package.json`)
+**Version**: 0.9.5 (from `package.json`)
 
 ### Overview
 
@@ -407,7 +407,7 @@ When editing `de.json` and `en.json`, keep keys **alphabetically sorted (ASC)**.
 Styling is handled by:
 
 - **TailwindCSS 4** (`@tailwindcss/vite`, `tailwindcss@^4.0.0`)
-- **Skeleton UI 4.11** (`@skeletonlabs/skeleton`, `@skeletonlabs/skeleton-svelte`)
+- **Skeleton UI** (`@skeletonlabs/skeleton`, `@skeletonlabs/skeleton-svelte`)
 - `src/app.css`:
   - Imports Tailwind and Skeleton layers
   - Configures the **legacy** Skeleton theme via `[data-theme='legacy']`
@@ -494,44 +494,19 @@ Relevant dev dependencies:
 
 ## Key dependencies
 
-Versions below are taken from `package.json` and may evolve over time.
+See `package.json` for exact versions. Notable libraries:
 
-### Core
-
-- **Svelte**: `^5.48.2`
-- **SvelteKit**: `^2.50.1`
-- **Vite**: `^6.2.5`
-
-### Mapping
-
-- **OpenLayers**: `ol@^10.5.0`
-- **ol-mapbox-style**: `^13.2.0` – Mapbox style integration and MVT support
-- **proj4**: `^2.20.2` – Coordinate system transformations (e.g. ETRS89 / UTM)
-
-### UI and components
-
-- **Skeleton UI**: `@skeletonlabs/skeleton@^4.11.0`, `@skeletonlabs/skeleton-svelte@^4.11.0`
-- **Tabler Icons**: `@tabler/icons-svelte@^3.31.0`
-
-### Visualization and diagrams
-
-- **Svelte Flow**: `@xyflow/svelte@^1.2.4`
-- **Chart.js**: `^4.5.1`
-- **perfect-freehand**: `^1.2.2`
-
-### Internationalization
-
-- **Paraglide**: `@inlang/paraglide-js@^2.0.0`
-
-### Other notable runtime dependencies
-
-- `set-cookie-parser` – helper for parsing cookies
-
-### Dev and testing
-
-- `vitest`, `@playwright/test`
-- `@testing-library/svelte`, `@testing-library/jest-dom`, `@testing-library/user-event`
-- `@types/node`
+- **Svelte 5** + **SvelteKit 2** + **Vite**
+- **OpenLayers** (`ol`) – interactive maps
+- **ol-mapbox-style** – Mapbox style integration and MVT support
+- **proj4** – coordinate system transformations (e.g. ETRS89 / UTM)
+- **Skeleton UI** (`@skeletonlabs/skeleton`, `@skeletonlabs/skeleton-svelte`)
+- **Tabler Icons** (`@tabler/icons-svelte`)
+- **Svelte Flow** (`@xyflow/svelte`) – network diagram visualization
+- **Chart.js** – charts and statistics
+- **Paraglide** (`@inlang/paraglide-js`) – internationalization
+- **Vitest** + **Playwright** – unit and E2E testing
+- **Testing Library** (`@testing-library/svelte`, `@testing-library/jest-dom`)
 
 ---
 

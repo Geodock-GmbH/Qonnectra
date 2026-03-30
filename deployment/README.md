@@ -26,7 +26,7 @@ This setup is ideal for active development with hot reloading, debugging, and di
 
 ### Prerequisites
 
-- Python >= 3.10
+- Python >= 3.12
 - [uv](https://github.com/astral-sh/uv) package manager (recommended) or pip
 - Node.js 18+
 - PostgreSQL 17 with PostGIS extension
@@ -73,7 +73,8 @@ Create a `.env` file in the `frontend/` directory:
 
 ```bash
 # API URL
-API_URL=http://localhost:8000/api/
+API_URL=http://localhost:8000/api/v1/
+PUBLIC_API_URL=http://localhost:8000/api/v1/
 
 # Origin (optional, for CORS)
 ORIGIN=http://localhost:5173
@@ -113,7 +114,7 @@ uv venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies
-uv pip install -r uv --dev
+uv sync --dev
 
 # Run migrations
 python manage.py migrate
@@ -311,7 +312,8 @@ Create a `.env` file in the `frontend/` directory (or set via Docker environment
 
 ```bash
 # API URL (production)
-API_URL=https://api.localhost/api/
+API_URL=https://api.localhost/api/v1/
+PUBLIC_API_URL=https://api.localhost/api/v1/
 
 # Origin
 ORIGIN=https://app.localhost
@@ -536,12 +538,16 @@ After generating your mbtiles, update `tiles/config.json` to reference your file
 | `CORS_ALLOWED_ORIGINS` | No | CORS allowed origins | `http://localhost:5173` |
 | `USE_COOKIE_DOMAIN_MIDDLEWARE` | No | Enable cookie domain middleware | `False` |
 | `COOKIE_DOMAIN` | No | Cookie domain | `.localhost` |
+| `FIELD_ENCRYPTION_KEY` | No | Encryption key for sensitive fields (e.g. WMS passwords) | `base64-encoded-key` |
+| `QGIS_PG_SERVICE_NAME` | No | PostgreSQL service name for QGIS Server | `qonnectra` |
 
 ### Frontend Variables (`frontend/.env`)
 
 | Variable | Required | Description | Example |
 |---------|----------|-------------|---------|
-| `API_URL` | Yes | Backend API URL | `http://localhost:8000/api/` |
+| `API_URL` | Yes | Backend API URL (server-side) | `http://localhost:8000/api/v1/` |
+| `PUBLIC_API_URL` | Yes | Backend API URL (client-side) | `http://localhost:8000/api/v1/` |
+| `PUBLIC_TILE_SERVER_URL` | No | Vector tile server URL (omit for OSM fallback) | `http://localhost:8090` |
 | `ORIGIN` | No | Frontend origin for CORS | `http://localhost:5173` |
 
 **Note:** In SvelteKit, private environment variables (server-side only) are accessed via `$env/static/private`, and public variables (client-side accessible) must be prefixed with `PUBLIC_` and accessed via `$env/static/public`.

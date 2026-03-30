@@ -88,7 +88,7 @@ qonnectra/
 
 - Docker and Docker Compose
 - Node.js 18+ (for local frontend development)
-- Python 3.10+ (for local backend development)
+- Python 3.12+ (for local backend development)
 - uv package manager (optional, recommended for Python)
 
 ### Getting Started
@@ -160,7 +160,7 @@ All spatial data uses ETRS89 UTM Zone 32N or 33N (SRID 25832 or 25833) as the co
    cd backend
    uv venv
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   uv pip install -r uv --dev
+   uv sync --dev
    python manage.py migrate
    python manage.py runserver
    ```
@@ -177,16 +177,7 @@ All spatial data uses ETRS89 UTM Zone 32N or 33N (SRID 25832 or 25833) as the co
 - **Backend**: `pytest` (see [Backend README](backend/README.md))
 - **Frontend**:
   - Unit tests: `npm run test:unit` (Vitest)
-  - E2E tests: `npm run test:e2e` (Playwright)
-
-## Contributing
-
-Contributions are welcome! Please ensure that:
-
-1. Code follows the project's style guidelines
-2. Tests are included for new features
-3. Documentation is updated as needed
-4. All tests pass before submitting
+  - E2E tests: `npx playwright test` (Playwright)
 
 ## Documentation
 
@@ -197,7 +188,7 @@ Contributions are welcome! Please ensure that:
 
 ## License
 
-This project is licensed under the GPLv3 License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the AGPLv3 License - see the [LICENSE](LICENSE) file for details.
 
 ## Additional Resources
 

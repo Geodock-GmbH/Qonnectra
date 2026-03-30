@@ -8,7 +8,7 @@ The backend is built with Django 5.2 and Django REST Framework, featuring PostGI
 
 ## Prerequisites
 
-- Python >= 3.10
+- Python >= 3.12
 - [uv](https://github.com/astral-sh/uv) package manager (recommended) or pip
 - PostgreSQL 17 with PostGIS extension
 - Docker and Docker Compose (for running PostgreSQL)
@@ -38,14 +38,7 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 Using uv:
 
 ```bash
-uv pip install -r uv --dev
-```
-
-Or using pip:
-
-```bash
-pip install -e .
-pip install -e ".[dev]"  # For development dependencies
+uv sync --dev
 ```
 
 ### 3. Environment Configuration
@@ -105,45 +98,45 @@ The API will be available at `http://localhost:8000`
 
 The API provides RESTful endpoints for all data models. Browse the API at:
 
-- API Root: `http://localhost:8000/api/`
+- API Root: `http://localhost:8000/api/v1/`
 - Admin Interface: `http://localhost:8000/admin/`
 
 ### Key API Endpoints
 
 **Infrastructure Management:**
-- `/api/trench/` - Trench management (LineString geometry)
-- `/api/conduit/` - Conduit management
-- `/api/microduct/` - Microduct management
-- `/api/node/` - Node management (Point geometry)
-- `/api/address/` - Address management (Point geometry)
-- `/api/cable/` - Cable management
-- `/api/fiber/` - Fiber management
+- `/api/v1/trench/` - Trench management (LineString geometry)
+- `/api/v1/conduit/` - Conduit management
+- `/api/v1/microduct/` - Microduct management
+- `/api/v1/node/` - Node management (Point geometry)
+- `/api/v1/address/` - Address management (Point geometry)
+- `/api/v1/cable/` - Cable management
+- `/api/v1/fiber/` - Fiber management
 
 **Node Structure & Network:**
-- `/api/node-slot-configuration/` - Node slot configuration management
-- `/api/node-slot-divider/` - Slot divider management
-- `/api/node-slot-clip-number/` - Clip numbering for slots
-- `/api/fiber-splice/` - Fiber splice tracking
-- `/api/container/` - Container management
-- `/api/container-type/` - Container type definitions
+- `/api/v1/node-slot-configuration/` - Node slot configuration management
+- `/api/v1/node-slot-divider/` - Slot divider management
+- `/api/v1/node-slot-clip-number/` - Clip numbering for slots
+- `/api/v1/fiber-splice/` - Fiber splice tracking
+- `/api/v1/container/` - Container management
+- `/api/v1/container-type/` - Container type definitions
 
 **Component Management:**
-- `/api/attributes-component-type/` - Component types
-- `/api/attributes-component-structure/` - Component structures
+- `/api/v1/attributes-component-type/` - Component types
+- `/api/v1/attributes-component-structure/` - Component structures
 
 **Organizational:**
-- `/api/project/` - Project management
-- `/api/company/` - Company/contractor management
-- `/api/flags/` - Feature flagging
+- `/api/v1/project/` - Project management
+- `/api/v1/company/` - Company/contractor management
+- `/api/v1/flags/` - Feature flagging
 
 **Special Endpoints:**
-- `GET /api/schema.gpkg` - Download GeoPackage schema (optional `?layers=` parameter)
-- `GET /api/ol_*_tiles/<z>/<x>/<y>.mvt` - Vector tiles for map layers
-- `POST /api/import/conduit/` - Import conduits from Excel
-- `GET /api/template/conduit/` - Download Excel import template
-- `GET /api/routing/` - Network routing queries
-- `GET /api/trenches-near-node/` - Spatial proximity queries
-- `POST /api/logs/frontend/` - Frontend error logging
+- `GET /api/v1/schema.gpkg` - Download GeoPackage schema (optional `?layers=` parameter)
+- `GET /api/v1/ol_*_tiles/<z>/<x>/<y>.mvt` - Vector tiles for map layers
+- `POST /api/v1/import/conduit/` - Import conduits from Excel
+- `GET /api/v1/template/conduit/` - Download Excel import template
+- `GET /api/v1/routing/` - Network routing queries
+- `GET /api/v1/trenches-near-node/` - Spatial proximity queries
+- `POST /api/v1/logs/frontend/` - Frontend error logging
 
 All endpoints support:
 
@@ -245,20 +238,20 @@ Available fixtures are in `apps/api/fixtures/`:
 
 The API uses JWT authentication via `dj-rest-auth`:
 
-1. Login: `POST /api/auth/login/` with credentials
+1. Login: `POST /api/v1/auth/login/` with credentials
 2. Returns JWT tokens in HTTP-only cookies
 3. Subsequent requests include cookies automatically
-4. Logout: `POST /api/auth/logout/`
+4. Logout: `POST /api/v1/auth/logout/`
 
 For development, you can also use session authentication via the Django admin.
 
 ## File Storage
 
-Files are stored using a custom storage backend that supports Nextcloud integration. File uploads are handled through:
+Files are stored using a WebDAV storage backend. File uploads are handled through:
 
 - Generic file attachments via `FeatureFiles` model
 - Project-specific folder organization
-- Integration with Nextcloud WebDAV
+- WebDAV integration for remote file storage
 
 ## Spatial Data
 
@@ -268,10 +261,6 @@ All spatial operations use PostGIS functions. Key features:
 - Default SRID: 25832 (ETRS89 UTM Zone 32N)
 - Spatial indexing for performance
 - Support for spatial queries and filters
-
-## API Versioning
-
-The API is versioned. Current version is accessible at `/api/v1/` (if versioning is configured).
 
 ## Additional Resources
 
