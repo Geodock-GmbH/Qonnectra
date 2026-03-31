@@ -1,11 +1,5 @@
 # Qonnectra
 
-## Project Status
-
-This project is currently in development. It is not yet ready for production use. Breaking changes are expected.
-
-A comprehensive GIS (Geographic Information System) application for managing telecommunications infrastructure, built with modern web technologies.
-
 ## Overview
 
 Qonnectra is a full-stack web application designed for managing and visualizing telecommunications network infrastructure. It provides tools for managing trenches, conduits, microducts, nodes, addresses, cables, and fibers with spatial data capabilities.
