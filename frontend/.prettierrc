@@ -28,8 +28,6 @@
 		"",
 		"^.+\\.css$"
 	],
-	"importOrderSeparation": true,
-	"importOrderSortSpecifiers": true,
 	"overrides": [
 		{
 			"files": "*.svelte",
