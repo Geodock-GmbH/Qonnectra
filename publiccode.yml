@@ -2,14 +2,15 @@ publiccodeYmlVersion: 0.5.0
 name: Qonnectra
 url: https://github.com/Geodock-GmbH/Qonnectra
 landingURL: https://www.qonnectra.de
-releaseDate: 2026-04-01
+softwareVersion: 1.0.0
+releaseDate: 2026-03-31
 logo: logo.png
 platforms:
   - linux
   - windows
   - web
   - mac
-developmentStatus: development
+developmentStatus: stable
 softwareType: standalone/other
 description:
   en:
@@ -70,7 +71,7 @@ description:
 legal:
   license: AGPL-3.0-only
 maintenance:
-  type: internal
+  type: community
   contacts:
     - name: Malte Then
       email: malte.then@geodock.de
@@ -78,6 +79,12 @@ maintenance:
     - name: Daniel Seehaus
       email: daniel.seehaus@geodock.de
       affiliation: Geodock GmbH
+    - name: Gregor Ewers
+      email: g.ewers@planneo.de
+      affiliation: plan[neo] GmbH
+    - name: Christop Bechtel
+      email: c.bechtel@planneo.de
+      affiliation: plan[neo] GmbH
 localisation:
   localisationReady: true
   availableLanguages:
