@@ -100,3 +100,7 @@ Be respectful and constructive. We're building something useful together.
 ## Questions?
 
 Open a Discussion or reach out to the maintainers.
+
+## Language
+
+Please write issues, PRs, and discussions in **English** or **German**.
