@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & Discussion
+    url: https://github.com/Geodock-GmbH/Qonnectra/discussions
+    about: Ask questions, share ideas, or discuss Qonnectra in general
+  - name: Documentation
+    url: https://github.com/Geodock-GmbH/Qonnectra#readme
+    about: Check the README and docs before opening an issue
