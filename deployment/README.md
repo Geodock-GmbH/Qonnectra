@@ -28,7 +28,7 @@ This setup is ideal for active development with hot reloading, debugging, and di
 
 - Python >= 3.12
 - [uv](https://github.com/astral-sh/uv) package manager (recommended) or pip
-- Node.js 18+
+- Node.js 22+
 - PostgreSQL 17 with PostGIS extension
 - VS Code (for tasks) or your preferred IDE
 
@@ -119,10 +119,8 @@ uv sync --dev
 # Run migrations
 python manage.py migrate
 
-# Load fixtures (optional)
-python manage.py loaddata attributes_company attributes_construction_type attributes_conduit_type attributes_phase
-python manage.py loaddata attributes_status attributes_surface storage_preference file_type_categories projects flags
-python manage.py loaddata attributes_network_level attributes_node_type attributes_status_development
+# Load fixtures (optional) - loads all fixture groups idempotently
+python manage.py load_initial_data
 
 # Create superuser
 python manage.py createsuperuser
@@ -174,7 +172,7 @@ This setup uses Docker Compose for all services with Caddy providing local HTTPS
 
 - Docker Engine 20.10+
 - Docker Compose 2.0+
-- Minimum 4GB RAM available
+- Minimum 4GB RAM available (8GB recommended)
 - Ports 80, 443 available
 
 ### Setup Steps
@@ -255,7 +253,7 @@ Full production stack with Caddy reverse proxy, HTTPS, and all services containe
 
 - Docker Engine 20.10+
 - Docker Compose 2.0+
-- Minimum 4GB RAM available
+- VPS with minimum 4 CPU cores and 8GB RAM
 - Ports 80, 443 available
 - Domain names configured (or use localhost with certificates)
 
@@ -300,10 +298,10 @@ API_DOMAIN=api.localhost
 APP_DOMAIN=app.localhost
 FILES_DOMAIN=files.localhost
 QGIS_DOMAIN=qgis.localhost
-TILES_DOMAIN=tiles.localhost
+TILE_SERVER_DOMAIN=tiles.localhost
 
 # API URL (for frontend)
-API_URL=https://api.localhost/api/
+API_URL=https://api.localhost/api/v1/
 ```
 
 #### 3.2 Frontend Environment Configuration
@@ -354,7 +352,7 @@ docker-compose logs [service_name]
 
 #### Database (PostgreSQL 17)
 
-- **Port**: 5440 (external) → 5432 (internal)
+- **Port**: 5432 (internal only, not exposed in production; 5440 external in development via `DB_EXTERNAL_PORT`)
 - **Volume**: `postgres_data` for data persistence
 - **Health Check**: PostgreSQL readiness check
 - **Initialization**: `postgres/init.sh` sets up extensions and users
@@ -371,9 +369,10 @@ docker-compose logs [service_name]
   - `media_volume` for user uploads
 - **Commands**:
   - Collects static files
+  - Compiles translation messages (`compilemessages`)
   - Runs migrations
   - Creates superuser (if not exists)
-  - Loads fixtures
+  - Loads fixtures via `load_initial_data` (idempotent)
   - Starts Gunicorn
 - **Depends on**: Database service
 - **Special Features**:
@@ -422,6 +421,36 @@ docker-compose logs [service_name]
   - Dynamic light/dark theme switching
   - Font serving for map labels
 - **Data Source**: Mbtiles generated from Planetiler (OSM data)
+
+#### Backend WMS (Django)
+
+- **Port**: 8000 (internal, proxied via nginx)
+- **Function**: Dedicated Django instance for WMS/MVT tile caching
+- **Memory**: 1GB limit, 256MB reserved
+- **Features**:
+  - Separate Gunicorn worker pool for tile requests
+  - Isolates tile rendering load from main API
+  - Shares static and media volumes with main backend
+
+#### PG Error Parser
+
+- **Function**: Monitors PostgreSQL container logs for errors
+- **Memory**: 256MB limit, 128MB reserved
+- **Features**:
+  - Parses PostgreSQL logs via Docker socket
+  - Detects and reports database errors
+  - Runs as a Django management command
+
+#### WireGuard (Optional)
+
+- **Image**: `lscr.io/linuxserver/wireguard:latest`
+- **Port**: 51820/udp (configurable via `WIREGUARD_PORT`)
+- **Function**: VPN access to the internal network
+- **Memory**: 128MB limit, 64MB reserved
+- **Configuration**:
+  - `WIREGUARD_SERVERURL` - Server URL (default: auto-detect)
+  - `WIREGUARD_PORT` - UDP port (default: 51820)
+  - `WIREGUARD_PEERS` - Peer configurations
 
 #### Generating Map Tiles with Planetiler
 
@@ -514,6 +543,22 @@ After generating your mbtiles, update `tiles/config.json` to reference your file
   - `media_volume` for media files
 - **Features**: Static file caching and gzip compression
 
+#### Resource Limits (Production)
+
+| Service | Memory Limit | Memory Reservation |
+|---------|--------------|-------------------|
+| Database (PostgreSQL) | 2GB | 512MB |
+| Backend (Django API) | 1GB | 512MB |
+| Backend WMS | 1GB | 256MB |
+| QGIS Server | 1GB | 512MB |
+| Frontend (SvelteKit) | 512MB | 256MB |
+| TileServer-GL | 512MB | 256MB |
+| Caddy | 256MB | 128MB |
+| PG Error Parser | 256MB | 128MB |
+| Nginx | 128MB | 64MB |
+| WireGuard | 128MB | 64MB |
+| **Total** | **~6.8GB** | **~2.7GB** |
+
 ---
 
 ## Environment Variables Reference
@@ -548,6 +593,7 @@ After generating your mbtiles, update `tiles/config.json` to reference your file
 | `API_URL` | Yes | Backend API URL (server-side) | `http://localhost:8000/api/v1/` |
 | `PUBLIC_API_URL` | Yes | Backend API URL (client-side) | `http://localhost:8000/api/v1/` |
 | `PUBLIC_TILE_SERVER_URL` | No | Vector tile server URL (omit for OSM fallback) | `http://localhost:8090` |
+| `PUBLIC_DOCUMENTATION_URL` | No | URL to user documentation/manual | `https://qonnectra.de/manual/` |
 | `ORIGIN` | No | Frontend origin for CORS | `http://localhost:5173` |
 
 **Note:** In SvelteKit, private environment variables (server-side only) are accessed via `$env/static/private`, and public variables (client-side accessible) must be prefixed with `PUBLIC_` and accessed via `$env/static/public`.
@@ -651,6 +697,7 @@ Persistent data is stored in Docker volumes:
 - `postgres_data`: Database files
 - `static_volume`: Django static files
 - `media_volume`: User uploads and media
+- `wms_cache`: Nginx WMS/MVT tile cache
 - `caddy_data`: Caddy certificates and data
 - `caddy_config`: Caddy configuration
 

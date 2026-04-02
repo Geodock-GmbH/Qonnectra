@@ -2,8 +2,6 @@
 
 SvelteKit-based frontend application for the Qonnectra GIS system, providing an interactive map interface and infrastructure management tools.
 
-**Version**: 0.9.5 (from `package.json`)
-
 ### Overview
 
 The frontend is built with **SvelteKit 2** and **Svelte 5 runes**, using:
@@ -20,7 +18,7 @@ For a system-wide overview, see the main project README: `../README.md`.
 
 ## Prerequisites
 
-- **Node.js 18+** (LTS recommended)
+- **Node.js 22+** (LTS recommended)
 - **npm** (bundled with Node.js)
 
 You can use other package managers (pnpm, yarn), but this README assumes `npm`.
@@ -201,6 +199,13 @@ frontend/
 │       │       ├── +page.server.js
 │       │       ├── +page.svelte
 │       │       └── (lasso & node components ...)
+│       ├── trace/
+│       │   ├── address/[uuid]/
+│       │   ├── cable/[uuid]/
+│       │   ├── fiber/[uuid]/
+│       │   ├── node/[uuid]/
+│       │   ├── residential-unit/[uuid]/
+│       │   └── components/       # TraceMap, TraceResults, SignalAnalysis, ...
 │       ├── settings/
 │       │   ├── +page.server.js
 │       │   └── +page.svelte
@@ -254,6 +259,9 @@ frontend/
   - Svelte Flow-based network graph
   - Node/edge attribute cards, fiber panels, slot configuration
 - `pipe-branch/[[projectId]]/` – Pipe branch visualization and editing (lasso selection, trench selector)
+- `trace/` – Fiber trace and signal analysis:
+  - Trace by address, cable, fiber, node, or residential unit (`/trace/[type]/[uuid]`)
+  - Trace map visualization, fiber paths table, and signal analysis
 - `settings/` – Application and user-level settings
 - `admin/logs/` – Administrative log viewer
 

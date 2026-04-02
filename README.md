@@ -81,7 +81,7 @@ qonnectra/
 ### Prerequisites
 
 - Docker and Docker Compose
-- Node.js 18+ (for local frontend development)
+- Node.js 22+ (for local frontend development)
 - Python 3.12+ (for local backend development)
 - uv package manager (optional, recommended for Python)
 

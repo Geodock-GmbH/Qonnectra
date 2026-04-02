@@ -183,8 +183,8 @@ services:
       context: ../frontend
       dockerfile: Dockerfile
       args:
-        - API_URL=${API_URL:-https://api.localhost/api/}
-        - PUBLIC_API_URL=${PUBLIC_API_URL:-https://api.localhost/api/}
+        - API_URL=${API_URL:-https://api.localhost/api/v1/}
+        - PUBLIC_API_URL=${PUBLIC_API_URL:-https://api.localhost/api/v1/}
         - PUBLIC_TILE_SERVER_URL=${PUBLIC_TILE_SERVER_URL:-https://tiles.localhost}
     image: qonnectra/frontend:dev
     container_name: qonnectra_frontend_dev
@@ -194,8 +194,8 @@ services:
     environment:
       - ORIGIN=https://app.localhost
       - NODE_ENV=production
-      - API_URL=${API_URL:-https://api.localhost/api/}
-      - PUBLIC_API_URL=${PUBLIC_API_URL:-https://api.localhost/api/}
+      - API_URL=${API_URL:-https://api.localhost/api/v1/}
+      - PUBLIC_API_URL=${PUBLIC_API_URL:-https://api.localhost/api/v1/}
       - PUBLIC_TILE_SERVER_URL=${PUBLIC_TILE_SERVER_URL:-https://tiles.localhost}
     networks:
       - qonnectra_network
