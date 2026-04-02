@@ -81,7 +81,7 @@
 			<span class="text-xs font-semibold text-surface-600-300 whitespace-nowrap"
 				>{m.form_trench_id()}:</span
 			>
-			<span class="font-semibold text-xs text-surface-600-300 break-words"
+			<span class="font-semibold text-xs text-surface-600-300 wrap-break-words"
 				>{trench?.id_trench || 'N/A'}</span
 			>
 		</div>
@@ -90,7 +90,7 @@
 				<span class="text-xs font-semibold text-surface-700-200 whitespace-nowrap"
 					>{m.form_conduit({ count: 1 })}:</span
 				>
-				<span class="font-semibold text-xs text-surface-700-200 break-words"
+				<span class="font-semibold text-xs text-surface-700-200 wrap-break-words"
 					>{conduit?.name || 'N/A'}</span
 				>
 			</div>
