@@ -200,5 +200,6 @@ deployment/caddy/certificates
 deployment/docker-compose.override.yml
 deployment/logs
 deployment/qgis/pg_service.conf
+deployment/caddy/extra/
 
 node_modules

@@ -42,6 +42,8 @@
     # @blocked not remote_ip 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
     # respond @blocked 403
 
+    import /etc/caddy/extra/*.caddy
+
     reverse_proxy nginx:80 {
         header_up Host {host}
         header_up X-Forwarded-Proto https

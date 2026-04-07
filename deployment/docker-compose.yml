@@ -394,6 +394,7 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile.production:/etc/caddy/Caddyfile:ro
+      - ./caddy/extra:/etc/caddy/extra:ro
       - caddy_data:/data
       - caddy_config:/config
       - ./logs:/var/log/caddy
