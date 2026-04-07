@@ -1,12 +1,17 @@
 # Backend API
 {$API_DOMAIN} {
+    # Block admin panel on API domain (use admin subdomain instead)
+    handle /admin/* {
+        respond 404
+    }
+
     # Automatic Let's Encrypt SSL
     reverse_proxy nginx:80 {
         header_up Host {host}
         header_up X-Forwarded-Proto https
         header_up X-Real-IP {remote_host}
     }
-    
+
     # Security headers
     header {
         # Enable HSTS
@@ -20,7 +25,7 @@
         # Remove server info
         -Server
     }
-    
+
     # Optional: Rate limiting
     # rate_limit {
     #     zone api {
@@ -29,6 +34,27 @@
     #         window 1m
     #     }
     # }
+}
+
+# Admin Panel (restrict to VPN/intranet as needed)
+{$ADMIN_DOMAIN} {
+    # Uncomment to restrict access to internal network only:
+    # @blocked not remote_ip 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
+    # respond @blocked 403
+
+    reverse_proxy nginx:80 {
+        header_up Host {host}
+        header_up X-Forwarded-Proto https
+        header_up X-Real-IP {remote_host}
+    }
+
+    header {
+        Strict-Transport-Security max-age=31536000;
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        -Server
+    }
 }
 
 # Frontend Application

@@ -159,7 +159,7 @@ npm run dev
 
 - **Frontend**: `http://localhost:5173`
 - **API**: `http://localhost:8000`
-- **Django Admin**: `http://localhost:8000/admin`
+- **Django Admin**: `http://localhost:8000/admin` (local dev only, no subdomain separation)
 - **Database**: `localhost:5432`
 
 ---
@@ -184,9 +184,9 @@ Create a `.env` file in the `deployment/` directory:
 ```bash
 # Django Settings
 DJANGO_SECRET_KEY=your-secret-key-here
-DJANGO_ALLOWED_HOSTS=api.localhost,localhost,127.0.0.1
+DJANGO_ALLOWED_HOSTS=api.localhost,admin.localhost,localhost,127.0.0.1
 DEBUG=True
-CSRF_TRUSTED_ORIGINS=https://api.localhost,https://app.localhost
+CSRF_TRUSTED_ORIGINS=https://api.localhost,https://app.localhost,https://admin.localhost
 
 # Database
 DB_NAME=qonnectra
@@ -237,7 +237,7 @@ cp docker-compose.override.yml.template docker-compose.override.yml
 
 - **Frontend**: `https://app.localhost`
 - **API**: `https://api.localhost`
-- **Django Admin**: `https://api.localhost/admin`
+- **Django Admin**: `https://admin.localhost/admin`
 - **QGIS Server**: `https://qgis.localhost`
 - **TileServer**: `https://tiles.localhost`
 - **Files (WebDAV)**: `https://files.localhost`
@@ -266,9 +266,9 @@ Create a `.env` file in the `deployment/` directory:
 ```bash
 # Django Settings
 DJANGO_SECRET_KEY=your-very-secure-secret-key
-DJANGO_ALLOWED_HOSTS=api.localhost,localhost,127.0.0.1
+DJANGO_ALLOWED_HOSTS=api.localhost,admin.localhost,localhost,127.0.0.1
 DEBUG=False
-CSRF_TRUSTED_ORIGINS=https://api.localhost,https://app.localhost
+CSRF_TRUSTED_ORIGINS=https://api.localhost,https://app.localhost,https://admin.localhost
 
 # Database
 DB_NAME=qonnectra
@@ -298,6 +298,7 @@ API_DOMAIN=api.localhost
 APP_DOMAIN=app.localhost
 FILES_DOMAIN=files.localhost
 QGIS_DOMAIN=qgis.localhost
+ADMIN_DOMAIN=admin.localhost
 TILE_SERVER_DOMAIN=tiles.localhost
 
 # API URL (for frontend)
@@ -342,7 +343,7 @@ docker-compose logs [service_name]
 
 - **Frontend**: `https://app.localhost`
 - **API**: `https://api.localhost`
-- **Django Admin**: `https://api.localhost/admin`
+- **Django Admin**: `https://admin.localhost/admin`
 - **QGIS Server**: `https://qgis.localhost/ows/?MAP=/projects/<project>.qgs`
 - **TileServer**: `https://tiles.localhost`
 - **Files (WebDAV)**: `https://files.localhost`
@@ -527,7 +528,7 @@ After generating your mbtiles, update `tiles/config.json` to reference your file
   - `Caddyfile.production` for routing rules
 - **Features**:
   - Automatic HTTPS with Let's Encrypt
-  - Subdomain routing (app, api, qgis, tiles, files)
+  - Subdomain routing (app, api, admin, qgis, tiles, files)
   - Forward authentication for QGIS Server
   - CORS headers for tile server
   - Security headers (HSTS, X-Frame-Options, etc.)
