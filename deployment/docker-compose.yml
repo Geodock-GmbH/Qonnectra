@@ -407,6 +407,7 @@ services:
       - FILES_DOMAIN=${FILES_DOMAIN}
       - QGIS_DOMAIN=${QGIS_DOMAIN}
       - TILE_SERVER_DOMAIN=${TILE_SERVER_DOMAIN}
+      - ADMIN_DOMAIN=${ADMIN_DOMAIN}
     cap_add:
       - NET_ADMIN
     depends_on:
