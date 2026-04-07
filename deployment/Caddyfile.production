@@ -169,6 +169,6 @@
 }
 
 # Redirect www to non-www
-www.{$DOMAIN_NAME} {
-    redir https://{$DOMAIN_NAME}{uri} permanent
-} 
+#www.{$DOMAIN_NAME} {
+#    redir https://{$DOMAIN_NAME}{uri} permanent
+#} 
