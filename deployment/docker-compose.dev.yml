@@ -90,7 +90,7 @@ services:
         max-file: "3"
 
   qgis-server:
-    image: qgis/qgis-server:latest
+    image: qgis/qgis-server:3.44.7-noble
     container_name: qonnectra_qgis_server_dev
     restart: unless-stopped
     command: >
@@ -223,7 +223,7 @@ services:
       - qonnectra_network
 
   tileserver:
-    image: maptiler/tileserver-gl:latest
+    image: maptiler/tileserver-gl:v5.6.0
     container_name: qonnectra_tileserver_dev
     restart: unless-stopped
     user: "1000:1000"

@@ -109,7 +109,7 @@ services:
         labels: "service=backend"
 
   qgis-server:
-    image: qgis/qgis-server:latest
+    image: qgis/qgis-server:3.44.7-noble
     container_name: qonnectra_qgis_server_prod
     restart: always
     command:
@@ -313,7 +313,7 @@ services:
           memory: 64M
 
   tileserver:
-    image: maptiler/tileserver-gl:latest
+    image: maptiler/tileserver-gl:v5.6.0
     container_name: qonnectra_tileserver_prod
     restart: always
     user: "1000:1000"
