@@ -1,5 +1,7 @@
 # Backend API
 {$API_DOMAIN} {
+    import /etc/caddy/extra/api/*.caddy
+
     # Block admin panel on API domain (use admin subdomain instead)
     handle /admin/* {
         respond 404
@@ -42,7 +44,7 @@
     # @blocked not remote_ip 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
     # respond @blocked 403
 
-    import /etc/caddy/extra/*.caddy
+    import /etc/caddy/extra/admin/*.caddy
 
     reverse_proxy nginx:80 {
         header_up Host {host}
@@ -61,6 +63,8 @@
 
 # Frontend Application
 {$APP_DOMAIN} {
+    import /etc/caddy/extra/app/*.caddy
+
     reverse_proxy frontend:3000 {
         header_up Host {host}
         header_up X-Forwarded-Proto https
@@ -79,6 +83,8 @@
 
 # WebDAV File Access
 {$FILES_DOMAIN} {
+    import /etc/caddy/extra/files/*.caddy
+    
     # Forward authentication to Django
     route {
         # Authenticate all requests via Django
@@ -117,6 +123,8 @@
 
 # QGIS Server
 {$QGIS_DOMAIN} {
+    import /etc/caddy/extra/qgis/*.caddy
+    
     # Forward authentication to Django
     route {
         # Authenticate all requests via Django
@@ -151,6 +159,8 @@
 
 # Vector Tile Server
 {$TILE_SERVER_DOMAIN} {
+    import /etc/caddy/extra/tileserver/*.caddy
+    
     reverse_proxy tileserver:8080 {
         header_up Host {host}
         header_up X-Forwarded-Proto https
