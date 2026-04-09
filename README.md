@@ -4,6 +4,20 @@
 
 Qonnectra is a full-stack web application designed for managing and visualizing telecommunications network infrastructure. It provides tools for managing trenches, conduits, microducts, nodes, addresses, cables, and fibers with spatial data capabilities.
 
+## Try it out
+Before installing, you can try out the application at:
+
+https://app.geodock.de
+
+Credentials:
+- Username: public_testaccount
+- Password: M!XUaZp!sCvifv
+
+This gives you access to the frontend. After logging in, choose the project "Testprojekt" from the dropdown in the top left corner.
+The admin panel is currently not accessible for the public test account.
+
+The Server resets every day, so the changes you make will be lost.
+
 ## Features
 
 - **Spatial Data Management**: Full PostGIS integration for handling geographic data with support for ETRS89 UTM Zone 32N or 33N (SRID 25832 or 25833)
