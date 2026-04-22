@@ -1,49 +1,54 @@
-publiccodeYmlVersion: 0.5.0
+publiccodeYmlVersion: "0.2"
 name: Qonnectra
-url: https://github.com/Geodock-GmbH/Qonnectra
-landingURL: https://www.qonnectra.de
-softwareVersion: 1.0.0
-releaseDate: 2026-03-31
+url: "https://github.com/Geodock-GmbH/Qonnectra"
+landingURL: "https://www.qonnectra.de"
+softwareVersion: "1.0.0"
+releaseDate: "2026-03-31"
 logo: logo.png
 platforms:
-  - linux
-  - windows
-  - web
-  - mac
+- web
 developmentStatus: stable
-softwareType: standalone/other
+softwareType: standalone/web
+categories:
+- geographic-information-systems
+dependsOn:
+  open:
+  - name: Python
+    versionMin: "3.12"
+  - name: PostgreSQL
+    versionMin: "17"
+  - name: PostGIS
+  - name: Node.js
+maintenance:
+  type: community
+  contacts:
+  - name: Malte Then
+    email: malte.then@geodock.de
+    affiliation: Geodock GmbH
+  - name: Daniel Seehaus
+    email: daniel.seehaus@geodock.de
+    affiliation: Geodock GmbH
+  - name: Gregor Ewers
+    email: g.ewers@planneo.de
+    affiliation: plan[neo] GmbH
+  - name: Christop Bechtel
+    email: c.bechtel@planneo.de
+    affiliation: plan[neo] GmbH
+legal:
+  license: AGPL-3.0-only
+  repoOwner: Geodock GmbH
+localisation:
+  localisationReady: true
+  availableLanguages:
+  - de
+  - en
 description:
-  en:
-    localisedName: Qonnectra
-    shortDescription: Fiber optic documentation of passive networks.
-    longDescription: >-
-      Qonnectra is an open-source, web-based GIS application for documenting and
-      managing municipal utility networks. It enables the documentation and
-      visualization of fiber optic networks across all network levels – from
-      main distribution points to individual building connections.
-
-
-      The software is designed for municipalities, municipal associations, and
-      small to mid-sized network operators such as public utilities that want to
-      manage their network assets professionally and digitally. Qonnectra is
-      browser-based, completely free of charge, and built entirely on
-      open-source components – data sovereignty stays with the municipality.
-    documentation: https://qonnectra.de/manual/
-    features:
-      - Geographic information system for telecommunications infrastructure
-      - Interactive map interface
-      - Management of trenches, conduits, microducts, nodes and addresses
-      - Visual network schema editor
-      - Multi-project organization
-      - File storage and management
-      - Integration with QGIS
-      - REST API for third-party integrations
-      - WMS
-      - WFS
   de:
+    genericName: GIS-Anwendung
     localisedName: Qonnectra
-    shortDescription: Glasfaserdokumentation von passiven Netzen
-    longDescription: >-
+    shortDescription: >-
+      Glasfaserdokumentation von passiven Netzen
+    longDescription: >
       Qonnectra ist eine open-source, webbasierte GIS-Anwendung zur
       Dokumentation und Verwaltung kommunaler Versorgungsnetze. Sie ermöglicht
       die Dokumentation und Visualisierung von Glasfasernetzen über alle
@@ -56,37 +61,44 @@ description:
       und digital betreiben wollen. Qonnectra ist browserbasiert, vollständig
       kostenfrei und setzt ausschließlich auf Open-Source-Komponenten – die
       Datenhoheit bleibt bei der Kommune.
-    documentation: https://qonnectra.de/manual/
+    documentation: "https://qonnectra.de/manual/"
     features:
-      - Geoinformationssystem für Telekommunikationsinfrastruktur
-      - Interaktive Kartenoberfläche
-      - Verwaltung von Trassen, Rohre, Kabel, Adressen und Netzknoten
-      - Visueller Netzwerk-Schema-Editor
-      - Multi-Projekt-Organisation
-      - Dateispeicherung und -verwaltung
-      - Integration mit QGIS
-      - REST-API für Integrationen von Drittanbietern
-      - WMS
-      - WFS
-legal:
-  license: AGPL-3.0-only
-maintenance:
-  type: community
-  contacts:
-    - name: Malte Then
-      email: malte.then@geodock.de
-      affiliation: Geodock GmbH
-    - name: Daniel Seehaus
-      email: daniel.seehaus@geodock.de
-      affiliation: Geodock GmbH
-    - name: Gregor Ewers
-      email: g.ewers@planneo.de
-      affiliation: plan[neo] GmbH
-    - name: Christop Bechtel
-      email: c.bechtel@planneo.de
-      affiliation: plan[neo] GmbH
-localisation:
-  localisationReady: true
-  availableLanguages:
-    - de
-    - en
+    - Geoinformationssystem für Telekommunikationsinfrastruktur
+    - Interaktive Kartenoberfläche
+    - Verwaltung von Trassen, Rohre, Kabel, Adressen und Netzknoten
+    - Visueller Netzwerk-Schema-Editor
+    - Multi-Projekt-Organisation
+    - Dateispeicherung und -verwaltung
+    - Integration mit QGIS
+    - REST-API für Integrationen von Drittanbietern
+    - WMS
+    - WFS
+  en:
+    genericName: GIS Application
+    localisedName: Qonnectra
+    shortDescription: >-
+      Fiber optic documentation of passive networks.
+    longDescription: >
+      Qonnectra is an open-source, web-based GIS application for documenting and
+      managing municipal utility networks. It enables the documentation and
+      visualization of fiber optic networks across all network levels – from
+      main distribution points to individual building connections.
+
+
+      The software is designed for municipalities, municipal associations, and
+      small to mid-sized network operators such as public utilities that want to
+      manage their network assets professionally and digitally. Qonnectra is
+      browser-based, completely free of charge, and built entirely on
+      open-source components – data sovereignty stays with the municipality.
+    documentation: "https://qonnectra.de/manual/"
+    features:
+    - Geographic information system for telecommunications infrastructure
+    - Interactive map interface
+    - Management of trenches, conduits, microducts, nodes and addresses
+    - Visual network schema editor
+    - Multi-project organization
+    - File storage and management
+    - Integration with QGIS
+    - REST API for third-party integrations
+    - WMS
+    - WFS
