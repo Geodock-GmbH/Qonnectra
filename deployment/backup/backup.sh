@@ -3,7 +3,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/backup.conf"
-source "$DEPLOY_DIR/.env"
+
+env_val() { grep "^$1=" "$DEPLOY_DIR/.env" | head -1 | cut -d'=' -f2-; }
+DB_USER="$(env_val DB_USER)"
+DB_NAME="$(env_val DB_NAME)"
 
 DATE=$(date +%Y-%m-%d)
 TIMESTAMP_DIR="$BACKUP_DIR/$DATE"
