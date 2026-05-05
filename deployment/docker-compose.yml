@@ -234,6 +234,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      backend:
+        condition: service_started
     networks:
       - qonnectra_network
     deploy:

@@ -1,3 +1,6 @@
+# Deployment backup config (contains server-specific paths)
+deployment/backup/backup.conf
+
 # Backend
 # Byte-compiled / optimized / DLL files
 backend/__pycache__/
