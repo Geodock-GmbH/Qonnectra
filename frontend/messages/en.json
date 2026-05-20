@@ -121,6 +121,7 @@
 	"fault_affected_cables": "Affected Cables",
 	"fault_dark_fibers": "Dark Fibers",
 	"fault_fibers_affected": "Affected Fibers",
+	"fault_no_affected_addresses": "No affected addresses",
 	"fault_summary": "Summary",
 	"form_actions": "Actions",
 	"form_address": [

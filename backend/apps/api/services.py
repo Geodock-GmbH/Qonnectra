@@ -1939,6 +1939,7 @@ def trace_fiber(
                 'resident_recorded_date', ru.resident_recorded_date,
                 'ready_for_service', ru.ready_for_service,
                 'address_id', ru_addr.uuid,
+                'address_id_address', ru_addr.id_address,
                 'address_street', ru_addr.street,
                 'address_housenumber', ru_addr.housenumber,
                 'address_suffix', ru_addr.house_number_suffix,
@@ -2743,6 +2744,7 @@ def _build_trace_result(
             if ru.get("address_id"):
                 ru_data["address"] = {
                     "id": str(ru["address_id"]),
+                    "id_address": ru.get("address_id_address"),
                     "street": ru.get("address_street"),
                     "housenumber": ru.get("address_housenumber"),
                     "suffix": ru.get("address_suffix") or "",
@@ -3997,6 +3999,15 @@ def simulate_fault(
 
     trench_uuid, trench_id, construction_type, snap_point = row
 
+    conduits_sql = """
+    SELECT DISTINCT cond.uuid, cond.name,
+           act.conduit_type as conduit_type_name
+    FROM conduit cond
+    JOIN trench_conduit_connect tcc ON tcc.uuid_conduit = cond.uuid
+    LEFT JOIN attributes_conduit_type act ON act.id = cond.conduit_type
+    WHERE tcc.uuid_trench = %(trench_uuid)s
+    """
+
     cables_sql = """
     SELECT DISTINCT c.uuid, c.name,
            ct.cable_type as cable_type_name,
@@ -4013,8 +4024,24 @@ def simulate_fault(
     WHERE tcc.uuid_trench = %(trench_uuid)s
     """
 
+    trench_params = {"trench_uuid": str(trench_uuid)}
+
     with connection.cursor() as cursor:
-        cursor.execute(cables_sql, {"trench_uuid": str(trench_uuid)})
+        cursor.execute(conduits_sql, trench_params)
+        columns = [col[0] for col in cursor.description]
+        conduit_rows = [dict(zip(columns, r)) for r in cursor.fetchall()]
+
+    conduits_result = [
+        {
+            "uuid": str(r["uuid"]),
+            "name": r["name"],
+            "conduit_type": r.get("conduit_type_name"),
+        }
+        for r in conduit_rows
+    ]
+
+    with connection.cursor() as cursor:
+        cursor.execute(cables_sql, trench_params)
         columns = [col[0] for col in cursor.description]
         cable_rows = [dict(zip(columns, r)) for r in cursor.fetchall()]
 
@@ -4033,6 +4060,7 @@ def simulate_fault(
                 "affected_addresses": 0,
                 "affected_residential_units": 0,
             },
+            "conduits": conduits_result,
             "cables": [],
             "geometry": {
                 "damage_point": snap_point or {"type": "Point", "coordinates": point},
@@ -4055,6 +4083,8 @@ def simulate_fault(
     total_dark = 0
     all_affected_addresses = set()
     all_affected_residential_units = set()
+    all_address_details = {}
+    all_ru_ids_seen = set()
     cables_result = []
     affected_trench_features = []
     affected_node_features = []
@@ -4094,6 +4124,10 @@ def simulate_fault(
 
             _collect_affected_entities(
                 trace_tree, cable_affected_addresses, cable_affected_rus
+            )
+
+            _collect_affected_entity_details(
+                trace_tree, all_address_details, all_ru_ids_seen
             )
 
             infra = trace_result.get("cable_infrastructure", {})
@@ -4158,7 +4192,9 @@ def simulate_fault(
             "affected_addresses": len(all_affected_addresses),
             "affected_residential_units": len(all_affected_residential_units),
         },
+        "conduits": conduits_result,
         "cables": cables_result,
+        "affected_addresses_details": list(all_address_details.values()),
         "geometry": {
             "damage_point": snap_point or {"type": "Point", "coordinates": point},
             "affected_trenches": {
@@ -4270,9 +4306,98 @@ def _collect_affected_entities(
         for ru in node.get("residential_units") or []:
             if ru and ru.get("id"):
                 residential_units.add(str(ru["id"]))
+                ru_addr = ru.get("address") or {}
+                if ru_addr.get("id"):
+                    addresses.add(str(ru_addr["id"]))
 
     for child in node.get("children", []):
         _collect_affected_entities(child, addresses, residential_units)
+
+
+def _collect_affected_entity_details(
+    node: dict,
+    address_map: dict,
+    ru_ids_seen: set,
+) -> None:
+    """Walk trace tree and collect full address/RU details for dark nodes.
+
+    Builds a dict keyed by address UUID containing address info and a list
+    of affected residential units under that address.
+
+    Args:
+        node (dict): Current trace tree node (with ``signal_state`` propagated).
+        address_map (dict): Accumulator mapping address UUID to address detail
+            dict including ``residential_units`` list (mutated).
+        ru_ids_seen (set[str]): Tracks already-collected RU UUIDs to avoid
+            duplicates (mutated).
+    """
+    if not node:
+        return
+
+    signal_state = node.get("signal_state", "lit")
+
+    if signal_state in ("dark", "break_point"):
+        splice_node = node.get("node")
+        if splice_node:
+            address = splice_node.get("address")
+            if address and address.get("id"):
+                addr_id = str(address["id"])
+                if addr_id not in address_map:
+                    address_map[addr_id] = {
+                        "uuid": addr_id,
+                        "id_address": address.get("id_address"),
+                        "street": address.get("street"),
+                        "housenumber": address.get("housenumber"),
+                        "suffix": address.get("suffix", ""),
+                        "zip_code": address.get("zip_code"),
+                        "city": address.get("city"),
+                        "district": address.get("district"),
+                        "residential_units": [],
+                    }
+
+        for ru in node.get("residential_units") or []:
+            if not ru or not ru.get("id"):
+                continue
+            ru_id = str(ru["id"])
+            if ru_id in ru_ids_seen:
+                continue
+            ru_ids_seen.add(ru_id)
+
+            ru_detail = {
+                "uuid": ru_id,
+                "id_residential_unit": ru.get("id_residential_unit"),
+                "floor": ru.get("floor"),
+                "side": ru.get("side"),
+                "type": ru.get("type"),
+                "status": ru.get("status"),
+            }
+
+            ru_addr = ru.get("address")
+            if ru_addr and ru_addr.get("id"):
+                parent_addr_id = str(ru_addr["id"])
+            elif splice_node and splice_node.get("address", {}).get("id"):
+                parent_addr_id = str(splice_node["address"]["id"])
+            else:
+                parent_addr_id = None
+
+            if parent_addr_id and parent_addr_id in address_map:
+                address_map[parent_addr_id]["residential_units"].append(ru_detail)
+            elif parent_addr_id:
+                addr_info = ru_addr if (ru_addr and ru_addr.get("id")) else {}
+                address_map[parent_addr_id] = {
+                    "uuid": parent_addr_id,
+                    "id_address": addr_info.get("id_address"),
+                    "street": addr_info.get("street"),
+                    "housenumber": addr_info.get("housenumber"),
+                    "suffix": addr_info.get("suffix", ""),
+                    "zip_code": addr_info.get("zip_code"),
+                    "city": addr_info.get("city"),
+                    "district": addr_info.get("district"),
+                    "residential_units": [ru_detail],
+                }
+
+    for child in node.get("children", []):
+        _collect_affected_entity_details(child, address_map, ru_ids_seen)
 
 
 def _collect_node_geometries(node: dict, seen_ids: set, features: list) -> None:

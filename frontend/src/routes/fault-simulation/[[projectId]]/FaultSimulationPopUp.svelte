@@ -1,12 +1,11 @@
 <script>
 	import { deserialize } from '$app/forms';
-	import { IconAlertTriangle, IconLoader2, IconRefresh } from '@tabler/icons-svelte';
+	import { IconLoader2 } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import { globalToaster } from '$lib/stores/toaster';
 
-	import DamageReport from './DamageReport.svelte';
 	import { getFaultSimulationContext } from './faultSimulationContext.svelte.js';
 
 	let { projectId = '' } = $props();
@@ -57,52 +56,29 @@
 	}
 </script>
 
-<div class="flex h-full flex-col gap-4 overflow-y-auto p-4">
-	<h2 class="text-xl font-bold">{m.nav_fault_simulation()}</h2>
-
-	{#if !ctx.damagePoint}
-		<div class="card preset-outlined-surface-200-800 p-4 text-center">
-			<IconAlertTriangle class="mx-auto mb-2 h-8 w-8 opacity-50" />
-			<p class="text-sm opacity-70">{m.message_fault_select_trench()}</p>
-		</div>
-	{:else}
+{#if ctx.damagePoint}
+	<div
+		class="card preset-filled-surface-50-950 shadow-xl rounded-lg p-3 w-64 space-y-2 border border-surface-200-800"
+	>
 		{#if ctx.selectedTrench}
-			<div class="card preset-outlined-surface-200-800 p-3">
-				<div class="text-sm font-semibold">{m.nav_trench()}</div>
-				<div class="text-lg">{ctx.selectedTrench.id_trench}</div>
+			<div class="text-sm">
+				<div class="font-semibold">{ctx.selectedTrench.id_trench}</div>
 				{#if ctx.selectedTrench.construction_type}
-					<div class="text-sm opacity-70">
-						{m.form_construction_type()}: {ctx.selectedTrench.construction_type}
-					</div>
+					<div class="text-xs opacity-70">{ctx.selectedTrench.construction_type}</div>
 				{/if}
 			</div>
 		{/if}
 
-		{#if !ctx.simulationResult}
-			<button
-				type="button"
-				class="btn preset-filled-primary-500 w-full"
-				onclick={handleSimulate}
-				disabled={ctx.isSimulating}
-			>
-				{#if ctx.isSimulating}
-					<IconLoader2 class="h-4 w-4 animate-spin" />
-				{/if}
-				{m.action_start_simulation()}
-			</button>
-		{/if}
-
-		{#if ctx.simulationResult}
-			<DamageReport />
-
-			<button
-				type="button"
-				class="btn preset-outlined-surface-200-800 w-full"
-				onclick={() => ctx.reset()}
-			>
-				<IconRefresh class="h-4 w-4" />
-				{m.common_reset()}
-			</button>
-		{/if}
-	{/if}
-</div>
+		<button
+			type="button"
+			class="btn btn-sm preset-filled-primary-500 w-full"
+			onclick={handleSimulate}
+			disabled={ctx.isSimulating}
+		>
+			{#if ctx.isSimulating}
+				<IconLoader2 class="h-4 w-4 animate-spin" />
+			{/if}
+			{m.action_start_simulation()}
+		</button>
+	</div>
+{/if}

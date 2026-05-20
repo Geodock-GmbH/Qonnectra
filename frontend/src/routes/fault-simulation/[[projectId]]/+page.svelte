@@ -11,6 +11,7 @@
 	import { transform } from 'ol/proj.js';
 	import VectorSource from 'ol/source/Vector.js';
 	import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style.js';
+	import 'ol/ol.css';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -30,7 +31,8 @@
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
 
-	import FaultSimulationSidebar from './FaultSimulationSidebar.svelte';
+	import DamageReport from './DamageReport.svelte';
+	import FaultSimulationPopUp from './FaultSimulationPopUp.svelte';
 	import { createFaultSimulationContext } from './faultSimulationContext.svelte.js';
 
 	let { data } = $props();
@@ -63,6 +65,11 @@
 	let affectedTrenchLayer = $state(null);
 	/** @type {VectorLayer|null} */
 	let affectedNodeLayer = $state(null);
+	/** @type {[number, number]|null} */
+	let damageMapCoord = $state(null);
+	let popupPixel = $state({ x: 0, y: 0 });
+	/** @type {(() => void)|null} */
+	let mapMoveListener = null;
 
 	const damagePointStyle = new Style({
 		image: new CircleStyle({
@@ -113,6 +120,18 @@
 		olMap.addLayer(affectedTrenchLayer);
 		olMap.addLayer(affectedNodeLayer);
 		olMap.addLayer(damagePointLayer);
+
+		mapMoveListener = () => updatePopupPixel();
+		olMap.on('postrender', mapMoveListener);
+	}
+
+	/** @returns {void} */
+	function updatePopupPixel() {
+		if (!olMap || !damageMapCoord) return;
+		const pixel = olMap.getPixelFromCoordinate(damageMapCoord);
+		if (pixel) {
+			popupPixel = { x: Math.round(pixel[0]), y: Math.round(pixel[1]) };
+		}
 	}
 
 	/**
@@ -164,6 +183,7 @@
 		};
 
 		ctx.setDamagePoint(/** @type {[number, number]} */ (storageCoord), trenchInfo);
+		damageMapCoord = /** @type {[number, number]} */ (snappedCoord);
 
 		const damageSource = damagePointLayer?.getSource();
 		if (damageSource) {
@@ -171,6 +191,7 @@
 			damageSource.addFeature(new Feature({ geometry: new Point(snappedCoord) }));
 		}
 
+		updatePopupPixel();
 		clearResultLayers();
 	}
 
@@ -220,6 +241,7 @@
 	$effect(() => {
 		if (!ctx.damagePoint && !ctx.simulationResult) {
 			clearAllLayers();
+			damageMapCoord = null;
 		}
 	});
 
@@ -289,6 +311,9 @@
 
 	onMount(() => {
 		return () => {
+			if (olMap && mapMoveListener) {
+				olMap.un('postrender', mapMoveListener);
+			}
 			mapState.cleanup();
 		};
 	});
@@ -298,14 +323,14 @@
 	<title>{m.nav_fault_simulation()}</title>
 </svelte:head>
 
-<div class="relative flex gap-4 h-full overflow-hidden">
-	<div class="flex-1 h-full">
+<div class="flex flex-col h-full overflow-hidden">
+	<div class={ctx.simulationResult ? 'h-1/2 shrink-0' : 'flex-1'}>
 		{#if data.error && !layersInitialized}
 			<div class="p-4 text-red-700 bg-red-100 border border-red-400 rounded">
 				<p>Error loading initial map data: {data.error}</p>
 			</div>
 		{:else if layersInitialized}
-			<div class="map-wrapper border-2 rounded-lg border-surface-200-800 h-full w-full">
+			<div class="map-wrapper border-2 rounded-lg border-surface-200-800 h-full w-full relative">
 				<Map
 					className="rounded-lg overflow-hidden"
 					layers={mapState.getLayers()}
@@ -318,6 +343,13 @@
 					{constructionTypes}
 					{areaTypes}
 				/>
+
+				{#if ctx.damagePoint && !ctx.simulationResult}
+					<div class="fault-popup" style="left: {popupPixel.x}px; top: {popupPixel.y}px;">
+						<FaultSimulationPopUp projectId={$page.params.projectId ?? get(selectedProject)} />
+						<div class="fault-popup-arrow"></div>
+					</div>
+				{/if}
 			</div>
 		{:else}
 			<div class="p-4 text-yellow-700 bg-yellow-100 border border-yellow-400 rounded">
@@ -326,7 +358,35 @@
 		{/if}
 	</div>
 
-	<div class="w-80 shrink-0 overflow-hidden rounded-lg border border-surface-200-800">
-		<FaultSimulationSidebar projectId={$page.params.projectId ?? get(selectedProject)} />
-	</div>
+	{#if ctx.simulationResult}
+		<div class="flex-1 min-h-0 border-t border-surface-200-800 mt-2">
+			<DamageReport
+				projectId={$page.params.projectId ?? get(selectedProject)}
+				onreset={() => ctx.reset()}
+			/>
+		</div>
+	{/if}
 </div>
+
+<style>
+	.fault-popup {
+		position: absolute;
+		z-index: 10;
+		pointer-events: auto;
+		transform: translate(-50%, calc(-100% - 16px));
+	}
+
+	.fault-popup-arrow {
+		position: absolute;
+		bottom: -8px;
+		left: 50%;
+		transform: translateX(-50%);
+		border-left: 8px solid transparent;
+		border-right: 8px solid transparent;
+		border-top: 8px solid rgb(var(--color-surface-200));
+	}
+
+	:global(.dark) .fault-popup-arrow {
+		border-top-color: rgb(var(--color-surface-800));
+	}
+</style>

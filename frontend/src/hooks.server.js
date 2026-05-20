@@ -38,7 +38,8 @@ export async function handleProjectRedirect({ event, resolve }) {
 		'/pipe-branch',
 		'/network-schema',
 		'/house-connections',
-		'/address'
+		'/address',
+		'/fault-simulation'
 	];
 
 	const needsProjectSlug = PROJECT_ROUTES.some((route) => url.pathname === route);
