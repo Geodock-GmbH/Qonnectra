@@ -1,6 +1,4 @@
 <script>
-	import { onMount } from 'svelte';
-	import { get } from 'svelte/store';
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
 	import Feature from 'ol/Feature.js';
@@ -8,15 +6,20 @@
 	import LineString from 'ol/geom/LineString.js';
 	import Point from 'ol/geom/Point.js';
 	import VectorLayer from 'ol/layer/Vector.js';
+
+	import 'ol/ol.css';
+
+	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import { transform } from 'ol/proj.js';
 	import VectorSource from 'ol/source/Vector.js';
 	import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style.js';
-	import 'ol/ol.css';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import { MapState } from '$lib/classes/MapState.svelte.js';
 	import Map from '$lib/components/Map.svelte';
+	import MapHint from '$lib/components/MapHint.svelte';
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 	import {
 		addressStyle,
@@ -342,6 +345,11 @@
 					{surfaces}
 					{constructionTypes}
 					{areaTypes}
+				/>
+
+				<MapHint
+					message={m.message_fault_select_trench()}
+					visible={!ctx.damagePoint && !ctx.simulationResult}
 				/>
 
 				{#if ctx.damagePoint && !ctx.simulationResult}
