@@ -3183,13 +3183,17 @@ def _insert_bridge_segments(trimmed_geom_dicts, path_trench_ids, trench_path_coo
 
         ep_i_start = geom_i.coords[0]
         ep_i_end = geom_i.coords[-1]
-        d_i_start = (ep_i_start[0] - junction[0]) ** 2 + (ep_i_start[1] - junction[1]) ** 2
+        d_i_start = (ep_i_start[0] - junction[0]) ** 2 + (
+            ep_i_start[1] - junction[1]
+        ) ** 2
         d_i_end = (ep_i_end[0] - junction[0]) ** 2 + (ep_i_end[1] - junction[1]) ** 2
         near_i = ep_i_end if d_i_end <= d_i_start else ep_i_start
 
         ep_j_start = geom_j.coords[0]
         ep_j_end = geom_j.coords[-1]
-        d_j_start = (ep_j_start[0] - junction[0]) ** 2 + (ep_j_start[1] - junction[1]) ** 2
+        d_j_start = (ep_j_start[0] - junction[0]) ** 2 + (
+            ep_j_start[1] - junction[1]
+        ) ** 2
         d_j_end = (ep_j_end[0] - junction[0]) ** 2 + (ep_j_end[1] - junction[1]) ** 2
         near_j = ep_j_start if d_j_start <= d_j_end else ep_j_end
 
@@ -3465,7 +3469,9 @@ def _get_cable_infrastructure(
                                 }
                             )
                         elif geom_json:
-                            trimmed_trench_dicts.append({"id": tid, "geometry": geom_json})
+                            trimmed_trench_dicts.append(
+                                {"id": tid, "geometry": geom_json}
+                            )
                     trimmed_trench_dicts = _insert_bridge_segments(
                         trimmed_trench_dicts, routed_ids, trench_path_coords
                     )
@@ -3925,3 +3931,381 @@ def analyze_signal_flow(
         "statistics": trace_result.get("statistics", {}),
         "cable_infrastructure": trace_result.get("cable_infrastructure", {}),
     }
+
+
+def simulate_fault(
+    point: list,
+    project_id: str,
+    search_tolerance: float = 5.0,
+) -> dict:
+    """Simulate physical damage at a point and report affected infrastructure.
+
+    Find the nearest :model:`api.Trench`, identify all cables running through
+    it, trace every fiber in those cables, and inject virtual break points to
+    simulate total destruction at the damage location.
+
+    This is read-only -- no database modifications are made.
+
+    Args:
+        point (list[float]): ``[x, y]`` coordinates in the project SRID
+            (from ``settings.DEFAULT_SRID``).
+        project_id (str): UUID of the :model:`api.Projects` to search within.
+        search_tolerance (float): Distance in map units to search for nearby
+            trenches. Defaults to ``5.0``.
+
+    Returns:
+        dict: Contains ``'damage_point'``, ``'trench'``, ``'summary'``,
+            ``'cables'``, and ``'geometry'`` keys.
+
+    Raises:
+        ValueError: If no trench is found near the given point.
+    """
+    from django.conf import settings
+    from django.contrib.gis.geos import Point as GEOSPoint
+    from django.db import connection
+
+    srid = settings.DEFAULT_SRID
+    GEOSPoint(point[0], point[1], srid=srid)  # validate coordinates
+
+    trench_sql = """
+    SELECT t.uuid, t.id_trench,
+           ct.construction_type,
+           ST_AsGeoJSON(ST_ClosestPoint(t.geom, ST_SetSRID(ST_Point(%(x)s, %(y)s), %(srid)s)))::jsonb as snap_point
+    FROM trench t
+    LEFT JOIN attributes_construction_type ct ON ct.id = t.construction_type
+    WHERE ST_DWithin(t.geom, ST_SetSRID(ST_Point(%(x)s, %(y)s), %(srid)s), %(tolerance)s)
+      AND t.project = %(project_id)s
+    ORDER BY ST_Distance(t.geom, ST_SetSRID(ST_Point(%(x)s, %(y)s), %(srid)s))
+    LIMIT 1
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            trench_sql,
+            {
+                "x": point[0],
+                "y": point[1],
+                "srid": srid,
+                "tolerance": search_tolerance,
+                "project_id": project_id,
+            },
+        )
+        row = cursor.fetchone()
+
+    if not row:
+        raise ValueError("No trench found near the given point")
+
+    trench_uuid, trench_id, construction_type, snap_point = row
+
+    cables_sql = """
+    SELECT DISTINCT c.uuid, c.name,
+           ct.cable_type as cable_type_name,
+           ns.uuid as node_start_id, ns.name as node_start_name,
+           ne.uuid as node_end_id, ne.name as node_end_name
+    FROM cable c
+    JOIN microduct_cable_connection mcc ON mcc.uuid_cable = c.uuid
+    JOIN microduct md ON md.uuid = mcc.uuid_microduct
+    JOIN conduit cond ON cond.uuid = md.uuid_conduit
+    JOIN trench_conduit_connect tcc ON tcc.uuid_conduit = cond.uuid
+    LEFT JOIN attributes_cable_type ct ON ct.id = c.cable_type
+    LEFT JOIN node ns ON ns.uuid = c.uuid_node_start
+    LEFT JOIN node ne ON ne.uuid = c.uuid_node_end
+    WHERE tcc.uuid_trench = %(trench_uuid)s
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(cables_sql, {"trench_uuid": str(trench_uuid)})
+        columns = [col[0] for col in cursor.description]
+        cable_rows = [dict(zip(columns, r)) for r in cursor.fetchall()]
+
+    if not cable_rows:
+        return {
+            "damage_point": {"coordinates": point},
+            "trench": {
+                "uuid": str(trench_uuid),
+                "id_trench": trench_id,
+                "construction_type": construction_type,
+            },
+            "summary": {
+                "total_cables_affected": 0,
+                "total_fibers_affected": 0,
+                "total_fibers_dark": 0,
+                "affected_addresses": 0,
+                "affected_residential_units": 0,
+            },
+            "cables": [],
+            "geometry": {
+                "damage_point": snap_point or {"type": "Point", "coordinates": point},
+                "affected_trenches": {"type": "FeatureCollection", "features": []},
+                "affected_nodes": {"type": "FeatureCollection", "features": []},
+            },
+        }
+
+    cable_uuids = [str(r["uuid"]) for r in cable_rows]
+    from apps.api.models import Fiber
+
+    broken_fiber_ids = set(
+        str(f)
+        for f in Fiber.objects.filter(uuid_cable__in=cable_uuids).values_list(
+            "uuid", flat=True
+        )
+    )
+
+    total_fibers_affected = len(broken_fiber_ids)
+    total_dark = 0
+    all_affected_addresses = set()
+    all_affected_residential_units = set()
+    cables_result = []
+    affected_trench_features = []
+    affected_node_features = []
+    seen_trench_ids = set()
+    seen_node_ids = set()
+
+    for cable_row in cable_rows:
+        cable_uuid = str(cable_row["uuid"])
+        cable_fibers = Fiber.objects.filter(uuid_cable=cable_uuid)
+
+        cable_dark = 0
+        cable_affected_addresses = set()
+        cable_affected_rus = set()
+
+        for fiber in cable_fibers:
+            fiber_id_str = str(fiber.uuid)
+            try:
+                trace_result = trace_fiber(fiber_id_str, include_geometry=True)
+            except Exception:
+                continue
+
+            trace_tree = trace_result.get("trace_tree")
+            if not trace_tree:
+                continue
+
+            break_points = []
+            _propagate_signal_state_with_virtual_breaks(
+                trace_tree,
+                source_node_id=None,
+                broken_fiber_ids=broken_fiber_ids,
+                current_state="lit",
+                break_points=break_points,
+            )
+
+            summary = _collect_affected_summary(trace_tree)
+            cable_dark += summary["dark_fibers"] + summary["break_fibers"]
+
+            _collect_affected_entities(
+                trace_tree, cable_affected_addresses, cable_affected_rus
+            )
+
+            infra = trace_result.get("cable_infrastructure", {})
+            for cid, cdata in infra.items():
+                for trench_info in cdata.get("trenches", []):
+                    tid = trench_info.get("id")
+                    geom = trench_info.get("geometry")
+                    if tid and tid not in seen_trench_ids and geom:
+                        seen_trench_ids.add(tid)
+                        affected_trench_features.append(
+                            {
+                                "type": "Feature",
+                                "properties": {
+                                    "id": tid,
+                                    "id_trench": trench_info.get("id_trench"),
+                                },
+                                "geometry": geom,
+                            }
+                        )
+
+            _collect_node_geometries(trace_tree, seen_node_ids, affected_node_features)
+
+        all_affected_addresses.update(cable_affected_addresses)
+        all_affected_residential_units.update(cable_affected_rus)
+        total_dark += cable_dark
+
+        cables_result.append(
+            {
+                "uuid": cable_uuid,
+                "name": cable_row["name"],
+                "cable_type": cable_row.get("cable_type_name"),
+                "fiber_count": cable_fibers.count(),
+                "dark_fibers": cable_dark,
+                "node_start": {
+                    "id": str(cable_row["node_start_id"])
+                    if cable_row.get("node_start_id")
+                    else None,
+                    "name": cable_row.get("node_start_name"),
+                },
+                "node_end": {
+                    "id": str(cable_row["node_end_id"])
+                    if cable_row.get("node_end_id")
+                    else None,
+                    "name": cable_row.get("node_end_name"),
+                },
+                "affected_addresses": list(cable_affected_addresses),
+                "affected_residential_units": list(cable_affected_rus),
+            }
+        )
+
+    return {
+        "damage_point": {"coordinates": point},
+        "trench": {
+            "uuid": str(trench_uuid),
+            "id_trench": trench_id,
+            "construction_type": construction_type,
+        },
+        "summary": {
+            "total_cables_affected": len(cable_rows),
+            "total_fibers_affected": total_fibers_affected,
+            "total_fibers_dark": total_dark,
+            "affected_addresses": len(all_affected_addresses),
+            "affected_residential_units": len(all_affected_residential_units),
+        },
+        "cables": cables_result,
+        "geometry": {
+            "damage_point": snap_point or {"type": "Point", "coordinates": point},
+            "affected_trenches": {
+                "type": "FeatureCollection",
+                "features": affected_trench_features,
+            },
+            "affected_nodes": {
+                "type": "FeatureCollection",
+                "features": affected_node_features,
+            },
+        },
+    }
+
+
+def _propagate_signal_state_with_virtual_breaks(
+    node: dict,
+    source_node_id: str | None,
+    broken_fiber_ids: set,
+    current_state: str = "lit",
+    break_points: list | None = None,
+) -> str:
+    """Propagate signal state treating specified fibers as broken.
+
+    Behave like ``_propagate_signal_state`` but additionally treat any fiber
+    whose ID appears in *broken_fiber_ids* as a break point, regardless of
+    its actual ``fiber_status`` in the database.
+
+    Mutate nodes in place by adding a ``'signal_state'`` field.
+
+    Args:
+        node (dict): Current trace tree node to process.
+        source_node_id (str | None): ID of the signal source node.
+        broken_fiber_ids (set[str]): Fiber UUIDs to treat as virtually broken.
+        current_state (str): Current signal state (``'lit'`` or ``'dark'``).
+        break_points (list | None): List to collect break point info (mutated).
+
+    Returns:
+        str: The signal state after processing this node.
+    """
+    if break_points is None:
+        break_points = []
+
+    if not node:
+        return current_state
+
+    fiber = node.get("fiber", {})
+    fiber_id = fiber.get("id")
+    fiber_status = fiber.get("status")
+    is_virtually_broken = fiber_id and str(fiber_id) in broken_fiber_ids
+
+    if current_state == "dark":
+        node["signal_state"] = "dark"
+        propagate_state = "dark"
+    elif fiber_status or is_virtually_broken:
+        node["signal_state"] = "break_point"
+        propagate_state = "dark"
+
+        splice_node = node.get("node")
+        break_points.append(
+            {
+                "fiber_id": fiber.get("id"),
+                "fiber_number_absolute": fiber.get("fiber_number_absolute"),
+                "cable_id": fiber.get("cable_id"),
+                "cable_name": fiber.get("cable_name"),
+                "status": fiber_status or "simulated_break",
+                "at_node": {
+                    "id": splice_node.get("id") if splice_node else None,
+                    "name": splice_node.get("name") if splice_node else None,
+                }
+                if splice_node
+                else None,
+            }
+        )
+    else:
+        node["signal_state"] = "lit"
+        propagate_state = "lit"
+
+    for child in node.get("children", []):
+        _propagate_signal_state_with_virtual_breaks(
+            child, source_node_id, broken_fiber_ids, propagate_state, break_points
+        )
+
+    return node["signal_state"]
+
+
+def _collect_affected_entities(
+    node: dict, addresses: set, residential_units: set
+) -> None:
+    """Walk trace tree and collect IDs of dark addresses and residential units.
+
+    Args:
+        node (dict): Current trace tree node (with ``signal_state`` propagated).
+        addresses (set[str]): Accumulator for affected address UUIDs (mutated).
+        residential_units (set[str]): Accumulator for affected residential unit
+            UUIDs (mutated).
+    """
+    if not node:
+        return
+
+    signal_state = node.get("signal_state", "lit")
+
+    if signal_state in ("dark", "break_point"):
+        splice_node = node.get("node")
+        if splice_node:
+            address = splice_node.get("address")
+            if address and address.get("id"):
+                addresses.add(str(address["id"]))
+
+        for ru in node.get("residential_units") or []:
+            if ru and ru.get("id"):
+                residential_units.add(str(ru["id"]))
+
+    for child in node.get("children", []):
+        _collect_affected_entities(child, addresses, residential_units)
+
+
+def _collect_node_geometries(node: dict, seen_ids: set, features: list) -> None:
+    """Walk trace tree and collect GeoJSON features for dark or break-point nodes.
+
+    Args:
+        node (dict): Current trace tree node (with ``signal_state`` propagated).
+        seen_ids (set[str]): Already-collected node UUIDs to avoid duplicates
+            (mutated).
+        features (list[dict]): Accumulator for GeoJSON Feature dicts (mutated).
+    """
+    if not node:
+        return
+
+    signal_state = node.get("signal_state", "lit")
+    splice_node = node.get("node")
+
+    if splice_node and signal_state in ("dark", "break_point"):
+        node_id = splice_node.get("id")
+        geom = splice_node.get("geometry")
+        if node_id and node_id not in seen_ids and geom:
+            seen_ids.add(node_id)
+            features.append(
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": node_id,
+                        "name": splice_node.get("name"),
+                        "signal_state": signal_state,
+                    },
+                    "geometry": geom,
+                }
+            )
+
+    for child in node.get("children", []):
+        _collect_node_geometries(child, seen_ids, features)

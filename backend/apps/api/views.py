@@ -1729,7 +1729,9 @@ class AddressViewSet(viewsets.ModelViewSet):
                     if splice.node_structure and splice.node_structure.uuid_node:
                         node_name = splice.node_structure.uuid_node.name or ""
                         if splice.node_structure.uuid_node.parent_node:
-                            parent_node_name = splice.node_structure.uuid_node.parent_node.name or ""
+                            parent_node_name = (
+                                splice.node_structure.uuid_node.parent_node.name or ""
+                            )
 
                     result[str(unit.uuid)].append(
                         {
@@ -1874,7 +1876,9 @@ class ResidentialUnitViewSet(viewsets.ModelViewSet):
                 if splice.node_structure and splice.node_structure.uuid_node:
                     node_name = splice.node_structure.uuid_node.name or ""
                     if splice.node_structure.uuid_node.parent_node:
-                        parent_node_name = splice.node_structure.uuid_node.parent_node.name or ""
+                        parent_node_name = (
+                            splice.node_structure.uuid_node.parent_node.name or ""
+                        )
 
                 connections.append(
                     {
@@ -2383,15 +2387,17 @@ class NodeViewSet(viewsets.ModelViewSet):
 
         if minimal:
             serializer = ParentNodeSerializer(queryset, many=True)
-            return Response({
-                "nodes": serializer.data,
-                "metadata": {
-                    "settings_configured": settings_configured,
-                    "pipe_branch_configured": pipe_branch_configured,
-                    "excluded_node_type_ids": excluded_type_ids,
-                    "child_view_enabled_node_type_ids": child_view_enabled_type_ids,
-                },
-            })
+            return Response(
+                {
+                    "nodes": serializer.data,
+                    "metadata": {
+                        "settings_configured": settings_configured,
+                        "pipe_branch_configured": pipe_branch_configured,
+                        "excluded_node_type_ids": excluded_type_ids,
+                        "child_view_enabled_node_type_ids": child_view_enabled_type_ids,
+                    },
+                }
+            )
 
         serializer = NodeSerializer(queryset, many=True)
         data = serializer.data
@@ -3504,9 +3510,9 @@ class CableViewSet(viewsets.ModelViewSet):
         Returns:
             Response: JSON with updated ``length`` and ``length_total``.
         """
-        cable = Cable.objects.select_related(
-            "uuid_node_start", "uuid_node_end"
-        ).get(pk=self.get_object().pk)
+        cable = Cable.objects.select_related("uuid_node_start", "uuid_node_end").get(
+            pk=self.get_object().pk
+        )
         cable.update_length_from_connections()
         return Response(
             {
@@ -7042,9 +7048,9 @@ class TraceSearchView(APIView):
             ]
 
         elif entity_type == "node":
-            queryset = Node.objects.select_related(
-                "node_type", "project"
-            ).order_by("name")
+            queryset = Node.objects.select_related("node_type", "project").order_by(
+                "name"
+            )
             if project_id:
                 queryset = queryset.filter(project=project_id)
             queryset = queryset.filter(name__icontains=search)[:20]
@@ -7058,14 +7064,13 @@ class TraceSearchView(APIView):
             ]
 
         elif entity_type == "cable":
-            queryset = Cable.objects.select_related(
-                "cable_type", "project"
-            ).order_by("name")
+            queryset = Cable.objects.select_related("cable_type", "project").order_by(
+                "name"
+            )
             if project_id:
                 queryset = queryset.filter(project=project_id)
             queryset = queryset.filter(
-                Q(name__icontains=search)
-                | Q(cable_type__cable_type__icontains=search)
+                Q(name__icontains=search) | Q(cable_type__cable_type__icontains=search)
             )[:20]
             results = [
                 {
@@ -7110,7 +7115,9 @@ class TraceSearchView(APIView):
 
         else:
             return Response(
-                {"error": "Invalid type. Must be one of: address, node, cable, residential_unit"},
+                {
+                    "error": "Invalid type. Must be one of: address, node, cable, residential_unit"
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -7401,3 +7408,62 @@ class ConfigView(APIView):
         response = Response({"srid": srid, "proj4": proj4_string})
         response["Cache-Control"] = "public, max-age=86400"
         return response
+
+
+class FaultSimulationView(APIView):
+    """Simulate physical damage at a point and report affected infrastructure.
+
+    Find the nearest :model:`api.Trench` to the given coordinates, identify
+    all cables running through it, and trace every fiber to determine which
+    addresses and residential units would lose signal.
+
+    Read-only -- no database modifications are made.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """Run fault simulation for a given damage point.
+
+        Expect JSON body with ``point`` (``[x, y]``) and ``project_id``
+        (UUID string).
+
+        Returns:
+            Response: Simulation results on success (HTTP 200), validation
+                error (HTTP 400), no trench found (HTTP 404), or server
+                error (HTTP 500).
+        """
+        from .services import simulate_fault
+
+        point = request.data.get("point")
+        project_id = request.data.get("project_id")
+
+        if not point or not isinstance(point, list) or len(point) != 2:
+            return Response(
+                {"error": "point is required as [x, y] coordinates"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not project_id:
+            return Response(
+                {"error": "project_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            result = simulate_fault(
+                point=point,
+                project_id=project_id,
+            )
+            return Response(result)
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception:
+            logger.exception("Fault simulation error")
+            return Response(
+                {"error": "An error occurred during fault simulation"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

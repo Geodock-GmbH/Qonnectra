@@ -3,6 +3,7 @@
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconAiGateway,
+		IconAlertTriangle,
 		IconArrowRightToArc,
 		IconBook,
 		IconBuildings,
@@ -91,6 +92,12 @@
 			label: () => m.nav_fiber_trace(),
 			icon: IconSTurnRight,
 			pathMatch: (/** @type {string} */ path) => path.startsWith('/trace')
+		},
+		{
+			href: '/fault-simulation',
+			label: () => m.nav_fault_simulation(),
+			icon: IconAlertTriangle,
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/fault-simulation')
 		}
 	];
 
@@ -122,7 +129,8 @@
 
 	/**
 	 * Filters links based on user route permissions.
-	 * @param {NavLink[]} links
+	 * @param {NavLink[]} links - Full set of navigation links
+	 * @returns {NavLink[]} Links the current user is allowed to access
 	 */
 	function filterByPermission(links) {
 		return links.filter((link) => canAccessRoute($userStore.permissions, link.href));
@@ -141,7 +149,11 @@
 		...addressLinks
 	]);
 
-	function getAnchorClass(/** @type {boolean} */ isSelected) {
+	/**
+	 * @param {boolean} isSelected - Whether the nav item is currently active
+	 * @returns {string} CSS class string for the anchor element
+	 */
+	function getAnchorClass(isSelected) {
 		const justifyClass = $sidebarExpanded ? 'justify-start' : 'justify-center';
 		const paddingClass = $sidebarExpanded ? 'px-2' : 'px-2 py-3';
 		const baseClass = `btn hover:preset-tonal ${justifyClass} ${paddingClass} w-full`;

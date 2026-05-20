@@ -33,6 +33,7 @@ from .views import (
     CableTypeColorMappingViewSet,
     CableViewSet,
     ConfigView,
+    FaultSimulationView,
     ConduitImportTemplateView,
     ConduitImportView,
     ConduitsByTrenchesView,
@@ -398,5 +399,10 @@ urlpatterns = [
         "signal-analysis/",
         SignalAnalysisView.as_view(),
         name="signal-analysis",
+    ),
+    path(
+        "fault-simulation/",
+        FaultSimulationView.as_view(),
+        name="fault-simulation",
     ),
 ]

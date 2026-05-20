@@ -5,6 +5,7 @@
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconAiGateway,
+		IconAlertTriangle,
 		IconArrowRightToArc,
 		IconBook,
 		IconBuildings,
@@ -30,22 +31,22 @@
 
 	let currentLocale = $derived(getLocale());
 
-	function switchLocale(/** @type {"de" | "en"} */ locale) {
+	/**
+	 * @param {"de" | "en"} locale - Target locale code
+	 * @returns {void}
+	 */
+	function switchLocale(locale) {
 		setLocale(locale);
 	}
 
 	let showMoreMenu = $state(false);
 
-	/**
-	 * Close more menu
-	 */
+	/** @returns {void} */
 	function closeMoreMenu() {
 		showMoreMenu = false;
 	}
 
-	/**
-	 * Toggle more menu
-	 */
+	/** @returns {void} */
 	function toggleMoreMenu() {
 		showMoreMenu = !showMoreMenu;
 	}
@@ -115,6 +116,12 @@
 			label: () => m.nav_fiber_trace(),
 			icon: IconSTurnRight,
 			pathMatch: (/** @type {string} */ path) => path.startsWith('/trace')
+		},
+		{
+			href: '/fault-simulation',
+			label: () => m.nav_fault_simulation(),
+			icon: IconAlertTriangle,
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/fault-simulation')
 		}
 	];
 
@@ -146,7 +153,8 @@
 
 	/**
 	 * Filters links based on user route permissions.
-	 * @param {NavLink[]} links
+	 * @param {NavLink[]} links - Full set of navigation links
+	 * @returns {NavLink[]} Links the current user is allowed to access
 	 */
 	function filterByPermission(links) {
 		return links.filter((link) => canAccessRoute($userStore.permissions, link.href));
@@ -168,9 +176,8 @@
 	let totalTiles = $derived(mainLinks.length + (hasMoreContent ? 1 : 0));
 
 	/**
-	 * Get anchor class based on selection
-	 * @param {boolean} isSelected - Whether the item is selected
-	 * @returns {string} - The anchor class
+	 * @param {boolean} isSelected - Whether the nav item is currently active
+	 * @returns {string} CSS class string for the anchor element
 	 */
 	function getAnchorClass(isSelected) {
 		const baseClass = 'btn hover:preset-tonal flex-col items-center gap-1';
