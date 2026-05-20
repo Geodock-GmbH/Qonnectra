@@ -805,3 +805,159 @@ class TestFindPathThroughTrenches:
         assert result is not None
         assert "main" in result
         assert "spur" in result
+
+
+class TestInsertBridgeSegments:
+    """Tests for _insert_bridge_segments which stitches T-junction gaps."""
+
+    def test_bridge_inserted_for_spur_near_main(self):
+        """Spur 3m from main trench produces a single LineString after merge."""
+        from shapely.ops import linemerge
+        from shapely.geometry import shape
+
+        from apps.api.services import (
+            _insert_bridge_segments,
+            _merge_trench_geometries,
+            _trim_trench_to_path_coords,
+        )
+
+        trenches = [
+            {
+                "id": "main",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[0, 0], [100, 0], [200, 0]],
+                },
+            },
+            {
+                "id": "spur",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[50, 50], [50, 3]],
+                },
+            },
+        ]
+        path_ids, path_coords = find_path_through_trenches(
+            trenches, (0, 0), (50, 50)
+        )
+        assert path_ids is not None
+
+        trimmed = []
+        for t in trenches:
+            tid = t["id"]
+            if tid not in path_ids:
+                continue
+            pc = path_coords.get(tid)
+            geom = t["geometry"]
+            if pc and len(pc) >= 2:
+                trimmed.append({"id": tid, "geometry": _trim_trench_to_path_coords(geom, pc)})
+            else:
+                trimmed.append({"id": tid, "geometry": geom})
+
+        bridged = _insert_bridge_segments(trimmed, path_ids, path_coords)
+        merged_json = _merge_trench_geometries(bridged)
+        assert merged_json is not None
+        merged = shape(merged_json)
+        assert merged.geom_type == "LineString"
+
+    def test_no_bridge_for_exact_connection(self):
+        """Trenches sharing an exact vertex need no bridge."""
+        from shapely.geometry import shape
+
+        from apps.api.services import (
+            _insert_bridge_segments,
+            _merge_trench_geometries,
+            _trim_trench_to_path_coords,
+        )
+
+        trenches = [
+            {
+                "id": "a",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[0, 0], [100, 0]],
+                },
+            },
+            {
+                "id": "b",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[100, 0], [200, 0]],
+                },
+            },
+        ]
+        path_ids, path_coords = find_path_through_trenches(
+            trenches, (0, 0), (200, 0)
+        )
+        assert path_ids is not None
+
+        trimmed = []
+        for t in trenches:
+            tid = t["id"]
+            if tid not in path_ids:
+                continue
+            pc = path_coords.get(tid)
+            geom = t["geometry"]
+            if pc and len(pc) >= 2:
+                trimmed.append({"id": tid, "geometry": _trim_trench_to_path_coords(geom, pc)})
+            else:
+                trimmed.append({"id": tid, "geometry": geom})
+
+        bridged = _insert_bridge_segments(trimmed, path_ids, path_coords)
+        assert len(bridged) == len(trimmed)
+
+        merged_json = _merge_trench_geometries(bridged)
+        assert merged_json is not None
+        merged = shape(merged_json)
+        assert merged.geom_type == "LineString"
+
+    def test_bridge_for_mid_segment_t_junction(self):
+        """Spur projecting onto mid-segment (no vertex) gets a bridge."""
+        from shapely.geometry import shape
+
+        from apps.api.services import (
+            _insert_bridge_segments,
+            _merge_trench_geometries,
+            _trim_trench_to_path_coords,
+        )
+
+        trenches = [
+            {
+                "id": "main",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[0, 0], [100, 0]],
+                },
+            },
+            {
+                "id": "spur",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[50, 50], [50, 4]],
+                },
+            },
+        ]
+        path_ids, path_coords = find_path_through_trenches(
+            trenches, (0, 0), (50, 50)
+        )
+        assert path_ids is not None
+
+        trimmed = []
+        for t in trenches:
+            tid = t["id"]
+            if tid not in path_ids:
+                continue
+            pc = path_coords.get(tid)
+            geom = t["geometry"]
+            if pc and len(pc) >= 2:
+                trimmed.append({"id": tid, "geometry": _trim_trench_to_path_coords(geom, pc)})
+            else:
+                trimmed.append({"id": tid, "geometry": geom})
+
+        bridged = _insert_bridge_segments(trimmed, path_ids, path_coords)
+        assert len(bridged) > len(trimmed)
+
+        merged_json = _merge_trench_geometries(bridged)
+        assert merged_json is not None
+        merged = shape(merged_json)
+        assert merged.geom_type == "LineString"
