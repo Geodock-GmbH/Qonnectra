@@ -3116,6 +3116,100 @@ def _trim_trench_to_path_coords(geom_json, path_coords, tolerance=1):
         return geom_json
 
 
+def _insert_bridge_segments(trimmed_geom_dicts, path_trench_ids, trench_path_coords):
+    """Insert short bridge LineStrings between trimmed trench geometries at T-junctions.
+
+    When the routing graph connects a spur trench to a main trench via a
+    bridge edge, the projection point exists only in the graph.  After
+    trimming, the two geometries may not share a common endpoint, so
+    linemerge produces a disconnected MultiLineString.  This detects such
+    gaps using the junction nodes from trench_path_coords and inserts
+    bridging LineStrings to close them.
+
+    Args:
+        trimmed_geom_dicts: List of dicts with ``'id'`` and ``'geometry'``
+            keys, one per routed trench, in path traversal order.
+        path_trench_ids: Ordered list of trench UUIDs from routing.
+        trench_path_coords: Dict mapping trench UUID to list of ``(x, y)``
+            graph nodes traversed on that trench.
+
+    Returns:
+        Augmented list of geometry dicts with bridge segments inserted where
+        needed.
+    """
+    if len(trimmed_geom_dicts) < 2 or not path_trench_ids or not trench_path_coords:
+        return trimmed_geom_dicts
+
+    tid_to_idx = {}
+    for idx, d in enumerate(trimmed_geom_dicts):
+        tid = d.get("id")
+        if tid:
+            tid_to_idx[tid] = idx
+
+    parsed = {}
+    for idx, d in enumerate(trimmed_geom_dicts):
+        geom_json = d.get("geometry")
+        if geom_json:
+            try:
+                g = shape(geom_json)
+                if g.geom_type == "LineString" and not g.is_empty:
+                    parsed[idx] = g
+            except Exception:
+                pass
+
+    bridges = []
+    eps_sq = 0.01 * 0.01
+
+    for k in range(len(path_trench_ids) - 1):
+        tid_i = path_trench_ids[k]
+        tid_j = path_trench_ids[k + 1]
+
+        idx_i = tid_to_idx.get(tid_i)
+        idx_j = tid_to_idx.get(tid_j)
+        if idx_i is None or idx_j is None:
+            continue
+
+        geom_i = parsed.get(idx_i)
+        geom_j = parsed.get(idx_j)
+        if geom_i is None or geom_j is None:
+            continue
+
+        coords_i = trench_path_coords.get(tid_i)
+        coords_j = trench_path_coords.get(tid_j)
+        if not coords_i or not coords_j:
+            continue
+
+        junction = coords_i[-1]
+
+        ep_i_start = geom_i.coords[0]
+        ep_i_end = geom_i.coords[-1]
+        d_i_start = (ep_i_start[0] - junction[0]) ** 2 + (ep_i_start[1] - junction[1]) ** 2
+        d_i_end = (ep_i_end[0] - junction[0]) ** 2 + (ep_i_end[1] - junction[1]) ** 2
+        near_i = ep_i_end if d_i_end <= d_i_start else ep_i_start
+
+        ep_j_start = geom_j.coords[0]
+        ep_j_end = geom_j.coords[-1]
+        d_j_start = (ep_j_start[0] - junction[0]) ** 2 + (ep_j_start[1] - junction[1]) ** 2
+        d_j_end = (ep_j_end[0] - junction[0]) ** 2 + (ep_j_end[1] - junction[1]) ** 2
+        near_j = ep_j_start if d_j_start <= d_j_end else ep_j_end
+
+        gap_sq = (near_i[0] - near_j[0]) ** 2 + (near_i[1] - near_j[1]) ** 2
+        if gap_sq <= eps_sq:
+            continue
+
+        bridge_geom = LineString([near_i, near_j])
+        bridges.append((idx_i, mapping(bridge_geom)))
+
+    if not bridges:
+        return trimmed_geom_dicts
+
+    result = list(trimmed_geom_dicts)
+    for insert_after, bridge_geojson in reversed(bridges):
+        result.insert(insert_after + 1, {"geometry": bridge_geojson})
+
+    return result
+
+
 def _trim_trench_geometries(trench_geojsons, start_geom, end_geom, snap_dist=10):
     """Trim individual trench geometries so they start/end at cable node points.
 
@@ -3364,13 +3458,17 @@ def _get_cable_infrastructure(
                         if path_coords and geom_json and len(path_coords) >= 2:
                             trimmed_trench_dicts.append(
                                 {
+                                    "id": tid,
                                     "geometry": _trim_trench_to_path_coords(
                                         geom_json, path_coords
-                                    )
+                                    ),
                                 }
                             )
                         elif geom_json:
-                            trimmed_trench_dicts.append({"geometry": geom_json})
+                            trimmed_trench_dicts.append({"id": tid, "geometry": geom_json})
+                    trimmed_trench_dicts = _insert_bridge_segments(
+                        trimmed_trench_dicts, routed_ids, trench_path_coords
+                    )
                     merged = _merge_trench_geometries(trimmed_trench_dicts)
                 else:
                     merged = _merge_trench_geometries(routed_trenches)

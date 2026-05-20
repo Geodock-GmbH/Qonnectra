@@ -421,7 +421,11 @@ def calculate_cable_length_routed(cable_pk, start_point, end_point):
     Returns:
         float or None: Routed length in meters, or ``None`` if routing fails.
     """
-    from .services import _merge_trench_geometries, _trim_trench_to_path_coords
+    from .services import (
+        _insert_bridge_segments,
+        _merge_trench_geometries,
+        _trim_trench_to_path_coords,
+    )
 
     trenches = get_cable_connected_trenches_with_geometry(cable_pk)
     if not trenches:
@@ -446,10 +450,11 @@ def calculate_cable_length_routed(cable_pk, start_point, end_point):
             geom_json = t.get("geometry")
             if path_coords and geom_json and len(path_coords) >= 2:
                 trimmed.append(
-                    {"geometry": _trim_trench_to_path_coords(geom_json, path_coords)}
+                    {"id": tid, "geometry": _trim_trench_to_path_coords(geom_json, path_coords)}
                 )
             elif geom_json:
-                trimmed.append({"geometry": geom_json})
+                trimmed.append({"id": tid, "geometry": geom_json})
+        trimmed = _insert_bridge_segments(trimmed, path_trench_ids, trench_path_coords)
         merged = _merge_trench_geometries(trimmed)
     else:
         merged = _merge_trench_geometries(routed_trenches)
