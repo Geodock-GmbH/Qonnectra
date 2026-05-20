@@ -463,7 +463,7 @@
 		<!-- Map: Opacity slider - fullscreen variant (desktop only, mobile is in layer sheet) -->
 		{#if showOpacitySlider && map}
 			<div
-				class="hidden sm:block absolute sm:top-auto sm:right-auto sm:left-4 sm:bottom-5 z-10 sm:max-w-[280px]"
+				class="hidden sm:block absolute sm:top-auto sm:right-auto sm:left-4 sm:bottom-5 z-10 sm:max-w-70"
 			>
 				<OpacitySlider
 					minOpacity={opacitySliderConfig.minOpacity}
