@@ -52,6 +52,16 @@
 	];
 
 	/** @type {NavLink[]} */
+	const allProcedureLinks = [
+		{
+			href: '/fault-simulation',
+			label: () => m.nav_fault_simulation(),
+			icon: IconAlertTriangle,
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/fault-simulation')
+		}
+	];
+
+	/** @type {NavLink[]} */
 	const allInfrastructureLinks = [
 		{
 			href: '/conduit',
@@ -92,12 +102,6 @@
 			label: () => m.nav_fiber_trace(),
 			icon: IconSTurnRight,
 			pathMatch: (/** @type {string} */ path) => path.startsWith('/trace')
-		},
-		{
-			href: '/fault-simulation',
-			label: () => m.nav_fault_simulation(),
-			icon: IconAlertTriangle,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/fault-simulation')
 		}
 	];
 
@@ -137,6 +141,7 @@
 	}
 
 	const mainLinks = $derived(filterByPermission(allMainLinks));
+	const procedureLinks = $derived(filterByPermission(allProcedureLinks));
 	const infrastructureLinks = $derived(filterByPermission(allInfrastructureLinks));
 	const cableLinks = $derived(filterByPermission(allCableLinks));
 	const addressLinks = $derived(filterByPermission(allAddressLinks));
@@ -144,6 +149,7 @@
 
 	const allContentLinks = $derived([
 		...mainLinks,
+		...procedureLinks,
 		...infrastructureLinks,
 		...cableLinks,
 		...addressLinks
@@ -186,6 +192,29 @@
 						>
 						<Navigation.Menu>
 							{#each mainLinks as link}
+								{@const Icon = link.icon}
+								{@const isSelected = link.pathMatch(page.url.pathname)}
+								<a
+									href={link.href}
+									class={getAnchorClass(isSelected)}
+									aria-label={link.label()}
+									{@attach tooltip(link.label())}
+								>
+									<Icon size={28} class="text-surface-700-300" />
+									<span>{link.label()}</span>
+								</a>
+							{/each}
+						</Navigation.Menu>
+					</Navigation.Group>
+				{/if}
+
+				{#if procedureLinks.length > 0}
+					<Navigation.Group>
+						<Navigation.Label class="text-surface-900-100"
+							>{m.nav_category_procedure()}</Navigation.Label
+						>
+						<Navigation.Menu>
+							{#each procedureLinks as link}
 								{@const Icon = link.icon}
 								{@const isSelected = link.pathMatch(page.url.pathname)}
 								<a

@@ -11,7 +11,6 @@
 	import TrenchStatistics from '$lib/components/TrenchStatistics.svelte';
 
 	import DashboardCard from './DashboardCard.svelte';
-	import DashboardProjectTable from './DashboardProjectTable.svelte';
 	import WarrantyExpirationCard from './WarrantyExpirationCard.svelte';
 
 	let { data } = $props();
@@ -47,8 +46,7 @@
 		{ value: 'conduit', label: m.nav_conduit() },
 		{ value: 'node', label: m.nav_node() },
 		{ value: 'address', label: m.nav_address() },
-		{ value: 'area', label: m.nav_area() },
-		{ value: 'projects', label: m.form_project({ count: data.projects.length }) }
+		{ value: 'area', label: m.nav_area() }
 	]);
 </script>
 
@@ -352,8 +350,5 @@
 			trenchLengthPerArea={data.trenchLengthPerArea}
 			residentialByAreaType={data.residentialByAreaType}
 		/>
-	{/if}
-	{#if activeTab === 'projects'}
-		<DashboardProjectTable data={data.projects} />
 	{/if}
 </Tabs>

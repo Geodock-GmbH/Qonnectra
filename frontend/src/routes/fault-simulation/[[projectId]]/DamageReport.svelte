@@ -49,36 +49,45 @@
 {#if result}
 	<div class="flex h-full flex-col">
 		<div
-			class="flex items-center gap-6 px-4 py-2 border-b border-surface-200-800 bg-surface-50-950 shrink-0"
+			class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 px-4 py-2 border-b border-surface-200-800 bg-surface-50-950 shrink-0"
 		>
-			<div class="flex items-center gap-2">
-				<span class="font-semibold">{m.nav_trench()}:</span>
-				<span>{result.trench?.id_trench ?? '—'}</span>
-				{#if result.trench?.construction_type}
-					<span class="opacity-60 text-sm">({result.trench.construction_type})</span>
-				{/if}
+			<div class="flex items-center justify-between gap-2">
+				<div class="flex items-center gap-2 min-w-0">
+					<span class="font-semibold shrink-0">{m.nav_trench()}:</span>
+					<span class="truncate">{result.trench?.id_trench ?? '—'}</span>
+					{#if result.trench?.construction_type}
+						<span class="opacity-60 text-sm shrink-0">({result.trench.construction_type})</span>
+					{/if}
+				</div>
+				<button
+					type="button"
+					class="btn btn-sm preset-outlined-surface-200-800 shrink-0 sm:hidden"
+					onclick={onreset}
+				>
+					<IconRefresh class="h-4 w-4" />
+				</button>
 			</div>
 
 			{#if summary}
-				<div class="flex items-center gap-4 text-sm">
+				<div class="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm">
 					<span class="flex items-center gap-1">
 						<span class="font-bold">{summary.total_cables_affected}</span>
 						{m.fault_affected_cables()}
 					</span>
 					<span class="flex items-center gap-1">
-						<IconHome class="h-4 w-4 text-error-500" />
+						<IconHome class="h-4 w-4 text-error-500 shrink-0" />
 						<span class="font-bold text-error-500">{summary.affected_addresses}</span>
-						{m.signal_affected_addresses()}
+						<span class="hidden sm:inline">{m.signal_affected_addresses()}</span>
 					</span>
 					<span class="flex items-center gap-1">
-						<IconUsers class="h-4 w-4 text-error-500" />
+						<IconUsers class="h-4 w-4 text-error-500 shrink-0" />
 						<span class="font-bold text-error-500">{summary.affected_residential_units}</span>
-						{m.signal_affected_rus()}
+						<span class="hidden sm:inline">{m.signal_affected_rus()}</span>
 					</span>
 				</div>
 			{/if}
 
-			<div class="ml-auto">
+			<div class="ml-auto hidden sm:block">
 				<button type="button" class="btn btn-sm preset-outlined-surface-200-800" onclick={onreset}>
 					<IconRefresh class="h-4 w-4" />
 					{m.common_reset()}
@@ -99,7 +108,7 @@
 						{:else}
 							<IconChevronRight class="h-4 w-4" />
 						{/if}
-						{m.form_conduits()} ({conduits.length})
+						{m.fault_affected_conduits()} ({conduits.length})
 					</button>
 
 					{#if conduitsExpanded}
@@ -162,7 +171,51 @@
 					<h3 class="text-sm font-semibold mb-2">
 						{m.signal_affected_addresses()} ({addressDetails.length})
 					</h3>
-					<div class="overflow-x-auto">
+
+					<div class="space-y-2 sm:hidden">
+						{#each addressDetails as addr (addr.uuid)}
+							<div class="card px-3 py-2 preset-outlined-surface-200-800">
+								<div class="flex items-center justify-between gap-2">
+									<a
+										href="/address/{projectId}/{addr.uuid}"
+										class="anchor underline font-mono text-xs"
+									>
+										{addr.id_address ?? '—'}
+									</a>
+									<span class="font-bold text-error-500 text-sm">
+										{addr.residential_units?.length ?? 0}
+										{m.form_residential_units()}
+									</span>
+								</div>
+								<div class="text-sm mt-1">{formatAddress(addr)}</div>
+								<div class="text-xs opacity-70">{formatLocation(addr)}</div>
+								{#if addr.residential_units?.length > 0}
+									<div
+										class="mt-2 pl-2 border-l-2 border-surface-300 dark:border-surface-600 space-y-1"
+									>
+										{#each addr.residential_units as ru (ru.uuid)}
+											<div class="text-xs opacity-70">
+												<a
+													href="/address/{projectId}/{addr.uuid}/unit/{ru.uuid}"
+													class="anchor underline font-mono"
+												>
+													{ru.id_residential_unit ?? '—'}
+												</a>
+												{#if ru.floor}
+													· {m.form_floor()}: {ru.floor}
+												{/if}
+												{#if ru.side}
+													· {m.form_side()}: {ru.side}
+												{/if}
+											</div>
+										{/each}
+									</div>
+								{/if}
+							</div>
+						{/each}
+					</div>
+
+					<div class="overflow-x-auto hidden sm:block">
 						<table class="w-full text-sm">
 							<thead>
 								<tr class="border-b border-surface-200-800 text-left">
