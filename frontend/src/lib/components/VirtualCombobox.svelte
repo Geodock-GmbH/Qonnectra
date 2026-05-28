@@ -268,7 +268,7 @@
 		class:cursor-not-allowed={disabled}
 		bind:this={wrapperEl}
 	>
-		<div class="relative flex min-h-[48px] items-center sm:min-h-[40px]">
+		<div class="relative flex min-h-12 items-center sm:min-h-10">
 			<input
 				bind:this={inputEl}
 				type="text"

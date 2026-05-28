@@ -46,7 +46,7 @@ export async function load({ fetch, params, depends, cookies }) {
 	}
 
 	try {
-		let url = `${API_URL}conduit/all/?project=${params.projectId}&flag=${params.flagId}`;
+		let url = `${API_URL}conduit/all/?project=${params.projectId}&flag=${params.flagId}&no_pagination=true`;
 		const response = await fetch(url, {
 			credentials: 'include',
 			headers: getAuthHeaders(cookies)
