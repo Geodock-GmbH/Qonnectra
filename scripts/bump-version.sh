@@ -49,8 +49,8 @@ fi
 
 # 4. Update publiccode.yml
 if [[ -f "$REPO_ROOT/publiccode.yml" ]]; then
-    sed -i.bak -E "s/^softwareVersion: [0-9]+\.[0-9]+\.[0-9]+/softwareVersion: $NEW_VERSION/" "$REPO_ROOT/publiccode.yml"
-    sed -i.bak -E "s/^releaseDate: [0-9]{4}-[0-9]{2}-[0-9]{2}/releaseDate: $TODAY/" "$REPO_ROOT/publiccode.yml"
+    sed -i.bak -E "s/^softwareVersion: \"?[0-9]+\.[0-9]+\.[0-9]+\"?/softwareVersion: \"$NEW_VERSION\"/" "$REPO_ROOT/publiccode.yml"
+    sed -i.bak -E "s/^releaseDate: \"?[0-9]{4}-[0-9]{2}-[0-9]{2}\"?/releaseDate: \"$TODAY\"/" "$REPO_ROOT/publiccode.yml"
     rm -f "$REPO_ROOT/publiccode.yml.bak"
     echo "✓ Updated publiccode.yml (version + releaseDate)"
 else

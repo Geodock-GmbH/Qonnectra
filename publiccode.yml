@@ -2,8 +2,8 @@ publiccodeYmlVersion: "0.2"
 name: Qonnectra
 url: "https://github.com/Geodock-GmbH/Qonnectra"
 landingURL: "https://www.qonnectra.de"
-softwareVersion: "1.0.0"
-releaseDate: "2026-03-31"
+softwareVersion: "1.0.1"
+releaseDate: "2026-05-28"
 logo: logo.png
 platforms:
 - web

@@ -1247,6 +1247,7 @@ class ConduitViewSet(viewsets.ModelViewSet):
         - search: Search term
         - page: Page number (default: 1)
         - page_size: Items per page (default: 50, max: 200)
+        - no_pagination: Return all results without pagination (default: false)
         """
         queryset = Conduit.objects.select_related(
             "conduit_type",
@@ -1281,6 +1282,10 @@ class ConduitViewSet(viewsets.ModelViewSet):
             )
 
         total_count = queryset.count()
+
+        if request.query_params.get("no_pagination") == "true":
+            serializer = ConduitListSerializer(queryset, many=True)
+            return Response(serializer.data)
 
         try:
             page = int(request.query_params.get("page", 1))
