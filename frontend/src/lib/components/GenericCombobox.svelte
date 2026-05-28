@@ -118,7 +118,7 @@
 			onValueChange={handleValueChange}
 			{onInputValueChange}
 		>
-			<Combobox.Control class="flex items-center min-h-[48px] sm:min-h-[40px]">
+			<Combobox.Control class="flex items-center min-h-12 sm:min-h-10">
 				<Combobox.Input class="placeholder:text-sm placeholder:truncate {inputClasses}" />
 				<Combobox.Trigger class="shrink-0" />
 			</Combobox.Control>
