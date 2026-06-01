@@ -955,17 +955,19 @@ class FeatureFiles(models.Model):
     object_id = models.UUIDField(verbose_name=_("Feature ID"))
     feature = GenericForeignKey("content_type", "object_id")
 
-    def get_feature_identifier(instance):
+    def get_feature_identifier(self):  # type: ignore[override]
         """Return a human-readable identifier for the linked feature.
 
         Args:
-            instance: FeatureFiles instance with resolved content_type and feature.
+            self: FeatureFiles instance with resolved content_type and feature.
 
         Returns:
             str: Feature identifier (e.g., id_trench, name, or formatted address).
         """
-        model_name = instance.content_type.model
-        feature = instance.feature
+        model_name = self.content_type.model
+        feature = self.feature
+        if feature is None:
+            return self.object_id
 
         if model_name == "trench":
             return feature.id_trench
@@ -979,20 +981,20 @@ class FeatureFiles(models.Model):
             suffix = feature.house_number_suffix or ""
             return f"{feature.street} {feature.housenumber}{suffix}, {feature.zip_code} {feature.city}"
         elif model_name == "residentialunit":
-            return feature.id_residential_unit or str(instance.object_id)
+            return feature.id_residential_unit or str(self.object_id)
         elif model_name == "area":
             return feature.name
         else:
-            return instance.object_id
+            return self.object_id
 
-    def get_upload_path(instance, filename):
+    def get_upload_path(self, filename):  # type: ignore[override]
         """Determine the upload path based on project, feature type, and file category.
 
         Path structure: ``{project}/{feature_type}/{feature_id}/{category}/{filename}``.
         Residential units are nested inside their parent address folder.
 
         Args:
-            instance: FeatureFiles instance being saved.
+            self: FeatureFiles instance being saved.
             filename: Original uploaded filename.
 
         Returns:
@@ -1000,11 +1002,12 @@ class FeatureFiles(models.Model):
         """
 
         prefs = StoragePreferences.objects.first()
-        model_name = instance.content_type.model
-        feature = instance.feature
-        feature_id = FeatureFiles.get_feature_identifier(instance)
+        model_name = self.content_type.model
+        feature = self.feature
+        feature_id = FeatureFiles.get_feature_identifier(self)
 
-        if model_name == "residentialunit":
+        address_id = ""
+        if model_name == "residentialunit" and feature is not None:
             address = feature.uuid_address
             project_name = (
                 address.project.project
@@ -1014,20 +1017,22 @@ class FeatureFiles(models.Model):
             project_name = sanitize_filename(project_name)
             suffix = address.house_number_suffix or ""
             address_id = f"{address.street} {address.housenumber}{suffix}, {address.zip_code} {address.city}"
-        else:
+        elif feature is not None:
             project_name = (
                 feature.project.project
                 if hasattr(feature, "project") and feature.project
                 else "default"
             )
             project_name = sanitize_filename(project_name)
+        else:
+            project_name = "default"
 
         if not prefs or prefs.mode != "AUTO":
             if model_name == "residentialunit":
                 return f"{project_name}/addresses/{address_id}/residential_units/{feature_id}/{filename}"
             return f"{project_name}/{model_name}s/{feature_id}/{filename}"
 
-        file_extension = instance.get_file_type() or ""
+        file_extension = self.get_file_type() or ""
         file_extension = file_extension.lower()
 
         try:
@@ -1073,13 +1078,13 @@ class FeatureFiles(models.Model):
     description = models.TextField(null=True, verbose_name=_("Description"))
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
 
-    def get_file_name(instance):
+    def get_file_name(self):
         """Extract the filename without extension from the stored file path.
 
         Returns:
             str: Filename stem, or the full path on failure.
         """
-        file_path = instance.file_path.name
+        file_path = self.file_path.name
         try:
             filename = os.path.basename(file_path)
             parts = filename.split(".")
@@ -1087,13 +1092,13 @@ class FeatureFiles(models.Model):
         except Exception:
             return file_path
 
-    def get_file_type(instance):
+    def get_file_type(self):
         """Extract the file extension from the stored file path.
 
         Returns:
             str | None: File extension without dot, or None if absent.
         """
-        file_path = instance.file_path.name
+        file_path = self.file_path.name
         try:
             filename = os.path.basename(file_path)
             parts = filename.split(".")
@@ -1313,7 +1318,7 @@ class Trench(models.Model):
         on_delete=models.CASCADE,
         db_column="project",
         db_index=False,
-        default=1,
+        default=1,  # type: ignore[arg-type]
         verbose_name=_("Project"),
     )
 
@@ -1323,7 +1328,7 @@ class Trench(models.Model):
         on_delete=models.CASCADE,
         db_column="flag",
         db_index=False,
-        default=1,
+        default=1,  # type: ignore[arg-type]
         verbose_name=_("Flag"),
     )
 
@@ -2146,7 +2151,7 @@ class MicroductConnection(models.Model):
         ]
 
     def __str__(self):
-        return self.uuid_microduct_from.name + " -> " + self.uuid_microduct_to.name
+        return str(self.uuid_microduct_from) + " -> " + str(self.uuid_microduct_to)
 
 
 class CanvasSyncStatus(models.Model):
@@ -2442,14 +2447,14 @@ class Cable(models.Model):
         Returns:
             float: Total length in meters, or 0.0 if no connections exist.
         """
-        if self.uuid_node_start_id and self.uuid_node_end_id:
+        if self.uuid_node_start and self.uuid_node_end:
             try:
                 from .routing import calculate_cable_length_routed
 
                 start_node = self.uuid_node_start
                 end_node = self.uuid_node_end
 
-                if start_node.geom and end_node.geom:
+                if start_node and end_node and start_node.geom and end_node.geom:
                     routed_length = calculate_cable_length_routed(
                         self.pk,
                         (start_node.geom.x, start_node.geom.y),
@@ -2995,18 +3000,18 @@ class QGISProject(models.Model):
         help_text=_("Optional description of this QGIS project"),
     )
 
-    def get_qgis_upload_path(instance, filename):
+    def get_qgis_upload_path(self, filename):
         """Generate upload path as ``{name}.{ext}`` for QGIS project files.
 
         Args:
-            instance: QGISProject instance being saved.
+            self: QGISProject instance being saved.
             filename: Original uploaded filename.
 
         Returns:
             str: Storage path using the project slug name and original extension.
         """
         ext = os.path.splitext(filename)[1]
-        return f"{instance.name}{ext}"
+        return f"{self.name}{ext}"
 
     project_file = models.FileField(
         _("QGIS Project File"),
@@ -3123,17 +3128,17 @@ class QGISProjectDataFile(models.Model):
         verbose_name=_("QGIS Project"),
     )
 
-    def get_data_file_upload_path(instance, filename):
+    def get_data_file_upload_path(self, filename):
         """Generate upload path as ``{project.name}/{filename}``.
 
         Args:
-            instance: The ``QGISProjectDataFile`` instance being saved.
+            self: The ``QGISProjectDataFile`` instance being saved.
             filename: Original filename of the uploaded file.
 
         Returns:
             str: Relative upload path.
         """
-        return f"{instance.project.name}/{filename}"
+        return f"{self.project.name}/{filename}"
 
     data_file = models.FileField(
         _("Data File"),
@@ -3704,7 +3709,7 @@ class NodeStructure(models.Model):
         )
         if self.purpose == self.Purpose.COMPONENT:
             return f"{self.uuid_node} - {side_name} - {self.component_type} - Slots {self.slot_start}-{self.slot_end}"
-        return f"{self.uuid_node} - {side_name} - {self.get_purpose_display()} - Slots {self.slot_start}-{self.slot_end}"
+        return f"{self.uuid_node} - {side_name} - {self.get_purpose_display()} - Slots {self.slot_start}-{self.slot_end}"  # type: ignore[attr-defined]
 
 
 class NodeSlotDivider(models.Model):

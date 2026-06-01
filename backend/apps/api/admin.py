@@ -5,6 +5,7 @@ import os
 
 from django import forms
 from django.contrib import admin, messages
+from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.contenttypes.models import ContentType
 from django.db import models, transaction
 from django.db.models import Case, Exists, IntegerField, OuterRef, Q, Value, When
@@ -80,7 +81,7 @@ class GeoPackageSchemaConfigForm(forms.ModelForm):
     selected_layers = forms.MultipleChoiceField(
         label=_("Selected Layers"),
         required=False,
-        widget=admin.widgets.FilteredSelectMultiple(
+        widget=FilteredSelectMultiple(
             verbose_name=_("Layers"),
             is_stacked=False,
         ),
@@ -643,9 +644,7 @@ class CableAdmin(SimpleHistoryAdmin):
     def recalculate_length_filtered(self, request, queryset):
         """Recalculate cable length for all cables matching the current filter."""
         cl = self.get_changelist_instance(request)
-        full_queryset = cl.queryset.select_related(
-            "uuid_node_start", "uuid_node_end"
-        )
+        full_queryset = cl.queryset.select_related("uuid_node_start", "uuid_node_end")
 
         count = 0
         for cable in full_queryset:
@@ -1042,7 +1041,7 @@ class QGISProjectDataFileInline(admin.TabularInline):
     def get_formset(self, request, obj=None, **kwargs):
         """Make data_file not required so existing rows can be deleted without re-uploading."""
         formset = super().get_formset(request, obj, **kwargs)
-        formset.form.base_fields["data_file"].required = False
+        formset.form.base_fields["data_file"].required = False  # type: ignore[union-attr]
         return formset
 
 
@@ -1191,33 +1190,30 @@ class QGISProjectAdmin(admin.ModelAdmin):
             ),
         )
 
+    @admin.display(description=_("WMS URL"))
     def get_wms_url(self, obj):
         """Return the WMS access URL for display in admin."""
         if obj.project_file:
             return obj.get_wms_url()
         return "-"
 
-    get_wms_url.short_description = _("WMS URL")
-
+    @admin.display(description=_("WFS URL"))
     def get_wfs_url(self, obj):
         """Return the WFS access URL for display in admin."""
         if obj.project_file:
             return obj.get_wfs_url()
         return "-"
 
-    get_wfs_url.short_description = _("WFS URL")
-
+    @admin.display(description=_("WFS3 URL (OGC API Features)"))
     def get_wfs3_url(self, obj):
         """Return the WFS3 (OGC API Features) access URL for display in admin."""
         if obj.project_file:
             return obj.get_wfs3_url()
         return "-"
 
-    get_wfs3_url.short_description = _("WFS3 URL (OGC API Features)")
-
+    @admin.action(description=_("Download with PostgreSQL datasources"))
     def download_with_postgres_datasources(self, request, queryset):
-        """
-        Download QGIS project with datasources converted from GeoPackage to PostgreSQL.
+        """Download QGIS project with datasources converted from GeoPackage to PostgreSQL.
 
         Only works with single selection.
         """
@@ -1268,10 +1264,6 @@ class QGISProjectAdmin(admin.ModelAdmin):
                 level=messages.ERROR,
             )
             return
-
-    download_with_postgres_datasources.short_description = _(
-        "Download with PostgreSQL datasources"
-    )
 
 
 @admin.register(Node)
@@ -1429,7 +1421,10 @@ class TrenchAdmin(SimpleHistoryAdmin):
                     "SELECT fn_generate_trench_id(%s)",
                     [trench.project_id],
                 )
-                new_id = cursor.fetchone()[0]
+                row = cursor.fetchone()
+                if row is None:
+                    continue
+                new_id = row[0]
 
                 trench.id_trench = new_id
                 trench.save(update_fields=["id_trench"])
@@ -1454,15 +1449,15 @@ class WFSErrorFilter(admin.SimpleListFilter):
     title = _("WFS Errors")
     parameter_name = "wfs_errors"
 
-    def lookups(self, request, model_admin):
+    def lookups(self, request, model_admin):  # type: ignore[override]
         """Return filter choices for WFS log categories."""
-        return (
+        return [
             ("wfs_all", _("All WFS logs")),
             ("wfs_errors", _("WFS errors only")),
             ("wfs_node", _("Node errors")),
             ("wfs_address", _("Address errors")),
             ("wfs_trench", _("Trench errors")),
-        )
+        ]
 
     def queryset(self, request, queryset):
         """Filter the queryset by the selected WFS error category."""
@@ -1577,18 +1572,17 @@ class LogEntryAdmin(admin.ModelAdmin):
             % {"count": count},
         )
 
+    @admin.display(description=_("User"))
     def username(self, obj):
         """Display username instead of user object."""
         return obj.user.username if obj.user else "-"
 
-    username.short_description = _("User")
-
+    @admin.display(description=_("Message"))
     def short_message(self, obj):
         """Display truncated message in list view."""
         return obj.message[:100] + "..." if len(obj.message) > 100 else obj.message
 
-    short_message.short_description = _("Message")
-
+    @admin.display(description=_("Error Type"))
     def error_type_display(self, obj):
         """Display error type from extra_data if available."""
         if obj.extra_data and isinstance(obj.extra_data, dict):
@@ -1597,8 +1591,6 @@ class LogEntryAdmin(admin.ModelAdmin):
                 return error_type.replace("_", " ").title()
         return "-"
 
-    error_type_display.short_description = _("Error Type")
-
 
 class OrphanedFilesFilter(admin.SimpleListFilter):
     """Filter to show only orphaned FeatureFiles (where the linked feature no longer exists)."""
@@ -1606,13 +1598,13 @@ class OrphanedFilesFilter(admin.SimpleListFilter):
     title = _("Orphan Status")
     parameter_name = "orphan_status"
 
-    def lookups(self, request, model_admin):
+    def lookups(self, request, model_admin):  # type: ignore[override]
         """Return filter choices for orphaned vs valid files."""
         self._model_admin = model_admin
-        return (
+        return [
             ("orphaned", _("Orphaned files only")),
             ("valid", _("Valid files only")),
-        )
+        ]
 
     def queryset(self, request, queryset):
         """Filter the queryset to orphaned or valid files based on selection."""
@@ -1653,7 +1645,9 @@ class ProjectFilter(admin.SimpleListFilter):
         if self.value() is None:
             return queryset
 
-        project_id = int(self.value())
+        value = self.value()
+        assert value is not None
+        project_id = int(value)
         matching_uuids = []
 
         for model_name, model_class in FEATURE_MODEL_MAP.items():
@@ -2049,6 +2043,7 @@ class ContainerTypeAdmin(SimpleHistoryAdmin):
         ),
     )
 
+    @admin.display(description=_("Color"))
     def color_preview(self, obj):
         """Display color swatch in admin list."""
         if obj.color:
@@ -2059,8 +2054,6 @@ class ContainerTypeAdmin(SimpleHistoryAdmin):
                 obj.color,
             )
         return "-"
-
-    color_preview.short_description = _("Color")
 
 
 class WMSLayerInline(admin.TabularInline):
@@ -2168,11 +2161,10 @@ class WMSSourceAdmin(admin.ModelAdmin):
         ),
     )
 
+    @admin.display(description=_("Enabled Layers"))
     def layer_count(self, obj):
         """Return the number of enabled WMS layers for this source."""
         return obj.layers.filter(is_enabled=True).count()
-
-    layer_count.short_description = _("Enabled Layers")
 
     def save_model(self, request, obj, form, change):
         """Auto-fetch WMS layers when a new source is created or its URL changes."""
@@ -2200,6 +2192,7 @@ class WMSSourceAdmin(admin.ModelAdmin):
             except WMSServiceError as e:
                 messages.error(request, _("Failed to fetch WMS layers: %s") % e)
 
+    @admin.action(description=_("Scan & apply recommended settings"))
     def scan_capabilities(self, request, queryset):
         """Scan WMS capabilities and apply recommended min_zoom settings to layers."""
         for source in queryset:
@@ -2251,8 +2244,6 @@ class WMSSourceAdmin(admin.ModelAdmin):
                         "error": str(e),
                     },
                 )
-
-    scan_capabilities.short_description = _("Scan & apply recommended settings")
 
 
 @admin.register(ModelPermission)

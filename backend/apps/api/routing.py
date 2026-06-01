@@ -1,10 +1,12 @@
 import json
 from collections import OrderedDict
 from itertools import product
+from typing import cast
 
 import networkx as nx
 from django.contrib.gis.geos import LineString
 from shapely.geometry import shape
+from shapely.geometry import LineString as ShapelyLineString
 from shapely.ops import linemerge
 from shapely.wkt import loads as wkt_loads
 
@@ -107,9 +109,11 @@ def find_shortest_path(start_trench_id, end_trench_id, project_id, tolerance=1):
         if start_node not in G or end_node not in G:
             continue
         try:
-            path_length, path_nodes = nx.single_source_dijkstra(
+            result = nx.single_source_dijkstra(
                 G, source=start_node, target=end_node, weight="weight"
             )
+            path_length = cast(float, result[0])
+            path_nodes = cast(list, result[1])
             if path_length < min_path_length:
                 min_path_length = path_length
                 shortest_path_nodes = path_nodes
@@ -134,8 +138,9 @@ def find_shortest_path(start_trench_id, end_trench_id, project_id, tolerance=1):
     final_path_uuids = [str(trench_data[tid].uuid) for tid in final_path_ids]
 
     path_geometries_geos = [trench_data[tid].geom for tid in final_path_ids]
-    # Convert GEOS → Shapely for linemerge (GEOS LineStrings lack merge support)
-    path_geometries_shapely = [wkt_loads(geom.wkt) for geom in path_geometries_geos]
+    path_geometries_shapely = [
+        cast(ShapelyLineString, wkt_loads(geom.wkt)) for geom in path_geometries_geos
+    ]
     merged_line = linemerge(path_geometries_shapely)
 
     return {

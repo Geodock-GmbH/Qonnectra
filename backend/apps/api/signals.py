@@ -54,4 +54,4 @@ def invalidate_on_user_group_change(sender, instance, **kwargs):
         **kwargs: Signal keyword arguments.
     """
     if isinstance(instance, User):
-        cache.delete(f"user_permissions:{instance.id}")
+        cache.delete(f"user_permissions:{instance.pk}")

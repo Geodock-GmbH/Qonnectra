@@ -28,7 +28,7 @@ class RoleBasedPermission(BasePermission):
         "full": ["GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH", "DELETE"],
     }
 
-    def has_permission(self, request, view):
+    def has_permission(self, request, view) -> bool:  # pyright: ignore[reportIncompatibleMethodOverride]
         """Check if the request method is allowed for the user's access level.
 
         Args:

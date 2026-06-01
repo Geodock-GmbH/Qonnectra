@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 from io import BytesIO
 from pathlib import PureWindowsPath
+from typing import cast
 
 import geopandas as gpd
 import openpyxl
@@ -89,6 +90,11 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
         }
 
     sheet = workbook.active
+    if sheet is None:
+        return {
+            "success": False,
+            "errors": [str(_("Excel file contains no active worksheet."))],
+        }
 
     errors = []
     warnings = []
@@ -150,7 +156,9 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
             ],
         }
 
-    unmapped_headers = [h for h in header_from_file if h and h not in header_map]
+    unmapped_headers = [
+        str(h) for h in header_from_file if h and str(h) not in header_map
+    ]
     if unmapped_headers:
         warnings.append(
             str(
@@ -159,7 +167,7 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
             )
         )
 
-    mapped_header = [header_map.get(h) for h in header_from_file]
+    mapped_header = [header_map.get(str(h)) for h in header_from_file]
 
     for row_idx, row in enumerate(
         sheet.iter_rows(min_row=2, values_only=True), start=2
@@ -177,6 +185,12 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
                 % {"row": row_idx, "name": name}
             )
             continue
+
+        project_val = None
+        flag_val = None
+        conduit_type_val = None
+        status_val = None
+        network_level_val = None
 
         try:
             project_val = row_data.get("project")
@@ -319,6 +333,7 @@ def generate_conduit_import_template():
     """
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
+    assert worksheet is not None
     worksheet.title = "Conduit Import Template"
 
     headers = [
@@ -401,6 +416,7 @@ def generate_node_structure_excel(node_uuid):
     if not slot_configs.exists():
         workbook = openpyxl.Workbook()
         ws = workbook.active
+        assert ws is not None
         ws.title = str(_("No Data"))
         ws["A1"] = str(_("No slot configurations found for this node."))
         response = HttpResponse(
@@ -425,7 +441,7 @@ def generate_node_structure_excel(node_uuid):
     ).order_by("component_type", "in_or_out", "port")
     ports_by_type = {}
     for cp in component_ports:
-        ports_by_type.setdefault(cp.component_type_id, []).append(cp)
+        ports_by_type.setdefault(cp.component_type_id, []).append(cp)  # type: ignore[attr-defined]
 
     splices = (
         FiberSplice.objects.filter(node_structure__in=structures)
@@ -445,11 +461,11 @@ def generate_node_structure_excel(node_uuid):
     )
     splices_by_structure = {}
     for splice in splices:
-        splices_by_structure.setdefault(splice.node_structure_id, []).append(splice)
+        splices_by_structure.setdefault(splice.node_structure_id, []).append(splice)  # type: ignore[attr-defined]
 
     structures_by_config = {}
     for structure in structures:
-        structures_by_config.setdefault(structure.slot_configuration_id, []).append(
+        structures_by_config.setdefault(structure.slot_configuration_id, []).append(  # type: ignore[attr-defined]
             structure
         )
 
@@ -458,7 +474,7 @@ def generate_node_structure_excel(node_uuid):
     )
     clip_numbers_map = {}
     for cn in clip_numbers:
-        clip_numbers_map[(cn.slot_configuration_id, cn.slot_number)] = cn.clip_number
+        clip_numbers_map[(cn.slot_configuration_id, cn.slot_number)] = cn.clip_number  # type: ignore[attr-defined]
 
     header_font = Font(bold=True, size=12)
     table_header_font = Font(bold=True, size=10, color="FFFFFF")
@@ -486,7 +502,8 @@ def generate_node_structure_excel(node_uuid):
     ]
 
     workbook = openpyxl.Workbook()
-    workbook.remove(workbook.active)
+    if workbook.active is not None:
+        workbook.remove(workbook.active)
 
     used_sheet_names = set()
 
@@ -804,8 +821,9 @@ def rename_feature_folder(instance, old_identifier, new_identifier):
     prefs = StoragePreferences.objects.first()
     model_name = instance._meta.model_name
 
+    address = instance.uuid_address if model_name == "residentialunit" else None
     if model_name == "residentialunit":
-        address = instance.uuid_address
+        assert address is not None
         project_name = (
             address.project.project
             if hasattr(address, "project") and address.project
@@ -823,6 +841,7 @@ def rename_feature_folder(instance, old_identifier, new_identifier):
     new_feature_folder = sanitize_filename(str(new_identifier))
 
     if model_name == "residentialunit":
+        assert address is not None
         suffix = address.house_number_suffix or ""
         address_id = sanitize_filename(
             f"{address.street} {address.housenumber}{suffix}, "
@@ -951,9 +970,9 @@ def move_file_to_feature(file_obj, target_feature, target_content_type):
     file_extension = file_obj.file_type or ""
     file_extension = file_extension.lower()
 
-    try:
-        from .models import FileTypeCategory
+    from .models import FileTypeCategory
 
+    try:
         category_obj = FileTypeCategory.objects.get(extension=file_extension)
         file_category = category_obj.category
     except FileTypeCategory.DoesNotExist:
@@ -1486,6 +1505,8 @@ def convert_qgs_to_postgres(
 
     tree = ET.ElementTree(ET.fromstring(qgs_content))
     root = tree.getroot()
+    if root is None:
+        raise ValueError("QGS file has no root element")
 
     converted_layers = []
 
@@ -1566,7 +1587,7 @@ def handle_qgis_file(file_content: bytes, filename: str) -> tuple[bytes, bool]:
 
 
 def repackage_qgz(
-    qgs_content: bytes, original_qgz: bytes, qgs_filename: str = None
+    qgs_content: bytes, original_qgz: bytes, qgs_filename: str | None = None
 ) -> bytes:
     """Repackage modified QGS content back into QGZ format.
 
@@ -1981,7 +2002,7 @@ def trace_fiber(
 
     with connection.cursor() as cursor:
         cursor.execute(sql, {"fiber_id": str(fiber_id)})
-        columns = [col[0] for col in cursor.description]
+        columns = [col[0] for col in cursor.description] if cursor.description else []
         rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
     return _build_trace_result(
@@ -2505,7 +2526,7 @@ def _get_starting_fiber_splices(fiber_id) -> list[dict]:
     result = []
     with connection.cursor() as cursor:
         cursor.execute(sql, {"fiber_id": str(fiber_id)})
-        columns = [col[0] for col in cursor.description]
+        columns = [col[0] for col in cursor.description] if cursor.description else []
         for row in cursor.fetchall():
             row_dict = dict(zip(columns, row))
 
@@ -3040,7 +3061,7 @@ def _orient_geometry(
     elif geom.geom_type == "MultiLineString":
         # Orient each component LineString
         oriented_lines = []
-        for line in geom.geoms:
+        for line in cast(MultiLineString, geom).geoms:
             first_pt = Point(line.coords[0])
             last_pt = Point(line.coords[-1])
 
@@ -3079,6 +3100,8 @@ def _trim_trench_to_path_coords(geom_json, path_coords, tolerance=1):
 
     if line.is_empty or line.geom_type != "LineString":
         return geom_json
+
+    line = cast(LineString, line)
 
     # Match path coords to original (unsnapped) trench vertices to avoid
     # gaps from snapping imprecision. For each path coord, find the closest
@@ -3250,6 +3273,8 @@ def _trim_trench_geometries(trench_geojsons, start_geom, end_geom, snap_dist=10)
             results.append(geom_json)
             continue
 
+        line = cast(LineString, line)
+
         d_s = line.project(start_geom)
         dist_s = line.distance(start_geom)
         d_e = line.project(end_geom)
@@ -3356,7 +3381,7 @@ def _get_cable_infrastructure(
 
     with connection.cursor() as cursor:
         cursor.execute(sql, {"cable_ids": [str(cid) for cid in cable_ids]})
-        columns = [col[0] for col in cursor.description]
+        columns = [col[0] for col in cursor.description] if cursor.description else []
         rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
     infrastructure = {}
@@ -3439,11 +3464,13 @@ def _get_cable_infrastructure(
                 routed_ids = None
                 trench_path_coords = None
                 if start_geom and end_geom:
-                    routed_ids, trench_path_coords = find_path_through_trenches(
+                    _path_result = find_path_through_trenches(
                         trenches,
                         (start_geom.x, start_geom.y),
                         (end_geom.x, end_geom.y),
                     )
+                    if _path_result is not None:
+                        routed_ids, trench_path_coords = _path_result
 
                 if routed_ids:
                     routed_map = {t["id"]: t for t in trenches}
@@ -3699,7 +3726,7 @@ def _determine_signal_source(
 
 def _propagate_signal_state(
     node: dict,
-    source_node_id: str,
+    source_node_id: str | None,
     current_state: str = "lit",
     break_points: list | None = None,
 ) -> str:
@@ -3831,7 +3858,7 @@ def _collect_affected_summary(trace_tree: dict) -> dict:
 
 def analyze_signal_flow(
     fiber_id,
-    signal_source_node_id: str = None,
+    signal_source_node_id: str | None = None,
     include_geometry: bool = False,
     geometry_mode: str = "segments",
     orient_geometry: bool = False,
@@ -4028,7 +4055,7 @@ def simulate_fault(
 
     with connection.cursor() as cursor:
         cursor.execute(conduits_sql, trench_params)
-        columns = [col[0] for col in cursor.description]
+        columns = [col[0] for col in cursor.description] if cursor.description else []
         conduit_rows = [dict(zip(columns, r)) for r in cursor.fetchall()]
 
     conduits_result = [
@@ -4042,7 +4069,7 @@ def simulate_fault(
 
     with connection.cursor() as cursor:
         cursor.execute(cables_sql, trench_params)
-        columns = [col[0] for col in cursor.description]
+        columns = [col[0] for col in cursor.description] if cursor.description else []
         cable_rows = [dict(zip(columns, r)) for r in cursor.fetchall()]
 
     if not cable_rows:
@@ -4483,9 +4510,7 @@ def _build_affected_address_features(address_details: dict) -> list:
     return features
 
 
-def _add_address_linked_nodes(
-    node_features: list, address_details: dict
-) -> None:
+def _add_address_linked_nodes(node_features: list, address_details: dict) -> None:
     """Add nodes linked to affected addresses to the node features list and mark them.
 
     Finds nodes whose ``uuid_address`` points to any affected address and adds

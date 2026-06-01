@@ -92,7 +92,7 @@ class LocalMediaStorage(FileSystemStorage):
                 logger.error(f"Error creating directory {directory}: {e}")
                 raise
 
-        return super()._save(name, content)
+        return super()._save(name, content)  # pyright: ignore[reportAttributeAccessIssue]
 
     def delete(self, name):
         """Delete a file from the storage system.
@@ -252,7 +252,7 @@ class QGISProjectStorage(FileSystemStorage):
                 logger.error(f"Error creating QGIS projects directory {directory}: {e}")
                 raise
 
-        result = super()._save(name, content)
+        result = super()._save(name, content)  # pyright: ignore[reportAttributeAccessIssue]
 
         if os.path.exists(full_path):
             file_size = os.path.getsize(full_path)
@@ -364,7 +364,7 @@ class QGISDataFileStorage(FileSystemStorage):
                 logger.error(f"Error creating data file directory {directory}: {e}")
                 raise
 
-        result = super()._save(name, content)
+        result = super()._save(name, content)  # pyright: ignore[reportAttributeAccessIssue]
 
         if os.path.exists(full_path):
             os.chmod(full_path, 0o644)

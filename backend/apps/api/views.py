@@ -4,6 +4,8 @@ Provide CRUD ViewSets for telco infrastructure models, MVT tile endpoints,
 WMS/WFS proxy views, dashboard statistics, and fiber trace analysis.
 """
 
+from __future__ import annotations
+
 import logging
 import mimetypes
 import os
@@ -11,9 +13,11 @@ import threading
 import uuid
 from collections import defaultdict
 from datetime import date
+from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import quote
 
 import requests
+from dj_rest_auth.jwt_auth import JWTCookieAuthentication
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
@@ -26,7 +30,6 @@ from django.http import FileResponse, HttpResponse, StreamingHttpResponse
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
 from pathvalidate import sanitize_filename
-from dj_rest_auth.jwt_auth import JWTCookieAuthentication
 from rest_framework import status, viewsets
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.decorators import action, api_view, permission_classes
@@ -134,7 +137,6 @@ from .serializers import (
     MicroductConnectionSerializer,
     MicroductSerializer,
     NodeSerializer,
-    ParentNodeSerializer,
     NodeSlotClipNumberSerializer,
     NodeSlotConfigurationListSerializer,
     NodeSlotConfigurationSerializer,
@@ -143,6 +145,7 @@ from .serializers import (
     NodeStructureSerializer,
     NodeTrenchSelectionBulkSerializer,
     NodeTrenchSelectionSerializer,
+    ParentNodeSerializer,
     ProjectsSerializer,
     ResidentialUnitSerializer,
     TrenchConduitCanvasSerializer,
@@ -160,6 +163,9 @@ from .services import (
     import_conduits_from_excel,
 )
 from .wms_service import WMSServiceError, fetch_wms_layers, scan_wms_capabilities
+
+if TYPE_CHECKING:
+    from rest_framework.request import Request
 
 logger = logging.getLogger(__name__)
 
@@ -190,13 +196,14 @@ class AttributesConduitTypeViewSet(viewsets.ReadOnlyModelViewSet):
 class AttributesNodeTypeViewSet(viewsets.ReadOnlyModelViewSet):
     """Read-only ViewSet for :model:`api.AttributesNodeType`."""
 
+    request: Request
     permission_classes = [IsAuthenticated]
     queryset = AttributesNodeType.objects.all().order_by("node_type")
     serializer_class = AttributesNodeTypeSerializer
     lookup_field = "id"
     lookup_url_kwarg = "pk"
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """Filter node types, optionally excluding a group via ?exclude_group.
 
         Returns:
@@ -245,12 +252,13 @@ class AttributesCompanyViewSet(viewsets.ReadOnlyModelViewSet):
 class ContentTypeViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for Django ContentType model."""
 
+    request: Request
     permission_classes = [IsAuthenticated]
     serializer_class = ContentTypeSerializer
     lookup_field = "id"
     lookup_url_kwarg = "pk"
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """Return only ContentTypes for api app models that support file uploads."""
         return ContentType.objects.filter(
             app_label="api",
@@ -345,6 +353,7 @@ class TrenchViewSet(viewsets.ModelViewSet):
     and aggregation endpoints for dashboard statistics.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = Trench.objects.all().order_by("id_trench")
     serializer_class = TrenchSerializer
@@ -352,7 +361,7 @@ class TrenchViewSet(viewsets.ModelViewSet):
     lookup_url_kwarg = "pk"
     pagination_class = CustomPagination
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """Filter trenches by id_trench or uuid query parameters.
 
         Returns:
@@ -603,6 +612,7 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
     secure and efficient file serving.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = FeatureFiles.objects.all().order_by("object_id")
     serializer_class = FeatureFilesSerializer
@@ -610,7 +620,7 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
     lookup_url_kwarg = "pk"
     pagination_class = CustomPagination
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """
         Filter files by object_id query parameter.
 
@@ -1194,13 +1204,14 @@ class OlTrenchTileViewSet(APIView):
 class ProjectsViewSet(viewsets.ReadOnlyModelViewSet):
     """Read-only ViewSet for :model:`api.Projects`."""
 
+    request: Request
     permission_classes = [IsAuthenticated]
     queryset = Projects.objects.all().order_by("project")
     serializer_class = ProjectsSerializer
     lookup_field = "id"
     lookup_url_kwarg = "pk"
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """Filter projects by active status via ?active query parameter.
 
         Returns:
@@ -1230,6 +1241,7 @@ class ConduitViewSet(viewsets.ModelViewSet):
     Support filtering by trench, project, and flag with pagination.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     serializer_class = ConduitSerializer
     pagination_class = CustomPagination
@@ -1322,7 +1334,7 @@ class ConduitViewSet(viewsets.ModelViewSet):
 
         return Response({"trench_uuids": list(trench_uuids)})
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """
         Optionally restricts the returned conduits by filtering against query parameters:
         - `uuid`: Filter by UUID
@@ -1366,6 +1378,7 @@ class TrenchConduitConnectionViewSet(viewsets.ModelViewSet):
     Manage conduit-to-trench associations with project and flag filtering.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = TrenchConduitConnection.objects.all()
     serializer_class = TrenchConduitSerializer
@@ -1395,7 +1408,7 @@ class TrenchConduitConnectionViewSet(viewsets.ModelViewSet):
         serializer = TrenchConduitSerializer(queryset, many=True)
         return Response(serializer.data)
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """
         Optionally restricts the returned connections to a given trench or conduit,
         by filtering against a `id_trench` or `name` query parameter in the URL.
@@ -1433,12 +1446,13 @@ class TrenchConduitCanvasViewSet(viewsets.ModelViewSet):
     Manages canvas positions for conduits in trench profile view.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = TrenchConduitCanvas.objects.all()
     serializer_class = TrenchConduitCanvasSerializer
     pagination_class = None
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """Filter by trench UUID if provided."""
         queryset = TrenchConduitCanvas.objects.select_related(
             "conduit", "conduit__conduit_type"
@@ -1484,7 +1498,7 @@ class TrenchConduitCanvasViewSet(viewsets.ModelViewSet):
         ).select_related("uuid_conduit", "uuid_conduit__conduit_type")
 
         canvas_positions = {
-            pos.conduit_id: pos
+            pos.conduit_id: pos  # type: ignore[attr-defined]
             for pos in TrenchConduitCanvas.objects.filter(trench__uuid=trench_uuid)
         }
 
@@ -1506,7 +1520,7 @@ class TrenchConduitCanvasViewSet(viewsets.ModelViewSet):
 
         for mic in microducts:
             color_attr = color_cache.get(mic.color.lower()) if mic.color else None
-            microducts_by_conduit[mic.uuid_conduit_id].append(
+            microducts_by_conduit[mic.uuid_conduit_id].append(  # type: ignore[attr-defined]
                 {
                     "uuid": str(mic.uuid),
                     "number": mic.number,
@@ -1556,6 +1570,7 @@ class AddressViewSet(viewsets.ModelViewSet):
     Support filtering by project, flag, city, and spatial queries.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = Address.objects.all().order_by(
         "street", "housenumber", "house_number_suffix"
@@ -1565,7 +1580,7 @@ class AddressViewSet(viewsets.ModelViewSet):
     lookup_url_kwarg = "pk"
     pagination_class = CustomPagination
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """
         Optionally restricts the returned addresses by filtering against query parameters:
         - `uuid`: Filter by UUID
@@ -1765,7 +1780,9 @@ class AddressViewSet(viewsets.ModelViewSet):
         address = self.get_object()
         with connection.cursor() as cursor:
             cursor.execute("SELECT fn_generate_address_id(%s)", [address.project_id])
-            new_id = cursor.fetchone()[0]
+            row = cursor.fetchone()
+            assert row is not None
+            new_id = row[0]
         address.id_address = new_id
         address.save(update_fields=["id_address"])
         serializer = self.get_serializer(address)
@@ -1775,13 +1792,14 @@ class AddressViewSet(viewsets.ModelViewSet):
 class ResidentialUnitViewSet(viewsets.ModelViewSet):
     """ViewSet for the ResidentialUnit model."""
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = ResidentialUnit.objects.all().order_by("uuid_address", "floor", "side")
     serializer_class = ResidentialUnitSerializer
     lookup_field = "uuid"
     lookup_url_kwarg = "pk"
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """
         Optionally restricts the returned residential units by filtering against query parameters:
         - `uuid_address`: Filter by address UUID
@@ -1822,7 +1840,9 @@ class ResidentialUnitViewSet(viewsets.ModelViewSet):
         project_id = unit.uuid_address.project_id
         with connection.cursor() as cursor:
             cursor.execute("SELECT fn_generate_residential_unit_id(%s)", [project_id])
-            new_id = cursor.fetchone()[0]
+            row = cursor.fetchone()
+            assert row is not None
+            new_id = row[0]
         unit.id_residential_unit = new_id
         unit.save(update_fields=["id_residential_unit"])
         serializer = self.get_serializer(unit)
@@ -1982,6 +2002,7 @@ class NodeViewSet(viewsets.ModelViewSet):
     with pipe-branch and child-view modes for canvas rendering.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = Node.objects.all().order_by("name")
     serializer_class = NodeSerializer
@@ -1989,7 +2010,7 @@ class NodeViewSet(viewsets.ModelViewSet):
     lookup_url_kwarg = "pk"
     pagination_class = CustomPagination
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """
         Optionally restricts the returned nodes by filtering against query parameters:
         - `uuid`: Filter by UUID
@@ -2121,6 +2142,7 @@ class NodeViewSet(viewsets.ModelViewSet):
 
         result = []
         for node in queryset:
+            assert node.warranty is not None
             days_until_expiry = (node.warranty - date.today()).days
             result.append(
                 {
@@ -2867,8 +2889,8 @@ class RoutingView(APIView):
         """
         start_trench_id = request.data.get("start_trench_id")
         end_trench_id = request.data.get("end_trench_id")
-        project_id = request.data.get("project_id")[0]
-        tolerance = request.data.get("tolerance", 1)[0]
+        project_id = request.data.get("project_id")[0]  # type: ignore[index]
+        tolerance = request.data.get("tolerance", 1)[0]  # type: ignore[index]
 
         if not start_trench_id or not end_trench_id:
             return Response(
@@ -3065,6 +3087,7 @@ class MicroductViewSet(viewsets.ModelViewSet):
     Support filtering by conduit, number, color, and node.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = Microduct.objects.all().order_by("number")
     serializer_class = MicroductSerializer
@@ -3072,7 +3095,7 @@ class MicroductViewSet(viewsets.ModelViewSet):
     lookup_url_kwarg = "pk"
     pagination_class = CustomPagination
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """
         Optionally restricts the returned microducts by filtering against query parameters:
         - `uuid_conduit`: Filter by conduit UUID
@@ -3122,6 +3145,7 @@ class MicroductViewSet(viewsets.ModelViewSet):
 class MicroductConnectionViewSet(viewsets.ModelViewSet):
     """CRUD operations for :model:`api.MicroductConnection`."""
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = MicroductConnection.objects.all()
     serializer_class = MicroductConnectionSerializer
@@ -3129,7 +3153,7 @@ class MicroductConnectionViewSet(viewsets.ModelViewSet):
     lookup_url_kwarg = "pk"
     pagination_class = CustomPagination
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """
         Optionally restricts the returned microduct connections by filtering against query parameters:
         - `uuid_microduct_from`: Filter by microduct from UUID
@@ -3205,8 +3229,6 @@ class TrenchesNearNodeView(APIView):
             )
 
         try:
-            from .models import Node
-
             node = Node.objects.get(name=node_name, project=project_id)
             node_uuid = node.uuid
         except Node.DoesNotExist:
@@ -3343,6 +3365,7 @@ class CableViewSet(viewsets.ModelViewSet):
     Support filtering by project, flag, and node with cable-at-node serialization.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = Cable.objects.all().order_by("name")
     serializer_class = CableSerializer
@@ -3353,6 +3376,7 @@ class CableViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Override create to add a warning when cable type has incomplete color mappings."""
         response = super().create(request, *args, **kwargs)
+        assert response.data is not None
 
         cable_type_id = request.data.get("cable_type_id")
         if cable_type_id:
@@ -3431,7 +3455,7 @@ class CableViewSet(viewsets.ModelViewSet):
         serializer = CableSerializer(queryset, many=True)
         return Response(serializer.data)
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """
         Optionally restricts the returned cables by filtering against query parameters:
         - `uuid`: Filter by UUID
@@ -3530,6 +3554,7 @@ class CableViewSet(viewsets.ModelViewSet):
 class CableLabelViewSet(viewsets.ModelViewSet):
     """CRUD operations for :model:`api.CableLabel`."""
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = CableLabel.objects.all().order_by("cable", "order")
     serializer_class = CableLabelSerializer
@@ -3537,7 +3562,7 @@ class CableLabelViewSet(viewsets.ModelViewSet):
     lookup_url_kwarg = "pk"
     pagination_class = CustomPagination
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """
         Optionally restricts the returned labels by filtering against query parameters:
         - `cable`: Filter by cable UUID
@@ -3565,6 +3590,7 @@ class CableLabelViewSet(viewsets.ModelViewSet):
 class MicroductCableConnectionViewSet(viewsets.ModelViewSet):
     """CRUD operations for :model:`api.MicroductCableConnection`."""
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = MicroductCableConnection.objects.all()
     serializer_class = MicroductCableConnectionSerializer
@@ -3572,7 +3598,7 @@ class MicroductCableConnectionViewSet(viewsets.ModelViewSet):
     lookup_url_kwarg = "pk"
     pagination_class = CustomPagination
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """
         Optionally restricts the returned microduct cable connections by filtering against query parameters:
         - `uuid_microduct`: Filter by microduct UUID
@@ -3610,6 +3636,7 @@ class FiberViewSet(viewsets.ModelViewSet):
     Supports read and update operations for fiber data with filtering by cable.
     """
 
+    request: Request
     http_method_names = ["get", "patch", "head", "options"]
 
     permission_classes = [IsAuthenticated, RoleBasedPermission]
@@ -3620,7 +3647,7 @@ class FiberViewSet(viewsets.ModelViewSet):
     lookup_field = "uuid"
     lookup_url_kwarg = "pk"
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """
         Optionally restricts the returned fibers by filtering against query parameters:
         - `cable`: Filter by cable UUID
@@ -3672,6 +3699,7 @@ class LogEntryViewSet(viewsets.ReadOnlyModelViewSet):
     - date_to: Filter logs until this date (ISO format)
     """
 
+    request: Request
     permission_classes = [IsAuthenticated]
     queryset = (
         LogEntry.objects.all().select_related("user", "project").order_by("-timestamp")
@@ -3681,7 +3709,7 @@ class LogEntryViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = "uuid"
     lookup_url_kwarg = "pk"
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """Filter queryset based on query parameters."""
         queryset = super().get_queryset()
 
@@ -3882,6 +3910,7 @@ class AreaViewSet(viewsets.ModelViewSet):
     Support filtering by project, flag, and name.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = Area.objects.all().order_by("name")
     serializer_class = AreaSerializer
@@ -3889,7 +3918,7 @@ class AreaViewSet(viewsets.ModelViewSet):
     lookup_url_kwarg = "pk"
     pagination_class = CustomPagination
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """
         Optionally restricts the returned areas by filtering against query parameters:
         - `uuid`: Filter by UUID
@@ -4015,12 +4044,13 @@ class NodeTrenchSelectionViewSet(viewsets.ModelViewSet):
     the user returns to the same node.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = NodeTrenchSelection.objects.all()
     serializer_class = NodeTrenchSelectionSerializer
     lookup_field = "uuid"
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """Filter selections by node if specified."""
         queryset = super().get_queryset()
         node_uuid = self.request.query_params.get("node")
@@ -4046,9 +4076,10 @@ class NodeTrenchSelectionViewSet(viewsets.ModelViewSet):
         """
         serializer = NodeTrenchSelectionBulkSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        validated = cast(dict[str, Any], serializer.validated_data)
 
-        node_uuid = serializer.validated_data["node_uuid"]
-        trench_uuids = serializer.validated_data["trench_uuids"]
+        node_uuid = validated["node_uuid"]
+        trench_uuids = validated["trench_uuids"]
 
         try:
             node = Node.objects.get(uuid=node_uuid)
@@ -4085,12 +4116,13 @@ class NodeSlotConfigurationViewSet(viewsets.ModelViewSet):
     the total number of slots available on each side of a node.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = NodeSlotConfiguration.objects.all().order_by("uuid_node", "side")
     serializer_class = NodeSlotConfigurationSerializer
     lookup_field = "uuid"
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """Filter slot configurations by node if specified."""
         queryset = super().get_queryset()
         node_uuid = self.request.query_params.get("node")
@@ -4152,6 +4184,7 @@ class NodeStructureViewSet(viewsets.ModelViewSet):
     component types, structures, and their slot positions.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = NodeStructure.objects.all().order_by(
         "uuid_node", "slot_configuration", "slot_start"
@@ -4159,7 +4192,7 @@ class NodeStructureViewSet(viewsets.ModelViewSet):
     serializer_class = NodeStructureSerializer
     lookup_field = "uuid"
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """Filter node structures by node, slot_configuration, or purpose if specified."""
         queryset = super().get_queryset()
         node_uuid = self.request.query_params.get("node")
@@ -4204,7 +4237,7 @@ class NodeStructureViewSet(viewsets.ModelViewSet):
 
         summary = {}
         for config in configs:
-            side_structures = config.structures.all()
+            side_structures = config.structures.all()  # type: ignore[attr-defined]
             used = sum(s.slot_end - s.slot_start + 1 for s in side_structures)
             components = side_structures.filter(
                 purpose=NodeStructure.Purpose.COMPONENT
@@ -4295,13 +4328,14 @@ class NodeStructureViewSet(viewsets.ModelViewSet):
         """
         serializer = NodeStructureBulkCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        validated = cast(dict[str, Any], serializer.validated_data)
 
-        node_uuid = serializer.validated_data["node_uuid"]
-        slot_config_uuid = serializer.validated_data["slot_configuration_uuid"]
-        component_type_id = serializer.validated_data["component_type_id"]
-        slot_start = serializer.validated_data["slot_start"]
-        count = serializer.validated_data["count"]
-        slots_per_component = serializer.validated_data["occupied_slots_per_component"]
+        node_uuid = validated["node_uuid"]
+        slot_config_uuid = validated["slot_configuration_uuid"]
+        component_type_id = validated["component_type_id"]
+        slot_start = validated["slot_start"]
+        count = validated["count"]
+        slots_per_component = validated["occupied_slots_per_component"]
 
         # Validate node exists
         try:
@@ -4400,6 +4434,7 @@ class NodeSlotDividerViewSet(viewsets.ModelViewSet):
     Manages horizontal divider lines between TPU slots for visual grouping.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = NodeSlotDivider.objects.all().order_by(
         "slot_configuration", "after_slot"
@@ -4407,7 +4442,7 @@ class NodeSlotDividerViewSet(viewsets.ModelViewSet):
     serializer_class = NodeSlotDividerSerializer
     lookup_field = "uuid"
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """Filter dividers by slot_configuration if specified."""
         queryset = super().get_queryset()
         slot_config_uuid = self.request.query_params.get("slot_configuration")
@@ -4424,6 +4459,7 @@ class NodeSlotClipNumberViewSet(viewsets.ModelViewSet):
     Manages custom clip numbers for individual slots.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = NodeSlotClipNumber.objects.all().order_by(
         "slot_configuration", "slot_number"
@@ -4431,7 +4467,7 @@ class NodeSlotClipNumberViewSet(viewsets.ModelViewSet):
     serializer_class = NodeSlotClipNumberSerializer
     lookup_field = "uuid"
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """Filter clip numbers by slot_configuration if specified."""
         queryset = super().get_queryset()
         slot_config_uuid = self.request.query_params.get("slot_configuration")
@@ -4483,11 +4519,12 @@ class AttributesComponentStructureViewSet(viewsets.ReadOnlyModelViewSet):
     Returns ports (IN/OUT) for a given component type.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated]
     queryset = AttributesComponentStructure.objects.all()
     serializer_class = AttributesComponentStructureSerializer
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """Filter by component_type if specified."""
         queryset = super().get_queryset()
         component_type_id = self.request.query_params.get("component_type")
@@ -4505,12 +4542,13 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
     Each splice connects fiber_a to fiber_b at a specific port number.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = FiberSplice.objects.all()
     serializer_class = FiberSpliceSerializer
     lookup_field = "uuid"
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """Filter splices by node_structure, node_structure__uuid_node, cable_a, or cable_b if specified."""
         queryset = super().get_queryset()
         node_structure = self.request.query_params.get("node_structure")
@@ -4608,9 +4646,9 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
         if has_residential_unit:
             # Connect residential unit to this side
             if side == "a":
-                splice.residential_unit_a = residential_unit
+                splice.residential_unit_a = residential_unit  # type: ignore[assignment]
             else:
-                splice.residential_unit_b = residential_unit
+                splice.residential_unit_b = residential_unit  # type: ignore[assignment]
             splice.save()
         else:
             # Check if this port is merged on this side (using side-specific merge group)
@@ -4633,11 +4671,11 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
             else:
                 # Set individual fiber (not in a merge group on this side)
                 if side == "a":
-                    splice.fiber_a_id = fiber_uuid
-                    splice.cable_a_id = cable_uuid
+                    splice.fiber_a_id = fiber_uuid  # type: ignore[attr-defined]
+                    splice.cable_a_id = cable_uuid  # type: ignore[attr-defined]
                 else:
-                    splice.fiber_b_id = fiber_uuid
-                    splice.cable_b_id = cable_uuid
+                    splice.fiber_b_id = fiber_uuid  # type: ignore[attr-defined]
+                    splice.cable_b_id = cable_uuid  # type: ignore[attr-defined]
                 splice.save()
 
         serializer = self.get_serializer(splice)
@@ -4672,11 +4710,12 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
 
         serializer = FiberSpliceBulkUpsertSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        validated = cast(dict[str, Any], serializer.validated_data)
 
         created = []
         failed = []
 
-        for item in serializer.validated_data["splices"]:
+        for item in validated["splices"]:
             try:
                 node_structure = NodeStructure.objects.get(
                     uuid=item["node_structure_uuid"]
@@ -4694,9 +4733,9 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
                         uuid=residential_unit_uuid
                     )
                     if item["side"] == "a":
-                        splice.residential_unit_a = residential_unit
+                        splice.residential_unit_a = residential_unit  # type: ignore[assignment]
                     else:
-                        splice.residential_unit_b = residential_unit
+                        splice.residential_unit_b = residential_unit  # type: ignore[assignment]
                 else:
                     # Fiber/cable connection
                     fiber = Fiber.objects.get(uuid=item["fiber_uuid"])
@@ -4863,10 +4902,11 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
 
         serializer = PortMergeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        validated = cast(dict[str, Any], serializer.validated_data)
 
-        node_structure_uuid = serializer.validated_data["node_structure"]
-        port_numbers = serializer.validated_data["port_numbers"]
-        side = serializer.validated_data["side"]
+        node_structure_uuid = validated["node_structure"]
+        port_numbers = validated["port_numbers"]
+        side = validated["side"]
 
         try:
             node_structure = NodeStructure.objects.get(uuid=node_structure_uuid)
@@ -4951,9 +4991,10 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
 
         serializer = PortUnmergeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        validated = cast(dict[str, Any], serializer.validated_data)
 
-        merge_group = serializer.validated_data["merge_group"]
-        port_numbers = serializer.validated_data["port_numbers"]
+        merge_group = validated["merge_group"]
+        port_numbers = validated["port_numbers"]
 
         # Try to find the merge group on side A first, then side B
         group_splices_a = FiberSplice.objects.filter(merge_group_a=merge_group)
@@ -4975,6 +5016,7 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
 
         # Get the first splice to determine the shared fiber
         first_splice = group_splices.first()
+        assert first_splice is not None
 
         # Get the shared fiber (if any) to convert back to individual
         shared_fiber = None
@@ -5017,6 +5059,7 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
         if remaining_count == 1:
             # Only one port left, unmerge it too (can't have a group of 1)
             remaining_splice = remaining.first()
+            assert remaining_splice is not None
 
             # Convert shared fiber to individual for the last remaining port
             if side == "a" and remaining_splice.shared_fiber_a:
@@ -5102,11 +5145,11 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
             first_fiber = fibers[0]
             for splice in splices:
                 if side == "a":
-                    splice.shared_fiber_a_id = first_fiber["uuid"]
-                    splice.shared_cable_a_id = first_fiber["cable_uuid"]
+                    splice.shared_fiber_a_id = first_fiber["uuid"]  # type: ignore[attr-defined]
+                    splice.shared_cable_a_id = first_fiber["cable_uuid"]  # type: ignore[attr-defined]
                 else:
-                    splice.shared_fiber_b_id = first_fiber["uuid"]
-                    splice.shared_cable_b_id = first_fiber["cable_uuid"]
+                    splice.shared_fiber_b_id = first_fiber["uuid"]  # type: ignore[attr-defined]
+                    splice.shared_cable_b_id = first_fiber["cable_uuid"]  # type: ignore[attr-defined]
                 splice.save()
 
             return Response(
@@ -5123,11 +5166,11 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
                 if i < len(fibers):
                     fiber_data = fibers[i]
                     if side == "a":
-                        splice.fiber_a_id = fiber_data["uuid"]
-                        splice.cable_a_id = fiber_data["cable_uuid"]
+                        splice.fiber_a_id = fiber_data["uuid"]  # type: ignore[attr-defined]
+                        splice.cable_a_id = fiber_data["cable_uuid"]  # type: ignore[attr-defined]
                     else:
-                        splice.fiber_b_id = fiber_data["uuid"]
-                        splice.cable_b_id = fiber_data["cable_uuid"]
+                        splice.fiber_b_id = fiber_data["uuid"]  # type: ignore[attr-defined]
+                        splice.cable_b_id = fiber_data["cable_uuid"]  # type: ignore[attr-defined]
                     splice.save()
                     updated_splices.append(splice)
 
@@ -5160,6 +5203,7 @@ class ContainerViewSet(viewsets.ModelViewSet):
     Supports CRUD operations and hierarchy manipulation.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
     queryset = Container.objects.all().select_related(
         "container_type", "parent_container", "uuid_node"
@@ -5167,7 +5211,7 @@ class ContainerViewSet(viewsets.ModelViewSet):
     serializer_class = ContainerSerializer
     lookup_field = "uuid"
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         """Filter containers by node if specified."""
         queryset = super().get_queryset()
         node_uuid = self.request.query_params.get("node")
@@ -5391,8 +5435,8 @@ class MicropipesByConduitsView(APIView):
                     "microduct_uuids": {},
                     "has_defect": False,
                 }
-            micropipe_groups[key]["available_in"].append(str(md.uuid_conduit_id))
-            micropipe_groups[key]["microduct_uuids"][str(md.uuid_conduit_id)] = str(
+            micropipe_groups[key]["available_in"].append(str(md.uuid_conduit_id))  # type: ignore[attr-defined]
+            micropipe_groups[key]["microduct_uuids"][str(md.uuid_conduit_id)] = str(  # type: ignore[attr-defined]
                 md.uuid
             )
             # Mark as defective if any microduct in the group has a status
@@ -5407,8 +5451,8 @@ class MicropipesByConduitsView(APIView):
         # Build mapping: microduct_uuid -> list of {uuid, name}
         microduct_cables = defaultdict(list)
         for conn in all_connections:
-            microduct_cables[conn.uuid_microduct_id].append(
-                {"uuid": str(conn.uuid_cable_id), "name": conn.uuid_cable.name}
+            microduct_cables[conn.uuid_microduct_id].append(  # type: ignore[attr-defined]
+                {"uuid": str(conn.uuid_cable_id), "name": conn.uuid_cable.name}  # type: ignore[attr-defined]
             )
 
         # Build response
@@ -5555,14 +5599,14 @@ def get_cable_micropipe_summary(request, project_id):
 
     result = {}
     for conn in connections:
-        cable_uuid = str(conn.uuid_cable_id)
+        cable_uuid = str(conn.uuid_cable_id)  # type: ignore[attr-defined]
         if cable_uuid not in result:
             result[cable_uuid] = []
 
         color_name = (
             conn.uuid_microduct.color.lower() if conn.uuid_microduct.color else None
         )
-        hex_code = color_lookup.get(color_name, "#64748b")
+        hex_code = color_lookup.get(color_name, "#64748b") if color_name else "#64748b"
 
         result[cable_uuid].append(
             {
@@ -5583,14 +5627,15 @@ class WMSSourceViewSet(viewsets.ModelViewSet):
     To restrict access, implement project-level permissions at the auth layer.
     """
 
+    request: Request
     permission_classes = [IsAuthenticated, RoleBasedPermission]
 
-    def get_serializer_class(self):
+    def get_serializer_class(self):  # type: ignore[override]
         if self.action in ["create", "update", "partial_update"]:
             return WMSSourceCreateSerializer
         return WMSSourceSerializer
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         queryset = WMSSource.objects.filter(is_active=True)
         project_id = self.request.query_params.get("project")
         if project_id:
@@ -5746,10 +5791,11 @@ class WMSSourceViewSet(viewsets.ModelViewSet):
 class WMSLayerViewSet(viewsets.ModelViewSet):
     """ViewSet for WMS layers."""
 
+    request: Request
     serializer_class = WMSLayerSerializer
     permission_classes = [IsAuthenticated, RoleBasedPermission]
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         queryset = WMSLayer.objects.filter(is_enabled=True)
         project_id = self.request.query_params.get("project")
         if project_id:
@@ -6061,7 +6107,7 @@ class WFS3ProxyView(APIView):
     MAX_RESPONSE_SIZE = 100 * 1024 * 1024  # 100MB for large GeoJSON responses
     QGIS_SERVER_URL = "http://qgis-server"
 
-    def _get_qgis_project(self, project_name: str) -> QGISProject:
+    def _get_qgis_project(self, project_name: str) -> QGISProject | None:
         """Get active QGIS project by name (slug)."""
         try:
             return QGISProject.objects.get(name=project_name)
@@ -6569,6 +6615,7 @@ class DashboardStatisticsView(APIView):
         )
         expiring_warranties = []
         for node in warranty_qs:
+            assert node.warranty is not None
             days_until_expiry = (node.warranty - date.today()).days
             expiring_warranties.append(
                 {
@@ -6901,7 +6948,7 @@ class DashboardStatisticsView(APIView):
                         "name": area.name,
                         "type": area.area_type.area_type if area.area_type else None,
                         "count": addr_count,
-                        "area_km2": area.area_m2.sq_km if area.area_m2 else 0,
+                        "area_km2": area.area_m2.sq_km if area.area_m2 else 0,  # type: ignore[attr-defined]
                     }
                 )
 
@@ -6946,7 +6993,7 @@ class DashboardStatisticsView(APIView):
             ).aggregate(total=Sum("clipped_length"))["total"]
 
             if total_length and total_length.m > 0:
-                area_km2 = area.area_m2.sq_km if area.area_m2 else 0
+                area_km2 = area.area_m2.sq_km if area.area_m2 else 0  # type: ignore[attr-defined]
                 trench_length_per_area.append(
                     {
                         "name": area.name,
