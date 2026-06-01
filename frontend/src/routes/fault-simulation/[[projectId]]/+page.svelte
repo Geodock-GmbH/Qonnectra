@@ -68,6 +68,8 @@
 	let affectedTrenchLayer = $state(null);
 	/** @type {VectorLayer|null} */
 	let affectedNodeLayer = $state(null);
+	/** @type {VectorLayer|null} */
+	let affectedAddressLayer = $state(null);
 	/** @type {[number, number]|null} */
 	let damageMapCoord = $state(null);
 	let popupPixel = $state({ x: 0, y: 0 });
@@ -86,7 +88,7 @@
 		stroke: new Stroke({ color: 'rgba(220, 38, 38, 0.8)', width: 5 })
 	});
 
-	const affectedNodeStyle = new Style({
+	const affectedNodeDefaultStyle = new Style({
 		image: new CircleStyle({
 			radius: 7,
 			fill: new Fill({ color: 'rgba(234, 88, 12, 0.9)' }),
@@ -94,8 +96,32 @@
 		})
 	});
 
+	const affectedNodeAddressStyle = new Style({
+		image: new CircleStyle({
+			radius: 7,
+			fill: new Fill({ color: 'rgba(147, 51, 234, 0.9)' }),
+			stroke: new Stroke({ color: '#ffffff', width: 2 })
+		})
+	});
+
 	/**
-	 * Initializes overlay layers for damage point, affected trenches, and affected nodes.
+	 * @param {import('ol/Feature').default} feature
+	 * @returns {Style}
+	 */
+	function affectedNodeStyleFn(feature) {
+		return feature.get('has_address') ? affectedNodeAddressStyle : affectedNodeDefaultStyle;
+	}
+
+	const affectedAddressStyle = new Style({
+		image: new CircleStyle({
+			radius: 8,
+			fill: new Fill({ color: 'rgba(147, 51, 234, 0.9)' }),
+			stroke: new Stroke({ color: '#ffffff', width: 2 })
+		})
+	});
+
+	/**
+	 * Initializes overlay layers for damage point, affected trenches, nodes, and addresses.
 	 * @param {{ map: import('ol/Map').default }} event - Map ready event containing the OL map instance
 	 * @returns {void}
 	 */
@@ -116,11 +142,18 @@
 
 		affectedNodeLayer = new VectorLayer({
 			source: new VectorSource(),
-			style: affectedNodeStyle,
+			style: affectedNodeStyleFn,
 			zIndex: 60
 		});
 
+		affectedAddressLayer = new VectorLayer({
+			source: new VectorSource(),
+			style: affectedAddressStyle,
+			zIndex: 55
+		});
+
 		olMap.addLayer(affectedTrenchLayer);
+		olMap.addLayer(affectedAddressLayer);
 		olMap.addLayer(affectedNodeLayer);
 		olMap.addLayer(damagePointLayer);
 
@@ -202,6 +235,7 @@
 	function clearResultLayers() {
 		affectedTrenchLayer?.getSource()?.clear();
 		affectedNodeLayer?.getSource()?.clear();
+		affectedAddressLayer?.getSource()?.clear();
 	}
 
 	/** @returns {void} */
@@ -238,6 +272,12 @@
 		if (nodeFeatures && affectedNodeLayer) {
 			const features = format.readFeatures(nodeFeatures, readOptions);
 			affectedNodeLayer.getSource()?.addFeatures(features);
+		}
+
+		const addressFeatures = result.geometry?.affected_addresses;
+		if (addressFeatures && affectedAddressLayer) {
+			const features = format.readFeatures(addressFeatures, readOptions);
+			affectedAddressLayer.getSource()?.addFeatures(features);
 		}
 	});
 

@@ -1,11 +1,5 @@
 <script>
-	import {
-		IconChevronDown,
-		IconChevronRight,
-		IconHome,
-		IconRefresh,
-		IconUsers
-	} from '@tabler/icons-svelte';
+	import { IconChevronDown, IconChevronRight, IconRefresh } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -61,7 +55,7 @@
 				</div>
 				<button
 					type="button"
-					class="btn btn-sm preset-outlined-surface-200-800 shrink-0 sm:hidden"
+					class="btn btn-sm preset-filled-primary-500 shrink-0 sm:hidden"
 					onclick={onreset}
 				>
 					<IconRefresh class="h-4 w-4" />
@@ -75,20 +69,18 @@
 						{m.fault_affected_cables()}
 					</span>
 					<span class="flex items-center gap-1">
-						<IconHome class="h-4 w-4 text-error-500 shrink-0" />
 						<span class="font-bold text-error-500">{summary.affected_addresses}</span>
 						<span class="hidden sm:inline">{m.signal_affected_addresses()}</span>
 					</span>
 					<span class="flex items-center gap-1">
-						<IconUsers class="h-4 w-4 text-error-500 shrink-0" />
 						<span class="font-bold text-error-500">{summary.affected_residential_units}</span>
 						<span class="hidden sm:inline">{m.signal_affected_rus()}</span>
 					</span>
 				</div>
 			{/if}
 
-			<div class="ml-auto hidden sm:block">
-				<button type="button" class="btn btn-sm preset-outlined-surface-200-800" onclick={onreset}>
+			<div class="hidden sm:block">
+				<button type="button" class="btn btn-sm preset-filled-primary-500" onclick={onreset}>
 					<IconRefresh class="h-4 w-4" />
 					{m.common_reset()}
 				</button>

@@ -4066,6 +4066,7 @@ def simulate_fault(
                 "damage_point": snap_point or {"type": "Point", "coordinates": point},
                 "affected_trenches": {"type": "FeatureCollection", "features": []},
                 "affected_nodes": {"type": "FeatureCollection", "features": []},
+                "affected_addresses": {"type": "FeatureCollection", "features": []},
             },
         }
 
@@ -4178,6 +4179,10 @@ def simulate_fault(
             }
         )
 
+    affected_address_features = _build_affected_address_features(all_address_details)
+
+    _add_address_linked_nodes(affected_node_features, all_address_details)
+
     return {
         "damage_point": {"coordinates": point},
         "trench": {
@@ -4204,6 +4209,10 @@ def simulate_fault(
             "affected_nodes": {
                 "type": "FeatureCollection",
                 "features": affected_node_features,
+            },
+            "affected_addresses": {
+                "type": "FeatureCollection",
+                "features": affected_address_features,
             },
         },
     }
@@ -4434,3 +4443,90 @@ def _collect_node_geometries(node: dict, seen_ids: set, features: list) -> None:
 
     for child in node.get("children", []):
         _collect_node_geometries(child, seen_ids, features)
+
+
+def _build_affected_address_features(address_details: dict) -> list:
+    """Query geometries for affected addresses and return GeoJSON features.
+
+    Args:
+        address_details (dict): Mapping of address UUID to address detail dict,
+            as built by ``_collect_affected_entity_details``.
+
+    Returns:
+        list[dict]: GeoJSON Feature dicts with Point geometries.
+    """
+    if not address_details:
+        return []
+
+    from apps.api.models import Address
+
+    addr_uuids = list(address_details.keys())
+    addresses = Address.objects.filter(uuid__in=addr_uuids).exclude(geom__isnull=True)
+
+    features = []
+    for addr in addresses:
+        addr_id = str(addr.uuid)
+        detail = address_details.get(addr_id, {})
+        features.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "id": addr_id,
+                    "id_address": detail.get("id_address") or addr.id_address,
+                    "street": detail.get("street") or addr.street,
+                    "housenumber": detail.get("housenumber") or addr.housenumber,
+                },
+                "geometry": json.loads(addr.geom.geojson),
+            }
+        )
+
+    return features
+
+
+def _add_address_linked_nodes(
+    node_features: list, address_details: dict
+) -> None:
+    """Add nodes linked to affected addresses to the node features list and mark them.
+
+    Finds nodes whose ``uuid_address`` points to any affected address and adds
+    them if not already present. Also sets ``has_address`` on all features.
+
+    Args:
+        node_features (list[dict]): GeoJSON node features (mutated in place).
+        address_details (dict): Mapping of address UUID to detail dict.
+    """
+    if not address_details:
+        return
+
+    from apps.api.models import Node
+
+    addr_uuids = list(address_details.keys())
+    existing_node_ids = {f["properties"]["id"] for f in node_features}
+
+    nodes = Node.objects.filter(
+        uuid_address__in=addr_uuids,
+    ).exclude(geom__isnull=True)
+
+    addr_node_ids = set()
+    for node in nodes:
+        node_id = str(node.uuid)
+        addr_node_ids.add(node_id)
+        if node_id not in existing_node_ids:
+            node_features.append(
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": node_id,
+                        "name": node.name,
+                        "signal_state": "dark",
+                        "has_address": True,
+                    },
+                    "geometry": json.loads(node.geom.geojson),
+                }
+            )
+
+    for feature in node_features:
+        if "has_address" not in feature["properties"]:
+            feature["properties"]["has_address"] = (
+                feature["properties"]["id"] in addr_node_ids
+            )
