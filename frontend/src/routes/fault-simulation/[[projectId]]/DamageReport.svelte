@@ -62,23 +62,6 @@
 				</button>
 			</div>
 
-			{#if summary}
-				<div class="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm">
-					<span class="flex items-center gap-1">
-						<span class="font-bold">{summary.total_cables_affected}</span>
-						{m.fault_affected_cables()}
-					</span>
-					<span class="flex items-center gap-1">
-						<span class="font-bold text-error-500">{summary.affected_addresses}</span>
-						<span class="hidden sm:inline">{m.signal_affected_addresses()}</span>
-					</span>
-					<span class="flex items-center gap-1">
-						<span class="font-bold text-error-500">{summary.affected_residential_units}</span>
-						<span class="hidden sm:inline">{m.signal_affected_rus()}</span>
-					</span>
-				</div>
-			{/if}
-
 			<div class="hidden sm:block">
 				<button type="button" class="btn btn-sm preset-filled-primary-500" onclick={onreset}>
 					<IconRefresh class="h-4 w-4" />
