@@ -5,6 +5,7 @@
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconAiGateway,
+		IconAlertTriangle,
 		IconArrowRightToArc,
 		IconBook,
 		IconBuildings,
@@ -30,22 +31,22 @@
 
 	let currentLocale = $derived(getLocale());
 
-	function switchLocale(/** @type {"de" | "en"} */ locale) {
+	/**
+	 * @param {"de" | "en"} locale - Target locale code
+	 * @returns {void}
+	 */
+	function switchLocale(locale) {
 		setLocale(locale);
 	}
 
 	let showMoreMenu = $state(false);
 
-	/**
-	 * Close more menu
-	 */
+	/** @returns {void} */
 	function closeMoreMenu() {
 		showMoreMenu = false;
 	}
 
-	/**
-	 * Toggle more menu
-	 */
+	/** @returns {void} */
 	function toggleMoreMenu() {
 		showMoreMenu = !showMoreMenu;
 	}
@@ -71,6 +72,16 @@
 			label: () => m.nav_map(),
 			icon: IconMapPin,
 			pathMatch: (/** @type {string} */ path) => path.startsWith('/map')
+		}
+	];
+
+	/** @type {NavLink[]} */
+	const allProcedureLinks = [
+		{
+			href: '/fault-simulation',
+			label: () => m.nav_fault_simulation(),
+			icon: IconAlertTriangle,
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/fault-simulation')
 		}
 	];
 
@@ -115,6 +126,12 @@
 			label: () => m.nav_fiber_trace(),
 			icon: IconSTurnRight,
 			pathMatch: (/** @type {string} */ path) => path.startsWith('/trace')
+		},
+		{
+			href: '/fault-simulation',
+			label: () => m.nav_fault_simulation(),
+			icon: IconAlertTriangle,
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/fault-simulation')
 		}
 	];
 
@@ -146,20 +163,23 @@
 
 	/**
 	 * Filters links based on user route permissions.
-	 * @param {NavLink[]} links
+	 * @param {NavLink[]} links - Full set of navigation links
+	 * @returns {NavLink[]} Links the current user is allowed to access
 	 */
 	function filterByPermission(links) {
 		return links.filter((link) => canAccessRoute($userStore.permissions, link.href));
 	}
 
 	const mainLinks = $derived(filterByPermission(allMainLinks));
+	const procedureLinks = $derived(filterByPermission(allProcedureLinks));
 	const infrastructureLinks = $derived(filterByPermission(allInfrastructureLinks));
 	const cableLinks = $derived(filterByPermission(allCableLinks));
 	const addressLinks = $derived(filterByPermission(allAddressLinks));
 	const footerLinks = $derived(filterByPermission(allFooterLinks));
 
 	const hasMoreContent = $derived(
-		infrastructureLinks.length > 0 ||
+		procedureLinks.length > 0 ||
+			infrastructureLinks.length > 0 ||
 			cableLinks.length > 0 ||
 			addressLinks.length > 0 ||
 			footerLinks.length > 0
@@ -168,9 +188,8 @@
 	let totalTiles = $derived(mainLinks.length + (hasMoreContent ? 1 : 0));
 
 	/**
-	 * Get anchor class based on selection
-	 * @param {boolean} isSelected - Whether the item is selected
-	 * @returns {string} - The anchor class
+	 * @param {boolean} isSelected - Whether the nav item is currently active
+	 * @returns {string} CSS class string for the anchor element
 	 */
 	function getAnchorClass(isSelected) {
 		const baseClass = 'btn hover:preset-tonal flex-col items-center gap-1';
@@ -231,11 +250,32 @@
 
 	<!-- Popup Menu -->
 	<div
-		class="fixed bottom-20 left-4 right-4 z-50 bg-surface-200-800 rounded-t-lg border-2 border-surface-200-800 shadow-lg md:hidden"
+		class="fixed bottom-20 left-4 right-4 z-50 bg-surface-200-800 rounded-t-lg border-2 border-surface-200-800 shadow-lg md:hidden max-h-[70vh] overflow-y-auto overscroll-contain"
 		in:slide={{ duration: 200, easing: quintOut }}
 	>
 		<div class="p-4 space-y-4">
 			<h3 class="text-lg font-semibold text-surface-900-100">{m.form_more_sites()}</h3>
+
+			{#if procedureLinks.length > 0}
+				<section>
+					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-700-300 mb-2">
+						{m.nav_category_procedure()}
+					</h4>
+					<div class="space-y-1">
+						{#each procedureLinks as link (link.href)}
+							{@const Icon = link.icon}
+							<a
+								href={link.href}
+								class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-100-800 transition-colors"
+								onclick={closeMoreMenu}
+							>
+								<Icon size={20} class="text-surface-700-300" />
+								<span class="text-surface-900-100">{link.label()}</span>
+							</a>
+						{/each}
+					</div>
+				</section>
+			{/if}
 
 			{#if infrastructureLinks.length > 0}
 				<section>

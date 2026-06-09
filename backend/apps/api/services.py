@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 from io import BytesIO
 from pathlib import PureWindowsPath
+from typing import cast
 
 import geopandas as gpd
 import openpyxl
@@ -89,6 +90,11 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
         }
 
     sheet = workbook.active
+    if sheet is None:
+        return {
+            "success": False,
+            "errors": [str(_("Excel file contains no active worksheet."))],
+        }
 
     errors = []
     warnings = []
@@ -150,7 +156,9 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
             ],
         }
 
-    unmapped_headers = [h for h in header_from_file if h and h not in header_map]
+    unmapped_headers = [
+        str(h) for h in header_from_file if h and str(h) not in header_map
+    ]
     if unmapped_headers:
         warnings.append(
             str(
@@ -159,7 +167,7 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
             )
         )
 
-    mapped_header = [header_map.get(h) for h in header_from_file]
+    mapped_header = [header_map.get(str(h)) for h in header_from_file]
 
     for row_idx, row in enumerate(
         sheet.iter_rows(min_row=2, values_only=True), start=2
@@ -177,6 +185,12 @@ def import_conduits_from_excel(file, max_file_size=10 * 1024 * 1024):
                 % {"row": row_idx, "name": name}
             )
             continue
+
+        project_val = None
+        flag_val = None
+        conduit_type_val = None
+        status_val = None
+        network_level_val = None
 
         try:
             project_val = row_data.get("project")
@@ -319,6 +333,7 @@ def generate_conduit_import_template():
     """
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
+    assert worksheet is not None
     worksheet.title = "Conduit Import Template"
 
     headers = [
@@ -401,6 +416,7 @@ def generate_node_structure_excel(node_uuid):
     if not slot_configs.exists():
         workbook = openpyxl.Workbook()
         ws = workbook.active
+        assert ws is not None
         ws.title = str(_("No Data"))
         ws["A1"] = str(_("No slot configurations found for this node."))
         response = HttpResponse(
@@ -425,7 +441,7 @@ def generate_node_structure_excel(node_uuid):
     ).order_by("component_type", "in_or_out", "port")
     ports_by_type = {}
     for cp in component_ports:
-        ports_by_type.setdefault(cp.component_type_id, []).append(cp)
+        ports_by_type.setdefault(cp.component_type_id, []).append(cp)  # type: ignore[attr-defined]
 
     splices = (
         FiberSplice.objects.filter(node_structure__in=structures)
@@ -445,11 +461,11 @@ def generate_node_structure_excel(node_uuid):
     )
     splices_by_structure = {}
     for splice in splices:
-        splices_by_structure.setdefault(splice.node_structure_id, []).append(splice)
+        splices_by_structure.setdefault(splice.node_structure_id, []).append(splice)  # type: ignore[attr-defined]
 
     structures_by_config = {}
     for structure in structures:
-        structures_by_config.setdefault(structure.slot_configuration_id, []).append(
+        structures_by_config.setdefault(structure.slot_configuration_id, []).append(  # type: ignore[attr-defined]
             structure
         )
 
@@ -458,7 +474,7 @@ def generate_node_structure_excel(node_uuid):
     )
     clip_numbers_map = {}
     for cn in clip_numbers:
-        clip_numbers_map[(cn.slot_configuration_id, cn.slot_number)] = cn.clip_number
+        clip_numbers_map[(cn.slot_configuration_id, cn.slot_number)] = cn.clip_number  # type: ignore[attr-defined]
 
     header_font = Font(bold=True, size=12)
     table_header_font = Font(bold=True, size=10, color="FFFFFF")
@@ -486,7 +502,8 @@ def generate_node_structure_excel(node_uuid):
     ]
 
     workbook = openpyxl.Workbook()
-    workbook.remove(workbook.active)
+    if workbook.active is not None:
+        workbook.remove(workbook.active)
 
     used_sheet_names = set()
 
@@ -804,8 +821,9 @@ def rename_feature_folder(instance, old_identifier, new_identifier):
     prefs = StoragePreferences.objects.first()
     model_name = instance._meta.model_name
 
+    address = instance.uuid_address if model_name == "residentialunit" else None
     if model_name == "residentialunit":
-        address = instance.uuid_address
+        assert address is not None
         project_name = (
             address.project.project
             if hasattr(address, "project") and address.project
@@ -823,6 +841,7 @@ def rename_feature_folder(instance, old_identifier, new_identifier):
     new_feature_folder = sanitize_filename(str(new_identifier))
 
     if model_name == "residentialunit":
+        assert address is not None
         suffix = address.house_number_suffix or ""
         address_id = sanitize_filename(
             f"{address.street} {address.housenumber}{suffix}, "
@@ -951,9 +970,9 @@ def move_file_to_feature(file_obj, target_feature, target_content_type):
     file_extension = file_obj.file_type or ""
     file_extension = file_extension.lower()
 
-    try:
-        from .models import FileTypeCategory
+    from .models import FileTypeCategory
 
+    try:
         category_obj = FileTypeCategory.objects.get(extension=file_extension)
         file_category = category_obj.category
     except FileTypeCategory.DoesNotExist:
@@ -1486,6 +1505,8 @@ def convert_qgs_to_postgres(
 
     tree = ET.ElementTree(ET.fromstring(qgs_content))
     root = tree.getroot()
+    if root is None:
+        raise ValueError("QGS file has no root element")
 
     converted_layers = []
 
@@ -1566,7 +1587,7 @@ def handle_qgis_file(file_content: bytes, filename: str) -> tuple[bytes, bool]:
 
 
 def repackage_qgz(
-    qgs_content: bytes, original_qgz: bytes, qgs_filename: str = None
+    qgs_content: bytes, original_qgz: bytes, qgs_filename: str | None = None
 ) -> bytes:
     """Repackage modified QGS content back into QGZ format.
 
@@ -1939,6 +1960,7 @@ def trace_fiber(
                 'resident_recorded_date', ru.resident_recorded_date,
                 'ready_for_service', ru.ready_for_service,
                 'address_id', ru_addr.uuid,
+                'address_id_address', ru_addr.id_address,
                 'address_street', ru_addr.street,
                 'address_housenumber', ru_addr.housenumber,
                 'address_suffix', ru_addr.house_number_suffix,
@@ -1980,7 +2002,7 @@ def trace_fiber(
 
     with connection.cursor() as cursor:
         cursor.execute(sql, {"fiber_id": str(fiber_id)})
-        columns = [col[0] for col in cursor.description]
+        columns = [col[0] for col in cursor.description] if cursor.description else []
         rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
     return _build_trace_result(
@@ -2504,7 +2526,7 @@ def _get_starting_fiber_splices(fiber_id) -> list[dict]:
     result = []
     with connection.cursor() as cursor:
         cursor.execute(sql, {"fiber_id": str(fiber_id)})
-        columns = [col[0] for col in cursor.description]
+        columns = [col[0] for col in cursor.description] if cursor.description else []
         for row in cursor.fetchall():
             row_dict = dict(zip(columns, row))
 
@@ -2743,6 +2765,7 @@ def _build_trace_result(
             if ru.get("address_id"):
                 ru_data["address"] = {
                     "id": str(ru["address_id"]),
+                    "id_address": ru.get("address_id_address"),
                     "street": ru.get("address_street"),
                     "housenumber": ru.get("address_housenumber"),
                     "suffix": ru.get("address_suffix") or "",
@@ -3038,7 +3061,7 @@ def _orient_geometry(
     elif geom.geom_type == "MultiLineString":
         # Orient each component LineString
         oriented_lines = []
-        for line in geom.geoms:
+        for line in cast(MultiLineString, geom).geoms:
             first_pt = Point(line.coords[0])
             last_pt = Point(line.coords[-1])
 
@@ -3077,6 +3100,8 @@ def _trim_trench_to_path_coords(geom_json, path_coords, tolerance=1):
 
     if line.is_empty or line.geom_type != "LineString":
         return geom_json
+
+    line = cast(LineString, line)
 
     # Match path coords to original (unsnapped) trench vertices to avoid
     # gaps from snapping imprecision. For each path coord, find the closest
@@ -3183,13 +3208,17 @@ def _insert_bridge_segments(trimmed_geom_dicts, path_trench_ids, trench_path_coo
 
         ep_i_start = geom_i.coords[0]
         ep_i_end = geom_i.coords[-1]
-        d_i_start = (ep_i_start[0] - junction[0]) ** 2 + (ep_i_start[1] - junction[1]) ** 2
+        d_i_start = (ep_i_start[0] - junction[0]) ** 2 + (
+            ep_i_start[1] - junction[1]
+        ) ** 2
         d_i_end = (ep_i_end[0] - junction[0]) ** 2 + (ep_i_end[1] - junction[1]) ** 2
         near_i = ep_i_end if d_i_end <= d_i_start else ep_i_start
 
         ep_j_start = geom_j.coords[0]
         ep_j_end = geom_j.coords[-1]
-        d_j_start = (ep_j_start[0] - junction[0]) ** 2 + (ep_j_start[1] - junction[1]) ** 2
+        d_j_start = (ep_j_start[0] - junction[0]) ** 2 + (
+            ep_j_start[1] - junction[1]
+        ) ** 2
         d_j_end = (ep_j_end[0] - junction[0]) ** 2 + (ep_j_end[1] - junction[1]) ** 2
         near_j = ep_j_start if d_j_start <= d_j_end else ep_j_end
 
@@ -3243,6 +3272,8 @@ def _trim_trench_geometries(trench_geojsons, start_geom, end_geom, snap_dist=10)
         if line.is_empty or line.geom_type != "LineString":
             results.append(geom_json)
             continue
+
+        line = cast(LineString, line)
 
         d_s = line.project(start_geom)
         dist_s = line.distance(start_geom)
@@ -3350,7 +3381,7 @@ def _get_cable_infrastructure(
 
     with connection.cursor() as cursor:
         cursor.execute(sql, {"cable_ids": [str(cid) for cid in cable_ids]})
-        columns = [col[0] for col in cursor.description]
+        columns = [col[0] for col in cursor.description] if cursor.description else []
         rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
     infrastructure = {}
@@ -3433,11 +3464,13 @@ def _get_cable_infrastructure(
                 routed_ids = None
                 trench_path_coords = None
                 if start_geom and end_geom:
-                    routed_ids, trench_path_coords = find_path_through_trenches(
+                    _path_result = find_path_through_trenches(
                         trenches,
                         (start_geom.x, start_geom.y),
                         (end_geom.x, end_geom.y),
                     )
+                    if _path_result is not None:
+                        routed_ids, trench_path_coords = _path_result
 
                 if routed_ids:
                     routed_map = {t["id"]: t for t in trenches}
@@ -3465,7 +3498,9 @@ def _get_cable_infrastructure(
                                 }
                             )
                         elif geom_json:
-                            trimmed_trench_dicts.append({"id": tid, "geometry": geom_json})
+                            trimmed_trench_dicts.append(
+                                {"id": tid, "geometry": geom_json}
+                            )
                     trimmed_trench_dicts = _insert_bridge_segments(
                         trimmed_trench_dicts, routed_ids, trench_path_coords
                     )
@@ -3691,7 +3726,7 @@ def _determine_signal_source(
 
 def _propagate_signal_state(
     node: dict,
-    source_node_id: str,
+    source_node_id: str | None,
     current_state: str = "lit",
     break_points: list | None = None,
 ) -> str:
@@ -3823,7 +3858,7 @@ def _collect_affected_summary(trace_tree: dict) -> dict:
 
 def analyze_signal_flow(
     fiber_id,
-    signal_source_node_id: str = None,
+    signal_source_node_id: str | None = None,
     include_geometry: bool = False,
     geometry_mode: str = "segments",
     orient_geometry: bool = False,
@@ -3925,3 +3960,598 @@ def analyze_signal_flow(
         "statistics": trace_result.get("statistics", {}),
         "cable_infrastructure": trace_result.get("cable_infrastructure", {}),
     }
+
+
+def simulate_fault(
+    point: list,
+    project_id: str,
+    search_tolerance: float = 5.0,
+) -> dict:
+    """Simulate physical damage at a point and report affected infrastructure.
+
+    Find the nearest :model:`api.Trench`, identify all cables running through
+    it, trace every fiber in those cables, and inject virtual break points to
+    simulate total destruction at the damage location.
+
+    This is read-only -- no database modifications are made.
+
+    Args:
+        point (list[float]): ``[x, y]`` coordinates in the project SRID
+            (from ``settings.DEFAULT_SRID``).
+        project_id (str): UUID of the :model:`api.Projects` to search within.
+        search_tolerance (float): Distance in map units to search for nearby
+            trenches. Defaults to ``5.0``.
+
+    Returns:
+        dict: Contains ``'damage_point'``, ``'trench'``, ``'summary'``,
+            ``'cables'``, and ``'geometry'`` keys.
+
+    Raises:
+        ValueError: If no trench is found near the given point.
+    """
+    from django.conf import settings
+    from django.contrib.gis.geos import Point as GEOSPoint
+    from django.db import connection
+
+    srid = settings.DEFAULT_SRID
+    GEOSPoint(point[0], point[1], srid=srid)  # validate coordinates
+
+    trench_sql = """
+    SELECT t.uuid, t.id_trench,
+           ct.construction_type,
+           ST_AsGeoJSON(ST_ClosestPoint(t.geom, ST_SetSRID(ST_Point(%(x)s, %(y)s), %(srid)s)))::jsonb as snap_point
+    FROM trench t
+    LEFT JOIN attributes_construction_type ct ON ct.id = t.construction_type
+    WHERE ST_DWithin(t.geom, ST_SetSRID(ST_Point(%(x)s, %(y)s), %(srid)s), %(tolerance)s)
+      AND t.project = %(project_id)s
+    ORDER BY ST_Distance(t.geom, ST_SetSRID(ST_Point(%(x)s, %(y)s), %(srid)s))
+    LIMIT 1
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            trench_sql,
+            {
+                "x": point[0],
+                "y": point[1],
+                "srid": srid,
+                "tolerance": search_tolerance,
+                "project_id": project_id,
+            },
+        )
+        row = cursor.fetchone()
+
+    if not row:
+        raise ValueError("No trench found near the given point")
+
+    trench_uuid, trench_id, construction_type, snap_point = row
+
+    conduits_sql = """
+    SELECT DISTINCT cond.uuid, cond.name,
+           act.conduit_type as conduit_type_name
+    FROM conduit cond
+    JOIN trench_conduit_connect tcc ON tcc.uuid_conduit = cond.uuid
+    LEFT JOIN attributes_conduit_type act ON act.id = cond.conduit_type
+    WHERE tcc.uuid_trench = %(trench_uuid)s
+    """
+
+    cables_sql = """
+    SELECT DISTINCT c.uuid, c.name,
+           ct.cable_type as cable_type_name,
+           ns.uuid as node_start_id, ns.name as node_start_name,
+           ne.uuid as node_end_id, ne.name as node_end_name
+    FROM cable c
+    JOIN microduct_cable_connection mcc ON mcc.uuid_cable = c.uuid
+    JOIN microduct md ON md.uuid = mcc.uuid_microduct
+    JOIN conduit cond ON cond.uuid = md.uuid_conduit
+    JOIN trench_conduit_connect tcc ON tcc.uuid_conduit = cond.uuid
+    LEFT JOIN attributes_cable_type ct ON ct.id = c.cable_type
+    LEFT JOIN node ns ON ns.uuid = c.uuid_node_start
+    LEFT JOIN node ne ON ne.uuid = c.uuid_node_end
+    WHERE tcc.uuid_trench = %(trench_uuid)s
+    """
+
+    trench_params = {"trench_uuid": str(trench_uuid)}
+
+    with connection.cursor() as cursor:
+        cursor.execute(conduits_sql, trench_params)
+        columns = [col[0] for col in cursor.description] if cursor.description else []
+        conduit_rows = [dict(zip(columns, r)) for r in cursor.fetchall()]
+
+    conduits_result = [
+        {
+            "uuid": str(r["uuid"]),
+            "name": r["name"],
+            "conduit_type": r.get("conduit_type_name"),
+        }
+        for r in conduit_rows
+    ]
+
+    with connection.cursor() as cursor:
+        cursor.execute(cables_sql, trench_params)
+        columns = [col[0] for col in cursor.description] if cursor.description else []
+        cable_rows = [dict(zip(columns, r)) for r in cursor.fetchall()]
+
+    if not cable_rows:
+        return {
+            "damage_point": {"coordinates": point},
+            "trench": {
+                "uuid": str(trench_uuid),
+                "id_trench": trench_id,
+                "construction_type": construction_type,
+            },
+            "summary": {
+                "total_cables_affected": 0,
+                "total_fibers_affected": 0,
+                "total_fibers_dark": 0,
+                "affected_addresses": 0,
+                "affected_residential_units": 0,
+            },
+            "conduits": conduits_result,
+            "cables": [],
+            "geometry": {
+                "damage_point": snap_point or {"type": "Point", "coordinates": point},
+                "affected_trenches": {"type": "FeatureCollection", "features": []},
+                "affected_nodes": {"type": "FeatureCollection", "features": []},
+                "affected_addresses": {"type": "FeatureCollection", "features": []},
+            },
+        }
+
+    cable_uuids = [str(r["uuid"]) for r in cable_rows]
+    from apps.api.models import Fiber
+
+    broken_fiber_ids = set(
+        str(f)
+        for f in Fiber.objects.filter(uuid_cable__in=cable_uuids).values_list(
+            "uuid", flat=True
+        )
+    )
+
+    total_fibers_affected = len(broken_fiber_ids)
+    total_dark = 0
+    all_affected_addresses = set()
+    all_affected_residential_units = set()
+    all_address_details = {}
+    all_ru_ids_seen = set()
+    cables_result = []
+    affected_trench_features = []
+    affected_node_features = []
+    seen_trench_ids = set()
+    seen_node_ids = set()
+
+    for cable_row in cable_rows:
+        cable_uuid = str(cable_row["uuid"])
+        cable_fibers = Fiber.objects.filter(uuid_cable=cable_uuid)
+
+        cable_dark = 0
+        cable_affected_addresses = set()
+        cable_affected_rus = set()
+
+        for fiber in cable_fibers:
+            fiber_id_str = str(fiber.uuid)
+            try:
+                trace_result = trace_fiber(fiber_id_str, include_geometry=True)
+            except Exception:
+                continue
+
+            trace_tree = trace_result.get("trace_tree")
+            if not trace_tree:
+                continue
+
+            break_points = []
+            _propagate_signal_state_with_virtual_breaks(
+                trace_tree,
+                source_node_id=None,
+                broken_fiber_ids=broken_fiber_ids,
+                current_state="lit",
+                break_points=break_points,
+            )
+
+            summary = _collect_affected_summary(trace_tree)
+            cable_dark += summary["dark_fibers"] + summary["break_fibers"]
+
+            _collect_affected_entities(
+                trace_tree, cable_affected_addresses, cable_affected_rus
+            )
+
+            _collect_affected_entity_details(
+                trace_tree, all_address_details, all_ru_ids_seen
+            )
+
+            infra = trace_result.get("cable_infrastructure", {})
+            for cid, cdata in infra.items():
+                for trench_info in cdata.get("trenches", []):
+                    tid = trench_info.get("id")
+                    geom = trench_info.get("geometry")
+                    if tid and tid not in seen_trench_ids and geom:
+                        seen_trench_ids.add(tid)
+                        affected_trench_features.append(
+                            {
+                                "type": "Feature",
+                                "properties": {
+                                    "id": tid,
+                                    "id_trench": trench_info.get("id_trench"),
+                                },
+                                "geometry": geom,
+                            }
+                        )
+
+            _collect_node_geometries(trace_tree, seen_node_ids, affected_node_features)
+
+        all_affected_addresses.update(cable_affected_addresses)
+        all_affected_residential_units.update(cable_affected_rus)
+        total_dark += cable_dark
+
+        cables_result.append(
+            {
+                "uuid": cable_uuid,
+                "name": cable_row["name"],
+                "cable_type": cable_row.get("cable_type_name"),
+                "fiber_count": cable_fibers.count(),
+                "dark_fibers": cable_dark,
+                "node_start": {
+                    "id": str(cable_row["node_start_id"])
+                    if cable_row.get("node_start_id")
+                    else None,
+                    "name": cable_row.get("node_start_name"),
+                },
+                "node_end": {
+                    "id": str(cable_row["node_end_id"])
+                    if cable_row.get("node_end_id")
+                    else None,
+                    "name": cable_row.get("node_end_name"),
+                },
+                "affected_addresses": list(cable_affected_addresses),
+                "affected_residential_units": list(cable_affected_rus),
+            }
+        )
+
+    affected_address_features = _build_affected_address_features(all_address_details)
+
+    _add_address_linked_nodes(affected_node_features, all_address_details)
+
+    return {
+        "damage_point": {"coordinates": point},
+        "trench": {
+            "uuid": str(trench_uuid),
+            "id_trench": trench_id,
+            "construction_type": construction_type,
+        },
+        "summary": {
+            "total_cables_affected": len(cable_rows),
+            "total_fibers_affected": total_fibers_affected,
+            "total_fibers_dark": total_dark,
+            "affected_addresses": len(all_affected_addresses),
+            "affected_residential_units": len(all_affected_residential_units),
+        },
+        "conduits": conduits_result,
+        "cables": cables_result,
+        "affected_addresses_details": list(all_address_details.values()),
+        "geometry": {
+            "damage_point": snap_point or {"type": "Point", "coordinates": point},
+            "affected_trenches": {
+                "type": "FeatureCollection",
+                "features": affected_trench_features,
+            },
+            "affected_nodes": {
+                "type": "FeatureCollection",
+                "features": affected_node_features,
+            },
+            "affected_addresses": {
+                "type": "FeatureCollection",
+                "features": affected_address_features,
+            },
+        },
+    }
+
+
+def _propagate_signal_state_with_virtual_breaks(
+    node: dict,
+    source_node_id: str | None,
+    broken_fiber_ids: set,
+    current_state: str = "lit",
+    break_points: list | None = None,
+) -> str:
+    """Propagate signal state treating specified fibers as broken.
+
+    Behave like ``_propagate_signal_state`` but additionally treat any fiber
+    whose ID appears in *broken_fiber_ids* as a break point, regardless of
+    its actual ``fiber_status`` in the database.
+
+    Mutate nodes in place by adding a ``'signal_state'`` field.
+
+    Args:
+        node (dict): Current trace tree node to process.
+        source_node_id (str | None): ID of the signal source node.
+        broken_fiber_ids (set[str]): Fiber UUIDs to treat as virtually broken.
+        current_state (str): Current signal state (``'lit'`` or ``'dark'``).
+        break_points (list | None): List to collect break point info (mutated).
+
+    Returns:
+        str: The signal state after processing this node.
+    """
+    if break_points is None:
+        break_points = []
+
+    if not node:
+        return current_state
+
+    fiber = node.get("fiber", {})
+    fiber_id = fiber.get("id")
+    fiber_status = fiber.get("status")
+    is_virtually_broken = fiber_id and str(fiber_id) in broken_fiber_ids
+
+    if current_state == "dark":
+        node["signal_state"] = "dark"
+        propagate_state = "dark"
+    elif fiber_status or is_virtually_broken:
+        node["signal_state"] = "break_point"
+        propagate_state = "dark"
+
+        splice_node = node.get("node")
+        break_points.append(
+            {
+                "fiber_id": fiber.get("id"),
+                "fiber_number_absolute": fiber.get("fiber_number_absolute"),
+                "cable_id": fiber.get("cable_id"),
+                "cable_name": fiber.get("cable_name"),
+                "status": fiber_status or "simulated_break",
+                "at_node": {
+                    "id": splice_node.get("id") if splice_node else None,
+                    "name": splice_node.get("name") if splice_node else None,
+                }
+                if splice_node
+                else None,
+            }
+        )
+    else:
+        node["signal_state"] = "lit"
+        propagate_state = "lit"
+
+    for child in node.get("children", []):
+        _propagate_signal_state_with_virtual_breaks(
+            child, source_node_id, broken_fiber_ids, propagate_state, break_points
+        )
+
+    return node["signal_state"]
+
+
+def _collect_affected_entities(
+    node: dict, addresses: set, residential_units: set
+) -> None:
+    """Walk trace tree and collect IDs of dark addresses and residential units.
+
+    Args:
+        node (dict): Current trace tree node (with ``signal_state`` propagated).
+        addresses (set[str]): Accumulator for affected address UUIDs (mutated).
+        residential_units (set[str]): Accumulator for affected residential unit
+            UUIDs (mutated).
+    """
+    if not node:
+        return
+
+    signal_state = node.get("signal_state", "lit")
+
+    if signal_state in ("dark", "break_point"):
+        splice_node = node.get("node")
+        if splice_node:
+            address = splice_node.get("address")
+            if address and address.get("id"):
+                addresses.add(str(address["id"]))
+
+        for ru in node.get("residential_units") or []:
+            if ru and ru.get("id"):
+                residential_units.add(str(ru["id"]))
+                ru_addr = ru.get("address") or {}
+                if ru_addr.get("id"):
+                    addresses.add(str(ru_addr["id"]))
+
+    for child in node.get("children", []):
+        _collect_affected_entities(child, addresses, residential_units)
+
+
+def _collect_affected_entity_details(
+    node: dict,
+    address_map: dict,
+    ru_ids_seen: set,
+) -> None:
+    """Walk trace tree and collect full address/RU details for dark nodes.
+
+    Builds a dict keyed by address UUID containing address info and a list
+    of affected residential units under that address.
+
+    Args:
+        node (dict): Current trace tree node (with ``signal_state`` propagated).
+        address_map (dict): Accumulator mapping address UUID to address detail
+            dict including ``residential_units`` list (mutated).
+        ru_ids_seen (set[str]): Tracks already-collected RU UUIDs to avoid
+            duplicates (mutated).
+    """
+    if not node:
+        return
+
+    signal_state = node.get("signal_state", "lit")
+
+    if signal_state in ("dark", "break_point"):
+        splice_node = node.get("node")
+        if splice_node:
+            address = splice_node.get("address")
+            if address and address.get("id"):
+                addr_id = str(address["id"])
+                if addr_id not in address_map:
+                    address_map[addr_id] = {
+                        "uuid": addr_id,
+                        "id_address": address.get("id_address"),
+                        "street": address.get("street"),
+                        "housenumber": address.get("housenumber"),
+                        "suffix": address.get("suffix", ""),
+                        "zip_code": address.get("zip_code"),
+                        "city": address.get("city"),
+                        "district": address.get("district"),
+                        "residential_units": [],
+                    }
+
+        for ru in node.get("residential_units") or []:
+            if not ru or not ru.get("id"):
+                continue
+            ru_id = str(ru["id"])
+            if ru_id in ru_ids_seen:
+                continue
+            ru_ids_seen.add(ru_id)
+
+            ru_detail = {
+                "uuid": ru_id,
+                "id_residential_unit": ru.get("id_residential_unit"),
+                "floor": ru.get("floor"),
+                "side": ru.get("side"),
+                "type": ru.get("type"),
+                "status": ru.get("status"),
+            }
+
+            ru_addr = ru.get("address")
+            if ru_addr and ru_addr.get("id"):
+                parent_addr_id = str(ru_addr["id"])
+            elif splice_node and splice_node.get("address", {}).get("id"):
+                parent_addr_id = str(splice_node["address"]["id"])
+            else:
+                parent_addr_id = None
+
+            if parent_addr_id and parent_addr_id in address_map:
+                address_map[parent_addr_id]["residential_units"].append(ru_detail)
+            elif parent_addr_id:
+                addr_info = ru_addr if (ru_addr and ru_addr.get("id")) else {}
+                address_map[parent_addr_id] = {
+                    "uuid": parent_addr_id,
+                    "id_address": addr_info.get("id_address"),
+                    "street": addr_info.get("street"),
+                    "housenumber": addr_info.get("housenumber"),
+                    "suffix": addr_info.get("suffix", ""),
+                    "zip_code": addr_info.get("zip_code"),
+                    "city": addr_info.get("city"),
+                    "district": addr_info.get("district"),
+                    "residential_units": [ru_detail],
+                }
+
+    for child in node.get("children", []):
+        _collect_affected_entity_details(child, address_map, ru_ids_seen)
+
+
+def _collect_node_geometries(node: dict, seen_ids: set, features: list) -> None:
+    """Walk trace tree and collect GeoJSON features for dark or break-point nodes.
+
+    Args:
+        node (dict): Current trace tree node (with ``signal_state`` propagated).
+        seen_ids (set[str]): Already-collected node UUIDs to avoid duplicates
+            (mutated).
+        features (list[dict]): Accumulator for GeoJSON Feature dicts (mutated).
+    """
+    if not node:
+        return
+
+    signal_state = node.get("signal_state", "lit")
+    splice_node = node.get("node")
+
+    if splice_node and signal_state in ("dark", "break_point"):
+        node_id = splice_node.get("id")
+        geom = splice_node.get("geometry")
+        if node_id and node_id not in seen_ids and geom:
+            seen_ids.add(node_id)
+            features.append(
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": node_id,
+                        "name": splice_node.get("name"),
+                        "signal_state": signal_state,
+                    },
+                    "geometry": geom,
+                }
+            )
+
+    for child in node.get("children", []):
+        _collect_node_geometries(child, seen_ids, features)
+
+
+def _build_affected_address_features(address_details: dict) -> list:
+    """Query geometries for affected addresses and return GeoJSON features.
+
+    Args:
+        address_details (dict): Mapping of address UUID to address detail dict,
+            as built by ``_collect_affected_entity_details``.
+
+    Returns:
+        list[dict]: GeoJSON Feature dicts with Point geometries.
+    """
+    if not address_details:
+        return []
+
+    from apps.api.models import Address
+
+    addr_uuids = list(address_details.keys())
+    addresses = Address.objects.filter(uuid__in=addr_uuids).exclude(geom__isnull=True)
+
+    features = []
+    for addr in addresses:
+        addr_id = str(addr.uuid)
+        detail = address_details.get(addr_id, {})
+        features.append(
+            {
+                "type": "Feature",
+                "properties": {
+                    "id": addr_id,
+                    "id_address": detail.get("id_address") or addr.id_address,
+                    "street": detail.get("street") or addr.street,
+                    "housenumber": detail.get("housenumber") or addr.housenumber,
+                },
+                "geometry": json.loads(addr.geom.geojson),
+            }
+        )
+
+    return features
+
+
+def _add_address_linked_nodes(node_features: list, address_details: dict) -> None:
+    """Add nodes linked to affected addresses to the node features list and mark them.
+
+    Finds nodes whose ``uuid_address`` points to any affected address and adds
+    them if not already present. Also sets ``has_address`` on all features.
+
+    Args:
+        node_features (list[dict]): GeoJSON node features (mutated in place).
+        address_details (dict): Mapping of address UUID to detail dict.
+    """
+    if not address_details:
+        return
+
+    from apps.api.models import Node
+
+    addr_uuids = list(address_details.keys())
+    existing_node_ids = {f["properties"]["id"] for f in node_features}
+
+    nodes = Node.objects.filter(
+        uuid_address__in=addr_uuids,
+    ).exclude(geom__isnull=True)
+
+    addr_node_ids = set()
+    for node in nodes:
+        node_id = str(node.uuid)
+        addr_node_ids.add(node_id)
+        if node_id not in existing_node_ids:
+            node_features.append(
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "id": node_id,
+                        "name": node.name,
+                        "signal_state": "dark",
+                        "has_address": True,
+                    },
+                    "geometry": json.loads(node.geom.geojson),
+                }
+            )
+
+    for feature in node_features:
+        if "has_address" not in feature["properties"]:
+            feature["properties"]["has_address"] = (
+                feature["properties"]["id"] in addr_node_ids
+            )

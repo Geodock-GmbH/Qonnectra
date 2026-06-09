@@ -345,7 +345,7 @@ class TrenchSerializer(GeoFeatureModelSerializer):
         source="constructor",
         required=False,
     )
-    date = serializers.DateField(input_formats=["%Y/%m/%d"], format="%d.%m.%Y")
+    date = serializers.DateField(input_formats=["%Y/%m/%d"], format="%d.%m.%Y")  # type: ignore[arg-type]
     comment = serializers.CharField(required=False)
     geom = GeometryField()
     project_id = serializers.PrimaryKeyRelatedField(
@@ -524,7 +524,7 @@ class ConduitSerializer(serializers.ModelSerializer):
     outer_conduit = serializers.CharField(required=False, allow_blank=True)
 
     date = serializers.DateField(
-        input_formats=["%Y-%m-%d"], format="%Y-%m-%d", required=False
+        input_formats=["%Y-%m-%d"], format="%Y-%m-%d", required=False  # type: ignore[arg-type]
     )
 
     class Meta:
@@ -822,13 +822,13 @@ class ResidentialUnitSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
         input_formats=["%Y-%m-%d"],
-        format="%Y-%m-%d",
+        format="%Y-%m-%d",  # type: ignore[arg-type]
     )
     ready_for_service = serializers.DateField(
         required=False,
         allow_null=True,
         input_formats=["%Y-%m-%d"],
-        format="%Y-%m-%d",
+        format="%Y-%m-%d",  # type: ignore[arg-type]
     )
 
     class Meta:
@@ -945,13 +945,13 @@ class NodeSerializer(GeoFeatureModelSerializer):
     warranty = serializers.DateField(
         required=False,
         input_formats=["%Y-%m-%d"],
-        format="%Y-%m-%d",
+        format="%Y-%m-%d",  # type: ignore[arg-type]
         allow_null=True,
     )
     date = serializers.DateField(
         required=False,
         input_formats=["%Y-%m-%d"],
-        format="%Y-%m-%d",
+        format="%Y-%m-%d",  # type: ignore[arg-type]
         allow_null=True,
     )
     geom = GeometryField()
@@ -1340,7 +1340,7 @@ class CableSerializer(serializers.ModelSerializer):
         source="manufacturer",
     )
     date = serializers.DateField(
-        input_formats=["%Y-%m-%d"], format="%Y-%m-%d", required=False
+        input_formats=["%Y-%m-%d"], format="%Y-%m-%d", required=False  # type: ignore[arg-type]
     )
     uuid_node_start_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
@@ -1731,11 +1731,11 @@ class NodeStructureSerializer(serializers.ModelSerializer):
         """
         return obj.slot_configuration.side if obj.slot_configuration else None
 
-    def validate(self, data):
+    def validate(self, attrs):
         """Validate that component_type is required when purpose is 'component'.
 
         Args:
-            data: Validated field data dict.
+            attrs: Validated field data dict.
 
         Returns:
             dict: The validated data.
@@ -1745,9 +1745,9 @@ class NodeStructureSerializer(serializers.ModelSerializer):
                 no component_type is provided. Note: component_structure
                 is optional and can be configured later.
         """
-        purpose = data.get("purpose", NodeStructure.Purpose.COMPONENT)
+        purpose = attrs.get("purpose", NodeStructure.Purpose.COMPONENT)
         if purpose == NodeStructure.Purpose.COMPONENT:
-            if not data.get("component_type"):
+            if not attrs.get("component_type"):
                 raise serializers.ValidationError(
                     {
                         "component_type_id": _(
@@ -1755,7 +1755,7 @@ class NodeStructureSerializer(serializers.ModelSerializer):
                         )
                     }
                 )
-        return data
+        return attrs
 
     def get_fields(self):
         """Dynamically translate field labels."""
@@ -1789,11 +1789,11 @@ class NodeSlotDividerSerializer(serializers.ModelSerializer):
         fields = ["uuid", "slot_configuration", "slot_configuration_id", "after_slot"]
         read_only_fields = ["uuid", "slot_configuration"]
 
-    def validate(self, data):
+    def validate(self, attrs):
         """Validate that after_slot is between 1 and total_slots - 1.
 
         Args:
-            data: Validated field data dict.
+            attrs: Validated field data dict.
 
         Returns:
             dict: The validated data.
@@ -1801,8 +1801,8 @@ class NodeSlotDividerSerializer(serializers.ModelSerializer):
         Raises:
             serializers.ValidationError: If after_slot is out of range.
         """
-        slot_config = data.get("slot_configuration")
-        after_slot = data.get("after_slot")
+        slot_config = attrs.get("slot_configuration")
+        after_slot = attrs.get("after_slot")
 
         if slot_config and after_slot:
             if after_slot < 1 or after_slot >= slot_config.total_slots:
@@ -1813,7 +1813,7 @@ class NodeSlotDividerSerializer(serializers.ModelSerializer):
                         )
                     }
                 )
-        return data
+        return attrs
 
 
 class NodeSlotClipNumberSerializer(serializers.ModelSerializer):
@@ -1837,11 +1837,11 @@ class NodeSlotClipNumberSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["uuid", "slot_configuration"]
 
-    def validate(self, data):
+    def validate(self, attrs):
         """Validate that slot_number is between 1 and total_slots.
 
         Args:
-            data: Validated field data dict.
+            attrs: Validated field data dict.
 
         Returns:
             dict: The validated data.
@@ -1849,23 +1849,15 @@ class NodeSlotClipNumberSerializer(serializers.ModelSerializer):
         Raises:
             serializers.ValidationError: If slot_number is out of range.
         """
-        slot_config = data.get("slot_configuration")
-        slot_number = data.get("slot_number")
+        slot_config = attrs.get("slot_configuration")
+        slot_number = attrs.get("slot_number")
 
         if slot_config and slot_number:
             if slot_number < 1 or slot_number > slot_config.total_slots:
                 raise serializers.ValidationError(
                     {"slot_number": _("Slot number must be between 1 and total_slots.")}
                 )
-        return data
-
-
-class AttributesComponentStructureSerializer(serializers.ModelSerializer):
-    """Serializer for AttributesComponentStructure (component ports)."""
-
-    class Meta:
-        model = AttributesComponentStructure
-        fields = ["id", "component_type", "in_or_out", "port", "port_alias"]
+        return attrs
 
 
 class FiberSpliceSerializer(serializers.ModelSerializer):
@@ -2094,11 +2086,11 @@ class FiberSpliceBulkUpsertItemSerializer(serializers.Serializer):
     cable_uuid = serializers.UUIDField(required=False, allow_null=True)
     residential_unit_uuid = serializers.UUIDField(required=False, allow_null=True)
 
-    def validate(self, data):
+    def validate(self, attrs):
         """Ensure either fiber/cable pair or residential_unit is provided.
 
         Args:
-            data: Validated field data dict.
+            attrs: Validated field data dict.
 
         Returns:
             dict: The validated data.
@@ -2107,14 +2099,14 @@ class FiberSpliceBulkUpsertItemSerializer(serializers.Serializer):
             serializers.ValidationError: If neither fiber/cable nor
                 residential_unit is provided.
         """
-        has_fiber = data.get("fiber_uuid") and data.get("cable_uuid")
-        has_residential_unit = data.get("residential_unit_uuid")
+        has_fiber = attrs.get("fiber_uuid") and attrs.get("cable_uuid")
+        has_residential_unit = attrs.get("residential_unit_uuid")
 
         if not has_fiber and not has_residential_unit:
             raise serializers.ValidationError(
                 "Either fiber_uuid/cable_uuid or residential_unit_uuid is required"
             )
-        return data
+        return attrs
 
 
 class FiberSpliceBulkUpsertSerializer(serializers.Serializer):

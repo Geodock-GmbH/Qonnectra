@@ -102,8 +102,9 @@ def clear_capabilities_cache(
     else:
         # Clear all WMS capabilities cache keys using delete_pattern if available
         # (Redis/Memcached), otherwise this is a no-op for LocMemCache
-        if hasattr(cache, "delete_pattern"):
-            cache.delete_pattern(f"{CACHE_KEY_PREFIX}*")
+        delete_pattern = getattr(cache, "delete_pattern", None)
+        if delete_pattern is not None:
+            delete_pattern(f"{CACHE_KEY_PREFIX}*")
         else:
             logger.warning(
                 "Cache backend does not support delete_pattern, cannot clear all WMS cache"

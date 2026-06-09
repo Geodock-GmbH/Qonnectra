@@ -3,6 +3,7 @@
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconAiGateway,
+		IconAlertTriangle,
 		IconArrowRightToArc,
 		IconBook,
 		IconBuildings,
@@ -47,6 +48,16 @@
 			label: () => m.nav_map(),
 			icon: IconMapPin,
 			pathMatch: (/** @type {string} */ path) => path.startsWith('/map')
+		}
+	];
+
+	/** @type {NavLink[]} */
+	const allProcedureLinks = [
+		{
+			href: '/fault-simulation',
+			label: () => m.nav_fault_simulation(),
+			icon: IconAlertTriangle,
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/fault-simulation')
 		}
 	];
 
@@ -122,13 +133,15 @@
 
 	/**
 	 * Filters links based on user route permissions.
-	 * @param {NavLink[]} links
+	 * @param {NavLink[]} links - Full set of navigation links
+	 * @returns {NavLink[]} Links the current user is allowed to access
 	 */
 	function filterByPermission(links) {
 		return links.filter((link) => canAccessRoute($userStore.permissions, link.href));
 	}
 
 	const mainLinks = $derived(filterByPermission(allMainLinks));
+	const procedureLinks = $derived(filterByPermission(allProcedureLinks));
 	const infrastructureLinks = $derived(filterByPermission(allInfrastructureLinks));
 	const cableLinks = $derived(filterByPermission(allCableLinks));
 	const addressLinks = $derived(filterByPermission(allAddressLinks));
@@ -136,12 +149,17 @@
 
 	const allContentLinks = $derived([
 		...mainLinks,
+		...procedureLinks,
 		...infrastructureLinks,
 		...cableLinks,
 		...addressLinks
 	]);
 
-	function getAnchorClass(/** @type {boolean} */ isSelected) {
+	/**
+	 * @param {boolean} isSelected - Whether the nav item is currently active
+	 * @returns {string} CSS class string for the anchor element
+	 */
+	function getAnchorClass(isSelected) {
 		const justifyClass = $sidebarExpanded ? 'justify-start' : 'justify-center';
 		const paddingClass = $sidebarExpanded ? 'px-2' : 'px-2 py-3';
 		const baseClass = `btn hover:preset-tonal ${justifyClass} ${paddingClass} w-full`;
@@ -174,6 +192,29 @@
 						>
 						<Navigation.Menu>
 							{#each mainLinks as link}
+								{@const Icon = link.icon}
+								{@const isSelected = link.pathMatch(page.url.pathname)}
+								<a
+									href={link.href}
+									class={getAnchorClass(isSelected)}
+									aria-label={link.label()}
+									{@attach tooltip(link.label())}
+								>
+									<Icon size={28} class="text-surface-700-300" />
+									<span>{link.label()}</span>
+								</a>
+							{/each}
+						</Navigation.Menu>
+					</Navigation.Group>
+				{/if}
+
+				{#if procedureLinks.length > 0}
+					<Navigation.Group>
+						<Navigation.Label class="text-surface-900-100"
+							>{m.nav_category_procedure()}</Navigation.Label
+						>
+						<Navigation.Menu>
+							{#each procedureLinks as link}
 								{@const Icon = link.icon}
 								{@const isSelected = link.pathMatch(page.url.pathname)}
 								<a

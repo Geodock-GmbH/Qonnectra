@@ -11,7 +11,6 @@
 	import TrenchStatistics from '$lib/components/TrenchStatistics.svelte';
 
 	import DashboardCard from './DashboardCard.svelte';
-	import DashboardProjectTable from './DashboardProjectTable.svelte';
 	import WarrantyExpirationCard from './WarrantyExpirationCard.svelte';
 
 	let { data } = $props();
@@ -47,8 +46,7 @@
 		{ value: 'conduit', label: m.nav_conduit() },
 		{ value: 'node', label: m.nav_node() },
 		{ value: 'address', label: m.nav_address() },
-		{ value: 'area', label: m.nav_area() },
-		{ value: 'projects', label: m.form_project({ count: data.projects.length }) }
+		{ value: 'area', label: m.nav_area() }
 	]);
 </script>
 
@@ -75,7 +73,7 @@
 							<span class="text-sm text-surface-600-300">km {m.form_total_length()}</span>
 						{/if}
 					</div>
-					<div class="space-y-2 overflow-auto max-h-[400px] pr-2">
+					<div class="space-y-2 overflow-auto max-h-100 pr-2">
 						{#if $navigating}
 							{#each Array(3) as _, i (i)}
 								<div class="h-10 bg-surface-500 rounded animate-pulse"></div>
@@ -122,7 +120,7 @@
 							<span class="text-sm text-surface-600-300">{m.form_total_nodes()}</span>
 						{/if}
 					</div>
-					<div class="space-y-2 overflow-auto max-h-[400px] pr-2">
+					<div class="space-y-2 overflow-auto max-h-100 pr-2">
 						{#if $navigating}
 							{#each Array(3) as _, i (i)}
 								<div class="h-10 bg-surface-500 rounded animate-pulse"></div>
@@ -164,7 +162,7 @@
 							<span class="text-sm text-surface-600-300">km {m.form_total_conduit_length()}</span>
 						{/if}
 					</div>
-					<div class="space-y-2 overflow-auto max-h-[400px] pr-2">
+					<div class="space-y-2 overflow-auto max-h-100 pr-2">
 						{#if $navigating}
 							{#each Array(3) as _, i (i)}
 								<div class="h-10 bg-surface-500 rounded animate-pulse"></div>
@@ -212,7 +210,7 @@
 							</div>
 						{/if}
 					</div>
-					<div class="space-y-2 overflow-auto max-h-[400px] pr-2">
+					<div class="space-y-2 overflow-auto max-h-100 pr-2">
 						{#if $navigating}
 							{#each Array(3) as _, i (i)}
 								<div class="h-10 bg-surface-500 rounded animate-pulse"></div>
@@ -260,7 +258,7 @@
 							</div>
 						{/if}
 					</div>
-					<div class="space-y-2 overflow-auto max-h-[400px] pr-2">
+					<div class="space-y-2 overflow-auto max-h-100 pr-2">
 						{#if $navigating}
 							{#each Array(3) as _, i (i)}
 								<div class="h-10 bg-surface-500 rounded animate-pulse"></div>
@@ -352,8 +350,5 @@
 			trenchLengthPerArea={data.trenchLengthPerArea}
 			residentialByAreaType={data.residentialByAreaType}
 		/>
-	{/if}
-	{#if activeTab === 'projects'}
-		<DashboardProjectTable data={data.projects} />
 	{/if}
 </Tabs>
