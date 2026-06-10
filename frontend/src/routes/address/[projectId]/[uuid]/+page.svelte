@@ -190,7 +190,10 @@
 				features: [pointFeature]
 			}),
 			style: markerStyle,
-			zIndex: 100
+			zIndex: 100,
+			properties: {
+				layerId: 'address-marker'
+			}
 		});
 
 		await loadWMSLayers();
