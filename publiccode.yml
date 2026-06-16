@@ -6,45 +6,44 @@ softwareVersion: "1.1.0"
 releaseDate: "2026-06-09"
 logo: logo.png
 platforms:
-- web
+  - web
 developmentStatus: stable
 softwareType: standalone/web
 categories:
-- geographic-information-systems
+  - geographic-information-systems
 dependsOn:
   open:
-  - name: Python
-    versionMin: "3.12"
-  - name: PostgreSQL
-    versionMin: "17"
-  - name: PostGIS
-  - name: Node.js
+    - name: Python
+      versionMin: "3.12"
+    - name: PostgreSQL
+      versionMin: "17"
+    - name: PostGIS
+    - name: Node.js
 maintenance:
-  type: community
+  type: internal
   contacts:
-  - name: Malte Then
-    email: malte.then@geodock.de
-    affiliation: Geodock GmbH
-  - name: Daniel Seehaus
-    email: daniel.seehaus@geodock.de
-    affiliation: Geodock GmbH
-  - name: Gregor Ewers
-    email: g.ewers@planneo.de
-    affiliation: plan[neo] GmbH
-  - name: Christop Bechtel
-    email: c.bechtel@planneo.de
-    affiliation: plan[neo] GmbH
+    - name: Malte Then
+      email: malte.then@geodock.de
+      affiliation: Geodock GmbH
+    - name: Daniel Seehaus
+      email: daniel.seehaus@geodock.de
+      affiliation: Geodock GmbH
+    - name: Gregor Ewers
+      email: g.ewers@planneo.de
+      affiliation: plan[neo] GmbH
+    - name: Christoph Bechtel
+      email: c.bechtel@planneo.de
+      affiliation: plan[neo] GmbH
 legal:
   license: AGPL-3.0-only
   repoOwner: Geodock GmbH
 localisation:
   localisationReady: true
   availableLanguages:
-  - de
-  - en
+    - de
+    - en
 description:
   de:
-    genericName: GIS-Anwendung
     localisedName: Qonnectra
     shortDescription: >-
       Glasfaserdokumentation von passiven Netzen
@@ -63,18 +62,16 @@ description:
       Datenhoheit bleibt bei der Kommune.
     documentation: "https://qonnectra.de/manual/"
     features:
-    - Geoinformationssystem für Telekommunikationsinfrastruktur
-    - Interaktive Kartenoberfläche
-    - Verwaltung von Trassen, Rohre, Kabel, Adressen und Netzknoten
-    - Visueller Netzwerk-Schema-Editor
-    - Multi-Projekt-Organisation
-    - Dateispeicherung und -verwaltung
-    - Integration mit QGIS
-    - REST-API für Integrationen von Drittanbietern
-    - WMS
-    - WFS
+      - Geoinformationssystem für Telekommunikationsinfrastruktur
+      - Interaktive Kartenoberfläche
+      - Verwaltung von Trassen, Rohre, Kabel, Adressen und Netzknoten
+      - Visueller Netzwerk-Schema-Editor
+      - Multi-Projekt-Organisation
+      - Dateispeicherung und -verwaltung
+      - Integration mit QGIS
+      - WMS
+      - WFS
   en:
-    genericName: GIS Application
     localisedName: Qonnectra
     shortDescription: >-
       Fiber optic documentation of passive networks.
@@ -92,13 +89,12 @@ description:
       open-source components – data sovereignty stays with the municipality.
     documentation: "https://qonnectra.de/manual/"
     features:
-    - Geographic information system for telecommunications infrastructure
-    - Interactive map interface
-    - Management of trenches, conduits, microducts, nodes and addresses
-    - Visual network schema editor
-    - Multi-project organization
-    - File storage and management
-    - Integration with QGIS
-    - REST API for third-party integrations
-    - WMS
-    - WFS
+      - Geographic information system for telecommunications infrastructure
+      - Interactive map interface
+      - Management of trenches, conduits, microducts, nodes and addresses
+      - Visual network schema editor
+      - Multi-project organization
+      - File storage and management
+      - Integration with QGIS
+      - WMS
+      - WFS
