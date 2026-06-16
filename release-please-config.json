@@ -13,7 +13,10 @@
   "packages": {
     ".": {
       "extra-files": [
-        "VERSION",
+        {
+          "type": "plain-text",
+          "path": "VERSION"
+        },
         {
           "type": "json",
           "path": "frontend/package.json",
