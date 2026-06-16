@@ -1,0 +1,51 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      pr: ${{ steps.release.outputs.pr }}
+      pr-branch: ${{ steps.release.outputs.prs_created && fromJSON(steps.release.outputs.pr).headBranchName || '' }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  update-release-pr:
+    needs: release-please
+    if: needs.release-please.outputs.pr-branch != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.pr-branch }}
+
+      - name: Update publiccode.yml releaseDate
+        run: |
+          TODAY=$(date +%Y-%m-%d)
+          sed -i "s/^releaseDate: .*/releaseDate: \"$TODAY\"/" publiccode.yml
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Sync backend lockfile
+        run: cd backend && uv sync --no-install-project
+
+      - name: Commit updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add publiccode.yml backend/uv.lock
+          git diff --staged --quiet || git commit -m "chore: update releaseDate and uv.lock"
+          git push

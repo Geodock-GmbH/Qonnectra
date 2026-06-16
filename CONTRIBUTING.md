@@ -45,18 +45,53 @@ git checkout -b fix/issue-description
 
 ### 2. Make Your Changes
 
-- Write clear, focused commits
 - Follow existing code style
 - Add/update tests if applicable
 - Update documentation as needed
 
-### 3. Push to Your Fork
+### 3. Write Conventional Commits
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) to automate changelog generation and versioning. Every commit message must follow this format:
+
+```
+<type>: <short description>
+```
+
+**Common types:**
+
+| Type | Purpose | Version bump |
+|------|---------|--------------|
+| `feat` | A new feature | Minor (1.0.0 → 1.1.0) |
+| `fix` | A bug fix | Patch (1.0.0 → 1.0.1) |
+| `docs` | Documentation changes | None |
+| `refactor` | Code restructuring without behavior change | None |
+| `chore` | Maintenance tasks (deps, config, CI) | None |
+| `perf` | Performance improvements | None |
+| `test` | Adding or updating tests | None |
+
+**Examples:**
+
+```
+feat: add fiber splice export button
+fix: address marker not rendering with background map off
+refactor: move dashboard load function to separate file
+docs: update API endpoint documentation
+chore: update dependencies
+```
+
+**Breaking changes** append `!` after the type and trigger a major version bump:
+
+```
+feat!: redesign node API endpoints
+```
+
+### 4. Push to Your Fork
 
 ```bash
 git push origin feature/your-feature-name
 ```
 
-### 4. Open a Pull Request
+### 5. Open a Pull Request
 
 - Go to [Qonnectra PRs](https://github.com/Geodock-GmbH/Qonnectra/pulls)
 - Click "New Pull Request"

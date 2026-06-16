@@ -71,6 +71,21 @@ description:
       - Integration mit QGIS
       - WMS
       - WFS
+    screenshots:
+      - .opencode/screenshots/de/01_dashboard_light_1.png
+      - .opencode/screenshots/de/02_dashboard_dark_1.png
+      - .opencode/screenshots/de/03_dashboard_light_2.png
+      - .opencode/screenshots/de/04_dashboard_dark_2.png
+      - .opencode/screenshots/de/05_map_light_1.png
+      - .opencode/screenshots/de/06_map_dark_1.png
+      - .opencode/screenshots/de/07_address_light_1.png
+      - .opencode/screenshots/de/08_address_dark_1.png
+      - .opencode/screenshots/de/09_netschema_light_1.png
+      - .opencode/screenshots/de/10_netschema_dark_1.png
+      - .opencode/screenshots/de/11_splice_light_1.png
+      - .opencode/screenshots/de/12_splice_light_2.png
+      - .opencode/screenshots/de/13_trace_light_1.png
+
   en:
     localisedName: Qonnectra
     shortDescription: >-
