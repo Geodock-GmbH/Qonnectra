@@ -3,7 +3,7 @@ name: Qonnectra
 url: https://github.com/Geodock-GmbH/Qonnectra
 landingURL: https://www.qonnectra.de
 softwareVersion: 1.1.1
-releaseDate: '2026-06-09'
+releaseDate: "2026-06-16"
 logo: logo.png
 platforms:
   - web
