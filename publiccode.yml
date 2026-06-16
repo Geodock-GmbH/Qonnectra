@@ -1,8 +1,8 @@
-publiccodeYmlVersion: '0.2'
+publiccodeYmlVersion: "0.2"
 name: Qonnectra
-url: https://github.com/Geodock-GmbH/Qonnectra
-landingURL: https://www.qonnectra.de
-softwareVersion: 1.1.1
+url: "https://github.com/Geodock-GmbH/Qonnectra"
+landingURL: "https://www.qonnectra.de"
+softwareVersion: "1.1.1" # x-release-please-version
 releaseDate: "2026-06-16"
 logo: logo.png
 platforms:
@@ -14,9 +14,9 @@ categories:
 dependsOn:
   open:
     - name: Python
-      versionMin: '3.12'
+      versionMin: "3.12"
     - name: PostgreSQL
-      versionMin: '17'
+      versionMin: "17"
     - name: PostGIS
     - name: Node.js
 maintenance:
@@ -45,7 +45,8 @@ localisation:
 description:
   de:
     localisedName: Qonnectra
-    shortDescription: Glasfaserdokumentation von passiven Netzen
+    shortDescription: >-
+      Glasfaserdokumentation von passiven Netzen
     longDescription: >
       Qonnectra ist eine open-source, webbasierte GIS-Anwendung zur
       Dokumentation und Verwaltung kommunaler Versorgungsnetze. Sie ermöglicht
@@ -59,7 +60,7 @@ description:
       und digital betreiben wollen. Qonnectra ist browserbasiert, vollständig
       kostenfrei und setzt ausschließlich auf Open-Source-Komponenten – die
       Datenhoheit bleibt bei der Kommune.
-    documentation: https://qonnectra.de/manual/
+    documentation: "https://qonnectra.de/manual/"
     features:
       - Geoinformationssystem für Telekommunikationsinfrastruktur
       - Interaktive Kartenoberfläche
@@ -86,7 +87,8 @@ description:
       - .opencode/screenshots/de/13_trace_light_1.png
   en:
     localisedName: Qonnectra
-    shortDescription: Fiber optic documentation of passive networks.
+    shortDescription: >-
+      Fiber optic documentation of passive networks.
     longDescription: >
       Qonnectra is an open-source, web-based GIS application for documenting and
       managing municipal utility networks. It enables the documentation and
@@ -99,7 +101,7 @@ description:
       manage their network assets professionally and digitally. Qonnectra is
       browser-based, completely free of charge, and built entirely on
       open-source components – data sovereignty stays with the municipality.
-    documentation: https://qonnectra.de/manual/
+    documentation: "https://qonnectra.de/manual/"
     features:
       - Geographic information system for telecommunications infrastructure
       - Interactive map interface

@@ -28,9 +28,8 @@
           "jsonpath": "$.project.version"
         },
         {
-          "type": "yaml",
-          "path": "publiccode.yml",
-          "jsonpath": "$.softwareVersion"
+          "type": "generic",
+          "path": "publiccode.yml"
         }
       ]
     }
