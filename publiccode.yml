@@ -113,3 +113,17 @@ description:
       - Integration with QGIS
       - WMS
       - WFS
+    screenshots:
+      - .opencode/screenshots/en/01_dashboard_light_1.png
+      - .opencode/screenshots/en/02_dashboard_dark_1.png
+      - .opencode/screenshots/en/03_dashboard_light_2.png
+      - .opencode/screenshots/en/04_dashboard_dark_2.png
+      - .opencode/screenshots/en/05_map_light_1.png
+      - .opencode/screenshots/en/06_map_dark_1.png
+      - .opencode/screenshots/en/07_address_light_1.png
+      - .opencode/screenshots/en/08_address_dark_1.png
+      - .opencode/screenshots/en/09_netschema_light_1.png
+      - .opencode/screenshots/en/10_netschema_dark_1.png
+      - .opencode/screenshots/en/11_splice_light_1.png
+      - .opencode/screenshots/en/12_splice_light_2.png
+      - .opencode/screenshots/en/13_trace_light_1.png
