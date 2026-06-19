@@ -1,5 +1,5 @@
 <script>
-	import { browser } from '$app/environment';
+	import { browser, dev } from '$app/environment';
 	import { page } from '$app/stores';
 	import Feature from 'ol/Feature.js';
 	import GeoJSON from 'ol/format/GeoJSON.js';
@@ -105,7 +105,7 @@
 	});
 
 	/**
-	 * @param {import('ol/Feature').default} feature
+	 * @param {import('ol/Feature').FeatureLike} feature
 	 * @returns {Style}
 	 */
 	function affectedNodeStyleFn(feature) {
@@ -353,7 +353,23 @@
 	});
 
 	onMount(() => {
+		if (dev) {
+			/** @type {any} */ (window).__e2eFaultSim = {
+				/** @param {Record<string, any>} result */
+				injectResult(result) {
+					ctx.setDamagePoint([0, 0], result.trench ?? null);
+					ctx.setSimulationResult(result);
+				},
+				reset() {
+					ctx.reset();
+				}
+			};
+		}
+
 		return () => {
+			if (dev) {
+				delete (/** @type {any} */ (window).__e2eFaultSim);
+			}
 			if (olMap && mapMoveListener) {
 				olMap.un('postrender', mapMoveListener);
 			}
