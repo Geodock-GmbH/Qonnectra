@@ -368,7 +368,7 @@
 
 		return () => {
 			if (dev) {
-				delete /** @type {any} */ (window).__e2eFaultSim;
+				delete (/** @type {any} */ (window).__e2eFaultSim);
 			}
 			if (olMap && mapMoveListener) {
 				olMap.un('postrender', mapMoveListener);
