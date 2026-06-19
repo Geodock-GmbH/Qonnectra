@@ -33,9 +33,6 @@
 	<div
 		class="login-hero relative flex h-48 items-center justify-center overflow-hidden lg:h-auto lg:flex-1"
 	>
-		<!-- Subtle grid -->
-		<div class="topo-grid absolute inset-0"></div>
-
 		<!-- Flowing contour lines -->
 		<svg
 			class="topo-flow absolute inset-0 h-full w-full"
@@ -115,8 +112,8 @@
 	</div>
 
 	<!-- Right Panel - Form -->
-	<div class="flex flex-1 items-center justify-center p-8 lg:flex-none lg:w-[480px]">
-		<div class="w-full max-w-[360px]">
+	<div class="flex flex-1 items-center justify-center p-8 lg:flex-none lg:w-120">
+		<div class="w-full max-w-90">
 			<div class="mb-8 text-center lg:text-left">
 				<h2 class="mb-2 text-3xl font-bold text-surface-900-100">{m.auth_signin()}</h2>
 				<p class="text-surface-900-100">{m.login_welcome?.() ?? 'Welcome back'}</p>
@@ -213,13 +210,6 @@
 			var(--color-primary-600) 50%,
 			var(--color-primary-500) 100%
 		);
-	}
-
-	.topo-grid {
-		background-image:
-			linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-			linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-		background-size: 40px 40px;
 	}
 
 	.login-icon-box {

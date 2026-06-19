@@ -25,6 +25,7 @@
 	"action_delete_node": "Netzknoten löschen",
 	"action_download": "Herunterladen",
 	"action_download_pdf": "PDF herunterladen",
+	"action_export_csv": "CSV exportieren",
 	"action_edit_trench_selection": "Grabenauswahl bearbeiten",
 	"action_expand": "Erweitern",
 	"action_export_excel": "Excel exportieren",

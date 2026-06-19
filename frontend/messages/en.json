@@ -25,6 +25,7 @@
 	"action_delete_node": "Delete node",
 	"action_download": "Download",
 	"action_download_pdf": "Download PDF",
+	"action_export_csv": "Export CSV",
 	"action_edit_trench_selection": "Edit trench selection",
 	"action_expand": "Expand",
 	"action_export_excel": "Export Excel",

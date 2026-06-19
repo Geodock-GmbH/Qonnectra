@@ -1,8 +1,14 @@
 <script>
-	import { IconChevronDown, IconChevronRight, IconRefresh } from '@tabler/icons-svelte';
+	import {
+		IconChevronDown,
+		IconChevronRight,
+		IconDownload,
+		IconRefresh
+	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { downloadFaultSimulationCsv } from './exportCsv.js';
 	import { getFaultSimulationContext } from './faultSimulationContext.svelte.js';
 
 	let { projectId, onreset } = $props();
@@ -53,16 +59,34 @@
 						<span class="opacity-60 text-sm shrink-0">({result.trench.construction_type})</span>
 					{/if}
 				</div>
-				<button
-					type="button"
-					class="btn btn-sm preset-filled-primary-500 shrink-0 sm:hidden"
-					onclick={onreset}
-				>
-					<IconRefresh class="h-4 w-4" />
-				</button>
+				<div class="flex items-center gap-1 sm:hidden">
+					<button
+						type="button"
+						class="btn btn-sm preset-filled-surface-200-800 shrink-0"
+						aria-label={m.action_export_csv()}
+						onclick={() => downloadFaultSimulationCsv(result, result.trench?.id_trench)}
+					>
+						<IconDownload class="h-4 w-4" />
+					</button>
+					<button
+						type="button"
+						class="btn btn-sm preset-filled-primary-500 shrink-0"
+						onclick={onreset}
+					>
+						<IconRefresh class="h-4 w-4" />
+					</button>
+				</div>
 			</div>
 
-			<div class="hidden sm:block">
+			<div class="hidden sm:flex sm:items-center sm:gap-2">
+				<button
+					type="button"
+					class="btn btn-sm preset-filled-surface-200-800"
+					onclick={() => downloadFaultSimulationCsv(result, result.trench?.id_trench)}
+				>
+					<IconDownload class="h-4 w-4" />
+					{m.action_export_csv()}
+				</button>
 				<button type="button" class="btn btn-sm preset-filled-primary-500" onclick={onreset}>
 					<IconRefresh class="h-4 w-4" />
 					{m.common_reset()}
