@@ -5,8 +5,8 @@ from typing import cast
 
 import networkx as nx
 from django.contrib.gis.geos import LineString
-from shapely.geometry import shape
 from shapely.geometry import LineString as ShapelyLineString
+from shapely.geometry import shape
 from shapely.ops import linemerge
 from shapely.wkt import loads as wkt_loads
 
@@ -157,7 +157,7 @@ def find_shortest_path(start_trench_id, end_trench_id, project_id, tolerance=1):
 
 def find_path_through_trenches(
     trenches, start_point, end_point, tolerance=1, connection_tolerance=5
-):
+) -> tuple[list, dict] | tuple[None, None]:
     """Find the shortest path through a set of trenches between two points.
 
     Build a vertex-level graph from trench geometries where every vertex is a
@@ -221,7 +221,7 @@ def find_path_through_trenches(
             G.add_edge(node_a, node_b, trench_id=trench_id, weight=seg_length)
 
     if G.number_of_edges() == 0:
-        return None
+        return None, None
 
     # Step 2: Connect nearby trench endpoints to segments of other trenches.
     ct_sq = connection_tolerance * connection_tolerance
@@ -455,7 +455,10 @@ def calculate_cable_length_routed(cable_pk, start_point, end_point):
             geom_json = t.get("geometry")
             if path_coords and geom_json and len(path_coords) >= 2:
                 trimmed.append(
-                    {"id": tid, "geometry": _trim_trench_to_path_coords(geom_json, path_coords)}
+                    {
+                        "id": tid,
+                        "geometry": _trim_trench_to_path_coords(geom_json, path_coords),
+                    }
                 )
             elif geom_json:
                 trimmed.append({"id": tid, "geometry": geom_json})

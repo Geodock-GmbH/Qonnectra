@@ -108,7 +108,9 @@ class TestTrenchSerializer:
 
         serializer = TrenchSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
-        validated_geom = serializer.validated_data["geom"]
+        validated_data = serializer.validated_data
+        assert isinstance(validated_data, dict)
+        validated_geom = validated_data["geom"]
         assert validated_geom.srid == settings.DEFAULT_SRID
 
     def test_date_format_validation(self):
@@ -350,7 +352,9 @@ class TestAreaSerializer:
 
         serializer = AreaSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
-        validated_geom = serializer.validated_data["geom"]
+        validated_data = serializer.validated_data
+        assert isinstance(validated_data, dict)
+        validated_geom = validated_data["geom"]
         assert validated_geom.srid == settings.DEFAULT_SRID
 
 
@@ -580,10 +584,11 @@ class TestFiberSerializer:
         fiber = FiberFactory()
 
         serializer = FiberSerializer(fiber)
-        assert "uuid" in serializer.data
-        assert serializer.data["fiber_number_absolute"] == fiber.fiber_number_absolute
-        assert serializer.data["bundle_number"] == fiber.bundle_number
-        assert serializer.data["fiber_color"] == fiber.fiber_color
+        data: dict = serializer.data  # type: ignore[assignment]
+        assert "uuid" in data
+        assert data["fiber_number_absolute"] == fiber.fiber_number_absolute
+        assert data["bundle_number"] == fiber.bundle_number
+        assert data["fiber_color"] == fiber.fiber_color
 
     def test_fiber_list_by_cable(self):
         """Test listing fibers filtered by cable."""
@@ -603,9 +608,11 @@ class TestFiberSerializer:
         fiber = FiberFactory(uuid_cable=cable)
 
         serializer = FiberSerializer(fiber)
-        assert serializer.data["cable_name"] == "Test-Cable-001"
+        data: dict = serializer.data  # type: ignore[assignment]
+        assert data["cable_name"] == "Test-Cable-001"
 
     def test_fiber_uuid_is_readonly(self):
         """Test that uuid field is read-only."""
         serializer = FiberSerializer()
+        assert isinstance(serializer, FiberSerializer)
         assert serializer.fields["uuid"].read_only is True

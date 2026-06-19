@@ -27,9 +27,8 @@ vi.mock('$lib/server/featureSearch', () => ({
 }));
 
 const { actions, load } = await import('./+page.server.js');
-const { getNodeTypes, getSurfaces, getConstructionTypes, getAreaTypes } = await import(
-	'$lib/server/attributes'
-);
+const { getNodeTypes, getSurfaces, getConstructionTypes, getAreaTypes } =
+	await import('$lib/server/attributes');
 const {
 	searchFeaturesInProject,
 	getFeatureDetailsByType,
@@ -82,7 +81,10 @@ describe('fault-simulation +page.server.js', () => {
 				constructionTypes: [{ uuid: 'ct-1', name: 'Open' }],
 				constructionTypesError: null
 			};
-			const areaTypesData = { areaTypes: [{ uuid: 'at-1', name: 'Residential' }], areaTypesError: null };
+			const areaTypesData = {
+				areaTypes: [{ uuid: 'at-1', name: 'Residential' }],
+				areaTypesError: null
+			};
 
 			/** @type {any} */ (getNodeTypes).mockResolvedValue(nodeTypesData);
 			/** @type {any} */ (getSurfaces).mockResolvedValue(surfacesData);

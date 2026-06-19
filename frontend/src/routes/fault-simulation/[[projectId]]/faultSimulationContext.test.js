@@ -8,9 +8,8 @@ vi.mock('svelte', () => {
 	};
 });
 
-const { createFaultSimulationContext, getFaultSimulationContext } = await import(
-	'./faultSimulationContext.svelte.js'
-);
+const { createFaultSimulationContext, getFaultSimulationContext } =
+	await import('./faultSimulationContext.svelte.js');
 const { setContext, getContext } = await import('svelte');
 
 describe('faultSimulationContext', () => {

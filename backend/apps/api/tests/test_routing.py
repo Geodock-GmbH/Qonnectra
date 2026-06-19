@@ -9,18 +9,18 @@ Note: Trench IDs must be in format TR-XXXXXXX where X is a Base29 character
 """
 
 import pytest
+from apps.api.models import Trench
+from apps.api.routing import find_path_through_trenches
 from django.contrib.auth import get_user_model
 from django.contrib.gis.geos import LineString
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.api.models import Trench
-from apps.api.routing import find_path_through_trenches
 from .factories import (
-    ProjectFactory,
-    FlagFactory,
-    SurfaceFactory,
     ConstructionTypeFactory,
+    FlagFactory,
+    ProjectFactory,
+    SurfaceFactory,
 )
 
 User = get_user_model()
@@ -566,10 +566,9 @@ class TestFindPathThroughTrenches:
             },
         ]
         result, path_coords = find_path_through_trenches(trenches, (0, 0), (300, 0))
-        assert result is not None
+        assert result is not None and path_coords is not None
         assert len(result) == 3
         assert result == ["aaa", "bbb", "ccc"]
-        assert path_coords is not None
         assert set(path_coords.keys()) == {"aaa", "bbb", "ccc"}
 
     def test_filters_branches(self):
@@ -601,15 +600,14 @@ class TestFindPathThroughTrenches:
             },
         ]
         result, path_coords = find_path_through_trenches(trenches, (0, 0), (200, 0))
-        assert result is not None
+        assert result is not None and path_coords is not None
         assert "branch" not in result
         assert result == ["main1", "main2"]
         assert "branch" not in path_coords
 
     def test_returns_none_for_empty_trenches(self):
         result, path_coords = find_path_through_trenches([], (0, 0), (100, 0))
-        assert result is None
-        assert path_coords is None
+        assert result is None and path_coords is None
 
     def test_returns_none_for_missing_points(self):
         trenches = [
@@ -637,8 +635,10 @@ class TestFindPathThroughTrenches:
                 "length": 100.0,
             },
         ]
-        result, path_coords = find_path_through_trenches(trenches, (0.3, 0.3), (99.7, 0.3))
-        assert result is not None
+        result, path_coords = find_path_through_trenches(
+            trenches, (0.3, 0.3), (99.7, 0.3)
+        )
+        assert result is not None and path_coords is not None
         assert result == ["a"]
 
     def test_single_trench(self):
@@ -652,7 +652,8 @@ class TestFindPathThroughTrenches:
                 "length": 100.0,
             },
         ]
-        result, _ = find_path_through_trenches(trenches, (0, 0), (100, 0))
+        result, path_coords = find_path_through_trenches(trenches, (0, 0), (100, 0))
+        assert result is not None and path_coords is not None
         assert result == ["only"]
 
     def test_skips_trenches_without_geometry(self):
@@ -667,7 +668,8 @@ class TestFindPathThroughTrenches:
                 "length": 100.0,
             },
         ]
-        result, _ = find_path_through_trenches(trenches, (0, 0), (100, 0))
+        result, path_coords = find_path_through_trenches(trenches, (0, 0), (100, 0))
+        assert result is not None and path_coords is not None
         assert result == ["b"]
 
     def test_t_junction_midpoint_connection(self):
@@ -692,7 +694,7 @@ class TestFindPathThroughTrenches:
         ]
         # Route from start of main to end of branch — should use both
         result, path_coords = find_path_through_trenches(trenches, (0, 0), (50, 50))
-        assert result is not None
+        assert result is not None and path_coords is not None
         assert "main" in result
         assert "branch" in result
 
@@ -717,12 +719,13 @@ class TestFindPathThroughTrenches:
             },
         ]
         # Route from (0,0) to end of side trench
-        result, _ = find_path_through_trenches(trenches, (0, 0), (100, 80))
+        result, path_coords = find_path_through_trenches(trenches, (0, 0), (100, 80))
+        assert result is not None and path_coords is not None
         assert result == ["main", "side"]
 
         # Route from end of main to end of side — should not include full main
-        result, _ = find_path_through_trenches(trenches, (300, 0), (100, 80))
-        assert result is not None
+        result, path_coords = find_path_through_trenches(trenches, (300, 0), (100, 80))
+        assert result is not None and path_coords is not None
         assert "main" in result
         assert "side" in result
 
@@ -747,8 +750,8 @@ class TestFindPathThroughTrenches:
             },
         ]
         # Spur ends 3m from the main trench (within connection_tolerance=5)
-        result, _ = find_path_through_trenches(trenches, (0, 0), (50, 50))
-        assert result is not None
+        result, path_coords = find_path_through_trenches(trenches, (0, 0), (50, 50))
+        assert result is not None and path_coords is not None
         assert "main" in result
         assert "spur" in result
 
@@ -775,8 +778,7 @@ class TestFindPathThroughTrenches:
         # Spur ends 10m from the main trench (beyond connection_tolerance=5)
         result, path_coords = find_path_through_trenches(trenches, (0, 0), (50, 50))
         # Should fail because the spur is too far away to connect
-        assert result is None
-        assert path_coords is None
+        assert result is None and path_coords is None
 
     def test_t_junction_endpoint_exactly_on_segment(self):
         """Test spur endpoint that projects exactly onto a segment with no matching vertex."""
@@ -801,8 +803,8 @@ class TestFindPathThroughTrenches:
         ]
         # Spur endpoint (50,0) is exactly on the main segment but
         # main has no vertex there — must split the segment
-        result, _ = find_path_through_trenches(trenches, (0, 0), (50, 50))
-        assert result is not None
+        result, path_coords = find_path_through_trenches(trenches, (0, 0), (50, 50))
+        assert result is not None and path_coords is not None
         assert "main" in result
         assert "spur" in result
 
@@ -812,14 +814,12 @@ class TestInsertBridgeSegments:
 
     def test_bridge_inserted_for_spur_near_main(self):
         """Spur 3m from main trench produces a single LineString after merge."""
-        from shapely.ops import linemerge
-        from shapely.geometry import shape
-
         from apps.api.services import (
             _insert_bridge_segments,
             _merge_trench_geometries,
             _trim_trench_to_path_coords,
         )
+        from shapely.geometry import shape
 
         trenches = [
             {
@@ -837,10 +837,8 @@ class TestInsertBridgeSegments:
                 },
             },
         ]
-        path_ids, path_coords = find_path_through_trenches(
-            trenches, (0, 0), (50, 50)
-        )
-        assert path_ids is not None
+        path_ids, path_coords = find_path_through_trenches(trenches, (0, 0), (50, 50))
+        assert path_ids is not None and path_coords is not None
 
         trimmed = []
         for t in trenches:
@@ -850,7 +848,9 @@ class TestInsertBridgeSegments:
             pc = path_coords.get(tid)
             geom = t["geometry"]
             if pc and len(pc) >= 2:
-                trimmed.append({"id": tid, "geometry": _trim_trench_to_path_coords(geom, pc)})
+                trimmed.append(
+                    {"id": tid, "geometry": _trim_trench_to_path_coords(geom, pc)}
+                )
             else:
                 trimmed.append({"id": tid, "geometry": geom})
 
@@ -862,13 +862,12 @@ class TestInsertBridgeSegments:
 
     def test_no_bridge_for_exact_connection(self):
         """Trenches sharing an exact vertex need no bridge."""
-        from shapely.geometry import shape
-
         from apps.api.services import (
             _insert_bridge_segments,
             _merge_trench_geometries,
             _trim_trench_to_path_coords,
         )
+        from shapely.geometry import shape
 
         trenches = [
             {
@@ -886,10 +885,8 @@ class TestInsertBridgeSegments:
                 },
             },
         ]
-        path_ids, path_coords = find_path_through_trenches(
-            trenches, (0, 0), (200, 0)
-        )
-        assert path_ids is not None
+        path_ids, path_coords = find_path_through_trenches(trenches, (0, 0), (200, 0))
+        assert path_ids is not None and path_coords is not None
 
         trimmed = []
         for t in trenches:
@@ -899,7 +896,9 @@ class TestInsertBridgeSegments:
             pc = path_coords.get(tid)
             geom = t["geometry"]
             if pc and len(pc) >= 2:
-                trimmed.append({"id": tid, "geometry": _trim_trench_to_path_coords(geom, pc)})
+                trimmed.append(
+                    {"id": tid, "geometry": _trim_trench_to_path_coords(geom, pc)}
+                )
             else:
                 trimmed.append({"id": tid, "geometry": geom})
 
@@ -913,13 +912,12 @@ class TestInsertBridgeSegments:
 
     def test_bridge_for_mid_segment_t_junction(self):
         """Spur projecting onto mid-segment (no vertex) gets a bridge."""
-        from shapely.geometry import shape
-
         from apps.api.services import (
             _insert_bridge_segments,
             _merge_trench_geometries,
             _trim_trench_to_path_coords,
         )
+        from shapely.geometry import shape
 
         trenches = [
             {
@@ -937,10 +935,8 @@ class TestInsertBridgeSegments:
                 },
             },
         ]
-        path_ids, path_coords = find_path_through_trenches(
-            trenches, (0, 0), (50, 50)
-        )
-        assert path_ids is not None
+        path_ids, path_coords = find_path_through_trenches(trenches, (0, 0), (50, 50))
+        assert path_ids is not None and path_coords is not None
 
         trimmed = []
         for t in trenches:
@@ -950,7 +946,9 @@ class TestInsertBridgeSegments:
             pc = path_coords.get(tid)
             geom = t["geometry"]
             if pc and len(pc) >= 2:
-                trimmed.append({"id": tid, "geometry": _trim_trench_to_path_coords(geom, pc)})
+                trimmed.append(
+                    {"id": tid, "geometry": _trim_trench_to_path_coords(geom, pc)}
+                )
             else:
                 trimmed.append({"id": tid, "geometry": geom})
 
