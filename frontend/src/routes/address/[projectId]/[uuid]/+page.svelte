@@ -19,7 +19,7 @@
 	import 'ol/ol.css';
 
 	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import proj4 from 'proj4';
 
 	import { m } from '$lib/paraglide/messages';
@@ -30,8 +30,10 @@
 	import Map from '$lib/components/Map.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
+	import { createAddressStyle, createTrenchStyle } from '$lib/map/styles.js';
 	import {
 		getWMSLayerVisibility,
+		trenchColor,
 		wmsLayerVisibilityConfig,
 		wmsSourcesData
 	} from '$lib/stores/store';
@@ -56,13 +58,12 @@
 	const addressError = $derived(data.addressError);
 	const statusDevelopments = $derived(data.statusDevelopments);
 	const flags = $derived(data.flags);
-	const geom = $derived(data.address?.geom || null);
 	const geom3857 = $derived(data.address?.geom_3857 || null);
-	const geom4326 = $derived(data.address?.geom_3857 || null);
 	const featureId = $derived(address?.uuid);
 	const linkedNodes = $derived(data.linkedNodes || []);
 	const linkedMicroducts = $derived(data.linkedMicroducts || []);
 	const isLinkedToNode = $derived(linkedNodes.length > 0);
+	const linkedTrenchGeometries = $derived(data.linkedTrenchGeometries || []);
 	const residentialUnits = $derived(data.residentialUnits || []);
 	const residentialUnitTypes = $derived(data.residentialUnitTypes || []);
 	const residentialUnitStatuses = $derived(data.residentialUnitStatuses || []);
@@ -92,6 +93,8 @@
 
 	/** @type {any} */
 	let addressMarkerLayer = $state(null);
+	/** @type {any} */
+	let trenchLinesLayer = $state(null);
 	/** @type {any[]} */
 	let wmsLayers = $state([]);
 	/** @type {any} */
@@ -155,19 +158,13 @@
 			{ default: VectorSource },
 			{ default: Feature },
 			{ default: Point },
-			{ default: Style },
-			{ default: CircleStyle },
-			{ default: Fill },
-			{ default: Stroke }
+			{ default: GeoJSON }
 		] = await Promise.all([
 			import('ol/layer/Vector'),
 			import('ol/source/Vector'),
 			import('ol/Feature'),
 			import('ol/geom/Point'),
-			import('ol/style/Style'),
-			import('ol/style/Circle'),
-			import('ol/style/Fill'),
-			import('ol/style/Stroke')
+			import('ol/format/GeoJSON')
 		]);
 
 		const coords = geom3857.coordinates;
@@ -177,24 +174,37 @@
 			geometry: new Point(coords)
 		});
 
-		const markerStyle = new Style({
-			image: new CircleStyle({
-				radius: 8,
-				fill: new Fill({ color: 'rgba(59, 130, 246, 0.8)' }),
-				stroke: new Stroke({ color: '#1d4ed8', width: 2 })
-			})
-		});
-
 		addressMarkerLayer = new VectorLayer({
 			source: new VectorSource({
 				features: [pointFeature]
 			}),
-			style: markerStyle,
+			style: createAddressStyle(),
 			zIndex: 100,
 			properties: {
 				layerId: 'address-marker'
 			}
 		});
+
+		if (linkedTrenchGeometries.length > 0) {
+			const geoJsonFormat = new GeoJSON();
+			const trenchFeatures = linkedTrenchGeometries
+				.filter((/** @type {any} */ f) => f.geometry)
+				.map((/** @type {any} */ f) =>
+					geoJsonFormat.readFeature(f, {
+						dataProjection: 'EPSG:3857',
+						featureProjection: 'EPSG:3857'
+					})
+				);
+
+			if (trenchFeatures.length > 0) {
+				trenchLinesLayer = new VectorLayer({
+					source: new VectorSource({ features: trenchFeatures }),
+					style: createTrenchStyle($trenchColor),
+					zIndex: 50,
+					properties: { layerId: 'trench-lines' }
+				});
+			}
+		}
 
 		await loadWMSLayers();
 
@@ -217,10 +227,10 @@
 	 */
 	function convert3857ToDefault() {
 		if (!geom3857 || !geom3857.coordinates) return null;
-		registerStorageProjection($page.data.srid, $page.data.proj4Def);
+		registerStorageProjection(page.data.srid, page.data.proj4Def);
 		const coordsDefault = proj4(
 			'EPSG:3857',
-			storageProjection($page.data.srid),
+			storageProjection(page.data.srid),
 			geom3857.coordinates
 		);
 		return `${coordsDefault[0].toFixed(6)}, ${coordsDefault[1].toFixed(6)}`;
@@ -448,7 +458,7 @@
 				...address,
 				coordsDefault: convert3857ToDefault(),
 				coords4326: convert3857To4326(),
-				srid: $page.data.srid
+				srid: page.data.srid
 			};
 
 			let unitsWithFibers = residentialUnits;
@@ -622,7 +632,6 @@
 		<div class="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
 			<div class="lg:col-span-3 card p-4 sm:p-6 space-y-4 sm:space-y-6">
 				<div class="flex items-center gap-3">
-					<div class="w-1 h-6 rounded-full bg-primary-500"></div>
 					<IconHome class="size-5 text-primary-500" />
 					<h2 class="text-lg font-semibold">{m.section_address_information()}</h2>
 				</div>
@@ -719,7 +728,6 @@
 					<div class="border-t border-surface-200-800"></div>
 
 					<div class="flex items-center gap-3 pt-1">
-						<div class="w-1 h-6 rounded-full bg-tertiary-500"></div>
 						<IconBuilding class="size-5 text-tertiary-500" />
 						<h2 class="text-lg font-semibold">{m.section_classification()}</h2>
 					</div>
@@ -771,7 +779,6 @@
 
 			<div class="lg:col-span-2 card p-4 sm:p-6 space-y-4">
 				<div class="flex items-center gap-3">
-					<div class="w-1 h-6 rounded-full bg-info-500"></div>
 					<IconMapPin class="size-5 text-info-500" />
 					<h2 class="text-lg font-semibold">{m.section_location()}</h2>
 				</div>
@@ -783,7 +790,11 @@
 					>
 						<Map
 							variant="compact"
-							layers={[...wmsLayers, addressMarkerLayer]}
+							layers={[
+								...wmsLayers,
+								...(trenchLinesLayer ? [trenchLinesLayer] : []),
+								addressMarkerLayer
+							]}
 							viewOptions={{
 								center: mapCenter,
 								zoom: 18
@@ -884,7 +895,6 @@
 		<!-- Microduct Connections -->
 		<div class="card p-4 sm:p-6 space-y-4">
 			<div class="flex items-center gap-3">
-				<div class="w-1 h-6 rounded-full bg-warning-500"></div>
 				<IconLink class="size-5 text-warning-500" />
 				<h2 class="text-lg font-semibold">{m.section_microduct_connections()}</h2>
 				{#if linkedMicroducts.length > 0}
@@ -988,7 +998,6 @@
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
 			<div class="card p-4 sm:p-6 space-y-4">
 				<div class="flex items-center gap-3">
-					<div class="w-1 h-6 rounded-full bg-success-500"></div>
 					<IconFolder class="size-5 text-success-500" />
 					<h2 class="text-lg font-semibold">{m.form_attachments()}</h2>
 				</div>

@@ -15,7 +15,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import FiberPathsTable from './FiberPathsTable.svelte';
-	import { buildGeoJSON, downloadGeoJSON, hasGeometries, traceFrom } from '../traceUtils.js';
+	import { downloadGeoJSON, hasGeometries, traceFrom } from '../traceUtils.js';
 
 	/**
 	 * @typedef {Object} Props
@@ -104,7 +104,6 @@
 	<div class="min-w-0 space-y-8" transition:fly={{ y: 30, duration: 400, easing: cubicOut }}>
 		<section class="@container min-w-0">
 			<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
-				<span class="h-5 w-1 rounded bg-primary-500"></span>
 				{m.trace_statistics()}
 			</h2>
 			<div class="grid grid-cols-1 gap-3 @min-[30rem]:grid-cols-2 @min-[48rem]:grid-cols-4">
@@ -146,7 +145,6 @@
 
 		<section>
 			<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
-				<span class="h-5 w-1 rounded bg-primary-500"></span>
 				{m.trace_entry_point()}
 			</h2>
 			<div class="flex items-center gap-4 rounded-lg border border-surface-200-800 px-4 py-3">
@@ -168,7 +166,6 @@
 		{#if result.cable_infrastructure && Object.keys(result.cable_infrastructure).length > 0}
 			<section>
 				<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
-					<span class="h-5 w-1 rounded bg-primary-500"></span>
 					{m.trace_cable_infrastructure()}
 				</h2>
 				<div class="space-y-3">
@@ -181,7 +178,6 @@
 
 		<section>
 			<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
-				<span class="h-5 w-1 rounded bg-primary-500"></span>
 				{m.trace_trace_tree()}
 			</h2>
 			{#if result.trace_tree}

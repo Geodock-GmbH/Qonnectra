@@ -61,6 +61,7 @@ describe('address detail +page.server.js', () => {
 	 * @param {any[]} [options.flags]
 	 * @param {any[]} [options.ruTypes]
 	 * @param {any[]} [options.ruStatuses]
+	 * @param {any} [options.trenchData]
 	 */
 	function setupLoadMocks({
 		addressData = { id: 'addr-uuid', properties: { street: 'Main St', housenumber: 1 } },
@@ -68,7 +69,8 @@ describe('address detail +page.server.js', () => {
 		statusDevelopments = [],
 		flags = [],
 		ruTypes = [],
-		ruStatuses = []
+		ruStatuses = [],
+		trenchData = { type: 'FeatureCollection', features: [] }
 	} = {}) {
 		// address response
 		mockFetch.mockResolvedValueOnce({
@@ -107,10 +109,14 @@ describe('address detail +page.server.js', () => {
 			json: () => Promise.resolve({ features: [] })
 		});
 
-		// residential units
+		// residential units + linked-trenches (parallel fetch)
 		mockFetch.mockResolvedValueOnce({
 			ok: true,
 			json: () => Promise.resolve([])
+		});
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: () => Promise.resolve(trenchData)
 		});
 	}
 
@@ -223,10 +229,14 @@ describe('address detail +page.server.js', () => {
 						}
 					])
 			});
-			// residential units
+			// residential units + linked-trenches (fetched in parallel)
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: () => Promise.resolve([])
+			});
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ type: 'FeatureCollection', features: [] })
 			});
 
 			const result = /** @type {any} */ (
@@ -244,6 +254,102 @@ describe('address detail +page.server.js', () => {
 			expect(result.linkedMicroducts).toHaveLength(1);
 			expect(result.linkedMicroducts[0].color).toBe('red');
 			expect(result.linkedMicroducts[0].conduitName).toBe('Conduit 1');
+		});
+	});
+
+	describe('linked trench geometries', () => {
+		test('should populate linkedTrenchGeometries from API', async () => {
+			setupLoadMocks({
+				trenchData: {
+					type: 'FeatureCollection',
+					features: [
+						{
+							type: 'Feature',
+							id: 'trench-uuid-1',
+							geometry: {
+								type: 'LineString',
+								coordinates: [
+									[0, 0],
+									[100, 0]
+								]
+							},
+							properties: { id_trench: 'TR-001' }
+						}
+					]
+				}
+			});
+
+			const result = /** @type {any} */ (
+				await load(
+					/** @type {any} */ ({
+						fetch: mockFetch,
+						cookies: mockCookies,
+						params: { projectId: '1', uuid: 'addr-uuid' }
+					})
+				)
+			);
+
+			expect(result.linkedTrenchGeometries).toHaveLength(1);
+			expect(result.linkedTrenchGeometries[0].id).toBe('trench-uuid-1');
+			expect(result.linkedTrenchGeometries[0].properties.id_trench).toBe('TR-001');
+		});
+
+		test('should return empty array when no trenches', async () => {
+			setupLoadMocks();
+
+			const result = /** @type {any} */ (
+				await load(
+					/** @type {any} */ ({
+						fetch: mockFetch,
+						cookies: mockCookies,
+						params: { projectId: '1', uuid: 'addr-uuid' }
+					})
+				)
+			);
+
+			expect(result.linkedTrenchGeometries).toEqual([]);
+		});
+
+		test('should handle trench fetch failure gracefully', async () => {
+			// Manually set up mocks to make trench fetch fail
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ id: 'addr-uuid', properties: { street: 'Main St' } })
+			});
+			// 4 select responses
+			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+			// linked nodes
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ features: [] })
+			});
+			// residential units (ok)
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve([])
+			});
+			// linked-trenches (fails)
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 500,
+				json: () => Promise.resolve({ error: 'Server error' })
+			});
+
+			const result = /** @type {any} */ (
+				await load(
+					/** @type {any} */ ({
+						fetch: mockFetch,
+						cookies: mockCookies,
+						params: { projectId: '1', uuid: 'addr-uuid' }
+					})
+				)
+			);
+
+			expect(result.linkedTrenchGeometries).toEqual([]);
+			expect(result.address).toBeTruthy();
 		});
 	});
 

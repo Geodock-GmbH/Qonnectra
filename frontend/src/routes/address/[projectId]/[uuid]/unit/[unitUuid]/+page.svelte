@@ -308,7 +308,6 @@
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
 			<div class="card p-4 sm:p-6 space-y-4">
 				<div class="flex items-center gap-3">
-					<div class="w-1 h-6 rounded-full bg-primary-500"></div>
 					<IconHash class="size-5 text-primary-500" />
 					<h2 class="text-lg font-semibold">{m.form_id_residential_unit()}</h2>
 				</div>
@@ -369,7 +368,6 @@
 
 			<div class="card p-4 sm:p-6 space-y-4">
 				<div class="flex items-center gap-3">
-					<div class="w-1 h-6 rounded-full bg-tertiary-500"></div>
 					<IconTag class="size-5 text-tertiary-500" />
 					<h2 class="text-lg font-semibold">{m.section_classification()}</h2>
 				</div>
@@ -408,7 +406,6 @@
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
 			<div class="card p-4 sm:p-6 space-y-4">
 				<div class="flex items-center gap-3">
-					<div class="w-1 h-6 rounded-full bg-secondary-500"></div>
 					<IconDoor class="size-5 text-secondary-500" />
 					<h2 class="text-lg font-semibold">{m.section_location()}</h2>
 				</div>
@@ -445,7 +442,6 @@
 
 			<div class="card p-4 sm:p-6 space-y-4">
 				<div class="flex items-center gap-3">
-					<div class="w-1 h-6 rounded-full bg-warning-500"></div>
 					<IconUser class="size-5 text-warning-500" />
 					<h2 class="text-lg font-semibold">{m.from_resident()}</h2>
 				</div>
@@ -492,7 +488,6 @@
 		<!-- Fiber Connections -->
 		<div class="card p-4 sm:p-6 space-y-4">
 			<div class="flex items-center gap-3">
-				<div class="w-1 h-6 rounded-full bg-warning-500"></div>
 				<IconLink class="size-5 text-warning-500" />
 				<h2 class="text-lg font-semibold">{m.section_fiber_connections()}</h2>
 				{#if fiberConnections.length > 0}
@@ -638,7 +633,6 @@
 
 		<div class="card p-4 sm:p-6 space-y-4">
 			<div class="flex items-center gap-3">
-				<div class="w-1 h-6 rounded-full bg-success-500"></div>
 				<IconFolder class="size-5 text-success-500" />
 				<h2 class="text-lg font-semibold">{m.form_attachments()}</h2>
 			</div>

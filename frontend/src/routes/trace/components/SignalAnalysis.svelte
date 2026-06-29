@@ -10,7 +10,6 @@
 		IconBolt,
 		IconBoltOff,
 		IconChevronDown,
-		IconChevronRight,
 		IconDownload,
 		IconHome,
 		IconMapPin
@@ -671,7 +670,6 @@
 		<!-- Signal Source Selector -->
 		<section>
 			<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
-				<span class="h-5 w-1 rounded bg-warning-500"></span>
 				{m.signal_source()}
 			</h2>
 			<div class="flex items-center gap-4">
@@ -696,7 +694,6 @@
 		{#if hasBreaks}
 			<section class="@container min-w-0">
 				<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-error-500">
-					<span class="h-5 w-1 rounded bg-error-500"></span>
 					{m.signal_break_point()} ({signalAnalysis.total_breaks})
 				</h2>
 				<div class="grid grid-cols-1 gap-3 @min-[28rem]:grid-cols-2 @min-[42rem]:grid-cols-3">
@@ -718,7 +715,6 @@
 		{#if affectedSummary}
 			<section class="@container min-w-0">
 				<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
-					<span class="h-5 w-1 rounded bg-tertiary-500"></span>
 					{m.signal_affected_summary()}
 				</h2>
 				<div
@@ -773,10 +769,11 @@
 		{#if traceTree}
 			<section class="min-w-0">
 				<h2 class="mb-4 flex items-center gap-3 text-lg font-semibold text-surface-900-100">
-					<span class="h-5 w-1 rounded bg-primary-500"></span>
 					{m.signal_analysis()}
 				</h2>
-				<div class="-mx-1 min-w-0 overflow-x-auto px-1 pb-1">
+				<div
+					class="-mx-1 border rounded-xl border-surface-200-800 p-3 sm:p-6 min-w-0 overflow-x-auto px-1 pb-1"
+				>
 					{@render signalTraceNode(traceTree, 0, true)}
 				</div>
 			</section>
