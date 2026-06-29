@@ -10,6 +10,7 @@
 		IconBook,
 		IconBuildings,
 		IconChartArcs,
+		IconClipboardText,
 		IconDotsVertical,
 		IconFileText,
 		IconLanguage,
@@ -82,6 +83,12 @@
 			label: () => m.nav_fault_simulation(),
 			icon: IconAlertTriangle,
 			pathMatch: (/** @type {string} */ path) => path.startsWith('/fault-simulation')
+		},
+		{
+			href: '/post-compaction',
+			label: () => m.nav_post_compaction(),
+			icon: IconClipboardText,
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/post-compaction')
 		}
 	];
 
