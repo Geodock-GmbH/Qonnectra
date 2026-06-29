@@ -6,6 +6,7 @@ WMS/WFS proxy views, dashboard statistics, and fiber trace analysis.
 
 from __future__ import annotations
 
+import json
 import logging
 import mimetypes
 import os
@@ -93,7 +94,7 @@ from .models import (
 )
 from .pageination import CustomPagination
 from .permissions import RoleBasedPermission, get_user_permissions
-from .routing import find_shortest_path
+from .routing import find_shortest_path, get_address_routed_trench_uuids
 from .serializers import (
     AddressListSerializer,
     AddressSerializer,
@@ -1773,6 +1774,53 @@ class AddressViewSet(viewsets.ModelViewSet):
                     )
 
         return Response(result)
+
+    @action(detail=True, methods=["get"], url_path="linked-trenches")
+    def linked_trenches(self, request, pk=None):
+        """Return trench geometries (EPSG:3857) connected to this address via the conduit chain.
+
+        When a cable with start/end nodes exists in the address's microducts,
+        uses routing to return only the path-relevant trenches.  Falls back to
+        returning all conduit-connected trenches otherwise.
+
+        Args:
+            request: DRF request object.
+            pk: Primary key (UUID) of the :model:`api.Address`.
+
+        Returns:
+            Response: GeoJSON FeatureCollection with trench LineString features
+                and ``id_trench`` properties.
+        """
+        address = self.get_object()
+
+        routed_uuids = get_address_routed_trench_uuids(address.pk)
+
+        if routed_uuids is not None:
+            trenches = Trench.objects.filter(uuid__in=routed_uuids).only(
+                "uuid", "id_trench", "geom_3857"
+            )
+        else:
+            trenches = (
+                Trench.objects.filter(
+                    trenchconduitconnection__uuid_conduit__microduct__uuid_node__uuid_address=address.pk
+                )
+                .distinct()
+                .only("uuid", "id_trench", "geom_3857")
+            )
+
+        features = []
+        for t in trenches:
+            if t.geom_3857 and not t.geom_3857.empty:
+                features.append(
+                    {
+                        "type": "Feature",
+                        "id": str(t.uuid),
+                        "geometry": json.loads(t.geom_3857.geojson),
+                        "properties": {"id_trench": t.id_trench},
+                    }
+                )
+
+        return Response({"type": "FeatureCollection", "features": features})
 
     @action(detail=True, methods=["post"], url_path="regenerate-id")
     def regenerate_id(self, request, pk=None):

@@ -196,7 +196,6 @@
 <div class="card p-4 sm:p-6 space-y-4">
 	<div class="flex items-center gap-3 flex-wrap">
 		<div class="flex items-center gap-3 min-w-0">
-			<div class="w-1 h-6 rounded-full bg-primary-500 shrink-0"></div>
 			<IconUsers class="size-5 text-primary-500 shrink-0" />
 			<h2 class="text-lg font-semibold truncate">{m.section_residential_units({ count: 2 })}</h2>
 		</div>

@@ -41,7 +41,8 @@ export async function load({ fetch, cookies, params }) {
 				statusDevelopments: [],
 				flags: [],
 				linkedNodes: [],
-				linkedMicroducts: []
+				linkedMicroducts: [],
+				linkedTrenchGeometries: []
 			};
 		}
 
@@ -130,19 +131,27 @@ export async function load({ fetch, cookies, params }) {
 		}
 
 		let residentialUnits = [];
+		let linkedTrenchGeometries = [];
 		try {
-			const residentialUnitsResponse = await fetch(
-				`${API_URL}residential-unit/all/?uuid_address=${uuid}`,
-				{
+			const [residentialUnitsResponse, trenchResponse] = await Promise.all([
+				fetch(`${API_URL}residential-unit/all/?uuid_address=${uuid}`, {
 					credentials: 'include',
 					headers
-				}
-			);
+				}),
+				fetch(`${API_URL}address/${uuid}/linked-trenches/`, {
+					credentials: 'include',
+					headers
+				})
+			]);
 			if (residentialUnitsResponse.ok) {
 				residentialUnits = await residentialUnitsResponse.json();
 			}
+			if (trenchResponse.ok) {
+				const trenchData = await trenchResponse.json();
+				linkedTrenchGeometries = trenchData.features || [];
+			}
 		} catch (err) {
-			console.error('Error fetching residential units:', err);
+			console.error('Error fetching residential units or trench geometries:', err);
 		}
 
 		return {
@@ -155,7 +164,8 @@ export async function load({ fetch, cookies, params }) {
 			linkedMicroducts,
 			residentialUnits,
 			residentialUnitTypes,
-			residentialUnitStatuses
+			residentialUnitStatuses,
+			linkedTrenchGeometries
 		};
 	} catch (err) {
 		console.error('Error fetching address:', err);
@@ -169,7 +179,8 @@ export async function load({ fetch, cookies, params }) {
 			linkedMicroducts: [],
 			residentialUnits: [],
 			residentialUnitTypes: [],
-			residentialUnitStatuses: []
+			residentialUnitStatuses: [],
+			linkedTrenchGeometries: []
 		};
 	}
 }
