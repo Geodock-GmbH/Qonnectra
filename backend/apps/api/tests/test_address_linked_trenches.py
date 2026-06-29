@@ -1,14 +1,16 @@
+import uuid
+from unittest.mock import patch
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.gis.geos import LineString, Point
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.api.models import Conduit, Microduct, MicroductCableConnection
+from apps.api.models import Conduit, Microduct
 
 from .factories import (
     AddressFactory,
-    CableFactory,
     ConduitTypeFactory,
     FlagFactory,
     NodeFactory,
@@ -43,15 +45,7 @@ def test_flag(db):
 
 
 def _create_conduit_without_signal(project, flag):
-    """Create a conduit bypassing the post_save microduct auto-creation signal.
-
-    Args:
-        project: :model:`api.Project` instance to assign.
-        flag: :model:`api.Flag` instance to assign.
-
-    Returns:
-        Conduit: The newly created conduit (no auto-generated microducts).
-    """
+    """Create a conduit bypassing the post_save microduct auto-creation signal."""
     conduit_type = ConduitTypeFactory()
     return Conduit.objects.create(
         name=f"Conduit-{conduit_type.pk}",
@@ -59,6 +53,27 @@ def _create_conduit_without_signal(project, flag):
         project=project,
         flag=flag,
     )
+
+
+def _make_trace_result(cables):
+    """Build a minimal trace_address return dict.
+
+    Args:
+        cables: dict mapping cable_id (str) to a GeoJSON geometry dict
+            (in EPSG:25832) or ``None``.
+    """
+    infra = {}
+    for cable_id, geojson in cables.items():
+        infra[cable_id] = {"merged_geometry": geojson}
+    return {
+        "entry_point": {},
+        "trace_trees": [],
+        "cable_infrastructure": infra,
+        "statistics": {},
+    }
+
+
+TRACE_PATH = "apps.api.views.trace_address"
 
 
 class TestAddressLinkedTrenches:
@@ -77,8 +92,9 @@ class TestAddressLinkedTrenches:
         response = authenticated_client.get(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    @patch(TRACE_PATH, return_value=None)
     def test_address_with_no_trenches_returns_empty(
-        self, authenticated_client, test_project, test_flag
+        self, mock_trace, authenticated_client, test_project, test_flag
     ):
         address = AddressFactory(project=test_project, flag=test_flag)
         url = self.endpoint.format(uuid=address.uuid)
@@ -88,26 +104,127 @@ class TestAddressLinkedTrenches:
         assert data["type"] == "FeatureCollection"
         assert data["features"] == []
 
-    def test_full_chain_returns_trench_geometry(
+
+class TestAddressLinkedTrenchesTrace:
+    """Tests for trace_address-based cable geometry path."""
+
+    endpoint = "/api/v1/address/{uuid}/linked-trenches/"
+
+    def test_trace_returns_cable_features_in_epsg_3857(
         self, authenticated_client, test_project, test_flag
     ):
+        """Trace with merged geometry produces features keyed by cable ID in EPSG:3857."""
         address = AddressFactory(
             project=test_project,
             flag=test_flag,
             geom=Point(428530, 5703804, srid=25832),
         )
-        node = NodeFactory(
-            project=test_project,
-            flag=test_flag,
-            uuid_address=address,
-            geom=Point(428530, 5703804, srid=25832),
+        cable_id = str(uuid.uuid4())
+        geojson_25832 = {
+            "type": "LineString",
+            "coordinates": [[428500, 5703804], [428560, 5703804]],
+        }
+        trace = _make_trace_result({cable_id: geojson_25832})
+
+        with patch(TRACE_PATH, return_value=trace):
+            url = self.endpoint.format(uuid=address.uuid)
+            response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["type"] == "FeatureCollection"
+        assert len(data["features"]) == 1
+
+        feature = data["features"][0]
+        assert feature["id"] == cable_id
+        assert feature["properties"]["id_cable"] == cable_id
+        assert feature["geometry"]["type"] == "LineString"
+        coords = feature["geometry"]["coordinates"]
+        assert len(coords) >= 2
+        # EPSG:3857 x-coords are in the millions range (Web Mercator meters)
+        assert all(abs(c[0]) > 100_000 for c in coords)
+
+    def test_trace_multiple_cables(
+        self, authenticated_client, test_project, test_flag
+    ):
+        """Multiple cables in trace each produce a separate feature."""
+        address = AddressFactory(project=test_project, flag=test_flag)
+        cable_a = str(uuid.uuid4())
+        cable_b = str(uuid.uuid4())
+        geojson_a = {
+            "type": "LineString",
+            "coordinates": [[428500, 5703804], [428560, 5703804]],
+        }
+        geojson_b = {
+            "type": "LineString",
+            "coordinates": [[428560, 5703804], [428620, 5703804]],
+        }
+        trace = _make_trace_result({cable_a: geojson_a, cable_b: geojson_b})
+
+        with patch(TRACE_PATH, return_value=trace):
+            url = self.endpoint.format(uuid=address.uuid)
+            response = authenticated_client.get(url)
+
+        data = response.json()
+        assert len(data["features"]) == 2
+        returned_ids = {f["id"] for f in data["features"]}
+        assert returned_ids == {cable_a, cable_b}
+
+    def test_trace_skips_cable_with_no_merged_geometry(
+        self, authenticated_client, test_project, test_flag
+    ):
+        """Cables without merged_geometry are excluded from features."""
+        address = AddressFactory(project=test_project, flag=test_flag)
+        cable_with = str(uuid.uuid4())
+        cable_without = str(uuid.uuid4())
+        geojson = {
+            "type": "LineString",
+            "coordinates": [[428500, 5703804], [428560, 5703804]],
+        }
+        trace = _make_trace_result({cable_with: geojson, cable_without: None})
+
+        with patch(TRACE_PATH, return_value=trace):
+            url = self.endpoint.format(uuid=address.uuid)
+            response = authenticated_client.get(url)
+
+        data = response.json()
+        assert len(data["features"]) == 1
+        assert data["features"][0]["id"] == cable_with
+
+    def test_trace_calls_with_correct_args(
+        self, authenticated_client, test_project, test_flag
+    ):
+        """trace_address is called with the address PK and correct kwargs."""
+        address = AddressFactory(project=test_project, flag=test_flag)
+        trace = _make_trace_result({})
+
+        with patch(TRACE_PATH, return_value=trace) as mock_trace:
+            url = self.endpoint.format(uuid=address.uuid)
+            authenticated_client.get(url)
+
+        mock_trace.assert_called_once_with(
+            str(address.pk),
+            include_geometry=True,
+            geometry_mode="routed",
+            orient_geometry=False,
         )
+
+
+class TestAddressLinkedTrenchesFallback:
+    """Tests for FK-based fallback when trace returns no features."""
+
+    endpoint = "/api/v1/address/{uuid}/linked-trenches/"
+
+    @patch(TRACE_PATH, return_value=None)
+    def test_trace_none_falls_back_to_fk_trenches(
+        self, mock_trace, authenticated_client, test_project, test_flag
+    ):
+        """When trace_address returns None, fallback queries trench FK chain."""
+        address = AddressFactory(project=test_project, flag=test_flag)
+        node = NodeFactory(project=test_project, flag=test_flag, uuid_address=address)
         conduit = _create_conduit_without_signal(test_project, test_flag)
         Microduct.objects.create(
-            uuid_conduit=conduit,
-            uuid_node=node,
-            number=1,
-            color="rot",
+            uuid_conduit=conduit, uuid_node=node, number=1, color="rot"
         )
         trench = TrenchFactory(
             project=test_project,
@@ -121,276 +238,62 @@ class TestAddressLinkedTrenches:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["type"] == "FeatureCollection"
         assert len(data["features"]) == 1
-
         feature = data["features"][0]
         assert feature["id"] == str(trench.uuid)
-        assert feature["properties"]["id_trench"].startswith("TR-")
-        assert feature["geometry"]["type"] == "LineString"
-        assert len(feature["geometry"]["coordinates"]) >= 2
+        trench.refresh_from_db()
+        assert feature["properties"]["id_trench"] == trench.id_trench
 
-    def test_multiple_trenches_returned(
+    def test_trace_exception_falls_back_to_fk_trenches(
         self, authenticated_client, test_project, test_flag
     ):
-        address = AddressFactory(project=test_project, flag=test_flag)
-        node = NodeFactory(project=test_project, flag=test_flag, uuid_address=address)
-
-        conduit1 = _create_conduit_without_signal(test_project, test_flag)
-        conduit2 = _create_conduit_without_signal(test_project, test_flag)
-
-        Microduct.objects.create(
-            uuid_conduit=conduit1, uuid_node=node, number=1, color="rot"
-        )
-        Microduct.objects.create(
-            uuid_conduit=conduit2, uuid_node=node, number=1, color="blau"
-        )
-
-        trench1 = TrenchFactory(
-            project=test_project,
-            flag=test_flag,
-            geom=LineString((0, 0), (100, 0), srid=25832),
-        )
-        trench2 = TrenchFactory(
-            project=test_project,
-            flag=test_flag,
-            geom=LineString((100, 0), (200, 0), srid=25832),
-        )
-
-        TrenchConduitConnectionFactory(uuid_trench=trench1, uuid_conduit=conduit1)
-        TrenchConduitConnectionFactory(uuid_trench=trench2, uuid_conduit=conduit2)
-
-        url = self.endpoint.format(uuid=address.uuid)
-        response = authenticated_client.get(url)
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert len(data["features"]) == 2
-        returned_uuids = {f["id"] for f in data["features"]}
-        assert returned_uuids == {str(trench1.uuid), str(trench2.uuid)}
-
-    def test_duplicate_trenches_deduplicated(
-        self, authenticated_client, test_project, test_flag
-    ):
+        """When trace_address raises, fallback queries trench FK chain."""
         address = AddressFactory(project=test_project, flag=test_flag)
         node = NodeFactory(project=test_project, flag=test_flag, uuid_address=address)
         conduit = _create_conduit_without_signal(test_project, test_flag)
-        trench = TrenchFactory(
-            project=test_project,
-            flag=test_flag,
-            geom=LineString((0, 0), (100, 0), srid=25832),
-        )
-        TrenchConduitConnectionFactory(uuid_trench=trench, uuid_conduit=conduit)
-
         Microduct.objects.create(
             uuid_conduit=conduit, uuid_node=node, number=1, color="rot"
         )
-        Microduct.objects.create(
-            uuid_conduit=conduit, uuid_node=node, number=2, color="blau"
+        trench = TrenchFactory(
+            project=test_project,
+            flag=test_flag,
+            geom=LineString((428500, 5703804), (428560, 5703804), srid=25832),
         )
+        TrenchConduitConnectionFactory(uuid_trench=trench, uuid_conduit=conduit)
 
-        url = self.endpoint.format(uuid=address.uuid)
-        response = authenticated_client.get(url)
+        with patch(TRACE_PATH, side_effect=Exception("trace boom")):
+            url = self.endpoint.format(uuid=address.uuid)
+            response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert len(data["features"]) == 1
         assert data["features"][0]["id"] == str(trench.uuid)
 
-
-class TestAddressLinkedTrenchesRouting:
-    """Tests for routing-based trench filtering when a cable exists."""
-
-    endpoint = "/api/v1/address/{uuid}/linked-trenches/"
-
-    def test_with_cable_returns_only_routed_trenches(
+    def test_trace_empty_infrastructure_falls_back(
         self, authenticated_client, test_project, test_flag
     ):
-        """When a cable exists with start/end nodes, only path-relevant trenches are returned.
-
-        Layout:
-            Main:    (0,0) --- (50,0) --- (100,0)
-            Spur A:  (50,0) --- (50,50)   <- this address
-            Spur B:  (50,0) --- (50,-50)  <- other address (should be excluded)
-
-        Cable routes from (0,0) to (50,50): main + spur A only.
-        """
-        address_a = AddressFactory(
-            project=test_project,
-            flag=test_flag,
-            geom=Point(50, 50, srid=25832),
-        )
-        node_start = NodeFactory(
-            project=test_project,
-            flag=test_flag,
-            geom=Point(0, 0, srid=25832),
-        )
-        node_a = NodeFactory(
-            project=test_project,
-            flag=test_flag,
-            uuid_address=address_a,
-            geom=Point(50, 50, srid=25832),
-        )
-
-        conduit = _create_conduit_without_signal(test_project, test_flag)
-
-        microduct = Microduct.objects.create(
-            uuid_conduit=conduit, uuid_node=node_a, number=1, color="rot"
-        )
-
-        cable = CableFactory(
-            project=test_project,
-            flag=test_flag,
-            uuid_node_start=node_start,
-            uuid_node_end=node_a,
-        )
-        MicroductCableConnection.objects.create(
-            uuid_microduct=microduct, uuid_cable=cable
-        )
-
-        trench_main = TrenchFactory(
-            project=test_project,
-            flag=test_flag,
-            geom=LineString((0, 0), (50, 0), (100, 0), srid=25832),
-        )
-        trench_spur_a = TrenchFactory(
-            project=test_project,
-            flag=test_flag,
-            geom=LineString((50, 0), (50, 50), srid=25832),
-        )
-        trench_spur_b = TrenchFactory(
-            project=test_project,
-            flag=test_flag,
-            geom=LineString((50, 0), (50, -50), srid=25832),
-        )
-
-        TrenchConduitConnectionFactory(uuid_trench=trench_main, uuid_conduit=conduit)
-        TrenchConduitConnectionFactory(uuid_trench=trench_spur_a, uuid_conduit=conduit)
-        TrenchConduitConnectionFactory(uuid_trench=trench_spur_b, uuid_conduit=conduit)
-
-        url = self.endpoint.format(uuid=address_a.uuid)
-        response = authenticated_client.get(url)
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        returned_uuids = {f["id"] for f in data["features"]}
-        assert str(trench_main.uuid) in returned_uuids
-        assert str(trench_spur_a.uuid) in returned_uuids
-        assert str(trench_spur_b.uuid) not in returned_uuids
-        assert len(data["features"]) == 2
-
-    def test_without_cable_falls_back_to_all_trenches(
-        self, authenticated_client, test_project, test_flag
-    ):
-        """Without a cable, all conduit-connected trenches are returned (fallback)."""
+        """Trace returns successfully but with no cable_infrastructure — fallback activates."""
         address = AddressFactory(project=test_project, flag=test_flag)
         node = NodeFactory(project=test_project, flag=test_flag, uuid_address=address)
         conduit = _create_conduit_without_signal(test_project, test_flag)
         Microduct.objects.create(
             uuid_conduit=conduit, uuid_node=node, number=1, color="rot"
         )
-
-        trench1 = TrenchFactory(
-            project=test_project,
-            flag=test_flag,
-            geom=LineString((0, 0), (50, 0), srid=25832),
-        )
-        trench2 = TrenchFactory(
-            project=test_project,
-            flag=test_flag,
-            geom=LineString((50, 0), (50, -50), srid=25832),
-        )
-        TrenchConduitConnectionFactory(uuid_trench=trench1, uuid_conduit=conduit)
-        TrenchConduitConnectionFactory(uuid_trench=trench2, uuid_conduit=conduit)
-
-        url = self.endpoint.format(uuid=address.uuid)
-        response = authenticated_client.get(url)
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert len(data["features"]) == 2
-
-    def test_cable_without_start_end_nodes_falls_back(
-        self, authenticated_client, test_project, test_flag
-    ):
-        """Cable exists but has no start/end nodes — falls back to FK-based approach."""
-        address = AddressFactory(project=test_project, flag=test_flag)
-        node = NodeFactory(project=test_project, flag=test_flag, uuid_address=address)
-        conduit = _create_conduit_without_signal(test_project, test_flag)
-        microduct = Microduct.objects.create(
-            uuid_conduit=conduit, uuid_node=node, number=1, color="rot"
-        )
-
-        cable = CableFactory(project=test_project, flag=test_flag)
-        MicroductCableConnection.objects.create(
-            uuid_microduct=microduct, uuid_cable=cable
-        )
-
         trench = TrenchFactory(
             project=test_project,
             flag=test_flag,
-            geom=LineString((0, 0), (100, 0), srid=25832),
+            geom=LineString((428500, 5703804), (428560, 5703804), srid=25832),
         )
         TrenchConduitConnectionFactory(uuid_trench=trench, uuid_conduit=conduit)
 
-        url = self.endpoint.format(uuid=address.uuid)
-        response = authenticated_client.get(url)
+        trace = _make_trace_result({})
+        with patch(TRACE_PATH, return_value=trace):
+            url = self.endpoint.format(uuid=address.uuid)
+            response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert len(data["features"]) == 1
-
-    def test_routing_failure_falls_back(
-        self, authenticated_client, test_project, test_flag
-    ):
-        """Cable with start/end nodes but disconnected trenches — routing fails, falls back."""
-        address = AddressFactory(
-            project=test_project,
-            flag=test_flag,
-            geom=Point(500, 500, srid=25832),
-        )
-        node_start = NodeFactory(
-            project=test_project,
-            flag=test_flag,
-            geom=Point(0, 0, srid=25832),
-        )
-        node_end = NodeFactory(
-            project=test_project,
-            flag=test_flag,
-            uuid_address=address,
-            geom=Point(500, 500, srid=25832),
-        )
-        conduit = _create_conduit_without_signal(test_project, test_flag)
-        microduct = Microduct.objects.create(
-            uuid_conduit=conduit, uuid_node=node_end, number=1, color="rot"
-        )
-
-        cable = CableFactory(
-            project=test_project,
-            flag=test_flag,
-            uuid_node_start=node_start,
-            uuid_node_end=node_end,
-        )
-        MicroductCableConnection.objects.create(
-            uuid_microduct=microduct, uuid_cable=cable
-        )
-
-        trench1 = TrenchFactory(
-            project=test_project,
-            flag=test_flag,
-            geom=LineString((0, 0), (100, 0), srid=25832),
-        )
-        trench2 = TrenchFactory(
-            project=test_project,
-            flag=test_flag,
-            geom=LineString((400, 400), (500, 500), srid=25832),
-        )
-        TrenchConduitConnectionFactory(uuid_trench=trench1, uuid_conduit=conduit)
-        TrenchConduitConnectionFactory(uuid_trench=trench2, uuid_conduit=conduit)
-
-        url = self.endpoint.format(uuid=address.uuid)
-        response = authenticated_client.get(url)
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert len(data["features"]) == 2
+        trench.refresh_from_db()
+        assert data["features"][0]["properties"]["id_trench"] == trench.id_trench

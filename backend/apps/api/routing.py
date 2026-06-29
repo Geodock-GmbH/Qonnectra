@@ -410,56 +410,6 @@ def get_cable_connected_trenches_with_geometry(cable_pk):
     return result
 
 
-def get_address_routed_trench_uuids(address_pk):
-    """Return routed trench UUIDs for an address if a cable with start/end nodes exists.
-
-    Traverses Address -> Node -> Microduct -> MicroductCableConnection -> Cable
-    to find a cable with valid start/end node geometries.  If found, uses
-    :func:`find_path_through_trenches` to determine the shortest path and
-    returns only the trench UUIDs on that path.
-
-    Args:
-        address_pk: Primary key of the :model:`api.Address`.
-
-    Returns:
-        list[str] | None: Ordered trench UUID strings on the routed path,
-            or ``None`` if no routable cable exists or routing fails.
-    """
-    from .models import Cable
-
-    cables = (
-        Cable.objects.filter(
-            microductcableconnection__uuid_microduct__uuid_node__uuid_address=address_pk
-        )
-        .select_related("uuid_node_start", "uuid_node_end")
-        .distinct()
-    )
-
-    for cable in cables:
-        start_node = cable.uuid_node_start
-        end_node = cable.uuid_node_end
-        if not start_node or not end_node or not start_node.geom or not end_node.geom:
-            continue
-
-        trenches = get_cable_connected_trenches_with_geometry(cable.pk)
-        if not trenches:
-            continue
-
-        result = find_path_through_trenches(
-            trenches,
-            (start_node.geom.x, start_node.geom.y),
-            (end_node.geom.x, end_node.geom.y),
-        )
-        if result is None or result == (None, None):
-            continue
-
-        path_trench_ids, _ = result
-        if path_trench_ids:
-            return path_trench_ids
-
-    return None
-
-
 def calculate_cable_length_routed(cable_pk, start_point, end_point):
     """Calculate accurate cable length using shortest-path routing through connected trenches.
 

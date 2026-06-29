@@ -94,7 +94,7 @@ from .models import (
 )
 from .pageination import CustomPagination
 from .permissions import RoleBasedPermission, get_user_permissions
-from .routing import find_shortest_path, get_address_routed_trench_uuids
+from .routing import find_shortest_path
 from .serializers import (
     AddressListSerializer,
     AddressSerializer,
@@ -162,6 +162,7 @@ from .services import (
     generate_geopackage_schema,
     generate_node_structure_excel,
     import_conduits_from_excel,
+    trace_address,
 )
 from .wms_service import WMSServiceError, fetch_wms_layers, scan_wms_capabilities
 
@@ -1777,29 +1778,58 @@ class AddressViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="linked-trenches")
     def linked_trenches(self, request, pk=None):
-        """Return trench geometries (EPSG:3857) connected to this address via the conduit chain.
+        """Return cable/trench geometries (EPSG:3857) connected to this address.
 
-        When a cable with start/end nodes exists in the address's microducts,
-        uses routing to return only the path-relevant trenches.  Falls back to
-        returning all conduit-connected trenches otherwise.
+        Uses :func:`~apps.api.services.trace_address` to resolve
+        fibers → cables → routed trench geometry.  Falls back to the
+        conduit FK chain when the trace yields no features.
 
         Args:
             request: DRF request object.
             pk: Primary key (UUID) of the :model:`api.Address`.
 
         Returns:
-            Response: GeoJSON FeatureCollection with trench LineString features
-                and ``id_trench`` properties.
+            Response: GeoJSON FeatureCollection with LineString features.
         """
+        from django.contrib.gis.geos import GEOSGeometry
+
         address = self.get_object()
+        features = []
 
-        routed_uuids = get_address_routed_trench_uuids(address.pk)
-
-        if routed_uuids is not None:
-            trenches = Trench.objects.filter(uuid__in=routed_uuids).only(
-                "uuid", "id_trench", "geom_3857"
+        try:
+            trace = trace_address(
+                str(address.pk),
+                include_geometry=True,
+                geometry_mode="routed",
+                orient_geometry=False,
             )
-        else:
+        except Exception:
+            logger.exception("linked_trenches trace failed for %s", address.pk)
+            trace = None
+
+        if trace:
+            for cable_id, infra in trace.get("cable_infrastructure", {}).items():
+                merged = infra.get("merged_geometry")
+                if not merged:
+                    continue
+                try:
+                    geom = GEOSGeometry(json.dumps(merged))
+                    geom.srid = 25832
+                    geom.transform(3857)
+                except Exception:
+                    continue
+                if geom.empty:
+                    continue
+                features.append(
+                    {
+                        "type": "Feature",
+                        "id": str(cable_id),
+                        "geometry": json.loads(geom.geojson),
+                        "properties": {"id_cable": str(cable_id)},
+                    }
+                )
+
+        if not features:
             trenches = (
                 Trench.objects.filter(
                     trenchconduitconnection__uuid_conduit__microduct__uuid_node__uuid_address=address.pk
@@ -1807,18 +1837,16 @@ class AddressViewSet(viewsets.ModelViewSet):
                 .distinct()
                 .only("uuid", "id_trench", "geom_3857")
             )
-
-        features = []
-        for t in trenches:
-            if t.geom_3857 and not t.geom_3857.empty:
-                features.append(
-                    {
-                        "type": "Feature",
-                        "id": str(t.uuid),
-                        "geometry": json.loads(t.geom_3857.geojson),
-                        "properties": {"id_trench": t.id_trench},
-                    }
-                )
+            for t in trenches:
+                if t.geom_3857 and not t.geom_3857.empty:
+                    features.append(
+                        {
+                            "type": "Feature",
+                            "id": str(t.uuid),
+                            "geometry": json.loads(t.geom_3857.geojson),
+                            "properties": {"id_trench": t.id_trench},
+                        }
+                    )
 
         return Response({"type": "FeatureCollection", "features": features})
 
