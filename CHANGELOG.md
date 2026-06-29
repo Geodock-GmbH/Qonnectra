@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.2.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.1.1...v1.2.0) (2026-06-29)
+
+
+### Features
+
+* Add CSV export for fault simulation results ([#65](https://github.com/Geodock-GmbH/Qonnectra/issues/65)) ([891957c](https://github.com/Geodock-GmbH/Qonnectra/commit/891957cedd5f779b1463db41e1ac1cffd26a609d))
+* Added trench features to compact address map ([#66](https://github.com/Geodock-GmbH/Qonnectra/issues/66)) ([b15d31c](https://github.com/Geodock-GmbH/Qonnectra/commit/b15d31c825e700039b8d072650e485e9374dace5))
+
+
+### Miscellaneous
+
+* Added more map hints for map centered routes ([a90aeb8](https://github.com/Geodock-GmbH/Qonnectra/commit/a90aeb86b13a3bed007a8f96057682dc1ed59525))
+* Fixed prs_created for release-please ([8c5cf4d](https://github.com/Geodock-GmbH/Qonnectra/commit/8c5cf4da69eaca1b6a7e034be986dcb12ae06e02))
+* Fixed some pylance warnings, ruff format and prettier format ([6349d7d](https://github.com/Geodock-GmbH/Qonnectra/commit/6349d7d72cce20461c35e79a1eb30089d7eea46e))
+* Fixed the publiccode yml file format that the github bot changed ([5b36a3c](https://github.com/Geodock-GmbH/Qonnectra/commit/5b36a3cfed0a9c2aa76e175390856daa86d7414f))
+* Renamed EN screenshot ([ee4963a](https://github.com/Geodock-GmbH/Qonnectra/commit/ee4963acff194b46a52b2eb8a983161dedb70a44))
+* Renamed EN screenshot ([1dac5cd](https://github.com/Geodock-GmbH/Qonnectra/commit/1dac5cd2f0ce3db3df60fb091926ec3f9276db22))
+
 ## [1.1.1](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.1.0...v1.1.1) (2026-06-16)
 
 
