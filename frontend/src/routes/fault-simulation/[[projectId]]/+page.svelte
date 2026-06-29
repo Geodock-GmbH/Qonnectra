@@ -1,6 +1,6 @@
 <script>
 	import { browser, dev } from '$app/environment';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import Feature from 'ol/Feature.js';
 	import GeoJSON from 'ol/format/GeoJSON.js';
 	import LineString from 'ol/geom/LineString.js';
@@ -45,8 +45,8 @@
 	const constructionTypes = $derived(/** @type {any[]} */ (data.constructionTypes ?? []));
 	const areaTypes = $derived(/** @type {any[]} */ (data.areaTypes ?? []));
 
-	if (browser && $page.params.projectId && $page.params.projectId !== get(selectedProject)) {
-		selectedProject.set($page.params.projectId);
+	if (browser && page.params.projectId && page.params.projectId !== get(selectedProject)) {
+		selectedProject.set(page.params.projectId);
 	}
 
 	const mapState = new MapState($selectedProject, get(trenchColorSelected), {
@@ -185,8 +185,8 @@
 
 		if (!feature) return;
 
-		const srid = $page.data.srid;
-		const proj4Def = $page.data.proj4Def;
+		const srid = page.data.srid;
+		const proj4Def = page.data.proj4Def;
 		if (srid && proj4Def) {
 			registerStorageProjection(srid, proj4Def);
 		}
@@ -250,8 +250,8 @@
 
 		clearResultLayers();
 
-		const srid = $page.data.srid;
-		const proj4Def = $page.data.proj4Def;
+		const srid = page.data.srid;
+		const proj4Def = page.data.proj4Def;
 		if (srid && proj4Def) {
 			registerStorageProjection(srid, proj4Def);
 		}
@@ -410,7 +410,7 @@
 
 				{#if ctx.damagePoint && !ctx.simulationResult}
 					<div class="fault-popup" style="left: {popupPixel.x}px; top: {popupPixel.y}px;">
-						<FaultSimulationPopUp projectId={$page.params.projectId ?? get(selectedProject)} />
+						<FaultSimulationPopUp projectId={page.params.projectId ?? get(selectedProject)} />
 						<div class="fault-popup-arrow"></div>
 					</div>
 				{/if}
@@ -425,7 +425,7 @@
 	{#if ctx.simulationResult}
 		<div class="flex-1 min-h-0 border-t border-surface-200-800 mt-2">
 			<DamageReport
-				projectId={$page.params.projectId ?? get(selectedProject)}
+				projectId={page.params.projectId ?? get(selectedProject)}
 				onreset={() => ctx.reset()}
 			/>
 		</div>

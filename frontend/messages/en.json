@@ -25,9 +25,9 @@
 	"action_delete_node": "Delete node",
 	"action_download": "Download",
 	"action_download_pdf": "Download PDF",
-	"action_export_csv": "Export CSV",
 	"action_edit_trench_selection": "Edit trench selection",
 	"action_expand": "Expand",
+	"action_export_csv": "Export CSV",
 	"action_export_excel": "Export Excel",
 	"action_highlight_trenches": "Highlight trenches on map",
 	"action_import_conduit_xlsx": "Excel Import",
@@ -103,8 +103,13 @@
 	"common_reset_all": "Reset All",
 	"common_results": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Result",
 				"countPlural=other": "Results"
@@ -128,8 +133,13 @@
 	"form_actions": "Actions",
 	"form_address": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Address",
 				"countPlural=other": "Addresses"
@@ -138,8 +148,13 @@
 	],
 	"form_address_id": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Address ID",
 				"countPlural=other": "Address IDs"
@@ -179,8 +194,13 @@
 	"form_breakdown_by_type": "Grouped by type",
 	"form_building": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Building",
 				"countPlural=other": "Buildings"
@@ -204,8 +224,13 @@
 	"form_components": "Components",
 	"form_conduit": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Conduit",
 				"countPlural=other": "Conduits"
@@ -230,8 +255,13 @@
 	"form_date_to": "To date",
 	"form_days": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "day",
 				"countPlural=other": "days"
@@ -252,8 +282,13 @@
 	"form_fibers": "Fibers",
 	"form_files": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "File",
 				"countPlural=other": "Files"
@@ -295,8 +330,13 @@
 	"form_message": "Message",
 	"form_microduct": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Microduct",
 				"countPlural=other": "Microducts"
@@ -335,8 +375,13 @@
 	"form_ports": "Ports",
 	"form_project": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Project",
 				"countPlural=other": "Projects"
@@ -365,8 +410,13 @@
 	"form_side": "Side",
 	"form_slot": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "slot",
 				"countPlural=other": "slots"
@@ -513,6 +563,9 @@
 	"message_loading_fibers": "Loading fibers...",
 	"message_loading_network_schema": "Synchronizing Network Schema...",
 	"message_login_error": "Login error. Please try again.",
+	"message_map_hint_assign_conduit": "Choose a conduit from the combobox on the right.",
+	"message_map_hint_map_infos": "Click on a layer to get the info.",
+	"message_map_hint_reveal_drawer": "Click on a trench to open the sidebar.",
 	"message_micropipe_not_in_conduit": "Not available in: {conduits}",
 	"message_network_schema_settings_not_configured": "Network schema settings are not configured for this project. Please configure them in the admin panel.",
 	"message_no_cables": "No cables at this node",
@@ -637,8 +690,13 @@
 	"section_microduct_connections": "Microduct Connections",
 	"section_residential_units": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Residential Unit",
 				"countPlural=other": "Residential Units"
@@ -746,6 +804,7 @@
 	"tooltip_delete_connection": "Delete connection",
 	"tooltip_delete_edge": "Delete edge",
 	"tooltip_deselect_all": "Deselect all",
+	"tooltip_documentation": "Documentation",
 	"tooltip_double_click_divider": "Double-click to toggle divider line",
 	"tooltip_download_address_pdf": "Creates a PDF with the address information and optionally the residential units.",
 	"tooltip_drag_to_close": "Drag to close",
@@ -753,7 +812,6 @@
 	"tooltip_drag_to_resize": "Drag to resize",
 	"tooltip_expand": "Expand",
 	"tooltip_expand_layer_tree": "Expand layer tree",
-	"tooltip_documentation": "Documentation",
 	"tooltip_github": "GitHub",
 	"tooltip_hide": "Hide",
 	"tooltip_hide_conduit_labels": "Hide conduit labels",
@@ -781,8 +839,13 @@
 	"tooltip_zoom_to_extent": "Zoom to extent",
 	"trace_addresses": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "address",
 				"countPlural=other": "addresses"
@@ -795,8 +858,8 @@
 	"trace_cable_infrastructure": "Cable Infrastructure",
 	"trace_cable_path": "Cable Path",
 	"trace_container_path": "Container Path",
-	"trace_details": "Details",
 	"trace_description": "Network path analysis and infrastructure visualization",
+	"trace_details": "Details",
 	"trace_download_geojson": "Download GeoJSON",
 	"trace_end": "End",
 	"trace_end_address": "End :",
@@ -824,8 +887,13 @@
 	"trace_raw_json": "Raw JSON Response",
 	"trace_residential_units": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "RU",
 				"countPlural=other": "RUs"
@@ -843,8 +911,13 @@
 	"trace_splice": "Splice",
 	"trace_splices": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "splice",
 				"countPlural=other": "splices"

@@ -1,9 +1,8 @@
 <script>
 	import { fade } from 'svelte/transition';
-	import { IconPointer } from '@tabler/icons-svelte';
 
-	/** @type {{ visible?: boolean, message: string, icon?: typeof IconPointer, class?: string }} */
-	let { visible = true, message, icon = IconPointer, class: className = '' } = $props();
+	/** @type {{ visible?: boolean, message: string, class?: string }} */
+	let { visible = true, message, class: className = '' } = $props();
 </script>
 
 {#if visible}
@@ -16,10 +15,6 @@
 			{className}"
 		transition:fade={{ duration: 200 }}
 	>
-		{#if icon}
-			{@const Icon = icon}
-			<span class="shrink-0"><Icon size={18} /></span>
-		{/if}
 		<span>{message}</span>
 	</div>
 {/if}

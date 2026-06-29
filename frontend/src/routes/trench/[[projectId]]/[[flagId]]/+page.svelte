@@ -4,7 +4,7 @@
 	import { browser } from '$app/environment';
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { navigating, page } from '$app/stores';
+	import { navigating, page } from '$app/state';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
 	import { IconLink, IconLoader2, IconRoute } from '@tabler/icons-svelte';
 	import WKT from 'ol/format/WKT.js';
@@ -17,6 +17,7 @@
 	import ConduitCombobox from '$lib/components/ConduitCombobox.svelte';
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import Map from '$lib/components/Map.svelte';
+	import MapHint from '$lib/components/MapHint.svelte';
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 	import { zoomToFeature } from '$lib/map/searchUtils.js';
 	import {
@@ -39,8 +40,6 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 
-	import TrenchTable from './TrenchTable.svelte';
-
 	import 'ol/ol.css';
 
 	import VectorTileLayer from 'ol/layer/VectorTile.js';
@@ -49,6 +48,8 @@
 	import Stroke from 'ol/style/Stroke.js';
 
 	import { createLinkedTrenchStyle } from '$lib/map/styles.js';
+
+	import TrenchTable from './TrenchTable.svelte';
 
 	let { data } = $props();
 
@@ -66,8 +67,8 @@
 	const flagsError = $derived(/** @type {string | undefined} */ (data.flagsError ?? undefined));
 
 	// Sync stores from URL params on initial load to prevent navigation effect from redirecting
-	const urlProjectId = $page.params.projectId;
-	const urlFlagId = $page.params.flagId;
+	const urlProjectId = page.params.projectId;
+	const urlFlagId = page.params.flagId;
 	if (browser && urlProjectId && urlProjectId !== get(selectedProject)) {
 		selectedProject.set(urlProjectId);
 		selectedConduit.set(undefined);
@@ -83,6 +84,8 @@
 		area: true
 	});
 	const selectionManager = new MapSelectionManager();
+
+	const layersInitialized = mapState.initializeLayers();
 
 	setContext('mapManagers', {
 		mapState,
@@ -179,9 +182,9 @@
 
 					if (geometryWkt) {
 						const view = mapState.olMap.getView();
-						registerStorageProjection($page.data.srid, $page.data.proj4Def);
+						registerStorageProjection(page.data.srid, page.data.proj4Def);
 						const geometry = wktFormat.readGeometry(geometryWkt, {
-							dataProjection: storageProjection($page.data.srid),
+							dataProjection: storageProjection(page.data.srid),
 							featureProjection: view.getProjection()
 						});
 
@@ -208,7 +211,7 @@
 	$effect(() => {
 		const projectId = $selectedProject;
 		const flagId = $selectedFlag;
-		const currentPath = $page.url.pathname;
+		const currentPath = page.url.pathname;
 
 		if (projectId && flagId) {
 			const targetPath = `/trench/${projectId}/${flagId}`;
@@ -253,8 +256,6 @@
 			width: 4
 		})
 	});
-
-	const layersInitialized = mapState.initializeLayers();
 
 	$effect(() => {
 		mapState.refreshTileSources();
@@ -403,9 +404,9 @@
 
 					if (routeData.path_geometry_wkt && routeData.traversed_trench_uuids) {
 						const wktFormat = new WKT();
-						registerStorageProjection($page.data.srid, $page.data.proj4Def);
+						registerStorageProjection(page.data.srid, page.data.proj4Def);
 						const routeFeature = wktFormat.readFeature(routeData.path_geometry_wkt, {
-							dataProjection: storageProjection($page.data.srid),
+							dataProjection: storageProjection(page.data.srid),
 							featureProjection: mapState.olMap.getView().getProjection()
 						});
 						if (routeLayer) routeLayer.getSource().addFeature(routeFeature);
@@ -546,6 +547,7 @@
 			linkedTrenchesLayer = undefined;
 		};
 	});
+	$inspect($selectedConduit);
 </script>
 
 <svelte:head>
@@ -572,6 +574,11 @@
 					trenchColorSelected: $trenchColorSelected,
 					alias: data.alias
 				}}
+			/>
+
+			<MapHint
+				message={m.message_map_hint_assign_conduit()}
+				visible={$selectedConduit === undefined}
 			/>
 		{:else}
 			<div class="p-4 text-yellow-700 bg-yellow-100 border border-yellow-400 rounded">
@@ -676,7 +683,7 @@
 							>{m.form_conduit({ count: 1 })}</span
 						>
 						<ConduitCombobox
-							loading={$navigating !== null}
+							loading={navigating.to !== null}
 							conduits={data.conduits ?? []}
 							conduitsError={data.conduitsError}
 							projectId={$selectedProject}

@@ -12,6 +12,7 @@
 	import { NodeAssignmentManager } from '$lib/classes/NodeAssignmentManager.svelte.js';
 	import Drawer from '$lib/components/Drawer.svelte';
 	import Map from '$lib/components/Map.svelte';
+	import MapHint from '$lib/components/MapHint.svelte';
 	import { createLinkedTrenchStyle } from '$lib/map/styles.js';
 	import { drawerStore } from '$lib/stores/drawer';
 	import {
@@ -295,6 +296,8 @@
 					<div id="popup-content"></div>
 				</div>
 			</div>
+
+			<MapHint message={m.message_map_hint_reveal_drawer()} visible={$drawerStore.open == false} />
 		{:else}
 			<div class="p-4 text-yellow-700 bg-yellow-100 border border-yellow-400 rounded">
 				<p>{m.message_error_could_not_load_map_tiles()}</p>

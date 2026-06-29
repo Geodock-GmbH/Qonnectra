@@ -76,7 +76,7 @@
 	</div>
 {:else if dataManager.pipesInTrench.length === 0}
 	<div class="border rounded-lg p-4">
-		<p>{m.message_no_conduits_found()}</p>
+		<p>{m.message_no_conduits_found_in_trench()}</p>
 	</div>
 {:else}
 	<Accordion multiple value={openItems} onValueChange={handleAccordionChange}>
