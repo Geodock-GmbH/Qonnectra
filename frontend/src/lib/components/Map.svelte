@@ -34,6 +34,7 @@
 	import { IconSearch, IconX } from '@tabler/icons-svelte';
 	import { env } from '$env/dynamic/public';
 
+	import { MapMeasureManager } from '$lib/classes/MapMeasureManager.svelte.js';
 	import { tileLoadingManager } from '$lib/map/tileLoadingManager.js';
 	import { getWorkerPool } from '$lib/map/workerPool.js';
 	import {
@@ -49,6 +50,7 @@
 	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 
 	import LayerVisibilityTree from './LayerVisibilityTree.svelte';
+	import MapContextMenu from './MapContextMenu.svelte';
 	import OpacitySlider from './OpacitySlider.svelte';
 	import SearchPanel from './SearchPanel.svelte';
 
@@ -65,6 +67,8 @@
 		showOpacitySlider = true,
 		showLayerVisibilityTree = true,
 		showSearchPanel = true,
+		showContextMenu = true,
+		contextMenuActions = { measureDistance: true, measureArea: true },
 		onLayerVisibilityChanged = () => {},
 		onNodeTypeVisibilityChanged = () => {},
 		onTrenchTypeVisibilityChanged = () => {},
@@ -84,6 +88,8 @@
 	} = $props();
 
 	let searchPanelRef = $state();
+	// svelte-ignore state_referenced_locally
+	const measureManager = showContextMenu ? new MapMeasureManager() : null;
 
 	/** @type {HTMLDivElement | undefined} */
 	let container = $state();
@@ -264,6 +270,10 @@
 			await setupFallbackOSM(map);
 		}
 
+		if (measureManager) {
+			measureManager.initialize(map);
+		}
+
 		onready({ map, usingFallbackOSM });
 
 		map.on('moveend', () => {
@@ -292,6 +302,10 @@
 	onDestroy(() => {
 		tileLoadingManager.cancelAllRequests();
 		getWorkerPool().cancelAllRequests();
+
+		if (measureManager) {
+			measureManager.cleanup();
+		}
 
 		const currentMap = map;
 		if (currentMap) {
@@ -404,6 +418,14 @@
 	export function getSearchPanelRef() {
 		return searchPanelRef;
 	}
+
+	/**
+	 * Gets the reference to the measure manager instance.
+	 * @returns {MapMeasureManager | null}
+	 */
+	export function getMeasureManager() {
+		return measureManager;
+	}
 </script>
 
 <!-- Map: Compact variant -->
@@ -452,13 +474,25 @@
 			{/if}
 		</div>
 		<!-- Map: Map canvas - compact variant -->
-		<div class="map" bind:this={container}></div>
+		{#if showContextMenu && measureManager}
+			<MapContextMenu {measureManager} actions={contextMenuActions}>
+				<div class="map" bind:this={container}></div>
+			</MapContextMenu>
+		{:else}
+			<div class="map" bind:this={container}></div>
+		{/if}
 	</div>
 	<!-- Map: Fullscreen variant -->
 {:else}
 	<div class="map-container {className}">
 		<!-- Map: Map canvas - fullscreen variant -->
-		<div class="map" bind:this={container}></div>
+		{#if showContextMenu && measureManager}
+			<MapContextMenu {measureManager} actions={contextMenuActions}>
+				<div class="map" bind:this={container}></div>
+			</MapContextMenu>
+		{:else}
+			<div class="map" bind:this={container}></div>
+		{/if}
 
 		<!-- Map: Opacity slider - fullscreen variant (desktop only, mobile is in layer sheet) -->
 		{#if showOpacitySlider && map}

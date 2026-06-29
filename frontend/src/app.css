@@ -109,3 +109,26 @@ body {
 	background-color: var(--color-surface-50-950);
 	color: var(--color-surface-950-50);
 }
+
+/* Measure tool tooltip overlays */
+.ol-measure-tooltip {
+	position: relative;
+	background: rgba(0, 0, 0, 0.7);
+	border-radius: 4px;
+	color: white;
+	padding: 4px 8px;
+	white-space: nowrap;
+	font-size: 12px;
+	font-weight: bold;
+	pointer-events: none;
+}
+
+.ol-measure-tooltip-active {
+	opacity: 0.8;
+}
+
+.ol-measure-tooltip-static {
+	background-color: #ffcc33;
+	color: black;
+	border: 1px solid white;
+}
