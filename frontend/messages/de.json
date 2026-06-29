@@ -103,13 +103,8 @@
 	"common_reset_all": "Alle zurücksetzen",
 	"common_results": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Ergebnis",
 				"countPlural=other": "Ergebnisse"
@@ -133,13 +128,8 @@
 	"form_actions": "Aktionen",
 	"form_address": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Adresse",
 				"countPlural=other": "Adressen"
@@ -148,13 +138,8 @@
 	],
 	"form_address_id": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Adress-ID",
 				"countPlural=other": "Adressen-IDs"
@@ -194,13 +179,8 @@
 	"form_breakdown_by_type": "Aufteilung nach Bauart",
 	"form_building": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Gebäude",
 				"countPlural=other": "Gebäude"
@@ -224,13 +204,8 @@
 	"form_components": "Komponenten",
 	"form_conduit": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Rohr",
 				"countPlural=other": "Rohre"
@@ -255,13 +230,8 @@
 	"form_date_to": "Bis Datum",
 	"form_days": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Tag",
 				"countPlural=other": "Tagen"
@@ -282,13 +252,8 @@
 	"form_fibers": "Fasern",
 	"form_files": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Datei",
 				"countPlural=other": "Dateien"
@@ -305,6 +270,7 @@
 	"form_house_number_suffix": "Zusatz",
 	"form_housenumber": "Hausnummer",
 	"form_id_address": "Adress-ID",
+	"form_id_address_2": "Adress-ID 2",
 	"form_id_residential_unit": "Wohneinheit-ID",
 	"form_internal_execution": "Eigenleistung",
 	"form_layer": "Layer",
@@ -330,13 +296,8 @@
 	"form_message": "Nachricht",
 	"form_microduct": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Mikrorohr",
 				"countPlural=other": "Mikrorohre"
@@ -375,13 +336,8 @@
 	"form_ports": "Ports",
 	"form_project": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Projekt",
 				"countPlural=other": "Projekte"
@@ -410,13 +366,8 @@
 	"form_side": "Seite",
 	"form_slot": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Slot",
 				"countPlural=other": "Slots"
@@ -485,6 +436,8 @@
 	"message_confirm_delete_node": "Bist du sicher, dass du diesen Netzknoten löschen möchtest?",
 	"message_confirm_delete_residential_unit": "Bist du sicher, dass du diese Wohneinheit löschen möchtest?",
 	"message_confirm_reconnect_cable": "Durch das Ändern der Netzknotenverbindung werden Faserverbindungen gelöscht.",
+	"message_confirm_regenerate_id": "Bist du sicher, dass du die Adress-ID neu generieren möchtest? Die aktuelle ID wird ersetzt.",
+	"message_confirm_regenerate_residential_unit_id": "Bist du sicher, dass du die Wohneinheit-ID neu generieren möchtest? Die aktuelle ID wird ersetzt.",
 	"message_connection_deleted_successfully": "Verbindung erfolgreich gelöscht",
 	"message_created_connections": "Verbindungen erfolgreich erstellt",
 	"message_drop_fiber_here": "Faser hier ablegen",
@@ -691,13 +644,8 @@
 	"section_microduct_connections": "Mikrorohrverbindungen",
 	"section_residential_units": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Wohneinheit",
 				"countPlural=other": "Wohneinheiten"
@@ -818,6 +766,7 @@
 	"tooltip_hide_conduit_labels": "Leitungsbeschriftungen ausblenden",
 	"tooltip_hide_labels": "Beschriftungen ausblenden",
 	"tooltip_hide_layer": "Layer ausblenden",
+	"tooltip_id_address_2": "Optionale ID welche zusätzlich zur Haupt-ID gepflegt werden kann.",
 	"tooltip_login": "Anmelden",
 	"tooltip_logout": "Abmelden",
 	"tooltip_move_label_click_to_exit": "Label verschieben (Klicken zum Beenden)",
@@ -840,13 +789,8 @@
 	"tooltip_zoom_to_extent": "Auf Ausdehnung zoomen",
 	"trace_addresses": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Adresse",
 				"countPlural=other": "Adressen"
@@ -888,13 +832,8 @@
 	"trace_raw_json": "JSON-Rohdaten",
 	"trace_residential_units": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "WE",
 				"countPlural=other": "WEs"
@@ -912,13 +851,8 @@
 	"trace_splice": "Spleiss",
 	"trace_splices": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Spleiss",
 				"countPlural=other": "Spleisse"

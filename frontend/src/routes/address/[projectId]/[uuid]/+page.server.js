@@ -202,6 +202,7 @@ export const actions = {
 		const status_development_id = formData.get('status_development_id');
 		const flag_id = formData.get('flag_id');
 		const id_address = formData.get('id_address');
+		const id_address_2 = formData.get('id_address_2');
 
 		try {
 			/** @type {Record<string, any>} */ const requestBody = {};
@@ -217,6 +218,9 @@ export const actions = {
 				requestBody.status_development_id = parseInt(String(status_development_id));
 			if (flag_id) requestBody.flag_id = parseInt(String(flag_id));
 			if (id_address) requestBody.id_address = String(id_address).toUpperCase();
+			if (id_address_2 !== null) {
+				requestBody.id_address_2 = id_address_2 ? String(id_address_2).toUpperCase() : null;
+			}
 
 			const response = await fetch(`${API_URL}address/${uuid}/`, {
 				method: 'PATCH',

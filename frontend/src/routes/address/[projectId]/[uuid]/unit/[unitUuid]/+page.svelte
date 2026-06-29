@@ -60,6 +60,8 @@
 	/** @type {any} */
 	let deleteMessageBox = $state(null);
 	/** @type {any} */
+	let regenerateMessageBox = $state(null);
+	/** @type {any} */
 	let fileExplorer = $state(null);
 
 	const featureId = $derived(unit?.uuid);
@@ -216,6 +218,10 @@
 		deleteMessageBox?.open();
 	}
 
+	function openRegenerateConfirm() {
+		regenerateMessageBox?.open();
+	}
+
 	function goBack() {
 		goto(`/address/${projectId}/${addressUuid}`);
 	}
@@ -328,7 +334,7 @@
 							/>
 						</label>
 						<button
-							onclick={handleRegenerateId}
+							onclick={openRegenerateConfirm}
 							class="btn preset-tonal-primary inline-flex items-center gap-2"
 							disabled={isRegenerating}
 						>
@@ -658,4 +664,15 @@
 	acceptText={m.action_delete()}
 	closeText={m.common_cancel()}
 	onAccept={handleDelete}
+/>
+
+<!-- Regenerate ID Confirmation -->
+<MessageBox
+	bind:this={regenerateMessageBox}
+	heading={m.common_confirm()}
+	message={m.message_confirm_regenerate_residential_unit_id()}
+	showAcceptButton={true}
+	acceptText={m.action_regenerate_id()}
+	closeText={m.common_cancel()}
+	onAccept={handleRegenerateId}
 />

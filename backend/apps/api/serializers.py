@@ -671,6 +671,9 @@ class AddressSerializer(GeoFeatureModelSerializer):
     project = ProjectsSerializer(read_only=True)
 
     id_address = serializers.CharField(required=False, max_length=7)
+    id_address_2 = serializers.CharField(
+        required=False, max_length=7, allow_null=True, allow_blank=True
+    )
     zip_code = serializers.CharField(required=True)
     city = serializers.CharField(required=True)
     district = serializers.CharField(required=False)
@@ -706,6 +709,7 @@ class AddressSerializer(GeoFeatureModelSerializer):
         fields = super().get_fields()
 
         fields["id_address"].label = _("Address ID")
+        fields["id_address_2"].label = _("Address ID 2")
         fields["zip_code"].label = _("Zip Code")
         fields["city"].label = _("City")
         fields["district"].label = _("District")
@@ -763,6 +767,7 @@ class AddressListSerializer(serializers.ModelSerializer):
         fields = [
             "uuid",
             "id_address",
+            "id_address_2",
             "street",
             "housenumber",
             "house_number_suffix",

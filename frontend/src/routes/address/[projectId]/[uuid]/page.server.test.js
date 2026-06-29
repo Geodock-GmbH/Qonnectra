@@ -455,6 +455,95 @@ describe('address detail +page.server.js', () => {
 			expect(result.status).toBe(500);
 			expect(result.data.message).toBe('Connection failed');
 		});
+
+		test('should include id_address_2 in PATCH body when provided', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						id: 'addr-uuid',
+						properties: { street: 'Main St', uuid: 'addr-uuid', id_address_2: 'XYZ1234' }
+					})
+			});
+
+			const result = /** @type {any} */ (
+				await actions.updateAddress(
+					/** @type {any} */ ({
+						request: createMockRequest({
+							street: 'Main St',
+							housenumber: '5',
+							zip_code: '10115',
+							city: 'Berlin',
+							id_address_2: 'xyz1234'
+						}),
+						fetch: mockFetch,
+						cookies: mockCookies,
+						params: { uuid: 'addr-uuid' }
+					})
+				)
+			);
+
+			expect(result.success).toBe(true);
+			const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+			expect(requestBody.id_address_2).toBe('XYZ1234');
+		});
+
+		test('should send null for id_address_2 when empty string provided', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						id: 'addr-uuid',
+						properties: { street: 'Main St', uuid: 'addr-uuid' }
+					})
+			});
+
+			await actions.updateAddress(
+				/** @type {any} */ ({
+					request: createMockRequest({
+						street: 'Main St',
+						housenumber: '5',
+						zip_code: '10115',
+						city: 'Berlin',
+						id_address_2: ''
+					}),
+					fetch: mockFetch,
+					cookies: mockCookies,
+					params: { uuid: 'addr-uuid' }
+				})
+			);
+
+			const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+			expect(requestBody.id_address_2).toBeNull();
+		});
+
+		test('should not include id_address_2 when not in form data', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						id: 'addr-uuid',
+						properties: { street: 'Main St', uuid: 'addr-uuid' }
+					})
+			});
+
+			await actions.updateAddress(
+				/** @type {any} */ ({
+					request: createMockRequest({
+						street: 'Main St',
+						housenumber: '5',
+						zip_code: '10115',
+						city: 'Berlin'
+					}),
+					fetch: mockFetch,
+					cookies: mockCookies,
+					params: { uuid: 'addr-uuid' }
+				})
+			);
+
+			const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+			expect(requestBody).not.toHaveProperty('id_address_2');
+		});
 	});
 
 	describe('regenerateId action', () => {

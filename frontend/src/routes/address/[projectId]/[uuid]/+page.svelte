@@ -77,6 +77,7 @@
 	}
 	const initialAddress = /** @type {any} */ (getInitialAddress());
 	let id_address = $state(initialAddress?.id_address || '');
+	let id_address_2 = $state(initialAddress?.id_address_2 || '');
 	let street = $state(initialAddress?.street || '');
 	let housenumber = $state(initialAddress?.housenumber ?? '');
 	let house_number_suffix = $state(initialAddress?.house_number_suffix || '');
@@ -88,6 +89,8 @@
 	let project = $state(initialAddress?.project?.project || '');
 	/** @type {any} */
 	let deleteMessageBox = $state(null);
+	/** @type {any} */
+	let regenerateMessageBox = $state(null);
 	/** @type {any} */
 	let fileExplorer = $state(null);
 
@@ -252,6 +255,7 @@
 			formData.append('status_development_id', status_development_id.toString());
 		if (flag_id) formData.append('flag_id', flag_id.toString());
 		if (derivedIdAddress) formData.append('id_address', derivedIdAddress.toString());
+		formData.append('id_address_2', id_address_2);
 
 		try {
 			const response = await fetch('?/updateAddress', {
@@ -265,6 +269,9 @@
 				const updated = /** @type {any} */ (result.data)?.address;
 				if (updated?.id_address != null) {
 					id_address = updated.id_address;
+				}
+				if (updated?.id_address_2 !== undefined) {
+					id_address_2 = updated.id_address_2 || '';
 				}
 				globalToaster.success({
 					title: m.title_success(),
@@ -368,6 +375,10 @@
 
 	function openDeleteConfirm() {
 		deleteMessageBox?.open();
+	}
+
+	function openRegenerateConfirm() {
+		regenerateMessageBox?.open();
 	}
 
 	function handleUploadComplete() {
@@ -652,7 +663,7 @@
 							/>
 						</label>
 						<button
-							onclick={handleRegenerateId}
+							onclick={openRegenerateConfirm}
 							class="btn preset-tonal-primary inline-flex items-center gap-2"
 							disabled={isRegenerating}
 						>
@@ -664,6 +675,19 @@
 							{/if}
 						</button>
 					</div>
+
+					<label class="label">
+						<span class="label-text text-sm text-surface-900-100">{m.form_id_address_2()}</span>
+						<input
+							id="id-address-2"
+							type="text"
+							class="input"
+							maxlength="7"
+							name="id_address_2"
+							bind:value={id_address_2}
+							{@attach tooltip(m.tooltip_id_address_2(), { position: 'bottom', delay: 1000 })}
+						/>
+					</label>
 
 					<label class="label">
 						<span class="label-text text-sm text-surface-900-100"
@@ -1028,4 +1052,15 @@
 	acceptText={m.action_delete()}
 	closeText={m.common_cancel()}
 	onAccept={handleDelete}
+/>
+
+<!-- Regenerate ID Confirmation -->
+<MessageBox
+	bind:this={regenerateMessageBox}
+	heading={m.common_confirm()}
+	message={m.message_confirm_regenerate_id()}
+	showAcceptButton={true}
+	acceptText={m.action_regenerate_id()}
+	closeText={m.common_cancel()}
+	onAccept={handleRegenerateId}
 />

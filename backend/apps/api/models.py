@@ -1584,6 +1584,9 @@ class Address(models.Model):
 
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
     id_address = models.CharField(_("Address ID"), max_length=7, null=True, blank=True)
+    id_address_2 = models.CharField(
+        _("Address ID 2"), max_length=7, null=True, blank=True
+    )
     zip_code = models.TextField(_("Zip Code"), null=False)
     city = models.TextField(_("City"), null=False)
     district = models.TextField(_("District"), null=True, blank=True)
