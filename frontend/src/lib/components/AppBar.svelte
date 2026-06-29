@@ -1,6 +1,6 @@
 <script>
 	import { browser } from '$app/environment';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { AppBar } from '@skeletonlabs/skeleton-svelte';
 	import { IconBook, IconLogin, IconLogout, IconWorld } from '@tabler/icons-svelte';
 	import { env } from '$env/dynamic/public';
@@ -34,7 +34,7 @@
 		}
 	}
 
-	let isMapRoute = $derived($page.url.pathname.startsWith('/map'));
+	let isMapRoute = $derived(page.url.pathname.startsWith('/map'));
 </script>
 
 <div>
