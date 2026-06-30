@@ -555,26 +555,6 @@ export function createTrenchStyleByAttribute(
 }
 
 /**
- * Creates a style for area polygons
- * @param {string} color - The fill color for the area
- * @param {number} [opacity=DEFAULT_AREA_OPACITY] - Fill opacity (0-1)
- * @returns {Style}
- */
-export function createAreaStyle(color, opacity = DEFAULT_AREA_OPACITY) {
-	const fillColor = hexToRgba(color, opacity);
-
-	return new Style({
-		fill: new Fill({
-			color: fillColor
-		}),
-		stroke: new Stroke({
-			color: color,
-			width: 2
-		})
-	});
-}
-
-/**
  * Creates a style function for area polygons with optional labels
  * @param {string} color - The fill color for the area
  * @param {number} [opacity=DEFAULT_AREA_OPACITY] - Fill opacity (0-1)
@@ -706,3 +686,138 @@ function hexToRgba(hex, alpha) {
 
 	return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
+
+/**
+ * Creates a style for the damage point marker
+ * @returns {Style}
+ */
+export function createDamagePointStyle() {
+	return new Style({
+		image: new CircleStyle({
+			radius: 10,
+			fill: new Fill({ color: 'rgba(220, 38, 38, 0.9)' }),
+			stroke: new Stroke({ color: '#ffffff', width: 3 })
+		})
+	});
+}
+
+/**
+ * Creates a style for affected trenches in fault simulation
+ * @returns {Style}
+ */
+export function createAffectedTrenchStyle() {
+	return new Style({
+		stroke: new Stroke({ color: 'rgba(220, 38, 38, 0.8)', width: 5 })
+	});
+}
+
+/**
+ * Creates a style for affected nodes in fault simulation
+ * @param {'default'|'address'} [variant='default'] - Node variant
+ * @returns {Style}
+ */
+export function createAffectedNodeStyle(variant = 'default') {
+	const color = variant === 'address' ? 'rgba(147, 51, 234, 0.9)' : 'rgba(234, 88, 12, 0.9)';
+	return new Style({
+		image: new CircleStyle({
+			radius: 7,
+			fill: new Fill({ color }),
+			stroke: new Stroke({ color: '#ffffff', width: 2 })
+		})
+	});
+}
+
+/**
+ * Creates a style for affected addresses in fault simulation
+ * @returns {Style}
+ */
+export function createAffectedAddressStyle() {
+	return new Style({
+		image: new CircleStyle({
+			radius: 8,
+			fill: new Fill({ color: 'rgba(147, 51, 234, 0.9)' }),
+			stroke: new Stroke({ color: '#ffffff', width: 2 })
+		})
+	});
+}
+
+/**
+ * Creates a style for route overlays
+ * @param {string} [color='rgba(255, 0, 0, 0.7)'] - Stroke color
+ * @param {number} [width=4] - Stroke width
+ * @returns {Style}
+ */
+export function createRouteStyle(color = 'rgba(255, 0, 0, 0.7)', width = 4) {
+	return new Style({
+		stroke: new Stroke({ color, width })
+	});
+}
+
+/**
+ * Creates a style for feature highlight overlays
+ * @param {string} [color='rgba(255, 0, 255, 0.7)'] - Highlight color
+ * @returns {Style}
+ */
+export function createHighlightStyle(color = 'rgba(255, 0, 255, 0.7)') {
+	return new Style({
+		stroke: new Stroke({ color, width: 8 }),
+		image: new CircleStyle({
+			radius: 9,
+			stroke: new Stroke({ color, width: 4 })
+		})
+	});
+}
+
+// --- Measurement style ---
+
+/**
+ * Creates a style for map measurement interactions
+ * @returns {Style}
+ */
+export function createMeasureStyle() {
+	return new Style({
+		fill: new Fill({ color: 'rgba(255, 255, 255, 0.2)' }),
+		stroke: new Stroke({ color: '#ffcc33', width: 2 }),
+		image: new CircleStyle({
+			radius: 5,
+			stroke: new Stroke({ color: '#ffcc33' }),
+			fill: new Fill({ color: '#ffcc33' })
+		})
+	});
+}
+
+/**
+ * Creates a style for search result highlighting
+ * @param {string} [color='#ff0000'] - Base highlight color (hex)
+ * @returns {Style}
+ */
+export function createSearchHighlightStyle(color = '#ff0000') {
+	return new Style({
+		stroke: new Stroke({
+			color: color,
+			width: 4,
+			lineDash: [10, 10]
+		}),
+		fill: new Fill({
+			color: color + '40'
+		}),
+		image: new CircleStyle({
+			radius: 8,
+			fill: new Fill({ color: color + '80' }),
+			stroke: new Stroke({ color: color, width: 3 })
+		})
+	});
+}
+
+/** @type {Record<string, string>} */
+export const TRACE_MARKER_COLORS = {
+	entry_point: '#6366f1',
+	node: '#22c55e',
+	address: '#ef4444',
+	residential_unit: '#8b5cf6'
+};
+
+export const TRACE_DARK_COLOR = '#9ca3af';
+export const TRACE_BREAK_COLOR = '#ef4444';
+export const TRACE_SELECTED_COLOR = '#3b82f6';
+export const TRACE_DEFAULT_CABLE_COLOR = '#f59e0b';

@@ -122,14 +122,16 @@ describe('post-compaction +page.server.js', () => {
 			});
 
 			const result = /** @type {any} */ (
-				await actions.updateStatus(/** @type {any} */ ({
-					request: createMockRequest({
-						uuid: 'addr-uuid',
-						status_development_id: '2'
-					}),
-					fetch: mockFetch,
-					cookies: mockCookies
-				}))
+				await actions.updateStatus(
+					/** @type {any} */ ({
+						request: createMockRequest({
+							uuid: 'addr-uuid',
+							status_development_id: '2'
+						}),
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
 			);
 
 			expect(result.success).toBe(true);
@@ -151,14 +153,16 @@ describe('post-compaction +page.server.js', () => {
 			});
 
 			const result = /** @type {any} */ (
-				await actions.updateStatus(/** @type {any} */ ({
-					request: createMockRequest({
-						uuid: 'addr-uuid',
-						status_development_id: '999'
-					}),
-					fetch: mockFetch,
-					cookies: mockCookies
-				}))
+				await actions.updateStatus(
+					/** @type {any} */ ({
+						request: createMockRequest({
+							uuid: 'addr-uuid',
+							status_development_id: '999'
+						}),
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
 			);
 
 			expect(result.status).toBe(400);
@@ -169,14 +173,16 @@ describe('post-compaction +page.server.js', () => {
 			mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
 			const result = /** @type {any} */ (
-				await actions.updateStatus(/** @type {any} */ ({
-					request: createMockRequest({
-						uuid: 'addr-uuid',
-						status_development_id: '2'
-					}),
-					fetch: mockFetch,
-					cookies: mockCookies
-				}))
+				await actions.updateStatus(
+					/** @type {any} */ ({
+						request: createMockRequest({
+							uuid: 'addr-uuid',
+							status_development_id: '2'
+						}),
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
 			);
 
 			expect(result.status).toBe(500);
@@ -230,11 +236,13 @@ describe('post-compaction +page.server.js', () => {
 			});
 
 			const result = /** @type {any} */ (
-				await actions.fetchAddress(/** @type {any} */ ({
-					request: createMockRequest({ uuid: 'addr-uuid' }),
-					fetch: mockFetch,
-					cookies: mockCookies
-				}))
+				await actions.fetchAddress(
+					/** @type {any} */ ({
+						request: createMockRequest({ uuid: 'addr-uuid' }),
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
 			);
 
 			expect(result.success).toBe(true);
@@ -266,11 +274,13 @@ describe('post-compaction +page.server.js', () => {
 			});
 
 			const result = /** @type {any} */ (
-				await actions.fetchAddress(/** @type {any} */ ({
-					request: createMockRequest({ uuid: 'nonexistent' }),
-					fetch: mockFetch,
-					cookies: mockCookies
-				}))
+				await actions.fetchAddress(
+					/** @type {any} */ ({
+						request: createMockRequest({ uuid: 'nonexistent' }),
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
 			);
 
 			expect(result.status).toBe(404);
@@ -297,11 +307,13 @@ describe('post-compaction +page.server.js', () => {
 			});
 
 			const result = /** @type {any} */ (
-				await actions.fetchAddress(/** @type {any} */ ({
-					request: createMockRequest({ uuid: 'addr-uuid' }),
-					fetch: mockFetch,
-					cookies: mockCookies
-				}))
+				await actions.fetchAddress(
+					/** @type {any} */ ({
+						request: createMockRequest({ uuid: 'addr-uuid' }),
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
 			);
 
 			expect(result.success).toBe(true);
@@ -366,11 +378,13 @@ describe('post-compaction +page.server.js', () => {
 				});
 
 			const result = /** @type {any} */ (
-				await actions.fetchAddress(/** @type {any} */ ({
-					request: createMockRequest({ uuid: 'addr-uuid' }),
-					fetch: mockFetch,
-					cookies: mockCookies
-				}))
+				await actions.fetchAddress(
+					/** @type {any} */ ({
+						request: createMockRequest({ uuid: 'addr-uuid' }),
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
 			);
 
 			expect(result.success).toBe(true);
@@ -415,11 +429,13 @@ describe('post-compaction +page.server.js', () => {
 				});
 
 			const result = /** @type {any} */ (
-				await actions.fetchAddress(/** @type {any} */ ({
-					request: createMockRequest({ uuid: 'addr-uuid' }),
-					fetch: mockFetch,
-					cookies: mockCookies
-				}))
+				await actions.fetchAddress(
+					/** @type {any} */ ({
+						request: createMockRequest({ uuid: 'addr-uuid' }),
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
 			);
 
 			expect(result.success).toBe(true);
@@ -447,11 +463,13 @@ describe('post-compaction +page.server.js', () => {
 				});
 
 			const result = /** @type {any} */ (
-				await actions.fetchAddress(/** @type {any} */ ({
-					request: createMockRequest({ uuid: 'addr-uuid' }),
-					fetch: mockFetch,
-					cookies: mockCookies
-				}))
+				await actions.fetchAddress(
+					/** @type {any} */ ({
+						request: createMockRequest({ uuid: 'addr-uuid' }),
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
 			);
 
 			expect(result.success).toBe(true);
@@ -485,11 +503,13 @@ describe('post-compaction +page.server.js', () => {
 			});
 
 			const result = /** @type {any} */ (
-				await actions.fetchAddress(/** @type {any} */ ({
-					request: createMockRequest({ uuid: 'addr-uuid' }),
-					fetch: mockFetch,
-					cookies: mockCookies
-				}))
+				await actions.fetchAddress(
+					/** @type {any} */ ({
+						request: createMockRequest({ uuid: 'addr-uuid' }),
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
 			);
 
 			expect(result.address.street).toBe('GeoJSON St');

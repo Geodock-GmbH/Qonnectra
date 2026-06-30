@@ -6,17 +6,10 @@ import { unByKey } from 'ol/Observable';
 import Overlay from 'ol/Overlay';
 import VectorSource from 'ol/source/Vector';
 import { getArea, getLength } from 'ol/sphere';
-import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style';
 
-const MEASURE_STYLE = new Style({
-	fill: new Fill({ color: 'rgba(255, 255, 255, 0.2)' }),
-	stroke: new Stroke({ color: '#ffcc33', width: 2 }),
-	image: new CircleStyle({
-		radius: 5,
-		stroke: new Stroke({ color: '#ffcc33' }),
-		fill: new Fill({ color: '#ffcc33' })
-	})
-});
+import { createMeasureStyle } from '$lib/map/styles.js';
+
+const MEASURE_STYLE = createMeasureStyle();
 
 /**
  * Manages measurement interactions on the OpenLayers map.

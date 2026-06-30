@@ -11,13 +11,13 @@
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 	import {
 		createHighlightLayer,
-		createHighlightStyle,
 		debounce,
 		parseFeatureGeometry,
 		parseMultipleFeatureGeometries,
 		zoomToFeature,
 		zoomToMultipleFeatures
 	} from '$lib/map/searchUtils';
+	import { createSearchHighlightStyle } from '$lib/map/styles.js';
 	import { globalMapView, selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
@@ -26,7 +26,6 @@
 	let {
 		olMapInstance = null,
 		trenchColorSelected = '#ff0000',
-		alias = {},
 		onFeatureSelect = () => {},
 		onSearchError = () => {}
 	} = $props();
@@ -207,7 +206,7 @@
 				}
 
 				if (!highlightLayer) {
-					const highlightStyle = await createHighlightStyle(trenchColorSelected);
+					const highlightStyle = createSearchHighlightStyle(trenchColorSelected);
 					highlightLayer = await createHighlightLayer(highlightStyle);
 					olMapInstance.addLayer(highlightLayer);
 				}
@@ -284,7 +283,7 @@
 				);
 
 				if (!highlightLayer) {
-					const highlightStyle = await createHighlightStyle(trenchColorSelected);
+					const highlightStyle = createSearchHighlightStyle(trenchColorSelected);
 					highlightLayer = await createHighlightLayer(highlightStyle);
 					olMapInstance.addLayer(highlightLayer);
 				}

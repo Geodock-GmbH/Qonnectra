@@ -5,6 +5,13 @@
 	import { env } from '$env/dynamic/public';
 
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
+	import {
+		TRACE_BREAK_COLOR,
+		TRACE_DARK_COLOR,
+		TRACE_DEFAULT_CABLE_COLOR,
+		TRACE_MARKER_COLORS,
+		TRACE_SELECTED_COLOR
+	} from '$lib/map/styles.js';
 
 	import 'ol/ol.css';
 
@@ -262,15 +269,15 @@
 		let lineDash = null;
 
 		if (signalState === 'dark') {
-			color = '#9ca3af';
+			color = TRACE_DARK_COLOR;
 			lineDash = [10, 5];
 		} else if (signalState === 'break_point') {
-			color = '#ef4444';
+			color = TRACE_BREAK_COLOR;
 		}
 
 		return new Style({
 			stroke: new Stroke({
-				color: isSelected ? '#3b82f6' : color,
+				color: isSelected ? TRACE_SELECTED_COLOR : color,
 				width: isSelected ? 5 : 3,
 				lineDash: lineDash
 			})
@@ -288,21 +295,13 @@
 		const isSelected = featureId === selectedFeatureId;
 		const signalState = feature.get('signalState');
 
-		/** @type {Record<string, string>} */
-		const colors = {
-			entry_point: '#6366f1',
-			node: '#22c55e',
-			address: '#ef4444',
-			residential_unit: '#8b5cf6'
-		};
-
-		let color = colors[featureType] || '#6b7280';
+		let color = TRACE_MARKER_COLORS[featureType] || '#6b7280';
 		const radius = featureType === 'entry_point' ? 10 : 7;
 
 		if (signalState === 'dark') {
-			color = '#9ca3af';
+			color = TRACE_DARK_COLOR;
 		} else if (signalState === 'break_point') {
-			color = '#ef4444';
+			color = TRACE_BREAK_COLOR;
 		}
 
 		return new Style({
@@ -323,7 +322,7 @@
 	 * @returns {string} A CSS color string (HSL or hex fallback)
 	 */
 	function getCableColor(cableId) {
-		if (!cableId) return '#f59e0b';
+		if (!cableId) return TRACE_DEFAULT_CABLE_COLOR;
 		let hash = 0;
 		for (let i = 0; i < cableId.length; i++) {
 			hash = cableId.charCodeAt(i) + ((hash << 5) - hash);

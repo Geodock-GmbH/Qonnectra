@@ -13,7 +13,6 @@
 	import { get } from 'svelte/store';
 	import { transform } from 'ol/proj.js';
 	import VectorSource from 'ol/source/Vector.js';
-	import { Circle as CircleStyle, Fill, Stroke, Style } from 'ol/style.js';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -21,6 +20,12 @@
 	import Map from '$lib/components/Map.svelte';
 	import MapHint from '$lib/components/MapHint.svelte';
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
+	import {
+		createAffectedAddressStyle,
+		createAffectedNodeStyle,
+		createAffectedTrenchStyle,
+		createDamagePointStyle
+	} from '$lib/map/styles.js';
 	import {
 		addressStyle,
 		areaTypeStyles,
@@ -76,49 +81,19 @@
 	/** @type {(() => void)|null} */
 	let mapMoveListener = null;
 
-	const damagePointStyle = new Style({
-		image: new CircleStyle({
-			radius: 10,
-			fill: new Fill({ color: 'rgba(220, 38, 38, 0.9)' }),
-			stroke: new Stroke({ color: '#ffffff', width: 3 })
-		})
-	});
-
-	const affectedTrenchStyle = new Style({
-		stroke: new Stroke({ color: 'rgba(220, 38, 38, 0.8)', width: 5 })
-	});
-
-	const affectedNodeDefaultStyle = new Style({
-		image: new CircleStyle({
-			radius: 7,
-			fill: new Fill({ color: 'rgba(234, 88, 12, 0.9)' }),
-			stroke: new Stroke({ color: '#ffffff', width: 2 })
-		})
-	});
-
-	const affectedNodeAddressStyle = new Style({
-		image: new CircleStyle({
-			radius: 7,
-			fill: new Fill({ color: 'rgba(147, 51, 234, 0.9)' }),
-			stroke: new Stroke({ color: '#ffffff', width: 2 })
-		})
-	});
+	const damagePointStyle = createDamagePointStyle();
+	const affectedTrenchStyle = createAffectedTrenchStyle();
+	const affectedNodeDefaultStyle = createAffectedNodeStyle('default');
+	const affectedNodeAddressStyle = createAffectedNodeStyle('address');
+	const affectedAddressStyle = createAffectedAddressStyle();
 
 	/**
 	 * @param {import('ol/Feature').FeatureLike} feature
-	 * @returns {Style}
+	 * @returns {import('ol/style/Style').default}
 	 */
 	function affectedNodeStyleFn(feature) {
 		return feature.get('has_address') ? affectedNodeAddressStyle : affectedNodeDefaultStyle;
 	}
-
-	const affectedAddressStyle = new Style({
-		image: new CircleStyle({
-			radius: 8,
-			fill: new Fill({ color: 'rgba(147, 51, 234, 0.9)' }),
-			stroke: new Stroke({ color: '#ffffff', width: 2 })
-		})
-	});
 
 	/**
 	 * Initializes overlay layers for damage point, affected trenches, nodes, and addresses.

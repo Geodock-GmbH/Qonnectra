@@ -44,10 +44,12 @@
 
 	import VectorTileLayer from 'ol/layer/VectorTile.js';
 	import VectorSource from 'ol/source/Vector.js';
-	import { Circle as CircleStyle, Style } from 'ol/style';
-	import Stroke from 'ol/style/Stroke.js';
 
-	import { createLinkedTrenchStyle } from '$lib/map/styles.js';
+	import {
+		createHighlightStyle,
+		createLinkedTrenchStyle,
+		createRouteStyle
+	} from '$lib/map/styles.js';
 
 	import TrenchTable from './TrenchTable.svelte';
 
@@ -250,12 +252,7 @@
 		});
 	});
 
-	const routeStyle = new Style({
-		stroke: new Stroke({
-			color: 'rgba(255, 0, 0, 0.7)',
-			width: 4
-		})
-	});
+	const routeStyle = createRouteStyle();
 
 	$effect(() => {
 		mapState.refreshTileSources();
@@ -306,19 +303,7 @@
 
 		highlightLayer = new VectorLayer({
 			source: new VectorSource(),
-			style: new Style({
-				stroke: new Stroke({
-					color: 'rgba(255, 0, 255, 0.7)',
-					width: 8
-				}),
-				image: new CircleStyle({
-					radius: 9,
-					stroke: new Stroke({
-						color: 'rgba(255, 0, 255, 0.7)',
-						width: 4
-					})
-				})
-			}),
+			style: createHighlightStyle(),
 			properties: {
 				isHighlightLayer: true
 			}

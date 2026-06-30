@@ -24,42 +24,6 @@ export async function createHighlightLayer(highlightStyle) {
 }
 
 /**
- * Creates a highlight style for features
- * @param {string} color - Color for the highlight (default: '#ff0000')
- * @returns {Promise<import('ol/style/Style').default>} Highlight style
- */
-export async function createHighlightStyle(color = '#ff0000') {
-	const [{ default: Style }, { default: Stroke }, { default: Fill }, { default: Circle }] =
-		await Promise.all([
-			import('ol/style/Style'),
-			import('ol/style/Stroke'),
-			import('ol/style/Fill'),
-			import('ol/style/Circle')
-		]);
-
-	return new Style({
-		stroke: new Stroke({
-			color: color,
-			width: 4,
-			lineDash: [10, 10]
-		}),
-		fill: new Fill({
-			color: color + '40' // 25% opacity
-		}),
-		image: new Circle({
-			radius: 8,
-			fill: new Fill({
-				color: color + '80' // 50% opacity
-			}),
-			stroke: new Stroke({
-				color: color,
-				width: 3
-			})
-		})
-	});
-}
-
-/**
  * Parses geometry from GeoJSON feature and converts to OL geometry
  * @param {Object} feature - GeoJSON feature from API
  * @param {string} fromProjection - Source projection (e.g. 'EPSG:25832')
@@ -148,32 +112,6 @@ export function debounce(func, wait) {
 		clearTimeout(timeout);
 		timeout = setTimeout(later, wait);
 	};
-}
-
-/**
- * Formats search results for combobox display
- * @param {{label: string, [key: string]: unknown}[]} results - Raw search results from API
- * @param {string} searchTerm - Original search term
- * @returns {{label: string, displayLabel: string, [key: string]: unknown}[]} Formatted results for combobox
- */
-export function formatSearchResults(results, searchTerm) {
-	return results.map((result) => ({
-		...result,
-		displayLabel: highlightSearchTerm(result.label, searchTerm)
-	}));
-}
-
-/**
- * Highlights search term in text (for display purposes)
- * @param {string} text - Text to highlight in
- * @param {string} searchTerm - Term to highlight
- * @returns {string} Text with highlighted terms
- */
-function highlightSearchTerm(text, searchTerm) {
-	if (!searchTerm) return text;
-
-	const regex = new RegExp(`(${searchTerm})`, 'gi');
-	return text.replace(regex, '<mark>$1</mark>');
 }
 
 /**
