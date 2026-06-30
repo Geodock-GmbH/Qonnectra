@@ -122,14 +122,14 @@ describe('post-compaction +page.server.js', () => {
 			});
 
 			const result = /** @type {any} */ (
-				await actions.updateStatus({
+				await actions.updateStatus(/** @type {any} */ ({
 					request: createMockRequest({
 						uuid: 'addr-uuid',
 						status_development_id: '2'
 					}),
 					fetch: mockFetch,
 					cookies: mockCookies
-				})
+				}))
 			);
 
 			expect(result.success).toBe(true);
@@ -151,14 +151,14 @@ describe('post-compaction +page.server.js', () => {
 			});
 
 			const result = /** @type {any} */ (
-				await actions.updateStatus({
+				await actions.updateStatus(/** @type {any} */ ({
 					request: createMockRequest({
 						uuid: 'addr-uuid',
 						status_development_id: '999'
 					}),
 					fetch: mockFetch,
 					cookies: mockCookies
-				})
+				}))
 			);
 
 			expect(result.status).toBe(400);
@@ -169,14 +169,14 @@ describe('post-compaction +page.server.js', () => {
 			mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
 			const result = /** @type {any} */ (
-				await actions.updateStatus({
+				await actions.updateStatus(/** @type {any} */ ({
 					request: createMockRequest({
 						uuid: 'addr-uuid',
 						status_development_id: '2'
 					}),
 					fetch: mockFetch,
 					cookies: mockCookies
-				})
+				}))
 			);
 
 			expect(result.status).toBe(500);
@@ -230,11 +230,11 @@ describe('post-compaction +page.server.js', () => {
 			});
 
 			const result = /** @type {any} */ (
-				await actions.fetchAddress({
+				await actions.fetchAddress(/** @type {any} */ ({
 					request: createMockRequest({ uuid: 'addr-uuid' }),
 					fetch: mockFetch,
 					cookies: mockCookies
-				})
+				}))
 			);
 
 			expect(result.success).toBe(true);
@@ -247,9 +247,7 @@ describe('post-compaction +page.server.js', () => {
 			expect(mockFetch.mock.calls[1][0]).toBe(
 				'http://localhost:8000/residential-unit/all/?uuid_address=addr-uuid'
 			);
-			expect(mockFetch.mock.calls[2][0]).toBe(
-				'http://localhost:8000/node/?uuid_address=addr-uuid'
-			);
+			expect(mockFetch.mock.calls[2][0]).toBe('http://localhost:8000/node/?uuid_address=addr-uuid');
 		});
 
 		test('should return fail when address fetch fails', async () => {
@@ -268,11 +266,11 @@ describe('post-compaction +page.server.js', () => {
 			});
 
 			const result = /** @type {any} */ (
-				await actions.fetchAddress({
+				await actions.fetchAddress(/** @type {any} */ ({
 					request: createMockRequest({ uuid: 'nonexistent' }),
 					fetch: mockFetch,
 					cookies: mockCookies
-				})
+				}))
 			);
 
 			expect(result.status).toBe(404);
@@ -299,11 +297,11 @@ describe('post-compaction +page.server.js', () => {
 			});
 
 			const result = /** @type {any} */ (
-				await actions.fetchAddress({
+				await actions.fetchAddress(/** @type {any} */ ({
 					request: createMockRequest({ uuid: 'addr-uuid' }),
 					fetch: mockFetch,
 					cookies: mockCookies
-				})
+				}))
 			);
 
 			expect(result.success).toBe(true);
@@ -321,7 +319,7 @@ describe('post-compaction +page.server.js', () => {
 				}
 			};
 
-			const residentialUnits = [];
+			const residentialUnits = /** @type {any[]} */ ([]);
 
 			const nodesGeoJson = {
 				features: [
@@ -368,11 +366,11 @@ describe('post-compaction +page.server.js', () => {
 				});
 
 			const result = /** @type {any} */ (
-				await actions.fetchAddress({
+				await actions.fetchAddress(/** @type {any} */ ({
 					request: createMockRequest({ uuid: 'addr-uuid' }),
 					fetch: mockFetch,
 					cookies: mockCookies
-				})
+				}))
 			);
 
 			expect(result.success).toBe(true);
@@ -390,9 +388,7 @@ describe('post-compaction +page.server.js', () => {
 				parentNodeName: 'Parent X'
 			});
 
-			expect(mockFetch.mock.calls[2][0]).toBe(
-				'http://localhost:8000/node/?uuid_address=addr-uuid'
-			);
+			expect(mockFetch.mock.calls[2][0]).toBe('http://localhost:8000/node/?uuid_address=addr-uuid');
 			expect(mockFetch.mock.calls[3][0]).toBe(
 				'http://localhost:8000/microduct/all/?uuid_node=node-1'
 			);
@@ -419,11 +415,11 @@ describe('post-compaction +page.server.js', () => {
 				});
 
 			const result = /** @type {any} */ (
-				await actions.fetchAddress({
+				await actions.fetchAddress(/** @type {any} */ ({
 					request: createMockRequest({ uuid: 'addr-uuid' }),
 					fetch: mockFetch,
 					cookies: mockCookies
-				})
+				}))
 			);
 
 			expect(result.success).toBe(true);
@@ -451,11 +447,11 @@ describe('post-compaction +page.server.js', () => {
 				});
 
 			const result = /** @type {any} */ (
-				await actions.fetchAddress({
+				await actions.fetchAddress(/** @type {any} */ ({
 					request: createMockRequest({ uuid: 'addr-uuid' }),
 					fetch: mockFetch,
 					cookies: mockCookies
-				})
+				}))
 			);
 
 			expect(result.success).toBe(true);
@@ -489,11 +485,11 @@ describe('post-compaction +page.server.js', () => {
 			});
 
 			const result = /** @type {any} */ (
-				await actions.fetchAddress({
+				await actions.fetchAddress(/** @type {any} */ ({
 					request: createMockRequest({ uuid: 'addr-uuid' }),
 					fetch: mockFetch,
 					cookies: mockCookies
-				})
+				}))
 			);
 
 			expect(result.address.street).toBe('GeoJSON St');
