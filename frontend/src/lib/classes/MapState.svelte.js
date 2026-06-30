@@ -38,6 +38,7 @@ import {
 	createAddressLayer,
 	createAreaLayer,
 	createNodeLayer,
+	createNodeSelectionLayer,
 	createSelectionLayer,
 	createTrenchLayer,
 	createWMSLayer
@@ -374,9 +375,10 @@ export class MapState {
 	 * Also triggers WMS layer loading.
 	 * @param {import('ol').Map} olMap - OpenLayers map instance
 	 * @param {() => Record<string, boolean>} getSelectionStore - Function to get current selection store
+	 * @param {() => Record<string, {color?: string, size?: number, visible?: boolean, shape?: 'circle' | 'square'}>} [getNodeTypeStyles] - Function to get current node type styles
 	 * @returns {void}
 	 */
-	initializeSelectionLayers(olMap, getSelectionStore) {
+	initializeSelectionLayers(olMap, getSelectionStore, getNodeTypeStyles) {
 		if (!olMap || !this.tileSource) return;
 
 		this.olMap = olMap;
@@ -398,10 +400,11 @@ export class MapState {
 		}
 
 		if (this.nodeTileSource) {
-			this.nodeSelectionLayer = createSelectionLayer(
+			this.nodeSelectionLayer = createNodeSelectionLayer(
 				this.nodeTileSource,
 				this.selectedColor,
-				getSelectionStore
+				getSelectionStore,
+				getNodeTypeStyles || (() => ({}))
 			);
 			this.olMap.addLayer(this.nodeSelectionLayer);
 		}

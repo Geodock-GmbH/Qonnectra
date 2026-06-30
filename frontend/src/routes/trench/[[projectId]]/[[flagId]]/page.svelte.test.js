@@ -267,6 +267,13 @@ vi.mock('ol/style', () => ({
 			this.options = options;
 		}
 	},
+	RegularShape: class RegularShape {
+		/** @param {any} options */
+		constructor(options) {
+			/** @type {any} */
+			this.options = options;
+		}
+	},
 	Style: class Style {
 		/** @param {any} options */
 		constructor(options) {

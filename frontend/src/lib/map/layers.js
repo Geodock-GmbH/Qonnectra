@@ -18,7 +18,9 @@ import {
 	DEFAULT_ADDRESS_COLOR,
 	DEFAULT_ADDRESS_SIZE,
 	DEFAULT_AREA_COLOR,
-	DEFAULT_TRENCH_COLOR
+	DEFAULT_NODE_SHAPE,
+	DEFAULT_TRENCH_COLOR,
+	getNodeTypeDefault
 } from './styles.js';
 import { tileLoadingManager } from './tileLoadingManager.js';
 import {
@@ -37,7 +39,7 @@ import {
  */
 
 /**
- * @typedef {Record<string, { color: string; size?: number }>} NodeTypeStyles
+ * @typedef {Record<string, { color: string; size?: number; shape?: 'circle' | 'square' }>} NodeTypeStyles
  */
 
 /**
@@ -213,6 +215,53 @@ export function createSelectionLayer(tileSource, selectedColor, getSelectionStor
 				return selectedStyle;
 			}
 			return undefined; // Don't render if not selected
+		},
+		properties: {
+			isSelectionLayer: true
+		}
+	});
+}
+
+/**
+ * Creates a node-specific selection layer that respects per-type shapes.
+ * @param {import('ol/source/VectorTile').default} tileSource - Vector tile source to overlay
+ * @param {string} selectedColor - CSS color for selected feature highlighting
+ * @param {() => Record<string, unknown>} getSelectionStore - Returns current selection state keyed by feature ID
+ * @param {() => Record<string, {color?: string, size?: number, visible?: boolean, shape?: 'circle' | 'square'}>} getNodeTypeStyles - Returns current node type styles
+ * @returns {VectorTileLayer} Node selection overlay layer
+ */
+export function createNodeSelectionLayer(
+	tileSource,
+	selectedColor,
+	getSelectionStore,
+	getNodeTypeStyles
+) {
+	/** @type {Map<string, import('ol/style/Style').default>} */
+	const styleCache = new Map();
+
+	return new VectorTileLayer({
+		renderMode: 'vector',
+		source: tileSource,
+		style: function (feature) {
+			const selectionStore = getSelectionStore();
+			const featureId = feature.getId();
+			if (featureId === undefined || !selectionStore[featureId]) {
+				return undefined;
+			}
+
+			const nodeType = /** @type {string} */ (feature.get('node_type'));
+			const nodeTypeStyles = getNodeTypeStyles();
+			const typeConfig = nodeTypeStyles[nodeType];
+			const defaults = getNodeTypeDefault(nodeType);
+			const shape = typeConfig?.shape || defaults.shape || DEFAULT_NODE_SHAPE;
+
+			const cacheKey = `${selectedColor}_${shape}`;
+			let style = styleCache.get(cacheKey);
+			if (!style) {
+				style = createSelectedStyle(selectedColor, shape);
+				styleCache.set(cacheKey, style);
+			}
+			return style;
 		},
 		properties: {
 			isSelectionLayer: true

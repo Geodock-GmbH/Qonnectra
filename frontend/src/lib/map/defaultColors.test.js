@@ -6,6 +6,7 @@ import {
 	DEFAULT_AREA_COLOR,
 	DEFAULT_AREA_OPACITY,
 	DEFAULT_NODE_COLOR,
+	DEFAULT_NODE_SHAPE,
 	DEFAULT_NODE_SIZE,
 	DEFAULT_SELECTED_COLOR,
 	DEFAULT_TRENCH_COLOR,
@@ -37,6 +38,7 @@ describe('defaultColors constants', () => {
 	test('node generic defaults match spec', () => {
 		expect(DEFAULT_NODE_COLOR).toBe('#ff6b35');
 		expect(DEFAULT_NODE_SIZE).toBe(6);
+		expect(DEFAULT_NODE_SHAPE).toBe('square');
 	});
 
 	test('area defaults match spec', () => {
@@ -69,12 +71,14 @@ describe('NODE_TYPE_DEFAULTS', () => {
 		}
 	});
 
-	test('each entry has color and size', () => {
+	test('each entry has color, size, and shape', () => {
 		for (const [name, config] of Object.entries(NODE_TYPE_DEFAULTS)) {
 			expect(config).toHaveProperty('color');
 			expect(config).toHaveProperty('size');
+			expect(config).toHaveProperty('shape');
 			expect(config.color).toMatch(/^#[0-9a-f]{6}$/i);
 			expect(config.size).toBeGreaterThan(0);
+			expect(['circle', 'square']).toContain(config.shape);
 		}
 	});
 
@@ -97,29 +101,36 @@ describe('NODE_TYPE_DEFAULTS', () => {
 
 describe('getNodeTypeDefault', () => {
 	test('returns specific defaults for known node types', () => {
-		expect(getNodeTypeDefault('Muffe')).toEqual({ color: '#00ffe1', size: 12 });
-		expect(getNodeTypeDefault('PoP')).toEqual({ color: '#ff0000', size: 22 });
-		expect(getNodeTypeDefault('Hausanschluss')).toEqual({ color: '#ff6b35', size: 6 });
+		expect(getNodeTypeDefault('Muffe')).toEqual({ color: '#00ffe1', size: 12, shape: 'square' });
+		expect(getNodeTypeDefault('PoP')).toEqual({ color: '#ff0000', size: 22, shape: 'square' });
+		expect(getNodeTypeDefault('Hausanschluss')).toEqual({
+			color: '#ff6b35',
+			size: 6,
+			shape: 'square'
+		});
 	});
 
 	test('returns generic fallback for unknown node types', () => {
 		expect(getNodeTypeDefault('UnknownType')).toEqual({
 			color: DEFAULT_NODE_COLOR,
-			size: DEFAULT_NODE_SIZE
+			size: DEFAULT_NODE_SIZE,
+			shape: DEFAULT_NODE_SHAPE
 		});
 	});
 
 	test('returns generic fallback for empty string', () => {
 		expect(getNodeTypeDefault('')).toEqual({
 			color: DEFAULT_NODE_COLOR,
-			size: DEFAULT_NODE_SIZE
+			size: DEFAULT_NODE_SIZE,
+			shape: DEFAULT_NODE_SHAPE
 		});
 	});
 
 	test('is case-sensitive — lowercase does not match', () => {
 		expect(getNodeTypeDefault('muffe')).toEqual({
 			color: DEFAULT_NODE_COLOR,
-			size: DEFAULT_NODE_SIZE
+			size: DEFAULT_NODE_SIZE,
+			shape: DEFAULT_NODE_SHAPE
 		});
 	});
 });

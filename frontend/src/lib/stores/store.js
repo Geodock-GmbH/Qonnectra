@@ -114,8 +114,8 @@ export const networkSchemaDisplayOptionsExpanded = persisted(
 );
 
 /**
- * Node type styles - stores color, size, and visibility per node type.
- * @type {import('svelte/store').Writable<Record<string, {color: string, size: number, visible: boolean}>>}
+ * Node type styles - stores color, size, shape, and visibility per node type.
+ * @type {import('svelte/store').Writable<Record<string, {color: string, size: number, visible: boolean, shape: 'circle' | 'square'}>>}
  */
 export const nodeTypeStyles = persisted('nodeTypeStyles', {});
 
