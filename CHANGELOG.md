@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.2.0...v1.3.0) (2026-06-30)
+
+
+### Features
+
+* Added context menu for map component ([#68](https://github.com/Geodock-GmbH/Qonnectra/issues/68)) ([12b3820](https://github.com/Geodock-GmbH/Qonnectra/commit/12b382030236d7b6dea87711aa80a2aa7263ae35))
+* Added second optional address id to address model and detailed page ([f0fa476](https://github.com/Geodock-GmbH/Qonnectra/commit/f0fa47694aa663892869b603c4b48b86db539bc3))
+* Post-compaction address workflow with PDF export ([#69](https://github.com/Geodock-GmbH/Qonnectra/issues/69)) ([36db53d](https://github.com/Geodock-GmbH/Qonnectra/commit/36db53d4908a60fa7479d80cdf9d9d600cb18828))
+
+
+### Refactoring
+
+* Address map now uses trace address instead of newly added endpoint ([657652c](https://github.com/Geodock-GmbH/Qonnectra/commit/657652c65fb7efad840a78e87e9c7e667c26e75b))
+
 ## [1.2.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.1.1...v1.2.0) (2026-06-29)
 
 
