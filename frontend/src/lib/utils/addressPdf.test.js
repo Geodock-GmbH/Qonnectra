@@ -6,6 +6,7 @@ import { generateAddressPdf } from './addressPdf.js';
 let textCalls = [];
 /** @type {any[]} */
 let splitTextCalls = [];
+let addPageCount = 0;
 
 vi.mock('jspdf', () => {
 	class MockJsPDF {
@@ -47,6 +48,7 @@ vi.mock('jspdf', () => {
 
 		addPage() {
 			this.pages++;
+			addPageCount++;
 		}
 
 		getNumberOfPages() {
@@ -136,6 +138,7 @@ describe('generateAddressPdf', () => {
 	beforeEach(() => {
 		textCalls = [];
 		splitTextCalls = [];
+		addPageCount = 0;
 	});
 
 	test('should generate PDF without commentText (backward compatible)', () => {
@@ -264,6 +267,26 @@ describe('generateAddressPdf', () => {
 				labels: createLabels()
 			});
 		}).not.toThrow();
+	});
+
+	test('should add a dedicated page for comment when it would overflow', () => {
+		const longComment = 'A'.repeat(2000);
+
+		generateAddressPdf({
+			address: createAddress(),
+			residentialUnits: [],
+			mapImage: null,
+			includeResidentialUnits: false,
+			commentText: longComment,
+			labels: createLabels()
+		});
+
+		const commentPageAdded = addPageCount > 0;
+		expect(commentPageAdded).toBe(true);
+
+		const commentHeaders = textCalls.filter((c) => c.content === 'COMMENT');
+		const lastCommentHeader = commentHeaders[commentHeaders.length - 1];
+		expect(lastCommentHeader.y).toBeLessThan(80);
 	});
 
 	test('should still support map image and microducts (existing behavior)', () => {

@@ -176,6 +176,19 @@ function buildAddressPage(
 	}
 
 	if (commentText) {
+		const commentHeight = measureCommentBlock(doc, commentText, CONTENT_WIDTH);
+		const maxY = PAGE_HEIGHT - 16;
+
+		if (currentY + commentHeight > maxY) {
+			doc.addPage();
+			drawPageBackground(doc);
+			currentY = drawDocumentHeader(doc, {
+				title: labels.sectionComment || 'Comment',
+				subtitle: `${address.street} ${address.housenumber}${address.house_number_suffix || ''}`
+			});
+			currentY += 8;
+		}
+
 		drawCommentBlock(doc, {
 			title: labels.sectionComment || 'Comment',
 			y: currentY,
@@ -772,6 +785,21 @@ function drawFiberTable(doc, { fibers, y, labels }) {
 	);
 
 	return y;
+}
+
+/**
+ * Measures the height a comment block would occupy without drawing it.
+ * @param {import('jspdf').jsPDF} doc - The jsPDF document instance.
+ * @param {string} text - The comment text.
+ * @param {number} width - Block width in mm.
+ * @returns {number} The block height in mm.
+ */
+function measureCommentBlock(doc, text, width) {
+	const textWidth = width - 16;
+	doc.setFont('helvetica', 'normal');
+	doc.setFontSize(8);
+	const lines = doc.splitTextToSize(text, textWidth);
+	return 16 + lines.length * 4.5 + 6;
 }
 
 /**
