@@ -15,12 +15,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import {
-		DEFAULT_AREA_COLOR,
-		DEFAULT_NODE_COLOR,
-		DEFAULT_NODE_SIZE,
-		DEFAULT_TRENCH_COLOR
-	} from '$lib/map/styles';
+	import { DEFAULT_AREA_COLOR, DEFAULT_TRENCH_COLOR, getNodeTypeDefault } from '$lib/map/styles';
 	import {
 		areaTypeStyles,
 		basemapTheme,
@@ -124,9 +119,10 @@
 
 			nodeTypes.forEach((nodeType) => {
 				if (!currentStyles[nodeType.node_type]) {
+					const defaults = getNodeTypeDefault(nodeType.node_type);
 					currentStyles[nodeType.node_type] = {
-						color: DEFAULT_NODE_COLOR,
-						size: DEFAULT_NODE_SIZE,
+						color: defaults.color,
+						size: defaults.size,
 						visible: true
 					};
 					hasNewTypes = true;
@@ -258,9 +254,10 @@
 	 */
 	function toggleNodeTypeVisibility(nodeTypeName) {
 		const currentStyles = $nodeTypeStyles;
+		const defaults = getNodeTypeDefault(nodeTypeName);
 		const currentConfig = currentStyles[nodeTypeName] || {
-			color: DEFAULT_NODE_COLOR,
-			size: DEFAULT_NODE_SIZE,
+			color: defaults.color,
+			size: defaults.size,
 			visible: true
 		};
 
@@ -302,7 +299,7 @@
 	 */
 	function getNodeTypeColor(nodeTypeName) {
 		const config = $nodeTypeStyles[nodeTypeName];
-		return config?.color || DEFAULT_NODE_COLOR;
+		return config?.color || getNodeTypeDefault(nodeTypeName).color;
 	}
 
 	/**

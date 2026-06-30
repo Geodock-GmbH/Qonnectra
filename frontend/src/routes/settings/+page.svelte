@@ -7,9 +7,9 @@
 		DEFAULT_ADDRESS_COLOR,
 		DEFAULT_ADDRESS_SIZE,
 		DEFAULT_AREA_COLOR,
-		DEFAULT_NODE_COLOR,
-		DEFAULT_NODE_SIZE,
-		DEFAULT_TRENCH_COLOR
+		DEFAULT_SELECTED_COLOR,
+		DEFAULT_TRENCH_COLOR,
+		getNodeTypeDefault
 	} from '$lib/map/styles';
 	import { userStore } from '$lib/stores/auth';
 	import {
@@ -38,9 +38,10 @@
 
 			data.nodeTypes.forEach((/** @type {any} */ nodeType) => {
 				if (!currentStyles[nodeType.node_type]) {
+					const defaults = getNodeTypeDefault(nodeType.node_type);
 					currentStyles[nodeType.node_type] = {
-						color: DEFAULT_NODE_COLOR,
-						size: DEFAULT_NODE_SIZE,
+						color: defaults.color,
+						size: defaults.size,
 						visible: true
 					};
 					hasNewTypes = true;
@@ -142,12 +143,13 @@
 
 	/** @param {string} nodeTypeName */
 	function resetNodeTypeStyle(nodeTypeName) {
+		const defaults = getNodeTypeDefault(nodeTypeName);
 		const currentStyles = $nodeTypeStyles;
 		$nodeTypeStyles = {
 			...currentStyles,
 			[nodeTypeName]: {
-				color: DEFAULT_NODE_COLOR,
-				size: DEFAULT_NODE_SIZE,
+				color: defaults.color,
+				size: defaults.size,
 				visible: currentStyles[nodeTypeName]?.visible ?? true
 			}
 		};
@@ -157,9 +159,10 @@
 		/** @type {Record<string, {color: string, size: number, visible: boolean}>} */
 		const newStyles = {};
 		data.nodeTypes.forEach((/** @type {any} */ nodeType) => {
+			const defaults = getNodeTypeDefault(nodeType.node_type);
 			newStyles[nodeType.node_type] = {
-				color: DEFAULT_NODE_COLOR,
-				size: DEFAULT_NODE_SIZE,
+				color: defaults.color,
+				size: defaults.size,
 				visible: $nodeTypeStyles[nodeType.node_type]?.visible ?? true
 			};
 		});
@@ -168,13 +171,11 @@
 
 	/** @param {string} nodeTypeName */
 	function getNodeTypeStyle(nodeTypeName) {
-		return (
-			$nodeTypeStyles[nodeTypeName] || {
-				color: DEFAULT_NODE_COLOR,
-				size: DEFAULT_NODE_SIZE,
-				visible: true
-			}
-		);
+		if ($nodeTypeStyles[nodeTypeName]) {
+			return $nodeTypeStyles[nodeTypeName];
+		}
+		const defaults = getNodeTypeDefault(nodeTypeName);
+		return { color: defaults.color, size: defaults.size, visible: true };
 	}
 
 	/** @param {string} surfaceName @param {string} color */
@@ -487,7 +488,7 @@
 								type="button"
 								class="font-semibold text-primary-500 hover:text-primary-600-400"
 								onclick={() => {
-									$trenchColorSelected = '#fbb483';
+									$trenchColorSelected = DEFAULT_SELECTED_COLOR;
 								}}
 							>
 								{m.common_reset()}
@@ -505,7 +506,7 @@
 								type="button"
 								class="font-semibold text-primary-500 hover:text-primary-600-400"
 								onclick={() => {
-									$trenchColor = '#fbb483';
+									$trenchColor = DEFAULT_TRENCH_COLOR;
 								}}
 							>
 								{m.common_reset()}

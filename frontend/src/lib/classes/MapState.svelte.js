@@ -7,7 +7,11 @@ import {
 	createAreaStyleByType,
 	createNodeStyleByType,
 	createTrenchStyle,
-	createTrenchStyleByAttribute
+	createTrenchStyleByAttribute,
+	DEFAULT_ADDRESS_COLOR,
+	DEFAULT_ADDRESS_SIZE,
+	DEFAULT_SELECTED_COLOR,
+	DEFAULT_TRENCH_COLOR
 } from '$lib/map/styles';
 import { tileLoadingManager } from '$lib/map/tileLoadingManager.js';
 import {
@@ -84,11 +88,6 @@ import {
  * @property {import('ol/layer/VectorTile').default | null} nodeLayer
  * @property {import('ol/layer/VectorTile').default | null} areaLayer
  */
-
-const DEFAULT_TRENCH_COLOR = '#000000';
-const DEFAULT_SELECTED_COLOR = '#000000';
-const DEFAULT_ADDRESS_COLOR = '#2563eb';
-const DEFAULT_ADDRESS_SIZE = 4;
 
 /**
  * Main state manager for the map

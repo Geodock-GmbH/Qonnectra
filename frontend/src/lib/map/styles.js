@@ -3,6 +3,18 @@ import Fill from 'ol/style/Fill.js';
 import Stroke from 'ol/style/Stroke.js';
 import Text from 'ol/style/Text.js';
 
+import {
+	DEFAULT_ADDRESS_COLOR,
+	DEFAULT_ADDRESS_SIZE,
+	DEFAULT_AREA_COLOR,
+	DEFAULT_AREA_OPACITY,
+	DEFAULT_NODE_COLOR,
+	DEFAULT_NODE_SIZE,
+	DEFAULT_TRENCH_COLOR,
+	DEFAULT_TRENCH_WIDTH,
+	getNodeTypeDefault
+} from './defaultColors.js';
+
 /**
  * Creates a style function for trench features with optional trench and conduit labels
  * @param {string} color - The color for the trench style
@@ -212,8 +224,8 @@ export function createSelectedStyle(color) {
 export function createAddressStyle() {
 	return new Style({
 		image: new CircleStyle({
-			radius: 4,
-			fill: new Fill({ color: '#2563eb' }),
+			radius: DEFAULT_ADDRESS_SIZE,
+			fill: new Fill({ color: DEFAULT_ADDRESS_COLOR }),
 			stroke: new Stroke({ color: '#000000', width: 1 })
 		})
 	});
@@ -278,8 +290,8 @@ export function createAddressStyleWithLabels(
 export function createNodeStyle() {
 	return new Style({
 		image: new CircleStyle({
-			radius: 6,
-			fill: new Fill({ color: '#ff6b35' }),
+			radius: DEFAULT_NODE_SIZE,
+			fill: new Fill({ color: DEFAULT_NODE_COLOR }),
 			stroke: new Stroke({ color: '#000000', width: 1 })
 		})
 	});
@@ -299,8 +311,8 @@ export function createNodeStyleWithLabels(labelOptions = {}) {
 
 	const geometryStyle = new Style({
 		image: new CircleStyle({
-			radius: 6,
-			fill: new Fill({ color: '#ff6b35' }),
+			radius: DEFAULT_NODE_SIZE,
+			fill: new Fill({ color: DEFAULT_NODE_COLOR }),
 			stroke: new Stroke({ color: '#000000', width: 1 })
 		}),
 		// @ts-ignore
@@ -326,29 +338,14 @@ export function createNodeStyleWithLabels(labelOptions = {}) {
 	};
 }
 
-/**
- * Default node style configuration
- */
-export const DEFAULT_NODE_COLOR = '#ff6b35';
-export const DEFAULT_NODE_SIZE = 6;
-
-/**
- * Default trench style configuration
- */
-export const DEFAULT_TRENCH_COLOR = '#fbb483';
-export const DEFAULT_TRENCH_WIDTH = 2;
-
-/**
- * Default address style configuration
- */
-export const DEFAULT_ADDRESS_COLOR = '#2563eb';
-export const DEFAULT_ADDRESS_SIZE = 4;
-
-/**
- * Default area style configuration
- */
-export const DEFAULT_AREA_COLOR = '#22c55e';
-export const DEFAULT_AREA_OPACITY = 0.3;
+export {
+	DEFAULT_ADDRESS_COLOR,
+	DEFAULT_ADDRESS_SIZE,
+	DEFAULT_AREA_COLOR,
+	DEFAULT_SELECTED_COLOR,
+	DEFAULT_TRENCH_COLOR,
+	getNodeTypeDefault
+} from './defaultColors.js';
 
 /**
  * Creates a style function for node points with per-type styling
@@ -372,9 +369,10 @@ export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
 	 */
 	return function (feature, resolution) {
 		const nodeType = /** @type {string} */ (feature.get('node_type'));
+		const defaults = getNodeTypeDefault(nodeType);
 		const typeConfig = nodeTypeStyles[nodeType] || {
-			color: DEFAULT_NODE_COLOR,
-			size: DEFAULT_NODE_SIZE,
+			color: defaults.color,
+			size: defaults.size,
 			visible: true
 		};
 

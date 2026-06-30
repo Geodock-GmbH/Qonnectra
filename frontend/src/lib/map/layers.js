@@ -15,7 +15,10 @@ import {
 	createSelectedStyle,
 	createTrenchStyle,
 	createTrenchStyleWithLabels,
-	DEFAULT_AREA_COLOR
+	DEFAULT_ADDRESS_COLOR,
+	DEFAULT_ADDRESS_SIZE,
+	DEFAULT_AREA_COLOR,
+	DEFAULT_TRENCH_COLOR
 } from './styles.js';
 import { tileLoadingManager } from './tileLoadingManager.js';
 import {
@@ -57,13 +60,6 @@ import {
  * @property {number} [maxZoom] - Maximum zoom level (undefined = no limit)
  * @property {number} [opacity=1.0] - Layer opacity (0.0 to 1.0)
  */
-
-/** @type {string} */
-const DEFAULT_TRENCH_COLOR = '#000000';
-/** @type {string} */
-const DEFAULT_ADDRESS_COLOR = '#2563eb';
-/** @type {number} */
-const DEFAULT_ADDRESS_SIZE = 4;
 
 /**
  * Creates a vector tile layer for trench features with optional labeling.
