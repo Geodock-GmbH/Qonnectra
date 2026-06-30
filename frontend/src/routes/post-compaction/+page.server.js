@@ -80,9 +80,9 @@ export const actions = {
 	},
 
 	/**
-	 * Fetch a single address with its residential units by UUID.
+	 * Fetch a single address with its residential units and linked microducts by UUID.
 	 * @param {import('./$types').RequestEvent} event - SvelteKit request event.
-	 * @returns {Promise<{ success: true, address: Record<string, any>, residentialUnits: Record<string, any>[] } | import('@sveltejs/kit').ActionFailure>}
+	 * @returns {Promise<{ success: true, address: Record<string, any>, residentialUnits: Record<string, any>[], linkedMicroducts: Record<string, any>[] } | import('@sveltejs/kit').ActionFailure>}
 	 */
 	fetchAddress: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
@@ -90,12 +90,16 @@ export const actions = {
 		const uuid = formData.get('uuid');
 
 		try {
-			const [addressResponse, residentialUnitsResponse] = await Promise.all([
+			const [addressResponse, residentialUnitsResponse, nodesResponse] = await Promise.all([
 				fetch(`${API_URL}address/${uuid}/`, {
 					credentials: 'include',
 					headers
 				}),
 				fetch(`${API_URL}residential-unit/all/?uuid_address=${uuid}`, {
+					credentials: 'include',
+					headers
+				}),
+				fetch(`${API_URL}node/?uuid_address=${uuid}`, {
 					credentials: 'include',
 					headers
 				})
@@ -119,7 +123,47 @@ export const actions = {
 				residentialUnits = await residentialUnitsResponse.json();
 			}
 
-			return { success: true, address, residentialUnits };
+			let linkedMicroducts = [];
+			if (nodesResponse.ok) {
+				const nodesData = await nodesResponse.json();
+				const features = nodesData.features || nodesData.results?.features || [];
+				const linkedNodes = features.map((/** @type {any} */ f) => ({
+					uuid: f.id || f.properties?.uuid,
+					name: f.properties?.name || '',
+					parentNodeName: f.properties?.parent_node?.name || ''
+				}));
+
+				if (linkedNodes.length > 0) {
+					const microductResponses = await Promise.all(
+						linkedNodes.map((/** @type {any} */ node) =>
+							fetch(`${API_URL}microduct/all/?uuid_node=${node.uuid}`, {
+								credentials: 'include',
+								headers
+							})
+						)
+					);
+					for (let i = 0; i < microductResponses.length; i++) {
+						if (microductResponses[i].ok) {
+							const microducts = await microductResponses[i].json();
+							for (const md of microducts) {
+								linkedMicroducts.push({
+									uuid: md.uuid,
+									number: md.number,
+									color: md.color,
+									colorHex: md.hex_code || '#64748b',
+									conduitName: md.uuid_conduit?.name || '',
+									conduitType: md.uuid_conduit?.conduit_type?.conduit_type || '',
+									nodeName: linkedNodes[i].name,
+									nodeUuid: linkedNodes[i].uuid,
+									parentNodeName: linkedNodes[i].parentNodeName
+								});
+							}
+						}
+					}
+				}
+			}
+
+			return { success: true, address, residentialUnits, linkedMicroducts };
 		} catch (/** @type {any} */ err) {
 			return fail(500, { message: err.message || 'Failed to fetch address' });
 		}

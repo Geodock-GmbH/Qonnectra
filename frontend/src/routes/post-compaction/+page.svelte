@@ -28,6 +28,8 @@
 	let selectedAddress = $state(null);
 	/** @type {Record<string, any>[]} */
 	let residentialUnits = $state([]);
+	/** @type {Record<string, any>[]} */
+	let linkedMicroducts = $state([]);
 	let loadingAddress = $state(false);
 	let exportDialogOpen = $state(false);
 
@@ -118,6 +120,7 @@
 				const resultData = /** @type {any} */ (actionResult.data);
 				selectedAddress = resultData.address;
 				residentialUnits = resultData.residentialUnits || [];
+				linkedMicroducts = resultData.linkedMicroducts || [];
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
@@ -138,6 +141,7 @@
 	function clearSelection() {
 		selectedAddress = null;
 		residentialUnits = [];
+		linkedMicroducts = [];
 		searchQuery = '';
 		searchResults = [];
 	}
@@ -296,5 +300,6 @@
 	bind:open={exportDialogOpen}
 	address={selectedAddress}
 	{residentialUnits}
+	{linkedMicroducts}
 	{statusDevelopments}
 />

@@ -224,6 +224,10 @@ describe('post-compaction +page.server.js', () => {
 				ok: true,
 				json: () => Promise.resolve(residentialUnits)
 			});
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ features: [] })
+			});
 
 			const result = /** @type {any} */ (
 				await actions.fetchAddress({
@@ -238,10 +242,13 @@ describe('post-compaction +page.server.js', () => {
 			expect(result.address.uuid).toBe('addr-uuid');
 			expect(result.residentialUnits).toHaveLength(2);
 
-			expect(mockFetch).toHaveBeenCalledTimes(2);
+			expect(mockFetch).toHaveBeenCalledTimes(3);
 			expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:8000/address/addr-uuid/');
 			expect(mockFetch.mock.calls[1][0]).toBe(
 				'http://localhost:8000/residential-unit/all/?uuid_address=addr-uuid'
+			);
+			expect(mockFetch.mock.calls[2][0]).toBe(
+				'http://localhost:8000/node/?uuid_address=addr-uuid'
 			);
 		});
 
@@ -254,6 +261,10 @@ describe('post-compaction +page.server.js', () => {
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: () => Promise.resolve([])
+			});
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ features: [] })
 			});
 
 			const result = /** @type {any} */ (
@@ -282,6 +293,10 @@ describe('post-compaction +page.server.js', () => {
 				ok: false,
 				status: 500
 			});
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ features: [] })
+			});
 
 			const result = /** @type {any} */ (
 				await actions.fetchAddress({
@@ -294,6 +309,157 @@ describe('post-compaction +page.server.js', () => {
 			expect(result.success).toBe(true);
 			expect(result.address.street).toBe('Main St');
 			expect(result.residentialUnits).toEqual([]);
+		});
+
+		test('should fetch linked nodes and microducts for the address', async () => {
+			const addressData = {
+				id: 'addr-uuid',
+				properties: {
+					uuid: 'addr-uuid',
+					street: 'Main St',
+					housenumber: 42
+				}
+			};
+
+			const residentialUnits = [];
+
+			const nodesGeoJson = {
+				features: [
+					{
+						id: 'node-1',
+						properties: {
+							uuid: 'node-1',
+							name: 'Node A',
+							parent_node: { name: 'Parent X' }
+						}
+					}
+				]
+			};
+
+			const microducts = [
+				{
+					uuid: 'md-1',
+					number: 3,
+					color: 'Red',
+					hex_code: '#ff0000',
+					uuid_conduit: {
+						name: 'Conduit-1',
+						conduit_type: { conduit_type: 'HDPE' }
+					}
+				}
+			];
+
+			mockFetch
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve(addressData)
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve(residentialUnits)
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve(nodesGeoJson)
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve(microducts)
+				});
+
+			const result = /** @type {any} */ (
+				await actions.fetchAddress({
+					request: createMockRequest({ uuid: 'addr-uuid' }),
+					fetch: mockFetch,
+					cookies: mockCookies
+				})
+			);
+
+			expect(result.success).toBe(true);
+			expect(result.linkedMicroducts).toBeDefined();
+			expect(result.linkedMicroducts).toHaveLength(1);
+			expect(result.linkedMicroducts[0]).toEqual({
+				uuid: 'md-1',
+				number: 3,
+				color: 'Red',
+				colorHex: '#ff0000',
+				conduitName: 'Conduit-1',
+				conduitType: 'HDPE',
+				nodeName: 'Node A',
+				nodeUuid: 'node-1',
+				parentNodeName: 'Parent X'
+			});
+
+			expect(mockFetch.mock.calls[2][0]).toBe(
+				'http://localhost:8000/node/?uuid_address=addr-uuid'
+			);
+			expect(mockFetch.mock.calls[3][0]).toBe(
+				'http://localhost:8000/microduct/all/?uuid_node=node-1'
+			);
+		});
+
+		test('should return empty linkedMicroducts when address has no linked nodes', async () => {
+			const addressData = {
+				id: 'addr-uuid',
+				properties: { street: 'Main St', housenumber: 1 }
+			};
+
+			mockFetch
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve(addressData)
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve([])
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve({ features: [] })
+				});
+
+			const result = /** @type {any} */ (
+				await actions.fetchAddress({
+					request: createMockRequest({ uuid: 'addr-uuid' }),
+					fetch: mockFetch,
+					cookies: mockCookies
+				})
+			);
+
+			expect(result.success).toBe(true);
+			expect(result.linkedMicroducts).toEqual([]);
+		});
+
+		test('should return empty linkedMicroducts when node fetch fails', async () => {
+			const addressData = {
+				id: 'addr-uuid',
+				properties: { street: 'Main St', housenumber: 1 }
+			};
+
+			mockFetch
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve(addressData)
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve([])
+				})
+				.mockResolvedValueOnce({
+					ok: false,
+					status: 500
+				});
+
+			const result = /** @type {any} */ (
+				await actions.fetchAddress({
+					request: createMockRequest({ uuid: 'addr-uuid' }),
+					fetch: mockFetch,
+					cookies: mockCookies
+				})
+			);
+
+			expect(result.success).toBe(true);
+			expect(result.linkedMicroducts).toEqual([]);
 		});
 
 		test('should extract properties from GeoJSON format', async () => {
@@ -316,6 +482,10 @@ describe('post-compaction +page.server.js', () => {
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: () => Promise.resolve([])
+			});
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ features: [] })
 			});
 
 			const result = /** @type {any} */ (

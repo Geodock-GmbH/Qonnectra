@@ -11,6 +11,7 @@
 	let {
 		address,
 		residentialUnits = [],
+		linkedMicroducts = [],
 		statusDevelopments = [],
 		open = $bindable(false)
 	} = $props();
@@ -94,7 +95,7 @@
 				residentialUnits: unitsWithFibers,
 				mapImage: null,
 				includeResidentialUnits: residentialUnits.length > 0,
-				linkedMicroducts: [],
+				linkedMicroducts,
 				wmsAttributions: [],
 				commentText,
 				labels: {
