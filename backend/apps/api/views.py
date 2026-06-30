@@ -7143,6 +7143,18 @@ class TraceSearchView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """Search across entity types and return lightweight picker results.
+
+        Tokenize the search term so multi-word queries narrow results
+        with an AND across all tokens.
+
+        Args:
+            request: DRF request with query params `search`, `type`, and
+                optional `project`.
+
+        Returns:
+            Response: JSON with a `results` list of matching entities.
+        """
         search = request.query_params.get("search", "").strip()
         entity_type = request.query_params.get("type", "")
         project_id = request.query_params.get("project")
@@ -7156,12 +7168,17 @@ class TraceSearchView(APIView):
             ).order_by("street", "housenumber")
             if project_id:
                 queryset = queryset.filter(project=project_id)
-            queryset = queryset.filter(
-                Q(street__icontains=search)
-                | Q(city__icontains=search)
-                | Q(id_address__icontains=search)
-                | Q(zip_code__icontains=search)
-            )[:20]
+            tokens = search.split()
+            for token in tokens:
+                queryset = queryset.filter(
+                    Q(street__icontains=token)
+                    | Q(city__icontains=token)
+                    | Q(id_address__icontains=token)
+                    | Q(zip_code__icontains=token)
+                    | Q(district__icontains=token)
+                    | Q(house_number_suffix__icontains=token)
+                )
+            queryset = queryset[:20]
             results = [
                 {
                     "uuid": str(a.uuid),

@@ -32,6 +32,7 @@ const COLORS = {
  * @param {Record<string, any>[]} [params.linkedMicroducts=[]] - Microduct connection objects.
  * @param {string[]} [params.wmsAttributions=[]] - WMS attribution strings for visible layers.
  * @param {Record<string, string>} params.labels - Translation labels for section titles and field names.
+ * @param {string} [params.commentText=''] - Optional free-text comment rendered as a section on the address page.
  * @returns {void}
  */
 export function generateAddressPdf({
@@ -41,11 +42,19 @@ export function generateAddressPdf({
 	includeResidentialUnits,
 	linkedMicroducts = [],
 	wmsAttributions = [],
-	labels
+	labels,
+	commentText = ''
 }) {
 	const doc = new jsPDF('p', 'mm', 'a4');
 
-	buildAddressPage(doc, { address, mapImage, linkedMicroducts, wmsAttributions, labels });
+	buildAddressPage(doc, {
+		address,
+		mapImage,
+		linkedMicroducts,
+		wmsAttributions,
+		labels,
+		commentText
+	});
 
 	if (includeResidentialUnits && residentialUnits?.length > 0) {
 		for (const unit of residentialUnits) {
@@ -69,10 +78,11 @@ export function generateAddressPdf({
  * @param {Record<string, any>[]} options.linkedMicroducts - Microduct connections.
  * @param {string[]} [options.wmsAttributions=[]] - WMS attribution strings.
  * @param {Record<string, string>} options.labels - Translation labels.
+ * @param {string} [options.commentText=''] - Optional free-text comment.
  */
 function buildAddressPage(
 	doc,
-	{ address, mapImage, linkedMicroducts, wmsAttributions = [], labels }
+	{ address, mapImage, linkedMicroducts, wmsAttributions = [], labels, commentText = '' }
 ) {
 	drawPageBackground(doc);
 
@@ -83,9 +93,10 @@ function buildAddressPage(
 
 	y += 8;
 
-	const mapColWidth = 78;
-	const dataColWidth = CONTENT_WIDTH - mapColWidth - 12;
-	const mapX = MARGIN + dataColWidth + 12;
+	const hasMap = !!mapImage;
+	const mapColWidth = hasMap ? 78 : 0;
+	const dataColWidth = hasMap ? CONTENT_WIDTH - mapColWidth - 12 : CONTENT_WIDTH;
+	const mapX = hasMap ? MARGIN + dataColWidth + 12 : 0;
 
 	let dataY = y;
 
@@ -153,11 +164,37 @@ function buildAddressPage(
 
 	const bottomY = Math.max(dataY, mapY) + 10;
 
+	let currentY = bottomY;
+
 	if (linkedMicroducts?.length > 0) {
-		drawMicroductTable(doc, {
+		currentY = drawMicroductTable(doc, {
 			microducts: linkedMicroducts,
-			y: bottomY,
+			y: currentY,
 			labels
+		});
+		currentY += 10;
+	}
+
+	if (commentText) {
+		const commentHeight = measureCommentBlock(doc, commentText, CONTENT_WIDTH);
+		const maxY = PAGE_HEIGHT - 16;
+
+		if (currentY + commentHeight > maxY) {
+			doc.addPage();
+			drawPageBackground(doc);
+			currentY = drawDocumentHeader(doc, {
+				title: labels.sectionComment || 'Comment',
+				subtitle: `${address.street} ${address.housenumber}${address.house_number_suffix || ''}`
+			});
+			currentY += 8;
+		}
+
+		drawCommentBlock(doc, {
+			title: labels.sectionComment || 'Comment',
+			y: currentY,
+			x: MARGIN,
+			width: CONTENT_WIDTH,
+			text: commentText
 		});
 	}
 }
@@ -748,6 +785,72 @@ function drawFiberTable(doc, { fibers, y, labels }) {
 	);
 
 	return y;
+}
+
+/**
+ * Measures the height a comment block would occupy without drawing it.
+ * @param {import('jspdf').jsPDF} doc - The jsPDF document instance.
+ * @param {string} text - The comment text.
+ * @param {number} width - Block width in mm.
+ * @returns {number} The block height in mm.
+ */
+function measureCommentBlock(doc, text, width) {
+	const textWidth = width - 16;
+	doc.setFont('helvetica', 'normal');
+	doc.setFontSize(8);
+	const lines = doc.splitTextToSize(text, textWidth);
+	return 16 + lines.length * 4.5 + 6;
+}
+
+/**
+ * Draws a section block with wrapped free-text content (e.g., comment/description).
+ * @param {import('jspdf').jsPDF} doc - The jsPDF document instance.
+ * @param {Object} options
+ * @param {string} options.title - Section title (rendered uppercase).
+ * @param {number} options.y - Top Y position in mm.
+ * @param {number} options.x - Left X position in mm.
+ * @param {number} options.width - Block width in mm.
+ * @param {string} options.text - Free-text content to render.
+ * @returns {number} The Y position below the block.
+ */
+function drawCommentBlock(doc, { title, y, x, width, text }) {
+	const textWidth = width - 16;
+	doc.setFont('helvetica', 'normal');
+	doc.setFontSize(8);
+	const lines = doc.splitTextToSize(text, textWidth);
+	const lineHeight = 4.5;
+	const blockHeight = 16 + lines.length * lineHeight + 6;
+
+	doc.setFillColor(...COLORS.white);
+	doc.roundedRect(x, y, width, blockHeight, 2, 2, 'F');
+
+	doc.setDrawColor(...COLORS.slate200);
+	doc.setLineWidth(0.2);
+	doc.roundedRect(x, y, width, blockHeight, 2, 2, 'S');
+
+	doc.setFillColor(...COLORS.emerald500);
+	doc.rect(x, y + 4, 3, 8, 'F');
+
+	doc.setFont('helvetica', 'bold');
+	doc.setFontSize(9);
+	doc.setTextColor(...COLORS.slate700);
+	doc.text(title.toUpperCase(), x + 8, y + 10);
+
+	doc.setDrawColor(...COLORS.slate100);
+	doc.setLineWidth(0.2);
+	doc.line(x + 4, y + 14, x + width - 4, y + 14);
+
+	doc.setFont('helvetica', 'normal');
+	doc.setFontSize(8);
+	doc.setTextColor(...COLORS.slate900);
+
+	let lineY = y + 22;
+	for (const line of lines) {
+		doc.text(line, x + 8, lineY);
+		lineY += lineHeight;
+	}
+
+	return y + blockHeight;
 }
 
 /**
