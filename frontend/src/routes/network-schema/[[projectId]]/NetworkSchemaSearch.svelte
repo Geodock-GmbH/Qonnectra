@@ -161,7 +161,7 @@
 		<input
 			bind:this={inputElement}
 			type="text"
-			class="ig-input touch-manipulation text-sm min-h-[40px] px-3 bg-surface-50-950 border-0 focus:ring-2 focus:ring-primary-500/50 transition-shadow"
+			class="ig-input touch-manipulation text-sm min-h-10 px-3 bg-surface-50-950 border-0 focus:ring-2 focus:ring-primary-500/50 transition-shadow"
 			placeholder={m.common_search()}
 			value={searchManager.searchTerm}
 			oninput={handleInput}
@@ -176,7 +176,7 @@
 		/>
 		<button
 			type="button"
-			class="ig-btn preset-filled-primary-500 min-h-[40px] min-w-[40px] flex items-center justify-center"
+			class="ig-btn preset-filled-primary-500 min-h-10 min-w-10 flex items-center justify-center"
 			onclick={() => {
 				if (searchManager.searchTerm.length > 0) {
 					clearSearch();

@@ -25,7 +25,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.core.files.base import ContentFile
 from django.db import connection, transaction
-from django.db.models import Avg, Count, F, Q, Sum
+from django.db.models import Avg, Count, F, Q, Sum, Value
 from django.db.models.functions import TruncMonth
 from django.http import FileResponse, HttpResponse, StreamingHttpResponse
 from django.utils import timezone
@@ -39,6 +39,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .search import trigram_address_search, trigram_name_search
 from .models import (
     Address,
     Area,
@@ -1625,15 +1626,22 @@ class AddressViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="all")
     def all_addresses(self, request):
-        """
-        Returns addresses with server-side pagination.
+        """Return addresses with server-side pagination.
 
-        Query params:
-        - project: Filter by project ID (optional)
-        - flag: Filter by flag ID
-        - search: Search term (searches street, housenumber, etc.)
-        - page: Page number (default: 1)
-        - page_size: Items per page (default: 50, max: 200)
+        Query Parameters:
+            project: Filter by project ID (optional).
+            flag: Filter by flag ID.
+            search: Trigram fuzzy search across street, city, zip_code,
+                and district. Short tokens (<3 chars) fall back to icontains.
+            page: Page number (default: 1).
+            page_size: Items per page (default: 50, max: 200).
+
+        Args:
+            request: DRF request with the query params above.
+
+        Returns:
+            Response: Paginated JSON with ``results``, ``count``, ``page``,
+                ``page_size``, and ``total_pages``.
         """
         queryset = Address.objects.select_related(
             "status_development",
@@ -1651,16 +1659,7 @@ class AddressViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(flag=flag_id)
 
         if search_term:
-            tokens = search_term.strip().split()
-            for token in tokens:
-                queryset = queryset.filter(
-                    Q(street__icontains=token)
-                    | Q(housenumber__icontains=token)
-                    | Q(house_number_suffix__icontains=token)
-                    | Q(zip_code__icontains=token)
-                    | Q(city__icontains=token)
-                    | Q(district__icontains=token)
-                )
+            queryset = trigram_address_search(queryset, search_term)
 
         total_count = queryset.count()
 
@@ -2381,22 +2380,34 @@ class NodeViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="all")
     def all_nodes(self, request):
-        """
-        Returns all nodes with project and flag filters.
-        No pagination is used.
+        """Return all nodes with project, flag, and fuzzy search filters.
+
+        Search uses trigram similarity on the name field combined with
+        an icontains fallback on the node_type name.
 
         Query Parameters:
-        - `project`: Filter by project ID
-        - `flag`: Filter by flag ID
-        - `group`: Filter by node type group
-        - `exclude_group`: Exclude nodes by node type group
-        - `search`: Search term for name/type
-        - `use_pipe_branch_settings`: If 'true', apply project's pipe-branch allowed types
-        - `include_excluded`: If 'true', bypass NetworkSchemaSettings exclusions (for search)
-        - `minimal`: If 'true', return only uuid and name (no geometry/relations)
+            project: Filter by project ID.
+            flag: Filter by flag ID.
+            group: Filter by node type group.
+            exclude_group: Exclude nodes by node type group.
+            search: Trigram fuzzy search on name, with icontains on node_type.
+            use_pipe_branch_settings: If ``'true'``, apply project's
+                pipe-branch allowed types.
+            include_excluded: If ``'true'``, bypass NetworkSchemaSettings
+                exclusions (for search).
+            minimal: If ``'true'``, return only uuid and name
+                (no geometry/relations).
 
-        If project settings are configured, excluded node types are automatically
-        filtered out unless an explicit exclude_group or include_excluded parameter is provided.
+        If project settings are configured, excluded node types are
+        automatically filtered out unless an explicit ``exclude_group``
+        or ``include_excluded`` parameter is provided.
+
+        Args:
+            request: DRF request with the query params above.
+
+        Returns:
+            Response: GeoJSON FeatureCollection (or minimal JSON list
+                when ``minimal=true``).
         """
         minimal = request.query_params.get("minimal") == "true"
 
@@ -2483,10 +2494,11 @@ class NodeViewSet(viewsets.ModelViewSet):
             # Explicit exclude_group overrides project settings
             queryset = queryset.exclude(node_type__group=exclude_group)
         if search_term:
-            queryset = queryset.filter(
-                Q(name__icontains=search_term)
-                | Q(node_type__node_type__icontains=search_term)
-            )
+            trigram_qs = trigram_name_search(queryset, search_term, field="name")
+            type_qs = queryset.filter(
+                node_type__node_type__icontains=search_term
+            ).annotate(similarity=Value(0.0))
+            queryset = (trigram_qs | type_qs).distinct().order_by("-similarity")
 
         if minimal:
             serializer = ParentNodeSerializer(queryset, many=True)
@@ -4027,9 +4039,17 @@ class AreaViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="all")
     def all_areas(self, request):
-        """
-        Returns all areas with project and flag filters.
-        No pagination is used.
+        """Return all areas with project, flag, and fuzzy search filters.
+
+        Search uses trigram similarity on the name field combined with
+        an icontains fallback on the area_type name.
+
+        Args:
+            request: DRF request with query params ``project``, ``flag``,
+                and ``search``.
+
+        Returns:
+            Response: JSON list of serialized :model:`api.Area` objects.
         """
         queryset = Area.objects.all().order_by("name")
         project_id = request.query_params.get("project")
@@ -4040,10 +4060,11 @@ class AreaViewSet(viewsets.ModelViewSet):
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
         if search_term:
-            queryset = queryset.filter(
-                Q(name__icontains=search_term)
-                | Q(area_type__area_type__icontains=search_term)
-            )
+            trigram_qs = trigram_name_search(queryset, search_term, field="name")
+            type_qs = queryset.filter(
+                area_type__area_type__icontains=search_term
+            ).annotate(similarity=Value(0.0))
+            queryset = (trigram_qs | type_qs).distinct().order_by("-similarity")
         serializer = AreaSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -7145,15 +7166,15 @@ class TraceSearchView(APIView):
     def get(self, request):
         """Search across entity types and return lightweight picker results.
 
-        Tokenize the search term so multi-word queries narrow results
-        with an AND across all tokens.
+        Address and node searches use pg_trgm trigram similarity for
+        fuzzy matching; cable and residential_unit use icontains.
 
         Args:
-            request: DRF request with query params `search`, `type`, and
-                optional `project`.
+            request: DRF request with query params ``search``, ``type``,
+                and optional ``project``.
 
         Returns:
-            Response: JSON with a `results` list of matching entities.
+            Response: JSON with a ``results`` list of matching entities.
         """
         search = request.query_params.get("search", "").strip()
         entity_type = request.query_params.get("type", "")
@@ -7163,22 +7184,10 @@ class TraceSearchView(APIView):
             return Response({"results": []})
 
         if entity_type == "address":
-            queryset = Address.objects.select_related(
-                "status_development", "project"
-            ).order_by("street", "housenumber")
+            queryset = Address.objects.select_related("status_development", "project")
             if project_id:
                 queryset = queryset.filter(project=project_id)
-            tokens = search.split()
-            for token in tokens:
-                queryset = queryset.filter(
-                    Q(street__icontains=token)
-                    | Q(city__icontains=token)
-                    | Q(id_address__icontains=token)
-                    | Q(zip_code__icontains=token)
-                    | Q(district__icontains=token)
-                    | Q(house_number_suffix__icontains=token)
-                )
-            queryset = queryset[:20]
+            queryset = trigram_address_search(queryset, search)[:20]
             results = [
                 {
                     "uuid": str(a.uuid),
@@ -7193,12 +7202,10 @@ class TraceSearchView(APIView):
             ]
 
         elif entity_type == "node":
-            queryset = Node.objects.select_related("node_type", "project").order_by(
-                "name"
-            )
+            queryset = Node.objects.select_related("node_type", "project")
             if project_id:
                 queryset = queryset.filter(project=project_id)
-            queryset = queryset.filter(name__icontains=search)[:20]
+            queryset = trigram_name_search(queryset, search, field="name")[:20]
             results = [
                 {
                     "uuid": str(n.uuid),
