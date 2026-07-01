@@ -7,9 +7,10 @@
 		DEFAULT_ADDRESS_COLOR,
 		DEFAULT_ADDRESS_SIZE,
 		DEFAULT_AREA_COLOR,
-		DEFAULT_NODE_COLOR,
-		DEFAULT_NODE_SIZE,
-		DEFAULT_TRENCH_COLOR
+		DEFAULT_NODE_SHAPE,
+		DEFAULT_SELECTED_COLOR,
+		DEFAULT_TRENCH_COLOR,
+		getNodeTypeDefault
 	} from '$lib/map/styles';
 	import { userStore } from '$lib/stores/auth';
 	import {
@@ -38,10 +39,12 @@
 
 			data.nodeTypes.forEach((/** @type {any} */ nodeType) => {
 				if (!currentStyles[nodeType.node_type]) {
+					const defaults = getNodeTypeDefault(nodeType.node_type);
 					currentStyles[nodeType.node_type] = {
-						color: DEFAULT_NODE_COLOR,
-						size: DEFAULT_NODE_SIZE,
-						visible: true
+						color: defaults.color,
+						size: defaults.size,
+						visible: true,
+						shape: defaults.shape
 					};
 					hasNewTypes = true;
 				}
@@ -140,27 +143,43 @@
 		};
 	}
 
-	/** @param {string} nodeTypeName */
-	function resetNodeTypeStyle(nodeTypeName) {
+	/** @param {string} nodeTypeName @param {'circle' | 'square'} shape */
+	function updateNodeTypeShape(nodeTypeName, shape) {
 		const currentStyles = $nodeTypeStyles;
 		$nodeTypeStyles = {
 			...currentStyles,
 			[nodeTypeName]: {
-				color: DEFAULT_NODE_COLOR,
-				size: DEFAULT_NODE_SIZE,
-				visible: currentStyles[nodeTypeName]?.visible ?? true
+				...currentStyles[nodeTypeName],
+				shape
+			}
+		};
+	}
+
+	/** @param {string} nodeTypeName */
+	function resetNodeTypeStyle(nodeTypeName) {
+		const defaults = getNodeTypeDefault(nodeTypeName);
+		const currentStyles = $nodeTypeStyles;
+		$nodeTypeStyles = {
+			...currentStyles,
+			[nodeTypeName]: {
+				color: defaults.color,
+				size: defaults.size,
+				visible: currentStyles[nodeTypeName]?.visible ?? true,
+				shape: defaults.shape
 			}
 		};
 	}
 
 	function resetAllNodeTypeStyles() {
-		/** @type {Record<string, {color: string, size: number, visible: boolean}>} */
+		/** @type {Record<string, {color: string, size: number, visible: boolean, shape: 'circle' | 'square'}>} */
 		const newStyles = {};
 		data.nodeTypes.forEach((/** @type {any} */ nodeType) => {
+			const defaults = getNodeTypeDefault(nodeType.node_type);
 			newStyles[nodeType.node_type] = {
-				color: DEFAULT_NODE_COLOR,
-				size: DEFAULT_NODE_SIZE,
-				visible: $nodeTypeStyles[nodeType.node_type]?.visible ?? true
+				color: defaults.color,
+				size: defaults.size,
+				visible: $nodeTypeStyles[nodeType.node_type]?.visible ?? true,
+				shape: defaults.shape
 			};
 		});
 		$nodeTypeStyles = newStyles;
@@ -168,13 +187,16 @@
 
 	/** @param {string} nodeTypeName */
 	function getNodeTypeStyle(nodeTypeName) {
-		return (
-			$nodeTypeStyles[nodeTypeName] || {
-				color: DEFAULT_NODE_COLOR,
-				size: DEFAULT_NODE_SIZE,
-				visible: true
+		if ($nodeTypeStyles[nodeTypeName]) {
+			const style = $nodeTypeStyles[nodeTypeName];
+			if (!style.shape) {
+				const defaults = getNodeTypeDefault(nodeTypeName);
+				return { ...style, shape: defaults.shape };
 			}
-		);
+			return style;
+		}
+		const defaults = getNodeTypeDefault(nodeTypeName);
+		return { color: defaults.color, size: defaults.size, visible: true, shape: defaults.shape };
 	}
 
 	/** @param {string} surfaceName @param {string} color */
@@ -283,13 +305,15 @@
 	}
 
 	function randomizeAllNodeTypeStyles() {
-		/** @type {Record<string, {color: string, size: number, visible: boolean}>} */
+		/** @type {Record<string, {color: string, size: number, visible: boolean, shape: 'circle' | 'square'}>} */
 		const newStyles = {};
 		data.nodeTypes.forEach((/** @type {any} */ nodeType) => {
+			const defaults = getNodeTypeDefault(nodeType.node_type);
 			newStyles[nodeType.node_type] = {
 				color: randomHexColor(),
 				size: randomSize(),
-				visible: $nodeTypeStyles[nodeType.node_type]?.visible ?? true
+				visible: $nodeTypeStyles[nodeType.node_type]?.visible ?? true,
+				shape: $nodeTypeStyles[nodeType.node_type]?.shape || defaults.shape
 			};
 		});
 		$nodeTypeStyles = newStyles;
@@ -487,7 +511,7 @@
 								type="button"
 								class="font-semibold text-primary-500 hover:text-primary-600-400"
 								onclick={() => {
-									$trenchColorSelected = '#fbb483';
+									$trenchColorSelected = DEFAULT_SELECTED_COLOR;
 								}}
 							>
 								{m.common_reset()}
@@ -505,7 +529,7 @@
 								type="button"
 								class="font-semibold text-primary-500 hover:text-primary-600-400"
 								onclick={() => {
-									$trenchColor = '#fbb483';
+									$trenchColor = DEFAULT_TRENCH_COLOR;
 								}}
 							>
 								{m.common_reset()}
@@ -780,7 +804,9 @@
 
 								<div class="flex items-center justify-center mb-4 py-3 bg-surface-100-800 rounded">
 									<span
-										class="rounded-full shadow-sm transition-all"
+										class="{style.shape === 'circle'
+											? 'rounded-full'
+											: 'rounded-sm'} shadow-sm transition-all"
 										style="background-color: {style.color}; width: {style.size *
 											4}px; height: {style.size * 4}px;"
 									></span>
@@ -829,6 +855,36 @@
 											</Slider>
 										</div>
 										<span class="text-xs font-mono w-4 text-right">{style.size}</span>
+									</div>
+
+									<div class="flex items-center gap-3">
+										<span class="text-xs w-16">{m.settings_node_type_shape()}</span>
+										<div class="flex gap-2">
+											<button
+												type="button"
+												class="w-8 h-8 border-2 rounded-md flex items-center justify-center transition-colors {style.shape ===
+												'square'
+													? 'border-primary-500 bg-primary-500/10'
+													: 'border-surface-300-700 hover:border-surface-400-600'}"
+												onclick={() => updateNodeTypeShape(nodeType.node_type, 'square')}
+												title={m.settings_shape_square()}
+											>
+												<span class="w-4 h-4 rounded-sm" style="background-color: {style.color};"
+												></span>
+											</button>
+											<button
+												type="button"
+												class="w-8 h-8 border-2 rounded-md flex items-center justify-center transition-colors {style.shape ===
+												'circle'
+													? 'border-primary-500 bg-primary-500/10'
+													: 'border-surface-300-700 hover:border-surface-400-600'}"
+												onclick={() => updateNodeTypeShape(nodeType.node_type, 'circle')}
+												title={m.settings_shape_circle()}
+											>
+												<span class="w-4 h-4 rounded-full" style="background-color: {style.color};"
+												></span>
+											</button>
+										</div>
 									</div>
 								</div>
 							</div>

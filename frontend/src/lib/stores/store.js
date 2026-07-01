@@ -1,5 +1,12 @@
 import { writable } from 'svelte/store';
 
+import {
+	DEFAULT_ADDRESS_COLOR,
+	DEFAULT_ADDRESS_SIZE,
+	DEFAULT_SELECTED_COLOR,
+	DEFAULT_TRENCH_COLOR
+} from '$lib/map/defaultColors.js';
+
 import { persisted } from './persisted';
 import { session } from './session';
 
@@ -14,10 +21,6 @@ const defaultZoom = 2;
 /** Default flag value */
 /** @type {string[]} */
 const defaultFlagValue = ['1'];
-
-/** Default trench color */
-/** @type {string} */
-const defaultTrenchColor = '#000000';
 
 /** Whether the sidebar is expanded */
 export const sidebarExpanded = persisted('isSidebarExpanded', true);
@@ -35,10 +38,10 @@ export const mapCenter = persisted('mapCenter', defaultCenter);
 export const mapZoom = persisted('mapZoom', defaultZoom);
 
 /** Default trench color hex code */
-export const trenchColor = persisted('trenchColor', defaultTrenchColor);
+export const trenchColor = persisted('trenchColor', DEFAULT_TRENCH_COLOR);
 
-/** Selected trench color hex code */
-export const trenchColorSelected = persisted('trenchColorSelected', defaultTrenchColor);
+/** Selected feature highlight color hex code */
+export const trenchColorSelected = persisted('trenchColorSelected', DEFAULT_SELECTED_COLOR);
 
 /**
  * Light/dark mode setting.
@@ -99,7 +102,7 @@ export const globalMapView = persisted('globalMapView', false);
  * Cable edge color mode for network-schema diagram.
  * @type {import('svelte/store').Writable<'default' | 'linked' | 'micropipe'>}
  */
-export const cableEdgeColorMode = persisted('cableEdgeColorMode', 'default');
+export const cableEdgeColorMode = persisted('cableEdgeColorMode', 'micropipe');
 
 /** Shows animated flow from start to end node on cables */
 export const cableDirectionAnimationEnabled = persisted('cableDirectionAnimationEnabled', false);
@@ -111,8 +114,8 @@ export const networkSchemaDisplayOptionsExpanded = persisted(
 );
 
 /**
- * Node type styles - stores color, size, and visibility per node type.
- * @type {import('svelte/store').Writable<Record<string, {color: string, size: number, visible: boolean}>>}
+ * Node type styles - stores color, size, shape, and visibility per node type.
+ * @type {import('svelte/store').Writable<Record<string, {color: string, size: number, visible: boolean, shape: 'circle' | 'square'}>>}
  */
 export const nodeTypeStyles = persisted('nodeTypeStyles', {});
 
@@ -120,7 +123,10 @@ export const nodeTypeStyles = persisted('nodeTypeStyles', {});
  * Address style - stores color and size for address points.
  * @type {import('svelte/store').Writable<{color: string, size: number}>}
  */
-export const addressStyle = persisted('addressStyle', { color: '#2563eb', size: 4 });
+export const addressStyle = persisted('addressStyle', {
+	color: DEFAULT_ADDRESS_COLOR,
+	size: DEFAULT_ADDRESS_SIZE
+});
 
 /**
  * Trench styling mode - determines how trenches are colored on the map.

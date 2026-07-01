@@ -7,7 +7,11 @@ import {
 	createAreaStyleByType,
 	createNodeStyleByType,
 	createTrenchStyle,
-	createTrenchStyleByAttribute
+	createTrenchStyleByAttribute,
+	DEFAULT_ADDRESS_COLOR,
+	DEFAULT_ADDRESS_SIZE,
+	DEFAULT_SELECTED_COLOR,
+	DEFAULT_TRENCH_COLOR
 } from '$lib/map/styles';
 import { tileLoadingManager } from '$lib/map/tileLoadingManager.js';
 import {
@@ -34,6 +38,7 @@ import {
 	createAddressLayer,
 	createAreaLayer,
 	createNodeLayer,
+	createNodeSelectionLayer,
 	createSelectionLayer,
 	createTrenchLayer,
 	createWMSLayer
@@ -84,11 +89,6 @@ import {
  * @property {import('ol/layer/VectorTile').default | null} nodeLayer
  * @property {import('ol/layer/VectorTile').default | null} areaLayer
  */
-
-const DEFAULT_TRENCH_COLOR = '#000000';
-const DEFAULT_SELECTED_COLOR = '#000000';
-const DEFAULT_ADDRESS_COLOR = '#2563eb';
-const DEFAULT_ADDRESS_SIZE = 4;
 
 /**
  * Main state manager for the map
@@ -375,9 +375,10 @@ export class MapState {
 	 * Also triggers WMS layer loading.
 	 * @param {import('ol').Map} olMap - OpenLayers map instance
 	 * @param {() => Record<string, boolean>} getSelectionStore - Function to get current selection store
+	 * @param {() => Record<string, {color?: string, size?: number, visible?: boolean, shape?: 'circle' | 'square'}>} [getNodeTypeStyles] - Function to get current node type styles
 	 * @returns {void}
 	 */
-	initializeSelectionLayers(olMap, getSelectionStore) {
+	initializeSelectionLayers(olMap, getSelectionStore, getNodeTypeStyles) {
 		if (!olMap || !this.tileSource) return;
 
 		this.olMap = olMap;
@@ -399,10 +400,11 @@ export class MapState {
 		}
 
 		if (this.nodeTileSource) {
-			this.nodeSelectionLayer = createSelectionLayer(
+			this.nodeSelectionLayer = createNodeSelectionLayer(
 				this.nodeTileSource,
 				this.selectedColor,
-				getSelectionStore
+				getSelectionStore,
+				getNodeTypeStyles || (() => ({}))
 			);
 			this.olMap.addLayer(this.nodeSelectionLayer);
 		}

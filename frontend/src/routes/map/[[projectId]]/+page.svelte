@@ -161,7 +161,8 @@
 	function handleMapReady({ map: olMapInstance }) {
 		mapState.initializeSelectionLayers(
 			olMapInstance,
-			() => /** @type {Record<string, boolean>} */ (selectionManager.getSelectionStore())
+			() => /** @type {Record<string, boolean>} */ (selectionManager.getSelectionStore()),
+			() => $nodeTypeStyles
 		);
 
 		const selectionLayers = mapState.getSelectionLayers();

@@ -1,7 +1,20 @@
-import { Circle as CircleStyle, Style } from 'ol/style';
+import { Circle as CircleStyle, RegularShape, Style } from 'ol/style';
 import Fill from 'ol/style/Fill.js';
 import Stroke from 'ol/style/Stroke.js';
 import Text from 'ol/style/Text.js';
+
+import {
+	DEFAULT_ADDRESS_COLOR,
+	DEFAULT_ADDRESS_SIZE,
+	DEFAULT_AREA_COLOR,
+	DEFAULT_AREA_OPACITY,
+	DEFAULT_NODE_COLOR,
+	DEFAULT_NODE_SHAPE,
+	DEFAULT_NODE_SIZE,
+	DEFAULT_TRENCH_COLOR,
+	DEFAULT_TRENCH_WIDTH,
+	getNodeTypeDefault
+} from './defaultColors.js';
 
 /**
  * Creates a style function for trench features with optional trench and conduit labels
@@ -186,9 +199,11 @@ export function createTrenchStyleWithLabels(color, labelOptions = {}) {
 /**
  * Creates a style for selected features
  * @param {string} color - The color for the selected style
+ * @param {'circle' | 'square'} [shape='square'] - Shape for point features
+ * @param {number} [size=7] - Size for point features
  * @returns {Style}
  */
-export function createSelectedStyle(color) {
+export function createSelectedStyle(color, shape = DEFAULT_NODE_SHAPE, size = 7) {
 	return new Style({
 		fill: new Fill({
 			color: color
@@ -197,11 +212,7 @@ export function createSelectedStyle(color) {
 			color: color,
 			width: 3
 		}),
-		image: new CircleStyle({
-			radius: 7,
-			fill: new Fill({ color: color }),
-			stroke: new Stroke({ color: color, width: 2 })
-		})
+		image: createNodeImage(shape, size, color, color, 2)
 	});
 }
 
@@ -212,8 +223,8 @@ export function createSelectedStyle(color) {
 export function createAddressStyle() {
 	return new Style({
 		image: new CircleStyle({
-			radius: 4,
-			fill: new Fill({ color: '#2563eb' }),
+			radius: DEFAULT_ADDRESS_SIZE,
+			fill: new Fill({ color: DEFAULT_ADDRESS_COLOR }),
 			stroke: new Stroke({ color: '#000000', width: 1 })
 		})
 	});
@@ -272,16 +283,37 @@ export function createAddressStyleWithLabels(
 }
 
 /**
+ * Creates an image style for a node point based on shape
+ * @param {'circle' | 'square'} shape
+ * @param {number} size
+ * @param {string} fillColor
+ * @param {string} [strokeColor='#000000']
+ * @param {number} [strokeWidth=1]
+ * @returns {CircleStyle | RegularShape}
+ */
+export function createNodeImage(shape, size, fillColor, strokeColor = '#000000', strokeWidth = 1) {
+	const fill = new Fill({ color: fillColor });
+	const stroke = new Stroke({ color: strokeColor, width: strokeWidth });
+
+	if (shape === 'circle') {
+		return new CircleStyle({ radius: size, fill, stroke });
+	}
+	return new RegularShape({
+		fill,
+		stroke,
+		points: 4,
+		radius: size,
+		angle: Math.PI / 4
+	});
+}
+
+/**
  * Creates a style for node points
  * @returns {Style}
  */
 export function createNodeStyle() {
 	return new Style({
-		image: new CircleStyle({
-			radius: 6,
-			fill: new Fill({ color: '#ff6b35' }),
-			stroke: new Stroke({ color: '#000000', width: 1 })
-		})
+		image: createNodeImage(DEFAULT_NODE_SHAPE, DEFAULT_NODE_SIZE, DEFAULT_NODE_COLOR)
 	});
 }
 
@@ -298,11 +330,7 @@ export function createNodeStyleWithLabels(labelOptions = {}) {
 	const { enabled = false, field = 'name', minResolution = 1.0, textStyle = {} } = labelOptions;
 
 	const geometryStyle = new Style({
-		image: new CircleStyle({
-			radius: 6,
-			fill: new Fill({ color: '#ff6b35' }),
-			stroke: new Stroke({ color: '#000000', width: 1 })
-		}),
+		image: createNodeImage(DEFAULT_NODE_SHAPE, DEFAULT_NODE_SIZE, DEFAULT_NODE_COLOR),
 		// @ts-ignore
 		declutterMode: 'none'
 	});
@@ -326,33 +354,19 @@ export function createNodeStyleWithLabels(labelOptions = {}) {
 	};
 }
 
-/**
- * Default node style configuration
- */
-export const DEFAULT_NODE_COLOR = '#ff6b35';
-export const DEFAULT_NODE_SIZE = 6;
-
-/**
- * Default trench style configuration
- */
-export const DEFAULT_TRENCH_COLOR = '#fbb483';
-export const DEFAULT_TRENCH_WIDTH = 2;
-
-/**
- * Default address style configuration
- */
-export const DEFAULT_ADDRESS_COLOR = '#2563eb';
-export const DEFAULT_ADDRESS_SIZE = 4;
-
-/**
- * Default area style configuration
- */
-export const DEFAULT_AREA_COLOR = '#22c55e';
-export const DEFAULT_AREA_OPACITY = 0.3;
+export {
+	DEFAULT_ADDRESS_COLOR,
+	DEFAULT_ADDRESS_SIZE,
+	DEFAULT_AREA_COLOR,
+	DEFAULT_NODE_SHAPE,
+	DEFAULT_SELECTED_COLOR,
+	DEFAULT_TRENCH_COLOR,
+	getNodeTypeDefault
+} from './defaultColors.js';
 
 /**
  * Creates a style function for node points with per-type styling
- * @param {Record<string, {color?: string, size?: number, visible?: boolean}>} nodeTypeStyles - Object mapping node type names to style config
+ * @param {Record<string, {color?: string, size?: number, visible?: boolean, shape?: 'circle' | 'square'}>} nodeTypeStyles - Object mapping node type names to style config
  * @param {Object} labelOptions - Label configuration options
  * @param {boolean} [labelOptions.enabled=false] - Whether to show labels
  * @param {string} [labelOptions.field='name'] - Feature property to use for label
@@ -372,26 +386,29 @@ export function createNodeStyleByType(nodeTypeStyles = {}, labelOptions = {}) {
 	 */
 	return function (feature, resolution) {
 		const nodeType = /** @type {string} */ (feature.get('node_type'));
+		const defaults = getNodeTypeDefault(nodeType);
 		const typeConfig = nodeTypeStyles[nodeType] || {
-			color: DEFAULT_NODE_COLOR,
-			size: DEFAULT_NODE_SIZE,
-			visible: true
+			color: defaults.color,
+			size: defaults.size,
+			visible: true,
+			shape: defaults.shape
 		};
 
 		if (!typeConfig.visible) {
 			return undefined;
 		}
 
-		const geometryCacheKey = `${nodeType || 'default'}_${typeConfig.color}_${typeConfig.size}`;
+		const shape = typeConfig.shape || defaults.shape;
+		const geometryCacheKey = `${nodeType || 'default'}_${typeConfig.color}_${typeConfig.size}_${shape}`;
 
 		let geometryStyle = geometryStyleCache.get(geometryCacheKey);
 		if (!geometryStyle) {
 			geometryStyle = new Style({
-				image: new CircleStyle({
-					radius: typeConfig.size || DEFAULT_NODE_SIZE,
-					fill: new Fill({ color: typeConfig.color || DEFAULT_NODE_COLOR }),
-					stroke: new Stroke({ color: '#000000', width: 1 })
-				}),
+				image: createNodeImage(
+					shape,
+					typeConfig.size || DEFAULT_NODE_SIZE,
+					typeConfig.color || DEFAULT_NODE_COLOR
+				),
 				// @ts-ignore
 				declutterMode: 'none'
 			});
@@ -756,15 +773,13 @@ export function createRouteStyle(color = 'rgba(255, 0, 0, 0.7)', width = 4) {
 /**
  * Creates a style for feature highlight overlays
  * @param {string} [color='rgba(255, 0, 255, 0.7)'] - Highlight color
+ * @param {'circle' | 'square'} [shape='square'] - Shape for point features
  * @returns {Style}
  */
-export function createHighlightStyle(color = 'rgba(255, 0, 255, 0.7)') {
+export function createHighlightStyle(color = 'rgba(255, 0, 255, 0.7)', shape = DEFAULT_NODE_SHAPE) {
 	return new Style({
 		stroke: new Stroke({ color, width: 8 }),
-		image: new CircleStyle({
-			radius: 9,
-			stroke: new Stroke({ color, width: 4 })
-		})
+		image: createNodeImage(shape, 9, 'transparent', color, 4)
 	});
 }
 
@@ -789,9 +804,10 @@ export function createMeasureStyle() {
 /**
  * Creates a style for search result highlighting
  * @param {string} [color='#ff0000'] - Base highlight color (hex)
+ * @param {'circle' | 'square'} [shape='square'] - Shape for point features
  * @returns {Style}
  */
-export function createSearchHighlightStyle(color = '#ff0000') {
+export function createSearchHighlightStyle(color = '#ff0000', shape = DEFAULT_NODE_SHAPE) {
 	return new Style({
 		stroke: new Stroke({
 			color: color,
@@ -801,11 +817,7 @@ export function createSearchHighlightStyle(color = '#ff0000') {
 		fill: new Fill({
 			color: color + '40'
 		}),
-		image: new CircleStyle({
-			radius: 8,
-			fill: new Fill({ color: color + '80' }),
-			stroke: new Stroke({ color: color, width: 3 })
-		})
+		image: createNodeImage(shape, 8, color + '80', color, 3)
 	});
 }
 
