@@ -87,7 +87,10 @@ from .models import (
     NodeStructure,
     NodeTrenchSelection,
     PipeBranchSettings,
+    PipelineRecord,
     Projects,
+    RequestReason,
+    TypeOfWork,
     QGISProject,
     ResidentialUnit,
     Trench,
@@ -152,7 +155,10 @@ from .serializers import (
     NodeTrenchSelectionBulkSerializer,
     NodeTrenchSelectionSerializer,
     ParentNodeSerializer,
+    PipelineRecordSerializer,
     ProjectsSerializer,
+    RequestReasonSerializer,
+    TypeOfWorkSerializer,
     ResidentialUnitSerializer,
     TrenchConduitCanvasSerializer,
     TrenchConduitSerializer,
@@ -7711,3 +7717,86 @@ class FaultSimulationView(APIView):
                 {"error": "An error occurred during fault simulation"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class TypeOfWorkViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for :model:`api.TypeOfWork`."""
+
+    permission_classes = [IsAuthenticated]
+    queryset = TypeOfWork.objects.all().order_by("name")
+    serializer_class = TypeOfWorkSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class RequestReasonViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for :model:`api.RequestReason`."""
+
+    permission_classes = [IsAuthenticated]
+    queryset = RequestReason.objects.all().order_by("name")
+    serializer_class = RequestReasonSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+
+class PipelineRecordViewSet(viewsets.ModelViewSet):
+    """CRUD operations for :model:`api.PipelineRecord`.
+
+    List action provides server-side pagination and search across
+    organisation, name, type_of_work, request_reason, and project.
+    """
+
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
+    serializer_class = PipelineRecordSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+
+    def get_queryset(self):
+        return PipelineRecord.objects.select_related(
+            "project", "type_of_work", "request_reason"
+        ).order_by("-created_at")
+
+    def list(self, request, *args, **kwargs):
+        """Return paginated pipeline records with optional search.
+
+        Query params:
+            search: Search term (optional)
+            page: Page number (default: 1)
+            page_size: Items per page (default: 50, max: 200)
+        """
+        queryset = self.get_queryset()
+
+        search_term = request.query_params.get("search")
+        if search_term:
+            queryset = queryset.filter(
+                Q(organisation__icontains=search_term)
+                | Q(name__icontains=search_term)
+                | Q(type_of_work__name__icontains=search_term)
+                | Q(request_reason__name__icontains=search_term)
+                | Q(project__project__icontains=search_term)
+            )
+
+        total_count = queryset.count()
+
+        try:
+            page = int(request.query_params.get("page", 1))
+            page_size = min(int(request.query_params.get("page_size", 50)), 200)
+        except ValueError:
+            page = 1
+            page_size = 50
+
+        start = (page - 1) * page_size
+        end = start + page_size
+        queryset = queryset[start:end]
+
+        serializer = self.get_serializer(queryset, many=True)
+
+        return Response(
+            {
+                "results": serializer.data,
+                "count": total_count,
+                "page": page,
+                "page_size": page_size,
+                "total_pages": (total_count + page_size - 1) // page_size,
+            }
+        )

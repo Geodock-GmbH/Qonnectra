@@ -25,12 +25,15 @@ from .factories import (
     NetworkLevelFactory,
     NodeFactory,
     NodeTypeFactory,
+    PipelineRecordFactory,
     ProjectFactory,
+    RequestReasonFactory,
     StatusFactory,
     StoragePreferencesFactory,
     TrenchConduitCanvasFactory,
     TrenchConduitConnectionFactory,
     TrenchFactory,
+    TypeOfWorkFactory,
     WMSLayerFactory,
     WMSSourceFactory,
 )
@@ -414,6 +417,7 @@ def seed_permission_data(db):
         "logentry", "trenchconduitconnection", "trenchconduitcanvas",
         "microductconnection", "microductcableconnection", "nodestructure",
         "nodeslotconfiguration", "cablelabel", "containertype",
+        "pipelinerecord", "typeofwork", "requestreason",
     ]
 
     for model_name in model_names:
@@ -450,3 +454,23 @@ def seed_permission_data(db):
         "editor_group": editor_group,
         "viewer_group": viewer_group,
     }
+
+
+@pytest.fixture
+def type_of_work(db):
+    """Create a test type of work."""
+    return TypeOfWorkFactory()
+
+
+@pytest.fixture
+def request_reason(db):
+    """Create a test request reason."""
+    return RequestReasonFactory()
+
+
+@pytest.fixture
+def pipeline_record(db, project, type_of_work, request_reason):
+    """Create a test pipeline record."""
+    return PipelineRecordFactory(
+        project=project, type_of_work=type_of_work, request_reason=request_reason
+    )

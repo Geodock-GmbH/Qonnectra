@@ -46,9 +46,12 @@ from .models import (
     NodeSlotDivider,
     NodeStructure,
     NodeTrenchSelection,
+    PipelineRecord,
     Projects,
+    RequestReason,
     ResidentialUnit,
     Trench,
+    TypeOfWork,
     TrenchConduitCanvas,
     TrenchConduitConnection,
     WMSLayer,
@@ -2574,3 +2577,81 @@ class WMSSourceCreateSerializer(serializers.ModelSerializer):
             instance.password = password
         instance.save()
         return instance
+
+
+class TypeOfWorkSerializer(serializers.ModelSerializer):
+    """Serialize :model:`api.TypeOfWork` instances."""
+
+    class Meta:
+        model = TypeOfWork
+        fields = ["id", "name"]
+
+
+class RequestReasonSerializer(serializers.ModelSerializer):
+    """Serialize :model:`api.RequestReason` instances."""
+
+    class Meta:
+        model = RequestReason
+        fields = ["id", "name"]
+
+
+class PipelineRecordSerializer(serializers.ModelSerializer):
+    """Serialize :model:`api.PipelineRecord` with flattened FK values.
+
+    Read operations return project_name, type_of_work and request_reason as strings.
+    Write operations accept project, type_of_work_value and request_reason_value (PK ints).
+    """
+
+    uuid = serializers.UUIDField(read_only=True)
+    project_name = serializers.CharField(
+        source="project.project",
+        read_only=True,
+        default="",
+    )
+    type_of_work = serializers.CharField(
+        source="type_of_work.name",
+        read_only=True,
+        default="",
+    )
+    request_reason = serializers.CharField(
+        source="request_reason.name",
+        read_only=True,
+        default="",
+    )
+    project = serializers.PrimaryKeyRelatedField(
+        queryset=Projects.objects.all(),
+        write_only=True,
+    )
+    type_of_work_value = serializers.PrimaryKeyRelatedField(
+        queryset=TypeOfWork.objects.all(),
+        source="type_of_work",
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
+    request_reason_value = serializers.PrimaryKeyRelatedField(
+        queryset=RequestReason.objects.all(),
+        source="request_reason",
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
+
+    class Meta:
+        model = PipelineRecord
+        fields = [
+            "uuid",
+            "project",
+            "project_name",
+            "type_of_work",
+            "type_of_work_value",
+            "request_reason",
+            "request_reason_value",
+            "organisation",
+            "name",
+            "tel",
+            "mobile",
+            "created_at",
+            "modified_at",
+        ]
+        read_only_fields = ["uuid", "created_at", "modified_at"]

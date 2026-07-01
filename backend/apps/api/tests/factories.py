@@ -34,7 +34,10 @@ from apps.api.models import (
     MicroductCableConnection,
     MicroductConnection,
     Node,
+    PipelineRecord,
     Projects,
+    RequestReason,
+    TypeOfWork,
     StoragePreferences,
     Trench,
     TrenchConduitCanvas,
@@ -467,3 +470,36 @@ class TrenchConduitCanvasFactory(factory.django.DjangoModelFactory):
     canvas_y = factory.Faker("pyfloat", min_value=0, max_value=500)
     canvas_width = 80.0
     canvas_height = 80.0
+
+
+class TypeOfWorkFactory(factory.django.DjangoModelFactory):
+    """Factory for TypeOfWork model."""
+
+    class Meta:
+        model = TypeOfWork
+
+    id = factory.Sequence(lambda n: n + 1)
+    name = factory.Sequence(lambda n: f"Work Type {n}")
+
+
+class RequestReasonFactory(factory.django.DjangoModelFactory):
+    """Factory for RequestReason model."""
+
+    class Meta:
+        model = RequestReason
+
+    id = factory.Sequence(lambda n: n + 1)
+    name = factory.Sequence(lambda n: f"Request Reason {n}")
+
+
+class PipelineRecordFactory(factory.django.DjangoModelFactory):
+    """Factory for PipelineRecord model."""
+
+    class Meta:
+        model = PipelineRecord
+
+    project = factory.SubFactory(ProjectFactory)
+    type_of_work = factory.SubFactory(TypeOfWorkFactory)
+    request_reason = factory.SubFactory(RequestReasonFactory)
+    organisation = factory.Sequence(lambda n: f"Organisation {n}")
+    name = factory.Sequence(lambda n: f"Contact Person {n}")

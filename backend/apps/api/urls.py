@@ -76,7 +76,10 @@ from .views import (
     OlAreaTileViewSet,
     OlNodeTileViewSet,
     OlTrenchTileViewSet,
+    PipelineRecordViewSet,
     ProjectsViewSet,
+    RequestReasonViewSet,
+    TypeOfWorkViewSet,
     QGISAuthView,
     ResidentialUnitViewSet,
     RoutingView,
@@ -261,6 +264,9 @@ router.register(
 )
 router.register(r"wms-sources", WMSSourceViewSet, basename="wms-sources")
 router.register(r"wms-layers", WMSLayerViewSet, basename="wms-layers")
+router.register(r"pipeline-records", PipelineRecordViewSet, basename="pipeline-records")
+router.register(r"type-of-work", TypeOfWorkViewSet, basename="type-of-work")
+router.register(r"request-reasons", RequestReasonViewSet, basename="request-reasons")
 
 urlpatterns = [
     path("logs/frontend/", FrontendLogView.as_view(), name="frontend-logs"),
