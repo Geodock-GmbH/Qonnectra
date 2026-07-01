@@ -80,6 +80,7 @@
 	"common_connected_to_ports": "mit Ports verbunden",
 	"common_continue": "Fortfahren",
 	"common_count": "Anzahl",
+	"common_created": "Erstellt",
 	"common_date": "Datum",
 	"common_default": "Standard",
 	"common_delete": "Löschen",
@@ -94,6 +95,7 @@
 	"common_language": "Sprache",
 	"common_length": "Länge",
 	"common_loading": "Laden...",
+	"common_modified": "Geändert",
 	"common_more": "Mehr",
 	"common_name": "Name",
 	"common_no": "Nein",
@@ -190,6 +192,7 @@
 			}
 		}
 	],
+	"form_building_measure": "Baumaßnahme",
 	"form_building_section": "Gebäudeteil",
 	"form_bundle": "Bündel",
 	"form_cable_overview": "Kabelübersicht",
@@ -397,6 +400,7 @@
 	"form_tpu": "TPU",
 	"form_trench_id": "Trassen-ID",
 	"form_trench_statistics": "Trassenstatistik",
+	"form_type_of_work": "Art der Arbeit",
 	"form_units_by_city": "Wohneinheiten nach Ort",
 	"form_units_by_type": "Wohneinheiten nach Typ",
 	"form_unnamed_cable": "Unbenanntes Kabel",

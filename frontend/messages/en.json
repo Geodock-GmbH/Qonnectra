@@ -80,6 +80,7 @@
 	"common_connected_to_ports": "connected to ports",
 	"common_continue": "Continue",
 	"common_count": "Count",
+	"common_created": "Created",
 	"common_date": "Date",
 	"common_default": "Default",
 	"common_delete": "Delete",
@@ -94,6 +95,7 @@
 	"common_language": "Language",
 	"common_length": "Length",
 	"common_loading": "Loading...",
+	"common_modified": "Modified",
 	"common_more": "More",
 	"common_name": "Name",
 	"common_no": "No",
@@ -190,6 +192,7 @@
 			}
 		}
 	],
+	"form_building_measure": "Building measure",
 	"form_building_section": "Building Section",
 	"form_bundle": "Bundle",
 	"form_cable_overview": "Cable overview",
@@ -397,6 +400,7 @@
 	"form_tpu": "TPU",
 	"form_trench_id": "Trench ID",
 	"form_trench_statistics": "Trench statistics",
+	"form_type_of_work": "Type of work",
 	"form_units_by_city": "Residential Units by City",
 	"form_units_by_type": "Residential Units by Type",
 	"form_unnamed_cable": "Unnamed Cable",
