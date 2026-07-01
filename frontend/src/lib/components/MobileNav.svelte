@@ -15,6 +15,7 @@
 		IconFileText,
 		IconLanguage,
 		IconMapPin,
+		IconMapSearch,
 		IconSettings,
 		IconSTurnRight,
 		IconTable,
@@ -165,6 +166,12 @@
 			label: () => m.nav_settings(),
 			icon: IconSettings,
 			pathMatch: (/** @type {string} */ path) => path.startsWith('/settings')
+		},
+		{
+			href: '/pipeline-records',
+			label: () => m.nav_pipeline_records(),
+			icon: IconMapSearch,
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/pipeline-records')
 		}
 	];
 
