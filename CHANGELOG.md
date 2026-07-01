@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.3.0...v1.3.1) (2026-07-01)
+
+
+### Refactoring
+
+* Moved openlayer styles initilized in different files into styles.js ([432ec73](https://github.com/Geodock-GmbH/Qonnectra/commit/432ec73dceb87fbefa628aa8ea152ac6ab1d440f))
+* Replaced ILIKE search with pg_trgm for address, node and area ([#70](https://github.com/Geodock-GmbH/Qonnectra/issues/70)) ([f6a1002](https://github.com/Geodock-GmbH/Qonnectra/commit/f6a1002dc3ad64d5b4703fa870d0158a7c352f37))
+
 ## [1.3.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.2.0...v1.3.0) (2026-06-30)
 
 
