@@ -39,7 +39,6 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .search import trigram_address_search, trigram_name_search
 from .models import (
     Address,
     Area,
@@ -96,6 +95,7 @@ from .models import (
 from .pageination import CustomPagination
 from .permissions import RoleBasedPermission, get_user_permissions
 from .routing import find_shortest_path
+from .search import trigram_address_search, trigram_name_search
 from .serializers import (
     AddressListSerializer,
     AddressSerializer,
@@ -623,6 +623,21 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
     lookup_url_kwarg = "pk"
     pagination_class = CustomPagination
 
+    # Content types that are safe to render inline in the browser. Anything
+    # not listed (HTML, SVG, scripts, XML, ...) is served as an attachment so
+    # it cannot execute as active content in the API origin.
+    INLINE_SAFE_MIME_TYPES = frozenset(
+        {
+            "application/pdf",
+            "image/png",
+            "image/jpeg",
+            "image/gif",
+            "image/webp",
+            "image/bmp",
+            "text/plain",
+        }
+    )
+
     def get_queryset(self):  # type: ignore[override]
         """
         Filter files by object_id query parameter.
@@ -696,6 +711,12 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
         to Nginx's internal location for secure file serving with inline
         content disposition, allowing browsers to display the file.
 
+        Only content types on ``INLINE_SAFE_MIME_TYPES`` are served inline;
+        anything that a browser could execute as active content (HTML, SVG,
+        scripts, etc.) is forced to ``attachment`` with an
+        ``application/octet-stream`` content type so it can never run in the
+        API origin where the auth cookie lives.
+
         In development mode (DEBUG=True), files are served directly via
         Django's FileResponse since X-Accel-Redirect requires Nginx.
         """
@@ -709,13 +730,19 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
         if mime_type is None:
             mime_type = "application/octet-stream"
 
+        inline_safe = mime_type.lower() in self.INLINE_SAFE_MIME_TYPES
+        disposition = "inline" if inline_safe else "attachment"
+        # Never let the browser interpret non-allowlisted files as active content.
+        content_type = mime_type if inline_safe else "application/octet-stream"
+
         # In development, serve files directly (X-Accel-Redirect requires Nginx)
         if settings.DEBUG:
             file_handle = file_obj.file_path.open("rb")
-            response = FileResponse(file_handle, content_type=mime_type)
+            response = FileResponse(file_handle, content_type=content_type)
             response["Content-Disposition"] = (
-                f"inline; filename*=UTF-8''{encoded_filename}"
+                f"{disposition}; filename*=UTF-8''{encoded_filename}"
             )
+            response["X-Content-Type-Options"] = "nosniff"
             return response
 
         # In production, use X-Accel-Redirect for Nginx
@@ -726,8 +753,11 @@ class FeatureFilesViewSet(viewsets.ModelViewSet):
 
         response = HttpResponse()
         response["X-Accel-Redirect"] = redirect_url
-        response["Content-Type"] = mime_type
-        response["Content-Disposition"] = f"inline; filename*=UTF-8''{encoded_filename}"
+        response["Content-Type"] = content_type
+        response["Content-Disposition"] = (
+            f"{disposition}; filename*=UTF-8''{encoded_filename}"
+        )
+        response["X-Content-Type-Options"] = "nosniff"
 
         return response
 
@@ -5742,51 +5772,13 @@ class WMSSourceViewSet(viewsets.ModelViewSet):
     def _is_url_safe(self, url: str) -> tuple[bool, str]:
         """Check if URL is safe to access (not internal/private).
 
-        Reuses validation logic from WMSProxyView.
+        Fast fail-fast pre-check. The authoritative SSRF protection is enforced
+        at fetch time inside ``wms_service`` (which re-validates every resolved
+        IP, including redirect hops), so this only avoids obviously bad URLs.
         """
-        import ipaddress
-        import socket
-        from urllib.parse import urlparse
+        from .wms_service import validate_wms_url
 
-        blocked_networks = [
-            "10.0.0.0/8",
-            "172.16.0.0/12",
-            "192.168.0.0/16",
-            "127.0.0.0/8",
-            "169.254.0.0/16",
-            "::1/128",
-            "fc00::/7",
-            "fe80::/10",
-        ]
-
-        parsed = urlparse(url)
-        hostname = parsed.hostname
-
-        if not hostname:
-            return False, "Invalid URL: no hostname"
-
-        internal_hostnames = ["localhost", "metadata.google.internal"]
-        if hostname.lower() in internal_hostnames:
-            return False, "Access to internal hosts is not allowed"
-
-        try:
-            ip = ipaddress.ip_address(hostname)
-        except ValueError:
-            try:
-                resolved = socket.gethostbyname(hostname)
-                ip = ipaddress.ip_address(resolved)
-            except socket.gaierror:
-                return False, f"Could not resolve hostname: {hostname}"
-
-        for network_str in blocked_networks:
-            try:
-                network = ipaddress.ip_network(network_str)
-                if ip in network:
-                    return False, "Access to private/internal networks is not allowed"
-            except ValueError:
-                continue
-
-        return True, ""
+        return validate_wms_url(url)
 
     @action(detail=True, methods=["post"])
     def refresh_layers(self, request, pk=None):
