@@ -41,7 +41,6 @@ def integration_users(db):
 def integration_project(db):
     """Create test project for integration tests."""
     return Projects.objects.create(
-        id=1,
         project="Integration Test Project",
         description="Project for integration testing",
     )
@@ -50,19 +49,19 @@ def integration_project(db):
 @pytest.fixture
 def integration_flag(db):
     """Create test flag for integration tests."""
-    return Flags.objects.create(id=1, flag="Integration Test Flag")
+    return Flags.objects.create(flag="Integration Test Flag")
 
 
 @pytest.fixture
 def integration_node_attributes(db):
     """Create node attribute objects for integration tests."""
-    node_type = AttributesNodeType.objects.create(id=1, node_type="Integration Type")
+    node_type = AttributesNodeType.objects.create(node_type="Integration Type")
 
-    status_attr = AttributesStatus.objects.create(id=1, status="Active")
+    status_attr = AttributesStatus.objects.create(status="Active")
 
-    network_level = AttributesNetworkLevel.objects.create(id=1, network_level="Level 1")
+    network_level = AttributesNetworkLevel.objects.create(network_level="Level 1")
 
-    company = AttributesCompany.objects.create(id=1, company="Integration Company")
+    company = AttributesCompany.objects.create(company="Integration Company")
 
     return {
         "node_type": node_type,
@@ -103,7 +102,7 @@ def integration_url():
     return "/api/v1/canvas-coordinates/"
 
 
-def _make_api_request(url, user, method="GET", data=None):
+def _make_api_request(url, user, method="GET", data=None, project_id=None):
     """Make an authenticated API request for integration testing.
 
     Args:
@@ -111,6 +110,7 @@ def _make_api_request(url, user, method="GET", data=None):
         user: User instance to authenticate as.
         method: HTTP method ('GET' or 'POST').
         data: Request payload for POST requests.
+        project_id: Project ID to use in the request.
 
     Returns:
         Response: DRF response object.
@@ -119,9 +119,9 @@ def _make_api_request(url, user, method="GET", data=None):
     client.force_authenticate(user=user)
 
     if method == "GET":
-        return client.get(url, {"project_id": 1})
+        return client.get(url, {"project_id": project_id})
     elif method == "POST":
-        post_data = data or {"project_id": 1, "scale": 0.5}
+        post_data = data or {"project_id": project_id, "scale": 0.5}
         return client.post(url, post_data, format="json")
 
 
@@ -132,11 +132,12 @@ def test_sync_completion_detection_by_waiting_user(
     """Test that a waiting user can detect when sync completes."""
     user1 = integration_users["user1"]
     user2 = integration_users["user2"]
+    pid = integration_project.id
 
-    response1 = _make_api_request(integration_url, user1, "POST")
+    response1 = _make_api_request(integration_url, user1, "POST", project_id=pid)
     assert response1.status_code == 200
 
-    response2 = _make_api_request(integration_url, user2, "GET")
+    response2 = _make_api_request(integration_url, user2, "GET", project_id=pid)
     assert response2.status_code == 200
 
     data = response2.json()
@@ -153,9 +154,11 @@ def test_multiple_concurrent_status_checks(
     user1 = integration_users["user1"]
     user2 = integration_users["user2"]
     user3 = integration_users["user3"]
+    pid = integration_project.id
 
+    sync_key = CanvasSyncStatus.get_sync_key(project_id=pid)
     CanvasSyncStatus.objects.create(
-        sync_key="project_1",
+        sync_key=sync_key,
         status="IN_PROGRESS",
         started_by=user1,
         started_at=timezone.now(),
@@ -168,7 +171,7 @@ def test_multiple_concurrent_status_checks(
     def check_status(user, user_id):
         """Function to check sync status."""
         try:
-            response = _make_api_request(integration_url, user, "GET")
+            response = _make_api_request(integration_url, user, "GET", project_id=pid)
             results[user_id] = {
                 "status_code": response.status_code,
                 "data": response.json() if response.content else {},
@@ -201,8 +204,9 @@ def test_database_consistency_under_concurrent_access(
     """Test that database remains consistent under concurrent access."""
     user1 = integration_users["user1"]
     project = integration_project
+    pid = project.id
 
-    response = _make_api_request(integration_url, user1, "POST")
+    response = _make_api_request(integration_url, user1, "POST", project_id=pid)
     assert response.status_code == 200
 
     original_coordinates = {}
@@ -253,9 +257,11 @@ def test_qgis_concurrent_node_creation_during_sync(
     project = integration_project
     flag = integration_flag
     node_attrs = integration_node_attributes
+    pid = project.id
 
+    sync_key = CanvasSyncStatus.get_sync_key(project_id=pid)
     sync_status = CanvasSyncStatus.objects.create(
-        sync_key="project_1",
+        sync_key=sync_key,
         status="IN_PROGRESS",
         started_by=user1,
         started_at=timezone.now(),
@@ -303,6 +309,7 @@ def test_performance_with_large_node_set(
     project = integration_project
     flag = integration_flag
     node_attrs = integration_node_attributes
+    pid = project.id
 
     additional_nodes = []
     for i in range(200):  # Add 200 more nodes (250 total)
@@ -322,7 +329,7 @@ def test_performance_with_large_node_set(
         additional_nodes.append(node)
 
     start_time = time.time()
-    response = _make_api_request(integration_url, user1, "POST")
+    response = _make_api_request(integration_url, user1, "POST", project_id=pid)
     end_time = time.time()
 
     sync_duration = end_time - start_time
@@ -354,12 +361,13 @@ def test_concurrent_sync_attempts_across_projects(
     user1 = integration_users["user1"]
     user2 = integration_users["user2"]
     node_attrs = integration_node_attributes
+    pid1 = integration_project.id
 
     project2 = Projects.objects.create(
-        id=2,
         project="Second Project",
         description="Second project for concurrent testing",
     )
+    pid2 = project2.id
 
     for i in range(10):
         Node.objects.create(
@@ -390,8 +398,8 @@ def test_concurrent_sync_attempts_across_projects(
         except Exception as e:
             results[user_id] = {"status_code": 500, "error": str(e)}
 
-    thread1 = threading.Thread(target=sync_project, args=(user1, 1, "project1"))
-    thread2 = threading.Thread(target=sync_project, args=(user2, 2, "project2"))
+    thread1 = threading.Thread(target=sync_project, args=(user1, pid1, "project1"))
+    thread2 = threading.Thread(target=sync_project, args=(user2, pid2, "project2"))
 
     thread1.start()
     thread2.start()
@@ -402,8 +410,10 @@ def test_concurrent_sync_attempts_across_projects(
     assert results["project1"]["status_code"] == 200
     assert results["project2"]["status_code"] == 200
 
-    sync1 = CanvasSyncStatus.objects.get(sync_key="project_1")
-    sync2 = CanvasSyncStatus.objects.get(sync_key="project_2")
+    sync_key1 = CanvasSyncStatus.get_sync_key(project_id=pid1)
+    sync_key2 = CanvasSyncStatus.get_sync_key(project_id=pid2)
+    sync1 = CanvasSyncStatus.objects.get(sync_key=sync_key1)
+    sync2 = CanvasSyncStatus.objects.get(sync_key=sync_key2)
 
     assert sync1.status == "COMPLETED"
     assert sync2.status == "COMPLETED"

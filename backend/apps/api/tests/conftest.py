@@ -125,10 +125,9 @@ def microduct_colors(db):
         ("schwarz", "black", "#000000"),
         ("orange", "orange", "#ea580c"),
     ]
-    for i, (name_de, name_en, hex_code) in enumerate(color_names, 1):
+    for name_de, name_en, hex_code in color_names:
         colors.append(
             MicroductColorFactory(
-                id=i,
                 name_de=name_de,
                 name_en=name_en,
                 hex_code=hex_code,
@@ -149,10 +148,9 @@ def fiber_colors(db):
         ("weiss", "white", "#ffffff"),
         ("schwarz", "black", "#000000"),
     ]
-    for i, (name_de, name_en, hex_code) in enumerate(color_names, 1):
+    for name_de, name_en, hex_code in color_names:
         colors.append(
             FiberColorFactory(
-                id=i,
                 name_de=name_de,
                 name_en=name_en,
                 hex_code=hex_code,
