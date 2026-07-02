@@ -1,9 +1,12 @@
 """WMS service module for fetching and parsing WMS capabilities."""
 
+import contextlib
 import hashlib
+import ipaddress
 import logging
 import math
 import os
+import socket
 from typing import Optional
 from urllib.parse import urlparse, urlunparse
 
@@ -19,9 +22,128 @@ class WMSServiceError(Exception):
     pass
 
 
+class WMSSecurityError(WMSServiceError):
+    """Raised when a WMS fetch is blocked for targeting an internal resource."""
+
+    pass
+
+
 CACHE_TTL_SECONDS = 300  # 5 minutes
 CACHE_KEY_PREFIX = "wms_capabilities:"
 QGIS_SERVER_INTERNAL_URL = "http://qgis-server"
+
+ALLOWED_URL_SCHEMES = frozenset({"http", "https"})
+
+# Hosts that are trusted internal destinations reached via code-controlled
+# rewrites (see ``_rewrite_to_internal_qgis_url``); IP validation is skipped
+# for these because they are not derived from user-supplied URLs.
+_TRUSTED_INTERNAL_HOSTS = frozenset({"qgis-server"})
+
+
+def _is_blocked_ip(ip: "ipaddress._BaseAddress") -> bool:
+    """Return True if an IP address belongs to a private/internal range.
+
+    Covers loopback, RFC1918/ULA private ranges, link-local (including cloud
+    metadata at 169.254.169.254), and IPv4-mapped IPv6 forms.
+    """
+    mapped = getattr(ip, "ipv4_mapped", None)
+    if mapped is not None:
+        ip = mapped
+    return (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_reserved
+        or ip.is_multicast
+        or ip.is_unspecified
+    )
+
+
+@contextlib.contextmanager
+def _block_internal_dns():
+    """Reject resolution to any private/internal IP for the enclosed block.
+
+    Patches ``socket.getaddrinfo`` so that every DNS resolution performed by
+    the HTTP client — including each redirect hop — is validated against the
+    private-range blocklist at connect time. This closes DNS-rebinding/TOCTOU
+    races (validation happens at the actual resolution used to connect) and
+    redirect-to-internal bypasses (every hop is re-resolved and re-checked).
+    """
+    original_getaddrinfo = socket.getaddrinfo
+
+    def guarded_getaddrinfo(host, *args, **kwargs):
+        results = original_getaddrinfo(host, *args, **kwargs)
+        for family, _type, _proto, _canon, sockaddr in results:
+            addr = sockaddr[0]
+            try:
+                ip = ipaddress.ip_address(addr)
+            except ValueError:
+                continue
+            if _is_blocked_ip(ip):
+                raise WMSSecurityError(
+                    "Access to private/internal networks is not allowed"
+                )
+        return results
+
+    socket.getaddrinfo = guarded_getaddrinfo
+    try:
+        yield
+    finally:
+        socket.getaddrinfo = original_getaddrinfo
+
+
+def _fetch_guard(fetch_url: str):
+    """Return the DNS guard to wrap a WMS fetch with.
+
+    Trusted, code-controlled internal destinations (the rewritten QGIS server
+    URL) are exempt; all user-derived URLs are guarded so any resolution to a
+    private/internal IP — including redirect hops — is rejected.
+    """
+    hostname = urlparse(fetch_url).hostname or ""
+    if hostname in _TRUSTED_INTERNAL_HOSTS:
+        return contextlib.nullcontext()
+    return _block_internal_dns()
+
+
+def validate_wms_url(url: str) -> tuple[bool, str]:
+    """Validate that a user-supplied WMS URL is safe to fetch.
+
+    Checks the scheme allowlist and rejects hostnames that resolve to a
+    private/internal address. This is a fail-fast pre-check; the authoritative
+    protection is enforced at fetch time by ``_block_internal_dns``.
+
+    Args:
+        url: The WMS URL to validate.
+
+    Returns:
+        tuple[bool, str]: ``(is_safe, error_message)``.
+    """
+    parsed = urlparse(url)
+
+    if parsed.scheme.lower() not in ALLOWED_URL_SCHEMES:
+        return (
+            False,
+            f"URL scheme '{parsed.scheme}' not allowed. Only http/https permitted.",
+        )
+
+    hostname = parsed.hostname
+    if not hostname:
+        return False, "Invalid URL: no hostname"
+
+    try:
+        infos = socket.getaddrinfo(hostname, parsed.port or None)
+    except socket.gaierror:
+        return False, f"Could not resolve hostname: {hostname}"
+
+    for family, _type, _proto, _canon, sockaddr in infos:
+        try:
+            ip = ipaddress.ip_address(sockaddr[0])
+        except ValueError:
+            continue
+        if _is_blocked_ip(ip):
+            return False, "Access to private/internal networks is not allowed"
+
+    return True, ""
 
 
 def _rewrite_to_internal_qgis_url(url: str) -> str:
@@ -38,10 +160,12 @@ def _rewrite_to_internal_qgis_url(url: str) -> str:
 
     parsed = urlparse(url)
     if parsed.hostname == qgis_domain:
-        rewritten = urlunparse(parsed._replace(
-            scheme="http",
-            netloc="qgis-server",
-        ))
+        rewritten = urlunparse(
+            parsed._replace(
+                scheme="http",
+                netloc="qgis-server",
+            )
+        )
         logger.info(f"Rewrote QGIS URL to internal: {url} -> {rewritten}")
         return rewritten
 
@@ -153,13 +277,14 @@ def fetch_wms_layers(
     for wms_version in versions_to_try:
         try:
             logger.debug(f"Trying WMS version {wms_version} for {fetch_url}")
-            wms = WebMapService(
-                fetch_url,
-                version=wms_version,
-                username=username,
-                password=password,
-                timeout=timeout,
-            )
+            with _fetch_guard(fetch_url):
+                wms = WebMapService(
+                    fetch_url,
+                    version=wms_version,
+                    username=username,
+                    password=password,
+                    timeout=timeout,
+                )
 
             layers = []
             for layer_name, layer in wms.contents.items():
@@ -177,6 +302,8 @@ def fetch_wms_layers(
 
             return layers
 
+        except WMSSecurityError:
+            raise
         except Exception as e:
             last_error = e
             logger.warning(f"WMS version {wms_version} failed for {url}: {e}")
@@ -251,13 +378,14 @@ def scan_wms_capabilities(
             logger.debug(
                 f"Scanning WMS capabilities using version {wms_version} for {fetch_url}"
             )
-            wms = WebMapService(
-                fetch_url,
-                version=wms_version,
-                username=username,
-                password=password,
-                timeout=timeout,
-            )
+            with _fetch_guard(fetch_url):
+                wms = WebMapService(
+                    fetch_url,
+                    version=wms_version,
+                    username=username,
+                    password=password,
+                    timeout=timeout,
+                )
 
             service_info = {
                 "title": wms.identification.title if wms.identification else None,
@@ -314,6 +442,8 @@ def scan_wms_capabilities(
                 "layers": layers,
             }
 
+        except WMSSecurityError:
+            raise
         except Exception as e:
             last_error = e
             logger.warning(f"WMS scan with version {wms_version} failed for {url}: {e}")
