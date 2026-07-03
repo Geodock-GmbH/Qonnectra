@@ -416,6 +416,7 @@ def seed_permission_data(db):
         "microductconnection", "microductcableconnection", "nodestructure",
         "nodeslotconfiguration", "cablelabel", "containertype",
         "pipelinerecord", "typeofwork", "requestreason",
+        "pipelineinquiryarea",
     ]
 
     for model_name in model_names:

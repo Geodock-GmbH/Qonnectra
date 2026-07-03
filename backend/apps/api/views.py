@@ -87,6 +87,7 @@ from .models import (
     NodeStructure,
     NodeTrenchSelection,
     PipeBranchSettings,
+    PipelineInquiryArea,
     PipelineRecord,
     Projects,
     RequestReason,
@@ -155,6 +156,7 @@ from .serializers import (
     NodeTrenchSelectionBulkSerializer,
     NodeTrenchSelectionSerializer,
     ParentNodeSerializer,
+    PipelineInquiryAreaSerializer,
     PipelineRecordSerializer,
     ProjectsSerializer,
     RequestReasonSerializer,
@@ -7800,3 +7802,26 @@ class PipelineRecordViewSet(viewsets.ModelViewSet):
                 "total_pages": (total_count + page_size - 1) // page_size,
             }
         )
+
+
+class PipelineInquiryAreaViewSet(viewsets.ModelViewSet):
+    """CRUD operations for :model:`api.PipelineInquiryArea`.
+
+    Supports filtering by pipeline_record UUID via query parameter.
+    """
+
+    permission_classes = [IsAuthenticated, RoleBasedPermission]
+    serializer_class = PipelineInquiryAreaSerializer
+    lookup_field = "uuid"
+    lookup_url_kwarg = "pk"
+
+    def get_queryset(self):
+        queryset = PipelineInquiryArea.objects.select_related(
+            "pipeline_record"
+        ).order_by("created_at")
+
+        pipeline_record = self.request.query_params.get("pipeline_record")
+        if pipeline_record:
+            queryset = queryset.filter(pipeline_record_id=pipeline_record)
+
+        return queryset

@@ -54,6 +54,7 @@ from .models import (
     NetworkSchemaSettings,
     Node,
     PipeBranchSettings,
+    PipelineInquiryArea,
     PipelineRecord,
     Projects,
     RequestReason,
@@ -2302,4 +2303,14 @@ class PipelineRecordAdmin(SimpleHistoryAdmin):
     ]
     list_filter = ["project", "type_of_work", "request_reason"]
     search_fields = ["organisation", "name"]
+    readonly_fields = ["uuid", "created_at", "modified_at"]
+
+
+@admin.register(PipelineInquiryArea)
+class PipelineInquiryAreaAdmin(SimpleHistoryAdmin):
+    """Admin for :model:`api.PipelineInquiryArea` with history tracking."""
+
+    list_display = ["uuid", "pipeline_record", "name", "created_at"]
+    list_filter = ["pipeline_record"]
+    search_fields = ["name"]
     readonly_fields = ["uuid", "created_at", "modified_at"]

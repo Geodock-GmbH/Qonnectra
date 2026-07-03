@@ -1,7 +1,7 @@
 <script>
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { IconArrowLeft, IconDeviceFloppy, IconTrash } from '@tabler/icons-svelte';
+	import { IconArrowLeft, IconDeviceFloppy, IconMapSearch, IconTrash } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -148,6 +148,16 @@
 			</button>
 
 			<div class="flex items-center gap-2">
+				{#if record}
+					<button
+						type="button"
+						class="btn preset-filled-secondary-500 inline-flex items-center gap-2"
+						onclick={() => goto(`/pipeline-records/${record.uuid}/inquiry`)}
+					>
+						<IconMapSearch class="size-4 shrink-0" />
+						<span>{m.action_new_inquiry()}</span>
+					</button>
+				{/if}
 				<button
 					type="button"
 					class="btn preset-filled-error-500 inline-flex items-center gap-2"

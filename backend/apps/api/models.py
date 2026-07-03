@@ -4243,6 +4243,41 @@ class PipelineRecord(models.Model):
         return str(self.uuid)
 
 
+class PipelineInquiryArea(models.Model):
+    """Polygon area for a pipeline inquiry (Auskunft).
+
+    Related to :model:`api.PipelineRecord`.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    pipeline_record = models.ForeignKey(
+        PipelineRecord,
+        on_delete=models.CASCADE,
+        related_name="inquiry_areas",
+        verbose_name=_("Pipeline Record"),
+    )
+    name = models.TextField(_("Name"), null=True, blank=True)
+    geom = gis_models.PolygonField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
+    geom_3857 = models.GeneratedField(
+        expression=Transform("geom", 3857),
+        output_field=gis_models.PolygonField(srid=3857),
+        db_persist=True,
+    )
+    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
+    modified_at = models.DateTimeField(_("Modified At"), auto_now=True)
+
+    history = HistoricalRecords(excluded_fields=["geom_3857"])
+
+    class Meta:
+        db_table = "pipeline_inquiry_area"
+        verbose_name = _("Pipeline Inquiry Area")
+        verbose_name_plural = _("Pipeline Inquiry Areas")
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return self.name or str(self.uuid)
+
+
 class ModelPermission(models.Model):
     """Controls API access per model per group."""
 

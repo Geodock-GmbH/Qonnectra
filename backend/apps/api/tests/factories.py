@@ -34,6 +34,7 @@ from apps.api.models import (
     MicroductCableConnection,
     MicroductConnection,
     Node,
+    PipelineInquiryArea,
     PipelineRecord,
     Projects,
     RequestReason,
@@ -503,3 +504,16 @@ class PipelineRecordFactory(factory.django.DjangoModelFactory):
     request_reason = factory.SubFactory(RequestReasonFactory)
     organisation = factory.Sequence(lambda n: f"Organisation {n}")
     name = factory.Sequence(lambda n: f"Contact Person {n}")
+
+
+class PipelineInquiryAreaFactory(factory.django.DjangoModelFactory):
+    """Factory for PipelineInquiryArea model."""
+
+    class Meta:
+        model = PipelineInquiryArea
+
+    pipeline_record = factory.SubFactory(PipelineRecordFactory)
+    name = factory.Sequence(lambda n: f"Inquiry Area {n}")
+    geom = factory.LazyAttribute(
+        lambda o: "POLYGON((0 0, 100 0, 100 100, 0 100, 0 0))"
+    )

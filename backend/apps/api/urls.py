@@ -76,6 +76,7 @@ from .views import (
     OlAreaTileViewSet,
     OlNodeTileViewSet,
     OlTrenchTileViewSet,
+    PipelineInquiryAreaViewSet,
     PipelineRecordViewSet,
     ProjectsViewSet,
     RequestReasonViewSet,
@@ -265,6 +266,7 @@ router.register(
 router.register(r"wms-sources", WMSSourceViewSet, basename="wms-sources")
 router.register(r"wms-layers", WMSLayerViewSet, basename="wms-layers")
 router.register(r"pipeline-records", PipelineRecordViewSet, basename="pipeline-records")
+router.register(r"pipeline-inquiry-areas", PipelineInquiryAreaViewSet, basename="pipeline-inquiry-areas")
 router.register(r"type-of-work", TypeOfWorkViewSet, basename="type-of-work")
 router.register(r"request-reasons", RequestReasonViewSet, basename="request-reasons")
 

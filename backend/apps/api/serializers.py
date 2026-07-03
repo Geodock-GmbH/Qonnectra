@@ -46,6 +46,7 @@ from .models import (
     NodeSlotDivider,
     NodeStructure,
     NodeTrenchSelection,
+    PipelineInquiryArea,
     PipelineRecord,
     Projects,
     RequestReason,
@@ -2655,3 +2656,47 @@ class PipelineRecordSerializer(serializers.ModelSerializer):
             "modified_at",
         ]
         read_only_fields = ["uuid", "created_at", "modified_at"]
+
+
+class PipelineInquiryAreaSerializer(GeoFeatureModelSerializer):
+    """Serialize :model:`api.PipelineInquiryArea` as GeoJSON with Polygon validation."""
+
+    uuid = serializers.UUIDField(read_only=True)
+    pipeline_record_uuid = serializers.UUIDField(
+        source="pipeline_record.uuid", read_only=True
+    )
+    pipeline_record = serializers.PrimaryKeyRelatedField(
+        queryset=PipelineRecord.objects.all(), write_only=True
+    )
+    geom = GeometryField()
+
+    class Meta:
+        model = PipelineInquiryArea
+        geo_field = "geom"
+        fields = [
+            "uuid",
+            "pipeline_record",
+            "pipeline_record_uuid",
+            "name",
+            "geom",
+            "created_at",
+            "modified_at",
+        ]
+        read_only_fields = ["uuid", "created_at", "modified_at"]
+
+    def validate_geom(self, value):
+        """Validate and transform geometry to Polygon in the project SRID."""
+        if value.geom_type != "Polygon":
+            raise serializers.ValidationError(
+                f"{_('Geometry type must be Polygon, not')} {value.geom_type}"
+            )
+
+        if value.srid != settings.DEFAULT_SRID:
+            try:
+                value.transform(settings.DEFAULT_SRID)
+            except Exception as e:
+                raise serializers.ValidationError(
+                    f"{_('Could not transform coordinates to EPSG:')} {settings.DEFAULT_SRID}: {str(e)}"
+                )
+
+        return value
