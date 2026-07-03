@@ -15,10 +15,12 @@ from apps.api.models import (
     AttributesFiberColor,
     AttributesFiberStatus,
     AttributesMicroductColor,
+    AttributesMicroductStatus,
     AttributesNetworkLevel,
     AttributesNodeType,
     AttributesPhase,
     AttributesStatus,
+    AttributesStatusDevelopment,
     AttributesSurface,
     Cable,
     CableLabel,
@@ -93,6 +95,15 @@ class StatusFactory(factory.django.DjangoModelFactory):
 
     id = factory.Sequence(lambda n: n + 1)
     status = factory.Sequence(lambda n: f"Status {n}")
+
+
+class StatusDevelopmentFactory(factory.django.DjangoModelFactory):
+    """Factory for AttributesStatusDevelopment model."""
+
+    class Meta:
+        model = AttributesStatusDevelopment
+
+    status = factory.Sequence(lambda n: f"Dev Status {n}")
 
 
 class SurfaceFactory(factory.django.DjangoModelFactory):
@@ -178,6 +189,16 @@ class MicroductColorFactory(factory.django.DjangoModelFactory):
     name_de = factory.Sequence(lambda n: f"Farbe {n}")
     name_en = factory.Sequence(lambda n: f"Color {n}")
     hex_code = factory.Sequence(lambda n: f"#{n:06d}")
+
+
+class MicroductStatusFactory(factory.django.DjangoModelFactory):
+    """Factory for AttributesMicroductStatus model."""
+
+    class Meta:
+        model = AttributesMicroductStatus
+
+    id = factory.Sequence(lambda n: n + 1)
+    microduct_status = factory.Sequence(lambda n: f"MD Status {n}")
 
 
 class FiberColorFactory(factory.django.DjangoModelFactory):
