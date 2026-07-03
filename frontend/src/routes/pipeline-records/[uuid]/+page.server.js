@@ -19,12 +19,17 @@ export async function load({ fetch, cookies, params }) {
 	const { uuid } = params;
 
 	try {
-		const [recordResponse, typeResponse, reasonResponse, projectResponse] = await Promise.all([
-			fetch(`${API_URL}pipeline-records/${uuid}/`, { credentials: 'include', headers }),
-			fetch(`${API_URL}type-of-work/`, { credentials: 'include', headers }),
-			fetch(`${API_URL}request-reasons/`, { credentials: 'include', headers }),
-			fetch(`${API_URL}projects/?active=1`, { credentials: 'include', headers })
-		]);
+		const [recordResponse, typeResponse, reasonResponse, projectResponse, areasResponse] =
+			await Promise.all([
+				fetch(`${API_URL}pipeline-records/${uuid}/`, { credentials: 'include', headers }),
+				fetch(`${API_URL}type-of-work/`, { credentials: 'include', headers }),
+				fetch(`${API_URL}request-reasons/`, { credentials: 'include', headers }),
+				fetch(`${API_URL}projects/?active=1`, { credentials: 'include', headers }),
+				fetch(`${API_URL}pipeline-inquiry-areas/?pipeline_record=${uuid}`, {
+					credentials: 'include',
+					headers
+				})
+			]);
 
 		if (!recordResponse.ok) {
 			console.error(`Failed to fetch pipeline record: ${recordResponse.status}`);
@@ -33,16 +38,18 @@ export async function load({ fetch, cookies, params }) {
 				recordError: 'Failed to fetch pipeline record',
 				typeOfWorkOptions: [],
 				requestReasonOptions: [],
-				projectOptions: []
+				projectOptions: [],
+				inquiryAreaCount: 0
 			};
 		}
 
 		const record = await recordResponse.json();
 
-		const [typeData, reasonData, projectData] = await Promise.all([
+		const [typeData, reasonData, projectData, areasData] = await Promise.all([
 			typeResponse.ok ? typeResponse.json() : [],
 			reasonResponse.ok ? reasonResponse.json() : [],
-			projectResponse.ok ? projectResponse.json() : []
+			projectResponse.ok ? projectResponse.json() : [],
+			areasResponse.ok ? areasResponse.json() : { features: [] }
 		]);
 
 		return {
@@ -50,7 +57,8 @@ export async function load({ fetch, cookies, params }) {
 			recordError: null,
 			typeOfWorkOptions: mapLookupOptions(typeData),
 			requestReasonOptions: mapLookupOptions(reasonData),
-			projectOptions: mapProjectOptions(projectData)
+			projectOptions: mapProjectOptions(projectData),
+			inquiryAreaCount: areasData.features?.length ?? 0
 		};
 	} catch (err) {
 		console.error('Error fetching pipeline record:', err);
@@ -59,7 +67,8 @@ export async function load({ fetch, cookies, params }) {
 			recordError: 'Error occurred while fetching pipeline record',
 			typeOfWorkOptions: [],
 			requestReasonOptions: [],
-			projectOptions: []
+			projectOptions: [],
+			inquiryAreaCount: 0
 		};
 	}
 }

@@ -1,7 +1,14 @@
 <script>
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { IconArrowLeft, IconDeviceFloppy, IconMapSearch, IconTrash } from '@tabler/icons-svelte';
+	import { page } from '$app/stores';
+	import {
+		IconArrowLeft,
+		IconDeviceFloppy,
+		IconDownload,
+		IconMapSearch,
+		IconTrash
+	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
@@ -13,6 +20,7 @@
 	let { data } = $props();
 
 	let isSaving = $state(false);
+	let isExporting = $state(false);
 	let isDeleting = $state(false);
 
 	const record = $derived(data.record);
@@ -20,6 +28,7 @@
 	const projectOptions = $derived(data.projectOptions || []);
 	const typeOfWorkOptions = $derived(data.typeOfWorkOptions || []);
 	const requestReasonOptions = $derived(data.requestReasonOptions || []);
+	const inquiryAreaCount = $derived(data.inquiryAreaCount ?? 0);
 
 	/**
 	 * Snapshots the initial page data so form fields aren't clobbered on refresh.
@@ -104,6 +113,40 @@
 		deleteMessageBox?.open();
 	}
 
+	/** Downloads the inquiry export ZIP from the backend. */
+	async function handleExport() {
+		isExporting = true;
+		try {
+			const response = await fetch(
+				`/api/v1/pipeline-records/${$page.params.uuid}/inquiry-export/`,
+				{ credentials: 'include' }
+			);
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				globalToaster.error({
+					title: m.common_error(),
+					description: errorData.detail || m.message_inquiry_export_failed()
+				});
+				return;
+			}
+
+			const blob = await response.blob();
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `inquiry-export-${$page.params.uuid}.zip`;
+			document.body.appendChild(a);
+			a.click();
+			a.remove();
+			URL.revokeObjectURL(url);
+		} catch (/** @type {any} */ err) {
+			globalToaster.error({ title: m.common_error(), description: err.message });
+		} finally {
+			isExporting = false;
+		}
+	}
+
 	/** Submits the delete action and navigates back to the list on success. */
 	async function handleDelete() {
 		isDeleting = true;
@@ -157,6 +200,20 @@
 						<IconMapSearch class="size-4 shrink-0" />
 						<span>{m.action_new_inquiry()}</span>
 					</button>
+
+					{#if inquiryAreaCount > 0}
+						<button
+							type="button"
+							class="btn preset-filled-success-500 inline-flex items-center gap-2"
+							disabled={isExporting}
+							onclick={handleExport}
+						>
+							<IconDownload class="size-4 shrink-0" />
+							<span>
+								{isExporting ? m.common_loading() : m.action_export_inquiry()}
+							</span>
+						</button>
+					{/if}
 				{/if}
 				<button
 					type="button"

@@ -81,6 +81,11 @@ describe('pipeline record detail +page.server.js', () => {
 				ok: true,
 				json: () => Promise.resolve([{ id: 3, project: 'Test Project' }])
 			});
+			// inquiry areas
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ features: [{ properties: { uuid: 'a1' } }] })
+			});
 
 			const result = /** @type {any} */ (
 				await load(
@@ -97,6 +102,7 @@ describe('pipeline record detail +page.server.js', () => {
 			expect(result.typeOfWorkOptions).toEqual([{ value: 1, label: 'Neubau' }]);
 			expect(result.requestReasonOptions).toEqual([{ value: 2, label: 'Planauskunft' }]);
 			expect(result.projectOptions).toEqual([{ value: 3, label: 'Test Project' }]);
+			expect(result.inquiryAreaCount).toBe(1);
 		});
 
 		test('should support projects returned in a paginated envelope', async () => {
@@ -109,6 +115,10 @@ describe('pipeline record detail +page.server.js', () => {
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: () => Promise.resolve({ results: [{ id: 9, project: 'Enveloped' }] })
+			});
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ features: [] })
 			});
 
 			const result = /** @type {any} */ (
@@ -129,6 +139,10 @@ describe('pipeline record detail +page.server.js', () => {
 			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
 			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
 			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ features: [] })
+			});
 
 			const result = /** @type {any} */ (
 				await load(
@@ -169,6 +183,7 @@ describe('pipeline record detail +page.server.js', () => {
 			mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
 			mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
 			mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+			mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
 
 			const result = /** @type {any} */ (
 				await load(
@@ -194,6 +209,10 @@ describe('pipeline record detail +page.server.js', () => {
 			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
 			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
 			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ features: [] })
+			});
 
 			await load(
 				/** @type {any} */ ({

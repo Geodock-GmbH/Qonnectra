@@ -77,6 +77,7 @@ from .views import (
     OlNodeTileViewSet,
     OlTrenchTileViewSet,
     PipelineInquiryAreaViewSet,
+    PipelineInquiryExportView,
     PipelineRecordViewSet,
     ProjectsViewSet,
     RequestReasonViewSet,
@@ -283,6 +284,11 @@ urlpatterns = [
         name="conduit-import-template",
     ),
     path("import/conduit/", ConduitImportView.as_view(), name="conduit-import"),
+    path(
+        "pipeline-records/<uuid:pipeline_record_uuid>/inquiry-export/",
+        PipelineInquiryExportView.as_view(),
+        name="pipeline-inquiry-export",
+    ),
     path(
         "node-export/excel/<uuid:node_uuid>/",
         NodeStructureExportView.as_view(),

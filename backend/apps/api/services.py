@@ -25,11 +25,14 @@ from shapely.geometry import LineString, MultiLineString, Point, Polygon, mappin
 from shapely.ops import linemerge, substring
 
 from .models import (
+    Address,
+    Area,
     AttributesCompany,
     AttributesComponentStructure,
     AttributesConduitType,
     AttributesNetworkLevel,
     AttributesStatus,
+    Cable,
     Conduit,
     ConduitTypeColorMapping,
     FeatureFiles,
@@ -40,8 +43,10 @@ from .models import (
     NodeSlotClipNumber,
     NodeSlotConfiguration,
     NodeStructure,
+    PipelineInquiryArea,
     Projects,
     StoragePreferences,
+    Trench,
 )
 from .routing import find_path_through_trenches
 from .storage import LocalMediaStorage
@@ -4555,3 +4560,130 @@ def _add_address_linked_nodes(node_features: list, address_details: dict) -> Non
             feature["properties"]["has_address"] = (
                 feature["properties"]["id"] in addr_node_ids
             )
+
+
+def build_inquiry_export_zip(pipeline_record_uuid):
+    """Build a ZIP archive with GeoJSON layers and feature files for a pipeline inquiry.
+
+    Query all :model:`api.PipelineInquiryArea` polygons for the given record,
+    compute their union, then find all :model:`api.Trench`, :model:`api.Node`,
+    :model:`api.Address`, :model:`api.Conduit`, :model:`api.Cable`, and
+    :model:`api.Area` features that intersect the union polygon. Export each
+    layer as GeoJSON and include all associated :model:`api.FeatureFiles`.
+
+    Args:
+        pipeline_record_uuid (str | uuid.UUID): UUID of the
+            :model:`api.PipelineRecord`.
+
+    Returns:
+        BytesIO: ZIP archive containing ``layers/*.geojson`` files and
+            ``files/<feature>/<filename>`` attachments.
+
+    Raises:
+        ValueError: If no inquiry areas exist for the record or if the
+            geometry union is empty.
+    """
+    from django.contrib.gis.db.models.functions import Union
+
+    areas = PipelineInquiryArea.objects.filter(pipeline_record_id=pipeline_record_uuid)
+    if not areas.exists():
+        raise ValueError(_("No inquiry areas found for this pipeline record."))
+
+    union_result = areas.aggregate(union=Union("geom"))
+    union_geom = union_result["union"]
+    if not union_geom:
+        raise ValueError(_("Could not compute union of inquiry areas."))
+
+    layer_queries = {
+        "trenches": Trench.objects.filter(geom__intersects=union_geom),
+        "nodes": Node.objects.filter(geom__intersects=union_geom),
+        "addresses": Address.objects.filter(geom__intersects=union_geom),
+        "conduits": Conduit.objects.filter(
+            trench__geom__intersects=union_geom
+        ).distinct(),
+        "cables": Cable.objects.filter(
+            conduit__trench__geom__intersects=union_geom
+        ).distinct(),
+        "areas": Area.objects.filter(geom__intersects=union_geom),
+    }
+
+    buf = BytesIO()
+    storage = LocalMediaStorage()
+    feature_uuids = set()
+
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for layer_name, queryset in layer_queries.items():
+            features = []
+            for obj in queryset:
+                props = {"uuid": str(obj.uuid)}
+
+                if hasattr(obj, "id_trench"):
+                    props["id_trench"] = obj.id_trench
+                if hasattr(obj, "name") and obj.name:
+                    props["name"] = obj.name
+                if hasattr(obj, "street"):
+                    suffix = getattr(obj, "house_number_suffix", "") or ""
+                    props["address"] = (
+                        f"{obj.street} {obj.housenumber}{suffix}, "
+                        f"{obj.zip_code} {obj.city}"
+                    )
+
+                geom_json = json.loads(obj.geom.geojson) if obj.geom else None
+                features.append(
+                    {
+                        "type": "Feature",
+                        "properties": props,
+                        "geometry": geom_json,
+                    }
+                )
+                feature_uuids.add(obj.uuid)
+
+            if features:
+                geojson = {
+                    "type": "FeatureCollection",
+                    "features": features,
+                }
+                zf.writestr(
+                    f"layers/{layer_name}.geojson",
+                    json.dumps(geojson, ensure_ascii=False, indent=2),
+                )
+
+        if feature_uuids:
+            content_types = ContentType.objects.filter(
+                app_label="api",
+                model__in=[
+                    "trench",
+                    "node",
+                    "address",
+                    "conduit",
+                    "cable",
+                    "area",
+                ],
+            )
+            files = FeatureFiles.objects.filter(
+                content_type__in=content_types,
+                object_id__in=feature_uuids,
+            )
+
+            for ff in files:
+                try:
+                    file_path = ff.file_path.name
+                    if storage.exists(file_path):
+                        with storage.open(file_path, "rb") as f:
+                            filename = f"{ff.file_name}.{ff.file_type}"
+                            folder = sanitize_filename(
+                                str(FeatureFiles.get_feature_identifier(ff))
+                            )
+                            zf.writestr(
+                                f"files/{folder}/{filename}",
+                                f.read(),
+                            )
+                except Exception:
+                    logger.warning(
+                        "Could not include file %s in inquiry export",
+                        ff.uuid,
+                        exc_info=True,
+                    )
+
+    buf.seek(0)
+    return buf

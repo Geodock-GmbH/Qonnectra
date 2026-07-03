@@ -7825,3 +7825,41 @@ class PipelineInquiryAreaViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(pipeline_record_id=pipeline_record)
 
         return queryset
+
+
+class PipelineInquiryExportView(APIView):
+    """Export GeoJSON layers and feature files for a pipeline inquiry as ZIP.
+
+    Queries all inquiry area polygons for the given pipeline record,
+    finds intersecting features across all layers, and bundles
+    the result as a downloadable ZIP archive.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pipeline_record_uuid):
+        """Build and return the inquiry export ZIP.
+
+        Args:
+            request (Request): DRF request object.
+            pipeline_record_uuid (uuid.UUID): UUID of the pipeline record to export.
+
+        Returns:
+            HttpResponse: ZIP file download response, or 400 if no inquiry
+                areas exist for the record.
+        """
+        from .services import build_inquiry_export_zip
+
+        try:
+            buf = build_inquiry_export_zip(pipeline_record_uuid)
+        except ValueError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        response = HttpResponse(buf.read(), content_type="application/zip")
+        response["Content-Disposition"] = (
+            f'attachment; filename="inquiry-export-{pipeline_record_uuid}.zip"'
+        )
+        return response
