@@ -82,7 +82,7 @@ describe('pipeline record create +page.server.js', () => {
 	});
 
 	describe('createPipelineRecord action', () => {
-		test('should POST using the write field names and redirect to the list', async () => {
+		test('should POST using the write field names and redirect to the created record', async () => {
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: () => Promise.resolve({ uuid: 'new-uuid' })
@@ -104,7 +104,7 @@ describe('pipeline record create +page.server.js', () => {
 						cookies: mockCookies
 					})
 				)
-			).rejects.toEqual({ status: 303, location: '/pipeline-records' });
+			).rejects.toEqual({ status: 303, location: '/pipeline-records/new-uuid' });
 
 			expect(mockFetch).toHaveBeenCalledWith(
 				'http://localhost:8000/pipeline-records/',
@@ -139,7 +139,7 @@ describe('pipeline record create +page.server.js', () => {
 						cookies: mockCookies
 					})
 				)
-			).rejects.toEqual({ status: 303, location: '/pipeline-records' });
+			).rejects.toEqual({ status: 303, location: '/pipeline-records/new-uuid' });
 
 			const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
 			expect(requestBody.project).toBe(3);

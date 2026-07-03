@@ -56,7 +56,7 @@ export async function load({ fetch, cookies }) {
 
 /** @type {import('./$types').Actions} */
 export const actions = {
-	/** POSTs a new pipeline record and redirects to the list page. */
+	/** POSTs a new pipeline record and redirects to its detail page. */
 	createPipelineRecord: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
 		const formData = await request.formData();
@@ -82,7 +82,9 @@ export const actions = {
 				});
 			}
 
-			redirect(303, '/pipeline-records');
+			const createdRecord = await response.json();
+
+			redirect(303, `/pipeline-records/${createdRecord.uuid}`);
 		} catch (/** @type {any} */ err) {
 			if (err.status === 303) throw err;
 			console.error('Error creating pipeline record:', err);
