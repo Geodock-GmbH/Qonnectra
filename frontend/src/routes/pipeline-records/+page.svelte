@@ -44,9 +44,12 @@
 				<nav
 					class="btn-group md:preset-outlined-surface-200-800 flex-col justify-between items-start md:flex-row md:items-center md:justify-start md:gap-2"
 				>
-					<button class="btn preset-filled-primary-500">
+					<button
+						class="btn preset-filled-primary-500"
+						onclick={() => goto('/pipeline-records/new')}
+					>
 						<IconPlus class="size-4" />
-						<span>{m.nav_pipeline_records()}</span>
+						<span>{m.common_create()}</span>
 					</button>
 					<SearchInput bind:value={searchInput} onSearch={performSearch} />
 				</nav>

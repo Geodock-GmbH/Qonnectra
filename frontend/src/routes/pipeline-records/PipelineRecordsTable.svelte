@@ -10,31 +10,48 @@
 	} from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
+	import { getLocale } from '$lib/paraglide/runtime';
+
+	/**
+	 * Formats an ISO date string into a localized short date+time.
+	 * @param {string | null | undefined} isoString
+	 * @returns {string}
+	 */
+	function formatDate(isoString) {
+		if (!isoString) return '';
+		const date = new Date(isoString);
+		return date.toLocaleString(getLocale(), {
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit',
+			hour: '2-digit',
+			minute: '2-digit'
+		});
+	}
 
 	let { records, pagination } = $props();
 
 	const columnConfig = [
 		{ key: 'project_name', label: m.form_project({ count: 1 }), sortable: true, filterable: true },
-		{
-			key: 'building_measure',
-			label: m.form_building_measure(),
-			sortable: true,
-			filterable: true
-		},
 		{ key: 'type_of_work', label: m.form_type_of_work(), sortable: true, filterable: true },
+		{ key: 'request_reason', label: m.form_request_reason(), sortable: true, filterable: true },
+		{ key: 'organisation', label: m.form_organisation(), sortable: true, filterable: true },
+		{ key: 'name', label: m.form_name(), sortable: true, filterable: true },
 		{
 			key: 'created_at',
 			label: m.common_created(),
 			sortable: true,
 			filterable: false,
-			sortType: 'date'
+			sortType: 'date',
+			format: formatDate
 		},
 		{
 			key: 'modified_at',
 			label: m.common_modified(),
 			sortable: true,
 			filterable: false,
-			sortType: 'date'
+			sortType: 'date',
+			format: formatDate
 		}
 	];
 
@@ -45,8 +62,10 @@
 	/** @type {Record<string, string>} */
 	let filters = $state({
 		project_name: '',
-		building_measure: '',
-		type_of_work: ''
+		type_of_work: '',
+		request_reason: '',
+		organisation: '',
+		name: ''
 	});
 
 	let mobileSearchTerm = $state('');
@@ -79,6 +98,14 @@
 		const url = new URL(window.location.href);
 		url.searchParams.set('page', String(newPage));
 		goto(`${url.pathname}${url.search}`);
+	}
+
+	/**
+	 * Navigates to the edit page for the clicked pipeline record.
+	 * @param {Record<string, any>} record - The pipeline record row object.
+	 */
+	function handleRowClick(record) {
+		goto(`/pipeline-records/${record.value}`);
 	}
 
 	const filteredRecords = $derived.by(() => {
@@ -185,11 +212,13 @@
 							{/each}
 						</tr>
 					</thead>
-					<tbody class="[&>tr]:hover:preset-tonal-primary">
+					<tbody class="[&>tr]:hover:preset-tonal-primary cursor-pointer">
 						{#each sortedRecords as row (row.value)}
-							<tr>
+							<tr onclick={() => handleRowClick(row)}>
 								{#each columnConfig as column (column.key)}
-									<td data-label={column.label}>{row[column.key]}</td>
+									<td data-label={column.label}
+										>{column.format ? column.format(row[column.key]) : row[column.key]}</td
+									>
 								{/each}
 							</tr>
 						{:else}
@@ -218,14 +247,16 @@
 			<div class="space-y-3">
 				{#each mobileFilteredRecords as row (row.value)}
 					<div
-						class="card p-4 space-y-3 hover:bg-surface-100-800 transition-colors touch-manipulation"
+						class="card p-4 space-y-3 hover:bg-surface-100-800 transition-colors touch-manipulation cursor-pointer"
 						data-testid="pipeline-record-card"
+						role="button"
+						tabindex="0"
+						onclick={() => handleRowClick(row)}
+						onkeydown={(e) => e.key === 'Enter' && handleRowClick(row)}
 					>
-						<div class="flex items-center justify-between border-b border-surface-200-800 pb-2">
-							<div class="flex-1 min-w-0">
-								<h3 class="font-semibold text-lg truncate">{row.project_name}</h3>
-								<p class="text-sm">{row.building_measure}</p>
-							</div>
+						<div class="border-b border-surface-200-800 pb-2">
+							<h3 class="font-semibold text-lg truncate">{row.project_name}</h3>
+							<p class="text-sm">{row.organisation}</p>
 						</div>
 
 						<div class="grid grid-cols-2 gap-3 text-sm">
@@ -234,12 +265,16 @@
 								<p class="truncate">{row.type_of_work}</p>
 							</div>
 							<div>
-								<span class="font-medium text-surface-600-400">{m.common_created()}:</span>
-								<p class="truncate">{row.created_at}</p>
+								<span class="font-medium text-surface-600-400">{m.form_request_reason()}:</span>
+								<p class="truncate">{row.request_reason}</p>
 							</div>
 							<div>
-								<span class="font-medium text-surface-600-400">{m.common_modified()}:</span>
-								<p class="truncate">{row.modified_at}</p>
+								<span class="font-medium text-surface-600-400">{m.form_name()}:</span>
+								<p class="truncate">{row.name}</p>
+							</div>
+							<div>
+								<span class="font-medium text-surface-600-400">{m.common_created()}:</span>
+								<p class="truncate">{formatDate(row.created_at)}</p>
 							</div>
 						</div>
 					</div>

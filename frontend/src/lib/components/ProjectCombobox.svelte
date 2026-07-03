@@ -129,7 +129,7 @@
 	</div>
 {:else}
 	<Combobox
-		class="z-10 w-full min-w-[120px] max-w-[200px] sm:max-w-none sm:min-w-[180px] md:min-w-[240px]"
+		class="z-10 w-full min-w-30 max-w-50 sm:max-w-none sm:min-w-45 md:min-w-60"
 		placeholder={m.form_project({ count: 1 })}
 		{collection}
 		defaultValue={comboboxValue}
@@ -139,7 +139,7 @@
 		{onInputValueChange}
 	>
 		<Combobox.Control
-			class="flex items-center h-[35px] focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:outline-none transition-shadow rounded"
+			class="flex items-center h-8.75 focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:outline-none transition-shadow rounded"
 		>
 			<Combobox.Input
 				class="placeholder:text-sm placeholder:truncate h-full w-full border-0 bg-transparent focus:ring-0 focus:outline-none focus:bg-transparent"
@@ -149,7 +149,7 @@
 		<Portal>
 			<Combobox.Positioner class="z-50">
 				<Combobox.Content
-					class="z-50 max-h-[50vh] sm:max-h-60 min-w-[200px] overflow-auto touch-manipulation rounded-lg border border-surface-200-800 bg-surface-50-950 shadow-xl"
+					class="z-50 max-h-[50vh] sm:max-h-60 min-w-50 overflow-auto touch-manipulation rounded-lg border border-surface-200-800 bg-surface-50-950 shadow-xl"
 				>
 					{#each items as item (item.value)}
 						<Combobox.Item

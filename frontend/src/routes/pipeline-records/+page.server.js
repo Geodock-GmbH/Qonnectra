@@ -2,7 +2,11 @@ import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
-/** @type {import('./$types').PageServerLoad} */
+/**
+ * Loads pipeline records with pagination and optional search filtering.
+ * @param {import('./$types').PageServerLoadEvent} event - SvelteKit load event.
+ * @returns {Promise<{records: Array<{value: string, project_name: string, type_of_work: string, request_reason: string, organisation: string, name: string, created_at: string, modified_at: string}>, pagination: {page: number, pageSize: number, totalCount: number, totalPages: number}, recordsError: string | null, searchTerm: string}>}
+ */
 export async function load({ fetch, url, cookies }) {
 	const headers = getAuthHeaders(cookies);
 	const searchTerm = url.searchParams.get('search') || '';
@@ -35,8 +39,10 @@ export async function load({ fetch, url, cookies }) {
 		const records = (data.results || []).map((/** @type {any} */ item) => ({
 			value: item.uuid,
 			project_name: item.project_name || '',
-			building_measure: item.building_measure || '',
 			type_of_work: item.type_of_work || '',
+			request_reason: item.request_reason || '',
+			organisation: item.organisation || '',
+			name: item.name || '',
 			created_at: item.created_at || '',
 			modified_at: item.modified_at || ''
 		}));
