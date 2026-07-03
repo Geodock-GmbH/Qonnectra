@@ -10,6 +10,7 @@
 		IconTrash
 	} from '@tabler/icons-svelte';
 
+	import { PUBLIC_API_URL } from '$env/static/public';
 	import { m } from '$lib/paraglide/messages';
 
 	import MessageBox from '$lib/components/MessageBox.svelte';
@@ -118,7 +119,7 @@
 		isExporting = true;
 		try {
 			const response = await fetch(
-				`/api/v1/pipeline-records/${$page.params.uuid}/inquiry-export/`,
+				`${PUBLIC_API_URL}pipeline-records/${$page.params.uuid}/inquiry-export/`,
 				{ credentials: 'include' }
 			);
 

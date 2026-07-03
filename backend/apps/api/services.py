@@ -4583,7 +4583,7 @@ def build_inquiry_export_zip(pipeline_record_uuid):
         ValueError: If no inquiry areas exist for the record or if the
             geometry union is empty.
     """
-    from django.contrib.gis.db.models.functions import Union
+    from django.contrib.gis.db.models import Union
 
     areas = PipelineInquiryArea.objects.filter(pipeline_record_id=pipeline_record_uuid)
     if not areas.exists():
@@ -4599,10 +4599,10 @@ def build_inquiry_export_zip(pipeline_record_uuid):
         "nodes": Node.objects.filter(geom__intersects=union_geom),
         "addresses": Address.objects.filter(geom__intersects=union_geom),
         "conduits": Conduit.objects.filter(
-            trench__geom__intersects=union_geom
+            trenchconduitconnection__uuid_trench__geom__intersects=union_geom
         ).distinct(),
         "cables": Cable.objects.filter(
-            conduit__trench__geom__intersects=union_geom
+            microductcableconnection__uuid_microduct__uuid_conduit__trenchconduitconnection__uuid_trench__geom__intersects=union_geom
         ).distinct(),
         "areas": Area.objects.filter(geom__intersects=union_geom),
     }
@@ -4628,7 +4628,8 @@ def build_inquiry_export_zip(pipeline_record_uuid):
                         f"{obj.zip_code} {obj.city}"
                     )
 
-                geom_json = json.loads(obj.geom.geojson) if obj.geom else None
+                geom = getattr(obj, "geom", None)
+                geom_json = json.loads(geom.geojson) if geom else None
                 features.append(
                     {
                         "type": "Feature",
