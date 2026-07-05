@@ -9,6 +9,9 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     AddressViewSet,
+    AppLoginView,
+    AppLogoutView,
+    AppTokenRefreshView,
     AreaViewSet,
     AttributesAreaTypeViewSet,
     AttributesCableTypeViewSet,
@@ -262,6 +265,9 @@ router.register(r"wms-layers", WMSLayerViewSet, basename="wms-layers")
 urlpatterns = [
     path("logs/frontend/", FrontendLogView.as_view(), name="frontend-logs"),
     path("auth/permissions/", UserPermissionsView.as_view(), name="user-permissions"),
+    path("auth/app/login/", AppLoginView.as_view(), name="app-login"),
+    path("auth/app/token/refresh/", AppTokenRefreshView.as_view(), name="app-token-refresh"),
+    path("auth/app/logout/", AppLogoutView.as_view(), name="app-logout"),
     path("", include(router.urls)),
     path(
         "template/conduit/",

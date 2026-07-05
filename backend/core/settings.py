@@ -211,13 +211,17 @@ QGIS_PG_SERVICE_NAME = os.getenv("QGIS_PG_SERVICE_NAME", "qonnectra")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        # Use JWTCookieAuthentication for cookie-based JWT auth
         "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ]
     + (["rest_framework.renderers.BrowsableAPIRenderer"] if DEBUG else []),
+    "DEFAULT_THROTTLE_RATES": {
+        "app_login": "5/min",
+        "app_token_refresh": "30/min",
+    },
 }
 
 # dj-rest-auth settings

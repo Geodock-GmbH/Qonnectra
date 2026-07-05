@@ -37,7 +37,11 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenRefreshView
 
 from .models import (
     Address,
@@ -1140,6 +1144,102 @@ class UserPermissionsView(APIView):
         """Return the authenticated user's role-based permission set."""
         permissions = get_user_permissions(request.user)
         return Response(permissions)
+
+
+class AppLoginView(APIView):
+    """Token-based login for external apps (mobile, desktop, CLI).
+
+    Accepts username + password and returns JWT access and refresh tokens
+    in the response body (no cookies). External apps should store these
+    tokens securely and use ``Authorization: Bearer <access_token>``
+    for subsequent requests.
+    """
+
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "app_login"
+
+    def post(self, request):
+        from django.contrib.auth import authenticate
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        username = request.data.get("username")
+        password = request.data.get("password")
+
+        if not username or not password:
+            return Response(
+                {"detail": "Username and password are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = authenticate(request=request, username=username, password=password)
+
+        if user is None:
+            return Response(
+                {"detail": "Invalid credentials."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        if not user.is_active:
+            return Response(
+                {"detail": "Account is inactive."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        refresh = RefreshToken.for_user(user)
+        access = refresh.access_token
+
+        from apps.api.serializers import CustomUserDetailsSerializer
+
+        user_data = CustomUserDetailsSerializer(user).data
+
+        return Response({
+            "access": str(access),
+            "refresh": str(refresh),
+            "access_expiration": access["exp"],
+            "refresh_expiration": refresh["exp"],
+            "user": user_data,
+        })
+
+
+class AppTokenRefreshView(TokenRefreshView):
+    """Refresh an access token for external apps.
+
+    Accepts ``{"refresh": "<token>"}`` in the request body and returns
+    a new access + refresh token pair. The old refresh token is
+    blacklisted automatically (rotation is enabled).
+    """
+
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "app_token_refresh"
+
+
+class AppLogoutView(APIView):
+    """Logout for external apps by blacklisting the refresh token.
+
+    Accepts ``{"refresh": "<token>"}`` in the request body.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        refresh_token = request.data.get("refresh")
+        if not refresh_token:
+            return Response(
+                {"detail": "Refresh token is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+        except TokenError:
+            return Response(
+                {"detail": "Invalid or expired refresh token."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        return Response({"detail": "Successfully logged out."})
 
 
 class OlTrenchTileViewSet(APIView):
