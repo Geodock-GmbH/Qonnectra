@@ -49,7 +49,6 @@
 						aria-readonly="true"
 						data-testid="active-project"
 					/>
-					<span class="text-xs text-surface-500">{m.hint_project_from_active_selector()}</span>
 				{:else}
 					<GenericCombobox
 						data={projectOptions}

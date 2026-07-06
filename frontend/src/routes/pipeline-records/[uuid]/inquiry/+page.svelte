@@ -3,7 +3,7 @@
 	import { get } from 'svelte/store';
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import {
 		IconArrowLeft,
 		IconEdit,
@@ -118,8 +118,8 @@
 	function renderPolygonsOnMap() {
 		if (!olMap) return;
 
-		const srid = $page.data.srid;
-		const proj4Def = $page.data.proj4Def;
+		const srid = page.data.srid;
+		const proj4Def = page.data.proj4Def;
 		if (srid && proj4Def) {
 			registerStorageProjection(srid, proj4Def);
 		}
@@ -436,7 +436,7 @@
 		<button
 			type="button"
 			class="btn preset-tonal-surface inline-flex items-center gap-2"
-			onclick={() => goto(`/pipeline-records/${$page.params.uuid}`)}
+			onclick={() => goto(`/pipeline-records/${page.params.uuid}`)}
 		>
 			<IconArrowLeft class="size-4 shrink-0" />
 			<span>{m.common_back()}</span>
