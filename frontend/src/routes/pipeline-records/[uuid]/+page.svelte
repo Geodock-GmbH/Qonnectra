@@ -15,6 +15,7 @@
 
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { saveFile } from '$lib/utils/saveFile.js';
 
 	import PipelineRecordForm from '../PipelineRecordForm.svelte';
 
@@ -114,7 +115,7 @@
 		deleteMessageBox?.open();
 	}
 
-	/** Downloads the inquiry export ZIP from the backend. */
+	/** Downloads the inquiry export ZIP, prompting the user to choose a save location. */
 	async function handleExport() {
 		isExporting = true;
 		try {
@@ -133,14 +134,7 @@
 			}
 
 			const blob = await response.blob();
-			const url = URL.createObjectURL(blob);
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = `inquiry-export-${$page.params.uuid}.zip`;
-			document.body.appendChild(a);
-			a.click();
-			a.remove();
-			URL.revokeObjectURL(url);
+			await saveFile(blob, `inquiry-export-${$page.params.uuid}.zip`);
 		} catch (/** @type {any} */ err) {
 			globalToaster.error({ title: m.common_error(), description: err.message });
 		} finally {
