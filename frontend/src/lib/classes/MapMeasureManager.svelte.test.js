@@ -28,7 +28,8 @@ function createMockMap() {
 		}),
 		getView: vi.fn(() => ({
 			getProjection: vi.fn(() => 'EPSG:25832')
-		}))
+		})),
+		getViewport: vi.fn(() => ({ style: {} }))
 	};
 }
 

@@ -1,19 +1,26 @@
 <script>
 	import { deserialize } from '$app/forms';
+	import { page } from '$app/state';
 	import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
+	import proj4 from 'proj4';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
+	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { generateAddressPdf } from '$lib/utils/addressPdf.js';
+	import { captureMapCanvases, getVisibleWMSAttributions } from '$lib/utils/mapCapture.js';
 
 	let {
 		address,
 		residentialUnits = [],
 		linkedMicroducts = [],
 		statusDevelopments = [],
-		open = $bindable(false)
+		open = $bindable(false),
+		mapContainerEl = null,
+		geom3857 = null,
+		projectId = ''
 	} = $props();
 
 	let commentText = $state('');
@@ -46,6 +53,29 @@
 			console.error('Error fetching fiber connections:', error);
 		}
 		return {};
+	}
+
+	/**
+	 * Converts EPSG:3857 coordinates to EPSG:4326 (lat/lon) string.
+	 * @param {any} geom - Geometry object with coordinates array.
+	 * @returns {string | null}
+	 */
+	function convert3857To4326(geom) {
+		if (!geom?.coordinates) return null;
+		const coords4326 = proj4('EPSG:3857', 'EPSG:4326', geom.coordinates);
+		return `${coords4326[1].toFixed(6)}, ${coords4326[0].toFixed(6)}`;
+	}
+
+	/**
+	 * Converts EPSG:3857 coordinates to the project's storage SRID string.
+	 * @param {any} geom - Geometry object with coordinates array.
+	 * @returns {string | null}
+	 */
+	function convert3857ToDefault(geom) {
+		if (!geom?.coordinates || !page.data.srid || !page.data.proj4Def) return null;
+		registerStorageProjection(page.data.srid, page.data.proj4Def);
+		const coordsDefault = proj4('EPSG:3857', storageProjection(page.data.srid), geom.coordinates);
+		return `${coordsDefault[0].toFixed(6)}, ${coordsDefault[1].toFixed(6)}`;
 	}
 
 	async function handleExport() {
@@ -90,13 +120,27 @@
 				}));
 			}
 
+			let mapImage = null;
+			if (mapContainerEl) {
+				mapImage = captureMapCanvases(mapContainerEl);
+			}
+
+			const addressData = {
+				...updatedAddress,
+				coordsDefault: convert3857ToDefault(geom3857),
+				coords4326: convert3857To4326(geom3857),
+				srid: page.data.srid
+			};
+
+			const wmsAttributions = getVisibleWMSAttributions(projectId);
+
 			generateAddressPdf({
-				address: updatedAddress,
+				address: addressData,
 				residentialUnits: unitsWithFibers,
-				mapImage: null,
+				mapImage,
 				includeResidentialUnits: residentialUnits.length > 0,
 				linkedMicroducts,
-				wmsAttributions: [],
+				wmsAttributions,
 				commentText,
 				labels: {
 					sectionAddressInformation: m.section_address_information(),

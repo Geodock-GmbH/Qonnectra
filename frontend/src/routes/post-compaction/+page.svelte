@@ -5,10 +5,22 @@
 	import { IconLoader2, IconMapPin, IconSearch, IconX } from '@tabler/icons-svelte';
 	import { PUBLIC_API_URL } from '$env/static/public';
 
+	import 'ol/ol.css';
+
 	import { m } from '$lib/paraglide/messages';
 
-	import { selectedProject } from '$lib/stores/store';
+	import Map from '$lib/components/Map.svelte';
+	import { createAddressStyle, createTrenchStyle } from '$lib/map/styles.js';
+	import {
+		getWMSLayerVisibility,
+		selectedProject,
+		trenchColor,
+		wmsLayerVisibilityConfig,
+		wmsSourcesData
+	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { fetchWMSAccessToken, fetchWMSSources, getWMSProxyUrl } from '$lib/utils/wmsApi';
+	import { createWMSLayer } from '$lib/map';
 
 	import ExportDialog from './ExportDialog.svelte';
 
@@ -30,8 +42,24 @@
 	let residentialUnits = $state([]);
 	/** @type {Record<string, any>[]} */
 	let linkedMicroducts = $state([]);
+	/** @type {Record<string, any>[]} */
+	let linkedTrenchGeometries = $state([]);
 	let loadingAddress = $state(false);
 	let exportDialogOpen = $state(false);
+
+	/** @type {any} */
+	let geom3857 = $state(null);
+	/** @type {any} */
+	let addressMarkerLayer = $state(null);
+	/** @type {any} */
+	let trenchLinesLayer = $state(null);
+	/** @type {any[]} */
+	let wmsLayers = $state([]);
+	/** @type {any} */
+	let mapCenter = $state(null);
+	let mapReady = $state(false);
+	/** @type {HTMLElement | null} */
+	let mapContainerEl = $state(null);
 
 	/**
 	 * Searches for addresses via the trace-search API.
@@ -97,6 +125,117 @@
 	}
 
 	/**
+	 * Sets up OpenLayers map layers after an address is selected.
+	 */
+	async function setupMapLayers() {
+		if (!geom3857?.coordinates) {
+			mapReady = false;
+			return;
+		}
+
+		const [
+			{ default: VectorLayer },
+			{ default: VectorSource },
+			{ default: Feature },
+			{ default: Point },
+			{ default: GeoJSON }
+		] = await Promise.all([
+			import('ol/layer/Vector'),
+			import('ol/source/Vector'),
+			import('ol/Feature'),
+			import('ol/geom/Point'),
+			import('ol/format/GeoJSON')
+		]);
+
+		const coords = geom3857.coordinates;
+		mapCenter = coords;
+
+		const pointFeature = new Feature({
+			geometry: new Point(coords)
+		});
+
+		addressMarkerLayer = new VectorLayer({
+			source: new VectorSource({
+				features: [pointFeature]
+			}),
+			style: createAddressStyle(),
+			zIndex: 100,
+			properties: { layerId: 'address-marker' }
+		});
+
+		if (linkedTrenchGeometries.length > 0) {
+			const geoJsonFormat = new GeoJSON();
+			const trenchFeatures = linkedTrenchGeometries
+				.filter((/** @type {any} */ f) => f.geometry)
+				.map((/** @type {any} */ f) =>
+					geoJsonFormat.readFeature(f, {
+						dataProjection: 'EPSG:3857',
+						featureProjection: 'EPSG:3857'
+					})
+				);
+
+			if (trenchFeatures.length > 0) {
+				trenchLinesLayer = new VectorLayer({
+					source: new VectorSource({ features: trenchFeatures }),
+					style: createTrenchStyle($trenchColor),
+					zIndex: 50,
+					properties: { layerId: 'trench-lines' }
+				});
+			}
+		}
+
+		await loadWMSLayers();
+		mapReady = true;
+	}
+
+	/**
+	 * Loads WMS layers for the compact map.
+	 */
+	async function loadWMSLayers() {
+		const projectId = get(selectedProject);
+		try {
+			const [accessToken, sources] = await Promise.all([
+				fetchWMSAccessToken(),
+				fetchWMSSources(projectId)
+			]);
+
+			wmsSourcesData.set({ sources, loaded: true });
+
+			const visibilityConfig = $wmsLayerVisibilityConfig;
+			const loadedLayers = [];
+
+			for (const source of sources) {
+				if (!source.is_active) continue;
+
+				for (const layer of source.layers) {
+					if (!layer.is_enabled) continue;
+
+					const layerId = `wms-${source.id}-${layer.name}`;
+					const isVisible = getWMSLayerVisibility(visibilityConfig, projectId, layerId, true);
+
+					const olLayer = createWMSLayer({
+						proxyUrl: getWMSProxyUrl(source.id, accessToken),
+						layerName: layer.name,
+						layerId: layerId,
+						displayName: `${source.name}: ${layer.title || layer.name}`,
+						sourceId: source.id,
+						sourceName: source.name,
+						minZoom: layer.min_zoom ?? 8,
+						maxZoom: layer.max_zoom ?? undefined,
+						opacity: layer.opacity ?? 1.0
+					});
+					olLayer.setVisible(isVisible);
+					loadedLayers.push(olLayer);
+				}
+			}
+
+			wmsLayers = loadedLayers;
+		} catch (error) {
+			console.warn('Failed to load WMS layers for post-compaction map:', error);
+		}
+	}
+
+	/**
 	 * Fetches full address and residential units via server action.
 	 * @param {Record<string, any>} result
 	 */
@@ -121,6 +260,9 @@
 				selectedAddress = resultData.address;
 				residentialUnits = resultData.residentialUnits || [];
 				linkedMicroducts = resultData.linkedMicroducts || [];
+				linkedTrenchGeometries = resultData.linkedTrenchGeometries || [];
+				geom3857 = resultData.address?.geom_3857 || null;
+				await setupMapLayers();
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
@@ -142,6 +284,13 @@
 		selectedAddress = null;
 		residentialUnits = [];
 		linkedMicroducts = [];
+		linkedTrenchGeometries = [];
+		geom3857 = null;
+		mapReady = false;
+		addressMarkerLayer = null;
+		trenchLinesLayer = null;
+		wmsLayers = [];
+		mapCenter = null;
 		searchQuery = '';
 		searchResults = [];
 	}
@@ -283,6 +432,46 @@
 					</div>
 				</div>
 
+				{#if geom3857?.coordinates && mapReady && addressMarkerLayer}
+					<div
+						bind:this={mapContainerEl}
+						class="max-w-md h-64 md:h-80 rounded-lg overflow-hidden border border-surface-200-800"
+					>
+						<Map
+							variant="compact"
+							layers={[
+								...wmsLayers,
+								...(trenchLinesLayer ? [trenchLinesLayer] : []),
+								addressMarkerLayer
+							]}
+							viewOptions={{
+								center: mapCenter,
+								zoom: 18
+							}}
+							showOpacitySlider={false}
+							showLayerVisibilityTree={false}
+							showSearchPanel={false}
+						/>
+					</div>
+				{:else if geom3857?.coordinates}
+					<div
+						class="max-w-md h-64 md:h-80 rounded-lg border border-surface-200-800 flex items-center justify-center animate-pulse"
+					>
+						<p class="text-sm text-surface-400">{m.common_loading()}</p>
+					</div>
+				{:else}
+					<div
+						class="max-w-md h-64 md:h-80 rounded-lg border border-dashed border-surface-300-700 flex items-center justify-center"
+					>
+						<div class="text-center text-surface-400">
+							<IconMapPin class="size-12 mx-auto mb-2 opacity-30" />
+							<p class="text-sm font-medium text-surface-900-100">
+								{m.message_no_location_data()}
+							</p>
+						</div>
+					</div>
+				{/if}
+
 				<div class="border-t border-surface-200-800 pt-4">
 					<button
 						class="btn preset-filled-primary-500 inline-flex items-center gap-2"
@@ -302,4 +491,7 @@
 	{residentialUnits}
 	{linkedMicroducts}
 	{statusDevelopments}
+	{mapContainerEl}
+	{geom3857}
+	projectId={get(selectedProject)}
 />

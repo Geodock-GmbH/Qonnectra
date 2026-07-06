@@ -38,7 +38,7 @@ export const actions = {
 	/**
 	 * PATCH an address's status_development field.
 	 * @param {import('./$types').RequestEvent} event - SvelteKit request event.
-	 * @returns {Promise<{ success: true, address: Record<string, any> } | import('@sveltejs/kit').ActionFailure>}
+	 * @returns {Promise<{ success: true, address: Record<string, any> } | import('@sveltejs/kit').ActionFailure<{ message: string }>>}
 	 */
 	updateStatus: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
@@ -82,7 +82,7 @@ export const actions = {
 	/**
 	 * Fetch a single address with its residential units and linked microducts by UUID.
 	 * @param {import('./$types').RequestEvent} event - SvelteKit request event.
-	 * @returns {Promise<{ success: true, address: Record<string, any>, residentialUnits: Record<string, any>[], linkedMicroducts: Record<string, any>[] } | import('@sveltejs/kit').ActionFailure>}
+	 * @returns {Promise<{ success: true, address: Record<string, any>, residentialUnits: Record<string, any>[], linkedMicroducts: Record<string, any>[], linkedTrenchGeometries: Record<string, any>[] } | import('@sveltejs/kit').ActionFailure<{ message: string }>>}
 	 */
 	fetchAddress: async ({ request, fetch, cookies }) => {
 		const headers = getAuthHeaders(cookies);
@@ -90,20 +90,25 @@ export const actions = {
 		const uuid = formData.get('uuid');
 
 		try {
-			const [addressResponse, residentialUnitsResponse, nodesResponse] = await Promise.all([
-				fetch(`${API_URL}address/${uuid}/`, {
-					credentials: 'include',
-					headers
-				}),
-				fetch(`${API_URL}residential-unit/all/?uuid_address=${uuid}`, {
-					credentials: 'include',
-					headers
-				}),
-				fetch(`${API_URL}node/?uuid_address=${uuid}`, {
-					credentials: 'include',
-					headers
-				})
-			]);
+			const [addressResponse, residentialUnitsResponse, nodesResponse, trenchResponse] =
+				await Promise.all([
+					fetch(`${API_URL}address/${uuid}/`, {
+						credentials: 'include',
+						headers
+					}),
+					fetch(`${API_URL}residential-unit/all/?uuid_address=${uuid}`, {
+						credentials: 'include',
+						headers
+					}),
+					fetch(`${API_URL}node/?uuid_address=${uuid}`, {
+						credentials: 'include',
+						headers
+					}),
+					fetch(`${API_URL}address/${uuid}/linked-trenches/`, {
+						credentials: 'include',
+						headers
+					})
+				]);
 
 			if (!addressResponse.ok) {
 				const errorData = await addressResponse.json().catch(() => ({}));
@@ -115,7 +120,8 @@ export const actions = {
 			const addressData = await addressResponse.json();
 			const address = {
 				...(addressData.properties || addressData),
-				uuid: addressData.id || addressData.properties?.uuid || addressData.uuid
+				uuid: addressData.id || addressData.properties?.uuid || addressData.uuid,
+				geom_3857: addressData.properties?.geom_3857 || addressData.geom_3857 || null
 			};
 
 			let residentialUnits = [];
@@ -163,7 +169,13 @@ export const actions = {
 				}
 			}
 
-			return { success: true, address, residentialUnits, linkedMicroducts };
+			let linkedTrenchGeometries = [];
+			if (trenchResponse.ok) {
+				const trenchData = await trenchResponse.json();
+				linkedTrenchGeometries = trenchData.features || [];
+			}
+
+			return { success: true, address, residentialUnits, linkedMicroducts, linkedTrenchGeometries };
 		} catch (/** @type {any} */ err) {
 			return fail(500, { message: err.message || 'Failed to fetch address' });
 		}

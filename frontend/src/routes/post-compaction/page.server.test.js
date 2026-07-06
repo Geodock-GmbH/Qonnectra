@@ -204,7 +204,7 @@ describe('post-compaction +page.server.js', () => {
 			});
 		}
 
-		test('should fetch address and residential units in parallel', async () => {
+		test('should fetch address, residential units, nodes and trenches in parallel', async () => {
 			const addressData = {
 				id: 'addr-uuid',
 				properties: {
@@ -234,6 +234,10 @@ describe('post-compaction +page.server.js', () => {
 				ok: true,
 				json: () => Promise.resolve({ features: [] })
 			});
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ features: [] })
+			});
 
 			const result = /** @type {any} */ (
 				await actions.fetchAddress(
@@ -250,12 +254,15 @@ describe('post-compaction +page.server.js', () => {
 			expect(result.address.uuid).toBe('addr-uuid');
 			expect(result.residentialUnits).toHaveLength(2);
 
-			expect(mockFetch).toHaveBeenCalledTimes(3);
+			expect(mockFetch).toHaveBeenCalledTimes(4);
 			expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:8000/address/addr-uuid/');
 			expect(mockFetch.mock.calls[1][0]).toBe(
 				'http://localhost:8000/residential-unit/all/?uuid_address=addr-uuid'
 			);
 			expect(mockFetch.mock.calls[2][0]).toBe('http://localhost:8000/node/?uuid_address=addr-uuid');
+			expect(mockFetch.mock.calls[3][0]).toBe(
+				'http://localhost:8000/address/addr-uuid/linked-trenches/'
+			);
 		});
 
 		test('should return fail when address fetch fails', async () => {
@@ -267,6 +274,10 @@ describe('post-compaction +page.server.js', () => {
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: () => Promise.resolve([])
+			});
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ features: [] })
 			});
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
@@ -300,6 +311,10 @@ describe('post-compaction +page.server.js', () => {
 			mockFetch.mockResolvedValueOnce({
 				ok: false,
 				status: 500
+			});
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ features: [] })
 			});
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
@@ -374,6 +389,10 @@ describe('post-compaction +page.server.js', () => {
 				})
 				.mockResolvedValueOnce({
 					ok: true,
+					json: () => Promise.resolve({ features: [] })
+				})
+				.mockResolvedValueOnce({
+					ok: true,
 					json: () => Promise.resolve(microducts)
 				});
 
@@ -403,7 +422,7 @@ describe('post-compaction +page.server.js', () => {
 			});
 
 			expect(mockFetch.mock.calls[2][0]).toBe('http://localhost:8000/node/?uuid_address=addr-uuid');
-			expect(mockFetch.mock.calls[3][0]).toBe(
+			expect(mockFetch.mock.calls[4][0]).toBe(
 				'http://localhost:8000/microduct/all/?uuid_node=node-1'
 			);
 		});
@@ -422,6 +441,10 @@ describe('post-compaction +page.server.js', () => {
 				.mockResolvedValueOnce({
 					ok: true,
 					json: () => Promise.resolve([])
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve({ features: [] })
 				})
 				.mockResolvedValueOnce({
 					ok: true,
@@ -460,6 +483,10 @@ describe('post-compaction +page.server.js', () => {
 				.mockResolvedValueOnce({
 					ok: false,
 					status: 500
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve({ features: [] })
 				});
 
 			const result = /** @type {any} */ (
@@ -501,6 +528,10 @@ describe('post-compaction +page.server.js', () => {
 				ok: true,
 				json: () => Promise.resolve({ features: [] })
 			});
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ features: [] })
+			});
 
 			const result = /** @type {any} */ (
 				await actions.fetchAddress(
@@ -514,6 +545,194 @@ describe('post-compaction +page.server.js', () => {
 
 			expect(result.address.street).toBe('GeoJSON St');
 			expect(result.address.uuid).toBe('addr-uuid');
+		});
+
+		test('should explicitly extract geom_3857 from address response', async () => {
+			const addressData = {
+				id: 'addr-uuid',
+				properties: {
+					uuid: 'addr-uuid',
+					street: 'Main St',
+					housenumber: 1,
+					geom_3857: { type: 'Point', coordinates: [1489199.5, 6894018.3] }
+				}
+			};
+
+			mockFetch
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve(addressData)
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve([])
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve({ features: [] })
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve({ features: [] })
+				});
+
+			const result = /** @type {any} */ (
+				await actions.fetchAddress(
+					/** @type {any} */ ({
+						request: createMockRequest({ uuid: 'addr-uuid' }),
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.address.geom_3857).toEqual({
+				type: 'Point',
+				coordinates: [1489199.5, 6894018.3]
+			});
+		});
+
+		test('should set geom_3857 to null when not present in response', async () => {
+			const addressData = {
+				id: 'addr-uuid',
+				properties: {
+					uuid: 'addr-uuid',
+					street: 'Main St',
+					housenumber: 1
+				}
+			};
+
+			mockFetch
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve(addressData)
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve([])
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve({ features: [] })
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve({ features: [] })
+				});
+
+			const result = /** @type {any} */ (
+				await actions.fetchAddress(
+					/** @type {any} */ ({
+						request: createMockRequest({ uuid: 'addr-uuid' }),
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.address.geom_3857).toBeNull();
+		});
+
+		test('should fetch and return linked trench geometries', async () => {
+			const addressData = {
+				id: 'addr-uuid',
+				properties: { uuid: 'addr-uuid', street: 'Main St', housenumber: 1 }
+			};
+
+			const trenchFeatures = [
+				{
+					type: 'Feature',
+					geometry: {
+						type: 'LineString',
+						coordinates: [
+							[1, 2],
+							[3, 4]
+						]
+					},
+					properties: { name: 'Trench 1' }
+				},
+				{
+					type: 'Feature',
+					geometry: {
+						type: 'LineString',
+						coordinates: [
+							[5, 6],
+							[7, 8]
+						]
+					},
+					properties: { name: 'Trench 2' }
+				}
+			];
+
+			mockFetch
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve(addressData)
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve([])
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve({ features: [] })
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve({ features: trenchFeatures })
+				});
+
+			const result = /** @type {any} */ (
+				await actions.fetchAddress(
+					/** @type {any} */ ({
+						request: createMockRequest({ uuid: 'addr-uuid' }),
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.linkedTrenchGeometries).toHaveLength(2);
+			expect(result.linkedTrenchGeometries[0].properties.name).toBe('Trench 1');
+			expect(result.linkedTrenchGeometries[1].geometry.type).toBe('LineString');
+		});
+
+		test('should return empty trench geometries when linked-trenches fetch fails', async () => {
+			const addressData = {
+				id: 'addr-uuid',
+				properties: { uuid: 'addr-uuid', street: 'Main St', housenumber: 1 }
+			};
+
+			mockFetch
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve(addressData)
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve([])
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: () => Promise.resolve({ features: [] })
+				})
+				.mockResolvedValueOnce({
+					ok: false,
+					status: 500
+				});
+
+			const result = /** @type {any} */ (
+				await actions.fetchAddress(
+					/** @type {any} */ ({
+						request: createMockRequest({ uuid: 'addr-uuid' }),
+						fetch: mockFetch,
+						cookies: mockCookies
+					})
+				)
+			);
+
+			expect(result.success).toBe(true);
+			expect(result.linkedTrenchGeometries).toEqual([]);
 		});
 	});
 });

@@ -39,6 +39,7 @@
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { generateAddressPdf } from '$lib/utils/addressPdf.js';
+	import { captureMapCanvases, getVisibleWMSAttributions } from '$lib/utils/mapCapture.js';
 	import { tooltip } from '$lib/utils/tooltip.js';
 	import { fetchWMSAccessToken, fetchWMSSources, getWMSProxyUrl } from '$lib/utils/wmsApi';
 	import { createWMSLayer } from '$lib/map';
@@ -402,59 +403,6 @@
 	}
 
 	/**
-	 * Merges all OpenLayers canvases into a single PNG data URL.
-	 * OpenLayers renders each layer on a separate canvas element.
-	 * @param {HTMLElement} container - The map container element.
-	 * @returns {string | null} Base64 PNG data URL, or null if no canvases found.
-	 */
-	function captureMapCanvases(container) {
-		const canvases = container.querySelectorAll('canvas');
-		if (canvases.length === 0) return null;
-
-		const firstCanvas = canvases[0];
-		const mergedCanvas = document.createElement('canvas');
-		mergedCanvas.width = firstCanvas.width;
-		mergedCanvas.height = firstCanvas.height;
-		const ctx = /** @type {CanvasRenderingContext2D} */ (mergedCanvas.getContext('2d'));
-
-		for (const canvas of canvases) {
-			ctx.drawImage(canvas, 0, 0);
-		}
-
-		return mergedCanvas.toDataURL('image/png');
-	}
-
-	/**
-	 * Collects attributions from visible WMS layers for PDF rendering.
-	 * @returns {string[]} Unique attribution strings.
-	 */
-	function getVisibleWMSAttributions() {
-		const { sources, loaded } = $wmsSourcesData;
-		if (!loaded || !sources) return [];
-
-		const visibilityConfig = $wmsLayerVisibilityConfig;
-		const attributions = new Set();
-
-		for (const source of /** @type {any[]} */ (sources)) {
-			if (!source.is_active || !source.attribution) continue;
-
-			for (const layer of source.layers) {
-				if (!layer.is_enabled) continue;
-
-				const layerId = `wms-${source.id}-${layer.name}`;
-				const isVisible = getWMSLayerVisibility(visibilityConfig, projectId, layerId, true);
-
-				if (isVisible) {
-					attributions.add(source.attribution);
-					break;
-				}
-			}
-		}
-
-		return [...attributions];
-	}
-
-	/**
 	 * Generates and downloads an address PDF with optional residential unit data.
 	 */
 	async function handleDownloadPdf() {
@@ -481,7 +429,7 @@
 				}));
 			}
 
-			const wmsAttributions = getVisibleWMSAttributions();
+			const wmsAttributions = getVisibleWMSAttributions(projectId);
 
 			generateAddressPdf({
 				address: addressData,
