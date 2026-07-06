@@ -446,86 +446,83 @@
 	{#if !data.recordExists}
 		<div class="card preset-tonal-error p-4">Pipeline record not found.</div>
 	{:else}
-		<div class="flex-1 flex gap-4 overflow-hidden">
-			<div class="flex-1 relative">
+		<div class="flex-1 flex flex-col lg:flex-row lg:gap-4 overflow-hidden">
+			<div
+				class="order-1 h-[40vh] shrink-0 border-2 rounded-lg border-surface-200-800 overflow-hidden relative sm:h-[45vh] lg:h-auto lg:flex-2"
+			>
 				{#if !layersInitialized}
 					<div class="p-4 text-yellow-700 bg-yellow-100 border border-yellow-400 rounded">
 						<p>{m.message_error_could_not_load_map_tiles()}</p>
 					</div>
 				{:else}
-					<div
-						class="map-wrapper border-2 rounded-lg border-surface-200-800 h-full w-full relative overflow-hidden"
-					>
-						<Map
-							className="rounded-lg overflow-hidden h-full w-full"
-							layers={mapState.getLayers()}
-							showLayerVisibilityTree={true}
-							showSearchPanel={true}
-							onready={handleMapReady}
-							onLayerVisibilityChanged={() => drawManager.refreshHighlights()}
-							{nodeTypes}
-							{surfaces}
-							{constructionTypes}
-							{areaTypes}
-						/>
+					<Map
+						className="rounded-lg overflow-hidden h-full w-full"
+						layers={mapState.getLayers()}
+						showLayerVisibilityTree={true}
+						showSearchPanel={true}
+						onready={handleMapReady}
+						onLayerVisibilityChanged={() => drawManager.refreshHighlights()}
+						{nodeTypes}
+						{surfaces}
+						{constructionTypes}
+						{areaTypes}
+					/>
 
-						<div class="absolute top-16 left-4 z-10 flex flex-col gap-1">
+					<div class="absolute top-16 left-4 z-10 flex flex-col gap-1">
+						<button
+							type="button"
+							class="w-9 h-9 rounded-md flex items-center justify-center transition-all shadow-sm
+								{ctx.isDrawing
+								? 'bg-warning-500 text-white'
+								: 'bg-surface-50-950 border border-surface-200-800 text-surface-600-400 hover:bg-surface-200-800'}"
+							disabled={ctx.isSaving || ctx.isEditing}
+							title={ctx.isDrawing ? m.action_stop_drawing() : m.action_draw_polygon()}
+							{@attach tooltip(ctx.isDrawing ? m.action_stop_drawing() : m.action_draw_polygon(), {
+								position: 'right'
+							})}
+							onclick={toggleDrawing}
+						>
+							{#if ctx.isDrawing}
+								<IconPencilOff class="size-4" />
+							{:else}
+								<IconPolygon class="size-4" />
+							{/if}
+						</button>
+
+						{#if ctx.polygons.length > 0}
 							<button
 								type="button"
 								class="w-9 h-9 rounded-md flex items-center justify-center transition-all shadow-sm
-									{ctx.isDrawing
+									{ctx.isEditing
 									? 'bg-warning-500 text-white'
 									: 'bg-surface-50-950 border border-surface-200-800 text-surface-600-400 hover:bg-surface-200-800'}"
-								disabled={ctx.isSaving || ctx.isEditing}
-								title={ctx.isDrawing ? m.action_stop_drawing() : m.action_draw_polygon()}
+								disabled={ctx.isSaving || ctx.isDrawing}
+								title={ctx.isEditing ? m.action_stop_editing() : m.action_edit_polygon()}
+								onclick={toggleEditing}
 								{@attach tooltip(
-									ctx.isDrawing ? m.action_stop_drawing() : m.action_draw_polygon(),
+									ctx.isEditing ? m.action_stop_editing() : m.action_edit_polygon(),
 									{ position: 'right' }
 								)}
-								onclick={toggleDrawing}
 							>
-								{#if ctx.isDrawing}
-									<IconPencilOff class="size-4" />
+								{#if ctx.isEditing}
+									<IconEditOff class="size-4" />
 								{:else}
-									<IconPolygon class="size-4" />
+									<IconEdit class="size-4" />
 								{/if}
 							</button>
-
-							{#if ctx.polygons.length > 0}
-								<button
-									type="button"
-									class="w-9 h-9 rounded-md flex items-center justify-center transition-all shadow-sm
-										{ctx.isEditing
-										? 'bg-warning-500 text-white'
-										: 'bg-surface-50-950 border border-surface-200-800 text-surface-600-400 hover:bg-surface-200-800'}"
-									disabled={ctx.isSaving || ctx.isDrawing}
-									title={ctx.isEditing ? m.action_stop_editing() : m.action_edit_polygon()}
-									onclick={toggleEditing}
-									{@attach tooltip(
-										ctx.isEditing ? m.action_stop_editing() : m.action_edit_polygon(),
-										{ position: 'right' }
-									)}
-								>
-									{#if ctx.isEditing}
-										<IconEditOff class="size-4" />
-									{:else}
-										<IconEdit class="size-4" />
-									{/if}
-								</button>
-							{/if}
-						</div>
-
-						<MapHint
-							message={m.message_inquiry_draw_hint()}
-							visible={ctx.polygons.length === 0 && !ctx.isDrawing}
-						/>
+						{/if}
 					</div>
+
+					<MapHint
+						message={m.message_inquiry_draw_hint()}
+						visible={ctx.polygons.length === 0 && !ctx.isDrawing}
+					/>
 				{/if}
 			</div>
 
 			{#if ctx.polygons.length > 0}
 				<div
-					class="w-72 shrink-0 border-2 rounded-lg border-surface-200-800 overflow-y-auto flex flex-col"
+					class="order-2 min-w-0 flex-1 border-2 rounded-lg border-surface-200-800 overflow-y-auto flex flex-col pb-16 md:pb-0 lg:w-72 lg:flex-none lg:shrink-0"
 				>
 					<div class="p-3 border-b border-surface-200-800">
 						<h3 class="text-sm font-semibold text-surface-600 dark:text-surface-400">
