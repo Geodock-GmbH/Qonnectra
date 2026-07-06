@@ -55,6 +55,7 @@ from .models import (
     TypeOfWork,
     TrenchConduitCanvas,
     TrenchConduitConnection,
+    ValuationCostRate,
     WMSLayer,
     WMSSource,
 )
@@ -2700,3 +2701,40 @@ class PipelineInquiryAreaSerializer(GeoFeatureModelSerializer):
                 )
 
         return value
+
+
+class ValuationCostRateSerializer(serializers.ModelSerializer):
+    """Serialize :model:`api.ValuationCostRate` cost rates."""
+
+    node_type_ids = serializers.PrimaryKeyRelatedField(
+        source="node_types",
+        queryset=AttributesNodeType.objects.all(),
+        many=True,
+        required=False,
+    )
+
+    class Meta:
+        model = ValuationCostRate
+        fields = [
+            "id",
+            "project",
+            "name",
+            "amount",
+            "unit",
+            "is_house_connection",
+            "node_type_ids",
+        ]
+
+
+class ValuationRequestSerializer(serializers.Serializer):
+    """Validate the input of the valuation calculation endpoint."""
+
+    project = serializers.IntegerField()
+    area_uuids = serializers.ListField(
+        child=serializers.UUIDField(), required=False, allow_empty=True
+    )
+    base_year = serializers.IntegerField(required=False, allow_null=True)
+    annual_correction = serializers.FloatField(required=False, allow_null=True)
+    projection_years = serializers.IntegerField(
+        required=False, min_value=1, max_value=100
+    )

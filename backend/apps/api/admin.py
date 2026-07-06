@@ -65,6 +65,7 @@ from .models import (
     RoutePermission,
     StoragePreferences,
     Trench,
+    ValuationCostRate,
     WMSLayer,
     WMSSource,
 )
@@ -734,6 +735,17 @@ class PipeBranchSettingsInline(admin.StackedInline):
     filter_horizontal = ("allowed_node_types",)
 
 
+class ValuationCostRateInline(admin.TabularInline):
+    """Inline admin for per-project valuation cost rates within Project admin."""
+
+    model = ValuationCostRate
+    extra = 0
+    filter_horizontal = ("node_types",)
+    fields = ("name", "amount", "unit", "is_house_connection", "node_types")
+    verbose_name = _("Valuation Cost Rate")
+    verbose_name_plural = _("Valuation Cost Rates")
+
+
 @admin.register(Projects)
 class ProjectsAdmin(SimpleHistoryAdmin):
     """Admin interface for Projects with Network Schema and Pipe Branch Settings."""
@@ -749,7 +761,11 @@ class ProjectsAdmin(SimpleHistoryAdmin):
     )
     list_filter = ("active",)
     search_fields = ("project", "description")
-    inlines = [NetworkSchemaSettingsInline, PipeBranchSettingsInline]
+    inlines = [
+        NetworkSchemaSettingsInline,
+        PipeBranchSettingsInline,
+        ValuationCostRateInline,
+    ]
 
     @admin.display(description=_("Excluded Node Types"))
     def excluded_types_display(self, obj):
@@ -871,6 +887,17 @@ class PipeBranchSettingsAdmin(admin.ModelAdmin):
         names = [t.node_type for t in types]
         suffix = "..." if obj.allowed_node_types.count() > 5 else ""
         return ", ".join(names) + suffix if names else _("None")
+
+
+@admin.register(ValuationCostRate)
+class ValuationCostRateAdmin(admin.ModelAdmin):
+    """Standalone admin for per-project valuation cost rates."""
+
+    list_display = ("project", "name", "amount", "unit", "is_house_connection")
+    list_filter = ("project", "unit", "is_house_connection")
+    search_fields = ("project__project", "name")
+    filter_horizontal = ("node_types",)
+    autocomplete_fields = ["project"]
 
 
 @admin.register(Address)

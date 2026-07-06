@@ -1,0 +1,99 @@
+[
+{
+    "model": "api.valuationcostrate",
+    "pk": 1,
+    "fields": {
+        "project": 1,
+        "name": "Tiefbau",
+        "amount": "115.00",
+        "unit": "per_meter",
+        "is_house_connection": false,
+        "node_types": []
+    }
+},
+{
+    "model": "api.valuationcostrate",
+    "pk": 2,
+    "fields": {
+        "project": 1,
+        "name": "Verteiler, oberirdisch",
+        "amount": "5000.00",
+        "unit": "per_piece",
+        "is_house_connection": false,
+        "node_types": [
+            2
+        ]
+    }
+},
+{
+    "model": "api.valuationcostrate",
+    "pk": 3,
+    "fields": {
+        "project": 1,
+        "name": "Verteiler, unterirdisch",
+        "amount": "8000.00",
+        "unit": "per_piece",
+        "is_house_connection": false,
+        "node_types": [
+            9
+        ]
+    }
+},
+{
+    "model": "api.valuationcostrate",
+    "pk": 4,
+    "fields": {
+        "project": 1,
+        "name": "POP",
+        "amount": "100000.00",
+        "unit": "per_piece",
+        "is_house_connection": false,
+        "node_types": [
+            8
+        ]
+    }
+},
+{
+    "model": "api.valuationcostrate",
+    "pk": 5,
+    "fields": {
+        "project": 1,
+        "name": "MFG",
+        "amount": "20000.00",
+        "unit": "per_piece",
+        "is_house_connection": false,
+        "node_types": [
+            7
+        ]
+    }
+},
+{
+    "model": "api.valuationcostrate",
+    "pk": 6,
+    "fields": {
+        "project": 1,
+        "name": "Kleinverteiler",
+        "amount": "2000.00",
+        "unit": "per_piece",
+        "is_house_connection": false,
+        "node_types": [
+            3,
+            5
+        ]
+    }
+},
+{
+    "model": "api.valuationcostrate",
+    "pk": 7,
+    "fields": {
+        "project": 1,
+        "name": "Hausanschluss",
+        "amount": "1500.00",
+        "unit": "per_piece",
+        "is_house_connection": true,
+        "node_types": [
+            1
+        ]
+    }
+}
+]

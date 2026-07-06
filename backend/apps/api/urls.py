@@ -13,6 +13,8 @@ from .views import (
     AppLogoutView,
     AppTokenRefreshView,
     AreaViewSet,
+    ValuationCalculateView,
+    ValuationCostRateViewSet,
     AttributesAreaTypeViewSet,
     AttributesCableTypeViewSet,
     AttributesCompanyViewSet,
@@ -270,6 +272,9 @@ router.register(r"pipeline-records", PipelineRecordViewSet, basename="pipeline-r
 router.register(r"pipeline-inquiry-areas", PipelineInquiryAreaViewSet, basename="pipeline-inquiry-areas")
 router.register(r"type-of-work", TypeOfWorkViewSet, basename="type-of-work")
 router.register(r"request-reasons", RequestReasonViewSet, basename="request-reasons")
+router.register(
+    r"valuation-rates", ValuationCostRateViewSet, basename="valuation-rates"
+)
 
 urlpatterns = [
     path("logs/frontend/", FrontendLogView.as_view(), name="frontend-logs"),
@@ -284,6 +289,11 @@ urlpatterns = [
         name="conduit-import-template",
     ),
     path("import/conduit/", ConduitImportView.as_view(), name="conduit-import"),
+    path(
+        "valuation/calculate/",
+        ValuationCalculateView.as_view(),
+        name="valuation-calculate",
+    ),
     path(
         "pipeline-records/<uuid:pipeline_record_uuid>/inquiry-export/",
         PipelineInquiryExportView.as_view(),
