@@ -5,9 +5,9 @@ This command checks if data already exists before loading fixtures,
 preventing IntegrityError on container restarts.
 """
 
-from django.core.management.base import BaseCommand
-from django.core.management import call_command
 from django.apps import apps
+from django.core.management import call_command
+from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
@@ -77,6 +77,13 @@ class Command(BaseCommand):
                 "attributes_component_structure",
                 "attributes_residential_unit_type",
                 "attributes_residential_unit_status",
+            ],
+        ),
+        (
+            "PipelineRecord",
+            [
+                "request_reasons",
+                "type_of_work",
             ],
         ),
     ]

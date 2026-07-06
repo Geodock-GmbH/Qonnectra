@@ -96,6 +96,8 @@ export class MapMeasureManager {
 		this.measureType = type;
 		this.isMeasuring = true;
 
+		this.olMap.getViewport().style.cursor = 'crosshair';
+
 		const drawType = type === 'area' ? 'Polygon' : 'LineString';
 		this._draw = new Draw({
 			source: this._source ?? undefined,
@@ -162,6 +164,10 @@ export class MapMeasureManager {
 		this._removeDrawInteraction();
 		this.isMeasuring = false;
 		this.measureType = null;
+
+		if (this.olMap) {
+			this.olMap.getViewport().style.cursor = 'default';
+		}
 	}
 
 	/** @private */

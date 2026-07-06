@@ -23,6 +23,7 @@ from apps.api.services import (
     _extract_layer_name_from_gpkg_source,
     _postgres_type_to_pandas,
     _rewrite_file_datasources,
+    build_inquiry_export_zip,
     convert_qgs_to_postgres,
     generate_conduit_import_template,
     handle_qgis_file,
@@ -34,16 +35,28 @@ from apps.api.services import (
 from django.utils.translation import activate
 
 from .factories import (
+    AddressFactory,
+    AreaFactory,
+    CableTypeFactory,
     CompanyFactory,
+    ConduitFactory,
     ConduitTypeColorMappingFactory,
     ConduitTypeFactory,
     FlagFactory,
     MicroductColorFactory,
+    MicroductStatusFactory,
     NetworkLevelFactory,
     NodeFactory,
+    NodeTypeFactory,
+    PhaseFactory,
+    PipelineInquiryAreaFactory,
+    PipelineRecordFactory,
     ProjectFactory,
+    StatusDevelopmentFactory,
     StatusFactory,
     StoragePreferencesFactory,
+    SurfaceFactory,
+    TrenchConduitConnectionFactory,
     TrenchFactory,
 )
 
@@ -117,10 +130,9 @@ def conduit_type_with_colors(db):
         ("grün", "green", "#16a34a"),
         ("blau", "blue", "#2563eb"),
     ]
-    for i, (name_de, name_en, hex_code) in enumerate(color_names, 1):
+    for name_de, name_en, hex_code in color_names:
         colors.append(
             MicroductColorFactory(
-                id=i,
                 name_de=name_de,
                 name_en=name_en,
                 hex_code=hex_code,
@@ -759,18 +771,18 @@ class TestRenameFeatureFolder:
         """Test folder rename for Trench model uses id_trench path."""
         project = ProjectFactory(project="TestProject")
         StoragePreferencesFactory(folder_structure={"trench": {"default": "trenches"}})
-        trench = TrenchFactory(id_trench="TR-001", project=project)
+        trench = TrenchFactory(id_trench="TR-AAAAAAA", project=project)
 
         mock_storage = MagicMock()
         mock_storage.rename_folder.return_value = True
         mock_storage_class.return_value = mock_storage
 
-        rename_feature_folder(trench, "TR-001", "TR-002")
+        rename_feature_folder(trench, "TR-AAAAAAA", "TR-BBBBBBB")
 
         mock_storage.rename_folder.assert_called_once()
         call_args = mock_storage.rename_folder.call_args[0]
-        assert "TR-001" in call_args[0]
-        assert "TR-002" in call_args[1]
+        assert "TR-AAAAAAA" in call_args[0]
+        assert "TR-BBBBBBB" in call_args[1]
 
 
 @pytest.mark.django_db
@@ -930,7 +942,7 @@ class TestMoveFileToFeature:
         StoragePreferencesFactory(folder_structure={"trench": {"default": "trenches"}})
 
         source_node = NodeFactory(name="SourceNode", project=project)
-        target_trench = TrenchFactory(id_trench="TR-001", project=project)
+        target_trench = TrenchFactory(id_trench="TR-AAAAAAA", project=project)
         node_content_type = ContentType.objects.get_for_model(Node)
         trench_content_type = ContentType.objects.get_for_model(Trench)
 
@@ -961,7 +973,7 @@ class TestMoveFileToFeature:
 
         assert success is True
         assert new_path is not None
-        assert "TR-001" in new_path
+        assert "TR-AAAAAAA" in new_path
         assert error is None
 
 
@@ -1146,3 +1158,516 @@ class TestQGISDataFileStorage:
         name = storage.get_available_name("myproject/test.dxf")
         assert name == "myproject/test.dxf"
         assert not (sub / "test.dxf").exists()
+
+
+@pytest.mark.django_db
+class TestBuildInquiryExportZip:
+    """Tests for build_inquiry_export_zip() service function."""
+
+    @pytest.fixture
+    def export_data(self, db):
+        """Build a full object graph for export testing.
+
+        Creates all feature types with populated FK fields inside a
+        PipelineInquiryArea polygon so they appear in the export.
+        """
+        import datetime
+
+        from django.contrib.gis.geos import LineString, Point, Polygon
+
+        from apps.api.models import (
+            Cable,
+            Microduct,
+            MicroductCableConnection,
+        )
+
+        project = ProjectFactory(project="Test Project")
+        flag = FlagFactory(flag="Test Flag")
+        status = StatusFactory(status="Active")
+        phase = PhaseFactory(phase="Phase 1")
+        owner = CompanyFactory(company="Owner Co")
+        constructor = CompanyFactory(company="Constructor Co")
+        manufacturer = CompanyFactory(company="Manufacturer Co")
+        network_level = NetworkLevelFactory(network_level="NE3")
+        surface = SurfaceFactory(surface="Asphalt")
+        from .factories import ConstructionTypeFactory
+
+        construction_type = ConstructionTypeFactory(construction_type="Open Cut")
+        node_type = NodeTypeFactory(node_type="MFG")
+        status_dev = StatusDevelopmentFactory(status="Developed")
+        md_status = MicroductStatusFactory(microduct_status="Occupied")
+        conduit_type = ConduitTypeFactory(conduit_type="Speedpipe 7x10")
+        cable_type = CableTypeFactory(
+            cable_type="LWL 12F", fiber_count=12, bundle_count=2
+        )
+
+        pipeline_record = PipelineRecordFactory(project=project)
+        inquiry_area = PipelineInquiryAreaFactory(
+            pipeline_record=pipeline_record,
+            geom=Polygon(
+                ((0, 0), (200, 0), (200, 200), (0, 200), (0, 0)), srid=25832
+            ),
+        )
+
+        trench1 = TrenchFactory(
+            id_trench="TR-AAAAAAA",
+            project=project,
+            flag=flag,
+            surface=surface,
+            construction_type=construction_type,
+            status=status,
+            phase=phase,
+            owner=owner,
+            constructor=constructor,
+            length=100.0,
+            date=datetime.date(2025, 6, 15),
+            comment="Main route",
+            house_connection=False,
+            geom=LineString((0, 0), (100, 0), srid=25832),
+        )
+        trench2 = TrenchFactory(
+            id_trench="TR-BBBBBBB",
+            project=project,
+            flag=flag,
+            surface=surface,
+            construction_type=construction_type,
+            length=50.0,
+            geom=LineString((100, 0), (150, 0), srid=25832),
+        )
+        # Trench outside the inquiry area — should be excluded
+        trench_outside = TrenchFactory(
+            id_trench="TR-ZZZZZZZ",
+            project=project,
+            flag=flag,
+            geom=LineString((500, 500), (600, 500), srid=25832),
+        )
+
+        node = NodeFactory(
+            name="MFG-001",
+            node_type=node_type,
+            project=project,
+            flag=flag,
+            status=status,
+            network_level=network_level,
+            owner=owner,
+            constructor=constructor,
+            manufacturer=manufacturer,
+            date=datetime.date(2025, 3, 1),
+            geom=Point(50, 50, srid=25832),
+        )
+
+        address = AddressFactory(
+            id_address="ADR0001",
+            zip_code="12345",
+            city="Berlin",
+            district="Mitte",
+            street="Hauptstr.",
+            housenumber=42,
+            house_number_suffix="a",
+            status_development=status_dev,
+            project=project,
+            flag=flag,
+            geom=Point(80, 80, srid=25832),
+        )
+
+        area = AreaFactory(
+            name="Baugebiet Nord",
+            project=project,
+            flag=flag,
+            geom=Polygon(
+                ((10, 10), (90, 10), (90, 90), (10, 90), (10, 10)), srid=25832
+            ),
+        )
+
+        conduit = ConduitFactory.build(
+            name="R01",
+            conduit_type=conduit_type,
+            outer_conduit="PE50",
+            status=status,
+            network_level=network_level,
+            owner=owner,
+            constructor=constructor,
+            manufacturer=manufacturer,
+            date=datetime.date(2025, 4, 10),
+            project=project,
+            flag=flag,
+        )
+        from apps.api.models import Conduit as ConduitModel
+
+        conduit = ConduitModel.objects.create(
+            name=conduit.name,
+            conduit_type=conduit_type,
+            outer_conduit="PE50",
+            status=status,
+            network_level=network_level,
+            owner=owner,
+            constructor=constructor,
+            manufacturer=manufacturer,
+            date=datetime.date(2025, 4, 10),
+            project=project,
+            flag=flag,
+        )
+
+        TrenchConduitConnectionFactory(uuid_trench=trench1, uuid_conduit=conduit)
+        TrenchConduitConnectionFactory(uuid_trench=trench2, uuid_conduit=conduit)
+
+        microduct = Microduct.objects.create(
+            uuid_conduit=conduit,
+            number=1,
+            color="rot",
+            microduct_status=md_status,
+        )
+
+        cable = Cable.objects.create(
+            name="LWL-001",
+            cable_type=cable_type,
+            status=status,
+            network_level=network_level,
+            owner=owner,
+            constructor=constructor,
+            manufacturer=manufacturer,
+            date=datetime.date(2025, 5, 20),
+            uuid_node_start=node,
+            uuid_node_end=node,
+            length=150.0,
+            project=project,
+            flag=flag,
+        )
+
+        MicroductCableConnection.objects.create(
+            uuid_microduct=microduct,
+            uuid_cable=cable,
+        )
+        cable.refresh_from_db()
+
+        return {
+            "pipeline_record": pipeline_record,
+            "inquiry_area": inquiry_area,
+            "trench1": trench1,
+            "trench2": trench2,
+            "trench_outside": trench_outside,
+            "node": node,
+            "address": address,
+            "area": area,
+            "conduit": conduit,
+            "microduct": microduct,
+            "cable": cable,
+            "status": status,
+            "phase": phase,
+            "owner": owner,
+            "constructor": constructor,
+            "manufacturer": manufacturer,
+            "network_level": network_level,
+            "surface": surface,
+            "construction_type": construction_type,
+            "node_type": node_type,
+            "status_dev": status_dev,
+            "md_status": md_status,
+            "conduit_type": conduit_type,
+            "cable_type": cable_type,
+            "project": project,
+            "flag": flag,
+        }
+
+    def _get_zip(self, export_data):
+        """Helper to build the export ZIP and return a ZipFile object."""
+        buf = build_inquiry_export_zip(export_data["pipeline_record"].uuid)
+        return zipfile.ZipFile(buf, "r")
+
+    def _get_layer(self, zf, layer_name):
+        """Helper to read and parse a GeoJSON layer from the ZIP."""
+        import json
+
+        content = zf.read(f"layers/{layer_name}.geojson")
+        return json.loads(content)
+
+    def _get_first_feature(self, zf, layer_name):
+        """Helper to get the first feature's properties from a layer."""
+        geojson = self._get_layer(zf, layer_name)
+        return geojson["features"][0]
+
+    # --- Structure tests ---
+
+    def test_raises_for_missing_inquiry_areas(self, db):
+        """ValueError is raised when no inquiry areas exist for the record."""
+        record = PipelineRecordFactory()
+        with pytest.raises(ValueError, match="No inquiry areas"):
+            build_inquiry_export_zip(record.uuid)
+
+    def test_zip_contains_all_layer_files(self, export_data):
+        """ZIP contains GeoJSON files for all 7 layers."""
+        zf = self._get_zip(export_data)
+        names = zf.namelist()
+        for layer in [
+            "trenches",
+            "nodes",
+            "addresses",
+            "conduits",
+            "cables",
+            "areas",
+            "microducts",
+        ]:
+            assert f"layers/{layer}.geojson" in names, f"Missing {layer}.geojson"
+
+    def test_zip_contains_qlr_file(self, export_data):
+        """ZIP contains a QLR file at the root."""
+        zf = self._get_zip(export_data)
+        assert "inquiry_export.qlr" in zf.namelist()
+
+    def test_features_outside_area_excluded(self, export_data):
+        """Trenches outside the inquiry polygon are not included."""
+        zf = self._get_zip(export_data)
+        geojson = self._get_layer(zf, "trenches")
+        trench_ids = [f["properties"]["id_trench"] for f in geojson["features"]]
+        assert "TR-ZZZZZZZ" not in trench_ids
+        assert "TR-AAAAAAA" in trench_ids
+        assert "TR-BBBBBBB" in trench_ids
+
+    # --- Property tests ---
+
+    def test_trench_properties(self, export_data):
+        """Trench GeoJSON features include all FK-resolved labels."""
+        zf = self._get_zip(export_data)
+        geojson = self._get_layer(zf, "trenches")
+        tr1 = next(
+            f for f in geojson["features"] if f["properties"]["id_trench"] == "TR-AAAAAAA"
+        )
+        props = tr1["properties"]
+
+        assert props["uuid"] == str(export_data["trench1"].uuid)
+        assert props["surface"] == "Asphalt"
+        assert props["construction_type"] == "Open Cut"
+        assert props["status"] == "Active"
+        assert props["phase"] == "Phase 1"
+        assert props["owner"] == "Owner Co"
+        assert props["constructor"] == "Constructor Co"
+        assert props["length"] == 100.0
+        assert props["date"] == "2025-06-15"
+        assert props["comment"] == "Main route"
+        assert props["house_connection"] is False
+        assert props["project"] == "Test Project"
+        assert props["flag"] == "Test Flag"
+
+    def test_node_properties(self, export_data):
+        """Node GeoJSON features include all FK-resolved labels."""
+        zf = self._get_zip(export_data)
+        feat = self._get_first_feature(zf, "nodes")
+        props = feat["properties"]
+
+        assert props["uuid"] == str(export_data["node"].uuid)
+        assert props["name"] == "MFG-001"
+        assert props["node_type"] == "MFG"
+        assert props["status"] == "Active"
+        assert props["network_level"] == "NE3"
+        assert props["owner"] == "Owner Co"
+        assert props["constructor"] == "Constructor Co"
+        assert props["manufacturer"] == "Manufacturer Co"
+        assert props["date"] == "2025-03-01"
+        assert props["project"] == "Test Project"
+        assert props["flag"] == "Test Flag"
+
+    def test_address_properties(self, export_data):
+        """Address GeoJSON features include formatted address and FK labels."""
+        zf = self._get_zip(export_data)
+        feat = self._get_first_feature(zf, "addresses")
+        props = feat["properties"]
+
+        assert props["uuid"] == str(export_data["address"].uuid)
+        assert props["id_address"] == "ADR0001"
+        assert props["address"] == "Hauptstr. 42a, 12345 Berlin"
+        assert props["district"] == "Mitte"
+        assert props["status_development"] == "Developed"
+        assert props["project"] == "Test Project"
+        assert props["flag"] == "Test Flag"
+
+    def test_conduit_properties(self, export_data):
+        """Conduit GeoJSON features include FK labels and trench_ids."""
+        zf = self._get_zip(export_data)
+        feat = self._get_first_feature(zf, "conduits")
+        props = feat["properties"]
+
+        assert props["uuid"] == str(export_data["conduit"].uuid)
+        assert props["name"] == "R01"
+        assert props["conduit_type"] == "Speedpipe 7x10"
+        assert props["outer_conduit"] == "PE50"
+        assert props["status"] == "Active"
+        assert props["network_level"] == "NE3"
+        assert props["owner"] == "Owner Co"
+        assert props["constructor"] == "Constructor Co"
+        assert props["manufacturer"] == "Manufacturer Co"
+        assert props["date"] == "2025-04-10"
+        assert props["project"] == "Test Project"
+        assert props["flag"] == "Test Flag"
+        assert sorted(props["trench_ids"]) == ["TR-AAAAAAA", "TR-BBBBBBB"]
+
+    def test_cable_properties(self, export_data):
+        """Cable GeoJSON features include FK labels and conduit_names."""
+        zf = self._get_zip(export_data)
+        feat = self._get_first_feature(zf, "cables")
+        props = feat["properties"]
+
+        assert props["uuid"] == str(export_data["cable"].uuid)
+        assert props["name"] == "LWL-001"
+        assert props["cable_type"] == "LWL 12F"
+        assert props["status"] == "Active"
+        assert props["network_level"] == "NE3"
+        assert props["owner"] == "Owner Co"
+        assert props["constructor"] == "Constructor Co"
+        assert props["manufacturer"] == "Manufacturer Co"
+        assert props["date"] == "2025-05-20"
+        assert props["node_start"] == "MFG-001"
+        assert props["node_end"] == "MFG-001"
+        assert props["length"] == 150.0
+        assert props["project"] == "Test Project"
+        assert props["flag"] == "Test Flag"
+        assert props["conduit_names"] == ["R01"]
+
+    def test_area_properties(self, export_data):
+        """Area GeoJSON features include area_type label."""
+        zf = self._get_zip(export_data)
+        feat = self._get_first_feature(zf, "areas")
+        props = feat["properties"]
+
+        assert props["uuid"] == str(export_data["area"].uuid)
+        assert props["name"] == "Baugebiet Nord"
+        assert "area_type" in props
+        assert props["project"] == "Test Project"
+        assert props["flag"] == "Test Flag"
+
+    def test_microduct_properties(self, export_data):
+        """Microduct GeoJSON features include conduit_name and trench_ids."""
+        zf = self._get_zip(export_data)
+        feat = self._get_first_feature(zf, "microducts")
+        props = feat["properties"]
+
+        assert props["uuid"] == str(export_data["microduct"].uuid)
+        assert props["conduit_name"] == "R01"
+        assert props["number"] == 1
+        assert props["color"] == "rot"
+        assert props["microduct_status"] == "Occupied"
+        assert sorted(props["trench_ids"]) == ["TR-AAAAAAA", "TR-BBBBBBB"]
+
+    # --- Geometry tests ---
+
+    def test_conduit_geometry_from_trenches(self, export_data):
+        """Conduit features have MultiLineString geometry from connected trenches."""
+        zf = self._get_zip(export_data)
+        feat = self._get_first_feature(zf, "conduits")
+        geom = feat["geometry"]
+
+        assert geom is not None
+        assert geom["type"] == "MultiLineString"
+        assert len(geom["coordinates"]) == 2
+
+    def test_cable_geometry_from_trenches(self, export_data):
+        """Cable features have MultiLineString geometry from the trench chain."""
+        zf = self._get_zip(export_data)
+        feat = self._get_first_feature(zf, "cables")
+        geom = feat["geometry"]
+
+        assert geom is not None
+        assert geom["type"] == "MultiLineString"
+        assert len(geom["coordinates"]) == 2
+
+    def test_microduct_geometry_from_trenches(self, export_data):
+        """Microduct features have MultiLineString geometry from parent conduit's trenches."""
+        zf = self._get_zip(export_data)
+        feat = self._get_first_feature(zf, "microducts")
+        geom = feat["geometry"]
+
+        assert geom is not None
+        assert geom["type"] == "MultiLineString"
+        assert len(geom["coordinates"]) == 2
+
+    # --- Nullable FK test ---
+
+    def test_nullable_fk_renders_as_none(self, db):
+        """Null FK fields produce null values in GeoJSON, not errors."""
+        from django.contrib.gis.geos import LineString, Polygon
+
+        project = ProjectFactory()
+        flag = FlagFactory()
+        record = PipelineRecordFactory(project=project)
+        PipelineInquiryAreaFactory(
+            pipeline_record=record,
+            geom=Polygon(
+                ((0, 0), (200, 0), (200, 200), (0, 200), (0, 0)), srid=25832
+            ),
+        )
+        TrenchFactory(
+            project=project,
+            flag=flag,
+            status=None,
+            phase=None,
+            owner=None,
+            constructor=None,
+            geom=LineString((0, 0), (100, 0), srid=25832),
+        )
+
+        buf = build_inquiry_export_zip(record.uuid)
+        zf = zipfile.ZipFile(buf, "r")
+        geojson = self._get_layer(zf, "trenches")
+        props = geojson["features"][0]["properties"]
+
+        assert props["status"] is None
+        assert props["phase"] is None
+        assert props["owner"] is None
+        assert props["constructor"] is None
+
+    # --- QLR tests ---
+
+    def test_qlr_valid_xml_with_layers(self, export_data):
+        """QLR file is valid XML with expected layer references and CRS."""
+        import xml.etree.ElementTree as ET
+
+        from django.conf import settings
+
+        zf = self._get_zip(export_data)
+        qlr_content = zf.read("inquiry_export.qlr").decode("utf-8")
+        root = ET.fromstring(qlr_content)
+
+        assert root.tag == "qlr"
+
+        maplayers = root.findall(".//maplayer")
+        assert len(maplayers) == 7
+
+        datasources = [ml.findtext("datasource") for ml in maplayers]
+        for layer in [
+            "trenches",
+            "nodes",
+            "addresses",
+            "conduits",
+            "cables",
+            "areas",
+            "microducts",
+        ]:
+            assert any(
+                f"./layers/{layer}.geojson" in ds for ds in datasources
+            ), f"QLR missing datasource for {layer}"
+
+        srid = settings.DEFAULT_SRID
+        expected_authid = f"EPSG:{srid}"
+
+        crs_entries = root.findall(".//authid")
+        assert all(e.text == expected_authid for e in crs_entries)
+
+        srid_entries = root.findall(".//srid")
+        assert len(srid_entries) == 7
+        assert all(e.text == str(srid) for e in srid_entries)
+
+        proj4_entries = root.findall(".//proj4")
+        assert len(proj4_entries) == 7
+        assert all(e.text for e in proj4_entries)
+
+    def test_qlr_has_layer_groups(self, export_data):
+        """QLR file has conduits and cables as layer groups."""
+        import xml.etree.ElementTree as ET
+
+        zf = self._get_zip(export_data)
+        qlr_content = zf.read("inquiry_export.qlr").decode("utf-8")
+        root = ET.fromstring(qlr_content)
+
+        groups = root.findall(".//layer-tree-group[@name]")
+        group_names = [g.get("name") for g in groups if g.get("name")]
+        assert "conduits" in group_names
+        assert "cables" in group_names

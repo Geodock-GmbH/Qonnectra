@@ -289,6 +289,7 @@
 
 			onmoveend({ center: newCenter, zoom: newZoom });
 		});
+		map.getViewport().style.cursor = 'default';
 		map.on('click', (/** @type {import('ol/MapBrowserEvent').default} */ e) => onclick(e));
 	});
 

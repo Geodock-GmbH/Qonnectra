@@ -54,7 +54,11 @@ from .models import (
     NetworkSchemaSettings,
     Node,
     PipeBranchSettings,
+    PipelineInquiryArea,
+    PipelineRecord,
     Projects,
+    RequestReason,
+    TypeOfWork,
     QGISProject,
     QGISProjectDataFile,
     ResidentialUnit,
@@ -2267,3 +2271,46 @@ class RoutePermissionAdmin(admin.ModelAdmin):
     list_editable = ["allowed"]
     search_fields = ["route_pattern", "group__name"]
     ordering = ["group__name", "route_pattern"]
+
+
+@admin.register(TypeOfWork)
+class TypeOfWorkAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.TypeOfWork` lookup table."""
+
+    list_display = ["id", "name"]
+    search_fields = ["name"]
+
+
+@admin.register(RequestReason)
+class RequestReasonAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.RequestReason` lookup table."""
+
+    list_display = ["id", "name"]
+    search_fields = ["name"]
+
+
+@admin.register(PipelineRecord)
+class PipelineRecordAdmin(SimpleHistoryAdmin):
+    """Admin for :model:`api.PipelineRecord` with history tracking."""
+
+    list_display = [
+        "uuid",
+        "project",
+        "type_of_work",
+        "request_reason",
+        "organisation",
+        "created_at",
+    ]
+    list_filter = ["project", "type_of_work", "request_reason"]
+    search_fields = ["organisation", "name"]
+    readonly_fields = ["uuid", "created_at", "modified_at"]
+
+
+@admin.register(PipelineInquiryArea)
+class PipelineInquiryAreaAdmin(SimpleHistoryAdmin):
+    """Admin for :model:`api.PipelineInquiryArea` with history tracking."""
+
+    list_display = ["uuid", "pipeline_record", "name", "created_at"]
+    list_filter = ["pipeline_record"]
+    search_fields = ["name"]
+    readonly_fields = ["uuid", "created_at", "modified_at"]

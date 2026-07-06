@@ -33,10 +33,10 @@ def api_client():
 def users(db):
     """Create test users."""
     user1 = User.objects.create_user(
-        username="user1", email="user1@example.com", password="testpass123"
+        username="view_user1", email="view_user1@example.com", password="testpass123"
     )
     user2 = User.objects.create_user(
-        username="user2", email="user2@example.com", password="testpass123"
+        username="view_user2", email="view_user2@example.com", password="testpass123"
     )
     return {"user1": user1, "user2": user2}
 
@@ -45,26 +45,26 @@ def users(db):
 def test_project(db):
     """Create test project."""
     return Projects.objects.create(
-        id=1, project="Test Project", description="Test project for canvas sync"
+        project="View Test Project", description="Test project for canvas sync"
     )
 
 
 @pytest.fixture
 def test_flag(db):
     """Create test flag."""
-    return Flags.objects.create(id=1, flag="Test Flag")
+    return Flags.objects.create(flag="View Test Flag")
 
 
 @pytest.fixture
 def node_attributes(db):
     """Create node attribute objects."""
-    node_type = AttributesNodeType.objects.create(id=1, node_type="Test Type")
+    node_type = AttributesNodeType.objects.create(node_type="View Test Type")
 
-    status_attr = AttributesStatus.objects.create(id=1, status="Active")
+    status_attr = AttributesStatus.objects.create(status="View Active")
 
-    network_level = AttributesNetworkLevel.objects.create(id=1, network_level="Level 1")
+    network_level = AttributesNetworkLevel.objects.create(network_level="View Level 1")
 
-    company = AttributesCompany.objects.create(id=1, company="Test Company")
+    company = AttributesCompany.objects.create(company="View Test Company")
 
     return {
         "node_type": node_type,
@@ -112,27 +112,27 @@ class TestNodeCanvasCoordinatesView:
         self.client = APIClient()
 
         self.user1 = User.objects.create_user(
-            username="user1", email="user1@example.com", password="testpass123"
+            username="canvas_user1", email="canvas_user1@example.com", password="testpass123"
         )
         self.user2 = User.objects.create_user(
-            username="user2", email="user2@example.com", password="testpass123"
+            username="canvas_user2", email="canvas_user2@example.com", password="testpass123"
         )
 
         self.project = Projects.objects.create(
-            id=1, project="Test Project", description="Test project for canvas sync"
+            project="Canvas Test Project", description="Test project for canvas sync"
         )
 
-        self.flag = Flags.objects.create(id=1, flag="Test Flag")
+        self.flag = Flags.objects.create(flag="Canvas Test Flag")
 
-        self.node_type = AttributesNodeType.objects.create(id=1, node_type="Test Type")
+        self.node_type = AttributesNodeType.objects.create(node_type="Canvas Test Type")
 
-        self.status_attr = AttributesStatus.objects.create(id=1, status="Active")
+        self.status_attr = AttributesStatus.objects.create(status="Canvas Active")
 
         self.network_level = AttributesNetworkLevel.objects.create(
-            id=1, network_level="Level 1"
+            network_level="Canvas Level 1"
         )
 
-        self.company = AttributesCompany.objects.create(id=1, company="Test Company")
+        self.company = AttributesCompany.objects.create(company="Canvas Test Company")
 
         self.nodes = []
         coordinates = [
@@ -163,7 +163,7 @@ class TestNodeCanvasCoordinatesView:
             node.save()
 
         self.client.force_authenticate(user=self.user1)
-        response = self.client.get(self.url, {"project_id": 1})
+        response = self.client.get(self.url, {"project_id": self.project.id})
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -177,7 +177,7 @@ class TestNodeCanvasCoordinatesView:
     def test_get_sync_status_sync_needed(self):
         """Test GET when sync is needed."""
         self.client.force_authenticate(user=self.user1)
-        response = self.client.get(self.url, {"project_id": 1})
+        response = self.client.get(self.url, {"project_id": self.project.id})
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -190,8 +190,9 @@ class TestNodeCanvasCoordinatesView:
 
     def test_get_sync_status_in_progress(self):
         """Test GET when sync is in progress."""
+        sync_key = CanvasSyncStatus.get_sync_key(project_id=self.project.id)
         CanvasSyncStatus.objects.create(
-            sync_key="project_1",
+            sync_key=sync_key,
             status="IN_PROGRESS",
             started_by=self.user2,
             started_at=timezone.now(),
@@ -200,7 +201,7 @@ class TestNodeCanvasCoordinatesView:
         )
 
         self.client.force_authenticate(user=self.user1)
-        response = self.client.get(self.url, {"project_id": 1})
+        response = self.client.get(self.url, {"project_id": self.project.id})
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -211,15 +212,16 @@ class TestNodeCanvasCoordinatesView:
 
     def test_get_sync_status_failed(self):
         """Test GET when sync has failed."""
+        sync_key = CanvasSyncStatus.get_sync_key(project_id=self.project.id)
         CanvasSyncStatus.objects.create(
-            sync_key="project_1",
+            sync_key=sync_key,
             status="FAILED",
             started_by=self.user1,
             error_message="Test error message",
         )
 
         self.client.force_authenticate(user=self.user1)
-        response = self.client.get(self.url, {"project_id": 1})
+        response = self.client.get(self.url, {"project_id": self.project.id})
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -231,7 +233,7 @@ class TestNodeCanvasCoordinatesView:
     def test_get_with_flag_filter(self):
         """Test GET with project and flag filters."""
         self.client.force_authenticate(user=self.user1)
-        response = self.client.get(self.url, {"project_id": 1, "flag_id": 1})
+        response = self.client.get(self.url, {"project_id": self.project.id, "flag_id": self.flag.id})
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -241,7 +243,7 @@ class TestNodeCanvasCoordinatesView:
     def test_get_triggers_stale_cleanup(self, mock_cleanup):
         """Test that GET request triggers stale sync cleanup."""
         self.client.force_authenticate(user=self.user1)
-        response = self.client.get(self.url, {"project_id": 1})
+        response = self.client.get(self.url, {"project_id": self.project.id})
 
         assert response.status_code == status.HTTP_200_OK
         mock_cleanup.assert_called_once()
@@ -250,7 +252,7 @@ class TestNodeCanvasCoordinatesView:
         """Test POST to start a new sync operation."""
         self.client.force_authenticate(user=self.user1)
         response = self.client.post(
-            self.url, {"project_id": 1, "scale": 0.5}, format="json"
+            self.url, {"project_id": self.project.id, "scale": 0.5}, format="json"
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -261,15 +263,17 @@ class TestNodeCanvasCoordinatesView:
         assert "center" in data
         assert "bounds" in data
 
-        sync_status = CanvasSyncStatus.objects.get(sync_key="project_1")
+        sync_key = CanvasSyncStatus.get_sync_key(project_id=self.project.id)
+        sync_status = CanvasSyncStatus.objects.get(sync_key=sync_key)
         assert sync_status.status == "COMPLETED"
         assert sync_status.started_by == self.user1
         assert sync_status.nodes_processed == 4
 
     def test_post_concurrent_sync_conflict(self):
         """Test POST when sync is already in progress (409 conflict)."""
+        sync_key = CanvasSyncStatus.get_sync_key(project_id=self.project.id)
         CanvasSyncStatus.objects.create(
-            sync_key="project_1",
+            sync_key=sync_key,
             status="IN_PROGRESS",
             started_by=self.user2,
             started_at=timezone.now(),
@@ -278,21 +282,21 @@ class TestNodeCanvasCoordinatesView:
 
         self.client.force_authenticate(user=self.user1)
         response = self.client.post(
-            self.url, {"project_id": 1, "scale": 0.5}, format="json"
+            self.url, {"project_id": self.project.id, "scale": 0.5}, format="json"
         )
 
         assert response.status_code == status.HTTP_409_CONFLICT
         data = response.json()
 
         assert "message" in data
-        assert data["sync_started_by"] == "user2"
+        assert data["sync_started_by"] == "canvas_user2"
         assert "sync_started_at" in data
 
     def test_post_sync_coordinate_calculation(self):
         """Test that POST correctly calculates canvas coordinates."""
         self.client.force_authenticate(user=self.user1)
         response = self.client.post(
-            self.url, {"project_id": 1, "scale": 1.0}, format="json"
+            self.url, {"project_id": self.project.id, "scale": 1.0}, format="json"
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -321,7 +325,7 @@ class TestNodeCanvasCoordinatesView:
         self.client.force_authenticate(user=self.user1)
 
         response = self.client.post(
-            self.url, {"project_id": 1, "scale": 0.5}, format="json"
+            self.url, {"project_id": self.project.id, "scale": 0.5}, format="json"
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -371,7 +375,7 @@ class TestNodeCanvasCoordinatesView:
 
             self.client.force_authenticate(user=self.user1)
             response = self.client.post(
-                self.url, {"project_id": 1, "scale": 0.5}, format="json"
+                self.url, {"project_id": self.project.id, "scale": 0.5}, format="json"
             )
 
             assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -386,18 +390,19 @@ class TestNodeCanvasCoordinatesView:
             mock_sync.side_effect = Exception("Test exception")
 
             response = self.client.post(
-                self.url, {"project_id": 1, "scale": 0.5}, format="json"
+                self.url, {"project_id": self.project.id, "scale": 0.5}, format="json"
             )
 
             assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
 
-            sync_status = CanvasSyncStatus.objects.get(sync_key="project_1")
+            sync_key = CanvasSyncStatus.get_sync_key(project_id=self.project.id)
+            sync_status = CanvasSyncStatus.objects.get(sync_key=sync_key)
             assert sync_status.status == "FAILED"
             assert "Test exception" in sync_status.error_message
 
     def test_post_with_flag_filter(self):
         """Test POST with project and flag filters."""
-        flag2 = Flags.objects.create(id=2, flag="Flag 2")
+        flag2 = Flags.objects.create(flag="Flag 2")
         Node.objects.create(
             name="Other Flag Node",
             project=self.project,
@@ -409,7 +414,7 @@ class TestNodeCanvasCoordinatesView:
 
         self.client.force_authenticate(user=self.user1)
         response = self.client.post(
-            self.url, {"project_id": 1, "flag_id": 1, "scale": 0.5}, format="json"
+            self.url, {"project_id": self.project.id, "flag_id": self.flag.id, "scale": 0.5}, format="json"
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -429,32 +434,34 @@ class TestNodeCanvasCoordinatesView:
         mock_perform_sync.side_effect = mock_sync_with_heartbeat
 
         self.client.force_authenticate(user=self.user1)
-        self.client.post(self.url, {"project_id": 1, "scale": 0.5}, format="json")
+        self.client.post(self.url, {"project_id": self.project.id, "scale": 0.5}, format="json")
 
         # Verify sync was called
         mock_perform_sync.assert_called_once()
 
         # Check that sync status exists
-        sync_status = CanvasSyncStatus.objects.get(sync_key="project_1")
+        sync_key = CanvasSyncStatus.get_sync_key(project_id=self.project.id)
+        sync_status = CanvasSyncStatus.objects.get(sync_key=sync_key)
         assert sync_status.last_heartbeat is not None
 
     def test_authentication_required(self):
         """Test that authentication is required for both GET and POST."""
-        response = self.client.get(self.url, {"project_id": 1})
+        response = self.client.get(self.url, {"project_id": self.project.id})
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
-        response = self.client.post(self.url, {"project_id": 1}, format="json")
+        response = self.client.post(self.url, {"project_id": self.project.id}, format="json")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_sync_status_atomic_lock_acquisition(self):
         """Test atomic lock acquisition using select_for_update."""
+        sync_key = CanvasSyncStatus.get_sync_key(project_id=self.project.id)
         sync_status = CanvasSyncStatus.objects.create(
-            sync_key="project_1", status="IDLE", started_by=self.user1
+            sync_key=sync_key, status="IDLE", started_by=self.user1
         )
 
         self.client.force_authenticate(user=self.user2)
         response = self.client.post(
-            self.url, {"project_id": 1, "scale": 0.5}, format="json"
+            self.url, {"project_id": self.project.id, "scale": 0.5}, format="json"
         )
 
         assert response.status_code == status.HTTP_200_OK
@@ -467,8 +474,9 @@ class TestNodeCanvasCoordinatesView:
         """Test recovery from stale sync operations."""
         old_time = timezone.now() - timedelta(minutes=15)
 
+        sync_key = CanvasSyncStatus.get_sync_key(project_id=self.project.id)
         CanvasSyncStatus.objects.create(
-            sync_key="project_1",
+            sync_key=sync_key,
             status="IN_PROGRESS",
             started_by=self.user1,
             last_heartbeat=old_time,
@@ -476,11 +484,11 @@ class TestNodeCanvasCoordinatesView:
 
         self.client.force_authenticate(user=self.user2)
         response = self.client.post(
-            self.url, {"project_id": 1, "scale": 0.5}, format="json"
+            self.url, {"project_id": self.project.id, "scale": 0.5}, format="json"
         )
 
         assert response.status_code == status.HTTP_200_OK
 
-        sync_status = CanvasSyncStatus.objects.get(sync_key="project_1")
+        sync_status = CanvasSyncStatus.objects.get(sync_key=sync_key)
         assert sync_status.status == "COMPLETED"
         assert sync_status.started_by == self.user2

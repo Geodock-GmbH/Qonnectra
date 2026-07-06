@@ -19,6 +19,7 @@ from apps.api.serializers import (
     FiberSerializer,
     MicroductSerializer,
     NodeSerializer,
+    PipelineInquiryAreaSerializer,
     ResidentialUnitSerializer,
     TrenchSerializer,
 )
@@ -32,6 +33,7 @@ from .factories import (
     ConduitFactory,
     ConduitTypeFactory,
     ConstructionTypeFactory,
+    PipelineRecordFactory,
     FiberFactory,
     FlagFactory,
     NodeTypeFactory,
@@ -616,3 +618,48 @@ class TestFiberSerializer:
         serializer = FiberSerializer()
         assert isinstance(serializer, FiberSerializer)
         assert serializer.fields["uuid"].read_only is True
+
+
+@pytest.mark.django_db
+class TestPipelineInquiryAreaSerializer:
+    """Tests for the PipelineInquiryAreaSerializer."""
+
+    def test_validates_polygon_geometry(self):
+        """Test that non-Polygon geometry is rejected."""
+        record = PipelineRecordFactory()
+        line_geom = LineString((0, 0), (100, 0), srid=25832)
+
+        data = {
+            "geom": line_geom,
+            "pipeline_record": record.uuid,
+            "name": "Bad Geometry",
+        }
+
+        serializer = PipelineInquiryAreaSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "geom" in serializer.errors
+
+    def test_transforms_srid(self):
+        """Test that geometry with different SRID is transformed."""
+        record = PipelineRecordFactory()
+        geom_3857 = Polygon(
+            (
+                (1000000, 7000000),
+                (1000100, 7000000),
+                (1000100, 7000100),
+                (1000000, 7000100),
+                (1000000, 7000000),
+            ),
+            srid=3857,
+        )
+
+        data = {
+            "geom": geom_3857,
+            "pipeline_record": record.uuid,
+            "name": "SRID Transform",
+        }
+
+        serializer = PipelineInquiryAreaSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+        validated_geom = serializer.validated_data["geom"]
+        assert validated_geom.srid == settings.DEFAULT_SRID

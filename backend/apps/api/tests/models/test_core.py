@@ -54,10 +54,10 @@ class TestCanvasSyncStatusModel:
     def test_sync_status_creation(self, user):
         """Test creating a CanvasSyncStatus instance."""
         sync_status = CanvasSyncStatus.objects.create(
-            sync_key="project_1", status="IDLE", started_by=user
+            sync_key="test_creation", status="IDLE", started_by=user
         )
 
-        assert sync_status.sync_key == "project_1"
+        assert sync_status.sync_key == "test_creation"
         assert sync_status.status == "IDLE"
         assert sync_status.started_by == user
         assert sync_status.started_at is None
@@ -66,18 +66,18 @@ class TestCanvasSyncStatusModel:
     def test_sync_key_uniqueness(self, user):
         """Test that sync_key must be unique."""
         CanvasSyncStatus.objects.create(
-            sync_key="project_1", status="IDLE", started_by=user
+            sync_key="test_uniqueness", status="IDLE", started_by=user
         )
 
         with pytest.raises(IntegrityError):
             CanvasSyncStatus.objects.create(
-                sync_key="project_1", status="IN_PROGRESS", started_by=user
+                sync_key="test_uniqueness", status="IN_PROGRESS", started_by=user
             )
 
     def test_is_stale_no_heartbeat(self, user):
         """Test stale detection when no heartbeat is set."""
         sync_status = CanvasSyncStatus.objects.create(
-            sync_key="project_1", status="IN_PROGRESS", started_by=user
+            sync_key="test_stale_no_hb", status="IN_PROGRESS", started_by=user
         )
 
         assert sync_status.is_stale() is True
@@ -85,7 +85,7 @@ class TestCanvasSyncStatusModel:
     def test_is_stale_fresh_heartbeat(self, user):
         """Test stale detection with fresh heartbeat."""
         sync_status = CanvasSyncStatus.objects.create(
-            sync_key="project_1",
+            sync_key="test_stale_fresh_hb",
             status="IN_PROGRESS",
             started_by=user,
             last_heartbeat=timezone.now(),
@@ -97,7 +97,7 @@ class TestCanvasSyncStatusModel:
         """Test stale detection with old heartbeat."""
         old_time = timezone.now() - timedelta(minutes=15)
         sync_status = CanvasSyncStatus.objects.create(
-            sync_key="project_1",
+            sync_key="test_stale_old_hb",
             status="IN_PROGRESS",
             started_by=user,
             last_heartbeat=old_time,
@@ -109,7 +109,7 @@ class TestCanvasSyncStatusModel:
         """Test stale detection with custom timeout."""
         recent_time = timezone.now() - timedelta(minutes=5)
         sync_status = CanvasSyncStatus.objects.create(
-            sync_key="project_1",
+            sync_key="test_stale_custom",
             status="IN_PROGRESS",
             started_by=user,
             last_heartbeat=recent_time,
@@ -121,7 +121,7 @@ class TestCanvasSyncStatusModel:
     def test_update_heartbeat(self, user):
         """Test heartbeat update functionality."""
         sync_status = CanvasSyncStatus.objects.create(
-            sync_key="project_1", status="IN_PROGRESS", started_by=user
+            sync_key="test_heartbeat", status="IN_PROGRESS", started_by=user
         )
 
         initial_heartbeat = sync_status.last_heartbeat
@@ -133,8 +133,8 @@ class TestCanvasSyncStatusModel:
 
     def test_cleanup_stale_syncs_no_stale(self, user):
         """Test cleanup when no stale syncs exist."""
-        CanvasSyncStatus.objects.create(
-            sync_key="project_1",
+        sync = CanvasSyncStatus.objects.create(
+            sync_key="test_cleanup_no_stale",
             status="IN_PROGRESS",
             started_by=user,
             last_heartbeat=timezone.now(),
@@ -145,22 +145,22 @@ class TestCanvasSyncStatusModel:
 
         assert CanvasSyncStatus.objects.count() == initial_count
 
-        sync_status = CanvasSyncStatus.objects.get(sync_key="project_1")
-        assert sync_status.status == "IN_PROGRESS"
+        sync.refresh_from_db()
+        assert sync.status == "IN_PROGRESS"
 
     def test_cleanup_stale_syncs_with_stale(self, user):
         """Test cleanup of stale sync operations."""
         old_time = timezone.now() - timedelta(minutes=15)
 
         stale_sync = CanvasSyncStatus.objects.create(
-            sync_key="project_1",
+            sync_key="test_cleanup_stale_1",
             status="IN_PROGRESS",
             started_by=user,
             last_heartbeat=old_time,
         )
 
         fresh_sync = CanvasSyncStatus.objects.create(
-            sync_key="project_2",
+            sync_key="test_cleanup_stale_2",
             status="IN_PROGRESS",
             started_by=user,
             last_heartbeat=timezone.now(),
@@ -183,21 +183,21 @@ class TestCanvasSyncStatusModel:
         old_time = timezone.now() - timedelta(minutes=15)
 
         completed_sync = CanvasSyncStatus.objects.create(
-            sync_key="project_1",
+            sync_key="test_cleanup_ip_1",
             status="COMPLETED",
             started_by=user,
             last_heartbeat=old_time,
         )
 
         failed_sync = CanvasSyncStatus.objects.create(
-            sync_key="project_2",
+            sync_key="test_cleanup_ip_2",
             status="FAILED",
             started_by=user,
             last_heartbeat=old_time,
         )
 
         in_progress_sync = CanvasSyncStatus.objects.create(
-            sync_key="project_3",
+            sync_key="test_cleanup_ip_3",
             status="IN_PROGRESS",
             started_by=user,
             last_heartbeat=old_time,
@@ -216,16 +216,16 @@ class TestCanvasSyncStatusModel:
     def test_str_representation(self, user):
         """Test string representation of CanvasSyncStatus."""
         sync_status = CanvasSyncStatus.objects.create(
-            sync_key="project_1_flag_5", status="IN_PROGRESS", started_by=user
+            sync_key="test_str_repr", status="IN_PROGRESS", started_by=user
         )
 
-        expected_str = "project_1_flag_5 - IN_PROGRESS"
+        expected_str = "test_str_repr - IN_PROGRESS"
         assert str(sync_status) == expected_str
 
     def test_sync_metadata_storage(self, user):
         """Test storage of sync metadata."""
         sync_status = CanvasSyncStatus.objects.create(
-            sync_key="project_1",
+            sync_key="test_metadata",
             status="COMPLETED",
             started_by=user,
             scale=0.5,

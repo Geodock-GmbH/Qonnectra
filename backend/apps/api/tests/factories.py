@@ -15,10 +15,12 @@ from apps.api.models import (
     AttributesFiberColor,
     AttributesFiberStatus,
     AttributesMicroductColor,
+    AttributesMicroductStatus,
     AttributesNetworkLevel,
     AttributesNodeType,
     AttributesPhase,
     AttributesStatus,
+    AttributesStatusDevelopment,
     AttributesSurface,
     Cable,
     CableLabel,
@@ -34,7 +36,11 @@ from apps.api.models import (
     MicroductCableConnection,
     MicroductConnection,
     Node,
+    PipelineInquiryArea,
+    PipelineRecord,
     Projects,
+    RequestReason,
+    TypeOfWork,
     StoragePreferences,
     Trench,
     TrenchConduitCanvas,
@@ -51,7 +57,6 @@ class ProjectFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Projects
 
-    id = factory.Sequence(lambda n: n + 1)
     project = factory.Sequence(lambda n: f"Test Project {n}")
     description = factory.Faker("sentence")
     active = True
@@ -63,7 +68,6 @@ class FlagFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Flags
 
-    id = factory.Sequence(lambda n: n + 1)
     flag = factory.Sequence(lambda n: f"Test Flag {n}")
 
 
@@ -73,7 +77,6 @@ class CompanyFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = AttributesCompany
 
-    id = factory.Sequence(lambda n: n + 1)
     company = factory.Sequence(lambda n: f"Test Company {n}")
     city = factory.Faker("city")
     postal_code = factory.Faker("postcode")
@@ -87,8 +90,16 @@ class StatusFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = AttributesStatus
 
-    id = factory.Sequence(lambda n: n + 1)
     status = factory.Sequence(lambda n: f"Status {n}")
+
+
+class StatusDevelopmentFactory(factory.django.DjangoModelFactory):
+    """Factory for AttributesStatusDevelopment model."""
+
+    class Meta:
+        model = AttributesStatusDevelopment
+
+    status = factory.Sequence(lambda n: f"Dev Status {n}")
 
 
 class SurfaceFactory(factory.django.DjangoModelFactory):
@@ -97,7 +108,6 @@ class SurfaceFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = AttributesSurface
 
-    id = factory.Sequence(lambda n: n + 1)
     surface = factory.Sequence(lambda n: f"Surface Type {n}")
     sealing = True
 
@@ -108,7 +118,6 @@ class ConstructionTypeFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = AttributesConstructionType
 
-    id = factory.Sequence(lambda n: n + 1)
     construction_type = factory.Sequence(lambda n: f"Construction Type {n}")
 
 
@@ -118,7 +127,6 @@ class NodeTypeFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = AttributesNodeType
 
-    id = factory.Sequence(lambda n: n + 1)
     node_type = factory.Sequence(lambda n: f"Node Type {n}")
 
 
@@ -128,7 +136,6 @@ class NetworkLevelFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = AttributesNetworkLevel
 
-    id = factory.Sequence(lambda n: n + 1)
     network_level = factory.Sequence(lambda n: f"Network Level {n}")
 
 
@@ -138,7 +145,6 @@ class PhaseFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = AttributesPhase
 
-    id = factory.Sequence(lambda n: n + 1)
     phase = factory.Sequence(lambda n: f"Phase {n}")
 
 
@@ -148,7 +154,6 @@ class ConduitTypeFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = AttributesConduitType
 
-    id = factory.Sequence(lambda n: n + 1)
     conduit_type = factory.Sequence(lambda n: f"Conduit Type {n}")
     conduit_count = 7
 
@@ -174,6 +179,16 @@ class MicroductColorFactory(factory.django.DjangoModelFactory):
     name_de = factory.Sequence(lambda n: f"Farbe {n}")
     name_en = factory.Sequence(lambda n: f"Color {n}")
     hex_code = factory.Sequence(lambda n: f"#{n:06d}")
+
+
+class MicroductStatusFactory(factory.django.DjangoModelFactory):
+    """Factory for AttributesMicroductStatus model (non-auto PK)."""
+
+    class Meta:
+        model = AttributesMicroductStatus
+
+    id = factory.Sequence(lambda n: n + 100)
+    microduct_status = factory.Sequence(lambda n: f"MD Status {n}")
 
 
 class FiberColorFactory(factory.django.DjangoModelFactory):
@@ -467,3 +482,47 @@ class TrenchConduitCanvasFactory(factory.django.DjangoModelFactory):
     canvas_y = factory.Faker("pyfloat", min_value=0, max_value=500)
     canvas_width = 80.0
     canvas_height = 80.0
+
+
+class TypeOfWorkFactory(factory.django.DjangoModelFactory):
+    """Factory for TypeOfWork model."""
+
+    class Meta:
+        model = TypeOfWork
+
+    name = factory.Sequence(lambda n: f"Work Type {n}")
+
+
+class RequestReasonFactory(factory.django.DjangoModelFactory):
+    """Factory for RequestReason model."""
+
+    class Meta:
+        model = RequestReason
+
+    name = factory.Sequence(lambda n: f"Request Reason {n}")
+
+
+class PipelineRecordFactory(factory.django.DjangoModelFactory):
+    """Factory for PipelineRecord model."""
+
+    class Meta:
+        model = PipelineRecord
+
+    project = factory.SubFactory(ProjectFactory)
+    type_of_work = factory.SubFactory(TypeOfWorkFactory)
+    request_reason = factory.SubFactory(RequestReasonFactory)
+    organisation = factory.Sequence(lambda n: f"Organisation {n}")
+    name = factory.Sequence(lambda n: f"Contact Person {n}")
+
+
+class PipelineInquiryAreaFactory(factory.django.DjangoModelFactory):
+    """Factory for PipelineInquiryArea model."""
+
+    class Meta:
+        model = PipelineInquiryArea
+
+    pipeline_record = factory.SubFactory(PipelineRecordFactory)
+    name = factory.Sequence(lambda n: f"Inquiry Area {n}")
+    geom = factory.LazyAttribute(
+        lambda o: "POLYGON((0 0, 100 0, 100 100, 0 100, 0 0))"
+    )

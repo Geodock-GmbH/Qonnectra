@@ -2619,9 +2619,9 @@ def update_cable_length_on_connection_create(sender, instance, created, **kwargs
         **kwargs: Additional signal keyword arguments.
     """
     if created:
-        cable = Cable.objects.select_related(
-            "uuid_node_start", "uuid_node_end"
-        ).get(pk=instance.uuid_cable_id)
+        cable = Cable.objects.select_related("uuid_node_start", "uuid_node_end").get(
+            pk=instance.uuid_cable_id
+        )
         cable.update_length_from_connections()
 
 
@@ -2635,9 +2635,9 @@ def update_cable_length_on_connection_delete(sender, instance, **kwargs):
         **kwargs: Additional signal keyword arguments.
     """
     try:
-        cable = Cable.objects.select_related(
-            "uuid_node_start", "uuid_node_end"
-        ).get(pk=instance.uuid_cable_id)
+        cable = Cable.objects.select_related("uuid_node_start", "uuid_node_end").get(
+            pk=instance.uuid_cable_id
+        )
         cable.update_length_from_connections()
     except Cable.DoesNotExist:
         pass
@@ -4132,6 +4132,150 @@ class Container(models.Model):
             str: Display name for this container.
         """
         return self.name or self.container_type.name
+
+
+class TypeOfWork(models.Model):
+    """Lookup table for pipeline record work types.
+
+    Related to :model:`api.PipelineRecord`.
+    """
+
+    id = models.AutoField(primary_key=True)
+    name = models.TextField(_("Name"), null=False)
+
+    class Meta:
+        db_table = "type_of_work"
+        verbose_name = _("Type of Work")
+        verbose_name_plural = _("Types of Work")
+
+    def __str__(self):
+        return self.name
+
+
+class RequestReason(models.Model):
+    """Lookup table for pipeline record request reasons.
+
+    Related to :model:`api.PipelineRecord`.
+    """
+
+    id = models.AutoField(primary_key=True)
+    name = models.TextField(_("Name"), null=False)
+
+    class Meta:
+        db_table = "request_reason"
+        verbose_name = _("Request Reason")
+        verbose_name_plural = _("Request Reasons")
+
+    def __str__(self):
+        return self.name
+
+
+class PipelineRecord(models.Model):
+    """Pipeline construction record tracking contact information.
+
+    Related to :model:`api.Projects`, :model:`api.TypeOfWork`, :model:`api.RequestReason`.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    project = models.ForeignKey(
+        Projects,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="project",
+        db_index=False,
+        verbose_name=_("Project"),
+        related_name="pipeline_records",
+    )
+    type_of_work = models.ForeignKey(
+        TypeOfWork,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_column="type_of_work",
+        db_index=False,
+        verbose_name=_("Type of Work"),
+    )
+    request_reason = models.ForeignKey(
+        RequestReason,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_column="request_reason",
+        db_index=False,
+        verbose_name=_("Request Reason"),
+    )
+    organisation = models.TextField(
+        _("Organisation"),
+        null=True,
+        blank=True,
+    )
+    name = models.TextField(
+        _("Name"),
+        null=True,
+        blank=True,
+    )
+    tel = models.TextField(
+        _("Telephone"),
+        null=True,
+        blank=True,
+    )
+    mobile = models.TextField(
+        _("Mobile"),
+        null=True,
+        blank=True,
+    )
+    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
+    modified_at = models.DateTimeField(_("Modified At"), auto_now=True)
+
+    history = HistoricalRecords()
+
+    class Meta:
+        db_table = "pipeline_record"
+        verbose_name = _("Pipeline Record")
+        verbose_name_plural = _("Pipeline Records")
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["project"], name="idx_pipeline_record_project"),
+            models.Index(fields=["type_of_work"], name="idx_pipeline_record_tow"),
+        ]
+
+    def __str__(self):
+        return str(self.uuid)
+
+
+class PipelineInquiryArea(models.Model):
+    """Polygon area for a pipeline inquiry (Auskunft).
+
+    Related to :model:`api.PipelineRecord`.
+    """
+
+    uuid = models.UUIDField(default=uuid.uuid4, primary_key=True)
+    pipeline_record = models.ForeignKey(
+        PipelineRecord,
+        on_delete=models.CASCADE,
+        related_name="inquiry_areas",
+        verbose_name=_("Pipeline Record"),
+    )
+    name = models.TextField(_("Name"), null=True, blank=True)
+    geom = gis_models.PolygonField(_("Geometry"), srid=int(settings.DEFAULT_SRID))
+    geom_3857 = models.GeneratedField(
+        expression=Transform("geom", 3857),
+        output_field=gis_models.PolygonField(srid=3857),
+        db_persist=True,
+    )
+    created_at = models.DateTimeField(_("Created At"), auto_now_add=True)
+    modified_at = models.DateTimeField(_("Modified At"), auto_now=True)
+
+    history = HistoricalRecords(excluded_fields=["geom_3857"])
+
+    class Meta:
+        db_table = "pipeline_inquiry_area"
+        verbose_name = _("Pipeline Inquiry Area")
+        verbose_name_plural = _("Pipeline Inquiry Areas")
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return self.name or str(self.uuid)
 
 
 class ModelPermission(models.Model):

@@ -13,6 +13,7 @@ import pandas as pd
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import connection, transaction
+from django.db.models import Prefetch
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from openpyxl import load_workbook
@@ -25,23 +26,30 @@ from shapely.geometry import LineString, MultiLineString, Point, Polygon, mappin
 from shapely.ops import linemerge, substring
 
 from .models import (
+    Address,
+    Area,
     AttributesCompany,
     AttributesComponentStructure,
     AttributesConduitType,
     AttributesNetworkLevel,
     AttributesStatus,
+    Cable,
     Conduit,
     ConduitTypeColorMapping,
     FeatureFiles,
     FiberSplice,
     Flags,
     Microduct,
+    MicroductCableConnection,
     Node,
     NodeSlotClipNumber,
     NodeSlotConfiguration,
     NodeStructure,
+    PipelineInquiryArea,
     Projects,
     StoragePreferences,
+    Trench,
+    TrenchConduitConnection,
 )
 from .routing import find_path_through_trenches
 from .storage import LocalMediaStorage
@@ -4555,3 +4563,524 @@ def _add_address_linked_nodes(node_features: list, address_details: dict) -> Non
             feature["properties"]["has_address"] = (
                 feature["properties"]["id"] in addr_node_ids
             )
+
+
+def _merge_trench_geoms(trench_connections):
+    """Merge trench geometries from a list of TrenchConduitConnection objects.
+
+    Args:
+        trench_connections: Iterable of :model:`api.TrenchConduitConnection`
+            with ``uuid_trench`` pre-selected.
+
+    Returns:
+        dict | None: GeoJSON MultiLineString geometry, or ``None`` if no
+            trench geometries are available.
+    """
+    coordinates = []
+    for conn in trench_connections:
+        geom = conn.uuid_trench.geom
+        if geom:
+            g = json.loads(geom.geojson)
+            if g["type"] == "LineString":
+                coordinates.append(g["coordinates"])
+            elif g["type"] == "MultiLineString":
+                coordinates.extend(g["coordinates"])
+    if not coordinates:
+        return None
+    return {"type": "MultiLineString", "coordinates": coordinates}
+
+
+def _fk_str(obj, attr):
+    """Return ``str(getattr(obj, attr))`` or ``None`` if the FK is unset."""
+    val = getattr(obj, attr, None)
+    return str(val) if val else None
+
+
+def _trench_feature(obj):
+    """Build GeoJSON (properties, geometry) for a Trench."""
+    props = {
+        "uuid": str(obj.uuid),
+        "id_trench": obj.id_trench,
+        "surface": _fk_str(obj, "surface"),
+        "construction_type": _fk_str(obj, "construction_type"),
+        "status": _fk_str(obj, "status"),
+        "phase": _fk_str(obj, "phase"),
+        "owner": _fk_str(obj, "owner"),
+        "constructor": _fk_str(obj, "constructor"),
+        "length": float(obj.length) if obj.length is not None else None,
+        "date": str(obj.date) if obj.date else None,
+        "comment": obj.comment,
+        "house_connection": obj.house_connection,
+        "project": _fk_str(obj, "project"),
+        "flag": _fk_str(obj, "flag"),
+    }
+    geom_json = json.loads(obj.geom.geojson) if obj.geom else None
+    return props, geom_json
+
+
+def _node_feature(obj):
+    """Build GeoJSON (properties, geometry) for a Node."""
+    props = {
+        "uuid": str(obj.uuid),
+        "name": obj.name,
+        "node_type": _fk_str(obj, "node_type"),
+        "status": _fk_str(obj, "status"),
+        "network_level": _fk_str(obj, "network_level"),
+        "owner": _fk_str(obj, "owner"),
+        "constructor": _fk_str(obj, "constructor"),
+        "manufacturer": _fk_str(obj, "manufacturer"),
+        "date": str(obj.date) if obj.date else None,
+        "project": _fk_str(obj, "project"),
+        "flag": _fk_str(obj, "flag"),
+    }
+    geom_json = json.loads(obj.geom.geojson) if obj.geom else None
+    return props, geom_json
+
+
+def _address_feature(obj):
+    """Build GeoJSON (properties, geometry) for an Address."""
+    suffix = obj.house_number_suffix or ""
+    props = {
+        "uuid": str(obj.uuid),
+        "id_address": obj.id_address,
+        "address": (
+            f"{obj.street} {obj.housenumber}{suffix}, {obj.zip_code} {obj.city}"
+        ),
+        "district": obj.district,
+        "status_development": _fk_str(obj, "status_development"),
+        "project": _fk_str(obj, "project"),
+        "flag": _fk_str(obj, "flag"),
+    }
+    geom_json = json.loads(obj.geom.geojson) if obj.geom else None
+    return props, geom_json
+
+
+def _conduit_feature(obj):
+    """Build GeoJSON (properties, geometry) for a Conduit."""
+    trench_connections = obj.trenchconduitconnection_set.all()
+    props = {
+        "uuid": str(obj.uuid),
+        "name": obj.name,
+        "conduit_type": _fk_str(obj, "conduit_type"),
+        "outer_conduit": obj.outer_conduit,
+        "status": _fk_str(obj, "status"),
+        "network_level": _fk_str(obj, "network_level"),
+        "owner": _fk_str(obj, "owner"),
+        "constructor": _fk_str(obj, "constructor"),
+        "manufacturer": _fk_str(obj, "manufacturer"),
+        "date": str(obj.date) if obj.date else None,
+        "project": _fk_str(obj, "project"),
+        "flag": _fk_str(obj, "flag"),
+        "trench_ids": [conn.uuid_trench.id_trench for conn in trench_connections],
+    }
+    geom_json = _merge_trench_geoms(trench_connections)
+    return props, geom_json
+
+
+def _cable_feature(obj):
+    """Build GeoJSON (properties, geometry) for a Cable."""
+    cable_connections = obj.microductcableconnection_set.all()
+    conduit_names = sorted(
+        {conn.uuid_microduct.uuid_conduit.name for conn in cable_connections}
+    )
+
+    seen_trench_uuids = set()
+    unique_connections = []
+    for mdc in cable_connections:
+        for tcc in mdc.uuid_microduct.uuid_conduit.trenchconduitconnection_set.all():
+            if tcc.uuid_trench.uuid not in seen_trench_uuids:
+                seen_trench_uuids.add(tcc.uuid_trench.uuid)
+                unique_connections.append(tcc)
+
+    props = {
+        "uuid": str(obj.uuid),
+        "name": obj.name,
+        "cable_type": _fk_str(obj, "cable_type"),
+        "status": _fk_str(obj, "status"),
+        "network_level": _fk_str(obj, "network_level"),
+        "owner": _fk_str(obj, "owner"),
+        "constructor": _fk_str(obj, "constructor"),
+        "manufacturer": _fk_str(obj, "manufacturer"),
+        "date": str(obj.date) if obj.date else None,
+        "node_start": _fk_str(obj, "uuid_node_start"),
+        "node_end": _fk_str(obj, "uuid_node_end"),
+        "length": float(obj.length) if obj.length is not None else None,
+        "project": _fk_str(obj, "project"),
+        "flag": _fk_str(obj, "flag"),
+        "conduit_names": conduit_names,
+    }
+    geom_json = _merge_trench_geoms(unique_connections)
+    return props, geom_json
+
+
+def _area_feature(obj):
+    """Build GeoJSON (properties, geometry) for an Area."""
+    props = {
+        "uuid": str(obj.uuid),
+        "name": obj.name,
+        "area_type": _fk_str(obj, "area_type"),
+        "project": _fk_str(obj, "project"),
+        "flag": _fk_str(obj, "flag"),
+    }
+    geom_json = json.loads(obj.geom.geojson) if obj.geom else None
+    return props, geom_json
+
+
+def _microduct_feature(obj):
+    """Build GeoJSON (properties, geometry) for a Microduct."""
+    trench_connections = obj.uuid_conduit.trenchconduitconnection_set.all()
+    props = {
+        "uuid": str(obj.uuid),
+        "conduit_name": str(obj.uuid_conduit),
+        "number": obj.number,
+        "color": obj.color,
+        "microduct_status": _fk_str(obj, "microduct_status"),
+        "trench_ids": [conn.uuid_trench.id_trench for conn in trench_connections],
+    }
+    geom_json = _merge_trench_geoms(trench_connections)
+    return props, geom_json
+
+
+_LAYER_STYLES = {
+    "trenches": {"geom_type": "Line", "color": "227,26,28,255"},
+    "nodes": {"geom_type": "Point", "color": "31,120,180,255"},
+    "addresses": {"geom_type": "Point", "color": "51,160,44,255"},
+    "conduits": {"geom_type": "Line", "color": "255,127,0,255"},
+    "cables": {"geom_type": "Line", "color": "106,61,154,255"},
+    "areas": {"geom_type": "Polygon", "color": "178,223,138,255"},
+    "microducts": {"geom_type": "Line", "color": "251,154,153,255"},
+}
+
+
+def _build_qlr(layer_names):
+    """Build a QGIS Layer Definition (QLR) XML string.
+
+    Args:
+        layer_names (list[str]): Layer names that have features and were
+            written as GeoJSON files.
+
+    Returns:
+        str: UTF-8 encoded QLR XML.
+    """
+    from pyproj import CRS
+
+    srid = getattr(settings, "DEFAULT_SRID", 25832)
+    crs = CRS.from_epsg(srid)
+    authid = f"EPSG:{srid}"
+    proj4 = crs.to_proj4()
+    crs_description = crs.name
+
+    root = ET.Element("qlr")
+    tree_root = ET.SubElement(root, "layer-tree-group", name="", checked="Qt::Checked")
+
+    standalone_order = ["nodes", "addresses", "trenches", "areas"]
+
+    for name in standalone_order:
+        if name in layer_names:
+            layer_el = ET.SubElement(
+                tree_root,
+                "layer-tree-layer",
+                id=f"{name}_layer",
+                name=name,
+                source=f"./layers/{name}.geojson",
+                providerKey="ogr",
+                checked="Qt::Checked",
+            )
+            ET.SubElement(layer_el, "customproperties")
+
+    if "conduits" in layer_names or "microducts" in layer_names:
+        group = ET.SubElement(
+            tree_root, "layer-tree-group", name="conduits", checked="Qt::Checked"
+        )
+        for sub in ["conduits", "microducts"]:
+            if sub in layer_names:
+                layer_el = ET.SubElement(
+                    group,
+                    "layer-tree-layer",
+                    id=f"{sub}_layer",
+                    name=sub,
+                    source=f"./layers/{sub}.geojson",
+                    providerKey="ogr",
+                    checked="Qt::Checked",
+                )
+                ET.SubElement(layer_el, "customproperties")
+
+    if "cables" in layer_names:
+        group = ET.SubElement(
+            tree_root, "layer-tree-group", name="cables", checked="Qt::Checked"
+        )
+        layer_el = ET.SubElement(
+            group,
+            "layer-tree-layer",
+            id="cables_layer",
+            name="cables",
+            source="./layers/cables.geojson",
+            providerKey="ogr",
+            checked="Qt::Checked",
+        )
+        ET.SubElement(layer_el, "customproperties")
+
+    maplayers = ET.SubElement(root, "maplayers")
+    for name in layer_names:
+        style = _LAYER_STYLES.get(name, {"geom_type": "Line", "color": "0,0,0,255"})
+        ml = ET.SubElement(
+            maplayers, "maplayer", type="vector", geometry=style["geom_type"]
+        )
+        ET.SubElement(ml, "id").text = f"{name}_layer"
+        ET.SubElement(ml, "layername").text = name
+        ET.SubElement(ml, "datasource").text = f"./layers/{name}.geojson"
+        ET.SubElement(ml, "provider").text = "ogr"
+
+        srs = ET.SubElement(ml, "srs")
+        spatial = ET.SubElement(srs, "spatialrefsys")
+        ET.SubElement(spatial, "authid").text = authid
+        ET.SubElement(spatial, "srid").text = str(srid)
+        ET.SubElement(spatial, "proj4").text = proj4
+        ET.SubElement(spatial, "description").text = crs_description
+
+        renderer = ET.SubElement(ml, "renderer-v2", type="singleSymbol")
+        symbols = ET.SubElement(renderer, "symbols")
+
+        symbol_type = {
+            "Point": "marker",
+            "Line": "line",
+            "Polygon": "fill",
+        }.get(style["geom_type"], "line")
+        symbol = ET.SubElement(symbols, "symbol", type=symbol_type, name="0")
+
+        layer_class = {
+            "Point": "SimpleMarker",
+            "Line": "SimpleLine",
+            "Polygon": "SimpleFill",
+        }.get(style["geom_type"], "SimpleLine")
+        sym_layer = ET.SubElement(symbol, "layer", attrib={"class": layer_class})
+        option_map = ET.SubElement(sym_layer, "Option", type="Map")
+
+        color_key = {
+            "Point": "color",
+            "Line": "line_color",
+            "Polygon": "color",
+        }.get(style["geom_type"], "line_color")
+        ET.SubElement(
+            option_map, "Option", type="QString", name=color_key, value=style["color"]
+        )
+
+    return ET.tostring(root, encoding="unicode", xml_declaration=True)
+
+
+_FEATURE_BUILDERS = {
+    "trenches": _trench_feature,
+    "nodes": _node_feature,
+    "addresses": _address_feature,
+    "conduits": _conduit_feature,
+    "cables": _cable_feature,
+    "areas": _area_feature,
+    "microducts": _microduct_feature,
+}
+
+
+def build_inquiry_export_zip(pipeline_record_uuid):
+    """Build a ZIP archive with GeoJSON layers and feature files for a pipeline inquiry.
+
+    Query all :model:`api.PipelineInquiryArea` polygons for the given record,
+    compute their union, then find all :model:`api.Trench`, :model:`api.Node`,
+    :model:`api.Address`, :model:`api.Conduit`, :model:`api.Cable`,
+    :model:`api.Area`, and :model:`api.Microduct` features that intersect
+    the union polygon. Export each layer as GeoJSON with full FK-resolved
+    labels, derive geometry for non-spatial tables from their trench
+    connections, and include a QLR file for QGIS.
+
+    Args:
+        pipeline_record_uuid (str | uuid.UUID): UUID of the
+            :model:`api.PipelineRecord`.
+
+    Returns:
+        BytesIO: ZIP archive containing ``layers/*.geojson`` files,
+            ``inquiry_export.qlr``, and ``files/<feature>/<filename>``
+            attachments.
+
+    Raises:
+        ValueError: If no inquiry areas exist for the record or if the
+            geometry union is empty.
+    """
+    from django.contrib.gis.db.models import Union
+
+    areas = PipelineInquiryArea.objects.filter(pipeline_record_id=pipeline_record_uuid)
+    if not areas.exists():
+        raise ValueError(_("No inquiry areas found for this pipeline record."))
+
+    union_result = areas.aggregate(union=Union("geom"))
+    union_geom = union_result["union"]
+    if not union_geom:
+        raise ValueError(_("Could not compute union of inquiry areas."))
+
+    trench_conn_prefetch = Prefetch(
+        "trenchconduitconnection_set",
+        queryset=TrenchConduitConnection.objects.select_related("uuid_trench"),
+    )
+
+    layer_queries = {
+        "trenches": Trench.objects.filter(geom__intersects=union_geom).select_related(
+            "surface",
+            "construction_type",
+            "status",
+            "phase",
+            "owner",
+            "constructor",
+            "project",
+            "flag",
+        ),
+        "nodes": Node.objects.filter(geom__intersects=union_geom).select_related(
+            "node_type",
+            "status",
+            "network_level",
+            "owner",
+            "constructor",
+            "manufacturer",
+            "project",
+            "flag",
+        ),
+        "addresses": Address.objects.filter(geom__intersects=union_geom).select_related(
+            "status_development",
+            "project",
+            "flag",
+        ),
+        "conduits": Conduit.objects.filter(
+            trenchconduitconnection__uuid_trench__geom__intersects=union_geom
+        )
+        .distinct()
+        .select_related(
+            "conduit_type",
+            "status",
+            "network_level",
+            "owner",
+            "constructor",
+            "manufacturer",
+            "project",
+            "flag",
+        )
+        .prefetch_related(trench_conn_prefetch),
+        "cables": Cable.objects.filter(
+            microductcableconnection__uuid_microduct__uuid_conduit__trenchconduitconnection__uuid_trench__geom__intersects=union_geom
+        )
+        .distinct()
+        .select_related(
+            "cable_type",
+            "status",
+            "network_level",
+            "owner",
+            "constructor",
+            "manufacturer",
+            "uuid_node_start",
+            "uuid_node_end",
+            "project",
+            "flag",
+        )
+        .prefetch_related(
+            Prefetch(
+                "microductcableconnection_set",
+                queryset=MicroductCableConnection.objects.select_related(
+                    "uuid_microduct__uuid_conduit"
+                ).prefetch_related(
+                    Prefetch(
+                        "uuid_microduct__uuid_conduit__trenchconduitconnection_set",
+                        queryset=TrenchConduitConnection.objects.select_related(
+                            "uuid_trench"
+                        ),
+                    )
+                ),
+            )
+        ),
+        "areas": Area.objects.filter(geom__intersects=union_geom).select_related(
+            "area_type", "project", "flag"
+        ),
+        "microducts": Microduct.objects.filter(
+            uuid_conduit__trenchconduitconnection__uuid_trench__geom__intersects=union_geom
+        )
+        .distinct()
+        .select_related(
+            "uuid_conduit",
+            "microduct_status",
+        )
+        .prefetch_related(
+            Prefetch(
+                "uuid_conduit__trenchconduitconnection_set",
+                queryset=TrenchConduitConnection.objects.select_related("uuid_trench"),
+            )
+        ),
+    }
+
+    buf = BytesIO()
+    storage = LocalMediaStorage()
+    feature_uuids = set()
+    written_layers = []
+
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for layer_name, queryset in layer_queries.items():
+            builder = _FEATURE_BUILDERS[layer_name]
+            features = []
+            for obj in queryset:
+                props, geom_json = builder(obj)
+                features.append(
+                    {
+                        "type": "Feature",
+                        "properties": props,
+                        "geometry": geom_json,
+                    }
+                )
+                feature_uuids.add(obj.uuid)
+
+            if features:
+                geojson = {
+                    "type": "FeatureCollection",
+                    "features": features,
+                }
+                zf.writestr(
+                    f"layers/{layer_name}.geojson",
+                    json.dumps(geojson, ensure_ascii=False, indent=2),
+                )
+                written_layers.append(layer_name)
+
+        if written_layers:
+            zf.writestr("inquiry_export.qlr", _build_qlr(written_layers))
+
+        if feature_uuids:
+            content_types = ContentType.objects.filter(
+                app_label="api",
+                model__in=[
+                    "trench",
+                    "node",
+                    "address",
+                    "conduit",
+                    "cable",
+                    "area",
+                    "microduct",
+                ],
+            )
+            files = FeatureFiles.objects.filter(
+                content_type__in=content_types,
+                object_id__in=feature_uuids,
+            )
+
+            for ff in files:
+                try:
+                    file_path = ff.file_path.name
+                    if storage.exists(file_path):
+                        with storage.open(file_path, "rb") as f:
+                            filename = f"{ff.file_name}.{ff.file_type}"
+                            folder = sanitize_filename(
+                                str(FeatureFiles.get_feature_identifier(ff))
+                            )
+                            zf.writestr(
+                                f"files/{folder}/{filename}",
+                                f.read(),
+                            )
+                except Exception:
+                    logger.warning(
+                        "Could not include file %s in inquiry export",
+                        ff.uuid,
+                        exc_info=True,
+                    )
+
+    buf.seek(0)
+    return buf
