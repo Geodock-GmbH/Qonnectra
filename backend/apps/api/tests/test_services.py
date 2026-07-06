@@ -130,10 +130,9 @@ def conduit_type_with_colors(db):
         ("grün", "green", "#16a34a"),
         ("blau", "blue", "#2563eb"),
     ]
-    for i, (name_de, name_en, hex_code) in enumerate(color_names, 1):
+    for name_de, name_en, hex_code in color_names:
         colors.append(
             MicroductColorFactory(
-                id=i,
                 name_de=name_de,
                 name_en=name_en,
                 hex_code=hex_code,

@@ -1,11 +1,17 @@
 <script>
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
-	import { browser } from '$app/environment';
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { IconArrowLeft, IconPencil, IconPencilOff, IconTrash } from '@tabler/icons-svelte';
+	import {
+		IconArrowLeft,
+		IconEdit,
+		IconEditOff,
+		IconPencil,
+		IconPencilOff,
+		IconTrash
+	} from '@tabler/icons-svelte';
 	import GeoJSON from 'ol/format/GeoJSON.js';
 
 	import { m } from '$lib/paraglide/messages';
@@ -14,7 +20,6 @@
 	import Map from '$lib/components/Map.svelte';
 	import MapHint from '$lib/components/MapHint.svelte';
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
-
 	import {
 		addressStyle,
 		areaTypeStyles,
@@ -66,18 +71,27 @@
 		olMap = map;
 		drawManager.initialize(map);
 
+		/** @type {Array<{source: import('ol/source/VectorTile').default, parentLayer: import('ol/layer/VectorTile').default, isPoint: boolean}>} */
 		const sources = [];
-		if (mapState.vectorTileLayer?.getSource()) {
-			sources.push({ source: mapState.vectorTileLayer.getSource(), parentLayer: mapState.vectorTileLayer, isPoint: false });
+		const vtLayer = mapState.vectorTileLayer;
+		const vtSource = vtLayer?.getSource();
+		if (vtLayer && vtSource) {
+			sources.push({ source: vtSource, parentLayer: vtLayer, isPoint: false });
 		}
-		if (mapState.areaLayer?.getSource()) {
-			sources.push({ source: mapState.areaLayer.getSource(), parentLayer: mapState.areaLayer, isPoint: false });
+		const areaLayer = mapState.areaLayer;
+		const areaSource = areaLayer?.getSource();
+		if (areaLayer && areaSource) {
+			sources.push({ source: areaSource, parentLayer: areaLayer, isPoint: false });
 		}
-		if (mapState.addressLayer?.getSource()) {
-			sources.push({ source: mapState.addressLayer.getSource(), parentLayer: mapState.addressLayer, isPoint: true });
+		const addrLayer = mapState.addressLayer;
+		const addrSource = addrLayer?.getSource();
+		if (addrLayer && addrSource) {
+			sources.push({ source: addrSource, parentLayer: addrLayer, isPoint: true });
 		}
-		if (mapState.nodeLayer?.getSource()) {
-			sources.push({ source: mapState.nodeLayer.getSource(), parentLayer: mapState.nodeLayer, isPoint: true });
+		const nodeLayer = mapState.nodeLayer;
+		const nodeSource = nodeLayer?.getSource();
+		if (nodeLayer && nodeSource) {
+			sources.push({ source: nodeSource, parentLayer: nodeLayer, isPoint: true });
 		}
 		drawManager.initializeHighlightLayers(sources);
 
@@ -127,8 +141,26 @@
 			drawManager.stopDrawing();
 			ctx.setDrawing(false);
 		} else {
+			if (drawManager.isEditing) {
+				drawManager.stopEditing();
+				ctx.setEditing(false);
+			}
 			ctx.setDrawing(true);
 			drawManager.startDrawing(handleDrawEnd);
+		}
+	}
+
+	function toggleEditing() {
+		if (drawManager.isEditing) {
+			drawManager.stopEditing();
+			ctx.setEditing(false);
+		} else {
+			if (drawManager.isDrawing) {
+				drawManager.stopDrawing();
+				ctx.setDrawing(false);
+			}
+			ctx.setEditing(true);
+			drawManager.startEditing(handleModifyEnd);
 		}
 	}
 
@@ -188,6 +220,102 @@
 			globalToaster.error({ title: m.common_error(), description: err.message });
 		} finally {
 			ctx.setSaving(false);
+		}
+	}
+
+	/**
+	 * @param {import('ol/Feature').default} feature
+	 */
+	async function handleModifyEnd(feature) {
+		if (!olMap) return;
+
+		const uuid = feature.get('uuid');
+		if (!uuid) return;
+
+		ctx.setSaving(true);
+
+		const format = new GeoJSON();
+		const writeOptions = /** @type {any} */ ({
+			dataProjection: 'EPSG:4326',
+			featureProjection: olMap.getView().getProjection()
+		});
+
+		const geojsonGeom = format.writeGeometryObject(
+			/** @type {import('ol/geom/Geometry').default} */ (feature.getGeometry()),
+			writeOptions
+		);
+
+		const formData = new FormData();
+		formData.append('polygonUuid', uuid);
+		formData.append('geojson', JSON.stringify(geojsonGeom));
+
+		try {
+			const response = await fetch('?/updatePolygon', {
+				method: 'POST',
+				body: formData
+			});
+			const result = deserialize(await response.text());
+
+			if (result.type === 'success') {
+				const saved = /** @type {any} */ (result).data?.polygon;
+				const storedGeom = saved?.geometry ?? geojsonGeom;
+				ctx.updatePolygonGeom(uuid, storedGeom);
+				drawManager.updatePolygonGeometryCache();
+				drawManager.refreshHighlights();
+				globalToaster.success({
+					title: m.title_success(),
+					description: m.message_inquiry_polygon_updated()
+				});
+			} else {
+				renderPolygonsOnMap();
+				globalToaster.error({
+					title: m.common_error(),
+					description:
+						/** @type {any} */ (result).data?.message || m.message_inquiry_polygon_update_failed()
+				});
+			}
+		} catch (/** @type {any} */ err) {
+			renderPolygonsOnMap();
+			globalToaster.error({ title: m.common_error(), description: err.message });
+		} finally {
+			ctx.setSaving(false);
+		}
+	}
+
+	/**
+	 * @param {string} uuid
+	 * @param {string} name
+	 */
+	async function handleRenamePolygon(uuid, name) {
+		const trimmed = name.trim();
+		if (!trimmed) return;
+
+		const current = ctx.polygons.find((p) => p.uuid === uuid);
+		if (current && current.name === trimmed) return;
+
+		const formData = new FormData();
+		formData.append('polygonUuid', uuid);
+		formData.append('name', trimmed);
+
+		try {
+			const response = await fetch('?/renamePolygon', {
+				method: 'POST',
+				body: formData
+			});
+			const result = deserialize(await response.text());
+
+			if (result.type === 'success') {
+				ctx.updatePolygonName(uuid, trimmed);
+				renderPolygonsOnMap();
+			} else {
+				globalToaster.error({
+					title: m.common_error(),
+					description:
+						/** @type {any} */ (result).data?.message || m.message_inquiry_polygon_rename_failed()
+				});
+			}
+		} catch (/** @type {any} */ err) {
+			globalToaster.error({ title: m.common_error(), description: err.message });
 		}
 	}
 
@@ -315,12 +443,22 @@
 
 		<div class="flex items-center gap-3">
 			{#if ctx.polygons.length > 0}
-				<span class="text-sm text-surface-500">
-					{ctx.polygons.length}
-					{ctx.polygons.length === 1
-						? m.label_inquiry_polygon_singular()
-						: m.label_inquiry_polygon_plural()}
-				</span>
+				<button
+					type="button"
+					class="btn inline-flex items-center gap-2 {ctx.isEditing
+						? 'preset-filled-warning-500'
+						: 'preset-filled-surface'}"
+					disabled={ctx.isSaving || ctx.isDrawing}
+					onclick={toggleEditing}
+				>
+					{#if ctx.isEditing}
+						<IconEditOff class="size-4 shrink-0" />
+						<span>{m.action_stop_editing()}</span>
+					{:else}
+						<IconEdit class="size-4 shrink-0" />
+						<span>{m.action_edit_polygon()}</span>
+					{/if}
+				</button>
 			{/if}
 
 			<button
@@ -328,7 +466,7 @@
 				class="btn inline-flex items-center gap-2 {ctx.isDrawing
 					? 'preset-filled-warning-500'
 					: 'preset-filled-primary-500'}"
-				disabled={ctx.isSaving}
+				disabled={ctx.isSaving || ctx.isEditing}
 				onclick={toggleDrawing}
 			>
 				{#if ctx.isDrawing}
@@ -390,9 +528,20 @@
 							<div
 								class="flex items-center justify-between gap-2 px-3 py-2.5 rounded-md bg-surface-100-900"
 							>
-								<span class="text-sm truncate">
-									{polygon.name || `${m.label_inquiry_polygon_default()} ${i + 1}`}
-								</span>
+								<input
+									type="text"
+									class="input text-sm bg-transparent border-0 px-1 py-0.5 truncate focus:bg-surface-50-950"
+									value={polygon.name || `${m.label_inquiry_polygon_default()} ${i + 1}`}
+									aria-label={m.label_inquiry_area_name()}
+									onblur={(e) => handleRenamePolygon(polygon.uuid, e.currentTarget.value)}
+									onkeydown={(e) => {
+										if (e.key === 'Enter') e.currentTarget.blur();
+										else if (e.key === 'Escape') {
+											e.currentTarget.value = polygon.name || '';
+											e.currentTarget.blur();
+										}
+									}}
+								/>
 								<button
 									type="button"
 									class="btn-icon btn-icon-sm preset-tonal-error shrink-0"

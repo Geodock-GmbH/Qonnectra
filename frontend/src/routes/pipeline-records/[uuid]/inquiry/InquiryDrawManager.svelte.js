@@ -1,34 +1,22 @@
 import GeoJSON from 'ol/format/GeoJSON';
 import Polygon from 'ol/geom/Polygon';
 import Draw from 'ol/interaction/Draw';
+import Modify from 'ol/interaction/Modify';
 import VectorLayer from 'ol/layer/Vector';
 import VectorTileLayer from 'ol/layer/VectorTile';
 import VectorSource from 'ol/source/Vector';
-import { Fill, Stroke, Style } from 'ol/style';
-import CircleStyle from 'ol/style/Circle';
 
-const POLYGON_STYLE = new Style({
-	fill: new Fill({ color: 'rgba(59, 130, 246, 0.15)' }),
-	stroke: new Stroke({ color: '#3b82f6', width: 2 })
-});
+import {
+	createInquiryDrawingStyle,
+	createInquiryHighlightPointStyle,
+	createInquiryHighlightStyle,
+	createInquiryPolygonStyleWithLabels
+} from '$lib/map/styles.js';
 
-const DRAWING_STYLE = new Style({
-	fill: new Fill({ color: 'rgba(59, 130, 246, 0.1)' }),
-	stroke: new Stroke({ color: '#3b82f6', width: 2, lineDash: [6, 4] })
-});
-
-const HIGHLIGHT_STYLE = new Style({
-	fill: new Fill({ color: 'rgba(251, 191, 36, 0.4)' }),
-	stroke: new Stroke({ color: '#f59e0b', width: 3 })
-});
-
-const HIGHLIGHT_POINT_STYLE = new Style({
-	image: new CircleStyle({
-		radius: 6,
-		fill: new Fill({ color: 'rgba(251, 191, 36, 0.6)' }),
-		stroke: new Stroke({ color: '#f59e0b', width: 2 })
-	})
-});
+const DRAWING_STYLE = createInquiryDrawingStyle();
+const HIGHLIGHT_STYLE = createInquiryHighlightStyle();
+const HIGHLIGHT_POINT_STYLE = createInquiryHighlightPointStyle();
+const polygonStyleFunction = createInquiryPolygonStyleWithLabels();
 
 /**
  * Check if a RenderFeature intersects any of the given polygon geometries.
@@ -40,7 +28,7 @@ const HIGHLIGHT_POINT_STYLE = new Style({
 function featureIntersectsPolygons(feature, polygonGeometries) {
 	const featureExtent = feature.getExtent();
 	const flatCoords = feature.getFlatCoordinates();
-	const type = feature.getType();
+	const type = /** @type {string} */ (feature.getType());
 
 	for (const polyGeom of polygonGeometries) {
 		if (!polyGeom.intersectsExtent(featureExtent)) continue;
@@ -48,8 +36,7 @@ function featureIntersectsPolygons(feature, polygonGeometries) {
 		if (type === 'Point') {
 			if (polyGeom.intersectsCoordinate([flatCoords[0], flatCoords[1]])) return true;
 		} else {
-			const stride = type === 'Polygon' || type === 'MultiPolygon' ? 2 : 2;
-			for (let i = 0; i < flatCoords.length; i += stride) {
+			for (let i = 0; i < flatCoords.length; i += 2) {
 				if (polyGeom.intersectsCoordinate([flatCoords[i], flatCoords[i + 1]])) return true;
 			}
 		}
@@ -66,6 +53,8 @@ export class InquiryDrawManager {
 	olMap = $state(null);
 	/** @type {boolean} */
 	isDrawing = $state(false);
+	/** @type {boolean} */
+	isEditing = $state(false);
 
 	/** @type {VectorSource | null} */
 	_polygonSource = null;
@@ -79,6 +68,10 @@ export class InquiryDrawManager {
 	_draw = null;
 	/** @type {((feature: import('ol/Feature').default) => void) | null} */
 	_onDrawEnd = null;
+	/** @type {Modify | null} */
+	_modify = null;
+	/** @type {((feature: import('ol/Feature').default) => void) | null} */
+	_onModifyEnd = null;
 
 	/**
 	 * Set up the polygon source and layer on the given map.
@@ -93,7 +86,7 @@ export class InquiryDrawManager {
 		this._polygonSource = new VectorSource();
 		this._polygonLayer = new VectorLayer({
 			source: this._polygonSource,
-			style: POLYGON_STYLE,
+			style: polygonStyleFunction,
 			zIndex: 80
 		});
 		this._polygonLayer.set('isInquiryLayer', true);
@@ -122,7 +115,12 @@ export class InquiryDrawManager {
 				style: (feature) => {
 					if (this._polygonGeometries.length === 0) return undefined;
 					if (!parentLayer.getVisible()) return undefined;
-					if (featureIntersectsPolygons(feature, this._polygonGeometries)) {
+					if (
+						featureIntersectsPolygons(
+							/** @type {import('ol/render/Feature').default} */ (feature),
+							this._polygonGeometries
+						)
+					) {
 						return style;
 					}
 					return undefined;
@@ -183,6 +181,7 @@ export class InquiryDrawManager {
 		if (!this.olMap || !this._polygonSource) return;
 
 		this.stopDrawing();
+		this.stopEditing();
 
 		this._onDrawEnd = onDrawEnd;
 		this.isDrawing = true;
@@ -208,6 +207,43 @@ export class InquiryDrawManager {
 		}
 		this.isDrawing = false;
 		this._onDrawEnd = null;
+	}
+
+	/**
+	 * Start the polygon modify interaction on the map.
+	 * @param {(feature: import('ol/Feature').default) => void} onModifyEnd - Callback invoked for each modified polygon feature.
+	 */
+	startEditing(onModifyEnd) {
+		if (!this.olMap || !this._polygonSource) return;
+
+		this.stopEditing();
+		this.stopDrawing();
+
+		this._onModifyEnd = onModifyEnd;
+		this.isEditing = true;
+
+		this._modify = new Modify({
+			source: this._polygonSource
+		});
+
+		this._modify.on('modifyend', (evt) => {
+			const features = evt.features.getArray();
+			for (const feature of features) {
+				this._onModifyEnd?.(feature);
+			}
+		});
+
+		this.olMap.addInteraction(this._modify);
+	}
+
+	/** Stop the active modify interaction and reset editing state. */
+	stopEditing() {
+		if (this._modify && this.olMap) {
+			this.olMap.removeInteraction(this._modify);
+			this._modify = null;
+		}
+		this.isEditing = false;
+		this._onModifyEnd = null;
 	}
 
 	/**
@@ -256,6 +292,7 @@ export class InquiryDrawManager {
 	/** Remove all layers and interactions, reset internal state. */
 	cleanup() {
 		this.stopDrawing();
+		this.stopEditing();
 
 		if (this._polygonLayer && this.olMap) {
 			this.olMap.removeLayer(this._polygonLayer);

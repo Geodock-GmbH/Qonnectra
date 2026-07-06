@@ -57,7 +57,6 @@ class ProjectFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Projects
 
-    id = factory.Sequence(lambda n: n + 1)
     project = factory.Sequence(lambda n: f"Test Project {n}")
     description = factory.Faker("sentence")
     active = True
@@ -69,7 +68,6 @@ class FlagFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Flags
 
-    id = factory.Sequence(lambda n: n + 1)
     flag = factory.Sequence(lambda n: f"Test Flag {n}")
 
 
@@ -79,7 +77,6 @@ class CompanyFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = AttributesCompany
 
-    id = factory.Sequence(lambda n: n + 1)
     company = factory.Sequence(lambda n: f"Test Company {n}")
     city = factory.Faker("city")
     postal_code = factory.Faker("postcode")
@@ -93,7 +90,6 @@ class StatusFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = AttributesStatus
 
-    id = factory.Sequence(lambda n: n + 1)
     status = factory.Sequence(lambda n: f"Status {n}")
 
 
@@ -112,7 +108,6 @@ class SurfaceFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = AttributesSurface
 
-    id = factory.Sequence(lambda n: n + 1)
     surface = factory.Sequence(lambda n: f"Surface Type {n}")
     sealing = True
 
@@ -123,7 +118,6 @@ class ConstructionTypeFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = AttributesConstructionType
 
-    id = factory.Sequence(lambda n: n + 1)
     construction_type = factory.Sequence(lambda n: f"Construction Type {n}")
 
 
@@ -133,7 +127,6 @@ class NodeTypeFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = AttributesNodeType
 
-    id = factory.Sequence(lambda n: n + 1)
     node_type = factory.Sequence(lambda n: f"Node Type {n}")
 
 
@@ -143,7 +136,6 @@ class NetworkLevelFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = AttributesNetworkLevel
 
-    id = factory.Sequence(lambda n: n + 1)
     network_level = factory.Sequence(lambda n: f"Network Level {n}")
 
 
@@ -153,7 +145,6 @@ class PhaseFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = AttributesPhase
 
-    id = factory.Sequence(lambda n: n + 1)
     phase = factory.Sequence(lambda n: f"Phase {n}")
 
 
@@ -163,7 +154,6 @@ class ConduitTypeFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = AttributesConduitType
 
-    id = factory.Sequence(lambda n: n + 1)
     conduit_type = factory.Sequence(lambda n: f"Conduit Type {n}")
     conduit_count = 7
 
@@ -192,12 +182,12 @@ class MicroductColorFactory(factory.django.DjangoModelFactory):
 
 
 class MicroductStatusFactory(factory.django.DjangoModelFactory):
-    """Factory for AttributesMicroductStatus model."""
+    """Factory for AttributesMicroductStatus model (non-auto PK)."""
 
     class Meta:
         model = AttributesMicroductStatus
 
-    id = factory.Sequence(lambda n: n + 1)
+    id = factory.Sequence(lambda n: n + 100)
     microduct_status = factory.Sequence(lambda n: f"MD Status {n}")
 
 
@@ -500,7 +490,6 @@ class TypeOfWorkFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = TypeOfWork
 
-    id = factory.Sequence(lambda n: n + 1)
     name = factory.Sequence(lambda n: f"Work Type {n}")
 
 
@@ -510,7 +499,6 @@ class RequestReasonFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = RequestReason
 
-    id = factory.Sequence(lambda n: n + 1)
     name = factory.Sequence(lambda n: f"Request Reason {n}")
 
 

@@ -14,11 +14,13 @@ User = get_user_model()
 
 @pytest.fixture
 def api_client():
+    """Create an unauthenticated API client."""
     return APIClient()
 
 
 @pytest.fixture
 def authenticated_client(db):
+    """Create a superuser-authenticated API client."""
     user = User.objects.create_superuser(
         username="testuser", email="test@example.com", password="testpass123"
     )
@@ -89,6 +91,94 @@ class TestPipelineInquiryAreaViewSet:
         props = response.json()["properties"]
         assert props["name"] == "Test Area"
         assert props["pipeline_record_uuid"] == str(record.uuid)
+
+    def test_create_without_name_assigns_default(self, authenticated_client):
+        record = PipelineRecordFactory()
+        data = {
+            "type": "Feature",
+            "geometry": POLYGON_GEOJSON,
+            "properties": {"pipeline_record": str(record.uuid)},
+        }
+        response = authenticated_client.post(
+            "/api/v1/pipeline-inquiry-areas/",
+            data=json.dumps(data),
+            content_type="application/json",
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.json()["properties"]["name"] == "Area 1"
+
+    def test_create_default_name_increments_per_record(self, authenticated_client):
+        record = PipelineRecordFactory()
+
+        def create():
+            return authenticated_client.post(
+                "/api/v1/pipeline-inquiry-areas/",
+                data=json.dumps(
+                    {
+                        "type": "Feature",
+                        "geometry": POLYGON_GEOJSON,
+                        "properties": {"pipeline_record": str(record.uuid)},
+                    }
+                ),
+                content_type="application/json",
+            )
+
+        assert create().json()["properties"]["name"] == "Area 1"
+        assert create().json()["properties"]["name"] == "Area 2"
+        assert create().json()["properties"]["name"] == "Area 3"
+
+    def test_create_default_name_stable_after_delete(self, authenticated_client):
+        """Deleting an earlier area must not cause the next name to collide."""
+        record = PipelineRecordFactory()
+        first = PipelineInquiryAreaFactory(pipeline_record=record, name="Area 1")
+        PipelineInquiryAreaFactory(pipeline_record=record, name="Area 2")
+        first.delete()
+
+        response = authenticated_client.post(
+            "/api/v1/pipeline-inquiry-areas/",
+            data=json.dumps(
+                {
+                    "type": "Feature",
+                    "geometry": POLYGON_GEOJSON,
+                    "properties": {"pipeline_record": str(record.uuid)},
+                }
+            ),
+            content_type="application/json",
+        )
+        assert response.json()["properties"]["name"] == "Area 3"
+
+    def test_create_default_name_scoped_to_record(self, authenticated_client):
+        record_a = PipelineRecordFactory()
+        record_b = PipelineRecordFactory()
+        PipelineInquiryAreaFactory(pipeline_record=record_a, name="Area 1")
+
+        response = authenticated_client.post(
+            "/api/v1/pipeline-inquiry-areas/",
+            data=json.dumps(
+                {
+                    "type": "Feature",
+                    "geometry": POLYGON_GEOJSON,
+                    "properties": {"pipeline_record": str(record_b.uuid)},
+                }
+            ),
+            content_type="application/json",
+        )
+        assert response.json()["properties"]["name"] == "Area 1"
+
+    def test_create_keeps_provided_name(self, authenticated_client):
+        record = PipelineRecordFactory()
+        PipelineInquiryAreaFactory(pipeline_record=record, name="Area 1")
+        data = {
+            "type": "Feature",
+            "geometry": POLYGON_GEOJSON,
+            "properties": {"pipeline_record": str(record.uuid), "name": "Custom"},
+        }
+        response = authenticated_client.post(
+            "/api/v1/pipeline-inquiry-areas/",
+            data=json.dumps(data),
+            content_type="application/json",
+        )
+        assert response.json()["properties"]["name"] == "Custom"
 
     def test_create_rejects_non_polygon(self, authenticated_client):
         record = PipelineRecordFactory()

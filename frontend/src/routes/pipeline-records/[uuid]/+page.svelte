@@ -9,8 +9,8 @@
 		IconMapSearch,
 		IconTrash
 	} from '@tabler/icons-svelte';
-
 	import { PUBLIC_API_URL } from '$env/static/public';
+
 	import { m } from '$lib/paraglide/messages';
 
 	import MessageBox from '$lib/components/MessageBox.svelte';
@@ -181,31 +181,82 @@
 
 <div class="h-full overflow-y-auto p-4 sm:p-6">
 	<div class="mx-auto max-w-3xl space-y-6">
-		<div class="flex items-center justify-between">
-			<button
-				type="button"
-				class="btn preset-tonal-surface inline-flex items-center gap-2"
-				onclick={() => goto('/pipeline-records')}
-			>
-				<IconArrowLeft class="size-4 shrink-0" />
-				<span>{m.common_back()}</span>
-			</button>
+		<div class="space-y-3 sm:space-y-0">
+			<div class="flex items-center justify-between gap-2">
+				<button
+					type="button"
+					class="btn preset-tonal-surface inline-flex items-center gap-2"
+					onclick={() => goto('/pipeline-records')}
+				>
+					<IconArrowLeft class="size-4 shrink-0" />
+					<span class="hidden sm:inline">{m.common_back()}</span>
+				</button>
 
-			<div class="flex items-center gap-2">
-				{#if record}
+				<div class="hidden sm:flex items-center gap-2 shrink-0">
+					{#if record}
+						<button
+							type="button"
+							class="btn preset-filled-secondary-500 inline-flex items-center gap-2"
+							onclick={() => goto(`/pipeline-records/${record.uuid}/inquiry`)}
+						>
+							<IconMapSearch class="size-4 shrink-0" />
+							<span>{inquiryAreaCount > 0 ? m.action_edit_inquiry() : m.action_new_inquiry()}</span>
+						</button>
+
+						{#if inquiryAreaCount > 0}
+							<button
+								type="button"
+								class="btn preset-filled-success-500 inline-flex items-center gap-2"
+								disabled={isExporting}
+								onclick={handleExport}
+							>
+								<IconDownload class="size-4 shrink-0" />
+								<span>
+									{isExporting ? m.common_loading() : m.action_export_inquiry()}
+								</span>
+							</button>
+						{/if}
+					{/if}
 					<button
 						type="button"
-						class="btn preset-filled-secondary-500 inline-flex items-center gap-2"
+						class="btn preset-filled-error-500 inline-flex items-center gap-2"
+						disabled={isDeleting}
+						onclick={openDeleteConfirm}
+					>
+						<IconTrash class="size-4 shrink-0" />
+						<span>{m.common_delete()}</span>
+					</button>
+					<button
+						type="button"
+						class="btn preset-filled-primary-500 inline-flex items-center gap-2"
+						disabled={isSaving || !projectId}
+						onclick={handleSave}
+					>
+						{#if isSaving}
+							<span>{m.common_loading()}</span>
+						{:else}
+							<IconDeviceFloppy class="size-4 shrink-0" />
+							<span>{m.common_save()}</span>
+						{/if}
+					</button>
+				</div>
+			</div>
+
+			{#if record}
+				<div class="flex sm:hidden items-center gap-2">
+					<button
+						type="button"
+						class="btn preset-filled-secondary-500 inline-flex items-center gap-2 flex-1"
 						onclick={() => goto(`/pipeline-records/${record.uuid}/inquiry`)}
 					>
 						<IconMapSearch class="size-4 shrink-0" />
-						<span>{m.action_new_inquiry()}</span>
+						<span>{inquiryAreaCount > 0 ? m.action_edit_inquiry() : m.action_new_inquiry()}</span>
 					</button>
 
 					{#if inquiryAreaCount > 0}
 						<button
 							type="button"
-							class="btn preset-filled-success-500 inline-flex items-center gap-2"
+							class="btn preset-filled-success-500 inline-flex items-center gap-2 flex-1"
 							disabled={isExporting}
 							onclick={handleExport}
 						>
@@ -215,10 +266,13 @@
 							</span>
 						</button>
 					{/if}
-				{/if}
+				</div>
+			{/if}
+
+			<div class="flex sm:hidden items-center gap-2">
 				<button
 					type="button"
-					class="btn preset-filled-error-500 inline-flex items-center gap-2"
+					class="btn preset-filled-error-500 inline-flex items-center gap-2 flex-1"
 					disabled={isDeleting}
 					onclick={openDeleteConfirm}
 				>
@@ -227,7 +281,7 @@
 				</button>
 				<button
 					type="button"
-					class="btn preset-filled-primary-500 inline-flex items-center gap-2"
+					class="btn preset-filled-primary-500 inline-flex items-center gap-2 flex-1"
 					disabled={isSaving || !projectId}
 					onclick={handleSave}
 				>
@@ -256,6 +310,7 @@
 				{typeOfWorkOptions}
 				{requestReasonOptions}
 				projectReadonly={true}
+				onSave={false}
 			/>
 		{/if}
 	</div>

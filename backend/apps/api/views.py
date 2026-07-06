@@ -7826,6 +7826,45 @@ class PipelineInquiryAreaViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+    def perform_create(self, serializer):
+        """Assign a default "Area N" name when none is provided.
+
+        The counter is one greater than the highest existing default name
+        for the same pipeline record, so it stays stable when earlier areas
+        are deleted and never collides with a user-supplied name.
+
+        Args:
+            serializer: Validated serializer for the new PipelineInquiryArea.
+        """
+        if not serializer.validated_data.get("name"):
+            record = serializer.validated_data["pipeline_record"]
+            next_number = self._next_area_number(record)
+            serializer.save(name=f"Area {next_number}")
+        else:
+            serializer.save()
+
+    @staticmethod
+    def _next_area_number(record):
+        """Return the next sequential number for auto-generated area names.
+
+        Args:
+            record: PipelineRecord instance to scope the name lookup.
+
+        Returns:
+            int: Next available number (highest existing + 1).
+        """
+        existing = PipelineInquiryArea.objects.filter(
+            pipeline_record=record, name__regex=r"^Area \d+$"
+        ).values_list("name", flat=True)
+
+        highest = 0
+        for name in existing:
+            try:
+                highest = max(highest, int(name.split(" ", 1)[1]))
+            except (IndexError, ValueError):
+                continue
+        return highest + 1
+
 
 class PipelineInquiryExportView(APIView):
     """Export GeoJSON layers and feature files for a pipeline inquiry as ZIP.

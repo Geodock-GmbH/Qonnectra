@@ -26,13 +26,13 @@ User = get_user_model()
 def integration_users(db):
     """Create test users for integration tests."""
     user1 = User.objects.create_user(
-        username="user1", email="user1@example.com", password="testpass123"
+        username="integ_user1", email="integ_user1@example.com", password="testpass123"
     )
     user2 = User.objects.create_user(
-        username="user2", email="user2@example.com", password="testpass123"
+        username="integ_user2", email="integ_user2@example.com", password="testpass123"
     )
     user3 = User.objects.create_user(
-        username="user3", email="user3@example.com", password="testpass123"
+        username="integ_user3", email="integ_user3@example.com", password="testpass123"
     )
     return {"user1": user1, "user2": user2, "user3": user3}
 
@@ -57,9 +57,9 @@ def integration_node_attributes(db):
     """Create node attribute objects for integration tests."""
     node_type = AttributesNodeType.objects.create(node_type="Integration Type")
 
-    status_attr = AttributesStatus.objects.create(status="Active")
+    status_attr = AttributesStatus.objects.create(status="Integ Active")
 
-    network_level = AttributesNetworkLevel.objects.create(network_level="Level 1")
+    network_level = AttributesNetworkLevel.objects.create(network_level="Integ Level 1")
 
     company = AttributesCompany.objects.create(company="Integration Company")
 

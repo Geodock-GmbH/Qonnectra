@@ -105,6 +105,106 @@ export const actions = {
 	},
 
 	/**
+	 * Updates a pipeline inquiry area geometry via PATCH.
+	 * Expects form data: polygonUuid, geojson (geometry as GeoJSON string).
+	 */
+	updatePolygon: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const polygonUuid = String(formData.get('polygonUuid') || '');
+		const geojson = String(formData.get('geojson') || '');
+
+		if (!polygonUuid) {
+			return fail(400, { message: 'Polygon UUID is required' });
+		}
+		if (!geojson) {
+			return fail(400, { message: 'Polygon geometry is required' });
+		}
+
+		let geometry;
+		try {
+			geometry = JSON.parse(geojson);
+		} catch {
+			return fail(400, { message: 'Invalid GeoJSON' });
+		}
+
+		try {
+			const response = await fetch(`${API_URL}pipeline-inquiry-areas/${polygonUuid}/`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					type: 'Feature',
+					geometry,
+					properties: {}
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					message: errorData.detail || 'Failed to update polygon'
+				});
+			}
+
+			const updated = await response.json();
+			return { success: true, polygon: updated };
+		} catch (/** @type {any} */ err) {
+			console.error('Error updating inquiry polygon:', err);
+			return fail(500, { message: err.message || 'Failed to update polygon' });
+		}
+	},
+
+	/**
+	 * Renames a pipeline inquiry area via PATCH.
+	 * Expects form data: polygonUuid, name.
+	 */
+	renamePolygon: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const polygonUuid = String(formData.get('polygonUuid') || '');
+		const name = String(formData.get('name') || '').trim();
+
+		if (!polygonUuid) {
+			return fail(400, { message: 'Polygon UUID is required' });
+		}
+		if (!name) {
+			return fail(400, { message: 'Name is required' });
+		}
+
+		try {
+			const response = await fetch(`${API_URL}pipeline-inquiry-areas/${polygonUuid}/`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					type: 'Feature',
+					properties: { name }
+				})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					message: errorData.detail || 'Failed to rename polygon'
+				});
+			}
+
+			const updated = await response.json();
+			return { success: true, polygon: updated };
+		} catch (/** @type {any} */ err) {
+			console.error('Error renaming inquiry polygon:', err);
+			return fail(500, { message: err.message || 'Failed to rename polygon' });
+		}
+	},
+
+	/**
 	 * Deletes a pipeline inquiry area by UUID.
 	 * Expects form data: polygonUuid.
 	 */

@@ -21,7 +21,9 @@ vi.mock('$lib/server/attributes', () => ({
 
 const { load, actions } = await import('./+page.server.js');
 const { getNodeTypes, getSurfaces, getConstructionTypes, getAreaTypes } =
-	await import('$lib/server/attributes');
+	/** @type {Record<string, import('vitest').Mock>} */ (
+		/** @type {unknown} */ (await import('$lib/server/attributes'))
+	);
 
 describe('pipeline inquiry +page.server.js', () => {
 	/** @type {any} */
@@ -286,6 +288,257 @@ describe('pipeline inquiry +page.server.js', () => {
 					credentials: 'include'
 				})
 			);
+		});
+	});
+
+	describe('updatePolygon action', () => {
+		/**
+		 * @param {Record<string, string>} formFields
+		 */
+		function createRequestEvent(formFields) {
+			const formData = new FormData();
+			for (const [key, value] of Object.entries(formFields)) {
+				formData.append(key, value);
+			}
+			return /** @type {any} */ ({
+				request: { formData: () => Promise.resolve(formData) },
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { uuid: 'test-uuid' }
+			});
+		}
+
+		test('should update a polygon and return success', async () => {
+			const updatedPolygon = {
+				type: 'Feature',
+				properties: { uuid: 'polygon-uuid', name: null },
+				geometry: {
+					type: 'Polygon',
+					coordinates: [
+						[
+							[0, 0],
+							[2, 0],
+							[2, 2],
+							[0, 0]
+						]
+					]
+				}
+			};
+
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve(updatedPolygon)
+			});
+
+			const result = /** @type {any} */ (
+				await actions.updatePolygon(
+					createRequestEvent({
+						polygonUuid: 'polygon-uuid',
+						geojson: JSON.stringify({
+							type: 'Polygon',
+							coordinates: [
+								[
+									[0, 0],
+									[2, 0],
+									[2, 2],
+									[0, 0]
+								]
+							]
+						})
+					})
+				)
+			);
+
+			expect(result.success).toBe(true);
+			expect(result.polygon).toEqual(updatedPolygon);
+		});
+
+		test('should fail when polygonUuid is missing', async () => {
+			const result = /** @type {any} */ (
+				await actions.updatePolygon(
+					createRequestEvent({ geojson: '{"type":"Polygon","coordinates":[]}' })
+				)
+			);
+
+			expect(result.status).toBe(400);
+			expect(result.data.message).toBe('Polygon UUID is required');
+		});
+
+		test('should fail when geojson is missing', async () => {
+			const result = /** @type {any} */ (
+				await actions.updatePolygon(createRequestEvent({ polygonUuid: 'some-uuid' }))
+			);
+
+			expect(result.status).toBe(400);
+			expect(result.data.message).toBe('Polygon geometry is required');
+		});
+
+		test('should fail when geojson is invalid', async () => {
+			const result = /** @type {any} */ (
+				await actions.updatePolygon(
+					createRequestEvent({ polygonUuid: 'some-uuid', geojson: 'not-json' })
+				)
+			);
+
+			expect(result.status).toBe(400);
+			expect(result.data.message).toBe('Invalid GeoJSON');
+		});
+
+		test('should call PATCH on the correct endpoint', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({})
+			});
+
+			await actions.updatePolygon(
+				createRequestEvent({
+					polygonUuid: 'my-polygon',
+					geojson: JSON.stringify({ type: 'Polygon', coordinates: [] })
+				})
+			);
+
+			expect(mockFetch).toHaveBeenCalledWith(
+				'http://localhost:8000/pipeline-inquiry-areas/my-polygon/',
+				expect.objectContaining({
+					method: 'PATCH',
+					credentials: 'include',
+					headers: expect.objectContaining({
+						'Content-Type': 'application/json'
+					})
+				})
+			);
+		});
+
+		test('should forward API errors', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 422,
+				json: () => Promise.resolve({ detail: 'Invalid polygon geometry' })
+			});
+
+			const result = /** @type {any} */ (
+				await actions.updatePolygon(
+					createRequestEvent({
+						polygonUuid: 'some-uuid',
+						geojson: JSON.stringify({ type: 'Polygon', coordinates: [] })
+					})
+				)
+			);
+
+			expect(result.status).toBe(422);
+			expect(result.data.message).toBe('Invalid polygon geometry');
+		});
+	});
+
+	describe('renamePolygon action', () => {
+		/**
+		 * @param {Record<string, string>} formFields
+		 */
+		function createRequestEvent(formFields) {
+			const formData = new FormData();
+			for (const [key, value] of Object.entries(formFields)) {
+				formData.append(key, value);
+			}
+			return /** @type {any} */ ({
+				request: { formData: () => Promise.resolve(formData) },
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { uuid: 'test-uuid' }
+			});
+		}
+
+		test('should rename a polygon and return success', async () => {
+			const renamedPolygon = {
+				type: 'Feature',
+				properties: { uuid: 'polygon-uuid', name: 'My Area' },
+				geometry: { type: 'Polygon', coordinates: [] }
+			};
+
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve(renamedPolygon)
+			});
+
+			const result = /** @type {any} */ (
+				await actions.renamePolygon(
+					createRequestEvent({ polygonUuid: 'polygon-uuid', name: 'My Area' })
+				)
+			);
+
+			expect(result.success).toBe(true);
+			expect(result.polygon).toEqual(renamedPolygon);
+		});
+
+		test('should PATCH only the name in the properties', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({})
+			});
+
+			await actions.renamePolygon(
+				createRequestEvent({ polygonUuid: 'my-polygon', name: 'Renamed' })
+			);
+
+			expect(mockFetch).toHaveBeenCalledWith(
+				'http://localhost:8000/pipeline-inquiry-areas/my-polygon/',
+				expect.objectContaining({
+					method: 'PATCH',
+					body: JSON.stringify({ type: 'Feature', properties: { name: 'Renamed' } })
+				})
+			);
+		});
+
+		test('should trim whitespace from the name', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({})
+			});
+
+			await actions.renamePolygon(
+				createRequestEvent({ polygonUuid: 'my-polygon', name: '  Padded  ' })
+			);
+
+			expect(mockFetch).toHaveBeenCalledWith(
+				expect.any(String),
+				expect.objectContaining({
+					body: JSON.stringify({ type: 'Feature', properties: { name: 'Padded' } })
+				})
+			);
+		});
+
+		test('should fail when polygonUuid is missing', async () => {
+			const result = /** @type {any} */ (
+				await actions.renamePolygon(createRequestEvent({ name: 'Something' }))
+			);
+
+			expect(result.status).toBe(400);
+			expect(result.data.message).toBe('Polygon UUID is required');
+		});
+
+		test('should fail when name is empty or whitespace only', async () => {
+			const result = /** @type {any} */ (
+				await actions.renamePolygon(createRequestEvent({ polygonUuid: 'some-uuid', name: '   ' }))
+			);
+
+			expect(result.status).toBe(400);
+			expect(result.data.message).toBe('Name is required');
+		});
+
+		test('should forward API errors', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 422,
+				json: () => Promise.resolve({ detail: 'Name too long' })
+			});
+
+			const result = /** @type {any} */ (
+				await actions.renamePolygon(
+					createRequestEvent({ polygonUuid: 'some-uuid', name: 'A very long name' })
+				)
+			);
+
+			expect(result.status).toBe(422);
+			expect(result.data.message).toBe('Name too long');
 		});
 	});
 });

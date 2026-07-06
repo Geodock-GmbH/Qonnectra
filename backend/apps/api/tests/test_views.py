@@ -33,10 +33,10 @@ def api_client():
 def users(db):
     """Create test users."""
     user1 = User.objects.create_user(
-        username="user1", email="user1@example.com", password="testpass123"
+        username="view_user1", email="view_user1@example.com", password="testpass123"
     )
     user2 = User.objects.create_user(
-        username="user2", email="user2@example.com", password="testpass123"
+        username="view_user2", email="view_user2@example.com", password="testpass123"
     )
     return {"user1": user1, "user2": user2}
 
@@ -45,26 +45,26 @@ def users(db):
 def test_project(db):
     """Create test project."""
     return Projects.objects.create(
-        project="Test Project", description="Test project for canvas sync"
+        project="View Test Project", description="Test project for canvas sync"
     )
 
 
 @pytest.fixture
 def test_flag(db):
     """Create test flag."""
-    return Flags.objects.create(flag="Test Flag")
+    return Flags.objects.create(flag="View Test Flag")
 
 
 @pytest.fixture
 def node_attributes(db):
     """Create node attribute objects."""
-    node_type = AttributesNodeType.objects.create(node_type="Test Type")
+    node_type = AttributesNodeType.objects.create(node_type="View Test Type")
 
-    status_attr = AttributesStatus.objects.create(status="Active")
+    status_attr = AttributesStatus.objects.create(status="View Active")
 
-    network_level = AttributesNetworkLevel.objects.create(network_level="Level 1")
+    network_level = AttributesNetworkLevel.objects.create(network_level="View Level 1")
 
-    company = AttributesCompany.objects.create(company="Test Company")
+    company = AttributesCompany.objects.create(company="View Test Company")
 
     return {
         "node_type": node_type,
@@ -112,27 +112,27 @@ class TestNodeCanvasCoordinatesView:
         self.client = APIClient()
 
         self.user1 = User.objects.create_user(
-            username="user1", email="user1@example.com", password="testpass123"
+            username="canvas_user1", email="canvas_user1@example.com", password="testpass123"
         )
         self.user2 = User.objects.create_user(
-            username="user2", email="user2@example.com", password="testpass123"
+            username="canvas_user2", email="canvas_user2@example.com", password="testpass123"
         )
 
         self.project = Projects.objects.create(
-            project="Test Project", description="Test project for canvas sync"
+            project="Canvas Test Project", description="Test project for canvas sync"
         )
 
-        self.flag = Flags.objects.create(flag="Test Flag")
+        self.flag = Flags.objects.create(flag="Canvas Test Flag")
 
-        self.node_type = AttributesNodeType.objects.create(node_type="Test Type")
+        self.node_type = AttributesNodeType.objects.create(node_type="Canvas Test Type")
 
-        self.status_attr = AttributesStatus.objects.create(status="Active")
+        self.status_attr = AttributesStatus.objects.create(status="Canvas Active")
 
         self.network_level = AttributesNetworkLevel.objects.create(
-            network_level="Level 1"
+            network_level="Canvas Level 1"
         )
 
-        self.company = AttributesCompany.objects.create(company="Test Company")
+        self.company = AttributesCompany.objects.create(company="Canvas Test Company")
 
         self.nodes = []
         coordinates = [
@@ -289,7 +289,7 @@ class TestNodeCanvasCoordinatesView:
         data = response.json()
 
         assert "message" in data
-        assert data["sync_started_by"] == "user2"
+        assert data["sync_started_by"] == "canvas_user2"
         assert "sync_started_at" in data
 
     def test_post_sync_coordinate_calculation(self):

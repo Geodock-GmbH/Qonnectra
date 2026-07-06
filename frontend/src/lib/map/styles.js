@@ -833,3 +833,90 @@ export const TRACE_DARK_COLOR = '#9ca3af';
 export const TRACE_BREAK_COLOR = '#ef4444';
 export const TRACE_SELECTED_COLOR = '#3b82f6';
 export const TRACE_DEFAULT_CABLE_COLOR = '#f59e0b';
+
+const INQUIRY_COLOR = '#3b82f6';
+const INQUIRY_HIGHLIGHT_COLOR = '#f59e0b';
+
+/**
+ * Creates a style for inquiry polygon areas
+ * @returns {Style}
+ */
+export function createInquiryPolygonStyle() {
+	return new Style({
+		fill: new Fill({ color: 'rgba(59, 130, 246, 0.15)' }),
+		stroke: new Stroke({ color: INQUIRY_COLOR, width: 2 })
+	});
+}
+
+/**
+ * Creates a style for the active drawing interaction on inquiry polygons
+ * @returns {Style}
+ */
+export function createInquiryDrawingStyle() {
+	return new Style({
+		fill: new Fill({ color: 'rgba(59, 130, 246, 0.1)' }),
+		stroke: new Stroke({ color: INQUIRY_COLOR, width: 2, lineDash: [6, 4] })
+	});
+}
+
+/**
+ * Creates a style for highlighted features intersecting inquiry polygons
+ * @returns {Style}
+ */
+export function createInquiryHighlightStyle() {
+	return new Style({
+		fill: new Fill({ color: 'rgba(251, 191, 36, 0.4)' }),
+		stroke: new Stroke({ color: INQUIRY_HIGHLIGHT_COLOR, width: 3 })
+	});
+}
+
+/**
+ * Creates a style for highlighted point features intersecting inquiry polygons
+ * @returns {Style}
+ */
+export function createInquiryHighlightPointStyle() {
+	return new Style({
+		image: new CircleStyle({
+			radius: 6,
+			fill: new Fill({ color: 'rgba(251, 191, 36, 0.6)' }),
+			stroke: new Stroke({ color: INQUIRY_HIGHLIGHT_COLOR, width: 2 })
+		})
+	});
+}
+
+/**
+ * Creates a style function for inquiry polygons with name labels
+ * @param {Object} [labelOptions={}] - Label configuration options
+ * @param {number} [labelOptions.minResolution=5.0] - Minimum resolution to show labels
+ * @param {Object} [labelOptions.textStyle] - Custom text style options
+ * @returns {import('ol/style/Style').StyleFunction}
+ */
+export function createInquiryPolygonStyleWithLabels(labelOptions = {}) {
+	const { minResolution = 5.0, textStyle = {} } = labelOptions;
+
+	const geometryStyle = createInquiryPolygonStyle();
+
+	/**
+	 * @param {import('ol/Feature').FeatureLike} feature
+	 * @param {number} resolution
+	 */
+	return function (feature, resolution) {
+		const name = feature.get('name');
+		if (!name || resolution >= minResolution) return geometryStyle;
+
+		const labelStyle = new Style({
+			text: createTextStyle({
+				text: String(name),
+				offsetX: 0,
+				offsetY: 0,
+				font: '13px Calibri,sans-serif',
+				fillColor: '#1e40af',
+				strokeColor: '#ffffff',
+				strokeWidth: 3,
+				...textStyle
+			})
+		});
+
+		return [geometryStyle, labelStyle];
+	};
+}

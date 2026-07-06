@@ -5,30 +5,32 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { InquiryDrawManager } from './InquiryDrawManager.svelte.js';
 
 function createMockMap() {
+	/** @type {any[]} */
 	const interactions = [];
+	/** @type {any[]} */
 	const layers = [];
 
-	return {
+	return /** @type {any} */ ({
 		interactions,
 		layers,
-		addInteraction: vi.fn((interaction) => interactions.push(interaction)),
-		removeInteraction: vi.fn((interaction) => {
+		addInteraction: vi.fn((/** @type {any} */ interaction) => interactions.push(interaction)),
+		removeInteraction: vi.fn((/** @type {any} */ interaction) => {
 			const idx = interactions.indexOf(interaction);
 			if (idx >= 0) interactions.splice(idx, 1);
 		}),
-		addLayer: vi.fn((layer) => layers.push(layer)),
-		removeLayer: vi.fn((layer) => {
+		addLayer: vi.fn((/** @type {any} */ layer) => layers.push(layer)),
+		removeLayer: vi.fn((/** @type {any} */ layer) => {
 			const idx = layers.indexOf(layer);
 			if (idx >= 0) layers.splice(idx, 1);
 		}),
 		getView: vi.fn(() => ({
 			getProjection: vi.fn(() => 'EPSG:25832')
 		}))
-	};
+	});
 }
 
 function createMockTileSource() {
-	return {
+	return /** @type {any} */ ({
 		type: 'mockTileSource',
 		addEventListener: vi.fn(),
 		removeEventListener: vi.fn(),
@@ -39,13 +41,13 @@ function createMockTileSource() {
 		getState: vi.fn(() => 'ready'),
 		getRevision: vi.fn(() => 0),
 		changed: vi.fn()
-	};
+	});
 }
 
 function createMockParentLayer(visible = true) {
-	return {
+	return /** @type {any} */ ({
 		getVisible: vi.fn(() => visible)
-	};
+	});
 }
 
 describe('InquiryDrawManager', () => {
@@ -194,7 +196,7 @@ describe('InquiryDrawManager highlight overlays', () => {
 
 		// Spy on the highlight layers' changed method
 		const highlightLayers = mockMap.layers.filter(
-			(l) => l !== mockMap.layers[0] // skip polygon layer
+			(/** @type {any} */ l) => l !== mockMap.layers[0]
 		);
 		for (const layer of highlightLayers) {
 			vi.spyOn(layer, 'changed');
@@ -260,7 +262,7 @@ describe('InquiryDrawManager polygon geometry cache', () => {
 		const polygon = new Polygon(coords);
 		const feature = new Feature({ geometry: polygon });
 
-		manager._polygonSource.addFeature(feature);
+		/** @type {any} */ (manager)._polygonSource.addFeature(feature);
 		manager.updatePolygonGeometryCache();
 
 		expect(manager._polygonGeometries).toHaveLength(1);
@@ -268,7 +270,7 @@ describe('InquiryDrawManager polygon geometry cache', () => {
 	});
 
 	test('clearHighlights empties the polygon geometry cache', () => {
-		manager._polygonGeometries = [{}]; // simulate cached geometry
+		/** @type {any} */ (manager)._polygonGeometries = [{}]; // simulate cached geometry
 		manager.clearHighlights();
 		expect(manager._polygonGeometries).toEqual([]);
 	});
@@ -302,13 +304,167 @@ describe('InquiryDrawManager removePolygonByUuid', () => {
 		const f2 = new Feature({ geometry: new Polygon(coords) });
 		f2.set('uuid', 'bbb');
 
-		manager._polygonSource.addFeatures([f1, f2]);
-		expect(manager._polygonSource.getFeatures()).toHaveLength(2);
+		/** @type {any} */ (manager)._polygonSource.addFeatures([f1, f2]);
+		expect(/** @type {any} */ (manager)._polygonSource.getFeatures()).toHaveLength(2);
 
 		manager.removePolygonByUuid('aaa');
 
-		const remaining = manager._polygonSource.getFeatures();
+		const remaining = /** @type {any} */ (manager)._polygonSource.getFeatures();
 		expect(remaining).toHaveLength(1);
 		expect(remaining[0].get('uuid')).toBe('bbb');
+	});
+});
+
+describe('InquiryDrawManager polygon label style', () => {
+	/** @type {InquiryDrawManager} */
+	let manager;
+
+	beforeEach(() => {
+		manager = new InquiryDrawManager();
+		const mockMap = createMockMap();
+		manager.initialize(mockMap);
+	});
+
+	afterEach(() => {
+		manager.cleanup();
+	});
+
+	test('polygon layer uses a style function, not a static style', () => {
+		const style = /** @type {any} */ (manager)._polygonLayer.getStyle();
+		expect(typeof style).toBe('function');
+	});
+
+	test('style function returns label when feature has name and resolution is low', () => {
+		const styleFn = /** @type {any} */ (manager)._polygonLayer.getStyle();
+		const feature = new Feature({
+			geometry: new Polygon([
+				[
+					[0, 0],
+					[1, 0],
+					[1, 1],
+					[0, 0]
+				]
+			])
+		});
+		feature.set('name', 'Test Area');
+
+		const result = styleFn(feature, 2.0);
+
+		expect(Array.isArray(result)).toBe(true);
+		expect(result).toHaveLength(2);
+		expect(result[1].getText()).toBeTruthy();
+		expect(result[1].getText().getText()).toBe('Test Area');
+	});
+
+	test('style function returns single style when feature has no name', () => {
+		const styleFn = /** @type {any} */ (manager)._polygonLayer.getStyle();
+		const feature = new Feature({
+			geometry: new Polygon([
+				[
+					[0, 0],
+					[1, 0],
+					[1, 1],
+					[0, 0]
+				]
+			])
+		});
+
+		const result = styleFn(feature, 2.0);
+
+		expect(Array.isArray(result)).toBe(false);
+	});
+
+	test('style function returns single style when resolution is too high', () => {
+		const styleFn = /** @type {any} */ (manager)._polygonLayer.getStyle();
+		const feature = new Feature({
+			geometry: new Polygon([
+				[
+					[0, 0],
+					[1, 0],
+					[1, 1],
+					[0, 0]
+				]
+			])
+		});
+		feature.set('name', 'Test Area');
+
+		const result = styleFn(feature, 10.0);
+
+		expect(Array.isArray(result)).toBe(false);
+	});
+});
+
+describe('InquiryDrawManager editing interaction', () => {
+	/** @type {InquiryDrawManager} */
+	let manager;
+	/** @type {ReturnType<typeof createMockMap>} */
+	let mockMap;
+
+	beforeEach(() => {
+		manager = new InquiryDrawManager();
+		mockMap = createMockMap();
+		manager.initialize(mockMap);
+	});
+
+	afterEach(() => {
+		manager.cleanup();
+	});
+
+	test('initial state is not editing', () => {
+		expect(manager.isEditing).toBe(false);
+	});
+
+	test('startEditing sets isEditing', () => {
+		manager.startEditing(() => {});
+		expect(manager.isEditing).toBe(true);
+	});
+
+	test('startEditing adds Modify interaction to map', () => {
+		manager.startEditing(() => {});
+		expect(mockMap.addInteraction).toHaveBeenCalled();
+	});
+
+	test('stopEditing resets isEditing', () => {
+		manager.startEditing(() => {});
+		manager.stopEditing();
+		expect(manager.isEditing).toBe(false);
+	});
+
+	test('stopEditing removes interaction from map', () => {
+		manager.startEditing(() => {});
+		manager.stopEditing();
+		expect(mockMap.removeInteraction).toHaveBeenCalled();
+	});
+
+	test('startEditing does nothing without initialization', () => {
+		const uninitManager = new InquiryDrawManager();
+		uninitManager.startEditing(() => {});
+		expect(uninitManager.isEditing).toBe(false);
+	});
+
+	test('startDrawing stops active editing', () => {
+		manager.startEditing(() => {});
+		expect(manager.isEditing).toBe(true);
+
+		manager.startDrawing(() => {});
+		expect(manager.isEditing).toBe(false);
+		expect(manager.isDrawing).toBe(true);
+	});
+
+	test('startEditing stops active drawing', () => {
+		manager.startDrawing(() => {});
+		expect(manager.isDrawing).toBe(true);
+
+		manager.startEditing(() => {});
+		expect(manager.isDrawing).toBe(false);
+		expect(manager.isEditing).toBe(true);
+	});
+
+	test('cleanup stops editing', () => {
+		manager.startEditing(() => {});
+		expect(manager.isEditing).toBe(true);
+
+		manager.cleanup();
+		expect(manager.isEditing).toBe(false);
 	});
 });
