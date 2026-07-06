@@ -4644,8 +4644,7 @@ def _address_feature(obj):
         "uuid": str(obj.uuid),
         "id_address": obj.id_address,
         "address": (
-            f"{obj.street} {obj.housenumber}{suffix}, "
-            f"{obj.zip_code} {obj.city}"
+            f"{obj.street} {obj.housenumber}{suffix}, {obj.zip_code} {obj.city}"
         ),
         "district": obj.district,
         "status_development": _fk_str(obj, "status_development"),
@@ -4772,9 +4771,7 @@ def _build_qlr(layer_names):
     crs_description = crs.name
 
     root = ET.Element("qlr")
-    tree_root = ET.SubElement(
-        root, "layer-tree-group", name="", checked="Qt::Checked"
-    )
+    tree_root = ET.SubElement(root, "layer-tree-group", name="", checked="Qt::Checked")
 
     standalone_order = ["nodes", "addresses", "trenches", "areas"]
 
@@ -4856,7 +4853,7 @@ def _build_qlr(layer_names):
             "Line": "SimpleLine",
             "Polygon": "SimpleFill",
         }.get(style["geom_type"], "SimpleLine")
-        sym_layer = ET.SubElement(symbol, "layer", **{"class": layer_class})
+        sym_layer = ET.SubElement(symbol, "layer", attrib={"class": layer_class})
         option_map = ET.SubElement(sym_layer, "Option", type="Map")
 
         color_key = {
@@ -4923,36 +4920,63 @@ def build_inquiry_export_zip(pipeline_record_uuid):
     )
 
     layer_queries = {
-        "trenches": Trench.objects.filter(
-            geom__intersects=union_geom
-        ).select_related(
-            "surface", "construction_type", "status", "phase",
-            "owner", "constructor", "project", "flag",
+        "trenches": Trench.objects.filter(geom__intersects=union_geom).select_related(
+            "surface",
+            "construction_type",
+            "status",
+            "phase",
+            "owner",
+            "constructor",
+            "project",
+            "flag",
         ),
-        "nodes": Node.objects.filter(
-            geom__intersects=union_geom
-        ).select_related(
-            "node_type", "status", "network_level",
-            "owner", "constructor", "manufacturer", "project", "flag",
+        "nodes": Node.objects.filter(geom__intersects=union_geom).select_related(
+            "node_type",
+            "status",
+            "network_level",
+            "owner",
+            "constructor",
+            "manufacturer",
+            "project",
+            "flag",
         ),
-        "addresses": Address.objects.filter(
-            geom__intersects=union_geom
-        ).select_related(
-            "status_development", "project", "flag",
+        "addresses": Address.objects.filter(geom__intersects=union_geom).select_related(
+            "status_development",
+            "project",
+            "flag",
         ),
         "conduits": Conduit.objects.filter(
             trenchconduitconnection__uuid_trench__geom__intersects=union_geom
-        ).distinct().select_related(
-            "conduit_type", "status", "network_level",
-            "owner", "constructor", "manufacturer", "project", "flag",
-        ).prefetch_related(trench_conn_prefetch),
+        )
+        .distinct()
+        .select_related(
+            "conduit_type",
+            "status",
+            "network_level",
+            "owner",
+            "constructor",
+            "manufacturer",
+            "project",
+            "flag",
+        )
+        .prefetch_related(trench_conn_prefetch),
         "cables": Cable.objects.filter(
             microductcableconnection__uuid_microduct__uuid_conduit__trenchconduitconnection__uuid_trench__geom__intersects=union_geom
-        ).distinct().select_related(
-            "cable_type", "status", "network_level",
-            "owner", "constructor", "manufacturer",
-            "uuid_node_start", "uuid_node_end", "project", "flag",
-        ).prefetch_related(
+        )
+        .distinct()
+        .select_related(
+            "cable_type",
+            "status",
+            "network_level",
+            "owner",
+            "constructor",
+            "manufacturer",
+            "uuid_node_start",
+            "uuid_node_end",
+            "project",
+            "flag",
+        )
+        .prefetch_related(
             Prefetch(
                 "microductcableconnection_set",
                 queryset=MicroductCableConnection.objects.select_related(
@@ -4967,14 +4991,18 @@ def build_inquiry_export_zip(pipeline_record_uuid):
                 ),
             )
         ),
-        "areas": Area.objects.filter(
-            geom__intersects=union_geom
-        ).select_related("area_type", "project", "flag"),
+        "areas": Area.objects.filter(geom__intersects=union_geom).select_related(
+            "area_type", "project", "flag"
+        ),
         "microducts": Microduct.objects.filter(
             uuid_conduit__trenchconduitconnection__uuid_trench__geom__intersects=union_geom
-        ).distinct().select_related(
-            "uuid_conduit", "microduct_status",
-        ).prefetch_related(
+        )
+        .distinct()
+        .select_related(
+            "uuid_conduit",
+            "microduct_status",
+        )
+        .prefetch_related(
             Prefetch(
                 "uuid_conduit__trenchconduitconnection_set",
                 queryset=TrenchConduitConnection.objects.select_related("uuid_trench"),
