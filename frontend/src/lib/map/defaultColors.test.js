@@ -62,7 +62,7 @@ describe('NODE_TYPE_DEFAULTS', () => {
 			'MFG',
 			'Muffe',
 			'NVt 48',
-			'PoP',
+			'POP',
 			'Rohrabzweig',
 			'Schacht'
 		];
@@ -88,7 +88,7 @@ describe('NODE_TYPE_DEFAULTS', () => {
 	});
 
 	test('PoP and MFG share the same red color', () => {
-		expect(NODE_TYPE_DEFAULTS['PoP'].color).toBe('#ff0000');
+		expect(NODE_TYPE_DEFAULTS['POP'].color).toBe('#ff0000');
 		expect(NODE_TYPE_DEFAULTS['MFG'].color).toBe('#ff0000');
 	});
 
@@ -102,7 +102,7 @@ describe('NODE_TYPE_DEFAULTS', () => {
 describe('getNodeTypeDefault', () => {
 	test('returns specific defaults for known node types', () => {
 		expect(getNodeTypeDefault('Muffe')).toEqual({ color: '#00ffe1', size: 12, shape: 'square' });
-		expect(getNodeTypeDefault('PoP')).toEqual({ color: '#ff0000', size: 22, shape: 'square' });
+		expect(getNodeTypeDefault('POP')).toEqual({ color: '#ff0000', size: 22, shape: 'square' });
 		expect(getNodeTypeDefault('Hausanschluss')).toEqual({
 			color: '#ff6b35',
 			size: 6,

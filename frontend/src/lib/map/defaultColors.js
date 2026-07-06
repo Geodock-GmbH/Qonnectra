@@ -33,7 +33,7 @@ export const NODE_TYPE_DEFAULTS = {
 	MFG: { color: '#ff0000', size: 16, shape: 'square' },
 	Muffe: { color: '#00ffe1', size: 12, shape: 'square' },
 	'NVt 48': { color: '#006eff', size: 16, shape: 'square' },
-	PoP: { color: '#ff0000', size: 22, shape: 'square' },
+	POP: { color: '#ff0000', size: 22, shape: 'square' },
 	Rohrabzweig: { color: '#11ff00', size: 12, shape: 'square' },
 	Schacht: { color: '#00ffe1', size: 12, shape: 'square' }
 };
