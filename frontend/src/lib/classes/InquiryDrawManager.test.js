@@ -2,7 +2,7 @@ import Feature from 'ol/Feature';
 import Polygon from 'ol/geom/Polygon';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { InquiryDrawManager } from './InquiryDrawManager.svelte.js';
+import { InquiryDrawManager } from '$lib/classes/InquiryDrawManager.svelte.js';
 
 function createMockMap() {
 	/** @type {any[]} */

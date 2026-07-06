@@ -8,14 +8,15 @@
 		IconArrowLeft,
 		IconEdit,
 		IconEditOff,
-		IconPencil,
 		IconPencilOff,
+		IconPolygon,
 		IconTrash
 	} from '@tabler/icons-svelte';
 	import GeoJSON from 'ol/format/GeoJSON.js';
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { InquiryDrawManager } from '$lib/classes/InquiryDrawManager.svelte.js';
 	import { MapState } from '$lib/classes/MapState.svelte.js';
 	import Map from '$lib/components/Map.svelte';
 	import MapHint from '$lib/components/MapHint.svelte';
@@ -33,9 +34,9 @@
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { tooltip } from '$lib/utils/tooltip.js';
 
 	import { createInquiryContext } from './inquiryContext.svelte.js';
-	import { InquiryDrawManager } from './InquiryDrawManager.svelte.js';
 
 	let { data } = $props();
 
@@ -431,7 +432,7 @@
 </svelte:head>
 
 <div class="flex flex-col h-full overflow-hidden gap-3">
-	<div class="flex items-center justify-between">
+	<div class="flex items-center">
 		<button
 			type="button"
 			class="btn preset-tonal-surface inline-flex items-center gap-2"
@@ -440,44 +441,6 @@
 			<IconArrowLeft class="size-4 shrink-0" />
 			<span>{m.common_back()}</span>
 		</button>
-
-		<div class="flex items-center gap-3">
-			{#if ctx.polygons.length > 0}
-				<button
-					type="button"
-					class="btn inline-flex items-center gap-2 {ctx.isEditing
-						? 'preset-filled-warning-500'
-						: 'preset-filled-surface'}"
-					disabled={ctx.isSaving || ctx.isDrawing}
-					onclick={toggleEditing}
-				>
-					{#if ctx.isEditing}
-						<IconEditOff class="size-4 shrink-0" />
-						<span>{m.action_stop_editing()}</span>
-					{:else}
-						<IconEdit class="size-4 shrink-0" />
-						<span>{m.action_edit_polygon()}</span>
-					{/if}
-				</button>
-			{/if}
-
-			<button
-				type="button"
-				class="btn inline-flex items-center gap-2 {ctx.isDrawing
-					? 'preset-filled-warning-500'
-					: 'preset-filled-primary-500'}"
-				disabled={ctx.isSaving || ctx.isEditing}
-				onclick={toggleDrawing}
-			>
-				{#if ctx.isDrawing}
-					<IconPencilOff class="size-4 shrink-0" />
-					<span>{m.action_stop_drawing()}</span>
-				{:else}
-					<IconPencil class="size-4 shrink-0" />
-					<span>{m.action_draw_polygon()}</span>
-				{/if}
-			</button>
-		</div>
 	</div>
 
 	{#if !data.recordExists}
@@ -505,6 +468,52 @@
 							{constructionTypes}
 							{areaTypes}
 						/>
+
+						<div class="absolute top-16 left-4 z-10 flex flex-col gap-1">
+							<button
+								type="button"
+								class="w-9 h-9 rounded-md flex items-center justify-center transition-all shadow-sm
+									{ctx.isDrawing
+									? 'bg-warning-500 text-white'
+									: 'bg-surface-50-950 border border-surface-200-800 text-surface-600-400 hover:bg-surface-200-800'}"
+								disabled={ctx.isSaving || ctx.isEditing}
+								title={ctx.isDrawing ? m.action_stop_drawing() : m.action_draw_polygon()}
+								{@attach tooltip(
+									ctx.isDrawing ? m.action_stop_drawing() : m.action_draw_polygon(),
+									{ position: 'right' }
+								)}
+								onclick={toggleDrawing}
+							>
+								{#if ctx.isDrawing}
+									<IconPencilOff class="size-4" />
+								{:else}
+									<IconPolygon class="size-4" />
+								{/if}
+							</button>
+
+							{#if ctx.polygons.length > 0}
+								<button
+									type="button"
+									class="w-9 h-9 rounded-md flex items-center justify-center transition-all shadow-sm
+										{ctx.isEditing
+										? 'bg-warning-500 text-white'
+										: 'bg-surface-50-950 border border-surface-200-800 text-surface-600-400 hover:bg-surface-200-800'}"
+									disabled={ctx.isSaving || ctx.isDrawing}
+									title={ctx.isEditing ? m.action_stop_editing() : m.action_edit_polygon()}
+									onclick={toggleEditing}
+									{@attach tooltip(
+										ctx.isEditing ? m.action_stop_editing() : m.action_edit_polygon(),
+										{ position: 'right' }
+									)}
+								>
+									{#if ctx.isEditing}
+										<IconEditOff class="size-4" />
+									{:else}
+										<IconEdit class="size-4" />
+									{/if}
+								</button>
+							{/if}
+						</div>
 
 						<MapHint
 							message={m.message_inquiry_draw_hint()}
