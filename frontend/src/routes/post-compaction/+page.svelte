@@ -1,4 +1,5 @@
 <script>
+	import { untrack } from 'svelte';
 	import { get } from 'svelte/store';
 	import { slide } from 'svelte/transition';
 	import { deserialize } from '$app/forms';
@@ -167,8 +168,8 @@
 			const geoJsonFormat = new GeoJSON();
 			const trenchFeatures = linkedTrenchGeometries
 				.filter((/** @type {any} */ f) => f.geometry)
-				.map((/** @type {any} */ f) =>
-					geoJsonFormat.readFeature(f, {
+				.flatMap((/** @type {any} */ f) =>
+					geoJsonFormat.readFeatures(f, {
 						dataProjection: 'EPSG:3857',
 						featureProjection: 'EPSG:3857'
 					})
@@ -294,6 +295,11 @@
 		searchQuery = '';
 		searchResults = [];
 	}
+
+	$effect(() => {
+		$selectedProject;
+		untrack(clearSelection);
+	});
 </script>
 
 <svelte:head>

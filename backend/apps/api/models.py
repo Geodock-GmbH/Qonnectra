@@ -1,6 +1,7 @@
 import logging
 import os
 import uuid
+from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -195,7 +196,7 @@ class ValuationCostRate(models.Model):
         _("Amount"),
         max_digits=14,
         decimal_places=2,
-        default=0,
+        default=Decimal("0"),
     )
     unit = models.CharField(
         _("Unit"),
