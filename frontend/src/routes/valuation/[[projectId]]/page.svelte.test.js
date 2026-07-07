@@ -2,6 +2,8 @@ import { tick } from 'svelte';
 import { render } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import Page from './+page.svelte';
+
 const {
 	mockReinitializeForProject,
 	mockReinitializeForGlobalView,
@@ -115,8 +117,7 @@ vi.mock('$app/state', () => ({
 	page: {
 		data: {
 			srid: 25832,
-			proj4Def:
-				'+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs'
+			proj4Def: '+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs'
 		},
 		params: { projectId: '1' },
 		url: { pathname: '/valuation/1' }
@@ -214,8 +215,6 @@ vi.mock('$lib/stores/toaster', () => ({
 
 global.fetch = /** @type {any} */ (vi.fn(() => Promise.resolve({ ok: false })));
 
-import Page from './+page.svelte';
-
 const defaultData = {
 	projectId: '1',
 	areas: [],
@@ -311,5 +310,46 @@ describe('Valuation Page - Global map view', () => {
 		await tick();
 
 		expect(mockMapStateCtorCapture.args[4]).toBe(true);
+	});
+
+	it('should fetch global areas and rates when globalMapView is activated', async () => {
+		const globalAreaResponse = {
+			results: {
+				features: [
+					{
+						id: 'global-area-1',
+						properties: { name: 'Global Area', area_type: { area_type: 'Type B' } },
+						geometry: null
+					}
+				]
+			}
+		};
+		const globalRatesResponse = { results: [{ name: 'Rate 1', amount: 100 }] };
+
+		/** @type {any} */ (fetch).mockImplementation((/** @type {string} */ url) => {
+			if (url.includes('area/')) {
+				return Promise.resolve({ ok: true, json: () => Promise.resolve(globalAreaResponse) });
+			}
+			if (url.includes('valuation-rates')) {
+				return Promise.resolve({ ok: true, json: () => Promise.resolve(globalRatesResponse) });
+			}
+			return Promise.resolve({ ok: false });
+		});
+
+		const { container } = render(Page, { data: defaultData });
+		await tick();
+
+		mockStores.globalMapView.set(true);
+		await tick();
+		await tick();
+
+		expect(fetch).toHaveBeenCalledWith(
+			expect.stringContaining('area/?page_size=100'),
+			expect.objectContaining({ credentials: 'include' })
+		);
+		expect(fetch).toHaveBeenCalledWith(
+			expect.stringContaining('valuation-rates/'),
+			expect.objectContaining({ credentials: 'include' })
+		);
 	});
 });

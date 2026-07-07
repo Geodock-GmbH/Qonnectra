@@ -5,6 +5,7 @@
 	import { deserialize } from '$app/forms';
 	import { page } from '$app/state';
 	import { IconCalculator, IconChevronDown, IconChevronRight } from '@tabler/icons-svelte';
+	import { PUBLIC_API_URL } from '$env/static/public';
 	import GeoJSON from 'ol/format/GeoJSON.js';
 	import VectorLayer from 'ol/layer/Vector.js';
 	import VectorSource from 'ol/source/Vector.js';
@@ -34,12 +35,20 @@
 
 	let { data } = $props();
 
-	const areas = $derived(
+	/** @type {Array<{uuid: string, name: string, areaType: string | null, geom: any}> | null} */
+	let globalAreas = $state(null);
+	/** @type {any[] | null} */
+	let globalRates = $state(null);
+
+	const projectAreas = $derived(
 		/** @type {Array<{uuid: string, name: string, areaType: string | null, geom: any}>} */ (
 			data.areas ?? []
 		)
 	);
-	const rates = $derived(/** @type {any[]} */ (data.rates ?? []));
+	const projectRates = $derived(/** @type {any[]} */ (data.rates ?? []));
+
+	const areas = $derived($globalMapView && globalAreas ? globalAreas : projectAreas);
+	const rates = $derived($globalMapView && globalRates ? globalRates : projectRates);
 	const nodeTypes = $derived(/** @type {any[]} */ (data.nodeTypes ?? []));
 	const surfaces = $derived(/** @type {any[]} */ (data.surfaces ?? []));
 	const constructionTypes = $derived(/** @type {any[]} */ (data.constructionTypes ?? []));
@@ -51,6 +60,42 @@
 	 */
 	function unitLabel(unit) {
 		return unit === 'per_meter' ? m.valuation_unit_per_meter() : m.valuation_unit_per_piece();
+	}
+
+	async function fetchGlobalData() {
+		try {
+			const [areasRes, ratesRes] = await Promise.all([
+				fetch(`${PUBLIC_API_URL}area/?page_size=100`, { credentials: 'include' }),
+				fetch(`${PUBLIC_API_URL}valuation-rates/`, { credentials: 'include' })
+			]);
+
+			if (areasRes.ok) {
+				const areasData = await areasRes.json();
+				const features =
+					areasData?.results?.features ??
+					areasData?.features ??
+					areasData?.results ??
+					areasData ??
+					[];
+				globalAreas = (Array.isArray(features) ? features : []).map((/** @type {any} */ a) => ({
+					uuid: a.id ?? a.properties?.uuid ?? a.uuid,
+					name: a.properties?.name ?? a.name,
+					areaType: a.properties?.area_type?.area_type ?? null,
+					geom: a.geometry ?? null
+				}));
+			}
+
+			if (ratesRes.ok) {
+				const ratesData = await ratesRes.json();
+				globalRates = ratesData?.results ?? ratesData ?? [];
+				if (!Array.isArray(globalRates)) globalRates = [];
+			}
+		} catch (/** @type {any} */ err) {
+			globalToaster.error({
+				title: m.common_error(),
+				description: err.message
+			});
+		}
 	}
 
 	const mapState = new MapState(
@@ -121,6 +166,17 @@
 		const isGlobal = $globalMapView;
 		untrack(() => {
 			mapState.reinitializeForGlobalView(isGlobal);
+			selectedAreaUuids.clear();
+			gesamt = true;
+			result = null;
+			renderHighlight();
+
+			if (isGlobal) {
+				fetchGlobalData();
+			} else {
+				globalAreas = null;
+				globalRates = null;
+			}
 		});
 	});
 

@@ -18,7 +18,14 @@ export async function load({ fetch, cookies }) {
 	const headers = getAuthHeaders(cookies);
 	const projectId = cookies.get('selected-project') || '1';
 
-	const [areasResponse, ratesResponse, nodeTypesData, surfacesData, constructionTypesData, areaTypesData] = await Promise.all([
+	const [
+		areasResponse,
+		ratesResponse,
+		nodeTypesData,
+		surfacesData,
+		constructionTypesData,
+		areaTypesData
+	] = await Promise.all([
 		fetch(`${API_URL}area/?project=${projectId}`, { credentials: 'include', headers }),
 		fetch(`${API_URL}valuation-rates/?project=${projectId}`, {
 			credentials: 'include',
