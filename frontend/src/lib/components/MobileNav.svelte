@@ -147,12 +147,6 @@
 			label: () => m.nav_fiber_trace(),
 			icon: IconSTurnRight,
 			pathMatch: (/** @type {string} */ path) => path.startsWith('/trace')
-		},
-		{
-			href: '/fault-simulation',
-			label: () => m.nav_fault_simulation(),
-			icon: IconAlertTriangle,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/fault-simulation')
 		}
 	];
 

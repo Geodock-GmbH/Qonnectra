@@ -7,7 +7,7 @@
 
 {#if visible}
 	<div
-		class="absolute top-4.5 left-1/2 -translate-x-1/2 z-10 pointer-events-none
+		class="absolute bottom-4.5 left-1/2 -translate-x-1/2 z-10 pointer-events-none
 			flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg max-w-[calc(100%-2rem)]
 			bg-surface-50-950
 			border border-surface-200-800

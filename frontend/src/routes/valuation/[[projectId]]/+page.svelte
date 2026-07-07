@@ -1,4 +1,5 @@
 <script>
+	import { untrack } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { get } from 'svelte/store';
 	import { deserialize } from '$app/forms';
@@ -13,11 +14,11 @@
 
 	import { MapState } from '$lib/classes/MapState.svelte.js';
 	import Map from '$lib/components/Map.svelte';
-	import MapHint from '$lib/components/MapHint.svelte';
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 	import {
 		addressStyle,
 		areaTypeStyles,
+		globalMapView,
 		labelVisibilityConfig,
 		nodeTypeStyles,
 		selectedProject,
@@ -52,12 +53,13 @@
 		return unit === 'per_meter' ? m.valuation_unit_per_meter() : m.valuation_unit_per_piece();
 	}
 
-	const mapState = new MapState($selectedProject, get(trenchColorSelected), {
-		trench: true,
-		address: true,
-		node: true,
-		area: true
-	});
+	const mapState = new MapState(
+		$selectedProject,
+		get(trenchColorSelected),
+		{ trench: true, address: true, node: true, area: true },
+		null,
+		get(globalMapView)
+	);
 	const layersInitialized = mapState.initializeLayers();
 
 	/** @type {import('ol/Map').default | null} */
@@ -104,6 +106,22 @@
 	const highlightStyle = new Style({
 		stroke: new Stroke({ color: '#f59e0b', width: 3 }),
 		fill: new Fill({ color: 'rgba(245, 158, 11, 0.15)' })
+	});
+
+	$effect(() => {
+		const currentProject = $selectedProject;
+		untrack(() => {
+			if (currentProject !== mapState.selectedProject) {
+				mapState.reinitializeForProject(currentProject);
+			}
+		});
+	});
+
+	$effect(() => {
+		const isGlobal = $globalMapView;
+		untrack(() => {
+			mapState.reinitializeForGlobalView(isGlobal);
+		});
 	});
 
 	$effect(() => {
@@ -180,6 +198,29 @@
 		highlightLayer = new VectorLayer({ source, style: highlightStyle, zIndex: 90 });
 		map.addLayer(highlightLayer);
 		renderHighlight();
+	}
+
+	/** @param {import('ol/MapBrowserEvent').default} e */
+	function handleMapClick(e) {
+		if (!olMap) return;
+		const areaLayer = mapState.getLayerReferences().areaLayer;
+		if (!areaLayer) return;
+
+		/** @type {string | undefined} */
+		let clickedUuid;
+		olMap.forEachFeatureAtPixel(
+			e.pixel,
+			(feature) => {
+				const id = feature.getId();
+				if (id) clickedUuid = String(id);
+				return true;
+			},
+			{ layerFilter: (layer) => layer === areaLayer, hitTolerance: 5 }
+		);
+
+		if (clickedUuid && areas.some((a) => a.uuid === clickedUuid)) {
+			toggleArea(clickedUuid);
+		}
 	}
 
 	/** Draws the outlines of the currently selected areas on the map. */
@@ -279,12 +320,12 @@
 					showLayerVisibilityTree={true}
 					showSearchPanel={true}
 					onready={handleMapReady}
+					onclick={handleMapClick}
 					{nodeTypes}
 					{surfaces}
 					{constructionTypes}
 					{areaTypes}
 				/>
-				<MapHint message={m.message_valuation()} />
 			{/if}
 		</div>
 
