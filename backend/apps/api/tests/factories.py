@@ -45,6 +45,7 @@ from apps.api.models import (
     Trench,
     TrenchConduitCanvas,
     TrenchConduitConnection,
+    ValuationCostRate,
     WMSLayer,
     WMSSource,
 )
@@ -526,3 +527,24 @@ class PipelineInquiryAreaFactory(factory.django.DjangoModelFactory):
     geom = factory.LazyAttribute(
         lambda o: "POLYGON((0 0, 100 0, 100 100, 0 100, 0 0))"
     )
+
+
+class ValuationCostRateFactory(factory.django.DjangoModelFactory):
+    """Factory for ValuationCostRate model."""
+
+    class Meta:
+        model = ValuationCostRate
+        skip_postgeneration_save = True
+
+    project = factory.SubFactory(ProjectFactory)
+    name = factory.Sequence(lambda n: f"Rate {n}")
+    amount = 1000
+    unit = ValuationCostRate.Unit.PER_PIECE
+    is_house_connection = False
+
+    @factory.post_generation
+    def node_types(self, create, extracted, **kwargs):
+        """Attach the passed node types to the rate's M2M field."""
+        if not create or not extracted:
+            return
+        self.node_types.add(*extracted)

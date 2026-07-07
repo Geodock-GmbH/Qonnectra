@@ -34,7 +34,7 @@
 		}
 	}
 
-	let isMapRoute = $derived(page.url.pathname.startsWith('/map'));
+	let isMapRoute = $derived(['/map', '/valuation'].some((p) => page.url.pathname.startsWith(p)));
 </script>
 
 <div>

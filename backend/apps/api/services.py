@@ -50,6 +50,7 @@ from .models import (
     StoragePreferences,
     Trench,
     TrenchConduitConnection,
+    ValuationCostRate,
 )
 from .routing import find_path_through_trenches
 from .storage import LocalMediaStorage
@@ -5084,3 +5085,175 @@ def build_inquiry_export_zip(pipeline_record_uuid):
 
     buf.seek(0)
     return buf
+
+
+def calculate_valuation(
+    project_id,
+    area_uuids=None,
+    base_year=None,
+    annual_correction=None,
+    projection_years=22,
+):
+    """Compute the Wertermittlung (valuation) for a project and optional area.
+
+    Multiplies per-project :model:`api.ValuationCostRate` rows by the quantities
+    found in the selected area. A ``per_meter`` row is multiplied by the summed
+    :model:`api.Trench` length (clipped to the area when one is given); a
+    ``per_piece`` row is multiplied by the count of :model:`api.Node` records
+    whose node type is linked to that row. Also computes the two KPIs (the
+    "cost per house connection" divides by the count from rows flagged
+    ``is_house_connection``) and, when a base year and yearly correction are
+    supplied, a per-year future-value projection.
+
+    Args:
+        project_id: Primary key of the :model:`api.Projects` to calculate for.
+        area_uuids (list | None): UUIDs of :model:`api.Area` polygons to restrict
+            the calculation to. ``None`` or empty means "Gesamt" (whole project).
+        base_year (int | None): Build-completion year for the projection.
+        annual_correction (float | None): Yearly correction as a fraction
+            (e.g. ``0.025`` for +2.5 %). Negative values model depreciation.
+        projection_years (int): Number of years (including the base year) to
+            project when ``base_year`` and ``annual_correction`` are given.
+
+    Returns:
+        dict: ``categories`` (list of ``{name, unit, amount, quantity, gp,
+        is_house_connection}``), ``total``, ``cost_per_house_connection``,
+        ``cost_per_meter``, and ``projection`` (list of ``{year, net_value,
+        increase}`` or ``None``).
+    """
+    from decimal import Decimal
+
+    from django.contrib.gis.db.models import Union
+
+    union_geom = None
+    if area_uuids:
+        union_geom = (
+            Area.objects.filter(project_id=project_id, uuid__in=area_uuids)
+            .aggregate(union=Union("geom"))
+            .get("union")
+        )
+
+    rates = ValuationCostRate.objects.filter(project_id=project_id).prefetch_related(
+        "node_types"
+    )
+
+    # The trench length is the same for every per-meter row, so compute it lazily
+    # once and reuse it for both those rows and the cost-per-meter KPI.
+    trench_length = None
+
+    def get_trench_length():
+        nonlocal trench_length
+        if trench_length is None:
+            trench_length = _valuation_trench_length(project_id, union_geom)
+        return trench_length
+
+    categories = []
+    total = Decimal("0")
+    house_connection_count = 0
+
+    for rate in rates:
+        if rate.unit == ValuationCostRate.Unit.PER_METER:
+            quantity = get_trench_length()
+        else:
+            quantity = _valuation_node_count(project_id, rate, union_geom)
+            if rate.is_house_connection:
+                house_connection_count += quantity
+
+        gp = rate.amount * Decimal(str(quantity))
+        total += gp
+        categories.append(
+            {
+                "name": rate.name,
+                "unit": rate.unit,
+                "amount": rate.amount,
+                "quantity": quantity,
+                "gp": gp,
+                "is_house_connection": rate.is_house_connection,
+            }
+        )
+
+    cost_per_house_connection = (
+        total / house_connection_count if house_connection_count else None
+    )
+    length_for_kpi = get_trench_length()
+    cost_per_meter = total / length_for_kpi if length_for_kpi else None
+
+    projection = None
+    if base_year is not None and annual_correction is not None:
+        projection = _valuation_projection(
+            total, int(base_year), Decimal(str(annual_correction)), projection_years
+        )
+
+    return {
+        "categories": categories,
+        "total": total,
+        "cost_per_house_connection": cost_per_house_connection,
+        "cost_per_meter": cost_per_meter,
+        "projection": projection,
+    }
+
+
+def _valuation_trench_length(project_id, union_geom):
+    """Sum trench length for a project, clipped to ``union_geom`` if given.
+
+    Returns metres. Without an area the stored ``length`` is summed; with an
+    area the length of ``ST_Intersection`` between each trench and the area is
+    summed so trenches crossing the boundary contribute only their inside part.
+    """
+    from decimal import Decimal
+
+    from django.contrib.gis.db.models.functions import Intersection, Length
+    from django.db.models import Sum
+
+    if union_geom is None:
+        result = Trench.objects.filter(project_id=project_id).aggregate(
+            total=Sum("length")
+        )
+        return Decimal(str(result["total"] or 0))
+
+    result = (
+        Trench.objects.filter(project_id=project_id, geom__intersects=union_geom)
+        .annotate(clipped=Length(Intersection("geom", union_geom)))
+        .aggregate(total=Sum("clipped"))
+    )
+    total = result["total"]
+    return Decimal(str(total.m if total is not None else 0))
+
+
+def _valuation_node_count(project_id, rate, union_geom):
+    """Count nodes for a rate's node types, restricted to ``union_geom`` if given."""
+    node_type_ids = [nt.id for nt in rate.node_types.all()]
+    if not node_type_ids:
+        return 0
+
+    queryset = Node.objects.filter(
+        project_id=project_id, node_type_id__in=node_type_ids
+    )
+    if union_geom is not None:
+        queryset = queryset.filter(geom__intersects=union_geom)
+    return queryset.count()
+
+
+def _valuation_projection(total, base_year, annual_correction, years):
+    """Build a per-year net-value projection compounding ``total``.
+
+    Each year's value is ``total * (1 + annual_correction) ** offset``. The
+    ``increase`` is the delta from the previous year (``None`` for the base year).
+    """
+    from decimal import Decimal
+
+    factor = Decimal("1") + annual_correction
+    projection = []
+    previous = None
+    for offset in range(years):
+        net_value = total * (factor**offset)
+        increase = None if previous is None else net_value - previous
+        projection.append(
+            {
+                "year": base_year + offset,
+                "net_value": net_value,
+                "increase": increase,
+            }
+        )
+        previous = net_value
+    return projection

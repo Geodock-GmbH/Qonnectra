@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 	import {
+		IconAbacus,
 		IconAiGateway,
 		IconAlertTriangle,
 		IconArrowRightToArc,
@@ -96,6 +97,12 @@
 			label: () => m.nav_pipeline_records(),
 			icon: IconMapSearch,
 			pathMatch: (/** @type {string} */ path) => path.startsWith('/pipeline-records')
+		},
+		{
+			href: '/valuation',
+			label: () => m.nav_valuation(),
+			icon: IconAbacus,
+			pathMatch: (/** @type {string} */ path) => path.startsWith('/valuation')
 		}
 	];
 
@@ -140,12 +147,6 @@
 			label: () => m.nav_fiber_trace(),
 			icon: IconSTurnRight,
 			pathMatch: (/** @type {string} */ path) => path.startsWith('/trace')
-		},
-		{
-			href: '/fault-simulation',
-			label: () => m.nav_fault_simulation(),
-			icon: IconAlertTriangle,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/fault-simulation')
 		}
 	];
 

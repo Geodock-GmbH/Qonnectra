@@ -97,6 +97,7 @@ from .models import (
     Trench,
     TrenchConduitCanvas,
     TrenchConduitConnection,
+    ValuationCostRate,
     WMSLayer,
     WMSSource,
 )
@@ -165,12 +166,15 @@ from .serializers import (
     TrenchConduitCanvasSerializer,
     TrenchConduitSerializer,
     TrenchSerializer,
+    ValuationCostRateSerializer,
+    ValuationRequestSerializer,
     WMSLayerSerializer,
     WMSSourceCreateSerializer,
     WMSSourceSerializer,
 )
 from .services import (
     GEOPACKAGE_LAYER_CONFIG,
+    calculate_valuation,
     generate_conduit_import_template,
     generate_geopackage_schema,
     generate_node_structure_excel,
@@ -7902,3 +7906,55 @@ class PipelineInquiryExportView(APIView):
             f'attachment; filename="inquiry-export-{pipeline_record_uuid}.zip"'
         )
         return response
+
+
+class ValuationCostRateViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for :model:`api.ValuationCostRate`.
+
+    Cost rates are edited in the Django admin; the frontend only reads them,
+    filtered by ``?project=``.
+    """
+
+    request: Request
+    permission_classes = [IsAuthenticated]
+    queryset = ValuationCostRate.objects.all().order_by("project", "name")
+    serializer_class = ValuationCostRateSerializer
+    lookup_field = "id"
+    lookup_url_kwarg = "pk"
+
+    def get_queryset(self):  # type: ignore[override]
+        """Filter cost rates by ``?project=`` when provided."""
+        queryset = ValuationCostRate.objects.all().order_by("project", "name")
+        project_id = self.request.query_params.get("project")
+        if project_id:
+            try:
+                queryset = queryset.filter(project_id=int(project_id))
+            except ValueError:
+                queryset = queryset.none()
+        return queryset.prefetch_related("node_types")
+
+
+class ValuationCalculateView(APIView):
+    """Compute a Wertermittlung (valuation) for a project and optional area.
+
+    POST body: ``project`` (required), ``area_uuids`` (optional list; omit or
+    empty for "Gesamt"), and optional ``base_year`` / ``annual_correction`` /
+    ``projection_years`` for the future-value projection.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        """Validate the request and return the calculated valuation."""
+        serializer = ValuationRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        result = calculate_valuation(
+            project_id=data["project"],
+            area_uuids=[str(u) for u in data.get("area_uuids") or []] or None,
+            base_year=data.get("base_year"),
+            annual_correction=data.get("annual_correction"),
+            projection_years=data.get("projection_years", 22),
+        )
+        return Response(result, status=status.HTTP_200_OK)

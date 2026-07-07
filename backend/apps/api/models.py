@@ -1,6 +1,7 @@
 import logging
 import os
 import uuid
+from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -161,6 +162,84 @@ class PipeBranchSettings(models.Model):
         if settings is None:
             return None
         return list(settings.allowed_node_types.values_list("id", flat=True))
+
+
+class ValuationCostRate(models.Model):
+    """Per-project cost rate for one valuation cost category ("Wertermittlung").
+
+    Each row has a free-text ``name`` (e.g. "Tiefbau", "POP") and a ``unit`` that
+    decides how the rate is applied: ``per_meter`` multiplies ``amount`` by the
+    summed :model:`api.Trench` length (``node_types`` is ignored), while
+    ``per_piece`` multiplies by the count of :model:`api.Node` records whose type
+    is one of ``node_types``. Rows flagged ``is_house_connection`` feed the
+    "cost per house connection" KPI.
+    """
+
+    class Unit(models.TextChoices):
+        PER_METER = "per_meter", _("pro Meter")
+        PER_PIECE = "per_piece", _("Stück")
+
+    id = models.AutoField(primary_key=True)
+    project = models.ForeignKey(
+        Projects,
+        null=False,
+        on_delete=models.CASCADE,
+        db_column="project",
+        related_name="valuation_cost_rates",
+        verbose_name=_("Project"),
+    )
+    name = models.CharField(
+        _("Cost Category"),
+        max_length=100,
+    )
+    amount = models.DecimalField(
+        _("Amount"),
+        max_digits=14,
+        decimal_places=2,
+        default=Decimal("0"),
+    )
+    unit = models.CharField(
+        _("Unit"),
+        max_length=16,
+        choices=Unit.choices,
+        default=Unit.PER_PIECE,
+        help_text=_(
+            "Per meter multiplies by the trench length (node types ignored); "
+            "per piece multiplies by the number of nodes of the selected types."
+        ),
+    )
+    is_house_connection = models.BooleanField(
+        _("House Connection"),
+        default=False,
+        help_text=_(
+            "Nodes of this row are counted for the 'cost per house connection' KPI."
+        ),
+    )
+    node_types = models.ManyToManyField(
+        "AttributesNodeType",
+        blank=True,
+        related_name="valuation_cost_rates",
+        verbose_name=_("Node Types"),
+        help_text=_(
+            "Node types counted for this row. Leave empty for a per-meter row, "
+            "which sums trench length instead."
+        ),
+    )
+
+    class Meta:
+        db_table = "valuation_cost_rate"
+        verbose_name = _("Valuation Cost Rate")
+        verbose_name_plural = _("Valuation Cost Rates")
+        ordering = ["project", "name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "name"],
+                name="unique_valuation_cost_rate",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.project.project} - {self.name}"
 
 
 class WMSSource(models.Model):
