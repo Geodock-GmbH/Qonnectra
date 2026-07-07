@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.4.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.3.0...v1.4.0) (2026-07-07)
+
+
+### Features
+
+* Added address compact map to post-compation export ([4e7368f](https://github.com/Geodock-GmbH/Qonnectra/commit/4e7368ff6a2ee747b3accdc37380a165aba28c2d))
+* Jwt bearer auth for external apps ([03070f0](https://github.com/Geodock-GmbH/Qonnectra/commit/03070f09ada928a64408511e400afe078726e401))
+* Pipeline Records with inquiry area drawing ([#74](https://github.com/Geodock-GmbH/Qonnectra/issues/74)) ([91396b2](https://github.com/Geodock-GmbH/Qonnectra/commit/91396b2b38d98655a792093992747045557903f8))
+* Valuation based on set project rates ([#75](https://github.com/Geodock-GmbH/Qonnectra/issues/75)) ([e517633](https://github.com/Geodock-GmbH/Qonnectra/commit/e51763381d0bbb2be15357f54dcf5efdd7eb420d))
+
+
+### Bug Fixes
+
+* Fixed typo on POP key for default colors ([171a350](https://github.com/Geodock-GmbH/Qonnectra/commit/171a35081b9603cf1c2a0fd4ec842f7999575e51))
+* XSS on file preview, SSRF in wms refresh and CSRF hardening ([#73](https://github.com/Geodock-GmbH/Qonnectra/issues/73)) ([ad5d764](https://github.com/Geodock-GmbH/Qonnectra/commit/ad5d7647cec114f6c4aa5744a9c18c5574268223))
+
+
+### Refactoring
+
+* Moved openlayer styles initilized in different files into styles.js ([432ec73](https://github.com/Geodock-GmbH/Qonnectra/commit/432ec73dceb87fbefa628aa8ea152ac6ab1d440f))
+* Replaced ILIKE search with pg_trgm for address, node and area ([#70](https://github.com/Geodock-GmbH/Qonnectra/issues/70)) ([f6a1002](https://github.com/Geodock-GmbH/Qonnectra/commit/f6a1002dc3ad64d5b4703fa870d0158a7c352f37))
+
 ## [1.3.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.2.0...v1.3.0) (2026-06-30)
 
 
