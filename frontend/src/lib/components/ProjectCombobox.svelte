@@ -66,14 +66,16 @@
 	}
 
 	const PROJECT_AWARE_ROUTES = [
+		'/address',
 		'/conduit',
-		'/network-schema',
 		'/dashboard',
+		'/fault-simulation',
 		'/house-connections',
 		'/map',
+		'/network-schema',
 		'/pipe-branch',
-		'/address',
-		'/trench'
+		'/trench',
+		'/valuation'
 	];
 
 	function handleProjectChange(/** @type {string} */ newProject) {

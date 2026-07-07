@@ -3,7 +3,7 @@
 	import { get } from 'svelte/store';
 	import { deserialize } from '$app/forms';
 	import { page } from '$app/state';
-	import { IconCalculator, IconChartAreaLine } from '@tabler/icons-svelte';
+	import { IconCalculator, IconChevronDown, IconChevronRight } from '@tabler/icons-svelte';
 	import GeoJSON from 'ol/format/GeoJSON.js';
 	import VectorLayer from 'ol/layer/Vector.js';
 	import VectorSource from 'ol/source/Vector.js';
@@ -13,8 +13,20 @@
 
 	import { MapState } from '$lib/classes/MapState.svelte.js';
 	import Map from '$lib/components/Map.svelte';
+	import MapHint from '$lib/components/MapHint.svelte';
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
-	import { selectedProject, trenchColorSelected } from '$lib/stores/store';
+	import {
+		addressStyle,
+		areaTypeStyles,
+		labelVisibilityConfig,
+		nodeTypeStyles,
+		selectedProject,
+		trenchColor,
+		trenchColorSelected,
+		trenchConstructionTypeStyles,
+		trenchStyleMode,
+		trenchSurfaceStyles
+	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
 	import { computeProjection, formatCurrency, formatQuantity } from './valuationCalc.js';
@@ -22,10 +34,15 @@
 	let { data } = $props();
 
 	const areas = $derived(
-		/** @type {Array<{uuid: string, name: string, geom: any}>} */ (data.areas ?? [])
+		/** @type {Array<{uuid: string, name: string, areaType: string | null, geom: any}>} */ (
+			data.areas ?? []
+		)
 	);
 	const rates = $derived(/** @type {any[]} */ (data.rates ?? []));
 	const nodeTypes = $derived(/** @type {any[]} */ (data.nodeTypes ?? []));
+	const surfaces = $derived(/** @type {any[]} */ (data.surfaces ?? []));
+	const constructionTypes = $derived(/** @type {any[]} */ (data.constructionTypes ?? []));
+	const areaTypes = $derived(/** @type {any[]} */ (data.areaTypes ?? []));
 
 	/**
 	 * @param {string} unit
@@ -50,8 +67,21 @@
 
 	let gesamt = $state(true);
 	const selectedAreaUuids = new SvelteSet();
-	let baseYear = $state('2025');
+	const collapsedGroups = new SvelteSet();
+	const currentYear = new Date().getFullYear();
+	let baseYear = $state(currentYear);
 	let annualCorrectionPercent = $state('2.5');
+
+	const groupedAreas = $derived.by(() => {
+		/** @type {globalThis.Map<string, typeof areas>} */
+		const groups = new globalThis.Map();
+		for (const area of areas) {
+			const key = area.areaType ?? m.valuation_no_area_type();
+			if (!groups.has(key)) groups.set(key, []);
+			groups.get(key)?.push(area);
+		}
+		return Array.from(groups, ([type, items]) => ({ type, areas: items }));
+	});
 
 	let isCalculating = $state(false);
 	/** @type {any} */
@@ -74,6 +104,70 @@
 	const highlightStyle = new Style({
 		stroke: new Stroke({ color: '#f59e0b', width: 3 }),
 		fill: new Fill({ color: 'rgba(245, 158, 11, 0.15)' })
+	});
+
+	$effect(() => {
+		const styles = $nodeTypeStyles;
+		if (Object.keys(styles).length > 0) {
+			mapState.updateNodeLayerStyle(styles);
+		}
+	});
+
+	$effect(() => {
+		const mode = $trenchStyleMode;
+		const surfaceStyles = $trenchSurfaceStyles;
+		const constructionTypeStyles = $trenchConstructionTypeStyles;
+		const color = $trenchColor;
+		mapState.updateTrenchLayerStyle(mode, surfaceStyles, constructionTypeStyles, color);
+	});
+
+	$effect(() => {
+		const color = $addressStyle.color;
+		const size = $addressStyle.size;
+		mapState.updateAddressLayerStyle(color, size);
+	});
+
+	$effect(() => {
+		const styles = $areaTypeStyles;
+		if (Object.keys(styles).length > 0) {
+			mapState.updateAreaLayerStyle(styles);
+		}
+	});
+
+	$effect(() => {
+		const config = $labelVisibilityConfig;
+		const mode = $trenchStyleMode;
+		const surfaceStyles = $trenchSurfaceStyles;
+		const constructionTypeStyles = $trenchConstructionTypeStyles;
+		const color = $trenchColor;
+		const nodeStyles = $nodeTypeStyles;
+		const areaStyles = $areaTypeStyles;
+
+		if (config.trench !== undefined) {
+			mapState.updateLabelVisibility('trench', config.trench, {
+				mode,
+				surfaceStyles,
+				constructionTypeStyles,
+				color
+			});
+		}
+		if (config.conduit !== undefined) {
+			mapState.updateLabelVisibility('conduit', config.conduit, {
+				mode,
+				surfaceStyles,
+				constructionTypeStyles,
+				color
+			});
+		}
+		if (config.address !== undefined) {
+			mapState.updateLabelVisibility('address', config.address, {});
+		}
+		if (config.node !== undefined) {
+			mapState.updateLabelVisibility('node', config.node, { nodeTypeStyles: nodeStyles });
+		}
+		if (config.area !== undefined) {
+			mapState.updateLabelVisibility('area', config.area, { areaTypeStyles: areaStyles });
+		}
 	});
 
 	/**
@@ -143,7 +237,7 @@
 		const formData = new FormData();
 		formData.append('project', String(data.projectId));
 		formData.append('areaUuids', JSON.stringify(gesamt ? [] : Array.from(selectedAreaUuids)));
-		if (baseYear !== '') formData.append('baseYear', baseYear);
+		formData.append('baseYear', String(baseYear));
 		if (annualCorrectionPercent !== '') {
 			formData.append('annualCorrection', String(Number(annualCorrectionPercent) / 100));
 		}
@@ -168,12 +262,7 @@
 	}
 </script>
 
-<div class="flex flex-col h-full gap-4 p-4">
-	<div class="flex items-center gap-2 shrink-0">
-		<IconChartAreaLine class="size-6 text-primary-500" />
-		<h1 class="text-xl font-semibold">{m.valuation_title()}</h1>
-	</div>
-
+<div class="flex flex-col h-full p-4">
 	<div class="flex-1 flex flex-col lg:flex-row lg:gap-4 overflow-hidden">
 		<!-- Map -->
 		<div
@@ -191,13 +280,17 @@
 					showSearchPanel={true}
 					onready={handleMapReady}
 					{nodeTypes}
+					{surfaces}
+					{constructionTypes}
+					{areaTypes}
 				/>
+				<MapHint message={m.message_valuation()} />
 			{/if}
 		</div>
 
 		<!-- Control + results panel -->
 		<div
-			class="order-2 min-w-0 flex-1 border-2 rounded-lg border-surface-200-800 overflow-y-auto flex flex-col pb-16 md:pb-0 lg:w-120 lg:flex-none lg:shrink-0"
+			class="order-2 min-w-0 flex-1 border-2 rounded-lg border-surface-200-800 overflow-y-auto flex flex-col pb-16 md:pb-0 lg:w-160 lg:flex-none lg:shrink-0"
 		>
 			<!-- Area selection -->
 			<div class="p-3 border-b border-surface-200-800 space-y-2">
@@ -211,17 +304,45 @@
 				{#if areas.length === 0}
 					<p class="text-xs text-surface-500">{m.valuation_no_areas()}</p>
 				{:else}
-					<div class="max-h-40 overflow-y-auto space-y-1 pl-1">
-						{#each areas as area (area.uuid)}
-							<label class="flex items-center gap-2 cursor-pointer">
-								<input
-									type="checkbox"
-									class="checkbox"
-									checked={selectedAreaUuids.has(area.uuid)}
-									onchange={() => toggleArea(area.uuid)}
-								/>
-								<span class="text-sm truncate">{area.name}</span>
-							</label>
+					<div class="max-h-60 overflow-y-auto space-y-1">
+						{#each groupedAreas as group (group.type)}
+							<div>
+								<button
+									type="button"
+									class="flex items-center gap-1 w-full text-left text-sm font-medium py-1 hover:text-primary-500"
+									onclick={() => {
+										if (collapsedGroups.has(group.type)) {
+											collapsedGroups.delete(group.type);
+										} else {
+											collapsedGroups.add(group.type);
+										}
+									}}
+								>
+									{#if collapsedGroups.has(group.type)}
+										<IconChevronRight class="size-4 shrink-0" />
+									{:else}
+										<IconChevronDown class="size-4 shrink-0" />
+									{/if}
+									<span class="truncate">{group.type}</span>
+									<span class="text-xs text-surface-500 ml-auto shrink-0">{group.areas.length}</span
+									>
+								</button>
+								{#if !collapsedGroups.has(group.type)}
+									<div class="pl-5 space-y-0.5">
+										{#each group.areas as area (area.uuid)}
+											<label class="flex items-center gap-2 cursor-pointer">
+												<input
+													type="checkbox"
+													class="checkbox"
+													checked={selectedAreaUuids.has(area.uuid)}
+													onchange={() => toggleArea(area.uuid)}
+												/>
+												<span class="text-sm truncate">{area.name}</span>
+											</label>
+										{/each}
+									</div>
+								{/if}
+							</div>
 						{/each}
 					</div>
 				{/if}
@@ -277,28 +398,28 @@
 							<thead>
 								<tr>
 									<th>{m.valuation_category()}</th>
-									<th class="text-right">{m.valuation_rate()}</th>
-									<th class="text-right">{m.valuation_quantity()}</th>
-									<th class="text-right">{m.valuation_gp()}</th>
+									<th>{m.valuation_rate()}</th>
+									<th>{m.valuation_quantity()}</th>
+									<th>{m.valuation_gp()}</th>
 								</tr>
 							</thead>
 							<tbody>
 								{#each result.categories as row (row.name)}
 									<tr>
 										<td>{row.name}</td>
-										<td class="text-right whitespace-nowrap">
+										<td class="whitespace-nowrap">
 											{formatCurrency(row.amount)}
 											<span class="text-surface-400 text-xs">/ {unitLabel(row.unit)}</span>
 										</td>
-										<td class="text-right">{formatQuantity(row.quantity)}</td>
-										<td class="text-right whitespace-nowrap">{formatCurrency(row.gp)}</td>
+										<td>{formatQuantity(row.quantity)}</td>
+										<td class="whitespace-nowrap">{formatCurrency(row.gp)}</td>
 									</tr>
 								{/each}
 							</tbody>
 							<tfoot>
 								<tr class="font-semibold">
 									<td colspan="3">{m.valuation_total()}</td>
-									<td class="text-right whitespace-nowrap">{formatCurrency(result.total)}</td>
+									<td class="whitespace-nowrap">{formatCurrency(result.total)}</td>
 								</tr>
 							</tfoot>
 						</table>
@@ -328,16 +449,16 @@
 								<thead>
 									<tr>
 										<th>{m.valuation_year()}</th>
-										<th class="text-right">{m.valuation_net_value()}</th>
-										<th class="text-right">{m.valuation_increase()}</th>
+										<th>{m.valuation_net_value()}</th>
+										<th>{m.valuation_increase()}</th>
 									</tr>
 								</thead>
 								<tbody>
 									{#each projectionRows as row (row.year)}
 										<tr>
 											<td>{row.year}</td>
-											<td class="text-right whitespace-nowrap">{formatCurrency(row.netValue)}</td>
-											<td class="text-right whitespace-nowrap">{formatCurrency(row.increase)}</td>
+											<td class="whitespace-nowrap">{formatCurrency(row.netValue)}</td>
+											<td class="whitespace-nowrap">{formatCurrency(row.increase)}</td>
 										</tr>
 									{/each}
 								</tbody>

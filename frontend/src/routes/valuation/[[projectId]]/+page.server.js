@@ -2,7 +2,12 @@ import { fail } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
-import { getNodeTypes } from '$lib/server/attributes';
+import {
+	getAreaTypes,
+	getConstructionTypes,
+	getNodeTypes,
+	getSurfaces
+} from '$lib/server/attributes';
 import { getLayerExtent } from '$lib/server/featureSearch';
 
 /**
@@ -13,13 +18,16 @@ export async function load({ fetch, cookies }) {
 	const headers = getAuthHeaders(cookies);
 	const projectId = cookies.get('selected-project') || '1';
 
-	const [areasResponse, ratesResponse, nodeTypesData] = await Promise.all([
+	const [areasResponse, ratesResponse, nodeTypesData, surfacesData, constructionTypesData, areaTypesData] = await Promise.all([
 		fetch(`${API_URL}area/?project=${projectId}`, { credentials: 'include', headers }),
 		fetch(`${API_URL}valuation-rates/?project=${projectId}`, {
 			credentials: 'include',
 			headers
 		}),
-		getNodeTypes(fetch, cookies)
+		getNodeTypes(fetch, cookies),
+		getSurfaces(fetch, cookies),
+		getConstructionTypes(fetch, cookies),
+		getAreaTypes(fetch, cookies)
 	]);
 
 	const areasData = areasResponse.ok ? await areasResponse.json() : null;
@@ -29,6 +37,7 @@ export async function load({ fetch, cookies }) {
 	const areas = (Array.isArray(areaFeatures) ? areaFeatures : []).map((/** @type {any} */ a) => ({
 		uuid: a.id ?? a.properties?.uuid ?? a.uuid,
 		name: a.properties?.name ?? a.name,
+		areaType: a.properties?.area_type?.area_type ?? null,
 		geom: a.geometry ?? null
 	}));
 
@@ -40,7 +49,10 @@ export async function load({ fetch, cookies }) {
 		projectId,
 		areas,
 		rates,
-		...nodeTypesData
+		...nodeTypesData,
+		...surfacesData,
+		...constructionTypesData,
+		...areaTypesData
 	};
 }
 

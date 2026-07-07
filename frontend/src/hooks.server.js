@@ -31,15 +31,16 @@ export async function handleProjectRedirect({ event, resolve }) {
 	const selectedProject = event.cookies.get('selected-project');
 
 	const PROJECT_ROUTES = [
-		'/dashboard',
-		'/map',
-		'/trench',
-		'/conduit',
-		'/pipe-branch',
-		'/network-schema',
-		'/house-connections',
 		'/address',
-		'/fault-simulation'
+		'/conduit',
+		'/dashboard',
+		'/fault-simulation',
+		'/house-connections',
+		'/map',
+		'/network-schema',
+		'/pipe-branch',
+		'/trench',
+		'/valuation'
 	];
 
 	const needsProjectSlug = PROJECT_ROUTES.some((route) => url.pathname === route);
