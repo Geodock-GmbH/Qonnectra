@@ -12,18 +12,20 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { DRAG_DROP_CONTEXT_KEY } from '$lib/classes/DragDropManager.svelte.js';
+	import { PanelResizeManager } from '$lib/classes/PanelResizeManager.svelte.js';
 	import { tooltip } from '$lib/utils/tooltip.js';
 
 	let {
 		onDragStart = () => {},
 		onDragEnd = () => {},
 		isMobile = false,
-		readonly = false,
 		onMobileSelect = () => {},
 		disabled = false
 	} = $props();
 
 	const dragDropManager = getContext(DRAG_DROP_CONTEXT_KEY);
+
+	const resizer = new PanelResizeManager({ defaultWidth: 260, side: 'left' });
 
 	/** @type {any[]} */
 	let componentTypes = $state([]);
@@ -137,6 +139,7 @@
 
 	onMount(() => {
 		fetchComponentTypes();
+		return resizer.listen();
 	});
 </script>
 
@@ -222,13 +225,27 @@
 	</div>
 {:else}
 	<div
-		class="relative border-r border-(--color-surface-200-800) bg-(--color-surface-100-900) transition-all duration-200 ease-in-out flex flex-col"
-		style:width={collapsed ? '40px' : '260px'}
-		style:min-width={collapsed ? '40px' : '260px'}
+		class="relative border-r border-(--color-surface-200-800) bg-(--color-surface-100-900) flex flex-col {resizer.isResizing
+			? ''
+			: 'transition-all duration-200 ease-in-out'}"
+		style:width={collapsed ? '40px' : `${resizer.width}px`}
+		style:min-width={collapsed ? '40px' : `${resizer.minWidth}px`}
 	>
+		{#if !collapsed}
+			<button
+				bind:this={resizer.handleElement}
+				type="button"
+				class="touch-manipulation absolute right-0 top-0 h-full w-2 bg-transparent hover:bg-surface-300-700 active:bg-surface-300-700 cursor-col-resize transition-colors duration-200 border-none p-0 z-10"
+				style="touch-action: none;"
+				onpointerdown={resizer.start}
+				aria-label={m.tooltip_resize_drawer()}
+				{@attach tooltip(m.tooltip_resize_drawer())}
+			></button>
+		{/if}
+
 		<button
 			type="button"
-			class="absolute top-2 -right-3 z-10 w-6 h-6 rounded-full bg-(--color-surface-100-900) border border-(--color-surface-300-700) flex items-center justify-center cursor-pointer transition-colors duration-150 hover:bg-(--color-surface-200-800)"
+			class="absolute top-2 -right-3 z-20 w-6 h-6 rounded-full bg-(--color-surface-100-900) border border-(--color-surface-300-700) flex items-center justify-center cursor-pointer transition-colors duration-150 hover:bg-(--color-surface-200-800)"
 			onclick={() => (collapsed = !collapsed)}
 			aria-label={collapsed ? m.action_expand() : m.action_collapse()}
 			{@attach tooltip(collapsed ? m.action_expand() : m.action_collapse())}

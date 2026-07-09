@@ -7,6 +7,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { PanelResizeManager } from '$lib/classes/PanelResizeManager.svelte.js';
 	import { drawerStore as rawDrawerStore } from '$lib/stores/drawer';
 	import { drawerSnap } from '$lib/stores/store';
 	import { tooltip } from '$lib/utils/tooltip.js';
@@ -29,13 +30,14 @@
 
 	/** @type {HTMLDivElement | undefined} */
 	let drawerElement = $state();
-	let isResizing = $state(false);
-	let startX = $state(0);
-	let startWidth = $state(0);
-	let activePointerId = $state(/** @type {number | null} */ (null));
 
-	/** @type {HTMLButtonElement | undefined} */
-	let resizeHandleElement = $state();
+	const resizer = new PanelResizeManager({
+		defaultWidth: 400,
+		minWidth: 200,
+		maxWidthRatio: 0.8,
+		side: 'right',
+		onResize: (width) => drawerStore.setWidth(width)
+	});
 
 	/** @type {import('svelte/store').Writable<{open: boolean, title: string, component: any, props: Record<string, any>, width: number}>} */
 	const typedStore = /** @type {any} */ (drawerStore);
@@ -44,6 +46,10 @@
 	let drawerWidth = $derived($typedStore.width);
 	let DrawerComponent = $derived($typedStore.component);
 	let drawerProps = $derived($typedStore.props);
+
+	$effect(() => {
+		resizer.width = drawerWidth;
+	});
 
 	let isMobile = $derived((innerWidth.current ?? 0) < 768);
 
@@ -85,60 +91,6 @@
 		if (event.key === 'Escape' && drawerOpen) {
 			handleClose();
 		}
-	}
-
-	// --- Desktop resize handlers ---
-
-	/**
-	 * Initiates the drawer resize operation
-	 * @param {PointerEvent} event
-	 */
-	function handleResizeStart(event) {
-		if (event.pointerType === 'mouse' && event.button !== 0) return;
-
-		isResizing = true;
-		activePointerId = event.pointerId;
-		startX = event.clientX;
-		startWidth = $typedStore.width;
-
-		event.preventDefault();
-		resizeHandleElement?.setPointerCapture?.(event.pointerId);
-
-		if (event.pointerType === 'mouse') {
-			document.body.style.cursor = 'col-resize';
-		}
-		document.body.style.userSelect = 'none';
-	}
-
-	/**
-	 * Handles pointer movement during drawer resize
-	 * @param {PointerEvent} event
-	 */
-	function handleResizeMove(event) {
-		if (!isResizing) return;
-		if (activePointerId !== null && event.pointerId !== activePointerId) return;
-
-		const deltaX = startX - event.clientX;
-		const newWidth = startWidth + deltaX;
-		drawerStore.setWidth(newWidth);
-	}
-
-	/**
-	 * Completes the drawer resize operation
-	 * @param {PointerEvent} [event]
-	 */
-	function handleResizeEnd(event) {
-		isResizing = false;
-		if (event && activePointerId !== null && event.pointerId === activePointerId) {
-			try {
-				resizeHandleElement?.releasePointerCapture?.(activePointerId);
-			} catch {
-				// ignore if capture is already released
-			}
-		}
-		activePointerId = null;
-		document.body.style.cursor = '';
-		document.body.style.userSelect = '';
 	}
 
 	// --- Mobile sheet drag handlers ---
@@ -230,15 +182,11 @@
 
 	onMount(() => {
 		document.addEventListener('keydown', handleKeydown);
-		document.addEventListener('pointermove', handleResizeMove);
-		document.addEventListener('pointerup', handleResizeEnd);
-		document.addEventListener('pointercancel', handleResizeEnd);
+		const cleanupResizer = resizer.listen();
 
 		return () => {
 			document.removeEventListener('keydown', handleKeydown);
-			document.removeEventListener('pointermove', handleResizeMove);
-			document.removeEventListener('pointerup', handleResizeEnd);
-			document.removeEventListener('pointercancel', handleResizeEnd);
+			cleanupResizer();
 		};
 	});
 </script>
@@ -326,9 +274,9 @@
 			bind:this={drawerElement}
 			transition:fly={{ x: drawerWidth, duration: 300, easing: cubicOut }}
 			class="absolute top-0 right-0 h-full border-2 rounded-lg border-surface-200-800 bg-surface-50-950 shadow-xl flex flex-col z-50 {className}"
-			class:transition={!isResizing}
-			class:duration-500={!isResizing}
-			class:ease-in-out={!isResizing}
+			class:transition={!resizer.isResizing}
+			class:duration-500={!resizer.isResizing}
+			class:ease-in-out={!resizer.isResizing}
 			style="width: {drawerWidth}px; max-width: 80vw;"
 			aria-labelledby="drawer-title"
 			data-drawer
@@ -369,10 +317,10 @@
 
 			<!-- Resize Handle -->
 			<button
-				bind:this={resizeHandleElement}
+				bind:this={resizer.handleElement}
 				class="touch-manipulation absolute left-0 top-0 h-full w-2 bg-transparent hover:bg-surface-300-700 active:bg-surface-300-700 cursor-col-resize transition-colors duration-200 border-none p-0 z-10"
 				style="touch-action: none;"
-				onpointerdown={handleResizeStart}
+				onpointerdown={resizer.start}
 				aria-label={m.tooltip_resize_drawer()}
 				{@attach tooltip(m.tooltip_resize_drawer())}
 				type="button"
