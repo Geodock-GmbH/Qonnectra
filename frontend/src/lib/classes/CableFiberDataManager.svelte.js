@@ -62,6 +62,8 @@ import { deserialize } from '$app/forms';
  * @property {string} [name]
  */
 
+/** @typedef {import('$lib/server/nodeData').ComponentPlacement} ComponentPlacement */
+
 /**
  * Manager for cable and fiber data fetching and caching.
  * Handles lazy loading of fibers per cable and fiber color lookup.
@@ -88,6 +90,9 @@ export class CableFiberDataManager {
 	/** @type {Set<string>} - UUIDs of fibers that are used (connected) in the current node */
 	usedFiberUuids = $state(new Set());
 
+	/** @type {Map<string, ComponentPlacement>} - Maps fiber UUID to component placement info */
+	fiberComponentMap = $state.raw(new Map());
+
 	/** @type {boolean} */
 	loadingFiberUsage = $state(false);
 
@@ -99,6 +104,9 @@ export class CableFiberDataManager {
 
 	/** @type {Set<string>} - UUIDs of residential units that are connected in the current node */
 	usedResidentialUnitUuids = $state(new Set());
+
+	/** @type {Map<string, ComponentPlacement>} - Maps residential unit UUID to component placement info */
+	residentialUnitComponentMap = $state.raw(new Map());
 
 	/** @type {boolean} */
 	loadingResidentialUnitUsage = $state(false);
@@ -138,8 +146,10 @@ export class CableFiberDataManager {
 		this.cables = [];
 		this.fibersCache = new Map();
 		this.usedFiberUuids = new Set();
+		this.fiberComponentMap = new Map();
 		this.addresses = [];
 		this.usedResidentialUnitUuids = new Set();
+		this.residentialUnitComponentMap = new Map();
 	}
 
 	/**
@@ -190,7 +200,9 @@ export class CableFiberDataManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				this.usedFiberUuids = new Set(/** @type {any} */ (result.data)?.usedFiberUuids || []);
+				const data = /** @type {any} */ (result.data);
+				this.usedFiberUuids = new Set(data?.usedFiberUuids || []);
+				this.fiberComponentMap = new Map(Object.entries(data?.fiberComponentMap || {}));
 			}
 		} catch (err) {
 			console.error('Error fetching fiber usage:', err);
@@ -206,6 +218,15 @@ export class CableFiberDataManager {
 	 */
 	isFiberUsed(fiberUuid) {
 		return this.usedFiberUuids.has(fiberUuid);
+	}
+
+	/**
+	 * Get component placement info for a fiber
+	 * @param {string} fiberUuid
+	 * @returns {ComponentPlacement|null}
+	 */
+	getFiberComponentInfo(fiberUuid) {
+		return this.fiberComponentMap.get(fiberUuid) || null;
 	}
 
 	/**
@@ -263,7 +284,11 @@ export class CableFiberDataManager {
 
 			const result = deserialize(await response.text());
 			if (result.type === 'success') {
-				this.usedResidentialUnitUuids = new Set(/** @type {any} */ (result.data)?.used_uuids || []);
+				const data = /** @type {any} */ (result.data);
+				this.usedResidentialUnitUuids = new Set(data?.used_uuids || []);
+				this.residentialUnitComponentMap = new Map(
+					Object.entries(data?.residentialUnitComponentMap || {})
+				);
 			}
 		} catch (err) {
 			console.error('Error fetching residential unit usage:', err);
@@ -279,6 +304,15 @@ export class CableFiberDataManager {
 	 */
 	isResidentialUnitUsed(uuid) {
 		return this.usedResidentialUnitUuids.has(uuid);
+	}
+
+	/**
+	 * Get component placement info for a residential unit
+	 * @param {string} uuid
+	 * @returns {ComponentPlacement|null}
+	 */
+	getResidentialUnitComponentInfo(uuid) {
+		return this.residentialUnitComponentMap.get(uuid) || null;
 	}
 
 	/**
@@ -319,6 +353,16 @@ export class CableFiberDataManager {
 			display += address.house_number_suffix;
 		}
 		return display;
+	}
+
+	/**
+	 * Get a compact display label for component placement info
+	 * @param {ComponentPlacement|null} info
+	 * @returns {string|null}
+	 */
+	getComponentDisplayLabel(info) {
+		if (!info) return null;
+		return `${info.component_type} · TPU ${info.slot_start}`;
 	}
 
 	/**
@@ -539,10 +583,12 @@ export class CableFiberDataManager {
 		this.loadingFibers = new Set();
 		this.loading = false;
 		this.usedFiberUuids = new Set();
+		this.fiberComponentMap = new Map();
 		this.loadingFiberUsage = false;
 		this.addresses = [];
 		this.loadingAddresses = false;
 		this.usedResidentialUnitUuids = new Set();
+		this.residentialUnitComponentMap = new Map();
 		this.loadingResidentialUnitUsage = false;
 		this.fiberStatusOptions = [];
 		this.loadingFiberStatusOptions = false;

@@ -27,8 +27,6 @@
 		onUnmerge = () => {},
 		// Merge props
 		isMerged = false,
-		mergedCount = 0,
-		connectedCount = 0,
 		// Spanning props for merged cells
 		spanRows = 1,
 		portRange = ''
@@ -175,7 +173,7 @@
 </script>
 
 <div
-	class="fiber-cell px-3 py-2 min-h-[44px] transition-all duration-150 border-l border-b border-surface-200-800 {!hasPort
+	class="fiber-cell px-3 py-2 min-h-11 transition-all duration-150 border-l border-b border-surface-200-800 {!hasPort
 		? 'bg-surface-200-800 cursor-not-allowed'
 		: ''} {isDragOver && hasPort
 		? `${accentClasses.bgHover} outline outline-dashed ${accentClasses.outline}`

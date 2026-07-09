@@ -90,13 +90,13 @@ from .models import (
     PipelineInquiryArea,
     PipelineRecord,
     Projects,
-    RequestReason,
-    TypeOfWork,
     QGISProject,
+    RequestReason,
     ResidentialUnit,
     Trench,
     TrenchConduitCanvas,
     TrenchConduitConnection,
+    TypeOfWork,
     ValuationCostRate,
     WMSLayer,
     WMSSource,
@@ -161,11 +161,11 @@ from .serializers import (
     PipelineRecordSerializer,
     ProjectsSerializer,
     RequestReasonSerializer,
-    TypeOfWorkSerializer,
     ResidentialUnitSerializer,
     TrenchConduitCanvasSerializer,
     TrenchConduitSerializer,
     TrenchSerializer,
+    TypeOfWorkSerializer,
     ValuationCostRateSerializer,
     ValuationRequestSerializer,
     WMSLayerSerializer,
@@ -1205,13 +1205,15 @@ class AppLoginView(APIView):
 
         user_data = CustomUserDetailsSerializer(user).data
 
-        return Response({
-            "access": str(access),
-            "refresh": str(refresh),
-            "access_expiration": access["exp"],
-            "refresh_expiration": refresh["exp"],
-            "user": user_data,
-        })
+        return Response(
+            {
+                "access": str(access),
+                "refresh": str(refresh),
+                "access_expiration": access["exp"],
+                "refresh_expiration": refresh["exp"],
+                "user": user_data,
+            }
+        )
 
 
 class AppTokenRefreshView(TokenRefreshView):
@@ -2719,27 +2721,98 @@ class NodeViewSet(viewsets.ModelViewSet):
             }
         )
 
-    @action(detail=True, methods=["get"], url_path="used-residential-units")
-    def used_residential_units(self, request, pk=None):
-        """Get residential unit UUIDs that are connected in splices at this node."""
+    @action(detail=True, methods=["get"], url_path="used-fibers")
+    def used_fibers(self, request, pk=None):
+        """Get fiber UUIDs that are spliced at this node, with component placement info."""
         node = self.get_object()
 
-        # Get all structures for this node
         structures = NodeStructure.objects.filter(
             slot_configuration__uuid_node=node
-        ).values_list("uuid", flat=True)
+        ).select_related("component_type", "slot_configuration")
 
-        # Get used residential units from splices
-        splices = FiberSplice.objects.filter(node_structure__in=structures)
+        structure_map = {}
+        for s in structures:
+            if s.component_type:
+                structure_map[s.uuid] = {
+                    "component_type": s.component_type.component_type,
+                    "slot_start": s.slot_start,
+                    "side": s.slot_configuration.side if s.slot_configuration else "",
+                }
+
+        splices = FiberSplice.objects.filter(
+            node_structure__in=[s.uuid for s in structures]
+        ).select_related("node_structure")
 
         used_uuids = set()
+        fiber_component_map = {}
         for splice in splices:
-            if splice.residential_unit_a:
-                used_uuids.add(str(splice.residential_unit_a.uuid))
-            if splice.residential_unit_b:
-                used_uuids.add(str(splice.residential_unit_b.uuid))
+            for fiber_field in (
+                "fiber_a_id",
+                "fiber_b_id",
+                "shared_fiber_a_id",
+                "shared_fiber_b_id",
+            ):
+                fiber_uuid = getattr(splice, fiber_field)
+                if fiber_uuid:
+                    fiber_uuid_str = str(fiber_uuid)
+                    used_uuids.add(fiber_uuid_str)
+                    struct_info = structure_map.get(splice.node_structure.uuid)
+                    if struct_info and fiber_uuid_str not in fiber_component_map:
+                        fiber_component_map[fiber_uuid_str] = {
+                            **struct_info,
+                            "port_number": splice.port_number,
+                        }
 
-        return Response({"used_uuids": list(used_uuids)})
+        return Response(
+            {
+                "used_uuids": list(used_uuids),
+                "fiber_component_map": fiber_component_map,
+            }
+        )
+
+    @action(detail=True, methods=["get"], url_path="used-residential-units")
+    def used_residential_units(self, request, pk=None):
+        """Get residential unit UUIDs that are connected in splices at this node, with component placement info."""
+        node = self.get_object()
+
+        structures = NodeStructure.objects.filter(
+            slot_configuration__uuid_node=node
+        ).select_related("component_type", "slot_configuration")
+
+        structure_map = {}
+        for s in structures:
+            if s.component_type:
+                structure_map[s.uuid] = {
+                    "component_type": s.component_type.component_type,
+                    "slot_start": s.slot_start,
+                    "side": s.slot_configuration.side if s.slot_configuration else "",
+                }
+
+        splices = FiberSplice.objects.filter(
+            node_structure__in=[s.uuid for s in structures]
+        ).select_related("node_structure")
+
+        used_uuids = set()
+        ru_component_map = {}
+        for splice in splices:
+            for ru_field in ("residential_unit_a_id", "residential_unit_b_id"):
+                ru_uuid = getattr(splice, ru_field)
+                if ru_uuid:
+                    ru_uuid_str = str(ru_uuid)
+                    used_uuids.add(ru_uuid_str)
+                    struct_info = structure_map.get(splice.node_structure.uuid)
+                    if struct_info and ru_uuid_str not in ru_component_map:
+                        ru_component_map[ru_uuid_str] = {
+                            **struct_info,
+                            "port_number": splice.port_number,
+                        }
+
+        return Response(
+            {
+                "used_uuids": list(used_uuids),
+                "residential_unit_component_map": ru_component_map,
+            }
+        )
 
 
 class NodeCanvasCoordinatesView(APIView):
@@ -7757,7 +7830,7 @@ class PipelineRecordViewSet(viewsets.ModelViewSet):
     lookup_field = "uuid"
     lookup_url_kwarg = "pk"
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         return PipelineRecord.objects.select_related(
             "project", "type_of_work", "request_reason"
         ).order_by("-created_at")
@@ -7819,12 +7892,12 @@ class PipelineInquiryAreaViewSet(viewsets.ModelViewSet):
     lookup_field = "uuid"
     lookup_url_kwarg = "pk"
 
-    def get_queryset(self):
+    def get_queryset(self):  # type: ignore[override]
         queryset = PipelineInquiryArea.objects.select_related(
             "pipeline_record"
         ).order_by("created_at")
 
-        pipeline_record = self.request.query_params.get("pipeline_record")
+        pipeline_record = self.request.query_params.get("pipeline_record")  # type: ignore[union-attr]
         if pipeline_record:
             queryset = queryset.filter(pipeline_record_id=pipeline_record)
 
@@ -7948,7 +8021,7 @@ class ValuationCalculateView(APIView):
         """Validate the request and return the calculated valuation."""
         serializer = ValuationRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
+        data: dict = serializer.validated_data  # type: ignore[assignment]
 
         result = calculate_valuation(
             project_id=data["project"],

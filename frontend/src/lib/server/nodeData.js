@@ -511,11 +511,19 @@ export async function getContainerTypes(fetch, cookies) {
 }
 
 /**
- * Gets fiber usage in a node (which fibers are already spliced).
+ * @typedef {Object} ComponentPlacement
+ * @property {string} component_type
+ * @property {number} slot_start
+ * @property {number} port_number
+ * @property {string} side
+ */
+
+/**
+ * Gets fiber usage in a node (which fibers are already spliced) with component placement info.
  * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} nodeUuid - UUID of the node
- * @returns {Promise<{usedFiberUuids: string[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Used fiber UUIDs
+ * @returns {Promise<{usedFiberUuids: string[], fiberComponentMap: Record<string, ComponentPlacement>} | import('@sveltejs/kit').ActionFailure<{error: string}>>}
  */
 export async function getFiberUsageInNode(fetch, cookies, nodeUuid) {
 	if (!nodeUuid) {
@@ -524,7 +532,7 @@ export async function getFiberUsageInNode(fetch, cookies, nodeUuid) {
 
 	try {
 		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
-		const response = await fetch(`${API_URL}fiber-splice/?node_structure__uuid_node=${nodeUuid}`, {
+		const response = await fetch(`${API_URL}node/${nodeUuid}/used-fibers/`, {
 			method: 'GET',
 			headers
 		});
@@ -536,20 +544,19 @@ export async function getFiberUsageInNode(fetch, cookies, nodeUuid) {
 			});
 		}
 
-		/** @type {Array<{fiber_a?: string, fiber_b?: string, shared_fiber_a?: string, shared_fiber_b?: string}>} */
-		const splices = await response.json();
+		const data = await response.json();
 
-		/** @type {Set<string>} */
-		const usedFiberUuids = new Set();
-		splices.forEach((splice) => {
-			if (splice.fiber_a) usedFiberUuids.add(splice.fiber_a);
-			if (splice.fiber_b) usedFiberUuids.add(splice.fiber_b);
-			if (splice.shared_fiber_a) usedFiberUuids.add(splice.shared_fiber_a);
-			if (splice.shared_fiber_b) usedFiberUuids.add(splice.shared_fiber_b);
-		});
+		/** @type {Record<string, ComponentPlacement>} */
+		const fiberComponentMap = {};
+		if (data.fiber_component_map) {
+			for (const [uuid, info] of Object.entries(data.fiber_component_map)) {
+				fiberComponentMap[uuid] = /** @type {ComponentPlacement} */ (info);
+			}
+		}
 
 		return {
-			usedFiberUuids: Array.from(usedFiberUuids)
+			usedFiberUuids: data.used_uuids || [],
+			fiberComponentMap
 		};
 	} catch (err) {
 		console.error('Error fetching fiber usage in node:', err);
@@ -625,11 +632,11 @@ export async function exportNodeExcel(fetch, cookies, nodeUuid) {
 }
 
 /**
- * Gets used residential units in a node (connected to fibers).
+ * Gets used residential units in a node (connected to fibers) with component placement info.
  * @param {typeof fetch} fetch - SvelteKit fetch function
  * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
  * @param {string} nodeUuid - UUID of the node
- * @returns {Promise<{used_uuids: string[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Used residential unit UUIDs
+ * @returns {Promise<{used_uuids: string[], residentialUnitComponentMap: Record<string, ComponentPlacement>} | import('@sveltejs/kit').ActionFailure<{error: string}>>}
  */
 export async function getUsedResidentialUnits(fetch, cookies, nodeUuid) {
 	if (!nodeUuid) {
@@ -651,7 +658,19 @@ export async function getUsedResidentialUnits(fetch, cookies, nodeUuid) {
 		}
 
 		const data = await response.json();
-		return { used_uuids: data.used_uuids || [] };
+
+		/** @type {Record<string, ComponentPlacement>} */
+		const residentialUnitComponentMap = {};
+		if (data.residential_unit_component_map) {
+			for (const [uuid, info] of Object.entries(data.residential_unit_component_map)) {
+				residentialUnitComponentMap[uuid] = /** @type {ComponentPlacement} */ (info);
+			}
+		}
+
+		return {
+			used_uuids: data.used_uuids || [],
+			residentialUnitComponentMap
+		};
 	} catch (err) {
 		console.error('Error fetching used residential units:', err);
 		return fail(500, { error: 'Failed to fetch used residential units' });

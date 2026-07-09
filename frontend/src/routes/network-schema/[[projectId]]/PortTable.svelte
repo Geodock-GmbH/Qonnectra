@@ -285,8 +285,6 @@
 								cableUuid={row.mergeInfoA.fibers?.[0]?.cable_uuid}
 								colorHex={getColorHex(row.mergeInfoA.fibers?.[0]?.fiber_color)}
 								isMerged={true}
-								mergedCount={row.mergeInfoA.groupSize}
-								connectedCount={row.mergeInfoA.fiberCount}
 								spanRows={row.mergeInfoA.groupSize}
 								portRange={row.mergeInfoA.portRange}
 								{readonly}
@@ -322,8 +320,6 @@
 								cableUuid={row.mergeInfoB.fibers?.[0]?.cable_uuid}
 								colorHex={getColorHex(row.mergeInfoB.fibers?.[0]?.fiber_color)}
 								isMerged={true}
-								mergedCount={row.mergeInfoB.groupSize}
-								connectedCount={row.mergeInfoB.fiberCount}
 								spanRows={row.mergeInfoB.groupSize}
 								portRange={row.mergeInfoB.portRange}
 								{readonly}

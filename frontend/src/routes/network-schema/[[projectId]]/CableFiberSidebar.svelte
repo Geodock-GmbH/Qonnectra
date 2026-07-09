@@ -307,6 +307,9 @@
 												{#each bundle.fibers as fiber (fiber.uuid)}
 													{@const fiberUsed = dataManager.isFiberUsed(fiber.uuid)}
 													{@const isDefective = fiber.fiber_status != null}
+													{@const fiberCompInfo = dataManager.getFiberComponentInfo(fiber.uuid)}
+													{@const fiberCompLabel =
+														dataManager.getComponentDisplayLabel(fiberCompInfo)}
 													<button
 														type="button"
 														class="w-full flex items-center gap-2 px-3 py-2 text-left rounded-md transition-colors {fiberUsed
@@ -315,7 +318,9 @@
 														onclick={() => handleMobileFiberClick(cable, bundle, fiber)}
 														{@attach isDefective
 															? tooltip(fiber.fiber_status?.fiber_status)
-															: undefined}
+															: fiberCompLabel
+																? tooltip(fiberCompLabel)
+																: undefined}
 													>
 														<span
 															class="w-3 h-3 rounded-full shrink-0 border border-white/20 {isDefective
@@ -324,10 +329,15 @@
 															style:background-color={dataManager.getColorHex(fiber.fiber_color)}
 														></span>
 														<span
-															class="text-sm font-mono {isDefective
+															class="text-sm font-mono shrink-0 {isDefective
 																? 'line-through text-error-500 opacity-60'
 																: ''}">{fiber.fiber_number_absolute}</span
 														>
+														{#if fiberCompLabel}
+															<span class="text-xs text-surface-500 truncate min-w-0">
+																{fiberCompLabel}
+															</span>
+														{/if}
 													</button>
 												{/each}
 											</div>
@@ -374,6 +384,8 @@
 								<div class="border-t border-surface-300-700 bg-surface-100-900 p-2">
 									{#each units as unit (unit.uuid)}
 										{@const unitUsed = dataManager.isResidentialUnitUsed(unit.uuid)}
+										{@const unitCompInfo = dataManager.getResidentialUnitComponentInfo(unit.uuid)}
+										{@const unitCompLabel = dataManager.getComponentDisplayLabel(unitCompInfo)}
 										<button
 											type="button"
 											class="w-full flex items-center gap-2 px-3 py-2 text-left rounded-md transition-colors {unitUsed
@@ -381,9 +393,14 @@
 												: 'hover:bg-primary-100 dark:hover:bg-primary-900/30'}"
 											onclick={() => handleMobileResidentialUnitClick(address, unit)}
 										>
-											<span class="text-sm">
+											<span class="text-sm shrink-0">
 												{dataManager.getResidentialUnitDisplayName(unit)}
 											</span>
+											{#if unitCompLabel}
+												<span class="text-xs text-surface-500 truncate min-w-0">
+													{unitCompLabel}
+												</span>
+											{/if}
 										</button>
 									{/each}
 								</div>
@@ -543,6 +560,11 @@
 															{#each bundle.fibers as fiber (fiber.uuid)}
 																{@const fiberUsed = dataManager.isFiberUsed(fiber.uuid)}
 																{@const isDefective = fiber.fiber_status != null}
+																{@const fiberCompInfo = dataManager.getFiberComponentInfo(
+																	fiber.uuid
+																)}
+																{@const fiberCompLabel =
+																	dataManager.getComponentDisplayLabel(fiberCompInfo)}
 																<div
 																	class="flex items-center gap-1.5 px-2 py-1.5 rounded-sm transition-colors duration-150 {readonly
 																		? ''
@@ -555,7 +577,9 @@
 																	role="listitem"
 																	{@attach isDefective
 																		? tooltip(fiber.fiber_status?.fiber_status)
-																		: undefined}
+																		: fiberCompLabel
+																			? tooltip(fiberCompLabel)
+																			: undefined}
 																>
 																	{#if !readonly}
 																		<IconGripVertical
@@ -572,12 +596,19 @@
 																		)}
 																	></span>
 																	<span
-																		class="text-[0.8125rem] font-mono {isDefective
+																		class="text-[0.8125rem] font-mono shrink-0 {isDefective
 																			? 'line-through text-error-500 opacity-60'
 																			: ''}"
 																	>
 																		{fiber.fiber_number_absolute}
 																	</span>
+																	{#if fiberCompLabel}
+																		<span
+																			class="text-[0.6875rem] text-(--color-surface-500) truncate min-w-0"
+																		>
+																			{fiberCompLabel}
+																		</span>
+																	{/if}
 																</div>
 															{/each}
 														</div>
@@ -648,6 +679,10 @@
 										>
 											{#each units as unit (unit.uuid)}
 												{@const unitUsed = dataManager.isResidentialUnitUsed(unit.uuid)}
+												{@const unitCompInfo = dataManager.getResidentialUnitComponentInfo(
+													unit.uuid
+												)}
+												{@const unitCompLabel = dataManager.getComponentDisplayLabel(unitCompInfo)}
 												<div
 													class="flex items-center gap-1.5 px-2 py-1.5 rounded-sm transition-colors duration-150 {readonly
 														? ''
@@ -658,6 +693,7 @@
 													ondragstart={(e) => handleResidentialUnitDragStart(e, address, unit)}
 													ondragend={handleDragEnd}
 													role="listitem"
+													{@attach unitCompLabel ? tooltip(unitCompLabel) : undefined}
 												>
 													{#if !readonly}
 														<IconGripVertical
@@ -665,9 +701,16 @@
 															class="text-surface-400 shrink-0 cursor-grab"
 														/>
 													{/if}
-													<span class="text-[0.8125rem]">
+													<span class="text-[0.8125rem] shrink-0">
 														{dataManager.getResidentialUnitDisplayName(unit)}
 													</span>
+													{#if unitCompLabel}
+														<span
+															class="text-[0.6875rem] text-(--color-surface-500) truncate min-w-0"
+														>
+															{unitCompLabel}
+														</span>
+													{/if}
 												</div>
 											{/each}
 										</div>
