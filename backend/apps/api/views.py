@@ -174,11 +174,13 @@ from .serializers import (
 )
 from .services import (
     GEOPACKAGE_LAYER_CONFIG,
+    auto_link_cable_micropipes,
     calculate_valuation,
     generate_conduit_import_template,
     generate_geopackage_schema,
     generate_node_structure_excel,
     import_conduits_from_excel,
+    link_cable_to_chosen_microduct,
     trace_address,
 )
 from .wms_service import WMSServiceError, fetch_wms_layers, scan_wms_capabilities
@@ -5856,6 +5858,66 @@ class CableMicropipeConnectionsView(APIView):
         ).delete()
 
         return Response({"deleted": deleted})
+
+
+class CableAutoLinkMicropipeView(APIView):
+    """Auto-link a cable to microducts matched via its end-node addresses."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, cable_id):
+        """Auto-resolve microduct links for both cable ends, or link a chosen microduct.
+
+        When ``microduct_uuid`` is included in the request body, link that
+        specific microduct. Otherwise run automatic matching on both ends.
+
+        Args:
+            request: DRF request. Optional JSON body with ``microduct_uuid``.
+            cable_id: UUID of the :model:`api.Cable` to link.
+
+        Returns:
+            Response: Per-end link results or the single-link result.
+        """
+        cable = (
+            Cable.objects.select_related(
+                "uuid_node_start__uuid_address", "uuid_node_end__uuid_address"
+            )
+            .filter(uuid=cable_id)
+            .first()
+        )
+        if cable is None:
+            return Response(
+                {"error": "Cable not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        microduct_uuid = request.data.get("microduct_uuid")
+        if microduct_uuid:
+            microduct = (
+                Microduct.objects.select_related("uuid_node", "uuid_conduit")
+                .filter(uuid=microduct_uuid)
+                .first()
+            )
+            if microduct is None:
+                return Response(
+                    {"error": "Microduct not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            try:
+                result = link_cable_to_chosen_microduct(cable, microduct)
+            except ValueError as exc:
+                return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(result)
+
+        results = auto_link_cable_micropipes(cable)
+        return Response(
+            {
+                "linked_count": sum(1 for r in results if r["status"] == "linked"),
+                "needs_choice": any(
+                    r["status"] == "multiple_candidates" for r in results
+                ),
+                "results": results,
+            }
+        )
 
 
 @api_view(["GET"])

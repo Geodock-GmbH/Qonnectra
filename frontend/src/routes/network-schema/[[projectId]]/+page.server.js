@@ -2506,6 +2506,40 @@ export const actions = {
 			return fail(500, { error: 'Failed to delete connections' });
 		}
 	},
+	autoLinkMicropipe: async ({ request, fetch, cookies }) => {
+		const headers = getAuthHeaders(cookies);
+		const formData = await request.formData();
+		const cableId = formData.get('cableId');
+		const microductUuid = formData.get('microductUuid');
+
+		if (!cableId) {
+			return fail(400, { error: 'Missing required field: cableId' });
+		}
+
+		try {
+			const response = await fetch(`${API_URL}cables/${cableId}/auto-link-micropipe/`, {
+				method: 'POST',
+				headers: {
+					...headers,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(microductUuid ? { microduct_uuid: microductUuid } : {})
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				return fail(response.status, {
+					error: errorData.detail || errorData.error || 'Failed to auto-link micropipe'
+				});
+			}
+
+			const result = await response.json();
+			return { success: true, ...result };
+		} catch (err) {
+			console.error('Error auto-linking micropipe:', err);
+			return fail(500, { error: 'Failed to auto-link micropipe' });
+		}
+	},
 	getLayerExtent: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
 		const layerType = formData.get('layerType');

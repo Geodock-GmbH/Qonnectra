@@ -33,6 +33,7 @@ from .views import (
     AttributesStatusDevelopmentViewSet,
     AttributesStatusViewSet,
     AttributesSurfaceViewSet,
+    CableAutoLinkMicropipeView,
     CableLabelViewSet,
     CableMicropipeConnectionsView,
     CableTypeColorMappingViewSet,
@@ -369,6 +370,11 @@ urlpatterns = [
         "cables/<uuid:cable_id>/micropipe-connections/",
         CableMicropipeConnectionsView.as_view(),
         name="cable-micropipe-connections",
+    ),
+    path(
+        "cables/<uuid:cable_id>/auto-link-micropipe/",
+        CableAutoLinkMicropipeView.as_view(),
+        name="cable-auto-link-micropipe",
     ),
     path(
         "cables/<uuid:cable_id>/linked-trenches/",

@@ -105,6 +105,26 @@ import { logToBackendClient } from '$lib/utils/logToBackendClient';
  * @typedef {{
  *   targetNode: { id: string, position: { x: number, y: number } }
  * }} NodeDragStopEvent
+ *
+ * @typedef {{
+ *   microduct_uuid: string,
+ *   number: number,
+ *   color: string,
+ *   color_hex: string,
+ *   conduit_uuid: string,
+ *   conduit_name: string,
+ *   node_name: string | null,
+ *   linked_cables: { uuid: string, name: string }[]
+ * }} MicroductCandidate
+ *
+ * @typedef {{
+ *   cableId: string,
+ *   cableName: string,
+ *   end: string,
+ *   nodeName: string | null,
+ *   address: string | null,
+ *   candidates: MicroductCandidate[]
+ * }} PendingMicroductChoice
  */
 
 /**
@@ -125,6 +145,9 @@ export class NetworkSchemaState {
 
 	/** @type {string|null} - Parent node context for child view cables */
 	parentNodeContext = $state(null);
+
+	/** @type {PendingMicroductChoice[]} - Queue of unresolved microduct choices for the user */
+	pendingMicroductChoices = $state([]);
 
 	/** @type {boolean} - Whether currently in child view mode */
 	isChildView = $state(false);
@@ -273,7 +296,6 @@ export class NetworkSchemaState {
 
 		this.edges = this.edges.filter((e) => e.id !== edgeId);
 
-		// Dispatch event for sidebar refresh
 		if (affectedNodeIds.length > 0) {
 			window.dispatchEvent(
 				new CustomEvent('cableConnectionChanged', {
@@ -543,6 +565,8 @@ export class NetworkSchemaState {
 					detail: { nodeIds: [source, target] }
 				})
 			);
+
+			await this.autoLinkMicropipe(cableUuid, cableName);
 		} catch (error) {
 			console.error('Error creating cable:', error);
 			globalToaster.error({
@@ -738,5 +762,139 @@ export class NetworkSchemaState {
 			}
 			return edge;
 		});
+	}
+
+	/**
+	 * Auto-link a freshly created cable to microducts matched via its end-node addresses.
+	 * Single matches are linked directly with a toast; ambiguous ends are queued
+	 * in pendingMicroductChoices for the user to resolve in a dialog.
+	 * @param {string} cableId - Cable UUID
+	 * @param {string} cableName - Cable name for dialog context
+	 */
+	async autoLinkMicropipe(cableId, cableName) {
+		try {
+			const formData = new FormData();
+			formData.append('cableId', cableId);
+
+			const response = await fetch('?/autoLinkMicropipe', {
+				method: 'POST',
+				body: formData
+			});
+			const result = deserialize(await response.text());
+			if (result.type !== 'success' || !result.data) return;
+
+			const data = /** @type {any} */ (result.data);
+			for (const endResult of data.results ?? []) {
+				if (endResult.status === 'linked') {
+					globalToaster.success({
+						title: m.title_success(),
+						description: m.message_auto_link_micropipe_linked({
+							micropipe: this.formatMicroductLabel(endResult.microduct)
+						})
+					});
+				} else if (endResult.status === 'multiple_candidates') {
+					this.pendingMicroductChoices = [
+						...this.pendingMicroductChoices,
+						{
+							cableId,
+							cableName,
+							end: endResult.end,
+							nodeName: endResult.node_name,
+							address: endResult.address,
+							candidates: endResult.candidates
+						}
+					];
+				}
+			}
+
+			if (data.linked_count > 0) {
+				await this.refreshEdgeMicropipes(cableId);
+			}
+		} catch (error) {
+			// The cable itself was created successfully, so no error toast here
+			console.error('Error auto-linking micropipe:', error);
+		}
+	}
+
+	/**
+	 * Link the current pending choice's cable to the chosen microduct.
+	 * @param {string} microductUuid - UUID of the chosen microduct
+	 */
+	async chooseMicroduct(microductUuid) {
+		const choice = this.pendingMicroductChoices[0];
+		if (!choice) return;
+
+		try {
+			const formData = new FormData();
+			formData.append('cableId', choice.cableId);
+			formData.append('microductUuid', microductUuid);
+
+			const response = await fetch('?/autoLinkMicropipe', {
+				method: 'POST',
+				body: formData
+			});
+			const result = deserialize(await response.text());
+			if (result.type !== 'success' || !result.data) {
+				throw new Error('Failed to link chosen microduct');
+			}
+
+			const data = /** @type {any} */ (result.data);
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_auto_link_micropipe_linked({
+					micropipe: this.formatMicroductLabel(data.microduct)
+				})
+			});
+			await this.refreshEdgeMicropipes(choice.cableId);
+			this.pendingMicroductChoices = this.pendingMicroductChoices.slice(1);
+		} catch (error) {
+			console.error('Error linking chosen microduct:', error);
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_auto_link_micropipe_failed()
+			});
+		}
+	}
+
+	/**
+	 * Dismiss the current pending microduct choice without linking.
+	 */
+	dismissMicroductChoice() {
+		this.pendingMicroductChoices = this.pendingMicroductChoices.slice(1);
+	}
+
+	/**
+	 * Build a human-readable label for a microduct candidate.
+	 * @param {MicroductCandidate | null} microduct
+	 * @returns {string}
+	 */
+	formatMicroductLabel(microduct) {
+		if (!microduct) return '';
+		return `${microduct.conduit_name} #${microduct.number} ${microduct.color}`;
+	}
+
+	/**
+	 * Refresh the micropipe connections of an edge for dynamic coloring.
+	 * @param {string} cableId - Cable UUID
+	 */
+	async refreshEdgeMicropipes(cableId) {
+		try {
+			const formData = new FormData();
+			formData.append('uuid', cableId);
+
+			const response = await fetch('?/getMicropipeConnectionsForCable', {
+				method: 'POST',
+				body: formData
+			});
+			const result = deserialize(await response.text());
+			if (result.type === 'success' && result.data?.connections) {
+				this.updateEdgeMicropipeConnections(
+					cableId,
+					/** @type {MicropipeConnection[]} */ (result.data.connections)
+				);
+			}
+		} catch (error) {
+			console.error('Error refreshing edge micropipe connections:', error);
+		}
 	}
 }

@@ -1,12 +1,13 @@
 """Tests for network ViewSets: Cable, Conduit, Fiber, Microduct, connections."""
 
 import pytest
-from apps.api.models import Cable, Conduit
+from apps.api.models import Cable, Conduit, MicroductCableConnection
 from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
 
 from ..factories import (
+    AddressFactory,
     CableFactory,
     ConduitFactory,
     ConduitTypeFactory,
@@ -572,3 +573,135 @@ class TestResidentialUnitViewSet:
             f"/api/v1/residential-unit/?uuid_address={address1.uuid}"
         )
         assert response.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.django_db
+class TestCableAutoLinkMicropipeView:
+    """Tests for POST /api/v1/cables/<cable_id>/auto-link-micropipe/."""
+
+    def url(self, cable_id):
+        """Build the auto-link endpoint URL for a cable.
+
+        Args:
+            cable_id: UUID of the cable.
+
+        Returns:
+            str: Fully-qualified API URL.
+        """
+        return f"/api/v1/cables/{cable_id}/auto-link-micropipe/"
+
+    def test_auto_link_requires_authentication(self, api_client, db):
+        cable = CableFactory()
+        response = api_client.post(self.url(cable.uuid), data={}, format="json")
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_auto_link_unknown_cable_returns_404(self, authenticated_client):
+        import uuid as uuid_module
+
+        response = authenticated_client.post(
+            self.url(uuid_module.uuid4()), data={}, format="json"
+        )
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_auto_link_single_candidate_links_and_returns_result(
+        self, authenticated_client
+    ):
+        address = AddressFactory()
+        node = NodeFactory(uuid_address=address)
+        microduct = MicroductFactory(uuid_node=node)
+        cable = CableFactory(uuid_node_start=node)
+
+        response = authenticated_client.post(
+            self.url(cable.uuid), data={}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["linked_count"] == 1
+        assert response.data["needs_choice"] is False
+        assert MicroductCableConnection.objects.filter(
+            uuid_microduct=microduct, uuid_cable=cable
+        ).exists()
+
+    def test_auto_link_multiple_candidates_returns_choice_without_linking(
+        self, authenticated_client
+    ):
+        address = AddressFactory()
+        node = NodeFactory(uuid_address=address)
+        MicroductFactory(uuid_node=node)
+        MicroductFactory(uuid_node=NodeFactory(uuid_address=address))
+        cable = CableFactory(uuid_node_start=node)
+
+        response = authenticated_client.post(
+            self.url(cable.uuid), data={}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["linked_count"] == 0
+        assert response.data["needs_choice"] is True
+        start = next(r for r in response.data["results"] if r["end"] == "start")
+        assert len(start["candidates"]) == 2
+        assert MicroductCableConnection.objects.count() == 0
+
+    def test_auto_link_no_address_returns_zero_linked(self, authenticated_client):
+        node = NodeFactory(uuid_address=None)
+        cable = CableFactory(uuid_node_start=node)
+
+        response = authenticated_client.post(
+            self.url(cable.uuid), data={}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["linked_count"] == 0
+        assert response.data["needs_choice"] is False
+
+    def test_auto_link_with_chosen_microduct_links_it(self, authenticated_client):
+        address = AddressFactory()
+        node = NodeFactory(uuid_address=address)
+        microduct = MicroductFactory(uuid_node=node)
+        MicroductFactory(uuid_node=node)
+        cable = CableFactory(uuid_node_start=node)
+
+        response = authenticated_client.post(
+            self.url(cable.uuid),
+            data={"microduct_uuid": str(microduct.uuid)},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["status"] == "linked"
+        assert MicroductCableConnection.objects.filter(
+            uuid_microduct=microduct, uuid_cable=cable
+        ).exists()
+
+    def test_auto_link_with_unknown_chosen_microduct_returns_404(
+        self, authenticated_client
+    ):
+        import uuid as uuid_module
+
+        cable = CableFactory()
+
+        response = authenticated_client.post(
+            self.url(cable.uuid),
+            data={"microduct_uuid": str(uuid_module.uuid4())},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_auto_link_with_non_candidate_microduct_returns_400(
+        self, authenticated_client
+    ):
+        node = NodeFactory(uuid_address=AddressFactory())
+        microduct = MicroductFactory(
+            uuid_node=NodeFactory(uuid_address=AddressFactory())
+        )
+        cable = CableFactory(uuid_node_start=node)
+
+        response = authenticated_client.post(
+            self.url(cable.uuid),
+            data={"microduct_uuid": str(microduct.uuid)},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert MicroductCableConnection.objects.count() == 0

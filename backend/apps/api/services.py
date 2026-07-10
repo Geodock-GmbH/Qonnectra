@@ -13,7 +13,7 @@ import pandas as pd
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import connection, transaction
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from openpyxl import load_workbook
@@ -31,6 +31,7 @@ from .models import (
     AttributesCompany,
     AttributesComponentStructure,
     AttributesConduitType,
+    AttributesMicroductColor,
     AttributesNetworkLevel,
     AttributesStatus,
     Cable,
@@ -5257,3 +5258,216 @@ def _valuation_projection(total, base_year, annual_correction, years):
         )
         previous = net_value
     return projection
+
+
+def _microduct_color_map():
+    """Map active microduct color names (German) to their hex codes.
+
+    Returns:
+        dict[str, str]: Mapping of German color name to hex code.
+    """
+    return {
+        color.name_de: color.hex_code
+        for color in AttributesMicroductColor.objects.filter(is_active=True)
+    }
+
+
+def _serialize_microduct_candidate(microduct, color_map):
+    """Serialize a :model:`api.Microduct` into the auto-link candidate payload.
+
+    Args:
+        microduct: Microduct instance with ``uuid_conduit`` and ``uuid_node``
+            pre-fetched via ``select_related``.
+        color_map: Mapping of German color name to hex code, as returned
+            by ``_microduct_color_map``.
+
+    Returns:
+        dict[str, Any]: Candidate dict with ``microduct_uuid``, ``number``,
+            ``color``, ``color_hex``, ``conduit_uuid``, ``conduit_name``,
+            ``node_name``, and ``linked_cables``.
+    """
+    linked_cables = [
+        {"uuid": str(connection.uuid_cable_id), "name": connection.uuid_cable.name}
+        for connection in MicroductCableConnection.objects.filter(
+            uuid_microduct=microduct
+        ).select_related("uuid_cable")
+    ]
+    return {
+        "microduct_uuid": str(microduct.uuid),
+        "number": microduct.number,
+        "color": microduct.color,
+        "color_hex": color_map.get(microduct.color, "#808080"),
+        "conduit_uuid": str(microduct.uuid_conduit_id),
+        "conduit_name": microduct.uuid_conduit.name,
+        "node_name": microduct.uuid_node.name if microduct.uuid_node else None,
+        "linked_cables": linked_cables,
+    }
+
+
+def get_micropipe_candidates_for_node(node):
+    """Return intact microducts whose assigned node shares the given node's address.
+
+    Microducts with any status set are considered defective and excluded.
+
+    Args:
+        node: :model:`api.Node` instance (or ``None``).
+
+    Returns:
+        QuerySet[Microduct]: Matching microducts with ``uuid_conduit`` and
+            ``uuid_node`` pre-fetched, or an empty queryset when the node
+            has no address.
+    """
+    if node is None or node.uuid_address_id is None:
+        return Microduct.objects.none()
+    return Microduct.objects.filter(
+        uuid_node__uuid_address=node.uuid_address_id,
+        microduct_status__isnull=True,
+    ).select_related("uuid_conduit", "uuid_node")
+
+
+def auto_link_cable_micropipes(cable):
+    """Auto-link a cable to address-matched microducts at both of its ends.
+
+    Return one result dict per end ("start"/"end") with a status of
+    ``no_node``, ``no_address``, ``no_candidates``, ``already_linked``,
+    ``linked`` (exactly one candidate, connection created) or
+    ``multiple_candidates`` (nothing created, candidates listed for a
+    user choice).
+
+    Args:
+        cable: :model:`api.Cable` instance with ``uuid_node_start`` and
+            ``uuid_node_end`` (and their addresses) pre-fetched.
+
+    Returns:
+        list[dict[str, Any]]: Two result dicts (one per cable end), each
+            containing ``end``, ``status``, ``microduct``, and ``candidates``.
+    """
+    color_map = _microduct_color_map()
+    results = []
+    for end, node in (("start", cable.uuid_node_start), ("end", cable.uuid_node_end)):
+        result = {
+            "end": end,
+            "node_uuid": str(node.uuid) if node else None,
+            "node_name": node.name if node else None,
+            "address": str(node.uuid_address) if node and node.uuid_address else None,
+            "status": None,
+            "microduct": None,
+            "candidates": [],
+        }
+        if node is None:
+            result["status"] = "no_node"
+        elif node.uuid_address_id is None:
+            result["status"] = "no_address"
+        else:
+            candidates = list(get_micropipe_candidates_for_node(node))
+            linked_ids = set(
+                MicroductCableConnection.objects.filter(
+                    uuid_cable=cable,
+                    uuid_microduct__in=[md.uuid for md in candidates],
+                ).values_list("uuid_microduct", flat=True)
+            )
+            already_linked = next(
+                (md for md in candidates if md.uuid in linked_ids), None
+            )
+            if not candidates:
+                result["status"] = "no_candidates"
+            elif already_linked is not None:
+                result["status"] = "already_linked"
+                result["microduct"] = _serialize_microduct_candidate(
+                    already_linked, color_map
+                )
+            elif len(candidates) == 1:
+                MicroductCableConnection.objects.get_or_create(
+                    uuid_microduct=candidates[0], uuid_cable=cable
+                )
+                result["status"] = "linked"
+                result["microduct"] = _serialize_microduct_candidate(
+                    candidates[0], color_map
+                )
+            else:
+                result["status"] = "multiple_candidates"
+                result["candidates"] = [
+                    _serialize_microduct_candidate(md, color_map) for md in candidates
+                ]
+        results.append(result)
+    return results
+
+
+def link_cable_to_chosen_microduct(cable, microduct):
+    """Link a cable to an explicitly chosen candidate microduct.
+
+    Args:
+        cable: :model:`api.Cable` instance with both end nodes loaded.
+        microduct: :model:`api.Microduct` instance chosen by the user.
+
+    Returns:
+        dict[str, Any]: Contains ``status`` (``"linked"`` or
+            ``"already_linked"``) and the serialized ``microduct``.
+
+    Raises:
+        ValueError: If the microduct is defective or its node address
+            does not match either end of the cable.
+    """
+    end_address_ids = {
+        node.uuid_address_id
+        for node in (cable.uuid_node_start, cable.uuid_node_end)
+        if node is not None and node.uuid_address_id is not None
+    }
+    microduct_address_id = (
+        microduct.uuid_node.uuid_address_id if microduct.uuid_node else None
+    )
+    if (
+        microduct_address_id is None
+        or microduct_address_id not in end_address_ids
+        or microduct.microduct_status_id is not None
+    ):
+        raise ValueError("Microduct is not a candidate for this cable")
+
+    _, created = MicroductCableConnection.objects.get_or_create(
+        uuid_microduct=microduct, uuid_cable=cable
+    )
+    return {
+        "status": "linked" if created else "already_linked",
+        "microduct": _serialize_microduct_candidate(microduct, _microduct_color_map()),
+    }
+
+
+def bulk_auto_link_micropipes_for_nodes(nodes):
+    """Run cable-micropipe auto-linking for every cable attached to the nodes.
+
+    Consider cables where any of the given nodes is the start or end node
+    and aggregate per-end outcomes. Ambiguous ends (multiple candidate
+    microducts) are skipped so they can be resolved manually.
+
+    Args:
+        nodes: Iterable or QuerySet of :model:`api.Node` instances.
+
+    Returns:
+        dict[str, int]: Aggregated stats with keys ``cables``, ``linked``,
+            ``already_linked``, ``skipped_ambiguous``, and ``no_candidates``.
+    """
+    cables = (
+        Cable.objects.filter(Q(uuid_node_start__in=nodes) | Q(uuid_node_end__in=nodes))
+        .select_related("uuid_node_start__uuid_address", "uuid_node_end__uuid_address")
+        .distinct()
+    )
+    stats = {
+        "cables": 0,
+        "linked": 0,
+        "already_linked": 0,
+        "skipped_ambiguous": 0,
+        "no_candidates": 0,
+    }
+    counted_statuses = {
+        "linked": "linked",
+        "already_linked": "already_linked",
+        "multiple_candidates": "skipped_ambiguous",
+        "no_candidates": "no_candidates",
+    }
+    for cable in cables:
+        stats["cables"] += 1
+        for result in auto_link_cable_micropipes(cable):
+            key = counted_statuses.get(result["status"])
+            if key:
+                stats[key] += 1
+    return stats

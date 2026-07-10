@@ -1311,6 +1311,29 @@ class NodeAdmin(SimpleHistoryAdmin):
     )
     list_filter = ("node_type", "status", "network_level", "owner", "constructor")
     search_fields = ("name",)
+    actions = ["auto_link_micropipes_for_cables"]
+
+    @admin.action(description=_("Auto-link micropipes for cables at selected nodes"))
+    def auto_link_micropipes_for_cables(self, request, queryset):
+        """Auto-link cables of the selected nodes to address-matched microducts.
+
+        Args:
+            request: The current admin request.
+            queryset: Selected :model:`api.Node` instances.
+        """
+        from .services import bulk_auto_link_micropipes_for_nodes
+
+        stats = bulk_auto_link_micropipes_for_nodes(queryset)
+        self.message_user(
+            request,
+            _(
+                "Processed %(cables)d cable(s): linked %(linked)d micropipe(s), "
+                "%(already_linked)d already linked, %(skipped_ambiguous)d skipped "
+                "(multiple candidates), %(no_candidates)d without candidates."
+            )
+            % stats,
+            level=messages.WARNING if stats["skipped_ambiguous"] else messages.INFO,
+        )
 
 
 @admin.register(Conduit)

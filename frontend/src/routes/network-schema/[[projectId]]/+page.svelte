@@ -28,6 +28,7 @@
 
 	import CableDiagramEdge from './CableDiagramEdge.svelte';
 	import CableDiagramNode from './CableDiagramNode.svelte';
+	import MicroductChoiceDialog from './MicroductChoiceDialog.svelte';
 	import NetworkSchemaSearch from './NetworkSchemaSearch.svelte';
 	import ViewportPersistence from './ViewportPersistence.svelte';
 
@@ -406,6 +407,8 @@
 
 	<Drawer />
 </div>
+
+<MicroductChoiceDialog {schemaState} />
 
 <style>
 	:global(path[id^='xy-edge__'].svelte-flow__edge-path) {

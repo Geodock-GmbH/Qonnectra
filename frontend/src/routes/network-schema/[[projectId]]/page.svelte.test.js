@@ -164,6 +164,12 @@ vi.mock('./ViewportPersistence.svelte', async () => {
 	return { default: MockViewportPersistence };
 });
 
+vi.mock('./MicroductChoiceDialog.svelte', async () => {
+	const { default: MockMicroductChoiceDialog } =
+		await import('$lib/test-utils/mocks/MockMicroductChoiceDialog.svelte');
+	return { default: MockMicroductChoiceDialog };
+});
+
 vi.mock('@skeletonlabs/skeleton-svelte', async () => {
 	const { default: MockSwitch } = await import('$lib/test-utils/mocks/MockSwitch.svelte');
 	return {
