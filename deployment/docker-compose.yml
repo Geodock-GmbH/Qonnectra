@@ -149,9 +149,9 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null 'http://localhost/?SERVICE=WMS&REQUEST=GetCapabilities' || exit 1"]
       interval: 1m
-      timeout: 10s
+      timeout: 30s
       retries: 3
       start_period: 30s
     networks:

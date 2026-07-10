@@ -121,7 +121,7 @@ services:
     volumes:
       - ./qgis/projects:/projects:ro
       - ./qgis/data:/data:ro
-      - ./qgis/nginx.conf:/etc/nginx/sites-available/default:ro
+      - ./qgis/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     environment:
       - QGIS_SERVER_LOG_LEVEL=2
       - QGIS_SERVER_LOG_STDERR=1
@@ -137,9 +137,9 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null 'http://localhost/?SERVICE=WMS&REQUEST=GetCapabilities' || exit 1"]
       interval: 30s
-      timeout: 10s
+      timeout: 30s
       retries: 3
     networks:
       - qonnectra_network
