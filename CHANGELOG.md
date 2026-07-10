@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.5.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.4.0...v1.5.0) (2026-07-10)
+
+
+### Features
+
+* Added TPU info to the fiber in the fiber side bar ([caca213](https://github.com/Geodock-GmbH/Qonnectra/commit/caca21303bc2e56ccced8a9bdd1d787d7decdd42))
+* Auto micropipe-cable linking when a cable connects to a node with an uuid_address ([0bb65d8](https://github.com/Geodock-GmbH/Qonnectra/commit/0bb65d82c3d1cd42b686aba3bf66e532d400d637))
+
+
+### Bug Fixes
+
+* Fixed bugs in clear port flow ([ed92e92](https://github.com/Geodock-GmbH/Qonnectra/commit/ed92e929cde08a3e0fe67a0f970fa6f819c46b0e))
+* Fixed typo in Wertermittlung ([816ff35](https://github.com/Geodock-GmbH/Qonnectra/commit/816ff3594df3bc515993d8e7ea0464d1e8c24265))
+
+
+### Refactoring
+
+* Cable and componentsidebar can now we drag bigger and smaller. ([c081fcf](https://github.com/Geodock-GmbH/Qonnectra/commit/c081fcf3efe6d73278f867a050b4e570cb254d4f))
+
 ## [1.4.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.3.0...v1.4.0) (2026-07-07)
 
 
