@@ -181,13 +181,18 @@ describe('CableFiberDataManager', () => {
 	});
 
 	describe('getComponentDisplayLabel', () => {
-		test('returns compact label with component type and TPU slot_start', () => {
+		test('returns label with component type, TPU slot_start and side', () => {
 			const info = { component_type: 'Spleißkassette', slot_start: 6, port_number: 1, side: 'A' };
-			expect(manager.getComponentDisplayLabel(info)).toBe('Spleißkassette · TPU 6');
+			expect(manager.getComponentDisplayLabel(info)).toBe('Spleißkassette · TPU 6 · Seite A');
 		});
 
-		test('uses slot_start not port_number for TPU', () => {
-			const info = { component_type: 'Splitter 1:8', slot_start: 12, port_number: 2, side: 'A' };
+		test('includes side B in label', () => {
+			const info = { component_type: 'Splitter 1:8', slot_start: 12, port_number: 2, side: 'B' };
+			expect(manager.getComponentDisplayLabel(info)).toBe('Splitter 1:8 · TPU 12 · Seite B');
+		});
+
+		test('omits side when empty string', () => {
+			const info = { component_type: 'Splitter 1:8', slot_start: 12, port_number: 2, side: '' };
 			expect(manager.getComponentDisplayLabel(info)).toBe('Splitter 1:8 · TPU 12');
 		});
 

@@ -362,7 +362,9 @@ export class CableFiberDataManager {
 	 */
 	getComponentDisplayLabel(info) {
 		if (!info) return null;
-		return `${info.component_type} · TPU ${info.slot_start}`;
+		let label = `${info.component_type} · TPU ${info.slot_start}`;
+		if (info.side) label += ` · Seite ${info.side}`;
+		return label;
 	}
 
 	/**
