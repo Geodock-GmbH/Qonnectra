@@ -5172,17 +5172,24 @@ class FiberSpliceViewSet(viewsets.ModelViewSet):
                 }
             )
         else:
-            # Clear individual fiber on this side
+            # Clear individual fiber and residential unit on this side
             if side == "a":
                 splice.fiber_a = None
                 splice.cable_a = None
+                splice.residential_unit_a = None
             else:
                 splice.fiber_b = None
                 splice.cable_b = None
+                splice.residential_unit_b = None
 
             # Check if we should delete the record
-            # Only delete if: both sides empty, no shared fibers, and not in any merge group
-            both_sides_empty = splice.fiber_a is None and splice.fiber_b is None
+            # Only delete if: both sides empty (fiber + residential unit), no shared fibers, and not in any merge group
+            both_sides_empty = (
+                splice.fiber_a is None
+                and splice.fiber_b is None
+                and splice.residential_unit_a is None
+                and splice.residential_unit_b is None
+            )
             no_shared_fibers = (
                 splice.shared_fiber_a is None and splice.shared_fiber_b is None
             )

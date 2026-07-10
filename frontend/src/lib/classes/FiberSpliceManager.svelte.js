@@ -1304,6 +1304,9 @@ export class FiberSpliceManager {
 		const previousSplices = [...this.fiberSplices];
 		const existingSplice = this.fiberSplices.find((s) => s.port_number === portNumber);
 
+		const hadFiber = !!existingSplice?.[`fiber_${side}_details`];
+		const hadResidentialUnit = !!existingSplice?.[`residential_unit_${side}_details`];
+
 		const mergeGroupField = `merge_group_${side}`;
 		const mergeGroupValue = existingSplice?.[mergeGroupField];
 		const isMergedOnThisSide = mergeGroupValue != null;
@@ -1313,7 +1316,8 @@ export class FiberSpliceManager {
 				if (s[mergeGroupField] === mergeGroupValue) {
 					return {
 						...s,
-						[`fiber_${side}_details`]: null
+						[`fiber_${side}_details`]: null,
+						[`residential_unit_${side}_details`]: null
 					};
 				}
 				return s;
@@ -1324,12 +1328,14 @@ export class FiberSpliceManager {
 					if (s.port_number === portNumber) {
 						const updated = {
 							...s,
-							[`fiber_${side}_details`]: null
+							[`fiber_${side}_details`]: null,
+							[`residential_unit_${side}_details`]: null
 						};
-						// Only remove if both sides empty and not in any merge group
 						if (
 							!updated.fiber_a_details &&
 							!updated.fiber_b_details &&
+							!updated.residential_unit_a_details &&
+							!updated.residential_unit_b_details &&
 							!updated.merge_group_a &&
 							!updated.merge_group_b
 						) {
@@ -1366,7 +1372,12 @@ export class FiberSpliceManager {
 				await this.fetchFiberSplices(/** @type {NodeStructure} */ (this.selectedStructure).uuid);
 			}
 
-			this.#dispatchFiberSpliceChanged();
+			if (hadFiber) {
+				this.#dispatchFiberSpliceChanged();
+			}
+			if (hadResidentialUnit) {
+				this.#dispatchResidentialUnitSpliceChanged();
+			}
 		} catch (err) {
 			console.error('Error clearing fiber splice:', err);
 			this.fiberSplices = previousSplices;
