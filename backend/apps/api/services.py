@@ -47,6 +47,7 @@ from .models import (
     NodeSlotConfiguration,
     NodeStructure,
     PipelineInquiryArea,
+    PipelineRecord,
     Projects,
     StoragePreferences,
     Trench,
@@ -4907,7 +4908,10 @@ def build_inquiry_export_zip(pipeline_record_uuid):
     """
     from django.contrib.gis.db.models import Union
 
-    areas = PipelineInquiryArea.objects.filter(pipeline_record_id=pipeline_record_uuid)
+    pipeline_record = PipelineRecord.objects.get(pk=pipeline_record_uuid)
+    project = pipeline_record.project
+
+    areas = PipelineInquiryArea.objects.filter(pipeline_record=pipeline_record)
     if not areas.exists():
         raise ValueError(_("No inquiry areas found for this pipeline record."))
 
@@ -4922,7 +4926,9 @@ def build_inquiry_export_zip(pipeline_record_uuid):
     )
 
     layer_queries = {
-        "trenches": Trench.objects.filter(geom__intersects=union_geom).select_related(
+        "trenches": Trench.objects.filter(
+            project=project, geom__intersects=union_geom
+        ).select_related(
             "surface",
             "construction_type",
             "status",
@@ -4932,7 +4938,9 @@ def build_inquiry_export_zip(pipeline_record_uuid):
             "project",
             "flag",
         ),
-        "nodes": Node.objects.filter(geom__intersects=union_geom).select_related(
+        "nodes": Node.objects.filter(
+            project=project, geom__intersects=union_geom
+        ).select_related(
             "node_type",
             "status",
             "network_level",
@@ -4942,13 +4950,16 @@ def build_inquiry_export_zip(pipeline_record_uuid):
             "project",
             "flag",
         ),
-        "addresses": Address.objects.filter(geom__intersects=union_geom).select_related(
+        "addresses": Address.objects.filter(
+            project=project, geom__intersects=union_geom
+        ).select_related(
             "status_development",
             "project",
             "flag",
         ),
         "conduits": Conduit.objects.filter(
-            trenchconduitconnection__uuid_trench__geom__intersects=union_geom
+            project=project,
+            trenchconduitconnection__uuid_trench__geom__intersects=union_geom,
         )
         .distinct()
         .select_related(
@@ -4963,7 +4974,8 @@ def build_inquiry_export_zip(pipeline_record_uuid):
         )
         .prefetch_related(trench_conn_prefetch),
         "cables": Cable.objects.filter(
-            microductcableconnection__uuid_microduct__uuid_conduit__trenchconduitconnection__uuid_trench__geom__intersects=union_geom
+            project=project,
+            microductcableconnection__uuid_microduct__uuid_conduit__trenchconduitconnection__uuid_trench__geom__intersects=union_geom,
         )
         .distinct()
         .select_related(
@@ -4993,11 +5005,12 @@ def build_inquiry_export_zip(pipeline_record_uuid):
                 ),
             )
         ),
-        "areas": Area.objects.filter(geom__intersects=union_geom).select_related(
-            "area_type", "project", "flag"
-        ),
+        "areas": Area.objects.filter(
+            project=project, geom__intersects=union_geom
+        ).select_related("area_type", "project", "flag"),
         "microducts": Microduct.objects.filter(
-            uuid_conduit__trenchconduitconnection__uuid_trench__geom__intersects=union_geom
+            uuid_conduit__project=project,
+            uuid_conduit__trenchconduitconnection__uuid_trench__geom__intersects=union_geom,
         )
         .distinct()
         .select_related(
@@ -5287,7 +5300,7 @@ def _serialize_microduct_candidate(microduct, color_map):
             ``node_name``, and ``linked_cables``.
     """
     linked_cables = [
-        {"uuid": str(connection.uuid_cable_id), "name": connection.uuid_cable.name}
+        {"uuid": str(connection.uuid_cable_id), "name": connection.uuid_cable.name}  # type: ignore
         for connection in MicroductCableConnection.objects.filter(
             uuid_microduct=microduct
         ).select_related("uuid_cable")
