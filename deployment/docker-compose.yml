@@ -90,6 +90,7 @@ services:
       - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
       - FIELD_ENCRYPTION_KEY=${FIELD_ENCRYPTION_KEY}
       - QGIS_DOMAIN=${QGIS_DOMAIN}
+      - QGIS_SERVER_VERSION=${QGIS_SERVER_VERSION:-}
     depends_on:
       db:
         condition: service_healthy

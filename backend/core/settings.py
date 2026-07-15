@@ -209,6 +209,10 @@ DEFAULT_SRID = int(os.getenv("DEFAULT_SRID", "25832"))
 # QGIS pg_service name for datasource conversion
 QGIS_PG_SERVICE_NAME = os.getenv("QGIS_PG_SERVICE_NAME", "qonnectra")
 
+# QGIS Server version — used to warn on version skew when uploading projects.
+# Keep in sync with the qgis/qgis-server image tag in docker-compose.
+QGIS_SERVER_VERSION = os.getenv("QGIS_SERVER_VERSION", "")
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "dj_rest_auth.jwt_auth.JWTCookieAuthentication",

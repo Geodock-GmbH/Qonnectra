@@ -4,6 +4,7 @@ import logging
 import os
 
 from django import forms
+from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.contenttypes.models import ContentType
@@ -57,14 +58,14 @@ from .models import (
     PipelineInquiryArea,
     PipelineRecord,
     Projects,
-    RequestReason,
-    TypeOfWork,
     QGISProject,
     QGISProjectDataFile,
+    RequestReason,
     ResidentialUnit,
     RoutePermission,
     StoragePreferences,
     Trench,
+    TypeOfWork,
     ValuationCostRate,
     WMSLayer,
     WMSSource,
@@ -1124,11 +1125,13 @@ class QGISProjectAdmin(admin.ModelAdmin):
     inlines = [QGISProjectDataFileInline]
 
     def save_related(self, request, form, formsets, change):
-        """Save inlines then convert datasources with uploaded data filenames.
+        """Save inlines, convert datasources, and run upload validators.
 
         After saving related inlines, auto-populate ``original_filename``
-        on newly created :model:`api.QGISProjectDataFile` records and
-        trigger QGS XML datasource conversion with file-path rewriting.
+        on newly created :model:`api.QGISProjectDataFile` records,
+        trigger QGS XML datasource conversion with file-path rewriting,
+        then validate GeoPackage bboxes, datasource resolution, version
+        skew, and test GetCapabilities.
 
         Args:
             request: The current HTTP request.
@@ -1205,6 +1208,53 @@ class QGISProjectAdmin(admin.ModelAdmin):
                 _("Error converting project datasources: %(error)s")
                 % {"error": str(e)},
             )
+
+        self._run_upload_validators(request, obj, data_filenames)
+
+    def _run_upload_validators(self, request, obj, data_filenames):
+        """Run GeoPackage, datasource, version, and test validators."""
+        from django.contrib import messages
+
+        from .qgis_validators import validate_qgis_upload
+
+        data_file_paths = []
+        for df in obj.data_files.all():
+            if df.data_file:
+                try:
+                    data_file_paths.append(df.data_file.path)
+                except Exception:
+                    pass
+
+        try:
+            file_content = obj.project_file.read()
+            filename = os.path.basename(obj.project_file.name)
+        except Exception as e:
+            messages.error(
+                request,
+                _("Cannot read project file for validation: %(error)s")
+                % {"error": str(e)},
+            )
+            return
+
+        run_smoke_test = not getattr(settings, "DEBUG", False)
+
+        result = validate_qgis_upload(
+            project_file_content=file_content,
+            project_filename=filename,
+            data_file_paths=data_file_paths,
+            data_filenames=data_filenames,
+            map_path=obj.map_path,
+            run_smoke_test=run_smoke_test,
+        )
+
+        for msg in result.repaired:
+            messages.success(request, _("Auto-repaired: %(detail)s") % {"detail": msg})
+
+        for msg in result.warnings:
+            messages.warning(request, msg)
+
+        for msg in result.errors:
+            messages.error(request, msg)
 
     def save_model(self, request, obj, form, change):
         """Set ``created_by`` to the current user on first save."""
