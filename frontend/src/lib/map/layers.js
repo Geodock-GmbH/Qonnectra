@@ -6,6 +6,11 @@ import TileWMS from 'ol/source/TileWMS.js';
 import TileGrid from 'ol/tilegrid/TileGrid.js';
 
 import {
+	getCurrentWMSToken,
+	requestImmediateWMSRefresh
+} from '$lib/utils/wmsTokenHeartbeat.svelte.js';
+
+import {
 	createAddressStyleWithLabels,
 	createAreaStyleByType,
 	createAreaStyleWithLabels,
@@ -329,6 +334,13 @@ export function createWMSLayer({
 			const controller = tileLoadingManager.createAbortController(requestId);
 			const image = /** @type {HTMLImageElement} */ (tile.getImage());
 
+			// The token baked into the source URL goes stale after 5 minutes;
+			// inject the heartbeat's current token at request time instead.
+			const liveToken = getCurrentWMSToken();
+			if (liveToken) {
+				src = src.replace(/([?&])token=[^&]*/, `$1token=${encodeURIComponent(liveToken)}`);
+			}
+
 			fetch(src, {
 				signal: controller.signal,
 				credentials: 'include'
@@ -363,6 +375,7 @@ export function createWMSLayer({
 							console.warn(
 								`WMS layer ${layerId}: auth failed (${status}), pausing tile loads until token refresh`
 							);
+							requestImmediateWMSRefresh();
 						}
 						tile.setState(4); // EMPTY — don't mark as ERROR to avoid retry storm
 						return;
@@ -379,10 +392,14 @@ export function createWMSLayer({
 
 	/**
 	 * Resets the auth failure flag so tiles can load again after a token refresh.
+	 * Returns whether the source was in the failed state, so callers know to
+	 * reload the tiles that were blanked while paused.
 	 */
 	source.set('resetAuthFailure', () => {
+		const wasFailed = authFailed;
 		authFailed = false;
 		authErrorLogged = false;
+		return wasFailed;
 	});
 
 	/**

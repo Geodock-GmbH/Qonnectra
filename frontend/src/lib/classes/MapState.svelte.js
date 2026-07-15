@@ -31,6 +31,7 @@ import { globalToaster } from '$lib/stores/toaster';
 import { fetchWMSAccessToken, fetchWMSSources, getWMSProxyUrl } from '$lib/utils/wmsApi';
 import {
 	isWMSHeartbeatRunning,
+	requestImmediateWMSRefresh,
 	startWMSHeartbeat,
 	stopWMSHeartbeat
 } from '$lib/utils/wmsTokenHeartbeat.svelte.js';
@@ -771,8 +772,14 @@ export class MapState {
 	 */
 	async _handleVisibilityChange() {
 		if (document.visibilityState !== 'visible') return;
-		if (isWMSHeartbeatRunning()) return;
 		if (this.wmsLayers.length === 0) return;
+
+		if (isWMSHeartbeatRunning()) {
+			// Browsers pause timers while the tab is hidden or the machine sleeps,
+			// so the 5-minute token may have expired between ticks — refresh now.
+			requestImmediateWMSRefresh(true);
+			return;
+		}
 
 		try {
 			const token = await fetchWMSAccessToken();
@@ -781,34 +788,29 @@ export class MapState {
 				token,
 				this.pauseAllWMSLayers.bind(this)
 			);
-			this.updateWMSLayerTokens(token);
+			this.updateWMSLayerTokens();
 		} catch {
 			// Session still expired — do nothing
 		}
 	}
 
 	/**
-	 * Replaces the access token in all WMS layer source URLs.
-	 * Called by the WMS heartbeat when the token is refreshed.
-	 * @param {string} newToken - The new WMS access token
+	 * Recovers WMS layers after a token refresh. Tiles read the current token
+	 * at request time, so layer URLs don't need rewriting — this unpauses
+	 * sources that hit an auth failure and reloads their blanked tiles.
 	 * @returns {void}
 	 */
-	updateWMSLayerTokens(newToken) {
+	updateWMSLayerTokens() {
 		for (const layer of this.wmsLayers) {
 			const source = /** @type {import('ol/source/TileWMS').default} */ (layer.getSource());
 			if (!source) continue;
 
 			const resetAuthFailure = source.get('resetAuthFailure');
-			if (typeof resetAuthFailure === 'function') {
-				resetAuthFailure();
+			if (typeof resetAuthFailure !== 'function') continue;
+
+			if (resetAuthFailure()) {
+				source.refresh();
 			}
-
-			const urls = source.getUrls();
-			if (!urls || urls.length === 0) continue;
-
-			const currentUrl = urls[0];
-			const newUrl = currentUrl.replace(/token=[^&]+/, `token=${encodeURIComponent(newToken)}`);
-			source.setUrl(newUrl);
 		}
 	}
 

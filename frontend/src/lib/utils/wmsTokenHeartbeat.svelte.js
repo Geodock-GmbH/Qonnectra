@@ -23,6 +23,14 @@ let onAuthFailure = null;
 /** @type {number} */
 let consecutiveFailures = 0;
 
+/** @type {Promise<void> | null} */
+let immediateRefresh = null;
+
+/** @type {number} */
+let lastImmediateRefreshAt = 0;
+
+const IMMEDIATE_REFRESH_COOLDOWN_MS = 30 * 1000;
+
 /**
  * Fetches a new WMS token and notifies the registered callback.
  * Stops the heartbeat on persistent auth failures (401/403).
@@ -66,7 +74,14 @@ async function refreshWMSToken() {
  * @returns {void}
  */
 export function startWMSHeartbeat(updateLayersCallback, initialToken, authFailureCallback) {
-	if (heartbeatInterval) return;
+	if (heartbeatInterval) {
+		// Already running (e.g. project switch) — adopt the freshly minted token
+		// so request-time injection uses the newest one.
+		if (initialToken) {
+			currentToken = initialToken;
+		}
+		return;
+	}
 
 	onTokenRefresh = updateLayersCallback;
 	onAuthFailure = authFailureCallback || null;
@@ -80,6 +95,8 @@ export function startWMSHeartbeat(updateLayersCallback, initialToken, authFailur
 
 /**
  * Stops the WMS token refresh heartbeat and clears the callback.
+ * Also clears the stored token so pages that bake their own token into
+ * layer URLs don't get an older module-level token injected instead.
  * @returns {void}
  */
 export function stopWMSHeartbeat() {
@@ -90,6 +107,26 @@ export function stopWMSHeartbeat() {
 	onTokenRefresh = null;
 	onAuthFailure = null;
 	consecutiveFailures = 0;
+	currentToken = null;
+}
+
+/**
+ * Requests an out-of-band token refresh, e.g. after a tile request got a 401
+ * or the tab became visible again after the browser paused timers.
+ * Collapses concurrent calls and enforces a cooldown so bursts of failing
+ * tiles can't hammer the token endpoint.
+ * @param {boolean} [force] - Bypass the cooldown (used when returning to the tab).
+ * @returns {void}
+ */
+export function requestImmediateWMSRefresh(force = false) {
+	if (!heartbeatInterval) return;
+	if (immediateRefresh) return;
+	if (!force && Date.now() - lastImmediateRefreshAt < IMMEDIATE_REFRESH_COOLDOWN_MS) return;
+
+	lastImmediateRefreshAt = Date.now();
+	immediateRefresh = refreshWMSToken().finally(() => {
+		immediateRefresh = null;
+	});
 }
 
 /**
