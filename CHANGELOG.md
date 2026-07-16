@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.5.1](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.5.0...v1.5.1) (2026-07-15)
+
+
+### Bug Fixes
+
+* Added missing project id to the pipeline zip export so it respects the project boundary ([0cb21ef](https://github.com/Geodock-GmbH/Qonnectra/commit/0cb21ef4223fb68bfd19063e090fa4c791ad7879))
+* Added validations to the qgis project which run on every upload ([cbc0fef](https://github.com/Geodock-GmbH/Qonnectra/commit/cbc0fef1a5fd44e354b58aac84c6df9dd1ae1595))
+* QGIS server container was always unhealty because curl does not exists. Replaced it with wget ([aa22d8d](https://github.com/Geodock-GmbH/Qonnectra/commit/aa22d8d433a455e4dcdcdb4d20f1ae6cf2e0b81c))
+
+
+### Refactoring
+
+* Added the slot side to the fiber label ([95c5a84](https://github.com/Geodock-GmbH/Qonnectra/commit/95c5a84cbb056c4de690fb733858def854f80042))
+* WMS token heartbeat at request time ([d54dcd3](https://github.com/Geodock-GmbH/Qonnectra/commit/d54dcd38c6849a4bba7520b7cc513c35ae5cd92b))
+
 ## [1.5.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.4.0...v1.5.0) (2026-07-10)
 
 
