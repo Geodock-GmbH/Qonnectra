@@ -6418,11 +6418,14 @@ class WMSProxyView(APIView):
             ),
         )
 
-        upstream_cache_control = upstream_response.headers.get("Cache-Control")
-        if upstream_cache_control:
-            response["Cache-Control"] = upstream_cache_control
+        if upstream_response.ok:
+            upstream_cache_control = upstream_response.headers.get("Cache-Control")
+            if upstream_cache_control:
+                response["Cache-Control"] = upstream_cache_control
+            else:
+                response["Cache-Control"] = "public, max-age=86400"
         else:
-            response["Cache-Control"] = "public, max-age=86400"
+            response["Cache-Control"] = "no-store"
 
         if etag := upstream_response.headers.get("ETag"):
             response["ETag"] = etag
