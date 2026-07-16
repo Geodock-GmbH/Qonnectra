@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.2](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.5.1...v1.5.2) (2026-07-16)
+
+
+### Bug Fixes
+
+* Minor changes ([7ba67fb](https://github.com/Geodock-GmbH/Qonnectra/commit/7ba67fb84bf3a65052e7fdf0c9ce148cf4a34eae))
+* Set cache control to public, so error responses get no-store ([7ebddc7](https://github.com/Geodock-GmbH/Qonnectra/commit/7ebddc7581e5424db8a1931b61ad000b764cde9a))
+
 ## [1.5.1](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.5.0...v1.5.1) (2026-07-15)
 
 
