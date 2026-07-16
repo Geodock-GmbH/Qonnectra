@@ -1,7 +1,24 @@
 <script>
 	import { SvelteMap } from 'svelte/reactivity';
 	import { createTreeViewCollection, TreeView } from '@skeletonlabs/skeleton-svelte';
-	import { IconDownload, IconEdit, IconFile, IconFolder, IconTrash } from '@tabler/icons-svelte';
+	import {
+		IconCalendar,
+		IconDownload,
+		IconEdit,
+		IconFile,
+		IconFileText,
+		IconFileTypeCsv,
+		IconFileTypeDocx,
+		IconFileTypeJpg,
+		IconFileTypePdf,
+		IconFileTypePng,
+		IconFileTypeXls,
+		IconFileZip,
+		IconFolder,
+		IconPhoto,
+		IconSearch,
+		IconTrash
+	} from '@tabler/icons-svelte';
 	import { PUBLIC_API_URL } from '$env/static/public';
 
 	import { m } from '$lib/paraglide/messages';
@@ -16,6 +33,7 @@
 	 * @property {string} file_name
 	 * @property {string} file_type
 	 * @property {string} file_path
+	 * @property {string} [created_at]
 	 */
 
 	/**
@@ -42,11 +60,71 @@
 	/** @type {MessageBox} */
 	let deleteMessageBox;
 
+	let searchQuery = $state('');
+	/** @type {'name'|'date'|'type'} */
+	let sortBy = $state('name');
+
 	/**
-	 * Transform flat file list into tree structure
-	 * Files are grouped by category (photos, documents, etc.)
+	 * Map a file extension to an icon component and a badge accent color.
+	 * Keeps file rows scannable at a glance without needing thumbnails.
+	 * @param {string} fileType
 	 */
-	function buildTreeFromFiles(/** @type {FeatureFile[]} */ fileList) {
+	function getFileVisual(fileType) {
+		const ext = (fileType || '').toLowerCase();
+
+		if (['pdf'].includes(ext)) return { icon: IconFileTypePdf, accent: 'text-error-500' };
+		if (['png'].includes(ext)) return { icon: IconFileTypePng, accent: 'text-success-500' };
+		if (['jpg', 'jpeg'].includes(ext)) return { icon: IconFileTypeJpg, accent: 'text-success-500' };
+		if (['gif', 'webp', 'svg', 'bmp', 'tif', 'tiff'].includes(ext))
+			return { icon: IconPhoto, accent: 'text-success-500' };
+		if (['xls', 'xlsx'].includes(ext)) return { icon: IconFileTypeXls, accent: 'text-success-700' };
+		if (['csv'].includes(ext)) return { icon: IconFileTypeCsv, accent: 'text-success-700' };
+		if (['doc', 'docx'].includes(ext))
+			return { icon: IconFileTypeDocx, accent: 'text-tertiary-500' };
+		if (['txt', 'md', 'rtf'].includes(ext))
+			return { icon: IconFileText, accent: 'text-surface-500' };
+		if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext))
+			return { icon: IconFileZip, accent: 'text-warning-500' };
+
+		return { icon: IconFile, accent: 'text-surface-500' };
+	}
+
+	/**
+	 * Format an ISO timestamp into a short, locale-aware date.
+	 * @param {string|undefined} value
+	 */
+	function formatDate(value) {
+		if (!value) return '';
+		const date = new Date(value);
+		if (Number.isNaN(date.getTime())) return '';
+		return date.toLocaleDateString(undefined, {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric'
+		});
+	}
+
+	const filteredFiles = $derived.by(() => {
+		const query = searchQuery.trim().toLowerCase();
+		const list = query
+			? files.filter((file) => file.file_name.toLowerCase().includes(query))
+			: [...files];
+
+		list.sort((a, b) => {
+			if (sortBy === 'name') return a.file_name.localeCompare(b.file_name);
+			if (sortBy === 'type') return (a.file_type || '').localeCompare(b.file_type || '');
+			return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime();
+		});
+
+		return list;
+	});
+
+	/**
+	 * Transform flat file list into tree structure.
+	 * Files are grouped by category (photos, documents, etc.) derived from their path.
+	 * @param {FeatureFile[]} fileList
+	 */
+	function buildTreeFromFiles(fileList) {
 		const categoryMap = new SvelteMap();
 
 		for (const file of fileList) {
@@ -89,10 +167,10 @@
 		});
 	}
 
-	const collection = $derived(buildTreeFromFiles(files));
+	const collection = $derived(buildTreeFromFiles(filteredFiles));
 
 	/**
-	 * Load files from API
+	 * Load files from API.
 	 */
 	async function loadFiles() {
 		if (!featureId) return;
@@ -127,31 +205,34 @@
 	}
 
 	/**
-	 * Handle file double-click to preview
+	 * Open a file preview in a new tab.
+	 * @param {FeatureFile} file
 	 */
-	function handleFileDoubleClick(/** @type {FeatureFile} */ file) {
+	function handleFileDoubleClick(file) {
 		const url = `${PUBLIC_API_URL}feature-files/${file.uuid}/preview/`;
 		window.open(url, '_blank');
 	}
 
 	/**
-	 * Download file (triggered by download button)
+	 * Download a file in a new tab.
+	 * @param {FeatureFile} file
 	 */
-	function downloadFile(/** @type {FeatureFile} */ file) {
+	function downloadFile(file) {
 		const url = `${PUBLIC_API_URL}feature-files/${file.uuid}/download/`;
 		window.open(url, '_blank');
 	}
 
 	/**
-	 * Show delete confirmation dialog
+	 * Show the delete confirmation dialog for a file.
+	 * @param {FeatureFile} file
 	 */
-	function confirmDelete(/** @type {FeatureFile} */ file) {
+	function confirmDelete(file) {
 		deletingFile = file;
 		deleteMessageBox.open();
 	}
 
 	/**
-	 * Delete file
+	 * Delete the file currently staged for deletion.
 	 */
 	async function deleteFile() {
 		const file = deletingFile;
@@ -185,15 +266,16 @@
 	}
 
 	/**
-	 * Start editing a file name
+	 * Start editing a file name.
+	 * @param {FeatureFile} file
 	 */
-	function startEditing(/** @type {FeatureFile} */ file) {
+	function startEditing(file) {
 		editingFile = file;
 		editValue = file.file_name;
 	}
 
 	/**
-	 * Cancel editing
+	 * Cancel editing.
 	 */
 	function cancelEditing() {
 		editingFile = null;
@@ -201,9 +283,10 @@
 	}
 
 	/**
-	 * Save file rename
+	 * Save a file rename.
+	 * @param {FeatureFile} file
 	 */
-	async function saveRename(/** @type {FeatureFile} */ file) {
+	async function saveRename(file) {
 		if (!editValue.trim()) {
 			globalToaster.warning({
 				title: m.common_error(),
@@ -247,7 +330,7 @@
 	}
 
 	/**
-	 * Public method to refresh files (can be called by parent)
+	 * Public method to refresh files (can be called by parent).
 	 */
 	export function refresh() {
 		loadFiles();
@@ -260,35 +343,57 @@
 	});
 </script>
 
-<!-- File Tree View -->
-<div class="flex flex-col gap-4 p-4">
+<div class="flex w-full flex-col gap-4 p-4">
 	{#if isLoading}
-		<div class="text-center py-8 text-surface-950-50">
+		<div class="text-surface-950-50 py-8 text-center">
 			<p>{m.form_loading_files()}</p>
 		</div>
 	{:else if error}
-		<div class="text-center py-8 text-error-500 space-y-2">
+		<div class="text-error-500 space-y-2 py-8 text-center">
 			<p>{m.form_error_loading_files({ error })}</p>
 			<button type="button" onclick={loadFiles} class="btn preset-filled-primary-500">
-				Retry
+				{m.action_refresh()}
 			</button>
 		</div>
 	{:else if files.length === 0}
-		<div class="text-center py-8 text-surface-950-50">
+		<div class="text-surface-950-50 py-8 text-center">
 			<p class="text-sm">{m.form_no_files_uploaded_yet()}</p>
 		</div>
 	{:else}
-		<div class="flex flex-col gap-2">
-			<TreeView {collection}>
-				<TreeView.Label>{m.form_uploaded_files()}</TreeView.Label>
-				<div class="max-h-96 overflow-y-auto overflow-x-hidden">
-					<TreeView.Tree>
-						{#each collection.rootNode.children || [] as node, index (node)}
-							{@render treeNode(node, [index])}
-						{/each}
-					</TreeView.Tree>
+		<div class="flex flex-col gap-3">
+			<div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+				<label class="input flex grow items-center gap-2">
+					<IconSearch class="size-4 shrink-0 opacity-60" />
+					<input
+						type="search"
+						bind:value={searchQuery}
+						placeholder={m.form_search_files()}
+						class="grow border-0 bg-transparent p-0 focus:ring-0"
+					/>
+				</label>
+				<select bind:value={sortBy} class="select w-full sm:w-auto">
+					<option value="name">{m.common_name()}</option>
+					<option value="date">{m.form_sort_by_date()}</option>
+					<option value="type">{m.form_sort_by_type()}</option>
+				</select>
+			</div>
+
+			{#if filteredFiles.length === 0}
+				<div class="text-surface-950-50 py-8 text-center text-sm">
+					<p>{m.form_no_files_match_search({ query: searchQuery })}</p>
 				</div>
-			</TreeView>
+			{:else}
+				<TreeView {collection}>
+					<TreeView.Label>{m.form_uploaded_files()}</TreeView.Label>
+					<div class="max-h-[60vh] overflow-y-auto overflow-x-hidden">
+						<TreeView.Tree>
+							{#each collection.rootNode.children || [] as node, index (node.id)}
+								{@render treeNode(node, [index])}
+							{/each}
+						</TreeView.Tree>
+					</div>
+				</TreeView>
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -315,23 +420,27 @@
 			<TreeView.Branch>
 				<TreeView.BranchControl>
 					<TreeView.BranchIndicator />
-					<TreeView.BranchText>
-						<IconFolder class="size-4" />
+					<TreeView.BranchText class="flex items-center gap-2 font-medium">
+						<IconFolder class="text-primary-500 size-4 shrink-0" />
 						{node.name}
 					</TreeView.BranchText>
 				</TreeView.BranchControl>
 				<TreeView.BranchContent>
 					<TreeView.BranchIndentGuide />
-					{#each node.children as childNode, childIndex (childNode)}
+					{#each node.children as childNode, childIndex (childNode.id)}
 						{@render treeNode(childNode, [...indexPath, childIndex])}
 					{/each}
 				</TreeView.BranchContent>
 			</TreeView.Branch>
 		{:else if node.type === 'file'}
+			{@const visual = getFileVisual(node.fileData.file_type)}
+			{@const uploaded = formatDate(node.fileData.created_at)}
 			<TreeView.Item>
-				<div class="flex flex-col w-full group">
+				<div
+					class="group hover:bg-surface-200-800 flex w-full flex-col rounded-md transition-colors"
+				>
 					<div
-						class="flex items-center justify-between w-full gap-2"
+						class="flex w-full items-center gap-3 px-2 py-1.5"
 						role="button"
 						tabindex="0"
 						onclick={() => {
@@ -350,94 +459,111 @@
 							}
 						}}
 					>
-						<div class="flex items-center gap-2 flex-1 min-w-0">
-							<IconFile class="size-4 shrink-0" />
-							{#if editingFile?.uuid === node.fileData.uuid}
-								<input
-									type="text"
-									bind:value={editValue}
-									class="input flex-1 min-w-0 py-0 px-1 h-6"
-									onkeydown={(e) => {
-										if (e.key === 'Enter') {
-											e.stopPropagation();
-											e.preventDefault();
-											saveRename(node.fileData);
-										}
-										if (e.key === 'Escape') {
-											e.stopPropagation();
-											cancelEditing();
-										}
-									}}
-									onclick={(e) => e.stopPropagation()}
-									ondblclick={(e) => e.stopPropagation()}
-								/>
-								<button
-									type="button"
-									onclick={() => saveRename(node.fileData)}
-									class="btn-icon btn-sm preset-filled-primary-500"
-									aria-label={m.action_save()}
-									{@attach tooltip(m.action_save())}
+						<visual.icon class="size-5 shrink-0 {visual.accent}" />
+						{#if editingFile?.uuid === node.fileData.uuid}
+							<input
+								type="text"
+								bind:value={editValue}
+								class="input h-7 min-w-0 flex-1 px-2 py-0"
+								onkeydown={(e) => {
+									if (e.key === 'Enter') {
+										e.stopPropagation();
+										e.preventDefault();
+										saveRename(node.fileData);
+									}
+									if (e.key === 'Escape') {
+										e.stopPropagation();
+										cancelEditing();
+									}
+								}}
+								onclick={(e) => e.stopPropagation()}
+								ondblclick={(e) => e.stopPropagation()}
+							/>
+							<button
+								type="button"
+								onclick={() => saveRename(node.fileData)}
+								class="btn-icon btn-sm preset-filled-primary-500 shrink-0"
+								aria-label={m.action_save()}
+								{@attach tooltip(m.action_save())}
+							>
+								✓
+							</button>
+							<button
+								type="button"
+								onclick={cancelEditing}
+								class="btn-icon btn-sm preset-filled-error-500 shrink-0"
+								aria-label={m.common_cancel()}
+								{@attach tooltip(m.common_cancel())}
+							>
+								✕
+							</button>
+						{:else}
+							<div class="flex min-w-0 flex-1 flex-col">
+								<span class="truncate" title={node.name}>{node.name}</span>
+								{#if uploaded}
+									<span class="text-surface-600-400 flex items-center gap-1 text-xs sm:hidden">
+										<IconCalendar class="size-3 shrink-0" />
+										{uploaded}
+									</span>
+								{/if}
+							</div>
+
+							{#if uploaded}
+								<span
+									class="text-surface-600-400 hidden shrink-0 items-center gap-1 text-xs sm:flex sm:group-hover:hidden"
 								>
-									✓
-								</button>
-								<button
-									type="button"
-									onclick={cancelEditing}
-									class="btn-icon btn-sm preset-filled-error-500"
-									aria-label={m.common_cancel()}
-									{@attach tooltip(m.common_cancel())}
-								>
-									✕
-								</button>
-							{:else}
-								<span class="truncate">{node.name}</span>
-								<!-- Desktop: hover to show buttons -->
-								<div
-									class="hidden sm:flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-								>
-									<button
-										type="button"
-										onclick={(e) => {
-											e.stopPropagation();
-											downloadFile(node.fileData);
-										}}
-										class="btn-icon btn-sm preset-filled-primary-500"
-										aria-label={m.action_download()}
-										{@attach tooltip(m.action_download())}
-									>
-										<IconDownload class="size-4" />
-									</button>
-									<button
-										type="button"
-										onclick={(e) => {
-											e.stopPropagation();
-											startEditing(node.fileData);
-										}}
-										class="btn-icon btn-sm preset-filled-warning-500"
-										aria-label={m.action_rename()}
-										{@attach tooltip(m.action_rename())}
-									>
-										<IconEdit class="size-4" />
-									</button>
-									<button
-										type="button"
-										onclick={(e) => {
-											e.stopPropagation();
-											confirmDelete(node.fileData);
-										}}
-										class="btn-icon btn-sm preset-filled-error-500"
-										aria-label={m.action_delete_file()}
-										{@attach tooltip(m.action_delete_file())}
-									>
-										<IconTrash class="size-4" />
-									</button>
-								</div>
+									<IconCalendar class="size-3.5 shrink-0" />
+									{uploaded}
+								</span>
 							{/if}
-						</div>
+
+							<!-- Desktop: hover to reveal actions; occupies the metadata slot so nothing shifts -->
+							<div
+								class="hidden shrink-0 items-center gap-1 opacity-0 transition-opacity sm:flex sm:group-hover:opacity-100"
+							>
+								<button
+									type="button"
+									onclick={(e) => {
+										e.stopPropagation();
+										downloadFile(node.fileData);
+									}}
+									class="btn-icon btn-sm preset-filled-primary-500"
+									aria-label={m.action_download()}
+									{@attach tooltip(m.action_download())}
+								>
+									<IconDownload class="size-4" />
+								</button>
+								<button
+									type="button"
+									onclick={(e) => {
+										e.stopPropagation();
+										startEditing(node.fileData);
+									}}
+									class="btn-icon btn-sm preset-filled-warning-500"
+									aria-label={m.action_rename()}
+									{@attach tooltip(m.action_rename())}
+								>
+									<IconEdit class="size-4" />
+								</button>
+								<button
+									type="button"
+									onclick={(e) => {
+										e.stopPropagation();
+										confirmDelete(node.fileData);
+									}}
+									class="btn-icon btn-sm preset-filled-error-500"
+									aria-label={m.action_delete_file()}
+									{@attach tooltip(m.action_delete_file())}
+								>
+									<IconTrash class="size-4" />
+								</button>
+							</div>
+						{/if}
 					</div>
+
 					<!-- Mobile: tap to expand action buttons below -->
 					{#if expandedFileId === node.fileData.uuid && editingFile?.uuid !== node.fileData.uuid}
-						<div class="flex items-center gap-2 pl-6 pt-1 pb-1 sm:hidden">
+						<div class="flex items-center gap-2 px-2 pb-2 pl-9 sm:hidden">
 							<button
 								type="button"
 								onclick={(e) => {

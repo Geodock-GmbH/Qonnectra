@@ -116,8 +116,13 @@
 	"common_reset_all": "Reset All",
 	"common_results": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Result",
 				"countPlural=other": "Results"
@@ -141,8 +146,13 @@
 	"form_actions": "Actions",
 	"form_address": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Address",
 				"countPlural=other": "Addresses"
@@ -151,8 +161,13 @@
 	],
 	"form_address_id": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Address ID",
 				"countPlural=other": "Address IDs"
@@ -192,8 +207,13 @@
 	"form_breakdown_by_type": "Grouped by type",
 	"form_building": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Building",
 				"countPlural=other": "Buildings"
@@ -218,8 +238,13 @@
 	"form_components": "Components",
 	"form_conduit": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Conduit",
 				"countPlural=other": "Conduits"
@@ -244,8 +269,13 @@
 	"form_date_to": "To date",
 	"form_days": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "day",
 				"countPlural=other": "days"
@@ -266,8 +296,13 @@
 	"form_fibers": "Fibers",
 	"form_files": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "File",
 				"countPlural=other": "Files"
@@ -310,8 +345,13 @@
 	"form_message": "Message",
 	"form_microduct": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Microduct",
 				"countPlural=other": "Microducts"
@@ -329,6 +369,7 @@
 	"form_no_attributes_available": "No attributes available",
 	"form_no_data_available": "No data available",
 	"form_no_fibers_available": "No fibers available",
+	"form_no_files_match_search": "No files match \"{query}\"",
 	"form_no_files_uploaded_yet": "No files uploaded yet",
 	"form_no_layers_available": "No layers available",
 	"form_no_microducts_available": "No microducts available",
@@ -353,8 +394,13 @@
 	"form_ports": "Ports",
 	"form_project": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Project",
 				"countPlural=other": "Projects"
@@ -375,6 +421,7 @@
 	"form_residential_units": "Residential Units",
 	"form_right": "Right",
 	"form_routing_mode": "Routing mode",
+	"form_search_files": "Search files...",
 	"form_select_exactly_2_nodes": "Please select exactly 2 nodes",
 	"form_select_files_or_drag": "Select files or drag here",
 	"form_select_side": "Select Side",
@@ -384,8 +431,13 @@
 	"form_side": "Side",
 	"form_slot": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "slot",
 				"countPlural=other": "slots"
@@ -395,6 +447,8 @@
 	"form_slot_configuration": "Slot configuration",
 	"form_slot_grid": "Slot grid",
 	"form_snapping": "Snapping",
+	"form_sort_by_date": "Newest first",
+	"form_sort_by_type": "Type",
 	"form_source": "Source",
 	"form_status": "Status",
 	"form_status_development": "Status development",
@@ -695,8 +749,13 @@
 	"section_microduct_connections": "Microduct Connections",
 	"section_residential_units": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "Residential Unit",
 				"countPlural=other": "Residential Units"
@@ -844,8 +903,13 @@
 	"tooltip_zoom_to_extent": "Zoom to extent",
 	"trace_addresses": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "address",
 				"countPlural=other": "addresses"
@@ -887,8 +951,13 @@
 	"trace_raw_json": "Raw JSON Response",
 	"trace_residential_units": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "RU",
 				"countPlural=other": "RUs"
@@ -906,8 +975,13 @@
 	"trace_splice": "Splice",
 	"trace_splices": [
 		{
-			"declarations": ["input count", "local countPlural = count: plural"],
-			"selectors": ["countPlural"],
+			"declarations": [
+				"input count",
+				"local countPlural = count: plural"
+			],
+			"selectors": [
+				"countPlural"
+			],
 			"match": {
 				"countPlural=one": "splice",
 				"countPlural=other": "splices"

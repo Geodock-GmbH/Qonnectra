@@ -6158,6 +6158,8 @@ class WMSTokenAuthentication(BaseAuthentication):
     general access tokens via URL parameters.
     """
 
+    logger = logging.getLogger("wms.auth")
+
     def authenticate(self, request):
         from rest_framework.exceptions import AuthenticationFailed
         from rest_framework_simplejwt.exceptions import TokenError
@@ -6178,6 +6180,11 @@ class WMSTokenAuthentication(BaseAuthentication):
             user = User.objects.get(id=user_id)
             return (user, validated_token)
         except TokenError as e:
+            self.logger.warning(
+                "WMS token rejected: %s (token prefix: %s...)",
+                e,
+                token[:16],
+            )
             raise AuthenticationFailed(f"Invalid token: {e}")
         except User.DoesNotExist:
             raise AuthenticationFailed("User not found")

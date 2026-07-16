@@ -296,6 +296,8 @@ export function createWMSLayer({
 	let authFailed = false;
 	/** @type {boolean} */
 	let authErrorLogged = false;
+	/** @type {boolean} */
+	let had401 = false;
 
 	const projection = /** @type {import('ol/proj/Projection').default} */ (
 		getProjection('EPSG:3857')
@@ -369,12 +371,10 @@ export function createWMSLayer({
 
 					const status = /** @type {any} */ (error)?.status;
 					if (status === 401 || status === 403) {
-						authFailed = true;
+						had401 = true;
 						if (!authErrorLogged) {
 							authErrorLogged = true;
-							console.warn(
-								`WMS layer ${layerId}: auth failed (${status}), pausing tile loads until token refresh`
-							);
+							console.warn(`WMS layer ${layerId}: tile got ${status}, requesting token refresh`);
 							requestImmediateWMSRefresh();
 						}
 						tile.setState(4); // EMPTY — don't mark as ERROR to avoid retry storm
@@ -396,10 +396,11 @@ export function createWMSLayer({
 	 * reload the tiles that were blanked while paused.
 	 */
 	source.set('resetAuthFailure', () => {
-		const wasFailed = authFailed;
+		const needsRefresh = authFailed || had401;
 		authFailed = false;
 		authErrorLogged = false;
-		return wasFailed;
+		had401 = false;
+		return needsRefresh;
 	});
 
 	/**
