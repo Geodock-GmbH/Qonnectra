@@ -139,8 +139,8 @@ export const load: PageServerLoad = async ({ fetch, cookies, url, params }) => {
 		} else {
 			syncStatus = await syncStatusResponse.json();
 
-			if (syncStatus!.sync_in_progress) {
-				syncStatus = await _waitForSyncCompletion(fetch, headers, syncStatus!, 30000, projectId);
+			if (syncStatus && syncStatus.sync_in_progress) {
+				syncStatus = await _waitForSyncCompletion(fetch, headers, syncStatus, 30000, projectId);
 			} else if ((syncStatus as Record<string, unknown>).sync_needed) {
 				const syncResponse = await fetch(`${API_URL}canvas-coordinates/`, {
 					method: 'POST',

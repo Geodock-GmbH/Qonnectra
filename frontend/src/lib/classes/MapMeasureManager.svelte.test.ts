@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type OlMap from 'ol/Map.js';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { MapMeasureManager } from './MapMeasureManager.svelte';
 

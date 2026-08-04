@@ -27,7 +27,7 @@ export class WorkerPool {
 		// Only create workers in browser environment
 		if (typeof Worker !== 'undefined') {
 			for (let i = 0; i < size; i++) {
-				const worker = new Worker(new URL('./mvtParserWorker.ts', import.meta.url), {
+				const worker = new Worker(new URL('./mvtParserWorker.js', import.meta.url), {
 					type: 'module'
 				});
 				worker.onmessage = this.handleWorkerMessage.bind(this);

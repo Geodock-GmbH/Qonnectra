@@ -1,7 +1,6 @@
+import type { SerializedFeature } from './featureReconstructor';
 import type { Extent } from 'ol/extent';
 import MVT from 'ol/format/MVT.js';
-
-import type { SerializedFeature } from './featureReconstructor';
 
 export interface ParseRequest {
 	/** Unique request identifier */

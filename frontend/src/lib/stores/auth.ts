@@ -1,7 +1,5 @@
-import type { AccessLevel, Permissions } from '$lib/utils/permissions';
+import type { Permissions } from '$lib/utils/permissions';
 import { writable } from 'svelte/store';
-
-export type { AccessLevel, Permissions };
 
 export interface UserData {
 	isAuthenticated: boolean;

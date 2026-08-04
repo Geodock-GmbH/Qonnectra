@@ -45,11 +45,7 @@
 	import VectorTileLayer from 'ol/layer/VectorTile.js';
 	import VectorSource from 'ol/source/Vector.js';
 
-	import {
-		createHighlightStyle,
-		createLinkedTrenchStyle,
-		createRouteStyle
-	} from '$lib/map/styles';
+	import { createHighlightStyle, createLinkedTrenchStyle, createRouteStyle } from '$lib/map/styles';
 
 	import TrenchTable from './TrenchTable.svelte';
 

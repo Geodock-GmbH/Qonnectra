@@ -1,4 +1,5 @@
 import type { RequestHandler } from './$types';
+import type { CookieSerializeOptions } from 'cookie';
 import { redirect } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 import setCookieParser from 'set-cookie-parser';
@@ -31,32 +32,18 @@ export const POST: RequestHandler = async ({ cookies, fetch, url }) => {
 		const setCookieHeader = response.headers.get('set-cookie');
 		if (setCookieHeader) {
 			const parsedCookies = setCookieParser.parse(setCookieHeader);
-			parsedCookies.forEach(
-				(cookie: {
-					name: string;
-					value: string;
-					path?: string;
-					domain?: string;
-					expires?: Date;
-					httpOnly?: boolean;
-					secure?: boolean;
-					sameSite?: string;
-				}) => {
-					const { name, value, ...options } = cookie;
+			parsedCookies.forEach((cookie) => {
+				const options: CookieSerializeOptions & { path: string } = {
+					path: cookie.path || '/',
+					httpOnly: cookie.httpOnly,
+					secure: cookie.secure || url.protocol === 'https:',
+					sameSite: (cookie.sameSite as 'lax' | 'strict' | 'none') || 'lax'
+				};
+				if (cookie.domain) options.domain = cookie.domain;
+				if (cookie.expires) options.expires = new Date(cookie.expires);
 
-					if (options.expires) {
-						options.expires = new Date(options.expires);
-					}
-
-					const secure = options.secure || url.protocol === 'https:';
-
-					cookies.set(name, value, {
-						...options,
-						secure,
-						path: options.path || '/'
-					} as Parameters<typeof cookies.set>[2]);
-				}
-			);
+				cookies.set(cookie.name, cookie.value, options);
+			});
 		}
 
 		if (!response.ok && response.status !== 401) {

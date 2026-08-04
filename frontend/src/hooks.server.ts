@@ -1,21 +1,12 @@
 import type { Handle, RequestEvent } from '@sveltejs/kit';
 import type { Permissions } from '$lib/utils/permissions';
+import type { CookieSerializeOptions } from 'cookie';
 import { redirect } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import { API_URL } from '$env/static/private';
 import setCookieParser from 'set-cookie-parser';
 
 import { paraglideMiddleware } from '$lib/paraglide/server';
-
-interface ParsedCookie {
-	name: string;
-	value: string;
-	path?: string;
-	domain?: string;
-	httpOnly?: boolean;
-	secure?: boolean;
-	sameSite?: string;
-}
 
 /** Routes accessible without authentication. */
 export const PUBLIC_ROUTES = ['/login'];
@@ -83,21 +74,16 @@ async function attemptTokenRefresh(event: RequestEvent): Promise<boolean> {
 
 		const setCookieHeaders = response.headers.getSetCookie?.() ?? [];
 		if (setCookieHeaders.length > 0) {
-			const cookies: ParsedCookie[] = setCookieParser.parse(setCookieHeaders);
+			const cookies = setCookieParser.parse(setCookieHeaders);
 			cookies.forEach((cookie) => {
-				const options: Record<string, string | boolean | undefined> = {
+				const options: CookieSerializeOptions & { path: string } = {
 					path: cookie.path || '/',
-					domain: cookie.domain,
 					httpOnly: cookie.httpOnly,
 					secure: cookie.secure || event.url.protocol === 'https:',
-					sameSite: cookie.sameSite || 'Lax'
+					sameSite: (cookie.sameSite as 'lax' | 'strict' | 'none') || 'lax'
 				};
-				Object.keys(options).forEach((key) => options[key] === undefined && delete options[key]);
-				event.cookies.set(
-					cookie.name,
-					cookie.value,
-					options as Parameters<typeof event.cookies.set>[2]
-				);
+				if (cookie.domain) options.domain = cookie.domain;
+				event.cookies.set(cookie.name, cookie.value, options);
 			});
 		}
 

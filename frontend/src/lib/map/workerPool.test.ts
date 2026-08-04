@@ -44,7 +44,7 @@ describe('WorkerPool', () => {
 		const parsePromise = pool.parse('req-1', mockData, extent, projection);
 
 		// Simulate worker response
-		const worker = /** @type {MockWorker} */ (/** @type {unknown} */ (pool.workers[0]));
+		const worker = /** @type {MockWorker} */ /** @type {unknown} */ pool.workers[0];
 		worker.simulateResponse({
 			requestId: 'req-1',
 			success: true,
@@ -61,7 +61,7 @@ describe('WorkerPool', () => {
 
 		const parsePromise = pool.parse('req-1', mockData, [0, 0, 100, 100], 'EPSG:3857');
 
-		const worker = /** @type {MockWorker} */ (/** @type {unknown} */ (pool.workers[0]));
+		const worker = /** @type {MockWorker} */ /** @type {unknown} */ pool.workers[0];
 		worker.simulateResponse({
 			requestId: 'req-1',
 			success: false,

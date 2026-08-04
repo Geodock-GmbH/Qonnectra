@@ -28,6 +28,7 @@
 		"@testing-library/svelte": "^5.2.4",
 		"@testing-library/user-event": "^14.6.1",
 		"@types/node": "^24.0.13",
+		"@types/set-cookie-parser": "^2.4.10",
 		"dotenv": "^17.3.1",
 		"jsdom": "^26.0.0",
 		"playwright": "^1.58.2",

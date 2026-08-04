@@ -1,4 +1,5 @@
 import type { Actions } from './$types';
+import type { CookieSerializeOptions } from 'cookie';
 import { fail, redirect } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 import setCookieParser from 'set-cookie-parser';
@@ -39,35 +40,17 @@ export const actions = {
 				const cookies = setCookieParser.parse(
 					response as unknown as Parameters<typeof setCookieParser.parse>[0]
 				);
-				cookies.forEach(
-					(cookie: {
-						name: string;
-						value: string;
-						path?: string;
-						domain?: string;
-						httpOnly?: boolean;
-						secure?: boolean;
-						sameSite?: string;
-					}) => {
-						const options: Record<string, unknown> = {
-							path: cookie.path || '/',
-							domain: cookie.domain,
-							httpOnly: cookie.httpOnly,
-							secure: cookie.secure || event.url.protocol === 'https:',
-							sameSite: (cookie.sameSite || 'lax').toLowerCase() as 'lax' | 'strict' | 'none'
-						};
+				cookies.forEach((cookie) => {
+					const options: CookieSerializeOptions & { path: string } = {
+						path: cookie.path || '/',
+						httpOnly: cookie.httpOnly,
+						secure: cookie.secure || event.url.protocol === 'https:',
+						sameSite: (cookie.sameSite as 'lax' | 'strict' | 'none') || 'lax'
+					};
+					if (cookie.domain) options.domain = cookie.domain;
 
-						Object.keys(options).forEach(
-							(key) => options[key] === undefined && delete options[key]
-						);
-
-						event.cookies.set(
-							cookie.name,
-							cookie.value,
-							options as Parameters<typeof event.cookies.set>[2]
-						);
-					}
-				);
+					event.cookies.set(cookie.name, cookie.value, options);
+				});
 			} else {
 				console.warn('Login API response missing Set-Cookie header');
 				return fail(500, { error: 'Authentication response missing required tokens.' });

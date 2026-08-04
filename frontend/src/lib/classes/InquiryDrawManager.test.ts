@@ -1,6 +1,6 @@
+import type OlMap from 'ol/Map.js';
 import Feature from 'ol/Feature.js';
 import Polygon from 'ol/geom/Polygon.js';
-import type OlMap from 'ol/Map.js';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { InquiryDrawManager } from '$lib/classes/InquiryDrawManager.svelte';
@@ -200,9 +200,7 @@ describe('InquiryDrawManager highlight overlays', () => {
 
 		manager.initializeHighlightLayers(sources as never);
 
-		const highlightLayers = mockMap.layers.filter(
-			(l: unknown) => l !== mockMap.layers[0]
-		);
+		const highlightLayers = mockMap.layers.filter((l: unknown) => l !== mockMap.layers[0]);
 		for (const layer of highlightLayers) {
 			vi.spyOn(layer as { changed: () => void }, 'changed');
 		}
@@ -266,7 +264,9 @@ describe('InquiryDrawManager polygon geometry cache', () => {
 		const polygon = new Polygon(coords);
 		const feature = new Feature({ geometry: polygon });
 
-		(manager as unknown as { _polygonSource: { addFeature: (f: Feature) => void } })._polygonSource.addFeature(feature);
+		(
+			manager as unknown as { _polygonSource: { addFeature: (f: Feature) => void } }
+		)._polygonSource.addFeature(feature);
 		manager.updatePolygonGeometryCache();
 
 		expect(manager._polygonGeometries).toHaveLength(1);
@@ -307,7 +307,11 @@ describe('InquiryDrawManager removePolygonByUuid', () => {
 		const f2 = new Feature({ geometry: new Polygon(coords) });
 		f2.set('uuid', 'bbb');
 
-		const source = (manager as unknown as { _polygonSource: { addFeatures: (f: Feature[]) => void; getFeatures: () => Feature[] } })._polygonSource;
+		const source = (
+			manager as unknown as {
+				_polygonSource: { addFeatures: (f: Feature[]) => void; getFeatures: () => Feature[] };
+			}
+		)._polygonSource;
 		source.addFeatures([f1, f2]);
 		expect(source.getFeatures()).toHaveLength(2);
 
@@ -333,12 +337,18 @@ describe('InquiryDrawManager polygon label style', () => {
 	});
 
 	test('polygon layer uses a style function, not a static style', () => {
-		const style = (manager as unknown as { _polygonLayer: { getStyle: () => unknown } })._polygonLayer.getStyle();
+		const style = (
+			manager as unknown as { _polygonLayer: { getStyle: () => unknown } }
+		)._polygonLayer.getStyle();
 		expect(typeof style).toBe('function');
 	});
 
 	test('style function returns label when feature has name and resolution is low', () => {
-		const styleFn = (manager as unknown as { _polygonLayer: { getStyle: () => (f: Feature, r: number) => unknown } })._polygonLayer.getStyle();
+		const styleFn = (
+			manager as unknown as {
+				_polygonLayer: { getStyle: () => (f: Feature, r: number) => unknown };
+			}
+		)._polygonLayer.getStyle();
 		const feature = new Feature({
 			geometry: new Polygon([
 				[
@@ -360,7 +370,11 @@ describe('InquiryDrawManager polygon label style', () => {
 	});
 
 	test('style function returns single style when feature has no name', () => {
-		const styleFn = (manager as unknown as { _polygonLayer: { getStyle: () => (f: Feature, r: number) => unknown } })._polygonLayer.getStyle();
+		const styleFn = (
+			manager as unknown as {
+				_polygonLayer: { getStyle: () => (f: Feature, r: number) => unknown };
+			}
+		)._polygonLayer.getStyle();
 		const feature = new Feature({
 			geometry: new Polygon([
 				[
@@ -378,7 +392,11 @@ describe('InquiryDrawManager polygon label style', () => {
 	});
 
 	test('style function returns single style when resolution is too high', () => {
-		const styleFn = (manager as unknown as { _polygonLayer: { getStyle: () => (f: Feature, r: number) => unknown } })._polygonLayer.getStyle();
+		const styleFn = (
+			manager as unknown as {
+				_polygonLayer: { getStyle: () => (f: Feature, r: number) => unknown };
+			}
+		)._polygonLayer.getStyle();
 		const feature = new Feature({
 			geometry: new Polygon([
 				[

@@ -1,8 +1,12 @@
+import type {
+	MicroductCandidate,
+	PendingMicroductChoice,
+	SvelteFlowEdge
+} from './NetworkSchemaState.svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
 
-import type { MicroductCandidate, PendingMicroductChoice, SvelteFlowEdge } from './NetworkSchemaState.svelte';
 import { NetworkSchemaState } from './NetworkSchemaState.svelte';
 
 vi.mock('$app/forms', () => ({
@@ -106,19 +110,21 @@ describe('NetworkSchemaState auto-link', () => {
 			{ id: 'cable-1', source: 'a', target: 'b', type: 'x', data: {} } as unknown as SvelteFlowEdge
 		];
 		const connections = [{ number: 3, color_hex: '#0000ff', color_name: 'blau' }];
-		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((url: string | URL | Request) => {
-			if (String(url).includes('autoLinkMicropipe')) {
-				return Promise.resolve(
-					actionResponse({
-						success: true,
-						linked_count: 1,
-						needs_choice: false,
-						results: [endResult('linked', { microduct: candidate('md-1') })]
-					}) as unknown as Response
-				);
-			}
-			return Promise.resolve(actionResponse({ connections }) as unknown as Response);
-		});
+		const fetchSpy = vi
+			.spyOn(globalThis, 'fetch')
+			.mockImplementation((url: string | URL | Request) => {
+				if (String(url).includes('autoLinkMicropipe')) {
+					return Promise.resolve(
+						actionResponse({
+							success: true,
+							linked_count: 1,
+							needs_choice: false,
+							results: [endResult('linked', { microduct: candidate('md-1') })]
+						}) as unknown as Response
+					);
+				}
+				return Promise.resolve(actionResponse({ connections }) as unknown as Response);
+			});
 
 		await state.autoLinkMicropipe('cable-1', 'Cable One');
 
@@ -128,7 +134,9 @@ describe('NetworkSchemaState auto-link', () => {
 			String(call[0]).includes('getMicropipeConnectionsForCable')
 		);
 		expect(refreshCall).toBeDefined();
-		expect((state.edges[0].data as { micropipeConnections: unknown }).micropipeConnections).toEqual(connections);
+		expect((state.edges[0].data as { micropipeConnections: unknown }).micropipeConnections).toEqual(
+			connections
+		);
 		expect((state.edges[0].data as { isConnected: boolean }).isConnected).toBe(true);
 	});
 
@@ -163,14 +171,20 @@ describe('NetworkSchemaState auto-link', () => {
 				candidates: [candidate('md-1'), candidate('md-2')]
 			} as PendingMicroductChoice
 		];
-		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((url: string | URL | Request) => {
-			if (String(url).includes('autoLinkMicropipe')) {
-				return Promise.resolve(
-					actionResponse({ success: true, status: 'linked', microduct: candidate('md-2') }) as unknown as Response
-				);
-			}
-			return Promise.resolve(actionResponse({ connections: [] }) as unknown as Response);
-		});
+		const fetchSpy = vi
+			.spyOn(globalThis, 'fetch')
+			.mockImplementation((url: string | URL | Request) => {
+				if (String(url).includes('autoLinkMicropipe')) {
+					return Promise.resolve(
+						actionResponse({
+							success: true,
+							status: 'linked',
+							microduct: candidate('md-2')
+						}) as unknown as Response
+					);
+				}
+				return Promise.resolve(actionResponse({ connections: [] }) as unknown as Response);
+			});
 
 		await state.chooseMicroduct('md-2');
 

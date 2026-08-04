@@ -24,7 +24,7 @@ describe('reconstructFeatures', () => {
 		expect(features).toHaveLength(1);
 		expect(features[0].getId()).toBe('node-1');
 		expect(features[0].get('name')).toBe('Test Node');
-		const pointGeom = /** @type {Point} */ (features[0].getGeometry());
+		const pointGeom = /** @type {Point} */ features[0].getGeometry();
 		expect(pointGeom.getType()).toBe('Point');
 		expect(pointGeom.getCoordinates()).toEqual([100, 200]);
 	});
@@ -44,7 +44,7 @@ describe('reconstructFeatures', () => {
 		const features = reconstructFeatures(serialized);
 
 		expect(features).toHaveLength(1);
-		const lineGeom = /** @type {LineString} */ (features[0].getGeometry());
+		const lineGeom = /** @type {LineString} */ features[0].getGeometry();
 		expect(lineGeom.getType()).toBe('LineString');
 		expect(lineGeom.getCoordinates()).toEqual([
 			[0, 0],

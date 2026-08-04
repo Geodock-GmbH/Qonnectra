@@ -4,16 +4,19 @@ import tailwindcss from '@tailwindcss/vite';
 import { svelteTesting } from '@testing-library/svelte/vite';
 import { defineConfig } from 'vitest/config';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const plugins: any[] = [
+	tailwindcss(),
+	sveltekit(),
+	paraglideVitePlugin({
+		project: './project.inlang',
+		outdir: './src/lib/paraglide',
+		strategy: ['localStorage', 'baseLocale']
+	})
+];
+
 export default defineConfig({
-	plugins: [
-		tailwindcss(),
-		sveltekit(),
-		paraglideVitePlugin({
-			project: './project.inlang',
-			outdir: './src/lib/paraglide',
-			strategy: ['localStorage', 'baseLocale']
-		})
-	],
+	plugins,
 	optimizeDeps: {
 		exclude: ['ol']
 	},
@@ -21,7 +24,7 @@ export default defineConfig({
 		projects: [
 			{
 				extends: true,
-				plugins: [svelteTesting()],
+				plugins: [svelteTesting() as any],
 				test: {
 					name: 'client',
 					environment: 'jsdom',
