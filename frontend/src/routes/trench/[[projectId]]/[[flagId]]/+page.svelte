@@ -13,7 +13,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte.js';
-	import { MapState } from '$lib/classes/MapState.svelte.js';
+	import { MapState } from '$lib/classes/MapState.svelte';
 	import ConduitCombobox from '$lib/components/ConduitCombobox.svelte';
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import Map from '$lib/components/Map.svelte';

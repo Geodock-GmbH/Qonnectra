@@ -3,7 +3,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { ConduitDataManager } from '$lib/classes/ConduitDataManager.svelte.js';
+	import { ConduitDataManager } from '$lib/classes/ConduitDataManager.svelte';
 	import FileExplorer from '$lib/components/FileExplorer.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
 	import MicroductsDisplayTable from '$lib/components/MicroductsDisplayTable.svelte';

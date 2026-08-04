@@ -1,52 +1,35 @@
-/**
- * @typedef {'left' | 'right'} PanelSide
- */
+type PanelSide = 'left' | 'right';
 
 /**
  * Manages drag-to-resize for sidebar/drawer panels.
  * Uses pointer capture for reliable tracking across the viewport.
  */
 export class PanelResizeManager {
-	/** @type {number} */
-	width = $state(0);
+	width: number = $state(0);
+	isResizing: boolean = $state(false);
+	handleElement: HTMLElement | undefined = $state();
 
-	/** @type {boolean} */
-	isResizing = $state(false);
+	#minWidth: number;
+	#maxWidthRatio: number;
+	#side: PanelSide;
+	#startX: number = 0;
+	#startWidth: number = 0;
+	#activePointerId: number | null = null;
+	#onResize: ((width: number) => void) | undefined;
 
-	/** @type {HTMLElement | undefined} */
-	handleElement = $state();
-
-	/** @type {number} */
-	#minWidth;
-
-	/** @type {number} */
-	#maxWidthRatio;
-
-	/** @type {PanelSide} */
-	#side;
-
-	/** @type {number} */
-	#startX = 0;
-
-	/** @type {number} */
-	#startWidth = 0;
-
-	/** @type {number | null} */
-	#activePointerId = null;
-
-	/** @type {((width: number) => void) | undefined} */
-	#onResize;
-
-	/**
-	 * @param {{
-	 *   defaultWidth: number,
-	 *   minWidth?: number,
-	 *   maxWidthRatio?: number,
-	 *   side: PanelSide,
-	 *   onResize?: (width: number) => void
-	 * }} options
-	 */
-	constructor({ defaultWidth, minWidth = 200, maxWidthRatio = 0.5, side, onResize }) {
+	constructor({
+		defaultWidth,
+		minWidth = 200,
+		maxWidthRatio = 0.5,
+		side,
+		onResize
+	}: {
+		defaultWidth: number;
+		minWidth?: number;
+		maxWidthRatio?: number;
+		side: PanelSide;
+		onResize?: (width: number) => void;
+	}) {
 		this.width = defaultWidth;
 		this.#minWidth = minWidth;
 		this.#maxWidthRatio = maxWidthRatio;
@@ -54,18 +37,16 @@ export class PanelResizeManager {
 		this.#onResize = onResize;
 	}
 
-	get minWidth() {
+	get minWidth(): number {
 		return this.#minWidth;
 	}
 
-	/** @param {number} width */
-	#clamp(width) {
+	#clamp(width: number): number {
 		const maxWidth = Math.floor(window.innerWidth * this.#maxWidthRatio);
 		return Math.max(this.#minWidth, Math.min(width, maxWidth));
 	}
 
-	/** @param {PointerEvent} event */
-	start = (event) => {
+	start = (event: PointerEvent): void => {
 		if (event.pointerType === 'mouse' && event.button !== 0) return;
 
 		this.isResizing = true;
@@ -82,8 +63,7 @@ export class PanelResizeManager {
 		document.body.style.userSelect = 'none';
 	};
 
-	/** @param {PointerEvent} event */
-	move = (event) => {
+	move = (event: PointerEvent): void => {
 		if (!this.isResizing) return;
 		if (this.#activePointerId !== null && event.pointerId !== this.#activePointerId) return;
 
@@ -94,8 +74,7 @@ export class PanelResizeManager {
 		this.#onResize?.(this.width);
 	};
 
-	/** @param {PointerEvent} [event] */
-	end = (event) => {
+	end = (event?: PointerEvent): void => {
 		this.isResizing = false;
 		if (event && this.#activePointerId !== null && event.pointerId === this.#activePointerId) {
 			try {
@@ -111,9 +90,9 @@ export class PanelResizeManager {
 
 	/**
 	 * Registers document-level pointer listeners. Call from onMount.
-	 * @returns {() => void} Cleanup function
+	 * @returns Cleanup function
 	 */
-	listen() {
+	listen(): () => void {
 		document.addEventListener('pointermove', this.move);
 		document.addEventListener('pointerup', this.end);
 		document.addEventListener('pointercancel', this.end);

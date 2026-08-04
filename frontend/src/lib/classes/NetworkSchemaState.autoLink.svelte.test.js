@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
 
-import { NetworkSchemaState } from './NetworkSchemaState.svelte.js';
+import { NetworkSchemaState } from './NetworkSchemaState.svelte';
 
 vi.mock('$app/forms', () => ({
 	deserialize: vi.fn((text) => JSON.parse(text))

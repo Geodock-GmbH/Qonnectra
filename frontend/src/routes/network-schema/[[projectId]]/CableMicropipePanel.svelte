@@ -16,8 +16,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { CableMicropipeManager } from '$lib/classes/CableMicropipeManager.svelte.js';
-	import { MapState } from '$lib/classes/MapState.svelte.js';
+	import { CableMicropipeManager } from '$lib/classes/CableMicropipeManager.svelte';
+	import { MapState } from '$lib/classes/MapState.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import { createLinkedTrenchStyle, createSelectedStyle } from '$lib/map/styles';
 	import {

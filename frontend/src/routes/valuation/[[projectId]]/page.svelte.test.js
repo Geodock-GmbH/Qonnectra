@@ -19,7 +19,7 @@ const {
 	}
 }));
 
-vi.mock('$lib/classes/MapState.svelte.js', () => {
+vi.mock('$lib/classes/MapState.svelte', () => {
 	class MockMapState {
 		constructor(/** @type {any[]} */ ...args) {
 			mockMapStateCtorCapture.args = args;

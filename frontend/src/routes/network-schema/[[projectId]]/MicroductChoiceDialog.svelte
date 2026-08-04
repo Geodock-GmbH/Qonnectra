@@ -3,7 +3,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	/** @type {{ schemaState: import('$lib/classes/NetworkSchemaState.svelte.js').NetworkSchemaState }} */
+	/** @type {{ schemaState: import('$lib/classes/NetworkSchemaState.svelte').NetworkSchemaState }} */
 	let { schemaState } = $props();
 
 	const current = $derived(schemaState.pendingMicroductChoices[0] ?? null);

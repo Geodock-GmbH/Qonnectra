@@ -6,7 +6,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { CableTrenchDataManager } from '$lib/classes/CableTrenchDataManager.svelte.js';
+	import { CableTrenchDataManager } from '$lib/classes/CableTrenchDataManager.svelte';
 	import FibersDisplayTable from '$lib/components/FibersDisplayTable.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { tooltip } from '$lib/utils/tooltip';

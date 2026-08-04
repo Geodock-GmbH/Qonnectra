@@ -1,11 +1,15 @@
-import LineString from 'ol/geom/LineString';
-import Polygon from 'ol/geom/Polygon';
-import Draw from 'ol/interaction/Draw';
-import VectorLayer from 'ol/layer/Vector';
-import { unByKey } from 'ol/Observable';
-import Overlay from 'ol/Overlay';
-import VectorSource from 'ol/source/Vector';
-import { getArea, getLength } from 'ol/sphere';
+import type { Coordinate } from 'ol/coordinate.js';
+import type { EventsKey } from 'ol/events.js';
+import type Feature from 'ol/Feature.js';
+import type OlMap from 'ol/Map.js';
+import LineString from 'ol/geom/LineString.js';
+import Polygon from 'ol/geom/Polygon.js';
+import Draw from 'ol/interaction/Draw.js';
+import VectorLayer from 'ol/layer/Vector.js';
+import { unByKey } from 'ol/Observable.js';
+import Overlay from 'ol/Overlay.js';
+import VectorSource from 'ol/source/Vector.js';
+import { getArea, getLength } from 'ol/sphere.js';
 
 import { createMeasureStyle } from '$lib/map/styles';
 
@@ -17,57 +21,34 @@ const MEASURE_STYLE = createMeasureStyle();
  * with live tooltip overlays showing formatted results.
  */
 export class MapMeasureManager {
-	/** @type {import('ol/Map').default | null} */
-	olMap = $state(null);
-	/** @type {boolean} */
-	isMeasuring = $state(false);
-	/** @type {'distance' | 'area' | null} */
-	measureType = $state(null);
+	olMap: OlMap | null = $state(null);
+	isMeasuring: boolean = $state(false);
+	measureType: 'distance' | 'area' | null = $state(null);
 
-	/** @type {VectorSource | null} */
-	_source = null;
-	/** @type {VectorLayer | null} */
-	_layer = null;
-	/** @type {Draw | null} */
-	_draw = null;
-	/** @type {Overlay | null} */
-	_measureTooltip = null;
-	/** @type {HTMLDivElement | null} */
-	_measureTooltipElement = null;
-	/** @type {import('ol/events').EventsKey | null} */
-	_geometryChangeListener = null;
-	/** @type {import('ol/Feature').default | null} */
-	_sketch = null;
-	/** @type {Overlay[]} */
-	_overlays = [];
+	_source: VectorSource | null = null;
+	_layer: VectorLayer | null = null;
+	_draw: Draw | null = null;
+	_measureTooltip: Overlay | null = null;
+	_measureTooltipElement: HTMLDivElement | null = null;
+	_geometryChangeListener: EventsKey | null = null;
+	_sketch: Feature | null = null;
+	_overlays: Overlay[] = [];
 
-	/**
-	 * @param {number} lengthInMeters
-	 * @returns {string}
-	 */
-	static formatLength(lengthInMeters) {
+	static formatLength(lengthInMeters: number): string {
 		if (lengthInMeters >= 100) {
 			return `${Math.round((lengthInMeters / 1000) * 100) / 100} km`;
 		}
 		return `${Math.round(lengthInMeters * 100) / 100} m`;
 	}
 
-	/**
-	 * @param {number} areaInSqMeters
-	 * @returns {string}
-	 */
-	static formatArea(areaInSqMeters) {
+	static formatArea(areaInSqMeters: number): string {
 		if (areaInSqMeters >= 10000) {
 			return `${Math.round((areaInSqMeters / 1000000) * 100) / 100} km²`;
 		}
 		return `${Math.round(areaInSqMeters * 100) / 100} m²`;
 	}
 
-	/**
-	 * @param {import('ol/Map').default | null} olMap
-	 * @returns {boolean}
-	 */
-	initialize(olMap) {
+	initialize(olMap: OlMap | null): boolean {
 		if (!olMap) return false;
 
 		this.olMap = olMap;
@@ -82,10 +63,7 @@ export class MapMeasureManager {
 		return true;
 	}
 
-	/**
-	 * @param {'distance' | 'area'} type
-	 */
-	startMeasure(type) {
+	startMeasure(type: 'distance' | 'area'): void {
 		if (!this.olMap) return;
 
 		if (this.isMeasuring) {
@@ -116,8 +94,7 @@ export class MapMeasureManager {
 				this._geometryChangeListener = geom.on('change', (changeEvt) => {
 					const geometry = changeEvt.target;
 					let output = '';
-					/** @type {import('ol/coordinate').Coordinate | undefined} */
-					let tooltipCoord;
+					let tooltipCoord: Coordinate | undefined;
 
 					if (geometry instanceof Polygon) {
 						output = MapMeasureManager.formatArea(getArea(geometry));
@@ -159,7 +136,7 @@ export class MapMeasureManager {
 		this.olMap.addInteraction(this._draw);
 	}
 
-	stopMeasure() {
+	stopMeasure(): void {
 		this._clearCurrentMeasurement();
 		this._removeDrawInteraction();
 		this.isMeasuring = false;
@@ -171,7 +148,7 @@ export class MapMeasureManager {
 	}
 
 	/** @private */
-	_clearCurrentMeasurement() {
+	_clearCurrentMeasurement(): void {
 		if (this._geometryChangeListener) {
 			unByKey(this._geometryChangeListener);
 			this._geometryChangeListener = null;
@@ -196,7 +173,7 @@ export class MapMeasureManager {
 	}
 
 	/** @private */
-	_removeDrawInteraction() {
+	_removeDrawInteraction(): void {
 		if (this._draw && this.olMap) {
 			this.olMap.removeInteraction(this._draw);
 			this._draw = null;
@@ -204,7 +181,7 @@ export class MapMeasureManager {
 	}
 
 	/** @private */
-	_createMeasureTooltip() {
+	_createMeasureTooltip(): void {
 		this._measureTooltipElement = document.createElement('div');
 		this._measureTooltipElement.className = 'ol-measure-tooltip ol-measure-tooltip-active';
 
@@ -220,7 +197,7 @@ export class MapMeasureManager {
 		this._overlays.push(this._measureTooltip);
 	}
 
-	cleanup() {
+	cleanup(): void {
 		this.stopMeasure();
 
 		if (this._layer && this.olMap) {

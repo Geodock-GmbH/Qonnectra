@@ -14,7 +14,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { CableFiberDataManager } from '$lib/classes/CableFiberDataManager.svelte.js';
+	import { CableFiberDataManager } from '$lib/classes/CableFiberDataManager.svelte';
 	import FibersStatusTable from '$lib/components/FibersStatusTable.svelte';
 	import FileExplorer from '$lib/components/FileExplorer.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';

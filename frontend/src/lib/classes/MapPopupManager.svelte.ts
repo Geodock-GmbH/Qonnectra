@@ -1,44 +1,33 @@
-import Feature from 'ol/Feature';
-import OlMap from 'ol/Map';
-import Overlay from 'ol/Overlay';
+import type Feature from 'ol/Feature.js';
+import type OlMap from 'ol/Map.js';
+import type RenderFeature from 'ol/render/Feature.js';
+import Overlay from 'ol/Overlay.js';
 
-/**
- * @typedef {Record<string, string>} AliasMapping
- */
+type AliasMapping = Record<string, string>;
 
-/**
- * @typedef {Record<string, unknown>} FeatureProperties
- */
+type FeatureProperties = Record<string, unknown>;
 
 /**
  * Manages popup overlays on the map
  * Handles creation, positioning, content generation, and lifecycle
  */
 export class MapPopupManager {
-	/** @type {Overlay | null} */
-	overlay = $state(null);
-	/** @type {HTMLElement | null} */
-	popupContainer = $state(null);
-	/** @type {HTMLElement | null} */
-	contentElement = $state(null);
-	/** @type {HTMLElement | null} */
-	closerElement = $state(null);
-	/** @type {AliasMapping} */
-	alias = $state({});
+	overlay: Overlay | null = $state(null);
+	popupContainer: HTMLElement | null = $state(null);
+	contentElement: HTMLElement | null = $state(null);
+	closerElement: HTMLElement | null = $state(null);
+	alias: AliasMapping = $state({});
 
-	/**
-	 * @param {AliasMapping} alias - Field alias mapping for display names
-	 */
-	constructor(alias = {}) {
+	constructor(alias: AliasMapping = {}) {
 		this.alias = alias;
 	}
 
 	/**
 	 * Initializes the popup overlay by locating DOM elements and attaching to the map.
-	 * @param {OlMap} olMap - OpenLayers map instance
-	 * @returns {boolean} True if initialization succeeded
+	 * @param olMap - OpenLayers map instance
+	 * @returns True if initialization succeeded
 	 */
-	initialize(olMap) {
+	initialize(olMap: OlMap): boolean {
 		if (!olMap) {
 			console.error('Map instance is required for popup initialization');
 			return false;
@@ -74,11 +63,10 @@ export class MapPopupManager {
 
 	/**
 	 * Displays the popup at the given coordinates with the feature's properties.
-	 * @param {number[]} coordinate - Map coordinates [x, y]
-	 * @param {Feature | import('ol/render/Feature').default} feature - OpenLayers feature
-	 * @returns {void}
+	 * @param coordinate - Map coordinates [x, y]
+	 * @param feature - OpenLayers feature
 	 */
-	show(coordinate, feature) {
+	show(coordinate: number[], feature: Feature | RenderFeature): void {
 		if (!this.overlay || !this.contentElement) {
 			console.warn('Popup not initialized');
 			return;
@@ -93,9 +81,8 @@ export class MapPopupManager {
 
 	/**
 	 * Hides the popup and removes focus from the closer button.
-	 * @returns {void}
 	 */
-	hide() {
+	hide(): void {
 		if (this.overlay) {
 			this.overlay.setPosition(undefined);
 		}
@@ -106,10 +93,10 @@ export class MapPopupManager {
 
 	/**
 	 * Generates an HTML list of feature properties, skipping geometry and metadata fields.
-	 * @param {FeatureProperties} properties - Feature properties
-	 * @returns {string} HTML string
+	 * @param properties - Feature properties
+	 * @returns HTML string
 	 */
-	generatePopupContent(properties) {
+	generatePopupContent(properties: FeatureProperties): string {
 		let html = '<ul>';
 
 		for (const [key, value] of Object.entries(properties)) {
@@ -125,19 +112,17 @@ export class MapPopupManager {
 
 	/**
 	 * Replaces the field name alias mapping used for display names.
-	 * @param {AliasMapping} newAlias - New alias mapping
-	 * @returns {void}
+	 * @param newAlias - New alias mapping
 	 */
-	updateAlias(newAlias) {
+	updateAlias(newAlias: AliasMapping): void {
 		this.alias = newAlias || {};
 	}
 
 	/**
 	 * Removes the overlay from the map and clears all DOM references.
-	 * @param {OlMap} olMap - OpenLayers map instance
-	 * @returns {void}
+	 * @param olMap - OpenLayers map instance
 	 */
-	cleanup(olMap) {
+	cleanup(olMap: OlMap): void {
 		if (olMap && this.overlay) {
 			olMap.removeOverlay(this.overlay);
 		}

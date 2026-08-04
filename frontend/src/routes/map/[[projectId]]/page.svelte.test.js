@@ -135,7 +135,7 @@ vi.mock('./MapDrawerTabs.svelte', () => ({
 	default: vi.fn()
 }));
 
-vi.mock('$lib/classes/MapState.svelte.js', () => ({
+vi.mock('$lib/classes/MapState.svelte', () => ({
 	MapState: class MockMapState {
 		olMap = null;
 		selectedProject = 'proj-1';

@@ -1,85 +1,81 @@
 import { deserialize } from '$app/forms';
 
-/**
- * @typedef {Object} ConduitType
- * @property {string} [conduit_type]
- */
+interface ConduitType {
+	conduit_type?: string;
+}
 
-/**
- * @typedef {Object} Conduit
- * @property {string} [name]
- * @property {string} [uuid]
- * @property {ConduitType} [conduit_type]
- */
+interface Conduit {
+	name?: string;
+	uuid?: string;
+	conduit_type?: ConduitType;
+}
 
-/**
- * @typedef {Object} PipeItem
- * @property {string} [uuid]
- * @property {string} [id]
- * @property {Conduit} [conduit]
- */
+interface PipeItem {
+	uuid?: string;
+	id?: string;
+	conduit?: Conduit;
+}
 
-/**
- * @typedef {Object} PipeEntry
- * @property {string} id
- * @property {string} title
- * @property {string} description
- * @property {PipeItem} data
- * @property {string} pipeUuid
- */
+interface PipeEntry {
+	id: string;
+	title: string;
+	description: string;
+	data: PipeItem;
+	pipeUuid: string;
+}
 
-/**
- * @typedef {Object} Microduct
- * @property {string} uuid
- * @property {string} [name]
- * @property {number} [number]
- * @property {string} [color]
- * @property {string} [hex_code]
- * @property {{id: number, microduct_status: string}|null} [microduct_status]
- * @property {{ properties?: { uuid_address?: { properties?: { street?: string, housenumber?: string, house_number_suffix?: string, zip_code?: string, city?: string } } } }} [uuid_node]
- * @property {{ name?: string, type?: string }} [cable_connection]
- * @property {Record<string, unknown>} [props]
- */
+export interface Microduct {
+	uuid: string;
+	name?: string;
+	number?: number;
+	color?: string;
+	hex_code?: string;
+	microduct_status?: { id: number; microduct_status: string } | null;
+	uuid_node?: {
+		properties?: {
+			uuid_address?: {
+				properties?: {
+					street?: string;
+					housenumber?: string;
+					house_number_suffix?: string;
+					zip_code?: string;
+					city?: string;
+				};
+			};
+		};
+	};
+	cable_connection?: { name?: string; type?: string };
+	props?: Record<string, unknown>;
+}
 
-/**
- * @typedef {Object} StatusOption
- * @property {number} id
- * @property {string} microduct_status
- */
+interface StatusOption {
+	id: number;
+	microduct_status: string;
+}
 
 /**
  * Manages conduit/pipe data fetching and state for trench features
  * Can be used in both Map drawer (display-only) and house-connections (with actions)
  */
 export class ConduitDataManager {
-	/** @type {PipeEntry[]} */
-	pipesInTrench = $state([]);
-	/** @type {boolean} */
-	loading = $state(false);
-	/** @type {string|null} */
-	error = $state(null);
+	pipesInTrench: PipeEntry[] = $state([]);
+	loading: boolean = $state(false);
+	error: string | null = $state(null);
 
-	/** @type {Record<string, Microduct[]>} */
-	microducts = $state({});
-	/** @type {Record<string, boolean>} */
-	loadingMicroducts = $state({});
-	/** @type {Record<string, string|null>} */
-	errorMicroducts = $state({});
+	microducts: Record<string, Microduct[]> = $state({});
+	loadingMicroducts: Record<string, boolean> = $state({});
+	errorMicroducts: Record<string, string | null> = $state({});
 
-	/** @type {Record<string, string[]>} */
-	trenchUuidsByConduit = $state({});
+	trenchUuidsByConduit: Record<string, string[]> = $state({});
 
-	/** @type {StatusOption[]} */
-	statusOptions = $state([]);
-	/** @type {boolean} */
-	loadingStatusOptions = $state(false);
+	statusOptions: StatusOption[] = $state([]);
+	loadingStatusOptions: boolean = $state(false);
 
 	/**
 	 * Fetch all conduits/pipes in a trench
-	 * @param {string} featureId - UUID of the trench
-	 * @returns {Promise<void>}
+	 * @param featureId - UUID of the trench
 	 */
-	async fetchPipesInTrench(featureId) {
+	async fetchPipesInTrench(featureId: string): Promise<void> {
 		if (!featureId) return;
 
 		this.loading = true;
@@ -97,7 +93,7 @@ export class ConduitDataManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure') {
-				this.error = /** @type {string|null} */ (result.data?.error) || 'Failed to fetch pipes';
+				this.error = (result.data?.error as string | null) || 'Failed to fetch pipes';
 				this.pipesInTrench = [];
 				return;
 			}
@@ -109,7 +105,7 @@ export class ConduitDataManager {
 			}
 
 			if (result.type === 'success' && result.data) {
-				const items = /** @type {PipeItem[]} */ (/** @type {unknown} */ (result.data));
+				const items = result.data as unknown as PipeItem[];
 				this.pipesInTrench = items.map((item) => ({
 					id: item.uuid || item.id || '',
 					title: item.conduit?.name
@@ -131,11 +127,10 @@ export class ConduitDataManager {
 
 	/**
 	 * Fetch microducts for a specific pipe
-	 * @param {string} pipeUuid - UUID of the conduit/pipe
-	 * @param {boolean} forceRefresh - Force refresh even if already loaded
-	 * @returns {Promise<void>}
+	 * @param pipeUuid - UUID of the conduit/pipe
+	 * @param forceRefresh - Force refresh even if already loaded
 	 */
-	async fetchMicroducts(pipeUuid, forceRefresh = false) {
+	async fetchMicroducts(pipeUuid: string, forceRefresh: boolean = false): Promise<void> {
 		if (!pipeUuid) return;
 
 		if (this.microducts[pipeUuid] && !forceRefresh) return;
@@ -156,7 +151,7 @@ export class ConduitDataManager {
 			if (result.type === 'failure') {
 				this.errorMicroducts = {
 					...this.errorMicroducts,
-					[pipeUuid]: /** @type {string} */ (result.data?.error) || 'Failed to fetch microducts'
+					[pipeUuid]: (result.data?.error as string) || 'Failed to fetch microducts'
 				};
 				this.microducts = { ...this.microducts, [pipeUuid]: [] };
 				return;
@@ -172,7 +167,7 @@ export class ConduitDataManager {
 			}
 
 			if (result.type === 'success' && result.data) {
-				const data = /** @type {Microduct[]} */ (/** @type {unknown} */ (result.data));
+				const data = result.data as unknown as Microduct[];
 				this.microducts = { ...this.microducts, [pipeUuid]: data };
 				this.errorMicroducts = { ...this.errorMicroducts, [pipeUuid]: null };
 			}
@@ -187,19 +182,18 @@ export class ConduitDataManager {
 
 	/**
 	 * Force refresh microducts for a specific pipe
-	 * @param {string} pipeUuid - UUID of the conduit/pipe
-	 * @returns {Promise<void>}
+	 * @param pipeUuid - UUID of the conduit/pipe
 	 */
-	async refreshMicroducts(pipeUuid) {
+	async refreshMicroducts(pipeUuid: string): Promise<void> {
 		await this.fetchMicroducts(pipeUuid, true);
 	}
 
 	/**
 	 * Update a specific microduct in the state without full reload
-	 * @param {string} pipeUuid - UUID of the pipe containing the microduct
-	 * @param {Microduct} updatedMicroduct - The updated microduct object
+	 * @param pipeUuid - UUID of the pipe containing the microduct
+	 * @param updatedMicroduct - The updated microduct object
 	 */
-	updateMicroductInState(pipeUuid, updatedMicroduct) {
+	updateMicroductInState(pipeUuid: string, updatedMicroduct: Microduct): void {
 		if (!pipeUuid || !updatedMicroduct) {
 			console.warn('Missing pipeUuid or updatedMicroduct');
 			return;
@@ -220,37 +214,33 @@ export class ConduitDataManager {
 
 	/**
 	 * Get microducts for a specific pipe
-	 * @param {string} pipeUuid - UUID of the conduit/pipe
-	 * @returns {Microduct[]}
+	 * @param pipeUuid - UUID of the conduit/pipe
 	 */
-	getMicroductsForPipe(pipeUuid) {
+	getMicroductsForPipe(pipeUuid: string): Microduct[] {
 		return this.microducts[pipeUuid] || [];
 	}
 
 	/**
 	 * Get loading state for a specific pipe's microducts
-	 * @param {string} pipeUuid - UUID of the conduit/pipe
-	 * @returns {boolean}
+	 * @param pipeUuid - UUID of the conduit/pipe
 	 */
-	isLoadingMicroducts(pipeUuid) {
+	isLoadingMicroducts(pipeUuid: string): boolean {
 		return this.loadingMicroducts[pipeUuid] || false;
 	}
 
 	/**
 	 * Get error state for a specific pipe's microducts
-	 * @param {string} pipeUuid - UUID of the conduit/pipe
-	 * @returns {string|null}
+	 * @param pipeUuid - UUID of the conduit/pipe
 	 */
-	getMicroductsError(pipeUuid) {
+	getMicroductsError(pipeUuid: string): string | null {
 		return this.errorMicroducts[pipeUuid] || null;
 	}
 
 	/**
 	 * Fetch trench UUIDs for a specific conduit
-	 * @param {string} conduitUuid - UUID of the conduit
-	 * @returns {Promise<string[]>} Array of trench UUIDs
+	 * @param conduitUuid - UUID of the conduit
 	 */
-	async fetchTrenchUuidsForConduit(conduitUuid) {
+	async fetchTrenchUuidsForConduit(conduitUuid: string): Promise<string[]> {
 		if (!conduitUuid) return [];
 
 		if (this.trenchUuidsByConduit[conduitUuid]) {
@@ -271,7 +261,7 @@ export class ConduitDataManager {
 			if (result.type === 'failure') {
 				console.error(
 					'Failed to fetch trench UUIDs:',
-					/** @type {Record<string, unknown>} */ (result.data)?.error
+					(result.data as Record<string, unknown>)?.error
 				);
 				return [];
 			}
@@ -282,7 +272,7 @@ export class ConduitDataManager {
 			}
 
 			if (result.type === 'success' && result.data) {
-				const data = /** @type {{ trenchUuids?: string[] }} */ (result.data);
+				const data = result.data as { trenchUuids?: string[] };
 				const trenchUuids = data.trenchUuids || [];
 				this.trenchUuidsByConduit = { ...this.trenchUuidsByConduit, [conduitUuid]: trenchUuids };
 				return trenchUuids;
@@ -297,18 +287,16 @@ export class ConduitDataManager {
 
 	/**
 	 * Get cached trench UUIDs for a conduit
-	 * @param {string} conduitUuid - UUID of the conduit
-	 * @returns {string[]} Array of trench UUIDs
+	 * @param conduitUuid - UUID of the conduit
 	 */
-	getTrenchUuidsForConduit(conduitUuid) {
+	getTrenchUuidsForConduit(conduitUuid: string): string[] {
 		return this.trenchUuidsByConduit[conduitUuid] || [];
 	}
 
 	/**
 	 * Fetch available microduct status options
-	 * @returns {Promise<void>}
 	 */
-	async fetchStatusOptions() {
+	async fetchStatusOptions(): Promise<void> {
 		if (this.statusOptions.length > 0 || this.loadingStatusOptions) return;
 
 		this.loadingStatusOptions = true;
@@ -324,7 +312,7 @@ export class ConduitDataManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success' && result.data) {
-				this.statusOptions = /** @type {StatusOption[]} */ (/** @type {unknown} */ (result.data));
+				this.statusOptions = result.data as unknown as StatusOption[];
 			}
 		} catch (err) {
 			console.error('Error fetching status options:', err);
@@ -335,11 +323,13 @@ export class ConduitDataManager {
 
 	/**
 	 * Update a microduct's status
-	 * @param {string} microductUuid - UUID of the microduct
-	 * @param {number|null} statusId - ID of the status or null for healthy
-	 * @returns {Promise<Microduct|null>} Updated microduct or null on error
+	 * @param microductUuid - UUID of the microduct
+	 * @param statusId - ID of the status or null for healthy
 	 */
-	async updateMicroductStatus(microductUuid, statusId) {
+	async updateMicroductStatus(
+		microductUuid: string,
+		statusId: number | null
+	): Promise<Microduct | null> {
 		try {
 			const formData = new FormData();
 			formData.append('uuid', microductUuid);
@@ -353,7 +343,7 @@ export class ConduitDataManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success' && result.data) {
-				return /** @type {Microduct} */ (result.data);
+				return result.data as unknown as Microduct;
 			}
 
 			return null;
@@ -366,7 +356,7 @@ export class ConduitDataManager {
 	/**
 	 * Reset all state
 	 */
-	reset() {
+	reset(): void {
 		this.pipesInTrench = [];
 		this.loading = false;
 		this.error = null;
@@ -381,7 +371,7 @@ export class ConduitDataManager {
 	/**
 	 * Cleanup method to be called on destroy
 	 */
-	cleanup() {
+	cleanup(): void {
 		this.reset();
 	}
 }

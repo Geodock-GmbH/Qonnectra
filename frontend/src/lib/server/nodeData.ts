@@ -66,7 +66,7 @@ export interface Cable {
 	fiber_count?: number;
 }
 
-export interface Fiber {
+interface Fiber {
 	/** Fiber UUID */
 	uuid: string;
 	/** Fiber position number */

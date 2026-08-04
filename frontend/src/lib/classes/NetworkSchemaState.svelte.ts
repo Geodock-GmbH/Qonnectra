@@ -1,3 +1,4 @@
+import type { ActionResult } from '@sveltejs/kit';
 import { deserialize } from '$app/forms';
 import { page } from '$app/state';
 
@@ -6,159 +7,175 @@ import { m } from '$lib/paraglide/messages';
 import { globalToaster } from '$lib/stores/toaster';
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
-/**
- * @typedef {{
- *   uuid: string,
- *   name: string,
- *   canvas_x: number | null,
- *   canvas_y: number | null,
- *   child_canvas_x: number | null,
- *   child_canvas_y: number | null,
- *   geometry?: { coordinates: [number, number] }
- * }} NodeProperties
- *
- * @typedef {{
- *   id: string,
- *   properties?: NodeProperties,
- *   geometry?: { coordinates: [number, number] }
- * } & Partial<NodeProperties>} NodeFeature
- *
- * @typedef {{ features?: NodeFeature[] }} NodeFeatureCollection
- *
- * @typedef {{
- *   uuid: string,
- *   name: string,
- *   uuid_node_start: string,
- *   uuid_node_end: string,
- *   handle_start?: string,
- *   handle_end?: string,
- *   labelData?: EdgeLabelData | null,
- *   warning?: string
- * }} CableData
- *
- * @typedef {{
- *   uuid: string,
- *   number: number,
- *   color?: string
- * }} MicropipeConnection
- *
- * @typedef {{ [cableUuid: string]: MicropipeConnection[] }} MicropipeConnectionMap
- *
- * @typedef {{
- *   position_x: number,
- *   position_y: number,
- *   text: string,
- *   uuid: string
- * }} EdgeLabelData
- *
- * @typedef {{
- *   id: string,
- *   position: { x: number, y: number },
- *   type: string,
- *   selected: boolean,
- *   data: {
- *     label: string,
- *     node: NodeProperties | NodeFeature,
- *     onNodeSelect: (nodeId: string) => void,
- *     onNodeDelete: (nodeId: string) => void,
- *     onNameUpdate: (newName: string) => void
- *   }
- * }} SvelteFlowNode
- *
- * @typedef {{
- *   id: string,
- *   source: string,
- *   target: string,
- *   sourceHandle?: string,
- *   targetHandle?: string,
- *   type: string,
- *   selected?: boolean,
- *   data: {
- *     label: string,
- *     cable: CableData,
- *     labelData?: EdgeLabelData | null,
- *     micropipeConnections?: MicropipeConnection[],
- *     lowestMicropipe?: MicropipeConnection | null,
- *     isConnected?: boolean,
- *     onEdgeDelete: (edgeId: string) => void,
- *     onEdgeSelect: (edgeId: string) => void,
- *     onNameUpdate: (newName: string) => void
- *   }
- * }} SvelteFlowEdge
- *
- * @typedef {{ id: string, name: string }} CableType
- *
- * @typedef {{
- *   nodes: NodeFeatureCollection | NodeFeature[],
- *   cables: CableData[],
- *   cableMicropipeConnections: MicropipeConnectionMap,
- *   cableTypes: CableType[]
- * }} NetworkSchemaInitData
- *
- * @typedef {{
- *   source: string,
- *   target: string,
- *   sourceHandle?: string,
- *   targetHandle?: string
- * }} SvelteFlowConnection
- *
- * @typedef {{
- *   targetNode: { id: string, position: { x: number, y: number } }
- * }} NodeDragStopEvent
- *
- * @typedef {{
- *   microduct_uuid: string,
- *   number: number,
- *   color: string,
- *   color_hex: string,
- *   conduit_uuid: string,
- *   conduit_name: string,
- *   node_name: string | null,
- *   linked_cables: { uuid: string, name: string }[]
- * }} MicroductCandidate
- *
- * @typedef {{
- *   cableId: string,
- *   cableName: string,
- *   end: string,
- *   nodeName: string | null,
- *   address: string | null,
- *   candidates: MicroductCandidate[]
- * }} PendingMicroductChoice
- */
+export interface NodeProperties {
+	uuid: string;
+	name: string;
+	canvas_x: number | null;
+	canvas_y: number | null;
+	child_canvas_x: number | null;
+	child_canvas_y: number | null;
+	geometry?: { coordinates: [number, number] };
+}
+
+export interface NodeFeature {
+	id: string;
+	properties?: NodeProperties;
+	geometry?: { coordinates: [number, number] };
+	uuid?: string;
+	name?: string;
+	canvas_x?: number | null;
+	canvas_y?: number | null;
+	child_canvas_x?: number | null;
+	child_canvas_y?: number | null;
+}
+
+export interface NodeFeatureCollection {
+	features?: NodeFeature[];
+}
+
+export interface EdgeLabelData {
+	position_x: number;
+	position_y: number;
+	text: string;
+	uuid: string;
+}
+
+export interface CableData {
+	uuid: string;
+	name: string;
+	uuid_node_start: string;
+	uuid_node_end: string;
+	handle_start?: string;
+	handle_end?: string;
+	labelData?: EdgeLabelData | null;
+	warning?: string;
+}
+
+export interface MicropipeConnection {
+	uuid: string;
+	number: number;
+	color?: string;
+}
+
+export type MicropipeConnectionMap = Record<string, MicropipeConnection[]>;
+
+export interface SvelteFlowNode {
+	id: string;
+	position: { x: number; y: number };
+	type: string;
+	selected: boolean;
+	data: {
+		label: string;
+		node: NodeProperties | NodeFeature;
+		onNodeSelect: (nodeId: string) => void;
+		onNodeDelete: (nodeId: string) => void;
+		onNameUpdate: (newName: string) => void;
+	};
+}
+
+export interface SvelteFlowEdge {
+	id: string;
+	source: string;
+	target: string;
+	sourceHandle?: string;
+	targetHandle?: string;
+	type: string;
+	selected?: boolean;
+	data: {
+		label: string;
+		cable: CableData;
+		labelData?: EdgeLabelData | null;
+		micropipeConnections?: MicropipeConnection[];
+		lowestMicropipe?: MicropipeConnection | null;
+		isConnected?: boolean;
+		onEdgeDelete: (edgeId: string) => void;
+		onEdgeSelect: (edgeId: string) => void;
+		onNameUpdate: (newName: string) => void;
+	};
+}
+
+export interface CableType {
+	id: string;
+	name: string;
+}
+
+export interface NetworkSchemaInitData {
+	nodes: NodeFeatureCollection | NodeFeature[];
+	cables: CableData[];
+	cableMicropipeConnections: MicropipeConnectionMap;
+	cableTypes: CableType[];
+}
+
+export interface SvelteFlowConnection {
+	source: string;
+	target: string;
+	sourceHandle?: string;
+	targetHandle?: string;
+}
+
+export interface NodeDragStopEvent {
+	targetNode: { id: string; position: { x: number; y: number } };
+}
+
+export interface MicroductCandidate {
+	microduct_uuid: string;
+	number: number;
+	color: string;
+	color_hex: string;
+	conduit_uuid: string;
+	conduit_name: string;
+	node_name: string | null;
+	linked_cables: { uuid: string; name: string }[];
+}
+
+export interface PendingMicroductChoice {
+	cableId: string;
+	cableName: string;
+	end: string;
+	nodeName: string | null;
+	address: string | null;
+	candidates: MicroductCandidate[];
+}
+
+interface AutoLinkEndResult {
+	status: 'linked' | 'multiple_candidates' | string;
+	microduct?: MicroductCandidate;
+	end?: string;
+	node_name?: string | null;
+	address?: string | null;
+	candidates?: MicroductCandidate[];
+}
+
+interface AutoLinkResponse {
+	results?: AutoLinkEndResult[];
+	linked_count?: number;
+	microduct?: MicroductCandidate;
+}
 
 /**
- * Main state manager for the network schema diagram
- * Manages nodes, edges, cable types, and diagram interactions
+ * Main state manager for the network schema diagram.
+ * Manages nodes, edges, cable types, and diagram interactions.
  */
 export class NetworkSchemaState {
-	/** @type {SvelteFlowNode[]} */
-	nodes = $state.raw([]);
-	/** @type {SvelteFlowEdge[]} */
-	edges = $state.raw([]);
-	/** @type {CableType[]} */
-	cableTypes = $state([]);
-	/** @type {string} */
-	userCableName = $state('');
-	/** @type {string[]} */
-	selectedCableType = $state([]);
+	nodes: SvelteFlowNode[] = $state.raw([]);
+	edges: SvelteFlowEdge[] = $state.raw([]);
+	cableTypes: CableType[] = $state([]);
+	userCableName: string = $state('');
+	selectedCableType: string[] = $state([]);
 
-	/** @type {string|null} - Parent node context for child view cables */
-	parentNodeContext = $state(null);
+	/** Parent node context for child view cables */
+	parentNodeContext: string | null = $state(null);
 
-	/** @type {PendingMicroductChoice[]} - Queue of unresolved microduct choices for the user */
-	pendingMicroductChoices = $state([]);
+	/** Queue of unresolved microduct choices for the user */
+	pendingMicroductChoices: PendingMicroductChoice[] = $state([]);
 
-	/** @type {boolean} - Whether currently in child view mode */
-	isChildView = $state(false);
+	/** Whether currently in child view mode */
+	isChildView: boolean = $state(false);
 
-	/** @type {boolean} - Track if already initialized to prevent duplicate initialization */
-	#initialized = $state(false);
+	/** Track if already initialized to prevent duplicate initialization */
+	#initialized: boolean = $state(false);
 
-	/**
-	 * @param {NetworkSchemaInitData | null} [initialData] - Optional initial data (can be initialized later via initialize())
-	 */
-	constructor(initialData = null) {
+	constructor(initialData: NetworkSchemaInitData | null = null) {
 		if (initialData) {
 			this.initialize(initialData);
 		}
@@ -166,17 +183,16 @@ export class NetworkSchemaState {
 
 	/**
 	 * Check if the state has been initialized
-	 * @returns {boolean}
 	 */
-	get initialized() {
+	get initialized(): boolean {
 		return this.#initialized;
 	}
 
 	/**
 	 * Initialize or re-initialize the state with data
-	 * @param {NetworkSchemaInitData} data - The page data containing nodes, cables, cableMicropipeConnections, and cableTypes
+	 * @param data - The page data containing nodes, cables, cableMicropipeConnections, and cableTypes
 	 */
-	initialize(data) {
+	initialize(data: NetworkSchemaInitData): void {
 		if (!data || this.#initialized) return;
 		this.nodes = this.transformNodesToSvelteFlow(data.nodes);
 		this.edges = this.transformCablesToSvelteFlowEdges(data.cables, data.cableMicropipeConnections);
@@ -186,12 +202,12 @@ export class NetworkSchemaState {
 
 	/**
 	 * Transform Node data to SvelteFlow nodes using backend canvas coordinates
-	 * @param {NodeFeatureCollection | NodeFeature[]} nodeData - GeoJSON FeatureCollection or array of Node objects from the API
-	 * @returns {SvelteFlowNode[]} SvelteFlow compatible nodes
+	 * @param nodeData - GeoJSON FeatureCollection or array of Node objects from the API
 	 */
-	transformNodesToSvelteFlow(nodeData) {
-		const nodes =
-			/** @type {NodeFeature[]} */ ('features' in nodeData ? nodeData.features : nodeData) || [];
+	transformNodesToSvelteFlow(nodeData: NodeFeatureCollection | NodeFeature[]): SvelteFlowNode[] {
+		const nodes: NodeFeature[] = Array.isArray(nodeData)
+			? nodeData
+			: ((nodeData as NodeFeatureCollection).features ?? []);
 		if (!nodes || nodes.length === 0) {
 			return [];
 		}
@@ -199,8 +215,8 @@ export class NetworkSchemaState {
 		return nodes.map((nodeOrFeature) => {
 			const node = nodeOrFeature.properties || nodeOrFeature;
 
-			// Select coordinates based on view mode
-			let x, y;
+			let x: number | null | undefined;
+			let y: number | null | undefined;
 			if (this.isChildView) {
 				x = node.child_canvas_x;
 				y = node.child_canvas_y;
@@ -209,7 +225,6 @@ export class NetworkSchemaState {
 				y = node.canvas_y;
 			}
 
-			// Fallback to geometry calculation if coordinates are null
 			if (x === null || y === null || x === undefined || y === undefined) {
 				const geometry = nodeOrFeature.geometry || node.geometry;
 				const [geoX, geoY] = geometry?.coordinates || [0, 0];
@@ -227,9 +242,9 @@ export class NetworkSchemaState {
 				data: {
 					label: node.name || m.form_unnamed_node(),
 					node: node,
-					onNodeSelect: (/** @type {string} */ nId) => this.selectNode(nId),
-					onNodeDelete: (/** @type {string} */ nId) => this.handleNodeDelete(nId),
-					onNameUpdate: (/** @type {string} */ newName) => this.updateNodeName(nodeId, newName)
+					onNodeSelect: (nId: string) => this.selectNode(nId),
+					onNodeDelete: (nId: string) => this.handleNodeDelete(nId),
+					onNameUpdate: (newName: string) => this.updateNodeName(nodeId, newName)
 				}
 			};
 		});
@@ -237,11 +252,13 @@ export class NetworkSchemaState {
 
 	/**
 	 * Transform Cable data to SvelteFlow edges
-	 * @param {CableData[]} cablesData - Array of Cable objects from the API
-	 * @param {MicropipeConnectionMap} micropipeConnections - Map of cable UUID to micropipe connection data
-	 * @returns {SvelteFlowEdge[]} SvelteFlow compatible edges
+	 * @param cablesData - Array of Cable objects from the API
+	 * @param micropipeConnections - Map of cable UUID to micropipe connection data
 	 */
-	transformCablesToSvelteFlowEdges(cablesData, micropipeConnections = {}) {
+	transformCablesToSvelteFlowEdges(
+		cablesData: CableData[],
+		micropipeConnections: MicropipeConnectionMap = {}
+	): SvelteFlowEdge[] {
 		const cables = Array.isArray(cablesData) ? cablesData : [];
 
 		if (cables.length === 0) {
@@ -251,9 +268,7 @@ export class NetworkSchemaState {
 		const edges = cables
 			.filter((cable) => cable.uuid_node_start && cable.uuid_node_end)
 			.map((cable) => {
-				// Get micropipe connections for this cable
 				const connections = micropipeConnections[cable.uuid] || [];
-				// Sort by micropipe number and get the lowest one
 				const sortedConnections = [...connections].sort((a, b) => a.number - b.number);
 				const lowestMicropipe = sortedConnections[0] || null;
 
@@ -275,10 +290,9 @@ export class NetworkSchemaState {
 						micropipeConnections: connections,
 						lowestMicropipe: lowestMicropipe,
 						isConnected: connections.length > 0,
-						onEdgeDelete: (/** @type {string} */ edgeId) => this.handleEdgeDelete(edgeId),
-						onEdgeSelect: (/** @type {string} */ edgeId) => this.selectEdge(edgeId),
-						onNameUpdate: (/** @type {string} */ newName) =>
-							this.updateEdgeName(cable.uuid, newName)
+						onEdgeDelete: (edgeId: string) => this.handleEdgeDelete(edgeId),
+						onEdgeSelect: (edgeId: string) => this.selectEdge(edgeId),
+						onNameUpdate: (newName: string) => this.updateEdgeName(cable.uuid, newName)
 					}
 				};
 			});
@@ -288,9 +302,9 @@ export class NetworkSchemaState {
 
 	/**
 	 * Handle edge deletion - removes edge from the local state
-	 * @param {string} edgeId - The UUID of the edge/cable to remove
+	 * @param edgeId - The UUID of the edge/cable to remove
 	 */
-	handleEdgeDelete(edgeId) {
+	handleEdgeDelete(edgeId: string): void {
 		const edge = this.edges.find((e) => e.id === edgeId);
 		const affectedNodeIds = edge ? [edge.source, edge.target] : [];
 
@@ -307,20 +321,18 @@ export class NetworkSchemaState {
 
 	/**
 	 * Handle node deletion - removes node and connected edges from local state
-	 * @param {string} nodeId - The UUID of the node to remove
+	 * @param nodeId - The UUID of the node to remove
 	 */
-	handleNodeDelete(nodeId) {
-		// Remove the node
+	handleNodeDelete(nodeId: string): void {
 		this.nodes = this.nodes.filter((node) => node.id !== nodeId);
-		// Remove any connected edges
 		this.edges = this.edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId);
 	}
 
 	/**
 	 * Select a specific node and deselect all others
-	 * @param {string} nodeId - The node UUID to select
+	 * @param nodeId - The node UUID to select
 	 */
-	selectNode(nodeId) {
+	selectNode(nodeId: string): void {
 		this.nodes = this.nodes.map((n) => ({
 			...n,
 			selected: n.id === nodeId
@@ -330,7 +342,7 @@ export class NetworkSchemaState {
 	/**
 	 * Deselect all nodes
 	 */
-	deselectAllNodes() {
+	deselectAllNodes(): void {
 		this.nodes = this.nodes.map((n) => ({
 			...n,
 			selected: false
@@ -339,9 +351,9 @@ export class NetworkSchemaState {
 
 	/**
 	 * Select a single edge (cable) by ID
-	 * @param {string} edgeId - The edge ID to select
+	 * @param edgeId - The edge ID to select
 	 */
-	selectEdge(edgeId) {
+	selectEdge(edgeId: string): void {
 		this.edges = this.edges.map((e) => ({
 			...e,
 			selected: e.id === edgeId
@@ -351,7 +363,7 @@ export class NetworkSchemaState {
 	/**
 	 * Deselect all edges
 	 */
-	deselectAllEdges() {
+	deselectAllEdges(): void {
 		this.edges = this.edges.map((e) => ({
 			...e,
 			selected: false
@@ -360,9 +372,9 @@ export class NetworkSchemaState {
 
 	/**
 	 * Handle node drag stop - saves position via form action
-	 * @param {NodeDragStopEvent} event - Event object from SvelteFlow
+	 * @param event - Event object from SvelteFlow
 	 */
-	async handleNodeDragStop(event) {
+	async handleNodeDragStop(event: NodeDragStopEvent): Promise<void> {
 		const node = event.targetNode;
 		const nodeId = node.id;
 		const newPosition = node.position;
@@ -397,7 +409,7 @@ export class NetworkSchemaState {
 				title: m.title_success(),
 				description: m.message_success_updating_position()
 			});
-		} catch (/** @type {any} */ error) {
+		} catch (error: unknown) {
 			console.error('Error saving node position:', error);
 
 			const nodeIndex = this.nodes.findIndex((n) => n.id === nodeId);
@@ -410,17 +422,16 @@ export class NetworkSchemaState {
 
 			globalToaster.error({
 				title: m.common_error(),
-				description: `${error.message}`
+				description: `${(error as Error).message}`
 			});
 		}
 	}
 
 	/**
 	 * Generate random string for cable names
-	 * @param {number} length - The length of the random string
-	 * @returns {string} The random string
+	 * @param length - The length of the random string
 	 */
-	generateRandomString(length = 10) {
+	generateRandomString(length: number = 10): string {
 		const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 		const array = new Uint32Array(length);
 		crypto.getRandomValues(array);
@@ -429,10 +440,9 @@ export class NetworkSchemaState {
 
 	/**
 	 * Parse handle ID to extract position
-	 * @param {string | undefined} handleId - Handle ID format: {nodeUuid}-{position}-{type}
-	 * @returns {string | null} 'top', 'right', 'bottom', or 'left'
+	 * @param handleId - Handle ID format: nodeUuid-position-type
 	 */
-	parseHandlePosition(handleId) {
+	parseHandlePosition(handleId: string | undefined): string | null {
 		if (!handleId) return null;
 		const parts = handleId.split('-');
 		return parts[parts.length - 2];
@@ -440,10 +450,10 @@ export class NetworkSchemaState {
 
 	/**
 	 * Handle new edge connection - creates a Cable record via form action
-	 * @param {SvelteFlowConnection} connection - Connection object from SvelteFlow
-	 * @param {string} selectedProject - Current project ID
+	 * @param connection - Connection object from SvelteFlow
+	 * @param selectedProject - Current project ID
 	 */
-	async handleConnect(connection, selectedProject) {
+	async handleConnect(connection: SvelteFlowConnection, selectedProject: string): Promise<void> {
 		const { source, target, sourceHandle, targetHandle } = connection;
 
 		const handleStart = this.parseHandlePosition(sourceHandle);
@@ -498,15 +508,18 @@ export class NetworkSchemaState {
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
+			const result: ActionResult = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
 				const errorData = result.type === 'failure' ? result.data : undefined;
-				throw new Error(/** @type {string} */ (errorData?.error) || 'Failed to create cable');
+				throw new Error(
+					((errorData as Record<string, unknown> | undefined)?.error as string) ||
+						'Failed to create cable'
+				);
 			}
 
 			const successData = result.type === 'success' ? result.data : undefined;
-			const cableData = /** @type {any} */ (successData?.data);
+			const cableData = (successData as Record<string, unknown> | undefined)?.data as CableData;
 
 			if (cableData.uuid !== cableUuid) {
 				console.warn(
@@ -526,9 +539,9 @@ export class NetworkSchemaState {
 					data: {
 						label: cableName,
 						cable: { ...cableData, uuid: cableUuid },
-						onEdgeDelete: (/** @type {string} */ edgeId) => this.handleEdgeDelete(edgeId),
-						onEdgeSelect: (/** @type {string} */ edgeId) => this.selectEdge(edgeId),
-						onNameUpdate: (/** @type {string} */ newName) => this.updateEdgeName(cableUuid, newName)
+						onEdgeDelete: (edgeId: string) => this.handleEdgeDelete(edgeId),
+						onEdgeSelect: (edgeId: string) => this.selectEdge(edgeId),
+						onNameUpdate: (newName: string) => this.updateEdgeName(cableUuid, newName)
 					}
 				}
 			];
@@ -559,7 +572,6 @@ export class NetworkSchemaState {
 				});
 			}
 
-			// Dispatch event for sidebar refresh (source and target are swapped in the edge creation)
 			window.dispatchEvent(
 				new CustomEvent('cableConnectionChanged', {
 					detail: { nodeIds: [source, target] }
@@ -567,7 +579,7 @@ export class NetworkSchemaState {
 			);
 
 			await this.autoLinkMicropipe(cableUuid, cableName);
-		} catch (error) {
+		} catch (error: unknown) {
 			console.error('Error creating cable:', error);
 			globalToaster.error({
 				title: m.common_error(),
@@ -578,10 +590,10 @@ export class NetworkSchemaState {
 
 	/**
 	 * Update edge data in local state
-	 * @param {string} edgeId - Edge UUID
-	 * @param {Partial<SvelteFlowEdge>} updates - Updates to apply to edge data
+	 * @param edgeId - Edge UUID
+	 * @param updates - Updates to apply to edge data
 	 */
-	updateEdge(edgeId, updates) {
+	updateEdge(edgeId: string, updates: Partial<SvelteFlowEdge>): void {
 		this.edges = this.edges.map((edge) => {
 			if (edge.id === edgeId) {
 				return {
@@ -595,11 +607,11 @@ export class NetworkSchemaState {
 
 	/**
 	 * Update cable handles for an edge
-	 * @param {string} cableId - Cable UUID
-	 * @param {string} handleStart - Start handle position
-	 * @param {string} handleEnd - End handle position
+	 * @param cableId - Cable UUID
+	 * @param handleStart - Start handle position
+	 * @param handleEnd - End handle position
 	 */
-	updateCableHandles(cableId, handleStart, handleEnd) {
+	updateCableHandles(cableId: string, handleStart: string, handleEnd: string): void {
 		const edge = this.edges.find((e) => e.id === cableId);
 		if (!edge) {
 			console.error(`Edge not found for cable ID: ${cableId}`);
@@ -628,10 +640,10 @@ export class NetworkSchemaState {
 
 	/**
 	 * Update node name in local state
-	 * @param {string} nodeId - Node UUID
-	 * @param {string} newName - New name for the node
+	 * @param nodeId - Node UUID
+	 * @param newName - New name for the node
 	 */
-	updateNodeName(nodeId, newName) {
+	updateNodeName(nodeId: string, newName: string): void {
 		this.nodes = this.nodes.map((node) => {
 			if (node.id === nodeId) {
 				return {
@@ -652,10 +664,10 @@ export class NetworkSchemaState {
 
 	/**
 	 * Update edge/cable name in local state
-	 * @param {string} edgeId - Edge UUID
-	 * @param {string} newName - New name for the cable
+	 * @param edgeId - Edge UUID
+	 * @param newName - New name for the cable
 	 */
-	updateEdgeName(edgeId, newName) {
+	updateEdgeName(edgeId: string, newName: string): void {
 		this.edges = this.edges.map((edge) => {
 			if (edge.id === edgeId) {
 				return {
@@ -677,12 +689,17 @@ export class NetworkSchemaState {
 
 	/**
 	 * Update edge connection to a different node
-	 * @param {string} edgeId - Edge UUID
-	 * @param {'start' | 'end'} side - 'start' or 'end'
-	 * @param {string} newNodeId - New node UUID
-	 * @param {string} handlePosition - Handle position at new node
+	 * @param edgeId - Edge UUID
+	 * @param side - 'start' or 'end'
+	 * @param newNodeId - New node UUID
+	 * @param handlePosition - Handle position at new node
 	 */
-	updateEdgeConnection(edgeId, side, newNodeId, handlePosition) {
+	updateEdgeConnection(
+		edgeId: string,
+		side: 'start' | 'end',
+		newNodeId: string,
+		handlePosition: string
+	): void {
 		this.edges = this.edges.map((edge) => {
 			if (edge.id === edgeId) {
 				if (side === 'start') {
@@ -721,10 +738,10 @@ export class NetworkSchemaState {
 
 	/**
 	 * Update edge label data (position and text) in local state
-	 * @param {string} edgeId - Edge UUID
-	 * @param {EdgeLabelData} labelData - Label data with position_x, position_y, text, uuid
+	 * @param edgeId - Edge UUID
+	 * @param labelData - Label data with position_x, position_y, text, uuid
 	 */
-	updateEdgeLabelData(edgeId, labelData) {
+	updateEdgeLabelData(edgeId: string, labelData: EdgeLabelData): void {
 		this.edges = this.edges.map((edge) => {
 			if (edge.id === edgeId) {
 				return {
@@ -741,10 +758,10 @@ export class NetworkSchemaState {
 
 	/**
 	 * Update edge micropipe connections for dynamic coloring
-	 * @param {string} cableId - Cable UUID
-	 * @param {MicropipeConnection[]} connections - Array of micropipe connection objects
+	 * @param cableId - Cable UUID
+	 * @param connections - Array of micropipe connection objects
 	 */
-	updateEdgeMicropipeConnections(cableId, connections) {
+	updateEdgeMicropipeConnections(cableId: string, connections: MicropipeConnection[]): void {
 		const sortedConnections = [...connections].sort((a, b) => a.number - b.number);
 		const lowestMicropipe = sortedConnections[0] || null;
 
@@ -768,10 +785,10 @@ export class NetworkSchemaState {
 	 * Auto-link a freshly created cable to microducts matched via its end-node addresses.
 	 * Single matches are linked directly with a toast; ambiguous ends are queued
 	 * in pendingMicroductChoices for the user to resolve in a dialog.
-	 * @param {string} cableId - Cable UUID
-	 * @param {string} cableName - Cable name for dialog context
+	 * @param cableId - Cable UUID
+	 * @param cableName - Cable name for dialog context
 	 */
-	async autoLinkMicropipe(cableId, cableName) {
+	async autoLinkMicropipe(cableId: string, cableName: string): Promise<void> {
 		try {
 			const formData = new FormData();
 			formData.append('cableId', cableId);
@@ -780,16 +797,16 @@ export class NetworkSchemaState {
 				method: 'POST',
 				body: formData
 			});
-			const result = deserialize(await response.text());
+			const result: ActionResult = deserialize(await response.text());
 			if (result.type !== 'success' || !result.data) return;
 
-			const data = /** @type {any} */ (result.data);
+			const data = result.data as unknown as AutoLinkResponse;
 			for (const endResult of data.results ?? []) {
 				if (endResult.status === 'linked') {
 					globalToaster.success({
 						title: m.title_success(),
 						description: m.message_auto_link_micropipe_linked({
-							micropipe: this.formatMicroductLabel(endResult.microduct)
+							micropipe: this.formatMicroductLabel(endResult.microduct ?? null)
 						})
 					});
 				} else if (endResult.status === 'multiple_candidates') {
@@ -798,29 +815,28 @@ export class NetworkSchemaState {
 						{
 							cableId,
 							cableName,
-							end: endResult.end,
-							nodeName: endResult.node_name,
-							address: endResult.address,
-							candidates: endResult.candidates
+							end: endResult.end ?? '',
+							nodeName: endResult.node_name ?? null,
+							address: endResult.address ?? null,
+							candidates: endResult.candidates ?? []
 						}
 					];
 				}
 			}
 
-			if (data.linked_count > 0) {
+			if ((data.linked_count ?? 0) > 0) {
 				await this.refreshEdgeMicropipes(cableId);
 			}
-		} catch (error) {
-			// The cable itself was created successfully, so no error toast here
+		} catch (error: unknown) {
 			console.error('Error auto-linking micropipe:', error);
 		}
 	}
 
 	/**
 	 * Link the current pending choice's cable to the chosen microduct.
-	 * @param {string} microductUuid - UUID of the chosen microduct
+	 * @param microductUuid - UUID of the chosen microduct
 	 */
-	async chooseMicroduct(microductUuid) {
+	async chooseMicroduct(microductUuid: string): Promise<void> {
 		const choice = this.pendingMicroductChoices[0];
 		if (!choice) return;
 
@@ -833,21 +849,21 @@ export class NetworkSchemaState {
 				method: 'POST',
 				body: formData
 			});
-			const result = deserialize(await response.text());
+			const result: ActionResult = deserialize(await response.text());
 			if (result.type !== 'success' || !result.data) {
 				throw new Error('Failed to link chosen microduct');
 			}
 
-			const data = /** @type {any} */ (result.data);
+			const data = result.data as unknown as AutoLinkResponse;
 			globalToaster.success({
 				title: m.title_success(),
 				description: m.message_auto_link_micropipe_linked({
-					micropipe: this.formatMicroductLabel(data.microduct)
+					micropipe: this.formatMicroductLabel(data.microduct ?? null)
 				})
 			});
 			await this.refreshEdgeMicropipes(choice.cableId);
 			this.pendingMicroductChoices = this.pendingMicroductChoices.slice(1);
-		} catch (error) {
+		} catch (error: unknown) {
 			console.error('Error linking chosen microduct:', error);
 			globalToaster.error({
 				title: m.common_error(),
@@ -859,25 +875,23 @@ export class NetworkSchemaState {
 	/**
 	 * Dismiss the current pending microduct choice without linking.
 	 */
-	dismissMicroductChoice() {
+	dismissMicroductChoice(): void {
 		this.pendingMicroductChoices = this.pendingMicroductChoices.slice(1);
 	}
 
 	/**
 	 * Build a human-readable label for a microduct candidate.
-	 * @param {MicroductCandidate | null} microduct
-	 * @returns {string}
 	 */
-	formatMicroductLabel(microduct) {
+	formatMicroductLabel(microduct: MicroductCandidate | null): string {
 		if (!microduct) return '';
 		return `${microduct.conduit_name} #${microduct.number} ${microduct.color}`;
 	}
 
 	/**
 	 * Refresh the micropipe connections of an edge for dynamic coloring.
-	 * @param {string} cableId - Cable UUID
+	 * @param cableId - Cable UUID
 	 */
-	async refreshEdgeMicropipes(cableId) {
+	async refreshEdgeMicropipes(cableId: string): Promise<void> {
 		try {
 			const formData = new FormData();
 			formData.append('uuid', cableId);
@@ -886,14 +900,14 @@ export class NetworkSchemaState {
 				method: 'POST',
 				body: formData
 			});
-			const result = deserialize(await response.text());
+			const result: ActionResult = deserialize(await response.text());
 			if (result.type === 'success' && result.data?.connections) {
 				this.updateEdgeMicropipeConnections(
 					cableId,
-					/** @type {MicropipeConnection[]} */ (result.data.connections)
+					result.data.connections as MicropipeConnection[]
 				);
 			}
-		} catch (error) {
+		} catch (error: unknown) {
 			console.error('Error refreshing edge micropipe connections:', error);
 		}
 	}

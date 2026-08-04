@@ -11,8 +11,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { CableFiberDataManager } from '$lib/classes/CableFiberDataManager.svelte.js';
-	import { DRAG_DROP_CONTEXT_KEY } from '$lib/classes/DragDropManager.svelte.js';
+	import { CableFiberDataManager } from '$lib/classes/CableFiberDataManager.svelte';
+	import { DRAG_DROP_CONTEXT_KEY } from '$lib/classes/DragDropManager.svelte';
 	import { PanelResizeManager } from '$lib/classes/PanelResizeManager.svelte.js';
 	import { tooltip } from '$lib/utils/tooltip';
 

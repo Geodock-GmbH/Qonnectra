@@ -178,7 +178,7 @@ vi.mock('@skeletonlabs/skeleton-svelte', async () => {
 });
 
 // Mock the classes - must use actual class syntax for Svelte 5 runes compatibility
-vi.mock('$lib/classes/NetworkSchemaState.svelte.js', () => ({
+vi.mock('$lib/classes/NetworkSchemaState.svelte', () => ({
 	NetworkSchemaState: class MockNetworkSchemaState {
 		/** @type {any[]} */ nodes = [];
 		/** @type {any[]} */ edges = [];

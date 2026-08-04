@@ -5,58 +5,63 @@ import { m } from '$lib/paraglide/messages';
 
 import { globalToaster } from '$lib/stores/toaster';
 
-/**
- * @typedef {{uuid: string, name: string, conduit_type_name: string, has_cable_linkage: boolean}} Conduit
- */
+interface Conduit {
+	uuid: string;
+	name: string;
+	conduit_type_name: string;
+	has_cable_linkage: boolean;
+}
 
-/**
- * @typedef {{number: number, color_name: string, color_hex: string, available_in: string[], available_in_all: boolean, linked_to_cable: boolean, linked_cables: {uuid: string, name: string}[], missing_in: string[], microduct_status: boolean}} Micropipe
- */
+interface Micropipe {
+	number: number;
+	color_name: string;
+	color_hex: string;
+	available_in: string[];
+	available_in_all: boolean;
+	linked_to_cable: boolean;
+	linked_cables: { uuid: string; name: string }[];
+	missing_in: string[];
+	microduct_status: boolean;
+}
+
+interface MicropipeSelection {
+	number: number;
+	color_name: string;
+	available_in_all?: boolean;
+}
 
 /**
  * Manages state for the cable-micropipe linking panel.
  */
 export class CableMicropipeManager {
-	/** @type {string|null} */
-	cableId = $state(null);
+	cableId: string | null = $state(null);
 
-	/** @type {string|null} */
-	cableName = $state(null);
+	cableName: string | null = $state(null);
 
-	/** @type {SvelteSet<string>} */
-	selectedTrenchIds = $state(new SvelteSet());
+	selectedTrenchIds: SvelteSet<string> = $state(new SvelteSet());
 
-	/** @type {Conduit[]} */
-	conduits = $state([]);
+	conduits: Conduit[] = $state([]);
 
-	/** @type {SvelteSet<string>} */
-	selectedConduitIds = $state(new SvelteSet());
+	selectedConduitIds: SvelteSet<string> = $state(new SvelteSet());
 
-	/** @type {Micropipe[]} */
-	micropipes = $state([]);
+	micropipes: Micropipe[] = $state([]);
 
-	/** @type {{number: number, color_name: string}|null} */
-	selectedMicropipe = $state(null);
+	selectedMicropipe: { number: number; color_name: string } | null = $state(null);
 
-	/** @type {SvelteSet<string>} */
-	linkedTrenchIds = $state(new SvelteSet());
+	linkedTrenchIds: SvelteSet<string> = $state(new SvelteSet());
 
-	/** @type {1|2} */
-	step = $state(1);
+	step: 1 | 2 = $state(1);
 
-	/** @type {boolean} */
-	loading = $state(false);
+	loading: boolean = $state(false);
 
-	/** @type {boolean} */
-	saving = $state(false);
+	saving: boolean = $state(false);
 
 	/**
 	 * Initialize with cable data and fetch linked trenches
-	 * @param {string} cableId
-	 * @param {string} cableName
-	 * @returns {void}
+	 * @param cableId
+	 * @param cableName
 	 */
-	initialize(cableId, cableName) {
+	initialize(cableId: string, cableName: string): void {
 		this.cableId = cableId;
 		this.cableName = cableName;
 		this.reset();
@@ -65,9 +70,8 @@ export class CableMicropipeManager {
 
 	/**
 	 * Reset all selection and micropipe state back to initial values
-	 * @returns {void}
 	 */
-	reset() {
+	reset(): void {
 		this.selectedTrenchIds = new SvelteSet();
 		this.conduits = [];
 		this.selectedConduitIds = new SvelteSet();
@@ -79,9 +83,8 @@ export class CableMicropipeManager {
 
 	/**
 	 * Fetch trench IDs where this cable has micropipe connections
-	 * @returns {Promise<void>}
 	 */
-	async fetchLinkedTrenches() {
+	async fetchLinkedTrenches(): Promise<void> {
 		if (!this.cableId) {
 			this.linkedTrenchIds = new SvelteSet();
 			return;
@@ -108,7 +111,7 @@ export class CableMicropipeManager {
 				return;
 			}
 
-			const data = /** @type {{ trench_uuids?: string[] }} */ (result.data);
+			const data = result.data as { trench_uuids?: string[] };
 			this.linkedTrenchIds = new SvelteSet(data?.trench_uuids || []);
 		} catch (error) {
 			console.error('Error fetching linked trenches:', error);
@@ -118,19 +121,17 @@ export class CableMicropipeManager {
 
 	/**
 	 * Handle trench selection from map
-	 * @param {string[]} trenchIds
-	 * @returns {Promise<void>}
+	 * @param trenchIds
 	 */
-	async handleTrenchSelection(trenchIds) {
+	async handleTrenchSelection(trenchIds: string[]): Promise<void> {
 		this.selectedTrenchIds = new SvelteSet(trenchIds);
 		await this.fetchConduitsForTrenches();
 	}
 
 	/**
 	 * Fetch conduits for selected trenches
-	 * @returns {Promise<void>}
 	 */
-	async fetchConduitsForTrenches() {
+	async fetchConduitsForTrenches(): Promise<void> {
 		if (this.selectedTrenchIds.size === 0) {
 			this.conduits = [];
 			return;
@@ -154,19 +155,17 @@ export class CableMicropipeManager {
 
 			if (result.type !== 'success') {
 				const msg =
-					result.type === 'failure'
-						? /** @type {string|undefined} */ (result.data?.error)
-						: undefined;
+					result.type === 'failure' ? (result.data?.error as string | undefined) : undefined;
 				throw new Error(msg || 'Failed to fetch conduits');
 			}
 
-			const data = /** @type {{ conduits?: Conduit[] }} */ (result.data);
+			const data = result.data as { conduits?: Conduit[] };
 			this.conduits = data?.conduits || [];
 		} catch (error) {
 			console.error('Error fetching conduits:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: /** @type {Error} */ (error).message
+				description: (error as Error).message
 			});
 		} finally {
 			this.loading = false;
@@ -175,10 +174,9 @@ export class CableMicropipeManager {
 
 	/**
 	 * Toggle conduit selection
-	 * @param {string} conduitId
-	 * @returns {void}
+	 * @param conduitId
 	 */
-	toggleConduit(conduitId) {
+	toggleConduit(conduitId: string): void {
 		const newSet = new SvelteSet(this.selectedConduitIds);
 		if (newSet.has(conduitId)) {
 			newSet.delete(conduitId);
@@ -190,17 +188,15 @@ export class CableMicropipeManager {
 
 	/**
 	 * Clear conduit selection
-	 * @returns {void}
 	 */
-	clearConduitSelection() {
+	clearConduitSelection(): void {
 		this.selectedConduitIds = new SvelteSet();
 	}
 
 	/**
 	 * Move to step 2 (micropipe selection) by fetching micropipes for selected conduits
-	 * @returns {Promise<void>}
 	 */
-	async goToStep2() {
+	async goToStep2(): Promise<void> {
 		if (this.selectedConduitIds.size === 0) return;
 
 		this.loading = true;
@@ -221,20 +217,18 @@ export class CableMicropipeManager {
 
 			if (result.type !== 'success') {
 				const msg =
-					result.type === 'failure'
-						? /** @type {string|undefined} */ (result.data?.error)
-						: undefined;
+					result.type === 'failure' ? (result.data?.error as string | undefined) : undefined;
 				throw new Error(msg || 'Failed to fetch micropipes');
 			}
 
-			const data = /** @type {{ micropipes?: Micropipe[] }} */ (result.data);
+			const data = result.data as { micropipes?: Micropipe[] };
 			this.micropipes = data?.micropipes || [];
 			this.step = 2;
 		} catch (error) {
 			console.error('Error fetching micropipes:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: /** @type {Error} */ (error).message
+				description: (error as Error).message
 			});
 		} finally {
 			this.loading = false;
@@ -243,19 +237,17 @@ export class CableMicropipeManager {
 
 	/**
 	 * Go back to step 1 (conduit selection)
-	 * @returns {void}
 	 */
-	goToStep1() {
+	goToStep1(): void {
 		this.step = 1;
 		this.selectedMicropipe = null;
 	}
 
 	/**
 	 * Select a micropipe, or deselect if already selected
-	 * @param {{number: number, color_name: string, available_in_all: boolean}} micropipe
-	 * @returns {void}
+	 * @param micropipe
 	 */
-	selectMicropipe(micropipe) {
+	selectMicropipe(micropipe: MicropipeSelection): void {
 		if (!micropipe.available_in_all) return;
 
 		if (
@@ -273,15 +265,14 @@ export class CableMicropipeManager {
 
 	/**
 	 * Save the current micropipe linkage and refresh state
-	 * @returns {Promise<void>}
 	 */
-	async saveLinkage() {
+	async saveLinkage(): Promise<void> {
 		if (!this.selectedMicropipe || this.selectedConduitIds.size === 0) return;
 
 		this.saving = true;
 		try {
 			const formData = new FormData();
-			formData.append('cableId', /** @type {string} */ (this.cableId));
+			formData.append('cableId', this.cableId as string);
 			formData.append('micropipeNumber', this.selectedMicropipe.number.toString());
 			formData.append('color', this.selectedMicropipe.color_name);
 			formData.append('conduitIds', JSON.stringify(Array.from(this.selectedConduitIds)));
@@ -296,9 +287,7 @@ export class CableMicropipeManager {
 
 			if (result.type !== 'success') {
 				const msg =
-					result.type === 'failure'
-						? /** @type {string|undefined} */ (result.data?.error)
-						: undefined;
+					result.type === 'failure' ? (result.data?.error as string | undefined) : undefined;
 				throw new Error(msg || 'Failed to save linkage');
 			}
 
@@ -315,7 +304,7 @@ export class CableMicropipeManager {
 			console.error('Error saving linkage:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: /** @type {Error} */ (error).message
+				description: (error as Error).message
 			});
 		} finally {
 			this.saving = false;
@@ -324,15 +313,14 @@ export class CableMicropipeManager {
 
 	/**
 	 * Remove linkage for a micropipe and refresh state
-	 * @param {number} micropipeNumber
-	 * @param {string[]} conduitIds
-	 * @returns {Promise<void>}
+	 * @param micropipeNumber
+	 * @param conduitIds
 	 */
-	async removeLinkage(micropipeNumber, conduitIds) {
+	async removeLinkage(micropipeNumber: number, conduitIds: string[]): Promise<void> {
 		this.saving = true;
 		try {
 			const formData = new FormData();
-			formData.append('cableId', /** @type {string} */ (this.cableId));
+			formData.append('cableId', this.cableId as string);
 			formData.append('micropipeNumber', micropipeNumber.toString());
 			formData.append('conduitIds', JSON.stringify(conduitIds));
 
@@ -346,9 +334,7 @@ export class CableMicropipeManager {
 
 			if (result.type !== 'success') {
 				const msg =
-					result.type === 'failure'
-						? /** @type {string|undefined} */ (result.data?.error)
-						: undefined;
+					result.type === 'failure' ? (result.data?.error as string | undefined) : undefined;
 				throw new Error(msg || 'Failed to remove linkage');
 			}
 
@@ -363,7 +349,7 @@ export class CableMicropipeManager {
 			console.error('Error removing linkage:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: /** @type {Error} */ (error).message
+				description: (error as Error).message
 			});
 		} finally {
 			this.saving = false;
@@ -372,9 +358,8 @@ export class CableMicropipeManager {
 
 	/**
 	 * Clear trench selection and reset conduits
-	 * @returns {void}
 	 */
-	clearTrenchSelection() {
+	clearTrenchSelection(): void {
 		this.selectedTrenchIds = new SvelteSet();
 		this.conduits = [];
 		this.selectedConduitIds = new SvelteSet();

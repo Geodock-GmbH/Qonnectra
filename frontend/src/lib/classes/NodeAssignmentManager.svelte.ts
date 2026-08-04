@@ -1,61 +1,50 @@
+import type { Feature } from 'ol';
+import type LayerBase from 'ol/layer/Layer';
 import { deserialize } from '$app/forms';
 
 import { m } from '$lib/paraglide/messages';
 
 import { globalToaster } from '$lib/stores/toaster';
 
-/**
- * @typedef {import('ol/Feature').default} Feature
- * @typedef {import('ol').Map} OlMap
- * @typedef {import('ol/layer/Layer').default} Layer
- */
+interface SelectableLayersConfig {
+	trench: boolean;
+	address: boolean;
+	node: boolean;
+	area?: boolean;
+}
 
-/**
- * @typedef {Object} SelectableLayersConfig
- * @property {boolean} trench
- * @property {boolean} address
- * @property {boolean} node
- * @property {boolean} [area]
- */
-
-/**
- * @typedef {Object} MapInteractionManager
- * @property {OlMap | null} olMap
- * @property {{ nodeLayer?: Layer | null, [key: string]: Layer | null | undefined }} layers
- * @property {SelectableLayersConfig} selectableLayersConfig
- * @property {(feature: Feature, coordinate: number[], layer?: Layer | null) => void} handleFeatureClick
- */
+interface InteractionManagerRef {
+	olMap: import('ol/Map').default | null;
+	layers: { nodeLayer?: LayerBase | null; [key: string]: LayerBase | null | undefined };
+	selectableLayersConfig: SelectableLayersConfig;
+	handleFeatureClick: (feature: Feature, coordinate: number[], layer?: LayerBase | null) => void;
+}
 
 /**
  * Manages node assignment mode for microducts
  * Coordinates with MapInteractionManager to enable node-only clicking
  */
 export class NodeAssignmentManager {
-	/** @type {boolean} */
-	isAssignMode = $state(false);
+	isAssignMode: boolean = $state(false);
 
-	/** @type {string | null} */
-	activeMicroductUuid = $state(null);
+	activeMicroductUuid: string | null = $state(null);
 
-	/** @type {MapInteractionManager | null} */
-	interactionManager = $state(null);
+	interactionManager: InteractionManagerRef | null = $state(null);
 
-	/** @type {SelectableLayersConfig | null} */
-	originalSelectableConfig = $state(null);
+	originalSelectableConfig: SelectableLayersConfig | null = $state(null);
 
-	/** @type {((feature: Feature, coordinate: number[], layer?: Layer | null) => void) | null} */
-	originalClickHandler = $state(null);
+	originalClickHandler:
+		| ((feature: Feature, coordinate: number[], layer?: LayerBase | null) => void)
+		| null = $state(null);
 
-	/** @type {((data: unknown) => void) | null} */
-	onAssignmentComplete = $state(null);
+	onAssignmentComplete: ((data: unknown) => void) | null = $state(null);
 
-	/** @type {((event: KeyboardEvent) => void) | null} */
-	escapeKeyHandler = null;
+	escapeKeyHandler: ((event: KeyboardEvent) => void) | null = null;
 
 	/**
-	 * @param {MapInteractionManager} interactionManager - MapInteractionManager instance
+	 * @param interactionManager - MapInteractionManager instance
 	 */
-	constructor(interactionManager) {
+	constructor(interactionManager: InteractionManagerRef) {
 		this.interactionManager = interactionManager;
 		this.originalClickHandler = this.interactionManager.handleFeatureClick.bind(
 			this.interactionManager
@@ -64,10 +53,13 @@ export class NodeAssignmentManager {
 
 	/**
 	 * Activate node assignment mode
-	 * @param {string} microductUuid - UUID of the microduct to assign a node to
-	 * @param {((data: unknown) => void) | null} onComplete - Callback function to execute after successful assignment
+	 * @param microductUuid - UUID of the microduct to assign a node to
+	 * @param onComplete - Callback function to execute after successful assignment
 	 */
-	activateAssignMode(microductUuid, onComplete = null) {
+	activateAssignMode(
+		microductUuid: string,
+		onComplete: ((data: unknown) => void) | null = null
+	): void {
 		if (!microductUuid || !this.interactionManager) {
 			console.error('Microduct UUID is required to activate assign mode');
 			return;
@@ -88,11 +80,11 @@ export class NodeAssignmentManager {
 		if (this.interactionManager.olMap) {
 			const viewport = this.interactionManager.olMap.getTargetElement();
 			if (viewport) {
-				viewport.style.cursor = 'crosshair';
+				(viewport as HTMLElement).style.cursor = 'crosshair';
 			}
 		}
 
-		this.escapeKeyHandler = (event) => {
+		this.escapeKeyHandler = (event: KeyboardEvent) => {
 			if (event.key === 'Escape' && this.isAssignMode) {
 				this.deactivateAssignMode();
 			}
@@ -105,7 +97,7 @@ export class NodeAssignmentManager {
 	/**
 	 * Deactivate node assignment mode and restore original state
 	 */
-	deactivateAssignMode() {
+	deactivateAssignMode(): void {
 		if (this.originalSelectableConfig && this.interactionManager) {
 			this.interactionManager.selectableLayersConfig = { ...this.originalSelectableConfig };
 		}
@@ -122,7 +114,7 @@ export class NodeAssignmentManager {
 		if (this.interactionManager?.olMap) {
 			const viewport = this.interactionManager.olMap.getTargetElement();
 			if (viewport) {
-				viewport.style.cursor = '';
+				(viewport as HTMLElement).style.cursor = '';
 			}
 		}
 
@@ -131,13 +123,16 @@ export class NodeAssignmentManager {
 
 	/**
 	 * Create a custom click handler for assign mode
-	 * @returns {(feature: Feature, coordinate: number[], layer?: Layer | null) => Promise<void>}
 	 */
-	createAssignModeClickHandler() {
-		const manager = /** @type {MapInteractionManager} */ (this.interactionManager);
+	createAssignModeClickHandler(): (
+		feature: Feature,
+		coordinate: number[],
+		layer?: LayerBase | null
+	) => Promise<void> {
+		const manager = this.interactionManager as InteractionManagerRef;
 		const originalHandler = manager.handleFeatureClick.bind(manager);
 
-		return async (feature, coordinate, layer = null) => {
+		return async (feature: Feature, coordinate: number[], layer: LayerBase | null = null) => {
 			if (!this.isAssignMode) {
 				return originalHandler(feature, coordinate, layer);
 			}
@@ -163,14 +158,14 @@ export class NodeAssignmentManager {
 				return;
 			}
 
-			await this.assignNodeToMicroduct(/** @type {string} */ (nodeUuid));
+			await this.assignNodeToMicroduct(nodeUuid as string);
 		};
 	}
 
 	/**
 	 * Restore the original click handler
 	 */
-	restoreOriginalClickHandler() {
+	restoreOriginalClickHandler(): void {
 		if (this.originalClickHandler && this.interactionManager) {
 			this.interactionManager.handleFeatureClick = this.originalClickHandler;
 		}
@@ -178,9 +173,9 @@ export class NodeAssignmentManager {
 
 	/**
 	 * Assign a node to the active microduct
-	 * @param {string} nodeUuid - UUID of the node to assign
+	 * @param nodeUuid - UUID of the node to assign
 	 */
-	async assignNodeToMicroduct(nodeUuid) {
+	async assignNodeToMicroduct(nodeUuid: string): Promise<void> {
 		if (!this.activeMicroductUuid || !nodeUuid) {
 			console.error('Missing microduct or node UUID');
 			return;
@@ -211,8 +206,7 @@ export class NodeAssignmentManager {
 
 				this.deactivateAssignMode();
 			} else if (result.type === 'failure') {
-				const errorMessage =
-					/** @type {{ error?: string }} */ (result.data)?.error || 'Failed to assign node';
+				const errorMessage = (result.data as { error?: string })?.error || 'Failed to assign node';
 				globalToaster.error({
 					title: m.common_error(),
 					description: errorMessage
@@ -224,21 +218,24 @@ export class NodeAssignmentManager {
 					description: errorMessage
 				});
 			}
-		} catch (/** @type {unknown} */ error) {
+		} catch (error: unknown) {
 			console.error('Error assigning node to microduct:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: /** @type {Error} */ (error).message
+				description: (error as Error).message
 			});
 		}
 	}
 
 	/**
 	 * Remove a node from a microduct (unassign)
-	 * @param {string} microductUuid - UUID of the microduct to remove the node from
-	 * @param {((data: unknown) => void) | null} onComplete - Callback function to execute after successful removal
+	 * @param microductUuid - UUID of the microduct to remove the node from
+	 * @param onComplete - Callback function to execute after successful removal
 	 */
-	async removeNodeFromMicroduct(microductUuid, onComplete = null) {
+	async removeNodeFromMicroduct(
+		microductUuid: string,
+		onComplete: ((data: unknown) => void) | null = null
+	): Promise<void> {
 		if (!microductUuid) {
 			console.error('Microduct UUID is required');
 			return;
@@ -266,8 +263,7 @@ export class NodeAssignmentManager {
 					onComplete(result.data);
 				}
 			} else if (result.type === 'failure') {
-				const errorMessage =
-					/** @type {{ error?: string }} */ (result.data)?.error || 'Failed to remove node';
+				const errorMessage = (result.data as { error?: string })?.error || 'Failed to remove node';
 				globalToaster.error({
 					title: m.common_error(),
 					description: errorMessage
@@ -279,11 +275,11 @@ export class NodeAssignmentManager {
 					description: errorMessage
 				});
 			}
-		} catch (/** @type {unknown} */ error) {
+		} catch (error: unknown) {
 			console.error('Error removing node from microduct:', error);
 			globalToaster.error({
 				title: m.common_error(),
-				description: /** @type {Error} */ (error).message
+				description: (error as Error).message
 			});
 		}
 	}
@@ -291,7 +287,7 @@ export class NodeAssignmentManager {
 	/**
 	 * Cleanup method to be called on destroy
 	 */
-	cleanup() {
+	cleanup(): void {
 		if (this.isAssignMode) {
 			this.deactivateAssignMode();
 		}

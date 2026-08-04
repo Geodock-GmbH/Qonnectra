@@ -1,16 +1,16 @@
-/**
- * @typedef {Record<string | number, import('ol/Feature').default | import('ol/render/Feature').default | true>} SelectionStore
- */
+import type Feature from 'ol/Feature.js';
+import type VectorTileLayer from 'ol/layer/VectorTile.js';
+import type RenderFeature from 'ol/render/Feature.js';
+
+type SelectionStore = Record<string | number, Feature | RenderFeature | true>;
 
 /**
  * Manages feature selection state for the map.
  * Tracks which features are selected and coordinates updates with selection overlay layers.
  */
 export class MapSelectionManager {
-	/** @type {SelectionStore} */
-	selectionStore = $state({});
-	/** @type {import('ol/layer/VectorTile').default[]} */
-	selectionLayers = $state([]);
+	selectionStore: SelectionStore = $state({});
+	selectionLayers: VectorTileLayer[] = $state([]);
 
 	/**
 	 * Creates a new MapSelectionManager instance.
@@ -19,23 +19,20 @@ export class MapSelectionManager {
 
 	/**
 	 * Selects a single feature, clearing any previous selection.
-	 * @param {string | number} featureId - The ID of the feature to select
-	 * @param {import('ol/Feature').default | import('ol/render/Feature').default} feature - The feature object
-	 * @returns {void}
+	 * @param featureId - The ID of the feature to select
+	 * @param feature - The feature object
 	 */
-	selectFeature(featureId, feature) {
+	selectFeature(featureId: string | number, feature: Feature | RenderFeature): void {
 		this.selectionStore = { [featureId]: feature };
 		this.updateSelectionLayers();
 	}
 
 	/**
 	 * Selects multiple features by their IDs, clearing any previous selection.
-	 * @param {(string | number)[]} featureIds - Array of feature IDs to select
-	 * @returns {void}
+	 * @param featureIds - Array of feature IDs to select
 	 */
-	selectMultipleFeatures(featureIds) {
-		/** @type {SelectionStore} */
-		const newSelection = {};
+	selectMultipleFeatures(featureIds: (string | number)[]): void {
+		const newSelection: SelectionStore = {};
 		featureIds.forEach((id) => {
 			newSelection[id] = true;
 		});
@@ -45,37 +42,35 @@ export class MapSelectionManager {
 
 	/**
 	 * Clears all feature selections.
-	 * @returns {void}
 	 */
-	clearSelection() {
+	clearSelection(): void {
 		this.selectionStore = {};
 		this.updateSelectionLayers();
 	}
 
 	/**
 	 * Checks if a feature is currently selected.
-	 * @param {string | number} featureId - The ID of the feature to check
-	 * @returns {boolean} True if the feature is selected
+	 * @param featureId - The ID of the feature to check
+	 * @returns True if the feature is selected
 	 */
-	isSelected(featureId) {
+	isSelected(featureId: string | number): boolean {
 		return Boolean(this.selectionStore[featureId]);
 	}
 
 	/**
 	 * Gets the currently selected feature (first one if multiple selected).
-	 * @returns {import('ol/Feature').default | import('ol/render/Feature').default | true | null} The selected feature or null if none
+	 * @returns The selected feature or null if none
 	 */
-	getSelectedFeature() {
+	getSelectedFeature(): Feature | RenderFeature | true | null {
 		const ids = Object.keys(this.selectionStore);
 		return ids.length > 0 ? this.selectionStore[ids[0]] : null;
 	}
 
 	/**
 	 * Registers a layer to be updated when selection changes.
-	 * @param {import('ol/layer/VectorTile').default} layer - OpenLayers layer that displays selection highlights
-	 * @returns {void}
+	 * @param layer - OpenLayers layer that displays selection highlights
 	 */
-	registerSelectionLayer(layer) {
+	registerSelectionLayer(layer: VectorTileLayer): void {
 		if (layer && !this.selectionLayers.includes(layer)) {
 			this.selectionLayers = [...this.selectionLayers, layer];
 		}
@@ -83,9 +78,8 @@ export class MapSelectionManager {
 
 	/**
 	 * Triggers re-render of all registered selection layers.
-	 * @returns {void}
 	 */
-	updateSelectionLayers() {
+	updateSelectionLayers(): void {
 		this.selectionLayers.forEach((layer) => {
 			if (layer && layer.changed) {
 				layer.changed();
@@ -95,17 +89,16 @@ export class MapSelectionManager {
 
 	/**
 	 * Gets the selection store for use in layer style functions.
-	 * @returns {SelectionStore} Selection state keyed by feature ID
+	 * @returns Selection state keyed by feature ID
 	 */
-	getSelectionStore() {
+	getSelectionStore(): SelectionStore {
 		return this.selectionStore;
 	}
 
 	/**
 	 * Cleans up resources when the manager is destroyed.
-	 * @returns {void}
 	 */
-	cleanup() {
+	cleanup(): void {
 		this.selectionStore = {};
 		this.selectionLayers = [];
 	}

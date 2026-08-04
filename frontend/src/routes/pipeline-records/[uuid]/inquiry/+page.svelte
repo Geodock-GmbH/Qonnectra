@@ -16,8 +16,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { InquiryDrawManager } from '$lib/classes/InquiryDrawManager.svelte.js';
-	import { MapState } from '$lib/classes/MapState.svelte.js';
+	import { InquiryDrawManager } from '$lib/classes/InquiryDrawManager.svelte';
+	import { MapState } from '$lib/classes/MapState.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import MapHint from '$lib/components/MapHint.svelte';
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';

@@ -1,3 +1,9 @@
+import type { Extent } from 'ol/extent';
+import type OlFeature from 'ol/Feature';
+import type OlMap from 'ol/Map';
+import type Projection from 'ol/proj/Projection';
+import type RenderFeature from 'ol/render/Feature';
+import type VectorTileSource from 'ol/source/VectorTile';
 import GeoJSON from 'ol/format/GeoJSON';
 import Polygon from 'ol/geom/Polygon';
 import Draw from 'ol/interaction/Draw';
@@ -18,17 +24,29 @@ const HIGHLIGHT_STYLE = createInquiryHighlightStyle();
 const HIGHLIGHT_POINT_STYLE = createInquiryHighlightPointStyle();
 const polygonStyleFunction = createInquiryPolygonStyleWithLabels();
 
+interface HighlightSource {
+	source: VectorTileSource;
+	parentLayer: VectorTileLayer;
+	isPoint: boolean;
+}
+
+interface GeoJsonFeature {
+	type: string;
+	geometry: Record<string, unknown>;
+	properties?: Record<string, unknown>;
+	[key: string]: unknown;
+}
+
 /**
  * Check if a RenderFeature intersects any of the given polygon geometries.
  * Use extent as a fast pre-filter, then verify with coordinate sampling.
- * @param {import('ol/render/Feature').default} feature - The render feature to test.
- * @param {Polygon[]} polygonGeometries - Polygon geometries to test against.
- * @returns {boolean} Whether the feature intersects at least one polygon.
+ * @param feature - The render feature to test.
+ * @param polygonGeometries - Polygon geometries to test against.
  */
-function featureIntersectsPolygons(feature, polygonGeometries) {
-	const featureExtent = feature.getExtent();
+function featureIntersectsPolygons(feature: RenderFeature, polygonGeometries: Polygon[]): boolean {
+	const featureExtent: Extent = feature.getExtent();
 	const flatCoords = feature.getFlatCoordinates();
-	const type = /** @type {string} */ (feature.getType());
+	const type = feature.getType() as string;
 
 	for (const polyGeom of polygonGeometries) {
 		if (!polyGeom.intersectsExtent(featureExtent)) continue;
@@ -49,36 +67,24 @@ function featureIntersectsPolygons(feature, polygonGeometries) {
  * Uses VectorTile overlay layers for efficient spatial highlighting.
  */
 export class InquiryDrawManager {
-	/** @type {import('ol/Map').default | null} */
-	olMap = $state(null);
-	/** @type {boolean} */
-	isDrawing = $state(false);
-	/** @type {boolean} */
-	isEditing = $state(false);
+	olMap: OlMap | null = $state(null);
+	isDrawing: boolean = $state(false);
+	isEditing: boolean = $state(false);
 
-	/** @type {VectorSource | null} */
-	_polygonSource = null;
-	/** @type {VectorLayer | null} */
-	_polygonLayer = null;
-	/** @type {VectorTileLayer[]} */
-	_highlightLayers = [];
-	/** @type {Polygon[]} */
-	_polygonGeometries = [];
-	/** @type {Draw | null} */
-	_draw = null;
-	/** @type {((feature: import('ol/Feature').default) => void) | null} */
-	_onDrawEnd = null;
-	/** @type {Modify | null} */
-	_modify = null;
-	/** @type {((feature: import('ol/Feature').default) => void) | null} */
-	_onModifyEnd = null;
+	_polygonSource: VectorSource | null = null;
+	_polygonLayer: VectorLayer | null = null;
+	_highlightLayers: VectorTileLayer[] = [];
+	_polygonGeometries: Polygon[] = [];
+	_draw: Draw | null = null;
+	_onDrawEnd: ((feature: OlFeature) => void) | null = null;
+	_modify: Modify | null = null;
+	_onModifyEnd: ((feature: OlFeature) => void) | null = null;
 
 	/**
 	 * Set up the polygon source and layer on the given map.
-	 * @param {import('ol/Map').default | null} olMap - OpenLayers map instance.
-	 * @returns {boolean} Whether initialization succeeded.
+	 * @param olMap - OpenLayers map instance.
 	 */
-	initialize(olMap) {
+	initialize(olMap: OlMap | null): boolean {
 		if (!olMap) return false;
 
 		this.olMap = olMap;
@@ -100,9 +106,9 @@ export class InquiryDrawManager {
 	 * Create highlight overlay layers that share tile sources with data layers.
 	 * Each overlay renders only features whose extent intersects with drawn polygons
 	 * and only when the parent data layer is visible.
-	 * @param {Array<{source: import('ol/source/VectorTile').default, parentLayer: import('ol/layer/VectorTile').default, isPoint: boolean}>} sources - Tile sources paired with their parent layers.
+	 * @param sources - Tile sources paired with their parent layers.
 	 */
-	initializeHighlightLayers(sources) {
+	initializeHighlightLayers(sources: HighlightSource[]): void {
 		if (!this.olMap) return;
 
 		this._removeHighlightLayers();
@@ -115,12 +121,7 @@ export class InquiryDrawManager {
 				style: (feature) => {
 					if (this._polygonGeometries.length === 0) return undefined;
 					if (!parentLayer.getVisible()) return undefined;
-					if (
-						featureIntersectsPolygons(
-							/** @type {import('ol/render/Feature').default} */ (feature),
-							this._polygonGeometries
-						)
-					) {
+					if (featureIntersectsPolygons(feature as RenderFeature, this._polygonGeometries)) {
 						return style;
 					}
 					return undefined;
@@ -138,7 +139,7 @@ export class InquiryDrawManager {
 	/**
 	 * Update the cached polygon geometries from the polygon source.
 	 */
-	updatePolygonGeometryCache() {
+	updatePolygonGeometryCache(): void {
 		if (!this._polygonSource) {
 			this._polygonGeometries = [];
 			return;
@@ -146,26 +147,26 @@ export class InquiryDrawManager {
 		this._polygonGeometries = this._polygonSource
 			.getFeatures()
 			.map((f) => f.getGeometry())
-			.filter((g) => g instanceof Polygon);
+			.filter((g): g is Polygon => g instanceof Polygon);
 	}
 
 	/**
 	 * Trigger a re-render of all highlight overlay layers.
 	 */
-	refreshHighlights() {
+	refreshHighlights(): void {
 		for (const layer of this._highlightLayers) {
 			layer.changed();
 		}
 	}
 
 	/** Clear the polygon geometry cache and re-render highlights. */
-	clearHighlights() {
+	clearHighlights(): void {
 		this._polygonGeometries = [];
 		this.refreshHighlights();
 	}
 
-	/** @private Remove all highlight overlay layers from the map. */
-	_removeHighlightLayers() {
+	/** Remove all highlight overlay layers from the map. */
+	private _removeHighlightLayers(): void {
 		if (!this.olMap) return;
 		for (const layer of this._highlightLayers) {
 			this.olMap.removeLayer(layer);
@@ -175,9 +176,9 @@ export class InquiryDrawManager {
 
 	/**
 	 * Start the polygon drawing interaction on the map.
-	 * @param {(feature: import('ol/Feature').default) => void} onDrawEnd - Callback invoked when a polygon is completed.
+	 * @param onDrawEnd - Callback invoked when a polygon is completed.
 	 */
-	startDrawing(onDrawEnd) {
+	startDrawing(onDrawEnd: (feature: OlFeature) => void): void {
 		if (!this.olMap || !this._polygonSource) return;
 
 		this.stopDrawing();
@@ -200,7 +201,7 @@ export class InquiryDrawManager {
 	}
 
 	/** Stop the active drawing interaction and reset drawing state. */
-	stopDrawing() {
+	stopDrawing(): void {
 		if (this._draw && this.olMap) {
 			this.olMap.removeInteraction(this._draw);
 			this._draw = null;
@@ -211,9 +212,9 @@ export class InquiryDrawManager {
 
 	/**
 	 * Start the polygon modify interaction on the map.
-	 * @param {(feature: import('ol/Feature').default) => void} onModifyEnd - Callback invoked for each modified polygon feature.
+	 * @param onModifyEnd - Callback invoked for each modified polygon feature.
 	 */
-	startEditing(onModifyEnd) {
+	startEditing(onModifyEnd: (feature: OlFeature) => void): void {
 		if (!this.olMap || !this._polygonSource) return;
 
 		this.stopEditing();
@@ -229,7 +230,7 @@ export class InquiryDrawManager {
 		this._modify.on('modifyend', (evt) => {
 			const features = evt.features.getArray();
 			for (const feature of features) {
-				this._onModifyEnd?.(feature);
+				this._onModifyEnd?.(feature as OlFeature);
 			}
 		});
 
@@ -237,7 +238,7 @@ export class InquiryDrawManager {
 	}
 
 	/** Stop the active modify interaction and reset editing state. */
-	stopEditing() {
+	stopEditing(): void {
 		if (this._modify && this.olMap) {
 			this.olMap.removeInteraction(this._modify);
 			this._modify = null;
@@ -248,18 +249,22 @@ export class InquiryDrawManager {
 
 	/**
 	 * Render saved polygons from GeoJSON features onto the polygon layer.
-	 * @param {any[]} geoJsonFeatures - Array of GeoJSON feature objects to render.
-	 * @param {import('ol/proj/Projection').default | string | null} dataProjection - Projection of the input data.
-	 * @param {import('ol/proj/Projection').default | string | null} featureProjection - Target projection for the map.
+	 * @param geoJsonFeatures - Array of GeoJSON feature objects to render.
+	 * @param dataProjection - Projection of the input data.
+	 * @param featureProjection - Target projection for the map.
 	 */
-	renderPolygons(geoJsonFeatures, dataProjection, featureProjection) {
+	renderPolygons(
+		geoJsonFeatures: GeoJsonFeature[],
+		dataProjection: Projection | string | null,
+		featureProjection: Projection | string | null
+	): void {
 		if (!this._polygonSource) return;
 
 		this._polygonSource.clear();
 		if (!geoJsonFeatures.length) return;
 
 		const format = new GeoJSON();
-		const readOptions = /** @type {any} */ ({});
+		const readOptions: Record<string, unknown> = {};
 		if (dataProjection) readOptions.dataProjection = dataProjection;
 		if (featureProjection) readOptions.featureProjection = featureProjection;
 
@@ -275,9 +280,9 @@ export class InquiryDrawManager {
 
 	/**
 	 * Remove a polygon by its UUID from the polygon layer.
-	 * @param {string} uuid - UUID of the polygon feature to remove.
+	 * @param uuid - UUID of the polygon feature to remove.
 	 */
-	removePolygonByUuid(uuid) {
+	removePolygonByUuid(uuid: string): void {
 		if (!this._polygonSource) return;
 
 		const features = this._polygonSource.getFeatures();
@@ -290,7 +295,7 @@ export class InquiryDrawManager {
 	}
 
 	/** Remove all layers and interactions, reset internal state. */
-	cleanup() {
+	cleanup(): void {
 		this.stopDrawing();
 		this.stopEditing();
 

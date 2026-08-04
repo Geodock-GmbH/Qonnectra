@@ -1,51 +1,46 @@
 import { deserialize } from '$app/forms';
 
-/**
- * @typedef {{
- *   id: string,
- *   title: string,
- *   fiberCount: number,
- *   data: Object,
- *   cableUuid: string
- * }} CableTrenchItem
- *
- * @typedef {{
- *   id: number,
- *   fiber_color: string,
- *   hex_code: string,
- *   name_de?: string,
- *   name_en?: string
- * }} FiberColor
- */
+interface CableTrenchItem {
+	id: string;
+	title: string;
+	fiberCount: number;
+	data: Record<string, unknown>;
+	cableUuid: string;
+}
+
+interface FiberColor {
+	id: number;
+	fiber_color: string;
+	hex_code: string;
+	name_de?: string;
+	name_en?: string;
+}
+
+interface FiberRecord {
+	[key: string]: unknown;
+}
 
 /**
  * Manages cable and fiber data fetching for trench features in map view
  * Displays cables that pass through a trench with lazy-loaded fiber details
  */
 export class CableTrenchDataManager {
-	/** @type {CableTrenchItem[]} */
-	cablesInTrench = $state([]);
-	loading = $state(false);
-	/** @type {string|null} */
-	error = $state(null);
+	cablesInTrench: CableTrenchItem[] = $state([]);
+	loading: boolean = $state(false);
+	error: string | null = $state(null);
 
-	/** @type {Record<string, Object[]>} */
-	fibers = $state({});
-	/** @type {Record<string, boolean>} */
-	loadingFibers = $state({});
-	/** @type {Record<string, string|null>} */
-	errorFibers = $state({});
+	fibers: Record<string, FiberRecord[]> = $state({});
+	loadingFibers: Record<string, boolean> = $state({});
+	errorFibers: Record<string, string | null> = $state({});
 
-	/** @type {FiberColor[]} */
-	fiberColors = $state([]);
-	loadingFiberColors = $state(false);
+	fiberColors: FiberColor[] = $state([]);
+	loadingFiberColors: boolean = $state(false);
 
 	/**
 	 * Fetch all cables that pass through a trench
-	 * @param {string} trenchUuid - UUID of the trench
-	 * @returns {Promise<void>}
+	 * @param trenchUuid - UUID of the trench
 	 */
-	async fetchCablesInTrench(trenchUuid) {
+	async fetchCablesInTrench(trenchUuid: string): Promise<void> {
 		if (!trenchUuid) return;
 
 		this.loading = true;
@@ -63,7 +58,8 @@ export class CableTrenchDataManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure') {
-				this.error = /** @type {any} */ (result.data)?.error || 'Failed to fetch cables';
+				this.error =
+					((result.data as Record<string, unknown>)?.error as string) || 'Failed to fetch cables';
 				this.cablesInTrench = [];
 				return;
 			}
@@ -75,15 +71,15 @@ export class CableTrenchDataManager {
 			}
 
 			if (result.type === 'success' && result.data) {
-				const data = /** @type {any[]} */ (/** @type {unknown} */ (result.data));
-				this.cablesInTrench = data.map((/** @type {any} */ cable) => ({
-					id: cable.uuid,
+				const data = result.data as unknown as Array<Record<string, unknown>>;
+				this.cablesInTrench = data.map((cable) => ({
+					id: cable.uuid as string,
 					title: cable.name
-						? `${cable.name}${cable.cable_type?.cable_type ? ` (${cable.cable_type.cable_type})` : ''}`
-						: `Cable ${cable.uuid?.slice(0, 8)}`,
-					fiberCount: cable.fiber_count || 0,
+						? `${cable.name}${(cable.cable_type as Record<string, unknown>)?.cable_type ? ` (${(cable.cable_type as Record<string, unknown>).cable_type})` : ''}`
+						: `Cable ${(cable.uuid as string)?.slice(0, 8)}`,
+					fiberCount: (cable.fiber_count as number) || 0,
 					data: cable,
-					cableUuid: cable.uuid
+					cableUuid: cable.uuid as string
 				}));
 			}
 		} catch (err) {
@@ -97,19 +93,18 @@ export class CableTrenchDataManager {
 
 	/**
 	 * Fetch fibers for a specific cable
-	 * @param {string} cableUuid - UUID of the cable
-	 * @param {boolean} forceRefresh - Force refresh even if already loaded
-	 * @returns {Promise<void>}
+	 * @param cableUuid - UUID of the cable
+	 * @param forceRefresh - Force refresh even if already loaded
 	 */
-	async fetchFibersForCable(cableUuid, forceRefresh = false) {
+	async fetchFibersForCable(cableUuid: string, forceRefresh: boolean = false): Promise<void> {
 		if (!cableUuid) return;
 
 		if (this.fibers[cableUuid] && !forceRefresh) return;
 
-		this.loadingFibers = /** @type {Record<string, boolean>} */ ({
+		this.loadingFibers = {
 			...this.loadingFibers,
 			[cableUuid]: true
-		});
+		};
 
 		try {
 			const formData = new FormData();
@@ -123,55 +118,55 @@ export class CableTrenchDataManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure') {
-				this.errorFibers = /** @type {Record<string, string|null>} */ ({
+				this.errorFibers = {
 					...this.errorFibers,
-					[cableUuid]: /** @type {any} */ (result.data)?.error || 'Failed to fetch fibers'
-				});
-				this.fibers = /** @type {Record<string, Object[]>} */ ({ ...this.fibers, [cableUuid]: [] });
+					[cableUuid]:
+						((result.data as Record<string, unknown>)?.error as string) || 'Failed to fetch fibers'
+				};
+				this.fibers = { ...this.fibers, [cableUuid]: [] };
 				return;
 			}
 
 			if (result.type === 'error') {
-				this.errorFibers = /** @type {Record<string, string|null>} */ ({
+				this.errorFibers = {
 					...this.errorFibers,
 					[cableUuid]: result.error?.message || 'An error occurred'
-				});
-				this.fibers = /** @type {Record<string, Object[]>} */ ({ ...this.fibers, [cableUuid]: [] });
+				};
+				this.fibers = { ...this.fibers, [cableUuid]: [] };
 				return;
 			}
 
 			if (result.type === 'success' && result.data) {
-				const data = /** @type {any} */ (result.data);
-				this.fibers = /** @type {Record<string, Object[]>} */ ({
+				const data = result.data as Record<string, unknown>;
+				this.fibers = {
 					...this.fibers,
-					[cableUuid]: data.fibers || []
-				});
+					[cableUuid]: (data.fibers as FiberRecord[]) || []
+				};
 
-				this.errorFibers = /** @type {Record<string, string|null>} */ ({
+				this.errorFibers = {
 					...this.errorFibers,
 					[cableUuid]: null
-				});
+				};
 			}
 		} catch (err) {
 			console.error('Error fetching fibers:', err);
-			this.errorFibers = /** @type {Record<string, string|null>} */ ({
+			this.errorFibers = {
 				...this.errorFibers,
 				[cableUuid]: 'Failed to load fibers'
-			});
-			this.fibers = /** @type {Record<string, Object[]>} */ ({ ...this.fibers, [cableUuid]: [] });
+			};
+			this.fibers = { ...this.fibers, [cableUuid]: [] };
 		} finally {
-			this.loadingFibers = /** @type {Record<string, boolean>} */ ({
+			this.loadingFibers = {
 				...this.loadingFibers,
 				[cableUuid]: false
-			});
+			};
 		}
 	}
 
 	/**
 	 * Fetch fiber colors for display
-	 * @returns {Promise<void>}
 	 */
-	async fetchFiberColors() {
+	async fetchFiberColors(): Promise<void> {
 		if (this.fiberColors.length > 0 || this.loadingFiberColors) return;
 
 		this.loadingFiberColors = true;
@@ -187,8 +182,8 @@ export class CableTrenchDataManager {
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success' && result.data) {
-				const data = /** @type {any} */ (result.data);
-				this.fiberColors = data.fiberColors || [];
+				const data = result.data as Record<string, unknown>;
+				this.fiberColors = (data.fiberColors as FiberColor[]) || [];
 			}
 		} catch (err) {
 			console.error('Error fetching fiber colors:', err);
@@ -199,27 +194,23 @@ export class CableTrenchDataManager {
 
 	/**
 	 * Get the current locale from localStorage
-	 * @returns {'de' | 'en'}
 	 */
-	#getLocale() {
+	#getLocale(): 'de' | 'en' {
 		if (typeof localStorage === 'undefined') return 'de';
 		return localStorage.getItem('PARAGLIDE_LOCALE') === 'en' ? 'en' : 'de';
 	}
 
 	/**
 	 * Get hex color code from color name
-	 * @param {string} colorName - Name of the color (can be German or English)
-	 * @returns {string} Hex color code or fallback color
+	 * @param colorName - Name of the color (can be German or English)
 	 */
-	getColorHex(colorName) {
+	getColorHex(colorName: string): string {
 		if (!colorName || !Array.isArray(this.fiberColors)) return '#808080';
 
 		const lowerName = colorName.toLowerCase();
 		const locale = this.#getLocale();
-		/** @type {'name_en' | 'name_de'} */
-		const primaryField = locale === 'en' ? 'name_en' : 'name_de';
-		/** @type {'name_en' | 'name_de'} */
-		const fallbackField = locale === 'en' ? 'name_de' : 'name_en';
+		const primaryField: 'name_en' | 'name_de' = locale === 'en' ? 'name_en' : 'name_de';
+		const fallbackField: 'name_en' | 'name_de' = locale === 'en' ? 'name_de' : 'name_en';
 
 		const color = this.fiberColors.find(
 			(c) =>
@@ -232,16 +223,14 @@ export class CableTrenchDataManager {
 
 	/**
 	 * Get translated color name based on current locale
-	 * @param {string} colorName - Name of the color
-	 * @returns {string} Translated color name
+	 * @param colorName - Name of the color
 	 */
-	getColorName(colorName) {
+	getColorName(colorName: string): string {
 		if (!colorName || !Array.isArray(this.fiberColors)) return colorName;
 
 		const lowerName = colorName.toLowerCase();
 		const locale = this.#getLocale();
-		/** @type {'name_en' | 'name_de'} */
-		const targetField = locale === 'en' ? 'name_en' : 'name_de';
+		const targetField: 'name_en' | 'name_de' = locale === 'en' ? 'name_en' : 'name_de';
 
 		const color = this.fiberColors.find(
 			(c) => c.name_de?.toLowerCase() === lowerName || c.name_en?.toLowerCase() === lowerName
@@ -252,35 +241,32 @@ export class CableTrenchDataManager {
 
 	/**
 	 * Get fibers for a specific cable
-	 * @param {string} cableUuid - UUID of the cable
-	 * @returns {any[]}
+	 * @param cableUuid - UUID of the cable
 	 */
-	getFibersForCable(cableUuid) {
+	getFibersForCable(cableUuid: string): FiberRecord[] {
 		return this.fibers[cableUuid] || [];
 	}
 
 	/**
 	 * Get loading state for a specific cable's fibers
-	 * @param {string} cableUuid - UUID of the cable
-	 * @returns {boolean}
+	 * @param cableUuid - UUID of the cable
 	 */
-	isLoadingFibers(cableUuid) {
+	isLoadingFibers(cableUuid: string): boolean {
 		return this.loadingFibers[cableUuid] || false;
 	}
 
 	/**
 	 * Get error state for a specific cable's fibers
-	 * @param {string} cableUuid - UUID of the cable
-	 * @returns {string|null}
+	 * @param cableUuid - UUID of the cable
 	 */
-	getFibersError(cableUuid) {
+	getFibersError(cableUuid: string): string | null {
 		return this.errorFibers[cableUuid] || null;
 	}
 
 	/**
 	 * Reset all state
 	 */
-	reset() {
+	reset(): void {
 		this.cablesInTrench = [];
 		this.loading = false;
 		this.error = null;
@@ -294,7 +280,7 @@ export class CableTrenchDataManager {
 	/**
 	 * Cleanup method to be called on destroy
 	 */
-	cleanup() {
+	cleanup(): void {
 		this.reset();
 	}
 }

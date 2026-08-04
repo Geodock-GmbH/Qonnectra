@@ -4,82 +4,74 @@ import { m } from '$lib/paraglide/messages';
 
 import { globalToaster } from '$lib/stores/toaster';
 
-import { DRAG_DROP_CONTEXT_KEY, DragDropManager } from './DragDropManager.svelte.js';
-import { FiberSpliceManager } from './FiberSpliceManager.svelte.js';
-import { NodeStructureManager } from './NodeStructureManager.svelte.js';
+import { DRAG_DROP_CONTEXT_KEY, DragDropManager } from './DragDropManager.svelte';
+import { FiberSpliceManager } from './FiberSpliceManager.svelte';
+import { NodeStructureManager } from './NodeStructureManager.svelte';
 
 export { DRAG_DROP_CONTEXT_KEY };
 
-/**
- * @typedef {Object} SharedSlotState
- * @property {string} nodeUuid
- * @property {SlotConfiguration[]} slotConfigurations
- */
+export interface SharedSlotState {
+	nodeUuid: string;
+	slotConfigurations: SlotConfiguration[];
+}
 
-/**
- * @typedef {Object} NodeStructureContextOptions
- * @property {string|null} [initialSlotConfigUuid]
- * @property {SharedSlotState|null} [sharedSlotState]
- */
+export interface NodeStructureContextOptions {
+	initialSlotConfigUuid?: string | null;
+	sharedSlotState?: SharedSlotState | null;
+}
 
-/**
- * @typedef {Object} SlotConfiguration
- * @property {string} uuid
- * @property {string} [side]
- * @property {number} total_slots
- * @property {{display_name?: string}|null} [container]
- */
+export interface SlotConfiguration {
+	uuid: string;
+	side?: string;
+	total_slots: number;
+	container?: { display_name?: string } | null;
+}
 
-/**
- * @typedef {Object} NodeStructure
- * @property {string} uuid
- * @property {number} slot_start
- * @property {number} slot_end
- * @property {{ id: number, component_type?: string }|null} [component_type]
- * @property {string} [component_type_name]
- * @property {unknown} [component_structure]
- * @property {string} [purpose]
- * @property {string|null} [label]
- */
+export interface NodeStructure {
+	uuid: string;
+	slot_start: number;
+	slot_end: number;
+	component_type: { id: number; component_type?: string } | null;
+	component_type_name?: string;
+	component_structure?: unknown;
+	purpose?: string;
+	label?: string | null;
+}
 
-/**
- * @typedef {Object} SlotRow
- * @property {number} slotNumber
- * @property {NodeStructure|undefined} structure
- * @property {boolean} isBlockStart
- * @property {number} blockSize
- * @property {boolean} isOccupied
- * @property {boolean} hasDividerAfter
- * @property {string|null} clipNumber
- * @property {boolean} [isDropTarget]
- */
+export interface SlotRow {
+	slotNumber: number;
+	structure: NodeStructure | undefined;
+	isBlockStart: boolean;
+	blockSize: number;
+	isOccupied: boolean;
+	hasDividerAfter: boolean;
+	clipNumber: string | null;
+	isDropTarget?: boolean;
+}
 
-/**
- * @typedef {Object} DropData
- * @property {string} type
- * @property {string} [uuid]
- * @property {number} [id]
- * @property {string} [name]
- * @property {number} [occupied_slots]
- * @property {number} [slot_start]
- * @property {number} [slot_end]
- * @property {number} [count]
- * @property {number} [total_slots]
- */
+export interface DropData {
+	type: string;
+	uuid?: string;
+	id?: number;
+	name?: string;
+	occupied_slots?: number;
+	slot_start?: number;
+	slot_end?: number;
+	count?: number;
+	total_slots?: number;
+}
 
-/**
- * @typedef {Object} DeleteResult
- * @property {boolean} needsConfirmation
- * @property {number} spliceCount
- * @property {string} [structureUuid]
- */
+export interface DeleteResult {
+	needsConfirmation: boolean;
+	spliceCount: number;
+	structureUuid?: string;
+}
 
-/**
- * @typedef {Object} FiberSplice
- * @property {number} port_number
- * @property {Object|null} [fiber_a_details]
- * @property {Object|null} [fiber_b_details]
- */
+interface FiberSplice {
+	port_number: number;
+	fiber_a_details?: Record<string, unknown> | null;
+	fiber_b_details?: Record<string, unknown> | null;
+}
 
 /** Context key for NodeStructureContext */
 export const NODE_STRUCTURE_CONTEXT_KEY = 'nodeStructureContext';
@@ -96,33 +88,27 @@ export const NODE_STRUCTURE_CONTEXT_KEY = 'nodeStructureContext';
 export class NodeStructureContext {
 	// ========== Sub-Managers (Encapsulated) ==========
 
-	/** @type {NodeStructureManager} */
-	#structureManager;
+	#structureManager: NodeStructureManager;
 
-	/** @type {FiberSpliceManager} */
-	#spliceManager;
+	#spliceManager: FiberSpliceManager;
 
-	/** @type {DragDropManager} */
-	#dragDropManager;
+	#dragDropManager: DragDropManager;
 
 	// ========== UI State ==========
 
-	/** @type {number|null} - Slot number being edited for clip number */
-	editingClipSlot = $state(null);
+	editingClipSlot: number | null = $state(null);
 
-	/** @type {string} - Current clip number value being edited */
-	editingClipValue = $state('');
+	editingClipValue: string = $state('');
 
-	/** @type {boolean} - Whether responsive mode is mobile */
-	isMobile = $state(false);
+	isMobile: boolean = $state(false);
 
 	// ========== Constructor ==========
 
 	/**
-	 * @param {string|null} [nodeUuid] - Node UUID (optional, can be set later via setNodeUuid)
-	 * @param {NodeStructureContextOptions} [options] - Configuration options
+	 * @param nodeUuid - Node UUID (optional, can be set later via setNodeUuid)
+	 * @param options - Configuration options
 	 */
-	constructor(nodeUuid = null, options = {}) {
+	constructor(nodeUuid: string | null = null, options: NodeStructureContextOptions = {}) {
 		this.#structureManager = new NodeStructureManager(
 			nodeUuid,
 			options.initialSlotConfigUuid,
@@ -134,9 +120,9 @@ export class NodeStructureContext {
 
 	/**
 	 * Set the initial slot configuration UUID
-	 * @param {string} uuid - Slot configuration UUID to select
+	 * @param uuid - Slot configuration UUID to select
 	 */
-	setInitialSlotConfigUuid(uuid) {
+	setInitialSlotConfigUuid(uuid: string): void {
 		this.#structureManager.selectSlotConfig(uuid);
 	}
 
@@ -225,7 +211,7 @@ export class NodeStructureContext {
 		return this.#dragDropManager.dropPreviewSlots;
 	}
 
-	set dropPreviewSlots(value) {
+	set dropPreviewSlots(value: number[]) {
 		this.#dragDropManager.dropPreviewSlots = value;
 	}
 
@@ -241,9 +227,8 @@ export class NodeStructureContext {
 
 	/**
 	 * Compute slot rows for rendering with drop preview info
-	 * @returns {SlotRow[]}
 	 */
-	computeSlotRows() {
+	computeSlotRows(): SlotRow[] {
 		const baseRows = this.#structureManager.computeSlotRows();
 		return baseRows.map((row) => ({
 			...row,
@@ -258,11 +243,9 @@ export class NodeStructureContext {
 	 */
 	get slotActions() {
 		return {
-			onDragOver: (/** @type {DragEvent} */ e, /** @type {number} */ slotNumber) =>
-				this.#handleSlotDragOver(e, slotNumber),
-			onDrop: (/** @type {DragEvent} */ e, /** @type {number} */ slotNumber) =>
-				this.#handleSlotDrop(e, slotNumber),
-			onTap: (/** @type {number} */ slotNumber) => this.#handleMobileSlotTap(slotNumber)
+			onDragOver: (e: DragEvent, slotNumber: number) => this.#handleSlotDragOver(e, slotNumber),
+			onDrop: (e: DragEvent, slotNumber: number) => this.#handleSlotDrop(e, slotNumber),
+			onTap: (slotNumber: number) => this.#handleMobileSlotTap(slotNumber)
 		};
 	}
 
@@ -271,9 +254,9 @@ export class NodeStructureContext {
 	 */
 	get structureActions() {
 		return {
-			onSelect: (/** @type {NodeStructure} */ structure) => this.#handleStructureSelect(structure),
-			onDelete: (/** @type {string} */ uuid) => this.#handleDeleteStructure(uuid),
-			onDragStart: (/** @type {DragEvent} */ e, /** @type {any} */ structure) =>
+			onSelect: (structure: NodeStructure) => this.#handleStructureSelect(structure),
+			onDelete: (uuid: string) => this.#handleDeleteStructure(uuid),
+			onDragStart: (e: DragEvent, structure: NodeStructure) =>
 				this.#dragDropManager.startStructureDrag(e, structure),
 			onDragEnd: () => this.#dragDropManager.endDrag()
 		};
@@ -284,15 +267,12 @@ export class NodeStructureContext {
 	 */
 	get clipActions() {
 		return {
-			onStartEditing: (
-				/** @type {number} */ slotNumber,
-				/** @type {string|null} */ currentValue
-			) => {
+			onStartEditing: (slotNumber: number, currentValue: string | null) => {
 				this.editingClipSlot = slotNumber;
 				this.editingClipValue = currentValue || String(slotNumber);
 			},
 			onSave: () => this.#saveClipNumber(),
-			onKeydown: (/** @type {KeyboardEvent} */ e) => this.#handleClipKeydown(e)
+			onKeydown: (e: KeyboardEvent) => this.#handleClipKeydown(e)
 		};
 	}
 
@@ -301,8 +281,7 @@ export class NodeStructureContext {
 	 */
 	get dividerActions() {
 		return {
-			onToggle: (/** @type {number} */ slotNumber) =>
-				this.#structureManager.toggleDivider(slotNumber)
+			onToggle: (slotNumber: number) => this.#structureManager.toggleDivider(slotNumber)
 		};
 	}
 
@@ -311,26 +290,19 @@ export class NodeStructureContext {
 	 */
 	get portActions() {
 		return {
-			onDrop: (
-				/** @type {number} */ portNumber,
-				/** @type {'a'|'b'} */ side,
-				/** @type {any} */ dropData
-			) => this.#handlePortDrop(portNumber, side, dropData),
-			onClear: (/** @type {number} */ portNumber, /** @type {'a'|'b'} */ side) =>
+			onDrop: (portNumber: number, side: 'a' | 'b', dropData: DropData) =>
+				this.#handlePortDrop(portNumber, side, dropData),
+			onClear: (portNumber: number, side: 'a' | 'b') =>
 				this.#spliceManager.handleClearPort(portNumber, side),
 			onClose: () => this.#spliceManager.closePortTable(),
 			onToggleMergeMode: () => this.#spliceManager.toggleMergeSelectionMode(),
-			onTogglePortSelection: (/** @type {number} */ portNumber, /** @type {'a'|'b'} */ side) =>
+			onTogglePortSelection: (portNumber: number, side: 'a' | 'b') =>
 				this.#spliceManager.togglePortSelection(portNumber, side),
 			onMergePorts: () => this.#spliceManager.mergeSelectedPorts(),
-			onUnmergePorts: (/** @type {string} */ mergeGroupId) =>
-				this.#spliceManager.unmergePorts(mergeGroupId),
-			onMergedPortDrop: (
-				/** @type {string} */ mergeGroupId,
-				/** @type {'a'|'b'} */ side,
-				/** @type {any} */ data
-			) => this.#spliceManager.handleMergedPortDrop(mergeGroupId, side, data),
-			onSetMergeSide: (/** @type {'a'|'b'} */ side) => this.#spliceManager.setMergeSide(side)
+			onUnmergePorts: (mergeGroupId: string) => this.#spliceManager.unmergePorts(mergeGroupId),
+			onMergedPortDrop: (mergeGroupId: string, side: 'a' | 'b', data: DropData) =>
+				this.#spliceManager.handleMergedPortDrop(mergeGroupId, side, data as never),
+			onSetMergeSide: (side: 'a' | 'b') => this.#spliceManager.setMergeSide(side)
 		};
 	}
 
@@ -339,10 +311,17 @@ export class NodeStructureContext {
 	 */
 	get sidebarActions() {
 		return {
-			onDragStart: (/** @type {any} */ componentType) =>
-				this.#dragDropManager.startComponentDrag(componentType),
+			onDragStart: (componentType: {
+				id: number;
+				component_type: string;
+				occupied_slots: number;
+			}) => this.#dragDropManager.startComponentDrag(componentType),
 			onDragEnd: () => this.#dragDropManager.endDrag(),
-			onMobileSelect: (/** @type {any} */ componentType) => {
+			onMobileSelect: (componentType: {
+				id: number;
+				component_type: string;
+				occupied_slots: number;
+			}) => {
 				this.#dragDropManager.selectMobileComponent(componentType);
 			}
 		};
@@ -354,7 +333,7 @@ export class NodeStructureContext {
 	get mobileActions() {
 		return {
 			onClearSelection: () => this.#dragDropManager.clearMobileSelection(),
-			onFiberSelect: (/** @type {any} */ fiberData) => {
+			onFiberSelect: (fiberData: DropData) => {
 				this.#dragDropManager.selectMobileItem(fiberData);
 			}
 		};
@@ -364,17 +343,15 @@ export class NodeStructureContext {
 
 	/**
 	 * Select a slot configuration
-	 * @param {string} uuid
 	 */
-	selectSlotConfig(uuid) {
+	selectSlotConfig(uuid: string): void {
 		this.#structureManager.selectSlotConfig(uuid);
 	}
 
 	/**
 	 * Handle responsive change (mobile/desktop switch)
-	 * @param {boolean} isMobile
 	 */
-	handleResponsiveChange(isMobile) {
+	handleResponsiveChange(isMobile: boolean): void {
 		this.isMobile = isMobile;
 		this.#dragDropManager.handleResponsiveChange(isMobile);
 	}
@@ -384,16 +361,16 @@ export class NodeStructureContext {
 	/**
 	 * Initialize the context - fetch initial data
 	 */
-	async initialize() {
+	async initialize(): Promise<void> {
 		await this.#structureManager.fetchSlotConfigurations();
 	}
 
 	/**
 	 * Reset context for a new node
-	 * @param {string} nodeUuid - New node UUID
-	 * @param {SharedSlotState|null} sharedSlotState - Optional shared state
+	 * @param nodeUuid - New node UUID
+	 * @param sharedSlotState - Optional shared state
 	 */
-	setNodeUuid(nodeUuid, sharedSlotState = null) {
+	setNodeUuid(nodeUuid: string, sharedSlotState: SharedSlotState | null = null): void {
 		this.#structureManager.setNodeUuid(nodeUuid, sharedSlotState);
 		this.#spliceManager.closePortTable();
 		this.#dragDropManager.cleanup();
@@ -405,23 +382,22 @@ export class NodeStructureContext {
 
 	/**
 	 * Sync with shared slot state from parent
-	 * @param {SharedSlotState|null} sharedState
 	 */
-	syncWithSharedState(sharedState) {
+	syncWithSharedState(sharedState: SharedSlotState | null): void {
 		this.#structureManager.syncWithSharedState(sharedState);
 	}
 
 	/**
 	 * Fetch all data for the selected slot configuration
 	 */
-	async fetchAllForSlotConfig() {
+	async fetchAllForSlotConfig(): Promise<void> {
 		await this.#structureManager.fetchAllForSlotConfig();
 	}
 
 	/**
 	 * Cleanup all managers
 	 */
-	cleanup() {
+	cleanup(): void {
 		this.#structureManager.cleanup();
 		this.#spliceManager.cleanup();
 		this.#dragDropManager.cleanup();
@@ -432,9 +408,8 @@ export class NodeStructureContext {
 	/**
 	 * Get the drag drop manager for context sharing
 	 * (Used by setContext for child components)
-	 * @returns {DragDropManager}
 	 */
-	getDragDropManager() {
+	getDragDropManager(): DragDropManager {
 		return this.#dragDropManager;
 	}
 
@@ -442,10 +417,8 @@ export class NodeStructureContext {
 
 	/**
 	 * Handle slot drag over
-	 * @param {DragEvent} e
-	 * @param {number} slotNumber
 	 */
-	#handleSlotDragOver(e, slotNumber) {
+	#handleSlotDragOver(e: DragEvent, slotNumber: number): void {
 		e.preventDefault();
 
 		const { canDrop } = this.#dragDropManager.updateDropPreview(
@@ -461,10 +434,8 @@ export class NodeStructureContext {
 
 	/**
 	 * Handle slot drop
-	 * @param {DragEvent} e
-	 * @param {number} slotNumber
 	 */
-	async #handleSlotDrop(e, slotNumber) {
+	async #handleSlotDrop(e: DragEvent, slotNumber: number): Promise<void> {
 		e.preventDefault();
 		this.#dragDropManager.clearDropPreview();
 
@@ -476,10 +447,19 @@ export class NodeStructureContext {
 
 		try {
 			if (data.type === 'component_type') {
-				await this.#structureManager.createStructure(/** @type {any} */ (data), slotNumber);
+				await this.#structureManager.createStructure(
+					data as { id: number; name: string; occupied_slots: number },
+					slotNumber
+				);
 			} else if (data.type === 'multi_component_type') {
 				await this.#structureManager.createMultipleStructures(
-					/** @type {any} */ (data),
+					data as {
+						id: number;
+						name: string;
+						occupied_slots: number;
+						count?: number;
+						total_slots?: number;
+					},
 					slotNumber
 				);
 			} else if (data.type === 'existing_structure') {
@@ -487,13 +467,16 @@ export class NodeStructureContext {
 					this.#dragDropManager.endDrag();
 					return;
 				}
-				await this.#structureManager.moveStructure(/** @type {any} */ (data), slotNumber);
+				await this.#structureManager.moveStructure(
+					data as { uuid: string; occupied_slots: number },
+					slotNumber
+				);
 			}
-		} catch (/** @type {any} */ err) {
+		} catch (err: unknown) {
 			console.error('Drop error:', err);
 			globalToaster.error({
 				title: m.common_error(),
-				description: err?.message || m.message_error_placing_component()
+				description: (err as Error)?.message || m.message_error_placing_component()
 			});
 		}
 
@@ -502,25 +485,33 @@ export class NodeStructureContext {
 
 	/**
 	 * Handle mobile slot tap (tap-to-place)
-	 * @param {number} slotNumber
 	 */
-	async #handleMobileSlotTap(slotNumber) {
+	async #handleMobileSlotTap(slotNumber: number): Promise<void> {
 		if (!this.#dragDropManager.mobileSelectedItem) return;
 
 		try {
 			const item = this.#dragDropManager.mobileSelectedItem;
 			if (item.type === 'multi_component_type') {
 				await this.#structureManager.createMultipleStructures(
-					/** @type {any} */ (item),
+					item as {
+						id: number;
+						name: string;
+						occupied_slots: number;
+						count?: number;
+						total_slots?: number;
+					},
 					slotNumber
 				);
 			} else {
-				await this.#structureManager.createStructure(/** @type {any} */ (item), slotNumber);
+				await this.#structureManager.createStructure(
+					item as { id: number; name: string; occupied_slots: number },
+					slotNumber
+				);
 			}
-		} catch (/** @type {any} */ err) {
+		} catch (err: unknown) {
 			globalToaster.error({
 				title: m.common_error(),
-				description: err?.message || m.message_error_placing_component()
+				description: (err as Error)?.message || m.message_error_placing_component()
 			});
 		}
 
@@ -529,12 +520,10 @@ export class NodeStructureContext {
 
 	/**
 	 * Handle structure selection (opens port table)
-	 * @param {NodeStructure} structure
-	 * @returns {Promise<boolean>} - True if structure was selected
 	 */
-	async #handleStructureSelect(structure) {
+	async #handleStructureSelect(structure: NodeStructure): Promise<boolean> {
 		const wasSelected = await this.#spliceManager.selectStructure(
-			/** @type {any} */ (structure),
+			structure as never,
 			this.isMobile
 		);
 		return wasSelected;
@@ -542,10 +531,8 @@ export class NodeStructureContext {
 
 	/**
 	 * Handle structure deletion with splice check
-	 * @param {string} structureUuid
-	 * @returns {Promise<DeleteResult>}
 	 */
-	async #handleDeleteStructure(structureUuid) {
+	async #handleDeleteStructure(structureUuid: string): Promise<DeleteResult> {
 		// Check if the structure has fiber splices before deleting
 		try {
 			const formData = new FormData();
@@ -556,12 +543,12 @@ export class NodeStructureContext {
 				body: formData
 			});
 
-			const result = /** @type {any} */ (deserialize(await response.text()));
+			const result = deserialize(await response.text()) as { data?: { splices?: FiberSplice[] } };
 			const splices = result.data?.splices || [];
 
 			// Count splices that have actual fiber connections
-			const activeSpliceCount = /** @type {FiberSplice[]} */ (splices).filter(
-				(/** @type {FiberSplice} */ s) => s.fiber_a_details || s.fiber_b_details
+			const activeSpliceCount = (splices as FiberSplice[]).filter(
+				(s: FiberSplice) => s.fiber_a_details || s.fiber_b_details
 			).length;
 
 			if (activeSpliceCount > 0) {
@@ -581,9 +568,8 @@ export class NodeStructureContext {
 
 	/**
 	 * Execute structure deletion
-	 * @param {string} structureUuid
 	 */
-	async executeDelete(structureUuid) {
+	async executeDelete(structureUuid: string): Promise<void> {
 		const deleted = await this.#structureManager.deleteStructure(structureUuid);
 		if (deleted) {
 			this.#spliceManager.onStructureDeleted(structureUuid);
@@ -593,18 +579,15 @@ export class NodeStructureContext {
 
 	/**
 	 * Handle port drop
-	 * @param {number} portNumber
-	 * @param {'a'|'b'} side
-	 * @param {any} dropData
 	 */
-	async #handlePortDrop(portNumber, side, dropData) {
+	async #handlePortDrop(portNumber: number, side: 'a' | 'b', dropData: DropData): Promise<void> {
 		// For cable drops, pass all structures to enable multi-component filling
 		const structures = dropData.type === 'cable' ? this.#structureManager.structures : [];
 		const success = await this.#spliceManager.handlePortDrop(
 			portNumber,
 			side,
-			dropData,
-			/** @type {any} */ (structures)
+			dropData as never,
+			structures as never[]
 		);
 
 		// Clear mobile selection on success for any fiber-related drop type
@@ -619,7 +602,7 @@ export class NodeStructureContext {
 	/**
 	 * Save clip number
 	 */
-	async #saveClipNumber() {
+	async #saveClipNumber(): Promise<void> {
 		if (this.editingClipSlot === null || !this.editingClipValue.trim()) {
 			this.editingClipSlot = null;
 			this.editingClipValue = '';
@@ -637,9 +620,8 @@ export class NodeStructureContext {
 
 	/**
 	 * Handle clip number keydown
-	 * @param {KeyboardEvent} e
 	 */
-	#handleClipKeydown(e) {
+	#handleClipKeydown(e: KeyboardEvent): void {
 		if (e.key === 'Enter') {
 			e.preventDefault();
 			this.#saveClipNumber();

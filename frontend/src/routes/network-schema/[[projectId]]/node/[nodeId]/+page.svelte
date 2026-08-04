@@ -9,7 +9,7 @@
 
 	import { CablePathManager } from '$lib/classes/CablePathManager.svelte.js';
 	import { NetworkSchemaSearchManager } from '$lib/classes/NetworkSchemaSearchManager.svelte.js';
-	import { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte.js';
+	import { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte';
 	import Drawer from '$lib/components/Drawer.svelte';
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { drawerStore } from '$lib/stores/drawer';

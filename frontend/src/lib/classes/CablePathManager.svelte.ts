@@ -11,14 +11,19 @@ export class CablePathManager {
 
 	/**
 	 * Update cable path geometry
-	 * @param {string} edgeId - Edge UUID
-	 * @param {{x: number, y: number}[]} waypoints - Array of {x, y} waypoint coordinates
-	 * @param {boolean} temporary - Whether this is a temporary update (during drag)
-	 * @param {boolean} save - Whether to save to backend
-	 * @param {Function} updateCallback - Callback to update edge in state
-	 * @returns {Promise<void>}
+	 * @param edgeId - Edge UUID
+	 * @param waypoints - Array of {x, y} waypoint coordinates
+	 * @param temporary - Whether this is a temporary update (during drag)
+	 * @param save - Whether to save to backend
+	 * @param updateCallback - Callback to update edge in state
 	 */
-	async updatePath(edgeId, waypoints, temporary, save, updateCallback) {
+	async updatePath(
+		edgeId: string,
+		waypoints: { x: number; y: number }[],
+		temporary: boolean,
+		save: boolean,
+		updateCallback: (edgeId: string, update: Record<string, unknown>) => void
+	): Promise<void> {
 		if (updateCallback) {
 			updateCallback(edgeId, {
 				data: {
@@ -62,12 +67,17 @@ export class CablePathManager {
 
 	/**
 	 * Update cable handle configuration
-	 * @param {string} cableId - Cable UUID
-	 * @param {string} handleStart - Start handle position
-	 * @param {string} handleEnd - End handle position
-	 * @param {Function} updateCallback - Callback to update handles in state
+	 * @param cableId - Cable UUID
+	 * @param handleStart - Start handle position
+	 * @param handleEnd - End handle position
+	 * @param updateCallback - Callback to update handles in state
 	 */
-	updateHandles(cableId, handleStart, handleEnd, updateCallback) {
+	updateHandles(
+		cableId: string,
+		handleStart: string,
+		handleEnd: string,
+		updateCallback: (cableId: string, handleStart: string, handleEnd: string) => void
+	): void {
 		if (updateCallback) {
 			updateCallback(cableId, handleStart, handleEnd);
 		}

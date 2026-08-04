@@ -8,7 +8,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { ConduitState } from '$lib/classes/ConduitState.svelte.js';
+	import { ConduitState } from '$lib/classes/ConduitState.svelte';
 	import Drawer from '$lib/components/Drawer.svelte';
 	import SearchInput from '$lib/components/SearchInput.svelte';
 	import { selectedProject } from '$lib/stores/store';
