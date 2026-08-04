@@ -1,28 +1,43 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import type OlMap from 'ol/Map.js';
 
-import { MapMeasureManager } from './MapMeasureManager.svelte.js';
+import { MapMeasureManager } from './MapMeasureManager.svelte';
 
-function createMockMap() {
-	const interactions = [];
-	const layers = [];
-	const overlays = [];
+interface MockMap {
+	interactions: unknown[];
+	layers: unknown[];
+	overlays: unknown[];
+	addInteraction: ReturnType<typeof vi.fn>;
+	removeInteraction: ReturnType<typeof vi.fn>;
+	addLayer: ReturnType<typeof vi.fn>;
+	removeLayer: ReturnType<typeof vi.fn>;
+	addOverlay: ReturnType<typeof vi.fn>;
+	removeOverlay: ReturnType<typeof vi.fn>;
+	getView: ReturnType<typeof vi.fn>;
+	getViewport: ReturnType<typeof vi.fn>;
+}
+
+function createMockMap(): MockMap {
+	const interactions: unknown[] = [];
+	const layers: unknown[] = [];
+	const overlays: unknown[] = [];
 
 	return {
 		interactions,
 		layers,
 		overlays,
-		addInteraction: vi.fn((interaction) => interactions.push(interaction)),
-		removeInteraction: vi.fn((interaction) => {
+		addInteraction: vi.fn((interaction: unknown) => interactions.push(interaction)),
+		removeInteraction: vi.fn((interaction: unknown) => {
 			const idx = interactions.indexOf(interaction);
 			if (idx >= 0) interactions.splice(idx, 1);
 		}),
-		addLayer: vi.fn((layer) => layers.push(layer)),
-		removeLayer: vi.fn((layer) => {
+		addLayer: vi.fn((layer: unknown) => layers.push(layer)),
+		removeLayer: vi.fn((layer: unknown) => {
 			const idx = layers.indexOf(layer);
 			if (idx >= 0) layers.splice(idx, 1);
 		}),
-		addOverlay: vi.fn((overlay) => overlays.push(overlay)),
-		removeOverlay: vi.fn((overlay) => {
+		addOverlay: vi.fn((overlay: unknown) => overlays.push(overlay)),
+		removeOverlay: vi.fn((overlay: unknown) => {
 			const idx = overlays.indexOf(overlay);
 			if (idx >= 0) overlays.splice(idx, 1);
 		}),
@@ -34,8 +49,7 @@ function createMockMap() {
 }
 
 describe('MapMeasureManager', () => {
-	/** @type {MapMeasureManager} */
-	let manager;
+	let manager: MapMeasureManager;
 
 	beforeEach(() => {
 		manager = new MapMeasureManager();
@@ -57,19 +71,19 @@ describe('MapMeasureManager', () => {
 
 	test('initialize returns true with valid map instance', () => {
 		const mockMap = createMockMap();
-		const result = manager.initialize(mockMap);
+		const result = manager.initialize(mockMap as unknown as OlMap);
 		expect(result).toBe(true);
 	});
 
 	test('initialize adds vector layer to map', () => {
 		const mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 		expect(mockMap.addLayer).toHaveBeenCalledOnce();
 	});
 
 	test('startMeasure sets isMeasuring and measureType for distance', () => {
 		const mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 		manager.startMeasure('distance');
 
 		expect(manager.isMeasuring).toBe(true);
@@ -78,7 +92,7 @@ describe('MapMeasureManager', () => {
 
 	test('startMeasure sets isMeasuring and measureType for area', () => {
 		const mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 		manager.startMeasure('area');
 
 		expect(manager.isMeasuring).toBe(true);
@@ -87,7 +101,7 @@ describe('MapMeasureManager', () => {
 
 	test('startMeasure adds Draw interaction to map', () => {
 		const mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 		manager.startMeasure('distance');
 
 		expect(mockMap.addInteraction).toHaveBeenCalled();
@@ -95,7 +109,7 @@ describe('MapMeasureManager', () => {
 
 	test('startMeasure while already measuring clears previous measurement', () => {
 		const mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 
 		manager.startMeasure('distance');
 		expect(mockMap.addInteraction).toHaveBeenCalledTimes(1);
@@ -112,7 +126,7 @@ describe('MapMeasureManager', () => {
 
 	test('stopMeasure removes interaction and resets state', () => {
 		const mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 		manager.startMeasure('distance');
 
 		manager.stopMeasure();
@@ -124,13 +138,13 @@ describe('MapMeasureManager', () => {
 
 	test('stopMeasure is safe to call when not measuring', () => {
 		const mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 		expect(() => manager.stopMeasure()).not.toThrow();
 	});
 
 	test('cleanup removes layer and resets all state', () => {
 		const mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 		manager.startMeasure('distance');
 
 		manager.cleanup();

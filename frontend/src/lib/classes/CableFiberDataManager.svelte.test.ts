@@ -1,14 +1,13 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { CableFiberDataManager } from './CableFiberDataManager.svelte.js';
+import { CableFiberDataManager } from './CableFiberDataManager.svelte';
 
 vi.mock('$app/forms', () => ({
-	deserialize: vi.fn((text) => JSON.parse(text))
+	deserialize: vi.fn((text: string) => JSON.parse(text))
 }));
 
 describe('CableFiberDataManager', () => {
-	/** @type {CableFiberDataManager} */
-	let manager;
+	let manager: CableFiberDataManager;
 
 	beforeEach(() => {
 		manager = new CableFiberDataManager();
@@ -45,7 +44,7 @@ describe('CableFiberDataManager', () => {
 
 			vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 				text: () => Promise.resolve(JSON.stringify(mockResponse))
-			});
+			} as unknown as Response);
 
 			await manager.fetchFiberUsage();
 
@@ -81,7 +80,7 @@ describe('CableFiberDataManager', () => {
 
 			vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 				text: () => Promise.resolve(JSON.stringify(mockResponse))
-			});
+			} as unknown as Response);
 
 			await manager.fetchFiberUsage();
 
@@ -99,7 +98,7 @@ describe('CableFiberDataManager', () => {
 
 			vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 				text: () => Promise.resolve(JSON.stringify(mockResponse))
-			});
+			} as unknown as Response);
 
 			await manager.fetchFiberUsage();
 
@@ -137,7 +136,7 @@ describe('CableFiberDataManager', () => {
 
 			vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 				text: () => Promise.resolve(JSON.stringify(mockResponse))
-			});
+			} as unknown as Response);
 
 			await manager.fetchResidentialUnitUsage();
 
@@ -171,7 +170,7 @@ describe('CableFiberDataManager', () => {
 
 			vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 				text: () => Promise.resolve(JSON.stringify(mockResponse))
-			});
+			} as unknown as Response);
 
 			await manager.fetchResidentialUnitUsage();
 
@@ -215,7 +214,7 @@ describe('CableFiberDataManager', () => {
 
 			vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 				text: () => Promise.resolve(JSON.stringify(mockResponse))
-			});
+			} as unknown as Response);
 
 			await manager.fetchFiberUsage();
 			expect(manager.getFiberComponentInfo('fiber-1')).not.toBeNull();
@@ -239,7 +238,7 @@ describe('CableFiberDataManager', () => {
 
 			vi.spyOn(globalThis, 'fetch').mockResolvedValue({
 				text: () => Promise.resolve(JSON.stringify(mockResponse))
-			});
+			} as unknown as Response);
 
 			await manager.fetchFiberUsage();
 			expect(manager.getFiberComponentInfo('fiber-1')).not.toBeNull();

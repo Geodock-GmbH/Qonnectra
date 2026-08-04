@@ -1,36 +1,45 @@
-import Feature from 'ol/Feature';
-import Polygon from 'ol/geom/Polygon';
+import Feature from 'ol/Feature.js';
+import Polygon from 'ol/geom/Polygon.js';
+import type OlMap from 'ol/Map.js';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { InquiryDrawManager } from '$lib/classes/InquiryDrawManager.svelte';
 
-function createMockMap() {
-	/** @type {any[]} */
-	const interactions = [];
-	/** @type {any[]} */
-	const layers = [];
+interface MockMap {
+	interactions: unknown[];
+	layers: unknown[];
+	addInteraction: ReturnType<typeof vi.fn>;
+	removeInteraction: ReturnType<typeof vi.fn>;
+	addLayer: ReturnType<typeof vi.fn>;
+	removeLayer: ReturnType<typeof vi.fn>;
+	getView: ReturnType<typeof vi.fn>;
+}
 
-	return /** @type {any} */ ({
+function createMockMap(): MockMap {
+	const interactions: unknown[] = [];
+	const layers: unknown[] = [];
+
+	return {
 		interactions,
 		layers,
-		addInteraction: vi.fn((/** @type {any} */ interaction) => interactions.push(interaction)),
-		removeInteraction: vi.fn((/** @type {any} */ interaction) => {
+		addInteraction: vi.fn((interaction: unknown) => interactions.push(interaction)),
+		removeInteraction: vi.fn((interaction: unknown) => {
 			const idx = interactions.indexOf(interaction);
 			if (idx >= 0) interactions.splice(idx, 1);
 		}),
-		addLayer: vi.fn((/** @type {any} */ layer) => layers.push(layer)),
-		removeLayer: vi.fn((/** @type {any} */ layer) => {
+		addLayer: vi.fn((layer: unknown) => layers.push(layer)),
+		removeLayer: vi.fn((layer: unknown) => {
 			const idx = layers.indexOf(layer);
 			if (idx >= 0) layers.splice(idx, 1);
 		}),
 		getView: vi.fn(() => ({
 			getProjection: vi.fn(() => 'EPSG:25832')
 		}))
-	});
+	};
 }
 
-function createMockTileSource() {
-	return /** @type {any} */ ({
+function createMockTileSource(): Record<string, ReturnType<typeof vi.fn> | string> {
+	return {
 		type: 'mockTileSource',
 		addEventListener: vi.fn(),
 		removeEventListener: vi.fn(),
@@ -41,18 +50,17 @@ function createMockTileSource() {
 		getState: vi.fn(() => 'ready'),
 		getRevision: vi.fn(() => 0),
 		changed: vi.fn()
-	});
+	};
 }
 
-function createMockParentLayer(visible = true) {
-	return /** @type {any} */ ({
+function createMockParentLayer(visible = true): { getVisible: ReturnType<typeof vi.fn> } {
+	return {
 		getVisible: vi.fn(() => visible)
-	});
+	};
 }
 
 describe('InquiryDrawManager', () => {
-	/** @type {InquiryDrawManager} */
-	let manager;
+	let manager: InquiryDrawManager;
 
 	beforeEach(() => {
 		manager = new InquiryDrawManager();
@@ -73,19 +81,19 @@ describe('InquiryDrawManager', () => {
 
 	test('initialize returns true with valid map instance', () => {
 		const mockMap = createMockMap();
-		const result = manager.initialize(mockMap);
+		const result = manager.initialize(mockMap as unknown as OlMap);
 		expect(result).toBe(true);
 	});
 
 	test('initialize adds only the polygon layer to map', () => {
 		const mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 		expect(mockMap.addLayer).toHaveBeenCalledOnce();
 	});
 
 	test('startDrawing sets isDrawing', () => {
 		const mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 		manager.startDrawing(() => {});
 
 		expect(manager.isDrawing).toBe(true);
@@ -93,7 +101,7 @@ describe('InquiryDrawManager', () => {
 
 	test('startDrawing adds Draw interaction to map', () => {
 		const mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 		manager.startDrawing(() => {});
 
 		expect(mockMap.addInteraction).toHaveBeenCalled();
@@ -101,7 +109,7 @@ describe('InquiryDrawManager', () => {
 
 	test('stopDrawing resets isDrawing', () => {
 		const mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 		manager.startDrawing(() => {});
 
 		manager.stopDrawing();
@@ -111,7 +119,7 @@ describe('InquiryDrawManager', () => {
 
 	test('stopDrawing removes interaction from map', () => {
 		const mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 		manager.startDrawing(() => {});
 
 		manager.stopDrawing();
@@ -130,7 +138,7 @@ describe('InquiryDrawManager', () => {
 
 	test('cleanup removes polygon layer from map', () => {
 		const mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 
 		manager.cleanup();
 
@@ -139,15 +147,13 @@ describe('InquiryDrawManager', () => {
 });
 
 describe('InquiryDrawManager highlight overlays', () => {
-	/** @type {InquiryDrawManager} */
-	let manager;
-	/** @type {ReturnType<typeof createMockMap>} */
-	let mockMap;
+	let manager: InquiryDrawManager;
+	let mockMap: MockMap;
 
 	beforeEach(() => {
 		manager = new InquiryDrawManager();
 		mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 	});
 
 	afterEach(() => {
@@ -160,7 +166,7 @@ describe('InquiryDrawManager highlight overlays', () => {
 			{ source: createMockTileSource(), parentLayer: createMockParentLayer(), isPoint: true }
 		];
 
-		manager.initializeHighlightLayers(sources);
+		manager.initializeHighlightLayers(sources as never);
 
 		// initialize added 1 polygon layer, initializeHighlightLayers should add 2 more
 		expect(mockMap.addLayer).toHaveBeenCalledTimes(3);
@@ -175,11 +181,11 @@ describe('InquiryDrawManager highlight overlays', () => {
 			{ source: createMockTileSource(), parentLayer: createMockParentLayer(), isPoint: true }
 		];
 
-		manager.initializeHighlightLayers(sources1);
+		manager.initializeHighlightLayers(sources1 as never);
 		// 1 polygon + 1 highlight = 2 addLayer calls
 		expect(mockMap.addLayer).toHaveBeenCalledTimes(2);
 
-		manager.initializeHighlightLayers(sources2);
+		manager.initializeHighlightLayers(sources2 as never);
 		// Should have removed the 1 old highlight layer
 		expect(mockMap.removeLayer).toHaveBeenCalledTimes(1);
 		// 1 polygon + 1 first + 2 second = 4 addLayer calls total
@@ -192,20 +198,19 @@ describe('InquiryDrawManager highlight overlays', () => {
 			{ source: createMockTileSource(), parentLayer: createMockParentLayer(), isPoint: true }
 		];
 
-		manager.initializeHighlightLayers(sources);
+		manager.initializeHighlightLayers(sources as never);
 
-		// Spy on the highlight layers' changed method
 		const highlightLayers = mockMap.layers.filter(
-			(/** @type {any} */ l) => l !== mockMap.layers[0]
+			(l: unknown) => l !== mockMap.layers[0]
 		);
 		for (const layer of highlightLayers) {
-			vi.spyOn(layer, 'changed');
+			vi.spyOn(layer as { changed: () => void }, 'changed');
 		}
 
 		manager.refreshHighlights();
 
 		for (const layer of highlightLayers) {
-			expect(layer.changed).toHaveBeenCalled();
+			expect((layer as { changed: ReturnType<typeof vi.fn> }).changed).toHaveBeenCalled();
 		}
 	});
 
@@ -219,7 +224,7 @@ describe('InquiryDrawManager highlight overlays', () => {
 			{ source: createMockTileSource(), parentLayer: createMockParentLayer(), isPoint: true }
 		];
 
-		manager.initializeHighlightLayers(sources);
+		manager.initializeHighlightLayers(sources as never);
 		const layerCountBefore = mockMap.layers.length;
 		expect(layerCountBefore).toBe(3); // 1 polygon + 2 highlights
 
@@ -231,13 +236,12 @@ describe('InquiryDrawManager highlight overlays', () => {
 });
 
 describe('InquiryDrawManager polygon geometry cache', () => {
-	/** @type {InquiryDrawManager} */
-	let manager;
+	let manager: InquiryDrawManager;
 
 	beforeEach(() => {
 		manager = new InquiryDrawManager();
 		const mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 	});
 
 	afterEach(() => {
@@ -262,7 +266,7 @@ describe('InquiryDrawManager polygon geometry cache', () => {
 		const polygon = new Polygon(coords);
 		const feature = new Feature({ geometry: polygon });
 
-		/** @type {any} */ (manager)._polygonSource.addFeature(feature);
+		(manager as unknown as { _polygonSource: { addFeature: (f: Feature) => void } })._polygonSource.addFeature(feature);
 		manager.updatePolygonGeometryCache();
 
 		expect(manager._polygonGeometries).toHaveLength(1);
@@ -270,20 +274,19 @@ describe('InquiryDrawManager polygon geometry cache', () => {
 	});
 
 	test('clearHighlights empties the polygon geometry cache', () => {
-		/** @type {any} */ (manager)._polygonGeometries = [{}]; // simulate cached geometry
+		(manager as unknown as { _polygonGeometries: unknown[] })._polygonGeometries = [{}]; // simulate cached geometry
 		manager.clearHighlights();
 		expect(manager._polygonGeometries).toEqual([]);
 	});
 });
 
 describe('InquiryDrawManager removePolygonByUuid', () => {
-	/** @type {InquiryDrawManager} */
-	let manager;
+	let manager: InquiryDrawManager;
 
 	beforeEach(() => {
 		manager = new InquiryDrawManager();
 		const mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 	});
 
 	afterEach(() => {
@@ -304,25 +307,25 @@ describe('InquiryDrawManager removePolygonByUuid', () => {
 		const f2 = new Feature({ geometry: new Polygon(coords) });
 		f2.set('uuid', 'bbb');
 
-		/** @type {any} */ (manager)._polygonSource.addFeatures([f1, f2]);
-		expect(/** @type {any} */ (manager)._polygonSource.getFeatures()).toHaveLength(2);
+		const source = (manager as unknown as { _polygonSource: { addFeatures: (f: Feature[]) => void; getFeatures: () => Feature[] } })._polygonSource;
+		source.addFeatures([f1, f2]);
+		expect(source.getFeatures()).toHaveLength(2);
 
 		manager.removePolygonByUuid('aaa');
 
-		const remaining = /** @type {any} */ (manager)._polygonSource.getFeatures();
+		const remaining = source.getFeatures();
 		expect(remaining).toHaveLength(1);
 		expect(remaining[0].get('uuid')).toBe('bbb');
 	});
 });
 
 describe('InquiryDrawManager polygon label style', () => {
-	/** @type {InquiryDrawManager} */
-	let manager;
+	let manager: InquiryDrawManager;
 
 	beforeEach(() => {
 		manager = new InquiryDrawManager();
 		const mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 	});
 
 	afterEach(() => {
@@ -330,12 +333,12 @@ describe('InquiryDrawManager polygon label style', () => {
 	});
 
 	test('polygon layer uses a style function, not a static style', () => {
-		const style = /** @type {any} */ (manager)._polygonLayer.getStyle();
+		const style = (manager as unknown as { _polygonLayer: { getStyle: () => unknown } })._polygonLayer.getStyle();
 		expect(typeof style).toBe('function');
 	});
 
 	test('style function returns label when feature has name and resolution is low', () => {
-		const styleFn = /** @type {any} */ (manager)._polygonLayer.getStyle();
+		const styleFn = (manager as unknown as { _polygonLayer: { getStyle: () => (f: Feature, r: number) => unknown } })._polygonLayer.getStyle();
 		const feature = new Feature({
 			geometry: new Polygon([
 				[
@@ -348,7 +351,7 @@ describe('InquiryDrawManager polygon label style', () => {
 		});
 		feature.set('name', 'Test Area');
 
-		const result = styleFn(feature, 2.0);
+		const result = styleFn(feature, 2.0) as { getText: () => { getText: () => string } }[];
 
 		expect(Array.isArray(result)).toBe(true);
 		expect(result).toHaveLength(2);
@@ -357,7 +360,7 @@ describe('InquiryDrawManager polygon label style', () => {
 	});
 
 	test('style function returns single style when feature has no name', () => {
-		const styleFn = /** @type {any} */ (manager)._polygonLayer.getStyle();
+		const styleFn = (manager as unknown as { _polygonLayer: { getStyle: () => (f: Feature, r: number) => unknown } })._polygonLayer.getStyle();
 		const feature = new Feature({
 			geometry: new Polygon([
 				[
@@ -375,7 +378,7 @@ describe('InquiryDrawManager polygon label style', () => {
 	});
 
 	test('style function returns single style when resolution is too high', () => {
-		const styleFn = /** @type {any} */ (manager)._polygonLayer.getStyle();
+		const styleFn = (manager as unknown as { _polygonLayer: { getStyle: () => (f: Feature, r: number) => unknown } })._polygonLayer.getStyle();
 		const feature = new Feature({
 			geometry: new Polygon([
 				[
@@ -395,15 +398,13 @@ describe('InquiryDrawManager polygon label style', () => {
 });
 
 describe('InquiryDrawManager editing interaction', () => {
-	/** @type {InquiryDrawManager} */
-	let manager;
-	/** @type {ReturnType<typeof createMockMap>} */
-	let mockMap;
+	let manager: InquiryDrawManager;
+	let mockMap: MockMap;
 
 	beforeEach(() => {
 		manager = new InquiryDrawManager();
 		mockMap = createMockMap();
-		manager.initialize(mockMap);
+		manager.initialize(mockMap as unknown as OlMap);
 	});
 
 	afterEach(() => {

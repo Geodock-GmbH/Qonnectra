@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { globalToaster } from '$lib/stores/toaster';
 
+import type { MicroductCandidate, PendingMicroductChoice, SvelteFlowEdge } from './NetworkSchemaState.svelte';
 import { NetworkSchemaState } from './NetworkSchemaState.svelte';
 
 vi.mock('$app/forms', () => ({
-	deserialize: vi.fn((text) => JSON.parse(text))
+	deserialize: vi.fn((text: string) => JSON.parse(text))
 }));
 
 vi.mock('$app/state', () => ({
@@ -13,7 +14,7 @@ vi.mock('$app/state', () => ({
 }));
 
 vi.mock('$lib/paraglide/messages', () => ({
-	m: new Proxy({}, { get: (_target, prop) => () => String(prop) })
+	m: new Proxy({}, { get: (_target: unknown, prop: string) => () => String(prop) })
 }));
 
 vi.mock('$lib/stores/toaster', () => ({
@@ -24,20 +25,15 @@ vi.mock('$lib/utils/logToBackendClient', () => ({
 	logToBackendClient: vi.fn()
 }));
 
-/**
- * Builds a fetch Response stub whose text() resolves to the serialized action result.
- * @param {object} data - The form action data payload
- */
-function actionResponse(data) {
+interface ActionResponseData {
+	text: () => Promise<string>;
+}
+
+function actionResponse(data: Record<string, unknown>): ActionResponseData {
 	return { text: () => Promise.resolve(JSON.stringify({ type: 'success', data })) };
 }
 
-/**
- * Build a stub microduct candidate object.
- * @param {string} uuid - Microduct UUID
- * @returns {object} Candidate stub with default fields
- */
-function candidate(uuid) {
+function candidate(uuid: string): MicroductCandidate {
 	return {
 		microduct_uuid: uuid,
 		number: 3,
@@ -50,13 +46,17 @@ function candidate(uuid) {
 	};
 }
 
-/**
- * Build a per-end result stub for the auto-link response.
- * @param {string} status - Result status (e.g. "linked", "no_candidates")
- * @param {object} [overrides] - Fields to override on the default result
- * @returns {object} End result stub
- */
-function endResult(status, overrides = {}) {
+interface AutoLinkEndResult {
+	end: string;
+	node_uuid: string;
+	node_name: string;
+	address: string | null;
+	status: string;
+	microduct: MicroductCandidate | null;
+	candidates: MicroductCandidate[];
+}
+
+function endResult(status: string, overrides: Partial<AutoLinkEndResult> = {}): AutoLinkEndResult {
 	return {
 		end: 'start',
 		node_uuid: 'node-1',
@@ -70,8 +70,7 @@ function endResult(status, overrides = {}) {
 }
 
 describe('NetworkSchemaState auto-link', () => {
-	/** @type {NetworkSchemaState} */
-	let state;
+	let state: NetworkSchemaState;
 
 	beforeEach(() => {
 		state = new NetworkSchemaState();
@@ -87,7 +86,7 @@ describe('NetworkSchemaState auto-link', () => {
 				linked_count: 0,
 				needs_choice: true,
 				results: [endResult('multiple_candidates', { candidates })]
-			})
+			}) as unknown as Response
 		);
 
 		await state.autoLinkMicropipe('cable-1', 'Cable One');
@@ -104,10 +103,10 @@ describe('NetworkSchemaState auto-link', () => {
 
 	test('autoLinkMicropipe shows success toast and refreshes edge on linked result', async () => {
 		state.edges = [
-			/** @type {any} */ ({ id: 'cable-1', source: 'a', target: 'b', type: 'x', data: {} })
+			{ id: 'cable-1', source: 'a', target: 'b', type: 'x', data: {} } as unknown as SvelteFlowEdge
 		];
 		const connections = [{ number: 3, color_hex: '#0000ff', color_name: 'blau' }];
-		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
+		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((url: string | URL | Request) => {
 			if (String(url).includes('autoLinkMicropipe')) {
 				return Promise.resolve(
 					actionResponse({
@@ -115,10 +114,10 @@ describe('NetworkSchemaState auto-link', () => {
 						linked_count: 1,
 						needs_choice: false,
 						results: [endResult('linked', { microduct: candidate('md-1') })]
-					})
+					}) as unknown as Response
 				);
 			}
-			return Promise.resolve(actionResponse({ connections }));
+			return Promise.resolve(actionResponse({ connections }) as unknown as Response);
 		});
 
 		await state.autoLinkMicropipe('cable-1', 'Cable One');
@@ -129,8 +128,8 @@ describe('NetworkSchemaState auto-link', () => {
 			String(call[0]).includes('getMicropipeConnectionsForCable')
 		);
 		expect(refreshCall).toBeDefined();
-		expect(state.edges[0].data.micropipeConnections).toEqual(connections);
-		expect(state.edges[0].data.isConnected).toBe(true);
+		expect((state.edges[0].data as { micropipeConnections: unknown }).micropipeConnections).toEqual(connections);
+		expect((state.edges[0].data as { isConnected: boolean }).isConnected).toBe(true);
 	});
 
 	test('autoLinkMicropipe stays silent on no_candidates and no_address', async () => {
@@ -143,7 +142,7 @@ describe('NetworkSchemaState auto-link', () => {
 					endResult('no_candidates'),
 					endResult('no_address', { end: 'end', address: null })
 				]
-			})
+			}) as unknown as Response
 		);
 
 		await state.autoLinkMicropipe('cable-1', 'Cable One');
@@ -162,15 +161,15 @@ describe('NetworkSchemaState auto-link', () => {
 				nodeName: 'HA-Test',
 				address: 'Teststraße 1, 24941 Flensburg',
 				candidates: [candidate('md-1'), candidate('md-2')]
-			}
+			} as PendingMicroductChoice
 		];
-		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((url) => {
+		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((url: string | URL | Request) => {
 			if (String(url).includes('autoLinkMicropipe')) {
 				return Promise.resolve(
-					actionResponse({ success: true, status: 'linked', microduct: candidate('md-2') })
+					actionResponse({ success: true, status: 'linked', microduct: candidate('md-2') }) as unknown as Response
 				);
 			}
-			return Promise.resolve(actionResponse({ connections: [] }));
+			return Promise.resolve(actionResponse({ connections: [] }) as unknown as Response);
 		});
 
 		await state.chooseMicroduct('md-2');
@@ -179,7 +178,7 @@ describe('NetworkSchemaState auto-link', () => {
 			String(call[0]).includes('autoLinkMicropipe')
 		);
 		expect(linkCall).toBeDefined();
-		const body = /** @type {FormData} */ (linkCall?.[1]?.body);
+		const body = linkCall?.[1]?.body as FormData;
 		expect(body.get('cableId')).toBe('cable-1');
 		expect(body.get('microductUuid')).toBe('md-2');
 		expect(state.pendingMicroductChoices).toHaveLength(0);
@@ -195,7 +194,7 @@ describe('NetworkSchemaState auto-link', () => {
 				nodeName: 'HA-Test',
 				address: 'Teststraße 1, 24941 Flensburg',
 				candidates: [candidate('md-1')]
-			}
+			} as PendingMicroductChoice
 		];
 		const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
