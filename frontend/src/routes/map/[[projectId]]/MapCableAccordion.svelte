@@ -11,7 +11,7 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	import { tooltip } from '$lib/utils/tooltip';
 
-	import { traceFrom } from '../../trace/traceUtils.js';
+	import { traceFrom } from '../../trace/traceUtils';
 
 	/**
 	 * @typedef {Object} Props

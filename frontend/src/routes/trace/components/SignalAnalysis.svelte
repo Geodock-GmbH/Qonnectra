@@ -23,7 +23,7 @@
 		downloadGeoJSON as downloadGeoJSONFile,
 		hasGeometries,
 		traceFrom
-	} from '../traceUtils.js';
+	} from '../traceUtils';
 
 	/**
 	 * @typedef {Object} Props

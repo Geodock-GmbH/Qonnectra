@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildGeoJSON, hasGeometries } from './traceUtils.js';
+import { buildGeoJSON, hasGeometries } from './traceUtils';
 
 const POINT_GEOM = { type: 'Point', coordinates: [550000, 6080000] };
 const LINE_GEOM = {

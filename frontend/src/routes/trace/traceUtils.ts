@@ -1,11 +1,102 @@
 import { goto } from '$app/navigation';
 
+export interface GeoJSONGeometry {
+	type: string;
+	coordinates: unknown;
+}
+
+interface ConduitInfo {
+	name?: string;
+	type?: string;
+}
+
+interface MicroductInfo {
+	number?: number;
+	color?: string;
+}
+
+interface TrenchSegment {
+	id: string;
+	id_trench: string;
+	construction_type: string;
+	surface: string;
+	length: number;
+	geometry?: GeoJSONGeometry;
+}
+
+export interface CableInfrastructure {
+	conduit?: ConduitInfo;
+	microduct?: MicroductInfo;
+	merged_geometry?: GeoJSONGeometry;
+	trenches?: TrenchSegment[];
+	total_length?: number;
+}
+
+interface AddressInfo {
+	id: string;
+	street: string;
+	housenumber: string;
+	suffix?: string;
+	zip_code: string;
+	city: string;
+	geometry?: GeoJSONGeometry;
+}
+
+interface EndpointNode {
+	id: string;
+	name: string;
+	geometry?: GeoJSONGeometry;
+	address?: AddressInfo;
+}
+
+interface CableEndpoints {
+	start_node?: EndpointNode;
+	end_node?: EndpointNode;
+}
+
+export interface TraceTreeNode {
+	node?: EndpointNode;
+	cable_endpoints?: CableEndpoints;
+	children?: TraceTreeNode[];
+}
+
+export interface TraceResult {
+	cable_infrastructure?: Record<string, CableInfrastructure>;
+	trace_trees?: TraceTreeNode[];
+	trace_tree?: TraceTreeNode;
+}
+
+interface GeoJSONFeatureProperties {
+	feature_type: string;
+	[key: string]: unknown;
+}
+
+interface GeoJSONFeature {
+	type: 'Feature';
+	properties: GeoJSONFeatureProperties;
+	geometry: GeoJSONGeometry;
+}
+
+interface CRS {
+	type: 'name';
+	properties: { name: string };
+}
+
+export interface GeoJSONFeatureCollection {
+	type: 'FeatureCollection';
+	name: string;
+	crs: CRS;
+	features: GeoJSONFeature[];
+}
+
+type EntityType = 'fiber' | 'cable' | 'node' | 'address' | 'residential_unit';
+
 /**
  * Navigates to the trace page for a given entity.
- * @param {string} type - Entity type (e.g. 'fiber', 'cable', 'node', 'address', 'residential_unit')
- * @param {string} id - Entity UUID
+ * @param type - Entity type (e.g. 'fiber', 'cable', 'node', 'address', 'residential_unit')
+ * @param id - Entity UUID
  */
-export function traceFrom(type, id) {
+export function traceFrom(type: EntityType, id: string): void {
 	const typeSlug = type === 'residential_unit' ? 'residential-unit' : type;
 	goto(`/trace/${typeSlug}/${id}`);
 }
@@ -13,12 +104,12 @@ export function traceFrom(type, id) {
 /**
  * Builds a GeoJSON FeatureCollection from trace result geometries.
  * Includes cable/trench LineStrings and node/address Point features.
- * @param {Record<string, any>} traceResult - The trace result containing cable_infrastructure and trace tree(s)
- * @param {number} srid - The EPSG code for the coordinate reference system (e.g. 25832)
- * @returns {Record<string, any>} GeoJSON FeatureCollection in the specified SRID
+ * @param traceResult - The trace result containing cable_infrastructure and trace tree(s)
+ * @param srid - The EPSG code for the coordinate reference system (e.g. 25832)
+ * @returns GeoJSON FeatureCollection in the specified SRID
  */
-export function buildGeoJSON(traceResult, srid) {
-	const features = [];
+export function buildGeoJSON(traceResult: TraceResult, srid: number): GeoJSONFeatureCollection {
+	const features: GeoJSONFeature[] = [];
 	const cableInfra = traceResult.cable_infrastructure || {};
 
 	for (const [cableId, infra] of Object.entries(cableInfra)) {
@@ -64,11 +155,10 @@ export function buildGeoJSON(traceResult, srid) {
 		}
 	}
 
-	const seenIds = new Set();
+	const seenIds = new Set<string>();
 	const trees = traceResult.trace_trees || (traceResult.trace_tree ? [traceResult.trace_tree] : []);
 
-	/** @param {Record<string, any>} endpointNode */
-	function addNodeFeature(endpointNode) {
+	function addNodeFeature(endpointNode: EndpointNode | undefined): void {
 		if (!endpointNode?.geometry || seenIds.has(endpointNode.id)) return;
 		seenIds.add(endpointNode.id);
 		features.push({
@@ -94,8 +184,7 @@ export function buildGeoJSON(traceResult, srid) {
 		}
 	}
 
-	/** @param {Record<string, any>} treeNode */
-	function extractPointFeatures(treeNode) {
+	function extractPointFeatures(treeNode: TraceTreeNode | undefined): void {
 		if (!treeNode) return;
 		addNodeFeature(treeNode.node);
 		const endpoints = treeNode.cable_endpoints;
@@ -125,23 +214,22 @@ export function buildGeoJSON(traceResult, srid) {
 
 /**
  * Checks whether the trace result contains any geometry data (trench or point).
- * @param {Record<string, any>} traceResult - The trace result
- * @returns {boolean} True if at least one geometry exists
+ * @param traceResult - The trace result
+ * @returns True if at least one geometry exists
  */
-export function hasGeometries(traceResult) {
+export function hasGeometries(traceResult: TraceResult | null | undefined): boolean {
 	if (!traceResult) return false;
 
 	if (traceResult.cable_infrastructure) {
 		for (const infra of Object.values(traceResult.cable_infrastructure)) {
 			if (infra.merged_geometry) return true;
-			if (infra.trenches?.some((/** @type {any} */ t) => t.geometry)) return true;
+			if (infra.trenches?.some((t) => t.geometry)) return true;
 		}
 	}
 
 	const trees = traceResult.trace_trees || (traceResult.trace_tree ? [traceResult.trace_tree] : []);
 
-	/** @param {Record<string, any>} treeNode */
-	function hasPointGeometry(treeNode) {
+	function hasPointGeometry(treeNode: TraceTreeNode | undefined): boolean {
 		if (!treeNode) return false;
 		if (treeNode.node?.geometry) return true;
 		if (treeNode.node?.address?.geometry) return true;
@@ -155,13 +243,17 @@ export function hasGeometries(traceResult) {
 
 /**
  * Triggers a browser download of the trace infrastructure as a GeoJSON file.
- * @param {Record<string, any>} result - The trace result data
- * @param {string} filenamePrefix - Prefix for the download filename (e.g. 'fiber-trace' or 'signal-analysis')
- * @param {string} entryId - Entry UUID used in the filename
- * @param {number} srid - The EPSG code for the coordinate reference system (e.g. 25832)
- * @returns {void}
+ * @param result - The trace result data
+ * @param filenamePrefix - Prefix for the download filename (e.g. 'fiber-trace' or 'signal-analysis')
+ * @param entryId - Entry UUID used in the filename
+ * @param srid - The EPSG code for the coordinate reference system (e.g. 25832)
  */
-export function downloadGeoJSON(result, filenamePrefix, entryId, srid) {
+export function downloadGeoJSON(
+	result: TraceResult,
+	filenamePrefix: string,
+	entryId: string,
+	srid: number
+): void {
 	const geojson = buildGeoJSON(result, srid);
 	const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json' });
 	const url = URL.createObjectURL(blob);

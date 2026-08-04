@@ -1,14 +1,34 @@
+import type { PageServerLoad } from './$types';
 import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
+interface FiberTraceLoadOptions {
+	includeGeometry: boolean;
+	geometryMode: string;
+	orientGeometry: boolean;
+	signalSource: string | null;
+}
+
+interface FiberTraceLoadResult {
+	result?: unknown;
+	error?: string;
+	entryType: string;
+	entryId: string;
+	mode: string;
+	options?: FiberTraceLoadOptions;
+}
+
 /**
  * Loads fiber trace or signal analysis data for a given fiber.
  * Supports both standard trace and signal analysis modes via the `mode` query param.
- * @param {import('./$types').PageServerLoadEvent} event
- * @returns {Promise<{result?: Object, error?: string, entryType: string, entryId: string, mode: string, options?: {includeGeometry: boolean, geometryMode: string, orientGeometry: boolean, signalSource: string | null}}>}
  */
-export async function load({ fetch, cookies, params, url }) {
+export const load: PageServerLoad = async ({
+	fetch,
+	cookies,
+	params,
+	url
+}): Promise<FiberTraceLoadResult> => {
 	const { uuid } = params;
 	const mode = url.searchParams.get('mode') || 'trace';
 	const signalSource = url.searchParams.get('source');
@@ -23,7 +43,7 @@ export async function load({ fetch, cookies, params, url }) {
 
 	const headers = getAuthHeaders(cookies);
 
-	let apiUrl;
+	let apiUrl: string;
 	if (mode === 'signal') {
 		apiUrl = `${API_URL}signal-analysis/?fiber_id=${uuid}&include_geometry=${includeGeometry}`;
 		if (signalSource) {
@@ -50,7 +70,7 @@ export async function load({ fetch, cookies, params, url }) {
 			};
 		}
 
-		const result = await response.json();
+		const result: unknown = await response.json();
 		return {
 			result,
 			entryType: 'fiber',
@@ -67,4 +87,4 @@ export async function load({ fetch, cookies, params, url }) {
 			mode
 		};
 	}
-}
+};

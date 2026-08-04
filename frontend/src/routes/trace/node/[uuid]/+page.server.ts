@@ -1,13 +1,31 @@
+import type { PageServerLoad } from './$types';
 import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
+interface TraceLoadOptions {
+	includeGeometry: boolean;
+	geometryMode: string;
+	orientGeometry: boolean;
+}
+
+interface TraceLoadResult {
+	result?: unknown;
+	error?: string;
+	entryType: string;
+	entryId: string;
+	options?: TraceLoadOptions;
+}
+
 /**
- * Loads fiber trace data for a given residential unit.
- * @param {import('./$types').PageServerLoadEvent} event
- * @returns {Promise<{result?: Object, error?: string, entryType: string, entryId: string, options?: {includeGeometry: boolean, geometryMode: string, orientGeometry: boolean}}>}
+ * Loads fiber trace data for a given node.
  */
-export async function load({ fetch, cookies, params, url }) {
+export const load: PageServerLoad = async ({
+	fetch,
+	cookies,
+	params,
+	url
+}): Promise<TraceLoadResult> => {
 	const { uuid } = params;
 	const includeGeometry = url.searchParams.get('include_geometry') === 'true';
 	const geometryMode = url.searchParams.get('geometry_mode') || 'segments';
@@ -15,7 +33,7 @@ export async function load({ fetch, cookies, params, url }) {
 
 	const headers = getAuthHeaders(cookies);
 
-	let apiUrl = `${API_URL}fiber-trace/?residential_unit_id=${uuid}&include_geometry=${includeGeometry}`;
+	let apiUrl = `${API_URL}fiber-trace/?node_id=${uuid}&include_geometry=${includeGeometry}`;
 	if (includeGeometry) {
 		apiUrl += `&geometry_mode=${geometryMode}&orient_geometry=${orientGeometry}`;
 	}
@@ -27,15 +45,15 @@ export async function load({ fetch, cookies, params, url }) {
 			const errorData = await response.json().catch(() => ({}));
 			return {
 				error: errorData.error || 'Trace failed',
-				entryType: 'residential_unit',
+				entryType: 'node',
 				entryId: uuid
 			};
 		}
 
-		const result = await response.json();
+		const result: unknown = await response.json();
 		return {
 			result,
-			entryType: 'residential_unit',
+			entryType: 'node',
 			entryId: uuid,
 			options: { includeGeometry, geometryMode, orientGeometry }
 		};
@@ -43,8 +61,8 @@ export async function load({ fetch, cookies, params, url }) {
 		console.error('Trace error:', err);
 		return {
 			error: 'Internal server error',
-			entryType: 'residential_unit',
+			entryType: 'node',
 			entryId: uuid
 		};
 	}
-}
+};

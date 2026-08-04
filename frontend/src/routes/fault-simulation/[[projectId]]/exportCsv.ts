@@ -1,8 +1,70 @@
+export interface ResidentialUnit {
+	uuid: string;
+	id_residential_unit: string;
+	floor: string;
+	side: string;
+	type: string;
+	status: string;
+}
+
+export interface AffectedAddress {
+	uuid: string;
+	id_address: string;
+	street: string;
+	housenumber: string;
+	zip_code: string;
+	city: string;
+	residential_units: ResidentialUnit[];
+}
+
+interface CableNode {
+	name: string;
+}
+
+export interface Cable {
+	uuid: string;
+	name: string;
+	cable_type: string;
+	fiber_count: number;
+	dark_fibers: number;
+	node_start: CableNode | null;
+	node_end: CableNode | null;
+}
+
+export interface Conduit {
+	uuid: string;
+	name: string;
+	conduit_type: string;
+}
+
+interface Trench {
+	id_trench: string;
+	construction_type: string;
+}
+
+interface SimulationGeometry {
+	affected_trenches?: unknown[];
+	affected_nodes?: unknown[];
+	affected_addresses?: unknown[];
+}
+
+interface SimulationSummary {
+	[key: string]: unknown;
+}
+
+export interface FaultSimulationResult {
+	trench: Trench | null;
+	conduits: Conduit[];
+	cables: Cable[];
+	affected_addresses_details: AffectedAddress[];
+	summary?: SimulationSummary;
+	geometry?: SimulationGeometry;
+}
+
 /**
- * @param {string} value
- * @returns {string}
+ * Escapes a value for safe inclusion in a CSV cell.
  */
-function escapeCsv(value) {
+function escapeCsv(value: string): string {
 	const str = value == null ? '' : String(value);
 	if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
 		return `"${str.replace(/"/g, '""')}"`;
@@ -11,20 +73,17 @@ function escapeCsv(value) {
 }
 
 /**
- * @param {string[]} values
- * @returns {string}
+ * Joins an array of values into a single CSV row.
  */
-function csvRow(values) {
+function csvRow(values: string[]): string {
 	return values.map(escapeCsv).join(',');
 }
 
 /**
  * Builds a CSV string from a fault simulation result containing all sections.
- * @param {Record<string, any>} result
- * @returns {string}
  */
-export function buildCsvString(result) {
-	const lines = [];
+export function buildCsvString(result: FaultSimulationResult): string {
+	const lines: string[] = [];
 
 	const trench = result.trench;
 	lines.push('Section,Trench');
@@ -48,8 +107,8 @@ export function buildCsvString(result) {
 			csvRow([
 				k.name ?? '',
 				k.cable_type ?? '',
-				k.fiber_count ?? '',
-				k.dark_fibers ?? '',
+				String(k.fiber_count ?? ''),
+				String(k.dark_fibers ?? ''),
 				k.node_start?.name ?? '',
 				k.node_end?.name ?? ''
 			])
@@ -93,15 +152,12 @@ export function buildCsvString(result) {
 	return lines.join('\r\n');
 }
 
-const UTF8_BOM = '\uFEFF';
+const UTF8_BOM = '﻿';
 
 /**
  * Triggers a browser download of the fault simulation result as CSV.
- * @param {Record<string, any>} result
- * @param {string} trenchId
- * @returns {void}
  */
-export function downloadFaultSimulationCsv(result, trenchId) {
+export function downloadFaultSimulationCsv(result: FaultSimulationResult, trenchId?: string): void {
 	const csv = buildCsvString(result);
 	const blob = new Blob([UTF8_BOM, csv], { type: 'text/csv;charset=utf-8;' });
 	const url = URL.createObjectURL(blob);

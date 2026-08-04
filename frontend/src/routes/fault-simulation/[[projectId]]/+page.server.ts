@@ -1,3 +1,4 @@
+import type { Actions, PageServerLoad } from './$types';
 import { fail } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
@@ -17,10 +18,8 @@ import {
 
 /**
  * Loads attribute data (node types, surfaces, construction types, area types) for the fault simulation page.
- * @param {import('./$types').PageServerLoadEvent} event
- * @returns {Promise<Record<string, any>>}
  */
-export async function load({ fetch, cookies }) {
+export const load: PageServerLoad = async ({ fetch, cookies }) => {
 	const [nodeTypesData, surfacesData, constructionTypesData, areaTypesData] = await Promise.all([
 		getNodeTypes(fetch, cookies),
 		getSurfaces(fetch, cookies),
@@ -34,13 +33,14 @@ export async function load({ fetch, cookies }) {
 		...constructionTypesData,
 		...areaTypesData
 	};
-}
+};
 
-/** @satisfies {import('./$types').Actions} */
+type FeatureType = 'trench' | 'node' | 'address';
+type LayerType = 'trench' | 'address' | 'node';
+
 export const actions = {
 	/**
 	 * Runs a fault simulation at the given coordinates within a project.
-	 * @type {import('./$types').Action}
 	 */
 	simulate: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
@@ -87,23 +87,21 @@ export const actions = {
 	},
 	/**
 	 * Searches for features within the current project.
-	 * @param {import('./$types').RequestEvent} event
 	 */
 	searchFeatures: async ({ request, fetch, cookies, params }) => {
 		const data = await request.formData();
-		const searchQuery = /** @type {string} */ (data.get('searchQuery'));
+		const searchQuery = data.get('searchQuery') as string;
 		const projectId = params.projectId;
 
 		return searchFeaturesInProject(fetch, cookies, searchQuery, projectId ?? '');
 	},
 	/**
 	 * Retrieves detailed properties for a specific feature by type and UUID.
-	 * @param {import('./$types').RequestEvent} event
 	 */
 	getFeatureDetails: async ({ request, fetch, cookies, params }) => {
 		const data = await request.formData();
-		const featureType = /** @type {'trench' | 'node' | 'address'} */ (data.get('featureType'));
-		const featureUuid = /** @type {string} */ (data.get('featureUuid'));
+		const featureType = data.get('featureType') as FeatureType;
+		const featureUuid = data.get('featureUuid') as string;
 
 		return getFeatureDetailsByType(
 			fetch,
@@ -116,23 +114,21 @@ export const actions = {
 
 	/**
 	 * Retrieves trench UUIDs associated with a conduit.
-	 * @param {import('./$types').RequestEvent} event
 	 */
 	getConduitTrenches: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
-		const conduitUuid = /** @type {string} */ (formData.get('conduitUuid'));
+		const conduitUuid = formData.get('conduitUuid') as string;
 
 		return getTrenchUuidsForConduit(fetch, cookies, conduitUuid);
 	},
 	/**
 	 * Retrieves the spatial extent for a layer type within a project.
-	 * @param {import('./$types').RequestEvent} event
 	 */
 	getLayerExtent: async ({ request, fetch, cookies }) => {
 		const formData = await request.formData();
-		const layerType = /** @type {'trench' | 'address' | 'node'} */ (formData.get('layerType'));
-		const projectId = /** @type {string} */ (formData.get('projectId'));
+		const layerType = formData.get('layerType') as LayerType;
+		const projectId = formData.get('projectId') as string;
 
 		return getLayerExtent(fetch, cookies, layerType, projectId);
 	}
-};
+} satisfies Actions;

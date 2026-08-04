@@ -19,7 +19,7 @@
 	import MapCableAccordion from './MapCableAccordion.svelte';
 	import MapConduitAccordion from './MapConduitAccordion.svelte';
 	import TrenchProfilePanel from './TrenchProfilePanel.svelte';
-	import { traceFrom } from '../../trace/traceUtils.js';
+	import { traceFrom } from '../../trace/traceUtils';
 
 	/**
 	 * @typedef {Object} Props

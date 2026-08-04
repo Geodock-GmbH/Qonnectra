@@ -1,13 +1,31 @@
+import type { PageServerLoad } from './$types';
 import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
+interface TraceLoadOptions {
+	includeGeometry: boolean;
+	geometryMode: string;
+	orientGeometry: boolean;
+}
+
+interface TraceLoadResult {
+	result?: unknown;
+	error?: string;
+	entryType: string;
+	entryId: string;
+	options?: TraceLoadOptions;
+}
+
 /**
  * Loads fiber trace data for a given address.
- * @param {import('./$types').PageServerLoadEvent} event
- * @returns {Promise<{result?: Object, error?: string, entryType: string, entryId: string, options?: {includeGeometry: boolean, geometryMode: string, orientGeometry: boolean}}>}
  */
-export async function load({ fetch, cookies, params, url }) {
+export const load: PageServerLoad = async ({
+	fetch,
+	cookies,
+	params,
+	url
+}): Promise<TraceLoadResult> => {
 	const { uuid } = params;
 	const includeGeometry = url.searchParams.get('include_geometry') === 'true';
 	const geometryMode = url.searchParams.get('geometry_mode') || 'segments';
@@ -32,7 +50,7 @@ export async function load({ fetch, cookies, params, url }) {
 			};
 		}
 
-		const result = await response.json();
+		const result: unknown = await response.json();
 		return {
 			result,
 			entryType: 'address',
@@ -47,4 +65,4 @@ export async function load({ fetch, cookies, params, url }) {
 			entryId: uuid
 		};
 	}
-}
+};

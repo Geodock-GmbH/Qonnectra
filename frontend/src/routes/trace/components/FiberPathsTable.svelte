@@ -12,7 +12,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { traceFrom } from '../traceUtils.js';
+	import { traceFrom } from '../traceUtils';
 
 	/**
 	 * @typedef {Object} Props
