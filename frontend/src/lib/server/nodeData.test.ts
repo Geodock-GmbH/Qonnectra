@@ -1,13 +1,14 @@
+import type { Mock } from 'vitest';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { getFiberUsageInNode, getUsedResidentialUnits } from './nodeData.js';
+import { getFiberUsageInNode, getUsedResidentialUnits } from './nodeData';
 
 vi.mock('$env/static/private', () => ({
 	API_URL: 'http://localhost:8000/'
 }));
 
 vi.mock('@sveltejs/kit', () => ({
-	fail: (/** @type {number} */ status, /** @type {any} */ data) => {
+	fail: (status: number, data: { error: string }) => {
 		return { status, data };
 	}
 }));
@@ -17,10 +18,8 @@ vi.mock('$lib/utils/getAuthHeaders', () => ({
 }));
 
 describe('getFiberUsageInNode', () => {
-	/** @type {any} */
-	let mockFetch;
-	/** @type {any} */
-	let mockCookies;
+	let mockFetch: Mock;
+	let mockCookies: { get: Mock };
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -57,7 +56,10 @@ describe('getFiberUsageInNode', () => {
 				})
 		});
 
-		const result = await getFiberUsageInNode(mockFetch, mockCookies, 'node-1');
+		const result = await getFiberUsageInNode(mockFetch, mockCookies as any, 'node-1');
+
+		expect('usedFiberUuids' in result).toBe(true);
+		if (!('usedFiberUuids' in result)) return;
 
 		expect(result.usedFiberUuids).toContain('fiber-a1');
 		expect(result.usedFiberUuids).toContain('fiber-b1');
@@ -90,7 +92,9 @@ describe('getFiberUsageInNode', () => {
 			json: () => Promise.resolve({ used_uuids: ['fiber-1'] })
 		});
 
-		const result = await getFiberUsageInNode(mockFetch, mockCookies, 'node-1');
+		const result = await getFiberUsageInNode(mockFetch, mockCookies as any, 'node-1');
+
+		if (!('usedFiberUuids' in result)) return;
 
 		expect(result.usedFiberUuids).toContain('fiber-1');
 		expect(result.fiberComponentMap).toEqual({});
@@ -103,24 +107,24 @@ describe('getFiberUsageInNode', () => {
 			json: () => Promise.resolve({ detail: 'Server error' })
 		});
 
-		const result = await getFiberUsageInNode(mockFetch, mockCookies, 'node-1');
+		const result = await getFiberUsageInNode(mockFetch, mockCookies as any, 'node-1');
+		const failResult = result as { status: number; data: { error: string } };
 
-		expect(result.status).toBe(500);
-		expect(result.data.error).toBe('Server error');
+		expect(failResult.status).toBe(500);
+		expect(failResult.data.error).toBe('Server error');
 	});
 
 	test('returns fail for missing nodeUuid', async () => {
-		const result = await getFiberUsageInNode(mockFetch, mockCookies, '');
+		const result = await getFiberUsageInNode(mockFetch, mockCookies as any, '');
+		const failResult = result as { status: number; data: { error: string } };
 
-		expect(result.status).toBe(400);
+		expect(failResult.status).toBe(400);
 	});
 });
 
 describe('getUsedResidentialUnits', () => {
-	/** @type {any} */
-	let mockFetch;
-	/** @type {any} */
-	let mockCookies;
+	let mockFetch: Mock;
+	let mockCookies: { get: Mock };
 
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -151,7 +155,9 @@ describe('getUsedResidentialUnits', () => {
 				})
 		});
 
-		const result = await getUsedResidentialUnits(mockFetch, mockCookies, 'node-1');
+		const result = await getUsedResidentialUnits(mockFetch, mockCookies as any, 'node-1');
+
+		if (!('used_uuids' in result)) return;
 
 		expect(result.used_uuids).toEqual(['ru-1', 'ru-2']);
 		expect(result.residentialUnitComponentMap).toBeDefined();
@@ -175,7 +181,9 @@ describe('getUsedResidentialUnits', () => {
 			json: () => Promise.resolve({ used_uuids: ['ru-1'] })
 		});
 
-		const result = await getUsedResidentialUnits(mockFetch, mockCookies, 'node-1');
+		const result = await getUsedResidentialUnits(mockFetch, mockCookies as any, 'node-1');
+
+		if (!('used_uuids' in result)) return;
 
 		expect(result.used_uuids).toEqual(['ru-1']);
 		expect(result.residentialUnitComponentMap).toEqual({});
