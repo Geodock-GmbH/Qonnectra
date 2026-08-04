@@ -8,17 +8,14 @@ import { PUBLIC_API_URL } from '$env/static/public';
  * Cached in memory to minimize API calls.
  */
 
-/** @type {Record<string, number> | null} */
-let contentTypeCache = null;
+let contentTypeCache: Record<string, number> | null = null;
 
-/** @type {Promise<Record<string, number>> | null} */
-let fetchPromise = null;
+let fetchPromise: Promise<Record<string, number>> | null = null;
 
 /**
  * Fetches ContentType IDs from the Django API and transforms them into a lookup map.
- * @returns {Promise<Record<string, number>>} Mapping of model names to ContentType IDs.
  */
-async function fetchContentTypesFromAPI() {
+async function fetchContentTypesFromAPI(): Promise<Record<string, number>> {
 	const response = await fetch(`${PUBLIC_API_URL}content-types/`, {
 		credentials: 'include'
 	});
@@ -27,11 +24,10 @@ async function fetchContentTypesFromAPI() {
 		throw new Error(`Failed to fetch content types: ${response.status}`);
 	}
 
-	const contentTypes = await response.json();
+	const contentTypes: Array<{ model: string; id: number }> = await response.json();
 
-	/** @type {Record<string, number>} */
-	const mapping = {};
-	contentTypes.forEach((/** @type {{ model: string; id: number }} */ ct) => {
+	const mapping: Record<string, number> = {};
+	contentTypes.forEach((ct) => {
 		mapping[ct.model] = ct.id;
 	});
 
@@ -41,9 +37,8 @@ async function fetchContentTypesFromAPI() {
 /**
  * Returns all ContentType mappings, fetching from the API on first call and caching the result.
  * Deduplicates concurrent requests by reusing an in-flight promise.
- * @returns {Promise<Record<string, number>>} Mapping of model names to ContentType IDs.
  */
-export async function fetchContentTypes() {
+export async function fetchContentTypes(): Promise<Record<string, number>> {
 	if (contentTypeCache !== null) {
 		return contentTypeCache;
 	}
@@ -67,10 +62,9 @@ export async function fetchContentTypes() {
 
 /**
  * Returns the ContentType ID for a given feature type from the cache.
- * @param {string} featureType - The feature type (e.g., 'node', 'cable', 'trench').
- * @returns {number | null} The ContentType ID, or null if not found or cache not loaded.
+ * @param featureType - The feature type (e.g., 'node', 'cable', 'trench').
  */
-export function getContentTypeId(featureType) {
+export function getContentTypeId(featureType: string): number | null {
 	if (contentTypeCache === null) {
 		console.warn('ContentType cache not loaded yet. Call fetchContentTypes() first.');
 		return null;
@@ -80,10 +74,9 @@ export function getContentTypeId(featureType) {
 
 /**
  * Checks whether a feature type exists in the ContentType cache.
- * @param {string} featureType - The feature type to validate.
- * @returns {boolean} Whether the feature type is a known ContentType.
+ * @param featureType - The feature type to validate.
  */
-export function isSupportedFeatureType(featureType) {
+export function isSupportedFeatureType(featureType: string): boolean {
 	if (contentTypeCache === null) {
 		return false;
 	}
@@ -92,9 +85,8 @@ export function isSupportedFeatureType(featureType) {
 
 /**
  * Clears the in-memory ContentType cache, forcing a fresh fetch on next access.
- * @returns {void}
  */
-export function clearContentTypeCache() {
+export function clearContentTypeCache(): void {
 	contentTypeCache = null;
 	fetchPromise = null;
 }

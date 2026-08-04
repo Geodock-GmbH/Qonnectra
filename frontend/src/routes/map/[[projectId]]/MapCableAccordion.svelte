@@ -9,7 +9,7 @@
 	import { CableTrenchDataManager } from '$lib/classes/CableTrenchDataManager.svelte.js';
 	import FibersDisplayTable from '$lib/components/FibersDisplayTable.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	import { traceFrom } from '../../trace/traceUtils.js';
 

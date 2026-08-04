@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { saveFile } from './saveFile.js';
+import { saveFile } from './saveFile';
 
 /** @type {any} */
 const win = window;

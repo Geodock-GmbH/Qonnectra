@@ -1,20 +1,32 @@
-/**
- * @typedef {{ x: number, y: number }} Point2D
- */
+interface Point2D {
+	x: number;
+	y: number;
+}
 
 /**
  * Calculates the midpoint position along the entire path length (source -> waypoints -> target).
- * @param {number} srcX - Source X coordinate.
- * @param {number} srcY - Source Y coordinate.
- * @param {number} tgtX - Target X coordinate.
- * @param {number} tgtY - Target Y coordinate.
- * @param {Point2D[]} [waypoints] - Intermediate vertex points along the path.
- * @returns {Point2D} The midpoint coordinates along the path.
+ * @param srcX - Source X coordinate.
+ * @param srcY - Source Y coordinate.
+ * @param tgtX - Target X coordinate.
+ * @param tgtY - Target Y coordinate.
+ * @param waypoints - Intermediate vertex points along the path.
  */
-export function getPathMidpoint(srcX, srcY, tgtX, tgtY, waypoints) {
+export function getPathMidpoint(
+	srcX: number,
+	srcY: number,
+	tgtX: number,
+	tgtY: number,
+	waypoints?: Point2D[]
+): Point2D {
 	const allPoints = [{ x: srcX, y: srcY }, ...(waypoints || []), { x: tgtX, y: tgtY }];
 
-	const segments = [];
+	const segments: Array<{
+		start: Point2D;
+		end: Point2D;
+		length: number;
+		cumulativeStart: number;
+		cumulativeEnd: number;
+	}> = [];
 	let totalLength = 0;
 
 	for (let i = 0; i < allPoints.length - 1; i++) {
@@ -53,12 +65,15 @@ export function getPathMidpoint(srcX, srcY, tgtX, tgtY, waypoints) {
 
 /**
  * Finds the closest point on a line segment to a given point using perpendicular projection.
- * @param {Point2D} p - The reference point.
- * @param {Point2D} a - Start point of the segment.
- * @param {Point2D} b - End point of the segment.
- * @returns {Point2D & { t: number }} Closest point on the segment, with `t` as the interpolation parameter (0–1).
+ * @param p - The reference point.
+ * @param a - Start point of the segment.
+ * @param b - End point of the segment.
  */
-export function getClosestPointOnSegment(p, a, b) {
+export function getClosestPointOnSegment(
+	p: Point2D,
+	a: Point2D,
+	b: Point2D
+): Point2D & { t: number } {
 	const dx = b.x - a.x;
 	const dy = b.y - a.y;
 	const lengthSquared = dx * dx + dy * dy;
@@ -77,13 +92,12 @@ export function getClosestPointOnSegment(p, a, b) {
 
 /**
  * Snaps coordinates to the nearest grid point when snapping is enabled.
- * @param {number} x - X coordinate.
- * @param {number} y - Y coordinate.
- * @param {number} gridSize - Grid cell size for snapping.
- * @param {boolean} enabled - Whether grid snapping is active.
- * @returns {Point2D} The (possibly snapped) coordinates.
+ * @param x - X coordinate.
+ * @param y - Y coordinate.
+ * @param gridSize - Grid cell size for snapping.
+ * @param enabled - Whether grid snapping is active.
  */
-export function snapToGrid(x, y, gridSize, enabled) {
+export function snapToGrid(x: number, y: number, gridSize: number, enabled: boolean): Point2D {
 	if (!enabled) {
 		return { x, y };
 	}
@@ -96,14 +110,19 @@ export function snapToGrid(x, y, gridSize, enabled) {
 
 /**
  * Builds an SVG path string from source, waypoints, and target coordinates.
- * @param {number} sourceX - Source X coordinate.
- * @param {number} sourceY - Source Y coordinate.
- * @param {number} targetX - Target X coordinate.
- * @param {number} targetY - Target Y coordinate.
- * @param {Point2D[] | null} [waypoints] - Intermediate waypoints.
- * @returns {string | null} SVG path string, or null if no waypoints are provided.
+ * @param sourceX - Source X coordinate.
+ * @param sourceY - Source Y coordinate.
+ * @param targetX - Target X coordinate.
+ * @param targetY - Target Y coordinate.
+ * @param waypoints - Intermediate waypoints.
  */
-export function buildEdgePath(sourceX, sourceY, targetX, targetY, waypoints) {
+export function buildEdgePath(
+	sourceX: number,
+	sourceY: number,
+	targetX: number,
+	targetY: number,
+	waypoints?: Point2D[] | null
+): string | null {
 	if (waypoints && Array.isArray(waypoints) && waypoints.length > 0) {
 		let path = `M ${sourceX},${sourceY}`;
 		waypoints.forEach((point) => {

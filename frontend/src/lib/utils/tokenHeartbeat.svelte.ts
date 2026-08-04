@@ -8,17 +8,15 @@ import { invalidateAll } from '$app/navigation';
 
 const HEARTBEAT_INTERVAL_MS = 7 * 60 * 1000;
 
-/** @type {ReturnType<typeof setInterval> | null} */
-let heartbeatInterval = $state(null);
+let heartbeatInterval: ReturnType<typeof setInterval> | null = $state(null);
 
 /**
  * Starts the token refresh heartbeat interval.
  * Triggers an immediate refresh on start so tokens are validated right away
  * (e.g. after a page reload that resets the timer).
- * Safe to call multiple times — will not create duplicate intervals.
- * @returns {void}
+ * Safe to call multiple times -- will not create duplicate intervals.
  */
-export function startHeartbeat() {
+export function startHeartbeat(): void {
 	if (heartbeatInterval) return;
 
 	invalidateAll();
@@ -28,9 +26,8 @@ export function startHeartbeat() {
 /**
  * Stops the token refresh heartbeat interval.
  * Safe to call multiple times.
- * @returns {void}
  */
-export function stopHeartbeat() {
+export function stopHeartbeat(): void {
 	if (heartbeatInterval) {
 		clearInterval(heartbeatInterval);
 		heartbeatInterval = null;

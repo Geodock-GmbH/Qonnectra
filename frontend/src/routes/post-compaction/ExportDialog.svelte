@@ -9,8 +9,8 @@
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { generateAddressPdf } from '$lib/utils/addressPdf.js';
-	import { captureMapCanvases, getVisibleWMSAttributions } from '$lib/utils/mapCapture.js';
+	import { generateAddressPdf } from '$lib/utils/addressPdf';
+	import { captureMapCanvases, getVisibleWMSAttributions } from '$lib/utils/mapCapture';
 
 	let {
 		address,

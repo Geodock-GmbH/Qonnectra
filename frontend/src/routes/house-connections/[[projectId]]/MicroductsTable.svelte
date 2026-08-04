@@ -4,7 +4,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import MicroductsDisplayTable from '$lib/components/MicroductsDisplayTable.svelte';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	let { microducts = [], loading = false, error = null, onMicroductUpdate = null } = $props();
 

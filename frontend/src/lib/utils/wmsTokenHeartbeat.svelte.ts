@@ -3,30 +3,17 @@
  * Refreshes the short-lived WMS token periodically and updates layer URLs.
  */
 
-import { fetchWMSAccessToken } from './wmsApi.js';
+import { fetchWMSAccessToken } from './wmsApi';
 
 const WMS_TOKEN_INTERVAL_MS = 3 * 60 * 1000;
 const MAX_CONSECUTIVE_FAILURES = 3;
 
-/** @type {ReturnType<typeof setInterval> | null} */
-let heartbeatInterval = $state(null);
-
-/** @type {string | null} */
-let currentToken = $state(null);
-
-/** @type {((token: string) => void) | null} */
-let onTokenRefresh = null;
-
-/** @type {(() => void) | null} */
-let onAuthFailure = null;
-
-/** @type {number} */
+let heartbeatInterval: ReturnType<typeof setInterval> | null = $state(null);
+let currentToken: string | null = $state(null);
+let onTokenRefresh: ((token: string) => void) | null = null;
+let onAuthFailure: (() => void) | null = null;
 let consecutiveFailures = 0;
-
-/** @type {Promise<void> | null} */
-let immediateRefresh = null;
-
-/** @type {number} */
+let immediateRefresh: Promise<void> | null = null;
 let lastImmediateRefreshAt = 0;
 
 const IMMEDIATE_REFRESH_COOLDOWN_MS = 30 * 1000;
@@ -34,16 +21,15 @@ const IMMEDIATE_REFRESH_COOLDOWN_MS = 30 * 1000;
 /**
  * Fetches a new WMS token and notifies the registered callback.
  * Stops the heartbeat on persistent auth failures (401/403).
- * @returns {Promise<void>}
  */
-async function refreshWMSToken() {
+async function refreshWMSToken(): Promise<void> {
 	try {
 		const token = await fetchWMSAccessToken();
 		currentToken = token;
 		consecutiveFailures = 0;
 		onTokenRefresh?.(token);
 	} catch (error) {
-		const status = /** @type {any} */ (error)?.status;
+		const status = (error as { status?: number })?.status;
 
 		if (status === 401 || status === 403) {
 			console.warn('WMS token refresh stopped: authentication failed');
@@ -67,13 +53,13 @@ async function refreshWMSToken() {
 
 /**
  * Starts the WMS token refresh heartbeat interval.
- * Safe to call multiple times — will not create duplicate intervals.
- * @param {(token: string) => void} updateLayersCallback - Called with the new token on each refresh.
- * @param {string} [initialToken] - Initial token to store without triggering a refresh.
- * @param {(() => void)} [authFailureCallback] - Called when heartbeat stops due to auth failure.
- * @returns {void}
+ * Safe to call multiple times -- will not create duplicate intervals.
  */
-export function startWMSHeartbeat(updateLayersCallback, initialToken, authFailureCallback) {
+export function startWMSHeartbeat(
+	updateLayersCallback: (token: string) => void,
+	initialToken?: string,
+	authFailureCallback?: () => void
+): void {
 	if (heartbeatInterval) {
 		// Already running (e.g. project switch) — adopt the freshly minted token
 		// so request-time injection uses the newest one.
@@ -97,9 +83,8 @@ export function startWMSHeartbeat(updateLayersCallback, initialToken, authFailur
  * Stops the WMS token refresh heartbeat and clears the callback.
  * Also clears the stored token so pages that bake their own token into
  * layer URLs don't get an older module-level token injected instead.
- * @returns {void}
  */
-export function stopWMSHeartbeat() {
+export function stopWMSHeartbeat(): void {
 	if (heartbeatInterval) {
 		clearInterval(heartbeatInterval);
 		heartbeatInterval = null;
@@ -115,10 +100,8 @@ export function stopWMSHeartbeat() {
  * or the tab became visible again after the browser paused timers.
  * Collapses concurrent calls and enforces a cooldown so bursts of failing
  * tiles can't hammer the token endpoint.
- * @param {boolean} [force] - Bypass the cooldown (used when returning to the tab).
- * @returns {void}
  */
-export function requestImmediateWMSRefresh(force = false) {
+export function requestImmediateWMSRefresh(force = false): void {
 	if (!heartbeatInterval) return;
 	if (immediateRefresh) return;
 	if (!force && Date.now() - lastImmediateRefreshAt < IMMEDIATE_REFRESH_COOLDOWN_MS) return;
@@ -129,18 +112,12 @@ export function requestImmediateWMSRefresh(force = false) {
 	});
 }
 
-/**
- * Returns the current WMS access token.
- * @returns {string | null} The token, or null if not yet fetched.
- */
-export function getCurrentWMSToken() {
+/** Returns the current WMS access token, or null if not yet fetched. */
+export function getCurrentWMSToken(): string | null {
 	return currentToken;
 }
 
-/**
- * Returns whether the WMS heartbeat is currently running.
- * @returns {boolean}
- */
-export function isWMSHeartbeatRunning() {
+/** Returns whether the WMS heartbeat is currently running. */
+export function isWMSHeartbeatRunning(): boolean {
 	return heartbeatInterval !== null;
 }

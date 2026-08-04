@@ -2,12 +2,22 @@ import { get } from 'svelte/store';
 
 import { getWMSLayerVisibility, wmsLayerVisibilityConfig, wmsSourcesData } from '$lib/stores/store';
 
+interface WMSLayer {
+	name: string;
+	is_enabled: boolean;
+}
+
+interface WMSSource {
+	id: string;
+	is_active: boolean;
+	attribution?: string;
+	layers: WMSLayer[];
+}
+
 /**
  * Merges all OpenLayers canvases inside a container into a single PNG data URL.
- * @param {HTMLElement} container - The map container element.
- * @returns {string | null} Base64 PNG data URL, or null if no canvases found.
  */
-export function captureMapCanvases(container) {
+export function captureMapCanvases(container: HTMLElement): string | null {
 	const canvases = container.querySelectorAll('canvas');
 	if (canvases.length === 0) return null;
 
@@ -15,7 +25,7 @@ export function captureMapCanvases(container) {
 	const mergedCanvas = document.createElement('canvas');
 	mergedCanvas.width = firstCanvas.width;
 	mergedCanvas.height = firstCanvas.height;
-	const ctx = /** @type {CanvasRenderingContext2D} */ (mergedCanvas.getContext('2d'));
+	const ctx = mergedCanvas.getContext('2d') as CanvasRenderingContext2D;
 
 	for (const canvas of canvases) {
 		ctx.drawImage(canvas, 0, 0);
@@ -26,17 +36,15 @@ export function captureMapCanvases(container) {
 
 /**
  * Collects attributions from visible WMS layers for PDF rendering.
- * @param {string} projectId - The project ID for visibility lookup.
- * @returns {string[]} Unique attribution strings.
  */
-export function getVisibleWMSAttributions(projectId) {
+export function getVisibleWMSAttributions(projectId: string): string[] {
 	const { sources, loaded } = get(wmsSourcesData);
 	if (!loaded || !sources) return [];
 
 	const visibilityConfig = get(wmsLayerVisibilityConfig);
-	const attributions = new Set();
+	const attributions = new Set<string>();
 
-	for (const source of /** @type {any[]} */ (sources)) {
+	for (const source of sources as WMSSource[]) {
 		if (!source.is_active || !source.attribution) continue;
 
 		for (const layer of source.layers) {

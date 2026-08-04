@@ -13,7 +13,7 @@
 
 	import { DRAG_DROP_CONTEXT_KEY } from '$lib/classes/DragDropManager.svelte.js';
 	import { PanelResizeManager } from '$lib/classes/PanelResizeManager.svelte.js';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	let {
 		onDragStart = () => {},

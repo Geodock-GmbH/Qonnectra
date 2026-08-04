@@ -5,7 +5,7 @@ import {
 	getClosestPointOnSegment,
 	getPathMidpoint,
 	snapToGrid
-} from '$lib/utils/edgeGeometry.js';
+} from '$lib/utils/edgeGeometry';
 
 describe('getPathMidpoint', () => {
 	test('calculates midpoint for straight line without waypoints', () => {

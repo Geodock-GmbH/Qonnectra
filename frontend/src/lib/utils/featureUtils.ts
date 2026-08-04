@@ -1,15 +1,13 @@
-/**
- * @typedef {'trench' | 'address' | 'node' | 'area'} FeatureType
- */
+import type { FeatureLike } from 'ol/Feature';
+import type Layer from 'ol/layer/Layer';
+
+type FeatureType = 'trench' | 'address' | 'node' | 'area';
 
 /**
  * Detects the feature type from its layer metadata or property keys.
  * Checks layer ID first, then layer name, then falls back to property-based heuristics.
- * @param {import('ol/Feature').FeatureLike} feature - OpenLayers feature or render feature.
- * @param {import('ol/layer/Layer').default} [layer] - OpenLayers layer the feature belongs to.
- * @returns {FeatureType | null} The detected feature type, or null if unknown.
  */
-export function detectFeatureType(feature, layer) {
+export function detectFeatureType(feature: FeatureLike, layer?: Layer): FeatureType | null {
 	if (!feature) return null;
 
 	if (layer) {
@@ -50,17 +48,16 @@ export function detectFeatureType(feature, layer) {
 
 /**
  * Strips internal fields from feature properties for display purposes.
- * @param {Record<string, unknown>} properties - Raw feature properties from MVT.
- * @param {FeatureType} type - The feature type (currently unused but reserved for type-specific filtering).
- * @returns {Record<string, unknown>} Cleaned properties without geometry, layer, uuid, or null values.
  */
-export function formatFeatureProperties(properties, type) {
+export function formatFeatureProperties(
+	properties: Record<string, unknown>,
+	type: FeatureType
+): Record<string, unknown> {
 	if (!properties) return {};
 
 	const excludeFields = ['geometry', 'layer', 'uuid'];
 
-	/** @type {Record<string, unknown>} */
-	const formatted = {};
+	const formatted: Record<string, unknown> = {};
 	for (const [key, value] of Object.entries(properties)) {
 		if (excludeFields.includes(key) || value === null || value === undefined) {
 			continue;
@@ -73,11 +70,8 @@ export function formatFeatureProperties(properties, type) {
 
 /**
  * Builds a human-readable display title for a feature based on its type and properties.
- * @param {import('ol/Feature').FeatureLike} feature - OpenLayers feature or render feature.
- * @param {FeatureType} type - The feature type.
- * @returns {string} A display title derived from feature properties, or a generic fallback.
  */
-export function getFeatureTitle(feature, type) {
+export function getFeatureTitle(feature: FeatureLike, type: FeatureType): string {
 	if (!feature || !type) return 'Feature Details';
 
 	const props = feature.getProperties();
@@ -101,10 +95,8 @@ export function getFeatureTitle(feature, type) {
 
 /**
  * Converts a snake_case property key to a Title Case label.
- * @param {string} key - The property key (e.g., 'construction_depth').
- * @returns {string} Title-cased label (e.g., 'Construction Depth').
  */
-export function getFieldLabel(key) {
+export function getFieldLabel(key: string): string {
 	return key
 		.split('_')
 		.map((word) => word.charAt(0).toUpperCase() + word.slice(1))

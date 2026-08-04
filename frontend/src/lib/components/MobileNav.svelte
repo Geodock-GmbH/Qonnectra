@@ -29,8 +29,8 @@
 	import { getLocale, setLocale } from '$lib/paraglide/runtime';
 
 	import { userStore } from '$lib/stores/auth';
-	import { canAccessRoute } from '$lib/utils/permissions.js';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { canAccessRoute } from '$lib/utils/permissions';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	let currentLocale = $derived(getLocale());
 

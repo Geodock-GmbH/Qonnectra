@@ -15,7 +15,7 @@
 
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { saveFile } from '$lib/utils/saveFile.js';
+	import { saveFile } from '$lib/utils/saveFile';
 
 	import PipelineRecordForm from '../PipelineRecordForm.svelte';
 

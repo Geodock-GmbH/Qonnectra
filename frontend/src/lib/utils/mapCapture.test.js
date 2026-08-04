@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { captureMapCanvases, getVisibleWMSAttributions } from './mapCapture.js';
+import { captureMapCanvases, getVisibleWMSAttributions } from './mapCapture';
 
 vi.mock('$lib/stores/store', () => {
 	/** @type {{ sources: any[], loaded: boolean }} */

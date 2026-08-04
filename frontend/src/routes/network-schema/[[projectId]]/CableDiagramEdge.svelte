@@ -14,7 +14,7 @@
 		getClosestPointOnSegment,
 		getPathMidpoint,
 		snapToGrid
-	} from '$lib/utils/edgeGeometry.js';
+	} from '$lib/utils/edgeGeometry';
 
 	import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
 

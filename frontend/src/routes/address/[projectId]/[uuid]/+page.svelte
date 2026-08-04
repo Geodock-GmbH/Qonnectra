@@ -38,9 +38,9 @@
 		wmsSourcesData
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { generateAddressPdf } from '$lib/utils/addressPdf.js';
-	import { captureMapCanvases, getVisibleWMSAttributions } from '$lib/utils/mapCapture.js';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { generateAddressPdf } from '$lib/utils/addressPdf';
+	import { captureMapCanvases, getVisibleWMSAttributions } from '$lib/utils/mapCapture';
+	import { tooltip } from '$lib/utils/tooltip';
 	import { fetchWMSAccessToken, fetchWMSSources, getWMSProxyUrl } from '$lib/utils/wmsApi';
 	import { createWMSLayer } from '$lib/map';
 

@@ -5,7 +5,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	let { open = $bindable(false), title = '', children } = $props();
 

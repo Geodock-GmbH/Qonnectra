@@ -12,7 +12,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	import Self from './ContainerItem.svelte';
 	import SlotConfigItem from './SlotConfigItem.svelte';

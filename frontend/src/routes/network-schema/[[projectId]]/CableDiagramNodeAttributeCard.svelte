@@ -10,7 +10,7 @@
 	import VirtualCombobox from '$lib/components/VirtualCombobox.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	const attributes = getContext('attributeOptions') || {
 		nodeTypes: [],

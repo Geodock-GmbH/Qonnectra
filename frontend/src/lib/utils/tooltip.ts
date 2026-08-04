@@ -1,13 +1,14 @@
+type TooltipPosition = 'top' | 'bottom' | 'left' | 'right';
+
+interface TooltipOptions {
+	position?: TooltipPosition;
+	delay?: number;
+	disabled?: boolean;
+}
+
 /**
  * Creates a tooltip attachment for use with the Svelte 5 `{@attach}` directive.
  * Manages tooltip lifecycle (show/hide/position) via mouse events.
- *
- * @param {string|undefined} content - The tooltip text content.
- * @param {Object} [options] - Tooltip configuration.
- * @param {'top' | 'bottom' | 'left' | 'right'} [options.position='top'] - Position relative to the target.
- * @param {number} [options.delay=200] - Delay in ms before showing the tooltip.
- * @param {boolean} [options.disabled=false] - Whether to disable the tooltip entirely.
- * @returns {(element: HTMLElement) => () => void} Svelte attachment function.
  *
  * @example
  * ```svelte
@@ -15,7 +16,10 @@
  * <button {@attach tooltip('Bottom tooltip', { position: 'bottom' })}>Button</button>
  * ```
  */
-export function tooltip(content, options = {}) {
+export function tooltip(
+	content: string | undefined,
+	options: TooltipOptions = {}
+): (element: HTMLElement) => () => void {
 	const { position = 'top', delay = 200, disabled = false } = options;
 
 	return (element) => {
@@ -23,10 +27,8 @@ export function tooltip(content, options = {}) {
 			return () => {};
 		}
 
-		/** @type {HTMLSpanElement | null} */
-		let tooltipElement = null;
-		/** @type {ReturnType<typeof setTimeout> | null} */
-		let timeoutId = null;
+		let tooltipElement: HTMLSpanElement | null = null;
+		let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
 		function showTooltip() {
 			tooltipElement = document.createElement('span');
@@ -84,20 +86,20 @@ export function tooltip(content, options = {}) {
 
 /**
  * Positions the tooltip element relative to the target, clamping to viewport edges.
- * @param {HTMLElement} tooltipElement - The tooltip DOM element.
- * @param {HTMLElement} targetElement - The element the tooltip is attached to.
- * @param {'top' | 'bottom' | 'left' | 'right'} position - Desired tooltip position.
  */
-function positionTooltip(tooltipElement, targetElement, position) {
+function positionTooltip(
+	tooltipElement: HTMLElement,
+	targetElement: HTMLElement,
+	position: TooltipPosition
+): void {
 	const rect = targetElement.getBoundingClientRect();
 	const tooltipRect = tooltipElement.getBoundingClientRect();
 	const offset = 12;
 	const arrowSize = 4;
 	const viewportMargin = 8;
 
-	let top, left;
-	/** @type {number | null} */
-	let arrowOffset = null;
+	let top: number, left: number;
+	let arrowOffset: number | null = null;
 
 	switch (position) {
 		case 'top':
@@ -184,12 +186,13 @@ function positionTooltip(tooltipElement, targetElement, position) {
 
 /**
  * Appends a CSS-border-based arrow to the tooltip pointing toward the target element.
- * @param {HTMLElement} tooltipElement - The tooltip DOM element.
- * @param {'top' | 'bottom' | 'left' | 'right'} side - Which side of the tooltip the arrow appears on.
- * @param {number} size - Arrow size in pixels.
- * @param {number | null} [offset=null] - Pixel offset to shift the arrow when the tooltip was clamped to viewport.
  */
-function addArrow(tooltipElement, side, size, offset = null) {
+function addArrow(
+	tooltipElement: HTMLElement,
+	side: TooltipPosition,
+	size: number,
+	offset: number | null = null
+): void {
 	const arrow = document.createElement('span');
 	arrow.style.position = 'absolute';
 	arrow.style.width = '0';

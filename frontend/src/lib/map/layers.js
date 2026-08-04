@@ -8,7 +8,7 @@ import TileGrid from 'ol/tilegrid/TileGrid.js';
 import {
 	getCurrentWMSToken,
 	requestImmediateWMSRefresh
-} from '$lib/utils/wmsTokenHeartbeat.svelte.js';
+} from '$lib/utils/wmsTokenHeartbeat.svelte.ts';
 
 import {
 	createAddressStyleWithLabels,

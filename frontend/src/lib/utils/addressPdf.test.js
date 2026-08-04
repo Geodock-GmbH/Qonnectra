@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { generateAddressPdf } from './addressPdf.js';
+import { generateAddressPdf } from './addressPdf';
 
 /** @type {any[]} */
 let textCalls = [];

@@ -10,7 +10,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	let {
 		fiber = null,

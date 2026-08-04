@@ -3,9 +3,8 @@ import { m } from '$lib/paraglide/messages';
 /**
  * Returns a mapping of feature property keys to their localized display names.
  * Used for map popups, tooltips, and detail panels.
- * @returns {Record<string, string>} Property key to localized label mapping.
  */
-export function getFieldAliases() {
+export function getFieldAliases(): Record<string, string> {
 	return {
 		flag: m.form_flag(),
 		name: m.common_name(),

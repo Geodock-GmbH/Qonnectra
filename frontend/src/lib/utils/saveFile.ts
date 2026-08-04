@@ -1,5 +1,9 @@
-/** @type {Record<string, { description: string, mime: string }>} */
-const FILE_TYPES = {
+interface FileTypeInfo {
+	description: string;
+	mime: string;
+}
+
+const FILE_TYPES: Record<string, FileTypeInfo> = {
 	'.zip': { description: 'ZIP Archive', mime: 'application/zip' },
 	'.geojson': { description: 'GeoJSON File', mime: 'application/geo+json' },
 	'.json': { description: 'JSON File', mime: 'application/json' },
@@ -11,38 +15,47 @@ const FILE_TYPES = {
 	'.pdf': { description: 'PDF Document', mime: 'application/pdf' }
 };
 
+interface SaveFilePickerOptions {
+	suggestedName: string;
+	types: { description: string; accept: Record<string, string[]> }[];
+}
+
+interface FileSystemWritableFileStream {
+	write(data: Blob): Promise<void>;
+	close(): Promise<void>;
+}
+
+interface FileSystemFileHandle {
+	createWritable(): Promise<FileSystemWritableFileStream>;
+}
+
 /**
  * Prompts the user to choose a save location via the File System Access API,
  * falling back to an anchor-based download when unsupported.
- * @param {Blob} blob
- * @param {string} suggestedName
  */
-export async function saveFile(blob, suggestedName) {
-	if (typeof (/** @type {any} */ (window).showSaveFilePicker) === 'function') {
+export async function saveFile(blob: Blob, suggestedName: string): Promise<void> {
+	if (typeof (window as unknown as Record<string, unknown>).showSaveFilePicker === 'function') {
 		await saveWithPicker(blob, suggestedName);
 	} else {
 		saveWithAnchor(blob, suggestedName);
 	}
 }
 
-/**
- * @param {Blob} blob
- * @param {string} suggestedName
- */
-async function saveWithPicker(blob, suggestedName) {
+async function saveWithPicker(blob: Blob, suggestedName: string): Promise<void> {
 	const ext = suggestedName.includes('.')
 		? suggestedName.slice(suggestedName.lastIndexOf('.'))
 		: '';
 	const fileType = FILE_TYPES[ext];
 
-	/** @type {Array<{description: string, accept: Record<string, string[]>}>} */
-	const types = fileType
+	const types: SaveFilePickerOptions['types'] = fileType
 		? [{ description: fileType.description, accept: { [fileType.mime]: [ext] } }]
 		: [];
 
-	let handle;
+	let handle: FileSystemFileHandle;
 	try {
-		handle = await /** @type {any} */ (window).showSaveFilePicker({ suggestedName, types });
+		const showSaveFilePicker = (window as unknown as Record<string, unknown>)
+			.showSaveFilePicker as (options: SaveFilePickerOptions) => Promise<FileSystemFileHandle>;
+		handle = await showSaveFilePicker({ suggestedName, types });
 	} catch (err) {
 		if (err instanceof DOMException && err.name === 'AbortError') return;
 		throw err;
@@ -53,11 +66,7 @@ async function saveWithPicker(blob, suggestedName) {
 	await writable.close();
 }
 
-/**
- * @param {Blob} blob
- * @param {string} suggestedName
- */
-function saveWithAnchor(blob, suggestedName) {
+function saveWithAnchor(blob: Blob, suggestedName: string): void {
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement('a');
 	a.href = url;

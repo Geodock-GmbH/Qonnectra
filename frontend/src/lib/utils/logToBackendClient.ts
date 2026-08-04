@@ -1,20 +1,23 @@
 import { PUBLIC_API_URL } from '$env/static/public';
 
-/**
- * @typedef {'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL'} LogLevel
- */
+type LogLevel = 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL';
+
+interface LogOptions {
+	level: LogLevel;
+	message: string;
+	path?: string;
+	extraData?: Record<string, unknown>;
+	project?: string | null;
+}
+
+interface LogResult {
+	success: boolean;
+	error?: string;
+}
 
 /**
  * Sends a log entry to the backend from client-side code.
  * Use this in .svelte and .svelte.js files.
- *
- * @param {Object} options - The log options.
- * @param {LogLevel} options.level - Log severity level.
- * @param {string} options.message - The log message.
- * @param {string} [options.path] - The frontend path (defaults to window.location.pathname).
- * @param {Record<string, unknown>} [options.extraData={}] - Additional data to include.
- * @param {string | null} [options.project=null] - The project ID.
- * @returns {Promise<{ success: boolean, error?: string }>} Result indicating success or failure.
  *
  * @example
  * import { logToBackendClient } from '$lib/utils/logToBackendClient';
@@ -25,7 +28,13 @@ import { PUBLIC_API_URL } from '$env/static/public';
  *   extraData: { stack: error.stack }
  * });
  */
-export async function logToBackendClient({ level, message, path, extraData = {}, project = null }) {
+export async function logToBackendClient({
+	level,
+	message,
+	path,
+	extraData = {},
+	project = null
+}: LogOptions): Promise<LogResult> {
 	try {
 		const logPath = path || (typeof window !== 'undefined' ? window.location.pathname : '/');
 
@@ -53,6 +62,6 @@ export async function logToBackendClient({ level, message, path, extraData = {},
 		return { success: true };
 	} catch (error) {
 		console.error('Error logging:', error);
-		return { success: false, error: /** @type {Error} */ (error).message };
+		return { success: false, error: (error as Error).message };
 	}
 }

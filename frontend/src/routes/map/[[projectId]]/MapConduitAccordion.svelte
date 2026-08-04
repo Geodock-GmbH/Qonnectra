@@ -8,7 +8,7 @@
 
 	import { ConduitDataManager } from '$lib/classes/ConduitDataManager.svelte.js';
 	import MicroductsDisplayTable from '$lib/components/MicroductsDisplayTable.svelte';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	/**
 	 * @typedef {Object} Props

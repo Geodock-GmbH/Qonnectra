@@ -6,7 +6,7 @@
 
 	import { ConduitDataManager } from '$lib/classes/ConduitDataManager.svelte.js';
 	import { drawerStore } from '$lib/stores/drawer';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	import MicroductsTable from './MicroductsTable.svelte';
 

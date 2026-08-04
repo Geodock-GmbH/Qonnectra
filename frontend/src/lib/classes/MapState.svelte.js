@@ -34,7 +34,7 @@ import {
 	requestImmediateWMSRefresh,
 	startWMSHeartbeat,
 	stopWMSHeartbeat
-} from '$lib/utils/wmsTokenHeartbeat.svelte.js';
+} from '$lib/utils/wmsTokenHeartbeat.svelte.ts';
 import {
 	createAddressLayer,
 	createAreaLayer,

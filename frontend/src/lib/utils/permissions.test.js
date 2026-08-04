@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { canAccessModel, canAccessRoute, canDelete, canEdit, canView } from './permissions.js';
+import { canAccessModel, canAccessRoute, canDelete, canEdit, canView } from './permissions.ts';
 
 /**
  * @typedef {import('./permissions.js').Permissions} Permissions

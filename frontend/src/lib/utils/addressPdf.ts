@@ -1,14 +1,120 @@
-import { jsPDF } from 'jspdf';
+import type { jsPDF } from 'jspdf';
+import { jsPDF as JsPDF } from 'jspdf';
 
 import { m } from '$lib/paraglide/messages';
+
+interface AddressData {
+	street: string;
+	housenumber: string;
+	house_number_suffix?: string;
+	zip_code: string;
+	city: string;
+	district?: string;
+	id_address?: string;
+	status_development?: { status: string };
+	flag?: { flag: string };
+	project?: { project: string };
+	coordsDefault?: string;
+	coords4326?: string;
+	srid?: number;
+	[key: string]: unknown;
+}
+
+interface ResidentialUnit {
+	id_residential_unit?: string;
+	external_id_1?: string;
+	external_id_2?: string;
+	residential_unit_type?: { residential_unit_type: string };
+	status?: { status: string };
+	floor?: number | string;
+	side?: string;
+	building_section?: string;
+	resident_name?: string;
+	resident_recorded_date?: string;
+	ready_for_service?: string;
+	fiberConnections?: FiberConnection[];
+	[key: string]: unknown;
+}
+
+interface MicroductData {
+	parentNodeName?: string;
+	nodeName?: string;
+	conduitName?: string;
+	conduitType?: string;
+	number?: number | string;
+	colorHex?: string;
+	color?: string;
+	[key: string]: unknown;
+}
+
+interface FiberConnection {
+	parent_node_name?: string;
+	node_name?: string;
+	cable_name?: string;
+	fiber_number_absolute?: number | string;
+	bundle_color_hex?: string;
+	bundle_number?: number | string;
+	fiber_color_hex?: string;
+	fiber_number?: number | string;
+	[key: string]: unknown;
+}
+
+interface PdfLabels {
+	sectionAddressInformation: string;
+	idAddress: string;
+	street: string;
+	housenumber: string;
+	zipCode: string;
+	city: string;
+	district: string;
+	sectionClassification: string;
+	statusDevelopment: string;
+	flag: string;
+	project: string;
+	sectionMicroductConnections: string;
+	tableParentNode: string;
+	tableNode: string;
+	tableConduitName: string;
+	tableConduitType: string;
+	tableNumber: string;
+	tableColor: string;
+	residentialUnit: string;
+	sectionIdentification: string;
+	unitId: string;
+	externalId1: string;
+	externalId2: string;
+	unitType: string;
+	unitStatus: string;
+	sectionUnitLocation: string;
+	floor: string;
+	side: string;
+	buildingSection: string;
+	sectionResident: string;
+	residentName: string;
+	residentRecordedDate: string;
+	readyForService: string;
+	sectionFiberConnections: string;
+	tableCableName: string;
+	tableFiberAbsolute: string;
+	tableBundle: string;
+	tableFiber: string;
+	sectionComment?: string;
+	[key: string]: string | undefined;
+}
+
+interface SectionRow {
+	label: string;
+	value: string;
+	badge?: boolean;
+	mono?: boolean;
+}
 
 const PAGE_WIDTH = 210;
 const PAGE_HEIGHT = 297;
 const MARGIN = 20;
 const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN;
 
-/** @type {Record<string, [number, number, number]>} */
-const COLORS = {
+const COLORS: Record<string, [number, number, number]> = {
 	slate900: [15, 23, 42],
 	slate700: [51, 65, 85],
 	slate500: [100, 116, 139],
@@ -22,19 +128,7 @@ const COLORS = {
 	white: [255, 255, 255]
 };
 
-/**
- * Generates and downloads a PDF document for an address, optionally including residential unit pages.
- * @param {Object} params
- * @param {Record<string, any>} params.address - Address data from the API.
- * @param {Record<string, any>[]} params.residentialUnits - Residential unit objects.
- * @param {string | null} params.mapImage - Base64 data URL of the map canvas screenshot.
- * @param {boolean} params.includeResidentialUnits - Whether to append residential unit pages.
- * @param {Record<string, any>[]} [params.linkedMicroducts=[]] - Microduct connection objects.
- * @param {string[]} [params.wmsAttributions=[]] - WMS attribution strings for visible layers.
- * @param {Record<string, string>} params.labels - Translation labels for section titles and field names.
- * @param {string} [params.commentText=''] - Optional free-text comment rendered as a section on the address page.
- * @returns {void}
- */
+/** Generates and downloads a PDF document for an address, optionally including residential unit pages. */
 export function generateAddressPdf({
 	address,
 	residentialUnits,
@@ -44,8 +138,17 @@ export function generateAddressPdf({
 	wmsAttributions = [],
 	labels,
 	commentText = ''
-}) {
-	const doc = new jsPDF('p', 'mm', 'a4');
+}: {
+	address: AddressData;
+	residentialUnits: ResidentialUnit[];
+	mapImage: string | null;
+	includeResidentialUnits: boolean;
+	linkedMicroducts?: MicroductData[];
+	wmsAttributions?: string[];
+	labels: PdfLabels;
+	commentText?: string;
+}): void {
+	const doc = new JsPDF('p', 'mm', 'a4');
 
 	buildAddressPage(doc, {
 		address,
@@ -69,20 +172,24 @@ export function generateAddressPdf({
 	doc.save(filename.replace(/\s+/g, '_'));
 }
 
-/**
- * Builds the address overview page with map, data sections, and optional microduct table.
- * @param {import('jspdf').jsPDF} doc - The jsPDF document instance.
- * @param {Object} options
- * @param {Record<string, any>} options.address - Address data.
- * @param {string | null} options.mapImage - Base64 map image.
- * @param {Record<string, any>[]} options.linkedMicroducts - Microduct connections.
- * @param {string[]} [options.wmsAttributions=[]] - WMS attribution strings.
- * @param {Record<string, string>} options.labels - Translation labels.
- * @param {string} [options.commentText=''] - Optional free-text comment.
- */
+/** Builds the address overview page with map, data sections, and optional microduct table. */
 function buildAddressPage(
-	doc,
-	{ address, mapImage, linkedMicroducts, wmsAttributions = [], labels, commentText = '' }
+	doc: jsPDF,
+	{
+		address,
+		mapImage,
+		linkedMicroducts,
+		wmsAttributions = [],
+		labels,
+		commentText = ''
+	}: {
+		address: AddressData;
+		mapImage: string | null;
+		linkedMicroducts: MicroductData[];
+		wmsAttributions?: string[];
+		labels: PdfLabels;
+		commentText?: string;
+	}
 ) {
 	drawPageBackground(doc);
 
@@ -199,15 +306,19 @@ function buildAddressPage(
 	}
 }
 
-/**
- * Builds a residential unit detail page with identification, classification, and fiber data.
- * @param {import('jspdf').jsPDF} doc - The jsPDF document instance.
- * @param {Object} options
- * @param {Record<string, any>} options.unit - Residential unit data.
- * @param {Record<string, any>} options.address - Parent address data.
- * @param {Record<string, string>} options.labels - Translation labels.
- */
-function buildResidentialUnitPage(doc, { unit, address, labels }) {
+/** Builds a residential unit detail page with identification, classification, and fiber data. */
+function buildResidentialUnitPage(
+	doc: jsPDF,
+	{
+		unit,
+		address,
+		labels
+	}: {
+		unit: ResidentialUnit;
+		address: AddressData;
+		labels: PdfLabels;
+	}
+) {
 	drawPageBackground(doc);
 
 	const addressLine = `${address.street} ${address.housenumber}${address.house_number_suffix || ''}, ${address.zip_code} ${address.city}`;
@@ -287,20 +398,18 @@ function buildResidentialUnitPage(doc, { unit, address, labels }) {
 
 	const bottomY = Math.max(leftY, rightY) + 10;
 
-	if (unit.fiberConnections?.length > 0) {
+	const fibers = unit.fiberConnections;
+	if (fibers && fibers.length > 0) {
 		drawFiberTable(doc, {
-			fibers: unit.fiberConnections,
+			fibers,
 			y: bottomY,
 			labels
 		});
 	}
 }
 
-/**
- * Draws the page background with an emerald side stripe.
- * @param {import('jspdf').jsPDF} doc - The jsPDF document instance.
- */
-function drawPageBackground(doc) {
+/** Draws the page background with an emerald side stripe. */
+function drawPageBackground(doc: jsPDF) {
 	doc.setFillColor(...COLORS.white);
 	doc.rect(0, 0, PAGE_WIDTH, PAGE_HEIGHT, 'F');
 
@@ -311,15 +420,11 @@ function drawPageBackground(doc) {
 	doc.rect(0, 0, 1.5, PAGE_HEIGHT, 'F');
 }
 
-/**
- * Draws the document header with brand, title, subtitle, and a separator line.
- * @param {import('jspdf').jsPDF} doc - The jsPDF document instance.
- * @param {Object} options
- * @param {string} options.title - Main document title.
- * @param {string} options.subtitle - Subtitle text.
- * @returns {number} The Y position below the header for subsequent content.
- */
-function drawDocumentHeader(doc, { title, subtitle }) {
+/** Draws the document header with brand, title, subtitle, and a separator line. */
+function drawDocumentHeader(
+	doc: jsPDF,
+	{ title, subtitle }: { title: string; subtitle: string }
+): number {
 	doc.setFillColor(...COLORS.white);
 	doc.rect(0, 0, PAGE_WIDTH, 42, 'F');
 
@@ -359,19 +464,24 @@ function drawDocumentHeader(doc, { title, subtitle }) {
 	return 48;
 }
 
-/**
- * Draws a bordered section block with a colored accent, title, and labeled data rows.
- * @param {import('jspdf').jsPDF} doc - The jsPDF document instance.
- * @param {Object} options
- * @param {string} options.title - Section title (rendered uppercase).
- * @param {string} [options.icon] - Icon identifier (unused in rendering but part of the API).
- * @param {number} options.y - Top Y position in mm.
- * @param {number} options.x - Left X position in mm.
- * @param {number} options.width - Block width in mm.
- * @param {Array<{ label: string, value: string, badge?: boolean, mono?: boolean }>} options.rows - Data rows to render.
- * @returns {number} The Y position below the section block.
- */
-function drawSectionBlock(doc, { title, y, x, width, rows }) {
+/** Draws a bordered section block with a colored accent, title, and labeled data rows. */
+function drawSectionBlock(
+	doc: jsPDF,
+	{
+		title,
+		y,
+		x,
+		width,
+		rows
+	}: {
+		title: string;
+		icon?: string;
+		y: number;
+		x: number;
+		width: number;
+		rows: SectionRow[];
+	}
+): number {
 	doc.setFillColor(...COLORS.white);
 	const blockHeight = 12 + rows.length * 10 + 4;
 	doc.roundedRect(x, y, width, blockHeight, 2, 2, 'F');
@@ -434,18 +544,23 @@ function drawSectionBlock(doc, { title, y, x, width, rows }) {
 	return y + blockHeight;
 }
 
-/**
- * Draws the map image with a decorative frame, corner brackets, and attribution text.
- * @param {import('jspdf').jsPDF} doc - The jsPDF document instance.
- * @param {Object} options
- * @param {string} options.image - Base64 PNG data URL of the map.
- * @param {number} options.x - Left X position in mm.
- * @param {number} options.y - Top Y position in mm.
- * @param {number} options.width - Map width in mm.
- * @param {string[]} [options.wmsAttributions=[]] - WMS attribution strings.
- * @returns {number} The Y position below the map section including attributions.
- */
-function drawMapSection(doc, { image, x, y, width, wmsAttributions = [] }) {
+/** Draws the map image with a decorative frame, corner brackets, and attribution text. */
+function drawMapSection(
+	doc: jsPDF,
+	{
+		image,
+		x,
+		y,
+		width,
+		wmsAttributions = []
+	}: {
+		image: string;
+		x: number;
+		y: number;
+		width: number;
+		wmsAttributions?: string[];
+	}
+): number {
 	const aspectRatio = 0.85;
 	const height = width * aspectRatio;
 
@@ -491,19 +606,25 @@ function drawMapSection(doc, { image, x, y, width, wmsAttributions = [] }) {
 	return y + height + 2 + lines.length * 3;
 }
 
-/**
- * Draws a compact coordinate card showing storage SRID and/or EPSG:4326 coordinates.
- * @param {import('jspdf').jsPDF} doc - The jsPDF document instance.
- * @param {Object} options
- * @param {string} [options.coordsDefault] - Coordinate string in the storage SRID.
- * @param {string} [options.coords4326] - Coordinate string in EPSG:4326.
- * @param {number} [options.srid] - The EPSG code for the storage projection.
- * @param {number} options.x - Left X position in mm.
- * @param {number} options.y - Top Y position in mm.
- * @param {number} options.width - Card width in mm.
- * @returns {number} The Y position below the card.
- */
-function drawCoordinateCard(doc, { coordsDefault, coords4326, srid, x, y, width }) {
+/** Draws a compact coordinate card showing storage SRID and/or EPSG:4326 coordinates. */
+function drawCoordinateCard(
+	doc: jsPDF,
+	{
+		coordsDefault,
+		coords4326,
+		srid,
+		x,
+		y,
+		width
+	}: {
+		coordsDefault?: string;
+		coords4326?: string;
+		srid?: number;
+		x: number;
+		y: number;
+		width: number;
+	}
+): number {
 	const cardHeight = coordsDefault && coords4326 ? 20 : 12;
 
 	doc.setFillColor(...COLORS.white);
@@ -544,16 +665,19 @@ function drawCoordinateCard(doc, { coordsDefault, coords4326, srid, x, y, width 
 	return y + cardHeight;
 }
 
-/**
- * Draws a table of microduct connections with a header, zebra-striped rows, and color indicators.
- * @param {import('jspdf').jsPDF} doc - The jsPDF document instance.
- * @param {Object} options
- * @param {Record<string, any>[]} options.microducts - Microduct connection data.
- * @param {number} options.y - Top Y position in mm.
- * @param {Record<string, string>} options.labels - Translation labels for column headers.
- * @returns {number} The Y position below the table.
- */
-function drawMicroductTable(doc, { microducts, y, labels }) {
+/** Draws a table of microduct connections with a header, zebra-striped rows, and color indicators. */
+function drawMicroductTable(
+	doc: jsPDF,
+	{
+		microducts,
+		y,
+		labels
+	}: {
+		microducts: MicroductData[];
+		y: number;
+		labels: PdfLabels;
+	}
+): number {
 	doc.setFillColor(...COLORS.white);
 	doc.roundedRect(MARGIN, y, CONTENT_WIDTH, 12, 2, 2, 'F');
 
@@ -663,16 +787,19 @@ function drawMicroductTable(doc, { microducts, y, labels }) {
 	return y;
 }
 
-/**
- * Draws a fiber connections table for a residential unit with color-coded bundle/fiber indicators.
- * @param {import('jspdf').jsPDF} doc - The jsPDF document instance.
- * @param {Object} options
- * @param {Record<string, any>[]} options.fibers - Fiber connection data.
- * @param {number} options.y - Top Y position in mm.
- * @param {Record<string, string>} options.labels - Translation labels for column headers.
- * @returns {number} The Y position below the table.
- */
-function drawFiberTable(doc, { fibers, y, labels }) {
+/** Draws a fiber connections table for a residential unit with color-coded bundle/fiber indicators. */
+function drawFiberTable(
+	doc: jsPDF,
+	{
+		fibers,
+		y,
+		labels
+	}: {
+		fibers: FiberConnection[];
+		y: number;
+		labels: PdfLabels;
+	}
+): number {
 	doc.setFillColor(...COLORS.white);
 	doc.roundedRect(MARGIN, y, CONTENT_WIDTH, 12, 2, 2, 'F');
 
@@ -787,14 +914,8 @@ function drawFiberTable(doc, { fibers, y, labels }) {
 	return y;
 }
 
-/**
- * Measures the height a comment block would occupy without drawing it.
- * @param {import('jspdf').jsPDF} doc - The jsPDF document instance.
- * @param {string} text - The comment text.
- * @param {number} width - Block width in mm.
- * @returns {number} The block height in mm.
- */
-function measureCommentBlock(doc, text, width) {
+/** Measures the height a comment block would occupy without drawing it. */
+function measureCommentBlock(doc: jsPDF, text: string, width: number): number {
 	const textWidth = width - 16;
 	doc.setFont('helvetica', 'normal');
 	doc.setFontSize(8);
@@ -802,18 +923,23 @@ function measureCommentBlock(doc, text, width) {
 	return 16 + lines.length * 4.5 + 6;
 }
 
-/**
- * Draws a section block with wrapped free-text content (e.g., comment/description).
- * @param {import('jspdf').jsPDF} doc - The jsPDF document instance.
- * @param {Object} options
- * @param {string} options.title - Section title (rendered uppercase).
- * @param {number} options.y - Top Y position in mm.
- * @param {number} options.x - Left X position in mm.
- * @param {number} options.width - Block width in mm.
- * @param {string} options.text - Free-text content to render.
- * @returns {number} The Y position below the block.
- */
-function drawCommentBlock(doc, { title, y, x, width, text }) {
+/** Draws a section block with wrapped free-text content (e.g., comment/description). */
+function drawCommentBlock(
+	doc: jsPDF,
+	{
+		title,
+		y,
+		x,
+		width,
+		text
+	}: {
+		title: string;
+		y: number;
+		x: number;
+		width: number;
+		text: string;
+	}
+): number {
 	const textWidth = width - 16;
 	doc.setFont('helvetica', 'normal');
 	doc.setFontSize(8);
@@ -853,14 +979,8 @@ function drawCommentBlock(doc, { title, y, x, width, text }) {
 	return y + blockHeight;
 }
 
-/**
- * Truncates text with an ellipsis to fit within a given pixel width.
- * @param {import('jspdf').jsPDF} doc - The jsPDF document instance (used for width measurement).
- * @param {string} text - The text to truncate.
- * @param {number} maxWidth - Maximum allowed text width in mm.
- * @returns {string} The (possibly truncated) text.
- */
-function truncateText(doc, text, maxWidth) {
+/** Truncates text with an ellipsis to fit within a given pixel width. */
+function truncateText(doc: jsPDF, text: string, maxWidth: number): string {
 	if (doc.getTextWidth(text) <= maxWidth) return text;
 	let truncated = text;
 	while (doc.getTextWidth(truncated + '…') > maxWidth && truncated.length > 0) {
@@ -869,23 +989,16 @@ function truncateText(doc, text, maxWidth) {
 	return truncated + '…';
 }
 
-/**
- * Converts a hex color string to an RGB tuple. Falls back to slate-500 on invalid input.
- * @param {string} hex - Hex color string (e.g., '#ff0000' or 'ff0000').
- * @returns {[number, number, number]} RGB values as a 3-element array.
- */
-function hexToRgb(hex) {
+/** Converts a hex color string to an RGB tuple. Falls back to slate-500 on invalid input. */
+function hexToRgb(hex: string): [number, number, number] {
 	const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
 	return result
 		? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)]
 		: [100, 116, 139];
 }
 
-/**
- * Adds page numbers, brand text, and a footer separator to every page in the document.
- * @param {import('jspdf').jsPDF} doc - The jsPDF document instance.
- */
-function addPageNumbers(doc) {
+/** Adds page numbers, brand text, and a footer separator to every page in the document. */
+function addPageNumbers(doc: jsPDF) {
 	const totalPages = doc.getNumberOfPages();
 
 	for (let i = 1; i <= totalPages; i++) {
