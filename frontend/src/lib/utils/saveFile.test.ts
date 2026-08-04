@@ -3,12 +3,10 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { saveFile } from './saveFile';
 
-/** @type {any} */
-const win = window;
+const win = window as unknown as Record<string, unknown>;
 
 describe('saveFile', () => {
-	/** @type {any} */
-	let originalShowSaveFilePicker;
+	let originalShowSaveFilePicker: unknown;
 
 	beforeEach(() => {
 		originalShowSaveFilePicker = win.showSaveFilePicker;
@@ -79,8 +77,8 @@ describe('saveFile', () => {
 			const clickMock = vi.fn();
 			const removeMock = vi.fn();
 			const anchorElement = { href: '', download: '', click: clickMock, remove: removeMock };
-			vi.spyOn(document, 'createElement').mockReturnValue(/** @type {any} */ (anchorElement));
-			vi.spyOn(document.body, 'appendChild').mockImplementation((/** @type {any} */ el) => el);
+			vi.spyOn(document, 'createElement').mockReturnValue(anchorElement as unknown as HTMLElement);
+			vi.spyOn(document.body, 'appendChild').mockImplementation((el: Node) => el);
 
 			await saveFile(blob, 'export.zip');
 

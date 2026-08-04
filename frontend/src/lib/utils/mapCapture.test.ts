@@ -3,42 +3,45 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { captureMapCanvases, getVisibleWMSAttributions } from './mapCapture';
 
+interface MockStore<T> {
+	subscribe: (fn: (val: T) => void) => () => void;
+	_set: (val: T) => void;
+}
+
 vi.mock('$lib/stores/store', () => {
-	/** @type {{ sources: any[], loaded: boolean }} */
-	let sourcesData = { sources: [], loaded: false };
-	/** @type {Record<string, any>} */
-	let visibilityConfig = {};
+	let sourcesData = { sources: [] as Record<string, unknown>[], loaded: false };
+	let visibilityConfig: Record<string, unknown> = {};
 
 	return {
 		wmsSourcesData: {
-			subscribe: (/** @type {Function} */ fn) => {
+			subscribe: (fn: (val: typeof sourcesData) => void) => {
 				fn(sourcesData);
 				return () => {};
 			},
-			/** @param {{ sources: any[], loaded: boolean }} val */
-			_set(val) {
+			_set(val: typeof sourcesData) {
 				sourcesData = val;
 			}
 		},
 		wmsLayerVisibilityConfig: {
-			subscribe: (/** @type {Function} */ fn) => {
+			subscribe: (fn: (val: Record<string, unknown>) => void) => {
 				fn(visibilityConfig);
 				return () => {};
 			},
-			/** @param {Record<string, any>} val */
-			_set(val) {
+			_set(val: Record<string, unknown>) {
 				visibilityConfig = val;
 			}
 		},
-		getWMSLayerVisibility: vi.fn((_config, _projectId, _layerId, defaultVal) => defaultVal)
+		getWMSLayerVisibility: vi.fn(
+			(_config: unknown, _projectId: string, _layerId: string, defaultVal: boolean) => defaultVal
+		)
 	};
 });
 
 describe('captureMapCanvases', () => {
 	test('returns null when container has no canvas elements', () => {
-		const container = /** @type {any} */ ({
+		const container = {
 			querySelectorAll: vi.fn(() => [])
-		});
+		} as unknown as HTMLElement;
 
 		expect(captureMapCanvases(container)).toBeNull();
 	});
@@ -56,12 +59,14 @@ describe('captureMapCanvases', () => {
 
 		const sourceCanvas = { width: 800, height: 600 };
 
-		const container = /** @type {any} */ ({
+		const container = {
 			querySelectorAll: vi.fn(() => [sourceCanvas])
-		});
+		} as unknown as HTMLElement;
 
 		const origCreateElement = document.createElement;
-		document.createElement = vi.fn(() => /** @type {any} */ (mockMergedCanvas));
+		document.createElement = vi.fn(
+			() => mockMergedCanvas
+		) as unknown as typeof document.createElement;
 
 		const result = captureMapCanvases(container);
 
@@ -88,12 +93,14 @@ describe('captureMapCanvases', () => {
 		const canvas2 = { width: 800, height: 600 };
 		const canvas3 = { width: 800, height: 600 };
 
-		const container = /** @type {any} */ ({
+		const container = {
 			querySelectorAll: vi.fn(() => [canvas1, canvas2, canvas3])
-		});
+		} as unknown as HTMLElement;
 
 		const origCreateElement = document.createElement;
-		document.createElement = vi.fn(() => /** @type {any} */ (mockMergedCanvas));
+		document.createElement = vi.fn(
+			() => mockMergedCanvas
+		) as unknown as typeof document.createElement;
 
 		captureMapCanvases(container);
 
@@ -107,21 +114,23 @@ describe('captureMapCanvases', () => {
 });
 
 describe('getVisibleWMSAttributions', () => {
-	/** @type {typeof import('$lib/stores/store')} */
-	let storeModule;
+	let storeModule: typeof import('$lib/stores/store') & {
+		wmsSourcesData: MockStore<{ sources: Record<string, unknown>[]; loaded: boolean }>;
+		wmsLayerVisibilityConfig: MockStore<Record<string, unknown>>;
+	};
 
 	beforeEach(async () => {
-		storeModule = await import('$lib/stores/store');
+		storeModule = (await import('$lib/stores/store')) as typeof storeModule;
 	});
 
 	test('returns empty array when no sources are loaded', () => {
-		/** @type {any} */ (storeModule.wmsSourcesData)._set({ sources: [], loaded: false });
+		storeModule.wmsSourcesData._set({ sources: [], loaded: false });
 
 		expect(getVisibleWMSAttributions('project-1')).toEqual([]);
 	});
 
 	test('returns attributions from visible, active sources', () => {
-		/** @type {any} */ (storeModule.wmsSourcesData)._set({
+		storeModule.wmsSourcesData._set({
 			sources: [
 				{
 					id: 1,
@@ -133,7 +142,10 @@ describe('getVisibleWMSAttributions', () => {
 			loaded: true
 		});
 
-		const { getWMSLayerVisibility } = /** @type {any} */ (storeModule);
+		const { getWMSLayerVisibility } = storeModule as unknown as Record<
+			string,
+			ReturnType<typeof vi.fn>
+		>;
 		getWMSLayerVisibility.mockReturnValue(true);
 
 		const result = getVisibleWMSAttributions('project-1');
@@ -142,7 +154,7 @@ describe('getVisibleWMSAttributions', () => {
 	});
 
 	test('skips inactive sources', () => {
-		/** @type {any} */ (storeModule.wmsSourcesData)._set({
+		storeModule.wmsSourcesData._set({
 			sources: [
 				{
 					id: 1,
@@ -158,7 +170,7 @@ describe('getVisibleWMSAttributions', () => {
 	});
 
 	test('skips sources without attribution', () => {
-		/** @type {any} */ (storeModule.wmsSourcesData)._set({
+		storeModule.wmsSourcesData._set({
 			sources: [
 				{
 					id: 1,
@@ -174,10 +186,13 @@ describe('getVisibleWMSAttributions', () => {
 	});
 
 	test('deduplicates attributions per source', () => {
-		const { getWMSLayerVisibility } = /** @type {any} */ (storeModule);
+		const { getWMSLayerVisibility } = storeModule as unknown as Record<
+			string,
+			ReturnType<typeof vi.fn>
+		>;
 		getWMSLayerVisibility.mockReturnValue(true);
 
-		/** @type {any} */ (storeModule.wmsSourcesData)._set({
+		storeModule.wmsSourcesData._set({
 			sources: [
 				{
 					id: 1,
@@ -204,10 +219,13 @@ describe('getVisibleWMSAttributions', () => {
 	});
 
 	test('skips disabled layers', () => {
-		const { getWMSLayerVisibility } = /** @type {any} */ (storeModule);
+		const { getWMSLayerVisibility } = storeModule as unknown as Record<
+			string,
+			ReturnType<typeof vi.fn>
+		>;
 		getWMSLayerVisibility.mockReturnValue(true);
 
-		/** @type {any} */ (storeModule.wmsSourcesData)._set({
+		storeModule.wmsSourcesData._set({
 			sources: [
 				{
 					id: 1,
@@ -223,10 +241,13 @@ describe('getVisibleWMSAttributions', () => {
 	});
 
 	test('skips layers where visibility is false', () => {
-		const { getWMSLayerVisibility } = /** @type {any} */ (storeModule);
+		const { getWMSLayerVisibility } = storeModule as unknown as Record<
+			string,
+			ReturnType<typeof vi.fn>
+		>;
 		getWMSLayerVisibility.mockReturnValue(false);
 
-		/** @type {any} */ (storeModule.wmsSourcesData)._set({
+		storeModule.wmsSourcesData._set({
 			sources: [
 				{
 					id: 1,

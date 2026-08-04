@@ -1,19 +1,16 @@
+import type { AddressData, PdfLabels, ResidentialUnit } from './addressPdf';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { generateAddressPdf } from './addressPdf';
 
-/** @type {any[]} */
-let textCalls = [];
-/** @type {any[]} */
-let splitTextCalls = [];
+let textCalls: Array<{ content: string; x: number; y: number }> = [];
+let splitTextCalls: Array<{ text: string; maxWidth: number }> = [];
 let addPageCount = 0;
 
 vi.mock('jspdf', () => {
 	class MockJsPDF {
-		constructor() {
-			this.pages = 1;
-			this.currentPage = 1;
-		}
+		pages = 1;
+		currentPage = 1;
 
 		setFillColor() {}
 		setDrawColor() {}
@@ -27,19 +24,19 @@ vi.mock('jspdf', () => {
 		circle() {}
 		addImage() {}
 
-		text(/** @type {string} */ content, /** @type {number} */ x, /** @type {number} */ y) {
+		text(content: string, x: number, y: number) {
 			textCalls.push({ content, x, y });
 		}
 
-		getTextWidth(/** @type {string} */ text) {
+		getTextWidth(text: string) {
 			return text.length * 2;
 		}
 
-		splitTextToSize(/** @type {string} */ text, /** @type {number} */ maxWidth) {
+		splitTextToSize(text: string, maxWidth: number) {
 			splitTextCalls.push({ text, maxWidth });
 			const charsPerLine = Math.floor(maxWidth / 2);
 			if (text.length <= charsPerLine) return [text];
-			const lines = [];
+			const lines: string[] = [];
 			for (let i = 0; i < text.length; i += charsPerLine) {
 				lines.push(text.slice(i, i + charsPerLine));
 			}
@@ -55,7 +52,7 @@ vi.mock('jspdf', () => {
 			return this.pages;
 		}
 
-		setPage(/** @type {number} */ n) {
+		setPage(n: number) {
 			this.currentPage = n;
 		}
 
@@ -72,8 +69,7 @@ vi.mock('$lib/paraglide/messages', () => ({
 	}
 }));
 
-/** @returns {Record<string, string>} */
-function createLabels() {
+function createLabels(): PdfLabels {
 	return {
 		sectionAddressInformation: 'Address Information',
 		sectionClassification: 'Classification',
@@ -118,19 +114,18 @@ function createLabels() {
 	};
 }
 
-/** @returns {Record<string, any>} */
-function createAddress() {
+function createAddress(): AddressData {
 	return {
 		id_address: 'ADDR-001',
 		street: 'Main St',
-		housenumber: 42,
+		housenumber: '42',
 		house_number_suffix: '',
 		zip_code: '12345',
 		city: 'Berlin',
 		district: 'Mitte',
-		status_development: { id: 1, status: 'Planned' },
-		flag: { id: 1, flag: 'Priority' },
-		project: { id: 1, project: 'Test Project' }
+		status_development: { status: 'Planned' },
+		flag: { flag: 'Priority' },
+		project: { project: 'Test Project' }
 	};
 }
 
@@ -167,7 +162,7 @@ describe('generateAddressPdf', () => {
 	});
 
 	test('should generate PDF with commentText and residential units', () => {
-		const units = [
+		const units: ResidentialUnit[] = [
 			{
 				id_residential_unit: 'RU-1',
 				floor: 1,
@@ -303,7 +298,6 @@ describe('generateAddressPdf', () => {
 				includeResidentialUnits: false,
 				linkedMicroducts: [
 					{
-						uuid: 'md-1',
 						number: 1,
 						color: 'Red',
 						colorHex: '#ff0000',

@@ -3,7 +3,7 @@ import { jsPDF as JsPDF } from 'jspdf';
 
 import { m } from '$lib/paraglide/messages';
 
-interface AddressData {
+export interface AddressData {
 	street: string;
 	housenumber: string;
 	house_number_suffix?: string;
@@ -20,7 +20,7 @@ interface AddressData {
 	[key: string]: unknown;
 }
 
-interface ResidentialUnit {
+export interface ResidentialUnit {
 	id_residential_unit?: string;
 	external_id_1?: string;
 	external_id_2?: string;
@@ -36,7 +36,7 @@ interface ResidentialUnit {
 	[key: string]: unknown;
 }
 
-interface MicroductData {
+export interface MicroductData {
 	parentNodeName?: string;
 	nodeName?: string;
 	conduitName?: string;
@@ -47,7 +47,7 @@ interface MicroductData {
 	[key: string]: unknown;
 }
 
-interface FiberConnection {
+export interface FiberConnection {
 	parent_node_name?: string;
 	node_name?: string;
 	cable_name?: string;
@@ -59,7 +59,7 @@ interface FiberConnection {
 	[key: string]: unknown;
 }
 
-interface PdfLabels {
+export interface PdfLabels {
 	sectionAddressInformation: string;
 	idAddress: string;
 	street: string;
