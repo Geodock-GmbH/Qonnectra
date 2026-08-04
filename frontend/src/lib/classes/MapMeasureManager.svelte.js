@@ -7,7 +7,7 @@ import Overlay from 'ol/Overlay';
 import VectorSource from 'ol/source/Vector';
 import { getArea, getLength } from 'ol/sphere';
 
-import { createMeasureStyle } from '$lib/map/styles.js';
+import { createMeasureStyle } from '$lib/map/styles';
 
 const MEASURE_STYLE = createMeasureStyle();
 

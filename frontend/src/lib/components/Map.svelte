@@ -36,7 +36,7 @@
 
 	import { MapMeasureManager } from '$lib/classes/MapMeasureManager.svelte.js';
 	import { tileLoadingManager } from '$lib/map/tileLoadingManager.js';
-	import { getWorkerPool } from '$lib/map/workerPool.js';
+	import { getWorkerPool } from '$lib/map/workerPool';
 	import {
 		basemapTheme,
 		layerOpacity,

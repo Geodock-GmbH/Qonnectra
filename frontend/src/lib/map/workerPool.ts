@@ -1,13 +1,24 @@
-// frontend/src/lib/map/workerPool.js
+import type { SerializedFeature } from './featureReconstructor';
+
+interface ParseResult {
+	success: boolean;
+	features?: SerializedFeature[];
+	error?: string;
+}
+
+interface PendingRequest {
+	resolve: (result: ParseResult) => void;
+}
 
 /**
  * Pool of Web Workers for parallel MVT parsing.
  * Distributes work via round-robin and handles responses.
  */
 export class WorkerPool {
-	/**
-	 * @param {number} size - Number of workers in the pool
-	 */
+	workers: Worker[];
+	pendingRequests: Map<string, PendingRequest>;
+	currentWorkerIndex: number;
+
 	constructor(size = 2) {
 		this.workers = [];
 		this.pendingRequests = new Map();
@@ -16,7 +27,7 @@ export class WorkerPool {
 		// Only create workers in browser environment
 		if (typeof Worker !== 'undefined') {
 			for (let i = 0; i < size; i++) {
-				const worker = new Worker(new URL('./mvtParserWorker.js', import.meta.url), {
+				const worker = new Worker(new URL('./mvtParserWorker.ts', import.meta.url), {
 					type: 'module'
 				});
 				worker.onmessage = this.handleWorkerMessage.bind(this);
@@ -25,11 +36,8 @@ export class WorkerPool {
 		}
 	}
 
-	/**
-	 * Handle message from worker
-	 * @param {MessageEvent} event
-	 */
-	handleWorkerMessage(event) {
+	/** Handle message from worker */
+	handleWorkerMessage(event: MessageEvent): void {
 		const { requestId, success, features, error } = event.data;
 		const pending = this.pendingRequests.get(requestId);
 
@@ -39,15 +47,13 @@ export class WorkerPool {
 		}
 	}
 
-	/**
-	 * Parse MVT data using a worker
-	 * @param {string} requestId - Unique request identifier
-	 * @param {ArrayBuffer} data - MVT binary data
-	 * @param {number[]} extent - Tile extent
-	 * @param {string} projection - Projection code
-	 * @returns {Promise<{success: boolean, features?: import('./featureReconstructor.js').SerializedFeature[], error?: string}>}
-	 */
-	parse(requestId, data, extent, projection) {
+	/** Parse MVT data using a worker */
+	parse(
+		requestId: string,
+		data: ArrayBuffer,
+		extent: number[],
+		projection: string
+	): Promise<ParseResult> {
 		return new Promise((resolve) => {
 			if (this.workers.length === 0) {
 				// Fallback: no workers available (SSR)
@@ -66,11 +72,8 @@ export class WorkerPool {
 		});
 	}
 
-	/**
-	 * Cancel a pending request
-	 * @param {string} requestId
-	 */
-	cancelRequest(requestId) {
+	/** Cancel a pending request */
+	cancelRequest(requestId: string): void {
 		const pending = this.pendingRequests.get(requestId);
 		if (pending) {
 			this.pendingRequests.delete(requestId);
@@ -78,20 +81,16 @@ export class WorkerPool {
 		}
 	}
 
-	/**
-	 * Cancel all pending requests
-	 */
-	cancelAllRequests() {
-		for (const [requestId, pending] of this.pendingRequests) {
+	/** Cancel all pending requests */
+	cancelAllRequests(): void {
+		for (const [, pending] of this.pendingRequests) {
 			pending.resolve({ success: false, error: 'Cancelled' });
 		}
 		this.pendingRequests.clear();
 	}
 
-	/**
-	 * Terminate all workers
-	 */
-	destroy() {
+	/** Terminate all workers */
+	destroy(): void {
 		this.cancelAllRequests();
 		for (const worker of this.workers) {
 			worker.terminate();
@@ -100,14 +99,10 @@ export class WorkerPool {
 	}
 }
 
-/** @type {WorkerPool | null} */
-let workerPoolInstance = null;
+let workerPoolInstance: WorkerPool | null = null;
 
-/**
- * Get or create the worker pool singleton
- * @returns {WorkerPool}
- */
-export function getWorkerPool() {
+/** Get or create the worker pool singleton */
+export function getWorkerPool(): WorkerPool {
 	if (!workerPoolInstance) {
 		const poolSize =
 			typeof navigator !== 'undefined' && navigator.hardwareConcurrency
@@ -118,10 +113,8 @@ export function getWorkerPool() {
 	return workerPoolInstance;
 }
 
-/**
- * Destroy the worker pool singleton
- */
-export function destroyWorkerPool() {
+/** Destroy the worker pool singleton */
+export function destroyWorkerPool(): void {
 	if (workerPoolInstance) {
 		workerPoolInstance.destroy();
 		workerPoolInstance = null;

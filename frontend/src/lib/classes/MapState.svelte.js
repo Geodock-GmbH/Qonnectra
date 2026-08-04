@@ -20,7 +20,7 @@ import {
 	createNodeTileSource,
 	createTrenchTileSource
 } from '$lib/map/tileSources';
-import { getWorkerPool } from '$lib/map/workerPool.js';
+import { getWorkerPool } from '$lib/map/workerPool';
 import {
 	getWMSLayerVisibility,
 	setWMSLayerVisibility,

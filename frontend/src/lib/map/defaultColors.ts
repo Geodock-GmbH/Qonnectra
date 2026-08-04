@@ -1,30 +1,27 @@
-/** @type {string} */
+export type NodeShape = 'circle' | 'square';
+
+export interface NodeTypeStyle {
+	color: string;
+	size: number;
+	shape: NodeShape;
+}
+
 export const DEFAULT_TRENCH_COLOR = '#0033ff';
-/** @type {number} */
 export const DEFAULT_TRENCH_WIDTH = 2;
 
-/** @type {string} */
 export const DEFAULT_NODE_COLOR = '#ff6b35';
-/** @type {number} */
 export const DEFAULT_NODE_SIZE = 6;
-/** @type {'circle' | 'square'} */
-export const DEFAULT_NODE_SHAPE = 'square';
+export const DEFAULT_NODE_SHAPE: NodeShape = 'square';
 
-/** @type {string} */
 export const DEFAULT_ADDRESS_COLOR = '#949494';
-/** @type {number} */
 export const DEFAULT_ADDRESS_SIZE = 4;
 
-/** @type {string} */
 export const DEFAULT_AREA_COLOR = '#22c55e';
-/** @type {number} */
 export const DEFAULT_AREA_OPACITY = 0.3;
 
-/** @type {string} */
 export const DEFAULT_SELECTED_COLOR = '#fff700';
 
-/** @type {Record<string, {color: string, size: number, shape: 'circle' | 'square'}>} */
-export const NODE_TYPE_DEFAULTS = {
+export const NODE_TYPE_DEFAULTS: Record<string, NodeTypeStyle> = {
 	Bauerschwernis: { color: '#000000', size: 12, shape: 'square' },
 	FCC4: { color: '#006eff', size: 16, shape: 'square' },
 	FCC8: { color: '#006eff', size: 16, shape: 'square' },
@@ -38,11 +35,8 @@ export const NODE_TYPE_DEFAULTS = {
 	Schacht: { color: '#00ffe1', size: 12, shape: 'square' }
 };
 
-/**
- * @param {string} nodeTypeName
- * @returns {{color: string, size: number, shape: 'circle' | 'square'}}
- */
-export function getNodeTypeDefault(nodeTypeName) {
+/** Returns the style defaults for a given node type name, falling back to global defaults. */
+export function getNodeTypeDefault(nodeTypeName: string): NodeTypeStyle {
 	return (
 		NODE_TYPE_DEFAULTS[nodeTypeName] || {
 			color: DEFAULT_NODE_COLOR,

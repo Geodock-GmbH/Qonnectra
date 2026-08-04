@@ -13,7 +13,7 @@
 	import Drawer from '$lib/components/Drawer.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import MapHint from '$lib/components/MapHint.svelte';
-	import { createLinkedTrenchStyle } from '$lib/map/styles.js';
+	import { createLinkedTrenchStyle } from '$lib/map/styles';
 	import { drawerStore } from '$lib/stores/drawer';
 	import {
 		addressStyle,

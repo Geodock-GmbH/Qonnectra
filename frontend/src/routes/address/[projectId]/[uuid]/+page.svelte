@@ -30,7 +30,7 @@
 	import Map from '$lib/components/Map.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
-	import { createAddressStyle, createTrenchStyle } from '$lib/map/styles.js';
+	import { createAddressStyle, createTrenchStyle } from '$lib/map/styles';
 	import {
 		getWMSLayerVisibility,
 		trenchColor,

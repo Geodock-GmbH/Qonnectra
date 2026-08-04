@@ -11,7 +11,7 @@ import {
 	createInquiryHighlightPointStyle,
 	createInquiryHighlightStyle,
 	createInquiryPolygonStyleWithLabels
-} from '$lib/map/styles.js';
+} from '$lib/map/styles';
 
 const DRAWING_STYLE = createInquiryDrawingStyle();
 const HIGHLIGHT_STYLE = createInquiryHighlightStyle();

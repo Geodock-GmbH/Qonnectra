@@ -19,7 +19,7 @@
 	import { CableMicropipeManager } from '$lib/classes/CableMicropipeManager.svelte.js';
 	import { MapState } from '$lib/classes/MapState.svelte.js';
 	import Map from '$lib/components/Map.svelte';
-	import { createLinkedTrenchStyle, createSelectedStyle } from '$lib/map/styles.js';
+	import { createLinkedTrenchStyle, createSelectedStyle } from '$lib/map/styles';
 	import {
 		areaTypeStyles,
 		labelVisibilityConfig,

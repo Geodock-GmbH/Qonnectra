@@ -17,7 +17,7 @@
 		zoomToFeature,
 		zoomToMultipleFeatures
 	} from '$lib/map/searchUtils';
-	import { createSearchHighlightStyle } from '$lib/map/styles.js';
+	import { createSearchHighlightStyle } from '$lib/map/styles';
 	import { globalMapView, selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 

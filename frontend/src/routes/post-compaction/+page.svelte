@@ -11,7 +11,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import Map from '$lib/components/Map.svelte';
-	import { createAddressStyle, createTrenchStyle } from '$lib/map/styles.js';
+	import { createAddressStyle, createTrenchStyle } from '$lib/map/styles';
 	import {
 		getWMSLayerVisibility,
 		selectedProject,

@@ -19,7 +19,7 @@
 	import Map from '$lib/components/Map.svelte';
 	import MapHint from '$lib/components/MapHint.svelte';
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
-	import { zoomToFeature } from '$lib/map/searchUtils.js';
+	import { zoomToFeature } from '$lib/map/searchUtils';
 	import {
 		addressStyle,
 		areaTypeStyles,
@@ -49,7 +49,7 @@
 		createHighlightStyle,
 		createLinkedTrenchStyle,
 		createRouteStyle
-	} from '$lib/map/styles.js';
+	} from '$lib/map/styles';
 
 	import TrenchTable from './TrenchTable.svelte';
 

@@ -25,7 +25,7 @@
 		createAffectedNodeStyle,
 		createAffectedTrenchStyle,
 		createDamagePointStyle
-	} from '$lib/map/styles.js';
+	} from '$lib/map/styles';
 	import {
 		addressStyle,
 		areaTypeStyles,
