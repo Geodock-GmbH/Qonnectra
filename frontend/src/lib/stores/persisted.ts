@@ -1,3 +1,4 @@
+import type { Writable } from 'svelte/store';
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
@@ -5,14 +6,9 @@ import { browser } from '$app/environment';
  * Creates a writable Svelte store that persists its value to localStorage.
  * On initialization, loads any existing value from localStorage. On every update,
  * writes the new value back to localStorage.
- * @template T
- * @param {string} key - The localStorage key to use for persistence
- * @param {T} initial - The initial value if no persisted value exists
- * @returns {import('svelte/store').Writable<T>} A writable store that syncs with localStorage
  */
-export function persisted(key, initial) {
-	/** @type {import('svelte/store').Writable<T>} */
-	const store = writable(initial, (set) => {
+export function persisted<T>(key: string, initial: T): Writable<T> {
+	const store: Writable<T> = writable<T>(initial, (set) => {
 		if (!browser) return;
 
 		const json = localStorage.getItem(key);
@@ -24,8 +20,7 @@ export function persisted(key, initial) {
 			}
 		}
 
-		/** @type {import('svelte/store').Unsubscriber} */
-		const unsub = store.subscribe((/** @type {T} */ current) => {
+		const unsub = store.subscribe((current: T) => {
 			localStorage.setItem(key, JSON.stringify(current));
 		});
 

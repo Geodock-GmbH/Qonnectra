@@ -1,3 +1,4 @@
+import type { Writable } from 'svelte/store';
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
@@ -5,14 +6,9 @@ import { browser } from '$app/environment';
  * Creates a writable store that syncs with sessionStorage.
  * On initialization, loads any existing value from sessionStorage. On every update,
  * writes the new value back to sessionStorage. Values are cleared when the browser tab closes.
- * @template T
- * @param {string} key - The sessionStorage key to use
- * @param {T} initial - The initial value if no session value exists
- * @returns {import('svelte/store').Writable<T>} A writable store that syncs with sessionStorage
  */
-export function session(key, initial) {
-	/** @type {import('svelte/store').Writable<T>} */
-	const store = writable(initial, (set) => {
+export function session<T>(key: string, initial: T): Writable<T> {
+	const store: Writable<T> = writable<T>(initial, (set) => {
 		if (!browser) return;
 
 		const json = sessionStorage.getItem(key);
@@ -24,8 +20,7 @@ export function session(key, initial) {
 			}
 		}
 
-		/** @type {import('svelte/store').Unsubscriber} */
-		const unsub = store.subscribe((/** @type {T} */ current) => {
+		const unsub = store.subscribe((current: T) => {
 			sessionStorage.setItem(key, JSON.stringify(current));
 		});
 
