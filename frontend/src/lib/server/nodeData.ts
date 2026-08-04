@@ -1,3 +1,4 @@
+import type { ActionFailure, Cookies } from '@sveltejs/kit';
 import { fail } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
@@ -5,12 +6,11 @@ import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
 /**
  * Maps node API responses (GeoJSON, minimal, or flat array) to combobox option format.
- * @param {any} nodesData - Response from node/all endpoint.
- * @returns {{ value: string, label: string }[]}
  */
-export function mapNodesToOptions(nodesData) {
-	const items = nodesData?.features || nodesData?.nodes || nodesData || [];
-	return items.map((/** @type {any} */ item) => {
+export function mapNodesToOptions(nodesData: unknown): { value: string; label: string }[] {
+	const items =
+		(nodesData as any)?.features || (nodesData as any)?.nodes || (nodesData as any) || [];
+	return items.map((item: any) => {
 		const node = item.properties || item;
 		return {
 			value: item.id || node.uuid,
@@ -19,116 +19,149 @@ export function mapNodesToOptions(nodesData) {
 	});
 }
 
-/**
- * @typedef {Object} ContainerHierarchyNode
- * @property {string} uuid - Container UUID
- * @property {string} name - Container name
- * @property {string} [container_type] - Container type name
- * @property {ContainerHierarchyNode[]} [children] - Child containers
- */
+export interface ContainerHierarchyNode {
+	/** Container UUID */
+	uuid: string;
+	/** Container name */
+	name: string;
+	/** Container type name */
+	container_type?: string;
+	/** Child containers */
+	children?: ContainerHierarchyNode[];
+}
 
-/**
- * @typedef {Object} SlotConfiguration
- * @property {string} uuid - Slot configuration UUID
- * @property {string} name - Slot configuration name
- * @property {number} [position] - Position in slot
- */
+export interface SlotConfiguration {
+	/** Slot configuration UUID */
+	uuid: string;
+	/** Slot configuration name */
+	name: string;
+	/** Position in slot */
+	position?: number;
+}
 
-/**
- * @typedef {Object} NodeStructure
- * @property {string} uuid - Node structure UUID
- * @property {string} [component_type] - Component type name
- * @property {number} [slot_position] - Position in slot
- */
+export interface NodeStructure {
+	/** Node structure UUID */
+	uuid: string;
+	/** Component type name */
+	component_type?: string;
+	/** Position in slot */
+	slot_position?: number;
+}
 
-/**
- * @typedef {Object} ComponentType
- * @property {string} uuid - Component type UUID
- * @property {string} name - Component type name
- * @property {string} [category] - Component category
- */
+export interface ComponentType {
+	/** Component type UUID */
+	uuid: string;
+	/** Component type name */
+	name: string;
+	/** Component category */
+	category?: string;
+}
 
-/**
- * @typedef {Object} Cable
- * @property {string} uuid - Cable UUID
- * @property {string} name - Cable name
- * @property {number} [fiber_count] - Number of fibers
- */
+export interface Cable {
+	/** Cable UUID */
+	uuid: string;
+	/** Cable name */
+	name: string;
+	/** Number of fibers */
+	fiber_count?: number;
+}
 
-/**
- * @typedef {Object} Fiber
- * @property {string} uuid - Fiber UUID
- * @property {number} fiber_number - Fiber position number
- * @property {string} [color] - Fiber color name
- */
+export interface Fiber {
+	/** Fiber UUID */
+	uuid: string;
+	/** Fiber position number */
+	fiber_number: number;
+	/** Fiber color name */
+	color?: string;
+}
 
-/**
- * @typedef {Object} FiberColor
- * @property {string} uuid - Fiber color UUID
- * @property {string} name - Color name
- * @property {string} hex_code - Hex color code
- */
+export interface FiberColor {
+	/** Fiber color UUID */
+	uuid: string;
+	/** Color name */
+	name: string;
+	/** Hex color code */
+	hex_code: string;
+}
 
-/**
- * @typedef {Object} ComponentPort
- * @property {string} uuid - Port UUID
- * @property {string} name - Port name
- * @property {number} [position] - Port position
- */
+export interface ComponentPort {
+	/** Port UUID */
+	uuid: string;
+	/** Port name */
+	name: string;
+	/** Port position */
+	position?: number;
+}
 
-/**
- * @typedef {Object} FiberSplice
- * @property {string} uuid - Splice UUID
- * @property {string} [fiber_a] - First fiber UUID
- * @property {string} [fiber_b] - Second fiber UUID
- */
+export interface FiberSplice {
+	/** Splice UUID */
+	uuid: string;
+	/** First fiber UUID */
+	fiber_a?: string;
+	/** Second fiber UUID */
+	fiber_b?: string;
+}
 
-/**
- * @typedef {Object} SlotDivider
- * @property {string} uuid - Divider UUID
- * @property {number} position - Divider position
- */
+export interface SlotDivider {
+	/** Divider UUID */
+	uuid: string;
+	/** Divider position */
+	position: number;
+}
 
-/**
- * @typedef {Object} SlotClipNumber
- * @property {string} uuid - Clip number UUID
- * @property {number} clip_number - Clip number value
- */
+export interface SlotClipNumber {
+	/** Clip number UUID */
+	uuid: string;
+	/** Clip number value */
+	clip_number: number;
+}
 
-/**
- * @typedef {Object} ContainerType
- * @property {string} uuid - Container type UUID
- * @property {string} name - Container type name
- */
+export interface ContainerType {
+	/** Container type UUID */
+	uuid: string;
+	/** Container type name */
+	name: string;
+}
 
-/**
- * @typedef {Object} Address
- * @property {string} uuid - Address UUID
- * @property {string} [street] - Street name
- * @property {string} [housenumber] - House number
- * @property {ResidentialUnit[]} [residential_units] - Units at this address
- */
+export interface Address {
+	/** Address UUID */
+	uuid: string;
+	/** Street name */
+	street?: string;
+	/** House number */
+	housenumber?: string;
+	/** Units at this address */
+	residential_units?: ResidentialUnit[];
+}
 
-/**
- * @typedef {Object} ResidentialUnit
- * @property {string} uuid - Residential unit UUID
- * @property {string} [unit_name] - Unit identifier
- */
+export interface ResidentialUnit {
+	/** Residential unit UUID */
+	uuid: string;
+	/** Unit identifier */
+	unit_name?: string;
+}
+
+export interface ComponentPlacement {
+	component_type: string;
+	slot_start: number;
+	port_number: number;
+	side: string;
+}
 
 /**
  * Gets the container hierarchy tree for a node.
- * @param {typeof fetch} fetch - SvelteKit fetch function
- * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @param {string} nodeUuid - UUID of the node
- * @returns {Promise<{hierarchy: ContainerHierarchyNode} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Container hierarchy tree
  */
-export async function getContainerHierarchy(fetch, cookies, nodeUuid) {
+export async function getContainerHierarchy(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	nodeUuid: string
+): Promise<{ hierarchy: ContainerHierarchyNode } | ActionFailure<{ error: string }>> {
 	if (!nodeUuid) {
 		return fail(400, { error: 'Missing required parameter: nodeUuid' });
 	}
 
 	try {
-		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
+		const headers = getAuthHeaders(cookies);
 		const response = await fetch(`${API_URL}container/tree/${nodeUuid}/`, {
 			method: 'GET',
 			headers
@@ -151,18 +184,18 @@ export async function getContainerHierarchy(fetch, cookies, nodeUuid) {
 
 /**
  * Gets slot configurations for a node.
- * @param {typeof fetch} fetch - SvelteKit fetch function
- * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @param {string} nodeUuid - UUID of the node
- * @returns {Promise<{configurations: SlotConfiguration[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Slot configurations
  */
-export async function getSlotConfigurationsForNode(fetch, cookies, nodeUuid) {
+export async function getSlotConfigurationsForNode(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	nodeUuid: string
+): Promise<{ configurations: SlotConfiguration[] } | ActionFailure<{ error: string }>> {
 	if (!nodeUuid) {
 		return fail(400, { error: 'Missing required parameter: nodeUuid' });
 	}
 
 	try {
-		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
+		const headers = getAuthHeaders(cookies);
 		const response = await fetch(`${API_URL}node-slot-configuration/by-node/${nodeUuid}/`, {
 			method: 'GET',
 			headers
@@ -185,18 +218,18 @@ export async function getSlotConfigurationsForNode(fetch, cookies, nodeUuid) {
 
 /**
  * Gets node structures for a slot configuration.
- * @param {typeof fetch} fetch - SvelteKit fetch function
- * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @param {string} slotConfigUuid - UUID of the slot configuration
- * @returns {Promise<{structures: NodeStructure[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Node structures
  */
-export async function getNodeStructures(fetch, cookies, slotConfigUuid) {
+export async function getNodeStructures(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	slotConfigUuid: string
+): Promise<{ structures: NodeStructure[] } | ActionFailure<{ error: string }>> {
 	if (!slotConfigUuid) {
 		return fail(400, { error: 'Missing required parameter: slotConfigUuid' });
 	}
 
 	try {
-		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
+		const headers = getAuthHeaders(cookies);
 		const response = await fetch(`${API_URL}node-structure/?slot_configuration=${slotConfigUuid}`, {
 			method: 'GET',
 			headers
@@ -219,13 +252,13 @@ export async function getNodeStructures(fetch, cookies, slotConfigUuid) {
 
 /**
  * Gets available component types.
- * @param {typeof fetch} fetch - SvelteKit fetch function
- * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @returns {Promise<{componentTypes: ComponentType[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Component types
  */
-export async function getComponentTypes(fetch, cookies) {
+export async function getComponentTypes(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies
+): Promise<{ componentTypes: ComponentType[] } | ActionFailure<{ error: string }>> {
 	try {
-		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
+		const headers = getAuthHeaders(cookies);
 		const response = await fetch(`${API_URL}attributes_component_type/`, {
 			method: 'GET',
 			headers
@@ -245,18 +278,18 @@ export async function getComponentTypes(fetch, cookies) {
 
 /**
  * Gets cables connected to a node.
- * @param {typeof fetch} fetch - SvelteKit fetch function
- * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @param {string} nodeUuid - UUID of the node
- * @returns {Promise<{cables: Cable[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Cables at node
  */
-export async function getCablesAtNode(fetch, cookies, nodeUuid) {
+export async function getCablesAtNode(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	nodeUuid: string
+): Promise<{ cables: Cable[] } | ActionFailure<{ error: string }>> {
 	if (!nodeUuid) {
 		return fail(400, { error: 'Missing required parameter: nodeUuid' });
 	}
 
 	try {
-		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
+		const headers = getAuthHeaders(cookies);
 		const response = await fetch(`${API_URL}cable/at-node/${nodeUuid}/`, {
 			method: 'GET',
 			headers
@@ -279,18 +312,18 @@ export async function getCablesAtNode(fetch, cookies, nodeUuid) {
 
 /**
  * Gets fibers for a cable.
- * @param {typeof fetch} fetch - SvelteKit fetch function
- * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @param {string} cableUuid - UUID of the cable
- * @returns {Promise<{fibers: Fiber[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Fibers for cable
  */
-export async function getFibersForCable(fetch, cookies, cableUuid) {
+export async function getFibersForCable(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	cableUuid: string
+): Promise<{ fibers: Fiber[] } | ActionFailure<{ error: string }>> {
 	if (!cableUuid) {
 		return fail(400, { error: 'Missing required parameter: cableUuid' });
 	}
 
 	try {
-		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
+		const headers = getAuthHeaders(cookies);
 		const response = await fetch(`${API_URL}fiber/by-cable/${cableUuid}/`, {
 			method: 'GET',
 			headers
@@ -313,13 +346,13 @@ export async function getFibersForCable(fetch, cookies, cableUuid) {
 
 /**
  * Gets fiber colors.
- * @param {typeof fetch} fetch - SvelteKit fetch function
- * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @returns {Promise<{fiberColors: FiberColor[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Fiber colors
  */
-export async function getFiberColors(fetch, cookies) {
+export async function getFiberColors(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies
+): Promise<{ fiberColors: FiberColor[] } | ActionFailure<{ error: string }>> {
 	try {
-		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
+		const headers = getAuthHeaders(cookies);
 		const response = await fetch(`${API_URL}attributes_fiber_color/`, {
 			method: 'GET',
 			headers
@@ -339,18 +372,18 @@ export async function getFiberColors(fetch, cookies) {
 
 /**
  * Gets ports for a component type.
- * @param {typeof fetch} fetch - SvelteKit fetch function
- * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @param {string} componentTypeId - ID of the component type
- * @returns {Promise<{ports: ComponentPort[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Component ports
  */
-export async function getComponentPorts(fetch, cookies, componentTypeId) {
+export async function getComponentPorts(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	componentTypeId: string
+): Promise<{ ports: ComponentPort[] } | ActionFailure<{ error: string }>> {
 	if (!componentTypeId) {
 		return fail(400, { error: 'Missing required parameter: componentTypeId' });
 	}
 
 	try {
-		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
+		const headers = getAuthHeaders(cookies);
 		const response = await fetch(
 			`${API_URL}attributes_component_structure/?component_type=${componentTypeId}`,
 			{
@@ -376,18 +409,18 @@ export async function getComponentPorts(fetch, cookies, componentTypeId) {
 
 /**
  * Gets fiber splices for a node structure.
- * @param {typeof fetch} fetch - SvelteKit fetch function
- * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @param {string} nodeStructureUuid - UUID of the node structure
- * @returns {Promise<{splices: FiberSplice[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Fiber splices
  */
-export async function getFiberSplices(fetch, cookies, nodeStructureUuid) {
+export async function getFiberSplices(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	nodeStructureUuid: string
+): Promise<{ splices: FiberSplice[] } | ActionFailure<{ error: string }>> {
 	if (!nodeStructureUuid) {
 		return fail(400, { error: 'Missing required parameter: nodeStructureUuid' });
 	}
 
 	try {
-		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
+		const headers = getAuthHeaders(cookies);
 		const response = await fetch(`${API_URL}fiber-splice/?node_structure=${nodeStructureUuid}`, {
 			method: 'GET',
 			headers
@@ -410,18 +443,18 @@ export async function getFiberSplices(fetch, cookies, nodeStructureUuid) {
 
 /**
  * Gets slot dividers for a slot configuration.
- * @param {typeof fetch} fetch - SvelteKit fetch function
- * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @param {string} slotConfigUuid - UUID of the slot configuration
- * @returns {Promise<{dividers: SlotDivider[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Slot dividers
  */
-export async function getSlotDividers(fetch, cookies, slotConfigUuid) {
+export async function getSlotDividers(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	slotConfigUuid: string
+): Promise<{ dividers: SlotDivider[] } | ActionFailure<{ error: string }>> {
 	if (!slotConfigUuid) {
 		return fail(400, { error: 'Missing required parameter: slotConfigUuid' });
 	}
 
 	try {
-		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
+		const headers = getAuthHeaders(cookies);
 		const response = await fetch(
 			`${API_URL}node-slot-divider/?slot_configuration=${slotConfigUuid}`,
 			{
@@ -448,18 +481,18 @@ export async function getSlotDividers(fetch, cookies, slotConfigUuid) {
 
 /**
  * Gets slot clip numbers for a slot configuration.
- * @param {typeof fetch} fetch - SvelteKit fetch function
- * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @param {string} slotConfigUuid - UUID of the slot configuration
- * @returns {Promise<{clipNumbers: SlotClipNumber[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Slot clip numbers
  */
-export async function getSlotClipNumbers(fetch, cookies, slotConfigUuid) {
+export async function getSlotClipNumbers(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	slotConfigUuid: string
+): Promise<{ clipNumbers: SlotClipNumber[] } | ActionFailure<{ error: string }>> {
 	if (!slotConfigUuid) {
 		return fail(400, { error: 'Missing required parameter: slotConfigUuid' });
 	}
 
 	try {
-		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
+		const headers = getAuthHeaders(cookies);
 		const response = await fetch(
 			`${API_URL}node-slot-clip-number/?slot_configuration=${slotConfigUuid}`,
 			{
@@ -486,13 +519,13 @@ export async function getSlotClipNumbers(fetch, cookies, slotConfigUuid) {
 
 /**
  * Gets container types.
- * @param {typeof fetch} fetch - SvelteKit fetch function
- * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @returns {Promise<{containerTypes: ContainerType[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Container types
  */
-export async function getContainerTypes(fetch, cookies) {
+export async function getContainerTypes(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies
+): Promise<{ containerTypes: ContainerType[] } | ActionFailure<{ error: string }>> {
 	try {
-		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
+		const headers = getAuthHeaders(cookies);
 		const response = await fetch(`${API_URL}container-type/`, {
 			method: 'GET',
 			headers
@@ -511,27 +544,25 @@ export async function getContainerTypes(fetch, cookies) {
 }
 
 /**
- * @typedef {Object} ComponentPlacement
- * @property {string} component_type
- * @property {number} slot_start
- * @property {number} port_number
- * @property {string} side
- */
-
-/**
  * Gets fiber usage in a node (which fibers are already spliced) with component placement info.
- * @param {typeof fetch} fetch - SvelteKit fetch function
- * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @param {string} nodeUuid - UUID of the node
- * @returns {Promise<{usedFiberUuids: string[], fiberComponentMap: Record<string, ComponentPlacement>} | import('@sveltejs/kit').ActionFailure<{error: string}>>}
  */
-export async function getFiberUsageInNode(fetch, cookies, nodeUuid) {
+export async function getFiberUsageInNode(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	nodeUuid: string
+): Promise<
+	| {
+			usedFiberUuids: string[];
+			fiberComponentMap: Record<string, ComponentPlacement>;
+	  }
+	| ActionFailure<{ error: string }>
+> {
 	if (!nodeUuid) {
 		return fail(400, { error: 'Node UUID is required' });
 	}
 
 	try {
-		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
+		const headers = getAuthHeaders(cookies);
 		const response = await fetch(`${API_URL}node/${nodeUuid}/used-fibers/`, {
 			method: 'GET',
 			headers
@@ -546,11 +577,10 @@ export async function getFiberUsageInNode(fetch, cookies, nodeUuid) {
 
 		const data = await response.json();
 
-		/** @type {Record<string, ComponentPlacement>} */
-		const fiberComponentMap = {};
+		const fiberComponentMap: Record<string, ComponentPlacement> = {};
 		if (data.fiber_component_map) {
 			for (const [uuid, info] of Object.entries(data.fiber_component_map)) {
-				fiberComponentMap[uuid] = /** @type {ComponentPlacement} */ (info);
+				fiberComponentMap[uuid] = info as ComponentPlacement;
 			}
 		}
 
@@ -566,18 +596,18 @@ export async function getFiberUsageInNode(fetch, cookies, nodeUuid) {
 
 /**
  * Gets addresses with residential units for a node.
- * @param {typeof fetch} fetch - SvelteKit fetch function
- * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @param {string} nodeUuid - UUID of the node
- * @returns {Promise<{addresses: Address[]} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Addresses with residential units
  */
-export async function getAddressesForNode(fetch, cookies, nodeUuid) {
+export async function getAddressesForNode(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	nodeUuid: string
+): Promise<{ addresses: Address[] } | ActionFailure<{ error: string }>> {
 	if (!nodeUuid) {
 		return fail(400, { error: 'Node UUID is required' });
 	}
 
 	try {
-		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
+		const headers = getAuthHeaders(cookies);
 		const response = await fetch(`${API_URL}node/${nodeUuid}/addresses/`, {
 			method: 'GET',
 			headers
@@ -600,18 +630,18 @@ export async function getAddressesForNode(fetch, cookies, nodeUuid) {
 
 /**
  * Exports node structure data as Excel file.
- * @param {typeof fetch} fetch - SvelteKit fetch function
- * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @param {string} nodeUuid - UUID of the node
- * @returns {Promise<{fileData: string, fileName: string} | import('@sveltejs/kit').ActionFailure<{error: string}>>} Base64-encoded file data and filename
  */
-export async function exportNodeExcel(fetch, cookies, nodeUuid) {
+export async function exportNodeExcel(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	nodeUuid: string
+): Promise<{ fileData: string; fileName: string } | ActionFailure<{ error: string }>> {
 	if (!nodeUuid) {
 		return fail(400, { error: 'Missing nodeUuid' });
 	}
 
 	try {
-		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
+		const headers = getAuthHeaders(cookies);
 		const response = await fetch(`${API_URL}node-export/excel/${nodeUuid}/`, { headers });
 
 		if (!response.ok) {
@@ -633,18 +663,24 @@ export async function exportNodeExcel(fetch, cookies, nodeUuid) {
 
 /**
  * Gets used residential units in a node (connected to fibers) with component placement info.
- * @param {typeof fetch} fetch - SvelteKit fetch function
- * @param {import('@sveltejs/kit').Cookies} cookies - Request cookies
- * @param {string} nodeUuid - UUID of the node
- * @returns {Promise<{used_uuids: string[], residentialUnitComponentMap: Record<string, ComponentPlacement>} | import('@sveltejs/kit').ActionFailure<{error: string}>>}
  */
-export async function getUsedResidentialUnits(fetch, cookies, nodeUuid) {
+export async function getUsedResidentialUnits(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	nodeUuid: string
+): Promise<
+	| {
+			used_uuids: string[];
+			residentialUnitComponentMap: Record<string, ComponentPlacement>;
+	  }
+	| ActionFailure<{ error: string }>
+> {
 	if (!nodeUuid) {
 		return fail(400, { error: 'Node UUID is required' });
 	}
 
 	try {
-		const headers = /** @type {Record<string, string>} */ (getAuthHeaders(cookies));
+		const headers = getAuthHeaders(cookies);
 		const response = await fetch(`${API_URL}node/${nodeUuid}/used-residential-units/`, {
 			method: 'GET',
 			headers
@@ -659,11 +695,10 @@ export async function getUsedResidentialUnits(fetch, cookies, nodeUuid) {
 
 		const data = await response.json();
 
-		/** @type {Record<string, ComponentPlacement>} */
-		const residentialUnitComponentMap = {};
+		const residentialUnitComponentMap: Record<string, ComponentPlacement> = {};
 		if (data.residential_unit_component_map) {
 			for (const [uuid, info] of Object.entries(data.residential_unit_component_map)) {
-				residentialUnitComponentMap[uuid] = /** @type {ComponentPlacement} */ (info);
+				residentialUnitComponentMap[uuid] = info as ComponentPlacement;
 			}
 		}
 

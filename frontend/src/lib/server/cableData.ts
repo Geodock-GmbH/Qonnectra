@@ -1,16 +1,15 @@
+import type { ActionFailure, Cookies } from '@sveltejs/kit';
 import { fail } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
-/**
- * Fetch all cables that pass through a trench
- * @param {typeof fetch} fetch - SvelteKit fetch
- * @param {import('@sveltejs/kit').Cookies} cookies - SvelteKit cookies
- * @param {string} trenchUuid - UUID of the trench
- * @returns {Promise<Object>} The cables data or failure response
- */
-export async function getCablesInTrench(fetch, cookies, trenchUuid) {
+/** Fetch all cables that pass through a trench */
+export async function getCablesInTrench(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	trenchUuid: string
+): Promise<Record<string, unknown> | ActionFailure<{ error: string }>> {
 	if (!trenchUuid) {
 		return fail(400, { error: 'Trench UUID is required' });
 	}

@@ -1,16 +1,15 @@
+import type { ActionFailure, Cookies } from '@sveltejs/kit';
 import { fail } from '@sveltejs/kit';
 import { API_URL } from '$env/static/private';
 
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
-/**
- * Fetch all conduits/pipes in a trench
- * @param {typeof fetch} fetch - SvelteKit fetch
- * @param {import('@sveltejs/kit').Cookies} cookies - SvelteKit cookies
- * @param {string} trenchId - UUID of the trench
- * @returns {Promise<Object>} The conduits data or failure response
- */
-export async function getPipesInTrench(fetch, cookies, trenchId) {
+/** Fetch all conduits/pipes in a trench */
+export async function getPipesInTrench(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	trenchId: string
+): Promise<Record<string, unknown> | ActionFailure<{ error: string }>> {
 	if (!trenchId) {
 		return fail(400, { error: 'Trench ID is required' });
 	}
@@ -36,14 +35,12 @@ export async function getPipesInTrench(fetch, cookies, trenchId) {
 	}
 }
 
-/**
- * Fetch all microducts in a conduit/pipe
- * @param {typeof fetch} fetch - SvelteKit fetch
- * @param {import('@sveltejs/kit').Cookies} cookies - SvelteKit cookies
- * @param {string} pipeId - UUID of the conduit/pipe
- * @returns {Promise<Object>} The microducts data or failure response
- */
-export async function getMicroducts(fetch, cookies, pipeId) {
+/** Fetch all microducts in a conduit/pipe */
+export async function getMicroducts(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	pipeId: string
+): Promise<Record<string, unknown> | ActionFailure<{ error: string }>> {
 	if (!pipeId) {
 		return fail(400, { error: 'Pipe ID is required' });
 	}
@@ -69,14 +66,12 @@ export async function getMicroducts(fetch, cookies, pipeId) {
 	}
 }
 
-/**
- * Fetch all trench UUIDs that contain a specific conduit
- * @param {typeof fetch} fetch - SvelteKit fetch
- * @param {import('@sveltejs/kit').Cookies} cookies - SvelteKit cookies
- * @param {string} conduitId - UUID of the conduit
- * @returns {Promise<Object>} The trench UUIDs data or failure response
- */
-export async function getTrenchesForConduit(fetch, cookies, conduitId) {
+/** Fetch all trench UUIDs that contain a specific conduit */
+export async function getTrenchesForConduit(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	conduitId: string
+): Promise<Record<string, unknown> | ActionFailure<{ error: string }>> {
 	if (!conduitId) {
 		return fail(400, { error: 'Conduit ID is required' });
 	}
@@ -102,14 +97,12 @@ export async function getTrenchesForConduit(fetch, cookies, conduitId) {
 	}
 }
 
-/**
- * Fetch trench profile data (conduits with canvas positions)
- * @param {typeof fetch} fetch - SvelteKit fetch
- * @param {import('@sveltejs/kit').Cookies} cookies - SvelteKit cookies
- * @param {string} trenchUuid - UUID of the trench
- * @returns {Promise<Object>} The profile data or failure response
- */
-export async function getTrenchProfile(fetch, cookies, trenchUuid) {
+/** Fetch trench profile data (conduits with canvas positions) */
+export async function getTrenchProfile(
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	trenchUuid: string
+): Promise<Record<string, unknown> | ActionFailure<{ error: string }>> {
 	if (!trenchUuid) {
 		return fail(400, { error: 'Trench UUID is required' });
 	}
@@ -135,28 +128,17 @@ export async function getTrenchProfile(fetch, cookies, trenchUuid) {
 	}
 }
 
-/**
- * Save canvas position for a conduit in trench profile
- * @param {typeof fetch} fetch - SvelteKit fetch
- * @param {import('@sveltejs/kit').Cookies} cookies - SvelteKit cookies
- * @param {string} trenchUuid - UUID of the trench
- * @param {string} conduitUuid - UUID of the conduit
- * @param {number} canvasX - X position
- * @param {number} canvasY - Y position
- * @param {number} canvasWidth - Width
- * @param {number} canvasHeight - Height
- * @returns {Promise<Object>} The saved data or failure response
- */
+/** Save canvas position for a conduit in trench profile */
 export async function saveTrenchProfilePosition(
-	fetch,
-	cookies,
-	trenchUuid,
-	conduitUuid,
-	canvasX,
-	canvasY,
-	canvasWidth,
-	canvasHeight
-) {
+	fetch: typeof globalThis.fetch,
+	cookies: Cookies,
+	trenchUuid: string,
+	conduitUuid: string,
+	canvasX: number,
+	canvasY: number,
+	canvasWidth: number,
+	canvasHeight: number
+): Promise<Record<string, unknown> | ActionFailure<{ error: string }>> {
 	try {
 		const headers = getAuthHeaders(cookies);
 		headers['Content-Type'] = 'application/json';
