@@ -1,6 +1,7 @@
 import type OlMap from 'ol/Map.js';
 import Feature from 'ol/Feature.js';
 import Polygon from 'ol/geom/Polygon.js';
+import Style from 'ol/style/Style.js';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { InquiryDrawManager } from '$lib/classes/InquiryDrawManager.svelte';
@@ -485,5 +486,384 @@ describe('InquiryDrawManager editing interaction', () => {
 
 		manager.cleanup();
 		expect(manager.isEditing).toBe(false);
+	});
+});
+
+/**
+ * Access the private polygon source of a manager for test assertions.
+ */
+function polygonSource(manager: InquiryDrawManager): {
+	getFeatures: () => Feature[];
+	addFeature: (f: Feature) => void;
+	addFeatures: (f: Feature[]) => void;
+	clear: () => void;
+} {
+	return (
+		manager as unknown as {
+			_polygonSource: {
+				getFeatures: () => Feature[];
+				addFeature: (f: Feature) => void;
+				addFeatures: (f: Feature[]) => void;
+				clear: () => void;
+			};
+		}
+	)._polygonSource;
+}
+
+describe('InquiryDrawManager renderPolygons', () => {
+	let manager: InquiryDrawManager;
+
+	beforeEach(() => {
+		manager = new InquiryDrawManager();
+		const mockMap = createMockMap();
+		manager.initialize(mockMap as unknown as OlMap);
+	});
+
+	afterEach(() => {
+		manager.cleanup();
+	});
+
+	function squareGeoJson(props: Record<string, unknown> = {}): Record<string, unknown> {
+		return {
+			type: 'Feature',
+			geometry: {
+				type: 'Polygon',
+				coordinates: [
+					[
+						[0, 0],
+						[10, 0],
+						[10, 10],
+						[0, 10],
+						[0, 0]
+					]
+				]
+			},
+			properties: props
+		};
+	}
+
+	test('renders GeoJSON features onto the polygon source', () => {
+		manager.renderPolygons([squareGeoJson({ uuid: 'x1' })], null, null);
+
+		const features = polygonSource(manager).getFeatures();
+		expect(features).toHaveLength(1);
+		expect(features[0].getGeometry()).toBeInstanceOf(Polygon);
+		expect(features[0].get('uuid')).toBe('x1');
+	});
+
+	test('renders multiple features', () => {
+		manager.renderPolygons(
+			[squareGeoJson({ uuid: 'a' }), squareGeoJson({ uuid: 'b' })],
+			null,
+			null
+		);
+		expect(polygonSource(manager).getFeatures()).toHaveLength(2);
+	});
+
+	test('clears existing polygons before rendering new ones', () => {
+		manager.renderPolygons([squareGeoJson({ uuid: 'old' })], null, null);
+		expect(polygonSource(manager).getFeatures()).toHaveLength(1);
+
+		manager.renderPolygons([squareGeoJson({ uuid: 'new' })], null, null);
+		const features = polygonSource(manager).getFeatures();
+		expect(features).toHaveLength(1);
+		expect(features[0].get('uuid')).toBe('new');
+	});
+
+	test('empty feature array clears the source without adding anything', () => {
+		manager.renderPolygons([squareGeoJson()], null, null);
+		expect(polygonSource(manager).getFeatures()).toHaveLength(1);
+
+		manager.renderPolygons([], null, null);
+		expect(polygonSource(manager).getFeatures()).toHaveLength(0);
+	});
+
+	test('reprojects coordinates when projections are supplied', () => {
+		manager.renderPolygons([squareGeoJson()], 'EPSG:4326', 'EPSG:3857');
+		const geom = polygonSource(manager).getFeatures()[0].getGeometry() as Polygon;
+		const firstCoord = geom.getCoordinates()[0][0];
+
+		// EPSG:4326 [0,0] reprojected to 3857 stays at origin; a lon of 10 must map
+		// to a large web-mercator x, proving reprojection actually ran.
+		expect(Math.abs(firstCoord[0])).toBeLessThan(1);
+		const secondCoord = geom.getCoordinates()[0][1];
+		expect(secondCoord[0]).toBeGreaterThan(1000000);
+	});
+
+	test('does nothing when polygon source is missing', () => {
+		const uninit = new InquiryDrawManager();
+		expect(() => uninit.renderPolygons([squareGeoJson()], null, null)).not.toThrow();
+	});
+});
+
+describe('InquiryDrawManager highlight style function', () => {
+	let manager: InquiryDrawManager;
+	let mockMap: MockMap;
+
+	beforeEach(() => {
+		manager = new InquiryDrawManager();
+		mockMap = createMockMap();
+		manager.initialize(mockMap as unknown as OlMap);
+	});
+
+	afterEach(() => {
+		manager.cleanup();
+	});
+
+	function getHighlightStyleFn(
+		parentLayer: { getVisible: () => boolean },
+		isPoint: boolean
+	): (feature: unknown) => unknown {
+		manager.initializeHighlightLayers([
+			{ source: createMockTileSource(), parentLayer, isPoint }
+		] as never);
+		const layer = mockMap.layers[mockMap.layers.length - 1] as {
+			getStyle: () => (feature: unknown) => unknown;
+		};
+		return layer.getStyle();
+	}
+
+	/**
+	 * Build a minimal RenderFeature-like object covering the surface used by
+	 * featureIntersectsPolygons.
+	 */
+	function mockRenderFeature(
+		type: string,
+		flatCoords: number[],
+		extent: number[]
+	): Record<string, () => unknown> {
+		return {
+			getExtent: () => extent,
+			getFlatCoordinates: () => flatCoords,
+			getType: () => type
+		};
+	}
+
+	function cachePolygon(manager: InquiryDrawManager): void {
+		const feature = new Feature({
+			geometry: new Polygon([
+				[
+					[0, 0],
+					[10, 0],
+					[10, 10],
+					[0, 10],
+					[0, 0]
+				]
+			])
+		});
+		polygonSource(manager).addFeature(feature);
+		manager.updatePolygonGeometryCache();
+	}
+
+	test('returns undefined when no polygons are cached', () => {
+		const styleFn = getHighlightStyleFn(createMockParentLayer(true), false);
+		const feature = mockRenderFeature('Point', [5, 5], [5, 5, 5, 5]);
+		expect(styleFn(feature)).toBeUndefined();
+	});
+
+	test('returns undefined when parent layer is not visible', () => {
+		const styleFn = getHighlightStyleFn(createMockParentLayer(false), false);
+		cachePolygon(manager);
+		const feature = mockRenderFeature('Point', [5, 5], [5, 5, 5, 5]);
+		expect(styleFn(feature)).toBeUndefined();
+	});
+
+	test('returns a style for a point inside a cached polygon', () => {
+		const styleFn = getHighlightStyleFn(createMockParentLayer(true), true);
+		cachePolygon(manager);
+		const feature = mockRenderFeature('Point', [5, 5], [5, 5, 5, 5]);
+		const style = styleFn(feature) as Style;
+		expect(style).toBeInstanceOf(Style);
+		// point highlight style is image-based, not stroke-based
+		expect(style.getImage()).toBeTruthy();
+	});
+
+	test('returns undefined for a point outside every cached polygon', () => {
+		const styleFn = getHighlightStyleFn(createMockParentLayer(true), true);
+		cachePolygon(manager);
+		const feature = mockRenderFeature('Point', [100, 100], [100, 100, 100, 100]);
+		expect(styleFn(feature)).toBeUndefined();
+	});
+
+	test('returns a style for a line feature crossing a cached polygon', () => {
+		const styleFn = getHighlightStyleFn(createMockParentLayer(true), false);
+		cachePolygon(manager);
+		// A LineString from outside into the polygon; one vertex lands inside.
+		const feature = mockRenderFeature('LineString', [-5, -5, 5, 5], [-5, -5, 5, 5]);
+		const style = styleFn(feature) as Style;
+		expect(style).toBeInstanceOf(Style);
+		// line/polygon highlight style is stroke-based, not image-based
+		expect(style.getStroke()).toBeTruthy();
+	});
+
+	test('extent pre-filter skips polygons the feature cannot reach', () => {
+		const styleFn = getHighlightStyleFn(createMockParentLayer(true), false);
+		cachePolygon(manager);
+		// Feature extent far from the polygon: intersectsExtent short-circuits.
+		const feature = mockRenderFeature('LineString', [500, 500, 600, 600], [500, 500, 600, 600]);
+		expect(styleFn(feature)).toBeUndefined();
+	});
+});
+
+describe('InquiryDrawManager draw/modify callbacks', () => {
+	let manager: InquiryDrawManager;
+	let mockMap: MockMap;
+
+	beforeEach(() => {
+		manager = new InquiryDrawManager();
+		mockMap = createMockMap();
+		manager.initialize(mockMap as unknown as OlMap);
+	});
+
+	afterEach(() => {
+		manager.cleanup();
+	});
+
+	/**
+	 * Retrieve the last interaction added to the mock map.
+	 */
+	function lastInteraction(): { dispatchEvent: (e: unknown) => void } {
+		return mockMap.interactions[mockMap.interactions.length - 1] as {
+			dispatchEvent: (e: unknown) => void;
+		};
+	}
+
+	test('onDrawEnd is invoked with the drawn feature on drawend', () => {
+		const onDrawEnd = vi.fn();
+		manager.startDrawing(onDrawEnd);
+
+		const drawFeature = new Feature({
+			geometry: new Polygon([
+				[
+					[0, 0],
+					[1, 0],
+					[1, 1],
+					[0, 0]
+				]
+			])
+		});
+
+		const draw = lastInteraction();
+		draw.dispatchEvent({ type: 'drawend', feature: drawFeature });
+
+		expect(onDrawEnd).toHaveBeenCalledTimes(1);
+		expect(onDrawEnd).toHaveBeenCalledWith(drawFeature);
+	});
+
+	test('drawend does not fire the callback after stopDrawing', () => {
+		const onDrawEnd = vi.fn();
+		manager.startDrawing(onDrawEnd);
+		const draw = lastInteraction();
+
+		manager.stopDrawing();
+		draw.dispatchEvent({
+			type: 'drawend',
+			feature: new Feature({
+				geometry: new Polygon([
+					[
+						[0, 0],
+						[1, 0],
+						[1, 1],
+						[0, 0]
+					]
+				])
+			})
+		});
+
+		expect(onDrawEnd).not.toHaveBeenCalled();
+	});
+
+	test('onModifyEnd is invoked for each modified feature on modifyend', () => {
+		const onModifyEnd = vi.fn();
+		manager.startEditing(onModifyEnd);
+
+		const f1 = new Feature();
+		const f2 = new Feature();
+		const modify = lastInteraction();
+		modify.dispatchEvent({
+			type: 'modifyend',
+			features: { getArray: () => [f1, f2] }
+		});
+
+		expect(onModifyEnd).toHaveBeenCalledTimes(2);
+		expect(onModifyEnd).toHaveBeenNthCalledWith(1, f1);
+		expect(onModifyEnd).toHaveBeenNthCalledWith(2, f2);
+	});
+
+	test('modifyend does not fire the callback after stopEditing', () => {
+		const onModifyEnd = vi.fn();
+		manager.startEditing(onModifyEnd);
+		const modify = lastInteraction();
+
+		manager.stopEditing();
+		modify.dispatchEvent({
+			type: 'modifyend',
+			features: { getArray: () => [new Feature()] }
+		});
+
+		expect(onModifyEnd).not.toHaveBeenCalled();
+	});
+});
+
+describe('InquiryDrawManager edge cases', () => {
+	test('updatePolygonGeometryCache resets to empty when source is missing', () => {
+		const manager = new InquiryDrawManager();
+		(manager as unknown as { _polygonGeometries: unknown[] })._polygonGeometries = [{}];
+		manager.updatePolygonGeometryCache();
+		expect(manager._polygonGeometries).toEqual([]);
+	});
+
+	test('removePolygonByUuid is a no-op when source is missing', () => {
+		const manager = new InquiryDrawManager();
+		expect(() => manager.removePolygonByUuid('nope')).not.toThrow();
+	});
+
+	test('removePolygonByUuid leaves features untouched when uuid is absent', () => {
+		const manager = new InquiryDrawManager();
+		manager.initialize(createMockMap() as unknown as OlMap);
+		const f = new Feature({
+			geometry: new Polygon([
+				[
+					[0, 0],
+					[1, 0],
+					[1, 1],
+					[0, 0]
+				]
+			])
+		});
+		f.set('uuid', 'keep');
+		polygonSource(manager).addFeature(f);
+
+		manager.removePolygonByUuid('missing');
+
+		expect(polygonSource(manager).getFeatures()).toHaveLength(1);
+		manager.cleanup();
+	});
+
+	test('initializeHighlightLayers is a no-op without a map', () => {
+		const manager = new InquiryDrawManager();
+		expect(() =>
+			manager.initializeHighlightLayers([
+				{ source: createMockTileSource(), parentLayer: createMockParentLayer(), isPoint: false }
+			] as never)
+		).not.toThrow();
+	});
+
+	test('clearHighlights refreshes highlight layers after clearing cache', () => {
+		const manager = new InquiryDrawManager();
+		const mockMap = createMockMap();
+		manager.initialize(mockMap as unknown as OlMap);
+		manager.initializeHighlightLayers([
+			{ source: createMockTileSource(), parentLayer: createMockParentLayer(), isPoint: false }
+		] as never);
+
+		const highlightLayer = mockMap.layers[mockMap.layers.length - 1] as { changed: () => void };
+		const spy = vi.spyOn(highlightLayer, 'changed');
+
+		manager.clearHighlights();
+
+		expect(manager._polygonGeometries).toEqual([]);
+		expect(spy).toHaveBeenCalled();
+		manager.cleanup();
 	});
 });
