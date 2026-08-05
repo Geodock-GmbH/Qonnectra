@@ -8,10 +8,18 @@ from rest_framework.test import APIClient
 from ..factories import (
     AreaTypeFactory,
     CompanyFactory,
+    ComponentStructureFactory,
+    ComponentTypeFactory,
     ConduitTypeFactory,
     ConstructionTypeFactory,
+    FiberColorFactory,
+    MicroductColorFactory,
+    MicroductStatusFactory,
     NetworkLevelFactory,
     NodeTypeFactory,
+    ResidentialUnitStatusFactory,
+    ResidentialUnitTypeFactory,
+    StatusDevelopmentFactory,
     StatusFactory,
     SurfaceFactory,
 )
@@ -118,3 +126,98 @@ class TestAttributeViewSets:
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
         assert response.data[0]["node_type"] == "Type 3"
+
+    def test_retrieve_node_type(self, authenticated_client):
+        """Test retrieving a single node type by id."""
+        node_type = NodeTypeFactory(node_type="Retrievable Type")
+
+        response = authenticated_client.get(
+            f"/api/v1/attributes_node_type/{node_type.id}/"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["node_type"] == "Retrievable Type"
+
+    def test_list_requires_authentication(self, api_client):
+        """Test that anonymous access to an attribute list is rejected."""
+        response = api_client.get("/api/v1/attributes_node_type/")
+        assert response.status_code in (
+            status.HTTP_401_UNAUTHORIZED,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+
+@pytest.mark.django_db
+class TestNetworkAttributeViewSets:
+    """Tests for the microduct/fiber/component/residential attribute ViewSets."""
+
+    def test_list_microduct_statuses(self, authenticated_client):
+        """Test listing microduct statuses."""
+        MicroductStatusFactory.create_batch(2)
+
+        response = authenticated_client.get("/api/v1/attributes_microduct_status/")
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 2
+
+    def test_list_microduct_colors(self, authenticated_client):
+        """Test listing microduct colors."""
+        MicroductColorFactory.create_batch(3)
+
+        response = authenticated_client.get("/api/v1/attributes_microduct_color/")
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 3
+
+    def test_list_fiber_colors(self, authenticated_client):
+        """Test listing fiber colors."""
+        FiberColorFactory.create_batch(2)
+
+        response = authenticated_client.get("/api/v1/attributes_fiber_color/")
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 2
+
+    def test_list_component_types(self, authenticated_client):
+        """Test listing component types."""
+        ComponentTypeFactory.create_batch(2)
+
+        response = authenticated_client.get("/api/v1/attributes_component_type/")
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 2
+
+    def test_list_component_structures(self, authenticated_client):
+        """Test listing component structures."""
+        component_type = ComponentTypeFactory()
+        ComponentStructureFactory(component_type=component_type, port=1)
+        ComponentStructureFactory(component_type=component_type, port=2)
+
+        response = authenticated_client.get(
+            "/api/v1/attributes_component_structure/"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 2
+
+    def test_list_status_developments(self, authenticated_client):
+        """Test listing status developments."""
+        StatusDevelopmentFactory.create_batch(2)
+
+        response = authenticated_client.get("/api/v1/attributes_status_development/")
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 2
+
+    def test_list_residential_unit_types(self, authenticated_client):
+        """Test listing residential unit types."""
+        ResidentialUnitTypeFactory.create_batch(2)
+
+        response = authenticated_client.get(
+            "/api/v1/attributes_residential_unit_type/"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 2
+
+    def test_list_residential_unit_statuses(self, authenticated_client):
+        """Test listing residential unit statuses."""
+        ResidentialUnitStatusFactory.create_batch(2)
+
+        response = authenticated_client.get(
+            "/api/v1/attributes_residential_unit_status/"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 2
