@@ -14,7 +14,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from ..factories import NodeFactory
+from ..factories import ContainerFactory, NodeFactory
 
 User = get_user_model()
 
@@ -207,3 +207,54 @@ class TestNodeSlotConfigurationViewSet:
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.data["total_slots"] == 20
+
+    def test_by_node_action(self, authenticated_client, slot_config):
+        """The by-node action returns configurations for a node."""
+        node = slot_config.uuid_node
+        response = authenticated_client.get(
+            f"/api/v1/node-slot-configuration/by-node/{node.uuid}/"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+
+    def test_move_to_container(self, authenticated_client, slot_config):
+        """move-to-container assigns a same-node container to the config."""
+        container = ContainerFactory(uuid_node=slot_config.uuid_node)
+        response = authenticated_client.post(
+            f"/api/v1/node-slot-configuration/{slot_config.uuid}/move-to-container/",
+            data={"container_id": str(container.uuid), "sort_order": 2},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK
+        slot_config.refresh_from_db()
+        assert slot_config.container_id == container.uuid
+        assert slot_config.sort_order == 2
+
+    def test_move_to_root(self, authenticated_client, slot_config):
+        """move-to-container with a null container moves the config to root."""
+        container = ContainerFactory(uuid_node=slot_config.uuid_node)
+        slot_config.container = container
+        slot_config.save()
+
+        response = authenticated_client.post(
+            f"/api/v1/node-slot-configuration/{slot_config.uuid}/move-to-container/",
+            data={"container_id": None, "sort_order": 0},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK
+        slot_config.refresh_from_db()
+        assert slot_config.container_id is None
+
+    def test_move_to_container_of_other_node_rejected(
+        self, authenticated_client, slot_config
+    ):
+        """A container from a different node is rejected."""
+        other_node = NodeFactory()
+        foreign_container = ContainerFactory(uuid_node=other_node)
+
+        response = authenticated_client.post(
+            f"/api/v1/node-slot-configuration/{slot_config.uuid}/move-to-container/",
+            data={"container_id": str(foreign_container.uuid)},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
