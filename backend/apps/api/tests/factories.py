@@ -40,6 +40,7 @@ from apps.api.models import (
     MicroductCableConnection,
     MicroductConnection,
     Node,
+    ResidentialUnit,
     PipelineInquiryArea,
     PipelineRecord,
     Projects,
@@ -573,6 +574,16 @@ class ComponentStructureFactory(factory.django.DjangoModelFactory):
     component_type = factory.SubFactory(ComponentTypeFactory)
     in_or_out = AttributesComponentStructure.InOrOut.IN
     port = factory.Sequence(lambda n: n + 1)
+
+
+class ResidentialUnitFactory(factory.django.DjangoModelFactory):
+    """Factory for ResidentialUnit model."""
+
+    class Meta:
+        model = ResidentialUnit
+
+    uuid_address = factory.SubFactory(AddressFactory)
+    floor = factory.Sequence(lambda n: n)
 
 
 class ResidentialUnitTypeFactory(factory.django.DjangoModelFactory):
