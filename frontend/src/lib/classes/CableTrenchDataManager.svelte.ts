@@ -1,3 +1,4 @@
+import type { Fiber } from './CableFiberDataManager.svelte';
 import { deserialize } from '$app/forms';
 
 interface CableTrenchItem {
@@ -16,10 +17,6 @@ interface FiberColor {
 	name_en?: string;
 }
 
-interface FiberRecord {
-	[key: string]: unknown;
-}
-
 /**
  * Manages cable and fiber data fetching for trench features in map view
  * Displays cables that pass through a trench with lazy-loaded fiber details
@@ -29,7 +26,7 @@ export class CableTrenchDataManager {
 	loading: boolean = $state(false);
 	error: string | null = $state(null);
 
-	fibers: Record<string, FiberRecord[]> = $state({});
+	fibers: Record<string, Fiber[]> = $state({});
 	loadingFibers: Record<string, boolean> = $state({});
 	errorFibers: Record<string, string | null> = $state({});
 
@@ -140,7 +137,7 @@ export class CableTrenchDataManager {
 				const data = result.data as Record<string, unknown>;
 				this.fibers = {
 					...this.fibers,
-					[cableUuid]: (data.fibers as FiberRecord[]) || []
+					[cableUuid]: (data.fibers as Fiber[]) || []
 				};
 
 				this.errorFibers = {
@@ -243,7 +240,7 @@ export class CableTrenchDataManager {
 	 * Get fibers for a specific cable
 	 * @param cableUuid - UUID of the cable
 	 */
-	getFibersForCable(cableUuid: string): FiberRecord[] {
+	getFibersForCable(cableUuid: string): Fiber[] {
 		return this.fibers[cableUuid] || [];
 	}
 

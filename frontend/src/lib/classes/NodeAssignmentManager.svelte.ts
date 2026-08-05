@@ -15,7 +15,7 @@ interface SelectableLayersConfig {
 
 interface InteractionManagerRef {
 	olMap: import('ol/Map').default | null;
-	layers: { nodeLayer?: LayerBase | null; [key: string]: LayerBase | null | undefined };
+	layers: { nodeLayer?: LayerBase | null };
 	selectableLayersConfig: SelectableLayersConfig;
 	handleFeatureClick: (feature: Feature, coordinate: number[], layer?: LayerBase | null) => void;
 }

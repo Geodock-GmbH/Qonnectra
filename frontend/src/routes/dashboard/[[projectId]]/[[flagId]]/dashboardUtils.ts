@@ -15,14 +15,50 @@ interface ProjectItem {
 	active: boolean;
 }
 
-interface NamedCount {
-	name: string;
+interface CityCount {
+	city: string;
 	count: number;
 }
 
-interface LabeledValue {
-	label: string;
-	value: number;
+interface StatusCount {
+	status: string;
+	count: number;
+}
+
+interface TypeCount {
+	type: string;
+	count: number;
+}
+
+interface LevelCount {
+	level: string;
+	count: number;
+}
+
+interface OwnerCount {
+	owner: string;
+	count: number;
+}
+
+interface StatusLength {
+	status: string;
+	length: number;
+}
+
+interface PhaseLength {
+	phase: string;
+	length: number;
+}
+
+interface ConduitLengthByType {
+	type_name: string;
+	total: number;
+}
+
+interface AreaByType {
+	type_name: string;
+	count: number;
+	total_area_km2?: number;
 }
 
 export interface DashboardData {
@@ -32,35 +68,35 @@ export interface DashboardData {
 	avgHouseConnectionLength: number;
 	lengthWithFunding: number;
 	lengthWithInternalExecution: number;
-	lengthByStatus: LabeledValue[];
-	lengthByNetworkLevel: LabeledValue[];
+	lengthByStatus: StatusLength[];
+	lengthByNetworkLevel: PhaseLength[];
 	longestRoutes: unknown[];
 	expiringWarranties: unknown[];
-	nodesByCity: NamedCount[];
-	nodesByStatus: NamedCount[];
-	nodesByNetworkLevel: NamedCount[];
+	nodesByCity: CityCount[];
+	nodesByStatus: StatusCount[];
+	nodesByNetworkLevel: LevelCount[];
 	nodesByType: NodeByType[];
-	nodesByOwner: NamedCount[];
+	nodesByOwner: OwnerCount[];
 	newestNodes: unknown[];
 	projects: ProjectItem[];
-	addressesByCity: NamedCount[];
-	addressesByStatus: NamedCount[];
-	unitsByCity: NamedCount[];
-	unitsByType: NamedCount[];
+	addressesByCity: CityCount[];
+	addressesByStatus: StatusCount[];
+	unitsByCity: CityCount[];
+	unitsByType: TypeCount[];
 	totalAddresses: number;
 	totalUnits: number;
-	conduitLengthByType: LabeledValue[];
-	conduitLengthByStatusType: LabeledValue[];
-	conduitLengthByNetworkLevel: LabeledValue[];
-	conduitAvgLengthByType: LabeledValue[];
-	conduitCountByStatus: NamedCount[];
-	conduitLengthByOwner: LabeledValue[];
-	conduitLengthByManufacturer: LabeledValue[];
+	conduitLengthByType: ConduitLengthByType[];
+	conduitLengthByStatusType: unknown[];
+	conduitLengthByNetworkLevel: unknown[];
+	conduitAvgLengthByType: unknown[];
+	conduitCountByStatus: unknown[];
+	conduitLengthByOwner: unknown[];
+	conduitLengthByManufacturer: unknown[];
 	conduitsByMonth: unknown[];
 	longestConduits: unknown[];
 	areaCount: number;
 	totalCoverageKm2: number;
-	areasByType: unknown[];
+	areasByType: AreaByType[];
 	areaTotalAddresses?: number;
 	addressesInAreas: number;
 	totalNodes?: number;
@@ -82,38 +118,38 @@ interface TrenchStats {
 	average_house_connection_length?: number;
 	length_with_funding?: number;
 	length_with_internal_execution?: number;
-	length_by_status?: LabeledValue[];
-	length_by_phase?: LabeledValue[];
+	length_by_status?: StatusLength[];
+	length_by_phase?: PhaseLength[];
 	longest_routes?: unknown[];
 }
 
 interface NodeStats {
 	count_by_type: Array<{ node_type: string; count: number }>;
 	expiring_warranties?: unknown[];
-	count_by_city?: NamedCount[];
-	count_by_status?: NamedCount[];
-	count_by_network_level?: NamedCount[];
-	count_by_owner?: NamedCount[];
+	count_by_city?: CityCount[];
+	count_by_status?: StatusCount[];
+	count_by_network_level?: LevelCount[];
+	count_by_owner?: OwnerCount[];
 	newest_nodes?: unknown[];
 }
 
 interface AddressStats {
-	count_by_city?: NamedCount[];
-	count_by_status?: NamedCount[];
-	units_by_city?: NamedCount[];
-	units_by_type?: NamedCount[];
+	count_by_city?: CityCount[];
+	count_by_status?: StatusCount[];
+	units_by_city?: CityCount[];
+	units_by_type?: TypeCount[];
 	total_addresses?: number;
 	total_units?: number;
 }
 
 interface ConduitStats {
-	length_by_type?: LabeledValue[];
-	length_by_status_type?: LabeledValue[];
-	length_by_network_level?: LabeledValue[];
-	avg_length_by_type?: LabeledValue[];
-	count_by_status?: NamedCount[];
-	length_by_owner?: LabeledValue[];
-	length_by_manufacturer?: LabeledValue[];
+	length_by_type?: ConduitLengthByType[];
+	length_by_status_type?: unknown[];
+	length_by_network_level?: unknown[];
+	avg_length_by_type?: unknown[];
+	count_by_status?: unknown[];
+	length_by_owner?: unknown[];
+	length_by_manufacturer?: unknown[];
 	conduits_by_month?: unknown[];
 	longest_conduits?: unknown[];
 }
@@ -121,7 +157,7 @@ interface ConduitStats {
 interface AreaStats {
 	area_count?: number;
 	total_coverage_km2?: number;
-	areas_by_type?: unknown[];
+	areas_by_type?: AreaByType[];
 	total_addresses?: number;
 	addresses_in_areas?: number;
 	total_nodes?: number;

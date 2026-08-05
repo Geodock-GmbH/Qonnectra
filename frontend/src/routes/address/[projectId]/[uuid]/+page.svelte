@@ -191,14 +191,16 @@
 
 		if (linkedTrenchGeometries.length > 0) {
 			const geoJsonFormat = new GeoJSON();
-			const trenchFeatures = linkedTrenchGeometries
-				.filter((/** @type {any} */ f) => f.geometry)
-				.map((/** @type {any} */ f) =>
-					geoJsonFormat.readFeature(f, {
-						dataProjection: 'EPSG:3857',
-						featureProjection: 'EPSG:3857'
-					})
-				);
+			const trenchFeatures = /** @type {import('ol/Feature').default[]} */ (
+				linkedTrenchGeometries
+					.filter((/** @type {any} */ f) => f.geometry)
+					.map((/** @type {any} */ f) =>
+						geoJsonFormat.readFeature(f, {
+							dataProjection: 'EPSG:3857',
+							featureProjection: 'EPSG:3857'
+						})
+					)
+			);
 
 			if (trenchFeatures.length > 0) {
 				trenchLinesLayer = new VectorLayer({
@@ -433,7 +435,9 @@
 
 			generateAddressPdf({
 				address: addressData,
-				residentialUnits: unitsWithFibers,
+				residentialUnits: /** @type {import('$lib/utils/addressPdf').ResidentialUnit[]} */ (
+					unitsWithFibers
+				),
 				mapImage,
 				includeResidentialUnits,
 				linkedMicroducts,

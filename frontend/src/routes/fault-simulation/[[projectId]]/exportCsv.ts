@@ -37,7 +37,7 @@ export interface Conduit {
 	conduit_type: string;
 }
 
-interface Trench {
+export interface Trench {
 	id_trench: string;
 	construction_type: string;
 }

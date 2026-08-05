@@ -50,6 +50,10 @@
 	const constructionTypes = $derived(/** @type {any[]} */ (data.constructionTypes ?? []));
 	const areaTypes = $derived(/** @type {any[]} */ (data.areaTypes ?? []));
 
+	const loadError = $derived(
+		data.nodeTypesError || data.surfacesError || data.constructionTypesError || data.areaTypesError
+	);
+
 	if (browser && page.params.projectId && page.params.projectId !== get(selectedProject)) {
 		selectedProject.set(page.params.projectId);
 	}
@@ -330,7 +334,7 @@
 	onMount(() => {
 		if (dev) {
 			/** @type {any} */ (window).__e2eFaultSim = {
-				/** @param {Record<string, any>} result */
+				/** @param {import('./exportCsv.js').FaultSimulationResult} result */
 				injectResult(result) {
 					ctx.setDamagePoint([0, 0], result.trench ?? null);
 					ctx.setSimulationResult(result);
@@ -359,9 +363,9 @@
 
 <div class="flex flex-col h-full overflow-hidden">
 	<div class={ctx.simulationResult ? 'h-1/2 shrink-0' : 'flex-1'}>
-		{#if data.error && !layersInitialized}
+		{#if loadError && !layersInitialized}
 			<div class="p-4 text-red-700 bg-red-100 border border-red-400 rounded">
-				<p>Error loading initial map data: {data.error}</p>
+				<p>Error loading initial map data: {loadError}</p>
 			</div>
 		{:else if layersInitialized}
 			<div class="map-wrapper border-2 rounded-lg border-surface-200-800 h-full w-full relative">

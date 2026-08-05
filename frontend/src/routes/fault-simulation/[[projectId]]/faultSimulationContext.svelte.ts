@@ -1,13 +1,7 @@
-import type { FaultSimulationResult } from './exportCsv.js';
+import type { FaultSimulationResult, Trench } from './exportCsv.js';
 import { getContext, setContext } from 'svelte';
 
 const FAULT_SIMULATION_CONTEXT_KEY = Symbol('faultSimulationContext');
-
-interface Trench {
-	id_trench: string;
-	construction_type: string;
-	[key: string]: unknown;
-}
 
 export interface FaultSimulationContext {
 	damagePoint: [number, number] | null;

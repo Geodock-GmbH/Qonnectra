@@ -123,6 +123,7 @@
 					currentStyles[nodeType.node_type] = {
 						color: defaults.color,
 						size: defaults.size,
+						shape: defaults.shape,
 						visible: true
 					};
 					hasNewTypes = true;
