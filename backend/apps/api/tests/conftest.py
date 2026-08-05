@@ -47,6 +47,23 @@ def use_english_locale():
     translation.deactivate()
 
 
+@pytest.fixture(autouse=True)
+def clear_content_type_cache():
+    """Clear the ContentType cache before each test.
+
+    ContentType.objects.get_for_model() caches content-type primary keys for
+    the lifetime of the process. Under ``--reuse-db`` those cached ids can point
+    at rows that no longer exist in the current test database, causing spurious
+    foreign-key IntegrityErrors when creating GenericForeignKey records such as
+    FeatureFiles. Clearing the cache forces a fresh lookup against the live DB.
+    """
+    from django.contrib.contenttypes.models import ContentType
+
+    ContentType.objects.clear_cache()
+    yield
+    ContentType.objects.clear_cache()
+
+
 User = get_user_model()
 
 
