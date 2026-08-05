@@ -21,6 +21,18 @@ export default defineConfig({
 		exclude: ['ol']
 	},
 	test: {
+		coverage: {
+			provider: 'v8',
+			reporter: ['text', 'html'],
+			include: ['src/**/*.{js,ts,svelte}'],
+			exclude: [
+				'src/**/*.{test,spec}.{js,ts}',
+				'src/lib/test-utils/**',
+				'src/lib/paraglide/**',
+				'src/**/*.d.ts',
+				'src/service-worker.ts'
+			]
+		},
 		projects: [
 			{
 				extends: true,

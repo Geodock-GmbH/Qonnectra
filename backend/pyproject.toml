@@ -32,6 +32,28 @@ dependencies = [
 dev = [
     "factory-boy>=3.3.3",
     "pytest>=8.3.5",
+    "pytest-cov>=6.0.0",
     "pytest-django>=4.11.1",
     "ruff>=0.11.4",
+]
+
+[tool.coverage.run]
+source = ["apps.api"]
+omit = [
+    "*/tests/*",
+    "*/migrations/*",
+    "*/apps.py",
+    "*/admin.py",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
 ]

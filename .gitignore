@@ -53,6 +53,7 @@ backend/nosetests.xml
 backend/coverage.xml
 backend/*.cover
 backend/*.py,cover
+frontend/coverage/
 backend/.hypothesis/
 backend/.pytest_cache/
 backend/cover/
