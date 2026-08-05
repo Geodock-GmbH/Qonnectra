@@ -29,6 +29,7 @@ export default defineConfig({
 				'src/**/*.{test,spec}.{js,ts}',
 				'src/lib/test-utils/**',
 				'src/lib/paraglide/**',
+				'src/paraglide/**',
 				'src/**/*.d.ts',
 				'src/service-worker.ts'
 			]
