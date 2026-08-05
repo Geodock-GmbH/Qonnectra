@@ -316,4 +316,311 @@ describe('child view +page.server.js', () => {
 			expect((result.cables as Record<string, unknown>[])[0].labelData).toBeNull();
 		});
 	});
+
+	describe('degraded API responses', () => {
+		/**
+		 * Builds a fetch mock where node/all always succeeds but a chosen set of
+		 * endpoint keys respond with a non-ok status, exercising each `.ok` guard.
+		 */
+		function setupWithFailures(failing: string[], payloads: Record<string, unknown> = {}) {
+			mockFetch.mockImplementation((url: string) => {
+				const failed = failing.find((key) => url.includes(key));
+				if (failed) {
+					return Promise.resolve({ ok: false, status: 500 });
+				}
+				if (url.includes('node/all') && !url.includes('minimal=true')) {
+					return Promise.resolve({
+						ok: true,
+						json: () =>
+							Promise.resolve(
+								payloads['node/all'] ?? [{ id: 'node-1', properties: { uuid: 'node-1' } }]
+							)
+					});
+				}
+				for (const [key, value] of Object.entries(payloads)) {
+					if (url.includes(key)) {
+						return Promise.resolve({ ok: true, json: () => Promise.resolve(value) });
+					}
+				}
+				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+			});
+		}
+
+		test('should default cables to empty array when cable fetch fails', async () => {
+			setupWithFailures(['cable/all']);
+
+			const result = (await callLoad()) as Record<string, unknown>;
+
+			expect(result.cables).toEqual([]);
+		});
+
+		test('should default cableMicropipeConnections to empty object when micropipe fetch fails', async () => {
+			setupWithFailures(['cables/micropipe-summary']);
+
+			const result = (await callLoad()) as Record<string, unknown>;
+
+			expect(result.cableMicropipeConnections).toEqual({});
+		});
+
+		test('should leave cableTypes empty when attribute fetch fails', async () => {
+			setupWithFailures(['attributes_cable_type']);
+
+			const result = (await callLoad()) as Record<string, unknown>;
+
+			expect(result.cableTypes).toEqual([]);
+		});
+
+		test('should leave nodeTypes empty when attribute fetch fails', async () => {
+			setupWithFailures(['attributes_node_type']);
+
+			const result = (await callLoad()) as Record<string, unknown>;
+
+			expect(result.nodeTypes).toEqual([]);
+		});
+
+		test('should leave statuses empty when attribute fetch fails', async () => {
+			setupWithFailures(['attributes_status']);
+
+			const result = (await callLoad()) as Record<string, unknown>;
+
+			expect(result.statuses).toEqual([]);
+		});
+
+		test('should leave networkLevels empty when attribute fetch fails', async () => {
+			setupWithFailures(['attributes_network_level']);
+
+			const result = (await callLoad()) as Record<string, unknown>;
+
+			expect(result.networkLevels).toEqual([]);
+		});
+
+		test('should leave companies empty when attribute fetch fails', async () => {
+			setupWithFailures(['attributes_company']);
+
+			const result = (await callLoad()) as Record<string, unknown>;
+
+			expect(result.companies).toEqual([]);
+		});
+
+		test('should leave flags empty when attribute fetch fails', async () => {
+			setupWithFailures(['flags']);
+
+			const result = (await callLoad()) as Record<string, unknown>;
+
+			expect(result.flags).toEqual([]);
+		});
+
+		test('should leave parentNodeOptions empty when all-nodes fetch fails', async () => {
+			mockFetch.mockImplementation((url: string) => {
+				if (url.includes('node/all') && url.includes('minimal=true')) {
+					return Promise.resolve({ ok: false, status: 500 });
+				}
+				if (url.includes('node/all')) {
+					return Promise.resolve({
+						ok: true,
+						json: () => Promise.resolve([{ id: 'node-1', properties: { uuid: 'node-1' } }])
+					});
+				}
+				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+			});
+
+			const result = (await callLoad()) as Record<string, unknown>;
+
+			expect(result.parentNodeOptions).toEqual([]);
+		});
+
+		test('should map parentNodeOptions when all-nodes fetch succeeds', async () => {
+			mockFetch.mockImplementation((url: string) => {
+				if (url.includes('node/all') && url.includes('minimal=true')) {
+					return Promise.resolve({
+						ok: true,
+						json: () =>
+							Promise.resolve([
+								{ id: 'node-1', name: 'Parent A' },
+								{ id: 'node-2', name: 'Parent B' }
+							])
+					});
+				}
+				if (url.includes('node/all')) {
+					return Promise.resolve({
+						ok: true,
+						json: () => Promise.resolve([{ id: 'node-1', properties: { uuid: 'node-1' } }])
+					});
+				}
+				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+			});
+
+			const result = (await callLoad()) as Record<string, unknown>;
+
+			expect(result.parentNodeOptions).toEqual([
+				{ value: 'node-1', label: 'Parent A' },
+				{ value: 'node-2', label: 'Parent B' }
+			]);
+		});
+	});
+
+	describe('node payload shape handling', () => {
+		test('should resolve parent node from nodesData.features', async () => {
+			mockFetch.mockImplementation((url: string) => {
+				if (url.includes('node/all') && !url.includes('minimal=true')) {
+					return Promise.resolve({
+						ok: true,
+						json: () =>
+							Promise.resolve({
+								features: [{ id: 'node-1', properties: { uuid: 'node-1' } }]
+							})
+					});
+				}
+				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+			});
+
+			const result = (await callLoad()) as Record<string, unknown>;
+
+			expect((result.nodes as Record<string, unknown>).features).toBeDefined();
+		});
+
+		test('should match parent node by properties.uuid when top-level id absent', async () => {
+			mockFetch.mockImplementation((url: string) => {
+				if (url.includes('node/all') && !url.includes('minimal=true')) {
+					return Promise.resolve({
+						ok: true,
+						json: () => Promise.resolve([{ properties: { uuid: 'node-1' } }])
+					});
+				}
+				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+			});
+
+			// A matching parent avoids the empty-nodes redirect.
+			const result = (await callLoad()) as Record<string, unknown>;
+
+			expect(result.isChildView).toBe(true);
+		});
+
+		test('should not redirect when nodes present but parent missing', async () => {
+			mockFetch.mockImplementation((url: string) => {
+				if (url.includes('node/all') && !url.includes('minimal=true')) {
+					return Promise.resolve({
+						ok: true,
+						json: () => Promise.resolve([{ id: 'other-node' }])
+					});
+				}
+				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+			});
+
+			const result = (await callLoad()) as Record<string, unknown>;
+
+			expect(result.parentNodeId).toBe('node-1');
+		});
+
+		test('should attach labelData when cable uuid nested under cable field', async () => {
+			mockFetch.mockImplementation((url: string) => {
+				if (url.includes('node/all') && !url.includes('minimal=true')) {
+					return Promise.resolve({
+						ok: true,
+						json: () => Promise.resolve([{ id: 'node-1', properties: { uuid: 'node-1' } }])
+					});
+				}
+				if (url.includes('cable/all')) {
+					return Promise.resolve({
+						ok: true,
+						json: () => Promise.resolve([{ cable: { uuid: 'cable-9' } }])
+					});
+				}
+				if (url.includes('cable_label/all')) {
+					return Promise.resolve({
+						ok: true,
+						json: () => Promise.resolve([{ id: 1, cable: 'cable-9', offset_x: 5 }])
+					});
+				}
+				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+			});
+
+			const result = (await callLoad()) as Record<string, unknown>;
+			const cable = (result.cables as Record<string, unknown>[])[0];
+
+			expect(cable.uuid).toBe('cable-9');
+			expect((cable.labelData as Record<string, unknown>).offset_x).toBe(5);
+		});
+
+		test('should group multiple labels sharing one cable uuid', async () => {
+			mockFetch.mockImplementation((url: string) => {
+				if (url.includes('node/all') && !url.includes('minimal=true')) {
+					return Promise.resolve({
+						ok: true,
+						json: () => Promise.resolve([{ id: 'node-1', properties: { uuid: 'node-1' } }])
+					});
+				}
+				if (url.includes('cable/all')) {
+					return Promise.resolve({
+						ok: true,
+						json: () => Promise.resolve([{ uuid: 'cable-1' }])
+					});
+				}
+				if (url.includes('cable_label/all')) {
+					return Promise.resolve({
+						ok: true,
+						json: () =>
+							Promise.resolve([
+								{ id: 1, cable: 'cable-1', offset_x: 1 },
+								{ id: 2, cable: 'cable-1', offset_x: 2 }
+							])
+					});
+				}
+				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+			});
+
+			const result = (await callLoad()) as Record<string, unknown>;
+			const cable = (result.cables as Record<string, unknown>[])[0];
+
+			// First label of the group is attached.
+			expect((cable.labelData as Record<string, unknown>).id).toBe(1);
+		});
+
+		test('should redirect when node payload is null (falls back to empty nodes)', async () => {
+			mockFetch.mockImplementation((url: string) => {
+				if (url.includes('node/all') && !url.includes('minimal=true')) {
+					return Promise.resolve({ ok: true, json: () => Promise.resolve(null) });
+				}
+				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+			});
+
+			await expect(callLoad()).rejects.toThrow('Redirect to /network-schema/proj-1');
+		});
+
+		test('should derive cable uuid from bare cable string reference', async () => {
+			mockFetch.mockImplementation((url: string) => {
+				if (url.includes('node/all') && !url.includes('minimal=true')) {
+					return Promise.resolve({
+						ok: true,
+						json: () => Promise.resolve([{ id: 'node-1', properties: { uuid: 'node-1' } }])
+					});
+				}
+				if (url.includes('cable/all')) {
+					return Promise.resolve({
+						ok: true,
+						json: () => Promise.resolve([{ cable: 'cable-str-7' }])
+					});
+				}
+				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+			});
+
+			const result = (await callLoad()) as Record<string, unknown>;
+
+			expect((result.cables as Record<string, unknown>[])[0].uuid).toBe('cable-str-7');
+		});
+
+		test('should throw redirect when a non-302 error occurs mid-load', async () => {
+			mockFetch.mockImplementation((url: string) => {
+				if (url.includes('node/all') && !url.includes('minimal=true')) {
+					return Promise.resolve({
+						ok: true,
+						json: () => Promise.reject(new Error('boom'))
+					});
+				}
+				return Promise.resolve({ ok: true, json: () => Promise.resolve([]) });
+			});
+
+			await expect(callLoad()).rejects.toThrow('Redirect to /network-schema/proj-1');
+		});
+	});
 });

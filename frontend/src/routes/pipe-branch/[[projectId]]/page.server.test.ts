@@ -190,6 +190,24 @@ describe('pipe-branch +page.server.js', () => {
 			expect((result.data as Record<string, unknown>).error).toBe('Not found');
 		});
 
+		test('should fall back to status message when error body is empty', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 503,
+				text: () => Promise.resolve('')
+			});
+
+			const result = (await actions.getConnections(createEvent({ node_id: 'node-1' }))) as Record<
+				string,
+				unknown
+			>;
+
+			expect(result.status).toBe(503);
+			expect((result.data as Record<string, unknown>).error).toBe(
+				'Request failed with status: 503'
+			);
+		});
+
 		test('should return fail(500) on network error', async () => {
 			mockFetch.mockRejectedValueOnce(new Error('Connection refused'));
 
@@ -299,6 +317,49 @@ describe('pipe-branch +page.server.js', () => {
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).error).toBe('Internal server error');
 		});
+
+		test('should omit Cookie header when api-access-token is absent', async () => {
+			mockCookies.get = vi.fn(() => null);
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ uuid: 'new-conn-1' })
+			});
+
+			await actions.createConnection(
+				createEvent({
+					uuid_microduct_from: 'md-1',
+					uuid_microduct_to: 'md-2',
+					uuid_node: 'node-1',
+					uuid_trench_from: 'trench-1',
+					uuid_trench_to: 'trench-2'
+				})
+			);
+
+			const headers = mockFetch.mock.calls[0][1].headers as Headers;
+			expect(headers.get('Cookie')).toBeNull();
+			expect(headers.get('Content-Type')).toBe('application/json');
+		});
+
+		test('should return parsed error text when backend body is not JSON', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 502,
+				text: () => Promise.resolve('Bad Gateway')
+			});
+
+			const result = (await actions.createConnection(
+				createEvent({
+					uuid_microduct_from: 'md-1',
+					uuid_microduct_to: 'md-2',
+					uuid_node: 'node-1',
+					uuid_trench_from: 'trench-1',
+					uuid_trench_to: 'trench-2'
+				})
+			)) as Record<string, unknown>;
+
+			expect(result.status).toBe(502);
+			expect((result.data as Record<string, unknown>).error).toBe('Bad Gateway');
+		});
 	});
 
 	describe('deleteConnection', () => {
@@ -335,6 +396,24 @@ describe('pipe-branch +page.server.js', () => {
 
 			expect(result.status).toBe(404);
 			expect((result.data as Record<string, unknown>).error).toBe('Not found');
+		});
+
+		test('should fall back to status message when error body is empty', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 500,
+				text: () => Promise.resolve('')
+			});
+
+			const result = (await actions.deleteConnection(createEvent({ uuid: 'conn-1' }))) as Record<
+				string,
+				unknown
+			>;
+
+			expect(result.status).toBe(500);
+			expect((result.data as Record<string, unknown>).error).toBe(
+				'Request failed with status: 500'
+			);
 		});
 
 		test('should return fail(500) on network error', async () => {
@@ -403,6 +482,23 @@ describe('pipe-branch +page.server.js', () => {
 			expect(result.status).toBe(500);
 		});
 
+		test('should fall back to status message when error body is empty', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 500,
+				text: () => Promise.resolve('')
+			});
+
+			const result = (await actions.getTrenchesNearNode(
+				createEvent({ node_name: 'Node A', project: 'proj-1' })
+			)) as Record<string, unknown>;
+
+			expect(result.status).toBe(500);
+			expect((result.data as Record<string, unknown>).error).toBe(
+				'Request failed with status: 500'
+			);
+		});
+
 		test('should return fail(500) on network error', async () => {
 			mockFetch.mockRejectedValueOnce(new Error('Connection refused'));
 
@@ -436,6 +532,36 @@ describe('pipe-branch +page.server.js', () => {
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).error).toContain('node_uuid');
+		});
+
+		test('should return fail on backend error', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 404,
+				text: () => Promise.resolve(JSON.stringify({ error: 'Node not found' }))
+			});
+
+			const result = (await actions.getTrenchSelections(
+				createEvent({ node_uuid: 'node-1' })
+			)) as Record<string, unknown>;
+
+			expect(result.status).toBe(404);
+			expect((result.data as Record<string, unknown>).error).toBe('Node not found');
+		});
+
+		test('should wrap non-JSON error body from backend', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 500,
+				text: () => Promise.resolve('Internal Error')
+			});
+
+			const result = (await actions.getTrenchSelections(
+				createEvent({ node_uuid: 'node-1' })
+			)) as Record<string, unknown>;
+
+			expect(result.status).toBe(500);
+			expect((result.data as Record<string, unknown>).error).toBe('Internal Error');
 		});
 
 		test('should return fail(500) on network error', async () => {
@@ -498,6 +624,52 @@ describe('pipe-branch +page.server.js', () => {
 					body: JSON.stringify({ node_uuid: 'node-1', trench_uuids: [] })
 				})
 			);
+		});
+
+		test('should omit Cookie header when api-access-token is absent', async () => {
+			mockCookies.get = vi.fn(() => null);
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ saved: true })
+			});
+
+			await actions.saveTrenchSelections(
+				createEvent({ node_uuid: 'node-1', trench_uuids: '["t-1"]' })
+			);
+
+			const headers = mockFetch.mock.calls[0][1].headers as Headers;
+			expect(headers.get('Cookie')).toBeNull();
+			expect(headers.get('Content-Type')).toBe('application/json');
+		});
+
+		test('should return fail on backend error', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 422,
+				text: () => Promise.resolve(JSON.stringify({ error: 'Invalid trench set' }))
+			});
+
+			const result = (await actions.saveTrenchSelections(
+				createEvent({ node_uuid: 'node-1', trench_uuids: '["t-1"]' })
+			)) as Record<string, unknown>;
+
+			expect(result.status).toBe(422);
+			expect((result.data as Record<string, unknown>).error).toBe('Invalid trench set');
+		});
+
+		test('should wrap non-JSON error body from backend', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 503,
+				text: () => Promise.resolve('Service Unavailable')
+			});
+
+			const result = (await actions.saveTrenchSelections(
+				createEvent({ node_uuid: 'node-1', trench_uuids: '["t-1"]' })
+			)) as Record<string, unknown>;
+
+			expect(result.status).toBe(503);
+			expect((result.data as Record<string, unknown>).error).toBe('Service Unavailable');
 		});
 
 		test('should return fail(500) on network error', async () => {
