@@ -10,7 +10,7 @@ vi.mock('svelte', () => {
 
 const { createFaultSimulationContext, getFaultSimulationContext } =
 	await import('./faultSimulationContext.svelte.js');
-const { setContext, getContext } = await import('svelte');
+const { setContext } = await import('svelte');
 
 describe('faultSimulationContext', () => {
 	let ctx: ReturnType<typeof createFaultSimulationContext>;
@@ -58,22 +58,22 @@ describe('faultSimulationContext', () => {
 			expect(ctx.selectedTrench).toEqual(trench);
 		});
 
-		test('should reset simulationResult when setting new damage point', () => {
-			ctx.setSimulationResult({ summary: { total: 5 } });
-			ctx.setDamagePoint([100, 200], { id_trench: 'T-002' });
+		test('should reset simulationResult when setting a new damage point', () => {
+			ctx.setSimulationResult({ summary: { total: 5 } } as never);
+			ctx.setDamagePoint([100, 200], { id_trench: 'T-002', construction_type: 'open' });
 
 			expect(ctx.simulationResult).toBeNull();
 		});
 
-		test('should reset selectedCableId when setting new damage point', () => {
+		test('should reset selectedCableId when setting a new damage point', () => {
 			ctx.setSelectedCable('cable-uuid');
-			ctx.setDamagePoint([100, 200], { id_trench: 'T-002' });
+			ctx.setDamagePoint([100, 200], { id_trench: 'T-002', construction_type: 'open' });
 
 			expect(ctx.selectedCableId).toBeNull();
 		});
 
-		test('should accept null values to clear damage point', () => {
-			ctx.setDamagePoint([100, 200], { id_trench: 'T-001' });
+		test('should accept null values to clear the damage point', () => {
+			ctx.setDamagePoint([100, 200], { id_trench: 'T-001', construction_type: 'open' });
 			ctx.setDamagePoint(null, null);
 
 			expect(ctx.damagePoint).toBeNull();
@@ -82,20 +82,20 @@ describe('faultSimulationContext', () => {
 	});
 
 	describe('setSimulationResult', () => {
-		test('should set the simulation result', () => {
+		test('should store the simulation result', () => {
 			const result = {
 				summary: { total_cables_affected: 3 },
 				conduits: [{ uuid: 'c-1' }],
 				cables: [{ uuid: 'cable-1' }]
-			};
+			} as never;
 
 			ctx.setSimulationResult(result);
 
 			expect(ctx.simulationResult).toEqual(result);
 		});
 
-		test('should accept null to clear simulation result', () => {
-			ctx.setSimulationResult({ summary: {} });
+		test('should accept null to clear the simulation result', () => {
+			ctx.setSimulationResult({ summary: {} } as never);
 			ctx.setSimulationResult(null);
 
 			expect(ctx.simulationResult).toBeNull();
@@ -105,20 +105,18 @@ describe('faultSimulationContext', () => {
 	describe('setSelectedCable', () => {
 		test('should set the selected cable id', () => {
 			ctx.setSelectedCable('cable-uuid-123');
-
 			expect(ctx.selectedCableId).toBe('cable-uuid-123');
 		});
 
-		test('should accept null to deselect cable', () => {
+		test('should accept null to deselect the cable', () => {
 			ctx.setSelectedCable('cable-uuid');
 			ctx.setSelectedCable(null);
-
 			expect(ctx.selectedCableId).toBeNull();
 		});
 	});
 
 	describe('isSimulating', () => {
-		test('should be writable', () => {
+		test('should be writable via its setter', () => {
 			ctx.isSimulating = true;
 			expect(ctx.isSimulating).toBe(true);
 
@@ -129,8 +127,8 @@ describe('faultSimulationContext', () => {
 
 	describe('reset', () => {
 		test('should reset all state to initial values', () => {
-			ctx.setDamagePoint([100, 200], { id_trench: 'T-001' });
-			ctx.setSimulationResult({ summary: {} });
+			ctx.setDamagePoint([100, 200], { id_trench: 'T-001', construction_type: 'open' });
+			ctx.setSimulationResult({ summary: {} } as never);
 			ctx.isSimulating = true;
 			ctx.setSelectedCable('cable-uuid');
 
@@ -143,10 +141,9 @@ describe('faultSimulationContext', () => {
 			expect(ctx.selectedCableId).toBeNull();
 		});
 
-		test('should be callable multiple times without error', () => {
+		test('should be idempotent when called repeatedly', () => {
 			ctx.reset();
 			ctx.reset();
-
 			expect(ctx.damagePoint).toBeNull();
 		});
 	});
