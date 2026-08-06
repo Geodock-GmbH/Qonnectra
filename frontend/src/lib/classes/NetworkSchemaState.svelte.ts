@@ -411,6 +411,16 @@ export class NetworkSchemaState {
 			});
 		} catch (error: unknown) {
 			console.error('Error saving node position:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error saving node position',
+				extraData: {
+					from: 'NetworkSchemaState.handleNodeDragStop',
+					nodeId,
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 
 			const nodeIndex = this.nodes.findIndex((n) => n.id === nodeId);
 			if (nodeIndex !== -1) {
@@ -581,6 +591,18 @@ export class NetworkSchemaState {
 			await this.autoLinkMicropipe(cableUuid, cableName);
 		} catch (error: unknown) {
 			console.error('Error creating cable:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error creating cable',
+				extraData: {
+					from: 'NetworkSchemaState.handleConnect',
+					source,
+					target,
+					cableName,
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_creating_cable()
@@ -829,6 +851,17 @@ export class NetworkSchemaState {
 			}
 		} catch (error: unknown) {
 			console.error('Error auto-linking micropipe:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error auto-linking micropipe',
+				extraData: {
+					from: 'NetworkSchemaState.autoLinkMicropipe',
+					cableId,
+					cableName,
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 		}
 	}
 
@@ -865,6 +898,15 @@ export class NetworkSchemaState {
 			this.pendingMicroductChoices = this.pendingMicroductChoices.slice(1);
 		} catch (error: unknown) {
 			console.error('Error linking chosen microduct:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error linking chosen microduct',
+				extraData: {
+					from: 'NetworkSchemaState.chooseMicroduct',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_auto_link_micropipe_failed()
@@ -909,6 +951,16 @@ export class NetworkSchemaState {
 			}
 		} catch (error: unknown) {
 			console.error('Error refreshing edge micropipe connections:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error refreshing edge micropipe connections',
+				extraData: {
+					from: 'NetworkSchemaState.refreshEdgeMicropipes',
+					cableId,
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 		}
 	}
 }

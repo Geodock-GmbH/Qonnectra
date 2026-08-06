@@ -4,6 +4,7 @@ import { deserialize } from '$app/forms';
 import { m } from '$lib/paraglide/messages';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 interface Conduit {
 	uuid: string;
@@ -115,6 +116,15 @@ export class CableMicropipeManager {
 			this.linkedTrenchIds = new SvelteSet(data?.trench_uuids || []);
 		} catch (error) {
 			console.error('Error fetching linked trenches:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching linked trenches',
+				extraData: {
+					from: 'CableMicropipeManager.fetchLinkedTrenches',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			this.linkedTrenchIds = new SvelteSet();
 		}
 	}
@@ -163,6 +173,15 @@ export class CableMicropipeManager {
 			this.conduits = data?.conduits || [];
 		} catch (error) {
 			console.error('Error fetching conduits:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching conduits',
+				extraData: {
+					from: 'CableMicropipeManager.fetchConduitsForTrenches',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: (error as Error).message
@@ -226,6 +245,15 @@ export class CableMicropipeManager {
 			this.step = 2;
 		} catch (error) {
 			console.error('Error fetching micropipes:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching micropipes',
+				extraData: {
+					from: 'CableMicropipeManager.goToStep2',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: (error as Error).message
@@ -302,6 +330,15 @@ export class CableMicropipeManager {
 			this.goToStep1();
 		} catch (error) {
 			console.error('Error saving linkage:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error saving linkage',
+				extraData: {
+					from: 'CableMicropipeManager.saveLinkage',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: (error as Error).message
@@ -347,6 +384,15 @@ export class CableMicropipeManager {
 			this.goToStep1();
 		} catch (error) {
 			console.error('Error removing linkage:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error removing linkage',
+				extraData: {
+					from: 'CableMicropipeManager.removeLinkage',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: (error as Error).message

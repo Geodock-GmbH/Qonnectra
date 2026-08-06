@@ -12,6 +12,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
 
 	import Self from './ContainerItem.svelte';
@@ -80,6 +81,15 @@
 			onMove?.(data, container.uuid);
 		} catch (err) {
 			console.error('Drop error:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Drop error',
+				extraData: {
+					from: 'ContainerItem.handleDrop',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 		}
 	}
 

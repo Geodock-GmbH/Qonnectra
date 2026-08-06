@@ -8,6 +8,7 @@
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	const attributes = getContext('attributeOptions') || {
 		cableTypes: [],
@@ -45,6 +46,15 @@
 			}
 		} catch (err) {
 			console.error('Error fetching connected conduits:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching connected conduits',
+				extraData: {
+					from: 'CableDiagramEdgeAttributeCard.fetchConnectedConduits',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			connectedConduits = '';
 		}
 	}
@@ -139,6 +149,15 @@
 			await onSaveComplete();
 		} catch (error) {
 			console.error('Error updating cable:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error updating cable',
+				extraData: {
+					from: 'CableDiagramEdgeAttributeCard.handleSubmit',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.message_error_updating_cable()
 			});
@@ -162,6 +181,15 @@
 			connectedSpliceCount = splices.length;
 		} catch (err) {
 			console.error('Error checking cable splices:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error checking cable splices',
+				extraData: {
+					from: 'CableDiagramEdgeAttributeCard.confirmDelete',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			connectedSpliceCount = 0;
 		}
 
@@ -193,6 +221,15 @@
 			}
 		} catch (error) {
 			console.error('Error deleting cable:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error deleting cable',
+				extraData: {
+					from: 'CableDiagramEdgeAttributeCard.handleDelete',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: /** @type {any} */ (error).message || m.message_error_deleting_cable()

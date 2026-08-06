@@ -10,6 +10,7 @@
 	import VirtualCombobox from '$lib/components/VirtualCombobox.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
 
 	const attributes = getContext('attributeOptions') || {
@@ -104,6 +105,15 @@
 			}
 		} catch (err) {
 			console.error('Error checking dependencies:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error checking dependencies',
+				extraData: {
+					from: 'CableDiagramNodeAttributeCard.checkNodeDependencies',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			if (lastCheckedNodeId === nodeId) {
 				hasConnectedCables = false;
 				hasChildren = false;
@@ -193,6 +203,15 @@
 			}
 		} catch (error) {
 			console.error('Error updating node:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error updating node',
+				extraData: {
+					from: 'CableDiagramNodeAttributeCard.handleSubmit',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.message_error_updating_node()
 			});
@@ -226,6 +245,15 @@
 			deleteMessageBox?.open();
 		} catch (err) {
 			console.error('Error checking dependencies:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error checking dependencies',
+				extraData: {
+					from: 'CableDiagramNodeAttributeCard.confirmDelete',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			pendingDeleteCableCount = 0;
 			pendingDeleteStructureCount = 0;
 			deleteMessageBox?.open();
@@ -260,6 +288,15 @@
 			}
 		} catch (error) {
 			console.error('Error deleting node:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error deleting node',
+				extraData: {
+					from: 'CableDiagramNodeAttributeCard.handleDelete',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description:

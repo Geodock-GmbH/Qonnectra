@@ -3,6 +3,7 @@ import { deserialize } from '$app/forms';
 import { m } from '$lib/paraglide/messages';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 interface FiberDetails {
 	uuid: string;
@@ -383,6 +384,15 @@ export class FiberSpliceManager {
 			this.componentPorts = (result as { data?: ActionSuccessData }).data?.ports || [];
 		} catch (err: unknown) {
 			console.error('Error fetching component ports:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching component ports',
+				extraData: {
+					from: 'FiberSpliceManager.fetchComponentPorts',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			this.componentPorts = [];
 		}
 	}
@@ -411,6 +421,15 @@ export class FiberSpliceManager {
 			this.fiberSplices = (result as { data?: ActionSuccessData }).data?.splices || [];
 		} catch (err: unknown) {
 			console.error('Error fetching fiber splices:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching fiber splices',
+				extraData: {
+					from: 'FiberSpliceManager.fetchFiberSplices',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			this.fiberSplices = [];
 		}
 	}
@@ -438,6 +457,15 @@ export class FiberSpliceManager {
 			this.fiberColors = (result as { data?: ActionSuccessData }).data?.fiberColors || [];
 		} catch (err: unknown) {
 			console.error('Error fetching fiber colors:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching fiber colors',
+				extraData: {
+					from: 'FiberSpliceManager.fetchFiberColorsIfNeeded',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 		}
 	}
 
@@ -650,6 +678,15 @@ export class FiberSpliceManager {
 			return true;
 		} catch (err: unknown) {
 			console.error('Error saving fiber splice:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error saving fiber splice',
+				extraData: {
+					from: 'FiberSpliceManager.handleSingleFiberDrop',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			this.fiberSplices = previousSplices;
 			globalToaster.error({
 				title: m.common_error(),
@@ -815,6 +852,15 @@ export class FiberSpliceManager {
 			return created.length > 0;
 		} catch (err: unknown) {
 			console.error('Error saving fiber splices:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error saving fiber splices',
+				extraData: {
+					from: 'FiberSpliceManager.handleBundleDrop',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			this.fiberSplices = previousSplices;
 			this.bulkOperationInProgress = false;
 			globalToaster.error({
@@ -852,6 +898,15 @@ export class FiberSpliceManager {
 			return (result as { data?: ActionSuccessData }).data?.fibers || [];
 		} catch (err: unknown) {
 			console.error('Error fetching fibers for cable:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching fibers for cable',
+				extraData: {
+					from: 'FiberSpliceManager.#fetchFibersForCable',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			return [];
 		}
 	}
@@ -935,6 +990,15 @@ export class FiberSpliceManager {
 					splices = splicesResult;
 				} catch (err: unknown) {
 					console.error('Error fetching ports for structure:', err);
+					void logToBackendClient({
+						level: 'ERROR',
+						message: 'Error fetching ports for structure',
+						extraData: {
+							from: 'FiberSpliceManager.handleCableDrop',
+							error: err instanceof Error ? err.message : String(err),
+							stack: err instanceof Error ? err.stack : undefined
+						}
+					});
 					continue;
 				}
 			}
@@ -1029,6 +1093,15 @@ export class FiberSpliceManager {
 				}
 			} catch (err: unknown) {
 				console.error('Error saving fiber splices for structure:', err);
+				void logToBackendClient({
+					level: 'ERROR',
+					message: 'Error saving fiber splices for structure',
+					extraData: {
+						from: 'FiberSpliceManager.handleCableDrop',
+						error: err instanceof Error ? err.message : String(err),
+						stack: err instanceof Error ? err.stack : undefined
+					}
+				});
 				errorOccurred = true;
 				break;
 			}
@@ -1149,6 +1222,15 @@ export class FiberSpliceManager {
 			return true;
 		} catch (err: unknown) {
 			console.error('Error saving residential unit connection:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error saving residential unit connection',
+				extraData: {
+					from: 'FiberSpliceManager.handleResidentialUnitDrop',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			this.fiberSplices = previousSplices;
 			globalToaster.error({
 				title: m.common_error(),
@@ -1272,6 +1354,15 @@ export class FiberSpliceManager {
 			return created.length > 0;
 		} catch (err: unknown) {
 			console.error('Error saving residential unit connections:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error saving residential unit connections',
+				extraData: {
+					from: 'FiberSpliceManager.handleAddressDrop',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			this.fiberSplices = previousSplices;
 			this.bulkOperationInProgress = false;
 			globalToaster.error({
@@ -1453,6 +1544,15 @@ export class FiberSpliceManager {
 			}
 		} catch (err: unknown) {
 			console.error('Error clearing fiber splice:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error clearing fiber splice',
+				extraData: {
+					from: 'FiberSpliceManager.handleClearPort',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			this.fiberSplices = previousSplices;
 			globalToaster.error({
 				title: m.common_error(),
@@ -1598,6 +1698,15 @@ export class FiberSpliceManager {
 			return true;
 		} catch (err: unknown) {
 			console.error('Error merging ports:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error merging ports',
+				extraData: {
+					from: 'FiberSpliceManager.mergeSelectedPorts',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: (err as Error).message || 'Failed to merge ports'
@@ -1655,6 +1764,15 @@ export class FiberSpliceManager {
 			return true;
 		} catch (err: unknown) {
 			console.error('Error unmerging ports:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error unmerging ports',
+				extraData: {
+					from: 'FiberSpliceManager.unmergePorts',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: (err as Error).message || 'Failed to unmerge ports'
@@ -1747,6 +1865,15 @@ export class FiberSpliceManager {
 			return true;
 		} catch (err: unknown) {
 			console.error('Error dropping on merged ports:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error dropping on merged ports',
+				extraData: {
+					from: 'FiberSpliceManager.handleMergedPortDrop',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: (err as Error).message || 'Failed to connect fibers'

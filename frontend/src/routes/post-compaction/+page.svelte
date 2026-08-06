@@ -20,6 +20,7 @@
 		wmsSourcesData
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { fetchWMSAccessToken, fetchWMSSources, getWMSProxyUrl } from '$lib/utils/wmsApi';
 	import { createWMSLayer } from '$lib/map';
 
@@ -89,6 +90,15 @@
 			searchResults = data.results || [];
 		} catch (err) {
 			console.error('Search error:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Search error',
+				extraData: {
+					from: 'PostCompactionPage.performSearch',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			searchResults = [];
 		} finally {
 			searching = false;
@@ -272,6 +282,15 @@
 			}
 		} catch (error) {
 			console.error('Error fetching address:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching address',
+				extraData: {
+					from: 'PostCompactionPage.selectAddress',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: 'Failed to fetch address'

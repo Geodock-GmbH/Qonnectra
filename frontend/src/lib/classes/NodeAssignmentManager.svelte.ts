@@ -5,6 +5,7 @@ import { deserialize } from '$app/forms';
 import { m } from '$lib/paraglide/messages';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 interface SelectableLayersConfig {
 	trench: boolean;
@@ -220,6 +221,15 @@ export class NodeAssignmentManager {
 			}
 		} catch (error: unknown) {
 			console.error('Error assigning node to microduct:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error assigning node to microduct',
+				extraData: {
+					from: 'NodeAssignmentManager.assignNodeToMicroduct',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: (error as Error).message
@@ -277,6 +287,15 @@ export class NodeAssignmentManager {
 			}
 		} catch (error: unknown) {
 			console.error('Error removing node from microduct:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error removing node from microduct',
+				extraData: {
+					from: 'NodeAssignmentManager.removeNodeFromMicroduct',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: (error as Error).message

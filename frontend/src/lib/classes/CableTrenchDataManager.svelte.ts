@@ -1,6 +1,8 @@
 import type { Fiber } from './CableFiberDataManager.svelte';
 import { deserialize } from '$app/forms';
 
+import { logToBackendClient } from '$lib/utils/logToBackendClient';
+
 interface CableTrenchItem {
 	id: string;
 	title: string;
@@ -81,6 +83,15 @@ export class CableTrenchDataManager {
 			}
 		} catch (err) {
 			console.error('Error fetching cables in trench:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching cables in trench',
+				extraData: {
+					from: 'CableTrenchDataManager.fetchCablesInTrench',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			this.error = 'Failed to load cables';
 			this.cablesInTrench = [];
 		} finally {
@@ -147,6 +158,15 @@ export class CableTrenchDataManager {
 			}
 		} catch (err) {
 			console.error('Error fetching fibers:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching fibers',
+				extraData: {
+					from: 'CableTrenchDataManager.fetchFibersForCable',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			this.errorFibers = {
 				...this.errorFibers,
 				[cableUuid]: 'Failed to load fibers'
@@ -184,6 +204,15 @@ export class CableTrenchDataManager {
 			}
 		} catch (err) {
 			console.error('Error fetching fiber colors:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching fiber colors',
+				extraData: {
+					from: 'CableTrenchDataManager.fetchFiberColors',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 		} finally {
 			this.loadingFiberColors = false;
 		}

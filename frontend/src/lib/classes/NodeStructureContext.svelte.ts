@@ -3,6 +3,7 @@ import { deserialize } from '$app/forms';
 import { m } from '$lib/paraglide/messages';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 import { DRAG_DROP_CONTEXT_KEY, DragDropManager } from './DragDropManager.svelte';
 import { FiberSpliceManager } from './FiberSpliceManager.svelte';
@@ -474,6 +475,15 @@ export class NodeStructureContext {
 			}
 		} catch (err: unknown) {
 			console.error('Drop error:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Drop error',
+				extraData: {
+					from: 'NodeStructureContext.#handleSlotDrop',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: (err as Error)?.message || m.message_error_placing_component()
@@ -560,6 +570,15 @@ export class NodeStructureContext {
 			return { needsConfirmation: false, spliceCount: 0 };
 		} catch (err) {
 			console.error('Error checking splices before delete:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error checking splices before delete',
+				extraData: {
+					from: 'NodeStructureContext.#handleDeleteStructure',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			// On error, proceed with delete (backend will handle cascading)
 			await this.executeDelete(structureUuid);
 			return { needsConfirmation: false, spliceCount: 0 };

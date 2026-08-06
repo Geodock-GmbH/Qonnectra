@@ -9,6 +9,7 @@ import { deserialize } from '$app/forms';
 import { m } from '$lib/paraglide/messages';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 export interface SlotDivider {
 	uuid: string;
@@ -204,6 +205,15 @@ export class NodeStructureManager {
 		} catch (err: unknown) {
 			if (this.#fetchVersion !== requestVersion) return;
 			console.error('Error fetching slot configurations:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching slot configurations',
+				extraData: {
+					from: 'NodeStructureManager.fetchSlotConfigurations',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_fetching_slot_configurations()
@@ -251,6 +261,15 @@ export class NodeStructureManager {
 		} catch (err: unknown) {
 			if (this.#fetchVersion !== requestVersion) return;
 			console.error('Error fetching structures:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching structures',
+				extraData: {
+					from: 'NodeStructureManager.fetchStructures',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_fetching_structures()
@@ -297,6 +316,15 @@ export class NodeStructureManager {
 		} catch (err: unknown) {
 			if (this.#fetchVersion !== requestVersion) return;
 			console.error('Error fetching dividers:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching dividers',
+				extraData: {
+					from: 'NodeStructureManager.fetchDividers',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			this.dividers = [];
 		}
 	}
@@ -340,6 +368,15 @@ export class NodeStructureManager {
 		} catch (err: unknown) {
 			if (this.#fetchVersion !== requestVersion) return;
 			console.error('Error fetching clip numbers:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching clip numbers',
+				extraData: {
+					from: 'NodeStructureManager.fetchClipNumbers',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			this.clipNumbers = new Map();
 		}
 	}
@@ -651,6 +688,15 @@ export class NodeStructureManager {
 				}
 			} catch (err: unknown) {
 				console.error('Error deleting divider:', err);
+				void logToBackendClient({
+					level: 'ERROR',
+					message: 'Error deleting divider',
+					extraData: {
+						from: 'NodeStructureManager.toggleDivider',
+						error: err instanceof Error ? err.message : String(err),
+						stack: err instanceof Error ? err.stack : undefined
+					}
+				});
 				this.dividers = previousDividers;
 				globalToaster.error({
 					title: m.common_error(),
@@ -687,6 +733,15 @@ export class NodeStructureManager {
 				this.dividers = this.dividers.map((d) => (d.uuid === tempUuid ? successData.divider : d));
 			} catch (err: unknown) {
 				console.error('Error creating divider:', err);
+				void logToBackendClient({
+					level: 'ERROR',
+					message: 'Error creating divider',
+					extraData: {
+						from: 'NodeStructureManager.toggleDivider',
+						error: err instanceof Error ? err.message : String(err),
+						stack: err instanceof Error ? err.stack : undefined
+					}
+				});
 				this.dividers = this.dividers.filter((d) => d.uuid !== tempUuid);
 				globalToaster.error({
 					title: m.common_error(),
@@ -726,6 +781,15 @@ export class NodeStructureManager {
 			}
 		} catch (err: unknown) {
 			console.error('Error saving clip number:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error saving clip number',
+				extraData: {
+					from: 'NodeStructureManager.saveClipNumber',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			this.clipNumbers = previousClipNumbers;
 			globalToaster.error({
 				title: m.common_error(),

@@ -3,6 +3,7 @@ import { deserialize } from '$app/forms';
 import { m } from '$lib/paraglide/messages';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 interface ConduitData {
 	conduit_uuid: string;
@@ -100,6 +101,15 @@ export class TrenchProfileState {
 			}
 		} catch (error) {
 			console.error('Error loading trench profile:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error loading trench profile',
+				extraData: {
+					from: 'TrenchProfileState.initialize',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description:
@@ -250,6 +260,15 @@ export class TrenchProfileState {
 			}
 		} catch (error) {
 			console.error('Error saving position:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error saving position',
+				extraData: {
+					from: 'TrenchProfileState.savePosition',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description:

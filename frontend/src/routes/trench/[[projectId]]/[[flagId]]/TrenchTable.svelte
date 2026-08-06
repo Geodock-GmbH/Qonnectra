@@ -12,6 +12,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	let { projectId, conduitId, onTrenchClick, onTrenchesChange } = $props();
 
@@ -82,6 +83,15 @@
 		} catch (error) {
 			trenchesError = m.message_error_fetching_trenches();
 			console.error('Error fetching trenches:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching trenches',
+				extraData: {
+					from: 'TrenchTable.fetchTrenches',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 		} finally {
 			loading = false;
 			onTrenchesChange?.(trenches);

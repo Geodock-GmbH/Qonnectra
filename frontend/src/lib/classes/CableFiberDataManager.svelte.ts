@@ -1,6 +1,8 @@
 import type { ComponentPlacement } from '$lib/server/nodeData';
 import { deserialize } from '$app/forms';
 
+import { logToBackendClient } from '$lib/utils/logToBackendClient';
+
 interface Cable {
 	uuid: string;
 	name?: string;
@@ -150,6 +152,15 @@ export class CableFiberDataManager {
 			}
 		} catch (err) {
 			console.error('Error fetching cables:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching cables',
+				extraData: {
+					from: 'CableFiberDataManager.fetchCables',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 		} finally {
 			this.loading = false;
 		}
@@ -183,6 +194,15 @@ export class CableFiberDataManager {
 			}
 		} catch (err) {
 			console.error('Error fetching fiber usage:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching fiber usage',
+				extraData: {
+					from: 'CableFiberDataManager.fetchFiberUsage',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 		} finally {
 			this.loadingFiberUsage = false;
 		}
@@ -236,6 +256,15 @@ export class CableFiberDataManager {
 			}
 		} catch (err) {
 			console.error('Error fetching addresses:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching addresses',
+				extraData: {
+					from: 'CableFiberDataManager.fetchAddresses',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 		} finally {
 			this.loadingAddresses = false;
 		}
@@ -269,6 +298,15 @@ export class CableFiberDataManager {
 			}
 		} catch (err) {
 			console.error('Error fetching residential unit usage:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching residential unit usage',
+				extraData: {
+					from: 'CableFiberDataManager.fetchResidentialUnitUsage',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 		} finally {
 			this.loadingResidentialUnitUsage = false;
 		}
@@ -359,6 +397,15 @@ export class CableFiberDataManager {
 			}
 		} catch (err) {
 			console.error('Error fetching fiber colors:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching fiber colors',
+				extraData: {
+					from: 'CableFiberDataManager.fetchFiberColors',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 		}
 	}
 
@@ -392,6 +439,15 @@ export class CableFiberDataManager {
 			}
 		} catch (err) {
 			console.error('Error fetching fibers:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching fibers',
+				extraData: {
+					from: 'CableFiberDataManager.fetchFibersForCable',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 		} finally {
 			this.loadingFibers.delete(cableUuid);
 			this.loadingFibers = new Set(this.loadingFibers);
@@ -491,6 +547,15 @@ export class CableFiberDataManager {
 			}
 		} catch (err) {
 			console.error('Error fetching fiber status options:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching fiber status options',
+				extraData: {
+					from: 'CableFiberDataManager.fetchFiberStatusOptions',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 		} finally {
 			this.loadingFiberStatusOptions = false;
 		}
@@ -520,6 +585,15 @@ export class CableFiberDataManager {
 			return null;
 		} catch (err) {
 			console.error('Error updating fiber status:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error updating fiber status',
+				extraData: {
+					from: 'CableFiberDataManager.updateFiberStatus',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			return null;
 		}
 	}

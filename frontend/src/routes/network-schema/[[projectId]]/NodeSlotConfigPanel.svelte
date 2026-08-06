@@ -8,6 +8,7 @@
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
 
 	import ContainerItem from './ContainerItem.svelte';
@@ -58,6 +59,15 @@
 			}
 		} catch (err) {
 			console.error('Error fetching container types:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching container types',
+				extraData: {
+					from: 'NodeSlotConfigPanel.fetchContainerTypes',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 		}
 	}
 
@@ -95,6 +105,15 @@
 			}
 		} catch (err) {
 			console.error('Error fetching hierarchy:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching hierarchy',
+				extraData: {
+					from: 'NodeSlotConfigPanel.fetchHierarchy',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_fetching_hierarchy?.() || 'Failed to fetch hierarchy'
@@ -161,6 +180,15 @@
 			await fetchHierarchy();
 		} catch (err) {
 			console.error('Error creating container:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error creating container',
+				extraData: {
+					from: 'NodeSlotConfigPanel.handleCreateContainer',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_creating_container?.() || 'Failed to create container'
@@ -192,6 +220,15 @@
 			await fetchHierarchy();
 		} catch (err) {
 			console.error('Error deleting container:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error deleting container',
+				extraData: {
+					from: 'NodeSlotConfigPanel.handleDeleteContainer',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_deleting_container?.() || 'Failed to delete container'
@@ -224,6 +261,15 @@
 			await fetchHierarchy();
 		} catch (err) {
 			console.error('Error updating container name:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error updating container name',
+				extraData: {
+					from: 'NodeSlotConfigPanel.handleUpdateContainerName',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_updating_container()
@@ -253,6 +299,15 @@
 			await fetchHierarchy();
 		} catch (err) {
 			console.error('Error moving item:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error moving item',
+				extraData: {
+					from: 'NodeSlotConfigPanel.handleMove',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_moving_item?.() || 'Failed to move item'
@@ -286,6 +341,15 @@
 			handleMove(data, null); // null = root level
 		} catch (err) {
 			console.error('Root drop error:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Root drop error',
+				extraData: {
+					from: 'NodeSlotConfigPanel.handleRootDrop',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 		}
 	}
 
@@ -356,6 +420,15 @@
 			await fetchHierarchy();
 		} catch (error) {
 			console.error('Error creating slot configuration:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error creating slot configuration',
+				extraData: {
+					from: 'NodeSlotConfigPanel.handleCreate',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_creating_slot_configuration()
@@ -392,6 +465,15 @@
 			await fetchHierarchy();
 		} catch (error) {
 			console.error('Error updating slot configuration:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error updating slot configuration',
+				extraData: {
+					from: 'NodeSlotConfigPanel.handleUpdate',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_updating_slot_configuration()
@@ -427,6 +509,15 @@
 			await executeDeleteSlotConfig(uuid);
 		} catch (err) {
 			console.error('Error checking structures before delete:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error checking structures before delete',
+				extraData: {
+					from: 'NodeSlotConfigPanel.handleDelete',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			await executeDeleteSlotConfig(uuid);
 		}
 	}
@@ -455,6 +546,15 @@
 			await fetchHierarchy();
 		} catch (error) {
 			console.error('Error deleting slot configuration:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error deleting slot configuration',
+				extraData: {
+					from: 'NodeSlotConfigPanel.executeDeleteSlotConfig',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_deleting_slot_configuration()
@@ -538,6 +638,15 @@
 			}
 		} catch (err) {
 			console.error('Error exporting Excel:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error exporting Excel',
+				extraData: {
+					from: 'NodeSlotConfigPanel.handleExportExcel',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_exporting_excel()

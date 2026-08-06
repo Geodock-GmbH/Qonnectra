@@ -1,6 +1,7 @@
 import { m } from '$lib/paraglide/messages';
 
 import { globalToaster } from '$lib/stores/toaster';
+import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 /**
  * Manages cable path geometry and handle configuration
@@ -57,6 +58,15 @@ export class CablePathManager {
 				});
 			} catch (error) {
 				console.error('Error saving cable path:', error);
+				void logToBackendClient({
+					level: 'ERROR',
+					message: 'Error saving cable path',
+					extraData: {
+						from: 'CablePathManager.updatePath',
+						error: error instanceof Error ? error.message : String(error),
+						stack: error instanceof Error ? error.stack : undefined
+					}
+				});
 				globalToaster.error({
 					title: m.common_error(),
 					description: m.message_error_updating_cable_path()

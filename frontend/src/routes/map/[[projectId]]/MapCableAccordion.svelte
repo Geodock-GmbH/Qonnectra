@@ -9,6 +9,7 @@
 	import { CableTrenchDataManager } from '$lib/classes/CableTrenchDataManager.svelte';
 	import FibersDisplayTable from '$lib/components/FibersDisplayTable.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
 
 	import { traceFrom } from '../../trace/traceUtils';
@@ -67,6 +68,15 @@
 			}
 		} catch (err) {
 			console.error('Error highlighting trenches for cable:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error highlighting trenches for cable',
+				extraData: {
+					from: 'MapCableAccordion.handleHighlightTrenches',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			globalToaster.error({
 				description: m.message_error_highlighting_trenches()
 			});

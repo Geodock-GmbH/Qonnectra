@@ -38,6 +38,7 @@
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 
 	import 'ol/ol.css';
@@ -199,6 +200,15 @@
 			}
 		} catch (error) {
 			console.error('Error zooming to trench:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error zooming to trench',
+				extraData: {
+					from: 'TrenchPage.handleTrenchClick',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.title_trench_not_visible(),
 				description: m.message_trench_not_visible_description({ trenchLabel })
@@ -418,6 +428,15 @@
 					}
 				} catch (/** @type {any} */ error) {
 					console.error('Routing error:', error);
+					void logToBackendClient({
+						level: 'ERROR',
+						message: 'Routing error',
+						extraData: {
+							from: 'TrenchPage.handleMapClick',
+							error: error instanceof Error ? error.message : String(error),
+							stack: error instanceof Error ? error.stack : undefined
+						}
+					});
 					globalToaster.error({
 						title: m.title_error_calculating_route(),
 						description: error.message

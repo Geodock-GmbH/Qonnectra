@@ -1,5 +1,7 @@
 import { deserialize } from '$app/forms';
 
+import { logToBackendClient } from '$lib/utils/logToBackendClient';
+
 interface ConduitType {
 	conduit_type?: string;
 }
@@ -118,6 +120,15 @@ export class ConduitDataManager {
 			}
 		} catch (err) {
 			console.error('Error fetching pipes in trench:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching pipes in trench',
+				extraData: {
+					from: 'ConduitDataManager.fetchPipesInTrench',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			this.error = 'Failed to load pipes';
 			this.pipesInTrench = [];
 		} finally {
@@ -173,6 +184,15 @@ export class ConduitDataManager {
 			}
 		} catch (err) {
 			console.error('Error fetching microducts:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching microducts',
+				extraData: {
+					from: 'ConduitDataManager.fetchMicroducts',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			this.errorMicroducts = { ...this.errorMicroducts, [pipeUuid]: 'Failed to load microducts' };
 			this.microducts = { ...this.microducts, [pipeUuid]: [] };
 		} finally {
@@ -281,6 +301,15 @@ export class ConduitDataManager {
 			return [];
 		} catch (err) {
 			console.error('Error fetching trench UUIDs for conduit:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching trench UUIDs for conduit',
+				extraData: {
+					from: 'ConduitDataManager.fetchTrenchUuidsForConduit',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			return [];
 		}
 	}
@@ -316,6 +345,15 @@ export class ConduitDataManager {
 			}
 		} catch (err) {
 			console.error('Error fetching status options:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching status options',
+				extraData: {
+					from: 'ConduitDataManager.fetchStatusOptions',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 		} finally {
 			this.loadingStatusOptions = false;
 		}
@@ -349,6 +387,15 @@ export class ConduitDataManager {
 			return null;
 		} catch (err) {
 			console.error('Error updating microduct status:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error updating microduct status',
+				extraData: {
+					from: 'ConduitDataManager.updateMicroductStatus',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			return null;
 		}
 	}

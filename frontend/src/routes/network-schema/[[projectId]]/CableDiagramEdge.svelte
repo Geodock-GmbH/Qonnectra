@@ -15,6 +15,7 @@
 		getPathMidpoint,
 		snapToGrid
 	} from '$lib/utils/edgeGeometry';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
 
@@ -127,6 +128,15 @@
 			}
 		} catch (error) {
 			console.error('Failed to reset label:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Failed to reset label',
+				extraData: {
+					from: 'CableDiagramEdge.handleLabelReset',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 		}
 	}
 
@@ -173,6 +183,15 @@
 			}
 		} catch (error) {
 			console.error('Failed to save label position:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Failed to save label position',
+				extraData: {
+					from: 'CableDiagramEdge.handleLabelPositionUpdate',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 		}
 	}
 

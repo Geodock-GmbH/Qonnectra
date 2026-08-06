@@ -20,6 +20,7 @@
 	import { createSearchHighlightStyle } from '$lib/map/styles';
 	import { globalMapView, selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	import SearchInput from './SearchInput.svelte';
 
@@ -138,6 +139,15 @@
 			}
 		} catch (error) {
 			console.error('Search error:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Search error',
+				extraData: {
+					from: 'SearchPanel.debouncedSearch',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_search_failed()
@@ -237,6 +247,15 @@
 			}
 		} catch (error) {
 			console.error('Error fetching feature details:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching feature details',
+				extraData: {
+					from: 'SearchPanel.handleResultClick',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.title_feature_found(),
 				description: m.message_error_search_failed()
@@ -322,6 +341,15 @@
 			}
 		} catch (error) {
 			console.error('Error fetching conduit trenches:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching conduit trenches',
+				extraData: {
+					from: 'SearchPanel.handleConduitSelect',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_search_failed()

@@ -39,6 +39,7 @@
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { generateAddressPdf } from '$lib/utils/addressPdf';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { captureMapCanvases, getVisibleWMSAttributions } from '$lib/utils/mapCapture';
 	import { tooltip } from '$lib/utils/tooltip';
 	import { fetchWMSAccessToken, fetchWMSSources, getWMSProxyUrl } from '$lib/utils/wmsApi';
@@ -289,6 +290,15 @@
 			}
 		} catch (error) {
 			console.error('Error updating address:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error updating address',
+				extraData: {
+					from: 'AddressPage.handleSave',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_updating_address()
@@ -328,6 +338,15 @@
 			}
 		} catch (error) {
 			console.error('Error deleting address:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error deleting address',
+				extraData: {
+					from: 'AddressPage.handleDelete',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_deleting_address()
@@ -367,6 +386,15 @@
 			}
 		} catch (error) {
 			console.error('Error regenerating address ID:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error regenerating address ID',
+				extraData: {
+					from: 'AddressPage.handleRegenerateId',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_regenerating_id()
@@ -400,6 +428,15 @@
 			}
 		} catch (error) {
 			console.error('Error fetching fiber connections:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching fiber connections',
+				extraData: {
+					from: 'AddressPage.fetchAllFiberConnections',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 		}
 		return {};
 	}
@@ -491,6 +528,15 @@
 			});
 		} catch (error) {
 			console.error('Error generating PDF:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error generating PDF',
+				extraData: {
+					from: 'AddressPage.handleDownloadPdf',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_downloading_pdf()

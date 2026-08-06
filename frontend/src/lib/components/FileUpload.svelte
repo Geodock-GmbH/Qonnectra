@@ -7,6 +7,7 @@
 
 	import { globalToaster } from '$lib/stores/toaster';
 	import { fetchContentTypes, getContentTypeId } from '$lib/utils/contentTypes';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	/**
 	 * @typedef {Object} FileUploadProps
@@ -39,6 +40,15 @@
 			contentTypesLoaded = true;
 		} catch (error) {
 			console.error('Error fetching content types:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching content types',
+				extraData: {
+					from: 'FileUpload.loadContentTypes',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			contentTypeError = 'Failed to load content types';
 		}
 	}
@@ -74,6 +84,15 @@
 			uploadedFiles = await response.json();
 		} catch (error) {
 			console.error('Error loading files:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error loading files',
+				extraData: {
+					from: 'FileUpload.loadFiles',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: 'Failed to load files'
@@ -148,6 +167,15 @@
 			}
 		} catch (error) {
 			console.error('Error uploading files:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error uploading files',
+				extraData: {
+					from: 'FileUpload.uploadFilesFromPicker',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: error instanceof Error ? error.message : 'Failed to upload files'

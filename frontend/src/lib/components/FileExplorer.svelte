@@ -25,6 +25,7 @@
 
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
 
 	/**
@@ -194,6 +195,15 @@
 			files = Array.isArray(data) ? data : data.results || [];
 		} catch (err) {
 			console.error('Error loading files:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error loading files',
+				extraData: {
+					from: 'FileExplorer.loadFiles',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			error = err instanceof Error ? err.message : String(err);
 			globalToaster.error({
 				title: m.common_error(),
@@ -256,6 +266,15 @@
 			await loadFiles();
 		} catch (err) {
 			console.error('Error deleting file:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error deleting file',
+				extraData: {
+					from: 'FileExplorer.deleteFile',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: 'Failed to delete file'
@@ -322,6 +341,15 @@
 			cancelEditing();
 		} catch (err) {
 			console.error('Error renaming file:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error renaming file',
+				extraData: {
+					from: 'FileExplorer.saveRename',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: 'Failed to rename file'

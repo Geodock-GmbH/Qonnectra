@@ -8,6 +8,7 @@
 
 	import { ConduitDataManager } from '$lib/classes/ConduitDataManager.svelte';
 	import MicroductsDisplayTable from '$lib/components/MicroductsDisplayTable.svelte';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
 
 	/**
@@ -62,6 +63,15 @@
 			}
 		} catch (err) {
 			console.error('Error highlighting trenches:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error highlighting trenches',
+				extraData: {
+					from: 'MapConduitAccordion.handleHighlightTrenches',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 		} finally {
 			highlightLoading = { ...highlightLoading, [pipeUuid]: false };
 		}

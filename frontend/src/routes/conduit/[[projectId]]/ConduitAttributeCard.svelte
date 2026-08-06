@@ -8,6 +8,7 @@
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	// Get attribute options from context (set in +page.svelte)
 	const attributes = getContext('attributeOptions') || {
@@ -104,6 +105,15 @@
 			}
 		} catch (error) {
 			console.error('Error updating conduit:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error updating conduit',
+				extraData: {
+					from: 'ConduitAttributeCard.handleSubmit',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_updating_conduit()
@@ -140,6 +150,15 @@
 			}
 		} catch (error) {
 			console.error('Error deleting conduit:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error deleting conduit',
+				extraData: {
+					from: 'ConduitAttributeCard.handleDelete',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: error instanceof Error ? error.message : m.message_error_deleting_conduit()
