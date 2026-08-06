@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 
+import type { ComponentProps } from 'svelte';
 import { render, screen } from '@testing-library/svelte';
 import { describe, expect, test, vi } from 'vitest';
 
@@ -159,13 +160,17 @@ describe('/network-schema/node/[nodeId]/+page.svelte (child view)', () => {
 	};
 
 	test('should render the SvelteFlow container', () => {
-		render(Page, { props: { data: mockData } });
+		render(Page, {
+			props: { data: mockData as unknown as ComponentProps<typeof Page>['data'] }
+		});
 
 		expect(screen.getByTestId('svelte-flow')).toBeInTheDocument();
 	});
 
 	test('should mount the MicroductChoiceDialog so auto-link choices can appear in child view', () => {
-		render(Page, { props: { data: mockData } });
+		render(Page, {
+			props: { data: mockData as unknown as ComponentProps<typeof Page>['data'] }
+		});
 
 		expect(screen.getByTestId('microduct-choice-dialog')).toBeInTheDocument();
 	});

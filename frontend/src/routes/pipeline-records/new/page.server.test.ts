@@ -151,7 +151,7 @@ describe('pipeline record create +page.server.js', () => {
 				request: createMockRequest({ project: '' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as unknown as Parameters<typeof actions.createPipelineRecord>[0])) as Record<
+			} as unknown as Parameters<typeof actions.createPipelineRecord>[0])) as unknown as Record<
 				string,
 				unknown
 			>;
@@ -167,7 +167,7 @@ describe('pipeline record create +page.server.js', () => {
 				request: createMockRequest({ project: '3' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as unknown as Parameters<typeof actions.createPipelineRecord>[0])) as Record<
+			} as unknown as Parameters<typeof actions.createPipelineRecord>[0])) as unknown as Record<
 				string,
 				unknown
 			>;

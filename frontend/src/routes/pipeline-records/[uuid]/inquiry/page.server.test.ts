@@ -60,7 +60,7 @@ describe('pipeline inquiry +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { uuid: 'test-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.recordExists).toBe(true);
 			expect(result.inquiryAreas).toHaveLength(1);
@@ -79,7 +79,7 @@ describe('pipeline inquiry +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { uuid: 'nonexistent-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.recordExists).toBe(false);
 		});
@@ -93,7 +93,7 @@ describe('pipeline inquiry +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { uuid: 'test-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.recordExists).toBe(true);
 			expect(result.inquiryAreas).toEqual([]);
@@ -109,7 +109,7 @@ describe('pipeline inquiry +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { uuid: 'my-uuid' }
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof load>[0]);
 
 			expect(mockFetch).toHaveBeenCalledWith(
 				'http://localhost:8000/pipeline-records/my-uuid/',
@@ -133,7 +133,7 @@ describe('pipeline inquiry +page.server.js', () => {
 		function createRequestEvent(
 			formFields: Record<string, string>,
 			params: Record<string, string> = { uuid: 'test-uuid' }
-		): Record<string, unknown> {
+		): Parameters<typeof actions.savePolygon>[0] {
 			const formData = new FormData();
 			for (const [key, value] of Object.entries(formFields)) {
 				formData.append(key, value);
@@ -143,7 +143,7 @@ describe('pipeline inquiry +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params
-			} as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.savePolygon>[0];
 		}
 
 		test('should save a polygon and return success', async () => {
@@ -222,7 +222,9 @@ describe('pipeline inquiry +page.server.js', () => {
 	});
 
 	describe('deletePolygon action', () => {
-		function createRequestEvent(formFields: Record<string, string>): Record<string, unknown> {
+		function createRequestEvent(
+			formFields: Record<string, string>
+		): Parameters<typeof actions.deletePolygon>[0] {
 			const formData = new FormData();
 			for (const [key, value] of Object.entries(formFields)) {
 				formData.append(key, value);
@@ -232,7 +234,7 @@ describe('pipeline inquiry +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { uuid: 'test-uuid' }
-			} as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.deletePolygon>[0];
 		}
 
 		test('should delete a polygon and return success', async () => {
@@ -272,7 +274,9 @@ describe('pipeline inquiry +page.server.js', () => {
 	});
 
 	describe('updatePolygon action', () => {
-		function createRequestEvent(formFields: Record<string, string>): Record<string, unknown> {
+		function createRequestEvent(
+			formFields: Record<string, string>
+		): Parameters<typeof actions.updatePolygon>[0] {
 			const formData = new FormData();
 			for (const [key, value] of Object.entries(formFields)) {
 				formData.append(key, value);
@@ -282,7 +286,7 @@ describe('pipeline inquiry +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { uuid: 'test-uuid' }
-			} as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updatePolygon>[0];
 		}
 
 		test('should update a polygon and return success', async () => {
@@ -400,7 +404,9 @@ describe('pipeline inquiry +page.server.js', () => {
 	});
 
 	describe('renamePolygon action', () => {
-		function createRequestEvent(formFields: Record<string, string>): Record<string, unknown> {
+		function createRequestEvent(
+			formFields: Record<string, string>
+		): Parameters<typeof actions.renamePolygon>[0] {
 			const formData = new FormData();
 			for (const [key, value] of Object.entries(formFields)) {
 				formData.append(key, value);
@@ -410,7 +416,7 @@ describe('pipeline inquiry +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { uuid: 'test-uuid' }
-			} as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.renamePolygon>[0];
 		}
 
 		test('should rename a polygon and return success', async () => {

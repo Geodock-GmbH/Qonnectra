@@ -1,17 +1,15 @@
 // frontend/src/lib/map/workerPool.test.js
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { WorkerPool } from './workerPool.js';
+import { WorkerPool } from './workerPool';
 
 // Mock Worker since it's not available in Node
 class MockWorker {
-	/** @type {((event: {data: unknown}) => void) | null} */
-	onmessage = null;
+	onmessage: ((event: { data: unknown }) => void) | null = null;
 	postMessage = vi.fn();
 	terminate = vi.fn();
 
-	/** @param {unknown} data */
-	simulateResponse(data) {
+	simulateResponse(data: unknown) {
 		if (this.onmessage) {
 			this.onmessage({ data });
 		}
@@ -21,8 +19,7 @@ class MockWorker {
 vi.stubGlobal('Worker', MockWorker);
 
 describe('WorkerPool', () => {
-	/** @type {WorkerPool} */
-	let pool;
+	let pool: WorkerPool;
 
 	beforeEach(() => {
 		pool = new WorkerPool(2);
@@ -44,7 +41,7 @@ describe('WorkerPool', () => {
 		const parsePromise = pool.parse('req-1', mockData, extent, projection);
 
 		// Simulate worker response
-		const worker = /** @type {MockWorker} */ /** @type {unknown} */ pool.workers[0];
+		const worker = pool.workers[0] as unknown as MockWorker;
 		worker.simulateResponse({
 			requestId: 'req-1',
 			success: true,
@@ -61,7 +58,7 @@ describe('WorkerPool', () => {
 
 		const parsePromise = pool.parse('req-1', mockData, [0, 0, 100, 100], 'EPSG:3857');
 
-		const worker = /** @type {MockWorker} */ /** @type {unknown} */ pool.workers[0];
+		const worker = pool.workers[0] as unknown as MockWorker;
 		worker.simulateResponse({
 			requestId: 'req-1',
 			success: false,

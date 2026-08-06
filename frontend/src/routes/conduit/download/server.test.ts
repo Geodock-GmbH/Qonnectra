@@ -45,10 +45,10 @@ describe('conduit download +server.js', () => {
 			text: () => Promise.resolve('')
 		});
 
-		const response = await GET({ cookies: mockCookies, fetch: mockFetch } as Record<
-			string,
-			unknown
-		>);
+		const response = await GET({
+			cookies: mockCookies,
+			fetch: mockFetch
+		} as unknown as Parameters<typeof GET>[0]);
 
 		expect(response.status).toBe(200);
 		expect(response.headers.get('Content-Type')).toBe(
@@ -70,7 +70,7 @@ describe('conduit download +server.js', () => {
 			text: () => Promise.resolve('')
 		});
 
-		await GET({ cookies: mockCookies, fetch: mockFetch } as Record<string, unknown>);
+		await GET({ cookies: mockCookies, fetch: mockFetch } as unknown as Parameters<typeof GET>[0]);
 
 		expect(mockFetch).toHaveBeenCalledWith('http://localhost:8000/template/conduit/', {
 			headers: { Cookie: 'api-access-token=mock-token' }
@@ -88,10 +88,10 @@ describe('conduit download +server.js', () => {
 			text: () => Promise.resolve('')
 		});
 
-		const response = await GET({ cookies: mockCookies, fetch: mockFetch } as Record<
-			string,
-			unknown
-		>);
+		const response = await GET({
+			cookies: mockCookies,
+			fetch: mockFetch
+		} as unknown as Parameters<typeof GET>[0]);
 
 		expect(response.headers.get('Content-Disposition')).toBe(
 			'attachment; filename="conduit-template.xlsx"'
@@ -108,7 +108,7 @@ describe('conduit download +server.js', () => {
 		});
 
 		await expect(
-			GET({ cookies: mockCookies, fetch: mockFetch } as Record<string, unknown>)
+			GET({ cookies: mockCookies, fetch: mockFetch } as unknown as Parameters<typeof GET>[0])
 		).rejects.toMatchObject({
 			status: 404,
 			body: { message: 'Failed to download template' }
@@ -119,7 +119,7 @@ describe('conduit download +server.js', () => {
 		mockFetch.mockRejectedValueOnce(new Error('Connection refused'));
 
 		await expect(
-			GET({ cookies: mockCookies, fetch: mockFetch } as Record<string, unknown>)
+			GET({ cookies: mockCookies, fetch: mockFetch } as unknown as Parameters<typeof GET>[0])
 		).rejects.toMatchObject({
 			status: 500,
 			body: { message: 'Failed to download template' }
@@ -136,7 +136,7 @@ describe('conduit download +server.js', () => {
 		});
 
 		await expect(
-			GET({ cookies: mockCookies, fetch: mockFetch } as Record<string, unknown>)
+			GET({ cookies: mockCookies, fetch: mockFetch } as unknown as Parameters<typeof GET>[0])
 		).rejects.toMatchObject({
 			status: 502
 		});
@@ -153,10 +153,10 @@ describe('conduit download +server.js', () => {
 			text: () => Promise.resolve('')
 		});
 
-		const response = await GET({ cookies: mockCookies, fetch: mockFetch } as Record<
-			string,
-			unknown
-		>);
+		const response = await GET({
+			cookies: mockCookies,
+			fetch: mockFetch
+		} as unknown as Parameters<typeof GET>[0]);
 		const body = await response.blob();
 
 		expect(body.size).toBe(blobContent.size);

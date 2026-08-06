@@ -1,5 +1,5 @@
 <script>
-	import { setContext } from 'svelte';
+	import { setContext, untrack } from 'svelte';
 
 	import { NODE_STRUCTURE_CONTEXT_KEY } from '$lib/classes/NodeStructureContext.svelte.js';
 
@@ -7,7 +7,10 @@
 
 	let { context = null, ...rest } = $props();
 
-	setContext(NODE_STRUCTURE_CONTEXT_KEY, context);
+	setContext(
+		NODE_STRUCTURE_CONTEXT_KEY,
+		untrack(() => context)
+	);
 </script>
 
 <SlotGrid {...rest} />

@@ -1,8 +1,11 @@
+import type { ComponentProps } from 'svelte';
 import { tick } from 'svelte';
 import { render } from '@testing-library/svelte';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Page from './+page.svelte';
+
+type PageData = ComponentProps<typeof Page>['data'];
 
 interface MockStore<T> {
 	subscribe: (callback: (value: T) => void) => () => void;
@@ -229,7 +232,7 @@ const defaultData = {
 	surfaces: [],
 	constructionTypes: [],
 	areaTypes: []
-};
+} as unknown as PageData;
 
 describe('Valuation Page - Map project refresh', () => {
 	beforeEach(() => {
@@ -269,7 +272,7 @@ describe('Valuation Page - Area selection', () => {
 		];
 
 		const { container } = render(Page, {
-			data: { ...defaultData, areas: testAreas }
+			data: { ...defaultData, areas: testAreas } as unknown as PageData
 		});
 		await tick();
 

@@ -122,8 +122,8 @@ function makeDragEvent(payload: unknown = null): DragEvent {
 
 function newContext(): {
 	context: NodeStructureContext;
-	structureManager: FakeStructureManager;
-	spliceManager: FakeSpliceManager;
+	structureManager: InstanceType<typeof FakeStructureManager>;
+	spliceManager: InstanceType<typeof FakeSpliceManager>;
 } {
 	const context = new NodeStructureContext('node-1');
 	return {

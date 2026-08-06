@@ -51,7 +51,13 @@ describe('+page.server.js', () => {
 	}
 
 	function setupLoadMocks({
-		pipesResponse = { results: [], page: 1, page_size: 50, count: 0, total_pages: 0 },
+		pipesResponse = {
+			results: [] as Record<string, unknown>[],
+			page: 1,
+			page_size: 50,
+			count: 0,
+			total_pages: 0
+		},
 		conduitTypes = [] as Record<string, unknown>[],
 		statuses = [] as Record<string, unknown>[],
 		networkLevels = [] as Record<string, unknown>[],
@@ -105,7 +111,7 @@ describe('+page.server.js', () => {
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: {}
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.pipes).toEqual([]);
 			expect(result.pagination).toEqual({ page: 1, pageSize: 50, totalCount: 0, totalPages: 0 });
@@ -152,7 +158,7 @@ describe('+page.server.js', () => {
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.pipes).toHaveLength(1);
 			expect((result.pipes as Record<string, unknown>[])[0].value).toBe('uuid-1');
@@ -172,7 +178,7 @@ describe('+page.server.js', () => {
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof load>[0]);
 
 			const firstCall = mockFetch.mock.calls[0][0];
 			expect(firstCall).toContain('search=test');
@@ -187,7 +193,7 @@ describe('+page.server.js', () => {
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof load>[0]);
 
 			const firstCall = mockFetch.mock.calls[0][0];
 			expect(firstCall).toContain('page=2');
@@ -203,7 +209,7 @@ describe('+page.server.js', () => {
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.pipes).toEqual([]);
 			expect(result.pipesError).toBe('Failed to fetch conduits');
@@ -218,7 +224,7 @@ describe('+page.server.js', () => {
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.pipes).toEqual([]);
 			expect(result.pipesError).toBe('Error occurred while fetching data');
@@ -233,7 +239,7 @@ describe('+page.server.js', () => {
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof load>[0]);
 
 			const firstCallHeaders = mockFetch.mock.calls[0][1].headers;
 			expect(firstCallHeaders.Cookie).toBe('api-access-token=mock-token');
@@ -257,7 +263,7 @@ describe('+page.server.js', () => {
 				request: createMockRequest({ uuid: 'test-uuid' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.getConduit>[0])) as Record<string, unknown>;
 
 			expect(result.conduit).toEqual(mockConduit);
 			expect(mockFetch).toHaveBeenCalledWith(
@@ -274,7 +280,7 @@ describe('+page.server.js', () => {
 				request: createMockRequest({}),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.getConduit>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).error).toBe(
@@ -294,7 +300,7 @@ describe('+page.server.js', () => {
 				request: createMockRequest({ uuid: 'nonexistent-uuid' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.getConduit>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(404);
 			expect((result.data as Record<string, unknown>).error).toBe('Conduit not found');
@@ -307,7 +313,7 @@ describe('+page.server.js', () => {
 				request: createMockRequest({ uuid: 'test-uuid' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.getConduit>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).error).toBe('Internal server error');
@@ -336,7 +342,7 @@ describe('+page.server.js', () => {
 				}),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updateConduit>[0])) as Record<string, unknown>;
 
 			expect(result.success).toBe(true);
 			expect(result.message).toBe('Conduit updated successfully');
@@ -353,7 +359,7 @@ describe('+page.server.js', () => {
 				request: createMockRequest({ conduit_name: 'Test' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updateConduit>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).message).toBe('Conduit ID is required');
@@ -371,7 +377,7 @@ describe('+page.server.js', () => {
 				request: createMockRequest({ uuid: 'test-uuid', conduit_name: 'Test' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updateConduit>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).message).toBe('Invalid conduit type');
@@ -388,7 +394,7 @@ describe('+page.server.js', () => {
 				request: createMockRequest({ uuid: 'test-uuid', conduit_name: 'Test' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updateConduit>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).message).toBe('Failed to update conduit');
@@ -401,7 +407,7 @@ describe('+page.server.js', () => {
 				request: createMockRequest({ uuid: 'test-uuid', conduit_name: 'Test' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updateConduit>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).message).toBe('Connection failed');
@@ -429,7 +435,7 @@ describe('+page.server.js', () => {
 				}),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof actions.updateConduit>[0]);
 
 			const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
 			expect(requestBody).toEqual({
@@ -457,7 +463,7 @@ describe('+page.server.js', () => {
 				request: createMockRequest({ uuid: 'test-uuid' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.deleteConduit>[0])) as Record<string, unknown>;
 
 			expect(result.success).toBe(true);
 			expect(result.message).toBe('Conduit deleted successfully');
@@ -475,7 +481,7 @@ describe('+page.server.js', () => {
 				request: createMockRequest({}),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.deleteConduit>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).message).toBe('Conduit ID is required');
@@ -493,7 +499,7 @@ describe('+page.server.js', () => {
 				request: createMockRequest({ uuid: 'nonexistent-uuid' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.deleteConduit>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(404);
 			expect((result.data as Record<string, unknown>).message).toBe('Conduit not found');
@@ -510,7 +516,7 @@ describe('+page.server.js', () => {
 				request: createMockRequest({ uuid: 'test-uuid' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.deleteConduit>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).message).toBe('Failed to delete conduit');
@@ -523,7 +529,7 @@ describe('+page.server.js', () => {
 				request: createMockRequest({ uuid: 'test-uuid' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.deleteConduit>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).message).toBe('Network error');
@@ -550,7 +556,7 @@ describe('+page.server.js', () => {
 				}),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.createConduit>[0])) as Record<string, unknown>;
 
 			expect(result.success).toBe(true);
 			expect(result.message).toBe('Conduit created successfully');
@@ -562,7 +568,7 @@ describe('+page.server.js', () => {
 				request: createMockRequest({ project_id: '1' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.createConduit>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).message).toBe('Conduit name is required');
@@ -591,7 +597,7 @@ describe('+page.server.js', () => {
 				}),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof actions.createConduit>[0]);
 
 			const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
 			expect(requestBody).toEqual({
@@ -620,7 +626,7 @@ describe('+page.server.js', () => {
 				request: createMockRequest({ name: 'Test' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.createConduit>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).isDuplicate).toBe(false);
@@ -633,7 +639,7 @@ describe('+page.server.js', () => {
 				request: createMockRequest({ name: 'Test' }),
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.createConduit>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).message).toBe('Network error');
@@ -667,7 +673,7 @@ describe('+page.server.js', () => {
 				request: { formData: () => Promise.resolve(formData) },
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.uploadConduits>[0])) as Record<string, unknown>;
 
 			expect(result.uploadSuccess).toBe(true);
 			expect(result.createdCount).toBe(5);
@@ -683,7 +689,7 @@ describe('+page.server.js', () => {
 				request: { formData: () => Promise.resolve(formData) },
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.uploadConduits>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).uploadError).toBe(true);
@@ -708,7 +714,7 @@ describe('+page.server.js', () => {
 				request: { formData: () => Promise.resolve(formData) },
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.uploadConduits>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).uploadError).toBe(true);
@@ -734,7 +740,7 @@ describe('+page.server.js', () => {
 				request: { formData: () => Promise.resolve(formData) },
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.uploadConduits>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).uploadError).toBe(true);
@@ -770,7 +776,7 @@ describe('+page.server.js', () => {
 				request: { formData: () => Promise.resolve(formData) },
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.uploadConduits>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).uploadError).toBe(true);
@@ -797,7 +803,7 @@ describe('+page.server.js', () => {
 				request: { formData: () => Promise.resolve(formData) },
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.uploadConduits>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).uploadError).toBe(true);
@@ -827,7 +833,7 @@ describe('+page.server.js', () => {
 				request: { formData: () => Promise.resolve(formData) },
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.uploadConduits>[0])) as Record<string, unknown>;
 
 			expect(result.uploadSuccess).toBe(true);
 		});
@@ -843,7 +849,7 @@ describe('+page.server.js', () => {
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof load>[0]);
 
 			// All calls should include auth headers
 			mockFetch.mock.calls.forEach((call: unknown[]) => {
@@ -863,7 +869,7 @@ describe('+page.server.js', () => {
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof load>[0]);
 
 			// Should not have Cookie header when token is missing
 			mockFetch.mock.calls.forEach((call: unknown[]) => {

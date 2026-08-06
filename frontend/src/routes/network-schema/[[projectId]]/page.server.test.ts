@@ -185,7 +185,7 @@ describe('+page.server.js', () => {
 			const { _waitForSyncCompletion } = await import('./+page.server.js');
 
 			const result = await _waitForSyncCompletion(
-				mockFetch,
+				mockFetch as unknown as typeof fetch,
 				new Headers(),
 				initialStatus,
 				30000, // 30 second timeout
@@ -232,7 +232,7 @@ describe('+page.server.js', () => {
 			const { _waitForSyncCompletion } = await import('./+page.server.js');
 
 			const result = await _waitForSyncCompletion(
-				mockFetch,
+				mockFetch as unknown as typeof fetch,
 				new Headers(),
 				initialStatus,
 				5000, // 5 second timeout for testing
@@ -281,7 +281,7 @@ describe('+page.server.js', () => {
 			const { _waitForSyncCompletion } = await import('./+page.server.js');
 
 			const result = await _waitForSyncCompletion(
-				mockFetch,
+				mockFetch as unknown as typeof fetch,
 				new Headers(),
 				initialStatus,
 				30000,
@@ -313,7 +313,7 @@ describe('+page.server.js', () => {
 			const { _waitForSyncCompletion } = await import('./+page.server.js');
 
 			const result = await _waitForSyncCompletion(
-				mockFetch,
+				mockFetch as unknown as typeof fetch,
 				new Headers(),
 				initialStatus,
 				30000,
@@ -346,7 +346,7 @@ describe('+page.server.js', () => {
 				cookies: mockCookies,
 				url: new URL('http://localhost'),
 				params: { projectId: '1' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.nodes).toHaveLength(1);
 			expect(result.syncStatus).toBeDefined();
@@ -376,7 +376,7 @@ describe('+page.server.js', () => {
 				cookies: mockCookies,
 				url: new URL('http://localhost'),
 				params: { projectId: '1' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.nodes).toHaveLength(1);
 
@@ -387,7 +387,7 @@ describe('+page.server.js', () => {
 					(call[0] as string).includes('canvas-coordinates')
 			);
 			expect(postCall).toBeDefined();
-			expect(JSON.parse((postCall[1] as Record<string, unknown>).body as string)).toEqual({
+			expect(JSON.parse((postCall![1] as Record<string, unknown>).body as string)).toEqual({
 				project_id: '1',
 				scale: 0.5
 			});
@@ -445,7 +445,7 @@ describe('+page.server.js', () => {
 				cookies: mockCookies,
 				url: new URL('http://localhost'),
 				params: { projectId: '1' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.nodes).toHaveLength(1);
 			expect((result.syncStatus as Record<string, unknown>).sync_status).toBe('COMPLETED');
@@ -477,7 +477,7 @@ describe('+page.server.js', () => {
 				cookies: mockCookies,
 				url: new URL('http://localhost'),
 				params: { projectId: '1' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.nodes).toHaveLength(1);
 			// Should not fail despite the conflict
@@ -505,7 +505,7 @@ describe('+page.server.js', () => {
 				cookies: mockCookies,
 				url: new URL('http://localhost'),
 				params: { projectId: '1' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.nodes).toHaveLength(1);
 			expect(result.syncStatus).toBeNull();
@@ -534,7 +534,7 @@ describe('+page.server.js', () => {
 					cookies: mockCookies,
 					url: new URL('http://localhost'),
 					params: { projectId: '1' }
-				} as Record<string, unknown>)
+				} as unknown as Parameters<typeof load>[0])
 			).rejects.toThrow();
 		});
 
@@ -556,7 +556,7 @@ describe('+page.server.js', () => {
 				cookies: mockCookies,
 				url: new URL('http://localhost'),
 				params: { projectId: '1' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.nodes).toEqual([]);
 			expect(result.cables).toEqual([]);
@@ -571,7 +571,7 @@ describe('+page.server.js', () => {
 				cookies: mockCookies,
 				url: new URL('http://localhost'),
 				params: { projectId: '1' }
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof load>[0]);
 
 			// Check that auth headers were passed correctly
 			// getAuthHeaders returns a plain object { Cookie: '...' }, not a Headers instance
@@ -592,7 +592,7 @@ describe('+page.server.js', () => {
 				cookies: mockCookies,
 				url: new URL('http://localhost'),
 				params: { projectId: '1' }
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof load>[0]);
 
 			// Should still make requests but without auth header
 			// getAuthHeaders returns {} when no token, so Cookie will be undefined
@@ -620,7 +620,7 @@ describe('+page.server.js', () => {
 				cookies: mockCookies,
 				url: new URL('http://localhost'),
 				params: { projectId: '1' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			// Should continue and fetch nodes despite sync failure
 			expect(result.nodes).toEqual([]);
@@ -635,19 +635,19 @@ describe('+page.server.js', () => {
 				cookies: mockCookies,
 				url: new URL('http://localhost'),
 				params: { projectId: '1' }
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof load>[0]);
 
 			// Find the sync status check call
 			const syncStatusCall = mockFetch.mock.calls.find((call: unknown[]) =>
 				(call[0] as string).includes('canvas-coordinates')
 			);
-			expect(syncStatusCall[0]).toContain('project_id=1');
+			expect(syncStatusCall![0]).toContain('project_id=1');
 
 			// Find the node fetch call
 			const nodeCall = mockFetch.mock.calls.find((call: unknown[]) =>
 				(call[0] as string).includes('node/all')
 			);
-			expect(nodeCall[0]).toContain('project=1');
+			expect(nodeCall![0]).toContain('project=1');
 		});
 
 		test('should return empty nodes and null syncStatus when projectId is missing', async () => {
@@ -656,7 +656,7 @@ describe('+page.server.js', () => {
 				cookies: mockCookies,
 				url: new URL('http://localhost'),
 				params: {}
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.nodes).toEqual([]);
 			expect(result.syncStatus).toBeNull();
@@ -694,7 +694,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveNodeGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('success');
 			expect(result.message).toBe('Node position saved successfully');
@@ -730,7 +730,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveNodeGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Node ID is required');
@@ -765,7 +765,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveNodeGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('success');
 			expect(result.message).toBe('Node position saved successfully');
@@ -800,7 +800,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveNodeGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Invalid child canvas coordinates');
@@ -825,7 +825,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveNodeGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Invalid canvas coordinates');
@@ -850,7 +850,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveNodeGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Invalid canvas coordinates');
@@ -884,7 +884,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveNodeGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Node not found');
@@ -914,7 +914,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveNodeGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('HTTP 500: Failed to update node position');
@@ -944,7 +944,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveNodeGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('HTTP 500: Failed to update node position');
@@ -970,7 +970,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveNodeGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Network connection failed');
@@ -996,7 +996,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveNodeGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Failed to save node position');
@@ -1030,7 +1030,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof actions.saveNodeGeometry>[0]);
 
 			const patchCall = mockFetch.mock.calls[0];
 
@@ -1072,7 +1072,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveNodeGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('success');
 			expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({
@@ -1109,7 +1109,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveNodeGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('success');
 			expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({
@@ -1123,7 +1123,9 @@ describe('+page.server.js', () => {
 		test('should create headers with auth token', async () => {
 			const { getAuthHeaders } = await import('$lib/utils/getAuthHeaders');
 
-			const headers = getAuthHeaders(mockCookies);
+			const headers = getAuthHeaders(
+				mockCookies as unknown as Parameters<typeof getAuthHeaders>[0]
+			);
 
 			// getAuthHeaders returns a plain object, not a Headers instance
 			expect(headers.Cookie).toBe('api-access-token=mock-token');
@@ -1134,7 +1136,9 @@ describe('+page.server.js', () => {
 
 			const { getAuthHeaders } = await import('$lib/utils/getAuthHeaders');
 
-			const headers = getAuthHeaders(mockCookies);
+			const headers = getAuthHeaders(
+				mockCookies as unknown as Parameters<typeof getAuthHeaders>[0]
+			);
 
 			// When no token, getAuthHeaders returns an empty object
 			expect(headers.Cookie).toBeUndefined();
@@ -1177,7 +1181,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveCableGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('success');
 			expect(result.message).toBe('Cable path saved successfully');
@@ -1206,7 +1210,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveCableGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Cable ID is required');
@@ -1230,7 +1234,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveCableGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Invalid diagram path format');
@@ -1257,7 +1261,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveCableGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('success');
 			expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({
@@ -1288,7 +1292,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveCableGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Invalid cable path');
@@ -1313,7 +1317,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.saveCableGeometry>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Network error');
@@ -1362,7 +1366,7 @@ describe('+page.server.js', () => {
 			const result = (await actions.createCable({
 				request: mockRequest,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.createCable>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('success');
 			expect((result.data as Record<string, unknown>).uuid).toBe('new-cable-uuid');
@@ -1395,7 +1399,7 @@ describe('+page.server.js', () => {
 			const result = (await actions.createCable({
 				request: mockRequest,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.createCable>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).error).toContain('Missing required fields');
@@ -1420,7 +1424,7 @@ describe('+page.server.js', () => {
 			const result = (await actions.createCable({
 				request: mockRequest,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.createCable>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).error).toContain('uuid_node_start_id');
@@ -1453,7 +1457,7 @@ describe('+page.server.js', () => {
 			const result = (await actions.createCable({
 				request: mockRequest,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.createCable>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(422);
 		});
@@ -1487,7 +1491,7 @@ describe('+page.server.js', () => {
 			await actions.createCable({
 				request: mockRequest,
 				cookies: mockCookies
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof actions.createCable>[0]);
 
 			const body = JSON.parse(mockFetch.mock.calls[0][1].body);
 			expect(body.uuid).toBe('custom-uuid');
@@ -1525,7 +1529,7 @@ describe('+page.server.js', () => {
 			const result = (await actions.getCables({
 				request: mockRequest,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.getCables>[0])) as Record<string, unknown>;
 
 			expect(result.uuid).toBe('cable-123');
 			expect(mockFetch.mock.calls[0][0]).toBe('http://localhost:8000/cable/cable-123');
@@ -1541,7 +1545,7 @@ describe('+page.server.js', () => {
 			const result = (await actions.getCables({
 				request: mockRequest,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.getCables>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).error).toContain('uuid is required');
@@ -1563,7 +1567,7 @@ describe('+page.server.js', () => {
 			const result = (await actions.getCables({
 				request: mockRequest,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.getCables>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(404);
 		});
@@ -1599,7 +1603,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updateCable>[0])) as Record<string, unknown>;
 
 			expect(result.success).toBe(true);
 			expect(result.message).toBe('Cable updated successfully');
@@ -1625,7 +1629,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updateCable>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Cable ID is required');
@@ -1655,7 +1659,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updateCable>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).message).toBe('Invalid cable type');
@@ -1680,7 +1684,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updateCable>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).message).toBe('Connection refused');
@@ -1704,7 +1708,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.deleteCable>[0])) as Record<string, unknown>;
 
 			expect(result.success).toBe(true);
 			expect(result.message).toBe('Cable deleted successfully');
@@ -1725,7 +1729,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.deleteCable>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).message).toBe('Cable ID is required');
@@ -1749,7 +1753,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.deleteCable>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(409);
 			expect((result.data as Record<string, unknown>).message).toBe('Cable has dependent fibers');
@@ -1768,7 +1772,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.deleteCable>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).message).toBe('Network timeout');
@@ -1797,7 +1801,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.getNodes>[0])) as Record<string, unknown>;
 
 			expect(result.uuid).toBe('node-123');
 			expect(result.name).toBe('Node A');
@@ -1815,7 +1819,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.getNodes>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).error).toContain('uuid is required');
@@ -1838,7 +1842,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.getNodes>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(404);
 		});
@@ -1856,7 +1860,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.getNodes>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).error).toBe('Internal server error');
@@ -1894,7 +1898,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updateNode>[0])) as Record<string, unknown>;
 
 			expect(result.success).toBe(true);
 			expect(result.message).toBe('Node updated successfully');
@@ -1920,7 +1924,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updateNode>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Node ID is required');
@@ -1949,7 +1953,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof actions.updateNode>[0]);
 
 			const body = JSON.parse(mockFetch.mock.calls[0][1].body);
 			expect(body.parent_node_id).toBeNull();
@@ -1978,7 +1982,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updateNode>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).message).toBe('Invalid node type');
@@ -2003,7 +2007,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updateNode>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).message).toBe('Connection failed');
@@ -2027,7 +2031,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.deleteNode>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('success');
 			expect(result.message).toBe('Node deleted successfully');
@@ -2048,7 +2052,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.deleteNode>[0])) as Record<string, unknown>;
 
 			expect(result.type).toBe('error');
 			expect(result.message).toBe('Node ID is required');
@@ -2072,7 +2076,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.deleteNode>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(409);
 			expect((result.data as Record<string, unknown>).message).toBe('Node has dependent cables');
@@ -2091,7 +2095,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.deleteNode>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).message).toBe('Server unreachable');
@@ -2123,7 +2127,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.exportExcel>[0])) as Record<string, unknown>;
 
 			expect(result.fileData).toBeDefined();
 			expect(typeof result.fileData).toBe('string');
@@ -2154,7 +2158,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.exportExcel>[0])) as Record<string, unknown>;
 
 			expect(result.fileName).toBe('structure.xlsx');
 			expect(result.fileData).toBeDefined();
@@ -2171,7 +2175,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.exportExcel>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).error).toBe('Missing nodeUuid');
@@ -2194,7 +2198,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.exportExcel>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(404);
 			expect((result.data as Record<string, unknown>).error).toBe('Export failed');
@@ -2213,7 +2217,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.exportExcel>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).error).toBe('Export failed');
@@ -2242,7 +2246,7 @@ describe('+page.server.js', () => {
 				request: mockRequest,
 				fetch: mockFetch,
 				cookies: mockCookies
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.exportExcel>[0])) as Record<string, unknown>;
 
 			const decoded = Buffer.from(result.fileData as string, 'base64');
 			expect(decoded.toString()).toBe('test excel content');

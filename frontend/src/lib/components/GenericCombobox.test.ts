@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 
+import type { FuseResult } from 'fuse.js';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import Fuse from 'fuse.js';
@@ -39,7 +40,7 @@ describe('GenericCombobox Fuzzy Search', () => {
 	test('should find partial matches', () => {
 		const results = fuse.search('App');
 		expect(results.length).toBe(2);
-		const labels = results.map((r: Fuse.FuseResult<ComboboxItem>) => r.item.label);
+		const labels = results.map((r: FuseResult<ComboboxItem>) => r.item.label);
 		expect(labels).toContain('Apple');
 		expect(labels).toContain('Application');
 	});
@@ -47,7 +48,7 @@ describe('GenericCombobox Fuzzy Search', () => {
 	test('should find fuzzy matches with typos', () => {
 		const results = fuse.search('Appel'); // typo for Apple
 		expect(results.length).toBeGreaterThan(0);
-		const labels = results.map((r: Fuse.FuseResult<ComboboxItem>) => r.item.label);
+		const labels = results.map((r: FuseResult<ComboboxItem>) => r.item.label);
 		expect(labels).toContain('Apple');
 	});
 

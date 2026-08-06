@@ -1,8 +1,11 @@
+import type { ComponentProps } from 'svelte';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import SlotConfigItem from './SlotConfigItem.svelte';
+
+type SlotConfigItemProps = ComponentProps<typeof SlotConfigItem>;
 
 vi.mock('$lib/paraglide/messages', () => ({
 	m: new Proxy(
@@ -30,7 +33,7 @@ afterEach(() => {
 
 describe('SlotConfigItem', () => {
 	test('should render the side label and slot counts', () => {
-		render(SlotConfigItem, { config: makeConfig() });
+		render(SlotConfigItem, { config: makeConfig() } as unknown as SlotConfigItemProps);
 
 		expect(screen.getByText('A-Seite')).toBeInTheDocument();
 		const stats = screen.getByText(/form_total_slots/).textContent ?? '';
@@ -42,7 +45,7 @@ describe('SlotConfigItem', () => {
 	test('should fall back to total_slots for free slots and 0 for used when missing', () => {
 		render(SlotConfigItem, {
 			config: makeConfig({ used_slots: undefined, free_slots: undefined, total_slots: 24 })
-		});
+		} as unknown as SlotConfigItemProps);
 
 		const stats = screen.getByText(/form_total_slots/).textContent ?? '';
 		// used_slots defaults to 0, free_slots defaults to total_slots (24).
@@ -53,7 +56,10 @@ describe('SlotConfigItem', () => {
 	test('should call onViewStructure with the config uuid', async () => {
 		const user = userEvent.setup();
 		const onViewStructure = vi.fn();
-		render(SlotConfigItem, { config: makeConfig(), onViewStructure });
+		render(SlotConfigItem, {
+			config: makeConfig(),
+			onViewStructure
+		} as unknown as SlotConfigItemProps);
 
 		await user.click(screen.getByRole('button', { name: 'action_view_structure' }));
 
@@ -64,7 +70,7 @@ describe('SlotConfigItem', () => {
 		const user = userEvent.setup();
 		const onEdit = vi.fn();
 		const config = makeConfig();
-		render(SlotConfigItem, { config, onEdit });
+		render(SlotConfigItem, { config, onEdit } as unknown as SlotConfigItemProps);
 
 		await user.click(screen.getByRole('button', { name: 'common_edit' }));
 
@@ -74,7 +80,7 @@ describe('SlotConfigItem', () => {
 	test('should call onDelete with the config uuid', async () => {
 		const user = userEvent.setup();
 		const onDelete = vi.fn();
-		render(SlotConfigItem, { config: makeConfig(), onDelete });
+		render(SlotConfigItem, { config: makeConfig(), onDelete } as unknown as SlotConfigItemProps);
 
 		await user.click(screen.getByRole('button', { name: 'common_delete' }));
 
@@ -82,7 +88,10 @@ describe('SlotConfigItem', () => {
 	});
 
 	test('should hide edit/delete and grip in readonly mode but keep view', () => {
-		render(SlotConfigItem, { config: makeConfig(), readonly: true });
+		render(SlotConfigItem, {
+			config: makeConfig(),
+			readonly: true
+		} as unknown as SlotConfigItemProps);
 
 		expect(screen.getByRole('button', { name: 'action_view_structure' })).toBeInTheDocument();
 		expect(screen.queryByRole('button', { name: 'common_edit' })).not.toBeInTheDocument();
@@ -90,7 +99,9 @@ describe('SlotConfigItem', () => {
 	});
 
 	test('should be draggable and not draggable in readonly', () => {
-		const { container, unmount } = render(SlotConfigItem, { config: makeConfig() });
+		const { container, unmount } = render(SlotConfigItem, {
+			config: makeConfig()
+		} as unknown as SlotConfigItemProps);
 		const item = container.querySelector('.slot-config-item') as HTMLElement;
 		expect(item.getAttribute('draggable')).toBe('true');
 		unmount();
@@ -98,13 +109,16 @@ describe('SlotConfigItem', () => {
 		const { container: roContainer } = render(SlotConfigItem, {
 			config: makeConfig(),
 			readonly: true
-		});
+		} as unknown as SlotConfigItemProps);
 		const roItem = roContainer.querySelector('.slot-config-item') as HTMLElement;
 		expect(roItem.getAttribute('draggable')).toBe('false');
 	});
 
 	test('should apply indentation based on depth', () => {
-		const { container } = render(SlotConfigItem, { config: makeConfig(), depth: 2 });
+		const { container } = render(SlotConfigItem, {
+			config: makeConfig(),
+			depth: 2
+		} as unknown as SlotConfigItemProps);
 		const item = container.querySelector('.slot-config-item') as HTMLElement;
 		// depth * 1.5rem = 3rem
 		expect(item.style.paddingLeft).toBe('3rem');
@@ -115,7 +129,7 @@ describe('SlotConfigItem', () => {
 		const { container } = render(SlotConfigItem, {
 			config: makeConfig({ uuid: 'drag-uuid' }),
 			onDragStart
-		});
+		} as unknown as SlotConfigItemProps);
 		const item = container.querySelector('.slot-config-item') as HTMLElement;
 
 		const setData = vi.fn();
@@ -140,7 +154,7 @@ describe('SlotConfigItem', () => {
 			config: makeConfig(),
 			readonly: true,
 			onDragStart
-		});
+		} as unknown as SlotConfigItemProps);
 		const item = container.querySelector('.slot-config-item') as HTMLElement;
 
 		const setData = vi.fn();

@@ -42,7 +42,7 @@ describe('buildGeoJSON', () => {
 				}
 			}
 		};
-		const geojson = buildGeoJSON(result, 25832);
+		const geojson = buildGeoJSON(result as unknown as Parameters<typeof buildGeoJSON>[0], 25832);
 		expect(geojson.features).toHaveLength(1);
 		expect(geojson.features[0].properties.feature_type).toBe('trench');
 		expect(geojson.features[0].geometry.type).toBe('LineString');
@@ -285,7 +285,7 @@ describe('hasGeometries', () => {
 				'cable-1': { trenches: [{ geometry: LINE_GEOM }] }
 			}
 		};
-		expect(hasGeometries(result)).toBe(true);
+		expect(hasGeometries(result as unknown as Parameters<typeof hasGeometries>[0])).toBe(true);
 	});
 
 	it('returns false when no geometries exist at all', () => {

@@ -1,3 +1,4 @@
+import type { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, test, vi } from 'vitest';
@@ -44,7 +45,9 @@ describe('MicroductChoiceDialog', () => {
 	test('should not render candidate content when there is no pending choice', () => {
 		const schemaState = makeSchemaState([]);
 
-		render(MicroductChoiceDialog, { schemaState });
+		render(MicroductChoiceDialog, {
+			schemaState: schemaState as unknown as NetworkSchemaState
+		});
 
 		expect(
 			screen.queryByText(
@@ -66,7 +69,9 @@ describe('MicroductChoiceDialog', () => {
 			}
 		]);
 
-		render(MicroductChoiceDialog, { schemaState });
+		render(MicroductChoiceDialog, {
+			schemaState: schemaState as unknown as NetworkSchemaState
+		});
 
 		expect(screen.getByText('title_micropipe_choice_dialog')).toBeInTheDocument();
 		expect(
@@ -89,7 +94,9 @@ describe('MicroductChoiceDialog', () => {
 			}
 		]);
 
-		render(MicroductChoiceDialog, { schemaState });
+		render(MicroductChoiceDialog, {
+			schemaState: schemaState as unknown as NetworkSchemaState
+		});
 
 		expect(screen.getByText(/Cable-A, Cable-B/)).toBeInTheDocument();
 	});
@@ -104,7 +111,9 @@ describe('MicroductChoiceDialog', () => {
 			}
 		]);
 
-		render(MicroductChoiceDialog, { schemaState });
+		render(MicroductChoiceDialog, {
+			schemaState: schemaState as unknown as NetworkSchemaState
+		});
 
 		await user.click(screen.getByText(/C-1 · #3 blau/));
 
@@ -122,7 +131,9 @@ describe('MicroductChoiceDialog', () => {
 			}
 		]);
 
-		render(MicroductChoiceDialog, { schemaState });
+		render(MicroductChoiceDialog, {
+			schemaState: schemaState as unknown as NetworkSchemaState
+		});
 
 		await user.click(screen.getByText('common_cancel'));
 

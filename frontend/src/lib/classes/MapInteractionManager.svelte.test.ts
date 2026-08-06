@@ -1,5 +1,6 @@
 import type { MapPopupManager } from './MapPopupManager.svelte';
 import type { MapSelectionManager } from './MapSelectionManager.svelte';
+import type { DrawerStore } from '$lib/stores/drawer';
 import type { Feature } from 'ol';
 import type OlMap from 'ol/Map';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -61,7 +62,7 @@ function setup(configOverrides: Record<string, boolean> | null = null) {
 	const manager = new MapInteractionManager(
 		selectionManager as unknown as MapSelectionManager,
 		popupManager as unknown as MapPopupManager,
-		drawerStore,
+		drawerStore as unknown as DrawerStore,
 		drawerComponent,
 		{ name: 'Name' },
 		configOverrides as never

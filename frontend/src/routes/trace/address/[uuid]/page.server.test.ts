@@ -45,7 +45,7 @@ describe('trace/address/[uuid] +page.server.js', () => {
 			json: () => Promise.resolve({ fibers: [] })
 		});
 
-		const result = await load(createLoadEvent());
+		const result = (await load(createLoadEvent())) as Record<string, unknown>;
 
 		expect(mockFetch).toHaveBeenCalledWith(
 			expect.stringContaining('fiber-trace/?address_id=address-uuid-456'),
@@ -62,13 +62,13 @@ describe('trace/address/[uuid] +page.server.js', () => {
 			json: () => Promise.resolve({})
 		});
 
-		const result = await load(
+		const result = (await load(
 			createLoadEvent({
 				include_geometry: 'true',
 				geometry_mode: 'merged',
 				orient_geometry: 'true'
 			})
-		);
+		)) as Record<string, unknown>;
 
 		const calledUrl = mockFetch.mock.calls[0][0];
 		expect(calledUrl).toContain('include_geometry=true');
@@ -87,9 +87,12 @@ describe('trace/address/[uuid] +page.server.js', () => {
 			json: () => Promise.resolve({})
 		});
 
-		const result = await load(createLoadEvent({ include_geometry: 'true' }));
+		const result = (await load(createLoadEvent({ include_geometry: 'true' }))) as Record<
+			string,
+			unknown
+		>;
 
-		expect(result.options?.geometryMode).toBe('segments');
+		expect((result.options as Record<string, unknown>).geometryMode).toBe('segments');
 	});
 
 	test('should not append geometry params when include_geometry is false', async () => {
@@ -111,7 +114,7 @@ describe('trace/address/[uuid] +page.server.js', () => {
 			json: () => Promise.resolve({ error: 'Address not found' })
 		});
 
-		const result = await load(createLoadEvent());
+		const result = (await load(createLoadEvent())) as Record<string, unknown>;
 
 		expect(result.error).toBe('Address not found');
 		expect(result.entryType).toBe('address');
@@ -125,7 +128,7 @@ describe('trace/address/[uuid] +page.server.js', () => {
 			json: () => Promise.reject(new Error('no json'))
 		});
 
-		const result = await load(createLoadEvent());
+		const result = (await load(createLoadEvent())) as Record<string, unknown>;
 
 		expect(result.error).toBe('Trace failed');
 	});
@@ -133,7 +136,7 @@ describe('trace/address/[uuid] +page.server.js', () => {
 	test('should return internal server error on network failure', async () => {
 		mockFetch.mockRejectedValueOnce(new Error('Connection refused'));
 
-		const result = await load(createLoadEvent());
+		const result = (await load(createLoadEvent())) as Record<string, unknown>;
 
 		expect(result.error).toBe('Internal server error');
 		expect(result.entryType).toBe('address');

@@ -71,12 +71,12 @@ describe('load', () => {
 	test('should return attribute types without conduits when params are missing', async () => {
 		const fetchMock = vi.fn();
 
-		const result = await load({
+		const result = (await load({
 			fetch: fetchMock,
 			params: {},
 			depends: vi.fn(),
 			cookies: mockCookies
-		} as never);
+		} as never)) as Record<string, unknown>;
 
 		expect(result.conduits).toEqual([]);
 		expect(result.conduitsError).toBeNull();
@@ -92,12 +92,12 @@ describe('load', () => {
 				})
 		});
 
-		const result = await load({
+		const result = (await load({
 			fetch: fetchMock,
 			params: { projectId: '7', flagId: '1' },
 			depends: vi.fn(),
 			cookies: mockCookies
-		} as never);
+		} as never)) as Record<string, unknown>;
 
 		expect(fetchMock).toHaveBeenCalledWith(
 			'http://localhost:8000/conduit/all/?project=7&flag=1&no_pagination=true',
@@ -109,12 +109,12 @@ describe('load', () => {
 	test('should report a conduit error on failure', async () => {
 		const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 500 });
 
-		const result = await load({
+		const result = (await load({
 			fetch: fetchMock,
 			params: { projectId: '7', flagId: '1' },
 			depends: vi.fn(),
 			cookies: mockCookies
-		} as never);
+		} as never)) as Record<string, unknown>;
 
 		expect(result.conduits).toEqual([]);
 		expect(result.conduitsError).toBe('title_error_fetching_conduits');

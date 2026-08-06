@@ -56,7 +56,7 @@ describe('fault-simulation +page.server.js', () => {
 	function createEvent(
 		formFields: Record<string, string> = {},
 		params: Record<string, string> = {}
-	): Record<string, unknown> {
+	) {
 		const formData = new FormData();
 		for (const [key, value] of Object.entries(formFields)) {
 			formData.set(key, value);
@@ -66,7 +66,11 @@ describe('fault-simulation +page.server.js', () => {
 			fetch: mockFetch,
 			cookies: mockCookies,
 			params
-		};
+		} as unknown as import('@sveltejs/kit').RequestEvent<
+			Record<string, string>,
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			any
+		>;
 	}
 
 	describe('load', () => {
@@ -87,10 +91,9 @@ describe('fault-simulation +page.server.js', () => {
 			vi.mocked(getConstructionTypes).mockResolvedValue(constructionTypesData);
 			vi.mocked(getAreaTypes).mockResolvedValue(areaTypesData);
 
-			const result = await load({ fetch: mockFetch, cookies: mockCookies } as Record<
-				string,
-				unknown
-			>);
+			const result = await load({ fetch: mockFetch, cookies: mockCookies } as unknown as Parameters<
+				typeof load
+			>[0]);
 
 			expect(result).toEqual({
 				nodeTypes: [{ uuid: 'nt-1', name: 'Splice' }],
@@ -105,12 +108,14 @@ describe('fault-simulation +page.server.js', () => {
 		});
 
 		test('should pass fetch and cookies to all attribute functions', async () => {
-			vi.mocked(getNodeTypes).mockResolvedValue({ nodeTypes: [] });
-			vi.mocked(getSurfaces).mockResolvedValue({ surfaces: [] });
-			vi.mocked(getConstructionTypes).mockResolvedValue({ constructionTypes: [] });
-			vi.mocked(getAreaTypes).mockResolvedValue({ areaTypes: [] });
+			vi.mocked(getNodeTypes).mockResolvedValue({ nodeTypes: [] } as never);
+			vi.mocked(getSurfaces).mockResolvedValue({ surfaces: [] } as never);
+			vi.mocked(getConstructionTypes).mockResolvedValue({ constructionTypes: [] } as never);
+			vi.mocked(getAreaTypes).mockResolvedValue({ areaTypes: [] } as never);
 
-			await load({ fetch: mockFetch, cookies: mockCookies } as Record<string, unknown>);
+			await load({ fetch: mockFetch, cookies: mockCookies } as unknown as Parameters<
+				typeof load
+			>[0]);
 
 			expect(getNodeTypes).toHaveBeenCalledWith(mockFetch, mockCookies);
 			expect(getSurfaces).toHaveBeenCalledWith(mockFetch, mockCookies);
@@ -130,10 +135,10 @@ describe('fault-simulation +page.server.js', () => {
 			});
 			vi.mocked(getAreaTypes).mockResolvedValue({ areaTypes: [], areaTypesError: null });
 
-			const result = await load({ fetch: mockFetch, cookies: mockCookies } as Record<
-				string,
-				unknown
-			>);
+			const result = (await load({
+				fetch: mockFetch,
+				cookies: mockCookies
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.nodeTypesError).toBe('Failed to load');
 			expect(result.nodeTypes).toEqual([]);
@@ -270,7 +275,7 @@ describe('fault-simulation +page.server.js', () => {
 			const searchResults = [
 				{ value: 'uuid-1', label: 'Node A (Node)', type: 'node', uuid: 'uuid-1' }
 			];
-			vi.mocked(searchFeaturesInProject).mockResolvedValue(searchResults);
+			vi.mocked(searchFeaturesInProject).mockResolvedValue(searchResults as never);
 
 			const result = await actions.searchFeatures(
 				createEvent({ searchQuery: 'Node A' }, { projectId: 'proj-1' })
@@ -300,7 +305,7 @@ describe('fault-simulation +page.server.js', () => {
 				success: true,
 				feature: { id: 'uuid-1', properties: { name: 'Node A' } }
 			};
-			vi.mocked(getFeatureDetailsByType).mockResolvedValue(featureResult);
+			vi.mocked(getFeatureDetailsByType).mockResolvedValue(featureResult as never);
 
 			const result = await actions.getFeatureDetails(
 				createEvent({ featureType: 'node', featureUuid: 'uuid-1' }, { projectId: 'proj-1' })
@@ -317,7 +322,7 @@ describe('fault-simulation +page.server.js', () => {
 		});
 
 		test('should default projectId to empty string when not in params', async () => {
-			vi.mocked(getFeatureDetailsByType).mockResolvedValue({ success: true });
+			vi.mocked(getFeatureDetailsByType).mockResolvedValue({ success: true } as never);
 
 			await actions.getFeatureDetails(
 				createEvent({ featureType: 'trench', featureUuid: 'uuid-1' }, {})
@@ -340,7 +345,7 @@ describe('fault-simulation +page.server.js', () => {
 				trenches: [{ id: 'trench-1' }],
 				trenchUuids: ['trench-uuid-1']
 			};
-			vi.mocked(getTrenchUuidsForConduit).mockResolvedValue(trenchResult);
+			vi.mocked(getTrenchUuidsForConduit).mockResolvedValue(trenchResult as never);
 
 			const result = await actions.getConduitTrenches(
 				createEvent({ conduitUuid: 'conduit-uuid-1' })
@@ -358,7 +363,7 @@ describe('fault-simulation +page.server.js', () => {
 	describe('getLayerExtent', () => {
 		test('should delegate to getLayerExtent helper with correct params', async () => {
 			const extentResult = { extent: [1, 2, 3, 4], layer: 'trench' };
-			vi.mocked(getLayerExtent).mockResolvedValue(extentResult);
+			vi.mocked(getLayerExtent).mockResolvedValue(extentResult as never);
 
 			const result = await actions.getLayerExtent(
 				createEvent({ layerType: 'trench', projectId: 'proj-1' })

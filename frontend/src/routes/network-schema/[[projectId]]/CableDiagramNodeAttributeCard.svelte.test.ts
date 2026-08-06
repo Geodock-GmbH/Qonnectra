@@ -94,7 +94,9 @@ describe('CableDiagramNodeAttributeCard', () => {
 		mockRoutes();
 		const onLabelUpdate = vi.fn();
 
-		render(CableDiagramNodeAttributeCard, { onLabelUpdate });
+		render(CableDiagramNodeAttributeCard, {
+			onLabelUpdate
+		} as unknown as Parameters<typeof render<typeof CableDiagramNodeAttributeCard>>[1]);
 		fetchMock.mockClear();
 
 		const form = document.getElementById('node-form') as HTMLFormElement;

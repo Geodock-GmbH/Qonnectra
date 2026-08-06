@@ -1,8 +1,17 @@
+import type { ComponentProps } from 'svelte';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import ContainerItem from './ContainerItem.svelte';
+
+/**
+ * Render ContainerItem with a partial props object. The component's callback
+ * props are optional at runtime for these tests, so cast to the component props type.
+ */
+function renderItem(props: Record<string, unknown>) {
+	return render(ContainerItem, props as unknown as ComponentProps<typeof ContainerItem>);
+}
 
 vi.mock('$lib/paraglide/messages', () => ({
 	m: new Proxy(
@@ -35,14 +44,14 @@ afterEach(() => {
 
 describe('ContainerItem', () => {
 	test('should render the container display name', () => {
-		render(ContainerItem, { container: makeContainer() });
+		renderItem({ container: makeContainer() });
 
 		expect(screen.getByText('Rack A')).toBeInTheDocument();
 	});
 
 	test('should not render a chevron toggle when there are no children or slot configs', () => {
 		const onToggleExpand = vi.fn();
-		render(ContainerItem, { container: makeContainer(), onToggleExpand });
+		renderItem({ container: makeContainer(), onToggleExpand });
 
 		// The only rendered buttons should be edit + delete, no expand chevron.
 		const buttons = screen.getAllByRole('button');
@@ -50,14 +59,14 @@ describe('ContainerItem', () => {
 	});
 
 	test('should render edit and delete actions when not readonly', () => {
-		render(ContainerItem, { container: makeContainer() });
+		renderItem({ container: makeContainer() });
 
 		expect(screen.getByRole('button', { name: 'common_edit' })).toBeInTheDocument();
 		expect(screen.getByRole('button', { name: 'common_delete' })).toBeInTheDocument();
 	});
 
 	test('should hide edit and delete actions when readonly', () => {
-		render(ContainerItem, { container: makeContainer(), readonly: true });
+		renderItem({ container: makeContainer(), readonly: true });
 
 		expect(screen.queryByRole('button', { name: 'common_edit' })).not.toBeInTheDocument();
 		expect(screen.queryByRole('button', { name: 'common_delete' })).not.toBeInTheDocument();
@@ -66,7 +75,7 @@ describe('ContainerItem', () => {
 	test('should call onToggleExpand with the container uuid when the chevron is clicked', async () => {
 		const user = userEvent.setup();
 		const onToggleExpand = vi.fn();
-		render(ContainerItem, {
+		renderItem({
 			container: makeContainer({ children: [makeContainer({ uuid: 'child-1' })] }),
 			onToggleExpand
 		});
@@ -81,7 +90,7 @@ describe('ContainerItem', () => {
 	test('should call onDelete with the container uuid', async () => {
 		const user = userEvent.setup();
 		const onDelete = vi.fn();
-		render(ContainerItem, { container: makeContainer(), onDelete });
+		renderItem({ container: makeContainer(), onDelete });
 
 		await user.click(screen.getByRole('button', { name: 'common_delete' }));
 
@@ -91,7 +100,7 @@ describe('ContainerItem', () => {
 	test('should enter edit mode and save the trimmed new name via onUpdateName', async () => {
 		const user = userEvent.setup();
 		const onUpdateName = vi.fn();
-		render(ContainerItem, { container: makeContainer(), onUpdateName });
+		renderItem({ container: makeContainer(), onUpdateName });
 
 		await user.click(screen.getByRole('button', { name: 'common_edit' }));
 
@@ -106,7 +115,7 @@ describe('ContainerItem', () => {
 	test('should cancel editing without calling onUpdateName', async () => {
 		const user = userEvent.setup();
 		const onUpdateName = vi.fn();
-		render(ContainerItem, { container: makeContainer(), onUpdateName });
+		renderItem({ container: makeContainer(), onUpdateName });
 
 		await user.click(screen.getByRole('button', { name: 'common_edit' }));
 		await user.click(screen.getByRole('button', { name: 'common_cancel' }));
@@ -117,7 +126,7 @@ describe('ContainerItem', () => {
 	});
 
 	test('should render child containers when expanded', () => {
-		render(ContainerItem, {
+		renderItem({
 			container: makeContainer({
 				is_expanded: true,
 				children: [makeContainer({ uuid: 'child-1', display_name: 'Rack A / Shelf 1' })]
@@ -128,7 +137,7 @@ describe('ContainerItem', () => {
 	});
 
 	test('should not render child containers when collapsed', () => {
-		render(ContainerItem, {
+		renderItem({
 			container: makeContainer({
 				is_expanded: false,
 				children: [makeContainer({ uuid: 'child-1', display_name: 'Rack A / Shelf 1' })]
@@ -140,7 +149,7 @@ describe('ContainerItem', () => {
 
 	test('should call onMove when a container is dropped onto this item', async () => {
 		const onMove = vi.fn();
-		render(ContainerItem, { container: makeContainer(), onMove });
+		renderItem({ container: makeContainer(), onMove });
 
 		const treeitem = screen.getByRole('treeitem');
 		const payload = JSON.stringify({ type: 'container', uuid: 'other-container' });
@@ -163,7 +172,7 @@ describe('ContainerItem', () => {
 
 	test('should not call onMove when dropping a container onto itself', async () => {
 		const onMove = vi.fn();
-		render(ContainerItem, { container: makeContainer(), onMove });
+		renderItem({ container: makeContainer(), onMove });
 
 		const treeitem = screen.getByRole('treeitem');
 		const payload = JSON.stringify({ type: 'container', uuid: 'container-1' });

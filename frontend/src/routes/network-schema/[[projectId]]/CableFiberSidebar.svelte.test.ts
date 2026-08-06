@@ -1,3 +1,4 @@
+import type { DragDropManager } from '$lib/classes/DragDropManager.svelte';
 import { render, screen } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -188,7 +189,10 @@ describe('CableFiberSidebar (desktop)', () => {
 	test('should start a cable drag through the drag-drop manager', async () => {
 		mockRoutes(defaultRoutes);
 		const dragDropManager = makeDragDropManager();
-		render(Harness, { nodeUuid: 'node-1', dragDropManager });
+		render(Harness, {
+			nodeUuid: 'node-1',
+			dragDropManager: dragDropManager as unknown as DragDropManager
+		});
 
 		await screen.findByText('K-Nord');
 
@@ -202,7 +206,11 @@ describe('CableFiberSidebar (desktop)', () => {
 	test('should NOT start a drag when readonly', async () => {
 		mockRoutes(defaultRoutes);
 		const dragDropManager = makeDragDropManager();
-		render(Harness, { nodeUuid: 'node-1', dragDropManager, readonly: true });
+		render(Harness, {
+			nodeUuid: 'node-1',
+			dragDropManager: dragDropManager as unknown as DragDropManager,
+			readonly: true
+		});
 
 		await screen.findByText('K-Nord');
 
@@ -232,7 +240,11 @@ describe('CableFiberSidebar (mobile)', () => {
 		const user = userEvent.setup();
 		mockRoutes(defaultRoutes);
 		const dragDropManager = makeDragDropManager();
-		render(Harness, { nodeUuid: 'node-1', isMobile: true, dragDropManager });
+		render(Harness, {
+			nodeUuid: 'node-1',
+			isMobile: true,
+			dragDropManager: dragDropManager as unknown as DragDropManager
+		});
 
 		// Expand cable, then bundle, then tap a fiber.
 		await user.click(await screen.findByText('K-Nord'));
@@ -248,7 +260,12 @@ describe('CableFiberSidebar (mobile)', () => {
 		const user = userEvent.setup();
 		mockRoutes(defaultRoutes);
 		const dragDropManager = makeDragDropManager();
-		render(Harness, { nodeUuid: 'node-1', isMobile: true, readonly: true, dragDropManager });
+		render(Harness, {
+			nodeUuid: 'node-1',
+			isMobile: true,
+			readonly: true,
+			dragDropManager: dragDropManager as unknown as DragDropManager
+		});
 
 		await user.click(await screen.findByText('K-Nord'));
 		await user.click(await screen.findByText('form_bundle 1'));

@@ -51,7 +51,7 @@ describe('admin logs +page.server.js', () => {
 			cookies: mockCookies,
 			url: new URL(urlString),
 			locals: { user: { isAdmin } }
-		} as Record<string, unknown>;
+		} as unknown as Parameters<typeof load>[0];
 	}
 
 	describe('access control', () => {
@@ -69,7 +69,7 @@ describe('admin logs +page.server.js', () => {
 				cookies: mockCookies,
 				url: new URL('http://localhost/admin/logs'),
 				locals: {}
-			} as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0];
 
 			await expect(load(args)).rejects.toEqual(
 				expect.objectContaining({ status: 303, location: '/map' })
@@ -92,7 +92,12 @@ describe('admin logs +page.server.js', () => {
 			];
 
 			setupMocks({
-				logsResponse: { results: mockLogs, count: 1, next: null, previous: null },
+				logsResponse: {
+					results: mockLogs as unknown as never[],
+					count: 1,
+					next: null,
+					previous: null
+				},
 				projectsResponse: [{ id: 1, project: 'Project A' }]
 			});
 

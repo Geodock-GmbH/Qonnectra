@@ -46,8 +46,8 @@ describe('attribute fetchers', () => {
 				credentials: 'include',
 				headers: { Cookie: 'api-access-token=mock-token' }
 			});
-			expect(result[dataKey]).toEqual(types);
-			expect(result[errorKey]).toBeNull();
+			expect((result as Record<string, unknown>)[dataKey]).toEqual(types);
+			expect((result as Record<string, unknown>)[errorKey]).toBeNull();
 		}
 	);
 
@@ -58,8 +58,8 @@ describe('attribute fetchers', () => {
 
 			const result = await fetcher(fetchMock, mockCookies);
 
-			expect(result[dataKey]).toEqual([]);
-			expect(result[errorKey]).toMatch(/Failed to load/);
+			expect((result as Record<string, unknown>)[dataKey]).toEqual([]);
+			expect((result as Record<string, unknown>)[errorKey]).toMatch(/Failed to load/);
 		}
 	);
 
@@ -70,8 +70,8 @@ describe('attribute fetchers', () => {
 
 			const result = await fetcher(fetchMock, mockCookies);
 
-			expect(result[dataKey]).toEqual([]);
-			expect(result[errorKey]).toBe('backend down');
+			expect((result as Record<string, unknown>)[dataKey]).toEqual([]);
+			expect((result as Record<string, unknown>)[errorKey]).toBe('backend down');
 		}
 	);
 });

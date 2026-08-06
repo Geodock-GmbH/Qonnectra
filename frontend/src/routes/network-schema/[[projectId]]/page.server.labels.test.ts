@@ -95,11 +95,11 @@ describe('getCableSplices', () => {
 			return Promise.resolve(okJson([{ uuid: 'splice-2' }, { uuid: 'splice-3' }]));
 		});
 
-		const result = await actions.getCableSplices({
+		const result = (await actions.getCableSplices({
 			request: makeRequest({ cableUuid: 'cable-1' }),
 			fetch: fetchMock,
 			cookies: mockCookies
-		} as never);
+		} as never)) as { connectedFiberCount: number; splices: { uuid: string }[] };
 
 		expect(result.connectedFiberCount).toBe(3);
 		expect(result.splices.map((s: { uuid: string }) => s.uuid)).toEqual([
@@ -191,7 +191,7 @@ describe('updateCableLabel', () => {
 		} as never);
 
 		const postCall = fetchMock.mock.calls.find(([, options]) => options?.method === 'POST');
-		expect(JSON.parse(postCall![1].body)).toEqual({
+		expect(JSON.parse((postCall![1] as { body: string }).body)).toEqual({
 			cable_id: 'cable-1',
 			text: 'Label',
 			position_x: 1,

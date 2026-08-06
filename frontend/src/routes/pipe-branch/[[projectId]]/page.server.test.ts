@@ -23,7 +23,7 @@ describe('pipe-branch +page.server.js', () => {
 		vi.clearAllMocks();
 
 		mockFetch = vi.fn();
-		global.fetch = mockFetch;
+		global.fetch = mockFetch as unknown as typeof fetch;
 		mockCookies = {
 			get: vi.fn((name: string) => {
 				if (name === 'selected-project') return 'proj-1';
@@ -41,7 +41,9 @@ describe('pipe-branch +page.server.js', () => {
 	/**
 	 * Creates a mock request event with form data.
 	 */
-	function createEvent(formFields: Record<string, string> = {}): Record<string, unknown> {
+	function createEvent(
+		formFields: Record<string, string> = {}
+	): Parameters<typeof actions.getConnections>[0] {
 		const formData = new FormData();
 		for (const [key, value] of Object.entries(formFields)) {
 			formData.set(key, value);
@@ -50,17 +52,18 @@ describe('pipe-branch +page.server.js', () => {
 			request: { formData: () => Promise.resolve(formData) },
 			fetch: mockFetch,
 			cookies: mockCookies
-		};
+		} as unknown as Parameters<typeof actions.getConnections>[0];
 	}
 
 	describe('load', () => {
 		test('should return empty nodes when no project selected', async () => {
 			mockCookies.get = vi.fn(() => null);
 
-			const result = await load({ fetch: mockFetch, params: {}, cookies: mockCookies } as Record<
-				string,
-				unknown
-			>);
+			const result = (await load({
+				fetch: mockFetch,
+				params: {},
+				cookies: mockCookies
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result).toEqual({ nodes: [], pipeBranchConfigured: false });
 		});
@@ -78,10 +81,11 @@ describe('pipe-branch +page.server.js', () => {
 					})
 			});
 
-			const result = await load({ fetch: mockFetch, params: {}, cookies: mockCookies } as Record<
-				string,
-				unknown
-			>);
+			const result = (await load({
+				fetch: mockFetch,
+				params: {},
+				cookies: mockCookies
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result).toEqual({
 				nodes: [
@@ -100,10 +104,11 @@ describe('pipe-branch +page.server.js', () => {
 		test('should return empty nodes on non-ok response', async () => {
 			mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
 
-			const result = await load({ fetch: mockFetch, params: {}, cookies: mockCookies } as Record<
-				string,
-				unknown
-			>);
+			const result = (await load({
+				fetch: mockFetch,
+				params: {},
+				cookies: mockCookies
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result).toEqual({ nodes: [], pipeBranchConfigured: false });
 		});
@@ -114,10 +119,11 @@ describe('pipe-branch +page.server.js', () => {
 				json: () => Promise.resolve({ invalid: 'data' })
 			});
 
-			const result = await load({ fetch: mockFetch, params: {}, cookies: mockCookies } as Record<
-				string,
-				unknown
-			>);
+			const result = (await load({
+				fetch: mockFetch,
+				params: {},
+				cookies: mockCookies
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result).toEqual({ nodes: [], pipeBranchConfigured: false });
 		});
@@ -125,10 +131,11 @@ describe('pipe-branch +page.server.js', () => {
 		test('should return empty nodes on network error', async () => {
 			mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-			const result = await load({ fetch: mockFetch, params: {}, cookies: mockCookies } as Record<
-				string,
-				unknown
-			>);
+			const result = (await load({
+				fetch: mockFetch,
+				params: {},
+				cookies: mockCookies
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result).toEqual({ nodes: [], pipeBranchConfigured: false });
 		});
@@ -142,10 +149,11 @@ describe('pipe-branch +page.server.js', () => {
 					})
 			});
 
-			const result = await load({ fetch: mockFetch, params: {}, cookies: mockCookies } as Record<
-				string,
-				unknown
-			>);
+			const result = (await load({
+				fetch: mockFetch,
+				params: {},
+				cookies: mockCookies
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.pipeBranchConfigured).toBe(false);
 		});

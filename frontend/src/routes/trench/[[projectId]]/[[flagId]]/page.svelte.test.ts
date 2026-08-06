@@ -414,7 +414,7 @@ describe('Trench Page Component', () => {
 				flags: [],
 				conduits: [],
 				conduitsError: null
-			}
+			} as unknown as import('./$types').PageData
 		});
 
 		expect(container).toBeTruthy();
@@ -426,7 +426,7 @@ describe('Trench Page Component', () => {
 				flags: [{ id: 1, flag: 'Test Flag' }],
 				conduits: [],
 				conduitsError: null
-			}
+			} as unknown as import('./$types').PageData
 		});
 
 		expect(container).toBeTruthy();
@@ -438,7 +438,7 @@ describe('Trench Page Component', () => {
 				flags: [],
 				conduits: [{ value: '1', label: 'Test Conduit' }],
 				conduitsError: null
-			}
+			} as unknown as import('./$types').PageData
 		});
 
 		expect(container).toBeTruthy();
@@ -450,7 +450,7 @@ describe('Trench Page Component', () => {
 				flags: [{ id: 1, flag: 'Test Flag' }],
 				conduits: [{ value: '1', label: 'Test Conduit' }],
 				conduitsError: null
-			}
+			} as unknown as import('./$types').PageData
 		});
 
 		expect(container).toBeTruthy();

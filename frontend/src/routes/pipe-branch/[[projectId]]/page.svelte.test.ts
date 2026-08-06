@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 
+import type { PageData } from './$types';
 import { render, screen } from '@testing-library/svelte';
 import { describe, expect, test, vi } from 'vitest';
 
@@ -142,13 +143,13 @@ vi.mock('./PipeBranchNode.svelte', () => ({
 }));
 
 describe('/pipe-branch/+page.svelte', () => {
-	const mockData: Record<string, unknown> = {
+	const mockData = {
 		nodes: [
 			{ label: 'Node A', value: 'Node A', uuid: 'uuid-a' },
 			{ label: 'Node B', value: 'Node B', uuid: 'uuid-b' }
 		],
 		pipeBranchConfigured: true
-	};
+	} as unknown as PageData;
 
 	test('should render the SvelteFlow container', () => {
 		render(Page, { props: { data: mockData } });

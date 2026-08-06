@@ -95,7 +95,11 @@ afterEach(() => {
 describe('NodeSlotConfigPanel', () => {
 	test('should render the node name heading when nodeName is given', async () => {
 		mockRoutes(defaultRoutes);
-		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', nodeName: 'PoP-Nord' });
+		render(NodeSlotConfigPanel, {
+			nodeUuid: 'node-1',
+			nodeName: 'PoP-Nord',
+			onViewStructure: () => {}
+		});
 
 		// Heading combines form_node label with the node name.
 		expect(await screen.findByText(/PoP-Nord/)).toBeInTheDocument();
@@ -106,14 +110,14 @@ describe('NodeSlotConfigPanel', () => {
 			...defaultRoutes,
 			'?/getContainerHierarchy': { type: 'success', data: { hierarchy: emptyHierarchy } }
 		});
-		render(NodeSlotConfigPanel, { nodeUuid: 'node-1' });
+		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
 		expect(await screen.findByText('message_no_slot_configurations')).toBeInTheDocument();
 	});
 
 	test('should render root slot configurations from the hierarchy', async () => {
 		mockRoutes(defaultRoutes);
-		render(NodeSlotConfigPanel, { nodeUuid: 'node-1' });
+		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
 		// The SlotConfigItem shows the config side.
 		expect(await screen.findByText('A')).toBeInTheDocument();
@@ -125,7 +129,7 @@ describe('NodeSlotConfigPanel', () => {
 	test('should sync sharedSlotState with the fetched configurations', async () => {
 		mockRoutes(defaultRoutes);
 		const sharedSlotState = { nodeUuid: null, slotConfigurations: [], lastUpdated: 0 };
-		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', sharedSlotState });
+		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', sharedSlotState, onViewStructure: () => {} });
 
 		await screen.findByText('A');
 
@@ -138,7 +142,7 @@ describe('NodeSlotConfigPanel', () => {
 	test('should create a slot configuration from the add form and post the values', async () => {
 		const user = userEvent.setup();
 		mockRoutes(defaultRoutes);
-		render(NodeSlotConfigPanel, { nodeUuid: 'node-1' });
+		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
 		await screen.findByText('A');
 		fetchMock.mockClear();
@@ -171,7 +175,7 @@ describe('NodeSlotConfigPanel', () => {
 			...defaultRoutes,
 			'?/createSlotConfiguration': { type: 'failure', data: { error: 'nope' } }
 		});
-		render(NodeSlotConfigPanel, { nodeUuid: 'node-1' });
+		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
 		await screen.findByText('A');
 
@@ -185,7 +189,7 @@ describe('NodeSlotConfigPanel', () => {
 
 	test('should move a dropped item to root and post to moveItem', async () => {
 		mockRoutes(defaultRoutes);
-		render(NodeSlotConfigPanel, { nodeUuid: 'node-1' });
+		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
 		await screen.findByText('A');
 		fetchMock.mockClear();
@@ -227,7 +231,7 @@ describe('NodeSlotConfigPanel', () => {
 			revokeObjectURL: vi.fn()
 		});
 
-		render(NodeSlotConfigPanel, { nodeUuid: 'node-1' });
+		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 		await screen.findByText('A');
 
 		await user.click(getExportButton());
@@ -245,7 +249,7 @@ describe('NodeSlotConfigPanel', () => {
 			...defaultRoutes,
 			'?/getNodeStructures': { type: 'success', data: { structures: [{ uuid: 'st-1' }] } }
 		});
-		render(NodeSlotConfigPanel, { nodeUuid: 'node-1' });
+		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
 		await screen.findByText('A');
 
@@ -284,7 +288,7 @@ describe('NodeSlotConfigPanel', () => {
 			...defaultRoutes,
 			'?/getNodeStructures': { type: 'success', data: { structures: [] } }
 		});
-		render(NodeSlotConfigPanel, { nodeUuid: 'node-1' });
+		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
 		await screen.findByText('A');
 
@@ -302,7 +306,7 @@ describe('NodeSlotConfigPanel', () => {
 	test('should start editing a slot config when its edit button is clicked', async () => {
 		const user = userEvent.setup();
 		mockRoutes(defaultRoutes);
-		render(NodeSlotConfigPanel, { nodeUuid: 'node-1' });
+		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
 		await screen.findByText('A');
 
@@ -330,7 +334,7 @@ describe('NodeSlotConfigPanel', () => {
 				data: { hierarchy: { containers: [container], root_slot_configurations: [] } }
 			}
 		});
-		render(NodeSlotConfigPanel, { nodeUuid: 'node-1' });
+		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
 		expect(await screen.findByText('Rack-1')).toBeInTheDocument();
 
@@ -347,7 +351,7 @@ describe('NodeSlotConfigPanel', () => {
 	test('should show the add-container form when Add Container is clicked', async () => {
 		const user = userEvent.setup();
 		mockRoutes(defaultRoutes);
-		render(NodeSlotConfigPanel, { nodeUuid: 'node-1' });
+		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', onViewStructure: () => {} });
 
 		await screen.findByText('A');
 
@@ -362,7 +366,7 @@ describe('NodeSlotConfigPanel', () => {
 
 	test('should hide add/edit controls in readonly mode', async () => {
 		mockRoutes(defaultRoutes);
-		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', readonly: true });
+		render(NodeSlotConfigPanel, { nodeUuid: 'node-1', readonly: true, onViewStructure: () => {} });
 
 		await screen.findByText('A');
 

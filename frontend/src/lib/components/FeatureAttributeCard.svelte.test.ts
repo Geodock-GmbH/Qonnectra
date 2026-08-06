@@ -1,7 +1,10 @@
+import type { ComponentProps } from 'svelte';
 import { render, screen } from '@testing-library/svelte';
 import { describe, expect, test, vi } from 'vitest';
 
 import FeatureAttributeCard from './FeatureAttributeCard.svelte';
+
+type CardProps = ComponentProps<typeof FeatureAttributeCard>;
 
 vi.mock('$lib/paraglide/messages', () => ({
 	m: {
@@ -13,7 +16,7 @@ vi.mock('$lib/paraglide/messages', () => ({
 
 describe('FeatureAttributeCard', () => {
 	test('should show a placeholder without properties', () => {
-		render(FeatureAttributeCard, { properties: {} });
+		render(FeatureAttributeCard, { properties: {} } as unknown as CardProps);
 
 		expect(screen.getByText('Keine Attribute verfügbar')).toBeInTheDocument();
 	});
@@ -21,7 +24,7 @@ describe('FeatureAttributeCard', () => {
 	test('should render readonly inputs for every non-empty property', () => {
 		render(FeatureAttributeCard, {
 			properties: { name: 'PoP-1', status: null, length: 42 }
-		});
+		} as unknown as CardProps);
 
 		expect(screen.getByLabelText('Name')).toHaveValue('PoP-1');
 		expect(screen.getByLabelText('Length')).toHaveValue('42');
@@ -32,7 +35,7 @@ describe('FeatureAttributeCard', () => {
 		render(FeatureAttributeCard, {
 			properties: { id_trench: 'T-1' },
 			alias: { id_trench: 'Graben-ID' }
-		});
+		} as unknown as CardProps);
 
 		expect(screen.getByLabelText('Graben-ID')).toHaveValue('T-1');
 	});
@@ -40,7 +43,7 @@ describe('FeatureAttributeCard', () => {
 	test('should localize boolean values', () => {
 		render(FeatureAttributeCard, {
 			properties: { house_connection: true, internal_execution: false }
-		});
+		} as unknown as CardProps);
 
 		expect(screen.getByLabelText('House Connection')).toHaveValue('Ja');
 		expect(screen.getByLabelText('Internal Execution')).toHaveValue('Nein');
@@ -50,7 +53,7 @@ describe('FeatureAttributeCard', () => {
 		render(FeatureAttributeCard, {
 			properties: { project: 7 },
 			projects: [{ label: 'Ausbau Nord', value: '7' }]
-		});
+		} as unknown as CardProps);
 
 		expect(screen.getByLabelText('Project')).toHaveValue('Ausbau Nord');
 	});
@@ -58,7 +61,7 @@ describe('FeatureAttributeCard', () => {
 	test('should sort properties alphabetically by display label', () => {
 		render(FeatureAttributeCard, {
 			properties: { zip_code: '24211', city: 'Preetz' }
-		});
+		} as unknown as CardProps);
 
 		const labels = screen.getAllByText(/City|Zip Code/).map((el) => el.textContent);
 		expect(labels).toEqual(['City', 'Zip Code']);

@@ -1,5 +1,5 @@
 <script>
-	import { setContext } from 'svelte';
+	import { setContext, untrack } from 'svelte';
 
 	import { DRAG_DROP_CONTEXT_KEY } from '$lib/classes/DragDropManager.svelte';
 
@@ -7,7 +7,10 @@
 
 	let { dragDropManager = null, ...rest } = $props();
 
-	setContext(DRAG_DROP_CONTEXT_KEY, dragDropManager);
+	setContext(
+		DRAG_DROP_CONTEXT_KEY,
+		untrack(() => dragDropManager)
+	);
 </script>
 
 <ComponentTypeSidebar {...rest} />

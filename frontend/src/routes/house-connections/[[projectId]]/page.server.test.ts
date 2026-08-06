@@ -57,7 +57,7 @@ describe('house-connections +page.server.js', () => {
 	function createEvent(
 		formFields: Record<string, string> = {},
 		params: Record<string, string> = {}
-	): Record<string, unknown> {
+	): Parameters<typeof actions.getPipesInTrench>[0] {
 		const formData = new FormData();
 		for (const [key, value] of Object.entries(formFields)) {
 			formData.set(key, value);
@@ -67,15 +67,15 @@ describe('house-connections +page.server.js', () => {
 			fetch: mockFetch,
 			cookies: mockCookies,
 			params
-		};
+		} as unknown as Parameters<typeof actions.getPipesInTrench>[0];
 	}
 
 	describe('load', () => {
 		test('should load all attribute data in parallel', async () => {
-			const result = await load({ fetch: mockFetch, cookies: mockCookies } as Record<
-				string,
-				unknown
-			> as Parameters<typeof load>[0]);
+			const result = await load({
+				fetch: mockFetch,
+				cookies: mockCookies
+			} as unknown as Parameters<typeof load>[0]);
 
 			expect(result).toEqual({
 				nodeTypes: [{ uuid: 'nt-1', name: 'Type A' }],

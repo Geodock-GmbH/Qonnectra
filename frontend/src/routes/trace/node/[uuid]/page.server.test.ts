@@ -45,7 +45,7 @@ describe('trace/node/[uuid] +page.server.js', () => {
 			json: () => Promise.resolve({ nodes: [] })
 		});
 
-		const result = await load(createLoadEvent());
+		const result = (await load(createLoadEvent())) as Record<string, unknown>;
 
 		expect(mockFetch).toHaveBeenCalledWith(
 			expect.stringContaining('fiber-trace/?node_id=node-uuid-321'),
@@ -62,13 +62,13 @@ describe('trace/node/[uuid] +page.server.js', () => {
 			json: () => Promise.resolve({})
 		});
 
-		const result = await load(
+		const result = (await load(
 			createLoadEvent({
 				include_geometry: 'true',
 				geometry_mode: 'merged',
 				orient_geometry: 'true'
 			})
-		);
+		)) as Record<string, unknown>;
 
 		const calledUrl = mockFetch.mock.calls[0][0];
 		expect(calledUrl).toContain('include_geometry=true');
@@ -99,7 +99,7 @@ describe('trace/node/[uuid] +page.server.js', () => {
 			json: () => Promise.resolve({ error: 'Node not found' })
 		});
 
-		const result = await load(createLoadEvent());
+		const result = (await load(createLoadEvent())) as Record<string, unknown>;
 
 		expect(result.error).toBe('Node not found');
 		expect(result.entryType).toBe('node');
@@ -112,7 +112,7 @@ describe('trace/node/[uuid] +page.server.js', () => {
 			json: () => Promise.reject(new Error('no json'))
 		});
 
-		const result = await load(createLoadEvent());
+		const result = (await load(createLoadEvent())) as Record<string, unknown>;
 
 		expect(result.error).toBe('Trace failed');
 	});
@@ -120,7 +120,7 @@ describe('trace/node/[uuid] +page.server.js', () => {
 	test('should return internal server error on network failure', async () => {
 		mockFetch.mockRejectedValueOnce(new Error('Connection refused'));
 
-		const result = await load(createLoadEvent());
+		const result = (await load(createLoadEvent())) as Record<string, unknown>;
 
 		expect(result.error).toBe('Internal server error');
 		expect(result.entryType).toBe('node');

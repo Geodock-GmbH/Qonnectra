@@ -40,7 +40,7 @@ describe('address fiber-connections +server.js', () => {
 			cookies: mockCookies,
 			fetch: mockFetch,
 			params: { uuid: 'addr-uuid' }
-		} as Record<string, unknown>);
+		} as unknown as Parameters<typeof GET>[0]);
 		const data = await response.json();
 
 		expect(data).toEqual(mockData);
@@ -63,7 +63,7 @@ describe('address fiber-connections +server.js', () => {
 			cookies: mockCookies,
 			fetch: mockFetch,
 			params: { uuid: 'nonexistent' }
-		} as Record<string, unknown>);
+		} as unknown as Parameters<typeof GET>[0]);
 		const data = await response.json();
 
 		expect(data).toEqual({});
@@ -77,7 +77,7 @@ describe('address fiber-connections +server.js', () => {
 			cookies: mockCookies,
 			fetch: mockFetch,
 			params: { uuid: 'addr-uuid' }
-		} as Record<string, unknown>);
+		} as unknown as Parameters<typeof GET>[0]);
 		const data = await response.json();
 
 		expect(data).toEqual({});

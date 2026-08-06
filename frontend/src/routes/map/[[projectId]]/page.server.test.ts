@@ -96,15 +96,19 @@ describe('map +page.server.js', () => {
 			request: { formData: () => Promise.resolve(formData) },
 			fetch: mockFetch,
 			cookies: mockCookies
-		};
+		} as unknown as import('@sveltejs/kit').RequestEvent<
+			Record<string, string>,
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			any
+		>;
 	}
 
 	describe('load', () => {
 		test('should load all attribute data in parallel', async () => {
-			const result = await load({ fetch: mockFetch, cookies: mockCookies } as Record<
-				string,
-				unknown
-			>);
+			const result = await load({
+				fetch: mockFetch,
+				cookies: mockCookies
+			} as unknown as Parameters<typeof load>[0]);
 
 			expect(result).toEqual({
 				nodeTypes: [{ uuid: 'nt-1', name: 'Type A' }],
@@ -124,7 +128,7 @@ describe('map +page.server.js', () => {
 			const { searchFeaturesInProject } = await import('$lib/server/featureSearch');
 			vi.mocked(searchFeaturesInProject).mockResolvedValueOnce([
 				{ value: 'uuid-1', label: 'Node 1' }
-			]);
+			] as never);
 
 			const result = await actions.searchFeatures(
 				createEvent({ searchQuery: 'test', projectId: 'proj-1' })
@@ -146,7 +150,7 @@ describe('map +page.server.js', () => {
 			vi.mocked(getFeatureDetailsByType).mockResolvedValueOnce({
 				success: true,
 				feature: { id: 'uuid-1' }
-			});
+			} as never);
 
 			const result = await actions.getFeatureDetails(
 				createEvent({ featureType: 'node', featureUuid: 'uuid-1', projectId: 'proj-1' })
@@ -166,7 +170,7 @@ describe('map +page.server.js', () => {
 	describe('getPipesInTrench', () => {
 		test('should call getPipesInTrench with trench UUID', async () => {
 			const { getPipesInTrench } = await import('$lib/server/conduitData');
-			vi.mocked(getPipesInTrench).mockResolvedValueOnce([{ uuid: 'pipe-1' }]);
+			vi.mocked(getPipesInTrench).mockResolvedValueOnce([{ uuid: 'pipe-1' }] as never);
 
 			const result = await actions.getPipesInTrench(createEvent({ uuid: 'trench-123' }));
 
@@ -178,7 +182,7 @@ describe('map +page.server.js', () => {
 	describe('getMicroducts', () => {
 		test('should call getMicroducts with pipe UUID', async () => {
 			const { getMicroducts } = await import('$lib/server/conduitData');
-			vi.mocked(getMicroducts).mockResolvedValueOnce([{ uuid: 'md-1', color: 'red' }]);
+			vi.mocked(getMicroducts).mockResolvedValueOnce([{ uuid: 'md-1', color: 'red' }] as never);
 
 			const result = await actions.getMicroducts(createEvent({ uuid: 'pipe-456' }));
 
@@ -190,7 +194,7 @@ describe('map +page.server.js', () => {
 	describe('getCablesInTrench', () => {
 		test('should call getCablesInTrench with trench UUID', async () => {
 			const { getCablesInTrench } = await import('$lib/server/cableData');
-			vi.mocked(getCablesInTrench).mockResolvedValueOnce([{ uuid: 'cable-1' }]);
+			vi.mocked(getCablesInTrench).mockResolvedValueOnce([{ uuid: 'cable-1' }] as never);
 
 			const result = await actions.getCablesInTrench(createEvent({ trenchUuid: 'trench-1' }));
 
@@ -202,7 +206,7 @@ describe('map +page.server.js', () => {
 	describe('getTrenchesForConduit', () => {
 		test('should call getTrenchesForConduit with conduit UUID', async () => {
 			const { getTrenchesForConduit } = await import('$lib/server/conduitData');
-			vi.mocked(getTrenchesForConduit).mockResolvedValueOnce([{ uuid: 't-1' }]);
+			vi.mocked(getTrenchesForConduit).mockResolvedValueOnce([{ uuid: 't-1' }] as never);
 
 			const result = await actions.getTrenchesForConduit(createEvent({ uuid: 'conduit-1' }));
 
@@ -216,7 +220,7 @@ describe('map +page.server.js', () => {
 			const { getTrenchUuidsForConduit } = await import('$lib/server/featureSearch');
 			vi.mocked(getTrenchUuidsForConduit).mockResolvedValueOnce({
 				trenchUuids: ['t-1', 't-2']
-			});
+			} as never);
 
 			const result = await actions.getConduitTrenches(createEvent({ conduitUuid: 'conduit-1' }));
 
@@ -228,7 +232,7 @@ describe('map +page.server.js', () => {
 	describe('getLayerExtent', () => {
 		test('should call getLayerExtent with layer type and project ID', async () => {
 			const { getLayerExtent } = await import('$lib/server/featureSearch');
-			vi.mocked(getLayerExtent).mockResolvedValueOnce({ extent: [1, 2, 3, 4] });
+			vi.mocked(getLayerExtent).mockResolvedValueOnce({ extent: [1, 2, 3, 4] } as never);
 
 			const result = await actions.getLayerExtent(
 				createEvent({ layerType: 'trench', projectId: 'proj-1' })
@@ -244,7 +248,7 @@ describe('map +page.server.js', () => {
 			const { getContainerHierarchy } = await import('$lib/server/nodeData');
 			vi.mocked(getContainerHierarchy).mockResolvedValueOnce({
 				containers: [{ uuid: 'c-1' }]
-			});
+			} as never);
 
 			const result = await actions.getContainerHierarchy(createEvent({ nodeUuid: 'node-1' }));
 
@@ -256,7 +260,7 @@ describe('map +page.server.js', () => {
 	describe('getContainerTypes', () => {
 		test('should call getContainerTypes', async () => {
 			const { getContainerTypes } = await import('$lib/server/nodeData');
-			vi.mocked(getContainerTypes).mockResolvedValueOnce([{ uuid: 'ct-1' }]);
+			vi.mocked(getContainerTypes).mockResolvedValueOnce([{ uuid: 'ct-1' }] as never);
 
 			const result = await actions.getContainerTypes(createEvent());
 
@@ -268,7 +272,7 @@ describe('map +page.server.js', () => {
 	describe('getSlotConfigurationsForNode', () => {
 		test('should call getSlotConfigurationsForNode with node UUID', async () => {
 			const { getSlotConfigurationsForNode } = await import('$lib/server/nodeData');
-			vi.mocked(getSlotConfigurationsForNode).mockResolvedValueOnce([{ uuid: 'sc-1' }]);
+			vi.mocked(getSlotConfigurationsForNode).mockResolvedValueOnce([{ uuid: 'sc-1' }] as never);
 
 			const result = await actions.getSlotConfigurationsForNode(
 				createEvent({ nodeUuid: 'node-1' })
@@ -282,7 +286,7 @@ describe('map +page.server.js', () => {
 	describe('getNodeStructures', () => {
 		test('should call getNodeStructures with slot config UUID', async () => {
 			const { getNodeStructures } = await import('$lib/server/nodeData');
-			vi.mocked(getNodeStructures).mockResolvedValueOnce([{ uuid: 'ns-1' }]);
+			vi.mocked(getNodeStructures).mockResolvedValueOnce([{ uuid: 'ns-1' }] as never);
 
 			const result = await actions.getNodeStructures(createEvent({ slotConfigUuid: 'sc-1' }));
 
@@ -294,7 +298,9 @@ describe('map +page.server.js', () => {
 	describe('getComponentTypes', () => {
 		test('should call getComponentTypes', async () => {
 			const { getComponentTypes } = await import('$lib/server/nodeData');
-			vi.mocked(getComponentTypes).mockResolvedValueOnce([{ uuid: 'comp-1', name: 'Splitter' }]);
+			vi.mocked(getComponentTypes).mockResolvedValueOnce([
+				{ uuid: 'comp-1', name: 'Splitter' }
+			] as never);
 
 			const result = await actions.getComponentTypes(createEvent());
 
@@ -306,7 +312,7 @@ describe('map +page.server.js', () => {
 	describe('getSlotDividers', () => {
 		test('should call getSlotDividers with slot config UUID', async () => {
 			const { getSlotDividers } = await import('$lib/server/nodeData');
-			vi.mocked(getSlotDividers).mockResolvedValueOnce([{ uuid: 'sd-1' }]);
+			vi.mocked(getSlotDividers).mockResolvedValueOnce([{ uuid: 'sd-1' }] as never);
 
 			const result = await actions.getSlotDividers(createEvent({ slotConfigUuid: 'sc-1' }));
 
@@ -318,7 +324,7 @@ describe('map +page.server.js', () => {
 	describe('getSlotClipNumbers', () => {
 		test('should call getSlotClipNumbers with slot config UUID', async () => {
 			const { getSlotClipNumbers } = await import('$lib/server/nodeData');
-			vi.mocked(getSlotClipNumbers).mockResolvedValueOnce([1, 2, 3]);
+			vi.mocked(getSlotClipNumbers).mockResolvedValueOnce([1, 2, 3] as never);
 
 			const result = await actions.getSlotClipNumbers(createEvent({ slotConfigUuid: 'sc-1' }));
 
@@ -330,7 +336,7 @@ describe('map +page.server.js', () => {
 	describe('getCablesAtNode', () => {
 		test('should call getCablesAtNode with node UUID', async () => {
 			const { getCablesAtNode } = await import('$lib/server/nodeData');
-			vi.mocked(getCablesAtNode).mockResolvedValueOnce([{ uuid: 'cable-1' }]);
+			vi.mocked(getCablesAtNode).mockResolvedValueOnce([{ uuid: 'cable-1' }] as never);
 
 			const result = await actions.getCablesAtNode(createEvent({ nodeUuid: 'node-1' }));
 
@@ -342,7 +348,7 @@ describe('map +page.server.js', () => {
 	describe('getFibersForCable', () => {
 		test('should call getFibersForCable with cable UUID', async () => {
 			const { getFibersForCable } = await import('$lib/server/nodeData');
-			vi.mocked(getFibersForCable).mockResolvedValueOnce([{ uuid: 'fiber-1' }]);
+			vi.mocked(getFibersForCable).mockResolvedValueOnce([{ uuid: 'fiber-1' }] as never);
 
 			const result = await actions.getFibersForCable(createEvent({ cableUuid: 'cable-1' }));
 
@@ -354,7 +360,7 @@ describe('map +page.server.js', () => {
 	describe('getFiberColors', () => {
 		test('should call getFiberColors', async () => {
 			const { getFiberColors } = await import('$lib/server/nodeData');
-			vi.mocked(getFiberColors).mockResolvedValueOnce([{ uuid: 'fc-1', color: 'blue' }]);
+			vi.mocked(getFiberColors).mockResolvedValueOnce([{ uuid: 'fc-1', color: 'blue' }] as never);
 
 			const result = await actions.getFiberColors(createEvent());
 
@@ -366,7 +372,7 @@ describe('map +page.server.js', () => {
 	describe('getComponentPorts', () => {
 		test('should call getComponentPorts with component type ID', async () => {
 			const { getComponentPorts } = await import('$lib/server/nodeData');
-			vi.mocked(getComponentPorts).mockResolvedValueOnce([{ uuid: 'port-1' }]);
+			vi.mocked(getComponentPorts).mockResolvedValueOnce([{ uuid: 'port-1' }] as never);
 
 			const result = await actions.getComponentPorts(createEvent({ componentTypeId: 'comp-1' }));
 
@@ -378,7 +384,7 @@ describe('map +page.server.js', () => {
 	describe('getFiberSplices', () => {
 		test('should call getFiberSplices with node structure UUID', async () => {
 			const { getFiberSplices } = await import('$lib/server/nodeData');
-			vi.mocked(getFiberSplices).mockResolvedValueOnce([{ uuid: 'splice-1' }]);
+			vi.mocked(getFiberSplices).mockResolvedValueOnce([{ uuid: 'splice-1' }] as never);
 
 			const result = await actions.getFiberSplices(createEvent({ nodeStructureUuid: 'ns-1' }));
 
@@ -390,7 +396,7 @@ describe('map +page.server.js', () => {
 	describe('getFiberUsageInNode', () => {
 		test('should call getFiberUsageInNode with node UUID', async () => {
 			const { getFiberUsageInNode } = await import('$lib/server/nodeData');
-			vi.mocked(getFiberUsageInNode).mockResolvedValueOnce({ used: 10, total: 24 });
+			vi.mocked(getFiberUsageInNode).mockResolvedValueOnce({ used: 10, total: 24 } as never);
 
 			const result = await actions.getFiberUsageInNode(createEvent({ nodeUuid: 'node-1' }));
 
@@ -416,7 +422,7 @@ describe('map +page.server.js', () => {
 	describe('saveTrenchProfilePosition', () => {
 		test('should call saveTrenchProfilePosition with all params', async () => {
 			const { saveTrenchProfilePosition } = await import('$lib/server/conduitData');
-			vi.mocked(saveTrenchProfilePosition).mockResolvedValueOnce({ success: true });
+			vi.mocked(saveTrenchProfilePosition).mockResolvedValueOnce({ success: true } as never);
 
 			const result = await actions.saveTrenchProfilePosition(
 				createEvent({
@@ -444,7 +450,7 @@ describe('map +page.server.js', () => {
 
 		test('should use default width/height when not provided', async () => {
 			const { saveTrenchProfilePosition } = await import('$lib/server/conduitData');
-			vi.mocked(saveTrenchProfilePosition).mockResolvedValueOnce({ success: true });
+			vi.mocked(saveTrenchProfilePosition).mockResolvedValueOnce({ success: true } as never);
 
 			await actions.saveTrenchProfilePosition(
 				createEvent({
@@ -471,7 +477,7 @@ describe('map +page.server.js', () => {
 	describe('getAddressesForNode', () => {
 		test('should call getAddressesForNode with node UUID', async () => {
 			const { getAddressesForNode } = await import('$lib/server/nodeData');
-			vi.mocked(getAddressesForNode).mockResolvedValueOnce([{ uuid: 'addr-1' }]);
+			vi.mocked(getAddressesForNode).mockResolvedValueOnce([{ uuid: 'addr-1' }] as never);
 
 			const result = await actions.getAddressesForNode(createEvent({ nodeUuid: 'node-1' }));
 
@@ -483,7 +489,7 @@ describe('map +page.server.js', () => {
 	describe('getUsedResidentialUnits', () => {
 		test('should call getUsedResidentialUnits with node UUID', async () => {
 			const { getUsedResidentialUnits } = await import('$lib/server/nodeData');
-			vi.mocked(getUsedResidentialUnits).mockResolvedValueOnce([{ uuid: 'ru-1' }]);
+			vi.mocked(getUsedResidentialUnits).mockResolvedValueOnce([{ uuid: 'ru-1' }] as never);
 
 			const result = await actions.getUsedResidentialUnits(createEvent({ nodeUuid: 'node-1' }));
 
@@ -495,7 +501,7 @@ describe('map +page.server.js', () => {
 	describe('exportExcel', () => {
 		test('should call exportNodeExcel with node UUID', async () => {
 			const { exportNodeExcel } = await import('$lib/server/nodeData');
-			vi.mocked(exportNodeExcel).mockResolvedValueOnce({ data: 'excel-blob' });
+			vi.mocked(exportNodeExcel).mockResolvedValueOnce({ data: 'excel-blob' } as never);
 
 			const result = await actions.exportExcel(createEvent({ nodeUuid: 'node-1' }));
 

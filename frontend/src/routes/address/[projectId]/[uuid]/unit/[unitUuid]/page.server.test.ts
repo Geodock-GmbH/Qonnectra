@@ -83,7 +83,7 @@ describe('residential unit detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { projectId: '1', uuid: 'addr-uuid', unitUuid: 'ru-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.unit).toEqual(mockUnit);
 			expect(result.unitError).toBeNull();
@@ -108,7 +108,7 @@ describe('residential unit detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { projectId: '1', uuid: 'addr-uuid', unitUuid: 'nonexistent' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.unit).toBeNull();
 			expect(result.unitError).toBe('Failed to fetch residential unit');
@@ -121,7 +121,7 @@ describe('residential unit detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { projectId: '1', uuid: 'addr-uuid', unitUuid: 'ru-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.unit).toBeNull();
 			expect(result.unitError).toBe('Error occurred while fetching residential unit');
@@ -143,7 +143,7 @@ describe('residential unit detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { projectId: '1', uuid: 'addr-uuid', unitUuid: 'ru-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.unit).toEqual({ uuid: 'ru-uuid' });
 			expect(result.residentialUnitTypes).toEqual([]);
@@ -164,7 +164,7 @@ describe('residential unit detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { projectId: '1', uuid: 'addr-uuid', unitUuid: 'ru-uuid' }
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof load>[0]);
 
 			mockFetch.mock.calls.forEach((call: unknown[]) => {
 				expect(
@@ -200,7 +200,10 @@ describe('residential unit detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { unitUuid: 'ru-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updateResidentialUnit>[0])) as Record<
+				string,
+				unknown
+			>;
 
 			expect(result.success).toBe(true);
 			expect(result.unit).toEqual(updatedUnit);
@@ -229,7 +232,7 @@ describe('residential unit detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { unitUuid: 'ru-uuid' }
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof actions.updateResidentialUnit>[0]);
 
 			const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
 			expect(requestBody.floor).toBeNull();
@@ -249,7 +252,10 @@ describe('residential unit detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { unitUuid: 'ru-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updateResidentialUnit>[0])) as Record<
+				string,
+				unknown
+			>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).message).toBe('Invalid data');
@@ -267,7 +273,10 @@ describe('residential unit detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { unitUuid: 'ru-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updateResidentialUnit>[0])) as Record<
+				string,
+				unknown
+			>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).message).toContain('floor');
@@ -281,7 +290,10 @@ describe('residential unit detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { unitUuid: 'ru-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updateResidentialUnit>[0])) as Record<
+				string,
+				unknown
+			>;
 
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).message).toBe('Connection failed');
@@ -297,7 +309,7 @@ describe('residential unit detail +page.server.js', () => {
 					fetch: mockFetch,
 					cookies: mockCookies,
 					params: { projectId: '1', uuid: 'addr-uuid', unitUuid: 'ru-uuid' }
-				} as Record<string, unknown>)
+				} as unknown as Parameters<typeof actions.deleteResidentialUnit>[0])
 			).rejects.toEqual({ status: 303, location: '/address/1/addr-uuid' });
 
 			expect(mockFetch).toHaveBeenCalledWith(
@@ -317,7 +329,10 @@ describe('residential unit detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { projectId: '1', uuid: 'addr-uuid', unitUuid: 'ru-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.deleteResidentialUnit>[0])) as unknown as Record<
+				string,
+				unknown
+			>;
 
 			expect(result.status).toBe(404);
 			expect((result.data as Record<string, unknown>).message).toBe('Unit not found');
@@ -330,7 +345,10 @@ describe('residential unit detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { projectId: '1', uuid: 'addr-uuid', unitUuid: 'ru-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.deleteResidentialUnit>[0])) as unknown as Record<
+				string,
+				unknown
+			>;
 
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).message).toBe('Network failure');
@@ -348,7 +366,7 @@ describe('residential unit detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { unitUuid: 'ru-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.regenerateId>[0])) as Record<string, unknown>;
 
 			expect(result.success).toBe(true);
 			expect(result.id_residential_unit).toBe('NEW-RU-ID');
@@ -369,7 +387,7 @@ describe('residential unit detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { unitUuid: 'ru-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.regenerateId>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).message).toBe('Server error');
@@ -382,7 +400,7 @@ describe('residential unit detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { unitUuid: 'ru-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.regenerateId>[0])) as Record<string, unknown>;
 
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).message).toBe('Network error');

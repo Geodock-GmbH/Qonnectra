@@ -111,7 +111,7 @@ describe('child view +page.server.js', () => {
 			fetch: mockFetch,
 			cookies: mockCookies,
 			params: { projectId, nodeId }
-		} as Record<string, unknown>);
+		} as unknown as Parameters<typeof load>[0]);
 	}
 
 	describe('load function', () => {
@@ -143,14 +143,14 @@ describe('child view +page.server.js', () => {
 			const nodeCall = mockFetch.mock.calls.find((c: unknown[]) =>
 				(c[0] as string).includes('node/all')
 			);
-			expect(nodeCall[0]).toContain('project=proj-1');
-			expect(nodeCall[0]).toContain('child_view_for=node-1');
+			expect(nodeCall![0]).toContain('project=proj-1');
+			expect(nodeCall![0]).toContain('child_view_for=node-1');
 
 			const cableCall = mockFetch.mock.calls.find((c: unknown[]) =>
 				(c[0] as string).includes('cable/all')
 			);
-			expect(cableCall[0]).toContain('project=proj-1');
-			expect(cableCall[0]).toContain('child_view_for=node-1');
+			expect(cableCall![0]).toContain('project=proj-1');
+			expect(cableCall![0]).toContain('child_view_for=node-1');
 		});
 
 		test('should return correct structure with isChildView flag', async () => {
@@ -288,7 +288,7 @@ describe('child view +page.server.js', () => {
 				(c[0] as string).includes('cable_label/all')
 			);
 			expect(labelCall).toBeDefined();
-			expect(labelCall[0]).toContain('project=proj-1');
+			expect(labelCall![0]).toContain('project=proj-1');
 		});
 
 		test('should handle cable_label fetch failure gracefully', async () => {

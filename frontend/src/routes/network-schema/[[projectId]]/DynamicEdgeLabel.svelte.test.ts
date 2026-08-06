@@ -52,7 +52,11 @@ const baseProps = {
 	labelData: { uuid: 'label-1', text: 'K-Nord', position_x: 100, position_y: 50 },
 	cableData: { uuid: 'cab-1', cable: { uuid: 'cab-1', name: 'K-Nord' } },
 	defaultX: 200,
-	defaultY: 80
+	defaultY: 80,
+	onPositionUpdate: vi.fn(),
+	onLabelReset: vi.fn(),
+	onEdgeDelete: vi.fn(),
+	onEdgeSelect: vi.fn()
 };
 
 beforeEach(() => {
@@ -91,7 +95,11 @@ describe('DynamicEdgeLabel', () => {
 			labelData: { uuid: 'label-1' },
 			cableData: { uuid: 'cab-1', cable: { uuid: 'cab-1' } },
 			defaultX: 0,
-			defaultY: 0
+			defaultY: 0,
+			onPositionUpdate: vi.fn(),
+			onLabelReset: vi.fn(),
+			onEdgeDelete: vi.fn(),
+			onEdgeSelect: vi.fn()
 		});
 
 		expect(screen.queryByRole('button')).not.toBeInTheDocument();

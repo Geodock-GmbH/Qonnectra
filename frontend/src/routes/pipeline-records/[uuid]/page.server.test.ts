@@ -87,7 +87,7 @@ describe('pipeline record detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { uuid: 'pr-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.record).toEqual(mockRecord);
 			expect(result.recordError).toBeNull();
@@ -117,7 +117,7 @@ describe('pipeline record detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { uuid: 'pr-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.projectOptions).toEqual([{ value: 9, label: 'Enveloped' }]);
 		});
@@ -136,7 +136,7 @@ describe('pipeline record detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { uuid: 'nonexistent' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.record).toBeNull();
 			expect(result.recordError).toBe('Failed to fetch pipeline record');
@@ -149,7 +149,7 @@ describe('pipeline record detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { uuid: 'pr-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.record).toBeNull();
 			expect(result.recordError).toBe('Error occurred while fetching pipeline record');
@@ -169,7 +169,7 @@ describe('pipeline record detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { uuid: 'pr-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.record).toEqual({ uuid: 'pr-uuid' });
 			expect(result.typeOfWorkOptions).toEqual([]);
@@ -194,7 +194,7 @@ describe('pipeline record detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { uuid: 'pr-uuid' }
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof load>[0]);
 
 			mockFetch.mock.calls.forEach((call) => {
 				expect(call[1].headers.Cookie).toBe('api-access-token=mock-token');
@@ -221,7 +221,10 @@ describe('pipeline record detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { uuid: 'pr-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updatePipelineRecord>[0])) as Record<
+				string,
+				unknown
+			>;
 
 			expect(result.success).toBe(true);
 			expect(result.record).toEqual(updatedRecord);
@@ -259,7 +262,7 @@ describe('pipeline record detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { uuid: 'pr-uuid' }
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof actions.updatePipelineRecord>[0]);
 
 			const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
 			expect(requestBody.project).toBe(3);
@@ -283,7 +286,10 @@ describe('pipeline record detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { uuid: 'pr-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updatePipelineRecord>[0])) as Record<
+				string,
+				unknown
+			>;
 
 			expect(result.status).toBe(400);
 			expect((result.data as Record<string, unknown>).message).toContain('project');
@@ -297,7 +303,10 @@ describe('pipeline record detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { uuid: 'pr-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.updatePipelineRecord>[0])) as Record<
+				string,
+				unknown
+			>;
 
 			expect(result.status).toBe(500);
 			expect((result.data as Record<string, unknown>).message).toBe('Connection failed');
@@ -313,7 +322,7 @@ describe('pipeline record detail +page.server.js', () => {
 					fetch: mockFetch,
 					cookies: mockCookies,
 					params: { uuid: 'pr-uuid' }
-				} as Record<string, unknown>)
+				} as unknown as Parameters<typeof actions.deletePipelineRecord>[0])
 			).rejects.toEqual({ status: 303, location: '/pipeline-records' });
 
 			expect(mockFetch).toHaveBeenCalledWith(
@@ -333,7 +342,10 @@ describe('pipeline record detail +page.server.js', () => {
 				fetch: mockFetch,
 				cookies: mockCookies,
 				params: { uuid: 'pr-uuid' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof actions.deletePipelineRecord>[0])) as unknown as Record<
+				string,
+				unknown
+			>;
 
 			expect(result.status).toBe(404);
 			expect((result.data as Record<string, unknown>).message).toBe('Not found');

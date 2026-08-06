@@ -4,8 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { TileLoadingManager } from './tileLoadingManager.js';
 
 describe('TileLoadingManager', () => {
-	/** @type {TileLoadingManager} */
-	let manager;
+	let manager: TileLoadingManager;
 
 	beforeEach(() => {
 		manager = new TileLoadingManager();

@@ -49,6 +49,7 @@ describe('FibersDisplayTable', () => {
 	test('should show a pulsing placeholder while loading', () => {
 		const { container } = render(FibersDisplayTable, {
 			loading: true,
+			error: null,
 			fibers: [],
 			getColorHex
 		});
@@ -63,13 +64,13 @@ describe('FibersDisplayTable', () => {
 	});
 
 	test('should show an empty state without fibers', () => {
-		render(FibersDisplayTable, { loading: false, fibers: [], getColorHex });
+		render(FibersDisplayTable, { loading: false, error: null, fibers: [], getColorHex });
 
 		expect(screen.getByText('form_no_fibers_available')).toBeInTheDocument();
 	});
 
 	test('should group fibers into collapsed bundles', () => {
-		render(FibersDisplayTable, { loading: false, fibers, getColorHex });
+		render(FibersDisplayTable, { loading: false, error: null, fibers, getColorHex });
 
 		const bundleToggles = screen.getAllByRole('button');
 		expect(bundleToggles.length).toBeGreaterThanOrEqual(2);
@@ -78,7 +79,7 @@ describe('FibersDisplayTable', () => {
 
 	test('should expand a bundle to reveal its fibers and statuses', async () => {
 		const user = userEvent.setup();
-		render(FibersDisplayTable, { loading: false, fibers, getColorHex });
+		render(FibersDisplayTable, { loading: false, error: null, fibers, getColorHex });
 
 		await user.click(screen.getAllByRole('button')[0]);
 

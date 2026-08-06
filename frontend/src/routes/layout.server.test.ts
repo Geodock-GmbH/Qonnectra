@@ -66,12 +66,12 @@ describe('root layout load', () => {
 	});
 
 	test('should not redirect on public routes', async () => {
-		const result = await load({
+		const result = (await load({
 			locals: { user: null },
 			url: makeUrl('/login'),
 			fetch: vi.fn(),
 			cookies: makeCookies({})
-		} as never);
+		} as never)) as Record<string, unknown>;
 
 		expect(result.user).toBeNull();
 		expect(result.flags).toEqual([]);
@@ -80,12 +80,12 @@ describe('root layout load', () => {
 	test('should load flags, projects, and config for authenticated users', async () => {
 		const fetchMock = makeFetch();
 
-		const result = await load({
+		const result = (await load({
 			locals: authenticatedLocals,
 			url: makeUrl('/map/7'),
 			fetch: fetchMock,
 			cookies: makeCookies({ 'api-access-token': 'tok' })
-		} as never);
+		} as never)) as Record<string, unknown>;
 
 		expect(result.flags).toEqual([{ label: 'Bau', value: '1' }]);
 		expect(result.projects).toEqual([{ label: 'Ausbau Nord', value: '7' }]);
@@ -97,23 +97,23 @@ describe('root layout load', () => {
 	});
 
 	test('should fall back to the first project when no cookie is set', async () => {
-		const result = await load({
+		const result = (await load({
 			locals: authenticatedLocals,
 			url: makeUrl('/map'),
 			fetch: makeFetch(),
 			cookies: makeCookies({})
-		} as never);
+		} as never)) as Record<string, unknown>;
 
 		expect(result.selectedProject).toBe('7');
 	});
 
 	test('should prefer the selected-project cookie', async () => {
-		const result = await load({
+		const result = (await load({
 			locals: authenticatedLocals,
 			url: makeUrl('/map'),
 			fetch: makeFetch(),
 			cookies: makeCookies({ 'selected-project': '3' })
-		} as never);
+		} as never)) as Record<string, unknown>;
 
 		expect(result.selectedProject).toBe('3');
 	});
@@ -129,12 +129,12 @@ describe('root layout load', () => {
 			return Promise.resolve(okJson({}));
 		});
 
-		const result = await load({
+		const result = (await load({
 			locals: authenticatedLocals,
 			url: makeUrl('/map'),
 			fetch: fetchMock,
 			cookies: makeCookies({})
-		} as never);
+		} as never)) as Record<string, unknown>;
 
 		expect(result.flagsError).toBe('Failed to fetch flags');
 		expect(result.projectsError).toBe('Failed to fetch projects');

@@ -28,7 +28,13 @@ describe('address list +page.server.js', () => {
 	});
 
 	function setupLoadMocks({
-		addressesResponse = { results: [], page: 1, page_size: 50, count: 0, total_pages: 0 },
+		addressesResponse = {
+			results: [] as Record<string, unknown>[],
+			page: 1,
+			page_size: 50,
+			count: 0,
+			total_pages: 0
+		},
 		statusDevelopments = [] as Record<string, unknown>[],
 		flags = [] as Record<string, unknown>[],
 		addressesOk = true
@@ -58,7 +64,7 @@ describe('address list +page.server.js', () => {
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: {}
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.addresses).toEqual([]);
 			expect(result.pagination).toEqual({ page: 1, pageSize: 50, totalCount: 0, totalPages: 0 });
@@ -100,7 +106,7 @@ describe('address list +page.server.js', () => {
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.addresses).toHaveLength(1);
 			expect((result.addresses as Record<string, unknown>[])[0].value).toBe('addr-uuid-1');
@@ -121,7 +127,7 @@ describe('address list +page.server.js', () => {
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof load>[0]);
 
 			const firstCall = mockFetch.mock.calls[0][0];
 			expect(firstCall).toContain('search=Main');
@@ -136,7 +142,7 @@ describe('address list +page.server.js', () => {
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof load>[0]);
 
 			const firstCall = mockFetch.mock.calls[0][0];
 			expect(firstCall).toContain('page=3');
@@ -152,7 +158,7 @@ describe('address list +page.server.js', () => {
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.addresses).toEqual([]);
 			expect(result.addressesError).toBe('Failed to fetch addresses');
@@ -167,7 +173,7 @@ describe('address list +page.server.js', () => {
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			expect(result.addresses).toEqual([]);
 			expect(result.addressesError).toBe('Error occurred while fetching data');
@@ -182,7 +188,7 @@ describe('address list +page.server.js', () => {
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof load>[0]);
 
 			mockFetch.mock.calls.forEach((call: unknown[]) => {
 				expect(
@@ -208,7 +214,7 @@ describe('address list +page.server.js', () => {
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			} as Record<string, unknown>)) as Record<string, unknown>;
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
 
 			const addr = (result.addresses as Record<string, unknown>[])[0];
 			expect(addr.value).toBe('uuid-1');
@@ -226,7 +232,7 @@ describe('address list +page.server.js', () => {
 				depends: vi.fn(),
 				cookies: mockCookies,
 				params: { projectId: '1' }
-			} as Record<string, unknown>);
+			} as unknown as Parameters<typeof load>[0]);
 
 			const firstCall = mockFetch.mock.calls[0][0];
 			expect(firstCall).toContain('page=1');

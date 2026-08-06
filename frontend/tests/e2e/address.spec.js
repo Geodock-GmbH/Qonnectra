@@ -2,7 +2,10 @@ import { expect, test } from '@playwright/test';
 
 import { loginOrSkip } from './helpers/auth.js';
 
-/** Desktop address rows (the md:block table body). */
+/**
+ * Desktop address rows (the md:block table body).
+ * @param {import('@playwright/test').Page} page
+ */
 function desktopRows(page) {
 	return page.locator('.hidden.md\\:block table tbody tr');
 }
@@ -40,6 +43,7 @@ test.describe('Address list page', () => {
 	/**
 	 * Street is the second column, so its cell is the 2nd `td` in each row.
 	 * Scoping to each row avoids Playwright flattening all cells into one list.
+	 * @param {import('@playwright/test').Page} page
 	 */
 	function streetCells(page) {
 		return desktopRows(page).locator('td[data-label]:nth-child(2)');
@@ -60,7 +64,9 @@ test.describe('Address list page', () => {
 				const cells = await streetCells(page).allTextContents();
 				return (
 					cells.length > 0 &&
-					cells.every((c) => c.toLowerCase().includes(firstStreet.toLowerCase()))
+					cells.every((/** @type {string} */ c) =>
+						c.toLowerCase().includes(/** @type {string} */ (firstStreet).toLowerCase())
+					)
 				);
 			})
 			.toBe(true);

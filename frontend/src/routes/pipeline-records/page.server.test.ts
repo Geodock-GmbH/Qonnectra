@@ -44,7 +44,14 @@ describe('pipeline records load', () => {
 				})
 		});
 
-		const result = await load({ fetch: fetchMock, url: makeUrl(), cookies: mockCookies } as never);
+		const result = (await load({
+			fetch: fetchMock,
+			url: makeUrl(),
+			cookies: mockCookies
+		} as unknown as Parameters<typeof load>[0])) as Extract<
+			Awaited<ReturnType<typeof load>>,
+			object
+		>;
 
 		const requestedUrl = new URL(fetchMock.mock.calls[0][0]);
 		expect(requestedUrl.pathname).toBe('/pipeline-records/');
@@ -74,11 +81,14 @@ describe('pipeline records load', () => {
 			json: () => Promise.resolve({ results: [] })
 		});
 
-		const result = await load({
+		const result = (await load({
 			fetch: fetchMock,
 			url: makeUrl('?search=tiefbau&page=3&page_size=10'),
 			cookies: mockCookies
-		} as never);
+		} as unknown as Parameters<typeof load>[0])) as Extract<
+			Awaited<ReturnType<typeof load>>,
+			object
+		>;
 
 		const requestedUrl = new URL(fetchMock.mock.calls[0][0]);
 		expect(requestedUrl.searchParams.get('search')).toBe('tiefbau');
@@ -90,7 +100,14 @@ describe('pipeline records load', () => {
 	test('should return an error state on a failed response', async () => {
 		const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 500 });
 
-		const result = await load({ fetch: fetchMock, url: makeUrl(), cookies: mockCookies } as never);
+		const result = (await load({
+			fetch: fetchMock,
+			url: makeUrl(),
+			cookies: mockCookies
+		} as unknown as Parameters<typeof load>[0])) as Extract<
+			Awaited<ReturnType<typeof load>>,
+			object
+		>;
 
 		expect(result.records).toEqual([]);
 		expect(result.recordsError).toBe('Failed to fetch pipeline records');
@@ -99,7 +116,14 @@ describe('pipeline records load', () => {
 	test('should return an error state on network failures', async () => {
 		const fetchMock = vi.fn().mockRejectedValue(new Error('offline'));
 
-		const result = await load({ fetch: fetchMock, url: makeUrl(), cookies: mockCookies } as never);
+		const result = (await load({
+			fetch: fetchMock,
+			url: makeUrl(),
+			cookies: mockCookies
+		} as unknown as Parameters<typeof load>[0])) as Extract<
+			Awaited<ReturnType<typeof load>>,
+			object
+		>;
 
 		expect(result.records).toEqual([]);
 		expect(result.recordsError).toBe('Error occurred while fetching data');

@@ -523,7 +523,9 @@ describe('InquiryDrawManager renderPolygons', () => {
 		manager.cleanup();
 	});
 
-	function squareGeoJson(props: Record<string, unknown> = {}): Record<string, unknown> {
+	function squareGeoJson(
+		props: Record<string, unknown> = {}
+	): Parameters<InquiryDrawManager['renderPolygons']>[0][number] {
 		return {
 			type: 'Feature',
 			geometry: {
@@ -611,7 +613,7 @@ describe('InquiryDrawManager highlight style function', () => {
 	});
 
 	function getHighlightStyleFn(
-		parentLayer: { getVisible: () => boolean },
+		parentLayer: { getVisible: ReturnType<typeof vi.fn> },
 		isPoint: boolean
 	): (feature: unknown) => unknown {
 		manager.initializeHighlightLayers([

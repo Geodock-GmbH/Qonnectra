@@ -85,7 +85,12 @@ describe('searchFeaturesInProject', () => {
 			);
 		});
 
-		const results = await searchFeaturesInProject(fetchMock, mockCookies, 'haupt', '7');
+		const results = await searchFeaturesInProject(
+			fetchMock as unknown as typeof fetch,
+			mockCookies,
+			'haupt',
+			'7'
+		);
 
 		expect(fetchMock).toHaveBeenCalledTimes(5);
 		expect(fetchMock.mock.calls[0][0]).toBe(
@@ -128,7 +133,12 @@ describe('searchFeaturesInProject', () => {
 			return Promise.resolve(okResponse({ features: [] }));
 		});
 
-		const results = await searchFeaturesInProject(fetchMock, mockCookies, 'dorf', '');
+		const results = await searchFeaturesInProject(
+			fetchMock as unknown as typeof fetch,
+			mockCookies,
+			'dorf',
+			''
+		);
 
 		expect(results).toEqual([
 			{ value: 'addr-2', label: 'Dorfweg 3 (Adresse)', type: 'address', uuid: 'addr-2' }
@@ -144,7 +154,7 @@ describe('searchFeaturesInProject', () => {
 		});
 
 		await expect(
-			searchFeaturesInProject(fetchMock, mockCookies, 'haupt', '7')
+			searchFeaturesInProject(fetchMock as unknown as typeof fetch, mockCookies, 'haupt', '7')
 		).rejects.toMatchObject({ status: 500, message: 'Failed to search features' });
 	});
 });
@@ -217,7 +227,11 @@ describe('getTrenchUuidsForConduit', () => {
 			return Promise.resolve(okResponse({ results: { features: [] } }));
 		});
 
-		const result = await getTrenchUuidsForConduit(fetchMock, mockCookies, 'conduit-1');
+		const result = await getTrenchUuidsForConduit(
+			fetchMock as unknown as typeof fetch,
+			mockCookies,
+			'conduit-1'
+		);
 
 		expect(result.trenchUuids).toEqual(['t1', 't2']);
 		expect(result.trenches).toEqual([trench]);

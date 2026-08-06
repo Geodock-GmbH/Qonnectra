@@ -94,7 +94,9 @@ function makeEvent({
 	return { event, setCalls, deleteCalls, store };
 }
 
-const resolve = vi.fn((event: RequestEvent) => `resolved:${event.url.pathname}`);
+const resolve = vi.fn(
+	(event: RequestEvent) => `resolved:${event.url.pathname}`
+) as unknown as Parameters<typeof handleAuth>[0]['resolve'];
 
 function okJson(data: unknown) {
 	return {
@@ -142,7 +144,7 @@ describe('handleAuth', () => {
 
 		const result = await handleAuth({ event, resolve });
 
-		const user = event.locals.user as Record<string, unknown>;
+		const user = event.locals.user as unknown as Record<string, unknown>;
 		expect(user.isAuthenticated).toBe(true);
 		expect(user.username).toBe('malte');
 		expect(user.isAdmin).toBe(true);
@@ -190,7 +192,7 @@ describe('handleAuth', () => {
 
 		await handleAuth({ event, resolve });
 
-		const user = event.locals.user as Record<string, unknown>;
+		const user = event.locals.user as unknown as Record<string, unknown>;
 		expect(user.isAuthenticated).toBe(true);
 		// the refresh set the new access token cookie
 		expect(event.cookies.set).toHaveBeenCalledWith(
@@ -217,7 +219,7 @@ describe('handleAuth', () => {
 
 		await handleAuth({ event, resolve });
 
-		expect((event.locals.user as Record<string, unknown>).isAuthenticated).toBe(false);
+		expect((event.locals.user as unknown as Record<string, unknown>).isAuthenticated).toBe(false);
 		expect(event.cookies.delete).toHaveBeenCalledWith('api-access-token', { path: '/' });
 		expect(event.cookies.delete).toHaveBeenCalledWith('api-refresh-token', { path: '/' });
 	});
@@ -233,7 +235,7 @@ describe('handleAuth', () => {
 
 		// only the single user fetch happened; no refresh POST
 		expect(event.fetch).toHaveBeenCalledTimes(1);
-		expect((event.locals.user as Record<string, unknown>).isAuthenticated).toBe(false);
+		expect((event.locals.user as unknown as Record<string, unknown>).isAuthenticated).toBe(false);
 	});
 
 	test('marks unauthenticated when the user fetch throws (network error)', async () => {
@@ -245,7 +247,7 @@ describe('handleAuth', () => {
 
 		await handleAuth({ event, resolve });
 
-		expect((event.locals.user as Record<string, unknown>).isAuthenticated).toBe(false);
+		expect((event.locals.user as unknown as Record<string, unknown>).isAuthenticated).toBe(false);
 		expect(event.cookies.delete).toHaveBeenCalledWith('api-access-token', { path: '/' });
 	});
 
@@ -390,7 +392,7 @@ describe('handleAuth', () => {
 
 		const result = await handleAuth({ event, resolve });
 
-		const user = event.locals.user as Record<string, unknown>;
+		const user = event.locals.user as unknown as Record<string, unknown>;
 		expect(user.isAuthenticated).toBe(true);
 		expect(user.permissions).toBeNull();
 		expect(result).toBe('resolved:/map');

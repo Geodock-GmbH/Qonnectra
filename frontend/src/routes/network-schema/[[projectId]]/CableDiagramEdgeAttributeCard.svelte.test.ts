@@ -89,7 +89,11 @@ describe('CableDiagramEdgeAttributeCard', () => {
 		const onLabelUpdate = vi.fn();
 		const onSaveComplete = vi.fn();
 
-		render(CableDiagramEdgeAttributeCard, { onLabelUpdate, onSaveComplete });
+		render(CableDiagramEdgeAttributeCard, {
+			onEdgeDelete: vi.fn(),
+			onLabelUpdate,
+			onSaveComplete
+		});
 		fetchMock.mockClear();
 
 		const form = document.getElementById('cable-form') as HTMLFormElement;

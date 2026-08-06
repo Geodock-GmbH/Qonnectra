@@ -57,7 +57,10 @@ describe('ConduitState', () => {
 	test('should default missing nested fields to empty strings', () => {
 		const state = new ConduitState({});
 
-		const result = state.formatConduit({ uuid: 'c2', name: 'Leer' });
+		const result = state.formatConduit({
+			uuid: 'c2',
+			name: 'Leer'
+		} as unknown as Parameters<typeof state.formatConduit>[0]);
 
 		expect(result.conduit_type).toBe('');
 		expect(result.status).toBe('');
@@ -78,7 +81,10 @@ describe('ConduitState', () => {
 	test('should ignore updates for unknown conduits', () => {
 		const state = new ConduitState({ pipes: [formattedConduit] });
 
-		state.updateConduit({ uuid: 'unknown', name: 'X' });
+		state.updateConduit({
+			uuid: 'unknown',
+			name: 'X'
+		} as unknown as Parameters<typeof state.updateConduit>[0]);
 
 		expect(state.conduits).toEqual([formattedConduit]);
 	});
@@ -86,7 +92,10 @@ describe('ConduitState', () => {
 	test('should prepend new conduits', () => {
 		const state = new ConduitState({ pipes: [formattedConduit] });
 
-		state.addConduit({ uuid: 'c2', name: 'Neu' });
+		state.addConduit({
+			uuid: 'c2',
+			name: 'Neu'
+		} as unknown as Parameters<typeof state.addConduit>[0]);
 
 		expect(state.conduits[0].value).toBe('c2');
 		expect(state.conduits).toHaveLength(2);

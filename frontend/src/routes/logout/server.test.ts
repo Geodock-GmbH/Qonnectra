@@ -59,7 +59,7 @@ describe('logout +server.js', () => {
 			cookies: mockCookies,
 			fetch: mockFetch,
 			url: mockUrl
-		};
+		} as unknown as Parameters<typeof POST>[0];
 	}
 
 	test('should redirect to /login after successful logout', async () => {

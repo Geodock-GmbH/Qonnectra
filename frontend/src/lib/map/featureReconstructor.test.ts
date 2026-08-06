@@ -1,15 +1,14 @@
 // frontend/src/lib/map/featureReconstructor.test.js
+import type { SerializedFeature } from './featureReconstructor.js';
+import type LineString from 'ol/geom/LineString';
+import type Point from 'ol/geom/Point';
 import { describe, expect, test } from 'vitest';
 
 import { reconstructFeatures } from './featureReconstructor.js';
 
-/** @typedef {import('ol/geom/Point').default} Point */
-/** @typedef {import('ol/geom/LineString').default} LineString */
-
 describe('reconstructFeatures', () => {
 	test('should reconstruct point features', () => {
-		/** @type {import('./featureReconstructor.js').SerializedFeature[]} */
-		const serialized = [
+		const serialized: SerializedFeature[] = [
 			{
 				id: 'node-1',
 				properties: { name: 'Test Node', uuid: 'abc-123' },
@@ -24,14 +23,13 @@ describe('reconstructFeatures', () => {
 		expect(features).toHaveLength(1);
 		expect(features[0].getId()).toBe('node-1');
 		expect(features[0].get('name')).toBe('Test Node');
-		const pointGeom = /** @type {Point} */ features[0].getGeometry();
+		const pointGeom = features[0].getGeometry() as Point;
 		expect(pointGeom.getType()).toBe('Point');
 		expect(pointGeom.getCoordinates()).toEqual([100, 200]);
 	});
 
 	test('should reconstruct linestring features', () => {
-		/** @type {import('./featureReconstructor.js').SerializedFeature[]} */
-		const serialized = [
+		const serialized: SerializedFeature[] = [
 			{
 				id: 'trench-1',
 				properties: { length: 100 },
@@ -44,7 +42,7 @@ describe('reconstructFeatures', () => {
 		const features = reconstructFeatures(serialized);
 
 		expect(features).toHaveLength(1);
-		const lineGeom = /** @type {LineString} */ features[0].getGeometry();
+		const lineGeom = features[0].getGeometry() as LineString;
 		expect(lineGeom.getType()).toBe('LineString');
 		expect(lineGeom.getCoordinates()).toEqual([
 			[0, 0],
@@ -54,8 +52,7 @@ describe('reconstructFeatures', () => {
 	});
 
 	test('should reconstruct polygon features', () => {
-		/** @type {import('./featureReconstructor.js').SerializedFeature[]} */
-		const serialized = [
+		const serialized: SerializedFeature[] = [
 			{
 				id: 'area-1',
 				properties: { area_type: 'zone' },
@@ -79,8 +76,7 @@ describe('reconstructFeatures', () => {
 	});
 
 	test('should handle features without geometry', () => {
-		/** @type {import('./featureReconstructor.js').SerializedFeature[]} */
-		const serialized = [
+		const serialized: SerializedFeature[] = [
 			{
 				id: 'feature-1',
 				properties: { name: 'No Geometry' },

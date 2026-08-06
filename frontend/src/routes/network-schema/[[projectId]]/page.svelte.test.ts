@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 
+import type { PageData } from './$types';
 import { render, screen } from '@testing-library/svelte';
 import { describe, expect, test, vi } from 'vitest';
 
@@ -210,7 +211,7 @@ vi.mock('$lib/classes/NetworkSchemaSearchManager.svelte.js', () => ({
 }));
 
 describe('/network-schema/+page.svelte', () => {
-	const mockData: Record<string, unknown> = {
+	const mockData = {
 		nodes: [
 			{
 				id: '1',
@@ -244,7 +245,7 @@ describe('/network-schema/+page.svelte', () => {
 		childViewEnabledNodeTypeIds: [],
 		networkSchemaSettingsConfigured: true,
 		syncStatus: null
-	};
+	} as unknown as PageData;
 
 	test('should render the SvelteFlow container', () => {
 		render(Page, { props: { data: mockData } });
@@ -344,7 +345,7 @@ describe('/network-schema/+page.svelte', () => {
 			}
 		};
 
-		render(Page, { props: { data: syncCompletedData } });
+		render(Page, { props: { data: syncCompletedData as unknown as PageData } });
 
 		expect(screen.getByTestId('svelte-flow')).toBeInTheDocument();
 	});
@@ -359,7 +360,7 @@ describe('/network-schema/+page.svelte', () => {
 			}
 		};
 
-		render(Page, { props: { data: syncFailedData } });
+		render(Page, { props: { data: syncFailedData as unknown as PageData } });
 
 		expect(screen.getByTestId('svelte-flow')).toBeInTheDocument();
 	});
@@ -375,7 +376,7 @@ describe('/network-schema/+page.svelte', () => {
 			}
 		};
 
-		render(Page, { props: { data: syncInProgressData } });
+		render(Page, { props: { data: syncInProgressData as unknown as PageData } });
 
 		expect(screen.getByTestId('svelte-flow')).toBeInTheDocument();
 	});

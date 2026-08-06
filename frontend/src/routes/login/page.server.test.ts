@@ -74,7 +74,7 @@ describe('login +page.server.js', () => {
 			fetch: mockFetch,
 			cookies: mockCookies,
 			url: mockUrl
-		};
+		} as unknown as Parameters<typeof actions.login>[0];
 	}
 
 	test('should redirect on successful login', async () => {
@@ -163,7 +163,7 @@ describe('login +page.server.js', () => {
 		const result = await actions.login(createEvent());
 
 		expect(result?.status).toBe(400);
-		expect((result as Record<string, Record<string, unknown>>)?.data?.error).toBe(
+		expect((result as unknown as Record<string, Record<string, unknown>>)?.data?.error).toBe(
 			'Unable to log in with provided credentials.'
 		);
 	});
@@ -178,7 +178,7 @@ describe('login +page.server.js', () => {
 		const result = await actions.login(createEvent());
 
 		expect(result?.status).toBe(500);
-		expect((result as Record<string, Record<string, unknown>>)?.data?.error).toBe(
+		expect((result as unknown as Record<string, Record<string, unknown>>)?.data?.error).toBe(
 			'Internal server error'
 		);
 	});
@@ -193,7 +193,7 @@ describe('login +page.server.js', () => {
 		const result = await actions.login(createEvent());
 
 		expect(result?.status).toBe(400);
-		expect((result as Record<string, Record<string, unknown>>)?.data?.error).toBe(
+		expect((result as unknown as Record<string, Record<string, unknown>>)?.data?.error).toBe(
 			'Login failed. Please check your credentials.'
 		);
 	});
@@ -207,7 +207,7 @@ describe('login +page.server.js', () => {
 		const result = await actions.login(createEvent());
 
 		expect(result?.status).toBe(500);
-		expect((result as Record<string, Record<string, unknown>>)?.data?.error).toBe(
+		expect((result as unknown as Record<string, Record<string, unknown>>)?.data?.error).toBe(
 			'Authentication response missing required tokens.'
 		);
 	});
@@ -218,7 +218,7 @@ describe('login +page.server.js', () => {
 		const result = await actions.login(createEvent());
 
 		expect(result?.status).toBe(500);
-		expect((result as Record<string, Record<string, unknown>>)?.data?.error).toBe(
+		expect((result as unknown as Record<string, Record<string, unknown>>)?.data?.error).toBe(
 			'An internal error occurred during login.'
 		);
 	});
@@ -267,7 +267,7 @@ describe('login +page.server.js', () => {
 			// redirect throws
 		}
 
-		const projectCookieCall = mockCookies.set.mock.calls.find(
+		const projectCookieCall = (mockCookies.set as ReturnType<typeof vi.fn>).mock.calls.find(
 			(c: unknown[]) => c[0] === 'selected-project'
 		);
 		expect(projectCookieCall).toBeUndefined();

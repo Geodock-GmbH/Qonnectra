@@ -86,7 +86,9 @@ describe('ConduitAttributeCard', () => {
 		mockRoutes({ '?/updateConduit': { type: 'success', data: { conduit } } });
 		const onConduitUpdate = vi.fn();
 
-		render(ConduitAttributeCard, { onConduitUpdate });
+		render(ConduitAttributeCard, {
+			onConduitUpdate
+		} as unknown as Parameters<typeof render<typeof ConduitAttributeCard>>[1]);
 		fetchMock.mockClear();
 
 		const form = document.getElementById('conduit-form') as HTMLFormElement;
@@ -112,7 +114,9 @@ describe('ConduitAttributeCard', () => {
 		mockRoutes({ '?/updateConduit': { type: 'failure', data: { error: 'nein' } } });
 		const onConduitUpdate = vi.fn();
 
-		render(ConduitAttributeCard, { onConduitUpdate });
+		render(ConduitAttributeCard, {
+			onConduitUpdate
+		} as unknown as Parameters<typeof render<typeof ConduitAttributeCard>>[1]);
 
 		const form = document.getElementById('conduit-form') as HTMLFormElement;
 		form.requestSubmit();
@@ -126,7 +130,9 @@ describe('ConduitAttributeCard', () => {
 		mockRoutes({ '?/deleteConduit': { type: 'success' } });
 		const onConduitDelete = vi.fn();
 
-		render(ConduitAttributeCard, { onConduitDelete });
+		render(ConduitAttributeCard, {
+			onConduitDelete
+		} as unknown as Parameters<typeof render<typeof ConduitAttributeCard>>[1]);
 
 		// confirmDelete opens MessageBox; invoke the delete action directly via its accept flow.
 		const deleteButton = screen.getByText('action_delete_conduit');

@@ -118,7 +118,7 @@ describe('dashboard +page.server.js', () => {
 			fetch: mockFetch,
 			cookies: mockCookies,
 			params: projectId ? { projectId } : {}
-		} as Record<string, unknown>;
+		} as unknown as Parameters<typeof load>[0];
 	}
 
 	describe('no project selected', () => {

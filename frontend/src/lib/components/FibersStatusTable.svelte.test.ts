@@ -40,6 +40,7 @@ describe('FibersStatusTable', () => {
 	test('should show loading, error, and empty states', () => {
 		const { container, unmount } = render(FibersStatusTable, {
 			loading: true,
+			error: null,
 			fibers: [],
 			statusOptions: [],
 			onStatusChange: vi.fn(),
@@ -63,6 +64,7 @@ describe('FibersStatusTable', () => {
 		const user = userEvent.setup();
 		render(FibersStatusTable, {
 			loading: false,
+			error: null,
 			fibers,
 			statusOptions: [{ id: 1, fiber_status: 'defekt' }],
 			onStatusChange: vi.fn(),

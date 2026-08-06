@@ -68,13 +68,15 @@ describe('parseFeatureGeometry', () => {
 		const geometry = await parseFeatureGeometry(pointFeature, 'EPSG:4326');
 
 		expect(geometry?.getType()).toBe('Point');
-		expect((geometry as { getCoordinates(): number[] }).getCoordinates()).toEqual([10, 20]);
+		expect((geometry as unknown as { getCoordinates(): number[] }).getCoordinates()).toEqual([
+			10, 20
+		]);
 	});
 
 	test('should reproject when a target projection is given', async () => {
 		const geometry = await parseFeatureGeometry(pointFeature, 'EPSG:4326', 'EPSG:3857');
 
-		const [x, y] = (geometry as { getCoordinates(): number[] }).getCoordinates();
+		const [x, y] = (geometry as unknown as { getCoordinates(): number[] }).getCoordinates();
 		expect(x).toBeCloseTo(1113194.9, 0);
 		expect(y).toBeCloseTo(2273030.9, 0);
 	});

@@ -72,10 +72,10 @@ describe('load', () => {
 			});
 		});
 
-		const result = await load({
+		const result = (await load({
 			fetch: fetchMock,
 			cookies: makeCookies({ 'selected-project': '7' })
-		} as never);
+		} as never)) as Record<string, unknown>;
 
 		expect(result.projectId).toBe('7');
 		expect(result.areas).toEqual([
@@ -88,7 +88,10 @@ describe('load', () => {
 	test('should default to project 1 and tolerate failing endpoints', async () => {
 		const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 500 });
 
-		const result = await load({ fetch: fetchMock, cookies: makeCookies() } as never);
+		const result = (await load({ fetch: fetchMock, cookies: makeCookies() } as never)) as Record<
+			string,
+			unknown
+		>;
 
 		expect(result.projectId).toBe('1');
 		expect(result.areas).toEqual([]);

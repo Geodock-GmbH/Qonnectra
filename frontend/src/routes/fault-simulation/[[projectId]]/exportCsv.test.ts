@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { buildCsvString } from './exportCsv.js';
 
-function makeResult(overrides = {}): Record<string, unknown> {
-	return {
+function makeResult(overrides = {}): Parameters<typeof buildCsvString>[0] {
+	const result = {
 		trench: { uuid: 'trench-uuid', id_trench: 'T-001', construction_type: 'Open Cut' },
 		conduits: [
 			{ uuid: 'c1', name: 'Conduit A', conduit_type: 'Standard' },
@@ -51,6 +51,7 @@ function makeResult(overrides = {}): Record<string, unknown> {
 		],
 		...overrides
 	};
+	return result as unknown as Parameters<typeof buildCsvString>[0];
 }
 
 describe('buildCsvString', () => {

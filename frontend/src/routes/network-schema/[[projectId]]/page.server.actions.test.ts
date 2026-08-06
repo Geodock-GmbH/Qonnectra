@@ -58,7 +58,9 @@ describe('+page.server.js actions', () => {
 	/** Runs an action with the standard event shape (event fetch + cookies). */
 	async function runAction(name: string, entries: [string, string][] = []) {
 		const { actions } = await import('./+page.server.js');
-		return (await (actions as Record<string, (event: Record<string, unknown>) => unknown>)[name]({
+		return (await (
+			actions as unknown as Record<string, (event: Record<string, unknown>) => unknown>
+		)[name]({
 			request: makeRequest(entries),
 			fetch: mockFetch,
 			cookies: mockCookies

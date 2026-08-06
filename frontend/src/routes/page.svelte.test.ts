@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from 'vitest';
 
 import '@testing-library/jest-dom/vitest';
 
+import type { ComponentProps } from 'svelte';
 import { render, screen } from '@testing-library/svelte';
 
 import Page from './dashboard/[[projectId]]/[[flagId]]/+page.svelte';
@@ -84,7 +85,11 @@ const mockDashboardData = {
 
 describe('/+page.svelte', () => {
 	test('should render dashboard with overview tab', () => {
-		render(Page, { props: { data: mockDashboardData as Record<string, unknown> } });
+		render(Page, {
+			props: {
+				data: mockDashboardData as unknown as ComponentProps<typeof Page>['data']
+			}
+		});
 		expect(screen.getByText('Trench Statistics')).toBeInTheDocument();
 	});
 });

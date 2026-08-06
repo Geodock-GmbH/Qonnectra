@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'svelte';
 import { render, screen, within } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -76,7 +77,9 @@ describe('TrenchTable', () => {
 	test('renders a row per trench with its label from fetched data', async () => {
 		mockRoutes(trenchRows());
 
-		render(TrenchTable, { conduitId: 'conduit-1' });
+		render(TrenchTable, {
+			conduitId: 'conduit-1'
+		} as unknown as ComponentProps<typeof TrenchTable>);
 
 		expect(await screen.findByText('Trench Alpha')).toBeInTheDocument();
 		expect(screen.getByText('Trench Beta')).toBeInTheDocument();
@@ -86,7 +89,9 @@ describe('TrenchTable', () => {
 	test('shows the empty state when no trenches are returned', async () => {
 		mockRoutes({ '?/getTrenchConnections': { type: 'success', data: { trenches: [] } } });
 
-		render(TrenchTable, { conduitId: 'conduit-1' });
+		render(TrenchTable, {
+			conduitId: 'conduit-1'
+		} as unknown as ComponentProps<typeof TrenchTable>);
 
 		expect(await screen.findByText('message_no_trenches')).toBeInTheDocument();
 		expect(screen.queryByRole('table')).not.toBeInTheDocument();
@@ -95,7 +100,9 @@ describe('TrenchTable', () => {
 	test('renders the sortable trench-id header', async () => {
 		mockRoutes(trenchRows());
 
-		render(TrenchTable, { conduitId: 'conduit-1' });
+		render(TrenchTable, {
+			conduitId: 'conduit-1'
+		} as unknown as ComponentProps<typeof TrenchTable>);
 
 		await screen.findByText('Trench Alpha');
 		expect(screen.getByRole('button', { name: /form_trench_id/ })).toBeInTheDocument();
@@ -105,7 +112,9 @@ describe('TrenchTable', () => {
 		mockRoutes(trenchRows());
 		const user = userEvent.setup();
 
-		render(TrenchTable, { conduitId: 'conduit-1' });
+		render(TrenchTable, {
+			conduitId: 'conduit-1'
+		} as unknown as ComponentProps<typeof TrenchTable>);
 		await screen.findByText('Trench Alpha');
 
 		await user.type(screen.getByPlaceholderText('common_search'), 'beta');
@@ -118,7 +127,9 @@ describe('TrenchTable', () => {
 		mockRoutes(trenchRows());
 		const user = userEvent.setup();
 
-		render(TrenchTable, { conduitId: 'conduit-1' });
+		render(TrenchTable, {
+			conduitId: 'conduit-1'
+		} as unknown as ComponentProps<typeof TrenchTable>);
 		await screen.findByText('Trench Alpha');
 
 		await user.type(screen.getByPlaceholderText('common_search'), 'zzz-unknown');
@@ -131,7 +142,9 @@ describe('TrenchTable', () => {
 		mockRoutes(trenchRows());
 		const user = userEvent.setup();
 
-		render(TrenchTable, { conduitId: 'conduit-1' });
+		render(TrenchTable, {
+			conduitId: 'conduit-1'
+		} as unknown as ComponentProps<typeof TrenchTable>);
 		await screen.findByText('Trench Alpha');
 
 		const orderBefore = screen.getAllByRole('cell').map((c) => c.textContent?.trim());
@@ -152,7 +165,10 @@ describe('TrenchTable', () => {
 		const onTrenchClick = vi.fn();
 		const user = userEvent.setup();
 
-		render(TrenchTable, { conduitId: 'conduit-1', onTrenchClick });
+		render(TrenchTable, {
+			conduitId: 'conduit-1',
+			onTrenchClick
+		} as unknown as ComponentProps<typeof TrenchTable>);
 		const cell = await screen.findByText('Trench Alpha');
 
 		await user.click(cell);
@@ -164,7 +180,9 @@ describe('TrenchTable', () => {
 		mockRoutes(trenchRows());
 		const user = userEvent.setup();
 
-		render(TrenchTable, { conduitId: 'conduit-1' });
+		render(TrenchTable, {
+			conduitId: 'conduit-1'
+		} as unknown as ComponentProps<typeof TrenchTable>);
 		const row = (await screen.findByText('Trench Alpha')).closest('tr') as HTMLTableRowElement;
 
 		fetchMock.mockClear();
@@ -183,7 +201,10 @@ describe('TrenchTable', () => {
 		mockRoutes(trenchRows());
 		const onTrenchesChange = vi.fn();
 
-		render(TrenchTable, { conduitId: 'conduit-1', onTrenchesChange });
+		render(TrenchTable, {
+			conduitId: 'conduit-1',
+			onTrenchesChange
+		} as unknown as ComponentProps<typeof TrenchTable>);
 
 		await vi.waitFor(() =>
 			expect(onTrenchesChange).toHaveBeenCalledWith(
@@ -197,7 +218,9 @@ describe('TrenchTable', () => {
 			'?/getTrenchConnections': { type: 'failure', data: { error: 'boom' } }
 		});
 
-		render(TrenchTable, { conduitId: 'conduit-1' });
+		render(TrenchTable, {
+			conduitId: 'conduit-1'
+		} as unknown as ComponentProps<typeof TrenchTable>);
 
 		expect(await screen.findByText('message_error_fetching_trenches')).toBeInTheDocument();
 	});
