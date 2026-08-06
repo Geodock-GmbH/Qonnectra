@@ -199,13 +199,30 @@
 		const newTrenches = routedTrenches.filter((t) => !existingTrenchValues.has(t.value));
 
 		if (newTrenches.length > 0) {
-			const savePromises = newTrenches.map((trench) => saveTrenchConnection(trench.value));
+			try {
+				const savePromises = newTrenches.map((trench) => saveTrenchConnection(trench.value));
 
-			await Promise.all(savePromises);
-			fetchTrenches();
-			globalToaster.success({
-				description: m.message_trench_connection_saved()
-			});
+				await Promise.all(savePromises);
+				fetchTrenches();
+				globalToaster.success({
+					description: m.message_trench_connection_saved()
+				});
+			} catch (error) {
+				console.error('Error saving trench connections:', error);
+				void logToBackendClient({
+					level: 'ERROR',
+					message: 'Error saving trench connections',
+					extraData: {
+						from: 'TrenchTable.addRoutedTrenches',
+						error: error instanceof Error ? error.message : String(error),
+						stack: error instanceof Error ? error.stack : undefined
+					}
+				});
+				globalToaster.error({
+					title: m.common_error(),
+					description: m.message_error_saving_data()
+				});
+			}
 		} else {
 			globalToaster.warning({
 				description: m.message_no_new_trench_connections()

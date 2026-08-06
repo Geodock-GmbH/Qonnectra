@@ -297,6 +297,10 @@
 			}
 
 			await fetchHierarchy();
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_success_moving_component()
+			});
 		} catch (err) {
 			console.error('Error moving item:', err);
 			void logToBackendClient({
@@ -349,6 +353,10 @@
 					error: err instanceof Error ? err.message : String(err),
 					stack: err instanceof Error ? err.stack : undefined
 				}
+			});
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_moving_item()
 			});
 		}
 	}
@@ -635,6 +643,11 @@
 				a.click();
 				document.body.removeChild(a);
 				URL.revokeObjectURL(url);
+
+				globalToaster.success({
+					title: m.title_success(),
+					description: m.message_success_exporting_excel()
+				});
 			}
 		} catch (err) {
 			console.error('Error exporting Excel:', err);

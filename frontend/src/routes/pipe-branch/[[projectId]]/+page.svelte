@@ -373,9 +373,18 @@
 				formData.append('node_uuid', apiResponse.node_uuid);
 				formData.append('trench_uuids', JSON.stringify(selectedTrenches.map((t) => t.uuid)));
 
-				await fetch('?/saveTrenchSelections', {
+				const response = await fetch('?/saveTrenchSelections', {
 					method: 'POST',
 					body: formData
+				});
+
+				if (!response.ok) {
+					throw new Error(`Request failed with status ${response.status}`);
+				}
+
+				globalToaster.success({
+					title: m.title_success(),
+					description: m.message_success_saving_trench_selections()
 				});
 			} catch (error) {
 				console.error('Error saving trench selections:', error);
@@ -387,6 +396,10 @@
 						error: error instanceof Error ? error.message : String(error),
 						stack: error instanceof Error ? error.stack : undefined
 					}
+				});
+				globalToaster.error({
+					title: m.common_error(),
+					description: m.message_error_saving_trench_selections()
 				});
 			}
 		}
@@ -649,10 +662,18 @@
 					};
 					edges = updatedEdges;
 				}
+
+				globalToaster.success({
+					title: m.title_success(),
+					description: m.message_success_creating_connection()
+				});
 			} else {
 				const error = await response.json();
 				console.error('Failed to create connection:', error);
-				alert(`Failed to create connection: ${error.error || 'Unknown error'}`);
+				globalToaster.error({
+					title: m.common_error(),
+					description: error.error || m.message_error_creating_connection()
+				});
 			}
 		} catch (error) {
 			console.error('Error creating connection:', error);
@@ -665,7 +686,10 @@
 					stack: error instanceof Error ? error.stack : undefined
 				}
 			});
-			alert('Error creating connection');
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_creating_connection()
+			});
 		}
 	}
 

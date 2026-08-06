@@ -310,6 +310,10 @@
 			if (result.type === 'success') {
 				ctx.updatePolygonName(uuid, trimmed);
 				renderPolygonsOnMap();
+				globalToaster.success({
+					title: m.title_success(),
+					description: m.message_inquiry_polygon_renamed()
+				});
 			} else {
 				globalToaster.error({
 					title: m.common_error(),

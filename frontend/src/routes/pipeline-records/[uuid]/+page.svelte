@@ -135,6 +135,11 @@
 
 			const blob = await response.blob();
 			await saveFile(blob, `inquiry-export-${$page.params.uuid}.zip`);
+
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_inquiry_export_success()
+			});
 		} catch (/** @type {any} */ err) {
 			globalToaster.error({ title: m.common_error(), description: err.message });
 		} finally {

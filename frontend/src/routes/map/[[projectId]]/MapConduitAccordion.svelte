@@ -8,6 +8,7 @@
 
 	import { ConduitDataManager } from '$lib/classes/ConduitDataManager.svelte';
 	import MicroductsDisplayTable from '$lib/components/MicroductsDisplayTable.svelte';
+	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
 
@@ -71,6 +72,10 @@
 					error: err instanceof Error ? err.message : String(err),
 					stack: err instanceof Error ? err.stack : undefined
 				}
+			});
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_highlighting_trenches()
 			});
 		} finally {
 			highlightLoading = { ...highlightLoading, [pipeUuid]: false };
