@@ -9,8 +9,9 @@
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { generateAddressPdf } from '$lib/utils/addressPdf.js';
-	import { captureMapCanvases, getVisibleWMSAttributions } from '$lib/utils/mapCapture.js';
+	import { generateAddressPdf } from '$lib/utils/addressPdf';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
+	import { captureMapCanvases, getVisibleWMSAttributions } from '$lib/utils/mapCapture';
 
 	let {
 		address,
@@ -51,6 +52,15 @@
 			}
 		} catch (error) {
 			console.error('Error fetching fiber connections:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching fiber connections',
+				extraData: {
+					from: 'ExportDialog.fetchAllFiberConnections',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 		}
 		return {};
 	}
@@ -194,6 +204,15 @@
 			open = false;
 		} catch (error) {
 			console.error('Error exporting PDF:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error exporting PDF',
+				extraData: {
+					from: 'ExportDialog.handleExport',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_downloading_pdf()

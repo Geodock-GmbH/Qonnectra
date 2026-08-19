@@ -14,6 +14,7 @@
 
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	import ConduitDrawerTabs from './ConduitDrawerTabs.svelte';
 
@@ -183,6 +184,15 @@
 			});
 		} catch (error) {
 			console.error('Error fetching conduit:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching conduit',
+				extraData: {
+					from: 'PipeTable.handleRowClick',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_fetching_conduit()

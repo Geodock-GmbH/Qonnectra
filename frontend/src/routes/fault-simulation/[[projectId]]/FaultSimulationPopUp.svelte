@@ -5,6 +5,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	import { getFaultSimulationContext } from './faultSimulationContext.svelte.js';
 
@@ -46,6 +47,15 @@
 			}
 		} catch (err) {
 			console.error('Simulation error:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Simulation error',
+				extraData: {
+					from: 'FaultSimulationPopUp.handleSimulate',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.message_fault_simulation_error(),
 				description: String(err)

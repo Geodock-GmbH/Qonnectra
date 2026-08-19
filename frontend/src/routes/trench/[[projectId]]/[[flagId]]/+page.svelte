@@ -13,13 +13,13 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte.js';
-	import { MapState } from '$lib/classes/MapState.svelte.js';
+	import { MapState } from '$lib/classes/MapState.svelte';
 	import ConduitCombobox from '$lib/components/ConduitCombobox.svelte';
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import MapHint from '$lib/components/MapHint.svelte';
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
-	import { zoomToFeature } from '$lib/map/searchUtils.js';
+	import { zoomToFeature } from '$lib/map/searchUtils';
 	import {
 		addressStyle,
 		areaTypeStyles,
@@ -38,6 +38,7 @@
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { createZoomToLayerExtentHandler } from '$lib/utils/zoomToLayerExtent';
 
 	import 'ol/ol.css';
@@ -45,11 +46,7 @@
 	import VectorTileLayer from 'ol/layer/VectorTile.js';
 	import VectorSource from 'ol/source/Vector.js';
 
-	import {
-		createHighlightStyle,
-		createLinkedTrenchStyle,
-		createRouteStyle
-	} from '$lib/map/styles.js';
+	import { createHighlightStyle, createLinkedTrenchStyle, createRouteStyle } from '$lib/map/styles';
 
 	import TrenchTable from './TrenchTable.svelte';
 
@@ -203,6 +200,15 @@
 			}
 		} catch (error) {
 			console.error('Error zooming to trench:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error zooming to trench',
+				extraData: {
+					from: 'TrenchPage.handleTrenchClick',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.title_trench_not_visible(),
 				description: m.message_trench_not_visible_description({ trenchLabel })
@@ -422,6 +428,15 @@
 					}
 				} catch (/** @type {any} */ error) {
 					console.error('Routing error:', error);
+					void logToBackendClient({
+						level: 'ERROR',
+						message: 'Routing error',
+						extraData: {
+							from: 'TrenchPage.handleMapClick',
+							error: error instanceof Error ? error.message : String(error),
+							stack: error instanceof Error ? error.stack : undefined
+						}
+					});
 					globalToaster.error({
 						title: m.title_error_calculating_route(),
 						description: error.message

@@ -19,6 +19,7 @@
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { selectedProject } from '$lib/stores/store';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	const traceTypes = [
 		{
@@ -145,6 +146,15 @@
 			searchResults = data.results || [];
 		} catch (err) {
 			console.error('Search error:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Search error',
+				extraData: {
+					from: 'TracePage.performSearch',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			searchResults = [];
 		} finally {
 			searching = false;
@@ -222,6 +232,15 @@
 			}
 		} catch (err) {
 			console.error('Failed to fetch fibers:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Failed to fetch fibers',
+				extraData: {
+					from: 'TracePage.selectCableForFiber',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			fibers = [];
 		} finally {
 			loadingFibers = false;
@@ -370,6 +389,15 @@
 			fiberColors = colorMap;
 		} catch (err) {
 			console.error('Failed to fetch fiber colors:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Failed to fetch fiber colors',
+				extraData: {
+					from: 'TracePage.fetchFiberColors',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 		}
 	}
 

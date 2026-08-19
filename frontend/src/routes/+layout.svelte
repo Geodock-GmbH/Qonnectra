@@ -11,7 +11,7 @@
 	import { updateUserStore } from '$lib/stores/auth';
 	import { selectedProject, theme } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte.js';
+	import { startHeartbeat, stopHeartbeat } from '$lib/utils/tokenHeartbeat.svelte';
 
 	import '../app.css';
 

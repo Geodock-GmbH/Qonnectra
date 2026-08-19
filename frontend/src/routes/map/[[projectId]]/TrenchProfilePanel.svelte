@@ -3,7 +3,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { TrenchProfileState } from '$lib/classes/TrenchProfileState.svelte.js';
+	import { TrenchProfileState } from '$lib/classes/TrenchProfileState.svelte';
 
 	import '@xyflow/svelte/dist/style.css';
 

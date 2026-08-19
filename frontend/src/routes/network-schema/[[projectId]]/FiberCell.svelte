@@ -10,7 +10,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	let {
 		fiber = null,
@@ -167,6 +168,15 @@
 				onDrop(data);
 			} catch (err) {
 				console.error('Failed to parse drop data:', err);
+				void logToBackendClient({
+					level: 'ERROR',
+					message: 'Failed to parse drop data',
+					extraData: {
+						from: 'FiberCell.handleDrop',
+						error: err instanceof Error ? err.message : String(err),
+						stack: err instanceof Error ? err.stack : undefined
+					}
+				});
 			}
 		}
 	}

@@ -480,12 +480,22 @@ test.describe('Conduit Route Tests', () => {
 			const dialog = page.locator('[role="dialog"][data-state="open"]');
 			await expect(dialog).toBeVisible({ timeout: 10000 });
 
-			await expect(dialog.locator('label[for="pipe_type"]').getByRole('combobox')).toBeVisible();
-			await expect(dialog.locator('label[for="status"]').getByRole('combobox')).toBeVisible();
+			// Comboboxes are scoped by their bilingual (de/en) label-text span.
 			await expect(
-				dialog.locator('label[for="network_level"]').getByRole('combobox')
+				dialog.locator('label.label', { hasText: /conduit type|rohrtyp/i }).getByRole('combobox')
 			).toBeVisible();
-			await expect(dialog.locator('label[for="owner"]').getByRole('combobox')).toBeVisible();
+			await expect(
+				dialog
+					.locator('label.label')
+					.filter({ has: page.getByText('Status', { exact: true }) })
+					.getByRole('combobox')
+			).toBeVisible();
+			await expect(
+				dialog.locator('label.label', { hasText: /network level|netzebene/i }).getByRole('combobox')
+			).toBeVisible();
+			await expect(
+				dialog.locator('label.label', { hasText: /owner|eigentümer/i }).getByRole('combobox')
+			).toBeVisible();
 		});
 
 		test('should open conduit type combobox and select an option', async ({ page }) => {
@@ -496,7 +506,7 @@ test.describe('Conduit Route Tests', () => {
 			const dialog = page.locator('[role="dialog"][data-state="open"]');
 			await expect(dialog).toBeVisible({ timeout: 10000 });
 
-			const pipeTypeLabel = dialog.locator('label[for="pipe_type"]');
+			const pipeTypeLabel = dialog.locator('label.label', { hasText: /conduit type|rohrtyp/i });
 			await expect(pipeTypeLabel.getByRole('combobox')).toBeVisible();
 			await pipeTypeLabel.getByRole('button').click();
 
@@ -517,7 +527,9 @@ test.describe('Conduit Route Tests', () => {
 			const dialog = page.locator('[role="dialog"][data-state="open"]');
 			await expect(dialog).toBeVisible({ timeout: 10000 });
 
-			const statusLabel = dialog.locator('label[for="status"]');
+			const statusLabel = dialog
+				.locator('label.label')
+				.filter({ has: page.getByText('Status', { exact: true }) });
 			await expect(statusLabel.getByRole('combobox')).toBeVisible();
 			await statusLabel.getByRole('button').click();
 

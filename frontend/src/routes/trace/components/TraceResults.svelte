@@ -15,7 +15,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import FiberPathsTable from './FiberPathsTable.svelte';
-	import { downloadGeoJSON, hasGeometries, traceFrom } from '../traceUtils.js';
+	import { downloadGeoJSON, hasGeometries, traceFrom } from '../traceUtils';
 
 	/**
 	 * @typedef {Object} Props

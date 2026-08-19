@@ -976,6 +976,108 @@ class TestMoveFileToFeature:
         assert "TR-AAAAAAA" in new_path
         assert error is None
 
+    @patch("apps.api.services.LocalMediaStorage")
+    def test_move_file_to_address(self, mock_storage_class):
+        """Test moving a file to an Address builds a formatted address path."""
+        from django.contrib.contenttypes.models import ContentType
+        from apps.api.models import Address
+
+        project = ProjectFactory(project="TestProject")
+        StoragePreferencesFactory(
+            folder_structure={"address": {"default": "addresses"}}
+        )
+
+        source_node = NodeFactory(name="SourceNode", project=project)
+        target_address = AddressFactory(
+            project=project,
+            street="Musterweg",
+            housenumber=7,
+            zip_code="24941",
+            city="Flensburg",
+        )
+        node_content_type = ContentType.objects.get_for_model(Node)
+        address_content_type = ContentType.objects.get_for_model(Address)
+
+        file_record = FeatureFiles.objects.create(
+            content_type=node_content_type,
+            object_id=source_node.pk,
+            file_name="test_file",
+            file_type="pdf",
+        )
+        file_record.file_path.name = "TestProject/nodes/SourceNode/test_file.pdf"
+        file_record.save()
+
+        mock_storage = MagicMock()
+        mock_storage.exists.side_effect = (
+            lambda path: path == "TestProject/nodes/SourceNode/test_file.pdf"
+        )
+        mock_storage.open.return_value = MagicMock(read=lambda: b"content")
+        mock_storage.delete.return_value = None
+        mock_storage_class.return_value = mock_storage
+
+        success, new_path, error = move_file_to_feature(
+            file_record, target_address, address_content_type
+        )
+
+        assert success is True
+        assert "Musterweg 7" in new_path
+        assert "Flensburg" in new_path
+        assert error is None
+
+    @patch("apps.api.services.LocalMediaStorage")
+    def test_move_file_to_residential_unit(self, mock_storage_class):
+        """Test moving a file to a ResidentialUnit nests it under its address."""
+        from django.contrib.contenttypes.models import ContentType
+        from apps.api.models import ResidentialUnit
+
+        project = ProjectFactory(project="TestProject")
+        StoragePreferencesFactory(
+            folder_structure={
+                "address": {"default": "addresses"},
+                "residentialunit": {"default": "residential_units"},
+            }
+        )
+
+        source_node = NodeFactory(name="SourceNode", project=project)
+        address = AddressFactory(
+            project=project,
+            street="Musterweg",
+            housenumber=7,
+            zip_code="24941",
+            city="Flensburg",
+        )
+        target_unit = ResidentialUnit.objects.create(
+            uuid_address=address, id_residential_unit="RU-1"
+        )
+        node_content_type = ContentType.objects.get_for_model(Node)
+        ru_content_type = ContentType.objects.get_for_model(ResidentialUnit)
+
+        file_record = FeatureFiles.objects.create(
+            content_type=node_content_type,
+            object_id=source_node.pk,
+            file_name="test_file",
+            file_type="pdf",
+        )
+        file_record.file_path.name = "TestProject/nodes/SourceNode/test_file.pdf"
+        file_record.save()
+
+        mock_storage = MagicMock()
+        mock_storage.exists.side_effect = (
+            lambda path: path == "TestProject/nodes/SourceNode/test_file.pdf"
+        )
+        mock_storage.open.return_value = MagicMock(read=lambda: b"content")
+        mock_storage.delete.return_value = None
+        mock_storage_class.return_value = mock_storage
+
+        success, new_path, error = move_file_to_feature(
+            file_record, target_unit, ru_content_type
+        )
+
+        assert success is True
+        assert "residential_units" in new_path
+        assert "RU-1" in new_path
+        assert error is None
+
 
 class TestExtractFilenameFromOgrSource:
     """Tests for cross-platform filename extraction from OGR datasource strings."""

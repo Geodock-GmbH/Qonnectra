@@ -5,15 +5,15 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { MapInteractionManager } from '$lib/classes/MapInteractionManager.svelte.js';
+	import { MapInteractionManager } from '$lib/classes/MapInteractionManager.svelte';
 	import { MapPopupManager } from '$lib/classes/MapPopupManager.svelte.js';
 	import { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte.js';
-	import { MapState } from '$lib/classes/MapState.svelte.js';
-	import { NodeAssignmentManager } from '$lib/classes/NodeAssignmentManager.svelte.js';
+	import { MapState } from '$lib/classes/MapState.svelte';
+	import { NodeAssignmentManager } from '$lib/classes/NodeAssignmentManager.svelte';
 	import Drawer from '$lib/components/Drawer.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import MapHint from '$lib/components/MapHint.svelte';
-	import { createLinkedTrenchStyle } from '$lib/map/styles.js';
+	import { createLinkedTrenchStyle } from '$lib/map/styles';
 	import { drawerStore } from '$lib/stores/drawer';
 	import {
 		addressStyle,

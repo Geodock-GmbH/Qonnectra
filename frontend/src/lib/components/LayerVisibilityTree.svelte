@@ -33,7 +33,7 @@
 		wmsLayerVisibilityConfig,
 		wmsSourceExpansionState
 	} from '$lib/stores/store';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	/**
 	 * @typedef {Object} WMSLayer
@@ -123,6 +123,7 @@
 					currentStyles[nodeType.node_type] = {
 						color: defaults.color,
 						size: defaults.size,
+						shape: defaults.shape,
 						visible: true
 					};
 					hasNewTypes = true;

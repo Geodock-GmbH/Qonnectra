@@ -63,10 +63,20 @@ async function performLogin(page) {
 
 /**
  * Opens the pipeline-record detail page for the row containing the given text.
+ * Searches for the marker first so the row is guaranteed onto page 1 regardless
+ * of how many records the DB already holds (server-side search + pagination).
  * @param {import('@playwright/test').Page} page
  * @param {string} organisation - The organisation cell text identifying the row.
  */
 async function openRecordByOrganisation(page, organisation) {
+	await page.goto('/pipeline-records');
+	await page.waitForLoadState('networkidle');
+
+	const search = page.locator('[data-testid="search-input"]');
+	await search.fill(organisation);
+	await search.press('Enter');
+	await page.waitForLoadState('networkidle');
+
 	const cell = page
 		.locator('[data-testid="pipeline-records-desktop-view"] tbody tr')
 		.filter({ hasText: organisation })
@@ -155,8 +165,17 @@ test.describe('Pipeline Records CRUD', () => {
 
 		await page.getByRole('button', { name: /create|erstellen/i }).click();
 
-		// Redirects back to the list; the new row must be present with the active project (real write).
-		await page.waitForURL(/\/pipeline-records$/, { timeout: 10000 });
+		// Create redirects to the new record's detail page (303 → /pipeline-records/<uuid>).
+		await page.waitForURL(/\/pipeline-records\/[0-9a-f-]{36}/, { timeout: 10000 });
+		await expect(page.locator('input[name="organisation"]')).toHaveValue(ORG);
+
+		// Navigate to the list, search for the marker, and confirm the real write.
+		await page.goto('/pipeline-records');
+		await page.waitForLoadState('networkidle');
+		const search = page.locator('[data-testid="search-input"]');
+		await search.fill(ORG);
+		await search.press('Enter');
+		await page.waitForLoadState('networkidle');
 		const row = page
 			.locator('[data-testid="pipeline-records-desktop-view"] tbody tr')
 			.filter({ hasText: ORG });
@@ -171,10 +190,9 @@ test.describe('Pipeline Records CRUD', () => {
 		await expect(page.locator('input[name="organisation"]')).toHaveValue(ORG);
 		await expect(page.locator('input[name="name"]')).toHaveValue(CONTACT);
 		await expect(page.locator('input[name="tel"]')).toHaveValue('0123456789');
-		// The project combobox is preselected by resolving the record's project name.
-		await expect(
-			page.locator('label.label', { hasText: 'Projekt' }).getByRole('combobox')
-		).not.toHaveValue('');
+		// On the detail page the project is shown as a read-only, prefilled field
+		// (resolved from the record's project name), not an editable combobox.
+		await expect(page.locator('[data-testid="active-project"]')).not.toHaveValue('');
 	});
 
 	test('edits a record and persists the change', async ({ page }) => {
@@ -183,8 +201,12 @@ test.describe('Pipeline Records CRUD', () => {
 		await page.locator('input[name="organisation"]').fill(ORG_EDITED);
 		await page.getByRole('button', { name: /save|speichern/i }).click();
 
-		// Go back to the list and confirm the edited value is really persisted.
+		// Go back to the list, search for the edited marker, and confirm it persisted.
 		await page.goto('/pipeline-records');
+		await page.waitForLoadState('networkidle');
+		const search = page.locator('[data-testid="search-input"]');
+		await search.fill(ORG_EDITED);
+		await search.press('Enter');
 		await page.waitForLoadState('networkidle');
 		await expect(
 			page

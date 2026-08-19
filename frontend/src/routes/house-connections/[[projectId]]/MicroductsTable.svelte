@@ -4,7 +4,9 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import MicroductsDisplayTable from '$lib/components/MicroductsDisplayTable.svelte';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
+
+	/** @typedef {import('$lib/classes/ConduitDataManager.svelte.js').Microduct} Microduct */
 
 	let { microducts = [], loading = false, error = null, onMicroductUpdate = null } = $props();
 
@@ -13,7 +15,7 @@
 
 	/**
 	 * Handle the assign click event
-	 * @param {{ uuid: string, [key: string]: unknown }} microduct - The microduct object
+	 * @param {Microduct} microduct - The microduct object
 	 */
 	function handleAssignClick(microduct) {
 		if (!nodeAssignmentManager) {
@@ -33,7 +35,7 @@
 
 	/**
 	 * Handle the remove click event
-	 * @param {{ uuid: string, [key: string]: unknown }} microduct - The microduct object
+	 * @param {Microduct} microduct - The microduct object
 	 */
 	function handleRemoveClick(microduct) {
 		if (!nodeAssignmentManager) {

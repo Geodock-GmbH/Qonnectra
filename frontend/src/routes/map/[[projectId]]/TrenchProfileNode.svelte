@@ -1,7 +1,7 @@
 <script>
 	import { NodeResizer } from '@xyflow/svelte';
 
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	/**
 	 * @type {{

@@ -5,7 +5,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { NODE_STRUCTURE_CONTEXT_KEY } from '$lib/classes/NodeStructureContext.svelte.js';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	const context = getContext(NODE_STRUCTURE_CONTEXT_KEY);
 

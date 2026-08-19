@@ -5,6 +5,8 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { drawerStore } from '$lib/stores/drawer';
+	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	import DrawerTabs from './DrawerTabs.svelte';
 
@@ -59,31 +61,48 @@
 			data.onNodeSelect(id);
 		}
 
-		const formData = new FormData();
-		formData.append('uuid', id);
-		const response = await fetch('?/getNodes', {
-			method: 'POST',
-			body: formData
-		});
-		const result = await response.json();
+		try {
+			const formData = new FormData();
+			formData.append('uuid', id);
+			const response = await fetch('?/getNodes', {
+				method: 'POST',
+				body: formData
+			});
+			const result = await response.json();
 
-		const parsedData = typeof result.data === 'string' ? parse(result.data) : result.data;
+			const parsedData = typeof result.data === 'string' ? parse(result.data) : result.data;
 
-		drawerStore.open({
-			title: parsedData?.properties?.name || m.title_node_details(),
-			component: DrawerTabs,
-			props: {
-				id: id,
-				...parsedData.properties,
-				type: 'node',
-				onLabelUpdate: (/** @type {any} */ newLabel) => {
-					currentLabel = newLabel;
-					drawerStore.setTitle(newLabel);
-					data?.onNameUpdate?.(newLabel);
-				},
-				onNodeDelete: data?.onNodeDelete
-			}
-		});
+			drawerStore.open({
+				title: parsedData?.properties?.name || m.title_node_details(),
+				component: DrawerTabs,
+				props: {
+					id: id,
+					...parsedData.properties,
+					type: 'node',
+					onLabelUpdate: (/** @type {any} */ newLabel) => {
+						currentLabel = newLabel;
+						drawerStore.setTitle(newLabel);
+						data?.onNameUpdate?.(newLabel);
+					},
+					onNodeDelete: data?.onNodeDelete
+				}
+			});
+		} catch (error) {
+			console.error('Failed to load node details:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Failed to load node details',
+				extraData: {
+					from: 'CableDiagramNode.handleNodeClick',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_loading_node_details()
+			});
+		}
 	}
 
 	function handleKeydown(/** @type {any} */ event) {

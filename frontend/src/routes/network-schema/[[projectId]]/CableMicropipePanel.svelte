@@ -16,10 +16,10 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { CableMicropipeManager } from '$lib/classes/CableMicropipeManager.svelte.js';
-	import { MapState } from '$lib/classes/MapState.svelte.js';
+	import { CableMicropipeManager } from '$lib/classes/CableMicropipeManager.svelte';
+	import { MapState } from '$lib/classes/MapState.svelte';
 	import Map from '$lib/components/Map.svelte';
-	import { createLinkedTrenchStyle, createSelectedStyle } from '$lib/map/styles.js';
+	import { createLinkedTrenchStyle, createSelectedStyle } from '$lib/map/styles';
 	import {
 		areaTypeStyles,
 		labelVisibilityConfig,
@@ -30,7 +30,7 @@
 		trenchStyleMode,
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	import 'ol/ol.css';
 

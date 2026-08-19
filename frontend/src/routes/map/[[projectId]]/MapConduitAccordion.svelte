@@ -6,9 +6,11 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { ConduitDataManager } from '$lib/classes/ConduitDataManager.svelte.js';
+	import { ConduitDataManager } from '$lib/classes/ConduitDataManager.svelte';
 	import MicroductsDisplayTable from '$lib/components/MicroductsDisplayTable.svelte';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	/**
 	 * @typedef {Object} Props
@@ -62,6 +64,19 @@
 			}
 		} catch (err) {
 			console.error('Error highlighting trenches:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error highlighting trenches',
+				extraData: {
+					from: 'MapConduitAccordion.handleHighlightTrenches',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_highlighting_trenches()
+			});
 		} finally {
 			highlightLoading = { ...highlightLoading, [pipeUuid]: false };
 		}

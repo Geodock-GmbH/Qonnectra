@@ -7,6 +7,7 @@
 	import VirtualCombobox from '$lib/components/VirtualCombobox.svelte';
 	import { selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { autoLockSvelteFlow } from '$lib/utils/svelteFlowLock';
 
 	import LassoModeSwitch from './LassoModeSwitch.svelte';
@@ -255,6 +256,15 @@
 			}
 		} catch (error) {
 			console.error('Error fetching trenches near node:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching trenches near node',
+				extraData: {
+					from: 'PipeBranchPage.getTrenchesNearNode',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			apiResponse = null;
 			availableTrenches = [];
 		}
@@ -336,6 +346,15 @@
 			selectedKeys = Array.from(allPreselected);
 		} catch (error) {
 			console.error('Error loading saved selections:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error loading saved selections',
+				extraData: {
+					from: 'PipeBranchPage.loadSavedSelectionsAndConnections',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			selectedKeys = [];
 			lockedKeys = [];
 		}
@@ -354,12 +373,34 @@
 				formData.append('node_uuid', apiResponse.node_uuid);
 				formData.append('trench_uuids', JSON.stringify(selectedTrenches.map((t) => t.uuid)));
 
-				await fetch('?/saveTrenchSelections', {
+				const response = await fetch('?/saveTrenchSelections', {
 					method: 'POST',
 					body: formData
 				});
+
+				if (!response.ok) {
+					throw new Error(`Request failed with status ${response.status}`);
+				}
+
+				globalToaster.success({
+					title: m.title_success(),
+					description: m.message_success_saving_trench_selections()
+				});
 			} catch (error) {
 				console.error('Error saving trench selections:', error);
+				void logToBackendClient({
+					level: 'ERROR',
+					message: 'Error saving trench selections',
+					extraData: {
+						from: 'PipeBranchPage.handleTrenchSelectionConfirm',
+						error: error instanceof Error ? error.message : String(error),
+						stack: error instanceof Error ? error.stack : undefined
+					}
+				});
+				globalToaster.error({
+					title: m.common_error(),
+					description: m.message_error_saving_trench_selections()
+				});
 			}
 		}
 
@@ -469,6 +510,15 @@
 			}
 		} catch (error) {
 			console.error('Error loading existing connections:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error loading existing connections',
+				extraData: {
+					from: 'PipeBranchPage.loadExistingConnections',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 		}
 	}
 
@@ -612,14 +662,34 @@
 					};
 					edges = updatedEdges;
 				}
+
+				globalToaster.success({
+					title: m.title_success(),
+					description: m.message_success_creating_connection()
+				});
 			} else {
 				const error = await response.json();
 				console.error('Failed to create connection:', error);
-				alert(`Failed to create connection: ${error.error || 'Unknown error'}`);
+				globalToaster.error({
+					title: m.common_error(),
+					description: error.error || m.message_error_creating_connection()
+				});
 			}
 		} catch (error) {
 			console.error('Error creating connection:', error);
-			alert('Error creating connection');
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error creating connection',
+				extraData: {
+					from: 'PipeBranchPage.saveConnection',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_creating_connection()
+			});
 		}
 	}
 
@@ -818,6 +888,15 @@
 			}
 		} catch (error) {
 			console.error('Error creating connections:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error creating connections',
+				extraData: {
+					from: 'PipeBranchPage.autoConnectTwoNodes',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_failed_to_create_connections()

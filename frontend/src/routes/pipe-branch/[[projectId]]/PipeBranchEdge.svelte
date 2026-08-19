@@ -4,7 +4,8 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { globalToaster } from '$lib/stores/toaster';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	let { id, sourceX, sourceY, targetX, targetY, data } = $props();
 
@@ -60,6 +61,15 @@
 				});
 			} catch (error) {
 				console.error('Error deleting connection:', error);
+				void logToBackendClient({
+					level: 'ERROR',
+					message: 'Error deleting connection',
+					extraData: {
+						from: 'PipeBranchEdge.handleDeleteEdge',
+						error: error instanceof Error ? error.message : String(error),
+						stack: error instanceof Error ? error.stack : undefined
+					}
+				});
 				globalToaster.error({
 					title: m.common_error(),
 					description: m.message_error_connection_deleted()

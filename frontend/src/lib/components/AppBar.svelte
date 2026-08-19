@@ -9,7 +9,7 @@
 
 	import { userStore } from '$lib/stores/auth';
 	import { globalMapView, selectedProject } from '$lib/stores/store';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	import LightSwitch from './LightSwitch.svelte';
 	import LocaleSwitcher from './LocaleSwitcher.svelte';

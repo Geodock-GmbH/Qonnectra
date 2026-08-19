@@ -4,9 +4,9 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { ConduitDataManager } from '$lib/classes/ConduitDataManager.svelte.js';
+	import { ConduitDataManager } from '$lib/classes/ConduitDataManager.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	import MicroductsTable from './MicroductsTable.svelte';
 

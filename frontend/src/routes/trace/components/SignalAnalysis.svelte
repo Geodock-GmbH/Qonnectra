@@ -19,11 +19,7 @@
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 
-	import {
-		downloadGeoJSON as downloadGeoJSONFile,
-		hasGeometries,
-		traceFrom
-	} from '../traceUtils.js';
+	import { downloadGeoJSON as downloadGeoJSONFile, hasGeometries, traceFrom } from '../traceUtils';
 
 	/**
 	 * @typedef {Object} Props

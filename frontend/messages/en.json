@@ -116,13 +116,8 @@
 	"common_reset_all": "Reset All",
 	"common_results": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Result",
 				"countPlural=other": "Results"
@@ -146,13 +141,8 @@
 	"form_actions": "Actions",
 	"form_address": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Address",
 				"countPlural=other": "Addresses"
@@ -161,13 +151,8 @@
 	],
 	"form_address_id": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Address ID",
 				"countPlural=other": "Address IDs"
@@ -207,13 +192,8 @@
 	"form_breakdown_by_type": "Grouped by type",
 	"form_building": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Building",
 				"countPlural=other": "Buildings"
@@ -238,13 +218,8 @@
 	"form_components": "Components",
 	"form_conduit": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Conduit",
 				"countPlural=other": "Conduits"
@@ -269,13 +244,8 @@
 	"form_date_to": "To date",
 	"form_days": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "day",
 				"countPlural=other": "days"
@@ -296,13 +266,8 @@
 	"form_fibers": "Fibers",
 	"form_files": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "File",
 				"countPlural=other": "Files"
@@ -345,13 +310,8 @@
 	"form_message": "Message",
 	"form_microduct": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Microduct",
 				"countPlural=other": "Microducts"
@@ -394,13 +354,8 @@
 	"form_ports": "Ports",
 	"form_project": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Project",
 				"countPlural=other": "Projects"
@@ -431,13 +386,8 @@
 	"form_side": "Side",
 	"form_slot": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "slot",
 				"countPlural=other": "slots"
@@ -532,6 +482,7 @@
 	"message_error_could_not_load_map_tiles": "Map tiles could not be loaded. Please check the connection or configuration.",
 	"message_error_creating_cable": "Error creating cable",
 	"message_error_creating_conduit": "Error creating conduit",
+	"message_error_creating_connection": "Error creating connection",
 	"message_error_creating_container": "Failed to create container",
 	"message_error_creating_divider": "Failed to create divider",
 	"message_error_creating_residential_unit": "Failed to create residential unit",
@@ -562,6 +513,7 @@
 	"message_error_go_back_home": "Go back home",
 	"message_error_highlighting_trenches": "Error highlighting trenches",
 	"message_error_loading_data": "Error loading data",
+	"message_error_loading_node_details": "Could not load node details",
 	"message_error_moving_item": "Failed to move item",
 	"message_error_no_cable_type_selected": "No cable type selected",
 	"message_error_no_cables_found": "No cable types available",
@@ -570,8 +522,10 @@
 	"message_error_placing_component": "Failed to place component",
 	"message_error_regenerating_id": "Error regenerating the address ID.",
 	"message_error_regenerating_residential_unit_id": "Failed to regenerate residential unit ID.",
+	"message_error_saving_cable_label": "Failed to save cable label",
 	"message_error_saving_clip_number": "Failed to save clip number",
 	"message_error_saving_data": "Error saving data",
+	"message_error_saving_trench_selections": "Failed to save trench selections",
 	"message_error_search_failed": "Search failed. Please try again.",
 	"message_error_slots_occupied": "Slots are already occupied",
 	"message_error_updating_address": "Error updating address",
@@ -594,9 +548,11 @@
 	"message_info_node_has_no_address_assigned": "This node has no address assigned.",
 	"message_inquiry_draw_hint": "Draw polygons on the map to select areas for the inquiry.",
 	"message_inquiry_export_failed": "Failed to export inquiry data.",
+	"message_inquiry_export_success": "Inquiry data exported successfully.",
 	"message_inquiry_polygon_delete_failed": "Failed to delete inquiry polygon.",
 	"message_inquiry_polygon_deleted": "Inquiry polygon deleted.",
 	"message_inquiry_polygon_rename_failed": "Failed to rename inquiry polygon.",
+	"message_inquiry_polygon_renamed": "Inquiry polygon renamed.",
 	"message_inquiry_polygon_save_failed": "Failed to save inquiry polygon.",
 	"message_inquiry_polygon_saved": "Inquiry polygon saved.",
 	"message_inquiry_polygon_update_failed": "Failed to update inquiry polygon.",
@@ -663,6 +619,7 @@
 	"message_success_assigned_node": "Node assigned successfully",
 	"message_success_creating_cable": "Cable created successfully",
 	"message_success_creating_conduit": "Conduit created successfully",
+	"message_success_creating_connection": "Connection created successfully",
 	"message_success_creating_container": "Container created successfully",
 	"message_success_creating_residential_unit": "Residential unit created successfully",
 	"message_success_creating_slot_configuration": "Slot configuration created successfully",
@@ -676,11 +633,14 @@
 	"message_success_deleting_structure": "Structure deleted successfully",
 	"message_success_downloading_pdf": "PDF downloaded successfully",
 	"message_success_downloading_template": "Template downloaded successfully",
+	"message_success_exporting_excel": "Excel file exported successfully",
 	"message_success_moving_component": "Component moved successfully",
 	"message_success_placing_component": "Component placed successfully",
 	"message_success_placing_components": "Successfully placed {count} components",
 	"message_success_regenerating_id": "Address ID successfully regenerated.",
 	"message_success_regenerating_residential_unit_id": "Residential unit ID successfully regenerated.",
+	"message_success_saving_cable_label": "Cable label saved successfully",
+	"message_success_saving_trench_selections": "Trench selections saved successfully",
 	"message_success_unassigned_node": "Node unassigned successfully",
 	"message_success_updating_address": "Address updated successfully",
 	"message_success_updating_cable": "Cable updated successfully",
@@ -749,13 +709,8 @@
 	"section_microduct_connections": "Microduct Connections",
 	"section_residential_units": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Residential Unit",
 				"countPlural=other": "Residential Units"
@@ -903,13 +858,8 @@
 	"tooltip_zoom_to_extent": "Zoom to extent",
 	"trace_addresses": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "address",
 				"countPlural=other": "addresses"
@@ -951,13 +901,8 @@
 	"trace_raw_json": "Raw JSON Response",
 	"trace_residential_units": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "RU",
 				"countPlural=other": "RUs"
@@ -975,13 +920,8 @@
 	"trace_splice": "Splice",
 	"trace_splices": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "splice",
 				"countPlural=other": "splices"

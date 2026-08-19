@@ -8,6 +8,7 @@
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	const schemaStateContext = getContext('schemaState');
 
@@ -80,6 +81,15 @@
 			}
 		} catch (err) {
 			console.error('Error checking splices:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error checking splices',
+				extraData: {
+					from: 'CableDiagramEdgeHandleConfig.handleNodeChange',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			await executeNodeChange(side, newNodeId);
 		}
 	}
@@ -154,6 +164,15 @@
 			}
 		} catch (error) {
 			console.error('Error updating cable connection:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error updating cable connection',
+				extraData: {
+					from: 'CableDiagramEdgeHandleConfig.executeNodeChange',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_updating_cable()
@@ -213,6 +232,15 @@
 			);
 		} catch (error) {
 			console.error('Error updating cable handles:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error updating cable handles',
+				extraData: {
+					from: 'CableDiagramEdgeHandleConfig.handleSubmit',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.message_error_updating_cable()
 			});
@@ -247,6 +275,15 @@
 				}
 			} catch (err) {
 				console.error('Error deleting splices:', err);
+				void logToBackendClient({
+					level: 'ERROR',
+					message: 'Error deleting splices',
+					extraData: {
+						from: 'CableDiagramEdgeHandleConfig.handleConfirmNodeChange',
+						error: err instanceof Error ? err.message : String(err),
+						stack: err instanceof Error ? err.stack : undefined
+					}
+				});
 				globalToaster.error({
 					title: m.common_error(),
 					description: m.message_error_deleting_splices?.() || 'Failed to delete fiber connections'

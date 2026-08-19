@@ -116,13 +116,8 @@
 	"common_reset_all": "Alle zurücksetzen",
 	"common_results": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Ergebnis",
 				"countPlural=other": "Ergebnisse"
@@ -146,13 +141,8 @@
 	"form_actions": "Aktionen",
 	"form_address": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Adresse",
 				"countPlural=other": "Adressen"
@@ -161,13 +151,8 @@
 	],
 	"form_address_id": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Adress-ID",
 				"countPlural=other": "Adressen-IDs"
@@ -207,13 +192,8 @@
 	"form_breakdown_by_type": "Aufteilung nach Bauart",
 	"form_building": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Gebäude",
 				"countPlural=other": "Gebäude"
@@ -238,13 +218,8 @@
 	"form_components": "Komponenten",
 	"form_conduit": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Rohr",
 				"countPlural=other": "Rohre"
@@ -269,13 +244,8 @@
 	"form_date_to": "Bis Datum",
 	"form_days": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Tag",
 				"countPlural=other": "Tagen"
@@ -296,13 +266,8 @@
 	"form_fibers": "Fasern",
 	"form_files": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Datei",
 				"countPlural=other": "Dateien"
@@ -345,13 +310,8 @@
 	"form_message": "Nachricht",
 	"form_microduct": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Mikrorohr",
 				"countPlural=other": "Mikrorohre"
@@ -394,13 +354,8 @@
 	"form_ports": "Ports",
 	"form_project": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Projekt",
 				"countPlural=other": "Projekte"
@@ -431,13 +386,8 @@
 	"form_side": "Seite",
 	"form_slot": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Slot",
 				"countPlural=other": "Slots"
@@ -532,6 +482,7 @@
 	"message_error_could_not_load_map_tiles": "Es konnten keine Kacheln geladen werden.",
 	"message_error_creating_cable": "Fehler beim Erstellen des Kabels",
 	"message_error_creating_conduit": "Fehler beim Erstellen des Rohres",
+	"message_error_creating_connection": "Fehler beim Erstellen der Verbindung",
 	"message_error_creating_container": "Fehler beim Erstellen des Containers",
 	"message_error_creating_divider": "Fehler beim Erstellen der Trennlinie",
 	"message_error_creating_residential_unit": "Fehler beim Erstellen der Wohneinheit",
@@ -562,6 +513,7 @@
 	"message_error_go_back_home": "Zurück zur Startseite",
 	"message_error_highlighting_trenches": "Fehler beim Hervorheben der Trassen",
 	"message_error_loading_data": "Fehler beim Laden der Daten",
+	"message_error_loading_node_details": "Knotendetails konnten nicht geladen werden",
 	"message_error_moving_item": "Fehler beim Verschieben des Elements",
 	"message_error_no_cable_type_selected": "Kein Kabeltyp ausgewählt",
 	"message_error_no_cables_found": "Keine Kabeltypen verfügbar",
@@ -570,8 +522,10 @@
 	"message_error_placing_component": "Fehler beim Platzieren der Komponente",
 	"message_error_regenerating_id": "Fehler beim Neugenerieren der Adress-ID.",
 	"message_error_regenerating_residential_unit_id": "Fehler beim Neugenerieren der Wohneinheits-ID.",
+	"message_error_saving_cable_label": "Fehler beim Speichern der Kabelbeschriftung",
 	"message_error_saving_clip_number": "Fehler beim Speichern der Clip-Nummer",
 	"message_error_saving_data": "Fehler beim Speichern der Daten",
+	"message_error_saving_trench_selections": "Fehler beim Speichern der Trassenauswahl",
 	"message_error_search_failed": "Fehler beim Suchen. Bitte versuche es erneut.",
 	"message_error_slots_occupied": "Slots sind bereits belegt",
 	"message_error_updating_address": "Fehler beim Aktualisieren der Adresse",
@@ -594,9 +548,11 @@
 	"message_info_node_has_no_address_assigned": "Diesem Netzknoten wurde noch keine Adresse zugeordnet.",
 	"message_inquiry_draw_hint": "Zeichne Polygone auf der Karte, um Bereiche für die Auskunft auszuwählen.",
 	"message_inquiry_export_failed": "Fehler beim Exportieren der Auskunftsdaten.",
+	"message_inquiry_export_success": "Auskunftsdaten erfolgreich exportiert.",
 	"message_inquiry_polygon_delete_failed": "Fehler beim Löschen des Auskunftspolygons.",
 	"message_inquiry_polygon_deleted": "Auskunftspolygon gelöscht.",
 	"message_inquiry_polygon_rename_failed": "Fehler beim Umbenennen des Auskunftspolygons.",
+	"message_inquiry_polygon_renamed": "Auskunftspolygon umbenannt.",
 	"message_inquiry_polygon_save_failed": "Fehler beim Speichern des Auskunftspolygons.",
 	"message_inquiry_polygon_saved": "Auskunftspolygon gespeichert.",
 	"message_inquiry_polygon_update_failed": "Fehler beim Aktualisieren des Auskunftspolygons.",
@@ -664,6 +620,7 @@
 	"message_success_canvas_sync_complete": "Canvas Synchronisierung erfolgreich",
 	"message_success_creating_cable": "Kabel erfolgreich erstellt",
 	"message_success_creating_conduit": "Rohr erfolgreich erstellt",
+	"message_success_creating_connection": "Verbindung erfolgreich erstellt",
 	"message_success_creating_container": "Container erfolgreich erstellt",
 	"message_success_creating_residential_unit": "Wohneinheit erfolgreich erstellt",
 	"message_success_creating_slot_configuration": "Slot-Konfiguration erfolgreich erstellt",
@@ -677,11 +634,14 @@
 	"message_success_deleting_structure": "Struktur erfolgreich gelöscht",
 	"message_success_downloading_pdf": "PDF erfolgreich heruntergeladen",
 	"message_success_downloading_template": "Vorlage erfolgreich heruntergeladen",
+	"message_success_exporting_excel": "Excel-Datei erfolgreich exportiert",
 	"message_success_moving_component": "Komponente erfolgreich verschoben",
 	"message_success_placing_component": "Komponente erfolgreich platziert",
 	"message_success_placing_components": "{count} Komponenten erfolgreich platziert",
 	"message_success_regenerating_id": "Adress-ID erfolgreich neu generiert.",
 	"message_success_regenerating_residential_unit_id": "Wohneinheits-ID erfolgreich neu generiert.",
+	"message_success_saving_cable_label": "Kabelbeschriftung erfolgreich gespeichert",
+	"message_success_saving_trench_selections": "Trassenauswahl erfolgreich gespeichert",
 	"message_success_unassigned_node": "Hausanschluss erfolgreich aufgehoben",
 	"message_success_updating_address": "Adresse erfolgreich aktualisiert",
 	"message_success_updating_cable": "Kabel erfolgreich aktualisiert",
@@ -750,13 +710,8 @@
 	"section_microduct_connections": "Mikrorohrverbindungen",
 	"section_residential_units": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Wohneinheit",
 				"countPlural=other": "Wohneinheiten"
@@ -904,13 +859,8 @@
 	"tooltip_zoom_to_extent": "Auf Ausdehnung zoomen",
 	"trace_addresses": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Adresse",
 				"countPlural=other": "Adressen"
@@ -952,13 +902,8 @@
 	"trace_raw_json": "JSON-Rohdaten",
 	"trace_residential_units": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "WE",
 				"countPlural=other": "WEs"
@@ -976,13 +921,8 @@
 	"trace_splice": "Spleiss",
 	"trace_splices": [
 		{
-			"declarations": [
-				"input count",
-				"local countPlural = count: plural"
-			],
-			"selectors": [
-				"countPlural"
-			],
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
 			"match": {
 				"countPlural=one": "Spleiss",
 				"countPlural=other": "Spleisse"

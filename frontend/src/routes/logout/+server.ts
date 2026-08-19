@@ -1,0 +1,60 @@
+import type { RequestHandler } from './$types';
+import type { CookieSerializeOptions } from 'cookie';
+import { redirect } from '@sveltejs/kit';
+import { API_URL } from '$env/static/private';
+import setCookieParser from 'set-cookie-parser';
+
+/**
+ * Handles user logout by calling the backend API and clearing auth cookies.
+ */
+export const POST: RequestHandler = async ({ cookies, fetch, url }) => {
+	const refreshToken = cookies.get('api-refresh-token');
+	const csrfToken = cookies.get('csrftoken');
+
+	const headers: Record<string, string> = {
+		'Content-Type': 'application/json'
+	};
+	if (csrfToken) {
+		headers['X-CSRFToken'] = csrfToken;
+	}
+
+	if (refreshToken) {
+		headers['Cookie'] = `api-refresh-token=${refreshToken}`;
+	}
+
+	try {
+		const response = await fetch(`${API_URL}auth/logout/`, {
+			method: 'POST',
+			headers: headers,
+			credentials: 'include'
+		});
+
+		const setCookieHeader = response.headers.get('set-cookie');
+		if (setCookieHeader) {
+			const parsedCookies = setCookieParser.parse(setCookieHeader);
+			parsedCookies.forEach((cookie) => {
+				const options: CookieSerializeOptions & { path: string } = {
+					path: cookie.path || '/',
+					httpOnly: cookie.httpOnly,
+					secure: cookie.secure || url.protocol === 'https:',
+					sameSite: (cookie.sameSite as 'lax' | 'strict' | 'none') || 'lax'
+				};
+				if (cookie.domain) options.domain = cookie.domain;
+				if (cookie.expires) options.expires = new Date(cookie.expires);
+
+				cookies.set(cookie.name, cookie.value, options);
+			});
+		}
+
+		if (!response.ok && response.status !== 401) {
+			console.error('Backend logout failed:', response.status, await response.text());
+		}
+	} catch (error) {
+		console.error('Error during logout API call:', error);
+	}
+
+	cookies.delete('api-access-token', { path: '/' });
+	cookies.delete('api-refresh-token', { path: '/' });
+
+	throw redirect(303, '/login');
+};

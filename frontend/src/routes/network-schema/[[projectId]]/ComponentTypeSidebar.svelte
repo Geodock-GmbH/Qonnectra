@@ -11,9 +11,10 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { DRAG_DROP_CONTEXT_KEY } from '$lib/classes/DragDropManager.svelte.js';
+	import { DRAG_DROP_CONTEXT_KEY } from '$lib/classes/DragDropManager.svelte';
 	import { PanelResizeManager } from '$lib/classes/PanelResizeManager.svelte.js';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	let {
 		onDragStart = () => {},
@@ -49,6 +50,15 @@
 			}
 		} catch (err) {
 			console.error('Error fetching component types:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching component types',
+				extraData: {
+					from: 'ComponentTypeSidebar.fetchComponentTypes',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 		} finally {
 			loading = false;
 		}

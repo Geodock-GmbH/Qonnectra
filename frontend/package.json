@@ -11,7 +11,8 @@
 		"format": "prettier --write .",
 		"lint": "prettier --check .",
 		"test:unit": "vitest",
-		"test": "npm run test:unit -- --run"
+		"test": "npm run test:unit -- --run",
+		"test:coverage": "vitest --run --coverage"
 	},
 	"devDependencies": {
 		"@ianvs/prettier-plugin-sort-imports": "^4.7.0",
@@ -28,6 +29,8 @@
 		"@testing-library/svelte": "^5.2.4",
 		"@testing-library/user-event": "^14.6.1",
 		"@types/node": "^24.0.13",
+		"@types/set-cookie-parser": "^2.4.10",
+		"@vitest/coverage-v8": "^4.1.10",
 		"dotenv": "^17.3.1",
 		"jsdom": "^26.0.0",
 		"playwright": "^1.58.2",
@@ -36,6 +39,7 @@
 		"svelte": "^5.55.1",
 		"svelte-check": "^4.4.5",
 		"tailwindcss": "^4.2.0",
+		"typescript": "^5.9.3",
 		"vite": "^8.0.3",
 		"vitest": "^4.0.18"
 	},

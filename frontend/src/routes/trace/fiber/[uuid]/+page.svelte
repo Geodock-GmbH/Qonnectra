@@ -7,7 +7,7 @@
 
 	import SignalAnalysis from '../../components/SignalAnalysis.svelte';
 	import TraceResults from '../../components/TraceResults.svelte';
-	import { getTraceMapContext } from '../../traceMapContext.svelte.js';
+	import { getTraceMapContext } from '../../traceMapContext.svelte';
 
 	let { data } = $props();
 

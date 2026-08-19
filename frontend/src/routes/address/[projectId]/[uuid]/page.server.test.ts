@@ -1,0 +1,791 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
+import { actions, load } from './+page.server.js';
+
+vi.mock('$env/static/private', () => ({
+	API_URL: 'http://localhost:8000/'
+}));
+
+vi.mock('@sveltejs/kit', () => ({
+	fail: (status: number, data: Record<string, unknown>) => {
+		return { status, data };
+	},
+	redirect: (status: number, location: string) => {
+		throw { status, location };
+	}
+}));
+
+describe('address detail +page.server.js', () => {
+	let mockFetch: ReturnType<typeof vi.fn>;
+	let mockCookies: Record<string, unknown>;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+
+		mockCookies = {
+			get: vi.fn((name) => {
+				if (name === 'api-access-token') return 'mock-token';
+				return null;
+			})
+		};
+
+		mockFetch = vi.fn();
+	});
+
+	afterEach(() => {
+		vi.resetAllMocks();
+	});
+
+	function createMockFormData(data: Record<string, unknown>) {
+		const map = new Map(Object.entries(data));
+		return {
+			get: (key: string) => map.get(key) ?? null
+		};
+	}
+
+	function createMockRequest(formDataObj: Record<string, unknown>) {
+		return {
+			formData: () => Promise.resolve(createMockFormData(formDataObj))
+		} as Record<string, unknown>;
+	}
+
+	function setupLoadMocks({
+		addressData = { id: 'addr-uuid', properties: { street: 'Main St', housenumber: 1 } } as Record<
+			string,
+			unknown
+		>,
+		addressOk = true,
+		statusDevelopments = [] as Record<string, unknown>[],
+		flags = [] as Record<string, unknown>[],
+		ruTypes = [] as Record<string, unknown>[],
+		ruStatuses = [] as Record<string, unknown>[],
+		trenchData = { type: 'FeatureCollection', features: [] } as Record<string, unknown>
+	} = {}) {
+		// address response
+		mockFetch.mockResolvedValueOnce({
+			ok: addressOk,
+			status: addressOk ? 200 : 404,
+			json: () => Promise.resolve(addressData)
+		});
+
+		// status_development
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: () => Promise.resolve(statusDevelopments)
+		});
+
+		// flags
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: () => Promise.resolve(flags)
+		});
+
+		// residential unit types
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: () => Promise.resolve(ruTypes)
+		});
+
+		// residential unit statuses
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: () => Promise.resolve(ruStatuses)
+		});
+
+		// linked nodes
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: () => Promise.resolve({ features: [] })
+		});
+
+		// residential units + linked-trenches (parallel fetch)
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: () => Promise.resolve([])
+		});
+		mockFetch.mockResolvedValueOnce({
+			ok: true,
+			json: () => Promise.resolve(trenchData)
+		});
+	}
+
+	describe('load function', () => {
+		test('should load address successfully', async () => {
+			setupLoadMocks({
+				addressData: {
+					id: 'addr-uuid',
+					properties: { street: 'Main St', housenumber: 1, geom_3857: null }
+				} as Record<string, unknown>,
+				statusDevelopments: [{ id: 1, status: 'Planned' }],
+				flags: [{ id: 1, flag: 'Priority' }],
+				ruTypes: [{ id: 1, residential_unit_type: 'Apartment' }],
+				ruStatuses: [{ id: 1, status: 'Active' }]
+			});
+
+			const result = (await load({
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { projectId: '1', uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
+
+			expect(result.address).toBeTruthy();
+			expect((result.address as Record<string, unknown>).uuid).toBe('addr-uuid');
+			expect((result.address as Record<string, unknown>).street).toBe('Main St');
+			expect(result.addressError).toBeNull();
+			expect(result.statusDevelopments).toEqual([{ value: 1, label: 'Planned' }]);
+			expect(result.flags).toEqual([{ value: 1, label: 'Priority' }]);
+			expect(result.residentialUnitTypes).toEqual([{ value: 1, label: 'Apartment' }]);
+			expect(result.residentialUnitStatuses).toEqual([{ value: 1, label: 'Active' }]);
+		});
+
+		test('should handle address fetch failure', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 404,
+				json: () => Promise.resolve({})
+			});
+			// select responses
+			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+
+			const result = (await load({
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { projectId: '1', uuid: 'nonexistent' }
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
+
+			expect(result.address).toBeNull();
+			expect(result.addressError).toBe('Failed to fetch address');
+		});
+
+		test('should handle network error', async () => {
+			mockFetch.mockRejectedValue(new Error('Network error'));
+
+			const result = (await load({
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { projectId: '1', uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
+
+			expect(result.address).toBeNull();
+			expect(result.addressError).toBe('Error occurred while fetching address');
+		});
+
+		test('should fetch linked nodes and microducts', async () => {
+			// address
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ id: 'addr-uuid', properties: { street: 'Main St' } })
+			});
+			// 4 select responses
+			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+			// nodes with one feature
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						features: [{ id: 'node-uuid', properties: { name: 'Node 1' } }]
+					})
+			});
+			// microducts for node
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve([
+						{
+							uuid: 'md-uuid',
+							number: 1,
+							color: 'red',
+							hex_code: '#ff0000',
+							uuid_conduit: { name: 'Conduit 1', conduit_type: { conduit_type: 'Type A' } }
+						}
+					])
+			});
+			// residential units + linked-trenches (fetched in parallel)
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve([])
+			});
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ type: 'FeatureCollection', features: [] })
+			});
+
+			const result = (await load({
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { projectId: '1', uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
+
+			expect(result.linkedNodes).toHaveLength(1);
+			expect((result.linkedNodes as Record<string, unknown>[])[0].uuid).toBe('node-uuid');
+			expect(result.linkedMicroducts).toHaveLength(1);
+			expect((result.linkedMicroducts as Record<string, unknown>[])[0].color).toBe('red');
+			expect((result.linkedMicroducts as Record<string, unknown>[])[0].conduitName).toBe(
+				'Conduit 1'
+			);
+		});
+	});
+
+	describe('linked trench geometries', () => {
+		test('should populate linkedTrenchGeometries from API', async () => {
+			setupLoadMocks({
+				trenchData: {
+					type: 'FeatureCollection',
+					features: [
+						{
+							type: 'Feature',
+							id: 'trench-uuid-1',
+							geometry: {
+								type: 'LineString',
+								coordinates: [
+									[0, 0],
+									[100, 0]
+								]
+							},
+							properties: { id_trench: 'TR-001' }
+						}
+					]
+				}
+			});
+
+			const result = (await load({
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { projectId: '1', uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
+
+			expect(result.linkedTrenchGeometries).toHaveLength(1);
+			expect((result.linkedTrenchGeometries as Record<string, unknown>[])[0].id).toBe(
+				'trench-uuid-1'
+			);
+			expect(
+				(
+					(result.linkedTrenchGeometries as Record<string, unknown>[])[0].properties as Record<
+						string,
+						unknown
+					>
+				).id_trench
+			).toBe('TR-001');
+		});
+
+		test('should return empty array when no trenches', async () => {
+			setupLoadMocks();
+
+			const result = (await load({
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { projectId: '1', uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
+
+			expect(result.linkedTrenchGeometries).toEqual([]);
+		});
+
+		test('should handle trench fetch failure gracefully', async () => {
+			// Manually set up mocks to make trench fetch fail
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ id: 'addr-uuid', properties: { street: 'Main St' } })
+			});
+			// 4 select responses
+			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+			mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) });
+			// linked nodes
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ features: [] })
+			});
+			// residential units (ok)
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve([])
+			});
+			// linked-trenches (fails)
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 500,
+				json: () => Promise.resolve({ error: 'Server error' })
+			});
+
+			const result = (await load({
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { projectId: '1', uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof load>[0])) as Record<string, unknown>;
+
+			expect(result.linkedTrenchGeometries).toEqual([]);
+			expect(result.address).toBeTruthy();
+		});
+	});
+
+	describe('updateAddress action', () => {
+		test('should update address successfully', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						id: 'addr-uuid',
+						properties: { street: 'Updated St', uuid: 'addr-uuid' }
+					})
+			});
+
+			const result = (await actions.updateAddress({
+				request: createMockRequest({
+					street: 'Updated St',
+					housenumber: '10',
+					zip_code: '12345',
+					city: 'Berlin',
+					status_development_id: '1',
+					flag_id: '2',
+					id_address: 'addr-001'
+				}),
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof actions.updateAddress>[0])) as Record<string, unknown>;
+
+			expect(result.success).toBe(true);
+			expect((result.address as Record<string, unknown>).uuid).toBe('addr-uuid');
+
+			const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+			expect(requestBody.street).toBe('Updated St');
+			expect(requestBody.housenumber).toBe(10);
+			expect(requestBody.status_development_id).toBe(1);
+			expect(requestBody.flag_id).toBe(2);
+			expect(requestBody.id_address).toBe('ADDR-001');
+		});
+
+		test('should handle API error with detail', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 400,
+				json: () => Promise.resolve({ detail: 'Invalid data' })
+			});
+
+			const result = (await actions.updateAddress({
+				request: createMockRequest({ street: 'Test' }),
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof actions.updateAddress>[0])) as Record<string, unknown>;
+
+			expect(result.status).toBe(400);
+			expect((result.data as Record<string, unknown>).message).toBe('Invalid data');
+		});
+
+		test('should handle API error with field errors', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 400,
+				json: () => Promise.resolve({ housenumber: ['Must be a number'] })
+			});
+
+			const result = (await actions.updateAddress({
+				request: createMockRequest({ street: 'Test' }),
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof actions.updateAddress>[0])) as Record<string, unknown>;
+
+			expect(result.status).toBe(400);
+			expect((result.data as Record<string, unknown>).message).toContain('housenumber');
+		});
+
+		test('should handle network error', async () => {
+			mockFetch.mockRejectedValueOnce(new Error('Connection failed'));
+
+			const result = (await actions.updateAddress({
+				request: createMockRequest({ street: 'Test' }),
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof actions.updateAddress>[0])) as Record<string, unknown>;
+
+			expect(result.status).toBe(500);
+			expect((result.data as Record<string, unknown>).message).toBe('Connection failed');
+		});
+
+		test('should include id_address_2 in PATCH body when provided', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						id: 'addr-uuid',
+						properties: { street: 'Main St', uuid: 'addr-uuid', id_address_2: 'XYZ1234' }
+					})
+			});
+
+			const result = (await actions.updateAddress({
+				request: createMockRequest({
+					street: 'Main St',
+					housenumber: '5',
+					zip_code: '10115',
+					city: 'Berlin',
+					id_address_2: 'xyz1234'
+				}),
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof actions.updateAddress>[0])) as Record<string, unknown>;
+
+			expect(result.success).toBe(true);
+			const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+			expect(requestBody.id_address_2).toBe('XYZ1234');
+		});
+
+		test('should send null for id_address_2 when empty string provided', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						id: 'addr-uuid',
+						properties: { street: 'Main St', uuid: 'addr-uuid' }
+					})
+			});
+
+			await actions.updateAddress({
+				request: createMockRequest({
+					street: 'Main St',
+					housenumber: '5',
+					zip_code: '10115',
+					city: 'Berlin',
+					id_address_2: ''
+				}),
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof actions.updateAddress>[0]);
+
+			const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+			expect(requestBody.id_address_2).toBeNull();
+		});
+
+		test('should not include id_address_2 when not in form data', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						id: 'addr-uuid',
+						properties: { street: 'Main St', uuid: 'addr-uuid' }
+					})
+			});
+
+			await actions.updateAddress({
+				request: createMockRequest({
+					street: 'Main St',
+					housenumber: '5',
+					zip_code: '10115',
+					city: 'Berlin'
+				}),
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof actions.updateAddress>[0]);
+
+			const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+			expect(requestBody).not.toHaveProperty('id_address_2');
+		});
+	});
+
+	describe('regenerateId action', () => {
+		test('should regenerate address ID successfully', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ properties: { id_address: 'NEW-ID' } })
+			});
+
+			const result = (await actions.regenerateId({
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof actions.regenerateId>[0])) as Record<string, unknown>;
+
+			expect(result.success).toBe(true);
+			expect(result.id_address).toBe('NEW-ID');
+		});
+
+		test('should handle API error', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 500,
+				json: () => Promise.resolve({ detail: 'Server error' })
+			});
+
+			const result = (await actions.regenerateId({
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof actions.regenerateId>[0])) as Record<string, unknown>;
+
+			expect(result.status).toBe(500);
+			expect((result.data as Record<string, unknown>).message).toBe('Server error');
+		});
+
+		test('should handle network error', async () => {
+			mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+			const result = (await actions.regenerateId({
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof actions.regenerateId>[0])) as Record<string, unknown>;
+
+			expect(result.status).toBe(500);
+			expect((result.data as Record<string, unknown>).message).toBe('Network error');
+		});
+	});
+
+	describe('deleteAddress action', () => {
+		test('should delete address and redirect', async () => {
+			mockFetch.mockResolvedValueOnce({ ok: true });
+
+			await expect(
+				actions.deleteAddress({
+					request: createMockRequest({}),
+					fetch: mockFetch,
+					cookies: mockCookies,
+					params: { projectId: '1', uuid: 'addr-uuid' }
+				} as unknown as Parameters<typeof actions.deleteAddress>[0])
+			).rejects.toEqual({ status: 303, location: '/address/1' });
+
+			expect(mockFetch).toHaveBeenCalledWith(
+				'http://localhost:8000/address/addr-uuid/',
+				expect.objectContaining({ method: 'DELETE' })
+			);
+		});
+
+		test('should handle delete API error', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 404,
+				json: () => Promise.resolve({ detail: 'Address not found' })
+			});
+
+			const result = (await actions.deleteAddress({
+				request: createMockRequest({}),
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { projectId: '1', uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof actions.deleteAddress>[0])) as unknown as Record<
+				string,
+				unknown
+			>;
+
+			expect(result.status).toBe(404);
+			expect((result.data as Record<string, unknown>).message).toBe('Address not found');
+		});
+
+		test('should handle delete network error', async () => {
+			mockFetch.mockRejectedValueOnce(new Error('Network failure'));
+
+			const result = (await actions.deleteAddress({
+				request: createMockRequest({}),
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { projectId: '1', uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof actions.deleteAddress>[0])) as unknown as Record<
+				string,
+				unknown
+			>;
+
+			expect(result.status).toBe(500);
+			expect((result.data as Record<string, unknown>).message).toBe('Network failure');
+		});
+	});
+
+	describe('createResidentialUnit action', () => {
+		test('should create residential unit successfully', async () => {
+			const newUnit = { uuid: 'ru-uuid', id_residential_unit: 'RU-001' };
+
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve(newUnit)
+			});
+
+			const result = (await actions.createResidentialUnit({
+				request: createMockRequest({
+					id_residential_unit: 'RU-001',
+					floor: '2',
+					side: 'left',
+					building_section: 'A',
+					residential_unit_type_id: '1',
+					status_id: '2',
+					external_id_1: 'ext-1',
+					external_id_2: 'ext-2'
+				}),
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof actions.createResidentialUnit>[0])) as Record<
+				string,
+				unknown
+			>;
+
+			expect(result.success).toBe(true);
+			expect(result.residentialUnit).toEqual(newUnit);
+
+			const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+			expect(requestBody.uuid_address_id).toBe('addr-uuid');
+			expect(requestBody.id_residential_unit).toBe('RU-001');
+			expect(requestBody.floor).toBe(2);
+			expect(requestBody.side).toBe('left');
+			expect(requestBody.residential_unit_type_id).toBe(1);
+			expect(requestBody.status_id).toBe(2);
+		});
+
+		test('should handle create API error', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 400,
+				json: () => Promise.resolve({ detail: 'Duplicate unit' })
+			});
+
+			const result = (await actions.createResidentialUnit({
+				request: createMockRequest({ id_residential_unit: 'RU-001' }),
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof actions.createResidentialUnit>[0])) as Record<
+				string,
+				unknown
+			>;
+
+			expect(result.status).toBe(400);
+			expect((result.data as Record<string, unknown>).message).toBe('Duplicate unit');
+		});
+
+		test('should handle create network error', async () => {
+			mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+			const result = (await actions.createResidentialUnit({
+				request: createMockRequest({}),
+				fetch: mockFetch,
+				cookies: mockCookies,
+				params: { uuid: 'addr-uuid' }
+			} as unknown as Parameters<typeof actions.createResidentialUnit>[0])) as Record<
+				string,
+				unknown
+			>;
+
+			expect(result.status).toBe(500);
+			expect((result.data as Record<string, unknown>).message).toBe('Network error');
+		});
+	});
+
+	describe('updateResidentialUnit action', () => {
+		test('should update residential unit successfully', async () => {
+			const updatedUnit = { uuid: 'ru-uuid', floor: 3 };
+
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve(updatedUnit)
+			});
+
+			const result = (await actions.updateResidentialUnit({
+				request: createMockRequest({
+					unit_uuid: 'ru-uuid',
+					floor: '3',
+					side: 'right',
+					residential_unit_type_id: '1',
+					status_id: '2'
+				}),
+				fetch: mockFetch,
+				cookies: mockCookies
+			} as unknown as Parameters<typeof actions.updateResidentialUnit>[0])) as Record<
+				string,
+				unknown
+			>;
+
+			expect(result.success).toBe(true);
+			expect(result.residentialUnit).toEqual(updatedUnit);
+
+			const requestBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+			expect(requestBody.floor).toBe(3);
+			expect(requestBody.side).toBe('right');
+		});
+
+		test('should handle update API error', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 400,
+				json: () => Promise.resolve({ detail: 'Invalid data' })
+			});
+
+			const result = (await actions.updateResidentialUnit({
+				request: createMockRequest({ unit_uuid: 'ru-uuid', floor: 'abc' }),
+				fetch: mockFetch,
+				cookies: mockCookies
+			} as unknown as Parameters<typeof actions.updateResidentialUnit>[0])) as Record<
+				string,
+				unknown
+			>;
+
+			expect(result.status).toBe(400);
+			expect((result.data as Record<string, unknown>).message).toBe('Invalid data');
+		});
+	});
+
+	describe('deleteResidentialUnit action', () => {
+		test('should delete residential unit successfully', async () => {
+			mockFetch.mockResolvedValueOnce({ ok: true });
+
+			const result = (await actions.deleteResidentialUnit({
+				request: createMockRequest({ unit_uuid: 'ru-uuid' }),
+				fetch: mockFetch,
+				cookies: mockCookies
+			} as unknown as Parameters<typeof actions.deleteResidentialUnit>[0])) as Record<
+				string,
+				unknown
+			>;
+
+			expect(result.success).toBe(true);
+			expect(mockFetch).toHaveBeenCalledWith(
+				'http://localhost:8000/residential-unit/ru-uuid/',
+				expect.objectContaining({ method: 'DELETE' })
+			);
+		});
+
+		test('should handle delete API error', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: false,
+				status: 404,
+				json: () => Promise.resolve({ detail: 'Unit not found' })
+			});
+
+			const result = (await actions.deleteResidentialUnit({
+				request: createMockRequest({ unit_uuid: 'ru-uuid' }),
+				fetch: mockFetch,
+				cookies: mockCookies
+			} as unknown as Parameters<typeof actions.deleteResidentialUnit>[0])) as Record<
+				string,
+				unknown
+			>;
+
+			expect(result.status).toBe(404);
+			expect((result.data as Record<string, unknown>).message).toBe('Unit not found');
+		});
+
+		test('should handle delete network error', async () => {
+			mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+			const result = (await actions.deleteResidentialUnit({
+				request: createMockRequest({ unit_uuid: 'ru-uuid' }),
+				fetch: mockFetch,
+				cookies: mockCookies
+			} as unknown as Parameters<typeof actions.deleteResidentialUnit>[0])) as Record<
+				string,
+				unknown
+			>;
+
+			expect(result.status).toBe(500);
+			expect((result.data as Record<string, unknown>).message).toBe('Network error');
+		});
+	});
+});

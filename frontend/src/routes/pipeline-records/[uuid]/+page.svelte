@@ -15,7 +15,7 @@
 
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { saveFile } from '$lib/utils/saveFile.js';
+	import { saveFile } from '$lib/utils/saveFile';
 
 	import PipelineRecordForm from '../PipelineRecordForm.svelte';
 
@@ -135,6 +135,11 @@
 
 			const blob = await response.blob();
 			await saveFile(blob, `inquiry-export-${$page.params.uuid}.zip`);
+
+			globalToaster.success({
+				title: m.title_success(),
+				description: m.message_inquiry_export_success()
+			});
 		} catch (/** @type {any} */ err) {
 			globalToaster.error({ title: m.common_error(), description: err.message });
 		} finally {

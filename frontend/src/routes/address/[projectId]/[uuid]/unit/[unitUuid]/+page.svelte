@@ -21,6 +21,7 @@
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	let { data } = $props();
 
@@ -122,6 +123,15 @@
 			}
 		} catch (error) {
 			console.error('Error updating residential unit:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error updating residential unit',
+				extraData: {
+					from: 'UnitPage.handleSave',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_updating_residential_unit()
@@ -161,6 +171,15 @@
 			}
 		} catch (error) {
 			console.error('Error deleting residential unit:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error deleting residential unit',
+				extraData: {
+					from: 'UnitPage.handleDelete',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_deleting_residential_unit()
@@ -201,6 +220,15 @@
 			}
 		} catch (error) {
 			console.error('Error regenerating residential unit ID:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error regenerating residential unit ID',
+				extraData: {
+					from: 'UnitPage.handleRegenerateId',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_regenerating_residential_unit_id()

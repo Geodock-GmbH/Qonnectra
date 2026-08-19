@@ -8,6 +8,7 @@
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	/** @param {any} data */
 	const noop = (data) => {};
@@ -146,6 +147,15 @@
 			}
 		} catch (error) {
 			console.error('Error creating conduit:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error creating conduit',
+				extraData: {
+					from: 'PipeModal.handleSubmit',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_creating_conduit()

@@ -10,6 +10,8 @@ from apps.api.models import (
     AttributesAreaType,
     AttributesCableType,
     AttributesCompany,
+    AttributesComponentStructure,
+    AttributesComponentType,
     AttributesConduitType,
     AttributesConstructionType,
     AttributesFiberColor,
@@ -19,6 +21,8 @@ from apps.api.models import (
     AttributesNetworkLevel,
     AttributesNodeType,
     AttributesPhase,
+    AttributesResidentialUnitStatus,
+    AttributesResidentialUnitType,
     AttributesStatus,
     AttributesStatusDevelopment,
     AttributesSurface,
@@ -36,6 +40,7 @@ from apps.api.models import (
     MicroductCableConnection,
     MicroductConnection,
     Node,
+    ResidentialUnit,
     PipelineInquiryArea,
     PipelineRecord,
     Projects,
@@ -548,3 +553,52 @@ class ValuationCostRateFactory(factory.django.DjangoModelFactory):
         if not create or not extracted:
             return
         self.node_types.add(*extracted)
+
+
+class ComponentTypeFactory(factory.django.DjangoModelFactory):
+    """Factory for AttributesComponentType model."""
+
+    class Meta:
+        model = AttributesComponentType
+
+    component_type = factory.Sequence(lambda n: f"Component Type {n}")
+    occupied_slots = 1
+
+
+class ComponentStructureFactory(factory.django.DjangoModelFactory):
+    """Factory for AttributesComponentStructure model."""
+
+    class Meta:
+        model = AttributesComponentStructure
+
+    component_type = factory.SubFactory(ComponentTypeFactory)
+    in_or_out = AttributesComponentStructure.InOrOut.IN
+    port = factory.Sequence(lambda n: n + 1)
+
+
+class ResidentialUnitFactory(factory.django.DjangoModelFactory):
+    """Factory for ResidentialUnit model."""
+
+    class Meta:
+        model = ResidentialUnit
+
+    uuid_address = factory.SubFactory(AddressFactory)
+    floor = factory.Sequence(lambda n: n)
+
+
+class ResidentialUnitTypeFactory(factory.django.DjangoModelFactory):
+    """Factory for AttributesResidentialUnitType model."""
+
+    class Meta:
+        model = AttributesResidentialUnitType
+
+    residential_unit_type = factory.Sequence(lambda n: f"Residential Unit Type {n}")
+
+
+class ResidentialUnitStatusFactory(factory.django.DjangoModelFactory):
+    """Factory for AttributesResidentialUnitStatus model."""
+
+    class Meta:
+        model = AttributesResidentialUnitStatus
+
+    status = factory.Sequence(lambda n: f"Residential Unit Status {n}")

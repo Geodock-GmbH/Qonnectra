@@ -30,7 +30,7 @@
 	import Map from '$lib/components/Map.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
-	import { createAddressStyle, createTrenchStyle } from '$lib/map/styles.js';
+	import { createAddressStyle, createTrenchStyle } from '$lib/map/styles';
 	import {
 		getWMSLayerVisibility,
 		trenchColor,
@@ -38,9 +38,10 @@
 		wmsSourcesData
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { generateAddressPdf } from '$lib/utils/addressPdf.js';
-	import { captureMapCanvases, getVisibleWMSAttributions } from '$lib/utils/mapCapture.js';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { generateAddressPdf } from '$lib/utils/addressPdf';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
+	import { captureMapCanvases, getVisibleWMSAttributions } from '$lib/utils/mapCapture';
+	import { tooltip } from '$lib/utils/tooltip';
 	import { fetchWMSAccessToken, fetchWMSSources, getWMSProxyUrl } from '$lib/utils/wmsApi';
 	import { createWMSLayer } from '$lib/map';
 
@@ -191,14 +192,16 @@
 
 		if (linkedTrenchGeometries.length > 0) {
 			const geoJsonFormat = new GeoJSON();
-			const trenchFeatures = linkedTrenchGeometries
-				.filter((/** @type {any} */ f) => f.geometry)
-				.map((/** @type {any} */ f) =>
-					geoJsonFormat.readFeature(f, {
-						dataProjection: 'EPSG:3857',
-						featureProjection: 'EPSG:3857'
-					})
-				);
+			const trenchFeatures = /** @type {import('ol/Feature').default[]} */ (
+				linkedTrenchGeometries
+					.filter((/** @type {any} */ f) => f.geometry)
+					.map((/** @type {any} */ f) =>
+						geoJsonFormat.readFeature(f, {
+							dataProjection: 'EPSG:3857',
+							featureProjection: 'EPSG:3857'
+						})
+					)
+			);
 
 			if (trenchFeatures.length > 0) {
 				trenchLinesLayer = new VectorLayer({
@@ -287,6 +290,15 @@
 			}
 		} catch (error) {
 			console.error('Error updating address:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error updating address',
+				extraData: {
+					from: 'AddressPage.handleSave',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_updating_address()
@@ -326,6 +338,15 @@
 			}
 		} catch (error) {
 			console.error('Error deleting address:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error deleting address',
+				extraData: {
+					from: 'AddressPage.handleDelete',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_deleting_address()
@@ -365,6 +386,15 @@
 			}
 		} catch (error) {
 			console.error('Error regenerating address ID:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error regenerating address ID',
+				extraData: {
+					from: 'AddressPage.handleRegenerateId',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_regenerating_id()
@@ -398,6 +428,15 @@
 			}
 		} catch (error) {
 			console.error('Error fetching fiber connections:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching fiber connections',
+				extraData: {
+					from: 'AddressPage.fetchAllFiberConnections',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 		}
 		return {};
 	}
@@ -433,7 +472,9 @@
 
 			generateAddressPdf({
 				address: addressData,
-				residentialUnits: unitsWithFibers,
+				residentialUnits: /** @type {import('$lib/utils/addressPdf').ResidentialUnit[]} */ (
+					unitsWithFibers
+				),
 				mapImage,
 				includeResidentialUnits,
 				linkedMicroducts,
@@ -487,6 +528,15 @@
 			});
 		} catch (error) {
 			console.error('Error generating PDF:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error generating PDF',
+				extraData: {
+					from: 'AddressPage.handleDownloadPdf',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.common_error(),
 				description: m.message_error_downloading_pdf()

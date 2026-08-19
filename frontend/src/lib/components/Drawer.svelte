@@ -10,7 +10,7 @@
 	import { PanelResizeManager } from '$lib/classes/PanelResizeManager.svelte.js';
 	import { drawerStore as rawDrawerStore } from '$lib/stores/drawer';
 	import { drawerSnap } from '$lib/stores/store';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	/**
 	 * @typedef {Object} DrawerStoreType

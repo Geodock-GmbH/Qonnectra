@@ -5,7 +5,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { lightSwitchMode } from '$lib/stores/store';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	let isDark = $state(false);
 

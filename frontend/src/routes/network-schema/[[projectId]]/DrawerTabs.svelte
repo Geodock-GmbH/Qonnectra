@@ -14,7 +14,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { CableFiberDataManager } from '$lib/classes/CableFiberDataManager.svelte.js';
+	import { CableFiberDataManager } from '$lib/classes/CableFiberDataManager.svelte';
 	import FibersStatusTable from '$lib/components/FibersStatusTable.svelte';
 	import FileExplorer from '$lib/components/FileExplorer.svelte';
 	import FileUpload from '$lib/components/FileUpload.svelte';
@@ -22,6 +22,7 @@
 	import Tabs from '$lib/components/Tabs.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	import CableDiagramEdgeAttributeCard from './CableDiagramEdgeAttributeCard.svelte';
 	import CableDiagramEdgeHandleConfig from './CableDiagramEdgeHandleConfig.svelte';
@@ -194,6 +195,15 @@
 			}
 		} catch (err) {
 			console.error('Error recalculating cable length:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error recalculating cable length',
+				extraData: {
+					from: 'DrawerTabs.handleRecalculateLength',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 			globalToaster.error({
 				title: m.message_cable_length_recalculation_failed(),
 				duration: 5000
@@ -238,6 +248,15 @@
 			}
 		} catch (err) {
 			console.error('Error refreshing cable data:', err);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error refreshing cable data',
+				extraData: {
+					from: 'DrawerTabs.refreshCableData',
+					error: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined
+				}
+			});
 		}
 	}
 </script>

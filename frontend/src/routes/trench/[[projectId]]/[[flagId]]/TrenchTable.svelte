@@ -12,6 +12,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { globalToaster } from '$lib/stores/toaster';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	let { projectId, conduitId, onTrenchClick, onTrenchesChange } = $props();
 
@@ -82,6 +83,15 @@
 		} catch (error) {
 			trenchesError = m.message_error_fetching_trenches();
 			console.error('Error fetching trenches:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Error fetching trenches',
+				extraData: {
+					from: 'TrenchTable.fetchTrenches',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
 		} finally {
 			loading = false;
 			onTrenchesChange?.(trenches);
@@ -189,13 +199,30 @@
 		const newTrenches = routedTrenches.filter((t) => !existingTrenchValues.has(t.value));
 
 		if (newTrenches.length > 0) {
-			const savePromises = newTrenches.map((trench) => saveTrenchConnection(trench.value));
+			try {
+				const savePromises = newTrenches.map((trench) => saveTrenchConnection(trench.value));
 
-			await Promise.all(savePromises);
-			fetchTrenches();
-			globalToaster.success({
-				description: m.message_trench_connection_saved()
-			});
+				await Promise.all(savePromises);
+				fetchTrenches();
+				globalToaster.success({
+					description: m.message_trench_connection_saved()
+				});
+			} catch (error) {
+				console.error('Error saving trench connections:', error);
+				void logToBackendClient({
+					level: 'ERROR',
+					message: 'Error saving trench connections',
+					extraData: {
+						from: 'TrenchTable.addRoutedTrenches',
+						error: error instanceof Error ? error.message : String(error),
+						stack: error instanceof Error ? error.stack : undefined
+					}
+				});
+				globalToaster.error({
+					title: m.common_error(),
+					description: m.message_error_saving_data()
+				});
+			}
 		} else {
 			globalToaster.warning({
 				description: m.message_no_new_trench_connections()

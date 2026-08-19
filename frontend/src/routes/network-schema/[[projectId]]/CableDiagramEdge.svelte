@@ -9,12 +9,14 @@
 		cableEdgeColorMode,
 		edgeSnappingEnabled
 	} from '$lib/stores/store';
+	import { globalToaster } from '$lib/stores/toaster';
 	import {
 		buildEdgePath,
 		getClosestPointOnSegment,
 		getPathMidpoint,
 		snapToGrid
-	} from '$lib/utils/edgeGeometry.js';
+	} from '$lib/utils/edgeGeometry';
+	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	import DynamicEdgeLabel from './DynamicEdgeLabel.svelte';
 
@@ -124,9 +126,26 @@
 				);
 			} else {
 				console.error('Failed to reset label:', result.message);
+				globalToaster.error({
+					title: m.common_error(),
+					description: result.message || m.message_error_saving_cable_label()
+				});
 			}
 		} catch (error) {
 			console.error('Failed to reset label:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Failed to reset label',
+				extraData: {
+					from: 'CableDiagramEdge.handleLabelReset',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_saving_cable_label()
+			});
 		}
 	}
 
@@ -168,11 +187,32 @@
 						detail: { edgeId: id, labelData: actionResult.label }
 					})
 				);
+				globalToaster.success({
+					title: m.title_success(),
+					description: m.message_success_saving_cable_label()
+				});
 			} else if (actionResult?.type === 'error') {
 				console.error('Failed to save label position:', actionResult.message);
+				globalToaster.error({
+					title: m.common_error(),
+					description: actionResult.message || m.message_error_saving_cable_label()
+				});
 			}
 		} catch (error) {
 			console.error('Failed to save label position:', error);
+			void logToBackendClient({
+				level: 'ERROR',
+				message: 'Failed to save label position',
+				extraData: {
+					from: 'CableDiagramEdge.handleLabelPositionUpdate',
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined
+				}
+			});
+			globalToaster.error({
+				title: m.common_error(),
+				description: m.message_error_saving_cable_label()
+			});
 		}
 	}
 

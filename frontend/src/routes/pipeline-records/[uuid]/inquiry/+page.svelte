@@ -16,8 +16,8 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { InquiryDrawManager } from '$lib/classes/InquiryDrawManager.svelte.js';
-	import { MapState } from '$lib/classes/MapState.svelte.js';
+	import { InquiryDrawManager } from '$lib/classes/InquiryDrawManager.svelte';
+	import { MapState } from '$lib/classes/MapState.svelte';
 	import Map from '$lib/components/Map.svelte';
 	import MapHint from '$lib/components/MapHint.svelte';
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
@@ -34,7 +34,7 @@
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	import { createInquiryContext } from './inquiryContext.svelte.js';
 
@@ -124,11 +124,13 @@
 			registerStorageProjection(srid, proj4Def);
 		}
 
-		const geoJsonFeatures = ctx.polygons.map((p) => ({
-			type: 'Feature',
-			properties: { uuid: p.uuid, name: p.name },
-			geometry: p.geom
-		}));
+		const geoJsonFeatures = ctx.polygons
+			.filter((p) => p.geom !== null)
+			.map((p) => ({
+				type: 'Feature',
+				properties: { uuid: p.uuid, name: p.name },
+				geometry: /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (p.geom))
+			}));
 
 		const proj = storageProjection(srid);
 		drawManager.renderPolygons(geoJsonFeatures, proj, olMap.getView().getProjection());
@@ -308,6 +310,10 @@
 			if (result.type === 'success') {
 				ctx.updatePolygonName(uuid, trimmed);
 				renderPolygonsOnMap();
+				globalToaster.success({
+					title: m.title_success(),
+					description: m.message_inquiry_polygon_renamed()
+				});
 			} else {
 				globalToaster.error({
 					title: m.common_error(),

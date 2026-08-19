@@ -11,7 +11,7 @@
 		TRACE_DEFAULT_CABLE_COLOR,
 		TRACE_MARKER_COLORS,
 		TRACE_SELECTED_COLOR
-	} from '$lib/map/styles.js';
+	} from '$lib/map/styles';
 
 	import 'ol/ol.css';
 

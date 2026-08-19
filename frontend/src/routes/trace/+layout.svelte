@@ -5,7 +5,7 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import TraceMap from './components/TraceMap.svelte';
-	import { createTraceMapContext } from './traceMapContext.svelte.js';
+	import { createTraceMapContext } from './traceMapContext.svelte';
 
 	let { children } = $props();
 

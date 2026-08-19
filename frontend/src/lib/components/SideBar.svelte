@@ -25,8 +25,8 @@
 
 	import { userStore } from '$lib/stores/auth';
 	import { sidebarExpanded } from '$lib/stores/store';
-	import { canAccessRoute } from '$lib/utils/permissions.js';
-	import { tooltip } from '$lib/utils/tooltip.js';
+	import { canAccessRoute } from '$lib/utils/permissions';
+	import { tooltip } from '$lib/utils/tooltip';
 
 	import AppIcon from './AppIcon.svelte';
 
