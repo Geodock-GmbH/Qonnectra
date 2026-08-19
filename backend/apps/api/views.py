@@ -383,18 +383,25 @@ class TrenchViewSet(viewsets.ModelViewSet):
     pagination_class = CustomPagination
 
     def get_queryset(self):  # type: ignore[override]
-        """Filter trenches by id_trench or uuid query parameters.
+        """Filter trenches by id_trench, uuid or project query parameters.
 
         Returns:
             QuerySet[Trench]: Filtered trench queryset.
         """
-        queryset = Trench.objects.all()
+        queryset = Trench.objects.all().order_by("id_trench")
         id_trench = self.request.query_params.get("id_trench")
         uuid = self.request.query_params.get("uuid")
+        project_id = self.request.query_params.get("project")
         if id_trench:
             queryset = queryset.filter(id_trench=id_trench)
         if uuid:
             queryset = queryset.filter(uuid=uuid)
+        if project_id:
+            try:
+                project_id = int(project_id)
+                queryset = queryset.filter(project=project_id)
+            except ValueError:
+                queryset = queryset.none()
         return queryset
 
     @action(detail=False, methods=["get"])

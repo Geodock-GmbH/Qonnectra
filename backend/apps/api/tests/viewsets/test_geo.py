@@ -91,6 +91,38 @@ class TestTrenchViewSet:
 
         response = authenticated_client.get(f"/api/v1/trench/?project={project1.id}")
         assert response.status_code == status.HTTP_200_OK
+        assert len(response.data["results"]["features"]) == 2
+
+        response = authenticated_client.get(f"/api/v1/trench/?project={project2.id}")
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data["results"]["features"]) == 1
+
+    def test_filter_trenches_by_invalid_project_returns_empty(
+        self, authenticated_client
+    ):
+        """Test that a non-numeric project value yields no results."""
+        TrenchFactory()
+
+        response = authenticated_client.get("/api/v1/trench/?project=abc")
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data["results"]["features"]) == 0
+
+    def test_filter_trenches_by_uuid_and_project(self, authenticated_client):
+        """Test combining uuid and project filters as the feature search does."""
+        trench = TrenchFactory()
+        other_project = ProjectFactory()
+
+        response = authenticated_client.get(
+            f"/api/v1/trench/?uuid={trench.uuid}&project={trench.project.id}"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data["results"]["features"]) == 1
+
+        response = authenticated_client.get(
+            f"/api/v1/trench/?uuid={trench.uuid}&project={other_project.id}"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data["results"]["features"]) == 0
 
     # --- CRUD Operations ---
 
