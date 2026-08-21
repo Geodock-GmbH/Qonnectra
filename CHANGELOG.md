@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.6.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.5.1...v1.6.0) (2026-08-21)
+
+
+### Features
+
+* Add project filter to trench list endpoint ([c9dd93d](https://github.com/Geodock-GmbH/Qonnectra/commit/c9dd93d88a0dc7c2d47576c99273757db3a859d2))
+* Added drf namespaceversioning ([03ff8d0](https://github.com/Geodock-GmbH/Qonnectra/commit/03ff8d016e20c6d3a1bf31605b2f9c798946c95d))
+* Migrate frontend to TS plus test coverage ([#79](https://github.com/Geodock-GmbH/Qonnectra/issues/79)) ([8b0db74](https://github.com/Geodock-GmbH/Qonnectra/commit/8b0db740fd593f092da4a2e78c4fa8a1e9a2c775))
+
+
+### Bug Fixes
+
+* Minor changes ([7ba67fb](https://github.com/Geodock-GmbH/Qonnectra/commit/7ba67fb84bf3a65052e7fdf0c9ce148cf4a34eae))
+* Set cache control to public, so error responses get no-store ([7ebddc7](https://github.com/Geodock-GmbH/Qonnectra/commit/7ebddc7581e5424db8a1931b61ad000b764cde9a))
+
+
+### Miscellaneous
+
+* Delete bump-version script ([1292df9](https://github.com/Geodock-GmbH/Qonnectra/commit/1292df9db1164b5c8400098c2fd23c789bf93fa3))
+* Removed workspace file ([58ad23d](https://github.com/Geodock-GmbH/Qonnectra/commit/58ad23def832087844271680466f28d47ee897ee))
+
 ## [1.5.1](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.5.0...v1.5.1) (2026-07-15)
 
 
