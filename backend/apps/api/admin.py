@@ -1948,7 +1948,7 @@ class FeatureFilesAdmin(admin.ModelAdmin):
     @admin.display(description=_("Preview"))
     def preview_link(self, obj):
         """Return a clickable link or inline image preview via the API endpoint."""
-        url = reverse("feature-files-preview", kwargs={"pk": obj.uuid})
+        url = reverse("v1:feature-files-preview", kwargs={"pk": obj.uuid})
         image_types = ("jpg", "jpeg", "png", "gif", "bmp", "webp", "svg")
         if obj.file_type and obj.file_type.lower() in image_types:
             return format_html(

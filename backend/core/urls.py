@@ -25,6 +25,6 @@ urlpatterns = [
     path("i18n/setlang/", set_language, name="set_language"),
     path("admin/doc/", include("django.contrib.admindocs.urls")),
     path("admin/", admin.site.urls),
-    path("api/v1/", include("apps.api.urls")),
+    path("api/v1/", include(("apps.api.urls", "api"), namespace="v1")),
     path("api/v1/auth/", include("dj_rest_auth.urls")),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
