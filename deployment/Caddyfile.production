@@ -178,7 +178,9 @@
     }
 }
 
+import /etc/caddy/extra/sites/*.caddy
+
 # Redirect www to non-www
 #www.{$DOMAIN_NAME} {
 #    redir https://{$DOMAIN_NAME}{uri} permanent
-#} 
+#}
