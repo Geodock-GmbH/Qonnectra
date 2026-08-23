@@ -5484,3 +5484,180 @@ def bulk_auto_link_micropipes_for_nodes(nodes):
             if key:
                 stats[key] += 1
     return stats
+
+
+class SpatialIntersectError(Exception):
+    """Raised when a spatial-intersect request cannot be processed.
+
+    Carries an HTTP-oriented ``status_code`` so the view layer can translate
+    the failure into the appropriate response without re-classifying it.
+    """
+
+    def __init__(self, message, status_code=400):
+        super().__init__(message)
+        self.message = message
+        self.status_code = status_code
+
+
+# Registry of intersectable GeoJSON layers. Each entry maps a public layer name
+# to the model whose ``geom`` field is tested against the request geometry.
+# Only models carrying their own geometry are listed; relation-derived layers
+# (conduit, cable, ...) are intentionally excluded.
+SPATIAL_INTERSECT_LAYERS = {
+    "trench": Trench,
+    "address": Address,
+    "node": Node,
+    "area": Area,
+}
+
+
+def _parse_intersect_geometry(geom_input, srid=None):
+    """Build a GEOSGeometry in the project SRID from request input.
+
+    Accepts either a GeoJSON geometry ``dict`` or a raw GeoJSON/WKT/EWKT
+    ``str``. The input is assumed to already be in :setting:`DEFAULT_SRID`
+    unless an explicit ``srid`` is given, in which case the geometry is
+    interpreted in that SRID and transformed to :setting:`DEFAULT_SRID`.
+
+    GeoJSON has no reliable per-geometry CRS, and GEOSGeometry stamps parsed
+    GeoJSON with SRID 4326 regardless of coordinates, so the SRID carried by
+    the parsed geometry is deliberately overridden rather than trusted.
+
+    Args:
+        geom_input: GeoJSON geometry dict or geometry string.
+        srid: Optional source SRID of ``geom_input``. Defaults to
+            :setting:`DEFAULT_SRID` when not provided.
+
+    Returns:
+        GEOSGeometry: Valid geometry in :setting:`DEFAULT_SRID`.
+
+    Raises:
+        SpatialIntersectError: If the input is missing, unparseable, empty,
+            carries an invalid ``srid``, or cannot be transformed.
+    """
+    from django.contrib.gis.gdal.error import GDALException
+    from django.contrib.gis.geos import GEOSGeometry
+    from django.contrib.gis.geos.error import GEOSException
+
+    if geom_input in (None, "", {}):
+        raise SpatialIntersectError(_("A 'geom' geometry is required."))
+
+    if isinstance(geom_input, dict):
+        raw = json.dumps(geom_input)
+    elif isinstance(geom_input, str):
+        raw = geom_input
+    else:
+        raise SpatialIntersectError(
+            _("'geom' must be a GeoJSON geometry object or a geometry string.")
+        )
+
+    try:
+        geometry = GEOSGeometry(raw)
+    except (GEOSException, GDALException, ValueError, TypeError):
+        raise SpatialIntersectError(_("'geom' is not a valid geometry."))
+
+    if geometry.empty:
+        raise SpatialIntersectError(_("'geom' must not be empty."))
+
+    default_srid = int(settings.DEFAULT_SRID)
+
+    if srid is None:
+        source_srid = default_srid
+    else:
+        try:
+            source_srid = int(srid)
+        except (TypeError, ValueError):
+            raise SpatialIntersectError(_("'srid' must be an integer EPSG code."))
+
+    geometry.srid = source_srid
+    if source_srid != default_srid:
+        try:
+            geometry.transform(default_srid)
+        except (GEOSException, GDALException):
+            raise SpatialIntersectError(
+                _("Could not transform 'geom' from EPSG:%(src)s to EPSG:%(dst)s.")
+                % {"src": source_srid, "dst": default_srid}
+            )
+
+    return geometry
+
+
+def _resolve_intersect_layers(requested):
+    """Resolve the requested layer names against the intersect registry.
+
+    Args:
+        requested: List of layer names, or a falsy value to select all layers.
+
+    Returns:
+        list[str]: Ordered, de-duplicated valid layer names.
+
+    Raises:
+        SpatialIntersectError: If ``requested`` is not a list, or names an
+            unknown layer.
+    """
+    if not requested:
+        return list(SPATIAL_INTERSECT_LAYERS.keys())
+
+    if not isinstance(requested, list):
+        raise SpatialIntersectError(_("'layers' must be a list of layer names."))
+
+    unknown = [name for name in requested if name not in SPATIAL_INTERSECT_LAYERS]
+    if unknown:
+        raise SpatialIntersectError(
+            _("Unknown layer(s): %(names)s. Valid layers: %(valid)s.")
+            % {
+                "names": ", ".join(str(name) for name in unknown),
+                "valid": ", ".join(SPATIAL_INTERSECT_LAYERS.keys()),
+            }
+        )
+
+    seen = set()
+    resolved = []
+    for name in requested:
+        if name not in seen:
+            seen.add(name)
+            resolved.append(name)
+    return resolved
+
+
+def spatial_intersect(geom_input, layers=None, project_id=None, srid=None):
+    """Find features from GeoJSON layers that intersect a query geometry.
+
+    Parses the input geometry into :setting:`DEFAULT_SRID`, then for each
+    requested layer returns the features whose ``geom`` intersects it, using
+    the PostGIS ``ST_Intersects`` spatial lookup.
+
+    Args:
+        geom_input: GeoJSON geometry dict or geometry string to intersect with.
+        layers: Optional list of layer names (subset of
+            :data:`SPATIAL_INTERSECT_LAYERS`). When falsy, all layers are used.
+        project_id: Optional project id; when given, results are limited to
+            features belonging to that project.
+        srid: Optional source SRID of ``geom_input``. Defaults to
+            :setting:`DEFAULT_SRID`.
+
+    Returns:
+        dict: Mapping of layer name to its matching queryset, e.g.
+            ``{"trench": <QuerySet>, "node": <QuerySet>}``.
+
+    Raises:
+        SpatialIntersectError: If the geometry or layer selection is invalid.
+    """
+    geometry = _parse_intersect_geometry(geom_input, srid=srid)
+    layer_names = _resolve_intersect_layers(layers)
+
+    if project_id is not None:
+        try:
+            project_id = int(project_id)
+        except (TypeError, ValueError):
+            raise SpatialIntersectError(_("'project' must be an integer id."))
+
+    results = {}
+    for name in layer_names:
+        model = SPATIAL_INTERSECT_LAYERS[name]
+        queryset = model.objects.filter(geom__intersects=geometry)
+        if project_id is not None:
+            queryset = queryset.filter(project_id=project_id)
+        results[name] = queryset
+
+    return results

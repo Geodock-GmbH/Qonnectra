@@ -52,6 +52,7 @@ from .views import (
     FiberSpliceViewSet,
     FiberTraceSummaryView,
     SignalAnalysisView,
+    SpatialIntersectView,
     TraceSearchView,
     FiberTraceView,
     FiberViewSet,
@@ -335,6 +336,11 @@ urlpatterns = [
         "trenches-near-node/",
         TrenchesNearNodeView.as_view(),
         name="trenches-near-node",
+    ),
+    path(
+        "spatial/intersects/",
+        SpatialIntersectView.as_view(),
+        name="spatial-intersects",
     ),
     path(
         "canvas-coordinates/",

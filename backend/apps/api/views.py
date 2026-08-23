@@ -174,6 +174,7 @@ from .serializers import (
 )
 from .services import (
     GEOPACKAGE_LAYER_CONFIG,
+    SpatialIntersectError,
     auto_link_cable_micropipes,
     calculate_valuation,
     generate_conduit_import_template,
@@ -181,6 +182,7 @@ from .services import (
     generate_node_structure_excel,
     import_conduits_from_excel,
     link_cable_to_chosen_microduct,
+    spatial_intersect,
     trace_address,
 )
 from .wms_service import WMSServiceError, fetch_wms_layers, scan_wms_capabilities
@@ -3221,6 +3223,81 @@ class RoutingView(APIView):
             return Response(result, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(result, status=status.HTTP_200_OK)
+
+
+class SpatialIntersectView(APIView):
+    """Return GeoJSON features that spatially intersect a query geometry.
+
+    Accepts a single geometry and an optional list of layers, and returns one
+    GeoJSON ``FeatureCollection`` per layer for the features whose ``geom``
+    intersects the query geometry. Intersectable layers are ``trench``,
+    ``address``, ``node`` and ``area``.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    # GeoJSON serializer per layer. Keys must stay in sync with the models in
+    # ``SPATIAL_INTERSECT_LAYERS`` (services); serializers live here in the view
+    # layer. The post handler asserts every returned layer has a serializer so
+    # the two registries cannot drift silently.
+    _serializers = {
+        "trench": TrenchSerializer,
+        "address": AddressSerializer,
+        "node": NodeSerializer,
+        "area": AreaSerializer,
+    }
+
+    def post(self, request, format=None):
+        """Intersect the request geometry against the requested layers.
+
+        URL: /api/v1/spatial/intersects/
+        Body (JSON): {
+            "geom": GeoJSON geometry (assumed EPSG:25832 unless "srid" is set),
+            "layers": [str, ...]  (optional; defaults to all layers),
+            "project": int        (optional; scopes results to one project),
+            "srid": int           (optional; source SRID of "geom")
+        }
+
+        Returns:
+            Response: {
+                "srid": int,
+                "layers": {<layer>: FeatureCollection, ...},
+                "counts": {<layer>: int, ...},
+                "total": int
+            }
+        """
+        try:
+            querysets = spatial_intersect(
+                request.data.get("geom"),
+                layers=request.data.get("layers"),
+                project_id=request.data.get("project"),
+                srid=request.data.get("srid"),
+            )
+        except SpatialIntersectError as exc:
+            return Response({"error": exc.message}, status=exc.status_code)
+
+        layers = {}
+        counts = {}
+        total = 0
+        for name, queryset in querysets.items():
+            serializer = self._serializers[name](
+                queryset, many=True, context={"request": request}
+            )
+            feature_collection = serializer.data
+            layers[name] = feature_collection
+            count = len(feature_collection.get("features", []))
+            counts[name] = count
+            total += count
+
+        return Response(
+            {
+                "srid": int(settings.DEFAULT_SRID),
+                "layers": layers,
+                "counts": counts,
+                "total": total,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class ConduitImportTemplateView(APIView):
