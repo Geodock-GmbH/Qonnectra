@@ -12,7 +12,11 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.api.services import SpatialIntersectError, spatial_intersect
+from apps.api.services import (
+    SpatialIntersectError,
+    parse_project_id_list,
+    spatial_intersect,
+)
 
 from .factories import (
     AddressFactory,
@@ -146,6 +150,53 @@ class TestSpatialIntersectView:
         returned_ids = {f["id"] for f in body["layers"]["trench"]["features"]}
         assert returned_ids == {str(in_scope.uuid)}
 
+    def test_exclude_projects_drops_listed_projects(self, authenticated_client, url):
+        project_a = ProjectFactory()
+        project_b = ProjectFactory()
+        keep = TrenchFactory(project=project_a)
+        TrenchFactory(project=project_b)
+
+        response = authenticated_client.post(
+            url,
+            {
+                "geom": COVERING_POLYGON,
+                "layers": ["trench"],
+                "exclude_projects": f"{project_b.id}",
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        body = response.json()
+        assert body["counts"]["trench"] == 1
+        returned_ids = {f["id"] for f in body["layers"]["trench"]["features"]}
+        assert returned_ids == {str(keep.uuid)}
+
+    def test_exclude_projects_accepts_comma_separated_list(
+        self, authenticated_client, url
+    ):
+        project_a = ProjectFactory()
+        project_b = ProjectFactory()
+        project_c = ProjectFactory()
+        keep = TrenchFactory(project=project_a)
+        TrenchFactory(project=project_b)
+        TrenchFactory(project=project_c)
+
+        response = authenticated_client.post(
+            url,
+            {
+                "geom": COVERING_POLYGON,
+                "layers": ["trench"],
+                "exclude_projects": f"{project_b.id},{project_c.id}",
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        body = response.json()
+        returned_ids = {f["id"] for f in body["layers"]["trench"]["features"]}
+        assert returned_ids == {str(keep.uuid)}
+
     def test_geometry_in_other_srid_is_transformed(self, authenticated_client, url):
         """A polygon supplied in EPSG:4326 must still match 25832 features."""
         trench = TrenchFactory(
@@ -242,3 +293,57 @@ class TestSpatialIntersectService:
     def test_non_numeric_project_raises(self):
         with pytest.raises(SpatialIntersectError):
             spatial_intersect(COVERING_POLYGON, layers=["trench"], project_id="abc")
+
+    def test_exclude_project_ids_drops_features(self):
+        project_a = ProjectFactory()
+        project_b = ProjectFactory()
+        TrenchFactory(project=project_a)
+        TrenchFactory(project=project_b)
+
+        result = spatial_intersect(
+            COVERING_POLYGON,
+            layers=["trench"],
+            exclude_project_ids=[project_b.id],
+        )
+
+        assert result["trench"].count() == 1
+        assert result["trench"].first().project_id == project_a.id
+
+    def test_exclude_project_ids_accepts_comma_string(self):
+        project_a = ProjectFactory()
+        project_b = ProjectFactory()
+        TrenchFactory(project=project_a)
+        TrenchFactory(project=project_b)
+
+        result = spatial_intersect(
+            COVERING_POLYGON,
+            layers=["trench"],
+            exclude_project_ids=f"{project_b.id}",
+        )
+
+        assert result["trench"].count() == 1
+        assert result["trench"].first().project_id == project_a.id
+
+
+class TestParseProjectIdList:
+    """Unit tests for the ``parse_project_id_list`` helper."""
+
+    def test_comma_separated_string(self):
+        assert parse_project_id_list("3,7") == [3, 7]
+
+    def test_handles_whitespace_and_blanks(self):
+        assert parse_project_id_list(" 3 , , 7 ") == [3, 7]
+
+    def test_deduplicates_preserving_order(self):
+        assert parse_project_id_list("7,3,7") == [7, 3]
+
+    def test_ignores_non_numeric_tokens(self):
+        assert parse_project_id_list("3,abc,7") == [3, 7]
+
+    def test_accepts_list_input(self):
+        assert parse_project_id_list([3, "7"]) == [3, 7]
+
+    def test_empty_values_return_empty_list(self):
+        assert parse_project_id_list(None) == []
+        assert parse_project_id_list("") == []
+        assert parse_project_id_list([]) == []
