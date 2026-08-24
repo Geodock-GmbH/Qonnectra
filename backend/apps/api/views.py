@@ -182,6 +182,7 @@ from .services import (
     generate_node_structure_excel,
     import_conduits_from_excel,
     link_cable_to_chosen_microduct,
+    parse_project_id_list,
     spatial_intersect,
     trace_address,
 )
@@ -599,6 +600,9 @@ class TrenchViewSet(viewsets.ModelViewSet):
         """
         Returns all trenches with project, flag, and search filters.
         No pagination is used.
+
+        The optional ``exclude_projects`` param takes a comma-separated list
+        of project ids (e.g. ``?exclude_projects=3,7``) to drop from results.
         """
         queryset = Trench.objects.select_related(
             "surface",
@@ -613,6 +617,9 @@ class TrenchViewSet(viewsets.ModelViewSet):
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
         search_term = request.query_params.get("search")
+        exclude_project_ids = parse_project_id_list(
+            request.query_params.get("exclude_projects")
+        )
 
         if project_id:
             try:
@@ -620,6 +627,9 @@ class TrenchViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(project=project_id)
             except ValueError:
                 queryset = queryset.none()
+
+        if exclude_project_ids:
+            queryset = queryset.exclude(project_id__in=exclude_project_ids)
 
         if flag_id:
             try:
@@ -1413,6 +1423,7 @@ class ConduitViewSet(viewsets.ModelViewSet):
 
         Query params:
         - project: Filter by project ID (optional)
+        - exclude_projects: Comma-separated project IDs to exclude (optional)
         - flag: Filter by flag ID
         - search: Search term
         - page: Page number (default: 1)
@@ -1432,9 +1443,15 @@ class ConduitViewSet(viewsets.ModelViewSet):
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
         search_term = request.query_params.get("search")
+        exclude_project_ids = parse_project_id_list(
+            request.query_params.get("exclude_projects")
+        )
 
         if project_id:
             queryset = queryset.filter(project=project_id)
+
+        if exclude_project_ids:
+            queryset = queryset.exclude(project_id__in=exclude_project_ids)
 
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
@@ -1785,6 +1802,8 @@ class AddressViewSet(viewsets.ModelViewSet):
 
         Query Parameters:
             project: Filter by project ID (optional).
+            exclude_projects: Comma-separated project IDs to exclude
+                (e.g. ``3,7``) (optional).
             flag: Filter by flag ID.
             search: Trigram fuzzy search across street, city, zip_code,
                 and district. Short tokens (<3 chars) fall back to icontains.
@@ -1806,9 +1825,15 @@ class AddressViewSet(viewsets.ModelViewSet):
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
         search_term = request.query_params.get("search")
+        exclude_project_ids = parse_project_id_list(
+            request.query_params.get("exclude_projects")
+        )
 
         if project_id:
             queryset = queryset.filter(project=project_id)
+
+        if exclude_project_ids:
+            queryset = queryset.exclude(project_id__in=exclude_project_ids)
 
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
@@ -2542,6 +2567,8 @@ class NodeViewSet(viewsets.ModelViewSet):
 
         Query Parameters:
             project: Filter by project ID.
+            exclude_projects: Comma-separated project IDs to exclude
+                (e.g. ``3,7``).
             flag: Filter by flag ID.
             group: Filter by node type group.
             exclude_group: Exclude nodes by node type group.
@@ -2585,6 +2612,9 @@ class NodeViewSet(viewsets.ModelViewSet):
         group = request.query_params.get("group")
         search_term = request.query_params.get("search")
         exclude_group = request.query_params.get("exclude_group")
+        exclude_project_ids = parse_project_id_list(
+            request.query_params.get("exclude_projects")
+        )
         use_pipe_branch_settings = request.query_params.get("use_pipe_branch_settings")
         child_view_for = request.query_params.get("child_view_for")
         include_excluded = request.query_params.get("include_excluded")
@@ -2641,6 +2671,8 @@ class NodeViewSet(viewsets.ModelViewSet):
                     if excluded_type_ids:
                         queryset = queryset.exclude(node_type_id__in=excluded_type_ids)
 
+        if exclude_project_ids:
+            queryset = queryset.exclude(project_id__in=exclude_project_ids)
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
         if group:
@@ -3255,6 +3287,8 @@ class SpatialIntersectView(APIView):
             "geom": GeoJSON geometry (assumed EPSG:25832 unless "srid" is set),
             "layers": [str, ...]  (optional; defaults to all layers),
             "project": int        (optional; scopes results to one project),
+            "exclude_projects": "3,7" | [3, 7]  (optional; drops these
+                projects; combines with "project"),
             "srid": int           (optional; source SRID of "geom")
         }
 
@@ -3272,6 +3306,7 @@ class SpatialIntersectView(APIView):
                 layers=request.data.get("layers"),
                 project_id=request.data.get("project"),
                 srid=request.data.get("srid"),
+                exclude_project_ids=request.data.get("exclude_projects"),
             )
         except SpatialIntersectError as exc:
             return Response({"error": exc.message}, status=exc.status_code)
@@ -3798,6 +3833,9 @@ class CableViewSet(viewsets.ModelViewSet):
         """
         Returns all cables with project, flag, and search filters.
         No pagination is used.
+
+        The optional ``exclude_projects`` param takes a comma-separated list
+        of project ids (e.g. ``?exclude_projects=3,7``) to drop from results.
         """
         queryset = Cable.objects.select_related(
             "cable_type",
@@ -3816,6 +3854,9 @@ class CableViewSet(viewsets.ModelViewSet):
         name = request.query_params.get("name")
         search_term = request.query_params.get("search")
         child_view_for = request.query_params.get("child_view_for")
+        exclude_project_ids = parse_project_id_list(
+            request.query_params.get("exclude_projects")
+        )
         if project_id:
             queryset = queryset.filter(project=project_id)
 
@@ -3826,6 +3867,8 @@ class CableViewSet(viewsets.ModelViewSet):
                 # Main schema: only show cables without parent context (created in main schema)
                 queryset = queryset.filter(parent_node_context__isnull=True)
 
+        if exclude_project_ids:
+            queryset = queryset.exclude(project_id__in=exclude_project_ids)
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
         if name:
@@ -4346,8 +4389,9 @@ class AreaViewSet(viewsets.ModelViewSet):
         an icontains fallback on the area_type name.
 
         Args:
-            request: DRF request with query params ``project``, ``flag``,
-                and ``search``.
+            request: DRF request with query params ``project``,
+                ``exclude_projects`` (comma-separated ids to drop),
+                ``flag``, and ``search``.
 
         Returns:
             Response: JSON list of serialized :model:`api.Area` objects.
@@ -4356,8 +4400,13 @@ class AreaViewSet(viewsets.ModelViewSet):
         project_id = request.query_params.get("project")
         flag_id = request.query_params.get("flag")
         search_term = request.query_params.get("search")
+        exclude_project_ids = parse_project_id_list(
+            request.query_params.get("exclude_projects")
+        )
         if project_id:
             queryset = queryset.filter(project=project_id)
+        if exclude_project_ids:
+            queryset = queryset.exclude(project_id__in=exclude_project_ids)
         if flag_id:
             queryset = queryset.filter(flag=flag_id)
         if search_term:

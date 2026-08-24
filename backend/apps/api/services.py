@@ -5503,6 +5503,47 @@ class SpatialIntersectError(Exception):
 # to the model whose ``geom`` field is tested against the request geometry.
 # Only models carrying their own geometry are listed; relation-derived layers
 # (conduit, cable, ...) are intentionally excluded.
+def parse_project_id_list(value):
+    """Parse a project-id list from a request value into ints.
+
+    Accepts a comma-separated string (e.g. ``"3,7"``), a single id, or an
+    iterable of ids/strings. Blank entries are skipped and duplicates are
+    removed while preserving first-seen order. Non-numeric tokens are ignored
+    so a malformed ``exclude_projects`` filter never crashes the endpoint.
+
+    Args:
+        value: Raw value from ``request.query_params`` / ``request.data``.
+
+    Returns:
+        list[int]: De-duplicated project ids, or ``[]`` when nothing valid
+            was supplied.
+    """
+    if value in (None, "", [], ()):
+        return []
+
+    if isinstance(value, str):
+        tokens = value.split(",")
+    elif isinstance(value, (list, tuple)):
+        tokens = value
+    else:
+        tokens = [value]
+
+    seen = set()
+    result = []
+    for token in tokens:
+        token = str(token).strip()
+        if not token:
+            continue
+        try:
+            project_id = int(token)
+        except (TypeError, ValueError):
+            continue
+        if project_id not in seen:
+            seen.add(project_id)
+            result.append(project_id)
+    return result
+
+
 SPATIAL_INTERSECT_LAYERS = {
     "trench": Trench,
     "address": Address,
@@ -5620,7 +5661,9 @@ def _resolve_intersect_layers(requested):
     return resolved
 
 
-def spatial_intersect(geom_input, layers=None, project_id=None, srid=None):
+def spatial_intersect(
+    geom_input, layers=None, project_id=None, srid=None, exclude_project_ids=None
+):
     """Find features from GeoJSON layers that intersect a query geometry.
 
     Parses the input geometry into :setting:`DEFAULT_SRID`, then for each
@@ -5635,6 +5678,9 @@ def spatial_intersect(geom_input, layers=None, project_id=None, srid=None):
             features belonging to that project.
         srid: Optional source SRID of ``geom_input``. Defaults to
             :setting:`DEFAULT_SRID`.
+        exclude_project_ids: Optional iterable of project ids to exclude;
+            features belonging to any of these projects are dropped. Combines
+            with ``project_id`` (which is applied first).
 
     Returns:
         dict: Mapping of layer name to its matching queryset, e.g.
@@ -5652,12 +5698,16 @@ def spatial_intersect(geom_input, layers=None, project_id=None, srid=None):
         except (TypeError, ValueError):
             raise SpatialIntersectError(_("'project' must be an integer id."))
 
+    excluded_ids = parse_project_id_list(exclude_project_ids)
+
     results = {}
     for name in layer_names:
         model = SPATIAL_INTERSECT_LAYERS[name]
         queryset = model.objects.filter(geom__intersects=geometry)
         if project_id is not None:
             queryset = queryset.filter(project_id=project_id)
+        if excluded_ids:
+            queryset = queryset.exclude(project_id__in=excluded_ids)
         results[name] = queryset
 
     return results
