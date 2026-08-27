@@ -7,7 +7,6 @@
 		DEFAULT_ADDRESS_COLOR,
 		DEFAULT_ADDRESS_SIZE,
 		DEFAULT_AREA_COLOR,
-		DEFAULT_NODE_SHAPE,
 		DEFAULT_SELECTED_COLOR,
 		DEFAULT_TRENCH_COLOR,
 		getNodeTypeDefault
@@ -26,6 +25,8 @@
 		trenchStyleMode,
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
+	import { globalToaster } from '$lib/stores/toaster';
+	import { loadUserSettings, saveUserSettings } from '$lib/utils/userSettingsSync';
 
 	/** @type {{ data: any }} */
 	let { data } = $props();
@@ -430,6 +431,43 @@
 			}
 		);
 	}
+
+	/** Whether a save or load request to the server is currently in flight. */
+	let syncing = $state(false);
+
+	/** Saves the current browser settings to the server, overwriting previous saves. */
+	async function handleSaveSettings() {
+		syncing = true;
+		try {
+			await saveUserSettings();
+			globalToaster.create({
+				title: m.settings_sync_save_success(),
+				type: 'success'
+			});
+		} catch {
+			globalToaster.create({
+				title: m.settings_sync_save_error(),
+				type: 'error'
+			});
+		} finally {
+			syncing = false;
+		}
+	}
+
+	/** Loads saved settings from the server into this browser, then reloads to apply them. */
+	async function handleLoadSettings() {
+		syncing = true;
+		try {
+			await loadUserSettings();
+			location.reload();
+		} catch {
+			globalToaster.create({
+				title: m.settings_sync_load_error(),
+				type: 'error'
+			});
+			syncing = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -461,6 +499,32 @@
 						</dt>
 						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
 							<div>{$userStore.email}</div>
+						</dd>
+					</div>
+					<div class="py-6 sm:flex">
+						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
+							{m.settings_sync_label()}
+						</dt>
+						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
+							<p>{m.settings_sync_description()}</p>
+							<div class="flex flex-wrap gap-3">
+								<button
+									type="button"
+									class="btn preset-filled-primary-500"
+									disabled={syncing}
+									onclick={handleSaveSettings}
+								>
+									{m.settings_sync_save()}
+								</button>
+								<button
+									type="button"
+									class="btn preset-tonal-surface"
+									disabled={syncing}
+									onclick={handleLoadSettings}
+								>
+									{m.settings_sync_load()}
+								</button>
+							</div>
 						</dd>
 					</div>
 				</dl>

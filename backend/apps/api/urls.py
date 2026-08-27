@@ -94,6 +94,7 @@ from .views import (
     TrenchesNearNodeView,
     TrenchViewSet,
     UserPermissionsView,
+    UserSettingsView,
     WebDAVAuthView,
     WFS3ProxyView,
     WMSLayerViewSet,
@@ -421,6 +422,11 @@ urlpatterns = [
         "config/",
         ConfigView.as_view(),
         name="config",
+    ),
+    path(
+        "user-settings/",
+        UserSettingsView.as_view(),
+        name="user-settings",
     ),
     path(
         "trace-search/",

@@ -4429,3 +4429,34 @@ class RoutePermission(models.Model):
     def __str__(self):
         status = "✓" if self.allowed else "✗"
         return f"{self.group.name} - {self.route_pattern}: {status}"
+
+
+class UserSettings(models.Model):
+    """Per-user snapshot of frontend UI preferences.
+
+    Stores an opaque JSON blob owned by the frontend (a map of localStorage
+    key to value) so a user can save their client-side settings to the server
+    and restore them on another browser or device. One row per user.
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="settings",
+        verbose_name=_("User"),
+    )
+    settings = models.JSONField(
+        _("Settings"),
+        default=dict,
+        blank=True,
+        help_text=_("Opaque frontend settings snapshot (localStorage key/value map)."),
+    )
+    updated_at = models.DateTimeField(_("Updated at"), auto_now=True)
+
+    class Meta:
+        db_table = "user_settings"
+        verbose_name = _("User Settings")
+        verbose_name_plural = _("User Settings")
+
+    def __str__(self):
+        return f"Settings for {self.user}"

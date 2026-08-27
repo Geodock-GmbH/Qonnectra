@@ -3,26 +3,7 @@
 	import { slide } from 'svelte/transition';
 	import { page } from '$app/state';
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
-	import {
-		IconAbacus,
-		IconAiGateway,
-		IconAlertTriangle,
-		IconArrowRightToArc,
-		IconBook,
-		IconBuildings,
-		IconChartArcs,
-		IconClipboardText,
-		IconDotsVertical,
-		IconFileText,
-		IconLanguage,
-		IconMapPin,
-		IconMapSearch,
-		IconSettings,
-		IconSTurnRight,
-		IconTable,
-		IconTopologyBus,
-		IconTopologyRing3
-	} from '@tabler/icons-svelte';
+	import { IconBook, IconDotsVertical, IconLanguage } from '@tabler/icons-svelte';
 	import { env } from '$env/dynamic/public';
 
 	import { m } from '$lib/paraglide/messages';
@@ -31,6 +12,7 @@
 	import { userStore } from '$lib/stores/auth';
 	import { canAccessRoute } from '$lib/utils/permissions';
 	import { tooltip } from '$lib/utils/tooltip';
+	import { footerLinks, navGroups } from '$lib/config/navLinks';
 
 	let currentLocale = $derived(getLocale());
 
@@ -55,152 +37,32 @@
 	}
 
 	/**
-	 * @typedef {Object} NavLink
-	 * @property {string} href
-	 * @property {() => string} label
-	 * @property {any} icon
-	 * @property {(path: string) => boolean} pathMatch
+	 * Content groups filtered to the routes the current user may access. The
+	 * mobile navigation shows every permitted route regardless of the desktop
+	 * sidebar customization.
 	 */
-
-	/** @type {NavLink[]} */
-	const allMainLinks = [
-		{
-			href: '/dashboard',
-			label: () => m.nav_dashboard(),
-			icon: IconChartArcs,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/dashboard')
-		},
-		{
-			href: '/map',
-			label: () => m.nav_map(),
-			icon: IconMapPin,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/map')
-		}
-	];
-
-	/** @type {NavLink[]} */
-	const allProcedureLinks = [
-		{
-			href: '/fault-simulation',
-			label: () => m.nav_fault_simulation(),
-			icon: IconAlertTriangle,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/fault-simulation')
-		},
-		{
-			href: '/post-compaction',
-			label: () => m.nav_post_compaction(),
-			icon: IconClipboardText,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/post-compaction')
-		},
-		{
-			href: '/pipeline-records',
-			label: () => m.nav_pipeline_records(),
-			icon: IconMapSearch,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/pipeline-records')
-		},
-		{
-			href: '/valuation',
-			label: () => m.nav_valuation(),
-			icon: IconAbacus,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/valuation')
-		}
-	];
-
-	/** @type {NavLink[]} */
-	const allInfrastructureLinks = [
-		{
-			href: '/conduit',
-			label: () => m.nav_conduit_management(),
-			icon: IconTable,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/conduit')
-		},
-		{
-			href: '/trench',
-			label: () => m.nav_conduit_connection(),
-			icon: IconArrowRightToArc,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/trench')
-		},
-		{
-			href: '/pipe-branch',
-			label: () => m.nav_pipe_branch(),
-			icon: IconAiGateway,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/pipe-branch')
-		},
-		{
-			href: '/house-connections',
-			label: () => m.nav_house_connections(),
-			icon: IconTopologyBus,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/house-connections')
-		}
-	];
-
-	/** @type {NavLink[]} */
-	const allCableLinks = [
-		{
-			href: '/network-schema',
-			label: () => m.nav_network_schema(),
-			icon: IconTopologyRing3,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/network-schema')
-		},
-		{
-			href: '/trace',
-			label: () => m.nav_fiber_trace(),
-			icon: IconSTurnRight,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/trace')
-		}
-	];
-
-	/** @type {NavLink[]} */
-	const allAddressLinks = [
-		{
-			href: '/address',
-			label: () => m.nav_address(),
-			icon: IconBuildings,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/address')
-		}
-	];
-
-	/** @type {NavLink[]} */
-	const allFooterLinks = [
-		{
-			href: '/admin/logs',
-			label: () => m.nav_logs(),
-			icon: IconFileText,
-			pathMatch: (/** @type {string} */ path) => path === '/admin/logs'
-		},
-		{
-			href: '/settings',
-			label: () => m.nav_settings(),
-			icon: IconSettings,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/settings')
-		}
-	];
-
-	/**
-	 * Filters links based on user route permissions.
-	 * @param {NavLink[]} links - Full set of navigation links
-	 * @returns {NavLink[]} Links the current user is allowed to access
-	 */
-	function filterByPermission(links) {
-		return links.filter((link) => canAccessRoute($userStore.permissions, link.href));
-	}
-
-	const mainLinks = $derived(filterByPermission(allMainLinks));
-	const procedureLinks = $derived(filterByPermission(allProcedureLinks));
-	const infrastructureLinks = $derived(filterByPermission(allInfrastructureLinks));
-	const cableLinks = $derived(filterByPermission(allCableLinks));
-	const addressLinks = $derived(filterByPermission(allAddressLinks));
-	const footerLinks = $derived(filterByPermission(allFooterLinks));
-
-	const hasMoreContent = $derived(
-		procedureLinks.length > 0 ||
-			infrastructureLinks.length > 0 ||
-			cableLinks.length > 0 ||
-			addressLinks.length > 0 ||
-			footerLinks.length > 0
+	const permittedGroups = $derived(
+		navGroups
+			.map((group) => ({
+				...group,
+				links: group.links.filter((link) => canAccessRoute($userStore.permissions, link.href))
+			}))
+			.filter((group) => group.links.length > 0)
 	);
 
-	let totalTiles = $derived(mainLinks.length + (hasMoreContent ? 1 : 0));
+	const permittedFooterLinks = $derived(
+		footerLinks.filter((link) => canAccessRoute($userStore.permissions, link.href))
+	);
+
+	/** Groups flagged `pinnedToBar` supply the bottom bar; the rest live in the "More" menu. */
+	const barLinks = $derived(
+		permittedGroups.filter((group) => group.pinnedToBar).flatMap((group) => group.links)
+	);
+	const moreGroups = $derived(permittedGroups.filter((group) => !group.pinnedToBar));
+
+	const hasMoreContent = $derived(moreGroups.length > 0 || permittedFooterLinks.length > 0);
+
+	let totalTiles = $derived(barLinks.length + (hasMoreContent ? 1 : 0));
 
 	/**
 	 * @param {boolean} isSelected - Whether the nav item is currently active
@@ -218,7 +80,7 @@
 >
 	<Navigation layout="bar">
 		<Navigation.Menu class="grid gap-2" style="grid-template-columns: repeat({totalTiles}, 1fr);">
-			{#each mainLinks as link (link.href)}
+			{#each barLinks as link (link.href)}
 				{@const Icon = link.icon}
 				{@const isSelected = link.pathMatch(page.url.pathname)}
 				<a
@@ -271,13 +133,13 @@
 		<div class="p-4 space-y-4">
 			<h3 class="text-lg font-semibold text-surface-900-100">{m.form_more_sites()}</h3>
 
-			{#if procedureLinks.length > 0}
+			{#each moreGroups as group (group.id)}
 				<section>
 					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-700-300 mb-2">
-						{m.nav_category_procedure()}
+						{group.label()}
 					</h4>
 					<div class="space-y-1">
-						{#each procedureLinks as link (link.href)}
+						{#each group.links as link (link.href)}
 							{@const Icon = link.icon}
 							<a
 								href={link.href}
@@ -290,72 +152,9 @@
 						{/each}
 					</div>
 				</section>
-			{/if}
+			{/each}
 
-			{#if infrastructureLinks.length > 0}
-				<section>
-					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-700-300 mb-2">
-						{m.nav_category_conduit()}
-					</h4>
-					<div class="space-y-1">
-						{#each infrastructureLinks as link (link.href)}
-							{@const Icon = link.icon}
-							<a
-								href={link.href}
-								class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-100-800 transition-colors"
-								onclick={closeMoreMenu}
-							>
-								<Icon size={20} class="text-surface-700-300" />
-								<span class="text-surface-900-100">{link.label()}</span>
-							</a>
-						{/each}
-					</div>
-				</section>
-			{/if}
-
-			{#if cableLinks.length > 0}
-				<section>
-					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-700-300 mb-2">
-						{m.nav_category_cable()}
-					</h4>
-					<div class="space-y-1">
-						{#each cableLinks as link (link.href)}
-							{@const Icon = link.icon}
-							<a
-								href={link.href}
-								class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-100-800 transition-colors"
-								onclick={closeMoreMenu}
-							>
-								<Icon size={20} class="text-surface-700-300" />
-								<span class="text-surface-900-100">{link.label()}</span>
-							</a>
-						{/each}
-					</div>
-				</section>
-			{/if}
-
-			{#if addressLinks.length > 0}
-				<section>
-					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-700-300 mb-2">
-						{m.form_building({ count: 2 })}
-					</h4>
-					<div class="space-y-1">
-						{#each addressLinks as link (link.href)}
-							{@const Icon = link.icon}
-							<a
-								href={link.href}
-								class="flex items-center gap-3 p-2 rounded-lg hover:bg-surface-100-800 transition-colors"
-								onclick={closeMoreMenu}
-							>
-								<Icon size={20} class="text-surface-700-300" />
-								<span class="text-surface-900-100">{link.label()}</span>
-							</a>
-						{/each}
-					</div>
-				</section>
-			{/if}
-
-			{#if footerLinks.length > 0 || env.PUBLIC_DOCUMENTATION_URL}
+			{#if permittedFooterLinks.length > 0 || env.PUBLIC_DOCUMENTATION_URL}
 				<section>
 					<h4 class="text-xs font-semibold uppercase tracking-wide text-surface-700-300 mb-2">
 						{m.nav_category_system()}
@@ -373,7 +172,7 @@
 								<span class="text-surface-900-100">{m.nav_documentation()}</span>
 							</a>
 						{/if}
-						{#each footerLinks as link (link.href)}
+						{#each permittedFooterLinks as link (link.href)}
 							{@const Icon = link.icon}
 							<a
 								href={link.href}

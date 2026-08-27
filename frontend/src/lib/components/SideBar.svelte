@@ -2,179 +2,55 @@
 	import { page } from '$app/state';
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 	import {
-		IconAbacus,
-		IconAiGateway,
-		IconAlertTriangle,
-		IconArrowRightToArc,
+		IconAdjustmentsHorizontal,
 		IconBook,
-		IconBuildings,
-		IconChartArcs,
-		IconClipboardText,
-		IconFileText,
-		IconMapPin,
-		IconMapSearch,
-		IconSettings,
-		IconSTurnRight,
-		IconTable,
-		IconTopologyBus,
-		IconTopologyRing3
+		IconChevronDown,
+		IconChevronRight,
+		IconRestore
 	} from '@tabler/icons-svelte';
 	import { env } from '$env/dynamic/public';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import { userStore } from '$lib/stores/auth';
+	import {
+		isGroupCollapsed,
+		isRouteHidden,
+		sidebarPreferences,
+		toggleGroupCollapsed,
+		toggleRouteHidden
+	} from '$lib/stores/sidebarPreferences';
 	import { sidebarExpanded } from '$lib/stores/store';
 	import { canAccessRoute } from '$lib/utils/permissions';
 	import { tooltip } from '$lib/utils/tooltip';
+	import { footerLinks, navGroups } from '$lib/config/navLinks';
 
 	import AppIcon from './AppIcon.svelte';
+	import SideBarLink from './SideBarLink.svelte';
+
+	/** Whether the customize controls (per-route hide toggles, reset) are shown. */
+	let customizing = $state(false);
 
 	/**
-	 * @typedef {Object} NavLink
-	 * @property {string} href
-	 * @property {() => string} label
-	 * @property {any} icon
-	 * @property {(path: string) => boolean} pathMatch
+	 * Content groups filtered to the routes the current user may access. Hidden
+	 * routes are kept here so they can still be revealed while customizing; the
+	 * template drops them from the normal view.
 	 */
+	const permittedGroups = $derived(
+		navGroups
+			.map((group) => ({
+				...group,
+				links: group.links.filter((link) => canAccessRoute($userStore.permissions, link.href))
+			}))
+			.filter((group) => group.links.length > 0)
+	);
 
-	/** @type {NavLink[]} */
-	const allMainLinks = [
-		{
-			href: '/dashboard',
-			label: () => m.nav_dashboard(),
-			icon: IconChartArcs,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/dashboard')
-		},
-		{
-			href: '/map',
-			label: () => m.nav_map(),
-			icon: IconMapPin,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/map')
-		}
-	];
+	const permittedFooterLinks = $derived(
+		footerLinks.filter((link) => canAccessRoute($userStore.permissions, link.href))
+	);
 
-	/** @type {NavLink[]} */
-	const allProcedureLinks = [
-		{
-			href: '/fault-simulation',
-			label: () => m.nav_fault_simulation(),
-			icon: IconAlertTriangle,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/fault-simulation')
-		},
-		{
-			href: '/post-compaction',
-			label: () => m.nav_post_compaction(),
-			icon: IconClipboardText,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/post-compaction')
-		},
-		{
-			href: '/pipeline-records',
-			label: () => m.nav_pipeline_records(),
-			icon: IconMapSearch,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/pipeline-records')
-		},
-		{
-			href: '/valuation',
-			label: () => m.nav_valuation(),
-			icon: IconAbacus,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/valuation')
-		}
-	];
-
-	/** @type {NavLink[]} */
-	const allInfrastructureLinks = [
-		{
-			href: '/conduit',
-			label: () => m.nav_conduit_management(),
-			icon: IconTable,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/conduit')
-		},
-		{
-			href: '/trench',
-			label: () => m.nav_conduit_connection(),
-			icon: IconArrowRightToArc,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/trench')
-		},
-		{
-			href: '/pipe-branch',
-			label: () => m.nav_pipe_branch(),
-			icon: IconAiGateway,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/pipe-branch')
-		},
-		{
-			href: '/house-connections',
-			label: () => m.nav_house_connections(),
-			icon: IconTopologyBus,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/house-connections')
-		}
-	];
-
-	/** @type {NavLink[]} */
-	const allCableLinks = [
-		{
-			href: '/network-schema',
-			label: () => m.nav_network_schema(),
-			icon: IconTopologyRing3,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/network-schema')
-		},
-		{
-			href: '/trace',
-			label: () => m.nav_fiber_trace(),
-			icon: IconSTurnRight,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/trace')
-		}
-	];
-
-	/** @type {NavLink[]} */
-	const allAddressLinks = [
-		{
-			href: '/address',
-			label: () => m.nav_address(),
-			icon: IconBuildings,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/address')
-		}
-	];
-
-	/** @type {NavLink[]} */
-	const allFooterLinks = [
-		{
-			href: '/admin/logs',
-			label: () => m.nav_logs(),
-			icon: IconFileText,
-			pathMatch: (/** @type {string} */ path) => path === '/admin/logs'
-		},
-		{
-			href: '/settings',
-			label: () => m.nav_settings(),
-			icon: IconSettings,
-			pathMatch: (/** @type {string} */ path) => path.startsWith('/settings')
-		}
-	];
-
-	/**
-	 * Filters links based on user route permissions.
-	 * @param {NavLink[]} links - Full set of navigation links
-	 * @returns {NavLink[]} Links the current user is allowed to access
-	 */
-	function filterByPermission(links) {
-		return links.filter((link) => canAccessRoute($userStore.permissions, link.href));
-	}
-
-	const mainLinks = $derived(filterByPermission(allMainLinks));
-	const procedureLinks = $derived(filterByPermission(allProcedureLinks));
-	const infrastructureLinks = $derived(filterByPermission(allInfrastructureLinks));
-	const cableLinks = $derived(filterByPermission(allCableLinks));
-	const addressLinks = $derived(filterByPermission(allAddressLinks));
-	const footerLinks = $derived(filterByPermission(allFooterLinks));
-
-	const allContentLinks = $derived([
-		...mainLinks,
-		...procedureLinks,
-		...infrastructureLinks,
-		...cableLinks,
-		...addressLinks
-	]);
+	/** Flat list of all permitted content links, used for the collapsed rail layout. */
+	const railLinks = $derived(permittedGroups.flatMap((group) => group.links));
 
 	/**
 	 * @param {boolean} isSelected - Whether the nav item is currently active
@@ -185,6 +61,21 @@
 		const paddingClass = $sidebarExpanded ? 'px-2' : 'px-2 py-3';
 		const baseClass = `btn hover:preset-tonal ${justifyClass} ${paddingClass} w-full`;
 		return isSelected ? `${baseClass} preset-filled` : baseClass;
+	}
+
+	/** @param {string} groupId - Stable id of the group to expand/collapse */
+	function handleToggleGroup(groupId) {
+		sidebarPreferences.update((prefs) => toggleGroupCollapsed(prefs, groupId));
+	}
+
+	/** @param {string} routeId - Stable id of the route to hide/show */
+	function handleToggleRoute(routeId) {
+		sidebarPreferences.update((prefs) => toggleRouteHidden(prefs, routeId));
+	}
+
+	/** Clears all hidden routes and collapsed groups back to defaults. */
+	function resetPreferences() {
+		sidebarPreferences.set({ hiddenRoutes: [], collapsedGroups: [] });
 	}
 </script>
 
@@ -198,7 +89,33 @@
 			<div class="flex items-center gap-2 {$sidebarExpanded ? 'p-2' : 'p-4 justify-center'}">
 				{#if $sidebarExpanded}
 					<AppIcon size="1.75rem" />
-					<h1 class="text-2xl font-semibold">Qonnectra</h1>
+					<h1 class="text-2xl font-semibold leading-none flex-1">Qonnectra</h1>
+					{#if customizing}
+						<button
+							type="button"
+							class="btn-icon btn-icon-sm hover:preset-tonal self-center"
+							aria-label={m.action_reset_sidebar()}
+							{@attach tooltip(m.action_reset_sidebar(), { position: 'bottom' })}
+							onclick={resetPreferences}
+						>
+							<IconRestore class="size-5 text-surface-700-300" />
+						</button>
+					{/if}
+					<button
+						type="button"
+						class="btn-icon btn-icon-sm hover:preset-tonal self-center {customizing
+							? 'preset-filled'
+							: ''}"
+						aria-pressed={customizing}
+						aria-label={customizing ? m.action_done_customizing() : m.action_customize_sidebar()}
+						{@attach tooltip(
+							customizing ? m.action_done_customizing() : m.action_customize_sidebar(),
+							{ position: 'bottom' }
+						)}
+						onclick={() => (customizing = !customizing)}
+					>
+						<IconAdjustmentsHorizontal class="size-5 text-surface-700-300" />
+					</button>
 				{:else}
 					<AppIcon />
 				{/if}
@@ -206,145 +123,65 @@
 		</Navigation.Header>
 		<Navigation.Content>
 			{#if $sidebarExpanded}
-				<!-- Expanded: Show grouped navigation with labels -->
-				{#if mainLinks.length > 0}
-					<Navigation.Group>
-						<Navigation.Label class="text-surface-900-100">{m.nav_category_main()}</Navigation.Label
-						>
-						<Navigation.Menu>
-							{#each mainLinks as link}
-								{@const Icon = link.icon}
-								{@const isSelected = link.pathMatch(page.url.pathname)}
-								<a
-									href={link.href}
-									class={getAnchorClass(isSelected)}
-									aria-label={link.label()}
-									{@attach tooltip(link.label())}
-								>
-									<Icon class="size-7 text-surface-700-300" />
-									<span>{link.label()}</span>
-								</a>
-							{/each}
-						</Navigation.Menu>
-					</Navigation.Group>
-				{/if}
-
-				{#if procedureLinks.length > 0}
-					<Navigation.Group>
-						<Navigation.Label class="text-surface-900-100"
-							>{m.nav_category_procedure()}</Navigation.Label
-						>
-						<Navigation.Menu>
-							{#each procedureLinks as link}
-								{@const Icon = link.icon}
-								{@const isSelected = link.pathMatch(page.url.pathname)}
-								<a
-									href={link.href}
-									class={getAnchorClass(isSelected)}
-									aria-label={link.label()}
-									{@attach tooltip(link.label())}
-								>
-									<Icon class="size-7 text-surface-700-300" />
-									<span>{link.label()}</span>
-								</a>
-							{/each}
-						</Navigation.Menu>
-					</Navigation.Group>
-				{/if}
-
-				{#if infrastructureLinks.length > 0}
-					<Navigation.Group>
-						<Navigation.Label class="text-surface-900-100"
-							>{m.nav_category_conduit()}</Navigation.Label
-						>
-						<Navigation.Menu>
-							{#each infrastructureLinks as link}
-								{@const Icon = link.icon}
-								{@const isSelected = link.pathMatch(page.url.pathname)}
-								<a
-									href={link.href}
-									class={getAnchorClass(isSelected)}
-									aria-label={link.label()}
-									{@attach tooltip(link.label())}
-								>
-									<Icon class="size-7 text-surface-700-300" />
-									<span>{link.label()}</span>
-								</a>
-							{/each}
-						</Navigation.Menu>
-					</Navigation.Group>
-				{/if}
-
-				{#if cableLinks.length > 0}
-					<Navigation.Group>
-						<Navigation.Label>{m.nav_category_cable()}</Navigation.Label>
-						<Navigation.Menu>
-							{#each cableLinks as link}
-								{@const Icon = link.icon}
-								{@const isSelected = link.pathMatch(page.url.pathname)}
-								<a
-									href={link.href}
-									class={getAnchorClass(isSelected)}
-									aria-label={link.label()}
-									{@attach tooltip(link.label())}
-								>
-									<Icon class="size-7 text-surface-700-300" />
-									<span>{link.label()}</span>
-								</a>
-							{/each}
-						</Navigation.Menu>
-					</Navigation.Group>
-				{/if}
-
-				{#if addressLinks.length > 0}
-					<Navigation.Group>
-						<Navigation.Label>{m.form_building({ count: 2 })}</Navigation.Label>
-						<Navigation.Menu>
-							{#each addressLinks as link}
-								{@const Icon = link.icon}
-								{@const isSelected = link.pathMatch(page.url.pathname)}
-								<a
-									href={link.href}
-									class={getAnchorClass(isSelected)}
-									aria-label={link.label()}
-									{@attach tooltip(link.label())}
-								>
-									<Icon class="size-7 text-surface-700-300" />
-									<span>{link.label()}</span>
-								</a>
-							{/each}
-						</Navigation.Menu>
-					</Navigation.Group>
-				{/if}
+				<!-- Expanded: grouped navigation with collapsible labels -->
+				{#each permittedGroups as group (group.id)}
+					{@const collapsed = isGroupCollapsed($sidebarPreferences, group.id)}
+					{@const visibleLinks = customizing
+						? group.links
+						: group.links.filter((link) => !isRouteHidden($sidebarPreferences, link.id))}
+					{#if visibleLinks.length > 0}
+						<Navigation.Group>
+							<button
+								type="button"
+								class="flex w-full items-center justify-between px-2 py-1 text-surface-900-100 hover:preset-tonal rounded"
+								aria-expanded={!collapsed}
+								onclick={() => handleToggleGroup(group.id)}
+							>
+								<Navigation.Label class="text-surface-900-100">{group.label()}</Navigation.Label>
+								{#if collapsed}
+									<IconChevronRight class="size-4 text-surface-700-300" />
+								{:else}
+									<IconChevronDown class="size-4 text-surface-700-300" />
+								{/if}
+							</button>
+							{#if !collapsed}
+								<Navigation.Menu>
+									{#each visibleLinks as link (link.id)}
+										<SideBarLink
+											{link}
+											anchorClass={getAnchorClass}
+											{customizing}
+											hidden={isRouteHidden($sidebarPreferences, link.id)}
+											onToggleHidden={handleToggleRoute}
+										/>
+									{/each}
+								</Navigation.Menu>
+							{/if}
+						</Navigation.Group>
+					{/if}
+				{/each}
 			{:else}
-				<!-- Collapsed: Single flat list of icons -->
+				<!-- Collapsed: single flat list of icons -->
 				<Navigation.Group>
 					<Navigation.Menu>
-						{#each allContentLinks as link}
-							{@const Icon = link.icon}
-							{@const isSelected = link.pathMatch(page.url.pathname)}
-							<a
-								href={link.href}
-								class={getAnchorClass(isSelected)}
-								aria-label={link.label()}
-								{@attach tooltip(link.label())}
-							>
-								<Icon class="size-7 text-surface-700-300" />
-							</a>
+						{#each railLinks as link (link.id)}
+							{#if !isRouteHidden($sidebarPreferences, link.id)}
+								<SideBarLink {link} anchorClass={getAnchorClass} iconOnly />
+							{/if}
 						{/each}
 					</Navigation.Menu>
 				</Navigation.Group>
 			{/if}
 		</Navigation.Content>
 		<!-- Footer Navigation -->
-		{#if footerLinks.length > 0 || env.PUBLIC_DOCUMENTATION_URL}
+		{#if permittedFooterLinks.length > 0 || env.PUBLIC_DOCUMENTATION_URL}
 			<Navigation.Footer>
 				<Navigation.Group>
 					{#if $sidebarExpanded}
 						<Navigation.Label>{m.nav_category_system()}</Navigation.Label>
 					{/if}
 					<Navigation.Menu>
-						{#each footerLinks as link}
+						{#each permittedFooterLinks as link (link.id)}
 							{@const Icon = link.icon}
 							{@const isSelected = link.pathMatch(page.url.pathname)}
 							<a

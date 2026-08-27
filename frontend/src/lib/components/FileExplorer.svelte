@@ -442,7 +442,7 @@
 	onAccept={deleteFile}
 />
 
-{#snippet treeNode(/** @type {any} */ node, /** @type {number[]} */ indexPath)}
+{#snippet treeNode(node, indexPath)}
 	<TreeView.NodeProvider value={{ node, indexPath }}>
 		{#if node.type === 'category'}
 			<TreeView.Branch>

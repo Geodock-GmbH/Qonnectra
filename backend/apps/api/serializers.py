@@ -55,6 +55,7 @@ from .models import (
     TypeOfWork,
     TrenchConduitCanvas,
     TrenchConduitConnection,
+    UserSettings,
     ValuationCostRate,
     WMSLayer,
     WMSSource,
@@ -2724,6 +2725,25 @@ class ValuationCostRateSerializer(serializers.ModelSerializer):
             "is_house_connection",
             "node_type_ids",
         ]
+
+
+class UserSettingsSerializer(serializers.ModelSerializer):
+    """Serialize a user's frontend settings snapshot.
+
+    The ``settings`` field is an opaque JSON object whose shape is owned by
+    the frontend; only its container type is validated here.
+    """
+
+    class Meta:
+        model = UserSettings
+        fields = ["settings", "updated_at"]
+        read_only_fields = ["updated_at"]
+
+    def validate_settings(self, value):
+        """Ensure the settings payload is a JSON object, not a list or scalar."""
+        if not isinstance(value, dict):
+            raise serializers.ValidationError(_("Settings must be a JSON object."))
+        return value
 
 
 class ValuationRequestSerializer(serializers.Serializer):
