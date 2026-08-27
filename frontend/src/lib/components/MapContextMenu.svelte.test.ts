@@ -5,6 +5,16 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import MapContextMenu from './MapContextMenu.svelte';
 
+/**
+ * Zag's popper marks the floating menu with `pointer-events: none` because
+ * jsdom reports zero-size rects, so its `hideWhenDetached` logic treats the
+ * trigger as detached. Disable user-event's pointer-events guard so menu
+ * items remain clickable in tests.
+ */
+function setupUser() {
+	return userEvent.setup({ pointerEventsCheck: 0 });
+}
+
 vi.mock('$lib/paraglide/messages', () => ({
 	m: new Proxy(
 		{},
@@ -45,7 +55,7 @@ describe('MapContextMenu', () => {
 	});
 
 	test('should offer distance and area measure items when idle', async () => {
-		const user = userEvent.setup();
+		const user = setupUser();
 		render(MapContextMenu, { measureManager: makeMeasureManager(), children });
 
 		await openMenu(user);
@@ -56,7 +66,7 @@ describe('MapContextMenu', () => {
 	});
 
 	test('should show the stop-measuring item while measuring', async () => {
-		const user = userEvent.setup();
+		const user = setupUser();
 		render(MapContextMenu, {
 			measureManager: makeMeasureManager({ isMeasuring: true }),
 			children
@@ -68,7 +78,7 @@ describe('MapContextMenu', () => {
 	});
 
 	test('should start a distance measurement when that item is selected', async () => {
-		const user = userEvent.setup();
+		const user = setupUser();
 		const measureManager = makeMeasureManager();
 		render(MapContextMenu, { measureManager, children });
 
@@ -79,7 +89,7 @@ describe('MapContextMenu', () => {
 	});
 
 	test('should start an area measurement when that item is selected', async () => {
-		const user = userEvent.setup();
+		const user = setupUser();
 		const measureManager = makeMeasureManager();
 		render(MapContextMenu, { measureManager, children });
 
@@ -90,7 +100,7 @@ describe('MapContextMenu', () => {
 	});
 
 	test('should stop measuring when the stop item is selected', async () => {
-		const user = userEvent.setup();
+		const user = setupUser();
 		const measureManager = makeMeasureManager({ isMeasuring: true });
 		render(MapContextMenu, { measureManager, children });
 
@@ -101,7 +111,7 @@ describe('MapContextMenu', () => {
 	});
 
 	test('should hide the area item when the area action is disabled', async () => {
-		const user = userEvent.setup();
+		const user = setupUser();
 		render(MapContextMenu, {
 			measureManager: makeMeasureManager(),
 			actions: { measureDistance: true, measureArea: false },
