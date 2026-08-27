@@ -89,13 +89,13 @@
 			<div class="flex items-center gap-2 {$sidebarExpanded ? 'p-2' : 'p-4 justify-center'}">
 				{#if $sidebarExpanded}
 					<AppIcon size="1.75rem" />
-					<h1 class="text-2xl font-semibold flex-1">Qonnectra</h1>
+					<h1 class="text-2xl font-semibold leading-none flex-1">Qonnectra</h1>
 					{#if customizing}
 						<button
 							type="button"
-							class="btn-icon btn-icon-sm hover:preset-tonal"
+							class="btn-icon btn-icon-sm hover:preset-tonal self-center"
 							aria-label={m.action_reset_sidebar()}
-							{@attach tooltip(m.action_reset_sidebar())}
+							{@attach tooltip(m.action_reset_sidebar(), { position: 'bottom' })}
 							onclick={resetPreferences}
 						>
 							<IconRestore class="size-5 text-surface-700-300" />
@@ -103,11 +103,14 @@
 					{/if}
 					<button
 						type="button"
-						class="btn-icon btn-icon-sm hover:preset-tonal {customizing ? 'preset-filled' : ''}"
+						class="btn-icon btn-icon-sm hover:preset-tonal self-center {customizing
+							? 'preset-filled'
+							: ''}"
 						aria-pressed={customizing}
 						aria-label={customizing ? m.action_done_customizing() : m.action_customize_sidebar()}
 						{@attach tooltip(
-							customizing ? m.action_done_customizing() : m.action_customize_sidebar()
+							customizing ? m.action_done_customizing() : m.action_customize_sidebar(),
+							{ position: 'bottom' }
 						)}
 						onclick={() => (customizing = !customizing)}
 					>
