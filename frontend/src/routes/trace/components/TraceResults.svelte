@@ -135,10 +135,6 @@
 				>
 					<IconDownload size={20} />
 					<span>{m.trace_download_geojson()}</span>
-					<span class="border-l border-surface-200-800 pl-2 text-xs text-surface-600-400 sm:pl-3">
-						{result.statistics.total_trenches}
-						{m.form_selected_trenches().toLowerCase()} · EPSG:{page.data.srid}
-					</span>
 				</button>
 			</div>
 		{/if}
@@ -157,7 +153,8 @@
 					{result.entry_point?.name ||
 						result.entry_point?.id ||
 						entryId ||
-						'-'}{#if result.entry_point?.floor !== null && result.entry_point?.floor !== undefined}&nbsp;({m.form_floor()}
+						'-'}{#if result.entry_point?.floor !== null && result.entry_point?.floor !== undefined}
+						({m.form_floor()}
 						{result.entry_point.floor}){/if}
 				</span>
 			</div>

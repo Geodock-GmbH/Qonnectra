@@ -157,11 +157,11 @@
 </script>
 
 <div class="relative w-full">
-	<div class="input-group grid-cols-[1fr_auto] rounded-lg overflow-hidden shadow-sm">
+	<div class="field-group grid-cols-[1fr_auto] rounded-lg overflow-hidden shadow-sm">
 		<input
 			bind:this={inputElement}
 			type="text"
-			class="ig-input touch-manipulation text-sm min-h-10 px-3 bg-surface-50-950 border-0 focus:ring-2 focus:ring-primary-500/50 transition-shadow"
+			class="input touch-manipulation text-sm min-h-10 px-3 bg-surface-50-950 border-0 focus:ring-2 focus:ring-primary-500/50 transition-shadow"
 			placeholder={m.common_search()}
 			value={searchManager.searchTerm}
 			oninput={handleInput}
@@ -176,7 +176,7 @@
 		/>
 		<button
 			type="button"
-			class="ig-btn preset-filled-primary-500 min-h-10 min-w-10 flex items-center justify-center"
+			class="btn preset-filled-primary-500 min-h-10 min-w-10 flex items-center justify-center"
 			onclick={() => {
 				if (searchManager.searchTerm.length > 0) {
 					clearSearch();
