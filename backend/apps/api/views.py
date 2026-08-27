@@ -97,6 +97,7 @@ from .models import (
     TrenchConduitCanvas,
     TrenchConduitConnection,
     TypeOfWork,
+    UserSettings,
     ValuationCostRate,
     WMSLayer,
     WMSSource,
@@ -166,6 +167,7 @@ from .serializers import (
     TrenchConduitSerializer,
     TrenchSerializer,
     TypeOfWorkSerializer,
+    UserSettingsSerializer,
     ValuationCostRateSerializer,
     ValuationRequestSerializer,
     WMSLayerSerializer,
@@ -7949,6 +7951,50 @@ class ConfigView(APIView):
         response = Response({"srid": srid, "proj4": proj4_string})
         response["Cache-Control"] = "public, max-age=86400"
         return response
+
+
+class UserSettingsView(APIView):
+    """Load and save the current user's frontend settings, :model:`api.UserSettings`.
+
+    The frontend snapshots its localStorage-backed preferences into an opaque
+    JSON object so a user can restore them on another browser or device.
+    ``GET`` returns the saved snapshot (an empty object if none exists);
+    ``PUT`` upserts it, overwriting any previously saved settings.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Return the current user's saved settings snapshot.
+
+        Args:
+            request: DRF request object.
+
+        Returns:
+            Response: JSON with ``settings`` (object, empty if unsaved) and
+                ``updated_at`` (ISO timestamp or ``None``).
+        """
+        try:
+            instance = UserSettings.objects.get(user=request.user)
+        except UserSettings.DoesNotExist:
+            return Response({"settings": {}, "updated_at": None})
+
+        return Response(UserSettingsSerializer(instance).data)
+
+    def put(self, request):
+        """Create or overwrite the current user's settings snapshot.
+
+        Args:
+            request: DRF request object with a ``settings`` JSON object body.
+
+        Returns:
+            Response: the saved snapshot, or 400 on validation error.
+        """
+        instance, _created = UserSettings.objects.get_or_create(user=request.user)
+        serializer = UserSettingsSerializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class FaultSimulationView(APIView):

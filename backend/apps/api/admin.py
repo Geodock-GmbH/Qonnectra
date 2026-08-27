@@ -66,6 +66,7 @@ from .models import (
     StoragePreferences,
     Trench,
     TypeOfWork,
+    UserSettings,
     ValuationCostRate,
     WMSLayer,
     WMSSource,
@@ -2371,6 +2372,16 @@ class RoutePermissionAdmin(admin.ModelAdmin):
     list_editable = ["allowed"]
     search_fields = ["route_pattern", "group__name"]
     ordering = ["group__name", "route_pattern"]
+
+
+@admin.register(UserSettings)
+class UserSettingsAdmin(admin.ModelAdmin):
+    """Admin for :model:`api.UserSettings` per-user frontend settings snapshot."""
+
+    list_display = ["user", "updated_at"]
+    search_fields = ["user__username", "user__email"]
+    readonly_fields = ["updated_at"]
+    ordering = ["user__username"]
 
 
 @admin.register(TypeOfWork)
