@@ -234,7 +234,7 @@
 	</div>
 </div>
 
-{#snippet tableRow(/** @type {Record<string, any>} */ row)}
+{#snippet tableRow(row)}
 	<!-- Mobile card view -->
 	<div class="border-b border-surface-200-800 p-3 sm:hidden">
 		<div class="flex items-center justify-between gap-2">
@@ -397,11 +397,7 @@
 	{/if}
 {/snippet}
 
-{#snippet traceNode(
-	/** @type {Record<string, any>} */ node,
-	/** @type {number} */ depth,
-	/** @type {boolean} */ isLastChild
-)}
+{#snippet traceNode(node, depth, isLastChild)}
 	{@const hasDetails =
 		node.splice ||
 		(node.cable_endpoints && (node.cable_endpoints.start_node || node.cable_endpoints.end_node)) ||
@@ -558,7 +554,7 @@
 	</div>
 {/snippet}
 
-{#snippet fiberDetails(/** @type {Record<string, any>} */ fiber)}
+{#snippet fiberDetails(fiber)}
 	<div class="flex flex-wrap items-center gap-2 text-xs">
 		{#if fiber.bundle_number !== null && fiber.bundle_number !== undefined}
 			<span class="text-surface-900-100"
@@ -600,7 +596,7 @@
 	</div>
 {/snippet}
 
-{#snippet spliceDetails(/** @type {Record<string, any>} */ splice)}
+{#snippet spliceDetails(splice)}
 	<div class="rounded-lg border border-secondary-500/30 bg-secondary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 flex items-center gap-2 text-secondary-500">
 			<IconArrowsSplit size={14} />
@@ -646,10 +642,7 @@
 	</div>
 {/snippet}
 
-{#snippet cableEndpointsDetails(
-	/** @type {Record<string, any>} */ endpoints,
-	/** @type {string|undefined} */ currentNodeId
-)}
+{#snippet cableEndpointsDetails(endpoints, currentNodeId)}
 	<div class="rounded-lg border border-primary-500/30 bg-primary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 font-semibold text-primary-500">
 			{m.trace_cable_path()}: {endpoints.cable_name}
@@ -736,7 +729,7 @@
 	</div>
 {/snippet}
 
-{#snippet addressDetails(/** @type {Record<string, any>} */ address)}
+{#snippet addressDetails(address)}
 	<div class="rounded-lg border border-error-500/30 bg-error-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 flex items-center gap-2 text-error-500">
 			<IconMapPin size={14} />
@@ -771,7 +764,7 @@
 	</div>
 {/snippet}
 
-{#snippet residentialUnitDetails(/** @type {Record<string, any>} */ ru)}
+{#snippet residentialUnitDetails(ru)}
 	<div class="rounded-lg border border-tertiary-500/30 bg-tertiary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 flex items-center gap-2 text-tertiary-500">
 			<IconHome size={14} />

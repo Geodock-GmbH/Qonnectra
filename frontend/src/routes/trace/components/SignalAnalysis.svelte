@@ -159,11 +159,7 @@
 	}
 </script>
 
-{#snippet statCard(
-	/** @type {string} */ label,
-	/** @type {number} */ value,
-	/** @type {string} */ colorClass
-)}
+{#snippet statCard(label, value, colorClass)}
 	<div
 		class="min-w-0 rounded-xl border border-surface-200-800 bg-surface-50-950 p-4 text-center shadow-sm transition-all hover:shadow-md"
 	>
@@ -172,11 +168,7 @@
 	</div>
 {/snippet}
 
-{#snippet signalStatCard(
-	/** @type {string} */ label,
-	/** @type {number} */ litValue,
-	/** @type {number} */ darkValue
-)}
+{#snippet signalStatCard(label, litValue, darkValue)}
 	<div
 		class="min-w-0 rounded-xl border border-surface-200-800 bg-surface-50-950 p-4 text-center shadow-sm transition-all hover:shadow-md"
 	>
@@ -195,11 +187,7 @@
 	</div>
 {/snippet}
 
-{#snippet signalLengthCard(
-	/** @type {string} */ label,
-	/** @type {number} */ litValue,
-	/** @type {number} */ darkValue
-)}
+{#snippet signalLengthCard(label, litValue, darkValue)}
 	<div
 		class="min-w-0 rounded-xl border border-surface-200-800 bg-surface-50-950 p-4 text-center shadow-sm transition-all hover:shadow-md"
 	>
@@ -218,7 +206,7 @@
 	</div>
 {/snippet}
 
-{#snippet breakPointCard(/** @type {Record<string, any>} */ bp)}
+{#snippet breakPointCard(bp)}
 	<div
 		class="min-w-0 rounded-lg border border-error-500/30 bg-error-500/10 p-3 transition-colors hover:bg-error-500/15"
 	>
@@ -265,11 +253,7 @@
 	</div>
 {/snippet}
 
-{#snippet signalTraceNode(
-	/** @type {Record<string, any>} */ node,
-	/** @type {number} */ depth,
-	/** @type {boolean} */ isLastChild
-)}
+{#snippet signalTraceNode(node, depth, isLastChild)}
 	{@const signalState = node.signal_state || 'lit'}
 	{@const isLit = signalState === 'lit'}
 	{@const isDark = signalState === 'dark'}
@@ -476,7 +460,7 @@
 	</div>
 {/snippet}
 
-{#snippet fiberDetails(/** @type {Record<string, any>} */ fiber)}
+{#snippet fiberDetails(fiber)}
 	<div class="flex flex-wrap items-center gap-2 text-xs">
 		{#if fiber.bundle_number !== null && fiber.bundle_number !== undefined}
 			<span class="text-surface-900-100"
@@ -518,7 +502,7 @@
 	</div>
 {/snippet}
 
-{#snippet spliceDetails(/** @type {Record<string, any>} */ splice)}
+{#snippet spliceDetails(splice)}
 	<div class="rounded-lg border border-secondary-500/30 bg-secondary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 flex items-center gap-2 text-secondary-500">
 			<IconArrowsSplit size={14} />
@@ -548,10 +532,7 @@
 	</div>
 {/snippet}
 
-{#snippet cableEndpointsDetails(
-	/** @type {Record<string, any>} */ endpoints,
-	/** @type {string|undefined} */ currentNodeId
-)}
+{#snippet cableEndpointsDetails(endpoints, currentNodeId)}
 	<div class="rounded-lg border border-primary-500/30 bg-primary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 font-semibold text-primary-500">
 			{m.trace_cable_endpoints()}
@@ -600,10 +581,7 @@
 	</div>
 {/snippet}
 
-{#snippet addressDetails(
-	/** @type {Record<string, any>} */ address,
-	/** @type {boolean} */ isDark = false
-)}
+{#snippet addressDetails(address, isDark = false)}
 	<div
 		class="rounded-lg border {isDark
 			? 'border-surface-400/30 bg-surface-200-800'
@@ -626,10 +604,7 @@
 	</div>
 {/snippet}
 
-{#snippet residentialUnitDetails(
-	/** @type {Record<string, any>} */ ru,
-	/** @type {boolean} */ isDark = false
-)}
+{#snippet residentialUnitDetails(ru, isDark = false)}
 	<div
 		class="rounded-lg border {isDark
 			? 'border-surface-400/30 bg-surface-200-800'
