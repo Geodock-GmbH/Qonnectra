@@ -1,3 +1,4 @@
+import type { Fiber } from './CableFiberDataManager.svelte';
 import { m } from '$lib/paraglide/messages';
 
 interface ComponentType {
@@ -17,15 +18,6 @@ interface Cable {
 	name: string;
 	fiber_count?: number;
 	direction?: string;
-}
-
-interface Fiber {
-	uuid: string;
-	fiber_number_absolute: number;
-	fiber_number_in_bundle: number;
-	fiber_color: string;
-	bundle_number: number;
-	bundle_color?: string;
 }
 
 interface Bundle {
@@ -68,7 +60,7 @@ interface DragItem {
 	fiber_color?: string;
 	fiber_count?: number;
 	direction?: string;
-	fibers?: DragFiber[] | null;
+	fibers?: Fiber[] | null;
 	address_uuid?: string;
 	address_display?: string;
 	id_residential_unit?: string;
@@ -78,15 +70,6 @@ interface DragItem {
 	unit_count?: number;
 	residential_units?: DragResidentialUnit[];
 	display?: string;
-}
-
-interface DragFiber {
-	uuid: string;
-	fiber_number_absolute: number;
-	fiber_number_in_bundle: number;
-	fiber_color: string;
-	bundle_number: number;
-	bundle_color?: string;
 }
 
 interface DragResidentialUnit {
@@ -222,12 +205,13 @@ export class DragDropManager {
 	 */
 	startBundleDrag(e: DragEvent, cable: Cable, bundle: Bundle): void {
 		e.stopPropagation();
-		const fibers: DragFiber[] = bundle.fibers.map((f) => ({
+		const fibers: Fiber[] = bundle.fibers.map((f) => ({
 			uuid: f.uuid,
 			fiber_number_absolute: f.fiber_number_absolute,
 			fiber_number_in_bundle: f.fiber_number_in_bundle,
 			fiber_color: f.fiber_color,
-			bundle_number: f.bundle_number
+			bundle_number: f.bundle_number,
+			bundle_color: f.bundle_color
 		}));
 		const dragData: DragItem = {
 			type: 'bundle',

@@ -1,4 +1,4 @@
-import type { ComponentPlacement } from '$lib/server/nodeData';
+import type { ComponentPlacement, FiberColor } from '$lib/server/nodeData';
 import { deserialize } from '$app/forms';
 
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
@@ -9,12 +9,6 @@ interface Cable {
 	capacity?: number;
 	direction?: string;
 	fiber_count?: number;
-}
-
-interface FiberColor {
-	name_de: string;
-	name_en: string;
-	hex_code: string;
 }
 
 export interface Fiber {

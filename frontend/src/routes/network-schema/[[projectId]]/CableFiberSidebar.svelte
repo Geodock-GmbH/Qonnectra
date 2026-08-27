@@ -83,7 +83,7 @@
 		}
 		// Get cached fibers synchronously - must be sync for drag data transfer
 		const cachedFibers = dataManager.getCachedFibersForCable(cable.uuid);
-		dragDropManager?.startCableDrag(e, cable, cachedFibers as any);
+		dragDropManager?.startCableDrag(e, cable, cachedFibers);
 	}
 
 	function handleBundleDragStart(e: DragEvent, cable: any, bundle: any) {

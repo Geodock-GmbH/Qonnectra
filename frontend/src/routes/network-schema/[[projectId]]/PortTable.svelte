@@ -24,7 +24,7 @@
 		readonly?: boolean;
 	} = $props();
 
-	const fiberColors = $derived((context?.fiberColors ?? []) as any[]);
+	const fiberColors = $derived(context?.fiberColors ?? []);
 	const mergeSelectionMode = $derived(context?.mergeSelectionMode ?? false);
 	const selectedForMerge = $derived(context?.selectedForMerge ?? new Set());
 	const mergeSide = $derived(context?.mergeSide ?? 'a');

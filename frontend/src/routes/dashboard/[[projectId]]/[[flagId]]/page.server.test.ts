@@ -35,9 +35,16 @@ describe('dashboard +page.server.js', () => {
 			average_house_connection_length: 25.5,
 			length_with_funding: 2000,
 			length_with_internal_execution: 1500,
-			length_by_status: [{ status: 'Active', length: 3000 }],
-			length_by_phase: [{ phase: 'Level 1', length: 2500 }],
-			longest_routes: [{ name: 'Route A', length: 500 }]
+			length_by_status: [{ status_name: 'Active', gesamt_länge: 3000 }],
+			length_by_phase: [{ network_level: 'Level 1', gesamt_länge: 2500 }],
+			longest_routes: [
+				{
+					id_trench: 'T-1',
+					length: 500,
+					construction_type_name: 'Open',
+					surface_name: 'Asphalt'
+				}
+			]
 		},
 		node: {
 			count_by_type: [{ node_type: 'MFG', count: 5 }],

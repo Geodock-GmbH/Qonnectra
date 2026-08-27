@@ -11,16 +11,23 @@ describe('dashboardUtils', () => {
 			average_house_connection_length: 25.5,
 			length_with_funding: 2000,
 			length_with_internal_execution: 1500,
-			length_by_status: [{ status: 'Active', length: 3000 }],
-			length_by_phase: [{ phase: 'Level 1', length: 2500 }],
-			longest_routes: [{ name: 'Route A', length: 500 }]
+			length_by_status: [{ status_name: 'Active', gesamt_länge: 3000 }],
+			length_by_phase: [{ network_level: 'Level 1', gesamt_länge: 2500 }],
+			longest_routes: [
+				{
+					id_trench: 'T-1',
+					length: 500,
+					construction_type_name: 'Open',
+					surface_name: 'Asphalt'
+				}
+			]
 		},
 		node: {
 			count_by_type: [{ node_type: 'MFG', count: 5 }],
 			expiring_warranties: [{ id: 1, name: 'Node A', days_until_expiry: 30 }],
 			count_by_city: [{ city: 'Berlin', count: 3 }],
 			count_by_status: [{ status: 'Active', count: 8 }],
-			count_by_network_level: [{ level: '1', count: 4 }],
+			count_by_network_level: [{ network_level: '1', count: 4 }],
 			count_by_owner: [{ owner: 'Company A', count: 6 }],
 			newest_nodes: [{ name: 'Node B', created: '2026-01-01' }]
 		},
@@ -35,7 +42,7 @@ describe('dashboardUtils', () => {
 		conduit: {
 			length_by_type: [{ type_name: 'HDPE', total: 4000 }],
 			length_by_status_type: [{ status: 'Active', type: 'HDPE' }],
-			length_by_network_level: [{ level: '1', length: 2000 }],
+			length_by_network_level: [{ network_level: '1', total: 2000 }],
 			avg_length_by_type: [{ type: 'HDPE', avg: 50 }],
 			count_by_status: [{ status: 'Active', count: 10 }],
 			length_by_owner: [{ owner: 'Co A', length: 3000 }],
@@ -137,9 +144,18 @@ describe('dashboardUtils', () => {
 			expect(result.avgHouseConnectionLength).toBe(25.5);
 			expect(result.lengthWithFunding).toBe(2000);
 			expect(result.lengthWithInternalExecution).toBe(1500);
-			expect(result.lengthByStatus).toEqual([{ status: 'Active', length: 3000 }]);
-			expect(result.lengthByNetworkLevel).toEqual([{ phase: 'Level 1', length: 2500 }]);
-			expect(result.longestRoutes).toEqual([{ name: 'Route A', length: 500 }]);
+			expect(result.lengthByStatus).toEqual([{ status_name: 'Active', gesamt_länge: 3000 }]);
+			expect(result.lengthByNetworkLevel).toEqual([
+				{ network_level: 'Level 1', gesamt_länge: 2500 }
+			]);
+			expect(result.longestRoutes).toEqual([
+				{
+					id_trench: 'T-1',
+					length: 500,
+					construction_type_name: 'Open',
+					surface_name: 'Asphalt'
+				}
+			]);
 		});
 
 		test('should map length_by_types picking only bauweise, oberfläche, gesamt_länge', () => {
@@ -157,7 +173,7 @@ describe('dashboardUtils', () => {
 			expect(result.expiringWarranties).toHaveLength(1);
 			expect(result.nodesByCity).toEqual([{ city: 'Berlin', count: 3 }]);
 			expect(result.nodesByStatus).toEqual([{ status: 'Active', count: 8 }]);
-			expect(result.nodesByNetworkLevel).toEqual([{ level: '1', count: 4 }]);
+			expect(result.nodesByNetworkLevel).toEqual([{ network_level: '1', count: 4 }]);
 			expect(result.nodesByOwner).toEqual([{ owner: 'Company A', count: 6 }]);
 			expect(result.newestNodes).toHaveLength(1);
 		});
@@ -242,7 +258,7 @@ describe('dashboardUtils', () => {
 
 			expect(result.conduitLengthByType).toEqual([{ type_name: 'HDPE', total: 4000 }]);
 			expect(result.conduitLengthByStatusType).toEqual([{ status: 'Active', type: 'HDPE' }]);
-			expect(result.conduitLengthByNetworkLevel).toEqual([{ level: '1', length: 2000 }]);
+			expect(result.conduitLengthByNetworkLevel).toEqual([{ network_level: '1', total: 2000 }]);
 			expect(result.conduitAvgLengthByType).toEqual([{ type: 'HDPE', avg: 50 }]);
 			expect(result.conduitCountByStatus).toEqual([{ status: 'Active', count: 10 }]);
 			expect(result.conduitLengthByOwner).toEqual([{ owner: 'Co A', length: 3000 }]);

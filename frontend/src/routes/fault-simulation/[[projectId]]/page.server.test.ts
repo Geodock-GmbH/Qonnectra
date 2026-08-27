@@ -75,14 +75,14 @@ describe('fault-simulation +page.server.js', () => {
 
 	describe('load', () => {
 		test('should fetch all attribute types in parallel', async () => {
-			const nodeTypesData = { nodeTypes: [{ uuid: 'nt-1', name: 'Splice' }], nodeTypesError: null };
-			const surfacesData = { surfaces: [{ uuid: 's-1', name: 'Asphalt' }], surfacesError: null };
+			const nodeTypesData = { nodeTypes: [{ id: 1, node_type: 'Splice' }], nodeTypesError: null };
+			const surfacesData = { surfaces: [{ id: 1, surface: 'Asphalt' }], surfacesError: null };
 			const constructionTypesData = {
-				constructionTypes: [{ uuid: 'ct-1', name: 'Open' }],
+				constructionTypes: [{ id: 1, construction_type: 'Open' }],
 				constructionTypesError: null
 			};
 			const areaTypesData = {
-				areaTypes: [{ uuid: 'at-1', name: 'Residential' }],
+				areaTypes: [{ id: 1, area_type: 'Residential' }],
 				areaTypesError: null
 			};
 
@@ -96,13 +96,13 @@ describe('fault-simulation +page.server.js', () => {
 			>[0]);
 
 			expect(result).toEqual({
-				nodeTypes: [{ uuid: 'nt-1', name: 'Splice' }],
+				nodeTypes: [{ id: 1, node_type: 'Splice' }],
 				nodeTypesError: null,
-				surfaces: [{ uuid: 's-1', name: 'Asphalt' }],
+				surfaces: [{ id: 1, surface: 'Asphalt' }],
 				surfacesError: null,
-				constructionTypes: [{ uuid: 'ct-1', name: 'Open' }],
+				constructionTypes: [{ id: 1, construction_type: 'Open' }],
 				constructionTypesError: null,
-				areaTypes: [{ uuid: 'at-1', name: 'Residential' }],
+				areaTypes: [{ id: 1, area_type: 'Residential' }],
 				areaTypesError: null
 			});
 		});

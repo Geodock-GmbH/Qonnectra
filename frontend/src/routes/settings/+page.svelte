@@ -28,7 +28,9 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	import { loadUserSettings, saveUserSettings } from '$lib/utils/userSettingsSync';
 
-	let { data }: { data: any } = $props();
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
 
 	let routingToleranceMarkers = $derived(Array.from({ length: 10 }, (_, i) => i + 1));
 
@@ -37,7 +39,7 @@
 			const currentStyles = $nodeTypeStyles;
 			let hasNewTypes = false;
 
-			data.nodeTypes.forEach((nodeType: any) => {
+			data.nodeTypes.forEach((nodeType) => {
 				if (!currentStyles[nodeType.node_type]) {
 					const defaults = getNodeTypeDefault(nodeType.node_type);
 					currentStyles[nodeType.node_type] = {
@@ -61,7 +63,7 @@
 			const currentStyles = $trenchSurfaceStyles;
 			let hasNewTypes = false;
 
-			data.surfaces.forEach((surface: any) => {
+			data.surfaces.forEach((surface) => {
 				if (!currentStyles[surface.surface]) {
 					currentStyles[surface.surface] = {
 						color: DEFAULT_TRENCH_COLOR,
@@ -82,7 +84,7 @@
 			const currentStyles = $trenchConstructionTypeStyles;
 			let hasNewTypes = false;
 
-			data.constructionTypes.forEach((constructionType: any) => {
+			data.constructionTypes.forEach((constructionType) => {
 				if (!currentStyles[constructionType.construction_type]) {
 					currentStyles[constructionType.construction_type] = {
 						color: DEFAULT_TRENCH_COLOR,
@@ -103,7 +105,7 @@
 			const currentStyles = $areaTypeStyles;
 			let hasNewTypes = false;
 
-			data.areaTypes.forEach((areaType: any) => {
+			data.areaTypes.forEach((areaType) => {
 				if (!currentStyles[areaType.area_type]) {
 					currentStyles[areaType.area_type] = {
 						color: DEFAULT_AREA_COLOR,
@@ -171,7 +173,7 @@
 			string,
 			{ color: string; size: number; visible: boolean; shape: 'circle' | 'square' }
 		> = {};
-		data.nodeTypes.forEach((nodeType: any) => {
+		data.nodeTypes.forEach((nodeType) => {
 			const defaults = getNodeTypeDefault(nodeType.node_type);
 			newStyles[nodeType.node_type] = {
 				color: defaults.color,
@@ -220,7 +222,7 @@
 
 	function resetAllSurfaceStyles() {
 		const newStyles: Record<string, { color: string; visible: boolean }> = {};
-		data.surfaces.forEach((surface: any) => {
+		data.surfaces.forEach((surface) => {
 			newStyles[surface.surface] = {
 				color: DEFAULT_TRENCH_COLOR,
 				visible: $trenchSurfaceStyles[surface.surface]?.visible ?? true
@@ -262,7 +264,7 @@
 
 	function resetAllConstructionTypeStyles() {
 		const newStyles: Record<string, { color: string; visible: boolean }> = {};
-		data.constructionTypes.forEach((constructionType: any) => {
+		data.constructionTypes.forEach((constructionType) => {
 			newStyles[constructionType.construction_type] = {
 				color: DEFAULT_TRENCH_COLOR,
 				visible: $trenchConstructionTypeStyles[constructionType.construction_type]?.visible ?? true
@@ -298,7 +300,7 @@
 			string,
 			{ color: string; size: number; visible: boolean; shape: 'circle' | 'square' }
 		> = {};
-		data.nodeTypes.forEach((nodeType: any) => {
+		data.nodeTypes.forEach((nodeType) => {
 			const defaults = getNodeTypeDefault(nodeType.node_type);
 			newStyles[nodeType.node_type] = {
 				color: randomHexColor(),
@@ -312,7 +314,7 @@
 
 	function randomizeAllSurfaceStyles() {
 		const newStyles: Record<string, { color: string; visible: boolean }> = {};
-		data.surfaces.forEach((surface: any) => {
+		data.surfaces.forEach((surface) => {
 			newStyles[surface.surface] = {
 				color: randomHexColor(),
 				visible: $trenchSurfaceStyles[surface.surface]?.visible ?? true
@@ -323,7 +325,7 @@
 
 	function randomizeAllConstructionTypeStyles() {
 		const newStyles: Record<string, { color: string; visible: boolean }> = {};
-		data.constructionTypes.forEach((constructionType: any) => {
+		data.constructionTypes.forEach((constructionType) => {
 			newStyles[constructionType.construction_type] = {
 				color: randomHexColor(),
 				visible: $trenchConstructionTypeStyles[constructionType.construction_type]?.visible ?? true
@@ -341,7 +343,7 @@
 
 	function randomizeAllAreaTypeStyles() {
 		const newStyles: Record<string, { color: string; visible: boolean }> = {};
-		data.areaTypes.forEach((areaType: any) => {
+		data.areaTypes.forEach((areaType) => {
 			newStyles[areaType.area_type] = {
 				color: randomHexColor(),
 				visible: $areaTypeStyles[areaType.area_type]?.visible ?? true
@@ -395,7 +397,7 @@
 
 	function resetAllAreaTypeStyles() {
 		const newStyles: Record<string, { color: string; visible: boolean }> = {};
-		data.areaTypes.forEach((areaType: any) => {
+		data.areaTypes.forEach((areaType) => {
 			newStyles[areaType.area_type] = {
 				color: DEFAULT_AREA_COLOR,
 				visible: $areaTypeStyles[areaType.area_type]?.visible ?? true

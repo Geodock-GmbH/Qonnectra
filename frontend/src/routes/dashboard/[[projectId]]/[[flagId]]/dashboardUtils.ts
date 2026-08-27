@@ -31,8 +31,13 @@ interface TypeCount {
 }
 
 interface LevelCount {
-	level: string;
+	network_level: string;
 	count: number;
+}
+
+interface LevelLength {
+	network_level: string;
+	total: number;
 }
 
 interface OwnerCount {
@@ -41,13 +46,20 @@ interface OwnerCount {
 }
 
 interface StatusLength {
-	status: string;
-	length: number;
+	status_name: string | null;
+	gesamt_länge: number;
 }
 
 interface PhaseLength {
-	phase: string;
+	network_level: string | null;
+	gesamt_länge: number;
+}
+
+interface LongestRoute {
+	id_trench: string;
 	length: number;
+	construction_type_name: string | null;
+	surface_name: string | null;
 }
 
 interface ConduitLengthByType {
@@ -70,7 +82,7 @@ export interface DashboardData {
 	lengthWithInternalExecution: number;
 	lengthByStatus: StatusLength[];
 	lengthByNetworkLevel: PhaseLength[];
-	longestRoutes: unknown[];
+	longestRoutes: LongestRoute[];
 	expiringWarranties: unknown[];
 	nodesByCity: CityCount[];
 	nodesByStatus: StatusCount[];
@@ -87,7 +99,7 @@ export interface DashboardData {
 	totalUnits: number;
 	conduitLengthByType: ConduitLengthByType[];
 	conduitLengthByStatusType: unknown[];
-	conduitLengthByNetworkLevel: unknown[];
+	conduitLengthByNetworkLevel: LevelLength[];
 	conduitAvgLengthByType: unknown[];
 	conduitCountByStatus: unknown[];
 	conduitLengthByOwner: unknown[];
@@ -120,7 +132,7 @@ interface TrenchStats {
 	length_with_internal_execution?: number;
 	length_by_status?: StatusLength[];
 	length_by_phase?: PhaseLength[];
-	longest_routes?: unknown[];
+	longest_routes?: LongestRoute[];
 }
 
 interface NodeStats {
@@ -145,7 +157,7 @@ interface AddressStats {
 interface ConduitStats {
 	length_by_type?: ConduitLengthByType[];
 	length_by_status_type?: unknown[];
-	length_by_network_level?: unknown[];
+	length_by_network_level?: LevelLength[];
 	avg_length_by_type?: unknown[];
 	count_by_status?: unknown[];
 	length_by_owner?: unknown[];

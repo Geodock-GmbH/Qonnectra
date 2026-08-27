@@ -9,25 +9,33 @@
 		gesamt_länge: number;
 	}
 
-	/**
-	 * The aggregation props below carry backend rows whose exact shape is not
-	 * declared consistently across callers, so they are typed loosely; the
-	 * derived aggregations read the fields they need defensively.
-	 */
+	/** Trench length grouped by status (`Trench.length_by_status` backend action). */
+	interface LengthByStatus {
+		status_name: string | null;
+		gesamt_länge?: number;
+	}
+
+	/** Trench length grouped by network level (`Trench.length_by_phase` backend action). */
+	interface LengthByNetworkLevel {
+		network_level: string | null;
+		gesamt_länge?: number;
+	}
+
+	/** A single longest-route row (`Trench.longest_routes` backend action). */
+	interface LongestRoute {
+		construction_type_name?: string | null;
+		surface_name?: string | null;
+		length?: number;
+	}
+
 	interface Props {
 		lengthByTypes?: LengthByType[];
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		avgHouseConnectionLength: any;
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		lengthWithFunding: any;
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		lengthWithInternalExecution: any;
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		lengthByStatus?: any[];
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		lengthByNetworkLevel?: any[];
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		longestRoutes?: any[];
+		avgHouseConnectionLength: number;
+		lengthWithFunding: number;
+		lengthWithInternalExecution: number;
+		lengthByStatus?: LengthByStatus[];
+		lengthByNetworkLevel?: LengthByNetworkLevel[];
+		longestRoutes?: LongestRoute[];
 	}
 
 	let {
