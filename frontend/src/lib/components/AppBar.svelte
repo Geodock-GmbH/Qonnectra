@@ -91,7 +91,7 @@
 						<a
 							href={env.PUBLIC_DOCUMENTATION_URL}
 							aria-label={m.tooltip_documentation()}
-							class="btn-icon hover:preset-tonal size-5 hidden sm:flex"
+							class="btn-icon hover:preset-tonal hidden sm:flex"
 							target="_blank"
 							rel="noopener noreferrer"
 							{@attach tooltip(m.tooltip_documentation(), { position: 'bottom' })}
@@ -104,7 +104,7 @@
 					<a
 						href="https://github.com/Geodock-GmbH/Qonnectra"
 						aria-label={m.tooltip_github()}
-						class="btn-icon hover:preset-tonal size-5 hidden sm:flex"
+						class="btn-icon hover:preset-tonal hidden sm:flex"
 						target="_blank"
 						{@attach tooltip(m.tooltip_github(), { position: 'bottom' })}
 					>

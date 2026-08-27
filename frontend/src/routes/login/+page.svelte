@@ -196,7 +196,7 @@
 			</form>
 
 			<div class="mt-12 text-center">
-				<p class="text-xs text-surface-400">&copy; {new Date().getFullYear()} Qonnectra</p>
+				<p class="text-xs text-surface-400">© {new Date().getFullYear()} Qonnectra</p>
 			</div>
 		</div>
 	</div>

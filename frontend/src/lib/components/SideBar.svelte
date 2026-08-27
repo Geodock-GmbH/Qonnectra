@@ -221,7 +221,7 @@
 									aria-label={link.label()}
 									{@attach tooltip(link.label())}
 								>
-									<Icon size={28} class="text-surface-700-300" />
+									<Icon class="size-7 text-surface-700-300" />
 									<span>{link.label()}</span>
 								</a>
 							{/each}
@@ -244,7 +244,7 @@
 									aria-label={link.label()}
 									{@attach tooltip(link.label())}
 								>
-									<Icon size={28} class="text-surface-700-300" />
+									<Icon class="size-7 text-surface-700-300" />
 									<span>{link.label()}</span>
 								</a>
 							{/each}
@@ -267,7 +267,7 @@
 									aria-label={link.label()}
 									{@attach tooltip(link.label())}
 								>
-									<Icon size={28} class="text-surface-700-300" />
+									<Icon class="size-7 text-surface-700-300" />
 									<span>{link.label()}</span>
 								</a>
 							{/each}
@@ -288,7 +288,7 @@
 									aria-label={link.label()}
 									{@attach tooltip(link.label())}
 								>
-									<Icon size={28} class="text-surface-700-300" />
+									<Icon class="size-7 text-surface-700-300" />
 									<span>{link.label()}</span>
 								</a>
 							{/each}
@@ -309,7 +309,7 @@
 									aria-label={link.label()}
 									{@attach tooltip(link.label())}
 								>
-									<Icon size={28} class="text-surface-700-300" />
+									<Icon class="size-7 text-surface-700-300" />
 									<span>{link.label()}</span>
 								</a>
 							{/each}
@@ -329,7 +329,7 @@
 								aria-label={link.label()}
 								{@attach tooltip(link.label())}
 							>
-								<Icon size={28} class="text-surface-700-300" />
+								<Icon class="size-7 text-surface-700-300" />
 							</a>
 						{/each}
 					</Navigation.Menu>
@@ -353,7 +353,7 @@
 								aria-label={link.label()}
 								{@attach tooltip(link.label())}
 							>
-								<Icon size={28} class="text-surface-700-300" />
+								<Icon class="size-7 text-surface-700-300" />
 								{#if $sidebarExpanded}
 									<span>{link.label()}</span>
 								{/if}
@@ -368,7 +368,7 @@
 								aria-label={m.nav_documentation()}
 								{@attach tooltip(m.nav_documentation())}
 							>
-								<IconBook size={28} class="text-surface-700-300" />
+								<IconBook class="size-7 text-surface-700-300" />
 								{#if $sidebarExpanded}
 									<span>{m.nav_documentation()}</span>
 								{/if}

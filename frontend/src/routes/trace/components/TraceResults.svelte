@@ -157,7 +157,7 @@
 					{result.entry_point?.name ||
 						result.entry_point?.id ||
 						entryId ||
-						'-'}{#if result.entry_point?.floor !== null && result.entry_point?.floor !== undefined}&nbsp;({m.form_floor()}
+						'-'}{#if result.entry_point?.floor !== null && result.entry_point?.floor !== undefined} ({m.form_floor()}
 						{result.entry_point.floor}){/if}
 				</span>
 			</div>
