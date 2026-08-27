@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
 
@@ -10,29 +10,25 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
-	const schemaStateContext = getContext('schemaState');
+	const schemaStateContext = getContext<{ nodes: any[] } | undefined>('schemaState');
 
-	let cable = $derived($drawerStore.props);
+	let cable = $derived<any>($drawerStore.props);
 	let handleStart = $state('top');
 	let handleEnd = $state('top');
 
-	/** @type {any[]} */
-	let selectedNodeStart = $state([]);
-	/** @type {any[]} */
-	let selectedNodeEnd = $state([]);
+	let selectedNodeStart = $state<any[]>([]);
+	let selectedNodeEnd = $state<any[]>([]);
 
 	// Nodes are sourced from schemaState context so child-view filtering is respected
 	const availableNodes = $derived(
-		(schemaStateContext?.nodes || []).map((/** @type {any} */ node) => ({
+		(schemaStateContext?.nodes || []).map((node: any) => ({
 			value: node.id,
 			label: node.data?.node?.name || node.id
 		}))
 	);
 
-	/** @type {any} */
-	let pendingNodeChange = $state(null);
-	/** @type {any} */
-	let confirmMessageBox;
+	let pendingNodeChange = $state<any>(null);
+	let confirmMessageBox: any;
 
 	$effect(() => {
 		if (cable) {
@@ -54,7 +50,7 @@
 	 * Checks for existing fiber splices at the current node before switching the connection.
 	 * Opens a confirmation dialog if splices would be lost.
 	 */
-	async function handleNodeChange(/** @type {any} */ side, /** @type {any} */ newNodeId) {
+	async function handleNodeChange(side: any, newNodeId: any) {
 		const currentNodeId = side === 'start' ? cable.uuid_node_start : cable.uuid_node_end;
 
 		if (!newNodeId || newNodeId === currentNodeId) {
@@ -71,7 +67,7 @@
 				body: formData
 			});
 			const result = deserialize(await response.text());
-			const spliceCount = /** @type {any} */ (result).data?.splices?.length || 0;
+			const spliceCount = (result as any).data?.splices?.length || 0;
 
 			if (spliceCount > 0) {
 				pendingNodeChange = { side, newNodeId, spliceCount };
@@ -97,7 +93,7 @@
 	/**
 	 * Execute the node connection change
 	 */
-	async function executeNodeChange(/** @type {any} */ side, /** @type {any} */ newNodeId) {
+	async function executeNodeChange(side: any, newNodeId: any) {
 		const formData = new FormData();
 		formData.append('uuid', cable.uuid);
 
@@ -150,7 +146,7 @@
 
 			// Update drawer props so subsequent saves use correct IDs
 			const newNodeName =
-				availableNodes.find((/** @type {any} */ n) => n.value === newNodeId)?.label || newNodeId;
+				availableNodes.find((n: any) => n.value === newNodeId)?.label || newNodeId;
 			if (side === 'start') {
 				drawerStore.updateProps({
 					uuid_node_start: newNodeId,
@@ -185,7 +181,7 @@
 	/**
 	 * Handle handle position form submission
 	 */
-	async function handleSubmit(/** @type {any} */ event) {
+	async function handleSubmit(event: SubmitEvent) {
 		event.preventDefault();
 		const formData = new FormData();
 		formData.append('uuid', cable.uuid);
@@ -321,7 +317,7 @@
 				bind:value={selectedNodeStart}
 				defaultValue={selectedNodeStart}
 				placeholder={m.placeholder_select_node?.() || 'Select node...'}
-				onValueChange={(/** @type {any} */ e) => {
+				onValueChange={(e: any) => {
 					const newNodeId = e.value?.[0];
 					if (newNodeId && newNodeId !== cable.uuid_node_start) {
 						handleNodeChange('start', newNodeId);
@@ -370,7 +366,7 @@
 				bind:value={selectedNodeEnd}
 				defaultValue={selectedNodeEnd}
 				placeholder={m.placeholder_select_node?.() || 'Select node...'}
-				onValueChange={(/** @type {any} */ e) => {
+				onValueChange={(e: any) => {
 					const newNodeId = e.value?.[0];
 					if (newNodeId && newNodeId !== cable.uuid_node_end) {
 						handleNodeChange('end', newNodeId);

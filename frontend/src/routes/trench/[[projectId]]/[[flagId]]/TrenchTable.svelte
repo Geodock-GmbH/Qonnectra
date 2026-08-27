@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { deserialize } from '$app/forms';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
 	import {
@@ -14,19 +14,29 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
-	let { projectId, conduitId, onTrenchClick, onTrenchesChange } = $props();
+	interface TrenchConnection {
+		value: string;
+		label: string;
+		trench: string;
+	}
 
-	/** @type {Array<{value: string, label: string, trench: string}>} */
-	let trenches = $state([]);
-	/** @type {string | null} */
-	let trenchesError = $state(null);
+	interface Props {
+		projectId?: string;
+		conduitId?: string;
+		onTrenchClick?: (trench: string, label: string) => void;
+		onTrenchesChange?: (trenches: TrenchConnection[]) => void;
+	}
+
+	let { projectId, conduitId, onTrenchClick, onTrenchesChange }: Props = $props();
+
+	let trenches = $state<TrenchConnection[]>([]);
+	let trenchesError = $state<string | null>(null);
 	let loading = $state(false);
 	let page = $state(1);
 	let size = $state(10);
-	let deletingIds = $state(new Set());
+	let deletingIds = $state(new Set<string>());
 	let searchTerm = $state('');
-	/** @type {'asc' | 'desc'} */
-	let sortDirection = $state('asc');
+	let sortDirection = $state<'asc' | 'desc'>('asc');
 
 	const filteredTrenches = $derived.by(() => {
 		if (!searchTerm.trim()) return trenches;
@@ -49,9 +59,8 @@
 
 	/**
 	 * Fetches trench connections for the selected conduit
-	 * @returns {Promise<void>}
 	 */
-	async function fetchTrenches() {
+	async function fetchTrenches(): Promise<void> {
 		if (!conduitId) {
 			return;
 		}
@@ -71,14 +80,13 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'failure' || result.type === 'error') {
-				const errorData = /** @type {{ error?: string }} */ (/** @type {any} */ (result).data);
+				const errorData = (result as any).data as { error?: string };
 				throw new Error(errorData?.error || 'Failed to fetch trenches');
 			}
 
-			const successData =
-				/** @type {{ trenches?: Array<{value: string, label: string, trench: string}> }} */ (
-					/** @type {any} */ (result).data
-				);
+			const successData = (result as any).data as {
+				trenches?: TrenchConnection[];
+			};
 			trenches = successData?.trenches || [];
 		} catch (error) {
 			trenchesError = m.message_error_fetching_trenches();
@@ -100,10 +108,9 @@
 
 	/**
 	 * Deletes a trench connection by ID
-	 * @param {string} connectionId - UUID of the connection to delete
-	 * @returns {Promise<void>}
+	 * @param connectionId - UUID of the connection to delete
 	 */
-	async function deleteTrench(connectionId) {
+	async function deleteTrench(connectionId: string): Promise<void> {
 		const formData = new FormData();
 		formData.append('connectionId', connectionId);
 
@@ -115,7 +122,7 @@
 		const result = deserialize(await response.text());
 
 		if (result.type === 'failure' || result.type === 'error') {
-			const errorData = /** @type {{ error?: string }} */ (/** @type {any} */ (result).data);
+			const errorData = (result as any).data as { error?: string };
 			console.error('Failed to delete trench connection:', errorData?.error);
 			globalToaster.error({
 				description: m.message_error_deleting_trench_connection()
@@ -128,10 +135,9 @@
 
 	/**
 	 * Handles deletion of a trench connection with loading state management
-	 * @param {string} trenchId - UUID of the trench connection to delete
-	 * @returns {void}
+	 * @param trenchId - UUID of the trench connection to delete
 	 */
-	function handleDelete(trenchId) {
+	function handleDelete(trenchId: string): void {
 		if (deletingIds.has(trenchId)) return;
 
 		deletingIds.add(trenchId);
@@ -155,12 +161,11 @@
 
 	/**
 	 * Saves a new trench connection for the selected conduit
-	 * @param {string} trenchId - UUID of the trench to connect
-	 * @returns {Promise<void>}
+	 * @param trenchId - UUID of the trench to connect
 	 */
-	async function saveTrenchConnection(trenchId) {
+	async function saveTrenchConnection(trenchId: string): Promise<void> {
 		const formData = new FormData();
-		formData.append('conduitId', conduitId);
+		formData.append('conduitId', conduitId as string);
 		formData.append('trenchId', trenchId);
 
 		const response = await fetch('?/createTrenchConnection', {
@@ -171,7 +176,7 @@
 		const result = deserialize(await response.text());
 
 		if (result.type === 'failure' || result.type === 'error') {
-			const errorData = /** @type {{ error?: string }} */ (/** @type {any} */ (result).data);
+			const errorData = (result as any).data as { error?: string };
 			console.error('Failed to save trench connection:', errorData?.error);
 			throw new Error(errorData?.error);
 		}
@@ -179,9 +184,8 @@
 
 	/**
 	 * Clears the trench table data
-	 * @returns {void}
 	 */
-	function emptyTable() {
+	function emptyTable(): void {
 		trenches = [];
 		trenchesError = null;
 		loading = false;
@@ -189,10 +193,11 @@
 
 	/**
 	 * Adds routed trenches to the table, creating connections for new trenches
-	 * @param {Array<{value: string, label: string}>} routedTrenches - Array of trench objects to add
-	 * @returns {Promise<void>}
+	 * @param routedTrenches - Array of trench objects to add
 	 */
-	export async function addRoutedTrenches(routedTrenches) {
+	export async function addRoutedTrenches(
+		routedTrenches: Array<{ value: string; label: string }>
+	): Promise<void> {
 		if (!routedTrenches?.length) return;
 
 		const existingTrenchValues = new Set(trenches.map((t) => t.trench));

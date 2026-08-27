@@ -1,32 +1,32 @@
-<script>
+<script lang="ts">
 	import { useNodes, useStore, useSvelteFlow } from '@xyflow/svelte';
 
 	import { getSvgPathFromStroke } from './lassoUtils.js';
 
-	let { partial = false, onSelectionChange } = $props();
+	interface Props {
+		partial?: boolean;
+		onSelectionChange?: (selectedIds: string[]) => void;
+	}
+
+	let { partial = false, onSelectionChange }: Props = $props();
 
 	const nodes = useNodes();
 	const store = useStore();
 	const { flowToScreenPosition, getInternalNode, screenToFlowPosition, getViewport, setViewport } =
 		useSvelteFlow();
 
-	/** @type {HTMLCanvasElement | null} */
-	let canvas = $state(null);
-	/** @type {CanvasRenderingContext2D | null} */
-	let ctx = $state(null);
-	/** @type {Record<string, {center: number[], corners: number[][]}>} */
-	let nodePoints = $state({});
-	/** @type {number[][]} */
-	let points = $state([]);
-	let selectedNodeIds = $state(new Set());
+	let canvas = $state<HTMLCanvasElement | null>(null);
+	let ctx = $state<CanvasRenderingContext2D | null>(null);
+	let nodePoints = $state<Record<string, { center: number[]; corners: number[][] }>>({});
+	let points = $state<number[][]>([]);
+	let selectedNodeIds = $state<Set<string>>(new Set());
 
 	let isPanning = $state(false);
 	let panStart = $state({ x: 0, y: 0 });
 	let viewportStart = $state({ x: 0, y: 0, zoom: 1 });
 
-	/** @param {PointerEvent} e */
-	function handlePointerDown(e) {
-		const target = /** @type {HTMLCanvasElement} */ (e.target);
+	function handlePointerDown(e: PointerEvent) {
+		const target = e.target as HTMLCanvasElement;
 
 		if (e.button === 1) {
 			e.preventDefault();
@@ -74,8 +74,7 @@
 		ctx.strokeStyle = 'rgba(0, 89, 220, 0.8)';
 	}
 
-	/** @param {PointerEvent} e */
-	function handlePointerMove(e) {
+	function handlePointerMove(e: PointerEvent) {
 		if (isPanning) {
 			const dx = e.clientX - panStart.x;
 			const dy = e.clientY - panStart.y;
@@ -92,7 +91,7 @@
 
 		if (e.buttons !== 1) return;
 
-		const target = /** @type {HTMLCanvasElement} */ (e.target);
+		const target = e.target as HTMLCanvasElement;
 		const rect = target.getBoundingClientRect();
 		const x = e.clientX - rect.left;
 		const y = e.clientY - rect.top;
@@ -107,7 +106,7 @@
 		ctx.fill(path);
 		ctx.stroke(path);
 
-		const nodesToSelect = new Set();
+		const nodesToSelect = new Set<string>();
 
 		for (const [nodeId, nodeData] of Object.entries(nodePoints)) {
 			if (partial) {
@@ -143,9 +142,8 @@
 		);
 	}
 
-	/** @param {PointerEvent} e */
-	function handlePointerUp(e) {
-		const target = /** @type {HTMLCanvasElement} */ (e.target);
+	function handlePointerUp(e: PointerEvent) {
+		const target = e.target as HTMLCanvasElement;
 
 		if (isPanning) {
 			isPanning = false;
@@ -166,9 +164,8 @@
 
 	/**
 	 * Zooms the viewport toward the cursor position on mouse wheel.
-	 * @param {WheelEvent} e
 	 */
-	function handleWheel(e) {
+	function handleWheel(e: WheelEvent) {
 		e.preventDefault();
 
 		const { x: viewportX, y: viewportY, zoom } = getViewport();
@@ -177,7 +174,7 @@
 		const newZoom = Math.max(store.minZoom, Math.min(store.maxZoom, zoom * zoomFactor));
 
 		// Get mouse position relative to the canvas
-		const rect = /** @type {HTMLCanvasElement} */ (e.currentTarget).getBoundingClientRect();
+		const rect = (e.currentTarget as HTMLCanvasElement).getBoundingClientRect();
 		const mouseX = e.clientX - rect.left;
 		const mouseY = e.clientY - rect.top;
 
@@ -194,7 +191,7 @@
 	 * Deselects all nodes and notifies the parent via the onSelectionChange callback.
 	 */
 	export function clearSelection() {
-		selectedNodeIds = new Set();
+		selectedNodeIds = new Set<string>();
 		nodes.update((nodes) =>
 			nodes.map((node) => ({
 				...node,

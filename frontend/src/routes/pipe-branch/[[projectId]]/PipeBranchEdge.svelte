@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { Edge, EdgeProps } from '@xyflow/svelte';
 	import { BaseEdge, EdgeLabel, getStraightPath, useEdges } from '@xyflow/svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -7,7 +8,22 @@
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
 
-	let { id, sourceX, sourceY, targetX, targetY, data } = $props();
+	type HandleData = {
+		microductUuid?: string;
+		microductNumber?: number;
+		conduitName?: string;
+		conduitUuid?: string;
+	};
+
+	type PipeBranchEdgeData = {
+		uuid?: string | null;
+		sourceHandleData?: HandleData;
+		targetHandleData?: HandleData;
+	};
+
+	type PipeBranchEdge = Edge<PipeBranchEdgeData, 'pipeBranchEdge'>;
+
+	let { id, sourceX, sourceY, targetX, targetY, data }: EdgeProps<PipeBranchEdge> = $props();
 
 	const edges = useEdges();
 

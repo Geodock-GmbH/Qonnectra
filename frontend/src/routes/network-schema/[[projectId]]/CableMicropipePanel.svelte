@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { page } from '$app/stores';
@@ -34,28 +34,31 @@
 
 	import 'ol/ol.css';
 
-	/** @type {{cableId: any, cableName: any, onClose?: () => void, onLinkageChange?: () => void}} */
-	let { cableId, cableName, onClose = () => {}, onLinkageChange = () => {} } = $props();
+	let {
+		cableId,
+		cableName,
+		onClose = () => {},
+		onLinkageChange = () => {}
+	}: {
+		cableId: any;
+		cableName: any;
+		onClose?: () => void;
+		onLinkageChange?: () => void;
+	} = $props();
 
 	const manager = new CableMicropipeManager();
 
-	/** @type {any} */
-	let olMap = $state();
-	/** @type {any} */
-	let dragBoxInteraction = $state();
-	/** @type {VectorTileLayer|undefined} */
-	let selectionLayer = $state();
-	/** @type {SvelteSet<string>} */
-	let selectedFeatureIds = $state(new SvelteSet());
-	/** @type {VectorTileLayer|undefined} */
-	let cableRouteLayer = $state();
+	let olMap = $state<any>();
+	let dragBoxInteraction = $state<any>();
+	let selectionLayer = $state<VectorTileLayer | undefined>();
+	let selectedFeatureIds = $state<SvelteSet<string>>(new SvelteSet());
+	let cableRouteLayer = $state<VectorTileLayer | undefined>();
 
-	const projectId = /** @type {string} */ ($page.params.projectId);
+	const projectId = $page.params.projectId as string;
 	const mapState = new MapState(projectId);
 	const layersInitialized = mapState.initializeLayers();
 
-	/** @type {string|null} */
-	let previousCableId = $state(null);
+	let previousCableId = $state<string | null>(null);
 
 	$effect(() => {
 		if (cableId && cableId !== previousCableId) {
@@ -146,15 +149,14 @@
 		}
 	});
 
-	/** @param {{map: any}} param0 */
-	async function handleMapReady({ map }) {
+	async function handleMapReady({ map }: { map: any }) {
 		olMap = map;
 		mapState.olMap = olMap;
 
 		const selectedStyle = createSelectedStyle('#ff6600');
 		selectionLayer = new VectorTileLayer({
 			renderMode: 'vector',
-			source: /** @type {any} */ (mapState.vectorTileLayer)?.getSource(),
+			source: (mapState.vectorTileLayer as any)?.getSource(),
 			style: function (feature) {
 				const featureId = String(feature.getId() || feature.get('uuid'));
 				if (featureId && selectedFeatureIds.has(featureId)) {
@@ -172,7 +174,7 @@
 		const linkedTrenchStyle = createLinkedTrenchStyle('#06b6d4');
 		cableRouteLayer = new VectorTileLayer({
 			renderMode: 'vector',
-			source: /** @type {any} */ (mapState.vectorTileLayer)?.getSource(),
+			source: (mapState.vectorTileLayer as any)?.getSource(),
 			style: function (feature) {
 				const featureId = String(feature.getId() || feature.get('uuid'));
 				if (featureId && manager.linkedTrenchIds.has(featureId)) {
@@ -198,10 +200,10 @@
 			import('ol/events/condition')
 		]);
 
-		olMap.on('click', (/** @type {any} */ evt) => {
+		olMap.on('click', (evt: any) => {
 			const features = olMap.getFeaturesAtPixel(evt.pixel, {
 				hitTolerance: 10,
-				layerFilter: (/** @type {any} */ layer) => layer === mapState.vectorTileLayer
+				layerFilter: (layer: any) => layer === mapState.vectorTileLayer
 			});
 
 			if (features && features.length > 0) {
@@ -241,10 +243,10 @@
 				for (let y = boxPixelMax[1]; y <= boxPixelMin[1]; y += stepY) {
 					const features = olMap.getFeaturesAtPixel([x, y], {
 						hitTolerance: 10,
-						layerFilter: (/** @type {any} */ layer) => layer === mapState.vectorTileLayer
+						layerFilter: (layer: any) => layer === mapState.vectorTileLayer
 					});
 					if (features) {
-						features.forEach((/** @type {any} */ feature) => {
+						features.forEach((feature: any) => {
 							const featureId = String(feature.getId() || feature.get('uuid'));
 							if (featureId) {
 								newSet.add(featureId);
@@ -295,19 +297,11 @@
 		selectedFeatureIds = new SvelteSet();
 	}
 
-	/**
-	 * @param {string} conduitId
-	 * @returns {boolean}
-	 */
-	function isConduitSelected(conduitId) {
+	function isConduitSelected(conduitId: string): boolean {
 		return manager.selectedConduitIds.has(conduitId);
 	}
 
-	/**
-	 * @param {any} micropipe
-	 * @returns {boolean}
-	 */
-	function isMicropipeSelected(micropipe) {
+	function isMicropipeSelected(micropipe: any): boolean {
 		return (
 			manager.selectedMicropipe?.number === micropipe.number &&
 			manager.selectedMicropipe?.color_name === micropipe.color_name

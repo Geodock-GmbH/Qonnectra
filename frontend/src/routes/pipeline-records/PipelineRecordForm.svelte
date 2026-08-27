@@ -1,9 +1,27 @@
-<script>
+<script lang="ts">
+	import type { ComboboxOption } from './pipelineRecordApi';
 	import { IconBuilding, IconDeviceFloppy, IconPhone, IconUser } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
+
+	interface Props {
+		projectId?: string;
+		typeOfWorkId?: string;
+		requestReasonId?: string;
+		organisation?: string;
+		name?: string;
+		tel?: string;
+		mobile?: string;
+		projectOptions?: ComboboxOption[];
+		typeOfWorkOptions?: ComboboxOption[];
+		requestReasonOptions?: ComboboxOption[];
+		isSaving?: boolean;
+		projectReadonly?: boolean;
+		saveLabel?: string;
+		onSave?: (() => void) | false;
+	}
 
 	let {
 		projectId = $bindable(''),
@@ -20,11 +38,10 @@
 		projectReadonly = false,
 		saveLabel = m.common_save(),
 		onSave
-	} = $props();
+	}: Props = $props();
 
 	const activeProjectLabel = $derived(
-		projectOptions.find((/** @type {{ value: any }} */ o) => String(o.value) === String(projectId))
-			?.label ?? ''
+		projectOptions.find((o) => String(o.value) === String(projectId))?.label ?? ''
 	);
 </script>
 
@@ -55,7 +72,7 @@
 						value={projectId ? [projectId] : []}
 						placeholder="-"
 						required={true}
-						onValueChange={(/** @type {{ value: any[] }} */ e) => {
+						onValueChange={(e) => {
 							projectId = e.value[0] ?? '';
 						}}
 					/>
@@ -68,7 +85,7 @@
 					data={typeOfWorkOptions}
 					value={typeOfWorkId ? [typeOfWorkId] : []}
 					placeholder="-"
-					onValueChange={(/** @type {{ value: any[] }} */ e) => {
+					onValueChange={(e) => {
 						typeOfWorkId = e.value[0] ?? '';
 					}}
 				/>
@@ -80,7 +97,7 @@
 					data={requestReasonOptions}
 					value={requestReasonId ? [requestReasonId] : []}
 					placeholder="-"
-					onValueChange={(/** @type {{ value: any[] }} */ e) => {
+					onValueChange={(e) => {
 						requestReasonId = e.value[0] ?? '';
 					}}
 				/>

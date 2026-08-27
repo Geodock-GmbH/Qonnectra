@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
 	import { IconPlus } from '@tabler/icons-svelte';
@@ -9,7 +10,7 @@
 
 	import PipelineRecordsTable from './PipelineRecordsTable.svelte';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 	let searchInput = $state('');
 
 	const searchTerm = $derived(data.searchTerm || '');

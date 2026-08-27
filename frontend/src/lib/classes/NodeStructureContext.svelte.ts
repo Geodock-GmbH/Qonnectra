@@ -12,8 +12,9 @@ import { NodeStructureManager } from './NodeStructureManager.svelte';
 export { DRAG_DROP_CONTEXT_KEY };
 
 export interface SharedSlotState {
-	nodeUuid: string;
+	nodeUuid: string | null;
 	slotConfigurations: SlotConfiguration[];
+	lastUpdated?: number;
 }
 
 export interface NodeStructureContextOptions {
@@ -34,7 +35,7 @@ export interface NodeStructure {
 	slot_end: number;
 	component_type: { id: number; component_type?: string } | null;
 	component_type_name?: string;
-	component_structure?: unknown;
+	component_structure?: { article_number?: string } | null;
 	purpose?: string;
 	label?: string | null;
 }

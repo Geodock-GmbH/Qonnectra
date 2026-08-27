@@ -1,4 +1,6 @@
-<script>
+<script lang="ts">
+	import type OlMap from 'ol/Map';
+	import type OlMapBrowserEvent from 'ol/MapBrowserEvent';
 	import { onMount, setContext, untrack } from 'svelte';
 	import { get } from 'svelte/store';
 	import { browser } from '$app/environment';
@@ -43,6 +45,7 @@
 
 	import 'ol/ol.css';
 
+	import type { PageData } from './$types';
 	import VectorTileLayer from 'ol/layer/VectorTile.js';
 	import VectorSource from 'ol/source/Vector.js';
 
@@ -50,20 +53,14 @@
 
 	import TrenchTable from './TrenchTable.svelte';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 
-	/** @type {any[]} */
-	const nodeTypes = $derived(/** @type {any[]} */ (data.nodeTypes ?? []));
-	/** @type {any[]} */
-	const surfaces = $derived(/** @type {any[]} */ (data.surfaces ?? []));
-	/** @type {any[]} */
-	const constructionTypes = $derived(/** @type {any[]} */ (data.constructionTypes ?? []));
-	/** @type {any[]} */
-	const areaTypes = $derived(/** @type {any[]} */ (data.areaTypes ?? []));
-	/** @type {any[]} */
-	const flags = $derived(/** @type {any[]} */ (data.flags ?? []));
-	/** @type {string | undefined} */
-	const flagsError = $derived(/** @type {string | undefined} */ (data.flagsError ?? undefined));
+	const nodeTypes = $derived((data.nodeTypes ?? []) as any[]);
+	const surfaces = $derived((data.surfaces ?? []) as any[]);
+	const constructionTypes = $derived((data.constructionTypes ?? []) as any[]);
+	const areaTypes = $derived((data.areaTypes ?? []) as any[]);
+	const flags = $derived((data.flags ?? []) as any[]);
+	const flagsError = $derived((data.flagsError ?? undefined) as string | undefined);
 
 	// Sync stores from URL params on initial load to prevent navigation effect from redirecting
 	const urlProjectId = page.params.projectId;
@@ -91,14 +88,13 @@
 		selectionManager
 	});
 
-	let routeLayer = $state();
-	let highlightLayer = $state();
-	let linkedTrenchesLayer = $state();
-	let linkedTrenchUuids = $state(new Set());
-	let startTrenchId = $state(null);
-	let endTrenchId = $state(null);
-	/** @type {TrenchTable | undefined} */
-	let trenchTableInstance;
+	let routeLayer = $state<VectorLayer<VectorSource> | undefined>();
+	let highlightLayer = $state<VectorLayer<VectorSource> | undefined>();
+	let linkedTrenchesLayer = $state<VectorTileLayer | undefined>();
+	let linkedTrenchUuids = $state<Set<string | number>>(new Set());
+	let startTrenchId = $state<string | null>(null);
+	let endTrenchId = $state<string | null>(null);
+	let trenchTableInstance: TrenchTable | undefined;
 	let isCalculatingRoute = $state(false);
 
 	/**
@@ -111,9 +107,9 @@
 	/**
 	 * Handles changes to the trench connections list
 	 * Updates the linked trenches UUIDs for highlighting
-	 * @param {Array<{trench: string, value: string, label: string}>} trenches - Array of trench connection objects
+	 * @param trenches - Array of trench connection objects
 	 */
-	function handleTrenchesChange(trenches) {
+	function handleTrenchesChange(trenches: Array<{ trench: string; value: string; label: string }>) {
 		linkedTrenchUuids = new Set(trenches.map((t) => t.trench));
 		if (linkedTrenchesLayer) {
 			linkedTrenchesLayer.changed();
@@ -122,10 +118,10 @@
 
 	/**
 	 * Handles trench click event, fetches trench geometry and zooms to it on the map
-	 * @param {string} trenchUuid - UUID of the trench
-	 * @param {string} trenchLabel - Label/ID of the trench
+	 * @param trenchUuid - UUID of the trench
+	 * @param trenchLabel - Label/ID of the trench
 	 */
-	async function handleTrenchClick(trenchUuid, trenchLabel) {
+	async function handleTrenchClick(trenchUuid: string, trenchLabel: string) {
 		if (!mapState.olMap || !mapState.vectorTileLayer) {
 			globalToaster.error({
 				title: m.title_error_loading_map_features(),
@@ -234,7 +230,7 @@
 			startTrenchId = null;
 			endTrenchId = null;
 			selectionManager.clearSelection();
-			if (routeLayer) routeLayer.getSource().clear();
+			if (routeLayer) routeLayer.getSource()!.clear();
 		}
 	});
 
@@ -251,7 +247,7 @@
 				// since reinitializeForProject replaces the vectorTileLayer source
 				linkedTrenchUuids = new Set();
 				if (linkedTrenchesLayer) {
-					const newSource = mapState.vectorTileLayer?.getSource() ?? undefined;
+					const newSource = mapState.vectorTileLayer?.getSource() ?? null;
 					linkedTrenchesLayer.setSource(newSource);
 				}
 			}
@@ -267,15 +263,11 @@
 	/**
 	 * Handler for the map ready event
 	 * Initializes all map interactions and layers
-	 * @param {{ map: import('ol/Map').default, usingFallbackOSM: boolean }} detail
 	 */
-	function handleMapReady({ map: olMapInstance }) {
+	function handleMapReady({ map: olMapInstance }: { map: OlMap; usingFallbackOSM?: boolean }) {
 		mapState.initializeSelectionLayers(
 			olMapInstance,
-			() =>
-				/** @type {Record<string, boolean>} */ (
-					/** @type {any} */ (selectionManager.getSelectionStore())
-				)
+			() => selectionManager.getSelectionStore() as any as Record<string, boolean>
 		);
 
 		const selectionLayers = mapState.getSelectionLayers();
@@ -286,7 +278,8 @@
 			renderMode: 'vector',
 			source: mapState.vectorTileLayer?.getSource() ?? undefined,
 			style: function (feature) {
-				if (feature.getId() && linkedTrenchUuids.has(feature.getId())) {
+				const featureId = feature.getId();
+				if (featureId && linkedTrenchUuids.has(featureId)) {
 					return linkedTrenchStyle;
 				}
 				return undefined;
@@ -316,7 +309,7 @@
 		});
 		if (mapState.olMap) mapState.olMap.addLayer(highlightLayer);
 
-		if (mapState.olMap) /** @type {any} */ (mapState.olMap).on('click', handleMapClick);
+		if (mapState.olMap) (mapState.olMap as any).on('click', handleMapClick);
 	}
 
 	const handleZoomToExtent = createZoomToLayerExtentHandler(
@@ -326,9 +319,9 @@
 
 	/**
 	 * Handle map click events for routing and trench selection
-	 * @param {import('ol/MapBrowserEvent').default<PointerEvent>} event - OpenLayers map click event
+	 * @param event - OpenLayers map click event
 	 */
-	async function handleMapClick(event) {
+	async function handleMapClick(event: OlMapBrowserEvent<PointerEvent>) {
 		if (!mapState.olMap) return;
 
 		if ($selectedConduit === undefined) {
@@ -357,7 +350,7 @@
 				startTrenchId = null;
 				endTrenchId = null;
 				selectionManager.clearSelection();
-				if (routeLayer) routeLayer.getSource().clear();
+				if (routeLayer) routeLayer.getSource()!.clear();
 			}
 
 			if (!startTrenchId) {
@@ -384,13 +377,11 @@
 					const result = deserialize(await response.text());
 
 					if (result.type === 'failure' || result.type === 'error') {
-						const errorData = /** @type {{ error?: string, detail?: string }} */ (
-							/** @type {any} */ (result).data
-						);
+						const errorData = (result as any).data as { error?: string; detail?: string };
 						throw new Error(errorData?.error || errorData?.detail || 'Routing failed');
 					}
 
-					const successData = /** @type {{ routeData: any }} */ (/** @type {any} */ (result).data);
+					const successData = (result as any).data as { routeData: any };
 					const routeData = successData?.routeData;
 
 					if (routeData.path_geometry_wkt && routeData.traversed_trench_uuids) {
@@ -400,18 +391,17 @@
 							dataProjection: storageProjection(page.data.srid),
 							featureProjection: mapState.olMap.getView().getProjection()
 						});
-						if (routeLayer) routeLayer.getSource().addFeature(routeFeature);
+						if (routeLayer) routeLayer.getSource()!.addFeature(routeFeature);
 
-						/** @type {Record<string, boolean>} */
-						const newSelection = {};
+						const newSelection: Record<string, boolean> = {};
 						for (const uuid of routeData.traversed_trench_uuids) {
 							newSelection[uuid] = true;
 						}
-						/** @type {any} */ (selectionManager).selectionStore = newSelection;
+						(selectionManager as any).selectionStore = newSelection;
 						selectionManager.updateSelectionLayers();
 
 						const newSelectionForTrenchTable = routeData.traversed_trench_ids.map(
-							(/** @type {string} */ id, /** @type {number} */ index) => ({
+							(id: string, index: number) => ({
 								value: routeData.traversed_trench_uuids[index],
 								label: id
 							})
@@ -426,7 +416,7 @@
 						});
 						throw new Error('No route geometry or traversed trench UUIDs found in response.');
 					}
-				} catch (/** @type {any} */ error) {
+				} catch (error: any) {
 					console.error('Routing error:', error);
 					void logToBackendClient({
 						level: 'ERROR',
@@ -451,7 +441,7 @@
 		} else {
 			selectionManager.selectFeature(featureId, feature);
 
-			const trenchToAdd = [{ value: /** @type {string} */ (featureId), label: trenchId }];
+			const trenchToAdd = [{ value: featureId as string, label: trenchId }];
 			if (trenchTableInstance) {
 				await trenchTableInstance.addRoutedTrenches(trenchToAdd);
 			}

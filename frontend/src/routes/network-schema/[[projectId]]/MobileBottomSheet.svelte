@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { quintOut } from 'svelte/easing';
 	import { fade, fly } from 'svelte/transition';
 	import { IconX } from '@tabler/icons-svelte';
@@ -7,22 +8,25 @@
 
 	import { tooltip } from '$lib/utils/tooltip';
 
-	let { open = $bindable(false), title = '', children } = $props();
+	let {
+		open = $bindable(false),
+		title = '',
+		children
+	}: { open?: boolean; title?: string; children?: Snippet } = $props();
 
-	/** @type {HTMLDivElement | null} */
-	let sheetElement = $state(null);
+	let sheetElement = $state<HTMLDivElement | null>(null);
 	let startY = $state(0);
 	let currentY = $state(0);
 	let isDragging = $state(false);
 	let sheetHeight = $state(50); // percentage of viewport height
 
-	function handleTouchStart(/** @type {any} */ e) {
+	function handleTouchStart(e: TouchEvent) {
 		startY = e.touches[0].clientY;
 		currentY = startY;
 		isDragging = true;
 	}
 
-	function handleTouchMove(/** @type {any} */ e) {
+	function handleTouchMove(e: TouchEvent) {
 		if (!isDragging) return;
 		currentY = e.touches[0].clientY;
 

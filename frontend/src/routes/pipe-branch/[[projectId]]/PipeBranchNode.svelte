@@ -1,9 +1,19 @@
-<script>
+<script lang="ts">
+	import type { Node, NodeProps } from '@xyflow/svelte';
 	import { Handle, Position } from '@xyflow/svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
-	let { id, data, selected } = $props();
+	type PipeBranchNodeData = {
+		trench?: any;
+		conduit?: any;
+		totalMicroducts?: number;
+		nodeName?: string;
+	} & Record<string, unknown>;
+
+	type PipeBranchNode = Node<PipeBranchNodeData, 'pipeBranch'>;
+
+	let { id, data, selected }: NodeProps<PipeBranchNode> = $props();
 
 	const trench = $derived(data?.trench || null);
 	const conduit = $derived(data?.conduit || null);
@@ -15,10 +25,10 @@
 
 	/**
 	 * Get contrasting text color (black or white) for a given background color
-	 * @param {string} hexColor - Hex color code
-	 * @returns {string} 'black' or 'white'
+	 * @param hexColor - Hex color code
+	 * @returns 'black' or 'white'
 	 */
-	function getContrastColor(hexColor) {
+	function getContrastColor(hexColor: string): string {
 		if (!hexColor) return 'white';
 
 		const hex = hexColor.replace('#', '');
@@ -34,9 +44,20 @@
 	const handleData = $derived(() => {
 		if (!conduit || !conduit.microducts) return [];
 
-		/** @type {Array<{id: string, microductUuid: string, microductNumber: number, conduitName: string, conduitUuid: string, status: any, color: string, cssColor: string, borderColor: string, isTwoLayer: boolean, contrastColor: string}>} */
-		const handles = [];
-		conduit.microducts.forEach((/** @type {any} */ microduct, /** @type {number} */ micIndex) => {
+		const handles: Array<{
+			id: string;
+			microductUuid: string;
+			microductNumber: number;
+			conduitName: string;
+			conduitUuid: string;
+			status: any;
+			color: string;
+			cssColor: string;
+			borderColor: string;
+			isTwoLayer: boolean;
+			contrastColor: string;
+		}> = [];
+		conduit.microducts.forEach((microduct: any, micIndex: number) => {
 			const hexCode = microduct.hex_code || '#64748b'; // Default gray
 			const hexCodeSecondary = microduct.hex_code_secondary;
 			const isTwoLayer = microduct.is_two_layer || false;

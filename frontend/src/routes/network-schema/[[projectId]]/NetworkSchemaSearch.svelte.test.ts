@@ -49,7 +49,7 @@ function makeSearchManager(overrides: Record<string, unknown> = {}) {
 		}),
 		getResultPosition: vi.fn(() => ({ x: 10, y: 20 })),
 		...overrides
-	};
+	} as any;
 }
 
 function makeSchemaState() {
@@ -58,7 +58,7 @@ function makeSchemaState() {
 		selectEdge: vi.fn(),
 		updateNodeName: vi.fn(),
 		updateEdgeName: vi.fn()
-	};
+	} as any;
 }
 
 beforeEach(() => {

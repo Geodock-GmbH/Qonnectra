@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { PageData } from './$types';
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { IconArrowLeft } from '@tabler/icons-svelte';
@@ -10,7 +11,7 @@
 
 	import PipelineRecordForm from '../PipelineRecordForm.svelte';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 
 	let isSaving = $state(false);
 
@@ -20,9 +21,9 @@
 
 	/**
 	 * Snapshots the active project id from initial page data.
-	 * @returns {any} The active project id at mount time.
+	 * @returns The active project id at mount time.
 	 */
-	function getInitialActiveProjectId() {
+	function getInitialActiveProjectId(): any {
 		return data.activeProjectId ?? '';
 	}
 
@@ -68,11 +69,10 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description:
-						/** @type {any} */ (result).data?.message || m.message_pipeline_record_create_failed()
+					description: (result as any).data?.message || m.message_pipeline_record_create_failed()
 				});
 			}
-		} catch (/** @type {any} */ err) {
+		} catch (err: any) {
 			globalToaster.error({ title: m.common_error(), description: err.message });
 		} finally {
 			isSaving = false;

@@ -61,7 +61,7 @@ export async function parseFeatureGeometry(
 export async function zoomToFeature(
 	map: OlMap,
 	geometry: Geometry,
-	highlightLayer: VectorLayer<VectorSource>,
+	highlightLayer: VectorLayer<VectorSource> | undefined,
 	options: ZoomOptions = {}
 ): Promise<void> {
 	const { padding = [50, 50, 50, 50], duration = 1000, maxZoom = 20, blinkCount = 6 } = options;

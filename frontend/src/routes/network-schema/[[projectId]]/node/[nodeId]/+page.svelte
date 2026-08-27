@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
@@ -24,6 +24,7 @@
 
 	import '@xyflow/svelte/dist/style.css';
 
+	import type { PageData } from './$types';
 	import { onMount, setContext } from 'svelte';
 
 	import CableDiagramEdge from '../../CableDiagramEdge.svelte';
@@ -32,17 +33,14 @@
 	import NetworkSchemaSearch from '../../NetworkSchemaSearch.svelte';
 	import ViewportPersistence from '../../ViewportPersistence.svelte';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 
 	const nodeTypes = { cableDiagramNode: CableDiagramNode };
-	/** @type {any} */
-	const edgeTypes = { cableDiagramEdge: CableDiagramEdge };
+	const edgeTypes: any = { cableDiagramEdge: CableDiagramEdge };
 
-	/** @type {any} */
-	const connectionMode = 'loose';
+	const connectionMode: any = 'loose';
 
-	/** @type {any} */
-	const svelteFlowExtraProps = {
+	const svelteFlowExtraProps: any = {
 		snapToGrid: true,
 		snapGrid: [120, 120],
 		connectionRadius: 100,
@@ -56,7 +54,7 @@
 
 	$effect(() => {
 		schemaState.isChildView = true;
-		schemaState.initialize(/** @type {any} */ (data));
+		schemaState.initialize(data as any);
 		schemaState.parentNodeContext = data.parentNodeId;
 	});
 
@@ -113,7 +111,7 @@
 	});
 
 	onMount(() => {
-		function handleMicropipeLinkageChanged(/** @type {any} */ event) {
+		function handleMicropipeLinkageChanged(event: any) {
 			const { cableId, connections } = event.detail;
 			schemaState.updateEdgeMicropipeConnections(cableId, connections);
 		}
@@ -124,7 +122,7 @@
 		};
 	});
 
-	async function handleCablePathUpdate(/** @type {any} */ event) {
+	async function handleCablePathUpdate(event: any) {
 		const { edgeId, waypoints, temporary, save } = event.detail;
 
 		await cablePathManager.updatePath(
@@ -132,7 +130,7 @@
 			waypoints,
 			temporary,
 			save,
-			(/** @type {any} */ edgeId, /** @type {any} */ updates) => {
+			(edgeId: any, updates: any) => {
 				schemaState.edges = schemaState.edges.map((edge) => {
 					if (edge.id === edgeId) {
 						return {
@@ -152,17 +150,13 @@
 		);
 	}
 
-	function handleCableHandleUpdate(/** @type {any} */ event) {
+	function handleCableHandleUpdate(event: any) {
 		const { cableId, handleStart, handleEnd } = event.detail;
 		cablePathManager.updateHandles(
 			cableId,
 			handleStart,
 			handleEnd,
-			(
-				/** @type {any} */ cableId,
-				/** @type {any} */ handleStart,
-				/** @type {any} */ handleEnd
-			) => {
+			(cableId: any, handleStart: any, handleEnd: any) => {
 				schemaState.updateCableHandles(cableId, handleStart, handleEnd);
 			}
 		);
@@ -183,7 +177,7 @@
 	});
 
 	$effect(() => {
-		function handleCableConnectionChangedEvent(/** @type {any} */ event) {
+		function handleCableConnectionChangedEvent(event: any) {
 			const { cableId, side, newNodeId, handlePosition } = event.detail;
 			if (cableId && side && newNodeId) {
 				schemaState.updateEdgeConnection(cableId, side, newNodeId, handlePosition);
@@ -225,8 +219,8 @@
 			{edgeTypes}
 			{connectionMode}
 			{...svelteFlowExtraProps}
-			onnodedragstop={(/** @type {any} */ e) => schemaState.handleNodeDragStop(e)}
-			onconnect={(/** @type {any} */ conn) => schemaState.handleConnect(conn, $selectedProject)}
+			onnodedragstop={(e: any) => schemaState.handleNodeDragStop(e)}
+			onconnect={(conn: any) => schemaState.handleConnect(conn, $selectedProject)}
 		>
 			<ViewportPersistence isChildView={true} />
 			<Background class="z-0" bgColor="var(--color-surface-100-900)" />
@@ -261,7 +255,7 @@
 								bind:value={schemaState.selectedCableType}
 								defaultValue={schemaState.selectedCableType}
 								placeholder={m.placeholder_select_cable_type()}
-								onValueChange={(/** @type {{ value: any }} */ e) => {
+								onValueChange={(e: { value: any }) => {
 									schemaState.selectedCableType = e.value;
 								}}
 								contentBase="preset-filled-surface-50-950 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 shadow-lg"

@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { ContainerNode } from './containerItemTypes';
 	import { flip } from 'svelte/animate';
 	import {
 		IconCheck,
@@ -29,52 +30,63 @@
 		onEditSlotConfig,
 		onDeleteSlotConfig,
 		onViewStructure
+	}: {
+		container: ContainerNode;
+		depth?: number;
+		readonly?: boolean;
+		onDelete?: (uuid: string) => void;
+		onUpdateName?: (uuid: string, name: string) => void;
+		onMove?: (data: unknown, targetUuid: string) => void;
+		onToggleExpand?: (uuid: string) => void;
+		onEditSlotConfig?: (config: unknown) => void;
+		onDeleteSlotConfig?: (config: unknown) => void;
+		onViewStructure?: (slotConfigUuid: string) => void;
 	} = $props();
 
 	let dragOver = $state(false);
 	let isEditing = $state(false);
 	let editName = $state('');
 
-	function handleDragStart(/** @type {any} */ e) {
+	function handleDragStart(e: DragEvent) {
 		if (readonly) {
 			e.preventDefault();
 			return;
 		}
-		e.dataTransfer.setData(
+		e.dataTransfer!.setData(
 			'application/json',
 			JSON.stringify({
 				type: 'container',
 				uuid: container.uuid
 			})
 		);
-		e.dataTransfer.effectAllowed = 'move';
+		e.dataTransfer!.effectAllowed = 'move';
 	}
 
-	function handleDragOver(/** @type {any} */ e) {
+	function handleDragOver(e: DragEvent) {
 		if (readonly) return;
 		e.preventDefault();
-		const hasData = e.dataTransfer.types.includes('application/json');
+		const hasData = e.dataTransfer!.types.includes('application/json');
 		if (hasData) {
 			dragOver = true;
-			e.dataTransfer.dropEffect = 'move';
+			e.dataTransfer!.dropEffect = 'move';
 		}
 	}
 
-	function handleDragLeave(/** @type {any} */ e) {
+	function handleDragLeave(e: DragEvent) {
 		if (readonly) return;
-		if (!e.currentTarget.contains(e.relatedTarget)) {
+		if (!(e.currentTarget as Node).contains(e.relatedTarget as Node)) {
 			dragOver = false;
 		}
 	}
 
-	function handleDrop(/** @type {any} */ e) {
+	function handleDrop(e: DragEvent) {
 		if (readonly) return;
 		e.preventDefault();
 		e.stopPropagation();
 		dragOver = false;
 
 		try {
-			const data = JSON.parse(e.dataTransfer.getData('application/json'));
+			const data = JSON.parse(e.dataTransfer!.getData('application/json'));
 			if (data.type === 'container' && data.uuid === container.uuid) {
 				return;
 			}
@@ -112,7 +124,7 @@
 	}
 
 	const hasChildren = $derived(
-		container.children?.length > 0 || container.slot_configurations?.length > 0
+		(container.children?.length ?? 0) > 0 || (container.slot_configurations?.length ?? 0) > 0
 	);
 
 	const paddingLeft = $derived(`${depth * 1.5}rem`);

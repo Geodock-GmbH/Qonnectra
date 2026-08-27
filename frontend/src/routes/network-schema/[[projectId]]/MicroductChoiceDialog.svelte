@@ -1,10 +1,10 @@
-<script>
+<script lang="ts">
+	import type { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte';
 	import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
-	/** @type {{ schemaState: import('$lib/classes/NetworkSchemaState.svelte').NetworkSchemaState }} */
-	let { schemaState } = $props();
+	let { schemaState }: { schemaState: NetworkSchemaState } = $props();
 
 	const current = $derived(schemaState.pendingMicroductChoices[0] ?? null);
 </script>

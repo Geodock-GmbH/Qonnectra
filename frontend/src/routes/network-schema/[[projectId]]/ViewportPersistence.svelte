@@ -1,14 +1,12 @@
-<script>
+<script lang="ts">
 	import { onMount } from 'svelte';
 	import { useSvelteFlow } from '@xyflow/svelte';
 
 	import { networkSchemaChildViewport, networkSchemaViewport } from '$lib/stores/store';
 
-	let { isChildView = false } = $props();
+	let { isChildView = false }: { isChildView?: boolean } = $props();
 
-	const viewportStore = $derived(
-		/** @type {any} */ (isChildView) ? networkSchemaChildViewport : networkSchemaViewport
-	);
+	const viewportStore = $derived(isChildView ? networkSchemaChildViewport : networkSchemaViewport);
 
 	const { getViewport, setViewport } = useSvelteFlow();
 
@@ -18,8 +16,7 @@
 		}
 	});
 
-	/** @type {any} */
-	let saveTimeout;
+	let saveTimeout: ReturnType<typeof setTimeout>;
 	$effect(() => {
 		const currentViewport = getViewport();
 

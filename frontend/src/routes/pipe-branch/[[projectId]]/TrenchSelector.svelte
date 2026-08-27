@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconLock,
@@ -11,42 +11,54 @@
 
 	import { m } from '$lib/paraglide/messages';
 
+	interface SelectorConduit {
+		uuid: string;
+		name: string;
+		microducts: Array<unknown>;
+	}
+
+	interface SelectorTrench {
+		uuid: string;
+		id_trench: string;
+		conduits: SelectorConduit[];
+	}
+
 	/**
 	 * Selection key format: "trenchUuid:conduitUuid"
 	 * This allows the same conduit to be selected/deselected independently per trench
-	 *
-	 * @type {{
-	 *   trenches: Array<{uuid: string, id_trench: string, conduits: Array<{uuid: string, name: string, microducts: Array<any>}>}>,
-	 *   selectedKeys: string[],
-	 *   lockedKeys: string[],
-	 *   onConfirm: (selectedTrenches: Array<any>) => void,
-	 *   onCancel: () => void
-	 * }}
 	 */
+	interface Props {
+		trenches?: SelectorTrench[];
+		selectedKeys?: string[];
+		lockedKeys?: string[];
+		onConfirm?: (selectedTrenches: Array<SelectorTrench>) => void;
+		onCancel?: () => void;
+	}
+
 	let {
 		trenches = [],
 		selectedKeys = $bindable([]),
 		lockedKeys = [],
 		onConfirm = () => {},
 		onCancel = () => {}
-	} = $props();
+	}: Props = $props();
 
 	/**
 	 * Create a composite key for the trench and conduit
-	 * @param {string} trenchUuid - The UUID of the trench
-	 * @param {string} conduitUuid - The UUID of the conduit
-	 * @returns {string} - The composite key
+	 * @param trenchUuid - The UUID of the trench
+	 * @param conduitUuid - The UUID of the conduit
+	 * @returns The composite key
 	 */
-	function makeKey(trenchUuid, conduitUuid) {
+	function makeKey(trenchUuid: string, conduitUuid: string): string {
 		return `${trenchUuid}:${conduitUuid}`;
 	}
 
 	/**
 	 * Toggle the selection of a conduit
-	 * @param {string} trenchUuid - The UUID of the trench
-	 * @param {string} conduitUuid - The UUID of the conduit
+	 * @param trenchUuid - The UUID of the trench
+	 * @param conduitUuid - The UUID of the conduit
 	 */
-	function toggleConduit(trenchUuid, conduitUuid) {
+	function toggleConduit(trenchUuid: string, conduitUuid: string) {
 		const key = makeKey(trenchUuid, conduitUuid);
 
 		if (lockedKeys.includes(key)) {
@@ -62,9 +74,8 @@
 
 	/**
 	 * Toggles selection of all conduits in a trench. Locked conduits remain selected.
-	 * @param {{uuid: string, conduits?: Array<{uuid: string}>}} trench
 	 */
-	function toggleAllConduitsInTrench(trench) {
+	function toggleAllConduitsInTrench(trench: { uuid: string; conduits?: Array<{ uuid: string }> }) {
 		const trenchKeys = trench.conduits?.map((c) => makeKey(trench.uuid, c.uuid)) || [];
 		const allSelected = trenchKeys.every((key) => selectedKeys.includes(key));
 
@@ -96,10 +107,12 @@
 	}
 
 	/**
-	 * @param {{uuid: string, conduits?: Array<{uuid: string}>}} trench
-	 * @returns {number} Count of selected conduits in the trench.
+	 * @returns Count of selected conduits in the trench.
 	 */
-	function getSelectedConduitCount(trench) {
+	function getSelectedConduitCount(trench: {
+		uuid: string;
+		conduits?: Array<{ uuid: string }>;
+	}): number {
 		return (
 			trench.conduits?.filter((c) => selectedKeys.includes(makeKey(trench.uuid, c.uuid))).length ||
 			0
@@ -107,10 +120,12 @@
 	}
 
 	/**
-	 * @param {{uuid: string, conduits?: Array<{uuid: string}>}} trench
-	 * @returns {'none' | 'all' | 'partial'} Selection state of the trench.
+	 * @returns Selection state of the trench.
 	 */
-	function getTrenchSelectionState(trench) {
+	function getTrenchSelectionState(trench: {
+		uuid: string;
+		conduits?: Array<{ uuid: string }>;
+	}): 'none' | 'all' | 'partial' {
 		const total = trench.conduits?.length || 0;
 		const selected = getSelectedConduitCount(trench);
 		if (selected === 0) return 'none';
@@ -119,35 +134,24 @@
 	}
 
 	/**
-	 * @param {string} trenchUuid
-	 * @param {string} conduitUuid
-	 * @returns {boolean} Whether the conduit has existing connections and cannot be deselected.
+	 * @returns Whether the conduit has existing connections and cannot be deselected.
 	 */
-	function isConduitLocked(trenchUuid, conduitUuid) {
+	function isConduitLocked(trenchUuid: string, conduitUuid: string): boolean {
 		return lockedKeys.includes(makeKey(trenchUuid, conduitUuid));
 	}
 
-	/**
-	 * @param {string} trenchUuid
-	 * @param {string} conduitUuid
-	 * @returns {boolean}
-	 */
-	function isConduitSelected(trenchUuid, conduitUuid) {
+	function isConduitSelected(trenchUuid: string, conduitUuid: string): boolean {
 		return selectedKeys.includes(makeKey(trenchUuid, conduitUuid));
 	}
 
-	/**
-	 * @param {{microducts?: Array<unknown>}} conduit
-	 * @returns {number}
-	 */
-	function getMicroductCount(conduit) {
+	function getMicroductCount(conduit: { microducts?: Array<unknown> }): number {
 		return conduit.microducts?.length || 0;
 	}
 
 	/**
-	 * @returns {number} Total count of selected conduit keys.
+	 * @returns Total count of selected conduit keys.
 	 */
-	function getTotalSelectedConduits() {
+	function getTotalSelectedConduits(): number {
 		return selectedKeys.length;
 	}
 

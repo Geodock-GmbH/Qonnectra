@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { getContext, onMount } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import {
@@ -11,7 +11,7 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	import { DRAG_DROP_CONTEXT_KEY } from '$lib/classes/DragDropManager.svelte';
+	import { DRAG_DROP_CONTEXT_KEY, DragDropManager } from '$lib/classes/DragDropManager.svelte';
 	import { PanelResizeManager } from '$lib/classes/PanelResizeManager.svelte.js';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
@@ -22,19 +22,24 @@
 		isMobile = false,
 		onMobileSelect = () => {},
 		disabled = false
+	}: {
+		onDragStart?: (componentType: any) => void;
+		onDragEnd?: () => void;
+		isMobile?: boolean;
+		onMobileSelect?: (componentType: any) => void;
+		disabled?: boolean;
 	} = $props();
 
-	const dragDropManager = getContext(DRAG_DROP_CONTEXT_KEY);
+	const dragDropManager = getContext<DragDropManager | undefined>(DRAG_DROP_CONTEXT_KEY);
 
 	const resizer = new PanelResizeManager({ defaultWidth: 260, side: 'left' });
 
-	/** @type {any[]} */
-	let componentTypes = $state([]);
+	let componentTypes = $state<any[]>([]);
 	let loading = $state(true);
 	let collapsed = $state(false);
 
-	/** @type {Map<number, number>} - Track quantity per component type ID */
-	let quantities = $state(new Map());
+	/** Track quantity per component type ID */
+	let quantities = $state(new Map<number, number>());
 
 	async function fetchComponentTypes() {
 		loading = true;
@@ -44,7 +49,7 @@
 				method: 'POST',
 				body: formData
 			});
-			const result = /** @type {any} */ (deserialize(await response.text()));
+			const result = deserialize(await response.text()) as any;
 			if (result.type === 'success') {
 				componentTypes = result.data?.componentTypes || [];
 			}
@@ -66,19 +71,15 @@
 
 	/**
 	 * Get quantity for a component type (default 1)
-	 * @param {number} ctId
-	 * @returns {number}
 	 */
-	function getQuantity(ctId) {
+	function getQuantity(ctId: number): number {
 		return quantities.get(ctId) || 1;
 	}
 
 	/**
 	 * Update quantity for a component type
-	 * @param {number} ctId
-	 * @param {number} delta
 	 */
-	function updateQuantity(ctId, delta) {
+	function updateQuantity(ctId: number, delta: number) {
 		const current = getQuantity(ctId);
 		const newValue = Math.max(1, Math.min(99, current + delta));
 		quantities.set(ctId, newValue);
@@ -87,10 +88,8 @@
 
 	/**
 	 * Set quantity directly for a component type
-	 * @param {number} ctId
-	 * @param {string|number} value
 	 */
-	function setQuantity(ctId, value) {
+	function setQuantity(ctId: number, value: string | number) {
 		const numValue = parseInt(String(value), 10);
 		if (isNaN(numValue)) return;
 		const clampedValue = Math.max(1, Math.min(99, numValue));
@@ -98,8 +97,7 @@
 		quantities = new Map(quantities);
 	}
 
-	/** @param {any} e @param {any} componentType */
-	function handleDragStart(e, componentType) {
+	function handleDragStart(e: DragEvent, componentType: any) {
 		if (disabled) {
 			e.preventDefault();
 			return;
@@ -107,7 +105,7 @@
 		const count = getQuantity(componentType.id);
 		const isMulti = count > 1;
 
-		e.dataTransfer.setData(
+		e.dataTransfer!.setData(
 			'application/json',
 			JSON.stringify({
 				type: isMulti ? 'multi_component_type' : 'component_type',
@@ -117,7 +115,7 @@
 				...(isMulti && { count, total_slots: componentType.occupied_slots * count })
 			})
 		);
-		e.dataTransfer.effectAllowed = 'copy';
+		e.dataTransfer!.effectAllowed = 'copy';
 
 		if (dragDropManager) {
 			if (isMulti) {
@@ -136,8 +134,7 @@
 		onDragEnd();
 	}
 
-	/** @param {any} componentType */
-	function handleItemClick(componentType) {
+	function handleItemClick(componentType: any) {
 		if (isMobile) {
 			const count = getQuantity(componentType.id);
 			if (dragDropManager) {
@@ -214,8 +211,8 @@
 							class="w-10 h-8 text-center text-sm font-mono bg-surface-300-700 rounded border-none focus:ring-1 focus:ring-primary-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
 							value={qty}
 							onclick={(e) => e.stopPropagation()}
-							oninput={(e) => setQuantity(ct.id, /** @type {any} */ (e.target).value)}
-							onblur={(e) => setQuantity(ct.id, /** @type {any} */ (e.target).value)}
+							oninput={(e) => setQuantity(ct.id, (e.target as HTMLInputElement).value)}
+							onblur={(e) => setQuantity(ct.id, (e.target as HTMLInputElement).value)}
 						/>
 						<button
 							type="button"
@@ -321,8 +318,8 @@
 										value={qty}
 										onclick={(e) => e.stopPropagation()}
 										onmousedown={(e) => e.stopPropagation()}
-										oninput={(e) => setQuantity(ct.id, /** @type {any} */ (e.target).value)}
-										onblur={(e) => setQuantity(ct.id, /** @type {any} */ (e.target).value)}
+										oninput={(e) => setQuantity(ct.id, (e.target as HTMLInputElement).value)}
+										onblur={(e) => setQuantity(ct.id, (e.target as HTMLInputElement).value)}
 										draggable="false"
 									/>
 									<button

@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { SharedSlotState } from '$lib/classes/NodeStructureContext.svelte.js';
 	import { onMount, setContext } from 'svelte';
 	import { IconArrowLeft, IconLayoutList, IconPlug, IconTopologyRing2 } from '@tabler/icons-svelte';
 
@@ -24,20 +25,23 @@
 		readonly = false,
 		initialSlotConfigUuid = null,
 		sharedSlotState = $bindable(null)
+	}: {
+		nodeUuid: string;
+		nodeName?: string;
+		readonly?: boolean;
+		initialSlotConfigUuid?: string | null;
+		sharedSlotState?: (SharedSlotState & { lastUpdated?: number }) | null;
 	} = $props();
 
 	let innerWidth = $state(typeof window !== 'undefined' ? window.innerWidth : 1024);
 	const isMobile = $derived(innerWidth < 768);
 
-	/** @type {any} */
-	let activeSheet = $state(null);
+	let activeSheet = $state<any>(null);
 	let cableRefreshTrigger = $state(0);
 	let showPortTableFullScreen = $state(false);
 
-	/** @type {any} */
-	let deleteMessageBox = $state(null);
-	/** @type {any} */
-	let pendingDeleteUuid = $state(null);
+	let deleteMessageBox = $state<any>(null);
+	let pendingDeleteUuid = $state<any>(null);
 	let pendingDeleteSpliceCount = $state(0);
 
 	// Context is created with initial prop values and updated reactively via $effect below
@@ -61,7 +65,7 @@
 		innerWidth = window.innerWidth;
 	}
 
-	let previousNodeUuid = $state(/** @type {string|null} */ (null));
+	let previousNodeUuid = $state<string | null>(null);
 
 	$effect(() => {
 		if (nodeUuid && nodeUuid !== previousNodeUuid) {
@@ -97,13 +101,11 @@
 		}
 	});
 
-	/** @param {any} e */
-	function handleSideChange(e) {
+	function handleSideChange(e: any) {
 		context.selectSlotConfig(e.target.value);
 	}
 
-	/** @param {any} structure */
-	async function handleStructureSelect(structure) {
+	async function handleStructureSelect(structure: any) {
 		const wasSelected = await context.structureActions.onSelect(structure);
 		if (wasSelected) {
 			if (isMobile) {
@@ -123,8 +125,7 @@
 	 * Checks for fiber splices before deleting a structure. Opens a confirmation
 	 * dialog if splices exist, since they will be cascade-deleted.
 	 */
-	/** @param {any} structureUuid */
-	async function handleDeleteStructure(structureUuid) {
+	async function handleDeleteStructure(structureUuid: any) {
 		const result = await context.structureActions.onDelete(structureUuid);
 		if (result?.needsConfirmation) {
 			pendingDeleteUuid = result.structureUuid;
@@ -141,14 +142,12 @@
 		}
 	}
 
-	/** @param {any} componentType */
-	function handleMobileComponentSelect(componentType) {
+	function handleMobileComponentSelect(componentType: any) {
 		context.sidebarActions.onMobileSelect(componentType);
 		activeSheet = null;
 	}
 
-	/** @param {any} fiberData */
-	function handleMobileFiberSelect(fiberData) {
+	function handleMobileFiberSelect(fiberData: any) {
 		context.mobileActions.onFiberSelect(fiberData);
 		activeSheet = 'ports';
 	}
@@ -177,7 +176,7 @@
 					<GenericCombobox
 						data={slotConfigData}
 						value={context.selectedSlotConfigUuid ? [context.selectedSlotConfigUuid] : []}
-						onValueChange={(/** @type {{ value: string[] }} */ e) => {
+						onValueChange={(e: { value: string[] }) => {
 							if (e.value[0]) context.selectSlotConfig(e.value[0]);
 						}}
 						classes="touch-manipulation flex-1"
@@ -314,7 +313,7 @@
 							<GenericCombobox
 								data={slotConfigData}
 								value={context.selectedSlotConfigUuid ? [context.selectedSlotConfigUuid] : []}
-								onValueChange={(/** @type {{ value: string[] }} */ e) => {
+								onValueChange={(e: { value: string[] }) => {
 									if (e.value[0]) context.selectSlotConfig(e.value[0]);
 								}}
 								renderInPlace={true}

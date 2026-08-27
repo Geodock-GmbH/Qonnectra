@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { goto } from '$app/navigation';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
 	import {
@@ -12,12 +12,21 @@
 	import { m } from '$lib/paraglide/messages';
 	import { getLocale } from '$lib/paraglide/runtime';
 
+	interface PaginationInfo {
+		totalCount: number;
+		pageSize: number;
+		page: number;
+	}
+
+	interface Props {
+		records: Record<string, any>[];
+		pagination: PaginationInfo;
+	}
+
 	/**
 	 * Formats an ISO date string into a localized short date+time.
-	 * @param {string | null | undefined} isoString
-	 * @returns {string}
 	 */
-	function formatDate(isoString) {
+	function formatDate(isoString: string | null | undefined): string {
 		if (!isoString) return '';
 		const date = new Date(isoString);
 		return date.toLocaleString(getLocale(), {
@@ -29,7 +38,7 @@
 		});
 	}
 
-	let { records, pagination } = $props();
+	let { records, pagination }: Props = $props();
 
 	const columnConfig = [
 		{ key: 'project_name', label: m.form_project({ count: 1 }), sortable: true, filterable: true },
@@ -55,12 +64,10 @@
 		}
 	];
 
-	/** @type {string | null} */
-	let sortColumn = $state(null);
+	let sortColumn = $state<string | null>(null);
 	let sortDirection = $state('asc');
 
-	/** @type {Record<string, string>} */
-	let filters = $state({
+	let filters = $state<Record<string, string>>({
 		project_name: '',
 		type_of_work: '',
 		request_reason: '',
@@ -70,8 +77,7 @@
 
 	let mobileSearchTerm = $state('');
 
-	/** @param {string} columnKey */
-	function toggleSort(columnKey) {
+	function toggleSort(columnKey: string) {
 		if (sortColumn === columnKey) {
 			if (sortDirection === 'asc') {
 				sortDirection = 'desc';
@@ -85,16 +91,11 @@
 		}
 	}
 
-	/**
-	 * @param {string} columnKey
-	 * @param {string} value
-	 */
-	function updateFilter(columnKey, value) {
+	function updateFilter(columnKey: string, value: string) {
 		filters[columnKey] = value;
 	}
 
-	/** @param {number} newPage */
-	function goToPage(newPage) {
+	function goToPage(newPage: number) {
 		const url = new URL(window.location.href);
 		url.searchParams.set('page', String(newPage));
 		goto(`${url.pathname}${url.search}`);
@@ -102,14 +103,14 @@
 
 	/**
 	 * Navigates to the edit page for the clicked pipeline record.
-	 * @param {Record<string, any>} record - The pipeline record row object.
+	 * @param record - The pipeline record row object.
 	 */
-	function handleRowClick(record) {
+	function handleRowClick(record: Record<string, any>) {
 		goto(`/pipeline-records/${record.value}`);
 	}
 
 	const filteredRecords = $derived.by(() => {
-		return records.filter((/** @type {Record<string, any>} */ record) => {
+		return records.filter((record: Record<string, any>) => {
 			return Object.entries(filters).every(([key, filterValue]) => {
 				if (!filterValue) return true;
 				const cellValue = String(record[key] || '').toLowerCase();
@@ -146,7 +147,7 @@
 		if (!mobileSearchTerm) return sortedRecords;
 
 		const term = mobileSearchTerm.toLowerCase();
-		return sortedRecords.filter((/** @type {Record<string, any>} */ record) => {
+		return sortedRecords.filter((record: Record<string, any>) => {
 			return Object.values(record).some((value) =>
 				String(value || '')
 					.toLowerCase()
@@ -205,7 +206,7 @@
 											placeholder={m.common_search()}
 											value={filters[column.key]}
 											oninput={(e) =>
-												updateFilter(column.key, /** @type {HTMLInputElement} */ (e.target).value)}
+												updateFilter(column.key, (e.target as HTMLInputElement).value)}
 										/>
 									{/if}
 								</th>

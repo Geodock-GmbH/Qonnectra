@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { NodeProps } from '@xyflow/svelte';
 	import { Handle, Position } from '@xyflow/svelte';
 	import { parse } from 'devalue';
 
@@ -10,7 +11,16 @@
 
 	import DrawerTabs from './DrawerTabs.svelte';
 
-	let { id, data, selected } = $props();
+	interface CableNodeData {
+		label?: string;
+		node?: { name?: string };
+		onNodeSelect?: (id: string) => void;
+		onNameUpdate?: (label: string) => void;
+		onNodeDelete?: unknown;
+		[key: string]: unknown;
+	}
+
+	let { id, data, selected }: NodeProps & { data: CableNodeData } = $props();
 
 	let currentLabel = $state('');
 
@@ -79,7 +89,7 @@
 					id: id,
 					...parsedData.properties,
 					type: 'node',
-					onLabelUpdate: (/** @type {any} */ newLabel) => {
+					onLabelUpdate: (newLabel: string) => {
 						currentLabel = newLabel;
 						drawerStore.setTitle(newLabel);
 						data?.onNameUpdate?.(newLabel);
@@ -105,7 +115,7 @@
 		}
 	}
 
-	function handleKeydown(/** @type {any} */ event) {
+	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter' || event.key === ' ') {
 			event.preventDefault();
 			handleNodeClick();
@@ -114,7 +124,7 @@
 </script>
 
 {#each Object.entries(handleInit) as [position, handleConfig]}
-	{@const positionEnum = /** @type {Record<string, any>} */ (Position)}
+	{@const positionEnum = Position as Record<string, any>}
 	{@const posKey = position.charAt(0).toUpperCase() + position.slice(1)}
 	<Handle
 		type="source"
