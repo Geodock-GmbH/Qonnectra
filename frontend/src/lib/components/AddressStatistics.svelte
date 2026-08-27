@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { m } from '$lib/paraglide/messages';
 
 	import Chart from './Chart.svelte';
@@ -8,66 +8,50 @@
 
 	/**
 	 * Transform addresses by city data for chart
-	 * @returns {Array}
 	 */
 	const cityData = $derived.by(() => {
 		return addressesByCity
-			?.map((/** @type {{ city: string, count: number }} */ item) => ({
+			?.map((item: { city: string; count: number }) => ({
 				label: item.city || m.common_unknown(),
 				value: item.count
 			}))
-			.sort(
-				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
-					b.value - a.value
-			);
+			.sort((a: { value: number }, b: { value: number }) => b.value - a.value);
 	});
 
 	/**
 	 * Transform addresses by status data for chart
-	 * @returns {Array}
 	 */
 	const statusData = $derived.by(() => {
 		return addressesByStatus
-			?.map((/** @type {{ status: string, count: number }} */ item) => ({
+			?.map((item: { status: string; count: number }) => ({
 				label: item.status || m.common_unknown(),
 				value: item.count
 			}))
-			.sort(
-				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
-					b.value - a.value
-			);
+			.sort((a: { value: number }, b: { value: number }) => b.value - a.value);
 	});
 
 	/**
 	 * Transform units by city data for chart
-	 * @returns {Array}
 	 */
 	const unitsCityData = $derived.by(() => {
 		return unitsByCity
-			?.map((/** @type {{ city: string, count: number }} */ item) => ({
+			?.map((item: { city: string; count: number }) => ({
 				label: item.city || m.common_unknown(),
 				value: item.count
 			}))
-			.sort(
-				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
-					b.value - a.value
-			);
+			.sort((a: { value: number }, b: { value: number }) => b.value - a.value);
 	});
 
 	/**
 	 * Transform units by type data for donut chart
-	 * @returns {Array}
 	 */
 	const unitsTypeData = $derived.by(() => {
 		return unitsByType
-			?.map((/** @type {{ type: string, count: number }} */ item) => ({
+			?.map((item: { type: string; count: number }) => ({
 				label: item.type || m.common_unknown(),
 				value: item.count
 			}))
-			.sort(
-				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
-					b.value - a.value
-			);
+			.sort((a: { value: number }, b: { value: number }) => b.value - a.value);
 	});
 </script>
 

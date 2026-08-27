@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { Portal, FloatingPanel as SkeletonFloatingPanel } from '@skeletonlabs/skeleton-svelte';
 	import {
 		IconGripVertical,
@@ -7,6 +8,19 @@
 		IconMinus,
 		IconX
 	} from '@tabler/icons-svelte';
+
+	interface Props {
+		open?: boolean;
+		title?: string;
+		width?: number;
+		height?: number;
+		minWidth?: number;
+		minHeight?: number;
+		maxWidth?: number;
+		maxHeight?: number;
+		resizable?: boolean;
+		children?: Snippet;
+	}
 
 	let {
 		open = $bindable(false),
@@ -19,7 +33,7 @@
 		maxHeight = 600,
 		resizable = true,
 		children
-	} = $props();
+	}: Props = $props();
 
 	// svelte-ignore state_referenced_locally
 	let size = $state({ width, height });
@@ -32,7 +46,7 @@
 	 */
 	function bringToFront() {
 		if (typeof window === 'undefined') return;
-		const win = /** @type {Window & { __floatingPanelZIndex?: number }} */ (window);
+		const win = window as Window & { __floatingPanelZIndex?: number };
 		const currentMax = win.__floatingPanelZIndex ?? 50;
 		const newZIndex = currentMax + 1;
 		win.__floatingPanelZIndex = newZIndex;
@@ -41,25 +55,22 @@
 
 	/**
 	 * Handles the open change event.
-	 * @param {{ open: boolean }} details
 	 */
-	function handleOpenChange(details) {
+	function handleOpenChange(details: { open: boolean }) {
 		open = details.open;
 	}
 
 	/**
 	 * Handles the size change event.
-	 * @param {{ size: { width: number, height: number } }} details
 	 */
-	function handleSizeChange(details) {
+	function handleSizeChange(details: { size: { width: number; height: number } }) {
 		size = details.size;
 	}
 
 	/**
 	 * Gets the center position of the floating panel.
-	 * @returns {{ x: number, y: number }}
 	 */
-	function getCenterPosition() {
+	function getCenterPosition(): { x: number; y: number } {
 		if (typeof window === 'undefined') return { x: 100, y: 100 };
 		return {
 			x: Math.max(0, (window.innerWidth - width) / 2),

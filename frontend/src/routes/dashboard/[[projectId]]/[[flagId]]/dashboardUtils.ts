@@ -77,7 +77,7 @@ export interface DashboardData {
 	nodesByNetworkLevel: LevelCount[];
 	nodesByType: NodeByType[];
 	nodesByOwner: OwnerCount[];
-	newestNodes: unknown[];
+	newestNodes: Array<{ name?: string; node_type?: string }>;
 	projects: ProjectItem[];
 	addressesByCity: CityCount[];
 	addressesByStatus: StatusCount[];
@@ -130,7 +130,7 @@ interface NodeStats {
 	count_by_status?: StatusCount[];
 	count_by_network_level?: LevelCount[];
 	count_by_owner?: OwnerCount[];
-	newest_nodes?: unknown[];
+	newest_nodes?: Array<{ name?: string; node_type?: string }>;
 }
 
 interface AddressStats {

@@ -1,23 +1,26 @@
-<script>
+<script lang="ts">
+	import type { Fiber } from '$lib/classes/CableFiberDataManager.svelte.js';
 	import { IconChevronDown, IconChevronRight } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 
-	/** @typedef {import('$lib/classes/CableFiberDataManager.svelte.js').Fiber} Fiber */
+	interface Props {
+		/** Array of fiber objects */
+		fibers: Array<Fiber>;
+		/** Loading state */
+		loading: boolean;
+		/** Error message */
+		error: string | null;
+		/** Available status options */
+		statusOptions: Array<{ id: number; fiber_status: string }>;
+		/** Callback when status changes */
+		onStatusChange: (fiber: Fiber, statusId: number | null) => void;
+		/** Function to get hex color from name */
+		getColorHex: (colorName: string) => string;
+	}
 
-	/**
-	 * @typedef {Object} Props
-	 * @property {Array<Fiber>} fibers - Array of fiber objects
-	 * @property {boolean} loading - Loading state
-	 * @property {string|null} error - Error message
-	 * @property {Array<{id: number, fiber_status: string}>} statusOptions - Available status options
-	 * @property {(fiber: Fiber, statusId: number|null) => void} onStatusChange - Callback when status changes
-	 * @property {(colorName: string) => string} getColorHex - Function to get hex color from name
-	 */
-
-	/** @type {Props} */
 	let {
 		fibers = [],
 		loading = false,
@@ -25,19 +28,17 @@
 		statusOptions = [],
 		onStatusChange,
 		getColorHex
-	} = $props();
+	}: Props = $props();
 
 	const HEALTHY_VALUE = 'healthy';
 
-	/** @type {Record<string, Array<string|number>>} */
-	let statusValues = $state({});
+	let statusValues = $state<Record<string, Array<string | number>>>({});
 
-	/** @type {Set<number>} - Expanded bundle numbers */
-	let expandedBundles = $state(new Set());
+	/** Expanded bundle numbers */
+	let expandedBundles = $state<Set<number>>(new Set());
 
 	$effect(() => {
-		/** @type {Record<string, Array<string|number>>} */
-		const newValues = {};
+		const newValues: Record<string, Array<string | number>> = {};
 		for (const fiber of fibers) {
 			newValues[fiber.uuid] =
 				fiber.fiber_status?.id != null ? [fiber.fiber_status.id] : [HEALTHY_VALUE];
@@ -71,9 +72,8 @@
 
 	/**
 	 * Toggle bundle expansion
-	 * @param {number} bundleNumber
 	 */
-	function toggleBundle(bundleNumber) {
+	function toggleBundle(bundleNumber: number) {
 		if (expandedBundles.has(bundleNumber)) {
 			expandedBundles.delete(bundleNumber);
 		} else {
@@ -84,13 +84,11 @@
 
 	/**
 	 * Handle combobox value change
-	 * @param {Fiber} fiber
-	 * @param {{ value: Array<string|number> }} e
 	 */
-	function handleComboboxChange(fiber, e) {
+	function handleComboboxChange(fiber: Fiber, e: { value: Array<string | number> }) {
 		const selectedValue = e.value[0];
-		/** @type {number|null} */
-		const newValue = selectedValue === HEALTHY_VALUE ? null : /** @type {number} */ (selectedValue);
+		const newValue: number | null =
+			selectedValue === HEALTHY_VALUE ? null : (selectedValue as number);
 		if (onStatusChange) {
 			onStatusChange(fiber, newValue);
 		}
@@ -98,19 +96,15 @@
 
 	/**
 	 * Check if a fiber has a defective status
-	 * @param {Fiber} fiber
-	 * @returns {boolean}
 	 */
-	function isDefective(fiber) {
+	function isDefective(fiber: Fiber): boolean {
 		return fiber.fiber_status != null;
 	}
 
 	/**
 	 * Count defective fibers in a bundle
-	 * @param {Array<Fiber>} bundleFibers
-	 * @returns {number}
 	 */
-	function countDefective(bundleFibers) {
+	function countDefective(bundleFibers: Array<Fiber>): number {
 		return bundleFibers.filter((f) => f.fiber_status != null).length;
 	}
 </script>
@@ -194,7 +188,7 @@
 											<GenericCombobox
 												data={statusComboboxData}
 												bind:value={statusValues[fiber.uuid]}
-												onValueChange={(/** @type {{ value: Array<string|number> }} */ e) =>
+												onValueChange={(e: { value: Array<string | number> }) =>
 													handleComboboxChange(fiber, e)}
 												placeholder={m.form_status()}
 												classes="w-full"

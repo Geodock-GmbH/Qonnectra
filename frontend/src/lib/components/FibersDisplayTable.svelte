@@ -1,21 +1,24 @@
-<script>
+<script lang="ts">
+	import type { Fiber } from '$lib/classes/CableFiberDataManager.svelte';
 	import { IconChevronDown, IconChevronRight, IconRoute } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
-	/** @typedef {import('$lib/classes/CableFiberDataManager.svelte.js').Fiber} Fiber */
+	interface Props {
+		/** Array of fiber objects */
+		fibers?: Array<Fiber>;
+		/** Loading state */
+		loading?: boolean;
+		/** Error message */
+		error?: string | null;
+		/** Function to get hex color from name */
+		getColorHex: (colorName: string) => string;
+		/** Function to get translated color name */
+		getColorName?: (colorName: string) => string;
+		/** Optional callback for trace navigation */
+		onTraceFiber?: (fiberUuid: string) => void;
+	}
 
-	/**
-	 * @typedef {Object} Props
-	 * @property {Array<Fiber>} fibers - Array of fiber objects
-	 * @property {boolean} loading - Loading state
-	 * @property {string|null} error - Error message
-	 * @property {(colorName: string) => string} getColorHex - Function to get hex color from name
-	 * @property {(colorName: string) => string} [getColorName] - Function to get translated color name
-	 * @property {(fiberUuid: string) => void} [onTraceFiber] - Optional callback for trace navigation
-	 */
-
-	/** @type {Props} */
 	let {
 		fibers = [],
 		loading = false,
@@ -23,17 +26,23 @@
 		getColorHex,
 		getColorName,
 		onTraceFiber
-	} = $props();
+	}: Props = $props();
 
-	/** @type {Set<number>} - Expanded bundle numbers */
-	let expandedBundles = $state(new Set());
+	interface BundleGroup {
+		bundleNumber: number;
+		bundleColor: string;
+		fibers: Fiber[];
+	}
+
+	/** Expanded bundle numbers */
+	let expandedBundles = $state<Set<number>>(new Set());
 
 	/**
 	 * Group fibers by bundle number
 	 */
 	const bundleGroups = $derived.by(() => {
 		if (!Array.isArray(fibers)) return [];
-		const groups = new Map();
+		const groups = new Map<number, BundleGroup>();
 		for (const fiber of fibers) {
 			const bundleKey = fiber.bundle_number;
 			if (!groups.has(bundleKey)) {
@@ -43,16 +52,16 @@
 					fibers: []
 				});
 			}
-			groups.get(bundleKey).fibers.push(fiber);
+			groups.get(bundleKey)!.fibers.push(fiber);
 		}
 		return Array.from(groups.values()).sort((a, b) => a.bundleNumber - b.bundleNumber);
 	});
 
 	/**
 	 * Toggle bundle expansion
-	 * @param {number} bundleNumber
+	 * @param bundleNumber
 	 */
-	function toggleBundle(bundleNumber) {
+	function toggleBundle(bundleNumber: number) {
 		if (expandedBundles.has(bundleNumber)) {
 			expandedBundles.delete(bundleNumber);
 		} else {
@@ -65,28 +74,25 @@
 	 * Check if a fiber has a defective status.
 	 * Fibers without an assigned status are considered healthy by default.
 	 * Any assigned fiber_status indicates a non-healthy state.
-	 * @param {Fiber} fiber
-	 * @returns {boolean}
+	 * @param fiber
 	 */
-	function isDefective(fiber) {
+	function isDefective(fiber: Fiber): boolean {
 		return fiber.fiber_status != null;
 	}
 
 	/**
 	 * Count defective fibers in a bundle
-	 * @param {Array<Fiber>} bundleFibers
-	 * @returns {number}
+	 * @param bundleFibers
 	 */
-	function countDefective(bundleFibers) {
+	function countDefective(bundleFibers: Array<Fiber>): number {
 		return bundleFibers.filter((f) => f.fiber_status != null).length;
 	}
 
 	/**
 	 * Get status display text
-	 * @param {Fiber} fiber
-	 * @returns {string}
+	 * @param fiber
 	 */
-	function getStatusDisplay(fiber) {
+	function getStatusDisplay(fiber: Fiber): string {
 		if (fiber.fiber_status?.fiber_status) {
 			return fiber.fiber_status.fiber_status;
 		}
@@ -167,11 +173,11 @@
 											<div class="flex items-center gap-2">
 												<div
 													class="w-4 h-4 rounded-full border border-surface-300"
-													style="background-color: {getColorHex(fiber.fiber_color)}"
+													style="background-color: {getColorHex(fiber.fiber_color as string)}"
 												></div>
 												<span
 													>{getColorName
-														? getColorName(fiber.fiber_color)
+														? getColorName(fiber.fiber_color as string)
 														: fiber.fiber_color}</span
 												>
 											</div>

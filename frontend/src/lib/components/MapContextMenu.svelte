@@ -1,25 +1,32 @@
-<script>
+<script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { Menu, Portal } from '@skeletonlabs/skeleton-svelte';
 	import { IconLine, IconPolygon, IconX } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
-	/**
-	 * @typedef {Object} ContextMenuActions
-	 * @property {boolean} [measureDistance]
-	 * @property {boolean} [measureArea]
-	 */
+	interface ContextMenuActions {
+		measureDistance?: boolean;
+		measureArea?: boolean;
+	}
+
+	interface Props {
+		measureManager?: {
+			isMeasuring?: boolean;
+			startMeasure: (mode: 'distance' | 'area') => void;
+			stopMeasure: () => void;
+		};
+		actions?: ContextMenuActions;
+		children: Snippet;
+	}
 
 	let {
 		measureManager,
 		actions = { measureDistance: true, measureArea: true },
 		children
-	} = $props();
+	}: Props = $props();
 
-	/**
-	 * @param {{ value: string }} detail
-	 */
-	function handleSelect(detail) {
+	function handleSelect(detail: { value: string }) {
 		switch (detail.value) {
 			case 'measure-distance':
 				measureManager?.startMeasure('distance');

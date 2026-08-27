@@ -1,7 +1,16 @@
-<script>
+<script lang="ts">
 	import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
 
 	import { m } from '$lib/paraglide/messages';
+
+	interface Props {
+		heading?: string;
+		message?: string;
+		showAcceptButton?: boolean;
+		acceptText?: string;
+		closeText?: string;
+		onAccept?: (() => void) | null;
+	}
 
 	let {
 		heading,
@@ -10,7 +19,7 @@
 		acceptText = m.common_confirm(),
 		closeText = m.common_close(),
 		onAccept = null
-	} = $props();
+	}: Props = $props();
 
 	let openState = $state(false);
 

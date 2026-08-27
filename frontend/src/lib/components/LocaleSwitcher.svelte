@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { browser } from '$app/environment';
 
 	import { m } from '$lib/paraglide/messages';
@@ -11,12 +11,12 @@
 		{ label: 'EN', value: 'en' }
 	];
 
-	let currentLocale = $state([getLocale()]);
+	let currentLocale = $state<string[]>([getLocale()]);
 
-	function handleLocaleChange(/** @type {{ value: string[] }} */ e) {
+	function handleLocaleChange(e: { value: string[] }) {
 		const newLocale = e.value[0];
 		if (browser && newLocale && newLocale !== getLocale()) {
-			setLocale(/** @type {"de" | "en"} */ (newLocale));
+			setLocale(newLocale as 'de' | 'en');
 		}
 	}
 </script>

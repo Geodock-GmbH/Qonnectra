@@ -1,11 +1,10 @@
-<script>
+<script lang="ts">
 	import { navigating } from '$app/stores';
 	import { Progress } from '@skeletonlabs/skeleton-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
-	/** @type {string[]} */
-	const skipOverlayRoutes = /** @type {string[]} */ ([]);
+	const skipOverlayRoutes: string[] = [];
 
 	let isNavigating = $derived($navigating !== null);
 	let targetPath = $derived($navigating?.to?.route?.id || '');

@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { m } from '$lib/paraglide/messages';
 
 	import DashboardCard from '../../routes/dashboard/[[projectId]]/[[flagId]]/DashboardCard.svelte';
@@ -25,125 +25,97 @@
 
 	/**
 	 * Calculate coverage percentage
-	 * @param {number} inAreas - Count within areas
-	 * @param {number} total - Total count
-	 * @returns {number} Percentage
+	 * @param inAreas - Count within areas
+	 * @param total - Total count
+	 * @returns Percentage
 	 */
-	function calcPercentage(inAreas, total) {
+	function calcPercentage(inAreas: number, total: number): number {
 		if (!total || total === 0) return 0;
 		return Math.round((inAreas / total) * 100);
 	}
 
 	/**
 	 * Transform areas by type for donut chart
-	 * @returns {Array}
 	 */
 	const areaTypeData = $derived.by(() => {
 		return areasByType
-			?.map((/** @type {{ type_name: string, count: number }} */ item) => ({
+			?.map((item: { type_name: string; count: number }) => ({
 				label: item.type_name || m.common_unknown(),
 				value: item.count
 			}))
-			.sort(
-				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
-					b.value - a.value
-			);
+			.sort((a: { value: number }, b: { value: number }) => b.value - a.value);
 	});
 
 	/**
 	 * Transform addresses per area for bar chart
-	 * @returns {Array}
 	 */
 	const addressesPerAreaData = $derived.by(() => {
 		return addressesPerArea
-			?.map((/** @type {{ name: string, count: number }} */ item) => ({
+			?.map((item: { name: string; count: number }) => ({
 				label: item.name || m.common_unknown(),
 				value: item.count
 			}))
-			.sort(
-				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
-					b.value - a.value
-			);
+			.sort((a: { value: number }, b: { value: number }) => b.value - a.value);
 	});
 
 	/**
 	 * Transform addresses by area type for bar chart
-	 * @returns {Array}
 	 */
 	const addressesByTypeData = $derived.by(() => {
 		return addressesByAreaType
-			?.map((/** @type {{ type: string, count: number }} */ item) => ({
+			?.map((item: { type: string; count: number }) => ({
 				label: item.type || m.common_unknown(),
 				value: item.count
 			}))
-			.sort(
-				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
-					b.value - a.value
-			);
+			.sort((a: { value: number }, b: { value: number }) => b.value - a.value);
 	});
 
 	/**
 	 * Transform nodes per area for bar chart
-	 * @returns {Array}
 	 */
 	const nodesPerAreaData = $derived.by(() => {
 		return nodesPerArea
-			?.map((/** @type {{ name: string, count: number }} */ item) => ({
+			?.map((item: { name: string; count: number }) => ({
 				label: item.name || m.common_unknown(),
 				value: item.count
 			}))
-			.sort(
-				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
-					b.value - a.value
-			);
+			.sort((a: { value: number }, b: { value: number }) => b.value - a.value);
 	});
 
 	/**
 	 * Transform nodes by area type for bar chart
-	 * @returns {Array}
 	 */
 	const nodesByTypeData = $derived.by(() => {
 		return nodesByAreaType
-			?.map((/** @type {{ type: string, count: number }} */ item) => ({
+			?.map((item: { type: string; count: number }) => ({
 				label: item.type || m.common_unknown(),
 				value: item.count
 			}))
-			.sort(
-				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
-					b.value - a.value
-			);
+			.sort((a: { value: number }, b: { value: number }) => b.value - a.value);
 	});
 
 	/**
 	 * Transform trench length per area for bar chart (convert to km)
-	 * @returns {Array}
 	 */
 	const trenchLengthData = $derived.by(() => {
 		return trenchLengthPerArea
-			?.map((/** @type {{ name: string, length_m: number }} */ item) => ({
+			?.map((item: { name: string; length_m: number }) => ({
 				label: item.name || m.common_unknown(),
 				value: item.length_m / 1000
 			}))
-			.sort(
-				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
-					b.value - a.value
-			);
+			.sort((a: { value: number }, b: { value: number }) => b.value - a.value);
 	});
 
 	/**
 	 * Transform residential by area type for bar chart
-	 * @returns {Array}
 	 */
 	const residentialByTypeData = $derived.by(() => {
 		return residentialByAreaType
-			?.map((/** @type {{ type: string, count: number }} */ item) => ({
+			?.map((item: { type: string; count: number }) => ({
 				label: item.type || m.common_unknown(),
 				value: item.count
 			}))
-			.sort(
-				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
-					b.value - a.value
-			);
+			.sort((a: { value: number }, b: { value: number }) => b.value - a.value);
 	});
 </script>
 

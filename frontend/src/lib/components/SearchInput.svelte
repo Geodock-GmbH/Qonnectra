@@ -1,11 +1,16 @@
-<script>
+<script lang="ts">
 	import { IconSearch } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
-	let { value = $bindable(''), onSearch = () => {} } = $props();
+	interface Props {
+		value?: string;
+		onSearch?: () => void;
+	}
 
-	function handleKeydown(/** @type {KeyboardEvent} */ event) {
+	let { value = $bindable(''), onSearch = () => {} }: Props = $props();
+
+	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
 			onSearch();
 		}

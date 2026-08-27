@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { quintOut } from 'svelte/easing';
 	import { slide } from 'svelte/transition';
 	import { page } from '$app/state';
@@ -17,21 +17,18 @@
 	let currentLocale = $derived(getLocale());
 
 	/**
-	 * @param {"de" | "en"} locale - Target locale code
-	 * @returns {void}
+	 * @param locale - Target locale code
 	 */
-	function switchLocale(locale) {
+	function switchLocale(locale: 'de' | 'en') {
 		setLocale(locale);
 	}
 
 	let showMoreMenu = $state(false);
 
-	/** @returns {void} */
 	function closeMoreMenu() {
 		showMoreMenu = false;
 	}
 
-	/** @returns {void} */
 	function toggleMoreMenu() {
 		showMoreMenu = !showMoreMenu;
 	}
@@ -65,10 +62,10 @@
 	let totalTiles = $derived(barLinks.length + (hasMoreContent ? 1 : 0));
 
 	/**
-	 * @param {boolean} isSelected - Whether the nav item is currently active
-	 * @returns {string} CSS class string for the anchor element
+	 * @param isSelected - Whether the nav item is currently active
+	 * @returns CSS class string for the anchor element
 	 */
-	function getAnchorClass(isSelected) {
+	function getAnchorClass(isSelected: boolean): string {
 		const baseClass = 'btn hover:preset-tonal flex-col items-center gap-1';
 		return isSelected ? `${baseClass} preset-filled` : baseClass;
 	}

@@ -10,7 +10,7 @@ import { zoomToExtent } from '$lib/map/searchUtils';
 export function createZoomToLayerExtentHandler(
 	getMap: () => OlMap | undefined,
 	getProjectId: () => string
-): (event: { layerId: string; layerType: string }) => Promise<void> {
+): (event: { layerId: string; layerType: string | null }) => Promise<void> {
 	return async function handleZoomToExtent({ layerId, layerType }) {
 		const map = getMap();
 		const projectId = getProjectId();
@@ -19,7 +19,7 @@ export function createZoomToLayerExtentHandler(
 
 		try {
 			const formData = new FormData();
-			formData.append('layerType', layerType);
+			formData.append('layerType', String(layerType));
 			formData.append('projectId', projectId);
 
 			const response = await fetch('?/getLayerExtent', {

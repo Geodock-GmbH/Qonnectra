@@ -1,16 +1,19 @@
-<script>
+<script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { Portal, Tooltip } from '@skeletonlabs/skeleton-svelte';
 
-	/**
-	 * @typedef {Object} Props
-	 * @property {import('svelte').Snippet} [children] - The element(s) that trigger the tooltip
-	 * @property {string} content - The tooltip text content
-	 * @property {'top' | 'bottom' | 'left' | 'right'} [position='top'] - Position of the tooltip
-	 * @property {number} [delay=200] - Delay in milliseconds before showing tooltip
-	 */
+	interface Props {
+		/** The element(s) that trigger the tooltip */
+		children?: Snippet;
+		/** The tooltip text content */
+		content: string;
+		/** Position of the tooltip */
+		position?: 'top' | 'bottom' | 'left' | 'right';
+		/** Delay in milliseconds before showing tooltip */
+		delay?: number;
+	}
 
-	/** @type {Props} */
-	let { children, content, position = 'top', delay = 200 } = $props();
+	let { children, content, position = 'top', delay = 200 }: Props = $props();
 </script>
 
 <Tooltip openDelay={delay} closeDelay={150} positioning={{ placement: position }}>

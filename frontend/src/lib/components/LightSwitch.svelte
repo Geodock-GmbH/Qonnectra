@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { onMount } from 'svelte';
 	import { IconMoon, IconSun } from '@tabler/icons-svelte';
 

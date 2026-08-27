@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { browser } from '$app/environment';
 	import { Combobox, Portal, useListCollection } from '@skeletonlabs/skeleton-svelte';
 	import Fuse from 'fuse.js';
@@ -6,6 +6,31 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { globalToaster } from '$lib/stores/toaster';
+
+	interface Props {
+		/**
+		 * List of options. Items are read via `.value` and `.label`; callers may pass
+		 * richer objects, so this stays permissive to match existing usage.
+		 */
+		data?: any[];
+		value?: Array<string | number>;
+		defaultValue?: Array<string | number>;
+		placeholder?: string;
+		error?: string | null;
+		errorMessage?: string;
+		noDataMessage?: string;
+		loading?: boolean;
+		placeholderSize?: string;
+		classes?: string;
+		zIndex?: string;
+		contentBase?: string;
+		inputClasses?: string;
+		disabled?: boolean;
+		disabledValues?: Array<string | number>;
+		onValueChange?: (e: { value: string[] }) => void;
+		renderInPlace?: boolean;
+		required?: boolean;
+	}
 
 	let {
 		data = [],
@@ -26,7 +51,7 @@
 		onValueChange = () => {},
 		renderInPlace = false,
 		required = false
-	} = $props();
+	}: Props = $props();
 
 	let isOpen = $state(false);
 
@@ -36,7 +61,9 @@
 		useListCollection({
 			items: data,
 			itemToString: (item) => item?.label ?? '',
-			itemToValue: (item) => item?.value ?? '',
+			// Combobox values are string-based at the widget level; numeric item values
+			// are coerced to strings by the widget, so the cast is behavior-neutral.
+			itemToValue: (item) => (item?.value ?? '') as string,
 			isItemDisabled: (item) => disabledValues.includes(item?.value)
 		})
 	);
@@ -50,7 +77,7 @@
 		})
 	);
 
-	const onInputValueChange = (/** @type {{ inputValue: string }} */ e) => {
+	const onInputValueChange = (e: { inputValue: string }) => {
 		if (!e.inputValue) {
 			items = data;
 			return;
@@ -84,12 +111,12 @@
 		}
 	});
 
-	function handleValueChange(/** @type {{ value: string[] }} */ e) {
+	function handleValueChange(e: { value: string[] }) {
 		value = e.value;
 		onValueChange(e);
 	}
 
-	function handleOpenChange(/** @type {{ open: boolean }} */ e) {
+	function handleOpenChange(e: { open: boolean }) {
 		isOpen = e.open;
 	}
 </script>
@@ -111,8 +138,8 @@
 			{placeholder}
 			{required}
 			{collection}
-			{defaultValue}
-			{value}
+			defaultValue={defaultValue as string[]}
+			value={value as string[] | undefined}
 			{disabled}
 			onOpenChange={handleOpenChange}
 			onValueChange={handleValueChange}

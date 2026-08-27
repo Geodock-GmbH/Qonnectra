@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { browser } from '$app/environment';
 
 	import { m } from '$lib/paraglide/messages';
@@ -8,13 +8,27 @@
 	import { selectedConduit } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
+	interface Conduit {
+		label: string;
+		value: string;
+		[key: string]: any;
+	}
+
+	interface Props {
+		loading?: boolean;
+		projectId?: string | null;
+		flagId?: string | string[] | null;
+		conduits?: Conduit[];
+		conduitsError?: string | null;
+	}
+
 	let {
 		loading = false,
 		projectId = null,
 		flagId = null,
 		conduits = [],
 		conduitsError = null
-	} = $props();
+	}: Props = $props();
 
 	$effect(() => {
 		if (conduitsError && browser) {
@@ -47,7 +61,7 @@
 		<VirtualCombobox
 			data={conduits}
 			value={$selectedConduit ?? ''}
-			onValueChange={(/** @type {{ value: string }} */ e) => ($selectedConduit = e.value)}
+			onValueChange={(e: { value: string }) => ($selectedConduit = e.value)}
 			placeholder={m.placeholder_select_conduit()}
 		/>
 	{/if}

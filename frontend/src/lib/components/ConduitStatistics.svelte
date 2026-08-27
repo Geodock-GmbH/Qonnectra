@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { m } from '$lib/paraglide/messages';
 
 	import Chart from './Chart.svelte';
@@ -32,7 +32,7 @@
 	 * Length by conduit type for bar chart
 	 */
 	const lengthByTypeData = $derived.by(() => {
-		return lengthByType?.map((/** @type {{ type_name: string, total: number }} */ item) => ({
+		return lengthByType?.map((item: { type_name: string; total: number }) => ({
 			label: item.type_name || m.common_unknown(),
 			value: (item.total || 0) / 1000
 		}));
@@ -49,16 +49,14 @@
 		const statuses = [
 			...new Set(
 				lengthByStatusType.map(
-					(/** @type {{ status_name: string, type_name: string, total: number }} */ item) =>
-						item.status_name
+					(item: { status_name: string; type_name: string; total: number }) => item.status_name
 				)
 			)
 		];
 		const types = [
 			...new Set(
 				lengthByStatusType.map(
-					(/** @type {{ status_name: string, type_name: string, total: number }} */ item) =>
-						item.type_name
+					(item: { status_name: string; type_name: string; total: number }) => item.type_name
 				)
 			)
 		];
@@ -66,7 +64,8 @@
 		const datasets = types.map((type, idx) => {
 			const data = statuses.map((status) => {
 				const item = lengthByStatusType.find(
-					(i) => i.status_name === status && i.type_name === type
+					(i: { status_name: string; type_name: string; total: number }) =>
+						i.status_name === status && i.type_name === type
 				);
 				return item ? (item.total || 0) / 1000 : 0;
 			});
@@ -89,10 +88,9 @@
 	const lengthByNetworkLevelData = $derived.by(() => {
 		return lengthByNetworkLevel
 			?.filter(
-				(/** @type {{ network_level: string | null, total: number }} */ item) =>
-					item.network_level !== null
+				(item: { network_level: string | null; total: number }) => item.network_level !== null
 			)
-			.map((/** @type {{ network_level: string, total: number }} */ item) => ({
+			.map((item: { network_level: string; total: number }) => ({
 				label: item.network_level || m.common_unknown(),
 				value: (item.total || 0) / 1000
 			}));
@@ -102,19 +100,17 @@
 	 * Average length by type for bar chart
 	 */
 	const avgLengthByTypeData = $derived.by(() => {
-		return avgLengthByType?.map(
-			(/** @type {{ type_name: string, avg_length: number }} */ item) => ({
-				label: item.type_name || m.common_unknown(),
-				value: item.avg_length || 0
-			})
-		);
+		return avgLengthByType?.map((item: { type_name: string; avg_length: number }) => ({
+			label: item.type_name || m.common_unknown(),
+			value: item.avg_length || 0
+		}));
 	});
 
 	/**
 	 * Count by status for bar chart
 	 */
 	const countByStatusData = $derived.by(() => {
-		return countByStatus?.map((/** @type {{ status_name: string, count: number }} */ item) => ({
+		return countByStatus?.map((item: { status_name: string; count: number }) => ({
 			label: item.status_name || m.common_unknown(),
 			value: item.count || 0
 		}));
@@ -124,7 +120,7 @@
 	 * Length by owner for bar chart
 	 */
 	const lengthByOwnerData = $derived.by(() => {
-		return lengthByOwner?.map((/** @type {{ owner_name: string, total: number }} */ item) => ({
+		return lengthByOwner?.map((item: { owner_name: string; total: number }) => ({
 			label: item.owner_name || m.common_unknown(),
 			value: (item.total || 0) / 1000
 		}));
@@ -134,19 +130,17 @@
 	 * Length by manufacturer for donut chart
 	 */
 	const lengthByManufacturerData = $derived.by(() => {
-		return lengthByManufacturer?.map(
-			(/** @type {{ manufacturer_name: string, total: number }} */ item) => ({
-				label: item.manufacturer_name || m.common_unknown(),
-				value: (item.total || 0) / 1000
-			})
-		);
+		return lengthByManufacturer?.map((item: { manufacturer_name: string; total: number }) => ({
+			label: item.manufacturer_name || m.common_unknown(),
+			value: (item.total || 0) / 1000
+		}));
 	});
 
 	/**
 	 * Conduits over time for bar chart
 	 */
 	const conduitsByMonthData = $derived.by(() => {
-		return conduitsByMonth?.map((/** @type {{ month: string, count: number }} */ item) => ({
+		return conduitsByMonth?.map((item: { month: string; count: number }) => ({
 			label: item.month || m.common_unknown(),
 			value: item.count || 0
 		}));
@@ -157,7 +151,7 @@
 	 */
 	const longestConduitsData = $derived.by(() => {
 		return longestConduits?.map(
-			(/** @type {{ name: string, type_name: string, total_length: number }} */ item) => ({
+			(item: { name: string; type_name: string; total_length: number }) => ({
 				label: `${item.name} (${item.type_name || m.common_unknown()})`,
 				value: (item.total_length || 0) / 1000
 			})

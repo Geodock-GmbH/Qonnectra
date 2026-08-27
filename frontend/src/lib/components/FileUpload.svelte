@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { FileUpload } from '@skeletonlabs/skeleton-svelte';
 	import { IconFile, IconUpload } from '@tabler/icons-svelte';
 	import { PUBLIC_API_URL } from '$env/static/public';
@@ -9,22 +9,21 @@
 	import { fetchContentTypes, getContentTypeId } from '$lib/utils/contentTypes';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
-	/**
-	 * @typedef {Object} FileUploadProps
-	 * @property {string} featureType - The type of feature (e.g., 'cable', 'node', 'trench')
-	 * @property {string} featureId - The UUID of the feature to attach files to
-	 * @property {() => void} [onUploadComplete] - Optional callback called after files are uploaded
-	 */
+	interface FileUploadProps {
+		/** The type of feature (e.g., 'cable', 'node', 'trench') */
+		featureType: string;
+		/** The UUID of the feature to attach files to */
+		featureId: string;
+		/** Optional callback called after files are uploaded */
+		onUploadComplete?: () => void;
+	}
 
-	/** @type {FileUploadProps} */
-	let { featureType, featureId, onUploadComplete } = $props();
+	let { featureType, featureId, onUploadComplete }: FileUploadProps = $props();
 
-	/** @type {any[]} */
-	let uploadedFiles = $state([]);
+	let uploadedFiles = $state<any[]>([]);
 	let isUploading = $state(false);
 	let isLoadingFiles = $state(false);
-	/** @type {string|null} */
-	let contentTypeError = $state(null);
+	let contentTypeError = $state<string | null>(null);
 
 	let contentTypesLoaded = $state(false);
 	let maxFileSize = $state(50 * 1024 * 1024);
@@ -111,9 +110,10 @@
 	/**
 	 * Upload files from Skeleton FileUpload component
 	 */
-	async function uploadFilesFromPicker(
-		/** @type {{ acceptedFiles: File[], clearFiles: () => void }} */ fileUploadApi
-	) {
+	async function uploadFilesFromPicker(fileUploadApi: {
+		acceptedFiles: File[];
+		clearFiles: () => void;
+	}) {
 		const selectedFiles = fileUploadApi.acceptedFiles;
 
 		if (selectedFiles.length === 0) {
