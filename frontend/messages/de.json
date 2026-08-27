@@ -747,7 +747,7 @@
 	"settings_shape_circle": "Kreis",
 	"settings_shape_square": "Quadrat",
 	"settings_surface_styles": "Oberflächen-Stile",
-	"settings_sync_description": "Speichern Sie Ihre Einstellungen in Ihrem Konto, um sie in einem anderen Browser oder auf Ihrem Handy wiederherzustellen.",
+	"settings_sync_description": "Speichern Sie Ihre Einstellungen in Ihrem Konto.",
 	"settings_sync_label": "Einstellungen synchronisieren",
 	"settings_sync_load": "Aus Konto laden",
 	"settings_sync_load_error": "Einstellungen konnten nicht aus Ihrem Konto geladen werden.",

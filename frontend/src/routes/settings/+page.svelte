@@ -7,7 +7,6 @@
 		DEFAULT_ADDRESS_COLOR,
 		DEFAULT_ADDRESS_SIZE,
 		DEFAULT_AREA_COLOR,
-		DEFAULT_NODE_SHAPE,
 		DEFAULT_SELECTED_COLOR,
 		DEFAULT_TRENCH_COLOR,
 		getNodeTypeDefault
@@ -506,8 +505,8 @@
 						<dt class="font-medium sm:w-64 sm:flex-none sm:pr-6">
 							{m.settings_sync_label()}
 						</dt>
-						<dd class="mt-1 flex flex-col gap-3 sm:mt-0 sm:flex-auto">
-							<p class="text-surface-600-400">{m.settings_sync_description()}</p>
+						<dd class="mt-1 flex justify-between gap-x-6 sm:mt-0 sm:flex-auto">
+							<p>{m.settings_sync_description()}</p>
 							<div class="flex flex-wrap gap-3">
 								<button
 									type="button"

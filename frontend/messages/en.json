@@ -746,7 +746,7 @@
 	"settings_shape_circle": "Circle",
 	"settings_shape_square": "Square",
 	"settings_surface_styles": "Surface Styles",
-	"settings_sync_description": "Save your settings to your account to restore them in another browser or on your phone.",
+	"settings_sync_description": "Save your settings to your account.",
 	"settings_sync_label": "Sync settings",
 	"settings_sync_load": "Load from account",
 	"settings_sync_load_error": "Could not load settings from your account.",
