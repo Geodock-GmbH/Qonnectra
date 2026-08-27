@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { DashboardData } from './dashboardUtils';
 	import { navigating } from '$app/stores';
 
 	import { m } from '$lib/paraglide/messages';
@@ -13,27 +14,23 @@
 	import DashboardCard from './DashboardCard.svelte';
 	import WarrantyExpirationCard from './WarrantyExpirationCard.svelte';
 
-	let { data } = $props();
+	let { data }: { data: DashboardData } = $props();
 
 	const totalNodes = $derived(
-		data.nodesByType?.reduce(
-			(/** @type {number} */ sum, /** @type {{ count: number }} */ item) => sum + item.count,
-			0
-		) || 0
+		data.nodesByType?.reduce((sum: number, item: { count: number }) => sum + item.count, 0) || 0
 	);
 
 	const totalConduitLength = $derived(
 		(data.conduitLengthByType?.reduce(
-			(/** @type {number} */ sum, /** @type {{ total: number }} */ item) => sum + (item.total || 0),
+			(sum: number, item: { total: number }) => sum + (item.total || 0),
 			0
 		) || 0) / 1000
 	);
 
-	/**
-	 * @param {Array<{gesamt_länge?: number, total?: number, count?: number}>} items
-	 * @param {'gesamt_länge' | 'total' | 'count'} key
-	 */
-	function getMaxValue(items, key) {
+	function getMaxValue(
+		items: Array<{ gesamt_länge?: number; total?: number; count?: number }>,
+		key: 'gesamt_länge' | 'total' | 'count'
+	) {
 		if (!items?.length) return 1;
 		return Math.max(...items.map((item) => Number(item[key]) || 0)) || 1;
 	}
@@ -286,7 +283,7 @@
 					</div>
 				</DashboardCard>
 
-				<WarrantyExpirationCard warranties={data.expiringWarranties} />
+				<WarrantyExpirationCard warranties={data.expiringWarranties as any[]} />
 			</div>
 		</div>
 	{/if}

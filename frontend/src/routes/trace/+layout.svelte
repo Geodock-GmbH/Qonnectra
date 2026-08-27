@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { page } from '$app/state';
 	import { IconArrowLeft, IconNetwork } from '@tabler/icons-svelte';
 
@@ -7,7 +8,7 @@
 	import TraceMap from './components/TraceMap.svelte';
 	import { createTraceMapContext } from './traceMapContext.svelte';
 
-	let { children } = $props();
+	let { children }: { children: Snippet } = $props();
 
 	const traceMapContext = createTraceMapContext();
 

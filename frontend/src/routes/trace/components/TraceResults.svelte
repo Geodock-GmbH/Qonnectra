@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { cubicOut } from 'svelte/easing';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { fly, slide } from 'svelte/transition';
@@ -17,17 +17,21 @@
 	import FiberPathsTable from './FiberPathsTable.svelte';
 	import { downloadGeoJSON, hasGeometries, traceFrom } from '../traceUtils';
 
-	/**
-	 * @typedef {Object} Props
-	 * @property {Record<string, any>} result - The trace result data
-	 * @property {string} entryType - The entry type (fiber, cable, node, address, residential_unit)
-	 * @property {string} entryId - The entry UUID
-	 * @property {boolean} [includeGeometry] - Whether geometry was included
-	 * @property {string|null} [selectedItemId] - Currently selected item ID
-	 * @property {(type: string, id: string) => void} [onItemSelect] - Selection callback
-	 */
+	interface Props {
+		/** The trace result data */
+		result: any;
+		/** The entry type (fiber, cable, node, address, residential_unit) */
+		entryType: string;
+		/** The entry UUID */
+		entryId: string;
+		/** Whether geometry was included */
+		includeGeometry?: boolean;
+		/** Currently selected item ID */
+		selectedItemId?: string | null;
+		/** Selection callback */
+		onItemSelect?: (type: string, id: string) => void;
+	}
 
-	/** @type {Props} */
 	let {
 		result,
 		entryType,
@@ -35,14 +39,14 @@
 		includeGeometry = false,
 		selectedItemId = null,
 		onItemSelect = () => {}
-	} = $props();
+	}: Props = $props();
 
-	let expandedWaypoints = new SvelteSet();
+	let expandedWaypoints = new SvelteSet<string>();
 
 	/**
-	 * @param {string} fiberId
+	 * @param fiberId
 	 */
-	function toggleWaypoint(fiberId) {
+	function toggleWaypoint(fiberId: string) {
 		if (expandedWaypoints.has(fiberId)) {
 			expandedWaypoints.delete(fiberId);
 		} else {
@@ -51,31 +55,29 @@
 	}
 
 	/**
-	 * @param {string} type - Entity type (fiber, cable, node, address, residential_unit)
-	 * @param {string} id - Entity UUID
-	 * @returns {boolean} Whether the item is currently selected
+	 * @param type - Entity type (fiber, cable, node, address, residential_unit)
+	 * @param id - Entity UUID
+	 * @returns Whether the item is currently selected
 	 */
-	function isSelected(type, id) {
+	function isSelected(type: string, id: string): boolean {
 		return selectedItemId === `${type}:${id}`;
 	}
 
 	/**
-	 * @param {string} type - Entity type
-	 * @param {string} id - Entity UUID
-	 * @returns {void}
+	 * @param type - Entity type
+	 * @param id - Entity UUID
 	 */
-	function handleItemClick(type, id) {
+	function handleItemClick(type: string, id: string): void {
 		onItemSelect(type, id);
 	}
 
 	/**
 	 * Get translated entry type label
-	 * @param {string} type - Entry type from backend
-	 * @returns {string} Translated label for the entry type
+	 * @param type - Entry type from backend
+	 * @returns Translated label for the entry type
 	 */
-	function getEntryTypeLabel(type) {
-		/** @type {Record<string, string>} */
-		const typeMap = {
+	function getEntryTypeLabel(type: string): string {
+		const typeMap: Record<string, string> = {
 			fiber: m.form_fiber(),
 			cable: m.form_cables(),
 			node: m.form_node(),
@@ -85,10 +87,7 @@
 		return typeMap[type] || type || m.common_unknown();
 	}
 
-	/**
-	 * @returns {void}
-	 */
-	function handleDownloadGeoJSON() {
+	function handleDownloadGeoJSON(): void {
 		if (!result) return;
 		const entryTypeLabel = result.entry_point?.type || 'trace';
 		downloadGeoJSON(
@@ -167,7 +166,7 @@
 				</h2>
 				<div class="space-y-3">
 					{#each Object.entries(result.cable_infrastructure) as [cableId, infra] (cableId)}
-						{@render infrastructureCard(cableId, infra)}
+						{@render infrastructureCard(cableId, infra as Record<string, any>)}
 					{/each}
 				</div>
 			</section>
@@ -192,7 +191,7 @@
 	</div>
 {/if}
 
-{#snippet statCard(label, value, colorClass)}
+{#snippet statCard(label: string, value: any, colorClass: string)}
 	<div
 		class="flex min-w-0 flex-col items-center rounded-lg border border-surface-200-800 bg-surface-50-950 p-4"
 	>
@@ -203,7 +202,7 @@
 	</div>
 {/snippet}
 
-{#snippet statBadge(label, value)}
+{#snippet statBadge(label: string, value: any)}
 	<div
 		class="flex min-w-0 flex-col items-center rounded-lg border border-surface-200-800 bg-surface-50-950 p-4"
 	>
@@ -218,7 +217,7 @@
 	</div>
 {/snippet}
 
-{#snippet infrastructureCard(cableId, infra)}
+{#snippet infrastructureCard(cableId: string, infra: Record<string, any>)}
 	<details class="group rounded-lg border border-surface-200-800">
 		<summary class="flex cursor-pointer items-center gap-4 px-4 py-3 hover:bg-surface-100-900">
 			<span class="font-mono text-sm font-semibold text-warning-500">
@@ -326,7 +325,7 @@
 	</details>
 {/snippet}
 
-{#snippet traceNode(node, depth, isLastChild)}
+{#snippet traceNode(node: Record<string, any>, depth: number, isLastChild: boolean)}
 	{@const hasDetails =
 		node.splice ||
 		(node.endpoint_splices && node.endpoint_splices.length > 0) ||
@@ -507,7 +506,7 @@
 	</div>
 {/snippet}
 
-{#snippet fiberDetails(fiber)}
+{#snippet fiberDetails(fiber: Record<string, any>)}
 	<div class="flex flex-wrap items-center gap-2 text-xs">
 		{#if fiber.bundle_number !== null && fiber.bundle_number !== undefined}
 			<span class="text-surface-900-100"
@@ -549,7 +548,7 @@
 	</div>
 {/snippet}
 
-{#snippet spliceDetails(splice)}
+{#snippet spliceDetails(splice: Record<string, any>)}
 	<div class="rounded-lg border border-secondary-500/30 bg-secondary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 flex items-center gap-2 text-secondary-500">
 			<IconArrowsSplit size={14} />
@@ -595,7 +594,7 @@
 	</div>
 {/snippet}
 
-{#snippet endpointSpliceDetails(splice)}
+{#snippet endpointSpliceDetails(splice: Record<string, any>)}
 	<div
 		class="rounded-lg border border-dashed border-tertiary-500/30 bg-tertiary-500/5 px-3 py-1.5 text-xs"
 	>
@@ -657,7 +656,7 @@
 	</div>
 {/snippet}
 
-{#snippet cableEndpointsDetails(endpoints, currentNodeId)}
+{#snippet cableEndpointsDetails(endpoints: Record<string, any>, currentNodeId: string | undefined)}
 	<div class="rounded-lg border border-primary-500/30 bg-primary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 font-semibold text-primary-500">
 			{m.trace_cable_path()}: {endpoints.cable_name}
@@ -744,7 +743,7 @@
 	</div>
 {/snippet}
 
-{#snippet addressDetails(address)}
+{#snippet addressDetails(address: Record<string, any>)}
 	<div class="rounded-lg border border-error-500/30 bg-error-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 flex items-center gap-2 text-error-500">
 			<IconMapPin size={14} />
@@ -781,7 +780,7 @@
 	</div>
 {/snippet}
 
-{#snippet residentialUnitDetails(ru)}
+{#snippet residentialUnitDetails(ru: Record<string, any>)}
 	<div class="rounded-lg border border-tertiary-500/30 bg-tertiary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 flex items-center gap-2 text-tertiary-500">
 			<IconHome size={14} />

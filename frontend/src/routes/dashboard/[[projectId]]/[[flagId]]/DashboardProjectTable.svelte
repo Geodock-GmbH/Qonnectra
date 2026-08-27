@@ -1,10 +1,16 @@
-<script>
+<script lang="ts">
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
 	import { IconArrowLeft, IconArrowRight } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
-	let { data } = $props();
+	interface ProjectRow {
+		project: string;
+		description: string;
+		active: boolean;
+	}
+
+	let { data }: { data: ProjectRow[] } = $props();
 	let page = $state(1);
 	let size = $state(10);
 

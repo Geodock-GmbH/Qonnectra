@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
 
@@ -11,7 +11,7 @@
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	// Get attribute options from context (set in +page.svelte)
-	const attributes = getContext('attributeOptions') || {
+	const attributes = getContext<any>('attributeOptions') || {
 		conduitTypes: [],
 		statuses: [],
 		networkLevels: [],
@@ -19,8 +19,7 @@
 		flags: []
 	};
 
-	/** @type {any} */
-	let messageBoxConfirm = $state(null);
+	let messageBoxConfirm = $state<any>(null);
 
 	// Get conduit data from drawer store props
 	let conduit = $derived($drawerStore.props);
@@ -28,23 +27,22 @@
 	// Mutable state for form fields - required for bind:value to work with GenericCombobox
 	let conduitName = $state('');
 	let conduitOuterConduit = $state('');
-	/** @type {any[]} */
-	let conduitType = $state([]);
-	/** @type {any[]} */
-	let conduitStatus = $state([]);
-	/** @type {any[]} */
-	let conduitNetworkLevel = $state([]);
-	/** @type {any[]} */
-	let conduitOwner = $state([]);
-	/** @type {any[]} */
-	let conduitConstructor = $state([]);
-	/** @type {any[]} */
-	let conduitManufacturer = $state([]);
+	let conduitType = $state<any[]>([]);
+	let conduitStatus = $state<any[]>([]);
+	let conduitNetworkLevel = $state<any[]>([]);
+	let conduitOwner = $state<any[]>([]);
+	let conduitConstructor = $state<any[]>([]);
+	let conduitManufacturer = $state<any[]>([]);
 	let conduitDate = $state('');
-	/** @type {any[]} */
-	let conduitFlag = $state([]);
+	let conduitFlag = $state<any[]>([]);
 
-	let { onConduitUpdate, onConduitDelete } = $props();
+	let {
+		onConduitUpdate,
+		onConduitDelete
+	}: {
+		onConduitUpdate?: (conduit: any) => void;
+		onConduitDelete?: (conduitId: string) => void;
+	} = $props();
 
 	// Sync form fields when conduit changes
 	$effect(() => {
@@ -56,8 +54,8 @@
 			conduitNetworkLevel = conduit.network_level?.id != null ? [conduit.network_level.id] : [];
 			conduitOwner = conduit.owner?.id != null ? [conduit.owner.id] : [];
 			conduitConstructor =
-				/** @type {{ id?: any }} */ (/** @type {unknown} */ (conduit.constructor))?.id != null
-					? [/** @type {{ id: any }} */ (/** @type {unknown} */ (conduit.constructor)).id]
+				(conduit.constructor as unknown as { id?: any })?.id != null
+					? [(conduit.constructor as unknown as { id: any }).id]
 					: [];
 			conduitManufacturer = conduit.manufacturer?.id != null ? [conduit.manufacturer.id] : [];
 			conduitDate = conduit.date || '';
@@ -65,9 +63,9 @@
 		}
 	});
 
-	async function handleSubmit(/** @type {SubmitEvent} */ event) {
+	async function handleSubmit(event: SubmitEvent) {
 		event.preventDefault();
-		const formData = new FormData(/** @type {HTMLFormElement} */ (event.target));
+		const formData = new FormData(event.target as HTMLFormElement);
 		formData.append('uuid', conduit.uuid);
 		formData.append('conduit_type_id', conduitType?.[0] || '');
 		formData.append('status_id', conduitStatus?.[0] || '');
@@ -178,7 +176,7 @@
 			name="conduit_name"
 			required
 			value={conduitName}
-			oninput={(e) => (conduitName = /** @type {HTMLInputElement} */ (e.target).value)}
+			oninput={(e) => (conduitName = (e.target as HTMLInputElement).value)}
 		/>
 	</label>
 	<label class="label">
@@ -187,7 +185,7 @@
 			data={attributes.conduitTypes}
 			bind:value={conduitType}
 			defaultValue={conduitType}
-			onValueChange={(/** @type {{ value: any[] }} */ e) => (conduitType = e.value)}
+			onValueChange={(e: { value: any[] }) => (conduitType = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -198,7 +196,7 @@
 			class="textarea"
 			placeholder=""
 			value={conduitOuterConduit}
-			oninput={(e) => (conduitOuterConduit = /** @type {HTMLTextAreaElement} */ (e.target).value)}
+			oninput={(e) => (conduitOuterConduit = (e.target as HTMLTextAreaElement).value)}
 		></textarea>
 	</label>
 	<label class="label">
@@ -207,7 +205,7 @@
 			data={attributes.statuses}
 			bind:value={conduitStatus}
 			defaultValue={conduitStatus}
-			onValueChange={(/** @type {{ value: any[] }} */ e) => (conduitStatus = e.value)}
+			onValueChange={(e: { value: any[] }) => (conduitStatus = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -217,7 +215,7 @@
 			data={attributes.networkLevels}
 			bind:value={conduitNetworkLevel}
 			defaultValue={conduitNetworkLevel}
-			onValueChange={(/** @type {{ value: any[] }} */ e) => (conduitNetworkLevel = e.value)}
+			onValueChange={(e: { value: any[] }) => (conduitNetworkLevel = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -227,7 +225,7 @@
 			data={attributes.companies}
 			bind:value={conduitOwner}
 			defaultValue={conduitOwner}
-			onValueChange={(/** @type {{ value: any[] }} */ e) => (conduitOwner = e.value)}
+			onValueChange={(e: { value: any[] }) => (conduitOwner = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -237,7 +235,7 @@
 			data={attributes.companies}
 			bind:value={conduitConstructor}
 			defaultValue={conduitConstructor}
-			onValueChange={(/** @type {{ value: any[] }} */ e) => (conduitConstructor = e.value)}
+			onValueChange={(e: { value: any[] }) => (conduitConstructor = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -247,7 +245,7 @@
 			data={attributes.companies}
 			bind:value={conduitManufacturer}
 			defaultValue={conduitManufacturer}
-			onValueChange={(/** @type {{ value: any[] }} */ e) => (conduitManufacturer = e.value)}
+			onValueChange={(e: { value: any[] }) => (conduitManufacturer = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -258,7 +256,7 @@
 			class="input"
 			name="date"
 			value={conduitDate}
-			oninput={(e) => (conduitDate = /** @type {HTMLInputElement} */ (e.target).value)}
+			oninput={(e) => (conduitDate = (e.target as HTMLInputElement).value)}
 		/>
 	</label>
 	<label class="label">
@@ -267,7 +265,7 @@
 			data={attributes.flags}
 			bind:value={conduitFlag}
 			defaultValue={conduitFlag}
-			onValueChange={(/** @type {{ value: any[] }} */ e) => (conduitFlag = e.value)}
+			onValueChange={(e: { value: any[] }) => (conduitFlag = e.value)}
 			renderInPlace={true}
 		/>
 	</label>

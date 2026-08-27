@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { cubicOut } from 'svelte/easing';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { fly, slide } from 'svelte/transition';
@@ -21,48 +21,49 @@
 
 	import { downloadGeoJSON as downloadGeoJSONFile, hasGeometries, traceFrom } from '../traceUtils';
 
-	/**
-	 * @typedef {Object} Props
-	 * @property {Record<string, any>} result - The signal analysis result data
-	 * @property {string} entryId - The entry UUID
-	 * @property {boolean} [includeGeometry] - Whether geometry was included
-	 * @property {string|null} [selectedItemId] - Currently selected item ID
-	 * @property {(type: string, id: string) => void} [onItemSelect] - Selection callback
-	 */
+	interface Props {
+		/** The signal analysis result data */
+		result: any;
+		/** The entry UUID */
+		entryId: string;
+		/** Whether geometry was included */
+		includeGeometry?: boolean;
+		/** Currently selected item ID */
+		selectedItemId?: string | null;
+		/** Selection callback */
+		onItemSelect?: (type: string, id: string) => void;
+	}
 
-	/** @type {Props} */
 	let {
 		result,
 		entryId,
 		includeGeometry = false,
 		selectedItemId = null,
 		onItemSelect = () => {}
-	} = $props();
+	}: Props = $props();
 
 	/**
-	 * @param {string} type - The entity type (e.g. 'fiber', 'cable', 'node')
-	 * @param {string} id - The entity UUID
-	 * @returns {boolean} Whether the item matches the current selection
+	 * @param type - The entity type (e.g. 'fiber', 'cable', 'node')
+	 * @param id - The entity UUID
+	 * @returns Whether the item matches the current selection
 	 */
-	function isSelected(type, id) {
+	function isSelected(type: string, id: string): boolean {
 		return selectedItemId === `${type}:${id}`;
 	}
 
 	/**
-	 * @param {string} type - The entity type (e.g. 'fiber', 'cable', 'node')
-	 * @param {string} id - The entity UUID
-	 * @returns {void}
+	 * @param type - The entity type (e.g. 'fiber', 'cable', 'node')
+	 * @param id - The entity UUID
 	 */
-	function handleItemClick(type, id) {
+	function handleItemClick(type: string, id: string): void {
 		onItemSelect(type, id);
 	}
 
 	/**
 	 * Updates the signal source node via URL search params and navigates.
-	 * @param {string} nodeId - The source node UUID, or empty string to remove
-	 * @returns {void}
+	 * @param nodeId - The source node UUID, or empty string to remove
 	 */
-	function changeSignalSource(nodeId) {
+	function changeSignalSource(nodeId: string): void {
 		const url = new URL(page.url);
 		url.searchParams.set('mode', 'signal');
 		if (nodeId) {
@@ -73,10 +74,7 @@
 		goto(url.toString());
 	}
 
-	/**
-	 * @returns {void}
-	 */
-	function handleDownloadGeoJSON() {
+	function handleDownloadGeoJSON(): void {
 		if (!result) return;
 		downloadGeoJSONFile(result, 'signal-analysis', entryId, page.data.srid);
 	}
@@ -88,7 +86,7 @@
 	const availableSources = $derived(signalAnalysis?.available_sources || []);
 	const sourceOptions = $derived(
 		availableSources.map(
-			(/** @type {{ id: string, name: string, direction: string, is_default: boolean }} */ s) => ({
+			(s: { id: string; name: string; direction: string; is_default: boolean }) => ({
 				value: String(s.id),
 				label: `${s.name} (${s.direction === 'start' ? m.signal_source_cable_start() : m.signal_source_cable_end()})${s.is_default ? ` (${m.common_default()})` : ''}`
 			})
@@ -102,55 +100,54 @@
 	/**
 	 * Computes total lit and dark cable lengths from the trace tree and cable infrastructure.
 	 * Returns null if no length data is available.
-	 * @type {{ litLength: number, darkLength: number, totalLength: number } | null}
 	 */
-	const signalReachLengths = $derived.by(() => {
-		if (!traceTree || !cableInfrastructure) return null;
+	const signalReachLengths: { litLength: number; darkLength: number; totalLength: number } | null =
+		$derived.by(() => {
+			if (!traceTree || !cableInfrastructure) return null;
 
-		/** @type {Record<string, Set<string>>} */
-		const cableStates = {};
+			const cableStates: Record<string, Set<string>> = {};
 
-		/** @param {Record<string, any>} node */
-		function collectCableStates(node) {
-			if (!node) return;
-			const cableId = node.fiber?.cable_id;
-			const state = node.signal_state || 'lit';
-			if (cableId) {
-				if (!cableStates[cableId]) cableStates[cableId] = new Set();
-				cableStates[cableId].add(state);
+			/** @param node */
+			function collectCableStates(node: Record<string, any>) {
+				if (!node) return;
+				const cableId = node.fiber?.cable_id;
+				const state = node.signal_state || 'lit';
+				if (cableId) {
+					if (!cableStates[cableId]) cableStates[cableId] = new Set();
+					cableStates[cableId].add(state);
+				}
+				for (const child of node.children || []) {
+					collectCableStates(child);
+				}
 			}
-			for (const child of node.children || []) {
-				collectCableStates(child);
+			collectCableStates(traceTree);
+
+			let litLength = 0;
+			let darkLength = 0;
+
+			for (const [cableId, states] of Object.entries(cableStates)) {
+				const infra = cableInfrastructure[cableId];
+				const length = infra?.total_length;
+				if (length == null) continue;
+
+				if (states.has('dark') || states.has('break_point')) {
+					darkLength += length;
+				} else {
+					litLength += length;
+				}
 			}
-		}
-		collectCableStates(traceTree);
 
-		let litLength = 0;
-		let darkLength = 0;
+			if (litLength === 0 && darkLength === 0) return null;
 
-		for (const [cableId, states] of Object.entries(cableStates)) {
-			const infra = cableInfrastructure[cableId];
-			const length = infra?.total_length;
-			if (length == null) continue;
+			return { litLength, darkLength, totalLength: litLength + darkLength };
+		});
 
-			if (states.has('dark') || states.has('break_point')) {
-				darkLength += length;
-			} else {
-				litLength += length;
-			}
-		}
-
-		if (litLength === 0 && darkLength === 0) return null;
-
-		return { litLength, darkLength, totalLength: litLength + darkLength };
-	});
-
-	let expandedWaypoints = new SvelteSet();
+	let expandedWaypoints = new SvelteSet<string>();
 
 	/**
-	 * @param {string} fiberId
+	 * @param fiberId
 	 */
-	function toggleWaypoint(fiberId) {
+	function toggleWaypoint(fiberId: string) {
 		if (expandedWaypoints.has(fiberId)) {
 			expandedWaypoints.delete(fiberId);
 		} else {
@@ -159,7 +156,7 @@
 	}
 </script>
 
-{#snippet statCard(label, value, colorClass)}
+{#snippet statCard(label: string, value: any, colorClass: string)}
 	<div
 		class="min-w-0 rounded-xl border border-surface-200-800 bg-surface-50-950 p-4 text-center shadow-sm transition-all hover:shadow-md"
 	>
@@ -168,7 +165,7 @@
 	</div>
 {/snippet}
 
-{#snippet signalStatCard(label, litValue, darkValue)}
+{#snippet signalStatCard(label: string, litValue: any, darkValue: any)}
 	<div
 		class="min-w-0 rounded-xl border border-surface-200-800 bg-surface-50-950 p-4 text-center shadow-sm transition-all hover:shadow-md"
 	>
@@ -187,7 +184,7 @@
 	</div>
 {/snippet}
 
-{#snippet signalLengthCard(label, litValue, darkValue)}
+{#snippet signalLengthCard(label: string, litValue: number, darkValue: number)}
 	<div
 		class="min-w-0 rounded-xl border border-surface-200-800 bg-surface-50-950 p-4 text-center shadow-sm transition-all hover:shadow-md"
 	>
@@ -206,7 +203,7 @@
 	</div>
 {/snippet}
 
-{#snippet breakPointCard(bp)}
+{#snippet breakPointCard(bp: Record<string, any>)}
 	<div
 		class="min-w-0 rounded-lg border border-error-500/30 bg-error-500/10 p-3 transition-colors hover:bg-error-500/15"
 	>
@@ -253,7 +250,7 @@
 	</div>
 {/snippet}
 
-{#snippet signalTraceNode(node, depth, isLastChild)}
+{#snippet signalTraceNode(node: Record<string, any>, depth: number, isLastChild: boolean)}
 	{@const signalState = node.signal_state || 'lit'}
 	{@const isLit = signalState === 'lit'}
 	{@const isDark = signalState === 'dark'}
@@ -460,7 +457,7 @@
 	</div>
 {/snippet}
 
-{#snippet fiberDetails(fiber)}
+{#snippet fiberDetails(fiber: Record<string, any>)}
 	<div class="flex flex-wrap items-center gap-2 text-xs">
 		{#if fiber.bundle_number !== null && fiber.bundle_number !== undefined}
 			<span class="text-surface-900-100"
@@ -502,7 +499,7 @@
 	</div>
 {/snippet}
 
-{#snippet spliceDetails(splice)}
+{#snippet spliceDetails(splice: Record<string, any>)}
 	<div class="rounded-lg border border-secondary-500/30 bg-secondary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 flex items-center gap-2 text-secondary-500">
 			<IconArrowsSplit size={14} />
@@ -532,7 +529,7 @@
 	</div>
 {/snippet}
 
-{#snippet cableEndpointsDetails(endpoints, currentNodeId)}
+{#snippet cableEndpointsDetails(endpoints: Record<string, any>, currentNodeId: string | undefined)}
 	<div class="rounded-lg border border-primary-500/30 bg-primary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 font-semibold text-primary-500">
 			{m.trace_cable_endpoints()}
@@ -581,7 +578,7 @@
 	</div>
 {/snippet}
 
-{#snippet addressDetails(address, isDark = false)}
+{#snippet addressDetails(address: Record<string, any>, isDark = false)}
 	<div
 		class="rounded-lg border {isDark
 			? 'border-surface-400/30 bg-surface-200-800'
@@ -604,7 +601,7 @@
 	</div>
 {/snippet}
 
-{#snippet residentialUnitDetails(ru, isDark = false)}
+{#snippet residentialUnitDetails(ru: Record<string, any>, isDark = false)}
 	<div
 		class="rounded-lg border {isDark
 			? 'border-surface-400/30 bg-surface-200-800'

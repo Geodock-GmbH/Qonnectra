@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
 	import { IconMinus, IconPlus, IconRefresh } from '@tabler/icons-svelte';
 
@@ -10,27 +10,25 @@
 
 	import MicroductsTable from './MicroductsTable.svelte';
 
-	/**
-	 * @typedef {Object} Props
-	 * @property {(conduitId: string, trenchUuids: string[], isOpen: boolean) => void} [onHighlightChange] - Callback for highlight changes
-	 */
+	interface Props {
+		/** Callback for highlight changes */
+		onHighlightChange?: (conduitId: string, trenchUuids: string[], isOpen: boolean) => void;
+	}
 
-	/** @type {Props} */
-	let { onHighlightChange } = $props();
+	let { onHighlightChange }: Props = $props();
 
 	let featureId = $derived($drawerStore.props?.featureId);
 
 	const dataManager = new ConduitDataManager();
 
-	/** @type {string[]} */
-	let openItems = $state([]);
+	let openItems = $state<string[]>([]);
 
 	/**
 	 * Handles accordion open/close changes, fetching microducts for newly opened items
 	 * and notifying the parent about trench highlight changes.
-	 * @param {{ value: string[] }} details - Accordion change event with currently open item IDs.
+	 * @param details - Accordion change event with currently open item IDs.
 	 */
-	async function handleAccordionChange(details) {
+	async function handleAccordionChange(details: { value: string[] }) {
 		const newOpenItems = details.value;
 		const previousOpenItems = openItems;
 
@@ -109,11 +107,8 @@
 								microducts={dataManager.getMicroductsForPipe(item.pipeUuid)}
 								loading={dataManager.isLoadingMicroducts(item.pipeUuid)}
 								error={dataManager.getMicroductsError(item.pipeUuid)}
-								onMicroductUpdate={(/** @type {*} */ updatedMicroduct) =>
-									dataManager.updateMicroductInState(
-										/** @type {string} */ (item.pipeUuid),
-										updatedMicroduct
-									)}
+								onMicroductUpdate={(updatedMicroduct: any) =>
+									dataManager.updateMicroductInState(item.pipeUuid as string, updatedMicroduct)}
 							/>
 						{/if}
 					</div>

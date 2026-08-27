@@ -1,14 +1,21 @@
-<script>
+<script lang="ts">
 	import { navigating } from '$app/stores';
 
 	import { m } from '$lib/paraglide/messages';
 
 	import DashboardCard from './DashboardCard.svelte';
 
-	let { warranties } = $props();
+	interface Warranty {
+		id: string | number;
+		name?: string;
+		node_type?: string;
+		warranty: string;
+		days_until_expiry: number;
+	}
 
-	/** @param {number} daysUntilExpiry */
-	function getUrgencyClass(daysUntilExpiry) {
+	let { warranties }: { warranties: Warranty[] } = $props();
+
+	function getUrgencyClass(daysUntilExpiry: number) {
 		if (daysUntilExpiry < 30) {
 			return 'bg-error-200-800 border-error-500';
 		} else if (daysUntilExpiry < 90) {
@@ -17,8 +24,7 @@
 		return 'bg-success-200-800 border-success-500';
 	}
 
-	/** @param {string} dateString */
-	function formatDate(dateString) {
+	function formatDate(dateString: string) {
 		const date = new Date(dateString);
 		return date.toLocaleDateString('de-DE', {
 			year: 'numeric',

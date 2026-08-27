@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { PageData } from './$types';
 	import { setContext } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { goto, invalidate } from '$app/navigation';
@@ -17,12 +18,11 @@
 	import PipeModal from './PipeModal.svelte';
 	import PipeTable from './PipeTable.svelte';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 	let searchInput = $state('');
 	let openPipeModal = $state(false);
 	let isUploading = $state(false);
-	/** @type {HTMLFormElement | null} */
-	let uploadFormRef = $state(null);
+	let uploadFormRef = $state<HTMLFormElement | null>(null);
 
 	// Initialize state manager (pipes are synced from data in $effect below)
 	const conduitState = new ConduitState({ pipes: [] });
@@ -70,20 +70,17 @@
 	}
 
 	// Handler for conduit update from drawer
-	/** @param {any} updatedConduit */
-	function handleConduitUpdate(updatedConduit) {
+	function handleConduitUpdate(updatedConduit: any) {
 		conduitState.updateConduit(updatedConduit);
 	}
 
 	// Handler for conduit delete from drawer
-	/** @param {string} conduitId */
-	function handleConduitDelete(conduitId) {
+	function handleConduitDelete(conduitId: string) {
 		conduitState.deleteConduit(conduitId);
 	}
 
 	// Handler for new conduit from modal
-	/** @param {any} newConduit */
-	function handleConduitCreate(newConduit) {
+	function handleConduitCreate(newConduit: any) {
 		if (newConduit) {
 			conduitState.addConduit(newConduit);
 		}
@@ -92,8 +89,7 @@
 	/**
 	 * Handle file selection - auto-submit the form when a file is selected
 	 */
-	/** @param {File[]} files */
-	function handleFileSelect(files) {
+	function handleFileSelect(files: File[]) {
 		if (files.length > 0 && uploadFormRef) {
 			uploadFormRef.requestSubmit();
 		}
@@ -103,7 +99,7 @@
 	 * Enhance callback for upload form - handles success/failure responses
 	 */
 	function handleUploadSubmit() {
-		return async (/** @type {{ result: any }} */ { result }) => {
+		return async ({ result }: { result: any }) => {
 			isUploading = false;
 
 			if (result.type === 'success' && result.data?.uploadSuccess) {

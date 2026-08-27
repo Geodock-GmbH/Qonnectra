@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { Slider, Switch } from '@skeletonlabs/skeleton-svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -28,8 +28,7 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	import { loadUserSettings, saveUserSettings } from '$lib/utils/userSettingsSync';
 
-	/** @type {{ data: any }} */
-	let { data } = $props();
+	let { data }: { data: any } = $props();
 
 	let routingToleranceMarkers = $derived(Array.from({ length: 10 }, (_, i) => i + 1));
 
@@ -38,7 +37,7 @@
 			const currentStyles = $nodeTypeStyles;
 			let hasNewTypes = false;
 
-			data.nodeTypes.forEach((/** @type {any} */ nodeType) => {
+			data.nodeTypes.forEach((nodeType: any) => {
 				if (!currentStyles[nodeType.node_type]) {
 					const defaults = getNodeTypeDefault(nodeType.node_type);
 					currentStyles[nodeType.node_type] = {
@@ -62,7 +61,7 @@
 			const currentStyles = $trenchSurfaceStyles;
 			let hasNewTypes = false;
 
-			data.surfaces.forEach((/** @type {any} */ surface) => {
+			data.surfaces.forEach((surface: any) => {
 				if (!currentStyles[surface.surface]) {
 					currentStyles[surface.surface] = {
 						color: DEFAULT_TRENCH_COLOR,
@@ -83,7 +82,7 @@
 			const currentStyles = $trenchConstructionTypeStyles;
 			let hasNewTypes = false;
 
-			data.constructionTypes.forEach((/** @type {any} */ constructionType) => {
+			data.constructionTypes.forEach((constructionType: any) => {
 				if (!currentStyles[constructionType.construction_type]) {
 					currentStyles[constructionType.construction_type] = {
 						color: DEFAULT_TRENCH_COLOR,
@@ -104,7 +103,7 @@
 			const currentStyles = $areaTypeStyles;
 			let hasNewTypes = false;
 
-			data.areaTypes.forEach((/** @type {any} */ areaType) => {
+			data.areaTypes.forEach((areaType: any) => {
 				if (!currentStyles[areaType.area_type]) {
 					currentStyles[areaType.area_type] = {
 						color: DEFAULT_AREA_COLOR,
@@ -120,8 +119,7 @@
 		}
 	});
 
-	/** @param {string} nodeTypeName @param {string} color */
-	function updateNodeTypeColor(nodeTypeName, color) {
+	function updateNodeTypeColor(nodeTypeName: string, color: string) {
 		const currentStyles = $nodeTypeStyles;
 		$nodeTypeStyles = {
 			...currentStyles,
@@ -132,8 +130,7 @@
 		};
 	}
 
-	/** @param {string} nodeTypeName @param {number[]} size */
-	function updateNodeTypeSize(nodeTypeName, size) {
+	function updateNodeTypeSize(nodeTypeName: string, size: number[]) {
 		const currentStyles = $nodeTypeStyles;
 		$nodeTypeStyles = {
 			...currentStyles,
@@ -144,8 +141,7 @@
 		};
 	}
 
-	/** @param {string} nodeTypeName @param {'circle' | 'square'} shape */
-	function updateNodeTypeShape(nodeTypeName, shape) {
+	function updateNodeTypeShape(nodeTypeName: string, shape: 'circle' | 'square') {
 		const currentStyles = $nodeTypeStyles;
 		$nodeTypeStyles = {
 			...currentStyles,
@@ -156,8 +152,7 @@
 		};
 	}
 
-	/** @param {string} nodeTypeName */
-	function resetNodeTypeStyle(nodeTypeName) {
+	function resetNodeTypeStyle(nodeTypeName: string) {
 		const defaults = getNodeTypeDefault(nodeTypeName);
 		const currentStyles = $nodeTypeStyles;
 		$nodeTypeStyles = {
@@ -172,9 +167,11 @@
 	}
 
 	function resetAllNodeTypeStyles() {
-		/** @type {Record<string, {color: string, size: number, visible: boolean, shape: 'circle' | 'square'}>} */
-		const newStyles = {};
-		data.nodeTypes.forEach((/** @type {any} */ nodeType) => {
+		const newStyles: Record<
+			string,
+			{ color: string; size: number; visible: boolean; shape: 'circle' | 'square' }
+		> = {};
+		data.nodeTypes.forEach((nodeType: any) => {
 			const defaults = getNodeTypeDefault(nodeType.node_type);
 			newStyles[nodeType.node_type] = {
 				color: defaults.color,
@@ -186,8 +183,7 @@
 		$nodeTypeStyles = newStyles;
 	}
 
-	/** @param {string} nodeTypeName */
-	function getNodeTypeStyle(nodeTypeName) {
+	function getNodeTypeStyle(nodeTypeName: string) {
 		if ($nodeTypeStyles[nodeTypeName]) {
 			const style = $nodeTypeStyles[nodeTypeName];
 			if (!style.shape) {
@@ -200,8 +196,7 @@
 		return { color: defaults.color, size: defaults.size, visible: true, shape: defaults.shape };
 	}
 
-	/** @param {string} surfaceName @param {string} color */
-	function updateSurfaceColor(surfaceName, color) {
+	function updateSurfaceColor(surfaceName: string, color: string) {
 		const currentStyles = $trenchSurfaceStyles;
 		$trenchSurfaceStyles = {
 			...currentStyles,
@@ -212,8 +207,7 @@
 		};
 	}
 
-	/** @param {string} surfaceName */
-	function resetSurfaceStyle(surfaceName) {
+	function resetSurfaceStyle(surfaceName: string) {
 		const currentStyles = $trenchSurfaceStyles;
 		$trenchSurfaceStyles = {
 			...currentStyles,
@@ -225,9 +219,8 @@
 	}
 
 	function resetAllSurfaceStyles() {
-		/** @type {Record<string, {color: string, visible: boolean}>} */
-		const newStyles = {};
-		data.surfaces.forEach((/** @type {any} */ surface) => {
+		const newStyles: Record<string, { color: string; visible: boolean }> = {};
+		data.surfaces.forEach((surface: any) => {
 			newStyles[surface.surface] = {
 				color: DEFAULT_TRENCH_COLOR,
 				visible: $trenchSurfaceStyles[surface.surface]?.visible ?? true
@@ -236,8 +229,7 @@
 		$trenchSurfaceStyles = newStyles;
 	}
 
-	/** @param {string} surfaceName */
-	function getSurfaceStyle(surfaceName) {
+	function getSurfaceStyle(surfaceName: string) {
 		return (
 			$trenchSurfaceStyles[surfaceName] || {
 				color: DEFAULT_TRENCH_COLOR,
@@ -246,8 +238,7 @@
 		);
 	}
 
-	/** @param {string} constructionTypeName @param {string} color */
-	function updateConstructionTypeColor(constructionTypeName, color) {
+	function updateConstructionTypeColor(constructionTypeName: string, color: string) {
 		const currentStyles = $trenchConstructionTypeStyles;
 		$trenchConstructionTypeStyles = {
 			...currentStyles,
@@ -258,8 +249,7 @@
 		};
 	}
 
-	/** @param {string} constructionTypeName */
-	function resetConstructionTypeStyle(constructionTypeName) {
+	function resetConstructionTypeStyle(constructionTypeName: string) {
 		const currentStyles = $trenchConstructionTypeStyles;
 		$trenchConstructionTypeStyles = {
 			...currentStyles,
@@ -271,9 +261,8 @@
 	}
 
 	function resetAllConstructionTypeStyles() {
-		/** @type {Record<string, {color: string, visible: boolean}>} */
-		const newStyles = {};
-		data.constructionTypes.forEach((/** @type {any} */ constructionType) => {
+		const newStyles: Record<string, { color: string; visible: boolean }> = {};
+		data.constructionTypes.forEach((constructionType: any) => {
 			newStyles[constructionType.construction_type] = {
 				color: DEFAULT_TRENCH_COLOR,
 				visible: $trenchConstructionTypeStyles[constructionType.construction_type]?.visible ?? true
@@ -282,8 +271,7 @@
 		$trenchConstructionTypeStyles = newStyles;
 	}
 
-	/** @param {string} constructionTypeName */
-	function getConstructionTypeStyle(constructionTypeName) {
+	function getConstructionTypeStyle(constructionTypeName: string) {
 		return (
 			$trenchConstructionTypeStyles[constructionTypeName] || {
 				color: DEFAULT_TRENCH_COLOR,
@@ -306,9 +294,11 @@
 	}
 
 	function randomizeAllNodeTypeStyles() {
-		/** @type {Record<string, {color: string, size: number, visible: boolean, shape: 'circle' | 'square'}>} */
-		const newStyles = {};
-		data.nodeTypes.forEach((/** @type {any} */ nodeType) => {
+		const newStyles: Record<
+			string,
+			{ color: string; size: number; visible: boolean; shape: 'circle' | 'square' }
+		> = {};
+		data.nodeTypes.forEach((nodeType: any) => {
 			const defaults = getNodeTypeDefault(nodeType.node_type);
 			newStyles[nodeType.node_type] = {
 				color: randomHexColor(),
@@ -321,9 +311,8 @@
 	}
 
 	function randomizeAllSurfaceStyles() {
-		/** @type {Record<string, {color: string, visible: boolean}>} */
-		const newStyles = {};
-		data.surfaces.forEach((/** @type {any} */ surface) => {
+		const newStyles: Record<string, { color: string; visible: boolean }> = {};
+		data.surfaces.forEach((surface: any) => {
 			newStyles[surface.surface] = {
 				color: randomHexColor(),
 				visible: $trenchSurfaceStyles[surface.surface]?.visible ?? true
@@ -333,9 +322,8 @@
 	}
 
 	function randomizeAllConstructionTypeStyles() {
-		/** @type {Record<string, {color: string, visible: boolean}>} */
-		const newStyles = {};
-		data.constructionTypes.forEach((/** @type {any} */ constructionType) => {
+		const newStyles: Record<string, { color: string; visible: boolean }> = {};
+		data.constructionTypes.forEach((constructionType: any) => {
 			newStyles[constructionType.construction_type] = {
 				color: randomHexColor(),
 				visible: $trenchConstructionTypeStyles[constructionType.construction_type]?.visible ?? true
@@ -352,9 +340,8 @@
 	}
 
 	function randomizeAllAreaTypeStyles() {
-		/** @type {Record<string, {color: string, visible: boolean}>} */
-		const newStyles = {};
-		data.areaTypes.forEach((/** @type {any} */ areaType) => {
+		const newStyles: Record<string, { color: string; visible: boolean }> = {};
+		data.areaTypes.forEach((areaType: any) => {
 			newStyles[areaType.area_type] = {
 				color: randomHexColor(),
 				visible: $areaTypeStyles[areaType.area_type]?.visible ?? true
@@ -363,16 +350,14 @@
 		$areaTypeStyles = newStyles;
 	}
 
-	/** @param {string} color */
-	function updateAddressColor(color) {
+	function updateAddressColor(color: string) {
 		$addressStyle = {
 			...$addressStyle,
 			color
 		};
 	}
 
-	/** @param {number[]} size */
-	function updateAddressSize(size) {
+	function updateAddressSize(size: number[]) {
 		$addressStyle = {
 			...$addressStyle,
 			size: size[0]
@@ -386,8 +371,7 @@
 		};
 	}
 
-	/** @param {string} areaTypeName @param {string} color */
-	function updateAreaTypeColor(areaTypeName, color) {
+	function updateAreaTypeColor(areaTypeName: string, color: string) {
 		const currentStyles = $areaTypeStyles;
 		$areaTypeStyles = {
 			...currentStyles,
@@ -398,8 +382,7 @@
 		};
 	}
 
-	/** @param {string} areaTypeName */
-	function resetAreaTypeStyle(areaTypeName) {
+	function resetAreaTypeStyle(areaTypeName: string) {
 		const currentStyles = $areaTypeStyles;
 		$areaTypeStyles = {
 			...currentStyles,
@@ -411,9 +394,8 @@
 	}
 
 	function resetAllAreaTypeStyles() {
-		/** @type {Record<string, {color: string, visible: boolean}>} */
-		const newStyles = {};
-		data.areaTypes.forEach((/** @type {any} */ areaType) => {
+		const newStyles: Record<string, { color: string; visible: boolean }> = {};
+		data.areaTypes.forEach((areaType: any) => {
 			newStyles[areaType.area_type] = {
 				color: DEFAULT_AREA_COLOR,
 				visible: $areaTypeStyles[areaType.area_type]?.visible ?? true
@@ -422,8 +404,7 @@
 		$areaTypeStyles = newStyles;
 	}
 
-	/** @param {string} areaTypeName */
-	function getAreaTypeStyle(areaTypeName) {
+	function getAreaTypeStyle(areaTypeName: string) {
 		return (
 			$areaTypeStyles[areaTypeName] || {
 				color: DEFAULT_AREA_COLOR,
@@ -710,7 +691,7 @@
 													onchange={(e) =>
 														updateSurfaceColor(
 															surface.surface,
-															/** @type {HTMLInputElement} */ (e.target).value
+															(e.target as HTMLInputElement).value
 														)}
 													class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
 												/>
@@ -799,7 +780,7 @@
 													onchange={(e) =>
 														updateConstructionTypeColor(
 															constructionType.construction_type,
-															/** @type {HTMLInputElement} */ (e.target).value
+															(e.target as HTMLInputElement).value
 														)}
 													class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
 												/>
@@ -886,7 +867,7 @@
 												onchange={(e) =>
 													updateNodeTypeColor(
 														nodeType.node_type,
-														/** @type {HTMLInputElement} */ (e.target).value
+														(e.target as HTMLInputElement).value
 													)}
 												class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
 											/>
@@ -1010,8 +991,7 @@
 										type="color"
 										name="color-address"
 										value={$addressStyle.color}
-										onchange={(e) =>
-											updateAddressColor(/** @type {HTMLInputElement} */ (e.target).value)}
+										onchange={(e) => updateAddressColor((e.target as HTMLInputElement).value)}
 										class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
 									/>
 									<span
@@ -1113,7 +1093,7 @@
 												onchange={(e) =>
 													updateAreaTypeColor(
 														areaType.area_type,
-														/** @type {HTMLInputElement} */ (e.target).value
+														(e.target as HTMLInputElement).value
 													)}
 												class="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
 											/>

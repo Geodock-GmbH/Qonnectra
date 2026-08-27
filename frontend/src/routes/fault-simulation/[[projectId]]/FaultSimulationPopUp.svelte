@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { deserialize } from '$app/forms';
 	import { IconLoader2 } from '@tabler/icons-svelte';
 
@@ -9,15 +9,14 @@
 
 	import { getFaultSimulationContext } from './faultSimulationContext.svelte.js';
 
-	let { projectId = '' } = $props();
+	let { projectId = '' }: { projectId?: string } = $props();
 
 	const ctx = getFaultSimulationContext();
 
 	/**
 	 * Submits the selected damage point to the simulate action and updates context with the result.
-	 * @returns {Promise<void>}
 	 */
-	async function handleSimulate() {
+	async function handleSimulate(): Promise<void> {
 		if (!ctx.damagePoint || !projectId) return;
 
 		ctx.isSimulating = true;

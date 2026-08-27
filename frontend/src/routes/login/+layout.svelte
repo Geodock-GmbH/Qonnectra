@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { LayoutData } from './$types';
 	import { browser } from '$app/environment';
 	import { Toast } from '@skeletonlabs/skeleton-svelte';
 
@@ -9,7 +10,7 @@
 
 	import '../../app.css';
 
-	let { children, data } = $props();
+	let { children, data }: { children: import('svelte').Snippet; data: LayoutData } = $props();
 
 	if (browser) {
 		setupNavigationCancellation();
@@ -17,10 +18,7 @@
 
 	$effect(() => updateUserStore(data.user));
 	$effect(() => {
-		document.documentElement.setAttribute(
-			'data-theme',
-			/** @type {string} */ (/** @type {unknown} */ ($theme))
-		);
+		document.documentElement.setAttribute('data-theme', $theme as unknown as string);
 	});
 </script>
 

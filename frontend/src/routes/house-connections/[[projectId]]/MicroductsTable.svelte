@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { Microduct } from '$lib/classes/ConduitDataManager.svelte.js';
 	import { getContext } from 'svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -6,18 +7,26 @@
 	import MicroductsDisplayTable from '$lib/components/MicroductsDisplayTable.svelte';
 	import { tooltip } from '$lib/utils/tooltip';
 
-	/** @typedef {import('$lib/classes/ConduitDataManager.svelte.js').Microduct} Microduct */
+	let {
+		microducts = [],
+		loading = false,
+		error = null,
+		onMicroductUpdate = null
+	}: {
+		microducts?: Microduct[];
+		loading?: boolean;
+		error?: string | null;
+		onMicroductUpdate?: ((microduct: unknown) => void) | null;
+	} = $props();
 
-	let { microducts = [], loading = false, error = null, onMicroductUpdate = null } = $props();
-
-	const nodeAssignmentManager = getContext('nodeAssignmentManager');
+	const nodeAssignmentManager = getContext<any>('nodeAssignmentManager');
 	const isAssignMode = $derived(nodeAssignmentManager?.isAssignMode || false);
 
 	/**
 	 * Handle the assign click event
-	 * @param {Microduct} microduct - The microduct object
+	 * @param microduct - The microduct object
 	 */
-	function handleAssignClick(microduct) {
+	function handleAssignClick(microduct: Microduct) {
 		if (!nodeAssignmentManager) {
 			console.error('NodeAssignmentManager not found in context');
 			return;
@@ -25,7 +34,7 @@
 
 		nodeAssignmentManager.activateAssignMode(
 			microduct.uuid,
-			(/** @type {{ microduct?: unknown }} */ updatedData) => {
+			(updatedData: { microduct?: unknown }) => {
 				if (onMicroductUpdate && updatedData?.microduct) {
 					onMicroductUpdate(updatedData.microduct);
 				}
@@ -35,9 +44,9 @@
 
 	/**
 	 * Handle the remove click event
-	 * @param {Microduct} microduct - The microduct object
+	 * @param microduct - The microduct object
 	 */
-	function handleRemoveClick(microduct) {
+	function handleRemoveClick(microduct: Microduct) {
 		if (!nodeAssignmentManager) {
 			console.error('NodeAssignmentManager not found in context');
 			return;
@@ -45,7 +54,7 @@
 
 		nodeAssignmentManager.removeNodeFromMicroduct(
 			microduct.uuid,
-			(/** @type {{ microduct?: unknown }} */ updatedData) => {
+			(updatedData: { microduct?: unknown }) => {
 				if (onMicroductUpdate && updatedData?.microduct) {
 					onMicroductUpdate(updatedData.microduct);
 				}

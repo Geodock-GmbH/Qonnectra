@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { Menu, Portal } from '@skeletonlabs/skeleton-svelte';
@@ -18,6 +18,7 @@
 
 	import 'ol/ol.css';
 
+	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import proj4 from 'proj4';
@@ -47,7 +48,7 @@
 
 	import ResidentialUnitsSection from './ResidentialUnitsSection.svelte';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 
 	let isSaving = $state(false);
 	let isDeleting = $state(false);
@@ -72,12 +73,12 @@
 
 	/**
 	 * Snapshots the address from initial page data to avoid reactivity on form fields.
-	 * @returns {Object | null} The address object.
+	 * @returns The address object.
 	 */
 	function getInitialAddress() {
 		return data.address;
 	}
-	const initialAddress = /** @type {any} */ (getInitialAddress());
+	const initialAddress = getInitialAddress() as any;
 	let id_address = $state(initialAddress?.id_address || '');
 	let id_address_2 = $state(initialAddress?.id_address_2 || '');
 	let street = $state(initialAddress?.street || '');
@@ -89,24 +90,16 @@
 	let status_development_id = $state(initialAddress?.status_development?.id || '');
 	let flag_id = $state(initialAddress?.flag?.id || '');
 	let project = $state(initialAddress?.project?.project || '');
-	/** @type {any} */
-	let deleteMessageBox = $state(null);
-	/** @type {any} */
-	let regenerateMessageBox = $state(null);
-	/** @type {any} */
-	let fileExplorer = $state(null);
+	let deleteMessageBox = $state<any>(null);
+	let regenerateMessageBox = $state<any>(null);
+	let fileExplorer = $state<any>(null);
 
-	/** @type {any} */
-	let addressMarkerLayer = $state(null);
-	/** @type {any} */
-	let trenchLinesLayer = $state(null);
-	/** @type {any[]} */
-	let wmsLayers = $state([]);
-	/** @type {any} */
-	let mapCenter = $state(null);
+	let addressMarkerLayer = $state<any>(null);
+	let trenchLinesLayer = $state<any>(null);
+	let wmsLayers = $state<any[]>([]);
+	let mapCenter = $state<any>(null);
 	let mapReady = $state(false);
-	/** @type {HTMLElement | null} */
-	let mapContainerEl = $state(null);
+	let mapContainerEl = $state<HTMLElement | null>(null);
 
 	let derivedIdAddress = $derived(id_address);
 
@@ -192,16 +185,14 @@
 
 		if (linkedTrenchGeometries.length > 0) {
 			const geoJsonFormat = new GeoJSON();
-			const trenchFeatures = /** @type {import('ol/Feature').default[]} */ (
-				linkedTrenchGeometries
-					.filter((/** @type {any} */ f) => f.geometry)
-					.map((/** @type {any} */ f) =>
-						geoJsonFormat.readFeature(f, {
-							dataProjection: 'EPSG:3857',
-							featureProjection: 'EPSG:3857'
-						})
-					)
-			);
+			const trenchFeatures = linkedTrenchGeometries
+				.filter((f: any) => f.geometry)
+				.map((f: any) =>
+					geoJsonFormat.readFeature(f, {
+						dataProjection: 'EPSG:3857',
+						featureProjection: 'EPSG:3857'
+					})
+				) as import('ol/Feature').default[];
 
 			if (trenchFeatures.length > 0) {
 				trenchLinesLayer = new VectorLayer({
@@ -220,9 +211,9 @@
 
 	/**
 	 * Converts the geometry from EPSG:3857 to EPSG:4326 (lat/lon).
-	 * @returns {string | null} Formatted coordinate string or null if no geometry.
+	 * @returns Formatted coordinate string or null if no geometry.
 	 */
-	function convert3857To4326() {
+	function convert3857To4326(): string | null {
 		if (!geom3857 || !geom3857.coordinates) return null;
 		const coords4326 = proj4('EPSG:3857', 'EPSG:4326', geom3857.coordinates);
 		return `${coords4326[1].toFixed(6)}, ${coords4326[0].toFixed(6)}`;
@@ -230,9 +221,9 @@
 
 	/**
 	 * Converts the geometry from EPSG:3857 to the project's storage SRID.
-	 * @returns {string | null} Formatted coordinate string or null if no geometry.
+	 * @returns Formatted coordinate string or null if no geometry.
 	 */
-	function convert3857ToDefault() {
+	function convert3857ToDefault(): string | null {
 		if (!geom3857 || !geom3857.coordinates) return null;
 		registerStorageProjection(page.data.srid, page.data.proj4Def);
 		const coordsDefault = proj4(
@@ -270,7 +261,7 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				const updated = /** @type {any} */ (result.data)?.address;
+				const updated = (result.data as any)?.address;
 				if (updated?.id_address != null) {
 					id_address = updated.id_address;
 				}
@@ -284,8 +275,7 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description:
-						/** @type {any} */ (result).data?.message || m.message_error_updating_address()
+					description: (result as any).data?.message || m.message_error_updating_address()
 				});
 			}
 		} catch (error) {
@@ -332,8 +322,7 @@
 			} else if (result.type === 'failure') {
 				globalToaster.error({
 					title: m.common_error(),
-					description:
-						/** @type {any} */ (result).data?.message || m.message_error_deleting_address()
+					description: (result as any).data?.message || m.message_error_deleting_address()
 				});
 			}
 		} catch (error) {
@@ -372,7 +361,7 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				id_address = /** @type {any} */ (result.data).id_address;
+				id_address = (result.data as any).id_address;
 				globalToaster.success({
 					title: m.title_success(),
 					description: m.message_success_regenerating_id()
@@ -380,8 +369,7 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description:
-						/** @type {any} */ (result).data?.message || m.message_error_regenerating_id()
+					description: (result as any).data?.message || m.message_error_regenerating_id()
 				});
 			}
 		} catch (error) {
@@ -418,9 +406,9 @@
 
 	/**
 	 * Fetches all fiber connections for all residential units of this address.
-	 * @returns {Promise<Record<string, Array<Object>>>} Map of unit UUID to fiber connections array.
+	 * @returns Map of unit UUID to fiber connections array.
 	 */
-	async function fetchAllFiberConnections() {
+	async function fetchAllFiberConnections(): Promise<Record<string, Array<object>>> {
 		try {
 			const response = await fetch(`/api/address/${address.uuid}/fiber-connections`);
 			if (response.ok) {
@@ -462,7 +450,7 @@
 			let unitsWithFibers = residentialUnits;
 			if (includeResidentialUnits && residentialUnits?.length > 0) {
 				const fiberConnectionsMap = await fetchAllFiberConnections();
-				unitsWithFibers = residentialUnits.map((/** @type {any} */ unit) => ({
+				unitsWithFibers = residentialUnits.map((unit: any) => ({
 					...unit,
 					fiberConnections: fiberConnectionsMap[unit.uuid] || []
 				}));
@@ -472,9 +460,7 @@
 
 			generateAddressPdf({
 				address: addressData,
-				residentialUnits: /** @type {import('$lib/utils/addressPdf').ResidentialUnit[]} */ (
-					unitsWithFibers
-				),
+				residentialUnits: unitsWithFibers as import('$lib/utils/addressPdf').ResidentialUnit[],
 				mapImage,
 				includeResidentialUnits,
 				linkedMicroducts,
@@ -762,7 +748,7 @@
 							data={statusDevelopments}
 							value={status_development_id ? [status_development_id] : []}
 							placeholder="-"
-							onValueChange={(/** @type {{ value: string[] }} */ e) => {
+							onValueChange={(e: { value: string[] }) => {
 								status_development_id = e.value[0] || '';
 							}}
 						/>
@@ -777,7 +763,7 @@
 							value={flag_id ? [flag_id] : []}
 							placeholder="-"
 							required={true}
-							onValueChange={(/** @type {{ value: string[] }} */ e) => {
+							onValueChange={(e: { value: string[] }) => {
 								flag_id = e.value[0] || '';
 							}}
 						/>

@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
@@ -18,7 +18,17 @@
 
 	import ConduitDrawerTabs from './ConduitDrawerTabs.svelte';
 
-	let { pipes, pagination, onConduitUpdate = () => {}, onConduitDelete = () => {} } = $props();
+	let {
+		pipes,
+		pagination,
+		onConduitUpdate = () => {},
+		onConduitDelete = () => {}
+	}: {
+		pipes: Record<string, any>[];
+		pagination: { totalCount: number; pageSize: number; page: number };
+		onConduitUpdate?: (conduit: any) => void;
+		onConduitDelete?: (conduitId: string) => void;
+	} = $props();
 
 	// Column configuration with sortable/filterable flags
 	const columnConfig = [
@@ -35,13 +45,11 @@
 	];
 
 	// Sort state
-	/** @type {string | null} */
-	let sortColumn = $state(null);
+	let sortColumn = $state<string | null>(null);
 	let sortDirection = $state('asc');
 
 	// Filter state - object with column keys
-	/** @type {Record<string, string>} */
-	let filters = $state({
+	let filters = $state<Record<string, string>>({
 		name: '',
 		conduit_type: '',
 		outer_conduit: '',
@@ -57,8 +65,7 @@
 	// Mobile global filter
 	let mobileSearchTerm = $state('');
 
-	/** @param {string} columnKey */
-	function toggleSort(columnKey) {
+	function toggleSort(columnKey: string) {
 		if (sortColumn === columnKey) {
 			if (sortDirection === 'asc') {
 				sortDirection = 'desc';
@@ -72,23 +79,17 @@
 		}
 	}
 
-	/**
-	 * @param {string} columnKey
-	 * @param {string} value
-	 */
-	function updateFilter(columnKey, value) {
+	function updateFilter(columnKey: string, value: string) {
 		filters[columnKey] = value;
 	}
 
-	/** @param {number} newPage */
-	function goToPage(newPage) {
+	function goToPage(newPage: number) {
 		const url = new URL(window.location.href);
 		url.searchParams.set('page', String(newPage));
 		goto(url.pathname + url.search);
 	}
 
-	/** @param {number} newSize */
-	function changePageSize(newSize) {
+	function changePageSize(newSize: number) {
 		const url = new URL(window.location.href);
 		url.searchParams.set('page_size', String(newSize));
 		url.searchParams.set('page', '1');
@@ -97,7 +98,7 @@
 
 	// Apply filters to pipes
 	const filteredPipes = $derived.by(() => {
-		return pipes.filter((/** @type {Record<string, any>} */ pipe) => {
+		return pipes.filter((pipe: Record<string, any>) => {
 			return Object.entries(filters).every(([key, filterValue]) => {
 				if (!filterValue) return true;
 				const cellValue = String(pipe[key] || '').toLowerCase();
@@ -134,7 +135,7 @@
 		if (!mobileSearchTerm) return sortedPipes;
 
 		const term = mobileSearchTerm.toLowerCase();
-		return sortedPipes.filter((/** @type {Record<string, any>} */ pipe) => {
+		return sortedPipes.filter((pipe: Record<string, any>) => {
 			return Object.values(pipe).some((value) =>
 				String(value || '')
 					.toLowerCase()
@@ -143,8 +144,7 @@
 		});
 	});
 
-	/** @param {Record<string, any>} pipe */
-	async function handleRowClick(pipe) {
+	async function handleRowClick(pipe: Record<string, any>) {
 		// Fetch full conduit details via server action
 		const formData = new FormData();
 		formData.append('uuid', pipe.value);
@@ -165,7 +165,7 @@
 				return;
 			}
 
-			const conduitData = /** @type {any} */ (result).data?.conduit;
+			const conduitData = (result as any).data?.conduit;
 
 			// Open drawer with conduit details
 			drawerStore.open({
@@ -173,11 +173,11 @@
 				component: ConduitDrawerTabs,
 				props: {
 					...conduitData,
-					onConduitUpdate: (/** @type {any} */ updatedConduit) => {
+					onConduitUpdate: (updatedConduit: any) => {
 						onConduitUpdate(updatedConduit);
 						drawerStore.setTitle(updatedConduit.name);
 					},
-					onConduitDelete: (/** @type {string} */ conduitId) => {
+					onConduitDelete: (conduitId: string) => {
 						onConduitDelete(conduitId);
 					}
 				}
@@ -252,7 +252,7 @@
 											placeholder={m.common_search()}
 											value={filters[column.key]}
 											oninput={(e) =>
-												updateFilter(column.key, /** @type {HTMLInputElement} */ (e.target).value)}
+												updateFilter(column.key, (e.target as HTMLInputElement).value)}
 										/>
 									{/if}
 								</th>

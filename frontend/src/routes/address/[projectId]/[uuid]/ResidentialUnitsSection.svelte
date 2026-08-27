@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { deserialize } from '$app/forms';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
@@ -25,11 +25,16 @@
 		residentialUnitStatuses = [],
 		projectId = '',
 		addressUuid = ''
+	}: {
+		residentialUnits?: any[];
+		residentialUnitTypes?: any[];
+		residentialUnitStatuses?: any[];
+		projectId?: string;
+		addressUuid?: string;
 	} = $props();
 
-	let deletingUnitUuid = $state(/** @type {string | null} */ (null));
-	/** @type {any} */
-	let deleteMessageBox = $state(null);
+	let deletingUnitUuid = $state<string | null>(null);
+	let deleteMessageBox = $state<any>(null);
 	let openModal = $state(false);
 	let page = $state(1);
 	let size = $state(10);
@@ -52,8 +57,7 @@
 		{ key: 'status', label: m.table_residential_unit_status(), sortable: true, filterable: true }
 	];
 
-	/** @type {Record<string, string>} */
-	let filters = $state({
+	let filters = $state<Record<string, string>>({
 		id_residential_unit: '',
 		floor: '',
 		side: '',
@@ -61,24 +65,24 @@
 		status: ''
 	});
 
-	let sortColumn = $state(/** @type {string | null} */ (null));
+	let sortColumn = $state<string | null>(null);
 	let sortDirection = $state('asc');
 
 	/**
 	 * Updates a column filter value and resets to page 1.
-	 * @param {string} columnKey
-	 * @param {string} value
+	 * @param columnKey
+	 * @param value
 	 */
-	function updateFilter(columnKey, value) {
+	function updateFilter(columnKey: string, value: string) {
 		filters[columnKey] = value;
 		page = 1;
 	}
 
 	/**
 	 * Cycles sort state for a column: asc → desc → unsorted.
-	 * @param {string} columnKey
+	 * @param columnKey
 	 */
-	function toggleSort(columnKey) {
+	function toggleSort(columnKey: string) {
 		if (sortColumn === columnKey) {
 			if (sortDirection === 'asc') {
 				sortDirection = 'desc';
@@ -95,11 +99,11 @@
 
 	/**
 	 * Resolves the display value for a residential unit column, handling nested objects.
-	 * @param {any} unit - The residential unit record.
-	 * @param {string} key - The column key.
-	 * @returns {string} The display value.
+	 * @param unit - The residential unit record.
+	 * @param key - The column key.
+	 * @returns The display value.
 	 */
-	function getCellValue(unit, key) {
+	function getCellValue(unit: any, key: string) {
 		if (key === 'residential_unit_type')
 			return unit.residential_unit_type?.residential_unit_type ?? null;
 		if (key === 'status') return unit.status?.status ?? null;
@@ -119,7 +123,7 @@
 
 	const sortedUnits = $derived.by(() => {
 		if (!sortColumn) return filteredUnits;
-		const col = /** @type {string} */ (sortColumn);
+		const col = sortColumn as string;
 		return [...filteredUnits].sort((a, b) => {
 			const aVal = String(getCellValue(a, col)).toLowerCase();
 			const bVal = String(getCellValue(b, col)).toLowerCase();
@@ -136,18 +140,18 @@
 
 	/**
 	 * Navigates to the detail page for a residential unit.
-	 * @param {string} unitUuid
+	 * @param unitUuid
 	 */
-	function navigateToUnit(unitUuid) {
+	function navigateToUnit(unitUuid: string) {
 		goto(`/address/${projectId}/${addressUuid}/unit/${unitUuid}`);
 	}
 
 	/**
 	 * Opens the delete confirmation dialog for a residential unit.
-	 * @param {MouseEvent} event
-	 * @param {string} unitUuid
+	 * @param event
+	 * @param unitUuid
 	 */
-	function confirmDelete(event, unitUuid) {
+	function confirmDelete(event: MouseEvent, unitUuid: string) {
 		event.stopPropagation();
 		deletingUnitUuid = unitUuid;
 		deleteMessageBox?.open();
@@ -178,8 +182,7 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description:
-						/** @type {any} */ (result).data?.message || m.message_error_deleting_residential_unit()
+					description: (result as any).data?.message || m.message_error_deleting_residential_unit()
 				});
 			}
 		} catch (error) {
@@ -249,8 +252,7 @@
 										class="input text-sm py-1 px-2 w-full"
 										placeholder={m.common_search()}
 										value={filters[column.key]}
-										oninput={(e) =>
-											updateFilter(column.key, /** @type {HTMLInputElement} */ (e.target).value)}
+										oninput={(e) => updateFilter(column.key, (e.target as HTMLInputElement).value)}
 									/>
 								{/if}
 							</th>

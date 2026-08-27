@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte';
 	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
@@ -12,21 +13,18 @@
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
 
-	/**
-	 * @typedef {Object} Props
-	 * @property {string} featureId - UUID of the trench feature
-	 */
+	interface Props {
+		/** UUID of the trench feature */
+		featureId?: string;
+	}
 
-	/** @type {Props} */
-	let { featureId = '' } = $props();
+	let { featureId = '' }: Props = $props();
 
 	const dataManager = new ConduitDataManager();
 
-	/** @type {{ selectionManager: import('$lib/classes/MapSelectionManager.svelte.js').MapSelectionManager }} */
-	const { selectionManager } = getContext('mapManagers');
+	const { selectionManager } = getContext<{ selectionManager: MapSelectionManager }>('mapManagers');
 
-	/** @type {Record<string, boolean>} */
-	let highlightLoading = $state({});
+	let highlightLoading = $state<Record<string, boolean>>({});
 
 	$effect(() => {
 		if (featureId) {
@@ -36,10 +34,10 @@
 
 	/**
 	 * Highlight all trenches containing the specified conduit on the map
-	 * @param {Event} event - Click event
-	 * @param {string} pipeUuid - UUID of the conduit
+	 * @param event - Click event
+	 * @param pipeUuid - UUID of the conduit
 	 */
-	async function handleHighlightTrenches(event, pipeUuid) {
+	async function handleHighlightTrenches(event: Event, pipeUuid: string) {
 		event.stopPropagation();
 
 		if (!pipeUuid || highlightLoading[pipeUuid]) return;
@@ -58,9 +56,7 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success' && result.data?.trench_uuids) {
-				selectionManager.selectMultipleFeatures(
-					/** @type {(string | number)[]} */ (result.data.trench_uuids)
-				);
+				selectionManager.selectMultipleFeatures(result.data.trench_uuids as (string | number)[]);
 			}
 		} catch (err) {
 			console.error('Error highlighting trenches:', err);

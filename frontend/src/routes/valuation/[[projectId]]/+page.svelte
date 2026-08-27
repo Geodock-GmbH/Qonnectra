@@ -1,4 +1,8 @@
-<script>
+<script lang="ts">
+	import type { PageData } from './$types';
+	import type { MapBrowserEvent } from 'ol';
+	import type Feature from 'ol/Feature.js';
+	import type OlMap from 'ol/Map.js';
 	import { untrack } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { get } from 'svelte/store';
@@ -33,32 +37,24 @@
 
 	import { computeProjection, formatCurrency, formatQuantity } from './valuationCalc.js';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 
-	/** @type {Array<{uuid: string, name: string, areaType: string | null, geom: any}> | null} */
-	let globalAreas = $state(null);
-	/** @type {any[] | null} */
-	let globalRates = $state(null);
+	type Area = { uuid: string; name: string; areaType: string | null; geom: any };
 
-	const projectAreas = $derived(
-		/** @type {Array<{uuid: string, name: string, areaType: string | null, geom: any}>} */ (
-			data.areas ?? []
-		)
-	);
-	const projectRates = $derived(/** @type {any[]} */ (data.rates ?? []));
+	let globalAreas = $state<Area[] | null>(null);
+	let globalRates = $state<any[] | null>(null);
+
+	const projectAreas = $derived((data.areas ?? []) as Area[]);
+	const projectRates = $derived((data.rates ?? []) as any[]);
 
 	const areas = $derived($globalMapView && globalAreas ? globalAreas : projectAreas);
 	const rates = $derived($globalMapView && globalRates ? globalRates : projectRates);
-	const nodeTypes = $derived(/** @type {any[]} */ (data.nodeTypes ?? []));
-	const surfaces = $derived(/** @type {any[]} */ (data.surfaces ?? []));
-	const constructionTypes = $derived(/** @type {any[]} */ (data.constructionTypes ?? []));
-	const areaTypes = $derived(/** @type {any[]} */ (data.areaTypes ?? []));
+	const nodeTypes = $derived((data.nodeTypes ?? []) as any[]);
+	const surfaces = $derived((data.surfaces ?? []) as any[]);
+	const constructionTypes = $derived((data.constructionTypes ?? []) as any[]);
+	const areaTypes = $derived((data.areaTypes ?? []) as any[]);
 
-	/**
-	 * @param {string} unit
-	 * @returns {string}
-	 */
-	function unitLabel(unit) {
+	function unitLabel(unit: string): string {
 		return unit === 'per_meter' ? m.valuation_unit_per_meter() : m.valuation_unit_per_piece();
 	}
 
@@ -77,7 +73,7 @@
 					areasData?.results ??
 					areasData ??
 					[];
-				globalAreas = (Array.isArray(features) ? features : []).map((/** @type {any} */ a) => ({
+				globalAreas = (Array.isArray(features) ? features : []).map((a: any) => ({
 					uuid: a.id ?? a.properties?.uuid ?? a.uuid,
 					name: a.properties?.name ?? a.name,
 					areaType: a.properties?.area_type?.area_type ?? null,
@@ -90,7 +86,7 @@
 				globalRates = ratesData?.results ?? ratesData ?? [];
 				if (!Array.isArray(globalRates)) globalRates = [];
 			}
-		} catch (/** @type {any} */ err) {
+		} catch (err: any) {
 			globalToaster.error({
 				title: m.common_error(),
 				description: err.message
@@ -107,10 +103,8 @@
 	);
 	const layersInitialized = mapState.initializeLayers();
 
-	/** @type {import('ol/Map').default | null} */
-	let olMap = $state(null);
-	/** @type {VectorLayer<VectorSource> | null} */
-	let highlightLayer = null;
+	let olMap = $state<OlMap | null>(null);
+	let highlightLayer: VectorLayer<VectorSource> | null = null;
 
 	let gesamt = $state(true);
 	const selectedAreaUuids = new SvelteSet();
@@ -120,8 +114,7 @@
 	let annualCorrectionPercent = $state('2.5');
 
 	const groupedAreas = $derived.by(() => {
-		/** @type {globalThis.Map<string, typeof areas>} */
-		const groups = new globalThis.Map();
+		const groups = new globalThis.Map<string, typeof areas>();
 		for (const area of areas) {
 			const key = area.areaType ?? m.valuation_no_area_type();
 			if (!groups.has(key)) groups.set(key, []);
@@ -131,8 +124,7 @@
 	});
 
 	let isCalculating = $state(false);
-	/** @type {any} */
-	let result = $state(null);
+	let result = $state<any>(null);
 
 	const selectionValid = $derived(gesamt || selectedAreaUuids.size > 0);
 
@@ -246,9 +238,8 @@
 
 	/**
 	 * Initialises the highlight layer once the map is ready.
-	 * @param {{ map: import('ol/Map').default }} event
 	 */
-	function handleMapReady({ map }) {
+	function handleMapReady({ map }: { map: OlMap }) {
 		olMap = map;
 		const source = new VectorSource();
 		highlightLayer = new VectorLayer({ source, style: highlightStyle, zIndex: 90 });
@@ -256,14 +247,12 @@
 		renderHighlight();
 	}
 
-	/** @param {import('ol/MapBrowserEvent').default} e */
-	function handleMapClick(e) {
+	function handleMapClick(e: MapBrowserEvent<PointerEvent>) {
 		if (!olMap) return;
 		const areaLayer = mapState.getLayerReferences().areaLayer;
 		if (!areaLayer) return;
 
-		/** @type {string | undefined} */
-		let clickedUuid;
+		let clickedUuid: string | undefined;
 		olMap.forEachFeatureAtPixel(
 			e.pixel,
 			(feature) => {
@@ -302,7 +291,7 @@
 				{ type: 'Feature', geometry: area.geom, properties: {} },
 				{ dataProjection, featureProjection: olMap.getView().getProjection() }
 			);
-			source.addFeature(/** @type {import('ol/Feature').default} */ (feature));
+			source.addFeature(feature as Feature);
 		}
 	}
 
@@ -314,10 +303,7 @@
 		renderHighlight();
 	}
 
-	/**
-	 * @param {string} uuid
-	 */
-	function toggleArea(uuid) {
+	function toggleArea(uuid: string) {
 		if (selectedAreaUuids.has(uuid)) {
 			selectedAreaUuids.delete(uuid);
 		} else {
@@ -344,14 +330,14 @@
 			const parsed = deserialize(await response.text());
 
 			if (parsed.type === 'success') {
-				result = /** @type {any} */ (parsed).data?.result ?? null;
+				result = (parsed as any).data?.result ?? null;
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: /** @type {any} */ (parsed).data?.message || m.valuation_result_failed()
+					description: (parsed as any).data?.message || m.valuation_result_failed()
 				});
 			}
-		} catch (/** @type {any} */ err) {
+		} catch (err: any) {
 			globalToaster.error({ title: m.common_error(), description: err.message });
 		} finally {
 			isCalculating = false;

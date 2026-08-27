@@ -1,4 +1,6 @@
-<script>
+<script lang="ts">
+	import type { TraceResult } from '../../traceUtils';
+	import type { PageData } from './$types';
 	import { fly } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -9,21 +11,21 @@
 	import TraceResults from '../../components/TraceResults.svelte';
 	import { getTraceMapContext } from '../../traceMapContext.svelte';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 
 	const traceMapContext = getTraceMapContext();
 	const mode = $derived(data.mode || 'trace');
 
 	$effect(() => {
-		traceMapContext.traceResult = data.result ?? null;
+		traceMapContext.traceResult = (data.result as TraceResult | undefined) ?? null;
 		traceMapContext.includeGeometry = data.options?.includeGeometry ?? false;
 	});
 
 	/**
 	 * Switches between standard trace and signal analysis mode.
-	 * @param {'trace' | 'signal'} newMode - The mode to switch to.
+	 * @param newMode - The mode to switch to.
 	 */
-	function switchMode(newMode) {
+	function switchMode(newMode: 'trace' | 'signal') {
 		const url = new URL(page.url);
 		if (newMode === 'signal') {
 			url.searchParams.set('mode', 'signal');

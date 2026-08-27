@@ -1,4 +1,6 @@
-<script>
+<script lang="ts">
+	import type { PageData } from './$types';
+	import type OlMap from 'ol/Map';
 	import { onMount, untrack } from 'svelte';
 	import { get } from 'svelte/store';
 	import VectorTileLayer from 'ol/layer/VectorTile.js';
@@ -32,15 +34,14 @@
 
 	import 'ol/ol.css';
 
-	/** @type {{ data: import('./$types').PageData }} */
-	let { data } = $props();
-	let mapRef = $state();
-	let searchPanelRef = $state();
+	let { data }: { data: PageData } = $props();
+	let mapRef = $state<any>();
+	let searchPanelRef = $state<any>();
 
-	let linkedTrenchesLayer = $state();
-	let linkedTrenchUuids = $state(new Set());
-	/** @type {Object<string, Set<string>>} conduitId -> Set of trenchUuids */
-	let highlightsByConduit = {};
+	let linkedTrenchesLayer = $state<VectorTileLayer | undefined>();
+	let linkedTrenchUuids = $state<Set<string>>(new Set());
+	/** conduitId -> Set of trenchUuids */
+	let highlightsByConduit: Record<string, Set<string>> = {};
 
 	const mapState = new MapState($selectedProject, get(trenchColorSelected), {
 		trench: true,
@@ -71,18 +72,18 @@
 
 	/**
 	 * Handle highlight changes from accordion
-	 * @param {string} conduitId - UUID of the conduit
-	 * @param {string[]} trenchUuids - Array of trench UUIDs
-	 * @param {boolean} isOpen - Whether the accordion item was opened
+	 * @param conduitId - UUID of the conduit
+	 * @param trenchUuids - Array of trench UUIDs
+	 * @param isOpen - Whether the accordion item was opened
 	 */
-	function handleHighlightChange(conduitId, trenchUuids, isOpen) {
+	function handleHighlightChange(conduitId: string, trenchUuids: string[], isOpen: boolean) {
 		if (isOpen) {
 			highlightsByConduit[conduitId] = new Set(trenchUuids);
 		} else {
 			delete highlightsByConduit[conduitId];
 		}
 
-		const allTrenchUuids = new Set();
+		const allTrenchUuids = new Set<string>();
 		for (const uuids of Object.values(highlightsByConduit)) {
 			for (const uuid of uuids) {
 				allTrenchUuids.add(uuid);
@@ -147,15 +148,11 @@
 
 	/**
 	 * Initializes map interactions, selection layers, and overlays when the OL map is ready.
-	 * @param {{ map: import('ol/Map').default, usingFallbackOSM: boolean }} detail
 	 */
-	function handleMapReady({ map: olMapInstance }) {
+	function handleMapReady({ map: olMapInstance }: { map: OlMap; usingFallbackOSM: boolean }) {
 		mapState.initializeSelectionLayers(
 			olMapInstance,
-			() =>
-				/** @type {Record<string, boolean>} */ (
-					/** @type {unknown} */ (selectionManager.getSelectionStore())
-				)
+			() => selectionManager.getSelectionStore() as unknown as Record<string, boolean>
 		);
 
 		const selectionLayers = mapState.getSelectionLayers();
@@ -166,7 +163,8 @@
 			renderMode: 'vector',
 			source: mapState.vectorTileLayer?.getSource() ?? undefined,
 			style: function (feature) {
-				if (feature.getId() && linkedTrenchUuids.has(feature.getId())) {
+				const featureId = feature.getId();
+				if (featureId && linkedTrenchUuids.has(String(featureId))) {
 					return linkedTrenchStyle;
 				}
 				return undefined;
@@ -229,7 +227,7 @@
 		}
 	});
 
-	let previousFeatureId = $state(null);
+	let previousFeatureId = $state<string | null>(null);
 	$effect(() => {
 		const currentFeatureId = $drawerStore.props?.featureId;
 		const isOpen = $drawerStore.open;

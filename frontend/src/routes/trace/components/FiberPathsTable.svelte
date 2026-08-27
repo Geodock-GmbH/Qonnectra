@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { SvelteSet } from 'svelte/reactivity';
 	import { slide } from 'svelte/transition';
 	import {
@@ -14,18 +14,16 @@
 
 	import { traceFrom } from '../traceUtils';
 
-	/**
-	 * @typedef {Object} Props
-	 * @property {Array<Record<string, any>>} traceTrees - Array of fiber path tree objects
-	 */
+	interface Props {
+		/** Array of fiber path tree objects */
+		traceTrees: Array<Record<string, any>>;
+	}
 
-	/** @type {Props} */
-	let { traceTrees } = $props();
+	let { traceTrees }: Props = $props();
 
 	let searchQuery = $state('');
-	let expandedRows = new SvelteSet();
-	/** @type {HTMLDivElement | null} */
-	let containerEl = $state(null);
+	let expandedRows = new SvelteSet<number>();
+	let containerEl = $state<HTMLDivElement | null>(null);
 	let scrollTop = $state(0);
 
 	const ROW_HEIGHT = 52;
@@ -34,14 +32,13 @@
 
 	/**
 	 * Extract destinations from a tree (recursive)
-	 * @param {Record<string, any>} tree
-	 * @returns {string[]}
+	 * @param tree
 	 */
-	function collectDestinations(tree) {
-		const destinations = new Set();
+	function collectDestinations(tree: Record<string, any>): string[] {
+		const destinations = new Set<string>();
 
-		/** @param {Record<string, any>} node */
-		function traverse(node) {
+		/** @param node */
+		function traverse(node: Record<string, any>) {
 			if (node.node?.name) {
 				destinations.add(node.node.name);
 			}
@@ -61,14 +58,13 @@
 
 	/**
 	 * Count residential units in a tree (recursive)
-	 * @param {Record<string, any>} tree
-	 * @returns {number}
+	 * @param tree
 	 */
-	function countResidentialUnits(tree) {
+	function countResidentialUnits(tree: Record<string, any>): number {
 		let count = 0;
 
-		/** @param {Record<string, any>} node */
-		function traverse(node) {
+		/** @param node */
+		function traverse(node: Record<string, any>) {
 			if (node.residential_units?.length) {
 				count += node.residential_units.length;
 			}
@@ -85,11 +81,11 @@
 
 	/**
 	 * Extract row data from a trace tree
-	 * @param {Record<string, any>} tree
-	 * @param {number} index
-	 * @returns {Record<string, any>} Flattened row data including fiber info, colors, destinations, and residential unit count
+	 * @param tree
+	 * @param index
+	 * @returns Flattened row data including fiber info, colors, destinations, and residential unit count
 	 */
-	function extractRowData(tree, index) {
+	function extractRowData(tree: Record<string, any>, index: number): Record<string, any> {
 		const fiber = tree.fiber;
 		const destinations = collectDestinations(tree);
 		return {
@@ -119,7 +115,7 @@
 			const fiberMatch =
 				`f${row.fiberNumber}`.includes(query) || `${row.fiberNumber}`.includes(query);
 			const cableMatch = row.cableName.toLowerCase().includes(query);
-			const destinationMatch = row.destinations.some((/** @type {string} */ d) =>
+			const destinationMatch = row.destinations.some((d: string) =>
 				d.toLowerCase().includes(query)
 			);
 			return fiberMatch || cableMatch || destinationMatch;
@@ -145,10 +141,9 @@
 
 	/**
 	 * Toggle the expanded/collapsed state of a table row
-	 * @param {number} index - Row index to toggle
-	 * @returns {void}
+	 * @param index - Row index to toggle
 	 */
-	function toggleRow(index) {
+	function toggleRow(index: number): void {
 		if (expandedRows.has(index)) {
 			expandedRows.delete(index);
 		} else {
@@ -156,12 +151,12 @@
 		}
 	}
 
-	let expandedWaypoints = new SvelteSet();
+	let expandedWaypoints = new SvelteSet<string>();
 
 	/**
-	 * @param {string} fiberId
+	 * @param fiberId
 	 */
-	function toggleWaypoint(fiberId) {
+	function toggleWaypoint(fiberId: string) {
 		if (expandedWaypoints.has(fiberId)) {
 			expandedWaypoints.delete(fiberId);
 		} else {
@@ -171,10 +166,9 @@
 
 	/**
 	 * Update scroll position for virtual scrolling calculations
-	 * @param {Event & { currentTarget: HTMLElement }} e - Scroll event from the container
-	 * @returns {void}
+	 * @param e - Scroll event from the container
 	 */
-	function handleScroll(e) {
+	function handleScroll(e: Event & { currentTarget: HTMLElement }): void {
 		scrollTop = e.currentTarget.scrollTop;
 	}
 </script>
@@ -234,7 +228,7 @@
 	</div>
 </div>
 
-{#snippet tableRow(row)}
+{#snippet tableRow(row: Record<string, any>)}
 	<!-- Mobile card view -->
 	<div class="border-b border-surface-200-800 p-3 sm:hidden">
 		<div class="flex items-center justify-between gap-2">
@@ -397,7 +391,7 @@
 	{/if}
 {/snippet}
 
-{#snippet traceNode(node, depth, isLastChild)}
+{#snippet traceNode(node: Record<string, any>, depth: number, isLastChild: boolean)}
 	{@const hasDetails =
 		node.splice ||
 		(node.cable_endpoints && (node.cable_endpoints.start_node || node.cable_endpoints.end_node)) ||
@@ -554,7 +548,7 @@
 	</div>
 {/snippet}
 
-{#snippet fiberDetails(fiber)}
+{#snippet fiberDetails(fiber: Record<string, any>)}
 	<div class="flex flex-wrap items-center gap-2 text-xs">
 		{#if fiber.bundle_number !== null && fiber.bundle_number !== undefined}
 			<span class="text-surface-900-100"
@@ -596,7 +590,7 @@
 	</div>
 {/snippet}
 
-{#snippet spliceDetails(splice)}
+{#snippet spliceDetails(splice: Record<string, any>)}
 	<div class="rounded-lg border border-secondary-500/30 bg-secondary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 flex items-center gap-2 text-secondary-500">
 			<IconArrowsSplit size={14} />
@@ -642,7 +636,7 @@
 	</div>
 {/snippet}
 
-{#snippet cableEndpointsDetails(endpoints, currentNodeId)}
+{#snippet cableEndpointsDetails(endpoints: Record<string, any>, currentNodeId: string | undefined)}
 	<div class="rounded-lg border border-primary-500/30 bg-primary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 font-semibold text-primary-500">
 			{m.trace_cable_path()}: {endpoints.cable_name}
@@ -729,7 +723,7 @@
 	</div>
 {/snippet}
 
-{#snippet addressDetails(address)}
+{#snippet addressDetails(address: Record<string, any>)}
 	<div class="rounded-lg border border-error-500/30 bg-error-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 flex items-center gap-2 text-error-500">
 			<IconMapPin size={14} />
@@ -764,7 +758,7 @@
 	</div>
 {/snippet}
 
-{#snippet residentialUnitDetails(ru)}
+{#snippet residentialUnitDetails(ru: Record<string, any>)}
 	<div class="rounded-lg border border-tertiary-500/30 bg-tertiary-500/5 px-3 py-1.5 text-xs">
 		<div class="mb-1 flex items-center gap-2 text-tertiary-500">
 			<IconHome size={14} />
