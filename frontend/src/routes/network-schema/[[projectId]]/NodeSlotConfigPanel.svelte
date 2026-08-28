@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { SharedSlotState } from '$lib/classes/NodeStructureContext.svelte.js';
 	import { flip } from 'svelte/animate';
 	import { deserialize } from '$app/forms';
 	import { IconCheck, IconDownload, IconFolder, IconPlus, IconX } from '@tabler/icons-svelte';
@@ -20,30 +21,35 @@
 		readonly = false,
 		onViewStructure,
 		sharedSlotState = $bindable(null)
+	}: {
+		nodeUuid: string;
+		nodeName?: string;
+		readonly?: boolean;
+		onViewStructure?: (uuid: string) => void;
+		sharedSlotState?: (SharedSlotState & { lastUpdated?: number }) | null;
 	} = $props();
 
-	/** @type {{containers: any[], root_slot_configurations: any[]}} */
-	let hierarchy = $state({ containers: [], root_slot_configurations: [] });
-	/** @type {any[]} */
-	let containerTypes = $state([]);
+	let hierarchy = $state<{ containers: any[]; root_slot_configurations: any[] }>({
+		containers: [],
+		root_slot_configurations: []
+	});
+	let containerTypes = $state<any[]>([]);
 	let loading = $state(true);
 
-	let editingUuid = $state(null);
+	let editingUuid = $state<string | null>(null);
 	let isCreating = $state(false);
 	let formSide = $state('');
 	let formTotalSlots = $state(1);
 
 	let isCreatingContainer = $state(false);
-	/** @type {any} */
-	let selectedContainerTypeId = $state(null);
+	let selectedContainerTypeId = $state<any>(null);
 	let containerName = $state('');
 
 	let rootDragOver = $state(false);
 	let exporting = $state(false);
 
-	/** @type {any} */
-	let deleteSlotConfigMessageBox = $state(null);
-	let pendingDeleteConfigUuid = $state(null);
+	let deleteSlotConfigMessageBox = $state<any>(null);
+	let pendingDeleteConfigUuid = $state<string | null>(null);
 	let pendingDeleteStructureCount = $state(0);
 
 	async function fetchContainerTypes() {
@@ -53,7 +59,7 @@
 				method: 'POST',
 				body: formData
 			});
-			const result = /** @type {any} */ (deserialize(await response.text()));
+			const result = deserialize(await response.text()) as any;
 			if (result.type === 'success') {
 				containerTypes = result.data?.containerTypes || [];
 			}
@@ -89,7 +95,7 @@
 				body: formData
 			});
 
-			const result = /** @type {any} */ (deserialize(await response.text()));
+			const result = deserialize(await response.text()) as any;
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to fetch hierarchy');
@@ -124,12 +130,10 @@
 		}
 	}
 
-	/** @param {any} h */
-	function extractAllSlotConfigurations(h) {
+	function extractAllSlotConfigurations(h: any) {
 		const configs = [...(h.root_slot_configurations || [])];
 
-		/** @param {any} containers */
-		function extractFromContainers(containers) {
+		function extractFromContainers(containers: any) {
 			for (const container of containers || []) {
 				if (container.slot_configurations) {
 					configs.push(...container.slot_configurations);
@@ -166,7 +170,7 @@
 				body: formData
 			});
 
-			const result = /** @type {any} */ (deserialize(await response.text()));
+			const result = deserialize(await response.text()) as any;
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to create container');
@@ -196,8 +200,7 @@
 		}
 	}
 
-	/** @param {any} uuid */
-	async function handleDeleteContainer(uuid) {
+	async function handleDeleteContainer(uuid: any) {
 		try {
 			const formData = new FormData();
 			formData.append('containerUuid', uuid);
@@ -207,7 +210,7 @@
 				body: formData
 			});
 
-			const result = /** @type {any} */ (deserialize(await response.text()));
+			const result = deserialize(await response.text()) as any;
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to delete container');
@@ -236,8 +239,7 @@
 		}
 	}
 
-	/** @param {any} uuid @param {any} newName */
-	async function handleUpdateContainerName(uuid, newName) {
+	async function handleUpdateContainerName(uuid: any, newName: any) {
 		try {
 			const formData = new FormData();
 			formData.append('containerUuid', uuid);
@@ -248,7 +250,7 @@
 				body: formData
 			});
 
-			const result = /** @type {any} */ (deserialize(await response.text()));
+			const result = deserialize(await response.text()) as any;
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to update container name');
@@ -277,8 +279,7 @@
 		}
 	}
 
-	/** @param {any} dragData @param {any} targetContainerId */
-	async function handleMove(dragData, targetContainerId) {
+	async function handleMove(dragData: any, targetContainerId: any) {
 		try {
 			const formData = new FormData();
 			formData.append('itemType', dragData.type);
@@ -290,7 +291,7 @@
 				body: formData
 			});
 
-			const result = /** @type {any} */ (deserialize(await response.text()));
+			const result = deserialize(await response.text()) as any;
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to move item');
@@ -319,29 +320,26 @@
 		}
 	}
 
-	/** @param {any} e */
-	function handleRootDragOver(e) {
+	function handleRootDragOver(e: DragEvent) {
 		if (readonly) return;
 		e.preventDefault();
 		rootDragOver = true;
 	}
 
-	/** @param {any} e */
-	function handleRootDragLeave(e) {
+	function handleRootDragLeave(e: DragEvent) {
 		if (readonly) return;
-		if (!e.currentTarget.contains(e.relatedTarget)) {
+		if (!(e.currentTarget as Node).contains(e.relatedTarget as Node)) {
 			rootDragOver = false;
 		}
 	}
 
-	/** @param {any} e */
-	function handleRootDrop(e) {
+	function handleRootDrop(e: DragEvent) {
 		if (readonly) return;
 		e.preventDefault();
 		rootDragOver = false;
 
 		try {
-			const data = JSON.parse(e.dataTransfer.getData('application/json'));
+			const data = JSON.parse(e.dataTransfer!.getData('application/json'));
 			handleMove(data, null); // null = root level
 		} catch (err) {
 			console.error('Root drop error:', err);
@@ -361,8 +359,7 @@
 		}
 	}
 
-	/** @param {any} uuid */
-	async function handleToggleExpand(uuid) {
+	async function handleToggleExpand(uuid: any) {
 		hierarchy = updateContainerExpanded(hierarchy, uuid);
 
 		// Fire-and-forget: persist expand state without blocking
@@ -374,27 +371,21 @@
 		});
 	}
 
-	/** @param {any} h @param {any} uuid */
-	function updateContainerExpanded(h, uuid) {
+	function updateContainerExpanded(h: any, uuid: any) {
 		return {
 			...h,
-			containers: h.containers.map((/** @type {any} */ c) =>
-				updateContainerExpandedRecursive(c, uuid)
-			)
+			containers: h.containers.map((c: any) => updateContainerExpandedRecursive(c, uuid))
 		};
 	}
 
-	/** @param {any} container @param {any} uuid */
-	function updateContainerExpandedRecursive(container, uuid) {
+	function updateContainerExpandedRecursive(container: any, uuid: any) {
 		if (container.uuid === uuid) {
 			return { ...container, is_expanded: !container.is_expanded };
 		}
 		if (container.children) {
 			return {
 				...container,
-				children: container.children.map((/** @type {any} */ c) =>
-					updateContainerExpandedRecursive(c, uuid)
-				)
+				children: container.children.map((c: any) => updateContainerExpandedRecursive(c, uuid))
 			};
 		}
 		return container;
@@ -414,7 +405,7 @@
 				body: formData
 			});
 
-			const result = /** @type {any} */ (deserialize(await response.text()));
+			const result = deserialize(await response.text()) as any;
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to create configuration');
@@ -444,8 +435,7 @@
 		}
 	}
 
-	/** @param {any} uuid */
-	async function handleUpdate(uuid) {
+	async function handleUpdate(uuid: any) {
 		if (!formSide.trim() || formTotalSlots < 1) return;
 
 		try {
@@ -459,7 +449,7 @@
 				body: formData
 			});
 
-			const result = /** @type {any} */ (deserialize(await response.text()));
+			const result = deserialize(await response.text()) as any;
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to update configuration');
@@ -493,8 +483,7 @@
 	 * Guards deletion: fetches associated structures first and prompts for
 	 * confirmation if any exist, since they will be cascade-deleted.
 	 */
-	/** @param {any} uuid */
-	async function handleDelete(uuid) {
+	async function handleDelete(uuid: any) {
 		try {
 			const formData = new FormData();
 			formData.append('slotConfigUuid', uuid);
@@ -504,7 +493,7 @@
 				body: formData
 			});
 
-			const result = /** @type {any} */ (deserialize(await response.text()));
+			const result = deserialize(await response.text()) as any;
 			const structures = result.data?.structures || [];
 
 			if (structures.length > 0) {
@@ -530,8 +519,7 @@
 		}
 	}
 
-	/** @param {any} uuid */
-	async function executeDeleteSlotConfig(uuid) {
+	async function executeDeleteSlotConfig(uuid: any) {
 		try {
 			const formData = new FormData();
 			formData.append('configUuid', uuid);
@@ -541,7 +529,7 @@
 				body: formData
 			});
 
-			const result = /** @type {any} */ (deserialize(await response.text()));
+			const result = deserialize(await response.text()) as any;
 
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Failed to delete configuration');
@@ -578,8 +566,7 @@
 		}
 	}
 
-	/** @param {any} config */
-	function startEdit(config) {
+	function startEdit(config: any) {
 		editingUuid = config.uuid;
 		formSide = config.side;
 		formTotalSlots = config.total_slots;
@@ -626,7 +613,7 @@
 				method: 'POST',
 				body: formData
 			});
-			const result = /** @type {any} */ (deserialize(await response.text()));
+			const result = deserialize(await response.text()) as any;
 			if (result.type === 'failure' || result.type === 'error') {
 				throw new Error(result.data?.error || 'Export failed');
 			}
@@ -683,7 +670,7 @@
 
 	const hasContainerTypes = $derived(containerTypes.length > 0);
 	const containerTypeData = $derived(
-		containerTypes.map((/** @type {{ id: number, name: string }} */ t) => ({
+		containerTypes.map((t: { id: number; name: string }) => ({
 			value: String(t.id),
 			label: t.name
 		}))
@@ -735,7 +722,7 @@
 						data={containerTypeData}
 						value={selectedContainerTypeId != null ? [String(selectedContainerTypeId)] : []}
 						placeholder={m.placeholder_select_container_type?.() || 'Select container type...'}
-						onValueChange={(/** @type {{ value: string[] }} */ e) => {
+						onValueChange={(e: { value: string[] }) => {
 							selectedContainerTypeId = e.value[0] ? Number(e.value[0]) : null;
 						}}
 						renderInPlace={true}

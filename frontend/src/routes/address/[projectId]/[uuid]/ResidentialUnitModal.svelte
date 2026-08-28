@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { deserialize } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
@@ -13,6 +13,10 @@
 		residentialUnitTypes = [],
 		residentialUnitStatuses = [],
 		openModal = $bindable(false)
+	}: {
+		residentialUnitTypes?: any[];
+		residentialUnitStatuses?: any[];
+		openModal?: boolean;
 	} = $props();
 
 	let formIdResidentialUnit = $state('');
@@ -42,9 +46,9 @@
 
 	/**
 	 * Submits the createResidentialUnit action and invalidates page data on success.
-	 * @param {SubmitEvent} event
+	 * @param event
 	 */
-	async function handleSubmit(event) {
+	async function handleSubmit(event: SubmitEvent) {
 		event.preventDefault();
 
 		const formData = new FormData();
@@ -73,8 +77,7 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description:
-						/** @type {any} */ (result).data?.message || m.message_error_creating_residential_unit()
+					description: (result as any).data?.message || m.message_error_creating_residential_unit()
 				});
 			}
 		} catch (error) {
@@ -194,7 +197,7 @@
 								value={formTypeId ? [formTypeId] : []}
 								placeholder="-"
 								renderInPlace={true}
-								onValueChange={(/** @type {{ value: string[] }} */ e) => {
+								onValueChange={(e: { value: string[] }) => {
 									formTypeId = e.value[0] || '';
 								}}
 							/>
@@ -208,7 +211,7 @@
 								value={formStatusId ? [formStatusId] : []}
 								placeholder="-"
 								renderInPlace={true}
-								onValueChange={(/** @type {{ value: string[] }} */ e) => {
+								onValueChange={(e: { value: string[] }) => {
 									formStatusId = e.value[0] || '';
 								}}
 							/>

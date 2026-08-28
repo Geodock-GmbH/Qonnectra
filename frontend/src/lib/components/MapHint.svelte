@@ -1,8 +1,13 @@
-<script>
+<script lang="ts">
 	import { fade } from 'svelte/transition';
 
-	/** @type {{ visible?: boolean, message: string, class?: string }} */
-	let { visible = true, message, class: className = '' } = $props();
+	interface Props {
+		visible?: boolean;
+		message: string;
+		class?: string;
+	}
+
+	let { visible = true, message, class: className = '' }: Props = $props();
 </script>
 
 {#if visible}

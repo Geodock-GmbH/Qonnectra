@@ -75,13 +75,27 @@ interface Fiber {
 	color?: string;
 }
 
+/**
+ * A fiber color as served by the `attributes_fiber_color/` endpoint
+ * (`AttributesFiberColorSerializer`). Shared across the cable/fiber managers.
+ */
 export interface FiberColor {
-	/** Fiber color UUID */
-	uuid: string;
-	/** Color name */
-	name: string;
-	/** Hex color code */
+	/** Database id */
+	id: number;
+	/** German color name */
+	name_de: string;
+	/** English color name */
+	name_en: string;
+	/** Primary hex color code */
 	hex_code: string;
+	/** Optional secondary hex color code (for striped colors) */
+	hex_code_secondary?: string | null;
+	/** Sort order */
+	display_order: number;
+	/** Whether the color is active */
+	is_active?: boolean;
+	/** Optional description */
+	description?: string | null;
 }
 
 export interface ComponentPort {

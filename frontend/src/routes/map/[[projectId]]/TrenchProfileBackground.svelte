@@ -1,5 +1,5 @@
-<script>
-	let { width = 1200, height = 800 } = $props();
+<script lang="ts">
+	let { width = 1200, height = 800 }: { width?: number; height?: number } = $props();
 
 	const SURFACE_HEIGHT = 80;
 	const TOPSOIL_THICKNESS = 25;

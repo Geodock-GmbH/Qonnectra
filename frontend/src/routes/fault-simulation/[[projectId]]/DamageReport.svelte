@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import {
 		IconChevronDown,
 		IconChevronRight,
@@ -11,7 +11,7 @@
 	import { downloadFaultSimulationCsv } from './exportCsv.js';
 	import { getFaultSimulationContext } from './faultSimulationContext.svelte.js';
 
-	let { projectId, onreset } = $props();
+	let { projectId, onreset }: { projectId: string; onreset: () => void } = $props();
 
 	const ctx = getFaultSimulationContext();
 
@@ -24,21 +24,13 @@
 	let conduitsExpanded = $state(false);
 	let cablesExpanded = $state(false);
 
-	/**
-	 * @param {Record<string, any>} addr
-	 * @returns {string}
-	 */
-	function formatAddress(addr) {
+	function formatAddress(addr: Record<string, any>): string {
 		const parts = [addr.street, addr.housenumber];
 		if (addr.suffix) parts.push(addr.suffix);
 		return parts.filter(Boolean).join(' ');
 	}
 
-	/**
-	 * @param {Record<string, any>} addr
-	 * @returns {string}
-	 */
-	function formatLocation(addr) {
+	function formatLocation(addr: Record<string, any>): string {
 		const parts = [];
 		if (addr.zip_code) parts.push(addr.zip_code);
 		if (addr.city) parts.push(addr.city);

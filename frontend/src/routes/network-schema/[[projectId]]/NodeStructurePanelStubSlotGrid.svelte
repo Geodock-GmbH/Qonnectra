@@ -1,4 +1,6 @@
-<script>
+<script lang="ts">
+	import type { NodeStructure, SlotRow } from '$lib/classes/NodeStructureContext.svelte.js';
+
 	let {
 		slotRows = [],
 		loading = false,
@@ -7,6 +9,14 @@
 		readonly = false,
 		onStructureSelect = () => {},
 		onStructureDelete = () => {}
+	}: {
+		slotRows?: SlotRow[];
+		loading?: boolean;
+		loadingStructures?: boolean;
+		isMobile?: boolean;
+		readonly?: boolean;
+		onStructureSelect?: (structure: NodeStructure | undefined) => void;
+		onStructureDelete?: (uuid: string) => void;
 	} = $props();
 </script>
 

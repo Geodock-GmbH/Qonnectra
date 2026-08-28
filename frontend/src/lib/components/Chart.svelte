@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { onMount } from 'svelte';
 	import { BarController, BarElement, CategoryScale, Chart, LinearScale, Tooltip } from 'chart.js';
 
@@ -6,12 +6,24 @@
 
 	Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip);
 
-	/** Optional x-axis label; if not set, uses Length (unit) for length data. */
-	let { data = [], title = '', color = '#0ea5e9', unit = 'km', axisLabel } = $props();
+	interface ChartDatum {
+		label: string;
+		value: number;
+	}
 
-	let canvas = $state();
-	/** @type {import('chart.js').Chart | null} */
-	let chart = null;
+	interface Props {
+		data?: ChartDatum[];
+		title?: string;
+		color?: string;
+		unit?: string;
+		/** Optional x-axis label; if not set, uses Length (unit) for length data. */
+		axisLabel?: string;
+	}
+
+	let { data = [], title = '', color = '#0ea5e9', unit = 'km', axisLabel }: Props = $props();
+
+	let canvas = $state<HTMLCanvasElement | undefined>();
+	let chart: Chart | null = null;
 	let themeMode = $state('');
 
 	onMount(() => {
@@ -120,8 +132,8 @@
 						},
 						ticks: {
 							color: axisTextColor,
-							callback: function (value) {
-								return value.toLocaleString('de-DE');
+							callback: function (value: number | string) {
+								return (value as number).toLocaleString('de-DE');
 							}
 						}
 					},

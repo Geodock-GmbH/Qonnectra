@@ -11,6 +11,7 @@ import {
 } from '$lib/stores/store';
 
 import SettingsPage from './+page.svelte';
+import type { PageData } from './$types';
 
 vi.mock('$app/environment', () => ({
 	browser: true
@@ -25,12 +26,14 @@ vi.mock('$lib/paraglide/messages', () => ({
 	)
 }));
 
+// Only the attribute arrays the component reads are supplied; the parent-layout
+// fields on PageData (user/flags/projects/…) are irrelevant to these render tests.
 const data = {
 	nodeTypes: [{ node_type: 'POP' }, { node_type: 'Unbekannt' }],
 	surfaces: [{ surface: 'Asphalt' }],
 	constructionTypes: [{ construction_type: 'offen' }],
 	areaTypes: [{ area_type: 'Ausbau' }]
-};
+} as unknown as PageData;
 
 beforeEach(() => {
 	localStorage.clear();

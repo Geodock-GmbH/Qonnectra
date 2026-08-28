@@ -8,20 +8,20 @@ vi.mock('$env/static/private', () => ({
 
 vi.mock('$lib/server/attributes', () => ({
 	getNodeTypes: vi.fn(() =>
-		Promise.resolve({ nodeTypes: [{ uuid: 'nt-1', name: 'Type A' }], nodeTypesError: null })
+		Promise.resolve({ nodeTypes: [{ id: 1, node_type: 'Type A' }], nodeTypesError: null })
 	),
 	getSurfaces: vi.fn(() =>
-		Promise.resolve({ surfaces: [{ uuid: 's-1', name: 'Asphalt' }], surfacesError: null })
+		Promise.resolve({ surfaces: [{ id: 1, surface: 'Asphalt' }], surfacesError: null })
 	),
 	getConstructionTypes: vi.fn(() =>
 		Promise.resolve({
-			constructionTypes: [{ uuid: 'ct-1', name: 'Open' }],
+			constructionTypes: [{ id: 1, construction_type: 'Open' }],
 			constructionTypesError: null
 		})
 	),
 	getAreaTypes: vi.fn(() =>
 		Promise.resolve({
-			areaTypes: [{ uuid: 'at-1', name: 'Residential' }],
+			areaTypes: [{ id: 1, area_type: 'Residential' }],
 			areaTypesError: null
 		})
 	)
@@ -111,13 +111,13 @@ describe('map +page.server.js', () => {
 			} as unknown as Parameters<typeof load>[0]);
 
 			expect(result).toEqual({
-				nodeTypes: [{ uuid: 'nt-1', name: 'Type A' }],
+				nodeTypes: [{ id: 1, node_type: 'Type A' }],
 				nodeTypesError: null,
-				surfaces: [{ uuid: 's-1', name: 'Asphalt' }],
+				surfaces: [{ id: 1, surface: 'Asphalt' }],
 				surfacesError: null,
-				constructionTypes: [{ uuid: 'ct-1', name: 'Open' }],
+				constructionTypes: [{ id: 1, construction_type: 'Open' }],
 				constructionTypesError: null,
-				areaTypes: [{ uuid: 'at-1', name: 'Residential' }],
+				areaTypes: [{ id: 1, area_type: 'Residential' }],
 				areaTypesError: null
 			});
 		});

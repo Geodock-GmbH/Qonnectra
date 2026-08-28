@@ -1,97 +1,91 @@
-<script>
+<script lang="ts">
 	import { m } from '$lib/paraglide/messages';
 
 	import TrenchChart from './Chart.svelte';
 
-	let { nodesByCity, nodesByStatus, nodesByNetworkLevel, nodesByType, nodesByOwner, newestNodes } =
-		$props();
+	interface Props {
+		nodesByCity?: Array<{ city: string; count: number }>;
+		nodesByStatus?: Array<{ status: string; count: number }>;
+		nodesByNetworkLevel?: Array<{ network_level?: string; count: number }>;
+		nodesByType?: Array<{ node_type?: string; count: number }>;
+		nodesByOwner?: Array<{ owner?: string | null; count: number }>;
+		newestNodes?: Array<{ name?: string; node_type?: string }>;
+	}
+
+	let {
+		nodesByCity,
+		nodesByStatus,
+		nodesByNetworkLevel,
+		nodesByType,
+		nodesByOwner,
+		newestNodes
+	}: Props = $props();
 
 	/**
 	 * Transform city data for chart
-	 * @returns {Array}
 	 */
 	const cityData = $derived.by(() => {
 		return nodesByCity
-			?.map((/** @type {{ city: string, count: number }} */ item) => ({
+			?.map((item) => ({
 				label: item.city || m.common_unknown(),
 				value: item.count
 			}))
-			.sort(
-				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
-					b.value - a.value
-			);
+			.sort((a, b) => b.value - a.value);
 	});
 
 	/**
 	 * Transform status data for chart
-	 * @returns {Array}
 	 */
 	const statusData = $derived.by(() => {
 		return nodesByStatus
-			?.map((/** @type {{ status: string, count: number }} */ item) => ({
+			?.map((item) => ({
 				label: item.status || m.common_unknown(),
 				value: item.count
 			}))
-			.sort(
-				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
-					b.value - a.value
-			);
+			.sort((a, b) => b.value - a.value);
 	});
 
 	/**
 	 * Transform network level data for chart
-	 * @returns {Array}
 	 */
 	const networkLevelData = $derived.by(() => {
 		return nodesByNetworkLevel
-			?.map((/** @type {{ network_level: string, count: number }} */ item) => ({
+			?.map((item) => ({
 				label: item.network_level || m.common_unknown(),
 				value: item.count
 			}))
-			.sort(
-				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
-					b.value - a.value
-			);
+			.sort((a, b) => b.value - a.value);
 	});
 
 	/**
 	 * Transform node type data for chart
-	 * @returns {Array}
 	 */
 	const typeData = $derived.by(() => {
 		return nodesByType
-			?.map((/** @type {{ node_type: string, count: number }} */ item) => ({
+			?.map((item) => ({
 				label: item.node_type || m.common_unknown(),
 				value: item.count
 			}))
-			.sort(
-				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
-					b.value - a.value
-			);
+			.sort((a, b) => b.value - a.value);
 	});
 
 	/**
 	 * Transform owner data for chart
-	 * @returns {Array}
 	 */
 	const ownerData = $derived.by(() => {
 		return nodesByOwner
-			?.map((/** @type {{ owner: string, count: number }} */ item) => ({
+			?.map((item) => ({
 				label: item.owner || m.common_unknown(),
 				value: item.count
 			}))
-			.sort(
-				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
-					b.value - a.value
-			);
+			.sort((a, b) => b.value - a.value);
 	});
 
 	/**
 	 * Transform newest nodes data for chart (by name and count as 1)
-	 * @returns {Array}
 	 */
 	const newestNodesData = $derived.by(() => {
-		return newestNodes?.map((/** @type {{ name: string, node_type: string }} */ item) => ({
+		return newestNodes?.map((item) => ({
 			label: `${item.name} (${item.node_type || m.common_unknown()})`,
 			value: 1
 		}));

@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { SvelteMap } from 'svelte/reactivity';
 	import { createTreeViewCollection, TreeView } from '@skeletonlabs/skeleton-svelte';
 	import {
@@ -28,49 +28,47 @@
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
 
-	/**
-	 * @typedef {Object} FeatureFile
-	 * @property {string} uuid
-	 * @property {string} file_name
-	 * @property {string} file_type
-	 * @property {string} file_path
-	 * @property {string} [created_at]
-	 */
+	interface FeatureFile {
+		uuid: string;
+		file_name: string;
+		file_type: string;
+		file_path: string;
+		created_at?: string;
+	}
 
 	/**
-	 * @typedef {Object} FileExplorerProps
-	 * @property {string} featureType - The type of feature (e.g., 'cable', 'node', 'trench')
-	 * @property {string} featureId - The UUID of the feature
+	 * A node in the file explorer tree — either a category branch or a file leaf.
 	 */
+	type TreeNode =
+		| { id: string; name: string; type: 'category'; children: TreeNode[]; fileData?: undefined }
+		| { id: string; name: string; type: 'file'; children?: undefined; fileData: FeatureFile };
 
-	/** @type {FileExplorerProps} */
-	let { featureType, featureId } = $props();
+	interface FileExplorerProps {
+		/** The type of feature (e.g., 'cable', 'node', 'trench') */
+		featureType: string;
+		/** The UUID of the feature */
+		featureId: string;
+	}
 
-	/** @type {FeatureFile[]} */
-	let files = $state([]);
+	let { featureType, featureId }: FileExplorerProps = $props();
+
+	let files = $state<FeatureFile[]>([]);
 	let isLoading = $state(false);
-	/** @type {string|null} */
-	let error = $state(null);
-	/** @type {FeatureFile|null} */
-	let editingFile = $state(null);
+	let error = $state<string | null>(null);
+	let editingFile = $state<FeatureFile | null>(null);
 	let editValue = $state('');
-	/** @type {string|null} */
-	let expandedFileId = $state(null);
-	/** @type {FeatureFile|null} */
-	let deletingFile = $state(null);
-	/** @type {MessageBox} */
-	let deleteMessageBox;
+	let expandedFileId = $state<string | null>(null);
+	let deletingFile = $state<FeatureFile | null>(null);
+	let deleteMessageBox: MessageBox;
 
 	let searchQuery = $state('');
-	/** @type {'name'|'date'|'type'} */
-	let sortBy = $state('name');
+	let sortBy = $state<'name' | 'date' | 'type'>('name');
 
 	/**
 	 * Map a file extension to an icon component and a badge accent color.
 	 * Keeps file rows scannable at a glance without needing thumbnails.
-	 * @param {string} fileType
 	 */
-	function getFileVisual(fileType) {
+	function getFileVisual(fileType: string) {
 		const ext = (fileType || '').toLowerCase();
 
 		if (['pdf'].includes(ext)) return { icon: IconFileTypePdf, accent: 'text-error-500' };
@@ -92,9 +90,8 @@
 
 	/**
 	 * Format an ISO timestamp into a short, locale-aware date.
-	 * @param {string|undefined} value
 	 */
-	function formatDate(value) {
+	function formatDate(value: string | undefined) {
 		if (!value) return '';
 		const date = new Date(value);
 		if (Number.isNaN(date.getTime())) return '';
@@ -123,22 +120,20 @@
 	/**
 	 * Transform flat file list into tree structure.
 	 * Files are grouped by category (photos, documents, etc.) derived from their path.
-	 * @param {FeatureFile[]} fileList
 	 */
-	function buildTreeFromFiles(fileList) {
-		const categoryMap = new SvelteMap();
+	function buildTreeFromFiles(fileList: FeatureFile[]) {
+		const categoryMap = new SvelteMap<string, FeatureFile[]>();
 
 		for (const file of fileList) {
 			const pathParts = decodeURIComponent(file.file_path).split('/');
 			const category = pathParts.length >= 3 ? pathParts[pathParts.length - 2] : 'uncategorized';
 
-			if (!categoryMap.has(category)) {
-				categoryMap.set(category, []);
-			}
-			categoryMap.get(category).push(file);
+			const categoryFiles = categoryMap.get(category) ?? [];
+			categoryFiles.push(file);
+			categoryMap.set(category, categoryFiles);
 		}
 
-		const children = [];
+		const children: TreeNode[] = [];
 		const sortedCategories = Array.from(categoryMap.entries()).sort((a, b) =>
 			a[0].localeCompare(b[0])
 		);
@@ -148,10 +143,10 @@
 				id: `category-${category}`,
 				name: `${category} (${categoryFiles.length})`,
 				type: 'category',
-				children: categoryFiles.map((/** @type {FeatureFile} */ file) => ({
+				children: categoryFiles.map((file: FeatureFile) => ({
 					id: file.uuid,
 					name: file.file_name + (file.file_type ? `.${file.file_type}` : ''),
-					type: 'file',
+					type: 'file' as const,
 					fileData: file
 				}))
 			});
@@ -216,27 +211,24 @@
 
 	/**
 	 * Open a file preview in a new tab.
-	 * @param {FeatureFile} file
 	 */
-	function handleFileDoubleClick(file) {
+	function handleFileDoubleClick(file: FeatureFile) {
 		const url = `${PUBLIC_API_URL}feature-files/${file.uuid}/preview/`;
 		window.open(url, '_blank');
 	}
 
 	/**
 	 * Download a file in a new tab.
-	 * @param {FeatureFile} file
 	 */
-	function downloadFile(file) {
+	function downloadFile(file: FeatureFile) {
 		const url = `${PUBLIC_API_URL}feature-files/${file.uuid}/download/`;
 		window.open(url, '_blank');
 	}
 
 	/**
 	 * Show the delete confirmation dialog for a file.
-	 * @param {FeatureFile} file
 	 */
-	function confirmDelete(file) {
+	function confirmDelete(file: FeatureFile) {
 		deletingFile = file;
 		deleteMessageBox.open();
 	}
@@ -286,9 +278,8 @@
 
 	/**
 	 * Start editing a file name.
-	 * @param {FeatureFile} file
 	 */
-	function startEditing(file) {
+	function startEditing(file: FeatureFile) {
 		editingFile = file;
 		editValue = file.file_name;
 	}
@@ -303,9 +294,8 @@
 
 	/**
 	 * Save a file rename.
-	 * @param {FeatureFile} file
 	 */
-	async function saveRename(file) {
+	async function saveRename(file: FeatureFile) {
 		if (!editValue.trim()) {
 			globalToaster.warning({
 				title: m.common_error(),
@@ -442,7 +432,7 @@
 	onAccept={deleteFile}
 />
 
-{#snippet treeNode(node, indexPath)}
+{#snippet treeNode(node: TreeNode, indexPath: number[])}
 	<TreeView.NodeProvider value={{ node, indexPath }}>
 		{#if node.type === 'category'}
 			<TreeView.Branch>

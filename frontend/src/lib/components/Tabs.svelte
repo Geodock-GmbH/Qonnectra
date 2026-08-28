@@ -1,23 +1,24 @@
-<script>
+<script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { innerWidth } from 'svelte/reactivity/window';
 	import { Tabs as SkeletonTabs } from '@skeletonlabs/skeleton-svelte';
 
-	/**
-	 * @typedef {Object} TabItem
-	 * @property {string} value - Unique identifier for the tab
-	 * @property {string} label - Display label for the tab
-	 */
+	interface TabItem {
+		/** Unique identifier for the tab */
+		value: string;
+		/** Display label for the tab */
+		label: string;
+	}
 
-	/**
-	 * @type {{
-	 *   tabs: TabItem[],
-	 *   value?: string,
-	 *   onValueChange?: (value: string) => void,
-	 *   children?: import('svelte').Snippet,
-	 *   class?: string,
-	 *   orientation?: 'vertical' | 'horizontal'
-	 * }}
-	 */
+	interface Props {
+		tabs: TabItem[];
+		value?: string;
+		onValueChange?: (value: string) => void;
+		children?: Snippet;
+		class?: string;
+		orientation?: 'vertical' | 'horizontal';
+	}
+
 	let {
 		tabs,
 		value = $bindable(tabs[0]?.value || ''),
@@ -25,7 +26,7 @@
 		children: contentSnippet,
 		class: className = '',
 		orientation = 'vertical'
-	} = $props();
+	}: Props = $props();
 
 	let isMobile = $derived((innerWidth.current ?? 0) < 768);
 	let effectiveOrientation = $derived(isMobile ? 'horizontal' : orientation);
@@ -48,7 +49,7 @@
 		}
 	});
 
-	function handleValueChange(/** @type {{ value: string }} */ e) {
+	function handleValueChange(e: { value: string }) {
 		value = e.value;
 		onValueChange(e.value);
 	}

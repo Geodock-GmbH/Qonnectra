@@ -1,35 +1,36 @@
-<script>
+<script lang="ts">
 	import { m } from '$lib/paraglide/messages';
 
 	import { getFieldLabel } from '$lib/utils/featureUtils';
 
-	/**
-	 * @typedef {Object} Props
-	 * @property {Record<string, any>} properties - Feature properties from MVT
-	 * @property {string} featureType - Type of feature ('trench', 'address', 'node')
-	 * @property {Record<string, string>} alias - Field name alias mapping (English -> Localized)
-	 * @property {Array<{label: string, value: string}>} projects - List of projects for name lookup
-	 */
+	interface Props {
+		/** Feature properties from MVT */
+		properties?: Record<string, any>;
+		/** Type of feature ('trench', 'address', 'node') */
+		featureType?: string;
+		/** Field name alias mapping (English -> Localized) */
+		alias?: Record<string, string>;
+		/** List of projects for name lookup */
+		projects?: Array<{ label: string; value: string }>;
+	}
 
-	/** @type {Props} */
-	let { properties = {}, featureType = 'trench', alias = {}, projects = [] } = $props();
+	let { properties = {}, featureType = 'trench', alias = {}, projects = [] }: Props = $props();
 
 	/**
 	 * Get display name for a field key using alias or fallback
-	 * @param {string} key - Property key
-	 * @returns {string} - Display label
+	 * @param key - Property key
+	 * @returns Display label
 	 */
-	function getDisplayLabel(key) {
+	function getDisplayLabel(key: string): string {
 		return alias[key] || getFieldLabel(key);
 	}
 
 	/**
 	 * Format value for display
-	 * @param {string} key - Property key
-	 * @param {any} value
-	 * @returns {string}
+	 * @param key - Property key
+	 * @param value
 	 */
-	function formatValue(key, value) {
+	function formatValue(key: string, value: any): string {
 		if (value === null || value === undefined) return '-';
 		if (typeof value === 'boolean') return value ? m.common_yes() : m.common_no();
 		if (value instanceof Date) return value.toLocaleDateString();
@@ -44,7 +45,6 @@
 
 	/**
 	 * Get property entries for display (sorted alphabetically by display label)
-	 * @returns {Array<[string, any]>}
 	 */
 	const propertyEntries = $derived(
 		Object.entries(properties)

@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { LayoutData } from './$types';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { Toast } from '@skeletonlabs/skeleton-svelte';
@@ -15,7 +16,7 @@
 
 	import '../app.css';
 
-	let { children, data } = $props();
+	let { children, data }: { children: import('svelte').Snippet; data: LayoutData } = $props();
 
 	if (browser) {
 		setupNavigationCancellation();

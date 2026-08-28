@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import {
 		IconArrowsSplit,
 		IconHome,
@@ -22,7 +22,6 @@
 		portNumber = 0,
 		cableUuid = null,
 		readonly = false,
-		/** @type {(data: any) => void} */
 		onDrop = () => {},
 		onClear = () => {},
 		onUnmerge = () => {},
@@ -31,12 +30,27 @@
 		// Spanning props for merged cells
 		spanRows = 1,
 		portRange = ''
+	}: {
+		fiber?: any;
+		residentialUnit?: any;
+		hasPort?: boolean;
+		side?: string;
+		colorHex?: string;
+		portNumber?: number;
+		cableUuid?: string | null;
+		readonly?: boolean;
+		onDrop?: (data: any) => void;
+		onClear?: () => void;
+		onUnmerge?: () => void;
+		isMerged?: boolean;
+		spanRows?: number;
+		portRange?: string;
 	} = $props();
 
 	/**
 	 * Get display name for a residential unit
 	 */
-	function getResidentialUnitDisplayName(/** @type {any} */ ru) {
+	function getResidentialUnitDisplayName(ru: any) {
 		if (!ru) return '';
 		let main = ru.id_residential_unit || 'Unit';
 		if (ru.external_id_1) {
@@ -63,15 +77,13 @@
 	let isDragging = $state(false);
 
 	let traceLoading = $state(false);
-	/** @type {any} */
-	let traceResult = $state(null);
-	/** @type {any} */
-	let traceError = $state(null);
+	let traceResult = $state<any>(null);
+	let traceError = $state<any>(null);
 
 	/**
 	 * Fetch trace summary for this fiber
 	 */
-	async function handleTrace(/** @type {any} */ e) {
+	async function handleTrace(e: MouseEvent) {
 		e.stopPropagation();
 		if (traceResult) {
 			traceResult = null;
@@ -88,7 +100,7 @@
 			if (!response.ok) throw new Error('Trace failed');
 			traceResult = await response.json();
 		} catch (err) {
-			traceError = /** @type {any} */ (err).message;
+			traceError = (err as any).message;
 		} finally {
 			traceLoading = false;
 		}
@@ -110,7 +122,7 @@
 				}
 	);
 
-	function handleDragStart(/** @type {any} */ e) {
+	function handleDragStart(e: DragEvent) {
 		if (readonly || !fiber || !hasPort || isMerged) {
 			e.preventDefault();
 			return;
@@ -131,22 +143,22 @@
 			isMove: true
 		};
 
-		e.dataTransfer.setData('application/json', JSON.stringify(dragData));
-		e.dataTransfer.effectAllowed = 'move';
+		e.dataTransfer!.setData('application/json', JSON.stringify(dragData));
+		e.dataTransfer!.effectAllowed = 'move';
 	}
 
 	function handleDragEnd() {
 		isDragging = false;
 	}
 
-	function handleDragOver(/** @type {any} */ e) {
+	function handleDragOver(e: DragEvent) {
 		if (readonly || !hasPort) return;
 		e.preventDefault();
 		e.stopPropagation();
-		if (e.dataTransfer.effectAllowed === 'move') {
-			e.dataTransfer.dropEffect = 'move';
+		if (e.dataTransfer!.effectAllowed === 'move') {
+			e.dataTransfer!.dropEffect = 'move';
 		} else {
-			e.dataTransfer.dropEffect = 'copy';
+			e.dataTransfer!.dropEffect = 'copy';
 		}
 		isDragOver = true;
 	}
@@ -155,13 +167,13 @@
 		isDragOver = false;
 	}
 
-	function handleDrop(/** @type {any} */ e) {
+	function handleDrop(e: DragEvent) {
 		if (readonly || !hasPort) return;
 		e.preventDefault();
 		e.stopPropagation();
 		isDragOver = false;
 
-		const jsonData = e.dataTransfer.getData('application/json');
+		const jsonData = e.dataTransfer!.getData('application/json');
 		if (jsonData) {
 			try {
 				const data = JSON.parse(jsonData);

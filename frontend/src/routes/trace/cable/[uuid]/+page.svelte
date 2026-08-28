@@ -1,9 +1,10 @@
-<script>
+<script lang="ts">
+	import type { PageData } from './$types';
 	import { fly } from 'svelte/transition';
 
 	import TraceResults from '../../components/TraceResults.svelte';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 </script>
 
 {#if data.error}

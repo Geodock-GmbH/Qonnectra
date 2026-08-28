@@ -173,7 +173,11 @@ describe('selectStructure', () => {
 			'?/getFiberSplices': { type: 'success', data: { splices: [emptySplice(1)] } },
 			'?/getFiberColors': {
 				type: 'success',
-				data: { fiberColors: [{ name: 'rot', hex: '#ff0000', order: 1 }] }
+				data: {
+					fiberColors: [
+						{ name_de: 'rot', name_en: 'red', hex_code: '#ff0000', display_order: 1 }
+					]
+				}
 			}
 		});
 		const manager = new FiberSpliceManager();
@@ -732,7 +736,9 @@ describe('lifecycle helpers', () => {
 
 	test('cleanup should reset all state', () => {
 		const manager = readyManager();
-		manager.fiberColors = [{ name: 'rot', hex: '#ff0000', order: 1 }] as never;
+		manager.fiberColors = [
+			{ name_de: 'rot', name_en: 'red', hex_code: '#ff0000', display_order: 1 }
+		] as never;
 		manager.togglePortSelection(1, 'a');
 		manager.mergeSelectionMode = true;
 

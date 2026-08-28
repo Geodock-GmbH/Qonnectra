@@ -1,5 +1,10 @@
-<script>
-	let { data, value, placeholder, ...props } = $props();
+<script lang="ts">
+	let {
+		data,
+		value,
+		placeholder,
+		...props
+	}: { data?: any; value?: any; placeholder?: any; [key: string]: any } = $props();
 </script>
 
 <div data-testid="generic-combobox" data-placeholder={placeholder} {...props}>

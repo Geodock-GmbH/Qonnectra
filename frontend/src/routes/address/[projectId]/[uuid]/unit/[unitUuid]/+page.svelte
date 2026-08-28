@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { PageData } from './$types';
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import {
@@ -23,7 +24,7 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 
 	let isSaving = $state(false);
 	let isDeleting = $state(false);
@@ -39,12 +40,12 @@
 
 	/**
 	 * Snapshots the unit from initial page data to avoid reactivity on form fields.
-	 * @returns {Object | null} The residential unit object.
+	 * @returns The residential unit object.
 	 */
 	function getInitialUnit() {
 		return data.unit;
 	}
-	const initialUnit = /** @type {any} */ (getInitialUnit());
+	const initialUnit = getInitialUnit() as any;
 
 	let formIdResidentialUnit = $state(initialUnit?.id_residential_unit || '');
 	let formFloor = $state(initialUnit?.floor ?? '');
@@ -58,12 +59,9 @@
 	let formResidentRecordedDate = $state(initialUnit?.resident_recorded_date || '');
 	let formReadyForService = $state(initialUnit?.ready_for_service || '');
 
-	/** @type {any} */
-	let deleteMessageBox = $state(null);
-	/** @type {any} */
-	let regenerateMessageBox = $state(null);
-	/** @type {any} */
-	let fileExplorer = $state(null);
+	let deleteMessageBox = $state<any>(null);
+	let regenerateMessageBox = $state<any>(null);
+	let fileExplorer = $state<any>(null);
 
 	const featureId = $derived(unit?.uuid);
 
@@ -106,7 +104,7 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				const updated = /** @type {any} */ (result.data)?.unit;
+				const updated = (result.data as any)?.unit;
 				if (updated?.id_residential_unit != null) {
 					formIdResidentialUnit = updated.id_residential_unit;
 				}
@@ -117,8 +115,7 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description:
-						/** @type {any} */ (result).data?.message || m.message_error_updating_residential_unit()
+					description: (result as any).data?.message || m.message_error_updating_residential_unit()
 				});
 			}
 		} catch (error) {
@@ -165,8 +162,7 @@
 			} else if (result.type === 'failure') {
 				globalToaster.error({
 					title: m.common_error(),
-					description:
-						/** @type {any} */ (result).data?.message || m.message_error_deleting_residential_unit()
+					description: (result as any).data?.message || m.message_error_deleting_residential_unit()
 				});
 			}
 		} catch (error) {
@@ -205,7 +201,7 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				formIdResidentialUnit = /** @type {any} */ (result.data).id_residential_unit;
+				formIdResidentialUnit = (result.data as any).id_residential_unit;
 				globalToaster.success({
 					title: m.title_success(),
 					description: m.message_success_regenerating_residential_unit_id()
@@ -214,8 +210,7 @@
 				globalToaster.error({
 					title: m.common_error(),
 					description:
-						/** @type {any} */ (result).data?.message ||
-						m.message_error_regenerating_residential_unit_id()
+						(result as any).data?.message || m.message_error_regenerating_residential_unit_id()
 				});
 			}
 		} catch (error) {
@@ -415,7 +410,7 @@
 							data={residentialUnitTypes}
 							value={formTypeId ? [formTypeId] : []}
 							placeholder="-"
-							onValueChange={(/** @type {{ value: string[] }} */ e) => {
+							onValueChange={(e: { value: string[] }) => {
 								formTypeId = e.value[0] || '';
 							}}
 						/>
@@ -428,7 +423,7 @@
 							data={residentialUnitStatuses}
 							value={formStatusId ? [formStatusId] : []}
 							placeholder="-"
-							onValueChange={(/** @type {{ value: string[] }} */ e) => {
+							onValueChange={(e: { value: string[] }) => {
 								formStatusId = e.value[0] || '';
 							}}
 						/>

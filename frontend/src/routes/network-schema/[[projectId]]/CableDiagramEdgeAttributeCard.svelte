@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
 
@@ -10,7 +10,7 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
-	const attributes = getContext('attributeOptions') || {
+	const attributes = getContext<any>('attributeOptions') || {
 		cableTypes: [],
 		statuses: [],
 		networkLevels: [],
@@ -18,9 +18,8 @@
 		flags: []
 	};
 
-	/** @type {any} */
-	let messageBoxConfirm = $state(null);
-	let cable = $derived($drawerStore.props);
+	let messageBoxConfirm = $state<any>(null);
+	let cable = $derived<any>($drawerStore.props);
 	let fiberCount = $derived(cable?.cable_type?.fiber_count || cable?.fiber_count || 0);
 	let connectedSpliceCount = $state(0);
 	let connectedConduits = $state('');
@@ -32,7 +31,7 @@
 		}
 	});
 
-	async function fetchConnectedConduits(/** @type {any} */ cableId) {
+	async function fetchConnectedConduits(cableId: any) {
 		try {
 			const formData = new FormData();
 			formData.append('cableId', cableId);
@@ -42,7 +41,7 @@
 			});
 			const result = deserialize(await response.text());
 			if (result.type === 'success') {
-				connectedConduits = /** @type {any} */ (result).data?.conduit_names?.join(', ') || '';
+				connectedConduits = (result as any).data?.conduit_names?.join(', ') || '';
 			}
 		} catch (err) {
 			console.error('Error fetching connected conduits:', err);
@@ -59,28 +58,29 @@
 		}
 	}
 	let cableName = $state('');
-	/** @type {any[]} */
-	let cableType = $state([]);
-	/** @type {any[]} */
-	let cableStatus = $state([]);
-	/** @type {any[]} */
-	let cableNetworkLevel = $state([]);
-	/** @type {any[]} */
-	let cableOwner = $state([]);
-	/** @type {any[]} */
-	let cableConstructor = $state([]);
-	/** @type {any[]} */
-	let cableManufacturer = $state([]);
+	let cableType = $state<any[]>([]);
+	let cableStatus = $state<any[]>([]);
+	let cableNetworkLevel = $state<any[]>([]);
+	let cableOwner = $state<any[]>([]);
+	let cableConstructor = $state<any[]>([]);
+	let cableManufacturer = $state<any[]>([]);
 	let cableDate = $state('');
 	let cableLength = $derived(cable?.length || '');
 	let cableLengthTotal = $derived(cable?.length_total || '');
 	let cableReserveAtStart = $state('');
 	let cableReserveAtEnd = $state('');
 	let cableReserveSection = $state('');
-	/** @type {any[]} */
-	let cableFlag = $state([]);
+	let cableFlag = $state<any[]>([]);
 
-	let { onLabelUpdate, onEdgeDelete, onSaveComplete = () => {} } = $props();
+	let {
+		onLabelUpdate,
+		onEdgeDelete,
+		onSaveComplete = () => {}
+	}: {
+		onLabelUpdate?: (name: string) => void;
+		onEdgeDelete?: (uuid: string) => void;
+		onSaveComplete?: () => void | Promise<void>;
+	} = $props();
 
 	$effect(() => {
 		if (cable) {
@@ -90,9 +90,7 @@
 			cableNetworkLevel = cable.network_level?.id != null ? [cable.network_level.id] : [];
 			cableOwner = cable.owner?.id != null ? [cable.owner.id] : [];
 			cableConstructor =
-				/** @type {any} */ (cable.constructor)?.id != null
-					? [/** @type {any} */ (cable.constructor).id]
-					: [];
+				(cable.constructor as any)?.id != null ? [(cable.constructor as any).id] : [];
 			cableManufacturer = cable.manufacturer?.id != null ? [cable.manufacturer.id] : [];
 			cableDate = cable.date || '';
 			cableReserveAtStart = cable.reserve_at_start || '';
@@ -102,9 +100,9 @@
 		}
 	});
 
-	async function handleSubmit(/** @type {any} */ event) {
+	async function handleSubmit(event: SubmitEvent) {
 		event.preventDefault();
-		const formData = new FormData(event.target);
+		const formData = new FormData(event.target as HTMLFormElement);
 		formData.append('uuid', cable.uuid);
 		formData.append('cable_type_id', cableType?.[0] || '');
 		formData.append('status_id', cableStatus?.[0] || '');
@@ -177,7 +175,7 @@
 			});
 
 			const result = deserialize(await response.text());
-			const splices = /** @type {any} */ (result).data?.splices || [];
+			const splices = (result as any).data?.splices || [];
 			connectedSpliceCount = splices.length;
 		} catch (err) {
 			console.error('Error checking cable splices:', err);
@@ -232,7 +230,7 @@
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: /** @type {any} */ (error).message || m.message_error_deleting_cable()
+				description: (error as any).message || m.message_error_deleting_cable()
 			});
 		}
 	}
@@ -250,7 +248,7 @@
 			name="cable_name"
 			required
 			value={cableName}
-			oninput={(e) => (cableName = /** @type {any} */ (e.target).value)}
+			oninput={(e) => (cableName = (e.target as HTMLInputElement).value)}
 		/>
 	</label>
 	<label class="label">
@@ -259,7 +257,7 @@
 			data={attributes.cableTypes}
 			bind:value={cableType}
 			defaultValue={cableType}
-			onValueChange={(/** @type {any} */ e) => (cableType = e.value)}
+			onValueChange={(e: any) => (cableType = e.value)}
 			disabled={true}
 			renderInPlace={true}
 		/>
@@ -281,7 +279,7 @@
 			data={attributes.statuses}
 			bind:value={cableStatus}
 			defaultValue={cableStatus}
-			onValueChange={(/** @type {any} */ e) => (cableStatus = e.value)}
+			onValueChange={(e: any) => (cableStatus = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -291,7 +289,7 @@
 			data={attributes.networkLevels}
 			bind:value={cableNetworkLevel}
 			defaultValue={cableNetworkLevel}
-			onValueChange={(/** @type {any} */ e) => (cableNetworkLevel = e.value)}
+			onValueChange={(e: any) => (cableNetworkLevel = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -301,7 +299,7 @@
 			data={attributes.companies}
 			bind:value={cableOwner}
 			defaultValue={cableOwner}
-			onValueChange={(/** @type {any} */ e) => (cableOwner = e.value)}
+			onValueChange={(e: any) => (cableOwner = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -311,7 +309,7 @@
 			data={attributes.companies}
 			bind:value={cableConstructor}
 			defaultValue={cableConstructor}
-			onValueChange={(/** @type {any} */ e) => (cableConstructor = e.value)}
+			onValueChange={(e: any) => (cableConstructor = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -321,7 +319,7 @@
 			data={attributes.companies}
 			bind:value={cableManufacturer}
 			defaultValue={cableManufacturer}
-			onValueChange={(/** @type {any} */ e) => (cableManufacturer = e.value)}
+			onValueChange={(e: any) => (cableManufacturer = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -334,7 +332,7 @@
 			name="date"
 			value={cableDate}
 			defaultValue={cableDate}
-			oninput={(e) => (cableDate = /** @type {any} */ (e.target).value)}
+			oninput={(e) => (cableDate = (e.target as HTMLInputElement).value)}
 		/>
 	</label>
 	<label class="label">
@@ -343,7 +341,7 @@
 			data={attributes.flags}
 			bind:value={cableFlag}
 			defaultValue={cableFlag}
-			onValueChange={(/** @type {any} */ e) => (cableFlag = e.value)}
+			onValueChange={(e: any) => (cableFlag = e.value)}
 			renderInPlace={true}
 		/>
 	</label>

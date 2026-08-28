@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { ActionData } from './$types';
 	import { enhance } from '$app/forms';
 	import { IconEye, IconEyeOff, IconLock, IconUser } from '@tabler/icons-svelte';
 
@@ -14,8 +15,7 @@
 
 	let redirectTo = '/dashboard';
 
-	/** @type {{ form: import('./$types').ActionData }} */
-	let { form } = $props();
+	let { form }: { form: ActionData } = $props();
 
 	$effect(() => {
 		if (form?.error) {

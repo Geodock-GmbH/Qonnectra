@@ -1,66 +1,70 @@
-<script>
+<script lang="ts">
+	import type { NodeProps } from '@xyflow/svelte';
 	import { NodeResizer } from '@xyflow/svelte';
 
 	import { tooltip } from '$lib/utils/tooltip';
 
-	/**
-	 * @type {{
-	 *   data: { conduit?: { conduit_name?: string, conduit_type?: string, microducts?: Array<Record<string, any>> } },
-	 *   selected?: boolean
-	 * }}
-	 */
-	let { data, selected } = $props();
+	type ConduitNodeData = {
+		conduit?: {
+			conduit_name?: string;
+			conduit_type?: string;
+			microducts?: Array<Record<string, any>>;
+		};
+	};
+
+	let { data, selected }: NodeProps & { data: ConduitNodeData } = $props();
 
 	const microducts = $derived(data?.conduit?.microducts || []);
 	const microductCount = $derived(microducts.length);
 
-	/** @type {Array<{ x: number, y: number, mic: Record<string, any> }>} */
-	const microductPositions = $derived.by(() => {
-		if (microductCount === 0) return [];
+	const microductPositions: Array<{ x: number; y: number; mic: Record<string, any> }> = $derived.by(
+		() => {
+			if (microductCount === 0) return [];
 
-		const positions = [];
-		const centerX = 50;
-		const centerY = 50;
+			const positions: Array<{ x: number; y: number; mic: Record<string, any> }> = [];
+			const centerX = 50;
+			const centerY = 50;
 
-		if (microductCount <= 6) {
-			// Circular layout for small counts
-			const radius = microductCount <= 3 ? 15 : 20;
-			for (let i = 0; i < microductCount; i++) {
-				const angle = (i / microductCount) * 2 * Math.PI - Math.PI / 2;
-				const x = centerX + radius * Math.cos(angle);
-				const y = centerY + radius * Math.sin(angle);
-				positions.push({ x, y, mic: microducts[i] });
+			if (microductCount <= 6) {
+				// Circular layout for small counts
+				const radius = microductCount <= 3 ? 15 : 20;
+				for (let i = 0; i < microductCount; i++) {
+					const angle = (i / microductCount) * 2 * Math.PI - Math.PI / 2;
+					const x = centerX + radius * Math.cos(angle);
+					const y = centerY + radius * Math.sin(angle);
+					positions.push({ x, y, mic: microducts[i] });
+				}
+			} else {
+				// Grid layout for larger counts
+				const cols = Math.ceil(Math.sqrt(microductCount));
+				const rows = Math.ceil(microductCount / cols);
+
+				// Calculate radius based on count
+				const radius = microductCount <= 12 ? 5 : microductCount <= 20 ? 4 : 3;
+
+				// Available space inside the pipe - inner radius is 38, need margin for microduct radius
+				const innerRadius = 38 - radius - 4;
+				const gridSize = innerRadius * 1.4; // Use ~70% of diameter for square grid in circle
+
+				const spacingX = cols > 1 ? gridSize / (cols - 1) : 0;
+				const spacingY = rows > 1 ? gridSize / (rows - 1) : 0;
+				const startX = centerX - gridSize / 2;
+				const startY = centerY - gridSize / 2;
+
+				for (let i = 0; i < microductCount; i++) {
+					const row = Math.floor(i / cols);
+					const col = i % cols;
+					positions.push({
+						x: cols === 1 ? centerX : startX + col * spacingX,
+						y: rows === 1 ? centerY : startY + row * spacingY,
+						mic: microducts[i]
+					});
+				}
 			}
-		} else {
-			// Grid layout for larger counts
-			const cols = Math.ceil(Math.sqrt(microductCount));
-			const rows = Math.ceil(microductCount / cols);
 
-			// Calculate radius based on count
-			const radius = microductCount <= 12 ? 5 : microductCount <= 20 ? 4 : 3;
-
-			// Available space inside the pipe - inner radius is 38, need margin for microduct radius
-			const innerRadius = 38 - radius - 4;
-			const gridSize = innerRadius * 1.4; // Use ~70% of diameter for square grid in circle
-
-			const spacingX = cols > 1 ? gridSize / (cols - 1) : 0;
-			const spacingY = rows > 1 ? gridSize / (rows - 1) : 0;
-			const startX = centerX - gridSize / 2;
-			const startY = centerY - gridSize / 2;
-
-			for (let i = 0; i < microductCount; i++) {
-				const row = Math.floor(i / cols);
-				const col = i % cols;
-				positions.push({
-					x: cols === 1 ? centerX : startX + col * spacingX,
-					y: rows === 1 ? centerY : startY + row * spacingY,
-					mic: microducts[i]
-				});
-			}
+			return positions;
 		}
-
-		return positions;
-	});
+	);
 
 	const microductRadius = $derived(
 		microductCount <= 6 ? 6 : microductCount <= 12 ? 5 : microductCount <= 20 ? 4 : 3

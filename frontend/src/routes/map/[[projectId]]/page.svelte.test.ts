@@ -181,7 +181,7 @@ vi.mock('$lib/classes/MapInteractionManager.svelte.js', () => ({
 }));
 
 describe('/map/+page.svelte', () => {
-	const mockData = {
+	const mockData: any = {
 		projects: [{ uuid: 'proj-1', name: 'Project 1' }],
 		nodeTypes: [{ uuid: 'nt-1', name: 'Type A' }],
 		surfaces: [{ uuid: 's-1', name: 'Asphalt' }],

@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { PageData } from './$types';
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -19,7 +20,7 @@
 
 	import PipelineRecordForm from '../PipelineRecordForm.svelte';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 
 	let isSaving = $state(false);
 	let isExporting = $state(false);
@@ -34,22 +35,22 @@
 
 	/**
 	 * Snapshots the initial page data so form fields aren't clobbered on refresh.
-	 * @returns {any} The page data object at mount time.
+	 * @returns The page data object at mount time.
 	 */
-	function getInitialData() {
+	function getInitialData(): any {
 		return data;
 	}
-	const initialData = /** @type {any} */ (getInitialData());
+	const initialData = getInitialData() as any;
 	const initialRecord = initialData.record;
 
 	/**
 	 * Resolves the option value (id) whose label matches the given display string.
 	 * The detail serializer exposes related names, not ids, so we match by label.
-	 * @param {Array<{value: any, label: string}>} options - Combobox options.
-	 * @param {string} label - The display string from the record.
-	 * @returns {any} The matching option value, or '' when none matches.
+	 * @param options - Combobox options.
+	 * @param label - The display string from the record.
+	 * @returns The matching option value, or '' when none matches.
 	 */
-	function resolveOptionValue(options, label) {
+	function resolveOptionValue(options: Array<{ value: any; label: string }>, label: string): any {
 		if (!label) return '';
 		const match = (options || []).find((o) => o.label === label);
 		return match ? match.value : '';
@@ -69,8 +70,7 @@
 	let tel = $state(initialRecord?.tel || '');
 	let mobile = $state(initialRecord?.mobile || '');
 
-	/** @type {any} */
-	let deleteMessageBox = $state(null);
+	let deleteMessageBox = $state<any>(null);
 
 	/** Submits the current form values to the update action. */
 	async function handleSave() {
@@ -99,11 +99,10 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description:
-						/** @type {any} */ (result).data?.message || m.message_pipeline_record_update_failed()
+					description: (result as any).data?.message || m.message_pipeline_record_update_failed()
 				});
 			}
-		} catch (/** @type {any} */ err) {
+		} catch (err: any) {
 			globalToaster.error({ title: m.common_error(), description: err.message });
 		} finally {
 			isSaving = false;
@@ -140,7 +139,7 @@
 				title: m.title_success(),
 				description: m.message_inquiry_export_success()
 			});
-		} catch (/** @type {any} */ err) {
+		} catch (err: any) {
 			globalToaster.error({ title: m.common_error(), description: err.message });
 		} finally {
 			isExporting = false;
@@ -162,11 +161,10 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description:
-						/** @type {any} */ (result).data?.message || m.message_pipeline_record_delete_failed()
+					description: (result as any).data?.message || m.message_pipeline_record_delete_failed()
 				});
 			}
-		} catch (/** @type {any} */ err) {
+		} catch (err: any) {
 			globalToaster.error({ title: m.common_error(), description: err.message });
 		} finally {
 			isDeleting = false;

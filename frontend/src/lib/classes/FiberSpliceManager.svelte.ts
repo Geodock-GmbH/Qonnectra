@@ -2,6 +2,7 @@ import { deserialize } from '$app/forms';
 
 import { m } from '$lib/paraglide/messages';
 
+import type { FiberColor } from '$lib/server/nodeData';
 import { globalToaster } from '$lib/stores/toaster';
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
@@ -139,12 +140,6 @@ type DropData =
 	| CableDropData
 	| ResidentialUnitDropData
 	| AddressDropData;
-
-interface FiberColor {
-	name: string;
-	hex: string;
-	order: number;
-}
 
 interface ActionSuccessData {
 	error?: string;

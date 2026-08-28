@@ -1,4 +1,6 @@
-<script>
+<script lang="ts">
+	import type { WMSLayer, WMSSource } from '$lib/utils/wmsApi';
+	import type BaseLayer from 'ol/layer/Base';
 	import {
 		IconChevronDown,
 		IconChevronRight,
@@ -35,35 +37,62 @@
 	} from '$lib/stores/store';
 	import { tooltip } from '$lib/utils/tooltip';
 
-	/**
-	 * @typedef {Object} WMSLayer
-	 * @property {string} id
-	 * @property {string} name
-	 * @property {string} title
-	 * @property {boolean} is_enabled
-	 * @property {number} sort_order
-	 * @property {number} min_zoom
-	 * @property {number|null} max_zoom
-	 * @property {number} opacity
-	 */
-
-	/**
-	 * @typedef {Object} WMSSource
-	 * @property {string} id
-	 * @property {string} name
-	 * @property {WMSLayer[]} layers
-	 */
-
 	import OpacitySlider from './OpacitySlider.svelte';
 
-	/**
-	 * @typedef {Object} MobileOpacitySliderConfig
-	 * @property {number} minOpacity
-	 * @property {number} maxOpacity
-	 * @property {number} stepOpacity
-	 * @property {number} opacity
-	 * @property {(value: number) => void} onChange
-	 */
+	interface MobileOpacitySliderConfig {
+		minOpacity: number;
+		maxOpacity: number;
+		stepOpacity: number;
+		opacity: number;
+		onChange: (value: number) => void;
+	}
+
+	interface NodeType {
+		node_type: string;
+	}
+
+	interface TrenchType {
+		id: number | string;
+		surface?: string;
+		construction_type?: string;
+	}
+
+	interface AreaType {
+		id: number | string;
+		area_type: string;
+	}
+
+	interface Props {
+		layers?: BaseLayer[];
+		osmLayer?: BaseLayer | null;
+		nodeTypes?: NodeType[];
+		surfaces?: TrenchType[];
+		constructionTypes?: TrenchType[];
+		areaTypes?: AreaType[];
+		usingFallbackOSM?: boolean;
+		wmsSources?: WMSSource[];
+		projectId?: string;
+		mobileOpacitySlider?: MobileOpacitySliderConfig | null;
+		onLayerVisibilityChanged?: (e: {
+			layerId: string;
+			visible: boolean;
+			layer: BaseLayer | null;
+		}) => void;
+		onNodeTypeVisibilityChanged?: (e: { nodeType: string; visible: boolean }) => void;
+		onTrenchTypeVisibilityChanged?: (e: {
+			trenchType: string;
+			visible: boolean;
+			styleMode: string;
+		}) => void;
+		onAreaTypeVisibilityChanged?: (e: { areaType: string; visible: boolean }) => void;
+		onLabelVisibilityChanged?: (e: {
+			layerId: string;
+			labelType: string;
+			enabled: boolean;
+		}) => void;
+		onZoomToExtent?: (e: { layerId: string; layerType: string | null }) => void;
+		onWMSLayerVisibilityChanged?: (layerId: string, visible: boolean) => void;
+	}
 
 	let {
 		layers = [],
@@ -73,10 +102,8 @@
 		constructionTypes = [],
 		areaTypes = [],
 		usingFallbackOSM = false,
-		/** @type {WMSSource[]} */
 		wmsSources = [],
 		projectId = '',
-		/** @type {MobileOpacitySliderConfig | null} */
 		mobileOpacitySlider = null,
 		onLayerVisibilityChanged = () => {},
 		onNodeTypeVisibilityChanged = () => {},
@@ -85,7 +112,7 @@
 		onLabelVisibilityChanged = () => {},
 		onZoomToExtent = () => {},
 		onWMSLayerVisibilityChanged = () => {}
-	} = $props();
+	}: Props = $props();
 
 	/**
 	 * Toggle the basemap theme between light and dark
@@ -94,7 +121,13 @@
 		$basemapTheme = $basemapTheme === 'light' ? 'dark' : 'light';
 	}
 
-	let layerVisibility = $state(new Map());
+	interface LayerVisibilityInfo {
+		layer: BaseLayer | null;
+		visible: boolean;
+		name: string;
+	}
+
+	let layerVisibility = $state<Map<string, LayerVisibilityInfo>>(new Map());
 	let isNodeSubtypesExpanded = $state(false);
 	let isTrenchSubtypesExpanded = $state(false);
 	let isAreaSubtypesExpanded = $state(false);
@@ -136,12 +169,12 @@
 		}
 	});
 
-	const LAYER_ORDER = /** @type {Record<string, number>} */ ({
+	const LAYER_ORDER: Record<string, number> = {
 		'address-layer': 1,
 		'node-layer': 2,
 		'trench-layer': 3,
 		'area-layer': 4
-	});
+	};
 
 	$effect(() => {
 		if (areaTypes.length > 0) {
@@ -165,7 +198,7 @@
 	});
 
 	$effect(() => {
-		const newVisibility = new Map();
+		const newVisibility = new Map<string, LayerVisibilityInfo>();
 
 		const sortedLayers = [...layers].sort((a, b) => {
 			const aId = a.get('layerId');
@@ -218,9 +251,9 @@
 
 	/**
 	 * Toggle the visibility of a layer
-	 * @param {string} layerId - The ID of the layer to toggle
+	 * @param layerId - The ID of the layer to toggle
 	 */
-	function toggleLayerVisibility(layerId) {
+	function toggleLayerVisibility(layerId: string) {
 		const layerInfo = layerVisibility.get(layerId);
 		if (layerInfo) {
 			const newVisible = !layerInfo.visible;
@@ -251,9 +284,9 @@
 
 	/**
 	 * Toggle the visibility of a node type
-	 * @param {string} nodeTypeName - The name of the node type to toggle
+	 * @param nodeTypeName - The name of the node type to toggle
 	 */
-	function toggleNodeTypeVisibility(nodeTypeName) {
+	function toggleNodeTypeVisibility(nodeTypeName: string) {
 		const currentStyles = $nodeTypeStyles;
 		const defaults = getNodeTypeDefault(nodeTypeName);
 		const currentConfig = currentStyles[nodeTypeName] || {
@@ -285,20 +318,20 @@
 
 	/**
 	 * Check if a node type is visible
-	 * @param {string} nodeTypeName - The name of the node type to check
-	 * @returns {boolean} True if the node type is visible
+	 * @param nodeTypeName - The name of the node type to check
+	 * @returns True if the node type is visible
 	 */
-	function isNodeTypeVisible(nodeTypeName) {
+	function isNodeTypeVisible(nodeTypeName: string): boolean {
 		const config = $nodeTypeStyles[nodeTypeName];
 		return config ? config.visible : true;
 	}
 
 	/**
 	 * Get the color of a node type
-	 * @param {string} nodeTypeName - The name of the node type to get the color of
-	 * @returns {string} The color of the node type
+	 * @param nodeTypeName - The name of the node type to get the color of
+	 * @returns The color of the node type
 	 */
-	function getNodeTypeColor(nodeTypeName) {
+	function getNodeTypeColor(nodeTypeName: string): string {
 		const config = $nodeTypeStyles[nodeTypeName];
 		return config?.color || getNodeTypeDefault(nodeTypeName).color;
 	}
@@ -312,10 +345,10 @@
 
 	/**
 	 * Get the name key for a trench type based on current style mode
-	 * @param {{ surface?: string, construction_type?: string }} trenchType - The trench type object
-	 * @returns {string} The name of the trench type
+	 * @param trenchType - The trench type object
+	 * @returns The name of the trench type
 	 */
-	function getTrenchTypeName(trenchType) {
+	function getTrenchTypeName(trenchType: { surface?: string; construction_type?: string }): string {
 		return (
 			($trenchStyleMode === 'surface' ? trenchType.surface : trenchType.construction_type) ?? ''
 		);
@@ -323,10 +356,10 @@
 
 	/**
 	 * Check if a trench type is visible
-	 * @param {string} typeName - The name of the trench type to check
-	 * @returns {boolean} True if the trench type is visible
+	 * @param typeName - The name of the trench type to check
+	 * @returns True if the trench type is visible
 	 */
-	function isTrenchTypeVisible(typeName) {
+	function isTrenchTypeVisible(typeName: string): boolean {
 		const styles =
 			$trenchStyleMode === 'surface' ? $trenchSurfaceStyles : $trenchConstructionTypeStyles;
 		const config = styles[typeName];
@@ -335,10 +368,10 @@
 
 	/**
 	 * Get the color of a trench type
-	 * @param {string} typeName - The name of the trench type to get the color of
-	 * @returns {string} The color of the trench type
+	 * @param typeName - The name of the trench type to get the color of
+	 * @returns The color of the trench type
 	 */
-	function getTrenchTypeColor(typeName) {
+	function getTrenchTypeColor(typeName: string): string {
 		const styles =
 			$trenchStyleMode === 'surface' ? $trenchSurfaceStyles : $trenchConstructionTypeStyles;
 		const config = styles[typeName];
@@ -347,9 +380,9 @@
 
 	/**
 	 * Toggle the visibility of a trench type
-	 * @param {string} typeName - The name of the trench type to toggle
+	 * @param typeName - The name of the trench type to toggle
 	 */
-	function toggleTrenchTypeVisibility(typeName) {
+	function toggleTrenchTypeVisibility(typeName: string) {
 		if ($trenchStyleMode === 'surface') {
 			const currentStyles = $trenchSurfaceStyles;
 			const currentConfig = currentStyles[typeName] || {
@@ -396,29 +429,29 @@
 
 	/**
 	 * Check if an area type is visible
-	 * @param {string} areaTypeName - The name of the area type to check
-	 * @returns {boolean} True if the area type is visible
+	 * @param areaTypeName - The name of the area type to check
+	 * @returns True if the area type is visible
 	 */
-	function isAreaTypeVisible(areaTypeName) {
+	function isAreaTypeVisible(areaTypeName: string): boolean {
 		const config = $areaTypeStyles[areaTypeName];
 		return config ? config.visible : true;
 	}
 
 	/**
 	 * Get the color of an area type
-	 * @param {string} areaTypeName - The name of the area type to get the color of
-	 * @returns {string} The color of the area type
+	 * @param areaTypeName - The name of the area type to get the color of
+	 * @returns The color of the area type
 	 */
-	function getAreaTypeColor(areaTypeName) {
+	function getAreaTypeColor(areaTypeName: string): string {
 		const config = $areaTypeStyles[areaTypeName];
 		return config?.color || DEFAULT_AREA_COLOR;
 	}
 
 	/**
 	 * Toggle the visibility of an area type
-	 * @param {string} areaTypeName - The name of the area type to toggle
+	 * @param areaTypeName - The name of the area type to toggle
 	 */
-	function toggleAreaTypeVisibility(areaTypeName) {
+	function toggleAreaTypeVisibility(areaTypeName: string) {
 		const currentStyles = $areaTypeStyles;
 		const currentConfig = currentStyles[areaTypeName] || {
 			color: DEFAULT_AREA_COLOR,
@@ -441,12 +474,13 @@
 
 	/**
 	 * Map layer ID to label config key
-	 * @param {string} layerId - The layer ID
-	 * @returns {'trench' | 'address' | 'node' | 'area' | 'conduit' | null} The label config key or null if not supported
+	 * @param layerId - The layer ID
+	 * @returns The label config key or null if not supported
 	 */
-	function getLabelConfigKey(layerId) {
-		/** @type {Record<string, 'trench' | 'address' | 'node' | 'area' | 'conduit'>} */
-		const mapping = {
+	function getLabelConfigKey(
+		layerId: string
+	): 'trench' | 'address' | 'node' | 'area' | 'conduit' | null {
+		const mapping: Record<string, 'trench' | 'address' | 'node' | 'area' | 'conduit'> = {
 			'trench-layer': 'trench',
 			'address-layer': 'address',
 			'node-layer': 'node',
@@ -457,12 +491,11 @@
 
 	/**
 	 * Map layer ID to API layer type for extent endpoint
-	 * @param {string} layerId - The layer ID
-	 * @returns {string|null} The API layer type or null if not supported
+	 * @param layerId - The layer ID
+	 * @returns The API layer type or null if not supported
 	 */
-	function getExtentLayerType(layerId) {
-		/** @type {Record<string, string>} */
-		const mapping = {
+	function getExtentLayerType(layerId: string): string | null {
+		const mapping: Record<string, string> = {
 			'trench-layer': 'trench',
 			'address-layer': 'address',
 			'node-layer': 'node',
@@ -473,19 +506,19 @@
 
 	/**
 	 * Check if labels are enabled for a layer
-	 * @param {string} layerId - The layer ID
-	 * @returns {boolean} True if labels are enabled
+	 * @param layerId - The layer ID
+	 * @returns True if labels are enabled
 	 */
-	function isLabelEnabled(layerId) {
+	function isLabelEnabled(layerId: string): boolean {
 		const key = getLabelConfigKey(layerId);
 		return key ? $labelVisibilityConfig[key] : false;
 	}
 
 	/**
 	 * Toggle label visibility for a layer
-	 * @param {string} layerId - The layer ID
+	 * @param layerId - The layer ID
 	 */
-	function toggleLabelVisibility(layerId) {
+	function toggleLabelVisibility(layerId: string) {
 		const key = getLabelConfigKey(layerId);
 		if (!key) return;
 
@@ -504,9 +537,9 @@
 
 	/**
 	 * Check if conduit labels are enabled
-	 * @returns {boolean} True if conduit labels are enabled
+	 * @returns True if conduit labels are enabled
 	 */
-	function isConduitLabelEnabled() {
+	function isConduitLabelEnabled(): boolean {
 		return $labelVisibilityConfig.conduit || false;
 	}
 
@@ -529,9 +562,9 @@
 
 	/**
 	 * Toggle the expansion state of a WMS source
-	 * @param {string} sourceId - The ID of the WMS source
+	 * @param sourceId - The ID of the WMS source
 	 */
-	function toggleWMSSourceExpansion(sourceId) {
+	function toggleWMSSourceExpansion(sourceId: string) {
 		const current = getWMSSourceExpanded($wmsSourceExpansionState, projectId, sourceId);
 		$wmsSourceExpansionState = setWMSSourceExpanded(
 			$wmsSourceExpansionState,
@@ -543,27 +576,27 @@
 
 	/**
 	 * Check if a WMS source is expanded
-	 * @param {string} sourceId - The ID of the WMS source
-	 * @returns {boolean} True if the source is expanded
+	 * @param sourceId - The ID of the WMS source
+	 * @returns True if the source is expanded
 	 */
-	function isWMSSourceExpanded(sourceId) {
+	function isWMSSourceExpanded(sourceId: string): boolean {
 		return getWMSSourceExpanded($wmsSourceExpansionState, projectId, sourceId);
 	}
 
 	/**
 	 * Check if a WMS layer is visible
-	 * @param {string} layerId - The layer ID
-	 * @returns {boolean} True if the layer is visible
+	 * @param layerId - The layer ID
+	 * @returns True if the layer is visible
 	 */
-	function isWMSLayerVisible(layerId) {
+	function isWMSLayerVisible(layerId: string): boolean {
 		return getWMSLayerVisibility($wmsLayerVisibilityConfig, projectId, layerId, true);
 	}
 
 	/**
 	 * Toggle the visibility of a WMS layer
-	 * @param {string} layerId - The layer ID
+	 * @param layerId - The layer ID
 	 */
-	function toggleWMSLayerVisibility(layerId) {
+	function toggleWMSLayerVisibility(layerId: string) {
 		const current = isWMSLayerVisible(layerId);
 		$wmsLayerVisibilityConfig = setWMSLayerVisibility(
 			$wmsLayerVisibilityConfig,
@@ -601,18 +634,18 @@
 
 	/**
 	 * Handle touch start for drag gesture
-	 * @param {TouchEvent} e - Touch event
+	 * @param e - Touch event
 	 */
-	function handleTouchStart(e) {
+	function handleTouchStart(e: TouchEvent) {
 		isDragging = true;
 		startY = e.touches[0].clientY;
 	}
 
 	/**
 	 * Handle touch move for drag gesture
-	 * @param {TouchEvent} e - Touch event
+	 * @param e - Touch event
 	 */
-	function handleTouchMove(e) {
+	function handleTouchMove(e: TouchEvent) {
 		if (!isDragging) return;
 		const currentY = e.touches[0].clientY;
 		const diff = currentY - startY;
@@ -624,9 +657,8 @@
 
 	/**
 	 * Action to attach a non-passive touchmove listener
-	 * @param {HTMLElement} node
 	 */
-	function nonPassiveTouchMove(node) {
+	function nonPassiveTouchMove(node: HTMLElement) {
 		node.addEventListener('touchmove', handleTouchMove, { passive: false });
 		return {
 			destroy() {
@@ -959,9 +991,7 @@
 					<!-- WMS Sources - separate entries after area layer (Mobile) -->
 					{#if layerId === 'area-layer' && wmsSources.length > 0}
 						{#each wmsSources as source (source.id)}
-							{@const enabledLayers = source.layers.filter(
-								(/** @type {WMSLayer} */ l) => l.is_enabled
-							)}
+							{@const enabledLayers = source.layers.filter((l: WMSLayer) => l.is_enabled)}
 							{#if enabledLayers.length > 0}
 								{@const isExpanded = isWMSSourceExpanded(source.id)}
 								<div class="bg-surface-100-900 rounded-xl overflow-hidden">
@@ -1347,9 +1377,7 @@
 				<!-- WMS Sources - separate entries after area layer -->
 				{#if layerId === 'area-layer' && wmsSources.length > 0}
 					{#each wmsSources as source (source.id)}
-						{@const enabledLayers = source.layers.filter(
-							(/** @type {WMSLayer} */ l) => l.is_enabled
-						)}
+						{@const enabledLayers = source.layers.filter((l: WMSLayer) => l.is_enabled)}
 						{#if enabledLayers.length > 0}
 							{@const isExpanded = isWMSSourceExpanded(source.id)}
 							<div>

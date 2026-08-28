@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { get } from 'svelte/store';
 	import { slide } from 'svelte/transition';
 	import { goto } from '$app/navigation';
@@ -66,24 +66,20 @@
 
 	let activeTab = $state('address');
 	let searchQuery = $state('');
-	/** @type {Record<string, any>[]} */
-	let searchResults = $state([]);
+	let searchResults = $state<Record<string, any>[]>([]);
 	let searching = $state(false);
-	/** @type {ReturnType<typeof setTimeout> | null} */
-	let searchTimeout = null;
+	let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	let globalSearch = $state(false);
 	let includeGeometry = $state(false);
 	let geometryMode = $state('segments');
 	let orientGeometry = $state(false);
 
-	/** @type {Record<string, any> | null} */
-	let selectedCable = $state(null);
-	/** @type {Record<string, any>[]} */
-	let fibers = $state([]);
+	let selectedCable = $state<Record<string, any> | null>(null);
+	let fibers = $state<Record<string, any>[]>([]);
 	let loadingFibers = $state(false);
-	let expandedBundles = $state(new Set());
-	let fiberColors = $state(new Map());
+	let expandedBundles = $state<Set<number>>(new Set());
+	let fiberColors = $state<Map<string, string>>(new Map());
 
 	const fibersByBundle = $derived.by(() => {
 		const grouped = new Map();
@@ -105,9 +101,9 @@
 
 	/**
 	 * Switches the active trace type tab and resets search/fiber state.
-	 * @param {string} tab - The trace type value to switch to.
+	 * @param tab - The trace type value to switch to.
 	 */
-	function handleTabChange(tab) {
+	function handleTabChange(tab: string) {
 		activeTab = tab;
 		searchQuery = '';
 		searchResults = [];
@@ -118,9 +114,9 @@
 
 	/**
 	 * Searches for entities of the active trace type via the API.
-	 * @param {string} query - Search string (minimum 2 characters).
+	 * @param query - Search string (minimum 2 characters).
 	 */
-	async function performSearch(query) {
+	async function performSearch(query: string) {
 		if (!query || query.length < 2) {
 			searchResults = [];
 			return;
@@ -163,9 +159,9 @@
 
 	/**
 	 * Debounces search input and triggers a search after 300ms.
-	 * @param {Event & { currentTarget: HTMLInputElement }} e - Input event from the search field.
+	 * @param e - Input event from the search field.
 	 */
-	function handleSearchInput(e) {
+	function handleSearchInput(e: Event & { currentTarget: HTMLInputElement }) {
 		const query = e.currentTarget.value;
 		searchQuery = query;
 
@@ -178,11 +174,11 @@
 
 	/**
 	 * Builds a trace URL with optional geometry query parameters.
-	 * @param {string} typeSlug - The entity type slug for the URL path.
-	 * @param {string} uuid - The entity UUID.
-	 * @returns {string} The complete trace URL.
+	 * @param typeSlug - The entity type slug for the URL path.
+	 * @param uuid - The entity UUID.
+	 * @returns The complete trace URL.
 	 */
-	function buildTraceUrl(typeSlug, uuid) {
+	function buildTraceUrl(typeSlug: string, uuid: string): string {
 		let url = `/trace/${typeSlug}/${uuid}`;
 		const params = new URLSearchParams();
 
@@ -200,9 +196,9 @@
 
 	/**
 	 * Navigates to the trace page for a selected search result.
-	 * @param {Record<string, any>} result - The selected search result containing a uuid.
+	 * @param result - The selected search result containing a uuid.
 	 */
-	function selectResult(result) {
+	function selectResult(result: Record<string, any>) {
 		const uuid = result.uuid;
 		const typeSlug = activeTab === 'residential_unit' ? 'residential-unit' : activeTab;
 		goto(buildTraceUrl(typeSlug, uuid));
@@ -210,9 +206,9 @@
 
 	/**
 	 * Selects a cable and fetches its fibers for the fiber trace picker.
-	 * @param {Record<string, any>} cable - The selected cable object.
+	 * @param cable - The selected cable object.
 	 */
-	async function selectCableForFiber(cable) {
+	async function selectCableForFiber(cable: Record<string, any>) {
 		selectedCable = cable;
 		searchQuery = '';
 		searchResults = [];
@@ -258,9 +254,9 @@
 
 	/**
 	 * Toggles expansion of a fiber bundle in the picker.
-	 * @param {number} bundleNumber - The bundle number to toggle.
+	 * @param bundleNumber - The bundle number to toggle.
 	 */
-	function toggleBundle(bundleNumber) {
+	function toggleBundle(bundleNumber: number) {
 		const newSet = new Set(expandedBundles);
 		if (newSet.has(bundleNumber)) {
 			newSet.delete(bundleNumber);
@@ -272,18 +268,18 @@
 
 	/**
 	 * Navigates to the trace page for a specific fiber.
-	 * @param {Record<string, any>} fiber - Fiber object containing uuid.
+	 * @param fiber - Fiber object containing uuid.
 	 */
-	function traceFiber(fiber) {
+	function traceFiber(fiber: Record<string, any>) {
 		goto(buildTraceUrl('fiber', fiber.uuid));
 	}
 
 	/**
 	 * Formats an address search result for display.
-	 * @param {Record<string, any>} result - Address result from the API.
-	 * @returns {string} Formatted address string.
+	 * @param result - Address result from the API.
+	 * @returns Formatted address string.
 	 */
-	function formatAddressResult(result) {
+	function formatAddressResult(result: Record<string, any>): string | undefined {
 		const parts = [];
 		if (result.street) parts.push(result.street);
 		if (result.housenumber) parts.push(result.housenumber + (result.house_number_suffix || ''));
@@ -295,28 +291,28 @@
 
 	/**
 	 * Formats a node search result for display.
-	 * @param {Record<string, any>} result - Node result from the API.
-	 * @returns {string} Formatted node name or truncated UUID.
+	 * @param result - Node result from the API.
+	 * @returns Formatted node name or truncated UUID.
 	 */
-	function formatNodeResult(result) {
+	function formatNodeResult(result: Record<string, any>): string | undefined {
 		return result.name || result.uuid?.slice(0, 8);
 	}
 
 	/**
 	 * Formats a cable search result for display.
-	 * @param {Record<string, any>} result - Cable result from the API.
-	 * @returns {string} Formatted cable name or truncated UUID.
+	 * @param result - Cable result from the API.
+	 * @returns Formatted cable name or truncated UUID.
 	 */
-	function formatCableResult(result) {
+	function formatCableResult(result: Record<string, any>): string | undefined {
 		return result.name || result.uuid?.slice(0, 8);
 	}
 
 	/**
 	 * Formats a residential unit search result for display.
-	 * @param {Record<string, any>} result - Residential unit result from the API.
-	 * @returns {string} Formatted residential unit string.
+	 * @param result - Residential unit result from the API.
+	 * @returns Formatted residential unit string.
 	 */
-	function formatRuResult(result) {
+	function formatRuResult(result: Record<string, any>): string | undefined {
 		const parts = [];
 		if (result.id_residential_unit) parts.push(result.id_residential_unit);
 		if (result.floor !== null && result.floor !== undefined)
@@ -327,10 +323,10 @@
 
 	/**
 	 * Formats a search result based on the active trace type.
-	 * @param {Record<string, any>} result - Search result from the API.
-	 * @returns {string} Formatted display string.
+	 * @param result - Search result from the API.
+	 * @returns Formatted display string.
 	 */
-	function formatResult(result) {
+	function formatResult(result: Record<string, any>): string | undefined {
 		switch (activeTab) {
 			case 'address':
 				return formatAddressResult(result);
@@ -348,10 +344,10 @@
 
 	/**
 	 * Returns a subtitle string for a search result based on the active trace type.
-	 * @param {Record<string, any>} result - Search result from the API.
-	 * @returns {string | null} Subtitle string, or null if none available.
+	 * @param result - Search result from the API.
+	 * @returns Subtitle string, or null if none available.
 	 */
-	function getResultSubtitle(result) {
+	function getResultSubtitle(result: Record<string, any>): string | null {
 		switch (activeTab) {
 			case 'address':
 				return result.id_address || null;
@@ -372,7 +368,7 @@
 	/**
 	 * Fetches fiber color attribute mappings from the API and caches them.
 	 */
-	async function fetchFiberColors() {
+	async function fetchFiberColors(): Promise<void> {
 		if (fiberColors.size > 0) return;
 		try {
 			const response = await fetch(`${PUBLIC_API_URL}attributes_fiber_color/`, {
@@ -403,10 +399,10 @@
 
 	/**
 	 * Resolves a color name to its hex code.
-	 * @param {string | null} colorName - The color name to look up.
-	 * @returns {string} Hex color code, or a default gray.
+	 * @param colorName - The color name to look up.
+	 * @returns Hex color code, or a default gray.
 	 */
-	function getColorHex(colorName) {
+	function getColorHex(colorName: string | null): string {
 		if (!colorName) return '#6b7280';
 		return fiberColors.get(colorName.toLowerCase()) || '#6b7280';
 	}
@@ -468,7 +464,7 @@
 						{ value: 'routed', label: m.trace_geometry_routed() }
 					]}
 					value={[geometryMode]}
-					onValueChange={(/** @type {{ value: string[] }} */ e) => {
+					onValueChange={(e: { value: string[] }) => {
 						geometryMode = e.value[0] || 'segments';
 					}}
 					classes="touch-manipulation w-40 sm:w-48"

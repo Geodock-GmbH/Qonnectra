@@ -1,5 +1,7 @@
-<script>
-	let { title, children } = $props();
+<script lang="ts">
+	import type { Snippet } from 'svelte';
+
+	let { title, children }: { title: string; children: Snippet } = $props();
 </script>
 
 <div class="card border border-surface-200-800 overflow-hidden">

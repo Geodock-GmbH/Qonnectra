@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { PageData } from './$types';
 	import { setContext } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { navigating, page } from '$app/stores';
@@ -9,7 +10,7 @@
 
 	import AddressTable from './AddressTable.svelte';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 
 	const searchTerm = $derived(data.searchTerm || '');
 	let searchInput = $state('');

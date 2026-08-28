@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { useSvelteFlow } from '@xyflow/svelte';
 	import { parse } from 'devalue';
 
@@ -7,6 +7,13 @@
 	import { drawerStore } from '$lib/stores/drawer';
 
 	import DrawerTabs from './DrawerTabs.svelte';
+
+	interface CableData {
+		label?: string;
+		uuid?: string;
+		cable?: { uuid?: string; name?: string };
+		onNameUpdate?: (label: string) => void;
+	}
 
 	let {
 		edgeId,
@@ -19,6 +26,17 @@
 		onEdgeDelete,
 		onEdgeSelect,
 		selected = false
+	}: {
+		edgeId: string;
+		labelData?: any;
+		cableData?: CableData | null;
+		defaultX: number;
+		defaultY: number;
+		onPositionUpdate?: (data: { labelId?: string; x: number; y: number; text?: string }) => void;
+		onLabelReset?: (labelId: string) => void;
+		onEdgeDelete?: unknown;
+		onEdgeSelect?: any;
+		selected?: boolean;
 	} = $props();
 
 	let shiftPressed = $state(false);
@@ -31,18 +49,18 @@
 	let isDragging = $state(false);
 	let isMoveLabelMode = $state(false);
 	let justFinishedDragging = $state(false);
-	let longPressTimer = $state(/** @type {ReturnType<typeof setTimeout>|null} */ (null));
-	let longPressEvent = $state(/** @type {MouseEvent|null} */ (null));
+	let longPressTimer = $state<ReturnType<typeof setTimeout> | null>(null);
+	let longPressEvent = $state<MouseEvent | null>(null);
 	let dragStartPos = $state({ x: 0, y: 0 });
-	let labelElement = $state(/** @type {HTMLDivElement|null} */ (null));
+	let labelElement = $state<HTMLDivElement | null>(null);
 	let labelWidth = $state(0);
 	let labelHeight = $state(0);
 
 	let progressValue = $state(0);
 	let progressPosition = $state({ x: 0, y: 0 });
-	let progressFrame = $state(/** @type {number|null} */ (null));
+	let progressFrame = $state<number | null>(null);
 	let showProgressCircle = $state(false);
-	let progressDelayTimer = $state(/** @type {ReturnType<typeof setTimeout>|null} */ (null));
+	let progressDelayTimer = $state<ReturnType<typeof setTimeout> | null>(null);
 
 	let currentLabel = $state('');
 
@@ -75,9 +93,9 @@
 
 	/**
 	 * Handle long press start - begins timer for move mode
-	 * @param {MouseEvent} event - The mouse event
+	 * @param event - The mouse event
 	 */
-	function handleLongPressStart(event) {
+	function handleLongPressStart(event: MouseEvent) {
 		if (longPressTimer) {
 			clearTimeout(longPressTimer);
 		}
@@ -180,9 +198,9 @@
 	/**
 	 * Handle label click - opens cable details if not in move mode
 	 * Shift+Click resets label position to edge midpoint
-	 * @param {MouseEvent} event - The mouse event
+	 * @param event - The mouse event
 	 */
-	async function handleLabelClick(event) {
+	async function handleLabelClick(event: MouseEvent) {
 		handleLongPressCancel();
 
 		if (justFinishedDragging) {
@@ -211,7 +229,7 @@
 		}
 
 		const formData = new FormData();
-		formData.append('uuid', cableData?.cable?.uuid || cableData?.uuid);
+		formData.append('uuid', cableData?.cable?.uuid || cableData?.uuid || '');
 		const response = await fetch('?/getCables', {
 			method: 'POST',
 			body: formData
@@ -226,7 +244,7 @@
 			props: {
 				...parsedData,
 				type: 'edge',
-				onLabelUpdate: (/** @type {any} */ newLabel) => {
+				onLabelUpdate: (newLabel: string) => {
 					currentLabel = newLabel;
 					drawerStore.setTitle(newLabel);
 					cableData?.onNameUpdate?.(newLabel);
@@ -238,9 +256,9 @@
 
 	/**
 	 * Handle mouse down on label - starts dragging if in move mode
-	 * @param {MouseEvent} event - The mouse event
+	 * @param event - The mouse event
 	 */
-	function handleMouseDown(event) {
+	function handleMouseDown(event: MouseEvent) {
 		if (!isMoveLabelMode) {
 			handleLongPressStart(event);
 			return;
@@ -270,9 +288,9 @@
 
 	/**
 	 * Handle mouse move during drag
-	 * @param {MouseEvent} event - The mouse event
+	 * @param event - The mouse event
 	 */
-	function handleMouseMove(event) {
+	function handleMouseMove(event: MouseEvent) {
 		if (!isDragging) return;
 
 		const flowPosition = screenToFlowPosition(
@@ -319,12 +337,12 @@
 
 	/**
 	 * Handle keydown for accessibility
-	 * @param {KeyboardEvent} event - The keyboard event
+	 * @param event - The keyboard event
 	 */
-	function handleKeydown(event) {
+	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter' || event.key === ' ') {
 			event.preventDefault();
-			handleLabelClick(/** @type {any} */ (event));
+			handleLabelClick(event as unknown as MouseEvent);
 		}
 		if (event.key === 'Escape' && isMoveLabelMode) {
 			isMoveLabelMode = false;
@@ -334,13 +352,13 @@
 	/**
 	 * Handle global keyboard events for Shift key tracking
 	 */
-	function handleGlobalKeyDown(/** @type {any} */ event) {
+	function handleGlobalKeyDown(event: KeyboardEvent) {
 		if (event.key === 'Shift') {
 			shiftPressed = true;
 		}
 	}
 
-	function handleGlobalKeyUp(/** @type {any} */ event) {
+	function handleGlobalKeyUp(event: KeyboardEvent) {
 		if (event.key === 'Shift') {
 			shiftPressed = false;
 		}

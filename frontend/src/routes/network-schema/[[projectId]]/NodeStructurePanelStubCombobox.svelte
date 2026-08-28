@@ -1,5 +1,13 @@
-<script>
-	let { data = [], value = [], onValueChange = () => {} } = $props();
+<script lang="ts">
+	let {
+		data = [],
+		value = [],
+		onValueChange = () => {}
+	}: {
+		data?: { value: string; label: string }[];
+		value?: string[];
+		onValueChange?: (e: { value: string[] }) => void;
+	} = $props();
 </script>
 
 <select

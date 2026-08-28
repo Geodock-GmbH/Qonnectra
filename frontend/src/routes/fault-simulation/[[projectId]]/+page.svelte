@@ -1,4 +1,6 @@
-<script>
+<script lang="ts">
+	import type { PageData } from './$types';
+	import type { FaultSimulationResult } from './exportCsv';
 	import { browser, dev } from '$app/environment';
 	import { page } from '$app/state';
 	import Feature from 'ol/Feature.js';
@@ -9,6 +11,10 @@
 
 	import 'ol/ol.css';
 
+	import type { MapBrowserEvent } from 'ol';
+	import type { FeatureLike } from 'ol/Feature.js';
+	import type OlMap from 'ol/Map.js';
+	import type Style from 'ol/style/Style.js';
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import { transform } from 'ol/proj.js';
@@ -43,12 +49,12 @@
 	import FaultSimulationPopUp from './FaultSimulationPopUp.svelte';
 	import { createFaultSimulationContext } from './faultSimulationContext.svelte.js';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 
-	const nodeTypes = $derived(/** @type {any[]} */ (data.nodeTypes ?? []));
-	const surfaces = $derived(/** @type {any[]} */ (data.surfaces ?? []));
-	const constructionTypes = $derived(/** @type {any[]} */ (data.constructionTypes ?? []));
-	const areaTypes = $derived(/** @type {any[]} */ (data.areaTypes ?? []));
+	const nodeTypes = $derived((data.nodeTypes ?? []) as any[]);
+	const surfaces = $derived((data.surfaces ?? []) as any[]);
+	const constructionTypes = $derived((data.constructionTypes ?? []) as any[]);
+	const areaTypes = $derived((data.areaTypes ?? []) as any[]);
 
 	const loadError = $derived(
 		data.nodeTypesError || data.surfacesError || data.constructionTypesError || data.areaTypesError
@@ -69,21 +75,14 @@
 
 	const ctx = createFaultSimulationContext();
 
-	/** @type {import('ol/Map').default|null} */
-	let olMap = $state(null);
-	/** @type {VectorLayer|null} */
-	let damagePointLayer = $state(null);
-	/** @type {VectorLayer|null} */
-	let affectedTrenchLayer = $state(null);
-	/** @type {VectorLayer|null} */
-	let affectedNodeLayer = $state(null);
-	/** @type {VectorLayer|null} */
-	let affectedAddressLayer = $state(null);
-	/** @type {[number, number]|null} */
-	let damageMapCoord = $state(null);
+	let olMap = $state<OlMap | null>(null);
+	let damagePointLayer = $state<VectorLayer | null>(null);
+	let affectedTrenchLayer = $state<VectorLayer | null>(null);
+	let affectedNodeLayer = $state<VectorLayer | null>(null);
+	let affectedAddressLayer = $state<VectorLayer | null>(null);
+	let damageMapCoord = $state<[number, number] | null>(null);
 	let popupPixel = $state({ x: 0, y: 0 });
-	/** @type {(() => void)|null} */
-	let mapMoveListener = null;
+	let mapMoveListener: (() => void) | null = null;
 
 	const damagePointStyle = createDamagePointStyle();
 	const affectedTrenchStyle = createAffectedTrenchStyle();
@@ -91,20 +90,15 @@
 	const affectedNodeAddressStyle = createAffectedNodeStyle('address');
 	const affectedAddressStyle = createAffectedAddressStyle();
 
-	/**
-	 * @param {import('ol/Feature').FeatureLike} feature
-	 * @returns {import('ol/style/Style').default}
-	 */
-	function affectedNodeStyleFn(feature) {
+	function affectedNodeStyleFn(feature: FeatureLike): Style {
 		return feature.get('has_address') ? affectedNodeAddressStyle : affectedNodeDefaultStyle;
 	}
 
 	/**
 	 * Initializes overlay layers for damage point, affected trenches, nodes, and addresses.
-	 * @param {{ map: import('ol/Map').default }} event - Map ready event containing the OL map instance
-	 * @returns {void}
+	 * @param event - Map ready event containing the OL map instance
 	 */
-	function handleMapReady({ map }) {
+	function handleMapReady({ map }: { map: OlMap }): void {
 		olMap = map;
 
 		damagePointLayer = new VectorLayer({
@@ -140,8 +134,7 @@
 		olMap.on('postrender', mapMoveListener);
 	}
 
-	/** @returns {void} */
-	function updatePopupPixel() {
+	function updatePopupPixel(): void {
 		if (!olMap || !damageMapCoord) return;
 		const pixel = olMap.getPixelFromCoordinate(damageMapCoord);
 		if (pixel) {
@@ -151,10 +144,9 @@
 
 	/**
 	 * Handles map clicks to select a trench as the damage location for fault simulation.
-	 * @param {import('ol/MapBrowserEvent').default} evt - The map browser click event
-	 * @returns {void}
+	 * @param evt - The map browser click event
 	 */
-	function handleMapClick(evt) {
+	function handleMapClick(evt: MapBrowserEvent<PointerEvent>): void {
 		if (ctx.isSimulating || ctx.simulationResult) return;
 
 		const feature = olMap?.forEachFeatureAtPixel(evt.pixel, (f) => f, {
@@ -170,7 +162,7 @@
 			registerStorageProjection(srid, proj4Def);
 		}
 
-		const renderGeom = /** @type {any} */ (feature.getGeometry());
+		const renderGeom = feature.getGeometry() as any;
 		let snappedCoord = evt.coordinate;
 		if (renderGeom) {
 			const flatCoords = renderGeom.getFlatCoordinates();
@@ -180,7 +172,7 @@
 			}
 			if (coords.length >= 2) {
 				const line = new LineString(coords);
-				snappedCoord = /** @type {[number, number]} */ (line.getClosestPoint(evt.coordinate));
+				snappedCoord = line.getClosestPoint(evt.coordinate) as [number, number];
 			}
 		}
 
@@ -197,8 +189,11 @@
 			uuid: trenchProps.uuid ?? trenchProps.id ?? null
 		};
 
-		ctx.setDamagePoint(/** @type {[number, number]} */ (storageCoord), trenchInfo);
-		damageMapCoord = /** @type {[number, number]} */ (snappedCoord);
+		ctx.setDamagePoint(
+			storageCoord as [number, number],
+			trenchInfo as unknown as import('./exportCsv').Trench
+		);
+		damageMapCoord = snappedCoord as [number, number];
 
 		const damageSource = damagePointLayer?.getSource();
 		if (damageSource) {
@@ -210,15 +205,13 @@
 		clearResultLayers();
 	}
 
-	/** @returns {void} */
-	function clearResultLayers() {
+	function clearResultLayers(): void {
 		affectedTrenchLayer?.getSource()?.clear();
 		affectedNodeLayer?.getSource()?.clear();
 		affectedAddressLayer?.getSource()?.clear();
 	}
 
-	/** @returns {void} */
-	function clearAllLayers() {
+	function clearAllLayers(): void {
 		damagePointLayer?.getSource()?.clear();
 		clearResultLayers();
 	}
@@ -333,9 +326,8 @@
 
 	onMount(() => {
 		if (dev) {
-			/** @type {any} */ (window).__e2eFaultSim = {
-				/** @param {import('./exportCsv.js').FaultSimulationResult} result */
-				injectResult(result) {
+			(window as any).__e2eFaultSim = {
+				injectResult(result: FaultSimulationResult) {
 					ctx.setDamagePoint([0, 0], result.trench ?? null);
 					ctx.setSimulationResult(result);
 				},
@@ -347,7 +339,7 @@
 
 		return () => {
 			if (dev) {
-				delete (/** @type {any} */ (window).__e2eFaultSim);
+				delete (window as any).__e2eFaultSim;
 			}
 			if (olMap && mapMoveListener) {
 				olMap.un('postrender', mapMoveListener);

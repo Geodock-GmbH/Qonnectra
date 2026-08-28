@@ -1,6 +1,8 @@
 import type { SerializedFeature } from './featureReconstructor';
 import type { Extent } from 'ol/extent';
+import type { GeometryLayout } from 'ol/geom/Geometry';
 import MVT from 'ol/format/MVT.js';
+import RenderFeature from 'ol/render/Feature.js';
 
 export interface ParseRequest {
 	/** Unique request identifier */
@@ -31,7 +33,45 @@ export interface ParseErrorResponse {
 	error: string;
 }
 
-const format = new MVT();
+// Must match the MVT formats in tileSources.ts: uuid becomes the feature id.
+// Without it, worker-parsed features have no id and every feature click is
+// treated as an empty-map click (no drawer).
+const format = new MVT({ idProperty: 'uuid' });
+
+/**
+ * Maps a coordinate stride to its OpenLayers geometry layout.
+ * MVT tiles are always 2D (stride 2), but this stays general in case a
+ * future tile source carries elevation or measure values.
+ */
+function layoutForStride(stride: number): GeometryLayout {
+	switch (stride) {
+		case 3:
+			return 'XYZ';
+		case 4:
+			return 'XYZM';
+		default:
+			return 'XY';
+	}
+}
+
+/**
+ * Serializes a single MVT RenderFeature into a transferable plain object.
+ *
+ * new MVT() (no featureClass) yields RenderFeature, whose geometry API differs
+ * from ol/geom: coordinates, stride and part boundaries come off the feature
+ * itself, not a separate geometry object. Calling getGeometryName()/getLayout()
+ * here (as this code once did) throws, because RenderFeature has neither.
+ */
+export function serializeFeature(feature: RenderFeature): SerializedFeature {
+	return {
+		id: feature.getId(),
+		properties: feature.getProperties(),
+		flatCoordinates: feature.getFlatCoordinates(),
+		geometryLayout: layoutForStride(feature.getStride()),
+		geometryType: feature.getType(),
+		ends: feature.getEnds() ?? undefined
+	};
+}
 
 /**
  * Handles incoming parse requests from the main thread.
@@ -45,18 +85,9 @@ self.onmessage = function (e: MessageEvent<ParseRequest>): void {
 		const features = format.readFeatures(data, {
 			extent: extent,
 			featureProjection: projection
-		});
+		}) as RenderFeature[];
 
-		const serializedFeatures: SerializedFeature[] = features.map((feature) => ({
-			id: feature.getId(),
-			properties: feature.getProperties(),
-			// @ts-ignore - RenderFeature lacks getGeometryName but it exists at runtime
-			geometryName: feature.getGeometryName(),
-			flatCoordinates: feature.getGeometry()?.getFlatCoordinates(),
-			// @ts-ignore - RenderFeature lacks getLayout but it exists at runtime
-			geometryLayout: feature.getGeometry()?.getLayout(),
-			geometryType: feature.getGeometry()?.getType()
-		}));
+		const serializedFeatures: SerializedFeature[] = features.map(serializeFeature);
 
 		const response: ParseSuccessResponse = {
 			requestId,

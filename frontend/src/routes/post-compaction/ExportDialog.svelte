@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { deserialize } from '$app/forms';
 	import { page } from '$app/state';
 	import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
@@ -22,11 +22,19 @@
 		mapContainerEl = null,
 		geom3857 = null,
 		projectId = ''
+	}: {
+		address?: any;
+		residentialUnits?: Record<string, any>[];
+		linkedMicroducts?: Record<string, any>[];
+		statusDevelopments?: any[];
+		open?: boolean;
+		mapContainerEl?: HTMLElement | null;
+		geom3857?: any;
+		projectId?: string;
 	} = $props();
 
 	let commentText = $state('');
-	/** @type {string[] | null} */
-	let manualStatus = $state(null);
+	let manualStatus = $state<string[] | null>(null);
 	let isExporting = $state(false);
 
 	const originalStatusId = $derived(String(address?.status_development?.id ?? ''));
@@ -42,9 +50,8 @@
 
 	/**
 	 * Fetches all fiber connections for all residential units of this address.
-	 * @returns {Promise<Record<string, Array<Object>>>}
 	 */
-	async function fetchAllFiberConnections() {
+	async function fetchAllFiberConnections(): Promise<Record<string, Array<object>>> {
 		try {
 			const response = await fetch(`/api/address/${address.uuid}/fiber-connections`);
 			if (response.ok) {
@@ -67,10 +74,9 @@
 
 	/**
 	 * Converts EPSG:3857 coordinates to EPSG:4326 (lat/lon) string.
-	 * @param {any} geom - Geometry object with coordinates array.
-	 * @returns {string | null}
+	 * @param geom - Geometry object with coordinates array.
 	 */
-	function convert3857To4326(geom) {
+	function convert3857To4326(geom: any): string | null {
 		if (!geom?.coordinates) return null;
 		const coords4326 = proj4('EPSG:3857', 'EPSG:4326', geom.coordinates);
 		return `${coords4326[1].toFixed(6)}, ${coords4326[0].toFixed(6)}`;
@@ -78,10 +84,9 @@
 
 	/**
 	 * Converts EPSG:3857 coordinates to the project's storage SRID string.
-	 * @param {any} geom - Geometry object with coordinates array.
-	 * @returns {string | null}
+	 * @param geom - Geometry object with coordinates array.
 	 */
-	function convert3857ToDefault(geom) {
+	function convert3857ToDefault(geom: any): string | null {
 		if (!geom?.coordinates || !page.data.srid || !page.data.proj4Def) return null;
 		registerStorageProjection(page.data.srid, page.data.proj4Def);
 		const coordsDefault = proj4('EPSG:3857', storageProjection(page.data.srid), geom.coordinates);
@@ -106,7 +111,7 @@
 				const result = deserialize(await response.text());
 
 				if (result.type === 'success') {
-					updatedAddress = /** @type {any} */ (result.data)?.address || address;
+					updatedAddress = (result.data as any)?.address || address;
 					globalToaster.success({
 						title: m.title_success(),
 						description: m.message_success_updating_address()
@@ -114,8 +119,7 @@
 				} else {
 					globalToaster.error({
 						title: m.common_error(),
-						description:
-							/** @type {any} */ (result).data?.message || m.message_error_updating_address()
+						description: (result as any).data?.message || m.message_error_updating_address()
 					});
 					return;
 				}
@@ -124,7 +128,7 @@
 			let unitsWithFibers = residentialUnits;
 			if (residentialUnits.length > 0) {
 				const fiberConnectionsMap = await fetchAllFiberConnections();
-				unitsWithFibers = residentialUnits.map((/** @type {any} */ unit) => ({
+				unitsWithFibers = residentialUnits.map((unit: any) => ({
 					...unit,
 					fiberConnections: fiberConnectionsMap[unit.uuid] || []
 				}));
@@ -284,7 +288,7 @@
 										value={selectedStatus}
 										defaultValue={selectedStatus}
 										placeholder="-"
-										onValueChange={(/** @type {{ value: string[] }} */ e) => {
+										onValueChange={(e) => {
 											manualStatus = e.value;
 										}}
 										renderInPlace={true}

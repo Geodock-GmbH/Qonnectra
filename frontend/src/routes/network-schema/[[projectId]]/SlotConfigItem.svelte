@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { IconEye, IconGripVertical, IconPencil, IconTrash } from '@tabler/icons-svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -13,22 +13,29 @@
 		onDelete,
 		onDragStart = () => {},
 		onViewStructure
+	}: {
+		config: any;
+		depth?: number;
+		readonly?: boolean;
+		onEdit?: (config: any) => void;
+		onDelete?: (uuid: string) => void;
+		onDragStart?: () => void;
+		onViewStructure?: (uuid: string) => void;
 	} = $props();
 
-	/** @param {any} e */
-	function handleDragStart(e) {
+	function handleDragStart(e: DragEvent) {
 		if (readonly) {
 			e.preventDefault();
 			return;
 		}
-		e.dataTransfer.setData(
+		e.dataTransfer!.setData(
 			'application/json',
 			JSON.stringify({
 				type: 'slot_configuration',
 				uuid: config.uuid
 			})
 		);
-		e.dataTransfer.effectAllowed = 'move';
+		e.dataTransfer!.effectAllowed = 'move';
 		onDragStart?.();
 	}
 

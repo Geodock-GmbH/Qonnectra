@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
@@ -10,18 +10,22 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
-	/** @param {any} data */
-	const noop = (data) => {};
+	const noop = (data: any) => {};
 
 	let {
 		projectId,
 		openPipeModal = $bindable(false),
 		isHidden = false,
 		onPipeCreate = noop
+	}: {
+		projectId?: any;
+		openPipeModal?: boolean;
+		isHidden?: boolean;
+		onPipeCreate?: (conduit: any) => void;
 	} = $props();
 
 	// Get attribute options from context (no more prop drilling)
-	const attributes = getContext('attributeOptions') || {
+	const attributes = getContext<any>('attributeOptions') || {
 		conduitTypes: [],
 		statuses: [],
 		networkLevels: [],
@@ -30,25 +34,18 @@
 	};
 
 	// Get conduit state for form defaults persistence
-	const conduitState = getContext('conduitState');
+	const conduitState = getContext<any>('conduitState');
 
 	let selectedConduitName = $state('');
 	let selectedOuterConduit = $state('');
-	/** @type {any[]} */
-	let selectedConduitType = $state([]);
-	/** @type {any[]} */
-	let selectedStatus = $state([]);
-	/** @type {any[]} */
-	let selectedNetworkLevel = $state([]);
-	/** @type {any[]} */
-	let selectedOwner = $state([]);
-	/** @type {any[]} */
-	let selectedConstructor = $state([]);
-	/** @type {any[]} */
-	let selectedManufacturer = $state([]);
+	let selectedConduitType = $state<any[]>([]);
+	let selectedStatus = $state<any[]>([]);
+	let selectedNetworkLevel = $state<any[]>([]);
+	let selectedOwner = $state<any[]>([]);
+	let selectedConstructor = $state<any[]>([]);
+	let selectedManufacturer = $state<any[]>([]);
 	let selectedDate = $state('');
-	/** @type {any[]} */
-	let selectedFlag = $state([]);
+	let selectedFlag = $state<any[]>([]);
 
 	// Track if we've initialized defaults for this modal open
 	let hasInitialized = $state(false);
@@ -74,11 +71,10 @@
 		}
 	});
 
-	/** @param {SubmitEvent} event */
-	async function handleSubmit(event) {
+	async function handleSubmit(event: SubmitEvent) {
 		event.preventDefault();
-		const formData = new FormData(/** @type {HTMLFormElement} */ (event.target));
-		const formProps = Object.fromEntries(formData.entries());
+		const formData = new FormData(event.target as HTMLFormElement);
+		const formProps = Object.fromEntries(formData.entries()) as Record<string, any>;
 
 		// Build form data for server action
 		const actionFormData = new FormData();
@@ -228,8 +224,7 @@
 							name="pipe_name"
 							required
 							value={selectedConduitName}
-							oninput={(e) =>
-								(selectedConduitName = /** @type {HTMLInputElement} */ (e.target).value)}
+							oninput={(e) => (selectedConduitName = (e.target as HTMLInputElement).value)}
 						/>
 					</label>
 					<label class="label">
@@ -238,7 +233,7 @@
 							data={attributes.conduitTypes}
 							bind:value={selectedConduitType}
 							defaultValue={selectedConduitType}
-							onValueChange={(/** @type {any} */ e) => (selectedConduitType = e.value)}
+							onValueChange={(e: any) => (selectedConduitType = e.value)}
 							renderInPlace={true}
 							required={true}
 						/>
@@ -251,8 +246,7 @@
 							class="textarea"
 							placeholder=""
 							value={selectedOuterConduit}
-							oninput={(e) =>
-								(selectedOuterConduit = /** @type {HTMLTextAreaElement} */ (e.target).value)}
+							oninput={(e) => (selectedOuterConduit = (e.target as HTMLTextAreaElement).value)}
 						></textarea>
 					</label>
 					<label class="label">
@@ -261,7 +255,7 @@
 							data={attributes.statuses}
 							bind:value={selectedStatus}
 							defaultValue={selectedStatus}
-							onValueChange={(/** @type {any} */ e) => (selectedStatus = e.value)}
+							onValueChange={(e: any) => (selectedStatus = e.value)}
 							renderInPlace={true}
 						/>
 					</label>
@@ -271,7 +265,7 @@
 							data={attributes.networkLevels}
 							bind:value={selectedNetworkLevel}
 							defaultValue={selectedNetworkLevel}
-							onValueChange={(/** @type {any} */ e) => (selectedNetworkLevel = e.value)}
+							onValueChange={(e: any) => (selectedNetworkLevel = e.value)}
 							renderInPlace={true}
 						/>
 					</label>
@@ -281,7 +275,7 @@
 							data={attributes.companies}
 							bind:value={selectedOwner}
 							defaultValue={selectedOwner}
-							onValueChange={(/** @type {any} */ e) => (selectedOwner = e.value)}
+							onValueChange={(e: any) => (selectedOwner = e.value)}
 							renderInPlace={true}
 						/>
 					</label>
@@ -291,7 +285,7 @@
 							data={attributes.companies}
 							bind:value={selectedConstructor}
 							defaultValue={selectedConstructor}
-							onValueChange={(/** @type {any} */ e) => (selectedConstructor = e.value)}
+							onValueChange={(e: any) => (selectedConstructor = e.value)}
 							renderInPlace={true}
 						/>
 					</label>
@@ -301,7 +295,7 @@
 							data={attributes.companies}
 							bind:value={selectedManufacturer}
 							defaultValue={selectedManufacturer}
-							onValueChange={(/** @type {any} */ e) => (selectedManufacturer = e.value)}
+							onValueChange={(e: any) => (selectedManufacturer = e.value)}
 							renderInPlace={true}
 						/>
 					</label>
@@ -313,7 +307,7 @@
 							id="date"
 							class="input"
 							value={selectedDate}
-							oninput={(e) => (selectedDate = /** @type {HTMLInputElement} */ (e.target).value)}
+							oninput={(e) => (selectedDate = (e.target as HTMLInputElement).value)}
 						/>
 					</label>
 					<label class="label">
@@ -322,7 +316,7 @@
 							data={attributes.flags}
 							bind:value={selectedFlag}
 							defaultValue={selectedFlag}
-							onValueChange={(/** @type {any} */ e) => (selectedFlag = e.value)}
+							onValueChange={(e: any) => (selectedFlag = e.value)}
 							renderInPlace={true}
 							required={true}
 						/>

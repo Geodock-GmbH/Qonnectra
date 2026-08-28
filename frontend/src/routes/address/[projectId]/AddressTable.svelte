@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
@@ -13,7 +13,13 @@
 
 	import { m } from '$lib/paraglide/messages';
 
-	let { addresses, pagination } = $props();
+	let {
+		addresses,
+		pagination
+	}: {
+		addresses: any[];
+		pagination: { totalCount: number; pageSize: number; page: number };
+	} = $props();
 
 	const columnConfig = [
 		{ key: 'id_address', label: m.form_id_address(), sortable: true, filterable: true },
@@ -37,11 +43,10 @@
 		{ key: 'flag', label: m.form_flag(), sortable: true, filterable: true }
 	];
 
-	let sortColumn = $state(/** @type {string | null} */ (null));
+	let sortColumn = $state<string | null>(null);
 	let sortDirection = $state('asc');
 
-	/** @type {Record<string, string>} */
-	let filters = $state({
+	let filters = $state<Record<string, string>>({
 		id_address: '',
 		street: '',
 		housenumber: '',
@@ -59,9 +64,9 @@
 
 	/**
 	 * Cycles sort state for a column: asc → desc → unsorted.
-	 * @param {string} columnKey - The column key to sort by.
+	 * @param columnKey - The column key to sort by.
 	 */
-	function toggleSort(columnKey) {
+	function toggleSort(columnKey: string) {
 		if (sortColumn === columnKey) {
 			if (sortDirection === 'asc') {
 				sortDirection = 'desc';
@@ -77,18 +82,18 @@
 
 	/**
 	 * Updates the filter value for a specific column.
-	 * @param {string} columnKey - The column key to filter.
-	 * @param {string} value - The filter value.
+	 * @param columnKey - The column key to filter.
+	 * @param value - The filter value.
 	 */
-	function updateFilter(columnKey, value) {
+	function updateFilter(columnKey: string, value: string) {
 		filters[columnKey] = value;
 	}
 
 	/**
 	 * Navigates to a specific page by updating the URL search params.
-	 * @param {number} newPage - The page number to navigate to.
+	 * @param newPage - The page number to navigate to.
 	 */
-	function goToPage(newPage) {
+	function goToPage(newPage: number) {
 		const url = new URL(window.location.href);
 		url.searchParams.set('page', String(newPage));
 		goto(url.pathname + url.search);
@@ -96,9 +101,9 @@
 
 	/**
 	 * Changes the page size and resets to page 1.
-	 * @param {number} newSize - The new page size.
+	 * @param newSize - The new page size.
 	 */
-	function changePageSize(newSize) {
+	function changePageSize(newSize: number) {
 		const url = new URL(window.location.href);
 		url.searchParams.set('page_size', String(newSize));
 		url.searchParams.set('page', '1');
@@ -109,7 +114,7 @@
 		const activeFilters = Object.entries(filters).filter(([, value]) => value.trim());
 		if (activeFilters.length === 0) return addresses;
 
-		return addresses.filter((/** @type {any} */ address) => {
+		return addresses.filter((address: any) => {
 			return activeFilters.every(([key, filterValue]) => {
 				const cellValue = String(address[key] || '');
 				const columnFuse = new Fuse([{ value: cellValue }], {
@@ -158,9 +163,9 @@
 
 	/**
 	 * Navigates to the detail page for the clicked address.
-	 * @param {any} address - The address row object.
+	 * @param address - The address row object.
 	 */
-	function handleRowClick(address) {
+	function handleRowClick(address: any) {
 		const projectId = page.params.projectId;
 		goto(`/address/${projectId}/${address.value}`);
 	}
@@ -216,7 +221,7 @@
 											placeholder={m.common_search()}
 											value={filters[column.key]}
 											oninput={(e) =>
-												updateFilter(column.key, /** @type {HTMLInputElement} */ (e.target).value)}
+												updateFilter(column.key, (e.target as HTMLInputElement).value)}
 										/>
 									{/if}
 								</th>

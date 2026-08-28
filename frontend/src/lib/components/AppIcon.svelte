@@ -1,5 +1,9 @@
-<script>
-	let { color = 'var(--color-primary-500)', size = '3rem', gradient = false } = $props();
+<script lang="ts">
+	let {
+		color = 'var(--color-primary-500)',
+		size = '3rem',
+		gradient = false
+	}: { color?: string; size?: string; gradient?: boolean } = $props();
 </script>
 
 {#if gradient}

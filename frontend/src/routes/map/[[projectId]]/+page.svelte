@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { PageData } from './$types';
 	import { onMount, setContext, untrack } from 'svelte';
 	import { get } from 'svelte/store';
 
@@ -31,10 +32,9 @@
 
 	import 'ol/ol.css';
 
-	/** @type {{ data: Record<string, any> }} */
-	let { data } = $props();
-	let mapRef = $state();
-	let searchPanelRef = $state();
+	let { data }: { data: PageData & { error?: string } } = $props();
+	let mapRef = $state<any>();
+	let searchPanelRef = $state<any>();
 
 	const mapState = new MapState(
 		$selectedProject,
@@ -156,12 +156,17 @@
 
 	/**
 	 * Initializes selection layers, popup overlay, and interaction handlers when the map is ready.
-	 * @param {{ map: import('ol').Map, usingFallbackOSM: boolean }} detail
+	 * @param detail - Map ready event with the OpenLayers map instance
 	 */
-	function handleMapReady({ map: olMapInstance }) {
+	function handleMapReady({
+		map: olMapInstance
+	}: {
+		map: import('ol').Map;
+		usingFallbackOSM: boolean;
+	}) {
 		mapState.initializeSelectionLayers(
 			olMapInstance,
-			() => /** @type {Record<string, boolean>} */ (selectionManager.getSelectionStore()),
+			() => selectionManager.getSelectionStore() as Record<string, boolean>,
 			() => $nodeTypeStyles
 		);
 

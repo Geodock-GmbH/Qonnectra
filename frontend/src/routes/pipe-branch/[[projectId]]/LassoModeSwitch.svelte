@@ -1,21 +1,26 @@
-<script>
+<script lang="ts">
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
-	let { checked = false, onCheckedChange, partial = false, onPartialChange } = $props();
+	interface Props {
+		checked?: boolean;
+		onCheckedChange?: (event: { checked: boolean }) => void;
+		partial?: boolean;
+		onPartialChange?: (partial: boolean) => void;
+	}
 
-	/** @param {{checked: boolean}} event */
-	function handleModeChange(event) {
+	let { checked = false, onCheckedChange, partial = false, onPartialChange }: Props = $props();
+
+	function handleModeChange(event: { checked: boolean }) {
 		if (onCheckedChange) {
 			onCheckedChange(event);
 		}
 	}
 
-	/** @param {Event} event */
-	function handlePartialChange(event) {
+	function handlePartialChange(event: Event) {
 		if (onPartialChange) {
-			onPartialChange(/** @type {HTMLInputElement} */ (event.target).checked);
+			onPartialChange((event.target as HTMLInputElement).checked);
 		}
 	}
 </script>

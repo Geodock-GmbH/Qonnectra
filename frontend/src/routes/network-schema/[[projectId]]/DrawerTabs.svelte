@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { getContext, onMount } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
@@ -31,18 +31,22 @@
 	import NodeSlotConfigPanel from './NodeSlotConfigPanel.svelte';
 	import NodeStructurePanel from './NodeStructurePanel.svelte';
 
-	const attributeOptions = getContext('attributeOptions');
+	const attributeOptions = getContext<any>('attributeOptions');
 
 	const fiberDataManager = new CableFiberDataManager();
 
-	let allProps = $props();
+	let allProps: Record<string, any> = $props();
 
 	let slotConfigPanelOpen = $state(false);
 	let structurePanelOpen = $state(false);
-	let structurePanelSlotConfigUuid = $state(null);
+	let structurePanelSlotConfigUuid = $state<any>(null);
 	let micropipePanelOpen = $state(false);
 
-	let sharedSlotState = $state({
+	let sharedSlotState = $state<{
+		nodeUuid: string | null;
+		slotConfigurations: any[];
+		lastUpdated: number;
+	}>({
 		nodeUuid: null,
 		slotConfigurations: [],
 		lastUpdated: 0
@@ -89,13 +93,13 @@
 		return baseTabs;
 	});
 
-	let lastFetchedFeatureId = $state(null);
+	let lastFetchedFeatureId = $state<any>(null);
 
 	/**
 	 * Handles tab change events, lazily loading fiber data when the status tab is first selected.
-	 * @param {string} newValue - The newly selected tab value.
+	 * @param newValue - The newly selected tab value.
 	 */
-	function handleTabChange(newValue) {
+	function handleTabChange(newValue: string) {
 		if (newValue === 'status' && featureId && type === 'edge') {
 			if (featureId !== lastFetchedFeatureId) {
 				lastFetchedFeatureId = featureId;
@@ -108,10 +112,10 @@
 
 	/**
 	 * Updates the status of a fiber and shows a success/error toast notification.
-	 * @param {any} fiber - The fiber object to update.
-	 * @param {number | null} statusId - The new status ID, or null to clear the status.
+	 * @param fiber - The fiber object to update.
+	 * @param statusId - The new status ID, or null to clear the status.
 	 */
-	async function handleFiberStatusChange(fiber, statusId) {
+	async function handleFiberStatusChange(fiber: any, statusId: number | null) {
 		const updated = await fiberDataManager.updateFiberStatus(fiber.uuid, statusId);
 
 		if (updated) {
@@ -146,8 +150,7 @@
 
 	let recalculating = $state(false);
 
-	/** @type {any} */
-	let fileExplorer = $state(null);
+	let fileExplorer = $state<any>(null);
 
 	/**
 	 * Refreshes the file explorer after a successful file upload.
@@ -160,9 +163,9 @@
 
 	/**
 	 * Opens the node structure panel, optionally pre-selecting a slot configuration.
-	 * @param {any} slotConfigUuid - UUID of the slot configuration to display, or null for the default view.
+	 * @param slotConfigUuid - UUID of the slot configuration to display, or null for the default view.
 	 */
-	function handleOpenStructurePanel(/** @type {any} */ slotConfigUuid = null) {
+	function handleOpenStructurePanel(slotConfigUuid: any = null) {
 		structurePanelSlotConfigUuid = slotConfigUuid;
 		structurePanelOpen = true;
 	}
@@ -216,7 +219,6 @@
 	/**
 	 * Refreshes cable data from the server, updates the drawer props, and dispatches
 	 * a micropipeLinkageChanged event to update edge micropipe connection coloring.
-	 * @returns {Promise<void>}
 	 */
 	async function refreshCableData() {
 		if (type !== 'edge' || !featureId) return;
@@ -289,7 +291,7 @@
 	{/if}
 
 	{#if group === 'handles'}
-		<CableDiagramEdgeHandleConfig {...data} />
+		<CableDiagramEdgeHandleConfig {...data as any} />
 	{/if}
 
 	{#if group === 'actions'}
@@ -377,8 +379,7 @@
 		<NodeSlotConfigPanel
 			nodeUuid={data.uuid || data.id}
 			nodeName={data.name}
-			onViewStructure={(/** @type {any} */ slotConfigUuid) =>
-				handleOpenStructurePanel(slotConfigUuid)}
+			onViewStructure={(slotConfigUuid: any) => handleOpenStructurePanel(slotConfigUuid)}
 			bind:sharedSlotState
 		/>
 	</FloatingPanel>

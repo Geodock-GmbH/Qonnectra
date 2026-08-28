@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { onMount } from 'svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -14,7 +14,10 @@
 
 	const conduitDataManager = new ConduitDataManager();
 
-	let allProps = $props();
+	let allProps: Record<string, any> & {
+		onConduitUpdate?: (conduit: any) => void;
+		onConduitDelete?: (conduitId: string) => void;
+	} = $props();
 
 	let group = $state('attributes');
 
@@ -35,8 +38,7 @@
 
 	const featureId = $derived(data?.uuid);
 
-	/** @type {any} */
-	let fileExplorer = $state(null);
+	let fileExplorer = $state<any>(null);
 
 	function handleUploadComplete() {
 		if (fileExplorer) {
@@ -48,13 +50,13 @@
 		return () => conduitDataManager.cleanup();
 	});
 
-	let lastFetchedFeatureId = $state(null);
+	let lastFetchedFeatureId = $state<string | null>(null);
 
 	/**
 	 * Fetch data when status tab becomes active
-	 * @param {string} newValue - The new tab value
+	 * @param newValue - The new tab value
 	 */
-	function handleTabChange(newValue) {
+	function handleTabChange(newValue: string) {
 		if (newValue === 'status' && featureId) {
 			if (featureId !== lastFetchedFeatureId) {
 				lastFetchedFeatureId = featureId;
@@ -64,11 +66,7 @@
 		}
 	}
 
-	/**
-	 * @param {{ uuid: string }} microduct
-	 * @param {number|null} statusId
-	 */
-	async function handleStatusChange(microduct, statusId) {
+	async function handleStatusChange(microduct: { uuid: string }, statusId: number | null) {
 		const updated = await conduitDataManager.updateMicroductStatus(microduct.uuid, statusId);
 
 		if (updated) {

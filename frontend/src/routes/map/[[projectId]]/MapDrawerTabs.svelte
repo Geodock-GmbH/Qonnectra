@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import {
 		IconLayoutGrid,
 		IconLayoutList,
@@ -21,17 +21,21 @@
 	import TrenchProfilePanel from './TrenchProfilePanel.svelte';
 	import { traceFrom } from '../../trace/traceUtils';
 
-	/**
-	 * @typedef {Object} Props
-	 * @property {Record<string, any>} featureData - Feature properties from MVT
-	 * @property {string} featureType - Type of feature ('trench', 'address', 'node')
-	 * @property {string} featureId - UUID of the feature
-	 * @property {Record<string, string>} alias - Field name alias mapping (English -> Localized)
-	 * @property {string|null} featureProjectId - Project ID of the feature (used in global view)
-	 * @property {Array<{label: string, value: string, name?: string}>} projects - List of projects for name lookup
-	 */
+	interface Props {
+		/** Feature properties from MVT */
+		featureData?: Record<string, any>;
+		/** Type of feature ('trench', 'address', 'node') */
+		featureType?: string;
+		/** UUID of the feature */
+		featureId?: string;
+		/** Field name alias mapping (English -> Localized) */
+		alias?: Record<string, string>;
+		/** Project ID of the feature (used in global view) */
+		featureProjectId?: string | null;
+		/** List of projects for name lookup */
+		projects?: Array<{ label: string; value: string; name?: string }>;
+	}
 
-	/** @type {Props} */
 	let {
 		featureData = {},
 		featureType = 'trench',
@@ -39,19 +43,22 @@
 		alias = {},
 		featureProjectId = null,
 		projects = []
-	} = $props();
+	}: Props = $props();
 
 	let activeTab = $state('attributes');
 
 	let slotConfigPanelOpen = $state(false);
 	let structurePanelOpen = $state(false);
-	/** @type {string | null} */
-	let structurePanelSlotConfigUuid = $state(null);
+	let structurePanelSlotConfigUuid = $state<string | null>(null);
 
 	let trenchProfilePanelOpen = $state(false);
 
 	/** Shared state for slot configurations - keeps both panels in sync */
-	let sharedSlotState = $state({
+	let sharedSlotState = $state<{
+		nodeUuid: string | null;
+		slotConfigurations: any[];
+		lastUpdated: number;
+	}>({
 		nodeUuid: null,
 		slotConfigurations: [],
 		lastUpdated: 0
@@ -67,8 +74,7 @@
 		{ value: 'files', label: m.form_attachments() }
 	]);
 
-	/** @type {{ refresh: () => void } | null} */
-	let fileExplorer = $state(null);
+	let fileExplorer = $state<{ refresh: () => void } | null>(null);
 
 	/** Refreshes the file explorer after a successful upload. */
 	function handleUploadComplete() {
@@ -79,9 +85,9 @@
 
 	/**
 	 * Opens the node structure panel, optionally pre-selecting a slot configuration.
-	 * @param {string | null} [slotConfigUuid=null] - UUID of the slot configuration to display
+	 * @param slotConfigUuid - UUID of the slot configuration to display
 	 */
-	function handleOpenStructurePanel(slotConfigUuid = null) {
+	function handleOpenStructurePanel(slotConfigUuid: string | null = null) {
 		structurePanelSlotConfigUuid = slotConfigUuid;
 		structurePanelOpen = true;
 	}
@@ -193,8 +199,7 @@
 			nodeUuid={featureId}
 			nodeName={featureData?.name || ''}
 			readonly={true}
-			onViewStructure={(/** @type {string} */ slotConfigUuid) =>
-				handleOpenStructurePanel(slotConfigUuid)}
+			onViewStructure={(slotConfigUuid: string) => handleOpenStructurePanel(slotConfigUuid)}
 			bind:sharedSlotState
 		/>
 	</FloatingPanel>

@@ -31,19 +31,19 @@ describe('settings +page.server.js', () => {
 			await import('$lib/server/attributes');
 
 		vi.mocked(getNodeTypes).mockResolvedValueOnce({
-			nodeTypes: [{ uuid: 'nt-1', name: 'MFG' }],
+			nodeTypes: [{ id: 1, node_type: 'MFG' }],
 			nodeTypesError: null
 		});
 		vi.mocked(getSurfaces).mockResolvedValueOnce({
-			surfaces: [{ uuid: 's-1', name: 'Asphalt' }],
+			surfaces: [{ id: 1, surface: 'Asphalt' }],
 			surfacesError: null
 		});
 		vi.mocked(getConstructionTypes).mockResolvedValueOnce({
-			constructionTypes: [{ uuid: 'ct-1', name: 'Open' }],
+			constructionTypes: [{ id: 1, construction_type: 'Open' }],
 			constructionTypesError: null
 		});
 		vi.mocked(getAreaTypes).mockResolvedValueOnce({
-			areaTypes: [{ uuid: 'at-1', name: 'Residential' }],
+			areaTypes: [{ id: 1, area_type: 'Residential' }],
 			areaTypesError: null
 		});
 
@@ -52,13 +52,13 @@ describe('settings +page.server.js', () => {
 		>[0]);
 
 		expect(result).toEqual({
-			nodeTypes: [{ uuid: 'nt-1', name: 'MFG' }],
+			nodeTypes: [{ id: 1, node_type: 'MFG' }],
 			nodeTypesError: null,
-			surfaces: [{ uuid: 's-1', name: 'Asphalt' }],
+			surfaces: [{ id: 1, surface: 'Asphalt' }],
 			surfacesError: null,
-			constructionTypes: [{ uuid: 'ct-1', name: 'Open' }],
+			constructionTypes: [{ id: 1, construction_type: 'Open' }],
 			constructionTypesError: null,
-			areaTypes: [{ uuid: 'at-1', name: 'Residential' }],
+			areaTypes: [{ id: 1, area_type: 'Residential' }],
 			areaTypesError: null
 		});
 	});
@@ -152,15 +152,15 @@ describe('settings +page.server.js', () => {
 
 		vi.mocked(getNodeTypes).mockResolvedValueOnce({
 			nodeTypes: [
-				{ uuid: 'nt-1', name: 'MFG' },
-				{ uuid: 'nt-2', name: 'KVZ' }
+				{ id: 1, node_type: 'MFG' },
+				{ id: 2, node_type: 'KVZ' }
 			],
 			nodeTypesError: null
 		});
 		vi.mocked(getSurfaces).mockResolvedValueOnce({
 			surfaces: [
-				{ uuid: 's-1', name: 'Asphalt' },
-				{ uuid: 's-2', name: 'Gravel' }
+				{ id: 1, surface: 'Asphalt' },
+				{ id: 2, surface: 'Gravel' }
 			],
 			surfacesError: null
 		});

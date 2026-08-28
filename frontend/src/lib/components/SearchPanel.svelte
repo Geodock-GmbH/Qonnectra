@@ -1,4 +1,7 @@
-<script>
+<script lang="ts">
+	import type VectorLayer from 'ol/layer/Vector';
+	import type OlMap from 'ol/Map';
+	import type VectorSource from 'ol/source/Vector';
 	import { getContext } from 'svelte';
 	import { cubicOut } from 'svelte/easing';
 	import { fade, fly } from 'svelte/transition';
@@ -24,23 +27,35 @@
 
 	import SearchInput from './SearchInput.svelte';
 
+	interface SearchResult {
+		label: string;
+		type: string;
+		value: string;
+	}
+
+	interface Props {
+		olMapInstance?: OlMap | null;
+		trenchColorSelected?: string;
+		onFeatureSelect?: (feature: any) => void;
+		onSearchError?: (error: unknown) => void;
+	}
+
 	let {
 		olMapInstance = null,
 		trenchColorSelected = '#ff0000',
 		onFeatureSelect = () => {},
 		onSearchError = () => {}
-	} = $props();
+	}: Props = $props();
 
-	const mapManagers = getContext('mapManagers');
+	const mapManagers = getContext<any>('mapManagers');
 	const selectionManager = mapManagers?.selectionManager;
 
 	let searchQuery = $state('');
-	/** @type {Array<{label: string, type: string, value: string}> | null} */
-	let searchResults = $state([]);
+	let searchResults = $state<SearchResult[] | null>([]);
 	let filterQuery = $state('');
 	let isSearching = $state(false);
 	let showSearchResults = $state(false);
-	let highlightLayer = $state();
+	let highlightLayer = $state<VectorLayer<VectorSource> | undefined>();
 
 	const FILTER_THRESHOLD = 10;
 
@@ -58,8 +73,10 @@
 		return results.length > 0 ? results.map((r) => r.item) : searchResults;
 	});
 
-	/** @type {Record<string, {getLabel: () => any, bg: string, text: string, darkBg: string, darkText: string}>} */
-	const TYPE_CONFIG = {
+	const TYPE_CONFIG: Record<
+		string,
+		{ getLabel: () => any; bg: string; text: string; darkBg: string; darkText: string }
+	> = {
 		address: {
 			getLabel: () => m.form_address({ count: 1 }),
 			bg: 'bg-emerald-500/15',
@@ -99,14 +116,14 @@
 
 	/**
 	 * Get display name from label by removing the type suffix
-	 * @param {string} label - Full label with type suffix
-	 * @returns {string} Clean display name
+	 * @param label - Full label with type suffix
+	 * @returns Clean display name
 	 */
-	function getDisplayName(label) {
+	function getDisplayName(label: string): string {
 		return label.replace(/\s*\([^)]*\)\s*$/, '').trim();
 	}
 
-	const debouncedSearch = debounce(async (/** @type {string} */ query) => {
+	const debouncedSearch = debounce(async (query: string) => {
 		if (!query.trim()) {
 			searchResults = [];
 			showSearchResults = false;
@@ -164,9 +181,9 @@
 
 	/**
 	 * Handle result item click
-	 * @param {{ type: string, value: string, label: string }} result - Selected result item
+	 * @param result - Selected result item
 	 */
-	async function handleResultClick(result) {
+	async function handleResultClick(result: { type: string; value: string; label: string }) {
 		if (!result || !olMapInstance) return;
 
 		const { type, value } = result;
@@ -203,7 +220,7 @@
 				const geometry = await parseFeatureGeometry(
 					feature,
 					storageProjection($page.data.srid),
-					olMapInstance.getView().getProjection()
+					olMapInstance.getView().getProjection().getCode()
 				);
 
 				if (!geometry) {
@@ -226,7 +243,7 @@
 				const highlightFeature = new Feature(geometry);
 				highlightFeature.setId(feature.id);
 
-				highlightLayer.getSource().clear();
+				highlightLayer.getSource()!.clear();
 				await zoomToFeature(olMapInstance, geometry, highlightLayer);
 
 				searchQuery = '';
@@ -266,9 +283,10 @@
 
 	/**
 	 * Handle conduit selection - zooms to all trenches containing the conduit
-	 * @param {string} conduitUuid - UUID of the selected conduit
+	 * @param conduitUuid - UUID of the selected conduit
 	 */
-	async function handleConduitSelect(conduitUuid) {
+	async function handleConduitSelect(conduitUuid: string) {
+		if (!olMapInstance) return;
 		registerStorageProjection($page.data.srid, $page.data.proj4Def);
 		try {
 			const formData = new FormData();
@@ -294,11 +312,10 @@
 				const rawGeometries = await parseMultipleFeatureGeometries(
 					parsedData.trenches,
 					storageProjection($page.data.srid),
-					olMapInstance.getView().getProjection()
+					olMapInstance.getView().getProjection().getCode()
 				);
 				const geometries = rawGeometries.filter(
-					/** @returns {g is import('ol/geom/Geometry').default} */
-					(g) => g !== undefined
+					(g): g is import('ol/geom/Geometry').default => g !== undefined
 				);
 
 				if (!highlightLayer) {
@@ -307,15 +324,10 @@
 					olMapInstance.addLayer(highlightLayer);
 				}
 
-				highlightLayer.getSource().clear();
-				await zoomToMultipleFeatures(
-					olMapInstance,
-					geometries,
-					highlightLayer,
-					/** @type {any} */ ({
-						maxZoom: 17
-					})
-				);
+				highlightLayer.getSource()!.clear();
+				await zoomToMultipleFeatures(olMapInstance, geometries, highlightLayer, {
+					maxZoom: 17
+				} as any);
 
 				searchQuery = '';
 				searchResults = [];
@@ -363,7 +375,7 @@
 		searchResults = [];
 		showSearchResults = false;
 		if (highlightLayer && highlightLayer.getSource()) {
-			highlightLayer.getSource().clear();
+			highlightLayer.getSource()!.clear();
 		}
 	}
 

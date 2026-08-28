@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { onMount } from 'svelte';
 	import { cubicOut } from 'svelte/easing';
 	import { innerWidth } from 'svelte/reactivity/window';
@@ -12,24 +12,31 @@
 	import { drawerSnap } from '$lib/stores/store';
 	import { tooltip } from '$lib/utils/tooltip';
 
-	/**
-	 * @typedef {Object} DrawerStoreType
-	 * @property {(fn: (value: any) => void) => () => void} subscribe
-	 * @property {(options?: {title?: string, component?: any, props?: Record<string, any>, width?: number|null}) => void} open
-	 * @property {() => void} close
-	 * @property {(title: string) => void} setTitle
-	 * @property {(component: any, props?: Record<string, any>) => void} setComponent
-	 * @property {(width: number) => void} setWidth
-	 * @property {(newProps: Record<string, any>) => void} updateProps
-	 */
+	interface DrawerStoreType {
+		subscribe: (fn: (value: any) => void) => () => void;
+		open: (options?: {
+			title?: string;
+			component?: any;
+			props?: Record<string, any>;
+			width?: number | null;
+		}) => void;
+		close: () => void;
+		setTitle: (title: string) => void;
+		setComponent: (component: any, props?: Record<string, any>) => void;
+		setWidth: (width: number) => void;
+		updateProps: (newProps: Record<string, any>) => void;
+	}
 
-	/** @type {DrawerStoreType} */
-	const drawerStore = /** @type {any} */ (rawDrawerStore);
+	const drawerStore = rawDrawerStore as any as DrawerStoreType;
 
-	let { children = undefined, class: className = '' } = $props();
+	interface Props {
+		children?: import('svelte').Snippet;
+		class?: string;
+	}
 
-	/** @type {HTMLDivElement | undefined} */
-	let drawerElement = $state();
+	let { children = undefined, class: className = '' }: Props = $props();
+
+	let drawerElement = $state<HTMLDivElement | undefined>();
 
 	const resizer = new PanelResizeManager({
 		defaultWidth: 400,
@@ -39,8 +46,13 @@
 		onResize: (width) => drawerStore.setWidth(width)
 	});
 
-	/** @type {import('svelte/store').Writable<{open: boolean, title: string, component: any, props: Record<string, any>, width: number}>} */
-	const typedStore = /** @type {any} */ (drawerStore);
+	const typedStore = drawerStore as any as import('svelte/store').Writable<{
+		open: boolean;
+		title: string;
+		component: any;
+		props: Record<string, any>;
+		width: number;
+	}>;
 	let drawerOpen = $derived($typedStore.open);
 	let drawerTitle = $derived($typedStore.title);
 	let drawerWidth = $derived($typedStore.width);
@@ -57,16 +69,15 @@
 	let isDraggingSheet = $state(false);
 	let dragHeight = $state(0);
 	let sheetStartY = $state(0);
-	let sheetPointerId = $state(/** @type {number | null} */ (null));
-	/** @type {HTMLDivElement | undefined} */
-	let dragHandleElement = $state();
+	let sheetPointerId = $state<number | null>(null);
+	let dragHandleElement = $state<HTMLDivElement | undefined>();
 
 	const SNAP_HALF = 50;
 	const SNAP_FULL = 95;
 	const SNAP_THRESHOLD = 0.25;
 
-	/** @returns {number} Height in pixels for a given snap vh value */
-	function snapToPixels(/** @type {number} */ snapVh) {
+	/** Height in pixels for a given snap vh value */
+	function snapToPixels(snapVh: number): number {
 		return (snapVh / 100) * window.innerHeight;
 	}
 
@@ -85,9 +96,9 @@
 
 	/**
 	 * Handles keyboard shortcuts for the drawer
-	 * @param {KeyboardEvent} event
+	 * @param event
 	 */
-	function handleKeydown(event) {
+	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape' && drawerOpen) {
 			handleClose();
 		}
@@ -97,9 +108,9 @@
 
 	/**
 	 * Initiates the mobile sheet drag
-	 * @param {PointerEvent} event
+	 * @param event
 	 */
-	function handleSheetDragStart(event) {
+	function handleSheetDragStart(event: PointerEvent) {
 		if (event.pointerType === 'mouse' && event.button !== 0) return;
 
 		isDraggingSheet = true;
@@ -115,9 +126,9 @@
 	/**
 	 * Handles pointer movement during sheet drag.
 	 * Directly adjusts height so the sheet grows/shrinks under the finger.
-	 * @param {PointerEvent} event
+	 * @param event
 	 */
-	function handleSheetDragMove(event) {
+	function handleSheetDragMove(event: PointerEvent) {
 		if (!isDraggingSheet) return;
 		if (sheetPointerId !== null && event.pointerId !== sheetPointerId) return;
 
@@ -129,9 +140,9 @@
 
 	/**
 	 * Completes the sheet drag and snaps to appropriate position
-	 * @param {PointerEvent} [event]
+	 * @param event
 	 */
-	function handleSheetDragEnd(event) {
+	function handleSheetDragEnd(event?: PointerEvent) {
 		if (!isDraggingSheet) return;
 
 		if (event && sheetPointerId !== null && event.pointerId !== sheetPointerId) return;

@@ -4,39 +4,39 @@ import { API_URL } from '$env/static/private';
 import { getAuthHeaders } from '$lib/utils/getAuthHeaders';
 
 export interface NodeType {
-	/** Node type UUID */
-	uuid: string;
-	/** Node type display name */
-	name: string;
-	/** Optional hex color code */
-	color?: string;
+	/** Database id */
+	id: number;
+	/** Node type name (the identifier used for styling) */
+	node_type: string;
+	/** Optional physical dimension */
+	dimension?: string | null;
+	/** Optional grouping key */
+	group?: string | null;
+	/** Optional owning company */
+	company?: string | null;
 }
 
 export interface Surface {
-	/** Surface UUID */
-	uuid: string;
-	/** Surface display name */
-	name: string;
-	/** Optional hex color code */
-	color?: string;
+	/** Database id */
+	id: number;
+	/** Surface name (the identifier used for styling) */
+	surface: string;
+	/** Optional sealing classification */
+	sealing?: string | null;
 }
 
 export interface ConstructionType {
-	/** Construction type UUID */
-	uuid: string;
-	/** Construction type display name */
-	name: string;
-	/** Optional hex color code */
-	color?: string;
+	/** Database id */
+	id: number;
+	/** Construction type name (the identifier used for styling) */
+	construction_type: string;
 }
 
 export interface AreaType {
-	/** Area type UUID */
-	uuid: string;
-	/** Area type display name */
-	name: string;
-	/** Optional hex color code */
-	color?: string;
+	/** Database id */
+	id: number;
+	/** Area type name (the identifier used for styling) */
+	area_type: string;
 }
 
 /** Fetches node types for layer styling. */

@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	let {
 		layers,
 		nodeTypes,
@@ -10,6 +10,17 @@
 		searchPanelProps,
 		className,
 		...props
+	}: {
+		layers?: any;
+		nodeTypes?: any;
+		surfaces?: any;
+		constructionTypes?: any;
+		areaTypes?: any;
+		projectId?: any;
+		onready?: any;
+		searchPanelProps?: any;
+		className?: any;
+		[key: string]: any;
 	} = $props();
 </script>
 

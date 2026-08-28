@@ -1,7 +1,42 @@
-<script>
+<script lang="ts">
 	import { m } from '$lib/paraglide/messages';
 
 	import TrenchChart from './Chart.svelte';
+
+	interface LengthByType {
+		oberfläche: string;
+		bauweise: string;
+		gesamt_länge: number;
+	}
+
+	/** Trench length grouped by status (`Trench.length_by_status` backend action). */
+	interface LengthByStatus {
+		status_name: string | null;
+		gesamt_länge?: number;
+	}
+
+	/** Trench length grouped by network level (`Trench.length_by_phase` backend action). */
+	interface LengthByNetworkLevel {
+		network_level: string | null;
+		gesamt_länge?: number;
+	}
+
+	/** A single longest-route row (`Trench.longest_routes` backend action). */
+	interface LongestRoute {
+		construction_type_name?: string | null;
+		surface_name?: string | null;
+		length?: number;
+	}
+
+	interface Props {
+		lengthByTypes?: LengthByType[];
+		avgHouseConnectionLength: number;
+		lengthWithFunding: number;
+		lengthWithInternalExecution: number;
+		lengthByStatus?: LengthByStatus[];
+		lengthByNetworkLevel?: LengthByNetworkLevel[];
+		longestRoutes?: LongestRoute[];
+	}
 
 	let {
 		lengthByTypes,
@@ -11,17 +46,15 @@
 		lengthByStatus,
 		lengthByNetworkLevel,
 		longestRoutes
-	} = $props();
+	}: Props = $props();
 
 	/**
 	 * Aggregate data by surface type
-	 * @returns {Array}
 	 */
 	const surfaceData = $derived.by(() => {
-		/** @type {Record<string, number>} */
-		const aggregated = {};
+		const aggregated: Record<string, number> = {};
 
-		lengthByTypes?.forEach((/** @type {{ oberfläche: string, gesamt_länge: number }} */ item) => {
+		lengthByTypes?.forEach((item) => {
 			if (!aggregated[item.oberfläche]) {
 				aggregated[item.oberfläche] = 0;
 			}
@@ -38,13 +71,11 @@
 
 	/**
 	 * Aggregate data by construction type
-	 * @returns {Array}
 	 */
 	const constructionData = $derived.by(() => {
-		/** @type {Record<string, number>} */
-		const aggregated = {};
+		const aggregated: Record<string, number> = {};
 
-		lengthByTypes?.forEach((/** @type {{ bauweise: string, gesamt_länge: number }} */ item) => {
+		lengthByTypes?.forEach((item) => {
 			if (!aggregated[item.bauweise]) {
 				aggregated[item.bauweise] = 0;
 			}
@@ -61,7 +92,6 @@
 
 	/**
 	 * Aggregate data with average house connection length
-	 * @returns {Array}
 	 */
 	const avgHouseConnectionData = $derived.by(() => {
 		return [
@@ -74,7 +104,6 @@
 
 	/**
 	 * Aggregate data with funding
-	 * @returns {Array}
 	 */
 	const lengthWithFundingData = $derived.by(() => {
 		return [
@@ -87,7 +116,6 @@
 
 	/**
 	 * Aggregate data with internal execution
-	 * @returns {Array}
 	 */
 	const lengthWithInternalExecutionData = $derived.by(() => {
 		return [
@@ -100,57 +128,38 @@
 
 	/**
 	 * Aggregate data by status
-	 * @returns {Array}
 	 */
 	const statusData = $derived.by(() => {
 		return lengthByStatus
-			?.filter(
-				(/** @type {{ status_name: string | null, gesamt_länge: number }} */ item) =>
-					item.status_name !== null
-			)
-			.map((/** @type {{ status_name: string, gesamt_länge: number }} */ item) => ({
+			?.filter((item) => item.status_name !== null)
+			.map((item) => ({
 				label: item.status_name || m.common_unknown(),
 				value: (item.gesamt_länge || 0) / 1000
 			}))
-			.sort(
-				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
-					b.value - a.value
-			);
+			.sort((a, b) => b.value - a.value);
 	});
 
 	/**
 	 * Aggregate data by network level
-	 * @returns {Array}
 	 */
 	const networkLevelData = $derived.by(() => {
 		return lengthByNetworkLevel
-			?.filter(
-				(/** @type {{ network_level: string | null, gesamt_länge: number }} */ item) =>
-					item.network_level !== null
-			)
-			.map((/** @type {{ network_level: string, gesamt_länge: number }} */ item) => ({
+			?.filter((item) => item.network_level !== null)
+			.map((item) => ({
 				label: item.network_level || m.common_unknown(),
 				value: (item.gesamt_länge || 0) / 1000
 			}))
-			.sort(
-				(/** @type {{ value: number }} */ a, /** @type {{ value: number }} */ b) =>
-					b.value - a.value
-			);
+			.sort((a, b) => b.value - a.value);
 	});
 
 	/**
 	 * Aggregate data by longest routes
-	 * @returns {Array}
 	 */
 	const longestRoutesData = $derived.by(() => {
-		return longestRoutes?.map(
-			(
-				/** @type {{ construction_type_name: string, surface_name: string, length: number }} */ item
-			) => ({
-				label: `${item.construction_type_name || m.common_unknown()} - ${item.surface_name || m.common_unknown()}`,
-				value: (item.length || 0) / 1000
-			})
-		);
+		return longestRoutes?.map((item) => ({
+			label: `${item.construction_type_name || m.common_unknown()} - ${item.surface_name || m.common_unknown()}`,
+			value: (item.length || 0) / 1000
+		}));
 	});
 </script>
 

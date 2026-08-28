@@ -20,12 +20,14 @@ describe('TrenchStatistics', () => {
 				{ oberfläche: 'Asphalt', bauweise: 'geschlossen', gesamt_länge: 500 },
 				{ oberfläche: 'Grünfläche', bauweise: 'offen', gesamt_länge: 1000 }
 			],
-			avgHouseConnectionLength: [{ avg_length: 12 }],
-			lengthWithFunding: [{ funded: true, gesamt_länge: 2000 }],
-			lengthWithInternalExecution: [{ internal: true, gesamt_länge: 800 }],
-			lengthByStatus: [{ status: 'fertig', gesamt_länge: 3000 }],
+			avgHouseConnectionLength: 12,
+			lengthWithFunding: 2000,
+			lengthWithInternalExecution: 800,
+			lengthByStatus: [{ status_name: 'fertig', gesamt_länge: 3000 }],
 			lengthByNetworkLevel: [{ network_level: 'NE3', gesamt_länge: 3000 }],
-			longestRoutes: [{ id_trench: 'T-1', länge: 900 }]
+			longestRoutes: [
+				{ construction_type_name: 'offen', surface_name: 'Asphalt', length: 900 }
+			]
 		});
 
 		expect(screen.getByText('form_length_by_surface')).toBeInTheDocument();
@@ -37,9 +39,9 @@ describe('TrenchStatistics', () => {
 	test('should render placeholders for empty data', () => {
 		render(TrenchStatistics, {
 			lengthByTypes: [],
-			avgHouseConnectionLength: [],
-			lengthWithFunding: [],
-			lengthWithInternalExecution: [],
+			avgHouseConnectionLength: 0,
+			lengthWithFunding: 0,
+			lengthWithInternalExecution: 0,
 			lengthByStatus: [],
 			lengthByNetworkLevel: [],
 			longestRoutes: []

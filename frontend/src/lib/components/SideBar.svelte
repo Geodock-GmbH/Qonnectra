@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { page } from '$app/state';
 	import { Navigation } from '@skeletonlabs/skeleton-svelte';
 	import {
@@ -53,23 +53,23 @@
 	const railLinks = $derived(permittedGroups.flatMap((group) => group.links));
 
 	/**
-	 * @param {boolean} isSelected - Whether the nav item is currently active
-	 * @returns {string} CSS class string for the anchor element
+	 * @param isSelected - Whether the nav item is currently active
+	 * @returns CSS class string for the anchor element
 	 */
-	function getAnchorClass(isSelected) {
+	function getAnchorClass(isSelected: boolean): string {
 		const justifyClass = $sidebarExpanded ? 'justify-start' : 'justify-center';
 		const paddingClass = $sidebarExpanded ? 'px-2' : 'px-2 py-3';
 		const baseClass = `btn hover:preset-tonal ${justifyClass} ${paddingClass} w-full`;
 		return isSelected ? `${baseClass} preset-filled` : baseClass;
 	}
 
-	/** @param {string} groupId - Stable id of the group to expand/collapse */
-	function handleToggleGroup(groupId) {
+	/** @param groupId - Stable id of the group to expand/collapse */
+	function handleToggleGroup(groupId: string) {
 		sidebarPreferences.update((prefs) => toggleGroupCollapsed(prefs, groupId));
 	}
 
-	/** @param {string} routeId - Stable id of the route to hide/show */
-	function handleToggleRoute(routeId) {
+	/** @param routeId - Stable id of the route to hide/show */
+	function handleToggleRoute(routeId: string) {
 		sidebarPreferences.update((prefs) => toggleRouteHidden(prefs, routeId));
 	}
 

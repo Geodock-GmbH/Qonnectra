@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { onMount } from 'svelte';
 	import { ArcElement, Chart, DoughnutController, Legend, Tooltip } from 'chart.js';
 
@@ -6,11 +6,20 @@
 
 	Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
 
-	let { data = [], title = '' } = $props();
+	interface ChartDatum {
+		label: string;
+		value: number;
+	}
 
-	let canvas = $state();
-	/** @type {import('chart.js').Chart | null} */
-	let chart = null;
+	interface Props {
+		data?: ChartDatum[];
+		title?: string;
+	}
+
+	let { data = [], title = '' }: Props = $props();
+
+	let canvas = $state<HTMLCanvasElement | undefined>();
+	let chart: Chart | null = null;
 	let themeMode = $state('');
 
 	const colors = [
@@ -99,7 +108,10 @@
 					tooltip: {
 						callbacks: {
 							label: function (context) {
-								const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+								const total = context.dataset.data.reduce(
+									(sum: number, val: number) => sum + val,
+									0
+								);
 								const percentage = ((context.parsed / total) * 100).toFixed(1);
 								return `${context.label}: ${context.parsed.toLocaleString('de-DE')}x (${percentage}%)`;
 							}

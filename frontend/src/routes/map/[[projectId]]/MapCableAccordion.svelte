@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte';
 	import { getContext, untrack } from 'svelte';
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
 	import { IconHighlight, IconMinus, IconPlus, IconRoute } from '@tabler/icons-svelte';
@@ -14,21 +15,18 @@
 
 	import { traceFrom } from '../../trace/traceUtils';
 
-	/**
-	 * @typedef {Object} Props
-	 * @property {string} featureId - UUID of the trench feature
-	 */
+	interface Props {
+		/** UUID of the trench feature */
+		featureId?: string;
+	}
 
-	/** @type {Props} */
-	let { featureId = '' } = $props();
+	let { featureId = '' }: Props = $props();
 
 	const dataManager = new CableTrenchDataManager();
 
-	/** @type {{ selectionManager: import('$lib/classes/MapSelectionManager.svelte.js').MapSelectionManager }} */
-	const { selectionManager } = getContext('mapManagers');
+	const { selectionManager } = getContext<{ selectionManager: MapSelectionManager }>('mapManagers');
 
-	/** @type {Record<string, boolean>} */
-	let highlightLoading = $state({});
+	let highlightLoading = $state<Record<string, boolean>>({});
 
 	$effect(() => {
 		if (featureId) {
@@ -41,10 +39,10 @@
 
 	/**
 	 * Highlight all trenches containing the specified cable on the map
-	 * @param {Event} event - Click event
-	 * @param {string} cableUuid - UUID of the cable
+	 * @param event - Click event
+	 * @param cableUuid - UUID of the cable
 	 */
-	async function handleHighlightTrenches(event, cableUuid) {
+	async function handleHighlightTrenches(event: Event, cableUuid: string) {
 		event.stopPropagation();
 
 		if (!cableUuid || highlightLoading[cableUuid]) return;

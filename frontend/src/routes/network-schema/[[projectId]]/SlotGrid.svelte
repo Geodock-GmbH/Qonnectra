@@ -1,4 +1,9 @@
-<script>
+<script lang="ts">
+	import type {
+		NodeStructure,
+		NodeStructureContext,
+		SlotRow
+	} from '$lib/classes/NodeStructureContext.svelte.js';
 	import { getContext } from 'svelte';
 	import { IconGripVertical, IconTrash } from '@tabler/icons-svelte';
 
@@ -7,7 +12,7 @@
 	import { NODE_STRUCTURE_CONTEXT_KEY } from '$lib/classes/NodeStructureContext.svelte.js';
 	import { tooltip } from '$lib/utils/tooltip';
 
-	const context = getContext(NODE_STRUCTURE_CONTEXT_KEY);
+	const context = getContext<NodeStructureContext | undefined>(NODE_STRUCTURE_CONTEXT_KEY);
 
 	let {
 		slotRows = [],
@@ -17,6 +22,14 @@
 		readonly = false,
 		onStructureSelect = () => {},
 		onStructureDelete = () => {}
+	}: {
+		slotRows?: SlotRow[];
+		loading?: boolean;
+		loadingStructures?: boolean;
+		isMobile?: boolean;
+		readonly?: boolean;
+		onStructureSelect?: (structure: NodeStructure | undefined) => void;
+		onStructureDelete?: (uuid: string) => void;
 	} = $props();
 
 	const structures = $derived(context?.structures ?? []);
@@ -32,29 +45,25 @@
 
 	/**
 	 * Check if a slot is the first slot of a component range in multi-drop preview
-	 * @param {number} slotNumber
-	 * @returns {boolean}
 	 */
-	function isComponentRangeStart(slotNumber) {
-		return componentRanges.some((/** @type {any} */ r) => r.start === slotNumber);
+	function isComponentRangeStart(slotNumber: number): boolean {
+		return componentRanges.some((r: any) => r.start === slotNumber);
 	}
 
 	/**
 	 * Check if a slot is the last slot of a component range in multi-drop preview
-	 * @param {number} slotNumber
-	 * @returns {boolean}
 	 */
-	function isComponentRangeEnd(slotNumber) {
-		return componentRanges.some((/** @type {any} */ r) => r.end === slotNumber);
+	function isComponentRangeEnd(slotNumber: number): boolean {
+		return componentRanges.some((r: any) => r.end === slotNumber);
 	}
 
-	function handleSlotDragOver(/** @type {any} */ e, /** @type {any} */ slotNumber) {
+	function handleSlotDragOver(e: any, slotNumber: any) {
 		if (readonly) return;
 		e.preventDefault();
 		context?.slotActions?.onDragOver(e, slotNumber);
 	}
 
-	function handleSlotDragLeave(/** @type {any} */ e) {
+	function handleSlotDragLeave(e: any) {
 		if (readonly) return;
 		// Only clear if leaving the drop zone area entirely
 		const relatedTarget = e.relatedTarget;
@@ -63,7 +72,7 @@
 		}
 	}
 
-	function handleGridDragLeave(/** @type {any} */ e) {
+	function handleGridDragLeave(e: any) {
 		if (readonly) return;
 		if (!e.currentTarget.contains(e.relatedTarget)) {
 			if (context) {
@@ -72,13 +81,13 @@
 		}
 	}
 
-	function handleSlotDrop(/** @type {any} */ e, /** @type {any} */ slotNumber) {
+	function handleSlotDrop(e: any, slotNumber: any) {
 		if (readonly) return;
 		e.preventDefault();
 		context?.slotActions?.onDrop(e, slotNumber);
 	}
 
-	function handleSlotClick(/** @type {any} */ row) {
+	function handleSlotClick(row: any) {
 		if (isMobile && mobileSelectedItem) {
 			context?.slotActions?.onTap(row.slotNumber);
 		} else if (row.structure) {
@@ -86,7 +95,7 @@
 		}
 	}
 
-	function handleStructureDragStart(/** @type {any} */ e, /** @type {any} */ structure) {
+	function handleStructureDragStart(e: any, structure: any) {
 		if (readonly) {
 			e.preventDefault();
 			return;
@@ -99,12 +108,12 @@
 		context?.structureActions?.onDragEnd();
 	}
 
-	function handleToggleDivider(/** @type {any} */ slotNumber) {
+	function handleToggleDivider(slotNumber: any) {
 		if (readonly) return;
 		context?.dividerActions?.onToggle(slotNumber);
 	}
 
-	function handleStartEditingClip(/** @type {any} */ slotNumber, /** @type {any} */ currentValue) {
+	function handleStartEditingClip(slotNumber: any, currentValue: any) {
 		if (readonly) return;
 		context?.clipActions?.onStartEditing(slotNumber, currentValue);
 	}
@@ -113,13 +122,13 @@
 		context?.clipActions?.onSave();
 	}
 
-	function handleClipKeydown(/** @type {any} */ e) {
+	function handleClipKeydown(e: any) {
 		context?.clipActions?.onKeydown(e);
 	}
 
-	function handleClipInput(/** @type {any} */ e) {
+	function handleClipInput(e: any) {
 		if (context) {
-			context.editingClipValue = /** @type {any} */ (e.target).value;
+			context.editingClipValue = (e.target as HTMLInputElement).value;
 		}
 	}
 </script>

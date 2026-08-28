@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { PageProps } from './$types';
 	import { untrack } from 'svelte';
 	import { get } from 'svelte/store';
 	import { slide } from 'svelte/transition';
@@ -26,48 +27,35 @@
 
 	import ExportDialog from './ExportDialog.svelte';
 
-	/** @type {import('./$types').PageProps} */
-	let { data } = $props();
+	let { data }: PageProps = $props();
 
 	const statusDevelopments = $derived(data.statusDevelopments);
 
 	let searchQuery = $state('');
-	/** @type {Record<string, any>[]} */
-	let searchResults = $state([]);
+	let searchResults = $state<Record<string, any>[]>([]);
 	let searching = $state(false);
-	/** @type {ReturnType<typeof setTimeout> | null} */
-	let searchTimeout = null;
+	let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
-	/** @type {Record<string, any> | null} */
-	let selectedAddress = $state(null);
-	/** @type {Record<string, any>[]} */
-	let residentialUnits = $state([]);
-	/** @type {Record<string, any>[]} */
-	let linkedMicroducts = $state([]);
-	/** @type {Record<string, any>[]} */
-	let linkedTrenchGeometries = $state([]);
+	let selectedAddress = $state<Record<string, any> | null>(null);
+	let residentialUnits = $state<Record<string, any>[]>([]);
+	let linkedMicroducts = $state<Record<string, any>[]>([]);
+	let linkedTrenchGeometries = $state<Record<string, any>[]>([]);
 	let loadingAddress = $state(false);
 	let exportDialogOpen = $state(false);
 
-	/** @type {any} */
-	let geom3857 = $state(null);
-	/** @type {any} */
-	let addressMarkerLayer = $state(null);
-	/** @type {any} */
-	let trenchLinesLayer = $state(null);
-	/** @type {any[]} */
-	let wmsLayers = $state([]);
-	/** @type {any} */
-	let mapCenter = $state(null);
+	let geom3857 = $state<any>(null);
+	let addressMarkerLayer = $state<any>(null);
+	let trenchLinesLayer = $state<any>(null);
+	let wmsLayers = $state<any[]>([]);
+	let mapCenter = $state<any>(null);
 	let mapReady = $state(false);
-	/** @type {HTMLElement | null} */
-	let mapContainerEl = $state(null);
+	let mapContainerEl = $state<HTMLElement | null>(null);
 
 	/**
 	 * Searches for addresses via the trace-search API.
-	 * @param {string} query - Search string (minimum 2 characters).
+	 * @param query - Search string (minimum 2 characters).
 	 */
-	async function performSearch(query) {
+	async function performSearch(query: string) {
 		if (!query || query.length < 2) {
 			searchResults = [];
 			return;
@@ -107,9 +95,8 @@
 
 	/**
 	 * Debounces search input and triggers a search after 300ms.
-	 * @param {Event & { currentTarget: HTMLInputElement }} e
 	 */
-	function handleSearchInput(e) {
+	function handleSearchInput(e: Event & { currentTarget: HTMLInputElement }) {
 		const query = e.currentTarget.value;
 		searchQuery = query;
 
@@ -122,10 +109,8 @@
 
 	/**
 	 * Formats an address search result for display.
-	 * @param {Record<string, any>} result
-	 * @returns {string}
 	 */
-	function formatAddressResult(result) {
+	function formatAddressResult(result: Record<string, any>): string {
 		const parts = [];
 		if (result.street) parts.push(result.street);
 		if (result.housenumber) parts.push(result.housenumber + (result.house_number_suffix || ''));
@@ -177,8 +162,8 @@
 		if (linkedTrenchGeometries.length > 0) {
 			const geoJsonFormat = new GeoJSON();
 			const trenchFeatures = linkedTrenchGeometries
-				.filter((/** @type {any} */ f) => f.geometry)
-				.flatMap((/** @type {any} */ f) =>
+				.filter((f: any) => f.geometry)
+				.flatMap((f: any) =>
 					geoJsonFormat.readFeatures(f, {
 						dataProjection: 'EPSG:3857',
 						featureProjection: 'EPSG:3857'
@@ -248,9 +233,8 @@
 
 	/**
 	 * Fetches full address and residential units via server action.
-	 * @param {Record<string, any>} result
 	 */
-	async function selectAddress(result) {
+	async function selectAddress(result: Record<string, any>) {
 		loadingAddress = true;
 		searchResults = [];
 		searchQuery = '';
@@ -267,7 +251,7 @@
 			const actionResult = deserialize(await response.text());
 
 			if (actionResult.type === 'success') {
-				const resultData = /** @type {any} */ (actionResult.data);
+				const resultData = actionResult.data as any;
 				selectedAddress = resultData.address;
 				residentialUnits = resultData.residentialUnits || [];
 				linkedMicroducts = resultData.linkedMicroducts || [];
@@ -277,7 +261,7 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: /** @type {any} */ (actionResult).data?.message || 'Failed to fetch address'
+					description: (actionResult as any).data?.message || 'Failed to fetch address'
 				});
 			}
 		} catch (error) {

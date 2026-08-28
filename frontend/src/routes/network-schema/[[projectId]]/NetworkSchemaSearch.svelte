@@ -1,4 +1,6 @@
-<script>
+<script lang="ts">
+	import type { NetworkSchemaSearchManager } from '$lib/classes/NetworkSchemaSearchManager.svelte.js';
+	import type { NetworkSchemaState } from '$lib/classes/NetworkSchemaState.svelte';
 	import { useSvelteFlow } from '@xyflow/svelte';
 	import { IconLine, IconPoint, IconSearch, IconX } from '@tabler/icons-svelte';
 	import { parse } from 'devalue';
@@ -9,24 +11,31 @@
 
 	import DrawerTabs from './DrawerTabs.svelte';
 
-	let { searchManager, schemaState, onNodeDelete = null } = $props();
+	let {
+		searchManager,
+		schemaState,
+		onNodeDelete = null
+	}: {
+		searchManager: NetworkSchemaSearchManager;
+		schemaState: NetworkSchemaState;
+		onNodeDelete?: ((uuid: string) => void) | null;
+	} = $props();
 
 	const { setCenter } = useSvelteFlow();
 
-	/** @type {HTMLInputElement | null} */
-	let inputElement = $state(null);
+	let inputElement = $state<HTMLInputElement | null>(null);
 	let isDropdownOpen = $state(false);
 	let selectedIndex = $state(-1);
 
 	let results = $derived(searchManager.searchResults);
 
-	function handleInput(/** @type {any} */ e) {
-		searchManager.searchTerm = /** @type {any} */ (e.target).value;
+	function handleInput(e: Event) {
+		searchManager.searchTerm = (e.target as HTMLInputElement).value;
 		isDropdownOpen = searchManager.searchTerm.length > 0;
 		selectedIndex = -1;
 	}
 
-	function handleKeyDown(/** @type {any} */ e) {
+	function handleKeyDown(e: KeyboardEvent) {
 		if (!isDropdownOpen || results.length === 0) return;
 
 		switch (e.key) {
@@ -59,9 +68,9 @@
 
 	/**
 	 * Handle result selection - pans to item, highlights it, and optionally opens drawer
-	 * @param {any} result - The search result object
+	 * @param result - The search result object
 	 */
-	async function selectResult(result) {
+	async function selectResult(result: any) {
 		isDropdownOpen = false;
 		selectedIndex = -1;
 
@@ -92,9 +101,9 @@
 
 	/**
 	 * Fetch and open node details in drawer
-	 * @param {string} nodeId - Node UUID
+	 * @param nodeId - Node UUID
 	 */
-	async function openNodeDrawer(nodeId) {
+	async function openNodeDrawer(nodeId: string) {
 		const formData = new FormData();
 		formData.append('uuid', nodeId);
 		const response = await fetch('?/getNodes', {
@@ -111,7 +120,7 @@
 				id: nodeId,
 				...parsedData.properties,
 				type: 'node',
-				onLabelUpdate: (/** @type {any} */ newLabel) => {
+				onLabelUpdate: (newLabel: string) => {
 					drawerStore.setTitle(newLabel);
 					schemaState.updateNodeName(nodeId, newLabel);
 				},
@@ -122,9 +131,9 @@
 
 	/**
 	 * Fetch and open cable details in drawer
-	 * @param {string} cableId - Cable UUID
+	 * @param cableId - Cable UUID
 	 */
-	async function openCableDrawer(cableId) {
+	async function openCableDrawer(cableId: string) {
 		const formData = new FormData();
 		formData.append('uuid', cableId);
 		const response = await fetch('?/getCables', {
@@ -140,7 +149,7 @@
 			props: {
 				...parsedData,
 				type: 'edge',
-				onLabelUpdate: (/** @type {any} */ newLabel) => {
+				onLabelUpdate: (newLabel: string) => {
 					drawerStore.setTitle(newLabel);
 					schemaState.updateEdgeName(cableId, newLabel);
 				}

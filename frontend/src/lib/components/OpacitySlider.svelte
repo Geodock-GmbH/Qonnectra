@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { Slider } from '@skeletonlabs/skeleton-svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -10,13 +10,20 @@
 		maxOpacity = 1,
 		stepOpacity = 0.01,
 		opacity = 1,
-		onChange = () => {},
+		onChange = (value: number) => {},
 		compact = false
+	}: {
+		minOpacity?: number;
+		maxOpacity?: number;
+		stepOpacity?: number;
+		opacity?: number;
+		onChange?: (value: number) => void;
+		compact?: boolean;
 	} = $props();
 
-	let sliderValue = $state(/** @type {number[]} */ ([1]));
+	let sliderValue = $state<number[]>([1]);
 
-	function handleSkeletonSliderChange(/** @type {{ value: number[] }} */ detail) {
+	function handleSkeletonSliderChange(detail: { value: number[] }) {
 		const newOpacityValue = detail.value[0];
 		sliderValue = [newOpacityValue];
 		onChange(newOpacityValue);

@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { getContext, onMount } from 'svelte';
 	import {
 		IconArrowLeft,
@@ -12,13 +12,23 @@
 	import { m } from '$lib/paraglide/messages';
 
 	import { CableFiberDataManager } from '$lib/classes/CableFiberDataManager.svelte';
-	import { DRAG_DROP_CONTEXT_KEY } from '$lib/classes/DragDropManager.svelte';
+	import { DRAG_DROP_CONTEXT_KEY, DragDropManager } from '$lib/classes/DragDropManager.svelte';
 	import { PanelResizeManager } from '$lib/classes/PanelResizeManager.svelte.js';
 	import { tooltip } from '$lib/utils/tooltip';
 
-	let { nodeUuid, refreshTrigger = 0, isMobile = false, readonly = false } = $props();
+	let {
+		nodeUuid,
+		refreshTrigger = 0,
+		isMobile = false,
+		readonly = false
+	}: {
+		nodeUuid?: string;
+		refreshTrigger?: number;
+		isMobile?: boolean;
+		readonly?: boolean;
+	} = $props();
 
-	const dragDropManager = getContext(DRAG_DROP_CONTEXT_KEY);
+	const dragDropManager = getContext<DragDropManager | undefined>(DRAG_DROP_CONTEXT_KEY);
 
 	const dataManager = new CableFiberDataManager();
 
@@ -26,15 +36,14 @@
 
 	let collapsed = $state(false);
 	let lastRefreshTrigger = $state(0);
-	let expandedCables = $state(new Set());
-	let expandedBundles = $state(new Map());
-	let expandedAddresses = $state(new Set());
+	let expandedCables = $state(new Set<any>());
+	let expandedBundles = $state(new Map<any, Set<any>>());
+	let expandedAddresses = $state(new Set<any>());
 
 	/**
 	 * Toggle cable accordion
-	 * @param {any} cableUuid
 	 */
-	function toggleCable(cableUuid) {
+	function toggleCable(cableUuid: any) {
 		if (expandedCables.has(cableUuid)) {
 			expandedCables.delete(cableUuid);
 		} else {
@@ -46,14 +55,12 @@
 
 	/**
 	 * Toggle bundle accordion
-	 * @param {any} cableUuid
-	 * @param {any} bundleNumber
 	 */
-	function toggleBundle(cableUuid, bundleNumber) {
+	function toggleBundle(cableUuid: any, bundleNumber: any) {
 		if (!expandedBundles.has(cableUuid)) {
 			expandedBundles.set(cableUuid, new Set());
 		}
-		const bundleSet = expandedBundles.get(cableUuid);
+		const bundleSet = expandedBundles.get(cableUuid)!;
 		if (bundleSet.has(bundleNumber)) {
 			bundleSet.delete(bundleNumber);
 		} else {
@@ -64,15 +71,12 @@
 
 	/**
 	 * Check if bundle is expanded
-	 * @param {any} cableUuid
-	 * @param {any} bundleNumber
 	 */
-	function isBundleExpanded(cableUuid, bundleNumber) {
+	function isBundleExpanded(cableUuid: any, bundleNumber: any) {
 		return expandedBundles.get(cableUuid)?.has(bundleNumber) ?? false;
 	}
 
-	/** @param {any} e @param {any} cable */
-	function handleCableDragStart(e, cable) {
+	function handleCableDragStart(e: DragEvent, cable: any) {
 		if (readonly) {
 			e.preventDefault();
 			return;
@@ -82,8 +86,7 @@
 		dragDropManager?.startCableDrag(e, cable, cachedFibers);
 	}
 
-	/** @param {any} e @param {any} cable @param {any} bundle */
-	function handleBundleDragStart(e, cable, bundle) {
+	function handleBundleDragStart(e: DragEvent, cable: any, bundle: any) {
 		if (readonly) {
 			e.preventDefault();
 			return;
@@ -91,8 +94,7 @@
 		dragDropManager?.startBundleDrag(e, cable, bundle);
 	}
 
-	/** @param {any} e @param {any} cable @param {any} bundle @param {any} fiber */
-	function handleFiberDragStart(e, cable, bundle, fiber) {
+	function handleFiberDragStart(e: DragEvent, cable: any, bundle: any, fiber: any) {
 		if (readonly) {
 			e.preventDefault();
 			return;
@@ -105,8 +107,7 @@
 		dragDropManager?.endDrag();
 	}
 
-	/** @param {any} cable @param {any} bundle @param {any} fiber */
-	function handleMobileFiberClick(cable, bundle, fiber) {
+	function handleMobileFiberClick(cable: any, bundle: any, fiber: any) {
 		if (readonly) return;
 		if (isMobile) {
 			dragDropManager?.selectMobileFiber(cable, bundle, fiber);
@@ -115,9 +116,8 @@
 
 	/**
 	 * Toggle address accordion
-	 * @param {any} addressUuid
 	 */
-	function toggleAddress(addressUuid) {
+	function toggleAddress(addressUuid: any) {
 		if (expandedAddresses.has(addressUuid)) {
 			expandedAddresses.delete(addressUuid);
 		} else {
@@ -126,8 +126,7 @@
 		expandedAddresses = new Set(expandedAddresses);
 	}
 
-	/** @param {any} e @param {any} address */
-	function handleAddressDragStart(e, address) {
+	function handleAddressDragStart(e: DragEvent, address: any) {
 		if (readonly) {
 			e.preventDefault();
 			return;
@@ -135,8 +134,7 @@
 		dragDropManager?.startAddressDrag(e, address, address.residential_units || []);
 	}
 
-	/** @param {any} e @param {any} address @param {any} unit */
-	function handleResidentialUnitDragStart(e, address, unit) {
+	function handleResidentialUnitDragStart(e: DragEvent, address: any, unit: any) {
 		if (readonly) {
 			e.preventDefault();
 			return;
@@ -144,8 +142,7 @@
 		dragDropManager?.startResidentialUnitDrag(e, address, unit);
 	}
 
-	/** @param {any} address @param {any} unit */
-	function handleMobileResidentialUnitClick(address, unit) {
+	function handleMobileResidentialUnitClick(address: any, unit: any) {
 		if (readonly) return;
 		if (isMobile) {
 			dragDropManager?.selectMobileResidentialUnit(address, unit);
@@ -178,8 +175,7 @@
 
 	// Listen for cable connection changes from the diagram
 	$effect(() => {
-		/** @param {any} event */
-		function handleCableConnectionChanged(event) {
+		function handleCableConnectionChanged(event: any) {
 			const { nodeIds } = event.detail;
 			if (nodeIds && nodeIds.includes(nodeUuid)) {
 				dataManager.clearFibersCache();

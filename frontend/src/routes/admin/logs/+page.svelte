@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
@@ -8,7 +9,7 @@
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 
 	const logLevels = [
 		{ value: '', label: 'All Levels' },
@@ -53,9 +54,9 @@
 
 	/**
 	 * Navigates to a specific log page while preserving current filters.
-	 * @param {number} pageNum - The target page number.
+	 * @param pageNum - The target page number.
 	 */
-	function goToPage(pageNum) {
+	function goToPage(pageNum: number) {
 		const params = new URLSearchParams($page.url.searchParams);
 		params.set('page', pageNum.toString());
 		goto(`/admin/logs?${params.toString()}`);
@@ -63,10 +64,10 @@
 
 	/**
 	 * Maps a log level to its corresponding Skeleton preset class.
-	 * @param {string} level - Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
-	 * @returns {string} Skeleton color preset class.
+	 * @param level - Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
+	 * @returns Skeleton color preset class.
 	 */
-	function getLevelColor(level) {
+	function getLevelColor(level: string) {
 		const colors = {
 			DEBUG: 'preset-filled-surface-500',
 			INFO: 'preset-filled-primary-500',
@@ -74,36 +75,36 @@
 			ERROR: 'preset-filled-error-500',
 			CRITICAL: 'preset-filled-error-600'
 		};
-		return /** @type {Record<string, string>} */ (colors)[level] || colors.INFO;
+		return (colors as Record<string, string>)[level] || colors.INFO;
 	}
 
 	/**
 	 * Maps a log source to its corresponding Skeleton preset class.
-	 * @param {string} source - Log source (backend, frontend, wfs).
-	 * @returns {string} Skeleton color preset class.
+	 * @param source - Log source (backend, frontend, wfs).
+	 * @returns Skeleton color preset class.
 	 */
-	function getSourceColor(source) {
+	function getSourceColor(source: string) {
 		const colors = {
 			backend: 'preset-filled-tertiary-500',
 			frontend: 'preset-filled-warning-500',
 			wfs: 'preset-filled-error-500'
 		};
-		return /** @type {Record<string, string>} */ (colors)[source] || colors.backend;
+		return (colors as Record<string, string>)[source] || colors.backend;
 	}
 
 	/**
 	 * Formats an ISO timestamp into a locale-appropriate date/time string.
-	 * @param {string} timestamp - ISO 8601 timestamp.
-	 * @returns {string} Formatted date/time string.
+	 * @param timestamp - ISO 8601 timestamp.
+	 * @returns Formatted date/time string.
 	 */
-	function formatTimestamp(timestamp) {
+	function formatTimestamp(timestamp: string) {
 		const date = new Date(timestamp);
 		return date.toLocaleString();
 	}
 
 	const projectOptions = $derived([
 		{ value: '', label: 'All Projects' },
-		...(data.projects || []).map((/** @type {{ id: number, project: string }} */ p) => ({
+		...(data.projects || []).map((p: { id: number; project: string }) => ({
 			value: String(p.id),
 			label: p.project
 		}))
@@ -129,7 +130,7 @@
 				<GenericCombobox
 					data={logLevels}
 					value={[filters.level]}
-					onValueChange={(/** @type {{ value: string[] }} */ e) => {
+					onValueChange={(e: { value: string[] }) => {
 						filters.level = e.value[0] || '';
 					}}
 				/>
@@ -140,7 +141,7 @@
 				<GenericCombobox
 					data={sources}
 					value={[filters.source]}
-					onValueChange={(/** @type {{ value: string[] }} */ e) => {
+					onValueChange={(e: { value: string[] }) => {
 						filters.source = e.value[0] || '';
 					}}
 				/>
@@ -151,7 +152,7 @@
 				<GenericCombobox
 					data={projectOptions}
 					value={[String(filters.project)]}
-					onValueChange={(/** @type {{ value: string[] }} */ e) => {
+					onValueChange={(e: { value: string[] }) => {
 						filters.project = e.value[0] || '';
 					}}
 				/>

@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { onMount } from 'svelte';
 	import {
 		BarController,
@@ -14,28 +14,32 @@
 
 	Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
-	/**
-	 * @typedef {Object} Dataset
-	 * @property {string} label - The label for this dataset
-	 * @property {number[]} data - The data values
-	 * @property {string} backgroundColor - The background color
-	 */
+	interface Dataset {
+		/** The label for this dataset */
+		label: string;
+		/** The data values */
+		data: number[];
+		/** The background color */
+		backgroundColor: string;
+	}
 
-	/**
-	 * @typedef {Object} ChartData
-	 * @property {string[]} labels - The x-axis labels
-	 * @property {Dataset[]} datasets - The datasets to display
-	 */
+	interface ChartData {
+		/** The x-axis labels */
+		labels: string[];
+		/** The datasets to display */
+		datasets: Dataset[];
+	}
 
-	let {
-		data = /** @type {ChartData} */ ({ labels: [], datasets: [] }),
-		title = '',
-		unit = 'km'
-	} = $props();
+	interface Props {
+		data?: ChartData;
+		title?: string;
+		unit?: string;
+	}
 
-	let canvas = $state();
-	/** @type {import('chart.js').Chart | null} */
-	let chart = null;
+	let { data = { labels: [], datasets: [] }, title = '', unit = 'km' }: Props = $props();
+
+	let canvas = $state<HTMLCanvasElement>();
+	let chart: Chart | null = null;
 	let themeMode = $state('');
 
 	onMount(() => {
@@ -89,7 +93,7 @@
 			type: 'bar',
 			data: {
 				labels: data.labels,
-				datasets: data.datasets.map((/** @type {Dataset} */ ds) => ({
+				datasets: data.datasets.map((ds: Dataset) => ({
 					label: ds.label,
 					data: ds.data,
 					backgroundColor: ds.backgroundColor,

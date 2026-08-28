@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -9,13 +9,26 @@
 	import { selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 
+	interface ProjectItem {
+		value: string;
+		label: string;
+	}
+
+	interface Props {
+		projects?: ProjectItem[];
+		projectsError?: string | null;
+		loading?: boolean;
+		placeholderSize?: string;
+		onChange?: (detail: { value: string }) => void;
+	}
+
 	let {
 		projects = [],
 		projectsError = null,
 		loading = false,
 		placeholderSize = 'size-10',
 		onChange = () => {}
-	} = $props();
+	}: Props = $props();
 
 	let isHydrating = $state(!browser);
 
@@ -61,7 +74,7 @@
 	/** Skeleton Combobox expects string[] */
 	let comboboxValue = $derived($selectedProject ? [$selectedProject] : []);
 
-	function handleOpenChange(/** @type {{ open: boolean }} */ e) {
+	function handleOpenChange(e: { open: boolean }) {
 		isOpen = e.open;
 	}
 
@@ -78,7 +91,7 @@
 		'/valuation'
 	];
 
-	function handleProjectChange(/** @type {string} */ newProject) {
+	function handleProjectChange(newProject: string) {
 		if (!browser) return;
 
 		document.cookie = `selected-project=${newProject}; path=/; max-age=31536000`;
@@ -101,14 +114,14 @@
 		onChange({ value: newProject });
 	}
 
-	function handleValueChange(/** @type {{ value: string[] }} */ e) {
+	function handleValueChange(e: { value: string[] }) {
 		const newValue = e.value;
 		if (newValue && newValue.length > 0) {
 			handleProjectChange(newValue[0]);
 		}
 	}
 
-	const onInputValueChange = (/** @type {{ inputValue: string }} */ e) => {
+	const onInputValueChange = (e: { inputValue: string }) => {
 		const filtered = projects.filter((item) =>
 			item.label.toLowerCase().includes(e.inputValue.toLowerCase())
 		);

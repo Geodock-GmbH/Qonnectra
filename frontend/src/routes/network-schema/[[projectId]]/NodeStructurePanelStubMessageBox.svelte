@@ -1,5 +1,15 @@
-<script>
-	let { heading = '', message = '', acceptText = '', onAccept } = $props();
+<script lang="ts">
+	let {
+		heading = '',
+		message = '',
+		acceptText = '',
+		onAccept
+	}: {
+		heading?: string;
+		message?: string;
+		acceptText?: string;
+		onAccept?: () => void;
+	} = $props();
 
 	let isOpen = $state(false);
 

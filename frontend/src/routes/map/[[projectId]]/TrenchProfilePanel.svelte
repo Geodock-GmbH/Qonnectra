@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { Controls, SvelteFlow, ViewportPortal } from '@xyflow/svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -11,18 +11,17 @@
 	import TrenchProfileFitView from './TrenchProfileFitView.svelte';
 	import TrenchProfileNode from './TrenchProfileNode.svelte';
 
-	let { trenchUuid } = $props();
+	let { trenchUuid }: { trenchUuid: string } = $props();
 
 	const nodeTypes = { trenchProfileNode: TrenchProfileNode };
 
 	const profileState = new TrenchProfileState();
 
-	let previousTrenchUuid = $state(null);
+	let previousTrenchUuid = $state<string | null>(null);
 	let locked = $state(true);
 
-	// @ts-ignore - onnodeschange exists but is missing from SvelteFlow types
-	/** @type {any} */
-	const nodesChangeProps = { onnodeschange: handleNodesChange };
+	// onnodeschange exists but is missing from SvelteFlow types
+	const nodesChangeProps: any = { onnodeschange: handleNodesChange };
 
 	$effect(() => {
 		if (trenchUuid && trenchUuid !== previousTrenchUuid) {
@@ -40,17 +39,21 @@
 
 	/**
 	 * Persists conduit position after the user finishes dragging a node.
-	 * @param {{ targetNode: import('@xyflow/svelte').Node | null, nodes: import('@xyflow/svelte').Node[], event: MouseEvent | TouchEvent }} event
+	 * @param event - Drag stop event from SvelteFlow
 	 */
-	function handleNodeDragStop(event) {
+	function handleNodeDragStop(event: {
+		targetNode: import('@xyflow/svelte').Node | null;
+		nodes: import('@xyflow/svelte').Node[];
+		event: MouseEvent | TouchEvent;
+	}) {
 		profileState.handleNodeDragStop(event);
 	}
 
 	/**
 	 * Saves node dimensions when a resize operation completes.
-	 * @param {any[]} changes
+	 * @param changes - Node change events from SvelteFlow
 	 */
-	function handleNodesChange(changes) {
+	function handleNodesChange(changes: any[]) {
 		for (const change of changes) {
 			if (change.type === 'dimensions' && change.resizing === false) {
 				const node = profileState.nodes.find((n) => n.id === change.id);

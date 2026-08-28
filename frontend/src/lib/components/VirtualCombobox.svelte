@@ -1,5 +1,26 @@
-<script>
+<script lang="ts">
+	import type { IFuseOptions } from 'fuse.js';
 	import Fuse from 'fuse.js';
+
+	interface ComboboxItem {
+		label: string;
+		value: string;
+	}
+
+	interface Props {
+		data?: ComboboxItem[];
+		value?: string;
+		placeholder?: string;
+		disabled?: boolean;
+		loading?: boolean;
+		noDataMessage?: string;
+		error?: string;
+		fuseOptions?: IFuseOptions<ComboboxItem>;
+		onValueChange?: ((detail: { value: string }) => void) | undefined;
+		renderInPlace?: boolean;
+		itemHeight?: number;
+		maxVisibleItems?: number;
+	}
 
 	let {
 		data = [],
@@ -14,7 +35,7 @@
 		renderInPlace = false,
 		itemHeight = 40,
 		maxVisibleItems = 8
-	} = $props();
+	}: Props = $props();
 
 	const OVERSCAN = 3;
 
@@ -23,20 +44,15 @@
 	let highlightedIndex = $state(-1);
 	let scrollTop = $state(0);
 
-	/** @type {HTMLInputElement|null} */
-	let inputEl = $state(null);
-	/** @type {HTMLDivElement|null} */
-	let listContainerEl = $state(null);
-	/** @type {HTMLDivElement|null} */
-	let wrapperEl = $state(null);
+	let inputEl = $state<HTMLInputElement | null>(null);
+	let listContainerEl = $state<HTMLDivElement | null>(null);
+	let wrapperEl = $state<HTMLDivElement | null>(null);
 
 	const instanceId = `vcb-${Math.random().toString(36).slice(2, 9)}`;
 	const listboxId = `${instanceId}-listbox`;
 
-	/** @type {Fuse<{label: string, value: string}>|null} */
-	let cachedFuse = null;
-	/** @type {any} */
-	let cachedFuseData = null;
+	let cachedFuse: Fuse<ComboboxItem> | null = null;
+	let cachedFuseData: ComboboxItem[] | null = null;
 
 	/** Returns a cached Fuse instance, rebuilding only when `data` changes. */
 	function getOrCreateFuse() {
@@ -48,7 +64,7 @@
 			});
 			cachedFuseData = data;
 		}
-		return /** @type {Fuse<{label: string, value: string}>} */ (cachedFuse);
+		return cachedFuse as Fuse<ComboboxItem>;
 	}
 
 	const filteredItems = $derived.by(() => {
@@ -75,8 +91,11 @@
 	const containerMaxHeight = $derived(maxVisibleItems * itemHeight);
 
 	/* ── Fixed position for dropdown ── */
-	/** @type {{ top: number, left: number, width: number }} */
-	let fixedPosition = $state({ top: 0, left: 0, width: 0 });
+	let fixedPosition = $state<{ top: number; left: number; width: number }>({
+		top: 0,
+		left: 0,
+		width: 0
+	});
 
 	/** Recalculates the fixed dropdown position based on the input element's bounding rect. */
 	function updateFixedPosition() {
@@ -148,9 +167,9 @@
 
 	/**
 	 * Selects an item, updates the bound value, fires the callback, and closes the dropdown.
-	 * @param {{ label: string, value: string }} item - The item to select.
+	 * @param item - The item to select.
 	 */
-	function selectItem(item) {
+	function selectItem(item: ComboboxItem) {
 		value = item.value;
 		onValueChange?.({ value: item.value });
 		closedBySelection = true;
@@ -159,9 +178,9 @@
 
 	/**
 	 * Scrolls the list container so the item at the given index is visible.
-	 * @param {number} index - Absolute index of the target item.
+	 * @param index - Absolute index of the target item.
 	 */
-	function scrollToIndex(index, center = false) {
+	function scrollToIndex(index: number, center = false) {
 		if (!listContainerEl) return;
 		const targetTop = index * itemHeight;
 		const containerHeight = containerMaxHeight;
@@ -176,10 +195,10 @@
 
 	/**
 	 * Updates the virtual scroll offset from the list container's scroll position.
-	 * @param {Event} e - Scroll event from the list container.
+	 * @param e - Scroll event from the list container.
 	 */
-	function handleScroll(e) {
-		scrollTop = /** @type {HTMLDivElement} */ (e.target).scrollTop;
+	function handleScroll(e: Event) {
+		scrollTop = (e.target as HTMLDivElement).scrollTop;
 	}
 
 	function handleInputFocus() {
@@ -192,10 +211,10 @@
 
 	/**
 	 * Handles search input changes, resets scroll and highlights the first match.
-	 * @param {Event} e - Input event from the search field.
+	 * @param e - Input event from the search field.
 	 */
-	function handleSearchInput(e) {
-		searchQuery = /** @type {HTMLInputElement} */ (e.target).value;
+	function handleSearchInput(e: Event) {
+		searchQuery = (e.target as HTMLInputElement).value;
 		highlightedIndex = filteredItems.length > 0 ? 0 : -1;
 		scrollTop = 0;
 		if (listContainerEl) listContainerEl.scrollTop = 0;
@@ -203,10 +222,10 @@
 
 	/**
 	 * Closes the dropdown when clicking outside the wrapper element.
-	 * @param {MouseEvent} e - Window click event.
+	 * @param e - Window click event.
 	 */
-	function handleWindowClick(e) {
-		if (isOpen && wrapperEl && !wrapperEl.contains(/** @type {Node} */ (e.target))) {
+	function handleWindowClick(e: MouseEvent) {
+		if (isOpen && wrapperEl && !wrapperEl.contains(e.target as Node)) {
 			close();
 		}
 	}
@@ -215,9 +234,9 @@
 
 	/**
 	 * Handles keyboard navigation (ArrowUp/Down, Enter, Escape, Tab) within the combobox.
-	 * @param {KeyboardEvent} e - Keydown event from the input element.
+	 * @param e - Keydown event from the input element.
 	 */
-	function handleKeydown(e) {
+	function handleKeydown(e: KeyboardEvent) {
 		if (!isOpen && (e.key === 'ArrowDown' || e.key === 'Enter')) {
 			e.preventDefault();
 			open();

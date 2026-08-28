@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { page } from '$app/stores';
@@ -13,7 +13,7 @@
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
 
-	const attributes = getContext('attributeOptions') || {
+	const attributes = getContext<any>('attributeOptions') || {
 		nodeTypes: [],
 		statuses: [],
 		networkLevels: [],
@@ -25,36 +25,30 @@
 
 	const isChildView = $derived($page.url.pathname.includes('/node/'));
 
-	let node = $derived($drawerStore.props);
+	let node = $derived<any>($drawerStore.props);
 	let id = $derived(node?.id || '');
 	let nodeName = $state('');
-	/** @type {any[]} */
-	let nodeType = $state([]);
-	/** @type {any[]} */
-	let nodeStatus = $state([]);
-	/** @type {any[]} */
-	let nodeNetworkLevel = $state([]);
-	/** @type {any[]} */
-	let nodeOwner = $state([]);
-	/** @type {any[]} */
-	let nodeConstructor = $state([]);
-	/** @type {any[]} */
-	let nodeManufacturer = $state([]);
+	let nodeType = $state<any[]>([]);
+	let nodeStatus = $state<any[]>([]);
+	let nodeNetworkLevel = $state<any[]>([]);
+	let nodeOwner = $state<any[]>([]);
+	let nodeConstructor = $state<any[]>([]);
+	let nodeManufacturer = $state<any[]>([]);
 	let nodeWarranty = $state('');
 	let nodeDate = $state('');
-	/** @type {any[]} */
-	let nodeFlag = $state([]);
+	let nodeFlag = $state<any[]>([]);
 	let nodeParentNode = $state('');
 	const availableNodes = $derived(
-		(attributes.parentNodeOptions || []).filter((/** @type {any} */ n) => n.value !== id)
+		(attributes.parentNodeOptions || []).filter((n: any) => n.value !== id)
 	);
 
-	let { onLabelUpdate, onNodeDelete } = $props();
+	let {
+		onLabelUpdate,
+		onNodeDelete
+	}: { onLabelUpdate?: (name: string) => void; onNodeDelete?: (id: string) => void } = $props();
 
-	/** @type {any} */
-	let deleteMessageBox = $state(null);
-	/** @type {any} */
-	let cableBlockedMessageBox = $state(null);
+	let deleteMessageBox = $state<any>(null);
+	let cableBlockedMessageBox = $state<any>(null);
 	let pendingDeleteCableCount = $state(0);
 	let pendingDeleteStructureCount = $state(0);
 	let hasConnectedCables = $state(false);
@@ -74,7 +68,7 @@
 	/**
 	 * Check dependencies when node changes (cables, structures, children)
 	 */
-	async function checkNodeDependencies(/** @type {any} */ nodeId) {
+	async function checkNodeDependencies(nodeId: any) {
 		if (!nodeId) return;
 
 		isCheckingDependencies = true;
@@ -89,7 +83,7 @@
 				body: formData
 			});
 
-			const result = /** @type {any} */ (deserialize(await response.text()));
+			const result = deserialize(await response.text()) as any;
 			const cables = result.data?.cables || [];
 			const structures = result.data?.structures || [];
 			const children = result.data?.children || [];
@@ -144,10 +138,7 @@
 			nodeStatus = node.status?.id != null ? [node.status.id] : [];
 			nodeNetworkLevel = node.network_level?.id != null ? [node.network_level.id] : [];
 			nodeOwner = node.owner?.id != null ? [node.owner.id] : [];
-			nodeConstructor =
-				/** @type {any} */ (node.constructor)?.id != null
-					? [/** @type {any} */ (node.constructor).id]
-					: [];
+			nodeConstructor = (node.constructor as any)?.id != null ? [(node.constructor as any).id] : [];
 			nodeManufacturer = node.manufacturer?.id != null ? [node.manufacturer.id] : [];
 			nodeWarranty = node.warranty || '';
 			nodeDate = node.date || '';
@@ -156,9 +147,9 @@
 		}
 	});
 
-	async function handleSubmit(/** @type {any} */ event) {
+	async function handleSubmit(event: SubmitEvent) {
 		event.preventDefault();
-		const formData = new FormData(event.target);
+		const formData = new FormData(event.target as HTMLFormElement);
 		formData.append('uuid', id);
 		formData.append('node_type_id', nodeType?.[0] || '');
 		formData.append('status_id', nodeStatus?.[0] || '');
@@ -230,7 +221,7 @@
 				body: formData
 			});
 
-			const result = /** @type {any} */ (deserialize(await response.text()));
+			const result = deserialize(await response.text()) as any;
 			const cables = result.data?.cables || [];
 			const structures = result.data?.structures || [];
 
@@ -300,15 +291,13 @@
 			globalToaster.error({
 				title: m.common_error(),
 				description:
-					/** @type {any} */ (error).message ||
-					m.message_error_deleting_node?.() ||
-					'Failed to delete node'
+					(error as any).message || m.message_error_deleting_node?.() || 'Failed to delete node'
 			});
 		}
 	}
 
 	let deleteMessage = $derived.by(() => {
-		const parts = [];
+		const parts: string[] = [];
 		if (pendingDeleteCableCount > 0) {
 			parts.push(`${pendingDeleteCableCount} ${m.form_cables?.() || 'cables'}`);
 		}
@@ -335,7 +324,7 @@
 			name="node_name"
 			required
 			value={nodeName}
-			oninput={(e) => (nodeName = /** @type {any} */ (e.target).value)}
+			oninput={(e) => (nodeName = (e.target as HTMLInputElement).value)}
 		/>
 	</label>
 	<label
@@ -351,7 +340,7 @@
 			data={attributes.nodeTypes}
 			bind:value={nodeType}
 			defaultValue={nodeType}
-			onValueChange={(/** @type {any} */ e) => (nodeType = e.value)}
+			onValueChange={(e: any) => (nodeType = e.value)}
 			disabledValues={attributes.excludedNodeTypeIds}
 			disabled={nodeTypeDisabled}
 			renderInPlace={true}
@@ -363,7 +352,7 @@
 			data={attributes.statuses}
 			bind:value={nodeStatus}
 			defaultValue={nodeStatus}
-			onValueChange={(/** @type {any} */ e) => (nodeStatus = e.value)}
+			onValueChange={(e: any) => (nodeStatus = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -373,7 +362,7 @@
 			data={attributes.networkLevels}
 			bind:value={nodeNetworkLevel}
 			defaultValue={nodeNetworkLevel}
-			onValueChange={(/** @type {any} */ e) => (nodeNetworkLevel = e.value)}
+			onValueChange={(e: any) => (nodeNetworkLevel = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -383,7 +372,7 @@
 			data={attributes.companies}
 			bind:value={nodeOwner}
 			defaultValue={nodeOwner}
-			onValueChange={(/** @type {any} */ e) => (nodeOwner = e.value)}
+			onValueChange={(e: any) => (nodeOwner = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -393,7 +382,7 @@
 			data={attributes.companies}
 			bind:value={nodeConstructor}
 			defaultValue={nodeConstructor}
-			onValueChange={(/** @type {any} */ e) => (nodeConstructor = e.value)}
+			onValueChange={(e: any) => (nodeConstructor = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -403,7 +392,7 @@
 			data={attributes.companies}
 			bind:value={nodeManufacturer}
 			defaultValue={nodeManufacturer}
-			onValueChange={(/** @type {any} */ e) => (nodeManufacturer = e.value)}
+			onValueChange={(e: any) => (nodeManufacturer = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -415,7 +404,7 @@
 			class="input"
 			name="warranty"
 			value={nodeWarranty}
-			oninput={(e) => (nodeWarranty = /** @type {any} */ (e.target).value)}
+			oninput={(e) => (nodeWarranty = (e.target as HTMLInputElement).value)}
 		/>
 	</label>
 	<label class="label">
@@ -426,7 +415,7 @@
 			class="input"
 			name="date"
 			value={nodeDate}
-			oninput={(e) => (nodeDate = /** @type {any} */ (e.target).value)}
+			oninput={(e) => (nodeDate = (e.target as HTMLInputElement).value)}
 		/>
 	</label>
 	<label class="label">
@@ -435,7 +424,7 @@
 			data={attributes.flags}
 			bind:value={nodeFlag}
 			defaultValue={nodeFlag}
-			onValueChange={(/** @type {any} */ e) => (nodeFlag = e.value)}
+			onValueChange={(e: any) => (nodeFlag = e.value)}
 			renderInPlace={true}
 		/>
 	</label>

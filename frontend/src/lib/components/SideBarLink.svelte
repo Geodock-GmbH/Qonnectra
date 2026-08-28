@@ -1,4 +1,5 @@
-<script>
+<script lang="ts">
+	import type { NavLink } from '$lib/config/navLinks';
 	import { page } from '$app/state';
 	import { IconEye, IconEyeOff } from '@tabler/icons-svelte';
 
@@ -6,17 +7,21 @@
 
 	import { tooltip } from '$lib/utils/tooltip';
 
-	/**
-	 * @typedef {Object} Props
-	 * @property {import('$lib/config/navLinks').NavLink} link - Navigation entry to render
-	 * @property {(isSelected: boolean) => string} anchorClass - Builds the anchor CSS classes
-	 * @property {boolean} [iconOnly] - Render only the icon (rail layout)
-	 * @property {boolean} [customizing] - Show the hide/show toggle
-	 * @property {boolean} [hidden] - Whether this route is currently hidden
-	 * @property {(routeId: string) => void} [onToggleHidden] - Called when the hide toggle is clicked
-	 */
+	interface Props {
+		/** Navigation entry to render */
+		link: NavLink;
+		/** Builds the anchor CSS classes */
+		anchorClass: (isSelected: boolean) => string;
+		/** Render only the icon (rail layout) */
+		iconOnly?: boolean;
+		/** Show the hide/show toggle */
+		customizing?: boolean;
+		/** Whether this route is currently hidden */
+		hidden?: boolean;
+		/** Called when the hide toggle is clicked */
+		onToggleHidden?: (routeId: string) => void;
+	}
 
-	/** @type {Props} */
 	let {
 		link,
 		anchorClass,
@@ -24,7 +29,7 @@
 		customizing = false,
 		hidden = false,
 		onToggleHidden
-	} = $props();
+	}: Props = $props();
 
 	const Icon = $derived(link.icon);
 	const isSelected = $derived(link.pathMatch(page.url.pathname));
