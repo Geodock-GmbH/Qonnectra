@@ -7846,6 +7846,44 @@ class TraceSearchView(APIView):
     authentication_classes = [JWTCookieAuthentication, SessionAuthentication]
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "search",
+                str,
+                OpenApiParameter.QUERY,
+                required=True,
+                description="Search term (min 2 characters).",
+            ),
+            OpenApiParameter(
+                "type",
+                str,
+                OpenApiParameter.QUERY,
+                required=True,
+                enum=["address", "node", "cable", "residential_unit"],
+                description="Entity type to search.",
+            ),
+            OpenApiParameter(
+                "project",
+                int,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="Project id to scope results.",
+            ),
+        ],
+        responses={
+            200: inline_serializer(
+                name="TraceSearchResult",
+                fields={
+                    "results": serializers.ListField(
+                        child=serializers.DictField(),
+                        help_text="Lightweight picker items; fields vary by type.",
+                    ),
+                },
+            ),
+            400: OpenApiResponse(description="Invalid entity type."),
+        },
+    )
     def get(self, request):
         """Search across entity types and return lightweight picker results.
 

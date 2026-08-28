@@ -7559,6 +7559,29 @@ paths:
 
         Returns:
             Response: JSON with a ``results`` list of matching entities.
+      parameters:
+      - in: query
+        name: project
+        schema:
+          type: integer
+        description: Project id to scope results.
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Search term (min 2 characters).
+        required: true
+      - in: query
+        name: type
+        schema:
+          type: string
+          enum:
+          - address
+          - cable
+          - node
+          - residential_unit
+        description: Entity type to search.
+        required: true
       tags:
       - trace-search
       security:
@@ -7567,7 +7590,13 @@ paths:
       - cookieAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TraceSearchResult'
+          description: ''
+        '400':
+          description: Invalid entity type.
   /api/v1/trench/:
     get:
       operationId: trench_list
@@ -13912,6 +13941,17 @@ components:
           writeOnly: true
       required:
       - token
+    TraceSearchResult:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          description: Lightweight picker items; fields vary by type.
+      required:
+      - results
     Trench:
       type: object
       description: |-
