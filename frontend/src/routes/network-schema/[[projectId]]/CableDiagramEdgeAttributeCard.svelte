@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { AttributeOptions, CableDrawerProps, FkRef } from './attributeCardTypes';
+	import type { ActionResult } from '@sveltejs/kit';
 	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
 
@@ -10,7 +12,9 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
-	const attributes = getContext<any>('attributeOptions') || {
+	import { actionData } from './attributeCardTypes';
+
+	const attributes = getContext<AttributeOptions>('attributeOptions') || {
 		cableTypes: [],
 		statuses: [],
 		networkLevels: [],
@@ -18,9 +22,11 @@
 		flags: []
 	};
 
-	let messageBoxConfirm = $state<any>(null);
-	let cable = $derived<any>($drawerStore.props);
-	let fiberCount = $derived(cable?.cable_type?.fiber_count || cable?.fiber_count || 0);
+	let messageBoxConfirm = $state<ReturnType<typeof MessageBox> | null>(null);
+	let cable = $derived($drawerStore.props as CableDrawerProps | undefined);
+	let fiberCount = $derived<number>(
+		Number(cable?.cable_type?.fiber_count ?? cable?.fiber_count ?? 0) || 0
+	);
 	let connectedSpliceCount = $state(0);
 	let connectedConduits = $state('');
 
@@ -31,7 +37,7 @@
 		}
 	});
 
-	async function fetchConnectedConduits(cableId: any) {
+	async function fetchConnectedConduits(cableId: string) {
 		try {
 			const formData = new FormData();
 			formData.append('cableId', cableId);
@@ -39,9 +45,10 @@
 				method: 'POST',
 				body: formData
 			});
-			const result = deserialize(await response.text());
+			const result = deserialize(await response.text()) as ActionResult;
 			if (result.type === 'success') {
-				connectedConduits = (result as any).data?.conduit_names?.join(', ') || '';
+				connectedConduits =
+					(actionData(result)?.conduit_names as string[] | undefined)?.join(', ') || '';
 			}
 		} catch (err) {
 			console.error('Error fetching connected conduits:', err);
@@ -58,19 +65,19 @@
 		}
 	}
 	let cableName = $state('');
-	let cableType = $state<any[]>([]);
-	let cableStatus = $state<any[]>([]);
-	let cableNetworkLevel = $state<any[]>([]);
-	let cableOwner = $state<any[]>([]);
-	let cableConstructor = $state<any[]>([]);
-	let cableManufacturer = $state<any[]>([]);
+	let cableType = $state<string[]>([]);
+	let cableStatus = $state<string[]>([]);
+	let cableNetworkLevel = $state<string[]>([]);
+	let cableOwner = $state<string[]>([]);
+	let cableConstructor = $state<string[]>([]);
+	let cableManufacturer = $state<string[]>([]);
 	let cableDate = $state('');
 	let cableLength = $derived(cable?.length || '');
 	let cableLengthTotal = $derived(cable?.length_total || '');
 	let cableReserveAtStart = $state('');
 	let cableReserveAtEnd = $state('');
 	let cableReserveSection = $state('');
-	let cableFlag = $state<any[]>([]);
+	let cableFlag = $state<string[]>([]);
 
 	let {
 		onLabelUpdate,
@@ -85,23 +92,24 @@
 	$effect(() => {
 		if (cable) {
 			cableName = cable.name || '';
-			cableType = cable.cable_type?.id != null ? [cable.cable_type.id] : [];
-			cableStatus = cable.status?.id != null ? [cable.status.id] : [];
-			cableNetworkLevel = cable.network_level?.id != null ? [cable.network_level.id] : [];
-			cableOwner = cable.owner?.id != null ? [cable.owner.id] : [];
-			cableConstructor =
-				(cable.constructor as any)?.id != null ? [(cable.constructor as any).id] : [];
-			cableManufacturer = cable.manufacturer?.id != null ? [cable.manufacturer.id] : [];
+			cableType = cable.cable_type?.id != null ? [String(cable.cable_type.id)] : [];
+			cableStatus = cable.status?.id != null ? [String(cable.status.id)] : [];
+			cableNetworkLevel = cable.network_level?.id != null ? [String(cable.network_level.id)] : [];
+			cableOwner = cable.owner?.id != null ? [String(cable.owner.id)] : [];
+			const cableConstructorRef = cable.constructor as FkRef | null | undefined;
+			cableConstructor = cableConstructorRef?.id != null ? [String(cableConstructorRef.id)] : [];
+			cableManufacturer = cable.manufacturer?.id != null ? [String(cable.manufacturer.id)] : [];
 			cableDate = cable.date || '';
-			cableReserveAtStart = cable.reserve_at_start || '';
-			cableReserveAtEnd = cable.reserve_at_end || '';
-			cableReserveSection = cable.reserve_section || '';
-			cableFlag = cable.flag?.id != null ? [cable.flag.id] : [];
+			cableReserveAtStart = cable.reserve_at_start != null ? String(cable.reserve_at_start) : '';
+			cableReserveAtEnd = cable.reserve_at_end != null ? String(cable.reserve_at_end) : '';
+			cableReserveSection = cable.reserve_section != null ? String(cable.reserve_section) : '';
+			cableFlag = cable.flag?.id != null ? [String(cable.flag.id)] : [];
 		}
 	});
 
 	async function handleSubmit(event: SubmitEvent) {
 		event.preventDefault();
+		if (!cable?.uuid) return;
 		const formData = new FormData(event.target as HTMLFormElement);
 		formData.append('uuid', cable.uuid);
 		formData.append('cable_type_id', cableType?.[0] || '');
@@ -174,8 +182,8 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text());
-			const splices = (result as any).data?.splices || [];
+			const result = deserialize(await response.text()) as ActionResult;
+			const splices = (actionData(result)?.splices as unknown[]) || [];
 			connectedSpliceCount = splices.length;
 		} catch (err) {
 			console.error('Error checking cable splices:', err);
@@ -191,11 +199,11 @@
 			connectedSpliceCount = 0;
 		}
 
-		messageBoxConfirm.open();
+		messageBoxConfirm?.open();
 	}
 
 	async function handleDelete() {
-		if (!cable.uuid) return;
+		if (!cable?.uuid) return;
 		const formData = new FormData();
 		formData.append('uuid', cable.uuid);
 
@@ -230,7 +238,8 @@
 			});
 			globalToaster.error({
 				title: m.common_error(),
-				description: (error as any).message || m.message_error_deleting_cable()
+				description:
+					(error instanceof Error ? error.message : null) || m.message_error_deleting_cable()
 			});
 		}
 	}

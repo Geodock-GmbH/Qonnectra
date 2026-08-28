@@ -40,6 +40,27 @@ export interface AttributeOptions {
 	[key: string]: unknown;
 }
 
+/** Drawer props for a network-schema edge (cable) attribute card. */
+export interface CableDrawerProps {
+	uuid?: string;
+	name?: string;
+	cable_type?: FkRef | null;
+	status?: FkRef | null;
+	network_level?: FkRef | null;
+	owner?: FkRef | null;
+	constructor?: FkRef | null;
+	manufacturer?: FkRef | null;
+	flag?: FkRef | null;
+	date?: string | null;
+	fiber_count?: number | null;
+	length?: number | null;
+	length_total?: number | null;
+	reserve_at_start?: number | null;
+	reserve_at_end?: number | null;
+	reserve_section?: number | null;
+	[key: string]: unknown;
+}
+
 /** Drawer props for a network-schema node attribute card. */
 export interface NodeDrawerProps {
 	id?: string;
