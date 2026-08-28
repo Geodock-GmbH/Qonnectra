@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Set up environment
+        run: cp .env.example .env
+
       - name: Type-check (svelte-check)
         run: npm run check
 
