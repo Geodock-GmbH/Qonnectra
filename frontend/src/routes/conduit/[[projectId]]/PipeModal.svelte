@@ -233,7 +233,7 @@
 							data={attributes.conduitTypes}
 							bind:value={selectedConduitType}
 							defaultValue={selectedConduitType}
-							onValueChange={(e: any) => (selectedConduitType = e.value)}
+							onValueChange={(e) => (selectedConduitType = e.value)}
 							renderInPlace={true}
 							required={true}
 						/>
@@ -255,7 +255,7 @@
 							data={attributes.statuses}
 							bind:value={selectedStatus}
 							defaultValue={selectedStatus}
-							onValueChange={(e: any) => (selectedStatus = e.value)}
+							onValueChange={(e) => (selectedStatus = e.value)}
 							renderInPlace={true}
 						/>
 					</label>
@@ -265,7 +265,7 @@
 							data={attributes.networkLevels}
 							bind:value={selectedNetworkLevel}
 							defaultValue={selectedNetworkLevel}
-							onValueChange={(e: any) => (selectedNetworkLevel = e.value)}
+							onValueChange={(e) => (selectedNetworkLevel = e.value)}
 							renderInPlace={true}
 						/>
 					</label>
@@ -275,7 +275,7 @@
 							data={attributes.companies}
 							bind:value={selectedOwner}
 							defaultValue={selectedOwner}
-							onValueChange={(e: any) => (selectedOwner = e.value)}
+							onValueChange={(e) => (selectedOwner = e.value)}
 							renderInPlace={true}
 						/>
 					</label>
@@ -285,7 +285,7 @@
 							data={attributes.companies}
 							bind:value={selectedConstructor}
 							defaultValue={selectedConstructor}
-							onValueChange={(e: any) => (selectedConstructor = e.value)}
+							onValueChange={(e) => (selectedConstructor = e.value)}
 							renderInPlace={true}
 						/>
 					</label>
@@ -295,7 +295,7 @@
 							data={attributes.companies}
 							bind:value={selectedManufacturer}
 							defaultValue={selectedManufacturer}
-							onValueChange={(e: any) => (selectedManufacturer = e.value)}
+							onValueChange={(e) => (selectedManufacturer = e.value)}
 							renderInPlace={true}
 						/>
 					</label>
@@ -316,7 +316,7 @@
 							data={attributes.flags}
 							bind:value={selectedFlag}
 							defaultValue={selectedFlag}
-							onValueChange={(e: any) => (selectedFlag = e.value)}
+							onValueChange={(e) => (selectedFlag = e.value)}
 							renderInPlace={true}
 							required={true}
 						/>

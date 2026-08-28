@@ -340,7 +340,7 @@
 			data={attributes.nodeTypes}
 			bind:value={nodeType}
 			defaultValue={nodeType}
-			onValueChange={(e: any) => (nodeType = e.value)}
+			onValueChange={(e) => (nodeType = e.value)}
 			disabledValues={attributes.excludedNodeTypeIds}
 			disabled={nodeTypeDisabled}
 			renderInPlace={true}
@@ -352,7 +352,7 @@
 			data={attributes.statuses}
 			bind:value={nodeStatus}
 			defaultValue={nodeStatus}
-			onValueChange={(e: any) => (nodeStatus = e.value)}
+			onValueChange={(e) => (nodeStatus = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -362,7 +362,7 @@
 			data={attributes.networkLevels}
 			bind:value={nodeNetworkLevel}
 			defaultValue={nodeNetworkLevel}
-			onValueChange={(e: any) => (nodeNetworkLevel = e.value)}
+			onValueChange={(e) => (nodeNetworkLevel = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -372,7 +372,7 @@
 			data={attributes.companies}
 			bind:value={nodeOwner}
 			defaultValue={nodeOwner}
-			onValueChange={(e: any) => (nodeOwner = e.value)}
+			onValueChange={(e) => (nodeOwner = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -382,7 +382,7 @@
 			data={attributes.companies}
 			bind:value={nodeConstructor}
 			defaultValue={nodeConstructor}
-			onValueChange={(e: any) => (nodeConstructor = e.value)}
+			onValueChange={(e) => (nodeConstructor = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -392,7 +392,7 @@
 			data={attributes.companies}
 			bind:value={nodeManufacturer}
 			defaultValue={nodeManufacturer}
-			onValueChange={(e: any) => (nodeManufacturer = e.value)}
+			onValueChange={(e) => (nodeManufacturer = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -424,7 +424,7 @@
 			data={attributes.flags}
 			bind:value={nodeFlag}
 			defaultValue={nodeFlag}
-			onValueChange={(e: any) => (nodeFlag = e.value)}
+			onValueChange={(e) => (nodeFlag = e.value)}
 			renderInPlace={true}
 		/>
 	</label>

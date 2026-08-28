@@ -257,7 +257,7 @@
 			data={attributes.cableTypes}
 			bind:value={cableType}
 			defaultValue={cableType}
-			onValueChange={(e: any) => (cableType = e.value)}
+			onValueChange={(e) => (cableType = e.value)}
 			disabled={true}
 			renderInPlace={true}
 		/>
@@ -279,7 +279,7 @@
 			data={attributes.statuses}
 			bind:value={cableStatus}
 			defaultValue={cableStatus}
-			onValueChange={(e: any) => (cableStatus = e.value)}
+			onValueChange={(e) => (cableStatus = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -289,7 +289,7 @@
 			data={attributes.networkLevels}
 			bind:value={cableNetworkLevel}
 			defaultValue={cableNetworkLevel}
-			onValueChange={(e: any) => (cableNetworkLevel = e.value)}
+			onValueChange={(e) => (cableNetworkLevel = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -299,7 +299,7 @@
 			data={attributes.companies}
 			bind:value={cableOwner}
 			defaultValue={cableOwner}
-			onValueChange={(e: any) => (cableOwner = e.value)}
+			onValueChange={(e) => (cableOwner = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -309,7 +309,7 @@
 			data={attributes.companies}
 			bind:value={cableConstructor}
 			defaultValue={cableConstructor}
-			onValueChange={(e: any) => (cableConstructor = e.value)}
+			onValueChange={(e) => (cableConstructor = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -319,7 +319,7 @@
 			data={attributes.companies}
 			bind:value={cableManufacturer}
 			defaultValue={cableManufacturer}
-			onValueChange={(e: any) => (cableManufacturer = e.value)}
+			onValueChange={(e) => (cableManufacturer = e.value)}
 			renderInPlace={true}
 		/>
 	</label>
@@ -341,7 +341,7 @@
 			data={attributes.flags}
 			bind:value={cableFlag}
 			defaultValue={cableFlag}
-			onValueChange={(e: any) => (cableFlag = e.value)}
+			onValueChange={(e) => (cableFlag = e.value)}
 			renderInPlace={true}
 		/>
 	</label>

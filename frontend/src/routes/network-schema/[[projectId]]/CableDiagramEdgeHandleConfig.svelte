@@ -317,7 +317,7 @@
 				bind:value={selectedNodeStart}
 				defaultValue={selectedNodeStart}
 				placeholder={m.placeholder_select_node?.() || 'Select node...'}
-				onValueChange={(e: any) => {
+				onValueChange={(e) => {
 					const newNodeId = e.value?.[0];
 					if (newNodeId && newNodeId !== cable.uuid_node_start) {
 						handleNodeChange('start', newNodeId);
@@ -366,7 +366,7 @@
 				bind:value={selectedNodeEnd}
 				defaultValue={selectedNodeEnd}
 				placeholder={m.placeholder_select_node?.() || 'Select node...'}
-				onValueChange={(e: any) => {
+				onValueChange={(e) => {
 					const newNodeId = e.value?.[0];
 					if (newNodeId && newNodeId !== cable.uuid_node_end) {
 						handleNodeChange('end', newNodeId);
