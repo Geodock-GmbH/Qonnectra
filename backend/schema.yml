@@ -6875,6 +6875,11 @@ paths:
         Serves MVT tiles for OlAddress.
         URL: /api/ol_address_tiles/{z}/{x}/{y}.mvt?project={project}
       parameters:
+      - in: query
+        name: project
+        schema:
+          type: integer
+        description: Project id to scope the tile features.
       - in: path
         name: x
         schema:
@@ -6898,7 +6903,12 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/vnd.mapbox-vector-tile:
+              schema:
+                type: string
+                format: binary
+          description: Mapbox Vector Tile (MVT).
   /api/v1/ol_area_tiles/{z}/{x}/{y}.mvt:
     get:
       operationId: ol_area_tiles_.mvt_retrieve
@@ -6906,6 +6916,11 @@ paths:
         Serves MVT tiles for OlArea.
         URL: /api/ol_area_tiles/{z}/{x}/{y}.mvt?project={project}
       parameters:
+      - in: query
+        name: project
+        schema:
+          type: integer
+        description: Project id to scope the tile features.
       - in: path
         name: x
         schema:
@@ -6929,7 +6944,12 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/vnd.mapbox-vector-tile:
+              schema:
+                type: string
+                format: binary
+          description: Mapbox Vector Tile (MVT).
   /api/v1/ol_node_tiles/{z}/{x}/{y}.mvt:
     get:
       operationId: ol_node_tiles_.mvt_retrieve
@@ -6937,6 +6957,11 @@ paths:
         Serves MVT tiles for OlNode.
         URL: /api/ol_node_tiles/{z}/{x}/{y}.mvt?project={project}
       parameters:
+      - in: query
+        name: project
+        schema:
+          type: integer
+        description: Project id to scope the tile features.
       - in: path
         name: x
         schema:
@@ -6960,7 +6985,12 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/vnd.mapbox-vector-tile:
+              schema:
+                type: string
+                format: binary
+          description: Mapbox Vector Tile (MVT).
   /api/v1/ol_trench_tiles/{z}/{x}/{y}.mvt:
     get:
       operationId: ol_trench_tiles_.mvt_retrieve
@@ -6968,6 +6998,11 @@ paths:
         Serves MVT tiles for OlTrench.
         URL: /api/ol_trench_tiles/{z}/{x}/{y}.mvt?project={project}
       parameters:
+      - in: query
+        name: project
+        schema:
+          type: integer
+        description: Project id to scope the tile features.
       - in: path
         name: x
         schema:
@@ -6991,7 +7026,12 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/vnd.mapbox-vector-tile:
+              schema:
+                type: string
+                format: binary
+          description: Mapbox Vector Tile (MVT).
   /api/v1/pipeline-inquiry-areas/:
     get:
       operationId: pipeline_inquiry_areas_list
@@ -9010,7 +9050,15 @@ paths:
       - basicAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: Reprojected WFS3/OGC-API response from the upstream QGIS Server
+            (GeoJSON or the upstream content-type).
+        '404':
+          description: QGIS project not found.
     post:
       operationId: wfs3_create
       description: Handle POST requests to WFS3 endpoints (for complex queries).
@@ -9029,7 +9077,14 @@ paths:
       - basicAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: Reprojected WFS3/OGC-API response from the upstream QGIS Server.
+        '404':
+          description: QGIS project not found.
   /api/v1/wfs3/{project_name}/{wfs3_path}:
     get:
       operationId: wfs3_retrieve_2
@@ -9055,7 +9110,15 @@ paths:
       - basicAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: Reprojected WFS3/OGC-API response from the upstream QGIS Server
+            (GeoJSON or the upstream content-type).
+        '404':
+          description: QGIS project not found.
     post:
       operationId: wfs3_create_2
       description: Handle POST requests to WFS3 endpoints (for complex queries).
@@ -9080,7 +9143,14 @@ paths:
       - basicAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: Reprojected WFS3/OGC-API response from the upstream QGIS Server.
+        '404':
+          description: QGIS project not found.
   /api/v1/wms-layers/:
     get:
       operationId: wms_layers_list
@@ -9245,7 +9315,8 @@ paths:
   /api/v1/wms-proxy/{source_id}/:
     get:
       operationId: wms_proxy_retrieve
-      description: Proxy WMS GET request to upstream server.
+      description: Proxies the WMS request to the configured upstream source; the
+        response body and content-type mirror upstream.
       parameters:
       - in: path
         name: source_id
@@ -9260,7 +9331,12 @@ paths:
       - jwtCookieAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+          description: Upstream WMS response (image or XML), streamed through.
   /api/v1/wms-sources/:
     get:
       operationId: wms_sources_list

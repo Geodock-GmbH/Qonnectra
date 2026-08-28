@@ -1373,6 +1373,19 @@ class OlTrenchTileViewSet(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "project", int, OpenApiParameter.QUERY, required=False,
+                description="Project id to scope the tile features.",
+            ),
+        ],
+        responses={
+            (200, "application/vnd.mapbox-vector-tile"): OpenApiResponse(
+                OpenApiTypes.BINARY, description="Mapbox Vector Tile (MVT)."
+            ),
+        },
+    )
     def get(self, request, z, x, y, format=None):
         """
         Serves MVT tiles for OlTrench.
@@ -2276,6 +2289,19 @@ class OlAddressTileViewSet(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "project", int, OpenApiParameter.QUERY, required=False,
+                description="Project id to scope the tile features.",
+            ),
+        ],
+        responses={
+            (200, "application/vnd.mapbox-vector-tile"): OpenApiResponse(
+                OpenApiTypes.BINARY, description="Mapbox Vector Tile (MVT)."
+            ),
+        },
+    )
     def get(self, request, z, x, y, format=None):
         """
         Serves MVT tiles for OlAddress.
@@ -3276,6 +3302,19 @@ class OlNodeTileViewSet(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "project", int, OpenApiParameter.QUERY, required=False,
+                description="Project id to scope the tile features.",
+            ),
+        ],
+        responses={
+            (200, "application/vnd.mapbox-vector-tile"): OpenApiResponse(
+                OpenApiTypes.BINARY, description="Mapbox Vector Tile (MVT)."
+            ),
+        },
+    )
     def get(self, request, z, x, y, format=None):
         """
         Serves MVT tiles for OlNode.
@@ -4818,6 +4857,19 @@ class OlAreaTileViewSet(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "project", int, OpenApiParameter.QUERY, required=False,
+                description="Project id to scope the tile features.",
+            ),
+        ],
+        responses={
+            (200, "application/vnd.mapbox-vector-tile"): OpenApiResponse(
+                OpenApiTypes.BINARY, description="Mapbox Vector Tile (MVT)."
+            ),
+        },
+    )
     def get(self, request, z, x, y, format=None):
         """
         Serves MVT tiles for OlArea.
@@ -6964,6 +7016,16 @@ class WMSProxyView(APIView):
 
         return True, ""
 
+    @extend_schema(
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.BINARY,
+                description="Upstream WMS response (image or XML), streamed through.",
+            ),
+        },
+        description="Proxies the WMS request to the configured upstream source; "
+        "the response body and content-type mirror upstream.",
+    )
     def get(self, request, source_id):
         """Proxy WMS GET request to upstream server."""
         acquired = _wms_upstream_semaphore.acquire(
@@ -7420,6 +7482,16 @@ class WFS3ProxyView(APIView):
             pass
         return params
 
+    @extend_schema(
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT,
+                description="Reprojected WFS3/OGC-API response from the upstream "
+                "QGIS Server (GeoJSON or the upstream content-type).",
+            ),
+            404: OpenApiResponse(description="QGIS project not found."),
+        },
+    )
     def get(self, request, project_name, wfs3_path=""):
         """Handle GET requests to WFS3 endpoints."""
         qgis_project = self._get_qgis_project(project_name)
@@ -7430,6 +7502,17 @@ class WFS3ProxyView(APIView):
             )
         return self._proxy_request(request, qgis_project, wfs3_path)
 
+    @extend_schema(
+        request=None,
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT,
+                description="Reprojected WFS3/OGC-API response from the upstream "
+                "QGIS Server.",
+            ),
+            404: OpenApiResponse(description="QGIS project not found."),
+        },
+    )
     def post(self, request, project_name, wfs3_path=""):
         """Handle POST requests to WFS3 endpoints (for complex queries)."""
         qgis_project = self._get_qgis_project(project_name)
