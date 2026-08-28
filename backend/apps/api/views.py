@@ -3230,6 +3230,27 @@ class RoutingView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=inline_serializer(
+            name="RoutingRequest",
+            fields={
+                "start_trench_id": serializers.IntegerField(),
+                "end_trench_id": serializers.IntegerField(),
+                "project_id": serializers.IntegerField(),
+                "tolerance": serializers.IntegerField(
+                    required=False, help_text="Snapping tolerance (default 1)."
+                ),
+            },
+        ),
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT,
+                description="Shortest path between the two trenches.",
+            ),
+            400: OpenApiResponse(description="Missing trench ids or routing error."),
+            404: OpenApiResponse(description="No path found."),
+        },
+    )
     def post(self, request, format=None):
         """
         Calculates and returns the shortest path between two trenches.
@@ -8246,6 +8267,38 @@ class SignalAnalysisView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "fiber_id", str, OpenApiParameter.QUERY, required=True,
+                description="UUID of the fiber to analyze.",
+            ),
+            OpenApiParameter(
+                "signal_source_node_id", str, OpenApiParameter.QUERY, required=False,
+                description="Node where the signal originates (default: root cable start).",
+            ),
+            OpenApiParameter(
+                "include_geometry", bool, OpenApiParameter.QUERY, required=False,
+                description="Include trench geometry (default false).",
+            ),
+            OpenApiParameter(
+                "geometry_mode", str, OpenApiParameter.QUERY, required=False,
+                enum=["segments", "merged", "routed"],
+                description="Geometry representation (default 'segments').",
+            ),
+            OpenApiParameter(
+                "orient_geometry", bool, OpenApiParameter.QUERY, required=False,
+                description="Orient lines from cable start to end.",
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT,
+                description="Signal-flow analysis with lit/dark portions and breaks.",
+            ),
+            400: OpenApiResponse(description="Missing/invalid fiber_id or bad parameter."),
+        },
+    )
     def get(self, request):
         """Analyze signal flow through a fiber, identifying breaks and lit/dark portions."""
         from uuid import UUID as UUIDType
@@ -8427,6 +8480,28 @@ class FaultSimulationView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=inline_serializer(
+            name="FaultSimulationRequest",
+            fields={
+                "point": serializers.ListField(
+                    child=serializers.FloatField(),
+                    min_length=2,
+                    max_length=2,
+                    help_text="Damage point as [x, y].",
+                ),
+                "project_id": serializers.CharField(help_text="Project UUID."),
+            },
+        ),
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT,
+                description="Affected infrastructure (cables, addresses, RUs).",
+            ),
+            400: OpenApiResponse(description="Missing point or project_id."),
+            404: OpenApiResponse(description="No trench found near the point."),
+        },
+    )
     def post(self, request):
         """Run fault simulation for a given damage point.
 

@@ -3214,13 +3214,34 @@ paths:
                 error (HTTP 500).
       tags:
       - fault-simulation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FaultSimulationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FaultSimulationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FaultSimulationRequest'
+        required: true
       security:
       - jwtHeaderAuth: []
       - jwtCookieAuth: []
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: Affected infrastructure (cables, addresses, RUs).
+        '400':
+          description: Missing point or project_id.
+        '404':
+          description: No trench found near the point.
   /api/v1/feature-files/:
     get:
       operationId: feature_files_list
@@ -7511,13 +7532,34 @@ paths:
         }
       tags:
       - routing
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoutingRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RoutingRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RoutingRequest'
+        required: true
       security:
       - jwtHeaderAuth: []
       - jwtCookieAuth: []
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: Shortest path between the two trenches.
+        '400':
+          description: Missing trench ids or routing error.
+        '404':
+          description: No path found.
   /api/v1/schema.gpkg:
     get:
       operationId: schema.gpkg_retrieve
@@ -7537,6 +7579,37 @@ paths:
       operationId: signal_analysis_retrieve
       description: Analyze signal flow through a fiber, identifying breaks and lit/dark
         portions.
+      parameters:
+      - in: query
+        name: fiber_id
+        schema:
+          type: string
+        description: UUID of the fiber to analyze.
+        required: true
+      - in: query
+        name: geometry_mode
+        schema:
+          type: string
+          enum:
+          - merged
+          - routed
+          - segments
+        description: Geometry representation (default 'segments').
+      - in: query
+        name: include_geometry
+        schema:
+          type: boolean
+        description: Include trench geometry (default false).
+      - in: query
+        name: orient_geometry
+        schema:
+          type: boolean
+        description: Orient lines from cable start to end.
+      - in: query
+        name: signal_source_node_id
+        schema:
+          type: string
+        description: 'Node where the signal originates (default: root cable start).'
       tags:
       - signal-analysis
       security:
@@ -7545,7 +7618,14 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: Signal-flow analysis with lit/dark portions and breaks.
+        '400':
+          description: Missing/invalid fiber_id or bad parameter.
   /api/v1/spatial/intersects/:
     post:
       operationId: spatial_intersects_create
@@ -10464,6 +10544,23 @@ components:
           type: string
       required:
       - error
+    FaultSimulationRequest:
+      type: object
+      properties:
+        point:
+          type: array
+          items:
+            type: number
+            format: double
+          description: Damage point as [x, y].
+          maxItems: 2
+          minItems: 2
+        project_id:
+          type: string
+          description: Project UUID.
+      required:
+      - point
+      - project_id
     FeatureFiles:
       type: object
       description: Serialize :model:`api.FeatureFiles` with Nextcloud storage metadata.
@@ -13934,6 +14031,22 @@ components:
           readOnly: true
       required:
       - detail
+    RoutingRequest:
+      type: object
+      properties:
+        start_trench_id:
+          type: integer
+        end_trench_id:
+          type: integer
+        project_id:
+          type: integer
+        tolerance:
+          type: integer
+          description: Snapping tolerance (default 1).
+      required:
+      - end_trench_id
+      - project_id
+      - start_trench_id
     SourceEnum:
       enum:
       - backend
