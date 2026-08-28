@@ -1343,6 +1343,18 @@ paths:
         for subsequent requests.
       tags:
       - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppLoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AppLoginRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AppLoginRequest'
+        required: true
       security:
       - jwtHeaderAuth: []
       - jwtCookieAuth: []
@@ -1350,7 +1362,15 @@ paths:
       - {}
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppLoginResult'
+          description: ''
+        '400':
+          description: Missing username or password.
+        '401':
+          description: Invalid credentials or inactive account.
   /api/v1/auth/app/logout/:
     post:
       operationId: auth_app_logout_create
@@ -1360,13 +1380,33 @@ paths:
         Accepts ``{"refresh": "<token>"}`` in the request body.
       tags:
       - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppLogoutRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AppLogoutRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AppLogoutRequest'
+        required: true
       security:
       - jwtHeaderAuth: []
       - jwtCookieAuth: []
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppLogoutResult'
+          description: ''
+        '400':
+          description: Refresh token is required.
+        '401':
+          description: Invalid or expired refresh token.
   /api/v1/auth/app/token/refresh/:
     post:
       operationId: auth_app_token_refresh_create
@@ -1571,7 +1611,12 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: Role-based permission set for the current user.
   /api/v1/auth/qgis-auth/:
     get:
       operationId: auth_qgis_auth_retrieve
@@ -9545,6 +9590,49 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Address'
+    AppLoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+      - password
+      - username
+    AppLoginResult:
+      type: object
+      properties:
+        access:
+          type: string
+        refresh:
+          type: string
+        access_expiration:
+          type: integer
+        refresh_expiration:
+          type: integer
+        user:
+          $ref: '#/components/schemas/CustomUserDetails'
+      required:
+      - access
+      - access_expiration
+      - refresh
+      - refresh_expiration
+      - user
+    AppLogoutRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+      required:
+      - refresh
+    AppLogoutResult:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
     Area:
       type: object
       description: Serialize :model:`api.Area` as GeoJSON with Polygon geometry validation.

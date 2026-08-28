@@ -147,6 +147,7 @@ from .serializers import (
     ContainerTreeSerializer,
     ContainerTypeSerializer,
     ContentTypeSerializer,
+    CustomUserDetailsSerializer,
     FeatureFilesSerializer,
     FiberSerializer,
     FiberSpliceSerializer,
@@ -1182,6 +1183,14 @@ class UserPermissionsView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT,
+                description="Role-based permission set for the current user.",
+            ),
+        },
+    )
     def get(self, request):
         """Return the authenticated user's role-based permission set."""
         permissions = get_user_permissions(request.user)
@@ -1201,6 +1210,29 @@ class AppLoginView(APIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "app_login"
 
+    @extend_schema(
+        request=inline_serializer(
+            name="AppLoginRequest",
+            fields={
+                "username": serializers.CharField(),
+                "password": serializers.CharField(),
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                name="AppLoginResult",
+                fields={
+                    "access": serializers.CharField(),
+                    "refresh": serializers.CharField(),
+                    "access_expiration": serializers.IntegerField(),
+                    "refresh_expiration": serializers.IntegerField(),
+                    "user": CustomUserDetailsSerializer(),
+                },
+            ),
+            400: OpenApiResponse(description="Missing username or password."),
+            401: OpenApiResponse(description="Invalid credentials or inactive account."),
+        },
+    )
     def post(self, request):
         from django.contrib.auth import authenticate
         from rest_framework_simplejwt.tokens import RefreshToken
@@ -1230,8 +1262,6 @@ class AppLoginView(APIView):
 
         refresh = RefreshToken.for_user(user)
         access = refresh.access_token
-
-        from apps.api.serializers import CustomUserDetailsSerializer
 
         user_data = CustomUserDetailsSerializer(user).data
 
@@ -1266,6 +1296,20 @@ class AppLogoutView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=inline_serializer(
+            name="AppLogoutRequest",
+            fields={"refresh": serializers.CharField()},
+        ),
+        responses={
+            200: inline_serializer(
+                name="AppLogoutResult",
+                fields={"detail": serializers.CharField()},
+            ),
+            400: OpenApiResponse(description="Refresh token is required."),
+            401: OpenApiResponse(description="Invalid or expired refresh token."),
+        },
+    )
     def post(self, request):
         refresh_token = request.data.get("refresh")
         if not refresh_token:
