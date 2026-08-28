@@ -219,7 +219,6 @@
 	/**
 	 * Refreshes cable data from the server, updates the drawer props, and dispatches
 	 * a micropipeLinkageChanged event to update edge micropipe connection coloring.
-	 * @returns {Promise<void>}
 	 */
 	async function refreshCableData() {
 		if (type !== 'edge' || !featureId) return;

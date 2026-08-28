@@ -1,27 +1,42 @@
 name: Playwright Tests
+
+# E2E tests require the full backend stack (PostGIS, backend, WMS, tileserver)
+# and E2E_TEST_USERNAME / E2E_TEST_PASSWORD secrets, so this runs on demand
+# rather than on every push. Trigger it manually from the Actions tab once the
+# stack and secrets are available in the CI environment.
 on:
-  push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: frontend
+
 jobs:
   test:
+    name: Playwright E2E
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
       - name: Install dependencies
         run: npm ci
+
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
+
       - name: Run Playwright tests
         run: npx playwright test
+
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
-          path: playwright-report/
+          path: frontend/playwright-report/
           retention-days: 30

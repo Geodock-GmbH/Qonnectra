@@ -67,9 +67,7 @@ export function createTrenchStyle(
 			radius: 7,
 			fill: new Fill({ color: color }),
 			stroke: new Stroke({ color: color, width: 2 })
-		}),
-		// @ts-ignore
-		declutterMode: 'none'
+		})
 	});
 
 	const trenchEnabled = labelOptions.enabled || false;
@@ -95,9 +93,7 @@ export function createTrenchStyle(
 			if (labelText) {
 				styles.push(
 					new Style({
-						text: createTextStyle({ text: labelText, ...trenchTextStyle }),
-						// @ts-ignore
-						declutterMode: 'declutter'
+						text: createTextStyle({ text: labelText, ...trenchTextStyle })
 					})
 				);
 			}
@@ -112,9 +108,7 @@ export function createTrenchStyle(
 							text: conduitText,
 							offsetY: 30,
 							...conduitTextStyle
-						}),
-						// @ts-ignore
-						declutterMode: 'declutter'
+						})
 					})
 				);
 			}
@@ -176,18 +170,14 @@ export function createTrenchStyleWithLabels(
 			radius: 7,
 			fill: new Fill({ color: color }),
 			stroke: new Stroke({ color: color, width: 2 })
-		}),
-		// @ts-ignore
-		declutterMode: 'none'
+		})
 	});
 
 	return function (feature: FeatureLike, resolution: number): Style | Style[] {
 		if (enabled && resolution < minResolution) {
 			const labelText = (feature.get(field) || '').toString();
 			const labelStyle = new Style({
-				text: createTextStyle({ text: labelText, ...textStyle }),
-				// @ts-ignore
-				declutterMode: 'declutter'
+				text: createTextStyle({ text: labelText, ...textStyle })
 			});
 			return [geometryStyle, labelStyle];
 		}
@@ -245,9 +235,7 @@ export function createAddressStyleWithLabels(
 			radius: size,
 			fill: new Fill({ color: color }),
 			stroke: new Stroke({ color: '#000000', width: 1 })
-		}),
-		// @ts-ignore
-		declutterMode: 'none'
+		})
 	});
 
 	return function (feature: FeatureLike, resolution: number): Style | Style[] {
@@ -259,9 +247,7 @@ export function createAddressStyleWithLabels(
 			const city = feature.get('city') || '';
 			const labelText = `${street} ${houseNumber}${suffix || ''}, ${postalCode} ${city}`.trim();
 			const labelStyle = new Style({
-				text: createTextStyle({ text: labelText, ...textStyle }),
-				// @ts-ignore
-				declutterMode: 'declutter'
+				text: createTextStyle({ text: labelText, ...textStyle })
 			});
 			return [geometryStyle, labelStyle];
 		}
@@ -311,18 +297,14 @@ export function createNodeStyleWithLabels(labelOptions: LabelOptions = {}): Styl
 	const { enabled = false, field = 'name', minResolution = 1.0, textStyle = {} } = labelOptions;
 
 	const geometryStyle = new Style({
-		image: createNodeImage(DEFAULT_NODE_SHAPE, DEFAULT_NODE_SIZE, DEFAULT_NODE_COLOR),
-		// @ts-ignore
-		declutterMode: 'none'
+		image: createNodeImage(DEFAULT_NODE_SHAPE, DEFAULT_NODE_SIZE, DEFAULT_NODE_COLOR)
 	});
 
 	return function (feature: FeatureLike, resolution: number): Style | Style[] {
 		if (enabled && resolution < minResolution) {
 			const labelText = (feature.get(field) || '').toString();
 			const labelStyle = new Style({
-				text: createTextStyle({ text: labelText, ...textStyle }),
-				// @ts-ignore
-				declutterMode: 'declutter'
+				text: createTextStyle({ text: labelText, ...textStyle })
 			});
 			return [geometryStyle, labelStyle];
 		}
@@ -376,9 +358,7 @@ export function createNodeStyleByType(
 					shape,
 					typeConfig.size || DEFAULT_NODE_SIZE,
 					typeConfig.color || DEFAULT_NODE_COLOR
-				),
-				// @ts-ignore
-				declutterMode: 'none'
+				)
 			});
 			geometryStyleCache.set(geometryCacheKey, geometryStyle);
 		}
@@ -388,9 +368,7 @@ export function createNodeStyleByType(
 		if (showLabels) {
 			const labelText = (feature.get(field) || '').toString();
 			const labelStyle = new Style({
-				text: createTextStyle({ text: labelText, ...textStyle }),
-				// @ts-ignore
-				declutterMode: 'declutter'
+				text: createTextStyle({ text: labelText, ...textStyle })
 			});
 			return [geometryStyle, labelStyle];
 		}
@@ -475,9 +453,7 @@ export function createTrenchStyleByAttribute(
 					radius: 7,
 					fill: new Fill({ color: color }),
 					stroke: new Stroke({ color: color, width: 2 })
-				}),
-				// @ts-ignore
-				declutterMode: 'none'
+				})
 			});
 			geometryStyleCache.set(geometryCacheKey, geometryStyle);
 		}
@@ -489,9 +465,7 @@ export function createTrenchStyleByAttribute(
 			if (labelText) {
 				styles.push(
 					new Style({
-						text: createTextStyle({ text: labelText, ...trenchTextStyle }),
-						// @ts-ignore
-						declutterMode: 'declutter'
+						text: createTextStyle({ text: labelText, ...trenchTextStyle })
 					})
 				);
 			}
@@ -506,9 +480,7 @@ export function createTrenchStyleByAttribute(
 							text: conduitText,
 							offsetY: 30,
 							...conduitTextStyle
-						}),
-						// @ts-ignore
-						declutterMode: 'declutter'
+						})
 					})
 				);
 			}
@@ -537,18 +509,14 @@ export function createAreaStyleWithLabels(
 		stroke: new Stroke({
 			color: color,
 			width: 2
-		}),
-		// @ts-ignore
-		declutterMode: 'none'
+		})
 	});
 
 	return function (feature: FeatureLike, resolution: number): Style | Style[] {
 		if (enabled && resolution < minResolution) {
 			const labelText = (feature.get(field) || '').toString();
 			const labelStyle = new Style({
-				text: createTextStyle({ text: labelText, offsetX: 0, offsetY: 0, ...textStyle }),
-				// @ts-ignore
-				declutterMode: 'declutter'
+				text: createTextStyle({ text: labelText, offsetX: 0, offsetY: 0, ...textStyle })
 			});
 			return [geometryStyle, labelStyle];
 		}
@@ -591,9 +559,7 @@ export function createAreaStyleByType(
 				stroke: new Stroke({
 					color: typeConfig.color || DEFAULT_AREA_COLOR,
 					width: 2
-				}),
-				// @ts-ignore
-				declutterMode: 'none'
+				})
 			});
 			geometryStyleCache.set(geometryCacheKey, geometryStyle);
 		}
@@ -603,9 +569,7 @@ export function createAreaStyleByType(
 		if (showLabels) {
 			const labelText = (feature.get(field) || '').toString();
 			const labelStyle = new Style({
-				text: createTextStyle({ text: labelText, offsetX: 0, offsetY: 0, ...textStyle }),
-				// @ts-ignore
-				declutterMode: 'declutter'
+				text: createTextStyle({ text: labelText, offsetX: 0, offsetY: 0, ...textStyle })
 			});
 			return [geometryStyle, labelStyle];
 		}

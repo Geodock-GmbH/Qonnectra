@@ -107,7 +107,6 @@
 
 			const cableStates: Record<string, Set<string>> = {};
 
-			/** @param node */
 			function collectCableStates(node: Record<string, any>) {
 				if (!node) return;
 				const cableId = node.fiber?.cable_id;
@@ -144,9 +143,6 @@
 
 	let expandedWaypoints = new SvelteSet<string>();
 
-	/**
-	 * @param fiberId
-	 */
 	function toggleWaypoint(fiberId: string) {
 		if (expandedWaypoints.has(fiberId)) {
 			expandedWaypoints.delete(fiberId);
@@ -645,7 +641,7 @@
 					<GenericCombobox
 						data={sourceOptions}
 						value={sourceNode?.id ? [String(sourceNode.id)] : []}
-						onValueChange={(/** @type {{ value: string[] }} */ e) => {
+						onValueChange={(e) => {
 							changeSignalSource(e.value[0] || '');
 						}}
 					/>

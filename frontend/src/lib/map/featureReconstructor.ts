@@ -13,8 +13,6 @@ export interface SerializedFeature {
 	id: string | number | undefined;
 	/** Feature properties including geometry */
 	properties?: Record<string, unknown>;
-	/** Name of the geometry property */
-	geometryName?: string;
 	/** Flat coordinate array */
 	flatCoordinates?: number[];
 	/** Coordinate layout (XY, XYZ, etc.) */

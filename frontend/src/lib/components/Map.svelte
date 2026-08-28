@@ -147,7 +147,7 @@
 
 	/**
 	 * Checks if the tile server is available by sending a health check request.
-	 * @returns {Promise<boolean>} True if the tile server responds successfully within timeout
+	 * @returns True if the tile server responds successfully within timeout
 	 */
 	async function checkTileServerHealth() {
 		try {
