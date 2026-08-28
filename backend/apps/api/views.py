@@ -8341,6 +8341,43 @@ class ValuationCalculateView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=ValuationRequestSerializer,
+        responses={
+            200: inline_serializer(
+                name="ValuationResult",
+                fields={
+                    "categories": inline_serializer(
+                        name="ValuationCategory",
+                        many=True,
+                        fields={
+                            "name": serializers.CharField(),
+                            "unit": serializers.CharField(),
+                            "amount": serializers.FloatField(),
+                            "quantity": serializers.FloatField(),
+                            "gp": serializers.FloatField(),
+                            "is_house_connection": serializers.BooleanField(),
+                        },
+                    ),
+                    "total": serializers.FloatField(),
+                    "cost_per_house_connection": serializers.FloatField(
+                        allow_null=True
+                    ),
+                    "cost_per_meter": serializers.FloatField(allow_null=True),
+                    "projection": inline_serializer(
+                        name="ValuationProjectionYear",
+                        many=True,
+                        allow_null=True,
+                        fields={
+                            "year": serializers.IntegerField(),
+                            "net_value": serializers.FloatField(),
+                            "increase": serializers.FloatField(),
+                        },
+                    ),
+                },
+            ),
+        },
+    )
     def post(self, request):
         """Validate the request and return the calculated valuation."""
         serializer = ValuationRequestSerializer(data=request.data)

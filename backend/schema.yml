@@ -8451,13 +8451,29 @@ paths:
       description: Validate the request and return the calculated valuation.
       tags:
       - valuation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValuationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ValuationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ValuationRequest'
+        required: true
       security:
       - jwtHeaderAuth: []
       - jwtCookieAuth: []
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValuationResult'
+          description: ''
   /api/v1/wfs3/{project_name}/:
     get:
       operationId: wfs3_retrieve
@@ -13840,6 +13856,31 @@ components:
           readOnly: true
       required:
       - updated_at
+    ValuationCategory:
+      type: object
+      properties:
+        name:
+          type: string
+        unit:
+          type: string
+        amount:
+          type: number
+          format: double
+        quantity:
+          type: number
+          format: double
+        gp:
+          type: number
+          format: double
+        is_house_connection:
+          type: boolean
+      required:
+      - amount
+      - gp
+      - is_house_connection
+      - name
+      - quantity
+      - unit
     ValuationCostRate:
       type: object
       description: Serialize :model:`api.ValuationCostRate` cost rates.
@@ -13881,6 +13922,74 @@ components:
       - id
       - name
       - project
+    ValuationProjectionYear:
+      type: object
+      properties:
+        year:
+          type: integer
+        net_value:
+          type: number
+          format: double
+        increase:
+          type: number
+          format: double
+      required:
+      - increase
+      - net_value
+      - year
+    ValuationRequest:
+      type: object
+      description: Validate the input of the valuation calculation endpoint.
+      properties:
+        project:
+          type: integer
+        area_uuids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        base_year:
+          type: integer
+          nullable: true
+        annual_correction:
+          type: number
+          format: double
+          nullable: true
+        projection_years:
+          type: integer
+          maximum: 100
+          minimum: 1
+      required:
+      - project
+    ValuationResult:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValuationCategory'
+        total:
+          type: number
+          format: double
+        cost_per_house_connection:
+          type: number
+          format: double
+          nullable: true
+        cost_per_meter:
+          type: number
+          format: double
+          nullable: true
+        projection:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValuationProjectionYear'
+          nullable: true
+      required:
+      - categories
+      - cost_per_house_connection
+      - cost_per_meter
+      - projection
+      - total
     WMSLayer:
       type: object
       description: Serialize :model:`api.WMSLayer` display settings.
