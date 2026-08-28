@@ -3973,6 +3973,52 @@ paths:
     get:
       operationId: fiber_trace_retrieve
       description: Trace fiber paths through the network and return a path tree.
+      parameters:
+      - in: query
+        name: address_id
+        schema:
+          type: string
+        description: Trace fibers via an address's linked nodes/RUs.
+      - in: query
+        name: cable_id
+        schema:
+          type: string
+        description: Trace all fibers of a cable.
+      - in: query
+        name: fiber_id
+        schema:
+          type: string
+        description: Trace a single fiber (mutually exclusive with the other *_id
+          params).
+      - in: query
+        name: geometry_mode
+        schema:
+          type: string
+          enum:
+          - merged
+          - routed
+          - segments
+        description: Geometry representation (default 'segments').
+      - in: query
+        name: include_geometry
+        schema:
+          type: boolean
+        description: Include trench geometry (default false).
+      - in: query
+        name: node_id
+        schema:
+          type: string
+        description: Trace all fibers passing through a node.
+      - in: query
+        name: orient_geometry
+        schema:
+          type: boolean
+        description: Orient lines from cable start to end.
+      - in: query
+        name: residential_unit_id
+        schema:
+          type: string
+        description: Trace fibers connected to a residential unit.
       tags:
       - fiber-trace
       security:
@@ -3981,11 +4027,26 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: Path tree of the traced fiber(s); recursive shape produced
+            by the trace services.
+        '400':
+          description: Missing/ambiguous id or bad parameter.
   /api/v1/fiber-trace/summary/:
     get:
       operationId: fiber_trace_summary_retrieve
       description: Return a compact trace summary with start/end nodes and statistics.
+      parameters:
+      - in: query
+        name: fiber_id
+        schema:
+          type: string
+        description: UUID of the fiber to summarize.
+        required: true
       tags:
       - fiber-trace
       security:
@@ -3994,7 +4055,15 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: Compact trace summary (start/end nodes, addresses, stats) produced
+            by the trace service.
+        '400':
+          description: Missing or invalid fiber_id.
   /api/v1/fiber/{uuid}/:
     get:
       operationId: fiber_retrieve

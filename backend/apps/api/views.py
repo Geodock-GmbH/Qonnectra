@@ -30,6 +30,7 @@ from django.db.models.functions import TruncMonth
 from django.http import FileResponse, HttpResponse, StreamingHttpResponse
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiParameter,
     OpenApiResponse,
@@ -8017,6 +8018,51 @@ class FiberTraceView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "fiber_id", str, OpenApiParameter.QUERY, required=False,
+                description="Trace a single fiber (mutually exclusive with the other *_id params).",
+            ),
+            OpenApiParameter(
+                "cable_id", str, OpenApiParameter.QUERY, required=False,
+                description="Trace all fibers of a cable.",
+            ),
+            OpenApiParameter(
+                "node_id", str, OpenApiParameter.QUERY, required=False,
+                description="Trace all fibers passing through a node.",
+            ),
+            OpenApiParameter(
+                "address_id", str, OpenApiParameter.QUERY, required=False,
+                description="Trace fibers via an address's linked nodes/RUs.",
+            ),
+            OpenApiParameter(
+                "residential_unit_id", str, OpenApiParameter.QUERY, required=False,
+                description="Trace fibers connected to a residential unit.",
+            ),
+            OpenApiParameter(
+                "include_geometry", bool, OpenApiParameter.QUERY, required=False,
+                description="Include trench geometry (default false).",
+            ),
+            OpenApiParameter(
+                "geometry_mode", str, OpenApiParameter.QUERY, required=False,
+                enum=["segments", "merged", "routed"],
+                description="Geometry representation (default 'segments').",
+            ),
+            OpenApiParameter(
+                "orient_geometry", bool, OpenApiParameter.QUERY, required=False,
+                description="Orient lines from cable start to end.",
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT,
+                description="Path tree of the traced fiber(s); recursive shape "
+                "produced by the trace services.",
+            ),
+            400: OpenApiResponse(description="Missing/ambiguous id or bad parameter."),
+        },
+    )
     def get(self, request):
         """Trace fiber paths through the network and return a path tree."""
         from uuid import UUID as UUIDType
@@ -8132,6 +8178,25 @@ class FiberTraceSummaryView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "fiber_id",
+                str,
+                OpenApiParameter.QUERY,
+                required=True,
+                description="UUID of the fiber to summarize.",
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT,
+                description="Compact trace summary (start/end nodes, addresses, "
+                "stats) produced by the trace service.",
+            ),
+            400: OpenApiResponse(description="Missing or invalid fiber_id."),
+        },
+    )
     def get(self, request):
         """Return a compact trace summary with start/end nodes and statistics."""
         from uuid import UUID as UUIDType
