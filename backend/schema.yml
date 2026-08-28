@@ -8354,6 +8354,25 @@ paths:
 
         Returns:
         - List of trenches with their associated conduits and microducts
+      parameters:
+      - in: query
+        name: distance
+        schema:
+          type: number
+          format: double
+        description: Search radius in meters (default 5).
+      - in: query
+        name: node_name
+        schema:
+          type: string
+        description: Name of the node to search around.
+        required: true
+      - in: query
+        name: project
+        schema:
+          type: integer
+        description: Project id to filter by.
+        required: true
       tags:
       - trenches-near-node
       security:
@@ -8362,7 +8381,15 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrenchesNearNodeResult'
+          description: ''
+        '400':
+          description: Missing or non-numeric parameters.
+        '404':
+          description: Node not found in the project.
   /api/v1/type-of-work/:
     get:
       operationId: type_of_work_list
@@ -14003,6 +14030,102 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Trench'
+    TrenchesNearNodeConduit:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        name:
+          type: string
+        microducts:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrenchesNearNodeMicroduct'
+      required:
+      - microducts
+      - name
+      - uuid
+    TrenchesNearNodeMicroduct:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        number:
+          type: integer
+        color:
+          type: string
+          nullable: true
+        microduct_status:
+          type: string
+          nullable: true
+        hex_code:
+          type: string
+          nullable: true
+        hex_code_secondary:
+          type: string
+          nullable: true
+        name_de:
+          type: string
+          nullable: true
+        name_en:
+          type: string
+          nullable: true
+        is_two_layer:
+          type: boolean
+      required:
+      - color
+      - hex_code
+      - hex_code_secondary
+      - is_two_layer
+      - microduct_status
+      - name_de
+      - name_en
+      - number
+      - uuid
+    TrenchesNearNodeResult:
+      type: object
+      properties:
+        trenches:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrenchesNearNodeTrench'
+        count:
+          type: integer
+        node_uuid:
+          type: string
+          format: uuid
+        node_name:
+          type: string
+        distance:
+          type: number
+          format: double
+        project_id:
+          type: integer
+      required:
+      - count
+      - distance
+      - node_name
+      - node_uuid
+      - project_id
+      - trenches
+    TrenchesNearNodeTrench:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        id_trench:
+          type: string
+        conduits:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrenchesNearNodeConduit'
+      required:
+      - conduits
+      - id_trench
+      - uuid
     TypeOfWork:
       type: object
       description: Serialize :model:`api.TypeOfWork` instances.

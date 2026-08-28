@@ -3668,6 +3668,88 @@ class TrenchesNearNodeView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "node_name",
+                str,
+                OpenApiParameter.QUERY,
+                required=True,
+                description="Name of the node to search around.",
+            ),
+            OpenApiParameter(
+                "distance",
+                float,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="Search radius in meters (default 5).",
+            ),
+            OpenApiParameter(
+                "project",
+                int,
+                OpenApiParameter.QUERY,
+                required=True,
+                description="Project id to filter by.",
+            ),
+        ],
+        responses={
+            200: inline_serializer(
+                name="TrenchesNearNodeResult",
+                fields={
+                    "trenches": inline_serializer(
+                        name="TrenchesNearNodeTrench",
+                        many=True,
+                        fields={
+                            "uuid": serializers.UUIDField(),
+                            "id_trench": serializers.CharField(),
+                            "conduits": inline_serializer(
+                                name="TrenchesNearNodeConduit",
+                                many=True,
+                                fields={
+                                    "uuid": serializers.UUIDField(),
+                                    "name": serializers.CharField(),
+                                    "microducts": inline_serializer(
+                                        name="TrenchesNearNodeMicroduct",
+                                        many=True,
+                                        fields={
+                                            "uuid": serializers.UUIDField(),
+                                            "number": serializers.IntegerField(),
+                                            "color": serializers.CharField(
+                                                allow_null=True
+                                            ),
+                                            "microduct_status": serializers.CharField(
+                                                allow_null=True
+                                            ),
+                                            "hex_code": serializers.CharField(
+                                                allow_null=True
+                                            ),
+                                            "hex_code_secondary": serializers.CharField(
+                                                allow_null=True
+                                            ),
+                                            "name_de": serializers.CharField(
+                                                allow_null=True
+                                            ),
+                                            "name_en": serializers.CharField(
+                                                allow_null=True
+                                            ),
+                                            "is_two_layer": serializers.BooleanField(),
+                                        },
+                                    ),
+                                },
+                            ),
+                        },
+                    ),
+                    "count": serializers.IntegerField(),
+                    "node_uuid": serializers.UUIDField(),
+                    "node_name": serializers.CharField(),
+                    "distance": serializers.FloatField(),
+                    "project_id": serializers.IntegerField(),
+                },
+            ),
+            400: OpenApiResponse(description="Missing or non-numeric parameters."),
+            404: OpenApiResponse(description="Node not found in the project."),
+        },
+    )
     def get(self, request, format=None):
         """
         Returns trenches near a node with their associated microducts.
