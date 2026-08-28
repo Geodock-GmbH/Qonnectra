@@ -5,6 +5,7 @@ GIS features, file management, WMS/WFS proxying, and dashboard statistics.
 """
 
 from django.urls import include, path, re_path
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.routers import DefaultRouter
 
 from .views import (
@@ -280,6 +281,12 @@ router.register(
 )
 
 urlpatterns = [
+    path("schema/", SpectacularAPIView.as_view(), name="schema"),
+    path(
+        "docs/",
+        SpectacularSwaggerView.as_view(url_name="v1:schema"),
+        name="swagger-ui",
+    ),
     path("logs/frontend/", FrontendLogView.as_view(), name="frontend-logs"),
     path("auth/permissions/", UserPermissionsView.as_view(), name="user-permissions"),
     path("auth/app/login/", AppLoginView.as_view(), name="app-login"),
