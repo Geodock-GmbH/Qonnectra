@@ -33,7 +33,10 @@ export interface ParseErrorResponse {
 	error: string;
 }
 
-const format = new MVT();
+// Must match the MVT formats in tileSources.ts: uuid becomes the feature id.
+// Without it, worker-parsed features have no id and every feature click is
+// treated as an empty-map click (no drawer).
+const format = new MVT({ idProperty: 'uuid' });
 
 /**
  * Maps a coordinate stride to its OpenLayers geometry layout.
