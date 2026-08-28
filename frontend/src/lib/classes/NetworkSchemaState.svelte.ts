@@ -109,12 +109,12 @@ export interface NetworkSchemaInitData {
 export interface SvelteFlowConnection {
 	source: string;
 	target: string;
-	sourceHandle?: string;
-	targetHandle?: string;
+	sourceHandle?: string | null;
+	targetHandle?: string | null;
 }
 
 export interface NodeDragStopEvent {
-	targetNode: { id: string; position: { x: number; y: number } };
+	targetNode: { id: string; position: { x: number; y: number } } | null;
 }
 
 export interface MicroductCandidate {
@@ -376,6 +376,7 @@ export class NetworkSchemaState {
 	 */
 	async handleNodeDragStop(event: NodeDragStopEvent): Promise<void> {
 		const node = event.targetNode;
+		if (!node) return;
 		const nodeId = node.id;
 		const newPosition = node.position;
 
@@ -452,7 +453,7 @@ export class NetworkSchemaState {
 	 * Parse handle ID to extract position
 	 * @param handleId - Handle ID format: nodeUuid-position-type
 	 */
-	parseHandlePosition(handleId: string | undefined): string | null {
+	parseHandlePosition(handleId: string | null | undefined): string | null {
 		if (!handleId) return null;
 		const parts = handleId.split('-');
 		return parts[parts.length - 2];

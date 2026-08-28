@@ -1,7 +1,8 @@
 <script lang="ts">
+	import type { EdgeTypes, NodeTypes } from '@xyflow/svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { Background, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
+	import { Background, ConnectionMode, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
 	import { IconArrowLeft, IconChevronDown, IconChevronRight } from '@tabler/icons-svelte';
 
@@ -35,14 +36,17 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const nodeTypes = { cableDiagramNode: CableDiagramNode };
-	const edgeTypes: any = { cableDiagramEdge: CableDiagramEdge };
+	// The custom node/edge components declare stricter `data` props than
+	// SvelteFlow's generic EdgeProps/NodeProps, so cast the registry to the
+	// library types (they are valid flow components at runtime).
+	const nodeTypes = { cableDiagramNode: CableDiagramNode } as unknown as NodeTypes;
+	const edgeTypes = { cableDiagramEdge: CableDiagramEdge } as unknown as EdgeTypes;
 
-	const connectionMode: any = 'loose';
+	const connectionMode: ConnectionMode = ConnectionMode.Loose;
 
-	const svelteFlowExtraProps: any = {
+	const svelteFlowExtraProps = {
 		snapToGrid: true,
-		snapGrid: [120, 120],
+		snapGrid: [120, 120] as [number, number],
 		connectionRadius: 100,
 		noPanClass: 'nopan',
 		minZoom: 0.01
@@ -225,8 +229,8 @@
 			{edgeTypes}
 			{connectionMode}
 			{...svelteFlowExtraProps}
-			onnodedragstop={(e: any) => schemaState.handleNodeDragStop(e)}
-			onconnect={(conn: any) => schemaState.handleConnect(conn, $selectedProject)}
+			onnodedragstop={(e) => schemaState.handleNodeDragStop(e)}
+			onconnect={(conn) => schemaState.handleConnect(conn, $selectedProject)}
 		>
 			<ViewportPersistence isChildView={true} />
 			<Background class="z-0" bgColor="var(--color-surface-100-900)" />

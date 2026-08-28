@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Connection, Edge } from '@xyflow/svelte';
+	import type { Connection, Edge, EdgeTypes } from '@xyflow/svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -45,7 +45,7 @@
 	});
 
 	const nodeTypes = { pipeBranch: PipeBranchNode };
-	const edgeTypes: any = { pipeBranchEdge: PipeBranchEdge };
+	const edgeTypes = { pipeBranchEdge: PipeBranchEdge } as unknown as EdgeTypes;
 	let edges = $state.raw<any[]>([]);
 	let nodes = $state.raw<any[]>([]);
 
