@@ -30,8 +30,9 @@ from django.db.models.functions import TruncMonth
 from django.http import FileResponse, HttpResponse, StreamingHttpResponse
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
+from drf_spectacular.utils import OpenApiResponse, extend_schema, inline_serializer
 from pathvalidate import sanitize_filename
-from rest_framework import status, viewsets
+from rest_framework import serializers, status, viewsets
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -7922,6 +7923,24 @@ class ConfigView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={
+            200: inline_serializer(
+                name="Config",
+                fields={
+                    "srid": serializers.IntegerField(),
+                    "proj4": serializers.CharField(),
+                },
+            ),
+            500: OpenApiResponse(
+                inline_serializer(
+                    name="ConfigError",
+                    fields={"error": serializers.CharField()},
+                ),
+                description="Configured SRID is not a valid EPSG code.",
+            ),
+        },
+    )
     def get(self, request):
         """Return the storage SRID and its proj4 definition.
 

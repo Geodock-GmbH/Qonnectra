@@ -2770,7 +2770,17 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Config'
+          description: ''
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigError'
+          description: Configured SRID is not a valid EPSG code.
   /api/v1/container/:
     get:
       operationId: container_list
@@ -9927,6 +9937,23 @@ components:
       - project_id
       - status
       - uuid
+    Config:
+      type: object
+      properties:
+        srid:
+          type: integer
+        proj4:
+          type: string
+      required:
+      - proj4
+      - srid
+    ConfigError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+      - error
     Container:
       type: object
       description: Serialize :model:`api.Container` instances with nested type and
