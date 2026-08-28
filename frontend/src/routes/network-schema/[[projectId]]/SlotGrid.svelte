@@ -57,31 +57,31 @@
 		return componentRanges.some((r: any) => r.end === slotNumber);
 	}
 
-	function handleSlotDragOver(e: any, slotNumber: any) {
+	function handleSlotDragOver(e: DragEvent, slotNumber: number) {
 		if (readonly) return;
 		e.preventDefault();
 		context?.slotActions?.onDragOver(e, slotNumber);
 	}
 
-	function handleSlotDragLeave(e: any) {
+	function handleSlotDragLeave(e: DragEvent) {
 		if (readonly) return;
 		// Only clear if leaving the drop zone area entirely
-		const relatedTarget = e.relatedTarget;
-		if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
+		const relatedTarget = e.relatedTarget as Node | null;
+		if (!relatedTarget || !(e.currentTarget as Element)?.contains(relatedTarget)) {
 			// Keep preview if moving within slot rows
 		}
 	}
 
-	function handleGridDragLeave(e: any) {
+	function handleGridDragLeave(e: DragEvent) {
 		if (readonly) return;
-		if (!e.currentTarget.contains(e.relatedTarget)) {
+		if (!(e.currentTarget as Element)?.contains(e.relatedTarget as Node | null)) {
 			if (context) {
 				context.dropPreviewSlots = [];
 			}
 		}
 	}
 
-	function handleSlotDrop(e: any, slotNumber: any) {
+	function handleSlotDrop(e: DragEvent, slotNumber: number) {
 		if (readonly) return;
 		e.preventDefault();
 		context?.slotActions?.onDrop(e, slotNumber);
@@ -95,7 +95,7 @@
 		}
 	}
 
-	function handleStructureDragStart(e: any, structure: any) {
+	function handleStructureDragStart(e: DragEvent, structure: NodeStructure) {
 		if (readonly) {
 			e.preventDefault();
 			return;
@@ -122,11 +122,11 @@
 		context?.clipActions?.onSave();
 	}
 
-	function handleClipKeydown(e: any) {
+	function handleClipKeydown(e: KeyboardEvent) {
 		context?.clipActions?.onKeydown(e);
 	}
 
-	function handleClipInput(e: any) {
+	function handleClipInput(e: Event) {
 		if (context) {
 			context.editingClipValue = (e.target as HTMLInputElement).value;
 		}

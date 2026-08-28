@@ -111,7 +111,7 @@
 	});
 
 	onMount(() => {
-		function handleMicropipeLinkageChanged(event: any) {
+		function handleMicropipeLinkageChanged(event: WindowEventMap['micropipeLinkageChanged']) {
 			const { cableId, connections } = event.detail;
 			schemaState.updateEdgeMicropipeConnections(cableId, connections);
 		}
@@ -122,15 +122,16 @@
 		};
 	});
 
-	async function handleCablePathUpdate(event: any) {
+	async function handleCablePathUpdate(event: WindowEventMap['updateCablePath']) {
 		const { edgeId, waypoints, temporary, save } = event.detail;
 
 		await cablePathManager.updatePath(
 			edgeId,
-			waypoints,
+			waypoints as { x: number; y: number }[],
 			temporary,
 			save,
-			(edgeId: any, updates: any) => {
+			(edgeId, updates) => {
+				const cableUpdate = (updates.data as { cable?: Record<string, unknown> })?.cable ?? {};
 				schemaState.edges = schemaState.edges.map((edge) => {
 					if (edge.id === edgeId) {
 						return {
@@ -139,7 +140,7 @@
 								...edge.data,
 								cable: {
 									...edge.data.cable,
-									...updates.data.cable
+									...cableUpdate
 								}
 							}
 						};
@@ -150,13 +151,13 @@
 		);
 	}
 
-	function handleCableHandleUpdate(event: any) {
+	function handleCableHandleUpdate(event: WindowEventMap['updateCableHandles']) {
 		const { cableId, handleStart, handleEnd } = event.detail;
 		cablePathManager.updateHandles(
 			cableId,
-			handleStart,
-			handleEnd,
-			(cableId: any, handleStart: any, handleEnd: any) => {
+			String(handleStart),
+			String(handleEnd),
+			(cableId, handleStart, handleEnd) => {
 				schemaState.updateCableHandles(cableId, handleStart, handleEnd);
 			}
 		);
@@ -177,10 +178,15 @@
 	});
 
 	$effect(() => {
-		function handleCableConnectionChangedEvent(event: any) {
-			const { cableId, side, newNodeId, handlePosition } = event.detail;
-			if (cableId && side && newNodeId) {
-				schemaState.updateEdgeConnection(cableId, side, newNodeId, handlePosition);
+		function handleCableConnectionChangedEvent(event: WindowEventMap['cableConnectionChanged']) {
+			const detail = event.detail;
+			if ('cableId' in detail && detail.side && detail.newNodeId) {
+				schemaState.updateEdgeConnection(
+					detail.cableId,
+					detail.side,
+					detail.newNodeId,
+					detail.handlePosition ?? 'top'
+				);
 			}
 		}
 
