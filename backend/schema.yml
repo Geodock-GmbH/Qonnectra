@@ -7468,13 +7468,35 @@ paths:
             }
       tags:
       - spatial
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpatialIntersectRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SpatialIntersectRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SpatialIntersectRequest'
+        required: true
       security:
       - jwtHeaderAuth: []
       - jwtCookieAuth: []
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpatialIntersectResult'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpatialIntersectError'
+          description: Invalid geometry or layer request.
   /api/v1/template/conduit/:
     get:
       operationId: template_conduit_retrieve
@@ -13685,6 +13707,53 @@ components:
         * `backend` - Backend
         * `frontend` - Frontend
         * `wfs` - WFS (QGIS Server)
+    SpatialIntersectError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+      - error
+    SpatialIntersectRequest:
+      type: object
+      properties:
+        geom:
+          type: object
+          additionalProperties: {}
+          description: GeoJSON geometry (EPSG:25832 unless 'srid' set).
+        layers:
+          type: array
+          items:
+            type: string
+        project:
+          type: integer
+        exclude_projects:
+          type: string
+          description: Comma-separated or list of project ids to drop.
+        srid:
+          type: integer
+      required:
+      - geom
+    SpatialIntersectResult:
+      type: object
+      properties:
+        srid:
+          type: integer
+        layers:
+          type: object
+          additionalProperties: {}
+          description: Per-layer GeoJSON FeatureCollection.
+        counts:
+          type: object
+          additionalProperties:
+            type: integer
+        total:
+          type: integer
+      required:
+      - counts
+      - layers
+      - srid
+      - total
     TokenRefresh:
       type: object
       properties:

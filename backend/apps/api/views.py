@@ -3287,6 +3287,45 @@ class SpatialIntersectView(APIView):
         "area": AreaSerializer,
     }
 
+    @extend_schema(
+        request=inline_serializer(
+            name="SpatialIntersectRequest",
+            fields={
+                "geom": serializers.DictField(
+                    help_text="GeoJSON geometry (EPSG:25832 unless 'srid' set)."
+                ),
+                "layers": serializers.ListField(
+                    child=serializers.CharField(), required=False
+                ),
+                "project": serializers.IntegerField(required=False),
+                "exclude_projects": serializers.CharField(
+                    required=False,
+                    help_text="Comma-separated or list of project ids to drop.",
+                ),
+                "srid": serializers.IntegerField(required=False),
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                name="SpatialIntersectResult",
+                fields={
+                    "srid": serializers.IntegerField(),
+                    "layers": serializers.DictField(
+                        help_text="Per-layer GeoJSON FeatureCollection."
+                    ),
+                    "counts": serializers.DictField(child=serializers.IntegerField()),
+                    "total": serializers.IntegerField(),
+                },
+            ),
+            400: OpenApiResponse(
+                inline_serializer(
+                    name="SpatialIntersectError",
+                    fields={"error": serializers.CharField()},
+                ),
+                description="Invalid geometry or layer request.",
+            ),
+        },
+    )
     def post(self, request, format=None):
         """Intersect the request geometry against the requested layers.
 
