@@ -3538,6 +3538,13 @@ class ConduitImportTemplateView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={
+            (200, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"): OpenApiResponse(
+                OpenApiTypes.BINARY, description="Excel conduit-import template."
+            ),
+        },
+    )
     def get(self, request):
         return generate_conduit_import_template()
 
@@ -3552,6 +3559,25 @@ class ConduitImportView(APIView):
 
     MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
+    @extend_schema(
+        request=inline_serializer(
+            name="ConduitImportRequest",
+            fields={"file": serializers.FileField(help_text="An .xlsx file (max 10 MB).")},
+        ),
+        responses={
+            201: inline_serializer(
+                name="ConduitImportResult",
+                fields={
+                    "message": serializers.CharField(),
+                    "created_count": serializers.IntegerField(),
+                    "warnings": serializers.ListField(
+                        child=serializers.CharField(), required=False
+                    ),
+                },
+            ),
+            400: OpenApiResponse(description="Missing/invalid file or import errors."),
+        },
+    )
     def post(self, request, *args, **kwargs):
         """Import conduits from an uploaded .xlsx file (max 10 MB)."""
         file_obj = request.FILES.get("file")
@@ -3596,6 +3622,14 @@ class NodeStructureExportView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={
+            (200, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"): OpenApiResponse(
+                OpenApiTypes.BINARY, description="Excel export of the node's structure."
+            ),
+            404: OpenApiResponse(description="Node not found."),
+        },
+    )
     def get(self, request, node_uuid):
         """Generate and return an Excel file for the given node's structure."""
         response = generate_node_structure_excel(node_uuid)
@@ -3620,6 +3654,19 @@ class GeoPackageSchemaView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "layers", str, OpenApiParameter.QUERY, required=False,
+                description="Comma-separated layer names to include (default: all).",
+            ),
+        ],
+        responses={
+            (200, "application/geopackage+sqlite3"): OpenApiResponse(
+                OpenApiTypes.BINARY, description="GeoPackage (.gpkg) download."
+            ),
+        },
+    )
     def get(self, request):
         """Generate and return a GeoPackage schema, optionally filtered by ?layers."""
         layers_param = request.query_params.get("layers")
@@ -8917,6 +8964,15 @@ class PipelineInquiryExportView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={
+            (200, "application/zip"): OpenApiResponse(
+                OpenApiTypes.BINARY,
+                description="ZIP of GeoJSON layers and feature files for the inquiry.",
+            ),
+            400: OpenApiResponse(description="No inquiry areas exist for the record."),
+        },
+    )
     def get(self, request, pipeline_record_uuid):
         """Build and return the inquiry export ZIP.
 

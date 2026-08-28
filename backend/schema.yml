@@ -4386,13 +4386,28 @@ paths:
       description: Import conduits from an uploaded .xlsx file (max 10 MB).
       tags:
       - import
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConduitImportRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConduitImportRequest'
+        required: true
       security:
       - jwtHeaderAuth: []
       - jwtCookieAuth: []
       - jwtAuth: []
       responses:
-        '200':
-          description: No response body
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConduitImportResult'
+          description: ''
+        '400':
+          description: Missing/invalid file or import errors.
   /api/v1/layer-extent/:
     get:
       operationId: layer_extent_retrieve
@@ -5270,7 +5285,14 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+          description: Excel export of the node's structure.
+        '404':
+          description: Node not found.
   /api/v1/node-slot-clip-number/:
     get:
       operationId: node_slot_clip_number_list
@@ -7224,7 +7246,14 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+          description: ZIP of GeoJSON layers and feature files for the inquiry.
+        '400':
+          description: No inquiry areas exist for the record.
   /api/v1/pipeline-records/{id}/:
     get:
       operationId: pipeline_records_retrieve
@@ -7727,6 +7756,12 @@ paths:
       operationId: schema.gpkg_retrieve
       description: Generate and return a GeoPackage schema, optionally filtered by
         ?layers.
+      parameters:
+      - in: query
+        name: layers
+        schema:
+          type: string
+        description: 'Comma-separated layer names to include (default: all).'
       tags:
       - schema.gpkg
       security:
@@ -7735,7 +7770,12 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/geopackage+sqlite3:
+              schema:
+                type: string
+                format: binary
+          description: GeoPackage (.gpkg) download.
   /api/v1/signal-analysis/:
     get:
       operationId: signal_analysis_retrieve
@@ -7854,7 +7894,12 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+          description: Excel conduit-import template.
   /api/v1/trace-search/:
     get:
       operationId: trace_search_retrieve
@@ -10645,6 +10690,29 @@ components:
       - conduit_type_name
       - has_cable_linkage
       - name
+    ConduitImportRequest:
+      type: object
+      properties:
+        file:
+          type: string
+          format: uri
+          description: An .xlsx file (max 10 MB).
+      required:
+      - file
+    ConduitImportResult:
+      type: object
+      properties:
+        message:
+          type: string
+        created_count:
+          type: integer
+        warnings:
+          type: array
+          items:
+            type: string
+      required:
+      - created_count
+      - message
     Config:
       type: object
       properties:
