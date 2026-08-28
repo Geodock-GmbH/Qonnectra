@@ -2442,7 +2442,7 @@ class ConduitForTrenchSelectionSerializer(serializers.ModelSerializer):
             "has_cable_linkage",
         ]
 
-    def get_has_cable_linkage(self, obj):
+    def get_has_cable_linkage(self, obj) -> bool:
         """Check if any microducts in this conduit are linked to the context cable.
 
         Args:

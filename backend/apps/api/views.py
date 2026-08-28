@@ -5965,6 +5965,24 @@ class ConduitsByTrenchesView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "trench_ids",
+                str,
+                OpenApiParameter.QUERY,
+                description="Comma-separated trench UUIDs.",
+            ),
+            OpenApiParameter(
+                "cable_id",
+                str,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="Cable UUID to mark already-linked conduits.",
+            ),
+        ],
+        responses={200: ConduitForTrenchSelectionSerializer(many=True)},
+    )
     def get(self, request):
         """Return deduplicated conduits across the given trench UUIDs."""
         trench_ids = request.query_params.get("trench_ids", "")
@@ -6029,6 +6047,49 @@ class MicropipesByConduitsView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "conduit_ids",
+                str,
+                OpenApiParameter.QUERY,
+                description="Comma-separated conduit UUIDs.",
+            ),
+            OpenApiParameter(
+                "cable_id",
+                str,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="Cable UUID to flag micropipes linked to it.",
+            ),
+        ],
+        responses={
+            200: inline_serializer(
+                name="MicropipeByConduit",
+                many=True,
+                fields={
+                    "number": serializers.IntegerField(),
+                    "color_name": serializers.CharField(allow_null=True),
+                    "color_hex": serializers.CharField(),
+                    "available_in": serializers.ListField(
+                        child=serializers.UUIDField()
+                    ),
+                    "available_in_all": serializers.BooleanField(),
+                    "linked_to_cable": serializers.BooleanField(),
+                    "linked_cables": inline_serializer(
+                        name="MicropipeLinkedCable",
+                        many=True,
+                        fields={
+                            "uuid": serializers.UUIDField(),
+                            "name": serializers.CharField(),
+                        },
+                    ),
+                    "missing_in": serializers.ListField(child=serializers.CharField()),
+                    "microduct_status": serializers.BooleanField(),
+                },
+            ),
+        },
+    )
     def get(self, request):
         """Return micropipes with availability and cable connection info across conduits."""
         conduit_ids = request.query_params.get("conduit_ids", "")

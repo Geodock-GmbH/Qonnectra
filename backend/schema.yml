@@ -2735,8 +2735,19 @@ paths:
           description: ''
   /api/v1/conduits/by-trenches/:
     get:
-      operationId: conduits_by_trenches_retrieve
+      operationId: conduits_by_trenches_list
       description: Return deduplicated conduits across the given trench UUIDs.
+      parameters:
+      - in: query
+        name: cable_id
+        schema:
+          type: string
+        description: Cable UUID to mark already-linked conduits.
+      - in: query
+        name: trench_ids
+        schema:
+          type: string
+        description: Comma-separated trench UUIDs.
       tags:
       - conduits
       security:
@@ -2745,7 +2756,13 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConduitForTrenchSelection'
+          description: ''
   /api/v1/config/:
     get:
       operationId: config_retrieve
@@ -4888,9 +4905,20 @@ paths:
           description: ''
   /api/v1/micropipes/by-conduits/:
     get:
-      operationId: micropipes_by_conduits_retrieve
+      operationId: micropipes_by_conduits_list
       description: Return micropipes with availability and cable connection info across
         conduits.
+      parameters:
+      - in: query
+        name: cable_id
+        schema:
+          type: string
+        description: Cable UUID to flag micropipes linked to it.
+      - in: query
+        name: conduit_ids
+        schema:
+          type: string
+        description: Comma-separated conduit UUIDs.
       tags:
       - micropipes
       security:
@@ -4899,7 +4927,13 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MicropipeByConduit'
+          description: ''
   /api/v1/node/:
     get:
       operationId: node_list
@@ -10092,6 +10126,34 @@ components:
       - project_id
       - status
       - uuid
+    ConduitForTrenchSelection:
+      type: object
+      description: Serializer for conduits returned when selecting by trenches.
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        name:
+          type: string
+          title: Rohrbezeichnung
+        conduit_type_name:
+          type: string
+          readOnly: true
+        has_cable_linkage:
+          type: boolean
+          description: |-
+            Check if any microducts in this conduit are linked to the context cable.
+
+            Args:
+                obj: Conduit instance.
+
+            Returns:
+                bool: True if a :model:`api.MicroductCableConnection` exists.
+          readOnly: true
+      required:
+      - conduit_type_name
+      - has_cable_linkage
+      - name
     Config:
       type: object
       properties:
@@ -10943,6 +11005,56 @@ components:
       - uuid_trench_from_id
       - uuid_trench_to
       - uuid_trench_to_id
+    MicropipeByConduit:
+      type: object
+      properties:
+        number:
+          type: integer
+        color_name:
+          type: string
+          nullable: true
+        color_hex:
+          type: string
+        available_in:
+          type: array
+          items:
+            type: string
+            format: uuid
+        available_in_all:
+          type: boolean
+        linked_to_cable:
+          type: boolean
+        linked_cables:
+          type: array
+          items:
+            $ref: '#/components/schemas/MicropipeLinkedCable'
+        missing_in:
+          type: array
+          items:
+            type: string
+        microduct_status:
+          type: boolean
+      required:
+      - available_in
+      - available_in_all
+      - color_hex
+      - color_name
+      - linked_cables
+      - linked_to_cable
+      - microduct_status
+      - missing_in
+      - number
+    MicropipeLinkedCable:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        name:
+          type: string
+      required:
+      - name
+      - uuid
     Node:
       type: object
       description: |-
