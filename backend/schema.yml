@@ -2343,13 +2343,33 @@ paths:
         required: true
       tags:
       - cables
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CableAutoLinkRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CableAutoLinkRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CableAutoLinkRequest'
       security:
       - jwtHeaderAuth: []
       - jwtCookieAuth: []
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: Per-end link results, or the single-link result.
+        '400':
+          description: Chosen microduct could not be linked.
+        '404':
+          description: Cable or microduct not found.
   /api/v1/cables/{cable_id}/conduits/:
     get:
       operationId: cables_conduits_retrieve
@@ -2369,7 +2389,11 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CableConduits'
+          description: ''
   /api/v1/cables/{cable_id}/linked-trenches/:
     get:
       operationId: cables_linked_trenches_retrieve
@@ -2391,7 +2415,11 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CableLinkedTrenches'
+          description: ''
   /api/v1/cables/{cable_id}/micropipe-connections/:
     post:
       operationId: cables_micropipe_connections_create
@@ -2405,13 +2433,31 @@ paths:
         required: true
       tags:
       - cables
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CableMicropipeConnectRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CableMicropipeConnectRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CableMicropipeConnectRequest'
+        required: true
       security:
       - jwtHeaderAuth: []
       - jwtCookieAuth: []
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CableMicropipeConnectResult'
+          description: ''
+        '400':
+          description: Missing required fields.
     delete:
       operationId: cables_micropipe_connections_destroy
       description: Remove connections for a micropipe across conduits.
@@ -2429,8 +2475,14 @@ paths:
       - jwtCookieAuth: []
       - jwtAuth: []
       responses:
-        '204':
-          description: No response body
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CableMicropipeDisconnectResult'
+          description: ''
+        '400':
+          description: Missing required fields.
   /api/v1/cables/micropipe-summary/{project_id}/:
     get:
       operationId: cables_micropipe_summary_retrieve
@@ -10112,6 +10164,22 @@ components:
       - uuid_node_end_name
       - uuid_node_start_id
       - uuid_node_start_name
+    CableAutoLinkRequest:
+      type: object
+      properties:
+        microduct_uuid:
+          type: string
+          format: uuid
+          description: Link this specific microduct; omit to auto-match both ends.
+    CableConduits:
+      type: object
+      properties:
+        conduit_names:
+          type: array
+          items:
+            type: string
+      required:
+      - conduit_names
     CableLabel:
       type: object
       description: Serialize :model:`api.CableLabel` positioned text labels for cables.
@@ -10162,6 +10230,52 @@ components:
       - created_at
       - text
       - updated_at
+    CableLinkedTrenches:
+      type: object
+      properties:
+        trench_uuids:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+      - trench_uuids
+    CableMicropipeConnectRequest:
+      type: object
+      properties:
+        micropipe_number:
+          type: integer
+        color:
+          type: string
+        conduit_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+      - color
+      - conduit_ids
+      - micropipe_number
+    CableMicropipeConnectResult:
+      type: object
+      properties:
+        created:
+          type: array
+          items:
+            type: string
+            format: uuid
+        count:
+          type: integer
+      required:
+      - count
+      - created
+    CableMicropipeDisconnectResult:
+      type: object
+      properties:
+        deleted:
+          type: integer
+      required:
+      - deleted
     CableTypeColorMapping:
       type: object
       description: Serialize :model:`api.CableTypeColorMapping` with nested color

@@ -6232,6 +6232,26 @@ class CableMicropipeConnectionsView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=inline_serializer(
+            name="CableMicropipeConnectRequest",
+            fields={
+                "micropipe_number": serializers.IntegerField(),
+                "color": serializers.CharField(),
+                "conduit_ids": serializers.ListField(child=serializers.UUIDField()),
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                name="CableMicropipeConnectResult",
+                fields={
+                    "created": serializers.ListField(child=serializers.UUIDField()),
+                    "count": serializers.IntegerField(),
+                },
+            ),
+            400: OpenApiResponse(description="Missing required fields."),
+        },
+    )
     def post(self, request, cable_id):
         """Create connections for a micropipe across multiple conduits."""
         micropipe_number = request.data.get("micropipe_number")
@@ -6259,6 +6279,22 @@ class CableMicropipeConnectionsView(APIView):
 
         return Response({"created": created, "count": len(created)})
 
+    @extend_schema(
+        request=inline_serializer(
+            name="CableMicropipeDisconnectRequest",
+            fields={
+                "micropipe_number": serializers.IntegerField(),
+                "conduit_ids": serializers.ListField(child=serializers.UUIDField()),
+            },
+        ),
+        responses={
+            200: inline_serializer(
+                name="CableMicropipeDisconnectResult",
+                fields={"deleted": serializers.IntegerField()},
+            ),
+            400: OpenApiResponse(description="Missing required fields."),
+        },
+    )
     def delete(self, request, cable_id):
         """Remove connections for a micropipe across conduits."""
         micropipe_number = request.data.get("micropipe_number")
@@ -6284,6 +6320,25 @@ class CableAutoLinkMicropipeView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=inline_serializer(
+            name="CableAutoLinkRequest",
+            fields={
+                "microduct_uuid": serializers.UUIDField(
+                    required=False,
+                    help_text="Link this specific microduct; omit to auto-match both ends.",
+                ),
+            },
+        ),
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT,
+                description="Per-end link results, or the single-link result.",
+            ),
+            400: OpenApiResponse(description="Chosen microduct could not be linked."),
+            404: OpenApiResponse(description="Cable or microduct not found."),
+        },
+    )
     def post(self, request, cable_id):
         """Auto-resolve microduct links for both cable ends, or link a chosen microduct.
 
@@ -6339,6 +6394,16 @@ class CableAutoLinkMicropipeView(APIView):
         )
 
 
+@extend_schema(
+    responses={
+        200: inline_serializer(
+            name="CableLinkedTrenches",
+            fields={
+                "trench_uuids": serializers.ListField(child=serializers.UUIDField()),
+            },
+        ),
+    },
+)
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_trenches_for_cable_connections(request, cable_id):
@@ -6357,6 +6422,16 @@ def get_trenches_for_cable_connections(request, cable_id):
     return Response({"trench_uuids": [str(uuid) for uuid in trench_uuids]})
 
 
+@extend_schema(
+    responses={
+        200: inline_serializer(
+            name="CableConduits",
+            fields={
+                "conduit_names": serializers.ListField(child=serializers.CharField()),
+            },
+        ),
+    },
+)
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_conduits_for_cable(request, cable_id):
