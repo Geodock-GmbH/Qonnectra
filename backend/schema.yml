@@ -2504,7 +2504,13 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: Map of cable UUID -> list of connected micropipes ({number,
+            color_hex, color_name}), for network-schema edge coloring.
   /api/v1/canvas-coordinates/:
     get:
       operationId: canvas_coordinates_retrieve
@@ -2522,6 +2528,17 @@ paths:
             "sync_started_at": datetime,
             "sync_progress": float
         }
+      parameters:
+      - in: query
+        name: flag_id
+        schema:
+          type: integer
+        description: Filter node stats by flag.
+      - in: query
+        name: project_id
+        schema:
+          type: integer
+        description: Filter node stats by project.
       tags:
       - canvas-coordinates
       security:
@@ -2530,7 +2547,11 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CanvasSyncStatus'
+          description: ''
     post:
       operationId: canvas_coordinates_create
       description: |-
@@ -2544,13 +2565,33 @@ paths:
         }
       tags:
       - canvas-coordinates
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CanvasSyncRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CanvasSyncRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CanvasSyncRequest'
       security:
       - jwtHeaderAuth: []
       - jwtCookieAuth: []
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: Sync result summary.
+        '409':
+          description: A sync is already in progress.
+        '500':
+          description: Sync failed to start.
   /api/v1/conduit/:
     get:
       operationId: conduit_list
@@ -10318,6 +10359,52 @@ components:
       - color
       - position
       - position_type
+    CanvasSyncRequest:
+      type: object
+      properties:
+        project_id:
+          type: integer
+        flag_id:
+          type: integer
+        scale:
+          type: number
+          format: double
+          description: Scale factor (default 1.0).
+    CanvasSyncStatus:
+      type: object
+      properties:
+        total_nodes:
+          type: integer
+        nodes_with_canvas:
+          type: integer
+        nodes_missing_canvas:
+          type: integer
+        sync_needed:
+          type: boolean
+        sync_in_progress:
+          type: boolean
+        sync_status:
+          type: string
+        sync_started_at:
+          type: string
+          format: date-time
+          nullable: true
+        sync_progress:
+          type: number
+          format: double
+        error_message:
+          type: string
+          nullable: true
+      required:
+      - error_message
+      - nodes_missing_canvas
+      - nodes_with_canvas
+      - sync_in_progress
+      - sync_needed
+      - sync_progress
+      - sync_started_at
+      - sync_status
+      - total_nodes
     Conduit:
       type: object
       description: |-

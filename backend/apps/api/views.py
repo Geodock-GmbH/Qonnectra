@@ -2877,6 +2877,34 @@ class NodeCanvasCoordinatesView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "project_id", int, OpenApiParameter.QUERY, required=False,
+                description="Filter node stats by project.",
+            ),
+            OpenApiParameter(
+                "flag_id", int, OpenApiParameter.QUERY, required=False,
+                description="Filter node stats by flag.",
+            ),
+        ],
+        responses={
+            200: inline_serializer(
+                name="CanvasSyncStatus",
+                fields={
+                    "total_nodes": serializers.IntegerField(),
+                    "nodes_with_canvas": serializers.IntegerField(),
+                    "nodes_missing_canvas": serializers.IntegerField(),
+                    "sync_needed": serializers.BooleanField(),
+                    "sync_in_progress": serializers.BooleanField(),
+                    "sync_status": serializers.CharField(),
+                    "sync_started_at": serializers.DateTimeField(allow_null=True),
+                    "sync_progress": serializers.FloatField(),
+                    "error_message": serializers.CharField(allow_null=True),
+                },
+            ),
+        },
+    )
     def get(self, request, format=None):
         """
         Check the status of canvas coordinates and sync operations.
@@ -2944,6 +2972,25 @@ class NodeCanvasCoordinatesView(APIView):
             }
         )
 
+    @extend_schema(
+        request=inline_serializer(
+            name="CanvasSyncRequest",
+            fields={
+                "project_id": serializers.IntegerField(required=False),
+                "flag_id": serializers.IntegerField(required=False),
+                "scale": serializers.FloatField(
+                    required=False, help_text="Scale factor (default 1.0)."
+                ),
+            },
+        ),
+        responses={
+            200: OpenApiResponse(
+                OpenApiTypes.OBJECT, description="Sync result summary."
+            ),
+            409: OpenApiResponse(description="A sync is already in progress."),
+            500: OpenApiResponse(description="Sync failed to start."),
+        },
+    )
     def post(self, request, format=None):
         """
         Calculate and store canvas coordinates with concurrency control.
@@ -6446,6 +6493,15 @@ def get_conduits_for_cable(request, cable_id):
     return Response({"conduit_names": conduit_names})
 
 
+@extend_schema(
+    responses={
+        200: OpenApiResponse(
+            OpenApiTypes.OBJECT,
+            description="Map of cable UUID -> list of connected micropipes "
+            "({number, color_hex, color_name}), for network-schema edge coloring.",
+        ),
+    },
+)
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_cable_micropipe_summary(request, project_id):
