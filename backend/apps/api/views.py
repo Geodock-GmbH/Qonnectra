@@ -1014,6 +1014,15 @@ class WebDAVAuthView(APIView):
 
         return False, {"error": "Unauthorized"}, status.HTTP_401_UNAUTHORIZED
 
+    @extend_schema(
+        responses={
+            200: inline_serializer(
+                name="WebDAVAuthResult",
+                fields={"status": serializers.CharField()},
+            ),
+            401: OpenApiResponse(description="Not authenticated."),
+        },
+    )
     def get(self, request, *args, **kwargs):
         """Handle GET requests from Caddy forward_auth."""
         success, data, status_code = self._authenticate_request(request)
@@ -1025,6 +1034,16 @@ class WebDAVAuthView(APIView):
 
         return response
 
+    @extend_schema(
+        request=None,
+        responses={
+            200: inline_serializer(
+                name="WebDAVAuthPostResult",
+                fields={"status": serializers.CharField()},
+            ),
+            401: OpenApiResponse(description="Not authenticated."),
+        },
+    )
     def post(self, request, *args, **kwargs):
         """Handle POST requests."""
         success, data, status_code = self._authenticate_request(request)
@@ -1141,6 +1160,15 @@ class QGISAuthView(APIView):
 
         return False, {"error": "Unauthorized"}, status.HTTP_401_UNAUTHORIZED
 
+    @extend_schema(
+        responses={
+            200: inline_serializer(
+                name="QGISAuthResult",
+                fields={"status": serializers.CharField()},
+            ),
+            401: OpenApiResponse(description="Not authenticated or lacks QGIS access."),
+        },
+    )
     def get(self, request, *args, **kwargs):
         """Handle GET requests from Caddy forward_auth."""
         success, data, status_code = self._authenticate_request(request)
@@ -1152,6 +1180,16 @@ class QGISAuthView(APIView):
 
         return response
 
+    @extend_schema(
+        request=None,
+        responses={
+            200: inline_serializer(
+                name="QGISAuthPostResult",
+                fields={"status": serializers.CharField()},
+            ),
+            401: OpenApiResponse(description="Not authenticated or lacks QGIS access."),
+        },
+    )
     def post(self, request, *args, **kwargs):
         """Handle POST requests."""
         success, data, status_code = self._authenticate_request(request)

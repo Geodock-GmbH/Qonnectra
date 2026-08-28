@@ -1630,7 +1630,13 @@ paths:
       - {}
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QGISAuthResult'
+          description: ''
+        '401':
+          description: Not authenticated or lacks QGIS access.
     post:
       operationId: auth_qgis_auth_create
       description: Handle POST requests.
@@ -1643,7 +1649,13 @@ paths:
       - {}
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QGISAuthPostResult'
+          description: ''
+        '401':
+          description: Not authenticated or lacks QGIS access.
   /api/v1/auth/token/refresh/:
     post:
       operationId: auth_token_refresh_create
@@ -1806,7 +1818,13 @@ paths:
       - {}
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebDAVAuthResult'
+          description: ''
+        '401':
+          description: Not authenticated.
     post:
       operationId: auth_webdav_auth_create
       description: Handle POST requests.
@@ -1819,7 +1837,13 @@ paths:
       - {}
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebDAVAuthPostResult'
+          description: ''
+        '401':
+          description: Not authenticated.
   /api/v1/cable/:
     get:
       operationId: cable_list
@@ -14220,6 +14244,20 @@ components:
         * `component` - Komponente
         * `reserve` - Reserve
         * `empty` - Leer
+    QGISAuthPostResult:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+      - status
+    QGISAuthResult:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+      - status
     RequestReason:
       type: object
       description: Serialize :model:`api.RequestReason` instances.
@@ -15065,6 +15103,20 @@ components:
       - name
       - project
       - url
+    WebDAVAuthPostResult:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+      - status
+    WebDAVAuthResult:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+      - status
   securitySchemes:
     basicAuth:
       type: http
