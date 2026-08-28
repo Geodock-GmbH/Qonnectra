@@ -33,6 +33,12 @@ jobs:
       - name: Type-check (svelte-check)
         run: npm run check
 
+      - name: Verify generated API types are up to date
+        run: |
+          npm run generate:types
+          git diff --exit-code src/lib/types/api.d.ts \
+            || { echo "::error::src/lib/types/api.d.ts is out of date. Run 'npm run generate:types' after regenerating backend/schema.yml and commit the result."; exit 1; }
+
       - name: Unit tests (vitest)
         run: npm test
         env:
