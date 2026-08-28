@@ -35,3 +35,5 @@ jobs:
 
       - name: Unit tests (vitest)
         run: npm test
+        env:
+          TZ: Europe/Berlin

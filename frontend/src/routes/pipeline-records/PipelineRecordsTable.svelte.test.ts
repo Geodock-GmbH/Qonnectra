@@ -107,9 +107,20 @@ describe('PipelineRecordsTable', () => {
 	test('formats date columns with the locale formatter', () => {
 		render(PipelineRecordsTable, { records: [makeRecord()], pagination });
 
+		// The component formats with `toLocaleString` in the host timezone, so derive
+		// the expected strings the same way to keep the assertion timezone-agnostic.
+		const format = (iso: string) =>
+			new Date(iso).toLocaleString('de', {
+				year: 'numeric',
+				month: '2-digit',
+				day: '2-digit',
+				hour: '2-digit',
+				minute: '2-digit'
+			});
+
 		const table = desktopTable();
-		expect(table.getByText('15.01.2026, 11:30')).toBeInTheDocument();
-		expect(table.getByText('20.02.2026, 15:45')).toBeInTheDocument();
+		expect(table.getByText(format('2026-01-15T10:30:00Z'))).toBeInTheDocument();
+		expect(table.getByText(format('2026-02-20T14:45:00Z'))).toBeInTheDocument();
 	});
 
 	test('filters rows by a column filter input', async () => {
