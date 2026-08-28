@@ -4233,13 +4233,34 @@ paths:
       description: Submit a frontend log entry.
       tags:
       - logs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FrontendLogRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FrontendLogRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FrontendLogRequest'
       security:
       - jwtHeaderAuth: []
       - jwtCookieAuth: []
       - jwtAuth: []
       responses:
-        '200':
-          description: No response body
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendLogResult'
+          description: ''
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrontendLogError'
+          description: Failed to create the log entry.
   /api/v1/microduct/:
     get:
       operationId: microduct_list
@@ -10469,6 +10490,49 @@ components:
       required:
       - flag
       - id
+    FrontendLogError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+      - error
+    FrontendLogRequest:
+      type: object
+      properties:
+        level:
+          $ref: '#/components/schemas/FrontendLogRequestLevelEnum'
+        message:
+          type: string
+        path:
+          type: string
+        extra_data:
+          type: object
+          additionalProperties: {}
+        project:
+          type: integer
+          nullable: true
+    FrontendLogRequestLevelEnum:
+      enum:
+      - DEBUG
+      - INFO
+      - WARNING
+      - ERROR
+      - CRITICAL
+      type: string
+      description: |-
+        * `DEBUG` - DEBUG
+        * `INFO` - INFO
+        * `WARNING` - WARNING
+        * `ERROR` - ERROR
+        * `CRITICAL` - CRITICAL
+    FrontendLogResult:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+      - status
     GisFeatureCollectionEnum:
       type: string
       enum:
@@ -10507,20 +10571,6 @@ components:
       description: |-
         * `inner` - Innen
         * `outer` - Außen
-    LevelEnum:
-      enum:
-      - DEBUG
-      - INFO
-      - WARNING
-      - ERROR
-      - CRITICAL
-      type: string
-      description: |-
-        * `DEBUG` - Debug
-        * `INFO` - Info
-        * `WARNING` - Warning
-        * `ERROR` - Error
-        * `CRITICAL` - Critical
     LogEntry:
       type: object
       description: Serialize :model:`api.LogEntry` with user details and project info.
@@ -10535,7 +10585,7 @@ components:
           readOnly: true
         level:
           allOf:
-          - $ref: '#/components/schemas/LevelEnum'
+          - $ref: '#/components/schemas/LogEntryLevelEnum'
           title: Log-Level
         logger_name:
           type: string
@@ -10593,6 +10643,20 @@ components:
       - user_email
       - username
       - uuid
+    LogEntryLevelEnum:
+      enum:
+      - DEBUG
+      - INFO
+      - WARNING
+      - ERROR
+      - CRITICAL
+      type: string
+      description: |-
+        * `DEBUG` - Debug
+        * `INFO` - Info
+        * `WARNING` - Warning
+        * `ERROR` - Error
+        * `CRITICAL` - Critical
     Login:
       type: object
       properties:

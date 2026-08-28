@@ -4208,6 +4208,34 @@ class FrontendLogView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=inline_serializer(
+            name="FrontendLogRequest",
+            fields={
+                "level": serializers.ChoiceField(
+                    choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+                    required=False,
+                ),
+                "message": serializers.CharField(required=False, allow_blank=True),
+                "path": serializers.CharField(required=False, allow_blank=True),
+                "extra_data": serializers.DictField(required=False),
+                "project": serializers.IntegerField(required=False, allow_null=True),
+            },
+        ),
+        responses={
+            201: inline_serializer(
+                name="FrontendLogResult",
+                fields={"status": serializers.CharField()},
+            ),
+            500: OpenApiResponse(
+                inline_serializer(
+                    name="FrontendLogError",
+                    fields={"error": serializers.CharField()},
+                ),
+                description="Failed to create the log entry.",
+            ),
+        },
+    )
     def post(self, request, *args, **kwargs):
         """Submit a frontend log entry."""
         try:
