@@ -101,8 +101,8 @@
 		}
 	});
 
-	function handleSideChange(e: any) {
-		context.selectSlotConfig(e.target.value);
+	function handleSideChange(e: Event) {
+		context.selectSlotConfig((e.target as HTMLSelectElement).value);
 	}
 
 	async function handleStructureSelect(structure: any) {

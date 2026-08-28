@@ -48,7 +48,7 @@
 
 	const manager = new CableMicropipeManager();
 
-	let olMap = $state<any>();
+	let olMap = $state<import('ol/Map').default | undefined>();
 	let dragBoxInteraction = $state<any>();
 	let selectionLayer = $state<VectorTileLayer | undefined>();
 	let selectedFeatureIds = $state<SvelteSet<string>>(new SvelteSet());
@@ -149,7 +149,7 @@
 		}
 	});
 
-	async function handleMapReady({ map }: { map: any }) {
+	async function handleMapReady({ map }: { map: import('ol/Map').default }) {
 		olMap = map;
 		mapState.olMap = olMap;
 
@@ -194,16 +194,17 @@
 
 	async function setupInteractions() {
 		if (!olMap || !mapState.vectorTileLayer) return;
+		const map = olMap;
 
 		const [{ default: DragBox }, { shiftKeyOnly }] = await Promise.all([
 			import('ol/interaction/DragBox'),
 			import('ol/events/condition')
 		]);
 
-		olMap.on('click', (evt: any) => {
-			const features = olMap.getFeaturesAtPixel(evt.pixel, {
+		map.on('click', (evt) => {
+			const features = map.getFeaturesAtPixel(evt.pixel, {
 				hitTolerance: 10,
-				layerFilter: (layer: any) => layer === mapState.vectorTileLayer
+				layerFilter: (layer) => layer === mapState.vectorTileLayer
 			});
 
 			if (features && features.length > 0) {
@@ -233,20 +234,21 @@
 		dragBoxInteraction.on('boxend', () => {
 			const extent = dragBoxInteraction.getGeometry().getExtent();
 			const newSet = new SvelteSet(selectedFeatureIds);
-			const boxPixelMin = olMap.getPixelFromCoordinate([extent[0], extent[1]]);
-			const boxPixelMax = olMap.getPixelFromCoordinate([extent[2], extent[3]]);
+			const boxPixelMin = map.getPixelFromCoordinate([extent[0], extent[1]]);
+			const boxPixelMax = map.getPixelFromCoordinate([extent[2], extent[3]]);
+			if (!boxPixelMin || !boxPixelMax) return;
 
 			const stepX = Math.max(1, Math.floor((boxPixelMax[0] - boxPixelMin[0]) / 20));
 			const stepY = Math.max(1, Math.floor((boxPixelMin[1] - boxPixelMax[1]) / 20));
 
 			for (let x = boxPixelMin[0]; x <= boxPixelMax[0]; x += stepX) {
 				for (let y = boxPixelMax[1]; y <= boxPixelMin[1]; y += stepY) {
-					const features = olMap.getFeaturesAtPixel([x, y], {
+					const features = map.getFeaturesAtPixel([x, y], {
 						hitTolerance: 10,
-						layerFilter: (layer: any) => layer === mapState.vectorTileLayer
+						layerFilter: (layer) => layer === mapState.vectorTileLayer
 					});
 					if (features) {
-						features.forEach((feature: any) => {
+						features.forEach((feature) => {
 							const featureId = String(feature.getId() || feature.get('uuid'));
 							if (featureId) {
 								newSet.add(featureId);
@@ -263,7 +265,7 @@
 			syncSelectionToManager();
 		});
 
-		olMap.addInteraction(dragBoxInteraction);
+		map.addInteraction(dragBoxInteraction);
 	}
 
 	function syncSelectionToManager() {

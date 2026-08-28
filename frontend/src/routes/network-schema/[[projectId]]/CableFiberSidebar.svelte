@@ -175,9 +175,9 @@
 
 	// Listen for cable connection changes from the diagram
 	$effect(() => {
-		function handleCableConnectionChanged(event: any) {
-			const { nodeIds } = event.detail;
-			if (nodeIds && nodeIds.includes(nodeUuid)) {
+		function handleCableConnectionChanged(event: WindowEventMap['cableConnectionChanged']) {
+			const detail = event.detail;
+			if ('nodeIds' in detail && nodeUuid && detail.nodeIds.includes(nodeUuid)) {
 				dataManager.clearFibersCache();
 				dataManager.fetchCables();
 				dataManager.fetchFiberUsage();
