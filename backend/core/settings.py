@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "dj_rest_auth",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
+    "drf_spectacular",
     "corsheaders",
     "django_json_widget",
     "simple_history",
@@ -221,6 +222,7 @@ REST_FRAMEWORK = {
     "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.NamespaceVersioning",
     "ALLOWED_VERSIONS": ["v1"],
     "DEFAULT_VERSION": "v1",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ]
@@ -229,6 +231,14 @@ REST_FRAMEWORK = {
         "app_login": "5/min",
         "app_token_refresh": "30/min",
     },
+}
+
+# drf-spectacular settings — OpenAPI schema generation for frontend type codegen
+# https://drf-spectacular.readthedocs.io/en/latest/settings.html
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Qonnectra API",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }
 
 # dj-rest-auth settings
