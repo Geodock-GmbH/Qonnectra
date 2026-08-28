@@ -1,8 +1,26 @@
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer, GeometryField
+
+
+@extend_schema_field(
+    {
+        "type": "object",
+        "description": "GeoJSON geometry object (EPSG:3857).",
+        "properties": {
+            "type": {"type": "string"},
+            "coordinates": {"type": "array", "items": {}},
+        },
+    }
+)
+class GeoJSON3857Field(GeometryField):
+    """A read-only :class:`GeometryField` that serializes the persisted 3857
+    geometry as a GeoJSON object, with an explicit OpenAPI schema so
+    drf-spectacular types it instead of falling back to ``string``."""
+
 
 from .models import (
     Address,
@@ -354,6 +372,7 @@ class TrenchSerializer(GeoFeatureModelSerializer):
     date = serializers.DateField(input_formats=["%Y/%m/%d"], format="%d.%m.%Y")  # type: ignore[arg-type]
     comment = serializers.CharField(required=False)
     geom = GeometryField()
+    geom_3857 = GeoJSON3857Field(read_only=True)
     project_id = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=Projects.objects.all(),
@@ -702,7 +721,7 @@ class AddressSerializer(GeoFeatureModelSerializer):
         source="project",
     )
     geom = GeometryField()
-    geom_3857 = GeometryField(read_only=True)
+    geom_3857 = GeoJSON3857Field(read_only=True)
 
     class Meta:
         model = Address
@@ -966,6 +985,7 @@ class NodeSerializer(GeoFeatureModelSerializer):
         allow_null=True,
     )
     geom = GeometryField()
+    geom_3857 = GeoJSON3857Field(read_only=True)
     canvas_x = serializers.FloatField(required=False, allow_null=True)
     canvas_y = serializers.FloatField(required=False, allow_null=True)
     child_canvas_x = serializers.FloatField(required=False, allow_null=True)
@@ -1036,6 +1056,7 @@ class AreaSerializer(GeoFeatureModelSerializer):
         source="project",
     )
     geom = GeometryField()
+    geom_3857 = GeoJSON3857Field(read_only=True)
 
     class Meta:
         model = Area

@@ -9725,6 +9725,14 @@ components:
               writeOnly: true
               title: Projekt
             geom_3857:
+              type: object
+              description: GeoJSON geometry object (EPSG:3857).
+              properties:
+                type:
+                  type: string
+                coordinates:
+                  type: array
+                  items: {}
               readOnly: true
     AddressList:
       type: object
@@ -9853,12 +9861,19 @@ components:
               type: integer
               writeOnly: true
               title: Projekt
+            geom_3857:
+              type: object
+              description: GeoJSON geometry object (EPSG:3857).
+              properties:
+                type:
+                  type: string
+                coordinates:
+                  type: array
+                  items: {}
+              readOnly: true
             name:
               type: string
               title: Gebietname
-            geom_3857:
-              type: string
-              readOnly: true
     AreaList:
       type: object
       properties:
@@ -11835,6 +11850,16 @@ components:
               format: date
               nullable: true
               title: Datum
+            geom_3857:
+              type: object
+              description: GeoJSON geometry object (EPSG:3857).
+              properties:
+                type:
+                  type: string
+                coordinates:
+                  type: array
+                  items: {}
+              readOnly: true
             canvas_x:
               type: number
               format: double
@@ -11861,9 +11886,6 @@ components:
               type: integer
               writeOnly: true
               title: Kennzeichen
-            geom_3857:
-              type: string
-              readOnly: true
     NodeList:
       type: object
       properties:
@@ -12540,6 +12562,14 @@ components:
               writeOnly: true
               title: Projekt
             geom_3857:
+              type: object
+              description: GeoJSON geometry object (EPSG:3857).
+              properties:
+                type:
+                  type: string
+                coordinates:
+                  type: array
+                  items: {}
               readOnly: true
     PatchedArea:
       type: object
@@ -12616,12 +12646,19 @@ components:
               type: integer
               writeOnly: true
               title: Projekt
+            geom_3857:
+              type: object
+              description: GeoJSON geometry object (EPSG:3857).
+              properties:
+                type:
+                  type: string
+                coordinates:
+                  type: array
+                  items: {}
+              readOnly: true
             name:
               type: string
               title: Gebietname
-            geom_3857:
-              type: string
-              readOnly: true
     PatchedCable:
       type: object
       description: |-
@@ -13476,6 +13513,16 @@ components:
               format: date
               nullable: true
               title: Datum
+            geom_3857:
+              type: object
+              description: GeoJSON geometry object (EPSG:3857).
+              properties:
+                type:
+                  type: string
+                coordinates:
+                  type: array
+                  items: {}
+              readOnly: true
             canvas_x:
               type: number
               format: double
@@ -13502,9 +13549,6 @@ components:
               type: integer
               writeOnly: true
               title: Kennzeichen
-            geom_3857:
-              type: string
-              readOnly: true
     PatchedNodeSlotClipNumber:
       type: object
       description: Serialize :model:`api.NodeSlotClipNumber` clip number assignments.
@@ -14043,6 +14087,16 @@ components:
             comment:
               type: string
               title: Kommentar
+            geom_3857:
+              type: object
+              description: GeoJSON geometry object (EPSG:3857).
+              properties:
+                type:
+                  type: string
+                coordinates:
+                  type: array
+                  items: {}
+              readOnly: true
             project_id:
               type: integer
               writeOnly: true
@@ -14051,9 +14105,6 @@ components:
               type: integer
               writeOnly: true
               title: Kennzeichen
-            geom_3857:
-              type: string
-              readOnly: true
     PatchedTrenchConduit:
       type: object
       description: Serialize :model:`api.TrenchConduitConnection` with nested trench
@@ -14738,6 +14789,16 @@ components:
             comment:
               type: string
               title: Kommentar
+            geom_3857:
+              type: object
+              description: GeoJSON geometry object (EPSG:3857).
+              properties:
+                type:
+                  type: string
+                coordinates:
+                  type: array
+                  items: {}
+              readOnly: true
             project_id:
               type: integer
               writeOnly: true
@@ -14746,9 +14807,6 @@ components:
               type: integer
               writeOnly: true
               title: Kennzeichen
-            geom_3857:
-              type: string
-              readOnly: true
     TrenchConduit:
       type: object
       description: Serialize :model:`api.TrenchConduitConnection` with nested trench
