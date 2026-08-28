@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ContainerNode } from './containerItemTypes';
+	import type { ContainerNode, MoveDragData, SlotConfig } from './containerItemTypes';
 	import { flip } from 'svelte/animate';
 	import {
 		IconCheck,
@@ -36,10 +36,10 @@
 		readonly?: boolean;
 		onDelete?: (uuid: string) => void;
 		onUpdateName?: (uuid: string, name: string) => void;
-		onMove?: (data: unknown, targetUuid: string) => void;
+		onMove?: (data: MoveDragData, targetUuid: string | null) => void;
 		onToggleExpand?: (uuid: string) => void;
-		onEditSlotConfig?: (config: unknown) => void;
-		onDeleteSlotConfig?: (config: unknown) => void;
+		onEditSlotConfig?: (config: SlotConfig) => void;
+		onDeleteSlotConfig?: (uuid: string) => void;
 		onViewStructure?: (slotConfigUuid: string) => void;
 	} = $props();
 

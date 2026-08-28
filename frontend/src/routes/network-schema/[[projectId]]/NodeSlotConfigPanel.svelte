@@ -1,4 +1,6 @@
 <script lang="ts">
+	import type { ContainerNode, Hierarchy, SlotConfig } from './containerItemTypes';
+	import type { ActionResult } from '@sveltejs/kit';
 	import type { SharedSlotState } from '$lib/classes/NodeStructureContext.svelte.js';
 	import { flip } from 'svelte/animate';
 	import { deserialize } from '$app/forms';
@@ -15,6 +17,14 @@
 	import ContainerItem from './ContainerItem.svelte';
 	import SlotConfigItem from './SlotConfigItem.svelte';
 
+	/**
+	 * Read the `data` object from a deserialized form-action result regardless of
+	 * which result variant it is (`error`/`redirect` carry no `data`).
+	 */
+	function actionData(result: ActionResult): Record<string, unknown> | undefined {
+		return result.type === 'success' || result.type === 'failure' ? result.data : undefined;
+	}
+
 	let {
 		nodeUuid,
 		nodeName = '',
@@ -29,11 +39,11 @@
 		sharedSlotState?: (SharedSlotState & { lastUpdated?: number }) | null;
 	} = $props();
 
-	let hierarchy = $state<{ containers: any[]; root_slot_configurations: any[] }>({
+	let hierarchy = $state<Hierarchy>({
 		containers: [],
 		root_slot_configurations: []
 	});
-	let containerTypes = $state<any[]>([]);
+	let containerTypes = $state<{ id: number; name: string }[]>([]);
 	let loading = $state(true);
 
 	let editingUuid = $state<string | null>(null);
@@ -42,13 +52,13 @@
 	let formTotalSlots = $state(1);
 
 	let isCreatingContainer = $state(false);
-	let selectedContainerTypeId = $state<any>(null);
+	let selectedContainerTypeId = $state<number | null>(null);
 	let containerName = $state('');
 
 	let rootDragOver = $state(false);
 	let exporting = $state(false);
 
-	let deleteSlotConfigMessageBox = $state<any>(null);
+	let deleteSlotConfigMessageBox = $state<ReturnType<typeof MessageBox> | null>(null);
 	let pendingDeleteConfigUuid = $state<string | null>(null);
 	let pendingDeleteStructureCount = $state(0);
 
@@ -59,9 +69,10 @@
 				method: 'POST',
 				body: formData
 			});
-			const result = deserialize(await response.text()) as any;
+			const result = deserialize(await response.text()) as ActionResult;
 			if (result.type === 'success') {
-				containerTypes = result.data?.containerTypes || [];
+				containerTypes =
+					(actionData(result)?.containerTypes as { id: number; name: string }[]) || [];
 			}
 		} catch (err) {
 			console.error('Error fetching container types:', err);
@@ -95,13 +106,16 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text()) as any;
+			const result = deserialize(await response.text()) as ActionResult;
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to fetch hierarchy');
+				throw new Error((actionData(result)?.error as string) || 'Failed to fetch hierarchy');
 			}
 
-			hierarchy = result.data?.hierarchy || { containers: [], root_slot_configurations: [] };
+			hierarchy = (actionData(result)?.hierarchy as Hierarchy) || {
+				containers: [],
+				root_slot_configurations: []
+			};
 
 			if (sharedSlotState) {
 				const allSlotConfigs = extractAllSlotConfigurations(hierarchy);
@@ -130,10 +144,10 @@
 		}
 	}
 
-	function extractAllSlotConfigurations(h: any) {
+	function extractAllSlotConfigurations(h: Hierarchy) {
 		const configs = [...(h.root_slot_configurations || [])];
 
-		function extractFromContainers(containers: any) {
+		function extractFromContainers(containers: ContainerNode[]) {
 			for (const container of containers || []) {
 				if (container.slot_configurations) {
 					configs.push(...container.slot_configurations);
@@ -170,10 +184,10 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text()) as any;
+			const result = deserialize(await response.text()) as ActionResult;
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to create container');
+				throw new Error((actionData(result)?.error as string) || 'Failed to create container');
 			}
 
 			globalToaster.success({
@@ -200,7 +214,7 @@
 		}
 	}
 
-	async function handleDeleteContainer(uuid: any) {
+	async function handleDeleteContainer(uuid: string) {
 		try {
 			const formData = new FormData();
 			formData.append('containerUuid', uuid);
@@ -210,10 +224,10 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text()) as any;
+			const result = deserialize(await response.text()) as ActionResult;
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to delete container');
+				throw new Error((actionData(result)?.error as string) || 'Failed to delete container');
 			}
 
 			globalToaster.success({
@@ -239,7 +253,7 @@
 		}
 	}
 
-	async function handleUpdateContainerName(uuid: any, newName: any) {
+	async function handleUpdateContainerName(uuid: string, newName: string) {
 		try {
 			const formData = new FormData();
 			formData.append('containerUuid', uuid);
@@ -250,10 +264,10 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text()) as any;
+			const result = deserialize(await response.text()) as ActionResult;
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to update container name');
+				throw new Error((actionData(result)?.error as string) || 'Failed to update container name');
 			}
 
 			globalToaster.success({
@@ -279,7 +293,10 @@
 		}
 	}
 
-	async function handleMove(dragData: any, targetContainerId: any) {
+	async function handleMove(
+		dragData: { type: string; uuid: string },
+		targetContainerId: string | null
+	) {
 		try {
 			const formData = new FormData();
 			formData.append('itemType', dragData.type);
@@ -291,10 +308,10 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text()) as any;
+			const result = deserialize(await response.text()) as ActionResult;
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to move item');
+				throw new Error((actionData(result)?.error as string) || 'Failed to move item');
 			}
 
 			await fetchHierarchy();
@@ -359,7 +376,7 @@
 		}
 	}
 
-	async function handleToggleExpand(uuid: any) {
+	async function handleToggleExpand(uuid: string) {
 		hierarchy = updateContainerExpanded(hierarchy, uuid);
 
 		// Fire-and-forget: persist expand state without blocking
@@ -371,21 +388,23 @@
 		});
 	}
 
-	function updateContainerExpanded(h: any, uuid: any) {
+	function updateContainerExpanded(h: Hierarchy, uuid: string) {
 		return {
 			...h,
-			containers: h.containers.map((c: any) => updateContainerExpandedRecursive(c, uuid))
+			containers: h.containers.map((c: ContainerNode) => updateContainerExpandedRecursive(c, uuid))
 		};
 	}
 
-	function updateContainerExpandedRecursive(container: any, uuid: any) {
+	function updateContainerExpandedRecursive(container: ContainerNode, uuid: string): ContainerNode {
 		if (container.uuid === uuid) {
 			return { ...container, is_expanded: !container.is_expanded };
 		}
 		if (container.children) {
 			return {
 				...container,
-				children: container.children.map((c: any) => updateContainerExpandedRecursive(c, uuid))
+				children: container.children.map((c: ContainerNode) =>
+					updateContainerExpandedRecursive(c, uuid)
+				)
 			};
 		}
 		return container;
@@ -405,10 +424,10 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text()) as any;
+			const result = deserialize(await response.text()) as ActionResult;
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to create configuration');
+				throw new Error((actionData(result)?.error as string) || 'Failed to create configuration');
 			}
 
 			globalToaster.success({
@@ -435,7 +454,7 @@
 		}
 	}
 
-	async function handleUpdate(uuid: any) {
+	async function handleUpdate(uuid: string) {
 		if (!formSide.trim() || formTotalSlots < 1) return;
 
 		try {
@@ -449,10 +468,10 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text()) as any;
+			const result = deserialize(await response.text()) as ActionResult;
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to update configuration');
+				throw new Error((actionData(result)?.error as string) || 'Failed to update configuration');
 			}
 
 			globalToaster.success({
@@ -483,7 +502,7 @@
 	 * Guards deletion: fetches associated structures first and prompts for
 	 * confirmation if any exist, since they will be cascade-deleted.
 	 */
-	async function handleDelete(uuid: any) {
+	async function handleDelete(uuid: string) {
 		try {
 			const formData = new FormData();
 			formData.append('slotConfigUuid', uuid);
@@ -493,13 +512,13 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text()) as any;
-			const structures = result.data?.structures || [];
+			const result = deserialize(await response.text()) as ActionResult;
+			const structures = (actionData(result)?.structures as unknown[]) || [];
 
 			if (structures.length > 0) {
 				pendingDeleteConfigUuid = uuid;
 				pendingDeleteStructureCount = structures.length;
-				deleteSlotConfigMessageBox.open();
+				deleteSlotConfigMessageBox?.open();
 				return;
 			}
 
@@ -519,7 +538,7 @@
 		}
 	}
 
-	async function executeDeleteSlotConfig(uuid: any) {
+	async function executeDeleteSlotConfig(uuid: string) {
 		try {
 			const formData = new FormData();
 			formData.append('configUuid', uuid);
@@ -529,10 +548,10 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text()) as any;
+			const result = deserialize(await response.text()) as ActionResult;
 
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Failed to delete configuration');
+				throw new Error((actionData(result)?.error as string) || 'Failed to delete configuration');
 			}
 
 			globalToaster.success({
@@ -566,7 +585,7 @@
 		}
 	}
 
-	function startEdit(config: any) {
+	function startEdit(config: SlotConfig) {
 		editingUuid = config.uuid;
 		formSide = config.side;
 		formTotalSlots = config.total_slots;
@@ -613,19 +632,20 @@
 				method: 'POST',
 				body: formData
 			});
-			const result = deserialize(await response.text()) as any;
+			const result = deserialize(await response.text()) as ActionResult;
 			if (result.type === 'failure' || result.type === 'error') {
-				throw new Error(result.data?.error || 'Export failed');
+				throw new Error((actionData(result)?.error as string) || 'Export failed');
 			}
-			if (result.data?.fileData) {
-				const bytes = Uint8Array.from(atob(result.data.fileData), (c) => c.charCodeAt(0));
+			const exportData = actionData(result);
+			if (exportData?.fileData) {
+				const bytes = Uint8Array.from(atob(exportData.fileData as string), (c) => c.charCodeAt(0));
 				const blob = new Blob([bytes], {
 					type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 				});
 				const url = URL.createObjectURL(blob);
 				const a = document.createElement('a');
 				a.href = url;
-				a.download = result.data.fileName || 'structure.xlsx';
+				a.download = (exportData.fileName as string) || 'structure.xlsx';
 				document.body.appendChild(a);
 				a.click();
 				document.body.removeChild(a);
