@@ -4290,6 +4290,45 @@ class LayerExtentView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "layer",
+                str,
+                OpenApiParameter.QUERY,
+                required=True,
+                enum=["trench", "address", "node", "area"],
+                description="Layer type to compute the extent for.",
+            ),
+            OpenApiParameter(
+                "project",
+                int,
+                OpenApiParameter.QUERY,
+                required=True,
+                description="Project id to filter by.",
+            ),
+        ],
+        responses={
+            200: inline_serializer(
+                name="LayerExtent",
+                fields={
+                    "extent": serializers.ListField(
+                        child=serializers.FloatField(),
+                        allow_null=True,
+                        help_text="[xmin, ymin, xmax, ymax] in EPSG:3857, or null.",
+                    ),
+                    "layer": serializers.CharField(),
+                },
+            ),
+            400: OpenApiResponse(
+                inline_serializer(
+                    name="LayerExtentError",
+                    fields={"error": serializers.CharField()},
+                ),
+                description="Missing or invalid ``layer`` / ``project`` parameter.",
+            ),
+        },
+    )
     def get(self, request, format=None):
         """
         Returns the bounding box extent for a layer filtered by project.

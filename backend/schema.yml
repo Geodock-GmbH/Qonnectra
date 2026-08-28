@@ -4137,6 +4137,24 @@ paths:
         Returns:
         - extent: [xmin, ymin, xmax, ymax] in EPSG:3857, or null if no features
         - layer: The requested layer type
+      parameters:
+      - in: query
+        name: layer
+        schema:
+          type: string
+          enum:
+          - address
+          - area
+          - node
+          - trench
+        description: Layer type to compute the extent for.
+        required: true
+      - in: query
+        name: project
+        schema:
+          type: integer
+        description: Project id to filter by.
+        required: true
       tags:
       - layer-extent
       security:
@@ -4145,7 +4163,17 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LayerExtent'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LayerExtentError'
+          description: Missing or invalid ``layer`` / ``project`` parameter.
   /api/v1/logs/:
     get:
       operationId: logs_list
@@ -10571,6 +10599,28 @@ components:
       description: |-
         * `inner` - Innen
         * `outer` - Außen
+    LayerExtent:
+      type: object
+      properties:
+        extent:
+          type: array
+          items:
+            type: number
+            format: double
+          nullable: true
+          description: '[xmin, ymin, xmax, ymax] in EPSG:3857, or null.'
+        layer:
+          type: string
+      required:
+      - extent
+      - layer
+    LayerExtentError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+      - error
     LogEntry:
       type: object
       description: Serialize :model:`api.LogEntry` with user details and project info.
