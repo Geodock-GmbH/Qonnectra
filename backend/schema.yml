@@ -3151,6 +3151,18 @@ paths:
 
         Returns:
             Response: Aggregated statistics for trench, node, address, conduit, and area.
+      parameters:
+      - in: query
+        name: flag
+        schema:
+          type: integer
+        description: Optional flag id to further filter statistics.
+      - in: query
+        name: project
+        schema:
+          type: integer
+        description: Project id to scope statistics to.
+        required: true
       tags:
       - dashboard
       security:
@@ -3159,7 +3171,17 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStatistics'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStatisticsError'
+          description: Missing required ``project`` parameter.
   /api/v1/fault-simulation/:
     post:
       operationId: fault_simulation_create
@@ -10137,6 +10159,37 @@ components:
       - last_name
       - pk
       - username
+    DashboardStatistics:
+      type: object
+      properties:
+        trench:
+          type: object
+          additionalProperties: {}
+        node:
+          type: object
+          additionalProperties: {}
+        address:
+          type: object
+          additionalProperties: {}
+        conduit:
+          type: object
+          additionalProperties: {}
+        area:
+          type: object
+          additionalProperties: {}
+      required:
+      - address
+      - area
+      - conduit
+      - node
+      - trench
+    DashboardStatisticsError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+      - error
     FeatureFiles:
       type: object
       description: Serialize :model:`api.FeatureFiles` with Nextcloud storage metadata.

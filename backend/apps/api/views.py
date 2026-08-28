@@ -30,7 +30,12 @@ from django.db.models.functions import TruncMonth
 from django.http import FileResponse, HttpResponse, StreamingHttpResponse
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
-from drf_spectacular.utils import OpenApiResponse, extend_schema, inline_serializer
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
+    inline_serializer,
+)
 from pathvalidate import sanitize_filename
 from rest_framework import serializers, status, viewsets
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
@@ -6915,6 +6920,43 @@ class DashboardStatisticsView(APIView):
     permission_classes = [IsAuthenticated]
     CACHE_TIMEOUT = 300  # 5 minutes
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "project",
+                int,
+                OpenApiParameter.QUERY,
+                required=True,
+                description="Project id to scope statistics to.",
+            ),
+            OpenApiParameter(
+                "flag",
+                int,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="Optional flag id to further filter statistics.",
+            ),
+        ],
+        responses={
+            200: inline_serializer(
+                name="DashboardStatistics",
+                fields={
+                    "trench": serializers.DictField(),
+                    "node": serializers.DictField(),
+                    "address": serializers.DictField(),
+                    "conduit": serializers.DictField(),
+                    "area": serializers.DictField(),
+                },
+            ),
+            400: OpenApiResponse(
+                inline_serializer(
+                    name="DashboardStatisticsError",
+                    fields={"error": serializers.CharField()},
+                ),
+                description="Missing required ``project`` parameter.",
+            ),
+        },
+    )
     def get(self, request):
         """Return all dashboard statistics in a single cached response.
 
