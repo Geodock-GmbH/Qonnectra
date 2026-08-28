@@ -1,4 +1,9 @@
 <script lang="ts">
+	import type {
+		FiberDetails,
+		ResidentialUnitDetails
+	} from '$lib/classes/FiberSpliceManager.svelte.js';
+	import type { DropData } from '$lib/classes/NodeStructureContext.svelte.js';
 	import {
 		IconArrowsSplit,
 		IconHome,
@@ -12,6 +17,17 @@
 
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
+
+	/** Compact fiber-trace summary rendered inline in the cell. */
+	interface TraceSummary {
+		start_node?: { name?: string } | null;
+		end_node?: { name?: string } | null;
+		statistics: {
+			total_splices: number;
+			total_addresses: number;
+			total_residential_units: number;
+		};
+	}
 
 	let {
 		fiber = null,
@@ -31,15 +47,15 @@
 		spanRows = 1,
 		portRange = ''
 	}: {
-		fiber?: any;
-		residentialUnit?: any;
+		fiber?: FiberDetails | null;
+		residentialUnit?: ResidentialUnitDetails | null;
 		hasPort?: boolean;
-		side?: string;
+		side?: 'a' | 'b';
 		colorHex?: string;
 		portNumber?: number;
 		cableUuid?: string | null;
 		readonly?: boolean;
-		onDrop?: (data: any) => void;
+		onDrop?: (data: DropData) => void;
 		onClear?: () => void;
 		onUnmerge?: () => void;
 		isMerged?: boolean;
@@ -50,9 +66,9 @@
 	/**
 	 * Get display name for a residential unit
 	 */
-	function getResidentialUnitDisplayName(ru: any) {
+	function getResidentialUnitDisplayName(ru: ResidentialUnitDetails | null) {
 		if (!ru) return '';
-		let main = ru.id_residential_unit || 'Unit';
+		let main: string | number = ru.id_residential_unit || 'Unit';
 		if (ru.external_id_1) {
 			main += ` (${ru.external_id_1})`;
 		} else if (ru.external_id_2) {
@@ -77,8 +93,8 @@
 	let isDragging = $state(false);
 
 	let traceLoading = $state(false);
-	let traceResult = $state<any>(null);
-	let traceError = $state<any>(null);
+	let traceResult = $state<TraceSummary | null>(null);
+	let traceError = $state<string | null>(null);
 
 	/**
 	 * Fetch trace summary for this fiber
@@ -100,7 +116,7 @@
 			if (!response.ok) throw new Error('Trace failed');
 			traceResult = await response.json();
 		} catch (err) {
-			traceError = (err as any).message;
+			traceError = err instanceof Error ? err.message : String(err);
 		} finally {
 			traceLoading = false;
 		}

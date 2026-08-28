@@ -59,6 +59,8 @@ describe('FiberCell', () => {
 			props: {
 				fiber: null,
 				residentialUnit: {
+					uuid: 'ru-1',
+					display_name: 'WE-5',
 					id_residential_unit: 'WE-5',
 					floor: 2,
 					side: 'links',
@@ -78,7 +80,13 @@ describe('FiberCell', () => {
 		render(FiberCell, {
 			props: {
 				fiber: null,
-				residentialUnit: { id_residential_unit: 'WE-9', external_id_1: 'EXT-1', floor: 0 },
+				residentialUnit: {
+					uuid: 'ru-2',
+					display_name: 'WE-9',
+					id_residential_unit: 'WE-9',
+					external_id_1: 'EXT-1',
+					floor: 0
+				},
 				hasPort: true,
 				portNumber: 5,
 				side: 'a'
