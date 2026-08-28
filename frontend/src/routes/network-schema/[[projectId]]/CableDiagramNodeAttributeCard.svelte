@@ -1,4 +1,11 @@
 <script lang="ts">
+	import type {
+		AttributeOptions,
+		ComboboxOption,
+		FkRef,
+		NodeDrawerProps
+	} from './attributeCardTypes';
+	import type { ActionResult } from '@sveltejs/kit';
 	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { page } from '$app/stores';
@@ -13,7 +20,9 @@
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
 
-	const attributes = getContext<any>('attributeOptions') || {
+	import { actionData } from './attributeCardTypes';
+
+	const attributes = getContext<AttributeOptions>('attributeOptions') || {
 		nodeTypes: [],
 		statuses: [],
 		networkLevels: [],
@@ -25,21 +34,21 @@
 
 	const isChildView = $derived($page.url.pathname.includes('/node/'));
 
-	let node = $derived<any>($drawerStore.props);
+	let node = $derived($drawerStore.props as NodeDrawerProps | undefined);
 	let id = $derived(node?.id || '');
 	let nodeName = $state('');
-	let nodeType = $state<any[]>([]);
-	let nodeStatus = $state<any[]>([]);
-	let nodeNetworkLevel = $state<any[]>([]);
-	let nodeOwner = $state<any[]>([]);
-	let nodeConstructor = $state<any[]>([]);
-	let nodeManufacturer = $state<any[]>([]);
+	let nodeType = $state<string[]>([]);
+	let nodeStatus = $state<string[]>([]);
+	let nodeNetworkLevel = $state<string[]>([]);
+	let nodeOwner = $state<string[]>([]);
+	let nodeConstructor = $state<string[]>([]);
+	let nodeManufacturer = $state<string[]>([]);
 	let nodeWarranty = $state('');
 	let nodeDate = $state('');
-	let nodeFlag = $state<any[]>([]);
+	let nodeFlag = $state<string[]>([]);
 	let nodeParentNode = $state('');
 	const availableNodes = $derived(
-		(attributes.parentNodeOptions || []).filter((n: any) => n.value !== id)
+		(attributes.parentNodeOptions || []).filter((n: ComboboxOption) => n.value !== id)
 	);
 
 	let {
@@ -47,8 +56,8 @@
 		onNodeDelete
 	}: { onLabelUpdate?: (name: string) => void; onNodeDelete?: (id: string) => void } = $props();
 
-	let deleteMessageBox = $state<any>(null);
-	let cableBlockedMessageBox = $state<any>(null);
+	let deleteMessageBox = $state<ReturnType<typeof MessageBox> | null>(null);
+	let cableBlockedMessageBox = $state<ReturnType<typeof MessageBox> | null>(null);
 	let pendingDeleteCableCount = $state(0);
 	let pendingDeleteStructureCount = $state(0);
 	let hasConnectedCables = $state(false);
@@ -68,7 +77,7 @@
 	/**
 	 * Check dependencies when node changes (cables, structures, children)
 	 */
-	async function checkNodeDependencies(nodeId: any) {
+	async function checkNodeDependencies(nodeId: string) {
 		if (!nodeId) return;
 
 		isCheckingDependencies = true;
@@ -83,11 +92,12 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text()) as any;
-			const cables = result.data?.cables || [];
-			const structures = result.data?.structures || [];
-			const children = result.data?.children || [];
-			const childrenWithCables = result.data?.childrenWithCables || [];
+			const result = deserialize(await response.text()) as ActionResult;
+			const data = actionData(result);
+			const cables = (data?.cables as unknown[]) || [];
+			const structures = (data?.structures as unknown[]) || [];
+			const children = (data?.children as unknown[]) || [];
+			const childrenWithCables = (data?.childrenWithCables as unknown[]) || [];
 
 			// Only update state if this is still the current node
 			if (lastCheckedNodeId === nodeId) {
@@ -134,15 +144,16 @@
 	$effect(() => {
 		if (node) {
 			nodeName = node.name || '';
-			nodeType = node.node_type?.id != null ? [node.node_type.id] : [];
-			nodeStatus = node.status?.id != null ? [node.status.id] : [];
-			nodeNetworkLevel = node.network_level?.id != null ? [node.network_level.id] : [];
-			nodeOwner = node.owner?.id != null ? [node.owner.id] : [];
-			nodeConstructor = (node.constructor as any)?.id != null ? [(node.constructor as any).id] : [];
-			nodeManufacturer = node.manufacturer?.id != null ? [node.manufacturer.id] : [];
+			nodeType = node.node_type?.id != null ? [String(node.node_type.id)] : [];
+			nodeStatus = node.status?.id != null ? [String(node.status.id)] : [];
+			nodeNetworkLevel = node.network_level?.id != null ? [String(node.network_level.id)] : [];
+			nodeOwner = node.owner?.id != null ? [String(node.owner.id)] : [];
+			const nodeConstructorRef = node.constructor as FkRef | null | undefined;
+			nodeConstructor = nodeConstructorRef?.id != null ? [String(nodeConstructorRef.id)] : [];
+			nodeManufacturer = node.manufacturer?.id != null ? [String(node.manufacturer.id)] : [];
 			nodeWarranty = node.warranty || '';
 			nodeDate = node.date || '';
-			nodeFlag = node.flag?.id != null ? [node.flag.id] : [];
+			nodeFlag = node.flag?.id != null ? [String(node.flag.id)] : [];
 			nodeParentNode = node.parent_node?.uuid ?? '';
 		}
 	});
@@ -221,9 +232,10 @@
 				body: formData
 			});
 
-			const result = deserialize(await response.text()) as any;
-			const cables = result.data?.cables || [];
-			const structures = result.data?.structures || [];
+			const result = deserialize(await response.text()) as ActionResult;
+			const data = actionData(result);
+			const cables = (data?.cables as unknown[]) || [];
+			const structures = (data?.structures as unknown[]) || [];
 
 			pendingDeleteCableCount = cables.length;
 			pendingDeleteStructureCount = structures.length;
@@ -291,7 +303,9 @@
 			globalToaster.error({
 				title: m.common_error(),
 				description:
-					(error as any).message || m.message_error_deleting_node?.() || 'Failed to delete node'
+					(error instanceof Error ? error.message : null) ||
+					m.message_error_deleting_node?.() ||
+					'Failed to delete node'
 			});
 		}
 	}
