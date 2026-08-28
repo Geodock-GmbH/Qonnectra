@@ -8333,7 +8333,11 @@ paths:
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+          description: ''
     put:
       operationId: user_settings_update
       description: |-
@@ -8346,13 +8350,28 @@ paths:
             Response: the saved snapshot, or 400 on validation error.
       tags:
       - user-settings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserSettings'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserSettings'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserSettings'
       security:
       - jwtHeaderAuth: []
       - jwtCookieAuth: []
       - jwtAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+          description: ''
   /api/v1/valuation-rates/:
     get:
       operationId: valuation_rates_list
@@ -13752,6 +13771,22 @@ components:
       description: |-
         * `per_meter` - pro Meter
         * `per_piece` - Stück
+    UserSettings:
+      type: object
+      description: |-
+        Serialize a user's frontend settings snapshot.
+
+        The ``settings`` field is an opaque JSON object whose shape is owned by
+        the frontend; only its container type is validated here.
+      properties:
+        settings:
+          description: Opaque frontend settings snapshot (localStorage key/value map).
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - updated_at
     ValuationCostRate:
       type: object
       description: Serialize :model:`api.ValuationCostRate` cost rates.

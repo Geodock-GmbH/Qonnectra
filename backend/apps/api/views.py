@@ -7983,6 +7983,7 @@ class UserSettingsView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: UserSettingsSerializer})
     def get(self, request):
         """Return the current user's saved settings snapshot.
 
@@ -8000,6 +8001,10 @@ class UserSettingsView(APIView):
 
         return Response(UserSettingsSerializer(instance).data)
 
+    @extend_schema(
+        request=UserSettingsSerializer,
+        responses={200: UserSettingsSerializer},
+    )
     def put(self, request):
         """Create or overwrite the current user's settings snapshot.
 
