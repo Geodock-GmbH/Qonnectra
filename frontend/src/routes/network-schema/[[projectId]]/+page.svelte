@@ -138,14 +138,14 @@
 	});
 
 	onMount(() => {
-		function handleMicropipeLinkageChanged(event: any) {
+		function handleMicropipeLinkageChanged(event: WindowEventMap['micropipeLinkageChanged']) {
 			const { cableId, connections } = event.detail;
 			schemaState.updateEdgeMicropipeConnections(cableId, connections);
 		}
 
-		(window as any).addEventListener('micropipeLinkageChanged', handleMicropipeLinkageChanged);
+		window.addEventListener('micropipeLinkageChanged', handleMicropipeLinkageChanged);
 		return () => {
-			(window as any).removeEventListener('micropipeLinkageChanged', handleMicropipeLinkageChanged);
+			window.removeEventListener('micropipeLinkageChanged', handleMicropipeLinkageChanged);
 		};
 	});
 
@@ -205,16 +205,16 @@
 	}
 
 	$effect(() => {
-		(window as any).addEventListener('updateCablePath', handleCablePathUpdate);
+		window.addEventListener('updateCablePath', handleCablePathUpdate);
 		return () => {
-			(window as any).removeEventListener('updateCablePath', handleCablePathUpdate);
+			window.removeEventListener('updateCablePath', handleCablePathUpdate);
 		};
 	});
 
 	$effect(() => {
-		(window as any).addEventListener('updateCableHandles', handleCableHandleUpdate);
+		window.addEventListener('updateCableHandles', handleCableHandleUpdate);
 		return () => {
-			(window as any).removeEventListener('updateCableHandles', handleCableHandleUpdate);
+			window.removeEventListener('updateCableHandles', handleCableHandleUpdate);
 		};
 	});
 
@@ -227,27 +227,29 @@
 	}
 
 	$effect(() => {
-		(window as any).addEventListener('updateCableLabelData', handleCableLabelDataUpdate);
+		window.addEventListener('updateCableLabelData', handleCableLabelDataUpdate);
 		return () => {
-			(window as any).removeEventListener('updateCableLabelData', handleCableLabelDataUpdate);
+			window.removeEventListener('updateCableLabelData', handleCableLabelDataUpdate);
 		};
 	});
 
 	$effect(() => {
-		function handleCableConnectionChangedEvent(event: any) {
-			const { cableId, side, newNodeId, handlePosition } = event.detail;
-			// If this is an edge reconnection event (has cableId and side), update the edge
-			if (cableId && side && newNodeId) {
-				schemaState.updateEdgeConnection(cableId, side, newNodeId, handlePosition);
+		function handleCableConnectionChangedEvent(event: WindowEventMap['cableConnectionChanged']) {
+			// Only the edge-reconnection payload variant carries cableId/side/newNodeId.
+			const detail = event.detail;
+			if ('cableId' in detail && detail.side && detail.newNodeId) {
+				schemaState.updateEdgeConnection(
+					detail.cableId,
+					detail.side,
+					detail.newNodeId,
+					detail.handlePosition ?? 'top'
+				);
 			}
 		}
 
-		(window as any).addEventListener('cableConnectionChanged', handleCableConnectionChangedEvent);
+		window.addEventListener('cableConnectionChanged', handleCableConnectionChangedEvent);
 		return () => {
-			(window as any).removeEventListener(
-				'cableConnectionChanged',
-				handleCableConnectionChangedEvent
-			);
+			window.removeEventListener('cableConnectionChanged', handleCableConnectionChangedEvent);
 		};
 	});
 

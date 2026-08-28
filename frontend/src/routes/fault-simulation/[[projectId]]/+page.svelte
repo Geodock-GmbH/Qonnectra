@@ -326,7 +326,7 @@
 
 	onMount(() => {
 		if (dev) {
-			(window as any).__e2eFaultSim = {
+			window.__e2eFaultSim = {
 				injectResult(result: FaultSimulationResult) {
 					ctx.setDamagePoint([0, 0], result.trench ?? null);
 					ctx.setSimulationResult(result);
@@ -339,7 +339,7 @@
 
 		return () => {
 			if (dev) {
-				delete (window as any).__e2eFaultSim;
+				delete window.__e2eFaultSim;
 			}
 			if (olMap && mapMoveListener) {
 				olMap.un('postrender', mapMoveListener);
