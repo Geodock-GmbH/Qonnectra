@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.7.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.6.0...v1.7.0) (2026-08-28)
+
+
+### Features
+
+* Sidebar customization and user setting sync ([#83](https://github.com/Geodock-GmbH/Qonnectra/issues/83)) ([3d3d142](https://github.com/Geodock-GmbH/Qonnectra/commit/3d3d1421dea96faa65a3cc7e246c43fa7ffe5195))
+
+
+### Miscellaneous
+
+* Fixed github workflow error that it cant find paraglide messages ([3f8951b](https://github.com/Geodock-GmbH/Qonnectra/commit/3f8951bc523eb3fab931739113cdcddf8504f86c))
+* Fixed test where the timezone was missing which let the github workflow fail ([841841c](https://github.com/Geodock-GmbH/Qonnectra/commit/841841cd7dcdf579e5a4d70e7a7f7c4391373b19))
+* Migrated component to ts ([#84](https://github.com/Geodock-GmbH/Qonnectra/issues/84)) ([7c3c244](https://github.com/Geodock-GmbH/Qonnectra/commit/7c3c244df10dcd470f7c4bfd740dcab4eca589bd))
+* Migration skeleton v4 to v5 ([#81](https://github.com/Geodock-GmbH/Qonnectra/issues/81)) ([2066149](https://github.com/Geodock-GmbH/Qonnectra/commit/206614903b1ff35d18709b3c6c9001a1c2bfe0fe))
+* Updated action from v4 to v5 ([65cb4aa](https://github.com/Geodock-GmbH/Qonnectra/commit/65cb4aa557a4f347a56ba71442e62f7d7aad55ce))
+
 ## [1.6.0](https://github.com/Geodock-GmbH/Qonnectra/compare/v1.5.1...v1.6.0) (2026-08-24)
 
 
