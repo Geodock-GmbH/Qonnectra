@@ -58,6 +58,10 @@ export interface CableDrawerProps {
 	reserve_at_start?: number | null;
 	reserve_at_end?: number | null;
 	reserve_section?: number | null;
+	handle_start?: string | null;
+	handle_end?: string | null;
+	uuid_node_start?: string | null;
+	uuid_node_end?: string | null;
 	[key: string]: unknown;
 }
 
