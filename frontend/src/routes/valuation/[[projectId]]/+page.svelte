@@ -34,25 +34,54 @@
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { actionData } from '$lib/types/attributeCardTypes';
 
 	import { computeProjection, formatCurrency, formatQuantity } from './valuationCalc.js';
 
 	let { data }: { data: PageData } = $props();
 
-	type Area = { uuid: string; name: string; areaType: string | null; geom: any };
+	type Area = { uuid: string; name: string; areaType: string | null; geom: unknown };
+
+	/** A valuation cost-rate row. */
+	type ValuationRate = {
+		uuid?: string;
+		name: string;
+		unit: string;
+		amount?: number;
+		[key: string]: unknown;
+	};
+
+	/** A single cost category in a computed valuation. */
+	type ValuationCategory = {
+		name: string;
+		unit: string;
+		amount: number;
+		quantity: number;
+		gp: number;
+		is_house_connection?: boolean;
+	};
+
+	/** The computed valuation result returned by the calculate endpoint. */
+	type ValuationResult = {
+		categories: ValuationCategory[];
+		total: number;
+		cost_per_house_connection: number | null;
+		cost_per_meter: number | null;
+		projection?: { year: number; net_value: number; increase: number }[] | null;
+	};
 
 	let globalAreas = $state<Area[] | null>(null);
-	let globalRates = $state<any[] | null>(null);
+	let globalRates = $state<ValuationRate[] | null>(null);
 
 	const projectAreas = $derived((data.areas ?? []) as Area[]);
-	const projectRates = $derived((data.rates ?? []) as any[]);
+	const projectRates = $derived((data.rates ?? []) as ValuationRate[]);
 
 	const areas = $derived($globalMapView && globalAreas ? globalAreas : projectAreas);
 	const rates = $derived($globalMapView && globalRates ? globalRates : projectRates);
-	const nodeTypes = $derived((data.nodeTypes ?? []) as any[]);
-	const surfaces = $derived((data.surfaces ?? []) as any[]);
-	const constructionTypes = $derived((data.constructionTypes ?? []) as any[]);
-	const areaTypes = $derived((data.areaTypes ?? []) as any[]);
+	const nodeTypes = $derived((data.nodeTypes ?? []) as unknown[]);
+	const surfaces = $derived((data.surfaces ?? []) as unknown[]);
+	const constructionTypes = $derived((data.constructionTypes ?? []) as unknown[]);
+	const areaTypes = $derived((data.areaTypes ?? []) as unknown[]);
 
 	function unitLabel(unit: string): string {
 		return unit === 'per_meter' ? m.valuation_unit_per_meter() : m.valuation_unit_per_piece();
@@ -73,9 +102,20 @@
 					areasData?.results ??
 					areasData ??
 					[];
-				globalAreas = (Array.isArray(features) ? features : []).map((a: any) => ({
-					uuid: a.id ?? a.properties?.uuid ?? a.uuid,
-					name: a.properties?.name ?? a.name,
+				type AreaFeature = {
+					id?: string;
+					uuid?: string;
+					name?: string;
+					geometry?: unknown;
+					properties?: {
+						uuid?: string;
+						name?: string;
+						area_type?: { area_type?: string } | null;
+					};
+				};
+				globalAreas = (Array.isArray(features) ? features : []).map((a: AreaFeature) => ({
+					uuid: a.id ?? a.properties?.uuid ?? a.uuid ?? '',
+					name: a.properties?.name ?? a.name ?? '',
 					areaType: a.properties?.area_type?.area_type ?? null,
 					geom: a.geometry ?? null
 				}));
@@ -86,10 +126,10 @@
 				globalRates = ratesData?.results ?? ratesData ?? [];
 				if (!Array.isArray(globalRates)) globalRates = [];
 			}
-		} catch (err: any) {
+		} catch (err) {
 			globalToaster.error({
 				title: m.common_error(),
-				description: err.message
+				description: err instanceof Error ? err.message : String(err)
 			});
 		}
 	}
@@ -124,7 +164,7 @@
 	});
 
 	let isCalculating = $state(false);
-	let result = $state<any>(null);
+	let result = $state<ValuationResult | null>(null);
 
 	const selectionValid = $derived(gesamt || selectedAreaUuids.size > 0);
 
@@ -330,15 +370,18 @@
 			const parsed = deserialize(await response.text());
 
 			if (parsed.type === 'success') {
-				result = (parsed as any).data?.result ?? null;
+				result = (actionData(parsed)?.result as ValuationResult | undefined) ?? null;
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: (parsed as any).data?.message || m.valuation_result_failed()
+					description: (actionData(parsed)?.message as string) || m.valuation_result_failed()
 				});
 			}
-		} catch (err: any) {
-			globalToaster.error({ title: m.common_error(), description: err.message });
+		} catch (err) {
+			globalToaster.error({
+				title: m.common_error(),
+				description: err instanceof Error ? err.message : String(err)
+			});
 		} finally {
 			isCalculating = false;
 		}
