@@ -3,6 +3,7 @@
 		AddressInfo,
 		FiberInfo,
 		FiberPathNode,
+		FiberWaypoint,
 		ResidentialUnitInfo,
 		SpliceInfo
 	} from '../traceUtils';
@@ -410,12 +411,12 @@
 			transition:slide={{ duration: 200 }}
 			class="border-b border-surface-200-800 bg-surface-50-950 px-3 py-3 sm:px-4 sm:py-4"
 		>
-			{@render traceNode(row.tree, 0, true)}
+			{@render traceNode(row.tree as FiberWaypoint, 0, true)}
 		</div>
 	{/if}
 {/snippet}
 
-{#snippet traceNode(node: FiberPathNode, depth: number, isLastChild: boolean)}
+{#snippet traceNode(node: FiberWaypoint, depth: number, isLastChild: boolean)}
 	{@const hasDetails =
 		node.splice ||
 		(node.cable_endpoints && (node.cable_endpoints.start_node || node.cable_endpoints.end_node)) ||
@@ -566,8 +567,8 @@
 		<!-- Children -->
 		{#if node.children && node.children.length > 0}
 			{@const children = node.children}
-			{#each children as child, i (`${child.fiber.id}-${i}`)}
-				{@render traceNode(child, depth + 1, i === children.length - 1)}
+			{#each children as child, i (`${child.fiber?.id}-${i}`)}
+				{@render traceNode(child as FiberWaypoint, depth + 1, i === children.length - 1)}
 			{/each}
 		{/if}
 	</div>

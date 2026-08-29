@@ -18,8 +18,8 @@
 	import type {
 		CableInfrastructure,
 		EndpointNode,
-		TraceResult,
-		TraceTreeNode
+		FiberPathNode,
+		TraceResult
 	} from '../traceUtils';
 
 	import { basemapTheme, tileServerAvailable } from '$lib/stores/store';
@@ -436,7 +436,7 @@
 	 * @param seenIds - Set of already-added feature IDs for deduplication
 	 */
 	async function extractMarkersFromTree(
-		node: TraceTreeNode | undefined,
+		node: FiberPathNode | null | undefined,
 		markers: import('ol/Feature').default[],
 		seenIds: Set<string>
 	): Promise<void> {

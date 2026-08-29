@@ -13,6 +13,8 @@ interface ConduitInfo {
 interface MicroductInfo {
 	number?: number;
 	color?: string;
+	color_hex?: string;
+	status?: string;
 }
 
 interface TrenchSegment {
@@ -25,6 +27,7 @@ interface TrenchSegment {
 }
 
 export interface CableInfrastructure {
+	cable_name?: string;
 	conduit?: ConduitInfo;
 	microduct?: MicroductInfo;
 	merged_geometry?: GeoJSONGeometry;
@@ -114,6 +117,12 @@ export interface SpliceInfo {
 	container_path?: ContainerPathEntry[];
 }
 
+/** A splice at a cable endpoint (carries its own id and node). */
+export interface EndpointSplice extends SpliceInfo {
+	id?: string;
+	node?: EndpointNode;
+}
+
 /**
  * A node in the fiber-paths tree (richer than the geometry-only
  * {@link TraceTreeNode} used by the map). Every field is optional — a node
@@ -123,10 +132,12 @@ export interface FiberPathNode {
 	id?: string;
 	name?: string;
 	type?: string;
+	signal_state?: string | null;
 	node?: EndpointNode;
 	address?: AddressInfo;
-	fiber: FiberInfo;
+	fiber?: FiberInfo;
 	splice?: SpliceInfo;
+	endpoint_splices?: EndpointSplice[];
 	cable_endpoints?: {
 		cable_name?: string;
 		start_node?: EndpointNode;
@@ -134,6 +145,24 @@ export interface FiberPathNode {
 	};
 	residential_units?: ResidentialUnitInfo[];
 	children?: FiberPathNode[];
+}
+
+/**
+ * A fiber-path node guaranteed to carry a fiber — the shape the recursive
+ * `traceNode` renderers walk (geometry-only trees never reach them).
+ */
+export type FiberWaypoint = FiberPathNode & { fiber: FiberInfo };
+
+/** Aggregate counts shown in the trace results summary. */
+export interface TraceStatistics {
+	total_fibers?: number;
+	total_nodes?: number;
+	total_splices?: number;
+	total_cables?: number;
+	total_trenches?: number;
+	total_addresses?: number;
+	total_residential_units?: number;
+	has_branches?: boolean;
 }
 
 export interface TraceTreeNode {
@@ -150,14 +179,16 @@ export interface TraceEntryPoint {
 	id?: string;
 	name?: string;
 	type?: string;
+	floor?: number | string | null;
 	geometry?: GeoJSONGeometry;
 }
 
 export interface TraceResult {
 	cable_infrastructure?: Record<string, CableInfrastructure>;
-	trace_trees?: TraceTreeNode[];
-	trace_tree?: TraceTreeNode;
+	trace_trees?: FiberPathNode[] | null;
+	trace_tree?: FiberPathNode | null;
 	entry_point?: TraceEntryPoint;
+	statistics?: TraceStatistics;
 }
 
 interface GeoJSONFeatureProperties {
