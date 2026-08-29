@@ -1,4 +1,5 @@
 import type { Fiber } from './CableFiberDataManager.svelte';
+
 import { m } from '$lib/paraglide/messages';
 
 interface ComponentType {
@@ -15,7 +16,7 @@ interface Structure {
 
 interface Cable {
 	uuid: string;
-	name: string;
+	name?: string;
 	fiber_count?: number;
 	direction?: string;
 }
@@ -29,7 +30,7 @@ interface Bundle {
 interface Address {
 	uuid: string;
 	street: string;
-	housenumber: string;
+	housenumber: string | number;
 	house_number_suffix?: string;
 }
 

@@ -3,7 +3,7 @@ import { deserialize } from '$app/forms';
 
 import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
-interface Cable {
+export interface Cable {
 	uuid: string;
 	name?: string;
 	capacity?: number;
@@ -23,13 +23,13 @@ export interface Fiber {
 	fiber_status?: FiberStatusOption | null;
 }
 
-interface FiberBundle {
+export interface FiberBundle {
 	bundleNumber: number;
 	bundleColor: string;
 	fibers: Fiber[];
 }
 
-interface ResidentialUnit {
+export interface ResidentialUnit {
 	uuid: string;
 	id_residential_unit?: string;
 	external_id_1?: string;
@@ -38,7 +38,7 @@ interface ResidentialUnit {
 	side?: string;
 }
 
-interface NodeAddress {
+export interface NodeAddress {
 	uuid: string;
 	street: string;
 	housenumber: string | number;
