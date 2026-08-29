@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import type { ResidentialUnit } from '$lib/types';
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import {
@@ -22,6 +23,7 @@
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	let { data }: { data: PageData } = $props();
@@ -42,10 +44,10 @@
 	 * Snapshots the unit from initial page data to avoid reactivity on form fields.
 	 * @returns The residential unit object.
 	 */
-	function getInitialUnit() {
-		return data.unit;
+	function getInitialUnit(): ResidentialUnit | null {
+		return (data.unit as ResidentialUnit | null) ?? null;
 	}
-	const initialUnit = getInitialUnit() as any;
+	const initialUnit = getInitialUnit();
 
 	let formIdResidentialUnit = $state(initialUnit?.id_residential_unit || '');
 	let formFloor = $state(initialUnit?.floor ?? '');
@@ -59,9 +61,9 @@
 	let formResidentRecordedDate = $state(initialUnit?.resident_recorded_date || '');
 	let formReadyForService = $state(initialUnit?.ready_for_service || '');
 
-	let deleteMessageBox = $state<any>(null);
-	let regenerateMessageBox = $state<any>(null);
-	let fileExplorer = $state<any>(null);
+	let deleteMessageBox = $state<ReturnType<typeof MessageBox> | null>(null);
+	let regenerateMessageBox = $state<ReturnType<typeof MessageBox> | null>(null);
+	let fileExplorer = $state<ReturnType<typeof FileExplorer> | null>(null);
 
 	const featureId = $derived(unit?.uuid);
 
@@ -104,7 +106,7 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				const updated = (result.data as any)?.unit;
+				const updated = actionData(result)?.unit as ResidentialUnit | undefined;
 				if (updated?.id_residential_unit != null) {
 					formIdResidentialUnit = updated.id_residential_unit;
 				}
@@ -115,7 +117,8 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: (result as any).data?.message || m.message_error_updating_residential_unit()
+					description:
+						(actionData(result)?.message as string) || m.message_error_updating_residential_unit()
 				});
 			}
 		} catch (error) {
@@ -162,7 +165,8 @@
 			} else if (result.type === 'failure') {
 				globalToaster.error({
 					title: m.common_error(),
-					description: (result as any).data?.message || m.message_error_deleting_residential_unit()
+					description:
+						(actionData(result)?.message as string) || m.message_error_deleting_residential_unit()
 				});
 			}
 		} catch (error) {
@@ -201,7 +205,7 @@
 			const result = deserialize(await response.text());
 
 			if (result.type === 'success') {
-				formIdResidentialUnit = (result.data as any).id_residential_unit;
+				formIdResidentialUnit = (actionData(result)?.id_residential_unit as string) ?? '';
 				globalToaster.success({
 					title: m.title_success(),
 					description: m.message_success_regenerating_residential_unit_id()
@@ -210,7 +214,8 @@
 				globalToaster.error({
 					title: m.common_error(),
 					description:
-						(result as any).data?.message || m.message_error_regenerating_residential_unit_id()
+						(actionData(result)?.message as string) ||
+						m.message_error_regenerating_residential_unit_id()
 				});
 			}
 		} catch (error) {
