@@ -10,6 +10,8 @@
 
 	import 'ol/ol.css';
 
+	import type { GeoJsonFeature, PointGeom } from '$lib/types/geo';
+
 	import { m } from '$lib/paraglide/messages';
 
 	import Map from '$lib/components/Map.svelte';
@@ -22,17 +24,12 @@
 		wmsSourcesData
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { fetchWMSAccessToken, fetchWMSSources, getWMSProxyUrl } from '$lib/utils/wmsApi';
 	import { createWMSLayer } from '$lib/map';
-	import { actionData } from '$lib/types/attributeCardTypes';
 
 	import ExportDialog from './ExportDialog.svelte';
-
-	/** A GeoJSON-ish point geometry (EPSG:3857). */
-	type PointGeom = { coordinates?: number[] } | null;
-	/** A GeoJSON feature carrying a geometry (linked trench). */
-	type GeoJsonFeature = { geometry?: unknown; [key: string]: unknown };
 
 	let { data }: PageProps = $props();
 

@@ -10,8 +10,8 @@
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
-	import { actionData } from '$lib/types/attributeCardTypes';
 
 	const attributes = getContext<AttributeOptions>('attributeOptions') || {
 		cableTypes: [],

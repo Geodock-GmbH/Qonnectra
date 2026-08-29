@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { PointGeom } from '$lib/types/geo';
 	import type {
 		AddressData,
 		FiberConnection,
@@ -16,9 +17,9 @@
 	import { registerStorageProjection, storageProjection } from '$lib/map/projectionUtils.js';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { generateAddressPdf } from '$lib/utils/addressPdf';
+	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { captureMapCanvases, getVisibleWMSAttributions } from '$lib/utils/mapCapture';
-	import { actionData } from '$lib/types/attributeCardTypes';
 
 	/**
 	 * The address payload for the export dialog. Fields are optional (the parent
@@ -29,9 +30,6 @@
 		uuid?: string;
 		status_development?: { id?: number | string; status?: string } | null;
 	};
-
-	/** A GeoJSON-ish point geometry (EPSG:3857). */
-	type PointGeom = { coordinates?: number[] } | null;
 
 	let {
 		address,

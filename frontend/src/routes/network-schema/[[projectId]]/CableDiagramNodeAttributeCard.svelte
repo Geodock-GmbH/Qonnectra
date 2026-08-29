@@ -17,9 +17,9 @@
 	import VirtualCombobox from '$lib/components/VirtualCombobox.svelte';
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
-	import { actionData } from '$lib/types/attributeCardTypes';
 
 	const attributes = getContext<AttributeOptions>('attributeOptions') || {
 		nodeTypes: [],

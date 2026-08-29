@@ -11,19 +11,12 @@
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
 
 	import ContainerItem from './ContainerItem.svelte';
 	import SlotConfigItem from './SlotConfigItem.svelte';
-
-	/**
-	 * Read the `data` object from a deserialized form-action result regardless of
-	 * which result variant it is (`error`/`redirect` carry no `data`).
-	 */
-	function actionData(result: ActionResult): Record<string, unknown> | undefined {
-		return result.type === 'success' || result.type === 'failure' ? result.data : undefined;
-	}
 
 	let {
 		nodeUuid,

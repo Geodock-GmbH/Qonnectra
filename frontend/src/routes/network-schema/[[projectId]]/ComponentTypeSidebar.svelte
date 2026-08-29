@@ -15,9 +15,9 @@
 
 	import { DRAG_DROP_CONTEXT_KEY, DragDropManager } from '$lib/classes/DragDropManager.svelte';
 	import { PanelResizeManager } from '$lib/classes/PanelResizeManager.svelte.js';
+	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
-	import { actionData } from '$lib/types/attributeCardTypes';
 
 	let {
 		onDragStart = () => {},

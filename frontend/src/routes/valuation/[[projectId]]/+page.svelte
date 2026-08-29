@@ -34,7 +34,7 @@
 		trenchSurfaceStyles
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
-	import { actionData } from '$lib/types/attributeCardTypes';
+	import { actionData } from '$lib/utils/forms';
 
 	import { computeProjection, formatCurrency, formatQuantity } from './valuationCalc.js';
 

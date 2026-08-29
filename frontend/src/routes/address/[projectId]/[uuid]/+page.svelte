@@ -19,6 +19,7 @@
 	import 'ol/ol.css';
 
 	import type { PageData } from './$types';
+	import type { GeoJsonFeature } from '$lib/types/geo';
 	import type { ResidentialUnit } from '$lib/utils/addressPdf';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
@@ -41,12 +42,12 @@
 	} from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { generateAddressPdf } from '$lib/utils/addressPdf';
+	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { captureMapCanvases, getVisibleWMSAttributions } from '$lib/utils/mapCapture';
 	import { tooltip } from '$lib/utils/tooltip';
 	import { fetchWMSAccessToken, fetchWMSSources, getWMSProxyUrl } from '$lib/utils/wmsApi';
 	import { createWMSLayer } from '$lib/map';
-	import { actionData } from '$lib/types/attributeCardTypes';
 
 	import ResidentialUnitsSection from './ResidentialUnitsSection.svelte';
 
@@ -67,8 +68,6 @@
 		geom_3857?: { coordinates?: number[] } | null;
 		[key: string]: unknown;
 	};
-	/** A GeoJSON feature carrying a geometry (linked trench). */
-	type GeoJsonFeature = { geometry?: unknown; [key: string]: unknown };
 
 	let { data }: { data: PageData } = $props();
 

@@ -1,16 +1,9 @@
 /**
  * Shared types for the network-schema attribute cards (node & edge), which read
  * the `attributeOptions` context and the drawer's node/edge props.
+ *
+ * The generic form-action helper `actionData` lives in `$lib/utils/forms`.
  */
-import type { ActionResult } from '@sveltejs/kit';
-
-/**
- * Read the `data` object from a deserialized form-action result regardless of
- * which result variant it is (`error`/`redirect` carry no `data`).
- */
-export function actionData(result: ActionResult): Record<string, unknown> | undefined {
-	return result.type === 'success' || result.type === 'failure' ? result.data : undefined;
-}
 
 /** A `{ value, label }` option as rendered by the comboboxes. */
 export interface ComboboxOption {
