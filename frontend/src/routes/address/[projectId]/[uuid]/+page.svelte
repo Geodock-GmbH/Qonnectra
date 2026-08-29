@@ -827,7 +827,7 @@
 								addressMarkerLayer
 							]}
 							viewOptions={{
-								center: mapCenter,
+								center: mapCenter ?? undefined,
 								zoom: 18
 							}}
 							showOpacitySlider={false}

@@ -1,10 +1,13 @@
 <script lang="ts">
+	import type { SearchFeaturePayload } from '$lib/map/searchUtils';
 	import type { AreaType, ConstructionType, NodeType, Surface } from '$lib/types/mapLayers';
 	import type Feature from 'ol/Feature';
 	import type BaseLayer from 'ol/layer/Base';
 	import type TileLayer from 'ol/layer/Tile';
 	import type OlMap from 'ol/Map';
+	import type { MapOptions } from 'ol/Map';
 	import type MapBrowserEvent from 'ol/MapBrowserEvent';
+	import type { ViewOptions } from 'ol/View';
 	import { onDestroy, onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import { browser } from '$app/environment';
@@ -71,8 +74,8 @@
 
 	interface Props {
 		layers?: BaseLayer[];
-		viewOptions?: any;
-		mapOptions?: any;
+		viewOptions?: Partial<ViewOptions>;
+		mapOptions?: Partial<MapOptions>;
 		className?: string;
 		showOpacitySlider?: boolean;
 		showLayerVisibilityTree?: boolean;
@@ -83,9 +86,9 @@
 		onNodeTypeVisibilityChanged?: (info: NodeTypeInfo) => void;
 		onTrenchTypeVisibilityChanged?: (info: TrenchTypeInfo) => void;
 		onLabelVisibilityChanged?: (info: LabelInfo) => void;
-		onFeatureSelect?: (feature: Feature) => void;
+		onFeatureSelect?: (feature: SearchFeaturePayload) => void;
 		onSearchError?: (error: Error | string) => void;
-		searchPanelProps?: any;
+		searchPanelProps?: Record<string, unknown>;
 		nodeTypes?: NodeType[];
 		surfaces?: Surface[];
 		constructionTypes?: ConstructionType[];
@@ -94,7 +97,7 @@
 		variant?: MapVariant;
 		onready?: (info: { map: OlMap; usingFallbackOSM: boolean }) => void;
 		onmoveend?: (info: { center: number[] | undefined; zoom: number }) => void;
-		onclick?: (e: MapBrowserEvent<any>) => void;
+		onclick?: (e: MapBrowserEvent<PointerEvent>) => void;
 	}
 
 	let {
@@ -288,7 +291,7 @@
 				zoom: initialZoom,
 				...viewOptions
 			}),
-			controls: controls.extend(mapOptions.controls || []),
+			controls: controls.extend(Array.isArray(mapOptions.controls) ? mapOptions.controls : []),
 			...mapOptions
 		});
 
@@ -321,7 +324,7 @@
 			onmoveend({ center: newCenter, zoom: newZoom });
 		});
 		map.getViewport().style.cursor = 'default';
-		map.on('click', (e: MapBrowserEvent<any>) => onclick(e));
+		map.on('click', (e) => onclick(e as MapBrowserEvent<PointerEvent>));
 	});
 
 	$effect(() => {
@@ -426,7 +429,7 @@
 	 * Handles feature selection from the search panel.
 	 * @param feature - The selected feature
 	 */
-	function handleFeatureSelect(feature: Feature) {
+	function handleFeatureSelect(feature: SearchFeaturePayload) {
 		onFeatureSelect(feature);
 	}
 
@@ -434,8 +437,8 @@
 	 * Handles search errors from the search panel.
 	 * @param error - The error that occurred
 	 */
-	function handleSearchError(error: Error | string) {
-		onSearchError(error);
+	function handleSearchError(error: unknown) {
+		onSearchError(error instanceof Error ? error : String(error));
 	}
 
 	const handleZoomToExtent = createZoomToLayerExtentHandler(
@@ -561,7 +564,7 @@
 						<div class="relative">
 							<SearchPanel
 								olMapInstance={map}
-								onFeatureSelect={(detail: any) => {
+								onFeatureSelect={(detail) => {
 									handleFeatureSelect(detail);
 									isMobileSearchOpen = false;
 								}}

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { MapSelectionManager } from '$lib/classes/MapSelectionManager.svelte';
+	import type { SearchFeaturePayload } from '$lib/map/searchUtils';
 	import type VectorLayer from 'ol/layer/Vector';
 	import type OlMap from 'ol/Map';
 	import type VectorSource from 'ol/source/Vector';
@@ -33,11 +34,6 @@
 		type: string;
 		value: string;
 	}
-
-	/** The payload passed to onFeatureSelect: a raw GeoJSON feature or a conduit selection. */
-	type SearchFeaturePayload =
-		| Record<string, unknown>
-		| { type: 'conduit'; uuid: string; trenches: unknown; trenchUuids: unknown };
 
 	interface Props {
 		olMapInstance?: OlMap | null;

@@ -16,6 +16,11 @@ interface ZoomOptions {
 	blinkCount?: number;
 }
 
+/** The payload the search panel emits on selection: a raw feature, or a conduit selection. */
+export type SearchFeaturePayload =
+	| Record<string, unknown>
+	| { type: 'conduit'; uuid: string; trenches: unknown; trenchUuids: unknown };
+
 /** Creates a highlight layer for temporarily highlighting features */
 export async function createHighlightLayer(
 	highlightStyle: Style
