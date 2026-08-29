@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import type { SearchPanelRef } from '$lib/classes/MapInteractionManager.svelte';
 	import type OlMap from 'ol/Map';
 	import { onMount, untrack } from 'svelte';
 	import { get } from 'svelte/store';
@@ -35,8 +36,8 @@
 	import 'ol/ol.css';
 
 	let { data }: { data: PageData } = $props();
-	let mapRef = $state<any>();
-	let searchPanelRef = $state<any>();
+	let mapRef = $state<ReturnType<typeof Map> | null>(null);
+	let searchPanelRef = $state<SearchPanelRef | null>(null);
 
 	let linkedTrenchesLayer = $state<VectorTileLayer | undefined>();
 	let linkedTrenchUuids = $state<Set<string>>(new Set());
@@ -181,7 +182,7 @@
 
 	$effect(() => {
 		if (mapRef && mapRef.getSearchPanelRef) {
-			searchPanelRef = mapRef.getSearchPanelRef();
+			searchPanelRef = mapRef.getSearchPanelRef() as SearchPanelRef | null;
 			if (searchPanelRef) {
 				interactionManager.setSearchPanelRef(searchPanelRef);
 			}

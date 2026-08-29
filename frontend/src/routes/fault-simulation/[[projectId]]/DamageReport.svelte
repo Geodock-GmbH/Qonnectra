@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { AffectedAddress } from './exportCsv';
 	import {
 		IconChevronDown,
 		IconChevronRight,
@@ -24,13 +25,12 @@
 	let conduitsExpanded = $state(false);
 	let cablesExpanded = $state(false);
 
-	function formatAddress(addr: Record<string, any>): string {
+	function formatAddress(addr: AffectedAddress): string {
 		const parts = [addr.street, addr.housenumber];
-		if (addr.suffix) parts.push(addr.suffix);
 		return parts.filter(Boolean).join(' ');
 	}
 
-	function formatLocation(addr: Record<string, any>): string {
+	function formatLocation(addr: AffectedAddress): string {
 		const parts = [];
 		if (addr.zip_code) parts.push(addr.zip_code);
 		if (addr.city) parts.push(addr.city);

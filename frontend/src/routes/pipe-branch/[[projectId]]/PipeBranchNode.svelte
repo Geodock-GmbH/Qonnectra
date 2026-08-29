@@ -1,12 +1,13 @@
 <script lang="ts">
 	import type { Node, NodeProps } from '@xyflow/svelte';
+	import type { TrenchesNearNodeConduit, TrenchesNearNodeTrench } from '$lib/types';
 	import { Handle, Position } from '@xyflow/svelte';
 
 	import { m } from '$lib/paraglide/messages';
 
 	type PipeBranchNodeData = {
-		trench?: any;
-		conduit?: any;
+		trench?: TrenchesNearNodeTrench;
+		conduit?: TrenchesNearNodeConduit;
 		totalMicroducts?: number;
 		nodeName?: string;
 	} & Record<string, unknown>;
@@ -50,14 +51,14 @@
 			microductNumber: number;
 			conduitName: string;
 			conduitUuid: string;
-			status: any;
-			color: string;
+			status: string | null;
+			color: string | null;
 			cssColor: string;
-			borderColor: string;
+			borderColor: string | null;
 			isTwoLayer: boolean;
 			contrastColor: string;
 		}> = [];
-		conduit.microducts.forEach((microduct: any, micIndex: number) => {
+		conduit.microducts.forEach((microduct, micIndex: number) => {
 			const hexCode = microduct.hex_code || '#64748b'; // Default gray
 			const hexCodeSecondary = microduct.hex_code_secondary;
 			const isTwoLayer = microduct.is_two_layer || false;
