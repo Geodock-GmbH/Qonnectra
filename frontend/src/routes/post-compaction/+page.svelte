@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageProps } from './$types';
+	import type { AddressData, MicroductData, ResidentialUnit } from '$lib/utils/addressPdf';
 	import { untrack } from 'svelte';
 	import { get } from 'svelte/store';
 	import { slide } from 'svelte/transition';
@@ -24,30 +25,36 @@
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { fetchWMSAccessToken, fetchWMSSources, getWMSProxyUrl } from '$lib/utils/wmsApi';
 	import { createWMSLayer } from '$lib/map';
+	import { actionData } from '$lib/types/attributeCardTypes';
 
 	import ExportDialog from './ExportDialog.svelte';
+
+	/** A GeoJSON-ish point geometry (EPSG:3857). */
+	type PointGeom = { coordinates?: number[] } | null;
+	/** A GeoJSON feature carrying a geometry (linked trench). */
+	type GeoJsonFeature = { geometry?: unknown; [key: string]: unknown };
 
 	let { data }: PageProps = $props();
 
 	const statusDevelopments = $derived(data.statusDevelopments);
 
 	let searchQuery = $state('');
-	let searchResults = $state<Record<string, any>[]>([]);
+	let searchResults = $state<AddressData[]>([]);
 	let searching = $state(false);
 	let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
-	let selectedAddress = $state<Record<string, any> | null>(null);
-	let residentialUnits = $state<Record<string, any>[]>([]);
-	let linkedMicroducts = $state<Record<string, any>[]>([]);
-	let linkedTrenchGeometries = $state<Record<string, any>[]>([]);
+	let selectedAddress = $state<AddressData | null>(null);
+	let residentialUnits = $state<ResidentialUnit[]>([]);
+	let linkedMicroducts = $state<MicroductData[]>([]);
+	let linkedTrenchGeometries = $state<GeoJsonFeature[]>([]);
 	let loadingAddress = $state(false);
 	let exportDialogOpen = $state(false);
 
-	let geom3857 = $state<any>(null);
-	let addressMarkerLayer = $state<any>(null);
-	let trenchLinesLayer = $state<any>(null);
-	let wmsLayers = $state<any[]>([]);
-	let mapCenter = $state<any>(null);
+	let geom3857 = $state<PointGeom>(null);
+	let addressMarkerLayer = $state<import('ol/layer/Vector').default | null>(null);
+	let trenchLinesLayer = $state<import('ol/layer/Vector').default | null>(null);
+	let wmsLayers = $state<import('ol/layer/Base').default[]>([]);
+	let mapCenter = $state<number[] | null>(null);
 	let mapReady = $state(false);
 	let mapContainerEl = $state<HTMLElement | null>(null);
 
@@ -110,14 +117,14 @@
 	/**
 	 * Formats an address search result for display.
 	 */
-	function formatAddressResult(result: Record<string, any>): string {
+	function formatAddressResult(result: AddressData): string {
 		const parts = [];
 		if (result.street) parts.push(result.street);
 		if (result.housenumber) parts.push(result.housenumber + (result.house_number_suffix || ''));
 		if (result.zip_code || result.city) {
 			parts.push(`${result.zip_code || ''} ${result.city || ''}`.trim());
 		}
-		return parts.join(', ') || result.uuid?.slice(0, 8);
+		return parts.join(', ') || (result.uuid as string | undefined)?.slice(0, 8) || '';
 	}
 
 	/**
@@ -162,8 +169,8 @@
 		if (linkedTrenchGeometries.length > 0) {
 			const geoJsonFormat = new GeoJSON();
 			const trenchFeatures = linkedTrenchGeometries
-				.filter((f: any) => f.geometry)
-				.flatMap((f: any) =>
+				.filter((f: GeoJsonFeature) => f.geometry)
+				.flatMap((f: GeoJsonFeature) =>
 					geoJsonFormat.readFeatures(f, {
 						dataProjection: 'EPSG:3857',
 						featureProjection: 'EPSG:3857'
@@ -234,14 +241,14 @@
 	/**
 	 * Fetches full address and residential units via server action.
 	 */
-	async function selectAddress(result: Record<string, any>) {
+	async function selectAddress(result: AddressData) {
 		loadingAddress = true;
 		searchResults = [];
 		searchQuery = '';
 
 		try {
 			const formData = new FormData();
-			formData.append('uuid', result.uuid);
+			formData.append('uuid', (result.uuid as string) ?? '');
 
 			const response = await fetch('?/fetchAddress', {
 				method: 'POST',
@@ -251,17 +258,24 @@
 			const actionResult = deserialize(await response.text());
 
 			if (actionResult.type === 'success') {
-				const resultData = actionResult.data as any;
-				selectedAddress = resultData.address;
-				residentialUnits = resultData.residentialUnits || [];
-				linkedMicroducts = resultData.linkedMicroducts || [];
-				linkedTrenchGeometries = resultData.linkedTrenchGeometries || [];
-				geom3857 = resultData.address?.geom_3857 || null;
+				const resultData = actionData(actionResult) as
+					| {
+							address?: (AddressData & { geom_3857?: PointGeom }) | null;
+							residentialUnits?: ResidentialUnit[];
+							linkedMicroducts?: MicroductData[];
+							linkedTrenchGeometries?: GeoJsonFeature[];
+					  }
+					| undefined;
+				selectedAddress = resultData?.address ?? null;
+				residentialUnits = resultData?.residentialUnits || [];
+				linkedMicroducts = resultData?.linkedMicroducts || [];
+				linkedTrenchGeometries = resultData?.linkedTrenchGeometries || [];
+				geom3857 = resultData?.address?.geom_3857 || null;
 				await setupMapLayers();
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: (actionResult as any).data?.message || 'Failed to fetch address'
+					description: (actionData(actionResult)?.message as string) || 'Failed to fetch address'
 				});
 			}
 		} catch (error) {
