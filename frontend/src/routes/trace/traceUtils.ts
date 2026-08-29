@@ -40,11 +40,17 @@ export interface AddressInfo {
 	zip_code: string;
 	city: string;
 	geometry?: GeoJSONGeometry;
+	id_address?: string;
+	district?: string;
+	status_development?: string;
+	project?: string;
+	flag?: string;
 }
 
 export interface EndpointNode {
 	id: string;
 	name: string;
+	type?: string;
 	geometry?: GeoJSONGeometry;
 	address?: AddressInfo;
 }
@@ -56,9 +62,78 @@ interface CableEndpoints {
 
 /** A residential unit attached to a trace-tree node. */
 export interface ResidentialUnitInfo {
-	id: string;
+	id?: string;
+	uuid?: string;
 	id_residential_unit?: string;
 	geometry?: GeoJSONGeometry;
+	type?: string;
+	floor?: number | string;
+	side?: string;
+	building_section?: string;
+	resident_name?: string;
+	status?: string;
+	address?: AddressInfo;
+}
+
+/** A fiber strand as rendered in the fiber-paths table. */
+export interface FiberInfo {
+	id?: string;
+	cable_id?: string;
+	cable_name?: string;
+	cable_type?: string;
+	bundle_number?: number | null;
+	bundle_color?: string;
+	bundle_color_hex?: string;
+	fiber_color?: string;
+	fiber_color_hex?: string;
+	fiber_number_absolute?: number;
+	fiber_number_in_bundle?: number;
+	layer?: string;
+	status?: string;
+}
+
+/** A component a splice sits in (container/slot metadata). */
+export interface SpliceComponent {
+	type?: string;
+	slot_start?: number | null;
+	slot_end?: number | null;
+	slot_side?: string;
+	in_or_out?: string;
+}
+
+/** A container step in a splice's container path. */
+export interface ContainerPathEntry {
+	type?: string;
+	name?: string;
+}
+
+/** A fiber splice as rendered in the fiber-paths table. */
+export interface SpliceInfo {
+	port_number?: number | string;
+	component?: SpliceComponent;
+	container_path?: ContainerPathEntry[];
+}
+
+/**
+ * A node in the fiber-paths tree (richer than the geometry-only
+ * {@link TraceTreeNode} used by the map). Every field is optional — a node
+ * carries only what's relevant to its position in the trace.
+ */
+export interface FiberPathNode {
+	id?: string;
+	name?: string;
+	type?: string;
+	node?: EndpointNode;
+	address?: AddressInfo;
+	fiber: FiberInfo;
+	splice?: SpliceInfo;
+	cable_endpoints?: {
+		cable_name?: string;
+		start_node?: EndpointNode;
+		end_node?: EndpointNode;
+	};
+	residential_units?: ResidentialUnitInfo[];
+	children?: FiberPathNode[];
 }
 
 export interface TraceTreeNode {
