@@ -32,7 +32,7 @@ export interface CableInfrastructure {
 	total_length?: number;
 }
 
-interface AddressInfo {
+export interface AddressInfo {
 	id: string;
 	street: string;
 	housenumber: string;
@@ -42,7 +42,7 @@ interface AddressInfo {
 	geometry?: GeoJSONGeometry;
 }
 
-interface EndpointNode {
+export interface EndpointNode {
 	id: string;
 	name: string;
 	geometry?: GeoJSONGeometry;
@@ -54,16 +54,35 @@ interface CableEndpoints {
 	end_node?: EndpointNode;
 }
 
+/** A residential unit attached to a trace-tree node. */
+export interface ResidentialUnitInfo {
+	id: string;
+	id_residential_unit?: string;
+	geometry?: GeoJSONGeometry;
+}
+
 export interface TraceTreeNode {
 	node?: EndpointNode;
+	address?: AddressInfo;
+	signal_state?: string | null;
 	cable_endpoints?: CableEndpoints;
+	residential_units?: ResidentialUnitInfo[];
 	children?: TraceTreeNode[];
+}
+
+/** The entry point (first entity) of a trace, used to place a marker. */
+export interface TraceEntryPoint {
+	id?: string;
+	name?: string;
+	type?: string;
+	geometry?: GeoJSONGeometry;
 }
 
 export interface TraceResult {
 	cable_infrastructure?: Record<string, CableInfrastructure>;
 	trace_trees?: TraceTreeNode[];
 	trace_tree?: TraceTreeNode;
+	entry_point?: TraceEntryPoint;
 }
 
 interface GeoJSONFeatureProperties {

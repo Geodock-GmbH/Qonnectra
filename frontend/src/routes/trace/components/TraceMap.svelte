@@ -15,11 +15,18 @@
 
 	import 'ol/ol.css';
 
+	import type {
+		CableInfrastructure,
+		EndpointNode,
+		TraceResult,
+		TraceTreeNode
+	} from '../traceUtils';
+
 	import { basemapTheme, tileServerAvailable } from '$lib/stores/store';
 
 	interface Props {
 		/** The trace result data with geometry */
-		traceResult: Record<string, any> | null;
+		traceResult: TraceResult | null;
 		/** Currently selected feature ID */
 		selectedFeatureId?: string | null;
 		/** Selection callback */
@@ -332,7 +339,7 @@
 	 * Parse trace result data into OpenLayers features and add them to the map sources.
 	 * @param result - The trace result containing cable_infrastructure, trace_tree, and entry_point
 	 */
-	async function loadFeatures(result: Record<string, any>): Promise<void> {
+	async function loadFeatures(result: TraceResult): Promise<void> {
 		if (!result || !vectorSource || !markerSource || !map) return;
 		const olMap = map;
 
@@ -344,7 +351,7 @@
 		): import('ol/Feature').default => format.readFeature(...args) as import('ol/Feature').default;
 		const allFeatures: import('ol/Feature').default[] = [];
 
-		const cableInfra: Record<string, any> = result.cable_infrastructure || {};
+		const cableInfra: Record<string, CableInfrastructure> = result.cable_infrastructure || {};
 		for (const [cableId, infra] of Object.entries(cableInfra)) {
 			if (infra.merged_geometry) {
 				const geojson = {
@@ -429,7 +436,7 @@
 	 * @param seenIds - Set of already-added feature IDs for deduplication
 	 */
 	async function extractMarkersFromTree(
-		node: Record<string, any>,
+		node: TraceTreeNode | undefined,
 		markers: import('ol/Feature').default[],
 		seenIds: Set<string>
 	): Promise<void> {
@@ -448,8 +455,8 @@
 		 * @param nodeData - Node data with id, name, geometry, and optional address
 		 * @param signal - Signal state for styling
 		 */
-		function addNodeMarker(nodeData: Record<string, any>, signal: string | null) {
-			if (!nodeData?.geometry || seenIds.has(nodeData.id)) return;
+		function addNodeMarker(nodeData: EndpointNode | undefined, signal: string | null) {
+			if (!nodeData?.geometry || !nodeData.id || seenIds.has(nodeData.id)) return;
 			seenIds.add(nodeData.id);
 			markers.push(
 				readOne(
@@ -466,7 +473,7 @@
 					{ dataProjection: SOURCE_PROJECTION, featureProjection: TARGET_PROJECTION }
 				)
 			);
-			if (nodeData.address?.geometry && !seenIds.has(nodeData.address.id)) {
+			if (nodeData.address?.geometry && nodeData.address.id && !seenIds.has(nodeData.address.id)) {
 				seenIds.add(nodeData.address.id);
 				const addr = nodeData.address;
 				markers.push(
@@ -496,7 +503,7 @@
 
 		if (node.residential_units) {
 			for (const ru of node.residential_units) {
-				if (ru.geometry && !seenIds.has(ru.id)) {
+				if (ru.geometry && ru.id && !seenIds.has(ru.id)) {
 					seenIds.add(ru.id);
 					markers.push(
 						readOne(
