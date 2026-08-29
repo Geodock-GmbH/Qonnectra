@@ -150,10 +150,7 @@
 	 * Initializes map interactions, selection layers, and overlays when the OL map is ready.
 	 */
 	function handleMapReady({ map: olMapInstance }: { map: OlMap; usingFallbackOSM: boolean }) {
-		mapState.initializeSelectionLayers(
-			olMapInstance,
-			() => selectionManager.getSelectionStore() as unknown as Record<string, boolean>
-		);
+		mapState.initializeSelectionLayers(olMapInstance, () => selectionManager.getSelectionStore());
 
 		const selectionLayers = mapState.getSelectionLayers();
 		selectionLayers.forEach((layer) => selectionManager.registerSelectionLayer(layer));

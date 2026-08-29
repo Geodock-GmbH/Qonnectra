@@ -362,7 +362,7 @@ export class MapState {
 	 */
 	initializeSelectionLayers(
 		olMap: Map,
-		getSelectionStore: () => Record<string, boolean>,
+		getSelectionStore: () => Record<string | number, unknown>,
 		getNodeTypeStyles?: () => Record<
 			string,
 			{ color?: string; size?: number; visible?: boolean; shape?: NodeShape }

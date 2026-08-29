@@ -166,7 +166,7 @@
 	}) {
 		mapState.initializeSelectionLayers(
 			olMapInstance,
-			() => selectionManager.getSelectionStore() as Record<string, boolean>,
+			() => selectionManager.getSelectionStore(),
 			() => $nodeTypeStyles
 		);
 
