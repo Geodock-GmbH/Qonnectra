@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { TraceCable, TraceFiber, TraceSearchResult } from '$lib/types/trace';
 	import { get } from 'svelte/store';
 	import { slide } from 'svelte/transition';
 	import { goto } from '$app/navigation';
@@ -66,7 +67,7 @@
 
 	let activeTab = $state('address');
 	let searchQuery = $state('');
-	let searchResults = $state<Record<string, any>[]>([]);
+	let searchResults = $state<TraceSearchResult[]>([]);
 	let searching = $state(false);
 	let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -75,8 +76,13 @@
 	let geometryMode = $state('segments');
 	let orientGeometry = $state(false);
 
-	let selectedCable = $state<Record<string, any> | null>(null);
-	let fibers = $state<Record<string, any>[]>([]);
+	let selectedCable = $state<TraceCable | null>(null);
+	const selectedCableTypeLabel = $derived(
+		typeof selectedCable?.cable_type === 'object'
+			? selectedCable.cable_type?.cable_type
+			: selectedCable?.cable_type
+	);
+	let fibers = $state<TraceFiber[]>([]);
 	let loadingFibers = $state(false);
 	let expandedBundles = $state<Set<number>>(new Set());
 	let fiberColors = $state<Map<string, string>>(new Map());
@@ -198,8 +204,9 @@
 	 * Navigates to the trace page for a selected search result.
 	 * @param result - The selected search result containing a uuid.
 	 */
-	function selectResult(result: Record<string, any>) {
+	function selectResult(result: TraceSearchResult) {
 		const uuid = result.uuid;
+		if (!uuid) return;
 		const typeSlug = activeTab === 'residential_unit' ? 'residential-unit' : activeTab;
 		goto(buildTraceUrl(typeSlug, uuid));
 	}
@@ -208,7 +215,8 @@
 	 * Selects a cable and fetches its fibers for the fiber trace picker.
 	 * @param cable - The selected cable object.
 	 */
-	async function selectCableForFiber(cable: Record<string, any>) {
+	async function selectCableForFiber(cable: TraceCable) {
+		if (!cable.uuid) return;
 		selectedCable = cable;
 		searchQuery = '';
 		searchResults = [];
@@ -270,7 +278,7 @@
 	 * Navigates to the trace page for a specific fiber.
 	 * @param fiber - Fiber object containing uuid.
 	 */
-	function traceFiber(fiber: Record<string, any>) {
+	function traceFiber(fiber: TraceFiber) {
 		goto(buildTraceUrl('fiber', fiber.uuid));
 	}
 
@@ -279,7 +287,7 @@
 	 * @param result - Address result from the API.
 	 * @returns Formatted address string.
 	 */
-	function formatAddressResult(result: Record<string, any>): string | undefined {
+	function formatAddressResult(result: TraceSearchResult): string | undefined {
 		const parts = [];
 		if (result.street) parts.push(result.street);
 		if (result.housenumber) parts.push(result.housenumber + (result.house_number_suffix || ''));
@@ -294,7 +302,7 @@
 	 * @param result - Node result from the API.
 	 * @returns Formatted node name or truncated UUID.
 	 */
-	function formatNodeResult(result: Record<string, any>): string | undefined {
+	function formatNodeResult(result: TraceSearchResult): string | undefined {
 		return result.name || result.uuid?.slice(0, 8);
 	}
 
@@ -303,7 +311,7 @@
 	 * @param result - Cable result from the API.
 	 * @returns Formatted cable name or truncated UUID.
 	 */
-	function formatCableResult(result: Record<string, any>): string | undefined {
+	function formatCableResult(result: TraceSearchResult): string | undefined {
 		return result.name || result.uuid?.slice(0, 8);
 	}
 
@@ -312,7 +320,7 @@
 	 * @param result - Residential unit result from the API.
 	 * @returns Formatted residential unit string.
 	 */
-	function formatRuResult(result: Record<string, any>): string | undefined {
+	function formatRuResult(result: TraceSearchResult): string | undefined {
 		const parts = [];
 		if (result.id_residential_unit) parts.push(result.id_residential_unit);
 		if (result.floor !== null && result.floor !== undefined)
@@ -326,7 +334,7 @@
 	 * @param result - Search result from the API.
 	 * @returns Formatted display string.
 	 */
-	function formatResult(result: Record<string, any>): string | undefined {
+	function formatResult(result: TraceSearchResult): string | undefined {
 		switch (activeTab) {
 			case 'address':
 				return formatAddressResult(result);
@@ -347,15 +355,19 @@
 	 * @param result - Search result from the API.
 	 * @returns Subtitle string, or null if none available.
 	 */
-	function getResultSubtitle(result: Record<string, any>): string | null {
+	function getResultSubtitle(result: TraceSearchResult): string | null {
 		switch (activeTab) {
 			case 'address':
 				return result.id_address || null;
 			case 'node':
-				return result.node_type || null;
+				return typeof result.node_type === 'object'
+					? (result.node_type?.node_type ?? null)
+					: (result.node_type ?? null);
 			case 'cable':
 			case 'fiber':
-				return result.cable_type?.cable_type || result.cable_type || null;
+				return typeof result.cable_type === 'object'
+					? (result.cable_type?.cable_type ?? null)
+					: (result.cable_type ?? null);
 			case 'residential_unit':
 				return result.address_street
 					? `${result.address_street} ${result.address_housenumber || ''}`
@@ -494,8 +506,8 @@
 					<IconPlug size={20} class="text-warning-500" />
 					<div class="min-w-0 flex-1">
 						<div class="font-medium text-surface-900-100">{selectedCable.name}</div>
-						{#if selectedCable.cable_type?.cable_type}
-							<div class="text-xs text-surface-600-400">{selectedCable.cable_type.cable_type}</div>
+						{#if selectedCableTypeLabel}
+							<div class="text-xs text-surface-600-400">{selectedCableTypeLabel}</div>
 						{/if}
 					</div>
 					<span class="text-sm text-surface-600-400">{fibers.length} {m.form_fibers()}</span>
