@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ResidentialUnitStatus, ResidentialUnitType } from '$lib/types';
 	import { deserialize } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
@@ -8,14 +9,15 @@
 
 	import GenericCombobox from '$lib/components/GenericCombobox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { actionData } from '$lib/utils/forms';
 
 	let {
 		residentialUnitTypes = [],
 		residentialUnitStatuses = [],
 		openModal = $bindable(false)
 	}: {
-		residentialUnitTypes?: any[];
-		residentialUnitStatuses?: any[];
+		residentialUnitTypes?: ResidentialUnitType[];
+		residentialUnitStatuses?: ResidentialUnitStatus[];
 		openModal?: boolean;
 	} = $props();
 
@@ -77,7 +79,8 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: (result as any).data?.message || m.message_error_creating_residential_unit()
+					description:
+						(actionData(result)?.message as string) || m.message_error_creating_residential_unit()
 				});
 			}
 		} catch (error) {

@@ -27,6 +27,8 @@ export type FiberSplice = Schemas['FiberSplice'];
 export type Microduct = Schemas['Microduct'];
 export type Node = Schemas['Node'];
 export type ResidentialUnit = Schemas['ResidentialUnit'];
+export type ResidentialUnitType = Schemas['AttributesResidentialUnitType'];
+export type ResidentialUnitStatus = Schemas['AttributesResidentialUnitStatus'];
 export type Trench = Schemas['Trench'];
 
 /**
