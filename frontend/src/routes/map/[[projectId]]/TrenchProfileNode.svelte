@@ -4,11 +4,21 @@
 
 	import { tooltip } from '$lib/utils/tooltip';
 
+	/** A microduct as drawn in the trench-profile node. */
+	type ProfileMicroduct = {
+		uuid?: string;
+		hex_code?: string | null;
+		hex_code_secondary?: string | null;
+		is_two_layer?: boolean;
+		status?: unknown;
+		[key: string]: unknown;
+	};
+
 	type ConduitNodeData = {
 		conduit?: {
 			conduit_name?: string;
 			conduit_type?: string;
-			microducts?: Array<Record<string, any>>;
+			microducts?: ProfileMicroduct[];
 		};
 	};
 
@@ -17,11 +27,11 @@
 	const microducts = $derived(data?.conduit?.microducts || []);
 	const microductCount = $derived(microducts.length);
 
-	const microductPositions: Array<{ x: number; y: number; mic: Record<string, any> }> = $derived.by(
+	const microductPositions: Array<{ x: number; y: number; mic: ProfileMicroduct }> = $derived.by(
 		() => {
 			if (microductCount === 0) return [];
 
-			const positions: Array<{ x: number; y: number; mic: Record<string, any> }> = [];
+			const positions: Array<{ x: number; y: number; mic: ProfileMicroduct }> = [];
 			const centerX = 50;
 			const centerY = 50;
 

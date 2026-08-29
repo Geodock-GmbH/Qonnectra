@@ -37,7 +37,7 @@ interface ClickedFeature {
 	layer: LayerBase | null;
 }
 
-interface SearchPanelRef {
+export interface SearchPanelRef {
 	getHighlightLayer?: () => VectorLayer;
 }
 

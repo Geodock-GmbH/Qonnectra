@@ -1,4 +1,8 @@
 <script lang="ts">
+	import type {
+		SharedSlotState,
+		SlotConfiguration
+	} from '$lib/classes/NodeStructureContext.svelte';
 	import {
 		IconLayoutGrid,
 		IconLayoutList,
@@ -23,7 +27,7 @@
 
 	interface Props {
 		/** Feature properties from MVT */
-		featureData?: Record<string, any>;
+		featureData?: Record<string, unknown>;
 		/** Type of feature ('trench', 'address', 'node') */
 		featureType?: string;
 		/** UUID of the feature */
@@ -54,13 +58,9 @@
 	let trenchProfilePanelOpen = $state(false);
 
 	/** Shared state for slot configurations - keeps both panels in sync */
-	let sharedSlotState = $state<{
-		nodeUuid: string | null;
-		slotConfigurations: any[];
-		lastUpdated: number;
-	}>({
+	let sharedSlotState = $state<SharedSlotState & { lastUpdated: number }>({
 		nodeUuid: null,
-		slotConfigurations: [],
+		slotConfigurations: [] as SlotConfiguration[],
 		lastUpdated: 0
 	});
 
@@ -197,7 +197,7 @@
 	>
 		<NodeSlotConfigPanel
 			nodeUuid={featureId}
-			nodeName={featureData?.name || ''}
+			nodeName={String(featureData?.name ?? '')}
 			readonly={true}
 			onViewStructure={(slotConfigUuid: string) => handleOpenStructurePanel(slotConfigUuid)}
 			bind:sharedSlotState
@@ -216,7 +216,7 @@
 	>
 		<NodeStructurePanel
 			nodeUuid={featureId}
-			nodeName={featureData?.name || ''}
+			nodeName={String(featureData?.name ?? '')}
 			readonly={true}
 			initialSlotConfigUuid={structurePanelSlotConfigUuid}
 			bind:sharedSlotState
