@@ -8,6 +8,7 @@
 
 	import { selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { actionData } from '$lib/utils/forms';
 
 	import PipelineRecordForm from '../PipelineRecordForm.svelte';
 
@@ -23,8 +24,8 @@
 	 * Snapshots the active project id from initial page data.
 	 * @returns The active project id at mount time.
 	 */
-	function getInitialActiveProjectId(): any {
-		return data.activeProjectId ?? '';
+	function getInitialActiveProjectId(): string {
+		return String(data.activeProjectId ?? '');
 	}
 
 	let projectId = $state(getInitialActiveProjectId());
@@ -69,11 +70,15 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: (result as any).data?.message || m.message_pipeline_record_create_failed()
+					description:
+						(actionData(result)?.message as string) || m.message_pipeline_record_create_failed()
 				});
 			}
-		} catch (err: any) {
-			globalToaster.error({ title: m.common_error(), description: err.message });
+		} catch (err) {
+			globalToaster.error({
+				title: m.common_error(),
+				description: err instanceof Error ? err.message : String(err)
+			});
 		} finally {
 			isSaving = false;
 		}
