@@ -30,6 +30,7 @@ export interface FkRef {
 export interface AttributeOptions {
 	nodeTypes?: ComboboxOption[];
 	cableTypes?: ComboboxOption[];
+	conduitTypes?: ComboboxOption[];
 	statuses?: ComboboxOption[];
 	networkLevels?: ComboboxOption[];
 	companies?: ComboboxOption[];
@@ -62,6 +63,22 @@ export interface CableDrawerProps {
 	handle_end?: string | null;
 	uuid_node_start?: string | null;
 	uuid_node_end?: string | null;
+	[key: string]: unknown;
+}
+
+/** Drawer props for a conduit attribute card. */
+export interface ConduitDrawerProps {
+	uuid?: string;
+	name?: string;
+	outer_conduit?: string | null;
+	conduit_type?: FkRef | null;
+	status?: FkRef | null;
+	network_level?: FkRef | null;
+	owner?: FkRef | null;
+	constructor?: FkRef | null;
+	manufacturer?: FkRef | null;
+	flag?: FkRef | null;
+	date?: string | null;
 	[key: string]: unknown;
 }
 

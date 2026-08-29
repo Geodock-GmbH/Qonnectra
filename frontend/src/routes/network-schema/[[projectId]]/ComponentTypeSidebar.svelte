@@ -17,8 +17,7 @@
 	import { PanelResizeManager } from '$lib/classes/PanelResizeManager.svelte.js';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
-
-	import { actionData } from './attributeCardTypes';
+	import { actionData } from '$lib/types/attributeCardTypes';
 
 	let {
 		onDragStart = () => {},

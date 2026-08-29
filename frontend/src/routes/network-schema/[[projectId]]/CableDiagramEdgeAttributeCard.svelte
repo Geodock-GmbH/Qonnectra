@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { AttributeOptions, CableDrawerProps, FkRef } from './attributeCardTypes';
 	import type { ActionResult } from '@sveltejs/kit';
+	import type { AttributeOptions, CableDrawerProps, FkRef } from '$lib/types/attributeCardTypes';
 	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
 
@@ -11,8 +11,7 @@
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
-
-	import { actionData } from './attributeCardTypes';
+	import { actionData } from '$lib/types/attributeCardTypes';
 
 	const attributes = getContext<AttributeOptions>('attributeOptions') || {
 		cableTypes: [],

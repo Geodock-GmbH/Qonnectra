@@ -1,11 +1,11 @@
 <script lang="ts">
+	import type { ActionResult } from '@sveltejs/kit';
 	import type {
 		AttributeOptions,
 		ComboboxOption,
 		FkRef,
 		NodeDrawerProps
-	} from './attributeCardTypes';
-	import type { ActionResult } from '@sveltejs/kit';
+	} from '$lib/types/attributeCardTypes';
 	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { page } from '$app/stores';
@@ -19,8 +19,7 @@
 	import { globalToaster } from '$lib/stores/toaster';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 	import { tooltip } from '$lib/utils/tooltip';
-
-	import { actionData } from './attributeCardTypes';
+	import { actionData } from '$lib/types/attributeCardTypes';
 
 	const attributes = getContext<AttributeOptions>('attributeOptions') || {
 		nodeTypes: [],

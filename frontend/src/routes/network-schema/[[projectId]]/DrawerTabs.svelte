@@ -1,7 +1,7 @@
 <script lang="ts">
-	import type { AttributeOptions } from './attributeCardTypes';
 	import type { Fiber } from '$lib/classes/CableFiberDataManager.svelte';
 	import type { SlotConfiguration } from '$lib/classes/NodeStructureContext.svelte.js';
+	import type { AttributeOptions } from '$lib/types/attributeCardTypes';
 	import { getContext, onMount } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
