@@ -1,4 +1,7 @@
 <script lang="ts">
+	import type { AttributeOptions } from './attributeCardTypes';
+	import type { Fiber } from '$lib/classes/CableFiberDataManager.svelte';
+	import type { SlotConfiguration } from '$lib/classes/NodeStructureContext.svelte.js';
 	import { getContext, onMount } from 'svelte';
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
@@ -31,20 +34,32 @@
 	import NodeSlotConfigPanel from './NodeSlotConfigPanel.svelte';
 	import NodeStructurePanel from './NodeStructurePanel.svelte';
 
-	const attributeOptions = getContext<any>('attributeOptions');
+	/** The drawer's props bag: a `type` discriminator, callbacks, and the feature's fields. */
+	interface DrawerTabsProps {
+		type?: 'node' | 'edge';
+		uuid?: string;
+		id?: string;
+		node_type?: { id?: number | string } | number | string | null;
+		onLabelUpdate?: (name: string) => void;
+		onEdgeDelete?: (uuid: string) => void;
+		onNodeDelete?: (id: string) => void;
+		[key: string]: unknown;
+	}
+
+	const attributeOptions = getContext<AttributeOptions>('attributeOptions');
 
 	const fiberDataManager = new CableFiberDataManager();
 
-	let allProps: Record<string, any> = $props();
+	let allProps: DrawerTabsProps = $props();
 
 	let slotConfigPanelOpen = $state(false);
 	let structurePanelOpen = $state(false);
-	let structurePanelSlotConfigUuid = $state<any>(null);
+	let structurePanelSlotConfigUuid = $state<string | null>(null);
 	let micropipePanelOpen = $state(false);
 
 	let sharedSlotState = $state<{
 		nodeUuid: string | null;
-		slotConfigurations: any[];
+		slotConfigurations: SlotConfiguration[];
 		lastUpdated: number;
 	}>({
 		nodeUuid: null,
@@ -61,7 +76,12 @@
 
 	const isChildView = $derived($page.url.pathname.includes('/node/'));
 	const childViewEnabledTypeIds = $derived(attributeOptions?.childViewEnabledNodeTypeIds ?? []);
-	const nodeTypeId = $derived(data?.node_type?.id ?? data?.node_type);
+	const nodeTypeRef = $derived(
+		data?.node_type as { id?: number | string } | number | string | null | undefined
+	);
+	const nodeTypeId = $derived(
+		nodeTypeRef && typeof nodeTypeRef === 'object' ? nodeTypeRef.id : nodeTypeRef
+	);
 	const showChildViewButton = $derived(
 		!isChildView && nodeTypeId != null && childViewEnabledTypeIds.includes(nodeTypeId)
 	);
@@ -93,7 +113,7 @@
 		return baseTabs;
 	});
 
-	let lastFetchedFeatureId = $state<any>(null);
+	let lastFetchedFeatureId = $state<string | null>(null);
 
 	/**
 	 * Handles tab change events, lazily loading fiber data when the status tab is first selected.
@@ -115,7 +135,7 @@
 	 * @param fiber - The fiber object to update.
 	 * @param statusId - The new status ID, or null to clear the status.
 	 */
-	async function handleFiberStatusChange(fiber: any, statusId: number | null) {
+	async function handleFiberStatusChange(fiber: Fiber, statusId: number | null) {
 		const updated = await fiberDataManager.updateFiberStatus(fiber.uuid, statusId);
 
 		if (updated) {
@@ -136,7 +156,7 @@
 		return () => fiberDataManager.cleanup();
 	});
 
-	const featureId = $derived(data?.uuid || data?.id);
+	const featureId = $derived((data?.uuid || data?.id || '') as string);
 
 	$effect(() => {
 		if (group === 'status' && featureId && type === 'edge') {
@@ -150,7 +170,7 @@
 
 	let recalculating = $state(false);
 
-	let fileExplorer = $state<any>(null);
+	let fileExplorer = $state<ReturnType<typeof FileExplorer> | null>(null);
 
 	/**
 	 * Refreshes the file explorer after a successful file upload.
@@ -165,7 +185,7 @@
 	 * Opens the node structure panel, optionally pre-selecting a slot configuration.
 	 * @param slotConfigUuid - UUID of the slot configuration to display, or null for the default view.
 	 */
-	function handleOpenStructurePanel(slotConfigUuid: any = null) {
+	function handleOpenStructurePanel(slotConfigUuid: string | null = null) {
 		structurePanelSlotConfigUuid = slotConfigUuid;
 		structurePanelOpen = true;
 	}
@@ -291,7 +311,7 @@
 	{/if}
 
 	{#if group === 'handles'}
-		<CableDiagramEdgeHandleConfig {...data as any} />
+		<CableDiagramEdgeHandleConfig />
 	{/if}
 
 	{#if group === 'actions'}
@@ -377,9 +397,9 @@
 		maxHeight={1080}
 	>
 		<NodeSlotConfigPanel
-			nodeUuid={data.uuid || data.id}
-			nodeName={data.name}
-			onViewStructure={(slotConfigUuid: any) => handleOpenStructurePanel(slotConfigUuid)}
+			nodeUuid={featureId}
+			nodeName={data.name as string | undefined}
+			onViewStructure={(slotConfigUuid) => handleOpenStructurePanel(slotConfigUuid)}
 			bind:sharedSlotState
 		/>
 	</FloatingPanel>
@@ -395,8 +415,8 @@
 		maxHeight={1080}
 	>
 		<NodeStructurePanel
-			nodeUuid={data.uuid || data.id}
-			nodeName={data.name}
+			nodeUuid={featureId}
+			nodeName={data.name as string | undefined}
 			initialSlotConfigUuid={structurePanelSlotConfigUuid}
 			bind:sharedSlotState
 		/>
