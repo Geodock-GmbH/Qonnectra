@@ -124,7 +124,7 @@
 </script>
 
 {#each Object.entries(handleInit) as [position, handleConfig]}
-	{@const positionEnum = Position as Record<string, any>}
+	{@const positionEnum = Position as unknown as Record<string, Position>}
 	{@const posKey = position.charAt(0).toUpperCase() + position.slice(1)}
 	<Handle
 		type="source"

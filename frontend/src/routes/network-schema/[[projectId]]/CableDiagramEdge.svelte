@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { BaseEdge, getSmoothStepPath, type EdgeProps } from '@xyflow/svelte';
+	import type { EdgeProps } from '@xyflow/svelte';
+	import type { EdgeLabelData } from '$lib/classes/NetworkSchemaState.svelte';
+	import { BaseEdge, getSmoothStepPath } from '@xyflow/svelte';
 	import { parse } from 'devalue';
 
 	import { m } from '$lib/paraglide/messages';
@@ -27,9 +29,9 @@
 		isConnected?: boolean;
 		lowestMicropipe?: { color_hex?: string };
 		cable?: { uuid?: string; name?: string; diagram_path?: Waypoint[] };
-		labelData?: unknown;
+		labelData?: Partial<EdgeLabelData> | null;
 		onEdgeDelete?: unknown;
-		onEdgeSelect?: unknown;
+		onEdgeSelect?: (edgeId: string) => void;
 	};
 
 	let {
@@ -85,7 +87,7 @@
 	});
 
 	let currentLabel = $state('');
-	let labelData = $state<unknown>(null);
+	let labelData = $state<Partial<EdgeLabelData> | null>(null);
 
 	let edgePath = $derived.by(() => {
 		const waypoints = data?.cable?.diagram_path;

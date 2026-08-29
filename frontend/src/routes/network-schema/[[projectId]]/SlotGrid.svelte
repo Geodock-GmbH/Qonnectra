@@ -47,14 +47,14 @@
 	 * Check if a slot is the first slot of a component range in multi-drop preview
 	 */
 	function isComponentRangeStart(slotNumber: number): boolean {
-		return componentRanges.some((r: any) => r.start === slotNumber);
+		return componentRanges.some((r) => r.start === slotNumber);
 	}
 
 	/**
 	 * Check if a slot is the last slot of a component range in multi-drop preview
 	 */
 	function isComponentRangeEnd(slotNumber: number): boolean {
-		return componentRanges.some((r: any) => r.end === slotNumber);
+		return componentRanges.some((r) => r.end === slotNumber);
 	}
 
 	function handleSlotDragOver(e: DragEvent, slotNumber: number) {
@@ -87,7 +87,7 @@
 		context?.slotActions?.onDrop(e, slotNumber);
 	}
 
-	function handleSlotClick(row: any) {
+	function handleSlotClick(row: SlotRow) {
 		if (isMobile && mobileSelectedItem) {
 			context?.slotActions?.onTap(row.slotNumber);
 		} else if (row.structure) {
@@ -108,12 +108,12 @@
 		context?.structureActions?.onDragEnd();
 	}
 
-	function handleToggleDivider(slotNumber: any) {
+	function handleToggleDivider(slotNumber: number) {
 		if (readonly) return;
 		context?.dividerActions?.onToggle(slotNumber);
 	}
 
-	function handleStartEditingClip(slotNumber: any, currentValue: any) {
+	function handleStartEditingClip(slotNumber: number, currentValue: string | null) {
 		if (readonly) return;
 		context?.clipActions?.onStartEditing(slotNumber, currentValue);
 	}
