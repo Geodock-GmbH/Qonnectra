@@ -4,6 +4,15 @@ interface LengthByType {
 	gesamt_länge: number;
 }
 
+/** A node warranty nearing expiry, shown on the dashboard. */
+export interface Warranty {
+	id: string | number;
+	name?: string;
+	node_type?: string;
+	warranty: string;
+	days_until_expiry: number;
+}
+
 interface NodeByType {
 	node_type: string;
 	count: number;
@@ -83,7 +92,7 @@ export interface DashboardData {
 	lengthByStatus: StatusLength[];
 	lengthByNetworkLevel: PhaseLength[];
 	longestRoutes: LongestRoute[];
-	expiringWarranties: unknown[];
+	expiringWarranties: Warranty[];
 	nodesByCity: CityCount[];
 	nodesByStatus: StatusCount[];
 	nodesByNetworkLevel: LevelCount[];
@@ -283,7 +292,7 @@ export function mapStatsToDashboardData(
 		lengthByStatus: trench.length_by_status || [],
 		lengthByNetworkLevel: trench.length_by_phase || [],
 		longestRoutes: trench.longest_routes || [],
-		expiringWarranties: node.expiring_warranties || [],
+		expiringWarranties: (node.expiring_warranties as Warranty[]) || [],
 		nodesByCity: node.count_by_city || [],
 		nodesByStatus: node.count_by_status || [],
 		nodesByNetworkLevel: node.count_by_network_level || [],

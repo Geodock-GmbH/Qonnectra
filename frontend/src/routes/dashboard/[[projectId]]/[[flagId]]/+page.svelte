@@ -283,7 +283,7 @@
 					</div>
 				</DashboardCard>
 
-				<WarrantyExpirationCard warranties={data.expiringWarranties as any[]} />
+				<WarrantyExpirationCard warranties={data.expiringWarranties} />
 			</div>
 		</div>
 	{/if}

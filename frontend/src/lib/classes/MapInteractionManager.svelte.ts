@@ -1,6 +1,6 @@
 import type { MapPopupManager } from './MapPopupManager.svelte';
 import type { MapSelectionManager } from './MapSelectionManager.svelte';
-import type { DrawerStore } from '$lib/stores/drawer';
+import type { DrawerComponent, DrawerStore } from '$lib/stores/drawer';
 import type { Feature } from 'ol';
 import type { Coordinate } from 'ol/coordinate';
 import type LayerBase from 'ol/layer/Layer';
@@ -51,8 +51,7 @@ export class MapInteractionManager {
 	selectionManager: MapSelectionManager | null = $state(null);
 	popupManager: MapPopupManager | null = $state(null);
 	drawerStore: DrawerStore | null = $state(null);
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	drawerComponent: Component<any> | null = $state(null);
+	drawerComponent: DrawerComponent | null = $state(null);
 	alias: Record<string, string> = $state({});
 	searchPanelRef: SearchPanelRef | null = $state(null);
 	selectableLayersConfig: SelectableLayersConfig = $state({
@@ -77,8 +76,7 @@ export class MapInteractionManager {
 		selectionManager: MapSelectionManager,
 		popupManager: MapPopupManager,
 		drawerStore: DrawerStore | null,
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		drawerComponent: Component<any> | null,
+		drawerComponent: DrawerComponent | null,
 		alias: Record<string, string> = {},
 		selectableLayersConfig: SelectableLayersConfig | null = null,
 		additionalDrawerProps: Record<string, unknown> = {}

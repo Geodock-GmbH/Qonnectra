@@ -9,9 +9,12 @@
 
 	interface Props {
 		/**
-		 * List of options. Items are read via `.value` and `.label`; callers may pass
-		 * richer objects, so this stays permissive to match existing usage.
+		 * List of options. Read internally via `.value`/`.label`, but many callers pass
+		 * their own named option types (CableType, ComboboxOption, ResidentialUnitType,
+		 * …) that don't all structurally declare those fields, so this stays `any[]`.
+		 * Narrowing it is a follow-up that must also fix the mis-shaped callers.
 		 */
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		data?: any[];
 		value?: Array<string | number>;
 		defaultValue?: Array<string | number>;

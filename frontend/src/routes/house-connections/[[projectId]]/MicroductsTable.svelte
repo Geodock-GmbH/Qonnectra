@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Microduct } from '$lib/classes/ConduitDataManager.svelte.js';
+	import type { NodeAssignmentManager } from '$lib/classes/NodeAssignmentManager.svelte';
 	import { getContext } from 'svelte';
 
 	import { m } from '$lib/paraglide/messages';
@@ -19,7 +20,9 @@
 		onMicroductUpdate?: ((microduct: unknown) => void) | null;
 	} = $props();
 
-	const nodeAssignmentManager = getContext<any>('nodeAssignmentManager');
+	const nodeAssignmentManager = getContext<NodeAssignmentManager | undefined>(
+		'nodeAssignmentManager'
+	);
 	const isAssignMode = $derived(nodeAssignmentManager?.isAssignMode || false);
 
 	/**
@@ -32,14 +35,12 @@
 			return;
 		}
 
-		nodeAssignmentManager.activateAssignMode(
-			microduct.uuid,
-			(updatedData: { microduct?: unknown }) => {
-				if (onMicroductUpdate && updatedData?.microduct) {
-					onMicroductUpdate(updatedData.microduct);
-				}
+		nodeAssignmentManager.activateAssignMode(microduct.uuid, (updatedData: unknown) => {
+			const data = updatedData as { microduct?: unknown } | undefined;
+			if (onMicroductUpdate && data?.microduct) {
+				onMicroductUpdate(data.microduct);
 			}
-		);
+		});
 	}
 
 	/**
@@ -52,14 +53,12 @@
 			return;
 		}
 
-		nodeAssignmentManager.removeNodeFromMicroduct(
-			microduct.uuid,
-			(updatedData: { microduct?: unknown }) => {
-				if (onMicroductUpdate && updatedData?.microduct) {
-					onMicroductUpdate(updatedData.microduct);
-				}
+		nodeAssignmentManager.removeNodeFromMicroduct(microduct.uuid, (updatedData: unknown) => {
+			const data = updatedData as { microduct?: unknown } | undefined;
+			if (onMicroductUpdate && data?.microduct) {
+				onMicroductUpdate(data.microduct);
 			}
-		);
+		});
 	}
 </script>
 

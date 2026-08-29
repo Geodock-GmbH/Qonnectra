@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Microduct } from '$lib/classes/ConduitDataManager.svelte';
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
 	import { IconMinus, IconPlus, IconRefresh } from '@tabler/icons-svelte';
 
@@ -107,8 +108,11 @@
 								microducts={dataManager.getMicroductsForPipe(item.pipeUuid)}
 								loading={dataManager.isLoadingMicroducts(item.pipeUuid)}
 								error={dataManager.getMicroductsError(item.pipeUuid)}
-								onMicroductUpdate={(updatedMicroduct: any) =>
-									dataManager.updateMicroductInState(item.pipeUuid as string, updatedMicroduct)}
+								onMicroductUpdate={(updatedMicroduct) =>
+									dataManager.updateMicroductInState(
+										item.pipeUuid as string,
+										updatedMicroduct as Microduct
+									)}
 							/>
 						{/if}
 					</div>
