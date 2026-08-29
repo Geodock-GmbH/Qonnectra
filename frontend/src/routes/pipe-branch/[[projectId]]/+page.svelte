@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Connection, Edge, EdgeTypes } from '@xyflow/svelte';
+	import type { Connection, Edge, EdgeTypes, Node } from '@xyflow/svelte';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -20,17 +20,71 @@
 	import '@xyflow/svelte/dist/style.css';
 
 	import type { PageData } from './$types';
+	import type {
+		TrenchesNearNodeConduit,
+		TrenchesNearNodeMicroduct,
+		TrenchesNearNodeTrench
+	} from '$lib/types';
 
 	import { m } from '$lib/paraglide/messages';
+
+	/** The (rehydrated) payload from the `getTrenchesNearNode` action. */
+	interface TrenchesNearNodeResponse {
+		trenches: TrenchesNearNodeTrench[];
+		node_uuid?: string;
+		node_name?: string;
+		project_id?: string | number | null;
+		distance?: number;
+		[key: string]: unknown;
+	}
+
+	/** A saved microduct-to-microduct connection row (dehydrated backend payload). */
+	interface SavedConnection {
+		uuid?: string;
+		uuid_microduct_from?: { uuid?: string; uuid_conduit?: { uuid?: string } };
+		uuid_microduct_to?: { uuid?: string; uuid_conduit?: { uuid?: string } };
+		uuid_trench_from?: { id?: string };
+		uuid_trench_to?: { id?: string };
+	}
+
+	/** Metadata for a single microduct handle on a pipe-branch node/edge. */
+	interface HandleData {
+		microductUuid?: string;
+		microductNumber?: number;
+		conduitName?: string;
+		conduitUuid?: string;
+	}
+
+	/** A microduct pairing queued for connection by the lasso auto-connect flow. */
+	interface PendingConnection {
+		source: string;
+		target: string;
+		sourceHandle: string;
+		targetHandle: string;
+		sourceMicroduct: TrenchesNearNodeMicroduct;
+		targetMicroduct: TrenchesNearNodeMicroduct;
+	}
+
+	/** The `{ trench, conduit }` payload carried on each pipe-branch flow node. */
+	interface PipeBranchNodeData {
+		trench?: TrenchesNearNodeTrench;
+		conduit?: TrenchesNearNodeConduit;
+		[key: string]: unknown;
+	}
+
+	/** Reads the typed `{ trench, conduit }` bag off a flow node's `data`. */
+	function nodeData(node: Node | undefined): PipeBranchNodeData {
+		return (node?.data ?? {}) as PipeBranchNodeData;
+	}
 
 	let { data }: { data: PageData } = $props();
 	let selectedNode = $state('');
 	let branches = $derived(data?.nodes && Array.isArray(data.nodes) ? data.nodes : []);
 	let pipeBranchConfigured = $derived(data?.pipeBranchConfigured || false);
-	let apiResponse = $state<any>(null);
-	let trenches = $derived(apiResponse?.trenches || []);
+	let apiResponse = $state<TrenchesNearNodeResponse | null>(null);
+	let trenches = $derived<TrenchesNearNodeTrench[]>(apiResponse?.trenches || []);
 
-	let availableTrenches = $state<any[]>([]);
+	let availableTrenches = $state<TrenchesNearNodeTrench[]>([]);
 	let showTrenchSelector = $state(false);
 	let selectedKeys = $state<string[]>([]);
 	let lockedKeys = $state<string[]>([]);
@@ -46,8 +100,8 @@
 
 	const nodeTypes = { pipeBranch: PipeBranchNode };
 	const edgeTypes = { pipeBranchEdge: PipeBranchEdge } as unknown as EdgeTypes;
-	let edges = $state.raw<any[]>([]);
-	let nodes = $state.raw<any[]>([]);
+	let edges = $state.raw<Edge[]>([]);
+	let nodes = $state.raw<Node[]>([]);
 
 	/**
 	 * Extracts conduit UUID and microduct number from a handle ID string.
@@ -74,14 +128,13 @@
 	 */
 	function getMicroductUuid(nodeId: string, handleId: string): string | null {
 		const node = nodes.find((n) => n.id === nodeId);
-		if (!node?.data?.conduit?.microducts) return null;
+		const conduit = node?.data?.conduit as TrenchesNearNodeConduit | undefined;
+		if (!conduit?.microducts) return null;
 
 		const handleData = parseHandleId(handleId);
 		if (!handleData) return null;
 
-		const microduct = node.data.conduit.microducts.find(
-			(m: any) => m.number === handleData.microductNumber
-		);
+		const microduct = conduit.microducts.find((m) => m.number === handleData.microductNumber);
 		return microduct?.uuid || null;
 	}
 
@@ -91,30 +144,21 @@
 	 * @param handleId - Handle ID containing conduit/microduct identifiers
 	 * @returns Handle metadata, or empty object if not found.
 	 */
-	function getHandleData(
-		nodeId: string,
-		handleId: string
-	): {
-		microductUuid?: string;
-		microductNumber?: number;
-		conduitName?: string;
-		conduitUuid?: string;
-	} {
+	function getHandleData(nodeId: string, handleId: string): HandleData {
 		const node = nodes.find((n) => n.id === nodeId);
-		if (!node?.data?.conduit?.microducts) return {};
+		const conduit = node?.data?.conduit as TrenchesNearNodeConduit | undefined;
+		if (!conduit?.microducts) return {};
 
 		const handleData = parseHandleId(handleId);
 		if (!handleData) return {};
 
-		const microduct = node.data.conduit.microducts.find(
-			(m: any) => m.number === handleData.microductNumber
-		);
+		const microduct = conduit.microducts.find((m) => m.number === handleData.microductNumber);
 
 		return {
 			microductUuid: microduct?.uuid,
 			microductNumber: handleData.microductNumber,
-			conduitName: node.data.conduit.name,
-			conduitUuid: node.data.conduit.uuid
+			conduitName: conduit.name,
+			conduitUuid: conduit.uuid
 		};
 	}
 
@@ -126,12 +170,12 @@
 	function parseDehydratedResponse(response: Array<unknown>): unknown {
 		if (!Array.isArray(response)) return response;
 
-		function resolveValue(index: any): any {
+		function resolveValue(index: unknown): unknown {
 			if (typeof index !== 'number') return index;
 			const value = response[index];
 
 			if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-				const resolved: Record<string, any> = {};
+				const resolved: Record<string, unknown> = {};
 				for (const [key, valueIndex] of Object.entries(value)) {
 					resolved[key] = resolveValue(valueIndex);
 				}
@@ -145,7 +189,7 @@
 			return value;
 		}
 
-		const metadata = response[0] as any;
+		const metadata = response[0] as { type?: number; data?: unknown } | undefined;
 		if (metadata?.type === 1 && metadata?.data) {
 			return resolveValue(metadata.data);
 		}
@@ -159,11 +203,11 @@
 			return;
 		}
 
-		const conduitNodes: any[] = [];
+		const conduitNodes: Node[] = [];
 		let nodeIndex = 0;
 
 		let totalNodes = 0;
-		trenches.forEach((trench: any) => {
+		trenches.forEach((trench) => {
 			if (trench.conduits && trench.conduits.length > 0) {
 				totalNodes += trench.conduits.length;
 			}
@@ -173,12 +217,12 @@
 		const centerY = 300;
 		const circleRadius = Math.max(800, totalNodes * 50);
 
-		trenches.forEach((trench: any) => {
+		trenches.forEach((trench) => {
 			if (!trench.conduits || trench.conduits.length === 0) {
 				return;
 			}
 
-			trench.conduits.forEach((conduit: any) => {
+			trench.conduits.forEach((conduit) => {
 				const totalMicroducts = conduit.microducts ? conduit.microducts.length : 0;
 
 				const angle = (nodeIndex * 2 * Math.PI) / totalNodes;
@@ -236,8 +280,9 @@
 					parsedData = parseDehydratedResponse(parsedData);
 				}
 
-				availableTrenches = parsedData.trenches || [];
-				apiResponse = { ...parsedData, trenches: [] };
+				const responseData = (parsedData ?? {}) as TrenchesNearNodeResponse;
+				availableTrenches = responseData.trenches || [];
+				apiResponse = { ...responseData, trenches: [] };
 
 				if (availableTrenches.length === 0) {
 					globalToaster.warning({
@@ -294,14 +339,14 @@
 				body: selectionsFormData
 			});
 
-			let savedTrenchUuids = [];
+			let savedTrenchUuids: string[] = [];
 			if (selectionsResponse.ok) {
 				let rawResponse = await selectionsResponse.json();
 				let parsedData = JSON.parse(rawResponse.data);
 				if (Array.isArray(parsedData) && parsedData[0]?.type === 1) {
 					parsedData = parseDehydratedResponse(parsedData);
 				}
-				savedTrenchUuids = (parsedData || []).map((s: any) => s.trench);
+				savedTrenchUuids = ((parsedData || []) as Array<{ trench: string }>).map((s) => s.trench);
 			}
 
 			const connectionsFormData = new FormData();
@@ -318,9 +363,9 @@
 				if (Array.isArray(parsedData) && parsedData[0]?.type === 1) {
 					parsedData = parseDehydratedResponse(parsedData);
 				}
-				const connections = parsedData || [];
+				const connections = (parsedData || []) as SavedConnection[];
 				const connectedKeys = new Set<string>();
-				connections.forEach((conn: any) => {
+				connections.forEach((conn) => {
 					const conduitFromUuid = conn.uuid_microduct_from?.uuid_conduit?.uuid;
 					const trenchFromUuid = conn.uuid_trench_from?.id;
 					if (conduitFromUuid && trenchFromUuid) {
@@ -340,7 +385,7 @@
 
 			const savedKeys = availableTrenches
 				.filter((t) => savedTrenchUuids.includes(t.uuid))
-				.flatMap((t) => t.conduits?.map((c: any) => makeKey(t.uuid, c.uuid)) || []);
+				.flatMap((t) => t.conduits?.map((c) => makeKey(t.uuid, c.uuid)) || []);
 
 			const allPreselected = new Set([...savedKeys, ...lockedKeysFromConnections]);
 			selectedKeys = Array.from(allPreselected);
@@ -409,7 +454,7 @@
 		if (apiResponse) {
 			apiResponse = {
 				...apiResponse,
-				trenches: selectedTrenches
+				trenches: selectedTrenches as unknown as TrenchesNearNodeTrench[]
 			};
 		}
 
@@ -448,63 +493,67 @@
 					parsedData = parseDehydratedResponse(parsedData);
 				}
 
-				const connections = parsedData;
-				const connectionEdges =
-					connections
-						?.map((conn: any) => {
-							const sourceNode = nodes.find(
-								(n) =>
-									n.data?.trench?.uuid === conn.uuid_trench_from.id &&
-									n.data?.conduit?.microducts?.some(
-										(m: any) => m.uuid === conn.uuid_microduct_from.uuid
-									)
+				const connections = (parsedData || []) as SavedConnection[];
+				const connectionEdges = connections
+					.map((conn): Edge | null => {
+						const sourceNode = nodes.find((n) => {
+							const d = nodeData(n);
+							return (
+								d.trench?.uuid === conn.uuid_trench_from?.id &&
+								d.conduit?.microducts?.some((m) => m.uuid === conn.uuid_microduct_from?.uuid)
 							);
-							const targetNode = nodes.find(
-								(n) =>
-									n.data?.trench?.uuid === conn.uuid_trench_to.id &&
-									n.data?.conduit?.microducts?.some(
-										(m: any) => m.uuid === conn.uuid_microduct_to.uuid
-									)
+						});
+						const targetNode = nodes.find((n) => {
+							const d = nodeData(n);
+							return (
+								d.trench?.uuid === conn.uuid_trench_to?.id &&
+								d.conduit?.microducts?.some((m) => m.uuid === conn.uuid_microduct_to?.uuid)
 							);
+						});
 
-							if (!sourceNode || !targetNode) return null;
+						if (!sourceNode || !targetNode) return null;
 
-							const sourceMicroduct = sourceNode.data.conduit.microducts.find(
-								(m: any) => m.uuid === conn.uuid_microduct_from.uuid
-							);
-							const targetMicroduct = targetNode.data.conduit.microducts.find(
-								(m: any) => m.uuid === conn.uuid_microduct_to.uuid
-							);
+						const sourceConduit = nodeData(sourceNode).conduit;
+						const targetConduit = nodeData(targetNode).conduit;
+						const sourceMicroduct = sourceConduit?.microducts.find(
+							(m) => m.uuid === conn.uuid_microduct_from?.uuid
+						);
+						const targetMicroduct = targetConduit?.microducts.find(
+							(m) => m.uuid === conn.uuid_microduct_to?.uuid
+						);
+						if (!sourceConduit || !targetConduit || !sourceMicroduct || !targetMicroduct) {
+							return null;
+						}
 
-							const sourceHandleId = `conduit-${sourceNode.data.conduit.uuid}-microduct-${sourceMicroduct.number}-source`;
-							const targetHandleId = `conduit-${targetNode.data.conduit.uuid}-microduct-${targetMicroduct.number}-target`;
+						const sourceHandleId = `conduit-${sourceConduit.uuid}-microduct-${sourceMicroduct.number}-source`;
+						const targetHandleId = `conduit-${targetConduit.uuid}-microduct-${targetMicroduct.number}-target`;
 
-							return {
-								id: `connection-${conn.uuid}`,
-								type: 'pipeBranchEdge',
-								source: sourceNode.id,
-								target: targetNode.id,
-								sourceHandle: sourceHandleId,
-								targetHandle: targetHandleId,
-								zIndex: 10,
-								data: {
-									uuid: conn.uuid,
-									sourceHandleData: {
-										microductUuid: sourceMicroduct.uuid,
-										microductNumber: sourceMicroduct.number,
-										conduitName: sourceNode.data.conduit.name,
-										conduitUuid: sourceNode.data.conduit.uuid
-									},
-									targetHandleData: {
-										microductUuid: targetMicroduct.uuid,
-										microductNumber: targetMicroduct.number,
-										conduitName: targetNode.data.conduit.name,
-										conduitUuid: targetNode.data.conduit.uuid
-									}
+						return {
+							id: `connection-${conn.uuid}`,
+							type: 'pipeBranchEdge',
+							source: sourceNode.id,
+							target: targetNode.id,
+							sourceHandle: sourceHandleId,
+							targetHandle: targetHandleId,
+							zIndex: 10,
+							data: {
+								uuid: conn.uuid,
+								sourceHandleData: {
+									microductUuid: sourceMicroduct.uuid,
+									microductNumber: sourceMicroduct.number,
+									conduitName: sourceConduit.name,
+									conduitUuid: sourceConduit.uuid
+								},
+								targetHandleData: {
+									microductUuid: targetMicroduct.uuid,
+									microductNumber: targetMicroduct.number,
+									conduitName: targetConduit.name,
+									conduitUuid: targetConduit.uuid
 								}
-							};
-						})
-						.filter(Boolean) || [];
+							}
+						};
+					})
+					.filter((e): e is Edge => e !== null);
 
 				edges = connectionEdges;
 			} else {
@@ -558,8 +607,8 @@
 
 		edges.forEach((edge, index) => {
 			if (edge.id.startsWith('xy-edge__') && (!edge.data || Object.keys(edge.data).length === 0)) {
-				const sourceHandleData = getHandleData(edge.source, edge.sourceHandle);
-				const targetHandleData = getHandleData(edge.target, edge.targetHandle);
+				const sourceHandleData = getHandleData(edge.source, edge.sourceHandle ?? '');
+				const targetHandleData = getHandleData(edge.target, edge.targetHandle ?? '');
 
 				if (sourceHandleData.microductUuid && targetHandleData.microductUuid) {
 					const updatedEdges = [...edges];
@@ -574,24 +623,26 @@
 					};
 					edges = updatedEdges;
 
-					const sourceMicroductUuid = getMicroductUuid(edge.source, edge.sourceHandle);
-					const targetMicroductUuid = getMicroductUuid(edge.target, edge.targetHandle);
+					const sourceMicroductUuid = getMicroductUuid(edge.source, edge.sourceHandle ?? '');
+					const targetMicroductUuid = getMicroductUuid(edge.target, edge.targetHandle ?? '');
 					const nodeUuid = apiResponse?.node_uuid;
 
 					if (sourceMicroductUuid && targetMicroductUuid && nodeUuid) {
 						const sourceNode = nodes.find((n) => n.id === edge.source);
 						const targetNode = nodes.find((n) => n.id === edge.target);
-						const sourceTrenchUuid = sourceNode?.data?.trench?.uuid;
-						const targetTrenchUuid = targetNode?.data?.trench?.uuid;
+						const sourceTrenchUuid = nodeData(sourceNode).trench?.uuid;
+						const targetTrenchUuid = nodeData(targetNode).trench?.uuid;
 
-						saveConnection(
-							edge,
-							sourceMicroductUuid,
-							targetMicroductUuid,
-							nodeUuid,
-							sourceTrenchUuid,
-							targetTrenchUuid
-						);
+						if (sourceTrenchUuid && targetTrenchUuid) {
+							saveConnection(
+								edge,
+								sourceMicroductUuid,
+								targetMicroductUuid,
+								nodeUuid,
+								sourceTrenchUuid,
+								targetTrenchUuid
+							);
+						}
 					}
 				}
 			}
@@ -739,8 +790,8 @@
 	 */
 	function edgeExists(sourceMicroductUuid: string, targetMicroductUuid: string): boolean {
 		return edges.some((edge) => {
-			const sourceData = edge.data?.sourceHandleData;
-			const targetData = edge.data?.targetHandleData;
+			const sourceData = edge.data?.sourceHandleData as HandleData | undefined;
+			const targetData = edge.data?.targetHandleData as HandleData | undefined;
 			return (
 				(sourceData?.microductUuid === sourceMicroductUuid &&
 					targetData?.microductUuid === targetMicroductUuid) ||
@@ -776,19 +827,21 @@
 			return;
 		}
 
-		const sourceMicroducts = sourceNode.data?.conduit?.microducts || [];
-		const targetMicroducts = targetNode.data?.conduit?.microducts || [];
+		const sourceConduit = nodeData(sourceNode).conduit;
+		const targetConduit = nodeData(targetNode).conduit;
+		const sourceMicroducts = sourceConduit?.microducts || [];
+		const targetMicroducts = targetConduit?.microducts || [];
 
-		const connections: any[] = [];
+		const connections: PendingConnection[] = [];
 		for (const sourceMd of sourceMicroducts) {
-			const targetMd = targetMicroducts.find((t: any) => t.number === sourceMd.number);
-			if (targetMd) {
+			const targetMd = targetMicroducts.find((t) => t.number === sourceMd.number);
+			if (targetMd && sourceConduit && targetConduit) {
 				if (!edgeExists(sourceMd.uuid, targetMd.uuid)) {
 					connections.push({
 						source: sourceNode.id,
 						target: targetNode.id,
-						sourceHandle: `conduit-${sourceNode.data.conduit.uuid}-microduct-${sourceMd.number}-source`,
-						targetHandle: `conduit-${targetNode.data.conduit.uuid}-microduct-${targetMd.number}-target`,
+						sourceHandle: `conduit-${sourceConduit.uuid}-microduct-${sourceMd.number}-source`,
+						targetHandle: `conduit-${targetConduit.uuid}-microduct-${targetMd.number}-target`,
 						sourceMicroduct: sourceMd,
 						targetMicroduct: targetMd
 					});
@@ -822,14 +875,14 @@
 						sourceHandleData: {
 							microductUuid: conn.sourceMicroduct.uuid,
 							microductNumber: conn.sourceMicroduct.number,
-							conduitName: sourceNode.data.conduit.name,
-							conduitUuid: sourceNode.data.conduit.uuid
+							conduitName: sourceConduit?.name,
+							conduitUuid: sourceConduit?.uuid
 						},
 						targetHandleData: {
 							microductUuid: conn.targetMicroduct.uuid,
 							microductNumber: conn.targetMicroduct.number,
-							conduitName: targetNode.data.conduit.name,
-							conduitUuid: targetNode.data.conduit.uuid
+							conduitName: targetConduit?.name,
+							conduitUuid: targetConduit?.uuid
 						}
 					}
 				};
@@ -839,9 +892,9 @@
 				const formData = new FormData();
 				formData.append('uuid_microduct_from', conn.sourceMicroduct.uuid);
 				formData.append('uuid_microduct_to', conn.targetMicroduct.uuid);
-				formData.append('uuid_node', apiResponse?.node_uuid);
-				formData.append('uuid_trench_from', sourceNode.data.trench.uuid);
-				formData.append('uuid_trench_to', targetNode.data.trench.uuid);
+				formData.append('uuid_node', apiResponse?.node_uuid ?? '');
+				formData.append('uuid_trench_from', nodeData(sourceNode).trench?.uuid ?? '');
+				formData.append('uuid_trench_to', nodeData(targetNode).trench?.uuid ?? '');
 
 				const response = await fetch('?/createConnection', {
 					method: 'POST',
