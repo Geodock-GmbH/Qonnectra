@@ -16,6 +16,7 @@
 
 	import MessageBox from '$lib/components/MessageBox.svelte';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { actionData } from '$lib/utils/forms';
 	import { saveFile } from '$lib/utils/saveFile';
 
 	import PipelineRecordForm from '../PipelineRecordForm.svelte';
@@ -37,10 +38,10 @@
 	 * Snapshots the initial page data so form fields aren't clobbered on refresh.
 	 * @returns The page data object at mount time.
 	 */
-	function getInitialData(): any {
+	function getInitialData(): PageData {
 		return data;
 	}
-	const initialData = getInitialData() as any;
+	const initialData = getInitialData();
 	const initialRecord = initialData.record;
 
 	/**
@@ -50,10 +51,13 @@
 	 * @param label - The display string from the record.
 	 * @returns The matching option value, or '' when none matches.
 	 */
-	function resolveOptionValue(options: Array<{ value: any; label: string }>, label: string): any {
+	function resolveOptionValue(
+		options: Array<{ value: string | number; label: string }>,
+		label: string
+	): string {
 		if (!label) return '';
 		const match = (options || []).find((o) => o.label === label);
-		return match ? match.value : '';
+		return match ? String(match.value) : '';
 	}
 
 	let projectId = $state(
@@ -70,7 +74,7 @@
 	let tel = $state(initialRecord?.tel || '');
 	let mobile = $state(initialRecord?.mobile || '');
 
-	let deleteMessageBox = $state<any>(null);
+	let deleteMessageBox = $state<ReturnType<typeof MessageBox> | null>(null);
 
 	/** Submits the current form values to the update action. */
 	async function handleSave() {
@@ -99,11 +103,15 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: (result as any).data?.message || m.message_pipeline_record_update_failed()
+					description:
+						(actionData(result)?.message as string) || m.message_pipeline_record_update_failed()
 				});
 			}
-		} catch (err: any) {
-			globalToaster.error({ title: m.common_error(), description: err.message });
+		} catch (err) {
+			globalToaster.error({
+				title: m.common_error(),
+				description: err instanceof Error ? err.message : String(err)
+			});
 		} finally {
 			isSaving = false;
 		}
@@ -139,8 +147,11 @@
 				title: m.title_success(),
 				description: m.message_inquiry_export_success()
 			});
-		} catch (err: any) {
-			globalToaster.error({ title: m.common_error(), description: err.message });
+		} catch (err) {
+			globalToaster.error({
+				title: m.common_error(),
+				description: err instanceof Error ? err.message : String(err)
+			});
 		} finally {
 			isExporting = false;
 		}
@@ -161,11 +172,15 @@
 			} else {
 				globalToaster.error({
 					title: m.common_error(),
-					description: (result as any).data?.message || m.message_pipeline_record_delete_failed()
+					description:
+						(actionData(result)?.message as string) || m.message_pipeline_record_delete_failed()
 				});
 			}
-		} catch (err: any) {
-			globalToaster.error({ title: m.common_error(), description: err.message });
+		} catch (err) {
+			globalToaster.error({
+				title: m.common_error(),
+				description: err instanceof Error ? err.message : String(err)
+			});
 		} finally {
 			isDeleting = false;
 		}
