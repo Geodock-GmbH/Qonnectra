@@ -1,5 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import type { ActionResult } from '@sveltejs/kit';
+	import type { RawConduit } from '$lib/classes/ConduitState.svelte';
 	import { setContext } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { goto, invalidate } from '$app/navigation';
@@ -14,6 +16,7 @@
 	import SearchInput from '$lib/components/SearchInput.svelte';
 	import { selectedProject } from '$lib/stores/store';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { actionData } from '$lib/utils/forms';
 
 	import PipeModal from './PipeModal.svelte';
 	import PipeTable from './PipeTable.svelte';
@@ -70,7 +73,7 @@
 	}
 
 	// Handler for conduit update from drawer
-	function handleConduitUpdate(updatedConduit: any) {
+	function handleConduitUpdate(updatedConduit: RawConduit) {
 		conduitState.updateConduit(updatedConduit);
 	}
 
@@ -80,7 +83,7 @@
 	}
 
 	// Handler for new conduit from modal
-	function handleConduitCreate(newConduit: any) {
+	function handleConduitCreate(newConduit: RawConduit | null) {
 		if (newConduit) {
 			conduitState.addConduit(newConduit);
 		}
@@ -99,39 +102,50 @@
 	 * Enhance callback for upload form - handles success/failure responses
 	 */
 	function handleUploadSubmit() {
-		return async ({ result }: { result: any }) => {
+		return async ({ result }: { result: ActionResult }) => {
 			isUploading = false;
 
-			if (result.type === 'success' && result.data?.uploadSuccess) {
+			const uploadData = actionData(result) as
+				| {
+						uploadSuccess?: boolean;
+						warnings?: string[];
+						message?: string;
+						createdCount?: number;
+				  }
+				| undefined;
+
+			if (result.type === 'success' && uploadData?.uploadSuccess) {
 				// Show warnings if present
-				if (result.data.warnings?.length > 0) {
+				if (uploadData.warnings && uploadData.warnings.length > 0) {
 					globalToaster.warning({
 						title: m.common_warning(),
-						description: result.data.warnings.join('\n')
+						description: uploadData.warnings.join('\n')
 					});
 				}
 
 				globalToaster.success({
 					title: m.title_import_conduits_success(),
 					description:
-						result.data.message ||
-						m.message_import_conduits_success_description({ count: result.data.createdCount || 0 })
+						uploadData.message ||
+						m.message_import_conduits_success_description({ count: uploadData.createdCount || 0 })
 				});
 
 				// Refresh data without full page reload
 				await invalidate('app:conduits');
 			} else if (result.type === 'failure') {
-				const data = result.data;
-				let errorMessage = m.message_please_try_again();
+				const data = result.data as
+					| { errors?: string[]; message?: string; warnings?: string[] }
+					| undefined;
+				let errorMessage: string = m.message_please_try_again();
 
-				if (data?.errors?.length > 0) {
+				if (data?.errors && data.errors.length > 0) {
 					errorMessage = data.errors.join('\n');
 				} else if (data?.message) {
 					errorMessage = data.message;
 				}
 
 				// Show warnings if present
-				if (data?.warnings?.length > 0) {
+				if (data?.warnings && data.warnings.length > 0) {
 					globalToaster.warning({
 						title: m.common_warning(),
 						description: data.warnings.join('\n')

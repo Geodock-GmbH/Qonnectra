@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { RawConduit } from '$lib/classes/ConduitState.svelte';
 	import type { AttributeOptions, ConduitDrawerProps, FkRef } from '$lib/types/attributeCardTypes';
 	import { getContext } from 'svelte';
 	import { deserialize } from '$app/forms';
@@ -41,7 +42,7 @@
 		onConduitUpdate,
 		onConduitDelete
 	}: {
-		onConduitUpdate?: (conduit: unknown) => void;
+		onConduitUpdate?: (conduit: RawConduit) => void;
 		onConduitDelete?: (conduitId: string) => void;
 	} = $props();
 
@@ -102,7 +103,7 @@
 			// Update drawer title and notify parent
 			if (onConduitUpdate && result.type === 'success' && result.data?.conduit) {
 				drawerStore.setTitle(conduitName);
-				onConduitUpdate(result.data.conduit);
+				onConduitUpdate(result.data.conduit as RawConduit);
 			}
 		} catch (error) {
 			console.error('Error updating conduit:', error);

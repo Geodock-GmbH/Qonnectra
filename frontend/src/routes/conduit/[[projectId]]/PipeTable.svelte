@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { FormattedConduit, RawConduit } from '$lib/classes/ConduitState.svelte';
 	import { deserialize } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { Pagination } from '@skeletonlabs/skeleton-svelte';
@@ -14,9 +15,13 @@
 
 	import { drawerStore } from '$lib/stores/drawer';
 	import { globalToaster } from '$lib/stores/toaster';
+	import { actionData } from '$lib/utils/forms';
 	import { logToBackendClient } from '$lib/utils/logToBackendClient';
 
 	import ConduitDrawerTabs from './ConduitDrawerTabs.svelte';
+
+	/** A conduit list row, accessed by dynamic column key. */
+	type PipeRow = FormattedConduit;
 
 	let {
 		pipes,
@@ -24,9 +29,9 @@
 		onConduitUpdate = () => {},
 		onConduitDelete = () => {}
 	}: {
-		pipes: Record<string, any>[];
+		pipes: PipeRow[];
 		pagination: { totalCount: number; pageSize: number; page: number };
-		onConduitUpdate?: (conduit: any) => void;
+		onConduitUpdate?: (conduit: RawConduit) => void;
 		onConduitDelete?: (conduitId: string) => void;
 	} = $props();
 
@@ -98,7 +103,7 @@
 
 	// Apply filters to pipes
 	const filteredPipes = $derived.by(() => {
-		return pipes.filter((pipe: Record<string, any>) => {
+		return pipes.filter((pipe: PipeRow) => {
 			return Object.entries(filters).every(([key, filterValue]) => {
 				if (!filterValue) return true;
 				const cellValue = String(pipe[key] || '').toLowerCase();
@@ -114,15 +119,17 @@
 		const column = columnConfig.find((c) => c.key === currentSortColumn);
 
 		return [...filteredPipes].sort((a, b) => {
-			let aVal = a[currentSortColumn] ?? '';
-			let bVal = b[currentSortColumn] ?? '';
+			let aVal: string | number = '';
+			let bVal: string | number = '';
+			const aRaw = a[currentSortColumn];
+			const bRaw = b[currentSortColumn];
 
 			if (column?.sortType === 'date') {
-				aVal = aVal ? new Date(aVal).getTime() : 0;
-				bVal = bVal ? new Date(bVal).getTime() : 0;
+				aVal = aRaw ? new Date(String(aRaw)).getTime() : 0;
+				bVal = bRaw ? new Date(String(bRaw)).getTime() : 0;
 			} else {
-				aVal = String(aVal).toLowerCase();
-				bVal = String(bVal).toLowerCase();
+				aVal = String(aRaw ?? '').toLowerCase();
+				bVal = String(bRaw ?? '').toLowerCase();
 			}
 
 			if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
@@ -135,7 +142,7 @@
 		if (!mobileSearchTerm) return sortedPipes;
 
 		const term = mobileSearchTerm.toLowerCase();
-		return sortedPipes.filter((pipe: Record<string, any>) => {
+		return sortedPipes.filter((pipe: PipeRow) => {
 			return Object.values(pipe).some((value) =>
 				String(value || '')
 					.toLowerCase()
@@ -144,10 +151,10 @@
 		});
 	});
 
-	async function handleRowClick(pipe: Record<string, any>) {
+	async function handleRowClick(pipe: PipeRow) {
 		// Fetch full conduit details via server action
 		const formData = new FormData();
-		formData.append('uuid', pipe.value);
+		formData.append('uuid', String(pipe.value ?? ''));
 
 		try {
 			const response = await fetch('?/getConduit', {
@@ -165,7 +172,7 @@
 				return;
 			}
 
-			const conduitData = (result as any).data?.conduit;
+			const conduitData = actionData(result)?.conduit as RawConduit | undefined;
 
 			// Open drawer with conduit details
 			drawerStore.open({
@@ -173,9 +180,9 @@
 				component: ConduitDrawerTabs,
 				props: {
 					...conduitData,
-					onConduitUpdate: (updatedConduit: any) => {
+					onConduitUpdate: (updatedConduit: RawConduit) => {
 						onConduitUpdate(updatedConduit);
-						drawerStore.setTitle(updatedConduit.name);
+						drawerStore.setTitle(updatedConduit.name ?? '');
 					},
 					onConduitDelete: (conduitId: string) => {
 						onConduitDelete(conduitId);

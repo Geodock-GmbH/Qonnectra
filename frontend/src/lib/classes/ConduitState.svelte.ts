@@ -25,7 +25,7 @@ interface FlagRef {
 	[key: string]: unknown;
 }
 
-interface RawConduit {
+export interface RawConduit {
 	uuid: string;
 	name: string;
 	conduit_type?: ConduitTypeRef | null;
@@ -40,7 +40,7 @@ interface RawConduit {
 	[key: string]: unknown;
 }
 
-interface FormattedConduit {
+export interface FormattedConduit {
 	value: string;
 	name: string;
 	conduit_type: string;
@@ -52,6 +52,7 @@ interface FormattedConduit {
 	manufacturer: string;
 	date: string | null | undefined;
 	flag: string;
+	[key: string]: unknown;
 }
 
 interface ConduitInitialData {
