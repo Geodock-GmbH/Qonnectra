@@ -78,10 +78,10 @@
 
 	const areas = $derived($globalMapView && globalAreas ? globalAreas : projectAreas);
 	const rates = $derived($globalMapView && globalRates ? globalRates : projectRates);
-	const nodeTypes = $derived((data.nodeTypes ?? []) as unknown[]);
-	const surfaces = $derived((data.surfaces ?? []) as unknown[]);
-	const constructionTypes = $derived((data.constructionTypes ?? []) as unknown[]);
-	const areaTypes = $derived((data.areaTypes ?? []) as unknown[]);
+	const nodeTypes = $derived(data.nodeTypes ?? []);
+	const surfaces = $derived(data.surfaces ?? []);
+	const constructionTypes = $derived(data.constructionTypes ?? []);
+	const areaTypes = $derived(data.areaTypes ?? []);
 
 	function unitLabel(unit: string): string {
 		return unit === 'per_meter' ? m.valuation_unit_per_meter() : m.valuation_unit_per_piece();

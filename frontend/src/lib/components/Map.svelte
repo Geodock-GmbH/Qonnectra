@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { AreaType, ConstructionType, NodeType, Surface } from '$lib/types/mapLayers';
 	import type Feature from 'ol/Feature';
 	import type BaseLayer from 'ol/layer/Base';
 	import type TileLayer from 'ol/layer/Tile';
@@ -85,10 +86,10 @@
 		onFeatureSelect?: (feature: Feature) => void;
 		onSearchError?: (error: Error | string) => void;
 		searchPanelProps?: any;
-		nodeTypes?: any[];
-		surfaces?: any[];
-		constructionTypes?: any[];
-		areaTypes?: any[];
+		nodeTypes?: NodeType[];
+		surfaces?: Surface[];
+		constructionTypes?: ConstructionType[];
+		areaTypes?: AreaType[];
 		projectId?: string;
 		variant?: MapVariant;
 		onready?: (info: { map: OlMap; usingFallbackOSM: boolean }) => void;

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { AreaType, ConstructionType, NodeType, Surface } from '$lib/types/mapLayers';
 	import type { WMSLayer, WMSSource } from '$lib/utils/wmsApi';
 	import type BaseLayer from 'ol/layer/Base';
 	import {
@@ -47,27 +48,12 @@
 		onChange: (value: number) => void;
 	}
 
-	interface NodeType {
-		node_type: string;
-	}
-
-	interface TrenchType {
-		id: number | string;
-		surface?: string;
-		construction_type?: string;
-	}
-
-	interface AreaType {
-		id: number | string;
-		area_type: string;
-	}
-
 	interface Props {
 		layers?: BaseLayer[];
 		osmLayer?: BaseLayer | null;
 		nodeTypes?: NodeType[];
-		surfaces?: TrenchType[];
-		constructionTypes?: TrenchType[];
+		surfaces?: Surface[];
+		constructionTypes?: ConstructionType[];
 		areaTypes?: AreaType[];
 		usingFallbackOSM?: boolean;
 		wmsSources?: WMSSource[];
