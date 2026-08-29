@@ -17,7 +17,7 @@
 
 	let { onHighlightChange }: Props = $props();
 
-	let featureId = $derived($drawerStore.props?.featureId);
+	let featureId = $derived($drawerStore.props?.featureId as string | undefined);
 
 	const dataManager = new ConduitDataManager();
 

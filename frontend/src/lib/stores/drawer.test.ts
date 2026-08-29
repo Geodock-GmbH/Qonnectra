@@ -1,10 +1,14 @@
 // @vitest-environment jsdom
+import type { DrawerComponent } from './drawer';
 import { get } from 'svelte/store';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { drawerWidth } from '$lib/stores/store';
 
 import { drawerStore } from './drawer';
+
+/** A stand-in for a Svelte component; the store only stores it, never renders it. */
+const fakeComponent = (name: string) => ({ name }) as unknown as DrawerComponent;
 
 vi.mock('$app/environment', () => ({
 	browser: true
@@ -30,7 +34,7 @@ describe('drawerStore', () => {
 	});
 
 	test('should open with the given content and explicit width', () => {
-		const component = { name: 'FakeComponent' };
+		const component = fakeComponent('FakeComponent');
 
 		drawerStore.open({ title: 'Details', component, props: { id: 7 }, width: 550 });
 
@@ -60,7 +64,7 @@ describe('drawerStore', () => {
 	});
 
 	test('should swap the component and its props', () => {
-		const component = { name: 'Swapped' };
+		const component = fakeComponent('Swapped');
 
 		drawerStore.setComponent(component, { a: 1 });
 

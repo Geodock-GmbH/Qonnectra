@@ -226,7 +226,7 @@
 
 	let previousFeatureId = $state<string | null>(null);
 	$effect(() => {
-		const currentFeatureId = $drawerStore.props?.featureId;
+		const currentFeatureId = ($drawerStore.props?.featureId as string | null) ?? null;
 		const isOpen = $drawerStore.open;
 
 		if (!isOpen || (currentFeatureId !== previousFeatureId && previousFeatureId !== null)) {
