@@ -1,6 +1,10 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import type { EdgeTypes, NodeTypes } from '@xyflow/svelte';
+	import type {
+		EdgeLabelData,
+		NetworkSchemaInitData
+	} from '$lib/classes/NetworkSchemaState.svelte';
 	import { page } from '$app/stores';
 	import { Background, ConnectionMode, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
 	import { Switch } from '@skeletonlabs/skeleton-svelte';
@@ -58,7 +62,7 @@
 
 	$effect(() => {
 		schemaState.isChildView = false;
-		schemaState.initialize(data as any);
+		schemaState.initialize(data as unknown as NetworkSchemaInitData);
 	});
 
 	const attributeOptions = $derived({
@@ -168,10 +172,11 @@
 
 		await cablePathManager.updatePath(
 			edgeId,
-			waypoints as any,
+			waypoints as { x: number; y: number }[],
 			temporary,
 			save,
-			(edgeId: any, updates: any) => {
+			(edgeId, updates) => {
+				const cableUpdate = (updates.data as { cable?: Record<string, unknown> })?.cable ?? {};
 				schemaState.edges = schemaState.edges.map((edge) => {
 					if (edge.id === edgeId) {
 						return {
@@ -180,7 +185,7 @@
 								...edge.data,
 								cable: {
 									...edge.data.cable,
-									...updates.data.cable
+									...cableUpdate
 								}
 							}
 						};
@@ -199,10 +204,10 @@
 	) {
 		const { cableId, handleStart, handleEnd } = event.detail;
 		cablePathManager.updateHandles(
-			cableId as any,
-			handleStart as any,
-			handleEnd as any,
-			(cableId: any, handleStart: any, handleEnd: any) => {
+			cableId,
+			String(handleStart),
+			String(handleEnd),
+			(cableId, handleStart, handleEnd) => {
 				schemaState.updateCableHandles(cableId, handleStart, handleEnd);
 			}
 		);
@@ -227,7 +232,7 @@
 	 */
 	function handleCableLabelDataUpdate(event: CustomEvent<{ edgeId: string; labelData: unknown }>) {
 		const { edgeId, labelData } = event.detail;
-		schemaState.updateEdgeLabelData(edgeId, labelData as any);
+		schemaState.updateEdgeLabelData(edgeId, labelData as EdgeLabelData);
 	}
 
 	$effect(() => {
@@ -321,7 +326,7 @@
 								bind:value={schemaState.selectedCableType}
 								defaultValue={schemaState.selectedCableType}
 								placeholder={m.placeholder_select_cable_type()}
-								onValueChange={(e: { value: any }) => {
+								onValueChange={(e) => {
 									schemaState.selectedCableType = e.value;
 								}}
 								contentBase="preset-filled-surface-50-950 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 shadow-lg"

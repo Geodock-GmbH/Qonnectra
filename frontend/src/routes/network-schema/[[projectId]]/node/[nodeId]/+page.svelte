@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { EdgeTypes, NodeTypes } from '@xyflow/svelte';
+	import type { NetworkSchemaInitData } from '$lib/classes/NetworkSchemaState.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { Background, ConnectionMode, Controls, Panel, SvelteFlow } from '@xyflow/svelte';
@@ -58,7 +59,7 @@
 
 	$effect(() => {
 		schemaState.isChildView = true;
-		schemaState.initialize(data as any);
+		schemaState.initialize(data as unknown as NetworkSchemaInitData);
 		schemaState.parentNodeContext = data.parentNodeId;
 	});
 
@@ -265,7 +266,7 @@
 								bind:value={schemaState.selectedCableType}
 								defaultValue={schemaState.selectedCableType}
 								placeholder={m.placeholder_select_cable_type()}
-								onValueChange={(e: { value: any }) => {
+								onValueChange={(e) => {
 									schemaState.selectedCableType = e.value;
 								}}
 								contentBase="preset-filled-surface-50-950 max-h-60 overflow-auto touch-manipulation rounded-md border border-surface-200-800 shadow-lg"
