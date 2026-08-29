@@ -153,6 +153,48 @@ export interface FiberPathNode {
  */
 export type FiberWaypoint = FiberPathNode & { fiber: FiberInfo };
 
+/** A signal break point along a fiber path. */
+export interface BreakPoint {
+	cable_id?: string;
+	cable_name?: string;
+	fiber_id?: string;
+	fiber_number_absolute?: number;
+	status?: string;
+	at_node?: EndpointNode;
+}
+
+/** A selectable signal source (cable start/end). */
+export interface SignalSource {
+	id: string;
+	name: string;
+	direction: string;
+	is_default: boolean;
+}
+
+/** Signal-propagation analysis over a fiber trace. */
+export interface SignalAnalysisData {
+	total_breaks?: number;
+	break_points?: BreakPoint[];
+	available_sources?: SignalSource[];
+	source_node?: EndpointNode;
+}
+
+/** Counts of lit/dark entities affected by a signal analysis. */
+export interface AffectedSummary {
+	lit_fibers?: number;
+	dark_fibers?: number;
+	lit_nodes?: number;
+	dark_nodes?: number;
+	affected_addresses?: number;
+	affected_residential_units?: number;
+}
+
+/** A trace result carrying signal-analysis data. */
+export interface SignalAnalysisResult extends TraceResult {
+	signal_analysis?: SignalAnalysisData;
+	affected_summary?: AffectedSummary;
+}
+
 /** Aggregate counts shown in the trace results summary. */
 export interface TraceStatistics {
 	total_fibers?: number;
